@@ -1,0 +1,34 @@
+{
+  "name": "revengine",
+  "version": "0.0.1",
+  "private": true,
+  "description": "revengine",
+  "main": "index.js",
+  "prettier": "eslint-config-vinta/prettier",
+  "scripts": {
+    "test": "jest",
+    "dev": "webpack -w --progress --config  webpack.local.config.js",
+    "build": "NODE_ENV=production ./node_modules/.bin/webpack --progress --config webpack.prod.config.js --bail",
+    "build-test": "NODE_ENV=development ./node_modules/.bin/webpack --progress --config webpack.local.config.js --bail",
+    "coverage": "jest --coverage"
+  },
+  "dependencies": {
+    "@babel/core": "^7.12.10",
+    "@babel/preset-env": "^7.12.11",
+    "@sentry/webpack-plugin": "^1.14.0",
+    "autoprefixer": "^9.7.6",
+    "babel-loader": "^8.2.2",
+    "jquery": "^3.5.1",
+    "postcss": "^8.1.14",
+    "postcss-cli": "^8.3.1",
+    "webpack": "~5.14.0",
+    "webpack-bundle-tracker": "^0.4.3",
+    "webpack-cli": "^4.3.1",
+    "webpack-merge": "^5.7.3"
+  },
+  "babel": {
+    "presets": [
+      "@babel/preset-env"
+    ]
+  }
+}

@@ -1,0 +1,23 @@
+# base.in
+
+django
+dj-database-url
+django-compressor
+django-dotenv
+django_extensions
+django-model-utils
+django-redis
+django-storages
+django-taggit
+django-webpack-loader
+
+django-phonenumber-field
+django-honeypot
+whitenoise
+phonenumberslite
+
+celery
+django-celery-beat
+
+# Postgres
+psycopg2

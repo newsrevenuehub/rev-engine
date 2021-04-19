@@ -9,7 +9,6 @@ django-model-utils
 django-redis
 django-storages
 django-taggit
-django-webpack-loader
 
 django-phonenumber-field
 django-honeypot

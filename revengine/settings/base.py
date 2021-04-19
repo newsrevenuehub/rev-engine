@@ -37,7 +37,6 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
     "django_celery_beat",
-    "webpack_loader",
 ]
 
 
@@ -214,40 +213,12 @@ LOGGING = {
     },
 }
 
-
 # Base URL to use when referring to full URLs within the Wagtail admin backend -
 # e.g. in notification emails. Don't include '/admin' or a trailing slash
 BASE_URL = os.getenv("DOMAIN", "http://rev-engine.caktus-built.com")
 
-WEBPACK_LOADER = {
-    "DEFAULT": {
-        "CACHE": not DEBUG,
-        "BUNDLE_DIR_NAME": "bundles/",  # must end with slash
-        "STATS_FILE": os.path.join(BASE_DIR, "webpack-stats.json"),
-        "POLL_INTERVAL": 0.1,
-        "TIMEOUT": None,
-        "IGNORE": [r".+\.hot-update.js", r".+\.map"],
-    }
-}
-
-VIDEOJS_HERO_ID = "video-hero"
-
 PHONENUMBER_DB_FORMAT = "NATIONAL"
 PHONENUMBER_DEFAULT_FORMAT = "NATIONAL"
 PHONENUMBER_DEFAULT_REGION = "US"
-
-SEARCH_PAGE_SIZE = 10
-ADMINS = os.getenv(
-    "ADMINS",
-    [
-        (
-            "caktus-revengine-team",
-            "revengine-team@caktusgroup.com",
-        )
-    ],
-)
-
-GENERAL_INQUIRY_EMAIL_RECIPIENTS = [e[1] for e in ADMINS]
-EVENT_SIGNUP_FORM_SUBMISSION_RECIPIENTS = GENERAL_INQUIRY_EMAIL_RECIPIENTS
 
 DEFAULT_FROM_EMAIL = os.getenv("DEFAULT_FROM_EMAIL", "no-reply@rev-engine.caktus-built.com")

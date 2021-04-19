@@ -5,7 +5,7 @@
   ],
   "env": {
     "DJANGO_SETTINGS_MODULE": {
-      "value": "config.settings.deploy"
+      "value": "revengine.settings.deploy"
     },
     "DJANGO_SECRET_KEY": {
       "description": "Django's secret key",

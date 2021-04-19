@@ -1,0 +1,53 @@
+# Logs and local files
+.env
+.envrc
+*.db
+*.dump
+*.pgdump
+*.sql
+*.orig
+*.DS_Store
+npm-debug.log
+*/settings/local.py
+env-local.sh
+*/__pycache__/*
+*.pyc
+.postgres
+.python-version
+.vsls.json
+.idea/
+.coveragerc
+.direnv
+
+# Project Static Files
+node_modules/*
+static/*
+public/static/
+public/media/
+media/*
+webpack-stats.json
+revengine/static/bundles/main.js
+
+# Ansible
+deploy/roles/*
+.vault_pass
+*.retry
+deploy.log
+expose_vars.yaml
+aws_ec2.yml
+
+# Editor files
+.idea/*
+.vscode/*
+
+# Linter Cache
+.mypy_cache/*
+
+# Sphinx build directory
+/docs/_build/*
+
+#Testing
+.coverage
+coverage
+htmlcov/
+

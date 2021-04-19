@@ -1,0 +1,168 @@
+---
+# CI/CD Workflow for the revengine project.
+# Builds, tests and deploys the current branch to an EKS cluster.
+# This CI/CD configuration depends on some environment variables being set at the project level:
+#
+# ANSIBLE_VAULT_PASS: Allows ansible to decrypt secrets during the deploy job
+# AWS_ACCESS_KEY_ID: Provides key to the aws-cli orb
+# AWS_SECRET_ACCESS_KEY: Provides key to the aws-cli orb
+# AWS_DEFAULT_REGION: us-east-1
+
+version: 2.1
+
+
+commands:
+  restore_cache_cmd:
+    steps:
+      - restore_cache:
+          keys:
+              - v1-pip-dependencies-{{ checksum "requirements/dev/dev.txt" }}
+              # fallback to using the latest cache if no exact match is found
+              - v1-pip-dependencies-
+  save_cache_cmd:
+    steps:
+      - save_cache:
+          paths:
+            - "env"
+          key: v1-pip-dependencies-{{ checksum "requirements/dev/dev.txt" }}
+
+orbs:
+  docker: circleci/docker@1.0.1
+  slack: circleci/slack@3.4.2
+jobs:
+
+  deploy:
+    parameters:
+      environment:
+        default: "staging"
+        type: string
+    executor: docker/docker
+    working_directory: ~/revengine
+
+    steps:
+      - checkout
+      - restore_cache_cmd
+      - slack/notify:
+          message: ":deploying: ${CIRCLE_BRANCH} branch"
+          color: "#3346FF"
+          include_project_field: false
+          include_job_number_field: false
+          include_visit_job_action: false
+      - run:
+          name: Install Dependencies
+          command: |
+            python3 -m venv env
+            . env/bin/activate
+
+            pip install -r requirements/dev/dev.txt
+      - save_cache_cmd
+      - run:
+          name: Login
+          command: |
+            . env/bin/activate
+            inv aws.docker-login
+      - setup_remote_docker
+      - run:
+          name: Build Image
+          command: |
+            . env/bin/activate
+
+            inv deploy.install
+            inv "<< parameters.environment >>" project.build-deploy
+      - slack/status:
+          success_message: ":rocket: Deployed ${CIRCLE_BRANCH} branch. <${CIRCLE_BUILD_URL}|Deploy Status> :success:"
+          failure_message: ":sadpanda: Failed to deploy ${CIRCLE_BRANCH} branch. <${CIRCLE_BUILD_URL}|Deploy Status> :red_circle:"
+          include_project_field: false
+          include_job_number_field: false
+          include_visit_job_action: false
+
+  test:
+    executor: docker/docker
+    working_directory: ~/revengine
+    steps:
+      - checkout
+      - setup_remote_docker
+      - restore_cache_cmd
+      - run:
+          name: Which branch
+          command: |
+            echo "<< pipeline.git.branch >>"
+      - run:
+          name: install dependencies
+          command: |
+            python3 -m venv env
+            . env/bin/activate
+
+            pip install -r requirements/dev/dev.txt
+      - save_cache_cmd
+      - run:
+        # This step is necessary to do the merge check in the
+        # when condition below. Without it the local git cannot
+        # access the repo to complete the merge.
+          name: Fetch branches
+          command: |
+            git fetch
+            git config user.email "you@example.com"
+            git config user.name "Your Name"
+      - run:
+          name: Build docker images
+          command: |
+            . env/bin/activate
+
+            inv project.ci-build
+      - when:
+        # If this test is not being run on main or develop, then we should
+        # check to see if this branch will trigger a merge migration, and check
+        # pre-commit
+          condition:
+            and:
+              - not:
+                  equal: [ develop, << pipeline.git.branch >> ]
+              - not:
+                  equal: [ main, << pipeline.git.branch >> ]
+          steps:
+            - run:
+                name: Check migrations
+                command: |
+                  . env/bin/activate
+
+                  inv project.ci-run --command="git merge --no-ff --no-commit develop && python manage.py makemigrations --check --dry-run"
+            - run:
+                name: Run pre-commit
+                command: |
+                  . env/bin/activate
+
+                  inv project.ci-run --command='pre-commit run --all'
+      - run:
+          name: Run tests
+          command: |
+            . env/bin/activate
+
+            inv project.ci-run --command='pytest'
+      - slack/status:
+          success_message: ":caktus: ${CIRCLE_BRANCH} tests passed. <${CIRCLE_BUILD_URL}|Build> :successful:"
+          failure_message: ":sadcactus: ${CIRCLE_BRANCH} tests failed. <${CIRCLE_BUILD_URL}|Build> :failed:"
+          include_project_field: false
+          include_job_number_field: false
+          include_visit_job_action: false
+
+workflows:
+  version: 2
+  build_deploy:
+    jobs:
+      - test
+      - deploy:
+          requires:
+            - test
+          filters:
+            branches:
+              only:
+                - develop
+      - deploy:
+          environment: "production"
+          requires:
+            - test
+          filters:
+            branches:
+              only:
+                - main

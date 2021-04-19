@@ -1,0 +1,52 @@
+
+{% load render_bundle from webpack_loader %}
+<!DOCTYPE html>
+<html class="no-js" lang="en">
+<head>
+    <meta charset="utf-8" />
+    <title>
+        {% block title %}
+            {% if self.seo_title %}{{ self.seo_title }}{% else %}{{ self.title }}{% endif %}
+        {% endblock %}
+        {% block title_suffix %}
+            {% with self.get_site.site_name as site_name %}
+                {% if site_name %}- {{ site_name }}{% endif %}
+            {% endwith %}
+        {% endblock %}
+    </title>
+    <meta name="description" content="" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    {% if not debug %}
+        <script
+            src="https://browser.sentry-cdn.com/5.19.1/bundle.min.js"
+            integrity="sha384-ibWewy8LWP0FdvEBD3iLjNmbFkkh/FKtOz8GR9C8ZBWjDTbjbdIDpa4nc/AasWns"
+            crossorigin="anonymous">
+        </script>
+    {% endif %}
+
+    {# Global javascript #}
+    {% render_bundle 'main' %}
+
+    {# favicon #}
+<!--    <link rel="shortcut icon" href="{% static 'favicon.ico' %}" type="image/x-icon">-->
+
+    {# Base stylesheets #}
+    <link href="" rel="stylesheet" type="text/css" />
+
+
+    {% block extra_css %}
+    {% endblock %}
+</head>
+
+<body>
+
+    {% include 'includes/header.html' %}
+
+    {% block content %}{% endblock %}
+
+    {% include 'includes/footer.html' %}
+
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

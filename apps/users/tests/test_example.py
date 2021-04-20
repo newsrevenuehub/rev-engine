@@ -1,5 +1,11 @@
-# Sample test
+from django.contrib.auth import get_user_model
+
+import pytest
+
+
+pytestmark = pytest.mark.django_db
 
 
 def test_example():
-    assert 1 == 1
+    User = get_user_model()
+    assert User.objects.count() == 0

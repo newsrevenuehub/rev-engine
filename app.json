@@ -25,13 +25,5 @@
     }
   },
   "name": "rev-engine",
-  "environments": {
-    "review": {
-      "scripts": {
-        "postdeploy": "echo test"
-      }
-    }
-  },
-  "scripts": {},
   "stack": "container"
 }

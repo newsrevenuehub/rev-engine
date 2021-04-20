@@ -1,4 +1,5 @@
 import os
+from pathlib import Path
 
 from revengine.settings.base import *  # noqa: F403
 
@@ -31,6 +32,12 @@ EMAIL_PORT = os.getenv("EMAIL_PORT", default_smtp_port)
 EMAIL_SUBJECT_PREFIX = "[revengine %s] " % ENVIRONMENT.title()
 DEFAULT_FROM_EMAIL = f"noreply@{os.getenv('DOMAIN', os.environ)}"
 SERVER_EMAIL = DEFAULT_FROM_EMAIL
+
+### React SPA index.html
+
+FRONTEND_BUILD_DIR = Path(BASE_DIR) / "build"
+TEMPLATES[0]["DIRS"] = [FRONTEND_BUILD_DIR, os.path.join(PROJECT_DIR, "templates")]
+STATICFILES_DIRS = [os.path.join(PROJECT_DIR, "static"), str(FRONTEND_BUILD_DIR / "static")]
 
 ### HTTPS
 

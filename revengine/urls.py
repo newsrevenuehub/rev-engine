@@ -1,11 +1,16 @@
 from django.conf import settings
 from django.conf.urls import include
 from django.contrib import admin
-from django.urls import path
+from django.urls import path, re_path
+
+from .views import index
 
 
 urlpatterns = [
     path("admin/", admin.site.urls),
+    # React SPA:
+    path(r"", index, name="index"),  # for reverse()
+    re_path(r"^(?:.*)/?$", index, name="index-others"),
 ]
 
 

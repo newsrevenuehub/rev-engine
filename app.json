@@ -28,7 +28,7 @@
   "environments": {
     "review": {
       "scripts": {
-        "postdeploy": "./review-tasks.sh"
+        "postdeploy": "python manage.py bootstrap-review-app"
       }
     }
   },

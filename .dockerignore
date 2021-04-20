@@ -15,6 +15,7 @@ npm-debug.log
 .pytest_cache
 webpack-stats.json
 deploy/
+spa/build/
 revengine/settings/local.py
 **/*.DS_Store
 **/__pycache__

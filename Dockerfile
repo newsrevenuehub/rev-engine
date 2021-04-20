@@ -1,3 +1,14 @@
+FROM node:14-slim as static_files
+
+WORKDIR /code
+ENV PATH /code/node_modules/.bin:$PATH
+COPY ./spa/package.json ./spa/package-lock.json /code/
+RUN npm install --silent
+# COPY ./public /code/public/
+COPY ./spa /code/spa/
+WORKDIR /code/spa/
+RUN npm run build
+
 FROM python:3.9-slim as base
 
 # Install packages needed to run your application (not build deps):
@@ -46,6 +57,9 @@ WORKDIR /code/
 ADD . /code/
 
 FROM base AS deploy
+
+# Copy React SPA build into final image
+COPY --from=static_files /code/spa/build /code/build
 
 # Create a group and user to run our app
 ARG APP_USER=appuser

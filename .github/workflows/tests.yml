@@ -46,6 +46,8 @@ jobs:
       - name: Run tests
         run: |
            source venv/bin/activate
+           touch .env
            make run-tests
         env:
           DJANGO_SETTINGS_MODULE: revengine.settings.dev
+          DATABASE_URL: postgres://postgres:postgres@postgres:5432/postgres

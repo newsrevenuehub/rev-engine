@@ -44,7 +44,7 @@ The resources are called add-ons, and come with [different tiers and pricing](ht
 Set environment variables for Django to use.
 
 ```shell
-(rev-engine) $> heroku config:set -a rev-engine-test DJANGO_SETTINGS_MODULE=rev-engine.settings.deploy
+(rev-engine) $> heroku config:set -a rev-engine-test DJANGO_SETTINGS_MODULE=revengine.settings.deploy
 (rev-engine) $> heroku config:set -a rev-engine-test DJANGO_SECRET_KEY="$(pwgen -s 64 1 | tr -d '\n')"
 (rev-engine) $> heroku config:set -a rev-engine-test DOMAIN=rev-engine-test.herokuapp.com
 (rev-engine) $> heroku config:set -a rev-engine-test ALLOWED_HOSTS=rev-engine-test.herokuapp.com

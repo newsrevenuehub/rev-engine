@@ -220,3 +220,31 @@ local database.
 (revengine)$> heroku pg:backups:download --app rev-engine-test b001
 (revengine)$> pg_restore --verbose --clean --no-acl --no-owner latest.dump
 ```
+
+
+## Heroku Cheatsheat
+
+#### List running apps
+
+Lists the apps running on the connected account.
+
+NOTE: On this project, PRs will spawn apps that can be independently tested.  Each PR app has a clean database and a single user: `qatester@example.com` with password `qatester`.
+
+```shell
+(revengine)$> heroku apps
+
+=== Collaborated Apps
+rev-engine-nrh-45-infra-dfoxmw  daniel@fundjournalism.org
+rev-engine-test                 daniel@fundjournalism.org
+
+```
+
+#### Open a shell on an app
+
+```shell
+(revengine)$>  heroku run bash -a rev-engine-nrh-45-infra-dfoxmw
+
+Running bash on ⬢ rev-engine-nrh-45-infra-dfoxmw... up, run.2125 (Hobby)
+Running docker-entrypoint.sh
+bash-5.0$ 
+```

@@ -1,0 +1,16 @@
+version: "3.4"
+
+volumes:
+  dev_revengine_data: {}
+
+services:
+  db:
+    environment:
+      POSTGRES_HOST_AUTH_METHOD: trust
+      POSTGRES_DB: revengine
+      DATABASE_URL: postgres://postgres@127.0.01:54000/revengine
+    image: postgres:12-alpine
+    ports:
+      - "54000:5432"
+    volumes:
+      - dev_revengine_data:/var/lib/postgresql/data

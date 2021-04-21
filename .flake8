@@ -1,0 +1,14 @@
+# adapted from:
+# https://ljvmiranda921.github.io/notebook/2018/06/21/precommits-using-black-and-flake8/
+# https://github.com/psf/black/issues/429
+[flake8]
+max-line-length=100
+max-complexity = 18
+select = B,C,E,F,W,T4,B9
+exclude=migrations,docs,node_modules,revengine/settings
+ignore =
+    E2,    # missing whitespace after ','
+    W503,   # line break before binary operator
+    E501,
+    F841,   # Line too long
+    E741,   # Ambiguous variable

@@ -55,6 +55,9 @@ Set environment variables for Django to use.
 
 From your local version of the repository on the develop branch, push a commit.
 
+NOTE: Any push or merge to the `develop` branch will run a CI/CD workflow and deploy to the
+rev-engine-test app.
+
 ```shell
 (rev-engine) $> git push heroku develop
 ```

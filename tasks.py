@@ -51,19 +51,6 @@ def build_image(c, tag=None, dockerfile=None):
     c.config.tag = tag
 
 
-@invoke.task
-def start_dev_server(c):
-    """
-    Starts the spa and the django-server
-    :param c:
-    :return:
-    """
-    with c.cd("spa/"):
-        c.run("npm start &")
-    c.cd("../")
-    c.run("python manage.py runserver")
-
-
 @invoke.task()
 def up(c):
     """Brings up deployable image
@@ -88,7 +75,6 @@ image.add_task(stop, "stop")
 
 
 ns = invoke.Collection()
-ns.add_task(start_dev_server)
 ns.add_collection(image)
 
 ns.configure(

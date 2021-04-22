@@ -1,15 +1,16 @@
-from apps.pages import serializers
-from apps.pages.models import Benefit, BenefitTier, DonorBenefit, Page, Style, Template
 from rest_framework import viewsets
+
+from apps.pages import serializers
+from apps.pages.models import Benefit, BenefitTier, DonationPage, DonorBenefit, Style, Template
 
 
 class PageViewSet(viewsets.ModelViewSet):
-    queryset = Page.objects.all()
+    queryset = DonationPage.objects.all()
 
     def get_serializer_class(self):
         if self.action == "retrieve":
-            return serializers.PageDetailSerializer
-        return serializers.PageListSerializer
+            return serializers.DonationPageDetailSerializer
+        return serializers.DonationPageListSerializer
 
 
 class TemplateViewSet(viewsets.ModelViewSet):

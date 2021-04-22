@@ -31,7 +31,7 @@ Heroku apps are linked to a git repository. In this case we will link the existi
 
 ### Add Resources
 
-Every app has resources. In this case we will add a database and a redis cache.
+Every app has resources. In this case, we will add a PostgreSQL database and a Redis cache/broker.
 The resources are called add-ons, and come with [different tiers and pricing](https://elements.heroku.com/addons).
 
 ```shell
@@ -55,7 +55,9 @@ Set environment variables for Django to use.
 
 From your local version of the repository on the develop branch, push a commit.
 
+NOTE: Any push or merge to the `develop` branch will run a CI/CD workflow and deploy to the
+rev-engine-test app.
+
 ```shell
 (rev-engine) $> git push heroku develop
 ```
-

@@ -11,6 +11,7 @@ To begin you should have the following applications installed on your local deve
 - [pip](http://www.pip-installer.org/) >= 20
 - Postgres >= 12
 - git >= 2.26
+- [Heroku and Heroku CLI](https://devcenter.heroku.com/categories/command-line)
 
 
 ### 💪 **Setup Manually**
@@ -84,39 +85,42 @@ To install, run:
 
 **5. Set up local env variables**
 
-Next, we'll set up our local environment variables. We use
-[django-dotenv](https://github.com/jpadilla/django-dotenv) to automatically read
-environment variables located in a file named `.env` in the top level directory of the
-project (but you may use any other way of setting environment variables, like direnv or
-manually setting them). The only variable we need to start is `DJANGO_SETTINGS_MODULE`:
+This project utilizes the [direnv](https://direnv.net/) shell extension to manage project level developer environment
+variables. Direnv is installed system wide so you may already have it. If not, [follow the instructions here](https://direnv.net/docs/installation.html)
+for your system.
 
-```linux
+Next copy the ``local.example.py`` file to ``local.py`` and create your ``.envrc `` in the project root.
+
+```shell
     (revengine)$ cp revengine/settings/local.example.py revengine/settings/local.py
-    (revengine)$ echo "DJANGO_SETTINGS_MODULE=revengine.settings.local" > .env
+    (revengine)$ touch .envrc
 ```
 
+Then add to the file the following line.
+
+```bash
+    (revengine)$ echo "export DJANGO_SETTINGS_MODULE=revengine.settings.local" >> .envrc
+```
+
+Allow direnv to inject the variable into your environment
+
+```shell
+    (revengine)$ direnv allow .
+```
 
 **6. Database**
 
 The setup for local development assumes that you will be working with dockerized
 services.
 
-First add the following line to your `.env` file:
+Assuming you are using `direnv` add the following line to your `.envrc` file:
 
 ```sh
-(revengine)$ echo "DATABASE_URL=postgres://postgres@127.0.0.1:54000/revengine" >> .env
-```
-
-The `docker-compose.yml` sets up environment variables in a file, ``.postgres``.
-To use the Docker setup, add these lines to that file:
-
-```sh
-    POSTGRES_DB=revengine
-    POSTGRES_HOST_AUTH_METHOD=trust
+(revengine)$ echo "export DATABASE_URL=postgres://postgres@127.0.0.1:54000/revengine" >> .envrc
 ```
 
 If you want to connect to the database from your host machine, export the
-following shell environment variables:
+following shell environment variables or add them to your `.envrc` file:
 
 ```sh
     export PGHOST=127.0.0.1
@@ -141,12 +145,12 @@ following shell environment variables:
     (revengine)$ make run-dev
 ```
 
-After initial setup the development server should be run using ``make run-dev`` this will remove any deployment containers hanging around and setup using local sources and database.
+The react app will be available at `https://localhost:8001/`, and the django admin will be available at `http://localhost:8000/admin/`
 
 
 **9. Access the server**
 
-The Django admin is at `/admin` and the Wagtail admin is at `/cms`.
+The Django admin is at `/admin/`.
 
 
 **10. Run tests**
@@ -160,62 +164,79 @@ revengine uses pytest as a test runner.
 
 **11. Reset Media and Database**
 
-revengine uses invoke for interactions with the deployed environments.
-
-From time to time it may become necessary to sync your local media tree with either production or staging. In order to do so,
-you will need be setup to communicate with the kubernetes cluster. See [Caktus AWS Account Management](https://github.com/caktus/caktus-hosting-services/blob/main/docs/aws-assumerole.md)
-for detailed instructions on authentication.
-
-NOTE: That page will also have the ROLE_ARN you need to switch contexts below.
-
-Once you have access you can run the following command:
-
-```shell
-    (revengine)$ inv aws.configure-eks-kubeconfig
-```
-
-If you have done this in the past, you just need to switch to the correct cluster, run:
-
-```shell
-    (revengine)$ kubectl config use-context <ROLE_ARN>
-```
-
 **Media Reset**
 
-The command for resetting your local media (assuming your local media is found at ``.\media``) is:
+```TBD```
 
+**Database Management**
 
-```sh
-    (revengine)$ inv staging aws.sync-media --sync-to="local" --bucket-path="media"
+### Check to see if databases have been created.
+
+```shell
+(revengine)$> heroku pg:backups
+      
+=== Backups
+ID    Created at                 Status                               Size     Database
+────  ─────────────────────────  ───────────────────────────────────  ───────  ────────
+b001  2021-04-21 14:50:20 +0000  Completed 2021-04-21 14:50:22 +0000  66.75KB  DATABASE
+
+=== Restores
+No restores found. Use heroku pg:backups:restore to restore a backup
+
+=== Copies
+No copies found. Use heroku pg:copy to copy a database to another
+
 ```
 
-If you wish to make sure you need to reset you can issue the command with a ``dry-run`` argument.
+### Download latest backup
 
+```shell
+(revengine)$> heroku pg:backups:download
 
-```sh
-    (revengine)$ inv staging aws.sync-media --sync-to="local" --bucket-path="media" --dry-run
+Getting backup from ⬢ rev-engine-test... done, #1
+Downloading latest.dump.1... ████████████████████████▏  100% 00:00 66.75KB
 ```
 
-If you wish to clean out your local media tree before reset you can issue the command with a ``--delete`` argument.
+### Download a specific backup
 
+```shell
+(revengine)$> heroku pg:backups:download --app rev-engine-test b001
+```
 
-```sh
-    (revengine)$ inv staging aws.sync-media --sync-to="local" --bucket-path="media" --delete
+### Restore backup
+
+NOTE: The `pg_restore` command assumes that you can run `$psql` and get a prompt for your
+local database.
+
+```shell
+(revengine)$> heroku pg:backups:download --app rev-engine-test b001
+(revengine)$> pg_restore --verbose --clean --no-acl --no-owner latest.dump
 ```
 
 
-**Database Reset**
+## Heroku Cheatsheat
 
-To reset your local database from a deployed environment:
+#### List running apps
 
-```sh
-    (revengine)$ inv staging pod.get-db-dump --db-var="DATABASE_URL"
+Lists the apps running on the connected account.
+
+NOTE: On this project, PRs will spawn apps that can be independently tested.  Each PR app has a clean database and a single user: `qatester@example.com` with password `qatester`.
+
+```shell
+(revengine)$> heroku apps
+
+=== Collaborated Apps
+rev-engine-nrh-45-infra-dfoxmw  daniel@fundjournalism.org
+rev-engine-test                 daniel@fundjournalism.org
+
 ```
 
-This will pull down a current snapshot of the database into ``./revengine_database.dump``
+#### Open a shell on an app
 
-Then restore your local database with the file:
+```shell
+(revengine)$>  heroku run bash -a rev-engine-nrh-45-infra-dfoxmw
 
-```sh
-    (revengine)$ pg_restore --no-owner --clean --if-exists --dbname revengine < revengine_database.dump
+Running bash on ⬢ rev-engine-nrh-45-infra-dfoxmw... up, run.2125 (Hobby)
+Running docker-entrypoint.sh
+bash-5.0$ 
 ```

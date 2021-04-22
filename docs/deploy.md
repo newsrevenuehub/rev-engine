@@ -31,7 +31,7 @@ Heroku apps are linked to a git repository. In this case we will link the existi
 
 ### Add Resources
 
-Every app has resources. In this case we will add a database and a redis cache.
+Every app has resources. In this case, we will add a PostgreSQL database and a Redis cache/broker.
 The resources are called add-ons, and come with [different tiers and pricing](https://elements.heroku.com/addons).
 
 ```shell
@@ -58,4 +58,3 @@ From your local version of the repository on the develop branch, push a commit.
 ```shell
 (rev-engine) $> git push heroku develop
 ```
-

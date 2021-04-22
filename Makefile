@@ -24,6 +24,7 @@ setup:
 run-dev:
 	@echo 'Running local development'
 	docker-compose up -d --remove-orphans
+	cd spa; export PORT=8001; npm start &
 	python manage.py runserver
 
 run-tests:

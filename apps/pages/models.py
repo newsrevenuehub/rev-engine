@@ -20,6 +20,8 @@ class AbstractPage(models.Model):
         "pages.DonorBenefit", null=True, blank=True, on_delete=models.SET_NULL
     )
 
+    organization = models.ForeignKey("organizations.Organization", on_delete=models.CASCADE)
+
     @classmethod
     def field_names(cls):
         return [f.name for f in cls._meta.fields]
@@ -38,6 +40,12 @@ class Template(AbstractPage):
     def __str__(self):
         return self.name
 
+    class Meta:
+        unique_together = (
+            "name",
+            "organization",
+        )
+
 
 class Page(AbstractPage):
     """
@@ -45,6 +53,10 @@ class Page(AbstractPage):
     """
 
     slug = models.SlugField(unique=True)
+
+    revenue_program = models.ForeignKey(
+        "organizations.RevenueProgram", null=True, on_delete=models.SET_NULL
+    )
 
     published_date = models.DateTimeField(null=True, blank=True)
 
@@ -71,25 +83,40 @@ class Style(models.Model):
     """
 
     name = models.CharField(max_length=255)
+    organization = models.ForeignKey("organizations.Organization", on_delete=models.CASCADE)
     styles = models.JSONField()
 
     def __str__(self):
         return self.name
+
+    class Meta:
+        unique_together = (
+            "name",
+            "organization",
+        )
 
 
 class DonorBenefit(models.Model):
     name = models.CharField(max_length=255)
     blurb = models.TextField(null=True, blank=True)
     tiers = models.ManyToManyField("pages.BenefitTier")
+    organization = models.ForeignKey("organizations.Organization", on_delete=models.CASCADE)
 
     def __str__(self):
         return self.name
+
+    class Meta:
+        unique_together = (
+            "name",
+            "organization",
+        )
 
 
 class BenefitTier(models.Model):
     name = models.CharField(max_length=255)
     description = models.CharField(max_length=255, null=True, blank=True)
     benefits = models.ManyToManyField("pages.Benefit")
+    organization = models.ForeignKey("organizations.Organization", on_delete=models.CASCADE)
 
     def __str__(self):
         return self.name
@@ -97,6 +124,13 @@ class BenefitTier(models.Model):
 
 class Benefit(models.Model):
     name = models.CharField(max_length=255)
+    organization = models.ForeignKey("organizations.Organization", on_delete=models.CASCADE)
 
     def __str__(self):
         return self.name
+
+    class Meta:
+        unique_together = (
+            "name",
+            "organization",
+        )

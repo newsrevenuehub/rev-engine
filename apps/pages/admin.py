@@ -52,7 +52,7 @@ class DonationPageAdmin(DonationPageAdminAbstract):
 
     actions = ["make_template"]
 
-    @admin.action(description="Copy selected pages as templates")
+    @admin.action(description="Make templates from selected pages")
     def make_template(self, request, queryset):
         updated = 0
         duplicated = 0

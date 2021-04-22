@@ -74,7 +74,17 @@ class Page(AbstractPage):
             setattr(template, field, page_field)
 
         template.name = name or self.title
-        return Template.objects.get_or_create(template)
+
+        template_exists = Template.objects.filter(name=template.name).exists()
+        created = False
+
+        if not template_exists:
+            template.save()
+            created = True
+
+        instance = Template.objects.filter(name=template.name).first()
+
+        return (instance, created)
 
 
 class Style(models.Model):

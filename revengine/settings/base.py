@@ -27,7 +27,7 @@ ENVIRONMENT = os.getenv("ENVIRONMENT", "dev")
 
 INSTALLED_APPS = [
     "apps.common",
-    "apps.home",
+    "apps.api",
     "apps.users",
     "apps.organizations",
     "apps.pages",

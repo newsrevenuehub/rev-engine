@@ -29,6 +29,7 @@ INSTALLED_APPS = [
     "apps.common",
     "apps.home",
     "apps.users",
+    "apps.pages",
     "taggit",
     "django.contrib.admin",
     "django.contrib.auth",

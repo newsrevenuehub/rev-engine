@@ -28,45 +28,35 @@ click==7.1.2
     #   click-repl
 dj-database-url==0.5.0
     # via -r requirements/base/base.in
-django-appconf==1.0.4
-    # via django-compressor
 django-celery-beat==2.2.0
-    # via -r requirements/base/base.in
-django-compressor==2.4
     # via -r requirements/base/base.in
 django-dotenv==1.4.2
     # via -r requirements/base/base.in
 django-extensions==3.1.2
     # via -r requirements/base/base.in
-django-honeypot==0.9.0
-    # via -r requirements/base/base.in
 django-model-utils==4.1.1
-    # via -r requirements/base/base.in
-django-phonenumber-field==5.1.0
     # via -r requirements/base/base.in
 django-redis==4.12.1
     # via -r requirements/base/base.in
 django-storages==1.11.1
-    # via -r requirements/base/base.in
-django-taggit==1.3.0
     # via -r requirements/base/base.in
 django-timezone-field==4.1.2
     # via django-celery-beat
 django==3.2
     # via
     #   -r requirements/base/base.in
-    #   django-appconf
     #   django-celery-beat
     #   django-extensions
     #   django-model-utils
-    #   django-phonenumber-field
     #   django-redis
     #   django-storages
-    #   django-taggit
     #   django-timezone-field
+    #   djangorestframework
+djangorestframework==3.12.4
+    # via -r requirements/base/base.in
 kombu==5.0.2
     # via celery
-phonenumberslite==8.12.21
+pillow==8.2.0
     # via -r requirements/base/base.in
 prompt-toolkit==3.0.18
     # via click-repl
@@ -81,16 +71,11 @@ pytz==2021.1
     #   celery
     #   django
     #   django-timezone-field
-rcssmin==1.0.6
-    # via django-compressor
 redis==3.5.3
     # via django-redis
-rjsmin==1.1.0
-    # via django-compressor
 six==1.15.0
     # via
     #   click-repl
-    #   django-compressor
     #   python-dateutil
 sqlparse==0.4.1
     # via django
@@ -102,6 +87,3 @@ wcwidth==0.2.5
     # via prompt-toolkit
 whitenoise==5.2.0
     # via -r requirements/base/base.in
-
-# The following packages are considered to be unsafe in a requirements file:
-# setuptools

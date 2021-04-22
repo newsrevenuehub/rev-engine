@@ -2,18 +2,17 @@
 
 django
 dj-database-url
-django-compressor
 django-dotenv
 django_extensions
 django-model-utils
 django-redis
 django-storages
-django-taggit
 
-django-phonenumber-field
-django-honeypot
+# DRF
+djangorestframework
+
+Pillow
 whitenoise
-phonenumberslite
 
 celery
 django-celery-beat

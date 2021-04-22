@@ -73,6 +73,7 @@ image.add_task(build_image, "build")
 image.add_task(up, "up")
 image.add_task(stop, "stop")
 
+
 ns = invoke.Collection()
 ns.add_collection(image)
 

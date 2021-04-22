@@ -1,10 +1,13 @@
 from django.contrib import admin, messages
+from django.http import HttpResponseRedirect
+from django.urls import reverse
 
-from apps.pages.models import Benefit, BenefitTier, DonorBenefit, Page, Style, Template
+from apps.pages.models import Benefit, BenefitTier, DonationPage, DonorBenefit, Style, Template
 
 
-class PageAdminAbstract(admin.ModelAdmin):
+class DonationPageAdminAbstract(admin.ModelAdmin):
     fieldsets = (
+        (None, {"fields": ("name",)}),
         (
             None,
             {
@@ -27,17 +30,25 @@ class PageAdminAbstract(admin.ModelAdmin):
 
 
 @admin.register(Template)
-class TemplateAdmin(PageAdminAbstract):
-    fieldsets = ((None, {"fields": ("name",)}),) + PageAdminAbstract.fieldsets
+class TemplateAdmin(DonationPageAdminAbstract):
+    change_form_template = "pages/templates_changeform.html"
+
+    def response_change(self, request, obj):
+        if "_page-from-template" in request.POST:
+            new_page = obj.make_page_from_template()
+            return HttpResponseRedirect(
+                reverse("admin:pages_donationpage_change", kwargs={"object_id": new_page.id})
+            )
+        return super().response_change(request, obj)
 
 
-@admin.register(Page)
-class PageAdmin(PageAdminAbstract):
+@admin.register(DonationPage)
+class DonationPageAdmin(DonationPageAdminAbstract):
     fieldsets = (
         (None, {"fields": ("revenue_program",)}),
         (None, {"fields": ("published_date",)}),
         (None, {"fields": ("slug",)}),
-    ) + PageAdminAbstract.fieldsets
+    ) + DonationPageAdminAbstract.fieldsets
 
     actions = ["make_template"]
 

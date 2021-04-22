@@ -1,23 +1,24 @@
-from apps.organizations.tests.factories import OrganizationFactory
-from apps.pages.models import DonorBenefit, Page, Template
-from apps.pages.tests.factories import DonorBenefitFactory, PageFactory, TemplateFactory
 from rest_framework.reverse import reverse
 from rest_framework.test import APITestCase
+
+from apps.organizations.tests.factories import OrganizationFactory
+from apps.pages.models import DonationPage, DonorBenefit, Template
+from apps.pages.tests.factories import DonationPageFactory, DonorBenefitFactory, TemplateFactory
 
 
 class PageViewSetTest(APITestCase):
     def setUp(self):
         self.page_count = 5
         for i in range(self.page_count):
-            PageFactory()
+            DonationPageFactory()
 
-        self.pages = Page.objects.all()
+        self.pages = DonationPage.objects.all()
         self.org = OrganizationFactory()
 
     def test_page_list_returns_results(self):
-        list_url = reverse("page-list")
+        list_url = reverse("donationpage-list")
         response = self.client.get(list_url)
-        pages = Page.objects.all()
+        pages = DonationPage.objects.all()
         self.assertEqual(len(response.data), len(pages))
 
         page_titles = [p["title"] for p in response.data]
@@ -26,21 +27,21 @@ class PageViewSetTest(APITestCase):
 
     def test_page_create_adds_page(self):
         self.assertEqual(len(self.pages), self.page_count)
-        list_url = reverse("page-list")
+        list_url = reverse("donationpage-list")
         response = self.client.post(
-            list_url, {"title": "New Page", "slug": "new-page", "organization": self.org.pk}
+            list_url, {"title": "New DonationPage", "slug": "new-page", "organization": self.org.pk}
         )
         self.assertEqual(response.status_code, 201)
-        self.assertEqual(Page.objects.count(), self.page_count + 1)
+        self.assertEqual(DonationPage.objects.count(), self.page_count + 1)
 
     def test_page_update_updates_page(self):
         page = self.pages[0]
         old_page_title = page.title
         old_page_pk = page.pk
         detail_url = f"/api/v1/pages/{old_page_pk}/"
-        new_title = "Old Page With New Title"
+        new_title = "Old DonationPage With New Title"
         response = self.client.patch(detail_url, {"title": new_title})
-        page = Page.objects.filter(pk=old_page_pk).first()
+        page = DonationPage.objects.filter(pk=old_page_pk).first()
         self.assertEqual(page.pk, old_page_pk)
         self.assertNotEqual(page.title, old_page_title)
         self.assertEqual(page.title, new_title)
@@ -51,12 +52,12 @@ class PageViewSetTest(APITestCase):
         detail_url = f"/api/v1/pages/{old_page_pk}/"
         response = self.client.delete(detail_url)
 
-        pages = Page.objects.all()
+        pages = DonationPage.objects.all()
         self.assertEqual(len(pages), self.page_count - 1)
         self.assertNotIn(old_page_pk, [p.pk for p in pages])
 
     def test_page_list_uses_list_serializer(self):
-        list_url = reverse("page-list")
+        list_url = reverse("donationpage-list")
         response = self.client.get(list_url)
         # list serializer does not have 'styles' field
         self.assertNotIn("styles", response.json())

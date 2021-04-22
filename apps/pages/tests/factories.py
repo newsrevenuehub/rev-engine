@@ -1,12 +1,13 @@
 import factory
-from apps.organizations.tests.factories import OrganizationFactory
-from apps.pages import models
 from factory.django import DjangoModelFactory
 
+from apps.organizations.tests.factories import OrganizationFactory
+from apps.pages import models
 
-class PageFactory(DjangoModelFactory):
+
+class DonationPageFactory(DjangoModelFactory):
     class Meta:
-        model = models.Page
+        model = models.DonationPage
 
     title = factory.Sequence(lambda n: "Test Page %d" % n)
     slug = factory.Sequence(lambda n: "test-page-%d" % n)

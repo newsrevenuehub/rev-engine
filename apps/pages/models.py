@@ -1,5 +1,6 @@
 from datetime import datetime
 
+from django.apps import apps
 from django.db import models
 
 
@@ -46,11 +47,23 @@ class Template(AbstractPage):
             "organization",
         )
 
+    def make_page_from_template(self):
+        page_model = apps.get_model("pages", "DonationPage")
+        page = page_model()
+        for field in AbstractPage.field_names():
+            template_field = getattr(self, field)
+            setattr(page, field, template_field)
 
-class Page(AbstractPage):
+        page.save()
+        return page_model.objects.get(pk=page.pk)
+
+
+class DonationPage(AbstractPage):
     """
-    A Page represents a single instance of a Donation Page.
+    A DonationPage represents a single instance of a Donation Page.
     """
+
+    name = models.CharField(max_length=255, null=True, blank=True)
 
     slug = models.SlugField(unique=True)
 

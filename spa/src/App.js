@@ -1,11 +1,10 @@
-import GlobalStyle from 'Styles/createGlobalStyle';
-
+import GlobalStyles from "styles/createGlobalStyles";
 
 function App() {
   return (
     <>
-      <GlobalStyle />
-      <div>App</div>  
+      <GlobalStyles />
+      <div>App</div>
     </>
   );
 }

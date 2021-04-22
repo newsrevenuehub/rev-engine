@@ -21,12 +21,6 @@ INSTALLED_APPS.extend(
     ]
 )
 
-### React SPA index.html
-
-FRONTEND_BUILD_DIR = Path(BASE_DIR) / "spa" / "build"
-TEMPLATES[0]["DIRS"] = [FRONTEND_BUILD_DIR, os.path.join(PROJECT_DIR, "templates")]
-STATICFILES_DIRS = [os.path.join(PROJECT_DIR, "static"), str(FRONTEND_BUILD_DIR / "static")]
-
 # SECURITY WARNING: define the correct hosts in production!
 ALLOWED_HOSTS = ["*"]
 INTERNAL_IPS = ("127.0.0.1",)

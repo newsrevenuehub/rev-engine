@@ -9,94 +9,193 @@ class Migration(migrations.Migration):
     initial = True
 
     dependencies = [
-        ('organizations', '__first__'),
+        ("organizations", "__first__"),
     ]
 
     operations = [
         migrations.CreateModel(
-            name='Benefit',
+            name="Benefit",
             fields=[
-                ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('name', models.CharField(max_length=255)),
-                ('organization', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='organizations.organization')),
+                (
+                    "id",
+                    models.AutoField(
+                        auto_created=True, primary_key=True, serialize=False, verbose_name="ID"
+                    ),
+                ),
+                ("name", models.CharField(max_length=255)),
+                (
+                    "organization",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE, to="organizations.organization"
+                    ),
+                ),
             ],
             options={
-                'unique_together': {('name', 'organization')},
+                "unique_together": {("name", "organization")},
             },
         ),
         migrations.CreateModel(
-            name='BenefitTier',
+            name="BenefitTier",
             fields=[
-                ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('name', models.CharField(max_length=255)),
-                ('description', models.CharField(blank=True, max_length=255, null=True)),
-                ('benefits', models.ManyToManyField(to='pages.Benefit')),
-                ('organization', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='organizations.organization')),
+                (
+                    "id",
+                    models.AutoField(
+                        auto_created=True, primary_key=True, serialize=False, verbose_name="ID"
+                    ),
+                ),
+                ("name", models.CharField(max_length=255)),
+                ("description", models.CharField(blank=True, max_length=255, null=True)),
+                ("benefits", models.ManyToManyField(to="pages.Benefit")),
+                (
+                    "organization",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE, to="organizations.organization"
+                    ),
+                ),
             ],
         ),
         migrations.CreateModel(
-            name='DonorBenefit',
+            name="DonorBenefit",
             fields=[
-                ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('name', models.CharField(max_length=255)),
-                ('blurb', models.TextField(blank=True, null=True)),
-                ('organization', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='organizations.organization')),
-                ('tiers', models.ManyToManyField(to='pages.BenefitTier')),
+                (
+                    "id",
+                    models.AutoField(
+                        auto_created=True, primary_key=True, serialize=False, verbose_name="ID"
+                    ),
+                ),
+                ("name", models.CharField(max_length=255)),
+                ("blurb", models.TextField(blank=True, null=True)),
+                (
+                    "organization",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE, to="organizations.organization"
+                    ),
+                ),
+                ("tiers", models.ManyToManyField(to="pages.BenefitTier")),
             ],
             options={
-                'unique_together': {('name', 'organization')},
+                "unique_together": {("name", "organization")},
             },
         ),
         migrations.CreateModel(
-            name='Style',
+            name="Style",
             fields=[
-                ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('name', models.CharField(max_length=255)),
-                ('styles', models.JSONField()),
-                ('organization', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='organizations.organization')),
+                (
+                    "id",
+                    models.AutoField(
+                        auto_created=True, primary_key=True, serialize=False, verbose_name="ID"
+                    ),
+                ),
+                ("name", models.CharField(max_length=255)),
+                ("styles", models.JSONField()),
+                (
+                    "organization",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE, to="organizations.organization"
+                    ),
+                ),
             ],
             options={
-                'unique_together': {('name', 'organization')},
+                "unique_together": {("name", "organization")},
             },
         ),
         migrations.CreateModel(
-            name='Page',
+            name="Page",
             fields=[
-                ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('header_bg_image', models.ImageField(blank=True, null=True, upload_to='')),
-                ('header_logo', models.ImageField(blank=True, null=True, upload_to='')),
-                ('header_link', models.URLField(blank=True, null=True)),
-                ('title', models.CharField(max_length=255)),
-                ('elements', models.JSONField(blank=True, null=True)),
-                ('show_benefits', models.BooleanField(default=False)),
-                ('slug', models.SlugField(unique=True)),
-                ('published_date', models.DateTimeField(blank=True, null=True)),
-                ('donor_benefits', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, to='pages.donorbenefit')),
-                ('organization', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='organizations.organization')),
-                ('revenue_program', models.ForeignKey(null=True, on_delete=django.db.models.deletion.SET_NULL, to='organizations.revenueprogram')),
-                ('styles', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, to='pages.style')),
+                (
+                    "id",
+                    models.AutoField(
+                        auto_created=True, primary_key=True, serialize=False, verbose_name="ID"
+                    ),
+                ),
+                ("header_bg_image", models.ImageField(blank=True, null=True, upload_to="")),
+                ("header_logo", models.ImageField(blank=True, null=True, upload_to="")),
+                ("header_link", models.URLField(blank=True, null=True)),
+                ("title", models.CharField(max_length=255)),
+                ("elements", models.JSONField(blank=True, null=True)),
+                ("show_benefits", models.BooleanField(default=False)),
+                ("slug", models.SlugField(unique=True)),
+                ("published_date", models.DateTimeField(blank=True, null=True)),
+                (
+                    "donor_benefits",
+                    models.ForeignKey(
+                        blank=True,
+                        null=True,
+                        on_delete=django.db.models.deletion.SET_NULL,
+                        to="pages.donorbenefit",
+                    ),
+                ),
+                (
+                    "organization",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE, to="organizations.organization"
+                    ),
+                ),
+                (
+                    "revenue_program",
+                    models.ForeignKey(
+                        null=True,
+                        on_delete=django.db.models.deletion.SET_NULL,
+                        to="organizations.revenueprogram",
+                    ),
+                ),
+                (
+                    "styles",
+                    models.ForeignKey(
+                        blank=True,
+                        null=True,
+                        on_delete=django.db.models.deletion.SET_NULL,
+                        to="pages.style",
+                    ),
+                ),
             ],
             options={
-                'abstract': False,
+                "abstract": False,
             },
         ),
         migrations.CreateModel(
-            name='Template',
+            name="Template",
             fields=[
-                ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('header_bg_image', models.ImageField(blank=True, null=True, upload_to='')),
-                ('header_logo', models.ImageField(blank=True, null=True, upload_to='')),
-                ('header_link', models.URLField(blank=True, null=True)),
-                ('title', models.CharField(max_length=255)),
-                ('elements', models.JSONField(blank=True, null=True)),
-                ('show_benefits', models.BooleanField(default=False)),
-                ('name', models.CharField(max_length=255)),
-                ('donor_benefits', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, to='pages.donorbenefit')),
-                ('organization', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='organizations.organization')),
-                ('styles', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, to='pages.style')),
+                (
+                    "id",
+                    models.AutoField(
+                        auto_created=True, primary_key=True, serialize=False, verbose_name="ID"
+                    ),
+                ),
+                ("header_bg_image", models.ImageField(blank=True, null=True, upload_to="")),
+                ("header_logo", models.ImageField(blank=True, null=True, upload_to="")),
+                ("header_link", models.URLField(blank=True, null=True)),
+                ("title", models.CharField(max_length=255)),
+                ("elements", models.JSONField(blank=True, null=True)),
+                ("show_benefits", models.BooleanField(default=False)),
+                ("name", models.CharField(max_length=255)),
+                (
+                    "donor_benefits",
+                    models.ForeignKey(
+                        blank=True,
+                        null=True,
+                        on_delete=django.db.models.deletion.SET_NULL,
+                        to="pages.donorbenefit",
+                    ),
+                ),
+                (
+                    "organization",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE, to="organizations.organization"
+                    ),
+                ),
+                (
+                    "styles",
+                    models.ForeignKey(
+                        blank=True,
+                        null=True,
+                        on_delete=django.db.models.deletion.SET_NULL,
+                        to="pages.style",
+                    ),
+                ),
             ],
             options={
-                'unique_together': {('name', 'organization')},
+                "unique_together": {("name", "organization")},
             },
         ),
     ]

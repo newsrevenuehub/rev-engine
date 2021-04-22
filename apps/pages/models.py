@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from django.db import models
 
 
@@ -8,7 +10,19 @@ class AbstractPage(models.Model):
 
     title = models.CharField(max_length=255)
 
+    styles = models.ForeignKey("pages.Style", null=True, blank=True, on_delete=models.SET_NULL)
+
     elements = models.JSONField(null=True, blank=True)
+
+    show_benefits = models.BooleanField(default=False)
+
+    donor_benefits = models.ForeignKey(
+        "pages.DonorBenefit", null=True, blank=True, on_delete=models.SET_NULL
+    )
+
+    @classmethod
+    def field_names(cls):
+        return [f.name for f in cls._meta.fields]
 
     class Meta:
         abstract = True
@@ -36,3 +50,53 @@ class Page(AbstractPage):
 
     def __str__(self):
         return f"{self.title} - {self.slug}"
+
+    @property
+    def is_live(self):
+        return self.published_date and self.published_date <= datetime.now()
+
+    def save_as_template(self, name=None):
+        template = Template()
+        for field in AbstractPage.field_names():
+            page_field = getattr(self, field)
+            setattr(template, field, page_field)
+
+        template.name = name or self.title
+        return Template.objects.get_or_create(template)
+
+
+class Style(models.Model):
+    """
+    Ties a set of styles to a page. Discoverable by name, belonging to an Organization.
+    """
+
+    name = models.CharField(max_length=255)
+    styles = models.JSONField()
+
+    def __str__(self):
+        return self.name
+
+
+class DonorBenefit(models.Model):
+    name = models.CharField(max_length=255)
+    blurb = models.TextField(null=True, blank=True)
+    tiers = models.ManyToManyField("pages.BenefitTier")
+
+    def __str__(self):
+        return self.name
+
+
+class BenefitTier(models.Model):
+    name = models.CharField(max_length=255)
+    description = models.CharField(max_length=255, null=True, blank=True)
+    benefits = models.ManyToManyField("pages.Benefit")
+
+    def __str__(self):
+        return self.name
+
+
+class Benefit(models.Model):
+    name = models.CharField(max_length=255)
+
+    def __str__(self):
+        return self.name

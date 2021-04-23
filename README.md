@@ -98,8 +98,8 @@ Next copy the ``local.example.py`` file to ``local.py`` and create your ``.envrc
 
 Then add to the file the following line.
 
-```dotenv
-    export DJANGO_SETTINGS_MODULE=revengine.settings.local
+```bash
+    (revengine)$ echo "export DJANGO_SETTINGS_MODULE=revengine.settings.local" >> .envrc
 ```
 
 Allow direnv to inject the variable into your environment
@@ -113,22 +113,14 @@ Allow direnv to inject the variable into your environment
 The setup for local development assumes that you will be working with dockerized
 services.
 
-First add the following line to your `.env` file:
+Assuming you are using `direnv` add the following line to your `.envrc` file:
 
 ```sh
-(revengine)$ echo "DATABASE_URL=postgres://postgres@127.0.0.1:54000/revengine" >> .env
-```
-
-The `docker-compose.yml` sets up environment variables in a file, ``.postgres``.
-To use the Docker setup, add these lines to that file:
-
-```sh
-    POSTGRES_DB=revengine
-    POSTGRES_HOST_AUTH_METHOD=trust
+(revengine)$ echo "export DATABASE_URL=postgres://postgres@127.0.0.1:54000/revengine" >> .envrc
 ```
 
 If you want to connect to the database from your host machine, export the
-following shell environment variables:
+following shell environment variables or add them to your `.envrc` file:
 
 ```sh
     export PGHOST=127.0.0.1

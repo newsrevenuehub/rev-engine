@@ -10,6 +10,7 @@ django-storages
 
 # DRF
 djangorestframework
+djangorestframework-simplejwt
 
 Pillow
 whitenoise

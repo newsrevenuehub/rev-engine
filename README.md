@@ -12,6 +12,7 @@ To begin you should have the following applications installed on your local deve
 - Postgres >= 12
 - git >= 2.26
 - [Heroku and Heroku CLI](https://devcenter.heroku.com/categories/command-line)
+- Poetry == 1.1.6
 
 
 ### 💪 **Setup Manually**
@@ -34,6 +35,8 @@ You will note the distinct lack of opinion on how you should manage your virtual
 
 **3. Install dependencies**
 
+#### Install Node dependencies
+
 ``nvm`` is preferred for managing Node versions and ``.nvmrc`` contains the
 specific Node version for this project. To install the correct (and latest)
 Node version run:
@@ -48,25 +51,36 @@ Now install the project Node packages with ``npm``:
     (revengine)$ npm install
 ```
 
-Install Python dependencies with:
+#### Install Python dependencies:
+
+NOTE: This project uses [Poetry](https://python-poetry.org/docs/#installation) for dependency management.
+
+Unfortunately poetry doesn't deal well with dependencies would typically be in the ``deployment`` category,
+so the best option in this case is to add them as a base dependency.
 
 ```linux
     (revengine)$ make setup
 ```
 
-NOTE: This project uses ``pip-tools``. If the dependency `.txt` files need to be
-updated:
+If during development you need to add a dependency run:
 
-```sh
-    (revengine)$ make update_requirements setup
+```shell
+    (revengine)$ poetry add <NAME_OF_PACKAGE>
 ```
 
-NOTE 2: During a development cycle if a developer needs to add subtract or modify the requirements of the project, the
-workflow is to:
+If the dependency is a dev dependency, use the following:
 
-1) Make the change in the ``*.in`` requirement file
-2) run ``make update_requirements``
-3) commit both ``*.in`` file(s) and the ``*.txt`` file(s) generated
+```shell
+    (revengine)$ poetry add -D <NAME_OF_PACKAGE>
+```
+
+If you need to remove a dependency:
+
+```shell
+    (revengine)$ poetry remove <NAME_OF_PACKAGE>
+```
+
+This should automatically update the ``pyproject.toml`` file and the ``poetry.lock`` file.
 
 
 **4. Pre-commit**

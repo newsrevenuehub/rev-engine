@@ -20,6 +20,10 @@ class User(AbstractBaseUser, PermissionsMixin, IndexedTimeStampedModel):
         ),
     )
 
+    organizations = models.ManyToManyField(
+        "organizations.Organization", through="users.OrganizationUser"
+    )
+
     objects = UserManager()
 
     USERNAME_FIELD = "email"
@@ -32,3 +36,9 @@ class User(AbstractBaseUser, PermissionsMixin, IndexedTimeStampedModel):
 
     def __str__(self):
         return self.email
+
+
+class OrganizationUser(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    organization = models.ForeignKey("organizations.Organization", on_delete=models.CASCADE)
+    is_owner = models.BooleanField(default=False)

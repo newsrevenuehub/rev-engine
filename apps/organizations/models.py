@@ -5,6 +5,8 @@ class Organization(models.Model):
     name = models.CharField(max_length=255)
     slug = models.SlugField()
 
+    users = models.ManyToManyField("users.User", through="users.OrganizationUser")
+
     def __str__(self):
         return self.name
 

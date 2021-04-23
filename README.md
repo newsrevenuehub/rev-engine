@@ -45,12 +45,13 @@ Node version run:
 Now install the project Node packages with ``npm``:
 
 ```sh
-    (revengine)$ npm install
+    (revengine)$ cd spa/
+    (revengine/spa)$ npm install
 ```
 
 Install Python dependencies with:
 
-```linux
+```shell
     (revengine)$ make setup
 ```
 

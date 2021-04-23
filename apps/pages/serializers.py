@@ -1,5 +1,6 @@
-from apps.pages.models import Benefit, BenefitTier, DonorBenefit, Page, Style, Template
 from rest_framework import serializers
+
+from apps.pages.models import Benefit, BenefitTier, DonationPage, DonorBenefit, Style, Template
 
 
 class StyleSerializer(serializers.ModelSerializer):
@@ -8,15 +9,15 @@ class StyleSerializer(serializers.ModelSerializer):
         fields = "__all__"
 
 
-class PageDetailSerializer(serializers.ModelSerializer):
+class DonationPageDetailSerializer(serializers.ModelSerializer):
     class Meta:
-        model = Page
+        model = DonationPage
         fields = "__all__"
 
 
-class PageListSerializer(serializers.ModelSerializer):
+class DonationPageListSerializer(serializers.ModelSerializer):
     class Meta:
-        model = Page
+        model = DonationPage
         fields = [
             "id",
             "title",

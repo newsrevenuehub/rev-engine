@@ -73,6 +73,8 @@ class DonationPage(AbstractPage):
 
     published_date = models.DateTimeField(null=True, blank=True)
 
+    is_default_page = models.BooleanField(default=False)
+
     def __str__(self):
         return f"{self.title} - {self.slug}"
 

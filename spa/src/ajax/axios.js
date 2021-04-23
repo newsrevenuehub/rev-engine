@@ -5,10 +5,11 @@ import {
   CSRF_HEADER,
 } from "constants/authConstants";
 
-const apiVersion = process.env.REACT_APP_API_VERSION || "v1";
+export const apiVersion = process.env.REACT_APP_API_VERSION || "v1";
+export const apiBaseUrl = `/api/${apiVersion}/`;
 
 const Axios = axios.create({
-  baseURL: `/api/${apiVersion}/`,
+  baseURL: apiBaseUrl,
   timeout: 5000,
   withCredentials: true, // allow setting/passing cookies
 });

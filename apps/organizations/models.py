@@ -10,6 +10,9 @@ class Organization(models.Model):
     def __str__(self):
         return self.name
 
+    def user_is_member(self, user):
+        return user in self.users.all()
+
 
 class RevenueProgram(models.Model):
     name = models.CharField(max_length=255)

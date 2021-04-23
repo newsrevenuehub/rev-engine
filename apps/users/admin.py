@@ -2,6 +2,8 @@ from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
 from django.utils.translation import ugettext_lazy as _
 
+from apps.organizations.models import Organization
+
 from .models import User
 
 
@@ -34,3 +36,7 @@ class CustomUserAdmin(UserAdmin):
 
 
 admin.site.register(User, CustomUserAdmin)
+
+
+class UserOrganizationInline(admin.TabularInline):
+    model = Organization.users.through

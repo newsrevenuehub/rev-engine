@@ -30,8 +30,15 @@ export const Input = styled.input`
 export const Errors = styled(motion.ul)`
   display: block;
   list-style: none;
+  padding: 0;
 `;
 
 export const Error = styled(motion.li)`
-color: ${p => p.theme.colors.caution};
+  color: ${p => p.theme.colors.caution};
 `;
+
+export const errorsAnimation = {
+  initial: { opacity: 0, x: -50 },
+  animate: { opacity: 1, x: 0 },
+  exit: { opacity: 0, x: 50 },
+};

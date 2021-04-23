@@ -2,16 +2,22 @@
 
 export const baseTheme = {
   colors: {
-    primary: "#23b1d4",
+    primary: "#0cc0dd",
     primaryLight: "#c7eff7",
 
     black: "#111111",
+
+    white: "#fff",
+
+    grey: ["#eee", "#ccc", "#999", "#666", "#333"],
+
+    caution: "#ff476c",
   },
 
   fonts: {
-    heading: "Montserrat, Georgia, Garamond",
-    subheading: "Montserrat, Georgia, Garamond",
-    body: "Montserrat, Georgia, Garamond",
+    heading: "Courier New, monospace",
+    subheading: "Courier New, monospace",
+    body: "Courier New, monospace",
   },
 
   shadows: [

@@ -3,7 +3,6 @@
 django
 dj-database-url
 django-compressor
-django-dotenv
 django_extensions
 django-model-utils
 django-redis

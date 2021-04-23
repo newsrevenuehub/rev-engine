@@ -2,7 +2,7 @@ import axios from "axios";
 import {
   LS_USER,
   LS_CSRF_TOKEN,
-  CSRF_HEADER_KEY,
+  CSRF_HEADER,
 } from "constants/authConstants";
 
 const apiVersion = process.env.REACT_APP_API_VERSION || "v1";
@@ -13,6 +13,8 @@ const Axios = axios.create({
   withCredentials: true, // allow setting/passing cookies
 });
 
+export default Axios;
+
 /**
  * A Request interceptor.
  * first callback intercepts successfully formed requests
@@ -21,7 +23,7 @@ const Axios = axios.create({
 Axios.interceptors.request.use(
   (request) => {
     const csrfToken = localStorage.getItem(LS_CSRF_TOKEN);
-    if (csrfToken) request.headers[CSRF_HEADER_KEY] = csrfToken;
+    if (csrfToken) request.headers[CSRF_HEADER] = csrfToken;
     return request;
   },
   (error) => Promise.reject(error)
@@ -34,20 +36,20 @@ Axios.interceptors.request.use(
  */
 Axios.interceptors.response.use(
   (success) => success,
-  (error) => {
-    if (error?.response) {
-      const { status } = error.response;
-      // Only care about 403s so far, so pass through
-      if (status !== 403) return Promise.reject(error);
-      return handle403Response(error);
-    }
-    return Promise.reject(error);
-  }
+  handleResponseError
 );
 
-export default Axios;
+function handleResponseError(error) {
+  if (error?.response) {
+    const { status } = error.response;
+    // Only care about 403s so far, so pass through
+    if (status !== 403) return Promise.reject(error);
+    return handle403Response(error);
+  }
+  return Promise.reject(error);
+}
 
-function handle403Response(error) {
+function handle403Response() {
   localStorage.removeItem(LS_USER);
   localStorage.removeItem(LS_CSRF_TOKEN);
   window.location = "/";

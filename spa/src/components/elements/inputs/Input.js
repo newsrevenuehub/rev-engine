@@ -4,11 +4,7 @@ import PropTypes from 'prop-types';
 // Animations
 import { AnimatePresence } from "framer-motion";
 
-const errorsAnimation = {
-  initial: { opacity: 0, x: -50 },
-  animate: { opacity: 1, x: 0 },
-  exit: { opacity: 0, x: 50}
-}
+
 
 const hasErrors = errors => errors.length > 0;
 
@@ -19,7 +15,7 @@ function Input({ value, onChange, label, type, errors = [] }) {
       <S.Input value={value} onChange={onChange} type={type} hasErrors={hasErrors(errors)} id={label}/>
       <AnimatePresence>
         {hasErrors(errors) && (
-          <S.Errors {...errorsAnimation}>
+          <S.Errors {...S.errorsAnimation}>
             {errors.map((error) => (
               <S.Error key={error}>{error}</S.Error>
             ))}

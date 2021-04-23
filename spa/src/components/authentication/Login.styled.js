@@ -18,7 +18,8 @@ export const LoginCard = styled.section`
   margin-top: 10rem;
   padding: 4rem;
   background: ${(p) => p.theme.colors.white};
-  width: 400px;
+  max-width: 450px;
+  width: 100%;
   box-shadow: ${(p) => p.theme.shadows[0]};
 `;
 

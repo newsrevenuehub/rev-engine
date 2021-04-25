@@ -30,6 +30,11 @@ class JWTHttpOnlyCookieAuthentication(JWTAuthentication):
         return user, validated_token
 
     def authenticate(self, request):
+        """
+        Override JWTAuthentication authenticate method to:
+            1. Pull JWT out of cookie, rather than request body.
+            2. Enforce CSRF protection.
+        """
         raw_token = request.COOKIES.get(settings.AUTH_COOKIE_KEY)
         if raw_token is None:
             return None

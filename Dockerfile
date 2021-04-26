@@ -32,10 +32,11 @@ RUN set -ex \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy in your requirements file
-# ADD requirements.txt /requirements.txt
+ADD poetry.lock /poetry.lock
+ADD pyproject.toml /pyproject.toml
 
 # OR, if you're using a directory for your requirements, copy everything (comment out the above and uncomment this if so):
-ADD requirements /requirements
+# ADD requirements /requirements
 
 # Install build deps, then run `pip install`, then remove unneeded build deps all in a single step.
 # Correct the path to your production requirements file, if needed.
@@ -46,8 +47,9 @@ RUN set -ex \
     libpq-dev \
     " \
     && apt-get update && apt-get install -y --no-install-recommends $BUILD_DEPS \
-    && pip install -U -q pip-tools \
-    && pip-sync requirements/base/base.txt requirements/deploy/deploy.txt \
+    && pip install poetry \
+    && poetry config virtualenvs.create false \
+    && poetry install --no-root --no-dev \
     && apt-get purge -y --auto-remove -o APT::AutoRemove::RecommendsImportant=false $BUILD_DEPS \
     && rm -rf /var/lib/apt/lists/*
 

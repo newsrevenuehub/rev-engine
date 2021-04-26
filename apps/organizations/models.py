@@ -41,7 +41,7 @@ class Organization(models.Model):
     def save(self, *args, **kwargs):
         if not self.id:
             self.slug = slugify(self.name, allow_unicode=True)
-        super(Organization, self).save(self, *args, **kwargs)
+        super(Organization, self).save(*args, **kwargs)
 
 
 class RevenueProgram(models.Model):
@@ -55,4 +55,4 @@ class RevenueProgram(models.Model):
     def save(self, *args, **kwargs):
         if not self.id:
             self.slug = f"{self.organization.slug}-{slugify(self.name, allow_unicode=True)}"
-        super(RevenueProgram, self).save(self, *args, **kwargs)
+        super(RevenueProgram, self).save(*args, **kwargs)

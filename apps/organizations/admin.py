@@ -14,7 +14,4 @@ class OrganizationAdmin(admin.ModelAdmin):
         model = Organization
 
 
-@admin.register(RevenueProgram)
-class RevenueProgramAdmin(admin.ModelAdmin):
-    class Meta:
-        model = RevenueProgram
+admin.site.register(RevenueProgram)

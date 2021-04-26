@@ -20,9 +20,11 @@ class PageViewSet(OrganizationLimitedListView, viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated, UserBelongsToOrg]
 
     def get_serializer_class(self):
-        if self.action == "retrieve":
-            return serializers.DonationPageDetailSerializer
-        return serializers.DonationPageListSerializer
+        return (
+            serializers.DonationPageDetailSerializer
+            if self.action == "retrieve"
+            else serializers.DonationPageListSerializer
+        )
 
 
 class TemplateViewSet(OrganizationLimitedListView, viewsets.ModelViewSet):
@@ -30,9 +32,11 @@ class TemplateViewSet(OrganizationLimitedListView, viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated, UserBelongsToOrg]
 
     def get_serializer_class(self):
-        if self.action == "retrieve":
-            return serializers.TemplateDetailSerializer
-        return serializers.TemplateListSerializer
+        return (
+            serializers.TemplateDetailSerializer
+            if self.action == "retrieve"
+            else serializers.TemplateListSerializer
+        )
 
 
 class StyleViewSet(OrganizationLimitedListView, viewsets.ModelViewSet):
@@ -46,9 +50,11 @@ class DonorBenefitViewSet(OrganizationLimitedListView, viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated, UserBelongsToOrg]
 
     def get_serializer_class(self):
-        if self.action == "retrieve":
-            return serializers.DonorBenefitDetailSerializer
-        return serializers.DonorBenefitListSerializer
+        return (
+            serializers.DonorBenefitDetailSerializer
+            if self.action == "retrieve"
+            else serializers.DonorBenefitListSerializer
+        )
 
 
 class BenefitTierViewSet(OrganizationLimitedListView, viewsets.ModelViewSet):

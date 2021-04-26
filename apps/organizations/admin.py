@@ -6,7 +6,7 @@ from apps.organizations.models import Feature, Organization, Plan, RevenueProgra
 @admin.register(Organization)
 class OrganizationAdmin(admin.ModelAdmin):
     organization_fieldset = (
-        ("Organization", {"fields": ("name", "slug", "project_manager")}),
+        ("Organization", {"fields": ("name", "slug")}),
         (
             "Address",
             {
@@ -20,19 +20,43 @@ class OrganizationAdmin(admin.ModelAdmin):
         ("Plan", {"fields": ("non_profit", "plan", "stripe_account", "salesforce_id")}),
     )
 
+    readonly_fields = ["slug"]
+
+    list_display = ["name", "slug", "plan", "org_state"]
+
+    list_filter = ["name", "plan", "org_state"]
+
     fieldsets = organization_fieldset
 
 
 @admin.register(RevenueProgram)
 class RevenueProgramAdmin(admin.ModelAdmin):
-    pass
+    revenue_program_fieldset = (("RevenueProgram", {"fields": ("name", "slug", "organization")}),)
+
+    readonly_fields = ["slug"]
+
+    list_display = ["name", "slug"]
+
+    list_filter = ["name"]
+
+    fieldsets = revenue_program_fieldset
 
 
 @admin.register(Plan)
 class PlanAdmin(admin.ModelAdmin):
-    pass
+    plan_fieldset = (("Plan", {"fields": ("name",)}),)
+
+    list_display = ["name"]
+
+    list_filter = ["name"]
+
+    fieldsets = plan_fieldset
 
 
 @admin.register(Feature)
 class FeatureAdmin(admin.ModelAdmin):
-    pass
+    feature_fieldset = (("Feature", {"fields": ("name", "description", "plans")}),)
+
+    list_display = ["name"]
+
+    list_filter = ["name"]

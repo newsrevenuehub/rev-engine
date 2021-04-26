@@ -5,7 +5,7 @@ export function handleLoginSuccess(data) {
   localStorage.setItem(CSRF_HEADER, data.csrftoken);
 }
 
-export function handleLogout() {
+export function handleLogoutSuccess() {
   localStorage.removeItem(LS_USER);
   localStorage.removeItem(CSRF_HEADER);
   window.location = "/";

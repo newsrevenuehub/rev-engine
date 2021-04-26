@@ -1,0 +1,21 @@
+# base.in
+
+django
+dj-database-url
+django-dotenv
+django_extensions
+django-model-utils
+django-redis
+django-storages
+
+# DRF
+djangorestframework
+
+Pillow
+whitenoise
+
+celery
+django-celery-beat
+
+# Postgres
+psycopg2

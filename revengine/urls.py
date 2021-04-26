@@ -3,11 +3,14 @@ from django.conf.urls import include
 from django.contrib import admin
 from django.urls import path, re_path
 
+from apps.api.urls import urlpatterns as api_urlpatterns
+
 from .views import index
 
 
 urlpatterns = [
     path("admin/", admin.site.urls),
+    path("api/", include(api_urlpatterns)),
     # React SPA:
     path(r"", index, name="index"),  # for reverse()
     re_path(r"^(?:.*)/?$", index, name="index-others"),

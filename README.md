@@ -48,7 +48,8 @@ Node version run:
 Now install the project Node packages with ``npm``:
 
 ```sh
-    (revengine)$ npm install
+    (revengine)$ cd spa/
+    (revengine/spa)$ npm install
 ```
 
 #### Install Python dependencies:
@@ -58,7 +59,7 @@ NOTE: This project uses [Poetry](https://python-poetry.org/docs/#installation) f
 Unfortunately poetry doesn't deal well with dependencies would typically be in the ``deployment`` category,
 so the best option in this case is to add them as a base dependency.
 
-```linux
+```shell
     (revengine)$ make setup
 ```
 
@@ -152,7 +153,7 @@ following shell environment variables or add them to your `.envrc` file:
     (revengine)$ python manage.py createsuperuser
 ```
 
-**8. Run the server**
+**8. Run the server and start the SPA**
 
 ```linux
     (revengine)$ docker-compose up -d

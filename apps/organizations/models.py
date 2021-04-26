@@ -4,6 +4,18 @@ from django.utils.text import slugify
 from apps.common.constants import STATE_CHOICES
 
 
+def normalize_slug(slug, norm_to=50):
+    """Returns a string of len <=50
+    :param slug:
+    :param norm_to:
+    :return: str
+    """
+    slug_len = len(slug)
+    if slug_len > norm_to:
+        slug = slug[:norm_to].rstrip("-")
+    return slug
+
+
 class Feature(models.Model):
     name = models.CharField(max_length=255)
     description = models.TextField(blank=True)
@@ -39,14 +51,15 @@ class Organization(models.Model):
         return self.name
 
     def save(self, *args, **kwargs):
+
         if not self.id:
-            self.slug = slugify(self.name, allow_unicode=True)
+            self.slug = normalize_slug(slugify(self.name, allow_unicode=True))
         super(Organization, self).save(*args, **kwargs)
 
 
 class RevenueProgram(models.Model):
     name = models.CharField(max_length=255)
-    slug = models.SlugField()
+    slug = models.SlugField(max_length=100)
     organization = models.ForeignKey("organizations.Organization", on_delete=models.CASCADE)
 
     def __str__(self):
@@ -54,5 +67,6 @@ class RevenueProgram(models.Model):
 
     def save(self, *args, **kwargs):
         if not self.id:
-            self.slug = f"{self.organization.slug}-{slugify(self.name, allow_unicode=True)}"
+            slug = normalize_slug(slugify(self.name, allow_unicode=True))
+            self.slug = f"{self.organization.slug}-{slug}"
         super(RevenueProgram, self).save(*args, **kwargs)

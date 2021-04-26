@@ -16,6 +16,7 @@ class DonationPageAdminAbstract(admin.ModelAdmin):
         ),
         ("Header", {"fields": ("header_bg_image", "header_logo", "header_link")}),
         ("Title", {"fields": ("title",)}),
+        (None, {"fields": ("styles",)}),
         (None, {"fields": ("elements",)}),
         (
             "Benefits",

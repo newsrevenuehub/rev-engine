@@ -13,12 +13,12 @@ from apps.pages.tests.factories import DonationPageFactory, TemplateFactory
 def _setup_request(user, request):
     request.user = user
 
-    """Annotate a request object with a session"""
+    # Annotate a request object with a session
     middleware = SessionMiddleware()
     middleware.process_request(request)
     request.session.save()
 
-    """Annotate a request object with a messages"""
+    # Annotate a request object with a messages
     middleware = MessageMiddleware()
     middleware.process_request(request)
     request.session.save()
@@ -44,7 +44,7 @@ class DonationPageAdminTestCase(TestCase):
         self.page_admin.make_template(request, page_queryset)
 
         new_templates = Template.objects.all()
-        self.assertNotEqual(prev_template_count, len(new_templates))
+        self.assertEqual(prev_template_count + 1, len(new_templates))
 
         # New Template gets its name from previous page's title
         self.assertEqual(new_templates[0].name, self.page.title)
@@ -75,7 +75,7 @@ class TemplateAdminTest(TestCase):
         self.template_admin = TemplateAdmin(Template, AdminSite())
         self.template = TemplateFactory()
 
-    def test_make_template_button_appear_in_change_form(self):
+    def test_make_template_button_appears_in_change_form(self):
         change_url = reverse("admin:pages_template_change", kwargs={"object_id": self.template.id})
         response = self.client.get(change_url)
         self.assertContains(response, "Make page from this template")

@@ -19,11 +19,19 @@ class AbstractPage(IndexedTimeStampedModel):
 
     show_benefits = models.BooleanField(default=False)
 
+    # lookup with donor_benefit.donationpages / donor_benefit.templates
     donor_benefits = models.ForeignKey(
-        "pages.DonorBenefit", null=True, blank=True, on_delete=models.SET_NULL
+        "pages.DonorBenefit",
+        null=True,
+        blank=True,
+        related_name="%(class)ss",
+        on_delete=models.SET_NULL,
     )
 
-    organization = models.ForeignKey("organizations.Organization", on_delete=models.CASCADE)
+    # lookup with org.donationpages / org.templates
+    organization = models.ForeignKey(
+        "organizations.Organization", related_name="%(class)ss", on_delete=models.CASCADE
+    )
 
     @classmethod
     def field_names(cls):
@@ -66,7 +74,10 @@ class DonationPage(AbstractPage):
     slug = models.SlugField(unique=True)
 
     revenue_program = models.ForeignKey(
-        "organizations.RevenueProgram", null=True, on_delete=models.SET_NULL
+        "organizations.RevenueProgram",
+        null=True,
+        related_name="donationpages",
+        on_delete=models.SET_NULL,
     )
 
     published_date = models.DateTimeField(null=True, blank=True)
@@ -104,7 +115,9 @@ class Style(IndexedTimeStampedModel):
     """
 
     name = models.CharField(max_length=255)
-    organization = models.ForeignKey("organizations.Organization", on_delete=models.CASCADE)
+    organization = models.ForeignKey(
+        "organizations.Organization", related_name="styles", on_delete=models.CASCADE
+    )
     styles = models.JSONField()
 
     def __str__(self):
@@ -121,7 +134,9 @@ class DonorBenefit(IndexedTimeStampedModel):
     name = models.CharField(max_length=255)
     blurb = models.TextField(blank=True)
     tiers = models.ManyToManyField("pages.BenefitTier")
-    organization = models.ForeignKey("organizations.Organization", on_delete=models.CASCADE)
+    organization = models.ForeignKey(
+        "organizations.Organization", related_name="donorbenefits", on_delete=models.CASCADE
+    )
 
     def __str__(self):
         return self.name
@@ -137,7 +152,9 @@ class BenefitTier(IndexedTimeStampedModel):
     name = models.CharField(max_length=255)
     description = models.CharField(max_length=255, blank=True)
     benefits = models.ManyToManyField("pages.Benefit")
-    organization = models.ForeignKey("organizations.Organization", on_delete=models.CASCADE)
+    organization = models.ForeignKey(
+        "organizations.Organization", related_name="benefittiers", on_delete=models.CASCADE
+    )
 
     def __str__(self):
         return self.name
@@ -145,7 +162,9 @@ class BenefitTier(IndexedTimeStampedModel):
 
 class Benefit(IndexedTimeStampedModel):
     name = models.CharField(max_length=255)
-    organization = models.ForeignKey("organizations.Organization", on_delete=models.CASCADE)
+    organization = models.ForeignKey(
+        "organizations.Organization", related_name="benefits", on_delete=models.CASCADE
+    )
 
     def __str__(self):
         return self.name

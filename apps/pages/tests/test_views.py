@@ -38,7 +38,7 @@ class PageViewSetTest(APITestCase):
         page = self.pages[0]
         old_page_title = page.title
         old_page_pk = page.pk
-        detail_url = f"/api/v1/pages/{old_page_pk}/"
+        detail_url = reverse("donationpage-detail", kwargs={"pk": old_page_pk})
         new_title = "Old DonationPage With New Title"
         response = self.client.patch(detail_url, {"title": new_title})
         page = DonationPage.objects.filter(pk=old_page_pk).first()
@@ -49,7 +49,7 @@ class PageViewSetTest(APITestCase):
     def test_page_delete_deletes_page(self):
         page = self.pages[0]
         old_page_pk = page.pk
-        detail_url = f"/api/v1/pages/{old_page_pk}/"
+        detail_url = reverse("donationpage-detail", kwargs={"pk": old_page_pk})
         response = self.client.delete(detail_url)
 
         pages = DonationPage.objects.all()
@@ -64,7 +64,8 @@ class PageViewSetTest(APITestCase):
 
     def test_page_detail_uses_detail_serializer(self):
         page_pk = self.pages[0].pk
-        response = self.client.get(f"/api/v1/pages/{page_pk}/")
+        detail_url = reverse("donationpage-detail", kwargs={"pk": page_pk})
+        response = self.client.get(detail_url)
         # detail serializer should have 'styles' field
         self.assertIn("styles", response.json())
 

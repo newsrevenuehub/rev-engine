@@ -138,7 +138,7 @@ following shell environment variables or add them to your `.envrc` file:
     (revengine)$ python manage.py createsuperuser
 ```
 
-**8. Run the server**
+**8. Run the server and start the SPA**
 
 ```linux
     (revengine)$ docker-compose up -d

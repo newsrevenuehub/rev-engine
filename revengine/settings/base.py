@@ -27,9 +27,10 @@ ENVIRONMENT = os.getenv("ENVIRONMENT", "dev")
 
 INSTALLED_APPS = [
     "apps.common",
-    "apps.home",
+    "apps.api",
     "apps.users",
-    "taggit",
+    "apps.organizations",
+    "apps.pages",
     "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
@@ -148,7 +149,6 @@ STATICFILES_DIRS = [
 
 STATIC_ROOT = os.path.join(BASE_DIR, "public/static")
 STATIC_URL = "/static/"
-STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
 
 MEDIA_ROOT = os.path.join(BASE_DIR, "public/media")
 MEDIA_URL = "/media/"

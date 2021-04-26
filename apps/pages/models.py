@@ -1,15 +1,17 @@
-from datetime import datetime
-
 from django.apps import apps
 from django.db import models
+from django.utils import timezone
+
+from apps.common.models import IndexedTimeStampedModel
 
 
-class AbstractPage(models.Model):
+class AbstractPage(IndexedTimeStampedModel):
+    name = models.CharField(max_length=255)
+    title = models.CharField(max_length=255)
+
     header_bg_image = models.ImageField(null=True, blank=True)
     header_logo = models.ImageField(null=True, blank=True)
     header_link = models.URLField(null=True, blank=True)
-
-    title = models.CharField(max_length=255)
 
     styles = models.ForeignKey("pages.Style", null=True, blank=True, on_delete=models.SET_NULL)
 
@@ -36,8 +38,6 @@ class Template(AbstractPage):
     A "Snapshot" of a Page at a particular state.
     """
 
-    name = models.CharField(max_length=255)
-
     def __str__(self):
         return self.name
 
@@ -63,8 +63,6 @@ class DonationPage(AbstractPage):
     A DonationPage represents a single instance of a Donation Page.
     """
 
-    name = models.CharField(max_length=255, null=True, blank=True)
-
     slug = models.SlugField(unique=True)
 
     revenue_program = models.ForeignKey(
@@ -78,7 +76,7 @@ class DonationPage(AbstractPage):
 
     @property
     def is_live(self):
-        return self.published_date and self.published_date <= datetime.now()
+        return bool(self.published_date and self.published_date <= timezone.now())
 
     def save_as_template(self, name=None):
         template = Template()
@@ -100,7 +98,7 @@ class DonationPage(AbstractPage):
         return (instance, created)
 
 
-class Style(models.Model):
+class Style(IndexedTimeStampedModel):
     """
     Ties a set of styles to a page. Discoverable by name, belonging to an Organization.
     """
@@ -119,9 +117,9 @@ class Style(models.Model):
         )
 
 
-class DonorBenefit(models.Model):
+class DonorBenefit(IndexedTimeStampedModel):
     name = models.CharField(max_length=255)
-    blurb = models.TextField(null=True, blank=True)
+    blurb = models.TextField(blank=True)
     tiers = models.ManyToManyField("pages.BenefitTier")
     organization = models.ForeignKey("organizations.Organization", on_delete=models.CASCADE)
 
@@ -135,9 +133,9 @@ class DonorBenefit(models.Model):
         )
 
 
-class BenefitTier(models.Model):
+class BenefitTier(IndexedTimeStampedModel):
     name = models.CharField(max_length=255)
-    description = models.CharField(max_length=255, null=True, blank=True)
+    description = models.CharField(max_length=255, blank=True)
     benefits = models.ManyToManyField("pages.Benefit")
     organization = models.ForeignKey("organizations.Organization", on_delete=models.CASCADE)
 
@@ -145,7 +143,7 @@ class BenefitTier(models.Model):
         return self.name
 
 
-class Benefit(models.Model):
+class Benefit(IndexedTimeStampedModel):
     name = models.CharField(max_length=255)
     organization = models.ForeignKey("organizations.Organization", on_delete=models.CASCADE)
 

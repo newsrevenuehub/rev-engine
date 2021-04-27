@@ -50,12 +50,18 @@ class PageViewSetTest(OrgLinkedResource, APITestCase):
         self.assertEqual(len(self.resources), self.resource_count)
         self.authenticate_user_for_resource()
         list_url = reverse("donationpage-list")
-        response = self.client.post(
-            list_url,
-            {"title": "New DonationPage", "slug": "new-page", "organization": self.orgs[0].pk},
-        )
+        page_data = {
+            "title": "New DonationPage",
+            "slug": "new-page",
+            "organization": self.orgs[0].pk,
+        }
+        response = self.client.post(list_url, page_data)
         self.assertEqual(response.status_code, 201)
         self.assertEqual(DonationPage.objects.count(), self.resource_count + 1)
+
+        data = response.json()
+        for k, v in page_data.items():
+            self.assertEqual(v, data[k])
 
     def test_page_update_updates_page(self):
         page = self.resources[0]
@@ -65,7 +71,7 @@ class PageViewSetTest(OrgLinkedResource, APITestCase):
         detail_url = f"/api/v1/pages/{old_page_pk}/"
         new_title = "Old DonationPage With New Title"
         response = self.client.patch(detail_url, {"title": new_title})
-        page = DonationPage.objects.filter(pk=old_page_pk).first()
+        page = DonationPage.objects.get(pk=old_page_pk)
         self.assertEqual(page.pk, old_page_pk)
         self.assertNotEqual(page.title, old_page_title)
         self.assertEqual(page.title, new_title)
@@ -76,9 +82,7 @@ class PageViewSetTest(OrgLinkedResource, APITestCase):
         old_page_pk = page.pk
         detail_url = f"/api/v1/pages/{old_page_pk}/"
         response = self.client.delete(detail_url)
-        pages = DonationPage.objects.all()
-        self.assertEqual(len(pages), self.resource_count - 1)
-        self.assertNotIn(old_page_pk, [p.pk for p in pages])
+        self.assertRaises(DonationPage.DoesNotExist, DonationPage.objects.get, pk=old_page_pk)
 
     def test_page_list_uses_list_serializer(self):
         list_url = reverse("donationpage-list")
@@ -112,7 +116,7 @@ class PageViewSetTest(OrgLinkedResource, APITestCase):
         returned_ids = [p["id"] for p in data["results"]]
         expected_ids = [p.id for p in user_pages]
         # Should return expected pages
-        self.assertEqual(expected_ids, returned_ids)
+        self.assertEqual(set(expected_ids), set(returned_ids))
 
 
 class TemplateViewSetTest(OrgLinkedResource, APITestCase):
@@ -123,12 +127,18 @@ class TemplateViewSetTest(OrgLinkedResource, APITestCase):
         self.assertEqual(len(self.resources), self.resource_count)
         self.authenticate_user_for_resource()
         list_url = reverse("template-list")
-        response = self.client.post(
-            list_url,
-            {"name": "New Template", "title": "New Template", "organization": self.orgs[0].pk},
-        )
+        template_data = {
+            "name": "New Template",
+            "title": "New Template",
+            "organization": self.orgs[0].pk,
+        }
+        response = self.client.post(list_url, template_data)
         self.assertEqual(response.status_code, 201)
         self.assertEqual(Template.objects.count(), self.resource_count + 1)
+
+        data = response.json()
+        for k, v in template_data.items():
+            self.assertEqual(v, data[k])
 
     def test_template_update_updates_template(self):
         template = self.resources[0]
@@ -149,10 +159,7 @@ class TemplateViewSetTest(OrgLinkedResource, APITestCase):
         old_template_pk = template.pk
         detail_url = f"/api/v1/templates/{old_template_pk}/"
         response = self.client.delete(detail_url)
-
-        templates = Template.objects.all()
-        self.assertEqual(len(templates), self.resource_count - 1)
-        self.assertNotIn(old_template_pk, [p.pk for p in templates])
+        self.assertRaises(Template.DoesNotExist, Template.objects.get, pk=old_template_pk)
 
     def test_template_list_uses_list_serializer(self):
         list_url = reverse("template-list")
@@ -190,7 +197,7 @@ class TemplateViewSetTest(OrgLinkedResource, APITestCase):
         returned_ids = [p["id"] for p in data["results"]]
         expected_ids = [p.id for p in user_templates]
         # Should return expected pages
-        self.assertEqual(expected_ids, returned_ids)
+        self.assertEqual(set(expected_ids), set(returned_ids))
 
 
 class DonorBenefitViewSetTest(OrgLinkedResource, APITestCase):

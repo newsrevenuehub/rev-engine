@@ -38,6 +38,7 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
     "django_celery_beat",
+    "rest_framework",
 ]
 
 
@@ -155,9 +156,7 @@ MEDIA_URL = "/media/"
 MEDIA_STORAGE_BUCKET_NAME = os.getenv("MEDIA_STORAGE_BUCKET_NAME", "")
 MEDIA_LOCATION = os.getenv("MEDIA_LOCATION", "")
 MEDIA_S3_CUSTOM_DOMAIN = os.getenv("MEDIA_S3_CUSTOM_DOMAIN", "")
-DEFAULT_FILE_STORAGE = os.getenv(
-    "DEFAULT_FILE_STORAGE", "django.core.files.storage.FileSystemStorage"
-)
+DEFAULT_FILE_STORAGE = os.getenv("DEFAULT_FILE_STORAGE", "django.core.files.storage.FileSystemStorage")
 # Only set this if you need to override the default bucket permissions
 # See: https://github.com/caktus/jade-truffle/issues/17
 AWS_DEFAULT_ACL = os.getenv("AWS_DEFAULT_ACL") or None

@@ -1,6 +1,8 @@
 from django.test import TestCase
 from django.utils.text import slugify
 
+from faker import Faker
+
 from apps.organizations import models
 from apps.organizations.tests import factories
 
@@ -45,3 +47,15 @@ class RevenueProgramTest(TestCase):
         self.instance.save()
         self.instance.refresh_from_db()
         self.assertNotIn(slugify("A new Name"), self.instance.slug)
+
+    def test_slug_larger_than_100(self):
+        fake = Faker()
+        Faker.seed(0)
+        self.instance = factories.RevenueProgramFactory(name=f"{' '.join(fake.words(nb=30))}")
+        self.assertLessEqual(len(self.instance.slug), 100)
+
+    def test_delete_organization_cleans_up(self):
+        assert len(self.model_class.objects.all()) == 1
+        org = self.instance.organization
+        org.delete()
+        assert len(self.model_class.objects.all()) == 0

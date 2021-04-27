@@ -38,10 +38,10 @@ class PageViewSetTest(APITestCase):
         page = self.pages[0]
         old_page_title = page.title
         old_page_pk = page.pk
-        detail_url = f"/api/v1/pages/{old_page_pk}/"
+        detail_url = reverse("donationpage-detail", kwargs={"pk": old_page_pk})
         new_title = "Old DonationPage With New Title"
         response = self.client.patch(detail_url, {"title": new_title})
-        page = DonationPage.objects.filter(pk=old_page_pk).first()
+        page = DonationPage.objects.get(pk=old_page_pk)
         self.assertEqual(page.pk, old_page_pk)
         self.assertNotEqual(page.title, old_page_title)
         self.assertEqual(page.title, new_title)
@@ -49,7 +49,7 @@ class PageViewSetTest(APITestCase):
     def test_page_delete_deletes_page(self):
         page = self.pages[0]
         old_page_pk = page.pk
-        detail_url = f"/api/v1/pages/{old_page_pk}/"
+        detail_url = reverse("donationpage-detail", kwargs={"pk": old_page_pk})
         response = self.client.delete(detail_url)
 
         pages = DonationPage.objects.all()
@@ -64,7 +64,8 @@ class PageViewSetTest(APITestCase):
 
     def test_page_detail_uses_detail_serializer(self):
         page_pk = self.pages[0].pk
-        response = self.client.get(f"/api/v1/pages/{page_pk}/")
+        detail_url = reverse("donationpage-detail", kwargs={"pk": page_pk})
+        response = self.client.get(detail_url)
         # detail serializer should have 'styles' field
         self.assertIn("styles", response.json())
 
@@ -101,7 +102,7 @@ class TemplateViewSetTest(APITestCase):
         template = self.templates[0]
         old_template_title = template.title
         old_template_pk = template.pk
-        detail_url = f"/api/v1/templates/{old_template_pk}/"
+        detail_url = reverse("template-detail", kwargs={"pk": old_template_pk})
         new_title = "Old Template With New Title"
         response = self.client.patch(detail_url, {"title": new_title})
         template = Template.objects.filter(pk=old_template_pk).first()
@@ -112,7 +113,7 @@ class TemplateViewSetTest(APITestCase):
     def test_template_delete_deletes_template(self):
         template = self.templates[0]
         old_template_pk = template.pk
-        detail_url = f"/api/v1/templates/{old_template_pk}/"
+        detail_url = reverse("template-detail", kwargs={"pk": old_template_pk})
         response = self.client.delete(detail_url)
 
         templates = Template.objects.all()
@@ -127,7 +128,8 @@ class TemplateViewSetTest(APITestCase):
 
     def test_template_detail_uses_detail_serializer(self):
         template_pk = self.templates[0].pk
-        response = self.client.get(f"/api/v1/templates/{template_pk}/")
+        detail_url = reverse("template-detail", kwargs={"pk": template_pk})
+        response = self.client.get(detail_url)
         # detail serializer should have 'styles' field
         self.assertIn("styles", response.json())
 

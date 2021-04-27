@@ -19,11 +19,7 @@ class TemplateViewSet(viewsets.ModelViewSet):
     queryset = Template.objects.all()
 
     def get_serializer_class(self):
-        return (
-            serializers.TemplateDetailSerializer
-            if self.action == "retrieve"
-            else serializers.TemplateListSerializer
-        )
+        return serializers.TemplateDetailSerializer if self.action == "retrieve" else serializers.TemplateListSerializer
 
 
 class StyleViewSet(viewsets.ModelViewSet):

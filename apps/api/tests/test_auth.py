@@ -7,9 +7,11 @@ from django.contrib.sessions.middleware import SessionMiddleware
 from django.middleware import csrf
 from django.test import RequestFactory
 
+import jwt
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.reverse import reverse
 from rest_framework.test import APITestCase
+from rest_framework_simplejwt.backends import TokenBackend
 from rest_framework_simplejwt.exceptions import InvalidToken
 from rest_framework_simplejwt.tokens import AccessToken
 
@@ -20,10 +22,6 @@ from apps.pages.tests.factories import DonationPageFactory
 
 
 user_model = get_user_model()
-
-
-def mock_get_user(*args, **kwargs):
-    return user_model.objects.create_user(email="test@tewst.com", password="testing")
 
 
 class JWTCookieAuthenticationTest(APITestCase):
@@ -38,24 +36,25 @@ class JWTCookieAuthenticationTest(APITestCase):
         self.request.user = self.user
         self.request._dont_enforce_csrf_checks = False
 
-        self.jwt = AccessToken().for_user(self.user)
+        valid_token_obj = AccessToken().for_user(self.user)
+        self.valid_jwt = jwt.encode(valid_token_obj.payload, settings.SECRET_KEY, algorithm="HS256")
+        self.invalid_jwt = "notavalidhmac"
         self.csrf_token = csrf._get_new_csrf_token()
 
-    def _add_jwt_to_cookie(self):
-        self.request.COOKIES[settings.AUTH_COOKIE_KEY] = self.jwt
+    def _add_jwt_to_cookie(self, valid=True):
+        self.request.COOKIES[settings.AUTH_COOKIE_KEY] = (
+            self.valid_jwt if valid else self.invalid_jwt
+        )
 
-    def _add_csrf_to_cookie(self):
-        self.request.COOKIES[settings.CSRF_COOKIE_NAME] = self.csrf_token
+    def _add_csrf_to_cookie(self, csrf_token=None):
+        self.request.COOKIES[settings.CSRF_COOKIE_NAME] = (
+            csrf_token if csrf_token else self.csrf_token
+        )
 
-    def _add_csrf_to_headers(self):
-        self.request.META[settings.CSRF_HEADER_NAME] = self.csrf_token
+    def _add_csrf_to_headers(self, csrf_token=None):
+        self.request.META[settings.CSRF_HEADER_NAME] = csrf_token if csrf_token else self.csrf_token
 
-    @patch("apps.api.authentication.JWTHttpOnlyCookieAuthentication.get_validated_token")
-    @patch(
-        "apps.api.authentication.JWTHttpOnlyCookieAuthentication.get_user",
-        side_effect=mock_get_user,
-    )
-    def test_request_with_valid_jwt_and_csrf_token_succeeds(self, *args):
+    def test_request_with_valid_jwt_and_csrf_token_succeeds(self):
         self._add_jwt_to_cookie()
         self._add_csrf_to_cookie()
         self._add_csrf_to_headers()
@@ -67,41 +66,41 @@ class JWTCookieAuthenticationTest(APITestCase):
         self.assertIsNone(JWTHttpOnlyCookieAuthentication().authenticate(self.request))
 
     def test_request_with_invalid_jwt_but_valid_csrf_fails(self):
-        self._add_jwt_to_cookie()
+        self._add_jwt_to_cookie(valid=False)
         self._add_csrf_to_cookie()
         self._add_csrf_to_headers()
         with self.assertRaises(InvalidToken):
             JWTHttpOnlyCookieAuthentication().authenticate(self.request)
 
-    @patch("apps.api.authentication.JWTHttpOnlyCookieAuthentication.get_validated_token")
-    @patch(
-        "apps.api.authentication.JWTHttpOnlyCookieAuthentication.get_user",
-        side_effect=mock_get_user,
-    )
-    def test_request_with_valid_jwt_but_missing_csrf_fails(self, *args):
+    def test_request_with_valid_jwt_but_missing_csrf_fails(self):
         self._add_jwt_to_cookie()
         with self.assertRaises(PermissionDenied):
             JWTHttpOnlyCookieAuthentication().authenticate(self.request)
 
-    @patch("apps.api.authentication.JWTHttpOnlyCookieAuthentication.get_validated_token")
-    @patch(
-        "apps.api.authentication.JWTHttpOnlyCookieAuthentication.get_user",
-        side_effect=mock_get_user,
-    )
-    def test_request_with_valid_jwt_but_no_header_csrf_fails(self, *args):
+    def test_request_with_valid_jwt_but_no_header_csrf_fails(self):
         self._add_jwt_to_cookie()
         self._add_csrf_to_cookie()
         with self.assertRaises(PermissionDenied):
             JWTHttpOnlyCookieAuthentication().authenticate(self.request)
 
-    @patch("apps.api.authentication.JWTHttpOnlyCookieAuthentication.get_validated_token")
-    @patch(
-        "apps.api.authentication.JWTHttpOnlyCookieAuthentication.get_user",
-        side_effect=mock_get_user,
-    )
-    def test_request_with_valid_jwt_but_no_cookie_csrf_fails(self, *args):
+    def test_request_with_valid_jwt_but_no_cookie_csrf_fails(self):
         self._add_jwt_to_cookie()
         self._add_csrf_to_headers()
+        with self.assertRaises(PermissionDenied):
+            JWTHttpOnlyCookieAuthentication().authenticate(self.request)
+
+    def test_request_with_valid_jwt_but_invalid_csrf_fails(self):
+        invalid_csrf_token = "invalidtoken"
+        self._add_jwt_to_cookie()
+        self._add_csrf_to_cookie(csrf_token=invalid_csrf_token)
+        self._add_csrf_to_headers(csrf_token=invalid_csrf_token)
+        with self.assertRaises(PermissionDenied):
+            JWTHttpOnlyCookieAuthentication().authenticate(self.request)
+
+    def test_request_with_valid_jwt_but_mismatched_csrf_fails(self):
+        self._add_jwt_to_cookie()
+        self._add_csrf_to_cookie()
+        self._add_csrf_to_headers(csrf_token="differenttoken")
         with self.assertRaises(PermissionDenied):
             JWTHttpOnlyCookieAuthentication().authenticate(self.request)
 

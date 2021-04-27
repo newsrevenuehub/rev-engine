@@ -16,9 +16,7 @@ class Migration(migrations.Migration):
             fields=[
                 (
                     "id",
-                    models.AutoField(
-                        auto_created=True, primary_key=True, serialize=False, verbose_name="ID"
-                    ),
+                    models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID"),
                 ),
                 ("name", models.CharField(max_length=255)),
             ],
@@ -128,25 +126,19 @@ class Migration(migrations.Migration):
             fields=[
                 (
                     "id",
-                    models.AutoField(
-                        auto_created=True, primary_key=True, serialize=False, verbose_name="ID"
-                    ),
+                    models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID"),
                 ),
                 ("name", models.CharField(max_length=255)),
                 ("description", models.TextField(blank=True)),
                 (
                     "plans",
-                    models.ManyToManyField(
-                        blank=True, related_name="plans", to="organizations.Plan"
-                    ),
+                    models.ManyToManyField(blank=True, related_name="plans", to="organizations.Plan"),
                 ),
             ],
         ),
         migrations.AddField(
             model_name="organization",
             name="plan",
-            field=models.ForeignKey(
-                null=True, on_delete=django.db.models.deletion.CASCADE, to="organizations.plan"
-            ),
+            field=models.ForeignKey(null=True, on_delete=django.db.models.deletion.CASCADE, to="organizations.plan"),
         ),
     ]

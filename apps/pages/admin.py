@@ -36,9 +36,7 @@ class TemplateAdmin(DonationPageAdminAbstract):
     def response_change(self, request, obj):
         if "_page-from-template" in request.POST:
             new_page = obj.make_page_from_template()
-            return HttpResponseRedirect(
-                reverse("admin:pages_donationpage_change", kwargs={"object_id": new_page.id})
-            )
+            return HttpResponseRedirect(reverse("admin:pages_donationpage_change", kwargs={"object_id": new_page.id}))
         return super().response_change(request, obj)
 
 

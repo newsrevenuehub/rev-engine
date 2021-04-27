@@ -17,9 +17,7 @@ class AbstractPage(models.Model):
 
     show_benefits = models.BooleanField(default=False)
 
-    donor_benefits = models.ForeignKey(
-        "pages.DonorBenefit", null=True, blank=True, on_delete=models.SET_NULL
-    )
+    donor_benefits = models.ForeignKey("pages.DonorBenefit", null=True, blank=True, on_delete=models.SET_NULL)
 
     organization = models.ForeignKey("organizations.Organization", on_delete=models.CASCADE)
 
@@ -67,9 +65,7 @@ class DonationPage(AbstractPage):
 
     slug = models.SlugField(unique=True)
 
-    revenue_program = models.ForeignKey(
-        "organizations.RevenueProgram", null=True, on_delete=models.SET_NULL
-    )
+    revenue_program = models.ForeignKey("organizations.RevenueProgram", null=True, on_delete=models.SET_NULL)
 
     published_date = models.DateTimeField(null=True, blank=True)
 

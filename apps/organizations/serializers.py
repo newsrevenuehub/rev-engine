@@ -24,7 +24,7 @@ class PlanDetailSerializer(serializers.ModelSerializer):
 class PlanListSerializer(serializers.ModelSerializer):
     class Meta:
         model = Plan
-        fields = ["id", "name", "features"]
+        fields = ["id", "name"]
 
 
 class OrganizationDetailSerializer(serializers.ModelSerializer):
@@ -34,6 +34,8 @@ class OrganizationDetailSerializer(serializers.ModelSerializer):
 
 
 class OrganizationListSerializer(serializers.ModelSerializer):
+    slug = serializers.SlugField(required=False)
+
     class Meta:
         model = Organization
         fields = [
@@ -51,6 +53,14 @@ class OrganizationListSerializer(serializers.ModelSerializer):
             "salesforce_id",
         ]
 
+    def get_fields(self):
+        fields = super().get_fields()
+        request = self.context.get("request", None)
+        if request and getattr(request, "method", None) == "PATCH":
+            fields["name"].read_only = True
+            fields["slug"].read_only = True
+        return fields
+
 
 class RevenueProgramDetailSerializer(serializers.ModelSerializer):
     class Meta:
@@ -59,6 +69,17 @@ class RevenueProgramDetailSerializer(serializers.ModelSerializer):
 
 
 class RevenueProgramListSerializer(serializers.ModelSerializer):
+    slug = serializers.SlugField(required=False)
+
     class Meta:
         model = RevenueProgram
         fields = ["id", "name", "slug", "organization"]
+
+    def get_fields(self):
+        fields = super().get_fields()
+        request = self.context.get("request", None)
+        if request and getattr(request, "method", None) == "PATCH":
+            fields["name"].read_only = True
+            fields["slug"].read_only = True
+            fields["organization"].read_only = True
+        return fields

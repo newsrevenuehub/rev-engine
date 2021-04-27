@@ -5,7 +5,7 @@ from apps.organizations.models import Feature, Organization, Plan, RevenueProgra
 
 @admin.register(Organization)
 class OrganizationAdmin(admin.ModelAdmin):
-    organization_fieldset = (
+    fieldsets = (
         ("Organization", {"fields": ("name", "slug")}),
         (
             "Address",
@@ -20,18 +20,21 @@ class OrganizationAdmin(admin.ModelAdmin):
         ("Plan", {"fields": ("non_profit", "plan", "stripe_account", "salesforce_id")}),
     )
 
-    readonly_fields = ["slug"]
+    readonly_fields = ["name", "slug"]
 
     list_display = ["name", "slug", "plan", "org_state"]
 
     list_filter = ["name", "plan", "org_state"]
 
-    fieldsets = organization_fieldset
+    def get_readonly_fields(self, request, obj=None):
+        if not obj:
+            return ["slug"]
+        return super().get_readonly_fields(request, obj)
 
 
 @admin.register(RevenueProgram)
 class RevenueProgramAdmin(admin.ModelAdmin):
-    revenue_program_fieldset = (("RevenueProgram", {"fields": ("name", "slug", "organization")}),)
+    fieldsets = (("RevenueProgram", {"fields": ("name", "slug", "organization")}),)
 
     readonly_fields = ["slug"]
 
@@ -39,23 +42,24 @@ class RevenueProgramAdmin(admin.ModelAdmin):
 
     list_filter = ["name"]
 
-    fieldsets = revenue_program_fieldset
+    def get_readonly_fields(self, request, obj=None):
+        if obj:
+            return ["name", "slug", "organization"]
+        return super().get_readonly_fields(request, obj)
 
 
 @admin.register(Plan)
 class PlanAdmin(admin.ModelAdmin):
-    plan_fieldset = (("Plan", {"fields": ("name",)}),)
+    fieldsets = (("Plan", {"fields": ("name",)}),)
 
     list_display = ["name"]
 
     list_filter = ["name"]
 
-    fieldsets = plan_fieldset
-
 
 @admin.register(Feature)
 class FeatureAdmin(admin.ModelAdmin):
-    feature_fieldset = (("Feature", {"fields": ("name", "description", "plans")}),)
+    fieldsets = (("Feature", {"fields": ("name", "description", "plans")}),)
 
     list_display = ["name"]
 

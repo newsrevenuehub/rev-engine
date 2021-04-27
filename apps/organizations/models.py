@@ -4,15 +4,14 @@ from django.utils.text import slugify
 from apps.common.constants import STATE_CHOICES
 
 
-def normalize_slug(slug, norm_to=50):
-    """Returns a string of len <=50
+def normalize_slug(slug, to_length=50):
+    """Returns a string of len <= a supplied length.
     :param slug:
-    :param norm_to:
+    :param to_length:
     :return: str
     """
-    slug_len = len(slug)
-    if slug_len > norm_to:
-        slug = slug[:norm_to].rstrip("-")
+    if len(slug) > to_length:
+        slug = slug[:to_length].rstrip("-")
     return slug
 
 
@@ -41,17 +40,17 @@ class Organization(models.Model):
     org_addr1 = models.CharField(max_length=255, blank=True, verbose_name="Address 1")
     org_addr2 = models.CharField(max_length=255, blank=True, verbose_name="Address 2")
     org_city = models.CharField(max_length=64, blank=True, verbose_name="City")
-    org_state = models.CharField(
-        max_length=2, blank=True, choices=STATE_CHOICES, verbose_name="State"
-    )
+    org_state = models.CharField(max_length=2, blank=True, choices=STATE_CHOICES, verbose_name="State")
     org_zip = models.CharField(max_length=9, blank=True, verbose_name="Zip")
     salesforce_id = models.CharField(max_length=255, blank=True, verbose_name="Salesforce ID")
 
     def __str__(self):
         return self.name
 
-    def save(self, *args, **kwargs):
+    def current_states(self):
+        return
 
+    def save(self, *args, **kwargs):
         if not self.id:
             self.slug = normalize_slug(slugify(self.name, allow_unicode=True))
         super(Organization, self).save(*args, **kwargs)

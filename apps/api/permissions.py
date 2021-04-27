@@ -14,4 +14,4 @@ class UserBelongsToOrg(permissions.BasePermission):
         if not hasattr(obj, "organization"):
             return True
 
-        return obj.organization.user_is_member(request.user)
+        return request.user.is_active and obj.organization.user_is_member(request.user)

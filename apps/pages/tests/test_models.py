@@ -1,6 +1,7 @@
 import datetime
 
 from django.test import TestCase
+from django.utils import timezone
 
 from apps.pages.models import AbstractPage, DonationPage, Template
 from apps.pages.tests.factories import (
@@ -11,9 +12,6 @@ from apps.pages.tests.factories import (
     StyleFactory,
     TemplateFactory,
 )
-
-
-# 113, 129, 145, 153
 
 
 class DonationPageTest(TestCase):
@@ -27,12 +25,12 @@ class DonationPageTest(TestCase):
 
     def test_is_live(self):
         one_minute = datetime.timedelta(minutes=1)
-        self.instance.published_date = datetime.datetime.now() - one_minute
+        self.instance.published_date = timezone.now() - one_minute
         self.instance.save()
 
         self.assertTrue(self.instance.is_live)
 
-        self.instance.published_date = datetime.datetime.now() + one_minute
+        self.instance.published_date = timezone.now() + one_minute
         self.instance.save()
 
         self.assertFalse(self.instance.is_live)

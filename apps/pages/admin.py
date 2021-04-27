@@ -16,6 +16,7 @@ class DonationPageAdminAbstract(admin.ModelAdmin):
         ),
         ("Header", {"fields": ("header_bg_image", "header_logo", "header_link")}),
         ("Title", {"fields": ("title",)}),
+        (None, {"fields": ("styles",)}),
         (None, {"fields": ("elements",)}),
         (
             "Benefits",
@@ -31,6 +32,26 @@ class DonationPageAdminAbstract(admin.ModelAdmin):
 
 @admin.register(Template)
 class TemplateAdmin(DonationPageAdminAbstract):
+    list_display = (
+        "name",
+        "title",
+        "organization",
+    )
+    list_filter = (
+        "name",
+        "title",
+        "organization",
+    )
+    ordering = (
+        "name",
+        "organization__name",
+    )
+    search_fields = (
+        "name",
+        "title",
+        "organization__name",
+    )
+
     change_form_template = "pages/templates_changeform.html"
 
     def response_change(self, request, obj):
@@ -48,7 +69,20 @@ class DonationPageAdmin(DonationPageAdminAbstract):
         (None, {"fields": ("slug",)}),
     ) + DonationPageAdminAbstract.fieldsets
 
-    actions = ["make_template"]
+    list_display = ("name", "title", "organization", "revenue_program", "is_live", "published_date")
+    list_filter = ("name", "title", "organization", "revenue_program", "published_date")
+    order = (
+        "published_date",
+        "organization__name",
+    )
+    search_fields = (
+        "name",
+        "title",
+        "organization__name",
+        "revenue_program__name",
+    )
+
+    actions = ("make_template",)
 
     @admin.action(description="Make templates from selected pages")
     def make_template(self, request, queryset):
@@ -78,19 +112,79 @@ class DonationPageAdmin(DonationPageAdminAbstract):
 
 @admin.register(Style)
 class StyleAdmin(admin.ModelAdmin):
-    pass
+    list_display = (
+        "name",
+        "organization",
+    )
+    list_filter = (
+        "name",
+        "organization",
+    )
+    order = (
+        "name",
+        "organization__name",
+    )
+    search_fields = (
+        "name",
+        "organization__name",
+    )
 
 
 @admin.register(Benefit)
-class BenefitInline(admin.ModelAdmin):
-    pass
+class BenefitAdmin(admin.ModelAdmin):
+    list_display = (
+        "name",
+        "organization",
+    )
+    list_filter = (
+        "name",
+        "organization",
+    )
+    order = (
+        "name",
+        "organization__name",
+    )
+    search_fields = (
+        "name",
+        "organization__name",
+    )
 
 
 @admin.register(BenefitTier)
-class BenefitTierInline(admin.ModelAdmin):
-    pass
+class BenefitTierAdmin(admin.ModelAdmin):
+    list_display = (
+        "name",
+        "organization",
+    )
+    list_filter = (
+        "name",
+        "organization",
+    )
+    order = (
+        "name",
+        "organization__name",
+    )
+    search_fields = (
+        "name",
+        "organization__name",
+    )
 
 
 @admin.register(DonorBenefit)
 class DonorBenefitAdmin(admin.ModelAdmin):
-    pass
+    list_display = (
+        "name",
+        "organization",
+    )
+    list_filter = (
+        "name",
+        "organization",
+    )
+    order = (
+        "name",
+        "organization__name",
+    )
+    search_fields = (
+        "name",
+        "organization__name",
+    )

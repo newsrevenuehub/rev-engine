@@ -2,6 +2,7 @@ from django.db import models
 from django.utils.text import slugify
 
 from apps.common.constants import STATE_CHOICES
+from apps.common.models import IndexedTimeStampedModel
 
 
 def normalize_slug(slug, to_length=50):
@@ -15,7 +16,7 @@ def normalize_slug(slug, to_length=50):
     return slug
 
 
-class Feature(models.Model):
+class Feature(IndexedTimeStampedModel):
     name = models.CharField(max_length=255)
     description = models.TextField(blank=True)
     plans = models.ManyToManyField("organizations.Plan", related_name="plans", blank=True)
@@ -24,14 +25,14 @@ class Feature(models.Model):
         return self.name
 
 
-class Plan(models.Model):
+class Plan(IndexedTimeStampedModel):
     name = models.CharField(max_length=255)
 
     def __str__(self):
         return self.name
 
 
-class Organization(models.Model):
+class Organization(IndexedTimeStampedModel):
     name = models.CharField(max_length=255)
     slug = models.SlugField()
     plan = models.ForeignKey("organizations.Plan", null=True, on_delete=models.CASCADE)
@@ -56,7 +57,7 @@ class Organization(models.Model):
         super(Organization, self).save(*args, **kwargs)
 
 
-class RevenueProgram(models.Model):
+class RevenueProgram(IndexedTimeStampedModel):
     name = models.CharField(max_length=255)
     slug = models.SlugField(max_length=100)
     organization = models.ForeignKey("organizations.Organization", on_delete=models.CASCADE)

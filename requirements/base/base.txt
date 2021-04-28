@@ -52,8 +52,13 @@ django==3.2
     #   django-storages
     #   django-timezone-field
     #   djangorestframework
-djangorestframework==3.12.4
+    #   djangorestframework-simplejwt
+djangorestframework-simplejwt==4.6.0
     # via -r requirements/base/base.in
+djangorestframework==3.12.4
+    # via
+    #   -r requirements/base/base.in
+    #   djangorestframework-simplejwt
 kombu==5.0.2
     # via celery
 pillow==8.2.0
@@ -62,6 +67,8 @@ prompt-toolkit==3.0.18
     # via click-repl
 psycopg2==2.8.6
     # via -r requirements/base/base.in
+pyjwt==2.0.1
+    # via djangorestframework-simplejwt
 python-crontab==2.5.1
     # via django-celery-beat
 python-dateutil==2.8.1

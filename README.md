@@ -123,6 +123,12 @@ Allow direnv to inject the variable into your environment
     (revengine)$ direnv allow .
 ```
 
+If you want to test Stripe payments locally, add the Hub testing "Secret key", starting with `sk_test_` to the env.
+
+```bash
+  (revengine)$ echo "export HUB_STRIPE_API_SECRET_KEY=sk_test_???" >> .envrc
+```
+
 **6. Database**
 
 The setup for local development assumes that you will be working with dockerized

@@ -38,4 +38,6 @@ repos:
   - repo: https://github.com/pre-commit/mirrors-eslint
     rev: v7.25.0
     hooks:
-    -   id: eslint
+    - id: eslint
+      additional_dependencies:
+        - eslint-config-react-app@^6.0.0

@@ -48,9 +48,6 @@ class Organization(IndexedTimeStampedModel):
     def __str__(self):
         return self.name
 
-    def current_states(self):
-        return
-
     def save(self, *args, **kwargs):
         if not self.id:
             self.slug = normalize_slug(slugify(self.name, allow_unicode=True))

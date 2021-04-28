@@ -4,6 +4,8 @@
   "private": true,
   "proxy": "http://localhost:8000/",
   "dependencies": {
+    "@stripe/react-stripe-js": "^1.4.0",
+    "@stripe/stripe-js": "^1.14.0",
     "@testing-library/jest-dom": "^5.11.10",
     "@testing-library/react": "^11.2.6",
     "@testing-library/user-event": "^12.8.3",
@@ -27,7 +29,10 @@
     "eject": "react-scripts eject"
   },
   "jest": {
-    "coveragePathIgnorePatterns": ["/nodes_modules/", "/(__)w+/g"]
+    "coveragePathIgnorePatterns": [
+      "/nodes_modules/",
+      "/(__)w+/g"
+    ]
   },
   "eslintConfig": {
     "extends": [

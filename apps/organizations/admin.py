@@ -1,8 +1,17 @@
 from django.contrib import admin
 
 from apps.organizations.models import Organization, RevenueProgram
+from apps.users.admin import UserOrganizationInline
 
 
-admin.site.register(Organization)
+@admin.register(Organization)
+class OrganizationAdmin(admin.ModelAdmin):
+    inlines = [
+        UserOrganizationInline,
+    ]
+
+    class Meta:
+        model = Organization
+
 
 admin.site.register(RevenueProgram)

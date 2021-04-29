@@ -16,8 +16,6 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name="organization",
             name="users",
-            field=models.ManyToManyField(
-                through="users.OrganizationUser", to=settings.AUTH_USER_MODEL
-            ),
+            field=models.ManyToManyField(through="users.OrganizationUser", to=settings.AUTH_USER_MODEL),
         ),
     ]

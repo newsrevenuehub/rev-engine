@@ -42,14 +42,10 @@ class JWTCookieAuthenticationTest(APITestCase):
         self.csrf_token = csrf._get_new_csrf_token()
 
     def _add_jwt_to_cookie(self, valid=True):
-        self.request.COOKIES[settings.AUTH_COOKIE_KEY] = (
-            self.valid_jwt if valid else self.invalid_jwt
-        )
+        self.request.COOKIES[settings.AUTH_COOKIE_KEY] = self.valid_jwt if valid else self.invalid_jwt
 
     def _add_csrf_to_cookie(self, csrf_token=None):
-        self.request.COOKIES[settings.CSRF_COOKIE_NAME] = (
-            csrf_token if csrf_token else self.csrf_token
-        )
+        self.request.COOKIES[settings.CSRF_COOKIE_NAME] = csrf_token if csrf_token else self.csrf_token
 
     def _add_csrf_to_headers(self, csrf_token=None):
         self.request.META[settings.CSRF_HEADER_NAME] = csrf_token if csrf_token else self.csrf_token
@@ -126,6 +122,4 @@ class UserBelongsToOrgPermissionTest(APITestCase):
 
     def test_object_with_no_org_allowed(self):
         unrelated_object = self.UnrelatedObject()
-        self.assertTrue(
-            UserBelongsToOrg().has_object_permission(self.request, {}, unrelated_object)
-        )
+        self.assertTrue(UserBelongsToOrg().has_object_permission(self.request, {}, unrelated_object))

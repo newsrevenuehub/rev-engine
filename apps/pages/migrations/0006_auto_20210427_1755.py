@@ -15,16 +15,12 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name="benefit",
             name="organization",
-            field=models.ForeignKey(
-                on_delete=django.db.models.deletion.CASCADE, to="organizations.organization"
-            ),
+            field=models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to="organizations.organization"),
         ),
         migrations.AlterField(
             model_name="benefittier",
             name="organization",
-            field=models.ForeignKey(
-                on_delete=django.db.models.deletion.CASCADE, to="organizations.organization"
-            ),
+            field=models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to="organizations.organization"),
         ),
         migrations.AlterField(
             model_name="donationpage",
@@ -39,9 +35,7 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name="donationpage",
             name="organization",
-            field=models.ForeignKey(
-                on_delete=django.db.models.deletion.CASCADE, to="organizations.organization"
-            ),
+            field=models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to="organizations.organization"),
         ),
         migrations.AlterField(
             model_name="donationpage",
@@ -55,16 +49,12 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name="donorbenefit",
             name="organization",
-            field=models.ForeignKey(
-                on_delete=django.db.models.deletion.CASCADE, to="organizations.organization"
-            ),
+            field=models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to="organizations.organization"),
         ),
         migrations.AlterField(
             model_name="style",
             name="organization",
-            field=models.ForeignKey(
-                on_delete=django.db.models.deletion.CASCADE, to="organizations.organization"
-            ),
+            field=models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to="organizations.organization"),
         ),
         migrations.AlterField(
             model_name="template",
@@ -79,8 +69,6 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name="template",
             name="organization",
-            field=models.ForeignKey(
-                on_delete=django.db.models.deletion.CASCADE, to="organizations.organization"
-            ),
+            field=models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to="organizations.organization"),
         ),
     ]

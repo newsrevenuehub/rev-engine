@@ -53,6 +53,7 @@ djangorestframework = "^3.12.4"
 djangorestframework-simplejwt = "^4.6.0"
 Pillow = "^8.2.0"
 stripe = "^2.56.0"
+dj-stripe = "^2.4.3"
 
 [tool.poetry.dev-dependencies]
 appnope = "0.1.2"

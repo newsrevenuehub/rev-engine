@@ -263,3 +263,5 @@ DJSTRIPE_SUBSCRIBER_MODEL = "contributions.Contributor"
 DJSTRIPE_WEBHOOK_URL = r"^revengine-stripe-webhook/\$"
 
 DJSTRIPE_USE_NATIVE_JSONFIELD = True
+
+DEFAULT_CURRENCY = "usd"

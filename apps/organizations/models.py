@@ -28,13 +28,8 @@ class Feature(IndexedTimeStampedModel):
 class Plan(IndexedTimeStampedModel):
     name = models.CharField(max_length=255)
 
-    users = models.ManyToManyField("users.User", through="users.OrganizationUser")
-
     def __str__(self):
         return self.name
-
-    def user_is_member(self, user):
-        return user in self.users.all()
 
 
 class Organization(IndexedTimeStampedModel):
@@ -49,6 +44,8 @@ class Organization(IndexedTimeStampedModel):
     org_state = models.CharField(max_length=2, blank=True, choices=STATE_CHOICES, verbose_name="State")
     org_zip = models.CharField(max_length=9, blank=True, verbose_name="Zip")
     salesforce_id = models.CharField(max_length=255, blank=True, verbose_name="Salesforce ID")
+
+    users = models.ManyToManyField("users.User", through="users.OrganizationUser")
 
     def __str__(self):
         return self.name

@@ -1,12 +1,12 @@
-import { LS_USER, CSRF_HEADER } from "constants/authConstants";
+import { LS_USER, LS_CSRF_TOKEN } from "constants/authConstants";
 
 export function handleLoginSuccess(data) {
   localStorage.setItem(LS_USER, JSON.stringify(data.user));
-  localStorage.setItem(CSRF_HEADER, data.csrftoken);
+  localStorage.setItem(LS_CSRF_TOKEN, data.csrftoken);
 }
 
 export function handleLogoutSuccess() {
   localStorage.removeItem(LS_USER);
-  localStorage.removeItem(CSRF_HEADER);
+  localStorage.removeItem(LS_CSRF_TOKEN);
   window.location = "/";
 }

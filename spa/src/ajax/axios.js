@@ -1,9 +1,5 @@
 import axios from "axios";
-import {
-  LS_USER,
-  LS_CSRF_TOKEN,
-  CSRF_HEADER,
-} from "constants/authConstants";
+import { LS_USER, LS_CSRF_TOKEN, CSRF_HEADER } from "constants/authConstants";
 
 export const apiVersion = process.env.REACT_APP_API_VERSION || "v1";
 export const apiBaseUrl = `/api/${apiVersion}/`;
@@ -35,10 +31,7 @@ Axios.interceptors.request.use(
  * first callback handles success, so pass through
  * second callback handles errors
  */
-Axios.interceptors.response.use(
-  (success) => success,
-  handleResponseError
-);
+Axios.interceptors.response.use((success) => success, handleResponseError);
 
 function handleResponseError(error) {
   if (error?.response) {

@@ -1,6 +1,7 @@
 from django.contrib import admin
 
 from apps.organizations.models import Feature, Organization, Plan, RevenueProgram
+from apps.users.admin import UserOrganizationInline
 
 
 @admin.register(Organization)
@@ -25,6 +26,8 @@ class OrganizationAdmin(admin.ModelAdmin):
     list_display = ["name", "slug", "plan", "org_state"]
 
     list_filter = ["name", "plan", "org_state"]
+
+    inlines = [UserOrganizationInline]
 
     def get_readonly_fields(self, request, obj=None):
         if not obj:

@@ -55,6 +55,9 @@ class Organization(IndexedTimeStampedModel):
             self.slug = normalize_slug(slugify(self.name, allow_unicode=True))
         super(Organization, self).save(*args, **kwargs)
 
+    def user_is_member(self, user):
+        return user in self.users.all()
+
 
 class RevenueProgram(IndexedTimeStampedModel):
     name = models.CharField(max_length=255)

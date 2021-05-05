@@ -22,8 +22,8 @@ class OrganizationViewSetTest(APITestCase):
     def test_list_of_orgs(self):
         response = self.client.get(self.list_url)
         orgs = Organization.objects.all()
-        self.assertEqual(len(response.data), len(orgs))
-        org_names = [o["name"] for o in response.data]
+        self.assertEqual(response.json()["count"], len(orgs))
+        org_names = [o["name"] for o in response.json()["results"]]
         expected_org_names = [o.name for o in orgs]
         self.assertEqual(org_names, expected_org_names)
 
@@ -86,13 +86,14 @@ class RevenueProgramViewSetTest(APITestCase):
     def test_list_returns_expected_count(self):
         response = self.client.get(self.list_url)
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(len(response.data), RevenueProgram.objects.count())
+        self.assertEqual(response.json()["count"], RevenueProgram.objects.count())
 
     def test_created_and_list_are_equivalent(self):
         response = self.client.get(self.list_url)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(
-            [x["id"] for x in response.json()], [x for x in RevenueProgram.objects.values_list("pk", flat=True)]
+            [x["id"] for x in response.json()["results"]],
+            [x for x in RevenueProgram.objects.values_list("pk", flat=True)],
         )
 
     def test_revenue_program_create_add_program(self):
@@ -130,8 +131,8 @@ class PlanViewSetTest(APITestCase):
     def test_list_returns_expected_count(self):
         response = self.client.get(self.list_url)
         self.assertEqual(response.status_code, 200)
-        self.assertNotEqual(len(response.data), 0)
-        self.assertEqual(len(response.data), Plan.objects.count())
+        self.assertNotEqual(response.json()["count"], 0)
+        self.assertEqual(response.json()["count"], Plan.objects.count())
 
 
 class FeatureViewSetTest(APITestCase):
@@ -150,5 +151,5 @@ class FeatureViewSetTest(APITestCase):
     def test_list_returns_expected_count(self):
         response = self.client.get(self.list_url)
         self.assertEqual(response.status_code, 200)
-        self.assertNotEqual(len(response.data), 0)
-        self.assertEqual(len(response.data), Feature.objects.count())
+        self.assertNotEqual(response.json()["count"], 0)
+        self.assertEqual(response.json()["count"], Feature.objects.count())

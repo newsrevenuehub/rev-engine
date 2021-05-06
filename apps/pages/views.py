@@ -2,17 +2,9 @@ from rest_framework import viewsets
 from rest_framework.permissions import IsAuthenticated
 
 from apps.api.permissions import UserBelongsToOrg
+from apps.organizations.views import OrganizationLimitedListView
 from apps.pages import serializers
 from apps.pages.models import Benefit, BenefitTier, DonationPage, DonorBenefit, Style, Template
-
-
-class OrganizationLimitedListView:
-    model = None
-
-    def get_queryset(self):
-        if self.action == "list" and hasattr(self.model, "organization"):
-            return self.model.objects.filter(organization__users=self.request.user)
-        return self.model.objects.all()
 
 
 class PageViewSet(OrganizationLimitedListView, viewsets.ModelViewSet):

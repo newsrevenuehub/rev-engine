@@ -6,9 +6,9 @@ from apps.organizations import views
 
 
 router = routers.DefaultRouter()
-router.register(r"features", views.FeatureViewSet)
-router.register(r"organizations", views.OrganizationViewSet)
-router.register(r"plans", views.PlanViewSet)
-router.register(r"revenue-programs", views.RevenueProgramViewSet)
+router.register(r"features", views.FeatureViewSet, basename="feature")
+router.register(r"organizations", views.OrganizationViewSet, basename="organization")
+router.register(r"plans", views.PlanViewSet, basename="plan")
+router.register(r"revenue-programs", views.RevenueProgramViewSet, basename="revenueprogram")
 
 urlpatterns = [path("", include(router.urls))]

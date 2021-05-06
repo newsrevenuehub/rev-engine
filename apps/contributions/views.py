@@ -1,45 +1,68 @@
+import logging
+
 from django.conf import settings
 
-import djstripe
 import stripe
 from rest_framework import status
-from rest_framework.decorators import api_view
+from rest_framework.decorators import api_view, authentication_classes, permission_classes
 from rest_framework.response import Response
 
+from apps.contributions.models import Contribution, Contributor
+from apps.contributions.utils import get_default_api_key
+from apps.contributions.webhooks import StripeWebhookProcessor
 from apps.organizations.models import Organization
+from apps.pages.models import DonationPage
 
 
-class StripePaymentProvider:
-    def calculate_payment_amount(self, amount: str) -> int:
-        """
-        Stripe expects payments to be in cents.
-        """
-        return int(float(amount) * 100)
+logger = logging.getLogger(__name__)
+
+
+def convert_money_value_to_stripe_payment_amount(amount):
+    return int(float(amount) * 100)
 
 
 @api_view(["POST", "PATCH"])
 def stripe_payment_intent(request):
-    provider = StripePaymentProvider()
     if request.method == "POST":
         try:
             org_slug = request.data.get("org_slug")
+            page_slug = request.data.get("page_slug")
+            contributor_email = request.data.get("contributor_email")
             organization = Organization.objects.get(slug=org_slug)
-            api_key = organization.stripe_account.get_default_api_key()
+            page = DonationPage.objects.get(slug=page_slug)
 
-            payment_amount = provider.calculate_payment_amount(request.data.get("payment_amount"))
-            # payment_frequency = request.data.get('payment_frequency')
+            api_key = get_default_api_key(settings.STRIPE_LIVE_MODE)
 
+            payment_amount = convert_money_value_to_stripe_payment_amount(
+                request.data.get("payment_amount")
+            )
+
+            contributor, _ = Contributor.objects.get_or_create(email=contributor_email)
+
+            pi_metadata = {
+                "contributor": contributor.pk,
+            }
             stripe_intent = stripe.PaymentIntent.create(
                 amount=payment_amount,
                 currency=settings.DEFAULT_CURRENCY,
                 payment_method_types=["card"],
                 api_key=api_key,
+                stripe_account=organization.stripe_account_id,
+                metadata=pi_metadata,
             )
 
-            intent = djstripe.models.PaymentIntent.sync_from_stripe_data(stripe_intent)
+            Contribution.objects.create(
+                amount=payment_amount,
+                donation_page=page,
+                organization=organization,
+                contributor=contributor,
+                payment_provider_data=stripe_intent,
+                provider_reference_id=stripe_intent.id,
+                payment_state=Contribution.PROCESSING[0],
+            )
 
             return Response(
-                data={"clientSecret": intent.client_secret}, status=status.HTTP_201_CREATED
+                data={"clientSecret": stripe_intent["client_secret"]}, status=status.HTTP_200_OK
             )
 
         except Organization.DoesNotExist:
@@ -47,98 +70,40 @@ def stripe_payment_intent(request):
                 data={"org_slug": [f'Could not find Organization from slug "{org_slug}"']},
                 status=status.HTTP_400_BAD_REQUEST,
             )
-        # except stripe.error.CardError as e:
-        #     # Since it's a decline, stripe.error.CardError will be caught
 
-        #     print('Status is: %s' % e.http_status)
-        #     print('Code is: %s' % e.code)
-        #     # param is '' in this case
-        #     print('Param is: %s' % e.param)
-        #     print('Message is: %s' % e.user_message)
-        # except stripe.error.RateLimitError as e:
-        #     # Too many requests made to the API too quickly
-        #     pass
-        # except stripe.error.InvalidRequestError as e:
-        #     # Invalid parameters were supplied to Stripe's API
-        #     pass
-        # except stripe.error.AuthenticationError as e:
-        #     # Authentication with Stripe's API failed
-        #     # (maybe you changed API keys recently)
-        #     pass
-        # except stripe.error.APIConnectionError as e:
-        #     # Network communication with Stripe failed
-        #     pass
-        # except stripe.error.StripeError as e:
-        #     # Display a very generic error to the user, and maybe send
-        #     # yourself an email
-        #     pass
-        # except Exception as e:
-        #     # Something else happened, completely unrelated to Stripe
-        #     pass
+        except DonationPage.DoesNotExist:
+            return Response(
+                data={"page_slug": [f'Could not find DonationPage from slug "{page_slug}"']},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
     if request.method == "PATCH":
+        intent_id = request.data.get("intent_id")
         pass
-        # update existing PaymentIntent
-        # try:
 
-        # except
 
-        # if org_slug:=request.POST.get('org_slug'):
-        #     if organization:=Organization.objects.filter(slug=org_slug).first():
-        #     else:
-        # else:
-        #     return Response(data={'org_slug': ['This field is required']}, status=status.HTTP_400_BAD_REQUEST)
-        # organization = request.POST.get('org_slug')
-        # stripe.PaymentIntent.create(
-        #     api_key=
-        # )
-        # or djstripe.PaymentIntent.create()?
-        # breakpoint()
-        # data = {}
-        # try:
-        #     if "payment_method_id" in data:
-        #         # Create the PaymentIntent
-        #         intent = stripe.PaymentIntent.create(
-        #             payment_method=data["payment_method_id"],
-        #             amount=1099,
-        #             currency="usd",
-        #             confirmation_method="manual",
-        #             confirm=True,
-        #             api_key=djstripe.settings.STRIPE_SECRET_KEY,
-        #         )
-        #     elif "payment_intent_id" in data:
-        #         intent = stripe.PaymentIntent.confirm(
-        #             data["payment_intent_id"],
-        #             api_key=djstripe.settings.STRIPE_SECRET_KEY,
-        #         )
-        # except stripe.error.CardError as e:
-        #     # Display error on client
-        #     return_data = json.dumps({"error": e.user_message}), status.HTTP_200_OK
-        #     return Response(
-        #         return_data[0], status=return_data[1]
-        #     )
+@api_view(["POST"])
+@authentication_classes([])
+@permission_classes([])
+def process_stripe_webhook_view(request):
+    payload = request.body
+    sig_header = request.META["HTTP_STRIPE_SIGNATURE"]
+    event = None
+    try:
+        event = stripe.Webhook.construct_event(payload, sig_header, settings.STRIPE_WEBHOOK_SECRET)
+    except ValueError:
+        logger.error("Invalid payload from Stripe webhook request")
+        return Response(data={"error": "Invalid payload"}, status=status.HTTP_400_BAD_REQUEST)
+    except stripe.error.SignatureVerificationError:
+        logger.error(
+            "Invalid signature on Stripe webhook request. Is STRIPE_WEBHOOK_SECRET set correctly?"
+        )
+        return Response(data={"error": "Invalid signature"}, status=status.HTTP_400_BAD_REQUEST)
 
-        # if (
-        #     intent.status == "requires_action"
-        #     and intent.next_action.type == "use_stripe_sdk"
-        # ):
-        #     # Tell the client to handle the action
-        #     return_data = (
-        #         json.dumps(
-        #             {
-        #                 "requires_action": True,
-        #                 "payment_intent_client_secret": intent.client_secret,
-        #             }
-        #         ),
-        #         status.HTTP_200_OK,
-        #     )
-        # elif intent.status == "succeeded":
-        #     # The payment did not need any additional actions and completed!
-        #     # Handle post-payment fulfillment
-        #     return_data = json.dumps({"success": True}), status.HTTP_200_OK
-        # else:
-        #     # Invalid status
-        #     return_data = json.dumps({"error": "Invalid PaymentIntent status"}), status.HTTP_500_INTERNAL_SERVER_ERROR
-        # return Response(
-        #     return_data[0], content_type="application/json", status=return_data[1]
-        # )
+    try:
+        processor = StripeWebhookProcessor(event)
+        processor.process()
+    except ValueError as e:
+        logger.error(e.message)
+
+    return Response(status=status.HTTP_200_OK)

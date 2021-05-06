@@ -41,7 +41,6 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     "django_celery_beat",
     "rest_framework",
-    "djstripe",
 ]
 
 
@@ -248,20 +247,20 @@ PHONENUMBER_DEFAULT_REGION = "US"
 
 DEFAULT_FROM_EMAIL = os.getenv("DEFAULT_FROM_EMAIL", "no-reply@rev-engine.caktus-built.com")
 
-# Dj-Stripe Config
+# Stripe configs
 STRIPE_LIVE_SECRET_KEY = os.getenv("LIVE_HUB_STRIPE_API_SECRET_KEY", "")
 STRIPE_TEST_SECRET_KEY = os.getenv("TEST_HUB_STRIPE_API_SECRET_KEY", "")
 STRIPE_LIVE_MODE = False  # Change to True in production
 
-DJSTRIPE_WEBHOOK_VALIDATION = "retrieve_event"
-# DJSTRIPE_WEBHOOK_SECRET = os.getenv("STRIPE_WEBHOOK_SECRET", "")  # Get it from the section in the Stripe dashboard where you added the webhook endpoint
+# Get it from the section in the Stripe dashboard where you added the webhook endpoint
+STRIPE_WEBHOOK_SECRET = os.getenv("STRIPE_WEBHOOK_SECRET", "")
 
-DJSTRIPE_FOREIGN_KEY_TO_FIELD = "id"
-
-DJSTRIPE_SUBSCRIBER_MODEL = "contributions.Contributor"
-
-DJSTRIPE_WEBHOOK_URL = r"^revengine-stripe-webhook/\$"
-
-DJSTRIPE_USE_NATIVE_JSONFIELD = True
+WEBHOOK_URL = r"^revengine-stripe-webhook/"
 
 DEFAULT_CURRENCY = "usd"
+
+STRIPE_WEBHOOK_EVENTS = [
+    "payment_intent.canceled",
+    "payment_intent.payment_failed",
+    "payment_intent.succeeded",
+]

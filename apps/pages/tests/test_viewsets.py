@@ -1,10 +1,8 @@
 from django.contrib.auth import get_user_model
 
 from rest_framework.reverse import reverse
-from rest_framework.test import APITestCase
 
-from apps.organizations.models import Organization
-from apps.organizations.tests.factories import OrganizationFactory
+from apps.common.tests.test_resources import AbstractTestCase
 from apps.pages.models import DonationPage, DonorBenefit, Template
 from apps.pages.tests.factories import DonationPageFactory, DonorBenefitFactory, TemplateFactory
 
@@ -12,43 +10,18 @@ from apps.pages.tests.factories import DonationPageFactory, DonorBenefitFactory,
 user_model = get_user_model()
 
 
-class OrgLinkedResource:
-    model = None
-    model_factory = None
-    resource_count = 5
-    org_count = 2
-
-    def setUp(self):
-        for i in range(self.org_count):
-            OrganizationFactory()
-
-        self.orgs = Organization.objects.all()
-
-        for i in range(self.resource_count):
-            org_num = 0 if i % 2 == 0 else 1
-            self.model_factory.create(org=self.orgs[org_num])
-
-        self.resources = self.model.objects.all()
-
-    def authenticate_user_for_resource(self, resource=None):
-        email = "test@test.gov"
-        password = "testpassy"
-        user = user_model.objects.create_user(email=email, password=password)
-        if resource:
-            resource.organization.users.add(user)
-        self.client.login(email=email, password=password)
-
-    class Meta:
-        abstract = True
-
-
-class PageViewSetTest(OrgLinkedResource, APITestCase):
+class PageViewSetTest(AbstractTestCase):
     model = DonationPage
     model_factory = DonationPageFactory
+
+    def setUp(self):
+        super().setUp()
+        self.create_resources()
 
     def test_page_create_adds_page(self):
         self.assertEqual(len(self.resources), self.resource_count)
         self.authenticate_user_for_resource()
+        self.login()
         list_url = reverse("donationpage-list")
         page_data = {
             "title": "New DonationPage",
@@ -66,6 +39,7 @@ class PageViewSetTest(OrgLinkedResource, APITestCase):
     def test_page_update_updates_page(self):
         page = self.resources[0]
         self.authenticate_user_for_resource(page)
+        self.login()
         old_page_title = page.title
         old_page_pk = page.pk
         detail_url = f"/api/v1/pages/{old_page_pk}/"
@@ -79,8 +53,10 @@ class PageViewSetTest(OrgLinkedResource, APITestCase):
     def test_page_delete_deletes_page(self):
         page = self.resources[0]
         self.authenticate_user_for_resource(page)
+        self.login()
         old_page_pk = page.pk
         detail_url = f"/api/v1/pages/{old_page_pk}/"
+
         response = self.client.delete(detail_url)
         self.assertRaises(DonationPage.DoesNotExist, DonationPage.objects.get, pk=old_page_pk)
 
@@ -92,6 +68,7 @@ class PageViewSetTest(OrgLinkedResource, APITestCase):
 
     def test_page_detail_uses_detail_serializer(self):
         self.authenticate_user_for_resource(self.resources[0])
+        self.login()
         page_pk = self.resources[0].pk
         response = self.client.get(f"/api/v1/pages/{page_pk}/")
         # detail serializer should have 'styles' field
@@ -107,6 +84,7 @@ class PageViewSetTest(OrgLinkedResource, APITestCase):
         list_url = reverse("donationpage-list")
 
         self.authenticate_user_for_resource(user_pages[0])
+        self.login()
         response = self.client.get(list_url)
         data = response.json()
 
@@ -119,13 +97,18 @@ class PageViewSetTest(OrgLinkedResource, APITestCase):
         self.assertEqual(set(expected_ids), set(returned_ids))
 
 
-class TemplateViewSetTest(OrgLinkedResource, APITestCase):
+class TemplateViewSetTest(AbstractTestCase):
     model = Template
     model_factory = TemplateFactory
+
+    def setUp(self):
+        super().setUp()
+        self.create_resources()
 
     def test_template_create_adds_template(self):
         self.assertEqual(len(self.resources), self.resource_count)
         self.authenticate_user_for_resource()
+        self.login()
         list_url = reverse("template-list")
         template_data = {
             "name": "New Template",
@@ -143,6 +126,7 @@ class TemplateViewSetTest(OrgLinkedResource, APITestCase):
     def test_template_update_updates_template(self):
         template = self.resources[0]
         self.authenticate_user_for_resource(template)
+        self.login()
         old_template_title = template.title
         old_template_pk = template.pk
         detail_url = f"/api/v1/templates/{old_template_pk}/"
@@ -156,6 +140,7 @@ class TemplateViewSetTest(OrgLinkedResource, APITestCase):
     def test_template_delete_deletes_template(self):
         template = self.resources[0]
         self.authenticate_user_for_resource(template)
+        self.login()
         old_template_pk = template.pk
         detail_url = f"/api/v1/templates/{old_template_pk}/"
         response = self.client.delete(detail_url)
@@ -164,6 +149,7 @@ class TemplateViewSetTest(OrgLinkedResource, APITestCase):
     def test_template_list_uses_list_serializer(self):
         list_url = reverse("template-list")
         self.authenticate_user_for_resource(self.resources[0])
+        self.login()
         response = self.client.get(list_url)
         # list serializer does not have 'styles' field
         self.assertNotIn("styles", response.json())
@@ -171,6 +157,7 @@ class TemplateViewSetTest(OrgLinkedResource, APITestCase):
     def test_template_detail_uses_detail_serializer(self):
         template = self.resources[0]
         self.authenticate_user_for_resource(template)
+        self.login()
         response = self.client.get(f"/api/v1/templates/{template.pk}/")
         # detail serializer should have 'styles' field
         self.assertIn("styles", response.json())
@@ -188,6 +175,7 @@ class TemplateViewSetTest(OrgLinkedResource, APITestCase):
         list_url = reverse("template-list")
 
         self.authenticate_user_for_resource(user_templates[0])
+        self.login()
         response = self.client.get(list_url)
         data = response.json()
 
@@ -200,12 +188,17 @@ class TemplateViewSetTest(OrgLinkedResource, APITestCase):
         self.assertEqual(set(expected_ids), set(returned_ids))
 
 
-class DonorBenefitViewSetTest(OrgLinkedResource, APITestCase):
+class DonorBenefitViewSetTest(AbstractTestCase):
     model = DonorBenefit
     model_factory = DonorBenefitFactory
 
+    def setUp(self):
+        super().setUp()
+        self.create_resources()
+
     def test_donor_benefit_list_uses_list_serializer(self):
         self.authenticate_user_for_resource()
+        self.login()
         response = self.client.get("/api/v1/donor-benefits/")
         # list serializer does not have 'tiers' field
         self.assertNotIn("tiers", response.json())
@@ -213,6 +206,7 @@ class DonorBenefitViewSetTest(OrgLinkedResource, APITestCase):
     def test_donor_benefit_detail_uses_detail_serializer(self):
         donor_benefit = self.resources[0]
         self.authenticate_user_for_resource(donor_benefit)
+        self.login()
         response = self.client.get(f"/api/v1/donor-benefits/{donor_benefit.pk}/")
         # detail serializer should have 'tiers' field
         self.assertIn("tiers", response.json())

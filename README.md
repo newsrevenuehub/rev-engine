@@ -26,14 +26,14 @@ First clone the repository from Github and switch to the new directory:
     $ cd revengine
 ```
 
-**2. Set up virtual environment**
+**1. Set up virtual environment**
 
 Next, set up your virtual environment with python3. For example, ``revengine``.
 
 You will note the distinct lack of opinion on how you should manage your virtual environment. This is by design.
 
 
-**3. Install dependencies**
+**1. Install dependencies**
 
 #### Install Node dependencies
 
@@ -84,7 +84,7 @@ If you need to remove a dependency:
 This should automatically update the ``pyproject.toml`` file and the ``poetry.lock`` file.
 
 
-**4. Pre-commit**
+**1. Pre-commit**
 
 pre-commit is used to enforce a variety of community standards. CI runs it,
 so it's useful to setup the pre-commit hook to catch any issues before pushing
@@ -97,8 +97,36 @@ To install, run:
     (revengine)$ pre-commit install
 ```
 
+**1. Set up Stripe locally**
 
-**5. Set up local env variables**
+To test Stripe locally, you'll need to be able to log in to the Hub Stripe account.
+If you want to test Stripe payments locally, add the Hub testing "Secret key", starting with `sk_test_` to the env.
+
+```bash
+  (revengine)$ echo "export TEST_HUB_STRIPE_API_SECRET_KEY=sk_test_???" >> .envrc
+  (revengine)$ echo "export REACT_APP_HUB_STRIPE_API_PUB_KEY=pk_test_???" >> .envrc
+  (revengine)$ echo "export STRIPE_WEBHOOK_SECRET=whsec_???" >> .envrc
+```
+
+TEST_HUB_STRIPE_API_SECRET_KEY and REACT_APP_HUB_STRIPE_API_PUB_KEY are the Secret Key and Publishable Key for the NRH Stripe Account.
+
+You'll also need a "Connected" account to test with. CaktusGroup has an account for Caktus members, credentials for which can be found in LastPass under "NRH Stripe Test Account".
+
+Then, in Django-admin, create an Organization for that connected stripe account and add your Stripe Account ID to the stripe_account_id field. Make sure that default_payment_provider is "stripe". The Stripe Account ID can be found in the stripe dashboard, settings --> Business Settings --> Your Business --> Account details, in the top right corner.
+
+To set up Stripe Webhooks locally, it's a bit of fuss.
+First, download NGROK and expose whichever port your running the server on. Somethign like:
+
+```bash
+  (revengine)$ ./ngrok http 8000
+```
+
+Next, copy the url its exposing your port through (example:http://610d1234567.ngrok.io) and add `SITE_URL = "http://610d1234567.ngrok.io"`, as well as adding `610d1234567.ngrok.io` to ALLOWED_HOSTS.
+
+Then, run `./manage.py create_stripe_webhooks`. This will use the Stripe sdk to add WebhookEndpoints to NRH Stripe account.
+For the STRIPE_WEBHOOK_SECRET, you'll then need access to the Hub Stripe Dashboard. Go to Developers --> Webhooks --> [your newly added endpoint] --> "Signing secret"
+
+**1. Set up local env variables**
 
 This project utilizes the [direnv](https://direnv.net/) shell extension to manage project level developer environment
 variables. Direnv is installed system wide so you may already have it. If not, [follow the instructions here](https://direnv.net/docs/installation.html)
@@ -123,13 +151,8 @@ Allow direnv to inject the variable into your environment
     (revengine)$ direnv allow .
 ```
 
-If you want to test Stripe payments locally, add the Hub testing "Secret key", starting with `sk_test_` to the env.
 
-```bash
-  (revengine)$ echo "export HUB_STRIPE_API_SECRET_KEY=sk_test_???" >> .envrc
-```
-
-**6. Database**
+**1. Database**
 
 The setup for local development assumes that you will be working with dockerized
 services.
@@ -151,7 +174,7 @@ following shell environment variables or add them to your `.envrc` file:
 ```
 
 
-**7. Migrate and create a superuser**
+**1. Migrate and create a superuser**
 
 ```linux
     (revengine)$ docker-compose up -d
@@ -159,7 +182,7 @@ following shell environment variables or add them to your `.envrc` file:
     (revengine)$ python manage.py createsuperuser
 ```
 
-**8. Run the server and start the SPA**
+**1. Run the server and start the SPA**
 
 ```linux
     (revengine)$ docker-compose up -d
@@ -169,12 +192,12 @@ following shell environment variables or add them to your `.envrc` file:
 The react app will be available at `https://localhost:8001/`, and the django admin will be available at `http://localhost:8000/admin/`
 
 
-**9. Access the server**
+**1. Access the server**
 
 The Django admin is at `/admin/`.
 
 
-**10. Run tests**
+**11. Run tests**
 
 revengine uses pytest as a test runner.
 
@@ -183,7 +206,7 @@ revengine uses pytest as a test runner.
     (revengine)$ make run-tests
 ```
 
-**11. Reset Media and Database**
+**1. Reset Media and Database**
 
 **Media Reset**
 

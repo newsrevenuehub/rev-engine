@@ -8,11 +8,10 @@ export const Wrapper = styled.div`
 
 export const Label = styled.label`
   display: block;
-  color: ${p => p.theme.colors.grey[2]};
+  color: ${(p) => p.theme.colors.grey[2]};
 `;
 
-
-const getInputBorder = props => props.hasErrors ? props.theme.colors.caution : props.theme.colors.black;
+const getInputBorder = (props) => (props.hasErrors ? props.theme.colors.caution : props.theme.colors.black);
 
 export const Input = styled.input`
   display: block;
@@ -34,11 +33,11 @@ export const Errors = styled(motion.ul)`
 `;
 
 export const Error = styled(motion.li)`
-  color: ${p => p.theme.colors.caution};
+  color: ${(p) => p.theme.colors.caution};
 `;
 
 export const errorsAnimation = {
   initial: { opacity: 0, x: -50 },
   animate: { opacity: 1, x: 0 },
-  exit: { opacity: 0, x: 50 },
+  exit: { opacity: 0, x: 50 }
 };

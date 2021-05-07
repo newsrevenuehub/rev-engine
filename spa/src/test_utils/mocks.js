@@ -1,9 +1,9 @@
 /* istanbul ignore file */
-import { rest } from "msw";
-import { setupServer } from "msw/node";
+import { rest } from 'msw';
+import { setupServer } from 'msw/node';
 
-import { apiBaseUrl } from "ajax/axios";
-import * as endpoints from "ajax/endpoints";
+import { apiBaseUrl } from 'ajax/axios';
+import * as endpoints from 'ajax/endpoints';
 
 const handlers = [rest.post(apiBaseUrl + endpoints.TOKEN, loginMock)];
 
@@ -13,7 +13,7 @@ function loginMock(req, res, ctx) {
   return res(
     ctx.status(200),
     ctx.json({
-      detail: "success",
+      detail: 'success'
     })
   );
 }

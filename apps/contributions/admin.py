@@ -10,7 +10,6 @@ class ContributorAdmin(admin.ModelAdmin):
         "contributions_count",
         "quarantined_contributions_count",
         "most_recent_contribution",
-        "most_recent_contribution_date",
     )
     list_filter = ("email",)
 
@@ -23,7 +22,6 @@ class ContributorAdmin(admin.ModelAdmin):
         "contributions_count",
         "quarantined_contributions_count",
         "most_recent_contribution",
-        "most_recent_contribution_date",
     )
 
 

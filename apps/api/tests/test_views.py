@@ -40,9 +40,7 @@ class TokenObtainPairCookieViewTest(APITestCase):
     def test_post_invalid_credentials_fails(self):
         response = self.client.post(self.url, {"email": self.email, "password": "wrong"})
         self.assertEqual(response.status_code, 401)
-        self.assertEqual(
-            response.json()["detail"], "No active account found with the given credentials"
-        )
+        self.assertEqual(response.json()["detail"], "No active account found with the given credentials")
 
     def test_delete_removes_auth_cookie(self):
         factory = RequestFactory(enforce_csrf_checks=True)

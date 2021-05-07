@@ -9,7 +9,7 @@ import model_utils.fields
 class Migration(migrations.Migration):
 
     dependencies = [
-        ("pages", "0006_auto_20210427_1755"),
+        ("pages", "0006_auto_20210504_1827"),
         ("organizations", "0003_auto_20210506_1558"),
         ("contributions", "0001_initial"),
     ]
@@ -40,9 +40,7 @@ class Migration(migrations.Migration):
             fields=[
                 (
                     "id",
-                    models.AutoField(
-                        auto_created=True, primary_key=True, serialize=False, verbose_name="ID"
-                    ),
+                    models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID"),
                 ),
                 (
                     "created",

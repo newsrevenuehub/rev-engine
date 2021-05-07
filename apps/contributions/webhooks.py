@@ -16,12 +16,7 @@ class StripeWebhookProcessor:
         self.obj_data = self.event.data["object"]
 
     def get_contribution_by_reference_id(self):
-        try:
-            return Contribution.objects.get(provider_reference_id=self.obj_data["id"])
-        except Contribution.DoesNotExist as e:
-            logger.error(
-                f"Stripe webhook event recieved with object reference id '{self.obj_data['id']}', but no Contribution could be found by that reference"
-            )
+        return Contribution.objects.get(provider_reference_id=self.obj_data["id"])
 
     def process(self):
         object_type = self.obj_data["object"]

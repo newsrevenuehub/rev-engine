@@ -18,10 +18,6 @@ class Contributor(IndexedTimeStampedModel):
     def most_recent_contribution(self):
         return self.contribution_set.filter(payment_state="paid").latest()
 
-    @property
-    def most_recent_contribution_date(self):
-        return self.contribution_set.filter(payment_state="paid").latest().modified
-
     def __str__(self):
         return self.email
 

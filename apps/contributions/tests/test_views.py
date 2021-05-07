@@ -35,9 +35,7 @@ class CreateStripePaymentIntentViewTest(APITestCase):
                 "payment_amount": self.payment_amount,
                 "org_slug": org_slug if org_slug else self.organization.slug,
                 "page_slug": page_slug if page_slug else self.page.slug,
-                "contributor_email": contributor_email
-                if contributor_email
-                else self.contributor.email,
+                "contributor_email": contributor_email if contributor_email else self.contributor.email,
             },
         )
 
@@ -63,9 +61,7 @@ class CreateStripePaymentIntentViewTest(APITestCase):
     def test_payment_amount(self, *args):
         response = self._post_valid_payment_intent()
         contribution = Contribution.objects.first()
-        self.assertEqual(
-            convert_money_value_to_stripe_payment_amount(self.payment_amount), contribution.amount
-        )
+        self.assertEqual(convert_money_value_to_stripe_payment_amount(self.payment_amount), contribution.amount)
 
     def test_correct_organization_is_associated(self, *args):
         response = self._post_valid_payment_intent()
@@ -80,13 +76,9 @@ class CreateStripePaymentIntentViewTest(APITestCase):
     def test_no_org_found(self, *args):
         response = self._post_valid_payment_intent(org_slug="bad_slug")
         self.assertEqual(response.status_code, 400)
-        self.assertEqual(
-            response.data["org_slug"][0], 'Could not find Organization from slug "bad_slug"'
-        )
+        self.assertEqual(response.data["org_slug"][0], 'Could not find Organization from slug "bad_slug"')
 
     def test_no_page_found(self, *args):
         response = self._post_valid_payment_intent(page_slug="bad_slug")
         self.assertEqual(response.status_code, 400)
-        self.assertEqual(
-            response.data["page_slug"][0], 'Could not find DonationPage from slug "bad_slug"'
-        )
+        self.assertEqual(response.data["page_slug"][0], 'Could not find DonationPage from slug "bad_slug"')

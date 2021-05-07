@@ -14,52 +14,12 @@ class Migration(migrations.Migration):
     operations = [
         migrations.AddField(
             model_name="organization",
-            name="created",
-            field=model_utils.fields.AutoCreatedField(
-                db_index=True,
-                default=django.utils.timezone.now,
-                editable=False,
-                verbose_name="created",
-            ),
-        ),
-        migrations.AddField(
-            model_name="organization",
             name="default_payment_provider",
             field=models.CharField(choices=[("stripe", "Stripe")], default="stripe", max_length=100),
         ),
         migrations.AddField(
             model_name="organization",
-            name="modified",
-            field=model_utils.fields.AutoLastModifiedField(
-                db_index=True,
-                default=django.utils.timezone.now,
-                editable=False,
-                verbose_name="modified",
-            ),
-        ),
-        migrations.AddField(
-            model_name="organization",
             name="stripe_account_id",
             field=models.CharField(blank=True, max_length=255),
-        ),
-        migrations.AddField(
-            model_name="revenueprogram",
-            name="created",
-            field=model_utils.fields.AutoCreatedField(
-                db_index=True,
-                default=django.utils.timezone.now,
-                editable=False,
-                verbose_name="created",
-            ),
-        ),
-        migrations.AddField(
-            model_name="revenueprogram",
-            name="modified",
-            field=model_utils.fields.AutoLastModifiedField(
-                db_index=True,
-                default=django.utils.timezone.now,
-                editable=False,
-                verbose_name="modified",
-            ),
         ),
     ]

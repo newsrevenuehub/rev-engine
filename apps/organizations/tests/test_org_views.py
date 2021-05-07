@@ -1,0 +1,160 @@
+from rest_framework.reverse import reverse
+from rest_framework.test import APITestCase
+
+from apps.common.tests.test_resources import AbstractTestCase
+from apps.organizations.models import Feature, Organization, Plan, RevenueProgram
+from apps.organizations.tests.factories import (
+    FeatureFactory,
+    OrganizationFactory,
+    PlanFactory,
+    RevenueProgramFactory,
+)
+
+
+class OrganizationViewSetTest(AbstractTestCase):
+    def setUp(self):
+        super().setUp()
+        self.list_url = reverse("organization-list")
+
+    def test_list_of_orgs(self):
+        self.login()
+        response = self.client.get(self.list_url)
+        self.assertEqual(response.status_code, 200)
+        orgs = Organization.objects.all()
+        self.assertEqual(response.json()["count"], len(orgs))
+        org_names = [o["name"] for o in response.json()["results"]]
+        expected_org_names = [o.name for o in orgs]
+        self.assertEqual(org_names, expected_org_names)
+
+    def test_org_readonly(self):
+        self.login()
+        response = self.client.post(self.list_url, {"name": "API Org"})
+        self.assertEqual(response.status_code, 405)
+        self.assertEqual(Organization.objects.count(), self.org_count)
+
+    def test_cannot_delete_organization(self):
+        self.login()
+        org = Organization.objects.first()
+        old_pk = org.pk
+        detail_url = f"/api/v1/organizations/{old_pk}/"
+        self.client.delete(detail_url)
+        self.assertEqual(Organization.objects.count(), self.org_count)
+
+    def test_org_list_uses_list_serializer(self):
+        self.login()
+        response = self.client.get(self.list_url)
+        self.assertNotIn("org_addr1", response.json())
+
+    def test_org_detail_uses_detail_serializer(self):
+        self.login()
+        org = Organization.objects.all().first()
+        response = self.client.get(f"/api/v1/organizations/{org.pk}/")
+        self.assertIn("org_addr1", response.json())
+
+
+class RevenueProgramViewSetTest(AbstractTestCase):
+    model = RevenueProgram
+    model_factory = RevenueProgramFactory
+
+    def setUp(self):
+        super().setUp()
+        self.list_url = reverse("revenueprogram-list")
+        self.detail_url = "/api/v1/revenue-programs"
+        self.create_resources()
+
+    def create_resources(self):
+        self.orgs = Organization.objects.all()
+        for i in range(self.resource_count):
+            org_num = 0 if i % 2 == 0 else 1
+            self.model_factory.create(organization=self.orgs[org_num])
+        self.resources = self.model.objects.all()
+
+    def test_reverse_works(self):
+        self.login()
+        response = self.client.get(self.list_url)
+        self.assertEqual(response.status_code, 200)
+
+    def test_list_returns_expected_count(self):
+        revp = self.resources[0]
+        self.authenticate_user_for_resource(revp)
+        self.login()
+        response = self.client.get(self.list_url)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["count"], 3)
+
+    def test_created_and_list_are_equivalent(self):
+        revp = self.resources[0]
+        self.authenticate_user_for_resource(revp)
+        self.login()
+        response = self.client.get(self.list_url)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            [x["id"] for x in response.json()["results"]],
+            [x for x in RevenueProgram.objects.filter(organization=self.orgs[0]).values_list("pk", flat=True)],
+        )
+
+    def test_revenue_program_create_add_program(self):
+        revp = self.resources[0]
+        self.authenticate_user_for_resource(revp)
+        self.login()
+        response = self.client.post(self.list_url, {"name": "New RevenueProgram", "organization": self.orgs[0].pk})
+        self.assertEqual(response.status_code, 201)
+        self.assertEqual(RevenueProgram.objects.count(), self.resource_count + 1)
+
+    def test_cannot_update_revenue_program_name(self):
+        rp = RevenueProgram.objects.all().first()
+        self.authenticate_user_for_resource(rp)
+        self.login()
+        new_name = "A New RevenueProgram Name"
+        response = self.client.patch(f"{self.detail_url}/{rp.pk}/", {"name": new_name})
+        self.assertEqual(response.status_code, 200)
+        self.assertNotEqual(response.data["name"], new_name)
+
+    def test_cannot_update_revenue_program_slug(self):
+        rp = RevenueProgram.objects.all().first()
+        self.authenticate_user_for_resource(rp)
+        self.login()
+        new_slug = "a-new-slug"
+        response = self.client.patch(f"{self.detail_url}/{rp.pk}/", {"name": new_slug})
+        self.assertEqual(response.status_code, 200)
+        self.assertNotEqual(response.data["slug"], new_slug)
+
+
+class PlanViewSetTest(APITestCase):
+    # Stubbing these tests since we haven't really built out the business logic yet.
+    def setUp(self):
+        self.obj_count = 5
+        for i in range(self.obj_count):
+            PlanFactory()
+        self.list_url = reverse("plan-list")
+        self.detail_url = "/api/v1/plans"
+
+    def test_reverse_works(self):
+        response = self.client.get(self.list_url)
+        self.assertEqual(response.status_code, 200)
+
+    def test_list_returns_expected_count(self):
+        response = self.client.get(self.list_url)
+        self.assertEqual(response.status_code, 200)
+        self.assertNotEqual(response.json()["count"], 0)
+        self.assertEqual(response.json()["count"], Plan.objects.count())
+
+
+class FeatureViewSetTest(APITestCase):
+    # Stubbing these tests since we haven't really built out the business logic yet.
+    def setUp(self):
+        self.obj_count = 5
+        for i in range(self.obj_count):
+            FeatureFactory()
+        self.list_url = reverse("feature-list")
+        self.detail_url = "/api/v1/features"
+
+    def test_reverse_works(self):
+        response = self.client.get(self.list_url)
+        self.assertEqual(response.status_code, 200)
+
+    def test_list_returns_expected_count(self):
+        response = self.client.get(self.list_url)
+        self.assertEqual(response.status_code, 200)
+        self.assertNotEqual(response.json()["count"], 0)
+        self.assertEqual(response.json()["count"], Feature.objects.count())

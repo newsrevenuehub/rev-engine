@@ -8,7 +8,7 @@ import model_utils.fields
 class Migration(migrations.Migration):
 
     dependencies = [
-        ("organizations", "0002_organization_users"),
+        ("organizations", "0002_auto_20210428_1641"),
     ]
 
     operations = [
@@ -25,9 +25,7 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name="organization",
             name="default_payment_provider",
-            field=models.CharField(
-                choices=[("stripe", "Stripe")], default="stripe", max_length=100
-            ),
+            field=models.CharField(choices=[("stripe", "Stripe")], default="stripe", max_length=100),
         ),
         migrations.AddField(
             model_name="organization",

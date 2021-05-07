@@ -15,14 +15,11 @@ class User(AbstractBaseUser, PermissionsMixin, IndexedTimeStampedModel):
     is_active = models.BooleanField(
         default=True,
         help_text=_(
-            "Designates whether this user should be treated as "
-            "active. Unselect this instead of deleting accounts."
+            "Designates whether this user should be treated as " "active. Unselect this instead of deleting accounts."
         ),
     )
 
-    organizations = models.ManyToManyField(
-        "organizations.Organization", through="users.OrganizationUser"
-    )
+    organizations = models.ManyToManyField("organizations.Organization", through="users.OrganizationUser")
 
     objects = UserManager()
 

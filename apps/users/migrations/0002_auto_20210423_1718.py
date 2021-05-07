@@ -18,30 +18,22 @@ class Migration(migrations.Migration):
             fields=[
                 (
                     "id",
-                    models.AutoField(
-                        auto_created=True, primary_key=True, serialize=False, verbose_name="ID"
-                    ),
+                    models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID"),
                 ),
                 ("is_owner", models.BooleanField(default=False)),
                 (
                     "organization",
-                    models.ForeignKey(
-                        on_delete=django.db.models.deletion.CASCADE, to="organizations.organization"
-                    ),
+                    models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to="organizations.organization"),
                 ),
                 (
                     "user",
-                    models.ForeignKey(
-                        on_delete=django.db.models.deletion.CASCADE, to=settings.AUTH_USER_MODEL
-                    ),
+                    models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to=settings.AUTH_USER_MODEL),
                 ),
             ],
         ),
         migrations.AddField(
             model_name="user",
             name="organizations",
-            field=models.ManyToManyField(
-                through="users.OrganizationUser", to="organizations.Organization"
-            ),
+            field=models.ManyToManyField(through="users.OrganizationUser", to="organizations.Organization"),
         ),
     ]

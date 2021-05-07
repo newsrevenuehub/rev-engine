@@ -6,8 +6,8 @@ from apps.users.admin import UserOrganizationInline
 
 @admin.register(Organization)
 class OrganizationAdmin(admin.ModelAdmin):
-    fieldsets = (
-        ("Organization", {"fields": ("name", "slug")}),
+    organization_fieldset = (
+        ("Organization", {"fields": ("name", "slug", "salesforce_id")}),
         (
             "Address",
             {
@@ -18,8 +18,19 @@ class OrganizationAdmin(admin.ModelAdmin):
                 )
             },
         ),
-        ("Plan", {"fields": ("non_profit", "plan", "stripe_account", "salesforce_id")}),
+        (
+            "Plan",
+            {
+                "fields": (
+                    "non_profit",
+                    "plan",
+                )
+            },
+        ),
+        ("Payment Provider", {"fields": ("default_payment_provider", "stripe_account_id")}),
     )
+
+    fieldsets = organization_fieldset
 
     readonly_fields = ["name", "slug"]
 

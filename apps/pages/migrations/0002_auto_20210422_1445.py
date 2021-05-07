@@ -17,9 +17,7 @@ class Migration(migrations.Migration):
             fields=[
                 (
                     "id",
-                    models.AutoField(
-                        auto_created=True, primary_key=True, serialize=False, verbose_name="ID"
-                    ),
+                    models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID"),
                 ),
                 ("header_bg_image", models.ImageField(blank=True, null=True, upload_to="")),
                 ("header_logo", models.ImageField(blank=True, null=True, upload_to="")),
@@ -41,9 +39,7 @@ class Migration(migrations.Migration):
                 ),
                 (
                     "organization",
-                    models.ForeignKey(
-                        on_delete=django.db.models.deletion.CASCADE, to="organizations.organization"
-                    ),
+                    models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to="organizations.organization"),
                 ),
                 (
                     "revenue_program",

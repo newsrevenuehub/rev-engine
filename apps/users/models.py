@@ -15,10 +15,11 @@ class User(AbstractBaseUser, PermissionsMixin, IndexedTimeStampedModel):
     is_active = models.BooleanField(
         default=True,
         help_text=_(
-            "Designates whether this user should be treated as "
-            "active. Unselect this instead of deleting accounts."
+            "Designates whether this user should be treated as " "active. Unselect this instead of deleting accounts."
         ),
     )
+
+    organizations = models.ManyToManyField("organizations.Organization", through="users.OrganizationUser")
 
     objects = UserManager()
 
@@ -32,3 +33,9 @@ class User(AbstractBaseUser, PermissionsMixin, IndexedTimeStampedModel):
 
     def __str__(self):
         return self.email
+
+
+class OrganizationUser(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    organization = models.ForeignKey("organizations.Organization", on_delete=models.CASCADE)
+    is_owner = models.BooleanField(default=False)

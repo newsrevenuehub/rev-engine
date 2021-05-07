@@ -12,6 +12,7 @@ https://docs.djangoproject.com/en/3.0/ref/settings/
 
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 import os
+from datetime import timedelta
 
 
 PROJECT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -73,6 +74,30 @@ TEMPLATES = [
         },
     },
 ]
+
+# REST_FRAMEWORK CONFIGURATION
+REST_FRAMEWORK = {
+    "DEFAULT_AUTHENTICATION_CLASSES": [
+        "rest_framework.authentication.SessionAuthentication",
+        # SessionAuthentication needs to go before JWTHttpOnlyCookieAuthentication so that csrf is included in request
+        "apps.api.authentication.JWTHttpOnlyCookieAuthentication",
+    ],
+    # https://www.django-rest-framework.org/api-guide/pagination/#setting-the-pagination-style
+    "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.LimitOffsetPagination",
+    "PAGE_SIZE": 10,
+}
+
+SIMPLE_JWT = {  # https://django-rest-framework-simplejwt.readthedocs.io/en/latest/settings.html
+    "ACCESS_TOKEN_LIFETIME": timedelta(hours=6),
+    "REFRESH_TOKEN_LIFETIME": timedelta(weeks=2),
+}
+
+
+AUTH_COOKIE_KEY = "Authorization"
+# Set SAMESITE setting below to 'Strict' to ask recieving browsers not to send this cookie
+# across origins. Once this API supports public access, this needs to be loosened.
+AUTH_COOKIE_SAMESITE = "Strict"  # or 'Lax' or None
+
 
 WSGI_APPLICATION = "revengine.wsgi.application"
 
@@ -156,9 +181,7 @@ MEDIA_URL = "/media/"
 MEDIA_STORAGE_BUCKET_NAME = os.getenv("MEDIA_STORAGE_BUCKET_NAME", "")
 MEDIA_LOCATION = os.getenv("MEDIA_LOCATION", "")
 MEDIA_S3_CUSTOM_DOMAIN = os.getenv("MEDIA_S3_CUSTOM_DOMAIN", "")
-DEFAULT_FILE_STORAGE = os.getenv(
-    "DEFAULT_FILE_STORAGE", "django.core.files.storage.FileSystemStorage"
-)
+DEFAULT_FILE_STORAGE = os.getenv("DEFAULT_FILE_STORAGE", "django.core.files.storage.FileSystemStorage")
 # Only set this if you need to override the default bucket permissions
 # See: https://github.com/caktus/jade-truffle/issues/17
 AWS_DEFAULT_ACL = os.getenv("AWS_DEFAULT_ACL") or None
@@ -214,9 +237,6 @@ LOGGING = {
     },
 }
 
-# Base URL to use when referring to full URLs within the Wagtail admin backend -
-# e.g. in notification emails. Don't include '/admin' or a trailing slash
-BASE_URL = os.getenv("DOMAIN", "http://rev-engine.caktus-built.com")
 
 PHONENUMBER_DB_FORMAT = "NATIONAL"
 PHONENUMBER_DEFAULT_FORMAT = "NATIONAL"

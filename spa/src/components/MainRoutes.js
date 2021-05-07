@@ -1,14 +1,14 @@
-import { BrowserRouter } from "react-router-dom";
-import ProtectedRoute from "components/authentication/ProtectedRoute";
+import { BrowserRouter } from 'react-router-dom';
+import ProtectedRoute from 'components/authentication/ProtectedRoute';
 
 // Slugs
-import { DASHBOARD_SLUG } from "routes";
+import { DASHBOARD_SLUG } from 'routes';
 
 // Children
-import Dashboard from "components/dashboard/Dashboard";
+import Dashboard from 'components/dashboard/Dashboard';
 
 // TEMP
-import TemporaryStripeCheckoutTest from "components/TEMP/TemporaryStripeCheckoutTest";
+import TemporaryStripeCheckoutTest from 'components/TEMP/TemporaryStripeCheckoutTest';
 
 function MainRoutes() {
   return (

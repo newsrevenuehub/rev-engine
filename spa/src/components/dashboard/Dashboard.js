@@ -1,8 +1,8 @@
-import * as S from "./Dashboard.styled";
-import LogoutButton from "components/authentication/LogoutButton";
+import * as S from './Dashboard.styled';
+import LogoutButton from 'components/authentication/LogoutButton';
 
 // TEMP
-import { Link } from "react-router-dom";
+import { Link } from 'react-router-dom';
 
 function Dashboard(props) {
   return (

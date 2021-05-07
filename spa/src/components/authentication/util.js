@@ -1,4 +1,4 @@
-import { LS_USER, CSRF_HEADER } from "constants/authConstants";
+import { LS_USER, CSRF_HEADER } from 'constants/authConstants';
 
 export function handleLoginSuccess(data) {
   localStorage.setItem(LS_USER, JSON.stringify(data.user));
@@ -8,5 +8,5 @@ export function handleLoginSuccess(data) {
 export function handleLogoutSuccess() {
   localStorage.removeItem(LS_USER);
   localStorage.removeItem(CSRF_HEADER);
-  window.location = "/";
+  window.location = '/';
 }

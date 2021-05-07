@@ -27,7 +27,10 @@
     "eject": "react-scripts eject"
   },
   "jest": {
-    "coveragePathIgnorePatterns": ["/nodes_modules/", "/(__)w+/g"]
+    "coveragePathIgnorePatterns": [
+      "/nodes_modules/",
+      "/(__)w+/g"
+    ]
   },
   "eslintConfig": {
     "extends": [

@@ -1,3 +1,5 @@
+from pathlib import Path
+
 from django.contrib import admin
 
 from apps.organizations.models import Feature, Organization, Plan, RevenueProgram
@@ -21,8 +23,6 @@ class OrganizationAdmin(admin.ModelAdmin):
         ("Plan", {"fields": ("non_profit", "plan", "stripe_account", "salesforce_id")}),
     )
 
-    readonly_fields = ["name", "slug"]
-
     list_display = ["name", "slug", "plan", "org_state"]
 
     list_filter = ["name", "plan", "org_state"]
@@ -30,25 +30,23 @@ class OrganizationAdmin(admin.ModelAdmin):
     inlines = [UserOrganizationInline]
 
     def get_readonly_fields(self, request, obj=None):
-        if not obj:
-            return ["slug"]
-        return super().get_readonly_fields(request, obj)
+        if Path(request.path).parts[-1] == "add":
+            return []
+        return ["name", "slug"]
 
 
 @admin.register(RevenueProgram)
 class RevenueProgramAdmin(admin.ModelAdmin):
     fieldsets = (("RevenueProgram", {"fields": ("name", "slug", "organization")}),)
 
-    readonly_fields = ["slug"]
-
     list_display = ["name", "slug"]
 
     list_filter = ["name"]
 
     def get_readonly_fields(self, request, obj=None):
-        if obj:
-            return ["name", "slug", "organization"]
-        return super().get_readonly_fields(request, obj)
+        if Path(request.path).parts[-1] == "add":
+            return []
+        return ["name", "slug", "organization"]
 
 
 @admin.register(Plan)

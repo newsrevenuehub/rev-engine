@@ -1,3 +1,4 @@
+import factory
 from factory.django import DjangoModelFactory
 from faker import Faker
 
@@ -12,3 +13,4 @@ class OrganizationFactory(DjangoModelFactory):
         model = models.Organization
 
     name = faker.name()
+    slug = factory.Sequence(lambda n: "test-slug-%d" % n)

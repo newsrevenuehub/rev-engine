@@ -8,7 +8,7 @@ from rest_framework.decorators import api_view, authentication_classes, permissi
 from rest_framework.response import Response
 
 from apps.contributions.models import Contribution, Contributor
-from apps.contributions.utils import get_default_api_key
+from apps.contributions.utils import get_hub_stripe_api_key
 from apps.contributions.webhooks import StripeWebhookProcessor
 from apps.organizations.models import Organization
 from apps.pages.models import DonationPage
@@ -31,7 +31,7 @@ def stripe_payment_intent(request):
             organization = Organization.objects.get(slug=org_slug)
             page = DonationPage.objects.get(slug=page_slug)
 
-            api_key = get_default_api_key(settings.STRIPE_LIVE_MODE)
+            api_key = get_hub_stripe_api_key(settings.STRIPE_LIVE_MODE)
 
             payment_amount = convert_money_value_to_stripe_payment_amount(
                 request.data.get("payment_amount")
@@ -39,16 +39,12 @@ def stripe_payment_intent(request):
 
             contributor, _ = Contributor.objects.get_or_create(email=contributor_email)
 
-            pi_metadata = {
-                "contributor": contributor.pk,
-            }
             stripe_intent = stripe.PaymentIntent.create(
                 amount=payment_amount,
                 currency=settings.DEFAULT_CURRENCY,
                 payment_method_types=["card"],
                 api_key=api_key,
                 stripe_account=organization.stripe_account_id,
-                metadata=pi_metadata,
             )
 
             Contribution.objects.create(
@@ -77,10 +73,6 @@ def stripe_payment_intent(request):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-    if request.method == "PATCH":
-        intent_id = request.data.get("intent_id")
-        pass
-
 
 @api_view(["POST"])
 @authentication_classes([])
@@ -104,6 +96,11 @@ def process_stripe_webhook_view(request):
         processor = StripeWebhookProcessor(event)
         processor.process()
     except ValueError as e:
-        logger.error(e.message)
+        logger.error(e)
+    except Contribution.DoesNotExist:
+        logger.error("Could not find contribution matching payment_intent_id")
+        return Response(
+            data={"error": "Invalid payment_intent_id"}, status=status.HTTP_400_BAD_REQUEST
+        )
 
     return Response(status=status.HTTP_200_OK)

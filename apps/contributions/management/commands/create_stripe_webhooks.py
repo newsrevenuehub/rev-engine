@@ -4,7 +4,7 @@ from django.urls import reverse
 
 import stripe
 
-from apps.contributions.utils import get_default_api_key
+from apps.contributions.utils import get_hub_stripe_api_key
 
 
 class Command(BaseCommand):
@@ -16,7 +16,7 @@ class Command(BaseCommand):
         webhook_url = (
             options["url"] if options.get("url") else settings.SITE_URL + reverse("stripe-webhooks")
         )
-        api_key = get_default_api_key(options["live"])
+        api_key = get_hub_stripe_api_key(options["live"])
 
         stripe.WebhookEndpoint.create(
             url=webhook_url,

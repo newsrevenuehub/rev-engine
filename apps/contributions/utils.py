@@ -1,7 +1,7 @@
 from django.conf import settings
 
 
-def get_default_api_key(livemode=None):
+def get_hub_stripe_api_key(livemode=None):
     """
     Caller can force livemode with argument, otherwise use setting.
     """

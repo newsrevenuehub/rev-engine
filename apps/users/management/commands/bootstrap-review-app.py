@@ -1,9 +1,9 @@
-from django.conf import settings
-from django.contrib.auth import get_user_model
-from django.core.management.base import BaseCommand
+from django.conf import settings  # pragma: no cover
+from django.contrib.auth import get_user_model  # pragma: no cover
+from django.core.management.base import BaseCommand  # pragma: no cover
 
 
-class Command(BaseCommand):
+class Command(BaseCommand):  # pragma: no cover
     help = "Bootstrap Heroku review app"
 
     def handle(self, *args, **options):

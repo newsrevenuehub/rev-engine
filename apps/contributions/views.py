@@ -89,7 +89,7 @@ def process_stripe_webhook_view(request):
         return Response(data={"error": "Invalid signature"}, status=status.HTTP_400_BAD_REQUEST)
 
     try:
-        logger.info(f"Processing event {event.id}")
+        logger.info("Processing event.")
         processor = StripeWebhookProcessor(event)
         processor.process()
     except ValueError as e:

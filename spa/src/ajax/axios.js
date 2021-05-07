@@ -1,13 +1,13 @@
-import axios from "axios";
-import { LS_USER, LS_CSRF_TOKEN, CSRF_HEADER } from "constants/authConstants";
+import axios from 'axios';
+import { LS_USER, LS_CSRF_TOKEN, CSRF_HEADER } from 'constants/authConstants';
 
-export const apiVersion = process.env.REACT_APP_API_VERSION || "v1";
+export const apiVersion = process.env.REACT_APP_API_VERSION || 'v1';
 export const apiBaseUrl = `/api/${apiVersion}/`;
 
 const Axios = axios.create({
   baseURL: apiBaseUrl,
   timeout: 5000,
-  withCredentials: true, // allow setting/passing cookies
+  withCredentials: true // allow setting/passing cookies
 });
 
 export default Axios;
@@ -46,5 +46,5 @@ function handleResponseError(error) {
 function handle403Response() {
   localStorage.removeItem(LS_USER);
   localStorage.removeItem(LS_CSRF_TOKEN);
-  window.location = "/";
+  window.location = '/';
 }

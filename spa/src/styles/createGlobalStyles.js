@@ -1,6 +1,6 @@
-import { createGlobalStyle } from 'styled-components'
-import { normalize } from 'styled-normalize'
- 
+import { createGlobalStyle } from 'styled-components';
+import { normalize } from 'styled-normalize';
+
 export default createGlobalStyle`
   ${normalize};
 
@@ -8,7 +8,7 @@ export default createGlobalStyle`
   *::after,
   *::before {
       box-sizing: inherit;
-      outline-color: ${p => p.theme.colors.primary};
+      outline-color: ${(p) => p.theme.colors.primary};
   }
 
   body {

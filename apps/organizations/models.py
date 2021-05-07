@@ -37,7 +37,6 @@ class Organization(IndexedTimeStampedModel):
     slug = models.SlugField()
     plan = models.ForeignKey("organizations.Plan", null=True, on_delete=models.CASCADE)
     non_profit = models.BooleanField(default=True, verbose_name="Non-profit?")
-    stripe_account = models.CharField(max_length=255, blank=True)
     org_addr1 = models.CharField(max_length=255, blank=True, verbose_name="Address 1")
     org_addr2 = models.CharField(max_length=255, blank=True, verbose_name="Address 2")
     org_city = models.CharField(max_length=64, blank=True, verbose_name="City")

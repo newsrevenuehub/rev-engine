@@ -1,8 +1,8 @@
-import { Route } from "react-router";
+import { Route } from 'react-router';
 
 // Children
-import Login from "components/authentication/Login";
-import isAuthenticated from "utilities/isAuthenticated";
+import Login from 'components/authentication/Login';
+import isAuthenticated from 'utilities/isAuthenticated';
 
 function ProtectedRoute({ children, ...props }) {
   if (isAuthenticated()) {

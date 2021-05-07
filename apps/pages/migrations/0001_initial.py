@@ -18,16 +18,12 @@ class Migration(migrations.Migration):
             fields=[
                 (
                     "id",
-                    models.AutoField(
-                        auto_created=True, primary_key=True, serialize=False, verbose_name="ID"
-                    ),
+                    models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID"),
                 ),
                 ("name", models.CharField(max_length=255)),
                 (
                     "organization",
-                    models.ForeignKey(
-                        on_delete=django.db.models.deletion.CASCADE, to="organizations.organization"
-                    ),
+                    models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to="organizations.organization"),
                 ),
             ],
             options={
@@ -39,18 +35,14 @@ class Migration(migrations.Migration):
             fields=[
                 (
                     "id",
-                    models.AutoField(
-                        auto_created=True, primary_key=True, serialize=False, verbose_name="ID"
-                    ),
+                    models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID"),
                 ),
                 ("name", models.CharField(max_length=255)),
                 ("description", models.CharField(blank=True, max_length=255, null=True)),
                 ("benefits", models.ManyToManyField(to="pages.Benefit")),
                 (
                     "organization",
-                    models.ForeignKey(
-                        on_delete=django.db.models.deletion.CASCADE, to="organizations.organization"
-                    ),
+                    models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to="organizations.organization"),
                 ),
             ],
         ),
@@ -59,17 +51,13 @@ class Migration(migrations.Migration):
             fields=[
                 (
                     "id",
-                    models.AutoField(
-                        auto_created=True, primary_key=True, serialize=False, verbose_name="ID"
-                    ),
+                    models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID"),
                 ),
                 ("name", models.CharField(max_length=255)),
                 ("blurb", models.TextField(blank=True, null=True)),
                 (
                     "organization",
-                    models.ForeignKey(
-                        on_delete=django.db.models.deletion.CASCADE, to="organizations.organization"
-                    ),
+                    models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to="organizations.organization"),
                 ),
                 ("tiers", models.ManyToManyField(to="pages.BenefitTier")),
             ],
@@ -82,17 +70,13 @@ class Migration(migrations.Migration):
             fields=[
                 (
                     "id",
-                    models.AutoField(
-                        auto_created=True, primary_key=True, serialize=False, verbose_name="ID"
-                    ),
+                    models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID"),
                 ),
                 ("name", models.CharField(max_length=255)),
                 ("styles", models.JSONField()),
                 (
                     "organization",
-                    models.ForeignKey(
-                        on_delete=django.db.models.deletion.CASCADE, to="organizations.organization"
-                    ),
+                    models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to="organizations.organization"),
                 ),
             ],
             options={
@@ -104,9 +88,7 @@ class Migration(migrations.Migration):
             fields=[
                 (
                     "id",
-                    models.AutoField(
-                        auto_created=True, primary_key=True, serialize=False, verbose_name="ID"
-                    ),
+                    models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID"),
                 ),
                 ("header_bg_image", models.ImageField(blank=True, null=True, upload_to="")),
                 ("header_logo", models.ImageField(blank=True, null=True, upload_to="")),
@@ -127,9 +109,7 @@ class Migration(migrations.Migration):
                 ),
                 (
                     "organization",
-                    models.ForeignKey(
-                        on_delete=django.db.models.deletion.CASCADE, to="organizations.organization"
-                    ),
+                    models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to="organizations.organization"),
                 ),
                 (
                     "revenue_program",
@@ -158,9 +138,7 @@ class Migration(migrations.Migration):
             fields=[
                 (
                     "id",
-                    models.AutoField(
-                        auto_created=True, primary_key=True, serialize=False, verbose_name="ID"
-                    ),
+                    models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID"),
                 ),
                 ("header_bg_image", models.ImageField(blank=True, null=True, upload_to="")),
                 ("header_logo", models.ImageField(blank=True, null=True, upload_to="")),
@@ -180,9 +158,7 @@ class Migration(migrations.Migration):
                 ),
                 (
                     "organization",
-                    models.ForeignKey(
-                        on_delete=django.db.models.deletion.CASCADE, to="organizations.organization"
-                    ),
+                    models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to="organizations.organization"),
                 ),
                 (
                     "styles",

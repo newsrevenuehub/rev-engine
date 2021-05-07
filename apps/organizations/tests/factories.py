@@ -28,7 +28,7 @@ class OrganizationFactory(DjangoModelFactory):
     class Meta:
         model = models.Organization
 
-    name = fake.company()
+    name = factory.Sequence(lambda n: f"{fake.company()}-{str(n)}")
     slug = factory.Sequence(lambda n: "test-slug-%d" % n)
 
 

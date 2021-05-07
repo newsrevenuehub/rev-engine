@@ -26,14 +26,14 @@ First clone the repository from Github and switch to the new directory:
     $ cd revengine
 ```
 
-**1. Set up virtual environment**
+**2. Set up virtual environment**
 
 Next, set up your virtual environment with python3. For example, ``revengine``.
 
 You will note the distinct lack of opinion on how you should manage your virtual environment. This is by design.
 
 
-**1. Install dependencies**
+**3. Install dependencies**
 
 #### Install Node dependencies
 
@@ -84,7 +84,7 @@ If you need to remove a dependency:
 This should automatically update the ``pyproject.toml`` file and the ``poetry.lock`` file.
 
 
-**1. Pre-commit**
+**4. Pre-commit**
 
 pre-commit is used to enforce a variety of community standards. CI runs it,
 so it's useful to setup the pre-commit hook to catch any issues before pushing
@@ -97,7 +97,7 @@ To install, run:
     (revengine)$ pre-commit install
 ```
 
-**1. Set up Stripe locally**
+**5. Set up Stripe locally**
 
 To test Stripe locally, you'll need to be able to log in to the Hub Stripe account.
 If you want to test Stripe payments locally, add the Hub testing "Secret key", starting with `sk_test_` to the env.
@@ -126,7 +126,7 @@ Next, copy the url its exposing your port through (example:http://610d1234567.ng
 Then, run `./manage.py create_stripe_webhooks`. This will use the Stripe sdk to add WebhookEndpoints to NRH Stripe account.
 For the STRIPE_WEBHOOK_SECRET, you'll then need access to the Hub Stripe Dashboard. Go to Developers --> Webhooks --> [your newly added endpoint] --> "Signing secret"
 
-**1. Set up local env variables**
+**6. Set up local env variables**
 
 This project utilizes the [direnv](https://direnv.net/) shell extension to manage project level developer environment
 variables. Direnv is installed system wide so you may already have it. If not, [follow the instructions here](https://direnv.net/docs/installation.html)
@@ -152,7 +152,7 @@ Allow direnv to inject the variable into your environment
 ```
 
 
-**1. Database**
+**7. Database**
 
 The setup for local development assumes that you will be working with dockerized
 services.
@@ -174,7 +174,7 @@ following shell environment variables or add them to your `.envrc` file:
 ```
 
 
-**1. Migrate and create a superuser**
+**8. Migrate and create a superuser**
 
 ```linux
     (revengine)$ docker-compose up -d
@@ -182,7 +182,7 @@ following shell environment variables or add them to your `.envrc` file:
     (revengine)$ python manage.py createsuperuser
 ```
 
-**1. Run the server and start the SPA**
+**9. Run the server and start the SPA**
 
 ```linux
     (revengine)$ docker-compose up -d
@@ -192,7 +192,7 @@ following shell environment variables or add them to your `.envrc` file:
 The react app will be available at `https://localhost:8001/`, and the django admin will be available at `http://localhost:8000/admin/`
 
 
-**1. Access the server**
+**10. Access the server**
 
 The Django admin is at `/admin/`.
 
@@ -206,7 +206,7 @@ revengine uses pytest as a test runner.
     (revengine)$ make run-tests
 ```
 
-**1. Reset Media and Database**
+**12. Reset Media and Database**
 
 **Media Reset**
 

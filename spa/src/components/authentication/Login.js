@@ -10,58 +10,51 @@ import { TOKEN } from 'ajax/endpoints';
 
 // Routing
 import { useLocation, useHistory } from 'react-router-dom';
-import { DASHBOARD_SLUG } from "routes";
+import { DASHBOARD_SLUG } from 'routes';
 
 // State management
-import fetchReducer, {
-  initialState,
-  FETCH_START,
-  FETCH_SUCCESS,
-  FETCH_FAILURE,
-} from 'state/fetch-reducer';
+import fetchReducer, { initialState, FETCH_START, FETCH_SUCCESS, FETCH_FAILURE } from 'state/fetch-reducer';
 
-import { handleLoginSuccess } from "components/authentication/util";
+import { handleLoginSuccess } from 'components/authentication/util';
 
 // Elements
 import Input from 'components/elements/inputs/Input';
 import FormErrors from 'components/elements/inputs/FormErrors';
-
 
 function Login() {
   const location = useLocation();
   const history = useHistory();
 
   const [email, setEmail] = useState('');
-  const [password, setPassword] = useState("");
+  const [password, setPassword] = useState('');
   const [{ loading, errors }, dispatch] = useReducer(fetchReducer, initialState);
-  
+
   const routeUserAfterLogin = () => {
     const qs = queryString.parse(location.search);
     if (qs.url && qs.url !== DASHBOARD_SLUG) history.push(qs.url);
-    else window.location = "/";
-  }
+    else window.location = '/';
+  };
 
   const handleLogin = async (e) => {
-    e.preventDefault(); 
-    dispatch({ type: FETCH_START })
+    e.preventDefault();
+    dispatch({ type: FETCH_START });
     try {
-      const { data, status } = await axios.post(TOKEN, { email, password })
-      if (status === 200 && data.detail === "success") {
-        handleLoginSuccess(data)
-        routeUserAfterLogin(location.search)
+      const { data, status } = await axios.post(TOKEN, { email, password });
+      if (status === 200 && data.detail === 'success') {
+        handleLoginSuccess(data);
+        routeUserAfterLogin(location.search);
       }
       dispatch({ type: FETCH_SUCCESS });
     } catch (error) {
       dispatch({ type: FETCH_FAILURE, payload: error.response?.data });
     }
-  }
-
+  };
 
   return (
     <S.Login>
       <S.LoginCard>
         <S.LoginForm>
-          <FormErrors errors={errors?.detail}/>
+          <FormErrors errors={errors?.detail} />
 
           <S.InputWrapper>
             <Input
@@ -90,7 +83,6 @@ function Login() {
               Sign in
             </S.LoginButton>
           </S.LoginButtons>
-
         </S.LoginForm>
       </S.LoginCard>
     </S.Login>

@@ -11,6 +11,8 @@ def normalize_slug(slug, to_length=50):
     :param to_length:
     :return: str
     """
+    if not slug:
+        return ""
     if len(slug) > to_length:
         slug = slug[:to_length].rstrip("-")
     return slug
@@ -51,8 +53,11 @@ class Organization(IndexedTimeStampedModel):
         return self.name
 
     def save(self, *args, **kwargs):
-        if not self.id:
-            self.slug = normalize_slug(slugify(self.name, allow_unicode=True))
+        self.slug = (
+            normalize_slug(slugify(self.slug, allow_unicode=True))
+            if True
+            else normalize_slug(slugify(self.name, allow_unicode=True))
+        )
         super(Organization, self).save(*args, **kwargs)
 
     def user_is_member(self, user):
@@ -68,7 +73,10 @@ class RevenueProgram(IndexedTimeStampedModel):
         return self.name
 
     def save(self, *args, **kwargs):
-        if not self.id:
-            slug = normalize_slug(slugify(self.name, allow_unicode=True))
-            self.slug = f"{self.organization.slug}-{slug}"
+        slug = (
+            normalize_slug(slugify(self.slug, allow_unicode=True))
+            if True
+            else normalize_slug(slugify(self.name, allow_unicode=True))
+        )
+        self.slug = f"{self.organization.slug}-{slug}"
         super(RevenueProgram, self).save(*args, **kwargs)

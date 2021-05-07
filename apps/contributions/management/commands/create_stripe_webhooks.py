@@ -13,9 +13,7 @@ class Command(BaseCommand):
         parser.add_argument("url", nargs="?", type=str)
 
     def handle(self, *args, **options):
-        webhook_url = (
-            options["url"] if options.get("url") else settings.SITE_URL + reverse("stripe-webhooks")
-        )
+        webhook_url = options["url"] if options.get("url") else settings.SITE_URL + reverse("stripe-webhooks")
         api_key = get_hub_stripe_api_key(options["live"])
 
         stripe.WebhookEndpoint.create(

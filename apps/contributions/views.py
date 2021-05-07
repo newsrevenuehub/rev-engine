@@ -33,9 +33,7 @@ def stripe_payment_intent(request):
 
             api_key = get_hub_stripe_api_key(settings.STRIPE_LIVE_MODE)
 
-            payment_amount = convert_money_value_to_stripe_payment_amount(
-                request.data.get("payment_amount")
-            )
+            payment_amount = convert_money_value_to_stripe_payment_amount(request.data.get("payment_amount"))
 
             contributor, _ = Contributor.objects.get_or_create(email=contributor_email)
 
@@ -57,9 +55,7 @@ def stripe_payment_intent(request):
                 payment_state=Contribution.PROCESSING[0],
             )
 
-            return Response(
-                data={"clientSecret": stripe_intent["client_secret"]}, status=status.HTTP_200_OK
-            )
+            return Response(data={"clientSecret": stripe_intent["client_secret"]}, status=status.HTTP_200_OK)
 
         except Organization.DoesNotExist:
             return Response(
@@ -87,9 +83,7 @@ def process_stripe_webhook_view(request):
         logger.error("Invalid payload from Stripe webhook request")
         return Response(data={"error": "Invalid payload"}, status=status.HTTP_400_BAD_REQUEST)
     except stripe.error.SignatureVerificationError:
-        logger.error(
-            "Invalid signature on Stripe webhook request. Is STRIPE_WEBHOOK_SECRET set correctly?"
-        )
+        logger.error("Invalid signature on Stripe webhook request. Is STRIPE_WEBHOOK_SECRET set correctly?")
         return Response(data={"error": "Invalid signature"}, status=status.HTTP_400_BAD_REQUEST)
 
     try:
@@ -99,8 +93,6 @@ def process_stripe_webhook_view(request):
         logger.error(e)
     except Contribution.DoesNotExist:
         logger.error("Could not find contribution matching payment_intent_id")
-        return Response(
-            data={"error": "Invalid payment_intent_id"}, status=status.HTTP_400_BAD_REQUEST
-        )
+        return Response(data={"error": "Invalid payment_intent_id"}, status=status.HTTP_400_BAD_REQUEST)
 
     return Response(status=status.HTTP_200_OK)

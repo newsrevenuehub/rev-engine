@@ -21,9 +21,7 @@ class ContributorTest(TestCase):
     def test_quarantined_contributions_count(self):
         target_count = 3
         for _ in range(target_count):
-            contribution = Contribution.objects.create(
-                amount=1000, contributor=self.contributor, is_quarantined=True
-            )
+            contribution = Contribution.objects.create(amount=1000, contributor=self.contributor, is_quarantined=True)
 
         self.assertEqual(self.contributor.quarantined_contributions_count, target_count)
 

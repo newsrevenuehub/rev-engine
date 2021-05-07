@@ -28,13 +28,9 @@ class Contribution(IndexedTimeStampedModel):
     is_quarantined = models.BooleanField(default=False)
     payment_provider_data = models.JSONField(null=True)
     provider_reference_id = models.CharField(max_length=255)
-    contributor = models.ForeignKey(
-        "contributions.Contributor", on_delete=models.SET_NULL, null=True
-    )
+    contributor = models.ForeignKey("contributions.Contributor", on_delete=models.SET_NULL, null=True)
     donation_page = models.ForeignKey("pages.DonationPage", on_delete=models.SET_NULL, null=True)
-    organization = models.ForeignKey(
-        "organizations.Organization", on_delete=models.SET_NULL, null=True
-    )
+    organization = models.ForeignKey("organizations.Organization", on_delete=models.SET_NULL, null=True)
 
     PROCESSING = (
         "processing",

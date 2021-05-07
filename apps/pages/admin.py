@@ -69,8 +69,8 @@ class DonationPageAdmin(DonationPageAdminAbstract):
         (None, {"fields": ("slug",)}),
     ) + DonationPageAdminAbstract.fieldsets
 
-    list_display = ("name", "title", "organization", "revenue_program", "is_live", "published_date")
-    list_filter = ("name", "title", "organization", "revenue_program", "published_date")
+    list_display = ("name", "title", "organization", "revenue_program", "slug", "is_live", "published_date")
+    list_filter = ("name", "title", "organization", "revenue_program", "slug", "published_date")
     order = (
         "published_date",
         "organization__name",

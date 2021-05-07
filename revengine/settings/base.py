@@ -32,6 +32,7 @@ INSTALLED_APPS = [
     "apps.users",
     "apps.organizations",
     "apps.pages",
+    "apps.contributions",
     "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
@@ -243,3 +244,23 @@ PHONENUMBER_DEFAULT_FORMAT = "NATIONAL"
 PHONENUMBER_DEFAULT_REGION = "US"
 
 DEFAULT_FROM_EMAIL = os.getenv("DEFAULT_FROM_EMAIL", "no-reply@rev-engine.caktus-built.com")
+
+# Stripe configs
+STRIPE_LIVE_SECRET_KEY = os.getenv("LIVE_HUB_STRIPE_API_SECRET_KEY", "")
+STRIPE_TEST_SECRET_KEY = os.getenv("TEST_HUB_STRIPE_API_SECRET_KEY", "")
+STRIPE_LIVE_MODE = False  # Change to True in production
+
+# Get it from the section in the Stripe dashboard where you added the webhook endpoint
+STRIPE_WEBHOOK_SECRET = os.getenv("STRIPE_WEBHOOK_SECRET", "")
+
+WEBHOOK_URL = r"^revengine-stripe-webhook/"
+
+DEFAULT_CURRENCY = "usd"
+
+STRIPE_WEBHOOK_EVENTS = [
+    "payment_intent.canceled",
+    "payment_intent.payment_failed",
+    "payment_intent.succeeded",
+]
+
+SITE_URL = os.getenv("SITE_URL", "")

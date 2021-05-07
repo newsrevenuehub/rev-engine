@@ -5,15 +5,12 @@ import { TOKEN } from 'ajax/endpoints';
 import { handleLogoutSuccess } from 'components/authentication/util';
 
 function LogoutButton() {
-
   const handleLogout = () => {
     axios.delete(TOKEN);
-    handleLogoutSuccess()
-  }
+    handleLogoutSuccess();
+  };
 
-  return (
-    <S.LogoutButton onClick={handleLogout}>Sign out</S.LogoutButton>
-  ) 
+  return <S.LogoutButton onClick={handleLogout}>Sign out</S.LogoutButton>;
 }
 
 export default LogoutButton;

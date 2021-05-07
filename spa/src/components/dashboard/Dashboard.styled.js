@@ -7,4 +7,3 @@ export const Dashboard = styled.div`
   align-items: flex-start;
   justify-content: space-around;
 `;
-

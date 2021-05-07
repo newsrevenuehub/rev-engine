@@ -7,11 +7,7 @@ export const Login = styled.div`
   align-items: center;
 
   background: rgb(12, 192, 221);
-  background: linear-gradient(
-    135deg,
-    rgba(12, 192, 221, 1) 20%,
-    rgba(199, 239, 247, 1) 95%
-  );
+  background: linear-gradient(135deg, rgba(12, 192, 221, 1) 20%, rgba(199, 239, 247, 1) 95%);
 `;
 
 export const LoginCard = styled.section`

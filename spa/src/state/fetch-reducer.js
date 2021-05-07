@@ -1,11 +1,11 @@
-export const FETCH_START = "FETCH_START";
-export const FETCH_SUCCESS = "FETCH_SUCCESS";
-export const FETCH_FAILURE = "FETCH_FAILURE";
+export const FETCH_START = 'FETCH_START';
+export const FETCH_SUCCESS = 'FETCH_SUCCESS';
+export const FETCH_FAILURE = 'FETCH_FAILURE';
 
 export const initialState = {
   loading: false,
   errors: [],
-  data: null,
+  data: null
 };
 
 const fetchReducer = (state, action) => {
@@ -14,7 +14,7 @@ const fetchReducer = (state, action) => {
       return {
         ...state,
         loading: true,
-        errors: initialState.errors,
+        errors: initialState.errors
       };
     }
     case FETCH_SUCCESS: {
@@ -22,14 +22,14 @@ const fetchReducer = (state, action) => {
         ...state,
         loading: false,
         data: action.payload,
-        errors: initialState.errors,
+        errors: initialState.errors
       };
     }
     case FETCH_FAILURE: {
       return {
         ...state,
         loading: false,
-        errors: action.payload,
+        errors: action.payload
       };
     }
 

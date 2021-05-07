@@ -39,15 +39,18 @@ class StripeWebhookProcessor:
         contribution.payment_state = Contribution.CANCELED[0]
         contribution.payment_provider_data = self.event
         contribution.save()
+        logger.info(f"Contribution id: {contribution} cancelled.")
 
     def handle_payment_intent_failed(self):
         contribution = self.get_contribution_by_reference_id()
         contribution.payment_state = Contribution.FAILED[0]
         contribution.payment_provider_data = self.event
         contribution.save()
+        logger.info(f"Contribution id: {contribution} failed.")
 
     def handle_payment_intent_succeeded(self):
         contribution = self.get_contribution_by_reference_id()
         contribution.payment_state = Contribution.PAID[0]
         contribution.payment_provider_data = self.event
         contribution.save()
+        logger.info(f"Contribution id: {contribution} succeeded.")

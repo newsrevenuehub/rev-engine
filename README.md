@@ -115,7 +115,7 @@ You'll also need a "Connected" account to test with. CaktusGroup has an account 
 Then, in Django-admin, create an Organization for that connected stripe account and add your Stripe Account ID to the stripe_account_id field. Make sure that default_payment_provider is "stripe". The Stripe Account ID can be found in the stripe dashboard, settings --> Business Settings --> Your Business --> Account details, in the top right corner.
 
 To set up Stripe Webhooks locally, it's a bit of fuss.
-First, download NGROK and expose whichever port your running the server on. Somethign like:
+First, download NGROK and expose whichever port your running the server on. Something like:
 
 ```bash
   (revengine)$ ./ngrok http 8000

@@ -103,7 +103,7 @@ class DonationPage(AbstractPage):
             if self.total_pages + 1 > int(limit.feature_value):
                 raise ValidationError(f"Your organization has reached its limit of {limit.feature_value} pages")
 
-        self.slug = normalize_slug(self.slug, self.name)
+        self.slug = normalize_slug(self.name, self.slug)
         super().save(*args, **kwargs)
 
     def save_as_template(self, name=None):

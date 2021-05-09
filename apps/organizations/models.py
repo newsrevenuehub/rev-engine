@@ -71,7 +71,7 @@ class Organization(IndexedTimeStampedModel):
 
     def save(self, *args, **kwargs):
         if not self.id:
-            self.slug = normalize_slug(self.slug, self.name)
+            self.slug = normalize_slug(self.name, self.slug)
         super().save(*args, **kwargs)
 
     def user_is_member(self, user):
@@ -88,6 +88,9 @@ class RevenueProgram(IndexedTimeStampedModel):
 
     def save(self, *args, **kwargs):
         if not self.id:
-            self.slug = normalize_slug(self.slug, self.name)
+            self.slug = normalize_slug(
+                self.name,
+                self.slug,
+            )
             self.slug = f"{self.organization.slug}-{self.slug}"
         super().save(*args, **kwargs)

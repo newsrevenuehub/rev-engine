@@ -10,12 +10,16 @@ class FeatureSerializer(serializers.ModelSerializer):
 
 
 class PlanSerializer(serializers.ModelSerializer):
+    features = FeatureSerializer(many=True, read_only=True)
+
     class Meta:
         model = Plan
         fields = "__all__"
 
 
 class OrganizationSerializer(serializers.ModelSerializer):
+    plan = PlanSerializer(many=False, read_only=True)
+
     class Meta:
         model = Organization
         fields = "__all__"

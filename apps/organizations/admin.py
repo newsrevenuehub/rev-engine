@@ -62,7 +62,7 @@ class RevenueProgramAdmin(admin.ModelAdmin):
 
 @admin.register(Plan)
 class PlanAdmin(admin.ModelAdmin):
-    fieldsets = (("Plan", {"fields": ("name",)}),)
+    fieldsets = (("Plan", {"fields": ("name", "features")}),)
 
     list_display = ["name"]
 
@@ -71,8 +71,8 @@ class PlanAdmin(admin.ModelAdmin):
 
 @admin.register(Feature)
 class FeatureAdmin(admin.ModelAdmin):
-    fieldsets = (("Feature", {"fields": ("name", "description", "plans")}),)
+    fieldsets = (("Feature", {"fields": ("name", "feature_type", "feature_value", "description")}),)
 
-    list_display = ["name"]
+    list_display = ["name", "feature_type", "feature_value"]
 
-    list_filter = ["name"]
+    list_filter = ["name", "feature_type"]

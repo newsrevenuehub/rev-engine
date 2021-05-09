@@ -2,7 +2,6 @@ from django.apps import apps
 from django.core.exceptions import ValidationError
 from django.db import models
 from django.utils import timezone
-from django.utils.text import slugify
 
 from apps.common.models import IndexedTimeStampedModel
 from apps.common.utils import normalize_slug
@@ -103,8 +102,8 @@ class DonationPage(AbstractPage):
         if limit := self.has_page_limit():
             if self.total_pages + 1 > int(limit.feature_value):
                 raise ValidationError(f"Your organization has reached its limit of {limit.feature_value} pages")
-        if not normalize_slug(slugify(self.slug, allow_unicode=True)):
-            self.slug = normalize_slug(slugify(self.name, allow_unicode=True))
+
+        self.slug = normalize_slug(self.slug, self.name)
         super().save(*args, **kwargs)
 
     def save_as_template(self, name=None):

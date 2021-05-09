@@ -1,6 +1,5 @@
 from django.core.exceptions import ValidationError
 from django.db import models
-from django.utils.text import slugify
 
 from apps.common.constants import STATE_CHOICES
 from apps.common.models import IndexedTimeStampedModel
@@ -71,8 +70,7 @@ class Organization(IndexedTimeStampedModel):
         return self.name
 
     def save(self, *args, **kwargs):
-        if not normalize_slug(slugify(self.slug, allow_unicode=True)):
-            self.slug = normalize_slug(slugify(self.name, allow_unicode=True))
+        self.slug = normalize_slug(self.slug, self.name)
         super().save(*args, **kwargs)
 
     def user_is_member(self, user):
@@ -88,7 +86,6 @@ class RevenueProgram(IndexedTimeStampedModel):
         return self.name
 
     def save(self, *args, **kwargs):
-        if not normalize_slug(slugify(self.slug, allow_unicode=True)):
-            self.slug = normalize_slug(slugify(self.name, allow_unicode=True))
+        self.slug = normalize_slug(self.slug, self.name)
         self.slug = f"{self.organization.slug}-{self.slug}"
         super().save(*args, **kwargs)

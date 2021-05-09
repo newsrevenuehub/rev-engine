@@ -1,7 +1,5 @@
 from django.conf import settings
 from django.contrib.auth import get_user_model
-from django.contrib.messages.middleware import MessageMiddleware
-from django.contrib.sessions.middleware import SessionMiddleware
 from django.middleware import csrf
 from django.test import RequestFactory
 
@@ -9,7 +7,6 @@ import jwt
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.reverse import reverse
 from rest_framework.test import APITestCase
-from rest_framework_simplejwt.backends import TokenBackend
 from rest_framework_simplejwt.exceptions import InvalidToken
 from rest_framework_simplejwt.tokens import AccessToken
 

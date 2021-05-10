@@ -1,3 +1,5 @@
+from pathlib import Path
+
 from django.contrib import admin
 
 from apps.organizations.models import Feature, Organization, Plan, RevenueProgram
@@ -32,8 +34,6 @@ class OrganizationAdmin(admin.ModelAdmin):
 
     fieldsets = organization_fieldset
 
-    readonly_fields = ["name", "slug"]
-
     list_display = ["name", "slug", "plan", "org_state"]
 
     list_filter = ["name", "plan", "org_state"]
@@ -41,30 +41,28 @@ class OrganizationAdmin(admin.ModelAdmin):
     inlines = [UserOrganizationInline]
 
     def get_readonly_fields(self, request, obj=None):
-        if not obj:
-            return ["slug"]
-        return super().get_readonly_fields(request, obj)
+        if Path(request.path).parts[-1] == "add":
+            return []
+        return ["name", "slug"]
 
 
 @admin.register(RevenueProgram)
 class RevenueProgramAdmin(admin.ModelAdmin):
     fieldsets = (("RevenueProgram", {"fields": ("name", "slug", "organization")}),)
 
-    readonly_fields = ["slug"]
-
     list_display = ["name", "slug"]
 
     list_filter = ["name"]
 
     def get_readonly_fields(self, request, obj=None):
-        if obj:
-            return ["name", "slug", "organization"]
-        return super().get_readonly_fields(request, obj)
+        if Path(request.path).parts[-1] == "add":
+            return []
+        return ["name", "slug", "organization"]
 
 
 @admin.register(Plan)
 class PlanAdmin(admin.ModelAdmin):
-    fieldsets = (("Plan", {"fields": ("name",)}),)
+    fieldsets = (("Plan", {"fields": ("name", "features")}),)
 
     list_display = ["name"]
 
@@ -73,8 +71,8 @@ class PlanAdmin(admin.ModelAdmin):
 
 @admin.register(Feature)
 class FeatureAdmin(admin.ModelAdmin):
-    fieldsets = (("Feature", {"fields": ("name", "description", "plans")}),)
+    fieldsets = (("Feature", {"fields": ("name", "feature_type", "feature_value", "description")}),)
 
-    list_display = ["name"]
+    list_display = ["name", "feature_type", "feature_value"]
 
-    list_filter = ["name"]
+    list_filter = ["name", "feature_type"]

@@ -15,7 +15,7 @@ export const Wrapper = styled.div`
 export const FormStyled = styled.form`
   background: purple;
   padding: 2rem;
-  border-radius: 20px;
+  border-radius: ${(p) => p.theme.radii[1]};
   button {
     margin-top: 1rem;
   }

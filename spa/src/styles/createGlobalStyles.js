@@ -23,7 +23,6 @@ export default createGlobalStyle`
   }
 
   h1, h2 {
-    color: ${(p) => p.theme.colors.black};
     font-family: ${(p) => p.theme.fonts.heading};
     font-weight: normal;
   }
@@ -33,5 +32,9 @@ export default createGlobalStyle`
     font-family: ${(p) => p.theme.fonts.subheading};
   }
 
-
+  h2 {
+    color: ${(p) => p.theme.colors.black};
+    font-size: 20px;
+    font-weight: bold;
+  }
 `;

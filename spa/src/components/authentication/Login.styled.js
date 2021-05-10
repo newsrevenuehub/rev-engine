@@ -16,7 +16,8 @@ export const LoginCard = styled.section`
   background: ${(p) => p.theme.colors.white};
   max-width: 450px;
   width: 100%;
-  box-shadow: ${(p) => p.theme.shadows[0]};
+  box-shadow: ${(p) => p.theme.shadows[1]};
+  border-radius: ${(p) => p.theme.radii[1]};
 `;
 
 export const LoginForm = styled.form``;

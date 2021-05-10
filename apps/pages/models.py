@@ -1,8 +1,11 @@
 from django.apps import apps
+from django.core.exceptions import ValidationError
 from django.db import models
 from django.utils import timezone
 
 from apps.common.models import IndexedTimeStampedModel
+from apps.common.utils import normalize_slug
+from apps.organizations.models import Feature
 
 
 class AbstractPage(IndexedTimeStampedModel):
@@ -68,22 +71,38 @@ class DonationPage(AbstractPage):
     A DonationPage represents a single instance of a Donation Page.
     """
 
-    slug = models.SlugField(unique=True)
-
+    slug = models.SlugField(unique=True, blank=True, help_text="If not entered, it will be built from the Page name")
     revenue_program = models.ForeignKey(
         "organizations.RevenueProgram",
         null=True,
         on_delete=models.SET_NULL,
     )
-
     published_date = models.DateTimeField(null=True, blank=True)
 
     def __str__(self):
         return f"{self.title} - {self.slug}"
 
+    def has_page_limit(self):
+        return Feature.objects.filter(
+            feature_type=Feature.FeatureType.PAGE_LIMIT, plans__organization=self.organization.id
+        ).first()
+
+    @property
+    def total_pages(self):
+        return DonationPage.objects.filter(organization=self.organization).count()
+
     @property
     def is_live(self):
         return bool(self.published_date and self.published_date <= timezone.now())
+
+    def save(self, *args, **kwargs):
+        limit = self.has_page_limit()
+        if limit and not self.id:
+            if self.total_pages + 1 > int(limit.feature_value):
+                raise ValidationError(f"Your organization has reached its limit of {limit.feature_value} pages")
+
+        self.slug = normalize_slug(self.name, self.slug)
+        super().save(*args, **kwargs)
 
     def save_as_template(self, name=None):
         template = Template()
@@ -103,6 +122,12 @@ class DonationPage(AbstractPage):
         instance = Template.objects.filter(name=template.name).first()
 
         return (instance, created)
+
+    class Meta:
+        unique_together = (
+            "slug",
+            "organization",
+        )
 
 
 class Style(IndexedTimeStampedModel):

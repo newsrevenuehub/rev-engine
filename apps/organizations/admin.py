@@ -27,12 +27,12 @@ class OrganizationAdmin(admin.ModelAdmin):
                 )
             },
         ),
-        ("Payment Provider", {"fields": ("default_payment_provider", "stripe_account_id")}),
+        ("Payment Provider", {"fields": ("default_payment_provider", "stripe_account_id", "stripe_verified")}),
     )
 
     fieldsets = organization_fieldset
 
-    readonly_fields = ["name", "slug"]
+    readonly_fields = ["name", "slug", "stripe_verified"]
 
     list_display = ["name", "slug", "plan", "org_state"]
 

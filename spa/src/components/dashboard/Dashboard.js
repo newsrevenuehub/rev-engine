@@ -1,33 +1,69 @@
-import { useState, useEffect } from 'react';
+import { createContext, useContext, useState, useEffect } from 'react';
 import * as S from './Dashboard.styled';
 
-// Children
-import LogoutButton from 'components/authentication/LogoutButton';
+// Routing
+import { useRouteMatch } from 'react-router-dom';
+import ProtectedRoute from 'components/authentication/ProtectedRoute';
+import { OVERVIEW_SLUG, DONATIONS_SLUG, CONTENT_SLUG } from 'routes';
 
 // Hooks
 import useUser from 'hooks/useUser';
 
 // Utils
-import userHasPaymentProvider from 'utilities/userHasPaymentProvider';
+import getConfirmedPaymentProvider from 'utilities/getConfirmedPaymentProvider';
 
-// TEMP
-import { Link } from 'react-router-dom';
+// Children
+import DashboardHeader from 'components/dashboard/DashboardHeader';
+import DashboardSidebar from 'components/dashboard/DashboardSidebar';
+import Overview from 'components/overview/Overview';
+import Donations from 'components/donations/Donations';
+import Content from 'components/content/Content';
+import ConnectProvider from 'components/connect/ConnectProvider';
+
+const OrganizationContext = createContext(null);
 
 function Dashboard() {
+  const match = useRouteMatch();
   const user = useUser();
-  const [hasPaymentProvider, setHasPaymentProvider] = useState(false);
+  const [confirmedPaymentProvider, setConfirmedPaymentProvider] = useState(false);
 
   useEffect(() => {
-    setHasPaymentProvider(userHasPaymentProvider(user));
+    setConfirmedPaymentProvider(getConfirmedPaymentProvider(user));
   }, [user]);
 
   return (
     <S.Dashboard>
-      <p>Dashboard</p>
-      <LogoutButton />
-      <Link to="/temp-pretend-payment">Make pretend payment</Link>
+      <OrganizationContext.Provider
+        value={{
+          confirmedPaymentProvider
+        }}
+      >
+        <DashboardHeader />
+        <S.DashBody>
+          <DashboardSidebar />
+          <S.DashMain>
+            {confirmedPaymentProvider ? (
+              <>
+                <ProtectedRoute path={match.url + OVERVIEW_SLUG}>
+                  <Overview />
+                </ProtectedRoute>
+                <ProtectedRoute path={match.url + DONATIONS_SLUG}>
+                  <Donations />
+                </ProtectedRoute>
+                <ProtectedRoute path={match.url + CONTENT_SLUG}>
+                  <Content />
+                </ProtectedRoute>
+              </>
+            ) : (
+              <ConnectProvider />
+            )}
+          </S.DashMain>
+        </S.DashBody>
+      </OrganizationContext.Provider>
     </S.Dashboard>
   );
 }
+
+export const useOrganizationContext = () => useContext(OrganizationContext);
 
 export default Dashboard;

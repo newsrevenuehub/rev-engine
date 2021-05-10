@@ -13,7 +13,7 @@ import TemporaryStripeCheckoutTest from 'components/TEMP/TemporaryStripeCheckout
 function MainRoutes() {
   return (
     <BrowserRouter>
-      <ProtectedRoute exact path={DASHBOARD_SLUG}>
+      <ProtectedRoute path={DASHBOARD_SLUG}>
         <Dashboard />
       </ProtectedRoute>
       <ProtectedRoute path="/temp-pretend-payment">

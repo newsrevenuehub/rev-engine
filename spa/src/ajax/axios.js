@@ -37,13 +37,13 @@ function handleResponseError(error) {
   if (error?.response) {
     const { status } = error.response;
     // Only care about 403s so far, so pass through
-    if (status !== 403) return Promise.reject(error);
-    return handle403Response(error);
+    if (status !== 401) return Promise.reject(error);
+    return handle401Response(error);
   }
   return Promise.reject(error);
 }
 
-function handle403Response() {
+function handle401Response() {
   localStorage.removeItem(LS_USER);
   localStorage.removeItem(LS_CSRF_TOKEN);
   window.location = '/';

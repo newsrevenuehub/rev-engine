@@ -13,7 +13,7 @@ import { STRIPE_PAYMENT_INTENT } from 'ajax/endpoints';
 
 function TemporaryStripeCheckoutTest() {
   const stripeRef = useRef(
-    loadStripe(process.env.REACT_APP_HUB_STRIPE_API_PUB_KEY || '', {
+    loadStripe('pk_test_31XWC5qhlLi9UkV1OzsI634W', {
       stripeAccount: JSON.parse(localStorage.getItem(LS_USER)).organization.stripe_account_id
     })
   );
@@ -49,8 +49,8 @@ function CheckoutForm() {
   useEffect(() => {
     // Create PaymentIntent as soon as the page loads
     async function createPaymentIntent() {
-      const orgSlug = process.env.REACT_APP_TEST_ORG_SLUG || ''; // get me from url!
-      const pageSlug = process.env.REACT_APP_TEST_PAGE_SLUG || ''; // get me from url!
+      const orgSlug = 'caktus-journalism'; // get me from url!
+      const pageSlug = 'donate-caktus'; // get me from url!
       const contributorEmail = 'test_contributor@caktusgroup.com'; // get me from email input on page
       try {
         const paymentIntentBody = {

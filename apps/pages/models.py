@@ -99,7 +99,7 @@ class DonationPage(AbstractPage):
         return bool(self.published_date and self.published_date <= timezone.now())
 
     def save(self, *args, **kwargs):
-        if limit := self.has_page_limit():
+        if limit := self.has_page_limit() and not self.id:
             if self.total_pages + 1 > int(limit.feature_value):
                 raise ValidationError(f"Your organization has reached its limit of {limit.feature_value} pages")
 

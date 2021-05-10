@@ -52,6 +52,9 @@ Now install the project Node packages with ``npm``:
     (revengine/spa)$ npm install
 ```
 
+NOTE: Any javascript components that rely on config vars **CANNOT** be set dynamically from the 
+heroku dashboard. A rebuild of the image and deploy is required.
+
 #### Install Python dependencies:
 
 NOTE: This project uses [Poetry](https://python-poetry.org/docs/#installation) for dependency management.

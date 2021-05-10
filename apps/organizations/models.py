@@ -7,6 +7,8 @@ from apps.common.utils import normalize_slug
 
 
 class Feature(IndexedTimeStampedModel):
+    VALID_BOOLEAN_INPUTS = ["t", "f", "0", "1"]
+
     class FeatureType(models.TextChoices):
         PAGE_LIMIT = "PL", ("Page Limit")
         BOOLEAN = "BL", ("Boolean")
@@ -29,10 +31,12 @@ class Feature(IndexedTimeStampedModel):
         return self.name
 
     def save(self, *args, **kwargs):
-        bools = ["t", "f", "0", "1"]
         if self.feature_type == self.FeatureType.PAGE_LIMIT and not self.feature_value.isnumeric():
             raise ValidationError("Page Limit types must be a positive integer value.")
-        if self.feature_type == self.FeatureType.BOOLEAN and self.feature_value.lower() not in bools:
+        if (
+            self.feature_type == self.FeatureType.BOOLEAN
+            and self.feature_value.lower() not in self.VALID_BOOLEAN_INPUTS
+        ):
             raise ValidationError(
                 f"The feature type '{self.FeatureType.BOOLEAN.label}' requires one of the following [1,0,t,f]"
             )
@@ -48,7 +52,7 @@ class Plan(IndexedTimeStampedModel):
 
 
 class Organization(IndexedTimeStampedModel):
-    name = models.CharField(max_length=255)
+    name = models.CharField(max_length=255, unique=True)
     slug = models.SlugField(blank=True, unique=True)
     plan = models.ForeignKey("organizations.Plan", null=True, on_delete=models.CASCADE)
     non_profit = models.BooleanField(default=True, verbose_name="Non-profit?")
@@ -92,5 +96,5 @@ class RevenueProgram(IndexedTimeStampedModel):
                 self.name,
                 self.slug,
             )
-            self.slug = f"{self.organization.slug}-{self.slug}"
+            self.slug = normalize_slug(slug=f"{self.organization.slug}-{self.slug}")
         super().save(*args, **kwargs)

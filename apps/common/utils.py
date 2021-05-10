@@ -1,7 +1,7 @@
 from django.utils.text import slugify
 
 
-def normalize_slug(name, slug="", max_length=50):
+def normalize_slug(name="", slug="", max_length=50):
     """Returns a string of length less than or equal to the max_length.
     :param name: str:  a character string that can be slugified.
     :param slug: str:  a slug value.

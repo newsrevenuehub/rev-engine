@@ -72,23 +72,20 @@ class DonationPage(AbstractPage):
     """
 
     slug = models.SlugField(unique=True, blank=True, help_text="If not entered, it will be built from the Page name")
-
     revenue_program = models.ForeignKey(
         "organizations.RevenueProgram",
         null=True,
         on_delete=models.SET_NULL,
     )
-
     published_date = models.DateTimeField(null=True, blank=True)
 
     def __str__(self):
         return f"{self.title} - {self.slug}"
 
     def has_page_limit(self):
-        try:
-            return self.organization.plan.features.filter(feature_type=Feature.FeatureType.PAGE_LIMIT).first()
-        except AttributeError as e:
-            pass
+        return Feature.objects.filter(
+            feature_type=Feature.FeatureType.PAGE_LIMIT, plans__organization=self.organization.id
+        ).first()
 
     @property
     def total_pages(self):
@@ -99,7 +96,8 @@ class DonationPage(AbstractPage):
         return bool(self.published_date and self.published_date <= timezone.now())
 
     def save(self, *args, **kwargs):
-        if limit := self.has_page_limit() and not self.id:
+        limit = self.has_page_limit()
+        if limit and not self.id:
             if self.total_pages + 1 > int(limit.feature_value):
                 raise ValidationError(f"Your organization has reached its limit of {limit.feature_value} pages")
 
@@ -124,6 +122,12 @@ class DonationPage(AbstractPage):
         instance = Template.objects.filter(name=template.name).first()
 
         return (instance, created)
+
+    class Meta:
+        unique_together = (
+            "slug",
+            "organization",
+        )
 
 
 class Style(IndexedTimeStampedModel):

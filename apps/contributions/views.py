@@ -70,6 +70,99 @@ def stripe_payment_intent(request):
             )
 
 
+def pre_populate_account_company_from_org(org):
+    company = {
+        "name": org.name,
+        "address": {
+            "line1": org.org_addr1 if org.org_addr1 else "",
+            "line2": org.org_addr2 if org.org_addr2 else "",
+            "city": org.org_city if org.org_city else "",
+            "state": org.org_state if org.org_state else "",
+            "postal_code": org.org_zip if org.org_zip else "",
+        },
+    }
+
+
+@api_view(["POST"])
+def stripe_onboarding(request):
+    if request.method == "POST":
+        try:
+            organization_pk = request.data.get("organization_pk")
+            organization = Organization.objects.get(pk=organization_pk)
+            if not organization.user_is_member(request.user) or not organization.user_is_owner(request.user):
+                return Response(
+                    {"detail": "User does not have permission to connect this account."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+        except Organization.DoesNotExist:
+            return Response({"organization_pk": "Could not find organization"}, status=status.HTTP_400_BAD_REQUEST)
+
+        company = pre_populate_account_company_from_org(organization)
+
+        try:
+            account = stripe.Account.create(
+                type="standard",
+                company=company,
+                api_key=get_hub_stripe_api_key(),
+            )
+
+            organization.stripe_account_id = account.id
+            organization.save()
+
+            account_links = stripe.AccountLink.create(
+                account=account.id,
+                refresh_url="http://localhost:3000/?cb=stripe_reauth",
+                return_url="http://localhost:3000/?cb=stripe_return",
+                type="account_onboarding",
+                api_key=get_hub_stripe_api_key(),
+            )
+        except stripe.error.StripeError as e:
+            return Response(
+                {"detail": "There was a problem connecting to Stripe. Please try again."},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+
+        return Response(account_links, status=status.HTTP_200_OK)
+
+
+@api_view(["POST"])
+def stripe_confirmation(request):
+    if request.method == "POST":
+        try:
+            org_slug = request.data.get("org_slug")
+            # A "Confirmed" stripe account has an Organziation entry in our DB
+            organization = Organization.objects.get(slug=org_slug)
+            # A previously confirmed account can spare the stripe API call
+            if organization.stripe_verified:
+                return Response({"details": "Stripe account verified."}, status=status.HTTP_200_OK)
+
+            assert organization.user_is_owner(request.user)
+            # A "Confirmed" stripe account has "charges_enabled": true on return from stripe.Account.retrieve
+            stripe_account = stripe.Account.retrieve(organization.stripe_account_id, api_key=get_hub_stripe_api_key())
+
+        except Organization.DoesNotExist:
+            return Response(
+                {"detail": "Could not find an organization with that slug."}, status=status.HTTP_400_BAD_REQUEST
+            )
+        except stripe.error.StripeError as stripe_error:
+            # ? Send email?
+            return Response(
+                {"detail": "There was an error with Stripe. Please try again."},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+        except AssertionError:
+            return Response(
+                {"detail": "User must be account owner to peform this action"}, status=status.HTTP_403_FORBIDDEN
+            )
+
+        if not stripe_account.charges_enabled:
+            return Response({"detail": "Stripe account verified, but restricted."}, status=status.HTTP_202_ACCEPTED)
+
+        organization.stripe_verified = True
+        organization.save()
+        return Response({"details": "Stripe account verified."}, status=status.HTTP_200_OK)
+
+
 @api_view(["POST"])
 @authentication_classes([])
 @permission_classes([])

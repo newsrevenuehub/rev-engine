@@ -21,9 +21,9 @@ def convert_money_value_to_stripe_payment_amount(amount):
     return int(float(amount) * 100)
 
 
-@api_view(["POST", "PATCH"])
+@api_view(["POST"])
 def stripe_payment_intent(request):
-    if request.method == "POST":
+    if request.method == "POST":  # pragma: no cover
         try:
             org_slug = request.data.get("org_slug")
             page_slug = request.data.get("page_slug")
@@ -85,7 +85,7 @@ def pre_populate_account_company_from_org(org):
 
 @api_view(["POST"])
 def stripe_onboarding(request):
-    if request.method == "POST":
+    if request.method == "POST":  # pragma: no cover
         organization = request.user.get_organization()
         company = pre_populate_account_company_from_org(organization)
 
@@ -117,7 +117,7 @@ def stripe_onboarding(request):
 
 @api_view(["POST"])
 def stripe_confirmation(request):
-    if request.method == "POST":
+    if request.method == "POST":  # pragma: no cover
         try:
             organization = request.user.get_organization()
             # An org that doesn't have a stripe_account_id hasn't gone through onboarding

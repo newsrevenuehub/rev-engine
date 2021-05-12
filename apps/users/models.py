@@ -31,6 +31,9 @@ class User(AbstractBaseUser, PermissionsMixin, IndexedTimeStampedModel):
     def get_short_name(self):
         return self.email
 
+    def get_organization(self):
+        return self.organization_set.first()
+
     def __str__(self):
         return self.email
 

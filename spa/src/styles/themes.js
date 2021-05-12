@@ -39,5 +39,11 @@ export const baseTheme = {
   breakpoints: {
     phoneOnly: 'max-width: 599px',
     tabletLandscapeDown: 'max-width: 900px'
+  },
+
+  maxWidths: {
+    sm: '300px',
+    md: '700px',
+    lg: '1000px'
   }
 };

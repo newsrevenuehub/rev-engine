@@ -1,16 +1,18 @@
-import { createContext, useContext, useState, useEffect } from 'react';
+import { createContext, useContext, useState, useCallback } from 'react';
 import * as S from './Dashboard.styled';
 
 // Routing
 import { useRouteMatch } from 'react-router-dom';
 import ProtectedRoute from 'components/authentication/ProtectedRoute';
-import { OVERVIEW_SLUG, DONATIONS_SLUG, CONTENT_SLUG } from 'routes';
+import { DONATIONS_SLUG, CONTENT_SLUG } from 'routes';
 
-// Hooks
-import useUser from 'hooks/useUser';
+// AJAX
+import axios from 'ajax/axios';
+import { USER } from 'ajax/endpoints';
+import { LS_USER } from 'constants/authConstants';
 
 // Utils
-import getConfirmedPaymentProvider from 'utilities/getConfirmedPaymentProvider';
+import getVerifiedPaymentProvider from 'utilities/getVerifiedPaymentProvider';
 
 // Children
 import DashboardHeader from 'components/dashboard/DashboardHeader';
@@ -18,33 +20,60 @@ import DashboardSidebar from 'components/dashboard/DashboardSidebar';
 import Overview from 'components/overview/Overview';
 import Donations from 'components/donations/Donations';
 import Content from 'components/content/Content';
-import ConnectProvider from 'components/connect/ConnectProvider';
+import GlobalLoading from 'elements/GlobalLoading';
+import ProviderConnect from 'components/connect/ProviderConnect';
 
 const OrganizationContext = createContext(null);
 
 function Dashboard() {
   const match = useRouteMatch();
-  const user = useUser();
-  const [confirmedPaymentProvider, setConfirmedPaymentProvider] = useState(false);
+  const [checkingProvider, setCheckingProvider] = useState(false);
+  const [user, setUser] = useState(JSON.parse(localStorage.getItem(LS_USER)));
+  const [defaultPaymentProvider, setDefaultPaymentProvider] = useState(getVerifiedPaymentProvider(user));
 
-  useEffect(() => {
-    setConfirmedPaymentProvider(getConfirmedPaymentProvider(user));
-  }, [user]);
+  const updateDefaultPaymentProvider = useCallback((updatedUser) => {
+    setCheckingProvider(true);
+    setDefaultPaymentProvider(getVerifiedPaymentProvider(updatedUser));
+    setCheckingProvider(false);
+  }, []);
+
+  const updateUser = useCallback(
+    async (refetch = true) => {
+      let updatedUser = JSON.parse(localStorage.getItem(LS_USER));
+      if (refetch) {
+        try {
+          const { data } = await axios.get(USER);
+          updatedUser = data;
+        } catch (e) {
+          console.warn(e?.response);
+        }
+      }
+      localStorage.setItem(LS_USER, JSON.stringify(updatedUser));
+      updateDefaultPaymentProvider(updatedUser);
+      setUser(updatedUser);
+      return updatedUser;
+    },
+    [updateDefaultPaymentProvider]
+  );
 
   return (
     <S.Dashboard>
       <OrganizationContext.Provider
         value={{
-          confirmedPaymentProvider
+          user,
+          updateUser,
+          defaultPaymentProvider,
+          updateDefaultPaymentProvider
         }}
       >
         <DashboardHeader />
         <S.DashBody>
           <DashboardSidebar />
           <S.DashMain>
-            {confirmedPaymentProvider ? (
+            {checkingProvider && <GlobalLoading />}
+            {!checkingProvider && defaultPaymentProvider && (
               <>
-                <ProtectedRoute path={match.url + OVERVIEW_SLUG}>
+                <ProtectedRoute exact path={match.url}>
                   <Overview />
                 </ProtectedRoute>
                 <ProtectedRoute path={match.url + DONATIONS_SLUG}>
@@ -54,9 +83,8 @@ function Dashboard() {
                   <Content />
                 </ProtectedRoute>
               </>
-            ) : (
-              <ConnectProvider />
             )}
+            {!checkingProvider && !defaultPaymentProvider && <ProviderConnect />}
           </S.DashMain>
         </S.DashBody>
       </OrganizationContext.Provider>

@@ -1,25 +1,7 @@
 import styled from 'styled-components';
-import { DashboardSection } from 'components/dashboard/DashboardSection.styled';
 
-export const ConnectProvider = styled(DashboardSection)`
-  h2 {
-    text-align: center;
-  }
-`;
-
-export const ProvidersList = styled.ul`
-  padding: 0;
-  list-style: none;
-  display: flex;
-  justify-content: center;
-`;
-
-export const ProviderLink = styled.li`
-  margin: 2rem 0;
-`;
-
-export const ConnectWithStripeButton = styled.div`
-  cursor: pointer;
+export const StripeConnect = styled.div`
+  cursor: ${(p) => (p.isLoading ? 'default' : 'pointer')};
   background: #635bff;
   display: inline-block;
   height: 38px;
@@ -38,7 +20,7 @@ export const ConnectWithStripeButton = styled.div`
   -webkit-font-smoothing: antialiased;
 
   &:hover {
-    background: #7a73ff;
+    background: ${(p) => (p.isLoading ? '#635bff' : '#7a73ff')};
   }
 
   span {

@@ -1,5 +1,5 @@
 export const TOKEN = 'token/';
-export const USER = 'user/';
+export const USER = 'users/';
 
 export const STRIPE_PAYMENT_INTENT = 'stripe/payment-intent/';
 export const STRIPE_ONBOARDING = 'stripe/onboarding/';

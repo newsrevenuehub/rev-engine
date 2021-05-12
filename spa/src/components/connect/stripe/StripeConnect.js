@@ -10,7 +10,6 @@ import { STRIPE_ONBOARDING } from 'ajax/endpoints';
 
 // State
 import { useProviderFetchContext } from 'components/connect/ProviderConnect';
-import { useOrganizationContext } from 'components/dashboard/Dashboard';
 
 // Elements
 import Spinner from 'elements/Spinner';
@@ -18,14 +17,13 @@ import Spinner from 'elements/Spinner';
 function StripeConnect() {
   const alert = useAlert();
   const { away, setAway } = useProviderFetchContext();
-  const { user } = useOrganizationContext();
   const [isLoading, setIsLoading] = useState();
 
   const handleStripeOnboarding = useCallback(async () => {
     if (isLoading || away) return;
     setIsLoading(true);
     try {
-      const { data } = await axios.post(STRIPE_ONBOARDING, { org_id: user.organization.id });
+      const { data } = await axios.post(STRIPE_ONBOARDING);
       window.open(data.url);
       setIsLoading(false);
       setAway(true);
@@ -35,7 +33,7 @@ function StripeConnect() {
       if (e.response?.data?.detail) alertMessage = e.response.data.detail;
       alert.error(alertMessage, { timeout: 8000 });
     }
-  }, [isLoading, away, alert, setAway, user.organization.id]);
+  }, [isLoading, away, alert, setAway]);
 
   return (
     <S.StripeConnect onClick={handleStripeOnboarding} isLoading={isLoading}>

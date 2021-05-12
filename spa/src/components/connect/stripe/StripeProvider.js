@@ -24,37 +24,33 @@ function StripeProvider() {
   const [stripeState, setStripeState] = useState();
   const [isLoading, setIsLoading] = useState(false);
 
-  const getStripeVerification = useCallback(
-    async (updatedUser) => {
-      setIsLoading(true);
-      try {
-        const { data } = await axios.post(STRIPE_CONFIRMATION, { org_id: updatedUser.organization.id });
-        if (data.status === 'connected') {
-          setStripeState(PP_STATES.CONNECTED);
-        } else if (data.status === 'restricted') {
-          setStripeState(PP_STATES.RESTRICTED);
-        } else if (data.status === 'not_connected') {
-          setStripeState(PP_STATES.NOT_CONNECTED);
-        }
-        setIsLoading(false);
-      } catch (e) {
-        if (e.response.data.status === 'failed') {
-          setStripeState(PP_STATES.FAILED);
-        } else {
-          alert.error('There was a problem verifying your Stripe connection. We have been notified.');
-        }
-        setIsLoading(false);
+  const getStripeVerification = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      const { data } = await axios.post(STRIPE_CONFIRMATION);
+      if (data.status === 'connected') {
+        setStripeState(PP_STATES.CONNECTED);
+      } else if (data.status === 'restricted') {
+        setStripeState(PP_STATES.RESTRICTED);
+      } else if (data.status === 'not_connected') {
+        setStripeState(PP_STATES.NOT_CONNECTED);
       }
-    },
-    [setStripeState, alert]
-  );
+      setIsLoading(false);
+    } catch (e) {
+      if (e.response.data.status === 'failed') {
+        setStripeState(PP_STATES.FAILED);
+      } else {
+        alert.error('There was a problem verifying your Stripe connection. We have been notified.');
+      }
+      setIsLoading(false);
+    }
+  }, [setStripeState, alert]);
 
   // Get Connection Status
   useEffect(() => {
     setIsLoading(true);
-    updateUser().then((updatedUser) => {
-      console.log('updatedUser: ', updatedUser);
-      getStripeVerification(updatedUser);
+    updateUser().then(() => {
+      getStripeVerification();
       setIsLoading(false);
     });
   }, [updateUser, getStripeVerification]);

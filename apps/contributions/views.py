@@ -5,7 +5,6 @@ from django.conf import settings
 import stripe
 from rest_framework import status
 from rest_framework.decorators import api_view, authentication_classes, permission_classes
-from rest_framework.exceptions import PermissionDenied
 from rest_framework.response import Response
 
 from apps.contributions.models import Contribution, Contributor
@@ -87,17 +86,7 @@ def pre_populate_account_company_from_org(org):
 @api_view(["POST"])
 def stripe_onboarding(request):
     if request.method == "POST":
-        try:
-            org_id = request.data.get("org_id")
-            organization = Organization.objects.get(pk=org_id)
-            if not organization.user_is_member(request.user) or not organization.user_is_owner(request.user):
-                return Response(
-                    {"detail": "User does not have permission to connect this account."},
-                    status=status.HTTP_400_BAD_REQUEST,
-                )
-        except Organization.DoesNotExist:
-            return Response({"org_id": "Could not find organization"}, status=status.HTTP_400_BAD_REQUEST)
-
+        organization = request.user.get_organization()
         company = pre_populate_account_company_from_org(organization)
 
         try:
@@ -129,15 +118,8 @@ def stripe_onboarding(request):
 @api_view(["POST"])
 def stripe_confirmation(request):
     if request.method == "POST":
-
         try:
-            org_pk = request.data.get("org_id")
-            # A "Confirmed" stripe account has an Organziation entry in our DB
-            organization = Organization.objects.get(pk=org_pk)
-
-            # Must be account owner to continue
-            if not organization.user_is_owner(request.user):
-                raise PermissionDenied()
+            organization = request.user.get_organization()
             # An org that doesn't have a stripe_account_id hasn't gone through onboarding
             if not organization.stripe_account_id:
                 return Response({"status": "not_connected"}, status=status.HTTP_202_ACCEPTED)
@@ -148,9 +130,6 @@ def stripe_confirmation(request):
             # A "Confirmed" stripe account has "charges_enabled": true on return from stripe.Account.retrieve
             stripe_account = stripe.Account.retrieve(organization.stripe_account_id, api_key=get_hub_stripe_api_key())
 
-        except Organization.DoesNotExist:
-            # ? Send email?
-            return Response({"status": "failed"}, status=status.HTTP_400_BAD_REQUEST)
         except stripe.error.StripeError as stripe_error:
             # ? Send email?
             return Response(

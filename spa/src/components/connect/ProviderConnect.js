@@ -12,7 +12,7 @@ function ProviderConnect() {
 
   return (
     <ProviderFetchContext.Provider value={{ away, setAway }}>
-      <S.ProviderConnect>
+      <S.ProviderConnect data-testid="provider-connect">
         <h2>To continue, please connect a payment provider</h2>
         <S.ProvidersList>
           <StripeProvider />

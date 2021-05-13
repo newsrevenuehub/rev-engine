@@ -38,7 +38,7 @@ function Dashboard() {
   }, []);
 
   const updateUser = useCallback(
-    async (refetch = true) => {
+    async (refetch = false) => {
       let updatedUser = JSON.parse(localStorage.getItem(LS_USER));
       if (refetch) {
         try {
@@ -57,7 +57,7 @@ function Dashboard() {
   );
 
   return (
-    <S.Dashboard>
+    <S.Dashboard data-testid="dashboard">
       <OrganizationContext.Provider
         value={{
           user,

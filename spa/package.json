@@ -4,14 +4,18 @@
   "private": true,
   "proxy": "http://localhost:8000/",
   "dependencies": {
+    "@cypress/webpack-preprocessor": "^5.7.0",
     "@stripe/react-stripe-js": "^1.4.0",
     "@stripe/stripe-js": "^1.14.0",
     "@testing-library/jest-dom": "^5.11.10",
     "@testing-library/react": "^11.2.6",
     "@testing-library/user-event": "^12.8.3",
     "axios": "^0.21.1",
+    "cypress": "^7.3.0",
     "eslint": "^7.25.0",
     "eslint-config-prettier": "^8.3.0",
+    "eslint-plugin-cypress": "^2.11.3",
+    "find-webpack": "^2.2.1",
     "framer-motion": "^4.1.8",
     "msw": "^0.28.2",
     "prettier": "^2.2.1",
@@ -31,7 +35,7 @@
   "scripts": {
     "start": "react-scripts start",
     "build": "react-scripts build",
-    "test": "react-scripts test",
+    "cypress:open": "cypress open",
     "eject": "react-scripts eject"
   },
   "jest": {
@@ -45,6 +49,12 @@
       "react-app",
       "react-app/jest",
       "prettier"
+    ],
+    "env": {
+      "cypress/globals": true
+    },
+    "plugins": [
+      "cypress"
     ]
   },
   "browserslist": {

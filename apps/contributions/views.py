@@ -101,8 +101,8 @@ def stripe_onboarding(request):
 
             account_links = stripe.AccountLink.create(
                 account=account.id,
-                refresh_url="http://localhost:3000/?cb=stripe_reauth",
-                return_url="http://localhost:3000/?cb=stripe_return",
+                refresh_url=f"{settings.SITE_URL}?cb=stripe_reauth",
+                return_url=f"{settings.SITE_URL}?cb=stripe_return",
                 type="account_onboarding",
                 api_key=get_hub_stripe_api_key(),
             )

@@ -6,11 +6,11 @@ import { AnimatePresence } from 'framer-motion';
 
 const hasErrors = (errors) => errors.length > 0;
 
-function Input({ value, onChange, label, type, errors = [] }) {
+function Input({ value, onChange, label, type, errors = [], ...props }) {
   return (
     <S.Wrapper>
       {label && <S.Label htmlFor={label}>{label}</S.Label>}
-      <S.Input value={value} onChange={onChange} type={type} hasErrors={hasErrors(errors)} id={label} />
+      <S.Input value={value} onChange={onChange} type={type} hasErrors={hasErrors(errors)} id={label} {...props} />
       <AnimatePresence>
         {hasErrors(errors) && (
           <S.Errors {...S.errorsAnimation}>

@@ -7,7 +7,6 @@ import StripeWordmark from 'assets/images/stripe_wordmark-blurple_sm.png';
 import { useAlert } from 'react-alert';
 
 // State
-import { useOrganizationContext } from 'components/dashboard/Dashboard';
 import { PP_STATES } from 'components/connect/BaseProviderInfo';
 
 // AJAX
@@ -20,7 +19,6 @@ import StripeConnect from 'components/connect/stripe/StripeConnect';
 
 function StripeProvider() {
   const alert = useAlert();
-  const { updateUser } = useOrganizationContext();
   const [stripeState, setStripeState] = useState();
   const [isLoading, setIsLoading] = useState(false);
 
@@ -48,15 +46,18 @@ function StripeProvider() {
 
   // Get Connection Status
   useEffect(() => {
-    setIsLoading(true);
-    updateUser().then(() => {
-      getStripeVerification();
-      setIsLoading(false);
-    });
-  }, [updateUser, getStripeVerification]);
+    getStripeVerification();
+  }, [getStripeVerification]);
+
+  console.log('stripeState: ', stripeState);
 
   return (
-    <S.StripeProvider logo={StripeWordmark} providerStatus={stripeState} isLoading={isLoading}>
+    <S.StripeProvider
+      logo={StripeWordmark}
+      providerStatus={stripeState}
+      isLoading={isLoading}
+      data-testid="stripe-provider"
+    >
       {isLoading && <Spinner />}
       {!isLoading && stripeState === PP_STATES.NOT_CONNECTED && <StripeConnect />}
       {!isLoading && stripeState === PP_STATES.RESTRICTED && <StripeRestricted />}
@@ -68,7 +69,7 @@ function StripeProvider() {
 
 function StripeRestricted() {
   return (
-    <S.StripeRestricted>
+    <S.StripeRestricted data-testid="stripe-restricted">
       Stripe needs more information before you can accept payments. Visit your{' '}
       <a href="https://dashboard.stripe.com/dashboard" target="_blank" rel="noopener noreferrer">
         Stripe dashboard
@@ -79,7 +80,7 @@ function StripeRestricted() {
 }
 
 function StripeConnected() {
-  return <S.StripeConnected>Connected</S.StripeConnected>;
+  return <S.StripeConnected data-testid="stripe-connected">Connected</S.StripeConnected>;
 }
 
 export default StripeProvider;

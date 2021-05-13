@@ -1,5 +1,5 @@
 import '@testing-library/jest-dom';
-import { server } from 'test_utils/mocks';
+import { server } from '__test_utils__/mocks';
 // Establish API mocking before all tests.
 beforeAll(() => server.listen());
 // Reset any request handlers that we may add during the tests,

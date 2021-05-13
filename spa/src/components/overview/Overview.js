@@ -1,8 +1,8 @@
 import * as S from './Overview.styled';
 
-function Overview(props) {
+function Overview() {
   return (
-    <S.Overview>
+    <S.Overview data-testid="overview">
       <S.OverviewSection>
         <p>Overview</p>
       </S.OverviewSection>

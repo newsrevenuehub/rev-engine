@@ -36,7 +36,7 @@ function StripeConnect() {
   }, [isLoading, away, alert, setAway]);
 
   return (
-    <S.StripeConnect onClick={handleStripeOnboarding} isLoading={isLoading}>
+    <S.StripeConnect onClick={handleStripeOnboarding} isLoading={isLoading} data-testid="stripe-connect-button">
       {isLoading ? <Spinner /> : <span>Connect with</span>}
     </S.StripeConnect>
   );

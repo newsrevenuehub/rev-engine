@@ -21,9 +21,9 @@ export const LIST_ITEM_VARIANTS = {
   }
 };
 
-function DashboardSectionGroup({ children }) {
+function DashboardSectionGroup({ children, ...props }) {
   return (
-    <S.DashboardSectionGroup initial="initial" animate="enter" exit="exit" variants={LIST_VARIANTS}>
+    <S.DashboardSectionGroup initial="initial" animate="enter" exit="exit" variants={LIST_VARIANTS} {...props}>
       {Children.map(children, (child) => {
         return <motion.li variants={LIST_ITEM_VARIANTS}>{child}</motion.li>;
       })}

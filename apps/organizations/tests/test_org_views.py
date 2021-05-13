@@ -1,3 +1,5 @@
+import django.db.utils
+
 from rest_framework.reverse import reverse
 from rest_framework.test import APITestCase
 
@@ -9,6 +11,7 @@ from apps.organizations.tests.factories import (
     PlanFactory,
     RevenueProgramFactory,
 )
+from apps.pages.tests.factories import DonationPageFactory
 
 
 class OrganizationViewSetTest(AbstractTestCase):
@@ -121,7 +124,6 @@ class RevenueProgramViewSetTest(AbstractTestCase):
 
 
 class PlanViewSetTest(APITestCase):
-    # Stubbing these tests since we haven't really built out the business logic yet.
     def setUp(self):
         self.obj_count = 5
         for i in range(self.obj_count):
@@ -141,11 +143,8 @@ class PlanViewSetTest(APITestCase):
 
 
 class FeatureViewSetTest(APITestCase):
-    # Stubbing these tests since we haven't really built out the business logic yet.
     def setUp(self):
-        self.obj_count = 5
-        for i in range(self.obj_count):
-            FeatureFactory()
+        self.limit_feature = FeatureFactory()
         self.list_url = reverse("feature-list")
         self.detail_url = "/api/v1/features"
 
@@ -158,3 +157,40 @@ class FeatureViewSetTest(APITestCase):
         self.assertEqual(response.status_code, 200)
         self.assertNotEqual(response.json()["count"], 0)
         self.assertEqual(response.json()["count"], Feature.objects.count())
+
+    def test_unique_value(self):
+        with self.assertRaises(django.db.utils.IntegrityError):
+            FeatureFactory(feature_value=self.limit_feature.feature_value)
+
+    def test_boolean_inputs(self):
+        valid = Feature.VALID_BOOLEAN_INPUTS
+        for v in iter(valid):
+            try:
+                FeatureFactory(feature_type=Feature.FeatureType.BOOLEAN, feature_value=v)
+            except django.core.exceptions.ValidationError as e:
+                self.fail(f"Save raised a validation error on expected valid inputs: {e.message}")
+
+    def test_validation_error_on_bad_input(self):
+        invalid = ["-1", "1.3", "2", "S"]
+        for v in iter(invalid):
+            with self.assertRaises(django.core.exceptions.ValidationError) as cm:
+                FeatureFactory(feature_type=Feature.FeatureType.BOOLEAN, feature_value=v)
+            self.assertEqual(cm.exception.message, "The feature type 'Boolean' requires one of the following [1,0,t,f]")
+
+    def test_feature_limits_page_creation(self):
+        self.limit_feature.feature_value = "3"
+        self.limit_feature.save()
+        plan = PlanFactory()
+        plan.features.add(self.limit_feature)
+        plan.save()
+        org = OrganizationFactory(plan=plan)
+        for i in range(3):
+            try:
+                DonationPageFactory(organization=org)
+            except django.core.exceptions.ValidationError as e:
+                self.fail(f"Save raised a validation error on expected valid inputs: {e.message}")
+        with self.assertRaises(django.core.exceptions.ValidationError) as cm:
+            DonationPageFactory(organization=org)
+        self.assertEquals(
+            cm.exception.message, f"Your organization has reached its limit of {self.limit_feature.feature_value} pages"
+        )

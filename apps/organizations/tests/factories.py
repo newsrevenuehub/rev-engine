@@ -9,6 +9,15 @@ fake = Faker()
 Faker.seed(0)
 
 
+class FeatureFactory(DjangoModelFactory):
+    class Meta:
+        model = models.Feature
+
+    name = factory.Sequence(lambda n: f"{' '.join(fake.words(nb=2))}-{str(n)}")
+    feature_value = factory.Sequence(lambda n: f"{n}")
+    description = fake.text()
+
+
 class PlanFactory(DjangoModelFactory):
     class Meta:
         model = models.Plan
@@ -16,25 +25,16 @@ class PlanFactory(DjangoModelFactory):
     name = fake.word()
 
 
-class FeatureFactory(DjangoModelFactory):
-    class Meta:
-        model = models.Feature
-
-    name = " ".join(fake.words(nb=2))
-    description = fake.text()
-
-
 class OrganizationFactory(DjangoModelFactory):
     class Meta:
         model = models.Organization
 
     name = factory.Sequence(lambda n: f"{fake.company()}-{str(n)}")
-    slug = factory.Sequence(lambda n: "test-slug-%d" % n)
 
 
 class RevenueProgramFactory(DjangoModelFactory):
     class Meta:
         model = models.RevenueProgram
 
-    name = " ".join(fake.words(nb=4))
+    name = factory.Sequence(lambda n: f"{' '.join(fake.words(nb=4))}-{str(n)}")
     organization = factory.SubFactory(OrganizationFactory)

@@ -46,13 +46,13 @@ class OrganizationViewSet(OrganizationLimitedListView, viewsets.ReadOnlyModelVie
     serializer_class = serializers.OrganizationSerializer
 
 
-class FeatureViewSet(viewsets.ReadOnlyModelViewSet):
+class FeatureViewSet(viewsets.ReadOnlyModelViewSet, ReadOnly):
     model = Feature
     queryset = Feature.objects.all()
     serializer_class = serializers.FeatureSerializer
 
 
-class PlanViewSet(viewsets.ReadOnlyModelViewSet):
+class PlanViewSet(viewsets.ReadOnlyModelViewSet, ReadOnly):
     model = Plan
     queryset = Plan.objects.all()
     serializer_class = serializers.PlanSerializer

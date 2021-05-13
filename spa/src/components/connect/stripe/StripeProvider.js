@@ -49,8 +49,6 @@ function StripeProvider() {
     getStripeVerification();
   }, [getStripeVerification]);
 
-  console.log('stripeState: ', stripeState);
-
   return (
     <S.StripeProvider
       logo={StripeWordmark}

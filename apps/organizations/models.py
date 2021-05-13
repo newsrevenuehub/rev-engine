@@ -20,7 +20,9 @@ class Feature(IndexedTimeStampedModel):
         default=FeatureType.PAGE_LIMIT,
     )
     feature_value = models.CharField(
-        max_length=32, blank=True, help_text="If feature type is Boolean, valid inputs are 't', 'f', '1', '0"
+        max_length=32,
+        blank=False,
+        help_text="Limit feature types must be a positive integer. Valid Boolean Type values are ('t', 'f', '1', '0')",
     )
     description = models.TextField(blank=True)
 

@@ -18,13 +18,6 @@ class ContributorTest(TestCase):
 
         self.assertEqual(self.contributor.contributions_count, target_count)
 
-    def test_quarantined_contributions_count(self):
-        target_count = 3
-        for _ in range(target_count):
-            contribution = Contribution.objects.create(amount=1000, contributor=self.contributor, is_quarantined=True)
-
-        self.assertEqual(self.contributor.quarantined_contributions_count, target_count)
-
     def test_most_recent_contribution(self):
         first_contribution = Contribution.objects.create(
             amount=1000, contributor=self.contributor, payment_state="paid"

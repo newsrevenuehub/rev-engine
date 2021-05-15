@@ -8,7 +8,6 @@ class ContributorAdmin(admin.ModelAdmin):
     list_display = (
         "email",
         "contributions_count",
-        "quarantined_contributions_count",
         "most_recent_contribution",
     )
     list_filter = ("email",)
@@ -20,7 +19,6 @@ class ContributorAdmin(admin.ModelAdmin):
     readonly_fields = (
         "email",
         "contributions_count",
-        "quarantined_contributions_count",
         "most_recent_contribution",
     )
 
@@ -33,7 +31,6 @@ class ContributionAdmin(admin.ModelAdmin):
         "formatted_amount",
         "donation_page",
         "payment_state",
-        "is_quarantined",
         "modified",
         "created",
     )
@@ -43,7 +40,6 @@ class ContributionAdmin(admin.ModelAdmin):
         "contributor__email",
         "donation_page__name",
         "payment_state",
-        "is_quarantined",
         "modified",
         "created",
     )

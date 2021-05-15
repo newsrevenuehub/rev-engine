@@ -11,10 +11,6 @@ class Contributor(IndexedTimeStampedModel):
         return self.contribution_set.count()
 
     @property
-    def quarantined_contributions_count(self):
-        return self.contribution_set.filter(is_quarantined=True).count()
-
-    @property
     def most_recent_contribution(self):
         return self.contribution_set.filter(payment_state="paid").latest()
 
@@ -25,12 +21,16 @@ class Contributor(IndexedTimeStampedModel):
 class Contribution(IndexedTimeStampedModel):
     amount = models.IntegerField(help_text="Stored in cents")
     currency = models.CharField(max_length=3, default="usd")
-    is_quarantined = models.BooleanField(default=False)
+    reason = models.CharField(max_length=255, blank=True)
+
     payment_provider_data = models.JSONField(null=True)
     provider_reference_id = models.CharField(max_length=255)
+
     contributor = models.ForeignKey("contributions.Contributor", on_delete=models.SET_NULL, null=True)
     donation_page = models.ForeignKey("pages.DonationPage", on_delete=models.SET_NULL, null=True)
     organization = models.ForeignKey("organizations.Organization", on_delete=models.SET_NULL, null=True)
+    bad_actor_score = models.IntegerField(null=True)
+    bad_actor_response = models.JSONField(null=True)
 
     PROCESSING = (
         "processing",
@@ -43,6 +43,10 @@ class Contribution(IndexedTimeStampedModel):
     CANCELED = (
         "canceled",
         "canceled",
+    )
+    FLAGGED = (
+        "flagged",
+        "flagged",
     )
     FAILED = (
         "failed",

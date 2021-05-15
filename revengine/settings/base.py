@@ -267,3 +267,8 @@ STRIPE_WEBHOOK_EVENTS = [
 ]
 
 SITE_URL = os.getenv("SITE_URL", "")
+
+# BadActor API
+BAD_ACTOR_API_URL = "https://bad-actor-test.fundjournalism.org/v1/bad_actor/"
+# NOTE: We've been given keys with some characters that might need escaping as environment variables, eg "$"
+BAD_ACTOR_API_KEY = os.getenv("BAD_ACTOR_API_KEY", "")

@@ -13,7 +13,6 @@ class ContributionSerializer(TestCase):
         "modified",
         "amount",
         "currency",
-        "is_quarantined",
         "payment_provider_data",
         "provider_reference_id",
         "payment_state",

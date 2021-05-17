@@ -1,4 +1,4 @@
-import { Errors, Error, errorsAnimation } from 'components/elements/inputs/Input.styled';
+import { Errors, Error, errorsAnimation } from 'elements/inputs/BaseField.styled';
 import { AnimatePresence } from 'framer-motion';
 
 const hasErrors = (errors) => {

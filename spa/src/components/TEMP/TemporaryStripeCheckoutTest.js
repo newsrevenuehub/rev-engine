@@ -13,7 +13,7 @@ import axios from 'ajax/axios';
 import { STRIPE_PAYMENT_INTENT } from 'ajax/endpoints';
 
 // Elements
-import Input from 'components/elements/inputs/Input';
+import Input from 'elements/inputs/Input';
 
 function TemporaryStripeCheckoutTest() {
   const stripeRef = useRef(

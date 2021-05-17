@@ -18,8 +18,8 @@ import fetchReducer, { initialState, FETCH_START, FETCH_SUCCESS, FETCH_FAILURE }
 import { handleLoginSuccess } from 'components/authentication/util';
 
 // Elements
-import Input from 'components/elements/inputs/Input';
-import FormErrors from 'components/elements/inputs/FormErrors';
+import Input from 'elements/inputs/Input';
+import FormErrors from 'elements/inputs/FormErrors';
 
 function Login() {
   const location = useLocation();
@@ -49,6 +49,8 @@ function Login() {
       dispatch({ type: FETCH_FAILURE, payload: error.response?.data });
     }
   };
+
+  console.log(' THIS THO ');
 
   return (
     <S.Login>

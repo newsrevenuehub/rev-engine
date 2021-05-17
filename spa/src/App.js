@@ -9,10 +9,10 @@ import SvgIcons from 'assets/icons/SvgIcons';
 
 // Deps
 import { Provider as AlertProvider } from 'react-alert';
-import Alert, { alertOptions } from 'elements/Alert/Alert';
+import Alert, { alertOptions } from 'elements/alert/Alert';
 
 // Routing
-import MainRoutes from 'components/MainRoutes';
+import Main from 'components/Main';
 
 function App() {
   return (
@@ -21,7 +21,7 @@ function App() {
         <GlobalStyles />
         <SvgIcons />
         <S.App>
-          <MainRoutes />
+          <Main />
         </S.App>
       </AlertProvider>
     </ThemeProvider>

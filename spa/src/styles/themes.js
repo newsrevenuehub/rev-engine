@@ -6,6 +6,8 @@ export const baseTheme = {
 
     fieldBackground: '#eef2f8',
     paneBackground: '#fff',
+    inputBackground: '#e4f0f3',
+    inputBorder: '#e2eef0',
 
     black: '#080708',
 
@@ -17,7 +19,9 @@ export const baseTheme = {
     info: '#0cc0dd',
     success: '#99D17B',
     warning: '#ff476c',
-    disabled: 'grey'
+    disabled: 'grey',
+
+    hover: '#eee'
   },
 
   fonts: {

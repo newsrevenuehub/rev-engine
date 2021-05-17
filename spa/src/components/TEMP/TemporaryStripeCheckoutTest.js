@@ -42,7 +42,7 @@ export default TemporaryStripeCheckoutTest;
 
 function CheckoutForm() {
   // Form state
-  const [paymentType, setPaymentType] = useState('');
+  const [paymentType, setPaymentType] = useState('single');
   const [amount, setAmount] = useState('');
   const [email, setEmail] = useState('');
   const [givenName, setGivenName] = useState('');
@@ -114,8 +114,6 @@ function CheckoutForm() {
     createPaymentIntent()
       .then(confirmPayment)
       .catch((e) => {
-        debugger;
-        console.log('ERROR THO: ', e.response);
         if (e?.response?.data) {
           setErrors({ ...errors, ...e.response.data });
         } else {

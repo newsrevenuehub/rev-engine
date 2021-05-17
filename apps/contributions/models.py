@@ -23,6 +23,7 @@ class Contribution(IndexedTimeStampedModel):
     currency = models.CharField(max_length=3, default="usd")
     reason = models.CharField(max_length=255, blank=True)
 
+    payment_provider_used = models.CharField(max_length=64)
     payment_provider_data = models.JSONField(null=True)
     provider_reference_id = models.CharField(max_length=255)
 
@@ -31,6 +32,7 @@ class Contribution(IndexedTimeStampedModel):
     organization = models.ForeignKey("organizations.Organization", on_delete=models.SET_NULL, null=True)
     bad_actor_score = models.IntegerField(null=True)
     bad_actor_response = models.JSONField(null=True)
+    flagged_date = models.DateTimeField(null=True)
 
     PROCESSING = (
         "processing",
@@ -52,15 +54,54 @@ class Contribution(IndexedTimeStampedModel):
         "failed",
         "failed",
     )
-    PAYMENT_STATES = [PROCESSING, PAID, CANCELED, FAILED]
+    REJECTED = (
+        "rejected",
+        "rejected",
+    )
+    PAYMENT_STATES = [PROCESSING, PAID, CANCELED, FAILED, FLAGGED, REJECTED]
     payment_state = models.CharField(max_length=10, choices=PAYMENT_STATES)
 
     def __str__(self):
-        return f"{self.formatted_amount}, {self.organization}"
+        return f"{self.formatted_amount}, {self.created.strftime('%Y-%m-%d %H:%M:%S')}"
 
     @property
     def formatted_amount(self):
         return f"{float(self.amount / 100)} {self.currency.upper()}"
+
+    BAD_ACTOR_SCORES = (
+        (
+            0,
+            "0 - Information",
+        ),
+        (
+            1,
+            "1 - Unknown",
+        ),
+        (
+            2,
+            "2 - Good",
+        ),
+        (
+            3,
+            "3 - Suspect",
+        ),
+        (
+            4,
+            "4 - Bad",
+        ),
+    )
+
+    @property
+    def expanded_bad_actor_score(self):
+        if not self.bad_actor_score:
+            return None
+        return self.BAD_ACTOR_SCORES[self.bad_actor_score][1]
+
+    def get_payment_intent_instance(self):
+        from apps.contributions.payment_intent import PaymentIntent
+
+        payment_intent_class = PaymentIntent(contribution=self).get_subclass()
+        return payment_intent_class(contribution=self)
 
     class Meta:
         get_latest_by = "modified"

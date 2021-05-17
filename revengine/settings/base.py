@@ -14,6 +14,8 @@ https://docs.djangoproject.com/en/3.0/ref/settings/
 import os
 from datetime import timedelta
 
+from celery.schedules import crontab
+
 
 PROJECT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 BASE_DIR = os.path.dirname(PROJECT_DIR)
@@ -272,3 +274,10 @@ SITE_URL = os.getenv("SITE_URL", "")
 BAD_ACTOR_API_URL = "https://bad-actor-test.fundjournalism.org/v1/bad_actor/"
 # NOTE: We've been given keys with some characters that might need escaping as environment variables, eg "$"
 BAD_ACTOR_API_KEY = os.getenv("BAD_ACTOR_API_KEY", "")
+
+
+# This is the interval at which flagged payments will be automatically captured.
+# NOTE: Stripe automatically REJECTS flagged payments every 7 days. Make sure this delta is less than 6.5 days to be safe.
+FLAGGED_PAYMENT_AUTO_ACCEPT_DELTA = timedelta(days=4)
+
+HEALTHCHECK_URL_AUTO_ACCEPT_FLAGGED_PAYMENTS = os.environ.get("HEALTHCHECK_URL_AUTO_ACCEPT_FLAGGED_PAYMENTS")

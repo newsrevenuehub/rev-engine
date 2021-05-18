@@ -1,5 +1,5 @@
-from django.urls import reverse_lazy
 from django.contrib.auth.views import PasswordResetConfirmView
+from django.urls import reverse_lazy
 
 
 class UserTypeSensitivePasswordResetConfirm(PasswordResetConfirmView):

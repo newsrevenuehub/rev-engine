@@ -31,3 +31,6 @@ if os.getenv("DEBUG_TOOLBAR", "True") == "True":
         "debug_toolbar",
     ]
     MIDDLEWARE += ["debug_toolbar.middleware.DebugToolbarMiddleware"]
+
+if not os.getenv("TEST_EMAIL", "False") == "True":
+    EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"

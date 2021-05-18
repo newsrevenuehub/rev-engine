@@ -88,17 +88,15 @@ class CreateStripePaymentIntentViewTest(APITestCase):
         self.assertEqual(response.data["page_slug"][0], 'Could not find DonationPage from slug "bad_slug"')
 
 
-test_stripe_account_id = "testing_123"
+TEST_STRIPE_ACCOUNT_ID = "testing_123"
 
 
 class MockStripeAccount(StripeObject):
     def __init__(self, *args, **kwargs):
-        self.id = test_stripe_account_id
+        self.id = TEST_STRIPE_ACCOUNT_ID
 
 
-mock_account_links = {"test": "test"}
-
-# 75, 89-126
+MOCK_ACCOUNT_LINKS = {"test": "test"}
 
 
 class StripeOnboardingTest(APITestCase):
@@ -110,17 +108,23 @@ class StripeOnboardingTest(APITestCase):
         self.url = reverse("stripe-onboarding")
 
     @patch("stripe.Account.create", side_effect=MockStripeAccount)
-    @patch("stripe.AccountLink.create", side_effect=mock_account_links)
+    @patch("stripe.AccountLink.create", side_effect=MOCK_ACCOUNT_LINKS)
     def test_successful_onboarding(self, *args):
+        """
+        Test happy-path
+        """
         self.client.force_authenticate(user=self.user)
         response = self.client.post(self.url)
-        # response shoudl be 200, with test account link value
+        # response should be 200, with test account link value
         self.assertContains(response, "test")
         self.organization.refresh_from_db()
-        self.assertEqual(self.organization.stripe_account_id, test_stripe_account_id)
+        self.assertEqual(self.organization.stripe_account_id, TEST_STRIPE_ACCOUNT_ID)
 
     @patch("stripe.Account.create", side_effect=StripeError)
     def test_stripe_error_returns_expected_message(self, *args):
+        """
+        If stripe.Account.create returns a StripeError, handle it with resposne.
+        """
         self.client.force_authenticate(user=self.user)
         response = self.client.post(self.url)
         self.assertEqual(response.status_code, 500)
@@ -137,7 +141,6 @@ class MockStripeAccountNotEnabled(MockStripeAccount):
         self.charges_enabled = False
 
 
-# 122-166
 class StripeConfirmTest(APITestCase):
     def setUp(self):
         self.user = get_user_model().objects.create(email="user@test.com", password="testing")
@@ -162,6 +165,9 @@ class StripeConfirmTest(APITestCase):
 
     @patch("stripe.Account.retrieve", side_effect=MockStripeAccountEnabled)
     def test_confirm_already_verified(self, mock_account_retrieve):
+        """
+        stripe_confirmation should return early if the org already has stripe_verified=True.
+        """
         response = self.post_to_confirmation(stripe_verified=True, stripe_account_id="testing")
 
         self.assertEqual(response.status_code, 200)
@@ -171,6 +177,9 @@ class StripeConfirmTest(APITestCase):
 
     @patch("stripe.Account.retrieve", side_effect=MockStripeAccountEnabled)
     def test_confirm_newly_verified(self, mock_account_retrieve):
+        """
+        stripe_confirmation should set stripe_verified to True after confirming with Stripe.
+        """
         self.assertFalse(self.organization.stripe_verified)
         response = self.post_to_confirmation(stripe_account_id="testing")
         self.organization.refresh_from_db()
@@ -181,6 +190,10 @@ class StripeConfirmTest(APITestCase):
 
     @patch("stripe.Account.retrieve", side_effect=MockStripeAccountNotEnabled)
     def test_confirm_connected_not_verified(self, mock_account_retrieve):
+        """
+        If an organization has connected its account with Hub (has a stripe_account_id), but
+        their Stripe account is not ready to recieve payments, they're in a special state.
+        """
         self.assertFalse(self.organization.stripe_verified)
         response = self.post_to_confirmation(stripe_account_id="testing")
         mock_account_retrieve.assert_called_once()
@@ -191,6 +204,10 @@ class StripeConfirmTest(APITestCase):
 
     @patch("stripe.Account.retrieve", side_effect=MockStripeAccountEnabled)
     def test_not_connected(self, mock_account_retrieve):
+        """
+        Organizations that have not been connected to Stripe at all have
+        no stripe_account_id.
+        """
         response = self.post_to_confirmation()
 
         self.assertEqual(response.status_code, 202)
@@ -200,6 +217,9 @@ class StripeConfirmTest(APITestCase):
 
     @patch("stripe.Account.retrieve", side_effect=StripeError)
     def test_stripe_error_is_caught(self, mock_account_retrieve):
+        """
+        When stripe.Account.retrieve raises a StripeError, send it in response.
+        """
         response = self.post_to_confirmation(stripe_account_id="testing")
         mock_account_retrieve.assert_called_once()
         self.assertEqual(response.status_code, 500)

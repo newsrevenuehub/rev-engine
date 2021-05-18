@@ -18,6 +18,7 @@ invalid_secret = "notavalidsecret"
 
 class MockPaymentIntentEvent(StripeObject):
     id = 1
+    # Something, somewhere down the line, needs this to be set just so...
     _transient_values = []
 
     def __init__(self, event_type=None, intent_id=None):

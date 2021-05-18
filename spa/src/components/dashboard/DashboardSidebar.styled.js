@@ -12,19 +12,19 @@ export const NavList = styled.ul`
   padding: 0.5rem 0;
   margin: 0;
 
-  @media (${(p) => p.theme.breakpoints.tabletLandscapeDown}) {
+  @media (${(props) => props.theme.breakpoints.tabletLandscapeDown}) {
     flex-direction: row;
   }
 `;
 
 export const NavItem = styled(NavLink)`
   text-decoration: none;
-  color: ${(p) => (p.disabled ? p.theme.colors.disabled : p.theme.colors.black)};
+  color: ${(props) => (props.disabled ? props.theme.colors.disabled : props.theme.colors.black)};
   padding: 1rem;
 
-  cursor: ${(p) => (p.disabled ? 'default' : 'pointer')};
+  cursor: ${(props) => (props.disabled ? 'default' : 'pointer')};
 
   &.active {
-    background: ${(p) => p.theme.colors.paneBackground};
+    background: ${(props) => props.theme.colors.paneBackground};
   }
 `;

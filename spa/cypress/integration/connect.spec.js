@@ -16,7 +16,7 @@ describe('Payment provider connect', () => {
 
   describe('Stripe', () => {
     it('should show "Connected" and "check-circle" if org is verified', () => {
-      // After logging in as "not-connected", we'll redirec to stripe confirmation
+      // After logging in as "not-connected", we'll redirect to stripe confirmation
       // where we mock a successful connection
       cy.intercept('POST', getEndpoint(STRIPE_CONFIRMATION), { fixture: 'stripe/confirm-connected' });
       cy.login('user/not-connected.json');

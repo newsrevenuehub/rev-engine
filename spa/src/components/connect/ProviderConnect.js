@@ -8,16 +8,16 @@ import StripeProvider from 'components/connect/stripe/StripeProvider';
 const ProviderFetchContext = createContext();
 
 function ProviderConnect() {
-  const [away, setAway] = useState(false);
+  const [providerConnectInProgress, setProviderConnectInProgress] = useState(false);
 
   return (
-    <ProviderFetchContext.Provider value={{ away, setAway }}>
+    <ProviderFetchContext.Provider value={{ providerConnectInProgress, setProviderConnectInProgress }}>
       <S.ProviderConnect data-testid="provider-connect">
         <h2>To continue, please connect a payment provider</h2>
         <S.ProvidersList>
           <StripeProvider />
         </S.ProvidersList>
-        {away && <ConnectProcessing />}
+        {providerConnectInProgress && <ConnectProcessing />}
       </S.ProviderConnect>
     </ProviderFetchContext.Provider>
   );

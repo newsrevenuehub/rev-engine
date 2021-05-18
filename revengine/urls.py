@@ -7,7 +7,8 @@ from django.views.generic import TemplateView
 
 from apps.api.urls import urlpatterns as api_urlpatterns
 
-from .views import index, UserTypeSensitivePasswordResetConfirm
+from .views import index
+from apps.users.views import UserTypeSensitivePasswordResetConfirm
 
 
 urlpatterns = [
@@ -22,7 +23,7 @@ urlpatterns = [
         name="orgadmin_password_reset_complete",
     ),
     # this is the default path using django.contrib.auth.urls
-    path("reset/done/", auth_views.PasswordResetDoneView.as_view(), name="password_reset_complete"),
+    path("reset/done/", auth_views.PasswordResetCompleteView.as_view(), name="password_reset_complete"),
     # React SPA:
     path(r"", index, name="index"),  # for reverse()
     re_path(r"^(?:.*)/?$", index, name="index-others"),

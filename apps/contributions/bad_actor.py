@@ -8,7 +8,7 @@ import requests
 logger = logging.getLogger(__name__)
 
 
-def BadActorAPIError(Exception):
+class BadActorAPIError(Exception):
     pass
 
 
@@ -22,5 +22,6 @@ def make_bad_actor_request(validated_data):
     }
     response = requests.post(url=settings.BAD_ACTOR_API_URL, headers=headers, json=validated_data)
     if int(str(response.status_code)[:1]) != 2:
+        print("RAISING BAD ACTOR API ERROR")
         raise BadActorAPIError(response.json())
     return response

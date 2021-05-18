@@ -1,3 +1,6 @@
+from django.contrib.messages.middleware import MessageMiddleware
+from django.contrib.sessions.middleware import SessionMiddleware
+
 from apps.common.utils import normalize_slug
 
 
@@ -23,3 +26,20 @@ def test_custom_length_allowed():
 
 def test_custom_length_enforced():
     assert len(normalize_slug(f"{'x' * 80}", max_length=70)) == 70
+
+
+def setup_request(user, request):
+    request.user = user
+
+    # Annotate a request object with a session
+    middleware = SessionMiddleware()
+    middleware.process_request(request)
+    request.session.save()
+
+    # Annotate a request object with a messages
+    middleware = MessageMiddleware()
+    middleware.process_request(request)
+    request.session.save()
+
+    request.session["some"] = "some"
+    request.session.save()

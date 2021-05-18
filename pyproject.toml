@@ -55,6 +55,7 @@ Pillow = "^8.2.0"
 stripe = "^2.56.0"
 Django = "3.2.2"
 requests = "^2.25.1"
+responses = "^0.13.3"
 
 [tool.poetry.dev-dependencies]
 appnope = "0.1.2"

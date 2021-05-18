@@ -23,7 +23,6 @@ class StripePaymentIntentSerializer(serializers.Serializer):
     referer = serializers.URLField()
     amount = serializers.IntegerField()
     reason = serializers.CharField(max_length=255)
-    email = serializers.EmailField()
 
     organization_slug = serializers.SlugField()
     donation_page_slug = serializers.SlugField()

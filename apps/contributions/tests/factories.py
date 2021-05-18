@@ -20,3 +20,4 @@ class ContributionFactory(DjangoModelFactory):
         model = models.Contribution
 
     amount = faker.random_digit()
+    payment_provider_used = "Stripe"

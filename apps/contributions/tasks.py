@@ -2,7 +2,7 @@ import logging
 import time
 
 from django.conf import settings
-from django.contrib import timezone
+from django.utils import timezone
 
 import requests
 from celery import shared_task
@@ -15,7 +15,7 @@ from apps.contributions.payment_intent import PaymentProviderError
 logger = logging.getLogger(__name__)
 
 
-def ping_healthchecks(check_name, healthcheck_url):
+def ping_healthchecks(check_name, healthcheck_url):  # pragma: no cover
     """Attempt to ping a healthchecks.io to enable monitoring of tasks"""
     if not healthcheck_url:
         logger.info(f"URL for {check_name} for not available in this environment")
@@ -51,3 +51,4 @@ def auto_accept_flagged_contributions():
         logger.warn(f"Failed to capture {failed_captures} previously-held payments")
 
     ping_healthchecks("auto_accept_flagged_contributions", settings.HEALTHCHECK_URL_AUTO_ACCEPT_FLAGGED_PAYMENTS)
+    return successful_captures, failed_captures

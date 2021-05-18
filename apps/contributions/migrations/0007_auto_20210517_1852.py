@@ -34,6 +34,7 @@ class Migration(migrations.Migration):
 
     dependencies = [
         ("contributions", "0006_contribution_flagged_date"),
+        ("django_celery_beat", "0015_edit_solarschedule_events_choices"),
     ]
 
     operations = [migrations.RunPython(create_or_update_task, reverse_code=remove_task)]

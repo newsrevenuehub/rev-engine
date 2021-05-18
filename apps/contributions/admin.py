@@ -32,9 +32,7 @@ class BadActorScoreFilter(admin.SimpleListFilter):
         return Contribution.BAD_ACTOR_SCORES
 
     def queryset(self, request, queryset):
-        if self.value():
-            return queryset.filter(bad_actor_score=self.value())
-        return queryset
+        return queryset.filter(bad_actor_score=self.value())
 
 
 @admin.register(Contribution)

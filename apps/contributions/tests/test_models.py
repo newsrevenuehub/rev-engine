@@ -47,5 +47,5 @@ class ContributionTest(TestCase):
     def test_str(self):
         self.assertEqual(
             str(self.contribution),
-            f"{self.contribution.formatted_amount}, {self.contribution.organization}",
+            f"{self.contribution.formatted_amount}, {self.contribution.created.strftime('%Y-%m-%d %H:%M:%S')}",
         )

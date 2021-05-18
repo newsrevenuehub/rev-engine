@@ -6,9 +6,9 @@ from django.urls import path, re_path
 from django.views.generic import TemplateView
 
 from apps.api.urls import urlpatterns as api_urlpatterns
+from apps.users.views import UserTypeSensitivePasswordResetConfirm
 
 from .views import index
-from apps.users.views import UserTypeSensitivePasswordResetConfirm
 
 
 urlpatterns = [

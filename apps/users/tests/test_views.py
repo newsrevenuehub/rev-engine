@@ -1,6 +1,6 @@
 from django.contrib.auth import get_user_model
 from django.core import mail
-from django.test import TestCase, Client
+from django.test import Client, TestCase
 from django.test.utils import override_settings
 from django.urls import reverse
 
@@ -34,6 +34,9 @@ class TestUserTypeSensitivePasswordReset(TestCase):
         uidb64, token = self.request_password_reset()
         url = reverse("password_reset_confirm", kwargs=dict(uidb64=uidb64, token=token))
         data = dict(new_password1=self.new_password, new_password2=self.new_password)
+        # We have to go to this link twice because of how PasswordResetConfirmView is
+        # set up. See https://stackoverflow.com/a/67591447/1264950 and
+        # https://github.com/django/django/blob/a24fed399ced6be2e9dce4cf28db00c3ee21a21c/django/contrib/auth/views.py#L284
         response = self.client.post(url, data, follow=True)
         self.assertEqual(response.status_code, 200)
         response = self.client.post(response.request["PATH_INFO"], data, follow=True)
@@ -48,6 +51,9 @@ class TestUserTypeSensitivePasswordReset(TestCase):
         uidb64, token = self.request_password_reset()
         url = reverse("password_reset_confirm", kwargs=dict(uidb64=uidb64, token=token))
         data = dict(new_password1=self.new_password, new_password2=self.new_password)
+        # We have to go to this link twice because of how PasswordResetConfirmView is
+        # set up. See https://stackoverflow.com/a/67591447/1264950 and
+        # https://github.com/django/django/blob/a24fed399ced6be2e9dce4cf28db00c3ee21a21c/django/contrib/auth/views.py#L284
         response = self.client.post(url, data, follow=True)
         self.assertEqual(response.status_code, 200)
         response = self.client.post(response.request["PATH_INFO"], data, follow=True)

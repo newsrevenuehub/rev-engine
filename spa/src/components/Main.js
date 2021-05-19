@@ -1,7 +1,7 @@
 import { createContext, useContext, useState, useCallback } from 'react';
 import * as S from './Main.styled';
 
-import { Route, BrowserRouter } from 'react-router-dom';
+import { Route, BrowserRouter, Switch } from 'react-router-dom';
 import ProtectedRoute from 'components/authentication/ProtectedRoute';
 
 // Slugs
@@ -66,20 +66,24 @@ function Main() {
     >
       <S.Main>
         <BrowserRouter>
-          <Route path={LOGIN}>
-            <Login />
-          </Route>
-          <ProtectedRoute path="/">
-            <MainHeader />
-            <S.MainContent>
-              <Route path={'/' + ORG_SLUG}>
-                <Organization />
-              </Route>
-              <Route exact path={DASHBOARD_SLUG}>
-                <Dashboard />
-              </Route>
-            </S.MainContent>
-          </ProtectedRoute>
+          <Switch>
+            <Route exact path={LOGIN}>
+              <Login />
+            </Route>
+            <ProtectedRoute path="/">
+              <MainHeader />
+              <S.MainContent>
+                <Switch>
+                  <Route path={'/' + ORG_SLUG}>
+                    <Organization />
+                  </Route>
+                  <Route path={DASHBOARD_SLUG}>
+                    <Dashboard />
+                  </Route>
+                </Switch>
+              </S.MainContent>
+            </ProtectedRoute>
+          </Switch>
         </BrowserRouter>
       </S.Main>
     </OrganizationContext.Provider>

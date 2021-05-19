@@ -50,8 +50,6 @@ function Login() {
     }
   };
 
-  console.log(' THIS THO ');
-
   return (
     <S.Login>
       <S.LoginCard>

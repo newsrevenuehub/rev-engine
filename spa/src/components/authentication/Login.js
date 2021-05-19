@@ -64,6 +64,7 @@ function Login() {
               disabled={loading}
               label="email"
               type={Input.types.EMAIL}
+              data-testid="login-email"
             />
           </S.InputWrapper>
 
@@ -75,11 +76,12 @@ function Login() {
               disabled={loading}
               label="password"
               type={Input.types.PASSWORD}
+              data-testid="login-password"
             />
           </S.InputWrapper>
 
           <S.LoginButtons>
-            <S.LoginButton onClick={handleLogin} disabled={loading} type="submit">
+            <S.LoginButton onClick={handleLogin} disabled={loading} type="submit" data-testid="login-button">
               Sign in
             </S.LoginButton>
           </S.LoginButtons>

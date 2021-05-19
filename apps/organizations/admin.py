@@ -29,7 +29,7 @@ class OrganizationAdmin(admin.ModelAdmin):
                 )
             },
         ),
-        ("Payment Provider", {"fields": ("default_payment_provider", "stripe_account_id")}),
+        ("Payment Provider", {"fields": ("default_payment_provider", "stripe_account_id", "stripe_verified")}),
     )
 
     fieldsets = organization_fieldset
@@ -39,6 +39,8 @@ class OrganizationAdmin(admin.ModelAdmin):
     list_filter = ["name", "plan", "org_state"]
 
     inlines = [UserOrganizationInline]
+
+    readonly_fields = ["name", "slug", "stripe_verified"]
 
     def get_readonly_fields(self, request, obj=None):
         if Path(request.path).parts[-1] == "add":

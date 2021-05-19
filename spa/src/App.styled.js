@@ -5,4 +5,5 @@ export const App = styled.div`
   width: 100vw;
   overflow: hidden;
   display: flex;
+  background: ${(props) => props.theme.colors.fieldBackground};
 `;

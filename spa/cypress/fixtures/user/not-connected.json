@@ -1,0 +1,12 @@
+{
+  "detail": "success",
+  "user": {
+    "id": 3,
+    "organization": {
+      "name": "Not Connected Org",
+      "default_payment_provider": "stripe",
+      "stripe_account_id": "",
+      "stripe_verified": false
+    }
+  }
+}

@@ -16,7 +16,6 @@ env-local.sh
 .python-version
 .vsls.json
 .idea/
-.coveragerc
 .direnv
 
 # Project Static Files

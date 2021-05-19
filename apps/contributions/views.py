@@ -129,6 +129,7 @@ def stripe_confirmation(request):
 
     except stripe.error.StripeError:
         # ? Send email?
+        logger.error("stripe.Account.retrieve failed with a StripeError")
         return Response(
             {"status": "failed"},
             status=status.HTTP_500_INTERNAL_SERVER_ERROR,

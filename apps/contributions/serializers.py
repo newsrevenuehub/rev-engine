@@ -41,7 +41,7 @@ class StripePaymentIntentSerializer(serializers.Serializer):
     )
     payment_type = serializers.ChoiceField(choices=PAYMENT_TYPE_CHOICES)
 
-    def convert_amount_to_cents(amount):
+    def convert_amount_to_cents(self, amount):
         return int(float(amount) * 100)
 
     def to_internal_value(self, data):

@@ -64,7 +64,7 @@ function Login() {
               disabled={loading}
               label="email"
               type={Input.types.EMAIL}
-              data-testid="login-email"
+              testid="login-email"
             />
           </S.InputWrapper>
 
@@ -76,7 +76,7 @@ function Login() {
               disabled={loading}
               label="password"
               type={Input.types.PASSWORD}
-              data-testid="login-password"
+              testid="login-password"
             />
           </S.InputWrapper>
 

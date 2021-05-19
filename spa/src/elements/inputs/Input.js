@@ -5,7 +5,7 @@ import BaseField from 'elements/inputs/BaseField';
 function Input({ value, onChange, type, ...props }) {
   return (
     <BaseField {...props}>
-      <S.Input value={value} onChange={onChange} type={type} />
+      <S.Input value={value} onChange={onChange} type={type} data-testid={props.testid} />
     </BaseField>
   );
 }

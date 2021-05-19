@@ -14,6 +14,8 @@ import { STRIPE_PAYMENT_INTENT } from 'ajax/endpoints';
 
 // Elements
 import Input from 'elements/inputs/Input';
+import TextArea from 'elements/inputs/TextArea';
+import Select from 'elements/inputs/Select';
 
 function TemporaryStripeCheckoutTest() {
   const stripeRef = useRef(
@@ -125,42 +127,42 @@ function CheckoutForm() {
   return (
     <S.Wrapper>
       <S.FormStyled id="payment-form" onSubmit={handleSubmit}>
-        <div style={{ width: 350, marginBottom: '2rem' }}>
-          <label style={{ display: 'block', color: 'white' }}>Payment type</label>
-          <select value={paymentType} onChange={(e) => setPaymentType(e.target.value)}>
-            <option value="single">Single</option>
-            <option value="recurring">Recurring</option>
-          </select>
-          <Input
-            type="number"
-            label="Amount"
-            value={amount}
-            onChange={(e) => setAmount(e.target.value)}
-            errors={errors.amount}
-          />
-          <Input
-            type="email"
-            label="Email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            errors={errors.email}
-          />
-          <Input
-            type="text"
-            label="Given name"
-            value={givenName}
-            onChange={(e) => setGivenName(e.target.value)}
-            errors={errors.givenName}
-          />
-          <Input
-            type="text"
-            label="Family name"
-            value={familyName}
-            onChange={(e) => setFamilyName(e.target.value)}
-            errors={errors.familyName}
-          />
-          <textarea value={reason} onChange={(e) => setReason(e.target.value)} />
-        </div>
+        <Select
+          label="Payment type"
+          onChange={(e) => setPaymentType(e.target.value)}
+          items={['single', 'recurring']}
+          placeholder="Select a payment type"
+        />
+        <Input
+          type="number"
+          label="Amount"
+          value={amount}
+          onChange={(e) => setAmount(e.target.value)}
+          errors={errors.amount}
+        />
+        <Input
+          type="email"
+          label="Email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          errors={errors.email}
+        />
+        <Input
+          type="text"
+          label="Given name"
+          value={givenName}
+          onChange={(e) => setGivenName(e.target.value)}
+          errors={errors.givenName}
+        />
+        <Input
+          type="text"
+          label="Family name"
+          value={familyName}
+          onChange={(e) => setFamilyName(e.target.value)}
+          errors={errors.familyName}
+        />
+        <TextArea value={reason} onChange={(e) => setReason(e.target.value)} label="Reason for donation" />
+        <div style={{ marginBottom: '2rem' }} />
         <CardElement id="card-element" options={cardStyle} onChange={handleChange} />
         <button disabled={processing || disabled || succeeded} id="submit">
           <span id="button-text">{processing ? <div className="spinner" id="spinner"></div> : 'Pay now'}</span>

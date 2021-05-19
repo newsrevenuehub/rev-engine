@@ -42,7 +42,7 @@ class StripePaymentIntentTest(APITestCase):
         self.organization = OrganizationFactory()
         self.page = DonationPageFactory()
         self.contributor = ContributorFactory()
-        self.amount = 1099
+        self.amount = "10.99"
         self.data = {
             "email": self.contributor.email,
             "given_name": "Test",
@@ -141,7 +141,7 @@ class StripePaymentIntentTest(APITestCase):
         pi.create_payment_intent()
         # Importantly, capture method should be "manual" here, for flagged contributions
         mock_stripe_create_pi.assert_called_once_with(
-            amount=self.amount,
+            amount=1099,
             currency="usd",
             payment_method_types=["card"],
             api_key=fake_api_key,
@@ -167,7 +167,7 @@ class StripePaymentIntentTest(APITestCase):
         pi.create_payment_intent()
         # Importantly, capture method should be "automatic" here, for non-flagged contributions
         mock_stripe_create_pi.assert_called_once_with(
-            amount=self.amount,
+            amount=1099,
             currency="usd",
             payment_method_types=["card"],
             api_key=fake_api_key,

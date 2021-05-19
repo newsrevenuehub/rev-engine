@@ -84,8 +84,7 @@ REST_FRAMEWORK = {
         "apps.api.authentication.JWTHttpOnlyCookieAuthentication",
     ],
     "DEFAUL_PERMISSION_CLASSES": [
-        "apps.api.permissions.IsAuthenticated",
-        # 'rest_framework.permissions.IsAuthenticated',
+        "rest_framework.permissions.IsAuthenticated",
     ],
     # https://www.django-rest-framework.org/api-guide/pagination/#setting-the-pagination-style
     "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.LimitOffsetPagination",

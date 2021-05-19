@@ -11,7 +11,7 @@ export const DashBody = styled.div`
   display: flex;
   flex-direction: row;
 
-  @media (${(p) => p.theme.breakpoints.tabletLandscapeDown}) {
+  @media (${(props) => props.theme.breakpoints.tabletLandscapeDown}) {
     flex-direction: column;
   }
 `;

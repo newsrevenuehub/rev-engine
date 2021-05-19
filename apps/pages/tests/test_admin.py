@@ -1,30 +1,12 @@
 from django.contrib.admin.sites import AdminSite
 from django.contrib.auth import get_user_model
-from django.contrib.messages.middleware import MessageMiddleware
-from django.contrib.sessions.middleware import SessionMiddleware
 from django.test import RequestFactory, TestCase
 from django.urls import reverse
 
+from apps.common.tests.test_utils import setup_request
 from apps.pages.admin import DonationPageAdmin, TemplateAdmin
 from apps.pages.models import DonationPage, Template
 from apps.pages.tests.factories import DonationPageFactory, TemplateFactory
-
-
-def _setup_request(user, request):
-    request.user = user
-
-    # Annotate a request object with a session
-    middleware = SessionMiddleware()
-    middleware.process_request(request)
-    request.session.save()
-
-    # Annotate a request object with a messages
-    middleware = MessageMiddleware()
-    middleware.process_request(request)
-    request.session.save()
-
-    request.session["some"] = "some"
-    request.session.save()
 
 
 class DonationPageAdminTestCase(TestCase):
@@ -37,7 +19,7 @@ class DonationPageAdminTestCase(TestCase):
 
     def test_make_template_from_page(self):
         request = self.factory.get(reverse("admin:pages_donationpage_changelist"))
-        _setup_request(self.user, request)
+        setup_request(self.user, request)
         prev_template_count = Template.objects.count()
         page_queryset = DonationPage.objects.all()
 
@@ -51,7 +33,7 @@ class DonationPageAdminTestCase(TestCase):
 
     def test_make_template_no_duplicate(self):
         request = self.factory.get(reverse("admin:pages_donationpage_changelist"))
-        _setup_request(self.user, request)
+        setup_request(self.user, request)
         prev_template_count = Template.objects.count()
         page_queryset = DonationPage.objects.all()
 
@@ -84,7 +66,7 @@ class TemplateAdminTest(TestCase):
         request_body = {"_page-from-template": True}
         url = reverse("admin:pages_template_change", kwargs={"object_id": self.template.id})
         request = self.factory.post(url, request_body)
-        _setup_request(self.user, request)
+        setup_request(self.user, request)
         prev_page_count = DonationPage.objects.count()
         template = Template.objects.first()
         response = self.template_admin.response_change(request, template)
@@ -98,7 +80,7 @@ class TemplateAdminTest(TestCase):
     def test_response_change_without_button_click_passes_through(self):
         url = reverse("admin:pages_template_change", kwargs={"object_id": self.template.id})
         request = self.factory.post(url)
-        _setup_request(self.user, request)
+        setup_request(self.user, request)
         template = Template.objects.first()
         response = self.template_admin.response_change(request, template)
 

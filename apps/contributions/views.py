@@ -1,7 +1,6 @@
 import logging
 
 from django.conf import settings
-from django.core.exceptions import ValidationError
 
 import stripe
 from rest_framework import status
@@ -15,7 +14,7 @@ from apps.contributions.webhooks import StripeWebhookProcessor
 
 
 # TEMP
-if settings.DEBUG:
+if settings.DEBUG:  # pragma: no cover
     from faker import Faker
 
     faker = Faker()
@@ -26,12 +25,12 @@ logger = logging.getLogger(__name__)
 
 @api_view(["POST"])
 def stripe_payment_intent(request):
-    pi_data = request.data
+    pi_data = request.data.copy()
 
     # Grab required data from headers
     pi_data["referer"] = request.META.get("HTTP_REFERER")
     # We may or may not wish to remove this? Sending many requests from 127.0.0.1 will get you flagged every time.
-    if settings.DEBUG:
+    if settings.DEBUG:  # pragma: no cover
         pi_data["ip"] = faker.ipv4()
     else:
         pi_data["ip"] = request.META.get("HTTP_X_FORWARDED_FOR")
@@ -39,14 +38,13 @@ def stripe_payment_intent(request):
     # Instantiate StripePaymentIntent for validation and processing
     stripe_pi = StripePaymentIntent(data=pi_data)
 
-    # Validate data expected by Stripe and BadActor API, catch validation errors
-    try:
-        stripe_pi.validate()
-    except ValidationError as error:
-        return Response(data=error, status=status.HTTP_400_BAD_REQUEST)
+    # Validate data expected by Stripe and BadActor API
+    stripe_pi.validate()
 
     # Performs request to BadActor API
     stripe_pi.get_bad_actor_score()
+
+    # Create payment intent with Stripe, associated local models
     stripe_payment_intent = stripe_pi.create_payment_intent()
     return Response(data={"clientSecret": stripe_payment_intent["client_secret"]}, status=status.HTTP_200_OK)
 

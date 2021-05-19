@@ -20,7 +20,7 @@ export const baseInputStyles = css`
   font-weight: bold;
 
   &:focus {
-    border-color: ${(p) => p.theme.colors.primary};
+    border-color: ${(props) => props.theme.colors.primary};
   }
 `;
 
@@ -47,7 +47,7 @@ export const Errors = styled(motion.ul)`
 `;
 
 export const Error = styled(motion.li)`
-  color: ${(p) => p.theme.colors.caution};
+  color: ${(props) => props.theme.colors.caution};
 `;
 
 export const errorsAnimation = {

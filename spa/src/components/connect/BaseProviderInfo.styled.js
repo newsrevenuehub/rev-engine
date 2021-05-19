@@ -9,7 +9,7 @@ export const BaseProviderInfo = styled.li`
   margin: 2rem 0;
   width: 100%;
 
-  @media (${(p) => p.theme.breakpoints.tabletLandscapeDown}) {
+  @media (${(props) => props.theme.breakpoints.tabletLandscapeDown}) {
     flex-direction: column;
     margin: 3rem 0;
   }
@@ -38,5 +38,5 @@ export const ProviderLogo = styled.img`
 export const SvgIcon = styled(Svg)`
   width: 50px;
   height: 50px;
-  fill: ${(p) => (p.icon === 'times-circle' ? p.theme.colors.caution : p.theme.colors.success)};
+  fill: ${(props) => (props.icon === 'times-circle' ? props.theme.colors.caution : props.theme.colors.success)};
 `;

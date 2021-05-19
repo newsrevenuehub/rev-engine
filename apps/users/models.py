@@ -32,6 +32,10 @@ class User(AbstractBaseUser, PermissionsMixin, IndexedTimeStampedModel):
         return self.email
 
     def get_organization(self):
+        """
+        We don't currently support users belonging to multiple orgs,
+        so for now, just grab the one-and-only org in their set.
+        """
         return self.organization_set.first()
 
     def __str__(self):

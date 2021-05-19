@@ -3,33 +3,33 @@ import styled, { css } from 'styled-components';
 export const Alert = styled.div`
   position: relative;
   font-size: 18px;
-  color: ${(p) => p.theme.colors.white};
+  color: ${(props) => props.theme.colors.white};
   min-width: 300px;
   max-width: 400px;
   padding: 2rem;
-  border-radius: ${(p) => p.theme.radii[0]};
+  border-radius: ${(props) => props.theme.radii[0]};
 
-  ${(p) => {
-    if (p.type === 'info') {
+  ${(props) => {
+    if (props.type === 'info') {
       return css`
-        background: ${p.theme.colors.info};
+        background: ${props.theme.colors.info};
       `;
     }
-    if (p.type === 'success') {
+    if (props.type === 'success') {
       return css`
-        background: ${p.theme.colors.success};
+        background: ${props.theme.colors.success};
       `;
     }
-    if (p.type === 'error') {
+    if (props.type === 'error') {
       return css`
-        background: ${p.theme.colors.warning};
+        background: ${props.theme.colors.warning};
       `;
     }
   }}
 `;
 
 export const Close = styled.button`
-  color: ${(p) => p.theme.colors.white};
+  color: ${(props) => props.theme.colors.white};
   cursor: pointer;
   padding: 0.5rem;
   font-size: 18px;

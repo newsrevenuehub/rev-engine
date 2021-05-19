@@ -5,7 +5,7 @@ export const DashboardSectionGroup = styled(motion.ul)`
   padding: 0;
   margin: 0 auto;
   width: 100%;
-  max-width: ${(p) => p.theme.maxWidths.lg};
+  max-width: ${(props) => props.theme.maxWidths.lg};
   list-style: none;
   & > :not(:last-child) {
     margin-bottom: 4rem;

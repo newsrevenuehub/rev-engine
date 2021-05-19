@@ -21,9 +21,9 @@ class MockPaymentIntentEvent(StripeObject):
     # Something, somewhere down the line, needs this to be set just so...
     _transient_values = []
 
-    def __init__(self, event_type=None, intent_id=None):
+    def __init__(self, event_type=None, intent_id=None, object_type="payment_intent", cancellation_reason=None):
         self.type = event_type
-        self.data = {"object": {"id": intent_id, "object": "payment_intent"}}
+        self.data = {"object": {"id": intent_id, "object": object_type, "cancellation_reason": cancellation_reason}}
 
 
 def mock_valid_signature_verification_with_valid_event(*args, **kwargs):
@@ -91,6 +91,18 @@ class StripeWebhooksTest(APITestCase):
         contribution.refresh_from_db()
         self.assertEqual(contribution.payment_state, Contribution.CANCELED[0])
 
+    def test_payment_intent_fraudulent(self):
+        ref_id = "1234"
+        contribution = self._create_contribution(ref_id=ref_id)
+        processor = StripeWebhookProcessor(
+            MockPaymentIntentEvent(
+                event_type="payment_intent.canceled", intent_id=ref_id, cancellation_reason="fraudulent"
+            )
+        )
+        processor.process()
+        contribution.refresh_from_db()
+        self.assertEqual(contribution.payment_state, Contribution.REJECTED[0])
+
     def test_payment_intent_payment_failed_webhook(self):
         ref_id = "1234"
         contribution = self._create_contribution(ref_id=ref_id)
@@ -112,8 +124,16 @@ class StripeWebhooksTest(APITestCase):
         self.assertEqual(contribution.payment_state, Contribution.PAID[0])
 
     def test_webhook_with_invalid_contribution_reference_id(self):
-        contribution = self._create_contribution(ref_id="abcd")
+        self._create_contribution(ref_id="abcd")
         processor = StripeWebhookProcessor(
             MockPaymentIntentEvent(event_type="payment_intent.succeeded", intent_id="1234")
         )
         self.assertRaises(Contribution.DoesNotExist, processor.process)
+
+    @patch("apps.contributions.webhooks.logger.warn")
+    def test_unknown_event_logs_helpful_message(self, mock_logger):
+        self._create_contribution(ref_id="abcd")
+        fake_event_object = "criminal_activiy"
+        processor = StripeWebhookProcessor(MockPaymentIntentEvent(object_type=fake_event_object, intent_id="1234"))
+        processor.process()
+        mock_logger.assert_called_with(f'Recieved un-handled Stripe object of type "{fake_event_object}"')

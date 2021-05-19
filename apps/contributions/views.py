@@ -24,10 +24,6 @@ if settings.DEBUG:
 logger = logging.getLogger(__name__)
 
 
-def convert_money_value_to_stripe_payment_amount(amount):
-    return int(float(amount) * 100)
-
-
 @api_view(["POST"])
 def stripe_payment_intent(request):
     pi_data = request.data
@@ -39,9 +35,6 @@ def stripe_payment_intent(request):
         pi_data["ip"] = faker.ipv4()
     else:
         pi_data["ip"] = request.META.get("HTTP_X_FORWARDED_FOR")
-
-    # Convert the money formatted string incoming "10.00", to cents, 1000
-    pi_data["amount"] = convert_money_value_to_stripe_payment_amount(pi_data["amount"])
 
     # Instantiate StripePaymentIntent for validation and processing
     stripe_pi = StripePaymentIntent(data=pi_data)

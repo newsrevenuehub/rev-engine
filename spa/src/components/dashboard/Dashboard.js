@@ -1,9 +1,9 @@
 import * as S from './Dashboard.styled';
 
 // Routing
-import { useRouteMatch } from 'react-router-dom';
+import { Switch, useRouteMatch } from 'react-router-dom';
 import ProtectedRoute from 'components/authentication/ProtectedRoute';
-import { DONATIONS_SLUG, CONTENT_SLUG } from 'routes';
+import { DONATIONS_SLUG, CONTENT_SLUG, DASHBOARD_SLUG } from 'routes';
 
 // State
 import { useOrganizationContext } from 'components/Main';
@@ -26,17 +26,17 @@ function Dashboard() {
       <S.DashboardMain>
         {checkingProvider && <GlobalLoading />}
         {!checkingProvider && defaultPaymentProvider && (
-          <>
-            <ProtectedRoute exact path={match.url}>
-              <Overview />
-            </ProtectedRoute>
+          <Switch>
             <ProtectedRoute path={match.url + DONATIONS_SLUG}>
               <Donations />
             </ProtectedRoute>
             <ProtectedRoute path={match.url + CONTENT_SLUG}>
               <Content />
             </ProtectedRoute>
-          </>
+            <ProtectedRoute path={DASHBOARD_SLUG}>
+              <Overview />
+            </ProtectedRoute>
+          </Switch>
         )}
         {!checkingProvider && !defaultPaymentProvider && <ProviderConnect />}
       </S.DashboardMain>

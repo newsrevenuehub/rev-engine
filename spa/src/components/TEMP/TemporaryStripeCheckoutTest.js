@@ -114,8 +114,6 @@ function CheckoutForm() {
     createPaymentIntent()
       .then(confirmPayment)
       .catch((e) => {
-        debugger;
-        console.log('ERROR THO: ', e.response);
         if (e?.response?.data) {
           setErrors({ ...errors, ...e.response.data });
         } else {

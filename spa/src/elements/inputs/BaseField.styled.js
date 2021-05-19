@@ -17,7 +17,6 @@ export const baseInputStyles = css`
   transition: all 0.2s;
 
   font-size: 16px;
-  font-weight: bold;
 
   &:focus {
     border-color: ${(props) => props.theme.colors.primary};

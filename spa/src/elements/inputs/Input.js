@@ -1,6 +1,6 @@
 import * as S from './Input.styled';
 import PropTypes from 'prop-types';
-import BaseField from './BaseField';
+import BaseField from 'elements/inputs/BaseField';
 
 function Input({ value, onChange, type, ...props }) {
   return (

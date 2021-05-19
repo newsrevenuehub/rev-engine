@@ -1,7 +1,7 @@
 import { createContext, useContext, useState, useCallback } from 'react';
 import * as S from './Main.styled';
 
-import { Route, BrowserRouter, Switch } from 'react-router-dom';
+import { Route, BrowserRouter, Switch, Redirect } from 'react-router-dom';
 import ProtectedRoute from 'components/authentication/ProtectedRoute';
 
 // Slugs
@@ -19,7 +19,8 @@ import { LS_USER } from 'constants/authConstants';
 import MainHeader from 'components/header/MainHeader';
 import Dashboard from 'components/dashboard/Dashboard';
 import Organization from 'components/organization/Organization';
-import Login from './authentication/Login';
+import Login from 'components/authentication/Login';
+import LiveDonationPageRouter from 'components/donationPage/LiveDonationPageRouter';
 
 const OrganizationContext = createContext(null);
 
@@ -70,11 +71,14 @@ function Main() {
             <Route exact path={LOGIN}>
               <Login />
             </Route>
-            <ProtectedRoute path="/">
+            <Route exact path="/">
+              <Redirect to={DASHBOARD_SLUG} />
+            </Route>
+            <ProtectedRoute path={DASHBOARD_SLUG}>
               <MainHeader />
               <S.MainContent>
                 <Switch>
-                  <Route path={'/' + ORG_SLUG}>
+                  <Route path={ORG_SLUG}>
                     <Organization />
                   </Route>
                   <Route path={DASHBOARD_SLUG}>
@@ -83,6 +87,9 @@ function Main() {
                 </Switch>
               </S.MainContent>
             </ProtectedRoute>
+            <Route path="/:revProgramSlug/:pageSlug">
+              <LiveDonationPageRouter />
+            </Route>
           </Switch>
         </BrowserRouter>
       </S.Main>

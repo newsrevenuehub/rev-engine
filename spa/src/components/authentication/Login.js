@@ -31,8 +31,8 @@ function Login() {
 
   const routeUserAfterLogin = () => {
     const qs = queryString.parse(location.search);
-    if (qs.url && qs.url !== DASHBOARD_SLUG) history.push(qs.url);
-    else window.location = '/';
+    if (qs.url) history.push(qs.url);
+    else history.push(DASHBOARD_SLUG);
   };
 
   const handleLogin = async (e) => {

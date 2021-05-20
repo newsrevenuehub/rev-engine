@@ -188,28 +188,6 @@ class StripePaymentIntentTest(APITestCase):
         # ...with payment_state "processing"
         self.assertEqual(new_contribution.payment_state, Contribution.PROCESSING[0])
 
-    @responses.activate
-    def test_create_payment_intent_recurring_flagged(self):
-        data = self.data
-        data["payment_type"] = StripePaymentIntentSerializer.PAYMENT_TYPE_RECURRING[0]
-        pi = self._instantiate_pi_with_data(data=data)
-        pi.validate()
-        self._create_mock_ba_response(target_score=4)
-        pi.get_bad_actor_score()
-        # Recurring payments not yet implemented. Maybe these stubs are useful?
-        pass
-
-    @responses.activate
-    def test_create_payment_intent_recurring_not_flagged(self):
-        data = self.data
-        data["payment_type"] = StripePaymentIntentSerializer.PAYMENT_TYPE_RECURRING[0]
-        pi = self._instantiate_pi_with_data(data=data)
-        pi.validate()
-        self._create_mock_ba_response(target_score=2)
-        pi.get_bad_actor_score()
-        # Recurring payments not yet implemented. Maybe these stubs are useful?
-        pass
-
     @patch("stripe.PaymentIntent.cancel")
     @patch("stripe.PaymentIntent.capture")
     def test_complete_payment_reject(self, mock_pi_capture, mock_pi_cancel):

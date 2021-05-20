@@ -245,8 +245,6 @@ PHONENUMBER_DB_FORMAT = "NATIONAL"
 PHONENUMBER_DEFAULT_FORMAT = "NATIONAL"
 PHONENUMBER_DEFAULT_REGION = "US"
 
-DEFAULT_FROM_EMAIL = os.getenv("DEFAULT_FROM_EMAIL", "no-reply@rev-engine.caktus-built.com")
-
 # Stripe configs
 STRIPE_LIVE_SECRET_KEY = os.getenv("LIVE_HUB_STRIPE_API_SECRET_KEY", "")
 STRIPE_TEST_SECRET_KEY = os.getenv("TEST_HUB_STRIPE_API_SECRET_KEY", "")
@@ -266,3 +264,17 @@ STRIPE_WEBHOOK_EVENTS = [
 ]
 
 SITE_URL = os.getenv("SITE_URL", "")
+
+# Transactional Email
+EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
+EMAIL_HOST = "smtp.mailgun.org"
+EMAIL_PORT = 587
+EMAIL_HOST_USER = "postmaster@fundjournalism.org"
+EMAIL_HOST_PASSWORD = os.getenv("MAILGUN_SMTP_PASSWORD", "")
+EMAIL_USE_TLS = True
+
+ADMINS = [("nrh-team", "nrh-team@caktusgroup.com")]
+
+DEFAULT_FROM_EMAIL = os.getenv("DEFAULT_FROM_EMAIL", "no-reply@rev-engine.caktus-built.com")
+
+SEVER_EMAIL = os.getenv("SERVER_EMAIL", "nrh-errors@rev-engine.caktus-built.com")

@@ -46,28 +46,13 @@ def stripe_payment_intent(request):
     return Response(data={"clientSecret": stripe_payment_intent["client_secret"]}, status=status.HTTP_200_OK)
 
 
-def pre_populate_account_company_from_org(org):
-    return {
-        "name": org.name,
-        "address": {
-            "line1": org.org_addr1 if org.org_addr1 else "",
-            "line2": org.org_addr2 if org.org_addr2 else "",
-            "city": org.org_city if org.org_city else "",
-            "state": org.org_state if org.org_state else "",
-            "postal_code": org.org_zip if org.org_zip else "",
-        },
-    }
-
-
 @api_view(["POST"])
 def stripe_onboarding(request):
     organization = request.user.get_organization()
-    company = pre_populate_account_company_from_org(organization)
 
     try:
         account = stripe.Account.create(
             type="standard",
-            company=company,
             api_key=get_hub_stripe_api_key(),
         )
 

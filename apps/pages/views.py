@@ -10,7 +10,6 @@ from apps.organizations.models import RevenueProgram
 from apps.organizations.views import OrganizationLimitedListView
 from apps.pages import serializers
 from apps.pages.models import Benefit, BenefitTier, DonationPage, DonorBenefit, Style, Template
-from apps.pages.permissions import SameOrigin
 
 
 logger = logging.getLogger(__name__)
@@ -29,14 +28,14 @@ class PageViewSet(OrganizationLimitedListView, viewsets.ModelViewSet):
             else serializers.DonationPageListSerializer
         )
 
-    @action(detail=False, methods=["get"], permission_classes=[SameOrigin], authentication_classes=[])
+    @action(detail=False, methods=["get"], permission_classes=[], authentication_classes=[])
     def full_detail(self, request):
         """
         This is the action requested when a page needs to be viewed/edited.
         """
         revenue_program_slug = request.GET.get("revenue_program")
         page_slug = request.GET.get("page")
-        live = request.GET.get("live") == 1 or False
+        live = request.GET.get("live") == "1" or False
 
         if not revenue_program_slug:
             return Response({"detail": "Missing required parameter"}, status=status.HTTP_400_BAD_REQUEST)

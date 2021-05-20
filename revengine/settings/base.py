@@ -247,8 +247,6 @@ PHONENUMBER_DB_FORMAT = "NATIONAL"
 PHONENUMBER_DEFAULT_FORMAT = "NATIONAL"
 PHONENUMBER_DEFAULT_REGION = "US"
 
-DEFAULT_FROM_EMAIL = os.getenv("DEFAULT_FROM_EMAIL", "no-reply@rev-engine.caktus-built.com")
-
 # Stripe configs
 STRIPE_LIVE_SECRET_KEY = os.getenv("LIVE_HUB_STRIPE_API_SECRET_KEY", "")
 STRIPE_TEST_SECRET_KEY = os.getenv("TEST_HUB_STRIPE_API_SECRET_KEY", "")
@@ -281,3 +279,8 @@ BAD_ACTOR_FAIL_ABOVE = 3
 FLAGGED_PAYMENT_AUTO_ACCEPT_DELTA = timedelta(days=4)
 
 HEALTHCHECK_URL_AUTO_ACCEPT_FLAGGED_PAYMENTS = os.environ.get("HEALTHCHECK_URL_AUTO_ACCEPT_FLAGGED_PAYMENTS")
+
+# Transactional Email
+EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
+
+ADMINS = [("nrh-team", "nrh-team@caktusgroup.com")]

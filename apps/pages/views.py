@@ -21,9 +21,11 @@ class PageViewSet(OrganizationLimitedListView, viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated, UserBelongsToOrg]
 
     def get_serializer_class(self):
+        if self.action == "full_detail":
+            return serializers.DonationPageFullDetailSerializer
         return (
             serializers.DonationPageDetailSerializer
-            if (self.action == "retrieve" or self.action == "full_detail")
+            if self.action == "retrieve"
             else serializers.DonationPageListSerializer
         )
 
@@ -52,7 +54,7 @@ class PageViewSet(OrganizationLimitedListView, viewsets.ModelViewSet):
                 donation_page = rev_program.default_donation_page
             else:
                 # get page from rev program's set of pages, by page slug
-                donation_page = rev_program.donationpage_set.objects.get(slug=page_slug)
+                donation_page = rev_program.donationpage_set.get(slug=page_slug)
         except DonationPage.DoesNotExist:
             logger.warn(f'Request for non-existant page by slug "{page_slug}" ')
             return Response(
@@ -65,7 +67,7 @@ class PageViewSet(OrganizationLimitedListView, viewsets.ModelViewSet):
 
         serializer = self.get_serializer_class()
         page_serializer = serializer(instance=donation_page)
-        return Response(page_serializer.date, status=status.HTTP_200_OK)
+        return Response(page_serializer.data, status=status.HTTP_200_OK)
 
 
 class TemplateViewSet(OrganizationLimitedListView, viewsets.ModelViewSet):

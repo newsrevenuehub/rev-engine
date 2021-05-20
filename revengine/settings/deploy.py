@@ -17,7 +17,7 @@ ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS", "localhost").split(":")
 
 EMAIL_HOST = os.getenv("EMAIL_HOST", "localhost")
 EMAIL_HOST_USER = os.getenv("EMAIL_HOST_USER", "")
-EMAIL_HOST_PASSWORD = os.getenv("EMAIL_HOST_PASSWORD", "")
+EMAIL_HOST_PASSWORD = os.getenv("MAILGUN_SMTP_PASSWORD", "")
 EMAIL_USE_TLS = os.getenv("EMAIL_USE_TLS", False)
 EMAIL_USE_SSL = os.getenv("EMAIL_USE_SSL", False)
 # use TLS or SSL, not both:

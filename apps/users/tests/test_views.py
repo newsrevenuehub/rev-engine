@@ -4,6 +4,8 @@ from django.test import Client, TestCase
 from django.test.utils import override_settings
 from django.urls import reverse
 
+from rest_framework.test import APITestCase
+
 from apps.organizations.tests.factories import OrganizationFactory
 
 
@@ -61,3 +63,19 @@ class TestUserTypeSensitivePasswordReset(TestCase):
         self.assertEqual(reverse("password_reset_complete"), response.request["PATH_INFO"])
         self.user.refresh_from_db()
         self.assertTrue(self.user.check_password(self.new_password))
+
+
+class RetrieveUserTest(APITestCase):
+    def setUp(self):
+        self.url = reverse("user-retrieve")
+
+    def test_unauthenticated_user_denied(self):
+        response = self.client.get(self.url)
+        self.assertEqual(response.status_code, 401)
+
+    def test_authenticated_user_gets_self(self):
+        user = get_user_model().objects.create(email="testing@test.com", password="testing")
+        self.client.force_authenticate(user=user)
+        response = self.client.get(self.url)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data["id"], user.id)

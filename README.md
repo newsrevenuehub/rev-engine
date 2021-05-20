@@ -200,6 +200,9 @@ The react app will be available at `https://localhost:8001/`, and the django adm
 The Django admin is at `/admin/`.
 
 
+**11. Test Email Setup**
+To test production email settings `export TEST_EMAIL=True`, otherwise emails will use the console backend.
+
 **11. Run tests**
 
 revengine uses pytest as a test runner.

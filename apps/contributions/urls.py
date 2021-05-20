@@ -6,6 +6,8 @@ from apps.contributions import views
 
 urlpatterns = [
     path("stripe/payment-intent/", views.stripe_payment_intent, name="stripe-payment-intent"),
+    path("stripe/onboarding/", views.stripe_onboarding, name="stripe-onboarding"),
+    path("stripe/confirmation/", views.stripe_confirmation, name="stripe-confirmation"),
     re_path(
         settings.WEBHOOK_URL,
         views.process_stripe_webhook_view,

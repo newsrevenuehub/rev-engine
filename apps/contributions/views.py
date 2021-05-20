@@ -13,13 +13,6 @@ from apps.contributions.utils import get_hub_stripe_api_key
 from apps.contributions.webhooks import StripeWebhookProcessor
 
 
-# TEMP
-if settings.DEBUG:  # pragma: no cover
-    from faker import Faker
-
-    faker = Faker()
-
-
 logger = logging.getLogger(__name__)
 
 
@@ -29,15 +22,12 @@ def convert_money_value_to_stripe_payment_amount(amount):
 
 @api_view(["POST"])
 def stripe_payment_intent(request):
-    pi_data = request.data.copy()
+    pi_data = request.data
 
     # Grab required data from headers
     pi_data["referer"] = request.META.get("HTTP_REFERER")
-    # We may or may not wish to remove this? Sending many requests from 127.0.0.1 will get you flagged every time.
-    if settings.DEBUG:  # pragma: no cover
-        pi_data["ip"] = faker.ipv4()
-    else:
-        pi_data["ip"] = request.META.get("HTTP_X_FORWARDED_FOR")
+
+    pi_data["ip"] = request.META.get("HTTP_X_FORWARDED_FOR")
 
     # Convert the money formatted string incoming "10.00", to cents, 1000
     pi_data["amount"] = convert_money_value_to_stripe_payment_amount(request.data["amount"])

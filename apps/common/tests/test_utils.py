@@ -36,7 +36,7 @@ def setup_request(user, request):
     middleware.process_request(request)
     request.session.save()
 
-    # Annotate a request object with a messages
+    # Annotate a request object with a message
     middleware = MessageMiddleware()
     middleware.process_request(request)
     request.session.save()

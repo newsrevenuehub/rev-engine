@@ -32,7 +32,7 @@ class PaymentIntent:
         It is able to validate and process the data, creating new model instances both
         locally and with the payment provider.
 
-        A PaymentIntent instantiated with a `Contribution` is like a ModelSerilizer recieving an update
+        A PaymentIntent instantiated with a `Contribution` is like a ModelSerilizer receiving an update
         to an existing instance. Here we use this class to perform updates on existing local and payment-provider
         models.
         """
@@ -71,7 +71,7 @@ class PaymentIntent:
         """
         BadActor API returns an "overall_judgement", between 0-5.
         """
-        return self.bad_actor_score >= 3
+        return self.bad_actor_score >= settings.BAD_ACTOR_FAIL_ABOVE
 
     def get_organization(self):
         try:
@@ -104,7 +104,7 @@ class PaymentIntent:
             bad_actor_response=self.bad_actor_response,
         )
 
-    def create_payment_intent(self):
+    def ensure_bad_actor_score(self):
         if self.flagged is None:
             raise ValueError("PaymentIntent must call 'get_bad_actor_score' before creating payment intent")
 
@@ -117,6 +117,9 @@ class PaymentIntent:
         pp_used = self.contribution.payment_provider_used
         if pp_used == "Stripe":
             return StripePaymentIntent
+
+    def create_payment_intent(self):
+        raise NotImplementedError("Subclass of PaymentIntent must implement create_payment_intent.")
 
     def create_one_time_payment_intent(self):  # pragma: no cover
         raise NotImplementedError("Subclass of PaymentIntent must implement create_one_time_payment_intent.")
@@ -151,7 +154,7 @@ class StripePaymentIntent(PaymentIntent):
         pass
 
     def create_payment_intent(self):
-        super().create_payment_intent()
+        self.ensure_bad_actor_score()
         if self.validated_data["payment_type"] == StripePaymentIntentSerializer.PAYMENT_TYPE_SINGLE[0]:
             stripe_payment_intent = self.create_one_time_payment_intent()
         else:  # pragma: no cover

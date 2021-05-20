@@ -36,15 +36,18 @@ def auto_accept_flagged_contributions():
 
     successful_captures = 0
     failed_captures = 0
-    for contribution in contributions:
-        contrib_expry = contribution.flagged_date + settings.FLAGGED_PAYMENT_AUTO_ACCEPT_DELTA
-        if contrib_expry <= timezone.now():
-            payment_intent = contribution.get_payment_intent_instance()
-            try:
-                payment_intent.complete_payment(reject=False)
-                successful_captures += 1
-            except PaymentProviderError:
-                failed_captures += 1
+
+    now = timezone.now()
+    eligible_flagged_contributions = Contribution.objects.filter(
+        payment_state=Contribution.FLAGGED[0], flagged_date__lte=now - settings.FLAGGED_PAYMENT_AUTO_ACCEPT_DELTA
+    )
+    for contribution in eligible_flagged_contributions:
+        payment_intent = contribution.get_payment_intent_instance()
+        try:
+            payment_intent.complete_payment(reject=False)
+            successful_captures += 1
+        except PaymentProviderError:
+            failed_captures += 1
 
     logger.info(f"Successfully captured {successful_captures} previously-held payments.")
     if failed_captures:

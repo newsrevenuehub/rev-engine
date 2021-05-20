@@ -1,4 +1,5 @@
 import { useEffect, useCallback, useReducer } from 'react';
+import DonationPageGlobalStyles from 'styles/DonationPageGlobalStyles';
 import PropTypes from 'prop-types';
 
 // AJAX
@@ -7,6 +8,10 @@ import { LIVE_PAGE } from 'ajax/endpoints';
 
 // Sentry
 import * as Sentry from '@sentry/react';
+
+// Theme
+import { ThemeProvider } from 'styled-components';
+import { donationPageBase } from 'styles/themes';
 
 // Router
 import { useParams } from 'react-router-dom';
@@ -57,6 +62,7 @@ function DonationPageRouter({ live }) {
   const params = useParams();
 
   const fetchLivePageContent = useCallback(async () => {
+    dispatch({ type: PAGE_FETCH_START });
     const { revProgramSlug, pageSlug } = params;
     const requestParams = {
       revenue_program: revProgramSlug,
@@ -64,8 +70,8 @@ function DonationPageRouter({ live }) {
       live: live ? 1 : 0
     };
     try {
-      const response = await axios.get(LIVE_PAGE, { params: requestParams });
-      console.log('response!', response);
+      const { data } = await axios.get(LIVE_PAGE, { params: requestParams });
+      dispatch({ type: PAGE_FETCH_SUCCESS, payload: data });
     } catch (e) {
       dispatch({ type: PAGE_FETCH_ERROR });
     }
@@ -76,9 +82,12 @@ function DonationPageRouter({ live }) {
   }, [params, fetchLivePageContent]);
 
   return (
-    <Sentry.ErrorBoundary fallback={<LiveErrorFallback />}>
-      {loading ? <LiveLoading /> : error || !data ? <LivePage404 /> : <DonationPage live page={data} />}
-    </Sentry.ErrorBoundary>
+    <ThemeProvider theme={donationPageBase}>
+      <DonationPageGlobalStyles />
+      <Sentry.ErrorBoundary fallback={<LiveErrorFallback />}>
+        {loading ? <LiveLoading /> : error || !data ? <LivePage404 /> : <DonationPage live page={data} />}
+      </Sentry.ErrorBoundary>
+    </ThemeProvider>
   );
 }
 

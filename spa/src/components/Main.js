@@ -74,6 +74,7 @@ function Main() {
             <Route exact path="/">
               <Redirect to={DASHBOARD_SLUG} />
             </Route>
+
             <ProtectedRoute path={DASHBOARD_SLUG}>
               <MainHeader />
               <S.MainContent>
@@ -87,7 +88,11 @@ function Main() {
                 </Switch>
               </S.MainContent>
             </ProtectedRoute>
+
             <Route path="/:revProgramSlug/:pageSlug">
+              <DonationPageRouter live />
+            </Route>
+            <Route path="/:revProgramSlug">
               <DonationPageRouter live />
             </Route>
           </Switch>

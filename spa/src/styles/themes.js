@@ -1,4 +1,4 @@
-export const baseTheme = {
+export const adminTheme = {
   colors: {
     primary: '#0cc0dd',
     primaryLight: '#c7eff7',
@@ -39,6 +39,25 @@ export const baseTheme = {
     '0 14px 28px rgba(0,0,0,0.25), 0 10px 10px rgba(0,0,0,0.22)',
     '0 19px 38px rgba(0,0,0,0.30), 0 15px 12px rgba(0,0,0,0.22)'
   ],
+
+  breakpoints: {
+    phoneOnly: 'max-width: 599px',
+    tabletLandscapeDown: 'max-width: 900px'
+  },
+
+  maxWidths: {
+    sm: '300px',
+    md: '700px',
+    lg: '1000px'
+  }
+};
+
+export const donationPageBase = {
+  fonts: {
+    heading: 'Arial',
+    subheading: 'Arial',
+    body: 'Arial'
+  },
 
   breakpoints: {
     phoneOnly: 'max-width: 599px',

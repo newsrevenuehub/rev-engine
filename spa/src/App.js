@@ -1,9 +1,9 @@
-import GlobalStyles from 'styles/createGlobalStyles';
+import AdminGlobalStyles from 'styles/AdminGlobalStyles.js';
 
 // Styles
 import * as S from './App.styled';
 import { ThemeProvider } from 'styled-components';
-import { baseTheme } from 'styles/themes';
+import { adminTheme } from 'styles/themes';
 import 'semantic-ui-css/semantic.min.css';
 import SvgIcons from 'assets/icons/SvgIcons';
 
@@ -16,9 +16,9 @@ import Main from 'components/Main';
 
 function App() {
   return (
-    <ThemeProvider theme={baseTheme}>
+    <ThemeProvider theme={adminTheme}>
       <AlertProvider template={Alert} {...alertOptions}>
-        <GlobalStyles />
+        <AdminGlobalStyles />
         <SvgIcons />
         <S.App>
           <Main />

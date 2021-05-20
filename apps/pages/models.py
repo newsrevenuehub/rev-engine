@@ -100,6 +100,10 @@ class DonationPage(AbstractPage):
     def is_live(self):
         return bool(self.published_date and self.published_date <= timezone.now())
 
+    @property
+    def derived_slug(self):
+        return f"{self.revenue_program.slug}/{self.slug}"
+
     def save(self, *args, **kwargs):
         limit = self.has_page_limit()
         if limit and not self.id:

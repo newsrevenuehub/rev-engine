@@ -96,6 +96,12 @@ class PageViewSetTest(AbstractTestCase):
         # Should return expected pages
         self.assertEqual(set(expected_ids), set(returned_ids))
 
+    def test_anybody_can_access_page_detail(self):
+        pass
+
+    def test_only_owner_can_update_page(self):
+        pass
+
 
 class TemplateViewSetTest(AbstractTestCase):
     model = Template

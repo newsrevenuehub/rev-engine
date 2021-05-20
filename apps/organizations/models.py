@@ -95,6 +95,7 @@ class RevenueProgram(IndexedTimeStampedModel):
     name = models.CharField(max_length=255)
     slug = models.SlugField(max_length=100, blank=True, unique=True)
     organization = models.ForeignKey("organizations.Organization", on_delete=models.CASCADE)
+    default_donation_page = models.ForeignKey("pages.DonationPage", null=True, on_delete=models.SET_NULL)
 
     def __str__(self):
         return self.name

@@ -1,10 +1,19 @@
-from rest_framework import viewsets
+import logging
+
+from rest_framework import status, viewsets
+from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
 
 from apps.api.permissions import UserBelongsToOrg
+from apps.organizations.models import RevenueProgram
 from apps.organizations.views import OrganizationLimitedListView
 from apps.pages import serializers
 from apps.pages.models import Benefit, BenefitTier, DonationPage, DonorBenefit, Style, Template
+from apps.pages.permissions import SameOrigin
+
+
+logger = logging.getLogger(__name__)
 
 
 class PageViewSet(OrganizationLimitedListView, viewsets.ModelViewSet):
@@ -14,9 +23,49 @@ class PageViewSet(OrganizationLimitedListView, viewsets.ModelViewSet):
     def get_serializer_class(self):
         return (
             serializers.DonationPageDetailSerializer
-            if self.action == "retrieve"
+            if (self.action == "retrieve" or self.action == "full_detail")
             else serializers.DonationPageListSerializer
         )
+
+    @action(detail=False, methods=["get"], permission_classes=[SameOrigin], authentication_classes=[])
+    def full_detail(self, request):
+        """
+        This is the action requested when a page needs to be viewed/edited.
+        """
+        revenue_program_slug = request.GET.get("revenue_program")
+        page_slug = request.GET.get("page")
+        live = request.GET.get("live") == 1 or False
+
+        if not revenue_program_slug:
+            return Response({"detail": "Missing required parameter"}, status=status.HTTP_400_BAD_REQUEST)
+        try:
+            rev_program = RevenueProgram.objects.get(slug=revenue_program_slug)
+        except RevenueProgram.DoesNotExist:
+            logger.warn(f'Request for page with non-existant RevenueProgram by slug "{revenue_program_slug}" ')
+            return Response(
+                {"detail": "Could not find RevenueProgram from that slug"}, status=status.HTTP_404_NOT_FOUND
+            )
+
+        try:
+            if not page_slug:
+                # get rev program's default page
+                donation_page = rev_program.default_donation_page
+            else:
+                # get page from rev program's set of pages, by page slug
+                donation_page = rev_program.donationpage_set.objects.get(slug=page_slug)
+        except DonationPage.DoesNotExist:
+            logger.warn(f'Request for non-existant page by slug "{page_slug}" ')
+            return Response(
+                {"detail": "Could not find page matching those parameters"}, status=status.HTTP_404_NOT_FOUND
+            )
+
+        if live and not donation_page.is_live:
+            logger.warn(f'Request for un-published page "{donation_page}" ')
+            return Response({"detail": "This page has not been published"}, status=status.HTTP_404_NOT_FOUND)
+
+        serializer = self.get_serializer_class()
+        page_serializer = serializer(instance=donation_page)
+        return Response(page_serializer.date, status=status.HTTP_200_OK)
 
 
 class TemplateViewSet(OrganizationLimitedListView, viewsets.ModelViewSet):

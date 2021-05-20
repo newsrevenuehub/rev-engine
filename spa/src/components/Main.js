@@ -20,7 +20,7 @@ import MainHeader from 'components/header/MainHeader';
 import Dashboard from 'components/dashboard/Dashboard';
 import Organization from 'components/organization/Organization';
 import Login from 'components/authentication/Login';
-import LiveDonationPageRouter from 'components/donationPage/LiveDonationPageRouter';
+import DonationPageRouter from 'components/donationPage/DonationPageRouter';
 
 const OrganizationContext = createContext(null);
 
@@ -88,7 +88,7 @@ function Main() {
               </S.MainContent>
             </ProtectedRoute>
             <Route path="/:revProgramSlug/:pageSlug">
-              <LiveDonationPageRouter />
+              <DonationPageRouter live />
             </Route>
           </Switch>
         </BrowserRouter>

@@ -37,7 +37,7 @@ class AbstractTestCase(APITestCase):
             resource.organization.users.add(self.user)
 
     def login(self):
-        self.client.login(email=self.email, password=self.password)
+        self.client.force_authenticate(user=self.user)
 
     class Meta:
         abstract = True

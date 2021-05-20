@@ -1,0 +1,17 @@
+[run]
+source = apps
+omit =
+    */tests/*
+    */migrations/*
+    */settings*
+    */template*/*.py
+    */wsgi.py
+    */apps.py
+branch = True
+
+[report]
+show_missing = True
+skip_empty = True
+exclude_lines =
+    pragma: no cover
+    <!--no cover-->

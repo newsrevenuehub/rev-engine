@@ -19,7 +19,11 @@ class UserTypeSensitivePasswordResetConfirm(PasswordResetConfirmView):
             self.success_url = reverse_lazy("orgadmin_password_reset_complete")
         return super().form_valid(form)
 
-
+    def dispatch(self, *args, **kwargs):
+        response = super().dispatch(*args, **kwargs)
+        # Invalidate Authorization cookie in client browser by setting its value to gibersih and it's max_age to 0
+        response.set_cookie(settings.AUTH_COOKIE_KEY, "NoTaVaLiDtOkEn", max_age=0)
+        return response
 @api_view(["GET"])
 @permission_classes([IsAuthenticated])
 def retrieve_user(request):

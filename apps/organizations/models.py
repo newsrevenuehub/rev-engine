@@ -115,7 +115,7 @@ class RevenueProgram(IndexedTimeStampedModel):
             )
             self.slug = normalize_slug(slug=self.slug)
 
-        # Avoid state of a donation_page not be in the rev programs page set when being added as default page.
+        # Avoid state of a donation_page not being in the rev program's page set when being added as default page.
         if self.default_donation_page and self.default_donation_page not in self.donationpage_set.all():
             self.donationpage_set.add(self.default_donation_page)
 

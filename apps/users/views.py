@@ -1,3 +1,4 @@
+from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.contrib.auth.views import PasswordResetConfirmView
 from django.urls import reverse_lazy
@@ -12,8 +13,16 @@ from apps.users.serializers import UserSerializer
 
 user_model = get_user_model()
 
+INVALID_TOKEN = "NoTaVaLiDtOkEn"
 
-class UserTypeSensitivePasswordResetConfirm(PasswordResetConfirmView):
+
+class CustomPasswordResetConfirm(PasswordResetConfirmView):
+    """If user for whom reset is requested is an OrgAdmin, they get sent to SPA on...
+
+    success. Additionally, regardless of user, set the Authorization cookie value to
+    an invalid value to force a re-login in SPA.
+    """
+
     def form_valid(self, form):
         if self.user.organizations.exists():
             self.success_url = reverse_lazy("orgadmin_password_reset_complete")
@@ -21,9 +30,13 @@ class UserTypeSensitivePasswordResetConfirm(PasswordResetConfirmView):
 
     def dispatch(self, *args, **kwargs):
         response = super().dispatch(*args, **kwargs)
-        # Invalidate Authorization cookie in client browser by setting its value to gibersih and it's max_age to 0
-        response.set_cookie(settings.AUTH_COOKIE_KEY, "NoTaVaLiDtOkEn", max_age=0)
+        if self.request.method == "POST":
+            # Invalidate Authorization cookie in client browser by setting its value to gibbersih
+            # and its max_age to 0
+            response.set_cookie(settings.AUTH_COOKIE_KEY, "NoTaVaLiDtOkEn", max_age=0)
         return response
+
+
 @api_view(["GET"])
 @permission_classes([IsAuthenticated])
 def retrieve_user(request):

@@ -1,8 +1,13 @@
+import datetime
+
 from django.contrib.auth import get_user_model
+from django.utils import timezone
 
 from rest_framework.reverse import reverse
+from rest_framework.test import APITestCase
 
 from apps.common.tests.test_resources import AbstractTestCase
+from apps.organizations.tests.factories import RevenueProgramFactory
 from apps.pages.models import DonationPage, DonorBenefit, Template
 from apps.pages.tests.factories import DonationPageFactory, DonorBenefitFactory, TemplateFactory
 
@@ -17,6 +22,7 @@ class PageViewSetTest(AbstractTestCase):
     def setUp(self):
         super().setUp()
         self.create_resources()
+        self.rev_program = RevenueProgramFactory()
 
     def test_page_create_adds_page(self):
         self.assertEqual(len(self.resources), self.resource_count)
@@ -27,6 +33,7 @@ class PageViewSetTest(AbstractTestCase):
             "title": "New DonationPage",
             "slug": "new-page",
             "organization": self.orgs[0].pk,
+            "revenue_program": self.rev_program.pk,
         }
         response = self.client.post(list_url, page_data)
         self.assertEqual(response.status_code, 201)
@@ -95,6 +102,72 @@ class PageViewSetTest(AbstractTestCase):
         expected_ids = [p.id for p in user_pages]
         # Should return expected pages
         self.assertEqual(set(expected_ids), set(returned_ids))
+
+
+class DonationPageFullDetailTest(APITestCase):
+    def setUp(self):
+        now = timezone.now()
+        hour = datetime.timedelta(hours=1)
+        self.revenue_program_1 = RevenueProgramFactory(slug="revenue_program_1")
+        self.revenue_program_2 = RevenueProgramFactory(slug="revenue_program_2")
+        self.page_1 = DonationPageFactory(
+            published_date=now - hour, revenue_program=self.revenue_program_1, slug="page_1"
+        )
+        self.page_2 = DonationPageFactory(
+            published_date=now - hour, revenue_program=self.revenue_program_1, slug="page_2"
+        )
+        self.page_3 = DonationPageFactory(
+            published_date=now + hour, revenue_program=self.revenue_program_2, slug="page_3"
+        )
+        self.revenue_program_1.default_donation_page = self.page_2
+        self.revenue_program_1.save()
+
+    def _make_full_detail_request_with_params(self, rev_program=None, page=None, live=None):
+        url = reverse("donationpage-full-detail") + "?"
+        if rev_program:
+            url += f"revenue_program={rev_program}&"
+        if page:
+            url += f"page={page}&"
+        if live:
+            url += f"live={1 if live else 0}&"
+
+        return self.client.get(url)
+
+    def test_full_detail_rev_program_param_required(self):
+        response = self._make_full_detail_request_with_params(page="testing")
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.data["detail"], "Missing required parameter")
+
+    def test_full_detail_page_with_live_param_searches_live(self):
+        bad_response = self._make_full_detail_request_with_params(
+            rev_program=self.revenue_program_2.slug, page=self.page_3.slug, live=True
+        )
+        # Returns 404 if no live page exists
+        self.assertEqual(bad_response.status_code, 404)
+        self.assertEqual(bad_response.data["detail"], "This page has not been published")
+
+        good_response = self._make_full_detail_request_with_params(
+            rev_program=self.revenue_program_1.slug, page=self.page_1.slug, live=True
+        )
+        self.assertEqual(good_response.status_code, 200)
+        self.assertEqual(good_response.data["title"], self.page_1.title)
+
+    def test_full_detail_returns_default_rev_page(self):
+        response = self._make_full_detail_request_with_params(rev_program=self.revenue_program_1.slug)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data["id"], self.page_2.pk)
+
+    def test_full_detail_no_such_rev_program(self):
+        response = self._make_full_detail_request_with_params(rev_program="made-up-slug")
+        self.assertEqual(response.status_code, 404)
+        self.assertEqual(response.data["detail"], "Could not find RevenueProgram from that slug")
+
+    def test_full_detail_no_such_page(self):
+        response = self._make_full_detail_request_with_params(
+            rev_program=self.revenue_program_1.slug, page="made-up-page"
+        )
+        self.assertEqual(response.status_code, 404)
+        self.assertEqual(response.data["detail"], "Could not find page matching those parameters")
 
 
 class TemplateViewSetTest(AbstractTestCase):

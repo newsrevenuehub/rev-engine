@@ -1,21 +1,14 @@
-import { createContext, useContext, useState, useCallback } from 'react';
 import * as S from './Dashboard.styled';
 
 // Routing
-import { useRouteMatch } from 'react-router-dom';
-import ProtectedRoute from 'components/authentication/ProtectedRoute';
-import { DONATIONS_SLUG, CONTENT_SLUG } from 'routes';
+import { Route, Switch } from 'react-router-dom';
+import { DONATIONS_SLUG, CONTENT_SLUG, MAIN_CONTENT_SLUG } from 'routes';
 
-// AJAX
-import axios from 'ajax/axios';
-import { USER } from 'ajax/endpoints';
-import { LS_USER } from 'constants/authConstants';
-
-// Utils
-import getVerifiedPaymentProvider from 'utilities/getVerifiedPaymentProvider';
+// State
+import { useOrganizationContext } from 'components/Main';
+import { PP_STATES } from 'components/connect/BaseProviderInfo';
 
 // Children
-import DashboardHeader from 'components/dashboard/DashboardHeader';
 import DashboardSidebar from 'components/dashboard/DashboardSidebar';
 import Overview from 'components/overview/Overview';
 import Donations from 'components/donations/Donations';
@@ -23,75 +16,43 @@ import Content from 'components/content/Content';
 import GlobalLoading from 'elements/GlobalLoading';
 import ProviderConnect from 'components/connect/ProviderConnect';
 
-const OrganizationContext = createContext(null);
-
 function Dashboard() {
-  const match = useRouteMatch();
-  const [checkingProvider, setCheckingProvider] = useState(false);
-  const [user, setUser] = useState(JSON.parse(localStorage.getItem(LS_USER)));
-  const [defaultPaymentProvider, setDefaultPaymentProvider] = useState(getVerifiedPaymentProvider(user));
+  const { checkingProvider, paymentProviderConnectState } = useOrganizationContext();
 
-  const updateDefaultPaymentProvider = useCallback((updatedUser) => {
-    setCheckingProvider(true);
-    setDefaultPaymentProvider(getVerifiedPaymentProvider(updatedUser));
-    setCheckingProvider(false);
-  }, []);
+  const getShouldAllowDashboard = () => {
+    const isConnected =
+      paymentProviderConnectState === PP_STATES.CONNECTED || paymentProviderConnectState === PP_STATES.RESTRICTED;
+    return !checkingProvider && isConnected;
+  };
 
-  const updateUser = useCallback(
-    async (refetch = false) => {
-      let updatedUser = JSON.parse(localStorage.getItem(LS_USER));
-      if (refetch) {
-        try {
-          const { data } = await axios.get(USER);
-          updatedUser = data;
-        } catch (e) {
-          console.warn(e?.response);
-        }
-      }
-      localStorage.setItem(LS_USER, JSON.stringify(updatedUser));
-      updateDefaultPaymentProvider(updatedUser);
-      setUser(updatedUser);
-      return updatedUser;
-    },
-    [updateDefaultPaymentProvider]
-  );
+  const getShouldRequireConnect = () => {
+    const notConnected =
+      paymentProviderConnectState === PP_STATES.NOT_CONNECTED || paymentProviderConnectState === PP_STATES.FAILED;
+    return !checkingProvider && notConnected;
+  };
 
   return (
     <S.Dashboard data-testid="dashboard">
-      <OrganizationContext.Provider
-        value={{
-          user,
-          updateUser,
-          defaultPaymentProvider,
-          updateDefaultPaymentProvider
-        }}
-      >
-        <DashboardHeader />
-        <S.DashBody>
-          <DashboardSidebar />
-          <S.DashMain>
-            {checkingProvider && <GlobalLoading />}
-            {!checkingProvider && defaultPaymentProvider && (
-              <>
-                <ProtectedRoute exact path={match.url}>
-                  <Overview />
-                </ProtectedRoute>
-                <ProtectedRoute path={match.url + DONATIONS_SLUG}>
-                  <Donations />
-                </ProtectedRoute>
-                <ProtectedRoute path={match.url + CONTENT_SLUG}>
-                  <Content />
-                </ProtectedRoute>
-              </>
-            )}
-            {!checkingProvider && !defaultPaymentProvider && <ProviderConnect />}
-          </S.DashMain>
-        </S.DashBody>
-      </OrganizationContext.Provider>
+      <DashboardSidebar />
+      <S.DashboardMain>
+        {checkingProvider && <GlobalLoading />}
+        {getShouldAllowDashboard() && (
+          <Switch>
+            <Route path={DONATIONS_SLUG}>
+              <Donations />
+            </Route>
+            <Route path={CONTENT_SLUG}>
+              <Content />
+            </Route>
+            <Route path={MAIN_CONTENT_SLUG}>
+              <Overview />
+            </Route>
+          </Switch>
+        )}
+        {getShouldRequireConnect() && <ProviderConnect />}
+      </S.DashboardMain>
     </S.Dashboard>
   );
 }
-
-export const useOrganizationContext = () => useContext(OrganizationContext);
 
 export default Dashboard;

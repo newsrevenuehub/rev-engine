@@ -7,13 +7,14 @@ from django.urls import reverse
 from rest_framework.test import APITestCase
 
 from apps.organizations.tests.factories import OrganizationFactory
+from apps.users.views import INVALID_TOKEN
 
 
 user_model = get_user_model()
 
 
 @override_settings(EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend")
-class TestUserTypeSensitivePasswordReset(TestCase):
+class TestCustomPasswordResetConfirm(TestCase):
     def setUp(self):
         self.client = Client()
         self.mailbox = mail.outbox
@@ -42,6 +43,7 @@ class TestUserTypeSensitivePasswordReset(TestCase):
         response = self.client.post(url, data, follow=True)
         self.assertEqual(response.status_code, 200)
         response = self.client.post(response.request["PATH_INFO"], data, follow=True)
+        self.assertEqual(response.client.cookies["Authorization"].value, INVALID_TOKEN)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(reverse("orgadmin_password_reset_complete"), response.request["PATH_INFO"])
         self.user.refresh_from_db()
@@ -61,6 +63,7 @@ class TestUserTypeSensitivePasswordReset(TestCase):
         response = self.client.post(response.request["PATH_INFO"], data, follow=True)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(reverse("password_reset_complete"), response.request["PATH_INFO"])
+        self.assertEqual(response.client.cookies["Authorization"].value, INVALID_TOKEN)
         self.user.refresh_from_db()
         self.assertTrue(self.user.check_password(self.new_password))
 

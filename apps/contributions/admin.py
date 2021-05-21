@@ -123,7 +123,7 @@ class ContributionAdmin(admin.ModelAdmin):
     def _process_flagged_payment(self, request, queryset, reject=False):
         # Bail if any of the selected Contributions are not "FLAGGED"
         action = "reject" if reject else "accept"
-        if any(queryset.exclude(payment_state=Contribution.FLAGGED[0])):
+        if queryset.exclude(payment_state=Contribution.FLAGGED[0]).exists():
             self.message_user(
                 request,
                 f"Cannot {action} a non-flagged Contribution.",
@@ -140,7 +140,7 @@ class ContributionAdmin(admin.ModelAdmin):
             except PaymentProviderError:
                 failed.append(contribution)
 
-        if succeeded != 0:
+        if succeeded:
             self.message_user(
                 request,
                 f"Successfully {action}ed {succeeded} payments. Payment state may not immediately reflect change of payment status.",

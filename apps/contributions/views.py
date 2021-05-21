@@ -13,27 +13,17 @@ from apps.contributions.utils import get_hub_stripe_api_key
 from apps.contributions.webhooks import StripeWebhookProcessor
 
 
-# TEMP
-if settings.DEBUG:  # pragma: no cover
-    from faker import Faker
-
-    faker = Faker()
-
-
 logger = logging.getLogger(__name__)
 
 
 @api_view(["POST"])
 def stripe_payment_intent(request):
-    pi_data = request.data.copy()
+    pi_data = request.data
 
     # Grab required data from headers
     pi_data["referer"] = request.META.get("HTTP_REFERER")
-    # We may or may not wish to remove this? Sending many requests from 127.0.0.1 will get you flagged every time.
-    if settings.DEBUG:  # pragma: no cover
-        pi_data["ip"] = faker.ipv4()
-    else:
-        pi_data["ip"] = request.META.get("HTTP_X_FORWARDED_FOR")
+
+    pi_data["ip"] = request.META.get("HTTP_X_FORWARDED_FOR")
 
     # Instantiate StripePaymentIntent for validation and processing
     stripe_pi = StripePaymentIntent(data=pi_data)
@@ -49,28 +39,13 @@ def stripe_payment_intent(request):
     return Response(data={"clientSecret": stripe_payment_intent["client_secret"]}, status=status.HTTP_200_OK)
 
 
-def pre_populate_account_company_from_org(org):
-    return {
-        "name": org.name,
-        "address": {
-            "line1": org.org_addr1 if org.org_addr1 else "",
-            "line2": org.org_addr2 if org.org_addr2 else "",
-            "city": org.org_city if org.org_city else "",
-            "state": org.org_state if org.org_state else "",
-            "postal_code": org.org_zip if org.org_zip else "",
-        },
-    }
-
-
 @api_view(["POST"])
 def stripe_onboarding(request):
     organization = request.user.get_organization()
-    company = pre_populate_account_company_from_org(organization)
 
     try:
         account = stripe.Account.create(
             type="standard",
-            company=company,
             api_key=get_hub_stripe_api_key(),
         )
 

@@ -2,7 +2,7 @@ import * as S from './DashboardSidebar.styled';
 import { DONATIONS_SLUG, CONTENT_SLUG, DASHBOARD_SLUG } from 'routes';
 
 // Context
-import { useOrganizationContext } from './Dashboard';
+import { useOrganizationContext } from 'components/Main';
 
 function DashboardSidebar() {
   const { defaultPaymentProvider } = useOrganizationContext();

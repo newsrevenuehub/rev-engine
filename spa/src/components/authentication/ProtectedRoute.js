@@ -1,18 +1,14 @@
-import { Route } from 'react-router';
+import { Route, Redirect } from 'react-router';
 
-// Children
-import Login from 'components/authentication/Login';
+// Routes
+import { LOGIN } from 'routes';
 import isAuthenticated from 'utilities/isAuthenticated';
 
 function ProtectedRoute({ children, ...props }) {
   if (isAuthenticated()) {
     return <Route {...props}>{children}</Route>;
   }
-  return (
-    <Route {...props}>
-      <Login redirect />
-    </Route>
-  );
+  return <Redirect to={LOGIN} />;
 }
 
 export default ProtectedRoute;

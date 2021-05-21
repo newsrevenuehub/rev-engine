@@ -33,7 +33,7 @@ function Dashboard() {
 
   return (
     <S.Dashboard data-testid="dashboard">
-      <DashboardSidebar />
+      <DashboardSidebar shouldAllowDashboard={getShouldAllowDashboard()} />
       <S.DashboardMain>
         {checkingProvider && <GlobalLoading />}
         {getShouldAllowDashboard() && (

@@ -1,26 +1,21 @@
 import * as S from './DashboardSidebar.styled';
 import { DONATIONS_SLUG, CONTENT_SLUG, MAIN_CONTENT_SLUG } from 'routes';
 
-// Context
-import { useOrganizationContext } from 'components/Main';
-
-function DashboardSidebar() {
-  const { defaultPaymentProvider } = useOrganizationContext();
-
+function DashboardSidebar({ shouldAllowDashboard }) {
   const handleClick = (e) => {
-    if (!defaultPaymentProvider) e.preventDefault();
+    if (!shouldAllowDashboard) e.preventDefault();
   };
 
   return (
     <S.DashboardSidebar>
       <S.NavList>
-        <S.NavItem exact to={MAIN_CONTENT_SLUG} onClick={handleClick} disabled={!defaultPaymentProvider}>
+        <S.NavItem exact to={MAIN_CONTENT_SLUG} onClick={handleClick} disabled={!shouldAllowDashboard}>
           Overview
         </S.NavItem>
-        <S.NavItem to={DONATIONS_SLUG} onClick={handleClick} disabled={!defaultPaymentProvider}>
+        <S.NavItem to={DONATIONS_SLUG} onClick={handleClick} disabled={!shouldAllowDashboard}>
           Donations
         </S.NavItem>
-        <S.NavItem to={CONTENT_SLUG} onClick={handleClick} disabled={!defaultPaymentProvider}>
+        <S.NavItem to={CONTENT_SLUG} onClick={handleClick} disabled={!shouldAllowDashboard}>
           Content
         </S.NavItem>
       </S.NavList>

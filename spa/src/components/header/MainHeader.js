@@ -14,7 +14,7 @@ function MainHeader() {
   return (
     <S.MainHeader>
       <S.InnerContent>
-        {pathname === '/' + ORG_SLUG ? <BackButton /> : <div />}
+        {pathname === ORG_SLUG ? <BackButton /> : <div />}
         <OrganizationDropdown />
       </S.InnerContent>
     </S.MainHeader>

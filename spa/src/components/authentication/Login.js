@@ -10,7 +10,7 @@ import { TOKEN } from 'ajax/endpoints';
 
 // Routing
 import { useLocation, useHistory } from 'react-router-dom';
-import { DASHBOARD_SLUG } from 'routes';
+import { MAIN_CONTENT_SLUG } from 'routes';
 
 // State management
 import fetchReducer, { initialState, FETCH_START, FETCH_SUCCESS, FETCH_FAILURE } from 'state/fetch-reducer';
@@ -31,8 +31,8 @@ function Login() {
 
   const routeUserAfterLogin = () => {
     const qs = queryString.parse(location.search);
-    if (qs.url && qs.url !== DASHBOARD_SLUG) history.push(qs.url);
-    else window.location = '/';
+    if (qs.url) history.push(qs.url);
+    else history.push(MAIN_CONTENT_SLUG);
   };
 
   const handleLogin = async (e) => {

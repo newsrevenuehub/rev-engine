@@ -6,6 +6,6 @@ export const Organization = styled.div`
   flex: 1;
 `;
 export const OrganizationPanel = styled(DashboardSection)`
-  max-width: ${(p) => p.theme.maxWidths.lg};
+  max-width: ${(props) => props.theme.maxWidths.lg};
   margin: 0 auto;
 `;

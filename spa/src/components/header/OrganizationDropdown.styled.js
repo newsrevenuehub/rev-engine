@@ -36,9 +36,9 @@ export const Dropdown = styled(motion.div)`
   position: absolute;
   top: 100%;
   z-index: 2;
-  background: ${(p) => p.theme.colors.white};
-  box-shadow: ${(p) => p.theme.shadows[1]};
-  border-radius: ${(p) => p.theme.radii[0]};
+  background: ${(props) => props.theme.colors.white};
+  box-shadow: ${(props) => props.theme.shadows[1]};
+  border-radius: ${(props) => props.theme.radii[0]};
   min-width: 100%;
 `;
 
@@ -51,7 +51,7 @@ export const DropdownList = styled.ul`
 export const Item = styled.li`
   padding: 1rem 1.5rem;
   &:hover {
-    background: ${(p) => p.theme.colors.hover};
+    background: ${(props) => props.theme.colors.hover};
   }
   cursor: pointer;
 `;

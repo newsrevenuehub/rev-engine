@@ -1,12 +1,12 @@
 import * as S from './Dashboard.styled';
 
 // Routing
-import { Switch, useRouteMatch } from 'react-router-dom';
-import ProtectedRoute from 'components/authentication/ProtectedRoute';
-import { DONATIONS_SLUG, CONTENT_SLUG, DASHBOARD_SLUG } from 'routes';
+import { Route, Switch } from 'react-router-dom';
+import { DONATIONS_SLUG, CONTENT_SLUG, MAIN_CONTENT_SLUG } from 'routes';
 
 // State
 import { useOrganizationContext } from 'components/Main';
+import { PP_STATES } from 'components/connect/BaseProviderInfo';
 
 // Children
 import DashboardSidebar from 'components/dashboard/DashboardSidebar';
@@ -17,28 +17,39 @@ import GlobalLoading from 'elements/GlobalLoading';
 import ProviderConnect from 'components/connect/ProviderConnect';
 
 function Dashboard() {
-  const match = useRouteMatch();
-  const { checkingProvider, defaultPaymentProvider } = useOrganizationContext();
+  const { checkingProvider, paymentProviderConnectState } = useOrganizationContext();
+
+  const getShouldAllowDashboard = () => {
+    const isConnected =
+      paymentProviderConnectState === PP_STATES.CONNECTED || paymentProviderConnectState === PP_STATES.RESTRICTED;
+    return !checkingProvider && isConnected;
+  };
+
+  const getShouldRequireConnect = () => {
+    const notConnected =
+      paymentProviderConnectState === PP_STATES.NOT_CONNECTED || paymentProviderConnectState === PP_STATES.FAILED;
+    return !checkingProvider && notConnected;
+  };
 
   return (
     <S.Dashboard data-testid="dashboard">
       <DashboardSidebar />
       <S.DashboardMain>
         {checkingProvider && <GlobalLoading />}
-        {!checkingProvider && defaultPaymentProvider && (
+        {getShouldAllowDashboard() && (
           <Switch>
-            <ProtectedRoute path={match.url + DONATIONS_SLUG}>
+            <Route path={DONATIONS_SLUG}>
               <Donations />
-            </ProtectedRoute>
-            <ProtectedRoute path={match.url + CONTENT_SLUG}>
+            </Route>
+            <Route path={CONTENT_SLUG}>
               <Content />
-            </ProtectedRoute>
-            <ProtectedRoute path={DASHBOARD_SLUG}>
+            </Route>
+            <Route path={MAIN_CONTENT_SLUG}>
               <Overview />
-            </ProtectedRoute>
+            </Route>
           </Switch>
         )}
-        {!checkingProvider && !defaultPaymentProvider && <ProviderConnect />}
+        {getShouldRequireConnect() && <ProviderConnect />}
       </S.DashboardMain>
     </S.Dashboard>
   );

@@ -50,7 +50,7 @@ class OrganizationAdmin(admin.ModelAdmin):  # pragma: no cover
 
 @admin.register(RevenueProgram)
 class RevenueProgramAdmin(admin.ModelAdmin):  # pragma: no cover
-    fieldsets = (("RevenueProgram", {"fields": ("name", "slug", "organization")}),)
+    fieldsets = (("RevenueProgram", {"fields": ("name", "slug", "organization", "default_donation_page")}),)
 
     list_display = ["name", "slug"]
 

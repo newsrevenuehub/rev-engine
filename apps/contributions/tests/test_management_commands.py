@@ -5,7 +5,6 @@ from io import StringIO
 from unittest.mock import patch
 
 from django.core.management import call_command
-from django.core.management.base import CommandError
 from django.test import TestCase, override_settings
 from django.urls import reverse
 

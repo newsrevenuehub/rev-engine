@@ -8,7 +8,7 @@ export const baseInputStyles = css`
   display: block;
   width: 100%;
   border: none;
-  background: ${(p) => p.theme.colors.inputBackground};
+  background: ${(props) => props.theme.colors.inputBackground};
   border: 1px solid;
   border-color: ${(p) => getInputBorder(p)};
   padding: 1rem;
@@ -30,13 +30,13 @@ export const Wrapper = styled.div`
 
 export const FieldWrapper = styled.div`
   display: flex;
-  flex-direction: ${(p) => (p.inline ? 'row' : 'column')};
+  flex-direction: ${(props) => (props.inline ? 'row' : 'column')};
 `;
 
 export const Label = styled.label`
   display: block;
   font-weight: 700;
-  color: ${(p) => p.theme.colors.grey[2]};
+  color: ${(props) => props.theme.colors.grey[2]};
 `;
 
 export const Errors = styled(motion.ul)`

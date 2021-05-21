@@ -139,7 +139,7 @@ class StripePaymentIntentTest(APITestCase):
         pi.get_bad_actor_score()
 
         # Assert that this contribution is not there yet
-        self.assertFalse(Contribution.objects.filter(amount=1099).exists()
+        self.assertFalse(Contribution.objects.filter(amount=1099)).exists()
 
         pi.create_payment_intent()
         # Importantly, capture method should be "manual" here, for flagged contributions

@@ -40,3 +40,15 @@ class StripePaymentIntentSerializer(serializers.Serializer):
         PAYMENT_TYPE_RECURRING,
     )
     payment_type = serializers.ChoiceField(choices=PAYMENT_TYPE_CHOICES)
+
+    def convert_amount_to_cents(self, amount):
+        return int(float(amount) * 100)
+
+    def to_internal_value(self, data):
+        if data.get("amount"):
+            data["amount"] = self.convert_amount_to_cents(data["amount"])
+        return super().to_internal_value(data)
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["amount"].error_messages["invalid"] = "Enter a valid amount"

@@ -12,7 +12,7 @@ import { Provider as AlertProvider } from 'react-alert';
 import Alert, { alertOptions } from 'elements/alert/Alert';
 
 // Routing
-import Main from 'components/Main';
+import MainLayout from 'components/MainLayout';
 
 function App() {
   return (
@@ -21,7 +21,7 @@ function App() {
         <AdminGlobalStyles />
         <SvgIcons />
         <S.App>
-          <Main />
+          <MainLayout />
         </S.App>
       </AlertProvider>
     </ThemeProvider>

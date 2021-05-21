@@ -7,11 +7,10 @@ from rest_framework import status
 from rest_framework.decorators import api_view, authentication_classes, permission_classes
 from rest_framework.response import Response
 
-from apps.contributions.models import Contribution, Contributor
+from apps.contributions.models import Contribution
+from apps.contributions.payment_intent import StripePaymentIntent
 from apps.contributions.utils import get_hub_stripe_api_key
 from apps.contributions.webhooks import StripeWebhookProcessor
-from apps.organizations.models import Organization
-from apps.pages.models import DonationPage
 
 
 logger = logging.getLogger(__name__)
@@ -23,50 +22,28 @@ def convert_money_value_to_stripe_payment_amount(amount):
 
 @api_view(["POST"])
 def stripe_payment_intent(request):
-    try:
-        org_slug = request.data.get("org_slug")
-        page_slug = request.data.get("page_slug")
-        contributor_email = request.data.get("contributor_email")
-        organization = Organization.objects.get(slug=org_slug)
-        page = DonationPage.objects.get(slug=page_slug)
+    pi_data = request.data
 
-        api_key = get_hub_stripe_api_key(settings.STRIPE_LIVE_MODE)
+    # Grab required data from headers
+    pi_data["referer"] = request.META.get("HTTP_REFERER")
 
-        payment_amount = convert_money_value_to_stripe_payment_amount(request.data.get("payment_amount"))
+    pi_data["ip"] = request.META.get("HTTP_X_FORWARDED_FOR")
 
-        contributor, _ = Contributor.objects.get_or_create(email=contributor_email)
+    # Convert the money formatted string incoming "10.00", to cents, 1000
+    pi_data["amount"] = convert_money_value_to_stripe_payment_amount(request.data["amount"])
 
-        stripe_intent = stripe.PaymentIntent.create(
-            amount=payment_amount,
-            currency=settings.DEFAULT_CURRENCY,
-            payment_method_types=["card"],
-            api_key=api_key,
-            stripe_account=organization.stripe_account_id,
-        )
+    # Instantiate StripePaymentIntent for validation and processing
+    stripe_pi = StripePaymentIntent(data=pi_data)
 
-        Contribution.objects.create(
-            amount=payment_amount,
-            donation_page=page,
-            organization=organization,
-            contributor=contributor,
-            payment_provider_data=stripe_intent,
-            provider_reference_id=stripe_intent.id,
-            payment_state=Contribution.PROCESSING[0],
-        )
+    # Validate data expected by Stripe and BadActor API
+    stripe_pi.validate()
 
-        return Response(data={"clientSecret": stripe_intent["client_secret"]}, status=status.HTTP_200_OK)
+    # Performs request to BadActor API
+    stripe_pi.get_bad_actor_score()
 
-    except Organization.DoesNotExist:
-        return Response(
-            data={"org_slug": [f'Could not find Organization from slug "{org_slug}"']},
-            status=status.HTTP_400_BAD_REQUEST,
-        )
-
-    except DonationPage.DoesNotExist:
-        return Response(
-            data={"page_slug": [f'Could not find DonationPage from slug "{page_slug}"']},
-            status=status.HTTP_400_BAD_REQUEST,
-        )
+    # Create payment intent with Stripe, associated local models
+    stripe_payment_intent = stripe_pi.create_payment_intent()
+    return Response(data={"clientSecret": stripe_payment_intent["client_secret"]}, status=status.HTTP_200_OK)
 
 
 @api_view(["POST"])

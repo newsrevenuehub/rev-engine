@@ -30,7 +30,6 @@ class AbstractPage(IndexedTimeStampedModel):
     )
 
     # lookup with org.donationpages / org.templates
-    organization = models.ForeignKey("organizations.Organization", related_name="%(class)ss", on_delete=models.CASCADE)
     organization = models.ForeignKey("organizations.Organization", on_delete=models.CASCADE)
 
     @classmethod

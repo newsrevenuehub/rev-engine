@@ -48,12 +48,7 @@ class PageViewSet(OrganizationLimitedListView, viewsets.ModelViewSet):
             )
 
         try:
-            if not page_slug:
-                # get rev program's default page
-                donation_page = rev_program.default_donation_page
-            else:
-                # get page from rev program's set of pages, by page slug
-                donation_page = rev_program.donationpage_set.get(slug=page_slug)
+            donation_page = rev_program.donationpage_set.get(slug=page_slug) if page_slug else rev_program.default_donation_page
         except DonationPage.DoesNotExist:
             logger.warn(f'Request for non-existant page by slug "{page_slug}" ')
             return Response(

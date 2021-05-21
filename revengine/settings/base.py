@@ -284,3 +284,7 @@ HEALTHCHECK_URL_AUTO_ACCEPT_FLAGGED_PAYMENTS = os.environ.get("HEALTHCHECK_URL_A
 EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
 
 ADMINS = [("nrh-team", "nrh-team@caktusgroup.com")]
+
+# this is only used by HubAdmins, not OrgAdmins, but needs to be named generically as LOGIN_URL
+# so our implementation of password reset flow for HubAdmins works as expected
+LOGIN_URL = "/admin/"

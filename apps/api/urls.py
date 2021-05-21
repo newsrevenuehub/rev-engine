@@ -4,7 +4,7 @@ from apps.api.views import TokenObtainPairCookieView
 from apps.contributions.urls import urlpatterns as contributions_urlpatterns
 from apps.organizations.urls import urlpatterns as organizations_urlpatterns
 from apps.pages.urls import urlpatterns as pages_urlpatterns
-from apps.users.urls import urlpatterns as users_urlpatterns
+from apps.users.urls import api_urlpatterns as users_urlpatterns
 
 
 urlpatterns = [

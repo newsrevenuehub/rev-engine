@@ -16,6 +16,7 @@ import { MAIN_CONTENT_SLUG } from 'routes';
 import fetchReducer, { initialState, FETCH_START, FETCH_SUCCESS, FETCH_FAILURE } from 'state/fetch-reducer';
 
 import { handleLoginSuccess } from 'components/authentication/util';
+import { PASSWORD_RESET_URL } from 'constants/authConstants';
 
 // Elements
 import Input from 'elements/inputs/Input';
@@ -33,6 +34,11 @@ function Login() {
     const qs = queryString.parse(location.search);
     if (qs.url) history.push(qs.url);
     else history.push(MAIN_CONTENT_SLUG);
+  };
+
+  const handleForgotPassword = (e) => {
+    e.preventDefault();
+    history.push(PASSWORD_RESET_URL);
   };
 
   const handleLogin = async (e) => {
@@ -84,6 +90,9 @@ function Login() {
             <S.LoginButton onClick={handleLogin} disabled={loading} type="submit" data-testid="login-button">
               Sign in
             </S.LoginButton>
+            <S.ForgotPasswordLink onClick={handleForgotPassword} data-testid="forgot-password">
+              Forgot password
+            </S.ForgotPasswordLink>
           </S.LoginButtons>
         </S.LoginForm>
       </S.LoginCard>

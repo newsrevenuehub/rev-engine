@@ -1,14 +1,15 @@
-import { createContext, useContext, useState, useCallback } from 'react';
+import { useState, useContext, createContext, useCallback } from 'react';
+
 import * as S from './Main.styled';
 
-import { Route, BrowserRouter, Switch, Redirect } from 'react-router-dom';
-import ProtectedRoute from 'components/authentication/ProtectedRoute';
-
-// Slugs
-import { LOGIN, DASHBOARD_SLUG, ORG_SLUG } from 'routes';
+// Routing
+import { Switch, Route } from 'react-router-dom';
 
 // Utils
-import getVerifiedPaymentProvider from 'utilities/getVerifiedPaymentProvider';
+import getGlobalPaymentProviderStatus from 'utilities/getGlobalPaymentProviderStatus';
+
+// Slugs
+import { ORG_SLUG, MAIN_CONTENT_SLUG } from 'routes';
 
 // AJAX
 import axios from 'ajax/axios';
@@ -19,19 +20,17 @@ import { LS_USER } from 'constants/authConstants';
 import MainHeader from 'components/header/MainHeader';
 import Dashboard from 'components/dashboard/Dashboard';
 import Organization from 'components/organization/Organization';
-import Login from 'components/authentication/Login';
-import DonationPageRouter from 'components/donationPage/DonationPageRouter';
 
 const OrganizationContext = createContext(null);
 
 function Main() {
   const [checkingProvider, setCheckingProvider] = useState(false);
   const [user, setUser] = useState(JSON.parse(localStorage.getItem(LS_USER)));
-  const [defaultPaymentProvider, setDefaultPaymentProvider] = useState(getVerifiedPaymentProvider(user));
+  const [paymentProviderConnectState, setPaymentProviderConnectState] = useState(getGlobalPaymentProviderStatus(user));
 
   const updateDefaultPaymentProvider = useCallback((updatedUser) => {
     setCheckingProvider(true);
-    setDefaultPaymentProvider(getVerifiedPaymentProvider(updatedUser));
+    setPaymentProviderConnectState(getGlobalPaymentProviderStatus(updatedUser));
     setCheckingProvider(false);
   }, []);
 
@@ -59,44 +58,24 @@ function Main() {
       value={{
         user,
         updateUser,
-        defaultPaymentProvider,
+        paymentProviderConnectState,
         updateDefaultPaymentProvider,
         checkingProvider,
         setCheckingProvider
       }}
     >
       <S.Main>
-        <BrowserRouter>
+        <MainHeader />
+        <S.MainContent>
           <Switch>
-            <Route exact path={LOGIN}>
-              <Login />
+            <Route path={ORG_SLUG}>
+              <Organization />
             </Route>
-            <Route exact path="/">
-              <Redirect to={DASHBOARD_SLUG} />
-            </Route>
-
-            <ProtectedRoute path={DASHBOARD_SLUG}>
-              <MainHeader />
-              <S.MainContent>
-                <Switch>
-                  <Route path={ORG_SLUG}>
-                    <Organization />
-                  </Route>
-                  <Route path={DASHBOARD_SLUG}>
-                    <Dashboard />
-                  </Route>
-                </Switch>
-              </S.MainContent>
-            </ProtectedRoute>
-
-            <Route path="/:revProgramSlug/:pageSlug">
-              <DonationPageRouter live />
-            </Route>
-            <Route path="/:revProgramSlug">
-              <DonationPageRouter live />
+            <Route path={MAIN_CONTENT_SLUG}>
+              <Dashboard />
             </Route>
           </Switch>
-        </BrowserRouter>
+        </S.MainContent>
       </S.Main>
     </OrganizationContext.Provider>
   );

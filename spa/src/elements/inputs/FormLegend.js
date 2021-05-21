@@ -17,5 +17,5 @@ const FormLegendStyled = styled.div`
 `;
 
 const NameStyled = styled.h3`
-  border-bottom: 2px solid ${(p) => p.theme.colors.grey[1]};
+  border-bottom: 2px solid ${(props) => props.theme.colors.grey[1]};
 `;

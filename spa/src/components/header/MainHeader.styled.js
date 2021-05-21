@@ -11,7 +11,7 @@ export const InnerContent = styled.div`
   flex-direction: row;
   justify-content: space-between;
   align-items: center;
-  max-width: ${(p) => p.theme.maxWidths.lg};
+  max-width: ${(props) => props.theme.maxWidths.lg};
   margin: 0 auto;
   padding: 0 2rem;
 `;

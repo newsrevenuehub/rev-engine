@@ -42,7 +42,7 @@ function OrganizationDropdown() {
 
   const handleOrganizationClick = () => {
     toggleMenuOpen();
-    history.push(`/${ORG_SLUG}`);
+    history.push(ORG_SLUG);
   };
 
   const handleLogoutClick = () => {

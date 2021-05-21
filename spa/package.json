@@ -5,6 +5,7 @@
   "proxy": "http://localhost:8000/",
   "dependencies": {
     "@cypress/webpack-preprocessor": "^5.7.0",
+    "@sentry/react": "^6.4.1",
     "@stripe/react-stripe-js": "^1.4.0",
     "@stripe/stripe-js": "^1.14.0",
     "@testing-library/jest-dom": "^5.11.10",

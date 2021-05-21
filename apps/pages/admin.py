@@ -66,10 +66,27 @@ class DonationPageAdmin(DonationPageAdminAbstract):
     fieldsets = (
         (None, {"fields": ("revenue_program",)}),
         (None, {"fields": ("published_date",)}),
-        (None, {"fields": ("slug",)}),
+        (
+            None,
+            {
+                "fields": (
+                    "slug",
+                    "derived_slug",
+                )
+            },
+        ),
     ) + DonationPageAdminAbstract.fieldsets
 
-    list_display = ("name", "title", "organization", "revenue_program", "slug", "is_live", "published_date")
+    list_display = (
+        "name",
+        "title",
+        "organization",
+        "revenue_program",
+        "slug",
+        "derived_slug",
+        "is_live",
+        "published_date",
+    )
     list_filter = ("name", "title", "organization", "revenue_program", "slug", "published_date")
     order = (
         "published_date",
@@ -81,6 +98,8 @@ class DonationPageAdmin(DonationPageAdminAbstract):
         "organization__name",
         "revenue_program__name",
     )
+
+    readonly_fields = ["derived_slug"]
 
     actions = ("make_template",)
 

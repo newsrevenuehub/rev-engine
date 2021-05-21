@@ -42,7 +42,7 @@ class PageViewSet(OrganizationLimitedListView, viewsets.ModelViewSet):
         try:
             rev_program = RevenueProgram.objects.get(slug=revenue_program_slug)
         except RevenueProgram.DoesNotExist:
-            logger.warn(f'Request for page with non-existant RevenueProgram by slug "{revenue_program_slug}" ')
+            logger.warn(f'Request for page with non-existent RevenueProgram by slug "{revenue_program_slug}" ')
             return Response(
                 {"detail": "Could not find RevenueProgram from that slug"}, status=status.HTTP_404_NOT_FOUND
             )

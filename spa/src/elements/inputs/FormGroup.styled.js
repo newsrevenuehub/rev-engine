@@ -11,7 +11,7 @@ export const FormGroup = styled.fieldset`
     margin: 0 1rem;
   }
 
-  @media (${(p) => p.theme.breakpoints.tabletLandscapeDown}) {
+  @media (${(props) => props.theme.breakpoints.tabletLandscapeDown}) {
     flex-direction: column;
     & > * {
       flex: 1;

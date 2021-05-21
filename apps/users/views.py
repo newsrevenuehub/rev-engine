@@ -1,6 +1,11 @@
 from django.conf import settings
 from django.contrib.auth import get_user_model
-from django.contrib.auth.views import PasswordResetConfirmView
+from django.contrib.auth.views import (
+    PasswordResetCompleteView,
+    PasswordResetConfirmView,
+    PasswordResetDoneView,
+    PasswordResetView,
+)
 from django.urls import reverse_lazy
 
 from rest_framework import status
@@ -16,6 +21,26 @@ user_model = get_user_model()
 INVALID_TOKEN = "NoTaVaLiDtOkEn"
 
 
+class CustomPasswordResetView(PasswordResetView):
+    template_name = "orgadmin_password_reset_form.html"
+    email_template_name = "orgadmin_password_reset_email.html"
+    subject_template_name = "orgadmin_password_reset_subject.txt"
+    success_url = reverse_lazy("orgadmin_password_reset_done")
+    extra_email_context = dict(reset_confirm_view_name="orgadmin_password_reset_confirm")
+
+    def form_valid(self, form):
+        """If the user is a staff member, we'll add to email context, so email can contain
+        a link to admin p/w reset instead of org admin one.
+        """
+        if user_model.objects.filter(email=form["email"].value(), is_staff=True).exists():
+            self.extra_email_context["reset_confirm_view_name"] = "password_reset_confirm"
+        return super().form_valid(form)
+
+
+class CustomPasswordResetDoneView(PasswordResetDoneView):
+    template_name = "orgadmin_password_reset_done.html"
+
+
 class CustomPasswordResetConfirm(PasswordResetConfirmView):
     """If user for whom reset is requested is an OrgAdmin, they get sent to SPA on...
 
@@ -23,10 +48,8 @@ class CustomPasswordResetConfirm(PasswordResetConfirmView):
     an invalid value to force a re-login in SPA.
     """
 
-    def form_valid(self, form):
-        if self.user.organizations.exists():
-            self.success_url = reverse_lazy("orgadmin_password_reset_complete")
-        return super().form_valid(form)
+    template_name = "orgadmin_password_reset_confirm.html"
+    success_url = reverse_lazy("orgadmin_password_reset_complete")
 
     def dispatch(self, *args, **kwargs):
         response = super().dispatch(*args, **kwargs)
@@ -35,6 +58,10 @@ class CustomPasswordResetConfirm(PasswordResetConfirmView):
             # and its max_age to 0
             response.set_cookie(settings.AUTH_COOKIE_KEY, "NoTaVaLiDtOkEn", max_age=0)
         return response
+
+
+class CustomPasswordResetCompleteView(PasswordResetCompleteView):
+    template_name = "orgadmin_password_reset_complete.html"
 
 
 @api_view(["GET"])

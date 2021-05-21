@@ -3,27 +3,37 @@ from django.conf.urls import include
 from django.contrib import admin
 from django.contrib.auth import views as auth_views
 from django.urls import path, re_path
-from django.views.generic import TemplateView
 
 from apps.api.urls import urlpatterns as api_urlpatterns
-from apps.users.views import CustomPasswordResetConfirm
+from apps.users.urls import orgadmin_user_management_urls
 
 from .views import index
 
 
 urlpatterns = [
-    path("admin/", admin.site.urls),
-    path("api/", include(api_urlpatterns)),
-    path("reset-password/", auth_views.PasswordResetView.as_view(), name="password_reset"),
-    path("reset-password-sent/", auth_views.PasswordResetDoneView.as_view(), name="password_reset_done"),
-    path("reset/<uidb64>/<token>/", CustomPasswordResetConfirm.as_view(), name="password_reset_confirm"),
     path(
-        "reset-password/complete/",
-        TemplateView.as_view(template_name="orgadmin_password_reset_complete.html"),
-        name="orgadmin_password_reset_complete",
+        "admin/password_reset/",
+        auth_views.PasswordResetView.as_view(),
+        name="admin_password_reset",
     ),
-    # this is the default path using django.contrib.auth.urls
-    path("reset/done/", auth_views.PasswordResetCompleteView.as_view(), name="password_reset_complete"),
+    path(
+        "admin/password_reset/done/",
+        auth_views.PasswordResetDoneView.as_view(),
+        name="password_reset_done",
+    ),
+    path(
+        "reset/<uidb64>/<token>/",
+        auth_views.PasswordResetConfirmView.as_view(),
+        name="password_reset_confirm",
+    ),
+    path(
+        "reset/done/",
+        auth_views.PasswordResetCompleteView.as_view(),
+        name="password_reset_complete",
+    ),
+    path("admin/", admin.site.urls),
+    path("users/", include(orgadmin_user_management_urls)),
+    path("api/", include(api_urlpatterns)),
     # React SPA:
     path(r"", index, name="index"),  # for reverse()
     re_path(r"^(?:.*)/?$", index, name="index-others"),

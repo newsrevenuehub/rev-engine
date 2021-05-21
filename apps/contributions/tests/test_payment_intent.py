@@ -82,7 +82,7 @@ class StripePaymentIntentTest(APITestCase):
         self.assertIn("referer", v_error.exception.detail)
         self.assertEqual(str(v_error.exception.detail["referer"][0]), "This field is required.")
 
-    def test_calling_ba_before_validate_throws_error(self):
+    def test_calling_badactor_before_validate_throws_error(self):
         pi = self._instantiate_pi_with_data()
         with self.assertRaises(ValueError) as e:
             pi.get_bad_actor_score()
@@ -120,7 +120,7 @@ class StripePaymentIntentTest(APITestCase):
         pi.get_bad_actor_score()
         self.assertFalse(pi.flagged)
 
-    def test_calling_create_pi_before_ba_throws_error(self):
+    def test_create_payment_intent_when_get_bad_actor_score_not_called(self):
         pi = self._instantiate_pi_with_data()
         with self.assertRaises(ValueError) as e:
             pi.create_payment_intent()
@@ -130,13 +130,16 @@ class StripePaymentIntentTest(APITestCase):
 
     @responses.activate
     @patch("stripe.PaymentIntent.create", side_effect=MockPaymentIntent)
-    def test_create_payment_intent_single_flagged(self, mock_stripe_create_pi):
+    def test_create_payment_intent_when_single_flagged_contribution(self, mock_stripe_create_pi):
         data = self.data
         data["payment_type"] = StripePaymentIntentSerializer.PAYMENT_TYPE_SINGLE[0]
         pi = self._instantiate_pi_with_data(data=data)
         pi.validate()
         self._create_mock_ba_response(target_score=4)
         pi.get_bad_actor_score()
+
+        # Assert that this contribution is not there yet
+        self.assertFalse(Contribution.objects.filter(amount=1099).exists())
 
         pi.create_payment_intent()
         # Importantly, capture method should be "manual" here, for flagged contributions
@@ -164,6 +167,10 @@ class StripePaymentIntentTest(APITestCase):
         self._create_mock_ba_response(target_score=2)
         pi.get_bad_actor_score()
 
+        # Assert that this contribution is not there yet
+        new_contribution = Contribution.objects.filter(amount=1099).first()
+        self.assertIsNone(new_contribution)
+
         pi.create_payment_intent()
         # Importantly, capture method should be "automatic" here, for non-flagged contributions
         mock_stripe_create_pi.assert_called_once_with(
@@ -179,28 +186,6 @@ class StripePaymentIntentTest(APITestCase):
         self.assertIsNotNone(new_contribution)
         # ...with payment_state "processing"
         self.assertEqual(new_contribution.payment_state, Contribution.PROCESSING[0])
-
-    @responses.activate
-    def test_create_payment_intent_recurring_flagged(self):
-        data = self.data
-        data["payment_type"] = StripePaymentIntentSerializer.PAYMENT_TYPE_RECURRING[0]
-        pi = self._instantiate_pi_with_data(data=data)
-        pi.validate()
-        self._create_mock_ba_response(target_score=4)
-        pi.get_bad_actor_score()
-        # Recurring payments not yet implemented. Maybe these stubs are useful?
-        pass
-
-    @responses.activate
-    def test_create_payment_intent_recurring_not_flagged(self):
-        data = self.data
-        data["payment_type"] = StripePaymentIntentSerializer.PAYMENT_TYPE_RECURRING[0]
-        pi = self._instantiate_pi_with_data(data=data)
-        pi.validate()
-        self._create_mock_ba_response(target_score=2)
-        pi.get_bad_actor_score()
-        # Recurring payments not yet implemented. Maybe these stubs are useful?
-        pass
 
     @patch("stripe.PaymentIntent.cancel")
     @patch("stripe.PaymentIntent.capture")

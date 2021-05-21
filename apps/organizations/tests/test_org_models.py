@@ -39,9 +39,6 @@ class RevenueProgramTest(TestCase):
     def test_has_an_org(self):
         assert self.instance.organization
 
-    def test_slug_contains_org_slug(self):
-        self.assertIn(self.instance.organization.slug, self.instance.slug)
-
     def test_slug_immutable(self):
         self.instance.name = "A new Name"
         self.instance.save()

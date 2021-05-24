@@ -34,6 +34,7 @@ class PaymentIntent:
     validated_data = None
     flagged = None
     contribution = None
+    revenue_program = None
 
     def __init__(self, data=None, contribution=None):
         """
@@ -87,7 +88,12 @@ class PaymentIntent:
 
     def get_revenue_program(self):
         try:
-            return RevenueProgram.objects.get(slug=self.validated_data["revenue_program_slug"])
+            self.revenue_program = (
+                self.revenue_program
+                if self.revenue_program
+                else RevenueProgram.objects.get(slug=self.validated_data["revenue_program_slug"])
+            )
+            return self.revenue_program
         except RevenueProgram.DoesNotExist:
             raise PaymentIntentBadParamsError("PaymentIntent could not find a revenue program with slug provided")
 
@@ -96,8 +102,9 @@ class PaymentIntent:
         return revenue_program.organization
 
     def get_donation_page(self):
+        page_slug = self.validated_data.get("donation_page_slug")
         try:
-            return DonationPage.objects.get(slug=self.validated_data["donation_page_slug"])
+            return DonationPage.objects.get(slug=page_slug) if page_slug else self.revenue_program.default_donation_page
         except DonationPage.DoesNotExist:
             raise PaymentIntentBadParamsError("PaymentIntent could not find a donation page with slug provided")
 

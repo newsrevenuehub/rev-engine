@@ -34,7 +34,8 @@ function MainLayout() {
             <ProtectedRoute path={ROUTES.MAIN_CONTENT_SLUG} component={Main} />
 
             {/* Live Donation Pages are caught here */}
-            <Route path={ROUTES.THANK_YOU_SLUG} component={GenericThankYou} />
+            <Route path={ROUTES.DONATION_PAGE_SLUG + ROUTES.THANK_YOU_SLUG} component={GenericThankYou} />
+            <Route path={ROUTES.REV_PROGRAM_SLUG + ROUTES.THANK_YOU_SLUG} component={GenericThankYou} />
             <Route path={ROUTES.DONATION_PAGE_SLUG} component={DonationPageRouter} />
             <Route path={ROUTES.REV_PROGRAM_SLUG} component={DonationPageRouter} />
           </Switch>

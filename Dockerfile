@@ -89,7 +89,7 @@ ENV UWSGI_WORKERS=2 UWSGI_THREADS=4
 # uWSGI static file serving configuration (customize or comment out if not needed):
 ENV UWSGI_STATIC_MAP="/static/=/code/public/static/" UWSGI_STATIC_EXPIRES_URI="/static/.*\.[a-f0-9]{12,}\.(css|js|png|jpg|jpeg|gif|ico|woff|ttf|otf|svg|scss|map|txt) 315360000"
 
-#ENV GOOGLE_SA_CREDENTIALS="Test"
+# The variable that exists in heroku config vars
 ARG GS_SERVICE_ACCOUNT
 
 RUN ./google_sa.sh

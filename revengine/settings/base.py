@@ -79,9 +79,10 @@ TEMPLATES = [
 # REST_FRAMEWORK CONFIGURATION
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": [
-        "rest_framework.authentication.SessionAuthentication",
-        # SessionAuthentication needs to go before JWTHttpOnlyCookieAuthentication so that csrf is included in request
         "apps.api.authentication.JWTHttpOnlyCookieAuthentication",
+    ],
+    "DEFAUL_PERMISSION_CLASSES": [
+        "rest_framework.permissions.IsAuthenticated",
     ],
     # https://www.django-rest-framework.org/api-guide/pagination/#setting-the-pagination-style
     "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.LimitOffsetPagination",
@@ -93,6 +94,7 @@ SIMPLE_JWT = {  # https://django-rest-framework-simplejwt.readthedocs.io/en/late
     "REFRESH_TOKEN_LIFETIME": timedelta(weeks=2),
 }
 
+USER_TTL = timedelta(hours=24)
 
 AUTH_COOKIE_KEY = "Authorization"
 # Set SAMESITE setting below to 'Strict' to ask recieving browsers not to send this cookie

@@ -162,10 +162,7 @@ class StripePaymentIntent(PaymentIntent):
             stripe_account=org.stripe_account_id,
             capture_method=capture_method,
         )
-        print(org)
-        print(f"set stripe_Account to {org.stripe_account_id}")
-        print(f"capture_method: {capture_method}")
-        print(stripe_payment_intent)
+
         self.create_contribution(org, stripe_payment_intent)
         return stripe_payment_intent
 

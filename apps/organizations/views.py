@@ -58,6 +58,8 @@ class OrganizationViewSet(OrganizationLimitedListView, viewsets.ReadOnlyModelVie
         if not revenue_program_slug:
             return Response({"detail": ""}, status=status.HTTP_400_BAD_REQUEST)
 
+        # TODO: Is this org verified with its default payment provider?
+
         try:
             revenue_program = RevenueProgram.objects.get(slug=revenue_program_slug)
             return Response(

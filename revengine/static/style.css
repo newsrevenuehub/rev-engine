@@ -1,0 +1,44 @@
+:root {
+  --global--color-black: #111111;
+}
+
+body {
+  color: var(--global--color-black);
+  font-family: Courier New, monospace;
+  box-sizing: border-box;
+}
+
+h1,
+h2 {
+  margin-top: 20px;
+}
+
+p {
+  margin-top: 20px;
+  max-width: 650px;
+}
+
+input {
+  font: inherit;
+}
+
+button,
+input[type="submit"] {
+  padding: 3px;
+  cursor: pointer;
+  margin-top: 10px;
+}
+
+.content {
+  height: 100vh;
+  width: 100vw;
+  overflow: hidden;
+}
+
+.container {
+  padding-left: 20px;
+  padding-right: 20px;
+  max-width: 1000px;
+  margin-left: auto;
+  margin-right: auto;
+}

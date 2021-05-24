@@ -1,12 +1,15 @@
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import * as S from './TemporaryStripeCheckoutTest.styled';
 
+// Consts
 import { LS_USER } from 'constants/authConstants';
+
 //Deps
 import { CardElement, useStripe, useElements } from '@stripe/react-stripe-js';
 import { loadStripe } from '@stripe/stripe-js';
 import { Elements } from '@stripe/react-stripe-js';
 import { useAlert } from 'react-alert';
+import { useParams } from 'react-router-dom';
 
 // Ajax
 import axios from 'ajax/axios';
@@ -16,6 +19,7 @@ import { STRIPE_PAYMENT_INTENT } from 'ajax/endpoints';
 import Input from 'elements/inputs/Input';
 import TextArea from 'elements/inputs/TextArea';
 import Select from 'elements/inputs/Select';
+import Spinner from 'elements/Spinner';
 
 function TemporaryStripeCheckoutTest() {
   const stripeRef = useRef(
@@ -60,6 +64,7 @@ function CheckoutForm() {
   const alert = useAlert();
   const stripe = useStripe();
   const elements = useElements();
+  const params = useParams();
 
   const handleChange = async (event) => {
     // Listen for changes in the CardElement
@@ -70,13 +75,13 @@ function CheckoutForm() {
 
   const createPaymentIntent = useCallback(() => {
     return new Promise(async (resolve, reject) => {
-      const organization_slug = process.env.REACT_APP_TEST_ORG_SLUG || ''; // get me from url!
-      const donation_page_slug = process.env.REACT_APP_TEST_PAGE_SLUG || ''; // get me from url!
+      const revenue_program_slug = params.revProgramSlug;
+      const donation_page_slug = params.pageSlug;
       try {
         const paymentIntentBody = {
           payment_type: paymentType,
           amount,
-          organization_slug,
+          revenue_program_slug,
           donation_page_slug,
           email,
           given_name: givenName,
@@ -89,10 +94,16 @@ function CheckoutForm() {
         reject(e);
       }
     });
-  }, [paymentType, amount, email, givenName, familyName, reason]);
+  }, [paymentType, amount, email, givenName, familyName, reason, params]);
+
+  // useEffect(() => {
+  //   if (succeeded) {
+  //   }
+  // }, [succeeded]);
 
   const confirmPayment = useCallback(
     async (clientSecret) => {
+      console.log('that client secret being used...', clientSecret);
       const payload = await stripe.confirmCardPayment(clientSecret, {
         payment_method: {
           card: elements.getElement(CardElement)
@@ -100,6 +111,7 @@ function CheckoutForm() {
       });
       if (payload.error) {
         setErrors({ stripe: `Payment failed ${payload.error.message}` });
+        alert.error(`Payment failed ${payload.error.message}`);
         setProcessing(false);
       } else {
         setErrors({});
@@ -107,7 +119,7 @@ function CheckoutForm() {
         setSucceeded(true);
       }
     },
-    [elements, stripe]
+    [elements, stripe, alert]
   );
 
   const handleSubmit = async (e) => {
@@ -116,10 +128,14 @@ function CheckoutForm() {
     createPaymentIntent()
       .then(confirmPayment)
       .catch((e) => {
-        if (e?.response?.data) {
+        const response = e?.response?.data;
+        if (response) {
           setErrors({ ...errors, ...e.response.data });
+          if (response.detail) alert.error(response.detail);
+          setProcessing(false);
         } else {
           alert.error('There was an error processing your payment.');
+          setProcessing(false);
         }
       });
   };
@@ -165,7 +181,7 @@ function CheckoutForm() {
         <div style={{ marginBottom: '2rem' }} />
         <CardElement id="card-element" options={cardStyle} onChange={handleChange} />
         <button disabled={processing || disabled || succeeded} id="submit">
-          <span id="button-text">{processing ? <div className="spinner" id="spinner"></div> : 'Pay now'}</span>
+          <span id="button-text">{processing ? <Spinner /> : 'Pay now'}</span>
         </button>
         {/* Show any error that happens when processing the payment */}
         {errors.stripe && (

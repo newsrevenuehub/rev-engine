@@ -76,6 +76,9 @@ class Organization(IndexedTimeStampedModel):
         help_text='A fully verified Stripe Connected account should have "charges_enabled: true" in Stripe',
     )
 
+    default_thank_you_redirect = models.URLField(blank=True)
+    default_post_thank_you_redirect = models.URLField(blank=True)
+
     def __str__(self):
         return self.name
 

@@ -1,3 +1,4 @@
+import os
 from pathlib import Path
 
 import invoke
@@ -45,8 +46,8 @@ def build_image(c, tag=None, dockerfile=None):
     # build app image
     print(Style.DIM + f"Tagging {tag}")
     c.run(
-        f"docker build -t {c.config.app}:latest -t {c.config.app}:{tag} -f {dockerfile} .",
-        echo=True,
+        f"docker build -t {c.config.app}:latest -t {c.config.app}:{tag} -f {dockerfile} --build-arg GS_SERVICE_ACCOUNT='{os.getenv('GS_SERVICE_ACCOUNT', '')}' .",
+        echo=False,
     )
     c.config.tag = tag
 
@@ -57,6 +58,11 @@ def up(c):
     Usage: inv image.up
     """
     c.run("docker-compose up -d --remove-orphans")
+
+
+@invoke.task()
+def shell(c, name):
+    c.run(f"docker exec -ti {name} /bin/bash")
 
 
 @invoke.task()
@@ -72,6 +78,7 @@ image.add_task(generate_tag, "tag")
 image.add_task(build_image, "build")
 image.add_task(up, "up")
 image.add_task(stop, "stop")
+image.add_task(shell)
 
 
 ns = invoke.Collection()

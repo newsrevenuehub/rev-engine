@@ -1,33 +1,46 @@
-import { useState, useRef, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import * as S from './TemporaryStripeCheckoutTest.styled';
-
-// Consts
-import { LS_USER } from 'constants/authConstants';
 
 //Deps
 import { CardElement, useStripe, useElements } from '@stripe/react-stripe-js';
 import { loadStripe } from '@stripe/stripe-js';
 import { Elements } from '@stripe/react-stripe-js';
 import { useAlert } from 'react-alert';
-import { useParams } from 'react-router-dom';
+import { useHistory, useParams } from 'react-router-dom';
 
 // Ajax
 import axios from 'ajax/axios';
-import { STRIPE_PAYMENT_INTENT } from 'ajax/endpoints';
+import { ORG_STRIPE_ACCOUNT_ID, STRIPE_PAYMENT_INTENT } from 'ajax/endpoints';
 
 // Elements
 import Input from 'elements/inputs/Input';
 import TextArea from 'elements/inputs/TextArea';
 import Select from 'elements/inputs/Select';
 import Spinner from 'elements/Spinner';
+import GlobalLoading from 'elements/GlobalLoading';
+import { THANK_YOU_SLUG } from 'routes';
 
 function TemporaryStripeCheckoutTest() {
-  const stripeRef = useRef(
-    loadStripe(process.env.REACT_APP_HUB_STRIPE_API_PUB_KEY, {
-      stripeAccount: JSON.parse(localStorage.getItem(LS_USER)).organization.stripe_account_id
-    })
-  );
+  const [stripe, setStripe] = useState();
+  const params = useParams();
 
+  const setOrgStripeAccountId = useCallback(async () => {
+    const { data } = await axios.get(ORG_STRIPE_ACCOUNT_ID, {
+      params: { revenue_program_slug: params.revProgramSlug }
+    });
+    const stripeAccount = data.stripe_account_id;
+    setStripe(loadStripe(process.env.REACT_APP_HUB_STRIPE_API_PUB_KEY, { stripeAccount }));
+  }, [params.revProgramSlug]);
+
+  useEffect(() => {
+    setOrgStripeAccountId();
+  }, [setOrgStripeAccountId]);
+
+  if (stripe) return <StripeWrapper stripe={stripe} />;
+  return <GlobalLoading />;
+}
+
+function StripeWrapper({ stripe }) {
   return (
     <S.TemporaryStripeCheckoutTest>
       <p>
@@ -37,7 +50,7 @@ function TemporaryStripeCheckoutTest() {
         </a>
         .
       </p>
-      <Elements stripe={stripeRef.current}>
+      <Elements stripe={stripe}>
         <CheckoutForm />
       </Elements>
     </S.TemporaryStripeCheckoutTest>
@@ -47,6 +60,8 @@ function TemporaryStripeCheckoutTest() {
 export default TemporaryStripeCheckoutTest;
 
 function CheckoutForm() {
+  const { page } = { page: { thank_you_redirect: '' } }; // usePageContext()
+
   // Form state
   const [paymentType, setPaymentType] = useState('single');
   const [amount, setAmount] = useState('');
@@ -61,6 +76,7 @@ function CheckoutForm() {
   const [processing, setProcessing] = useState('');
   const [disabled, setDisabled] = useState(true);
 
+  const history = useHistory();
   const alert = useAlert();
   const stripe = useStripe();
   const elements = useElements();
@@ -96,14 +112,16 @@ function CheckoutForm() {
     });
   }, [paymentType, amount, email, givenName, familyName, reason, params]);
 
-  // useEffect(() => {
-  //   if (succeeded) {
-  //   }
-  // }, [succeeded]);
+  const handleSuccesfulPayment = useCallback(() => {
+    if (page.thank_you_redirect) {
+      window.location = page.thank_you_redirect;
+    } else {
+      history.push(THANK_YOU_SLUG);
+    }
+  }, [page, history]);
 
   const confirmPayment = useCallback(
     async (clientSecret) => {
-      console.log('that client secret being used...', clientSecret);
       const payload = await stripe.confirmCardPayment(clientSecret, {
         payment_method: {
           card: elements.getElement(CardElement)
@@ -117,9 +135,10 @@ function CheckoutForm() {
         setErrors({});
         setProcessing(false);
         setSucceeded(true);
+        handleSuccesfulPayment();
       }
     },
-    [elements, stripe, alert]
+    [elements, stripe, alert, handleSuccesfulPayment]
   );
 
   const handleSubmit = async (e) => {

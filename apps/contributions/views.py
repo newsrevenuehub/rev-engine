@@ -17,6 +17,8 @@ logger = logging.getLogger(__name__)
 
 
 @api_view(["POST"])
+@authentication_classes([])
+# @permission_classes([])
 def stripe_payment_intent(request):
     pi_data = request.data
 

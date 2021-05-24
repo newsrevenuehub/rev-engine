@@ -12,10 +12,14 @@ from stripe.stripe_object import StripeObject
 
 from apps.contributions.bad_actor import BadActorAPIError, make_bad_actor_request
 from apps.contributions.models import Contribution
-from apps.contributions.payment_intent import PaymentProviderError, StripePaymentIntent
+from apps.contributions.payment_intent import (
+    PaymentIntentBadParamsError,
+    PaymentProviderError,
+    StripePaymentIntent,
+)
 from apps.contributions.serializers import StripePaymentIntentSerializer
 from apps.contributions.tests.factories import ContributionFactory, ContributorFactory
-from apps.organizations.tests.factories import OrganizationFactory
+from apps.organizations.tests.factories import OrganizationFactory, RevenueProgramFactory
 from apps.pages.tests.factories import DonationPageFactory
 
 
@@ -40,6 +44,7 @@ fake_api_key = "TEST_stripe_secret_key"
 class StripePaymentIntentTest(APITestCase):
     def setUp(self):
         self.organization = OrganizationFactory()
+        self.revenue_program = RevenueProgramFactory(organization=self.organization)
         self.page = DonationPageFactory()
         self.contributor = ContributorFactory()
         self.amount = "10.99"
@@ -49,7 +54,7 @@ class StripePaymentIntentTest(APITestCase):
             "family_name": "Tester",
             "amount": self.amount,
             "reason": "Testing",
-            "organization_slug": self.organization.slug,
+            "revenue_program_slug": self.revenue_program.slug,
             "donation_page_slug": self.page.slug,
             "payment_type": StripePaymentIntentSerializer.PAYMENT_TYPE_SINGLE[0],
             "ip": faker.ipv4(),
@@ -239,21 +244,21 @@ class StripePaymentIntentTest(APITestCase):
         )
 
     def test_objects_do_not_exist(self):
-        with self.assertRaises(ValueError) as e1:
+        with self.assertRaises(PaymentIntentBadParamsError) as e1:
             data = self.data
-            data["organization_slug"] = "doesnt-exist"
+            data["revenue_program_slug"] = "doesnt-exist"
             pi = StripePaymentIntent(data=data)
             pi.validate()
             pi.get_organization()
 
-        with self.assertRaises(ValueError) as e2:
+        with self.assertRaises(PaymentIntentBadParamsError) as e2:
             data = self.data
             data["donation_page_slug"] = "doesnt-exist"
             pi = StripePaymentIntent(data=data)
             pi.validate()
             pi.get_donation_page()
 
-        self.assertEqual(str(e1.exception), "PaymentIntent could not find an organization with slug provided")
+        self.assertEqual(str(e1.exception), "PaymentIntent could not find a revenue program with slug provided")
         self.assertEqual(str(e2.exception), "PaymentIntent could not find a donation page with slug provided")
 
     @override_settings(BAD_ACTOR_API_KEY=None)

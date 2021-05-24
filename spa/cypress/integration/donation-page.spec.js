@@ -1,11 +1,13 @@
-import { LIVE_PAGE, STRIPE_CONFIRMATION } from 'ajax/endpoints';
+import { LIVE_PAGE, STRIPE_CONFIRMATION, ORG_STRIPE_ACCOUNT_ID } from 'ajax/endpoints';
 import { getEndpoint } from '../support/util';
 
 describe('Donation page', () => {
   before(() => {
+    cy.intercept('GET', ORG_STRIPE_ACCOUNT_ID, { fixture: 'stripe/org-account-id' });
     cy.intercept('POST', getEndpoint(STRIPE_CONFIRMATION), { fixture: 'stripe/confirm-connected' });
     cy.login('user/stripe-verified.json');
   });
+
   describe('Routing', () => {
     it('should send a request containing the correct query params', () => {
       const expectedRevProgramSlug = 'revenue-program-slug';

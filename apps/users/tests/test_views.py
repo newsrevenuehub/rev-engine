@@ -29,7 +29,7 @@ class TestCustomPasswordResetView(TestCase):
         self.org_admin_user.organizations.add(organization)
 
     def test_password_reset_email_when_is_staff(self):
-        self.client.post(reverse("orgadmin_password_reset"), {"email": self.staff_user.email})
+        self.client.post(reverse("orgadmin_password_reset"), {"email": self.org_admin_user.email})
         self.assertEqual(len(self.mailbox), 1)
         uidb64, token = self.mailbox[0].body.split("reset/")[1].split("/")[0:2]
         self.assertIn(
@@ -37,7 +37,7 @@ class TestCustomPasswordResetView(TestCase):
         )
 
     def test_password_reset_email_when_org_admin(self):
-        self.client.post(reverse("orgadmin_password_reset"), {"email": self.org_admin_user.email})
+        self.client.post(reverse("orgadmin_password_reset"), {"email": self.staff_user.email})
         self.assertEqual(len(self.mailbox), 1)
         uidb64, token = self.mailbox[0].body.split("reset/")[1].split("/")[0:2]
         self.assertIn(reverse("password_reset_confirm", kwargs=dict(uidb64=uidb64, token=token)), self.mailbox[0].body)

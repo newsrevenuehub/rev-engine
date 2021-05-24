@@ -8,7 +8,7 @@ export const Wrapper = styled.div`
 
 export const Label = styled.label`
   display: block;
-  color: ${(p) => p.theme.colors.grey[2]};
+  color: ${(props) => props.theme.colors.grey[2]};
 `;
 
 const getInputBorder = (props) => (props.hasErrors ? props.theme.colors.caution : props.theme.colors.black);
@@ -22,7 +22,7 @@ export const Input = styled.input`
   outline: none;
 
   &:focus {
-    border-color: ${(p) => p.theme.colors.primary};
+    border-color: ${(props) => props.theme.colors.primary};
   }
 `;
 
@@ -33,7 +33,7 @@ export const Errors = styled(motion.ul)`
 `;
 
 export const Error = styled(motion.li)`
-  color: ${(p) => p.theme.colors.caution};
+  color: ${(props) => props.theme.colors.caution};
 `;
 
 export const errorsAnimation = {

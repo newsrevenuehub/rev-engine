@@ -13,10 +13,11 @@ export const Login = styled.div`
 export const LoginCard = styled.section`
   margin-top: 10rem;
   padding: 4rem;
-  background: ${(p) => p.theme.colors.white};
+  background: ${(props) => props.theme.colors.white};
   max-width: 450px;
   width: 100%;
-  box-shadow: ${(p) => p.theme.shadows[0]};
+  box-shadow: ${(props) => props.theme.shadows[1]};
+  border-radius: ${(props) => props.theme.radii[1]};
 `;
 
 export const LoginForm = styled.form``;

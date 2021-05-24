@@ -28,7 +28,11 @@ class TestCustomPasswordResetView(TestCase):
         )
         self.org_admin_user.organizations.add(organization)
 
-    def test_password_reset_email_when_is_staff(self):
+    def test_password_reset_email_when_org_admin_user(self):
+        """When org admin trigger p/w reset via custom org admin password reset, the email is
+
+        with p/w reset instructions contains link to custom org admin pw reset flow
+        """
         self.client.post(reverse("orgadmin_password_reset"), {"email": self.org_admin_user.email})
         self.assertEqual(len(self.mailbox), 1)
         uidb64, token = self.mailbox[0].body.split("reset/")[1].split("/")[0:2]
@@ -36,7 +40,12 @@ class TestCustomPasswordResetView(TestCase):
             reverse("orgadmin_password_reset_confirm", kwargs=dict(uidb64=uidb64, token=token)), self.mailbox[0].body
         )
 
-    def test_password_reset_email_when_org_admin(self):
+    def test_password_reset_email_when_is_staff(self):
+        """
+        When staff trigger p/w reset via custom org admin password reset, the email is
+
+        with p/w reset instructions contains link to default pw reset flow
+        """
         self.client.post(reverse("orgadmin_password_reset"), {"email": self.staff_user.email})
         self.assertEqual(len(self.mailbox), 1)
         uidb64, token = self.mailbox[0].body.split("reset/")[1].split("/")[0:2]

@@ -25,7 +25,7 @@ class StripePaymentIntentSerializer(serializers.Serializer):
     reason = serializers.CharField(max_length=255)
 
     revenue_program_slug = serializers.SlugField()
-    donation_page_slug = serializers.SlugField()
+    donation_page_slug = serializers.SlugField(required=False)
 
     PAYMENT_TYPE_SINGLE = (
         "single",

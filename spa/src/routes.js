@@ -6,4 +6,4 @@ export const CONTENT_SLUG = MAIN_CONTENT_SLUG + '/content';
 
 export const REV_PROGRAM_SLUG = '/:revProgramSlug';
 export const DONATION_PAGE_SLUG = '/:revProgramSlug/:pageSlug';
-export const THANK_YOU_SLUG = '/:revProgramSlug/:pageSlug/thank-you';
+export const THANK_YOU_SLUG = '/thank-you';

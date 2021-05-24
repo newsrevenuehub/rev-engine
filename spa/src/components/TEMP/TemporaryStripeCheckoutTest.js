@@ -6,7 +6,7 @@ import { CardElement, useStripe, useElements } from '@stripe/react-stripe-js';
 import { loadStripe } from '@stripe/stripe-js';
 import { Elements } from '@stripe/react-stripe-js';
 import { useAlert } from 'react-alert';
-import { useHistory, useParams } from 'react-router-dom';
+import { useHistory, useParams, useRouteMatch } from 'react-router-dom';
 
 // Ajax
 import axios from 'ajax/axios';
@@ -80,7 +80,7 @@ function CheckoutForm() {
   const alert = useAlert();
   const stripe = useStripe();
   const elements = useElements();
-  const params = useParams();
+  const { url, params } = useRouteMatch();
 
   const handleChange = async (event) => {
     // Listen for changes in the CardElement
@@ -116,9 +116,9 @@ function CheckoutForm() {
     if (page.thank_you_redirect) {
       window.location = page.thank_you_redirect;
     } else {
-      history.push(THANK_YOU_SLUG);
+      history.push(url + THANK_YOU_SLUG);
     }
-  }, [page, history]);
+  }, [page, history, url]);
 
   const confirmPayment = useCallback(
     async (clientSecret) => {
@@ -148,6 +148,7 @@ function CheckoutForm() {
       .then(confirmPayment)
       .catch((e) => {
         const response = e?.response?.data;
+        debugger;
         if (response) {
           setErrors({ ...errors, ...e.response.data });
           if (response.detail) alert.error(response.detail);

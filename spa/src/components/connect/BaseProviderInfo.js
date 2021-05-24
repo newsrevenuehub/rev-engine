@@ -1,3 +1,4 @@
+import { ICONS } from 'assets/icons/SvgIcon';
 import * as S from './BaseProviderInfo.styled';
 
 export const PP_STATES = {
@@ -10,8 +11,8 @@ export const PP_STATES = {
 function BaseProviderInfo({ logo, providerStatus, children, ...props }) {
   // A provider is either connected, restricted, failed, or not connected
   const getIcon = () => {
-    if (providerStatus === PP_STATES.CONNECTED) return 'check-circle';
-    if (providerStatus === PP_STATES.RESTRICTED || providerStatus === PP_STATES.FAILED) return 'times-circle';
+    if (providerStatus === PP_STATES.CONNECTED) return ICONS.CHECK_CIRCLE;
+    if (providerStatus === PP_STATES.RESTRICTED || providerStatus === PP_STATES.FAILED) return ICONS.TIMES_CIRCLE;
   };
 
   return (

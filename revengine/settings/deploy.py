@@ -127,3 +127,7 @@ if SENTRY_DSN:
         integrations=[DjangoIntegration()],
         environment=ENVIRONMENT,
     )
+
+
+# BadActor API
+BAD_ACTOR_API_URL = "https://bad-actor.fundjournalism.org"

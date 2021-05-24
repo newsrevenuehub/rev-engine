@@ -5,9 +5,6 @@ export const Login = styled.div`
   display: flex;
   flex-direction: column;
   align-items: center;
-
-  background: rgb(12, 192, 221);
-  background: linear-gradient(135deg, rgba(12, 192, 221, 1) 20%, rgba(199, 239, 247, 1) 95%);
 `;
 
 export const LoginCard = styled.section`
@@ -38,4 +35,11 @@ export const LoginButton = styled.button`
   background: none;
   border: none;
   cursor: pointer;
+`;
+
+export const ForgotPasswordLink = styled.button`
+  background: none;
+  border: none;
+  cursor: pointer;
+  text-decoration: underline;
 `;

@@ -7,7 +7,7 @@ from apps.users.admin import UserOrganizationInline
 
 
 @admin.register(Organization)
-class OrganizationAdmin(admin.ModelAdmin):
+class OrganizationAdmin(admin.ModelAdmin):  # pragma: no cover
     organization_fieldset = (
         ("Organization", {"fields": ("name", "slug", "salesforce_id")}),
         (
@@ -49,8 +49,8 @@ class OrganizationAdmin(admin.ModelAdmin):
 
 
 @admin.register(RevenueProgram)
-class RevenueProgramAdmin(admin.ModelAdmin):
-    fieldsets = (("RevenueProgram", {"fields": ("name", "slug", "organization")}),)
+class RevenueProgramAdmin(admin.ModelAdmin):  # pragma: no cover
+    fieldsets = (("RevenueProgram", {"fields": ("name", "slug", "organization", "default_donation_page")}),)
 
     list_display = ["name", "slug"]
 
@@ -63,7 +63,7 @@ class RevenueProgramAdmin(admin.ModelAdmin):
 
 
 @admin.register(Plan)
-class PlanAdmin(admin.ModelAdmin):
+class PlanAdmin(admin.ModelAdmin):  # pragma: no cover
     fieldsets = (("Plan", {"fields": ("name", "features")}),)
 
     list_display = ["name"]
@@ -72,7 +72,7 @@ class PlanAdmin(admin.ModelAdmin):
 
 
 @admin.register(Feature)
-class FeatureAdmin(admin.ModelAdmin):
+class FeatureAdmin(admin.ModelAdmin):  # pragma: no cover
     fieldsets = (("Feature", {"fields": ("name", "feature_type", "feature_value", "description")}),)
 
     list_display = ["name", "feature_type", "feature_value"]

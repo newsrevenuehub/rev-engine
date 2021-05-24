@@ -10,16 +10,17 @@ import { TOKEN } from 'ajax/endpoints';
 
 // Routing
 import { useLocation, useHistory } from 'react-router-dom';
-import { DASHBOARD_SLUG } from 'routes';
+import { MAIN_CONTENT_SLUG } from 'routes';
 
 // State management
 import fetchReducer, { initialState, FETCH_START, FETCH_SUCCESS, FETCH_FAILURE } from 'state/fetch-reducer';
 
 import { handleLoginSuccess } from 'components/authentication/util';
+import { PASSWORD_RESET_URL } from 'constants/authConstants';
 
 // Elements
-import Input from 'components/elements/inputs/Input';
-import FormErrors from 'components/elements/inputs/FormErrors';
+import Input from 'elements/inputs/Input';
+import FormErrors from 'elements/inputs/FormErrors';
 
 function Login() {
   const location = useLocation();
@@ -31,8 +32,13 @@ function Login() {
 
   const routeUserAfterLogin = () => {
     const qs = queryString.parse(location.search);
-    if (qs.url && qs.url !== DASHBOARD_SLUG) history.push(qs.url);
-    else window.location = '/';
+    if (qs.url) history.push(qs.url);
+    else history.push(MAIN_CONTENT_SLUG);
+  };
+
+  const handleForgotPassword = (e) => {
+    e.preventDefault();
+    history.push(PASSWORD_RESET_URL);
   };
 
   const handleLogin = async (e) => {
@@ -64,7 +70,7 @@ function Login() {
               disabled={loading}
               label="email"
               type={Input.types.EMAIL}
-              data-testid="login-email"
+              testid="login-email"
             />
           </S.InputWrapper>
 
@@ -76,7 +82,7 @@ function Login() {
               disabled={loading}
               label="password"
               type={Input.types.PASSWORD}
-              data-testid="login-password"
+              testid="login-password"
             />
           </S.InputWrapper>
 
@@ -84,6 +90,9 @@ function Login() {
             <S.LoginButton onClick={handleLogin} disabled={loading} type="submit" data-testid="login-button">
               Sign in
             </S.LoginButton>
+            <S.ForgotPasswordLink onClick={handleForgotPassword} data-testid="forgot-password">
+              Forgot password
+            </S.ForgotPasswordLink>
           </S.LoginButtons>
         </S.LoginForm>
       </S.LoginCard>

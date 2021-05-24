@@ -1,27 +1,27 @@
-import GlobalStyles from 'styles/createGlobalStyles';
+import AdminGlobalStyles from 'styles/AdminGlobalStyles.js';
 
 // Styles
 import * as S from './App.styled';
 import { ThemeProvider } from 'styled-components';
-import { baseTheme } from 'styles/themes';
+import { adminTheme } from 'styles/themes';
 import 'semantic-ui-css/semantic.min.css';
 import SvgIcons from 'assets/icons/SvgIcons';
 
 // Deps
 import { Provider as AlertProvider } from 'react-alert';
-import Alert, { alertOptions } from 'elements/Alert/Alert';
+import Alert, { alertOptions } from 'elements/alert/Alert';
 
 // Routing
-import MainRoutes from 'components/MainRoutes';
+import MainLayout from 'components/MainLayout';
 
 function App() {
   return (
-    <ThemeProvider theme={baseTheme}>
+    <ThemeProvider theme={adminTheme}>
       <AlertProvider template={Alert} {...alertOptions}>
-        <GlobalStyles />
+        <AdminGlobalStyles />
         <SvgIcons />
         <S.App>
-          <MainRoutes />
+          <MainLayout />
         </S.App>
       </AlertProvider>
     </ThemeProvider>

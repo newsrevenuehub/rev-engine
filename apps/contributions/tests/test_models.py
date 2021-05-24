@@ -18,13 +18,6 @@ class ContributorTest(TestCase):
 
         self.assertEqual(self.contributor.contributions_count, target_count)
 
-    def test_quarantined_contributions_count(self):
-        target_count = 3
-        for _ in range(target_count):
-            contribution = Contribution.objects.create(amount=1000, contributor=self.contributor, is_quarantined=True)
-
-        self.assertEqual(self.contributor.quarantined_contributions_count, target_count)
-
     def test_most_recent_contribution(self):
         first_contribution = Contribution.objects.create(
             amount=1000, contributor=self.contributor, payment_state="paid"
@@ -54,5 +47,14 @@ class ContributionTest(TestCase):
     def test_str(self):
         self.assertEqual(
             str(self.contribution),
-            f"{self.contribution.formatted_amount}, {self.contribution.organization}",
+            f"{self.contribution.formatted_amount}, {self.contribution.created.strftime('%Y-%m-%d %H:%M:%S')}",
         )
+
+    def test_expanded_bad_actor_score(self):
+        # First, expanded_bad_actor_score should be none by default
+        score = 2
+        self.assertIsNone(self.contribution.expanded_bad_actor_score)
+        self.contribution.bad_actor_score = score
+        self.contribution.save()
+        self.contribution.refresh_from_db()
+        self.assertEqual(self.contribution.expanded_bad_actor_score, Contribution.BAD_ACTOR_SCORES[2][1])

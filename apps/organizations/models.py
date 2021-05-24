@@ -95,9 +95,17 @@ class RevenueProgram(IndexedTimeStampedModel):
     name = models.CharField(max_length=255)
     slug = models.SlugField(max_length=100, blank=True, unique=True)
     organization = models.ForeignKey("organizations.Organization", on_delete=models.CASCADE)
+    default_donation_page = models.ForeignKey("pages.DonationPage", null=True, blank=True, on_delete=models.SET_NULL)
 
     def __str__(self):
         return self.name
+
+    def clean(self):
+        # Avoid state of a rev program's default page not being one of "its pages"
+        if self.default_donation_page and self.default_donation_page.revenue_program != self:
+            raise ValidationError(
+                f'Donation page "{self.default_donation_page}" is already associated with a revenue program, "{self.default_donation_page.revenue_program}"'
+            )
 
     def save(self, *args, **kwargs):
         if not self.id:
@@ -105,5 +113,10 @@ class RevenueProgram(IndexedTimeStampedModel):
                 self.name,
                 self.slug,
             )
-            self.slug = normalize_slug(slug=f"{self.organization.slug}-{self.slug}")
+            self.slug = normalize_slug(slug=self.slug)
+
+        # Avoid state of a donation_page not being in the rev program's page set when being added as default page.
+        if self.default_donation_page and self.default_donation_page not in self.donationpage_set.all():
+            self.donationpage_set.add(self.default_donation_page)
+
         super().save(*args, **kwargs)

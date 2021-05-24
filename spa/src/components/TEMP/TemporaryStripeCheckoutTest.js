@@ -1,19 +1,25 @@
-import { useRef } from 'react';
+import { useState, useRef, useCallback } from 'react';
 import * as S from './TemporaryStripeCheckoutTest.styled';
 
+import { LS_USER } from 'constants/authConstants';
+//Deps
+import { CardElement, useStripe, useElements } from '@stripe/react-stripe-js';
 import { loadStripe } from '@stripe/stripe-js';
 import { Elements } from '@stripe/react-stripe-js';
+import { useAlert } from 'react-alert';
 
-import { LS_USER } from 'constants/authConstants';
-
-import { useState, useEffect } from 'react';
-import { CardElement, useStripe, useElements } from '@stripe/react-stripe-js';
+// Ajax
 import axios from 'ajax/axios';
 import { STRIPE_PAYMENT_INTENT } from 'ajax/endpoints';
 
+// Elements
+import Input from 'elements/inputs/Input';
+import TextArea from 'elements/inputs/TextArea';
+import Select from 'elements/inputs/Select';
+
 function TemporaryStripeCheckoutTest() {
   const stripeRef = useRef(
-    loadStripe('pk_test_31XWC5qhlLi9UkV1OzsI634W', {
+    loadStripe(process.env.REACT_APP_HUB_STRIPE_API_PUB_KEY, {
       stripeAccount: JSON.parse(localStorage.getItem(LS_USER)).organization.stripe_account_id
     })
   );
@@ -37,74 +43,134 @@ function TemporaryStripeCheckoutTest() {
 export default TemporaryStripeCheckoutTest;
 
 function CheckoutForm() {
+  // Form state
+  const [paymentType, setPaymentType] = useState('single');
+  const [amount, setAmount] = useState('');
+  const [email, setEmail] = useState('');
+  const [givenName, setGivenName] = useState('');
+  const [familyName, setFamilyName] = useState('');
+  const [reason, setReason] = useState('');
+
+  // Async state
   const [succeeded, setSucceeded] = useState(false);
-  const [error, setError] = useState(null);
+  const [errors, setErrors] = useState({});
   const [processing, setProcessing] = useState('');
   const [disabled, setDisabled] = useState(true);
-  const [clientSecret, setClientSecret] = useState('');
 
+  const alert = useAlert();
   const stripe = useStripe();
   const elements = useElements();
-
-  useEffect(() => {
-    // Create PaymentIntent as soon as the page loads
-    async function createPaymentIntent() {
-      const orgSlug = 'caktus-journalism'; // get me from url!
-      const pageSlug = 'donate-caktus'; // get me from url!
-      const contributorEmail = 'test_contributor@caktusgroup.com'; // get me from email input on page
-      try {
-        const paymentIntentBody = {
-          payment_amount: '20.00',
-          payment_frequency: 'single',
-          org_slug: orgSlug,
-          page_slug: pageSlug,
-          contributor_email: contributorEmail
-        };
-        const { data } = await axios.post(STRIPE_PAYMENT_INTENT, paymentIntentBody);
-        setClientSecret(data.clientSecret);
-      } catch (e) {
-        console.error(e.response);
-      }
-    }
-    createPaymentIntent();
-  }, []);
 
   const handleChange = async (event) => {
     // Listen for changes in the CardElement
     // and display any errors as the customer types their card details
     setDisabled(event.empty);
-    setError(event.error ? event.error.message : '');
+    setErrors({ ...errors, stripe: event.error ? event.error.message : '' });
   };
+
+  const createPaymentIntent = useCallback(() => {
+    return new Promise(async (resolve, reject) => {
+      const organization_slug = process.env.REACT_APP_TEST_ORG_SLUG || ''; // get me from url!
+      const donation_page_slug = process.env.REACT_APP_TEST_PAGE_SLUG || ''; // get me from url!
+      try {
+        const paymentIntentBody = {
+          payment_type: paymentType,
+          amount,
+          organization_slug,
+          donation_page_slug,
+          email,
+          given_name: givenName,
+          family_name: familyName,
+          reason
+        };
+        const { data } = await axios.post(STRIPE_PAYMENT_INTENT, paymentIntentBody);
+        resolve(data.clientSecret);
+      } catch (e) {
+        reject(e);
+      }
+    });
+  }, [paymentType, amount, email, givenName, familyName, reason]);
+
+  const confirmPayment = useCallback(
+    async (clientSecret) => {
+      const payload = await stripe.confirmCardPayment(clientSecret, {
+        payment_method: {
+          card: elements.getElement(CardElement)
+        }
+      });
+      if (payload.error) {
+        setErrors({ stripe: `Payment failed ${payload.error.message}` });
+        setProcessing(false);
+      } else {
+        setErrors({});
+        setProcessing(false);
+        setSucceeded(true);
+      }
+    },
+    [elements, stripe]
+  );
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setProcessing(true);
-    const payload = await stripe.confirmCardPayment(clientSecret, {
-      payment_method: {
-        card: elements.getElement(CardElement)
-      }
-    });
-    if (payload.error) {
-      setError(`Payment failed ${payload.error.message}`);
-      setProcessing(false);
-    } else {
-      setError(null);
-      setProcessing(false);
-      setSucceeded(true);
-    }
+    createPaymentIntent()
+      .then(confirmPayment)
+      .catch((e) => {
+        if (e?.response?.data) {
+          setErrors({ ...errors, ...e.response.data });
+        } else {
+          alert.error('There was an error processing your payment.');
+        }
+      });
   };
 
   return (
     <S.Wrapper>
       <S.FormStyled id="payment-form" onSubmit={handleSubmit}>
+        <Select
+          label="Payment type"
+          onChange={(e) => setPaymentType(e.target.value)}
+          items={['single', 'recurring']}
+          placeholder="Select a payment type"
+        />
+        <Input
+          type="number"
+          label="Amount"
+          value={amount}
+          onChange={(e) => setAmount(e.target.value)}
+          errors={errors.amount}
+        />
+        <Input
+          type="email"
+          label="Email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          errors={errors.email}
+        />
+        <Input
+          type="text"
+          label="Given name"
+          value={givenName}
+          onChange={(e) => setGivenName(e.target.value)}
+          errors={errors.givenName}
+        />
+        <Input
+          type="text"
+          label="Family name"
+          value={familyName}
+          onChange={(e) => setFamilyName(e.target.value)}
+          errors={errors.familyName}
+        />
+        <TextArea value={reason} onChange={(e) => setReason(e.target.value)} label="Reason for donation" />
+        <div style={{ marginBottom: '2rem' }} />
         <CardElement id="card-element" options={cardStyle} onChange={handleChange} />
         <button disabled={processing || disabled || succeeded} id="submit">
           <span id="button-text">{processing ? <div className="spinner" id="spinner"></div> : 'Pay now'}</span>
         </button>
         {/* Show any error that happens when processing the payment */}
-        {error && (
+        {errors.stripe && (
           <div className="card-error" role="alert">
-            {error}
+            {errors.stripe}
           </div>
         )}
         {/* Show a success message upon completion */}

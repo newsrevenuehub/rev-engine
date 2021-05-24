@@ -1,19 +1,22 @@
-import json
 from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
 from django.urls import reverse
 
-from rest_framework.test import APITestCase
+from faker import Faker
+from rest_framework.test import APIRequestFactory, APITestCase
 from stripe.error import StripeError
 from stripe.stripe_object import StripeObject
 
 from apps.contributions.models import Contribution, Contributor
 from apps.contributions.tests.factories import ContributorFactory
-from apps.contributions.views import convert_money_value_to_stripe_payment_amount
+from apps.contributions.views import stripe_payment_intent
 from apps.organizations.models import Organization
 from apps.organizations.tests.factories import OrganizationFactory
 from apps.pages.tests.factories import DonationPageFactory
+
+
+faker = Faker()
 
 
 class MockPaymentIntent(StripeObject):
@@ -32,60 +35,50 @@ class CreateStripePaymentIntentViewTest(APITestCase):
         self.url = reverse("stripe-payment-intent")
         self.payment_amount = "10.00"
 
-    def _post_valid_payment_intent(self, contributor_email=None, org_slug=None, page_slug=None):
-        return self.client.post(
+        self.ip = faker.ipv4()
+        self.referer = faker.url()
+
+    def _create_request(self, email=None, org_slug=None, page_slug=None):
+        factory = APIRequestFactory()
+        request = factory.post(
             self.url,
             {
-                "payment_amount": self.payment_amount,
-                "org_slug": org_slug if org_slug else self.organization.slug,
-                "page_slug": page_slug if page_slug else self.page.slug,
-                "contributor_email": contributor_email if contributor_email else self.contributor.email,
+                "email": email,
+                "given_name": "Test",
+                "family_name": "Tester",
+                "amount": self.payment_amount,
+                "reason": "Testing",
+                "organization_slug": org_slug if org_slug else self.organization.slug,
+                "donation_page_slug": page_slug if page_slug else self.page.slug,
+                "payment_type": "single",
             },
+            format="json",
         )
 
-    def test_new_contributor_created(self, *args):
+        request.META["HTTP_REFERER"] = self.referer
+        request.META["HTTP_X_FORWARDED_FOR"] = self.ip
+
+        return request
+
+    def _post_valid_payment_intent(self, *args, **kwargs):
+        return stripe_payment_intent(self._create_request(*args, **kwargs))
+
+    def test_new_contributor_created(self, mock_create_intent):
         new_contributor_email = "new_contributor@test.com"
-        response = self._post_valid_payment_intent(contributor_email=new_contributor_email)
+        response = self._post_valid_payment_intent(email=new_contributor_email)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data["clientSecret"], "secret123")
         new_contributer = Contributor.objects.get(email=new_contributor_email)
         self.assertIsNotNone(new_contributer)
         self.assertTrue(Contribution.objects.filter(contributor=new_contributer).exists())
+        mock_create_intent.assert_called_once()
 
-    def test_existing_contributor_on_new_contribution(self, *args):
-        response = self._post_valid_payment_intent()
-        self.assertEqual(response.status_code, 200)
-        self.assertTrue(Contribution.objects.filter(contributor=self.contributor).exists())
-
-    def test_default_payment_state(self, *args):
-        response = self._post_valid_payment_intent()
-        contribution = Contribution.objects.first()
-        self.assertEqual(contribution.payment_state, Contribution.PROCESSING[0])
-
-    def test_payment_amount(self, *args):
-        response = self._post_valid_payment_intent()
-        contribution = Contribution.objects.first()
-        self.assertEqual(convert_money_value_to_stripe_payment_amount(self.payment_amount), contribution.amount)
-
-    def test_correct_organization_is_associated(self, *args):
-        response = self._post_valid_payment_intent()
-        contribution = Contribution.objects.first()
-        self.assertEqual(contribution.organization, self.organization)
-
-    def test_correct_donationpage_is_associated(self, *args):
-        response = self._post_valid_payment_intent()
-        contribution = Contribution.objects.first()
-        self.assertEqual(contribution.donation_page, self.page)
-
-    def test_no_org_found(self, *args):
-        response = self._post_valid_payment_intent(org_slug="bad_slug")
+    def test_payment_intent_serializer_validates(self, *args):
+        # Email is required
+        response = self._post_valid_payment_intent(email=None)
         self.assertEqual(response.status_code, 400)
-        self.assertEqual(response.data["org_slug"][0], 'Could not find Organization from slug "bad_slug"')
-
-    def test_no_page_found(self, *args):
-        response = self._post_valid_payment_intent(page_slug="bad_slug")
-        self.assertEqual(response.status_code, 400)
-        self.assertEqual(response.data["page_slug"][0], 'Could not find DonationPage from slug "bad_slug"')
+        self.assertIn("email", response.data)
+        self.assertEqual(str(response.data["email"][0]), "This field may not be null.")
 
 
 TEST_STRIPE_ACCOUNT_ID = "testing_123"

@@ -8,7 +8,7 @@ from rest_framework.decorators import api_view, authentication_classes, permissi
 from rest_framework.response import Response
 
 from apps.contributions.models import Contribution
-from apps.contributions.payment_intent import StripePaymentIntent
+from apps.contributions.payment_intent import PaymentIntentBadParamsError, StripePaymentIntent
 from apps.contributions.utils import get_hub_stripe_api_key
 from apps.contributions.webhooks import StripeWebhookProcessor
 
@@ -34,8 +34,12 @@ def stripe_payment_intent(request):
     # Performs request to BadActor API
     stripe_pi.get_bad_actor_score()
 
-    # Create payment intent with Stripe, associated local models
-    stripe_payment_intent = stripe_pi.create_payment_intent()
+    try:
+        # Create payment intent with Stripe, associated local models
+        stripe_payment_intent = stripe_pi.create_payment_intent()
+    except PaymentIntentBadParamsError:
+        return Response({"detail": "There was an error processing your payment."}, status=status.HTTP_400_BAD_REQUEST)
+
     return Response(data={"clientSecret": stripe_payment_intent["client_secret"]}, status=status.HTTP_200_OK)
 
 

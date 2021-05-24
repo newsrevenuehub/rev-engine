@@ -24,7 +24,7 @@ class TestCustomPasswordResetView(TestCase):
         )
         organization = OrganizationFactory()
         self.org_admin_user = user_model.objects.create_user(
-            email="test@test.com", password=secure_password, is_staff=False
+            email="orgadmin@test.com", password=secure_password, is_staff=False
         )
         self.org_admin_user.organizations.add(organization)
 

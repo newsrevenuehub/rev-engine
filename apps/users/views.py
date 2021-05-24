@@ -26,15 +26,6 @@ class CustomPasswordResetView(PasswordResetView):
     email_template_name = "orgadmin_password_reset_email.html"
     subject_template_name = "orgadmin_password_reset_subject.txt"
     success_url = reverse_lazy("orgadmin_password_reset_done")
-    extra_email_context = dict(reset_confirm_view_name="orgadmin_password_reset_confirm")
-
-    def form_valid(self, form):
-        """If the user is a staff member, we'll add to email context, so email can contain
-        a link to admin p/w reset instead of org admin one.
-        """
-        if user_model.objects.filter(email=form["email"].value(), is_staff=True).exists():
-            self.extra_email_context["reset_confirm_view_name"] = "password_reset_confirm"
-        return super().form_valid(form)
 
 
 class CustomPasswordResetDoneView(PasswordResetDoneView):

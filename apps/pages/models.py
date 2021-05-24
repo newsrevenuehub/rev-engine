@@ -30,7 +30,6 @@ class AbstractPage(IndexedTimeStampedModel):
     )
 
     # lookup with org.donationpages / org.templates
-    organization = models.ForeignKey("organizations.Organization", related_name="%(class)ss", on_delete=models.CASCADE)
     organization = models.ForeignKey("organizations.Organization", on_delete=models.CASCADE)
 
     @classmethod
@@ -79,6 +78,12 @@ class DonationPage(AbstractPage):
     )
     published_date = models.DateTimeField(null=True, blank=True)
 
+    class Meta:
+        unique_together = (
+            "slug",
+            "revenue_program",
+        )
+
     def __str__(self):
         return f"{self.title} - {self.slug}"
 
@@ -94,6 +99,10 @@ class DonationPage(AbstractPage):
     @property
     def is_live(self):
         return bool(self.published_date and self.published_date <= timezone.now())
+
+    @property
+    def derived_slug(self):
+        return f"{self.revenue_program.slug}/{self.slug}"
 
     def save(self, *args, **kwargs):
         limit = self.has_page_limit()
@@ -122,12 +131,6 @@ class DonationPage(AbstractPage):
         instance = Template.objects.filter(name=template.name).first()
 
         return (instance, created)
-
-    class Meta:
-        unique_together = (
-            "slug",
-            "organization",
-        )
 
 
 class Style(IndexedTimeStampedModel):

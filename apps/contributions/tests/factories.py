@@ -20,12 +20,4 @@ class ContributionFactory(DjangoModelFactory):
         model = models.Contribution
 
     amount = faker.random_digit()
-
-    class Params:
-        is_quarantined = None
-
-    @factory.lazy_attribute
-    def is_quarantined(self):
-        if self.is_quarantined:
-            return self.is_quarantined
-        return False
+    payment_provider_used = "Stripe"

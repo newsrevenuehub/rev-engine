@@ -6,7 +6,7 @@ export const apiBaseUrl = `/api/${apiVersion}/`;
 
 const Axios = axios.create({
   baseURL: apiBaseUrl,
-  timeout: 5000,
+  timeout: 7000,
   withCredentials: true // allow setting/passing cookies
 });
 

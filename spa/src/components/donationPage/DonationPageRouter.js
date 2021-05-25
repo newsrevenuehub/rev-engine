@@ -9,7 +9,7 @@ import { LIVE_PAGE } from 'ajax/endpoints';
 import { useParams } from 'react-router-dom';
 
 // Children
-import SegregatedWrapper from 'components/donationPage/SegregatedWrapper';
+import SegregatedStyles from 'components/donationPage/SegregatedStyles';
 import LiveLoading from 'components/donationPage/live/LiveLoading';
 import LivePage404 from 'components/donationPage/live/LivePage404';
 import DonationPage from 'components/donationPage/DonationPage';
@@ -74,9 +74,9 @@ function DonationPageRouter({ live }) {
   }, [params, fetchLivePageContent]);
 
   return (
-    <SegregatedWrapper>
+    <SegregatedStyles>
       {loading ? <LiveLoading /> : error || !data ? <LivePage404 /> : <DonationPage live page={data} />}
-    </SegregatedWrapper>
+    </SegregatedStyles>
   );
 }
 

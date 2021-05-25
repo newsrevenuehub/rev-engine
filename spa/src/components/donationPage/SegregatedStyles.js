@@ -10,7 +10,7 @@ import { donationPageBase } from 'styles/themes';
 
 import LiveErrorFallback from 'components/donationPage/live/LiveErrorFallback';
 
-function StyleWrapper({ children }) {
+function SegregatedStyles({ children }) {
   return (
     <ThemeProvider theme={donationPageBase}>
       <DonationPageGlobalStyles />
@@ -19,4 +19,4 @@ function StyleWrapper({ children }) {
   );
 }
 
-export default StyleWrapper;
+export default SegregatedStyles;

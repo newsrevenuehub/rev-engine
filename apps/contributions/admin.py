@@ -131,7 +131,7 @@ class ContributionAdmin(admin.ModelAdmin):
                 f"Cannot {action} a non-flagged Contribution.",
                 messages.ERROR,
             )
-            return
+
         succeeded = 0
         failed = []
         for contribution in queryset:

@@ -9,5 +9,5 @@ if test -f $FILE; then
   >&2 echo "Google Service account file exists."
 else
   >&2 echo "Creating Google Service account file"
-  echo $GS_SERVICE_ACCOUNT > "google-service-account.json"
+  echo $GS_SERVICE_ACCOUNT | base64 -d > "google-service-account.json"
 fi

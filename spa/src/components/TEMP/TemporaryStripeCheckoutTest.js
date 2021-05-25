@@ -60,7 +60,7 @@ function StripeWrapper({ stripe }) {
 export default TemporaryStripeCheckoutTest;
 
 function CheckoutForm() {
-  const { page } = { page: { thank_you_redirect: '' } }; // usePageContext()
+  const { page } = { page: { thank_you_redirect: '', post_thank_you_redirect: 'https://www.caktusgroup.com' } }; // usePageContext()
 
   // Form state
   const [paymentType, setPaymentType] = useState('single');
@@ -116,7 +116,10 @@ function CheckoutForm() {
     if (page.thank_you_redirect) {
       window.location = page.thank_you_redirect;
     } else {
-      history.push(url + THANK_YOU_SLUG);
+      history.push({
+        pathname: url + THANK_YOU_SLUG,
+        state: { page }
+      });
     }
   }, [page, history, url]);
 
@@ -148,7 +151,6 @@ function CheckoutForm() {
       .then(confirmPayment)
       .catch((e) => {
         const response = e?.response?.data;
-        debugger;
         if (response) {
           setErrors({ ...errors, ...e.response.data });
           if (response.detail) alert.error(response.detail);
@@ -162,7 +164,7 @@ function CheckoutForm() {
 
   return (
     <S.Wrapper>
-      <S.FormStyled id="payment-form" onSubmit={handleSubmit}>
+      <S.FormStyled id="payment-form" onSubmit={handleSubmit} data-testid="donation-payment-form">
         <Select
           label="Payment type"
           onChange={(e) => setPaymentType(e.target.value)}
@@ -175,6 +177,7 @@ function CheckoutForm() {
           value={amount}
           onChange={(e) => setAmount(e.target.value)}
           errors={errors.amount}
+          testid="TEMP-payment-amount"
         />
         <Input
           type="email"
@@ -182,6 +185,7 @@ function CheckoutForm() {
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           errors={errors.email}
+          testid="donation-email"
         />
         <Input
           type="text"
@@ -189,6 +193,7 @@ function CheckoutForm() {
           value={givenName}
           onChange={(e) => setGivenName(e.target.value)}
           errors={errors.givenName}
+          testid="donation-given-name"
         />
         <Input
           type="text"
@@ -196,22 +201,28 @@ function CheckoutForm() {
           value={familyName}
           onChange={(e) => setFamilyName(e.target.value)}
           errors={errors.familyName}
+          testid="donation-family-name"
         />
-        <TextArea value={reason} onChange={(e) => setReason(e.target.value)} label="Reason for donation" />
+        <TextArea
+          value={reason}
+          onChange={(e) => setReason(e.target.value)}
+          label="Reason for donation"
+          testid="donation-reason"
+        />
         <div style={{ marginBottom: '2rem' }} />
         <CardElement id="card-element" options={cardStyle} onChange={handleChange} />
-        <button disabled={processing || disabled || succeeded} id="submit">
+        <button disabled={processing || disabled || succeeded} id="submit" data-testid="donation-submit">
           <span id="button-text">{processing ? <Spinner /> : 'Pay now'}</span>
         </button>
         {/* Show any error that happens when processing the payment */}
         {errors.stripe && (
-          <div className="card-error" role="alert">
+          <div role="alert" data-testid="donation-error">
             {errors.stripe}
           </div>
         )}
         {/* Show a success message upon completion */}
         {succeeded && (
-          <p style={{ color: 'whitesmoke' }} className={succeeded ? 'result-message' : 'result-message hidden'}>
+          <p style={{ color: 'whitesmoke' }} data-testid="donation-success">
             Payment succeeded, see the result in your
             <a style={{ color: 'slategrey' }} href={`https://dashboard.stripe.com/test/payments`}>
               {' '}

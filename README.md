@@ -284,7 +284,7 @@ rev-engine-test                 daniel@fundjournalism.org
 #### Open a shell on an app
 
 ```shell
-(revengine)$>  heroku run bash -a rev-engine-nrh-45-infra-dfoxmw
+(revengine)$>  inv image.shell -n rev-engine-nrh-45-infra-dfoxmw
 
 Running bash on ⬢ rev-engine-nrh-45-infra-dfoxmw... up, run.2125 (Hobby)
 Running docker-entrypoint.sh
@@ -302,7 +302,7 @@ Four config vars are required:
 1. GOOGLE_APPLICATION_CREDENTIALS: This Config var should be set to the name of the file that will
 contain Google's JSON key, currently `google-service-account.json`.
    
-2. GS_SERVICE_ACCOUNT: the JSON blob provided by google for the service account. This value should
+2. GS_SERVICE_ACCOUNT: A Base64 encoded JSON blob provided by google for the service account. This value should
 *Never* be checked in or exposed in CI.
 
 3. GS_BUCKET_NAME: Currently `rev-engine-media`

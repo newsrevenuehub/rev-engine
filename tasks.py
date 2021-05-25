@@ -47,7 +47,7 @@ def build_image(c, tag=None, dockerfile=None):
     print(Style.DIM + f"Tagging {tag}")
     c.run(
         f"docker build -t {c.config.app}:latest -t {c.config.app}:{tag} -f {dockerfile} --build-arg GS_SERVICE_ACCOUNT='{os.getenv('GS_SERVICE_ACCOUNT', '')}' .",
-        echo=False,
+        echo=True,
     )
     c.config.tag = tag
 
@@ -61,8 +61,21 @@ def up(c):
 
 
 @invoke.task()
-def shell(c, name):
-    c.run(f"docker exec -ti {name} /bin/bash")
+def shell(c, name, local=False):
+    """
+    Shell into a running container.
+    :param c: Invoke context
+    :param name: The name of the running container
+    :param local: If true will connect to a local instance, default is to a connect to a heroku app instance.
+    :return:
+
+    Usage: inv image.shell -n my-heroku-app-name
+           inv image.shell -n my-docker-container --local
+    """
+    command = f"heroku run bash -a {name}"
+    if local:
+        command = f"docker exec -ti {name} /bin/bash"
+    c.run(command, echo=True)
 
 
 @invoke.task()

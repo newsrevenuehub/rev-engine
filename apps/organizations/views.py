@@ -56,20 +56,30 @@ class OrganizationViewSet(OrganizationLimitedListView, viewsets.ReadOnlyModelVie
     def stripe_account_id(self, request):
         revenue_program_slug = request.GET.get("revenue_program_slug")
         if not revenue_program_slug:
-            return Response({"detail": ""}, status=status.HTTP_400_BAD_REQUEST)
-
-        # TODO: Is this org verified with its default payment provider?
+            return Response(
+                {"detail": 'Missing required parameter "revenue_program_slug"'}, status=status.HTTP_400_BAD_REQUEST
+            )
 
         try:
             revenue_program = RevenueProgram.objects.get(slug=revenue_program_slug)
+            if not revenue_program.organization.is_verified_with_default_provider():
+                logger.error(
+                    f'Donor visited donation page for revenue program "{revenue_program_slug}", but the corresponding organization does not have a verified default payment provider'
+                )
+                return Response(
+                    {"detail": "Organization is does not have a fully verified payment provider"},
+                    status=status.HTTP_404_NOT_FOUND,
+                )
             return Response(
                 {"stripe_account_id": revenue_program.organization.stripe_account_id}, status=status.HTTP_200_OK
             )
         except RevenueProgram.DoesNotExist:
             logger.error(
-                f"Donor visted rev_program slug {revenue_program_slug}, but no rev_program could be found by that slug"
+                f"Donor visited rev_program slug {revenue_program_slug}, but no rev_program could be found by that slug"
             )
-            return Response({"revenue_program_slug": "Could not find revenue program with provided slug"})
+            return Response(
+                {"detail": "Could not find revenue program with provided slug"}, status=status.HTTP_404_NOT_FOUND
+            )
 
 
 class FeatureViewSet(viewsets.ReadOnlyModelViewSet, ReadOnly):

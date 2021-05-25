@@ -93,6 +93,12 @@ class Organization(IndexedTimeStampedModel):
     def user_is_owner(self, user):
         return user in [through.user for through in self.user_set.through.objects.filter(is_owner=True)]
 
+    def is_verified_with_default_provider(self):
+        payment_provider = self.default_payment_provider
+        payment_provider_account_id = getattr(self, f"{payment_provider}_account_id", None)
+        payment_provider_verified = getattr(self, f"{payment_provider}_verified", None)
+        return payment_provider and payment_provider_account_id and payment_provider_verified
+
 
 class RevenueProgram(IndexedTimeStampedModel):
     name = models.CharField(max_length=255)

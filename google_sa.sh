@@ -1,7 +1,7 @@
 #!/bin/sh
 set -e
 
-FILE="google-service-account.json"
+FILE="google-sa/google-service-account.json"
 
 >&2 echo "Setup Google Service Account"
 

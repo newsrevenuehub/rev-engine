@@ -10,20 +10,20 @@ services:
       - db:db
     ports:
       - "8000:8000"
-    depends_on:
-      - db
-      - redis
-  mailhog:
-    image: mailhog/mailhog:v1.0.0
-  redis:
-    image: redis:5-alpine
-  worker:
-    image: revengine:latest
-    command: ["celery", "--app=revengine", "worker", "--beat", "-l", "info"]
-    env_file:
-      - .docker.env
-    links:
-      - db:db
-    depends_on:
-      - web
-      - redis
+#    depends_on:
+#      - db
+#      - redis
+##  mailhog:
+##    image: mailhog/mailhog:v1.0.0
+##  redis:
+##    image: redis:5-alpine
+##  worker:
+##    image: revengine:latest
+##    command: ["celery", "--app=revengine", "worker", "--beat", "-l", "info"]
+##    env_file:
+##      - .docker.env
+##    links:
+##      - db:db
+##    depends_on:
+##      - web
+##      - redis

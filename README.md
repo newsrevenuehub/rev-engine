@@ -290,3 +290,21 @@ Running bash on ⬢ rev-engine-nrh-45-infra-dfoxmw... up, run.2125 (Hobby)
 Running docker-entrypoint.sh
 bash-5.0$ 
 ```
+
+## Configure Google Cloud Resources
+
+This project uses Google Cloud and a GC service account to manage its static resources. 
+At the moment this is the media uploaded to the project. Django static files are managed 
+through Whitenoise.
+
+Four config vars are required:
+
+1. GOOGLE_APPLICATION_CREDENTIALS: This Config var should be set to the name of the file that will
+contain Google's JSON key, currently `google-service-account.json`.
+   
+2. GS_SERVICE_ACCOUNT: the JSON blob provided by google for the service account. This value should
+*Never* be checked in or exposed in CI.
+
+3. GS_BUCKET_NAME: Currently `rev-engine-media`
+
+4. GS_PROJECT_ID: Currently `revenue-engine`

@@ -36,3 +36,10 @@ export const LoginButton = styled.button`
   border: none;
   cursor: pointer;
 `;
+
+export const ForgotPasswordLink = styled.button`
+  background: none;
+  border: none;
+  cursor: pointer;
+  text-decoration: underline;
+`;

@@ -11,8 +11,9 @@ function GenericThankYou() {
     <SegregatedStyles>
       <S.GenericThankYou data-testid="generic-thank-you">
         <S.ThankYou>
-          <h1>Thank You</h1>
-          <h4>for your donation.</h4>
+          <h2>
+            Thank You <span>for your donation.</span>
+          </h2>
           {routedState?.page?.post_thank_you_redirect && (
             <S.Redirect href={routedState?.page?.post_thank_you_redirect}>Take me back to the news</S.Redirect>
           )}

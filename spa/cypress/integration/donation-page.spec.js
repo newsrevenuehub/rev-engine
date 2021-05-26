@@ -1,11 +1,13 @@
-import { LIVE_PAGE, STRIPE_CONFIRMATION } from 'ajax/endpoints';
+import { LIVE_PAGE, STRIPE_CONFIRMATION, ORG_STRIPE_ACCOUNT_ID } from 'ajax/endpoints';
 import { getEndpoint } from '../support/util';
 
 describe('Donation page', () => {
   before(() => {
+    cy.intercept({ method: 'GET', pathname: getEndpoint(ORG_STRIPE_ACCOUNT_ID) }, { fixture: 'stripe/org-account-id' });
     cy.intercept('POST', getEndpoint(STRIPE_CONFIRMATION), { fixture: 'stripe/confirm-connected' });
     cy.login('user/stripe-verified.json');
   });
+
   describe('Routing', () => {
     it('should send a request containing the correct query params', () => {
       const expectedRevProgramSlug = 'revenue-program-slug';
@@ -42,6 +44,25 @@ describe('Donation page', () => {
       cy.visit('/revenue-program-slug/page-slug');
       cy.wait('@getPageDetail');
       cy.getByTestId('live-donation-page').should('exist');
+    });
+  });
+
+  describe('Thank you page', () => {
+    it('should show a generic Thank You page at /rev-slug/thank-you', () => {
+      cy.intercept(
+        { method: 'GET', pathname: getEndpoint(LIVE_PAGE) },
+        { fixture: 'pages/live-page-1', statusCode: 200 }
+      );
+      cy.visit('/revenue-program-slug/thank-you');
+      cy.getByTestId('generic-thank-you').should('exist');
+    });
+    it('should show a generic Thank You page at /rev-slug/page-slug/thank-you', () => {
+      cy.intercept(
+        { method: 'GET', pathname: getEndpoint(LIVE_PAGE) },
+        { fixture: 'pages/live-page-1', statusCode: 200 }
+      );
+      cy.visit('/revenue-program-slug/page-slug/thank-you');
+      cy.getByTestId('generic-thank-you').should('exist');
     });
   });
 });

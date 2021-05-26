@@ -9,7 +9,8 @@ from celery import shared_task
 from requests.exceptions import RequestException
 
 from apps.contributions.models import Contribution
-from apps.contributions.payment_intent import PaymentProviderError
+from apps.contributions.payment_managers import PaymentProviderError
+from apps.contributions.serializers import StripeOneTimePaymentSerializer
 
 
 logger = logging.getLogger(__name__)
@@ -42,7 +43,7 @@ def auto_accept_flagged_contributions():
         payment_state=Contribution.FLAGGED[0], flagged_date__lte=now - settings.FLAGGED_PAYMENT_AUTO_ACCEPT_DELTA
     )
     for contribution in eligible_flagged_contributions:
-        payment_intent = contribution.get_payment_intent_instance()
+        payment_intent = contribution.get_payment_manager_instance(StripeOneTimePaymentSerializer)
         try:
             payment_intent.complete_payment(reject=False)
             successful_captures += 1

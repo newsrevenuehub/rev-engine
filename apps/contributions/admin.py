@@ -1,7 +1,8 @@
 from django.contrib import admin, messages
 
 from apps.contributions.models import Contribution, Contributor
-from apps.contributions.payment_intent import PaymentProviderError
+from apps.contributions.payment_managers import PaymentProviderError
+from apps.contributions.serializers import StripeOneTimePaymentSerializer
 
 
 @admin.register(Contributor)
@@ -136,7 +137,7 @@ class ContributionAdmin(admin.ModelAdmin):
         failed = []
         for contribution in queryset:
             try:
-                payment_intent = contribution.get_payment_intent_instance()
+                payment_intent = contribution.get_payment_manager_instance(StripeOneTimePaymentSerializer)
                 payment_intent.complete_payment(reject=reject)
                 succeeded += 1
             except PaymentProviderError:

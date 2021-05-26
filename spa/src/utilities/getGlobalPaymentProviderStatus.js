@@ -14,13 +14,13 @@ function getGlobalPaymentProviderStatus(user) {
   if (defaultProvider === 'stripe') {
     const accountIdPresent = !!user?.organization?.stripe_account_id;
     const accountVerified = !!user?.organization?.stripe_verified;
-    return getStripePaymentProviderStatus(accountIdPresent, accountVerified);
+    return getStripePaymentManagerProviderStatus(accountIdPresent, accountVerified);
   }
 
   return undefined;
 }
 
-function getStripePaymentProviderStatus(accountIdPresent, accountVerified) {
+function getStripePaymentManagerProviderStatus(accountIdPresent, accountVerified) {
   if (accountIdPresent && accountVerified) return PP_STATES.CONNECTED;
   if (accountIdPresent && !accountVerified) return PP_STATES.RESTRICTED;
   if (!accountIdPresent) return PP_STATES.NOT_CONNECTED;

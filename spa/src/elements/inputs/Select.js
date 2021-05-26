@@ -28,6 +28,7 @@ function Select({ onChange, items, placeholder, ...props }) {
               <S.Item
                 key={`${item}${index}`}
                 highlighted={highlightedIndex === index}
+                data-testid={`select-item-${index}`}
                 // style={highlightedIndex === index ? { backgroundColor: '#bde4ff' } : {}}
                 {...getItemProps({ item, index })}
               >

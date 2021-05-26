@@ -25,9 +25,8 @@ class AbstractPaymentSerializer(serializers.Serializer):
     amount = serializers.IntegerField()
     reason = serializers.CharField(max_length=255)
 
-    # These are the fields required to associate the payment
-    organization_slug = serializers.SlugField()
-    donation_page_slug = serializers.SlugField()
+    revenue_program_slug = serializers.SlugField()
+    donation_page_slug = serializers.SlugField(required=False)
 
     PAYMENT_TYPE_ONE_TIME = (
         "one_time",

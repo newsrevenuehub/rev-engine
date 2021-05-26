@@ -1,20 +1,12 @@
-// ***********************************************************
-// This example support/index.js is processed and
-// loaded automatically before your test files.
-//
-// This is a great place to put global configuration and
-// behavior that modifies Cypress.
-//
-// You can change the location of this file or turn off
-// automatically serving support files with the
-// 'supportFile' configuration option.
-//
-// You can read more here:
-// https://on.cypress.io/configuration
-// ***********************************************************
-
-// Import commands.js using ES2015 syntax:
 import './commands';
 
-// Alternatively you can use CommonJS syntax:
-// require('./commands')
+Cypress.on('uncaught:exception', (err, runnable) => {
+  // returning false here prevents Cypress from failing tests on uncaught exceptions.
+
+  // Tests were failing when an ajax call was made the the backend, which,
+  // in this context is not running-- causing an uncaught exception. This
+  // will fail the test, even though the test may not care about the ajax.
+  // Most tests use cy.intercept to capture the request and mock the response,
+  // but this isn't always feasible.
+  return false;
+});

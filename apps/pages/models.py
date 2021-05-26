@@ -29,7 +29,13 @@ class AbstractPage(IndexedTimeStampedModel):
         on_delete=models.SET_NULL,
     )
 
-    # lookup with org.donationpages / org.templates
+    thank_you_redirect = models.URLField(
+        blank=True, help_text='If left blank, Organization default "thank you" redirect will be used'
+    )
+    post_thank_you_redirect = models.URLField(
+        blank=True, help_text='If left blank, Organization default post-"thank you" redirect will be used'
+    )
+
     organization = models.ForeignKey("organizations.Organization", on_delete=models.CASCADE)
 
     @classmethod
@@ -111,6 +117,13 @@ class DonationPage(AbstractPage):
                 raise ValidationError(f"Your organization has reached its limit of {limit.feature_value} pages")
 
         self.slug = normalize_slug(self.name, self.slug)
+
+        if not self.thank_you_redirect:
+            self.thank_you_redirect = self.organization.default_thank_you_redirect
+
+        if not self.post_thank_you_redirect:
+            self.post_thank_you_redirect = self.organization.default_post_thank_you_redirect
+
         super().save(*args, **kwargs)
 
     def save_as_template(self, name=None):

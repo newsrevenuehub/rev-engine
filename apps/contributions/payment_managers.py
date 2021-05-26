@@ -5,8 +5,6 @@ import stripe
 
 from apps.contributions.bad_actor import BadActorAPIError, make_bad_actor_request
 from apps.contributions.models import Contribution, Contributor
-
-# from apps.contributions.serializers import StripeOneTimePaymentSerializer
 from apps.contributions.utils import get_hub_stripe_api_key
 from apps.organizations.models import RevenueProgram
 from apps.pages.models import DonationPage

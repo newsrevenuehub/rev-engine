@@ -67,7 +67,7 @@ class OrganizationViewSet(OrganizationLimitedListView, viewsets.ReadOnlyModelVie
                     f'Donor visited donation page for revenue program "{revenue_program_slug}", but the corresponding organization does not have a verified default payment provider'
                 )
                 return Response(
-                    {"detail": "Organization is does not have a fully verified payment provider"},
+                    {"detail": "Organization does not have a fully verified payment provider"},
                     status=status.HTTP_404_NOT_FOUND,
                 )
             return Response(

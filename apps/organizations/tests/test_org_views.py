@@ -77,7 +77,7 @@ class OrganziationStripeAccountIdActionTest(APITestCase):
     def test_request_id_when_org_provider_not_verified(self):
         response = self._make_request(slug=self.rev_program.slug)
         self.assertEqual(response.status_code, 404)
-        self.assertEqual(response.data["detail"], "Organization is does not have a fully verified payment provider")
+        self.assertEqual(response.data["detail"], "Organization does not have a fully verified payment provider")
 
     def test_request_id_when_rev_program_slug_invalid(self):
         response = self._make_request(slug="no-such-rev-program")

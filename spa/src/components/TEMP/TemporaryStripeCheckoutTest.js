@@ -10,7 +10,7 @@ import { useAlert } from 'react-alert';
 
 // Ajax
 import axios from 'ajax/axios';
-import { STRIPE_PAYMENT } from 'ajax/endpoints';
+import { STRIPE_ONE_TIME_PAYMENT, STRIPE_RECURRING_PAYMENT } from 'ajax/endpoints';
 
 // Elements
 import Input from 'elements/inputs/Input';
@@ -44,7 +44,9 @@ export default TemporaryStripeCheckoutTest;
 
 function CheckoutForm() {
   // Form state
+  const [paymentMethodType, setPaymentMethodType] = useState('card');
   const [paymentType, setPaymentType] = useState('single');
+  const [paymentInterval, setPaymentInterval] = useState('month');
   const [amount, setAmount] = useState('');
   const [email, setEmail] = useState('');
   const [givenName, setGivenName] = useState('');
@@ -74,7 +76,6 @@ function CheckoutForm() {
       const donation_page_slug = process.env.REACT_APP_TEST_PAGE_SLUG || ''; // get me from url!
       try {
         const paymentIntentBody = {
-          payment_type: paymentType,
           amount,
           organization_slug,
           donation_page_slug,
@@ -83,15 +84,15 @@ function CheckoutForm() {
           family_name: familyName,
           reason
         };
-        const { data } = await axios.post(STRIPE_PAYMENT, paymentIntentBody);
+        const { data } = await axios.post(STRIPE_ONE_TIME_PAYMENT, paymentIntentBody);
         resolve(data.clientSecret);
       } catch (e) {
         reject(e);
       }
     });
-  }, [paymentType, amount, email, givenName, familyName, reason]);
+  }, [amount, email, givenName, familyName, reason]);
 
-  const confirmPayment = useCallback(
+  const confirmOneTimePayment = useCallback(
     async (clientSecret) => {
       const payload = await stripe.confirmCardPayment(clientSecret, {
         payment_method: {
@@ -110,11 +111,9 @@ function CheckoutForm() {
     [elements, stripe]
   );
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setProcessing(true);
+  const handleSinglePayment = () => {
     createPaymentIntent()
-      .then(confirmPayment)
+      .then(confirmOneTimePayment)
       .catch((e) => {
         if (e?.response?.data) {
           setErrors({ ...errors, ...e.response.data });
@@ -122,6 +121,53 @@ function CheckoutForm() {
           alert.error('There was an error processing your payment.');
         }
       });
+  };
+
+  const createPaymentMethod = async () => {
+    const payload = await stripe.createPaymentMethod({
+      type: paymentMethodType,
+      card: elements.getElement(CardElement),
+      billing_details: {
+        name: `${givenName} ${familyName}`
+      }
+    });
+    if (payload.error) {
+      setErrors({ stripe: `Payment failed ${payload.error.message}` });
+      setProcessing(false);
+    } else {
+      return payload;
+    }
+  };
+
+  const handleRecurringPayment = async () => {
+    const organization_slug = process.env.REACT_APP_TEST_ORG_SLUG || ''; // get me from url!
+    const donation_page_slug = process.env.REACT_APP_TEST_PAGE_SLUG || ''; // get me from url!
+    try {
+      const { paymentMethod } = createPaymentMethod();
+      const body = {
+        paymentMethodId: paymentMethod.id,
+        interval: paymentInterval,
+        amount,
+        organization_slug,
+        donation_page_slug,
+        email,
+        given_name: givenName,
+        family_name: familyName,
+        reason
+      };
+      const response = await axios.post(STRIPE_RECURRING_PAYMENT, body);
+      console.log('recurring payment response! ', response);
+    } catch (e) {
+      console.log('recurring payment error', e.response);
+    }
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setProcessing(true);
+
+    if (paymentType === 'single') handleSinglePayment();
+    if (paymentType === 'recurring') handleRecurringPayment();
   };
 
   return (

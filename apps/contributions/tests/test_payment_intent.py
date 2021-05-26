@@ -123,7 +123,7 @@ class StripePaymentIntentTest(APITestCase):
     def test_create_payment_intent_when_get_bad_actor_score_not_called(self):
         pi = self._instantiate_pi_with_data()
         with self.assertRaises(ValueError) as e:
-            pi.create_payment_intent()
+            pi.create_one_time_payment()
         self.assertEqual(
             str(e.exception), "PaymentIntent must call 'get_bad_actor_score' before creating payment intent"
         )
@@ -141,7 +141,7 @@ class StripePaymentIntentTest(APITestCase):
         # Assert that this contribution is not there yet
         self.assertFalse(Contribution.objects.filter(amount=1099).exists())
 
-        pi.create_payment_intent()
+        pi.create_one_time_payment()
         # Importantly, capture method should be "manual" here, for flagged contributions
         mock_stripe_create_pi.assert_called_once_with(
             amount=1099,
@@ -171,7 +171,7 @@ class StripePaymentIntentTest(APITestCase):
         new_contribution = Contribution.objects.filter(amount=1099).first()
         self.assertIsNone(new_contribution)
 
-        pi.create_payment_intent()
+        pi.create_one_time_payment()
         # Importantly, capture method should be "automatic" here, for non-flagged contributions
         mock_stripe_create_pi.assert_called_once_with(
             amount=1099,

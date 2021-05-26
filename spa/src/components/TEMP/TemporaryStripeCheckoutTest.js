@@ -10,7 +10,7 @@ import { useAlert } from 'react-alert';
 
 // Ajax
 import axios from 'ajax/axios';
-import { STRIPE_PAYMENT_INTENT } from 'ajax/endpoints';
+import { STRIPE_PAYMENT } from 'ajax/endpoints';
 
 // Elements
 import Input from 'elements/inputs/Input';
@@ -83,7 +83,7 @@ function CheckoutForm() {
           family_name: familyName,
           reason
         };
-        const { data } = await axios.post(STRIPE_PAYMENT_INTENT, paymentIntentBody);
+        const { data } = await axios.post(STRIPE_PAYMENT, paymentIntentBody);
         resolve(data.clientSecret);
       } catch (e) {
         reject(e);

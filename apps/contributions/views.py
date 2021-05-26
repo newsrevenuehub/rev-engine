@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 
 
 @api_view(["POST"])
-def stripe_payment_intent(request):
+def stripe_one_time_payment(request):
     pi_data = request.data
 
     # Grab required data from headers
@@ -35,7 +35,7 @@ def stripe_payment_intent(request):
     stripe_pi.get_bad_actor_score()
 
     # Create payment intent with Stripe, associated local models
-    stripe_payment_intent = stripe_pi.create_payment_intent()
+    stripe_payment_intent = stripe_pi.create_one_time_payment()
     return Response(data={"clientSecret": stripe_payment_intent["client_secret"]}, status=status.HTTP_200_OK)
 
 

@@ -118,15 +118,6 @@ class PaymentIntent:
         if pp_used == "Stripe":
             return StripePaymentIntent
 
-    def create_payment_intent(self):
-        raise NotImplementedError("Subclass of PaymentIntent must implement create_payment_intent.")
-
-    def create_one_time_payment_intent(self):  # pragma: no cover
-        raise NotImplementedError("Subclass of PaymentIntent must implement create_one_time_payment_intent.")
-
-    def create_recurring_payment_intent(self):  # pragma: no cover
-        raise NotImplementedError("Subclass of PaymentIntent must implement create_recurring_payment_intent.")
-
     def complete_payment(self, **kwargs):  # pragma: no cover
         raise NotImplementedError("Subclass of PaymentIntent must implement complete_payment.")
 
@@ -134,8 +125,9 @@ class PaymentIntent:
 class StripePaymentIntent(PaymentIntent):
     serializer_class = StripePaymentIntentSerializer
     payment_provider_name = "Stripe"
+    customer = None
 
-    def create_one_time_payment_intent(self):
+    def create_one_time_payment(self):
         org = self.get_organization()
         capture_method = "manual" if self.flagged else "automatic"
         stripe_payment_intent = stripe.PaymentIntent.create(
@@ -150,17 +142,8 @@ class StripePaymentIntent(PaymentIntent):
         self.create_contribution(org, stripe_payment_intent)
         return stripe_payment_intent
 
-    def create_recurring_payment_intent(self):  # pragma: no cover
+    def create_subscription(self):
         pass
-
-    def create_payment_intent(self):
-        self.ensure_bad_actor_score()
-        if self.validated_data["payment_type"] == StripePaymentIntentSerializer.PAYMENT_TYPE_SINGLE[0]:
-            stripe_payment_intent = self.create_one_time_payment_intent()
-        else:  # pragma: no cover
-            stripe_payment_intent = self.create_recurring_payment_intent()
-
-        return stripe_payment_intent
 
     def complete_payment(self, reject=False):
         organization = self.contribution.organization

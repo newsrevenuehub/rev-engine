@@ -32,7 +32,7 @@ class CreateStripePaymentIntentViewTest(APITestCase):
         self.page = DonationPageFactory()
         self.contributor = ContributorFactory()
 
-        self.url = reverse("stripe-payment-intent")
+        self.url = reverse("stripe-one-time-payment")
         self.payment_amount = "10.00"
 
         self.ip = faker.ipv4()

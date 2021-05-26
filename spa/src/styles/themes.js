@@ -53,6 +53,11 @@ export const adminTheme = {
 };
 
 export const donationPageBase = {
+  colors: {
+    ...adminTheme.colors,
+    fieldBackground: '#fff'
+  },
+
   fonts: {
     heading: 'Arial',
     subheading: 'Arial',

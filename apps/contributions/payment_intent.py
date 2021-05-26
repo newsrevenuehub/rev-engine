@@ -7,11 +7,23 @@ from apps.contributions.bad_actor import BadActorAPIError, make_bad_actor_reques
 from apps.contributions.models import Contribution, Contributor
 from apps.contributions.serializers import StripePaymentIntentSerializer
 from apps.contributions.utils import get_hub_stripe_api_key
-from apps.organizations.models import Organization
+from apps.organizations.models import RevenueProgram
 from apps.pages.models import DonationPage
 
 
 class PaymentProviderError(Exception):
+    """
+    A PaymentProviderError generalizes all the errors that might be returned by various Payment Providers.
+    """
+
+    pass
+
+
+class PaymentIntentBadParamsError(Exception):
+    """
+    PaymentIntentBadParamsError represents a failure to find model instances from provided parameters.
+    """
+
     pass
 
 
@@ -22,6 +34,7 @@ class PaymentIntent:
     validated_data = None
     flagged = None
     contribution = None
+    revenue_program = None
 
     def __init__(self, data=None, contribution=None):
         """
@@ -73,17 +86,27 @@ class PaymentIntent:
         """
         return self.bad_actor_score >= settings.BAD_ACTOR_FAIL_ABOVE
 
-    def get_organization(self):
+    def get_revenue_program(self):
         try:
-            return Organization.objects.get(slug=self.validated_data["organization_slug"])
-        except Organization.DoesNotExist:
-            raise ValueError("PaymentIntent could not find an organization with slug provided")
+            self.revenue_program = (
+                self.revenue_program
+                if self.revenue_program
+                else RevenueProgram.objects.get(slug=self.validated_data["revenue_program_slug"])
+            )
+            return self.revenue_program
+        except RevenueProgram.DoesNotExist:
+            raise PaymentIntentBadParamsError("PaymentIntent could not find a revenue program with slug provided")
+
+    def get_organization(self):
+        revenue_program = self.get_revenue_program()
+        return revenue_program.organization
 
     def get_donation_page(self):
+        page_slug = self.validated_data.get("donation_page_slug")
         try:
-            return DonationPage.objects.get(slug=self.validated_data["donation_page_slug"])
+            return DonationPage.objects.get(slug=page_slug) if page_slug else self.revenue_program.default_donation_page
         except DonationPage.DoesNotExist:
-            raise ValueError("PaymentIntent could not find a donation page with slug provided")
+            raise PaymentIntentBadParamsError("PaymentIntent could not find a donation page with slug provided")
 
     def create_contribution(self, organization, payment_intent):
         if not self.payment_provider_name:

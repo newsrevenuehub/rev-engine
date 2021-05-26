@@ -76,6 +76,9 @@ class Organization(IndexedTimeStampedModel):
         help_text='A fully verified Stripe Connected account should have "charges_enabled: true" in Stripe',
     )
 
+    default_thank_you_redirect = models.URLField(blank=True)
+    default_post_thank_you_redirect = models.URLField(blank=True)
+
     def __str__(self):
         return self.name
 
@@ -89,6 +92,12 @@ class Organization(IndexedTimeStampedModel):
 
     def user_is_owner(self, user):
         return user in [through.user for through in self.user_set.through.objects.filter(is_owner=True)]
+
+    def is_verified_with_default_provider(self):
+        payment_provider = self.default_payment_provider
+        payment_provider_account_id = getattr(self, f"{payment_provider}_account_id", None)
+        payment_provider_verified = getattr(self, f"{payment_provider}_verified", None)
+        return payment_provider and payment_provider_account_id and payment_provider_verified
 
 
 class RevenueProgram(IndexedTimeStampedModel):

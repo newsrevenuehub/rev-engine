@@ -1,23 +1,15 @@
 import { useEffect, useCallback, useReducer } from 'react';
-import DonationPageGlobalStyles from 'styles/DonationPageGlobalStyles';
 import PropTypes from 'prop-types';
 
 // AJAX
 import axios from 'ajax/axios';
 import { LIVE_PAGE } from 'ajax/endpoints';
 
-// Sentry
-import * as Sentry from '@sentry/react';
-
-// Theme
-import { ThemeProvider } from 'styled-components';
-import { donationPageBase } from 'styles/themes';
-
 // Router
 import { useParams } from 'react-router-dom';
 
 // Children
-import LiveErrorFallback from 'components/donationPage/live/LiveErrorFallback';
+import SegregatedStyles from 'components/donationPage/SegregatedStyles';
 import LiveLoading from 'components/donationPage/live/LiveLoading';
 import LivePage404 from 'components/donationPage/live/LivePage404';
 import DonationPage from 'components/donationPage/DonationPage';
@@ -82,12 +74,9 @@ function DonationPageRouter({ live }) {
   }, [params, fetchLivePageContent]);
 
   return (
-    <ThemeProvider theme={donationPageBase}>
-      <DonationPageGlobalStyles />
-      <Sentry.ErrorBoundary fallback={<LiveErrorFallback />}>
-        {loading ? <LiveLoading /> : error || !data ? <LivePage404 /> : <DonationPage live page={data} />}
-      </Sentry.ErrorBoundary>
-    </ThemeProvider>
+    <SegregatedStyles>
+      {loading ? <LiveLoading /> : error || !data ? <LivePage404 /> : <DonationPage live page={data} />}
+    </SegregatedStyles>
   );
 }
 

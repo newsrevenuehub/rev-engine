@@ -4,9 +4,9 @@ import { Route, Redirect } from 'react-router';
 import { LOGIN } from 'routes';
 import isAuthenticated from 'utilities/isAuthenticated';
 
-function ProtectedRoute({ children, ...props }) {
+function ProtectedRoute({ ...props }) {
   if (isAuthenticated()) {
-    return <Route {...props}>{children}</Route>;
+    return <Route {...props} />;
   }
   return <Redirect to={LOGIN} />;
 }

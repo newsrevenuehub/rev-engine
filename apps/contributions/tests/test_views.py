@@ -12,7 +12,7 @@ from apps.contributions.models import Contribution, Contributor
 from apps.contributions.tests.factories import ContributorFactory
 from apps.contributions.views import stripe_payment_intent
 from apps.organizations.models import Organization
-from apps.organizations.tests.factories import OrganizationFactory
+from apps.organizations.tests.factories import OrganizationFactory, RevenueProgramFactory
 from apps.pages.tests.factories import DonationPageFactory
 
 
@@ -29,6 +29,7 @@ class MockPaymentIntent(StripeObject):
 class CreateStripePaymentIntentViewTest(APITestCase):
     def setUp(self):
         self.organization = OrganizationFactory()
+        self.revenue_program = RevenueProgramFactory(organization=self.organization)
         self.page = DonationPageFactory()
         self.contributor = ContributorFactory()
 
@@ -38,7 +39,7 @@ class CreateStripePaymentIntentViewTest(APITestCase):
         self.ip = faker.ipv4()
         self.referer = faker.url()
 
-    def _create_request(self, email=None, org_slug=None, page_slug=None):
+    def _create_request(self, email=None, rev_slug=None, page_slug=None):
         factory = APIRequestFactory()
         request = factory.post(
             self.url,
@@ -48,7 +49,7 @@ class CreateStripePaymentIntentViewTest(APITestCase):
                 "family_name": "Tester",
                 "amount": self.payment_amount,
                 "reason": "Testing",
-                "organization_slug": org_slug if org_slug else self.organization.slug,
+                "revenue_program_slug": rev_slug if rev_slug else self.revenue_program.slug,
                 "donation_page_slug": page_slug if page_slug else self.page.slug,
                 "payment_type": "single",
             },

@@ -6,7 +6,7 @@ from django.test import TestCase
 from django.utils import timezone
 
 from apps.contributions.models import Contribution
-from apps.contributions.payment_intent import PaymentProviderError
+from apps.contributions.payment_managers import PaymentProviderError
 from apps.contributions.tasks import auto_accept_flagged_contributions
 from apps.contributions.tests.factories import ContributionFactory
 
@@ -27,7 +27,7 @@ class AutoAcceptFlaggedContributionsTaskTest(TestCase):
             self.non_expired_contrib_count, payment_state=payment_state, flagged_date=non_expiring_flagged_date
         )
 
-    @patch("apps.contributions.payment_intent.StripePaymentIntent.complete_payment")
+    @patch("apps.contributions.payment_managers.StripePaymentManager.complete_payment")
     def test_successful_captures(self, mock_complete_payment):
         self._create_contributions()
         succeeded, failed = auto_accept_flagged_contributions()
@@ -35,7 +35,9 @@ class AutoAcceptFlaggedContributionsTaskTest(TestCase):
         self.assertEqual(succeeded, self.expired_contrib_count)
         self.assertEqual(failed, 0)
 
-    @patch("apps.contributions.payment_intent.StripePaymentIntent.complete_payment", side_effect=PaymentProviderError)
+    @patch(
+        "apps.contributions.payment_managers.StripePaymentManager.complete_payment", side_effect=PaymentProviderError
+    )
     def test_unsuccessful_captures(self, mock_complete_payment):
         self._create_contributions()
         succeeded, failed = auto_accept_flagged_contributions()
@@ -43,7 +45,7 @@ class AutoAcceptFlaggedContributionsTaskTest(TestCase):
         self.assertEqual(failed, self.expired_contrib_count)
         self.assertEqual(succeeded, 0)
 
-    @patch("apps.contributions.payment_intent.StripePaymentIntent.complete_payment")
+    @patch("apps.contributions.payment_managers.StripePaymentManager.complete_payment")
     def test_only_acts_on_flagged(self, mock_complete_payment):
         self._create_contributions(flagged=False)
         mock_complete_payment.assert_not_called()

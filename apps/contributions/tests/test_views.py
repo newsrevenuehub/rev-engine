@@ -10,7 +10,7 @@ from stripe.stripe_object import StripeObject
 
 from apps.contributions.models import Contribution, Contributor
 from apps.contributions.tests.factories import ContributorFactory
-from apps.contributions.views import stripe_payment_intent
+from apps.contributions.views import stripe_one_time_payment
 from apps.organizations.models import Organization
 from apps.organizations.tests.factories import OrganizationFactory, RevenueProgramFactory
 from apps.pages.tests.factories import DonationPageFactory
@@ -26,7 +26,7 @@ class MockPaymentIntent(StripeObject):
 
 
 @patch("stripe.PaymentIntent.create", side_effect=MockPaymentIntent)
-class CreateStripePaymentIntentViewTest(APITestCase):
+class CreateStripeOneTimePaymentViewTest(APITestCase):
     def setUp(self):
         self.organization = OrganizationFactory()
         self.revenue_program = RevenueProgramFactory(organization=self.organization)
@@ -62,7 +62,7 @@ class CreateStripePaymentIntentViewTest(APITestCase):
         return request
 
     def _post_valid_payment_intent(self, *args, **kwargs):
-        return stripe_payment_intent(self._create_request(*args, **kwargs))
+        return stripe_one_time_payment(self._create_request(*args, **kwargs))
 
     def test_new_contributor_created(self, mock_create_intent):
         new_contributor_email = "new_contributor@test.com"

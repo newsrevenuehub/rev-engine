@@ -53,7 +53,7 @@ class AbstractPaymentSerializer(serializers.Serializer):
         self.fields["amount"].error_messages["invalid"] = "Enter a valid amount"
 
 
-class StripePaymentIntentSerializer(AbstractPaymentSerializer):
+class StripeOneTimePaymentSerializer(AbstractPaymentSerializer):
     """
     A Stripe one-time payment requires minimal information--- do I need the customer?
     """

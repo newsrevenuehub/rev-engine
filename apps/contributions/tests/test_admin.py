@@ -68,3 +68,11 @@ class ContributionAdminTest(TestCase):
         filtered_contribs = ba_score_filter.queryset(None, Contribution.objects.all())
         self.assertIn(self.contrib_score_2, filtered_contribs)
         self.assertNotIn(self.contrib_score_4, filtered_contribs)
+
+    def test_bad_actor_score_filter_all(self):
+        ba_score_filter = BadActorScoreFilter(None, {}, Contribution, ContributionAdmin)
+        all_contribs = Contribution.objects.all()
+        filtered_contribs = ba_score_filter.queryset(None, all_contribs)
+        self.assertEqual(len(filtered_contribs), len(all_contribs))
+        self.assertIn(self.contrib_score_2, filtered_contribs)
+        self.assertIn(self.contrib_score_4, filtered_contribs)

@@ -1,29 +1,46 @@
-import { useState, useRef, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import * as S from './TemporaryStripeCheckoutTest.styled';
 
-import { LS_USER } from 'constants/authConstants';
 //Deps
 import { CardElement, useStripe, useElements } from '@stripe/react-stripe-js';
 import { loadStripe } from '@stripe/stripe-js';
 import { Elements } from '@stripe/react-stripe-js';
 import { useAlert } from 'react-alert';
+import { useHistory, useParams, useRouteMatch } from 'react-router-dom';
 
 // Ajax
 import axios from 'ajax/axios';
-import { STRIPE_ONE_TIME_PAYMENT, STRIPE_RECURRING_PAYMENT } from 'ajax/endpoints';
+import { ORG_STRIPE_ACCOUNT_ID, STRIPE_ONE_TIME_PAYMENT, STRIPE_RECURRING_PAYMENT } from 'ajax/endpoints';
 
 // Elements
 import Input from 'elements/inputs/Input';
 import TextArea from 'elements/inputs/TextArea';
 import Select from 'elements/inputs/Select';
+import Spinner from 'elements/Spinner';
+import GlobalLoading from 'elements/GlobalLoading';
+import { THANK_YOU_SLUG } from 'routes';
 
 function TemporaryStripeCheckoutTest() {
-  const stripeRef = useRef(
-    loadStripe(process.env.REACT_APP_HUB_STRIPE_API_PUB_KEY, {
-      stripeAccount: JSON.parse(localStorage.getItem(LS_USER)).organization.stripe_account_id
-    })
-  );
+  const [stripe, setStripe] = useState();
+  const params = useParams();
 
+  const setOrgStripeAccountId = useCallback(async () => {
+    const { data } = await axios.get(ORG_STRIPE_ACCOUNT_ID, {
+      params: { revenue_program_slug: params.revProgramSlug }
+    });
+    const stripeAccount = data.stripe_account_id;
+    setStripe(loadStripe(process.env.REACT_APP_HUB_STRIPE_API_PUB_KEY, { stripeAccount }));
+  }, [params.revProgramSlug]);
+
+  useEffect(() => {
+    setOrgStripeAccountId();
+  }, [setOrgStripeAccountId]);
+
+  if (stripe) return <StripeWrapper stripe={stripe} />;
+  return <GlobalLoading />;
+}
+
+function StripeWrapper({ stripe }) {
   return (
     <S.TemporaryStripeCheckoutTest>
       <p>
@@ -33,7 +50,7 @@ function TemporaryStripeCheckoutTest() {
         </a>
         .
       </p>
-      <Elements stripe={stripeRef.current}>
+      <Elements stripe={stripe}>
         <CheckoutForm />
       </Elements>
     </S.TemporaryStripeCheckoutTest>
@@ -43,6 +60,8 @@ function TemporaryStripeCheckoutTest() {
 export default TemporaryStripeCheckoutTest;
 
 function CheckoutForm() {
+  const { page } = { page: { thank_you_redirect: '', post_thank_you_redirect: 'https://www.caktusgroup.com' } }; // usePageContext()
+
   // Form state
   const [paymentMethodType, setPaymentMethodType] = useState('card');
   const [paymentType, setPaymentType] = useState('single');
@@ -59,9 +78,11 @@ function CheckoutForm() {
   const [processing, setProcessing] = useState('');
   const [disabled, setDisabled] = useState(true);
 
+  const history = useHistory();
   const alert = useAlert();
   const stripe = useStripe();
   const elements = useElements();
+  const { url, params } = useRouteMatch();
 
   const handleChange = async (event) => {
     // Listen for changes in the CardElement
@@ -72,12 +93,12 @@ function CheckoutForm() {
 
   const createPaymentIntent = useCallback(() => {
     return new Promise(async (resolve, reject) => {
-      const organization_slug = process.env.REACT_APP_TEST_ORG_SLUG || ''; // get me from url!
-      const donation_page_slug = process.env.REACT_APP_TEST_PAGE_SLUG || ''; // get me from url!
+      const revenue_program_slug = params.revProgramSlug;
+      const donation_page_slug = params.pageSlug;
       try {
         const paymentIntentBody = {
           amount,
-          organization_slug,
+          revenue_program_slug,
           donation_page_slug,
           email,
           given_name: givenName,
@@ -90,7 +111,18 @@ function CheckoutForm() {
         reject(e);
       }
     });
-  }, [amount, email, givenName, familyName, reason]);
+  }, [amount, email, givenName, familyName, reason, params]);
+
+  const handleSuccesfulPayment = useCallback(() => {
+    if (page.thank_you_redirect) {
+      window.location = page.thank_you_redirect;
+    } else {
+      history.push({
+        pathname: url + THANK_YOU_SLUG,
+        state: { page }
+      });
+    }
+  }, [page, history, url]);
 
   const confirmOneTimePayment = useCallback(
     async (clientSecret) => {
@@ -101,24 +133,30 @@ function CheckoutForm() {
       });
       if (payload.error) {
         setErrors({ stripe: `Payment failed ${payload.error.message}` });
+        alert.error(`Payment failed ${payload.error.message}`);
         setProcessing(false);
       } else {
         setErrors({});
         setProcessing(false);
         setSucceeded(true);
+        handleSuccesfulPayment();
       }
     },
-    [elements, stripe]
+    [elements, stripe, alert, handleSuccesfulPayment]
   );
 
   const handleSinglePayment = () => {
     createPaymentIntent()
       .then(confirmOneTimePayment)
       .catch((e) => {
-        if (e?.response?.data) {
+        const response = e?.response?.data;
+        if (response) {
           setErrors({ ...errors, ...e.response.data });
+          if (response.detail) alert.error(response.detail);
+          setProcessing(false);
         } else {
           alert.error('There was an error processing your payment.');
+          setProcessing(false);
         }
       });
   };
@@ -172,7 +210,7 @@ function CheckoutForm() {
 
   return (
     <S.Wrapper>
-      <S.FormStyled id="payment-form" onSubmit={handleSubmit}>
+      <S.FormStyled id="payment-form" onSubmit={handleSubmit} data-testid="donation-payment-form">
         <Select
           label="Payment type"
           onChange={(e) => setPaymentType(e.target.value)}
@@ -185,6 +223,7 @@ function CheckoutForm() {
           value={amount}
           onChange={(e) => setAmount(e.target.value)}
           errors={errors.amount}
+          testid="TEMP-payment-amount"
         />
         <Input
           type="email"
@@ -192,6 +231,7 @@ function CheckoutForm() {
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           errors={errors.email}
+          testid="donation-email"
         />
         <Input
           type="text"
@@ -199,6 +239,7 @@ function CheckoutForm() {
           value={givenName}
           onChange={(e) => setGivenName(e.target.value)}
           errors={errors.givenName}
+          testid="donation-given-name"
         />
         <Input
           type="text"
@@ -206,22 +247,28 @@ function CheckoutForm() {
           value={familyName}
           onChange={(e) => setFamilyName(e.target.value)}
           errors={errors.familyName}
+          testid="donation-family-name"
         />
-        <TextArea value={reason} onChange={(e) => setReason(e.target.value)} label="Reason for donation" />
+        <TextArea
+          value={reason}
+          onChange={(e) => setReason(e.target.value)}
+          label="Reason for donation"
+          testid="donation-reason"
+        />
         <div style={{ marginBottom: '2rem' }} />
         <CardElement id="card-element" options={cardStyle} onChange={handleChange} />
-        <button disabled={processing || disabled || succeeded} id="submit">
-          <span id="button-text">{processing ? <div className="spinner" id="spinner"></div> : 'Pay now'}</span>
+        <button disabled={processing || disabled || succeeded} id="submit" data-testid="donation-submit">
+          <span id="button-text">{processing ? <Spinner /> : 'Pay now'}</span>
         </button>
         {/* Show any error that happens when processing the payment */}
         {errors.stripe && (
-          <div className="card-error" role="alert">
+          <div role="alert" data-testid="donation-error">
             {errors.stripe}
           </div>
         )}
         {/* Show a success message upon completion */}
         {succeeded && (
-          <p style={{ color: 'whitesmoke' }} className={succeeded ? 'result-message' : 'result-message hidden'}>
+          <p style={{ color: 'whitesmoke' }} data-testid="donation-success">
             Payment succeeded, see the result in your
             <a style={{ color: 'slategrey' }} href={`https://dashboard.stripe.com/test/payments`}>
               {' '}

@@ -10,6 +10,7 @@ from rest_framework.response import Response
 from apps.contributions.models import Contribution
 from apps.contributions.payment_provider import StripePayment
 from apps.contributions.serializers import (
+    PaymentIntentBadParamsError,
     StripeOneTimePaymentSerializer,
     StripeRecurringPaymentSerializer,
 )
@@ -21,6 +22,8 @@ logger = logging.getLogger(__name__)
 
 
 @api_view(["POST"])
+@authentication_classes([])
+@permission_classes([])
 def stripe_one_time_payment(request):
     pi_data = request.data
 
@@ -38,12 +41,18 @@ def stripe_one_time_payment(request):
     # Performs request to BadActor API
     stripe_payment.get_bad_actor_score()
 
-    # Create payment intent with Stripe, associated local models
-    stripe_payment_intent = stripe_payment.create_one_time_payment()
+    try:
+        # Create payment intent with Stripe, associated local models
+        stripe_payment_intent = stripe_payment.create_one_time_payment()
+    except PaymentIntentBadParamsError:
+        return Response({"detail": "There was an error processing your payment."}, status=status.HTTP_400_BAD_REQUEST)
+
     return Response(data={"clientSecret": stripe_payment_intent["client_secret"]}, status=status.HTTP_200_OK)
 
 
 @api_view(["POST"])
+@authentication_classes([])
+@permission_classes([])
 def stripe_recurring_payment(request):
     pi_data = request.data
 

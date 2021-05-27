@@ -1,4 +1,3 @@
-import os
 from pathlib import Path
 
 import invoke
@@ -46,7 +45,7 @@ def build_image(c, tag=None, dockerfile=None):
     # build app image
     print(Style.DIM + f"Tagging {tag}")
     c.run(
-        f"docker build -t {c.config.app}:latest -t {c.config.app}:{tag} -f {dockerfile} --build-arg GS_SERVICE_ACCOUNT='{os.getenv('GS_SERVICE_ACCOUNT', '')}' .",
+        f"docker build -t {c.config.app}:latest -t {c.config.app}:{tag} -f {dockerfile} .",
         echo=True,
     )
     c.config.tag = tag

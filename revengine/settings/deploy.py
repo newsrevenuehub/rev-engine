@@ -33,6 +33,14 @@ EMAIL_SUBJECT_PREFIX = "[revengine %s] " % ENVIRONMENT.title()
 DEFAULT_FROM_EMAIL = f"noreply@{os.getenv('DOMAIN', os.environ)}"
 SERVER_EMAIL = DEFAULT_FROM_EMAIL
 
+
+### Google Cloud Storage ###
+GS_BUCKET_NAME = os.getenv("GS_BUCKET_NAME", "rev-engine-media")
+DEFAULT_FILE_STORAGE = "storages.backends.gcloud.GoogleCloudStorage"
+GS_PROJECT_ID = os.getenv("GS_PROJECT_ID", "revenue-engine")
+# Media files are stored in a 'media' directory
+GS_MEDIA_LOCATION = "media"
+
 ### React SPA index.html
 
 FRONTEND_BUILD_DIR = Path(BASE_DIR) / "build"

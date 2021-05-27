@@ -60,6 +60,24 @@ def up(c):
 
 
 @invoke.task()
+def shell(c, name, local=False):
+    """
+    Shell into a running container.
+    :param c: Invoke context
+    :param name: The name of the running container
+    :param local: If true will connect to a local instance, default is to a connect to a heroku app instance.
+    :return:
+
+    Usage: inv image.shell -n my-heroku-app-name
+           inv image.shell -n my-docker-container --local
+    """
+    command = f"heroku run bash -a {name}"
+    if local:
+        command = f"docker exec -ti {name} /bin/bash"
+    c.run(command, echo=True)
+
+
+@invoke.task()
 def stop(c):
     """Stops deployable image
     Usage: inv image.stop
@@ -72,6 +90,7 @@ image.add_task(generate_tag, "tag")
 image.add_task(build_image, "build")
 image.add_task(up, "up")
 image.add_task(stop, "stop")
+image.add_task(shell)
 
 
 ns = invoke.Collection()

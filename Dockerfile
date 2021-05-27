@@ -4,7 +4,6 @@ WORKDIR /code
 ENV PATH /code/node_modules/.bin:$PATH
 COPY ./spa/package.json ./spa/package-lock.json /code/
 RUN npm install --silent
-# COPY ./public /code/public/
 COPY ./spa /code/spa/
 WORKDIR /code/spa/
 RUN npm run build
@@ -89,6 +88,8 @@ ENV UWSGI_WORKERS=2 UWSGI_THREADS=4
 
 # uWSGI static file serving configuration (customize or comment out if not needed):
 ENV UWSGI_STATIC_MAP="/static/=/code/public/static/" UWSGI_STATIC_EXPIRES_URI="/static/.*\.[a-f0-9]{12,}\.(css|js|png|jpg|jpeg|gif|ico|woff|ttf|otf|svg|scss|map|txt) 315360000"
+
+RUN mkdir google-sa && chown ${APP_USER}:${APP_USER} google-sa
 
 # Change to a non-root user
 USER ${APP_USER}:${APP_USER}

@@ -284,7 +284,7 @@ rev-engine-test                 daniel@fundjournalism.org
 #### Open a shell on an app
 
 ```shell
-(revengine)$>  heroku run bash -a rev-engine-nrh-45-infra-dfoxmw
+(revengine)$>  inv image.shell -n rev-engine-nrh-45-infra-dfoxmw
 
 Running bash on ⬢ rev-engine-nrh-45-infra-dfoxmw... up, run.2125 (Hobby)
 Running docker-entrypoint.sh

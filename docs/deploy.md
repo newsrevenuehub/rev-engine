@@ -50,6 +50,30 @@ Set environment variables for Django to use.
 (rev-engine) $> heroku config:set -a rev-engine-test ALLOWED_HOSTS=rev-engine-test.herokuapp.com
 (rev-engine) $> heroku config:set -a rev-engine-test ENVIRONMENT=staging
 ```
+#### Configure Google Cloud Resources
+
+This project uses Google Cloud, and a GC service account to manage its static resources.
+At the moment this is the media uploaded to the project. Django static files are managed
+through Whitenoise.
+
+Four config vars are required:
+
+1. GOOGLE_APPLICATION_CREDENTIALS: This Config var should be set to the name of the file that will
+   contain Google's JSON key, currently `google-sa/google-service-account.json`.
+
+2. GS_SERVICE_ACCOUNT: A Base64 encoded JSON blob provided by google for the service account. This value should
+   *Never* be checked in or exposed in CI.
+
+3. GS_BUCKET_NAME: Currently `rev-engine-media`
+
+4. GS_PROJECT_ID: Currently `revenue-engine`
+
+```shell
+(rev-engine) $> heroku config:set -a rev-engine-test GOOGLE_APPLICATION_CREDENTIALS=google-sa/google-service-account.json
+(rev-engine) $> heroku config:set -a rev-engine-test GS_SERVICE_ACCOUNT=<ENCODED_JSON_BLOB>
+(rev-engine) $> heroku config:set -a rev-engine-test GS_BUCKET_NAME=rev-engine-media
+(rev-engine) $> heroku config:set -a rev-engine-test GS_PROJECT_ID=revenue-engine
+```
 
 ### Deploy the app
 

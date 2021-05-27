@@ -9,7 +9,10 @@ from rest_framework.response import Response
 
 from apps.contributions.models import Contribution
 from apps.contributions.payment_managers import PaymentBadParamsError, StripePaymentManager
-from apps.contributions.serializers import StripeOneTimePaymentSerializer
+from apps.contributions.serializers import (
+    StripeOneTimePaymentSerializer,
+    StripeRecurringPaymentSerializer,
+)
 from apps.contributions.utils import get_hub_stripe_api_key
 from apps.contributions.webhooks import StripeWebhookProcessor
 
@@ -44,6 +47,29 @@ def stripe_one_time_payment(request):
         return Response({"detail": "There was an error processing your payment."}, status=status.HTTP_400_BAD_REQUEST)
 
     return Response(data={"clientSecret": stripe_payment_intent["client_secret"]}, status=status.HTTP_200_OK)
+
+
+@api_view(["POST"])
+@authentication_classes([])
+@permission_classes([])
+def stripe_recurring_payment(request):
+    pi_data = request.data
+
+    # Grab required data from headers
+    pi_data["referer"] = request.META.get("HTTP_REFERER")
+
+    pi_data["ip"] = request.META.get("HTTP_X_FORWARDED_FOR")
+
+    # Instantiate StripePaymentManager with recurring payment serializers for validation and processing
+    stripe_payment = StripePaymentManager(StripeRecurringPaymentSerializer, data=pi_data)
+
+    # Validate data expected by Stripe and BadActor API
+    stripe_payment.validate()
+
+    # Performs request to BadActor API
+    stripe_payment.get_bad_actor_score()
+
+    stripe_subscription = stripe_payment.create_subscription()
 
 
 @api_view(["POST"])

@@ -84,10 +84,6 @@ class PaymentManager:
         if self.flagged is None:
             raise ValueError("PaymentManager must call 'get_bad_actor_score' before performing this action")
 
-    def get_or_create_contributor(self):
-        contributor, _ = Contributor.objects.get_or_create(email=self.validated_data["email"])
-        return contributor
-
     def should_flag(self):
         """
         BadActor API returns an "overall_judgement", between 0-5.
@@ -116,11 +112,17 @@ class PaymentManager:
         except DonationPage.DoesNotExist:
             raise PaymentBadParamsError("PaymentManager could not find a donation page with slug provided")
 
-    def create_contribution(self, organization, payment_intent):
+    def get_or_create_contributor(self):
+        contributor, _ = Contributor.objects.get_or_create(email=self.validated_data["email"])
+        return contributor
+
+    def get_or_create_stripe_customer(self, contributor, organization):
+        return contributor.get_or_create_stripe_customer_for_organization(organization)
+
+    def create_contribution(self, organization, contributor, provider_reference_instance, provider_customer_id):
         if not self.payment_provider_name:
             raise ValueError("Subclass of PaymentManager must set payment_provider_name property")
 
-        contributor = self.get_or_create_contributor()
         donation_page = self.get_donation_page()
         Contribution.objects.create(
             amount=self.validated_data["amount"],
@@ -128,8 +130,9 @@ class PaymentManager:
             organization=organization,
             contributor=contributor,
             payment_provider_used=self.payment_provider_name,
-            payment_provider_data=payment_intent,
-            provider_reference_id=payment_intent.id,
+            payment_provider_data=provider_reference_instance,
+            provider_reference_id=provider_reference_instance.id,
+            provider_customer_id=provider_customer_id if provider_customer_id else None,
             payment_state=Contribution.FLAGGED[0] if self.flagged else Contribution.PROCESSING[0],
             bad_actor_score=self.bad_actor_score,
             bad_actor_response=self.bad_actor_response,
@@ -156,18 +159,21 @@ class StripePaymentManager(PaymentManager):
     def create_one_time_payment(self):
         self.ensure_validated_data()
         self.ensure_bad_actor_score()
-        org = self.get_organization()
+        organization = self.get_organization()
         capture_method = "manual" if self.flagged else "automatic"
         stripe_payment_intent = stripe.PaymentIntent.create(
             amount=self.validated_data["amount"],
             currency=settings.DEFAULT_CURRENCY,
             payment_method_types=["card"],
             api_key=get_hub_stripe_api_key(),
-            stripe_account=org.stripe_account_id,
+            stripe_account=organization.stripe_account_id,
             capture_method=capture_method,
         )
 
-        self.create_contribution(org, stripe_payment_intent)
+        contributor = self.get_or_create_contributor()
+        stripe_customer = self.get_or_create_stripe_customer(contributor, organization)
+
+        self.create_contribution(organization, contributor, stripe_payment_intent, stripe_customer.id)
         return stripe_payment_intent
 
     def create_subscription(self):

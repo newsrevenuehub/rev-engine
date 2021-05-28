@@ -46,7 +46,7 @@ def mock_valid_signature_bad_payload_verification(*args, **kwargs):
 class StripeWebhooksTest(APITestCase):
     def _create_contribution(self, ref_id=None):
         return Contribution.objects.create(
-            provider_reference_id=ref_id, amount=1000, payment_state=Contribution.PROCESSING[0]
+            provider_payment_id=ref_id, amount=1000, payment_state=Contribution.PROCESSING[0]
         )
 
     def _run_webhook_view_with_request(self):

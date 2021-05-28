@@ -75,6 +75,7 @@ class Organization(IndexedTimeStampedModel):
         default=False,
         help_text='A fully verified Stripe Connected account should have "charges_enabled: true" in Stripe',
     )
+    stripe_product_id = models.CharField(max_length=255, blank=True)
 
     default_thank_you_redirect = models.URLField(blank=True)
     default_post_thank_you_redirect = models.URLField(blank=True)

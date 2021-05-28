@@ -29,8 +29,7 @@ function TemporaryStripeCheckoutTest() {
       params: { revenue_program_slug: params.revProgramSlug }
     });
     const stripeAccount = data.stripe_account_id;
-    console.log('hub stripe pk', process.env.REACT_APP_HUB_STRIPE_API_PUB_KEY);
-    setStripe(loadStripe(process.env.REACT_APP_HUB_STRIPE_API_PUB_KEY, { stripeAccount }));
+    setStripe(loadStripe('pk_test_31XWC5qhlLi9UkV1OzsI634W', { stripeAccount }));
   }, [params.revProgramSlug]);
 
   useEffect(() => {

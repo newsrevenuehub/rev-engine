@@ -10,7 +10,7 @@ import { useHistory, useParams, useRouteMatch } from 'react-router-dom';
 
 // Ajax
 import axios from 'ajax/axios';
-import { ORG_STRIPE_ACCOUNT_ID, STRIPE_PAYMENT_INTENT } from 'ajax/endpoints';
+import { ORG_STRIPE_ACCOUNT_ID, STRIPE_ONE_TIME_PAYMENT, STRIPE_RECURRING_PAYMENT } from 'ajax/endpoints';
 
 // Elements
 import Input from 'elements/inputs/Input';
@@ -63,7 +63,9 @@ function CheckoutForm() {
   const { page } = { page: { thank_you_redirect: '', post_thank_you_redirect: 'https://www.caktusgroup.com' } }; // usePageContext()
 
   // Form state
+  const [paymentMethodType, setPaymentMethodType] = useState('card');
   const [paymentType, setPaymentType] = useState('single');
+  const [paymentInterval, setPaymentInterval] = useState('month');
   const [amount, setAmount] = useState('');
   const [email, setEmail] = useState('');
   const [givenName, setGivenName] = useState('');
@@ -95,7 +97,6 @@ function CheckoutForm() {
       const donation_page_slug = params.pageSlug;
       try {
         const paymentIntentBody = {
-          payment_type: paymentType,
           amount,
           revenue_program_slug,
           donation_page_slug,
@@ -104,13 +105,13 @@ function CheckoutForm() {
           family_name: familyName,
           reason
         };
-        const { data } = await axios.post(STRIPE_PAYMENT_INTENT, paymentIntentBody);
+        const { data } = await axios.post(STRIPE_ONE_TIME_PAYMENT, paymentIntentBody);
         resolve(data.clientSecret);
       } catch (e) {
         reject(e);
       }
     });
-  }, [paymentType, amount, email, givenName, familyName, reason, params]);
+  }, [amount, email, givenName, familyName, reason, params]);
 
   const handleSuccesfulPayment = useCallback(() => {
     if (page.thank_you_redirect) {
@@ -123,7 +124,7 @@ function CheckoutForm() {
     }
   }, [page, history, url]);
 
-  const confirmPayment = useCallback(
+  const confirmOneTimePayment = useCallback(
     async (clientSecret) => {
       const payload = await stripe.confirmCardPayment(clientSecret, {
         payment_method: {
@@ -144,11 +145,9 @@ function CheckoutForm() {
     [elements, stripe, alert, handleSuccesfulPayment]
   );
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setProcessing(true);
+  const handleSinglePayment = () => {
     createPaymentIntent()
-      .then(confirmPayment)
+      .then(confirmOneTimePayment)
       .catch((e) => {
         const response = e?.response?.data;
         if (response) {
@@ -160,6 +159,53 @@ function CheckoutForm() {
           setProcessing(false);
         }
       });
+  };
+
+  const createPaymentMethod = async () => {
+    const payload = await stripe.createPaymentMethod({
+      type: paymentMethodType,
+      card: elements.getElement(CardElement),
+      billing_details: {
+        name: `${givenName} ${familyName}`
+      }
+    });
+    if (payload.error) {
+      setErrors({ stripe: `Payment failed ${payload.error.message}` });
+      setProcessing(false);
+    } else {
+      return payload;
+    }
+  };
+
+  const handleRecurringPayment = async () => {
+    const organization_slug = process.env.REACT_APP_TEST_ORG_SLUG || ''; // get me from url!
+    const donation_page_slug = process.env.REACT_APP_TEST_PAGE_SLUG || ''; // get me from url!
+    try {
+      const { paymentMethod } = createPaymentMethod();
+      const body = {
+        paymentMethodId: paymentMethod.id,
+        interval: paymentInterval,
+        amount,
+        organization_slug,
+        donation_page_slug,
+        email,
+        given_name: givenName,
+        family_name: familyName,
+        reason
+      };
+      const response = await axios.post(STRIPE_RECURRING_PAYMENT, body);
+      console.log('recurring payment response! ', response);
+    } catch (e) {
+      console.log('recurring payment error', e.response);
+    }
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setProcessing(true);
+
+    if (paymentType === 'single') handleSinglePayment();
+    if (paymentType === 'recurring') handleRecurringPayment();
   };
 
   return (

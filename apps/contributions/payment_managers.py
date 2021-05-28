@@ -5,7 +5,6 @@ import stripe
 
 from apps.contributions.bad_actor import BadActorAPIError, make_bad_actor_request
 from apps.contributions.models import Contribution, Contributor
-from apps.contributions.serializers import StripePaymentIntentSerializer
 from apps.contributions.utils import get_hub_stripe_api_key
 from apps.organizations.models import RevenueProgram
 from apps.pages.models import DonationPage
@@ -13,21 +12,21 @@ from apps.pages.models import DonationPage
 
 class PaymentProviderError(Exception):
     """
-    A PaymentProviderError generalizes all the errors that might be returned by various Payment Providers.
+    A PaymentProviderError generalizes all the errors that might be returned by various payment providers.
     """
 
     pass
 
 
-class PaymentIntentBadParamsError(Exception):
+class PaymentBadParamsError(Exception):
     """
-    PaymentIntentBadParamsError represents a failure to find model instances from provided parameters.
+    PaymentBadParamsError represents a failure to find model instances from provided parameters.
     """
 
     pass
 
 
-class PaymentIntent:
+class PaymentManager:
     serializer_class = None
     bad_actor_score = None
     bad_actor_response = None
@@ -36,34 +35,39 @@ class PaymentIntent:
     contribution = None
     revenue_program = None
 
-    def __init__(self, data=None, contribution=None):
+    def __init__(self, serializer_class, data=None, contribution=None):
         """
-        The PaymentIntent class and its subclasses behave much like a ModelSerializer,
+        The PaymentManager class and its subclasses behave much like a ModelSerializer,
         but they operate on multiple local models as well as models held by the payment provider.
 
-        A PaymentIntent instantiated with `data` acts as a serializer for that data.
+        A PaymentManager instantiated with `data` acts as a serializer for that data.
         It is able to validate and process the data, creating new model instances both
         locally and with the payment provider.
 
-        A PaymentIntent instantiated with a `Contribution` is like a ModelSerilizer receiving an update
+        A PaymentManager instantiated with a `Contribution` is like a ModelSerilizer receiving an update
         to an existing instance. Here we use this class to perform updates on existing local and payment-provider
         models.
         """
         if contribution and not isinstance(contribution, Contribution):
-            raise ValueError("PaymentIntent contribution argument expected an instance of Contribution.")
+            raise ValueError("PaymentManager contribution argument expected an instance of Contribution.")
         if contribution and data:
-            raise ValueError("PaymentIntent must be initialized with either data or a contribution, not both.")
+            raise ValueError("PaymentManager must be initialized with either data or a contribution, not both.")
+
         self.contribution = contribution
         self.data = data
+        self.serializer_class = serializer_class
 
     def validate(self):
         serializer = self.serializer_class(data=self.data)
         serializer.is_valid(raise_exception=True)
         self.validated_data = serializer.data
 
-    def get_bad_actor_score(self):
+    def ensure_validated_data(self):
         if not self.validated_data:
-            raise ValueError("PaymentIntent must call 'validate' before calling BadActor API")
+            raise ValueError("PaymentManager must call 'validate' before performing this action")
+
+    def get_bad_actor_score(self):
+        self.ensure_validated_data()
         try:
             response = make_bad_actor_request(self.validated_data)
             self.bad_actor_score = response.json()["overall_judgment"]
@@ -75,6 +79,10 @@ class PaymentIntent:
                 self.flagged = False
         except BadActorAPIError:
             self.flagged = False
+
+    def ensure_bad_actor_score(self):
+        if self.flagged is None:
+            raise ValueError("PaymentManager must call 'get_bad_actor_score' before performing this action")
 
     def get_or_create_contributor(self):
         contributor, _ = Contributor.objects.get_or_create(email=self.validated_data["email"])
@@ -95,7 +103,7 @@ class PaymentIntent:
             )
             return self.revenue_program
         except RevenueProgram.DoesNotExist:
-            raise PaymentIntentBadParamsError("PaymentIntent could not find a revenue program with slug provided")
+            raise PaymentBadParamsError("PaymentManager could not find a revenue program with slug provided")
 
     def get_organization(self):
         revenue_program = self.get_revenue_program()
@@ -106,11 +114,11 @@ class PaymentIntent:
         try:
             return DonationPage.objects.get(slug=page_slug) if page_slug else self.revenue_program.default_donation_page
         except DonationPage.DoesNotExist:
-            raise PaymentIntentBadParamsError("PaymentIntent could not find a donation page with slug provided")
+            raise PaymentBadParamsError("PaymentManager could not find a donation page with slug provided")
 
     def create_contribution(self, organization, payment_intent):
         if not self.payment_provider_name:
-            raise ValueError("Subclass of PaymentIntent must set payment_provider_name property")
+            raise ValueError("Subclass of PaymentManager must set payment_provider_name property")
 
         contributor = self.get_or_create_contributor()
         donation_page = self.get_donation_page()
@@ -127,38 +135,27 @@ class PaymentIntent:
             bad_actor_response=self.bad_actor_response,
         )
 
-    def ensure_bad_actor_score(self):
-        if self.flagged is None:
-            raise ValueError("PaymentIntent must call 'get_bad_actor_score' before creating payment intent")
-
     def get_subclass(self):
         if not self.contribution:
             raise ValueError(
-                "Calling get_subclass requires PaymentIntent to be instantiated with a contribution instance."
+                "Calling get_subclass requires PaymentManager to be instantiated with a contribution instance."
             )
 
         pp_used = self.contribution.payment_provider_used
         if pp_used == "Stripe":
-            return StripePaymentIntent
-
-    def create_payment_intent(self):
-        raise NotImplementedError("Subclass of PaymentIntent must implement create_payment_intent.")
-
-    def create_one_time_payment_intent(self):  # pragma: no cover
-        raise NotImplementedError("Subclass of PaymentIntent must implement create_one_time_payment_intent.")
-
-    def create_recurring_payment_intent(self):  # pragma: no cover
-        raise NotImplementedError("Subclass of PaymentIntent must implement create_recurring_payment_intent.")
+            return StripePaymentManager
 
     def complete_payment(self, **kwargs):  # pragma: no cover
-        raise NotImplementedError("Subclass of PaymentIntent must implement complete_payment.")
+        raise NotImplementedError("Subclass of PaymentManager must implement complete_payment.")
 
 
-class StripePaymentIntent(PaymentIntent):
-    serializer_class = StripePaymentIntentSerializer
+class StripePaymentManager(PaymentManager):
     payment_provider_name = "Stripe"
+    customer = None
 
-    def create_one_time_payment_intent(self):
+    def create_one_time_payment(self):
+        self.ensure_validated_data()
+        self.ensure_bad_actor_score()
         org = self.get_organization()
         capture_method = "manual" if self.flagged else "automatic"
         stripe_payment_intent = stripe.PaymentIntent.create(
@@ -173,17 +170,10 @@ class StripePaymentIntent(PaymentIntent):
         self.create_contribution(org, stripe_payment_intent)
         return stripe_payment_intent
 
-    def create_recurring_payment_intent(self):  # pragma: no cover
-        pass
-
-    def create_payment_intent(self):
+    def create_subscription(self):
+        self.ensure_validated_data()
         self.ensure_bad_actor_score()
-        if self.validated_data["payment_type"] == StripePaymentIntentSerializer.PAYMENT_TYPE_SINGLE[0]:
-            stripe_payment_intent = self.create_one_time_payment_intent()
-        else:  # pragma: no cover
-            stripe_payment_intent = self.create_recurring_payment_intent()
-
-        return stripe_payment_intent
+        pass
 
     def complete_payment(self, reject=False):
         organization = self.contribution.organization

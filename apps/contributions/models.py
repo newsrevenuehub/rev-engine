@@ -97,11 +97,11 @@ class Contribution(IndexedTimeStampedModel):
             return None
         return self.BAD_ACTOR_SCORES[self.bad_actor_score][1]
 
-    def get_payment_intent_instance(self):
-        from apps.contributions.payment_intent import PaymentIntent
+    def get_payment_manager_instance(self, serializer):
+        from apps.contributions.payment_managers import PaymentManager
 
-        payment_intent_class = PaymentIntent(contribution=self).get_subclass()
-        return payment_intent_class(contribution=self)
+        manager_class = PaymentManager(serializer, contribution=self).get_subclass()
+        return manager_class(serializer, contribution=self)
 
     class Meta:
         get_latest_by = "modified"

@@ -8,7 +8,8 @@ from rest_framework.decorators import api_view, authentication_classes, permissi
 from rest_framework.response import Response
 
 from apps.contributions.models import Contribution
-from apps.contributions.payment_intent import PaymentIntentBadParamsError, StripePaymentIntent
+from apps.contributions.payment_managers import PaymentBadParamsError, StripePaymentManager
+from apps.contributions.serializers import StripeOneTimePaymentSerializer
 from apps.contributions.utils import get_hub_stripe_api_key
 from apps.contributions.webhooks import StripeWebhookProcessor
 
@@ -19,7 +20,7 @@ logger = logging.getLogger(__name__)
 @api_view(["POST"])
 @authentication_classes([])
 @permission_classes([])
-def stripe_payment_intent(request):
+def stripe_one_time_payment(request):
     pi_data = request.data
 
     # Grab required data from headers
@@ -27,19 +28,19 @@ def stripe_payment_intent(request):
 
     pi_data["ip"] = request.META.get("HTTP_X_FORWARDED_FOR")
 
-    # Instantiate StripePaymentIntent for validation and processing
-    stripe_pi = StripePaymentIntent(data=pi_data)
+    # Instantiate StripePaymentManager with one-time payment serializers for validation and processing
+    stripe_payment = StripePaymentManager(StripeOneTimePaymentSerializer, data=pi_data)
 
     # Validate data expected by Stripe and BadActor API
-    stripe_pi.validate()
+    stripe_payment.validate()
 
     # Performs request to BadActor API
-    stripe_pi.get_bad_actor_score()
+    stripe_payment.get_bad_actor_score()
 
     try:
         # Create payment intent with Stripe, associated local models
-        stripe_payment_intent = stripe_pi.create_payment_intent()
-    except PaymentIntentBadParamsError:
+        stripe_payment_intent = stripe_payment.create_one_time_payment()
+    except PaymentBadParamsError:
         return Response({"detail": "There was an error processing your payment."}, status=status.HTTP_400_BAD_REQUEST)
 
     return Response(data={"clientSecret": stripe_payment_intent["client_secret"]}, status=status.HTTP_200_OK)

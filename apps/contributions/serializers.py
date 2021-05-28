@@ -15,7 +15,8 @@ class ContributorSerializer(serializers.ModelSerializer):
         fields = "__all__"
 
 
-class StripePaymentIntentSerializer(serializers.Serializer):
+class AbstractPaymentSerializer(serializers.Serializer):
+    # These are the fields required for the BadActor API
     email = serializers.EmailField()
     ip = serializers.IPAddressField()
     given_name = serializers.CharField(max_length=255)
@@ -27,19 +28,14 @@ class StripePaymentIntentSerializer(serializers.Serializer):
     revenue_program_slug = serializers.SlugField()
     donation_page_slug = serializers.SlugField(required=False)
 
-    PAYMENT_TYPE_SINGLE = (
-        "single",
-        "Single payment",
+    PAYMENT_TYPE_ONE_TIME = (
+        "one_time",
+        "One-time payment",
     )
     PAYMENT_TYPE_RECURRING = (
         "recurring",
         "Recurring payment",
     )
-    PAYMENT_TYPE_CHOICES = (
-        PAYMENT_TYPE_SINGLE,
-        PAYMENT_TYPE_RECURRING,
-    )
-    payment_type = serializers.ChoiceField(choices=PAYMENT_TYPE_CHOICES)
 
     def convert_amount_to_cents(self, amount):
         """
@@ -55,3 +51,23 @@ class StripePaymentIntentSerializer(serializers.Serializer):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields["amount"].error_messages["invalid"] = "Enter a valid amount"
+
+
+class StripeOneTimePaymentSerializer(AbstractPaymentSerializer):
+    """
+    A Stripe one-time payment requires minimal information--- do I need the customer?
+    """
+
+
+class StripeRecurringPaymentSerializer(AbstractPaymentSerializer):
+    """
+    paymentMethodId: paymentMethod.id,
+    interval: paymentInterval,
+    """
+
+    payment_method_id = serializers.CharField(max_length=255)
+
+    INTERVAL_MONTHLY = ("monthly", "Monthly")
+    INTERVAL_YEARLY = ("yearly", "Yearly")
+    INTERVAL_CHOICES = [INTERVAL_MONTHLY, INTERVAL_YEARLY]
+    interval = serializers.ChoiceField(choices=INTERVAL_CHOICES)

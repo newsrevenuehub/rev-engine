@@ -38,7 +38,7 @@ class ContributionAdminTest(TestCase):
     def _make_listview_request(self):
         return self.factory.get(reverse("admin:contributions_contribution_changelist"))
 
-    @patch("apps.contributions.payment_intent.StripePaymentIntent.complete_payment")
+    @patch("apps.contributions.payment_managers.StripePaymentManager.complete_payment")
     def test_accept_flagged_contribution(self, mock_complete_payment):
         request = self._make_listview_request()
         setup_request(self.user, request)
@@ -47,7 +47,7 @@ class ContributionAdminTest(TestCase):
         self.assertEqual(mock_complete_payment.call_count, len(queryset))
         mock_complete_payment.assert_called_with(reject=False)
 
-    @patch("apps.contributions.payment_intent.StripePaymentIntent.complete_payment")
+    @patch("apps.contributions.payment_managers.StripePaymentManager.complete_payment")
     def test_reject_flagged_contribution(self, mock_complete_payment):
         request = self._make_listview_request()
         setup_request(self.user, request)

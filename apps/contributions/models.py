@@ -4,7 +4,7 @@ from apps.common.models import IndexedTimeStampedModel
 
 
 class Contributor(IndexedTimeStampedModel):
-    email = models.EmailField()
+    email = models.EmailField(unique=True)
 
     @property
     def contributions_count(self):
@@ -23,13 +23,27 @@ class Contribution(IndexedTimeStampedModel):
     currency = models.CharField(max_length=3, default="usd")
     reason = models.CharField(max_length=255, blank=True)
 
+    INTERVAL_ONE_TIME = (
+        "one_time",
+        "One time",
+    )
+    INTERVAL_DAILY = ("day", "Daily")
+    INTERVAL_WEEKLY = ("week", "Weekly")
+    INTERVAL_MONTHLY = ("month", "Monthly")
+    INTERVAL_YEARLY = ("year", "Yearly")
+    INTERVAL_CHOICES = (INTERVAL_ONE_TIME, INTERVAL_DAILY, INTERVAL_WEEKLY, INTERVAL_MONTHLY, INTERVAL_YEARLY)
+    interval = models.CharField(max_length=8, choices=INTERVAL_CHOICES)
+
     payment_provider_used = models.CharField(max_length=64)
     payment_provider_data = models.JSONField(null=True)
-    provider_reference_id = models.CharField(max_length=255)
+    provider_payment_id = models.CharField(max_length=255)
+    provider_customer_id = models.CharField(max_length=255, blank=True)
+    provider_payment_method_id = models.CharField(max_length=255, blank=True)
 
     contributor = models.ForeignKey("contributions.Contributor", on_delete=models.SET_NULL, null=True)
     donation_page = models.ForeignKey("pages.DonationPage", on_delete=models.SET_NULL, null=True)
     organization = models.ForeignKey("organizations.Organization", on_delete=models.SET_NULL, null=True)
+
     bad_actor_score = models.IntegerField(null=True)
     bad_actor_response = models.JSONField(null=True)
     flagged_date = models.DateTimeField(null=True)
@@ -37,10 +51,6 @@ class Contribution(IndexedTimeStampedModel):
     PROCESSING = (
         "processing",
         "processing",
-    )
-    PAID = (
-        "paid",
-        "paid",
     )
     CANCELED = (
         "canceled",
@@ -58,8 +68,15 @@ class Contribution(IndexedTimeStampedModel):
         "rejected",
         "rejected",
     )
-    PAYMENT_STATES = [PROCESSING, PAID, CANCELED, FAILED, FLAGGED, REJECTED]
-    payment_state = models.CharField(max_length=10, choices=PAYMENT_STATES)
+    # A "paid" contribution is a "successful" one-time contribution
+    PAID = (
+        "paid",
+        "paid",
+    )
+    # An "active" contribution is a "successful" recurring contribution
+    ACTIVE = ("active", "Active")
+    PAYMENT_STATES = [PROCESSING, PAID, CANCELED, FAILED, FLAGGED, REJECTED, ACTIVE]
+    payment_state = models.CharField(max_length=10, choices=PAYMENT_STATES, null=True)
 
     def __str__(self):
         return f"{self.formatted_amount}, {self.created.strftime('%Y-%m-%d %H:%M:%S')}"
@@ -102,6 +119,17 @@ class Contribution(IndexedTimeStampedModel):
 
         manager_class = PaymentManager(serializer, contribution=self).get_subclass()
         return manager_class(serializer, contribution=self)
+
+    def process_flagged_payment(self, reject=False):
+        from apps.contributions import serializers
+
+        serializer = (
+            serializers.StripeOneTimePaymentSerializer
+            if self.interval == Contribution.INTERVAL_ONE_TIME
+            else serializers.StripeRecurringPaymentSerializer
+        )
+        payment_manager = self.get_payment_manager_instance(serializer)
+        payment_manager.complete_payment(reject=reject)
 
     class Meta:
         get_latest_by = "modified"

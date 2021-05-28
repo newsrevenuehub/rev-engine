@@ -12,7 +12,7 @@ class StripeWebhookProcessor:
         self.obj_data = self.event.data["object"]
 
     def get_contribution_by_reference_id(self):
-        return Contribution.objects.get(provider_reference_id=self.obj_data["id"])
+        return Contribution.objects.get(provider_payment_id=self.obj_data["id"])
 
     def process(self):
         logger.info(f'Processing Stripe Event of type "{self.event.type}"')

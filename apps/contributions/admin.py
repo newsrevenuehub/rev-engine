@@ -2,7 +2,6 @@ from django.contrib import admin, messages
 
 from apps.contributions.models import Contribution, Contributor
 from apps.contributions.payment_managers import PaymentProviderError
-from apps.contributions.serializers import StripeOneTimePaymentSerializer
 
 
 @admin.register(Contributor)
@@ -48,6 +47,7 @@ class ContributionAdmin(admin.ModelAdmin):
                     "amount",
                     "currency",
                     "reason",
+                    "interval",
                 )
             },
         ),
@@ -56,7 +56,14 @@ class ContributionAdmin(admin.ModelAdmin):
         (
             "Provider",
             {
-                "fields": ("payment_state", "payment_provider_used", "provider_reference_id", "payment_provider_data"),
+                "fields": (
+                    "payment_state",
+                    "payment_provider_used",
+                    "provider_payment_id",
+                    "provider_customer_id",
+                    "provider_payment_method_id",
+                    "payment_provider_data",
+                ),
             },
         ),
     )
@@ -99,6 +106,7 @@ class ContributionAdmin(admin.ModelAdmin):
         "amount",
         "currency",
         "reason",
+        "interval",
         "contributor",
         "donation_page",
         "organization",
@@ -106,8 +114,11 @@ class ContributionAdmin(admin.ModelAdmin):
         "bad_actor_response",
         "payment_state",
         "payment_provider_used",
-        "provider_reference_id",
+        "provider_payment_id",
+        "provider_customer_id",
+        "provider_payment_method_id",
         "payment_provider_data",
+        "flagged_date",
     )
 
     actions = (
@@ -137,8 +148,7 @@ class ContributionAdmin(admin.ModelAdmin):
         failed = []
         for contribution in queryset:
             try:
-                payment_intent = contribution.get_payment_manager_instance(StripeOneTimePaymentSerializer)
-                payment_intent.complete_payment(reject=reject)
+                contribution.process_flagged_payment(reject=reject)
                 succeeded += 1
             except PaymentProviderError:
                 failed.append(contribution)

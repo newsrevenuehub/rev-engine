@@ -29,6 +29,8 @@ function TemporaryStripeCheckoutTest() {
       params: { revenue_program_slug: params.revProgramSlug }
     });
     const stripeAccount = data.stripe_account_id;
+    console.log('hub stripe pk', process.env.REACT_APP_HUB_STRIPE_API_PUB_KEY);
+    console.log('org stripe account id', stripeAccount);
     setStripe(loadStripe(process.env.REACT_APP_HUB_STRIPE_API_PUB_KEY, { stripeAccount }));
   }, [params.revProgramSlug]);
 

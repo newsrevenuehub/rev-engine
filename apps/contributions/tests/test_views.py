@@ -1,8 +1,10 @@
 from unittest.mock import patch
 
+from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.urls import reverse
 
+import responses
 from faker import Faker
 from rest_framework.test import APIRequestFactory, APITestCase
 from stripe.error import StripeError
@@ -25,6 +27,7 @@ class MockPaymentIntent(StripeObject):
         self.client_secret = "secret123"
 
 
+@responses.activate
 @patch("stripe.PaymentIntent.create", side_effect=MockPaymentIntent)
 class CreateStripeOneTimePaymentViewTest(APITestCase):
     def setUp(self):
@@ -38,6 +41,9 @@ class CreateStripeOneTimePaymentViewTest(APITestCase):
 
         self.ip = faker.ipv4()
         self.referer = faker.url()
+
+        json_body = {"overall_judgment": 2}
+        responses.add(responses.POST, settings.BAD_ACTOR_API_URL, json=json_body, status=200)
 
     def _create_request(self, email=None, rev_slug=None, page_slug=None):
         factory = APIRequestFactory()

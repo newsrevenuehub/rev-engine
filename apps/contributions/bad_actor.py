@@ -4,6 +4,8 @@ from django.conf import settings
 
 import requests
 
+from apps.contributions.serializers import AbstractPaymentSerializer
+
 
 logger = logging.getLogger(__name__)
 
@@ -20,6 +22,7 @@ def make_bad_actor_request(validated_data):
     headers = {
         "Authorization": f"Bearer {settings.BAD_ACTOR_API_KEY}",
     }
+    validated_data["amount"] = AbstractPaymentSerializer.convert_cents_to_amount(validated_data["amount"])
     response = requests.post(url=settings.BAD_ACTOR_API_URL, headers=headers, json=validated_data)
     if int(str(response.status_code)[:1]) != 2:
         logger.error("Received a BadActor API error")

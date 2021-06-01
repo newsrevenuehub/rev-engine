@@ -73,6 +73,7 @@ class ContributionAdmin(admin.ModelAdmin):
         "organization",
         "contributor",
         "donation_page",
+        "interval",
         "payment_state",
         "expanded_bad_actor_score",
         "created",

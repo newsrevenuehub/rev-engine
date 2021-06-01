@@ -1,6 +1,7 @@
 import logging
 
 from django.conf import settings
+from django.core.mail import mail_admins
 
 import stripe
 from rest_framework import status
@@ -9,7 +10,10 @@ from rest_framework.response import Response
 
 from apps.contributions.models import Contribution
 from apps.contributions.payment_managers import PaymentBadParamsError, StripePaymentManager
-from apps.contributions.serializers import StripeOneTimePaymentSerializer
+from apps.contributions.serializers import (
+    StripeOneTimePaymentSerializer,
+    StripeRecurringPaymentSerializer,
+)
 from apps.contributions.utils import get_hub_stripe_api_key
 from apps.contributions.webhooks import StripeWebhookProcessor
 
@@ -43,7 +47,35 @@ def stripe_one_time_payment(request):
     except PaymentBadParamsError:
         return Response({"detail": "There was an error processing your payment."}, status=status.HTTP_400_BAD_REQUEST)
 
-    return Response(data={"clientSecret": stripe_payment_intent["client_secret"]}, status=status.HTTP_200_OK)
+    return Response({"clientSecret": stripe_payment_intent["client_secret"]}, status=status.HTTP_200_OK)
+
+
+@api_view(["POST"])
+@authentication_classes([])
+@permission_classes([])
+def stripe_recurring_payment(request):
+    pi_data = request.data
+
+    # Grab required data from headers
+    pi_data["referer"] = request.META.get("HTTP_REFERER")
+
+    pi_data["ip"] = request.META.get("HTTP_X_FORWARDED_FOR")
+
+    # Instantiate StripePaymentManager with recurring payment serializers for validation and processing
+    stripe_payment = StripePaymentManager(StripeRecurringPaymentSerializer, data=pi_data)
+
+    # Validate data expected by Stripe and BadActor API
+    stripe_payment.validate()
+
+    # Performs request to BadActor API
+    stripe_payment.get_bad_actor_score()
+
+    try:
+        stripe_payment.create_subscription()
+    except PaymentBadParamsError:
+        return Response({"detail": "There was an error processing your payment."}, status=status.HTTP_400_BAD_REQUEST)
+
+    return Response({"detail": "Success"}, status=status.HTTP_200_OK)
 
 
 @api_view(["POST"])
@@ -84,6 +116,8 @@ def stripe_confirmation(request):
             return Response({"status": "not_connected"}, status=status.HTTP_202_ACCEPTED)
         # A previously confirmed account can spare the stripe API call
         if organization.stripe_verified:
+            # If stripe is verified, create and associate default product
+            organization.create_default_product()
             return Response({"status": "connected"}, status=status.HTTP_200_OK)
 
         # A "Confirmed" stripe account has "charges_enabled": true on return from stripe.Account.retrieve
@@ -131,6 +165,9 @@ def process_stripe_webhook_view(request):
         logger.error(e)
     except Contribution.DoesNotExist:
         logger.error("Could not find contribution matching payment_intent_id")
-        return Response(data={"error": "Invalid payment_intent_id"}, status=status.HTTP_400_BAD_REQUEST)
+        mail_admins(
+            "Stripe Webhook invalid reference"
+            f"Stripe sent a webhook request refering to PaymentIntent \"{processor.obj_data['id']}\", but we could not map that data to any existing Contribution.",
+        )
 
     return Response(status=status.HTTP_200_OK)

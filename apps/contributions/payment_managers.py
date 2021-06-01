@@ -1,3 +1,5 @@
+import logging
+
 from django.conf import settings
 from django.core.mail import mail_admins
 from django.utils import timezone
@@ -9,6 +11,9 @@ from apps.contributions.models import Contribution, Contributor
 from apps.contributions.utils import get_hub_stripe_api_key
 from apps.organizations.models import RevenueProgram
 from apps.pages.models import DonationPage
+
+
+logger = logging.getLogger(__name__)
 
 
 class PaymentProviderError(Exception):
@@ -121,13 +126,13 @@ class PaymentManager:
         if not self.payment_provider_name:
             raise ValueError("Subclass of PaymentManager must set payment_provider_name property")
 
-        payment_state = (Contribution.FLAGGED[0] if self.flagged else Contribution.PROCESSING[0],)
+        payment_state = Contribution.FLAGGED[0] if self.flagged else Contribution.PROCESSING[0]
         contributor = self.get_or_create_contributor()
         donation_page = self.get_donation_page()
         provider_payment_id = provider_reference_instance.id if provider_reference_instance else None
         provider_payment_method_id = self.validated_data.get("payment_method_id", "")
 
-        Contribution.objects.create(
+        return Contribution.objects.create(
             amount=self.validated_data["amount"],
             reason=self.validated_data["reason"],
             interval=self.validated_data["interval"],
@@ -195,24 +200,28 @@ class StripePaymentManager(PaymentManager):
         self.ensure_bad_actor_score()
         org = self.get_organization()
 
-        # Create customer on org
-        stripe_customer = self.add_customer_to_org(org)
-        # Add paymentMethod to that customer.
-        self.attach_payment_method_to_customer(stripe_customer)
+        # Create customer on org...
+        stripe_customer = self.create_organization_customer(org)
+        # ...attach paymentMethod to that customer.
+        self.attach_payment_method_to_customer(stripe_customer.id, org.stripe_account_id)
 
         contribution = self.create_contribution(org, provider_customer_id=stripe_customer.id)
         if not self.flagged:
             self.contribution = contribution
             self.complete_payment(reject=False)
 
-    def add_customer_to_org(self, org):
+    def create_organization_customer(self, org):
         return stripe.Customer.create(
             email=self.validated_data["email"], api_key=get_hub_stripe_api_key(), stripe_account=org.stripe_account_id
         )
 
-    def attach_payment_method_to_customer(self):
-        # ! WIP
-        pass
+    def attach_payment_method_to_customer(self, stripe_customer_id, org_strip_account):
+        stripe.PaymentMethod.attach(
+            self.validated_data["payment_method_id"],
+            customer=stripe_customer_id,
+            api_key=get_hub_stripe_api_key(),
+            stripe_account=org_strip_account,
+        )
 
     def complete_payment(self, reject=False):
         if self.contribution.interval == Contribution.INTERVAL_ONE_TIME:
@@ -255,10 +264,14 @@ class StripePaymentManager(PaymentManager):
             raise PaymentProviderError(stripe_error)
 
     def complete_recurring_payment(self, reject=False):
-        if not self.contribution.stripe_product_id:
-            raise ValueError(
-                "StripePaymentManager complete_recurring_payment requires a contribution.stripe_product_id"
-            )
+        if reject:
+            """
+            If flagged, creation of the Stripe Subscription is defered until it is "accepted".
+            So to "reject", just don't create it. Set status of Contribution to "rejected"
+            """
+            self.contribution.payment_state = Contribution.REJECTED[0]
+            self.contribution.save()
+            return
 
         organization = self.contribution.organization
         previous_payment_state = self.contribution.payment_state
@@ -269,7 +282,7 @@ class StripePaymentManager(PaymentManager):
             price_data = {
                 "unit_amount": self.contribution.amount,
                 "currency": self.contribution.currency,
-                "product": self.contribution.stripe_product_id,
+                "product": organization.stripe_product_id,
                 "recurring": {
                     "interval": self.contribution.interval,
                 },
@@ -282,9 +295,26 @@ class StripePaymentManager(PaymentManager):
                 api_key=get_hub_stripe_api_key(),
             )
             self.contribution.payment_provider_data = subscription
+            self.provider_payment_id = subscription.id
             self.contribution.payment_status = Contribution.ACTIVE[0]
             self.contribution.save()
         except stripe.error.StripeError as stripe_error:
             self.contribution.payment_state = previous_payment_state
             self.contribution.save()
             raise PaymentProviderError(stripe_error)
+
+    def _get_interval(self):
+        """
+        Utility to permit toggled debug intervals for testing.
+        Unfortunately, Stripe has a narrow range of supported intervals here.
+        Switching 'monthly' to 'daily' and 'yearly' to 'weekly' is ok, but not great.
+        It would be really swell if there was a way to set it to minutes/hours.
+        """
+        if not settings.USE_DEBUG_INTERVALS:
+            return self.contribution.interval
+        logger.info("Using debug intervals for Stripe Subscriptions")
+        if self.contribution.interval == Contribution.INTERVAL_MONTHLY:
+            return "daily"
+
+        if self.contribution.interval == Contribution.INTERVAL_YEARLY:
+            return "weekly"

@@ -32,12 +32,14 @@ class AbstractPaymentSerializer(serializers.Serializer):
 
     INTERVAL_CHOICES = [
         Contribution.INTERVAL_ONE_TIME,
-        Contribution.INTERVAL_DAILY,
-        Contribution.INTERVAL_WEEKLY,
         Contribution.INTERVAL_MONTHLY,
         Contribution.INTERVAL_YEARLY,
     ]
     interval = serializers.ChoiceField(choices=INTERVAL_CHOICES, default=Contribution.INTERVAL_ONE_TIME[0])
+
+    @classmethod
+    def convert_cents_to_amount(self, cents):
+        return str(float(cents / 100))
 
     def convert_amount_to_cents(self, amount):
         """

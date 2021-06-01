@@ -27,18 +27,16 @@ class Contribution(IndexedTimeStampedModel):
         "one_time",
         "One time",
     )
-    INTERVAL_DAILY = ("day", "Daily")
-    INTERVAL_WEEKLY = ("week", "Weekly")
     INTERVAL_MONTHLY = ("month", "Monthly")
     INTERVAL_YEARLY = ("year", "Yearly")
-    INTERVAL_CHOICES = (INTERVAL_ONE_TIME, INTERVAL_DAILY, INTERVAL_WEEKLY, INTERVAL_MONTHLY, INTERVAL_YEARLY)
+    INTERVAL_CHOICES = (INTERVAL_ONE_TIME, INTERVAL_MONTHLY, INTERVAL_YEARLY)
     interval = models.CharField(max_length=8, choices=INTERVAL_CHOICES)
 
     payment_provider_used = models.CharField(max_length=64)
     payment_provider_data = models.JSONField(null=True)
-    provider_payment_id = models.CharField(max_length=255)
-    provider_customer_id = models.CharField(max_length=255, blank=True)
-    provider_payment_method_id = models.CharField(max_length=255, blank=True)
+    provider_payment_id = models.CharField(max_length=255, blank=True, null=True)
+    provider_customer_id = models.CharField(max_length=255, blank=True, null=True)
+    provider_payment_method_id = models.CharField(max_length=255, blank=True, null=True)
 
     contributor = models.ForeignKey("contributions.Contributor", on_delete=models.SET_NULL, null=True)
     donation_page = models.ForeignKey("pages.DonationPage", on_delete=models.SET_NULL, null=True)

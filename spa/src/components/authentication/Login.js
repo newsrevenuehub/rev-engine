@@ -38,7 +38,7 @@ function Login() {
 
   const handleForgotPassword = (e) => {
     e.preventDefault();
-    history.push(PASSWORD_RESET_URL);
+    window.location = PASSWORD_RESET_URL;
   };
 
   const handleLogin = async (e) => {

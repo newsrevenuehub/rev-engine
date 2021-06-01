@@ -27,7 +27,6 @@ class MockPaymentIntent(StripeObject):
         self.client_secret = "secret123"
 
 
-@responses.activate
 @patch("stripe.PaymentIntent.create", side_effect=MockPaymentIntent)
 class CreateStripeOneTimePaymentViewTest(APITestCase):
     def setUp(self):
@@ -70,6 +69,7 @@ class CreateStripeOneTimePaymentViewTest(APITestCase):
     def _post_valid_payment_intent(self, *args, **kwargs):
         return stripe_one_time_payment(self._create_request(*args, **kwargs))
 
+    @responses.activate
     def test_new_contributor_created(self, mock_create_intent):
         new_contributor_email = "new_contributor@test.com"
         response = self._post_valid_payment_intent(email=new_contributor_email)
@@ -80,6 +80,7 @@ class CreateStripeOneTimePaymentViewTest(APITestCase):
         self.assertTrue(Contribution.objects.filter(contributor=new_contributer).exists())
         mock_create_intent.assert_called_once()
 
+    @responses.activate
     def test_payment_intent_serializer_validates(self, *args):
         # Email is required
         response = self._post_valid_payment_intent(email=None)

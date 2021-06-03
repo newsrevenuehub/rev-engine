@@ -91,10 +91,6 @@ class PaymentManager:
         if self.flagged is None:
             raise ValueError("PaymentManager must call 'get_bad_actor_score' before performing this action")
 
-    def get_or_create_contributor(self):
-        contributor, _ = Contributor.objects.get_or_create(email=self.validated_data["email"])
-        return contributor
-
     def should_flag(self):
         """
         BadActor API returns an "overall_judgement", between 0-5.
@@ -122,6 +118,10 @@ class PaymentManager:
             return DonationPage.objects.get(slug=page_slug) if page_slug else self.revenue_program.default_donation_page
         except DonationPage.DoesNotExist:
             raise PaymentBadParamsError("PaymentManager could not find a donation page with slug provided")
+
+    def get_or_create_contributor(self):
+        contributor, _ = Contributor.objects.get_or_create(email=self.validated_data["email"])
+        return contributor
 
     def create_contribution(self, organization, provider_reference_instance=None, provider_customer_id=""):
         if not self.payment_provider_name:
@@ -176,19 +176,18 @@ class StripePaymentManager(PaymentManager):
         """
         self.ensure_validated_data()
         self.ensure_bad_actor_score()
-        org = self.get_organization()
-
+        organization = self.get_organization()
         capture_method = "manual" if self.flagged else "automatic"
         stripe_payment_intent = stripe.PaymentIntent.create(
             amount=self.validated_data["amount"],
             currency=settings.DEFAULT_CURRENCY,
             payment_method_types=["card"],
             api_key=get_hub_stripe_api_key(),
-            stripe_account=org.stripe_account_id,
+            stripe_account=organization.stripe_account_id,
             capture_method=capture_method,
         )
 
-        self.create_contribution(org, provider_reference_instance=stripe_payment_intent)
+        self.create_contribution(organization, provider_reference_instance=stripe_payment_intent)
         return stripe_payment_intent
 
     def create_subscription(self):

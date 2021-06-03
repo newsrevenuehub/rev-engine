@@ -13,7 +13,7 @@ from apps.contributions.payment_managers import PaymentProviderError
 from apps.contributions.serializers import StripeOneTimePaymentSerializer
 
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
 
 
 def ping_healthchecks(check_name, healthcheck_url):  # pragma: no cover
@@ -52,7 +52,7 @@ def auto_accept_flagged_contributions():
 
     logger.info(f"Successfully captured {successful_captures} previously-held payments.")
     if failed_captures:
-        logger.warn(f"Failed to capture {failed_captures} previously-held payments")
+        logger.warning(f"Failed to capture {failed_captures} previously-held payments")
 
     ping_healthchecks("auto_accept_flagged_contributions", settings.HEALTHCHECK_URL_AUTO_ACCEPT_FLAGGED_PAYMENTS)
     return successful_captures, failed_captures

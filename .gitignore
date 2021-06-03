@@ -17,6 +17,7 @@ env-local.sh
 .vsls.json
 .idea/
 .direnv
+.docker.env
 
 # Project Static Files
 node_modules/*

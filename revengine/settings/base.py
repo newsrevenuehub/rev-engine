@@ -240,7 +240,7 @@ LOGGING = {
             "handlers": ["console"],
             "propagate": False,
         },
-        "warn_info": {
+        "warn": {
             "handlers": ["warn_admins"],
             "level": "WARNING",
             "propagate": True,
@@ -251,6 +251,8 @@ LOGGING = {
         "level": "INFO",
     },
 }
+
+DEFAULT_LOGGER = LOGGING["loggers"]["warn"]
 
 
 PHONENUMBER_DB_FORMAT = "NATIONAL"

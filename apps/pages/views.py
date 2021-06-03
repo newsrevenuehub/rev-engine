@@ -1,5 +1,7 @@
 import logging
 
+from django.conf import settings
+
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
@@ -12,7 +14,7 @@ from apps.pages import serializers
 from apps.pages.models import Benefit, BenefitTier, DonationPage, DonorBenefit, Style, Template
 
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
 
 
 class PageViewSet(OrganizationLimitedListView, viewsets.ModelViewSet):
@@ -42,7 +44,7 @@ class PageViewSet(OrganizationLimitedListView, viewsets.ModelViewSet):
         try:
             rev_program = RevenueProgram.objects.get(slug=revenue_program_slug)
         except RevenueProgram.DoesNotExist:
-            logger.warn(f'Request for page with non-existent RevenueProgram by slug "{revenue_program_slug}" ')
+            logger.warning(f'Request for page with non-existent RevenueProgram by slug "{revenue_program_slug}" ')
             return Response(
                 {"detail": "Could not find RevenueProgram from that slug"}, status=status.HTTP_404_NOT_FOUND
             )
@@ -52,13 +54,13 @@ class PageViewSet(OrganizationLimitedListView, viewsets.ModelViewSet):
                 rev_program.donationpage_set.get(slug=page_slug) if page_slug else rev_program.default_donation_page
             )
         except DonationPage.DoesNotExist:
-            logger.warn(f'Request for non-existant page by slug "{page_slug}" ')
+            logger.warning(f'Request for non-existant page by slug "{page_slug}" ')
             return Response(
                 {"detail": "Could not find page matching those parameters"}, status=status.HTTP_404_NOT_FOUND
             )
 
         if live and not donation_page.is_live:
-            logger.warn(f'Request for un-published page "{donation_page}" ')
+            logger.warning(f'Request for un-published page "{donation_page}" ')
             return Response({"detail": "This page has not been published"}, status=status.HTTP_404_NOT_FOUND)
 
         serializer = self.get_serializer_class()

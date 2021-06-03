@@ -213,6 +213,11 @@ LOGGING = {
             "filters": ["require_debug_false"],
             "class": "django.utils.log.AdminEmailHandler",
         },
+        "warn_admins": {
+            "level": "WARNING",
+            "filters": ["require_debug_false"],
+            "class": "django.utils.log.AdminEmailHandler",
+        },
         "console": {
             "level": "DEBUG",
             "class": "logging.StreamHandler",
@@ -234,6 +239,11 @@ LOGGING = {
             "level": "DEBUG",
             "handlers": ["console"],
             "propagate": False,
+        },
+        "warn_info": {
+            "handlers": ["warn_admins"],
+            "level": "WARNING",
+            "propagate": True,
         },
     },
     "root": {

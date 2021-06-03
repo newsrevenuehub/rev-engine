@@ -252,7 +252,7 @@ LOGGING = {
     },
 }
 
-DEFAULT_LOGGER = LOGGING["loggers"]["warn"]
+DEFAULT_LOGGER = "warn"
 
 
 PHONENUMBER_DB_FORMAT = "NATIONAL"

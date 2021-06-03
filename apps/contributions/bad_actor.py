@@ -22,8 +22,9 @@ def make_bad_actor_request(validated_data):
     headers = {
         "Authorization": f"Bearer {settings.BAD_ACTOR_API_KEY}",
     }
-    validated_data["amount"] = AbstractPaymentSerializer.convert_cents_to_amount(validated_data["amount"])
-    response = requests.post(url=settings.BAD_ACTOR_API_URL, headers=headers, json=validated_data)
+    json_data = validated_data.copy()
+    json_data["amount"] = AbstractPaymentSerializer.convert_cents_to_amount(json_data["amount"])
+    response = requests.post(url=settings.BAD_ACTOR_API_URL, headers=headers, json=json_data)
     if int(str(response.status_code)[:1]) != 2:
         logger.error("Received a BadActor API error")
         raise BadActorAPIError(response.json())

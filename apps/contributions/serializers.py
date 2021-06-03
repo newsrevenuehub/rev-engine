@@ -48,7 +48,8 @@ class AbstractPaymentSerializer(serializers.Serializer):
         return int(float(amount) * 100)
 
     def to_internal_value(self, data):
-        if data.get("amount"):
+        amount = data.get("amount")
+        if isinstance(amount, str):
             data["amount"] = self.convert_amount_to_cents(data["amount"])
         return super().to_internal_value(data)
 

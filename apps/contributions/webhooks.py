@@ -1,4 +1,7 @@
 import logging
+from datetime import datetime
+
+import pytz
 
 from apps.contributions.models import Contribution
 
@@ -11,7 +14,16 @@ class StripeWebhookProcessor:
         self.event = event
         self.obj_data = self.event.data["object"]
 
-    def get_contribution_by_reference_id(self):
+    def payment_intent_is_subscription(self):
+        """
+        If it has a customer, it's a recurring payment.
+        """
+        return bool(self.obj_data.customer)
+
+    def get_contribution_from_event(self):
+        if self.payment_intent_is_subscription():
+            # Fetch recurring contributions by customer id. A unique Stripe Customer is created for every Subscription.
+            return Contribution.objects.get(provider_customer_id=self.obj_data.customer)
         return Contribution.objects.get(provider_payment_id=self.obj_data["id"])
 
     def process(self):
@@ -33,33 +45,40 @@ class StripeWebhookProcessor:
         if self.event.type == "payment_intent.succeeded":
             self.handle_payment_intent_succeeded()
 
+    # PaymentIntent processing
     def handle_payment_intent_canceled(self):
-        contribution = self.get_contribution_by_reference_id()
+        contribution = self.get_contribution_from_event()
         if self._cancellation_was_rejection():
-            contribution.payment_state = Contribution.REJECTED[0]
+            contribution.status = Contribution.REJECTED[0]
             contribution.payment_provider_data = self.event
-            logger.info(f"Contribution id: {contribution} rejected.")
+            logger.info(f"Contribution {contribution} rejected.")
         else:
-            contribution.payment_state = Contribution.CANCELED[0]
+            contribution.status = Contribution.CANCELED[0]
             contribution.payment_provider_data = self.event
-            logger.info(f"Contribution id: {contribution} canceled.")
+            logger.info(f"Contribution {contribution} canceled.")
 
         contribution.save()
-        logger.info(f"Contribution id: {contribution} cancelled.")
+        logger.info(f"Contribution {contribution} canceled.")
 
     def handle_payment_intent_failed(self):
-        contribution = self.get_contribution_by_reference_id()
-        contribution.payment_state = Contribution.FAILED[0]
+        contribution = self.get_contribution_from_event()
+        contribution.status = Contribution.FAILED[0]
         contribution.payment_provider_data = self.event
         contribution.save()
-        logger.info(f"Contribution id: {contribution} failed.")
+        logger.info(f"Contribution {contribution} failed.")
 
     def handle_payment_intent_succeeded(self):
-        contribution = self.get_contribution_by_reference_id()
-        contribution.payment_state = Contribution.PAID[0]
+        contribution = self.get_contribution_from_event()
         contribution.payment_provider_data = self.event
+        contribution.last_payment_date = datetime.fromtimestamp(self.obj_data.created).replace(tzinfo=pytz.UTC)
+        contribution.status = Contribution.PAID[0]
+
+        if self.payment_intent_is_subscription():
+            # If it's a subscription, we should grab the payment_intent id from the event and store it as provider_payment_id
+            contribution.provider_payment_id = self.obj_data.id
+
         contribution.save()
-        logger.info(f"Contribution id: {contribution} succeeded.")
+        logger.info(f"Contribution {contribution} succeeded.")
 
     def _cancellation_was_rejection(self):
-        return self.obj_data["cancellation_reason"] == "fraudulent"
+        return self.obj_data.get("cancellation_reason") == "fraudulent"

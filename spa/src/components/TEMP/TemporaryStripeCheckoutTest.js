@@ -206,7 +206,7 @@ function CheckoutForm() {
         family_name: familyName,
         reason
       };
-      const response = await axios.post(STRIPE_RECURRING_PAYMENT, body);
+      const response = await axios.post(STRIPE_RECURRING_PAYMENT, body, { timeout: 12000 });
       if (response.status === 200) {
         setErrors({});
         setProcessing(false);
@@ -214,8 +214,11 @@ function CheckoutForm() {
         handleSuccesfulPayment();
       }
     } catch (e) {
-      setErrors({ stripe: 'Payment failed' });
-      alert.error('There was an error processing your payment.');
+      if (e?.response?.data?.detail) {
+        setErrors({ stripe: e.response.data.detail });
+      } else {
+        setErrors({ stripe: 'Payment failed' });
+      }
       setProcessing(false);
     }
   };
@@ -224,7 +227,7 @@ function CheckoutForm() {
     e.preventDefault();
     setProcessing(true);
 
-    if (paymentInterval === 'One-time') handleSinglePayment();
+    if (paymentInterval.value === 'one-time') handleSinglePayment();
     else handleRecurringPayment();
   };
 

@@ -130,7 +130,7 @@ class StripeWebhooksTest(APITestCase):
         )
         self.assertRaises(Contribution.DoesNotExist, processor.process)
 
-    @patch("apps.contributions.webhooks.logger.warn")
+    @patch("apps.contributions.webhooks.logger.warning")
     def test_unknown_event_logs_helpful_message(self, mock_logger):
         self._create_contribution(ref_id="abcd")
         fake_event_object = "criminal_activiy"

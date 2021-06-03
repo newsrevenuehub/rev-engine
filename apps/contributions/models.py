@@ -12,7 +12,7 @@ class Contributor(IndexedTimeStampedModel):
 
     @property
     def most_recent_contribution(self):
-        return self.contribution_set.filter(payment_state="paid").latest()
+        return self.contribution_set.filter(status="paid").latest()
 
     def __str__(self):
         return self.email
@@ -37,6 +37,12 @@ class Contribution(IndexedTimeStampedModel):
     provider_payment_id = models.CharField(max_length=255, blank=True, null=True)
     provider_customer_id = models.CharField(max_length=255, blank=True, null=True)
     provider_payment_method_id = models.CharField(max_length=255, blank=True, null=True)
+
+    PAYMENT_SUCCEEDED = ("succeeded", "Succeeded")
+    PAYMENT_FAILED = ("failed", "Failed")
+    PAYMENT_STATUS_CHOICES = [PAYMENT_SUCCEEDED, PAYMENT_FAILED]
+    last_payment_status = models.CharField(max_length=10, choices=PAYMENT_STATUS_CHOICES, null=True)
+    last_payment_date = models.DateTimeField(null=True)
 
     contributor = models.ForeignKey("contributions.Contributor", on_delete=models.SET_NULL, null=True)
     donation_page = models.ForeignKey("pages.DonationPage", on_delete=models.SET_NULL, null=True)
@@ -66,15 +72,12 @@ class Contribution(IndexedTimeStampedModel):
         "rejected",
         "rejected",
     )
-    # A "paid" contribution is a "successful" one-time contribution
     PAID = (
         "paid",
         "paid",
     )
-    # An "active" contribution is a "successful" recurring contribution
-    ACTIVE = ("active", "Active")
-    PAYMENT_STATES = [PROCESSING, PAID, CANCELED, FAILED, FLAGGED, REJECTED, ACTIVE]
-    payment_state = models.CharField(max_length=10, choices=PAYMENT_STATES, null=True)
+    STATUSES = [PROCESSING, PAID, CANCELED, FAILED, FLAGGED, REJECTED]
+    status = models.CharField(max_length=10, choices=STATUSES, null=True)
 
     def __str__(self):
         return f"{self.formatted_amount}, {self.created.strftime('%Y-%m-%d %H:%M:%S')}"

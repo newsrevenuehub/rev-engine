@@ -32,7 +32,7 @@ def ping_healthchecks(check_name, healthcheck_url):  # pragma: no cover
 
 @shared_task
 def auto_accept_flagged_contributions():
-    contributions = Contribution.objects.filter(payment_state=Contribution.FLAGGED[0])
+    contributions = Contribution.objects.filter(status=Contribution.FLAGGED[0])
     logger.info(f"Found {len(contributions)} flagged contributions")
 
     successful_captures = 0
@@ -40,7 +40,7 @@ def auto_accept_flagged_contributions():
 
     now = timezone.now()
     eligible_flagged_contributions = Contribution.objects.filter(
-        payment_state=Contribution.FLAGGED[0], flagged_date__lte=now - settings.FLAGGED_PAYMENT_AUTO_ACCEPT_DELTA
+        status=Contribution.FLAGGED[0], flagged_date__lte=now - settings.FLAGGED_PAYMENT_AUTO_ACCEPT_DELTA
     )
     for contribution in eligible_flagged_contributions:
         payment_intent = contribution.get_payment_manager_instance(StripeOneTimePaymentSerializer)

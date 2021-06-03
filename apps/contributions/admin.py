@@ -57,7 +57,7 @@ class ContributionAdmin(admin.ModelAdmin):
             "Provider",
             {
                 "fields": (
-                    "payment_state",
+                    "status",
                     "payment_provider_used",
                     "provider_payment_id",
                     "provider_customer_id",
@@ -74,7 +74,7 @@ class ContributionAdmin(admin.ModelAdmin):
         "contributor",
         "donation_page",
         "interval",
-        "payment_state",
+        "status",
         "expanded_bad_actor_score",
         "created",
         "modified",
@@ -84,7 +84,7 @@ class ContributionAdmin(admin.ModelAdmin):
         "organization__name",
         "contributor__email",
         "donation_page__name",
-        "payment_state",
+        "status",
         BadActorScoreFilter,
         "modified",
         "created",
@@ -113,7 +113,7 @@ class ContributionAdmin(admin.ModelAdmin):
         "organization",
         "bad_actor_score",
         "bad_actor_response",
-        "payment_state",
+        "status",
         "payment_provider_used",
         "provider_payment_id",
         "provider_customer_id",
@@ -138,7 +138,7 @@ class ContributionAdmin(admin.ModelAdmin):
     def _process_flagged_payment(self, request, queryset, reject=False):
         # Bail if any of the selected Contributions are not "FLAGGED"
         action = "reject" if reject else "accept"
-        if queryset.exclude(payment_state=Contribution.FLAGGED[0]).exists():
+        if queryset.exclude(status=Contribution.FLAGGED[0]).exists():
             self.message_user(
                 request,
                 f"Cannot {action} a non-flagged Contribution.",

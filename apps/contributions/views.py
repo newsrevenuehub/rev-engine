@@ -1,7 +1,6 @@
 import logging
 
 from django.conf import settings
-from django.core.mail import mail_admins
 
 import stripe
 from rest_framework import status
@@ -9,7 +8,11 @@ from rest_framework.decorators import api_view, authentication_classes, permissi
 from rest_framework.response import Response
 
 from apps.contributions.models import Contribution
-from apps.contributions.payment_managers import PaymentBadParamsError, StripePaymentManager
+from apps.contributions.payment_managers import (
+    PaymentBadParamsError,
+    PaymentProviderError,
+    StripePaymentManager,
+)
 from apps.contributions.serializers import (
     StripeOneTimePaymentSerializer,
     StripeRecurringPaymentSerializer,
@@ -46,6 +49,8 @@ def stripe_one_time_payment(request):
         stripe_payment_intent = stripe_payment.create_one_time_payment()
     except PaymentBadParamsError:
         return Response({"detail": "There was an error processing your payment."}, status=status.HTTP_400_BAD_REQUEST)
+    except PaymentProviderError as pp_error:
+        return Response({"detail": str(pp_error)}, status=status.HTTP_400_BAD_REQUEST)
 
     return Response({"clientSecret": stripe_payment_intent["client_secret"]}, status=status.HTTP_200_OK)
 
@@ -74,6 +79,8 @@ def stripe_recurring_payment(request):
         stripe_payment.create_subscription()
     except PaymentBadParamsError:
         return Response({"detail": "There was an error processing your payment."}, status=status.HTTP_400_BAD_REQUEST)
+    except PaymentProviderError as pp_error:
+        return Response({"detail": str(pp_error)}, status=status.HTTP_400_BAD_REQUEST)
 
     return Response({"detail": "Success"}, status=status.HTTP_200_OK)
 
@@ -162,12 +169,8 @@ def process_stripe_webhook_view(request):
         processor = StripeWebhookProcessor(event)
         processor.process()
     except ValueError as e:
-        logger.error(e)
+        logger.warn(e)
     except Contribution.DoesNotExist:
-        logger.error("Could not find contribution matching payment_intent_id")
-        mail_admins(
-            "Stripe Webhook invalid reference"
-            f"Stripe sent a webhook request refering to PaymentIntent \"{processor.obj_data['id']}\", but we could not map that data to any existing Contribution.",
-        )
+        logger.warn("Could not find contribution matching provider_payment_id")
 
     return Response(status=status.HTTP_200_OK)

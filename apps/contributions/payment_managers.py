@@ -74,6 +74,7 @@ class PaymentManager:
 
     def get_bad_actor_score(self):
         self.ensure_validated_data()
+
         try:
             response = make_bad_actor_request(self.validated_data)
             self.bad_actor_score = response.json()["overall_judgment"]
@@ -126,7 +127,7 @@ class PaymentManager:
         if not self.payment_provider_name:
             raise ValueError("Subclass of PaymentManager must set payment_provider_name property")
 
-        payment_state = Contribution.FLAGGED[0] if self.flagged else Contribution.PROCESSING[0]
+        status = Contribution.FLAGGED[0] if self.flagged else Contribution.PROCESSING[0]
         contributor = self.get_or_create_contributor()
         donation_page = self.get_donation_page()
         provider_payment_id = provider_reference_instance.id if provider_reference_instance else None
@@ -136,7 +137,7 @@ class PaymentManager:
             amount=self.validated_data["amount"],
             reason=self.validated_data["reason"],
             interval=self.validated_data["interval"],
-            payment_state=payment_state,
+            status=status,
             donation_page=donation_page,
             organization=organization,
             contributor=contributor,
@@ -165,7 +166,6 @@ class PaymentManager:
 
 class StripePaymentManager(PaymentManager):
     payment_provider_name = "Stripe"
-    customer = None
 
     def create_one_time_payment(self):
         """
@@ -177,6 +177,7 @@ class StripePaymentManager(PaymentManager):
         self.ensure_validated_data()
         self.ensure_bad_actor_score()
         org = self.get_organization()
+
         capture_method = "manual" if self.flagged else "automatic"
         stripe_payment_intent = stripe.PaymentIntent.create(
             amount=self.validated_data["amount"],
@@ -231,8 +232,8 @@ class StripePaymentManager(PaymentManager):
 
     def complete_one_time_payment(self, reject=False):
         organization = self.contribution.organization
-        previous_payment_state = self.contribution.payment_state
-        self.contribution.payment_state = Contribution.PROCESSING[0]
+        previous_status = self.contribution.status
+        self.contribution.status = Contribution.PROCESSING[0]
         self.contribution.save()
 
         try:
@@ -251,7 +252,7 @@ class StripePaymentManager(PaymentManager):
                 )
 
         except stripe.error.InvalidRequestError as invalid_request_error:
-            self.contribution.payment_state = previous_payment_state
+            self.contribution.status = previous_status
             self.contribution.save()
             mail_admins(
                 "RevEngine Stripe Error",
@@ -259,9 +260,9 @@ class StripePaymentManager(PaymentManager):
             )
             raise PaymentProviderError(invalid_request_error)
         except stripe.error.StripeError as stripe_error:
-            self.contribution.payment_state = previous_payment_state
+            self.contribution.status = previous_status
             self.contribution.save()
-            raise PaymentProviderError(stripe_error)
+            raise PaymentProviderError(stripe_error.error.message)
 
     def complete_recurring_payment(self, reject=False):
         if reject:
@@ -269,13 +270,13 @@ class StripePaymentManager(PaymentManager):
             If flagged, creation of the Stripe Subscription is defered until it is "accepted".
             So to "reject", just don't create it. Set status of Contribution to "rejected"
             """
-            self.contribution.payment_state = Contribution.REJECTED[0]
+            self.contribution.status = Contribution.REJECTED[0]
             self.contribution.save()
             return
 
         organization = self.contribution.organization
-        previous_payment_state = self.contribution.payment_state
-        self.contribution.payment_state = Contribution.PROCESSING[0]
+        previous_status = self.contribution.status
+        self.contribution.status = Contribution.PROCESSING[0]
         self.contribution.save()
 
         try:
@@ -294,14 +295,15 @@ class StripePaymentManager(PaymentManager):
                 stripe_account=organization.stripe_account_id,
                 api_key=get_hub_stripe_api_key(),
             )
+
             self.contribution.payment_provider_data = subscription
-            self.provider_payment_id = subscription.id
-            self.contribution.payment_status = Contribution.ACTIVE[0]
+            self.contribution.provider_subscription_id = subscription.id
             self.contribution.save()
+
         except stripe.error.StripeError as stripe_error:
-            self.contribution.payment_state = previous_payment_state
+            self.contribution.status = previous_status
             self.contribution.save()
-            raise PaymentProviderError(stripe_error)
+            raise PaymentProviderError(stripe_error.error.message)
 
     def _get_interval(self):
         """

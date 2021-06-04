@@ -34,6 +34,7 @@ INSTALLED_APPS = [
     "apps.users",
     "apps.organizations",
     "apps.pages",
+    "apps.emails",
     "apps.contributions",
     "django.contrib.admin",
     "django.contrib.auth",

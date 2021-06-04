@@ -16,10 +16,11 @@ ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS", "localhost").split(":")
 
 ## Email
 EMAIL_BACKEND = "anymail.backends.mailgun.EmailBackend"
+MAILGUN_SENDER_DOMAIN = "fundjournalism.org"
 
 ANYMAIL = {
     "MAILGUN_API_KEY": os.getenv("MAILGUN_API_KEY", ""),
-    "MAILGUN_SENDER_DOMAIN": "fundjournalism.org",
+    "MAILGUN_SENDER_DOMAIN": MAILGUN_SENDER_DOMAIN,
 }
 
 EMAIL_SUBJECT_PREFIX = "[revengine %s] " % ENVIRONMENT.title()

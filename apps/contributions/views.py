@@ -40,6 +40,7 @@ def stripe_one_time_payment(request):
     try:
         # Create payment intent with Stripe, associated local models
         stripe_payment_intent = stripe_payment.create_one_time_payment()
+
     except PaymentBadParamsError:
         return Response({"detail": "There was an error processing your payment."}, status=status.HTTP_400_BAD_REQUEST)
 

@@ -1,6 +1,8 @@
 import logging
 
 from django.conf import settings
+from django.core.mail import mail_admins
+from django.utils import timezone
 
 import stripe
 from rest_framework import status
@@ -131,6 +133,11 @@ def process_stripe_webhook_view(request):
         logger.error(e)
     except Contribution.DoesNotExist:
         logger.error("Could not find contribution matching payment_intent_id")
-        return Response(data={"error": "Invalid payment_intent_id"}, status=status.HTTP_400_BAD_REQUEST)
+        mail_admins(
+            "Stripe Webhook invalid reference",
+            f"Stripe sent a webhook request refering to PaymentIntent \"{processor.obj_data['id']}\", but we could not map that data to any existing Contribution. "
+            f"Event recieved at {timezone.now()}. "
+            f"Event id was {event.get('id', None)}.",
+        )
 
     return Response(status=status.HTTP_200_OK)

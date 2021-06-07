@@ -1,8 +1,10 @@
 from unittest.mock import patch
 
+from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.urls import reverse
 
+import responses
 from faker import Faker
 from rest_framework.test import APIRequestFactory, APITestCase
 from stripe.error import StripeError
@@ -39,6 +41,9 @@ class CreateStripeOneTimePaymentViewTest(APITestCase):
         self.ip = faker.ipv4()
         self.referer = faker.url()
 
+        json_body = {"overall_judgment": 2}
+        responses.add(responses.POST, settings.BAD_ACTOR_API_URL, json=json_body, status=200)
+
     def _create_request(self, email=None, rev_slug=None, page_slug=None):
         factory = APIRequestFactory()
         request = factory.post(
@@ -64,6 +69,7 @@ class CreateStripeOneTimePaymentViewTest(APITestCase):
     def _post_valid_payment_intent(self, *args, **kwargs):
         return stripe_one_time_payment(self._create_request(*args, **kwargs))
 
+    @responses.activate
     def test_new_contributor_created(self, mock_create_intent):
         new_contributor_email = "new_contributor@test.com"
         response = self._post_valid_payment_intent(email=new_contributor_email)
@@ -74,6 +80,7 @@ class CreateStripeOneTimePaymentViewTest(APITestCase):
         self.assertTrue(Contribution.objects.filter(contributor=new_contributer).exists())
         mock_create_intent.assert_called_once()
 
+    @responses.activate
     def test_payment_intent_serializer_validates(self, *args):
         # Email is required
         response = self._post_valid_payment_intent(email=None)

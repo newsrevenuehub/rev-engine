@@ -1,5 +1,7 @@
 from unittest.mock import patch
 
+from django.conf import settings
+from django.core import mail
 from django.test import override_settings
 from django.urls import reverse
 
@@ -78,8 +80,13 @@ class StripeWebhooksTest(APITestCase):
     def test_webhook_view_invalid_contribution(self, *args):
         self._create_contribution(ref_id="abcd")
         response = self._run_webhook_view_with_request()
-        self.assertEqual(response.status_code, 400)
-        self.assertEqual(response.data["error"], "Invalid payment_intent_id")
+        # Don't send an error back to Stripe here. It's our problem.
+        self.assertEqual(response.status_code, 200)
+        # Should send mail to admins
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertEqual(mail.outbox[0].subject, f"{settings.EMAIL_SUBJECT_PREFIX}Stripe Webhook invalid reference")
+        self.assertIn("could not map that data to any existing Contribution", mail.outbox[0].body)
+        self.assertEqual(mail.outbox[0].recipients(), [e[1] for e in settings.ADMINS])
 
     def test_payment_intent_canceled_webhook(self):
         ref_id = "1234"

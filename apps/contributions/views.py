@@ -130,10 +130,10 @@ def process_stripe_webhook_view(request):
         logger.info("Constructing event.")
         event = stripe.Webhook.construct_event(payload, sig_header, settings.STRIPE_WEBHOOK_SECRET)
     except ValueError:
-        logger.error("Invalid payload from Stripe webhook request")
+        logger.warn("Invalid payload from Stripe webhook request")
         return Response(data={"error": "Invalid payload"}, status=status.HTTP_400_BAD_REQUEST)
     except stripe.error.SignatureVerificationError:
-        logger.error("Invalid signature on Stripe webhook request. Is STRIPE_WEBHOOK_SECRET set correctly?")
+        logger.warn("Invalid signature on Stripe webhook request. Is STRIPE_WEBHOOK_SECRET set correctly?")
         return Response(data={"error": "Invalid signature"}, status=status.HTTP_400_BAD_REQUEST)
 
     try:
@@ -141,8 +141,8 @@ def process_stripe_webhook_view(request):
         processor = StripeWebhookProcessor(event)
         processor.process()
     except ValueError as e:
-        logger.warn(e)
+        logger.error(e)
     except Contribution.DoesNotExist:
-        logger.warn("Could not find contribution matching provider_payment_id")
+        logger.error("Could not find contribution matching provider_payment_id")
 
     return Response(status=status.HTTP_200_OK)

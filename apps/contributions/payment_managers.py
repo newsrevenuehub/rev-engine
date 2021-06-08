@@ -17,7 +17,7 @@ from apps.organizations.models import RevenueProgram
 from apps.pages.models import DonationPage
 
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
 
 
 class PaymentProviderError(Exception):
@@ -329,7 +329,7 @@ class StripePaymentManager(PaymentManager):
         """
         if not settings.USE_DEBUG_INTERVALS:
             return self.contribution.interval
-        logger.info("Using debug intervals for Stripe Subscriptions")
+        logger.warn("Using debug intervals for Stripe Subscriptions")
         if self.contribution.interval == Contribution.INTERVAL_MONTHLY:
             return "daily"
 

@@ -1,8 +1,10 @@
 from unittest.mock import patch
 
+from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.urls import reverse
 
+import responses
 from faker import Faker
 from rest_framework.test import APIRequestFactory, APITestCase
 from stripe.error import StripeError
@@ -41,7 +43,7 @@ class StripePaymentViewAbstract(APITestCase):
         self.referer = faker.url()
 
     def _create_request(
-        self, email="testing@test.com", rev_slug=None, page_slug=None, interval=None, payment_method_id=None
+        self, email="tester@testing.com", rev_slug=None, page_slug=None, interval=None, payment_method_id=None
     ):
         factory = APIRequestFactory()
         request = factory.post(

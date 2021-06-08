@@ -64,7 +64,7 @@ class Migration(migrations.Migration):
                 ("currency", models.CharField(default="usd", max_length=3)),
                 ("is_quarantined", models.BooleanField(default=False)),
                 ("payment_provider_data", models.JSONField(null=True)),
-                ("provider_payment_id", models.CharField(max_length=255)),
+                ("provider_reference_id", models.CharField(max_length=255)),
                 (
                     "payment_state",
                     models.CharField(

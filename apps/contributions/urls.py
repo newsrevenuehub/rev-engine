@@ -5,8 +5,7 @@ from apps.contributions import views
 
 
 urlpatterns = [
-    path("stripe/one-time-donation/", views.stripe_one_time_payment, name="stripe-one-time-payment"),
-    path("stripe/recurring-donation/", views.stripe_recurring_payment, name="stripe-recurring-payment"),
+    path("stripe/payment/", views.stripe_payment, name="stripe-payment"),
     path("stripe/onboarding/", views.stripe_onboarding, name="stripe-onboarding"),
     path("stripe/confirmation/", views.stripe_confirmation, name="stripe-confirmation"),
     re_path(

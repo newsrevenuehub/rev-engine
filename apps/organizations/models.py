@@ -106,13 +106,14 @@ class Organization(IndexedTimeStampedModel):
         return payment_provider and payment_provider_account_id and payment_provider_verified
 
     def create_default_stripe_product(self):
-        product = stripe.Product.create(
-            name=settings.GENERIC_STRIPE_PRODUCT_NAME,
-            api_key=get_hub_stripe_api_key(),
-            stripe_account=self.stripe_account_id,
-        )
-        self.stripe_product_id = product.id
-        self.save()
+        if not self.stripe_product_id:
+            product = stripe.Product.create(
+                name=settings.GENERIC_STRIPE_PRODUCT_NAME,
+                api_key=get_hub_stripe_api_key(),
+                stripe_account=self.stripe_account_id,
+            )
+            self.stripe_product_id = product.id
+            self.save()
 
 
 class RevenueProgram(IndexedTimeStampedModel):

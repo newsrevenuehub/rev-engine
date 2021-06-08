@@ -1,8 +1,7 @@
 export const TOKEN = 'token/';
 export const USER = 'users/';
 
-export const STRIPE_ONE_TIME_PAYMENT = 'stripe/one-time-donation/';
-export const STRIPE_RECURRING_PAYMENT = 'stripe/recurring-donation/';
+export const STRIPE_PAYMENT = 'stripe/payment/';
 export const STRIPE_ONBOARDING = 'stripe/onboarding/';
 export const STRIPE_CONFIRMATION = 'stripe/confirmation/';
 

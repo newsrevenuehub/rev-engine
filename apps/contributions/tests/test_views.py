@@ -10,7 +10,7 @@ from stripe.stripe_object import StripeObject
 
 from apps.contributions.models import Contribution, Contributor
 from apps.contributions.tests.factories import ContributorFactory
-from apps.contributions.views import stripe_one_time_payment
+from apps.contributions.views import stripe_payment
 from apps.organizations.models import Organization
 from apps.organizations.tests.factories import OrganizationFactory, RevenueProgramFactory
 from apps.pages.tests.factories import DonationPageFactory
@@ -18,28 +18,31 @@ from apps.pages.tests.factories import DonationPageFactory
 
 faker = Faker()
 
+test_client_secret = "secret123"
+
 
 class MockPaymentIntent(StripeObject):
     def __init__(self, *args, **kwargs):
         self.id = "test"
-        self.client_secret = "secret123"
+        self.client_secret = test_client_secret
 
 
-@patch("stripe.PaymentIntent.create", side_effect=MockPaymentIntent)
-class CreateStripeOneTimePaymentViewTest(APITestCase):
+class StripePaymentViewAbstract(APITestCase):
     def setUp(self):
         self.organization = OrganizationFactory()
         self.revenue_program = RevenueProgramFactory(organization=self.organization)
         self.page = DonationPageFactory()
         self.contributor = ContributorFactory()
 
-        self.url = reverse("stripe-one-time-payment")
+        self.url = reverse("stripe-payment")
         self.payment_amount = "10.00"
 
         self.ip = faker.ipv4()
         self.referer = faker.url()
 
-    def _create_request(self, email=None, rev_slug=None, page_slug=None):
+    def _create_request(
+        self, email="testing@test.com", rev_slug=None, page_slug=None, interval=None, payment_method_id=None
+    ):
         factory = APIRequestFactory()
         request = factory.post(
             self.url,
@@ -51,7 +54,8 @@ class CreateStripeOneTimePaymentViewTest(APITestCase):
                 "reason": "Testing",
                 "revenue_program_slug": rev_slug if rev_slug else self.revenue_program.slug,
                 "donation_page_slug": page_slug if page_slug else self.page.slug,
-                "payment_type": "single",
+                "interval": interval if interval else Contribution.INTERVAL_ONE_TIME[0],
+                "payment_method_id": payment_method_id,
             },
             format="json",
         )
@@ -61,25 +65,46 @@ class CreateStripeOneTimePaymentViewTest(APITestCase):
 
         return request
 
-    def _post_valid_payment_intent(self, *args, **kwargs):
-        return stripe_one_time_payment(self._create_request(*args, **kwargs))
+    def _post_valid_one_time_payment(self, **kwargs):
+        return stripe_payment(self._create_request(**kwargs))
 
-    def test_new_contributor_created(self, mock_create_intent):
-        new_contributor_email = "new_contributor@test.com"
-        response = self._post_valid_payment_intent(email=new_contributor_email)
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.data["clientSecret"], "secret123")
-        new_contributer = Contributor.objects.get(email=new_contributor_email)
-        self.assertIsNotNone(new_contributer)
-        self.assertTrue(Contribution.objects.filter(contributor=new_contributer).exists())
-        mock_create_intent.assert_called_once()
 
-    def test_payment_intent_serializer_validates(self, *args):
+@patch("apps.contributions.views.StripePaymentManager.create_one_time_payment", side_effect=MockPaymentIntent)
+class StripeOneTimePaymentViewTest(StripePaymentViewAbstract):
+    def test_one_time_payment_serializer_validates(self, *args):
         # Email is required
-        response = self._post_valid_payment_intent(email=None)
+        response = self._post_valid_one_time_payment(email=None)
         self.assertEqual(response.status_code, 400)
         self.assertIn("email", response.data)
         self.assertEqual(str(response.data["email"][0]), "This field may not be null.")
+
+    def test_one_time_payment_method_called(self, mock_one_time_payment):
+        response = self._post_valid_one_time_payment()
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data["clientSecret"], test_client_secret)
+        mock_one_time_payment.assert_called_once()
+
+
+@patch("apps.contributions.views.StripePaymentManager.create_subscription")
+class CreateStripeRecurringPaymentViewTest(StripePaymentViewAbstract):
+    def test_recurring_payment_serializer_validates(self, *args):
+        # StripeRecurringPaymentSerializer requires payment_method_id
+        response = self._post_valid_one_time_payment(interval=Contribution.INTERVAL_MONTHLY[0])
+        # This also verifies that the view is using the correct serializer.
+        # Test failures here may indicate that the wrong serializer is being used.
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("payment_method_id", response.data)
+        self.assertEqual(str(response.data["payment_method_id"][0]), "This field may not be null.")
+
+    def test_create_subscription_called(self, mock_subscription_create):
+        """
+        Verify that we're getting the response we expect from a valid contribition
+        """
+        response = self._post_valid_one_time_payment(
+            interval=Contribution.INTERVAL_MONTHLY[0], payment_method_id="test_payment_method_id"
+        )
+        self.assertEqual(response.status_code, 200)
+        mock_subscription_create.assert_called_once()
 
 
 TEST_STRIPE_ACCOUNT_ID = "testing_123"
@@ -135,6 +160,15 @@ class MockStripeAccountNotEnabled(MockStripeAccount):
         self.charges_enabled = False
 
 
+TEST_STRIPE_PRODUCT_ID = "my_test_product_id"
+
+
+class MockStripeProduct(StripeObject):
+    def __init__(self, *args, **kwargs):
+        self.id = TEST_STRIPE_PRODUCT_ID
+
+
+@patch("stripe.Product.create", side_effect=MockStripeProduct)
 class StripeConfirmTest(APITestCase):
     def setUp(self):
         self.user = get_user_model().objects.create(email="user@test.com", password="testing")
@@ -142,35 +176,31 @@ class StripeConfirmTest(APITestCase):
         self.organization.user_set.add(self.user)
         self.url = reverse("stripe-confirmation")
 
-    def post_to_confirmation(self, stripe_account_id=None, stripe_verified=None):
-        org_modified = False
-        if stripe_account_id:
-            self.organization.stripe_account_id = stripe_account_id
-            org_modified = True
-        if stripe_verified is not None:
-            self.organization.stripe_verified = True
-            org_modified = True
-        if org_modified:
-            self.organization.save()
-            self.organization.refresh_from_db()
+    def post_to_confirmation(self, stripe_account_id="", stripe_verified=None, stripe_product_id=""):
+        self.organization.stripe_account_id = stripe_account_id
+        self.organization.stripe_verified = True if stripe_verified else False
+        self.organization.stripe_product_id = stripe_product_id
+        self.organization.save()
+        self.organization.refresh_from_db()
 
         self.client.force_authenticate(user=self.user)
         return self.client.post(self.url)
 
     @patch("stripe.Account.retrieve", side_effect=MockStripeAccountEnabled)
-    def test_confirm_already_verified(self, mock_account_retrieve):
+    def test_confirm_already_verified(self, mock_account_retrieve, *args):
         """
         stripe_confirmation should return early if the org already has stripe_verified=True.
         """
-        response = self.post_to_confirmation(stripe_verified=True, stripe_account_id="testing")
-
+        response = self.post_to_confirmation(
+            stripe_verified=True, stripe_account_id="testing", stripe_product_id="test_product_id"
+        )
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data["status"], "connected")
         # this should bail early, before Account.retrieve is called
         mock_account_retrieve.assert_not_called()
 
     @patch("stripe.Account.retrieve", side_effect=MockStripeAccountEnabled)
-    def test_confirm_newly_verified(self, mock_account_retrieve):
+    def test_confirm_newly_verified(self, mock_account_retrieve, mock_product_create):
         """
         stripe_confirmation should set stripe_verified to True after confirming with Stripe.
         """
@@ -181,9 +211,13 @@ class StripeConfirmTest(APITestCase):
         mock_account_retrieve.assert_called_once()
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data["status"], "connected")
+        # Newly confirmed accounts should go ahead and create a default product on for that org.
+        mock_product_create.assert_called_once()
+        self.organization.refresh_from_db()
+        self.assertEqual(self.organization.stripe_product_id, TEST_STRIPE_PRODUCT_ID)
 
     @patch("stripe.Account.retrieve", side_effect=MockStripeAccountNotEnabled)
-    def test_confirm_connected_not_verified(self, mock_account_retrieve):
+    def test_confirm_connected_not_verified(self, mock_account_retrieve, *args):
         """
         If an organization has connected its account with Hub (has a stripe_account_id), but
         their Stripe account is not ready to recieve payments, they're in a special state.
@@ -197,7 +231,7 @@ class StripeConfirmTest(APITestCase):
         self.assertFalse(self.organization.stripe_verified)
 
     @patch("stripe.Account.retrieve", side_effect=MockStripeAccountEnabled)
-    def test_not_connected(self, mock_account_retrieve):
+    def test_not_connected(self, mock_account_retrieve, *args):
         """
         Organizations that have not been connected to Stripe at all have
         no stripe_account_id.
@@ -210,7 +244,7 @@ class StripeConfirmTest(APITestCase):
         mock_account_retrieve.assert_not_called()
 
     @patch("stripe.Account.retrieve", side_effect=StripeError)
-    def test_stripe_error_is_caught(self, mock_account_retrieve):
+    def test_stripe_error_is_caught(self, mock_account_retrieve, *args):
         """
         When stripe.Account.retrieve raises a StripeError, send it in response.
         """

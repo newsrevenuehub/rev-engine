@@ -5,7 +5,7 @@ from django.conf import settings
 import requests
 
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
 
 
 class BadActorAPIError(Exception):

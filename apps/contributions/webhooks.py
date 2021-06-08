@@ -1,9 +1,11 @@
 import logging
 
+from django.conf import settings
+
 from apps.contributions.models import Contribution
 
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
 
 
 class StripeWebhookProcessor:
@@ -21,7 +23,7 @@ class StripeWebhookProcessor:
         if object_type == "payment_intent":
             self.process_payment_intent()
         else:
-            logger.warn(f'Recieved un-handled Stripe object of type "{object_type}"')
+            logger.warning(f'Recieved un-handled Stripe object of type "{object_type}"')
 
     def process_payment_intent(self):
         if self.event.type == "payment_intent.canceled":

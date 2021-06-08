@@ -16,7 +16,7 @@ from apps.contributions.utils import get_hub_stripe_api_key
 from apps.contributions.webhooks import StripeWebhookProcessor
 
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
 
 
 @api_view(["POST"])
@@ -92,7 +92,6 @@ def stripe_confirmation(request):
         stripe_account = stripe.Account.retrieve(organization.stripe_account_id, api_key=get_hub_stripe_api_key())
 
     except stripe.error.StripeError:
-        # ? Send email?
         logger.error("stripe.Account.retrieve failed with a StripeError")
         return Response(
             {"status": "failed"},

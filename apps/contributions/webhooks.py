@@ -1,9 +1,9 @@
 import logging
 from datetime import datetime
 
-import pytz
-
 from django.conf import settings
+
+import pytz
 
 from apps.contributions.models import Contribution
 

@@ -1,6 +1,8 @@
 from datetime import datetime
 from unittest.mock import patch
 
+from django.conf import settings
+from django.core import mail
 from django.test import override_settings
 from django.urls import reverse
 

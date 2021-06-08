@@ -42,7 +42,7 @@ class PaymentManager:
     bad_actor_response = None
     validated_data = None
     flagged = None
-    contirbution = None
+    contribution = None
     revenue_program = None
 
     def __init__(self, data=None, contribution=None):

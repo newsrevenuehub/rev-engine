@@ -23,13 +23,13 @@ class ContributionAdminTest(TestCase):
         self.organization = OrganizationFactory(default_payment_provider="stripe")
 
         self.contrib_score_2 = ContributionFactory(
-            payment_state=Contribution.FLAGGED[0],
+            status=Contribution.FLAGGED[0],
             bad_actor_score=2,
             organization=self.organization,
             payment_provider_used="Stripe",
         )
         self.contrib_score_4 = ContributionFactory(
-            payment_state=Contribution.FLAGGED[0],
+            status=Contribution.FLAGGED[0],
             bad_actor_score=4,
             organization=self.organization,
             payment_provider_used="Stripe",
@@ -58,7 +58,7 @@ class ContributionAdminTest(TestCase):
 
     def test_reject_non_flagged_fails(self):
         request = self._make_listview_request()
-        contribution = ContributionFactory(bad_actor_score=5, payment_state=Contribution.PAID[0])
+        contribution = ContributionFactory(bad_actor_score=5, status=Contribution.PAID[0])
         queryset = Contribution.objects.filter(pk=contribution.pk)
         self.assertRaises(MessageFailure, self.contribution_admin.accept_flagged_contribution, request, queryset)
 

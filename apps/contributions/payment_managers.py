@@ -8,6 +8,10 @@ import stripe
 
 from apps.contributions.bad_actor import BadActorAPIError, make_bad_actor_request
 from apps.contributions.models import Contribution, Contributor
+from apps.contributions.serializers import (
+    StripeOneTimePaymentSerializer,
+    StripeRecurringPaymentSerializer,
+)
 from apps.contributions.utils import get_hub_stripe_api_key
 from apps.organizations.models import RevenueProgram
 from apps.pages.models import DonationPage
@@ -38,10 +42,10 @@ class PaymentManager:
     bad_actor_response = None
     validated_data = None
     flagged = None
-    contribution = None
+    contirbution = None
     revenue_program = None
 
-    def __init__(self, serializer_class, data=None, contribution=None):
+    def __init__(self, data=None, contribution=None):
         """
         The PaymentManager class and its subclasses behave much like a ModelSerializer,
         but they operate on multiple local models as well as models held by the payment provider.
@@ -61,7 +65,10 @@ class PaymentManager:
 
         self.contribution = contribution
         self.data = data
-        self.serializer_class = serializer_class
+        self.serializer_class = self.get_serializer_class(data=data, contribution=contribution)
+
+    def get_serializer_class(self, **kwargs):
+        raise NotImplementedError("Subclasses of PaymentManager must implement get_serializer_class")
 
     def validate(self):
         serializer = self.serializer_class(data=self.data)
@@ -150,13 +157,9 @@ class PaymentManager:
             bad_actor_response=self.bad_actor_response,
         )
 
-    def get_subclass(self):
-        if not self.contribution:
-            raise ValueError(
-                "Calling get_subclass requires PaymentManager to be instantiated with a contribution instance."
-            )
-
-        payment_provider_used = self.contribution.payment_provider_used
+    @staticmethod
+    def get_subclass(contribution):
+        payment_provider_used = contribution.payment_provider_used
         if payment_provider_used == "Stripe":
             return StripePaymentManager
 
@@ -166,6 +169,16 @@ class PaymentManager:
 
 class StripePaymentManager(PaymentManager):
     payment_provider_name = "Stripe"
+
+    def get_serializer_class(self, data=None, contribution=None):
+        """
+        Get serializer class based on whether data or contribution instance have interval of one-time,
+        or something else.
+        """
+        interval = contribution.interval if contribution else data["interval"]
+        if interval == Contribution.INTERVAL_ONE_TIME[0]:
+            return StripeOneTimePaymentSerializer
+        return StripeRecurringPaymentSerializer
 
     def create_one_time_payment(self):
         """
@@ -224,9 +237,9 @@ class StripePaymentManager(PaymentManager):
         )
 
     def complete_payment(self, reject=False):
-        if self.contribution.interval == Contribution.INTERVAL_ONE_TIME:
+        if self.contribution.interval == Contribution.INTERVAL_ONE_TIME[0]:
             self.complete_one_time_payment(reject)
-        else:
+        elif self.contribution.interval:
             self.complete_recurring_payment(reject)
 
     def complete_one_time_payment(self, reject=False):
@@ -261,7 +274,9 @@ class StripePaymentManager(PaymentManager):
         except stripe.error.StripeError as stripe_error:
             self.contribution.status = previous_status
             self.contribution.save()
-            raise PaymentProviderError(stripe_error.error.message)
+
+            message = stripe_error.error.message if stripe_error.error else "Could not complete payment"
+            raise PaymentProviderError(message)
 
     def complete_recurring_payment(self, reject=False):
         if reject:
@@ -302,9 +317,10 @@ class StripePaymentManager(PaymentManager):
         except stripe.error.StripeError as stripe_error:
             self.contribution.status = previous_status
             self.contribution.save()
-            raise PaymentProviderError(stripe_error.error.message)
+            message = stripe_error.error.message if stripe_error.error else "Could not complete payment"
+            raise PaymentProviderError(message)
 
-    def _get_interval(self):
+    def _get_interval(self):  # pragma: no cover
         """
         Utility to permit toggled debug intervals for testing.
         Unfortunately, Stripe has a narrow range of supported intervals here.

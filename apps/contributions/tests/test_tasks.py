@@ -17,14 +17,12 @@ class AutoAcceptFlaggedContributionsTaskTest(TestCase):
         self.non_expired_contrib_count = 3
 
     def _create_contributions(self, flagged=True):
-        payment_state = Contribution.FLAGGED[0] if flagged else Contribution.PAID[0]
+        status = Contribution.FLAGGED[0] if flagged else Contribution.PAID[0]
         expiring_flagged_data = timezone.now() - settings.FLAGGED_PAYMENT_AUTO_ACCEPT_DELTA - timedelta(days=1)
         non_expiring_flagged_date = timezone.now() - timedelta(days=1)
+        ContributionFactory.create_batch(self.expired_contrib_count, status=status, flagged_date=expiring_flagged_data)
         ContributionFactory.create_batch(
-            self.expired_contrib_count, payment_state=payment_state, flagged_date=expiring_flagged_data
-        )
-        ContributionFactory.create_batch(
-            self.non_expired_contrib_count, payment_state=payment_state, flagged_date=non_expiring_flagged_date
+            self.non_expired_contrib_count, status=status, flagged_date=non_expiring_flagged_date
         )
 
     @patch("apps.contributions.payment_managers.StripePaymentManager.complete_payment")

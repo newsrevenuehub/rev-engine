@@ -10,7 +10,10 @@ import { useHistory, useParams, useRouteMatch } from 'react-router-dom';
 
 // Ajax
 import axios from 'ajax/axios';
-import { ORG_STRIPE_ACCOUNT_ID, STRIPE_ONE_TIME_PAYMENT, STRIPE_RECURRING_PAYMENT } from 'ajax/endpoints';
+import { ORG_STRIPE_ACCOUNT_ID, STRIPE_PAYMENT } from 'ajax/endpoints';
+
+// Routing
+import { THANK_YOU_SLUG } from 'routes';
 
 // Elements
 import Input from 'elements/inputs/Input';
@@ -18,7 +21,6 @@ import TextArea from 'elements/inputs/TextArea';
 import Select from 'elements/inputs/Select';
 import Spinner from 'elements/Spinner';
 import GlobalLoading from 'elements/GlobalLoading';
-import { THANK_YOU_SLUG } from 'routes';
 
 const PAYMENT_INTERVALS = [
   {
@@ -119,7 +121,7 @@ function CheckoutForm() {
           family_name: familyName,
           reason
         };
-        const { data } = await axios.post(STRIPE_ONE_TIME_PAYMENT, paymentIntentBody);
+        const { data } = await axios.post(STRIPE_PAYMENT, paymentIntentBody);
         resolve(data.clientSecret);
       } catch (e) {
         reject(e);
@@ -206,7 +208,7 @@ function CheckoutForm() {
         family_name: familyName,
         reason
       };
-      const response = await axios.post(STRIPE_RECURRING_PAYMENT, body, { timeout: 12000 });
+      const response = await axios.post(STRIPE_PAYMENT, body, { timeout: 12000 });
       if (response.status === 200) {
         setErrors({});
         setProcessing(false);

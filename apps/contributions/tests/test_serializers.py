@@ -15,7 +15,7 @@ class ContributionSerializer(TestCase):
         "currency",
         "payment_provider_data",
         "provider_payment_id",
-        "payment_state",
+        "status",
         "contributor",
         "donation_page",
         "organization",

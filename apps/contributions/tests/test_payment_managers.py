@@ -17,7 +17,6 @@ from apps.contributions.payment_managers import (
     PaymentProviderError,
     StripePaymentManager,
 )
-from apps.contributions.serializers import AbstractPaymentSerializer, StripeOneTimePaymentSerializer
 from apps.contributions.tests.factories import ContributionFactory, ContributorFactory
 from apps.organizations.tests.factories import OrganizationFactory, RevenueProgramFactory
 from apps.pages.tests.factories import DonationPageFactory
@@ -40,8 +39,7 @@ class MockInvalidRequestError(stripe_errors.InvalidRequestError):
 fake_api_key = "TEST_stripe_secret_key"
 
 
-@override_settings(STRIPE_TEST_SECRET_KEY=fake_api_key)
-class StripePaymentManagerTest(APITestCase):
+class StripePaymentManagerAbstractTestCase(APITestCase):
     def setUp(self):
         self.organization = OrganizationFactory()
         self.revenue_program = RevenueProgramFactory(organization=self.organization)
@@ -55,25 +53,34 @@ class StripePaymentManagerTest(APITestCase):
             "amount": self.amount,
             "reason": "Testing",
             "revenue_program_slug": self.revenue_program.slug,
-            "donation_page_slug": self.page.slug,
+            "payment_method_id" "donation_page_slug": self.page.slug,
             "ip": faker.ipv4(),
             "referer": faker.url(),
         }
         self.contribution = ContributionFactory()
+        self.contribution.contributor = self.contributor
         self.contribution.organization = self.organization
         self.contribution.save()
-
-    def _instantiate_payment_manager_with_data(self, data=None):
-        return StripePaymentManager(StripeOneTimePaymentSerializer, data=data if data else self.data)
-
-    def _instantiate_payment_manager_with_instance(self, contribution=None):
-        return StripePaymentManager(
-            StripeOneTimePaymentSerializer, contribution=contribution if contribution else self.contribution
-        )
 
     def _create_mock_ba_response(self, target_score=None, status_code=200):
         json_body = {"overall_judgment": target_score} if target_score else {"error": "Test error message"}
         responses.add(responses.POST, settings.BAD_ACTOR_API_URL, json=json_body, status=status_code)
+
+    def _instantiate_payment_manager_with_data(self, data=None):
+        return StripePaymentManager(data=data if data else self.data)
+
+    def _instantiate_payment_manager_with_instance(self, contribution=None):
+        return StripePaymentManager(contribution=contribution if contribution else self.contribution)
+
+
+@override_settings(STRIPE_TEST_SECRET_KEY=fake_api_key)
+class StripeOneTimePaymentManagerTest(StripePaymentManagerAbstractTestCase):
+    def setUp(self):
+        super().setUp()
+        self.contribution.interval = Contribution.INTERVAL_ONE_TIME[0]
+        self.contribution.save()
+
+        self.data.update({"interval": Contribution.INTERVAL_ONE_TIME[0]})
 
     def test_validate_pass(self):
         pm = self._instantiate_payment_manager_with_data()
@@ -139,7 +146,7 @@ class StripePaymentManagerTest(APITestCase):
     @patch("stripe.PaymentIntent.create", side_effect=MockPaymentIntent)
     def test_create_payment_intent_when_single_flagged_contribution(self, mock_stripe_create_pi):
         data = self.data
-        data["payment_type"] = AbstractPaymentSerializer.PAYMENT_TYPE_ONE_TIME[0]
+        data["interval"] = Contribution.INTERVAL_ONE_TIME[0]
         pm = self._instantiate_payment_manager_with_data(data=data)
         pm.validate()
         self._create_mock_ba_response(target_score=4)
@@ -161,14 +168,14 @@ class StripePaymentManagerTest(APITestCase):
         # New contribution is created...
         new_contribution = Contribution.objects.filter(amount=1099).first()
         self.assertIsNotNone(new_contribution)
-        # ...with payment_state "flagged"
-        self.assertEqual(new_contribution.payment_state, Contribution.FLAGGED[0])
+        # ...with status "flagged"
+        self.assertEqual(new_contribution.status, Contribution.FLAGGED[0])
 
     @responses.activate
     @patch("stripe.PaymentIntent.create", side_effect=MockPaymentIntent)
     def test_create_payment_intent_single_not_flagged(self, mock_stripe_create_pi):
         data = self.data
-        data["payment_type"] = AbstractPaymentSerializer.PAYMENT_TYPE_ONE_TIME[0]
+        data["interval"] = Contribution.INTERVAL_ONE_TIME[0]
         pm = self._instantiate_payment_manager_with_data(data=data)
         pm.validate()
         self._create_mock_ba_response(target_score=2)
@@ -191,17 +198,17 @@ class StripePaymentManagerTest(APITestCase):
         # New contribution is created...
         new_contribution = Contribution.objects.filter(amount=1099).first()
         self.assertIsNotNone(new_contribution)
-        # ...with payment_state "processing"
-        self.assertEqual(new_contribution.payment_state, Contribution.PROCESSING[0])
+        # ...with status "processing"
+        self.assertEqual(new_contribution.status, Contribution.PROCESSING[0])
 
     @patch("stripe.PaymentIntent.cancel")
     @patch("stripe.PaymentIntent.capture")
-    def test_complete_payment_reject(self, mock_pi_capture, mock_pi_cancel):
+    def test_complete_one_time_payment_reject(self, mock_pi_capture, mock_pi_cancel):
         pm = self._instantiate_payment_manager_with_instance(contribution=self.contribution)
         pm.complete_payment(reject=True)
         mock_pi_capture.assert_not_called()
         mock_pi_cancel.assert_called_once_with(
-            "",
+            None,
             stripe_account=self.organization.stripe_account_id,
             api_key=fake_api_key,
             cancellation_reason="fraudulent",
@@ -209,36 +216,36 @@ class StripePaymentManagerTest(APITestCase):
 
     @patch("stripe.PaymentIntent.cancel")
     @patch("stripe.PaymentIntent.capture")
-    def test_complete_payment_accept(self, mock_pi_capture, mock_pi_cancel):
+    def test_complete_one_time_payment_accept(self, mock_pi_capture, mock_pi_cancel):
         pm = self._instantiate_payment_manager_with_instance(contribution=self.contribution)
         pm.complete_payment(reject=False)
         mock_pi_cancel.assert_not_called()
         mock_pi_capture.assert_called_once_with(
-            "",
+            None,
             stripe_account=self.organization.stripe_account_id,
             api_key=fake_api_key,
         )
 
     @patch("stripe.PaymentIntent.capture", side_effect=MockInvalidRequestError)
-    def test_complete_payment_invalid_request(self, mock_stripe_capture):
+    def test_complete_payment_invalid_request(self, *args):
         pm = self._instantiate_payment_manager_with_instance(contribution=self.contribution)
-        prev_payment_state = pm.contribution.payment_state
+        prev_status = pm.contribution.status
         self.assertRaises(PaymentProviderError, pm.complete_payment)
-        self.assertEqual(prev_payment_state, pm.contribution.payment_state)
+        self.assertEqual(prev_status, pm.contribution.status)
 
     @patch("stripe.PaymentIntent.capture", side_effect=stripe_errors.StripeError)
-    def test_complete_payment_stripe_error(self, mock_stripe_capture):
+    def test_complete_payment_stripe_error(self, *args):
         pm = self._instantiate_payment_manager_with_instance(contribution=self.contribution)
-        prev_payment_state = pm.contribution.payment_state
+        prev_status = pm.contribution.status
         self.assertRaises(PaymentProviderError, pm.complete_payment)
-        self.assertEqual(prev_payment_state, pm.contribution.payment_state)
+        self.assertEqual(prev_status, pm.contribution.status)
 
     def test_invalid_instantiation(self):
         with self.assertRaises(ValueError) as e1:
-            StripePaymentManager(StripeOneTimePaymentSerializer, contribution="String")
+            StripePaymentManager(contribution="String")
 
         with self.assertRaises(ValueError) as e2:
-            StripePaymentManager(StripeOneTimePaymentSerializer, contribution=self.contribution, data=self.data)
+            StripePaymentManager(contribution=self.contribution, data=self.data)
 
         self.assertEqual(
             str(e1.exception), "PaymentManager contribution argument expected an instance of Contribution."
@@ -251,14 +258,14 @@ class StripePaymentManagerTest(APITestCase):
         with self.assertRaises(PaymentBadParamsError) as e1:
             data = self.data
             data["revenue_program_slug"] = "doesnt-exist"
-            pm = StripePaymentManager(StripeOneTimePaymentSerializer, data=data)
+            pm = StripePaymentManager(data=data)
             pm.validate()
             pm.get_organization()
 
         with self.assertRaises(PaymentBadParamsError) as e2:
             data = self.data
             data["donation_page_slug"] = "doesnt-exist"
-            pm = StripePaymentManager(StripeOneTimePaymentSerializer, data=data)
+            pm = StripePaymentManager(data=data)
             pm.validate()
             pm.get_donation_page()
 
@@ -268,3 +275,160 @@ class StripePaymentManagerTest(APITestCase):
     @override_settings(BAD_ACTOR_API_KEY=None)
     def test_bad_actor_throws_error_missing_settings(self):
         self.assertRaises(BadActorAPIError, make_bad_actor_request, {})
+
+
+test_stripe_customer_id = "test_stripe_customer_id"
+
+
+class MockStripeCustomer(StripeObject):
+    id = test_stripe_customer_id
+
+    def __init__(self, *args, **kwargs):
+        pass
+
+
+test_stripe_subscription = "test_stripe_subscription"
+
+
+class MockStripeSubscription(StripeObject):
+    id = test_stripe_subscription
+
+    def __init__(self, *args, **kwargs):
+        pass
+
+
+@override_settings(STRIPE_TEST_SECRET_KEY=fake_api_key)
+class StripeRecurringPaymentManagerTest(StripePaymentManagerAbstractTestCase):
+    def setUp(self):
+        super().setUp()
+        self.contribution.interval = Contribution.INTERVAL_MONTHLY[0]
+        self.contribution.save()
+
+        test_stripe_product_id = "test_stripe_product_id"
+        self.organization.stripe_product_id = test_stripe_product_id
+        self.organization.save()
+
+        self.payment_method_id = "test_payment_method_id"
+        self.data.update({"payment_method_id": self.payment_method_id, "interval": Contribution.INTERVAL_MONTHLY[0]})
+
+    @responses.activate
+    def _prepare_valid_subscription(self, flagged=False):
+        pm = self._instantiate_payment_manager_with_data()
+        pm.validate()
+        self._create_mock_ba_response(target_score=4 if flagged else 2)
+        pm.get_bad_actor_score()
+        return pm
+
+    def test_ensure_validated_data(self):
+        pm = self._instantiate_payment_manager_with_data()
+        with self.assertRaises(ValueError) as e:
+            pm.create_subscription()
+        self.assertEqual(str(e.exception), "PaymentManager must call 'validate' before performing this action")
+
+    def test_ensure_bad_actor_score(self):
+        pm = self._instantiate_payment_manager_with_data()
+        pm.validate()
+        with self.assertRaises(ValueError) as e:
+            pm.create_subscription()
+        self.assertEqual(
+            str(e.exception), "PaymentManager must call 'get_bad_actor_score' before performing this action"
+        )
+
+    @patch("stripe.PaymentMethod.attach")
+    @patch("stripe.Subscription.create", side_effect=MockStripeSubscription)
+    @patch("stripe.Customer.create", side_effect=MockStripeCustomer)
+    def test_stripe_create_customer_called(self, mock_customer_create, *args):
+        pm = self._prepare_valid_subscription(flagged=False)
+        pm.create_subscription()
+        mock_customer_create.assert_called_once_with(
+            email=self.contributor.email,
+            api_key=fake_api_key,
+            stripe_account=self.organization.stripe_account_id,
+        )
+
+    @patch("stripe.Customer.create", side_effect=MockStripeCustomer)
+    @patch("stripe.Subscription.create", side_effect=MockStripeSubscription)
+    @patch("stripe.PaymentMethod.attach")
+    def test_stripe_payment_method_attach_called(self, mock_payment_method_attach, *args):
+        pm = self._prepare_valid_subscription(flagged=False)
+        pm.create_subscription()
+        mock_payment_method_attach.assert_called_once_with(
+            self.payment_method_id,
+            customer=test_stripe_customer_id,
+            stripe_account=self.organization.stripe_account_id,
+            api_key=fake_api_key,
+        )
+
+    @patch("stripe.Customer.create", side_effect=MockStripeCustomer)
+    @patch("stripe.PaymentMethod.attach")
+    @patch("stripe.Subscription.create", side_effect=MockStripeSubscription)
+    def test_stripe_subscription_create_called(self, mock_sub_create, *args):
+        pm = self._prepare_valid_subscription(flagged=False)
+        pm.create_subscription()
+        mock_sub_create.assert_called_once_with(
+            customer=test_stripe_customer_id,
+            default_payment_method=self.payment_method_id,
+            items=[
+                {
+                    "price_data": {
+                        "unit_amount": 1099,
+                        "currency": self.contribution.currency,
+                        "product": self.organization.stripe_product_id,
+                        "recurring": {"interval": self.data["interval"]},
+                    }
+                }
+            ],
+            stripe_account=self.organization.stripe_account_id,
+            api_key=fake_api_key,
+        )
+
+    @patch("stripe.Customer.create", side_effect=MockStripeCustomer)
+    @patch("stripe.PaymentMethod.attach")
+    @patch("stripe.Subscription.create", side_effect=MockStripeSubscription)
+    def test_flagged_does_not_create_subscription(self, mock_sub_create, *args):
+        pm = self._prepare_valid_subscription(flagged=True)
+        pm.create_subscription()
+        mock_sub_create.assert_not_called()
+
+    @patch("stripe.Customer.create", side_effect=MockStripeCustomer)
+    @patch("stripe.PaymentMethod.attach")
+    @patch("stripe.Subscription.create", side_effect=MockStripeSubscription)
+    def test_reject(self, mock_sub_create, *args):
+        pm = self._instantiate_payment_manager_with_instance()
+        pm.complete_payment(reject=True)
+        mock_sub_create.assert_not_called()
+        self.assertEqual(self.contribution.status, Contribution.REJECTED[0])
+
+    @patch("stripe.Customer.create", side_effect=MockStripeCustomer)
+    @patch("stripe.PaymentMethod.attach")
+    @patch("stripe.Subscription.create", side_effect=MockStripeSubscription)
+    def test_accept(self, mock_sub_create, *args):
+        pm = self._instantiate_payment_manager_with_instance()
+        pm.complete_payment(reject=False)
+        mock_sub_create.assert_called_once_with(
+            customer=None,
+            default_payment_method=None,
+            items=[
+                {
+                    "price_data": {
+                        "unit_amount": self.contribution.amount,
+                        "currency": self.contribution.currency,
+                        "product": self.organization.stripe_product_id,
+                        "recurring": {"interval": self.contribution.interval},
+                    }
+                }
+            ],
+            stripe_account=self.organization.stripe_account_id,
+            api_key=fake_api_key,
+        )
+        self.assertEqual(self.contribution.status, Contribution.PROCESSING[0])
+
+    @patch("stripe.Customer.create", side_effect=MockStripeCustomer)
+    @patch("stripe.PaymentMethod.attach")
+    @patch("stripe.Subscription.create", side_effect=stripe_errors.StripeError)
+    def test_stripe_error(self, mock_sub_create, *args):
+        pm = self._instantiate_payment_manager_with_instance()
+        with self.assertRaises(PaymentProviderError) as e:
+            pm.complete_payment(reject=False)
+        mock_sub_create.assert_called_once()
+        self.assertEqual(str(e.exception), "Could not complete payment")

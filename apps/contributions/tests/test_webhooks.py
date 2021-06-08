@@ -90,7 +90,7 @@ class StripeWebhooksTest(APITestCase):
     def test_webhook_view_invalid_contribution(self, mock_logger, *args):
         self._create_contribution(ref_id="abcd")
         self._run_webhook_view_with_request()
-        mock_logger.warn.assert_called_once_with("Could not find contribution matching provider_payment_id")
+        mock_logger.error.assert_called_once_with("Could not find contribution matching provider_payment_id")
 
     def test_payment_intent_canceled_webhook(self):
         ref_id = "1234"
@@ -141,10 +141,10 @@ class StripeWebhooksTest(APITestCase):
         )
         self.assertRaises(Contribution.DoesNotExist, processor.process)
 
-    @patch("apps.contributions.webhooks.logger.warning")
+    @patch("apps.contributions.webhooks.logger")
     def test_unknown_event_logs_helpful_message(self, mock_logger):
         self._create_contribution(ref_id="abcd")
         fake_event_object = "criminal_activiy"
         processor = StripeWebhookProcessor(MockPaymentIntentEvent(object_type=fake_event_object, intent_id="1234"))
         processor.process()
-        mock_logger.assert_called_with(f'Recieved un-handled Stripe object of type "{fake_event_object}"')
+        mock_logger.warning.assert_called_with(f'Recieved un-handled Stripe object of type "{fake_event_object}"')

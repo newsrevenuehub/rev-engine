@@ -263,6 +263,22 @@ local database.
 (revengine)$> pg_restore --verbose --clean --no-acl --no-owner latest.dump
 ```
 
+##**13. Notes on Development conventions**
+#### 1. Logging
+
+This application makes use of the `WARNING` logging level a bit more than other projects.
+
+The three main logging levels are:
+
+* INFO 
+  * Logs to console only
+* ERROR 
+  * Logs to console, reports to sentry, sends an admin email
+* WARNING
+  * Logs to console, sends an admin email
+
+Instead of the usual `logger = logging.getLogger(__name__)` use `logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__})`
+
 
 ## Heroku Cheatsheat
 

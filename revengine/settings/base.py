@@ -43,6 +43,7 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     "django_celery_beat",
     "rest_framework",
+    "anymail",
 ]
 
 
@@ -293,7 +294,7 @@ FLAGGED_PAYMENT_AUTO_ACCEPT_DELTA = timedelta(days=4)
 HEALTHCHECK_URL_AUTO_ACCEPT_FLAGGED_PAYMENTS = os.environ.get("HEALTHCHECK_URL_AUTO_ACCEPT_FLAGGED_PAYMENTS")
 
 # Transactional Email
-EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
+EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
 
 ADMINS = [("nrh-team", "nrh-team@caktusgroup.com")]
 

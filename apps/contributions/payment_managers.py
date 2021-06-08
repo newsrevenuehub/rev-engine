@@ -1,7 +1,6 @@
 import logging
 
 from django.conf import settings
-from django.core.mail import mail_admins
 from django.utils import timezone
 
 import stripe
@@ -211,21 +210,23 @@ class StripePaymentManager(PaymentManager):
         """
         self.ensure_validated_data()
         self.ensure_bad_actor_score()
-        org = self.get_organization()
+        organization = self.get_organization()
 
         # Create customer on org...
-        stripe_customer = self.create_organization_customer(org)
+        stripe_customer = self.create_organization_customer(organization)
         # ...attach paymentMethod to that customer.
-        self.attach_payment_method_to_customer(stripe_customer.id, org.stripe_account_id)
+        self.attach_payment_method_to_customer(stripe_customer.id, organization.stripe_account_id)
 
-        contribution = self.create_contribution(org, provider_customer_id=stripe_customer.id)
+        contribution = self.create_contribution(organization, provider_customer_id=stripe_customer.id)
         if not self.flagged:
             self.contribution = contribution
             self.complete_payment(reject=False)
 
-    def create_organization_customer(self, org):
+    def create_organization_customer(self, organization):
         return stripe.Customer.create(
-            email=self.validated_data["email"], api_key=get_hub_stripe_api_key(), stripe_account=org.stripe_account_id
+            email=self.validated_data["email"],
+            api_key=get_hub_stripe_api_key(),
+            stripe_account=organization.stripe_account_id,
         )
 
     def attach_payment_method_to_customer(self, stripe_customer_id, org_strip_account):
@@ -266,8 +267,7 @@ class StripePaymentManager(PaymentManager):
         except stripe.error.InvalidRequestError as invalid_request_error:
             self.contribution.status = previous_status
             self.contribution.save()
-            mail_admins(
-                "RevEngine Stripe Error",
+            logger.warning(
                 f"Stripe returned an InvalidRequestError at {timezone.now}. This was caused by attempting to {'reject' if reject else 'capture'} a payment that was flagged in our system, but was already captured or rejected in Stripe's system.",
             )
             raise PaymentProviderError(invalid_request_error)

@@ -1,5 +1,7 @@
 import logging
 
+from django.conf import settings
+
 from rest_framework import permissions, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
@@ -10,7 +12,7 @@ from apps.organizations import serializers
 from apps.organizations.models import Feature, Organization, Plan, RevenueProgram
 
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
 
 
 class ReadOnly(permissions.BasePermission):
@@ -63,7 +65,7 @@ class OrganizationViewSet(OrganizationLimitedListView, viewsets.ReadOnlyModelVie
         try:
             revenue_program = RevenueProgram.objects.get(slug=revenue_program_slug)
             if not revenue_program.organization.is_verified_with_default_provider():
-                logger.error(
+                logger.warning(
                     f'Donor visited donation page for revenue program "{revenue_program_slug}", but the corresponding organization does not have a verified default payment provider'
                 )
                 return Response(
@@ -74,7 +76,7 @@ class OrganizationViewSet(OrganizationLimitedListView, viewsets.ReadOnlyModelVie
                 {"stripe_account_id": revenue_program.organization.stripe_account_id}, status=status.HTTP_200_OK
             )
         except RevenueProgram.DoesNotExist:
-            logger.error(
+            logger.warning(
                 f"Donor visited rev_program slug {revenue_program_slug}, but no rev_program could be found by that slug"
             )
             return Response(

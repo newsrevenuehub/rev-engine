@@ -8,7 +8,7 @@ import requests
 from celery import shared_task
 from requests.exceptions import RequestException
 
-from apps.contributions.models import Contribution
+from apps.contributions.models import Contribution, ContributionStatus
 from apps.contributions.payment_managers import PaymentProviderError
 
 
@@ -32,7 +32,7 @@ def ping_healthchecks(check_name, healthcheck_url):  # pragma: no cover
 @shared_task
 def auto_accept_flagged_contributions():
     logger.info('Starting task, "auto_accept_flagged_contributions"')
-    contributions = Contribution.objects.filter(status=Contribution.FLAGGED[0])
+    contributions = Contribution.objects.filter(status=ContributionStatus.FLAGGED)
     logger.info(f"Found {len(contributions)} flagged contributions")
 
     successful_captures = 0
@@ -40,7 +40,7 @@ def auto_accept_flagged_contributions():
 
     now = timezone.now()
     eligible_flagged_contributions = Contribution.objects.filter(
-        status=Contribution.FLAGGED[0], flagged_date__lte=now - settings.FLAGGED_PAYMENT_AUTO_ACCEPT_DELTA
+        status=ContributionStatus.FLAGGED, flagged_date__lte=now - settings.FLAGGED_PAYMENT_AUTO_ACCEPT_DELTA
     )
     for contribution in eligible_flagged_contributions:
         payment_intent = contribution.get_payment_manager_instance()

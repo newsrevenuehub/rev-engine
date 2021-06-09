@@ -5,7 +5,7 @@ from django.conf import settings
 
 import pytz
 
-from apps.contributions.models import Contribution
+from apps.contributions.models import Contribution, ContributionStatus
 
 
 logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
@@ -51,11 +51,11 @@ class StripeWebhookProcessor:
     def handle_payment_intent_canceled(self):
         contribution = self.get_contribution_from_event()
         if self._cancellation_was_rejection():
-            contribution.status = Contribution.REJECTED[0]
+            contribution.status = ContributionStatus.REJECTED
             contribution.payment_provider_data = self.event
             logger.info(f"Contribution {contribution} rejected.")
         else:
-            contribution.status = Contribution.CANCELED[0]
+            contribution.status = ContributionStatus.CANCELED
             contribution.payment_provider_data = self.event
             logger.info(f"Contribution {contribution} canceled.")
 
@@ -64,7 +64,7 @@ class StripeWebhookProcessor:
 
     def handle_payment_intent_failed(self):
         contribution = self.get_contribution_from_event()
-        contribution.status = Contribution.FAILED[0]
+        contribution.status = ContributionStatus.FAILED
         contribution.payment_provider_data = self.event
         contribution.save()
         logger.info(f"Contribution {contribution} failed.")
@@ -73,7 +73,7 @@ class StripeWebhookProcessor:
         contribution = self.get_contribution_from_event()
         contribution.payment_provider_data = self.event
         contribution.last_payment_date = datetime.fromtimestamp(self.obj_data["created"]).replace(tzinfo=pytz.UTC)
-        contribution.status = Contribution.PAID[0]
+        contribution.status = ContributionStatus.PAID
 
         if self.payment_intent_is_subscription():
             # If it's a subscription, we should grab the payment_intent id from the event and store it as provider_payment_id

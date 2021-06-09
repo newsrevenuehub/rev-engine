@@ -10,7 +10,7 @@ from rest_framework.test import APIRequestFactory, APITestCase
 from stripe.error import SignatureVerificationError
 from stripe.stripe_object import StripeObject
 
-from apps.contributions.models import Contribution
+from apps.contributions.models import Contribution, ContributionStatus
 from apps.contributions.views import process_stripe_webhook_view
 from apps.contributions.webhooks import StripeWebhookProcessor
 
@@ -58,7 +58,9 @@ def mock_valid_signature_bad_payload_verification(*args, **kwargs):
 @override_settings(STRIPE_WEBHOOK_SECRET=valid_secret)
 class StripeWebhooksTest(APITestCase):
     def _create_contribution(self, ref_id=None):
-        return Contribution.objects.create(provider_payment_id=ref_id, amount=1000, status=Contribution.PROCESSING[0])
+        return Contribution.objects.create(
+            provider_payment_id=ref_id, amount=1000, status=ContributionStatus.PROCESSING
+        )
 
     def _run_webhook_view_with_request(self):
         request = APIRequestFactory().post(reverse("stripe-webhooks"))
@@ -100,7 +102,7 @@ class StripeWebhooksTest(APITestCase):
         )
         processor.process()
         contribution.refresh_from_db()
-        self.assertEqual(contribution.status, Contribution.CANCELED[0])
+        self.assertEqual(contribution.status, ContributionStatus.CANCELED)
 
     def test_payment_intent_fraudulent(self):
         ref_id = "1234"
@@ -112,7 +114,7 @@ class StripeWebhooksTest(APITestCase):
         )
         processor.process()
         contribution.refresh_from_db()
-        self.assertEqual(contribution.status, Contribution.REJECTED[0])
+        self.assertEqual(contribution.status, ContributionStatus.REJECTED)
 
     def test_payment_intent_payment_failed_webhook(self):
         ref_id = "1234"
@@ -122,7 +124,7 @@ class StripeWebhooksTest(APITestCase):
         )
         processor.process()
         contribution.refresh_from_db()
-        self.assertEqual(contribution.status, Contribution.FAILED[0])
+        self.assertEqual(contribution.status, ContributionStatus.FAILED)
 
     def test_payment_intent_succeeded_webhook(self):
         ref_id = "1234"
@@ -132,7 +134,7 @@ class StripeWebhooksTest(APITestCase):
         )
         processor.process()
         contribution.refresh_from_db()
-        self.assertEqual(contribution.status, Contribution.PAID[0])
+        self.assertEqual(contribution.status, ContributionStatus.PAID)
 
     def test_webhook_with_invalid_contribution_reference_id(self):
         self._create_contribution(ref_id="abcd")

@@ -1,6 +1,6 @@
 from django.contrib import admin, messages
 
-from apps.contributions.models import Contribution, Contributor
+from apps.contributions.models import Contribution, ContributionStatus, Contributor
 from apps.contributions.payment_managers import PaymentProviderError
 
 
@@ -138,7 +138,7 @@ class ContributionAdmin(admin.ModelAdmin):
     def _process_flagged_payment(self, request, queryset, reject=False):
         # Bail if any of the selected Contributions are not "FLAGGED"
         action = "reject" if reject else "accept"
-        if queryset.exclude(status=Contribution.FLAGGED[0]).exists():
+        if queryset.exclude(status=ContributionStatus.FLAGGED).exists():
             self.message_user(
                 request,
                 f"Cannot {action} a non-flagged Contribution.",

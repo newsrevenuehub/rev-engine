@@ -7,7 +7,7 @@ from rest_framework import status
 from rest_framework.decorators import api_view, authentication_classes, permission_classes
 from rest_framework.response import Response
 
-from apps.contributions.models import Contribution
+from apps.contributions.models import Contribution, ContributionInterval
 from apps.contributions.payment_managers import (
     PaymentBadParamsError,
     PaymentProviderError,
@@ -40,7 +40,7 @@ def stripe_payment(request):
     stripe_payment.get_bad_actor_score()
 
     try:
-        if stripe_payment.validated_data["interval"] == Contribution.INTERVAL_ONE_TIME[0]:
+        if stripe_payment.validated_data["interval"] == ContributionInterval.ONE_TIME:
             # Create payment intent with Stripe, associated local models
             stripe_payment_intent = stripe_payment.create_one_time_payment()
             response_body = {"detail": "Success", "clientSecret": stripe_payment_intent["client_secret"]}

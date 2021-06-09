@@ -245,7 +245,7 @@ LOGGING = {
         "warn": {
             "handlers": ["warn_admins"],
             "level": "WARNING",
-            "propagate": True,
+            "propagate": False,
         },
     },
     "root": {

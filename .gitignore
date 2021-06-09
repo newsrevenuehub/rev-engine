@@ -18,6 +18,7 @@ env-local.sh
 .idea/
 .direnv
 .docker.env
+local-google-sa
 
 # Project Static Files
 node_modules/*

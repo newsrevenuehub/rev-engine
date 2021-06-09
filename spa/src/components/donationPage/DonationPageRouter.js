@@ -49,7 +49,7 @@ const livePageReducer = (state, action) => {
   }
 };
 
-function DonationPageRouter() {
+function DonationPageRouter({ live }) {
   const [{ loading, error, data }, dispatch] = useReducer(livePageReducer, initialState);
   const params = useParams();
 
@@ -59,7 +59,7 @@ function DonationPageRouter() {
     const requestParams = {
       revenue_program: revProgramSlug,
       page: pageSlug,
-      live: 1
+      live: live ? 1 : 0
     };
     try {
       const { data } = await axios.get(LIVE_PAGE, { params: requestParams });
@@ -67,7 +67,7 @@ function DonationPageRouter() {
     } catch (e) {
       dispatch({ type: PAGE_FETCH_ERROR });
     }
-  }, [params]);
+  }, [params, live]);
 
   useEffect(() => {
     fetchLivePageContent();
@@ -79,5 +79,13 @@ function DonationPageRouter() {
     </SegregatedStyles>
   );
 }
+
+DonationPageRouter.propTypes = {
+  live: PropTypes.bool
+};
+
+DonationPageRouter.default = {
+  live: false
+};
 
 export default DonationPageRouter;

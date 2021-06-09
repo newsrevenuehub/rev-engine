@@ -1,8 +1,7 @@
 from django.contrib import admin, messages
 
-from apps.contributions.models import Contribution, Contributor
+from apps.contributions.models import Contribution, ContributionStatus, Contributor
 from apps.contributions.payment_managers import PaymentProviderError
-from apps.contributions.serializers import StripeOneTimePaymentSerializer
 
 
 @admin.register(Contributor)
@@ -48,6 +47,7 @@ class ContributionAdmin(admin.ModelAdmin):
                     "amount",
                     "currency",
                     "reason",
+                    "interval",
                 )
             },
         ),
@@ -56,7 +56,14 @@ class ContributionAdmin(admin.ModelAdmin):
         (
             "Provider",
             {
-                "fields": ("payment_state", "payment_provider_used", "provider_reference_id", "payment_provider_data"),
+                "fields": (
+                    "status",
+                    "payment_provider_used",
+                    "provider_payment_id",
+                    "provider_customer_id",
+                    "provider_payment_method_id",
+                    "payment_provider_data",
+                ),
             },
         ),
     )
@@ -66,7 +73,8 @@ class ContributionAdmin(admin.ModelAdmin):
         "organization",
         "contributor",
         "donation_page",
-        "payment_state",
+        "interval",
+        "status",
         "expanded_bad_actor_score",
         "created",
         "modified",
@@ -76,7 +84,7 @@ class ContributionAdmin(admin.ModelAdmin):
         "organization__name",
         "contributor__email",
         "donation_page__name",
-        "payment_state",
+        "status",
         BadActorScoreFilter,
         "modified",
         "created",
@@ -99,15 +107,19 @@ class ContributionAdmin(admin.ModelAdmin):
         "amount",
         "currency",
         "reason",
+        "interval",
         "contributor",
         "donation_page",
         "organization",
         "bad_actor_score",
         "bad_actor_response",
-        "payment_state",
+        "status",
         "payment_provider_used",
-        "provider_reference_id",
+        "provider_payment_id",
+        "provider_customer_id",
+        "provider_payment_method_id",
         "payment_provider_data",
+        "flagged_date",
     )
 
     actions = (
@@ -126,7 +138,7 @@ class ContributionAdmin(admin.ModelAdmin):
     def _process_flagged_payment(self, request, queryset, reject=False):
         # Bail if any of the selected Contributions are not "FLAGGED"
         action = "reject" if reject else "accept"
-        if queryset.exclude(payment_state=Contribution.FLAGGED[0]).exists():
+        if queryset.exclude(status=ContributionStatus.FLAGGED).exists():
             self.message_user(
                 request,
                 f"Cannot {action} a non-flagged Contribution.",
@@ -137,8 +149,7 @@ class ContributionAdmin(admin.ModelAdmin):
         failed = []
         for contribution in queryset:
             try:
-                payment_intent = contribution.get_payment_manager_instance(StripeOneTimePaymentSerializer)
-                payment_intent.complete_payment(reject=reject)
+                contribution.process_flagged_payment(reject=reject)
                 succeeded += 1
             except PaymentProviderError:
                 failed.append(contribution)

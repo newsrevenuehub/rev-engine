@@ -12,6 +12,7 @@ from apps.contributions.payment_managers import PaymentBadParamsError, StripePay
 from apps.contributions.serializers import StripeOneTimePaymentSerializer
 from apps.contributions.utils import get_hub_stripe_api_key
 from apps.contributions.webhooks import StripeWebhookProcessor
+from apps.emails.models import PageEmailTemplate
 
 
 logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
@@ -22,7 +23,6 @@ logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
 @permission_classes([])
 def stripe_one_time_payment(request):
     pi_data = request.data
-
     # Grab required data from headers
     pi_data["referer"] = request.META.get("HTTP_REFERER")
 
@@ -40,7 +40,11 @@ def stripe_one_time_payment(request):
     try:
         # Create payment intent with Stripe, associated local models
         stripe_payment_intent = stripe_payment.create_one_time_payment()
-
+        email = PageEmailTemplate.get_or_create_template(
+            template_type=PageEmailTemplate.ContactType.ONE_TIME_DONATION,
+            donation_page=stripe_payment_intent.get_donation_page(),
+        )
+        email.default_one_time_donation(stripe_payment)
     except PaymentBadParamsError:
         return Response({"detail": "There was an error processing your payment."}, status=status.HTTP_400_BAD_REQUEST)
 

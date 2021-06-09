@@ -83,7 +83,7 @@ REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": [
         "apps.api.authentication.JWTHttpOnlyCookieAuthentication",
     ],
-    "DEFAUL_PERMISSION_CLASSES": [
+    "DEFAULT_PERMISSION_CLASSES": [
         "rest_framework.permissions.IsAuthenticated",
     ],
     # https://www.django-rest-framework.org/api-guide/pagination/#setting-the-pagination-style
@@ -264,6 +264,8 @@ STRIPE_LIVE_SECRET_KEY = os.getenv("LIVE_HUB_STRIPE_API_SECRET_KEY", "")
 STRIPE_TEST_SECRET_KEY = os.getenv("TEST_HUB_STRIPE_API_SECRET_KEY", "")
 STRIPE_LIVE_MODE = False  # Change to True in production
 
+GENERIC_STRIPE_PRODUCT_NAME = "Donation via RevEngine"
+
 # Get it from the section in the Stripe dashboard where you added the webhook endpoint
 STRIPE_WEBHOOK_SECRET = os.getenv("STRIPE_WEBHOOK_SECRET", "")
 
@@ -276,6 +278,7 @@ STRIPE_WEBHOOK_EVENTS = [
     "payment_intent.payment_failed",
     "payment_intent.succeeded",
 ]
+
 
 SITE_URL = os.getenv("SITE_URL", "")
 
@@ -301,3 +304,6 @@ ADMINS = [("nrh-team", "nrh-team@caktusgroup.com")]
 # this is only used by HubAdmins, not OrgAdmins, but needs to be named generically as LOGIN_URL
 # so our implementation of password reset flow for HubAdmins works as expected
 LOGIN_URL = "/admin/"
+
+# Set USE_DEBUG_INTERVALS to True if you want recurring payment intervals to be truncated for testing (as much as possible, currently)
+USE_DEBUG_INTERVALS = False

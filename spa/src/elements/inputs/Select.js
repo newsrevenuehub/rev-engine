@@ -5,22 +5,18 @@ import BaseField from 'elements/inputs/BaseField';
 // Deps
 import { useSelect } from 'downshift';
 
-function Select({ onChange, items, placeholder, ...props }) {
-  const {
-    isOpen,
+function Select({ selectedItem, onSelectedItemChange, items, placeholder, ...props }) {
+  const { isOpen, getToggleButtonProps, getLabelProps, getMenuProps, highlightedIndex, getItemProps } = useSelect({
+    items,
     selectedItem,
-    getToggleButtonProps,
-    getLabelProps,
-    getMenuProps,
-    highlightedIndex,
-    getItemProps
-  } = useSelect({ items });
+    onSelectedItemChange
+  });
 
   return (
     <BaseField labelProps={{ ...getLabelProps() }} {...props}>
       <S.SelectWrapper>
         <S.Select type="button" {...getToggleButtonProps()}>
-          {selectedItem || placeholder}
+          {selectedItem?.displayValue || placeholder}
         </S.Select>
         <S.List {...getMenuProps()}>
           {isOpen &&
@@ -29,10 +25,9 @@ function Select({ onChange, items, placeholder, ...props }) {
                 key={`${item}${index}`}
                 highlighted={highlightedIndex === index}
                 data-testid={`select-item-${index}`}
-                // style={highlightedIndex === index ? { backgroundColor: '#bde4ff' } : {}}
                 {...getItemProps({ item, index })}
               >
-                {item}
+                {item.displayValue}
               </S.Item>
             ))}
         </S.List>
@@ -42,7 +37,7 @@ function Select({ onChange, items, placeholder, ...props }) {
 }
 
 Select.propTypes = {
-  onChange: PropTypes.func.isRequired,
+  onSelectedItemChange: PropTypes.func.isRequired,
   placeholder: PropTypes.string
 };
 

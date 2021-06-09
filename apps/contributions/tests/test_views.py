@@ -10,7 +10,7 @@ from rest_framework.test import APIRequestFactory, APITestCase
 from stripe.error import StripeError
 from stripe.stripe_object import StripeObject
 
-from apps.contributions.models import Contribution, Contributor
+from apps.contributions.models import ContributionInterval
 from apps.contributions.tests.factories import ContributorFactory
 from apps.contributions.views import stripe_payment
 from apps.organizations.models import Organization
@@ -56,7 +56,7 @@ class StripePaymentViewAbstract(APITestCase):
                 "reason": "Testing",
                 "revenue_program_slug": rev_slug if rev_slug else self.revenue_program.slug,
                 "donation_page_slug": page_slug if page_slug else self.page.slug,
-                "interval": interval if interval else Contribution.INTERVAL_ONE_TIME[0],
+                "interval": interval if interval else ContributionInterval.ONE_TIME,
                 "payment_method_id": payment_method_id,
             },
             format="json",
@@ -91,7 +91,7 @@ class StripeOneTimePaymentViewTest(StripePaymentViewAbstract):
 class CreateStripeRecurringPaymentViewTest(StripePaymentViewAbstract):
     def test_recurring_payment_serializer_validates(self, *args):
         # StripeRecurringPaymentSerializer requires payment_method_id
-        response = self._post_valid_one_time_payment(interval=Contribution.INTERVAL_MONTHLY[0])
+        response = self._post_valid_one_time_payment(interval=ContributionInterval.MONTHLY)
         # This also verifies that the view is using the correct serializer.
         # Test failures here may indicate that the wrong serializer is being used.
         self.assertEqual(response.status_code, 400)
@@ -103,7 +103,7 @@ class CreateStripeRecurringPaymentViewTest(StripePaymentViewAbstract):
         Verify that we're getting the response we expect from a valid contribition
         """
         response = self._post_valid_one_time_payment(
-            interval=Contribution.INTERVAL_MONTHLY[0], payment_method_id="test_payment_method_id"
+            interval=ContributionInterval.MONTHLY, payment_method_id="test_payment_method_id"
         )
         self.assertEqual(response.status_code, 200)
         mock_subscription_create.assert_called_once()

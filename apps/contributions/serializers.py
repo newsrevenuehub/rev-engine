@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from apps.contributions.models import Contribution, Contributor
+from apps.contributions.models import Contribution, ContributionInterval, Contributor
 
 
 class ContributionSerializer(serializers.ModelSerializer):
@@ -30,12 +30,7 @@ class AbstractPaymentSerializer(serializers.Serializer):
     revenue_program_slug = serializers.SlugField()
     donation_page_slug = serializers.SlugField(required=False)
 
-    INTERVAL_CHOICES = [
-        Contribution.INTERVAL_ONE_TIME,
-        Contribution.INTERVAL_MONTHLY,
-        Contribution.INTERVAL_YEARLY,
-    ]
-    interval = serializers.ChoiceField(choices=INTERVAL_CHOICES, default=Contribution.INTERVAL_ONE_TIME[0])
+    interval = serializers.ChoiceField(choices=ContributionInterval.choices, default=ContributionInterval.ONE_TIME)
 
     @classmethod
     def convert_cents_to_amount(self, cents):

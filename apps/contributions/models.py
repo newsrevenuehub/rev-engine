@@ -18,19 +18,27 @@ class Contributor(IndexedTimeStampedModel):
         return self.email
 
 
+class ContributionInterval(models.TextChoices):
+    ONE_TIME = "one_time", "One time"
+    MONTHLY = "month", "Monthly"
+    YEARLY = "year", "Yearly"
+
+
+class ContributionStatus(models.TextChoices):
+    PROCESSING = "processing", "processing"
+    PAID = "paid", "paid"
+    CANCELED = "canceled", "canceled"
+    FAILED = "failed", "failed"
+    FLAGGED = "flagged", "flagged"
+    REJECTED = "rejected", "rejected"
+
+
 class Contribution(IndexedTimeStampedModel):
     amount = models.IntegerField(help_text="Stored in cents")
     currency = models.CharField(max_length=3, default="usd")
     reason = models.CharField(max_length=255, blank=True)
 
-    INTERVAL_ONE_TIME = (
-        "one_time",
-        "One time",
-    )
-    INTERVAL_MONTHLY = ("month", "Monthly")
-    INTERVAL_YEARLY = ("year", "Yearly")
-    INTERVAL_CHOICES = (INTERVAL_ONE_TIME, INTERVAL_MONTHLY, INTERVAL_YEARLY)
-    interval = models.CharField(max_length=8, choices=INTERVAL_CHOICES)
+    interval = models.CharField(max_length=8, choices=ContributionInterval.choices)
 
     payment_provider_used = models.CharField(max_length=64)
     payment_provider_data = models.JSONField(null=True)
@@ -38,10 +46,6 @@ class Contribution(IndexedTimeStampedModel):
     provider_customer_id = models.CharField(max_length=255, blank=True, null=True)
     provider_payment_method_id = models.CharField(max_length=255, blank=True, null=True)
 
-    PAYMENT_SUCCEEDED = ("succeeded", "Succeeded")
-    PAYMENT_FAILED = ("failed", "Failed")
-    PAYMENT_STATUS_CHOICES = [PAYMENT_SUCCEEDED, PAYMENT_FAILED]
-    last_payment_status = models.CharField(max_length=10, choices=PAYMENT_STATUS_CHOICES, null=True)
     last_payment_date = models.DateTimeField(null=True)
 
     contributor = models.ForeignKey("contributions.Contributor", on_delete=models.SET_NULL, null=True)
@@ -52,32 +56,7 @@ class Contribution(IndexedTimeStampedModel):
     bad_actor_response = models.JSONField(null=True)
     flagged_date = models.DateTimeField(null=True)
 
-    PROCESSING = (
-        "processing",
-        "processing",
-    )
-    CANCELED = (
-        "canceled",
-        "canceled",
-    )
-    FLAGGED = (
-        "flagged",
-        "flagged",
-    )
-    FAILED = (
-        "failed",
-        "failed",
-    )
-    REJECTED = (
-        "rejected",
-        "rejected",
-    )
-    PAID = (
-        "paid",
-        "paid",
-    )
-    STATUSES = [PROCESSING, PAID, CANCELED, FAILED, FLAGGED, REJECTED]
-    status = models.CharField(max_length=10, choices=STATUSES, null=True)
+    status = models.CharField(max_length=10, choices=ContributionStatus.choices, null=True)
 
     def __str__(self):
         return f"{self.formatted_amount}, {self.created.strftime('%Y-%m-%d %H:%M:%S')}"

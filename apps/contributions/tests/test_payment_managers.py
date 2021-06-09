@@ -11,7 +11,7 @@ from stripe import error as stripe_errors
 from stripe.stripe_object import StripeObject
 
 from apps.contributions.bad_actor import BadActorAPIError, make_bad_actor_request
-from apps.contributions.models import Contribution
+from apps.contributions.models import Contribution, ContributionInterval, ContributionStatus
 from apps.contributions.payment_managers import (
     PaymentBadParamsError,
     PaymentProviderError,
@@ -77,10 +77,10 @@ class StripePaymentManagerAbstractTestCase(APITestCase):
 class StripeOneTimePaymentManagerTest(StripePaymentManagerAbstractTestCase):
     def setUp(self):
         super().setUp()
-        self.contribution.interval = Contribution.INTERVAL_ONE_TIME[0]
+        self.contribution.interval = ContributionInterval.ONE_TIME
         self.contribution.save()
 
-        self.data.update({"interval": Contribution.INTERVAL_ONE_TIME[0]})
+        self.data.update({"interval": ContributionInterval.ONE_TIME})
 
     def test_validate_pass(self):
         pm = self._instantiate_payment_manager_with_data()
@@ -146,7 +146,7 @@ class StripeOneTimePaymentManagerTest(StripePaymentManagerAbstractTestCase):
     @patch("stripe.PaymentIntent.create", side_effect=MockPaymentIntent)
     def test_create_payment_intent_when_single_flagged_contribution(self, mock_stripe_create_pi):
         data = self.data
-        data["interval"] = Contribution.INTERVAL_ONE_TIME[0]
+        data["interval"] = ContributionInterval.ONE_TIME
         pm = self._instantiate_payment_manager_with_data(data=data)
         pm.validate()
         self._create_mock_ba_response(target_score=4)
@@ -169,13 +169,13 @@ class StripeOneTimePaymentManagerTest(StripePaymentManagerAbstractTestCase):
         new_contribution = Contribution.objects.filter(amount=1099).first()
         self.assertIsNotNone(new_contribution)
         # ...with status "flagged"
-        self.assertEqual(new_contribution.status, Contribution.FLAGGED[0])
+        self.assertEqual(new_contribution.status, ContributionStatus.FLAGGED)
 
     @responses.activate
     @patch("stripe.PaymentIntent.create", side_effect=MockPaymentIntent)
     def test_create_payment_intent_single_not_flagged(self, mock_stripe_create_pi):
         data = self.data
-        data["interval"] = Contribution.INTERVAL_ONE_TIME[0]
+        data["interval"] = ContributionInterval.ONE_TIME
         pm = self._instantiate_payment_manager_with_data(data=data)
         pm.validate()
         self._create_mock_ba_response(target_score=2)
@@ -199,7 +199,7 @@ class StripeOneTimePaymentManagerTest(StripePaymentManagerAbstractTestCase):
         new_contribution = Contribution.objects.filter(amount=1099).first()
         self.assertIsNotNone(new_contribution)
         # ...with status "processing"
-        self.assertEqual(new_contribution.status, Contribution.PROCESSING[0])
+        self.assertEqual(new_contribution.status, ContributionStatus.PROCESSING)
 
     @patch("stripe.PaymentIntent.cancel")
     @patch("stripe.PaymentIntent.capture")
@@ -301,7 +301,7 @@ class MockStripeSubscription(StripeObject):
 class StripeRecurringPaymentManagerTest(StripePaymentManagerAbstractTestCase):
     def setUp(self):
         super().setUp()
-        self.contribution.interval = Contribution.INTERVAL_MONTHLY[0]
+        self.contribution.interval = ContributionInterval.MONTHLY
         self.contribution.save()
 
         test_stripe_product_id = "test_stripe_product_id"
@@ -309,7 +309,7 @@ class StripeRecurringPaymentManagerTest(StripePaymentManagerAbstractTestCase):
         self.organization.save()
 
         self.payment_method_id = "test_payment_method_id"
-        self.data.update({"payment_method_id": self.payment_method_id, "interval": Contribution.INTERVAL_MONTHLY[0]})
+        self.data.update({"payment_method_id": self.payment_method_id, "interval": ContributionInterval.MONTHLY})
 
     @responses.activate
     def _prepare_valid_subscription(self, flagged=False):
@@ -397,7 +397,7 @@ class StripeRecurringPaymentManagerTest(StripePaymentManagerAbstractTestCase):
         pm = self._instantiate_payment_manager_with_instance()
         pm.complete_payment(reject=True)
         mock_sub_create.assert_not_called()
-        self.assertEqual(self.contribution.status, Contribution.REJECTED[0])
+        self.assertEqual(self.contribution.status, ContributionStatus.REJECTED)
 
     @patch("stripe.Customer.create", side_effect=MockStripeCustomer)
     @patch("stripe.PaymentMethod.attach")
@@ -421,7 +421,7 @@ class StripeRecurringPaymentManagerTest(StripePaymentManagerAbstractTestCase):
             stripe_account=self.organization.stripe_account_id,
             api_key=fake_api_key,
         )
-        self.assertEqual(self.contribution.status, Contribution.PROCESSING[0])
+        self.assertEqual(self.contribution.status, ContributionStatus.PROCESSING)
 
     @patch("stripe.Customer.create", side_effect=MockStripeCustomer)
     @patch("stripe.PaymentMethod.attach")

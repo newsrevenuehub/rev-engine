@@ -6,7 +6,12 @@ from django.utils import timezone
 import stripe
 
 from apps.contributions.bad_actor import BadActorAPIError, make_bad_actor_request
-from apps.contributions.models import Contribution, Contributor
+from apps.contributions.models import (
+    Contribution,
+    ContributionInterval,
+    ContributionStatus,
+    Contributor,
+)
 from apps.contributions.serializers import (
     StripeOneTimePaymentSerializer,
     StripeRecurringPaymentSerializer,
@@ -133,7 +138,7 @@ class PaymentManager:
         if not self.payment_provider_name:
             raise ValueError("Subclass of PaymentManager must set payment_provider_name property")
 
-        status = Contribution.FLAGGED[0] if self.flagged else Contribution.PROCESSING[0]
+        status = ContributionStatus.FLAGGED if self.flagged else ContributionStatus.PROCESSING
         contributor = self.get_or_create_contributor()
         donation_page = self.get_donation_page()
         provider_payment_id = provider_reference_instance.id if provider_reference_instance else None
@@ -175,7 +180,7 @@ class StripePaymentManager(PaymentManager):
         or something else.
         """
         interval = contribution.interval if contribution else data["interval"]
-        if interval == Contribution.INTERVAL_ONE_TIME[0]:
+        if interval == ContributionInterval.ONE_TIME:
             return StripeOneTimePaymentSerializer
         return StripeRecurringPaymentSerializer
 
@@ -238,7 +243,7 @@ class StripePaymentManager(PaymentManager):
         )
 
     def complete_payment(self, reject=False):
-        if self.contribution.interval == Contribution.INTERVAL_ONE_TIME[0]:
+        if self.contribution.interval == ContributionInterval.ONE_TIME:
             self.complete_one_time_payment(reject)
         elif self.contribution.interval:
             self.complete_recurring_payment(reject)
@@ -246,7 +251,7 @@ class StripePaymentManager(PaymentManager):
     def complete_one_time_payment(self, reject=False):
         organization = self.contribution.organization
         previous_status = self.contribution.status
-        self.contribution.status = Contribution.PROCESSING[0]
+        self.contribution.status = ContributionStatus.PROCESSING
         self.contribution.save()
 
         try:
@@ -284,13 +289,13 @@ class StripePaymentManager(PaymentManager):
             If flagged, creation of the Stripe Subscription is defered until it is "accepted".
             So to "reject", just don't create it. Set status of Contribution to "rejected"
             """
-            self.contribution.status = Contribution.REJECTED[0]
+            self.contribution.status = ContributionStatus.REJECTED
             self.contribution.save()
             return
 
         organization = self.contribution.organization
         previous_status = self.contribution.status
-        self.contribution.status = Contribution.PROCESSING[0]
+        self.contribution.status = ContributionStatus.PROCESSING
         self.contribution.save()
 
         try:

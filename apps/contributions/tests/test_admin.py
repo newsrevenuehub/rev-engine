@@ -8,7 +8,7 @@ from django.urls import reverse
 
 from apps.common.tests.test_utils import setup_request
 from apps.contributions.admin import BadActorScoreFilter, ContributionAdmin
-from apps.contributions.models import Contribution
+from apps.contributions.models import Contribution, ContributionStatus
 from apps.contributions.tests.factories import ContributionFactory
 from apps.organizations.tests.factories import OrganizationFactory
 
@@ -23,13 +23,13 @@ class ContributionAdminTest(TestCase):
         self.organization = OrganizationFactory(default_payment_provider="stripe")
 
         self.contrib_score_2 = ContributionFactory(
-            status=Contribution.FLAGGED[0],
+            status=ContributionStatus.FLAGGED,
             bad_actor_score=2,
             organization=self.organization,
             payment_provider_used="Stripe",
         )
         self.contrib_score_4 = ContributionFactory(
-            status=Contribution.FLAGGED[0],
+            status=ContributionStatus.FLAGGED,
             bad_actor_score=4,
             organization=self.organization,
             payment_provider_used="Stripe",
@@ -58,7 +58,7 @@ class ContributionAdminTest(TestCase):
 
     def test_reject_non_flagged_fails(self):
         request = self._make_listview_request()
-        contribution = ContributionFactory(bad_actor_score=5, status=Contribution.PAID[0])
+        contribution = ContributionFactory(bad_actor_score=5, status=ContributionStatus.PAID)
         queryset = Contribution.objects.filter(pk=contribution.pk)
         self.assertRaises(MessageFailure, self.contribution_admin.accept_flagged_contribution, request, queryset)
 

@@ -1,5 +1,4 @@
 import { useEffect, useCallback, useReducer } from 'react';
-import PropTypes from 'prop-types';
 
 // AJAX
 import axios from 'ajax/axios';

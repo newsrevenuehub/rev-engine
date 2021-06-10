@@ -1,16 +1,20 @@
 import * as dynamicElements from 'components/donationPage/pageContent/dynamicElements';
 import * as staticElements from 'components/donationPage/pageContent/staticElements';
 
-export const getHeaderBarElement = (page) => {
-  return page?.header ? <staticElements.SHeaderBar element={page.header} /> : null;
+export const getHeaderBarElement = () => {
+  return <staticElements.SHeaderBar />;
 };
 
-export const getPageTitleElement = (page) => {
-  return page?.title ? <staticElements.SPageTitle element={page.title} /> : null;
+export const getPageHeadingElement = () => {
+  return <staticElements.SPageHeading />;
 };
 
-export const getPlansElement = (page) => {
-  return page?.plans.length > 0 && page.showPlans ? <staticElements.SPlans element={page.plans} /> : null;
+export const getGraphicElement = () => {
+  return <staticElements.SGraphic />;
+};
+
+export const getPlansElement = () => {
+  return <staticElements.SPlans />;
 };
 
 export const getDynamicElement = (element, live) => {

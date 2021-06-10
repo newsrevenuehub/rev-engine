@@ -34,9 +34,6 @@ urlpatterns = [
     path("admin/", admin.site.urls),
     path("users/", include(orgadmin_user_management_urls)),
     path("api/", include(api_urlpatterns)),
-    # React SPA:
-    path(r"", index, name="index"),  # for reverse()
-    re_path(r"^(?:.*)/?$", index, name="index-others"),
 ]
 
 
@@ -50,3 +47,9 @@ if settings.DEBUG:
     urlpatterns += staticfiles_urlpatterns()
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
     urlpatterns = [path("__debug__/", include(debug_toolbar.urls))] + urlpatterns
+
+urlpatterns += [
+    # React SPA:
+    path(r"", index, name="index"),  # for reverse()
+    re_path(r"^(?:.*)/?$", index, name="index-others"),
+]

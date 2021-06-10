@@ -20,8 +20,10 @@ function DonationPage({ page, live = false }) {
             <S.SideOuter>
               <S.SideInner>
                 {getters.getPageHeadingElement()}
-                {getters.getGraphicElement()}
-                <S.PageElements>{elements.map((element) => getters.getDynamicElement(element, live))}</S.PageElements>
+                <S.DonationContent>
+                  {getters.getGraphicElement()}
+                  <S.PageElements>{elements.map((element) => getters.getDynamicElement(element, live))}</S.PageElements>
+                </S.DonationContent>
               </S.SideInner>
             </S.SideOuter>
             {page?.plans?.length > 0 && page.showPlans && <S.PlansSide>{getters.getPlansElement()}</S.PlansSide>}

@@ -5,5 +5,5 @@ export const SGraphicWrapper = styled.div``;
 export const Graphic = styled.img`
   display: block;
   margin: 0 auto;
-  padding: 4rem 2rem;
+  padding-bottom: 2rem;
 `;

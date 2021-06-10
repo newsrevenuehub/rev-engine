@@ -24,11 +24,12 @@ export const SideInner = styled.div`
   border-radius: ${(props) => props.theme.radii[0]};
 `;
 
-export const PageElements = styled.ul`
+export const DonationContent = styled.div`
   padding: 3rem 5rem;
-  & *:not(:last-child) {
-    border-bottom: 1px solid grey;
-  }
+`;
+
+export const PageElements = styled.ul`
+  /* padding: 3rem 5rem; */
 `;
 
 export const PlansSide = styled.aside`

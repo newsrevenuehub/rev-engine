@@ -10,7 +10,9 @@ from apps.organizations.models import Feature
 
 class AbstractPage(IndexedTimeStampedModel):
     name = models.CharField(max_length=255)
-    title = models.CharField(max_length=255)
+    heading = models.CharField(max_length=255, blank=True)
+
+    graphic = models.ImageField(null=True, blank=True)
 
     header_bg_image = models.ImageField(null=True, blank=True)
     header_logo = models.ImageField(null=True, blank=True)
@@ -91,7 +93,7 @@ class DonationPage(AbstractPage):
         )
 
     def __str__(self):
-        return f"{self.title} - {self.slug}"
+        return f"{self.heading} - {self.slug}"
 
     def has_page_limit(self):
         return Feature.objects.filter(
@@ -132,7 +134,7 @@ class DonationPage(AbstractPage):
             page_field = getattr(self, field)
             setattr(template, field, page_field)
 
-        template.name = name or self.title
+        template.name = name or self.heading
 
         template_exists = Template.objects.filter(name=template.name).exists()
         created = False

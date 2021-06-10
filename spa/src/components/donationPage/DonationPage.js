@@ -1,6 +1,6 @@
 import { useState, createContext, useContext } from 'react';
 import * as S from './DonationPage.styled';
-import * as getters from 'components/donationPage/pageContent/pageGetters';
+import * as getters from 'components/donationPage/pageGetters';
 
 // Children
 // import TemporaryStripeCheckoutTest from 'components/TEMP/TemporaryStripeCheckoutTest';
@@ -16,15 +16,16 @@ function DonationPage({ page, live = false }) {
       <ElementsContext.Provider value={[elements, setElements]}>
         <S.DonationPage layout>
           {getters.getHeaderBarElement()}
-          <S.DonationPageContent>
-            <S.DonationSection>
-              {getters.getPageTitleElement()}
-              <S.DonationSectionContent>
-                {elements.map((element) => getters.getDynamicElement(element, live))}
-              </S.DonationSectionContent>
-            </S.DonationSection>
-            {page?.plans.length > 0 && page.showPlans && <S.PlansSection>{getters.getPlansElement()}</S.PlansSection>}
-          </S.DonationPageContent>
+          <S.PageMain>
+            <S.SideOuter>
+              <S.SideInner>
+                {getters.getPageHeadingElement()}
+                {getters.getGraphicElement()}
+                <S.PageElements>{elements.map((element) => getters.getDynamicElement(element, live))}</S.PageElements>
+              </S.SideInner>
+            </S.SideOuter>
+            {page?.plans?.length > 0 && page.showPlans && <S.PlansSide>{getters.getPlansElement()}</S.PlansSide>}
+          </S.PageMain>
         </S.DonationPage>
       </ElementsContext.Provider>
     </DonationPageContext.Provider>

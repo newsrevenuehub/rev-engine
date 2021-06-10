@@ -26,9 +26,9 @@ export const adminTheme = {
   },
 
   fonts: {
-    heading: 'Courier New, monospace',
-    subheading: 'Courier New, monospace',
-    body: 'Courier New, monospace'
+    heading: "'Montserrat', sans-serif",
+    subheading: "'Montserrat', sans-serif",
+    body: "'Montserrat', sans-serif"
   },
 
   radii: ['3px', '6px', '20px'],
@@ -59,12 +59,6 @@ export const donationPageBase = {
   colors: {
     ...adminTheme.colors,
     fieldBackground: '#fff'
-  },
-
-  fonts: {
-    heading: 'Arial',
-    subheading: 'Arial',
-    body: 'Arial'
   },
 
   breakpoints: {

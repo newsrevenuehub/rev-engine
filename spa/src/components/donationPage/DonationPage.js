@@ -14,7 +14,7 @@ function DonationPage({ page, live = false }) {
   return (
     <DonationPageContext.Provider value={{ page, live }}>
       <ElementsContext.Provider value={[elements, setElements]}>
-        <S.DonationPage layout>
+        <S.DonationPage>
           {getters.getHeaderBarElement()}
           <S.PageMain>
             <S.SideOuter>
@@ -26,7 +26,7 @@ function DonationPage({ page, live = false }) {
                 </S.DonationContent>
               </S.SideInner>
             </S.SideOuter>
-            {page?.plans?.length > 0 && page.showPlans && <S.PlansSide>{getters.getPlansElement()}</S.PlansSide>}
+            {page.show_benefits && getters.getBenefitsElement()}
           </S.PageMain>
         </S.DonationPage>
       </ElementsContext.Provider>

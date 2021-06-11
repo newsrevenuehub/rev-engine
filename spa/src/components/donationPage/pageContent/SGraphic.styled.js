@@ -6,4 +6,5 @@ export const Graphic = styled.img`
   display: block;
   margin: 0 auto;
   padding-bottom: 2rem;
+  max-width: 100%;
 `;

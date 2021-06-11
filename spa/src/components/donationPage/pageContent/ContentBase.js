@@ -1,3 +1,0 @@
-function ContentBase() {
-  return null;
-}

@@ -68,7 +68,7 @@ class DonationPageListSerializer(serializers.ModelSerializer):
         model = DonationPage
         fields = [
             "id",
-            "title",
+            "heading",
             "header_bg_image",
             "header_logo",
             "header_link",
@@ -92,7 +92,7 @@ class TemplateListSerializer(serializers.ModelSerializer):
         fields = [
             "id",
             "name",
-            "title",
+            "heading",
             "header_bg_image",
             "header_logo",
             "header_link",

@@ -3,6 +3,7 @@ export const ICONS = {
   SEARCH: 'magnifying-glass',
   CHECK_CIRCLE: 'check-circle',
   TIMES_CIRCLE: 'times-circle',
+  CHECK_MARK: 'check-mark',
   LOGOUT: 'logout',
   ARROW_LEFT: 'arrow-left'
 };

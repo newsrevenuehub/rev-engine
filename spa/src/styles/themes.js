@@ -1,3 +1,5 @@
+import merge from 'lodash/merge';
+
 export const adminTheme = {
   colors: {
     primary: '#20bfdd',
@@ -49,48 +51,9 @@ export const adminTheme = {
   }
 };
 
-export const donationPageBase = {
+export const donationPageBase = merge({}, adminTheme, {
   colors: {
-    ...adminTheme.colors,
-
-    primary: '#f0be18',
-    secondary: '#f6471e',
-
-    fieldBackground: '#f7f7f7',
-    paneBackground: '#fff',
-    inputBackground: '#fff',
-    inputBorder: '#c3c3c3',
-
-    black: '#080708',
-
-    white: '#fff',
-
-    grey: ['#eee', '#ccc', '#999', '#666', '#333'],
-
-    caution: '#ff476c',
-    info: '#20bfdd',
-    success: '#99D17B',
-    warning: '#ff476c',
-    disabled: 'grey'
-  },
-
-  ruleStyle: 'dotted',
-
-  fonts: {
-    heading: "'Montserrat', sans-serif",
-    subheading: "'Montserrat', sans-serif",
-    body: "'Montserrat', sans-serif"
-  },
-
-  fontSizes: ['12px', '16px', '24px', '32px', '48px', '84px', '96px'],
-
-  radii: ['3px', '6px', '20px'],
-
-  shadows: ['0 1px 2px 0 rgb(0 0 0 / 15%)', '0 10px 25px 0 rgb(0 0 0 / 6%)'],
-
-  breakpoints: {
-    phoneOnly: 'max-width: 599px',
-    tabletLandscapeDown: 'max-width: 900px'
+    ...adminTheme.colors
   },
 
   maxWidths: {
@@ -99,4 +62,4 @@ export const donationPageBase = {
     lg: '1100px',
     xl: '1300px'
   }
-};
+});

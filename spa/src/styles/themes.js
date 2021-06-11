@@ -6,7 +6,7 @@ export const adminTheme = {
 
     fieldBackground: '#f7f7f7',
     paneBackground: '#fff',
-    inputBackground: '#e4f0f3',
+    inputBackground: '#fff',
     inputBorder: '#c3c3c3',
 
     black: '#080708',
@@ -52,7 +52,9 @@ export const adminTheme = {
 export const donationPageBase = {
   colors: {
     ...adminTheme.colors,
-    fieldBackground: '#f7f7f7'
+    fieldBackground: '#f7f7f7',
+    primary: '#f0be18',
+    secondary: '#f6471e'
   },
 
   breakpoints: {
@@ -60,14 +62,12 @@ export const donationPageBase = {
     tabletLandscapeDown: 'max-width: 900px'
   },
 
+  ruleStyle: 'dotted',
+
   maxWidths: {
     sm: '500px',
     md: '890px',
     lg: '1100px',
     xl: '1300px'
-  },
-
-  /* Page Defaults -- keep me flat. */
-  pageColorPrimary: '#f0be18',
-  pageColorSecondary: '#f6471e'
+  }
 };

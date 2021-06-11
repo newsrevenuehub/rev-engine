@@ -1,4 +1,3 @@
-import React from 'react';
 import DonationPageGlobalStyles from 'styles/DonationPageGlobalStyles';
 
 // Sentry
@@ -10,9 +9,10 @@ import { donationPageBase } from 'styles/themes';
 
 import LiveErrorFallback from 'components/donationPage/live/LiveErrorFallback';
 
-function SegregatedStyles({ children }) {
+function SegregatedStyles({ children, page }) {
+  console.log('page.styles', page?.styles);
   return (
-    <ThemeProvider theme={donationPageBase}>
+    <ThemeProvider theme={page?.styles || donationPageBase}>
       <DonationPageGlobalStyles />
       <Sentry.ErrorBoundary fallback={<LiveErrorFallback />}>{children}</Sentry.ErrorBoundary>
     </ThemeProvider>

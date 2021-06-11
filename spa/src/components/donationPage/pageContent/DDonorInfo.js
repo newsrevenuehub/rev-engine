@@ -17,7 +17,7 @@ function DDonorInfo(props) {
 
   return (
     <>
-      <DElement label="Name" {...props}>
+      <DElement label="Name" {...props} data-testid="d-donor-info">
         <Grid>
           <Grid.Row>
             <Grid.Column tablet={16} computer={8}>

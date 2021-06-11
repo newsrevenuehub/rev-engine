@@ -7,7 +7,7 @@ function SHeaderBar() {
   const { page } = usePage();
 
   return (
-    <S.SHeaderBar bgImg={page?.header_bg_image}>
+    <S.SHeaderBar bgImg={page?.header_bg_image} data-testid="s-header-bar">
       <a href={page?.header_link} target="_blank" rel="noreferrer noopener">
         <S.SHeaderLogo src={page?.header_logo} />
       </a>

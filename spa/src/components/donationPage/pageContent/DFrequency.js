@@ -7,7 +7,7 @@ function DFrequency({ element, ...props }) {
   const [selected, setSelected] = useState('');
 
   return (
-    <DElement label="Frequency" description="Choose a contribution type" {...props}>
+    <DElement label="Frequency" description="Choose a contribution type" {...props} data-testid="d-frequency">
       <S.DFrequency>
         {element?.content?.map((freq) => (
           <S.Radio

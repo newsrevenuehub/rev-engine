@@ -18,7 +18,7 @@ function DAdditionalInfo({ element, ...props }) {
   };
 
   return (
-    <DElement label="Additional info" {...props}>
+    <DElement label="Additional info" {...props} data-testid="d-additional-info">
       {element?.content?.map((input) => (
         <S.AdditionalInputWrapper key={input.name}>
           <Input

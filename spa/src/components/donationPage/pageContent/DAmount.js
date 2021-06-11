@@ -36,6 +36,7 @@ function DAmount({ element, ...props }) {
       label={`${getFrequencyAdjective(frequency)} Amount`}
       description="Select how much you'd like to contribute"
       {...props}
+      data-testid="d-amount"
     >
       <S.DAmount>
         {element.content.options[frequency].map((amount, i) => (

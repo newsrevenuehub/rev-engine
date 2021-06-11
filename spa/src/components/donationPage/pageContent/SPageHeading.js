@@ -9,7 +9,7 @@ function SPageHeading() {
   if (!page?.heading) return null;
 
   return (
-    <S.SPageHeading>
+    <S.SPageHeading data-testid="s-page-heading">
       <S.Heading>{page.heading}</S.Heading>
     </S.SPageHeading>
   );

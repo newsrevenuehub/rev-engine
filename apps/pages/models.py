@@ -1,3 +1,5 @@
+import uuid
+
 from django.apps import apps
 from django.core.exceptions import ValidationError
 from django.db import models
@@ -66,8 +68,12 @@ class Template(AbstractPage):
         for field in AbstractPage.field_names():
             template_field = getattr(self, field)
             setattr(page, field, template_field)
-
-        page.save()
+        name = page.name.split("::")[1]
+        unique_str = str(uuid.uuid4())[:8]
+        if parent_page := DonationPage.objects.filter(title=f"{name}").first():
+            page.name = f"copy-{unique_str}::{page.name}"
+            page.revenue_program = parent_page.revenue_program
+            page.save()
         return page_model.objects.get(pk=page.pk)
 
 
@@ -132,7 +138,7 @@ class DonationPage(AbstractPage):
             page_field = getattr(self, field)
             setattr(template, field, page_field)
 
-        template.name = name or self.title
+        template.name = name or f"TEMPLATE::{self.title}"
 
         template_exists = Template.objects.filter(name=template.name).exists()
         created = False

@@ -14,7 +14,7 @@ function DonationPage({ page, live = false }) {
   return (
     <DonationPageContext.Provider value={{ page, live }}>
       <ElementsContext.Provider value={[elements, setElements]}>
-        <S.DonationPage>
+        <S.DonationPage data-testid="donation-page">
           {getters.getHeaderBarElement()}
           <S.PageMain>
             <S.SideOuter>
@@ -38,14 +38,3 @@ export const usePage = () => useContext(DonationPageContext);
 export const useElements = () => useContext(ElementsContext);
 
 export default DonationPage;
-
-// <S.DonationPage data-testid="live-donation-page">
-//   <h1>{page.title}</h1>
-//   <p>Page name: {page.name}</p>
-//   <p>Showing benefits: {page.show_benefits.toString()}</p>
-//   <p>Org pk: {page.organization}</p>
-//   <p>Rev program pk: {page.revenue_program}</p>
-//   <div style={{ margin: '0 auto', maxWidth: '1000px', padding: '0 3rem' }}>
-//     <TemporaryStripeCheckoutTest />
-// </S.DonationPage>;
-//   </div>

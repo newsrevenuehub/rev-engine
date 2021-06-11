@@ -8,7 +8,7 @@ function SGraphic() {
   if (!page.graphic) return null;
 
   return (
-    <S.SGraphicWrapper>
+    <S.SGraphicWrapper data-testid="s-graphic">
       <S.Graphic src={page?.graphic} />
     </S.SGraphicWrapper>
   );

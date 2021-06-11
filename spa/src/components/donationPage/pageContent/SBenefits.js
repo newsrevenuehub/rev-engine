@@ -12,8 +12,10 @@ function SBenefits() {
     page: { donor_benefits }
   } = usePage();
 
+  if (!donor_benefits) return null;
+
   return (
-    <S.SBenefits>
+    <S.SBenefits data-testid="s-benefits">
       <S.BenefitsContent>
         <S.BenefitsName>{donor_benefits.name}</S.BenefitsName>
         <S.TiersList>

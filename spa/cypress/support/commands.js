@@ -16,7 +16,10 @@ Cypress.Commands.add('login', (userFixture) => {
 });
 
 Cypress.Commands.add('visitDonationPage', () => {
-  cy.intercept({ method: 'GET', pathname: getEndpoint(LIVE_PAGE) }, { fixture: 'pages/live-page-1', statusCode: 200 });
+  cy.intercept(
+    { method: 'GET', pathname: getEndpoint(LIVE_PAGE) },
+    { fixture: 'pages/live-page-1', statusCode: 200 }
+  ).as('getPageDetail');
   cy.visit('/revenue-program-slug/page-slug');
-  cy.getByTestId('donation-payment-form', { timeout: 2000 });
+  cy.wait('@getPageDetail');
 });

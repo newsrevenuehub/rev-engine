@@ -7,8 +7,8 @@ export default createGlobalStyle`
   *,
   *::after,
   *::before {
-      box-sizing: inherit;
-      outline-color: ${(props) => props.theme.colors.primary};
+    box-sizing: inherit;
+    outline-color: ${(props) => props.theme.colors.primary};
   }
 
   body {
@@ -34,7 +34,7 @@ export default createGlobalStyle`
 
   h2 {
     color: ${(props) => props.theme.colors.black};
-    font-size: 20px;
+    font-size: ${(props) => props.theme.fontSizes[2]};
     font-weight: bold;
   }
 `;

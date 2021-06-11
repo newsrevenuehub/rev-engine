@@ -5,22 +5,14 @@ export const getInputBorder = (props) =>
   props.hasErrors ? props.theme.colors.caution : props.theme.colors.inputBorder;
 
 export const baseInputStyles = css`
+  height: 45px;
   display: block;
-  width: 100%;
-  border: none;
-  background: ${(props) => props.theme.colors.inputBackground};
-  border: 1px solid;
-  border-color: ${(p) => getInputBorder(p)};
-  padding: 1rem;
-  outline: none;
-
-  transition: all 0.2s;
-
-  font-size: 16px;
-
-  &:focus {
-    border-color: ${(props) => props.theme.colors.primary};
-  }
+  max-width: 100%;
+  padding: 5px 15px;
+  background: #fff;
+  border: 1px solid #c3c3c3;
+  border-radius: 2px;
+  font-size: ${(props) => props.theme.fontSizes[1]};
 `;
 
 export const Wrapper = styled.div`
@@ -35,8 +27,10 @@ export const FieldWrapper = styled.div`
 
 export const Label = styled.label`
   display: block;
-  font-weight: 700;
-  color: ${(props) => props.theme.colors.grey[2]};
+  font-size: ${(props) => props.theme.fontSizes[1]};
+  font-weight: 500;
+  color: ${(props) => props.theme.colors.black};
+  margin-bottom: 0.5rem;
 `;
 
 export const Errors = styled(motion.ul)`

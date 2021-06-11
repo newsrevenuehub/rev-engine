@@ -10,13 +10,15 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.RemoveField(
+        migrations.RenameField(
             model_name="donationpage",
-            name="title",
+            old_name="title",
+            new_name="heading",
         ),
-        migrations.RemoveField(
+        migrations.RenameField(
             model_name="template",
-            name="title",
+            old_name="title",
+            new_name="heading",
         ),
         migrations.AddField(
             model_name="donationpage",
@@ -24,18 +26,8 @@ class Migration(migrations.Migration):
             field=models.ImageField(blank=True, null=True, upload_to=""),
         ),
         migrations.AddField(
-            model_name="donationpage",
-            name="heading",
-            field=models.CharField(blank=True, max_length=255),
-        ),
-        migrations.AddField(
             model_name="template",
             name="graphic",
             field=models.ImageField(blank=True, null=True, upload_to=""),
-        ),
-        migrations.AddField(
-            model_name="template",
-            name="heading",
-            field=models.CharField(blank=True, max_length=255),
         ),
     ]

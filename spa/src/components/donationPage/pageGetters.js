@@ -13,8 +13,8 @@ export const getGraphicElement = () => {
   return <staticElements.SGraphic />;
 };
 
-export const getPlansElement = () => {
-  return <staticElements.SPlans />;
+export const getBenefitsElement = () => {
+  return <staticElements.SBenefits />;
 };
 
 export const getDynamicElement = (element, live) => {
@@ -24,9 +24,9 @@ export const getDynamicElement = (element, live) => {
 function getComponentForElement(element, live) {
   const El = dynamicElements[element.type];
   if (!El) {
-    return live ? null : <NoComponentError name={element.type} key={element.tempId || element.id} />;
+    return live ? null : <NoComponentError name={element.type} key={element.uuid} />;
   }
-  return <El layout element={element} key={element.id} />;
+  return <El element={element} key={element.uuid} />;
 }
 
 function NoComponentError({ name }) {

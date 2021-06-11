@@ -22,7 +22,7 @@ export const SideOuter = styled.div`
 `;
 
 export const SideInner = styled.div`
-  background: ${(props) => props.theme.colors.white};
+  background: ${(props) => props.theme.colors.paneBackground};
   box-shadow: ${(props) => props.theme.shadows[1]};
   max-width: ${(props) => props.theme.maxWidths.md};
   margin: 0 auto;

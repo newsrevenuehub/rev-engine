@@ -16,5 +16,16 @@
       {"type": "text", "label": "I'm contributing because...", "name": "reason"},
       {"type": "text", "label": "Why does anybody even do anythign?", "name": "purpose"}
     ]}
-  ]
+  ],
+  "styles": {
+    "colors": {
+      "primary": "#f0be18",
+      "secondary": "#f6471e",
+      "fieldBackground": "#f7f7f7",
+      "paneBackground": "#fff",
+      "inputBackground": "#fff",
+      "inputBorder": "#c3c3c3"
+    },
+    "ruleStyle": "dotted"
+  }
 }

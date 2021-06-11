@@ -9,8 +9,9 @@ export const baseInputStyles = css`
   display: block;
   max-width: 100%;
   padding: 5px 15px;
-  background: #fff;
-  border: 1px solid #c3c3c3;
+  background: ${(props) => props.theme.colors.inputBackground};
+  border: 1px solid;
+  border-color: ${(props) => props.theme.colors.inputBorder};
   border-radius: 2px;
   font-size: ${(props) => props.theme.fontSizes[1]};
 `;

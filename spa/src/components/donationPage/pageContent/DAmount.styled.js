@@ -15,7 +15,7 @@ export const OtherAmount = styled.div`
   justify-content: space-between;
   background: ${(props) => props.theme.colors.white};
   border: 1px solid;
-  border-color: ${(props) => (props.selected ? props.theme.pageColorPrimary : props.theme.colors.inputBorder)};
+  border-color: ${(props) => (props.selected ? props.theme.colors.primary : props.theme.colors.inputBorder)};
   cursor: text;
   border-radius: ${(props) => props.theme.radii[1]};
   min-height: 48px;
@@ -49,7 +49,7 @@ export const PayFeesQQ = styled.h5`
 export const Checkbox = styled(SemanticRadio)`
   &.ui.toggle.checkbox input:checked ~ .box:before,
   &.ui.toggle.checkbox input:checked ~ label:before {
-    background-color: ${(props) => props.theme.pageColorPrimary} !important;
+    background-color: ${(props) => props.theme.colors.primary} !important;
   }
 `;
 

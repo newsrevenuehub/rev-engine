@@ -3,6 +3,7 @@ import { getEndpoint, getPageElementByType } from '../support/util';
 import livePageOne from '../fixtures/pages/live-page-1.json';
 
 import * as freqUtils from 'utilities/parseFrequency';
+import calculateStripeFee from '../../src/utilities/calculateStripeFee';
 
 describe('Donation page', () => {
   before(() => {
@@ -78,7 +79,6 @@ describe('Donation page', () => {
     });
     it('should render text indicating expected frequencies', () => {
       const frequency = getPageElementByType(livePageOne, 'DFrequency');
-      // const amounts = getPageElementByType(livePageOne, 'DAmount');
       cy.getByTestId('d-amount');
 
       frequency.content.forEach((freq) => {
@@ -95,6 +95,26 @@ describe('Donation page', () => {
           cy.getByTestId('pay-fees').find('label').contains(adverb);
         }
       });
+    });
+
+    it('should render the correct fee base on frequency and amount', () => {
+      const frequency = getPageElementByType(livePageOne, 'DFrequency');
+      const amounts = getPageElementByType(livePageOne, 'DAmount');
+
+      frequency.content.forEach((freq) => {
+        cy.contains(freq.displayName).click();
+        amounts.content.options[freq.value].forEach((amount) => {
+          cy.contains(amount).click();
+          const calculatedFee = calculateStripeFee(amount);
+          cy.getByTestId('pay-fees').find('label').contains(calculatedFee);
+        });
+      });
+    });
+  });
+
+  describe('Resulting request', () => {
+    it('should send a request with the expected amount', () => {
+      //
     });
   });
 

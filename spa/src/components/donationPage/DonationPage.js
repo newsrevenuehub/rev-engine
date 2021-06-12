@@ -6,8 +6,11 @@ const DonationPageContext = createContext({});
 
 function DonationPage({ page, live = false }) {
   const [frequency, setFrequency] = useState('one_time');
+  const [fee, setFee] = useState();
+  const [payFee, setPayFee] = useState(false);
+
   return (
-    <DonationPageContext.Provider value={{ page, frequency, setFrequency }}>
+    <DonationPageContext.Provider value={{ page, frequency, setFrequency, fee, payFee, setFee, setPayFee }}>
       <S.DonationPage data-testid="donation-page">
         {getters.getHeaderBarElement()}
         <S.PageMain>

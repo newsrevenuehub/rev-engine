@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import PropTypes from 'prop-types';
 import * as S from './DAmount.styled';
 
@@ -14,12 +14,12 @@ import DElement, { DynamicElementPropTypes } from 'components/donationPage/pageC
 import SelectableButton from 'elements/buttons/SelectableButton';
 
 function DAmount({ element, ...props }) {
-  const { frequency, fee, setFee, payFee, setPayFee } = usePage();
-
-  const inputRef = useRef();
+  const { frequency, fee, setFee, payFee, setPayFee, setAmount } = usePage();
 
   const [selectedAmount, setSelectedAmount] = useState(0);
   const [otherAmount, setOtherAmount] = useState('');
+
+  const inputRef = useRef();
 
   const handleAmountSelected = (s) => {
     setSelectedAmount(s);
@@ -32,19 +32,26 @@ function DAmount({ element, ...props }) {
     inputRef.current.focus();
   };
 
-  const getAmountFromIndex = useCallback(() => {
-    if (selectedAmount === 'other') {
-      return parseInt(otherAmount);
-    }
+  // const getAmountFromIndex = useCallback(() => {
+  //   if (selectedAmount === 'other') {
+  //     return parseInt(otherAmount);
+  //   }
 
-    const amount = element.content.options[frequency][selectedAmount];
-    return parseInt(amount);
-  }, [frequency, selectedAmount, otherAmount, element.content.options]);
+  //   const amount = element.content.options[frequency][selectedAmount];
+  //   return parseInt(amount);
+  // }, [frequency, selectedAmount, otherAmount, element.content.options]);
 
   useEffect(() => {
-    const fee = calculateStripeFee(getAmountFromIndex());
+    let amount;
+    if (selectedAmount === 'other') {
+      amount = parseInt(otherAmount);
+    } else {
+      amount = element.content.options[frequency][selectedAmount];
+    }
+    const fee = calculateStripeFee(amount);
+    setAmount(amount);
     setFee(fee);
-  }, [selectedAmount, getAmountFromIndex, setFee]);
+  }, [selectedAmount, otherAmount, frequency, element.content.options, setAmount, setFee]);
 
   return (
     <DElement

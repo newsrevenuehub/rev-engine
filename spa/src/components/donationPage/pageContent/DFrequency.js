@@ -15,6 +15,7 @@ function DFrequency({ element, ...props }) {
       <S.DFrequency>
         {element?.content?.map((freq) => (
           <S.Radio
+            name="interval"
             key={freq.value}
             label={freq.displayName}
             value={freq.value}

@@ -5,14 +5,15 @@ import * as S from './DAmount.styled';
 // Util
 import { getFrequencyAdverb, getFrequencyAdjective, getFrequencyRate } from 'utilities/parseFrequency';
 
+// Context
+import { usePage } from '../DonationPage';
+
 // Children
 import DElement, { DynamicElementPropTypes } from 'components/donationPage/pageContent/DElement';
-// import { useElements } from 'components/donationPage/DonationPage';
 import SelectableButton from 'elements/buttons/SelectableButton';
 
-const frequency = 'month';
 function DAmount({ element, ...props }) {
-  // const { elements } = useElements();
+  const { frequency } = usePage();
 
   const inputRef = useRef();
 
@@ -55,12 +56,12 @@ function DAmount({ element, ...props }) {
               value={otherAmount}
               onChange={(e) => setOtherAmount(e.target.value)}
             />
-            <span>{getFrequencyRate(frequency)}</span>
+            <span data-testid="custom-amount-rate">{getFrequencyRate(frequency)}</span>
           </S.OtherAmount>
         )}
       </S.DAmount>
       {element.content.offerPayFees && (
-        <S.PayFees>
+        <S.PayFees data-testid="pay-fees">
           <S.PayFeesQQ>Agree to pay fees?</S.PayFeesQQ>
           <S.Checkbox
             label={`${'$2.99'} ${getFrequencyAdverb(frequency)}`}

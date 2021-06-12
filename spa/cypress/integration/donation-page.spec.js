@@ -2,6 +2,8 @@ import { LIVE_PAGE, STRIPE_CONFIRMATION, ORG_STRIPE_ACCOUNT_ID } from 'ajax/endp
 import { getEndpoint, getPageElementByType } from '../support/util';
 import livePageOne from '../fixtures/pages/live-page-1.json';
 
+import * as freqUtils from 'utilities/parseFrequency';
+
 describe('Donation page', () => {
   before(() => {
     cy.intercept({ method: 'GET', pathname: getEndpoint(ORG_STRIPE_ACCOUNT_ID) }, { fixture: 'stripe/org-account-id' });
@@ -64,16 +66,36 @@ describe('Donation page', () => {
         cy.contains(freq.displayName);
       });
     });
-    // it('should render expected amounts', () => {
-    //   const frequency = getPageElementByType(livePageOne, 'DFrequency');
-    //   const amounts = getPageElementByType(livePageOne, 'DAmount');
-    //   cy.getByTestId('d-amount');
+    it('should render expected amounts', () => {
+      const frequency = getPageElementByType(livePageOne, 'DFrequency');
+      const amounts = getPageElementByType(livePageOne, 'DAmount');
+      cy.getByTestId('d-amount');
 
-    //   frequency.content.forEach((freq) => {
-    //     cy.contains(freq.displayName).click();
-    //     amounts.content.options[freq.value].forEach((amount) => cy.contains(amount));
-    //   });
-    // });
+      frequency.content.forEach((freq) => {
+        cy.contains(freq.displayName).click();
+        amounts.content.options[freq.value].forEach((amount) => cy.contains(amount));
+      });
+    });
+    it('should render text indicating expected frequencies', () => {
+      const frequency = getPageElementByType(livePageOne, 'DFrequency');
+      // const amounts = getPageElementByType(livePageOne, 'DAmount');
+      cy.getByTestId('d-amount');
+
+      frequency.content.forEach((freq) => {
+        cy.contains(freq.displayName).click();
+        const adjective = freqUtils.getFrequencyAdjective(freq.value);
+        const rate = freqUtils.getFrequencyRate(freq.value);
+        const adverb = freqUtils.getFrequencyAdverb(freq.value);
+
+        cy.getByTestId('d-amount').find('h3').contains(adjective);
+        if (rate) {
+          cy.getByTestId('custom-amount-rate').contains(rate);
+        }
+        if (adverb) {
+          cy.getByTestId('pay-fees').find('label').contains(adverb);
+        }
+      });
+    });
   });
 
   describe('Thank you page', () => {

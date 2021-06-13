@@ -5,6 +5,9 @@
   "proxy": "http://localhost:8000/",
   "dependencies": {
     "@cypress/webpack-preprocessor": "^5.7.0",
+    "@fortawesome/fontawesome-svg-core": "^1.2.35",
+    "@fortawesome/free-solid-svg-icons": "^5.15.3",
+    "@fortawesome/react-fontawesome": "^0.1.14",
     "@sentry/react": "^6.4.1",
     "@stripe/react-stripe-js": "^1.4.0",
     "@stripe/stripe-js": "^1.14.0",

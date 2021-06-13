@@ -71,15 +71,13 @@ class DonationPageListSerializer(serializers.ModelSerializer):
         model = DonationPage
         fields = [
             "id",
+            "name",
             "heading",
-            "header_bg_image",
-            "header_logo",
-            "header_link",
-            "show_benefits",
             "slug",
+            "derived_slug",
             "revenue_program",
             "published_date",
-            "organization",
+            "is_live",
         ]
 
 

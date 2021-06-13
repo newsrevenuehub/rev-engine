@@ -36,7 +36,7 @@ export const adminTheme = {
 
   radii: ['3px', '6px', '20px'],
 
-  shadows: ['0 1px 2px 0 rgb(0 0 0 / 15%)', '0 10px 25px 0 rgb(0 0 0 / 6%)'],
+  shadows: ['0 1px 2px 0 rgb(0 0 0 / 15%)', '0 10px 25px 0 rgb(0 0 0 / 6%)', '0 12px 25px 0 rgb(0 0 0 / 10%)'],
 
   breakpoints: {
     phoneOnly: 'max-width: 599px',

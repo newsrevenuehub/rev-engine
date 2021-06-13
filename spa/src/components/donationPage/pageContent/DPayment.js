@@ -4,7 +4,7 @@ import DElement from './DElement';
 // Stripe
 import StripePaymentWidget from 'components/paymentProviders/stripe/StripePaymentWidget';
 
-function DPayment({ element, ...props }) {
+function DPayment({ element, live, ...props }) {
   /*
     element.content is an object, whose keys are providers.
     For instance, element.content.stripe is an array of supported payment types:
@@ -16,9 +16,13 @@ function DPayment({ element, ...props }) {
   */
   return (
     <DElement>
-      <S.DPayment>{element.content['stripe'] && <StripePaymentWidget />}</S.DPayment>
+      {live ? <S.DPayment>{element.content['stripe'] && <StripePaymentWidget />}</S.DPayment> : <NotLivePlaceholder />}
     </DElement>
   );
 }
 
 export default DPayment;
+
+function NotLivePlaceholder() {
+  return <h2>Stripe payment will go here</h2>;
+}

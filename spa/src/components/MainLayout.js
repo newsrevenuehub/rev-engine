@@ -14,6 +14,7 @@ import GlobalLoading from 'elements/GlobalLoading';
 const Login = React.lazy(() => import('components/authentication/Login'));
 const Main = React.lazy(() => import('components/Main'));
 const GenericThankYou = React.lazy(() => import('components/donationPage/live/thankYou/GenericThankYou'));
+const PageEditor = React.lazy(() => import('components/pageEditor/PageEditor'));
 const DonationPageRouter = React.lazy(() => import('components/donationPage/DonationPageRouter'));
 
 function MainLayout() {
@@ -32,6 +33,9 @@ function MainLayout() {
 
             {/* Dashboard */}
             <ProtectedRoute path={ROUTES.MAIN_CONTENT_SLUG} component={Main} />
+
+            <Route path={ROUTES.EDITOR_ROUTE_PAGE} component={PageEditor} />
+            <Route path={ROUTES.EDITOR_ROUTE_REV} component={PageEditor} />
 
             {/* Live Donation Pages are caught here */}
             <Route path={ROUTES.DONATION_PAGE_SLUG + ROUTES.THANK_YOU_SLUG} component={GenericThankYou} />

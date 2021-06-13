@@ -1,4 +1,4 @@
-import { LIVE_PAGE } from 'ajax/endpoints';
+import { FULL_PAGE } from 'ajax/endpoints';
 import { getEndpoint, getPageElementByType } from '../support/util';
 import livePageOne from '../fixtures/pages/live-page-1.json';
 
@@ -14,7 +14,7 @@ describe('Donation page', () => {
     it('should send a request containing the correct query params', () => {
       const expectedRevProgramSlug = 'revenue-program-slug';
       const expectedPageSlug = 'page-slug';
-      cy.intercept({ method: 'GET', pathname: getEndpoint(LIVE_PAGE) }, (req) => {
+      cy.intercept({ method: 'GET', pathname: getEndpoint(FULL_PAGE) }, (req) => {
         expect(req.url).contains(`revenue_program=${expectedRevProgramSlug}`);
         expect(req.url).contains(`page=${expectedPageSlug}`);
       });
@@ -22,7 +22,7 @@ describe('Donation page', () => {
     });
 
     it('should show live 404 page if api returns 404', () => {
-      cy.intercept({ method: 'GET', pathname: getEndpoint(LIVE_PAGE) }, { statusCode: 404 }).as('getPageDetail');
+      cy.intercept({ method: 'GET', pathname: getEndpoint(FULL_PAGE) }, { statusCode: 404 }).as('getPageDetail');
       cy.visit('/revenue-program-slug');
       cy.wait('@getPageDetail');
       cy.getByTestId('live-page-404').should('exist');
@@ -30,7 +30,7 @@ describe('Donation page', () => {
 
     it('should show a donation page if route is not reserved, first-level', () => {
       cy.intercept(
-        { method: 'GET', pathname: getEndpoint(LIVE_PAGE) },
+        { method: 'GET', pathname: getEndpoint(FULL_PAGE) },
         { fixture: 'pages/live-page-1', statusCode: 200 }
       ).as('getPageDetail');
       cy.visit('/revenue-program-slug');
@@ -40,7 +40,7 @@ describe('Donation page', () => {
 
     it('should show a donation page if route is not reserved, second-level', () => {
       cy.intercept(
-        { method: 'GET', pathname: getEndpoint(LIVE_PAGE) },
+        { method: 'GET', pathname: getEndpoint(FULL_PAGE) },
         { fixture: 'pages/live-page-1', statusCode: 200 }
       ).as('getPageDetail');
       cy.visit('/revenue-program-slug/page-slug');
@@ -113,7 +113,7 @@ describe('Donation page', () => {
   describe('Resulting request', () => {
     it('should send a request with the expected interval', () => {
       cy.intercept(
-        { method: 'GET', pathname: getEndpoint(LIVE_PAGE) },
+        { method: 'GET', pathname: getEndpoint(FULL_PAGE) },
         { fixture: 'pages/live-page-1', statusCode: 200 }
       );
 
@@ -126,7 +126,7 @@ describe('Donation page', () => {
     });
     it('should send a request with the expected amount', () => {
       cy.intercept(
-        { method: 'GET', pathname: getEndpoint(LIVE_PAGE) },
+        { method: 'GET', pathname: getEndpoint(FULL_PAGE) },
         { fixture: 'pages/live-page-1', statusCode: 200 }
       );
 
@@ -142,7 +142,7 @@ describe('Donation page', () => {
   describe('Thank you page', () => {
     it('should show a generic Thank You page at /rev-slug/thank-you', () => {
       cy.intercept(
-        { method: 'GET', pathname: getEndpoint(LIVE_PAGE) },
+        { method: 'GET', pathname: getEndpoint(FULL_PAGE) },
         { fixture: 'pages/live-page-1', statusCode: 200 }
       );
       cy.visit('/revenue-program-slug/thank-you');
@@ -150,7 +150,7 @@ describe('Donation page', () => {
     });
     it('should show a generic Thank You page at /rev-slug/page-slug/thank-you', () => {
       cy.intercept(
-        { method: 'GET', pathname: getEndpoint(LIVE_PAGE) },
+        { method: 'GET', pathname: getEndpoint(FULL_PAGE) },
         { fixture: 'pages/live-page-1', statusCode: 200 }
       );
       cy.visit('/revenue-program-slug/page-slug/thank-you');

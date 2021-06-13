@@ -24,13 +24,12 @@ import Button from 'elements/buttons/Button';
 import { getFrequencyAdverb } from 'utilities/parseFrequency';
 import { ICONS } from 'assets/icons/SvgIcon';
 
-function StripePaymentForm({ loading, setLoading }) {
-  const { page, amount, frequency, fee, payFee, formRef } = usePage();
+const STRIPE_PAYMENT_TIMEOUT = 12000;
 
-  // Async state
+function StripePaymentForm({ loading, setLoading }) {
+  const { page, amount, frequency, fee, payFee, formRef, errors, setErrors } = usePage();
+
   const [succeeded, setSucceeded] = useState(false);
-  const [errors, setErrors] = useState({});
-  // const [processing, setLoading] = useState('');
   const [disabled, setDisabled] = useState(true);
 
   const theme = useTheme();
@@ -56,7 +55,7 @@ function StripePaymentForm({ loading, setLoading }) {
   const createPaymentIntent = useCallback((formData) => {
     return new Promise(async (resolve, reject) => {
       try {
-        const { data } = await axios.post(STRIPE_PAYMENT, formData);
+        const { data } = await axios.post(STRIPE_PAYMENT, formData, { timeout: STRIPE_PAYMENT_TIMEOUT });
         resolve(data.clientSecret);
       } catch (e) {
         reject(e);
@@ -93,7 +92,7 @@ function StripePaymentForm({ loading, setLoading }) {
         handleSuccesfulPayment();
       }
     },
-    [elements, stripe, alert, handleSuccesfulPayment, setLoading]
+    [elements, stripe, alert, handleSuccesfulPayment, setLoading, setErrors]
   );
 
   const handleSinglePayment = (formData) => {
@@ -131,7 +130,9 @@ function StripePaymentForm({ loading, setLoading }) {
         return;
       }
 
-      const response = await axios.post(STRIPE_PAYMENT, formData, { timeout: 12000 });
+      formData['payment_method_id'] = paymentMethodResponse.paymentMethod.id;
+
+      const response = await axios.post(STRIPE_PAYMENT, formData, { timeout: STRIPE_PAYMENT_TIMEOUT });
       if (response.status === 200) {
         setErrors({});
         setLoading(false);
@@ -139,6 +140,7 @@ function StripePaymentForm({ loading, setLoading }) {
         handleSuccesfulPayment();
       }
     } catch (e) {
+      debugger;
       if (e?.response?.data?.detail) {
         setErrors({ stripe: e.response.data.detail });
       } else {
@@ -186,7 +188,7 @@ function StripePaymentForm({ loading, setLoading }) {
       </S.PaymentElementWrapper>
       <Button
         onClick={handleSubmit}
-        disabled={loading || disabled || succeeded}
+        disabled={loading || disabled || succeeded || amount === 0}
         loading={loading}
         data-testid="donation-submit"
       >

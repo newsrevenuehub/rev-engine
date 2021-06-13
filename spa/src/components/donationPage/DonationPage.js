@@ -10,6 +10,7 @@ function DonationPage({ page, live = false }) {
   const [fee, setFee] = useState();
   const [payFee, setPayFee] = useState(false);
   const [amount, setAmount] = useState();
+  const [errors, setErrors] = useState({});
 
   return (
     <DonationPageContext.Provider
@@ -23,7 +24,9 @@ function DonationPage({ page, live = false }) {
         setPayFee,
         formRef,
         amount,
-        setAmount
+        setAmount,
+        errors,
+        setErrors
       }}
     >
       <S.DonationPage data-testid="donation-page">

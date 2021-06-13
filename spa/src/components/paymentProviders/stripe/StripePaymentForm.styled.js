@@ -23,7 +23,10 @@ export const Icon = styled(SvgIcon)`
   height: auto;
 `;
 
-export const PaymentError = styled.div``;
+export const PaymentError = styled.div`
+  padding: 1rem 0;
+  color: ${(props) => props.theme.colors.caution};
+`;
 
 export const CardElementStyle = (theme) => ({
   base: {

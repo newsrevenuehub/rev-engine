@@ -1,4 +1,4 @@
-import { LIVE_PAGE, STRIPE_CONFIRMATION, ORG_STRIPE_ACCOUNT_ID } from 'ajax/endpoints';
+import { LIVE_PAGE } from 'ajax/endpoints';
 import { getEndpoint, getPageElementByType } from '../support/util';
 import livePageOne from '../fixtures/pages/live-page-1.json';
 
@@ -6,10 +6,8 @@ import * as freqUtils from 'utilities/parseFrequency';
 import calculateStripeFee from '../../src/utilities/calculateStripeFee';
 
 describe('Donation page', () => {
-  before(() => {
-    cy.intercept({ method: 'GET', pathname: getEndpoint(ORG_STRIPE_ACCOUNT_ID) }, { fixture: 'stripe/org-account-id' });
-    cy.intercept('POST', getEndpoint(STRIPE_CONFIRMATION), { fixture: 'stripe/confirm-connected' });
-    cy.login('user/stripe-verified.json');
+  beforeEach(() => {
+    cy.intercept('/api/v1/organizations/stripe_account_id/**', { fixture: 'stripe/org-account-id.json' });
   });
 
   describe('Routing', () => {
@@ -51,7 +49,7 @@ describe('Donation page', () => {
     });
   });
 
-  describe.only('DonationPage content', () => {
+  describe('DonationPage content', () => {
     it('should render expected rich text content', () => {
       cy.visitDonationPage();
 
@@ -113,8 +111,31 @@ describe('Donation page', () => {
   });
 
   describe('Resulting request', () => {
+    it('should send a request with the expected interval', () => {
+      cy.intercept(
+        { method: 'GET', pathname: getEndpoint(LIVE_PAGE) },
+        { fixture: 'pages/live-page-1', statusCode: 200 }
+      );
+
+      const interval = 'one_time';
+      const amount = '120';
+      cy.interceptDonation();
+      cy.setUpDonation(interval, amount);
+      cy.makeDonation();
+      cy.wait('@stripePayment').its('request.body').should('have.property', 'interval', interval);
+    });
     it('should send a request with the expected amount', () => {
-      //
+      cy.intercept(
+        { method: 'GET', pathname: getEndpoint(LIVE_PAGE) },
+        { fixture: 'pages/live-page-1', statusCode: 200 }
+      );
+
+      const interval = 'one_time';
+      const amount = '120';
+      cy.interceptDonation();
+      cy.setUpDonation(interval, amount);
+      cy.makeDonation();
+      cy.wait('@stripePayment').its('request.body').should('have.property', 'amount', amount);
     });
   });
 

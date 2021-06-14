@@ -71,9 +71,4 @@ class Migration(migrations.Migration):
                 null=True,
             ),
         ),
-        migrations.AlterField(
-            model_name="contributor",
-            name="email",
-            field=models.EmailField(max_length=254, unique=True),
-        ),
     ]

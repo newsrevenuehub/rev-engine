@@ -111,9 +111,6 @@ if BROKER_URL.startswith("rediss"):
 CELERYBEAT_SCHEDULER = "django_celery_beat.schedulers:DatabaseScheduler"
 
 
-### ADMINS and MANAGERS
-ADMINS = (("Revenue Engine Dev Team", "revengine-team@caktusgroup.com"),)
-
 ### 3rd-party appplications
 
 SENTRY_DSN = os.getenv("SENTRY_DSN")
@@ -130,3 +127,5 @@ if SENTRY_DSN:
 
 # BadActor API
 BAD_ACTOR_API_URL = "https://bad-actor.fundjournalism.org/v1/bad_actor/"
+
+USE_DEBUG_INTERVALS = False

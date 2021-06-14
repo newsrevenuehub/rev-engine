@@ -171,6 +171,8 @@ class PlanViewSetTest(APITestCase):
             PlanFactory()
         self.list_url = reverse("plan-list")
         self.detail_url = "/api/v1/plans"
+        self.user = user_model.objects.create_user(email="test@test.com", password="testing")
+        self.client.force_authenticate(user=self.user)
 
     def test_reverse_works(self):
         response = self.client.get(self.list_url)
@@ -188,6 +190,8 @@ class FeatureViewSetTest(APITestCase):
         self.limit_feature = FeatureFactory()
         self.list_url = reverse("feature-list")
         self.detail_url = "/api/v1/features"
+        self.user = user_model.objects.create_user(email="test@test.com", password="testing")
+        self.client.force_authenticate(user=self.user)
 
     def test_reverse_works(self):
         response = self.client.get(self.list_url)

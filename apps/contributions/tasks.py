@@ -8,31 +8,31 @@ import requests
 from celery import shared_task
 from requests.exceptions import RequestException
 
-from apps.contributions.models import Contribution
+from apps.contributions.models import Contribution, ContributionStatus
 from apps.contributions.payment_managers import PaymentProviderError
-from apps.contributions.serializers import StripeOneTimePaymentSerializer
 
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
 
 
 def ping_healthchecks(check_name, healthcheck_url):  # pragma: no cover
     """Attempt to ping a healthchecks.io to enable monitoring of tasks"""
     if not healthcheck_url:
-        logger.info(f"URL for {check_name} for not available in this environment")
+        logger.warn(f"URL for {check_name} not available in this environment")
         return
     for attempt in range(1, 4):
         try:
             requests.get(healthcheck_url, timeout=1)
             break
         except RequestException:
-            logger.info(f"Request {attempt} for {check_name} healthcheck failed")
+            logger.warn(f"Request {attempt} for {check_name} healthcheck failed")
         time.sleep(1)
 
 
 @shared_task
 def auto_accept_flagged_contributions():
-    contributions = Contribution.objects.filter(payment_state=Contribution.FLAGGED[0])
+    logger.info('Starting task, "auto_accept_flagged_contributions"')
+    contributions = Contribution.objects.filter(status=ContributionStatus.FLAGGED)
     logger.info(f"Found {len(contributions)} flagged contributions")
 
     successful_captures = 0
@@ -40,10 +40,10 @@ def auto_accept_flagged_contributions():
 
     now = timezone.now()
     eligible_flagged_contributions = Contribution.objects.filter(
-        payment_state=Contribution.FLAGGED[0], flagged_date__lte=now - settings.FLAGGED_PAYMENT_AUTO_ACCEPT_DELTA
+        status=ContributionStatus.FLAGGED, flagged_date__lte=now - settings.FLAGGED_PAYMENT_AUTO_ACCEPT_DELTA
     )
     for contribution in eligible_flagged_contributions:
-        payment_intent = contribution.get_payment_manager_instance(StripeOneTimePaymentSerializer)
+        payment_intent = contribution.get_payment_manager_instance()
         try:
             payment_intent.complete_payment(reject=False)
             successful_captures += 1
@@ -52,7 +52,7 @@ def auto_accept_flagged_contributions():
 
     logger.info(f"Successfully captured {successful_captures} previously-held payments.")
     if failed_captures:
-        logger.warn(f"Failed to capture {failed_captures} previously-held payments")
+        logger.warning(f"Failed to capture {failed_captures} previously-held payments")
 
     ping_healthchecks("auto_accept_flagged_contributions", settings.HEALTHCHECK_URL_AUTO_ACCEPT_FLAGGED_PAYMENTS)
     return successful_captures, failed_captures

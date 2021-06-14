@@ -1,5 +1,8 @@
+from datetime import datetime
 from unittest.mock import patch
 
+from django.conf import settings
+from django.core import mail
 from django.test import override_settings
 from django.urls import reverse
 
@@ -7,7 +10,7 @@ from rest_framework.test import APIRequestFactory, APITestCase
 from stripe.error import SignatureVerificationError
 from stripe.stripe_object import StripeObject
 
-from apps.contributions.models import Contribution
+from apps.contributions.models import Contribution, ContributionStatus
 from apps.contributions.views import process_stripe_webhook_view
 from apps.contributions.webhooks import StripeWebhookProcessor
 
@@ -21,9 +24,19 @@ class MockPaymentIntentEvent(StripeObject):
     # Something, somewhere down the line, needs this to be set just so...
     _transient_values = []
 
-    def __init__(self, event_type=None, intent_id=None, object_type="payment_intent", cancellation_reason=None):
+    def __init__(
+        self, event_type=None, intent_id=None, object_type="payment_intent", cancellation_reason=None, customer=None
+    ):
         self.type = event_type
-        self.data = {"object": {"id": intent_id, "object": object_type, "cancellation_reason": cancellation_reason}}
+        self.data = {
+            "object": {
+                "id": intent_id,
+                "object": object_type,
+                "cancellation_reason": cancellation_reason,
+                "customer": customer,
+                "created": datetime.now().timestamp(),
+            }
+        }
 
 
 def mock_valid_signature_verification_with_valid_event(*args, **kwargs):
@@ -46,7 +59,7 @@ def mock_valid_signature_bad_payload_verification(*args, **kwargs):
 class StripeWebhooksTest(APITestCase):
     def _create_contribution(self, ref_id=None):
         return Contribution.objects.create(
-            provider_reference_id=ref_id, amount=1000, payment_state=Contribution.PROCESSING[0]
+            provider_payment_id=ref_id, amount=1000, status=ContributionStatus.PROCESSING
         )
 
     def _run_webhook_view_with_request(self):
@@ -75,11 +88,11 @@ class StripeWebhooksTest(APITestCase):
         "stripe.Webhook.construct_event",
         side_effect=mock_valid_signature_verification_with_valid_event,
     )
-    def test_webhook_view_invalid_contribution(self, *args):
+    @patch("apps.contributions.views.logger")
+    def test_webhook_view_invalid_contribution(self, mock_logger, *args):
         self._create_contribution(ref_id="abcd")
-        response = self._run_webhook_view_with_request()
-        self.assertEqual(response.status_code, 400)
-        self.assertEqual(response.data["error"], "Invalid payment_intent_id")
+        self._run_webhook_view_with_request()
+        mock_logger.error.assert_called_once_with("Could not find contribution matching provider_payment_id")
 
     def test_payment_intent_canceled_webhook(self):
         ref_id = "1234"
@@ -89,7 +102,7 @@ class StripeWebhooksTest(APITestCase):
         )
         processor.process()
         contribution.refresh_from_db()
-        self.assertEqual(contribution.payment_state, Contribution.CANCELED[0])
+        self.assertEqual(contribution.status, ContributionStatus.CANCELED)
 
     def test_payment_intent_fraudulent(self):
         ref_id = "1234"
@@ -101,7 +114,7 @@ class StripeWebhooksTest(APITestCase):
         )
         processor.process()
         contribution.refresh_from_db()
-        self.assertEqual(contribution.payment_state, Contribution.REJECTED[0])
+        self.assertEqual(contribution.status, ContributionStatus.REJECTED)
 
     def test_payment_intent_payment_failed_webhook(self):
         ref_id = "1234"
@@ -111,7 +124,7 @@ class StripeWebhooksTest(APITestCase):
         )
         processor.process()
         contribution.refresh_from_db()
-        self.assertEqual(contribution.payment_state, Contribution.FAILED[0])
+        self.assertEqual(contribution.status, ContributionStatus.FAILED)
 
     def test_payment_intent_succeeded_webhook(self):
         ref_id = "1234"
@@ -121,7 +134,7 @@ class StripeWebhooksTest(APITestCase):
         )
         processor.process()
         contribution.refresh_from_db()
-        self.assertEqual(contribution.payment_state, Contribution.PAID[0])
+        self.assertEqual(contribution.status, ContributionStatus.PAID)
 
     def test_webhook_with_invalid_contribution_reference_id(self):
         self._create_contribution(ref_id="abcd")
@@ -130,10 +143,10 @@ class StripeWebhooksTest(APITestCase):
         )
         self.assertRaises(Contribution.DoesNotExist, processor.process)
 
-    @patch("apps.contributions.webhooks.logger.warn")
+    @patch("apps.contributions.webhooks.logger")
     def test_unknown_event_logs_helpful_message(self, mock_logger):
         self._create_contribution(ref_id="abcd")
         fake_event_object = "criminal_activiy"
         processor = StripeWebhookProcessor(MockPaymentIntentEvent(object_type=fake_event_object, intent_id="1234"))
         processor.process()
-        mock_logger.assert_called_with(f'Recieved un-handled Stripe object of type "{fake_event_object}"')
+        mock_logger.warning.assert_called_with(f'Recieved un-handled Stripe object of type "{fake_event_object}"')

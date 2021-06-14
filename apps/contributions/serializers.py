@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from apps.contributions.models import Contribution, Contributor
+from apps.contributions.models import Contribution, ContributionInterval, Contributor
 
 
 class ContributionSerializer(serializers.ModelSerializer):
@@ -25,17 +25,16 @@ class AbstractPaymentSerializer(serializers.Serializer):
     amount = serializers.IntegerField()
     reason = serializers.CharField(max_length=255)
 
+    # These are use to attach the contribution to the right organization,
+    # and associate it with the page it came from.
     revenue_program_slug = serializers.SlugField()
     donation_page_slug = serializers.SlugField(required=False)
 
-    PAYMENT_TYPE_ONE_TIME = (
-        "one_time",
-        "One-time payment",
-    )
-    PAYMENT_TYPE_RECURRING = (
-        "recurring",
-        "Recurring payment",
-    )
+    interval = serializers.ChoiceField(choices=ContributionInterval.choices, default=ContributionInterval.ONE_TIME)
+
+    @classmethod
+    def convert_cents_to_amount(self, cents):
+        return str(float(cents / 100))
 
     def convert_amount_to_cents(self, amount):
         """
@@ -44,7 +43,8 @@ class AbstractPaymentSerializer(serializers.Serializer):
         return int(float(amount) * 100)
 
     def to_internal_value(self, data):
-        if data.get("amount"):
+        amount = data.get("amount")
+        if isinstance(amount, str):
             data["amount"] = self.convert_amount_to_cents(data["amount"])
         return super().to_internal_value(data)
 
@@ -55,19 +55,15 @@ class AbstractPaymentSerializer(serializers.Serializer):
 
 class StripeOneTimePaymentSerializer(AbstractPaymentSerializer):
     """
-    A Stripe one-time payment requires minimal information--- do I need the customer?
+    A Stripe one-time payment is a light-weight, low-state payment. It utilizes
+    Stripe's PaymentIntent for an ad-hoc contribution.
     """
 
 
 class StripeRecurringPaymentSerializer(AbstractPaymentSerializer):
     """
-    paymentMethodId: paymentMethod.id,
-    interval: paymentInterval,
+    A Stripe recurring payment tracks payment information using a Stripe
+    PaymentMethod.
     """
 
     payment_method_id = serializers.CharField(max_length=255)
-
-    INTERVAL_MONTHLY = ("monthly", "Monthly")
-    INTERVAL_YEARLY = ("yearly", "Yearly")
-    INTERVAL_CHOICES = [INTERVAL_MONTHLY, INTERVAL_YEARLY]
-    interval = serializers.ChoiceField(choices=INTERVAL_CHOICES)

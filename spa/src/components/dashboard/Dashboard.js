@@ -54,8 +54,8 @@ function Dashboard() {
               </Route>
             </Switch>
           )}
+          {getShouldRequireConnect() && <ProviderConnect />}
         </S.DashboardContent>
-        {getShouldRequireConnect() && <ProviderConnect />}
       </S.DashboardMain>
     </S.Dashboard>
   );

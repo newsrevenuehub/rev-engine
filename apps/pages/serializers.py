@@ -1,5 +1,6 @@
 from rest_framework import serializers
 
+from apps.organizations.models import Organization, RevenueProgram
 from apps.pages.models import Benefit, BenefitTier, DonationPage, DonorBenefit, Style, Template
 
 
@@ -67,6 +68,9 @@ class DonationPageFullDetailSerializer(serializers.ModelSerializer):
 
 
 class DonationPageListSerializer(serializers.ModelSerializer):
+    revenue_program = serializers.PrimaryKeyRelatedField(queryset=RevenueProgram.objects.all())
+    organization = serializers.PrimaryKeyRelatedField(queryset=Organization.objects.all())
+
     class Meta:
         model = DonationPage
         fields = [
@@ -76,6 +80,7 @@ class DonationPageListSerializer(serializers.ModelSerializer):
             "slug",
             "derived_slug",
             "revenue_program",
+            "organization",
             "published_date",
             "is_live",
         ]

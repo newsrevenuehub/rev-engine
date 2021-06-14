@@ -20,8 +20,8 @@ export const adminTheme = {
     caution: '#ff476c',
     info: '#20bfdd',
     success: '#99D17B',
-    warning: '#ff476c',
-    disabled: 'grey',
+    warning: '#ffd400',
+    disabled: '#ebebeb',
 
     hover: '#eee'
   },

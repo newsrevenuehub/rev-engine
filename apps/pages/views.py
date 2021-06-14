@@ -22,7 +22,7 @@ class PageViewSet(OrganizationLimitedListView, viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated, UserBelongsToOrg]
 
     def get_serializer_class(self):
-        if self.action == "full_detail":
+        if self.action == "full_detail" or self.action == "partial_update":
             return serializers.DonationPageFullDetailSerializer
         return (
             serializers.DonationPageDetailSerializer

@@ -1,5 +1,6 @@
 import * as S from './DPayment.styled';
 import DElement from './DElement';
+import { ICONS } from 'assets/icons/SvgIcon';
 
 // Stripe
 import StripePaymentWidget from 'components/paymentProviders/stripe/StripePaymentWidget';
@@ -21,8 +22,18 @@ function DPayment({ element, live, ...props }) {
   );
 }
 
+DPayment.type = 'DPayment';
+DPayment.displayName = 'Payment';
+DPayment.description = 'Allow donors to contribute';
+DPayment.required = true;
+DPayment.unique = true;
+
 export default DPayment;
 
 function NotLivePlaceholder() {
-  return <h2>Stripe payment will go here</h2>;
+  return (
+    <S.NotLivePlaceholder>
+      [Placeholder] Donations <S.NotLiveIcon icon={ICONS.STRIPE_POWERED} />
+    </S.NotLivePlaceholder>
+  );
 }

@@ -30,6 +30,7 @@ class PageViewSetTest(AbstractTestCase):
         self.login()
         list_url = reverse("donationpage-list")
         page_data = {
+            "name": "My page, tho",
             "heading": "New DonationPage",
             "slug": "new-page",
             "organization": self.orgs[0].pk,

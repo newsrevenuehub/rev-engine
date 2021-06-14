@@ -10,3 +10,4 @@ export const ORG_STRIPE_ACCOUNT_ID = 'organizations/stripe_account_id/';
 // PAGES
 export const FULL_PAGE = 'pages/full_detail/';
 export const LIST_PAGES = 'pages/';
+export const PATCH_PAGE = 'pages/';

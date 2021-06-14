@@ -10,4 +10,7 @@ export const EditInterface = styled(motion.aside)`
   background: ${(props) => props.theme.colors.paneBackground};
   box-shadow: ${(props) => props.theme.shadows[1]};
   width: 500px;
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
 `;

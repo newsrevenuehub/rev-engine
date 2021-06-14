@@ -55,7 +55,8 @@ class TemplateAdminTest(TestCase):
         self.user = user_model.objects.create_superuser(email="test@test.com", password="testing")
         self.client.force_login(self.user)
         self.template_admin = TemplateAdmin(Template, AdminSite())
-        self.template = TemplateFactory()
+        self.original_page = DonationPageFactory()
+        self.template = self.original_page.save_as_template()[0]
 
     def test_make_template_button_appears_in_change_form(self):
         change_url = reverse("admin:pages_template_change", kwargs={"object_id": self.template.id})

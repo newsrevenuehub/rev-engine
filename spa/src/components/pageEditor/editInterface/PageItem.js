@@ -19,7 +19,12 @@ function PageItem({ element, disabled, dragState, isStatic, handleItemClick, ...
   };
 
   return (
-    <S.PageItem disabled={disabled} onMouseUp={isStatic ? () => {} : handleOpenProperties} {...props}>
+    <S.PageItem
+      disabled={disabled}
+      onMouseUp={isStatic ? () => {} : handleOpenProperties}
+      {...props}
+      data-testid="edit-interface-item"
+    >
       <S.ItemIconWrapper>
         <S.ItemIcon icon={getElementIcon(element.type)} disabled={disabled} />
       </S.ItemIconWrapper>

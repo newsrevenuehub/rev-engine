@@ -30,6 +30,7 @@ function RichTextEditor() {
 
   return (
     <DraftailEditor
+      data-testid="rich-text-editor"
       editorState={editorState}
       onChange={handleEditorStateChange}
       stripPastedStyles={false}

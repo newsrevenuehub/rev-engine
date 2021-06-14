@@ -110,7 +110,7 @@ function PageEditor() {
     <PageEditorContext.Provider
       value={{ page, setPage, updatedPage, setUpdatedPage, showEditInterface, setShowEditInterface }}
     >
-      <S.PageEditor>
+      <S.PageEditor data-testid="page-editor">
         {loading && <GlobalLoading />}
         {showEditInterface && (
           <AnimatePresence>
@@ -124,14 +124,21 @@ function PageEditor() {
             selected={selectedButton === PREVIEW}
             icon={faEye}
             color={theme.colors.primary}
+            data-testid="preview-page-button"
           />
           <CircleButton
             onClick={handleEdit}
             selected={selectedButton === EDIT}
             icon={faEdit}
             color={theme.colors.primary}
+            data-testid="edit-page-button"
           />
-          <CircleButton onClick={handleSave} icon={faSave} color={theme.colors.primary} />
+          <CircleButton
+            onClick={handleSave}
+            icon={faSave}
+            color={theme.colors.primary}
+            data-testid="save-page-button"
+          />
         </S.ButtonOverlay>
       </S.PageEditor>
     </PageEditorContext.Provider>

@@ -31,7 +31,7 @@ function ElementProperties() {
   };
 
   return (
-    <S.ElementProperties>
+    <S.ElementProperties data-testid="element-properties">
       <S.ElementHeading>
         <h5>{dynamicElements[selectedElement.type].displayName}</h5>
       </S.ElementHeading>

@@ -6,6 +6,7 @@ import { ICONS } from 'assets/icons/SvgIcon';
 import StripePaymentWidget from 'components/paymentProviders/stripe/StripePaymentWidget';
 
 function DPayment({ element, live, ...props }) {
+  console.log('live in dpayment: ', live);
   /*
     element.content is an object, whose keys are providers.
     For instance, element.content.stripe is an array of supported payment types:

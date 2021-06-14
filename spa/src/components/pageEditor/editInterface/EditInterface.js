@@ -48,7 +48,7 @@ function EditInterface() {
       }}
     >
       <>
-        <S.EditInterface {...editInterfaceAnimation}>
+        <S.EditInterface {...editInterfaceAnimation} data-testid="edit-interface">
           {selectedElement ? (
             <ElementProperties />
           ) : (

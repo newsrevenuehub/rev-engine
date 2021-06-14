@@ -3,7 +3,7 @@ import { getEndpoint, getPageElementByType } from '../support/util';
 import livePageOne from '../fixtures/pages/live-page-1.json';
 
 import * as freqUtils from 'utilities/parseFrequency';
-import calculateStripeFee from '../../src/utilities/calculateStripeFee';
+import calculateStripeFee from 'utilities/calculateStripeFee';
 
 describe('Donation page', () => {
   beforeEach(() => {

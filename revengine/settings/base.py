@@ -83,7 +83,7 @@ REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": [
         "apps.api.authentication.JWTHttpOnlyCookieAuthentication",
     ],
-    "DEFAUL_PERMISSION_CLASSES": [
+    "DEFAULT_PERMISSION_CLASSES": [
         "rest_framework.permissions.IsAuthenticated",
     ],
     # https://www.django-rest-framework.org/api-guide/pagination/#setting-the-pagination-style
@@ -202,6 +202,11 @@ LOGGING = {
             "filters": ["require_debug_false"],
             "class": "django.utils.log.AdminEmailHandler",
         },
+        "warn_admins": {
+            "level": "WARNING",
+            "filters": ["require_debug_false"],
+            "class": "django.utils.log.AdminEmailHandler",
+        },
         "console": {
             "level": "DEBUG",
             "class": "logging.StreamHandler",
@@ -224,12 +229,19 @@ LOGGING = {
             "handlers": ["console"],
             "propagate": False,
         },
+        "warn": {
+            "handlers": ["warn_admins"],
+            "level": "WARNING",
+            "propagate": True,
+        },
     },
     "root": {
         "handlers": ["console"],
         "level": "INFO",
     },
 }
+
+DEFAULT_LOGGER = "warn"
 
 
 PHONENUMBER_DB_FORMAT = "NATIONAL"
@@ -240,6 +252,8 @@ PHONENUMBER_DEFAULT_REGION = "US"
 STRIPE_LIVE_SECRET_KEY = os.getenv("LIVE_HUB_STRIPE_API_SECRET_KEY", "")
 STRIPE_TEST_SECRET_KEY = os.getenv("TEST_HUB_STRIPE_API_SECRET_KEY", "")
 STRIPE_LIVE_MODE = False  # Change to True in production
+
+GENERIC_STRIPE_PRODUCT_NAME = "Donation via RevEngine"
 
 # Get it from the section in the Stripe dashboard where you added the webhook endpoint
 STRIPE_WEBHOOK_SECRET = os.getenv("STRIPE_WEBHOOK_SECRET", "")
@@ -253,6 +267,7 @@ STRIPE_WEBHOOK_EVENTS = [
     "payment_intent.payment_failed",
     "payment_intent.succeeded",
 ]
+
 
 SITE_URL = os.getenv("SITE_URL", "")
 
@@ -271,9 +286,13 @@ HEALTHCHECK_URL_AUTO_ACCEPT_FLAGGED_PAYMENTS = os.environ.get("HEALTHCHECK_URL_A
 
 # Transactional Email
 EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
+EMAIL_SUBJECT_PREFIX = "[RevEngine] "
 
 ADMINS = [("nrh-team", "nrh-team@caktusgroup.com")]
 
 # this is only used by HubAdmins, not OrgAdmins, but needs to be named generically as LOGIN_URL
 # so our implementation of password reset flow for HubAdmins works as expected
 LOGIN_URL = "/admin/"
+
+# Set USE_DEBUG_INTERVALS to True if you want recurring payment intervals to be truncated for testing (as much as possible, currently)
+USE_DEBUG_INTERVALS = False

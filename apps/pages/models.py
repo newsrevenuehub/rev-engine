@@ -87,7 +87,7 @@ class DonationPage(AbstractPage):
         null=True,
         on_delete=models.SET_NULL,
     )
-    published_date = models.DateTimeField(null=True, blank=True)
+    published_date = models.DateTimeField(null=True)
 
     class Meta:
         unique_together = (

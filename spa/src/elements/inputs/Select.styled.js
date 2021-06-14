@@ -29,4 +29,5 @@ export const List = styled.ul`
 
 export const Item = styled.li`
   padding: 1rem 1.5rem;
+  background: ${(props) => (props.highlighted ? props.theme.colors.white : 'transparent')};
 `;

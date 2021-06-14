@@ -7,29 +7,31 @@ from rest_framework import status
 from rest_framework.decorators import api_view, authentication_classes, permission_classes
 from rest_framework.response import Response
 
-from apps.contributions.models import Contribution
-from apps.contributions.payment_managers import PaymentBadParamsError, StripePaymentManager
-from apps.contributions.serializers import StripeOneTimePaymentSerializer
+from apps.contributions.models import Contribution, ContributionInterval
+from apps.contributions.payment_managers import (
+    PaymentBadParamsError,
+    PaymentProviderError,
+    StripePaymentManager,
+)
 from apps.contributions.utils import get_hub_stripe_api_key
 from apps.contributions.webhooks import StripeWebhookProcessor
 
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
 
 
 @api_view(["POST"])
 @authentication_classes([])
 @permission_classes([])
-def stripe_one_time_payment(request):
+def stripe_payment(request):
     pi_data = request.data
 
     # Grab required data from headers
     pi_data["referer"] = request.META.get("HTTP_REFERER")
-
     pi_data["ip"] = request.META.get("HTTP_X_FORWARDED_FOR")
 
-    # Instantiate StripePaymentManager with one-time payment serializers for validation and processing
-    stripe_payment = StripePaymentManager(StripeOneTimePaymentSerializer, data=pi_data)
+    # StripePaymentManager will grab the right serializer based on "interval"
+    stripe_payment = StripePaymentManager(data=pi_data)
 
     # Validate data expected by Stripe and BadActor API
     stripe_payment.validate()
@@ -38,12 +40,23 @@ def stripe_one_time_payment(request):
     stripe_payment.get_bad_actor_score()
 
     try:
-        # Create payment intent with Stripe, associated local models
-        stripe_payment_intent = stripe_payment.create_one_time_payment()
+        if stripe_payment.validated_data["interval"] == ContributionInterval.ONE_TIME:
+            # Create payment intent with Stripe, associated local models
+            stripe_payment_intent = stripe_payment.create_one_time_payment()
+            response_body = {"detail": "Success", "clientSecret": stripe_payment_intent["client_secret"]}
+        else:
+            # Create subscription with Stripe, associated local models
+            stripe_payment.create_subscription()
+            response_body = {"detail": "Success"}
     except PaymentBadParamsError:
+        logger.warn("stripe_payment view raised a PaymentBadParamsError")
         return Response({"detail": "There was an error processing your payment."}, status=status.HTTP_400_BAD_REQUEST)
+    except PaymentProviderError as pp_error:
+        error_message = str(pp_error)
+        logger.error(error_message)
+        return Response({"detail": error_message}, status=status.HTTP_400_BAD_REQUEST)
 
-    return Response(data={"clientSecret": stripe_payment_intent["client_secret"]}, status=status.HTTP_200_OK)
+    return Response(response_body, status=status.HTTP_200_OK)
 
 
 @api_view(["POST"])
@@ -90,7 +103,6 @@ def stripe_confirmation(request):
         stripe_account = stripe.Account.retrieve(organization.stripe_account_id, api_key=get_hub_stripe_api_key())
 
     except stripe.error.StripeError:
-        # ? Send email?
         logger.error("stripe.Account.retrieve failed with a StripeError")
         return Response(
             {"status": "failed"},
@@ -100,8 +112,12 @@ def stripe_confirmation(request):
     if not stripe_account.charges_enabled:
         return Response({"status": "restricted"}, status=status.HTTP_202_ACCEPTED)
 
+    # If we got through all that, we're verified.
     organization.stripe_verified = True
     organization.save()
+
+    # Now that we're verified, create and associate default product
+    organization.create_default_stripe_product()
     return Response({"status": "connected"}, status=status.HTTP_200_OK)
 
 
@@ -117,10 +133,10 @@ def process_stripe_webhook_view(request):
         logger.info("Constructing event.")
         event = stripe.Webhook.construct_event(payload, sig_header, settings.STRIPE_WEBHOOK_SECRET)
     except ValueError:
-        logger.error("Invalid payload from Stripe webhook request")
+        logger.warn("Invalid payload from Stripe webhook request")
         return Response(data={"error": "Invalid payload"}, status=status.HTTP_400_BAD_REQUEST)
     except stripe.error.SignatureVerificationError:
-        logger.error("Invalid signature on Stripe webhook request. Is STRIPE_WEBHOOK_SECRET set correctly?")
+        logger.warn("Invalid signature on Stripe webhook request. Is STRIPE_WEBHOOK_SECRET set correctly?")
         return Response(data={"error": "Invalid signature"}, status=status.HTTP_400_BAD_REQUEST)
 
     try:
@@ -130,7 +146,6 @@ def process_stripe_webhook_view(request):
     except ValueError as e:
         logger.error(e)
     except Contribution.DoesNotExist:
-        logger.error("Could not find contribution matching payment_intent_id")
-        return Response(data={"error": "Invalid payment_intent_id"}, status=status.HTTP_400_BAD_REQUEST)
+        logger.error("Could not find contribution matching provider_payment_id")
 
     return Response(status=status.HTTP_200_OK)

@@ -1,5 +1,7 @@
 import logging
 
+from django.conf import settings
+
 from rest_framework import permissions, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
@@ -10,7 +12,7 @@ from apps.organizations import serializers
 from apps.organizations.models import Feature, Organization, Plan, RevenueProgram
 
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
 
 
 class ReadOnly(permissions.BasePermission):

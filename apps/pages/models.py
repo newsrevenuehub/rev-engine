@@ -68,9 +68,8 @@ class Template(AbstractPage):
         for field in AbstractPage.field_names():
             template_field = getattr(self, field)
             setattr(page, field, template_field)
-        name = page.name.split("::")[1]
         unique_str = str(uuid.uuid4())[:8]
-        if parent_page := DonationPage.objects.filter(title=f"{name}").first():
+        if parent_page := DonationPage.objects.filter(title=self.title).first():
             page.name = f"copy-{unique_str}::{page.name}"
             page.revenue_program = parent_page.revenue_program
             page.save()
@@ -138,7 +137,7 @@ class DonationPage(AbstractPage):
             page_field = getattr(self, field)
             setattr(template, field, page_field)
 
-        template.name = name or f"TEMPLATE::{self.title}"
+        template.name = name or self.title
 
         template_exists = Template.objects.filter(name=template.name).exists()
         created = False

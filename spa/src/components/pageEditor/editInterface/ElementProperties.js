@@ -1,5 +1,4 @@
 import * as S from './ElementProperties.styled';
-import { useTheme } from 'styled-components';
 
 // Elements
 import getElementEditor from 'components/pageEditor/elementEditors/getElementEditor';
@@ -15,7 +14,6 @@ import { useEditInterfaceContext } from 'components/pageEditor/editInterface/Edi
 import CircleButton from 'elements/buttons/CircleButton';
 
 function ElementProperties() {
-  const theme = useTheme();
   const { selectedElement, setSelectedElement, elementContent, elements, setElements } = useEditInterfaceContext();
 
   const handleKeepChanges = () => {

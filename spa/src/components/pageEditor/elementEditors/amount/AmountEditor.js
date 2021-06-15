@@ -66,7 +66,7 @@ function AmountEditor() {
   };
 
   return (
-    <S.AmountEditor>
+    <S.AmountEditor data-testid="amount-editor">
       {frequencies.map((freq) => (
         <S.FreqGroup key={freq.value}>
           <S.FreqHeading>{freq.displayName}</S.FreqHeading>
@@ -75,7 +75,12 @@ function AmountEditor() {
               ?.sort((a, b) => a - b)
               .map((amount, i) => (
                 <S.AmountItem key={amount + i}>
-                  {amount} <S.RemoveAmount icon={faTimes} onClick={() => removeAmount(freq, amount)} />
+                  {amount}{' '}
+                  <S.RemoveAmount
+                    icon={faTimes}
+                    onClick={() => removeAmount(freq, amount)}
+                    data-testid="remove-amount-button"
+                  />
                 </S.AmountItem>
               ))}
           </S.AmountsList>
@@ -86,8 +91,9 @@ function AmountEditor() {
               onChange={(e) => setNewAmounts({ ...newAmounts, [freq.value]: e.target.value })}
               min="0"
               onKeyUp={(e) => handleKeyUp(e, freq)}
+              data-testid="amount-input"
             />
-            <S.AddAmountButton onClick={() => addAmount(freq)}>
+            <S.AddAmountButton onClick={() => addAmount(freq)} data-testid="add-amount-button">
               <S.PlusIcon icon={faPlus} />
             </S.AddAmountButton>
           </S.AmountInputGroup>

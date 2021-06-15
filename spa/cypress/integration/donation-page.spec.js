@@ -1,5 +1,6 @@
 import { LIVE_PAGE, STRIPE_CONFIRMATION, ORG_STRIPE_ACCOUNT_ID } from 'ajax/endpoints';
-import { getEndpoint } from '../support/util';
+import { getEndpoint, getPageElementByType } from '../support/util';
+import livePageOne from '../fixtures/pages/live-page-1.json';
 
 describe('Donation page', () => {
   before(() => {
@@ -33,7 +34,7 @@ describe('Donation page', () => {
       ).as('getPageDetail');
       cy.visit('/revenue-program-slug');
       cy.wait('@getPageDetail');
-      cy.getByTestId('live-donation-page').should('exist');
+      cy.getByTestId('donation-page').should('exist');
     });
 
     it('should show a donation page if route is not reserved, second-level', () => {
@@ -43,7 +44,25 @@ describe('Donation page', () => {
       ).as('getPageDetail');
       cy.visit('/revenue-program-slug/page-slug');
       cy.wait('@getPageDetail');
-      cy.getByTestId('live-donation-page').should('exist');
+      cy.getByTestId('donation-page').should('exist');
+    });
+  });
+
+  describe.only('DonationPage content', () => {
+    it('should render expected rich text content', () => {
+      cy.visitDonationPage();
+
+      cy.getByTestId('d-rich-text').should('exist');
+      cy.contains('Your support keeps us going!');
+    });
+
+    it('should render expected expected frequencies', () => {
+      const frequency = getPageElementByType(livePageOne, 'DFrequency');
+      cy.getByTestId('d-frequency');
+
+      frequency.content.forEach((freq) => {
+        cy.contains(freq.displayName);
+      });
     });
   });
 

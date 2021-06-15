@@ -28,8 +28,8 @@ class DonationPageAdminTestCase(TestCase):
         new_templates = Template.objects.all()
         self.assertEqual(prev_template_count + 1, len(new_templates))
 
-        # New Template gets its name from previous page's title
-        self.assertEqual(new_templates[0].name, self.page.title)
+        # New Template gets its name from previous page's heading
+        self.assertEqual(new_templates[0].name, self.page.heading)
 
     def test_make_template_no_duplicate(self):
         request = self.factory.get(reverse("admin:pages_donationpage_changelist"))
@@ -75,8 +75,8 @@ class TemplateAdminTest(TestCase):
         new_pages = DonationPage.objects.all()
         self.assertNotEqual(prev_page_count, len(new_pages))
 
-        # New page's title should be previous template's name
-        self.assertEqual(new_pages[0].title, self.template.name)
+        # New page's heading should be previous template's name
+        self.assertEqual(new_pages[0].heading, self.template.name)
 
     def test_response_change_without_button_click_passes_through(self):
         url = reverse("admin:pages_template_change", kwargs={"object_id": self.template.id})

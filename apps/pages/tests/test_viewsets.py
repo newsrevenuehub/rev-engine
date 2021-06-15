@@ -30,7 +30,8 @@ class PageViewSetTest(AbstractTestCase):
         self.login()
         list_url = reverse("donationpage-list")
         page_data = {
-            "title": "New DonationPage",
+            "name": "Page Name, tho",
+            "heading": "New DonationPage",
             "slug": "new-page",
             "organization": self.orgs[0].pk,
             "revenue_program": self.rev_program.pk,
@@ -47,15 +48,15 @@ class PageViewSetTest(AbstractTestCase):
         page = self.resources[0]
         self.authenticate_user_for_resource(page)
         self.login()
-        old_page_title = page.title
+        old_page_heading = page.heading
         old_page_pk = page.pk
         detail_url = f"/api/v1/pages/{old_page_pk}/"
-        new_title = "Old DonationPage With New Title"
-        response = self.client.patch(detail_url, {"title": new_title})
+        new_heading = "Old DonationPage With New Heading"
+        response = self.client.patch(detail_url, {"heading": new_heading})
         page = DonationPage.objects.get(pk=old_page_pk)
         self.assertEqual(page.pk, old_page_pk)
-        self.assertNotEqual(page.title, old_page_title)
-        self.assertEqual(page.title, new_title)
+        self.assertNotEqual(page.heading, old_page_heading)
+        self.assertEqual(page.heading, new_heading)
 
     def test_page_delete_deletes_page(self):
         page = self.resources[0]
@@ -150,7 +151,7 @@ class DonationPageFullDetailTest(APITestCase):
             rev_program=self.revenue_program_1.slug, page=self.page_1.slug, live=True
         )
         self.assertEqual(good_response.status_code, 200)
-        self.assertEqual(good_response.data["title"], self.page_1.title)
+        self.assertEqual(good_response.data["heading"], self.page_1.heading)
 
     def test_full_detail_returns_default_rev_page(self):
         response = self._make_full_detail_request_with_params(rev_program=self.revenue_program_1.slug)
@@ -185,7 +186,7 @@ class TemplateViewSetTest(AbstractTestCase):
         list_url = reverse("template-list")
         template_data = {
             "name": "New Template",
-            "title": "New Template",
+            "heading": "New Template",
             "organization": self.orgs[0].pk,
         }
         response = self.client.post(list_url, template_data)
@@ -200,15 +201,15 @@ class TemplateViewSetTest(AbstractTestCase):
         template = self.resources[0]
         self.authenticate_user_for_resource(template)
         self.login()
-        old_template_title = template.title
+        old_template_heading = template.heading
         old_template_pk = template.pk
         detail_url = f"/api/v1/templates/{old_template_pk}/"
-        new_title = "Old Template With New Title"
-        response = self.client.patch(detail_url, {"title": new_title})
+        new_heading = "Old Template With New Heading"
+        response = self.client.patch(detail_url, {"heading": new_heading})
         template = Template.objects.filter(pk=old_template_pk).first()
         self.assertEqual(template.pk, old_template_pk)
-        self.assertNotEqual(template.title, old_template_title)
-        self.assertEqual(template.title, new_title)
+        self.assertNotEqual(template.heading, old_template_heading)
+        self.assertEqual(template.heading, new_heading)
 
     def test_template_delete_deletes_template(self):
         template = self.resources[0]

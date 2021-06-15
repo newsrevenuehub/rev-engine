@@ -27,7 +27,7 @@ export const StripeConnect = styled.div`
     color: #ffffff;
     display: block;
     font-family: sohne-var, 'Helvetica Neue', Arial, sans-serif;
-    font-size: 15px;
+    font-size: ${(props) => props.theme.fontSizes[1]};
     font-weight: 400;
     line-height: 14px;
     padding: 11px 0px 0px 24px;

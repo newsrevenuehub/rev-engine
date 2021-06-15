@@ -1,5 +1,4 @@
 import { useEffect, useCallback, useReducer } from 'react';
-import PropTypes from 'prop-types';
 
 // AJAX
 import axios from 'ajax/axios';
@@ -49,7 +48,7 @@ const livePageReducer = (state, action) => {
   }
 };
 
-function DonationPageRouter({ live }) {
+function DonationPageRouter() {
   const [{ loading, error, data }, dispatch] = useReducer(livePageReducer, initialState);
   const params = useParams();
 
@@ -59,7 +58,7 @@ function DonationPageRouter({ live }) {
     const requestParams = {
       revenue_program: revProgramSlug,
       page: pageSlug,
-      live: live ? 1 : 0
+      live: 1
     };
     try {
       const { data } = await axios.get(LIVE_PAGE, { params: requestParams });
@@ -67,7 +66,7 @@ function DonationPageRouter({ live }) {
     } catch (e) {
       dispatch({ type: PAGE_FETCH_ERROR });
     }
-  }, [params, live]);
+  }, [params]);
 
   useEffect(() => {
     fetchLivePageContent();
@@ -79,13 +78,5 @@ function DonationPageRouter({ live }) {
     </SegregatedStyles>
   );
 }
-
-DonationPageRouter.propTypes = {
-  live: PropTypes.bool
-};
-
-DonationPageRouter.default = {
-  live: false
-};
 
 export default DonationPageRouter;

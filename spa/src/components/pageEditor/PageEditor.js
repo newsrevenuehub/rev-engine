@@ -1,9 +1,12 @@
 import { useState, useEffect, createContext, useContext, useCallback } from 'react';
 import * as S from './PageEditor.styled';
+import * as A from 'elements/alert/Alert.styled';
 import { useTheme } from 'styled-components';
 import { AnimatePresence } from 'framer-motion';
 
+// Deps
 import { useAlert } from 'react-alert';
+import isEmpty from 'lodash.isempty';
 
 // Routing
 import { useParams } from 'react-router-dom';
@@ -20,8 +23,10 @@ import { faEye, faEdit, faSave } from '@fortawesome/free-solid-svg-icons';
 
 // Context
 import { useGlobalContext } from 'components/MainLayout';
+import validatePage from './validatePage';
 
 // Children
+import * as dynamicElements from 'components/donationPage/pageContent/dynamicElements';
 import CircleButton from 'elements/buttons/CircleButton';
 import DonationPage from 'components/donationPage/DonationPage';
 import GlobalLoading from 'elements/GlobalLoading';
@@ -47,6 +52,7 @@ function PageEditor() {
   const [updatedPage, setUpdatedPage] = useState();
   const [selectedButton, setSelectedButton] = useState(PREVIEW);
   const [showEditInterface, setShowEditInterface] = useState(false);
+  const [errors, setErrors] = useState({});
 
   const fetchPageContent = useCallback(async () => {
     setLoading(true);
@@ -61,7 +67,6 @@ function PageEditor() {
       setPage(data);
       setLoading(false);
     } catch (e) {
-      console.log(e);
       setLoading(false);
     }
   }, [params]);
@@ -85,15 +90,10 @@ function PageEditor() {
 
     const validationErrors = validatePage(updatedPage);
     if (validationErrors) {
-      console.log('handle errors.');
+      setErrors(validationErrors);
     } else {
       getUserConfirmation("You're making changes to a live donation page. Continue?", () => patchPage(updatedPage));
     }
-  };
-
-  const validatePage = (patchedPage) => {
-    // TODO: Implement
-    return;
   };
 
   const patchPage = async (patchedPage) => {
@@ -106,9 +106,17 @@ function PageEditor() {
     }
   };
 
+  useEffect(() => {
+    if (!isEmpty(errors)) {
+      if (errors.missing) {
+        alert.error(<MissingElementErrors missing={errors.missing} />);
+      }
+    }
+  }, [errors, alert]);
+
   return (
     <PageEditorContext.Provider
-      value={{ page, setPage, updatedPage, setUpdatedPage, showEditInterface, setShowEditInterface }}
+      value={{ page, setPage, updatedPage, setUpdatedPage, showEditInterface, setShowEditInterface, errors }}
     >
       <S.PageEditor data-testid="page-editor">
         {loading && <GlobalLoading />}
@@ -150,3 +158,16 @@ function PageEditor() {
 export const usePageEditorContext = () => useContext(PageEditorContext);
 
 export default PageEditor;
+
+function MissingElementErrors({ missing = [] }) {
+  return (
+    <>
+      The following elements are required for your page to function properly:
+      <A.ErrorsList data-testid="missing-elements-alert">
+        {missing.map((missingEl) => (
+          <li key={missingEl}>{dynamicElements[missingEl].displayName}</li>
+        ))}
+      </A.ErrorsList>
+    </>
+  );
+}

@@ -22,7 +22,7 @@ export const Alert = styled.div`
     }
     if (props.type === 'error') {
       return css`
-        background: ${props.theme.colors.warning};
+        background: ${props.theme.colors.caution};
       `;
     }
   }}
@@ -38,4 +38,9 @@ export const Close = styled.button`
   position: absolute;
   right: 0;
   top: 0;
+`;
+
+export const ErrorsList = styled.ul`
+  li {
+  }
 `;

@@ -7,13 +7,10 @@ import { getFrequencyAdverb, getFrequencyAdjective, getFrequencyRate } from 'uti
 
 // Children
 import DElement, { DynamicElementPropTypes } from 'components/donationPage/pageContent/DElement';
-// import { useElements } from 'components/donationPage/DonationPage';
 import SelectableButton from 'elements/buttons/SelectableButton';
 
 const frequency = 'month';
 function DAmount({ element, ...props }) {
-  // const { elements } = useElements();
-
   const inputRef = useRef();
 
   const [selectedAmount, setSelectedAmount] = useState(0);
@@ -66,7 +63,6 @@ function DAmount({ element, ...props }) {
             label={`${'$2.99'} ${getFrequencyAdverb(frequency)}`}
             toggle
             checked={payFees}
-            // value={payFees}
             onChange={(e, { checked }) => setPayFees(checked)}
           />
           <S.PayFeesDescription>

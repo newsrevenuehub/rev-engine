@@ -64,16 +64,6 @@ describe('Donation page', () => {
         cy.contains(freq.displayName);
       });
     });
-    // it('should render expected amounts', () => {
-    //   const frequency = getPageElementByType(livePageOne, 'DFrequency');
-    //   const amounts = getPageElementByType(livePageOne, 'DAmount');
-    //   cy.getByTestId('d-amount');
-
-    //   frequency.content.forEach((freq) => {
-    //     cy.contains(freq.displayName).click();
-    //     amounts.content.options[freq.value].forEach((amount) => cy.contains(amount));
-    //   });
-    // });
   });
 
   describe('Thank you page', () => {

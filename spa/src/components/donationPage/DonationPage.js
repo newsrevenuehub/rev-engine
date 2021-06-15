@@ -2,9 +2,6 @@ import { useState, createContext, useContext } from 'react';
 import * as S from './DonationPage.styled';
 import * as getters from 'components/donationPage/pageGetters';
 
-// TEMP
-// import TemporaryStripeCheckoutTest from 'components/TEMP/TemporaryStripeCheckoutTest';
-
 const DonationPageContext = createContext({});
 const ElementsContext = createContext([]);
 

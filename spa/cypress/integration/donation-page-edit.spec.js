@@ -40,6 +40,33 @@ describe('Donation page edit', () => {
     it('should render element detail when item is clicked', () => {
       cy.contains('Rich text').click();
       cy.getByTestId('element-properties');
+      cy.getByTestId('discard-element-changes-button').click();
+    });
+
+    describe('Frequency editor', () => {
+      it('should render the frequency editor when item is clicked', () => {
+        cy.contains('Donation frequency').click();
+        cy.getByTestId('frequency-editor');
+        cy.contains('Donation frequency');
+      });
+
+      it('should validate frequency', () => {
+        // Uncheck all the frequencies
+        cy.getByTestId('frequency-editor').find('li').click({ multiple: true });
+        cy.getByTestId('keep-element-changes-button').click();
+        cy.getByTestId('alert').contains('You must have at least');
+      });
+
+      it('should accept valid input and changes should show on page', () => {
+        // Now check one and accept
+        cy.getByTestId('frequency-editor').find('li').first().click();
+        cy.getByTestId('keep-element-changes-button').click();
+
+        // Donation page should only show item checked, and nothing else.
+        cy.getByTestId('d-frequency').contains('One time');
+        cy.getByTestId('d-frequency').should('not.contain', 'Monthly');
+        cy.getByTestId('d-frequency').should('not.contain', 'Yearly');
+      });
     });
   });
 });

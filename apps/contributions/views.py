@@ -3,10 +3,13 @@ import logging
 from django.conf import settings
 
 import stripe
-from rest_framework import status
+from rest_framework import generics, status
 from rest_framework.decorators import api_view, authentication_classes, permission_classes
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
+from apps.api.permissions import UserBelongsToOrg
+from apps.contributions import serializers
 from apps.contributions.models import Contribution, ContributionInterval
 from apps.contributions.payment_managers import (
     PaymentBadParamsError,
@@ -149,3 +152,12 @@ def process_stripe_webhook_view(request):
         logger.error("Could not find contribution matching provider_payment_id")
 
     return Response(status=status.HTTP_200_OK)
+
+
+class ContributionsListView(generics.ListAPIView):
+    serializer_class = serializers.ContributionSerializer
+    model = Contribution
+    permission_classes = [IsAuthenticated, UserBelongsToOrg]
+
+    def get_queryset(self):
+        return self.model.objects.filter(organization__users=self.request.user)

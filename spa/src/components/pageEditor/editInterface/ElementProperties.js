@@ -1,8 +1,9 @@
 import * as S from './ElementProperties.styled';
 import { useTheme } from 'styled-components';
+import { useAlert } from 'react-alert';
 
 // Elements
-import getElementEditor from 'components/pageEditor/elementEditors/getElementEditor';
+import getElementEditor, { getElementValidator } from 'components/pageEditor/elementEditors/getElementEditor';
 import * as dynamicElements from 'components/donationPage/pageContent/dynamicElements';
 
 // Assets
@@ -15,15 +16,29 @@ import { useEditInterfaceContext } from 'components/pageEditor/editInterface/Edi
 import CircleButton from 'elements/buttons/CircleButton';
 
 function ElementProperties() {
+  const alert = useAlert();
   const theme = useTheme();
   const { selectedElement, setSelectedElement, elementContent, elements, setElements } = useEditInterfaceContext();
 
+  const changesAreValid = () => {
+    const hasErrors = getElementValidator(selectedElement.type);
+    if (!hasErrors) return true;
+    const error = hasErrors(elementContent);
+    if (error) {
+      alert.error(error);
+    } else {
+      return true;
+    }
+  };
+
   const handleKeepChanges = () => {
-    const elementsCopy = [...elements];
-    const thisIndex = elementsCopy.findIndex((el) => el.uuid === selectedElement.uuid);
-    elementsCopy[thisIndex].content = elementContent;
-    setElements(elementsCopy);
-    setSelectedElement();
+    if (changesAreValid()) {
+      const elementsCopy = [...elements];
+      const thisIndex = elementsCopy.findIndex((el) => el.uuid === selectedElement.uuid);
+      elementsCopy[thisIndex].content = elementContent;
+      setElements(elementsCopy);
+      setSelectedElement();
+    }
   };
 
   const handleDiscardChanges = () => {
@@ -37,8 +52,18 @@ function ElementProperties() {
       </S.ElementHeading>
       <S.ElementEditor>{getElementEditor(selectedElement.type)}</S.ElementEditor>
       <S.Buttons>
-        <CircleButton icon={faCheck} color={theme.colors.success} onClick={handleKeepChanges} />
-        <CircleButton icon={faTimes} color={theme.colors.caution} onClick={handleDiscardChanges} />
+        <CircleButton
+          icon={faCheck}
+          color={theme.colors.success}
+          onClick={handleKeepChanges}
+          data-testid="keep-element-changes-button"
+        />
+        <CircleButton
+          icon={faTimes}
+          color={theme.colors.caution}
+          onClick={handleDiscardChanges}
+          data-testid="discard-element-changes-button"
+        />
       </S.Buttons>
     </S.ElementProperties>
   );

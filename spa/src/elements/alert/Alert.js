@@ -3,7 +3,7 @@ import { transitions, positions } from 'react-alert';
 
 function Alert({ style, options, message, close }) {
   return (
-    <S.Alert style={style} type={options.type}>
+    <S.Alert style={style} type={options.type} data-testid="alert">
       {message}
       <S.Close onClick={close}>x</S.Close>
     </S.Alert>

@@ -14,7 +14,7 @@ function DFrequency({ element, ...props }) {
   return (
     <DElement label="Frequency" description="Choose a contribution type" {...props} data-testid="d-frequency">
       <S.DFrequency>
-        {element?.content?.map((freq) => (
+        {element?.content?.sort(frequencySort).map((freq) => (
           <S.Radio
             name="interval"
             key={freq.value}
@@ -47,3 +47,15 @@ DFrequency.required = true;
 DFrequency.unique = true;
 
 export default DFrequency;
+
+function frequencySort(a, b) {
+  const sortOrder = ['one_time', 'month', 'year'];
+  const aVal = a.value;
+  const bVal = b.value;
+
+  if (sortOrder.indexOf(aVal) > sortOrder.indexOf(bVal)) {
+    return 1;
+  } else {
+    return -1;
+  }
+}

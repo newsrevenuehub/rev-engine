@@ -2,7 +2,6 @@ import * as S from './ElementProperties.styled';
 
 import { useAlert } from 'react-alert';
 
-
 // Elements
 import getElementEditor, { getElementValidator } from 'components/pageEditor/elementEditors/getElementEditor';
 import * as dynamicElements from 'components/donationPage/pageContent/dynamicElements';

@@ -260,7 +260,7 @@ local database.
 
 ```shell
 (revengine)$> heroku pg:backups:download --app rev-engine-test b001
-(revengine)$> pg_restore --verbose --clean --no-acl --no-owner latest.dump
+(revengine)$> pg_restore --verbose --clean --no-acl --no-owner -d revengine latest.dump
 ```
 
 ##**13. Notes on Development conventions**

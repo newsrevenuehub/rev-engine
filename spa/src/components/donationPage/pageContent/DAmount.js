@@ -67,7 +67,6 @@ function DAmount({ element, ...props }) {
             label={`${'$2.99'} ${getFrequencyAdverb(frequency)}`}
             toggle
             checked={payFees}
-            // value={payFees}
             onChange={(e, { checked }) => setPayFees(checked)}
           />
           <S.PayFeesDescription>

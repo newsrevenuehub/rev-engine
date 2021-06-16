@@ -1,6 +1,11 @@
 import PropTypes from 'prop-types';
 import * as S from './DElement.styled';
 
+/**
+ * DElement is used as the basis all dynamic elements. It establishes
+ * baseline positioning and space, as well as allowing easy label and
+ * description text
+ */
 function DElement({ label, description, children, ...props }) {
   return (
     <S.DElement {...props}>
@@ -16,6 +21,10 @@ DElement.propTypes = {
   description: PropTypes.string
 };
 
+/**
+ * This schema is the basis for dynamic element props.
+ * Each dynamic element should utilize this pattern.
+ */
 export const DynamicElementPropTypes = {
   uuid: PropTypes.string.isRequired,
   type: PropTypes.string.isRequired,

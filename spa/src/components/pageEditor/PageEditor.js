@@ -87,8 +87,7 @@ function PageEditor() {
     if (validationErrors) {
       console.log('handle errors.');
     } else {
-      console.log('patching updatedPage: ', updatedPage);
-      getUserConfirmation("You're making changes to a live donation page. Proceed?", () => patchPage(updatedPage));
+      getUserConfirmation("You're making changes to a live donation page. Continue?", () => patchPage(updatedPage));
     }
   };
 
@@ -101,6 +100,7 @@ function PageEditor() {
     try {
       const { data } = await axios.patch(`${PATCH_PAGE}${page.id}/`, patchedPage);
       setPage(data);
+      alert.success('Your page has been updated.');
     } catch (e) {
       alert.error(GENERIC_ERROR);
     }
@@ -123,6 +123,7 @@ function PageEditor() {
             onClick={handlePreview}
             selected={selectedButton === PREVIEW}
             icon={faEye}
+            type="neutral"
             color={theme.colors.primary}
             data-testid="preview-page-button"
           />
@@ -130,14 +131,15 @@ function PageEditor() {
             onClick={handleEdit}
             selected={selectedButton === EDIT}
             icon={faEdit}
-            color={theme.colors.primary}
+            type="neutral"
             data-testid="edit-page-button"
           />
           <CircleButton
             onClick={handleSave}
             icon={faSave}
-            color={theme.colors.primary}
+            type="neutral"
             data-testid="save-page-button"
+            disabled={!updatedPage}
           />
         </S.ButtonOverlay>
       </S.PageEditor>

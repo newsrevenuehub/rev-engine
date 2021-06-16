@@ -25,6 +25,7 @@
     "eslint-plugin-cypress": "^2.11.3",
     "find-webpack": "^2.2.1",
     "framer-motion": "^4.1.8",
+    "lodash.isempty": "^4.4.0",
     "lodash.merge": "^4.6.2",
     "msw": "^0.28.2",
     "prettier": "^2.2.1",

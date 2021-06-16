@@ -18,5 +18,8 @@ export const alertOptions = {
   timeout: 5000,
   offset: '15px',
   // you can also just use 'scale'
-  transition: transitions.SCALE
+  transition: transitions.SCALE,
+  containerStyle: {
+    zIndex: 1020
+  }
 };

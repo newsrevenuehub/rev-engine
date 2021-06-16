@@ -1,5 +1,5 @@
 function isInViewport(el) {
-  var bounding = el.getBoundingClientRect();
+  const bounding = el.getBoundingClientRect();
   return (
     bounding.top >= 0 &&
     bounding.left >= 0 &&

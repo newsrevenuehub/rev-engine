@@ -42,7 +42,6 @@ function ElementProperties() {
   };
 
   const handleDiscardChanges = () => {
-    // remove item state tho?
     setSelectedElement();
   };
 

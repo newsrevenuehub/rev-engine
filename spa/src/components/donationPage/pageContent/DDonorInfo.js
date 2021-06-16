@@ -45,7 +45,7 @@ function DDonorInfo(props) {
               <Input type="text" label="State" value={state} onChange={(e) => setState(e.target.value)} />
             </Grid.Column>
             <Grid.Column mobile={16} tablet={8} computer={3}>
-              <Input type="number" label="Zip" value={zip} onChange={(e) => setZip(e.target.value)} />
+              <Input type="text" label="Zip" value={zip} onChange={(e) => setZip(e.target.value)} />
             </Grid.Column>
             <Grid.Column mobile={16} tablet={8} computer={3}>
               <Input type="text" label="Country" value={country} onChange={(e) => setCountry(e.target.value)} />

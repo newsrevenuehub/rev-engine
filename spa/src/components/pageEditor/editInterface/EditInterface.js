@@ -23,6 +23,9 @@ function EditInterface() {
   const [tab, setTab] = useState(0);
   const [addElementModalOpen, setAddElementModalOpen] = useState(false);
   const [selectedElement, setSelectedElement] = useState();
+
+  // Since you can only edit one element at a time, it's safe (and much easier)
+  // to only store one set of "unconfirmed" changes at a time.
   const [elementContent, setElementContent] = useState();
 
   const setElements = (elements) => {
@@ -39,6 +42,7 @@ function EditInterface() {
     <EditInterfaceContext.Provider
       value={{
         page,
+        updatedPage,
         elements: page.elements,
         setElements,
         selectedElement,

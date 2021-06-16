@@ -1,6 +1,5 @@
 import { useState, useEffect, createContext, useContext, useCallback } from 'react';
 import * as S from './PageEditor.styled';
-import * as A from 'elements/alert/Alert.styled';
 import { useTheme } from 'styled-components';
 import { AnimatePresence } from 'framer-motion';
 
@@ -163,11 +162,11 @@ function MissingElementErrors({ missing = [] }) {
   return (
     <>
       The following elements are required for your page to function properly:
-      <A.ErrorsList data-testid="missing-elements-alert">
+      <ul data-testid="missing-elements-alert">
         {missing.map((missingEl) => (
           <li key={missingEl}>{dynamicElements[missingEl].displayName}</li>
         ))}
-      </A.ErrorsList>
+      </ul>
     </>
   );
 }

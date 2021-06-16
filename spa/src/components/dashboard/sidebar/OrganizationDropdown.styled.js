@@ -34,7 +34,9 @@ export const Chevron = styled(SvgIcon)`
 
 export const Dropdown = styled(motion.div)`
   position: absolute;
-  top: 100%;
+  left: 115%;
+  bottom: 50%;
+  transform: translateY(-50%);
   z-index: 2;
   background: ${(props) => props.theme.colors.white};
   box-shadow: ${(props) => props.theme.shadows[1]};

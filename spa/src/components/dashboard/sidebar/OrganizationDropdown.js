@@ -3,26 +3,20 @@ import * as S from './OrganizationDropdown.styled';
 import { useAnimation } from 'framer-motion';
 import { ICONS } from 'assets/icons/SvgIcon';
 
-import logout from 'components/authentication/logout';
 import useUser from 'hooks/useUser';
 
-// Router
-import { useHistory } from 'react-router';
-import { ORG_SLUG } from 'routes';
-
 const chevronVariants = {
-  open: { rotate: 180 },
-  closed: { rotate: 0 }
+  open: { rotate: 90 },
+  closed: { rotate: 270 }
 };
 
 const dropdownVariants = {
-  open: { opacity: 1, scale: 1 },
-  closed: { opacity: 0, scale: 0.5 }
+  open: { x: 0, opacity: 1, scale: 1, y: '50%' },
+  closed: { x: -10, opacity: 0, scale: 0.7, y: '50%' }
 };
 
 function OrganizationDropdown() {
   const user = useUser();
-  const history = useHistory();
   const controls = useAnimation();
   const [open, setOpen] = useState(false);
 
@@ -40,16 +34,6 @@ function OrganizationDropdown() {
     setOpen(false);
   };
 
-  const handleOrganizationClick = () => {
-    toggleMenuOpen();
-    history.push(ORG_SLUG);
-  };
-
-  const handleLogoutClick = () => {
-    toggleMenuOpen();
-    logout();
-  };
-
   return (
     <>
       <S.Wrapper>
@@ -61,13 +45,7 @@ function OrganizationDropdown() {
         </S.Button>
         <S.Dropdown initial="closed" animate={controls} variants={dropdownVariants}>
           <S.DropdownList>
-            <S.Item onClick={handleOrganizationClick}>Organization</S.Item>
-            <S.Item onClick={handleLogoutClick}>
-              <S.LogoutItem>
-                Sign out
-                <S.LogoutIcon icon={ICONS.LOGOUT} />
-              </S.LogoutItem>
-            </S.Item>
+            <S.Item></S.Item>
           </S.DropdownList>
         </S.Dropdown>
       </S.Wrapper>

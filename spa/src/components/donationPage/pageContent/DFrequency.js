@@ -40,4 +40,10 @@ DFrequency.propTypes = {
   })
 };
 
+DFrequency.type = 'DFrequency';
+DFrequency.displayName = 'Donation frequency';
+DFrequency.description = 'Allow donors to select a frequency at which to contribute';
+DFrequency.required = true;
+DFrequency.unique = true;
+
 export default DFrequency;

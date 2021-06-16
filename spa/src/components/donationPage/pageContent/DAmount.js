@@ -1,9 +1,10 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import PropTypes from 'prop-types';
 import * as S from './DAmount.styled';
 
 // Util
 import { getFrequencyAdverb, getFrequencyAdjective, getFrequencyRate } from 'utilities/parseFrequency';
+import calculateStripeFee from 'utilities/calculateStripeFee';
 
 // Context
 import { usePage } from '../DonationPage';
@@ -13,13 +14,12 @@ import DElement, { DynamicElementPropTypes } from 'components/donationPage/pageC
 import SelectableButton from 'elements/buttons/SelectableButton';
 
 function DAmount({ element, ...props }) {
-  const { frequency } = usePage();
+  const { frequency, fee, setFee, payFee, setPayFee } = usePage();
 
   const inputRef = useRef();
 
   const [selectedAmount, setSelectedAmount] = useState(0);
   const [otherAmount, setOtherAmount] = useState('');
-  const [payFees, setPayFees] = useState(false);
 
   const handleAmountSelected = (s) => {
     setSelectedAmount(s);
@@ -31,6 +31,20 @@ function DAmount({ element, ...props }) {
     setSelectedAmount('other');
     inputRef.current.focus();
   };
+
+  const getAmountFromIndex = useCallback(() => {
+    if (selectedAmount === 'other') {
+      return parseInt(otherAmount);
+    }
+
+    const amount = element.content.options[frequency][selectedAmount];
+    return parseInt(amount);
+  }, [frequency, selectedAmount, otherAmount, element.content.options]);
+
+  useEffect(() => {
+    const fee = calculateStripeFee(getAmountFromIndex());
+    setFee(fee);
+  }, [selectedAmount, getAmountFromIndex, setFee]);
 
   return (
     <DElement
@@ -64,10 +78,10 @@ function DAmount({ element, ...props }) {
         <S.PayFees data-testid="pay-fees">
           <S.PayFeesQQ>Agree to pay fees?</S.PayFeesQQ>
           <S.Checkbox
-            label={`${'$2.99'} ${getFrequencyAdverb(frequency)}`}
+            label={fee ? `$${fee} ${getFrequencyAdverb(frequency)}` : ''}
             toggle
-            checked={payFees}
-            onChange={(e, { checked }) => setPayFees(checked)}
+            checked={payFee}
+            onChange={(_e, { checked }) => setPayFee(checked)}
           />
           <S.PayFeesDescription>
             Paying the Stripe transaction fee, while not required, directs more money in support of our mission.

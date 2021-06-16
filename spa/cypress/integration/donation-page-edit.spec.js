@@ -1,5 +1,7 @@
 import { FULL_PAGE } from 'ajax/endpoints';
 import { getEndpoint } from '../support/util';
+import { getFrequencyAdjective } from 'utilities/parseFrequency';
+import livePage from '../fixtures/pages/live-page-1.json';
 
 describe('Donation page edit', () => {
   before(() => {
@@ -67,6 +69,72 @@ describe('Donation page edit', () => {
         cy.getByTestId('d-frequency').should('not.contain', 'Monthly');
         cy.getByTestId('d-frequency').should('not.contain', 'Yearly');
       });
+    });
+  });
+
+  describe('Amount editor', () => {
+    const amountElement = livePage.elements.find((el) => el.type === 'DAmount');
+    const options = amountElement.content.options;
+
+    before(() => {
+      cy.contains('Donation frequency').click();
+      cy.getByTestId('frequency-editor').find('li').first().click();
+      cy.getByTestId('frequency-editor').find('li').click({ multiple: true });
+      cy.getByTestId('keep-element-changes-button').click();
+    });
+
+    it('should render the amount editor', () => {
+      cy.contains('Donation amount').click();
+      cy.getByTestId('amount-editor');
+    });
+
+    it('should show existing frequencies and amounts', () => {
+      for (const frequency in options) {
+        cy.contains(getFrequencyAdjective(frequency))
+          .siblings('ul')
+          .within(() =>
+            options[frequency].forEach((amount) => {
+              cy.contains(amount);
+            })
+          );
+      }
+    });
+
+    it('should remove an amount when clicking x', () => {
+      const amountToRemove = 120;
+      cy.contains('One time')
+        .siblings('ul')
+        .within(() => {
+          cy.contains(amountToRemove).find("[data-testid='remove-amount-button']").click();
+          cy.contains(amountToRemove).should('not.exist');
+          // cy.getByTestId('remove-amount-button').click()
+        });
+    });
+
+    it('should add an amount', () => {
+      const amountToAdd = 5;
+      cy.contains('One time')
+        .siblings('div')
+        .within(() => {
+          cy.getByTestId('amount-input').type(amountToAdd);
+          cy.getByTestId('add-amount-button').click();
+        });
+      cy.contains('One time')
+        .siblings('ul')
+        .within(() => {
+          cy.contains(amountToAdd);
+        });
+    });
+
+    it('should prevent user from removing last amount in list', () => {
+      cy.contains('One time')
+        .siblings('ul')
+        .children()
+        .each((child) => {
+          cy.getByTestId('remove-amount-button').first().click();
+        });
+
+      cy.contains('One time').siblings('ul').children();
     });
   });
 });

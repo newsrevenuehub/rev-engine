@@ -1,10 +1,14 @@
-import { useState } from 'react';
 import PropTypes from 'prop-types';
 import * as S from './DFrequency.styled';
+
+// Context
+import { usePage } from '../DonationPage';
+
+// Children
 import DElement, { DynamicElementPropTypes } from 'components/donationPage/pageContent/DElement';
 
 function DFrequency({ element, ...props }) {
-  const [selected, setSelected] = useState('');
+  const { frequency, setFrequency } = usePage();
 
   return (
     <DElement label="Frequency" description="Choose a contribution type" {...props} data-testid="d-frequency">
@@ -14,8 +18,8 @@ function DFrequency({ element, ...props }) {
             key={freq.value}
             label={freq.displayName}
             value={freq.value}
-            checked={selected === freq.value}
-            onChange={(_e, { value }) => setSelected(value)}
+            checked={frequency === freq.value}
+            onChange={(_e, { value }) => setFrequency(value)}
           />
         ))}
       </S.DFrequency>

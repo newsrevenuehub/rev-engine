@@ -22,6 +22,7 @@ import Dashboard from 'components/dashboard/Dashboard';
 const OrganizationContext = createContext(null);
 
 function Main() {
+  // Organization Context management
   const [checkingProvider, setCheckingProvider] = useState(false);
   const [user, setUser] = useState(JSON.parse(localStorage.getItem(LS_USER)));
   const [paymentProviderConnectState, setPaymentProviderConnectState] = useState(getGlobalPaymentProviderStatus(user));
@@ -62,15 +63,17 @@ function Main() {
         setCheckingProvider
       }}
     >
-      <S.Main>
-        <S.MainContent>
-          <Switch>
-            <Route path={MAIN_CONTENT_SLUG}>
-              <Dashboard />
-            </Route>
-          </Switch>
-        </S.MainContent>
-      </S.Main>
+      <>
+        <S.Main>
+          <S.MainContent>
+            <Switch>
+              <Route path={MAIN_CONTENT_SLUG}>
+                <Dashboard />
+              </Route>
+            </Switch>
+          </S.MainContent>
+        </S.Main>
+      </>
     </OrganizationContext.Provider>
   );
 }

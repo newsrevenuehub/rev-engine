@@ -42,6 +42,7 @@ function EditInterface() {
     <EditInterfaceContext.Provider
       value={{
         page,
+        updatedPage,
         elements: page.elements,
         setElements,
         selectedElement,

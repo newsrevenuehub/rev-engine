@@ -17,13 +17,8 @@ function getElementEditor(elementType) {
 }
 
 export function getElementValidator(elementType) {
-  let validator;
-  Object.keys(elementEditors).forEach((key) => {
-    if (elementEditors[key].for === elementType) {
-      validator = elementEditors[key].hasErrors;
-    }
-  });
-  return validator;
+  const editorKey = Object.keys(elementEditors).find((editorKey) => elementEditors[editorKey].for === elementType);
+  return elementEditors[editorKey]?.hasErrors;
 }
 
 export default getElementEditor;

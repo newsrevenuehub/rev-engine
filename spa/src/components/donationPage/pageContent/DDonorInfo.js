@@ -125,4 +125,10 @@ function DDonorInfo(props) {
   );
 }
 
+DDonorInfo.type = 'DDonorInfo';
+DDonorInfo.displayName = 'Donor info';
+DDonorInfo.description = 'Donors can self report information here';
+DDonorInfo.required = true;
+DDonorInfo.unique = true;
+
 export default DDonorInfo;

@@ -56,12 +56,15 @@ class DonationPageDetailSerializer(serializers.ModelSerializer):
 
 
 class DonationPageFullDetailSerializer(serializers.ModelSerializer):
-    styles = StyleSerializer()
+    styles = serializers.SerializerMethodField()
     donor_benefits = DonorBenefitDetailSerializer()
 
     class Meta:
         model = DonationPage
         fields = "__all__"
+
+    def get_styles(self, obj):
+        return obj.styles.styles if obj.styles else {}
 
 
 class DonationPageListSerializer(serializers.ModelSerializer):

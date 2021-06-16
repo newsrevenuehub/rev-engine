@@ -73,7 +73,7 @@ function DonationPageRouter() {
   }, [params, fetchLivePageContent]);
 
   return (
-    <SegregatedStyles>
+    <SegregatedStyles page={data}>
       {loading ? <LiveLoading /> : error || !data ? <LivePage404 /> : <DonationPage live page={data} />}
     </SegregatedStyles>
   );

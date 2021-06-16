@@ -105,9 +105,9 @@ describe('Donation page edit', () => {
       cy.contains('One time')
         .siblings('ul')
         .within(() => {
-          cy.contains(amountToRemove).find("[data-testid='remove-amount-button']").click();
+          cy.contains(amountToRemove).find("[data-testid='x-button']").click();
           cy.contains(amountToRemove).should('not.exist');
-          // cy.getByTestId('remove-amount-button').click()
+          // cy.getByTestId('x-button').click()
         });
     });
 
@@ -117,7 +117,7 @@ describe('Donation page edit', () => {
         .siblings('div')
         .within(() => {
           cy.getByTestId('amount-input').type(amountToAdd);
-          cy.getByTestId('add-amount-button').click();
+          cy.getByTestId('add-button').click();
         });
       cy.contains('One time')
         .siblings('ul')
@@ -131,7 +131,7 @@ describe('Donation page edit', () => {
         .siblings('ul')
         .children()
         .each((child) => {
-          cy.getByTestId('remove-amount-button').first().click();
+          cy.getByTestId('x-button').first().click();
         });
 
       cy.contains('One time').siblings('ul').children();

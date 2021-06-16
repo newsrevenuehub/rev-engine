@@ -37,7 +37,7 @@ function DonationPage({ page, live = false }) {
               {getters.getPageHeadingElement()}
               <S.DonationContent>
                 {getters.getGraphicElement()}
-                <form ref={formRef} data-testid-donation-page-form>
+                <form ref={formRef} data-testid="donation-page-form">
                   <S.PageElements>
                     {page?.elements.map((element) => getters.getDynamicElement(element, live))}
                   </S.PageElements>

@@ -10,7 +10,7 @@ from rest_framework.test import APIRequestFactory, APITestCase
 from stripe.error import StripeError
 from stripe.stripe_object import StripeObject
 
-from apps.contributions.models import ContributionInterval
+from apps.contributions.models import Contribution, ContributionInterval, Contributor
 from apps.contributions.tests.factories import ContributorFactory
 from apps.contributions.views import stripe_payment
 from apps.organizations.models import Organization
@@ -254,3 +254,38 @@ class StripeConfirmTest(APITestCase):
         mock_account_retrieve.assert_called_once()
         self.assertEqual(response.status_code, 500)
         self.assertEqual(response.data["status"], "failed")
+
+
+class TestContributionsListView(APITestCase):
+    def setUp(self):
+        self.user = get_user_model().objects.create(email="user@org1.com", password="testing")
+        self.organization1 = Organization.objects.create(name="Organization 1")
+        self.organization1.user_set.add(self.user)
+        self.organization2 = Organization.objects.create(name="Organization 2")
+        self.contributor = Contributor.objects.create(email="contributor@contributor.com")
+        self.contributions_per_org_count = 50
+        for i in range(self.contributions_per_org_count):
+            Contribution.objects.create(
+                amount=1000,
+                interval=ContributionInterval.ONE_TIME[0],
+                contributor=self.contributor,
+                organization=self.organization1,
+            )
+            Contribution.objects.create(
+                amount=2000,
+                interval=ContributionInterval.ONE_TIME[0],
+                contributor=self.contributor,
+                organization=self.organization2,
+            )
+
+        self.url = reverse("contributions")
+
+    def test_happy_path(self):
+        """Should get back only contributions belonging to my org"""
+        self.client.force_authenticate(user=self.user)
+        response = self.client.get(self.url)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["count"], self.contributions_per_org_count)
+        self.assertTrue(
+            all([contribution["organization"] == self.organization1.pk for contribution in response.json()["results"]])
+        )

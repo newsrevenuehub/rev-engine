@@ -22,7 +22,7 @@ export const Alert = styled.div`
     }
     if (props.type === 'error') {
       return css`
-        background: ${props.theme.colors.warning};
+        background: ${props.theme.colors.caution};
       `;
     }
   }}

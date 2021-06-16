@@ -1,7 +1,9 @@
 import * as S from './ElementProperties.styled';
 
+import { useAlert } from 'react-alert';
+
 // Elements
-import getElementEditor from 'components/pageEditor/elementEditors/getElementEditor';
+import getElementEditor, { getElementValidator } from 'components/pageEditor/elementEditors/getElementEditor';
 import * as dynamicElements from 'components/donationPage/pageContent/dynamicElements';
 
 // Assets
@@ -14,14 +16,29 @@ import { useEditInterfaceContext } from 'components/pageEditor/editInterface/Edi
 import CircleButton from 'elements/buttons/CircleButton';
 
 function ElementProperties() {
+  const alert = useAlert();
+
   const { selectedElement, setSelectedElement, elementContent, elements, setElements } = useEditInterfaceContext();
 
+  const changesAreValid = () => {
+    const getHasErrors = getElementValidator(selectedElement.type);
+    if (!getHasErrors) return true;
+    const error = getHasErrors(elementContent);
+    if (error) {
+      alert.error(error);
+    } else {
+      return true;
+    }
+  };
+
   const handleKeepChanges = () => {
-    const elementsCopy = [...elements];
-    const thisIndex = elementsCopy.findIndex((el) => el.uuid === selectedElement.uuid);
-    elementsCopy[thisIndex].content = elementContent;
-    setElements(elementsCopy);
-    setSelectedElement();
+    if (changesAreValid()) {
+      const elementsCopy = [...elements];
+      const thisIndex = elementsCopy.findIndex((el) => el.uuid === selectedElement.uuid);
+      elementsCopy[thisIndex].content = elementContent;
+      setElements(elementsCopy);
+      setSelectedElement();
+    }
   };
 
   const handleDiscardChanges = () => {

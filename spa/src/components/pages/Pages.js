@@ -1,12 +1,13 @@
 import DashboardSectionGroup from 'components/dashboard/DashboardSectionGroup';
 import DashboardSection from 'components/dashboard/DashboardSection';
 
-function Overview() {
+function Pages() {
   return (
     <DashboardSectionGroup data-testid="overview">
-      <DashboardSection heading="Overview 1"></DashboardSection>
+      <DashboardSection heading="Pages 1"></DashboardSection>
+      <DashboardSection heading="Pages 2"></DashboardSection>
     </DashboardSectionGroup>
   );
 }
 
-export default Overview;
+export default Pages;

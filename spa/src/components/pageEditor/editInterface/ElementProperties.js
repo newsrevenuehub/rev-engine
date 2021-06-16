@@ -70,7 +70,7 @@ function ElementProperties() {
           icon={faCheck}
           type="positive"
           onClick={handleKeepChanges}
-          data-testid="save-element-changes-button"
+          data-testid="keep-element-changes-button"
         />
         <CircleButton
           icon={faTimes}

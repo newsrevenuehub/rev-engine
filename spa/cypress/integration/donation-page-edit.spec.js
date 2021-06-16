@@ -155,7 +155,7 @@ describe('Donation page edit', () => {
       // Need to add fake an update to the page to enable
       cy.getByTestId('edit-page-button').click();
       cy.contains('Rich text').click();
-      cy.getByTestId('save-element-changes-button').click();
+      cy.getByTestId('keep-element-changes-button').click();
       cy.getByTestId('save-page-button').click();
       cy.getByTestId('missing-elements-alert').should('exist');
       cy.getByTestId('missing-elements-alert').contains('Payment');

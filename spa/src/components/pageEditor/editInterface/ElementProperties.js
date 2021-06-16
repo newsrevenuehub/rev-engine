@@ -1,12 +1,11 @@
 import * as S from './ElementProperties.styled';
-import { useTheme } from 'styled-components';
 
 // Elements
 import getElementEditor from 'components/pageEditor/elementEditors/getElementEditor';
 import * as dynamicElements from 'components/donationPage/pageContent/dynamicElements';
 
 // Assets
-import { faCheck, faTimes } from '@fortawesome/free-solid-svg-icons';
+import { faCheck, faTimes, faTrash } from '@fortawesome/free-solid-svg-icons';
 
 // Context
 import { useEditInterfaceContext } from 'components/pageEditor/editInterface/EditInterface';
@@ -15,7 +14,6 @@ import { useEditInterfaceContext } from 'components/pageEditor/editInterface/Edi
 import CircleButton from 'elements/buttons/CircleButton';
 
 function ElementProperties() {
-  const theme = useTheme();
   const { selectedElement, setSelectedElement, elementContent, elements, setElements } = useEditInterfaceContext();
 
   const handleKeepChanges = () => {
@@ -30,15 +28,29 @@ function ElementProperties() {
     setSelectedElement();
   };
 
+  const handleDeleteElement = () => {
+    if (!dynamicElements[selectedElement.type].required) {
+      const elementsCopy = [...elements];
+      const elementsWithout = elementsCopy.filter((el) => el.uuid !== selectedElement.uuid);
+      setElements(elementsWithout);
+      setSelectedElement();
+    }
+  };
+
   return (
     <S.ElementProperties data-testid="element-properties">
       <S.ElementHeading>
         <h5>{dynamicElements[selectedElement.type].displayName}</h5>
+        {!dynamicElements[selectedElement.type].required && (
+          <S.DeleteButton onClick={handleDeleteElement}>
+            <S.TrashIcon icon={faTrash} />
+          </S.DeleteButton>
+        )}
       </S.ElementHeading>
       <S.ElementEditor>{getElementEditor(selectedElement.type)}</S.ElementEditor>
       <S.Buttons>
-        <CircleButton icon={faCheck} color={theme.colors.success} onClick={handleKeepChanges} />
-        <CircleButton icon={faTimes} color={theme.colors.caution} onClick={handleDiscardChanges} />
+        <CircleButton icon={faCheck} type="positive" onClick={handleKeepChanges} />
+        <CircleButton icon={faTimes} type="caution" onClick={handleDiscardChanges} />
       </S.Buttons>
     </S.ElementProperties>
   );

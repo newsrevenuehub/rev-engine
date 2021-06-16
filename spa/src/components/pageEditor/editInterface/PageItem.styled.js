@@ -26,6 +26,7 @@ export const ItemIcon = styled(FontAwesomeIcon)`
 `;
 
 export const ItemContentWrapper = styled.div`
+  flex: 1;
   display: flex;
   flex-direction: column;
   padding: 1rem;
@@ -36,3 +37,9 @@ export const ItemName = styled.h5`
 `;
 
 export const ItemDescription = styled.p``;
+
+export const TrashIcon = styled(FontAwesomeIcon)`
+  color: ${(props) => props.theme.colors.caution};
+  opacity: 0.5;
+  font-size: 20px;
+`;

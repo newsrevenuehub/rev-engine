@@ -5,7 +5,8 @@ export const ICONS = {
   TIMES_CIRCLE: 'times-circle',
   CHECK_MARK: 'check-mark',
   LOGOUT: 'logout',
-  ARROW_LEFT: 'arrow-left'
+  ARROW_LEFT: 'arrow-left',
+  STRIPE_POWERED: 'powered-by-stripe'
 };
 
 function SvgIcon({ icon, ...props }) {

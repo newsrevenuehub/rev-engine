@@ -23,7 +23,7 @@ class AbstractPaymentSerializer(serializers.Serializer):
     family_name = serializers.CharField(max_length=255)
     referer = serializers.URLField()
     amount = serializers.IntegerField()
-    reason = serializers.CharField(max_length=255)
+    reason = serializers.CharField(max_length=255, required=False, allow_blank=True)
 
     # These are use to attach the contribution to the right organization,
     # and associate it with the page it came from.

@@ -1,0 +1,4 @@
+{
+  "id": "my_testing_payment_intent_id",
+  "clientSecret": "pi_testpi_secret_testclientsecret"
+}

@@ -21,9 +21,9 @@ function ElementProperties() {
   const { selectedElement, setSelectedElement, elementContent, elements, setElements } = useEditInterfaceContext();
 
   const changesAreValid = () => {
-    const hasErrors = getElementValidator(selectedElement.type);
-    if (!hasErrors) return true;
-    const error = hasErrors(elementContent);
+    const getHasErrors = getElementValidator(selectedElement.type);
+    if (!getHasErrors) return true;
+    const error = getHasErrors(elementContent);
     if (error) {
       alert.error(error);
     } else {

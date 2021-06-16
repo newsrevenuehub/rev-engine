@@ -6,23 +6,27 @@ import { usePage } from '../DonationPage';
 
 // Children
 import DElement, { DynamicElementPropTypes } from 'components/donationPage/pageContent/DElement';
+import FormErrors from 'elements/inputs/FormErrors';
 
 function DFrequency({ element, ...props }) {
-  const { frequency, setFrequency } = usePage();
+  const { frequency, setFrequency, errors } = usePage();
 
   return (
     <DElement label="Frequency" description="Choose a contribution type" {...props} data-testid="d-frequency">
       <S.DFrequency>
         {element?.content?.map((freq) => (
           <S.Radio
+            name="interval"
             key={freq.value}
             label={freq.displayName}
             value={freq.value}
             checked={frequency === freq.value}
             onChange={(_e, { value }) => setFrequency(value)}
+            data-testid={`frequency-${freq.value}`}
           />
         ))}
       </S.DFrequency>
+      <FormErrors errors={errors.interval} />
     </DElement>
   );
 }

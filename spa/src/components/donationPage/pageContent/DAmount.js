@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import PropTypes from 'prop-types';
 import * as S from './DAmount.styled';
 
@@ -12,14 +12,15 @@ import { usePage } from '../DonationPage';
 // Children
 import DElement, { DynamicElementPropTypes } from 'components/donationPage/pageContent/DElement';
 import SelectableButton from 'elements/buttons/SelectableButton';
+import FormErrors from 'elements/inputs/FormErrors';
 
 function DAmount({ element, ...props }) {
-  const { frequency, fee, setFee, payFee, setPayFee } = usePage();
-
-  const inputRef = useRef();
+  const { frequency, fee, setFee, payFee, setPayFee, setAmount, errors } = usePage();
 
   const [selectedAmount, setSelectedAmount] = useState(0);
   const [otherAmount, setOtherAmount] = useState('');
+
+  const inputRef = useRef();
 
   const handleAmountSelected = (s) => {
     setSelectedAmount(s);
@@ -32,23 +33,21 @@ function DAmount({ element, ...props }) {
     inputRef.current.focus();
   };
 
-  const getAmountFromIndex = useCallback(() => {
-    if (selectedAmount === 'other') {
-      return parseInt(otherAmount);
-    }
-
-    const amount = element.content.options[frequency][selectedAmount];
-    return parseInt(amount);
-  }, [frequency, selectedAmount, otherAmount, element.content.options]);
-
   useEffect(() => {
-    const fee = calculateStripeFee(getAmountFromIndex());
+    let amount;
+    if (selectedAmount === 'other') {
+      amount = parseInt(otherAmount || 0);
+    } else {
+      amount = element.content.options[frequency][selectedAmount];
+    }
+    const fee = calculateStripeFee(amount);
+    setAmount(amount);
     setFee(fee);
-  }, [selectedAmount, getAmountFromIndex, setFee]);
+  }, [selectedAmount, otherAmount, frequency, element.content.options, setAmount, setFee]);
 
   return (
     <DElement
-      label={`${getFrequencyAdjective(frequency)} Amount`}
+      label={`${getFrequencyAdjective(frequency)} amount`}
       description="Select how much you'd like to contribute"
       {...props}
       data-testid="d-amount"
@@ -59,6 +58,7 @@ function DAmount({ element, ...props }) {
             key={i + amount}
             selected={selectedAmount === i}
             onClick={() => handleAmountSelected(i)}
+            data-testid={`amount-${amount}`}
           >{`$${amount}`}</SelectableButton>
         ))}
         {element.content.allowOther && (
@@ -74,6 +74,7 @@ function DAmount({ element, ...props }) {
           </S.OtherAmount>
         )}
       </S.DAmount>
+      <FormErrors errors={errors.amount} />
       {element.content.offerPayFees && (
         <S.PayFees data-testid="pay-fees">
           <S.PayFeesQQ>Agree to pay fees?</S.PayFeesQQ>

@@ -15,7 +15,8 @@
     {"type": "DAdditionalInfo", "uuid": "testAdditinoalInfo", "content": [
       {"type": "text", "label": "I'm contributing because...", "name": "reason"},
       {"type": "text", "label": "Why does anybody even do anythign?", "name": "purpose"}
-    ]}
+    ]},
+    {"type": "DPayment", "uuid": "testPayment1", "content": {"stripe": ["card", "apple", "google"]}}
   ],
   "styles": {
     "colors": {

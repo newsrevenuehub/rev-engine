@@ -39,8 +39,3 @@ export const Close = styled.button`
   right: 0;
   top: 0;
 `;
-
-export const ErrorsList = styled.ul`
-  li {
-  }
-`;

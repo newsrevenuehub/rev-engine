@@ -99,9 +99,11 @@ function PageEditor() {
     try {
       const { data } = await axios.patch(`${PATCH_PAGE}${page.id}/`, patchedPage);
       setPage(data);
+      setSelectedButton(PREVIEW);
       alert.success('Your page has been updated.');
     } catch (e) {
       alert.error(GENERIC_ERROR);
+      setSelectedButton(PREVIEW);
     }
   };
 

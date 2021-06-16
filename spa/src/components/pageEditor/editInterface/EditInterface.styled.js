@@ -13,4 +13,5 @@ export const EditInterface = styled(motion.aside)`
   z-index: 1000;
   display: flex;
   flex-direction: column;
+  overflow-y: scroll;
 `;

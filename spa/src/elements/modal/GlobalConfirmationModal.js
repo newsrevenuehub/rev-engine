@@ -35,11 +35,11 @@ function GlobalConfirmationModal({ message, onConfirm, onDecline, isOpen, closeM
 }
 
 GlobalConfirmationModal.propTypes = {
-  message: PropTypes.string.isRequired,
-  onConfirm: PropTypes.func.isRequired,
+  message: PropTypes.string,
+  onConfirm: PropTypes.func,
   onDecline: PropTypes.func,
-  isOpen: PropTypes.bool.isRequired,
-  closeModal: PropTypes.func.isRequired
+  isOpen: PropTypes.bool,
+  closeModal: PropTypes.func
 };
 
 export default GlobalConfirmationModal;

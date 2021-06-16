@@ -135,6 +135,23 @@ describe('Donation page edit', () => {
         });
 
       cy.contains('One time').siblings('ul').children();
+      cy.getByTestId('discard-element-changes-button').click();
+    });
+  });
+
+  describe('Donor info editor', () => {
+    it('should render the DonorInfoEditor', () => {
+      cy.contains('Donor info').click();
+      cy.getByTestId('donor-info-editor');
+      cy.getByTestId('discard-element-changes-button').click();
+    });
+  });
+
+  describe('Payment editor', () => {
+    it('should render the PaymentEditor', () => {
+      cy.contains('Payment').click();
+      cy.getByTestId('payment-editor');
+      cy.getByTestId('discard-element-changes-button').click();
     });
   });
 

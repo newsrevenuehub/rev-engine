@@ -19,12 +19,7 @@ class DonationPageAdminAbstract(AdminImageMixin, admin.ModelAdmin):
         ("Redirects", {"fields": ("thank_you_redirect", "post_thank_you_redirect")}),
         (
             "Benefits",
-            {
-                "fields": (
-                    "show_benefits",
-                    "donor_benefits",
-                )
-            },
+            {"fields": ("donor_benefits",)},
         ),
         ("Header", {"fields": ("header_bg_image", "header_logo", "header_link")}),
         ("Heading", {"fields": ("heading", "graphic")}),

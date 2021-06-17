@@ -1,9 +1,13 @@
 import * as S from './PageSetup.styled';
 
+// Children
+import PublishWidget from './PublishWidget';
+
 function PageSetup(props) {
   return (
     <S.PageSetup>
-      <p>PageSetup</p>
+      <S.MainContent>test</S.MainContent>
+      <PublishWidget />
     </S.PageSetup>
   );
 }

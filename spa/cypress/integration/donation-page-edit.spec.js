@@ -154,4 +154,28 @@ describe('Donation page edit', () => {
       cy.getByTestId('discard-element-changes-button').click();
     });
   });
+
+  describe('Validations', () => {
+    it('should render an alert with a list of missing required elements', () => {
+      const missingElementType = 'DPayment';
+      const page = { ...livePage };
+
+      // Remove element from elements list and set as fixture
+      page.elements = page.elements.filter((el) => el.type !== missingElementType);
+      cy.intercept({ method: 'GET', pathname: getEndpoint(FULL_PAGE) }, { body: page, statusCode: 200 }).as(
+        'getPageDetail'
+      );
+      cy.login('user/stripe-verified.json');
+      cy.visit('edit/my/page');
+      cy.wait('@getPageDetail');
+
+      // Need to add fake an update to the page to enable
+      cy.getByTestId('edit-page-button').click();
+      cy.contains('Rich text').click();
+      cy.getByTestId('keep-element-changes-button').click();
+      cy.getByTestId('save-page-button').click();
+      cy.getByTestId('missing-elements-alert').should('exist');
+      cy.getByTestId('missing-elements-alert').contains('Payment');
+    });
+  });
 });

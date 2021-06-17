@@ -3,7 +3,9 @@ import * as S from './PageEditor.styled';
 import { useTheme } from 'styled-components';
 import { AnimatePresence } from 'framer-motion';
 
+// Deps
 import { useAlert } from 'react-alert';
+import isEmpty from 'lodash.isempty';
 
 // Routing
 import { useParams } from 'react-router-dom';
@@ -20,8 +22,10 @@ import { faEye, faEdit, faSave } from '@fortawesome/free-solid-svg-icons';
 
 // Context
 import { useGlobalContext } from 'components/MainLayout';
+import validatePage from './validatePage';
 
 // Children
+import * as dynamicElements from 'components/donationPage/pageContent/dynamicElements';
 import CircleButton from 'elements/buttons/CircleButton';
 import DonationPage from 'components/donationPage/DonationPage';
 import GlobalLoading from 'elements/GlobalLoading';
@@ -47,6 +51,7 @@ function PageEditor() {
   const [updatedPage, setUpdatedPage] = useState();
   const [selectedButton, setSelectedButton] = useState(PREVIEW);
   const [showEditInterface, setShowEditInterface] = useState(false);
+  const [errors, setErrors] = useState({});
 
   const fetchPageContent = useCallback(async () => {
     setLoading(true);
@@ -61,7 +66,6 @@ function PageEditor() {
       setPage(data);
       setLoading(false);
     } catch (e) {
-      console.log(e);
       setLoading(false);
     }
   }, [params]);
@@ -85,16 +89,10 @@ function PageEditor() {
 
     const validationErrors = validatePage(updatedPage);
     if (validationErrors) {
-      console.log('handle errors.');
+      setErrors(validationErrors);
     } else {
-      console.log('patching updatedPage: ', updatedPage);
-      getUserConfirmation("You're making changes to a live donation page. Proceed?", () => patchPage(updatedPage));
+      getUserConfirmation("You're making changes to a live donation page. Continue?", () => patchPage(updatedPage));
     }
-  };
-
-  const validatePage = (patchedPage) => {
-    // TODO: Implement
-    return;
   };
 
   const patchPage = async (patchedPage) => {
@@ -102,15 +100,24 @@ function PageEditor() {
       const { data } = await axios.patch(`${PATCH_PAGE}${page.id}/`, patchedPage);
       setPage(data);
       setSelectedButton(PREVIEW);
+      alert.success('Your page has been updated.');
     } catch (e) {
       alert.error(GENERIC_ERROR);
       setSelectedButton(PREVIEW);
     }
   };
 
+  useEffect(() => {
+    if (!isEmpty(errors)) {
+      if (errors.missing) {
+        alert.error(<MissingElementErrors missing={errors.missing} />);
+      }
+    }
+  }, [errors, alert]);
+
   return (
     <PageEditorContext.Provider
-      value={{ page, setPage, updatedPage, setUpdatedPage, showEditInterface, setShowEditInterface }}
+      value={{ page, setPage, updatedPage, setUpdatedPage, showEditInterface, setShowEditInterface, errors }}
     >
       <S.PageEditor data-testid="page-editor">
         {loading && <GlobalLoading />}
@@ -125,6 +132,7 @@ function PageEditor() {
             onClick={handlePreview}
             selected={selectedButton === PREVIEW}
             icon={faEye}
+            type="neutral"
             color={theme.colors.primary}
             data-testid="preview-page-button"
           />
@@ -132,14 +140,15 @@ function PageEditor() {
             onClick={handleEdit}
             selected={selectedButton === EDIT}
             icon={faEdit}
-            color={theme.colors.primary}
+            type="neutral"
             data-testid="edit-page-button"
           />
           <CircleButton
             onClick={handleSave}
             icon={faSave}
-            color={theme.colors.primary}
+            type="neutral"
             data-testid="save-page-button"
+            disabled={!updatedPage}
           />
         </S.ButtonOverlay>
       </S.PageEditor>
@@ -150,3 +159,16 @@ function PageEditor() {
 export const usePageEditorContext = () => useContext(PageEditorContext);
 
 export default PageEditor;
+
+function MissingElementErrors({ missing = [] }) {
+  return (
+    <>
+      The following elements are required for your page to function properly:
+      <ul data-testid="missing-elements-alert">
+        {missing.map((missingEl) => (
+          <li key={missingEl}>{dynamicElements[missingEl].displayName}</li>
+        ))}
+      </ul>
+    </>
+  );
+}

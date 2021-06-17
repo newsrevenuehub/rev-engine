@@ -60,6 +60,10 @@ class DonationPageFullDetailSerializer(serializers.ModelSerializer):
     styles = serializers.SerializerMethodField()
     donor_benefits = DonorBenefitDetailSerializer()
 
+    graphic = serializers.ImageField(allow_empty_file=True, allow_null=True, required=False)
+    header_bg_image = serializers.ImageField(allow_empty_file=True, allow_null=True, required=False)
+    header_logo = serializers.ImageField(allow_empty_file=True, allow_null=True, required=False)
+
     graphic_thumbnail = HyperlinkedSorlImageField("300", source="graphic", read_only=True)
     header_bg_image_thumbnail = HyperlinkedSorlImageField("300", source="header_bg_image", read_only=True)
     header_logo_thumbnail = HyperlinkedSorlImageField("300", source="header_logo", read_only=True)

@@ -15,9 +15,9 @@ class DonationPageAdminAbstract(admin.ModelAdmin):
             },
         ),
         ("Header", {"fields": ("header_bg_image", "header_logo", "header_link")}),
-        ("Title", {"fields": ("title",)}),
-        (None, {"fields": ("styles",)}),
-        (None, {"fields": ("elements",)}),
+        ("Heading", {"fields": ("heading", "graphic")}),
+        ("Styles", {"fields": ("styles",)}),
+        ("Content", {"fields": ("elements",)}),
         (
             "Benefits",
             {
@@ -34,12 +34,12 @@ class DonationPageAdminAbstract(admin.ModelAdmin):
 class TemplateAdmin(DonationPageAdminAbstract):
     list_display = (
         "name",
-        "title",
+        "heading",
         "organization",
     )
     list_filter = (
         "name",
-        "title",
+        "heading",
         "organization",
     )
     ordering = (
@@ -48,7 +48,7 @@ class TemplateAdmin(DonationPageAdminAbstract):
     )
     search_fields = (
         "name",
-        "title",
+        "heading",
         "organization__name",
     )
 
@@ -79,7 +79,7 @@ class DonationPageAdmin(DonationPageAdminAbstract):
 
     list_display = (
         "name",
-        "title",
+        "heading",
         "organization",
         "revenue_program",
         "slug",
@@ -87,14 +87,14 @@ class DonationPageAdmin(DonationPageAdminAbstract):
         "is_live",
         "published_date",
     )
-    list_filter = ("name", "title", "organization", "revenue_program", "slug", "published_date")
+    list_filter = ("name", "heading", "organization", "revenue_program", "slug", "published_date")
     order = (
         "published_date",
         "organization__name",
     )
     search_fields = (
         "name",
-        "title",
+        "heading",
         "organization__name",
         "revenue_program__name",
     )

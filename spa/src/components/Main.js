@@ -9,7 +9,7 @@ import { Switch, Route } from 'react-router-dom';
 import getGlobalPaymentProviderStatus from 'utilities/getGlobalPaymentProviderStatus';
 
 // Slugs
-import { ORG_SLUG, MAIN_CONTENT_SLUG } from 'routes';
+import { MAIN_CONTENT_SLUG } from 'routes';
 
 // AJAX
 import axios from 'ajax/axios';
@@ -17,13 +17,12 @@ import { USER } from 'ajax/endpoints';
 import { LS_USER } from 'constants/authConstants';
 
 // Children
-import MainHeader from 'components/header/MainHeader';
 import Dashboard from 'components/dashboard/Dashboard';
-import Organization from 'components/organization/Organization';
 
 const OrganizationContext = createContext(null);
 
 function Main() {
+  // Organization Context management
   const [checkingProvider, setCheckingProvider] = useState(false);
   const [user, setUser] = useState(JSON.parse(localStorage.getItem(LS_USER)));
   const [paymentProviderConnectState, setPaymentProviderConnectState] = useState(getGlobalPaymentProviderStatus(user));
@@ -64,19 +63,17 @@ function Main() {
         setCheckingProvider
       }}
     >
-      <S.Main>
-        <MainHeader />
-        <S.MainContent>
-          <Switch>
-            <Route path={ORG_SLUG}>
-              <Organization />
-            </Route>
-            <Route path={MAIN_CONTENT_SLUG}>
-              <Dashboard />
-            </Route>
-          </Switch>
-        </S.MainContent>
-      </S.Main>
+      <>
+        <S.Main>
+          <S.MainContent>
+            <Switch>
+              <Route path={MAIN_CONTENT_SLUG}>
+                <Dashboard />
+              </Route>
+            </Switch>
+          </S.MainContent>
+        </S.Main>
+      </>
     </OrganizationContext.Provider>
   );
 }

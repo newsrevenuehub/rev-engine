@@ -1,5 +1,6 @@
 from rest_framework import serializers
 
+from apps.organizations.models import Organization, RevenueProgram
 from apps.pages.models import Benefit, BenefitTier, DonationPage, DonorBenefit, Style, Template
 
 
@@ -55,28 +56,33 @@ class DonationPageDetailSerializer(serializers.ModelSerializer):
 
 
 class DonationPageFullDetailSerializer(serializers.ModelSerializer):
-    styles = StyleSerializer()
+    styles = serializers.SerializerMethodField()
     donor_benefits = DonorBenefitDetailSerializer()
 
     class Meta:
         model = DonationPage
         fields = "__all__"
 
+    def get_styles(self, obj):
+        return obj.styles.styles if obj.styles else {}
+
 
 class DonationPageListSerializer(serializers.ModelSerializer):
+    revenue_program = serializers.PrimaryKeyRelatedField(queryset=RevenueProgram.objects.all())
+    organization = serializers.PrimaryKeyRelatedField(queryset=Organization.objects.all())
+
     class Meta:
         model = DonationPage
         fields = [
             "id",
-            "title",
-            "header_bg_image",
-            "header_logo",
-            "header_link",
-            "show_benefits",
+            "name",
+            "heading",
             "slug",
+            "derived_slug",
             "revenue_program",
-            "published_date",
             "organization",
+            "published_date",
+            "is_live",
         ]
 
 
@@ -92,7 +98,7 @@ class TemplateListSerializer(serializers.ModelSerializer):
         fields = [
             "id",
             "name",
-            "title",
+            "heading",
             "header_bg_image",
             "header_logo",
             "header_link",

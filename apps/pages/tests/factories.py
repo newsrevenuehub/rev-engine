@@ -12,7 +12,7 @@ class DonationPageFactory(DjangoModelFactory):
     class Params:
         org = None
 
-    title = factory.Sequence(lambda n: "Test Page %d" % n)
+    heading = factory.Sequence(lambda n: "Test Page %d" % n)
     slug = factory.Sequence(lambda n: "test-page-%d" % n)
 
     @factory.lazy_attribute
@@ -30,7 +30,7 @@ class TemplateFactory(DjangoModelFactory):
         org = None
 
     name = factory.Sequence(lambda n: "Test Template %d" % n)
-    title = factory.Sequence(lambda n: "Test Template %d" % n)
+    heading = factory.Sequence(lambda n: "Test Template %d" % n)
 
     @factory.lazy_attribute
     def organization(self):

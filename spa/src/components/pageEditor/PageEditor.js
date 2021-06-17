@@ -6,6 +6,11 @@ import { AnimatePresence } from 'framer-motion';
 // Deps
 import { useAlert } from 'react-alert';
 import isEmpty from 'lodash.isempty';
+import convertDatetimeForAPI from 'utilities/convertDatetimeForAPI';
+import { isBefore, isAfter } from 'date-fns';
+
+// CSS files for libraries that ARE ONLY needed for page edit
+import 'react-datepicker/dist/react-datepicker.css';
 
 // Routing
 import { useParams } from 'react-router-dom';
@@ -35,7 +40,18 @@ const PageEditorContext = createContext();
 
 const EDIT = 'EDIT';
 const PREVIEW = 'PREVIEW';
+const IMAGE_KEYS = ['graphic', 'header_bg_image', 'header_logo'];
+const THUMBNAIL_KEYS = ['graphic_thumbnail', 'header_bg_image_thumbnail', 'header_logo_thumbnail'];
 
+/**
+ * PageEditor
+ * PageEditor renders an edit interface overlay on top of a non-live DonationPage component.
+ * It controls state for the page it renders, as well as updated state from edit-widgets further
+ * down the tree. Page-level validation occurs here as well.
+ *
+ * PageEditor is the root component of a split bundle.
+ * PageEditor is rendered as a ProtectedRoute
+ */
 function PageEditor() {
   // Hooks
   const alert = useAlert();
@@ -90,18 +106,54 @@ function PageEditor() {
     const validationErrors = validatePage(updatedPage);
     if (validationErrors) {
       setErrors(validationErrors);
-    } else {
+    } else if (isBefore(new Date(page.published_date), new Date())) {
       getUserConfirmation("You're making changes to a live donation page. Continue?", () => patchPage(updatedPage));
+    } else {
+      patchPage(updatedPage);
     }
   };
 
+  const cleanImageKeys = (patchedPage) => {
+    // Can't send back existing values for images, as they come in as slugs.
+    // The API expects an image. So if typeof page.[image] is a string, delete the key.
+    for (const image of IMAGE_KEYS) {
+      // If it's undefined, we're removing an image. Keep that value.
+      if (patchedPage[image] !== '' && typeof patchedPage[image] === 'string') {
+        delete patchedPage[image];
+      }
+    }
+    // Also, remove all the thumbnail fields from patchedPage. These never need to be set.
+    for (const thumbnail of THUMBNAIL_KEYS) {
+      delete patchedPage[thumbnail];
+    }
+
+    return patchedPage;
+  };
+
+  const processPageData = (patchedPage) => {
+    const formData = new FormData();
+    for (const pageKey in patchedPage) {
+      if (Object.hasOwnProperty.call(patchedPage, pageKey)) {
+        let datum = patchedPage[pageKey];
+        if (datum instanceof Date) datum = convertDatetimeForAPI(datum);
+        formData.append(pageKey, datum);
+      }
+    }
+    return formData;
+  };
+
   const patchPage = async (patchedPage) => {
+    const patchedCleanedPage = cleanImageKeys(patchedPage);
+    const formData = processPageData(patchedCleanedPage);
     try {
-      const { data } = await axios.patch(`${PATCH_PAGE}${page.id}/`, patchedPage);
+      const { data } = await axios.patch(`${PATCH_PAGE}${page.id}/`, formData);
+      const successMessage = getSuccessMessage(page, data);
+
+      alert.success(successMessage);
       setPage(data);
       setSelectedButton(PREVIEW);
-      alert.success('Your page has been updated.');
     } catch (e) {
+      console.log(e.response);
       alert.error(GENERIC_ERROR);
       setSelectedButton(PREVIEW);
     }
@@ -171,4 +223,23 @@ function MissingElementErrors({ missing = [] }) {
       </ul>
     </>
   );
+}
+
+function getSuccessMessage(page, newPage) {
+  const isNowPublished = isBefore(new Date(newPage.published_date), new Date());
+  const isNowNotPublished = isAfter(new Date(newPage.published_date), new Date());
+  const wasPublished = page.published_date && isBefore(new Date(page.published_date), new Date());
+  const wasNotPublished = !page.published_date || isAfter(new Date(page.published_date), new Date());
+
+  if (isNowPublished) {
+    if (wasNotPublished) {
+      return 'Your page has been updated and is now LIVE';
+    }
+    return 'Your LIVE page has been updated';
+  }
+
+  if (wasPublished && isNowNotPublished) {
+    return 'Your page has been updated and is no longer live';
+  }
+  return 'Your page has been udpated';
 }

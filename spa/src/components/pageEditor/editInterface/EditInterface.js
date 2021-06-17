@@ -18,6 +18,15 @@ const editInterfaceAnimation = {
 
 const EditInterfaceContext = createContext();
 
+/**
+ * EditInterface
+ * EditInterface renders the Sidebar in the PageEdit view. It maintains state for elements
+ * in element tab, as well as the state of the tabs themsevles. It also renders and controls
+ * the state of the AddElementModal. It swaps PageElements for ElementProperties when a Page
+ * Element is selected.
+ *
+ * EditInterface is direct child of PageEditor
+ */
 function EditInterface() {
   const { page, setPage, updatedPage, setUpdatedPage } = usePageEditorContext();
   const [tab, setTab] = useState(0);
@@ -73,7 +82,7 @@ function EditInterface() {
                   goToProperties={goToProperties}
                 />
               )}
-              {tab === 1 && <PageSetup page={page} />}
+              {tab === 1 && <PageSetup backToProperties={() => setTab(0)} />}
             </>
           )}
         </S.EditInterface>

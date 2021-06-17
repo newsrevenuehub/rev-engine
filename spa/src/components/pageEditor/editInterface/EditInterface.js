@@ -28,9 +28,17 @@ function EditInterface() {
   // to only store one set of "unconfirmed" changes at a time.
   const [elementContent, setElementContent] = useState();
 
+  /**
+   * setPageContent performs updates necessary to affect a change made in
+   * the edit interface.
+   */
+  const setPageContent = (content = {}) => {
+    setPage({ ...page, ...content });
+    setUpdatedPage({ ...updatedPage, ...content });
+  };
+
   const setElements = (elements) => {
-    setPage({ ...page, elements });
-    setUpdatedPage({ ...updatedPage, elements });
+    setPageContent({ elements });
   };
 
   const goToProperties = (element) => {
@@ -48,7 +56,8 @@ function EditInterface() {
         selectedElement,
         setSelectedElement,
         elementContent,
-        setElementContent
+        setElementContent,
+        setPageContent
       }}
     >
       <>

@@ -8,7 +8,7 @@ import { AnimatePresence } from 'framer-motion';
 
 const hasErrors = (errors) => errors.length > 0;
 
-function BaseField({ label, errors, inline, labelProps, children }) {
+function BaseField({ label, errors, inline, labelProps, helpText, children }) {
   const errorsRef = useRef();
 
   useEffect(() => {
@@ -27,6 +27,7 @@ function BaseField({ label, errors, inline, labelProps, children }) {
         )}
         {children}
       </S.FieldWrapper>
+      {helpText && <S.HelpText>{helpText}</S.HelpText>}
       <AnimatePresence>
         {hasErrors(errors) && (
           <S.Errors ref={errorsRef} {...S.errorsAnimation}>

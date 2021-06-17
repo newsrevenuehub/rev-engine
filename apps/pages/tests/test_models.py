@@ -39,7 +39,7 @@ class DonationPageTest(TestCase):
         # without name arugment, uses page.heading for template.name
         template, _ = self.instance.save_as_template()
 
-        self.assertEqual(template.name, self.instance.heading)
+        self.assertEqual(template.name, self.instance.name)
 
         # with name argument, uses that for template.name
         new_name = "My New Template"

@@ -76,3 +76,4 @@ jobs:
           working-directory: spa
           build: npx cypress info
           start: npm run start
+          wait-on: http://localhost:3000

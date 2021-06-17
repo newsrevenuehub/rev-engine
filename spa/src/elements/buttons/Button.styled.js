@@ -1,11 +1,9 @@
-import styled from 'styled-components';
+import styled, { css } from 'styled-components';
 
 export const Button = styled.button`
   display: block;
   text-align: center;
-  background: ${(props) => props.theme.colors.primary};
   border: 1px solid;
-  border-color: ${(props) => props.theme.colors.primary};
 
   opacity: ${(props) => (props.disabled ? 0.4 : 1)};
   cursor: ${(props) => (props.disabled ? 'default' : 'pointer')};
@@ -19,5 +17,20 @@ export const Button = styled.button`
   position: relative;
   font-size: ${(props) => props.theme.fontSizes[1]};
   font-weight: 700;
-  color: ${(props) => props.theme.colors.white};
+
+  ${(props) => {
+    if (props.type === 'neutral') {
+      return css`
+        background: ${(props) => props.theme.colors.white};
+        border-color: ${(props) => props.theme.colors.primary};
+        color: ${(props) => props.theme.colors.primary};
+      `;
+    } else {
+      return css`
+        background: ${(props) => props.theme.colors.primary};
+        border-color: ${(props) => props.theme.colors.primary};
+        color: ${(props) => props.theme.colors.white};
+      `;
+    }
+  }};
 `;

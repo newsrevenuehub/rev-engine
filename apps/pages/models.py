@@ -36,10 +36,11 @@ class AbstractPage(IndexedTimeStampedModel):
     )
 
     thank_you_redirect = models.URLField(
-        blank=True, help_text='If left blank, Organization default "thank you" redirect will be used'
+        blank=True, help_text="If not using default Thank You page, add link to orgs Thank You page here"
     )
     post_thank_you_redirect = models.URLField(
-        blank=True, help_text='If left blank, Organization default post-"thank you" redirect will be used'
+        blank=True,
+        help_text='Donors can click a link to go "back to the news" after viewing the default thank you page',
     )
 
     organization = models.ForeignKey("organizations.Organization", on_delete=models.CASCADE)
@@ -126,12 +127,6 @@ class DonationPage(AbstractPage):
                 raise ValidationError(f"Your organization has reached its limit of {limit.feature_value} pages")
 
         self.slug = normalize_slug(self.name, self.slug)
-
-        if not self.thank_you_redirect:
-            self.thank_you_redirect = self.organization.default_thank_you_redirect
-
-        if not self.post_thank_you_redirect:
-            self.post_thank_you_redirect = self.organization.default_post_thank_you_redirect
 
         super().save(*args, **kwargs)
 

@@ -26,8 +26,6 @@ class AbstractPage(IndexedTimeStampedModel):
 
     elements = models.JSONField(null=True, blank=True)
 
-    show_benefits = models.BooleanField(default=False)
-
     donor_benefits = models.ForeignKey(
         "pages.DonorBenefit",
         null=True,

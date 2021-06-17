@@ -9,6 +9,5 @@ export const PageSetup = styled.div`
 `;
 
 export const MainContent = styled.div`
-  flex: 1;
   display: flex;
 `;

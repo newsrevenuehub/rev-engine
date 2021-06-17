@@ -34,4 +34,10 @@ function DAdditionalInfo({ element, ...props }) {
   );
 }
 
+DAdditionalInfo.type = 'DAdditionalInfo';
+DAdditionalInfo.displayName = 'Additional info';
+DAdditionalInfo.description = 'Collect arbitrary data from your donors';
+DAdditionalInfo.required = false;
+DAdditionalInfo.unique = false;
+
 export default DAdditionalInfo;

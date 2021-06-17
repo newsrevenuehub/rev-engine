@@ -1,6 +1,6 @@
 import { TOKEN } from 'ajax/endpoints';
 import { getEndpoint } from './util';
-import { LIVE_PAGE, STRIPE_PAYMENT } from 'ajax/endpoints';
+import { FULL_PAGE, STRIPE_PAYMENT } from 'ajax/endpoints';
 
 Cypress.Commands.add('getByTestId', (testId, options) => {
   return cy.get(`[data-testid="${testId}"]`, options);
@@ -17,7 +17,7 @@ Cypress.Commands.add('login', (userFixture) => {
 
 Cypress.Commands.add('visitDonationPage', () => {
   cy.intercept(
-    { method: 'GET', pathname: getEndpoint(LIVE_PAGE) },
+    { method: 'GET', pathname: getEndpoint(FULL_PAGE) },
     { fixture: 'pages/live-page-1', statusCode: 200 }
   ).as('getPageDetail');
   cy.visit('/revenue-program-slug/page-slug');

@@ -26,7 +26,7 @@ function getComponentForElement(element, live) {
   if (!El) {
     return live ? null : <NoComponentError name={element.type} key={element.uuid} />;
   }
-  return <El element={element} key={element.uuid} />;
+  return <El element={element} key={element.uuid} live={live} />;
 }
 
 function NoComponentError({ name }) {

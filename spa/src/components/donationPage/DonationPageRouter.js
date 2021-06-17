@@ -2,7 +2,7 @@ import { useEffect, useCallback, useReducer } from 'react';
 
 // AJAX
 import axios from 'ajax/axios';
-import { LIVE_PAGE } from 'ajax/endpoints';
+import { FULL_PAGE } from 'ajax/endpoints';
 
 // Router
 import { useParams } from 'react-router-dom';
@@ -61,7 +61,7 @@ function DonationPageRouter() {
       live: 1
     };
     try {
-      const { data } = await axios.get(LIVE_PAGE, { params: requestParams });
+      const { data } = await axios.get(FULL_PAGE, { params: requestParams });
       dispatch({ type: PAGE_FETCH_SUCCESS, payload: data });
     } catch (e) {
       dispatch({ type: PAGE_FETCH_ERROR });

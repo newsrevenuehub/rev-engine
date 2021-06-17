@@ -7,7 +7,7 @@ import { usePageEditorContext } from 'components/pageEditor/PageEditor';
 import EditInterfaceTabs from 'components/pageEditor/editInterface/EditInterfaceTabs';
 import PageElements from 'components/pageEditor/editInterface/PageElements';
 import ElementProperties from 'components/pageEditor/editInterface/ElementProperties';
-import PageSetup from 'components/pageEditor/editInterface/PageSetup';
+import PageSetup from 'components/pageEditor/editInterface/pageSetup/PageSetup';
 import AddElementModal from 'components/pageEditor/editInterface/addElementModal/AddElementModal';
 
 const editInterfaceAnimation = {

@@ -2,10 +2,10 @@ import * as S from './Input.styled';
 import PropTypes from 'prop-types';
 import BaseField from 'elements/inputs/BaseField';
 
-function Input({ value, onChange, type, ...props }) {
+function Input({ value, onChange, type, name, ...props }) {
   return (
     <BaseField {...props}>
-      <S.Input value={value} onChange={onChange} type={type} data-testid={props.testid} />
+      <S.Input value={value} onChange={onChange} name={name} type={type} data-testid={props.testid} />
     </BaseField>
   );
 }

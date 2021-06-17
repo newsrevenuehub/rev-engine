@@ -1,12 +1,11 @@
-import * as S from './Overview.styled';
+import DashboardSectionGroup from 'components/dashboard/DashboardSectionGroup';
+import DashboardSection from 'components/dashboard/DashboardSection';
 
 function Overview() {
   return (
-    <S.Overview data-testid="overview">
-      <S.OverviewSection>
-        <p>Overview</p>
-      </S.OverviewSection>
-    </S.Overview>
+    <DashboardSectionGroup data-testid="overview">
+      <DashboardSection heading="Overview 1"></DashboardSection>
+    </DashboardSectionGroup>
   );
 }
 

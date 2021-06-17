@@ -2,7 +2,7 @@ import styled, { css } from 'styled-components';
 
 export const Alert = styled.div`
   position: relative;
-  font-size: 18px;
+  font-size: ${(props) => props.theme.fontSizes[1]};
   color: ${(props) => props.theme.colors.white};
   min-width: 300px;
   max-width: 400px;
@@ -22,7 +22,7 @@ export const Alert = styled.div`
     }
     if (props.type === 'error') {
       return css`
-        background: ${props.theme.colors.warning};
+        background: ${props.theme.colors.caution};
       `;
     }
   }}
@@ -32,7 +32,7 @@ export const Close = styled.button`
   color: ${(props) => props.theme.colors.white};
   cursor: pointer;
   padding: 0.5rem;
-  font-size: 18px;
+  font-size: ${(props) => props.theme.fontSizes[1]};
   border: none;
   background: none;
   position: absolute;

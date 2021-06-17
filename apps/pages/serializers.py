@@ -107,6 +107,5 @@ class TemplateListSerializer(serializers.ModelSerializer):
             "header_bg_image",
             "header_logo",
             "header_link",
-            "show_benefits",
             "organization",
         ]

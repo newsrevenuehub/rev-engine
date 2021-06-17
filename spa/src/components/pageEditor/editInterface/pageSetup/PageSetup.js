@@ -2,10 +2,14 @@ import { useState, useEffect } from 'react';
 import * as S from './PageSetup.styled';
 
 // Assets
-import { faCheck, faTimes, faTrash } from '@fortawesome/free-solid-svg-icons';
+import { faCheck, faTimes } from '@fortawesome/free-solid-svg-icons';
 
 // Context
-import { usePageEditorContext } from 'components/pageEditor/PageEditor';
+import { useEditInterfaceContext } from 'components/pageEditor/editInterface/EditInterface';
+import { useGlobalContext } from 'components/MainLayout';
+
+// Deps
+import { isBefore, isAfter } from 'date-fns';
 
 // AJAX
 import axios from 'ajax/axios';
@@ -18,8 +22,16 @@ import BenefitsWidget from './BenefitsWidget';
 import PublishWidget from './PublishWidget';
 import CircleButton from 'elements/buttons/CircleButton';
 
-function PageSetup() {
-  const { page, setPageContent } = usePageEditorContext();
+/**
+ * PageSetup
+ * PageSetup renders the Setup tab inside the EditInterface. It controls page content
+ * that is not re-orderable.
+ *
+ * PageSetup is the direct child of EditInterface.
+ */
+function PageSetup({ backToProperties }) {
+  const { getUserConfirmation } = useGlobalContext();
+  const { page, setPageContent } = useEditInterfaceContext();
 
   // Form state
   const [heading, setPageHeading] = useState(page.heading);
@@ -28,6 +40,7 @@ function PageSetup() {
   const [thank_you_redirect, setThankYouRedirect] = useState(page.thank_you_redirect);
   const [post_thank_you_redirect, setPostThankYouRedirect] = useState(page.post_thank_you_redirect);
   const [donor_benefits, setDonorBenefits] = useState(page.donor_benefits);
+  const [published_date, setPublishedDate] = useState(new Date(page.published_date) || new Date());
 
   // async state
   const [availableBenefits, setAvailableBenefits] = useState([]);
@@ -47,22 +60,40 @@ function PageSetup() {
   }, []);
 
   const handleKeepChanges = () => {
+    verifyUnpublish(updatePage);
+  };
+
+  const updatePage = () => {
     setPageContent({
       heading,
       ...images,
       heading_link,
       thank_you_redirect,
       post_thank_you_redirect,
-      donor_benefits
+      donor_benefits,
+      published_date
     });
+    backToProperties();
   };
 
   const handleDiscardChanges = () => {
     setPageContent({});
+    backToProperties();
   };
 
   const handleImageChange = (type, file) => {
     setImages({ ...images, [type]: file });
+  };
+
+  const verifyUnpublish = (cb) => {
+    // If a page was previously published, but we're now setting it to a future date, warn.
+    const pageOriginallyPublished = page.published_date && isBefore(new Date(page.published_date), new Date());
+    const newDateAfterNow = published_date && isAfter(new Date(published_date), new Date());
+    if (pageOriginallyPublished && newDateAfterNow) {
+      getUserConfirmation('This page is currently live. Unpublish this page?', cb);
+    } else {
+      cb();
+    }
   };
 
   return (
@@ -117,7 +148,7 @@ function PageSetup() {
         />
       </S.InputWrapper>
       <BenefitsWidget benefits={availableBenefits} selected={donor_benefits} setSelected={(d) => setDonorBenefits(d)} />
-      <PublishWidget />
+      <PublishWidget publishDate={published_date} onChange={setPublishedDate} />
       <S.Buttons>
         <CircleButton
           icon={faCheck}

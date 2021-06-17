@@ -8,7 +8,8 @@ function validatePage(page) {
   return !isEmpty(errors) && errors;
 }
 
-function validateRequiredElements(elements = []) {
+function validateRequiredElements(elements) {
+  if (!elements) return;
   const requiredElements = Object.keys(dynamicElements).filter((key) => dynamicElements[key].required);
   const errors = {};
   for (let i = 0; i < requiredElements.length; i++) {

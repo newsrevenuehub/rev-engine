@@ -1,4 +1,5 @@
 from rest_framework import serializers
+from sorl_thumbnail_serializer.fields import HyperlinkedSorlImageField
 
 from apps.organizations.models import Organization, RevenueProgram
 from apps.pages.models import Benefit, BenefitTier, DonationPage, DonorBenefit, Style, Template
@@ -58,6 +59,10 @@ class DonationPageDetailSerializer(serializers.ModelSerializer):
 class DonationPageFullDetailSerializer(serializers.ModelSerializer):
     styles = serializers.SerializerMethodField()
     donor_benefits = DonorBenefitDetailSerializer()
+
+    graphic_thumbnail = HyperlinkedSorlImageField("300", source="graphic", read_only=True)
+    header_bg_image_thumbnail = HyperlinkedSorlImageField("300", source="header_bg_image", read_only=True)
+    header_logo_thumbnail = HyperlinkedSorlImageField("300", source="header_logo", read_only=True)
 
     class Meta:
         model = DonationPage

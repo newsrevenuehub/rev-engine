@@ -2,10 +2,12 @@ from django.contrib import admin, messages
 from django.http import HttpResponseRedirect
 from django.urls import reverse
 
+from sorl.thumbnail.admin import AdminImageMixin
+
 from apps.pages.models import Benefit, BenefitTier, DonationPage, DonorBenefit, Style, Template
 
 
-class DonationPageAdminAbstract(admin.ModelAdmin):
+class DonationPageAdminAbstract(AdminImageMixin, admin.ModelAdmin):
     fieldsets = (
         (None, {"fields": ("name",)}),
         (

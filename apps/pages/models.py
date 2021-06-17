@@ -5,6 +5,8 @@ from django.core.exceptions import ValidationError
 from django.db import models
 from django.utils import timezone
 
+from sorl.thumbnail import ImageField as SorlImageField
+
 from apps.common.models import IndexedTimeStampedModel
 from apps.common.utils import normalize_slug
 from apps.organizations.models import Feature
@@ -14,10 +16,10 @@ class AbstractPage(IndexedTimeStampedModel):
     name = models.CharField(max_length=255)
     heading = models.CharField(max_length=255, blank=True)
 
-    graphic = models.ImageField(null=True, blank=True)
+    graphic = SorlImageField(null=True, blank=True)
 
-    header_bg_image = models.ImageField(null=True, blank=True)
-    header_logo = models.ImageField(null=True, blank=True)
+    header_bg_image = SorlImageField(null=True, blank=True)
+    header_logo = SorlImageField(null=True, blank=True)
     header_link = models.URLField(null=True, blank=True)
 
     styles = models.ForeignKey("pages.Style", null=True, blank=True, on_delete=models.SET_NULL)

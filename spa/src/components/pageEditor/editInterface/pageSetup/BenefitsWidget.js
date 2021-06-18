@@ -3,7 +3,7 @@ import * as S from './BenefitsWidget.styled';
 
 function BenefitsWidget({ benefits = [], selected, setSelected }) {
   return (
-    <S.BenefitsWidget>
+    <S.BenefitsWidget data-testid="benefits-widget">
       <S.SelectWrapper>
         <Select
           label="Donor benefits"

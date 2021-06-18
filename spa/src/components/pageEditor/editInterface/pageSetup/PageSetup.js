@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import * as S from './PageSetup.styled';
 
 // Assets
@@ -10,10 +10,6 @@ import { useGlobalContext } from 'components/MainLayout';
 
 // Deps
 import { isBefore, isAfter } from 'date-fns';
-
-// AJAX
-import axios from 'ajax/axios';
-import { DONOR_BENEFITS } from 'ajax/endpoints';
 
 // Children
 import ImageWithPreview from 'elements/inputs/ImageWithPreview';
@@ -31,7 +27,7 @@ import CircleButton from 'elements/buttons/CircleButton';
  */
 function PageSetup({ backToProperties }) {
   const { getUserConfirmation } = useGlobalContext();
-  const { page, setPageContent } = useEditInterfaceContext();
+  const { page, availableDonorBenefits, setPageContent } = useEditInterfaceContext();
 
   // Form state
   const [heading, setPageHeading] = useState(page.heading);
@@ -41,23 +37,6 @@ function PageSetup({ backToProperties }) {
   const [post_thank_you_redirect, setPostThankYouRedirect] = useState(page.post_thank_you_redirect);
   const [donor_benefits, setDonorBenefits] = useState(page.donor_benefits);
   const [published_date, setPublishedDate] = useState(new Date(page.published_date) || new Date());
-
-  // async state
-  const [availableBenefits, setAvailableBenefits] = useState([]);
-
-  // On page load, fetch organizations donor_benefits
-  useEffect(() => {
-    async function fetchBenefits() {
-      try {
-        // NOTE: This response is paginated. Eventually, we'll need to manage that.
-        const { data } = await axios.get(DONOR_BENEFITS);
-        setAvailableBenefits(data.results);
-      } catch (e) {
-        alert.error("There was a problem fetching your donor benefits. We've been notified");
-      }
-    }
-    fetchBenefits();
-  }, []);
 
   const handleKeepChanges = () => {
     verifyUnpublish(updatePage);
@@ -100,7 +79,13 @@ function PageSetup({ backToProperties }) {
     <S.PageSetup data-testid="page-setup">
       <S.PageName>{page.name}</S.PageName>
       <S.InputWrapper border>
-        <Input type="text" label="Page heading" value={heading} onChange={(e) => setPageHeading(e.target.value)} />
+        <Input
+          type="text"
+          label="Page heading"
+          value={heading}
+          onChange={(e) => setPageHeading(e.target.value)}
+          testid="setup-heading-input"
+        />
       </S.InputWrapper>
       <S.Images>
         <S.ImageSelectorWrapper>
@@ -147,7 +132,11 @@ function PageSetup({ backToProperties }) {
           onChange={(e) => setPostThankYouRedirect(e.target.value)}
         />
       </S.InputWrapper>
-      <BenefitsWidget benefits={availableBenefits} selected={donor_benefits} setSelected={(d) => setDonorBenefits(d)} />
+      <BenefitsWidget
+        benefits={availableDonorBenefits}
+        selected={donor_benefits}
+        setSelected={(d) => setDonorBenefits(d)}
+      />
       <PublishWidget publishDate={published_date} onChange={setPublishedDate} />
       <S.Buttons>
         <CircleButton

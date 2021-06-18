@@ -39,7 +39,7 @@ function PublishWidget({ publishDate, onChange }) {
   };
 
   return (
-    <S.PublishWidget>
+    <S.PublishWidget data-testid="publish-widget">
       <Label>Publication date</Label>
       <DatePicker
         selected={publishDate}
@@ -48,11 +48,12 @@ function PublishWidget({ publishDate, onChange }) {
         dateFormat="MMM do, yyyy 'at' h:mm aa"
         customInput={<DatepickerInput />}
         startDate={new Date()}
+        data-testid="publish-date-input"
       />
       {showPublishNow && (
         <S.PublishNow>
           <S.Or>- or -</S.Or>
-          <Button type="positive" onClick={handlePublishNow}>
+          <Button type="positive" onClick={handlePublishNow} data-testid="publish-now-button">
             Publish now
           </Button>
         </S.PublishNow>

@@ -6,7 +6,7 @@ import { AnimatePresence } from 'framer-motion';
 // Deps
 import { useAlert } from 'react-alert';
 import isEmpty from 'lodash.isempty';
-import convertDatetimeForAPI from 'utilities/convertDatetimeForAPI';
+import formatDatetimeForAPI from 'utilities/formatDatetimeForAPI';
 import { isBefore, isAfter } from 'date-fns';
 
 // CSS files for libraries that ARE ONLY needed for page edit
@@ -17,7 +17,7 @@ import { useParams } from 'react-router-dom';
 
 // AJAX
 import axios from 'ajax/axios';
-import { FULL_PAGE, PATCH_PAGE } from 'ajax/endpoints';
+import { FULL_PAGE, PATCH_PAGE, DONOR_BENEFITS } from 'ajax/endpoints';
 
 // Constants
 import { GENERIC_ERROR } from 'constants/textConstants';
@@ -64,6 +64,7 @@ function PageEditor() {
   // State
   const [loading, setLoading] = useState(false);
   const [page, setPage] = useState();
+  const [availableBenefits, setAvailableBenefits] = useState([]);
   const [updatedPage, setUpdatedPage] = useState();
   const [selectedButton, setSelectedButton] = useState(PREVIEW);
   const [showEditInterface, setShowEditInterface] = useState(false);
@@ -89,6 +90,21 @@ function PageEditor() {
   useEffect(() => {
     fetchPageContent();
   }, [params, fetchPageContent]);
+
+  const fetchDonorBenefits = useCallback(async () => {
+    setLoading(true);
+    try {
+      const { data } = await axios.get(DONOR_BENEFITS);
+      setAvailableBenefits(data.results);
+      setLoading(false);
+    } catch (e) {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchDonorBenefits();
+  }, [fetchDonorBenefits]);
 
   const handlePreview = () => {
     setSelectedButton(PREVIEW);
@@ -135,7 +151,7 @@ function PageEditor() {
     for (const pageKey in patchedPage) {
       if (Object.hasOwnProperty.call(patchedPage, pageKey)) {
         let datum = patchedPage[pageKey];
-        if (datum instanceof Date) datum = convertDatetimeForAPI(datum);
+        if (datum instanceof Date) datum = formatDatetimeForAPI(datum);
         formData.append(pageKey, datum);
       }
     }
@@ -169,7 +185,16 @@ function PageEditor() {
 
   return (
     <PageEditorContext.Provider
-      value={{ page, setPage, updatedPage, setUpdatedPage, showEditInterface, setShowEditInterface, errors }}
+      value={{
+        page,
+        setPage,
+        availableBenefits,
+        updatedPage,
+        setUpdatedPage,
+        showEditInterface,
+        setShowEditInterface,
+        errors
+      }}
     >
       <S.PageEditor data-testid="page-editor">
         {loading && <GlobalLoading />}

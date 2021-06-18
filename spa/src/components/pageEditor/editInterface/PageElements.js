@@ -23,7 +23,7 @@ function PageElements({ openAddElementModal, goToProperties }) {
   return (
     <S.PageElements>
       <DraggableList elements={elements} setElements={setElements} handleItemClick={goToProperties} />
-      <S.AddElementButton onClick={openAddElementModal}>
+      <S.AddElementButton onClick={openAddElementModal} data-testid="add-element-button">
         <S.AddElementIcon icon={faPlus} />
       </S.AddElementButton>
     </S.PageElements>

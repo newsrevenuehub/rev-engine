@@ -29,7 +29,7 @@ describe('Donation page edit', () => {
     cy.getByTestId('edit-interface').should('not.exist');
   });
 
-  describe('Edit interface', () => {
+  describe('Edit interface: Elements', () => {
     before(() => {
       cy.getByTestId('edit-page-button').click();
     });
@@ -176,6 +176,16 @@ describe('Donation page edit', () => {
       cy.getByTestId('save-page-button').click();
       cy.getByTestId('missing-elements-alert').should('exist');
       cy.getByTestId('missing-elements-alert').contains('Payment');
+    });
+  });
+
+  describe.only('Edit interface: Setup', () => {
+    before(() => {
+      cy.getByTestId('edit-page-button').click();
+      cy.getByTestId('setup-tab').click();
+    });
+    it('should render the setup tab when setup tab clicked', () => {
+      cy.getByTestId('page-setup');
     });
   });
 });

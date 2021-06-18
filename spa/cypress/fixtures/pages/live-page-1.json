@@ -1,6 +1,7 @@
 {
   "name": "Test Page 1",
   "title": "Test Page 1",
+  "published_date": "",
   "elements": [
     {"type": "DRichText", "uuid": "testRichText1", "content": "<p><strong>Your support keeps us going! Become a member today.</strong></p> <p>Because of your generosity, we have the courage, freedom, and independence to dedicate our entire newsroom to telling stories that spark action, improve lives and protect our democracy. Thank you for your support that keeps us going.</p>"}, 
     {"type": "DFrequency", "uuid": "testFreq1", "content": [{"value": "one_time", "displayName": "One time"}, {"value": "month", "displayName": "Monthly"}, {"value": "year", "displayName": "Yearly"}]},

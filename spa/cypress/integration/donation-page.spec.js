@@ -49,7 +49,7 @@ describe('Donation page', () => {
     });
   });
 
-  describe('DonationPage content', () => {
+  describe('DonationPage elements', () => {
     it('should render expected rich text content', () => {
       cy.visitDonationPage();
 

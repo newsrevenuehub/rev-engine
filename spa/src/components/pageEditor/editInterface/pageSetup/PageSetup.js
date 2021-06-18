@@ -97,7 +97,7 @@ function PageSetup({ backToProperties }) {
   };
 
   return (
-    <S.PageSetup>
+    <S.PageSetup data-testid="page-setup">
       <S.PageName>{page.name}</S.PageName>
       <S.InputWrapper border>
         <Input type="text" label="Page heading" value={heading} onChange={(e) => setPageHeading(e.target.value)} />

@@ -1,5 +1,3 @@
-import uuid
-
 from django.apps import apps
 from django.core.exceptions import ValidationError
 from django.db import models
@@ -55,6 +53,9 @@ class Template(AbstractPage):
     A "Snapshot" of a Page at a particular state.
     """
 
+    class TemplateError(Exception):
+        pass
+
     def __str__(self):
         return self.name
 
@@ -70,12 +71,12 @@ class Template(AbstractPage):
         for field in AbstractPage.field_names():
             template_field = getattr(self, field)
             setattr(page, field, template_field)
-        unique_str = str(uuid.uuid4())[:8]
-        if parent_page := DonationPage.objects.filter(heading=self.heading).first():
-            page.name = f"copy-{unique_str}::{page.name}"
+        if parent_page := DonationPage.objects.filter(name=self.name).first():
+            page.name = f"{page.name}-(COPY)"
             page.revenue_program = parent_page.revenue_program
             page.save()
-        return page_model.objects.get(pk=page.pk)
+            return page_model.objects.get(pk=page.pk)
+        raise self.TemplateError(f"A DonationPage with the heading ({self.heading}) could not be found.")
 
 
 class DonationPage(AbstractPage):
@@ -89,7 +90,7 @@ class DonationPage(AbstractPage):
         null=True,
         on_delete=models.SET_NULL,
     )
-    published_date = models.DateTimeField(null=True)
+    published_date = models.DateTimeField(null=True, blank=True)
 
     class Meta:
         unique_together = (
@@ -139,7 +140,7 @@ class DonationPage(AbstractPage):
             page_field = getattr(self, field)
             setattr(template, field, page_field)
 
-        template.name = name or self.heading
+        template.name = name or self.name
 
         template_exists = Template.objects.filter(name=template.name).exists()
         created = False

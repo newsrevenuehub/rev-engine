@@ -3,15 +3,17 @@ from rest_framework import serializers
 from apps.contributions.models import Contribution, ContributionInterval, Contributor
 
 
-class ContributionSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Contribution
-        fields = "__all__"
-
-
 class ContributorSerializer(serializers.ModelSerializer):
     class Meta:
         model = Contributor
+        fields = "__all__"
+
+
+class ContributionSerializer(serializers.ModelSerializer):
+    contributor = ContributorSerializer()
+
+    class Meta:
+        model = Contribution
         fields = "__all__"
 
 

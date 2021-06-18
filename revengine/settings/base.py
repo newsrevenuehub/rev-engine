@@ -295,4 +295,4 @@ ADMINS = [("nrh-team", "nrh-team@caktusgroup.com")]
 LOGIN_URL = "/admin/"
 
 # Set USE_DEBUG_INTERVALS to True if you want recurring payment intervals to be truncated for testing (as much as possible, currently)
-USE_DEBUG_INTERVALS = False
+USE_DEBUG_INTERVALS = os.getenv("USE_DEBUG_INTERVALS", False)

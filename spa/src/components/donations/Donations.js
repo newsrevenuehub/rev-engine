@@ -184,7 +184,7 @@ function Donations() {
     // error handling
     setData(results);
     setPageCount(Math.ceil(count / pageSize));
-    setTotalResults(totalResults);
+    setTotalResults(count);
     setLoading(false);
   };
 

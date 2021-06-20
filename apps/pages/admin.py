@@ -5,13 +5,15 @@ from django.contrib import admin, messages
 from django.http import HttpResponseRedirect
 from django.urls import reverse
 
+from sorl.thumbnail.admin import AdminImageMixin
+
 from apps.pages.models import Benefit, BenefitTier, DonationPage, DonorBenefit, Style, Template
 
 
 logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
 
 
-class DonationPageAdminAbstract(admin.ModelAdmin):
+class DonationPageAdminAbstract(AdminImageMixin, admin.ModelAdmin):
     fieldsets = (
         (None, {"fields": ("name",)}),
         (
@@ -20,19 +22,15 @@ class DonationPageAdminAbstract(admin.ModelAdmin):
                 "fields": ("organization",),
             },
         ),
+        ("Redirects", {"fields": ("thank_you_redirect", "post_thank_you_redirect")}),
+        (
+            "Benefits",
+            {"fields": ("donor_benefits",)},
+        ),
         ("Header", {"fields": ("header_bg_image", "header_logo", "header_link")}),
         ("Heading", {"fields": ("heading", "graphic")}),
         ("Styles", {"fields": ("styles",)}),
         ("Content", {"fields": ("elements",)}),
-        (
-            "Benefits",
-            {
-                "fields": (
-                    "show_benefits",
-                    "donor_benefits",
-                )
-            },
-        ),
     )
 
 

@@ -12,7 +12,7 @@ function SBenefits() {
     page: { donor_benefits }
   } = usePage();
 
-  if (!donor_benefits) return null;
+  if (!donor_benefits || donor_benefits.name === '----none----') return null;
 
   return (
     <S.SBenefits data-testid="s-benefits">

@@ -5,6 +5,7 @@ import * as S from './PageSetup.styled';
 import { faCheck, faTimes } from '@fortawesome/free-solid-svg-icons';
 
 // Context
+import { usePageEditorContext } from 'components/pageEditor/PageEditor';
 import { useEditInterfaceContext } from 'components/pageEditor/editInterface/EditInterface';
 import { useGlobalContext } from 'components/MainLayout';
 
@@ -27,7 +28,8 @@ import CircleButton from 'elements/buttons/CircleButton';
  */
 function PageSetup({ backToProperties }) {
   const { getUserConfirmation } = useGlobalContext();
-  const { page, availableDonorBenefits, setPageContent } = useEditInterfaceContext();
+  const { setPageContent } = useEditInterfaceContext();
+  const { page, availableBenefits } = usePageEditorContext();
 
   // Form state
   const [heading, setPageHeading] = useState(page.heading);
@@ -132,11 +134,7 @@ function PageSetup({ backToProperties }) {
           onChange={(e) => setPostThankYouRedirect(e.target.value)}
         />
       </S.InputWrapper>
-      <BenefitsWidget
-        benefits={availableDonorBenefits}
-        selected={donor_benefits}
-        setSelected={(d) => setDonorBenefits(d)}
-      />
+      <BenefitsWidget benefits={availableBenefits} selected={donor_benefits} setSelected={(d) => setDonorBenefits(d)} />
       <PublishWidget publishDate={published_date} onChange={setPublishedDate} />
       <S.Buttons>
         <CircleButton

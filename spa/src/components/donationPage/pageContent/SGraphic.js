@@ -1,5 +1,8 @@
 import * as S from './SGraphic.styled';
 
+// Util
+import getSrcForImg from 'utilities/getSrcForImg';
+
 // Context
 import { usePage } from 'components/donationPage/DonationPage';
 function SGraphic() {
@@ -9,7 +12,7 @@ function SGraphic() {
 
   return (
     <S.SGraphicWrapper data-testid="s-graphic">
-      <S.Graphic src={page?.graphic} />
+      <S.Graphic src={getSrcForImg(page?.graphic)} />
     </S.SGraphicWrapper>
   );
 }

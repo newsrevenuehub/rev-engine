@@ -15,6 +15,14 @@ import { useEditInterfaceContext } from 'components/pageEditor/editInterface/Edi
 // Children
 import CircleButton from 'elements/buttons/CircleButton';
 
+/**
+ * ElementProperties
+ * ElementProperties is a detail view for an individual page element. It is responsible for
+ * discovering the appropriate element editor component, the appropriate element validator,
+ * and controlling their state.
+ *
+ * ElementProperties is a direct child of EditInterface
+ */
 function ElementProperties() {
   const alert = useAlert();
 

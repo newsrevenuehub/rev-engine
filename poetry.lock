@@ -1268,6 +1268,27 @@ optional = false
 python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*"
 
 [[package]]
+name = "sorl-thumbnail"
+version = "12.7.0"
+description = "Thumbnails for Django"
+category = "main"
+optional = false
+python-versions = ">=3.4"
+
+[[package]]
+name = "sorl-thumbnail-serializer-field"
+version = "0.2.1"
+description = "An image serializer field for use with sorl and Django REST Framework."
+category = "main"
+optional = false
+python-versions = "*"
+
+[package.dependencies]
+Django = ">=1.5.0"
+djangorestframework = ">=3.2.3"
+sorl-thumbnail = ">=12.3"
+
+[[package]]
 name = "soupsieve"
 version = "2.2.1"
 description = "A modern CSS selector implementation for Beautiful Soup."
@@ -1421,7 +1442,7 @@ testing = ["pytest (>=4.6)", "pytest-checkdocs (>=1.2.3)", "pytest-flake8", "pyt
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.9"
-content-hash = "d3a65f43d046ced35e82ec1c361c3514abe965bd03d1c754aaa7cd22549812db"
+content-hash = "b470ef1c5c706e4367bf42237d3f278bcfa0cc1ecef8a0b57169351f8720f578"
 
 [metadata.files]
 amqp = [
@@ -2132,6 +2153,14 @@ sentry-sdk = [
 six = [
     {file = "six-1.15.0-py2.py3-none-any.whl", hash = "sha256:8b74bedcbbbaca38ff6d7491d76f2b06b3592611af620f8426e82dddb04a5ced"},
     {file = "six-1.15.0.tar.gz", hash = "sha256:30639c035cdb23534cd4aa2dd52c3bf48f06e5f4a941509c8bafd8ce11080259"},
+]
+sorl-thumbnail = [
+    {file = "sorl-thumbnail-12.7.0.tar.gz", hash = "sha256:fbe6dfd66a1aceb7e0203895ff5622775e50266f8d8cfd841fe1500bd3e19018"},
+    {file = "sorl_thumbnail-12.7.0-py3-none-any.whl", hash = "sha256:c56cd651feab3bdc415d5301600198e2e70c08234dad48b8f6cfa4746cc102c7"},
+]
+sorl-thumbnail-serializer-field = [
+    {file = "sorl-thumbnail-serializer-field-0.2.1.tar.gz", hash = "sha256:905a05a81e83bceb9c49392010802981a7d8100478cc67ef4acfb53beb1ab505"},
+    {file = "sorl_thumbnail_serializer_field-0.2.1-py2.py3-none-any.whl", hash = "sha256:6f4adb757d798c3cd556668333c83dc17926dd6bea420dff293fb35ec170e03e"},
 ]
 soupsieve = [
     {file = "soupsieve-2.2.1-py3-none-any.whl", hash = "sha256:c2c1c2d44f158cdbddab7824a9af8c4f83c76b1e23e049479aa432feb6c4c23b"},

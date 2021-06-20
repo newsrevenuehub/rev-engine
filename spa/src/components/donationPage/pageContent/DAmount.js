@@ -96,7 +96,7 @@ function DAmount({ element, ...props }) {
 const paymentPropTypes = {
   offerPayFees: PropTypes.bool,
   allowOther: PropTypes.bool,
-  options: PropTypes.objectOf(PropTypes.arrayOf(PropTypes.number)).isRequired
+  options: PropTypes.objectOf(PropTypes.arrayOf(PropTypes.oneOfType([PropTypes.number, PropTypes.string]))).isRequired
 };
 
 DAmount.propTypes = {

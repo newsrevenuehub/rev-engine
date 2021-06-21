@@ -4,6 +4,8 @@ import * as S from './StripeConnect.styled';
 // Deps
 import { useAlert } from 'react-alert';
 
+import { AuthenticationError } from 'ajax/axios';
+
 // AJAX
 import axios from 'ajax/axios';
 import { STRIPE_ONBOARDING } from 'ajax/endpoints';
@@ -28,6 +30,7 @@ function StripeConnect() {
       setIsLoading(false);
       setProviderConnectInProgress(true);
     } catch (e) {
+      if (e instanceof AuthenticationError) throw e;
       setIsLoading(false);
       let alertMessage = "Something went wrong! We've been notified";
       if (e.response?.data?.detail) alertMessage = e.response.data.detail;

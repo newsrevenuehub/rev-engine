@@ -7,6 +7,7 @@ import { Switch, Route } from 'react-router-dom';
 
 // Utils
 import getGlobalPaymentProviderStatus from 'utilities/getGlobalPaymentProviderStatus';
+import { AuthenticationError } from 'ajax/axios';
 
 // Slugs
 import { MAIN_CONTENT_SLUG } from 'routes';
@@ -41,6 +42,7 @@ function Main() {
           const { data } = await axios.get(USER);
           updatedUser = data;
         } catch (e) {
+          if (e instanceof AuthenticationError) throw e;
           console.warn(e?.response);
         }
       }

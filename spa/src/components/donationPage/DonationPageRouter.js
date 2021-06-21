@@ -7,6 +7,8 @@ import { FULL_PAGE } from 'ajax/endpoints';
 // Router
 import { useParams } from 'react-router-dom';
 
+import { AuthenticationError } from 'ajax/axios';
+
 // Children
 import SegregatedStyles from 'components/donationPage/SegregatedStyles';
 import LiveLoading from 'components/donationPage/live/LiveLoading';
@@ -64,6 +66,7 @@ function DonationPageRouter() {
       const { data } = await axios.get(FULL_PAGE, { params: requestParams });
       dispatch({ type: PAGE_FETCH_SUCCESS, payload: data });
     } catch (e) {
+      if (e instanceof AuthenticationError) throw e;
       dispatch({ type: PAGE_FETCH_ERROR });
     }
   }, [params]);

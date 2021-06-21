@@ -1,4 +1,4 @@
-import React, { createContext, useState, useContext } from 'react';
+import React, { createContext, useState, useContext, useRef } from 'react';
 import * as S from './MainLayout.styled';
 
 import { Route, BrowserRouter, Switch, Redirect } from 'react-router-dom';
@@ -11,6 +11,7 @@ import GlobalConfirmationModal from 'elements/modal/GlobalConfirmationModal';
 
 // Children
 import GlobalLoading from 'elements/GlobalLoading';
+import ReauthModal from 'components/authentication/ReauthModal';
 
 // Split bundles
 const Login = React.lazy(() => import('components/authentication/Login'));
@@ -24,13 +25,32 @@ const GlobalContext = createContext(null);
 function MainLayout() {
   // Global Context management
   const [confirmationState, setConfirmationState] = useState({});
+  const [reauthModalOpen, setReauthModalOpen] = useState(false);
+
+  const reauthCallbacks = useRef([]);
 
   const getUserConfirmation = (message, onConfirm, onDecline) => {
     setConfirmationState({ message, onConfirm, onDecline, isOpen: true });
   };
 
+  const getReauth = (cb) => {
+    /*
+      getReauth can be called multiple times per-load. Because of this,
+      store references to the callbacks provided each time and call them
+      later.
+    */
+    reauthCallbacks.current.push(cb);
+    setReauthModalOpen(true);
+  };
+
+  const closeReauthModal = () => {
+    // Don't forget to clear out the refs when the modal closes.
+    reauthCallbacks.current = [];
+    setReauthModalOpen(false);
+  };
+
   return (
-    <GlobalContext.Provider value={{ getUserConfirmation }}>
+    <GlobalContext.Provider value={{ getUserConfirmation, getReauth }}>
       <>
         <S.MainLayout>
           <BrowserRouter>
@@ -59,10 +79,12 @@ function MainLayout() {
             </React.Suspense>
           </BrowserRouter>
         </S.MainLayout>
+        {/* Modals */}
         <GlobalConfirmationModal
           {...confirmationState}
           closeModal={() => setConfirmationState({ ...confirmationState, isOpen: false })}
         />
+        <ReauthModal isOpen={reauthModalOpen} callbacks={reauthCallbacks.current} closeModal={closeReauthModal} />
       </>
     </GlobalContext.Provider>
   );

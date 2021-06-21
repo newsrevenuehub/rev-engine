@@ -6,6 +6,8 @@ import * as S from './StylesEditor.styled';
 import axios from 'ajax/axios';
 import { PAGE_STYLES } from 'ajax/endpoints';
 
+import { AuthenticationError } from 'ajax/axios';
+
 // Assets
 import { faSave, faTrash } from '@fortawesome/free-solid-svg-icons';
 
@@ -48,6 +50,7 @@ function StylesEditor({ styles, setStyles, handleKeepChanges, handleDiscardChang
       const { data } = await axios.post(PAGE_STYLES, styles);
       handleKeepChanges(data);
     } catch (e) {
+      if (e instanceof AuthenticationError) throw e;
       alert.error(GENERIC_ERROR);
     }
   };

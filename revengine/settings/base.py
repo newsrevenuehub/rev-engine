@@ -43,6 +43,7 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     "django_celery_beat",
     "rest_framework",
+    "django_filters",
 ]
 
 
@@ -86,7 +87,6 @@ REST_FRAMEWORK = {
     "DEFAULT_PERMISSION_CLASSES": [
         "rest_framework.permissions.IsAuthenticated",
     ],
-    # https://www.django-rest-framework.org/api-guide/pagination/#setting-the-pagination-style
     "DEFAULT_PAGINATION_CLASS": "apps.api.pagination.ApiStandardPagination",
     "PAGE_SIZE": 10,
 }

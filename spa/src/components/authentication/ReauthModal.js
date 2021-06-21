@@ -9,7 +9,7 @@ function ReauthModal({ isOpen, closeModal, callbacks }) {
 
   return (
     <S.Modal isOpen={isOpen}>
-      <Login onSuccess={onSuccess} message="Your session has ended. Please sign back in." />
+      <Login onSuccess={onSuccess} message="Your session has expired. Please sign back in." />
     </S.Modal>
   );
 }

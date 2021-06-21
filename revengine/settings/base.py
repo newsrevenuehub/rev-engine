@@ -94,11 +94,9 @@ REST_FRAMEWORK = {
 }
 
 SIMPLE_JWT = {  # https://django-rest-framework-simplejwt.readthedocs.io/en/latest/settings.html
-    "ACCESS_TOKEN_LIFETIME": timedelta(hours=6),
+    "ACCESS_TOKEN_LIFETIME": timedelta(seconds=10),
     "REFRESH_TOKEN_LIFETIME": timedelta(weeks=2),
 }
-
-USER_TTL = timedelta(hours=24)
 
 AUTH_COOKIE_KEY = "Authorization"
 # Set SAMESITE setting below to 'Strict' to ask recieving browsers not to send this cookie

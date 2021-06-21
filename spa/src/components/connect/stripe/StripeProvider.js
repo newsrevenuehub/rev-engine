@@ -6,6 +6,8 @@ import StripeWordmark from 'assets/images/stripe_wordmark-blurple_sm.png';
 // Deps
 import { useAlert } from 'react-alert';
 
+import { AuthenticationError } from 'ajax/axios';
+
 // State
 import { PP_STATES } from 'components/connect/BaseProviderInfo';
 
@@ -35,6 +37,7 @@ function StripeProvider() {
       }
       setIsLoading(false);
     } catch (e) {
+      if (e instanceof AuthenticationError) throw e;
       if (e.response.data.status === 'failed') {
         setStripeState(PP_STATES.FAILED);
       } else {

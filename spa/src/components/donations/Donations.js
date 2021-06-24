@@ -1,6 +1,7 @@
-import React, { useEffect, useMemo } from 'react';
-import { useTable, usePagination } from 'react-table';
-import styled from 'styled-components';
+import * as S from './Donations.styled';
+import { formatCurrencyAmount, formatDateTime } from './utils';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useTable, usePagination, useSortBy } from 'react-table';
 
 import DashboardSectionGroup from 'components/dashboard/DashboardSectionGroup';
 import DashboardSection from 'components/dashboard/DashboardSection';
@@ -9,7 +10,14 @@ import DashboardSection from 'components/dashboard/DashboardSection';
 import axios from 'ajax/axios';
 import { DONATIONS } from 'ajax/endpoints';
 
-function Table({ columns, data, fetchData, loading, pageCount, totalResults }) {
+const DEFAULT_RESULTS_ORDERING = [
+  { id: 'last_payment_date', desc: true },
+  { id: 'modified', desc: true },
+  { id: 'amount', desc: false },
+  { id: 'contributor_email', desc: false }
+];
+
+function DonationsTable({ columns, data, fetchData, loading, pageCount, totalResults }) {
   const {
     getTableProps,
     getTableBodyProps,
@@ -22,29 +30,25 @@ function Table({ columns, data, fetchData, loading, pageCount, totalResults }) {
     gotoPage,
     nextPage,
     previousPage,
-    setPageSize,
     // Get the state from the instance
-    state: { pageIndex, pageSize }
+    state: { pageIndex, pageSize, sortBy }
   } = useTable(
     {
       columns,
       data,
-      initialState: { pageIndex: 0, pageSize: 10 }, // Pass our hoisted table state
-      manualPagination: true, // Tell the usePagination
-      // hook that we'll handle our own data fetching
-      // This means we'll also have to provide our own
-      // pageCount.
-      pageCount
+      initialState: { pageIndex: 0, pageSize: 10, sortBy: [] }, // Pass our hoisted table state
+      manualPagination: true,
+      pageCount,
+      manualSortBy: true
     },
+    useSortBy,
     usePagination
   );
-
   // Listen for changes in pagination and use the state to fetch our new data
   useEffect(() => {
-    fetchData(pageSize, pageIndex + 1);
-  }, [pageIndex, pageSize, totalResults]);
+    fetchData(pageSize, pageIndex + 1, sortBy);
+  }, [fetchData, pageIndex, pageSize, sortBy]);
 
-  // memoize this?
   const getCurrentPageResultIndices = (pageSize, pageIndex, currentPageSize) => {
     const startIndex = pageSize * pageIndex + 1;
     const endIndex = startIndex + currentPageSize - 1;
@@ -54,12 +58,12 @@ function Table({ columns, data, fetchData, loading, pageCount, totalResults }) {
   const [startIndex, endIndex] = getCurrentPageResultIndices(pageSize, pageIndex, data.length);
   return (
     <>
-      <table {...getTableProps()}>
+      <table data-testid="donations-table" {...getTableProps()}>
         <thead>
           {headerGroups.map((headerGroup) => (
             <tr {...headerGroup.getHeaderGroupProps()}>
               {headerGroup.headers.map((column) => (
-                <th {...column.getHeaderProps()}>
+                <th data-testid="donation-header" {...column.getHeaderProps(column.getSortByToggleProps())}>
                   {column.render('Header')}
                   <span>{column.isSorted ? (column.isSortedDesc ? ' 🔽' : ' 🔼') : ''}</span>
                 </th>
@@ -71,9 +75,13 @@ function Table({ columns, data, fetchData, loading, pageCount, totalResults }) {
           {page.map((row, i) => {
             prepareRow(row);
             return (
-              <tr {...row.getRowProps()}>
+              <tr data-testid="donation-row" {...row.getRowProps()}>
                 {row.cells.map((cell) => {
-                  return <td {...cell.getCellProps()}>{cell.render('Cell')}</td>;
+                  return (
+                    <td data-testid="donation-cell" data-testcolumnaccessor={cell.column.id} {...cell.getCellProps()}>
+                      {cell.render('Cell')}
+                    </td>
+                  );
                 })}
               </tr>
             );
@@ -91,16 +99,16 @@ function Table({ columns, data, fetchData, loading, pageCount, totalResults }) {
       </table>
 
       <div className="pagination">
-        <button onClick={() => gotoPage(0)} disabled={!canPreviousPage}>
+        <button data-testid="first-page" onClick={() => gotoPage(0)} disabled={!canPreviousPage}>
           {'<<'}
         </button>{' '}
-        <button onClick={() => previousPage()} disabled={!canPreviousPage}>
+        <button data-testid="previous-page" onClick={() => previousPage()} disabled={!canPreviousPage}>
           {'<'}
         </button>{' '}
-        <button onClick={() => nextPage()} disabled={!canNextPage}>
+        <button data-testid="next-page" onClick={() => nextPage()} disabled={!canNextPage}>
           {'>'}
         </button>{' '}
-        <button onClick={() => gotoPage(pageCount - 1)} disabled={!canNextPage}>
+        <button data-testid="last-page" onClick={() => gotoPage(pageCount - 1)} disabled={!canNextPage}>
           {'>>'}
         </button>{' '}
         <span>
@@ -120,85 +128,80 @@ function Table({ columns, data, fetchData, loading, pageCount, totalResults }) {
             }}
             style={{ width: '100px' }}
           />
-        </span>{' '}
-        <select
-          value={pageSize}
-          onChange={(e) => {
-            setPageSize(Number(e.target.value));
-          }}
-        >
-          {[10, 20, 30, 40, 50].map((pageSize) => (
-            <option key={pageSize} value={pageSize}>
-              Show {pageSize}
-            </option>
-          ))}
-        </select>
+        </span>
       </div>
     </>
   );
 }
 
 function Donations() {
-  const columns = useMemo(() => [
-    {
-      Header: 'Contribution ID',
-      accessor: 'id'
-    },
-    {
-      Header: 'Created',
-      accessor: 'created'
-    },
-    {
-      Header: 'Modified',
-      accessor: 'modified'
-    },
-    {
-      Header: 'Amount',
-      accessor: 'amount'
-    },
-    {
-      Header: 'Currency',
-      accessor: 'currency'
-    },
-    {
-      Header: 'Reason',
-      accessor: 'reason'
-    },
-    {
-      Header: 'Interval',
-      accessor: 'interval'
-    }
-  ]);
+  const columns = useMemo(
+    () => [
+      {
+        Header: 'Payment date',
+        accessor: 'last_payment_date',
+        Cell: (props) => (props.value ? formatDateTime(props.value) : '---')
+      },
+      {
+        Header: 'Amount',
+        accessor: 'amount',
+        Cell: (props) => (props.value ? formatCurrencyAmount(props.value) : '---')
+      },
+      {
+        Header: 'Donor',
+        accessor: 'contributor_email',
+        Cell: (props) => props.value || '---'
+      },
+      {
+        Header: 'Status',
+        accessor: 'status',
+        Cell: (props) => props.value || '---'
+      },
+      {
+        Header: 'Date flagged',
+        accessor: 'flagged_date',
+        Cell: (props) => (props.value ? formatDateTime(props.value) : '---')
+      }
+    ],
+    []
+  );
 
   // We'll start our table without any data
-  const [data, setData] = React.useState([]);
-  const [loading, setLoading] = React.useState(false);
-  const [pageCount, setPageCount] = React.useState(0);
-  const [totalResults, setTotalResults] = React.useState(0);
-
-  const fetchData = async (pageSize, pageIndex) => {
+  const [data, setData] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [pageCount, setPageCount] = useState(0);
+  const [totalResults, setTotalResults] = useState(0);
+  const convertOrderingToString = (ordering) => {
+    return ordering.map((item) => (item.desc ? `-${item.id}` : item.id)).toString();
+  };
+  const fetchData = useCallback(async (pageSize, pageIndex, sortBy) => {
+    const ordering = sortBy.length ? sortBy : DEFAULT_RESULTS_ORDERING;
     setLoading(true);
     const {
-      data: { count, results, next, previous }
-    } = await axios.get(DONATIONS, { params: { page_size: pageSize, page: pageIndex } });
+      data: { count, results }
+    } = await axios.get(DONATIONS, {
+      params: { page_size: pageSize, page: pageIndex, ordering: convertOrderingToString(ordering) }
+    });
     // error handling
     setData(results);
     setPageCount(Math.ceil(count / pageSize));
     setTotalResults(count);
     setLoading(false);
-  };
+  }, []);
 
   return (
     <DashboardSectionGroup data-testid="donations">
-      <DashboardSection heading="Donations 1">
-        <Table
-          columns={columns}
-          data={data}
-          fetchData={fetchData}
-          loading={loading}
-          pageCount={pageCount}
-          totalResults={totalResults}
-        />
+      <DashboardSection heading="Donations">
+        <S.Donations>
+          <DonationsTable
+            columns={columns}
+            data={data}
+            fetchData={fetchData}
+            loading={loading}
+            pageCount={pageCount}
+            totalResults={totalResults}
+          />
+        </S.Donations>
       </DashboardSection>
     </DashboardSectionGroup>
   );

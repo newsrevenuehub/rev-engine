@@ -48,9 +48,14 @@ export default submitPayment;
  * @returns A human readable amount in dollars
  */
 export function getTotalAmount(amount, fee, shouldPayFee) {
+  /*
+    If we get 10, we should see 10. If we get 10.3, we should see 10.30.
+  */
   let total = amount;
   if (shouldPayFee) total += parseFloat(fee);
-  return total.toFixed(2);
+  total = total.toFixed(2);
+  if (total.endsWith('.00')) total = total.substring(0, total.length - 3);
+  return total;
 }
 
 /**

@@ -7,7 +7,7 @@ export const STRIPE_CONFIRMATION = 'stripe/confirmation/';
 
 export const ORG_STRIPE_ACCOUNT_ID = 'organizations/stripe_account_id/';
 
-// _ages
+// Pages
 export const FULL_PAGE = 'pages/full_detail/';
 export const LIST_PAGES = 'pages/';
 export const PATCH_PAGE = 'pages/';

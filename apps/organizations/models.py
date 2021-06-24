@@ -81,9 +81,6 @@ class Organization(IndexedTimeStampedModel):
     )
     stripe_product_id = models.CharField(max_length=255, blank=True)
 
-    default_thank_you_redirect = models.URLField(blank=True)
-    default_post_thank_you_redirect = models.URLField(blank=True)
-
     def __str__(self):
         return self.name
 

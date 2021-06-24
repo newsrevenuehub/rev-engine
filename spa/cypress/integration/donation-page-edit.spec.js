@@ -1,6 +1,7 @@
-import { FULL_PAGE } from 'ajax/endpoints';
+import { FULL_PAGE, DONOR_BENEFITS } from 'ajax/endpoints';
 import { getEndpoint } from '../support/util';
 import { getFrequencyAdjective } from 'utilities/parseFrequency';
+import { format } from 'date-fns';
 import livePage from '../fixtures/pages/live-page-1.json';
 
 describe('Donation page edit', () => {
@@ -10,6 +11,10 @@ describe('Donation page edit', () => {
       { method: 'GET', pathname: getEndpoint(FULL_PAGE) },
       { fixture: 'pages/live-page-1', statusCode: 200 }
     );
+    cy.intercept(
+      { method: 'GET', pathname: getEndpoint(DONOR_BENEFITS) },
+      { fixture: 'org/donor-benefits-1.json', statusCode: 200 }
+    ).as('getDonorBenefits');
     cy.visit('edit/my/page');
   });
 
@@ -29,7 +34,7 @@ describe('Donation page edit', () => {
     cy.getByTestId('edit-interface').should('not.exist');
   });
 
-  describe('Edit interface', () => {
+  describe('Edit interface: Elements', () => {
     before(() => {
       cy.getByTestId('edit-page-button').click();
     });
@@ -130,7 +135,7 @@ describe('Donation page edit', () => {
       cy.contains('One time')
         .siblings('ul')
         .children()
-        .each((child) => {
+        .each(() => {
           cy.getByTestId('x-button').first().click();
         });
 
@@ -165,6 +170,10 @@ describe('Donation page edit', () => {
       cy.intercept({ method: 'GET', pathname: getEndpoint(FULL_PAGE) }, { body: page, statusCode: 200 }).as(
         'getPageDetail'
       );
+      cy.intercept(
+        { method: 'GET', pathname: getEndpoint(DONOR_BENEFITS) },
+        { fixture: 'org/donor-benefits-1.json', statusCode: 200 }
+      ).as('getDonorBenefits');
       cy.login('user/stripe-verified.json');
       cy.visit('edit/my/page');
       cy.wait('@getPageDetail');
@@ -176,6 +185,50 @@ describe('Donation page edit', () => {
       cy.getByTestId('save-page-button').click();
       cy.getByTestId('missing-elements-alert').should('exist');
       cy.getByTestId('missing-elements-alert').contains('Payment');
+      cy.getByTestId('edit-page-button').click();
+      cy.getByTestId('add-element-button').click();
+      cy.getByTestId('edit-interface-item').contains('Payment').click({ force: true });
+    });
+  });
+
+  describe('Edit interface: Setup', () => {
+    before(() => {
+      cy.getByTestId('edit-page-button').click();
+      cy.getByTestId('setup-tab').click();
+    });
+    it('should render the setup tab when setup tab clicked', () => {
+      cy.getByTestId('page-setup');
+    });
+    it('should pre-fill incoming data', () => {
+      const expectedHeading = livePage.heading;
+      cy.getByTestId('setup-heading-input').should('have.value', expectedHeading);
+    });
+
+    it('should update donation page view with new content', () => {
+      const previousHeading = livePage.heading;
+      const newHeading = 'My new test heading';
+      cy.getByTestId('setup-heading-input').clear();
+      cy.getByTestId('setup-heading-input').type(newHeading);
+      cy.getByTestId('keep-element-changes-button').scrollIntoView().click();
+      cy.getByTestId('s-page-heading').contains(previousHeading).should('not.exist');
+      cy.getByTestId('s-page-heading').contains(newHeading);
+    });
+
+    it('should show expected, formatted publication date', () => {
+      const rawDate = livePage.published_date;
+      const expectedFormat = format(new Date(rawDate), "LLL do, yyyy 'at' hh:mm a");
+      cy.getByTestId('setup-tab').click();
+      cy.getByTestId('publish-widget').scrollIntoView();
+      cy.getByTestId('publish-widget').contains(expectedFormat);
+    });
+
+    it.only('should show a warning when updating a live page', () => {
+      cy.getByTestId('publish-widget').click();
+      cy.contains('18').click();
+      cy.getByTestId('keep-element-changes-button').click();
+      cy.getByTestId('save-page-button').click();
+      cy.getByTestId('confirmation-modal').contains("You're making changes to a live donation page. Continue?");
+      cy.getByTestId('cancel-button').click();
     });
   });
 });

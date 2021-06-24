@@ -43,6 +43,8 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     "django_celery_beat",
     "rest_framework",
+    "sorl.thumbnail",
+    "sorl_thumbnail_serializer",
 ]
 
 
@@ -296,3 +298,8 @@ LOGIN_URL = "/admin/"
 
 # Set USE_DEBUG_INTERVALS to True if you want recurring payment intervals to be truncated for testing (as much as possible, currently)
 USE_DEBUG_INTERVALS = os.getenv("USE_DEBUG_INTERVALS", False)
+
+# Images config
+THUMBNAIL_COLORSPACE = None
+THUMBNAIL_PRESERVE_FORMAT = True
+THUMBNAIL_PRESERVE_FORMAT = True

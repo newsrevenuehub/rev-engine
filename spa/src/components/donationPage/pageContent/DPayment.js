@@ -3,7 +3,7 @@ import DElement from './DElement';
 import { ICONS } from 'assets/icons/SvgIcon';
 
 // Stripe
-import StripePaymentWidget from 'components/paymentProviders/stripe/StripePaymentWidget';
+import StripePayment from 'components/paymentProviders/stripe/StripePayment';
 
 function DPayment({ element, live, ...props }) {
   /*
@@ -17,7 +17,7 @@ function DPayment({ element, live, ...props }) {
   */
   return (
     <DElement>
-      {live ? <S.DPayment>{element.content['stripe'] && <StripePaymentWidget />}</S.DPayment> : <NotLivePlaceholder />}
+      {live ? <S.DPayment>{element.content['stripe'] && <StripePayment />}</S.DPayment> : <NotLivePlaceholder />}
     </DElement>
   );
 }

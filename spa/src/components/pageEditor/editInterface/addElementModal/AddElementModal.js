@@ -45,6 +45,7 @@ function AddElementModal({ addElementModalOpen, setAddElementModalOpen }) {
                       element={element}
                       isStatic
                       onClick={disabled ? undefined : () => handleElementSelected(element)}
+                      data-testid={`add-${element.type}`}
                     />
                   </S.PageItemWrapper>
                 );

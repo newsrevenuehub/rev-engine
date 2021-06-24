@@ -7,7 +7,7 @@ import { usePageEditorContext } from 'components/pageEditor/PageEditor';
 import EditInterfaceTabs from 'components/pageEditor/editInterface/EditInterfaceTabs';
 import PageElements from 'components/pageEditor/editInterface/PageElements';
 import ElementProperties from 'components/pageEditor/editInterface/ElementProperties';
-import PageSetup from 'components/pageEditor/editInterface/PageSetup';
+import PageSetup from 'components/pageEditor/editInterface/pageSetup/PageSetup';
 import AddElementModal from 'components/pageEditor/editInterface/addElementModal/AddElementModal';
 
 const editInterfaceAnimation = {
@@ -18,6 +18,15 @@ const editInterfaceAnimation = {
 
 const EditInterfaceContext = createContext();
 
+/**
+ * EditInterface
+ * EditInterface renders the Sidebar in the PageEdit view. It maintains state for elements
+ * in element tab, as well as the state of the tabs themsevles. It also renders and controls
+ * the state of the AddElementModal. It swaps PageElements for ElementProperties when a Page
+ * Element is selected.
+ *
+ * EditInterface is direct child of PageEditor
+ */
 function EditInterface() {
   const { page, setPage, updatedPage, setUpdatedPage } = usePageEditorContext();
   const [tab, setTab] = useState(0);
@@ -28,9 +37,17 @@ function EditInterface() {
   // to only store one set of "unconfirmed" changes at a time.
   const [elementContent, setElementContent] = useState();
 
+  /**
+   * setPageContent performs updates necessary to affect a change made in
+   * the edit interface.
+   */
+  const setPageContent = (content = {}) => {
+    setPage({ ...page, ...content });
+    setUpdatedPage({ ...updatedPage, ...content });
+  };
+
   const setElements = (elements) => {
-    setPage({ ...page, elements });
-    setUpdatedPage({ ...updatedPage, elements });
+    setPageContent({ elements });
   };
 
   const goToProperties = (element) => {
@@ -48,7 +65,8 @@ function EditInterface() {
         selectedElement,
         setSelectedElement,
         elementContent,
-        setElementContent
+        setElementContent,
+        setPageContent
       }}
     >
       <>
@@ -64,7 +82,7 @@ function EditInterface() {
                   goToProperties={goToProperties}
                 />
               )}
-              {tab === 1 && <PageSetup page={page} />}
+              {tab === 1 && <PageSetup backToProperties={() => setTab(0)} />}
             </>
           )}
         </S.EditInterface>

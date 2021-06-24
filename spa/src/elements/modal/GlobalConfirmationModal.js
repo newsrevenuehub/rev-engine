@@ -18,16 +18,18 @@ function GlobalConfirmationModal({ message, onConfirm, onDecline, isOpen, closeM
 
   return (
     <Modal isOpen={isOpen}>
-      <S.GlobalConfirmationModal>
+      <S.GlobalConfirmationModal data-testid="confirmation-modal">
         <S.Warning>
           <S.Icon icon={faExclamationCircle} />
         </S.Warning>
         <S.Message>{message}</S.Message>
         <S.Buttons>
-          <Button type="neutral" onClick={handleDecline}>
+          <Button type="neutral" onClick={handleDecline} data-testid="cancel-button">
             Cancel
           </Button>
-          <Button onClick={handleConfirm}>Continue</Button>
+          <Button onClick={handleConfirm} data-testid="continue-button">
+            Continue
+          </Button>
         </S.Buttons>
       </S.GlobalConfirmationModal>
     </Modal>

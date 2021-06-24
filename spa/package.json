@@ -26,6 +26,7 @@
     "find-webpack": "^2.2.1",
     "framer-motion": "^4.1.8",
     "lodash.isempty": "^4.4.0",
+    "lodash.isequal": "^4.5.0",
     "lodash.merge": "^4.6.2",
     "msw": "^0.28.2",
     "prettier": "^2.2.1",
@@ -68,6 +69,16 @@
     },
     "plugins": [
       "cypress"
+    ],
+    "overrides": [
+      {
+        "files": [
+          "*.spec.js"
+        ],
+        "rules": {
+          "jest/valid-expect": 0
+        }
+      }
     ]
   },
   "browserslist": {

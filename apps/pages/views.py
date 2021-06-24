@@ -85,13 +85,7 @@ class StyleViewSet(OrganizationLimitedListView, viewsets.ModelViewSet):
 class DonorBenefitViewSet(OrganizationLimitedListView, viewsets.ModelViewSet):
     model = DonorBenefit
     permission_classes = [IsAuthenticated, UserBelongsToOrg]
-
-    def get_serializer_class(self):
-        return (
-            serializers.DonorBenefitDetailSerializer
-            if self.action == "retrieve"
-            else serializers.DonorBenefitListSerializer
-        )
+    serializer_class = serializers.DonorBenefitDetailSerializer
 
 
 class BenefitTierViewSet(OrganizationLimitedListView, viewsets.ModelViewSet):

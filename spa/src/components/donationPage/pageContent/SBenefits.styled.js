@@ -24,7 +24,7 @@ export const BenefitsName = styled.h2`
   font-size: ${(props) => props.theme.fontSizes[2]};
   font-weight: normal;
   padding-bottom: 1rem;
-  border-bottom: 1px solid ${(props) => props.theme.ruleStyle} ${(props) => props.theme.colors.grey[1]};
+  border-bottom: 1px ${(props) => props.theme.ruleStyle || 'solid'} ${(props) => props.theme.colors.grey[1]};
 `;
 
 export const TiersList = styled.ul`
@@ -35,7 +35,7 @@ export const TiersList = styled.ul`
 
 export const Tier = styled.li`
   &:not(:last-child) {
-    border-bottom: 1px solid ${(props) => props.theme.ruleStyle} ${(props) => props.theme.colors.grey[1]};
+    border-bottom: 1px ${(props) => props.theme.ruleStyle || 'solid'} ${(props) => props.theme.colors.grey[1]};
     margin-bottom: 2rem;
   }
 `;

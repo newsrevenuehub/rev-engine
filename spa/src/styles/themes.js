@@ -1,6 +1,6 @@
 import merge from 'lodash/merge';
 
-export const adminTheme = {
+export const revEngineTheme = {
   colors: {
     primary: '#20bfdd',
     primaryLight: '#c7eff7',
@@ -26,15 +26,11 @@ export const adminTheme = {
     hover: '#eee'
   },
 
-  fonts: {
-    heading: "'Montserrat', sans-serif",
-    subheading: "'Montserrat', sans-serif",
-    body: "'Montserrat', sans-serif"
-  },
+  font: "'Montserrat', sans-serif",
 
   fontSizes: ['12px', '16px', '24px', '32px', '48px', '84px', '96px'],
 
-  radii: ['3px', '6px', '20px'],
+  radii: ['3px', '6px', '12px'],
 
   shadows: ['0 1px 2px 0 rgb(0 0 0 / 15%)', '0 10px 25px 0 rgb(0 0 0 / 6%)', '0 12px 25px 0 rgb(0 0 0 / 10%)'],
 
@@ -51,11 +47,7 @@ export const adminTheme = {
   }
 };
 
-export const donationPageBase = merge({}, adminTheme, {
-  colors: {
-    ...adminTheme.colors
-  },
-
+export const donationPageBase = merge({}, revEngineTheme, {
   maxWidths: {
     sm: '500px',
     md: '890px',

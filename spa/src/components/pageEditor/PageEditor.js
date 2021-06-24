@@ -17,7 +17,7 @@ import { useParams } from 'react-router-dom';
 
 // AJAX
 import axios from 'ajax/axios';
-import { FULL_PAGE, PATCH_PAGE, DONOR_BENEFITS } from 'ajax/endpoints';
+import { FULL_PAGE, PATCH_PAGE, DONOR_BENEFITS, PAGE_STYLES } from 'ajax/endpoints';
 
 // Constants
 import { GENERIC_ERROR } from 'constants/textConstants';
@@ -32,6 +32,7 @@ import validatePage from './validatePage';
 // Children
 import * as dynamicElements from 'components/donationPage/pageContent/dynamicElements';
 import CircleButton from 'elements/buttons/CircleButton';
+import SegregatedStyles from 'components/donationPage/SegregatedStyles';
 import DonationPage from 'components/donationPage/DonationPage';
 import GlobalLoading from 'elements/GlobalLoading';
 import EditInterface from 'components/pageEditor/editInterface/EditInterface';
@@ -65,6 +66,8 @@ function PageEditor() {
   const [loading, setLoading] = useState(false);
   const [page, setPage] = useState();
   const [availableBenefits, setAvailableBenefits] = useState([]);
+  const [availableStyles, setAvailableStyles] = useState([]);
+
   const [updatedPage, setUpdatedPage] = useState();
   const [selectedButton, setSelectedButton] = useState(PREVIEW);
   const [showEditInterface, setShowEditInterface] = useState(false);
@@ -105,6 +108,21 @@ function PageEditor() {
   useEffect(() => {
     fetchDonorBenefits();
   }, [fetchDonorBenefits]);
+
+  const fetchStyles = useCallback(async () => {
+    setLoading(true);
+    try {
+      const { data } = await axios.get(PAGE_STYLES);
+      setAvailableStyles(data.results);
+      setLoading(false);
+    } catch (e) {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchStyles();
+  }, [fetchStyles]);
 
   const handlePreview = () => {
     setSelectedButton(PREVIEW);
@@ -149,10 +167,17 @@ function PageEditor() {
   const processPageData = (patchedPage) => {
     const formData = new FormData();
     for (const pageKey in patchedPage) {
-      if (Object.hasOwnProperty.call(patchedPage, pageKey)) {
-        let datum = patchedPage[pageKey];
+      let datumKey = pageKey;
+      if (Object.hasOwnProperty.call(patchedPage, datumKey)) {
+        let datum = patchedPage[datumKey];
         if (datum instanceof Date) datum = formatDatetimeForAPI(datum);
-        formData.append(pageKey, datum);
+        if (datumKey === 'donor_benefits') {
+          datumKey = 'donor_benefits_pk';
+        }
+        if (datumKey === 'styles') {
+          datumKey = 'styles_pk';
+        }
+        formData.append(datumKey, datum);
       }
     }
     return formData;
@@ -160,7 +185,8 @@ function PageEditor() {
 
   const patchPage = async (patchedPage) => {
     const patchedCleanedPage = cleanImageKeys(patchedPage);
-    const formData = processPageData(patchedCleanedPage);
+    const cleanedData = cleanData(patchedCleanedPage);
+    const formData = processPageData(cleanedData);
     try {
       const { data } = await axios.patch(`${PATCH_PAGE}${page.id}/`, formData);
       const successMessage = getSuccessMessage(page, data);
@@ -169,7 +195,6 @@ function PageEditor() {
       setPage(data);
       setSelectedButton(PREVIEW);
     } catch (e) {
-      console.log(e.response);
       alert.error(GENERIC_ERROR);
       setSelectedButton(PREVIEW);
     }
@@ -189,6 +214,7 @@ function PageEditor() {
         page,
         setPage,
         availableBenefits,
+        availableStyles,
         updatedPage,
         setUpdatedPage,
         showEditInterface,
@@ -203,7 +229,11 @@ function PageEditor() {
             <EditInterface />
           </AnimatePresence>
         )}
-        {page && <DonationPage live={false} page={page} />}
+        {page && (
+          <SegregatedStyles page={page}>
+            <DonationPage live={false} page={page} />
+          </SegregatedStyles>
+        )}
         <S.ButtonOverlay>
           <CircleButton
             onClick={handlePreview}
@@ -267,4 +297,24 @@ function getSuccessMessage(page, newPage) {
     return 'Your page has been updated and is no longer live';
   }
   return 'Your page has been udpated';
+}
+
+function cleanData(data) {
+  if (data.donor_benefits) {
+    data.donor_benefits = cleanDonorBenefits(data.donor_benefits);
+  }
+
+  if (data.styles) {
+    data.styles = cleanStyles(data.styles);
+  }
+  return data;
+}
+
+function cleanDonorBenefits(donorBenefits) {
+  if (donorBenefits.id === 'None') return '';
+  return donorBenefits.id;
+}
+
+function cleanStyles(styles) {
+  return styles.id;
 }

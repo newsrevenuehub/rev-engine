@@ -5,10 +5,12 @@ import { usePageEditorContext } from 'components/pageEditor/PageEditor';
 
 // Children
 import EditInterfaceTabs from 'components/pageEditor/editInterface/EditInterfaceTabs';
-import PageElements from 'components/pageEditor/editInterface/PageElements';
-import ElementProperties from 'components/pageEditor/editInterface/ElementProperties';
+import ElementProperties from 'components/pageEditor/editInterface/pageElements/ElementProperties';
+import AddElementModal from 'components/pageEditor/editInterface/pageElements/addElementModal/AddElementModal';
+
+import PageElements from 'components/pageEditor/editInterface/pageElements/PageElements';
 import PageSetup from 'components/pageEditor/editInterface/pageSetup/PageSetup';
-import AddElementModal from 'components/pageEditor/editInterface/addElementModal/AddElementModal';
+import PageStyles from 'components/pageEditor/editInterface/pageStyles/PageStyles';
 
 const editInterfaceAnimation = {
   initial: { opacity: 0, x: 200 },
@@ -83,6 +85,7 @@ function EditInterface() {
                 />
               )}
               {tab === 1 && <PageSetup backToProperties={() => setTab(0)} />}
+              {tab === 2 && <PageStyles backToProperties={() => setTab(0)} />}
             </>
           )}
         </S.EditInterface>

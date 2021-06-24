@@ -1,3 +1,5 @@
+import json
+
 import factory
 from factory.django import DjangoModelFactory
 
@@ -63,7 +65,7 @@ class StyleFactory(DjangoModelFactory):
         org = None
 
     name = factory.Sequence(lambda n: "Test Style %d" % n)
-    styles = "/{/}"
+    styles = {"colors": {"primary": "testing-pink"}}
 
     @factory.lazy_attribute
     def organization(self):

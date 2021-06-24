@@ -33,7 +33,7 @@ export const CardElementStyle = (theme) => ({
     iconColor: '#666ee8',
     color: '#31325f',
     fontWeight: 400,
-    fontFamily: theme.fonts.body,
+    fontFamily: theme.font,
     fontSmoothing: 'antialiased',
     fontSize: theme.fontSizes[1],
     '::placeholder': {

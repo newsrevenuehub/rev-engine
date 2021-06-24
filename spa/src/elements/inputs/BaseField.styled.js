@@ -12,7 +12,7 @@ export const baseInputStyles = css`
   background: ${(props) => props.theme.colors.inputBackground};
   border: 1px solid;
   border-color: ${(props) => props.theme.colors.inputBorder};
-  border-radius: 2px;
+  border-radius: ${(props) => props.theme.radii[0]};
   font-size: ${(props) => props.theme.fontSizes[1]};
 `;
 

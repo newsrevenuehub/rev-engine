@@ -7,7 +7,7 @@ import { moveArray, getDragStateZIndex, calculateSwapDistance } from './drag-uti
 import { useDynamicList, useDynamicListItem } from './dynamic';
 
 // Children
-import PageItem from 'components/pageEditor/editInterface/PageItem';
+import PageItem from 'components/pageEditor/editInterface/pageElements/PageItem';
 
 const ITEM_FIXED_HEIGHT = 80;
 

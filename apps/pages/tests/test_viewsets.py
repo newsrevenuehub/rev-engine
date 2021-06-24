@@ -1,15 +1,22 @@
 import datetime
+import json
 
 from django.contrib.auth import get_user_model
 from django.utils import timezone
 
 from rest_framework.reverse import reverse
-from rest_framework.test import APITestCase
+from rest_framework.test import APIRequestFactory, APITestCase, force_authenticate
 
 from apps.common.tests.test_resources import AbstractTestCase
 from apps.organizations.tests.factories import RevenueProgramFactory
-from apps.pages.models import DonationPage, DonorBenefit, Template
-from apps.pages.tests.factories import DonationPageFactory, DonorBenefitFactory, TemplateFactory
+from apps.pages.models import DonationPage, DonorBenefit, Style, Template
+from apps.pages.tests.factories import (
+    DonationPageFactory,
+    DonorBenefitFactory,
+    StyleFactory,
+    TemplateFactory,
+)
+from apps.pages.views import PageViewSet
 
 
 user_model = get_user_model()
@@ -103,6 +110,51 @@ class PageViewSetTest(AbstractTestCase):
         expected_ids = [p.id for p in user_pages]
         # Should return expected pages
         self.assertEqual(set(expected_ids), set(returned_ids))
+
+
+class PagePatchTest(AbstractTestCase):
+    model = DonationPage
+    model_factory = DonationPageFactory
+
+    def setUp(self):
+        super().setUp()
+        self.create_resources()
+        self.rev_program = RevenueProgramFactory()
+        self.request_factory = APIRequestFactory()
+        self.donation_page = self.resources[0]
+        self.styles = StyleFactory()
+        self.donor_benefits = DonorBenefitFactory()
+        self.url = reverse("donationpage-detail", kwargs={"pk": self.donation_page.pk})
+        self.authenticate_user_for_resource(self.donation_page)
+        self.patch_data = {
+            "thank_you_redirect": "http://www.testing.com",
+        }
+        self.page_patch_view = PageViewSet.as_view({"patch": "partial_update"})
+
+    def _create_patch_request(self, data=None):
+        data = data if data else self.patch_data
+        request = self.request_factory.patch(self.url, data=data)
+        force_authenticate(request, user=self.user)
+        return request
+
+    def test_patch_page_updates_page(self):
+        previous_redirect = self.donation_page.thank_you_redirect
+        request = self._create_patch_request()
+        response = self.page_patch_view(request, pk=self.donation_page.pk)
+        self.assertNotEqual(response.data["thank_you_redirect"], previous_redirect)
+        self.assertEqual(response.data["thank_you_redirect"], self.patch_data["thank_you_redirect"])
+
+    def test_patch_page_with_styles(self):
+        page_data = {"styles_pk": self.styles.pk}
+        request = self._create_patch_request(data=page_data)
+        response = self.page_patch_view(request, pk=self.donation_page.pk)
+        self.assertEqual(response.data["styles"]["id"], self.styles.pk)
+
+    def test_patch_page_with_donor_benefits(self):
+        page_data = {"donor_benefits_pk": self.donor_benefits.pk}
+        request = self._create_patch_request(data=page_data)
+        response = self.page_patch_view(request, pk=self.donation_page.pk)
+        self.assertEqual(response.data["donor_benefits"]["id"], self.donor_benefits.pk)
 
 
 class DonationPageFullDetailTest(APITestCase):
@@ -284,3 +336,24 @@ class DonorBenefitViewSetTest(AbstractTestCase):
         response = self.client.get(f"/api/v1/donor-benefits/{donor_benefit.pk}/")
         # detail serializer should have 'tiers' field
         self.assertIn("tiers", response.json())
+
+
+class StylesViewsetTest(AbstractTestCase):
+    model = Style
+    model_factory = StyleFactory
+
+    def setUp(self):
+        super().setUp()
+        self.list_url = reverse("style-list")
+        self.create_resources()
+        self.authenticate_user_for_resource(self.resources[0])
+        self.styles_data = {"name": "New Test Styles", "colors": {"primary": "testing-blue"}, "random_property": "test"}
+
+    def test_flattened_to_internal_value(self):
+        self.client.force_authenticate(user=self.user)
+        response = self.client.post(self.list_url, data=json.dumps(self.styles_data), content_type="application/json")
+        self.assertIn("id", response.data)
+        new_styles_id = response.data["id"]
+        new_styles = Style.objects.get(pk=new_styles_id)
+        self.assertEqual(self.styles_data["random_property"], response.data["random_property"])
+        self.assertEqual(new_styles.styles["colors"]["primary"], self.styles_data["colors"]["primary"])

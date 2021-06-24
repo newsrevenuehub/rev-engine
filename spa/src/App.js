@@ -3,7 +3,7 @@ import AdminGlobalStyles from 'styles/AdminGlobalStyles.js';
 // Styles
 import * as S from './App.styled';
 import { ThemeProvider } from 'styled-components';
-import { adminTheme } from 'styles/themes';
+import { revEngineTheme } from 'styles/themes';
 import 'semantic-ui-css/semantic.min.css';
 import SvgIcons from 'assets/icons/SvgIcons';
 
@@ -16,7 +16,7 @@ import MainLayout from 'components/MainLayout';
 
 function App() {
   return (
-    <ThemeProvider theme={adminTheme}>
+    <ThemeProvider theme={revEngineTheme}>
       <AlertProvider template={Alert} {...alertOptions}>
         <AdminGlobalStyles />
         <SvgIcons />

@@ -4,7 +4,24 @@ from apps.contributions.models import Contribution
 
 
 class ContributionFilter(django_filters.FilterSet):
+
     contributor_email = django_filters.CharFilter(field_name="contributor__email", lookup_expr="icontains")
+
+    order_by_field = "ordering"
+    ordering = django_filters.OrderingFilter(
+        fields=(
+            # field name, alias
+            # we do this because want to use `contributor_email` without double-
+            # underscore consistently for both ordering by and filtering.
+            ("id", "id"),
+            ("amount", "amount"),
+            ("created", "created"),
+            ("modified", "modified"),
+            ("last_payment_date", "last_payment_date"),
+            ("flagged_date", "flagged_date"),
+            ("contributor__email", "contributor_email"),
+        )
+    )
 
     class Meta:
         model = Contribution

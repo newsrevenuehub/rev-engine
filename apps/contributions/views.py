@@ -1,7 +1,6 @@
 import logging
 
 from django.conf import settings
-from django.db.models import F
 
 import stripe
 from django_filters.rest_framework import DjangoFilterBackend
@@ -164,8 +163,3 @@ class ContributionsListView(OrganizationLimitedListView, viewsets.ReadOnlyModelV
     permission_classes = [IsAuthenticated, UserBelongsToOrg]
     filter_backends = [DjangoFilterBackend, filters.OrderingFilter]
     filterset_class = ContributionFilter
-    ordering_fields = "__all__"
-
-    def get_queryset(self):
-        query = super(ContributionsListView, self).get_queryset().annotate(contributor_email=F("contributor__email"))
-        return query

@@ -29,7 +29,10 @@ class OrganizationAdmin(admin.ModelAdmin):  # pragma: no cover
                 )
             },
         ),
-        ("Payment Provider", {"fields": ("default_payment_provider", "stripe_account_id", "stripe_verified")}),
+        (
+            "Payment Provider",
+            {"fields": ("default_payment_provider", "stripe_account_id", "stripe_verified", "stripe_product_id")},
+        ),
     )
 
     fieldsets = organization_fieldset

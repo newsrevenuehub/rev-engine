@@ -32,6 +32,14 @@ export const PaymentError = styled.div`
   color: ${(props) => props.theme.colors.caution};
 `;
 
+export const PayWithCardOption = styled.p`
+  cursor: pointer;
+  color: ${(props) => props.theme.colors.primary};
+  font-size: ${(props) => props.theme.fontSizes[1]};
+  text-align: center;
+  padding: 2rem;
+`;
+
 export const CardElementStyle = (theme) => ({
   base: {
     iconColor: '#666ee8',

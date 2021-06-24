@@ -140,7 +140,6 @@ function StripePaymentForm({ loading, setLoading }) {
         handleSuccesfulPayment();
       }
     } catch (e) {
-      debugger;
       if (e?.response?.data?.detail) {
         setErrors({ stripe: e.response.data.detail });
       } else {

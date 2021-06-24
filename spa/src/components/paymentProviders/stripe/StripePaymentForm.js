@@ -36,6 +36,7 @@ function StripePaymentForm({ loading, setLoading }) {
   const [succeeded, setSucceeded] = useState(false);
   const [disabled, setDisabled] = useState(true);
   const [paymentRequest, setPaymentRequest] = useState(null);
+  const [forceManualCard, setForceManualCard] = useState(false);
 
   const theme = useTheme();
   const history = useHistory();
@@ -187,10 +188,15 @@ function StripePaymentForm({ loading, setLoading }) {
   // We add a catch here for the times when the ad-hoc donation amount ("other") value
   // is not a valid number (e.g. first clicking on the element, or typing a decimal "0.5")
   if (isNaN(amount) || amount <= 0) return <S.EnterValidAmount>Enter a valid donation amount</S.EnterValidAmount>;
-  return paymentRequest ? (
-    <S.PaymentRequestWrapper>
-      <PaymentRequestButtonElement options={{ paymentRequest, style: S.PaymentRequestButtonStyle }} />
-    </S.PaymentRequestWrapper>
+  return !forceManualCard && paymentRequest ? (
+    <>
+      <S.PaymentRequestWrapper>
+        <PaymentRequestButtonElement options={{ paymentRequest, style: S.PaymentRequestButtonStyle }} />
+      </S.PaymentRequestWrapper>
+      <S.PayWithCardOption onClick={() => setForceManualCard(true)}>
+        -- or manually enter credit card --
+      </S.PayWithCardOption>
+    </>
   ) : (
     <S.StripePaymentForm>
       <S.PaymentElementWrapper>

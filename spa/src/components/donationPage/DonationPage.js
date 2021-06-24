@@ -1,12 +1,13 @@
 import { useRef, useState, createContext, useContext } from 'react';
 import * as S from './DonationPage.styled';
 import * as getters from 'components/donationPage/pageGetters';
+import { frequencySort } from 'components/donationPage/pageContent/DFrequency';
 
 const DonationPageContext = createContext({});
 
 function DonationPage({ page, live = false }) {
   const formRef = useRef();
-  const [frequency, setFrequency] = useState('one_time');
+  const [frequency, setFrequency] = useState(getInitialFrequency(page));
   const [fee, setFee] = useState();
   const [payFee, setPayFee] = useState(false);
   const [amount, setAmount] = useState();
@@ -55,3 +56,12 @@ function DonationPage({ page, live = false }) {
 export const usePage = () => useContext(DonationPageContext);
 
 export default DonationPage;
+
+function getInitialFrequency(page) {
+  const frequencyElement = page?.elements?.find((el) => el.type === 'DFrequency');
+  if (frequencyElement) {
+    const sortedOptions = frequencyElement.content.sort(frequencySort);
+    return sortedOptions[0].value;
+  }
+  return 'one_time';
+}

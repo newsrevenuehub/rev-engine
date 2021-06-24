@@ -171,6 +171,7 @@ function PageEditor() {
       if (Object.hasOwnProperty.call(patchedPage, datumKey)) {
         let datum = patchedPage[datumKey];
         if (datum instanceof Date) datum = formatDatetimeForAPI(datum);
+        if (datumKey === 'elements') datum = JSON.stringify(datum);
         if (datumKey === 'donor_benefits') {
           datumKey = 'donor_benefits_pk';
         }

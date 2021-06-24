@@ -24,14 +24,6 @@ function PublishWidget({ publishDate, onChange }) {
 
   const handleChange = (date) => {
     onChange(date);
-    // const pageOriginallyPublished = ogPublishDate && isBefore(new Date(ogPublishDate), new Date());
-    // const newDateAfterNow = date && isAfter(new Date(date), new Date());
-    // // If a page was previously published, but we're now setting it to a future date, warn.
-    // if (pageOriginallyPublished && newDateAfterNow) {
-    //   getUserConfirmation('This page is currently live. Unpublish this page?', () => onChange(date));
-    // } else {
-    //   onChange(date);
-    // }
   };
 
   const handlePublishNow = () => {

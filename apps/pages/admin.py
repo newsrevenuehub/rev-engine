@@ -83,18 +83,22 @@ class TemplateAdmin(DonationPageAdminAbstract):
 @admin.register(DonationPage)
 class DonationPageAdmin(DonationPageAdminAbstract):
     fieldsets = (
-        (None, {"fields": ("revenue_program",)}),
-        (None, {"fields": ("published_date",)}),
         (
-            None,
-            {
-                "fields": (
-                    "slug",
-                    "derived_slug",
-                )
-            },
-        ),
-    ) + DonationPageAdminAbstract.fieldsets
+            (None, {"fields": ("revenue_program",)}),
+            (None, {"fields": ("published_date",)}),
+            (
+                None,
+                {
+                    "fields": (
+                        "slug",
+                        "derived_slug",
+                    )
+                },
+            ),
+        )
+        + DonationPageAdminAbstract.fieldsets
+        + (("Latest screenshot", {"fields": ("page_screenshot",)}),)
+    )
 
     list_display = (
         "name",
@@ -118,7 +122,7 @@ class DonationPageAdmin(DonationPageAdminAbstract):
         "revenue_program__name",
     )
 
-    readonly_fields = ["derived_slug"]
+    readonly_fields = ["derived_slug", "page_screenshot"]
 
     actions = ("make_template",)
 

@@ -78,26 +78,26 @@ function PageEditor() {
   const [showEditInterface, setShowEditInterface] = useState(false);
   const [errors, setErrors] = useState({});
 
-  const fetchPageContent = useCallback(async () => {
-    setLoading(true);
-    const { revProgramSlug, pageSlug } = params;
-    const requestParams = {
-      revenue_program: revProgramSlug,
-      page: pageSlug,
-      live: 0
-    };
-    try {
-      const { data } = await axios.get(FULL_PAGE, { params: requestParams });
-      setPage(data);
-      setLoading(false);
-    } catch (e) {
-      setLoading(false);
-    }
-  }, [params]);
-
   useEffect(() => {
+    async function fetchPageContent() {
+      setLoading(true);
+      const { revProgramSlug, pageSlug } = params;
+      const requestParams = {
+        revenue_program: revProgramSlug,
+        page: pageSlug,
+        live: 0
+      };
+      try {
+        const { data } = await axios.get(FULL_PAGE, { params: requestParams });
+        setPage(data);
+        setLoading(false);
+      } catch (e) {
+        setLoading(false);
+      }
+    }
     fetchPageContent();
-  }, [params, fetchPageContent]);
+    // Including 'params' here is a bad idea...
+  }, []);
 
   const fetchDonorBenefits = useCallback(async () => {
     setLoading(true);
@@ -144,12 +144,13 @@ function PageEditor() {
     setShowEditInterface(false);
 
     const validationErrors = validatePage(updatedPage);
+    const pageUpdates = { ...updatedPage };
     if (validationErrors) {
       setErrors(validationErrors);
     } else if (isBefore(new Date(page.published_date), new Date())) {
-      getUserConfirmation("You're making changes to a live donation page. Continue?", () => patchPage(updatedPage));
+      getUserConfirmation("You're making changes to a live donation page. Continue?", () => patchPage(pageUpdates));
     } else {
-      patchPage(updatedPage);
+      patchPage(pageUpdates);
     }
   };
 
@@ -211,7 +212,6 @@ function PageEditor() {
       setSelectedButton(PREVIEW);
       setLoading(false);
     } catch (e) {
-      console.log(e.response);
       alert.error(GENERIC_ERROR);
       setSelectedButton(PREVIEW);
       setLoading(false);

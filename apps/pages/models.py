@@ -92,6 +92,7 @@ class DonationPage(AbstractPage):
         on_delete=models.SET_NULL,
     )
     published_date = models.DateTimeField(null=True, blank=True)
+    page_screenshot = models.ImageField(null=True, blank=True, height=500)
 
     class Meta:
         unique_together = (

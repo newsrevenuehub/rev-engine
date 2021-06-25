@@ -1,0 +1,47 @@
+import styled from 'styled-components';
+
+export const AddPageModal = styled.div`
+  display: flex;
+  flex-direction: column;
+  max-height: 80vh;
+  background: ${(props) => props.theme.colors.paneBackground};
+  border-radius: ${(props) => props.theme.radii[0]};
+`;
+
+export const ModalTitle = styled.h2`
+  padding: 2rem 4rem 0;
+`;
+
+export const PageForm = styled.form`
+  flex: 1;
+  overflow-y: auto;
+  padding: 2rem 4rem;
+`;
+
+export const InputWrapper = styled.div`
+  width: 300px;
+  margin-bottom: 1.5rem;
+`;
+
+export const NoRevPrograms = styled.p``;
+
+export const CreateRevProgramLink = styled.span`
+  color: ${(props) => props.theme.colors.link};
+  cursor: pointer;
+`;
+
+export const Buttons = styled.div`
+  border-top: 1px solid ${(props) => props.theme.colors.grey[1]};
+  height: 50px;
+  width: 100%;
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  align-items: center;
+  padding-top: 1rem;
+  margin-bottom: 2rem;
+
+  & button:not(:last-child) {
+    margin-right: 2rem;
+  }
+`;

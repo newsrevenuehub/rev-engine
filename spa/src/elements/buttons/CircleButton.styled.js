@@ -32,6 +32,7 @@ export const CircleButton = styled(motion.button)`
 export const Icon = styled(FontAwesomeIcon)`
   color: ${(props) => {
     if (props.disabled) return props.theme.colors.grey[0];
+    if (props.color) return props.color;
     switch (props.type) {
       case 'positive':
         return props.theme.colors.success;

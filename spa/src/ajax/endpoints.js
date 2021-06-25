@@ -15,3 +15,6 @@ export const PATCH_PAGE = 'pages/';
 // Donor benefits
 export const DONOR_BENEFITS = 'donor-benefits/';
 export const PAGE_STYLES = 'styles/';
+
+// Revenue Programs
+export const REVENUE_PROGRAMS = 'revenue-programs/';

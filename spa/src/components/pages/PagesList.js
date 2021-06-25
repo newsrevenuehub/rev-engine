@@ -4,6 +4,9 @@ import * as S from './PagesList.styled';
 // Router
 import { useHistory } from 'react-router-dom';
 
+// Deps
+import { useAlert } from 'react-alert';
+
 // Constants
 import { GENERIC_ERROR } from 'constants/textConstants';
 
@@ -18,6 +21,7 @@ import { LIST_PAGES } from 'ajax/endpoints';
 import Button from 'elements/buttons/Button';
 
 function PagesList() {
+  const alert = useAlert();
   const history = useHistory();
   const [pages, setPages] = useState([]);
 
@@ -31,7 +35,7 @@ function PagesList() {
       }
     }
     fetchPages();
-  }, []);
+  }, [alert]);
 
   const handleEditPage = (pageSlug) => {
     history.push(`${EDITOR_ROUTE}/${pageSlug}`);

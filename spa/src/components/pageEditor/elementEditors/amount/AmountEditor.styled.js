@@ -21,6 +21,8 @@ export const FreqHeading = styled.h5`
   margin: 0;
 `;
 
+export const NoFreqs = styled.p``;
+
 export const AmountsList = styled.ul`
   padding: 0;
   margin: 0;

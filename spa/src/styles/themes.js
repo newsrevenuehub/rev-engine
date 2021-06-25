@@ -22,6 +22,7 @@ export const revEngineTheme = {
     success: '#99D17B',
     warning: '#ffd400',
     disabled: '#ebebeb',
+    link: '#4183c4',
 
     hover: '#eee'
   },

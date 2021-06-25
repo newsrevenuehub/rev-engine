@@ -30,26 +30,44 @@ class PageViewSetTest(AbstractTestCase):
         super().setUp()
         self.create_resources()
         self.rev_program = RevenueProgramFactory()
+        self.authenticate_user_for_resource(self.rev_program)
+        self.authenticate_user_for_resource()
+        self.login()
 
     def test_page_create_adds_page(self):
         self.assertEqual(len(self.resources), self.resource_count)
-        self.authenticate_user_for_resource()
+        list_url = reverse("donationpage-list")
+        page_data = {
+            "name": "My page, tho",
+            "heading": "New DonationPage",
+            "slug": "new-page",
+            "revenue_program_pk": self.rev_program.pk,
+        }
+        response = self.client.post(list_url, page_data)
+        self.assertEqual(response.status_code, 201)
+        self.assertEqual(DonationPage.objects.count(), self.resource_count + 1)
+
+    def test_page_create_returns_valdiation_error_when_missing_rev_pk(self):
         self.login()
         list_url = reverse("donationpage-list")
         page_data = {
             "name": "My page, tho",
             "heading": "New DonationPage",
             "slug": "new-page",
-            "organization": self.orgs[0].pk,
-            "revenue_program": self.rev_program.pk,
         }
         response = self.client.post(list_url, page_data)
-        self.assertEqual(response.status_code, 201)
-        self.assertEqual(DonationPage.objects.count(), self.resource_count + 1)
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(
+            str(response.data["revenue_program_pk"]), "revenue_program_pk is required when creating a new page"
+        )
 
-        data = response.json()
-        for k, v in page_data.items():
-            self.assertEqual(v, data[k])
+    def test_page_create_returns_valdiation_error_when_bad_rev_pk(self):
+        self.login()
+        list_url = reverse("donationpage-list")
+        page_data = {"name": "My page, tho", "heading": "New DonationPage", "slug": "new-page", "revenue_program_pk": 0}
+        response = self.client.post(list_url, page_data)
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(str(response.data["revenue_program_pk"]), "Could not find revenue program with provided pk")
 
     def test_page_update_updates_page(self):
         page = self.resources[0]

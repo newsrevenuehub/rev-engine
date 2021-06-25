@@ -42,7 +42,7 @@ function PagesList() {
   };
 
   return (
-    <S.PagesList>
+    <S.PagesList data-testid="pages-list">
       <S.List>
         {pages.map((page) => (
           <Button key={page.id} onClick={() => handleEditPage(page.derived_slug)}>

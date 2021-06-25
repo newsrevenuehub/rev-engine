@@ -85,7 +85,7 @@ function AddPageModal({ isOpen, closeModal }) {
 
   return (
     <Modal isOpen={isOpen} closeModal={closeModal}>
-      <S.AddPageModal>
+      <S.AddPageModal data-testid="page-create-modal">
         <S.ModalTitle>Create a new donation page</S.ModalTitle>
         <S.PageForm>
           <S.InputWrapper>
@@ -96,6 +96,7 @@ function AddPageModal({ isOpen, closeModal }) {
               onChange={(e) => setName(e.target.value)}
               onBlur={handleNameBlur}
               errors={errors?.name}
+              testid="page-name"
             />
           </S.InputWrapper>
           <S.InputWrapper>
@@ -106,6 +107,7 @@ function AddPageModal({ isOpen, closeModal }) {
               onChange={(e) => setSlug(e.target.value)}
               onBlur={handleSlugBlur}
               errors={errors?.slug}
+              testid="page-slug"
             />
           </S.InputWrapper>
           {revenuePrograms.length > 0 && (

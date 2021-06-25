@@ -20,7 +20,7 @@ function Pages() {
           <PagesList />
         </DashboardSection>
       </DashboardSectionGroup>
-      <S.PlusButton onClick={() => setShowAddPageModal(true)}>
+      <S.PlusButton onClick={() => setShowAddPageModal(true)} data-testid="page-create-button">
         <CircleButton icon={faPlus} />
       </S.PlusButton>
       {showAddPageModal && <AddPageModal isOpen={showAddPageModal} closeModal={() => setShowAddPageModal(false)} />}

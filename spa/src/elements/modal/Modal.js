@@ -19,7 +19,7 @@ function Modal({ children, isOpen, closeModal }) {
           <S.Underlay isOpen={isOpen} onClick={closeModal ? closeModal : () => {}} />
           <S.Modal isOpen={isOpen} closeModal={closeModal}>
             {closeModal && (
-              <S.CloseButton onClick={closeModal}>
+              <S.CloseButton onClick={closeModal} data-testid="close-modal">
                 <S.CloseIcon icon={faTimes} />
               </S.CloseButton>
             )}

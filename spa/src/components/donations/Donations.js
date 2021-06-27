@@ -10,7 +10,7 @@ import DashboardSection from 'components/dashboard/DashboardSection';
 import axios from 'ajax/axios';
 import { DONATIONS } from 'ajax/endpoints';
 
-const DEFAULT_RESULTS_ORDERING = [
+export const DEFAULT_RESULTS_ORDERING = [
   { id: 'last_payment_date', desc: true },
   { id: 'modified', desc: true },
   { id: 'amount', desc: false },
@@ -63,7 +63,10 @@ function DonationsTable({ columns, data, fetchData, loading, pageCount, totalRes
           {headerGroups.map((headerGroup) => (
             <tr {...headerGroup.getHeaderGroupProps()}>
               {headerGroup.headers.map((column) => (
-                <th data-testid="donation-header" {...column.getHeaderProps(column.getSortByToggleProps())}>
+                <th
+                  data-testid={`donation-header-${column.id}`}
+                  {...column.getHeaderProps(column.getSortByToggleProps())}
+                >
                   {column.render('Header')}
                   <span>{column.isSorted ? (column.isSortedDesc ? ' 🔽' : ' 🔼') : ''}</span>
                 </th>
@@ -75,7 +78,16 @@ function DonationsTable({ columns, data, fetchData, loading, pageCount, totalRes
           {page.map((row, i) => {
             prepareRow(row);
             return (
-              <tr data-testid="donation-row" {...row.getRowProps()}>
+              <tr
+                data-testid="donation-row"
+                data-donationid={row.original.id}
+                data-lastpaymentdate={row.original.last_payment_date}
+                data-amount={row.original.amount}
+                data-donor={row.original.contributor_email}
+                data-status={row.original.status}
+                data-flaggeddate={row.original.flagged_date || ''}
+                {...row.getRowProps()}
+              >
                 {row.cells.map((cell) => {
                   return (
                     <td data-testid="donation-cell" data-testcolumnaccessor={cell.column.id} {...cell.getCellProps()}>
@@ -91,7 +103,8 @@ function DonationsTable({ columns, data, fetchData, loading, pageCount, totalRes
               <td colSpan="10000">Loading...</td>
             ) : (
               <td colSpan="10000">
-                Showing {startIndex} - {endIndex} of ~{totalResults} total results
+                Showing {startIndex} - {endIndex} of{' '}
+                <span data-testid="total-results">~{totalResults} total results</span>
               </td>
             )}
           </tr>
@@ -114,12 +127,14 @@ function DonationsTable({ columns, data, fetchData, loading, pageCount, totalRes
         <span>
           Page{' '}
           <strong>
-            {pageIndex + 1} of {pageOptions.length}
+            <span data-testid="page-number">{pageIndex + 1}</span> of{' '}
+            <span data-testid="page-total">{pageOptions.length}</span>
           </strong>{' '}
         </span>
         <span>
           | Go to page:{' '}
           <input
+            data-testid="go-to-page"
             type="number"
             defaultValue={pageIndex + 1}
             onChange={(e) => {

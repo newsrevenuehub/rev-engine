@@ -45,7 +45,7 @@ function DonationPage({ page, live = false }) {
               </S.DonationContent>
             </S.SideInner>
           </S.SideOuter>
-          {page.show_benefits && getters.getBenefitsElement()}
+          {page.donor_benefits && getters.getBenefitsElement()}
         </S.PageMain>
       </S.DonationPage>
     </DonationPageContext.Provider>

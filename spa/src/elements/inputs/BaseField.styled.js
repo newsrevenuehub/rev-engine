@@ -12,12 +12,11 @@ export const baseInputStyles = css`
   background: ${(props) => props.theme.colors.inputBackground};
   border: 1px solid;
   border-color: ${(props) => props.theme.colors.inputBorder};
-  border-radius: 2px;
+  border-radius: ${(props) => props.theme.radii[0]};
   font-size: ${(props) => props.theme.fontSizes[1]};
 `;
 
 export const Wrapper = styled.div`
-  margin: 0.5rem;
   width: 100%;
 `;
 
@@ -32,6 +31,13 @@ export const Label = styled.label`
   font-weight: 500;
   color: ${(props) => props.theme.colors.black};
   margin-bottom: 0.5rem;
+`;
+
+export const HelpText = styled.p`
+  margin-top: 1rem;
+  font-weight: 200;
+  font-size: 14px;
+  font-style: italic;
 `;
 
 export const Errors = styled(motion.ul)`

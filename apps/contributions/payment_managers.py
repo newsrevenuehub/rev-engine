@@ -332,7 +332,7 @@ class StripePaymentManager(PaymentManager):
         Switching 'monthly' to 'daily' and 'yearly' to 'weekly' is ok, but not great.
         It would be really swell if there was a way to set it to minutes/hours.
         """
-        if not settings.USE_DEBUG_INTERVALS:
+        if not settings.USE_DEBUG_INTERVALS == "True":
             return self.contribution.interval
         logger.warn("Using debug intervals for Stripe Subscriptions")
         if self.contribution.interval == Contribution.INTERVAL_MONTHLY:

@@ -109,7 +109,7 @@ if BROKER_URL.startswith("rediss"):
     }
 
 CELERYBEAT_SCHEDULER = "django_celery_beat.schedulers:DatabaseScheduler"
-
+CELERY_HIJACK_ROOT_LOGGER = False
 
 ### 3rd-party appplications
 

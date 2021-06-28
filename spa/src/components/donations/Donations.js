@@ -1,10 +1,13 @@
 import * as S from './Donations.styled';
 import { formatCurrencyAmount, formatDateTime } from './utils';
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useAlert } from 'react-alert';
 import { useTable, usePagination, useSortBy } from 'react-table';
 
 import DashboardSectionGroup from 'components/dashboard/DashboardSectionGroup';
 import DashboardSection from 'components/dashboard/DashboardSection';
+
+import { GENERIC_ERROR } from 'constants/textConstants';
 
 // AJAX
 import axios from 'ajax/axios';
@@ -18,6 +21,7 @@ export const DEFAULT_RESULTS_ORDERING = [
 ];
 
 function DonationsTable({ columns, data, fetchData, loading, pageCount, totalResults }) {
+  const alert = useAlert();
   const {
     getTableProps,
     getTableBodyProps,
@@ -192,16 +196,19 @@ function Donations() {
   const fetchData = useCallback(async (pageSize, pageIndex, sortBy) => {
     const ordering = sortBy.length ? sortBy : DEFAULT_RESULTS_ORDERING;
     setLoading(true);
-    const {
-      data: { count, results }
-    } = await axios.get(DONATIONS, {
-      params: { page_size: pageSize, page: pageIndex, ordering: convertOrderingToString(ordering) }
-    });
-    // error handling
-    setData(results);
-    setPageCount(Math.ceil(count / pageSize));
-    setTotalResults(count);
-    setLoading(false);
+    try {
+      const {
+        data: { count, results }
+      } = await axios.get(DONATIONS, {
+        params: { page_size: pageSize, page: pageIndex, ordering: convertOrderingToString(ordering) }
+      });
+      setData(results);
+      setPageCount(Math.ceil(count / pageSize));
+      setTotalResults(count);
+      setLoading(false);
+    } catch (e) {
+      alert.error(GENERIC_ERROR);
+    }
   }, []);
 
   return (

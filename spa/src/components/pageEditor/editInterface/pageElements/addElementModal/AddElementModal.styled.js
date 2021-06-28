@@ -3,6 +3,7 @@ import styled from 'styled-components';
 
 export const AddElementModal = styled.div`
   height: 85vh;
+  overflow-y: scroll;
   width: 800px;
   padding: 1rem;
   background: ${(props) => props.theme.colors.paneBackground};

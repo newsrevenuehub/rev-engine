@@ -10,7 +10,7 @@ import { useEditInterfaceContext } from 'components/pageEditor/editInterface/Edi
 
 // Elements
 import * as dynamicElements from 'components/donationPage/pageContent/dynamicElements';
-import PageItem from '../PageItem';
+import PageItem from 'components/pageEditor/editInterface/pageElements/PageItem';
 
 function AddElementModal({ addElementModalOpen, setAddElementModalOpen }) {
   const { elements, setElements } = useEditInterfaceContext();
@@ -45,6 +45,7 @@ function AddElementModal({ addElementModalOpen, setAddElementModalOpen }) {
                       element={element}
                       isStatic
                       onClick={disabled ? undefined : () => handleElementSelected(element)}
+                      data-testid={`add-${element.type}`}
                     />
                   </S.PageItemWrapper>
                 );

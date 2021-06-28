@@ -1,10 +1,12 @@
 import { useEffect, useState } from 'react';
 import * as S from './AmountEditor.styled';
 
-import { faTimes, faPlus } from '@fortawesome/free-solid-svg-icons';
-
 // Context
 import { useEditInterfaceContext } from 'components/pageEditor/editInterface/EditInterface';
+
+// Elememts
+import PlusButton from 'elements/buttons/PlusButton';
+import XButton from 'elements/buttons/XButton';
 
 function AmountEditor() {
   const { elementContent, setElementContent, page, updatedPage } = useEditInterfaceContext();
@@ -75,12 +77,8 @@ function AmountEditor() {
               ?.sort((a, b) => a - b)
               .map((amount, i) => (
                 <S.AmountItem key={amount + i}>
-                  {amount}{' '}
-                  <S.RemoveAmount
-                    icon={faTimes}
-                    onClick={() => removeAmount(freq, amount)}
-                    data-testid="remove-amount-button"
-                  />
+                  {amount}
+                  <XButton onClick={() => removeAmount(freq, amount)} />
                 </S.AmountItem>
               ))}
           </S.AmountsList>
@@ -93,9 +91,7 @@ function AmountEditor() {
               onKeyUp={(e) => handleKeyUp(e, freq)}
               data-testid="amount-input"
             />
-            <S.AddAmountButton onClick={() => addAmount(freq)} data-testid="add-amount-button">
-              <S.PlusIcon icon={faPlus} />
-            </S.AddAmountButton>
+            <PlusButton onClick={() => addAmount(freq)} data-testid="add-button" />
           </S.AmountInputGroup>
         </S.FreqGroup>
       ))}

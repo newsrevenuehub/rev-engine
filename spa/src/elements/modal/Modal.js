@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import * as S from './Modal.styled';
 
@@ -5,6 +6,12 @@ import { AnimatePresence } from 'framer-motion';
 import { faTimes } from '@fortawesome/free-solid-svg-icons';
 
 function Modal({ children, isOpen, closeModal }) {
+  useEffect(() => {
+    if (isOpen) document.body.style.overflow = 'hidden';
+    else document.body.style.overflow = '';
+    return () => (document.body.style.overflow = '');
+  }, [isOpen]);
+
   return createPortal(
     <AnimatePresence>
       {isOpen && (

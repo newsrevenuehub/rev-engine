@@ -24,7 +24,7 @@ export class ApiResourceList {
         columns.push(item.replace('-', ''));
         directions.push(item.startsWith('-') ? 'desc' : 'asc');
       });
-    if (columns.length == 0) {
+    if (columns.length === 0) {
       columns = this.defaultSortBys.columns;
       directions = this.defaultSortBys.directions;
     }

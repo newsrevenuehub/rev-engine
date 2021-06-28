@@ -20,7 +20,7 @@ class DonationPageTest(TestCase):
         self.instance = DonationPageFactory()
 
     def test_to_string(self):
-        derived_name = f"{self.instance.title} - {self.instance.slug}"
+        derived_name = f"{self.instance.heading} - {self.instance.slug}"
         self.assertEqual(derived_name, str(self.instance))
 
     def test_is_live(self):
@@ -36,10 +36,10 @@ class DonationPageTest(TestCase):
         self.assertFalse(self.instance.is_live)
 
     def test_save_as_template(self):
-        # without name arugment, uses page.title for template.name
+        # without name arugment, uses page.heading for template.name
         template, _ = self.instance.save_as_template()
 
-        self.assertEqual(template.name, self.instance.title)
+        self.assertEqual(template.name, self.instance.name)
 
         # with name argument, uses that for template.name
         new_name = "My New Template"

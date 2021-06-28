@@ -1,12 +1,11 @@
-import * as S from './Donations.styled';
+import DashboardSectionGroup from 'components/dashboard/DashboardSectionGroup';
+import DashboardSection from 'components/dashboard/DashboardSection';
 
 function Donations() {
   return (
-    <S.Donations data-testid="donations">
-      <S.DonationsSection>
-        <p>Donations section</p>
-      </S.DonationsSection>
-    </S.Donations>
+    <DashboardSectionGroup data-testid="donations">
+      <DashboardSection heading="Donations 1"></DashboardSection>
+    </DashboardSectionGroup>
   );
 }
 

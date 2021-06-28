@@ -5,7 +5,7 @@ from apps.contributions import views
 
 
 urlpatterns = [
-    path("stripe/one-time-donation/", views.stripe_one_time_payment, name="stripe-one-time-payment"),
+    path("stripe/payment/", views.stripe_payment, name="stripe-payment"),
     path("stripe/onboarding/", views.stripe_onboarding, name="stripe-onboarding"),
     path("stripe/confirmation/", views.stripe_confirmation, name="stripe-confirmation"),
     re_path(
@@ -13,4 +13,5 @@ urlpatterns = [
         views.process_stripe_webhook_view,
         name="stripe-webhooks",
     ),
+    path("contributions/", views.ContributionsListView.as_view({"get": "list"}), name="contributions"),
 ]

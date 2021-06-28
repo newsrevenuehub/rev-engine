@@ -44,6 +44,8 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     "django_celery_beat",
     "rest_framework",
+    "sorl.thumbnail",
+    "sorl_thumbnail_serializer",
     "anymail",
 ]
 
@@ -85,7 +87,7 @@ REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": [
         "apps.api.authentication.JWTHttpOnlyCookieAuthentication",
     ],
-    "DEFAUL_PERMISSION_CLASSES": [
+    "DEFAULT_PERMISSION_CLASSES": [
         "rest_framework.permissions.IsAuthenticated",
     ],
     # https://www.django-rest-framework.org/api-guide/pagination/#setting-the-pagination-style
@@ -186,20 +188,9 @@ STATIC_URL = "/static/"
 MEDIA_ROOT = os.path.join(BASE_DIR, "public/media")
 MEDIA_URL = "/media/"
 MEDIA_STORAGE_BUCKET_NAME = os.getenv("MEDIA_STORAGE_BUCKET_NAME", "")
-MEDIA_LOCATION = os.getenv("MEDIA_LOCATION", "")
-MEDIA_S3_CUSTOM_DOMAIN = os.getenv("MEDIA_S3_CUSTOM_DOMAIN", "")
 DEFAULT_FILE_STORAGE = os.getenv("DEFAULT_FILE_STORAGE", "django.core.files.storage.FileSystemStorage")
-# Only set this if you need to override the default bucket permissions
-# See: https://github.com/caktus/jade-truffle/issues/17
-AWS_DEFAULT_ACL = os.getenv("AWS_DEFAULT_ACL") or None
-AWS_S3_SIGNATURE_VERSION = os.getenv("AWS_S3_SIGNATURE_VERSION", "s3v4")
-AWS_S3_REGION_NAME = os.getenv("AWS_S3_REGION_NAME", "us-east-1")
-# See https://github.com/wagtail/wagtail/pull/4495#issuecomment-387434521
-AWS_S3_FILE_OVERWRITE = False
-AWS_QUERYSTRING_AUTH = os.getenv("AWS_QUERYSTRING_AUTH", "True") == "True"
-# If not set, boto3 internally looks up IAM credentials
-AWS_ACCESS_KEY_ID = os.getenv("AWS_ACCESS_KEY_ID")
-AWS_SECRET_ACCESS_KEY = os.getenv("AWS_SECRET_ACCESS_KEY")
+
+MEDIA_LOCATION = os.getenv("MEDIA_LOCATION", "")
 
 
 # Logging
@@ -245,7 +236,7 @@ LOGGING = {
         "warn": {
             "handlers": ["warn_admins"],
             "level": "WARNING",
-            "propagate": False,
+            "propagate": True,
         },
     },
     "root": {
@@ -266,6 +257,8 @@ STRIPE_LIVE_SECRET_KEY = os.getenv("LIVE_HUB_STRIPE_API_SECRET_KEY", "")
 STRIPE_TEST_SECRET_KEY = os.getenv("TEST_HUB_STRIPE_API_SECRET_KEY", "")
 STRIPE_LIVE_MODE = False  # Change to True in production
 
+GENERIC_STRIPE_PRODUCT_NAME = "Donation via RevEngine"
+
 # Get it from the section in the Stripe dashboard where you added the webhook endpoint
 STRIPE_WEBHOOK_SECRET = os.getenv("STRIPE_WEBHOOK_SECRET", "")
 
@@ -278,6 +271,7 @@ STRIPE_WEBHOOK_EVENTS = [
     "payment_intent.payment_failed",
     "payment_intent.succeeded",
 ]
+
 
 SITE_URL = os.getenv("SITE_URL", "")
 
@@ -296,9 +290,19 @@ HEALTHCHECK_URL_AUTO_ACCEPT_FLAGGED_PAYMENTS = os.environ.get("HEALTHCHECK_URL_A
 
 # Transactional Email
 EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
+EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
+EMAIL_SUBJECT_PREFIX = "[RevEngine] "
 
 ADMINS = [("nrh-team", "nrh-team@caktusgroup.com")]
 
 # this is only used by HubAdmins, not OrgAdmins, but needs to be named generically as LOGIN_URL
 # so our implementation of password reset flow for HubAdmins works as expected
 LOGIN_URL = "/admin/"
+
+# Set USE_DEBUG_INTERVALS to True if you want recurring payment intervals to be truncated for testing (as much as possible, currently)
+USE_DEBUG_INTERVALS = os.getenv("USE_DEBUG_INTERVALS", False)
+
+# Images config
+THUMBNAIL_COLORSPACE = None
+THUMBNAIL_PRESERVE_FORMAT = True
+THUMBNAIL_PRESERVE_FORMAT = True

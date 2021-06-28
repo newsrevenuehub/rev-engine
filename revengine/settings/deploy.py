@@ -103,7 +103,7 @@ if BROKER_URL.startswith("rediss"):
     }
 
 CELERYBEAT_SCHEDULER = "django_celery_beat.schedulers:DatabaseScheduler"
-
+CELERY_HIJACK_ROOT_LOGGER = False
 
 ### 3rd-party appplications
 
@@ -121,3 +121,5 @@ if SENTRY_DSN:
 
 # BadActor API
 BAD_ACTOR_API_URL = "https://bad-actor.fundjournalism.org/v1/bad_actor/"
+
+USE_DEBUG_INTERVALS = False

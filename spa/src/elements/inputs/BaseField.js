@@ -1,12 +1,22 @@
+import { useEffect, useRef } from 'react';
 import * as S from './BaseField.styled';
 import PropTypes from 'prop-types';
+import scrollIfNotVisible from 'utilities/scrollIfNotVisible';
 
 // Animations
 import { AnimatePresence } from 'framer-motion';
 
 const hasErrors = (errors) => errors.length > 0;
 
-function BaseField({ label, errors, inline, labelProps, children }) {
+function BaseField({ label, errors, inline, labelProps, helpText, children }) {
+  const errorsRef = useRef();
+
+  useEffect(() => {
+    if (hasErrors(errors) && errorsRef.current) {
+      scrollIfNotVisible(errorsRef.current);
+    }
+  }, [errors]);
+
   return (
     <S.Wrapper>
       <S.FieldWrapper inline={inline}>
@@ -17,9 +27,10 @@ function BaseField({ label, errors, inline, labelProps, children }) {
         )}
         {children}
       </S.FieldWrapper>
+      {helpText && <S.HelpText>{helpText}</S.HelpText>}
       <AnimatePresence>
         {hasErrors(errors) && (
-          <S.Errors {...S.errorsAnimation}>
+          <S.Errors ref={errorsRef} {...S.errorsAnimation}>
             {errors.map((error) => (
               <S.Error key={error}>{error}</S.Error>
             ))}

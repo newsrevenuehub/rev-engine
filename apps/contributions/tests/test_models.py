@@ -19,14 +19,12 @@ class ContributorTest(TestCase):
         self.assertEqual(self.contributor.contributions_count, target_count)
 
     def test_most_recent_contribution(self):
-        first_contribution = Contribution.objects.create(
-            amount=1000, contributor=self.contributor, payment_state="paid"
-        )
+        first_contribution = Contribution.objects.create(amount=1000, contributor=self.contributor, status="paid")
         one_minute = datetime.timedelta(minutes=1)
         second_contribution = Contribution.objects.create(
             amount=1000,
             contributor=self.contributor,
-            payment_state="paid",
+            status="paid",
             modified=timezone.now() + one_minute,
         )
         self.assertEqual(self.contributor.most_recent_contribution, second_contribution)

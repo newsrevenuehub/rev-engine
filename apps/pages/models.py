@@ -3,6 +3,8 @@ from django.core.exceptions import ValidationError
 from django.db import models
 from django.utils import timezone
 
+from sorl.thumbnail import ImageField as SorlImageField
+
 from apps.common.models import IndexedTimeStampedModel
 from apps.common.utils import normalize_slug
 from apps.organizations.models import Feature
@@ -10,17 +12,17 @@ from apps.organizations.models import Feature
 
 class AbstractPage(IndexedTimeStampedModel):
     name = models.CharField(max_length=255)
-    title = models.CharField(max_length=255)
+    heading = models.CharField(max_length=255, blank=True)
 
-    header_bg_image = models.ImageField(null=True, blank=True)
-    header_logo = models.ImageField(null=True, blank=True)
+    graphic = SorlImageField(null=True, blank=True)
+
+    header_bg_image = SorlImageField(null=True, blank=True)
+    header_logo = SorlImageField(null=True, blank=True)
     header_link = models.URLField(null=True, blank=True)
 
     styles = models.ForeignKey("pages.Style", null=True, blank=True, on_delete=models.SET_NULL)
 
     elements = models.JSONField(null=True, blank=True)
-
-    show_benefits = models.BooleanField(default=False)
 
     donor_benefits = models.ForeignKey(
         "pages.DonorBenefit",
@@ -30,10 +32,11 @@ class AbstractPage(IndexedTimeStampedModel):
     )
 
     thank_you_redirect = models.URLField(
-        blank=True, help_text='If left blank, Organization default "thank you" redirect will be used'
+        blank=True, help_text="If not using default Thank You page, add link to orgs Thank You page here"
     )
     post_thank_you_redirect = models.URLField(
-        blank=True, help_text='If left blank, Organization default post-"thank you" redirect will be used'
+        blank=True,
+        help_text='Donors can click a link to go "back to the news" after viewing the default thank you page',
     )
 
     organization = models.ForeignKey("organizations.Organization", on_delete=models.CASCADE)
@@ -51,6 +54,9 @@ class Template(AbstractPage):
     A "Snapshot" of a Page at a particular state.
     """
 
+    class TemplateError(Exception):
+        pass
+
     def __str__(self):
         return self.name
 
@@ -66,9 +72,12 @@ class Template(AbstractPage):
         for field in AbstractPage.field_names():
             template_field = getattr(self, field)
             setattr(page, field, template_field)
-
-        page.save()
-        return page_model.objects.get(pk=page.pk)
+        if parent_page := DonationPage.objects.filter(name=self.name).first():
+            page.name = f"{page.name}-(COPY)"
+            page.revenue_program = parent_page.revenue_program
+            page.save()
+            return page_model.objects.get(pk=page.pk)
+        raise self.TemplateError(f"A DonationPage with the heading ({self.heading}) could not be found.")
 
 
 class DonationPage(AbstractPage):
@@ -91,7 +100,7 @@ class DonationPage(AbstractPage):
         )
 
     def __str__(self):
-        return f"{self.title} - {self.slug}"
+        return f"{self.heading} - {self.slug}"
 
     def has_page_limit(self):
         return Feature.objects.filter(
@@ -118,12 +127,6 @@ class DonationPage(AbstractPage):
 
         self.slug = normalize_slug(self.name, self.slug)
 
-        if not self.thank_you_redirect:
-            self.thank_you_redirect = self.organization.default_thank_you_redirect
-
-        if not self.post_thank_you_redirect:
-            self.post_thank_you_redirect = self.organization.default_post_thank_you_redirect
-
         super().save(*args, **kwargs)
 
     def save_as_template(self, name=None):
@@ -132,7 +135,7 @@ class DonationPage(AbstractPage):
             page_field = getattr(self, field)
             setattr(template, field, page_field)
 
-        template.name = name or self.title
+        template.name = name or self.name
 
         template_exists = Template.objects.filter(name=template.name).exists()
         created = False

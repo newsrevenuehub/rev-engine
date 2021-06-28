@@ -1,13 +1,27 @@
+import logging
+
 from django.conf import settings
 from django.utils import timezone
 
 import stripe
 
 from apps.contributions.bad_actor import BadActorAPIError, make_bad_actor_request
-from apps.contributions.models import Contribution, Contributor
+from apps.contributions.models import (
+    Contribution,
+    ContributionInterval,
+    ContributionStatus,
+    Contributor,
+)
+from apps.contributions.serializers import (
+    StripeOneTimePaymentSerializer,
+    StripeRecurringPaymentSerializer,
+)
 from apps.contributions.utils import get_hub_stripe_api_key
 from apps.organizations.models import RevenueProgram
 from apps.pages.models import DonationPage
+
+
+logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
 
 
 class PaymentProviderError(Exception):
@@ -35,7 +49,7 @@ class PaymentManager:
     contribution = None
     revenue_program = None
 
-    def __init__(self, serializer_class, data=None, contribution=None):
+    def __init__(self, data=None, contribution=None):
         """
         The PaymentManager class and its subclasses behave much like a ModelSerializer,
         but they operate on multiple local models as well as models held by the payment provider.
@@ -55,7 +69,10 @@ class PaymentManager:
 
         self.contribution = contribution
         self.data = data
-        self.serializer_class = serializer_class
+        self.serializer_class = self.get_serializer_class(data=data, contribution=contribution)
+
+    def get_serializer_class(self, **kwargs):
+        raise NotImplementedError("Subclasses of PaymentManager must implement get_serializer_class")
 
     def validate(self):
         serializer = self.serializer_class(data=self.data)
@@ -68,6 +85,7 @@ class PaymentManager:
 
     def get_bad_actor_score(self):
         self.ensure_validated_data()
+
         try:
             response = make_bad_actor_request(self.validated_data)
             self.bad_actor_score = response.json()["overall_judgment"]
@@ -83,10 +101,6 @@ class PaymentManager:
     def ensure_bad_actor_score(self):
         if self.flagged is None:
             raise ValueError("PaymentManager must call 'get_bad_actor_score' before performing this action")
-
-    def get_or_create_contributor(self):
-        contributor, _ = Contributor.objects.get_or_create(email=self.validated_data["email"])
-        return contributor
 
     def should_flag(self):
         """
@@ -116,33 +130,41 @@ class PaymentManager:
         except DonationPage.DoesNotExist:
             raise PaymentBadParamsError("PaymentManager could not find a donation page with slug provided")
 
-    def create_contribution(self, organization, payment_intent):
+    def get_or_create_contributor(self):
+        contributor, _ = Contributor.objects.get_or_create(email=self.validated_data["email"])
+        return contributor
+
+    def create_contribution(self, organization, provider_reference_instance=None, provider_customer_id=""):
         if not self.payment_provider_name:
             raise ValueError("Subclass of PaymentManager must set payment_provider_name property")
 
+        status = ContributionStatus.FLAGGED if self.flagged else ContributionStatus.PROCESSING
         contributor = self.get_or_create_contributor()
         donation_page = self.get_donation_page()
-        Contribution.objects.create(
+        provider_payment_id = provider_reference_instance.id if provider_reference_instance else None
+        provider_payment_method_id = self.validated_data.get("payment_method_id", "")
+
+        return Contribution.objects.create(
             amount=self.validated_data["amount"],
+            reason=self.validated_data["reason"],
+            interval=self.validated_data["interval"],
+            status=status,
             donation_page=donation_page,
             organization=organization,
             contributor=contributor,
             payment_provider_used=self.payment_provider_name,
-            payment_provider_data=payment_intent,
-            provider_reference_id=payment_intent.id,
-            payment_state=Contribution.FLAGGED[0] if self.flagged else Contribution.PROCESSING[0],
+            payment_provider_data=provider_reference_instance,
+            provider_payment_id=provider_payment_id,
+            provider_customer_id=provider_customer_id,
+            provider_payment_method_id=provider_payment_method_id,
             bad_actor_score=self.bad_actor_score,
             bad_actor_response=self.bad_actor_response,
         )
 
-    def get_subclass(self):
-        if not self.contribution:
-            raise ValueError(
-                "Calling get_subclass requires PaymentManager to be instantiated with a contribution instance."
-            )
-
-        pp_used = self.contribution.payment_provider_used
-        if pp_used == "Stripe":
+    @staticmethod
+    def get_subclass(contribution):
+        payment_provider_used = contribution.payment_provider_used
+        if payment_provider_used == "Stripe":
             return StripePaymentManager
 
     def complete_payment(self, **kwargs):  # pragma: no cover
@@ -151,59 +173,170 @@ class PaymentManager:
 
 class StripePaymentManager(PaymentManager):
     payment_provider_name = "Stripe"
-    customer = None
+
+    def get_serializer_class(self, data=None, contribution=None):
+        """
+        Get serializer class based on whether data or contribution instance have interval of one-time,
+        or something else.
+        """
+        interval = contribution.interval if contribution else data["interval"]
+        if interval == ContributionInterval.ONE_TIME:
+            return StripeOneTimePaymentSerializer
+        return StripeRecurringPaymentSerializer
 
     def create_one_time_payment(self):
+        """
+        A one-time payment creates a simple Stripe PaymentIntent. This PaymentIntent can be
+        executed immediately with `capture_method="automatic"`, or capture can be defered. If
+        `capture_method` is set to "manual", Stripe will hold the funds in the customer's bank
+        for seven days.
+        """
         self.ensure_validated_data()
         self.ensure_bad_actor_score()
-        org = self.get_organization()
+        organization = self.get_organization()
         capture_method = "manual" if self.flagged else "automatic"
         stripe_payment_intent = stripe.PaymentIntent.create(
             amount=self.validated_data["amount"],
             currency=settings.DEFAULT_CURRENCY,
             payment_method_types=["card"],
             api_key=get_hub_stripe_api_key(),
-            stripe_account=org.stripe_account_id,
+            stripe_account=organization.stripe_account_id,
             capture_method=capture_method,
         )
 
-        self.create_contribution(org, stripe_payment_intent)
+        self.create_contribution(organization, provider_reference_instance=stripe_payment_intent)
         return stripe_payment_intent
 
     def create_subscription(self):
+        """
+        Unlike PaymentIntents, Stripe Subscriptions do not have a concept of a "capture_method".
+        So far, it seems like the best way to delay the "capture" of a flagged contribution is to
+        simply not create it until it's been approved.
+        """
         self.ensure_validated_data()
         self.ensure_bad_actor_score()
-        pass
+        organization = self.get_organization()
+
+        # Create customer on org...
+        stripe_customer = self.create_organization_customer(organization)
+        # ...attach paymentMethod to that customer.
+        self.attach_payment_method_to_customer(stripe_customer.id, organization.stripe_account_id)
+
+        contribution = self.create_contribution(organization, provider_customer_id=stripe_customer.id)
+        if not self.flagged:
+            self.contribution = contribution
+            self.complete_payment(reject=False)
+
+    def create_organization_customer(self, organization):
+        return stripe.Customer.create(
+            email=self.validated_data["email"],
+            api_key=get_hub_stripe_api_key(),
+            stripe_account=organization.stripe_account_id,
+        )
+
+    def attach_payment_method_to_customer(self, stripe_customer_id, org_strip_account):
+        stripe.PaymentMethod.attach(
+            self.validated_data["payment_method_id"],
+            customer=stripe_customer_id,
+            api_key=get_hub_stripe_api_key(),
+            stripe_account=org_strip_account,
+        )
 
     def complete_payment(self, reject=False):
+        if self.contribution.interval == ContributionInterval.ONE_TIME:
+            self.complete_one_time_payment(reject)
+        elif self.contribution.interval:
+            self.complete_recurring_payment(reject)
+
+    def complete_one_time_payment(self, reject=False):
         organization = self.contribution.organization
-        previous_payment_state = self.contribution.payment_state
-        self.contribution.payment_state = Contribution.PROCESSING[0]
+        previous_status = self.contribution.status
+        self.contribution.status = ContributionStatus.PROCESSING
         self.contribution.save()
 
         try:
             if reject:
                 stripe.PaymentIntent.cancel(
-                    self.contribution.provider_reference_id,
+                    self.contribution.provider_payment_id,
                     stripe_account=organization.stripe_account_id,
                     api_key=get_hub_stripe_api_key(),
                     cancellation_reason="fraudulent",
                 )
             else:
                 stripe.PaymentIntent.capture(
-                    self.contribution.provider_reference_id,
+                    self.contribution.provider_payment_id,
                     stripe_account=organization.stripe_account_id,
                     api_key=get_hub_stripe_api_key(),
                 )
 
         except stripe.error.InvalidRequestError as invalid_request_error:
-            self.contribution.payment_state = previous_payment_state
+            self.contribution.status = previous_status
             self.contribution.save()
-            # ? Send email?
-            # ? This error is possible if contribution.payment_state does not match what Stripe thinks.
-            # ? Stripe will say "This payment could not be captured because it has already been [captured/canceled/failed]"
+            logger.warning(
+                f"Stripe returned an InvalidRequestError at {timezone.now}. This was caused by attempting to {'reject' if reject else 'capture'} a payment that was flagged in our system, but was already captured or rejected in Stripe's system.",
+            )
             raise PaymentProviderError(invalid_request_error)
         except stripe.error.StripeError as stripe_error:
-            self.contribution.payment_state = previous_payment_state
+            self.contribution.status = previous_status
             self.contribution.save()
-            raise PaymentProviderError(stripe_error)
+
+            message = stripe_error.error.message if stripe_error.error else "Could not complete payment"
+            raise PaymentProviderError(message)
+
+    def complete_recurring_payment(self, reject=False):
+        if reject:
+            """
+            If flagged, creation of the Stripe Subscription is defered until it is "accepted".
+            So to "reject", just don't create it. Set status of Contribution to "rejected"
+            """
+            self.contribution.status = ContributionStatus.REJECTED
+            self.contribution.save()
+            return
+
+        organization = self.contribution.organization
+        previous_status = self.contribution.status
+        self.contribution.status = ContributionStatus.PROCESSING
+        self.contribution.save()
+
+        try:
+            price_data = {
+                "unit_amount": self.contribution.amount,
+                "currency": self.contribution.currency,
+                "product": organization.stripe_product_id,
+                "recurring": {
+                    "interval": self.contribution.interval,
+                },
+            }
+            subscription = stripe.Subscription.create(
+                customer=self.contribution.provider_customer_id,
+                default_payment_method=self.contribution.provider_payment_method_id,
+                items=[{"price_data": price_data}],
+                stripe_account=organization.stripe_account_id,
+                api_key=get_hub_stripe_api_key(),
+            )
+
+            self.contribution.payment_provider_data = subscription
+            self.contribution.provider_subscription_id = subscription.id
+            self.contribution.save()
+
+        except stripe.error.StripeError as stripe_error:
+            self.contribution.status = previous_status
+            self.contribution.save()
+            message = stripe_error.error.message if stripe_error.error else "Could not complete payment"
+            raise PaymentProviderError(message)
+
+    def _get_interval(self):  # pragma: no cover
+        """
+        Utility to permit toggled debug intervals for testing.
+        Unfortunately, Stripe has a narrow range of supported intervals here.
+        Switching 'monthly' to 'daily' and 'yearly' to 'weekly' is ok, but not great.
+        It would be really swell if there was a way to set it to minutes/hours.
+        """
+        if not settings.USE_DEBUG_INTERVALS == "True":
+            return self.contribution.interval
+        logger.warn("Using debug intervals for Stripe Subscriptions")
+        if self.contribution.interval == Contribution.INTERVAL_MONTHLY:
+            return "daily"
+
+        if self.contribution.interval == Contribution.INTERVAL_YEARLY:
+            return "weekly"

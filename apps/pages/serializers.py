@@ -1,5 +1,7 @@
 from rest_framework import serializers
+from sorl_thumbnail_serializer.fields import HyperlinkedSorlImageField
 
+from apps.organizations.models import Organization, RevenueProgram
 from apps.pages.models import Benefit, BenefitTier, DonationPage, DonorBenefit, Style, Template
 
 
@@ -32,17 +34,26 @@ class DonorBenefitDetailSerializer(serializers.ModelSerializer):
         ]
 
 
-class DonorBenefitListSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = DonorBenefit
-        fields = [
-            "id",
-            "name",
-            "blurb",
-        ]
-
-
 class StyleSerializer(serializers.ModelSerializer):
+    def to_representation(self, instance):
+        styles = instance.styles if instance.styles else {}
+        return {"id": instance.pk, "name": instance.name, **styles}
+
+    def to_internal_value(self, data):
+        """
+        data comes in as a dict with name and styles flattened. We need
+        to stick styles in its own value and pull out name. Also get organization
+        from request.user.
+        """
+        organization = self.context["request"].user.get_organization()
+        if not data.get("name"):
+            raise serializers.ValidationError({"name": "This field is required."})
+
+        name = data.pop("name")
+        data = {"name": name, "organization": organization.pk, "styles": data}
+
+        return super().to_internal_value(data)
+
     class Meta:
         model = Style
         fields = "__all__"
@@ -56,27 +67,55 @@ class DonationPageDetailSerializer(serializers.ModelSerializer):
 
 class DonationPageFullDetailSerializer(serializers.ModelSerializer):
     styles = StyleSerializer()
-    donor_benefits = DonorBenefitDetailSerializer()
+    styles_pk = serializers.IntegerField(required=False, allow_null=True)
+    donor_benefits = DonorBenefitDetailSerializer(allow_null=True, required=False)
+    donor_benefits_pk = serializers.IntegerField(required=False, allow_null=True)
+
+    graphic = serializers.ImageField(allow_empty_file=True, allow_null=True, required=False)
+    header_bg_image = serializers.ImageField(allow_empty_file=True, allow_null=True, required=False)
+    header_logo = serializers.ImageField(allow_empty_file=True, allow_null=True, required=False)
+
+    graphic_thumbnail = HyperlinkedSorlImageField("300", source="graphic", read_only=True)
+    header_bg_image_thumbnail = HyperlinkedSorlImageField("300", source="header_bg_image", read_only=True)
+    header_logo_thumbnail = HyperlinkedSorlImageField("300", source="header_logo", read_only=True)
 
     class Meta:
         model = DonationPage
         fields = "__all__"
 
+    def _update_related(self, related_field, related_model, instance, validated_data):
+        pk_field = f"{related_field}_pk"
+        if pk_field in validated_data and validated_data[pk_field] is None:
+            instance.donor_benefits = None
+        elif pk_field in validated_data:
+            try:
+                related_instance = related_model.objects.get(pk=validated_data[pk_field])
+                setattr(instance, related_field, related_instance)
+            except related_model.DoesNotExist:
+                raise serializers.ValidationError({related_field: "Could not find donor benefits with provided pk."})
+
+    def update(self, instance, validated_data):
+        self._update_related("styles", Style, instance, validated_data)
+        self._update_related("donor_benefits", DonorBenefit, instance, validated_data)
+        return super().update(instance, validated_data)
+
 
 class DonationPageListSerializer(serializers.ModelSerializer):
+    revenue_program = serializers.PrimaryKeyRelatedField(queryset=RevenueProgram.objects.all())
+    organization = serializers.PrimaryKeyRelatedField(queryset=Organization.objects.all())
+
     class Meta:
         model = DonationPage
         fields = [
             "id",
-            "title",
-            "header_bg_image",
-            "header_logo",
-            "header_link",
-            "show_benefits",
+            "name",
+            "heading",
             "slug",
+            "derived_slug",
             "revenue_program",
-            "published_date",
             "organization",
+            "published_date",
+            "is_live",
         ]
 
 
@@ -92,10 +131,9 @@ class TemplateListSerializer(serializers.ModelSerializer):
         fields = [
             "id",
             "name",
-            "title",
+            "heading",
             "header_bg_image",
             "header_logo",
             "header_link",
-            "show_benefits",
             "organization",
         ]

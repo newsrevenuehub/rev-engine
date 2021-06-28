@@ -1,9 +1,13 @@
+from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.db import models
+
+import stripe
 
 from apps.common.constants import STATE_CHOICES
 from apps.common.models import IndexedTimeStampedModel
 from apps.common.utils import normalize_slug
+from apps.contributions.utils import get_hub_stripe_api_key
 
 
 class Feature(IndexedTimeStampedModel):
@@ -75,16 +79,15 @@ class Organization(IndexedTimeStampedModel):
         default=False,
         help_text='A fully verified Stripe Connected account should have "charges_enabled: true" in Stripe',
     )
-
-    default_thank_you_redirect = models.URLField(blank=True)
-    default_post_thank_you_redirect = models.URLField(blank=True)
+    stripe_product_id = models.CharField(max_length=255, blank=True)
 
     def __str__(self):
         return self.name
 
     def save(self, *args, **kwargs):
-        if not self.id:
+        if not self.pk:
             self.slug = normalize_slug(self.name, self.slug)
+
         super().save(*args, **kwargs)
 
     def user_is_member(self, user):
@@ -98,6 +101,16 @@ class Organization(IndexedTimeStampedModel):
         payment_provider_account_id = getattr(self, f"{payment_provider}_account_id", None)
         payment_provider_verified = getattr(self, f"{payment_provider}_verified", None)
         return payment_provider and payment_provider_account_id and payment_provider_verified
+
+    def create_default_stripe_product(self):
+        if not self.stripe_product_id:
+            product = stripe.Product.create(
+                name=settings.GENERIC_STRIPE_PRODUCT_NAME,
+                api_key=get_hub_stripe_api_key(),
+                stripe_account=self.stripe_account_id,
+            )
+            self.stripe_product_id = product.id
+            self.save()
 
 
 class RevenueProgram(IndexedTimeStampedModel):

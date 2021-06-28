@@ -1,11 +1,19 @@
+import logging
+
+from django.conf import settings
 from django.contrib import admin, messages
 from django.http import HttpResponseRedirect
 from django.urls import reverse
 
+from sorl.thumbnail.admin import AdminImageMixin
+
 from apps.pages.models import Benefit, BenefitTier, DonationPage, DonorBenefit, Style, Template
 
 
-class DonationPageAdminAbstract(admin.ModelAdmin):
+logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
+
+
+class DonationPageAdminAbstract(AdminImageMixin, admin.ModelAdmin):
     fieldsets = (
         (None, {"fields": ("name",)}),
         (
@@ -14,19 +22,15 @@ class DonationPageAdminAbstract(admin.ModelAdmin):
                 "fields": ("organization",),
             },
         ),
-        ("Header", {"fields": ("header_bg_image", "header_logo", "header_link")}),
-        ("Title", {"fields": ("title",)}),
-        (None, {"fields": ("styles",)}),
-        (None, {"fields": ("elements",)}),
+        ("Redirects", {"fields": ("thank_you_redirect", "post_thank_you_redirect")}),
         (
             "Benefits",
-            {
-                "fields": (
-                    "show_benefits",
-                    "donor_benefits",
-                )
-            },
+            {"fields": ("donor_benefits",)},
         ),
+        ("Header", {"fields": ("header_bg_image", "header_logo", "header_link")}),
+        ("Heading", {"fields": ("heading", "graphic")}),
+        ("Styles", {"fields": ("styles",)}),
+        ("Content", {"fields": ("elements",)}),
     )
 
 
@@ -34,12 +38,12 @@ class DonationPageAdminAbstract(admin.ModelAdmin):
 class TemplateAdmin(DonationPageAdminAbstract):
     list_display = (
         "name",
-        "title",
+        "heading",
         "organization",
     )
     list_filter = (
         "name",
-        "title",
+        "heading",
         "organization",
     )
     ordering = (
@@ -48,15 +52,30 @@ class TemplateAdmin(DonationPageAdminAbstract):
     )
     search_fields = (
         "name",
-        "title",
+        "heading",
         "organization__name",
     )
 
     change_form_template = "pages/templates_changeform.html"
 
+    def has_add_permission(self, request, obj=None):
+        return False
+
+    def get_readonly_fields(self, request, obj=None):
+        return [x for x in obj.field_names()]
+
     def response_change(self, request, obj):
         if "_page-from-template" in request.POST:
-            new_page = obj.make_page_from_template()
+            try:
+                new_page = obj.make_page_from_template()
+            except Template.TemplateError as e:
+                logger.error(e)
+                self.message_user(
+                    request,
+                    "Something went wrong. The page this template was created from cannot be found.",
+                    messages.ERROR,
+                )
+                return HttpResponseRedirect(reverse("admin:pages_template_change", kwargs={"object_id": obj.id}))
             return HttpResponseRedirect(reverse("admin:pages_donationpage_change", kwargs={"object_id": new_page.id}))
         return super().response_change(request, obj)
 
@@ -79,7 +98,7 @@ class DonationPageAdmin(DonationPageAdminAbstract):
 
     list_display = (
         "name",
-        "title",
+        "heading",
         "organization",
         "revenue_program",
         "slug",
@@ -87,14 +106,14 @@ class DonationPageAdmin(DonationPageAdminAbstract):
         "is_live",
         "published_date",
     )
-    list_filter = ("name", "title", "organization", "revenue_program", "slug", "published_date")
+    list_filter = ("name", "heading", "organization", "revenue_program", "slug", "published_date")
     order = (
         "published_date",
         "organization__name",
     )
     search_fields = (
         "name",
-        "title",
+        "heading",
         "organization__name",
         "revenue_program__name",
     )

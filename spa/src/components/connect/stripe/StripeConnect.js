@@ -4,10 +4,8 @@ import * as S from './StripeConnect.styled';
 // Deps
 import { useAlert } from 'react-alert';
 
-import { AuthenticationError } from 'ajax/axios';
-
 // AJAX
-import axios from 'ajax/axios';
+import useRequest from 'hooks/useRequest';
 import { STRIPE_ONBOARDING } from 'ajax/endpoints';
 
 // State
@@ -21,21 +19,30 @@ function StripeConnect() {
   const { providerConnectInProgress, setProviderConnectInProgress } = useProviderFetchContext();
   const [isLoading, setIsLoading] = useState();
 
+  const requestStripeOnboarding = useRequest();
+
   const handleStripeOnboarding = useCallback(async () => {
     if (isLoading || providerConnectInProgress) return;
     setIsLoading(true);
-    try {
-      const { data } = await axios.post(STRIPE_ONBOARDING);
-      window.open(data.url);
-      setIsLoading(false);
-      setProviderConnectInProgress(true);
-    } catch (e) {
-      if (e instanceof AuthenticationError) throw e;
-      setIsLoading(false);
-      let alertMessage = "Something went wrong! We've been notified";
-      if (e.response?.data?.detail) alertMessage = e.response.data.detail;
-      alert.error(alertMessage, { timeout: 8000 });
-    }
+    requestStripeOnboarding(
+      {
+        method: 'POST',
+        url: STRIPE_ONBOARDING
+      },
+      {
+        onSuccess: ({ data }) => {
+          window.open(data.url);
+          setIsLoading(false);
+          setProviderConnectInProgress(true);
+        },
+        onFailure: (e) => {
+          setIsLoading(false);
+          let alertMessage = "Something went wrong! We've been notified";
+          if (e.response?.data?.detail) alertMessage = e.response.data.detail;
+          alert.error(alertMessage, { timeout: 8000 });
+        }
+      }
+    );
   }, [isLoading, providerConnectInProgress, alert, setProviderConnectInProgress]);
 
   return (

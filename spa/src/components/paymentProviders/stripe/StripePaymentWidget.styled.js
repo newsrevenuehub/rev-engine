@@ -4,4 +4,8 @@ export const StripePaymentWidget = styled.div`
   position: relative;
   padding: 3rem 3rem 0;
   box-shadow: ${(props) => props.theme.shadows[0]};
+
+  @media (${(props) => props.theme.breakpoints.phoneOnly}) {
+    padding: 2rem 0.5rem;
+  }
 `;

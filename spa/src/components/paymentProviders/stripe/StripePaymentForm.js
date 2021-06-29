@@ -5,6 +5,8 @@ import { useState, useCallback } from 'react';
 import { useTheme } from 'styled-components';
 import { useAlert } from 'react-alert';
 
+import { AuthenticationError } from 'ajax/axios';
+
 // Routing
 import { useHistory, useRouteMatch } from 'react-router-dom';
 import { THANK_YOU_SLUG } from 'routes';
@@ -58,6 +60,7 @@ function StripePaymentForm({ loading, setLoading }) {
         const { data } = await axios.post(STRIPE_PAYMENT, formData, { timeout: STRIPE_PAYMENT_TIMEOUT });
         resolve(data.clientSecret);
       } catch (e) {
+        if (e instanceof AuthenticationError) throw e;
         reject(e);
       }
     });
@@ -140,7 +143,7 @@ function StripePaymentForm({ loading, setLoading }) {
         handleSuccesfulPayment();
       }
     } catch (e) {
-      debugger;
+      if (e instanceof AuthenticationError) throw e;
       if (e?.response?.data?.detail) {
         setErrors({ stripe: e.response.data.detail });
       } else {

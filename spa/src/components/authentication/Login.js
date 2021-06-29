@@ -1,15 +1,12 @@
 import { useState, useReducer } from 'react';
 import * as S from './Login.styled';
 
-// Deps
-import queryString from 'query-string';
-
 // AJAX
 import axios from 'ajax/axios';
 import { TOKEN } from 'ajax/endpoints';
 
 // Routing
-import { useLocation, useHistory } from 'react-router-dom';
+import { useHistory } from 'react-router-dom';
 import { MAIN_CONTENT_SLUG } from 'routes';
 
 // State management
@@ -22,17 +19,15 @@ import { PASSWORD_RESET_URL } from 'constants/authConstants';
 import Input from 'elements/inputs/Input';
 import FormErrors from 'elements/inputs/FormErrors';
 
-function Login() {
-  const location = useLocation();
+function Login({ onSuccess, message }) {
   const history = useHistory();
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [{ loading, errors }, dispatch] = useReducer(fetchReducer, initialState);
 
-  const routeUserAfterLogin = () => {
-    const qs = queryString.parse(location.search);
-    if (qs.url) history.push(qs.url);
+  const handlePostLogin = () => {
+    if (onSuccess) onSuccess();
     else history.push(MAIN_CONTENT_SLUG);
   };
 
@@ -48,20 +43,19 @@ function Login() {
       const { data, status } = await axios.post(TOKEN, { email, password });
       if (status === 200 && data.detail === 'success') {
         handleLoginSuccess(data);
-        routeUserAfterLogin(location.search);
+        handlePostLogin();
       }
       dispatch({ type: FETCH_SUCCESS });
-    } catch (error) {
-      dispatch({ type: FETCH_FAILURE, payload: error.response?.data });
+    } catch (e) {
+      dispatch({ type: FETCH_FAILURE, payload: e?.response?.data });
     }
   };
 
   return (
     <S.Login>
       <S.LoginCard>
+        {message && <S.Message>{message}</S.Message>}
         <S.LoginForm>
-          <FormErrors errors={errors?.detail} />
-
           <S.InputWrapper>
             <Input
               value={email}
@@ -85,6 +79,8 @@ function Login() {
               testid="login-password"
             />
           </S.InputWrapper>
+
+          <FormErrors errors={errors?.detail} />
 
           <S.LoginButtons>
             <S.LoginButton onClick={handleLogin} disabled={loading} type="submit" data-testid="login-button">

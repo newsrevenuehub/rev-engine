@@ -12,8 +12,6 @@ import getGlobalPaymentProviderStatus from 'utilities/getGlobalPaymentProviderSt
 import { MAIN_CONTENT_SLUG } from 'routes';
 
 // AJAX
-import axios from 'ajax/axios';
-import { USER } from 'ajax/endpoints';
 import { LS_USER } from 'constants/authConstants';
 
 // Children
@@ -33,30 +31,11 @@ function Main() {
     setCheckingProvider(false);
   }, []);
 
-  const updateUser = useCallback(
-    async (refetch = false) => {
-      let updatedUser = JSON.parse(localStorage.getItem(LS_USER));
-      if (refetch) {
-        try {
-          const { data } = await axios.get(USER);
-          updatedUser = data;
-        } catch (e) {
-          console.warn(e?.response);
-        }
-      }
-      localStorage.setItem(LS_USER, JSON.stringify(updatedUser));
-      updateDefaultPaymentProvider(updatedUser);
-      setUser(updatedUser);
-      return updatedUser;
-    },
-    [updateDefaultPaymentProvider]
-  );
-
   return (
     <OrganizationContext.Provider
       value={{
         user,
-        updateUser,
+        setUser,
         paymentProviderConnectState,
         updateDefaultPaymentProvider,
         checkingProvider,

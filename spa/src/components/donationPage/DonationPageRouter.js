@@ -1,7 +1,7 @@
 import { useEffect, useCallback, useReducer } from 'react';
 
 // AJAX
-import axios from 'ajax/axios';
+import useRequest from 'hooks/useRequest';
 import { FULL_PAGE } from 'ajax/endpoints';
 
 // Router
@@ -51,6 +51,7 @@ const livePageReducer = (state, action) => {
 function DonationPageRouter() {
   const [{ loading, error, data }, dispatch] = useReducer(livePageReducer, initialState);
   const params = useParams();
+  const requestFullPage = useRequest();
 
   const fetchLivePageContent = useCallback(async () => {
     dispatch({ type: PAGE_FETCH_START });
@@ -60,12 +61,17 @@ function DonationPageRouter() {
       page: pageSlug,
       live: 1
     };
-    try {
-      const { data } = await axios.get(FULL_PAGE, { params: requestParams });
-      dispatch({ type: PAGE_FETCH_SUCCESS, payload: data });
-    } catch (e) {
-      dispatch({ type: PAGE_FETCH_ERROR });
-    }
+    requestFullPage(
+      {
+        method: 'GET',
+        url: FULL_PAGE,
+        params: requestParams
+      },
+      {
+        onSuccess: ({ data }) => dispatch({ type: PAGE_FETCH_SUCCESS, payload: data }),
+        onFailure: () => dispatch({ type: PAGE_FETCH_ERROR })
+      }
+    );
   }, [params]);
 
   useEffect(() => {

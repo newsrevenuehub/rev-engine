@@ -1,5 +1,5 @@
 import * as S from './StripePaymentForm.styled';
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 
 // Deps
 import { useTheme } from 'styled-components';
@@ -15,9 +15,7 @@ import { THANK_YOU_SLUG } from 'routes';
 // Stripe
 import { CardElement, useStripe, useElements, PaymentRequestButtonElement } from '@stripe/react-stripe-js';
 
-// // Ajax
-// import axios from 'ajax/axios';
-// import { STRIPE_PAYMENT } from 'ajax/endpoints';
+// Util
 import submitPayment, { serializeData, getTotalAmount, amountToCents, StripeError } from './stripeFns';
 
 // Context
@@ -223,8 +221,3 @@ function StripePaymentForm({ loading, setLoading }) {
 }
 
 export default StripePaymentForm;
-
-/**
- * Single Payment:
- * --->
- */

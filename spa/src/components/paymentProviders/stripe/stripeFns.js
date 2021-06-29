@@ -88,7 +88,7 @@ function serializeForm(form) {
 }
 
 /**
- * serializeData takes a ref to a form, turns in in to a javascript object, then merges in non-form state.
+ * serializeData takes a ref to a form, turns it into a javascript object, then merges in non-form state.
  * @param {object} formRef - a reference to the form element containing all our inputs
  * @param {object} state - any form state not contained in formRef (things that weren't using inputs)
  * @returns JSON-serialized form data

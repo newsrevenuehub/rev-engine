@@ -1,6 +1,7 @@
+import { format } from 'date-fns';
+
 export const formatDateTime = (isoString) => {
-  const dateTime = new Date(isoString);
-  return dateTime.toLocaleString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+  return format(new Date(isoString), "LLL do, yyyy 'at' hh:mm a");
 };
 
 export const formatCurrencyAmount = (rawAmount) => {

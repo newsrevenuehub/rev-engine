@@ -78,7 +78,7 @@ function AmountEditor() {
               .map((amount, i) => (
                 <S.AmountItem key={amount + i}>
                   {amount}
-                  <XButton onClick={() => removeAmount(freq, amount)} />
+                  <XButton type="caution" onClick={() => removeAmount(freq, amount)} />
                 </S.AmountItem>
               ))}
           </S.AmountsList>

@@ -45,7 +45,7 @@ function AdditionalInfoEditor(props) {
           <S.CurrentInput key={existingInput.name}>
             <S.CurrentKey>{existingInput.name}:</S.CurrentKey>
             <S.CurrentLabel>{existingInput.label}</S.CurrentLabel>
-            <S.XButton onClick={() => handleRemoveItem(existingInput)} />
+            <S.XButton type="caution" onClick={() => handleRemoveItem(existingInput)} />
           </S.CurrentInput>
         ))}
       </S.CurrentInputs>

@@ -18,6 +18,7 @@ from apps.contributions.payment_managers import (
 )
 from apps.contributions.utils import get_hub_stripe_api_key
 from apps.contributions.webhooks import StripeWebhookProcessor
+from apps.emails.models import EmailTemplateError, PageEmailTemplate
 from apps.organizations.views import OrganizationLimitedListView
 
 
@@ -45,20 +46,27 @@ def stripe_payment(request):
 
     try:
         if stripe_payment.validated_data["interval"] == ContributionInterval.ONE_TIME:
-            # Create payment intent with Stripe, associated local models
+            # Create payment intent with Stripe, associated local models, and send email to donor.
             stripe_payment_intent = stripe_payment.create_one_time_payment()
             response_body = {"detail": "Success", "clientSecret": stripe_payment_intent["client_secret"]}
+            template = PageEmailTemplate.get_template(
+                PageEmailTemplate.ContactType.ONE_TIME_DONATION, stripe_payment.get_donation_page()
+            )
+            template.one_time_donation(stripe_payment)
         else:
             # Create subscription with Stripe, associated local models
             stripe_payment.create_subscription()
             response_body = {"detail": "Success"}
     except PaymentBadParamsError:
-        logger.warn("stripe_payment view raised a PaymentBadParamsError")
+        logger.warning("stripe_payment view raised a PaymentBadParamsError")
         return Response({"detail": "There was an error processing your payment."}, status=status.HTTP_400_BAD_REQUEST)
     except PaymentProviderError as pp_error:
         error_message = str(pp_error)
         logger.error(error_message)
         return Response({"detail": error_message}, status=status.HTTP_400_BAD_REQUEST)
+    except EmailTemplateError as email_error:
+        msg = f"Email could not be sent to donor: {email_error}"
+        logger.warning(msg)
 
     return Response(response_body, status=status.HTTP_200_OK)
 

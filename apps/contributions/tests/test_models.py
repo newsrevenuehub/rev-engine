@@ -39,7 +39,7 @@ class ContributionTest(TestCase):
         self.contribution = Contribution.objects.create(amount=self.amount)
 
     def test_formatted_amount(self):
-        target_format = f"{float(self.amount / 100)} {self.contribution.currency.upper()}"
+        target_format = "10.00 USD"
         self.assertEqual(self.contribution.formatted_amount, target_format)
 
     def test_str(self):

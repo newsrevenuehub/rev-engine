@@ -50,9 +50,9 @@ export const MagicLinkButton = styled(Button)`
 `;
 
 export const Confirmation = styled.div`
-  text-align: center;
   margin-top: 4rem;
   p {
-    margin: 1rem 0;
+    max-width: 400px;
+    margin: 1rem auto;
   }
 `;

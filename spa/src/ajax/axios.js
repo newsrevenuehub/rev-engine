@@ -1,5 +1,6 @@
 import axios from 'axios';
-import { LS_USER, LS_CSRF_TOKEN, CSRF_HEADER } from 'constants/authConstants';
+import { LS_CSRF_TOKEN, CSRF_HEADER } from 'constants/authConstants';
+import { TOKEN } from './endpoints';
 
 export const apiVersion = process.env.REACT_APP_API_VERSION || 'v1';
 export const apiBaseUrl = `/api/${apiVersion}/`;
@@ -38,8 +39,21 @@ function handleResponseError(error) {
   return Promise.reject(error);
 }
 
-function handle401Response() {
-  localStorage.removeItem(LS_USER);
-  localStorage.removeItem(LS_CSRF_TOKEN);
-  window.location = '/';
+function handle401Response(error) {
+  /*
+    If it's a 401, we want to handle two different cases:
+    1. It's a 401 on login, in which case error.response contains useful error messages
+    2. It's a 401 on some other call, in which case we want to reject with a special error 
+       that, when caught, will affect the display of the re-auth modal.
+  */
+  if (error.config.url === TOKEN) return Promise.reject(error);
+  else return Promise.reject(new AuthenticationError('User token expired'));
+}
+
+export class AuthenticationError extends Error {
+  constructor(message, cause) {
+    super(message);
+    this.cause = cause;
+    this.name = 'AuthenticationError';
+  }
 }

@@ -4,7 +4,7 @@ import { faTimes } from '@fortawesome/free-solid-svg-icons';
 function XButton(props) {
   return (
     <S.XButton {...props} data-testid="x-button">
-      <S.XIcon icon={faTimes} />
+      <S.XIcon icon={faTimes} type={props.type} disabled={props.disabled} />
     </S.XButton>
   );
 }

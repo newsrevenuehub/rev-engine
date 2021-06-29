@@ -4,6 +4,10 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useAlert } from 'react-alert';
 import { useTable, usePagination, useSortBy } from 'react-table';
 
+import KebabButton from 'elements/buttons/KebabButton';
+import XButton from 'elements/buttons/XButton';
+import Modal from 'elements/modal/Modal';
+
 import DashboardSectionGroup from 'components/dashboard/DashboardSectionGroup';
 import DashboardSection from 'components/dashboard/DashboardSection';
 
@@ -20,8 +24,63 @@ export const DEFAULT_RESULTS_ORDERING = [
   { id: 'contributor_email', desc: false }
 ];
 
+const noDataString = '---';
+
+function DonationDetailModal({
+  closeModal,
+  amount,
+  contributor_email: contributorEmail,
+  flagged_date: flaggedDate,
+  interval,
+  last_payment_date: lastPaymentDate,
+  payment_provider_used: paymentProvider,
+  provider_customer_id: providerCustomerId,
+  reason,
+  status
+}) {
+  const handleCloseModal = () => {
+    closeModal();
+  };
+
+  return (
+    <Modal isOpen={true}>
+      <S.DonationsDetail>
+        <h1>Donation details</h1>
+        <dl>
+          <dt>Donor</dt>
+          <dd>{contributorEmail}</dd>
+
+          <dt>Amount</dt>
+          <dd>{amount}</dd>
+
+          <dt>Payment interval</dt>
+          <dd>{interval}</dd>
+
+          <dt>Last payment date</dt>
+          <dd>{lastPaymentDate ? formatDateTime(lastPaymentDate) : noDataString}</dd>
+
+          <dt>Flagged date</dt>
+          <dd>{flaggedDate ? formatDateTime(flaggedDate) : noDataString}</dd>
+
+          <dt>Payment provider</dt>
+          <dd>{paymentProvider || noDataString}</dd>
+
+          <dt>Payment Provider customer ID</dt>
+          <dd>{providerCustomerId || noDataString}</dd>
+
+          <dt>Donation reason</dt>
+          <dd>{reason || noDataString}</dd>
+
+          <dt>Status</dt>
+          <dd>{status}</dd>
+        </dl>
+        <XButton onClick={handleCloseModal} />
+      </S.DonationsDetail>
+    </Modal>
+  );
+}
+
 function DonationsTable({ columns, data, fetchData, loading, pageCount, totalResults }) {
-  const alert = useAlert();
   const {
     getTableProps,
     getTableBodyProps,
@@ -159,27 +218,32 @@ function Donations() {
       {
         Header: 'Payment date',
         accessor: 'last_payment_date',
-        Cell: (props) => (props.value ? formatDateTime(props.value) : '---')
+        Cell: (props) => (props.value ? formatDateTime(props.value) : noDataString)
       },
       {
         Header: 'Amount',
         accessor: 'amount',
-        Cell: (props) => (props.value ? formatCurrencyAmount(props.value) : '---')
+        Cell: (props) => (props.value ? formatCurrencyAmount(props.value) : noDataString)
       },
       {
         Header: 'Donor',
         accessor: 'contributor_email',
-        Cell: (props) => props.value || '---'
+        Cell: (props) => props.value || noDataString
       },
       {
         Header: 'Status',
         accessor: 'status',
-        Cell: (props) => props.value || '---'
+        Cell: (props) => props.value || noDataString
       },
       {
         Header: 'Date flagged',
         accessor: 'flagged_date',
-        Cell: (props) => (props.value ? formatDateTime(props.value) : '---')
+        Cell: (props) => (props.value ? formatDateTime(props.value) : noDataString)
+      },
+      {
+        accessor: 'id',
+        Cell: ({ row }) => <button onClick={(e) => handleRowClick(e, row)}>Hi</button>,
+        disableSortBy: true
       }
     ],
     []
@@ -190,9 +254,26 @@ function Donations() {
   const [loading, setLoading] = useState(false);
   const [pageCount, setPageCount] = useState(0);
   const [totalResults, setTotalResults] = useState(0);
+  const [showModal, setShowModal] = useState(false);
+  const [selectedDonationRow, setSelectedDonationRow] = useState({});
+
+  const alert = useAlert();
+
+  const handleRowClick = (e, row, props) => {
+    e.preventDefault();
+    setSelectedDonationRow(row.original);
+    setShowModal(true);
+  };
+
+  const handleCloseModal = () => {
+    setSelectedDonationRow({});
+    setShowModal(false);
+  };
+
   const convertOrderingToString = (ordering) => {
     return ordering.map((item) => (item.desc ? `-${item.id}` : item.id)).toString();
   };
+
   const fetchData = useCallback(async (pageSize, pageIndex, sortBy) => {
     const ordering = sortBy.length ? sortBy : DEFAULT_RESULTS_ORDERING;
     setLoading(true);
@@ -223,6 +304,7 @@ function Donations() {
             pageCount={pageCount}
             totalResults={totalResults}
           />
+          {showModal && <DonationDetailModal closeModal={handleCloseModal} {...selectedDonationRow} />}
         </S.Donations>
       </DashboardSection>
     </DashboardSectionGroup>

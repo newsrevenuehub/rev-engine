@@ -32,7 +32,6 @@
     "msw": "^0.28.2",
     "prettier": "^2.2.1",
     "prop-types": "^15.7.2",
-    "query-string": "^7.0.0",
     "react": "^17.0.2",
     "react-alert": "^7.0.3",
     "react-color": "^2.19.3",

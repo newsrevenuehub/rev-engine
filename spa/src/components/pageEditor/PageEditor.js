@@ -1,4 +1,4 @@
-import { useState, useEffect, createContext, useContext, useCallback } from 'react';
+import { useState, useEffect, createContext, useContext } from 'react';
 import * as S from './PageEditor.styled';
 import { useTheme } from 'styled-components';
 import { AnimatePresence } from 'framer-motion';
@@ -16,7 +16,7 @@ import 'react-datepicker/dist/react-datepicker.css';
 import { useParams } from 'react-router-dom';
 
 // AJAX
-import axios from 'ajax/axios';
+import useRequest from 'hooks/useRequest';
 import { FULL_PAGE, PATCH_PAGE, DONOR_BENEFITS, PAGE_STYLES } from 'ajax/endpoints';
 
 // Constants
@@ -57,7 +57,7 @@ function PageEditor() {
   // Hooks
   const alert = useAlert();
   const theme = useTheme();
-  const params = useParams();
+  const parameters = useParams();
 
   // Context
   const { getUserConfirmation } = useGlobalContext();
@@ -68,61 +68,70 @@ function PageEditor() {
   const [availableBenefits, setAvailableBenefits] = useState([]);
   const [availableStyles, setAvailableStyles] = useState([]);
 
+  const requestGetPage = useRequest();
+  const requestGetDonorBenefits = useRequest();
+  const requestGetPageStyles = useRequest();
+  const requestPatchPage = useRequest();
+
   const [updatedPage, setUpdatedPage] = useState();
   const [selectedButton, setSelectedButton] = useState(PREVIEW);
   const [showEditInterface, setShowEditInterface] = useState(false);
   const [errors, setErrors] = useState({});
 
-  const fetchPageContent = useCallback(async () => {
+  useEffect(() => {
     setLoading(true);
-    const { revProgramSlug, pageSlug } = params;
-    const requestParams = {
+    const { revProgramSlug, pageSlug } = parameters;
+    const params = {
       revenue_program: revProgramSlug,
       page: pageSlug,
       live: 0
     };
-    try {
-      const { data } = await axios.get(FULL_PAGE, { params: requestParams });
-      setPage(data);
-      setLoading(false);
-    } catch (e) {
-      setLoading(false);
-    }
-  }, [params]);
+    requestGetPage(
+      { method: 'GET', url: FULL_PAGE, params },
+      {
+        onSuccess: ({ data }) => {
+          setPage(data);
+          setLoading(false);
+        },
+        onFailure: () => setLoading(false)
+      }
+    );
+    // Don't include requestGetPage for now.
+  }, [parameters]);
 
   useEffect(() => {
-    fetchPageContent();
-  }, [params, fetchPageContent]);
-
-  const fetchDonorBenefits = useCallback(async () => {
     setLoading(true);
-    try {
-      const { data } = await axios.get(DONOR_BENEFITS);
-      setAvailableBenefits(data.results);
-      setLoading(false);
-    } catch (e) {
-      setLoading(false);
-    }
+    requestGetDonorBenefits(
+      { method: 'GET', url: DONOR_BENEFITS },
+      {
+        onSuccess: ({ data }) => {
+          setAvailableBenefits(data.results);
+          setLoading(false);
+        },
+        onFailure: () => {
+          setLoading(false);
+        }
+      }
+    );
+    // Don't include requestGetDonorBenefits for now.
   }, []);
 
   useEffect(() => {
-    fetchDonorBenefits();
-  }, [fetchDonorBenefits]);
-
-  const fetchStyles = useCallback(async () => {
     setLoading(true);
-    try {
-      const { data } = await axios.get(PAGE_STYLES);
-      setAvailableStyles(data.results);
-      setLoading(false);
-    } catch (e) {
-      setLoading(false);
-    }
+    requestGetPageStyles(
+      { method: 'GET', url: PAGE_STYLES },
+      {
+        onSuccess: ({ data }) => {
+          setAvailableStyles(data.results);
+          setLoading(false);
+        },
+        onFailure: () => {
+          setLoading(false);
+        }
+      }
+    );
+    // Don't include requestGetPageStyles for now.
   }, []);
-
-  useEffect(() => {
-    fetchStyles();
-  }, [fetchStyles]);
 
   const handlePreview = () => {
     setSelectedButton(PREVIEW);
@@ -171,6 +180,7 @@ function PageEditor() {
       if (Object.hasOwnProperty.call(patchedPage, datumKey)) {
         let datum = patchedPage[datumKey];
         if (datum instanceof Date) datum = formatDatetimeForAPI(datum);
+        if (datumKey === 'elements') datum = JSON.stringify(datum);
         if (datumKey === 'donor_benefits') {
           datumKey = 'donor_benefits_pk';
         }
@@ -187,17 +197,25 @@ function PageEditor() {
     const patchedCleanedPage = cleanImageKeys(patchedPage);
     const cleanedData = cleanData(patchedCleanedPage);
     const formData = processPageData(cleanedData);
-    try {
-      const { data } = await axios.patch(`${PATCH_PAGE}${page.id}/`, formData);
-      const successMessage = getSuccessMessage(page, data);
-
-      alert.success(successMessage);
-      setPage(data);
-      setSelectedButton(PREVIEW);
-    } catch (e) {
-      alert.error(GENERIC_ERROR);
-      setSelectedButton(PREVIEW);
-    }
+    requestPatchPage(
+      {
+        method: 'PATCH',
+        url: `${PATCH_PAGE}${page.id}/`,
+        data: formData
+      },
+      {
+        onSuccess: ({ data }) => {
+          const successMessage = getSuccessMessage(page, data);
+          alert.success(successMessage);
+          setPage(data);
+          setSelectedButton(PREVIEW);
+        },
+        onFailure: () => {
+          alert.error(GENERIC_ERROR);
+          setSelectedButton(PREVIEW);
+        }
+      }
+    );
   };
 
   useEffect(() => {

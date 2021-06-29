@@ -17,6 +17,10 @@ export const LoginCard = styled.section`
   border-radius: ${(props) => props.theme.radii[1]};
 `;
 
+export const Message = styled.p`
+  padding: 1rem 0;
+`;
+
 export const LoginForm = styled.form``;
 
 export const InputWrapper = styled.div`
@@ -26,15 +30,17 @@ export const InputWrapper = styled.div`
 `;
 
 export const LoginButtons = styled.div`
-  margin-top: 4rem;
+  margin-top: 2rem;
   display: flex;
-  justify-content: flex-end;
+  flex-direction: column;
+  align-items: flex-end;
 `;
 
 export const LoginButton = styled.button`
   background: none;
   border: none;
   cursor: pointer;
+  margin-bottom: 1rem;
 `;
 
 export const ForgotPasswordLink = styled.button`

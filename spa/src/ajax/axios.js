@@ -34,7 +34,7 @@ Axios.interceptors.request.use(
 Axios.interceptors.response.use((success) => success, handleResponseError);
 
 function handleResponseError(error) {
-  if (error?.response?.status === 401) return handle401Response(error);
+  if (error?.response?.status === 401) return handle401Response();
   return Promise.reject(error);
 }
 

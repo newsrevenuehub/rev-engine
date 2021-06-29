@@ -421,6 +421,20 @@ Django = ">=2.2"
 redis = ">=3.0.0"
 
 [[package]]
+name = "django-sesame"
+version = "2.4"
+description = "Frictionless authentication with \"Magic Links\" for your Django project."
+category = "main"
+optional = false
+python-versions = ">=3.6,<4.0"
+
+[package.dependencies]
+django = ">=2.2"
+
+[package.extras]
+ua = ["ua-parser (>=0.10)"]
+
+[[package]]
 name = "django-storages"
 version = "1.11.1"
 description = "Support for many storage backends in Django"
@@ -1442,7 +1456,7 @@ testing = ["pytest (>=4.6)", "pytest-checkdocs (>=1.2.3)", "pytest-flake8", "pyt
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.9"
-content-hash = "b470ef1c5c706e4367bf42237d3f278bcfa0cc1ecef8a0b57169351f8720f578"
+content-hash = "c7367c92af905b1af02a0afb2a5767be367cb483a3f87323d1ffd48ac71e9191"
 
 [metadata.files]
 amqp = [
@@ -1679,6 +1693,10 @@ django-phonenumber-field = [
 django-redis = [
     {file = "django-redis-4.12.1.tar.gz", hash = "sha256:306589c7021e6468b2656edc89f62b8ba67e8d5a1c8877e2688042263daa7a63"},
     {file = "django_redis-4.12.1-py3-none-any.whl", hash = "sha256:1133b26b75baa3664164c3f44b9d5d133d1b8de45d94d79f38d1adc5b1d502e5"},
+]
+django-sesame = [
+    {file = "django-sesame-2.4.tar.gz", hash = "sha256:4f232ba1c3642b4eef23257af9a2feac36970457d2940f4083c48c6a3d9cb0a3"},
+    {file = "django_sesame-2.4-py3-none-any.whl", hash = "sha256:b0570b610ec2f3602ff12d43b5bca41c4a37a3079e6a0170ceccc69689446b87"},
 ]
 django-storages = [
     {file = "django-storages-1.11.1.tar.gz", hash = "sha256:c823dbf56c9e35b0999a13d7e05062b837bae36c518a40255d522fbe3750fbb4"},

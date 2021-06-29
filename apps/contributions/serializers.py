@@ -9,6 +9,17 @@ class ContributionSerializer(serializers.ModelSerializer):
         fields = "__all__"
 
 
+class ContributorContributionSerializer(serializers.ModelSerializer):
+    """
+    A paired-down, read-only version of a Contribution serializer
+    """
+
+    class Meta:
+        model = Contribution
+        fields = ["id", "created", "interval", "status", "formatted_amount"]
+        read_only_fields = fields
+
+
 class ContributorSerializer(serializers.ModelSerializer):
     class Meta:
         model = Contributor

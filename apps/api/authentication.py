@@ -80,11 +80,9 @@ class MagicLinkTokenAuthenticationBase(JWTHttpOnlyCookieAuthentication):
         except Contributor.DoesNotExist:
             raise MagicLinkAuthenticationFailed("Contributor not found", code="contributor_not_found")
 
-    def ensure_valid_owner(self, validated_token, email, contributor):
-        # breakpoint()
-        pass
-        # try:
-        #     contributor = Contributor.objects.get(email=request.data['email'])
+    def ensure_valid_owner(self, email, contributor):
+        if email != contributor.email:
+            raise MagicLinkAuthenticationFailed("Invalid token", code="invalid_token")
 
     def validate_token(self, token, email):
         try:
@@ -97,7 +95,7 @@ class MagicLinkTokenAuthenticationBase(JWTHttpOnlyCookieAuthentication):
             return None
 
         self.ensure_contrib_token_type(validated_token)
-        self.ensure_valid_owner(validated_token, email, contributor)
+        self.ensure_valid_owner(email, contributor)
         return contributor, validated_token
 
     def authenticate(self, request):

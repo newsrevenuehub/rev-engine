@@ -88,9 +88,6 @@ class TokenObtainPairCookieView(simplejwt_views.TokenObtainPairView):
 
 class RequestContributorTokenEmailView(APIView):
     """
-    TODO: Throttles overall requests to prevent somebody from discovering which emails have
-    contributed using RevEngine by spamming this endpoint.
-
     TODO: Throttles requests for a token for any give email address even more, to prevent a sort of reverse brute-force
     attack for JWT.
     """
@@ -103,18 +100,15 @@ class RequestContributorTokenEmailView(APIView):
 
         try:
             serializer.is_valid(raise_exception=True)
-        except NoSuchContributorError as e:
-            return Response(
-                data={"detail": "We couldn't find any contributions made with that email address"},
-                status=status.HTTP_404_NOT_FOUND,
-            )
+        except NoSuchContributorError:
+            # Don't send special response here. We don't want to indicate whether or not a given address is in our system.
+            return Response({"detail": "success"}, status=status.HTTP_200_OK)
 
         data = serializer.data
         email = data["email"]
         token = data["access"]
 
         magic_link = f"{settings.SITE_URL}/{settings.CONTRIBUTOR_URL}?token={token}&email={email}"
-        print("--------__--___-_------__OY THAT MAGIC LINK__---_-_-_----___-__--___---_-_-_------")
         print(magic_link)
         # TODO: send_magic_link
 

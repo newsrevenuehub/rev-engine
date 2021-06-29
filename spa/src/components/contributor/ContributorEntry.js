@@ -25,11 +25,8 @@ function ContributorEntry() {
       const response = await axios.post(GET_MAGIC_LINK, { email });
       if (response.status === 200) setShowConfirmation(true);
     } catch (e) {
-      if (e?.response?.status === 404) {
-        setErrors({ contributor: true });
-      } else if (e?.response?.data) {
+      if (e?.response?.data) {
         setErrors(e.response.data);
-      } else {
       }
     } finally {
       setLoading(false);
@@ -42,8 +39,9 @@ function ContributorEntry() {
         <S.Title>Welcome to the RevEngine contributor portal</S.Title>
         {showConfirmation ? (
           <S.Confirmation>
-            <p>An email has been sent containing your magic link.</p>
-            <p>Click on your magic link to view your contributions. You can close this tab.</p>
+            <p>If you're in our system, an email has been sent to you containing your magic link</p>
+            <p>Click on your magic link to view your contributions</p>
+            <p>(It's safe to close this tab)</p>
           </S.Confirmation>
         ) : (
           <S.EmailForm>
@@ -56,15 +54,6 @@ function ContributorEntry() {
                 errors={errors.email}
               />
             </S.InputWrapper>
-            {errors.contributor && (
-              <S.NoSuchContributor>
-                <S.NoSuchIcon icon={faExclamationCircle} />
-                <p>
-                  We couldn't find any contributions made with this email address. Did you use a different email address
-                  when making your contributions?
-                </p>
-              </S.NoSuchContributor>
-            )}
             <S.MagicLinkButton onClick={handleSendMagicLink} disabled={loading}>
               Send Magic Link
               <span role="img" aria-label="magic wand">

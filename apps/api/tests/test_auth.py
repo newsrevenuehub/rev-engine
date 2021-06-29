@@ -118,3 +118,14 @@ class UserBelongsToOrgPermissionTest(APITestCase):
     def test_object_with_no_org_allowed(self):
         unrelated_object = self.UnrelatedObject()
         self.assertTrue(UserBelongsToOrg().has_object_permission(self.request, {}, unrelated_object))
+
+
+# api/authentication.py                  35, 41, 56, 65, 67, 75-81, 84-85, 88-99, 102-114, 119-123, 129-139, 144-148
+# api/serializers.py                     44, 50-61
+# api/tokens.py                          26-29, 38-41, 50-53
+# api/views.py                           58, 99-116, 130-156
+class MagicLinkAuthTest(APITestCase):
+    def setUp(self):
+        pass
+
+    # def test_

@@ -95,12 +95,12 @@ REST_FRAMEWORK = {
 
 SIMPLE_JWT = {  # https://django-rest-framework-simplejwt.readthedocs.io/en/latest/settings.html
     "ACCESS_TOKEN_LIFETIME": timedelta(hours=os.getenv("ACCESS_TOKEN_LIFETIME_HOURS", 12)),
-    "REFRESH_TOKEN_LIFETIME": timedelta(weeks=2),
+    "REFRESH_TOKEN_LIFETIME": timedelta(days=2),
 }
 
 CONTRIBUTOR_ID_CLAIM = "contrib_id"
-CONTRIBUTOR_SHORT_TOKEN_LIFETIME = timedelta(minutes=0.5)
-CONTRIBUTOR_LONG_TOKEN_LIFETIME = timedelta(minutes=1)
+CONTRIBUTOR_SHORT_TOKEN_LIFETIME = timedelta(minutes=5)
+CONTRIBUTOR_LONG_TOKEN_LIFETIME = timedelta(hours=3)
 CONTRIBUTOR_URL = "contributor-verify"
 
 USER_TTL = timedelta(hours=24)

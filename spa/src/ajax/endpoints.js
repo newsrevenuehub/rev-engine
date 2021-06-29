@@ -15,3 +15,10 @@ export const PATCH_PAGE = 'pages/';
 // Donor benefits
 export const DONOR_BENEFITS = 'donor-benefits/';
 export const PAGE_STYLES = 'styles/';
+
+// Contributions
+export const CONTRIBUTIONS = 'contributions/';
+
+// Contributor Portal
+export const GET_MAGIC_LINK = 'contrib-email/';
+export const VERIFY_TOKEN = 'contrib-verify/';

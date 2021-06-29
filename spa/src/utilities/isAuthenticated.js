@@ -1,6 +1,7 @@
-import { LS_USER } from 'constants/authConstants';
+import { LS_CONTRIBUTOR, LS_USER } from 'constants/authConstants';
 
-function isAuthenticated() {
+function isAuthenticated(for_contributor) {
+  if (for_contributor) return localStorage.getItem(LS_CONTRIBUTOR);
   return localStorage.getItem(LS_USER);
 }
 

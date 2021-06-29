@@ -1,6 +1,7 @@
 import logging
 
 from django.conf import settings
+from django.contrib.auth import get_user_model
 
 import stripe
 from rest_framework import status, viewsets
@@ -18,10 +19,11 @@ from apps.contributions.payment_managers import (
 )
 from apps.contributions.utils import get_hub_stripe_api_key
 from apps.contributions.webhooks import StripeWebhookProcessor
-from apps.organizations.views import OrganizationLimitedListView
 
 
 logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
+
+UserModel = get_user_model()
 
 
 @api_view(["POST"])
@@ -155,7 +157,22 @@ def process_stripe_webhook_view(request):
     return Response(status=status.HTTP_200_OK)
 
 
-class ContributionsListView(OrganizationLimitedListView, viewsets.ReadOnlyModelViewSet):
+class ContributionsListView(viewsets.ReadOnlyModelViewSet):
     serializer_class = serializers.ContributionSerializer
     model = Contribution
     permission_classes = [IsAuthenticated, UserBelongsToOrg]
+
+    def get_queryset(self):
+        """
+        We should limit by organization if the requesting user is a User (OrgAdmin).
+        If they're a Contributor, we should show them all the contributions under their name.
+        """
+        if isinstance(self.request.user, UserModel):
+            if self.action == "list" and hasattr(self.model, "organization"):
+                return self.model.objects.filter(organization__users=self.request.user)
+        return self.model.objects.filter(contributor=self.request.user)
+
+    def get_serializer_class(self):
+        if isinstance(self.request.user, UserModel):
+            return serializers.ContributionSerializer
+        return serializers.ContributorContributionSerializer

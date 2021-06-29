@@ -290,7 +290,6 @@ HEALTHCHECK_URL_AUTO_ACCEPT_FLAGGED_PAYMENTS = os.environ.get("HEALTHCHECK_URL_A
 
 # Transactional Email
 EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
-EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
 EMAIL_SUBJECT_PREFIX = "[RevEngine] "
 
 ADMINS = [("nrh-team", "nrh-team@caktusgroup.com")]

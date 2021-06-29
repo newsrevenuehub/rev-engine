@@ -94,7 +94,7 @@ class PageEmailTemplate(BaseEmailTemplate):
     def get_template(template_type, donation_page):
         """A method that will return a PageEmailTemplate based on the type. If the error is raised, something
         has gone horribly wrong. The defaults are added when a DonationPage is created."""
-        if obj := donation_page.email_templates.filter(template_type=template_type):
+        if obj := donation_page.email_templates.filter(template_type=template_type).first():
             return obj
         raise EmailTemplateError(
             f"No template exists for the page {donation_page.name} and type: {BaseEmailTemplate.ContactType[template_type]}"
@@ -103,13 +103,13 @@ class PageEmailTemplate(BaseEmailTemplate):
     def one_time_donation(self, payment_manager):
         self.schema[0].update({"org_name": payment_manager.get_organization().name})
         merge_data = {
-            "donation_date": timezone.now().strftime(""),
+            "donation_date": timezone.now().strftime("%m-%d-%y"),
             "donor_email": payment_manager.data["email"],
             "donation_amount": f"${(payment_manager.data['amount'] / 100):.2f}",
         }
 
         self.schema[0].update(merge_data)
-
+        self.update_default_fields
         self.send_email(
             to=payment_manager.data["email"], subject="Thank you for your donation!", template_data=self.schema[0]
         )

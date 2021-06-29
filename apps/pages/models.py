@@ -93,6 +93,8 @@ class DonationPage(AbstractPage):
     )
     published_date = models.DateTimeField(null=True, blank=True)
 
+    email_templates = models.ManyToManyField("emails.PageEmailTemplate", blank=True)
+
     class Meta:
         unique_together = (
             "slug",

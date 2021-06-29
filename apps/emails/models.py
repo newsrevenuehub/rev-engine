@@ -4,9 +4,7 @@ from django.conf import settings
 from django.db import models
 from django.utils import timezone
 
-from anymail.message import AnymailMessage
-
-from apps.emails.tasks import send_donation_email
+from apps.emails.tasks import send_donor_email
 
 
 logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
@@ -69,12 +67,8 @@ class BaseEmailTemplate(models.Model):
         template_data = kwargs.get("template_data", {})
         if self.schema[0].keys() != template_data.keys():
             logger.warning(f"Template schema does not match: {template_data}")
-        message = AnymailMessage()
-        message.template_id = self.identifier
-        message.to = [to]
-        message.subject = subject
-        message.merge_global_data = template_data
-        send_donation_email.delay(message)
+
+        send_donor_email.delay(identifier=self.identifier, to=to, subject=subject, template_data=template_data)
 
     def __str__(self):
         return self.identifier

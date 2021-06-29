@@ -143,7 +143,6 @@ function StripePaymentForm({ loading, setLoading }) {
         handleSuccesfulPayment();
       }
     } catch (e) {
-      if (e instanceof AuthenticationError) throw e;
       if (e?.response?.data?.detail) {
         setErrors({ stripe: e.response.data.detail });
       } else {

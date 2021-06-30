@@ -27,8 +27,11 @@
     "eslint-plugin-cypress": "^2.11.3",
     "find-webpack": "^2.2.1",
     "framer-motion": "^4.1.8",
+    "lodash.chunk": "^4.2.0",
     "lodash.isempty": "^4.4.0",
+    "lodash.isequal": "^4.5.0",
     "lodash.merge": "^4.6.2",
+    "lodash.orderby": "^4.6.0",
     "msw": "^0.28.2",
     "prettier": "^2.2.1",
     "prop-types": "^15.7.2",
@@ -39,6 +42,7 @@
     "react-dom": "^17.0.2",
     "react-router-dom": "^5.2.0",
     "react-scripts": "4.0.3",
+    "react-table": "^7.7.0",
     "semantic-ui-css": "^2.4.1",
     "semantic-ui-react": "^2.0.3",
     "styled-components": "^5.2.3",
@@ -63,13 +67,26 @@
     "extends": [
       "react-app",
       "react-app/jest",
-      "prettier"
+      "prettier",
+      "plugin:chai-friendly/recommended"
     ],
     "env": {
       "cypress/globals": true
     },
     "plugins": [
-      "cypress"
+      "cypress",
+      "chai-friendly"
+    ],
+    "overrides": [
+      {
+        "files": [
+          "*.spec.js"
+        ],
+        "rules": {
+          "jest/valid-expect": 0,
+          "jest/valid-expect-in-promise": 0
+        }
+      }
     ]
   },
   "browserslist": {
@@ -83,5 +100,8 @@
       "last 1 firefox version",
       "last 1 safari version"
     ]
+  },
+  "devDependencies": {
+    "eslint-plugin-chai-friendly": "^0.7.1"
   }
 }

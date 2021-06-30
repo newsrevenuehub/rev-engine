@@ -2,8 +2,8 @@ import { TOKEN } from 'ajax/endpoints';
 import { getEndpoint } from './util';
 import { FULL_PAGE, STRIPE_PAYMENT } from 'ajax/endpoints';
 
-Cypress.Commands.add('getByTestId', (testId, options) => {
-  return cy.get(`[data-testid="${testId}"]`, options);
+Cypress.Commands.add('getByTestId', (testId, options, partialMatch = false) => {
+  return cy.get(`[data-testid${partialMatch ? '*' : ''}="${testId}"]`, options);
 });
 
 Cypress.Commands.add('login', (userFixture) => {

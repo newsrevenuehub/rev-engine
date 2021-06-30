@@ -43,6 +43,7 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     "django_celery_beat",
     "rest_framework",
+    "django_filters",
     "sorl.thumbnail",
     "sorl_thumbnail_serializer",
 ]
@@ -88,13 +89,12 @@ REST_FRAMEWORK = {
     "DEFAULT_PERMISSION_CLASSES": [
         "rest_framework.permissions.IsAuthenticated",
     ],
-    # https://www.django-rest-framework.org/api-guide/pagination/#setting-the-pagination-style
-    "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.LimitOffsetPagination",
+    "DEFAULT_PAGINATION_CLASS": "apps.api.pagination.ApiStandardPagination",
     "PAGE_SIZE": 10,
 }
 
 SIMPLE_JWT = {  # https://django-rest-framework-simplejwt.readthedocs.io/en/latest/settings.html
-    "ACCESS_TOKEN_LIFETIME": timedelta(hours=os.getenv("ACCESS_TOKEN_LIFETIME_HOURS", 12)),
+    "ACCESS_TOKEN_LIFETIME": timedelta(hours=float(os.getenv("ACCESS_TOKEN_LIFETIME_HOURS", 12))),
     "REFRESH_TOKEN_LIFETIME": timedelta(days=2),
 }
 

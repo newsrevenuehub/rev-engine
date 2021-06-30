@@ -3,6 +3,8 @@ import SvgIcon from 'assets/icons/SvgIcon';
 
 export const StripePaymentForm = styled.div``;
 
+export const PaymentRequestWrapper = styled.div``;
+
 export const PaymentElementWrapper = styled.div`
   margin-bottom: 2rem;
 
@@ -12,6 +14,8 @@ export const PaymentElementWrapper = styled.div`
     border-bottom: 1px solid ${(props) => props.theme.colors.grey[1]};
   }
 `;
+
+export const EnterValidAmount = styled.h5``;
 
 export const IconWrapper = styled.div`
   display: flex;
@@ -26,6 +30,14 @@ export const Icon = styled(SvgIcon)`
 export const PaymentError = styled.div`
   padding: 1rem 0;
   color: ${(props) => props.theme.colors.caution};
+`;
+
+export const PayWithCardOption = styled.p`
+  cursor: pointer;
+  color: ${(props) => props.theme.colors.primary};
+  font-size: ${(props) => props.theme.fontSizes[1]};
+  text-align: center;
+  padding: 2rem;
 `;
 
 export const CardElementStyle = (theme) => ({
@@ -48,3 +60,11 @@ export const CardElementStyle = (theme) => ({
     iconColor: '#fa755a'
   }
 });
+
+export const PaymentRequestButtonStyle = {
+  paymentRequestButton: {
+    type: 'donate',
+    theme: 'light-outline',
+    height: '64px'
+  }
+};

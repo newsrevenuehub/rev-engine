@@ -242,7 +242,7 @@ function Donations() {
       },
       {
         accessor: 'id',
-        Cell: ({ row }) => <button onClick={(e) => handleRowClick(e, row)}>Hi</button>,
+        Cell: ({ row }) => <KebabButton onClick={(e) => handleRowClick(e, row)} />,
         disableSortBy: true
       }
     ],

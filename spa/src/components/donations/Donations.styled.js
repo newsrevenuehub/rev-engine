@@ -5,14 +5,6 @@ export const Donations = styled.div`
   table {
     width: 100%;
   }
-  tr {
-    border: 2px solid;
-    border-color: ${(props) => (props.disabled ? props.theme.colors.disabled : props.theme.colors.primary)};
-    border-radius: ${(props) => props.theme.radii[0]};
-    min-height: 80px;
-    background: ${(props) => props.theme.colors.paneBackground};
-    opacity: ${(props) => (props.disabled ? 0.5 : 1)};
-  }
 `;
 
 export const DonationsDetail = styled.div`
@@ -23,7 +15,7 @@ export const DonationsDetail = styled.div`
     position: absolute;
     top: 0;
     right: 0;
-    margin-top: 15px;
-    margin-right: 15px;
+    margin-top: 1rem;
+    margin-right: 1rem;
   }
 `;

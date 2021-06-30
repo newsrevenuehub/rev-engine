@@ -5,7 +5,7 @@ from apps.emails.models import PageEmailTemplate
 
 
 @receiver(post_save, sender="pages.DonationPage")
-def my_handler(sender, **kwargs):
+def my_handler(sender, **kwargs):  # pragma: no cover
     instance = kwargs.get("instance")
     defaults = PageEmailTemplate.defaults.all()
 

@@ -47,6 +47,7 @@ INSTALLED_APPS = [
     "sorl.thumbnail",
     "sorl_thumbnail_serializer",
     "anymail",
+    "django_json_widget",
 ]
 
 

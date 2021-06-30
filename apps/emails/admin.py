@@ -1,10 +1,11 @@
 from django.contrib import admin
 
+from apps.common.admin import RevEngineBaseAdmin
 from apps.emails.models import PageEmailTemplate
 
 
 @admin.register(PageEmailTemplate)
-class PageEmailAdmin(admin.ModelAdmin):
+class PageEmailAdmin(RevEngineBaseAdmin):
     fieldsets = (
         ("Template Identifier", {"fields": ("identifier",)}),
         ("Contact Type", {"fields": ("template_type",)}),

@@ -109,6 +109,20 @@ class DonationPage(AbstractPage):
             feature_type=Feature.FeatureType.PAGE_LIMIT, plans__organization=self.organization.id
         ).first()
 
+    def update_email_template(self, template):
+        """
+        Replaces the template on the DonationPage instance with a new template with the same.
+        template type.
+
+        :param template: PageEmailTemplate instance
+        :return: None
+        """
+        if temp := self.email_templates.filter(template_type=template.template_type).first():
+            self.email_templates.remove(temp)
+            self.email_templates.add(template)
+        else:
+            self.email_templates.add(template)
+
     @property
     def total_pages(self):
         return DonationPage.objects.filter(organization=self.organization).count()

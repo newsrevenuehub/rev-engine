@@ -57,14 +57,14 @@ def stripe_payment(request):
             # Create subscription with Stripe, associated local models
             stripe_payment.create_subscription()
             response_body = {"detail": "Success"}
-    except PaymentBadParamsError:
+    except PaymentBadParamsError:  # pragma: no cover
         logger.warning("stripe_payment view raised a PaymentBadParamsError")
         return Response({"detail": "There was an error processing your payment."}, status=status.HTTP_400_BAD_REQUEST)
-    except PaymentProviderError as pp_error:
+    except PaymentProviderError as pp_error:  # pragma: no cover
         error_message = str(pp_error)
         logger.error(error_message)
         return Response({"detail": error_message}, status=status.HTTP_400_BAD_REQUEST)
-    except EmailTemplateError as email_error:
+    except EmailTemplateError as email_error:  # pragma: no cover
         msg = f"Email could not be sent to donor: {email_error}"
         logger.warning(msg)
 

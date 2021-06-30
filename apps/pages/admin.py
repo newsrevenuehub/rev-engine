@@ -7,13 +7,14 @@ from django.urls import reverse
 
 from sorl.thumbnail.admin import AdminImageMixin
 
+from apps.common.admin import RevEngineBaseAdmin
 from apps.pages.models import Benefit, BenefitTier, DonationPage, DonorBenefit, Style, Template
 
 
 logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
 
 
-class DonationPageAdminAbstract(AdminImageMixin, admin.ModelAdmin):
+class DonationPageAdminAbstract(AdminImageMixin, RevEngineBaseAdmin):
     fieldsets = (
         (None, {"fields": ("name",)}),
         (
@@ -153,7 +154,7 @@ class DonationPageAdmin(DonationPageAdminAbstract):
 
 
 @admin.register(Style)
-class StyleAdmin(admin.ModelAdmin):
+class StyleAdmin(RevEngineBaseAdmin):
     list_display = (
         "name",
         "organization",
@@ -173,7 +174,7 @@ class StyleAdmin(admin.ModelAdmin):
 
 
 @admin.register(Benefit)
-class BenefitAdmin(admin.ModelAdmin):
+class BenefitAdmin(RevEngineBaseAdmin):
     list_display = (
         "name",
         "organization",
@@ -193,7 +194,7 @@ class BenefitAdmin(admin.ModelAdmin):
 
 
 @admin.register(BenefitTier)
-class BenefitTierAdmin(admin.ModelAdmin):
+class BenefitTierAdmin(RevEngineBaseAdmin):
     list_display = (
         "name",
         "organization",
@@ -213,7 +214,7 @@ class BenefitTierAdmin(admin.ModelAdmin):
 
 
 @admin.register(DonorBenefit)
-class DonorBenefitAdmin(admin.ModelAdmin):
+class DonorBenefitAdmin(RevEngineBaseAdmin):
     list_display = (
         "name",
         "organization",

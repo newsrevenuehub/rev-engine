@@ -1,9 +1,7 @@
 import styled from 'styled-components';
 import SvgIcon from 'assets/icons/SvgIcon';
 
-export const DPayment = styled.div`
-  background: ${(props) => props.theme.colors.fieldBackground};
-`;
+export const DPayment = styled.div``;
 
 export const NotLivePlaceholder = styled.div`
   display: flex;

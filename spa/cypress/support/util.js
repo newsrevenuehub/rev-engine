@@ -1,7 +1,7 @@
 import { apiBaseUrl } from 'ajax/axios';
 
 export function getEndpoint(endpoint) {
-  return `${apiBaseUrl}/${endpoint}`;
+  return `${apiBaseUrl}${endpoint}`;
 }
 
 export function getPageElementByType(fixture, type) {

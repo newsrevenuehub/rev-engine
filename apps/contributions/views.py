@@ -3,13 +3,15 @@ import logging
 from django.conf import settings
 
 import stripe
-from rest_framework import status, viewsets
+from django_filters.rest_framework import DjangoFilterBackend
+from rest_framework import filters, status, viewsets
 from rest_framework.decorators import api_view, authentication_classes, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
 from apps.api.permissions import UserBelongsToOrg
 from apps.contributions import serializers
+from apps.contributions.filters import ContributionFilter
 from apps.contributions.models import Contribution, ContributionInterval
 from apps.contributions.payment_managers import (
     PaymentBadParamsError,
@@ -167,3 +169,5 @@ class ContributionsListView(OrganizationLimitedListView, viewsets.ReadOnlyModelV
     serializer_class = serializers.ContributionSerializer
     model = Contribution
     permission_classes = [IsAuthenticated, UserBelongsToOrg]
+    filter_backends = [DjangoFilterBackend, filters.OrderingFilter]
+    filterset_class = ContributionFilter

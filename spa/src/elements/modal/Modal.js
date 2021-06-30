@@ -5,7 +5,7 @@ import * as S from './Modal.styled';
 import { AnimatePresence } from 'framer-motion';
 import { faTimes } from '@fortawesome/free-solid-svg-icons';
 
-function Modal({ children, isOpen, closeModal }) {
+function Modal({ children, isOpen, closeModal, ...props }) {
   useEffect(() => {
     if (isOpen) document.body.style.overflow = 'hidden';
     else document.body.style.overflow = '';
@@ -17,7 +17,7 @@ function Modal({ children, isOpen, closeModal }) {
       {isOpen && (
         <>
           <S.Underlay isOpen={isOpen} onClick={closeModal ? closeModal : () => {}} />
-          <S.Modal isOpen={isOpen} closeModal={closeModal}>
+          <S.Modal isOpen={isOpen} closeModal={closeModal} {...props}>
             {closeModal && (
               <S.CloseButton onClick={closeModal}>
                 <S.CloseIcon icon={faTimes} />

@@ -4,5 +4,5 @@ export const formatDateTime = (isoString) => {
 };
 
 export const formatCurrencyAmount = (rawAmount) => {
-  return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(rawAmount);
+  return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(rawAmount / 100);
 };

@@ -4,9 +4,7 @@ from apps.contributions.models import Contribution, ContributionInterval, Contri
 
 
 class ContributionSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Contribution
-        fields = "__all__"
+    contributor_email = serializers.StringRelatedField(read_only=True, source="contributor")
 
 
 class ContributorContributionSerializer(serializers.ModelSerializer):

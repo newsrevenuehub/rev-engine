@@ -19,6 +19,10 @@ export const PageMain = styled.main`
 export const SideOuter = styled.div`
   flex: 1;
   padding: 0 2rem;
+
+  @media (${(props) => props.theme.breakpoints.tabletLandscapeDown}) {
+    padding: 0 1rem;
+  }
 `;
 
 export const SideInner = styled.div`
@@ -37,7 +41,7 @@ export const SideInner = styled.div`
 export const DonationContent = styled.div`
   padding: 3rem 5rem;
   @media (${(props) => props.theme.breakpoints.phoneOnly}) {
-    padding: 2rem;
+    padding: 1rem;
   }
 `;
 

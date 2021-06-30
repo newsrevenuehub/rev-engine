@@ -29,21 +29,3 @@ class ContributionSerializer(TestCase):
         data = self.serializer(self.contribution).data
         for field in self.expected_fields:
             self.assertIn(field, data)
-
-
-class ContributorSerializer(TestCase):
-    expected_fields = [
-        "id",
-        "created",
-        "modified",
-        "email",
-    ]
-
-    def setUp(self):
-        self.serializer = serializers.ContributorSerializer
-        self.contributor = Contributor.objects.create(email="test@test.com")
-
-    def test_returned_fields(self):
-        data = self.serializer(self.contributor).data
-        for field in self.expected_fields:
-            self.assertIn(field, data)

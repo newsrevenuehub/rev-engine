@@ -42,11 +42,9 @@ def auto_accept_flagged_contributions():
     eligible_flagged_contributions = Contribution.objects.filter(
         status=ContributionStatus.FLAGGED, flagged_date__lte=now - settings.FLAGGED_PAYMENT_AUTO_ACCEPT_DELTA
     )
-    logger.info(f"Found {len(eligible_flagged_contributions)} eligible flagged contributions")
+    logger.info(f"Found {len(eligible_flagged_contributions)} flagged contributions past auto-accept date")
 
     for contribution in eligible_flagged_contributions:
-        logger.info(f"contribution.status {contribution.status}")
-        logger.info(f"contribution.flagged_date {contribution.flagged_date}")
         payment_intent = contribution.get_payment_manager_instance()
         try:
             payment_intent.complete_payment(reject=False)

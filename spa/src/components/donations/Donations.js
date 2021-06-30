@@ -21,7 +21,6 @@ export const DEFAULT_RESULTS_ORDERING = [
 ];
 
 function DonationsTable({ columns, data, fetchData, loading, pageCount, totalResults }) {
-  const alert = useAlert();
   const {
     getTableProps,
     getTableBodyProps,
@@ -184,6 +183,8 @@ function Donations() {
     ],
     []
   );
+
+  const alert = useAlert();
 
   // We'll start our table without any data
   const [data, setData] = useState([]);

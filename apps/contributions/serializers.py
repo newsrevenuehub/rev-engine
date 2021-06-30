@@ -6,6 +6,10 @@ from apps.contributions.models import Contribution, ContributionInterval, Contri
 class ContributionSerializer(serializers.ModelSerializer):
     contributor_email = serializers.StringRelatedField(read_only=True, source="contributor")
 
+    class Meta:
+        model = Contribution
+        fields = "__all__"
+
 
 class ContributorContributionSerializer(serializers.ModelSerializer):
     """

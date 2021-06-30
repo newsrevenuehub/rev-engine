@@ -46,7 +46,7 @@ def auto_accept_flagged_contributions():
 
     for contribution in eligible_flagged_contributions:
         logger.info(f"contribution.status {contribution.status}")
-        logger.info(f"contribution.flagged_data {contribution.flagged_data}")
+        logger.info(f"contribution.flagged_date {contribution.flagged_date}")
         payment_intent = contribution.get_payment_manager_instance()
         try:
             payment_intent.complete_payment(reject=False)

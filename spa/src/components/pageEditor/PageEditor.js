@@ -96,7 +96,8 @@ function PageEditor() {
         onFailure: () => setLoading(false)
       }
     );
-  }, []);
+    // Don't include requestGetPage for now.
+  }, [parameters]);
 
   useEffect(() => {
     setLoading(true);
@@ -112,6 +113,7 @@ function PageEditor() {
         }
       }
     );
+    // Don't include requestGetDonorBenefits for now.
   }, []);
 
   useEffect(() => {
@@ -128,6 +130,7 @@ function PageEditor() {
         }
       }
     );
+    // Don't include requestGetPageStyles for now.
   }, []);
 
   const handlePreview = () => {

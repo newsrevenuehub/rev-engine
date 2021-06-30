@@ -6,7 +6,7 @@ import { loadStripe } from '@stripe/stripe-js';
 import { Elements } from '@stripe/react-stripe-js';
 
 // Ajax
-import axios from 'ajax/axios';
+import useRequest from 'hooks/useRequest';
 import { ORG_STRIPE_ACCOUNT_ID } from 'ajax/endpoints';
 
 // Routing
@@ -19,14 +19,20 @@ import StripePaymentForm from 'components/paymentProviders/stripe/StripePaymentF
 function StripePayment() {
   const [loading, setLoading] = useState(false);
   const [stripe, setStripe] = useState();
+  const requestOrgStripeAccountId = useRequest();
   const params = useParams();
 
   const setOrgStripeAccountId = useCallback(async () => {
-    const { data } = await axios.get(ORG_STRIPE_ACCOUNT_ID, {
-      params: { revenue_program_slug: params.revProgramSlug }
-    });
-    const stripeAccount = data.stripe_account_id;
-    setStripe(loadStripe('pk_test_31XWC5qhlLi9UkV1OzsI634W', { stripeAccount }));
+    const requestParams = { revenue_program_slug: params.revProgramSlug };
+    requestOrgStripeAccountId(
+      { method: 'GET', url: ORG_STRIPE_ACCOUNT_ID, params: requestParams },
+      {
+        onSuccess: ({ data }) => {
+          const stripeAccount = data.stripe_account_id;
+          setStripe(loadStripe('pk_test_31XWC5qhlLi9UkV1OzsI634W', { stripeAccount }));
+        }
+      }
+    );
   }, [params.revProgramSlug]);
 
   useEffect(() => {

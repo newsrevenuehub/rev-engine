@@ -194,24 +194,27 @@ function Donations() {
   const convertOrderingToString = (ordering) => {
     return ordering.map((item) => (item.desc ? `-${item.id}` : item.id)).toString();
   };
-  const fetchData = useCallback(async (pageSize, pageIndex, sortBy) => {
-    const ordering = sortBy.length ? sortBy : DEFAULT_RESULTS_ORDERING;
-    setLoading(true);
-    try {
-      const {
-        data: { count, results }
-      } = await axios.get(DONATIONS, {
-        params: { page_size: pageSize, page: pageIndex, ordering: convertOrderingToString(ordering) }
-      });
-      setData(results);
-      setPageCount(Math.ceil(count / pageSize));
-      setTotalResults(count);
-    } catch (e) {
-      alert.error(GENERIC_ERROR);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+  const fetchData = useCallback(
+    async (pageSize, pageIndex, sortBy) => {
+      const ordering = sortBy.length ? sortBy : DEFAULT_RESULTS_ORDERING;
+      setLoading(true);
+      try {
+        const {
+          data: { count, results }
+        } = await axios.get(DONATIONS, {
+          params: { page_size: pageSize, page: pageIndex, ordering: convertOrderingToString(ordering) }
+        });
+        setData(results);
+        setPageCount(Math.ceil(count / pageSize));
+        setTotalResults(count);
+      } catch (e) {
+        alert.error(GENERIC_ERROR);
+      } finally {
+        setLoading(false);
+      }
+    },
+    [alert]
+  );
 
   return (
     <DashboardSectionGroup data-testid="donations">

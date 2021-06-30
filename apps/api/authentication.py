@@ -37,8 +37,13 @@ class JWTHttpOnlyCookieAuthentication(JWTAuthentication):
     def validate_token(self, token):
         validated_token = self.get_validated_token(token)
         user = self.get_user(validated_token)
+
+        if isinstance(user, Contributor) and not self.token_is_contrib_long_token(validated_token):
+            return None, None
+
         if not user or hasattr(user, "is_active") and not user.is_active:
-            return None
+            return None, None
+
         return user, validated_token
 
     def authenticate(self, request):
@@ -91,27 +96,10 @@ class MagicLinkTokenAuthenticationBase(JWTHttpOnlyCookieAuthentication):
             raise MagicLinkAuthenticationFailed("Invalid token", code="invalid_token")
 
         contributor = self.get_user(validated_token)
-        if not contributor:
-            return None
 
         self.ensure_contrib_token_type(validated_token)
         self.ensure_valid_owner(email, contributor)
         return contributor, validated_token
-
-    def authenticate(self, request):
-        raw_token = request.data.get("token", None)
-        email = request.data.get("email", None)
-
-        if raw_token is None or email is None:
-            raise MagicLinkAuthenticationFailed("Invalid parameters", code="invalid_params")
-
-        validated_user, validated_token = self.validate_token(raw_token, email)
-        if not validated_user and validated_token:
-            raise MagicLinkAuthenticationFailed("Invalid token")
-
-        enforce_csrf(request)
-
-        return validated_user, validated_token
 
 
 class ShortLivedTokenAuthentication(MagicLinkTokenAuthenticationBase):
@@ -137,12 +125,3 @@ class ShortLivedTokenAuthentication(MagicLinkTokenAuthenticationBase):
             raise MagicLinkAuthenticationFailed("Invalid token")
 
         return validated_user, validated_token
-
-
-class LongLivedTokenAuthentication(MagicLinkTokenAuthenticationBase):
-    def ensure_contrib_token_type(self, token):
-        if "ctx" not in token:
-            raise AuthenticationFailed("Invalid token")
-
-        if token["ctx"] != LONG_TOKEN:
-            raise AuthenticationFailed("Invalid token type")

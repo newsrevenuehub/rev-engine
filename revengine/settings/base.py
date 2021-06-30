@@ -101,7 +101,7 @@ SIMPLE_JWT = {  # https://django-rest-framework-simplejwt.readthedocs.io/en/late
 CONTRIBUTOR_ID_CLAIM = "contrib_id"
 CONTRIBUTOR_SHORT_TOKEN_LIFETIME = timedelta(minutes=5)
 CONTRIBUTOR_LONG_TOKEN_LIFETIME = timedelta(hours=3)
-CONTRIBUTOR_URL = "contributor-verify"
+CONTRIBUTOR_VERIFY_URL = "contributor-verify"
 
 USER_TTL = timedelta(hours=24)
 

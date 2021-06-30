@@ -10,9 +10,13 @@ logger = get_task_logger(f"{settings.DEFAULT_LOGGER}.{__name__}")
 
 
 @shared_task(
-    name="send_donor_email", max_retries=5, retry_backoff=True, retry_jitter=False, autoretry_for=(AnymailAPIError,)
+    name="send_donor_email",
+    max_retries=5,
+    retry_backoff=True,
+    retry_jitter=False,
+    autoretry_for=(AnymailAPIError,),
 )
-def send_donor_email(identifier, to, subject, template_data):
+def send_donor_email(identifier, to, subject, template_data):  # pragma: no cover
     logger.info("Sending a donation email")
     message = AnymailMessage()
     message.template_id = identifier

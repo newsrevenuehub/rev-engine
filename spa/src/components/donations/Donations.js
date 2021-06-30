@@ -139,6 +139,8 @@ function DonationsTable({ columns, data, fetchData, loading, pageCount, totalRes
           <input
             data-testid="go-to-page"
             type="number"
+            min="1"
+            max={pageOptions.length}
             defaultValue={pageIndex + 1}
             onChange={(e) => {
               const page = e.target.value ? Number(e.target.value) - 1 : 0;

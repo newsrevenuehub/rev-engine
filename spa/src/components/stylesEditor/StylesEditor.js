@@ -3,10 +3,8 @@ import { HelpText, Label } from 'elements/inputs/BaseField.styled';
 import * as S from './StylesEditor.styled';
 
 // AJAX
-import axios from 'ajax/axios';
+import useRequest from 'hooks/useRequest';
 import { PAGE_STYLES } from 'ajax/endpoints';
-
-import { AuthenticationError } from 'ajax/axios';
 
 // Assets
 import { faSave, faTrash } from '@fortawesome/free-solid-svg-icons';
@@ -22,6 +20,8 @@ import CircleButton from 'elements/buttons/CircleButton';
 
 function StylesEditor({ styles, setStyles, handleKeepChanges, handleDiscardChanges }) {
   const alert = useAlert();
+  const requestCreateStyles = useRequest();
+
   const setName = (name) => {
     setStyles({ ...styles, name });
   };
@@ -46,13 +46,13 @@ function StylesEditor({ styles, setStyles, handleKeepChanges, handleDiscardChang
   };
 
   const handleSave = async () => {
-    try {
-      const { data } = await axios.post(PAGE_STYLES, styles);
-      handleKeepChanges(data);
-    } catch (e) {
-      if (e instanceof AuthenticationError) throw e;
-      alert.error(GENERIC_ERROR);
-    }
+    requestCreateStyles(
+      { method: 'POST', url: PAGE_STYLES, data: styles },
+      {
+        onSuccess: ({ data }) => handleKeepChanges(data),
+        onFailure: () => alert.error(GENERIC_ERROR)
+      }
+    );
   };
 
   const handleDiscard = () => {

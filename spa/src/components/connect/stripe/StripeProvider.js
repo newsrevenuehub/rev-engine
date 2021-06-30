@@ -6,13 +6,11 @@ import StripeWordmark from 'assets/images/stripe_wordmark-blurple_sm.png';
 // Deps
 import { useAlert } from 'react-alert';
 
-import { AuthenticationError } from 'ajax/axios';
-
 // State
 import { PP_STATES } from 'components/connect/BaseProviderInfo';
 
 // AJAX
-import axios from 'ajax/axios';
+import useRequest from 'hooks/useRequest';
 import { STRIPE_CONFIRMATION } from 'ajax/endpoints';
 
 // Children
@@ -21,31 +19,43 @@ import StripeConnect from 'components/connect/stripe/StripeConnect';
 
 function StripeProvider() {
   const alert = useAlert();
+  const requestStripeConfirmation = useRequest();
   const [stripeState, setStripeState] = useState();
   const [isLoading, setIsLoading] = useState(false);
 
-  const getStripeVerification = useCallback(async () => {
-    setIsLoading(true);
-    try {
-      const { data } = await axios.post(STRIPE_CONFIRMATION);
-      if (data.status === 'connected') {
-        setStripeState(PP_STATES.CONNECTED);
-      } else if (data.status === 'restricted') {
-        setStripeState(PP_STATES.RESTRICTED);
-      } else if (data.status === 'not_connected') {
-        setStripeState(PP_STATES.NOT_CONNECTED);
-      }
-      setIsLoading(false);
-    } catch (e) {
-      if (e instanceof AuthenticationError) throw e;
+  const handleStripeConfirmationSuccess = useCallback(({ data }) => {
+    if (data.status === 'connected') {
+      setStripeState(PP_STATES.CONNECTED);
+    } else if (data.status === 'restricted') {
+      setStripeState(PP_STATES.RESTRICTED);
+    } else if (data.status === 'not_connected') {
+      setStripeState(PP_STATES.NOT_CONNECTED);
+    }
+    setIsLoading(false);
+  }, []);
+
+  const handleStripeConfirmationFailure = useCallback(
+    (e) => {
       if (e.response.data.status === 'failed') {
         setStripeState(PP_STATES.FAILED);
       } else {
         alert.error('There was a problem verifying your Stripe connection. We have been notified.');
       }
       setIsLoading(false);
-    }
-  }, [setStripeState, alert]);
+    },
+    [alert]
+  );
+
+  const getStripeVerification = useCallback(async () => {
+    setIsLoading(true);
+    requestStripeConfirmation(
+      {
+        method: 'POST',
+        url: STRIPE_CONFIRMATION
+      },
+      { onSuccess: handleStripeConfirmationSuccess, onFailure: handleStripeConfirmationFailure }
+    );
+  }, [handleStripeConfirmationSuccess, handleStripeConfirmationFailure]);
 
   // Get Connection Status
   useEffect(() => {

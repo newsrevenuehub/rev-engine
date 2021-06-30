@@ -48,7 +48,7 @@ DFrequency.unique = true;
 
 export default DFrequency;
 
-function frequencySort(a, b) {
+export function frequencySort(a, b) {
   const sortOrder = ['one_time', 'month', 'year'];
   const aVal = a.value;
   const bVal = b.value;

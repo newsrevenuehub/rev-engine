@@ -52,9 +52,10 @@ function ContributorEntry() {
                 type="email"
                 onChange={(e) => setEmail(e.target.value)}
                 errors={errors.email}
+                testid="magic-link-email-input"
               />
             </S.InputWrapper>
-            <S.MagicLinkButton onClick={handleSendMagicLink} disabled={loading}>
+            <S.MagicLinkButton onClick={handleSendMagicLink} disabled={loading} data-testid="magic-link-email-button">
               Send Magic Link
               <span role="img" aria-label="magic wand">
                 🪄

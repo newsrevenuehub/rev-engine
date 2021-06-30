@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import * as S from './StripePaymentWidget.styled';
+import * as S from './StripePayment.styled';
 
 // Deps
 import { loadStripe } from '@stripe/stripe-js';
@@ -16,7 +16,7 @@ import { useParams } from 'react-router-dom';
 import ElementLoading from 'components/donationPage/pageContent/ElementLoading';
 import StripePaymentForm from 'components/paymentProviders/stripe/StripePaymentForm';
 
-function StripePaymentWidget() {
+function StripePayment() {
   const [loading, setLoading] = useState(false);
   const [stripe, setStripe] = useState();
   const requestOrgStripeAccountId = useRequest();
@@ -40,15 +40,15 @@ function StripePaymentWidget() {
   }, [setOrgStripeAccountId]);
 
   return (
-    <S.StripePaymentWidget>
+    <S.StripePayment>
       {(loading || !stripe) && <ElementLoading />}
       {stripe && (
         <Elements stripe={stripe}>
           <StripePaymentForm loading={loading} setLoading={setLoading} />
         </Elements>
       )}
-    </S.StripePaymentWidget>
+    </S.StripePayment>
   );
 }
 
-export default StripePaymentWidget;
+export default StripePayment;

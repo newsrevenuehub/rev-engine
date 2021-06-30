@@ -1,4 +1,4 @@
-import { FULL_PAGE } from 'ajax/endpoints';
+import { STRIPE_PAYMENT, FULL_PAGE } from 'ajax/endpoints';
 import { getEndpoint, getPageElementByType } from '../support/util';
 import livePageOne from '../fixtures/pages/live-page-1.json';
 
@@ -108,6 +108,37 @@ describe('Donation page', () => {
         });
       });
     });
+  });
+
+  describe('Stripe payment functions unit tests', () => {
+    before(() => {
+      cy.intercept(
+        { method: 'POST', pathname: getEndpoint(STRIPE_PAYMENT) },
+        { fixture: 'pages/live-page-1', statusCode: 200 }
+      ).as('createStripePayment');
+      cy.intercept({ method: 'POST', url: 'https://api.stripe.com/v1/payment_methods' }).as(
+        'stripeCreatePaymentMethod'
+      );
+      cy.intercept({ method: 'POST', url: 'http://localhost:3000/api/v1/stripe/payment/' }).as(
+        'stripeConfirmCardPayment'
+      );
+    });
+
+    // describe('trySinglePayment', () => {
+    // it('should make a request to create a payment intent', () => {
+    //   cy.setUpDonation('one_time', '120');
+    //   cy.makeDonation();
+    //   return cy.wait('@createStripePayment').then((a, b, c) => {
+    //     console.log(a, b, c);
+    //   });
+    // });
+
+    // it('should make a request to stripe to confirm a payment', () => {
+    //   cy.setUpDonation('one_time', '120');
+    //   cy.makeDonation();
+    //   return cy.wait('@stripe.confirmCardPayment');
+    // });
+    // });
   });
 
   describe('Resulting request', () => {

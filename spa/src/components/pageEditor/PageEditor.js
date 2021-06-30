@@ -183,6 +183,7 @@ function PageEditor() {
         if (datumKey === 'elements') datum = JSON.stringify(datum);
         if (datumKey === 'donor_benefits') {
           datumKey = 'donor_benefits_pk';
+          if (datum === null) datum = '';
         }
         if (datumKey === 'styles') {
           datumKey = 'styles_pk';
@@ -210,7 +211,8 @@ function PageEditor() {
           setPage(data);
           setSelectedButton(PREVIEW);
         },
-        onFailure: () => {
+        onFailure: (e) => {
+          console.log('e.response', e.response);
           alert.error(GENERIC_ERROR);
           setSelectedButton(PREVIEW);
         }

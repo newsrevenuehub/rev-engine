@@ -1,3 +1,3 @@
-// import { XIcon, XButton } from './XButton.styled';
+import { XIcon, XButton } from './XButton.styled';
 
-// export { XIcon, XButton };
+export { XIcon, XButton };

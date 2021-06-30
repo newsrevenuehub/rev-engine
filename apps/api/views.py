@@ -1,6 +1,7 @@
 from datetime import datetime
 
 from django.conf import settings
+from django.core.mail import send_mail
 from django.middleware import csrf
 
 from rest_framework import status
@@ -108,9 +109,10 @@ class RequestContributorTokenEmailView(APIView):
         email = data["email"]
         token = data["access"]
 
-        magic_link = f"{settings.SITE_URL}/{settings.CONTRIBUTOR_URL}?token={token}&email={email}"
-        print(magic_link)
-        # TODO: send_magic_link
+        magic_link = f"{settings.SITE_URL}/{settings.CONTRIBUTOR_VERIFY_URL}?token={token}&email={email}"
+
+        # TODO: send magic_link using proper templated email
+        send_mail("TEMP  subject for testing", f"TEMP magic link is: {magic_link}", "testing@test.com", [email])
 
         # If email sent successfully...
         return Response({"detail": "success"}, status=status.HTTP_200_OK)

@@ -21,6 +21,8 @@ INSTALLED_APPS.extend(
     ]
 )
 
+# Set for testing
+CONTRIBUTOR_MAGIC_LINK_REQUEST_THROTTLE_RATE = "1000/minute"
 
 # SECURITY WARNING: define the correct hosts in production!
 ALLOWED_HOSTS = ["*"]

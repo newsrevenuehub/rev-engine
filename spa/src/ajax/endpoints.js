@@ -11,6 +11,7 @@ export const ORG_STRIPE_ACCOUNT_ID = 'organizations/stripe_account_id/';
 export const FULL_PAGE = 'pages/full_detail/';
 export const LIST_PAGES = 'pages/';
 export const PATCH_PAGE = 'pages/';
+export const DONATIONS = 'contributions/';
 
 // Donor benefits
 export const DONOR_BENEFITS = 'donor-benefits/';

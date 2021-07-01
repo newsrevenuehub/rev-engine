@@ -16,6 +16,7 @@ from apps.api.serializers import (
     NoSuchContributorError,
     TokenObtainPairCookieSerializer,
 )
+from apps.api.throttling import ContributorRateThrottle
 from apps.api.tokens import ContributorRefreshToken
 from apps.contributions.serializers import ContributorSerializer
 
@@ -95,6 +96,7 @@ class RequestContributorTokenEmailView(APIView):
 
     authentication_classes = []
     permission_classes = []
+    throttle_classes = [ContributorRateThrottle]
 
     def post(self, request, *args, **kwargs):
         serializer = ContributorObtainTokenSerializer(data=request.data)

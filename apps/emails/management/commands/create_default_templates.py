@@ -4,7 +4,7 @@ from apps.emails.models import PageEmailTemplate
 from apps.pages.models import DonationPage
 
 
-class Command(BaseCommand):
+class Command(BaseCommand):  # pragma: no cover
     def handle(self, *args, **options):
 
         for ct in PageEmailTemplate.ContactType.values:

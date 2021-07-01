@@ -68,9 +68,8 @@ class RequestContributorTokenEmailViewTest(APITestCase):
 
     def test_normal_response_when_valid_but_unrecognized_email(self):
         target_email = "testing123@testing123.com"
-        contributors_with_target_email = Contributor.objects.filter(email=target_email)
         # Verify that there are no contributors with target email
-        self.assertEqual(len(contributors_with_target_email), 0)
+        self.assertEqual(Contributor.objects.filter(email=target_email).count(), 0)
         response = self.client.post(self.url, {"email": target_email})
         # We don't want to indicate in any way whether or not an email is in the system.
         self.assertEqual(response.status_code, 200)
@@ -93,6 +92,9 @@ class RequestContributorTokenEmailViewTest(APITestCase):
         self.assertEqual(len(self.outbox), 1)
         self.assertIn(settings.CONTRIBUTOR_VERIFY_URL, self.outbox[0].body)
         self.assertIn("token=", self.outbox[0].body)
+        # Assert that something looking like a valid token appears in token param
+        token = (self.outbox[0].body.split("token="))[1].split("&email=")[0]
+        self.assertEqual(len(token.split(".")), 3)
         self.assertIn(f"email={target_email}", self.outbox[0].body)
 
     def test_outbound_email_send_to_requested_address(self):
@@ -226,11 +228,11 @@ class AuthorizedContributorRequestsTest(APITestCase):
 
     def test_contributor_request_when_token_invalid_type(self):
         response = self._make_request(type_valid=False)
-        self.assertEqual(response.status_code, 403)
-        self.assertEqual(str(response.data["detail"]), "You do not have permission to perform this action.")
+        self.assertEqual(response.status_code, 401)
+        self.assertEqual(str(response.data["detail"]), "Authentication credentials were not provided.")
 
     @override_settings(CONTRIBUTOR_LONG_TOKEN_LIFETIME=timedelta(seconds=0))
-    def test_contributor_request_when_token_expried(self):
+    def test_contributor_request_when_token_expired(self):
         response = self._make_request()
         self.assertEqual(response.status_code, 401)
         self.assertEqual(str(response.data["detail"]), "Given token not valid for any token type")

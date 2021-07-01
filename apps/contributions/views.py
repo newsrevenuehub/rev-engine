@@ -55,7 +55,7 @@ def stripe_payment(request):
             stripe_payment.create_subscription()
             response_body = {"detail": "Success"}
     except PaymentBadParamsError:
-        logger.warn("stripe_payment view raised a PaymentBadParamsError")
+        logger.warning("stripe_payment view raised a PaymentBadParamsError")
         return Response({"detail": "There was an error processing your payment."}, status=status.HTTP_400_BAD_REQUEST)
     except PaymentProviderError as pp_error:
         error_message = str(pp_error)

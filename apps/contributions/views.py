@@ -13,7 +13,7 @@ from rest_framework.response import Response
 from apps.api.permissions import UserBelongsToOrg
 from apps.contributions import serializers
 from apps.contributions.filters import ContributionFilter
-from apps.contributions.models import Contribution, ContributionInterval
+from apps.contributions.models import Contribution, ContributionInterval, Contributor
 from apps.contributions.payment_managers import (
     PaymentBadParamsError,
     PaymentProviderError,
@@ -57,7 +57,7 @@ def stripe_payment(request):
             stripe_payment.create_subscription()
             response_body = {"detail": "Success"}
     except PaymentBadParamsError:
-        logger.warn("stripe_payment view raised a PaymentBadParamsError")
+        logger.warning("stripe_payment view raised a PaymentBadParamsError")
         return Response({"detail": "There was an error processing your payment."}, status=status.HTTP_400_BAD_REQUEST)
     except PaymentProviderError as pp_error:
         error_message = str(pp_error)
@@ -172,10 +172,12 @@ class ContributionsListView(viewsets.ReadOnlyModelViewSet):
         We should limit by organization if the requesting user is a User (OrgAdmin).
         If they're a Contributor, we should show them all the contributions under their name.
         """
-        if isinstance(self.request.user, UserModel):
-            if self.action == "list" and hasattr(self.model, "organization"):
-                return self.model.objects.filter(organization__users=self.request.user)
-        return self.model.objects.filter(contributor=self.request.user)
+        if isinstance(self.request.user, Contributor):
+            return self.model.objects.filter(contributor=self.request.user)
+
+        if self.action == "list" and hasattr(self.model, "organization"):
+            return self.model.objects.filter(organization__users=self.request.user)
+        return self.model.objects.all()
 
     def get_serializer_class(self):
         if isinstance(self.request.user, UserModel):

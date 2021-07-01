@@ -1,9 +1,12 @@
+import uuid
+
 from django.db import models
 
 from apps.common.models import IndexedTimeStampedModel
 
 
 class Contributor(IndexedTimeStampedModel):
+    uuid = models.UUIDField(default=uuid.uuid4, primary_key=False, editable=False)
     email = models.EmailField(unique=True)
 
     @property
@@ -13,6 +16,16 @@ class Contributor(IndexedTimeStampedModel):
     @property
     def most_recent_contribution(self):
         return self.contribution_set.filter(status="paid").latest()
+
+    @property
+    def is_authenticated(self):
+        """
+        Copy django.contrib.auth.models import AbstractBaseUser for request.user.is_authenticated
+
+        Always return True. This is a way to tell if the user has been
+        authenticated in templates.
+        """
+        return True
 
     def __str__(self):
         return self.email
@@ -63,7 +76,7 @@ class Contribution(IndexedTimeStampedModel):
 
     @property
     def formatted_amount(self):
-        return f"{float(self.amount / 100)} {self.currency.upper()}"
+        return f"{'{:.2f}'.format(self.amount / 100)} {self.currency.upper()}"
 
     BAD_ACTOR_SCORES = (
         (

@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import * as S from './ContributorEntry.styled';
 
-// Icons
-import { faExclamationCircle } from '@fortawesome/free-solid-svg-icons';
+import { GENERIC_ERROR } from 'constants/textConstants';
+import { useAlert } from 'react-alert';
 
 // AJAX
 import axios from 'ajax/axios';
@@ -12,6 +12,7 @@ import { GET_MAGIC_LINK } from 'ajax/endpoints';
 import Input from 'elements/inputs/Input';
 
 function ContributorEntry() {
+  const alert = useAlert();
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState('');
   const [errors, setErrors] = useState({});
@@ -27,6 +28,8 @@ function ContributorEntry() {
     } catch (e) {
       if (e?.response?.data) {
         setErrors(e.response.data);
+      } else {
+        alert.error(GENERIC_ERROR);
       }
     } finally {
       setLoading(false);

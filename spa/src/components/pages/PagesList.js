@@ -5,10 +5,11 @@ import * as S from './PagesList.styled';
 import { useHistory } from 'react-router-dom';
 import { EDITOR_ROUTE } from 'routes';
 
+// Deps
+import { useAlert } from 'react-alert';
+
 // Constants
 import { GENERIC_ERROR } from 'constants/textConstants';
-
-import { useAlert } from 'react-alert';
 
 // AJAX
 import useRequest from 'hooks/useRequest';
@@ -39,7 +40,7 @@ function PagesList() {
   };
 
   return (
-    <S.PagesList>
+    <S.PagesList data-testid="pages-list">
       <S.List>
         {pages.map((page) => (
           <Button key={page.id} onClick={() => handleEditPage(page.derived_slug)}>

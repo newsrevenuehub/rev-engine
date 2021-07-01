@@ -13,6 +13,7 @@ function Input({ value, onChange, type, name, ...props }) {
         data-testid={props.testid}
         onClick={props.onClick}
         onFocus={props.onFocus}
+        onBlur={props.onBlur}
       />
     </BaseField>
   );

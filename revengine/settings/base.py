@@ -102,6 +102,9 @@ CONTRIBUTOR_ID_CLAIM = "contrib_id"
 CONTRIBUTOR_SHORT_TOKEN_LIFETIME = timedelta(minutes=5)
 CONTRIBUTOR_LONG_TOKEN_LIFETIME = timedelta(hours=3)
 CONTRIBUTOR_VERIFY_URL = "contributor-verify"
+# In format num/[second, minute, hour, day]
+# https://www.django-rest-framework.org/api-guide/throttling/#setting-the-throttling-policy
+CONTRIBUTOR_MAGIC_LINK_REQUEST_THROTTLE_RATE = os.getenv("CONTRIBUTOR_MAGIC_LINK_REQUEST_THROTTLE_RATE", "6/minute")
 
 USER_TTL = timedelta(hours=24)
 

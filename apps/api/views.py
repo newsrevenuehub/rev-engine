@@ -16,6 +16,7 @@ from apps.api.serializers import (
     NoSuchContributorError,
     TokenObtainPairCookieSerializer,
 )
+from apps.api.throttling import ContributorRateThrottle
 from apps.api.tokens import ContributorRefreshToken
 from apps.contributions.serializers import ContributorSerializer
 
@@ -89,12 +90,12 @@ class TokenObtainPairCookieView(simplejwt_views.TokenObtainPairView):
 
 class RequestContributorTokenEmailView(APIView):
     """
-    TODO: Throttles requests for a token for any give email address even more, to prevent a sort of reverse brute-force
-    attack for JWT.
+    Contributors enter their email addres in to a form and request a magic link. Here we validate that email address, check if they exist. If they don't, we send the same response as if they did. We don't want to expose contributors here. We also rate-limit this endpoint by email requested to prevent reverse brute-forcing tokens (though that's nearly impossible without this protection).
     """
 
     authentication_classes = []
     permission_classes = []
+    throttle_classes = [ContributorRateThrottle]
 
     def post(self, request, *args, **kwargs):
         serializer = ContributorObtainTokenSerializer(data=request.data)

@@ -26,7 +26,9 @@ function ContributorEntry() {
       const response = await axios.post(GET_MAGIC_LINK, { email });
       if (response.status === 200) setShowConfirmation(true);
     } catch (e) {
-      if (e?.response?.data) {
+      if (e.response?.status === 429) {
+        setErrors({ email: ['Too many attempts. Try again in one minue.'] });
+      } else if (e.response?.data) {
         setErrors(e.response.data);
       } else {
         alert.error(GENERIC_ERROR);

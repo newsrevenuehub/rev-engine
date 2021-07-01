@@ -204,6 +204,7 @@ class StripePaymentManager(PaymentManager):
             api_key=get_hub_stripe_api_key(),
             stripe_account=organization.stripe_account_id,
             capture_method=capture_method,
+            receipt_email=self.validated_data["email"],
         )
 
         self.create_contribution(organization, provider_reference_instance=stripe_payment_intent)

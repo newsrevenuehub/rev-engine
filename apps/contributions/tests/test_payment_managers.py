@@ -164,6 +164,7 @@ class StripeOneTimePaymentManagerTest(StripePaymentManagerAbstractTestCase):
             api_key=fake_api_key,
             stripe_account=self.organization.stripe_account_id,
             capture_method="manual",
+            receipt_email=data["email"],
         )
         # New contribution is created...
         new_contribution = Contribution.objects.filter(amount=1099).first()
@@ -196,6 +197,7 @@ class StripeOneTimePaymentManagerTest(StripePaymentManagerAbstractTestCase):
             api_key=fake_api_key,
             stripe_account=self.organization.stripe_account_id,
             capture_method="automatic",
+            receipt_email=data["email"],
         )
         # New contribution is created...
         new_contribution = Contribution.objects.filter(amount=1099).first()

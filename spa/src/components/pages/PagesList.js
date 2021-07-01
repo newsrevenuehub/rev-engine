@@ -3,6 +3,7 @@ import * as S from './PagesList.styled';
 
 // Router
 import { useHistory } from 'react-router-dom';
+import { EDITOR_ROUTE } from 'routes';
 
 // Deps
 import { useAlert } from 'react-alert';
@@ -10,11 +11,9 @@ import { useAlert } from 'react-alert';
 // Constants
 import { GENERIC_ERROR } from 'constants/textConstants';
 
-// Routes
-import { EDITOR_ROUTE } from 'routes';
-
 // AJAX
-import axios from 'ajax/axios';
+import useRequest from 'hooks/useRequest';
+// import axios from 'ajax/axios';
 import { LIST_PAGES } from 'ajax/endpoints';
 
 // TEMP
@@ -23,18 +22,17 @@ import Button from 'elements/buttons/Button';
 function PagesList() {
   const alert = useAlert();
   const history = useHistory();
+  const requestGetPages = useRequest();
   const [pages, setPages] = useState([]);
 
   useEffect(() => {
-    async function fetchPages() {
-      try {
-        const { data } = await axios.get(LIST_PAGES);
-        setPages(data.results);
-      } catch (e) {
-        alert.error(GENERIC_ERROR);
+    requestGetPages(
+      { method: 'GET', url: LIST_PAGES },
+      {
+        onSuccess: ({ data }) => setPages(data.results),
+        onFailure: () => alert.error(GENERIC_ERROR)
       }
-    }
-    fetchPages();
+    );
   }, [alert]);
 
   const handleEditPage = (pageSlug) => {

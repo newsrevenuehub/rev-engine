@@ -7,7 +7,7 @@ from django.urls import path, re_path
 from apps.api.urls import urlpatterns as api_urlpatterns
 from apps.users.urls import orgadmin_user_management_urls
 
-from .views import index
+from .views import index, read_apple_developer_merchant_id
 
 
 urlpatterns = [
@@ -34,6 +34,7 @@ urlpatterns = [
     path("admin/", admin.site.urls),
     path("users/", include(orgadmin_user_management_urls)),
     path("api/", include(api_urlpatterns)),
+    path(".well-known/apple-developer-merchantid-domain-association", read_apple_developer_merchant_id),
 ]
 
 

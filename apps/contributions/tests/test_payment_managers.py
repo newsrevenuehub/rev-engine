@@ -170,6 +170,8 @@ class StripeOneTimePaymentManagerTest(StripePaymentManagerAbstractTestCase):
         self.assertIsNotNone(new_contribution)
         # ...with status "flagged"
         self.assertEqual(new_contribution.status, ContributionStatus.FLAGGED)
+        # ...with flagged_date set
+        self.assertIsNotNone(new_contribution.flagged_date)
 
     @responses.activate
     @patch("stripe.PaymentIntent.create", side_effect=MockPaymentIntent)

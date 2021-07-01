@@ -48,6 +48,7 @@ class PaymentManager:
     flagged = None
     contribution = None
     revenue_program = None
+    flagged_date = None
 
     def __init__(self, data=None, contribution=None):
         """
@@ -157,6 +158,7 @@ class PaymentManager:
             provider_payment_id=provider_payment_id,
             provider_customer_id=provider_customer_id,
             provider_payment_method_id=provider_payment_method_id,
+            flagged_date=self.flagged_date,
             bad_actor_score=self.bad_actor_score,
             bad_actor_response=self.bad_actor_response,
         )

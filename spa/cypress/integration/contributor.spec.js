@@ -20,11 +20,13 @@ describe('Contributor portal', () => {
 
     it('should display server generated error on email if non-200 status', () => {
       const emailError = ['email error'];
+      cy.visit(CONTRIBUTOR_ENTRY);
       cy.intercept(
         { method: 'POST', url: getEndpoint(GET_MAGIC_LINK) },
         { body: { email: emailError }, statusCode: 400 }
       ).as('getMagicLink');
       cy.getByTestId('magic-link-email-button').click();
+      cy.contains(emailError[0]);
     });
     it('should display generic success message if status 200', () => {
       cy.intercept({ method: 'POST', url: getEndpoint(GET_MAGIC_LINK) }, { statusCode: 200 }).as('getMagicLink');

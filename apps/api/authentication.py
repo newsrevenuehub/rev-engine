@@ -57,7 +57,7 @@ class JWTHttpOnlyCookieAuthentication(JWTAuthentication):
             return None
         validated_user, validated_token = self.validate_token(raw_token)
 
-        if not validated_user and validated_token:
+        if not validated_user and not validated_token:
             return None
 
         enforce_csrf(request)

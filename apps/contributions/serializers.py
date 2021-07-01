@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from apps.contributions.models import Contribution, ContributionInterval
+from apps.contributions.models import Contribution, ContributionInterval, Contributor
 
 
 class ContributionSerializer(serializers.ModelSerializer):
@@ -8,6 +8,23 @@ class ContributionSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Contribution
+        fields = "__all__"
+
+
+class ContributorContributionSerializer(serializers.ModelSerializer):
+    """
+    A paired-down, read-only version of a Contribution serializer
+    """
+
+    class Meta:
+        model = Contribution
+        fields = ["id", "created", "interval", "status", "formatted_amount"]
+        read_only_fields = fields
+
+
+class ContributorSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Contributor
         fields = "__all__"
 
 

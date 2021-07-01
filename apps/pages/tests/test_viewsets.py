@@ -31,11 +31,11 @@ class PageViewSetTest(AbstractTestCase):
         self.create_resources()
         self.rev_program = RevenueProgramFactory()
         self.authenticate_user_for_resource(self.rev_program)
-        self.authenticate_user_for_resource()
         self.login()
 
     def test_page_create_adds_page(self):
         self.assertEqual(len(self.resources), self.resource_count)
+        self.login()
         list_url = reverse("donationpage-list")
         page_data = {
             "name": "My page, tho",

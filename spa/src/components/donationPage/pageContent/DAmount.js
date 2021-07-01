@@ -38,12 +38,12 @@ function DAmount({ element, ...props }) {
     if (selectedAmount === 'other') {
       amount = parseInt(otherAmount || 0);
     } else {
-      amount = element.content.options[frequency][selectedAmount];
+      amount = element?.content?.options && element.content?.options[frequency][selectedAmount];
     }
     const fee = calculateStripeFee(amount);
     setAmount(amount);
     setFee(fee);
-  }, [selectedAmount, otherAmount, frequency, element.content.options, setAmount, setFee]);
+  }, [selectedAmount, otherAmount, frequency, element?.content?.options, setAmount, setFee]);
 
   return (
     <DElement
@@ -53,15 +53,16 @@ function DAmount({ element, ...props }) {
       data-testid="d-amount"
     >
       <S.DAmount>
-        {element.content.options[frequency].map((amount, i) => (
-          <SelectableButton
-            key={i + amount}
-            selected={selectedAmount === i}
-            onClick={() => handleAmountSelected(i)}
-            data-testid={`amount-${amount}`}
-          >{`$${amount}`}</SelectableButton>
-        ))}
-        {element.content.allowOther && (
+        {element.content?.options &&
+          element.content?.options[frequency].map((amount, i) => (
+            <SelectableButton
+              key={i + amount}
+              selected={selectedAmount === i}
+              onClick={() => handleAmountSelected(i)}
+              data-testid={`amount-${amount}`}
+            >{`$${amount}`}</SelectableButton>
+          ))}
+        {element.content?.allowOther && (
           <S.OtherAmount selected={selectedAmount === 'other'} onClick={handleOtherSelected}>
             <span>$</span>
             <S.OtherAmountInput
@@ -75,7 +76,7 @@ function DAmount({ element, ...props }) {
         )}
       </S.DAmount>
       <FormErrors errors={errors.amount} />
-      {element.content.offerPayFees && (
+      {element.content?.offerPayFees && (
         <S.PayFees data-testid="pay-fees">
           <S.PayFeesQQ>Agree to pay fees?</S.PayFeesQQ>
           <S.Checkbox

@@ -28,15 +28,6 @@ class ReadOnly(permissions.BasePermission):
             return True
 
 
-class RevenueProgramLimitedListView:
-    model = None
-
-    def get_queryset(self):
-        if self.action == "list" and hasattr(self.model, "organization"):
-            return self.model.objects.filter(organization__users=self.request.user)
-        return self.model.objects.all()
-
-
 class OrganizationLimitedListView:
     model = None
 
@@ -96,7 +87,7 @@ class PlanViewSet(viewsets.ReadOnlyModelViewSet, ReadOnly):
     serializer_class = serializers.PlanSerializer
 
 
-class RevenueProgramViewSet(RevenueProgramLimitedListView, viewsets.ModelViewSet):
+class RevenueProgramViewSet(OrganizationLimitedListView, viewsets.ModelViewSet):
     model = RevenueProgram
     permission_classes = [IsAuthenticated, UserBelongsToOrg]
     serializer_class = serializers.RevenueProgramSerializer

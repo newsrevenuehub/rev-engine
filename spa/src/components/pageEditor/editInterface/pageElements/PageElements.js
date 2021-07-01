@@ -18,11 +18,10 @@ import DraggableList from 'elements/draggable/DraggableList';
  */
 function PageElements({ openAddElementModal, goToProperties }) {
   const { elements, setElements } = useEditInterfaceContext();
-  if (!elements) return null;
 
   return (
     <S.PageElements>
-      <DraggableList elements={elements} setElements={setElements} handleItemClick={goToProperties} />
+      {elements && <DraggableList elements={elements} setElements={setElements} handleItemClick={goToProperties} />}
       <S.AddElementButton onClick={openAddElementModal} data-testid="add-element-button">
         <S.AddElementIcon icon={faPlus} />
       </S.AddElementButton>

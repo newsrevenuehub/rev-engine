@@ -1,6 +1,7 @@
 import logging
 
 from django.conf import settings
+from django.contrib.auth import get_user_model
 
 import stripe
 from django_filters.rest_framework import DjangoFilterBackend
@@ -12,7 +13,7 @@ from rest_framework.response import Response
 from apps.api.permissions import UserBelongsToOrg
 from apps.contributions import serializers
 from apps.contributions.filters import ContributionFilter
-from apps.contributions.models import Contribution, ContributionInterval
+from apps.contributions.models import Contribution, ContributionInterval, Contributor
 from apps.contributions.payment_managers import (
     PaymentBadParamsError,
     PaymentProviderError,
@@ -20,10 +21,11 @@ from apps.contributions.payment_managers import (
 )
 from apps.contributions.utils import get_hub_stripe_api_key
 from apps.contributions.webhooks import StripeWebhookProcessor
-from apps.organizations.views import OrganizationLimitedListView
 
 
 logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
+
+UserModel = get_user_model()
 
 
 @api_view(["POST"])
@@ -157,9 +159,27 @@ def process_stripe_webhook_view(request):
     return Response(status=status.HTTP_200_OK)
 
 
-class ContributionsListView(OrganizationLimitedListView, viewsets.ReadOnlyModelViewSet):
+class ContributionsListView(viewsets.ReadOnlyModelViewSet):
+    permission_classes = [IsAuthenticated, UserBelongsToOrg]
     serializer_class = serializers.ContributionSerializer
     model = Contribution
-    permission_classes = [IsAuthenticated, UserBelongsToOrg]
+
     filter_backends = [DjangoFilterBackend, filters.OrderingFilter]
     filterset_class = ContributionFilter
+
+    def get_queryset(self):
+        """
+        We should limit by organization if the requesting user is a User (OrgAdmin).
+        If they're a Contributor, we should show them all the contributions under their name.
+        """
+        if isinstance(self.request.user, Contributor):
+            return self.model.objects.filter(contributor=self.request.user)
+
+        if self.action == "list" and hasattr(self.model, "organization"):
+            return self.model.objects.filter(organization__users=self.request.user)
+        return self.model.objects.all()
+
+    def get_serializer_class(self):
+        if isinstance(self.request.user, UserModel):
+            return serializers.ContributionSerializer
+        return serializers.ContributorContributionSerializer

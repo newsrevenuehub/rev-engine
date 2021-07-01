@@ -10,3 +10,8 @@ export const EDITOR_ROUTE_PAGE = EDITOR_ROUTE + '/:revProgramSlug/:pageSlug';
 export const REV_PROGRAM_SLUG = '/:revProgramSlug';
 export const DONATION_PAGE_SLUG = '/:revProgramSlug/:pageSlug';
 export const THANK_YOU_SLUG = '/thank-you';
+
+// Contributor
+export const CONTRIBUTOR_ENTRY = '/contributor';
+export const CONTRIBUTOR_VERIFY = '/contributor-verify';
+export const CONTRIBUTOR_DASHBOARD = CONTRIBUTOR_ENTRY + '/contributions';

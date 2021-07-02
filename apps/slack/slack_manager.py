@@ -21,8 +21,7 @@ class NoSlackIntegrationError(Exception):
 
 
 class SlackManager:
-
-    common_header = {"type": "header", "text": {"type": "plain_text", "text": "New RevEngine Contribution Received!"}}
+    common_header_text = "New RevEngine Contribution Received!"
 
     def __init__(self):
         self.hub_integration = HubSlackIntegration.objects.get()
@@ -40,11 +39,15 @@ class SlackManager:
         except ObjectDoesNotExist:
             raise NoSlackIntegrationError(f"{org.name} does not have a Slack integration configured")
 
-    def format_org_name(self, org_name):
+    @classmethod
+    def format_org_name(cls, org_name):
         return org_name.strip().replace(" ", "-").lower()
 
     def get_org_channel(self, org):
         return f"{self.hub_integration.org_channel_prefix}{self.format_org_name(org.name)}"
+
+    def construct_common_header_block(self):
+        return {"type": "header", "text": {"type": "plain_text", "text": self.common_header_text}}
 
     def construct_common_body_block(self, contribution):
         return {
@@ -77,7 +80,7 @@ class SlackManager:
         }
 
     def construct_hub_blocks(self, contribution):
-        header = self.common_header
+        header = self.construct_common_header_block()
         body = self.construct_common_body_block(contribution)
         dates = self.construct_common_dates_block(contribution)
         links = self.construct_common_link_block(contribution)
@@ -88,17 +91,17 @@ class SlackManager:
         return [header, body, dates, links]
 
     def construct_hub_text(self, contribution):
-        return f"{self.common_header}: {contribution.formatted_amount} for {contribution.organization.name} from {contribution.contributor.email}"
+        return f"{self.common_header_text}: {contribution.formatted_amount} for {contribution.organization.name} from {contribution.contributor.email}"
 
     def construct_org_blocks(self, contribution):
-        header = self.common_header
+        header = self.construct_common_header_block()
         body = self.construct_common_body_block(contribution)
         dates = self.construct_common_dates_block(contribution)
         links = self.construct_common_link_block(contribution)
         return [header, body, dates, links]
 
     def construct_org_text(self, contribution):
-        return f"{self.common_header}: {contribution.formatted_amount} from {contribution.contributor.email}"
+        return f"{self.common_header_text}: {contribution.formatted_amount} from {contribution.contributor.email}"
 
     def send_hub_message(self, channel, text, blocks):
         print(f"SENDING TO CHANEL: {channel}")
@@ -106,10 +109,7 @@ class SlackManager:
 
     def send_org_message(self, channel, text, blocks):
         org_client = self.get_org_client()
-        logger.info("----> Here we would send Organization Slack Message")
-        logger.info(f"text version would look like this: {text}")
-        logger.info(f"...and it would be sent to channel: {channel}")
-        # org_client.chat_postMessage(channel=channel, text=text, blocks=blocks)
+        org_client.chat_postMessage(channel=channel, text=text, blocks=blocks)
 
     def send_hub_notifications(self, contribution):
         main_channel = self.hub_integration.channel

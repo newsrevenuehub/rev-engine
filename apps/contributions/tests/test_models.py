@@ -1,10 +1,11 @@
-# apps/contributions/models.py      11, 15, 19, 23, 26, 63, 67
 import datetime
+from unittest.mock import patch
 
 from django.test import TestCase
 from django.utils import timezone
 
 from apps.contributions.models import Contribution, Contributor
+from apps.slack.models import SlackNotificationTypes
 
 
 class ContributorTest(TestCase):
@@ -56,3 +57,15 @@ class ContributionTest(TestCase):
         self.contribution.save()
         self.contribution.refresh_from_db()
         self.assertEqual(self.contribution.expanded_bad_actor_score, Contribution.BAD_ACTOR_SCORES[2][1])
+
+    @patch("apps.contributions.models.Contribution.send_slack_notifications")
+    def test_save_without_slack_arg_only_saves(self, mock_send_slack):
+        self.contribution.amount = 10
+        self.contribution.save()
+        mock_send_slack.assert_not_called()
+
+    @patch("apps.contributions.models.SlackManager")
+    def test_save_with_slack_arg_sends_slack_notifications(self, mock_send_slack):
+        self.contribution.amount = 10
+        self.contribution.save(slack_notification=SlackNotificationTypes.SUCCESS)
+        mock_send_slack.assert_any_call()

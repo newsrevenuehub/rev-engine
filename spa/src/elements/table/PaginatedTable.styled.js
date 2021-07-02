@@ -4,7 +4,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 export const PaginatedTable = styled.table`
   width: 100%;
   border-collapse: collapse;
-  table-layout: fixed;
+  /* table-layout: fixed; */
   min-width: 475px;
 
   tbody tr:nth-child(even) {
@@ -17,7 +17,7 @@ export const PaginatedTable = styled.table`
     opacity: ${(props) => (props.disabled ? 0.5 : 1)};
 
     &:hover {
-      background: ${(props) => (props.onClick ? '#e0e1ff;' : 'auto')};
+      background: ${(props) => (props.interactiveRows ? '#e0e1ff;' : '')};
     }
   }
 

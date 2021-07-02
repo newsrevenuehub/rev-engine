@@ -8,7 +8,7 @@ import { useTable, usePagination, useSortBy } from 'react-table';
 // Children
 import CircleButton from 'elements/buttons/CircleButton';
 
-function PaginatedTable({ columns, data = [], fetchData, loading, pageCount, totalResults }) {
+function PaginatedTable({ columns, data = [], fetchData, loading, pageCount, totalResults, onRowClick }) {
   const {
     getTableProps,
     getTableBodyProps,
@@ -48,7 +48,7 @@ function PaginatedTable({ columns, data = [], fetchData, loading, pageCount, tot
   const [startIndex, endIndex] = getCurrentPageResultIndices(pageSize, pageIndex, data.length);
   return (
     <>
-      <S.PaginatedTable data-testid="donations-table" {...getTableProps()}>
+      <S.PaginatedTable data-testid="donations-table" {...getTableProps()} interactiveRows={!!onRowClick}>
         <thead>
           {headerGroups.map((headerGroup) => (
             <tr {...headerGroup.getHeaderGroupProps()}>
@@ -67,7 +67,7 @@ function PaginatedTable({ columns, data = [], fetchData, loading, pageCount, tot
           ))}
         </thead>
         <tbody {...getTableBodyProps()}>
-          {page.map((row, i) => {
+          {page.map((row) => {
             prepareRow(row);
             return (
               <tr
@@ -78,6 +78,7 @@ function PaginatedTable({ columns, data = [], fetchData, loading, pageCount, tot
                 data-donor={row.original.contributor_email}
                 data-status={row.original.status}
                 data-flaggeddate={row.original.flagged_date || ''}
+                onClick={() => (onRowClick ? onRowClick(row.original) : {})}
                 {...row.getRowProps()}
               >
                 {row.cells.map((cell) => {

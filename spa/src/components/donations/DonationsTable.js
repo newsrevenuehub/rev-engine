@@ -49,7 +49,7 @@ const defaultColumns = [
   }
 ];
 
-function DonationsTable({ columns = defaultColumns, handleFetchFailure }) {
+function DonationsTable({ columns = defaultColumns, handleFetchFailure, onRowClick }) {
   const alert = useAlert();
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -71,7 +71,6 @@ function DonationsTable({ columns = defaultColumns, handleFetchFailure }) {
         { method: 'GET', url: DONATIONS, params },
         {
           onSuccess: ({ data }) => {
-            console.log('table response', data);
             const { results, count } = data;
             setData(results);
             setPageCount(Math.ceil(count / pageSize));
@@ -98,6 +97,7 @@ function DonationsTable({ columns = defaultColumns, handleFetchFailure }) {
         loading={loading}
         pageCount={pageCount}
         totalResults={totalResults}
+        onRowClick={onRowClick}
       />
     </S.Donations>
   );

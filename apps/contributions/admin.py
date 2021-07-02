@@ -91,7 +91,7 @@ class ContributionAdmin(admin.ModelAdmin):
     )
 
     order = (
-        "updated",
+        "modified",
         "created",
     )
 
@@ -99,7 +99,7 @@ class ContributionAdmin(admin.ModelAdmin):
         "organization__name",
         "contributor__email",
         "donation_page__name",
-        "updated",
+        "modified",
         "created",
     )
 

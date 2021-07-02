@@ -35,6 +35,7 @@ INSTALLED_APPS = [
     "apps.organizations",
     "apps.pages",
     "apps.contributions",
+    "apps.slack",
     "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
@@ -46,6 +47,7 @@ INSTALLED_APPS = [
     "django_filters",
     "sorl.thumbnail",
     "sorl_thumbnail_serializer",
+    "solo",
 ]
 
 

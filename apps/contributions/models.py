@@ -3,6 +3,8 @@ import uuid
 from django.db import models
 
 from apps.common.models import IndexedTimeStampedModel
+from apps.slack.models import SlackNotificationTypes
+from apps.slack.slack_manager import SlackManager
 
 
 class Contributor(IndexedTimeStampedModel):
@@ -119,6 +121,24 @@ class Contribution(IndexedTimeStampedModel):
     def process_flagged_payment(self, reject=False):
         payment_manager = self.get_payment_manager_instance()
         payment_manager.complete_payment(reject=reject)
+
+    def send_slack_notifications(self, event_type):
+        """
+        For now, we only send Slack notifications on successful payment.
+        """
+        if event_type == SlackNotificationTypes.SUCCESS:
+            slack_manager = SlackManager()
+            slack_manager.publish_contribution(self, event_type=SlackNotificationTypes.SUCCESS)
+
+    def save(self, *args, **kwargs):
+        """
+        Calling save with kwargs "slack_notification" causes save method to trigger slack notifications
+        """
+        slack_notification = kwargs.pop("slack_notification", None)
+        if slack_notification:
+            self.send_slack_notifications(slack_notification)
+
+        super().save(*args, **kwargs)
 
     class Meta:
         get_latest_by = "modified"

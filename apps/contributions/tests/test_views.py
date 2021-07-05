@@ -4,13 +4,13 @@ from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.urls import reverse
 
-import responses
 from faker import Faker
 from rest_framework.test import APIRequestFactory, APITestCase
 from stripe.error import StripeError
 from stripe.stripe_object import StripeObject
 
 from apps.contributions.models import Contribution, ContributionInterval, Contributor
+from apps.contributions.payment_managers import PaymentBadParamsError, PaymentProviderError
 from apps.contributions.tests.factories import ContributorFactory
 from apps.contributions.views import stripe_payment
 from apps.organizations.models import Organization
@@ -71,8 +71,8 @@ class StripePaymentViewAbstract(APITestCase):
         return stripe_payment(self._create_request(**kwargs))
 
 
-@patch("apps.contributions.views.StripePaymentManager.create_one_time_payment", side_effect=MockPaymentIntent)
 class StripeOneTimePaymentViewTest(StripePaymentViewAbstract):
+    @patch("apps.contributions.views.StripePaymentManager.create_one_time_payment", side_effect=MockPaymentIntent)
     def test_one_time_payment_serializer_validates(self, *args):
         # Email is required
         response = self._post_valid_one_time_payment(email=None)
@@ -80,11 +80,25 @@ class StripeOneTimePaymentViewTest(StripePaymentViewAbstract):
         self.assertIn("email", response.data)
         self.assertEqual(str(response.data["email"][0]), "This field may not be null.")
 
+    @patch("apps.contributions.views.StripePaymentManager.create_one_time_payment", side_effect=MockPaymentIntent)
     def test_one_time_payment_method_called(self, mock_one_time_payment):
         response = self._post_valid_one_time_payment()
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data["clientSecret"], test_client_secret)
         mock_one_time_payment.assert_called_once()
+
+    @patch("apps.contributions.views.StripePaymentManager.create_one_time_payment", side_effect=PaymentBadParamsError)
+    def test_response_when_bad_params_error(self, mock_one_time_payment):
+        response = self._post_valid_one_time_payment()
+        mock_one_time_payment.assert_called_once()
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.data["detail"], "There was an error processing your payment.")
+
+    @patch("apps.contributions.views.StripePaymentManager.create_one_time_payment", side_effect=PaymentProviderError)
+    def test_response_when_payment_provider_error(self, mock_one_time_payment):
+        response = self._post_valid_one_time_payment()
+        mock_one_time_payment.assert_called_once()
+        self.assertEqual(response.status_code, 400)
 
 
 @patch("apps.contributions.views.StripePaymentManager.create_subscription")

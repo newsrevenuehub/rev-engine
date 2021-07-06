@@ -16,7 +16,7 @@ services:
   mailhog:
     image: mailhog/mailhog:v1.0.0
   redis:
-    image: redis:5-alpine
+    image: redis:6-alpine
   worker:
     image: revengine:latest
     command: ["celery", "--app=revengine", "worker", "--beat", "-l", "info"]

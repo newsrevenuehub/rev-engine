@@ -2,7 +2,10 @@ import uuid
 
 from django.db import models
 
+import stripe
+
 from apps.common.models import IndexedTimeStampedModel
+from apps.contributions.utils import get_hub_stripe_api_key
 
 
 class Contributor(IndexedTimeStampedModel):
@@ -56,8 +59,10 @@ class Contribution(IndexedTimeStampedModel):
     payment_provider_used = models.CharField(max_length=64)
     payment_provider_data = models.JSONField(null=True)
     provider_payment_id = models.CharField(max_length=255, blank=True, null=True)
+    provider_subscription_id = models.CharField(max_length=255, blank=True, null=True)
     provider_customer_id = models.CharField(max_length=255, blank=True, null=True)
     provider_payment_method_id = models.CharField(max_length=255, blank=True, null=True)
+    provider_payment_method_details = models.JSONField(null=True)
 
     last_payment_date = models.DateTimeField(null=True)
 
@@ -70,6 +75,9 @@ class Contribution(IndexedTimeStampedModel):
     flagged_date = models.DateTimeField(null=True)
 
     status = models.CharField(max_length=10, choices=ContributionStatus.choices, null=True)
+
+    class Meta:
+        get_latest_by = "modified"
 
     def __str__(self):
         return f"{self.formatted_amount}, {self.created.strftime('%Y-%m-%d %H:%M:%S')}"
@@ -120,5 +128,23 @@ class Contribution(IndexedTimeStampedModel):
         payment_manager = self.get_payment_manager_instance()
         payment_manager.complete_payment(reject=reject)
 
-    class Meta:
-        get_latest_by = "modified"
+    def fetch_stripe_payment_method(self):
+        if not self.provider_payment_method_id:
+            raise ValueError("Cannot fetch PaymentMethod without provider_payment_method_id")
+        return stripe.PaymentMethod.retrieve(
+            self.provider_payment_method_id,
+            api_key=get_hub_stripe_api_key(),
+            stripe_account=self.organization.stripe_account_id,
+        )
+
+    def save(self, *args, **kwargs):
+        previous = self.__class__.objects.filter(pk=self.pk).first()
+        if (
+            (previous and previous.provider_payment_method_id != self.provider_payment_method_id)
+            or not previous
+            and self.provider_payment_method_id
+        ):
+            # If it's an update and the previous pm is different from the new pm, or it's new and there's a pm id...
+            # ...get details on payment method
+            self.provider_payment_method_details = self.fetch_stripe_payment_method()
+        super().save(*args, **kwargs)

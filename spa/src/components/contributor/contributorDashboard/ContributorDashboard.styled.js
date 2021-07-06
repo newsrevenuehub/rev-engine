@@ -27,3 +27,20 @@ export const StatusCellIcon = styled(FontAwesomeIcon)`
     }
   }};
 `;
+
+export const PaymentMethodCell = styled.div`
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  cursor: ${(props) => (props.interactive ? 'pointer' : 'default')};
+`;
+
+export const BrandIcon = styled.img`
+  width: 45px;
+  height: auto;
+`;
+
+export const Last4 = styled.p`
+  color: ${(props) => props.theme.colors.grey[2]};
+  white-space: nowrap;
+`;

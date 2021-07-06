@@ -8,10 +8,6 @@ import { GENERIC_ERROR } from 'constants/textConstants';
 import formatDatetimeForDisplay from 'utilities/formatDatetimeForDisplay';
 import formatCurrencyAmount from 'utilities/formatCurrencyAmount';
 
-// AJAX
-import { DONATIONS } from 'ajax/endpoints';
-import useRequest from 'hooks/useRequest';
-
 import PaginatedTable from 'elements/table/PaginatedTable';
 
 export const DEFAULT_RESULTS_ORDERING = [
@@ -49,14 +45,12 @@ const defaultColumns = [
   }
 ];
 
-function DonationsTable({ columns = defaultColumns, handleFetchFailure, onRowClick }) {
+function DonationsTable({ columns = defaultColumns, fetchDonations, refetch, ...tableProps }) {
   const alert = useAlert();
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(false);
   const [pageCount, setPageCount] = useState(0);
   const [totalResults, setTotalResults] = useState(0);
-
-  const requestDonations = useRequest();
 
   const convertOrderingToString = (ordering) => {
     return ordering.map((item) => (item.desc ? `-${item.id}` : item.id)).toString();
@@ -67,25 +61,21 @@ function DonationsTable({ columns = defaultColumns, handleFetchFailure, onRowCli
       const ordering = sortBy.length ? sortBy : DEFAULT_RESULTS_ORDERING;
       setLoading(true);
       const params = { page_size: pageSize, page: pageIndex, ordering: convertOrderingToString(ordering) };
-      requestDonations(
-        { method: 'GET', url: DONATIONS, params },
-        {
-          onSuccess: ({ data }) => {
-            const { results, count } = data;
-            setData(results);
-            setPageCount(Math.ceil(count / pageSize));
-            setTotalResults(count);
-            setLoading(false);
-          },
-          onFailure: (e) => {
-            setLoading(false);
-            if (handleFetchFailure) handleFetchFailure(e);
-            else alert.error(GENERIC_ERROR);
-          }
+      fetchDonations(params, {
+        onSuccess: ({ data }) => {
+          const { results, count } = data;
+          setData(results);
+          setPageCount(Math.ceil(count / pageSize));
+          setTotalResults(count);
+          setLoading(false);
+        },
+        onFailure: () => {
+          alert.error(GENERIC_ERROR);
+          setLoading(false);
         }
-      );
+      });
     },
-    [alert, handleFetchFailure]
+    [alert, fetchDonations, refetch]
   );
 
   return (
@@ -97,7 +87,7 @@ function DonationsTable({ columns = defaultColumns, handleFetchFailure, onRowCli
         loading={loading}
         pageCount={pageCount}
         totalResults={totalResults}
-        onRowClick={onRowClick}
+        {...tableProps}
       />
     </S.Donations>
   );

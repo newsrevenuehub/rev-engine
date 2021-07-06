@@ -26,3 +26,5 @@ export const CONTRIBUTIONS = 'contributions/';
 // Contributor Portal
 export const GET_MAGIC_LINK = 'contrib-email/';
 export const VERIFY_TOKEN = 'contrib-verify/';
+export const STRIPE_CUSTOMER_PORTAL = 'stripe/customer-portal/';
+export const UPDATE_PAYMENT_METHOD = 'update-payment-method/';

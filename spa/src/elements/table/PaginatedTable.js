@@ -53,24 +53,29 @@ function PaginatedTable({ columns, data = [], fetchData, loading, pageCount, tot
           {headerGroups.map((headerGroup) => (
             <tr {...headerGroup.getHeaderGroupProps()}>
               {headerGroup.headers.map((column) => (
-                <th
+                <S.TH
                   data-testid={`donation-header-${column.id}`}
+                  disableSortBy={column.disableSortBy}
                   {...column.getHeaderProps(column.getSortByToggleProps())}
                 >
                   <div>
                     {column.render('Header')}
-                    <SortIcon isSorted={column.isSorted} isSortedDesc={column.isSortedDesc} />
+                    <SortIcon
+                      isSorted={column.isSorted}
+                      isSortedDesc={column.isSortedDesc}
+                      disableSortBy={column.disableSortBy}
+                    />
                   </div>
-                </th>
+                </S.TH>
               ))}
             </tr>
           ))}
         </thead>
         <tbody {...getTableBodyProps()}>
-          {page.map((row) => {
+          {page.map((row, i) => {
             prepareRow(row);
             return (
-              <tr
+              <S.TR
                 data-testid="donation-row"
                 data-donationid={row.original.id}
                 data-lastpaymentdate={row.original.last_payment_date}
@@ -79,6 +84,7 @@ function PaginatedTable({ columns, data = [], fetchData, loading, pageCount, tot
                 data-status={row.original.status}
                 data-flaggeddate={row.original.flagged_date || ''}
                 onClick={() => (onRowClick ? onRowClick(row.original) : {})}
+                even={i === 0 || i % 2 === 0}
                 {...row.getRowProps()}
               >
                 {row.cells.map((cell) => {
@@ -88,7 +94,7 @@ function PaginatedTable({ columns, data = [], fetchData, loading, pageCount, tot
                     </td>
                   );
                 })}
-              </tr>
+              </S.TR>
             );
           })}
         </tbody>
@@ -125,7 +131,8 @@ function PaginatedTable({ columns, data = [], fetchData, loading, pageCount, tot
 
 export default PaginatedTable;
 
-function SortIcon({ isSorted, isSortedDesc }) {
+function SortIcon({ isSorted, isSortedDesc, disableSortBy }) {
+  if (disableSortBy) return null;
   const getIcon = () => {
     if (!isSorted) return faSort;
 

@@ -6,6 +6,9 @@ export const CircleButton = styled(motion.button)`
   border-radius: 50%;
   padding: 1rem;
 
+  height: 50px;
+  width: 50px;
+
   cursor: ${(props) => (props.disabled ? 'default' : 'pointer')};
   border: ${(props) => (props.disabled ? 'none' : '2px solid')};
   border-color: ${(props) => (props.selected ? props.theme.colors.primary : props.theme.colors.white)};

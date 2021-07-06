@@ -34,6 +34,7 @@ INSTALLED_APPS = [
     "apps.users",
     "apps.organizations",
     "apps.pages",
+    "apps.emails",
     "apps.contributions",
     "apps.slack",
     "django.contrib.admin",
@@ -48,6 +49,8 @@ INSTALLED_APPS = [
     "sorl.thumbnail",
     "sorl_thumbnail_serializer",
     "solo",
+    "anymail",
+    "django_json_widget",
 ]
 
 
@@ -298,7 +301,7 @@ FLAGGED_PAYMENT_AUTO_ACCEPT_DELTA = timedelta(days=4)
 HEALTHCHECK_URL_AUTO_ACCEPT_FLAGGED_PAYMENTS = os.environ.get("HEALTHCHECK_URL_AUTO_ACCEPT_FLAGGED_PAYMENTS")
 
 # Transactional Email
-EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
+EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
 EMAIL_SUBJECT_PREFIX = "[RevEngine] "
 
 ADMINS = [("nrh-team", "nrh-team@caktusgroup.com")]

@@ -61,6 +61,8 @@ sorl-thumbnail = "^12.7.0"
 sorl-thumbnail-serializer-field = "^0.2.1"
 psycopg2-binary = "^2.9.1"
 django-filter = "^2.4.0"
+django-anymail = "^8.3"
+django-json-widget = "^1.1.1"
 
 [tool.poetry.dev-dependencies]
 appnope = "0.1.2"

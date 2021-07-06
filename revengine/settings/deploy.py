@@ -12,23 +12,17 @@ from revengine.settings.base import *  # noqa: F403
 SECRET_KEY = os.environ["DJANGO_SECRET_KEY"]
 
 ### Environment-specific settings
-
 ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS", "localhost").split(":")
 
-EMAIL_HOST = os.getenv("EMAIL_HOST", "localhost")
-EMAIL_HOST_USER = os.getenv("EMAIL_HOST_USER", "")
-EMAIL_HOST_PASSWORD = os.getenv("EMAIL_HOST_PASSWORD", "")
-EMAIL_USE_TLS = os.getenv("EMAIL_USE_TLS", False)
-EMAIL_USE_SSL = os.getenv("EMAIL_USE_SSL", False)
-# use TLS or SSL, not both:
-assert not (EMAIL_USE_TLS and EMAIL_USE_SSL)
-if EMAIL_USE_TLS:
-    default_smtp_port = 587
-elif EMAIL_USE_SSL:
-    default_smtp_port = 465
-else:
-    default_smtp_port = 25
-EMAIL_PORT = os.getenv("EMAIL_PORT", default_smtp_port)
+## Email
+EMAIL_BACKEND = "anymail.backends.mailgun.EmailBackend"
+MAILGUN_SENDER_DOMAIN = "fundjournalism.org"
+
+ANYMAIL = {
+    "MAILGUN_API_KEY": os.getenv("MAILGUN_API_KEY", ""),
+    "MAILGUN_SENDER_DOMAIN": MAILGUN_SENDER_DOMAIN,
+}
+
 EMAIL_SUBJECT_PREFIX = "[revengine %s] " % ENVIRONMENT.title()
 DEFAULT_FROM_EMAIL = f"noreply@{os.getenv('DOMAIN', os.environ)}"
 SERVER_EMAIL = DEFAULT_FROM_EMAIL

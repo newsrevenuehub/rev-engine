@@ -17,6 +17,12 @@ import ReauthModal from 'components/authentication/ReauthModal';
 const Login = React.lazy(() => import('components/authentication/Login'));
 const Main = React.lazy(() => import('components/Main'));
 const GenericThankYou = React.lazy(() => import('components/donationPage/live/thankYou/GenericThankYou'));
+
+const ContributorEntry = React.lazy(() => import('components/contributor/ContributorEntry'));
+const ContributorVerify = React.lazy(() => import('components/contributor/ContributorVerify'));
+const ContributorDashboard = React.lazy(() =>
+  import('components/contributor/contributorDashboard/ContributorDashboard')
+);
 const PageEditor = React.lazy(() => import('components/pageEditor/PageEditor'));
 const DonationPageRouter = React.lazy(() => import('components/donationPage/DonationPageRouter'));
 
@@ -69,6 +75,13 @@ function MainLayout() {
 
                 <ProtectedRoute path={ROUTES.EDITOR_ROUTE_PAGE} component={PageEditor} />
                 <ProtectedRoute path={ROUTES.EDITOR_ROUTE_REV} component={PageEditor} />
+
+                {/* Contributor Dashboard */}
+                <ProtectedRoute path={ROUTES.CONTRIBUTOR_DASHBOARD} component={ContributorDashboard} contributor />
+
+                {/* Contributor Entry */}
+                <Route path={ROUTES.CONTRIBUTOR_ENTRY} component={ContributorEntry} />
+                <Route path={ROUTES.CONTRIBUTOR_VERIFY} component={ContributorVerify} />
 
                 {/* Live Donation Pages are caught here */}
                 <Route path={ROUTES.DONATION_PAGE_SLUG + ROUTES.THANK_YOU_SLUG} component={GenericThankYou} />

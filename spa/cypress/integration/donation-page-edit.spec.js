@@ -193,8 +193,8 @@ describe('Donation page edit', () => {
 
   describe('Edit interface: Setup', () => {
     before(() => {
-      cy.getByTestId('edit-page-button').click();
-      cy.getByTestId('setup-tab').click();
+      cy.getByTestId('edit-page-button').click({ force: true });
+      cy.getByTestId('setup-tab').click({ force: true });
     });
     it('should render the setup tab when setup tab clicked', () => {
       cy.getByTestId('page-setup');

@@ -30,7 +30,7 @@ class SlackIntegration(models.Model):
 class HubSlackIntegration(SlackIntegration, SingletonModel):
     org_channel_prefix = models.CharField(
         max_length=24,
-        default="donations-",
+        default="#donations-",
         help_text="Donation notifications will be sent to [org-channel-prefix][recipient-org-name]",
     )
 

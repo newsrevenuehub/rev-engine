@@ -22,7 +22,7 @@ class AbstractPage(IndexedTimeStampedModel):
 
     styles = models.ForeignKey("pages.Style", null=True, blank=True, on_delete=models.SET_NULL)
 
-    elements = models.JSONField(null=True, blank=True)
+    elements = models.JSONField(null=True, blank=True, default=list)
 
     donor_benefits = models.ForeignKey(
         "pages.DonorBenefit",

@@ -14,7 +14,7 @@ const NOT_ENOUGH_FREQS = `You must have at least ${MINIMUM_FREQUENCIES} frequenc
 } for your page to function properly`;
 
 function FrequencyEditor() {
-  const { elementContent, setElementContent } = useEditInterfaceContext();
+  const { elementContent = [], setElementContent } = useEditInterfaceContext();
 
   const setToggled = (checked, frequency) => {
     let content = [...elementContent];
@@ -50,7 +50,7 @@ FrequencyEditor.for = 'DFrequency';
 export default FrequencyEditor;
 
 function getFrequencyState(freq, frequencies) {
-  return frequencies.some((el) => el.value === freq);
+  return frequencies?.some((el) => el.value === freq);
 }
 
 FrequencyEditor.hasErrors = (content) => {

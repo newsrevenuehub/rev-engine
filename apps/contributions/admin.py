@@ -60,9 +60,11 @@ class ContributionAdmin(admin.ModelAdmin):
                     "status",
                     "payment_provider_used",
                     "provider_payment_id",
+                    "provider_subscription_id",
                     "provider_customer_id",
-                    "provider_payment_method_id",
                     "payment_provider_data",
+                    "provider_payment_method_id",
+                    "provider_payment_method_details",
                 ),
             },
         ),
@@ -116,10 +118,12 @@ class ContributionAdmin(admin.ModelAdmin):
         "status",
         "payment_provider_used",
         "provider_payment_id",
+        "provider_subscription_id",
         "provider_customer_id",
         "provider_payment_method_id",
         "payment_provider_data",
         "flagged_date",
+        "provider_payment_method_details",
     )
 
     actions = (

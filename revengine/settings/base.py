@@ -277,6 +277,7 @@ STRIPE_WEBHOOK_EVENTS = [
     "payment_intent.canceled",
     "payment_intent.payment_failed",
     "payment_intent.succeeded",
+    "customer.subscription.updated",
 ]
 
 

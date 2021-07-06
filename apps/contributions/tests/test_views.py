@@ -269,6 +269,12 @@ class StripeConfirmTest(APITestCase):
         self.assertEqual(response.status_code, 500)
         self.assertEqual(response.data["status"], "failed")
 
+    def test_product_create_called_when_org_verified(self):
+        raise NotImplementedError("Test this")
+
+    def test_portal_config_called_when_org_verified(self):
+        raise NotImplementedError("Test this")
+
 
 class TestContributionsListView(APITestCase):
     def setUp(self):

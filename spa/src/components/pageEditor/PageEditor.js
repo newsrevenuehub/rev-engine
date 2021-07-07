@@ -6,8 +6,13 @@ import { AnimatePresence } from 'framer-motion';
 // Deps
 import { useAlert } from 'react-alert';
 import isEmpty from 'lodash.isempty';
-import formatDatetimeForAPI from 'utilities/formatDatetimeForAPI';
 import { isBefore, isAfter } from 'date-fns';
+import html2canvas from 'html2canvas';
+import { format } from 'date-fns/esm';
+
+// Utils
+import formatDatetimeForAPI from 'utilities/formatDatetimeForAPI';
+import dataUrlToBlob from 'utilities/dataUrlToBlob';
 
 // CSS files for libraries that ARE ONLY needed for page edit
 import 'react-datepicker/dist/react-datepicker.css';
@@ -144,15 +149,17 @@ function PageEditor() {
   };
 
   const handleSave = () => {
-    setSelectedButton();
+    setSelectedButton(PREVIEW);
+    setShowEditInterface(false);
 
     const validationErrors = validatePage(updatedPage);
+    const pageUpdates = { ...updatedPage };
     if (validationErrors) {
       setErrors(validationErrors);
     } else if (isBefore(new Date(page.published_date), new Date())) {
-      getUserConfirmation("You're making changes to a live donation page. Continue?", () => patchPage(updatedPage));
+      getUserConfirmation("You're making changes to a live donation page. Continue?", () => patchPage(pageUpdates));
     } else {
-      patchPage(updatedPage);
+      patchPage(pageUpdates);
     }
   };
 
@@ -188,16 +195,24 @@ function PageEditor() {
         if (datumKey === 'styles') {
           datumKey = 'styles_pk';
         }
-        formData.append(datumKey, datum);
+
+        if (datumKey === 'page_screenshot') {
+          datum = formatPageScreenshot(datum, page);
+          formData.append(datumKey, datum, `${getScreenshotName(page)}.png`);
+        } else {
+          formData.append(datumKey, datum);
+        }
       }
     }
     return formData;
   };
 
   const patchPage = async (patchedPage) => {
+    setLoading(true);
     const patchedCleanedPage = cleanImageKeys(patchedPage);
     const cleanedData = cleanData(patchedCleanedPage);
-    const formData = processPageData(cleanedData);
+    const dataWithScreenShot = await addScreenshotToCleanedData(cleanedData);
+    const formData = processPageData(dataWithScreenShot);
     requestPatchPage(
       {
         method: 'PATCH',
@@ -336,4 +351,25 @@ function cleanDonorBenefits(donorBenefits) {
 
 function cleanStyles(styles) {
   return styles.id;
+}
+
+async function addScreenshotToCleanedData(cleanedData) {
+  const dataWithScreenshot = { ...cleanedData };
+  try {
+    const canvas = await html2canvas(document.getElementById('root'));
+    dataWithScreenshot.page_screenshot = canvas.toDataURL();
+  } catch (e) {
+    console.error('Error capturing screenshot: ', e);
+  } finally {
+    return dataWithScreenshot;
+  }
+}
+
+function formatPageScreenshot(dataUrl, page) {
+  const imageName = getScreenshotName(page);
+  return dataUrlToBlob(dataUrl, imageName);
+}
+
+function getScreenshotName(page) {
+  return `${page.name}__${format(new Date(), 'MMM do, yyyy h:mm aa')}`;
 }

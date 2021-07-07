@@ -54,6 +54,7 @@ function DAmount({ element, ...props }) {
     >
       <S.DAmount>
         {element.content?.options &&
+          element.content?.options[frequency] &&
           element.content?.options[frequency].map((amount, i) => (
             <SelectableButton
               key={i + amount}

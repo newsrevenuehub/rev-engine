@@ -4,6 +4,8 @@ export const DonationPage = styled.div`
   background: ${(props) => props.theme.colors.fieldBackground};
 `;
 
+export const NoElements = styled.h2``;
+
 export const PageMain = styled.main`
   display: flex;
   flex-direction: row;
@@ -19,6 +21,10 @@ export const PageMain = styled.main`
 export const SideOuter = styled.div`
   flex: 1;
   padding: 0 2rem;
+
+  @media (${(props) => props.theme.breakpoints.tabletLandscapeDown}) {
+    padding: 0 1rem;
+  }
 `;
 
 export const SideInner = styled.div`
@@ -37,7 +43,7 @@ export const SideInner = styled.div`
 export const DonationContent = styled.div`
   padding: 3rem 5rem;
   @media (${(props) => props.theme.breakpoints.phoneOnly}) {
-    padding: 2rem;
+    padding: 1rem;
   }
 `;
 

@@ -1,9 +1,12 @@
 import { TOKEN } from 'ajax/endpoints';
 import { getEndpoint } from './util';
-import { FULL_PAGE, STRIPE_PAYMENT } from 'ajax/endpoints';
+import { FULL_PAGE, STRIPE_PAYMENT, DONATIONS } from 'ajax/endpoints';
+import { DEFAULT_RESULTS_ORDERING } from 'components/donations/DonationsTable';
+import { ApiResourceList } from '../support/restApi';
+import donationsData from '../fixtures/donations/18-results.json';
 
-Cypress.Commands.add('getByTestId', (testId, options) => {
-  return cy.get(`[data-testid="${testId}"]`, options);
+Cypress.Commands.add('getByTestId', (testId, options, partialMatch = false) => {
+  return cy.get(`[data-testid${partialMatch ? '*' : ''}="${testId}"]`, options);
 });
 
 Cypress.Commands.add('login', (userFixture) => {
@@ -69,4 +72,20 @@ Cypress.Commands.add('makeDonation', () => {
   cy.getWithinIframe('[name="cvc"]').type('123');
   cy.getWithinIframe('[name="postal"]').type('12345');
   cy.getByTestId('donation-submit').click();
+});
+
+Cypress.Commands.add('getPaginatedDonations', () => {
+  const defaultSortBys = {
+    columns: DEFAULT_RESULTS_ORDERING.map((item) => item.id),
+    directions: DEFAULT_RESULTS_ORDERING.map((item) => (item.desc ? 'desc' : 'asc'))
+  };
+  const sortableColumns = ['last_payment_date', 'amount', 'contributor_email', 'modified', 'status', 'flagged_date'];
+  const api = new ApiResourceList(donationsData, defaultSortBys, sortableColumns);
+  cy.intercept(`${getEndpoint(DONATIONS)}**`, (req) => {
+    const urlSearchParams = new URLSearchParams(req.url.split('?')[1]);
+    const pageSize = urlSearchParams.get('page_size');
+    const pageNum = urlSearchParams.get('page');
+    const ordering = urlSearchParams.get('ordering');
+    req.reply(api.getResponse(pageSize, pageNum, ordering));
+  }).as('getDonations');
 });

@@ -48,6 +48,7 @@ class PaymentManager:
     flagged = None
     contribution = None
     revenue_program = None
+    flagged_date = None
 
     def __init__(self, data=None, contribution=None):
         """
@@ -157,6 +158,7 @@ class PaymentManager:
             provider_payment_id=provider_payment_id,
             provider_customer_id=provider_customer_id,
             provider_payment_method_id=provider_payment_method_id,
+            flagged_date=self.flagged_date,
             bad_actor_score=self.bad_actor_score,
             bad_actor_response=self.bad_actor_response,
         )
@@ -187,7 +189,7 @@ class StripePaymentManager(PaymentManager):
     def create_one_time_payment(self):
         """
         A one-time payment creates a simple Stripe PaymentIntent. This PaymentIntent can be
-        executed immediately with `capture_method="automatic"`, or capture can be defered. If
+        executed immediately with `capture_method="automatic"`, or capture can be deferred. If
         `capture_method` is set to "manual", Stripe will hold the funds in the customer's bank
         for seven days.
         """
@@ -202,6 +204,7 @@ class StripePaymentManager(PaymentManager):
             api_key=get_hub_stripe_api_key(),
             stripe_account=organization.stripe_account_id,
             capture_method=capture_method,
+            receipt_email=self.validated_data["email"],
         )
 
         self.create_contribution(organization, provider_reference_instance=stripe_payment_intent)

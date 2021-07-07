@@ -1,16 +1,19 @@
 import logging
 
 from django.conf import settings
+from django.contrib.auth import get_user_model
 
 import stripe
-from rest_framework import status, viewsets
+from django_filters.rest_framework import DjangoFilterBackend
+from rest_framework import filters, status, viewsets
 from rest_framework.decorators import api_view, authentication_classes, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
 from apps.api.permissions import UserBelongsToOrg
 from apps.contributions import serializers
-from apps.contributions.models import Contribution, ContributionInterval
+from apps.contributions.filters import ContributionFilter
+from apps.contributions.models import Contribution, ContributionInterval, Contributor
 from apps.contributions.payment_managers import (
     PaymentBadParamsError,
     PaymentProviderError,
@@ -18,10 +21,12 @@ from apps.contributions.payment_managers import (
 )
 from apps.contributions.utils import get_hub_stripe_api_key
 from apps.contributions.webhooks import StripeWebhookProcessor
-from apps.organizations.views import OrganizationLimitedListView
+from apps.emails.models import EmailTemplateError, PageEmailTemplate
 
 
 logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
+
+UserModel = get_user_model()
 
 
 @api_view(["POST"])
@@ -45,20 +50,27 @@ def stripe_payment(request):
 
     try:
         if stripe_payment.validated_data["interval"] == ContributionInterval.ONE_TIME:
-            # Create payment intent with Stripe, associated local models
+            # Create payment intent with Stripe, associated local models, and send email to donor.
             stripe_payment_intent = stripe_payment.create_one_time_payment()
             response_body = {"detail": "Success", "clientSecret": stripe_payment_intent["client_secret"]}
+            template = PageEmailTemplate.get_template(
+                PageEmailTemplate.ContactType.ONE_TIME_DONATION, stripe_payment.get_donation_page()
+            )
+            template.one_time_donation(stripe_payment)
         else:
             # Create subscription with Stripe, associated local models
             stripe_payment.create_subscription()
             response_body = {"detail": "Success"}
     except PaymentBadParamsError:
-        logger.warn("stripe_payment view raised a PaymentBadParamsError")
+        logger.warning("stripe_payment view raised a PaymentBadParamsError")
         return Response({"detail": "There was an error processing your payment."}, status=status.HTTP_400_BAD_REQUEST)
-    except PaymentProviderError as pp_error:
+    except PaymentProviderError as pp_error:  # pragma: no cover
         error_message = str(pp_error)
         logger.error(error_message)
         return Response({"detail": error_message}, status=status.HTTP_400_BAD_REQUEST)
+    except EmailTemplateError as email_error:  # pragma: no cover
+        msg = f"Email could not be sent to donor: {email_error}"
+        logger.warning(msg)
 
     return Response(response_body, status=status.HTTP_200_OK)
 
@@ -155,7 +167,27 @@ def process_stripe_webhook_view(request):
     return Response(status=status.HTTP_200_OK)
 
 
-class ContributionsListView(OrganizationLimitedListView, viewsets.ReadOnlyModelViewSet):
+class ContributionsListView(viewsets.ReadOnlyModelViewSet):
+    permission_classes = [IsAuthenticated, UserBelongsToOrg]
     serializer_class = serializers.ContributionSerializer
     model = Contribution
-    permission_classes = [IsAuthenticated, UserBelongsToOrg]
+
+    filter_backends = [DjangoFilterBackend, filters.OrderingFilter]
+    filterset_class = ContributionFilter
+
+    def get_queryset(self):
+        """
+        We should limit by organization if the requesting user is a User (OrgAdmin).
+        If they're a Contributor, we should show them all the contributions under their name.
+        """
+        if isinstance(self.request.user, Contributor):
+            return self.model.objects.filter(contributor=self.request.user)
+
+        if self.action == "list" and hasattr(self.model, "organization"):
+            return self.model.objects.filter(organization__users=self.request.user)
+        return self.model.objects.all()
+
+    def get_serializer_class(self):
+        if isinstance(self.request.user, UserModel):
+            return serializers.ContributionSerializer
+        return serializers.ContributorContributionSerializer

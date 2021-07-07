@@ -1,69 +1,63 @@
 import * as S from './StripePaymentForm.styled';
-import { useState, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 
 // Deps
 import { useTheme } from 'styled-components';
 import { useAlert } from 'react-alert';
+
+// Utils
+import { getFrequencyAdverb } from 'utilities/parseFrequency';
 
 // Routing
 import { useHistory, useRouteMatch } from 'react-router-dom';
 import { THANK_YOU_SLUG } from 'routes';
 
 // Stripe
-import { CardElement, useStripe, useElements } from '@stripe/react-stripe-js';
+import { CardElement, useStripe, useElements, PaymentRequestButtonElement } from '@stripe/react-stripe-js';
 
-// Ajax
-import axios from 'ajax/axios';
-import { STRIPE_PAYMENT } from 'ajax/endpoints';
+// Util
+import submitPayment, { serializeData, getTotalAmount, amountToCents, StripeError } from './stripeFns';
 
 // Context
 import { usePage } from 'components/donationPage/DonationPage';
 
 // Children
 import Button from 'elements/buttons/Button';
-import { getFrequencyAdverb } from 'utilities/parseFrequency';
 import { ICONS } from 'assets/icons/SvgIcon';
 
-const STRIPE_PAYMENT_TIMEOUT = 12000;
+const STRIPE_PAYMENT_REQUEST_LABEL = 'RevEngine Donation';
 
 function StripePaymentForm({ loading, setLoading }) {
+  const { url, params } = useRouteMatch();
   const { page, amount, frequency, fee, payFee, formRef, errors, setErrors } = usePage();
 
   const [succeeded, setSucceeded] = useState(false);
   const [disabled, setDisabled] = useState(true);
+  const [paymentRequest, setPaymentRequest] = useState(null);
+  const [forceManualCard, setForceManualCard] = useState(false);
 
   const theme = useTheme();
   const history = useHistory();
   const alert = useAlert();
   const stripe = useStripe();
   const elements = useElements();
-  const { url, params } = useRouteMatch();
 
-  const getTotalAmount = () => {
-    let total = amount;
-    if (payFee) total += parseFloat(fee);
-    return total.toString();
-  };
-
+  /**
+   * Listen for changes in the CardElement and display any errors as the customer types their card details
+   */
   const handleChange = async (event) => {
-    // Listen for changes in the CardElement
-    // and display any errors as the customer types their card details
     setDisabled(event.empty);
     setErrors({ ...errors, stripe: event.error ? event.error.message : '' });
   };
 
-  const createPaymentIntent = useCallback((formData) => {
-    return new Promise(async (resolve, reject) => {
-      try {
-        const { data } = await axios.post(STRIPE_PAYMENT, formData, { timeout: STRIPE_PAYMENT_TIMEOUT });
-        resolve(data.clientSecret);
-      } catch (e) {
-        reject(e);
-      }
-    });
-  }, []);
-
-  const handleSuccesfulPayment = useCallback(() => {
+  /****************************\
+   * Handle Error and Success *
+  \****************************/
+  const handlePaymentSuccess = (pr) => {
+    if (pr) pr.complete('success');
+    setErrors({});
+    setLoading(false);
+    setSucceeded(true);
     if (page.thank_you_redirect) {
       window.location = page.thank_you_redirect;
     } else {
@@ -72,127 +66,147 @@ function StripePaymentForm({ loading, setLoading }) {
         state: { page }
       });
     }
-  }, [page, history, url]);
+  };
 
-  const confirmOneTimePayment = useCallback(
-    async (clientSecret) => {
-      const payload = await stripe.confirmCardPayment(clientSecret, {
-        payment_method: {
-          card: elements.getElement(CardElement)
-        }
-      });
-      if (payload.error) {
-        setErrors({ stripe: `Payment failed ${payload.error.message}` });
-        alert.error(`Payment failed ${payload.error.message}`);
-        setLoading(false);
+  const handlePaymentFailure = (error, pr) => {
+    if (error instanceof StripeError) {
+      setErrors({ stripe: `Payment failed ${error.message}` });
+      alert.error(`Payment failed ${error.message}`);
+    } else {
+      const internalErrors = error?.response?.data;
+      if (internalErrors) {
+        setErrors({ ...internalErrors });
+        if (internalErrors.detail) alert.error(internalErrors.detail);
       } else {
-        setErrors({});
-        setLoading(false);
-        setSucceeded(true);
-        handleSuccesfulPayment();
+        alert.error('There was an error processing your payment.');
       }
-    },
-    [elements, stripe, alert, handleSuccesfulPayment, setLoading, setErrors]
-  );
-
-  const handleSinglePayment = (formData) => {
-    createPaymentIntent(formData)
-      .then(confirmOneTimePayment)
-      .catch((e) => {
-        const response = e?.response?.data;
-        if (response) {
-          setErrors({ ...errors, ...e.response.data });
-          if (response.detail) alert.error(response.detail);
-          setLoading(false);
-        } else {
-          alert.error('There was an error processing your payment.');
-          setLoading(false);
-        }
-      });
-  };
-
-  const createPaymentMethod = async (formData) => {
-    return await stripe.createPaymentMethod({
-      type: 'card',
-      card: elements.getElement(CardElement),
-      billing_details: {
-        name: `${formData.given_name} ${formData.family_name}`
-      }
-    });
-  };
-
-  const handleRecurringPayment = async (formData) => {
-    try {
-      const paymentMethodResponse = await createPaymentMethod(formData);
-      if (paymentMethodResponse.error) {
-        setErrors({ stripe: `Payment failed ${paymentMethodResponse.error.message}` });
-        setLoading(false);
-        return;
-      }
-
-      formData['payment_method_id'] = paymentMethodResponse.paymentMethod.id;
-
-      const response = await axios.post(STRIPE_PAYMENT, formData, { timeout: STRIPE_PAYMENT_TIMEOUT });
-      if (response.status === 200) {
-        setErrors({});
-        setLoading(false);
-        setSucceeded(true);
-        handleSuccesfulPayment();
-      }
-    } catch (e) {
-      debugger;
-      if (e?.response?.data?.detail) {
-        setErrors({ stripe: e.response.data.detail });
-      } else {
-        setErrors({ stripe: 'Payment failed' });
-      }
-      setLoading(false);
     }
+    // "Success" here to the Stripe PaymentRequest API only means "we're done with the pop-up".
+    // We fire it here to close the popup and show the user any errors.
+    if (pr) pr.complete('success');
+    setSucceeded(false);
+    setLoading(false);
   };
 
-  const serializeForm = (form) => {
-    /*
-      Rather than trying to hoist all form state up to a common parent,
-      we've wrapped the page in a <form> element. Here, we grab a ref
-      to that form and turn it in to FormData, then we serialize that 
-      form data in to a javascript object.
-
-      This really is easier than management all the form state in a common
-      parent. Trust me.
-    */
-    const obj = {};
-    const formData = new FormData(form);
-    for (const key of formData.keys()) {
-      obj[key] = formData.get(key);
-    }
-    return obj;
-  };
-
-  const handleSubmit = async (e) => {
+  /********************************\
+   * Inline Card Element Payments *
+  \********************************/
+  const handleCardSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
-
-    const formData = serializeForm(formRef.current);
-    formData['amount'] = getTotalAmount();
-    formData['revenue_program_slug'] = params.revProgramSlug;
-    formData['donation_page_slug'] = params.pageSlug;
-
-    if (frequency === 'one_time') handleSinglePayment(formData);
-    else handleRecurringPayment(formData);
+    const data = serializeData(formRef.current, { amount, fee, payFee, ...params });
+    await submitPayment(
+      stripe,
+      data,
+      { card: elements.getElement(CardElement) },
+      handlePaymentSuccess,
+      handlePaymentFailure
+    );
   };
 
-  return (
+  /*********************************\
+   * PaymentRequestButton Payments *
+  \*********************************/
+  const handlePaymentRequestSubmit = async (state, paymentRequest) => {
+    setLoading(true);
+    const data = serializeData(formRef.current, state);
+    await submitPayment(
+      stripe,
+      data,
+      { paymentRequest },
+      () => handlePaymentSuccess(paymentRequest),
+      (error) => handlePaymentFailure(error, paymentRequest)
+    );
+  };
+
+  /**
+   * Here we initialize and verify a Stripe PaymentRequest, which represents a
+   * third-party payment method such as Apple Pay, Google Pay, or various
+   * Browser-saved card features (Chrome or Edge or Safari have things).
+   *
+   * Note that stripe will not respond to changes in dynamic values like
+   * amount. For that, we must use the paymentRequest.update method.
+   */
+  useEffect(() => {
+    const amnt = amountToCents(getTotalAmount(amount));
+    const amountIsValid = !isNaN(amnt) && amnt > 0;
+    if (stripe && amountIsValid && !paymentRequest) {
+      const pr = stripe.paymentRequest({
+        country: 'US',
+        currency: 'usd',
+        total: {
+          label: STRIPE_PAYMENT_REQUEST_LABEL,
+          amount: amnt
+        }
+      });
+
+      pr.canMakePayment().then((canMakePayment) => {
+        if (canMakePayment) setPaymentRequest(pr);
+      });
+    }
+    // vv See note above
+  }, [stripe, paymentRequest]);
+
+  /**
+   * Here we assign a callback to the paymentmethod event in which we submit the payment
+   * with a paymentMethod and current non-form values. We should NOT include handlePaymentRequestSubmit
+   * as a dependency here. We're passing in everything it needs as an arg, and the only thing it uses
+   * that is not passed in are setState calls which are already memoized.
+   */
+  useEffect(() => {
+    if (paymentRequest) {
+      function handlePaymentMethodEvent(paymentMethodEvent) {
+        handlePaymentRequestSubmit({ amount, fee, payFee, ...params }, paymentMethodEvent);
+      }
+      // Remove any previous listeners (with stale data)
+      paymentRequest.removeAllListeners();
+      // Add updated listener (with updated data)
+      paymentRequest.on('paymentmethod', handlePaymentMethodEvent);
+    }
+    // vv See note above
+  }, [paymentRequest, amount, fee, payFee, params]);
+
+  /**
+   * See previous note. Here we update the values of our paymentRequest using the
+   * paymentRequest.update method.
+   */
+  useEffect(() => {
+    const amnt = amountToCents(getTotalAmount(amount));
+    const amountIsValid = !isNaN(amnt) && amnt > 0;
+    if (paymentRequest && amountIsValid) {
+      paymentRequest.update({
+        total: {
+          label: STRIPE_PAYMENT_REQUEST_LABEL,
+          amount: amnt
+        }
+      });
+    }
+  }, [amount, fee, payFee, paymentRequest]);
+
+  // We add a catch here for the times when the ad-hoc donation amount ("other") value
+  // is not a valid number (e.g. first clicking on the element, or typing a decimal "0.5")
+  if (isNaN(amount) || amount <= 0) return <S.EnterValidAmount>Enter a valid donation amount</S.EnterValidAmount>;
+  return !forceManualCard && paymentRequest ? (
+    <>
+      <S.PaymentRequestWrapper>
+        <PaymentRequestButtonElement options={{ paymentRequest, style: S.PaymentRequestButtonStyle }} />
+      </S.PaymentRequestWrapper>
+      <S.PayWithCardOption onClick={() => setForceManualCard(true)}>
+        -- or manually enter credit card --
+      </S.PayWithCardOption>
+    </>
+  ) : (
     <S.StripePaymentForm>
       <S.PaymentElementWrapper>
         <CardElement id="card-element" options={{ style: S.CardElementStyle(theme) }} onChange={handleChange} />
       </S.PaymentElementWrapper>
       <Button
-        onClick={handleSubmit}
+        onClick={handleCardSubmit}
         disabled={loading || disabled || succeeded || amount === 0}
         loading={loading}
         data-testid="donation-submit"
       >
-        Pay ${getTotalAmount()} {getFrequencyAdverb(frequency)}
+        Give ${getTotalAmount(amount, fee, payFee)} {getFrequencyAdverb(frequency)}
       </Button>
       {errors.stripe && (
         <S.PaymentError role="alert" data-testid="donation-error">

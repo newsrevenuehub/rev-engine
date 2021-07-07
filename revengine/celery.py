@@ -4,9 +4,10 @@ from celery import Celery
 
 
 # set the default Django settings module for the 'celery' program.
-os.environ.setdefault("DJANGO_SETTINGS_MODULE", "revengine.settings.deploy")
+current_settings = os.getenv("DJANGO_SETTINGS_MODULE", "revengine.settings.deploy")
+os.environ.setdefault("DJANGO_SETTINGS_MODULE", current_settings)
 
-app = Celery("proj")
+app = Celery("revengine")
 
 # Using a string here means the worker doesn't have to serialize
 # the configuration object to child processes.

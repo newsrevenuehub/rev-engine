@@ -95,6 +95,9 @@ class StripeWebhookProcessor:
         if self.event.type == "customer.subscription.updated":
             self.handle_subscription_updated()
 
+        if self.event.type == "customer.subscription.deleted":
+            self.handle_subscription_canceled()
+
     def handle_subscription_updated(self):
         """
         It looks like Stripe gives us event.data.previous_attributes, which is a dict of updated attributes previous values.
@@ -105,5 +108,17 @@ class StripeWebhookProcessor:
 
         if "default_payment_method" in self.event.data["previous_attributes"]:
             # If stripe reports 'default_payment_method' as a previous attribute, then we've updated 'default_payment_method'
-            contribution.payment_method_id = self.obj_data["default_payment_method"]
+            contribution.provider_payment_method_id = self.obj_data["default_payment_method"]
+
+        contribution.save()
+
+    def handle_subscription_canceled(self):
+        """
+        Somebody has manually canceled this subscription.
+        NOTE: Might be a good place to send a slack notification?
+        """
+        logger.info("Contribution canceled event")
+        contribution = self.get_contribution_from_event()
+        contribution.payment_provider_data = self.obj_data
+        contribution.status = ContributionStatus.CANCELED
         contribution.save()

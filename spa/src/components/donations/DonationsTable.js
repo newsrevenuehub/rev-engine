@@ -75,7 +75,7 @@ function DonationsTable({ columns = defaultColumns, fetchDonations, refetch, ...
         }
       });
     },
-    [alert, fetchDonations, refetch]
+    [alert, fetchDonations]
   );
 
   return (
@@ -83,6 +83,7 @@ function DonationsTable({ columns = defaultColumns, fetchDonations, refetch, ...
       <PaginatedTable
         columns={columns}
         data={data}
+        refetch={refetch}
         fetchData={fetchData}
         loading={loading}
         pageCount={pageCount}

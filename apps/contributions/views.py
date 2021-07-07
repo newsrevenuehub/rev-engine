@@ -216,3 +216,28 @@ def update_payment_method(request, pk):
         return Response({"detail": error_message}, status=status.HTTP_400_BAD_REQUEST)
 
     return Response({"detail": "Success"}, status=status.HTTP_200_OK)
+
+
+@api_view(["POST"])
+@permission_classes([IsAuthenticated, IsContributor])
+def cancel_recurring_payment(request, pk):
+    try:
+        contribution = request.user.contribution_set.get(pk=pk)
+    except Contribution.DoesNotExist:
+        logger.error(
+            "Could not find contribution for requesting contributor. This could be due to the requesting user not having permission to act on this resource."
+        )
+        return Response(
+            {"detail": "Could not find contribution for requesting contributor"}, status=status.HTTP_404_NOT_FOUND
+        )
+
+    payment_manager = StripePaymentManager(contribution=contribution)
+
+    try:
+        payment_manager.cancel_recurring_payment()
+    except PaymentProviderError as pp_error:
+        error_message = str(pp_error)
+        logger.error(error_message)
+        return Response({"detail": error_message}, status=status.HTTP_400_BAD_REQUEST)
+
+    return Response({"detail": "Success"}, status=status.HTTP_200_OK)

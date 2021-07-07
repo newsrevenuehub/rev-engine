@@ -38,3 +38,5 @@ export const CardElementWrapper = styled.div`
   margin: 2rem 0;
   box-shadow: ${(props) => props.theme.shadows[2]};
 `;
+
+export const CompletedMessage = styled.div``;

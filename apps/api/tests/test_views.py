@@ -60,6 +60,7 @@ class TokenObtainPairCookieViewTest(APITestCase):
         self.assertEqual(response.cookies.get("Authorization")._value, "")
 
 
+@override_settings(EMAIL_BACKEND="anymail.backends.test.EmailBackend")
 class RequestContributorTokenEmailViewTest(APITestCase):
     def setUp(self):
         self.contributor = ContributorFactory()
@@ -88,14 +89,14 @@ class RequestContributorTokenEmailViewTest(APITestCase):
         target_email = self.contributor.email
         response = self.client.post(self.url, {"email": target_email})
         self.assertEqual(response.status_code, 200)
-
         self.assertEqual(len(self.outbox), 1)
-        self.assertIn(settings.CONTRIBUTOR_VERIFY_URL, self.outbox[0].body)
-        self.assertIn("token=", self.outbox[0].body)
+        magic_link = self.outbox[0].merge_global_data["magic_link"]
+        self.assertIn(settings.CONTRIBUTOR_VERIFY_URL, magic_link)
+        self.assertIn("token=", magic_link)
         # Assert that something looking like a valid token appears in token param
-        token = (self.outbox[0].body.split("token="))[1].split("&email=")[0]
+        token = (magic_link.split("token="))[1].split("&email=")[0]
         self.assertEqual(len(token.split(".")), 3)
-        self.assertIn(f"email={target_email}", self.outbox[0].body)
+        self.assertIn(f"{target_email}", self.outbox[0].to[0])
 
     def test_outbound_email_send_to_requested_address(self):
         target_email = self.contributor.email
@@ -105,6 +106,7 @@ class RequestContributorTokenEmailViewTest(APITestCase):
         self.assertEqual(self.outbox[0].to[0], target_email)
 
 
+@override_settings(EMAIL_BACKEND="anymail.backends.test.EmailBackend")
 class VerifyContributorTokenViewTest(APITestCase):
     def setUp(self):
         self.contributor = ContributorFactory()
@@ -116,8 +118,8 @@ class VerifyContributorTokenViewTest(APITestCase):
         response = self.client.post(reverse("contributor-token-request"), {"email": self.contributor.email})
         self.assertEqual(response.status_code, 200)
 
-        email_body = self.outbox[0].body
-        return (email_body.split("token="))[1].split("&email=")[0]
+        magic_link = self.outbox[0].merge_global_data["magic_link"]
+        return (magic_link.split("token="))[1].split("&email=")[0]
 
     def test_response_missing_params(self):
         response = self.client.post(self.url)

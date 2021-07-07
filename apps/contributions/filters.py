@@ -21,6 +21,7 @@ class ContributionFilter(django_filters.FilterSet):
             ("flagged_date", "flagged_date"),
             ("contributor__email", "contributor_email"),
             ("status", "status"),
+            ("interval", "interval"),
         )
     )
 

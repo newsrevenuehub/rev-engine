@@ -193,7 +193,7 @@ class StripePaymentManager(PaymentManager):
     def create_one_time_payment(self):
         """
         A one-time payment creates a simple Stripe PaymentIntent. This PaymentIntent can be
-        executed immediately with `capture_method="automatic"`, or capture can be defered. If
+        executed immediately with `capture_method="automatic"`, or capture can be deferred. If
         `capture_method` is set to "manual", Stripe will hold the funds in the customer's bank
         for seven days.
         """

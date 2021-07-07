@@ -126,7 +126,8 @@ class StripeWebhooksTest(APITestCase):
         contribution.refresh_from_db()
         self.assertEqual(contribution.status, ContributionStatus.FAILED)
 
-    def test_payment_intent_succeeded_webhook(self):
+    @patch("apps.contributions.models.SlackManager")
+    def test_payment_intent_succeeded_webhook(self, mock):
         ref_id = "1234"
         contribution = self._create_contribution(ref_id=ref_id)
         processor = StripeWebhookProcessor(

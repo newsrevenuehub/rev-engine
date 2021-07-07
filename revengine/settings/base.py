@@ -34,7 +34,9 @@ INSTALLED_APPS = [
     "apps.users",
     "apps.organizations",
     "apps.pages",
+    "apps.emails",
     "apps.contributions",
+    "apps.slack",
     "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
@@ -46,6 +48,9 @@ INSTALLED_APPS = [
     "django_filters",
     "sorl.thumbnail",
     "sorl_thumbnail_serializer",
+    "solo",
+    "anymail",
+    "django_json_widget",
 ]
 
 
@@ -298,10 +303,15 @@ FLAGGED_PAYMENT_AUTO_ACCEPT_DELTA = timedelta(days=4)
 HEALTHCHECK_URL_AUTO_ACCEPT_FLAGGED_PAYMENTS = os.environ.get("HEALTHCHECK_URL_AUTO_ACCEPT_FLAGGED_PAYMENTS")
 
 # Transactional Email
-EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
+EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
 EMAIL_SUBJECT_PREFIX = "[RevEngine] "
 
 ADMINS = [("nrh-team", "nrh-team@caktusgroup.com")]
+
+# Revengine template identifiers
+EMAIL_TEMPLATE_IDENTIFIER_MAGIC_LINK_DONOR = os.environ.get(
+    "EMAIL_TEMPLATE_IDENTIFIER_MAGIC_LINK_DONOR", "nrh-manage-donations-magic-link"
+)
 
 # this is only used by HubAdmins, not OrgAdmins, but needs to be named generically as LOGIN_URL
 # so our implementation of password reset flow for HubAdmins works as expected

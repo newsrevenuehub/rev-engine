@@ -6,6 +6,8 @@ import stripe
 
 from apps.common.models import IndexedTimeStampedModel
 from apps.contributions.utils import get_hub_stripe_api_key
+from apps.slack.models import SlackNotificationTypes
+from apps.slack.slack_manager import SlackManager
 
 
 class Contributor(IndexedTimeStampedModel):
@@ -137,7 +139,21 @@ class Contribution(IndexedTimeStampedModel):
             stripe_account=self.organization.stripe_account_id,
         )
 
+    def send_slack_notifications(self, event_type):
+        """
+        For now, we only send Slack notifications on successful payment.
+        """
+        if event_type == SlackNotificationTypes.SUCCESS:
+            slack_manager = SlackManager()
+            slack_manager.publish_contribution(self, event_type=SlackNotificationTypes.SUCCESS)
+
     def save(self, *args, **kwargs):
+        # Calling save with kwargs "slack_notification" causes save method to trigger slack notifications
+        slack_notification = kwargs.pop("slack_notification", None)
+        if slack_notification:
+            self.send_slack_notifications(slack_notification)
+
+        # Check if we should update stripe payment method details
         previous = self.__class__.objects.filter(pk=self.pk).first()
         if (
             (previous and previous.provider_payment_method_id != self.provider_payment_method_id)

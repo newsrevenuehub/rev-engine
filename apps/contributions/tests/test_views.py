@@ -81,7 +81,8 @@ class StripeOneTimePaymentViewTest(StripePaymentViewAbstract):
         self.assertEqual(str(response.data["email"][0]), "This field may not be null.")
 
     @patch("apps.contributions.views.StripePaymentManager.create_one_time_payment", side_effect=MockPaymentIntent)
-    def test_one_time_payment_method_called(self, mock_one_time_payment):
+    @patch("apps.contributions.views.PageEmailTemplate.get_template")
+    def test_one_time_payment_method_called(self, mock_email, mock_one_time_payment):
         response = self._post_valid_one_time_payment()
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data["clientSecret"], test_client_secret)

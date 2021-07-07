@@ -77,8 +77,7 @@ function MainLayout() {
                 <ProtectedRoute path={ROUTES.EDITOR_ROUTE_REV} component={PageEditor} />
 
                 {/* Contributor Dashboard */}
-                {/* // !  THIS NEEDS TO BE PROTECTED */}
-                <Route path={ROUTES.CONTRIBUTOR_DASHBOARD} component={ContributorDashboard} contributor />
+                <ProtectedRoute path={ROUTES.CONTRIBUTOR_DASHBOARD} component={ContributorDashboard} contributor />
 
                 {/* Contributor Entry */}
                 <Route path={ROUTES.CONTRIBUTOR_ENTRY} component={ContributorEntry} />

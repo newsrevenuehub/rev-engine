@@ -1,7 +1,6 @@
 from datetime import datetime
 
 from django.conf import settings
-from django.core.mail import send_mail
 from django.middleware import csrf
 
 from rest_framework import status
@@ -19,6 +18,7 @@ from apps.api.serializers import (
 from apps.api.throttling import ContributorRateThrottle
 from apps.api.tokens import ContributorRefreshToken
 from apps.contributions.serializers import ContributorSerializer
+from apps.emails.tasks import send_donor_email
 
 
 COOKIE_PATH = "/"
@@ -112,10 +112,14 @@ class RequestContributorTokenEmailView(APIView):
 
         magic_link = f"{settings.SITE_URL}/{settings.CONTRIBUTOR_VERIFY_URL}?token={token}&email={email}"
 
-        # TODO: send magic_link using proper templated email
-        send_mail("TEMP  subject for testing", f"TEMP magic link is: {magic_link}", "testing@test.com", [email])
+        send_donor_email(
+            identifier=settings.EMAIL_TEMPLATE_IDENTIFIER_MAGIC_LINK_DONOR,
+            to=email,
+            subject="Manage your donations",
+            template_data={"magic_link": magic_link},
+        )
 
-        # If email sent successfully...
+        # This is sent in an async task. We won't know so send OK anyway.
         return Response({"detail": "success"}, status=status.HTTP_200_OK)
 
 

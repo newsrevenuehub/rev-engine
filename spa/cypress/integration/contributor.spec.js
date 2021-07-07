@@ -1,6 +1,7 @@
-import { GET_MAGIC_LINK, VERIFY_TOKEN } from 'ajax/endpoints';
+import { GET_MAGIC_LINK, VERIFY_TOKEN, CONTRIBUTIONS, CANCEL_RECURRING } from 'ajax/endpoints';
 import { getEndpoint } from '../support/util';
 import { CONTRIBUTOR_ENTRY, CONTRIBUTOR_VERIFY } from 'routes';
+import donationsData from '../fixtures/donations/18-results.json';
 
 // Util
 import isEqual from 'lodash.isequal';
@@ -50,35 +51,90 @@ describe('Contributor portal', () => {
       // DonationsTable is well tested elsewhere...
       cy.getByTestId('total-results').contains('18');
       // ... though here we should see different column headers
-      const expectedColumns = [
-        {
-          renderedName: 'Amount',
-          rawName: 'amount'
-        },
-        {
-          renderedName: 'Date',
-          rawName: 'created'
-        },
-        {
-          renderedName: 'Type',
-          rawName: 'interval'
-        },
-        {
-          renderedName: 'Receipt date',
-          rawName: 'last_payment_date'
-        },
-        {
-          renderedName: 'Payment status',
-          rawName: 'status'
-        }
-      ];
+      const expectedColumns = ['Amount', 'Date', 'Type', 'Receipt date', 'Payment status', 'Payment method', 'Cancel'];
       cy.getByTestId('donation-header', {}, true).should('have.length', expectedColumns.length);
       cy.getByTestId('donation-header', {}, true).should(($headers) => {
         const headersSet = new Set($headers.toArray().map((header) => header.innerText));
-        const expectedSet = new Set(expectedColumns.map((header) => header.renderedName));
+        const expectedSet = new Set(expectedColumns);
         expect(headersSet.size).to.be.greaterThan(0);
         expect(isEqual(headersSet, expectedSet)).to.be.true;
+        expectedSet.forEach((header, i) => header === headersSet[i]);
       });
+    });
+
+    it('should show icons for payment methods and last4 digits of card', () => {
+      // VISA
+      const visaContribution = donationsData.find((d) => d.card_brand === 'visa');
+      const visaId = visaContribution?.id;
+      const visaNum = visaContribution?.last4;
+      cy.get(`[data-donationid="${visaId}"`).within(() => {
+        cy.getByTestId('card-icon-visa');
+      });
+      cy.get(`[data-donationid="${visaId}"`).contains(visaNum);
+
+      // MASTERCARD
+      const mcContribution = donationsData.find((d) => d.card_brand === 'mastercard');
+      const mcId = mcContribution?.id;
+      const mcNum = mcContribution?.last4;
+      cy.get(`[data-donationid="${mcId}"`).within(() => {
+        cy.getByTestId('card-icon-mastercard');
+      });
+      cy.get(`[data-donationid="${mcId}"`).contains(mcNum);
+
+      // DISCOVER
+      const discoverContribution = donationsData.find((d) => d.card_brand === 'discover');
+      const discoverId = discoverContribution?.id;
+      const discoverNum = discoverContribution?.last4;
+      cy.get(`[data-donationid="${discoverId}"`).within(() => {
+        cy.getByTestId('card-icon-discover');
+      });
+      cy.get(`[data-donationid="${discoverId}"`).contains(discoverNum);
+
+      // AMEX
+      const amexContribution = donationsData.find((d) => d.card_brand === 'amex');
+      const amexId = amexContribution?.id;
+      const amexNum = amexContribution?.last4;
+      cy.get(`[data-donationid="${amexId}"`).within(() => {
+        cy.getByTestId('card-icon-amex');
+      });
+      cy.get(`[data-donationid="${amexId}"`).contains(amexNum);
+    });
+
+    it('should only show cancel button for recurring payments', () => {
+      const oneTimeCont = donationsData.find((d) => d.interval === 'one_time');
+      const oneTimeId = oneTimeCont.id;
+      cy.get(`[data-donationid="${oneTimeId}"]`).within(() => {
+        cy.getByTestId('cancel-recurring-button').should('not.exist');
+      });
+      const recurringCont = donationsData.find((d) => d.interval !== 'one_time');
+      const recurringId = recurringCont.id;
+      cy.get(`[data-donationid="${recurringId}"]`).within(() => {
+        cy.getByTestId('cancel-recurring-button').should('exist');
+      });
+    });
+
+    it('should show update payment method modal when payment method clicked', () => {
+      cy.getByTestId('payment-method').first().click();
+      cy.getByTestId('edit-recurring-payment-modal').should('exist');
+      // cleanup
+      cy.getByTestId('close-modal').click();
+    });
+
+    it('should ask for confirmation when cancel payment clicked', () => {
+      cy.getByTestId('cancel-recurring-button').first().click();
+      cy.getByTestId('confirmation-modal').should('exist');
+      // cleanup
+      cy.getByTestId('cancel-button').click();
+    });
+
+    it('should do send cancel request if continue is clicked', () => {
+      const targetContId = donationsData.find((d) => d.interval !== 'one_time').id;
+      cy.get(`[data-donationid="${targetContId}"]`).within(() => {
+        cy.getByTestId('cancel-recurring-button').click();
+      });
+      cy.intercept(getEndpoint(`${CONTRIBUTIONS}${targetContId}/${CANCEL_RECURRING}`)).as('cancelRecurring');
+      cy.getByTestId('continue-button').click();
+      return cy.wait('@cancelRecurring');
     });
   });
 });

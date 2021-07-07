@@ -50,7 +50,7 @@ function EditRecurringPaymentModal({ isOpen, closeModal, contribution, onComplet
 
   return (
     <Modal isOpen={isOpen} closeModal={closeModal}>
-      <S.EditRecurringPaymentModal>
+      <S.EditRecurringPaymentModal data-testid="edit-recurring-payment-modal">
         {showCompletedMessage ? (
           <S.CompletedMessage>
             <p>

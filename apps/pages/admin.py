@@ -98,7 +98,10 @@ class DonationPageAdmin(DonationPageAdminAbstract):
             ),
         )
         + DonationPageAdminAbstract.fieldsets
-        + (("Email Templates", {"fields": ("email_templates",)}),)
+        + (
+            ("Latest screenshot", {"fields": ("page_screenshot",)}),
+            ("Email Templates", {"fields": ("email_templates",)}),
+        )
     )
 
     list_display = (
@@ -123,7 +126,7 @@ class DonationPageAdmin(DonationPageAdminAbstract):
         "revenue_program__name",
     )
 
-    readonly_fields = ["derived_slug", "email_templates"]
+    readonly_fields = ["derived_slug", "email_templates", "page_screenshot"]
 
     actions = ("make_template",)
 

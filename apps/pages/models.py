@@ -10,6 +10,10 @@ from apps.common.utils import normalize_slug
 from apps.organizations.models import Feature
 
 
+def _get_screenshot_upload_path(instance, filename):
+    return f"{instance.organization.name}/page_screenshots/{instance.name}_latest.png"
+
+
 class AbstractPage(IndexedTimeStampedModel):
     name = models.CharField(max_length=255)
     heading = models.CharField(max_length=255, blank=True)
@@ -92,6 +96,7 @@ class DonationPage(AbstractPage):
         on_delete=models.SET_NULL,
     )
     published_date = models.DateTimeField(null=True, blank=True)
+    page_screenshot = SorlImageField(null=True, blank=True, upload_to=_get_screenshot_upload_path)
 
     email_templates = models.ManyToManyField("emails.PageEmailTemplate", blank=True)
 

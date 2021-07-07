@@ -214,9 +214,15 @@ export function PaymentMethodCell({ contribution, handlePaymentClick }) {
     <S.PaymentMethodCell
       interactive={!!handlePaymentClick}
       onClick={() => (!!handlePaymentClick ? handlePaymentClick(contribution) : {})}
+      data-testid="payment-method"
     >
-      {contribution.card_brand && <S.BrandIcon src={getCardBrandIcon(contribution.card_brand)} />}
-      {contribution.last4 && <S.Last4>•••• {contribution.last4}</S.Last4>}
+      {contribution.card_brand && (
+        <S.BrandIcon
+          src={getCardBrandIcon(contribution.card_brand)}
+          data-testid={`card-icon-${contribution.card_brand}`}
+        />
+      )}
+      {contribution.last4 && <S.Last4 data-testid="card-last4">•••• {contribution.last4}</S.Last4>}
     </S.PaymentMethodCell>
   );
 }
@@ -240,7 +246,7 @@ function getCardBrandIcon(brand) {
 function CancelRecurringButton({ contribution, handleCancelContribution }) {
   if (contribution?.interval === 'one_time' || contribution?.status === 'canceled') return null;
   return (
-    <S.CancelButton onClick={() => handleCancelContribution(contribution)}>
+    <S.CancelButton onClick={() => handleCancelContribution(contribution)} data-testid="cancel-recurring-button">
       <S.CancelIcon icon={faBan} />
     </S.CancelButton>
   );

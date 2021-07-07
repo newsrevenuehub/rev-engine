@@ -20,7 +20,9 @@
         "status": "paid",
         "contributor": 1,
         "donation_page": null,
-        "organization": 1
+        "organization": 1,
+        "last4": 1234,
+        "card_brand": "visa"
     },
     {
         "id": 1,
@@ -43,7 +45,9 @@
         "status": "paid",
         "contributor": 1,
         "donation_page": null,
-        "organization": 1
+        "organization": 1,
+        "last4": 1234,
+        "card_brand": "mastercard"
     },
     {
         "id": 18,
@@ -66,7 +70,9 @@
         "status": "paid",
         "contributor": 2,
         "donation_page": null,
-        "organization": 1
+        "organization": 1,
+        "last4": 1234,
+        "card_brand": "discover"
     },
     {
         "id": 6,
@@ -89,7 +95,9 @@
         "status": "paid",
         "contributor": 3,
         "donation_page": null,
-        "organization": 1
+        "organization": 1,
+        "last4": 1234,
+        "card_brand": "amex"
     },
     {
         "id": 2,
@@ -112,7 +120,9 @@
         "status": "paid",
         "contributor": 1,
         "donation_page": null,
-        "organization": 1
+        "organization": 1,
+        "last4": 1234,
+        "card_brand": "visa"
     },
     {
         "id": 3,
@@ -135,7 +145,9 @@
         "status": "paid",
         "contributor": 1,
         "donation_page": null,
-        "organization": 1
+        "organization": 1,
+        "last4": 1234,
+        "card_brand": "visa"
     },
     {
         "id": 4,
@@ -158,7 +170,9 @@
         "status": "processing",
         "contributor": 1,
         "donation_page": null,
-        "organization": 1
+        "organization": 1,
+        "last4": 1234,
+        "card_brand": "visa"
     },
     {
         "id": 5,
@@ -181,7 +195,9 @@
         "status": "processing",
         "contributor": 1,
         "donation_page": null,
-        "organization": 1
+        "organization": 1,
+        "last4": 1234,
+        "card_brand": "visa"
     },
     {
         "id": 7,
@@ -204,7 +220,9 @@
         "status": "processing",
         "contributor": 1,
         "donation_page": null,
-        "organization": 1
+        "organization": 1,
+        "last4": 1234,
+        "card_brand": "visa"
     },
     {
         "id": 8,
@@ -227,7 +245,9 @@
         "status": "processing",
         "contributor": 1,
         "donation_page": null,
-        "organization": 1
+        "organization": 1,
+        "last4": 1234,
+        "card_brand": "visa"
     },
     {
         "id": 9,
@@ -250,7 +270,9 @@
         "status": "processing",
         "contributor": 1,
         "donation_page": null,
-        "organization": 1
+        "organization": 1,
+        "last4": 1234,
+        "card_brand": "visa"
     },
     {
         "id": 10,
@@ -273,7 +295,9 @@
         "status": "paid",
         "contributor": 1,
         "donation_page": null,
-        "organization": 1
+        "organization": 1,
+        "last4": 1234,
+        "card_brand": "visa"
     },
     {
         "id": 11,
@@ -296,7 +320,9 @@
         "status": "paid",
         "contributor": 1,
         "donation_page": null,
-        "organization": 1
+        "organization": 1,
+        "last4": 1234,
+        "card_brand": "visa"
     },
     {
         "id": 12,
@@ -319,7 +345,9 @@
         "status": "failed",
         "contributor": 1,
         "donation_page": null,
-        "organization": 1
+        "organization": 1,
+        "last4": 1234,
+        "card_brand": "visa"
     },
     {
         "id": 13,
@@ -342,7 +370,9 @@
         "status": "failed",
         "contributor": 1,
         "donation_page": null,
-        "organization": 1
+        "organization": 1,
+        "last4": 1234,
+        "card_brand": "visa"
     },
     {
         "id": 14,
@@ -365,7 +395,9 @@
         "status": "failed",
         "contributor": 1,
         "donation_page": null,
-        "organization": 1
+        "organization": 1,
+        "last4": 1234,
+        "card_brand": "visa"
     },
     {
         "id": 15,
@@ -388,7 +420,9 @@
         "status": "failed",
         "contributor": 1,
         "donation_page": null,
-        "organization": 1
+        "organization": 1,
+        "last4": 1234,
+        "card_brand": "visa"
     },
     {
         "id": 16,
@@ -411,6 +445,8 @@
         "status": "failed",
         "contributor": 1,
         "donation_page": null,
-        "organization": 1
+        "organization": 1,
+        "last4": 1234,
+        "card_brand": "visa"
     }
 ]

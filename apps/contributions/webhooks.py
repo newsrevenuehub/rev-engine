@@ -6,6 +6,7 @@ from django.conf import settings
 import pytz
 
 from apps.contributions.models import Contribution, ContributionStatus
+from apps.slack.models import SlackNotificationTypes
 
 
 logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
@@ -79,7 +80,7 @@ class StripeWebhookProcessor:
             # If it's a subscription, we should grab the payment_intent id from the event and store it as provider_payment_id
             contribution.provider_payment_id = self.obj_data["id"]
 
-        contribution.save()
+        contribution.save(slack_notification=SlackNotificationTypes.SUCCESS)
         logger.info(f"Contribution {contribution} succeeded.")
 
     def _cancellation_was_rejection(self):

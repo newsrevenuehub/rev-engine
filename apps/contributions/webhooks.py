@@ -82,7 +82,7 @@ class StripeWebhookProcessor:
             contribution.provider_payment_id = self.obj_data["id"]
         else:
             # If it's a one-time payment, grab payment_method_id
-            contribution.provider_payment_method_id = self.obj_data["payment_method"]
+            contribution.provider_payment_method_id = self.obj_data.get("payment_method")
 
         contribution.save()
         logger.info(f"Contribution {str(contribution)} succeeded.")

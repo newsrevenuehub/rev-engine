@@ -269,12 +269,6 @@ class StripeConfirmTest(APITestCase):
         self.assertEqual(response.status_code, 500)
         self.assertEqual(response.data["status"], "failed")
 
-    def test_product_create_called_when_org_verified(self):
-        raise NotImplementedError("Test this")
-
-    def test_portal_config_called_when_org_verified(self):
-        raise NotImplementedError("Test this")
-
 
 class TestContributionsListView(APITestCase):
     def setUp(self):
@@ -298,7 +292,7 @@ class TestContributionsListView(APITestCase):
                 organization=self.organization2,
             )
 
-        self.url = reverse("contributions")
+        self.url = reverse("contributions-list")
 
     def test_happy_path(self):
         """Should get back only contributions belonging to my org"""
@@ -309,3 +303,6 @@ class TestContributionsListView(APITestCase):
         self.assertTrue(
             all([contribution["organization"] == self.organization1.pk for contribution in response.json()["results"]])
         )
+
+
+# class

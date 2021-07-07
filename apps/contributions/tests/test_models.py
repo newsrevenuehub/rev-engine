@@ -58,10 +58,19 @@ class ContributionTest(TestCase):
         self.assertEqual(self.contribution.expanded_bad_actor_score, Contribution.BAD_ACTOR_SCORES[2][1])
 
     def test_request_stripe_payment_method_details_when_new(self):
-        raise NotImplementedError("Test this")
+        """
+        fetch_stripe_payment_method should be called when a new contribution is being created and it has a defined provider_payment_method_id
+        """
+        pass
 
     def test_request_stripe_payment_method_details_when_old_updating_payment_method(self):
-        raise NotImplementedError("Test this")
+        """
+        fetch_stripe_payment_method should be called when updating an existing contribution, if provider_payment_method_id is not the same as the previous
+        """
+        pass
 
     def test_do_not_request_stripe_payment_method_details_when_updating_anything_else(self):
-        raise NotImplementedError("Test this")
+        """
+        fetch_stripe_payment_method should not be called if provider_payment_method_id is unchanged
+        """
+        pass

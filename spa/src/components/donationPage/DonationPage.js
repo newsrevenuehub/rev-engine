@@ -1,12 +1,13 @@
 import { useRef, useState, createContext, useContext } from 'react';
 import * as S from './DonationPage.styled';
 import * as getters from 'components/donationPage/pageGetters';
+import { frequencySort } from 'components/donationPage/pageContent/DFrequency';
 
 const DonationPageContext = createContext({});
 
 function DonationPage({ page, live = false }) {
   const formRef = useRef();
-  const [frequency, setFrequency] = useState('one_time');
+  const [frequency, setFrequency] = useState(getInitialFrequency(page));
   const [fee, setFee] = useState();
   const [payFee, setPayFee] = useState(false);
   const [amount, setAmount] = useState();
@@ -39,7 +40,11 @@ function DonationPage({ page, live = false }) {
                 {getters.getGraphicElement()}
                 <form ref={formRef} data-testid="donation-page-form">
                   <S.PageElements>
-                    {page?.elements.map((element) => getters.getDynamicElement(element, live))}
+                    {(!live && !page?.elements) ||
+                      (page?.elements.length === 0 && (
+                        <S.NoElements>Open the edit interface to start adding content</S.NoElements>
+                      ))}
+                    {page?.elements?.map((element) => getters.getDynamicElement(element, live))}
                   </S.PageElements>
                 </form>
               </S.DonationContent>
@@ -55,3 +60,13 @@ function DonationPage({ page, live = false }) {
 export const usePage = () => useContext(DonationPageContext);
 
 export default DonationPage;
+
+function getInitialFrequency(page) {
+  const frequencyElement = page?.elements?.find((el) => el.type === 'DFrequency');
+  if (frequencyElement) {
+    const content = frequencyElement.content || [];
+    const sortedOptions = content.sort(frequencySort);
+    return sortedOptions[0]?.value || '';
+  }
+  return 'one_time';
+}

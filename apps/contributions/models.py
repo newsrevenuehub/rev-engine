@@ -1,9 +1,14 @@
+import uuid
+
 from django.db import models
 
 from apps.common.models import IndexedTimeStampedModel
+from apps.slack.models import SlackNotificationTypes
+from apps.slack.slack_manager import SlackManager
 
 
 class Contributor(IndexedTimeStampedModel):
+    uuid = models.UUIDField(default=uuid.uuid4, primary_key=False, editable=False)
     email = models.EmailField(unique=True)
 
     @property
@@ -13,6 +18,16 @@ class Contributor(IndexedTimeStampedModel):
     @property
     def most_recent_contribution(self):
         return self.contribution_set.filter(status="paid").latest()
+
+    @property
+    def is_authenticated(self):
+        """
+        Copy django.contrib.auth.models import AbstractBaseUser for request.user.is_authenticated
+
+        Always return True. This is a way to tell if the user has been
+        authenticated in templates.
+        """
+        return True
 
     def __str__(self):
         return self.email
@@ -63,7 +78,7 @@ class Contribution(IndexedTimeStampedModel):
 
     @property
     def formatted_amount(self):
-        return f"{float(self.amount / 100)} {self.currency.upper()}"
+        return f"{'{:.2f}'.format(self.amount / 100)} {self.currency.upper()}"
 
     BAD_ACTOR_SCORES = (
         (
@@ -106,6 +121,24 @@ class Contribution(IndexedTimeStampedModel):
     def process_flagged_payment(self, reject=False):
         payment_manager = self.get_payment_manager_instance()
         payment_manager.complete_payment(reject=reject)
+
+    def send_slack_notifications(self, event_type):
+        """
+        For now, we only send Slack notifications on successful payment.
+        """
+        if event_type == SlackNotificationTypes.SUCCESS:
+            slack_manager = SlackManager()
+            slack_manager.publish_contribution(self, event_type=SlackNotificationTypes.SUCCESS)
+
+    def save(self, *args, **kwargs):
+        """
+        Calling save with kwargs "slack_notification" causes save method to trigger slack notifications
+        """
+        slack_notification = kwargs.pop("slack_notification", None)
+        if slack_notification:
+            self.send_slack_notifications(slack_notification)
+
+        super().save(*args, **kwargs)
 
     class Meta:
         get_latest_by = "modified"

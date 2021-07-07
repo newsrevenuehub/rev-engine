@@ -52,6 +52,18 @@ def build_image(c, tag=None, dockerfile=None):
 
 
 @invoke.task()
+def run_dc_dev(c):
+    """Brings up the database and redis"""
+    c.run("docker-compose -f docker-compose.yml -f docker-compose-dev.yml up -d --remove-orphans")
+
+
+@invoke.task(pre=[run_dc_dev])
+def run_celery(c):
+    """Brings up the redis container and a celery worker to test with. Depends on settings in dev.py"""
+    c.run("celery -A revengine worker -l INFO")
+
+
+@invoke.task()
 def up(c):
     """Brings up deployable image
     Usage: inv image.up
@@ -92,9 +104,13 @@ image.add_task(up, "up")
 image.add_task(stop, "stop")
 image.add_task(shell)
 
+dc = invoke.Collection("dc")
+dc.add_task(run_celery)
+dc.add_task(run_dc_dev)
 
 ns = invoke.Collection()
 ns.add_collection(image)
+ns.add_collection(dc)
 
 ns.configure(
     {

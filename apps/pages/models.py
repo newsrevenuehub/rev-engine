@@ -26,7 +26,7 @@ class AbstractPage(IndexedTimeStampedModel):
 
     styles = models.ForeignKey("pages.Style", null=True, blank=True, on_delete=models.SET_NULL)
 
-    elements = models.JSONField(null=True, blank=True)
+    elements = models.JSONField(null=True, blank=True, default=list)
 
     donor_benefits = models.ForeignKey(
         "pages.DonorBenefit",
@@ -98,6 +98,8 @@ class DonationPage(AbstractPage):
     published_date = models.DateTimeField(null=True, blank=True)
     page_screenshot = SorlImageField(null=True, blank=True, upload_to=_get_screenshot_upload_path)
 
+    email_templates = models.ManyToManyField("emails.PageEmailTemplate", blank=True)
+
     class Meta:
         unique_together = (
             "slug",
@@ -111,6 +113,20 @@ class DonationPage(AbstractPage):
         return Feature.objects.filter(
             feature_type=Feature.FeatureType.PAGE_LIMIT, plans__organization=self.organization.id
         ).first()
+
+    def update_email_template(self, template):
+        """
+        Replaces the template on the DonationPage instance with a new template with the same.
+        template type.
+
+        :param template: PageEmailTemplate instance
+        :return: None
+        """
+        if temp := self.email_templates.filter(template_type=template.template_type).first():
+            self.email_templates.remove(temp)
+            self.email_templates.add(template)
+        else:
+            self.email_templates.add(template)
 
     @property
     def total_pages(self):

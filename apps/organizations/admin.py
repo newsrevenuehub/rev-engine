@@ -2,12 +2,13 @@ from pathlib import Path
 
 from django.contrib import admin
 
+from apps.common.admin import RevEngineBaseAdmin
 from apps.organizations.models import Feature, Organization, Plan, RevenueProgram
 from apps.users.admin import UserOrganizationInline
 
 
 @admin.register(Organization)
-class OrganizationAdmin(admin.ModelAdmin):  # pragma: no cover
+class OrganizationAdmin(RevEngineBaseAdmin):  # pragma: no cover
     organization_fieldset = (
         ("Organization", {"fields": ("name", "slug", "salesforce_id")}),
         (
@@ -29,7 +30,10 @@ class OrganizationAdmin(admin.ModelAdmin):  # pragma: no cover
                 )
             },
         ),
-        ("Payment Provider", {"fields": ("default_payment_provider", "stripe_account_id", "stripe_verified")}),
+        (
+            "Payment Provider",
+            {"fields": ("default_payment_provider", "stripe_account_id", "stripe_verified", "stripe_product_id")},
+        ),
     )
 
     fieldsets = organization_fieldset
@@ -49,7 +53,7 @@ class OrganizationAdmin(admin.ModelAdmin):  # pragma: no cover
 
 
 @admin.register(RevenueProgram)
-class RevenueProgramAdmin(admin.ModelAdmin):  # pragma: no cover
+class RevenueProgramAdmin(RevEngineBaseAdmin):  # pragma: no cover
     fieldsets = (("RevenueProgram", {"fields": ("name", "slug", "organization", "default_donation_page")}),)
 
     list_display = ["name", "slug"]
@@ -63,7 +67,7 @@ class RevenueProgramAdmin(admin.ModelAdmin):  # pragma: no cover
 
 
 @admin.register(Plan)
-class PlanAdmin(admin.ModelAdmin):  # pragma: no cover
+class PlanAdmin(RevEngineBaseAdmin):  # pragma: no cover
     fieldsets = (("Plan", {"fields": ("name", "features")}),)
 
     list_display = ["name"]
@@ -72,7 +76,7 @@ class PlanAdmin(admin.ModelAdmin):  # pragma: no cover
 
 
 @admin.register(Feature)
-class FeatureAdmin(admin.ModelAdmin):  # pragma: no cover
+class FeatureAdmin(RevEngineBaseAdmin):  # pragma: no cover
     fieldsets = (("Feature", {"fields": ("name", "feature_type", "feature_value", "description")}),)
 
     list_display = ["name", "feature_type", "feature_value"]

@@ -8,7 +8,17 @@ import { useTable, usePagination, useSortBy } from 'react-table';
 // Children
 import CircleButton from 'elements/buttons/CircleButton';
 
-function PaginatedTable({ columns, data = [], fetchData, loading, pageCount, totalResults, onRowClick }) {
+function PaginatedTable({
+  columns,
+  data = [],
+  fetchData,
+  refetch,
+  loading,
+  pageCount,
+  totalResults,
+  onRowClick,
+  getRowIsDisabled
+}) {
   const {
     getTableProps,
     getTableBodyProps,
@@ -37,7 +47,7 @@ function PaginatedTable({ columns, data = [], fetchData, loading, pageCount, tot
   // Listen for changes in pagination and use the state to fetch our new data
   useEffect(() => {
     fetchData(pageSize, pageIndex + 1, sortBy);
-  }, [fetchData, pageIndex, pageSize, sortBy]);
+  }, [fetchData, pageIndex, pageSize, sortBy, refetch]);
 
   const getCurrentPageResultIndices = (pageSize, pageIndex, currentPageSize) => {
     const startIndex = pageSize * pageIndex + 1;
@@ -74,6 +84,7 @@ function PaginatedTable({ columns, data = [], fetchData, loading, pageCount, tot
         <tbody {...getTableBodyProps()}>
           {page.map((row, i) => {
             prepareRow(row);
+            const disabled = getRowIsDisabled && getRowIsDisabled(row);
             return (
               <S.TR
                 data-testid="donation-row"
@@ -85,6 +96,7 @@ function PaginatedTable({ columns, data = [], fetchData, loading, pageCount, tot
                 data-flaggeddate={row.original.flagged_date || ''}
                 onClick={() => (onRowClick ? onRowClick(row.original) : {})}
                 even={i === 0 || i % 2 === 0}
+                disabled={disabled}
                 {...row.getRowProps()}
               >
                 {row.cells.map((cell) => {

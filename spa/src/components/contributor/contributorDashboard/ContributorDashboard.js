@@ -1,12 +1,17 @@
 import { useState, useMemo, createContext, useContext, useCallback } from 'react';
 import * as S from './ContributorDashboard.styled';
-import { faCheck, faTimes, faQuestion, faCogs } from '@fortawesome/free-solid-svg-icons';
+import { faCheck, faTimes, faQuestion, faCogs, faBan } from '@fortawesome/free-solid-svg-icons';
 
 // Assets
 import visa from 'assets/images/visa-logo.png';
 import mastercard from 'assets/images/mastercard-logo.png';
 import amex from 'assets/images/amex-logo.png';
 import discover from 'assets/images/discover-logo.png';
+
+import { useAlert } from 'react-alert';
+
+// Context
+import { useGlobalContext } from 'components/MainLayout';
 
 // Utils
 import { getFrequencyAdjective } from 'utilities/parseFrequency';
@@ -15,7 +20,7 @@ import formatCurrencyAmount from 'utilities/formatCurrencyAmount';
 
 // AJAX
 import axios, { AuthenticationError } from 'ajax/axios';
-import { CONTRIBUTIONS } from 'ajax/endpoints';
+import { CANCEL_RECURRING, CONTRIBUTIONS } from 'ajax/endpoints';
 
 // Children
 import DashboardSectionGroup from 'components/dashboard/DashboardSectionGroup';
@@ -23,12 +28,19 @@ import DashboardSection from 'components/dashboard/DashboardSection';
 import ContributorTokenExpiredModal from 'components/contributor/contributorDashboard/ContributorTokenExpiredModal';
 import DonationsTable from 'components/donations/DonationsTable';
 import EditRecurringPaymentModal from 'components/contributor/contributorDashboard/EditRecurringPaymentModal';
+import GlobalLoading from 'elements/GlobalLoading';
 
 const NO_CONTENT = '---';
 
 const ContributorDashboardContext = createContext();
 
 function ContributorDashboard() {
+  const alert = useAlert();
+  // Context
+  const { getUserConfirmation } = useGlobalContext();
+
+  // State
+  const [loading, setLoading] = useState(false);
   const [tokenExpired, setTokenExpired] = useState(false);
   const [contriubtions, setContributions] = useState([]);
   const [selectedContribution, setSelectedContribution] = useState();
@@ -37,7 +49,6 @@ function ContributorDashboard() {
   const fetchDonations = useCallback(async (params, { onSuccess, onFailure }) => {
     try {
       const response = await axios.get(CONTRIBUTIONS, { params });
-      console.log('response: ', response);
       onSuccess(response);
     } catch (e) {
       if (e instanceof AuthenticationError || e?.response?.status === 403) {
@@ -50,6 +61,39 @@ function ContributorDashboard() {
 
   const handleEditRecurringPayment = (contribution) => {
     setSelectedContribution(contribution);
+  };
+
+  const cancelContribution = useCallback(
+    async (contribution) => {
+      setLoading(true);
+      try {
+        await axios.post(`${CONTRIBUTIONS}${contribution.id}/${CANCEL_RECURRING}`);
+        alert.info(
+          'Recurring contribution has been canceled. No more payments will be made. Changes may not appear here immediately.',
+          { timeout: 8000 }
+        );
+      } catch (e) {
+        alert.error(
+          'We were unable to cancel this recurring contribution. Please try again later. We have been notified of the problem.'
+        );
+      } finally {
+        setLoading(false);
+      }
+    },
+    [alert]
+  );
+
+  const handleCancelContribution = useCallback(
+    (contribution) => {
+      getUserConfirmation('Cancel this recurring contribution?', () => cancelContribution(contribution));
+    },
+    [cancelContribution, getUserConfirmation]
+  );
+
+  const getRowIsDisabled = (row) => {
+    const contribution = row.original;
+    const disabledStatuses = ['canceled', 'processing'];
+    return disabledStatuses.includes(contribution.status);
   };
 
   const columns = useMemo(
@@ -83,12 +127,26 @@ function ContributorDashboard() {
         Header: 'Payment method',
         accessor: 'last4',
         Cell: (props) => (
-          <PaymentMethodCell contribution={props.row.original} handlePaymentClick={handleEditRecurringPayment} />
+          <PaymentMethodCell
+            contribution={props.row.original}
+            handlePaymentClick={getRowIsDisabled(props.row) ? undefined : handleEditRecurringPayment}
+          />
         ),
         disableSortBy: true
+      },
+      {
+        id: 'cancel',
+        Header: 'Cancel',
+        disableSortBy: true,
+        Cell: (props) => (
+          <CancelRecurringButton
+            contribution={props.row.original}
+            handleCancelContribution={handleCancelContribution}
+          />
+        )
       }
     ],
-    []
+    [handleCancelContribution]
   );
 
   return (
@@ -97,7 +155,13 @@ function ContributorDashboard() {
         <S.ContributorDashboard>
           <DashboardSectionGroup>
             <DashboardSection heading="Your contributions">
-              <DonationsTable fetchDonations={fetchDonations} columns={columns} refetch={refetch} />
+              <S.Disclaimer>Changes made may not be reflected immediately.</S.Disclaimer>
+              <DonationsTable
+                fetchDonations={fetchDonations}
+                columns={columns}
+                getRowIsDisabled={getRowIsDisabled}
+                refetch={refetch}
+              />
             </DashboardSection>
           </DashboardSectionGroup>
         </S.ContributorDashboard>
@@ -110,6 +174,7 @@ function ContributorDashboard() {
             onComplete={() => setRefetch(true)}
           />
         )}
+        {loading && <GlobalLoading />}
       </>
     </ContributorDashboardContext.Provider>
   );
@@ -135,6 +200,8 @@ function getStatusCellIcon(status) {
       return faTimes;
     case 'paid':
       return faCheck;
+    case 'canceled':
+      return faBan;
     default:
       return faQuestion;
   }
@@ -142,10 +209,11 @@ function getStatusCellIcon(status) {
 
 export function PaymentMethodCell({ contribution, handlePaymentClick }) {
   if (!contribution.card_brand && !contribution.last4) return '?';
+
   return (
     <S.PaymentMethodCell
       interactive={!!handlePaymentClick}
-      onClick={() => (handlePaymentClick ? handlePaymentClick(contribution) : {})}
+      onClick={() => (!!handlePaymentClick ? handlePaymentClick(contribution) : {})}
     >
       {contribution.card_brand && <S.BrandIcon src={getCardBrandIcon(contribution.card_brand)} />}
       {contribution.last4 && <S.Last4>•••• {contribution.last4}</S.Last4>}
@@ -167,4 +235,13 @@ function getCardBrandIcon(brand) {
     default:
       return null;
   }
+}
+
+function CancelRecurringButton({ contribution, handleCancelContribution }) {
+  if (contribution?.interval === 'one_time' || contribution?.status === 'canceled') return null;
+  return (
+    <S.CancelButton onClick={() => handleCancelContribution(contribution)}>
+      <S.CancelIcon icon={faBan} />
+    </S.CancelButton>
+  );
 }

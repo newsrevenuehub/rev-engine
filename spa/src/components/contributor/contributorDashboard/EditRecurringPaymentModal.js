@@ -1,6 +1,7 @@
 import { useState, useRef } from 'react';
 import * as S from './EditRecurringPaymentModal.styled';
 import { CardElementStyle, PaymentError } from 'components/paymentProviders/stripe/StripePaymentForm.styled';
+
 // Ajax
 import axios, { AuthenticationError } from 'ajax/axios';
 import { CONTRIBUTIONS, UPDATE_PAYMENT_METHOD } from 'ajax/endpoints';
@@ -28,38 +29,59 @@ import { createPaymentMethod } from 'components/paymentProviders/stripe/stripeFn
 import Modal from 'elements/modal/Modal';
 import { PaymentMethodCell } from 'components/contributor/contributorDashboard/ContributorDashboard';
 import Button from 'elements/buttons/Button';
+import GlobalLoading from 'elements/GlobalLoading';
 
 function EditRecurringPaymentModal({ isOpen, closeModal, contribution, onComplete }) {
   const stripe = useRef(loadStripe('pk_test_31XWC5qhlLi9UkV1OzsI634W', { stripeAccount: contribution.org_stripe_id }));
+  const [showCompletedMessage, setShowCompletedMessage] = useState(false);
 
   const handleNewPaymentMethod = async (paymentMethod, onCompleteCallback) => {
     await axios.patch(`${CONTRIBUTIONS}${contribution.id}/${UPDATE_PAYMENT_METHOD}`, {
       payment_method_id: paymentMethod.id
     });
     onCompleteCallback();
+    setShowCompletedMessage(true);
+  };
+
+  const onCompleteOk = () => {
     onComplete();
+    closeModal();
   };
 
   return (
     <Modal isOpen={isOpen} closeModal={closeModal}>
       <S.EditRecurringPaymentModal>
-        <h2>Update recurring contribution</h2>
-        <S.CurrentList>
-          <S.CurrentDatum>
-            <span>Amount:</span>
-            <S.Datum>{formatCurrencyAmount(contribution.amount)}</S.Datum>
-          </S.CurrentDatum>
-          <S.CurrentDatum>
-            <span>Interval:</span> <S.Datum>{getFrequencyAdjective(contribution.interval)}</S.Datum>
-          </S.CurrentDatum>
-          <S.CurrentDatum>
-            <span>Payment method:</span> <PaymentMethodCell contribution={contribution} />
-          </S.CurrentDatum>
-        </S.CurrentList>
-        {stripe && stripe.current && (
-          <Elements stripe={stripe.current}>
-            <CardForm onPaymentMethod={handleNewPaymentMethod} closeModal={closeModal} />
-          </Elements>
+        {showCompletedMessage ? (
+          <S.CompletedMessage>
+            <p>
+              Your new payment method will be used for the next payment. Changes may not appear in our system right
+              away.
+            </p>
+            <Button onClick={onCompleteOk} type="positive">
+              Ok
+            </Button>
+          </S.CompletedMessage>
+        ) : (
+          <>
+            <h2>Update recurring contribution</h2>
+            <S.CurrentList>
+              <S.CurrentDatum>
+                <span>Amount:</span>
+                <S.Datum>{formatCurrencyAmount(contribution.amount)}</S.Datum>
+              </S.CurrentDatum>
+              <S.CurrentDatum>
+                <span>Interval:</span> <S.Datum>{getFrequencyAdjective(contribution.interval)}</S.Datum>
+              </S.CurrentDatum>
+              <S.CurrentDatum>
+                <span>Payment method:</span> <PaymentMethodCell contribution={contribution} />
+              </S.CurrentDatum>
+            </S.CurrentList>
+            {stripe && stripe.current && (
+              <Elements stripe={stripe.current}>
+                <CardForm onPaymentMethod={handleNewPaymentMethod} closeModal={closeModal} />
+              </Elements>
+            )}
+          </>
         )}
       </S.EditRecurringPaymentModal>
     </Modal>
@@ -113,26 +135,29 @@ function CardForm({ onPaymentMethod, closeModal }) {
   };
 
   return (
-    <S.CardForm>
-      <S.Description>Update your payment method</S.Description>
+    <>
+      <S.CardForm>
+        <S.Description>Update your payment method</S.Description>
 
-      <S.CardElementWrapper>
-        <CardElement id="card-element" options={{ style: CardElementStyle(theme) }} onChange={handleChange} />
-      </S.CardElementWrapper>
+        <S.CardElementWrapper>
+          <CardElement id="card-element" options={{ style: CardElementStyle(theme) }} onChange={handleChange} />
+        </S.CardElementWrapper>
 
-      <Button
-        onClick={handleUpdatePaymentMethod}
-        type="positive"
-        // loading={loading}
-        // disabled={loading || disabled || succeeded}
-      >
-        Update payment method
-      </Button>
-      {errors.stripe && (
-        <PaymentError role="alert" data-testid="donation-error">
-          {errors.stripe}
-        </PaymentError>
-      )}
-    </S.CardForm>
+        <Button
+          onClick={handleUpdatePaymentMethod}
+          type="positive"
+          loading={loading}
+          disabled={loading || disabled || succeeded}
+        >
+          Update payment method
+        </Button>
+        {errors.stripe && (
+          <PaymentError role="alert" data-testid="donation-error">
+            {errors.stripe}
+          </PaymentError>
+        )}
+      </S.CardForm>
+      {loading && <GlobalLoading />}
+    </>
   );
 }

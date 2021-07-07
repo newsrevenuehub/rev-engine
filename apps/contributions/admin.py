@@ -92,7 +92,7 @@ class ContributionAdmin(RevEngineBaseAdmin):
     )
 
     order = (
-        "updated",
+        "modified",
         "created",
     )
 
@@ -100,7 +100,7 @@ class ContributionAdmin(RevEngineBaseAdmin):
         "organization__name",
         "contributor__email",
         "donation_page__name",
-        "updated",
+        "modified",
         "created",
     )
 

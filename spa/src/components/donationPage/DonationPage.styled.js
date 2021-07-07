@@ -4,6 +4,8 @@ export const DonationPage = styled.div`
   background: ${(props) => props.theme.colors.fieldBackground};
 `;
 
+export const NoElements = styled.h2``;
+
 export const PageMain = styled.main`
   display: flex;
   flex-direction: row;

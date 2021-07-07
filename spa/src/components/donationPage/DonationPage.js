@@ -40,6 +40,10 @@ function DonationPage({ page, live = false }) {
                 {getters.getGraphicElement()}
                 <form ref={formRef} data-testid="donation-page-form">
                   <S.PageElements>
+                    {(!live && !page?.elements) ||
+                      (page?.elements.length === 0 && (
+                        <S.NoElements>Open the edit interface to start adding content</S.NoElements>
+                      ))}
                     {page?.elements?.map((element) => getters.getDynamicElement(element, live))}
                   </S.PageElements>
                 </form>
@@ -60,8 +64,9 @@ export default DonationPage;
 function getInitialFrequency(page) {
   const frequencyElement = page?.elements?.find((el) => el.type === 'DFrequency');
   if (frequencyElement) {
-    const sortedOptions = frequencyElement.content.sort(frequencySort);
-    return sortedOptions[0].value;
+    const content = frequencyElement.content || [];
+    const sortedOptions = content.sort(frequencySort);
+    return sortedOptions[0]?.value || '';
   }
   return 'one_time';
 }

@@ -3,9 +3,17 @@ from rest_framework import serializers
 from apps.contributions.models import (
     Contribution,
     ContributionInterval,
+    ContributionMetadata,
     ContributionStatus,
     Contributor,
 )
+
+
+class ContributionMetadataSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ContributionMetadata
+        fields = ["key", "humanized_key", "metadata_type", "available"]
+        read_only_fields = fields
 
 
 class ContributionSerializer(serializers.ModelSerializer):

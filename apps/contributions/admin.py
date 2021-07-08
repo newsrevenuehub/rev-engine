@@ -1,8 +1,24 @@
 from django.contrib import admin, messages
 
 from apps.common.admin import RevEngineBaseAdmin
-from apps.contributions.models import Contribution, ContributionStatus, Contributor
+from apps.contributions.models import (
+    Contribution,
+    ContributionMetadata,
+    ContributionStatus,
+    Contributor,
+)
 from apps.contributions.payment_managers import PaymentProviderError
+
+
+@admin.register(ContributionMetadata)
+class ContributionMetaDataAdmin(RevEngineBaseAdmin):
+    list_display = (
+        "humanized_key",
+        "key",
+        "payment_processor",
+        "metadata_type",
+        "available",
+    )
 
 
 @admin.register(Contributor)

@@ -142,3 +142,31 @@ class Contribution(IndexedTimeStampedModel):
 
     class Meta:
         get_latest_by = "modified"
+
+
+class ContributionMetadata(IndexedTimeStampedModel):
+    """
+    Stores key and humanized key for metadata that can be offered
+    """
+
+    class MetadataType(models.TextChoices):
+        TEXT = "TXT", "Text Values"
+        BOOLEAN = "BLN", "True/False Values"
+
+    key = models.CharField(max_length=255, unique=True)
+    humanized_key = models.CharField(max_length=255)
+    metadata_type = models.CharField(max_length=3, choices=MetadataType.choices, default=MetadataType.TEXT)
+    payment_processor = models.CharField(max_length=32, default="stripe", null=True, blank=True)
+    processor_object = models.CharField(max_length=255, null=True, blank=True)
+    description = models.TextField(null=True, blank=True)
+    available = models.BooleanField(
+        default=False,
+        help_text="If true this field is available within revengine (e.g. mailing_street). "
+        "If true this will not show up in the front end list.",
+    )
+
+    class Meta:
+        verbose_name_plural = "Contribution Metadata"
+
+    def __str__(self):
+        return self.humanized_key

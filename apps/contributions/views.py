@@ -13,7 +13,12 @@ from rest_framework.response import Response
 from apps.api.permissions import UserBelongsToOrg
 from apps.contributions import serializers
 from apps.contributions.filters import ContributionFilter
-from apps.contributions.models import Contribution, ContributionInterval, Contributor
+from apps.contributions.models import (
+    Contribution,
+    ContributionInterval,
+    ContributionMetadata,
+    Contributor,
+)
 from apps.contributions.payment_managers import (
     PaymentBadParamsError,
     PaymentProviderError,
@@ -191,3 +196,9 @@ class ContributionsListView(viewsets.ReadOnlyModelViewSet):
         if isinstance(self.request.user, UserModel):
             return serializers.ContributionSerializer
         return serializers.ContributorContributionSerializer
+
+
+class ContributionMetadataListView(viewsets.ReadOnlyModelViewSet):
+    serializer_class = serializers.ContributionMetadataSerializer
+    queryset = ContributionMetadata.objects.all()
+    model = ContributionMetadata

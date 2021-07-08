@@ -95,6 +95,16 @@ class StripeOneTimePaymentManagerTest(StripePaymentManagerAbstractTestCase):
         self.assertIn("referer", v_error.exception.detail)
         self.assertEqual(str(v_error.exception.detail["referer"][0]), "This field is required.")
 
+    @patch("stripe.Subscription.delete")
+    def test_ensure_contribution(self, mock_delete_sub):
+        pm = StripePaymentManager(data={"interval": "test"})
+        with self.assertRaises(ValueError) as error:
+            pm.cancel_recurring_payment()
+        self.assertEqual(
+            str(error.exception), "Method requires PaymentManager to be instantiated with contribution instance"
+        )
+        mock_delete_sub.assert_not_called()
+
     def test_calling_badactor_before_validate_throws_error(self):
         pm = self._instantiate_payment_manager_with_data()
         with self.assertRaises(ValueError) as e:
@@ -239,8 +249,10 @@ class StripeOneTimePaymentManagerTest(StripePaymentManagerAbstractTestCase):
 
     @patch("stripe.PaymentIntent.capture", side_effect=stripe_errors.StripeError)
     def test_complete_payment_stripe_error(self, *args):
+        prev_status = ContributionStatus.PAID
+        self.contribution.status = prev_status
+        self.contribution.save()
         pm = self._instantiate_payment_manager_with_instance(contribution=self.contribution)
-        prev_status = pm.contribution.status
         self.assertRaises(PaymentProviderError, pm.complete_payment)
         self.assertEqual(prev_status, pm.contribution.status)
 
@@ -302,6 +314,7 @@ class MockStripeSubscription(StripeObject):
 
 
 @override_settings(STRIPE_TEST_SECRET_KEY=fake_api_key)
+@patch("stripe.PaymentMethod.retrieve", side_effect="{}")
 class StripeRecurringPaymentManagerTest(StripePaymentManagerAbstractTestCase):
     def setUp(self):
         super().setUp()
@@ -323,13 +336,13 @@ class StripeRecurringPaymentManagerTest(StripePaymentManagerAbstractTestCase):
         pm.get_bad_actor_score()
         return pm
 
-    def test_ensure_validated_data(self):
+    def test_ensure_validated_data(self, *args):
         pm = self._instantiate_payment_manager_with_data()
         with self.assertRaises(ValueError) as e:
             pm.create_subscription()
         self.assertEqual(str(e.exception), "PaymentManager must call 'validate' before performing this action")
 
-    def test_ensure_bad_actor_score(self):
+    def test_ensure_bad_actor_score(self, *args):
         pm = self._instantiate_payment_manager_with_data()
         pm.validate()
         with self.assertRaises(ValueError) as e:

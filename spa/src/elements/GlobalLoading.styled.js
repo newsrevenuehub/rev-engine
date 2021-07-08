@@ -7,6 +7,7 @@ export const GlobalLoadingUnderlay = styled.div`
   bottom: 0;
   left: 0;
   background: rgba(255, 255, 255, 0.85);
+  z-index: 1002;
 `;
 
 export const GlobalLoadingOverlay = styled.div`
@@ -14,4 +15,5 @@ export const GlobalLoadingOverlay = styled.div`
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
+  z-index: 1003;
 `;

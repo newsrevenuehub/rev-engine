@@ -4,42 +4,41 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 export const PaginatedTable = styled.table`
   width: 100%;
   border-collapse: collapse;
-  /* table-layout: fixed; */
   min-width: 475px;
-
-  tbody tr:nth-child(even) {
-    background: ${(props) => props.theme.colors.grey[0]};
-  }
-
-  tbody tr {
-    min-height: 80px;
-    background: ${(props) => props.theme.colors.paneBackground};
-    opacity: ${(props) => (props.disabled ? 0.5 : 1)};
-
-    &:hover {
-      background: ${(props) => (props.interactiveRows ? '#e0e1ff;' : '')};
-    }
-  }
 
   td {
     padding: 2rem;
     min-width: 100px;
   }
+`;
 
-  th {
-    padding: 1rem;
-    background: ${(props) => props.theme.colors.primary};
-    color: ${(props) => props.theme.colors.white};
+export const TH = styled.th`
+  padding: 1rem;
+  background: ${(props) => props.theme.colors.primary};
+  color: ${(props) => props.theme.colors.white};
 
-    div {
-      display: flex;
-      flex-direction: row;
-      justify-content: space-between;
-      align-items: center;
-    }
-    &:hover {
-      background: ${(props) => props.theme.colors.primaryLight};
-    }
+  div {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+  }
+  &:hover {
+    background: ${(props) => (props.disableSortBy ? '' : props.theme.colors.primaryLight)};
+  }
+`;
+
+export const TR = styled.tr`
+  background: ${(props) => {
+    if (props.expanded) return props.theme.colors.tableRowHover;
+    else return props.even ? props.theme.colors.grey[0] : props.theme.colors.paneBackground;
+  }};
+
+  min-height: 80px;
+  opacity: ${(props) => (props.disabled ? 0.4 : 1)};
+
+  &:hover {
+    background: ${(props) => (!props.disabled && props.onClick ? props.theme.colors.tableRowHover : '')};
   }
 `;
 

@@ -72,7 +72,7 @@ class PaymentManager:
         self.data = data
         self.serializer_class = self.get_serializer_class(data=data, contribution=contribution)
 
-    def get_serializer_class(self, **kwargs):
+    def get_serializer_class(self, **kwargs):  # pragma: no cover
         raise NotImplementedError("Subclasses of PaymentManager must implement get_serializer_class")
 
     def validate(self):
@@ -140,7 +140,7 @@ class PaymentManager:
         return contributor
 
     def create_contribution(self, organization, provider_reference_instance=None, provider_customer_id=""):
-        if not self.payment_provider_name:
+        if not self.payment_provider_name:  # pragma: no cover
             raise ValueError("Subclass of PaymentManager must set payment_provider_name property")
 
         status = ContributionStatus.FLAGGED if self.flagged else ContributionStatus.PROCESSING
@@ -242,12 +242,16 @@ class StripePaymentManager(PaymentManager):
         )
 
     def attach_payment_method_to_customer(self, stripe_customer_id, org_strip_account, payment_method_id=None):
-        stripe.PaymentMethod.attach(
-            payment_method_id if payment_method_id else self.validated_data["payment_method_id"],
-            customer=stripe_customer_id,
-            api_key=get_hub_stripe_api_key(),
-            stripe_account=org_strip_account,
-        )
+        try:
+            stripe.PaymentMethod.attach(
+                payment_method_id if payment_method_id else self.validated_data["payment_method_id"],
+                customer=stripe_customer_id,
+                api_key=get_hub_stripe_api_key(),
+                stripe_account=org_strip_account,
+            )
+        except stripe.error.StripeError as stripe_error:
+            logger.error(f"stripe.PaymentMethod.attach returned a StripeError: {str(stripe_error)}")
+            self._handle_stripe_error(stripe_error)
 
     def cancel_recurring_payment(self):
         self.ensure_contribution()

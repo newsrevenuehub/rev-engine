@@ -46,6 +46,7 @@ describe('Contributor portal', () => {
       cy.visit(CONTRIBUTOR_VERIFY);
       cy.getPaginatedDonations();
     });
+
     it('should display a list of contributions', () => {
       cy.getByTestId('donations-table');
       // DonationsTable is well tested elsewhere...
@@ -120,21 +121,16 @@ describe('Contributor portal', () => {
       cy.getByTestId('close-modal').click();
     });
 
-    it('should ask for confirmation when cancel payment clicked', () => {
-      cy.getByTestId('cancel-recurring-button').first().click();
-      cy.getByTestId('confirmation-modal').should('exist');
-      // cleanup
-      cy.getByTestId('cancel-button').click();
-    });
-
     it('should do send cancel request if continue is clicked', () => {
       const targetContId = donationsData.find((d) => d.interval !== 'one_time').id;
       cy.get(`[data-donationid="${targetContId}"]`).within(() => {
         cy.getByTestId('cancel-recurring-button').click();
       });
-      cy.intercept(getEndpoint(`${CONTRIBUTIONS}${targetContId}/${CANCEL_RECURRING}`)).as('cancelRecurring');
+      cy.intercept(getEndpoint(`${CONTRIBUTIONS}${targetContId}/${CANCEL_RECURRING}`, { statusCode: 200 })).as(
+        'cancelRecurring'
+      );
       cy.getByTestId('continue-button').click();
-      return cy.wait('@cancelRecurring');
+      cy.wait('@cancelRecurring');
     });
   });
 });

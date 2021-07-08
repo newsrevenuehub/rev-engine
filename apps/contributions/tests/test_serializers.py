@@ -5,6 +5,7 @@ from django.test import TestCase
 from apps.contributions import serializers
 from apps.contributions.models import Contribution, ContributionStatus
 from apps.contributions.tests.factories import ContributionFactory
+from apps.organizations.tests.factories import OrganizationFactory
 
 
 class ContributionSerializer(TestCase):
@@ -35,10 +36,12 @@ class ContributionSerializer(TestCase):
 class ContributorContributionSerializerTest(TestCase):
     def setUp(self):
         self.serializer = serializers.ContributorContributionSerializer
+        self.test_stripe_account_id = "testing_123"
+        self.org = OrganizationFactory(stripe_account_id=self.test_stripe_account_id)
         self.contribution = ContributionFactory()
 
     def _create_contribution(self, **kwargs):
-        return ContributionFactory(**kwargs)
+        return ContributionFactory(organization=self.org, **kwargs)
 
     def test_status_resolved_to_public_value(self):
         failed_cont = self._create_contribution(status=ContributionStatus.FAILED)
@@ -63,3 +66,24 @@ class ContributorContributionSerializerTest(TestCase):
         self.assertEqual(paid_data["status"], ContributionStatus.PAID)
         canceled_data = self.serializer(canceled_cont).data
         self.assertEqual(canceled_data["status"], ContributionStatus.CANCELED)
+
+    def test_get_card_brand(self):
+        target_brand = "visa"
+        contribution = self._create_contribution(
+            provider_payment_method_details={"card": {"last4": 1234, "brand": target_brand}}
+        )
+        data = self.serializer(contribution).data
+        self.assertEqual(data["card_brand"], target_brand)
+
+    def test_get_last4(self):
+        target_last4 = 4444
+        contribution = self._create_contribution(
+            provider_payment_method_details={"card": {"brand": "fakeso", "last4": target_last4}}
+        )
+        data = self.serializer(contribution).data
+        self.assertEqual(data["last4"], target_last4)
+
+    def test_get_org_stripe_id(self):
+        contribution = self._create_contribution()
+        data = self.serializer(contribution).data
+        self.assertEqual(data["org_stripe_id"], self.test_stripe_account_id)

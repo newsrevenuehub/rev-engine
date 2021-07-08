@@ -40,6 +40,9 @@ class ContributorContributionSerializer(serializers.ModelSerializer):
     """
 
     status = serializers.SerializerMethodField()
+    card_brand = serializers.SerializerMethodField()
+    last4 = serializers.SerializerMethodField()
+    org_stripe_id = serializers.SerializerMethodField()
 
     def get_status(self, obj):
         if obj.status and obj.status in (
@@ -50,9 +53,35 @@ class ContributorContributionSerializer(serializers.ModelSerializer):
             return ContributionStatus.FAILED
         return obj.status
 
+    def _get_card_details(self, obj):
+        if obj.provider_payment_method_details:
+            return obj.provider_payment_method_details.get("card", None)
+
+    def get_card_brand(self, obj):
+        if card := self._get_card_details(obj):
+            return card["brand"]
+
+    def get_last4(self, obj):
+        if card := self._get_card_details(obj):
+            return card["last4"]
+
+    def get_org_stripe_id(self, obj):
+        return obj.organization.stripe_account_id
+
     class Meta:
         model = Contribution
-        fields = ["id", "created", "interval", "status", "amount", "last_payment_date"]
+        fields = [
+            "id",
+            "created",
+            "interval",
+            "status",
+            "card_brand",
+            "last4",
+            "provider_customer_id",
+            "org_stripe_id",
+            "amount",
+            "last_payment_date",
+        ]
         read_only_fields = fields
 
 

@@ -36,3 +36,4 @@ class ContributorOwnsContribution(permissions.BasePermission):
         """
         if isinstance(request.user, Contributor):
             return obj.contributor.pk == request.user.pk
+        return True

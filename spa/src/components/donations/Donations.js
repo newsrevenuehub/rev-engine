@@ -1,3 +1,5 @@
+import * as S from './Donations.styled';
+
 // Children
 import DashboardSectionGroup from 'components/dashboard/DashboardSectionGroup';
 import DashboardSection from 'components/dashboard/DashboardSection';
@@ -8,11 +10,13 @@ function Donations() {
     console.log('row clicked: ', row);
   };
   return (
-    <DashboardSectionGroup data-testid="donations">
-      <DashboardSection heading="Donations">
-        <DonationsTable onRowClick={handleRowClick} />
-      </DashboardSection>
-    </DashboardSectionGroup>
+    <S.Donations>
+      <DashboardSectionGroup data-testid="donations">
+        <DashboardSection heading="Donations">
+          <DonationsTable onRowClick={handleRowClick} />
+        </DashboardSection>
+      </DashboardSectionGroup>
+    </S.Donations>
   );
 }
 

@@ -41,7 +41,7 @@ function AmountFilter({ handleFilterChange }) {
   };
 
   return (
-    <FilterWrapper>
+    <FilterWrapper data-testid="amount-filter">
       <S.AmountFilter>
         <FilterLabel>Amount:</FilterLabel>
         <S.Slider

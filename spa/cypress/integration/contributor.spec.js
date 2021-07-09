@@ -44,7 +44,7 @@ describe('Contributor portal', () => {
       // "Log in" to contributor dash
       cy.intercept({ method: 'POST', url: getEndpoint(VERIFY_TOKEN) }, { fixture: 'user/valid-contributor-1.json' });
       cy.visit(CONTRIBUTOR_VERIFY);
-      cy.getPaginatedDonations();
+      cy.interceptPaginatedDonations();
     });
 
     it('should display a list of contributions', () => {

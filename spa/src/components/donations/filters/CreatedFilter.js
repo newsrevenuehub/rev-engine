@@ -25,7 +25,7 @@ function CreatedFilter({ handleFilterChange }) {
 
   return (
     <MuiPickersUtilsProvider utils={DateFnsUtils}>
-      <FilterWrapper>
+      <FilterWrapper data-testid="created-filter">
         <S.CreatedFilter>
           <FilterLabel>Date:</FilterLabel>
           <S.DateFilters>

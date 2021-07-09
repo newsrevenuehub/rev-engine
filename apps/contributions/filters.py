@@ -6,7 +6,7 @@ from apps.contributions.models import Contribution, ContributionStatus
 class ContributionFilter(django_filters.FilterSet):
 
     contributor_email = django_filters.CharFilter(field_name="contributor__email", lookup_expr="icontains")
-    status = django_filters.ChoiceFilter(choices=ContributionStatus.choices)
+    status = django_filters.MultipleChoiceFilter(choices=ContributionStatus.choices)
     amount = django_filters.RangeFilter()
     created = django_filters.DateTimeFromToRangeFilter()
 

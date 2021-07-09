@@ -2,13 +2,14 @@ import styled from 'styled-components';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 
 export const PaginatedTable = styled.table`
-  width: 100%;
+  /* width: 100%; */
   border-collapse: collapse;
-  min-width: 475px;
-
+  /* min-width: 475px; */
+  /* table-layout: fixed; */
+  min-width: 1000px;
   td {
     padding: 2rem;
-    min-width: 100px;
+    min-width: 300px;
   }
 `;
 
@@ -40,6 +41,7 @@ export const TR = styled.tr`
   &:hover {
     background: ${(props) => (!props.disabled && props.onClick ? props.theme.colors.tableRowHover : '')};
   }
+  //
 `;
 
 export const SortIcon = styled(FontAwesomeIcon)`

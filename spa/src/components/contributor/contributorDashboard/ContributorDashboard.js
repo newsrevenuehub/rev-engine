@@ -1,6 +1,6 @@
 import { useState, useMemo, createContext, useContext, useCallback } from 'react';
 import * as S from './ContributorDashboard.styled';
-import { faCheck, faTimes, faQuestion, faCogs, faBan } from '@fortawesome/free-solid-svg-icons';
+import { faCheck, faTimes, faFlag, faSlash, faQuestion, faCogs, faBan } from '@fortawesome/free-solid-svg-icons';
 
 // Assets
 import visa from 'assets/images/visa-logo.png';
@@ -14,6 +14,7 @@ import { useAlert } from 'react-alert';
 import { useGlobalContext } from 'components/MainLayout';
 
 // Utils
+import toTitleCase from 'utilities/toTitleCase';
 import { getFrequencyAdjective } from 'utilities/parseFrequency';
 import formatDatetimeForDisplay from 'utilities/formatDatetimeForDisplay';
 import formatCurrencyAmount from 'utilities/formatCurrencyAmount';
@@ -184,10 +185,11 @@ export const useContributorDashboardContext = () => useContext(ContributorDashbo
 
 export default ContributorDashboard;
 
-function StatusCellIcon({ status }) {
+export function StatusCellIcon({ status, showText = false, size = 'lg' }) {
   return (
     <S.StatusCellWrapper>
-      <S.StatusCellIcon icon={getStatusCellIcon(status)} status={status} />
+      <S.StatusCellIcon icon={getStatusCellIcon(status)} status={status} size={size} />
+      {showText && <S.StatusText size={size}>{toTitleCase(status)}</S.StatusText>}
     </S.StatusCellWrapper>
   );
 }
@@ -202,6 +204,10 @@ function getStatusCellIcon(status) {
       return faCheck;
     case 'canceled':
       return faBan;
+    case 'flagged':
+      return faFlag;
+    case 'rejected':
+      return faSlash;
     default:
       return faQuestion;
   }

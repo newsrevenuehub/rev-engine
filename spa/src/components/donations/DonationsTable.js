@@ -4,10 +4,6 @@ import { useCallback, useState } from 'react';
 import { useAlert } from 'react-alert';
 import { GENERIC_ERROR } from 'constants/textConstants';
 
-// Util
-import formatDatetimeForDisplay from 'utilities/formatDatetimeForDisplay';
-import formatCurrencyAmount from 'utilities/formatCurrencyAmount';
-
 import PaginatedTable from 'elements/table/PaginatedTable';
 
 export const DEFAULT_RESULTS_ORDERING = [
@@ -17,35 +13,7 @@ export const DEFAULT_RESULTS_ORDERING = [
   { id: 'contributor_email', desc: false }
 ];
 
-const defaultColumns = [
-  {
-    Header: 'Payment date',
-    accessor: 'last_payment_date',
-    Cell: (props) => (props.value ? formatDatetimeForDisplay(props.value) : '---')
-  },
-  {
-    Header: 'Amount',
-    accessor: 'amount',
-    Cell: (props) => (props.value ? formatCurrencyAmount(props.value) : '---')
-  },
-  {
-    Header: 'Donor',
-    accessor: 'contributor_email',
-    Cell: (props) => props.value || '---'
-  },
-  {
-    Header: 'Status',
-    accessor: 'status',
-    Cell: (props) => props.value || '---'
-  },
-  {
-    Header: 'Date flagged',
-    accessor: 'flagged_date',
-    Cell: (props) => (props.value ? formatDatetimeForDisplay(props.value) : '---')
-  }
-];
-
-function DonationsTable({ columns = defaultColumns, fetchDonations, refetch, ...tableProps }) {
+function DonationsTable({ columns = [], fetchDonations, refetch, ...tableProps }) {
   const alert = useAlert();
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -58,9 +26,9 @@ function DonationsTable({ columns = defaultColumns, fetchDonations, refetch, ...
 
   const fetchData = useCallback(
     async (pageSize, pageIndex, sortBy) => {
-      const ordering = sortBy.length ? sortBy : DEFAULT_RESULTS_ORDERING;
       setLoading(true);
-      const params = { page_size: pageSize, page: pageIndex, ordering: convertOrderingToString(ordering) };
+      const ordering = convertOrderingToString(sortBy.length ? sortBy : DEFAULT_RESULTS_ORDERING);
+      const params = { page_size: pageSize, page: pageIndex, ordering };
       fetchDonations(params, {
         onSuccess: ({ data }) => {
           const { results, count } = data;

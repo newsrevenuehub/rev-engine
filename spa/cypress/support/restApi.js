@@ -31,7 +31,23 @@ export class ApiResourceList {
     return orderBy(this.rawResults, columns, directions);
   }
 
-  getResponse(pageSize, pageNum, orderByString) {
+  filteredRawResults(filters) {
+    for (const filter in filters) {
+      const values = filters[filter];
+      if (values.length > 0) {
+        if (filter === 'status') {
+          this.rawResults = this.filterStatus(values);
+        }
+        this.rawResults = this.count = this.rawResults.length; //this.rawResults.filter((donation) => values.includes(donation[filter]));
+      }
+    }
+  }
+
+  filterStatus(values) {
+    return this.rawResults.filter((donation) => values.includes(donation.status));
+  }
+
+  getResponse(pageSize, pageNum, orderByString, filters) {
     if (pageNum > this.getNumPagesForPageSize(pageSize, pageNum)) {
       // this is what Django Rest Framework will return in this case
       return {
@@ -41,6 +57,7 @@ export class ApiResourceList {
         }
       };
     }
+    this.filteredRawResults(filters);
     const orderedResults = this.getOrderedResults(orderByString);
     return {
       statusCode: 200,

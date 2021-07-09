@@ -2,12 +2,13 @@ import { useState, useCallback, useMemo } from 'react';
 import * as S from './Donations.styled';
 
 // AJAX
-import { DONATIONS } from 'ajax/endpoints';
+import { CONTRIBUTIONS } from 'ajax/endpoints';
 import useRequest from 'hooks/useRequest';
 
 // Deps
 import queryString from 'query-string';
 
+import { NO_VALUE } from 'constants/textConstants';
 // Util
 import formatDatetimeForDisplay from 'utilities/formatDatetimeForDisplay';
 import formatCurrencyAmount from 'utilities/formatCurrencyAmount';
@@ -36,7 +37,7 @@ function Donations() {
     (parameters, { onSuccess, onFailure }) => {
       const params = { ...parameters, ...filters };
       requestDonations(
-        { method: 'GET', url: DONATIONS, params, paramsSerializer: (p) => queryString.stringify(p) },
+        { method: 'GET', url: CONTRIBUTIONS, params, paramsSerializer: (p) => queryString.stringify(p) },
         {
           onSuccess: (response) => {
             setDonationsCount(response.data.count);
@@ -70,22 +71,22 @@ function Donations() {
       {
         Header: 'Date',
         accessor: 'created',
-        Cell: (props) => (props.value ? formatDatetimeForDisplay(props.value) : '---')
+        Cell: (props) => (props.value ? formatDatetimeForDisplay(props.value) : NO_VALUE)
       },
       {
         Header: 'Amount',
         accessor: 'amount',
-        Cell: (props) => (props.value ? formatCurrencyAmount(props.value) : '---')
+        Cell: (props) => (props.value ? formatCurrencyAmount(props.value) : NO_VALUE)
       },
       {
         Header: 'Payment recieved',
         accessor: 'last_payment_date',
-        Cell: (props) => (props.value ? formatDatetimeForDisplay(props.value) : '---')
+        Cell: (props) => (props.value ? formatDatetimeForDisplay(props.value) : NO_VALUE)
       },
       {
         Header: 'Donor',
         accessor: 'contributor_email',
-        Cell: (props) => props.value || '---'
+        Cell: (props) => props.value || NO_VALUE
       },
       {
         Header: 'Payment status',
@@ -95,12 +96,12 @@ function Donations() {
       {
         Header: 'Date flagged',
         accessor: 'flagged_date',
-        Cell: (props) => (props.value ? formatDatetimeForDisplay(props.value) : '---')
+        Cell: (props) => (props.value ? formatDatetimeForDisplay(props.value) : NO_VALUE)
       },
       {
         Header: 'Auto-resolution date',
         accessor: 'auto_accepted_on',
-        Cell: (props) => (props.value ? <ResolutionDateCaution date={props.value} /> : '---'),
+        Cell: (props) => (props.value ? <ResolutionDateCaution date={props.value} /> : NO_VALUE),
         disableSortBy: true
       }
     ],

@@ -12,7 +12,7 @@ function Filters({ filters, handleFilterChange, donationsCount }) {
       <AmountFilter filter={filters.amount} handleFilterChange={handleFilterChange} />
       <CreatedFilter filter={filters.created} handleFilterChange={handleFilterChange} />
       <S.ResultsCount>
-        <span>{donationsCount}</span> results
+        <span data-testid="filter-results-count">{donationsCount}</span> results
       </S.ResultsCount>
     </S.Filters>
   );
@@ -20,8 +20,8 @@ function Filters({ filters, handleFilterChange, donationsCount }) {
 
 export default Filters;
 
-export function FilterWrapper({ children }) {
-  return <S.FilterWrapper>{children}</S.FilterWrapper>;
+export function FilterWrapper({ children, ...props }) {
+  return <S.FilterWrapper {...props}>{children}</S.FilterWrapper>;
 }
 
 export function FilterLabel({ children }) {

@@ -8,12 +8,17 @@ const STATUS_FILTERS = ['processing', 'paid', 'canceled', 'failed', 'flagged', '
 
 function StatusFilter({ filter = [], handleFilterChange }) {
   return (
-    <FilterWrapper>
+    <FilterWrapper data-testid="status-filter">
       <S.StatusFilter>
         <FilterLabel>Status:</FilterLabel>
         <S.Statuses>
           {STATUS_FILTERS.map((f) => (
-            <S.StatusBadge key={f} selected={filter.includes(f)} onClick={() => handleFilterChange('status', f)}>
+            <S.StatusBadge
+              key={f}
+              data-testid={`status-filter-${f}`}
+              selected={filter.includes(f)}
+              onClick={() => handleFilterChange('status', f)}
+            >
               <StatusCellIcon status={f} showText size="sm" />
             </S.StatusBadge>
           ))}

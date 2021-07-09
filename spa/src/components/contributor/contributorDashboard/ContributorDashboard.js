@@ -12,6 +12,7 @@ import { useAlert } from 'react-alert';
 
 // Context
 import { useGlobalContext } from 'components/MainLayout';
+import { NO_VALUE } from 'constants/textConstants';
 
 // Utils
 import toTitleCase from 'utilities/toTitleCase';
@@ -30,8 +31,6 @@ import ContributorTokenExpiredModal from 'components/contributor/contributorDash
 import DonationsTable from 'components/donations/DonationsTable';
 import EditRecurringPaymentModal from 'components/contributor/contributorDashboard/EditRecurringPaymentModal';
 import GlobalLoading from 'elements/GlobalLoading';
-
-const NO_CONTENT = '---';
 
 const ContributorDashboardContext = createContext();
 
@@ -102,22 +101,22 @@ function ContributorDashboard() {
       {
         Header: 'Amount',
         accessor: 'amount',
-        Cell: (props) => (props.value ? formatCurrencyAmount(props.value) : NO_CONTENT)
+        Cell: (props) => (props.value ? formatCurrencyAmount(props.value) : NO_VALUE)
       },
       {
         Header: 'Date',
         accessor: 'created',
-        Cell: (props) => (props.value ? formatDatetimeForDisplay(props.value) : NO_CONTENT)
+        Cell: (props) => (props.value ? formatDatetimeForDisplay(props.value) : NO_VALUE)
       },
       {
         Header: 'Type',
         accessor: 'interval',
-        Cell: (props) => (props.value ? getFrequencyAdjective(props.value) : NO_CONTENT)
+        Cell: (props) => (props.value ? getFrequencyAdjective(props.value) : NO_VALUE)
       },
       {
         Header: 'Receipt date',
         accessor: 'last_payment_date',
-        Cell: (props) => (props.value ? formatDatetimeForDisplay(props.value) : NO_CONTENT)
+        Cell: (props) => (props.value ? formatDatetimeForDisplay(props.value) : NO_VALUE)
       },
       {
         Header: 'Payment status',

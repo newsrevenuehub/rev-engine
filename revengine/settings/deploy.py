@@ -122,4 +122,4 @@ if SENTRY_DSN:
 # BadActor API
 BAD_ACTOR_API_URL = "https://bad-actor.fundjournalism.org/v1/bad_actor/"
 
-USE_DEBUG_INTERVALS = False
+USE_DEBUG_INTERVALS = os.getenv("USE_DEBUG_INTERVALS", False)

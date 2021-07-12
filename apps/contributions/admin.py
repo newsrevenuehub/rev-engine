@@ -83,7 +83,7 @@ class ContributionAdmin(RevEngineBaseAdmin):
 
     list_filter = (
         "organization__name",
-        "contributor__email",
+        "interval",
         "donation_page__name",
         "status",
         BadActorScoreFilter,

@@ -38,7 +38,7 @@ export class ApiResourceList {
         if (filter === 'status') {
           this.rawResults = this.filterStatus(values);
         }
-        this.rawResults = this.count = this.rawResults.length; //this.rawResults.filter((donation) => values.includes(donation[filter]));
+        this.rawResults = this.count = this.rawResults.length;
       }
     }
   }

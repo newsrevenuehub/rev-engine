@@ -39,6 +39,7 @@ export const StripeConnect = styled.div`
     background-repeat: no-repeat;
     background-size: 49.58px;
     content: '';
+    margin-left: 0.5rem;
     height: 20px;
     left: 62%;
     position: absolute;

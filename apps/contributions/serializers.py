@@ -15,12 +15,17 @@ class ContributionSerializer(serializers.ModelSerializer):
     auto_accepted_on = serializers.SerializerMethodField()
 
     def get_auto_accepted_on(self, obj):
+        """
+        Note that this value is not read when making the actual auto-accept determination, where `flagged_date` is used and the math re-calculated.
+        This is just to improve front-end visibility of the "deadline" for examining flagged contributions.
+        """
         if obj.flagged_date:
             return obj.flagged_date + settings.FLAGGED_PAYMENT_AUTO_ACCEPT_DELTA
 
     class Meta:
         model = Contribution
         fields = [
+            "id",
             "contributor_email",
             "created",
             "amount",

@@ -227,7 +227,6 @@ function PageEditor() {
           setSelectedButton(PREVIEW);
         },
         onFailure: (e) => {
-          console.log('e.response', e.response);
           alert.error(GENERIC_ERROR);
           setSelectedButton(PREVIEW);
         }

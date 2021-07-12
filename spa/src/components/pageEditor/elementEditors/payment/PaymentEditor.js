@@ -24,18 +24,35 @@ function PaymentEditor() {
     setElementContent({ ...elementContent, ...enabledMethods });
   };
 
+  const toggleOfferPayFees = (e) => {
+    const offerPayFees = e.target.checked;
+    setElementContent({ ...elementContent, offerPayFees });
+  };
+
   return (
     <S.PaymentEditor data-testid="payment-editor">
-      {STRIPE_PAYMENT_METHODS.map((paymentMethod) => (
-        <S.ToggleWrapper key={paymentMethod.value}>
+      <S.PaymentTypesList>
+        {STRIPE_PAYMENT_METHODS.map((paymentMethod) => (
+          <S.ToggleWrapper key={paymentMethod.value}>
+            <S.Toggle
+              label={`Enable payment via ${paymentMethod.displayName}`}
+              toggle
+              checked={isPaymentMethodOn(paymentMethod.value, elementContent.stripe)}
+              onChange={(_e, { checked }) => setToggled(checked, paymentMethod.value, 'stripe')}
+            />
+          </S.ToggleWrapper>
+        ))}
+      </S.PaymentTypesList>
+      <S.OtherOptionsList>
+        <S.ToggleWrapper>
           <S.Toggle
-            label={`Enable payment via ${paymentMethod.displayName}`}
+            label="Offer option to pay payment provider fees"
+            checked={elementContent?.offerPayFees}
+            onChange={toggleOfferPayFees}
             toggle
-            checked={isPaymentMethodOn(paymentMethod.value, elementContent.stripe)}
-            onChange={(_e, { checked }) => setToggled(checked, paymentMethod.value, 'stripe')}
           />
         </S.ToggleWrapper>
-      ))}
+      </S.OtherOptionsList>
     </S.PaymentEditor>
   );
 }
@@ -45,10 +62,11 @@ PaymentEditor.for = 'DPayment';
 export default PaymentEditor;
 
 PaymentEditor.hasErrors = (content) => {
+  const nonProviderKeys = ['offerPayFees'];
   // Each provider must have at least one method
   let hasErrors = false;
   Object.keys(content).forEach((provider) => {
-    if (content[provider].length < 1) hasErrors = true;
+    if (!nonProviderKeys.includes(provider) && content[provider].length < 1) hasErrors = true;
   });
 
   if (hasErrors) return NOT_ENOUGH_PAYMENT_METHODS;

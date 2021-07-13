@@ -24,6 +24,7 @@ function DAdditionalInfo({ element, ...props }) {
           <Input
             type={input.type}
             label={input.label}
+            helpText={input.additional_help_text}
             name={input.name}
             value={formState[input.name] || ''}
             onChange={handleChange}

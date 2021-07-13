@@ -21,3 +21,8 @@ class ContributionFactory(DjangoModelFactory):
 
     amount = faker.random_digit()
     payment_provider_used = "Stripe"
+
+
+class ContributionMetadataFactory(DjangoModelFactory):
+    class Meta:
+        model = models.ContributionMetadata

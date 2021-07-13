@@ -144,29 +144,67 @@ class Contribution(IndexedTimeStampedModel):
         get_latest_by = "modified"
 
 
+def _get_contributor_id(payment_manager):
+    return payment_manager.get_or_create_contributor().pk
+
+
+def _get_rev_program_id(payment_manager):
+    return payment_manager.get_donation_page().pk
+
+
 class ContributionMetadata(IndexedTimeStampedModel):
-    """
-    Stores key and humanized key for metadata that can be offered
-    """
+    """"""
+
+    lookup_map = {
+        "re_contributor_id": _get_contributor_id,
+        "re_revenue_program_id": _get_rev_program_id,
+    }
 
     class MetadataType(models.TextChoices):
         TEXT = "TXT", "Text Values"
         BOOLEAN = "BLN", "True/False Values"
 
+    class ProcessorObjects(models.TextChoices):
+        PAYMENT = "PYMT", "Payment"
+        CUSTOMER = "CUST", "Customer"
+        ALL = "ALL", "All"
+
     key = models.CharField(max_length=255, unique=True)
-    humanized_key = models.CharField(max_length=255)
+    label = models.CharField(max_length=255)
+    default_value = models.CharField(max_length=255, null=True, blank=True)
+    additional_help_text = models.TextField(
+        max_length=255,
+        help_text="Will be displayed on the donation page underneath the label.",
+        null=True,
+        blank=True,
+    )
     metadata_type = models.CharField(max_length=3, choices=MetadataType.choices, default=MetadataType.TEXT)
     payment_processor = models.CharField(max_length=32, default="stripe", null=True, blank=True)
-    processor_object = models.CharField(max_length=255, null=True, blank=True)
+    processor_object = models.CharField(
+        max_length=4, choices=ProcessorObjects.choices, default=ProcessorObjects.PAYMENT
+    )
     description = models.TextField(null=True, blank=True)
-    available = models.BooleanField(
+    donor_supplied = models.BooleanField(
         default=False,
         help_text="If true this field is available within revengine (e.g. mailing_street). "
         "If true this will not show up in the front end list.",
     )
 
+    @staticmethod
+    def bundle_metadata(results, supplied: dict, payment_manager):
+        collected = {}
+        lookup_map = ContributionMetadata.lookup_map
+        for obj in results:
+            if obj.key in lookup_map.keys():
+                collected.update({obj.key: lookup_map[obj.key](payment_manager)})
+                continue
+            collected.update({obj.key: obj.default_value})
+        final = collected | supplied
+        final = {k: v for k, v in final.items() if v is not None}
+        return final
+
     class Meta:
         verbose_name_plural = "Contribution Metadata"
 
     def __str__(self):
-        return self.humanized_key
+        return self.label

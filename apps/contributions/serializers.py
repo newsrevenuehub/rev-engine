@@ -12,7 +12,7 @@ from apps.contributions.models import (
 class ContributionMetadataSerializer(serializers.ModelSerializer):
     class Meta:
         model = ContributionMetadata
-        fields = ["key", "humanized_key", "metadata_type", "available"]
+        fields = ["key", "label", "additional_help_text", "metadata_type", "donor_supplied"]
         read_only_fields = fields
 
 

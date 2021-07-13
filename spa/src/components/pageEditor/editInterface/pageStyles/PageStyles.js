@@ -9,9 +9,7 @@ import { usePageEditorContext } from 'components/pageEditor/PageEditor';
 import { useEditInterfaceContext } from 'components/pageEditor/editInterface/EditInterface';
 
 // Children
-// import Input from 'elements/inputs/Input';
 import CircleButton from 'elements/buttons/CircleButton';
-import StylesEditor from 'components/stylesEditor/StylesEditor';
 import StylesChooser from 'components/pageEditor/editInterface/pageStyles/StylesChooser';
 import AddStylesModal from 'components/pageEditor/editInterface/pageStyles/AddStylesModal';
 

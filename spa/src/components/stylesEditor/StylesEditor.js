@@ -3,7 +3,7 @@ import { HelpText, Label } from 'elements/inputs/BaseField.styled';
 import * as S from './StylesEditor.styled';
 
 // AJAX
-import axios from 'ajax/axios';
+import useRequest from 'hooks/useRequest';
 import { PAGE_STYLES } from 'ajax/endpoints';
 
 // Assets
@@ -20,6 +20,8 @@ import CircleButton from 'elements/buttons/CircleButton';
 
 function StylesEditor({ styles, setStyles, handleKeepChanges, handleDiscardChanges }) {
   const alert = useAlert();
+  const requestCreateStyles = useRequest();
+
   const setName = (name) => {
     setStyles({ ...styles, name });
   };
@@ -44,12 +46,13 @@ function StylesEditor({ styles, setStyles, handleKeepChanges, handleDiscardChang
   };
 
   const handleSave = async () => {
-    try {
-      const { data } = await axios.post(PAGE_STYLES, styles);
-      handleKeepChanges(data);
-    } catch (e) {
-      alert.error(GENERIC_ERROR);
-    }
+    requestCreateStyles(
+      { method: 'POST', url: PAGE_STYLES, data: styles },
+      {
+        onSuccess: ({ data }) => handleKeepChanges(data),
+        onFailure: () => alert.error(GENERIC_ERROR)
+      }
+    );
   };
 
   const handleDiscard = () => {

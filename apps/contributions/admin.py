@@ -1,11 +1,12 @@
 from django.contrib import admin, messages
 
+from apps.common.admin import RevEngineBaseAdmin
 from apps.contributions.models import Contribution, ContributionStatus, Contributor
 from apps.contributions.payment_managers import PaymentProviderError
 
 
 @admin.register(Contributor)
-class ContributorAdmin(admin.ModelAdmin):
+class ContributorAdmin(RevEngineBaseAdmin):
     list_display = (
         "email",
         "contributions_count",
@@ -38,7 +39,7 @@ class BadActorScoreFilter(admin.SimpleListFilter):
 
 
 @admin.register(Contribution)
-class ContributionAdmin(admin.ModelAdmin):
+class ContributionAdmin(RevEngineBaseAdmin):
     fieldsets = (
         (
             "Payment",
@@ -82,7 +83,7 @@ class ContributionAdmin(admin.ModelAdmin):
 
     list_filter = (
         "organization__name",
-        "contributor__email",
+        "interval",
         "donation_page__name",
         "status",
         BadActorScoreFilter,
@@ -91,7 +92,7 @@ class ContributionAdmin(admin.ModelAdmin):
     )
 
     order = (
-        "updated",
+        "modified",
         "created",
     )
 
@@ -99,7 +100,7 @@ class ContributionAdmin(admin.ModelAdmin):
         "organization__name",
         "contributor__email",
         "donation_page__name",
-        "updated",
+        "modified",
         "created",
     )
 

@@ -23,7 +23,7 @@ function AddElementModal({ addElementModalOpen, setAddElementModalOpen }) {
   };
 
   const handleElementSelected = (element) => {
-    setElements([buildElement(element), ...elements]);
+    setElements([buildElement(element), ...(elements || [])]);
     setAddElementModalOpen(false);
   };
 
@@ -36,12 +36,11 @@ function AddElementModal({ addElementModalOpen, setAddElementModalOpen }) {
               {Object.keys(dynamicElements).map((elName, i) => {
                 const element = dynamicElements[elName];
                 // An element is disabled if it's unique and already present.
-                const disabled = element.unique && elements.some((el) => el.type === element.type);
+                const disabled = element.unique && elements?.some((el) => el.type === element.type);
                 return (
-                  <S.PageItemWrapper>
+                  <S.PageItemWrapper key={element.displayName + i}>
                     <PageItem
                       disabled={disabled}
-                      key={element.displayName + i}
                       element={element}
                       isStatic
                       onClick={disabled ? undefined : () => handleElementSelected(element)}

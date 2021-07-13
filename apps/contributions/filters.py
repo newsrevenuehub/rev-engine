@@ -20,6 +20,8 @@ class ContributionFilter(django_filters.FilterSet):
             ("last_payment_date", "last_payment_date"),
             ("flagged_date", "flagged_date"),
             ("contributor__email", "contributor_email"),
+            ("status", "status"),
+            ("interval", "interval"),
         )
     )
 

@@ -1,12 +1,6 @@
 import styled from 'styled-components';
 import { XButton } from 'elements/buttons/XButton.styled';
 
-export const Donations = styled.div`
-  table {
-    width: 100%;
-  }
-`;
-
 export const DonationsDetail = styled.div`
   background: ${(props) => props.theme.colors.paneBackground};
   padding: 1rem;
@@ -19,3 +13,4 @@ export const DonationsDetail = styled.div`
     margin-right: 1rem;
   }
 `;
+export const Donations = styled.div``;

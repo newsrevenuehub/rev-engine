@@ -2,6 +2,7 @@ from rest_framework import serializers
 from sorl_thumbnail_serializer.fields import HyperlinkedSorlImageField
 
 from apps.organizations.models import Organization, RevenueProgram
+from apps.organizations.serializers import RevenueProgramSerializer
 from apps.pages.models import Benefit, BenefitTier, DonationPage, DonorBenefit, Style, Template
 
 
@@ -66,10 +67,13 @@ class DonationPageDetailSerializer(serializers.ModelSerializer):
 
 
 class DonationPageFullDetailSerializer(serializers.ModelSerializer):
-    styles = StyleSerializer()
-    styles_pk = serializers.IntegerField(required=False, allow_null=True)
+    styles = StyleSerializer(required=False)
+    styles_pk = serializers.IntegerField(allow_null=True, required=False)
     donor_benefits = DonorBenefitDetailSerializer(allow_null=True, required=False)
-    donor_benefits_pk = serializers.IntegerField(required=False, allow_null=True)
+    donor_benefits_pk = serializers.IntegerField(allow_null=True, required=False)
+    revenue_program = RevenueProgramSerializer(read_only=True)
+    revenue_program_pk = serializers.IntegerField(allow_null=True, required=False)
+    organization = serializers.PrimaryKeyRelatedField(read_only=True)
 
     graphic = serializers.ImageField(allow_empty_file=True, allow_null=True, required=False)
     header_bg_image = serializers.ImageField(allow_empty_file=True, allow_null=True, required=False)
@@ -83,7 +87,7 @@ class DonationPageFullDetailSerializer(serializers.ModelSerializer):
         model = DonationPage
         fields = "__all__"
 
-    def _update_related(self, related_field, related_model, instance, validated_data):
+    def _update_related(self, related_field, related_model, validated_data, instance):
         pk_field = f"{related_field}_pk"
         if pk_field in validated_data and validated_data[pk_field] is None:
             instance.donor_benefits = None
@@ -94,9 +98,26 @@ class DonationPageFullDetailSerializer(serializers.ModelSerializer):
             except related_model.DoesNotExist:
                 raise serializers.ValidationError({related_field: "Could not find donor benefits with provided pk."})
 
+    def create(self, validated_data):
+        if "revenue_program_pk" not in validated_data:
+            raise serializers.ValidationError(
+                {"revenue_program_pk": "revenue_program_pk is required when creating a new page"}
+            )
+        try:
+            rev_program_pk = validated_data.pop("revenue_program_pk")
+            rev_program = RevenueProgram.objects.get(pk=rev_program_pk)
+            validated_data["revenue_program"] = rev_program
+        except RevenueProgram.DoesNotExist:
+            raise serializers.ValidationError({"revenue_program_pk": "Could not find revenue program with provided pk"})
+
+        organization = self.context["request"].user.get_organization()
+        validated_data["organization"] = organization
+
+        return super().create(validated_data)
+
     def update(self, instance, validated_data):
-        self._update_related("styles", Style, instance, validated_data)
-        self._update_related("donor_benefits", DonorBenefit, instance, validated_data)
+        self._update_related("styles", Style, validated_data, instance)
+        self._update_related("donor_benefits", DonorBenefit, validated_data, instance)
         return super().update(instance, validated_data)
 
 
@@ -110,8 +131,8 @@ class DonationPageListSerializer(serializers.ModelSerializer):
             "id",
             "name",
             "heading",
-            "slug",
             "derived_slug",
+            "page_screenshot",
             "revenue_program",
             "organization",
             "published_date",

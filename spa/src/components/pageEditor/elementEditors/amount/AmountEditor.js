@@ -9,26 +9,27 @@ import PlusButton from 'elements/buttons/PlusButton';
 import XButton from 'elements/buttons/XButton';
 
 function AmountEditor() {
-  const { elementContent, setElementContent, page, updatedPage } = useEditInterfaceContext();
+  const { elementContent = { options: {} }, setElementContent, page, updatedPage } = useEditInterfaceContext();
   const [frequencies, setFrequencies] = useState([]);
   const [newAmounts, setNewAmounts] = useState({});
 
   useEffect(() => {
     const updatedFreqs = updatedPage?.elements?.find((el) => el.type === 'DFrequency');
     if (updatedFreqs) {
-      setFrequencies(updatedFreqs.content);
+      setFrequencies(updatedFreqs?.content);
     } else {
       const pageFreqs = page?.elements?.find((el) => el.type === 'DFrequency');
-      setFrequencies(pageFreqs.content);
+      setFrequencies(pageFreqs?.content);
     }
   }, [page, updatedPage]);
 
   const addAmount = ({ value: freq }) => {
     const newAmount = newAmounts[freq];
     if (!newAmount) return;
-    const amounts = [...elementContent.options[freq]];
+    const currentAmounts = elementContent.options[freq] || [];
+    const amounts = [...currentAmounts];
     amounts.push(newAmount);
-    if (elementContent?.options[freq].includes(newAmounts[freq])) return;
+    if (currentAmounts.includes(newAmounts[freq])) return;
     setElementContent({
       ...elementContent,
       options: {
@@ -69,32 +70,36 @@ function AmountEditor() {
 
   return (
     <S.AmountEditor data-testid="amount-editor">
-      {frequencies.map((freq) => (
-        <S.FreqGroup key={freq.value}>
-          <S.FreqHeading>{freq.displayName}</S.FreqHeading>
-          <S.AmountsList>
-            {elementContent?.options[freq.value]
-              ?.sort((a, b) => a - b)
-              .map((amount, i) => (
-                <S.AmountItem key={amount + i}>
-                  {amount}
-                  <XButton type="caution" onClick={() => removeAmount(freq, amount)} />
-                </S.AmountItem>
-              ))}
-          </S.AmountsList>
-          <S.AmountInputGroup>
-            <S.AmountInput
-              type="number"
-              value={newAmounts[freq.value] || ''}
-              onChange={(e) => setNewAmounts({ ...newAmounts, [freq.value]: e.target.value })}
-              min="0"
-              onKeyUp={(e) => handleKeyUp(e, freq)}
-              data-testid="amount-input"
-            />
-            <PlusButton onClick={() => addAmount(freq)} data-testid="add-button" />
-          </S.AmountInputGroup>
-        </S.FreqGroup>
-      ))}
+      {frequencies ? (
+        frequencies.map((freq) => (
+          <S.FreqGroup key={freq.value}>
+            <S.FreqHeading>{freq.displayName}</S.FreqHeading>
+            <S.AmountsList>
+              {elementContent?.options[freq.value]
+                ?.sort((a, b) => a - b)
+                .map((amount, i) => (
+                  <S.AmountItem key={amount + i}>
+                    {amount}
+                    <XButton onClick={() => removeAmount(freq, amount)} />
+                  </S.AmountItem>
+                ))}
+            </S.AmountsList>
+            <S.AmountInputGroup>
+              <S.AmountInput
+                type="number"
+                value={newAmounts[freq.value] || ''}
+                onChange={(e) => setNewAmounts({ ...newAmounts, [freq.value]: e.target.value })}
+                min="0"
+                onKeyUp={(e) => handleKeyUp(e, freq)}
+                data-testid="amount-input"
+              />
+              <PlusButton onClick={() => addAmount(freq)} data-testid="add-button" />
+            </S.AmountInputGroup>
+          </S.FreqGroup>
+        ))
+      ) : (
+        <S.NoFreqs>Add a Frequency element to your page to modify donation amounts</S.NoFreqs>
+      )}
       <S.Toggles>
         <S.ToggleWrapper>
           <S.Toggle

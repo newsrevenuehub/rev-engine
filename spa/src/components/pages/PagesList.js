@@ -45,8 +45,7 @@ function PagesList() {
       { method: 'GET', url: LIST_PAGES },
       {
         onSuccess: ({ data }) => {
-          console.log('data tho: ', data);
-          setPagesByRevenueProgram(formatPagesList(data.results));
+          setPagesByRevenueProgram(formatPagesList(data));
         },
         onFailure: () => alert.error(GENERIC_ERROR)
       }
@@ -75,14 +74,19 @@ function PagesList() {
         {pagesByRevenueProgram.map((rp, i) => {
           const isOpen = !closedAccordions.includes(i);
           return (
-            <S.RevenueProgramSection key={rp.name + i} layout>
-              <S.AccordionHeading layout isOpen={isOpen} onClick={() => handleAccordionClick(i)}>
+            <S.RevenueProgramSection key={rp.name + i} layout data-testid={`rev-list-${rp.name}`}>
+              <S.AccordionHeading
+                layout
+                isOpen={isOpen}
+                onClick={() => handleAccordionClick(i)}
+                data-testid={`rev-list-heading-${rp.name}`}
+              >
                 <S.RevProgramName>{rp.name}</S.RevProgramName>
                 <S.Chevron icon={faChevronDown} isOpen={isOpen} />
               </S.AccordionHeading>
               <AnimatePresence>
                 {isOpen && (
-                  <S.InnerPagesList layout {...S.accordionAnimation}>
+                  <S.InnerPagesList layout {...S.accordionAnimation} data-testid={`${rp.name}-pages-list`}>
                     {rp.pages.map((page) => (
                       <PageCard key={page.id} page={page} onClick={handleEditPage} />
                     ))}

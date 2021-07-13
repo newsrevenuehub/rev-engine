@@ -22,8 +22,11 @@ class PageViewSet(OrganizationLimitedListView, viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated, UserBelongsToOrg]
     filter_backends = [filters.OrderingFilter]
     ordering_fields = ["username", "email"]
-    ordering = ["-published_date", "name"]
-    page_size = 50
+    ordering = ["published_date", "name"]
+    # We don't expect orgs to have a huge number of pages here.
+    # In the future, we may wish to turn pagination back on (which will require frontend changes) if
+    # pages are ever accessed via api and not restricted by org.
+    pagination_class = None
 
     def get_serializer_class(self):
         if self.action in ("full_detail", "partial_update", "create"):

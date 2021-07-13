@@ -12,6 +12,7 @@ export const DashboardSidebar = styled.aside`
   display: flex;
   flex-direction: column;
   justify-content: space-between;
+  overflow-y: auto;
 `;
 
 export const NavList = styled.ul`

@@ -13,12 +13,17 @@ export const Disclaimer = styled.p`
 
 export const StatusCellWrapper = styled.div`
   display: flex;
-  justify-content: center;
+  flex-direction: row;
   align-items: center;
 `;
 
+export const StatusText = styled.p`
+  margin-left: 1rem;
+  font-size: ${(props) => (props.size === 'sm' ? '11px' : '14px')};
+`;
+
 export const StatusCellIcon = styled(FontAwesomeIcon)`
-  font-size: 20px;
+  font-size: ${(props) => (props.size === 'sm' ? '12px' : '18px')};
   color: ${(props) => {
     switch (props.status) {
       case 'failed':
@@ -28,6 +33,10 @@ export const StatusCellIcon = styled(FontAwesomeIcon)`
       case 'paid':
         return props.theme.colors.success;
       case 'canceled':
+        return props.theme.colors.warning;
+      case 'flagged':
+        return props.theme.colors.caution;
+      case 'rejected':
         return props.theme.colors.grey[1];
       default:
         return props.theme.colors.grey[1];

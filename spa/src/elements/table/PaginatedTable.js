@@ -58,60 +58,61 @@ function PaginatedTable({
   const [startIndex, endIndex] = getCurrentPageResultIndices(pageSize, pageIndex, data.length);
   return (
     <>
-      <S.PaginatedTable data-testid="donations-table" {...getTableProps()} interactiveRows={!!onRowClick}>
-        <thead>
-          {headerGroups.map((headerGroup) => (
-            <tr {...headerGroup.getHeaderGroupProps()}>
-              {headerGroup.headers.map((column) => (
-                <S.TH
-                  data-testid={`donation-header-${column.id}`}
-                  disableSortBy={column.disableSortBy}
-                  {...column.getHeaderProps(column.getSortByToggleProps())}
+      <S.TableScrollWrapper>
+        <S.PaginatedTable data-testid="donations-table" {...getTableProps()} columns={columns}>
+          <thead>
+            {headerGroups.map((headerGroup) => (
+              <tr {...headerGroup.getHeaderGroupProps()}>
+                {headerGroup.headers.map((column) => (
+                  <S.TH
+                    data-testid={`donation-header-${column.id}`}
+                    disableSortBy={column.disableSortBy}
+                    {...column.getHeaderProps(column.getSortByToggleProps())}
+                  >
+                    <div>
+                      {column.render('Header')}
+                      <SortIcon
+                        isSorted={column.isSorted}
+                        isSortedDesc={column.isSortedDesc}
+                        disableSortBy={column.disableSortBy}
+                      />
+                    </div>
+                  </S.TH>
+                ))}
+              </tr>
+            ))}
+          </thead>
+          <tbody {...getTableBodyProps()}>
+            {page.map((row, i) => {
+              prepareRow(row);
+              const disabled = getRowIsDisabled && getRowIsDisabled(row);
+              return (
+                <S.TR
+                  data-testid="donation-row"
+                  data-donationid={row.original.id}
+                  data-lastpaymentdate={row.original.last_payment_date}
+                  data-amount={row.original.amount}
+                  data-donor={row.original.contributor_email}
+                  data-status={row.original.status}
+                  data-flaggeddate={row.original.flagged_date || ''}
+                  onClick={() => (onRowClick ? onRowClick(row.original) : {})}
+                  even={i === 0 || i % 2 === 0}
+                  disabled={disabled}
+                  {...row.getRowProps()}
                 >
-                  <div>
-                    {column.render('Header')}
-                    <SortIcon
-                      isSorted={column.isSorted}
-                      isSortedDesc={column.isSortedDesc}
-                      disableSortBy={column.disableSortBy}
-                    />
-                  </div>
-                </S.TH>
-              ))}
-            </tr>
-          ))}
-        </thead>
-        <tbody {...getTableBodyProps()}>
-          {page.map((row, i) => {
-            prepareRow(row);
-            const disabled = getRowIsDisabled && getRowIsDisabled(row);
-            return (
-              <S.TR
-                data-testid="donation-row"
-                data-donationid={row.original.id}
-                data-lastpaymentdate={row.original.last_payment_date}
-                data-amount={row.original.amount}
-                data-donor={row.original.contributor_email}
-                data-status={row.original.status}
-                data-flaggeddate={row.original.flagged_date || ''}
-                onClick={() => (onRowClick ? onRowClick(row.original) : {})}
-                even={i === 0 || i % 2 === 0}
-                disabled={disabled}
-                {...row.getRowProps()}
-              >
-                {row.cells.map((cell) => {
-                  return (
-                    <td data-testid="donation-cell" data-testcolumnaccessor={cell.column.id} {...cell.getCellProps()}>
-                      {cell.render('Cell')}
-                    </td>
-                  );
-                })}
-              </S.TR>
-            );
-          })}
-        </tbody>
-      </S.PaginatedTable>
-
+                  {row.cells.map((cell) => {
+                    return (
+                      <td data-testid="donation-cell" data-testcolumnaccessor={cell.column.id} {...cell.getCellProps()}>
+                        {cell.render('Cell')}
+                      </td>
+                    );
+                  })}
+                </S.TR>
+              );
+            })}
+          </tbody>
+        </S.PaginatedTable>
+      </S.TableScrollWrapper>
       <S.Pagination>
         <S.PaginationSection>
           <CircleButton

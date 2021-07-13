@@ -301,9 +301,6 @@ class TestContributionsListView(APITestCase):
         response = self.client.get(self.url)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json()["count"], self.contributions_per_org_count)
-        self.assertTrue(
-            all([contribution["organization"] == self.organization1.pk for contribution in response.json()["results"]])
-        )
 
 
 TEST_STRIPE_API_KEY = "test_stripe_api_key"

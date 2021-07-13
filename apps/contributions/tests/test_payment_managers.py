@@ -11,7 +11,12 @@ from stripe import error as stripe_errors
 from stripe.stripe_object import StripeObject
 
 from apps.contributions.bad_actor import BadActorAPIError, make_bad_actor_request
-from apps.contributions.models import Contribution, ContributionInterval, ContributionStatus
+from apps.contributions.models import (
+    Contribution,
+    ContributionInterval,
+    ContributionMetadata,
+    ContributionStatus,
+)
 from apps.contributions.payment_managers import (
     PaymentBadParamsError,
     PaymentProviderError,
@@ -165,6 +170,7 @@ class StripeOneTimePaymentManagerTest(StripePaymentManagerAbstractTestCase):
             stripe_account=self.organization.stripe_account_id,
             capture_method="manual",
             receipt_email=data["email"],
+            metadata=pm.bundle_metadata(pm.data, ContributionMetadata.ProcessorObjects.PAYMENT),
         )
         # New contribution is created...
         new_contribution = Contribution.objects.filter(amount=1099).first()
@@ -198,6 +204,7 @@ class StripeOneTimePaymentManagerTest(StripePaymentManagerAbstractTestCase):
             stripe_account=self.organization.stripe_account_id,
             capture_method="automatic",
             receipt_email=data["email"],
+            metadata=pm.bundle_metadata(pm.data, ContributionMetadata.ProcessorObjects.PAYMENT),
         )
         # New contribution is created...
         new_contribution = Contribution.objects.filter(amount=1099).first()
@@ -348,6 +355,7 @@ class StripeRecurringPaymentManagerTest(StripePaymentManagerAbstractTestCase):
             email=self.contributor.email,
             api_key=fake_api_key,
             stripe_account=self.organization.stripe_account_id,
+            metadata=pm.bundle_metadata(pm.data, ContributionMetadata.ProcessorObjects.CUSTOMER),
         )
 
     @patch("stripe.Customer.create", side_effect=MockStripeCustomer)

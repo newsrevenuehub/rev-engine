@@ -13,11 +13,12 @@ from apps.contributions.payment_managers import PaymentProviderError
 @admin.register(ContributionMetadata)
 class ContributionMetaDataAdmin(RevEngineBaseAdmin):
     list_display = (
-        "humanized_key",
         "key",
+        "label",
+        "processor_object",
         "payment_processor",
         "metadata_type",
-        "available",
+        "donor_supplied",
     )
 
 

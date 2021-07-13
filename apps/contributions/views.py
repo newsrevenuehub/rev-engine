@@ -200,5 +200,8 @@ class ContributionsListView(viewsets.ReadOnlyModelViewSet):
 
 class ContributionMetadataListView(viewsets.ReadOnlyModelViewSet):
     serializer_class = serializers.ContributionMetadataSerializer
-    queryset = ContributionMetadata.objects.all()
     model = ContributionMetadata
+    pagination_class = None
+
+    def get_queryset(self):
+        return self.model.objects.all()

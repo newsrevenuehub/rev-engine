@@ -21,6 +21,8 @@ INSTALLED_APPS.extend(
     ]
 )
 
+# Set for testing
+CONTRIBUTOR_MAGIC_LINK_REQUEST_THROTTLE_RATE = "1000/minute"
 
 # SECURITY WARNING: define the correct hosts in production!
 ALLOWED_HOSTS = ["*"]
@@ -32,5 +34,15 @@ if os.getenv("DEBUG_TOOLBAR", "True") == "True":
     ]
     MIDDLEWARE += ["debug_toolbar.middleware.DebugToolbarMiddleware"]
 
-if not os.getenv("TEST_EMAIL", "False") == "True":
-    EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
+if os.getenv("TEST_EMAIL", "False") == "True":
+    EMAIL_BACKEND = "anymail.backends.mailgun.EmailBackend"
+    ANYMAIL = {
+        "MAILGUN_API_KEY": os.getenv("MAILGUN_API_KEY", ""),
+    }
+    DEFAULT_FROM_EMAIL = "noreply@fundjournalism.org"
+
+
+# Celery
+BROKER_URL = "redis://localhost:6379"
+CELERY_RESULT_BACKEND = "redis://localhost:6379"
+CELERY_IMPORTS = ("apps.emails.tasks",)

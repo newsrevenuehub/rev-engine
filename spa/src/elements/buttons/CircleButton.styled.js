@@ -6,6 +6,9 @@ export const CircleButton = styled(motion.button)`
   border-radius: 50%;
   padding: 1rem;
 
+  height: 50px;
+  width: 50px;
+
   cursor: ${(props) => (props.disabled ? 'default' : 'pointer')};
   border: ${(props) => (props.disabled ? 'none' : '2px solid')};
   border-color: ${(props) => (props.selected ? props.theme.colors.primary : props.theme.colors.white)};
@@ -32,6 +35,7 @@ export const CircleButton = styled(motion.button)`
 export const Icon = styled(FontAwesomeIcon)`
   color: ${(props) => {
     if (props.disabled) return props.theme.colors.grey[0];
+    if (props.color) return props.color;
     switch (props.type) {
       case 'positive':
         return props.theme.colors.success;

@@ -4,8 +4,12 @@ import { Route, Redirect } from 'react-router';
 import { LOGIN } from 'routes';
 import isAuthenticated from 'utilities/isAuthenticated';
 
-function ProtectedRoute({ ...props }) {
-  if (isAuthenticated()) {
+/**
+ * ProtectedRoute either verifies authentication status or redirects to LOGIN.
+ * Accepts 'contributor' prop so isAuthenticated can check for the right user type.
+ */
+function ProtectedRoute({ contributor, ...props }) {
+  if (isAuthenticated(contributor)) {
     return <Route {...props} />;
   }
   return <Redirect to={LOGIN} />;

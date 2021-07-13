@@ -34,7 +34,9 @@ INSTALLED_APPS = [
     "apps.users",
     "apps.organizations",
     "apps.pages",
+    "apps.emails",
     "apps.contributions",
+    "apps.slack",
     "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
@@ -46,6 +48,9 @@ INSTALLED_APPS = [
     "django_filters",
     "sorl.thumbnail",
     "sorl_thumbnail_serializer",
+    "solo",
+    "anymail",
+    "django_json_widget",
 ]
 
 
@@ -95,8 +100,19 @@ REST_FRAMEWORK = {
 
 SIMPLE_JWT = {  # https://django-rest-framework-simplejwt.readthedocs.io/en/latest/settings.html
     "ACCESS_TOKEN_LIFETIME": timedelta(hours=float(os.getenv("ACCESS_TOKEN_LIFETIME_HOURS", 12))),
-    "REFRESH_TOKEN_LIFETIME": timedelta(weeks=2),
+    "REFRESH_TOKEN_LIFETIME": timedelta(days=2),
 }
+
+CONTRIBUTOR_ID_CLAIM = "contrib_id"
+CONTRIBUTOR_SHORT_TOKEN_LIFETIME = timedelta(minutes=5)
+CONTRIBUTOR_LONG_TOKEN_LIFETIME = timedelta(hours=3)
+CONTRIBUTOR_VERIFY_URL = "contributor-verify"
+# In format num/[second, minute, hour, day]
+# https://www.django-rest-framework.org/api-guide/throttling/#setting-the-throttling-policy
+CONTRIBUTOR_MAGIC_LINK_REQUEST_THROTTLE_RATE = os.getenv("CONTRIBUTOR_MAGIC_LINK_REQUEST_THROTTLE_RATE", "6/minute")
+
+USER_TTL = timedelta(hours=24)
+
 
 AUTH_COOKIE_KEY = "Authorization"
 # Set SAMESITE setting below to 'Strict' to ask recieving browsers not to send this cookie
@@ -285,10 +301,15 @@ FLAGGED_PAYMENT_AUTO_ACCEPT_DELTA = timedelta(days=4)
 HEALTHCHECK_URL_AUTO_ACCEPT_FLAGGED_PAYMENTS = os.environ.get("HEALTHCHECK_URL_AUTO_ACCEPT_FLAGGED_PAYMENTS")
 
 # Transactional Email
-EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
+EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
 EMAIL_SUBJECT_PREFIX = "[RevEngine] "
 
 ADMINS = [("nrh-team", "nrh-team@caktusgroup.com")]
+
+# Revengine template identifiers
+EMAIL_TEMPLATE_IDENTIFIER_MAGIC_LINK_DONOR = os.environ.get(
+    "EMAIL_TEMPLATE_IDENTIFIER_MAGIC_LINK_DONOR", "nrh-manage-donations-magic-link"
+)
 
 # this is only used by HubAdmins, not OrgAdmins, but needs to be named generically as LOGIN_URL
 # so our implementation of password reset flow for HubAdmins works as expected

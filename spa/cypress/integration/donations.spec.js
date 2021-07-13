@@ -4,7 +4,7 @@ import formatDatetimeForDisplay from 'utilities/formatDatetimeForDisplay';
 import formatCurrencyAmount from 'utilities/formatCurrencyAmount';
 import donationsData from '../fixtures/donations/18-results.json';
 
-describe('Donation page', () => {
+describe('Donations list', () => {
   beforeEach(() => {
     cy.login('user/stripe-verified.json');
     cy.getPaginatedDonations();

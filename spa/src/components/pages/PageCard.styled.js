@@ -62,7 +62,16 @@ export const PageData = styled.div`
   margin-top: 1rem;
 `;
 
-export const Label = styled.span``;
+export const Label = styled.span`
+  color: ${(props) => props.theme.colors.grey[2]};
+`;
 
-export const PageName = styled.p``;
-export const PagePublishDate = styled.p``;
+export const PageName = styled.p`
+  font-weight: bold;
+  color: ${(props) => props.theme.colors.grey[3]};
+`;
+
+export const PagePublishDate = styled.p`
+  font-weight: bold;
+  color: ${(props) => (props.isLive ? props.theme.colors.success : props.theme.colors.grey[3])};
+`;

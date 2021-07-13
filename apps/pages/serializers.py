@@ -2,7 +2,7 @@ from rest_framework import serializers
 from sorl_thumbnail_serializer.fields import HyperlinkedSorlImageField
 
 from apps.organizations.models import Organization, RevenueProgram
-from apps.organizations.serializers import RevenueProgramSerializer
+from apps.organizations.serializers import RevenueProgramInlineSerializer, RevenueProgramSerializer
 from apps.pages.models import Benefit, BenefitTier, DonationPage, DonorBenefit, Style, Template
 
 
@@ -122,7 +122,7 @@ class DonationPageFullDetailSerializer(serializers.ModelSerializer):
 
 
 class DonationPageListSerializer(serializers.ModelSerializer):
-    revenue_program = serializers.PrimaryKeyRelatedField(queryset=RevenueProgram.objects.all())
+    revenue_program = RevenueProgramInlineSerializer(read_only=True)
     organization = serializers.PrimaryKeyRelatedField(queryset=Organization.objects.all())
 
     class Meta:

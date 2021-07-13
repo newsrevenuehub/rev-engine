@@ -14,7 +14,7 @@ def create_n_instances(n, model_factory, **model_factory_kwargs):
     return [model_factory(**model_factory_kwargs) for n in range(n)]
 
 
-def create_org_users(orgs, n=3, password="tHiSiStHePaSwOrD"):
+def create_org_users(orgs, n=1, password="tHiSiStHePaSwOrD"):
     org_users = []
     for org in orgs:
         users = create_n_instances(n, user_factories.OrganizationUserFactory, user_password=password, organization=org)
@@ -41,7 +41,7 @@ class Command(BaseCommand):
         parser.add_argument(
             "--n-org-users",
             type=int,
-            default=3,
+            default=1,
             help=("How many org users to create per org",),
         )
         parser.add_argument(
@@ -86,3 +86,4 @@ class Command(BaseCommand):
                         contrib_factories.ContributionFactory(organization=org, contributor=contributor)
                     )
         msg = f"Created {len(contributions)} contributions"
+        self.stdout.write(msg)

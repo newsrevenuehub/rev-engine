@@ -21,11 +21,12 @@ function AdditionalInfoEditor(props) {
     const key = customKey.trim().toLowerCase();
     const label = customLabel.trim();
     const errors = getInputErrors({ elementContent, key });
-    if (errors.length > 0) {
+
+    if (errors?.length > 0) {
       setErrors(errors);
     } else if (key && label) {
       setErrors([]);
-      setElementContent([...elementContent, createAdditionalInput({ label, key })]);
+      setElementContent([...(elementContent || []), createAdditionalInput({ label, key })]);
       setCustomKey('');
       setCustomLabel('');
       keyInputRef.current.focus();
@@ -81,7 +82,7 @@ AdditionalInfoEditor.for = 'DAdditionalInfo';
 export default AdditionalInfoEditor;
 
 AdditionalInfoEditor.hasErrors = function (content) {
-  if (content.length === 0) {
+  if (!content || content.length === 0) {
     return "Can't add an 'additional information' section without any inputs";
   }
   return false;
@@ -97,6 +98,7 @@ function createAdditionalInput({ key, label }) {
 
 function getInputErrors({ elementContent, key }) {
   const errors = [];
+  if (!elementContent) return;
   if (elementContent.some((el) => el.name.toLowerCase() === key.toLowerCase())) {
     errors.push(`Cannot create an input with duplicate key "${key}"`);
   }

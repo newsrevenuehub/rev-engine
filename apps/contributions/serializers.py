@@ -1,6 +1,11 @@
 from rest_framework import serializers
 
-from apps.contributions.models import Contribution, ContributionInterval
+from apps.contributions.models import (
+    Contribution,
+    ContributionInterval,
+    ContributionStatus,
+    Contributor,
+)
 
 
 class ContributionSerializer(serializers.ModelSerializer):
@@ -8,6 +13,34 @@ class ContributionSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Contribution
+        fields = "__all__"
+
+
+class ContributorContributionSerializer(serializers.ModelSerializer):
+    """
+    A paired-down, read-only version of a Contribution serializer
+    """
+
+    status = serializers.SerializerMethodField()
+
+    def get_status(self, obj):
+        if obj.status and obj.status in (
+            ContributionStatus.FAILED,
+            ContributionStatus.FLAGGED,
+            ContributionStatus.REJECTED,
+        ):
+            return ContributionStatus.FAILED
+        return obj.status
+
+    class Meta:
+        model = Contribution
+        fields = ["id", "created", "interval", "status", "amount", "last_payment_date"]
+        read_only_fields = fields
+
+
+class ContributorSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Contributor
         fields = "__all__"
 
 

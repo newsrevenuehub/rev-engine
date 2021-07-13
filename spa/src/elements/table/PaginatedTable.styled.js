@@ -1,14 +1,72 @@
-import styled from 'styled-components';
+import styled, { css } from 'styled-components';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 
-export const PaginatedTable = styled.table`
+export const TableScrollWrapper = styled.div`
   width: 100%;
-  border-collapse: collapse;
-  min-width: 475px;
+  overflow-x: scroll;
+`;
 
+export const PaginatedTable = styled.table`
+  border-collapse: collapse;
   td {
-    padding: 2rem;
+    padding: 1rem;
     min-width: 100px;
+  }
+
+  /* ...I don't wanna talk about it... */
+  @media (${(props) => props.theme.breakpoints.phoneOnly}) {
+    &,
+    thead,
+    tbody,
+    th,
+    td,
+    tr {
+      display: block;
+    }
+
+    /* Hide table headers (but not display: none;, for accessibility) */
+    thead tr {
+      position: absolute;
+      top: -9999px;
+      left: -9999px;
+    }
+
+    tr {
+      border: 1px solid #ccc;
+    }
+
+    td {
+      /* Behave  like a "row" */
+      border: none;
+      border-bottom: 1px solid ${(props) => props.theme.colors.grey[1]};
+      position: relative;
+      padding-left: 115px;
+      word-break: break-all;
+      height: 70px;
+      display: flex;
+      flex-direction: row;
+      align-items: center;
+    }
+
+    td:before {
+      position: absolute;
+      top: 50%;
+      transform: translateY(-50%);
+      left: 6px;
+      width: 100px;
+      white-space: wrap;
+      word-break: break-word;
+    }
+
+    /* Hacking the headers */
+    ${(props) =>
+      props.columns.map(
+        (column, i) => css`
+          td:nth-of-type(${i + 1}):before {
+            content: '${column.Header}';
+          }
+        `
+      )}
   }
 `;
 

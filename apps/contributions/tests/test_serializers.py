@@ -1,6 +1,8 @@
 # apps/contributions/serializers.py    1-15
 
+from django.conf import settings
 from django.test import TestCase
+from django.utils import timezone
 
 from apps.contributions import serializers
 from apps.contributions.models import Contribution, ContributionStatus
@@ -11,16 +13,16 @@ from apps.organizations.tests.factories import OrganizationFactory
 class ContributionSerializer(TestCase):
     expected_fields = [
         "id",
+        "contributor_email",
         "created",
-        "modified",
         "amount",
         "currency",
-        "payment_provider_data",
-        "provider_payment_id",
+        "interval",
+        "last_payment_date",
+        "bad_actor_score",
+        "flagged_date",
+        "auto_accepted_on",
         "status",
-        "contributor",
-        "donation_page",
-        "organization",
     ]
 
     def setUp(self):
@@ -31,6 +33,19 @@ class ContributionSerializer(TestCase):
         data = self.serializer(self.contribution).data
         for field in self.expected_fields:
             self.assertIn(field, data)
+
+    def test_get_auto_accepted_on(self):
+        # Should return null if empty
+        self.contribution.flagged_date = None
+        self.contribution.save()
+        old_data = self.serializer(self.contribution).data
+        self.assertIsNone(old_data["auto_accepted_on"])
+        # Should return a datetime equal to flagged_date + "FLAGGED_PAYMENT_AUTO_ACCEPT_DELTA" setting
+        self.contribution.flagged_date = timezone.now()
+        self.contribution.save()
+        target_date = self.contribution.flagged_date + settings.FLAGGED_PAYMENT_AUTO_ACCEPT_DELTA
+        new_data = self.serializer(self.contribution).data
+        self.assertEqual(new_data["auto_accepted_on"], target_date)
 
 
 class ContributorContributionSerializerTest(TestCase):

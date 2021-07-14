@@ -53,15 +53,16 @@ function PaginatedTable({ columns, data = [], fetchData, loading, pageCount, tot
           {headerGroups.map((headerGroup) => (
             <tr {...headerGroup.getHeaderGroupProps()}>
               {headerGroup.headers.map((column) => (
-                <th
+                <S.PaginatedTableTh
+                  hasHoverEffect={column.canSort}
                   data-testid={`donation-header-${column.id}`}
                   {...column.getHeaderProps(column.getSortByToggleProps())}
                 >
                   <div>
                     {column.render('Header')}
-                    <SortIcon isSorted={column.isSorted} isSortedDesc={column.isSortedDesc} />
+                    {column.canSort && <SortIcon isSorted={column.isSorted} isSortedDesc={column.isSortedDesc} />}
                   </div>
-                </th>
+                </S.PaginatedTableTh>
               ))}
             </tr>
           ))}

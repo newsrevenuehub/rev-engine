@@ -1,4 +1,4 @@
-import styled from 'styled-components';
+import styled, { css } from 'styled-components';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 
 export const PaginatedTable = styled.table`
@@ -25,22 +25,28 @@ export const PaginatedTable = styled.table`
     padding: 2rem;
     min-width: 100px;
   }
+`;
 
-  th {
-    padding: 1rem;
-    background: ${(props) => props.theme.colors.primary};
-    color: ${(props) => props.theme.colors.white};
+export const PaginatedTableTh = styled.th`
+  padding: 1rem;
+  background: ${(props) => props.theme.colors.primary};
+  color: ${(props) => props.theme.colors.white};
 
-    div {
-      display: flex;
-      flex-direction: row;
-      justify-content: space-between;
-      align-items: center;
-    }
-    &:hover {
-      background: ${(props) => props.theme.colors.primaryLight};
-    }
+  div {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
   }
+  ${(props) =>
+    props.hasHoverEffect &&
+    css`
+      &:hover {
+        background: ${(props) => {
+          return props.theme.colors.primaryLight;
+        }};
+      }
+    `}
 `;
 
 export const SortIcon = styled(FontAwesomeIcon)`

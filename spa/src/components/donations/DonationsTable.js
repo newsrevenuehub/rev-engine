@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom';
 import * as S from './DonationsTable.styled';
 import { useCallback, useState } from 'react';
 
@@ -46,6 +47,12 @@ const defaultColumns = [
     Header: 'Date flagged',
     accessor: 'flagged_date',
     Cell: (props) => (props.value ? formatDatetimeForDisplay(props.value) : '---')
+  },
+  {
+    Header: '',
+    accessor: 'id',
+    Cell: (props) => <Link to={`/dashboard/donations/${props.value}/`}>Details...</Link>,
+    disableSortBy: true
   }
 ];
 

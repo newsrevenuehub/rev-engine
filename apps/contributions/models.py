@@ -153,7 +153,49 @@ def _get_rev_program_id(payment_manager):
 
 
 class ContributionMetadata(IndexedTimeStampedModel):
-    """"""
+    """
+    ContributionMetadata provides a model that allows admins to add form fields to the AdditionalInfo editor for
+    inclusion in payment provider metadata.
+
+    Currently the only implemented type is Text input which renders a `text` input on the DonationPage.
+
+    key:
+        The expected key in the metadata object sent to the provider: EXAMPLE: first_name, address1
+        (Required)
+    label:
+        The display value that is shown to identify the form field on the page
+        (Required)
+    default_value:
+        A value that will be added to the meta object, if it is not overridden by input from the form.
+        (Optional)
+    additional_help_text:
+        This text will display below the form field to give more context about the intent of the field.
+        (Optional)
+    metadata_type:
+        Identifies what type of element will appear in the form.
+        (Optional)
+    payment_processor:
+        This is a placeholder for now, but if other payment processors are added in the future this would be
+        used to filter for specific metadata requirements of the processor. Fixed at "stripe" for now.
+        (Optional)
+    processor_object:
+        This is meant to identify (if applicable) on which object the payment processor the metadata should be
+        included. EXAMPLE: PAYMENT will be attached to PaymentIntents and Subscriptions with Stripe.
+        (Optional)
+    description:
+        Text supplied as a guide for internal users so they understand how the object is meant to behave.
+        (Optional)
+    donor_supplied:
+        This identifies whether the metadata value will be supplied by the revengine system or by input from a
+        donor on the page.
+
+        If the value is False, this object will not be available for Org Admins to add to DonorPages
+        If the value is True, this object will need a method, either default value or lookup method, to
+        get the value from the system. If it is a system lookup add the key to the `lookup_map` dict with
+        a callable function that returns the system value.
+        (Required)
+
+    """
 
     lookup_map = {
         "re_contributor_id": _get_contributor_id,
@@ -162,7 +204,6 @@ class ContributionMetadata(IndexedTimeStampedModel):
 
     class MetadataType(models.TextChoices):
         TEXT = "TXT", "Text Values"
-        BOOLEAN = "BLN", "True/False Values"
 
     class ProcessorObjects(models.TextChoices):
         PAYMENT = "PYMT", "Payment"

@@ -10,7 +10,7 @@ from rest_framework.decorators import api_view, authentication_classes, permissi
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
-from apps.api.permissions import UserBelongsToOrg
+from apps.api.permissions import ContributorOwnsContribution, IsContributor, UserBelongsToOrg
 from apps.contributions import serializers
 from apps.contributions.filters import ContributionFilter
 from apps.contributions.models import Contribution, ContributionInterval, Contributor
@@ -130,10 +130,19 @@ def stripe_confirmation(request):
 
     # If we got through all that, we're verified.
     organization.stripe_verified = True
+
+    try:
+        # Now that we're verified, create and associate default product...
+        organization.stripe_create_default_product()
+    except stripe.error.StripeError:
+        logger.error("stripe_create_default_product failed with a StripeError")
+        return Response(
+            {"status": "failed"},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        )
+
     organization.save()
 
-    # Now that we're verified, create and associate default product
-    organization.create_default_stripe_product()
     return Response({"status": "connected"}, status=status.HTTP_200_OK)
 
 
@@ -168,8 +177,7 @@ def process_stripe_webhook_view(request):
 
 
 class ContributionsListView(viewsets.ReadOnlyModelViewSet):
-    permission_classes = [IsAuthenticated, UserBelongsToOrg]
-    serializer_class = serializers.ContributionSerializer
+    permission_classes = [IsAuthenticated, UserBelongsToOrg, ContributorOwnsContribution]
     model = Contribution
 
     filter_backends = [DjangoFilterBackend, filters.OrderingFilter]
@@ -191,3 +199,53 @@ class ContributionsListView(viewsets.ReadOnlyModelViewSet):
         if isinstance(self.request.user, UserModel):
             return serializers.ContributionSerializer
         return serializers.ContributorContributionSerializer
+
+
+@api_view(["PATCH"])
+@permission_classes([IsAuthenticated, IsContributor])
+def update_payment_method(request, pk):
+    if request.data.keys() != {"payment_method_id"}:
+        return Response({"detail": "Request contains unsupported fields"}, status=status.HTTP_400_BAD_REQUEST)
+
+    try:
+        contribution = request.user.contribution_set.get(pk=pk)
+    except Contribution.DoesNotExist:
+        return Response(
+            {"detail": "Could not find contribution for requesting contributor"}, status=status.HTTP_404_NOT_FOUND
+        )
+
+    payment_manager = StripePaymentManager(contribution=contribution)
+
+    try:
+        payment_manager.update_payment_method(request.data["payment_method_id"])
+    except PaymentProviderError as pp_error:
+        error_message = str(pp_error)
+        logger.error(error_message)
+        return Response({"detail": error_message}, status=status.HTTP_400_BAD_REQUEST)
+
+    return Response({"detail": "Success"}, status=status.HTTP_200_OK)
+
+
+@api_view(["POST"])
+@permission_classes([IsAuthenticated, IsContributor])
+def cancel_recurring_payment(request, pk):
+    try:
+        contribution = request.user.contribution_set.get(pk=pk)
+    except Contribution.DoesNotExist:
+        logger.error(
+            "Could not find contribution for requesting contributor. This could be due to the requesting user not having permission to act on this resource."
+        )
+        return Response(
+            {"detail": "Could not find contribution for requesting contributor"}, status=status.HTTP_404_NOT_FOUND
+        )
+
+    payment_manager = StripePaymentManager(contribution=contribution)
+
+    try:
+        payment_manager.cancel_recurring_payment()
+    except PaymentProviderError as pp_error:
+        error_message = str(pp_error)
+        logger.error(error_message)
+        return Response({"detail": error_message}, status=status.HTTP_400_BAD_REQUEST)
+
+    return Response({"detail": "Success"}, status=status.HTTP_200_OK)

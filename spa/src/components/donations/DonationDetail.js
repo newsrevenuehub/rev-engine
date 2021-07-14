@@ -1,16 +1,16 @@
-import * as S from './DonationDetail.styled';
-import { useParams } from 'react-router-dom';
-import { formatCurrencyAmount, formatDateTime } from './utils';
 import { useEffect, useState } from 'react';
 import { useAlert } from 'react-alert';
+import { useParams } from 'react-router-dom';
+
+import * as S from './DonationDetail.styled';
 import Spinner from 'elements/Spinner';
+import formatCurrencyAmount from 'utilities/formatCurrencyAmount';
+import formatDatetimeForDisplay from 'utilities/formatDatetimeForDisplay';
 
-// AJAX
 import useRequest from 'hooks/useRequest';
-
-import { GENERIC_ERROR } from 'constants/textConstants';
-
 import { DONATIONS } from 'ajax/endpoints';
+
+import { GENERIC_ERROR, NO_VALUE } from 'constants/textConstants';
 
 function DonationDetail() {
   const [isLoading, setIsLoading] = useState(false);
@@ -50,14 +50,10 @@ function DonationDetail() {
     payment_provider_used: paymentProvider,
     payment_provider_customer_id: paymentProviderCustomerId,
     last_payment_date: lastPaymentDate,
-    bad_actor_score: badActorScore,
     flagged_date: flaggedDate,
     status,
-    contributor: contributorId,
-    contributor_email: contributorEmail,
-    donation_page: donationPage
+    contributor_email: contributorEmail
   } = donationData || {};
-
   return (
     <S.DonationDetail>
       {isLoading ? (
@@ -65,30 +61,28 @@ function DonationDetail() {
       ) : (
         <dl>
           <dt>Donor</dt>
-          <dd>
-            <a href="">{contributorEmail}</a>
-          </dd>
+          <dd>{contributorEmail}</dd>
 
           <dt>Amount</dt>
-          <dd>{formatCurrencyAmount(amount)}</dd>
+          <dd>{amount ? formatCurrencyAmount(amount) : NO_VALUE}</dd>
 
           <dt>Payment interval</dt>
           <dd>{interval}</dd>
 
           <dt>Last payment date</dt>
-          <dd>{lastPaymentDate ? formatDateTime(lastPaymentDate) : 'noDataString'}</dd>
+          <dd>{lastPaymentDate ? formatDatetimeForDisplay(lastPaymentDate) : NO_VALUE}</dd>
 
           <dt>Flagged date</dt>
-          <dd>{flaggedDate ? formatDateTime(flaggedDate) : 'noDataString'}</dd>
+          <dd>{flaggedDate ? formatDatetimeForDisplay(flaggedDate) : NO_VALUE}</dd>
 
           <dt>Payment provider</dt>
-          <dd>{paymentProvider || 'noDataString'}</dd>
+          <dd>{paymentProvider || NO_VALUE}</dd>
 
           <dt>Payment Provider customer ID</dt>
-          <dd>{paymentProviderCustomerId || 'noDataString'}</dd>
+          <dd>{paymentProviderCustomerId || NO_VALUE}</dd>
 
           <dt>Donation reason</dt>
-          <dd>{reason || 'noDataString'}</dd>
+          <dd>{reason || NO_VALUE}</dd>
 
           <dt>Status</dt>
           <dd>{status}</dd>

@@ -13,5 +13,6 @@ urlpatterns = [
         views.process_stripe_webhook_view,
         name="stripe-webhooks",
     ),
-    path("contributions/", views.ContributionsListView.as_view({"get": "list"}), name="contributions"),
+    path("contributions/", views.ContributionsViewSet.as_view({"get": "list"}), name="contributions"),
+    path("contributions/<pk>/", views.ContributionsViewSet.as_view({"get": "retrieve"}, name="contribution")),
 ]

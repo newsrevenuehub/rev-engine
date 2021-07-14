@@ -167,7 +167,7 @@ def process_stripe_webhook_view(request):
     return Response(status=status.HTTP_200_OK)
 
 
-class ContributionsListView(viewsets.ReadOnlyModelViewSet):
+class ContributionsViewSet(viewsets.ReadOnlyModelViewSet):
     permission_classes = [IsAuthenticated, UserBelongsToOrg]
     serializer_class = serializers.ContributionSerializer
     model = Contribution

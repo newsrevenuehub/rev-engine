@@ -271,12 +271,14 @@ class StripeConfirmTest(APITestCase):
         self.assertIsNone(self.organization.domain_apple_verified_date)
 
     @override_settings(STRIPE_LIVE_MODE="True")
+    @override_settings(SITE_URL=TEST_SITE_URL)
     @patch("stripe.Account.retrieve", side_effect=MockStripeAccountEnabled)
     @patch("stripe.ApplePayDomain.create", side_effect=StripeError)
     @patch("apps.organizations.models.logger")
     def test_apple_domain_verification_failure(self, mock_logger, mock_applepay_domain_create, *args):
         target_id = "testing_stripe_account_id"
         self.post_to_confirmation(stripe_account_id=target_id)
+        mock_applepay_domain_create.assert_called_once()
         # Logger should log stripe error
         mock_logger.warn.assert_called_once_with(
             f"Failed to register ApplePayDomain for organization {self.organization.name}. StripeError: <empty message>"

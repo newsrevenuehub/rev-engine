@@ -271,7 +271,7 @@ class StripeConfirmTest(APITestCase):
         self.assertEqual(response.data["status"], "failed")
 
 
-class TestContributionsListView(APITestCase):
+class TestContributionsViewSet(APITestCase):
     def setUp(self):
         self.user = get_user_model().objects.create(email="user@org1.com", password="testing")
         self.organization1 = Organization.objects.create(name="Organization 1")

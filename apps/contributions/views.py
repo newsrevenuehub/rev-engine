@@ -113,6 +113,8 @@ def stripe_confirmation(request):
             return Response({"status": "not_connected"}, status=status.HTTP_202_ACCEPTED)
         # A previously confirmed account can spare the stripe API call
         if organization.stripe_verified:
+            # NOTE: It's important to bail early here. At the end of this view, we create a few stripe models
+            # that should only be created once. We should only ever get there if it's the FIRST time we verify.
             return Response({"status": "connected"}, status=status.HTTP_200_OK)
 
         # A "Confirmed" stripe account has "charges_enabled": true on return from stripe.Account.retrieve
@@ -134,6 +136,7 @@ def stripe_confirmation(request):
 
     # Now that we're verified, create and associate default product
     organization.create_default_stripe_product()
+    organization.create_apple_pay_domain()
     return Response({"status": "connected"}, status=status.HTTP_200_OK)
 
 

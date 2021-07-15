@@ -22,8 +22,9 @@ const OrganizationContext = createContext(null);
 function Main() {
   // Organization Context management
   const [checkingProvider, setCheckingProvider] = useState(false);
-  const [user, setUser] = useState(JSON.parse(localStorage.getItem(LS_USER)));
-  const [paymentProviderConnectState, setPaymentProviderConnectState] = useState(getGlobalPaymentProviderStatus(user));
+  const [paymentProviderConnectState, setPaymentProviderConnectState] = useState(
+    getGlobalPaymentProviderStatus(JSON.parse(localStorage.getItem(LS_USER)))
+  );
 
   const updateDefaultPaymentProvider = useCallback((updatedUser) => {
     setCheckingProvider(true);
@@ -34,8 +35,6 @@ function Main() {
   return (
     <OrganizationContext.Provider
       value={{
-        user,
-        setUser,
         paymentProviderConnectState,
         updateDefaultPaymentProvider,
         checkingProvider,

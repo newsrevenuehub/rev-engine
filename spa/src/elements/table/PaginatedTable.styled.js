@@ -98,15 +98,6 @@ export const TR = styled.tr`
   &:hover {
     background: ${(props) => (!props.disabled && props.onClick ? props.theme.colors.tableRowHover : '')};
   }
-  ${(props) =>
-    props.hasHoverEffect &&
-    css`
-      &:hover {
-        background: ${(props) => {
-          return props.theme.colors.primaryLight;
-        }};
-      }
-    `}
 `;
 
 export const SortIcon = styled(FontAwesomeIcon)`

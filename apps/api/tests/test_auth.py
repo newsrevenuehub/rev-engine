@@ -6,12 +6,13 @@ from django.test import RequestFactory
 import jwt
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.reverse import reverse
-from rest_framework.test import APITestCase
+from rest_framework.test import APITestCase, force_authenticate
 from rest_framework_simplejwt.exceptions import InvalidToken
 from rest_framework_simplejwt.tokens import AccessToken
 
 from apps.api.authentication import JWTHttpOnlyCookieAuthentication
-from apps.api.permissions import UserBelongsToOrg
+from apps.api.permissions import ContributorOwnsContribution, IsContributor, UserBelongsToOrg
+from apps.contributions.tests.factories import ContributionFactory, ContributorFactory
 from apps.organizations.tests.factories import OrganizationFactory
 from apps.pages.tests.factories import DonationPageFactory
 
@@ -118,3 +119,65 @@ class UserBelongsToOrgPermissionTest(APITestCase):
     def test_object_with_no_org_allowed(self):
         unrelated_object = self.UnrelatedObject()
         self.assertTrue(UserBelongsToOrg().has_object_permission(self.request, {}, unrelated_object))
+
+
+class IsContributorTest(APITestCase):
+    def setUp(self):
+        self.factory = RequestFactory()
+        self.url = reverse("contributions-list")
+        self.regular_user = user_model.objects.create_user(email="test@test.com", password="testing")
+        self.contributor = ContributorFactory()
+        self.permission = IsContributor()
+
+    def _create_request(self, user):
+        request = self.factory.post(self.url)
+        request.user = user
+        force_authenticate(request, user=user)
+        return request
+
+    def test_success_when_contributor(self):
+        request = self._create_request(self.contributor)
+        has_permission = self.permission.has_permission(request, {})
+        self.assertTrue(has_permission)
+
+    def test_failure_when_not_contributor(self):
+        request = self._create_request(self.regular_user)
+        has_permission = self.permission.has_permission(request, {})
+        self.assertFalse(has_permission)
+
+
+class ContributorOwnsContributionTest(APITestCase):
+    def setUp(self):
+        self.factory = RequestFactory()
+        self.permission = ContributorOwnsContribution()
+
+        self.regular_user = user_model.objects.create_user(email="test@test.com", password="testing")
+        self.right_contributor = ContributorFactory(email="right@test.com")
+        self.wrong_contributor = ContributorFactory(email="wrong@test.com")
+
+        self.contribution = ContributionFactory(contributor=self.right_contributor)
+        self.url = reverse("contributions-cancel-recurring", kwargs={"pk": self.contribution.pk})
+
+    def _create_request(self, user):
+        request = self.factory.post(self.url)
+        request.user = user
+        force_authenticate(request, user=user)
+        return request
+
+    def test_success_when_contributor_owns_contribution(self):
+        request = self._create_request(self.right_contributor)
+        has_permission = self.permission.has_object_permission(request, {}, self.contribution)
+        self.assertTrue(has_permission)
+
+    def test_failure_when_contributor_does_not_own_contriubtion(self):
+        request = self._create_request(self.wrong_contributor)
+        has_permission = self.permission.has_object_permission(request, {}, self.contribution)
+        self.assertFalse(has_permission)
+
+    def test_success_when_not_a_contributor(self):
+        """
+        This permission does not prevent non-contributors from accessing resources.
+        """
+        request = self._create_request(self.regular_user)
+        has_permission = self.permission.has_object_permission(request, {}, self.contribution)
+        self.assertTrue(has_permission)

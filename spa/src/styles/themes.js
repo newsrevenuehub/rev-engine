@@ -24,7 +24,10 @@ export const revEngineTheme = {
     disabled: '#ebebeb',
     link: '#4183c4',
 
-    hover: '#eee'
+    hover: '#eee',
+
+    tableRowHover: '#bcd3f5',
+    tableRowActive: '#dce8fa'
   },
 
   font: "'Montserrat', sans-serif",

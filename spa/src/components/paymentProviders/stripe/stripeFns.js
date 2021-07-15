@@ -52,7 +52,7 @@ export function getTotalAmount(amount, shouldPayFee, orgIsNonProfit) {
   /*
     If we get 10, we should see 10. If we get 10.3, we should see 10.30.
   */
-  let total = amount;
+  let total = parseFloat(amount);
   if (shouldPayFee) total += parseFloat(calculateStripeFee(amount, orgIsNonProfit));
   total = total.toFixed(2);
   if (total.endsWith('.00')) total = total.substring(0, total.length - 3);
@@ -183,13 +183,15 @@ async function tryRecurringPayment(stripe, data, { card, paymentRequest }) {
  * @param {object} data - JSON-serialized form data
  * @returns a response from stripe.createPaymentMethod
  */
-async function createPaymentMethod(stripe, card, data) {
+export async function createPaymentMethod(stripe, card, data) {
+  const billing_details = {};
+  if (data?.given_name || data?.family_name) {
+    billing_details.name = `${data.given_name} ${data.family_name}`;
+  }
   return await stripe.createPaymentMethod({
     type: 'card',
     card: card,
-    billing_details: {
-      name: `${data.given_name} ${data.family_name}`
-    }
+    billing_details
   });
 }
 

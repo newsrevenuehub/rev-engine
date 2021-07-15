@@ -81,7 +81,7 @@ Cypress.Commands.add('getPaginatedDonations', () => {
   };
   const sortableColumns = ['last_payment_date', 'amount', 'contributor_email', 'modified', 'status', 'flagged_date'];
   const api = new ApiResourceList(donationsData, defaultSortBys, sortableColumns);
-  cy.intercept(`${getEndpoint(DONATIONS)}**`, (req) => {
+  cy.intercept({ pathname: getEndpoint(DONATIONS) }, (req) => {
     const urlSearchParams = new URLSearchParams(req.url.split('?')[1]);
     const pageSize = urlSearchParams.get('page_size');
     const pageNum = urlSearchParams.get('page');

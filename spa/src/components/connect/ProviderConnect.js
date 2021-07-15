@@ -1,6 +1,20 @@
 import { useState, createContext, useContext } from 'react';
 import * as S from './ProviderConnect.styled';
 
+// AJAX
+import useRequest from 'hooks/useRequest';
+import { USER } from 'ajax/endpoints';
+
+// Context
+import { useOrganizationContext } from 'components/Main';
+
+// Deps
+import { useAlert } from 'react-alert';
+
+// Constants
+import { LS_USER } from 'constants/authConstants';
+import { GENERIC_ERROR } from 'constants/textConstants';
+
 // Children
 import ConnectProcessing from 'components/connect/ConnectProcessing';
 import StripeProvider from 'components/connect/stripe/StripeProvider';
@@ -8,10 +22,28 @@ import StripeProvider from 'components/connect/stripe/StripeProvider';
 const ProviderFetchContext = createContext();
 
 function ProviderConnect() {
+  const alert = useAlert();
+  const requestUpdateUser = useRequest();
+  const { updateDefaultPaymentProvider } = useOrganizationContext();
   const [providerConnectInProgress, setProviderConnectInProgress] = useState(false);
 
+  const handleConnectSuccess = () => {
+    requestUpdateUser(
+      { method: 'GET', url: USER },
+      {
+        onSuccess: ({ data: user }) => {
+          updateDefaultPaymentProvider(user);
+          localStorage.setItem(LS_USER, JSON.stringify(user));
+        },
+        onFailure: (e) => alert.error(GENERIC_ERROR)
+      }
+    );
+  };
+
   return (
-    <ProviderFetchContext.Provider value={{ providerConnectInProgress, setProviderConnectInProgress }}>
+    <ProviderFetchContext.Provider
+      value={{ providerConnectInProgress, setProviderConnectInProgress, handleConnectSuccess }}
+    >
       <S.ProviderConnect data-testid="provider-connect">
         <h2>To continue, please connect a payment provider</h2>
         <S.ProvidersList>

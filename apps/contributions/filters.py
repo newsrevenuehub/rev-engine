@@ -1,11 +1,14 @@
 import django_filters
 
-from apps.contributions.models import Contribution
+from apps.contributions.models import Contribution, ContributionStatus
 
 
 class ContributionFilter(django_filters.FilterSet):
 
     contributor_email = django_filters.CharFilter(field_name="contributor__email", lookup_expr="icontains")
+    status = django_filters.MultipleChoiceFilter(choices=ContributionStatus.choices)
+    amount = django_filters.RangeFilter()
+    created = django_filters.DateTimeFromToRangeFilter()
 
     order_by_field = "ordering"
     ordering = django_filters.OrderingFilter(
@@ -22,6 +25,7 @@ class ContributionFilter(django_filters.FilterSet):
             ("contributor__email", "contributor_email"),
             ("status", "status"),
             ("interval", "interval"),
+            ("auto_accept_on", "auto_accept_on"),
         )
     )
 

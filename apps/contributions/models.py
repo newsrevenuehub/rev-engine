@@ -227,8 +227,7 @@ class ContributionMetadata(IndexedTimeStampedModel):
     description = models.TextField(null=True, blank=True)
     donor_supplied = models.BooleanField(
         default=False,
-        help_text="If true this field is available within revengine (e.g. mailing_street). "
-        "If true this will not show up in the front end list.",
+        help_text="If on, this field will be available for Org Admins to add to a donation page. If off, this field will not be visible on the front end.",
     )
 
     @staticmethod

@@ -179,7 +179,7 @@ function ColorPicker({ label, helpText, value, onChange }) {
               {internalValue.hex || <S.NoColor>Select a color...</S.NoColor>}
             </S.ColorButtonHex>
           </S.ColorButton>
-          <XButton type="caution" />
+          <XButton />
         </S.ColorButtonWrapper>
         {helpText && <HelpText>{helpText}</HelpText>}
         {colorPickerOpen && (

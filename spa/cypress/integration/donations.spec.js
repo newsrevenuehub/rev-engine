@@ -263,29 +263,28 @@ describe('Donation page', () => {
       cy.getByTestId('previous-page').should('not.be.disabled');
       cy.getByTestId('next-page').should('be.disabled');
     });
+  });
+  describe('Filtering', () => {
+    before(() => {
+      cy.login('user/stripe-verified.json');
+      cy.interceptPaginatedDonations();
+      cy.visit('/dashboard/donations/');
+    });
 
-    describe('Filtering', () => {
-      before(() => {
-        cy.login('user/stripe-verified.json');
-        cy.interceptPaginatedDonations();
-        cy.visit('/dashboard/donations/');
-      });
+    it('should render expected filters', () => {
+      const expectedFilterTestIds = ['status-filter', 'amount-filter', 'created-filter'];
+      expectedFilterTestIds.forEach((testId) => cy.getByTestId(testId).should('exist'));
+    });
 
-      it('should render expected filters', () => {
-        const expectedFilterTestIds = ['status-filter', 'amount-filter', 'created-filter'];
-        expectedFilterTestIds.forEach((testId) => cy.getByTestId(testId).should('exist'));
-      });
+    it('should display total results', () => {
+      cy.getByTestId('filter-results-count').should('exist');
+    });
 
-      it('should display total results', () => {
-        cy.getByTestId('filter-results-count').should('exist');
-      });
-
-      it('should update results to expected amount when filtering status', () => {
-        cy.interceptPaginatedDonations();
-        const expectedPaids = donationsData.filter((d) => d.status === 'paid');
-        cy.getByTestId('status-filter-paid').click();
-        cy.getByTestId('filter-results-count').contains(expectedPaids.length);
-      });
+    it('should update results to expected amount when filtering status', () => {
+      cy.interceptPaginatedDonations();
+      const expectedPaids = donationsData.filter((d) => d.status === 'paid');
+      cy.getByTestId('status-filter-paid').click();
+      cy.getByTestId('filter-results-count').contains(expectedPaids.length);
     });
   });
 });

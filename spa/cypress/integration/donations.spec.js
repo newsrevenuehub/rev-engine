@@ -134,135 +134,134 @@ describe('Donation page', () => {
             expect(row.dataset.lastpaymentdate <= rows[index].dataset.lastpaymentdate).to.be.true;
           });
       });
-
-      it('should make donations sortable by amount', () => {
-        cy.wait('@getDonations');
-        // will be in ascending order
-        cy.getByTestId('donation-header-amount').click();
-        cy.wait('@getDonations');
-        cy.getByTestId('donation-row').should(($rows) => {
-          const rows = $rows.toArray();
-          rows
-            .filter((row, index) => index > 0)
-            .forEach((row, index) => {
-              // index will be the previous row, because we filter out the first item.
-              expect(row.dataset.amount >= rows[index].dataset.amount).to.be.true;
-            });
-        });
-        // will be in descending order
-        cy.getByTestId('donation-header-amount').click();
-        cy.wait('@getDonations');
-        cy.getByTestId('donation-row').should(($rows) => {
-          const rows = $rows.toArray();
-          rows
-            .filter((row, index) => index > 0)
-            .forEach((row, index) => {
-              // index will be the previous row, because we filter out the first item.
-              expect(row.dataset.amount <= rows[index].dataset.amount).to.be.true;
-            });
-        });
+    });
+    it('should make donations sortable by amount', () => {
+      cy.wait('@getDonations');
+      // will be in ascending order
+      cy.getByTestId('donation-header-amount').click();
+      cy.wait('@getDonations');
+      cy.getByTestId('donation-row').should(($rows) => {
+        const rows = $rows.toArray();
+        rows
+          .filter((row, index) => index > 0)
+          .forEach((row, index) => {
+            // index will be the previous row, because we filter out the first item.
+            expect(row.dataset.amount >= rows[index].dataset.amount).to.be.true;
+          });
       });
-
-      it('should make donations sortable by donor', () => {
-        cy.wait('@getDonations');
-        // will be in ascending order
-        cy.getByTestId('donation-header-contributor_email').click();
-        cy.wait('@getDonations');
-        cy.getByTestId('donation-row').should(($rows) => {
-          const rows = $rows.toArray();
-          rows
-            .filter((row, index) => index > 0)
-            .forEach((row, index) => {
-              // index will be the previous row, because we filter out the first item.
-              expect(row.dataset.donor >= rows[index].dataset.donor).to.be.true;
-            });
-        });
-        // will be in descending order
-        cy.getByTestId('donation-header-contributor_email').click();
-        cy.wait('@getDonations');
-        cy.getByTestId('donation-row').should(($rows) => {
-          const rows = $rows.toArray();
-          rows
-            .filter((row, index) => index > 0)
-            .forEach((row, index) => {
-              // index will be the previous row, because we filter out the first item.
-              expect(row.dataset.donor <= rows[index].dataset.donor).to.be.true;
-            });
-        });
+      // will be in descending order
+      cy.getByTestId('donation-header-amount').click();
+      cy.wait('@getDonations');
+      cy.getByTestId('donation-row').should(($rows) => {
+        const rows = $rows.toArray();
+        rows
+          .filter((row, index) => index > 0)
+          .forEach((row, index) => {
+            // index will be the previous row, because we filter out the first item.
+            expect(row.dataset.amount <= rows[index].dataset.amount).to.be.true;
+          });
       });
+    });
 
-      it('should make donations sortable by status', () => {
-        cy.wait('@getDonations');
-        // will be in ascending order
-        cy.getByTestId('donation-header-status').click();
-        cy.wait('@getDonations');
-        cy.getByTestId('donation-row').should(($rows) => {
-          const rows = $rows.toArray();
-          rows
-            .filter((row, index) => index > 0)
-            .forEach((row, index) => {
-              // index will be the previous row, because we filter out the first item.
-              expect(row.dataset.status >= rows[index].dataset.status).to.be.true;
-            });
-        });
-        // will be in descending order
-        cy.getByTestId('donation-header-status').click();
-        cy.wait('@getDonations');
-        cy.getByTestId('donation-row').should(($rows) => {
-          const rows = $rows.toArray();
-          rows
-            .filter((row, index) => index > 0)
-            .forEach((row, index) => {
-              // index will be the previous row, because we filter out the first item.
-              expect(row.dataset.status <= rows[index].dataset.status).to.be.true;
-            });
-        });
+    it('should make donations sortable by donor', () => {
+      cy.wait('@getDonations');
+      // will be in ascending order
+      cy.getByTestId('donation-header-contributor_email').click();
+      cy.wait('@getDonations');
+      cy.getByTestId('donation-row').should(($rows) => {
+        const rows = $rows.toArray();
+        rows
+          .filter((row, index) => index > 0)
+          .forEach((row, index) => {
+            // index will be the previous row, because we filter out the first item.
+            expect(row.dataset.donor >= rows[index].dataset.donor).to.be.true;
+          });
       });
-
-      it('should make donations sortable by flagged date', () => {
-        cy.wait('@getDonations');
-        // will be in ascending order
-        cy.getByTestId('donation-header-flagged_date').click();
-        cy.wait('@getDonations');
-        cy.getByTestId('donation-row').should(($rows) => {
-          const rows = $rows.toArray();
-          rows
-            .filter((row, index) => index > 0)
-            .forEach((row, index) => {
-              // index will be the previous row, because we filter out the first item.
-              expect(row.dataset.flaggeddate >= rows[index].dataset.flaggeddate).to.be.true;
-            });
-        });
-        // will be in descending order
-        cy.getByTestId('donation-header-flagged_date').click();
-        cy.wait('@getDonations');
-        cy.getByTestId('donation-row').should(($rows) => {
-          const rows = $rows.toArray();
-          rows
-            .filter((row, index) => index > 0)
-            .forEach((row, index) => {
-              // index will be the previous row, because we filter out the first item.
-              expect(row.dataset.flaggeddate <= rows[index].dataset.flaggeddate).to.be.true;
-            });
-        });
+      // will be in descending order
+      cy.getByTestId('donation-header-contributor_email').click();
+      cy.wait('@getDonations');
+      cy.getByTestId('donation-row').should(($rows) => {
+        const rows = $rows.toArray();
+        rows
+          .filter((row, index) => index > 0)
+          .forEach((row, index) => {
+            // index will be the previous row, because we filter out the first item.
+            expect(row.dataset.donor <= rows[index].dataset.donor).to.be.true;
+          });
       });
+    });
 
-      it('should display the total number of results', () => {
-        cy.wait('@getDonations').then((intercept) => {
-          cy.getByTestId('total-results').contains(intercept.response.body.count);
-        });
+    it('should make donations sortable by status', () => {
+      cy.wait('@getDonations');
+      // will be in ascending order
+      cy.getByTestId('donation-header-status').click();
+      cy.wait('@getDonations');
+      cy.getByTestId('donation-row').should(($rows) => {
+        const rows = $rows.toArray();
+        rows
+          .filter((row, index) => index > 0)
+          .forEach((row, index) => {
+            // index will be the previous row, because we filter out the first item.
+            expect(row.dataset.status >= rows[index].dataset.status).to.be.true;
+          });
       });
-
-      it('should have working page controls', () => {
-        cy.wait('@getDonations');
-        // initial state when 2 pages
-        cy.getByTestId('previous-page').should('be.disabled');
-        cy.getByTestId('next-page').should('not.be.disabled');
-
-        cy.getByTestId('next-page').click();
-        cy.getByTestId('previous-page').should('not.be.disabled');
-        cy.getByTestId('next-page').should('be.disabled');
+      // will be in descending order
+      cy.getByTestId('donation-header-status').click();
+      cy.wait('@getDonations');
+      cy.getByTestId('donation-row').should(($rows) => {
+        const rows = $rows.toArray();
+        rows
+          .filter((row, index) => index > 0)
+          .forEach((row, index) => {
+            // index will be the previous row, because we filter out the first item.
+            expect(row.dataset.status <= rows[index].dataset.status).to.be.true;
+          });
       });
+    });
+
+    it('should make donations sortable by flagged date', () => {
+      cy.wait('@getDonations');
+      // will be in ascending order
+      cy.getByTestId('donation-header-flagged_date').click();
+      cy.wait('@getDonations');
+      cy.getByTestId('donation-row').should(($rows) => {
+        const rows = $rows.toArray();
+        rows
+          .filter((row, index) => index > 0)
+          .forEach((row, index) => {
+            // index will be the previous row, because we filter out the first item.
+            expect(row.dataset.flaggeddate >= rows[index].dataset.flaggeddate).to.be.true;
+          });
+      });
+      // will be in descending order
+      cy.getByTestId('donation-header-flagged_date').click();
+      cy.wait('@getDonations');
+      cy.getByTestId('donation-row').should(($rows) => {
+        const rows = $rows.toArray();
+        rows
+          .filter((row, index) => index > 0)
+          .forEach((row, index) => {
+            // index will be the previous row, because we filter out the first item.
+            expect(row.dataset.flaggeddate <= rows[index].dataset.flaggeddate).to.be.true;
+          });
+      });
+    });
+
+    it('should display the total number of results', () => {
+      cy.wait('@getDonations').then((intercept) => {
+        cy.getByTestId('total-results').contains(intercept.response.body.count);
+      });
+    });
+
+    it('should have working page controls', () => {
+      cy.wait('@getDonations');
+      // initial state when 2 pages
+      cy.getByTestId('previous-page').should('be.disabled');
+      cy.getByTestId('next-page').should('not.be.disabled');
+
+      cy.getByTestId('next-page').click();
+      cy.getByTestId('previous-page').should('not.be.disabled');
+      cy.getByTestId('next-page').should('be.disabled');
     });
 
     describe('Filtering', () => {

@@ -225,10 +225,12 @@ function PageEditor() {
           alert.success(successMessage);
           setPage(data);
           setSelectedButton(PREVIEW);
+          setLoading(false);
         },
         onFailure: (e) => {
           alert.error(GENERIC_ERROR);
           setSelectedButton(PREVIEW);
+          setLoading(false);
         }
       }
     );
@@ -355,14 +357,9 @@ function cleanStyles(styles) {
 
 async function addScreenshotToCleanedData(cleanedData) {
   const dataWithScreenshot = { ...cleanedData };
-  try {
-    const canvas = await html2canvas(document.getElementById('root'));
-    dataWithScreenshot.page_screenshot = canvas.toDataURL();
-  } catch (e) {
-    console.error('Error capturing screenshot: ', e);
-  } finally {
-    return dataWithScreenshot;
-  }
+  const canvas = await html2canvas(document.getElementById('root'));
+  dataWithScreenshot.page_screenshot = canvas.toDataURL();
+  return dataWithScreenshot;
 }
 
 function formatPageScreenshot(dataUrl, page) {

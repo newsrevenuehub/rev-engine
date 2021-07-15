@@ -10,6 +10,8 @@ const STRIPE_PAYMENT_METHODS = [
 ];
 const NOT_ENOUGH_PAYMENT_METHODS = 'You must enable at least one payment method';
 
+let offerPayFees = false;
+
 function PaymentEditor() {
   const { elementContent, setElementContent } = useEditInterfaceContext();
 
@@ -27,8 +29,8 @@ function PaymentEditor() {
     setElementContent({ ...(elementContent || {}), ...enabledMethods });
   };
 
-  const toggleOfferPayFees = (e) => {
-    const offerPayFees = e.target.checked;
+  const toggleOfferPayFees = () => {
+    offerPayFees = !offerPayFees;
     setElementContent({ ...elementContent, offerPayFees });
   };
 

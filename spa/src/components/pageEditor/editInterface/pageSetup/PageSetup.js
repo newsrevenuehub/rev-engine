@@ -38,7 +38,7 @@ function PageSetup({ backToProperties }) {
   const [thank_you_redirect, setThankYouRedirect] = useState(page.thank_you_redirect);
   const [post_thank_you_redirect, setPostThankYouRedirect] = useState(page.post_thank_you_redirect);
   const [donor_benefits, setDonorBenefits] = useState(page.donor_benefits);
-  const [published_date, setPublishedDate] = useState(new Date(page.published_date) || new Date());
+  const [published_date, setPublishedDate] = useState(page.published_date ? new Date(page.published_date) : undefined);
 
   const handleKeepChanges = () => {
     verifyUnpublish(updatePage);

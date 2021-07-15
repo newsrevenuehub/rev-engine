@@ -14,14 +14,17 @@ function PaymentEditor() {
   const { elementContent, setElementContent } = useEditInterfaceContext();
 
   const setToggled = (checked, method, provider) => {
-    let enabledMethods = { ...elementContent };
+    let enabledMethods = { ...(elementContent || {}) };
     if (checked) {
-      const mIndex = enabledMethods[provider].findIndex((m) => m === method);
-      if (mIndex === -1) enabledMethods[provider].push(method);
+      const mIndex = enabledMethods[provider]?.findIndex((m) => m === method);
+      // No mIndex means enbabledMethods was empty.
+      if (!mIndex) {
+        enabledMethods[provider] = [method];
+      } else if (mIndex === -1) enabledMethods[provider].push(method);
     } else {
       enabledMethods[provider] = enabledMethods[provider].filter((m) => m !== method);
     }
-    setElementContent({ ...elementContent, ...enabledMethods });
+    setElementContent({ ...(elementContent || {}), ...enabledMethods });
   };
 
   return (
@@ -31,7 +34,7 @@ function PaymentEditor() {
           <S.Toggle
             label={`Enable payment via ${paymentMethod.displayName}`}
             toggle
-            checked={isPaymentMethodOn(paymentMethod.value, elementContent.stripe)}
+            checked={isPaymentMethodOn(paymentMethod?.value, elementContent?.stripe)}
             onChange={(_e, { checked }) => setToggled(checked, paymentMethod.value, 'stripe')}
           />
         </S.ToggleWrapper>
@@ -45,6 +48,7 @@ PaymentEditor.for = 'DPayment';
 export default PaymentEditor;
 
 PaymentEditor.hasErrors = (content) => {
+  if (!content) return NOT_ENOUGH_PAYMENT_METHODS;
   // Each provider must have at least one method
   let hasErrors = false;
   Object.keys(content).forEach((provider) => {
@@ -56,5 +60,6 @@ PaymentEditor.hasErrors = (content) => {
 };
 
 function isPaymentMethodOn(value, methodList) {
+  if (!value || !methodList) return false;
   return methodList.some((method) => method === value);
 }

@@ -1,6 +1,3 @@
-# apps/contributions/management/commands/create_stripe_webhooks.py   1-21
-
-import os
 from io import StringIO
 from unittest.mock import patch
 

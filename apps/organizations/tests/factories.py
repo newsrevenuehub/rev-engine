@@ -28,6 +28,7 @@ class PlanFactory(DjangoModelFactory):
 class OrganizationFactory(DjangoModelFactory):
     class Meta:
         model = models.Organization
+        django_get_or_create = ("name",)
 
     name = factory.Sequence(lambda n: f"{fake.company()}-{str(n)}")
     stripe_account_id = fake.uuid4()

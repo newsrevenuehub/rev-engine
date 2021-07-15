@@ -19,6 +19,7 @@ export const DashboardMain = styled.div`
   display: flex;
   flex-direction: column;
   overflow-y: auto;
+  padding-bottom: 2rem;
 `;
 
 export const DashboardContent = styled.main`

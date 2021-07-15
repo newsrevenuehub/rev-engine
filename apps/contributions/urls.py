@@ -13,5 +13,11 @@ urlpatterns = [
         views.process_stripe_webhook_view,
         name="stripe-webhooks",
     ),
-    path("contributions/", views.ContributionsListView.as_view({"get": "list"}), name="contributions"),
+    path(
+        "contributions/<int:pk>/cancel-recurring/",
+        views.cancel_recurring_payment,
+        name="contributions-cancel-recurring",
+    ),
+    path("contributions/<int:pk>/update-payment-method/", views.update_payment_method, name="contributions-update"),
+    path("contributions/", views.ContributionsListView.as_view({"get": "list"}), name="contributions-list"),
 ]

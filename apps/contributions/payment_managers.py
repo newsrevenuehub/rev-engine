@@ -72,7 +72,7 @@ class PaymentManager:
         self.data = data
         self.serializer_class = self.get_serializer_class(data=data, contribution=contribution)
 
-    def get_serializer_class(self, **kwargs):
+    def get_serializer_class(self, **kwargs):  # pragma: no cover
         raise NotImplementedError("Subclasses of PaymentManager must implement get_serializer_class")
 
     def validate(self):
@@ -102,6 +102,10 @@ class PaymentManager:
     def ensure_bad_actor_score(self):
         if self.flagged is None:
             raise ValueError("PaymentManager must call 'get_bad_actor_score' before performing this action")
+
+    def ensure_contribution(self):
+        if not self.contribution:
+            raise ValueError("Method requires PaymentManager to be instantiated with contribution instance")
 
     def should_flag(self):
         """
@@ -136,7 +140,7 @@ class PaymentManager:
         return contributor
 
     def create_contribution(self, organization, provider_reference_instance=None, provider_customer_id=""):
-        if not self.payment_provider_name:
+        if not self.payment_provider_name:  # pragma: no cover
             raise ValueError("Subclass of PaymentManager must set payment_provider_name property")
 
         status = ContributionStatus.FLAGGED if self.flagged else ContributionStatus.PROCESSING
@@ -237,13 +241,47 @@ class StripePaymentManager(PaymentManager):
             stripe_account=organization.stripe_account_id,
         )
 
-    def attach_payment_method_to_customer(self, stripe_customer_id, org_strip_account):
-        stripe.PaymentMethod.attach(
-            self.validated_data["payment_method_id"],
-            customer=stripe_customer_id,
-            api_key=get_hub_stripe_api_key(),
-            stripe_account=org_strip_account,
-        )
+    def attach_payment_method_to_customer(self, stripe_customer_id, org_strip_account, payment_method_id=None):
+        try:
+            stripe.PaymentMethod.attach(
+                payment_method_id if payment_method_id else self.validated_data["payment_method_id"],
+                customer=stripe_customer_id,
+                api_key=get_hub_stripe_api_key(),
+                stripe_account=org_strip_account,
+            )
+        except stripe.error.StripeError as stripe_error:
+            logger.error(f"stripe.PaymentMethod.attach returned a StripeError: {str(stripe_error)}")
+            self._handle_stripe_error(stripe_error)
+
+    def cancel_recurring_payment(self):
+        self.ensure_contribution()
+        organization = self.contribution.organization
+        try:
+            stripe.Subscription.delete(
+                self.contribution.provider_subscription_id,
+                api_key=get_hub_stripe_api_key(),
+                stripe_account=organization.stripe_account_id,
+            )
+        except stripe.error.StripeError as stripe_error:
+            logger.error(f"stripe.Subscription.modify returned a StripeError: {str(stripe_error)}")
+            self._handle_stripe_error(stripe_error)
+
+    def update_payment_method(self, payment_method_id):
+        self.ensure_contribution()
+
+        customer_id = self.contribution.provider_customer_id
+        organization = self.contribution.organization
+        self.attach_payment_method_to_customer(customer_id, organization.stripe_account_id, payment_method_id)
+        try:
+            stripe.Subscription.modify(
+                self.contribution.provider_subscription_id,
+                default_payment_method=payment_method_id,
+                stripe_account=organization.stripe_account_id,
+                api_key=get_hub_stripe_api_key(),
+            )
+        except stripe.error.StripeError as stripe_error:
+            logger.error(f"stripe.Subscription.modify returned a StripeError: {str(stripe_error)}")
+            self._handle_stripe_error(stripe_error)
 
     def complete_payment(self, reject=False):
         if self.contribution.interval == ContributionInterval.ONE_TIME:
@@ -280,11 +318,7 @@ class StripePaymentManager(PaymentManager):
             )
             raise PaymentProviderError(invalid_request_error)
         except stripe.error.StripeError as stripe_error:
-            self.contribution.status = previous_status
-            self.contribution.save()
-
-            message = stripe_error.error.message if stripe_error.error else "Could not complete payment"
-            raise PaymentProviderError(message)
+            self._handle_stripe_error(stripe_error, previous_status=previous_status)
 
     def complete_recurring_payment(self, reject=False):
         if reject:
@@ -317,16 +351,19 @@ class StripePaymentManager(PaymentManager):
                 stripe_account=organization.stripe_account_id,
                 api_key=get_hub_stripe_api_key(),
             )
-
-            self.contribution.payment_provider_data = subscription
-            self.contribution.provider_subscription_id = subscription.id
-            self.contribution.save()
-
         except stripe.error.StripeError as stripe_error:
+            self._handle_stripe_error(stripe_error, previous_status=previous_status)
+
+        self.contribution.payment_provider_data = subscription
+        self.contribution.provider_subscription_id = subscription.id
+        self.contribution.save()
+
+    def _handle_stripe_error(self, stripe_error, previous_status=None):
+        if previous_status:
             self.contribution.status = previous_status
             self.contribution.save()
-            message = stripe_error.error.message if stripe_error.error else "Could not complete payment"
-            raise PaymentProviderError(message)
+        message = stripe_error.error.message if stripe_error.error else "Could not complete payment"
+        raise PaymentProviderError(message)
 
     def _get_interval(self):  # pragma: no cover
         """

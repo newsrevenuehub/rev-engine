@@ -32,12 +32,12 @@ def _get_flagged_date(bad_actor_score, created_at):
 
 def _get_status(bad_actor_score):
     if bad_actor_score >= settings.BAD_ACTOR_FAIL_ABOVE:
-        return models.ContributionStatus.FLAGGED[0]
+        return models.ContributionStatus.FLAGGED
     return random.choice(
         [
-            models.ContributionStatus.PROCESSING[0],
-            models.ContributionStatus.PAID[0],
-            models.ContributionStatus.CANCELED[0],
+            models.ContributionStatus.PROCESSING,
+            models.ContributionStatus.PAID,
+            models.ContributionStatus.CANCELED,
         ]
     )
 

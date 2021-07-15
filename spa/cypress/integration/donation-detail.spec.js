@@ -1,16 +1,16 @@
-import donationDetailData from '../fixtures/donations/donation-244.json';
-import { DONATIONS } from 'ajax/endpoints';
+import contributionDetailData from '../fixtures/donations/donation-244.json';
+import { CONTRIBUTIONS } from 'ajax/endpoints';
 import { getEndpoint } from '../support/util';
 
-const DONATION_DETAIL_PK = '244';
+const CONTRIBUTION_DETAIL_PK = '244';
 
 describe('Donation page', () => {
   beforeEach(() => {
     cy.login('user/stripe-verified.json');
-    cy.intercept('GET', getEndpoint(`${DONATIONS}/${DONATION_DETAIL_PK}/`), {
-      body: donationDetailData
+    cy.intercept('GET', getEndpoint(`${CONTRIBUTIONS}/${CONTRIBUTION_DETAIL_PK}/`), {
+      body: contributionDetailData
     }).as('getDonation');
-    cy.visit(`/dashboard/donations/${DONATION_DETAIL_PK}`);
+    cy.visit(`/dashboard/donations/${CONTRIBUTION_DETAIL_PK}`);
   });
   it('should display donation details', () => {
     cy.wait('@getDonation');

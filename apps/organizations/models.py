@@ -102,7 +102,7 @@ class Organization(IndexedTimeStampedModel):
         payment_provider_verified = getattr(self, f"{payment_provider}_verified", None)
         return payment_provider and payment_provider_account_id and payment_provider_verified
 
-    def create_default_stripe_product(self):
+    def stripe_create_default_product(self):
         if not self.stripe_product_id:
             product = stripe.Product.create(
                 name=settings.GENERIC_STRIPE_PRODUCT_NAME,

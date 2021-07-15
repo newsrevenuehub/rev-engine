@@ -1,6 +1,6 @@
 import { TOKEN } from 'ajax/endpoints';
 import { getEndpoint } from './util';
-import { FULL_PAGE, STRIPE_PAYMENT, DONATIONS } from 'ajax/endpoints';
+import { FULL_PAGE, STRIPE_PAYMENT, CONTRIBUTIONS } from 'ajax/endpoints';
 import { DEFAULT_RESULTS_ORDERING } from 'components/donations/DonationsTable';
 import { ApiResourceList } from '../support/restApi';
 import donationsData from '../fixtures/donations/18-results.json';
@@ -74,18 +74,21 @@ Cypress.Commands.add('makeDonation', () => {
   cy.getByTestId('donation-submit').click();
 });
 
-Cypress.Commands.add('getPaginatedDonations', () => {
+Cypress.Commands.add('interceptPaginatedDonations', () => {
   const defaultSortBys = {
     columns: DEFAULT_RESULTS_ORDERING.map((item) => item.id),
     directions: DEFAULT_RESULTS_ORDERING.map((item) => (item.desc ? 'desc' : 'asc'))
   };
   const sortableColumns = ['last_payment_date', 'amount', 'contributor_email', 'modified', 'status', 'flagged_date'];
+  const filterableColumns = ['created', 'status', 'amount'];
   const api = new ApiResourceList(donationsData, defaultSortBys, sortableColumns);
-  cy.intercept({ pathname: getEndpoint(DONATIONS) }, (req) => {
+  cy.intercept({ pathname: getEndpoint(CONTRIBUTIONS) }, (req) => {
     const urlSearchParams = new URLSearchParams(req.url.split('?')[1]);
     const pageSize = urlSearchParams.get('page_size');
     const pageNum = urlSearchParams.get('page');
     const ordering = urlSearchParams.get('ordering');
-    req.reply(api.getResponse(pageSize, pageNum, ordering));
+    const filters = {};
+    filterableColumns.forEach((f) => (filters[f] = urlSearchParams.getAll(f)));
+    req.reply(api.getResponse(pageSize, pageNum, ordering, filters));
   }).as('getDonations');
 });

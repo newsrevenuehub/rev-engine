@@ -8,7 +8,7 @@ import formatCurrencyAmount from 'utilities/formatCurrencyAmount';
 import formatDatetimeForDisplay from 'utilities/formatDatetimeForDisplay';
 
 import useRequest from 'hooks/useRequest';
-import { DONATIONS } from 'ajax/endpoints';
+import { CONTRIBUTIONS } from 'ajax/endpoints';
 
 import { GENERIC_ERROR, NO_VALUE } from 'constants/textConstants';
 
@@ -25,7 +25,7 @@ function DonationDetail() {
     requestDonationDetail(
       {
         method: 'GET',
-        url: `${DONATIONS}${contributionId}/`
+        url: `${CONTRIBUTIONS}${contributionId}/`
       },
       { onSuccess: handleGetDonationSuccess, onFailure: handleGetDonationFailure }
     );

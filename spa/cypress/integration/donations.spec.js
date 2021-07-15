@@ -37,6 +37,11 @@ describe('Donation page', () => {
         rawName: 'flagged_date',
         renderedName: 'Date flagged',
         transform: (rawVal) => (rawVal ? formatDatetimeForDisplay(rawVal) : missingValueString)
+      },
+      {
+        rawName: 'id',
+        renderedName: '',
+        transform: (rawVal) => 'Details...'
       }
     ];
     cy.getByTestId('donation-header', {}, true).should('have.length', columnExpectations.length);
@@ -58,6 +63,14 @@ describe('Donation page', () => {
         const cellVal = $cellEl.innerText;
         expect(cellVal).to.equal(transform(dataVal));
       });
+    });
+  });
+  it('should link to donation detail page for each donation in list', () => {
+    cy.wait('@getDonations');
+    cy.getByTestId('donation-row').each((row) => {
+      expect(row.find('td[data-testcolumnaccessor="id"] > a').attr('href')).to.equal(
+        `/dashboard/donations/${row.attr('data-donationid')}/`
+      );
     });
   });
   it('should display the second page of donations when click on next page', () => {

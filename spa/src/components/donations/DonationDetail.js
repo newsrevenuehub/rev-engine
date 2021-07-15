@@ -55,37 +55,39 @@ function DonationDetail() {
     contributor_email: contributorEmail
   } = donationData || {};
   return (
-    <S.DonationDetail>
+    <S.DonationDetail data-testid="donation-detail">
       {isLoading ? (
         <Spinner />
       ) : (
         <dl>
           <dt>Donor</dt>
-          <dd>{contributorEmail}</dd>
+          <dd data-testid="donorEmail">{contributorEmail}</dd>
 
           <dt>Amount</dt>
-          <dd>{amount ? formatCurrencyAmount(amount) : NO_VALUE}</dd>
+          <dd data-testid="amount">{amount ? formatCurrencyAmount(amount) : NO_VALUE}</dd>
 
           <dt>Payment interval</dt>
-          <dd>{interval}</dd>
+          <dd data-testid="interval">{interval}</dd>
 
           <dt>Last payment date</dt>
-          <dd>{lastPaymentDate ? formatDatetimeForDisplay(lastPaymentDate) : NO_VALUE}</dd>
+          <dd data-testid="lastPaymentDate">
+            {lastPaymentDate ? formatDatetimeForDisplay(lastPaymentDate) : NO_VALUE}
+          </dd>
 
           <dt>Flagged date</dt>
-          <dd>{flaggedDate ? formatDatetimeForDisplay(flaggedDate) : NO_VALUE}</dd>
+          <dd data-testid="flaggedDate">{flaggedDate ? formatDatetimeForDisplay(flaggedDate) : NO_VALUE}</dd>
 
           <dt>Payment provider</dt>
-          <dd>{paymentProvider || NO_VALUE}</dd>
+          <dd data-testid="paymentProvider">{paymentProvider || NO_VALUE}</dd>
 
           <dt>Payment Provider customer ID</dt>
-          <dd>{paymentProviderCustomerId || NO_VALUE}</dd>
+          <dd data-testid="paymentProviderCustomerId">{paymentProviderCustomerId || NO_VALUE}</dd>
 
           <dt>Donation reason</dt>
-          <dd>{reason || NO_VALUE}</dd>
+          <dd data-testid="reason">{reason || NO_VALUE}</dd>
 
           <dt>Status</dt>
-          <dd>{status}</dd>
+          <dd data-testid="status">{status}</dd>
         </dl>
       )}
     </S.DonationDetail>

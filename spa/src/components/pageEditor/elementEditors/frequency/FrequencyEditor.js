@@ -55,7 +55,7 @@ function getFrequencyState(freq, frequencies) {
 
 FrequencyEditor.hasErrors = (content) => {
   // Must have at the minimum frequencies
-  if (content.length < MINIMUM_FREQUENCIES) {
+  if (!content || content.length < MINIMUM_FREQUENCIES) {
     return NOT_ENOUGH_FREQS;
   }
   return false;

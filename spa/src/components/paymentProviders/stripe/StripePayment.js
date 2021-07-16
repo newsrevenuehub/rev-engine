@@ -16,7 +16,7 @@ import { useParams } from 'react-router-dom';
 import ElementLoading from 'components/donationPage/pageContent/ElementLoading';
 import StripePaymentForm from 'components/paymentProviders/stripe/StripePaymentForm';
 
-function StripePayment() {
+function StripePayment({ offerPayFees }) {
   const [loading, setLoading] = useState(false);
   const [stripe, setStripe] = useState();
   const requestOrgStripeAccountId = useRequest();
@@ -44,7 +44,7 @@ function StripePayment() {
       {(loading || !stripe) && <ElementLoading />}
       {stripe && (
         <Elements stripe={stripe}>
-          <StripePaymentForm loading={loading} setLoading={setLoading} />
+          <StripePaymentForm loading={loading} setLoading={setLoading} offerPayFees={offerPayFees} />
         </Elements>
       )}
     </S.StripePayment>

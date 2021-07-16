@@ -3,8 +3,7 @@ import PropTypes from 'prop-types';
 import * as S from './DAmount.styled';
 
 // Util
-import { getFrequencyAdverb, getFrequencyAdjective, getFrequencyRate } from 'utilities/parseFrequency';
-import calculateStripeFee from 'utilities/calculateStripeFee';
+import { getFrequencyAdjective, getFrequencyRate } from 'utilities/parseFrequency';
 
 // Context
 import { usePage } from '../DonationPage';
@@ -15,7 +14,7 @@ import SelectableButton from 'elements/buttons/SelectableButton';
 import FormErrors from 'elements/inputs/FormErrors';
 
 function DAmount({ element, ...props }) {
-  const { frequency, fee, setFee, payFee, setPayFee, setAmount, errors } = usePage();
+  const { frequency, setAmount, errors } = usePage();
 
   const [selectedAmount, setSelectedAmount] = useState(0);
   const [otherAmount, setOtherAmount] = useState('');
@@ -45,10 +44,8 @@ function DAmount({ element, ...props }) {
         element.content?.options[frequency] &&
         element.content?.options[frequency][selectedAmount];
     }
-    const fee = calculateStripeFee(amount);
     setAmount(amount);
-    setFee(fee);
-  }, [selectedAmount, otherAmount, frequency, element?.content?.options, setAmount, setFee]);
+  }, [selectedAmount, otherAmount, frequency, element?.content?.options, setAmount]);
 
   return (
     <DElement
@@ -82,20 +79,6 @@ function DAmount({ element, ...props }) {
         )}
       </S.DAmount>
       <FormErrors errors={errors.amount} />
-      {element.content?.offerPayFees && (
-        <S.PayFees data-testid="pay-fees">
-          <S.PayFeesQQ>Agree to pay fees?</S.PayFeesQQ>
-          <S.Checkbox
-            label={fee ? `$${fee} ${getFrequencyAdverb(frequency)}` : ''}
-            toggle
-            checked={payFee}
-            onChange={(_e, { checked }) => setPayFee(checked)}
-          />
-          <S.PayFeesDescription>
-            Paying the Stripe transaction fee, while not required, directs more money in support of our mission.
-          </S.PayFeesDescription>
-        </S.PayFees>
-      )}
     </DElement>
   );
 }

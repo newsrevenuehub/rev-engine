@@ -25,6 +25,15 @@ class OrganizationSerializer(serializers.ModelSerializer):
         fields = "__all__"
 
 
+class RevenueProgramInlineSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = RevenueProgram
+        fields = [
+            "id",
+            "name",
+        ]
+
+
 class RevenueProgramSerializer(serializers.ModelSerializer):
     slug = serializers.SlugField(required=False)
 

@@ -10,7 +10,7 @@ import formatDatetimeForDisplay from 'utilities/formatDatetimeForDisplay';
 import formatCurrencyAmount from 'utilities/formatCurrencyAmount';
 import toTitleCase from 'utilities/toTitleCase';
 
-describe('Donation page', () => {
+describe('Donations list', () => {
   describe('Table', () => {
     beforeEach(() => {
       cy.login('user/stripe-verified.json');
@@ -252,7 +252,7 @@ describe('Donation page', () => {
     });
   });
 
-  describe.only('Filtering', () => {
+  describe('Filtering', () => {
     before(() => {
       cy.login('user/stripe-verified.json');
       cy.interceptPaginatedDonations();

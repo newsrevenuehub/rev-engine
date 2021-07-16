@@ -275,7 +275,6 @@ describe('Donations list', () => {
     });
 
     it('should update results to expected amount when filtering status', () => {
-      // cy.interceptPaginatedDonations();
       cy.wait('@getDonations');
       const expectedPaids = donationsData.filter((d) => d.status === 'paid');
       cy.getByTestId('status-filter-paid').click();

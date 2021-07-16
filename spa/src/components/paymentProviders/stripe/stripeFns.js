@@ -1,5 +1,6 @@
 import axios from 'ajax/axios';
 import { STRIPE_PAYMENT } from 'ajax/endpoints';
+import calculateStripeFee from 'utilities/calculateStripeFee';
 
 const STRIPE_PAYMENT_TIMEOUT = 12 * 1000;
 
@@ -47,12 +48,12 @@ export default submitPayment;
  * @param {boolean} shouldPayFee - whether or not to include the fee in the total value
  * @returns A human readable amount in dollars
  */
-export function getTotalAmount(amount, fee, shouldPayFee) {
+export function getTotalAmount(amount, shouldPayFee, orgIsNonProfit) {
   /*
     If we get 10, we should see 10. If we get 10.3, we should see 10.30.
   */
-  let total = amount;
-  if (shouldPayFee) total += parseFloat(fee);
+  let total = parseFloat(amount);
+  if (shouldPayFee) total += parseFloat(calculateStripeFee(amount, orgIsNonProfit));
   total = total.toFixed(2);
   if (total.endsWith('.00')) total = total.substring(0, total.length - 3);
   return total;
@@ -95,7 +96,7 @@ function serializeForm(form) {
  */
 export function serializeData(formRef, state) {
   const serializedData = serializeForm(formRef);
-  serializedData['amount'] = getTotalAmount(state.amount, state.fee, state.payFee).toString();
+  serializedData['amount'] = getTotalAmount(state.amount, state.payFee, state.orgIsNonProfit).toString();
   serializedData['revenue_program_slug'] = state.revProgramSlug;
   serializedData['donation_page_slug'] = state.pageSlug;
 
@@ -182,13 +183,15 @@ async function tryRecurringPayment(stripe, data, { card, paymentRequest }) {
  * @param {object} data - JSON-serialized form data
  * @returns a response from stripe.createPaymentMethod
  */
-async function createPaymentMethod(stripe, card, data) {
+export async function createPaymentMethod(stripe, card, data) {
+  const billing_details = {};
+  if (data?.given_name || data?.family_name) {
+    billing_details.name = `${data.given_name} ${data.family_name}`;
+  }
   return await stripe.createPaymentMethod({
     type: 'card',
     card: card,
-    billing_details: {
-      name: `${data.given_name} ${data.family_name}`
-    }
+    billing_details
   });
 }
 

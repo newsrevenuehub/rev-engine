@@ -12,6 +12,14 @@ export const DashboardSidebar = styled.aside`
   display: flex;
   flex-direction: column;
   justify-content: space-between;
+  overflow-y: auto;
+
+  @media (${(props) => props.theme.breakpoints.tabletLandscapeDown}) {
+    padding-top: 0;
+    flex-direction: row;
+    height: 80px;
+    width: 100%;
+  }
 `;
 
 export const NavList = styled.ul`
@@ -22,6 +30,8 @@ export const NavList = styled.ul`
 
   @media (${(props) => props.theme.breakpoints.tabletLandscapeDown}) {
     flex-direction: row;
+    align-items: flex-end;
+    padding: 0;
   }
 `;
 
@@ -36,6 +46,16 @@ export const NavItem = styled(NavLink)`
 
   &.active {
     border-left: 5px solid ${(props) => props.theme.colors.primary};
+  }
+
+  @media (${(props) => props.theme.breakpoints.tabletLandscapeDown}) {
+    margin: 0;
+    padding: 1rem;
+    border-bottom: 5px solid transparent;
+    &.active {
+      border-left: none;
+      border-bottom: 5px solid ${(props) => props.theme.colors.primary};
+    }
   }
 `;
 

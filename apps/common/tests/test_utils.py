@@ -1,3 +1,6 @@
+import random
+from datetime import date, timedelta
+
 from django.contrib.messages.middleware import MessageMiddleware
 from django.contrib.sessions.middleware import SessionMiddleware
 
@@ -43,3 +46,7 @@ def setup_request(user, request):
 
     request.session["some"] = "some"
     request.session.save()
+
+
+def generate_random_datetime(start, end):
+    return start + timedelta(seconds=random.randint(0, int((end - start).total_seconds())))

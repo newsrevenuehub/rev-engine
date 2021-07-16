@@ -214,7 +214,7 @@ function StripePaymentForm({ loading, setLoading, offerPayFees }) {
       >
         Give ${getTotalAmount(amount, payFee, page.organization_is_nonprofit)} {getFrequencyAdverb(frequency)}
       </Button>
-      {errors.stripe && (
+      {errors?.stripe && (
         <S.PaymentError role="alert" data-testid="donation-error">
           {errors.stripe}
         </S.PaymentError>

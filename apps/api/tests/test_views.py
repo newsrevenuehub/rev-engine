@@ -11,6 +11,7 @@ from rest_framework.reverse import reverse
 from rest_framework.test import APITestCase
 from rest_framework_simplejwt.tokens import AccessToken
 
+from apps.api.serializers import ERROR_MESSAGE_BLANK
 from apps.api.tokens import ContributorRefreshToken
 from apps.api.views import TokenObtainPairCookieView
 from apps.contributions.models import Contributor
@@ -83,7 +84,7 @@ class RequestContributorTokenEmailViewTest(APITestCase):
     def test_validation_when_email_is_blank(self):
         response = self.client.post(self.url, {"email": ""})
         self.assertEqual(response.status_code, 400)
-        self.assertEqual(str(response.data["email"][0]), "This field may not be blank.")
+        self.assertEqual(str(response.data["email"][0]), ERROR_MESSAGE_BLANK)
 
     def test_token_appears_in_outbound_email(self):
         target_email = self.contributor.email

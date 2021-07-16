@@ -13,7 +13,12 @@ from rest_framework.response import Response
 from apps.api.permissions import ContributorOwnsContribution, IsContributor, UserBelongsToOrg
 from apps.contributions import serializers
 from apps.contributions.filters import ContributionFilter
-from apps.contributions.models import Contribution, ContributionInterval, Contributor
+from apps.contributions.models import (
+    Contribution,
+    ContributionInterval,
+    ContributionMetadata,
+    Contributor,
+)
 from apps.contributions.payment_managers import (
     PaymentBadParamsError,
     PaymentProviderError,
@@ -255,3 +260,12 @@ def cancel_recurring_payment(request, pk):
         return Response({"detail": error_message}, status=status.HTTP_400_BAD_REQUEST)
 
     return Response({"detail": "Success"}, status=status.HTTP_200_OK)
+
+
+class ContributionMetadataListView(viewsets.ReadOnlyModelViewSet):
+    serializer_class = serializers.ContributionMetadataSerializer
+    model = ContributionMetadata
+    pagination_class = None
+
+    def get_queryset(self):
+        return self.model.objects.all()

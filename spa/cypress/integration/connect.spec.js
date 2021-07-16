@@ -15,16 +15,6 @@ describe('Payment provider connect', () => {
   });
 
   describe('Stripe', () => {
-    it('should show "Connected" and "check-circle" if org is verified', () => {
-      // After logging in as "not-connected", we'll redirect to stripe confirmation
-      // where we mock a successful connection
-      cy.intercept('POST', getEndpoint(STRIPE_CONFIRMATION), { fixture: 'stripe/confirm-connected' });
-      // return not-connected user so that this page still shows up.
-      cy.intercept('GET', getEndpoint(USER), { fixture: 'user/not-connected' }).as('refetchUser');
-      cy.contains('Connected').should('exist');
-      cy.getByTestId('svg-icon_check-circle').should('exist');
-    });
-
     it('should redirect user to dashboard if connection is successful', () => {
       cy.intercept('POST', getEndpoint(STRIPE_CONFIRMATION), { fixture: 'stripe/confirm-connected' });
       cy.intercept('GET', getEndpoint(USER), { fixture: 'user/stripe-verified' }).as('refetchUser');

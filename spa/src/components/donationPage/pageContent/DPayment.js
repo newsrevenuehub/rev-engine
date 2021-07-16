@@ -2,6 +2,13 @@ import * as S from './DPayment.styled';
 import DElement from './DElement';
 import { ICONS } from 'assets/icons/SvgIcon';
 
+// Util
+import { getFrequencyAdverb } from 'utilities/parseFrequency';
+import calculateStripeFee from 'utilities/calculateStripeFee';
+
+// Context
+import { usePage } from '../DonationPage';
+
 // Stripe
 import StripePayment from 'components/paymentProviders/stripe/StripePayment';
 
@@ -18,7 +25,11 @@ function DPayment({ element, live, ...props }) {
   return (
     <DElement>
       {live ? (
-        <S.DPayment>{element?.content && element.content['stripe'] && <StripePayment />}</S.DPayment>
+        <S.DPayment>
+          {element?.content && element.content['stripe'] && (
+            <StripePayment offerPayFees={element.content?.offerPayFees} />
+          )}
+        </S.DPayment>
       ) : (
         <NotLivePlaceholder />
       )}
@@ -39,5 +50,28 @@ function NotLivePlaceholder() {
     <S.NotLivePlaceholder>
       [Placeholder] Donations <S.NotLiveIcon icon={ICONS.STRIPE_POWERED} />
     </S.NotLivePlaceholder>
+  );
+}
+
+export function PayFeesWidget() {
+  const { page, frequency, amount, payFee, setPayFee } = usePage();
+
+  return (
+    <S.PayFees data-testid="pay-fees">
+      <S.PayFeesQQ>Agree to pay fees?</S.PayFeesQQ>
+      <S.Checkbox
+        label={
+          amount
+            ? `$${calculateStripeFee(amount, page.organization_is_nonprofit)} ${getFrequencyAdverb(frequency)}`
+            : ''
+        }
+        toggle
+        checked={payFee}
+        onChange={(_e, { checked }) => setPayFee(checked)}
+      />
+      <S.PayFeesDescription>
+        Paying the Stripe transaction fee, while not required, directs more money in support of our mission.
+      </S.PayFeesDescription>
+    </S.PayFees>
   );
 }

@@ -90,7 +90,7 @@ describe('Donation page', () => {
           cy.getByTestId('custom-amount-rate').contains(rate);
         }
         if (adverb) {
-          cy.getByTestId('pay-fees').find('label').contains(adverb);
+          cy.getByTestId('pay-fees').scrollIntoView().find('label').contains(adverb);
         }
       });
     });
@@ -103,8 +103,8 @@ describe('Donation page', () => {
         cy.contains(freq.displayName).click();
         amounts.content.options[freq.value].forEach((amount) => {
           cy.contains(amount).click();
-          const calculatedFee = calculateStripeFee(amount);
-          cy.getByTestId('pay-fees').find('label').contains(calculatedFee);
+          const calculatedFee = calculateStripeFee(amount, true, true);
+          cy.getByTestId('pay-fees').scrollIntoView().find('label').contains(calculatedFee);
         });
       });
     });
@@ -123,22 +123,6 @@ describe('Donation page', () => {
         'stripeConfirmCardPayment'
       );
     });
-
-    // describe('trySinglePayment', () => {
-    // it('should make a request to create a payment intent', () => {
-    //   cy.setUpDonation('one_time', '120');
-    //   cy.makeDonation();
-    //   return cy.wait('@createStripePayment').then((a, b, c) => {
-    //     console.log(a, b, c);
-    //   });
-    // });
-
-    // it('should make a request to stripe to confirm a payment', () => {
-    //   cy.setUpDonation('one_time', '120');
-    //   cy.makeDonation();
-    //   return cy.wait('@stripe.confirmCardPayment');
-    // });
-    // });
   });
 
   describe('Resulting request', () => {

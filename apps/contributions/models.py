@@ -159,33 +159,36 @@ class ContributionMetadata(IndexedTimeStampedModel):
 
     Currently the only implemented type is Text input which renders a `text` input on the DonationPage.
 
-    key:
+    key: (Required)
         The expected key in the metadata object sent to the provider: EXAMPLE: first_name, address1
-        (Required)
-    label:
+
+    label: (Required)
         The display value that is shown to identify the form field on the page
-        (Required)
-    default_value:
+
+    default_value: (Optional)
         A value that will be added to the meta object, if it is not overridden by input from the form.
-        (Optional)
-    additional_help_text:
+
+    additional_help_text: (Optional)
         This text will display below the form field to give more context about the intent of the field.
-        (Optional)
-    metadata_type:
+
+    metadata_type: (Optional)
         Identifies what type of element will appear in the form.
-        (Optional)
-    payment_processor:
+
+    payment_processor: (Optional)
         This is a placeholder for now, but if other payment processors are added in the future this would be
         used to filter for specific metadata requirements of the processor. Fixed at "stripe" for now.
-        (Optional)
-    processor_object:
+
+    processor_object:  (Required)
         This is meant to identify (if applicable) on which object the payment processor the metadata should be
-        included. EXAMPLE: PAYMENT will be attached to PaymentIntents and Subscriptions with Stripe.
-        (Optional)
-    description:
+        included.
+             ALL: metadata that should be attached to every processor object.
+         PAYMENT: metadata that should be attached to PaymentIntents and Subscriptions.
+        CUSTOMER: metadata that should be attached to Customer.
+
+    description:  (Optional)
         Text supplied as a guide for internal users so they understand how the object is meant to behave.
-        (Optional)
-    donor_supplied:
+
+    donor_supplied: (Required)
         This identifies whether the metadata value will be supplied by the revengine system or by input from a
         donor on the page.
 
@@ -193,7 +196,6 @@ class ContributionMetadata(IndexedTimeStampedModel):
         If the value is True, this object will need a method, either default value or lookup method, to
         get the value from the system. If it is a system lookup add the key to the `lookup_map` dict with
         a callable function that returns the system value.
-        (Required)
 
     """
 

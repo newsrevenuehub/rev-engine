@@ -1,4 +1,4 @@
-import { STRIPE_CONFIRMATION, STRIPE_ONBOARDING } from 'ajax/endpoints';
+import { USER, STRIPE_CONFIRMATION, STRIPE_ONBOARDING } from 'ajax/endpoints';
 import { getEndpoint } from '../support/util';
 
 describe('Payment provider connect', () => {
@@ -15,13 +15,10 @@ describe('Payment provider connect', () => {
   });
 
   describe('Stripe', () => {
-    it('should show "Connected" and "check-circle" if org is verified', () => {
-      // After logging in as "not-connected", we'll redirect to stripe confirmation
-      // where we mock a successful connection
+    it('should redirect user to dashboard if connection is successful', () => {
       cy.intercept('POST', getEndpoint(STRIPE_CONFIRMATION), { fixture: 'stripe/confirm-connected' });
-      cy.login('user/not-connected.json');
-      cy.contains('Connected').should('exist');
-      cy.getByTestId('svg-icon_check-circle').should('exist');
+      cy.intercept('GET', getEndpoint(USER), { fixture: 'user/stripe-verified' }).as('refetchUser');
+      cy.getByTestId('dashboard').should('exist');
     });
 
     it('should show a helpful message and "times-circle" if org is restricted', () => {

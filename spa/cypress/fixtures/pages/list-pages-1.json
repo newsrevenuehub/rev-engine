@@ -1,19 +1,32 @@
-{
-  "results": [
-    {
+[
+  {
+    "id": 1,
+    "name": "Test Page 1",
+    "derived_slug": "test/slug1",
+    "page_screenshot": "",
+    "revenue_program": {
       "id": 1,
-      "name": "Test Page 1",
-      "derived_slug": "test/slug1"
-    },
-    {
-      "id": 2,
-      "name": "Test Page 2",
-      "derived_slug": "test/slug2"
-    },
-    {
-      "id": 3,
-      "name": "Test Page 3",
-      "derived_slug": "test/slug3"
+      "name": "My Test RevenueProgram 1"
     }
-  ]
-}
+  },
+  {
+    "id": 2,
+    "name": "Test Page 2",
+    "derived_slug": "test/slug2",
+    "page_screenshot": "",
+    "revenue_program": {
+      "id": 1,
+      "name": "My Test RevenueProgram 1"
+    }
+  },
+  {
+    "id": 3,
+    "name": "Test Page 3",
+    "derived_slug": "test/slug3",
+    "page_screenshot": "https://via.placeholder.com/150",
+    "revenue_program": {
+      "id": 2,
+      "name": "My Test RevenueProgram 2"
+    }
+  }
+]

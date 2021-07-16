@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import * as S from './Pages.styled';
 
+import { AnimateSharedLayout } from 'framer-motion';
 import { faPlus } from '@fortawesome/free-solid-svg-icons';
 
 // Children
@@ -16,9 +17,11 @@ function Pages() {
   return (
     <>
       <DashboardSectionGroup data-testid="overview">
-        <DashboardSection heading="Pages 1">
-          <PagesList />
-        </DashboardSection>
+        <AnimateSharedLayout>
+          <DashboardSection heading="Pages" layout>
+            <PagesList />
+          </DashboardSection>
+        </AnimateSharedLayout>
       </DashboardSectionGroup>
       <S.PlusButton onClick={() => setShowAddPageModal(true)} data-testid="page-create-button">
         <CircleButton icon={faPlus} />

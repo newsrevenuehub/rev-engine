@@ -14,6 +14,12 @@ function GlobalLoading({ wait = 500 }) {
     return () => clearTimeout(timeout);
   }, [wait]);
 
+  useEffect(() => {
+    if (show) document.body.style.overflow = 'hidden';
+    else document.body.style.overflow = '';
+    return () => (document.body.style.overflow = '');
+  }, [show]);
+
   if (!show) return null;
   return createPortal(
     <>

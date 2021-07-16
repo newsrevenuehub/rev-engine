@@ -57,11 +57,6 @@ function AmountEditor() {
     setElementContent({ ...elementContent, allowOther });
   };
 
-  const toggleOfferPayFees = (e) => {
-    const offerPayFees = e.target.checked;
-    setElementContent({ ...elementContent, offerPayFees });
-  };
-
   const handleKeyUp = (e, freq) => {
     if (e.key === 'Enter') {
       addAmount(freq);
@@ -106,15 +101,6 @@ function AmountEditor() {
             label='Include "other" option'
             checked={elementContent?.allowOther}
             onChange={toggleAllowOther}
-            toggle
-          />
-        </S.ToggleWrapper>
-
-        <S.ToggleWrapper>
-          <S.Toggle
-            label="Offer option to pay payment provider fees"
-            checked={elementContent?.offerPayFees}
-            onChange={toggleOfferPayFees}
             toggle
           />
         </S.ToggleWrapper>

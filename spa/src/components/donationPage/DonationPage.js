@@ -8,7 +8,6 @@ const DonationPageContext = createContext({});
 function DonationPage({ page, live = false }) {
   const formRef = useRef();
   const [frequency, setFrequency] = useState(getInitialFrequency(page));
-  const [fee, setFee] = useState();
   const [payFee, setPayFee] = useState(false);
   const [amount, setAmount] = useState();
   const [errors, setErrors] = useState({});
@@ -19,9 +18,7 @@ function DonationPage({ page, live = false }) {
         page,
         frequency,
         setFrequency,
-        fee,
         payFee,
-        setFee,
         setPayFee,
         formRef,
         amount,

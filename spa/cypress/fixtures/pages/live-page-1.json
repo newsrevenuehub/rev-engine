@@ -2,10 +2,11 @@
   "name": "Test Page 1",
   "heading": "Test Heading 1",
   "published_date": "2020-09-17T00:00:00",
+  "organization_is_nonprofit": true,
   "elements": [
     {"type": "DRichText", "uuid": "testRichText1", "content": "<p><strong>Your support keeps us going! Become a member today.</strong></p> <p>Because of your generosity, we have the courage, freedom, and independence to dedicate our entire newsroom to telling stories that spark action, improve lives and protect our democracy. Thank you for your support that keeps us going.</p>"}, 
     {"type": "DFrequency", "uuid": "testFreq1", "content": [{"value": "one_time", "displayName": "One time"}, {"value": "month", "displayName": "Monthly"}, {"value": "year", "displayName": "Yearly"}]},
-    {"type": "DAmount", "uuid": "testAmount1", "content": {"offerPayFees": true, "allowOther": true, "options": {
+    {"type": "DAmount", "uuid": "testAmount1", "content": { "allowOther": true, "options": {
         "one_time": [120, 180, 365],
         "month": [10, 15, 25],
         "year": [120, 180, 365]
@@ -16,7 +17,7 @@
       {"type": "text", "label": "I'm contributing because...", "name": "reason"},
       {"type": "text", "label": "Why does anybody even do anythign?", "name": "purpose"}
     ]},
-    {"type": "DPayment", "uuid": "testPayment1", "content": {"stripe": ["card", "apple", "google", "browser"]}}
+    {"type": "DPayment", "uuid": "testPayment1", "content": {"offerPayFees": true, "stripe": ["card", "apple", "google", "browser"]}}
   ],
   "styles": {
     "colors": {

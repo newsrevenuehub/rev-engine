@@ -38,7 +38,12 @@ function DAmount({ element, ...props }) {
     if (selectedAmount === 'other') {
       amount = parseInt(otherAmount || 0);
     } else {
-      amount = element?.content?.options && element.content?.options[frequency][selectedAmount];
+      // It's possible options[frequency][selectedAmount] is undefined, in the case that somebody either
+      // has stale development data, or somebody has messed around with page.elements JSONField.
+      amount =
+        element?.content?.options &&
+        element.content?.options[frequency] &&
+        element.content?.options[frequency][selectedAmount];
     }
     const fee = calculateStripeFee(amount);
     setAmount(amount);

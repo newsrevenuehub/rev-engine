@@ -274,6 +274,7 @@ function PageEditor() {
         availableBenefits,
         availableStyles,
         contributionMetadata,
+        setAvailableStyles,
         updatedPage,
         setUpdatedPage,
         showEditInterface,

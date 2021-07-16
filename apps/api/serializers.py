@@ -8,7 +8,8 @@ from apps.users.serializers import UserSerializer
 
 
 # Configure global error messaging here
-serializers.CharField.default_error_messages["blank"] = "This information is required"
+ERROR_MESSAGE_BLANK = "This information is required"
+serializers.CharField.default_error_messages["blank"] = ERROR_MESSAGE_BLANK
 
 
 class NoSuchContributorError(AuthenticationFailed):

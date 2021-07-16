@@ -10,7 +10,7 @@ import formatDatetimeForDisplay from 'utilities/formatDatetimeForDisplay';
 import formatCurrencyAmount from 'utilities/formatCurrencyAmount';
 import toTitleCase from 'utilities/toTitleCase';
 
-describe('Donation page', () => {
+describe('Donations list', () => {
   describe('Table', () => {
     beforeEach(() => {
       cy.login('user/stripe-verified.json');
@@ -86,7 +86,9 @@ describe('Donation page', () => {
     });
     it('should display the second page of donations when click on next page', () => {
       cy.wait('@getDonations');
-      cy.getByTestId('next-page').click();
+      // force: true needs to be here to prevent intermittent test failure
+      // that seems to stem from this element not yet being visible on page
+      cy.getByTestId('next-page').click({ force: true });
       cy.wait('@getDonations').then((intercept) => {
         cy.getByTestId('donations-table')
           .find('tbody tr[data-testid="donation-row"]')
@@ -246,14 +248,16 @@ describe('Donation page', () => {
       cy.getByTestId('previous-page').should('be.disabled');
       cy.getByTestId('next-page').should('not.be.disabled');
 
-      cy.getByTestId('next-page').click();
+      // force: true needs to be here to prevent intermittent test failure
+      // that seems to stem from this element not yet being visible on page
+      cy.getByTestId('next-page').click({ force: true });
       cy.getByTestId('previous-page').should('not.be.disabled');
       cy.getByTestId('next-page').should('be.disabled');
     });
   });
 
-  describe.only('Filtering', () => {
-    before(() => {
+  describe('Filtering', () => {
+    beforeEach(() => {
       cy.login('user/stripe-verified.json');
       cy.interceptPaginatedDonations();
       cy.visit('/dashboard/donations/');
@@ -261,15 +265,17 @@ describe('Donation page', () => {
 
     it('should render expected filters', () => {
       const expectedFilterTestIds = ['status-filter', 'amount-filter', 'created-filter'];
+      cy.wait('@getDonations');
       expectedFilterTestIds.forEach((testId) => cy.getByTestId(testId).should('exist'));
     });
 
     it('should display total results', () => {
+      cy.wait('@getDonations');
       cy.getByTestId('filter-results-count').should('exist');
     });
 
     it('should update results to expected amount when filtering status', () => {
-      cy.interceptPaginatedDonations();
+      cy.wait('@getDonations');
       const expectedPaids = donationsData.filter((d) => d.status === 'paid');
       cy.getByTestId('status-filter-paid').click();
       cy.getByTestId('filter-results-count').contains(expectedPaids.length);

@@ -49,4 +49,5 @@ aws_ec2.yml
 .coverage
 coverage
 htmlcov/
-
+spa/cypress/screenshots
+spa/cypress/videos

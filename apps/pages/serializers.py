@@ -83,6 +83,11 @@ class DonationPageFullDetailSerializer(serializers.ModelSerializer):
     header_bg_image_thumbnail = HyperlinkedSorlImageField("300", source="header_bg_image", read_only=True)
     header_logo_thumbnail = HyperlinkedSorlImageField("300", source="header_logo", read_only=True)
 
+    organization_is_nonprofit = serializers.SerializerMethodField()
+
+    def get_organization_is_nonprofit(self, obj):
+        return obj.organization.non_profit
+
     class Meta:
         model = DonationPage
         fields = "__all__"

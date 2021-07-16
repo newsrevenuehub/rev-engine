@@ -251,6 +251,7 @@ function PageEditor() {
         setPage,
         availableBenefits,
         availableStyles,
+        setAvailableStyles,
         updatedPage,
         setUpdatedPage,
         showEditInterface,

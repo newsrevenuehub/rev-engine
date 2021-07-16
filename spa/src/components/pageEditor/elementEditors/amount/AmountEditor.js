@@ -52,10 +52,7 @@ function AmountEditor() {
     });
   };
 
-  const toggleAllowOther = (e) => {
-    const allowOther = e.target.checked;
-    setElementContent({ ...elementContent, allowOther });
-  };
+  const toggleAllowOther = (_, { checked }) => setElementContent({ ...elementContent, allowOther: checked });
 
   const handleKeyUp = (e, freq) => {
     if (e.key === 'Enter') {

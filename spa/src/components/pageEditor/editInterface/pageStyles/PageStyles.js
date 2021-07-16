@@ -14,7 +14,7 @@ import StylesChooser from 'components/pageEditor/editInterface/pageStyles/Styles
 import AddStylesModal from 'components/pageEditor/editInterface/pageStyles/AddStylesModal';
 
 function PageStyles({ backToProperties }) {
-  const { page, availableStyles } = usePageEditorContext();
+  const { page, availableStyles, setAvailableStyles } = usePageEditorContext();
   const { setPageContent } = useEditInterfaceContext();
   const [addStylesModalOpen, setAddStylesModalOpen] = useState(false);
 
@@ -31,6 +31,7 @@ function PageStyles({ backToProperties }) {
   };
 
   const handleAddNewStyles = (newStyles) => {
+    setAvailableStyles([newStyles, ...availableStyles]);
     setStyles(newStyles);
   };
 

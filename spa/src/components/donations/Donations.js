@@ -28,6 +28,7 @@ function Donations() {
   const requestDonations = useRequest();
   const [filters, setFilters] = useState({});
   const [donationsCount, setDonationsCount] = useState([]);
+  const [filterResetHappened, setFilterResetHappened] = useState(false);
 
   const handleRowClick = (row) => {
     console.log('row clicked: ', row);
@@ -56,6 +57,7 @@ function Donations() {
     if (type === 'amount') updatedFilter = selectedFilter;
     if (type === 'created') updatedFilter = selectedFilter;
     setFilters({ ...filters, ...updatedFilter });
+    setFilterResetHappened(true);
   };
 
   const handleStatusChange = (selectedFilter) => {
@@ -113,7 +115,12 @@ function Donations() {
       <DashboardSectionGroup data-testid="donations">
         <DashboardSection heading="Donations">
           <Filters filters={filters} handleFilterChange={handleFilterChange} donationsCount={donationsCount} />
-          <DonationsTable onRowClick={handleRowClick} columns={columns} fetchDonations={fetchDonations} />
+          <DonationsTable
+            onRowClick={handleRowClick}
+            columns={columns}
+            fetchDonations={fetchDonations}
+            resetPageIndex={filterResetHappened}
+          />
         </DashboardSection>
       </DashboardSectionGroup>
     </S.Donations>

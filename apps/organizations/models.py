@@ -121,9 +121,10 @@ class Organization(IndexedTimeStampedModel):
 
     def stripe_create_apple_pay_domain(self):
         """
-        Register an ApplePay domain with Apple (by proxy) for this organization, so that
+        Register an ApplePay domain with Apple (by proxy) for this organization, so that 
+        we only register domains in production environments.
+        
         NOTE: Cannot create ApplePay Domains using test key.
-        We only register domains in production environments.
 
         "If you're hoping to test this locally, pretty much too bad"
             -- Steve Jobs

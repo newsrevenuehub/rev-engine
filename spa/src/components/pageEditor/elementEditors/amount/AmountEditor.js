@@ -52,15 +52,7 @@ function AmountEditor() {
     });
   };
 
-  const toggleAllowOther = (e) => {
-    const allowOther = e.target.checked;
-    setElementContent({ ...elementContent, allowOther });
-  };
-
-  const toggleOfferPayFees = (e) => {
-    const offerPayFees = e.target.checked;
-    setElementContent({ ...elementContent, offerPayFees });
-  };
+  const toggleAllowOther = (_, { checked }) => setElementContent({ ...elementContent, allowOther: checked });
 
   const handleKeyUp = (e, freq) => {
     if (e.key === 'Enter') {
@@ -106,15 +98,6 @@ function AmountEditor() {
             label='Include "other" option'
             checked={elementContent?.allowOther}
             onChange={toggleAllowOther}
-            toggle
-          />
-        </S.ToggleWrapper>
-
-        <S.ToggleWrapper>
-          <S.Toggle
-            label="Offer option to pay payment provider fees"
-            checked={elementContent?.offerPayFees}
-            onChange={toggleOfferPayFees}
             toggle
           />
         </S.ToggleWrapper>

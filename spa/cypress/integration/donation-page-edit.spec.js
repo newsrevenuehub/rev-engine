@@ -222,7 +222,7 @@ describe('Donation page edit', () => {
       cy.getByTestId('publish-widget').contains(expectedFormat);
     });
 
-    it.only('should show a warning when updating a live page', () => {
+    it('should show a warning when updating a live page', () => {
       cy.getByTestId('publish-widget').click();
       cy.contains('18').click();
       cy.getByTestId('keep-element-changes-button').click();

@@ -122,9 +122,9 @@ class PageViewSetTest(AbstractTestCase):
         data = response.json()
 
         # Should return expected number of pages
-        self.assertEqual(user_pages.count(), data["count"])
+        self.assertEqual(user_pages.count(), len(data))
 
-        returned_ids = [p["id"] for p in data["results"]]
+        returned_ids = [p["id"] for p in data]
         expected_ids = [p.id for p in user_pages]
         # Should return expected pages
         self.assertEqual(set(expected_ids), set(returned_ids))

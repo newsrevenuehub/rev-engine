@@ -13,20 +13,15 @@ export const DEFAULT_RESULTS_ORDERING = [
   { id: 'contributor_email', desc: false }
 ];
 
-function DonationsTable({ columns = [], fetchDonations, resetPageIndex, refetch, ...tableProps }) {
+function DonationsTable({ columns = [], fetchDonations, pageIndex, refetch, onPageChange, ...tableProps }) {
   const alert = useAlert();
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(false);
   const [pageCount, setPageCount] = useState(0);
-  const [pageIndex, setPageIndex] = useState(0);
   const [totalResults, setTotalResults] = useState(0);
 
   const convertOrderingToString = (ordering) => {
     return ordering.map((item) => (item.desc ? `-${item.id}` : item.id)).toString();
-  };
-
-  const onPageChange = (indexChange) => {
-    setPageIndex(pageIndex + indexChange);
   };
 
   const fetchData = useCallback(
@@ -50,10 +45,6 @@ function DonationsTable({ columns = [], fetchDonations, resetPageIndex, refetch,
     },
     [alert, fetchDonations]
   );
-
-  if (resetPageIndex) {
-    setPageIndex(0);
-  }
 
   return (
     <S.Donations>

@@ -28,10 +28,14 @@ function Donations() {
   const requestDonations = useRequest();
   const [filters, setFilters] = useState({});
   const [donationsCount, setDonationsCount] = useState([]);
-  const [filterResetHappened, setFilterResetHappened] = useState(false);
+  const [pageIndex, setPageIndex] = useState(0);
 
   const handleRowClick = (row) => {
     console.log('row clicked: ', row);
+  };
+
+  const handlePageChange = (pageIndexChange) => {
+    setPageIndex(pageIndex + pageIndexChange);
   };
 
   const fetchDonations = useCallback(
@@ -57,7 +61,7 @@ function Donations() {
     if (type === 'amount') updatedFilter = selectedFilter;
     if (type === 'created') updatedFilter = selectedFilter;
     setFilters({ ...filters, ...updatedFilter });
-    setFilterResetHappened(true);
+    setPageIndex(0);
   };
 
   const handleStatusChange = (selectedFilter) => {
@@ -119,7 +123,8 @@ function Donations() {
             onRowClick={handleRowClick}
             columns={columns}
             fetchDonations={fetchDonations}
-            resetPageIndex={filterResetHappened}
+            pageIndex={pageIndex}
+            onPageChange={handlePageChange}
           />
         </DashboardSection>
       </DashboardSectionGroup>

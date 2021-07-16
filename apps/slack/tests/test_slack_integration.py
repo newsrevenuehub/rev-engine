@@ -35,7 +35,6 @@ class SlackIntegrationTest(TestCase):
         self.org_integration = OrganizationSlackIntegration(
             organization=self.org, channel=ORG_CHANNEL, bot_token=ORG_TOKEN
         )
-        self.slack_manager = SlackManager()
         self.org_channel_name = f"{HUB_ORG_PREFIX}{SlackManager.format_org_name(self.org.name)}"
         self.contributor = ContributorFactory()
         self.contribution = ContributionFactory(
@@ -46,23 +45,43 @@ class SlackIntegrationTest(TestCase):
             interval=INTERVAL,
         )
 
+    def _create_slack_manager(self):
+        return SlackManager()
+
     def test_slack_integration_calls(self, mock_postmessage):
-        self.slack_manager.publish_contribution(self.contribution)
+        slack_manager = self._create_slack_manager()
+        slack_manager.publish_contribution(self.contribution)
         calls = [
             call(
                 channel=HUB_CHANNEL,
-                text=self.slack_manager.construct_hub_text(self.contribution),
-                blocks=self.slack_manager.construct_hub_blocks(self.contribution),
+                text=slack_manager.construct_hub_text(self.contribution),
+                blocks=slack_manager.construct_hub_blocks(self.contribution),
             ),
             call(
                 channel=self.org_channel_name,
-                text=self.slack_manager.construct_org_text(self.contribution),
-                blocks=self.slack_manager.construct_org_blocks(self.contribution),
+                text=slack_manager.construct_org_text(self.contribution),
+                blocks=slack_manager.construct_org_blocks(self.contribution),
             ),
             call(
                 channel=ORG_CHANNEL,
-                text=self.slack_manager.construct_org_text(self.contribution),
-                blocks=self.slack_manager.construct_org_blocks(self.contribution),
+                text=slack_manager.construct_org_text(self.contribution),
+                blocks=slack_manager.construct_org_blocks(self.contribution),
             ),
         ]
         mock_postmessage.assert_has_calls(calls=calls, any_order=True)
+
+    @patch("apps.slack.slack_manager.logger.info")
+    def test_log_info_when_no_integration(self, mock_info_logger, mock_postmessage):
+        """
+        Log an info level log when an org is missing a slack integration.
+        """
+        # Remove existing hub SlackIntegration
+        HubSlackIntegration.objects.first().delete()
+        # Remove existing org SlackIntegrations
+        self.org_integration.delete()
+        # instantiating slack_manager will trigger info log
+        self._create_slack_manager()
+        mock_info_logger.assert_called_once_with(
+            "Tried to send slack notification, but News Revenue Hub does not have a SlackIntegration configured"
+        )
+        mock_postmessage.assert_not_called()

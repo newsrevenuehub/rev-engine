@@ -314,7 +314,7 @@ class StripePaymentManager(PaymentManager):
             self.contribution.status = previous_status
             self.contribution.save()
             logger.warning(
-                f"Stripe returned an InvalidRequestError at {timezone.now}. This was caused by attempting to {'reject' if reject else 'capture'} a payment that was flagged in our system, but was already captured or rejected in Stripe's system.",
+                f"Stripe returned an InvalidRequestError at {timezone.now()}. This was caused by attempting to {'reject' if reject else 'capture'} a payment that was flagged in our system, but was already captured or rejected in Stripe's system.",
             )
             raise PaymentProviderError(invalid_request_error)
         except stripe.error.StripeError as stripe_error:

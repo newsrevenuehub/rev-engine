@@ -75,7 +75,9 @@ class StripePaymentManagerAbstractTestCase(APITestCase):
         return StripePaymentManager(data=data if data else self.data)
 
     def _instantiate_payment_manager_with_instance(self, contribution=None):
-        return StripePaymentManager(contribution=contribution if contribution else self.contribution)
+        spm = StripePaymentManager(contribution=contribution if contribution else self.contribution)
+        spm.data = self.data
+        return spm
 
 
 @override_settings(STRIPE_TEST_SECRET_KEY=fake_api_key)
@@ -392,6 +394,7 @@ class StripeRecurringPaymentManagerTest(StripePaymentManagerAbstractTestCase):
             ],
             stripe_account=self.organization.stripe_account_id,
             api_key=fake_api_key,
+            metadata=pm.bundle_metadata(pm.data, ContributionMetadata.ProcessorObjects.PAYMENT),
         )
 
     @patch("stripe.Customer.create", side_effect=MockStripeCustomer)
@@ -432,6 +435,7 @@ class StripeRecurringPaymentManagerTest(StripePaymentManagerAbstractTestCase):
             ],
             stripe_account=self.organization.stripe_account_id,
             api_key=fake_api_key,
+            metadata=pm.bundle_metadata(pm.data, ContributionMetadata.ProcessorObjects.PAYMENT),
         )
         self.assertEqual(self.contribution.status, ContributionStatus.PROCESSING)
 

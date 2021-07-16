@@ -313,7 +313,7 @@ class StripePaymentManager(PaymentManager):
         previous_status = self.contribution.status
         self.contribution.status = ContributionStatus.PROCESSING
         self.contribution.save()
-
+        meta = self.bundle_metadata(self.data, ContributionMetadata.ProcessorObjects.PAYMENT)
         try:
             price_data = {
                 "unit_amount": self.contribution.amount,
@@ -329,6 +329,7 @@ class StripePaymentManager(PaymentManager):
                 items=[{"price_data": price_data}],
                 stripe_account=organization.stripe_account_id,
                 api_key=get_hub_stripe_api_key(),
+                metadata=meta,
             )
 
             self.contribution.payment_provider_data = subscription

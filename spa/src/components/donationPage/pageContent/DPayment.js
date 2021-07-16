@@ -26,7 +26,9 @@ function DPayment({ element, live, ...props }) {
     <DElement>
       {live ? (
         <S.DPayment>
-          {element.content['stripe'] && <StripePayment offerPayFees={element.content?.offerPayFees} />}
+          {element?.content && element.content['stripe'] && (
+            <StripePayment offerPayFees={element.content?.offerPayFees} />
+          )}
         </S.DPayment>
       ) : (
         <NotLivePlaceholder />

@@ -17,7 +17,11 @@ function DPayment({ element, live, ...props }) {
   */
   return (
     <DElement>
-      {live ? <S.DPayment>{element.content['stripe'] && <StripePayment />}</S.DPayment> : <NotLivePlaceholder />}
+      {live ? (
+        <S.DPayment>{element?.content && element.content['stripe'] && <StripePayment />}</S.DPayment>
+      ) : (
+        <NotLivePlaceholder />
+      )}
     </DElement>
   );
 }

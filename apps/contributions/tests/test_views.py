@@ -11,7 +11,7 @@ from stripe.stripe_object import StripeObject
 
 from apps.contributions.models import Contribution, ContributionInterval, Contributor
 from apps.contributions.payment_managers import PaymentBadParamsError, PaymentProviderError
-from apps.contributions.tests.factories import ContributorFactory
+from apps.contributions.tests.factories import ContributionFactory, ContributorFactory
 from apps.contributions.views import stripe_payment
 from apps.organizations.models import Organization
 from apps.organizations.tests.factories import OrganizationFactory, RevenueProgramFactory
@@ -347,7 +347,7 @@ class TestContributionsListView(APITestCase):
                 organization=self.organization2,
             )
 
-        self.url = reverse("contributions")
+        self.url = reverse("contributions-list")
 
     def test_happy_path(self):
         """Should get back only contributions belonging to my org"""
@@ -355,6 +355,163 @@ class TestContributionsListView(APITestCase):
         response = self.client.get(self.url)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json()["count"], self.contributions_per_org_count)
-        self.assertTrue(
-            all([contribution["organization"] == self.organization1.pk for contribution in response.json()["results"]])
+
+
+TEST_STRIPE_API_KEY = "test_stripe_api_key"
+
+
+@override_settings(STRIPE_TEST_SECRET_KEY=TEST_STRIPE_API_KEY)
+class UpdatePaymentMethodTest(APITestCase):
+    def setUp(self):
+        self.subscription_id = "test-subscription-id"
+        self.stripe_account_id = "testing-stripe-account-id"
+        self.customer_id = "testing-customer-id"
+        self.org = OrganizationFactory(stripe_account_id=self.stripe_account_id)
+        self.contributor = ContributorFactory()
+        self.contribution = ContributionFactory(
+            contributor=self.contributor,
+            organization=self.org,
+            provider_customer_id=self.customer_id,
+            provider_subscription_id=self.subscription_id,
+        )
+        self.other_contribution = ContributionFactory(organization=self.org)
+        self.payment_method_id = "testing-payment-method-id"
+
+    def _make_request(self, contribution, data={}):
+        self.client.force_authenticate(user=self.contributor)
+        return self.client.patch(reverse("contributions-update", kwargs={"pk": contribution.pk}), data)
+
+    @patch("stripe.PaymentMethod.attach")
+    @patch("stripe.Subscription.modify")
+    def test_failure_when_missing_payment_method_id(self, mock_modify, mock_attach):
+        response = self._make_request(self.contribution)
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.data["detail"], "Request contains unsupported fields")
+        mock_modify.assert_not_called()
+        mock_attach.assert_not_called()
+
+    @patch("stripe.PaymentMethod.attach")
+    @patch("stripe.Subscription.modify")
+    def test_failure_when_any_parameter_other_than_pm_id(self, mock_modify, mock_attach):
+        response = self._make_request(self.contribution, {"amount": 10})
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.data["detail"], "Request contains unsupported fields")
+        mock_modify.assert_not_called()
+        mock_attach.assert_not_called()
+
+    @patch("stripe.PaymentMethod.attach")
+    @patch("stripe.Subscription.modify")
+    def test_failure_when_contribution_and_contributor_dont_match(self, mock_modify, mock_attach):
+        self.assertNotEqual(self.other_contribution.contributor, self.contributor)
+        response = self._make_request(self.other_contribution, {"payment_method_id": self.payment_method_id})
+        self.assertEqual(response.status_code, 404)
+        self.assertEqual(response.data["detail"], "Could not find contribution for requesting contributor")
+        mock_modify.assert_not_called()
+        mock_attach.assert_not_called()
+
+    @patch("stripe.PaymentMethod.attach", side_effect=StripeError)
+    @patch("stripe.Subscription.modify")
+    def test_error_when_attach_payment_method(self, mock_modify, mock_attach):
+        response = self._make_request(self.contribution, {"payment_method_id": self.payment_method_id})
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.data["detail"], "Could not complete payment")
+
+        mock_attach.assert_called_once_with(
+            self.payment_method_id,
+            customer=self.customer_id,
+            api_key=TEST_STRIPE_API_KEY,
+            stripe_account=self.stripe_account_id,
+        )
+        mock_modify.assert_not_called()
+
+    @patch("stripe.PaymentMethod.attach")
+    @patch("stripe.Subscription.modify", side_effect=StripeError)
+    def test_error_when_update_payment_method(self, mock_modify, mock_attach):
+        response = self._make_request(self.contribution, {"payment_method_id": self.payment_method_id})
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.data["detail"], "Could not complete payment")
+
+        mock_attach.assert_called_once_with(
+            self.payment_method_id,
+            customer=self.customer_id,
+            stripe_account=self.stripe_account_id,
+            api_key=TEST_STRIPE_API_KEY,
+        )
+
+        mock_modify.assert_called_once_with(
+            self.subscription_id,
+            default_payment_method=self.payment_method_id,
+            stripe_account=self.stripe_account_id,
+            api_key=TEST_STRIPE_API_KEY,
+        )
+
+    @patch("stripe.PaymentMethod.attach")
+    @patch("stripe.Subscription.modify")
+    def test_update_payment_method_success(self, mock_modify, mock_attach):
+        response = self._make_request(self.contribution, {"payment_method_id": self.payment_method_id})
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data["detail"], "Success")
+
+        mock_attach.assert_called_once_with(
+            self.payment_method_id,
+            customer=self.customer_id,
+            stripe_account=self.stripe_account_id,
+            api_key=TEST_STRIPE_API_KEY,
+        )
+
+        mock_modify.assert_called_once_with(
+            self.subscription_id,
+            default_payment_method=self.payment_method_id,
+            stripe_account=self.stripe_account_id,
+            api_key=TEST_STRIPE_API_KEY,
+        )
+
+
+@override_settings(STRIPE_TEST_SECRET_KEY=TEST_STRIPE_API_KEY)
+class CancelRecurringPaymentTest(APITestCase):
+    def setUp(self):
+        self.subscription_id = "test-subscription-id"
+        self.stripe_account_id = "testing-stripe-account-id"
+        # self.customer_id = 'testing-customer-id'
+        self.org = OrganizationFactory(stripe_account_id=self.stripe_account_id)
+        self.contributor = ContributorFactory()
+        self.contribution = ContributionFactory(
+            contributor=self.contributor,
+            organization=self.org,
+            # provider_customer_id=self.customer_id,
+            provider_subscription_id=self.subscription_id,
+        )
+        self.other_contribution = ContributionFactory(organization=self.org)
+        self.payment_method_id = "testing-payment-method-id"
+
+    def _make_request(self, contribution):
+        self.client.force_authenticate(user=self.contributor)
+        return self.client.post(reverse("contributions-cancel-recurring", kwargs={"pk": contribution.pk}))
+
+    @patch("stripe.Subscription.delete")
+    def test_failure_when_contribution_and_contributor_dont_match(self, mock_delete):
+        self.assertNotEqual(self.other_contribution.contributor, self.contributor)
+        response = self._make_request(self.other_contribution)
+        self.assertEqual(response.status_code, 404)
+        self.assertEqual(response.data["detail"], "Could not find contribution for requesting contributor")
+        mock_delete.assert_not_called()
+
+    @patch("stripe.Subscription.delete", side_effect=StripeError)
+    def test_error_when_subscription_delete(self, mock_delete):
+        response = self._make_request(self.contribution)
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.data["detail"], "Could not complete payment")
+
+        mock_delete.assert_called_once_with(
+            self.subscription_id, stripe_account=self.stripe_account_id, api_key=TEST_STRIPE_API_KEY
+        )
+
+    @patch("stripe.Subscription.delete")
+    def test_delete_recurring_success(self, mock_delete):
+        response = self._make_request(self.contribution)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data["detail"], "Success")
+
+        mock_delete.assert_called_once_with(
+            self.subscription_id, stripe_account=self.stripe_account_id, api_key=TEST_STRIPE_API_KEY
         )

@@ -109,7 +109,7 @@ class Organization(IndexedTimeStampedModel):
         payment_provider_verified = getattr(self, f"{payment_provider}_verified", None)
         return payment_provider and payment_provider_account_id and payment_provider_verified
 
-    def create_default_stripe_product(self):
+    def stripe_create_default_product(self):
         if not self.stripe_product_id:
             product = stripe.Product.create(
                 name=settings.GENERIC_STRIPE_PRODUCT_NAME,
@@ -119,7 +119,7 @@ class Organization(IndexedTimeStampedModel):
             self.stripe_product_id = product.id
             self.save()
 
-    def create_apple_pay_domain(self):
+    def stripe_create_apple_pay_domain(self):
         """
         Register an ApplePay domain with Apple (by proxy) for this organization, so that
         NOTE: Cannot create ApplePay Domains using test key.

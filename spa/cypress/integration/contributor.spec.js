@@ -39,12 +39,16 @@ describe('Contributor portal', () => {
     });
   });
 
-  describe('Contributor dashboard', () => {
+  describe.only('Contributor dashboard', () => {
     before(() => {
       // "Log in" to contributor dash
       cy.intercept({ method: 'POST', url: getEndpoint(VERIFY_TOKEN) }, { fixture: 'user/valid-contributor-1.json' });
       cy.visit(CONTRIBUTOR_VERIFY);
+    });
+
+    beforeEach(() => {
       cy.interceptPaginatedDonations();
+      cy.wait('@getDonations');
     });
 
     it('should display a list of contributions', () => {
@@ -114,7 +118,7 @@ describe('Contributor portal', () => {
       });
     });
 
-    it('should show update payment method modal when payment method clicked', () => {
+    it.only('should show update payment method modal when payment method clicked', () => {
       cy.getByTestId('payment-method').first().click();
       cy.getByTestId('edit-recurring-payment-modal').should('exist');
       // cleanup

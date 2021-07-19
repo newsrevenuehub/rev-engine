@@ -23,4 +23,5 @@ urlpatterns = [
         "contributions/<int:pk>/", views.ContributionsViewSet.as_view({"get": "retrieve"}, name="contribution-detail")
     ),
     path("contributions/", views.ContributionsViewSet.as_view({"get": "list"}), name="contributions-list"),
+    path("meta/", views.ContributionMetadataListView.as_view({"get": "list"}), name="meta"),
 ]

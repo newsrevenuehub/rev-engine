@@ -2,7 +2,7 @@ from rest_framework import serializers
 from sorl_thumbnail_serializer.fields import HyperlinkedSorlImageField
 
 from apps.organizations.models import Organization, RevenueProgram
-from apps.organizations.serializers import RevenueProgramSerializer
+from apps.organizations.serializers import RevenueProgramInlineSerializer, RevenueProgramSerializer
 from apps.pages.models import Benefit, BenefitTier, DonationPage, DonorBenefit, Style, Template
 
 
@@ -83,6 +83,11 @@ class DonationPageFullDetailSerializer(serializers.ModelSerializer):
     header_bg_image_thumbnail = HyperlinkedSorlImageField("300", source="header_bg_image", read_only=True)
     header_logo_thumbnail = HyperlinkedSorlImageField("300", source="header_logo", read_only=True)
 
+    organization_is_nonprofit = serializers.SerializerMethodField()
+
+    def get_organization_is_nonprofit(self, obj):
+        return obj.organization.non_profit
+
     class Meta:
         model = DonationPage
         fields = "__all__"
@@ -122,7 +127,7 @@ class DonationPageFullDetailSerializer(serializers.ModelSerializer):
 
 
 class DonationPageListSerializer(serializers.ModelSerializer):
-    revenue_program = serializers.PrimaryKeyRelatedField(queryset=RevenueProgram.objects.all())
+    revenue_program = RevenueProgramInlineSerializer(read_only=True)
     organization = serializers.PrimaryKeyRelatedField(queryset=Organization.objects.all())
 
     class Meta:
@@ -130,7 +135,6 @@ class DonationPageListSerializer(serializers.ModelSerializer):
         fields = [
             "id",
             "name",
-            "heading",
             "derived_slug",
             "page_screenshot",
             "revenue_program",

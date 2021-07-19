@@ -9,8 +9,8 @@ import Modal from 'elements/modal/Modal';
 function AddStylesModal({ isOpen, closeModal, handleAddNewStyles }) {
   const [styles, setStyles] = useState(revEngineTheme);
 
-  const handleKeepChanges = () => {
-    handleAddNewStyles(styles);
+  const handleKeepChanges = (newStyles) => {
+    handleAddNewStyles(newStyles);
     closeModal();
   };
 

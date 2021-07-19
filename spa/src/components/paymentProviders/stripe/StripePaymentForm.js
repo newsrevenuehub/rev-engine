@@ -24,12 +24,13 @@ import { usePage } from 'components/donationPage/DonationPage';
 // Children
 import Button from 'elements/buttons/Button';
 import { ICONS } from 'assets/icons/SvgIcon';
+import { PayFeesWidget } from 'components/donationPage/pageContent/DPayment';
 
 const STRIPE_PAYMENT_REQUEST_LABEL = 'RevEngine Donation';
 
-function StripePaymentForm({ loading, setLoading }) {
+function StripePaymentForm({ loading, setLoading, offerPayFees }) {
   const { url, params } = useRouteMatch();
-  const { page, amount, frequency, fee, payFee, formRef, errors, setErrors } = usePage();
+  const { page, amount, frequency, payFee, formRef, errors, setErrors } = usePage();
 
   const [succeeded, setSucceeded] = useState(false);
   const [disabled, setDisabled] = useState(true);
@@ -94,7 +95,8 @@ function StripePaymentForm({ loading, setLoading }) {
   const handleCardSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
-    const data = serializeData(formRef.current, { amount, fee, payFee, ...params });
+    const orgIsNonProfit = page.organization_is_nonprofit;
+    const data = serializeData(formRef.current, { amount, payFee, orgIsNonProfit, ...params });
     await submitPayment(
       stripe,
       data,
@@ -109,7 +111,8 @@ function StripePaymentForm({ loading, setLoading }) {
   \*********************************/
   const handlePaymentRequestSubmit = async (state, paymentRequest) => {
     setLoading(true);
-    const data = serializeData(formRef.current, state);
+    const orgIsNonProfit = page.organization_is_nonprofit;
+    const data = serializeData(formRef.current, { orgIsNonProfit, ...state });
     await submitPayment(
       stripe,
       data,
@@ -128,7 +131,8 @@ function StripePaymentForm({ loading, setLoading }) {
    * amount. For that, we must use the paymentRequest.update method.
    */
   useEffect(() => {
-    const amnt = amountToCents(getTotalAmount(amount));
+    const orgIsNonProfit = page.organization_is_nonprofit;
+    const amnt = amountToCents(getTotalAmount(amount, payFee, orgIsNonProfit));
     const amountIsValid = !isNaN(amnt) && amnt > 0;
     if (stripe && amountIsValid && !paymentRequest) {
       const pr = stripe.paymentRequest({
@@ -156,7 +160,7 @@ function StripePaymentForm({ loading, setLoading }) {
   useEffect(() => {
     if (paymentRequest) {
       function handlePaymentMethodEvent(paymentMethodEvent) {
-        handlePaymentRequestSubmit({ amount, fee, payFee, ...params }, paymentMethodEvent);
+        handlePaymentRequestSubmit({ amount, payFee, ...params }, paymentMethodEvent);
       }
       // Remove any previous listeners (with stale data)
       paymentRequest.removeAllListeners();
@@ -164,14 +168,15 @@ function StripePaymentForm({ loading, setLoading }) {
       paymentRequest.on('paymentmethod', handlePaymentMethodEvent);
     }
     // vv See note above
-  }, [paymentRequest, amount, fee, payFee, params]);
+  }, [paymentRequest, amount, payFee, params]);
 
   /**
    * See previous note. Here we update the values of our paymentRequest using the
    * paymentRequest.update method.
    */
   useEffect(() => {
-    const amnt = amountToCents(getTotalAmount(amount));
+    const orgIsNonProfit = page.organization_is_nonprofit;
+    const amnt = amountToCents(getTotalAmount(amount, payFee, orgIsNonProfit));
     const amountIsValid = !isNaN(amnt) && amnt > 0;
     if (paymentRequest && amountIsValid) {
       paymentRequest.update({
@@ -181,7 +186,7 @@ function StripePaymentForm({ loading, setLoading }) {
         }
       });
     }
-  }, [amount, fee, payFee, paymentRequest]);
+  }, [amount, payFee, paymentRequest]);
 
   // We add a catch here for the times when the ad-hoc donation amount ("other") value
   // is not a valid number (e.g. first clicking on the element, or typing a decimal "0.5")
@@ -200,15 +205,16 @@ function StripePaymentForm({ loading, setLoading }) {
       <S.PaymentElementWrapper>
         <CardElement id="card-element" options={{ style: S.CardElementStyle(theme) }} onChange={handleChange} />
       </S.PaymentElementWrapper>
+      {offerPayFees && <PayFeesWidget />}
       <Button
         onClick={handleCardSubmit}
         disabled={loading || disabled || succeeded || amount === 0}
         loading={loading}
         data-testid="donation-submit"
       >
-        Give ${getTotalAmount(amount, fee, payFee)} {getFrequencyAdverb(frequency)}
+        Give ${getTotalAmount(amount, payFee, page.organization_is_nonprofit)} {getFrequencyAdverb(frequency)}
       </Button>
-      {errors.stripe && (
+      {errors?.stripe && (
         <S.PaymentError role="alert" data-testid="donation-error">
           {errors.stripe}
         </S.PaymentError>

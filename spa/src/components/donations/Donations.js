@@ -31,9 +31,14 @@ function Donations() {
   const requestDonations = useRequest();
   const [filters, setFilters] = useState({});
   const [donationsCount, setDonationsCount] = useState([]);
+  const [pageIndex, setPageIndex] = useState(0);
 
   const handleRowClick = (row) => {
     console.log('row clicked: ', row);
+  };
+
+  const handlePageChange = (pageIndexChange) => {
+    setPageIndex(pageIndex + pageIndexChange);
   };
 
   const fetchDonations = useCallback(
@@ -59,6 +64,7 @@ function Donations() {
     if (type === 'amount') updatedFilter = selectedFilter;
     if (type === 'created') updatedFilter = selectedFilter;
     setFilters({ ...filters, ...updatedFilter });
+    setPageIndex(0);
   };
 
   const handleStatusChange = (selectedFilter) => {
@@ -129,7 +135,13 @@ function Donations() {
           <Route>
             <DashboardSection heading="Donations">
               <Filters filters={filters} handleFilterChange={handleFilterChange} donationsCount={donationsCount} />
-              <DonationsTable onRowClick={handleRowClick} columns={columns} fetchDonations={fetchDonations} />
+              <DonationsTable
+                onRowClick={handleRowClick}
+                columns={columns}
+                fetchDonations={fetchDonations}
+                pageIndex={pageIndex}
+                onPageChange={handlePageChange}
+              />
             </DashboardSection>
           </Route>
         </Switch>

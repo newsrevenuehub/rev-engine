@@ -13,7 +13,7 @@ export const DEFAULT_RESULTS_ORDERING = [
   { id: 'contributor_email', desc: false }
 ];
 
-function DonationsTable({ columns = [], fetchDonations, refetch, ...tableProps }) {
+function DonationsTable({ columns = [], fetchDonations, pageIndex, refetch, onPageChange, ...tableProps }) {
   const alert = useAlert();
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -49,6 +49,8 @@ function DonationsTable({ columns = [], fetchDonations, refetch, ...tableProps }
   return (
     <S.Donations>
       <PaginatedTable
+        onPageChange={onPageChange}
+        pageIndex={pageIndex}
         columns={columns}
         data={data}
         refetch={refetch}

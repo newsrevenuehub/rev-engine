@@ -45,6 +45,11 @@ function ContributorDashboard() {
   const [contriubtions, setContributions] = useState([]);
   const [selectedContribution, setSelectedContribution] = useState();
   const [refetch, setRefetch] = useState(false);
+  const [pageIndex, setPageIndex] = useState(0);
+
+  const handlePageChange = (pageIndexChange) => {
+    setPageIndex(pageIndex + pageIndexChange);
+  };
 
   const fetchDonations = useCallback(async (params, { onSuccess, onFailure }) => {
     try {
@@ -161,6 +166,8 @@ function ContributorDashboard() {
                 columns={columns}
                 getRowIsDisabled={getRowIsDisabled}
                 refetch={refetch}
+                pageIndex={pageIndex}
+                onPageChange={handlePageChange}
               />
             </DashboardSection>
           </DashboardSectionGroup>

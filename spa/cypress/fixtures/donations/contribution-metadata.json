@@ -1,0 +1,16 @@
+[
+  {
+    "key": "in_honor_of",
+    "label": "In Honor of...",
+    "additional_help_text": "",
+    "metadata_type": "TXT",
+    "donor_supplied": true
+  },
+  {
+    "key": "in_memory_of",
+    "label": "In Memory Of ...",
+    "additional_help_text": "",
+    "metadata_type": "TXT",
+    "donor_supplied": true
+  }
+]

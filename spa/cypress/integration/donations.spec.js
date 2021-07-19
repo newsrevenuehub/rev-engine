@@ -260,6 +260,7 @@ describe('Donations list', () => {
       cy.getByTestId('next-page').should('not.be.disabled');
 
       cy.getByTestId('next-page').click();
+      cy.wait('@getDonations');
       cy.getByTestId('previous-page').should('not.be.disabled');
       cy.getByTestId('next-page').should('be.disabled');
     });

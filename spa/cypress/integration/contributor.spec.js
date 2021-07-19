@@ -117,8 +117,8 @@ describe('Contributor portal', () => {
       });
     });
 
-    it('should show update payment method modal when payment method clicked', () => {
-      cy.getByTestId('payment-method').first().click();
+    it.only('should show update payment method modal when payment method clicked', () => {
+      cy.getByTestId('payment-method').first().click({ force: true });
       cy.getByTestId('edit-recurring-payment-modal').should('exist');
       // cleanup
       cy.getByTestId('close-modal').click();

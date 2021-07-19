@@ -158,7 +158,7 @@ function PageEditor() {
         }
       }
     );
-  }, [requestGetDonorMetadata]);
+  }, []);
 
   const handlePreview = () => {
     setSelectedButton(PREVIEW);

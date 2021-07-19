@@ -47,7 +47,9 @@ function PaginatedTable({
             ...state,
             pageIndex: controlledPageIndex
           }),
-          [state]
+          // ingore warnings that controlledPageIndex shouldn't be in dependencies. without, new page won't
+          // be retrieved when pageIndex changes.
+          [state, controlledPageIndex]
         );
       }
     },

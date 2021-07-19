@@ -14,7 +14,7 @@ describe('Donations list', () => {
   describe('Table', () => {
     beforeEach(() => {
       cy.login('user/stripe-verified.json');
-      cy.interceptPaginatedDonations().as('getDonations');
+      cy.interceptPaginatedDonations();
       cy.visit('/dashboard/donations/');
     });
     it('should display the first page of donations by default on page load', () => {

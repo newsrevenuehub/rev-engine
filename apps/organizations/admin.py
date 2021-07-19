@@ -32,7 +32,15 @@ class OrganizationAdmin(RevEngineBaseAdmin):  # pragma: no cover
         ),
         (
             "Payment Provider",
-            {"fields": ("default_payment_provider", "stripe_account_id", "stripe_verified", "stripe_product_id")},
+            {
+                "fields": (
+                    "default_payment_provider",
+                    "stripe_account_id",
+                    "stripe_verified",
+                    "stripe_product_id",
+                    "domain_apple_verified_date",
+                )
+            },
         ),
     )
 

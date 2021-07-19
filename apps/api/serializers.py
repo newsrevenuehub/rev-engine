@@ -7,6 +7,11 @@ from apps.contributions.models import Contributor
 from apps.users.serializers import UserSerializer
 
 
+# Configure global error messaging here
+ERROR_MESSAGE_BLANK = "This information is required"
+serializers.CharField.default_error_messages["blank"] = ERROR_MESSAGE_BLANK
+
+
 class NoSuchContributorError(AuthenticationFailed):
     pass
 

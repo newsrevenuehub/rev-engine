@@ -100,9 +100,7 @@ describe('Donations list', () => {
 
     it('should display the second page of donations when click on next page', () => {
       cy.wait('@getDonations');
-      // force: true needs to be here to prevent intermittent test failure
-      // that seems to stem from this element not yet being visible on page
-      cy.getByTestId('next-page').click({ force: true });
+      cy.getByTestId('next-page').click();
       cy.wait('@getDonations').then((intercept) => {
         cy.getByTestId('donations-table')
           .find('tbody tr[data-testid="donation-row"]')
@@ -261,11 +259,8 @@ describe('Donations list', () => {
       cy.getByTestId('previous-page').should('be.disabled');
       cy.getByTestId('next-page').should('not.be.disabled');
 
-      // force: true needs to be here to prevent intermittent test failure
-      // that seems to stem from this element not yet being visible on page
-      cy.getByTestId('next-page').click({ force: true });
-      // adding timeout because in CI this test sometimes fails
-      cy.getByTestId('previous-page', { timeout: 10000 }).should('not.be.disabled');
+      cy.getByTestId('next-page').click();
+      cy.getByTestId('previous-page').should('not.be.disabled');
       cy.getByTestId('next-page').should('be.disabled');
     });
   });

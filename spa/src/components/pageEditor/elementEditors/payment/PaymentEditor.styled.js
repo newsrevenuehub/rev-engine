@@ -1,9 +1,11 @@
 import styled from 'styled-components';
 import { Radio as SemanticRadio } from 'semantic-ui-react';
 
-export const PaymentEditor = styled.ul`
+export const PaymentEditor = styled.div``;
+
+export const PaymentTypesList = styled.ul`
   padding: 0;
-  margin: 0;
+  margin: 0 2rem;
   list-style: none;
   display: flex;
   flex-direction: column;
@@ -18,4 +20,8 @@ export const Toggle = styled(SemanticRadio)`
   &.ui.toggle.checkbox input:checked ~ label:before {
     background-color: ${(props) => props.theme.colors.primary} !important;
   }
+`;
+
+export const OtherOptionsList = styled(PaymentTypesList)`
+  border-top: 1px solid ${(props) => props.theme.colors.grey[1]};
 `;

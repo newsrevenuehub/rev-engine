@@ -1,7 +1,8 @@
-const STRIPE_RATE = 0.029;
+const STRIPE_NP_RATE = 0.027;
+const STRIPE_FP_RATE = 0.034;
 const STRIPE_FIXED = 0.3;
 
-function calculateStripeFee(amount) {
+function calculateStripeFee(amount, isNonProfit) {
   /*
     Stripe calculates a fee based on a rate and a flat fee. We must apply the flat fee first,
     then apply the rate to amount + flat fee.
@@ -18,7 +19,13 @@ function calculateStripeFee(amount) {
   */
 
   if (isNaN(amount)) return null;
-  const fee = (amount + STRIPE_FIXED) * STRIPE_RATE;
+  const RATE = isNonProfit ? STRIPE_NP_RATE : STRIPE_FP_RATE;
+  // Get "new amount" after stripe rates are applied
+  let newAmount = (amount + STRIPE_FIXED) / (1 - RATE);
+  // Get the fee paid on this "new amount"
+  newAmount = newAmount / 1 - RATE;
+  // Calculate fee based on this amount, so that organizations recieve exactly the amount intended without fees
+  const fee = newAmount * RATE + STRIPE_FIXED;
   return fee.toFixed(2);
 }
 

@@ -30,8 +30,6 @@ function PublishWidget({ publishDate, onChange }) {
     onChange(new Date());
   };
 
-  console.log('publishDate', publishDate);
-
   return (
     <S.PublishWidget data-testid="publish-widget">
       <Label>Publication date</Label>

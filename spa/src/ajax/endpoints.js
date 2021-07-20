@@ -21,6 +21,7 @@ export const REVENUE_PROGRAMS = 'revenue-programs/';
 
 // Contributions
 export const CONTRIBUTIONS = 'contributions/';
+export const CONTRIBUTION_META = 'meta/';
 
 // Contributor Portal
 export const GET_MAGIC_LINK = 'contrib-email/';

@@ -7,6 +7,7 @@ import { useTable, usePagination, useSortBy } from 'react-table';
 
 // Children
 import CircleButton from 'elements/buttons/CircleButton';
+import { useMemo } from 'react';
 
 function PaginatedTable({
   columns,
@@ -17,7 +18,9 @@ function PaginatedTable({
   pageCount,
   totalResults,
   onRowClick,
-  getRowIsDisabled
+  onPageChange,
+  getRowIsDisabled,
+  pageIndex: controlledPageIndex
 }) {
   const {
     getTableProps,
@@ -28,8 +31,6 @@ function PaginatedTable({
     canPreviousPage,
     canNextPage,
     pageOptions,
-    nextPage,
-    previousPage,
     // Get the state from the instance
     state: { pageIndex, pageSize, sortBy }
   } = useTable(
@@ -39,7 +40,18 @@ function PaginatedTable({
       initialState: { pageIndex: 0, pageSize: 10, sortBy: [] }, // Pass our hoisted table state
       manualPagination: true,
       pageCount,
-      manualSortBy: true
+      manualSortBy: true,
+      useControlledState: (state) => {
+        return useMemo(
+          () => ({
+            ...state,
+            pageIndex: controlledPageIndex
+          }),
+          // ingore warnings that controlledPageIndex shouldn't be in dependencies. without, new page won't
+          // be retrieved when pageIndex changes.
+          [state, controlledPageIndex]
+        );
+      }
     },
     useSortBy,
     usePagination
@@ -54,6 +66,10 @@ function PaginatedTable({
     const endIndex = startIndex + currentPageSize - 1;
     return [startIndex, endIndex];
   };
+
+  const handleNextPage = () => onPageChange(1);
+
+  const handlePreviousPage = () => onPageChange(-1);
 
   const [startIndex, endIndex] = getCurrentPageResultIndices(pageSize, pageIndex, data.length);
   return (
@@ -117,7 +133,7 @@ function PaginatedTable({
         <S.PaginationSection>
           <CircleButton
             data-testid="previous-page"
-            onClick={() => previousPage()}
+            onClick={() => handlePreviousPage()}
             disabled={!canPreviousPage}
             icon={faChevronLeft}
           />
@@ -129,7 +145,7 @@ function PaginatedTable({
           <CircleButton
             data-testid="next-page"
             icon={faChevronRight}
-            onClick={() => nextPage()}
+            onClick={() => handleNextPage()}
             disabled={!canNextPage}
           />
         </S.PaginationSection>

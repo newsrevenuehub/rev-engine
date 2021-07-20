@@ -7,6 +7,7 @@ omit =
     */template*/*.py
     */wsgi.py
     */apps.py
+    */management/*.py
 branch = True
 
 [report]

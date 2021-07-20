@@ -5,6 +5,7 @@ from django.contrib import admin, messages
 from django.http import HttpResponseRedirect
 from django.urls import reverse
 
+from safedelete.admin import SafeDeleteAdmin, highlight_deleted
 from sorl.thumbnail.admin import AdminImageMixin
 
 from apps.common.admin import RevEngineBaseAdmin
@@ -82,7 +83,7 @@ class TemplateAdmin(DonationPageAdminAbstract):
 
 
 @admin.register(DonationPage)
-class DonationPageAdmin(DonationPageAdminAbstract):
+class DonationPageAdmin(DonationPageAdminAbstract, SafeDeleteAdmin):
     fieldsets = (
         (
             (None, {"fields": ("revenue_program",)}),
@@ -105,6 +106,7 @@ class DonationPageAdmin(DonationPageAdminAbstract):
     )
 
     list_display = (
+        highlight_deleted,
         "name",
         "heading",
         "organization",
@@ -113,8 +115,15 @@ class DonationPageAdmin(DonationPageAdminAbstract):
         "derived_slug",
         "is_live",
         "published_date",
-    )
-    list_filter = ("name", "heading", "organization", "revenue_program", "slug", "published_date")
+    ) + SafeDeleteAdmin.list_display
+    list_filter = (
+        "name",
+        "heading",
+        "organization",
+        "revenue_program",
+        "slug",
+        "published_date",
+    ) + SafeDeleteAdmin.list_filter
     order = (
         "published_date",
         "organization__name",
@@ -128,7 +137,7 @@ class DonationPageAdmin(DonationPageAdminAbstract):
 
     readonly_fields = ["derived_slug", "email_templates", "page_screenshot"]
 
-    actions = ("make_template",)
+    actions = ("make_template", "undelete_selected")
 
     @admin.action(description="Make templates from selected pages")
     def make_template(self, request, queryset):

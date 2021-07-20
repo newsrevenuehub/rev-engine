@@ -159,7 +159,6 @@ class PaymentManager:
 
         return Contribution.objects.create(
             amount=self.validated_data["amount"],
-            reason=self.validated_data.get("reason", ""),
             interval=self.validated_data["interval"],
             status=status,
             donation_page=donation_page,

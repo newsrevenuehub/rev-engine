@@ -117,14 +117,16 @@ describe('Contributor portal', () => {
       });
     });
 
-    // this test passes locally, but fails in CI. Temoporarily commenting out
-    // until we can track down root cause.
-
-    // it('should show update payment method modal when payment method clicked', () => {
-    //   cy.getByTestId('payment-method').first().click();
-    //   cy.getByTestId('edit-recurring-payment-modal').should('exist');
-    //   cy.getByTestId('close-modal').click();
-    // });
+    it.only('should show update payment method modal when payment method clicked for recurring contribution', () => {
+      cy.get('td[data-testcolumnaccessor="interval"]')
+        .contains('Monthly')
+        .closest('tr')
+        .find('[data-testid="payment-method"]')
+        .first()
+        .click();
+      cy.getByTestId('edit-recurring-payment-modal').should('exist');
+      cy.getByTestId('close-modal').click();
+    });
 
     it('should do send cancel request if continue is clicked', () => {
       const targetContId = donationsData.find((d) => d.interval !== 'one_time').id;

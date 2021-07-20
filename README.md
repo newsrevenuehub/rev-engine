@@ -306,3 +306,13 @@ Running bash on ⬢ rev-engine-nrh-45-infra-dfoxmw... up, run.2125 (Hobby)
 Running docker-entrypoint.sh
 bash-5.0$ 
 ```
+
+
+## Celery Tasks
+If you have a need to run or test tasks using a celery worker, there are now some Make commands to help out.
+
+`make run-redis` brings up the dev services, and a redis container that listens on the default port.
+
+`make run-celery` will bring up a celery worker. At this point any task that expects a celery worker should run 
+without error.
+

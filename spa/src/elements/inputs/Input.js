@@ -10,6 +10,7 @@ function Input({ value, onChange, type, name, ...props }) {
         onChange={onChange}
         name={name}
         type={type}
+        helpText
         data-testid={props.testid}
         onClick={props.onClick}
         onFocus={props.onFocus}

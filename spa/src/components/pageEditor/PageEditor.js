@@ -22,7 +22,7 @@ import { useParams } from 'react-router-dom';
 
 // AJAX
 import useRequest from 'hooks/useRequest';
-import { FULL_PAGE, PATCH_PAGE, DONOR_BENEFITS, PAGE_STYLES } from 'ajax/endpoints';
+import { FULL_PAGE, PATCH_PAGE, DONOR_BENEFITS, PAGE_STYLES, CONTRIBUTION_META } from 'ajax/endpoints';
 
 // Constants
 import { GENERIC_ERROR } from 'constants/textConstants';
@@ -72,9 +72,11 @@ function PageEditor() {
   const [page, setPage] = useState();
   const [availableBenefits, setAvailableBenefits] = useState([]);
   const [availableStyles, setAvailableStyles] = useState([]);
+  const [contributionMetadata, setContributionMetadata] = useState([]);
 
   const requestGetPage = useRequest();
   const requestGetDonorBenefits = useRequest();
+  const requestGetDonorMetadata = useRequest();
   const requestGetPageStyles = useRequest();
   const requestPatchPage = useRequest();
 
@@ -136,6 +138,26 @@ function PageEditor() {
       }
     );
     // Don't include requestGetPageStyles for now.
+  }, []);
+
+  useEffect(() => {
+    setLoading(true);
+    requestGetDonorMetadata(
+      { method: 'GET', url: CONTRIBUTION_META },
+      {
+        onSuccess: ({ data }) => {
+          setContributionMetadata(
+            data.filter((e) => {
+              if (e.donor_supplied === true) return e;
+            })
+          );
+          setLoading(false);
+        },
+        onFailure: () => {
+          setLoading(false);
+        }
+      }
+    );
   }, []);
 
   const handlePreview = () => {
@@ -251,6 +273,7 @@ function PageEditor() {
         setPage,
         availableBenefits,
         availableStyles,
+        contributionMetadata,
         setAvailableStyles,
         updatedPage,
         setUpdatedPage,

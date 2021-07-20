@@ -45,6 +45,11 @@ function ContributorDashboard() {
   const [contriubtions, setContributions] = useState([]);
   const [selectedContribution, setSelectedContribution] = useState();
   const [refetch, setRefetch] = useState(false);
+  const [pageIndex, setPageIndex] = useState(0);
+
+  const handlePageChange = (pageIndexChange) => {
+    setPageIndex(pageIndex + pageIndexChange);
+  };
 
   const fetchDonations = useCallback(async (params, { onSuccess, onFailure }) => {
     try {
@@ -161,6 +166,8 @@ function ContributorDashboard() {
                 columns={columns}
                 getRowIsDisabled={getRowIsDisabled}
                 refetch={refetch}
+                pageIndex={pageIndex}
+                onPageChange={handlePageChange}
               />
             </DashboardSection>
           </DashboardSectionGroup>
@@ -215,10 +222,14 @@ function getStatusCellIcon(status) {
 export function PaymentMethodCell({ contribution, handlePaymentClick }) {
   if (!contribution.card_brand && !contribution.last4) return '?';
 
+  const getCanInteract = () => {
+    return !!handlePaymentClick && contribution.interval !== 'one_time';
+  };
+
   return (
     <S.PaymentMethodCell
-      interactive={!!handlePaymentClick}
-      onClick={() => (!!handlePaymentClick ? handlePaymentClick(contribution) : {})}
+      interactive={getCanInteract()}
+      onClick={() => (getCanInteract() ? handlePaymentClick(contribution) : {})}
       data-testid="payment-method"
     >
       {contribution.card_brand && (

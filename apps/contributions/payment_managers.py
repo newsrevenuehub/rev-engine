@@ -1,6 +1,7 @@
 import logging
 
 from django.conf import settings
+from django.db.models import Q
 from django.utils import timezone
 
 import stripe
@@ -9,6 +10,7 @@ from apps.contributions.bad_actor import BadActorAPIError, make_bad_actor_reques
 from apps.contributions.models import (
     Contribution,
     ContributionInterval,
+    ContributionMetadata,
     ContributionStatus,
     Contributor,
 )
@@ -72,7 +74,14 @@ class PaymentManager:
         self.data = data
         self.serializer_class = self.get_serializer_class(data=data, contribution=contribution)
 
-    def get_serializer_class(self, **kwargs):  # pragma: no cover
+    def bundle_metadata(self, metadata: dict, processor_obj: str):
+        # First get all default metadata and all meta related to the processor object
+        all_meta = ContributionMetadata.objects.filter(
+            Q(processor_object=ContributionMetadata.ProcessorObjects.ALL) | Q(processor_object=processor_obj)
+        )
+        return ContributionMetadata.bundle_metadata(all_meta, metadata, self)
+
+    def get_serializer_class(self, **kwargs):
         raise NotImplementedError("Subclasses of PaymentManager must implement get_serializer_class")
 
     def validate(self):
@@ -139,12 +148,11 @@ class PaymentManager:
         contributor, _ = Contributor.objects.get_or_create(email=self.validated_data["email"])
         return contributor
 
-    def create_contribution(self, organization, provider_reference_instance=None, provider_customer_id=""):
-        if not self.payment_provider_name:  # pragma: no cover
+    def create_contribution(self, organization, contributor, provider_reference_instance=None, provider_customer_id=""):
+        if not self.payment_provider_name:
             raise ValueError("Subclass of PaymentManager must set payment_provider_name property")
 
         status = ContributionStatus.FLAGGED if self.flagged else ContributionStatus.PROCESSING
-        contributor = self.get_or_create_contributor()
         donation_page = self.get_donation_page()
         provider_payment_id = provider_reference_instance.id if provider_reference_instance else None
         provider_payment_method_id = self.validated_data.get("payment_method_id", "")
@@ -199,7 +207,9 @@ class StripePaymentManager(PaymentManager):
         self.ensure_validated_data()
         self.ensure_bad_actor_score()
         organization = self.get_organization()
+        contributor = self.get_or_create_contributor()
         capture_method = "manual" if self.flagged else "automatic"
+        meta = self.bundle_metadata(self.data, ContributionMetadata.ProcessorObjects.PAYMENT)
         stripe_payment_intent = stripe.PaymentIntent.create(
             amount=self.validated_data["amount"],
             currency=settings.DEFAULT_CURRENCY,
@@ -208,9 +218,9 @@ class StripePaymentManager(PaymentManager):
             stripe_account=organization.stripe_account_id,
             capture_method=capture_method,
             receipt_email=self.validated_data["email"],
+            metadata=meta,
         )
-
-        self.create_contribution(organization, provider_reference_instance=stripe_payment_intent)
+        self.create_contribution(organization, contributor, provider_reference_instance=stripe_payment_intent)
         return stripe_payment_intent
 
     def create_subscription(self):
@@ -224,20 +234,23 @@ class StripePaymentManager(PaymentManager):
         organization = self.get_organization()
 
         # Create customer on org...
+        contributor = self.get_or_create_contributor()
         stripe_customer = self.create_organization_customer(organization)
         # ...attach paymentMethod to that customer.
         self.attach_payment_method_to_customer(stripe_customer.id, organization.stripe_account_id)
 
-        contribution = self.create_contribution(organization, provider_customer_id=stripe_customer.id)
+        contribution = self.create_contribution(organization, contributor, provider_customer_id=stripe_customer.id)
         if not self.flagged:
             self.contribution = contribution
             self.complete_payment(reject=False)
 
     def create_organization_customer(self, organization):
+        meta = self.bundle_metadata(self.data, ContributionMetadata.ProcessorObjects.CUSTOMER)
         return stripe.Customer.create(
             email=self.validated_data["email"],
             api_key=get_hub_stripe_api_key(),
             stripe_account=organization.stripe_account_id,
+            metadata=meta,
         )
 
     def attach_payment_method_to_customer(self, stripe_customer_id, org_strip_account, payment_method_id=None):
@@ -333,7 +346,7 @@ class StripePaymentManager(PaymentManager):
         previous_status = self.contribution.status
         self.contribution.status = ContributionStatus.PROCESSING
         self.contribution.save()
-
+        meta = self.bundle_metadata(self.data, ContributionMetadata.ProcessorObjects.PAYMENT)
         try:
             price_data = {
                 "unit_amount": self.contribution.amount,
@@ -349,6 +362,7 @@ class StripePaymentManager(PaymentManager):
                 items=[{"price_data": price_data}],
                 stripe_account=organization.stripe_account_id,
                 api_key=get_hub_stripe_api_key(),
+                metadata=meta,
             )
         except stripe.error.StripeError as stripe_error:
             self._handle_stripe_error(stripe_error, previous_status=previous_status)

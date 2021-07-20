@@ -230,7 +230,7 @@ describe('Donation page edit', () => {
   });
 });
 
-describe.only('Additional Info Setup', () => {
+describe('Additional Info Setup', () => {
   before(() => {
     cy.login('user/stripe-verified.json');
     cy.intercept(

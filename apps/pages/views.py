@@ -60,7 +60,7 @@ class PageViewSet(OrganizationLimitedListView, viewsets.ModelViewSet):
                 rev_program.donationpage_set.get(slug=page_slug) if page_slug else rev_program.default_donation_page
             )
         except DonationPage.DoesNotExist:
-            logger.error(f'Request for non-existant page by slug "{page_slug}" ')
+            logger.error(f'Request for non-existent page by slug "{page_slug}" ')
             return Response(
                 {"detail": "Could not find page matching those parameters"}, status=status.HTTP_404_NOT_FOUND
             )
@@ -72,6 +72,42 @@ class PageViewSet(OrganizationLimitedListView, viewsets.ModelViewSet):
         serializer = self.get_serializer_class()
         page_serializer = serializer(instance=donation_page)
         return Response(page_serializer.data, status=status.HTTP_200_OK)
+
+    @action(
+        methods=["DELETE"],
+        detail=False,
+    )
+    def delete_page(self, request):
+        revenue_program_slug = request.GET.get("revenue_program")
+        page_slug = request.GET.get("page")
+        live = request.GET.get("live") == "1" or False
+
+        if not revenue_program_slug:
+            return Response({"detail": "Missing required parameter"}, status=status.HTTP_400_BAD_REQUEST)
+        try:
+            rev_program = RevenueProgram.objects.get(slug=revenue_program_slug)
+        except RevenueProgram.DoesNotExist:
+            logger.error(f'Request for page with non-existent RevenueProgram by slug "{revenue_program_slug}" ')
+            return Response(
+                {"detail": "Could not find RevenueProgram from that slug"}, status=status.HTTP_404_NOT_FOUND
+            )
+
+        try:
+            donation_page = (
+                rev_program.donationpage_set.get(slug=page_slug) if page_slug else rev_program.default_donation_page
+            )
+        except DonationPage.DoesNotExist:
+            logger.error(f'Request for non-existent page by slug "{page_slug}" ')
+            return Response(
+                {"detail": "Could not find page matching those parameters"}, status=status.HTTP_404_NOT_FOUND
+            )
+
+        if not live and donation_page.is_live:
+            logger.error(f'Request to delete an unpublished page ("{donation_page}") but page is live')
+            return Response({"detail": "This page is live"}, status=status.HTTP_409_CONFLICT)
+
+        donation_page.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 class TemplateViewSet(OrganizationLimitedListView, viewsets.ModelViewSet):

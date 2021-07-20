@@ -117,7 +117,7 @@ describe('Contributor portal', () => {
       });
     });
 
-    it.only('should show update payment method modal when payment method clicked for recurring contribution', () => {
+    it('should show update payment method modal when payment method clicked for recurring contribution', () => {
       cy.get('td[data-testcolumnaccessor="interval"]')
         .contains('Monthly')
         .closest('tr')

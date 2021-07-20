@@ -8,6 +8,15 @@ from .factories import create_default_templates, get_contact_types
 
 
 class PageTemplateModelTest(AbstractTestCase):
+    class MockPaymentManager:
+        def __init__(self, donation_page):
+            self.donation_page = donation_page
+
+        data = {"email": "test@email.com", "amount": 1000}
+
+        def get_organization(self):
+            return self.donation_page
+
     def setUp(self):
         self.cts = get_contact_types()
 
@@ -62,3 +71,12 @@ class PageTemplateModelTest(AbstractTestCase):
             pet.update_default_fields(new_schema)
             assert pet.schema["org_name"] != default_schema["org_name"]
             assert pet.schema["org_name"] == new_schema["org_name"]
+
+    @patch("apps.emails.models.PageEmailTemplate.send_email", return_value=True)
+    def test_send_email_with_template(self, mock_send_donor_email):
+        create_default_templates()
+        self.donation_page = DonationPageFactory()
+        mock_inst = self.MockPaymentManager(self.donation_page)
+        pet = self.donation_page.email_templates.first()
+        pet.one_time_donation(mock_inst)
+        mock_send_donor_email.assert_called_once()

@@ -21,9 +21,9 @@ import { useTheme } from 'styled-components';
 import { useAlert } from 'react-alert';
 
 // Stripe
-// import { loadStripe } from '@stripe/stripe-js';
-// import { CardElement, Elements, useStripe, useElements } from '@stripe/react-stripe-js';
-// import { createPaymentMethod } from 'components/paymentProviders/stripe/stripeFns';
+import { loadStripe } from '@stripe/stripe-js';
+import { CardElement, Elements, useStripe, useElements } from '@stripe/react-stripe-js';
+import { createPaymentMethod } from 'components/paymentProviders/stripe/stripeFns';
 
 // Children
 import Modal from 'elements/modal/Modal';
@@ -32,7 +32,7 @@ import Button from 'elements/buttons/Button';
 import GlobalLoading from 'elements/GlobalLoading';
 
 function EditRecurringPaymentModal({ isOpen, closeModal, contribution, onComplete }) {
-  // const stripe = useRef(loadStripe('pk_test_31XWC5qhlLi9UkV1OzsI634W', { stripeAccount: contribution.org_stripe_id }));
+  const stripe = useRef(loadStripe('pk_test_31XWC5qhlLi9UkV1OzsI634W', { stripeAccount: contribution.org_stripe_id }));
   const [showCompletedMessage, setShowCompletedMessage] = useState(false);
 
   const handleNewPaymentMethod = async (paymentMethod, onCompleteCallback) => {
@@ -76,11 +76,11 @@ function EditRecurringPaymentModal({ isOpen, closeModal, contribution, onComplet
                 <span>Payment method:</span> <PaymentMethodCell contribution={contribution} />
               </S.CurrentDatum>
             </S.CurrentList>
-            {/* {stripe && stripe.current && (
+            {stripe && stripe.current && (
               <Elements stripe={stripe.current}>
                 <CardForm onPaymentMethod={handleNewPaymentMethod} closeModal={closeModal} />
               </Elements>
-            )} */}
+            )}
           </>
         )}
       </S.EditRecurringPaymentModal>
@@ -93,8 +93,8 @@ export default EditRecurringPaymentModal;
 function CardForm({ onPaymentMethod, closeModal }) {
   const alert = useAlert();
   const theme = useTheme();
-  // const stripe = useStripe();
-  // const elements = useElements();
+  const stripe = useStripe();
+  const elements = useElements();
   const { setTokenExpired } = useContributorDashboardContext();
   const [loading, setLoading] = useState(false);
   const [succeeded, setSucceeded] = useState(false);
@@ -112,26 +112,26 @@ function CardForm({ onPaymentMethod, closeModal }) {
   const handleUpdatePaymentMethod = async (e) => {
     e.preventDefault();
     setLoading(true);
-    // try {
-    //   const response = await createPaymentMethod(stripe, elements.getElement(CardElement));
-    //   if (response.error) {
-    //     setErrors({ stripe: response.error ? response.error.message : '' });
-    //   } else {
-    //     await onPaymentMethod(response.paymentMethod, () => {
-    //       setSucceeded(true);
-    //       setErrors({});
-    //       setLoading(false);
-    //     });
-    //   }
-    // } catch (e) {
-    //   if (e instanceof AuthenticationError) {
-    //     closeModal();
-    //     setTokenExpired(true);
-    //     return;
-    //   }
-    //   alert.error(GENERIC_ERROR);
-    //   setLoading(false);
-    // }
+    try {
+      const response = await createPaymentMethod(stripe, elements.getElement(CardElement));
+      if (response.error) {
+        setErrors({ stripe: response.error ? response.error.message : '' });
+      } else {
+        await onPaymentMethod(response.paymentMethod, () => {
+          setSucceeded(true);
+          setErrors({});
+          setLoading(false);
+        });
+      }
+    } catch (e) {
+      if (e instanceof AuthenticationError) {
+        closeModal();
+        setTokenExpired(true);
+        return;
+      }
+      alert.error(GENERIC_ERROR);
+      setLoading(false);
+    }
   };
 
   return (
@@ -139,9 +139,9 @@ function CardForm({ onPaymentMethod, closeModal }) {
       <S.CardForm>
         <S.Description>Update your payment method</S.Description>
 
-        {/* <S.CardElementWrapper>
+        <S.CardElementWrapper>
           <CardElement id="card-element" options={{ style: CardElementStyle(theme) }} onChange={handleChange} />
-        </S.CardElementWrapper> */}
+        </S.CardElementWrapper>
 
         <Button
           onClick={handleUpdatePaymentMethod}

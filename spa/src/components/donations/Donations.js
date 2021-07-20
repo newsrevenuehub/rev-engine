@@ -1,3 +1,4 @@
+import { Switch, Route, Link, useRouteMatch } from 'react-router-dom';
 import { useState, useCallback, useMemo } from 'react';
 import * as S from './Donations.styled';
 
@@ -17,6 +18,7 @@ import { differenceInDays } from 'date-fns';
 // Children
 import DashboardSectionGroup from 'components/dashboard/DashboardSectionGroup';
 import DashboardSection from 'components/dashboard/DashboardSection';
+import DonationDetail from 'components/donations/DonationDetail';
 import DonationsTable from 'components/donations/DonationsTable';
 import { StatusCellIcon } from 'components/contributor/contributorDashboard/ContributorDashboard';
 import Filters from 'components/donations/filters/Filters';
@@ -25,6 +27,7 @@ const IS_URGENT_THRESHOLD_DAYS = 1;
 const IS_SOON_THRESHOLD_DAYS = 2;
 
 function Donations() {
+  const { path } = useRouteMatch();
   const requestDonations = useRequest();
   const [filters, setFilters] = useState({});
   const [donationsCount, setDonationsCount] = useState([]);
@@ -109,6 +112,12 @@ function Donations() {
         accessor: 'auto_accepted_on',
         Cell: (props) => (props.value ? <ResolutionDateCaution date={props.value} /> : NO_VALUE),
         disableSortBy: true
+      },
+      {
+        Header: '',
+        accessor: 'id',
+        Cell: (props) => <Link to={`/dashboard/donations/${props.value}/`}>Details...</Link>,
+        disableSortBy: true
       }
     ],
     []
@@ -117,16 +126,25 @@ function Donations() {
   return (
     <S.Donations>
       <DashboardSectionGroup data-testid="donations">
-        <DashboardSection heading="Donations">
-          <Filters filters={filters} handleFilterChange={handleFilterChange} donationsCount={donationsCount} />
-          <DonationsTable
-            onRowClick={handleRowClick}
-            columns={columns}
-            fetchDonations={fetchDonations}
-            pageIndex={pageIndex}
-            onPageChange={handlePageChange}
-          />
-        </DashboardSection>
+        <Switch>
+          <Route path={`${path}/:contributionId`}>
+            <DashboardSection heading="Donation Info">
+              <DonationDetail />
+            </DashboardSection>
+          </Route>
+          <Route>
+            <DashboardSection heading="Donations">
+              <Filters filters={filters} handleFilterChange={handleFilterChange} donationsCount={donationsCount} />
+              <DonationsTable
+                onRowClick={handleRowClick}
+                columns={columns}
+                fetchDonations={fetchDonations}
+                pageIndex={pageIndex}
+                onPageChange={handlePageChange}
+              />
+            </DashboardSection>
+          </Route>
+        </Switch>
       </DashboardSectionGroup>
     </S.Donations>
   );

@@ -117,11 +117,10 @@ describe('Contributor portal', () => {
       });
     });
 
-    it('should show update payment method modal when payment method clicked', () => {
-      cy.intercept({ hostname: 'r.stripe.com' }, 'success');
+    it.only('should show update payment method modal when payment method clicked', () => {
       cy.getByTestId('payment-method').first().click();
+      cy.wait(10000);
       cy.getByTestId('edit-recurring-payment-modal').should('exist');
-      // cleanup
       cy.getByTestId('close-modal').click();
     });
 

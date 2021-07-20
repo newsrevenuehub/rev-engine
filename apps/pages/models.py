@@ -3,6 +3,7 @@ from django.core.exceptions import ValidationError
 from django.db import models
 from django.utils import timezone
 
+from safedelete.models import SafeDeleteModel
 from sorl.thumbnail import ImageField as SorlImageField
 
 from apps.common.models import IndexedTimeStampedModel
@@ -84,7 +85,7 @@ class Template(AbstractPage):
         raise self.TemplateError(f"A DonationPage with the heading ({self.heading}) could not be found.")
 
 
-class DonationPage(AbstractPage):
+class DonationPage(AbstractPage, SafeDeleteModel):
     """
     A DonationPage represents a single instance of a Donation Page.
     """

@@ -13,7 +13,12 @@ from rest_framework.response import Response
 from apps.api.permissions import ContributorOwnsContribution, IsContributor, UserBelongsToOrg
 from apps.contributions import serializers
 from apps.contributions.filters import ContributionFilter
-from apps.contributions.models import Contribution, ContributionInterval, Contributor
+from apps.contributions.models import (
+    Contribution,
+    ContributionInterval,
+    ContributionMetadata,
+    Contributor,
+)
 from apps.contributions.payment_managers import (
     PaymentBadParamsError,
     PaymentProviderError,
@@ -113,6 +118,8 @@ def stripe_confirmation(request):
             return Response({"status": "not_connected"}, status=status.HTTP_202_ACCEPTED)
         # A previously confirmed account can spare the stripe API call
         if organization.stripe_verified:
+            # NOTE: It's important to bail early here. At the end of this view, we create a few stripe models
+            # that should only be created once. We should only ever get there if it's the FIRST time we verify.
             return Response({"status": "connected"}, status=status.HTTP_200_OK)
 
         # A "Confirmed" stripe account has "charges_enabled": true on return from stripe.Account.retrieve
@@ -132,10 +139,14 @@ def stripe_confirmation(request):
     organization.stripe_verified = True
 
     try:
-        # Now that we're verified, create and associate default product...
+        # Now that we're verified, create and associate default product
         organization.stripe_create_default_product()
-    except stripe.error.StripeError:
-        logger.error("stripe_create_default_product failed with a StripeError")
+        # And register domain with ApplePay
+        organization.stripe_create_apple_pay_domain()
+    except stripe.error.StripeError as stripe_error:
+        logger.error(
+            f"stripe_create_default_product or stripe_create_apple_pay_domain failed with a StripeError: {stripe_error}"
+        )
         return Response(
             {"status": "failed"},
             status=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -172,11 +183,13 @@ def process_stripe_webhook_view(request):
         logger.error(e)
     except Contribution.DoesNotExist:
         logger.error("Could not find contribution matching provider_payment_id")
+    except Exception as e:
+        logger.error(f"General Exception occurred processing StripeWebhook: {str(e)}")
 
     return Response(status=status.HTTP_200_OK)
 
 
-class ContributionsListView(viewsets.ReadOnlyModelViewSet):
+class ContributionsViewSet(viewsets.ReadOnlyModelViewSet):
     permission_classes = [IsAuthenticated, UserBelongsToOrg, ContributorOwnsContribution]
     model = Contribution
 
@@ -249,3 +262,12 @@ def cancel_recurring_payment(request, pk):
         return Response({"detail": error_message}, status=status.HTTP_400_BAD_REQUEST)
 
     return Response({"detail": "Success"}, status=status.HTTP_200_OK)
+
+
+class ContributionMetadataListView(viewsets.ReadOnlyModelViewSet):
+    serializer_class = serializers.ContributionMetadataSerializer
+    model = ContributionMetadata
+    pagination_class = None
+
+    def get_queryset(self):
+        return self.model.objects.all()

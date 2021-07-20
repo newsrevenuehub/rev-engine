@@ -10,7 +10,7 @@ import formatDatetimeForDisplay from 'utilities/formatDatetimeForDisplay';
 import formatCurrencyAmount from 'utilities/formatCurrencyAmount';
 import toTitleCase from 'utilities/toTitleCase';
 
-describe('Donation page', () => {
+describe('Donations list', () => {
   describe('Table', () => {
     beforeEach(() => {
       cy.login('user/stripe-verified.json');
@@ -61,6 +61,11 @@ describe('Donation page', () => {
           renderedName: 'Auto-resolution date',
           rawName: 'auto_accepted_on',
           transform: (rawVal) => rawVal || NO_VALUE
+        },
+        {
+          renderedName: '',
+          rawName: 'id',
+          transform: (rawVal) => 'Details...'
         }
       ];
       cy.getByTestId('donation-header', {}, true).should('have.length', columnExpectations.length);
@@ -84,6 +89,15 @@ describe('Donation page', () => {
         });
       });
     });
+    it('should link to donation detail page for each donation in list', () => {
+      cy.wait('@getDonations');
+      cy.getByTestId('donation-row').each((row) => {
+        expect(row.find('td[data-testcolumnaccessor="id"] > a').attr('href')).to.equal(
+          `/dashboard/donations/${row.attr('data-donationid')}/`
+        );
+      });
+    });
+
     it('should display the second page of donations when click on next page', () => {
       cy.wait('@getDonations');
       cy.getByTestId('next-page').click();
@@ -121,7 +135,6 @@ describe('Donation page', () => {
           });
       });
     });
-
     it('should make donations sortable by amount', () => {
       cy.wait('@getDonations');
       // will be in ascending order
@@ -247,13 +260,14 @@ describe('Donation page', () => {
       cy.getByTestId('next-page').should('not.be.disabled');
 
       cy.getByTestId('next-page').click();
+      cy.wait('@getDonations');
       cy.getByTestId('previous-page').should('not.be.disabled');
       cy.getByTestId('next-page').should('be.disabled');
     });
   });
 
-  describe.only('Filtering', () => {
-    before(() => {
+  describe('Filtering', () => {
+    beforeEach(() => {
       cy.login('user/stripe-verified.json');
       cy.interceptPaginatedDonations();
       cy.visit('/dashboard/donations/');
@@ -261,15 +275,17 @@ describe('Donation page', () => {
 
     it('should render expected filters', () => {
       const expectedFilterTestIds = ['status-filter', 'amount-filter', 'created-filter'];
+      cy.wait('@getDonations');
       expectedFilterTestIds.forEach((testId) => cy.getByTestId(testId).should('exist'));
     });
 
     it('should display total results', () => {
+      cy.wait('@getDonations');
       cy.getByTestId('filter-results-count').should('exist');
     });
 
     it('should update results to expected amount when filtering status', () => {
-      cy.interceptPaginatedDonations();
+      cy.wait('@getDonations');
       const expectedPaids = donationsData.filter((d) => d.status === 'paid');
       cy.getByTestId('status-filter-paid').click();
       cy.getByTestId('filter-results-count').contains(expectedPaids.length);

@@ -77,3 +77,14 @@ jobs:
           build: npx cypress info
           start: npm run start
           wait-on: http://localhost:3000
+          spec: cypress/integration/contributor.spec.js
+      - uses: actions/upload-artifact@v1
+        if: failure()
+        with:
+          name: cypress-screenshots
+          path: spa/cypress/screenshots
+      - uses: actions/upload-artifact@v1
+        if: failure()
+        with:
+          name: cypress-videos
+          path: spa/cypress/videos

@@ -10,6 +10,7 @@ const SET_FILTER_TIMEOUT = 500;
 function AmountFilter({ handleFilterChange }) {
   const timeoutRef = useRef(null);
   const [value, setValue] = useState([0, MAX_AMOUNT]);
+  const [valuePreviouslyChanged, setValuePreviouslyChanged] = useState(false);
 
   const handleAmountFilterChange = useCallback(
     (range) => {
@@ -32,11 +33,16 @@ function AmountFilter({ handleFilterChange }) {
 
     timeoutRef.current = setTimeout(() => {
       timeoutRef.current = null;
-      handleAmountFilterChange(value);
+      if (valuePreviouslyChanged) {
+        handleAmountFilterChange(value);
+      }
     }, SET_FILTER_TIMEOUT);
   }, [value]);
 
   const handleChange = (_e, newValue) => {
+    if (!valuePreviouslyChanged) {
+      setValuePreviouslyChanged(true);
+    }
     setValue(newValue);
   };
 

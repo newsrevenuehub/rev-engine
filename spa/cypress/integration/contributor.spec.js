@@ -118,6 +118,7 @@ describe('Contributor portal', () => {
     });
 
     it.only('should show update payment method modal when payment method clicked', () => {
+      cy.wait(10000);
       cy.getByTestId('payment-method').first().click();
       cy.wait(10000);
       cy.getByTestId('edit-recurring-payment-modal').should('exist');

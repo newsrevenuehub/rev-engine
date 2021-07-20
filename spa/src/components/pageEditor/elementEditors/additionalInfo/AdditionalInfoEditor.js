@@ -28,9 +28,9 @@ function AdditionalInfoEditor(props) {
   };
   console.log(metadata);
   return (
-    <S.AdditionalInfoEditor>
+    <S.AdditionalInfoEditor data-testid="additional-info">
       <S.Description>Collect arbitrary data from your users by adding form fields to your page.</S.Description>
-      <S.CurrentInputs>
+      <S.CurrentInputs data-testid="additional-info-applied">
         {elementContent?.map((existingInput) => (
           <S.CurrentInput key={existingInput.key}>
             <S.CurrentLabel>{existingInput.label}</S.CurrentLabel>

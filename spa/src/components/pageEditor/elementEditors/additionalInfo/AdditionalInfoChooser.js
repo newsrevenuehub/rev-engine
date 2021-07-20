@@ -3,7 +3,7 @@ import Select from 'elements/inputs/Select';
 
 function AdditionalInfoChooser({ metadata = [], existingElements = [], setSelected }) {
   return (
-    <S.AdditionalInfoChooser>
+    <S.AdditionalInfoChooser data-testid="additional-info-chooser">
       <Select
         label="Select Additional Donor Information"
         onSelectedItemChange={({ selectedItem }) => setSelected(selectedItem)}

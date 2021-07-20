@@ -13,10 +13,7 @@
       }}
     },
     {"type": "DDonorInfo", "uuid": "testDonorInfo1"},
-    {"type": "DAdditionalInfo", "uuid": "testAdditinoalInfo", "content": [
-      {"type": "text", "label": "I'm contributing because...", "name": "reason"},
-      {"type": "text", "label": "Why does anybody even do anything?", "name": "purpose"}
-    ]},
+    {"type": "DAdditionalInfo", "uuid": "testAdditinoalInfo", "content": []},
     {"type": "DPayment", "uuid": "testPayment1", "content": {"offerPayFees": true, "stripe": ["card", "apple", "google", "browser"]}}
   ],
   "styles": {

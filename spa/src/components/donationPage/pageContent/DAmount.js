@@ -35,7 +35,7 @@ function DAmount({ element, ...props }) {
   useEffect(() => {
     let amount;
     if (selectedAmount === 'other') {
-      amount = parseInt(otherAmount || 0);
+      amount = parseFloat(otherAmount || 0);
     } else {
       // It's possible options[frequency][selectedAmount] is undefined, in the case that somebody either
       // has stale development data, or somebody has messed around with page.elements JSONField.

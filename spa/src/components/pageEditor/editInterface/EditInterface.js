@@ -23,7 +23,7 @@ const EditInterfaceContext = createContext();
 /**
  * EditInterface
  * EditInterface renders the Sidebar in the PageEdit view. It maintains state for elements
- * in element tab, as well as the state of the tabs themsevles. It also renders and controls
+ * in element tab, as well as the state of the tabs themselves. It also renders and controls
  * the state of the AddElementModal. It swaps PageElements for ElementProperties when a Page
  * Element is selected.
  *

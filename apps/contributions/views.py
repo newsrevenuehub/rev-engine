@@ -58,10 +58,11 @@ def stripe_payment(request):
             # Create payment intent with Stripe, associated local models, and send email to donor.
             stripe_payment_intent = stripe_payment.create_one_time_payment()
             response_body = {"detail": "Success", "clientSecret": stripe_payment_intent["client_secret"]}
-            template = PageEmailTemplate.get_template(
-                PageEmailTemplate.ContactType.ONE_TIME_DONATION, stripe_payment.get_donation_page()
-            )
-            template.one_time_donation(stripe_payment)
+            if stripe_payment.get_organization().uses_email_templates:
+                template = PageEmailTemplate.get_template(
+                    PageEmailTemplate.ContactType.ONE_TIME_DONATION, stripe_payment.get_donation_page()
+                )
+                template.one_time_donation(stripe_payment)
         else:
             # Create subscription with Stripe, associated local models
             stripe_payment.create_subscription()

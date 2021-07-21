@@ -87,6 +87,14 @@ class StripeOneTimePaymentViewTest(StripePaymentViewAbstract):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data["clientSecret"], test_client_secret)
         mock_one_time_payment.assert_called_once()
+        mock_email.assert_not_called()
+
+        with self.subTest("with email templates enabled get_template is called"):
+            self.organization.uses_email_templates = True
+            self.organization.save()
+            response = self._post_valid_one_time_payment()
+            self.assertEqual(response.status_code, 200)
+            mock_email.assert_called()
 
     @patch("apps.contributions.views.StripePaymentManager.create_one_time_payment", side_effect=PaymentBadParamsError)
     def test_response_when_bad_params_error(self, mock_one_time_payment):

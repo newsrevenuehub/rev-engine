@@ -9,7 +9,8 @@
     {"type": "DAmount", "uuid": "testAmount1", "content": { "allowOther": true, "options": {
         "one_time": [120, 180, 365],
         "month": [10, 15, 25],
-        "year": [120, 180, 365]
+        "year": [120, 180, 365],
+        "other": [22.45, 33]
       }}
     },
     {"type": "DDonorInfo", "uuid": "testDonorInfo1"},

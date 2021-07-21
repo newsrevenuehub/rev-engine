@@ -95,6 +95,7 @@ describe('Donation page edit', () => {
 
     it('should show existing frequencies and amounts', () => {
       for (const frequency in options) {
+        if (frequency === 'other') continue;
         cy.contains(getFrequencyAdjective(frequency))
           .siblings('ul')
           .within(() =>

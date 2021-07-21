@@ -40,7 +40,7 @@ function PaymentEditor() {
             <S.Toggle
               label={`Enable payment via ${paymentMethod.displayName}`}
               toggle
-              checked={isPaymentMethodOn(paymentMethod.value, elementContent.stripe)}
+              checked={isPaymentMethodOn(paymentMethod.value, elementContent?.stripe)}
               onChange={(_e, { checked }) => setToggled(checked, paymentMethod.value, 'stripe')}
             />
           </S.ToggleWrapper>

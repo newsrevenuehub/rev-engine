@@ -19,6 +19,9 @@ urlpatterns = [
         name="contributions-cancel-recurring",
     ),
     path("contributions/<int:pk>/update-payment-method/", views.update_payment_method, name="contributions-update"),
-    path("contributions/", views.ContributionsListView.as_view({"get": "list"}), name="contributions-list"),
+    path(
+        "contributions/<int:pk>/", views.ContributionsViewSet.as_view({"get": "retrieve"}, name="contribution-detail")
+    ),
+    path("contributions/", views.ContributionsViewSet.as_view({"get": "list"}), name="contributions-list"),
     path("meta/", views.ContributionMetadataListView.as_view({"get": "list"}), name="meta"),
 ]

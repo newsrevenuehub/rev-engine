@@ -1,12 +1,11 @@
 import logging
 
 from django.conf import settings
-from django.core.exceptions import ObjectDoesNotExist
 
 from slack_sdk import WebClient
 
 # from slack_sdk.errors import SlackApiError
-from apps.slack.models import HubSlackIntegration
+from apps.slack.models import HubSlackIntegration, OrganizationSlackIntegration
 
 
 logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
@@ -16,19 +15,24 @@ class SlackManagerError(Exception):
     pass
 
 
-class NoSlackIntegrationError(Exception):
-    pass
-
-
 class SlackManager:
     common_header_text = "New RevEngine Contribution Received!"
 
     def __init__(self):
-        self.hub_integration = HubSlackIntegration.objects.get()
+        self.hub_integration = self.get_hub_integration()
         self.hub_client = self.get_hub_client()
 
+    def get_hub_integration(self):
+        try:
+            return HubSlackIntegration.objects.get()
+        except HubSlackIntegration.DoesNotExist:
+            logger.info(
+                "Tried to send slack notification, but News Revenue Hub does not have a SlackIntegration configured"
+            )
+
     def get_hub_client(self):
-        return WebClient(token=self.hub_integration.bot_token)
+        if self.hub_integration:
+            return WebClient(token=self.hub_integration.bot_token)
 
     def get_org_client(self):
         return WebClient(token=self.org_integration.bot_token)
@@ -36,8 +40,8 @@ class SlackManager:
     def get_org_integration(self, org):
         try:
             return org.slack_integration
-        except ObjectDoesNotExist:
-            raise NoSlackIntegrationError(f"{org.name} does not have a Slack integration configured")
+        except OrganizationSlackIntegration.organization.RelatedObjectDoesNotExist:
+            logger.info(f"Tried to send slack notification, but {org.name} does not have a SlackIntegration configured")
 
     @classmethod
     def format_org_name(cls, org_name):
@@ -104,7 +108,6 @@ class SlackManager:
         return f"{self.common_header_text}: {contribution.formatted_amount} from {contribution.contributor.email}"
 
     def send_hub_message(self, channel, text, blocks):
-        print(f"SENDING TO CHANEL: {channel}")
         self.hub_client.chat_postMessage(channel=channel, text=text, blocks=blocks)
 
     def send_org_message(self, channel, text, blocks):
@@ -136,6 +139,9 @@ class SlackManager:
 
          event_type always None for now, since we only support success messages
         """
-        self.send_hub_notifications(contribution)
+        if self.hub_integration:
+            self.send_hub_notifications(contribution)
+
         self.org_integration = self.get_org_integration(contribution.organization)
-        self.send_org_notifications(contribution)
+        if self.org_integration:
+            self.send_org_notifications(contribution)

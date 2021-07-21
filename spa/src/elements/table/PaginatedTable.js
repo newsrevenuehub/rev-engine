@@ -31,8 +31,6 @@ function PaginatedTable({
     canPreviousPage,
     canNextPage,
     pageOptions,
-    nextPage,
-    previousPage,
     // Get the state from the instance
     state: { pageIndex, pageSize, sortBy }
   } = useTable(
@@ -49,6 +47,8 @@ function PaginatedTable({
             ...state,
             pageIndex: controlledPageIndex
           }),
+          // ingore warnings that controlledPageIndex shouldn't be in dependencies. without, new page won't
+          // be retrieved when pageIndex changes.
           [state, controlledPageIndex]
         );
       }

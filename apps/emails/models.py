@@ -63,7 +63,9 @@ class BaseEmailTemplate(models.Model):
 
         Calling methods should update schema before calling this method
         """
-        send_donor_email.delay(identifier=self.identifier, to=to, subject=subject, template_data=self.schema)
+        send_donor_email.delay(
+            identifier=self.identifier, to=to, subject=subject, template_data=self.schema
+        )  # pragma: no cover
 
     def save(self, *args, **kwargs):
         """

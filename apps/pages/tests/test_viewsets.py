@@ -93,6 +93,19 @@ class PageViewSetTest(AbstractTestCase):
         response = self.client.delete(detail_url)
         self.assertRaises(DonationPage.DoesNotExist, DonationPage.objects.get, pk=old_page_pk)
 
+    def test_cant_delete_page_owned_by_other_org(self):
+        page = self.resources[0]
+        org = self.resources[1].organization
+        self.assertNotEqual(page.organization, org)
+        org.users.add(self.user)
+        org.save()
+
+        detail_url = f"/api/v1/pages/{page.pk}/"
+        self.login()
+        response = self.client.delete(detail_url)
+        self.assertEqual(response.status_code, 403)
+        self.assertEqual(DonationPage.objects.filter(pk=page.pk).count(), 1)
+
     def test_page_list_uses_list_serializer(self):
         list_url = reverse("donationpage-list")
         response = self.client.get(list_url)

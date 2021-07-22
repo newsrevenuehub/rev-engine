@@ -45,7 +45,6 @@ import SegregatedStyles from 'components/donationPage/SegregatedStyles';
 import DonationPage from 'components/donationPage/DonationPage';
 import GlobalLoading from 'elements/GlobalLoading';
 import EditInterface from 'components/pageEditor/editInterface/EditInterface';
-import { setDefaultLocale } from 'react-datepicker';
 
 const PageEditorContext = createContext();
 
@@ -82,7 +81,6 @@ function PageEditor() {
   const [availableBenefits, setAvailableBenefits] = useState([]);
   const [availableStyles, setAvailableStyles] = useState([]);
   const [contributionMetadata, setContributionMetadata] = useState([]);
-  const [deletionSucceeded, setDeletionSucceeded] = useState([]);
 
   const [updatedPage, setUpdatedPage] = useState();
   const [selectedButton, setSelectedButton] = useState(PREVIEW);
@@ -216,7 +214,6 @@ function PageEditor() {
   };
 
   const handleDelete = () => {
-    const now = new Date();
     if (pageHasBeenPublished(page)) {
       getUserConfirmation(DELETE_CONFIRM_MESSAGE, doPageDeletionRequest);
     } else {

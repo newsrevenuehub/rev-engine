@@ -10,14 +10,12 @@
     {"type": "DAmount", "uuid": "testAmount1", "content": { "allowOther": true, "options": {
         "one_time": [120, 180, 365],
         "month": [10, 15, 25],
-        "year": [120, 180, 365]
+        "year": [120, 180, 365],
+        "other": [22.45, 33]
       }}
     },
     {"type": "DDonorInfo", "uuid": "testDonorInfo1"},
-    {"type": "DAdditionalInfo", "uuid": "testAdditinoalInfo", "content": [
-      {"type": "text", "label": "I'm contributing because...", "name": "reason"},
-      {"type": "text", "label": "Why does anybody even do anything?", "name": "purpose"}
-    ]},
+    {"type": "DAdditionalInfo", "uuid": "testAdditionalInfo", "content": []},
     {"type": "DPayment", "uuid": "testPayment1", "content": {"offerPayFees": true, "stripe": ["card", "apple", "google", "browser"]}}
   ],
   "styles": {

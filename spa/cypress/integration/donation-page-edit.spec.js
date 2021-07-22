@@ -1,4 +1,4 @@
-import { DELETE_PAGE, FULL_PAGE, DONOR_BENEFITS, LIST_PAGES } from 'ajax/endpoints';
+import { DELETE_PAGE, FULL_PAGE, DONOR_BENEFITS, LIST_PAGES, CONTRIBUTION_META } from 'ajax/endpoints';
 import { getEndpoint } from '../support/util';
 import { getFrequencyAdjective } from 'utilities/parseFrequency';
 import { format } from 'date-fns';
@@ -99,6 +99,7 @@ describe('Donation page edit', () => {
 
     it('should show existing frequencies and amounts', () => {
       for (const frequency in options) {
+        if (frequency === 'other') continue;
         cy.contains(getFrequencyAdjective(frequency))
           .siblings('ul')
           .within(() =>
@@ -207,7 +208,6 @@ describe('Donation page edit', () => {
       const expectedHeading = livePage.heading;
       cy.getByTestId('setup-heading-input').should('have.value', expectedHeading);
     });
-
     it('should update donation page view with new content', () => {
       const previousHeading = livePage.heading;
       const newHeading = 'My new test heading';
@@ -217,7 +217,6 @@ describe('Donation page edit', () => {
       cy.getByTestId('s-page-heading').contains(previousHeading).should('not.exist');
       cy.getByTestId('s-page-heading').contains(newHeading);
     });
-
     it('should show expected, formatted publication date', () => {
       const rawDate = livePage.published_date;
       const expectedFormat = format(new Date(rawDate), "LLL do, yyyy 'at' hh:mm a");
@@ -225,7 +224,6 @@ describe('Donation page edit', () => {
       cy.getByTestId('publish-widget').scrollIntoView();
       cy.getByTestId('publish-widget').contains(expectedFormat);
     });
-
     it('should show a warning when updating a live page', () => {
       cy.getByTestId('publish-widget').click();
       cy.contains('18').click();
@@ -272,5 +270,42 @@ describe('Donation page delete', () => {
       expect(interception.request.url.split('/')[pkPathIndex]).to.equal(livePage.id.toString());
     });
     cy.location('pathname').should('eq', '/dashboard/pages');
+  });
+});
+
+describe('Additional Info Setup', () => {
+  before(() => {
+    cy.login('user/stripe-verified.json');
+    cy.intercept(
+      { method: 'GET', pathname: getEndpoint(FULL_PAGE) },
+      { fixture: 'pages/live-page-1', statusCode: 200 }
+    );
+    cy.intercept(
+      { method: 'GET', pathname: getEndpoint(CONTRIBUTION_META) },
+      { fixture: 'donations/contribution-metadata.json', statusCode: 200 }
+    ).as('getContributionMeta');
+    cy.visit('edit/my/page');
+  });
+
+  it('additional-info-applied should be empty', () => {
+    cy.getByTestId('edit-page-button').click();
+    cy.getByTestId('layout-tab').click();
+    cy.getByTestId('edit-interface-item').contains('Additional').click();
+    cy.getByTestId('additional-info-applied').should('exist').find('li').should('have.length', 0);
+  });
+
+  it('should have two items available to add', () => {
+    cy.get('#downshift-1-toggle-button').click();
+    cy.get('#downshift-1-menu').find('li').should('have.length', 2);
+  });
+
+  it('click on one should add to additional-applied-info', () => {
+    cy.get('li').first().contains('In Honor of').click();
+    cy.getByTestId('additional-info-applied').should('exist').contains('In Honor of');
+  });
+
+  it('should now only have one item available to add', () => {
+    cy.get('#downshift-1-toggle-button').click();
+    cy.get('#downshift-1-menu').find('li').should('have.length', 1);
   });
 });

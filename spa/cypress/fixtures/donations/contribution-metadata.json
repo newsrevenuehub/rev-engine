@@ -7,10 +7,31 @@
     "donor_supplied": true
   },
   {
+    "key": "first_name",
+    "label": "first_name",
+    "additional_help_text": "",
+    "metadata_type": "TXT",
+    "donor_supplied": false
+  },
+  {
+    "key": "last_name",
+    "label": "last_name",
+    "additional_help_text": "",
+    "metadata_type": "TXT",
+    "donor_supplied": false
+  },
+  {
     "key": "in_memory_of",
     "label": "In Memory Of ...",
     "additional_help_text": "",
     "metadata_type": "TXT",
     "donor_supplied": true
+  },
+  {
+    "key": "schema_version",
+    "label": "schema_version",
+    "additional_help_text": "",
+    "metadata_type": "TXT",
+    "donor_supplied": false
   }
 ]

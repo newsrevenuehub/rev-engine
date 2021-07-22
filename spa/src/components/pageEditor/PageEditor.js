@@ -1,4 +1,5 @@
 import { useState, useEffect, createContext, useContext } from 'react';
+import { useHistory } from 'react-router-dom';
 import * as S from './PageEditor.styled';
 import { useTheme } from 'styled-components';
 import { AnimatePresence } from 'framer-motion';
@@ -22,13 +23,16 @@ import { useParams } from 'react-router-dom';
 
 // AJAX
 import useRequest from 'hooks/useRequest';
-import { FULL_PAGE, PATCH_PAGE, DONOR_BENEFITS, PAGE_STYLES, CONTRIBUTION_META } from 'ajax/endpoints';
+import { DELETE_PAGE, FULL_PAGE, PATCH_PAGE, DONOR_BENEFITS, PAGE_STYLES, CONTRIBUTION_META } from 'ajax/endpoints';
+
+// Routes
+import { PAGES_SLUG } from 'routes';
 
 // Constants
 import { GENERIC_ERROR } from 'constants/textConstants';
 
 // Assets
-import { faEye, faEdit, faSave } from '@fortawesome/free-solid-svg-icons';
+import { faEye, faEdit, faSave, faTrash } from '@fortawesome/free-solid-svg-icons';
 
 // Context
 import { useGlobalContext } from 'components/MainLayout';
@@ -41,6 +45,7 @@ import SegregatedStyles from 'components/donationPage/SegregatedStyles';
 import DonationPage from 'components/donationPage/DonationPage';
 import GlobalLoading from 'elements/GlobalLoading';
 import EditInterface from 'components/pageEditor/editInterface/EditInterface';
+import { setDefaultLocale } from 'react-datepicker';
 
 const PageEditorContext = createContext();
 
@@ -48,6 +53,10 @@ const EDIT = 'EDIT';
 const PREVIEW = 'PREVIEW';
 const IMAGE_KEYS = ['graphic', 'header_bg_image', 'header_logo'];
 const THUMBNAIL_KEYS = ['graphic_thumbnail', 'header_bg_image_thumbnail', 'header_logo_thumbnail'];
+
+export const DELETE_CONFIRM_MESSAGE =
+  'This page is currently published, and deleting it means users ' +
+  'will no longer be able to acccess it. Are you sure you want to proceed?';
 
 /**
  * PageEditor
@@ -73,20 +82,25 @@ function PageEditor() {
   const [availableBenefits, setAvailableBenefits] = useState([]);
   const [availableStyles, setAvailableStyles] = useState([]);
   const [contributionMetadata, setContributionMetadata] = useState([]);
-
-  const requestGetPage = useRequest();
-  const requestGetDonorBenefits = useRequest();
-  const requestGetDonorMetadata = useRequest();
-  const requestGetPageStyles = useRequest();
-  const requestPatchPage = useRequest();
+  const [deletionSucceeded, setDeletionSucceeded] = useState([]);
 
   const [updatedPage, setUpdatedPage] = useState();
   const [selectedButton, setSelectedButton] = useState(PREVIEW);
   const [showEditInterface, setShowEditInterface] = useState(false);
   const [errors, setErrors] = useState({});
 
+  const requestGetPage = useRequest();
+  const requestGetDonorBenefits = useRequest();
+  const requestGetDonorMetadata = useRequest();
+  const requestGetPageStyles = useRequest();
+  const requestPatchPage = useRequest();
+  const requestPageDeletion = useRequest();
+
+  const history = useHistory();
+
   useEffect(() => {
     setLoading(true);
+
     const { revProgramSlug, pageSlug } = parameters;
     const params = {
       revenue_program: revProgramSlug,
@@ -182,6 +196,31 @@ function PageEditor() {
       getUserConfirmation("You're making changes to a live donation page. Continue?", () => patchPage(pageUpdates));
     } else {
       patchPage(pageUpdates);
+    }
+  };
+
+  const doPageDeletionRequest = () => {
+    requestPageDeletion(
+      { method: 'DELETE', url: `${DELETE_PAGE}${page.id}/` },
+      {
+        onSuccess: () => {
+          setLoading(false);
+          history.push(PAGES_SLUG);
+        },
+        onFailure: (e) => {
+          alert.error(GENERIC_ERROR);
+          setLoading(false);
+        }
+      }
+    );
+  };
+
+  const handleDelete = () => {
+    const now = new Date();
+    if (pageHasBeenPublished(page)) {
+      getUserConfirmation(DELETE_CONFIRM_MESSAGE, doPageDeletionRequest);
+    } else {
+      doPageDeletionRequest();
     }
   };
 
@@ -317,6 +356,7 @@ function PageEditor() {
             data-testid="save-page-button"
             disabled={!updatedPage}
           />
+          <CircleButton onClick={handleDelete} icon={faTrash} type="neutral" data-testid="delete-page-button" />
         </S.ButtonOverlay>
       </S.PageEditor>
     </PageEditorContext.Provider>
@@ -340,11 +380,28 @@ function MissingElementErrors({ missing = [] }) {
   );
 }
 
+function pageHasBeenPublished(page, now = new Date()) {
+  return page.published_date && isBefore(new Date(page.published_date), now);
+}
+
+function pageHasNotBeenPublished(page, now = new Date()) {
+  return !page.published_date || isAfter(new Date(page.published_date), now);
+}
+
+function newPageIsCurrentlyPublished(newPage, now = new Date()) {
+  isBefore(new Date(newPage.published_date), now);
+}
+
+function newPageIsNotCurrentlyPublished(newPage, now = new Date()) {
+  isAfter(new Date(newPage.published_date), now);
+}
+
 function getSuccessMessage(page, newPage) {
-  const isNowPublished = isBefore(new Date(newPage.published_date), new Date());
-  const isNowNotPublished = isAfter(new Date(newPage.published_date), new Date());
-  const wasPublished = page.published_date && isBefore(new Date(page.published_date), new Date());
-  const wasNotPublished = !page.published_date || isAfter(new Date(page.published_date), new Date());
+  const now = new Date();
+  const isNowPublished = newPageIsCurrentlyPublished(newPage, now);
+  const isNowNotPublished = newPageIsNotCurrentlyPublished(newPage, now);
+  const wasPublished = pageHasBeenPublished(page, now);
+  const wasNotPublished = pageHasNotBeenPublished(page, now);
 
   if (isNowPublished) {
     if (wasNotPublished) {

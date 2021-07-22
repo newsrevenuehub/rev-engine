@@ -1,8 +1,10 @@
-import { FULL_PAGE, DONOR_BENEFITS } from 'ajax/endpoints';
+import { DELETE_PAGE, FULL_PAGE, DONOR_BENEFITS, LIST_PAGES } from 'ajax/endpoints';
 import { getEndpoint } from '../support/util';
 import { getFrequencyAdjective } from 'utilities/parseFrequency';
 import { format } from 'date-fns';
 import livePage from '../fixtures/pages/live-page-1.json';
+import unpublishedPage from '../fixtures/pages/unpublished-page-1.json';
+import { DELETE_CONFIRM_MESSAGE } from 'components/pageEditor/PageEditor';
 
 describe('Donation page edit', () => {
   before(() => {
@@ -10,18 +12,20 @@ describe('Donation page edit', () => {
     cy.intercept(
       { method: 'GET', pathname: getEndpoint(FULL_PAGE) },
       { fixture: 'pages/live-page-1', statusCode: 200 }
-    );
+    ).as('getPage');
     cy.intercept(
       { method: 'GET', pathname: getEndpoint(DONOR_BENEFITS) },
       { fixture: 'org/donor-benefits-1.json', statusCode: 200 }
     ).as('getDonorBenefits');
     cy.visit('edit/my/page');
+    cy.wait(['@login', '@getPage', '@getDonorBenefits']);
   });
 
   it('should render page edit buttons', () => {
     cy.getByTestId('preview-page-button');
     cy.getByTestId('edit-page-button');
     cy.getByTestId('save-page-button');
+    cy.getByTestId('delete-page-button');
   });
 
   it('should open edit interface when clicking edit button', () => {
@@ -230,5 +234,43 @@ describe('Donation page edit', () => {
       cy.getByTestId('confirmation-modal').contains("You're making changes to a live donation page. Continue?");
       cy.getByTestId('cancel-button').click();
     });
+  });
+});
+
+describe('Donation page delete', () => {
+  beforeEach(() => {
+    cy.login('user/stripe-verified.json');
+    cy.intercept({ method: 'DELETE', pathname: getEndpoint(`${DELETE_PAGE}*/`) }, { statusCode: 204 }).as('deletePage');
+    cy.intercept({ method: 'GET', pathname: getEndpoint(LIST_PAGES) }, { body: [], statusCode: 200 });
+  });
+  it('should delete an unpublished page when delete button is pushed', () => {
+    cy.intercept(
+      { method: 'GET', pathname: getEndpoint(FULL_PAGE) },
+      { fixture: 'pages/unpublished-page-1', statusCode: 200 }
+    ).as('getPage');
+    cy.visit('edit/my/page');
+    cy.wait(['@login', '@getPage']);
+    cy.getByTestId('delete-page-button').click();
+    cy.wait('@deletePage').then((interception) => {
+      const pkPathIndex = interception.request.url.split('/').length - 2;
+      expect(interception.request.url.split('/')[pkPathIndex]).to.equal(unpublishedPage.id.toString());
+    });
+    cy.location('pathname').should('eq', '/dashboard/pages');
+  });
+  it('should show a confirmation modal and delete a published page when delete button is pushed', () => {
+    cy.intercept(
+      { method: 'GET', pathname: getEndpoint(FULL_PAGE) },
+      { fixture: 'pages/live-page-1', statusCode: 200 }
+    ).as('getPage');
+    cy.visit('edit/my/page');
+    cy.wait(['@login', '@getPage']);
+    cy.getByTestId('delete-page-button').click();
+
+    cy.getByTestId('confirmation-modal').contains(DELETE_CONFIRM_MESSAGE).getByTestId('continue-button').click();
+    cy.wait('@deletePage').then((interception) => {
+      const pkPathIndex = interception.request.url.split('/').length - 2;
+      expect(interception.request.url.split('/')[pkPathIndex]).to.equal(livePage.id.toString());
+    });
+    cy.location('pathname').should('eq', '/dashboard/pages');
   });
 });

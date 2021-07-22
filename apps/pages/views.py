@@ -60,7 +60,7 @@ class PageViewSet(OrganizationLimitedListView, viewsets.ModelViewSet):
                 rev_program.donationpage_set.get(slug=page_slug) if page_slug else rev_program.default_donation_page
             )
         except DonationPage.DoesNotExist:
-            logger.error(f'Request for non-existant page by slug "{page_slug}" ')
+            logger.error(f'Request for non-existent page by slug "{page_slug}" ')
             return Response(
                 {"detail": "Could not find page matching those parameters"}, status=status.HTTP_404_NOT_FOUND
             )
@@ -72,6 +72,17 @@ class PageViewSet(OrganizationLimitedListView, viewsets.ModelViewSet):
         serializer = self.get_serializer_class()
         page_serializer = serializer(instance=donation_page)
         return Response(page_serializer.data, status=status.HTTP_200_OK)
+
+    def destroy(self, request, pk):
+        page = self.model.objects.get(pk=pk)
+        self.check_object_permissions(request, page)
+        try:
+            donation_page = self.model.objects.get(pk=pk)
+        except DonationPage.DoesNotExist:
+            logger.error(f'Request for non-existent page with ID "{pk}" ')
+            return Response({"detail": "Could not find page with that ID"}, status=status.HTTP_404_NOT_FOUND)
+        donation_page.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 class TemplateViewSet(OrganizationLimitedListView, viewsets.ModelViewSet):

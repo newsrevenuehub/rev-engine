@@ -51,6 +51,7 @@ INSTALLED_APPS = [
     "solo",
     "anymail",
     "django_json_widget",
+    "safedelete",
 ]
 
 

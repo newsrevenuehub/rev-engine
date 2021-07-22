@@ -65,6 +65,7 @@ django-solo = "^1.1.5"
 slack-sdk = "^3.7.0"
 django-anymail = "^8.3"
 django-json-widget = "^1.1.1"
+django-safedelete = "^1.0.0"
 
 [tool.poetry.dev-dependencies]
 appnope = "0.1.2"

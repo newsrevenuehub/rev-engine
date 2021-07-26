@@ -99,10 +99,9 @@ function PageEditor() {
   useEffect(() => {
     setLoading(true);
 
-    const { revProgramSlug, pageSlug } = parameters;
     const params = {
-      revenue_program: revProgramSlug,
-      page: pageSlug,
+      revenue_program: parameters.revProgramSlug,
+      page: parameters.pageSlug,
       live: 0
     };
     requestGetPage(
@@ -116,7 +115,7 @@ function PageEditor() {
       }
     );
     // Don't include requestGetPage for now.
-  }, [parameters]);
+  }, [parameters.revProgramSlug, parameters.pageSlug]);
 
   useEffect(() => {
     setLoading(true);

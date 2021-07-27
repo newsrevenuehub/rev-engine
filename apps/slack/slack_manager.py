@@ -4,8 +4,10 @@ from django.conf import settings
 
 from slack_sdk import WebClient
 
+from apps.organizations.models import Organization
+
 # from slack_sdk.errors import SlackApiError
-from apps.slack.models import HubSlackIntegration, OrganizationSlackIntegration
+from apps.slack.models import HubSlackIntegration
 
 
 logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
@@ -17,6 +19,8 @@ class SlackManagerError(Exception):
 
 class SlackManager:
     common_header_text = "New RevEngine Contribution Received!"
+    hub_integration = None
+    org_integration = None
 
     def __init__(self):
         self.hub_integration = self.get_hub_integration()
@@ -40,7 +44,7 @@ class SlackManager:
     def get_org_integration(self, org):
         try:
             return org.slack_integration
-        except OrganizationSlackIntegration.organization.RelatedObjectDoesNotExist:
+        except Organization.slack_integration.RelatedObjectDoesNotExist:
             logger.info(f"Tried to send slack notification, but {org.name} does not have a SlackIntegration configured")
 
     @classmethod

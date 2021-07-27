@@ -1,9 +1,10 @@
 import styled, { css } from 'styled-components';
+import lighten from 'styles/utils/lighten';
 
 export const Button = styled.button`
   display: block;
   text-align: center;
-  border: 1px solid;
+  border: 2px solid;
 
   opacity: ${(props) => (props.disabled ? 0.4 : 1)};
   cursor: ${(props) => (props.disabled ? 'default' : 'pointer')};
@@ -24,12 +25,40 @@ export const Button = styled.button`
         background: ${(props) => props.theme.colors.white};
         border-color: ${(props) => props.theme.colors.primary};
         color: ${(props) => props.theme.colors.primary};
+        &:hover {
+          border-color: ${(props) => lighten(props.theme.colors.primary)};
+          color: ${(props) => lighten(props.theme.colors.primary)};
+        }
+      `;
+    } else if (props.type === 'positive') {
+      return css`
+        background: ${(props) => props.theme.colors.white};
+        border-color: ${(props) => props.theme.colors.success};
+        color: ${(props) => props.theme.colors.success};
+        &:hover {
+          border-color: ${(props) => lighten(props.theme.colors.success)};
+          color: ${(props) => lighten(props.theme.colors.success)};
+        }
+      `;
+    } else if (props.type === 'caution') {
+      return css`
+        background: ${(props) => props.theme.colors.white};
+        border-color: ${(props) => props.theme.colors.caution};
+        color: ${(props) => props.theme.colors.caution};
+        &:hover {
+          border-color: ${(props) => lighten(props.theme.colors.caution)};
+          color: ${(props) => lighten(props.theme.colors.caution)};
+        }
       `;
     } else {
       return css`
         background: ${(props) => props.theme.colors.primary};
         border-color: ${(props) => props.theme.colors.primary};
         color: ${(props) => props.theme.colors.white};
+        &:hover {
+          border-color: ${(props) => lighten(props.theme.colors.primary)};
+          color: ${(props) => lighten(props.theme.colors.white)};
+        }
       `;
     }
   }};

@@ -346,7 +346,7 @@ class StripePaymentManager(PaymentManager):
         previous_status = self.contribution.status
         self.contribution.status = ContributionStatus.PROCESSING
         self.contribution.save()
-        meta = self.bundle_metadata(self.data, ContributionMetadata.ProcessorObjects.PAYMENT)
+        meta = self.bundle_metadata({}, ContributionMetadata.ProcessorObjects.PAYMENT)
         try:
             price_data = {
                 "unit_amount": self.contribution.amount,

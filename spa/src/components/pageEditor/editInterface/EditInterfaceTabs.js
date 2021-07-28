@@ -1,6 +1,6 @@
 import * as S from './EditInterfaceTabs.styled';
 
-const TABS = ['Layout', 'Setup', 'Styles'];
+const TABS = ['Layout', 'Sidebar', 'Setup', 'Styles'];
 
 function EditInterfaceTabs({ tab, setTab }) {
   return (

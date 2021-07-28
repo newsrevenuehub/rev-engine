@@ -2,7 +2,7 @@ import styled from 'styled-components';
 
 import SvgIcon from 'assets/icons/SvgIcon';
 
-export const SBenefits = styled.aside`
+export const DBenefits = styled.aside`
   width: 35%;
   padding: 0 2rem;
 

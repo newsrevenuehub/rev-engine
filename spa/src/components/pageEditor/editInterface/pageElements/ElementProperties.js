@@ -4,7 +4,6 @@ import { useAlert } from 'react-alert';
 
 // Elements
 import getElementEditor, { getElementValidator } from 'components/pageEditor/elementEditors/getElementEditor';
-import * as dynamicElements from 'components/donationPage/pageContent/dynamicElements';
 
 // Assets
 import { faCheck, faTimes, faTrash } from '@fortawesome/free-solid-svg-icons';
@@ -14,6 +13,11 @@ import { useEditInterfaceContext } from 'components/pageEditor/editInterface/Edi
 
 // Children
 import CircleButton from 'elements/buttons/CircleButton';
+
+import * as dynamicPageElements from 'components/donationPage/pageContent/dynamicElements';
+import * as dynamicSidebarElements from 'components/donationPage/pageContent/dynamicSidebarElements';
+
+const dynamicElements = { ...dynamicPageElements, ...dynamicSidebarElements };
 
 /**
  * ElementProperties
@@ -26,7 +30,15 @@ import CircleButton from 'elements/buttons/CircleButton';
 function ElementProperties() {
   const alert = useAlert();
 
-  const { selectedElement, setSelectedElement, elementContent, elements, setElements } = useEditInterfaceContext();
+  const {
+    selectedElement,
+    setSelectedElement,
+    elementContent,
+    elements,
+    setElements,
+    sidebarElements,
+    setSidebarElements
+  } = useEditInterfaceContext();
 
   const changesAreValid = () => {
     const getHasErrors = getElementValidator(selectedElement.type);
@@ -39,12 +51,19 @@ function ElementProperties() {
     }
   };
 
-  const handleKeepChanges = () => {
+  // ! WIP
+  // ? how to ensure handleKeepChaneges "knows" which set of elements to manipulate here...?
+  const handleKeepChanges = (elementsType = 'layout') => {
     if (changesAreValid()) {
-      const elementsCopy = [...elements];
+      const isForSidebar = elementsType === 'sidebar';
+      const elementsCopy = isForSidebar ? [...sidebarElements] : [...elements];
       const thisIndex = elementsCopy.findIndex((el) => el.uuid === selectedElement.uuid);
+      console.log('elementsCopy', elementsCopy);
+
       elementsCopy[thisIndex].content = elementContent;
-      setElements(elementsCopy);
+
+      if (isForSidebar) setSidebarElements(elementsCopy);
+      else setElements(elementsCopy);
       setSelectedElement();
     }
   };

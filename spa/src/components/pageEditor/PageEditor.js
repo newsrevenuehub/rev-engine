@@ -285,7 +285,7 @@ function PageEditor() {
           setSelectedButton(PREVIEW);
           setLoading(false);
         },
-        onFailure: (e) => {
+        onFailure: () => {
           alert.error(GENERIC_ERROR);
           setSelectedButton(PREVIEW);
           setLoading(false);

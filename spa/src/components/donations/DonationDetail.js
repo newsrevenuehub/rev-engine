@@ -152,10 +152,20 @@ function DonationDetail() {
                 <dd data-testid="flaggedDate">{flaggedDate ? formatDatetimeForDisplay(flaggedDate) : NO_VALUE}</dd>
                 {status === 'flagged' && (
                   <S.ManageFlagged>
-                    <Button loading={processing} type="positive" onClick={handleAccept}>
+                    <Button
+                      loading={processing}
+                      type="positive"
+                      onClick={handleAccept}
+                      data-testid="accept-flagged-button"
+                    >
                       <S.AcceptIcon icon={faCheck} /> Accept
                     </Button>
-                    <Button loading={processing} type="caution" onClick={handleReject}>
+                    <Button
+                      loading={processing}
+                      type="caution"
+                      onClick={handleReject}
+                      data-testid="reject-flagged-button"
+                    >
                       <S.RejectIcon icon={faBan} /> Reject
                     </Button>
                   </S.ManageFlagged>
@@ -188,7 +198,7 @@ function ResourceLink({ provider, resource, url }) {
       </dt>
       <dd>
         {url ? (
-          <a href={url} target="_blank" rel="noopener noreferrer">
+          <a href={url} data-testid={`${resource}-resource-link`} target="_blank" rel="noopener noreferrer">
             {url}
           </a>
         ) : (

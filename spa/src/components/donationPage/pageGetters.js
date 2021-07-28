@@ -13,10 +13,6 @@ export const getGraphicElement = () => {
   return <staticElements.SGraphic />;
 };
 
-export const getBenefitsElement = () => {
-  return <staticElements.SBenefits />;
-};
-
 export const getDynamicElement = (element, live) => {
   return getComponentForElement(element, live);
 };

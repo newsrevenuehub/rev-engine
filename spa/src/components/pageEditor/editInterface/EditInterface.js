@@ -9,6 +9,7 @@ import ElementProperties from 'components/pageEditor/editInterface/pageElements/
 import AddElementModal from 'components/pageEditor/editInterface/pageElements/addElementModal/AddElementModal';
 
 import PageElements from 'components/pageEditor/editInterface/pageElements/PageElements';
+import PageSidebarElements from 'components/pageEditor/editInterface/pageSidebarElements/PageSidebarElements';
 import PageSetup from 'components/pageEditor/editInterface/pageSetup/PageSetup';
 import PageStyles from 'components/pageEditor/editInterface/pageStyles/PageStyles';
 
@@ -32,6 +33,7 @@ const EditInterfaceContext = createContext();
 function EditInterface() {
   const { page, setPage, updatedPage, setUpdatedPage } = usePageEditorContext();
   const [tab, setTab] = useState(0);
+  const [elementDestination, setElementDestination] = useState();
   const [addElementModalOpen, setAddElementModalOpen] = useState(false);
   const [selectedElement, setSelectedElement] = useState();
 
@@ -52,6 +54,10 @@ function EditInterface() {
     setPageContent({ elements });
   };
 
+  const setSidebarElements = (sidebar_elements) => {
+    setPageContent({ sidebar_elements });
+  };
+
   const goToProperties = (element) => {
     setSelectedElement(element);
     setElementContent(element.content);
@@ -65,6 +71,8 @@ function EditInterface() {
         elements: page.elements,
         setElements,
         selectedElement,
+        sidebarElements: page.sidebar_elements,
+        setSidebarElements,
         setSelectedElement,
         elementContent,
         setElementContent,
@@ -80,16 +88,32 @@ function EditInterface() {
               <EditInterfaceTabs tab={tab} setTab={setTab} />
               {tab === 0 && (
                 <PageElements
-                  openAddElementModal={() => setAddElementModalOpen(true)}
+                  openAddElementModal={() => {
+                    setElementDestination('layout');
+                    setAddElementModalOpen(true);
+                  }}
                   goToProperties={goToProperties}
                 />
               )}
-              {tab === 1 && <PageSetup backToProperties={() => setTab(0)} />}
-              {tab === 2 && <PageStyles backToProperties={() => setTab(0)} />}
+              {tab === 1 && (
+                <PageSidebarElements
+                  goToProperties={goToProperties}
+                  openAddElementModal={() => {
+                    setElementDestination('sidebar');
+                    setAddElementModalOpen(true);
+                  }}
+                />
+              )}
+              {tab === 2 && <PageSetup backToProperties={() => setTab(0)} />}
+              {tab === 3 && <PageStyles backToProperties={() => setTab(0)} />}
             </>
           )}
         </S.EditInterface>
-        <AddElementModal addElementModalOpen={addElementModalOpen} setAddElementModalOpen={setAddElementModalOpen} />
+        <AddElementModal
+          addElementModalOpen={addElementModalOpen}
+          setAddElementModalOpen={setAddElementModalOpen}
+          destination={elementDestination}
+        />
       </>
     </EditInterfaceContext.Provider>
   );

@@ -9,11 +9,12 @@ import Modal from 'elements/modal/Modal';
 import { useEditInterfaceContext } from 'components/pageEditor/editInterface/EditInterface';
 
 // Elements
-import * as dynamicElements from 'components/donationPage/pageContent/dynamicElements';
+import * as dynamicLayoutElements from 'components/donationPage/pageContent/dynamicElements';
+import * as dynamicSidebarElements from 'components/donationPage/pageContent/dynamicSidebarElements';
 import PageItem from 'components/pageEditor/editInterface/pageElements/PageItem';
 
-function AddElementModal({ addElementModalOpen, setAddElementModalOpen }) {
-  const { elements, setElements } = useEditInterfaceContext();
+function AddElementModal({ addElementModalOpen, setAddElementModalOpen, destination = 'layout' }) {
+  const { elements, setElements, sidebarElements, setSidebarElements } = useEditInterfaceContext();
   const buildElement = (element) => {
     const { type } = element;
     return {
@@ -23,8 +24,33 @@ function AddElementModal({ addElementModalOpen, setAddElementModalOpen }) {
   };
 
   const handleElementSelected = (element) => {
-    setElements([buildElement(element), ...(elements || [])]);
+    if (destination === 'sidebar') {
+      setSidebarElements([buildElement(element), ...(sidebarElements || [])]);
+    } else {
+      setElements([buildElement(element), ...(elements || [])]);
+    }
     setAddElementModalOpen(false);
+  };
+
+  const renderDynamicLayoutElements = () => {
+    const dynamicElements = destination === 'sidebar' ? dynamicSidebarElements : dynamicLayoutElements;
+    return Object.keys(dynamicElements).map((elName, i) => {
+      const element = dynamicElements[elName];
+      const els = destination === 'sidebar' ? sidebarElements : elements;
+      // An element is disabled if it's unique and already present.
+      const disabled = element.unique && els?.some((el) => el.type === element.type);
+      return (
+        <S.PageItemWrapper key={element.displayName + i}>
+          <PageItem
+            disabled={disabled}
+            element={element}
+            isStatic
+            onClick={disabled ? undefined : () => handleElementSelected(element)}
+            data-testid={`add-${element.type}`}
+          />
+        </S.PageItemWrapper>
+      );
+    });
   };
 
   return (
@@ -32,24 +58,7 @@ function AddElementModal({ addElementModalOpen, setAddElementModalOpen }) {
       {addElementModalOpen && (
         <S.AddElementModal>
           <S.ModalContent>
-            <S.AvailableElements>
-              {Object.keys(dynamicElements).map((elName, i) => {
-                const element = dynamicElements[elName];
-                // An element is disabled if it's unique and already present.
-                const disabled = element.unique && elements?.some((el) => el.type === element.type);
-                return (
-                  <S.PageItemWrapper key={element.displayName + i}>
-                    <PageItem
-                      disabled={disabled}
-                      element={element}
-                      isStatic
-                      onClick={disabled ? undefined : () => handleElementSelected(element)}
-                      data-testid={`add-${element.type}`}
-                    />
-                  </S.PageItemWrapper>
-                );
-              })}
-            </S.AvailableElements>
+            <S.AvailableElements>{renderDynamicLayoutElements()}</S.AvailableElements>
           </S.ModalContent>
         </S.AddElementModal>
       )}

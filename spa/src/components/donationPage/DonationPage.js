@@ -47,7 +47,10 @@ function DonationPage({ page, live = false }) {
               </S.DonationContent>
             </S.SideInner>
           </S.SideOuter>
-          {page.donor_benefits && getters.getBenefitsElement()}
+          {/* 
+            If there's any sidebar content, need to render sidebar. 
+            eg page.side_elements ? 
+          */}
         </S.PageMain>
       </S.DonationPage>
     </DonationPageContext.Provider>

@@ -37,6 +37,7 @@ INSTALLED_APPS = [
     "apps.emails",
     "apps.contributions",
     "apps.slack",
+    "apps.media",
     "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
@@ -64,6 +65,7 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
+    "apps.common.middleware.LogFourHundredsMiddleware",
 ]
 
 ROOT_URLCONF = "revengine.urls"
@@ -325,3 +327,6 @@ USE_DEBUG_INTERVALS = os.getenv("USE_DEBUG_INTERVALS", False)
 THUMBNAIL_COLORSPACE = None
 THUMBNAIL_PRESERVE_FORMAT = True
 THUMBNAIL_PRESERVE_FORMAT = True
+
+# Middleware Logging Codes
+MIDDLEWARE_LOGGING_CODES = [400, 404, 403]

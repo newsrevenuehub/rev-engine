@@ -18,4 +18,17 @@ export const DatePickerWrapper = styled.div``;
 
 export const DateLabel = styled.p``;
 
-export const DatePicker = styled(KeyboardDatePicker)``;
+export const DatePickerInner = styled.div`
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+`;
+
+export const DatePicker = styled(KeyboardDatePicker)`
+  &&.MuiFormControl-marginNormal {
+    margin: 0;
+  }
+  && label + .MuiInput-formControl {
+    margin-top: 16px;
+  }
+`;

@@ -1,4 +1,5 @@
 import logging
+from pathlib import Path
 
 from django.conf import settings
 
@@ -8,6 +9,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
 from apps.api.permissions import UserBelongsToOrg
+from apps.media.models import MediaImage
 from apps.organizations.models import RevenueProgram
 from apps.organizations.views import OrganizationLimitedListView
 from apps.pages import serializers
@@ -72,6 +74,12 @@ class PageViewSet(OrganizationLimitedListView, viewsets.ModelViewSet):
         serializer = self.get_serializer_class()
         page_serializer = serializer(instance=donation_page)
         return Response(page_serializer.data, status=status.HTTP_200_OK)
+
+    def partial_update(self, request, *args, **kwargs):
+        for file in request.Files:
+            thumb = serializers.HyperlinkedSorlImageField("300", source=file, read_only=True)
+        data = MediaImage.create_from_request(request.data, request.FILES, Path(request.path).parts[-1])
+        return super().partial_update(request, *args, **kwargs)
 
     def destroy(self, request, pk):
         page = self.model.objects.get(pk=pk)

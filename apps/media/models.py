@@ -5,10 +5,9 @@ from django.apps import apps
 from django.core.files.images import ImageFile
 from django.db import models
 
+from sorl.thumbnail import ImageField as SorlImageField
+
 from apps.common.models import IndexedTimeStampedModel
-
-
-# Create your models here.
 
 
 class MediaImage(IndexedTimeStampedModel):
@@ -16,7 +15,7 @@ class MediaImage(IndexedTimeStampedModel):
     page_id = models.ForeignKey("pages.DonationPage", null=False, on_delete=models.CASCADE)
     height = models.PositiveIntegerField()
     width = models.PositiveIntegerField()
-    image = models.ImageField(upload_to="images", height_field="height", width_field="width")
+    image = SorlImageField(upload_to="images", height_field="height", width_field="width")
     image_attrs = models.JSONField(blank=True)
 
     @classmethod

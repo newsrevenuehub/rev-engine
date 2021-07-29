@@ -28,21 +28,21 @@ function DDonorInfo(props) {
             <Grid.Column tablet={16} computer={8}>
               <Input
                 type="text"
-                name="given_name"
+                name="first_name"
                 label="First Name"
                 value={firstName}
                 onChange={(e) => setFirstName(e.target.value)}
-                errors={errors.given_name}
+                errors={errors.firstName}
               />
             </Grid.Column>
             <Grid.Column tablet={16} computer={8}>
               <Input
                 type="text"
-                name="family_name"
+                name="last_name"
                 label="Last Name"
                 value={lastName}
                 onChange={(e) => setLastName(e.target.value)}
-                errors={errors.family_name}
+                errors={errors.lastName}
               />
             </Grid.Column>
           </Grid.Row>
@@ -70,7 +70,7 @@ function DDonorInfo(props) {
                 label="Address"
                 value={address}
                 onChange={(e) => setAddress(e.target.value)}
-                errors={errors.mailing_street}
+                errors={errors.address}
               />
             </Grid.Column>
           </Grid.Row>
@@ -83,17 +83,17 @@ function DDonorInfo(props) {
                 label="City"
                 value={city}
                 onChange={(e) => setCity(e.target.value)}
-                errors={errors.mailing_city}
+                errors={errors.city}
               />
             </Grid.Column>
             <Grid.Column mobile={16} tablet={8} computer={4}>
               <Input
                 type="text"
-                name="state"
+                name="mailing_state"
                 label="State"
                 value={state}
                 onChange={(e) => setState(e.target.value)}
-                errors={errors.mailing_state}
+                errors={errors.state}
               />
             </Grid.Column>
           </Grid.Row>
@@ -101,21 +101,21 @@ function DDonorInfo(props) {
             <Grid.Column mobile={16} tablet={8} computer={6}>
               <Input
                 type="text"
-                name="zip"
+                name="mailing_postal_code"
                 label="Zip"
                 value={zip}
                 onChange={(e) => setZip(e.target.value)}
-                errors={errors.mailing_postal_code}
+                errors={errors.zip}
               />
             </Grid.Column>
             <Grid.Column mobile={16} tablet={8} computer={10}>
               <Input
                 type="text"
-                name="country"
+                name="mailing_country"
                 label="Country"
                 value={country}
                 onChange={(e) => setCountry(e.target.value)}
-                errors={errors.mailing_country}
+                errors={errors.country}
               />
             </Grid.Column>
           </Grid.Row>

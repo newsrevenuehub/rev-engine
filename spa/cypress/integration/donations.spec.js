@@ -61,11 +61,6 @@ describe('Donations list', () => {
           renderedName: 'Auto-resolution date',
           rawName: 'auto_accepted_on',
           transform: (rawVal) => rawVal || NO_VALUE
-        },
-        {
-          renderedName: '',
-          rawName: 'id',
-          transform: (rawVal) => 'Details...'
         }
       ];
       cy.getByTestId('donation-header', {}, true).should('have.length', columnExpectations.length);
@@ -87,14 +82,6 @@ describe('Donations list', () => {
           const cellVal = $cellEl.innerText;
           expect(cellVal).to.equal(transform(dataVal));
         });
-      });
-    });
-    it('should link to donation detail page for each donation in list', () => {
-      cy.wait('@getDonations');
-      cy.getByTestId('donation-row').each((row) => {
-        expect(row.find('td[data-testcolumnaccessor="id"] > a').attr('href')).to.equal(
-          `/dashboard/donations/${row.attr('data-donationid')}/`
-        );
       });
     });
 

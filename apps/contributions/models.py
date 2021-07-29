@@ -75,6 +75,7 @@ class Contribution(IndexedTimeStampedModel):
     bad_actor_score = models.IntegerField(null=True)
     bad_actor_response = models.JSONField(null=True)
     flagged_date = models.DateTimeField(null=True)
+    contribution_metadata = models.JSONField(null=True)
 
     status = models.CharField(max_length=10, choices=ContributionStatus.choices, null=True)
 
@@ -174,6 +175,10 @@ def _get_rev_program_id(payment_manager):
     return payment_manager.get_donation_page().pk
 
 
+def _get_rev_program_slug(payment_manager):
+    return payment_manager.revenue_program.slug
+
+
 class ContributionMetadata(IndexedTimeStampedModel):
     """
     ContributionMetadata provides a model that allows admins to add form fields to the AdditionalInfo editor for
@@ -224,6 +229,7 @@ class ContributionMetadata(IndexedTimeStampedModel):
     lookup_map = {
         "re_contributor_id": _get_contributor_id,
         "re_revenue_program_id": _get_rev_program_id,
+        "re_revenue_program_slug": _get_rev_program_slug,
     }
 
     class MetadataType(models.TextChoices):
@@ -255,16 +261,22 @@ class ContributionMetadata(IndexedTimeStampedModel):
     )
 
     @staticmethod
-    def bundle_metadata(results, supplied: dict, payment_manager):
+    def bundle_metadata(supplied: dict, processor_obj, payment_manager):
+        """Small change"""
+        processor_meta = ContributionMetadata.objects.filter(processor_object=processor_obj)
+        meta_for_all = ContributionMetadata.objects.filter(processor_object=ContributionMetadata.ProcessorObjects.ALL)
         collected = {}
         lookup_map = ContributionMetadata.lookup_map
-        for obj in results:
+        for obj in processor_meta:
             if obj.key in lookup_map.keys():
                 collected.update({obj.key: lookup_map[obj.key](payment_manager)})
                 continue
+            if obj.key in supplied.keys():
+                collected.update({obj.key: supplied[obj.key]})
+                continue
+        for obj in meta_for_all:
             collected.update({obj.key: obj.default_value})
-        final = collected | supplied
-        final = {k: v for k, v in final.items() if v is not None}
+        final = {k: v for k, v in collected.items() if v is not None}
         return final
 
     class Meta:

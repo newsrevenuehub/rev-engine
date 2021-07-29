@@ -86,6 +86,10 @@ class ContributionAdmin(RevEngineBaseAdmin):
                 ),
             },
         ),
+        (
+            "Metadata",
+            {"fields": ("contribution_metadata",)},
+        ),
     )
 
     list_display = (

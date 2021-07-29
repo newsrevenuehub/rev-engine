@@ -185,8 +185,8 @@ async function tryRecurringPayment(stripe, data, { card, paymentRequest }) {
  */
 export async function createPaymentMethod(stripe, card, data) {
   const billing_details = {};
-  if (data?.given_name || data?.family_name) {
-    billing_details.name = `${data.given_name} ${data.family_name}`;
+  if (data?.first_name || data?.last_name) {
+    billing_details.name = `${data.first_name} ${data.last_name}`;
   }
   return await stripe.createPaymentMethod({
     type: 'card',

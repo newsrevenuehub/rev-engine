@@ -1,7 +1,6 @@
 import logging
 
 from django.conf import settings
-from django.db.models import Q
 from django.utils import timezone
 
 import stripe
@@ -75,11 +74,7 @@ class PaymentManager:
         self.serializer_class = self.get_serializer_class(data=data, contribution=contribution)
 
     def bundle_metadata(self, metadata: dict, processor_obj: str):
-        # First get all default metadata and all meta related to the processor object
-        all_meta = ContributionMetadata.objects.filter(
-            Q(processor_object=ContributionMetadata.ProcessorObjects.ALL) | Q(processor_object=processor_obj)
-        )
-        return ContributionMetadata.bundle_metadata(all_meta, metadata, self)
+        return ContributionMetadata.bundle_metadata(metadata, processor_obj, self)
 
     def get_serializer_class(self, **kwargs):
         raise NotImplementedError("Subclasses of PaymentManager must implement get_serializer_class")
@@ -156,7 +151,6 @@ class PaymentManager:
         donation_page = self.get_donation_page()
         provider_payment_id = provider_reference_instance.id if provider_reference_instance else None
         provider_payment_method_id = self.validated_data.get("payment_method_id", "")
-
         return Contribution.objects.create(
             amount=self.validated_data["amount"],
             interval=self.validated_data["interval"],
@@ -172,6 +166,7 @@ class PaymentManager:
             flagged_date=self.flagged_date,
             bad_actor_score=self.bad_actor_score,
             bad_actor_response=self.bad_actor_response,
+            contribution_metadata=self.data,
         )
 
     @staticmethod
@@ -346,7 +341,9 @@ class StripePaymentManager(PaymentManager):
         previous_status = self.contribution.status
         self.contribution.status = ContributionStatus.PROCESSING
         self.contribution.save()
-        meta = self.bundle_metadata(self.data, ContributionMetadata.ProcessorObjects.PAYMENT)
+        meta = self.bundle_metadata(
+            self.contribution.contribution_metadata, ContributionMetadata.ProcessorObjects.PAYMENT
+        )
         try:
             price_data = {
                 "unit_amount": self.contribution.amount,

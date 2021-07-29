@@ -50,8 +50,8 @@ class StripePaymentViewAbstract(APITestCase):
             self.url,
             {
                 "email": email,
-                "given_name": "Test",
-                "family_name": "Tester",
+                "first_name": "Test",
+                "last_name": "Tester",
                 "amount": self.payment_amount,
                 "reason": "Testing",
                 "revenue_program_slug": rev_slug if rev_slug else self.revenue_program.slug,

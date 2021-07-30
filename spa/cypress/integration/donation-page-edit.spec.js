@@ -18,7 +18,6 @@ describe('Donation page edit', () => {
       { fixture: 'org/donor-benefits-1.json', statusCode: 200 }
     );
     cy.visit('edit/my/page');
-    // cy.wait(['@login', '@getPage', '@getDonorBenefits']);
   });
 
   it('should render page edit buttons', () => {

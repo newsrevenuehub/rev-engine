@@ -48,8 +48,8 @@ import EditInterface from 'components/pageEditor/editInterface/EditInterface';
 
 const PageEditorContext = createContext();
 
-const EDIT = 'EDIT';
-const PREVIEW = 'PREVIEW';
+export const EDIT = 'EDIT';
+export const PREVIEW = 'PREVIEW';
 const IMAGE_KEYS = ['graphic', 'header_bg_image', 'header_logo'];
 const THUMBNAIL_KEYS = ['graphic_thumbnail', 'header_bg_image_thumbnail', 'header_logo_thumbnail'];
 
@@ -280,13 +280,21 @@ function PageEditor() {
         onSuccess: ({ data }) => {
           const successMessage = getSuccessMessage(page, data);
           alert.success(successMessage);
+          setErrors({});
           setPage(data);
           setSelectedButton(PREVIEW);
           setLoading(false);
         },
         onFailure: (e) => {
-          alert.error(GENERIC_ERROR);
-          setSelectedButton(PREVIEW);
+          if (e?.response?.data) {
+            setErrors({ ...errors, ...e.response.data });
+            setSelectedButton(EDIT);
+            setShowEditInterface(true);
+            setLoading(false);
+          } else {
+            alert.error(GENERIC_ERROR);
+            setSelectedButton(PREVIEW);
+          }
           setLoading(false);
         }
       }
@@ -314,6 +322,7 @@ function PageEditor() {
         setUpdatedPage,
         showEditInterface,
         setShowEditInterface,
+        setSelectedButton,
         errors
       }}
     >

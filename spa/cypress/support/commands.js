@@ -16,6 +16,7 @@ Cypress.Commands.add('login', (userFixture) => {
   cy.getByTestId('login-password').type('testing');
   cy.intercept('POST', getEndpoint(TOKEN), { fixture: userFixture }).as('login');
   cy.getByTestId('login-button').click();
+  return cy.wait('@login');
 });
 
 Cypress.Commands.add('visitDonationPage', () => {

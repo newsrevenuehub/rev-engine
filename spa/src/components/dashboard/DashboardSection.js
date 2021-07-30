@@ -2,7 +2,7 @@ import * as S from './DashboardSection.styled';
 
 function DashboardSection({ children, heading, ...props }) {
   return (
-    <S.DashboardSection {...props}>
+    <S.DashboardSection {...props} layout>
       {heading && <S.SectionHeading layout>{heading}</S.SectionHeading>}
       <S.SectionContent layout>{children}</S.SectionContent>
     </S.DashboardSection>

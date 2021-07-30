@@ -19,8 +19,17 @@ class ContributionMetadataSerializer(serializers.ModelSerializer):
 
 
 class ContributionSerializer(serializers.ModelSerializer):
+    """
+    Used when organizations are viewing a Contribution
+    """
+
     contributor_email = serializers.StringRelatedField(read_only=True, source="contributor")
+
     auto_accepted_on = serializers.SerializerMethodField()
+    formatted_payment_provider_used = serializers.SerializerMethodField()
+    provider_payment_url = serializers.SerializerMethodField()
+    provider_subscription_url = serializers.SerializerMethodField()
+    provider_customer_url = serializers.SerializerMethodField()
 
     def get_auto_accepted_on(self, obj):
         """
@@ -29,6 +38,43 @@ class ContributionSerializer(serializers.ModelSerializer):
         """
         if obj.flagged_date:
             return obj.flagged_date + settings.FLAGGED_PAYMENT_AUTO_ACCEPT_DELTA
+
+    def get_formatted_payment_provider_used(self, obj):
+        if not obj.payment_provider_used:
+            return ""
+        return obj.payment_provider_used.title()
+
+    def get_provider_payment_url(self, obj):
+        if not obj.provider_payment_id:
+            return ""
+        return f"{self._get_resource_url(obj, 'provider_payment_id')}/{obj.provider_payment_id}"
+
+    def get_provider_subscription_url(self, obj):
+        if not obj.provider_subscription_id:
+            return ""
+        return f"{self._get_resource_url(obj, 'provider_subscription_id')}/{obj.provider_subscription_id}"
+
+    def get_provider_customer_url(self, obj):
+        if not obj.provider_customer_id:
+            return ""
+        return f"{self._get_resource_url(obj, 'provider_customer_id')}/{obj.provider_customer_id}"
+
+    def _get_base_provider_url(self, obj):
+        base = "https://"
+        if obj.payment_provider_used == "Stripe":
+            return base + "dashboard.stripe.com"
+
+    def _get_resource_url(self, obj, resource):
+        provider_url = self._get_base_provider_url(obj)
+        if not provider_url:
+            return ""
+        if resource == "provider_payment_id":
+            resource_url = "/payments"
+        if resource == "provider_subscription_id":
+            resource_url = "/subscriptions"
+        if resource == "provider_customer_id":
+            resource_url = "/customers"
+        return provider_url + resource_url
 
     class Meta:
         model = Contribution
@@ -43,6 +89,10 @@ class ContributionSerializer(serializers.ModelSerializer):
             "bad_actor_score",
             "flagged_date",
             "auto_accepted_on",
+            "formatted_payment_provider_used",
+            "provider_payment_url",
+            "provider_subscription_url",
+            "provider_customer_url",
             "status",
         ]
 

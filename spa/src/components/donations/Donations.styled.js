@@ -1,9 +1,5 @@
 import styled, { css } from 'styled-components';
 
-export const Donations = styled.div`
-  overflow-y: auto;
-`;
-
 export const ResolutionDateCaution = styled.div`
   ${(props) => {
     switch (props.urgency) {

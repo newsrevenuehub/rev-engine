@@ -87,12 +87,12 @@ describe('Donations list', () => {
 
     it('should display the second page of donations when click on next page', () => {
       cy.wait('@getDonations');
-      cy.getByTestId('next-page').click();
       cy.wait('@getDonations').then((intercept) => {
         cy.getByTestId('donations-table')
           .find('tbody tr[data-testid="donation-row"]')
           .should('have.length', intercept.response.body.results.length);
       });
+      cy.getByTestId('next-page').click();
     });
 
     it('should make donations sortable by payment date', () => {

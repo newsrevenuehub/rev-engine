@@ -28,13 +28,13 @@ import CircleButton from 'elements/buttons/CircleButton';
  */
 function PageSetup({ backToProperties }) {
   const { getUserConfirmation } = useGlobalContext();
+  const { page, errors, availableBenefits } = usePageEditorContext();
   const { setPageContent } = useEditInterfaceContext();
-  const { page, availableBenefits } = usePageEditorContext();
 
   // Form state
   const [heading, setPageHeading] = useState(page.heading);
   const [images, setImages] = useState({});
-  const [heading_link, setHeaderLink] = useState(page.header_link);
+  const [header_link, setHeaderLink] = useState(page.header_link);
   const [thank_you_redirect, setThankYouRedirect] = useState(page.thank_you_redirect);
   const [post_thank_you_redirect, setPostThankYouRedirect] = useState(page.post_thank_you_redirect);
   const [donor_benefits, setDonorBenefits] = useState(page.donor_benefits);
@@ -48,7 +48,7 @@ function PageSetup({ backToProperties }) {
     setPageContent({
       heading,
       ...images,
-      heading_link,
+      header_link,
       thank_you_redirect,
       post_thank_you_redirect,
       donor_benefits,
@@ -87,6 +87,7 @@ function PageSetup({ backToProperties }) {
           value={heading}
           onChange={(e) => setPageHeading(e.target.value)}
           testid="setup-heading-input"
+          errors={errors.heading}
         />
       </S.InputWrapper>
       <S.Images>
@@ -96,6 +97,7 @@ function PageSetup({ backToProperties }) {
             onChange={(file) => handleImageChange('header_bg_image', file)}
             label="Header background"
             helpText="Background of header bar"
+            errors={errors.header_bg_image}
           />
         </S.ImageSelectorWrapper>
         <S.ImageSelectorWrapper>
@@ -104,9 +106,18 @@ function PageSetup({ backToProperties }) {
             onChange={(file) => handleImageChange('header_logo', file)}
             label="Header logo"
             helpText="Logo to display in header"
+            errors={errors.header_logo_thumbnail}
           />
           <S.InputWrapper>
-            <Input type="text" label="Logo link" value={heading_link} onChange={(e) => setHeaderLink(e.target.value)} />
+            <Input
+              type="text"
+              label="Logo link"
+              value={header_link}
+              helpText="Where does clicking your logo take your users?"
+              onChange={(e) => setHeaderLink(e.target.value)}
+              errors={errors.header_link}
+              testid="logo-link-input"
+            />
           </S.InputWrapper>
         </S.ImageSelectorWrapper>
         <S.ImageSelectorWrapper>
@@ -115,6 +126,7 @@ function PageSetup({ backToProperties }) {
             onChange={(file) => handleImageChange('graphic', file)}
             label="Graphic"
             helpText="Graphic displays below page title"
+            errors={errors.graphic_thumbnail}
           />
         </S.ImageSelectorWrapper>
       </S.Images>
@@ -124,6 +136,7 @@ function PageSetup({ backToProperties }) {
           helpText='If you have a "Thank You" page of your own, add a link here'
           value={thank_you_redirect}
           onChange={(e) => setThankYouRedirect(e.target.value)}
+          errors={errors.thank_you_redirect}
         />
       </S.InputWrapper>
       <S.InputWrapper border>
@@ -132,10 +145,16 @@ function PageSetup({ backToProperties }) {
           helpText="If using our default Thank You page, where should we redirect your donors afterward?"
           value={post_thank_you_redirect}
           onChange={(e) => setPostThankYouRedirect(e.target.value)}
+          errors={errors.post_thank_you_redirect}
         />
       </S.InputWrapper>
-      <BenefitsWidget benefits={availableBenefits} selected={donor_benefits} setSelected={(d) => setDonorBenefits(d)} />
-      <PublishWidget publishDate={published_date} onChange={setPublishedDate} />
+      <BenefitsWidget
+        benefits={availableBenefits}
+        selected={donor_benefits}
+        setSelected={(d) => setDonorBenefits(d)}
+        errors={errors.donor_benefits}
+      />
+      <PublishWidget publishDate={published_date} onChange={setPublishedDate} errors={errors.published_date} />
       <S.Buttons>
         <CircleButton
           icon={faCheck}
@@ -155,3 +174,15 @@ function PageSetup({ backToProperties }) {
 }
 
 export default PageSetup;
+
+export const PAGE_SETUP_FIELDS = [
+  'heading',
+  'header_bg_image_thumbnail',
+  'header_logo_thumbnail',
+  'header_link',
+  'graphic_thumbnail',
+  'thank_you_redirect',
+  'post_thank_you_redirect',
+  'donor_benefits',
+  'published_date'
+];

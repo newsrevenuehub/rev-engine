@@ -3,6 +3,9 @@ import * as S from './DonationPage.styled';
 import * as getters from 'components/donationPage/pageGetters';
 import { frequencySort } from 'components/donationPage/pageContent/DFrequency';
 
+// Children
+import DonationPageSidebar from 'components/donationPage/DonationPageSidebar';
+
 const DonationPageContext = createContext({});
 
 function DonationPage({ page, live = false }) {
@@ -47,10 +50,7 @@ function DonationPage({ page, live = false }) {
               </S.DonationContent>
             </S.SideInner>
           </S.SideOuter>
-          {/* 
-            If there's any sidebar content, need to render sidebar. 
-            eg page.side_elements ? 
-          */}
+          <DonationPageSidebar sidebarContent={page?.sidebar_elements} live={live} />
         </S.PageMain>
       </S.DonationPage>
     </DonationPageContext.Provider>

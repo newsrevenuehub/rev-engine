@@ -1,13 +1,16 @@
 import * as S from './DImage.styled';
 import PropTypes from 'prop-types';
 
+// Util
+import getSrcForImg from 'utilities/getSrcForImg';
+
 // Children
 import DElement, { DynamicElementPropTypes } from 'components/donationPage/pageContent/DElement';
 
 function DImage({ element, ...props }) {
   return (
     <DElement data-testid="d-image" {...props}>
-      <S.DImage>DImage</S.DImage>
+      <S.Image src={getSrcForImg(element?.content?.url || element?.content)} />
     </DElement>
   );
 }

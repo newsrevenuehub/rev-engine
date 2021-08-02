@@ -51,4 +51,13 @@ export const PageElements = styled.ul`
   margin: 0;
   padding: 0;
   list-style: none;
+
+  & > li {
+    padding: 4rem 0;
+    margin: 0;
+  }
+
+  & > li:not(:last-child) {
+    border-bottom: 1px ${(props) => props.theme.ruleStyle || 'solid'} ${(props) => props.theme.colors.grey[1]};
+  }
 `;

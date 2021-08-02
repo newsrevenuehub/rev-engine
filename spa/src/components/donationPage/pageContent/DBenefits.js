@@ -9,17 +9,21 @@ import { ICONS } from 'assets/icons/SvgIcon';
 import { usePage } from 'components/donationPage/DonationPage';
 
 // Children
-import { DynamicElementPropTypes } from 'components/donationPage/pageContent/DElement';
+import DElement, { DynamicElementPropTypes } from 'components/donationPage/pageContent/DElement';
+import ElementError from 'components/donationPage/pageContent/ElementError';
 
-function DBenefits() {
+function DBenefits({ live }) {
   const {
     page: { donor_benefits }
   } = usePage();
 
-  if (!donor_benefits || donor_benefits.name === '----none----') return null;
+  if (!donor_benefits || donor_benefits.name === '----none----') {
+    if (live) return null;
+    return <ElementError>No Donor Benefits configured for this page</ElementError>;
+  }
 
   return (
-    <S.DBenefits data-testid="d-benefits">
+    <DElement data-testid="d-benefits">
       <S.BenefitsContent>
         <S.BenefitsName>{donor_benefits.name}</S.BenefitsName>
         <S.TiersList>
@@ -45,7 +49,7 @@ function DBenefits() {
           })}
         </S.TiersList>
       </S.BenefitsContent>
-    </S.DBenefits>
+    </DElement>
   );
 }
 

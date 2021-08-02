@@ -51,14 +51,11 @@ function ElementProperties({ selectedElementType }) {
     }
   };
 
-  // ! WIP
-  // ? how to ensure handleKeepChaneges "knows" which set of elements to manipulate here...?
   const handleKeepChanges = () => {
     if (changesAreValid()) {
       const isForSidebar = selectedElementType === 'sidebar';
       const elementsCopy = isForSidebar ? [...sidebarElements] : [...elements];
       const thisIndex = elementsCopy.findIndex((el) => el.uuid === selectedElement.uuid);
-      console.log('elementsCopy', elementsCopy);
 
       elementsCopy[thisIndex].content = elementContent;
 

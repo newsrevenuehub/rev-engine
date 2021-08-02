@@ -13,7 +13,11 @@ function PageSidebarElements({ openAddElementModal, goToProperties }) {
   return (
     <S.PageSidebarElements>
       {sidebarElements && (
-        <DraggableList elements={sidebarElements} setElements={setSidebarElements} handleItemClick={goToProperties} />
+        <DraggableList
+          elements={sidebarElements}
+          setElements={setSidebarElements}
+          handleItemClick={(element) => goToProperties(element, 'sidebar')}
+        />
       )}
       <S.AddElementButton onClick={openAddElementModal} data-testid="add-element-button">
         <S.AddElementIcon icon={faPlus} />

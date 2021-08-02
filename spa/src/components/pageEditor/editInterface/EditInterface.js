@@ -36,6 +36,7 @@ function EditInterface() {
   const [elementDestination, setElementDestination] = useState();
   const [addElementModalOpen, setAddElementModalOpen] = useState(false);
   const [selectedElement, setSelectedElement] = useState();
+  const [selectedElementType, setSelectedElementType] = useState();
 
   // Since you can only edit one element at a time, it's safe (and much easier)
   // to only store one set of "unconfirmed" changes at a time.
@@ -58,7 +59,8 @@ function EditInterface() {
     setPageContent({ sidebar_elements });
   };
 
-  const goToProperties = (element) => {
+  const goToProperties = (element, elementsType) => {
+    setSelectedElementType(elementsType);
     setSelectedElement(element);
     setElementContent(element.content);
   };
@@ -82,7 +84,7 @@ function EditInterface() {
       <>
         <S.EditInterface {...editInterfaceAnimation} data-testid="edit-interface">
           {selectedElement ? (
-            <ElementProperties />
+            <ElementProperties selectedElementType={selectedElementType} />
           ) : (
             <>
               <EditInterfaceTabs tab={tab} setTab={setTab} />

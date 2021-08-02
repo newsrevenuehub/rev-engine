@@ -1,11 +1,11 @@
 import * as S from './EditInterfaceTabs.styled';
 
-const TABS = ['Layout', 'Sidebar', 'Setup', 'Styles'];
+export const EDIT_INTERFACE_TABS = ['Layout', 'Sidebar', 'Setup', 'Styles'];
 
 function EditInterfaceTabs({ tab, setTab }) {
   return (
     <S.EditInterfaceTabs>
-      {TABS.map((tabName, i) => (
+      {EDIT_INTERFACE_TABS.map((tabName, i) => (
         <S.Tab
           key={tabName + i}
           selected={i === tab}

@@ -1,4 +1,4 @@
-import { Switch, Route, Link, useRouteMatch } from 'react-router-dom';
+import { Switch, Route, useRouteMatch, useHistory } from 'react-router-dom';
 import { useState, useCallback, useMemo } from 'react';
 import * as S from './Donations.styled';
 
@@ -9,7 +9,10 @@ import useRequest from 'hooks/useRequest';
 // Deps
 import queryString from 'query-string';
 
+// Contants
+import { DONATIONS_SLUG } from 'routes';
 import { NO_VALUE } from 'constants/textConstants';
+
 // Util
 import formatDatetimeForDisplay from 'utilities/formatDatetimeForDisplay';
 import formatCurrencyAmount from 'utilities/formatCurrencyAmount';
@@ -28,14 +31,14 @@ const IS_SOON_THRESHOLD_DAYS = 2;
 
 function Donations() {
   const { path } = useRouteMatch();
+  const history = useHistory();
+
   const requestDonations = useRequest();
   const [filters, setFilters] = useState({});
   const [donationsCount, setDonationsCount] = useState([]);
   const [pageIndex, setPageIndex] = useState(0);
 
-  const handleRowClick = (row) => {
-    console.log('row clicked: ', row);
-  };
+  const handleRowClick = (row) => history.push(`${DONATIONS_SLUG}/${row.id}/`);
 
   const handlePageChange = (pageIndexChange) => {
     setPageIndex(pageIndex + pageIndexChange);
@@ -112,41 +115,33 @@ function Donations() {
         accessor: 'auto_accepted_on',
         Cell: (props) => (props.value ? <ResolutionDateCaution date={props.value} /> : NO_VALUE),
         disableSortBy: true
-      },
-      {
-        Header: '',
-        accessor: 'id',
-        Cell: (props) => <Link to={`/dashboard/donations/${props.value}/`}>Details...</Link>,
-        disableSortBy: true
       }
     ],
     []
   );
 
   return (
-    <S.Donations>
-      <DashboardSectionGroup data-testid="donations">
-        <Switch>
-          <Route path={`${path}/:contributionId`}>
-            <DashboardSection heading="Donation Info">
-              <DonationDetail />
-            </DashboardSection>
-          </Route>
-          <Route>
-            <DashboardSection heading="Donations">
-              <Filters filters={filters} handleFilterChange={handleFilterChange} donationsCount={donationsCount} />
-              <DonationsTable
-                onRowClick={handleRowClick}
-                columns={columns}
-                fetchDonations={fetchDonations}
-                pageIndex={pageIndex}
-                onPageChange={handlePageChange}
-              />
-            </DashboardSection>
-          </Route>
-        </Switch>
-      </DashboardSectionGroup>
-    </S.Donations>
+    <DashboardSectionGroup data-testid="donations">
+      <Switch>
+        <Route path={`${path}/:contributionId`}>
+          <DashboardSection heading="Donation Info">
+            <DonationDetail />
+          </DashboardSection>
+        </Route>
+        <Route>
+          <DashboardSection heading="Donations">
+            <Filters filters={filters} handleFilterChange={handleFilterChange} donationsCount={donationsCount} />
+            <DonationsTable
+              onRowClick={handleRowClick}
+              columns={columns}
+              fetchDonations={fetchDonations}
+              pageIndex={pageIndex}
+              onPageChange={handlePageChange}
+            />
+          </DashboardSection>
+        </Route>
+      </Switch>
+    </DashboardSectionGroup>
   );
 }
 

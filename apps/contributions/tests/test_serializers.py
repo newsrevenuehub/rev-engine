@@ -6,7 +6,7 @@ from django.utils import timezone
 
 from apps.contributions import serializers
 from apps.contributions.models import Contribution, ContributionStatus
-from apps.contributions.tests.factories import ContributionFactory
+from apps.contributions.tests.factories import ContributionFactory, ContributorFactory
 from apps.organizations.tests.factories import OrganizationFactory
 
 
@@ -27,7 +27,10 @@ class ContributionSerializer(TestCase):
 
     def setUp(self):
         self.serializer = serializers.ContributionSerializer
-        self.contribution = Contribution.objects.create(amount=1000)
+        self.contributor = ContributorFactory()
+        self.contribution = ContributionFactory(
+            amount=1000, contributor=self.contributor, payment_provider_used="Stripe"
+        )
 
     def test_returned_fields(self):
         data = self.serializer(self.contribution).data
@@ -46,6 +49,38 @@ class ContributionSerializer(TestCase):
         target_date = self.contribution.flagged_date + settings.FLAGGED_PAYMENT_AUTO_ACCEPT_DELTA
         new_data = self.serializer(self.contribution).data
         self.assertEqual(new_data["auto_accepted_on"], target_date)
+
+    def test_get_formatted_payment_provider_used(self):
+        data = self.serializer(self.contribution).data
+        self.assertEqual(data["formatted_payment_provider_used"], "Stripe")
+
+    def test_contributor_email(self):
+        data = self.serializer(self.contribution).data
+        self.assertEqual(data["contributor_email"], self.contributor.email)
+
+    def test_get_provider_payment_url(self):
+        my_provider_payment_id = "my_provider_payment_id"
+        self.contribution.provider_payment_id = my_provider_payment_id
+        self.contribution.save()
+
+        data = self.serializer(self.contribution).data
+        self.assertIn(my_provider_payment_id, data["provider_payment_url"])
+
+    def test_get_provider_subscription_url(self):
+        my_provider_subscription_id = "my_provider_subscription_id"
+        self.contribution.provider_subscription_id = my_provider_subscription_id
+        self.contribution.save()
+
+        data = self.serializer(self.contribution).data
+        self.assertIn(my_provider_subscription_id, data["provider_subscription_url"])
+
+    def test_get_provider_customer_url(self):
+        my_provider_customer_id = "my_provider_customer_id"
+        self.contribution.provider_customer_id = my_provider_customer_id
+        self.contribution.save()
+
+        data = self.serializer(self.contribution).data
+        self.assertIn(my_provider_customer_id, data["provider_customer_url"])
 
 
 class ContributorContributionSerializerTest(TestCase):

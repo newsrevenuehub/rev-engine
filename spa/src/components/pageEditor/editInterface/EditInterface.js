@@ -1,16 +1,19 @@
-import { useState, useContext, createContext } from 'react';
+import { useState, useContext, createContext, useEffect, useCallback } from 'react';
 import * as S from './EditInterface.styled';
 
 import { usePageEditorContext } from 'components/pageEditor/PageEditor';
 
+// Util
+import isEmpty from 'lodash.isempty';
+
 // Children
-import EditInterfaceTabs from 'components/pageEditor/editInterface/EditInterfaceTabs';
+import EditInterfaceTabs, { EDIT_INTERFACE_TABS } from 'components/pageEditor/editInterface/EditInterfaceTabs';
 import ElementProperties from 'components/pageEditor/editInterface/pageElements/ElementProperties';
 import AddElementModal from 'components/pageEditor/editInterface/pageElements/addElementModal/AddElementModal';
 
 import PageElements from 'components/pageEditor/editInterface/pageElements/PageElements';
+import PageSetup, { PAGE_SETUP_FIELDS } from 'components/pageEditor/editInterface/pageSetup/PageSetup';
 import PageSidebarElements from 'components/pageEditor/editInterface/pageSidebarElements/PageSidebarElements';
-import PageSetup from 'components/pageEditor/editInterface/pageSetup/PageSetup';
 import PageStyles from 'components/pageEditor/editInterface/pageStyles/PageStyles';
 
 const editInterfaceAnimation = {
@@ -31,7 +34,15 @@ const EditInterfaceContext = createContext();
  * EditInterface is direct child of PageEditor
  */
 function EditInterface() {
-  const { page, setPage, updatedPage, setUpdatedPage } = usePageEditorContext();
+  const {
+    page,
+    setPage,
+    updatedPage,
+    setUpdatedPage,
+    errors,
+    showEditInterface,
+    setSelectedButton
+  } = usePageEditorContext();
   const [tab, setTab] = useState(0);
   const [elementDestination, setElementDestination] = useState();
   const [addElementModalOpen, setAddElementModalOpen] = useState(false);
@@ -41,6 +52,28 @@ function EditInterface() {
   // Since you can only edit one element at a time, it's safe (and much easier)
   // to only store one set of "unconfirmed" changes at a time.
   const [elementContent, setElementContent] = useState();
+
+  /**
+   * This method exists to acknowledge potential additional complexity. Lucky for this developer,
+   * there is not currently a scenario where validation errors will come back for somewhere other
+   * than the Setup tab.
+   */
+  const setTabFromErrors = useCallback((errorsObj) => {
+    const firstError = Object.keys(errorsObj)[0];
+    if (PAGE_SETUP_FIELDS.includes(firstError)) {
+      const setupTab = EDIT_INTERFACE_TABS.indexOf('Setup');
+      setTab(setupTab);
+    }
+  }, []);
+
+  /**
+   * If we have errors, open edit interface and set tab based on value in errors.
+   */
+  useEffect(() => {
+    if (!isEmpty(errors)) {
+      setTabFromErrors(errors);
+    }
+  }, [errors, setTabFromErrors, setSelectedButton, showEditInterface]);
 
   /**
    * setPageContent performs updates necessary to affect a change made in

@@ -1,6 +1,7 @@
 import { Children } from 'react';
 import * as S from './DashboardSectionGroup.styled';
 
+import { AnimateSharedLayout } from 'framer-motion';
 import { motion } from 'framer-motion';
 
 const staggerChildren = 0.1;
@@ -24,9 +25,15 @@ export const LIST_ITEM_VARIANTS = {
 function DashboardSectionGroup({ children, ...props }) {
   return (
     <S.DashboardSectionGroup initial="initial" animate="enter" exit="exit" variants={LIST_VARIANTS} {...props}>
-      {Children.map(children, (child) => {
-        return <motion.li variants={LIST_ITEM_VARIANTS}>{child}</motion.li>;
-      })}
+      <AnimateSharedLayout>
+        {Children.map(children, (child) => {
+          return (
+            <motion.li variants={LIST_ITEM_VARIANTS} layout>
+              {child}
+            </motion.li>
+          );
+        })}
+      </AnimateSharedLayout>
     </S.DashboardSectionGroup>
   );
 }

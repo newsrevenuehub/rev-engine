@@ -14,6 +14,11 @@ urlpatterns = [
         name="stripe-webhooks",
     ),
     path(
+        "contributions/<int:pk>/process-flagged/",
+        views.process_flagged,
+        name="process-flagged",
+    ),
+    path(
         "contributions/<int:pk>/cancel-recurring/",
         views.cancel_recurring_payment,
         name="contributions-cancel-recurring",

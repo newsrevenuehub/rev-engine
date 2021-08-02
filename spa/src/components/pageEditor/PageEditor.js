@@ -46,8 +46,7 @@ import EditInterface from 'components/pageEditor/editInterface/EditInterface';
 
 const PageEditorContext = createContext();
 
-// Since env vars on the frontend aren't working, let's just set this to true for now.
-const CAPTURE_PAGE_SCREENSHOT = true; //process.env.REACT_APP_CAPTURE_PAGE_SCREENSHOT === 'true';
+const CAPTURE_PAGE_SCREENSHOT = process.env.REACT_APP_CAPTURE_PAGE_SCREENSHOT === 'true';
 
 export const EDIT = 'EDIT';
 export const PREVIEW = 'PREVIEW';

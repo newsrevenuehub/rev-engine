@@ -1,4 +1,4 @@
-import { DELETE_PAGE, FULL_PAGE, DONOR_BENEFITS, LIST_PAGES, CONTRIBUTION_META } from 'ajax/endpoints';
+import { DELETE_PAGE, FULL_PAGE, PATCH_PAGE, DONOR_BENEFITS, LIST_PAGES, CONTRIBUTION_META } from 'ajax/endpoints';
 import { getEndpoint } from '../support/util';
 import { getFrequencyAdjective } from 'utilities/parseFrequency';
 import { format } from 'date-fns';
@@ -12,13 +12,12 @@ describe('Donation page edit', () => {
     cy.intercept(
       { method: 'GET', pathname: getEndpoint(FULL_PAGE) },
       { fixture: 'pages/live-page-1', statusCode: 200 }
-    ).as('getPage');
+    );
     cy.intercept(
       { method: 'GET', pathname: getEndpoint(DONOR_BENEFITS) },
       { fixture: 'org/donor-benefits-1.json', statusCode: 200 }
-    ).as('getDonorBenefits');
+    );
     cy.visit('edit/my/page');
-    cy.wait(['@login', '@getPage', '@getDonorBenefits']);
   });
 
   it('should render page edit buttons', () => {
@@ -117,7 +116,6 @@ describe('Donation page edit', () => {
         .within(() => {
           cy.contains(amountToRemove).find("[data-testid='x-button']").click();
           cy.contains(amountToRemove).should('not.exist');
-          // cy.getByTestId('x-button').click()
         });
     });
 
@@ -175,29 +173,73 @@ describe('Donation page edit', () => {
       cy.intercept({ method: 'GET', pathname: getEndpoint(FULL_PAGE) }, { body: page, statusCode: 200 }).as(
         'getPageDetail'
       );
-      cy.intercept(
-        { method: 'GET', pathname: getEndpoint(DONOR_BENEFITS) },
-        { fixture: 'org/donor-benefits-1.json', statusCode: 200 }
-      ).as('getDonorBenefits');
       cy.login('user/stripe-verified.json');
       cy.visit('edit/my/page');
       cy.wait('@getPageDetail');
 
-      // Need to add fake an update to the page to enable
+      // Need to fake an update to the page to enable save
       cy.getByTestId('edit-page-button').click();
       cy.contains('Rich text').click();
+
+      // Accept changes
       cy.getByTestId('keep-element-changes-button').click();
+
+      // Save changes
       cy.getByTestId('save-page-button').click();
+
+      // Expect alert
       cy.getByTestId('missing-elements-alert').should('exist');
       cy.getByTestId('missing-elements-alert').contains('Payment');
+
+      // Cleanup
       cy.getByTestId('edit-page-button').click();
+      cy.wait(300);
       cy.getByTestId('add-element-button').click();
       cy.getByTestId('edit-interface-item').contains('Payment').click({ force: true });
+    });
+
+    it('should open appropriate tab for error and scroll to first error', () => {
+      cy.intercept(
+        { method: 'GET', pathname: getEndpoint(FULL_PAGE) },
+        { fixture: 'pages/unpublished-page-1.json' }
+      ).as('getPageDetail');
+      cy.login('user/stripe-verified.json');
+      cy.visit('edit/my/page');
+      cy.wait('@getPageDetail');
+      cy.getByTestId('edit-page-button').click();
+      cy.getByTestId('setup-tab').click();
+      cy.getByTestId('logo-link-input').type('not a valid url');
+      cy.getByTestId('keep-element-changes-button').click();
+
+      // Before we save, let's close the tab so we can more meaningfully assert its presence later.
+      cy.getByTestId('preview-page-button').click();
+      cy.getByTestId('edit-interface').should('not.exist');
+
+      const expectedErrorMessage = 'Not a valid url';
+      cy.intercept(
+        { method: 'PATCH', pathname: `${getEndpoint(PATCH_PAGE)}${unpublishedPage.id}/` },
+        { body: { header_link: [expectedErrorMessage] }, statusCode: 400 }
+      ).as('patchPage');
+
+      // Save
+      cy.getByTestId('save-page-button').click();
+      cy.wait('@patchPage');
+
+      // Now we should see the Setup tab and our error message
+      cy.getByTestId('edit-interface').should('exist');
+      cy.getByTestId('errors-Logo link').contains(expectedErrorMessage);
     });
   });
 
   describe('Edit interface: Setup', () => {
     before(() => {
+      cy.login('user/stripe-verified.json');
+      cy.intercept(
+        { method: 'GET', pathname: getEndpoint(FULL_PAGE) },
+        { fixture: 'pages/live-page-1', statusCode: 200 }
+      ).as('getPageDetail');
+      cy.visit('edit/my/page');
+      cy.wait('@getPageDetail');
       cy.getByTestId('edit-page-button').click({ force: true });
       cy.getByTestId('setup-tab').click({ force: true });
     });
@@ -247,7 +289,7 @@ describe('Donation page delete', () => {
       { fixture: 'pages/unpublished-page-1', statusCode: 200 }
     ).as('getPage');
     cy.visit('edit/my/page');
-    cy.wait(['@login', '@getPage']);
+    cy.wait(['@getPage']);
     cy.getByTestId('delete-page-button').click();
     cy.wait('@deletePage').then((interception) => {
       const pkPathIndex = interception.request.url.split('/').length - 2;
@@ -261,7 +303,7 @@ describe('Donation page delete', () => {
       { fixture: 'pages/live-page-1', statusCode: 200 }
     ).as('getPage');
     cy.visit('edit/my/page');
-    cy.wait(['@login', '@getPage']);
+    cy.wait(['@getPage']);
     cy.getByTestId('delete-page-button').click();
 
     cy.getByTestId('confirmation-modal').contains(DELETE_CONFIRM_MESSAGE).getByTestId('continue-button').click();

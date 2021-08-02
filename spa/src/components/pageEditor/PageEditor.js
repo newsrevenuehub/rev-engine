@@ -49,8 +49,8 @@ const PageEditorContext = createContext();
 // Since env vars on the frontend aren't working, let's just set this to true for now.
 const CAPTURE_PAGE_SCREENSHOT = true; //process.env.REACT_APP_CAPTURE_PAGE_SCREENSHOT === 'true';
 
-const EDIT = 'EDIT';
-const PREVIEW = 'PREVIEW';
+export const EDIT = 'EDIT';
+export const PREVIEW = 'PREVIEW';
 const IMAGE_KEYS = ['graphic', 'header_bg_image', 'header_logo'];
 const THUMBNAIL_KEYS = ['graphic_thumbnail', 'header_bg_image_thumbnail', 'header_logo_thumbnail'];
 
@@ -277,13 +277,21 @@ function PageEditor() {
         onSuccess: ({ data }) => {
           const successMessage = getSuccessMessage(page, data);
           alert.success(successMessage);
+          setErrors({});
           setPage(data);
           setSelectedButton(PREVIEW);
           setLoading(false);
         },
         onFailure: (e) => {
-          alert.error(GENERIC_ERROR);
-          setSelectedButton(PREVIEW);
+          if (e?.response?.data) {
+            setErrors({ ...errors, ...e.response.data });
+            setSelectedButton(EDIT);
+            setShowEditInterface(true);
+            setLoading(false);
+          } else {
+            alert.error(GENERIC_ERROR);
+            setSelectedButton(PREVIEW);
+          }
           setLoading(false);
         }
       }
@@ -311,6 +319,7 @@ function PageEditor() {
         setUpdatedPage,
         showEditInterface,
         setShowEditInterface,
+        setSelectedButton,
         errors
       }}
     >

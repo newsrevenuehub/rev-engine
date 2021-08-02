@@ -2,23 +2,9 @@ import styled from 'styled-components';
 
 import SvgIcon from 'assets/icons/SvgIcon';
 
-export const DBenefits = styled.aside`
-  width: 35%;
-  padding: 0 2rem;
+export const DBenefits = styled.aside``;
 
-  @media (${(props) => props.theme.breakpoints.tabletLandscapeDown}) {
-    width: 100%;
-    margin-top: 4rem;
-  }
-`;
-
-export const BenefitsContent = styled.div`
-  @media (${(props) => props.theme.breakpoints.tabletLandscapeDown}) {
-    width: 100%;
-    max-width: ${(props) => props.theme.maxWidths.sm};
-    margin: 0 auto;
-  }
-`;
+export const BenefitsContent = styled.div``;
 
 export const BenefitsName = styled.h2`
   font-size: ${(props) => props.theme.fontSizes[2]};

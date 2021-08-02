@@ -1,10 +1,11 @@
 import * as S from './DRichText.styled';
+import DElement from './DElement';
 
 function DRichText({ element, ...props }) {
   return (
-    <S.DRichText {...props} data-testid="d-rich-text">
+    <DElement {...props} data-testid="d-rich-text">
       <S.RichTextContent dangerouslySetInnerHTML={{ __html: element.content }} />
-    </S.DRichText>
+    </DElement>
   );
 }
 

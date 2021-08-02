@@ -27,7 +27,7 @@ const dynamicElements = { ...dynamicPageElements, ...dynamicSidebarElements };
  *
  * ElementProperties is a direct child of EditInterface
  */
-function ElementProperties() {
+function ElementProperties({ selectedElementType }) {
   const alert = useAlert();
 
   const {
@@ -53,9 +53,9 @@ function ElementProperties() {
 
   // ! WIP
   // ? how to ensure handleKeepChaneges "knows" which set of elements to manipulate here...?
-  const handleKeepChanges = (elementsType = 'layout') => {
+  const handleKeepChanges = () => {
     if (changesAreValid()) {
-      const isForSidebar = elementsType === 'sidebar';
+      const isForSidebar = selectedElementType === 'sidebar';
       const elementsCopy = isForSidebar ? [...sidebarElements] : [...elements];
       const thisIndex = elementsCopy.findIndex((el) => el.uuid === selectedElement.uuid);
       console.log('elementsCopy', elementsCopy);

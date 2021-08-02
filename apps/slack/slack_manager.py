@@ -3,6 +3,7 @@ import logging
 from django.conf import settings
 
 from slack_sdk import WebClient
+from slack_sdk.errors import SlackApiError
 
 from apps.organizations.models import Organization
 
@@ -112,11 +113,23 @@ class SlackManager:
         return f"{self.common_header_text}: {contribution.formatted_amount} from {contribution.contributor.email}"
 
     def send_hub_message(self, channel, text, blocks):
-        self.hub_client.chat_postMessage(channel=channel, text=text, blocks=blocks)
+        try:
+            self.hub_client.chat_postMessage(channel=channel, text=text, blocks=blocks)
+        except SlackApiError as slack_error:
+            error_type = slack_error.response["error"]
+            if error_type == "invalid_auth":
+                pass
+            pass
 
     def send_org_message(self, channel, text, blocks):
         org_client = self.get_org_client()
-        org_client.chat_postMessage(channel=channel, text=text, blocks=blocks)
+        try:
+            org_client.chat_postMessage(channel=channel, text=text, blocks=blocks)
+        except SlackApiError as slack_error:
+            error_type = slack_error.response["error"]
+            if error_type == "invalid_auth":
+                pass
+            pass
 
     def send_hub_notifications(self, contribution):
         main_channel = self.hub_integration.channel

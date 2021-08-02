@@ -9,11 +9,9 @@ import { useAlert } from 'react-alert';
 import isEmpty from 'lodash.isempty';
 import { isBefore, isAfter } from 'date-fns';
 import html2canvas from 'html2canvas';
-import { format } from 'date-fns/esm';
 
 // Utils
 import formatDatetimeForAPI from 'utilities/formatDatetimeForAPI';
-import dataUrlToBlob from 'utilities/dataUrlToBlob';
 
 // CSS files for libraries that ARE ONLY needed for page edit
 import 'react-datepicker/dist/react-datepicker.css';
@@ -48,8 +46,10 @@ import EditInterface from 'components/pageEditor/editInterface/EditInterface';
 
 const PageEditorContext = createContext();
 
-const EDIT = 'EDIT';
-const PREVIEW = 'PREVIEW';
+const CAPTURE_PAGE_SCREENSHOT = process.env.REACT_APP_CAPTURE_PAGE_SCREENSHOT === 'true';
+
+export const EDIT = 'EDIT';
+export const PREVIEW = 'PREVIEW';
 const IMAGE_KEYS = ['graphic', 'header_bg_image', 'header_logo'];
 const THUMBNAIL_KEYS = ['graphic_thumbnail', 'header_bg_image_thumbnail', 'header_logo_thumbnail'];
 
@@ -99,10 +99,9 @@ function PageEditor() {
   useEffect(() => {
     setLoading(true);
 
-    const { revProgramSlug, pageSlug } = parameters;
     const params = {
-      revenue_program: revProgramSlug,
-      page: pageSlug,
+      revenue_program: parameters.revProgramSlug,
+      page: parameters.pageSlug,
       live: 0
     };
     requestGetPage(
@@ -116,7 +115,7 @@ function PageEditor() {
       }
     );
     // Don't include requestGetPage for now.
-  }, [parameters]);
+  }, [parameters.revProgramSlug, parameters.pageSlug]);
 
   useEffect(() => {
     setLoading(true);
@@ -246,6 +245,7 @@ function PageEditor() {
         let datum = patchedPage[datumKey];
         if (datum instanceof Date) datum = formatDatetimeForAPI(datum);
         if (datumKey === 'elements') datum = JSON.stringify(datum);
+        if (datumKey === 'sidebar_elements') datum = JSON.stringify(datum);
         if (datumKey === 'donor_benefits') {
           datumKey = 'donor_benefits_pk';
           if (datum === null) datum = '';
@@ -253,13 +253,7 @@ function PageEditor() {
         if (datumKey === 'styles') {
           datumKey = 'styles_pk';
         }
-
-        if (datumKey === 'page_screenshot') {
-          datum = formatPageScreenshot(datum, page);
-          formData.append(datumKey, datum, `${getScreenshotName(page)}.png`);
-        } else {
-          formData.append(datumKey, datum);
-        }
+        formData.append(datumKey, datum);
       }
     }
     return formData;
@@ -267,27 +261,37 @@ function PageEditor() {
 
   const patchPage = async (patchedPage) => {
     setLoading(true);
-    const patchedCleanedPage = cleanImageKeys(patchedPage);
-    const cleanedData = cleanData(patchedCleanedPage);
-    const dataWithScreenShot = await addScreenshotToCleanedData(cleanedData);
-    const formData = processPageData(dataWithScreenShot);
+
+    let data = cleanImageKeys(patchedPage);
+    data = cleanData(data);
+    data = processPageData(data);
+    if (CAPTURE_PAGE_SCREENSHOT) data = await addScreenshotToCleanedData(data, page.name);
+
     requestPatchPage(
       {
         method: 'PATCH',
         url: `${PATCH_PAGE}${page.id}/`,
-        data: formData
+        data
       },
       {
         onSuccess: ({ data }) => {
           const successMessage = getSuccessMessage(page, data);
           alert.success(successMessage);
+          setErrors({});
           setPage(data);
           setSelectedButton(PREVIEW);
           setLoading(false);
         },
-        onFailure: () => {
-          alert.error(GENERIC_ERROR);
-          setSelectedButton(PREVIEW);
+        onFailure: (e) => {
+          if (e?.response?.data) {
+            setErrors({ ...errors, ...e.response.data });
+            setSelectedButton(EDIT);
+            setShowEditInterface(true);
+            setLoading(false);
+          } else {
+            alert.error(GENERIC_ERROR);
+            setSelectedButton(PREVIEW);
+          }
           setLoading(false);
         }
       }
@@ -315,6 +319,7 @@ function PageEditor() {
         setUpdatedPage,
         showEditInterface,
         setShowEditInterface,
+        setSelectedButton,
         errors
       }}
     >
@@ -433,18 +438,12 @@ function cleanStyles(styles) {
   return styles.id;
 }
 
-async function addScreenshotToCleanedData(cleanedData) {
-  const dataWithScreenshot = { ...cleanedData };
-  const canvas = await html2canvas(document.getElementById('root'));
-  dataWithScreenshot.page_screenshot = canvas.toDataURL();
-  return dataWithScreenshot;
-}
-
-function formatPageScreenshot(dataUrl, page) {
-  const imageName = getScreenshotName(page);
-  return dataUrlToBlob(dataUrl, imageName);
-}
-
-function getScreenshotName(page) {
-  return `${page.name}__${format(new Date(), 'MMM do, yyyy h:mm aa')}`;
+async function addScreenshotToCleanedData(formData, pageName) {
+  return new Promise(async (resolve, reject) => {
+    const canvas = await html2canvas(document.getElementById('root'));
+    canvas.toBlob((blob) => {
+      formData.append('page_screenshot', blob, `${pageName}_${formatDatetimeForAPI(new Date())}.png`);
+      resolve(formData);
+    });
+  });
 }

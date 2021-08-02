@@ -26,7 +26,7 @@ function AdditionalInfoEditor(props) {
     const new_meta = [...metadata].filter((e) => e.key !== item.key);
     setMetadata(new_meta);
   };
-  console.log(metadata);
+
   return (
     <S.AdditionalInfoEditor data-testid="additional-info">
       <S.Description>Collect arbitrary data from your users by adding form fields to your page.</S.Description>

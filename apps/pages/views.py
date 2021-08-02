@@ -76,7 +76,7 @@ class PageViewSet(OrganizationLimitedListView, viewsets.ModelViewSet):
         return Response(page_serializer.data, status=status.HTTP_200_OK)
 
     def partial_update(self, request, *args, **kwargs):
-        for file in request.Files:
+        for file in request.FILES:
             thumb = serializers.HyperlinkedSorlImageField("300", source=file, read_only=True)
         data = MediaImage.create_from_request(request.data, request.FILES, Path(request.path).parts[-1])
         return super().partial_update(request, *args, **kwargs)

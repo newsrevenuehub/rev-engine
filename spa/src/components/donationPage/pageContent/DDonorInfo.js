@@ -32,7 +32,7 @@ function DDonorInfo(props) {
                 label="First Name"
                 value={firstName}
                 onChange={(e) => setFirstName(e.target.value)}
-                errors={errors.firstName}
+                errors={errors.first_name}
               />
             </Grid.Column>
             <Grid.Column tablet={16} computer={8}>
@@ -42,7 +42,7 @@ function DDonorInfo(props) {
                 label="Last Name"
                 value={lastName}
                 onChange={(e) => setLastName(e.target.value)}
-                errors={errors.lastName}
+                errors={errors.last_name}
               />
             </Grid.Column>
           </Grid.Row>
@@ -70,7 +70,7 @@ function DDonorInfo(props) {
                 label="Address"
                 value={address}
                 onChange={(e) => setAddress(e.target.value)}
-                errors={errors.address}
+                errors={errors.mailing_street}
               />
             </Grid.Column>
           </Grid.Row>
@@ -83,7 +83,7 @@ function DDonorInfo(props) {
                 label="City"
                 value={city}
                 onChange={(e) => setCity(e.target.value)}
-                errors={errors.city}
+                errors={errors.mailing_city}
               />
             </Grid.Column>
             <Grid.Column mobile={16} tablet={8} computer={4}>
@@ -93,7 +93,7 @@ function DDonorInfo(props) {
                 label="State"
                 value={state}
                 onChange={(e) => setState(e.target.value)}
-                errors={errors.state}
+                errors={errors.mailing_state}
               />
             </Grid.Column>
           </Grid.Row>
@@ -105,7 +105,7 @@ function DDonorInfo(props) {
                 label="Zip"
                 value={zip}
                 onChange={(e) => setZip(e.target.value)}
-                errors={errors.zip}
+                errors={errors.mailing_postal_code}
               />
             </Grid.Column>
             <Grid.Column mobile={16} tablet={8} computer={10}>
@@ -115,7 +115,7 @@ function DDonorInfo(props) {
                 label="Country"
                 value={country}
                 onChange={(e) => setCountry(e.target.value)}
-                errors={errors.country}
+                errors={errors.mailing_country}
               />
             </Grid.Column>
           </Grid.Row>

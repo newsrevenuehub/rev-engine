@@ -123,7 +123,7 @@ function PageEditor() {
       { method: 'GET', url: DONOR_BENEFITS },
       {
         onSuccess: ({ data }) => {
-          setAvailableBenefits(data.results);
+          setAvailableBenefits(data);
           setLoading(false);
         },
         onFailure: () => {
@@ -140,7 +140,7 @@ function PageEditor() {
       { method: 'GET', url: PAGE_STYLES },
       {
         onSuccess: ({ data }) => {
-          setAvailableStyles(data.results);
+          setAvailableStyles(data);
           setLoading(false);
         },
         onFailure: () => {
@@ -157,11 +157,7 @@ function PageEditor() {
       { method: 'GET', url: CONTRIBUTION_META },
       {
         onSuccess: ({ data }) => {
-          setContributionMetadata(
-            data.filter((e) => {
-              if (e.donor_supplied === true) return e;
-            })
-          );
+          setContributionMetadata(data.filter((e) => e.donor_supplied));
           setLoading(false);
         },
         onFailure: () => {
@@ -189,7 +185,7 @@ function PageEditor() {
     const pageUpdates = { ...updatedPage };
     if (validationErrors) {
       setErrors(validationErrors);
-    } else if (isBefore(new Date(page.published_date), new Date())) {
+    } else if (page.published_date && isBefore(new Date(page.published_date), new Date())) {
       getUserConfirmation("You're making changes to a live donation page. Continue?", () => patchPage(pageUpdates));
     } else {
       patchPage(pageUpdates);
@@ -249,6 +245,9 @@ function PageEditor() {
           datumKey = 'donor_benefits_pk';
           if (datum === null) datum = '';
         }
+        if (datumKey === 'published_date') {
+          if (datum === undefined) datum = '';
+        }
         if (datumKey === 'styles') {
           datumKey = 'styles_pk';
         }
@@ -265,7 +264,9 @@ function PageEditor() {
     data = cleanData(data);
     data = processPageData(data);
     if (CAPTURE_PAGE_SCREENSHOT) data = await addScreenshotToCleanedData(data, page.name);
-
+    for (const d of data.entries()) {
+      console.log(d[0], d[1]);
+    }
     requestPatchPage(
       {
         method: 'PATCH',
@@ -282,6 +283,7 @@ function PageEditor() {
           setLoading(false);
         },
         onFailure: (e) => {
+          console.log('e.response', e.response);
           if (e?.response?.data) {
             setErrors({ ...errors, ...e.response.data });
             setSelectedButton(EDIT);

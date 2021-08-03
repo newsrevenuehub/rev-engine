@@ -480,13 +480,11 @@ class CancelRecurringPaymentTest(APITestCase):
     def setUp(self):
         self.subscription_id = "test-subscription-id"
         self.stripe_account_id = "testing-stripe-account-id"
-        # self.customer_id = 'testing-customer-id'
         self.org = OrganizationFactory(stripe_account_id=self.stripe_account_id)
         self.contributor = ContributorFactory()
         self.contribution = ContributionFactory(
             contributor=self.contributor,
             organization=self.org,
-            # provider_customer_id=self.customer_id,
             provider_subscription_id=self.subscription_id,
         )
         self.other_contribution = ContributionFactory(organization=self.org)
@@ -523,3 +521,56 @@ class CancelRecurringPaymentTest(APITestCase):
         mock_delete.assert_called_once_with(
             self.subscription_id, stripe_account=self.stripe_account_id, api_key=TEST_STRIPE_API_KEY
         )
+
+
+@patch("apps.contributions.models.Contribution.process_flagged_payment")
+class ProcessFlaggedContributionTest(APITestCase):
+    def setUp(self):
+        self.user = get_user_model().objects.create(email="user@test.com", password="testing")
+        self.subscription_id = "test-subscription-id"
+        self.stripe_account_id = "testing-stripe-account-id"
+        self.org = OrganizationFactory(stripe_account_id=self.stripe_account_id)
+        self.contributor = ContributorFactory()
+        self.contribution = ContributionFactory(
+            contributor=self.contributor,
+            organization=self.org,
+            provider_subscription_id=self.subscription_id,
+        )
+        self.other_contribution = ContributionFactory()
+
+    def _make_request(self, contribution_pk=None, request_args={}):
+        url = reverse("process-flagged", args=[contribution_pk])
+        self.client.force_authenticate(user=self.user)
+        return self.client.post(url, request_args)
+
+    def test_response_when_missing_required_param(self, mock_process_flagged):
+        response = self._make_request(contribution_pk=self.contribution.pk)
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.data["detail"], "Missing required data")
+        mock_process_flagged.assert_not_called()
+
+    def test_response_when_no_such_contribution(self, mock_process_flagged):
+        nonexistent_pk = 10000001
+        # First, let's make sure there isn't a contributoin with this pk.
+        self.assertIsNone(Contribution.objects.filter(pk=nonexistent_pk).first())
+        response = self._make_request(contribution_pk=nonexistent_pk, request_args={"reject": True})
+        self.assertEqual(response.status_code, 404)
+        self.assertEqual(response.data["detail"], "Could not find contribution")
+        mock_process_flagged.assert_not_called()
+
+    def test_response_when_payment_provider_error(self, mock_process_flagged):
+        error_message = "my error message"
+        mock_process_flagged.side_effect = PaymentProviderError(error_message)
+        response = self._make_request(contribution_pk=self.contribution.pk, request_args={"reject": True})
+        self.assertEqual(response.status_code, 500)
+        self.assertEqual(response.data["detail"], error_message)
+
+    def test_response_when_successful_reject(self, mock_process_flagged):
+        response = self._make_request(contribution_pk=self.contribution.pk, request_args={"reject": True})
+        self.assertEqual(response.status_code, 200)
+        mock_process_flagged.assert_called_with(reject=True)
+
+    def test_response_when_successful_accept(self, mock_process_flagged):
+        response = self._make_request(contribution_pk=self.contribution.pk, request_args={"reject": False})
+        self.assertEqual(response.status_code, 200)
+        mock_process_flagged.assert_called_with(reject=False)

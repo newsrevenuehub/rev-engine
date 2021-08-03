@@ -61,11 +61,6 @@ describe('Donations list', () => {
           renderedName: 'Auto-resolution date',
           rawName: 'auto_accepted_on',
           transform: (rawVal) => rawVal || NO_VALUE
-        },
-        {
-          renderedName: '',
-          rawName: 'id',
-          transform: (rawVal) => 'Details...'
         }
       ];
       cy.getByTestId('donation-header', {}, true).should('have.length', columnExpectations.length);
@@ -89,23 +84,15 @@ describe('Donations list', () => {
         });
       });
     });
-    it('should link to donation detail page for each donation in list', () => {
-      cy.wait('@getDonations');
-      cy.getByTestId('donation-row').each((row) => {
-        expect(row.find('td[data-testcolumnaccessor="id"] > a').attr('href')).to.equal(
-          `/dashboard/donations/${row.attr('data-donationid')}/`
-        );
-      });
-    });
 
     it('should display the second page of donations when click on next page', () => {
       cy.wait('@getDonations');
-      cy.getByTestId('next-page').click();
       cy.wait('@getDonations').then((intercept) => {
         cy.getByTestId('donations-table')
           .find('tbody tr[data-testid="donation-row"]')
           .should('have.length', intercept.response.body.results.length);
       });
+      cy.getByTestId('next-page').click();
     });
 
     it('should make donations sortable by payment date', () => {

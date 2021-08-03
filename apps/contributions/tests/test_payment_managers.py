@@ -407,7 +407,7 @@ class StripeRecurringPaymentManagerTest(StripePaymentManagerAbstractTestCase):
             ],
             stripe_account=self.organization.stripe_account_id,
             api_key=fake_api_key,
-            metadata=pm.bundle_metadata(pm.data, ContributionMetadata.ProcessorObjects.PAYMENT),
+            metadata={},
         )
 
     @patch("stripe.Customer.create", side_effect=MockStripeCustomer)
@@ -448,7 +448,7 @@ class StripeRecurringPaymentManagerTest(StripePaymentManagerAbstractTestCase):
             ],
             stripe_account=self.organization.stripe_account_id,
             api_key=fake_api_key,
-            metadata=pm.bundle_metadata(pm.data, ContributionMetadata.ProcessorObjects.PAYMENT),
+            metadata={},
         )
         self.assertEqual(self.contribution.status, ContributionStatus.PROCESSING)
 

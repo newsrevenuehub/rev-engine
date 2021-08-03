@@ -30,7 +30,7 @@ function BaseField({ label, errors, inline, labelProps, helpText, children }) {
       {helpText && <S.HelpText>{helpText}</S.HelpText>}
       <AnimatePresence>
         {hasErrors(errors) && (
-          <S.Errors ref={errorsRef} {...S.errorsAnimation}>
+          <S.Errors ref={errorsRef} {...S.errorsAnimation} data-testid={`errors-${label}`}>
             {errors.map((error) => (
               <S.Error key={error}>{error}</S.Error>
             ))}

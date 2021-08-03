@@ -1,6 +1,7 @@
 import styled from 'styled-components';
+import { motion } from 'framer-motion';
 
-export const Filters = styled.div``;
+export const Filters = styled(motion.div)``;
 
 export const FilterWrapper = styled.div`
   padding: 2rem 0;

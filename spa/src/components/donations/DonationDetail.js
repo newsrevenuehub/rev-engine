@@ -8,17 +8,30 @@ import formatCurrencyAmount from 'utilities/formatCurrencyAmount';
 import formatDatetimeForDisplay from 'utilities/formatDatetimeForDisplay';
 
 import useRequest from 'hooks/useRequest';
-import { CONTRIBUTIONS } from 'ajax/endpoints';
+import { CONTRIBUTIONS, PROCESS_FLAGGED } from 'ajax/endpoints';
+
+// Context
+import { useGlobalContext } from 'components/MainLayout';
 
 import { GENERIC_ERROR, NO_VALUE } from 'constants/textConstants';
+import Button from 'elements/buttons/Button';
+import { faBan, faCheck } from '@fortawesome/free-solid-svg-icons';
+import { getFrequencyAdjective } from 'utilities/parseFrequency';
+import { StatusCellIcon } from 'components/contributor/contributorDashboard/ContributorDashboard';
 
 function DonationDetail() {
+  // Context
+  const { getUserConfirmation } = useGlobalContext();
+
+  // State
   const [isLoading, setIsLoading] = useState(false);
+  const [processing, setProcessing] = useState(false);
   const [donationData, setDonationData] = useState();
 
   const { contributionId } = useParams();
   const alert = useAlert();
   const requestDonationDetail = useRequest();
+  const requestProcessFlagged = useRequest();
 
   const getDonationDetail = () => {
     setIsLoading(true);
@@ -43,55 +56,155 @@ function DonationDetail() {
 
   useEffect(getDonationDetail, []);
 
+  const handleAccept = () => {
+    processFlagged({ reject: false });
+  };
+
+  const doReject = () => {
+    processFlagged({ reject: true });
+  };
+
+  const handleProcessFlaggedSuccess = (response) => {
+    const action = response.data.detail;
+    alert.success(`Donation successfully ${action}`);
+    setProcessing(false);
+    getDonationDetail();
+  };
+
+  const handleProcessFlaggedFailure = () => {
+    alert.error(GENERIC_ERROR);
+    setProcessing(false);
+  };
+
+  const processFlagged = ({ reject = false }) => {
+    setProcessing(true);
+    requestProcessFlagged(
+      {
+        method: 'POST',
+        url: `${CONTRIBUTIONS}${contributionId}/${PROCESS_FLAGGED}`,
+        data: { reject }
+      },
+      {
+        onSuccess: handleProcessFlaggedSuccess,
+        onFailure: handleProcessFlaggedFailure
+      }
+    );
+  };
+
+  const handleReject = () => {
+    getUserConfirmation('Are you sure you want to reject this donation?', doReject);
+  };
+
   const {
     amount,
-    reason,
     interval,
-    payment_provider_used: paymentProvider,
-    payment_provider_customer_id: paymentProviderCustomerId,
+    formatted_payment_provider_used: paymentProvider,
     last_payment_date: lastPaymentDate,
     flagged_date: flaggedDate,
     status,
-    contributor_email: contributorEmail
+    contributor_email: contributorEmail,
+    provider_payment_url,
+    provider_subscription_url,
+    provider_customer_url
   } = donationData || {};
+
   return (
-    <S.DonationDetail data-testid="donation-detail">
+    <S.DonationDetail data-testid="donation-detail" layout>
       {isLoading ? (
-        <Spinner />
+        <S.Loading layout>
+          <Spinner />
+        </S.Loading>
       ) : (
-        <dl>
-          <dt>Donor</dt>
-          <dd data-testid="donorEmail">{contributorEmail}</dd>
+        <>
+          <S.DL layout>
+            <DataGroup heading="Donation details">
+              <dt>Status</dt>
+              <dd data-testid="status">
+                <StatusCellIcon status={status || ''} showText />
+              </dd>
 
-          <dt>Amount</dt>
-          <dd data-testid="amount">{amount ? formatCurrencyAmount(amount) : NO_VALUE}</dd>
+              <dt layout>Donor</dt>
+              <dd layout data-testid="donorEmail">
+                {contributorEmail}
+              </dd>
 
-          <dt>Payment interval</dt>
-          <dd data-testid="interval">{interval}</dd>
+              <dt>Amount</dt>
+              <dd data-testid="amount">{amount ? formatCurrencyAmount(amount) : NO_VALUE}</dd>
 
-          <dt>Last payment date</dt>
-          <dd data-testid="lastPaymentDate">
-            {lastPaymentDate ? formatDatetimeForDisplay(lastPaymentDate) : NO_VALUE}
-          </dd>
+              <dt>Payment interval</dt>
+              <dd data-testid="interval">{getFrequencyAdjective(interval)}</dd>
 
-          <dt>Flagged date</dt>
-          <dd data-testid="flaggedDate">{flaggedDate ? formatDatetimeForDisplay(flaggedDate) : NO_VALUE}</dd>
-
-          <dt>Payment provider</dt>
-          <dd data-testid="paymentProvider">{paymentProvider || NO_VALUE}</dd>
-
-          <dt>Payment Provider customer ID</dt>
-          <dd data-testid="paymentProviderCustomerId">{paymentProviderCustomerId || NO_VALUE}</dd>
-
-          <dt>Donation reason</dt>
-          <dd data-testid="reason">{reason || NO_VALUE}</dd>
-
-          <dt>Status</dt>
-          <dd data-testid="status">{status}</dd>
-        </dl>
+              <dt>Last payment date</dt>
+              <dd data-testid="lastPaymentDate">
+                {lastPaymentDate ? formatDatetimeForDisplay(lastPaymentDate) : NO_VALUE}
+              </dd>
+            </DataGroup>
+            <DataGroup heading="Payment provider">
+              <dt>Payment provider</dt>
+              <dd data-testid="paymentProvider">{paymentProvider || NO_VALUE}</dd>
+              <ResourceLink provider={paymentProvider} resource="payment" url={provider_payment_url} />
+              <ResourceLink provider={paymentProvider} resource="subscription" url={provider_subscription_url} />
+              <ResourceLink provider={paymentProvider} resource="customer" url={provider_customer_url} />
+            </DataGroup>
+            {flaggedDate && (
+              <DataGroup heading="Flagged status">
+                <dt>Flagged date</dt>
+                <dd data-testid="flaggedDate">{flaggedDate ? formatDatetimeForDisplay(flaggedDate) : NO_VALUE}</dd>
+                {status === 'flagged' && (
+                  <S.ManageFlagged>
+                    <Button
+                      loading={processing}
+                      type="positive"
+                      onClick={handleAccept}
+                      data-testid="accept-flagged-button"
+                    >
+                      <S.AcceptIcon icon={faCheck} /> Accept
+                    </Button>
+                    <Button
+                      loading={processing}
+                      type="caution"
+                      onClick={handleReject}
+                      data-testid="reject-flagged-button"
+                    >
+                      <S.RejectIcon icon={faBan} /> Reject
+                    </Button>
+                  </S.ManageFlagged>
+                )}
+              </DataGroup>
+            )}
+          </S.DL>
+        </>
       )}
     </S.DonationDetail>
   );
 }
 
 export default DonationDetail;
+
+function DataGroup({ heading, children }) {
+  return (
+    <S.DataGroup>
+      <S.DataGroupHeading>{heading}</S.DataGroupHeading>
+      <S.DataInner>{children}</S.DataInner>
+    </S.DataGroup>
+  );
+}
+
+function ResourceLink({ provider, resource, url }) {
+  return (
+    <>
+      <dt>
+        {provider} {resource}
+      </dt>
+      <dd>
+        {url ? (
+          <a href={url} data-testid={`${resource}-resource-link`} target="_blank" rel="noopener noreferrer">
+            {url}
+          </a>
+        ) : (
+          NO_VALUE
+        )}
+      </dd>
+    </>
+  );
+}

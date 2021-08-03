@@ -7,7 +7,7 @@ import CreatedFilter from 'components/donations/filters/CreatedFilter';
 
 function Filters({ filters, handleFilterChange, donationsCount }) {
   return (
-    <S.Filters>
+    <S.Filters layout>
       <StatusFilter filter={filters.status} handleFilterChange={handleFilterChange} />
       <AmountFilter filter={filters.amount} handleFilterChange={handleFilterChange} />
       <CreatedFilter filter={filters.created} handleFilterChange={handleFilterChange} />

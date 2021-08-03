@@ -10,7 +10,7 @@ import { frequencySort } from 'components/donationPage/pageContent/DFrequency';
 // Deps// Deps
 import queryString from 'query-string';
 
-const SALESFORCE_CAMPAIGN_ID_QUERYPARAM = process.env.SALESFORCE_CAMPAIGN_ID_QUERYPARAM || 'campaign';
+const SALESFORCE_CAMPAIGN_ID_QUERYPARAM = process.env.REACT_APP_SALESFORCE_CAMPAIGN_ID_QUERYPARAM || 'campaign';
 
 const DonationPageContext = createContext({});
 

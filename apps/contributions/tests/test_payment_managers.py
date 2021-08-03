@@ -53,8 +53,8 @@ class StripePaymentManagerAbstractTestCase(APITestCase):
         self.amount = "10.99"
         self.data = {
             "email": self.contributor.email,
-            "given_name": "Test",
-            "family_name": "Tester",
+            "first_name": "Test",
+            "last_name": "Tester",
             "amount": self.amount,
             "reason": "Testing",
             "revenue_program_slug": self.revenue_program.slug,

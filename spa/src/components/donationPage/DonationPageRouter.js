@@ -48,10 +48,13 @@ const livePageReducer = (state, action) => {
   }
 };
 
-function DonationPageRouter() {
+function DonationPageRouter({ setOrgAnalytics }) {
   const [{ loading, error, data }, dispatch] = useReducer(livePageReducer, initialState);
   const params = useParams();
   const requestFullPage = useRequest();
+
+  const orgGaId = data?.revenue_program?.org_google_analytics_id;
+  const orgDomainName = data?.revenue_program?.org_google_analytics_domain;
 
   const fetchLivePageContent = useCallback(async () => {
     dispatch({ type: PAGE_FETCH_START });
@@ -77,6 +80,12 @@ function DonationPageRouter() {
   useEffect(() => {
     fetchLivePageContent();
   }, [params, fetchLivePageContent]);
+
+  useEffect(() => {
+    if (orgDomainName && orgGaId) {
+      setOrgAnalytics(orgGaId, orgDomainName);
+    }
+  }, [orgDomainName, orgGaId]);
 
   return (
     <SegregatedStyles page={data}>

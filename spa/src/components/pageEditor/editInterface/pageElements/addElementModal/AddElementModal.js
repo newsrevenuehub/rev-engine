@@ -23,7 +23,7 @@ function AddElementModal({ addElementModalOpen, setAddElementModalOpen }) {
   };
 
   const handleElementSelected = (element) => {
-    setElements([buildElement(element), ...(elements || [])]);
+    setElements([...(elements || []), buildElement(element)]);
     setAddElementModalOpen(false);
   };
 

@@ -1,7 +1,7 @@
 # Revenue Engine
 
-
 ## ✏️ **Develop**
+
 To begin you should have the following applications installed on your local development system:
 
 - Python >= 3.9
@@ -10,10 +10,9 @@ To begin you should have the following applications installed on your local deve
 - [nvm](https://github.com/nvm-sh/nvm/blob/master/README.md) is not strictly _required_, but will almost certainly be necessary unless you just happen to have Node.js 12.x installed on your machine.
 - [pip](http://www.pip-installer.org/) >= 20
 - Postgres >= 12
-- git >= 2.26
+- Git >= 2.26
 - [Heroku and Heroku CLI](https://devcenter.heroku.com/categories/command-line)
 - Poetry == 1.1.6
-
 
 ### 💪 **Setup Manually**
 
@@ -28,16 +27,15 @@ First clone the repository from Github and switch to the new directory:
 
 **2. Set up virtual environment**
 
-Next, set up your virtual environment with python3. For example, ``revengine``.
+Next, set up your virtual environment with python3. For example, `revengine`.
 
 You will note the distinct lack of opinion on how you should manage your virtual environment. This is by design.
-
 
 **3. Install dependencies**
 
 #### Install Node dependencies
 
-``nvm`` is preferred for managing Node versions and ``.nvmrc`` contains the
+`nvm` is preferred for managing Node versions and `.nvmrc` contains the
 specific Node version for this project. To install the correct (and latest)
 Node version run:
 
@@ -45,21 +43,21 @@ Node version run:
     (revengine)$ nvm install
 ```
 
-Now install the project Node packages with ``npm``:
+Now install the project Node packages with `npm`:
 
 ```sh
     (revengine)$ cd spa/
     (revengine/spa)$ npm install
 ```
 
-NOTE: Any javascript components that rely on config vars **CANNOT** be set dynamically from the 
+NOTE: Any javascript components that rely on config vars **CANNOT** be set dynamically from the
 heroku dashboard. A rebuild of the image and deploy is required.
 
 #### Install Python dependencies:
 
 NOTE: This project uses [Poetry](https://python-poetry.org/docs/#installation) for dependency management.
 
-Unfortunately poetry doesn't deal well with dependencies would typically be in the ``deployment`` category,
+Unfortunately poetry doesn't deal well with dependencies would typically be in the `deployment` category,
 so the best option in this case is to add them as a base dependency.
 
 ```shell
@@ -84,8 +82,7 @@ If you need to remove a dependency:
     (revengine)$ poetry remove <NAME_OF_PACKAGE>
 ```
 
-This should automatically update the ``pyproject.toml`` file and the ``poetry.lock`` file.
-
+This should automatically update the `pyproject.toml` file and the `poetry.lock` file.
 
 **4. Pre-commit**
 
@@ -135,7 +132,7 @@ This project utilizes the [direnv](https://direnv.net/) shell extension to manag
 variables. Direnv is installed system wide so you may already have it. If not, [follow the instructions here](https://direnv.net/docs/installation.html)
 for your system.
 
-Next copy the ``local.example.py`` file to ``local.py`` and create your ``.envrc `` in the project root.
+Next copy the `local.example.py` file to `local.py` and create your `.envrc ` in the project root.
 
 ```shell
     (revengine)$ cp revengine/settings/local.example.py revengine/settings/local.py
@@ -153,7 +150,6 @@ Allow direnv to inject the variable into your environment
 ```shell
     (revengine)$ direnv allow .
 ```
-
 
 **7. Database**
 
@@ -176,7 +172,6 @@ following shell environment variables or add them to your `.envrc` file:
     export PGDATABASE=revengine
 ```
 
-
 **8. Migrate and create a superuser**
 
 ```linux
@@ -194,11 +189,9 @@ following shell environment variables or add them to your `.envrc` file:
 
 The react app will be available at `https://localhost:8001/`, and the django admin will be available at `http://localhost:8000/admin/`
 
-
 **10. Access the server**
 
 The Django admin is at `/admin/`.
-
 
 **11. Test Email Setup**
 To test production email settings `export TEST_EMAIL=True`, otherwise emails will use the console backend.
@@ -206,7 +199,6 @@ To test production email settings `export TEST_EMAIL=True`, otherwise emails wil
 **11. Run tests**
 
 revengine uses pytest as a test runner.
-
 
 ```sh
     (revengine)$ make run-tests
@@ -216,7 +208,7 @@ revengine uses pytest as a test runner.
 
 **Media Reset**
 
-```TBD```
+`TBD`
 
 **Database Management**
 
@@ -224,7 +216,7 @@ revengine uses pytest as a test runner.
 
 ```shell
 (revengine)$> heroku pg:backups
-      
+
 === Backups
 ID    Created at                 Status                               Size     Database
 ────  ─────────────────────────  ───────────────────────────────────  ───────  ────────
@@ -264,21 +256,21 @@ local database.
 ```
 
 ##**13. Notes on Development conventions**
+
 #### 1. Logging
 
 This application makes use of the `WARNING` logging level a bit more than other projects.
 
 The three main logging levels are:
 
-* INFO 
-  * Logs to console only
-* ERROR 
-  * Logs to console, reports to sentry, sends an admin email
-* WARNING
-  * Logs to console, sends an admin email
+- INFO
+  - Logs to console only
+- ERROR
+  - Logs to console, reports to sentry, sends an admin email
+- WARNING
+  - Logs to console, sends an admin email
 
 Instead of the usual `logger = logging.getLogger(__name__)` use `logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__})`
-
 
 ## Heroku Cheatsheat
 
@@ -286,7 +278,7 @@ Instead of the usual `logger = logging.getLogger(__name__)` use `logger = loggin
 
 Lists the apps running on the connected account.
 
-NOTE: On this project, PRs will spawn apps that can be independently tested.  Each PR app has a clean database and a single user: `qatester@example.com` with password `qatester`.
+NOTE: On this project, PRs will spawn apps that can be independently tested. Each PR app has a clean database and a single user: `qatester@example.com` with password `qatester`.
 
 ```shell
 (revengine)$> heroku apps
@@ -304,20 +296,20 @@ rev-engine-test                 daniel@fundjournalism.org
 
 Running bash on ⬢ rev-engine-nrh-45-infra-dfoxmw... up, run.2125 (Hobby)
 Running docker-entrypoint.sh
-bash-5.0$ 
+bash-5.0$
 ```
 
-
 ## Celery Tasks
+
 If you have a need to run or test tasks using a celery worker, there are now some Make commands to help out.
 
 `make run-redis` brings up the dev services, and a redis container that listens on the default port.
 
-`make run-celery` will bring up a celery worker. At this point any task that expects a celery worker should run 
+`make run-celery` will bring up a celery worker. At this point any task that expects a celery worker should run
 without error.
 
-
 ## Frontend Configuration
+
 The following environment variables are available for configuration:
 
 _Frontend configuration is not enabled until we can get environment variables to apply properly_

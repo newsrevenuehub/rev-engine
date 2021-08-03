@@ -184,8 +184,8 @@ def process_stripe_webhook_view(request):
         logger.error(e)
     except Contribution.DoesNotExist:
         logger.error("Could not find contribution matching provider_payment_id")
-    except Exception as e:
-        logger.error(f"General Exception occurred processing StripeWebhook: {str(e)}")
+    # except Exception as e:
+    #     logger.error(f"General Exception occurred processing StripeWebhook: {str(e)}")
 
     return Response(status=status.HTTP_200_OK)
 

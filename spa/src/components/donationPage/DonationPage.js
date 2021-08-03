@@ -1,16 +1,32 @@
-import { useRef, useState, createContext, useContext } from 'react';
+import { useRef, useState, useEffect, createContext, useContext } from 'react';
 import * as S from './DonationPage.styled';
+
+import { useLocation } from 'react-router-dom';
+
+// Util
 import * as getters from 'components/donationPage/pageGetters';
 import { frequencySort } from 'components/donationPage/pageContent/DFrequency';
+
+// Deps// Deps
+import queryString from 'query-string';
+
+const SALESFORCE_CAMPAIGN_ID_QUERYPARAM = process.env.SALESFORCE_CAMPAIGN_ID_QUERYPARAM || 'campaign';
 
 const DonationPageContext = createContext({});
 
 function DonationPage({ page, live = false }) {
+  const location = useLocation();
   const formRef = useRef();
   const [frequency, setFrequency] = useState(getInitialFrequency(page));
   const [payFee, setPayFee] = useState(false);
   const [amount, setAmount] = useState();
   const [errors, setErrors] = useState({});
+  const [salesforceCampaignId, setSalesforceCampaignId] = useState();
+
+  useEffect(() => {
+    const qs = queryString.parse(location.search);
+    if (qs[SALESFORCE_CAMPAIGN_ID_QUERYPARAM]) setSalesforceCampaignId(qs[SALESFORCE_CAMPAIGN_ID_QUERYPARAM]);
+  }, [location.search, setSalesforceCampaignId]);
 
   return (
     <DonationPageContext.Provider
@@ -24,7 +40,8 @@ function DonationPage({ page, live = false }) {
         amount,
         setAmount,
         errors,
-        setErrors
+        setErrors,
+        salesforceCampaignId
       }}
     >
       <S.DonationPage data-testid="donation-page">

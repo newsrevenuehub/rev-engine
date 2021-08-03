@@ -203,11 +203,13 @@ class StripePaymentManager(PaymentManager):
         self.ensure_bad_actor_score()
         organization = self.get_organization()
         contributor = self.get_or_create_contributor()
+        stripe_customer = self.create_organization_customer(organization)
         capture_method = "manual" if self.flagged else "automatic"
         meta = self.bundle_metadata(self.data, ContributionMetadata.ProcessorObjects.PAYMENT)
         stripe_payment_intent = stripe.PaymentIntent.create(
             amount=self.validated_data["amount"],
             currency=settings.DEFAULT_CURRENCY,
+            customer=stripe_customer.id,
             payment_method_types=["card"],
             api_key=get_hub_stripe_api_key(),
             stripe_account=organization.stripe_account_id,
@@ -215,7 +217,12 @@ class StripePaymentManager(PaymentManager):
             receipt_email=self.validated_data["email"],
             metadata=meta,
         )
-        self.create_contribution(organization, contributor, provider_reference_instance=stripe_payment_intent)
+        self.create_contribution(
+            organization,
+            contributor,
+            provider_reference_instance=stripe_payment_intent,
+            provider_customer_id=stripe_customer.id,
+        )
         return stripe_payment_intent
 
     def create_subscription(self):

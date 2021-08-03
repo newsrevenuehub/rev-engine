@@ -46,9 +46,6 @@ class SlackManager:
         try:
             return org.slack_integration
         except Organization.slack_integration.RelatedObjectDoesNotExist:
-            logger.debug(
-                f"Tried to send slack notification, but {org.name} does not have a SlackIntegration configured"
-            )
             logger.info(f"Tried to send slack notification, but {org.name} does not have a SlackIntegration configured")
 
     @classmethod

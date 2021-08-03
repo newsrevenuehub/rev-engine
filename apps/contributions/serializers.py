@@ -158,8 +158,8 @@ class AbstractPaymentSerializer(serializers.Serializer):
     # These are the fields required for the BadActor API
     email = serializers.EmailField()
     ip = serializers.IPAddressField()
-    given_name = serializers.CharField(max_length=255)
-    family_name = serializers.CharField(max_length=255)
+    first_name = serializers.CharField(max_length=255)
+    last_name = serializers.CharField(max_length=255)
     referer = serializers.URLField()
     amount = serializers.IntegerField()
     reason = serializers.CharField(max_length=255, required=False, allow_blank=True)

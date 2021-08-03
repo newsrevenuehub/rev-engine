@@ -325,3 +325,7 @@ _Frontend configuration is not enabled until we can get environment variables to
 ~~`REACT_APP_CAPTURE_PAGE_SCREENSHOT`~~
 
 ~~If 'true', saving edits to a donation page will also capture a "screenshot" and save it. This is used as a thumbnail in the Donation Page List view.~~
+
+~~`SALESFORCE_CAMPAIGN_ID_QUERYPARAM`~~
+
+~~Defaults to 'campaign'. This is the string that we expect to see in urls containing Salesforce Campaign IDs. eg. `?campiagn=my-salesforce-campaign-id`~~

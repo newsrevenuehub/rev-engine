@@ -99,6 +99,7 @@ export function serializeData(formRef, state) {
   serializedData['amount'] = getTotalAmount(state.amount, state.payFee, state.orgIsNonProfit).toString();
   serializedData['revenue_program_slug'] = state.revProgramSlug;
   serializedData['donation_page_slug'] = state.pageSlug;
+  serializedData['sf_campaign_id'] = state.salesforceCampaignId;
 
   return serializedData;
 }

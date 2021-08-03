@@ -163,6 +163,7 @@ class AbstractPaymentSerializer(serializers.Serializer):
     referer = serializers.URLField()
     amount = serializers.IntegerField()
     reason = serializers.CharField(max_length=255, required=False, allow_blank=True)
+    sf_campaign_id = serializers.CharField(max_length=255, required=False, allow_blank=True)
 
     # These are use to attach the contribution to the right organization,
     # and associate it with the page it came from.

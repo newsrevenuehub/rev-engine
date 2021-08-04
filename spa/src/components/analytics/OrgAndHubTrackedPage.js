@@ -2,16 +2,11 @@ import { useEffect, useState } from 'react';
 import { useLocation } from 'react-router';
 
 import Analytics from 'analytics';
-import {
-  HUB_GA_V3_ID,
-  HUB_ANALYTICS_APP_NAME,
-  HUB_GA_V3_PLUGIN_NAME,
-  ORG_GA_V3_PLUGIN_NAME
-} from 'analytics/constants';
-import getHubGaPlugin from 'analytics/plugins/ga/hub';
-import getOrgGaPlugin from 'analytics/plugins/ga/org';
+import { HUB_GA_V3_ID, HUB_ANALYTICS_APP_NAME, HUB_GA_V3_PLUGIN_NAME, ORG_GA_V3_PLUGIN_NAME } from './constants';
+import getHubGaPlugin from 'components/analytics/plugins/ga/hub';
+import getOrgGaPlugin from 'components/analytics/plugins/ga/org';
 
-export default function OrgAndHubTrackedRoute({ component: Component, ...rest }) {
+export default function OrgAndHubTrackedPage({ component: Component, ...rest }) {
   const location = useLocation();
   const [orgGaId, setOrgGaId] = useState(null);
   const [orgDomain, setOrgDomain] = useState(null);

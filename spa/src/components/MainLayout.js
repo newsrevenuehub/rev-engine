@@ -13,8 +13,8 @@ import GlobalConfirmationModal from 'elements/modal/GlobalConfirmationModal';
 import GlobalLoading from 'elements/GlobalLoading';
 import ReauthModal from 'components/authentication/ReauthModal';
 
-import HubTrackedRoute from 'analytics/components/HubTrackedRoute';
-import OrgAndHubTrackedRoute from 'analytics/components/OrgAndHubTrackedRoute';
+import HubTrackedPage from 'components/analytics/HubTrackedPage';
+import OrgAndHubTrackedPage from 'components/analytics/OrgAndHubTrackedPage';
 
 // Split bundles
 const Login = React.lazy(() => import('components/authentication/Login'));
@@ -66,7 +66,7 @@ function MainLayout() {
             <React.Suspense fallback={<GlobalLoading />}>
               <Switch>
                 {/* Login URL */}
-                <Route exact path={ROUTES.LOGIN} render={() => <HubTrackedRoute component={Login} />} />
+                <Route exact path={ROUTES.LOGIN} render={() => <HubTrackedPage component={Login} />} />
 
                 {/* Nothing lives at "/" -- redirect to dashboard  */}
                 <Route exact path="/">
@@ -74,45 +74,42 @@ function MainLayout() {
                 </Route>
 
                 {/* Dashboard */}
-                <ProtectedRoute path={ROUTES.MAIN_CONTENT_SLUG} render={() => <HubTrackedRoute component={Main} />} />
+                <ProtectedRoute path={ROUTES.MAIN_CONTENT_SLUG} render={() => <HubTrackedPage component={Main} />} />
                 <ProtectedRoute
                   path={ROUTES.EDITOR_ROUTE_PAGE}
-                  render={() => <HubTrackedRoute component={PageEditor} />}
+                  render={() => <HubTrackedPage component={PageEditor} />}
                 />
                 <ProtectedRoute
                   path={ROUTES.EDITOR_ROUTE_REV}
-                  render={() => <HubTrackedRoute component={PageEditor} />}
+                  render={() => <HubTrackedPage component={PageEditor} />}
                 />
 
                 {/* Contributor Dashboard */}
                 <ProtectedRoute
                   path={ROUTES.CONTRIBUTOR_DASHBOARD}
-                  render={() => <HubTrackedRoute component={ContributorDashboard} />}
+                  render={() => <HubTrackedPage component={ContributorDashboard} />}
                   contributor
                 />
 
                 {/* Contributor Entry */}
-                <Route
-                  path={ROUTES.CONTRIBUTOR_ENTRY}
-                  render={() => <HubTrackedRoute component={ContributorEntry} />}
-                />
+                <Route path={ROUTES.CONTRIBUTOR_ENTRY} render={() => <HubTrackedPage component={ContributorEntry} />} />
                 <Route
                   path={ROUTES.CONTRIBUTOR_VERIFY}
-                  render={() => <HubTrackedRoute component={ContributorVerify} />}
+                  render={() => <HubTrackedPage component={ContributorVerify} />}
                 />
 
                 {/* Live Donation Pages are caught here */}
                 <Route
                   path={ROUTES.DONATION_PAGE_SLUG + ROUTES.THANK_YOU_SLUG}
-                  render={() => <OrgAndHubTrackedRoute component={GenericThankYou} />}
+                  render={() => <OrgAndHubTrackedPage component={GenericThankYou} />}
                 />
                 <Route
                   path={ROUTES.REV_PROGRAM_SLUG + ROUTES.THANK_YOU_SLUG}
-                  render={() => <OrgAndHubTrackedRoute component={GenericThankYou} />}
+                  render={() => <OrgAndHubTrackedPage component={GenericThankYou} />}
                 />
                 <Route
                   path={ROUTES.DONATION_PAGE_SLUG}
-                  render={() => <OrgAndHubTrackedRoute component={DonationPageRouter} />}
+                  render={() => <OrgAndHubTrackedPage component={DonationPageRouter} />}
                 />
                 <Route path={ROUTES.REV_PROGRAM_SLUG} component={DonationPageRouter} />
               </Switch>

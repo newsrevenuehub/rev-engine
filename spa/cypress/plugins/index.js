@@ -1,9 +1,10 @@
 const findWebpack = require('find-webpack');
 const webpackPreprocessor = require('@cypress/webpack-preprocessor');
+const injectDevServer = require('@cypress/react/plugins/react-scripts');
 
 // To support Create React App style absolute imports, as per:
 // https://github.com/cypress-io/cypress/issues/8481#issuecomment-744683036
-module.exports = (on) => {
+module.exports = (on, config) => {
   const webpackOptions = findWebpack.getWebpackOptions();
 
   if (!webpackOptions) {
@@ -22,4 +23,8 @@ module.exports = (on) => {
   };
 
   on('file:preprocessor', webpackPreprocessor(options));
+
+  injectDevServer(on, config);
+
+  return config;
 };

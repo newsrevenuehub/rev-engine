@@ -1,4 +1,4 @@
-import { DELETE_PAGE, FULL_PAGE, DONOR_BENEFITS, LIST_PAGES, CONTRIBUTION_META } from 'ajax/endpoints';
+import { DELETE_PAGE, FULL_PAGE, DONOR_BENEFITS, LIST_PAGES, CONTRIBUTION_META, PAGE_STYLES } from 'ajax/endpoints';
 import { getEndpoint } from '../support/util';
 import { getFrequencyAdjective } from 'utilities/parseFrequency';
 import { format } from 'date-fns';
@@ -274,23 +274,24 @@ describe('Donation page delete', () => {
 });
 
 describe('Additional Info Setup', () => {
-  before(() => {
+  beforeEach(() => {
     cy.login('user/stripe-verified.json');
     cy.intercept(
       { method: 'GET', pathname: getEndpoint(FULL_PAGE) },
       { fixture: 'pages/live-page-1', statusCode: 200 }
-    );
+    ).as('getPage');
     cy.intercept(
       { method: 'GET', pathname: getEndpoint(CONTRIBUTION_META) },
       { fixture: 'donations/contribution-metadata.json', statusCode: 200 }
     ).as('getContributionMeta');
     cy.visit('edit/my/page');
-  });
-
-  it('additional-info-applied should be empty', () => {
+    cy.wait(['@login', '@getPage', '@getContributionMeta']);
     cy.getByTestId('edit-page-button').click();
     cy.getByTestId('layout-tab').click();
     cy.getByTestId('edit-interface-item').contains('Additional').click();
+  });
+
+  it('additional-info-applied should be empty', () => {
     cy.getByTestId('additional-info-applied').should('exist').find('li').should('have.length', 0);
   });
 
@@ -299,12 +300,10 @@ describe('Additional Info Setup', () => {
     cy.get('#downshift-1-menu').find('li').should('have.length', 2);
   });
 
-  it('click on one should add to additional-applied-info', () => {
+  it('click on one should add to additional-applied-info and remove chosen from dropdown', () => {
+    cy.get('#downshift-1-toggle-button').click();
     cy.get('li').first().contains('In Honor of').click();
     cy.getByTestId('additional-info-applied').should('exist').contains('In Honor of');
-  });
-
-  it('should now only have one item available to add', () => {
     cy.get('#downshift-1-toggle-button').click();
     cy.get('#downshift-1-menu').find('li').should('have.length', 1);
   });

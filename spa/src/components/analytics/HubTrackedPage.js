@@ -2,10 +2,10 @@ import { useEffect, useState } from 'react';
 import { useLocation, Route } from 'react-router';
 
 import Analytics from 'analytics';
-import { HUB_ANALYTICS_APP_NAME, HUB_GA_V3_ID, HUB_GA_V3_PLUGIN_NAME } from 'analytics/constants';
-import getHubGaPlugin from 'analytics/plugins/ga/hub';
+import { HUB_ANALYTICS_APP_NAME, HUB_GA_V3_ID, HUB_GA_V3_PLUGIN_NAME } from 'components/analytics/constants';
+import getHubGaPlugin from './plugins/ga/hub';
 
-export default function HubTrackedRoute({ component: Component }) {
+export default function HubTrackedPage({ component: Component }) {
   const location = useLocation();
   const [analyticsInstance, setAnalyticsInstance] = useState(null);
 

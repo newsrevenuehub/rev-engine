@@ -77,8 +77,6 @@ function PageSetup({ backToProperties }) {
     }
   };
 
-  console.log('errors', errors);
-
   return (
     <S.PageSetup data-testid="page-setup">
       <S.PageName>{page.name}</S.PageName>

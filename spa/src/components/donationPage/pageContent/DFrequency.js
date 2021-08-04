@@ -4,12 +4,21 @@ import * as S from './DFrequency.styled';
 // Context
 import { usePage } from '../DonationPage';
 
+// Util
+import { getDefaultAmount } from 'components/donationPage/pageContent/DAmount';
+
 // Children
 import DElement, { DynamicElementPropTypes } from 'components/donationPage/pageContent/DElement';
 import FormErrors from 'elements/inputs/FormErrors';
 
 function DFrequency({ element, ...props }) {
-  const { frequency, setFrequency, errors } = usePage();
+  const { page, frequency, setFrequency, setAmount, errors, setOverrideAmount } = usePage();
+
+  const handleFrequencySelected = (_, { value }) => {
+    setAmount(getDefaultAmount(value, page));
+    setOverrideAmount(false);
+    setFrequency(value);
+  };
 
   return (
     <DElement label="Frequency" description="Choose a contribution type" {...props} data-testid="d-frequency">
@@ -21,7 +30,7 @@ function DFrequency({ element, ...props }) {
             label={freq.displayName}
             value={freq.value}
             checked={frequency === freq.value}
-            onChange={(_e, { value }) => setFrequency(value)}
+            onChange={handleFrequencySelected}
             data-testid={`frequency-${freq.value}`}
           />
         ))}

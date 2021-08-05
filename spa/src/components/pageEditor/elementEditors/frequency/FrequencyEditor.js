@@ -45,6 +45,7 @@ function FrequencyEditor() {
             <S.ToggleWrapper key={frequency.value}>
               <S.Toggle
                 label={`${frequency.displayName} payments enabled`}
+                data-testid="frequency-toggle"
                 toggle
                 checked={getFrequencyState(frequency.value, elementContent)}
                 onChange={(_e, { checked }) => setToggled(checked, frequency.value)}
@@ -53,6 +54,7 @@ function FrequencyEditor() {
             <S.RadioWrapper>
               <S.Radio
                 id={`${frequency.value}-default`}
+                data-testid={`frequency-default-${frequency.value}`}
                 type="checkbox"
                 color={theme.colors.primary}
                 checked={thisFreq?.isDefault}

@@ -56,15 +56,18 @@ function DonationPage({ page, live = false }) {
       const frequencies = frequencyElement?.content?.map((f) => f.value);
       const freqIsAvailable = frequencies.includes(mappedFrequency);
 
-      if (qsFrequency && freqIsAvailable) setFrequency(mappedFrequency);
-      const amountIndex = amounts?.one_time?.findIndex((num) => parseFloat(num) === parseFloat(qsAmount));
+      // If the provided frequency is available, or there is no qsFrequency, use one_time
+      if (qsAmount && (!freqIsAvailable || !qsFrequency)) setFrequency('one_time');
+      else if (qsFrequency && freqIsAvailable) setFrequency(mappedFrequency);
+
+      const freqAmounts = amounts && amounts[mappedFrequency];
+      const amountIndex = freqAmounts?.findIndex((num) => parseFloat(num) === parseFloat(qsAmount));
+
       if (qsAmount) setAmount(qsAmount);
-      if (qsAmount && amountIndex === -1) {
+      if (qsAmount && (amountIndex === undefined || amountIndex === -1)) {
         // It doesn't exist in one_time, so set override.
         setOverrideAmount(true);
       }
-      // If the provided frequency is available, or there is no qsFrequency, use one_time
-      if (qsAmount && (!freqIsAvailable || !qsFrequency)) setFrequency('one_time');
     },
     [page.elements]
   );

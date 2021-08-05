@@ -3,15 +3,8 @@ import datetime
 from django.test import TestCase
 from django.utils import timezone
 
-from apps.pages.models import AbstractPage, DonationPage, Template
-from apps.pages.tests.factories import (
-    BenefitFactory,
-    BenefitTierFactory,
-    DonationPageFactory,
-    DonorBenefitFactory,
-    StyleFactory,
-    TemplateFactory,
-)
+from apps.pages.models import DonationPage
+from apps.pages.tests.factories import DonationPageFactory, StyleFactory
 
 
 class DonationPageTest(TestCase):
@@ -51,30 +44,6 @@ class DonationPageTest(TestCase):
 class StyleTest(TestCase):
     def setUp(self):
         self.instance = StyleFactory()
-
-    def test_to_string(self):
-        self.assertEqual(self.instance.name, str(self.instance))
-
-
-class BenefitTierTest(TestCase):
-    def setUp(self):
-        self.instance = BenefitTierFactory()
-
-    def test_to_string(self):
-        self.assertEqual(self.instance.name, str(self.instance))
-
-
-class BenefitTest(TestCase):
-    def setUp(self):
-        self.instance = BenefitFactory()
-
-    def test_to_string(self):
-        self.assertEqual(self.instance.name, str(self.instance))
-
-
-class DonorBenefitTest(TestCase):
-    def setUp(self):
-        self.instance = DonorBenefitFactory()
 
     def test_to_string(self):
         self.assertEqual(self.instance.name, str(self.instance))

@@ -9,8 +9,6 @@ router = routers.DefaultRouter()
 router.register(r"pages", views.PageViewSet, basename="donationpage")
 router.register(r"templates", views.TemplateViewSet, basename="template")
 router.register(r"styles", views.StyleViewSet, basename="style")
-router.register(r"donor-benefits", views.DonorBenefitViewSet, basename="donorbenefit")
-router.register(r"benefit-tiers", views.BenefitTierViewSet, basename="benefittier")
-router.register(r"benefits", views.BenefitViewSet, basename="benefit")
+# router.register(r"donor-benefits", views.DonorBenefitViewSet, basename="donorbenefit")
 
 urlpatterns = [path("", include(router.urls))]

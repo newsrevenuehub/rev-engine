@@ -29,13 +29,6 @@ class AbstractPage(IndexedTimeStampedModel):
 
     elements = models.JSONField(null=True, blank=True, default=list)
 
-    donor_benefits = models.ForeignKey(
-        "pages.DonorBenefit",
-        null=True,
-        blank=True,
-        on_delete=models.SET_NULL,
-    )
-
     thank_you_redirect = models.URLField(
         blank=True, help_text="If not using default Thank You page, add link to orgs Thank You page here"
     )

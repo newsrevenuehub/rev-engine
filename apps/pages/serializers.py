@@ -3,36 +3,7 @@ from sorl_thumbnail_serializer.fields import HyperlinkedSorlImageField
 
 from apps.organizations.models import Organization, RevenueProgram
 from apps.organizations.serializers import RevenueProgramInlineSerializer, RevenueProgramSerializer
-from apps.pages.models import Benefit, BenefitTier, DonationPage, DonorBenefit, Style, Template
-
-
-class BenefitSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Benefit
-        fields = [
-            "id",
-            "name",
-        ]
-
-
-class BenefitTierSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = BenefitTier
-        fields = ["id", "name", "description", "benefits"]
-        depth = 1
-
-
-class DonorBenefitDetailSerializer(serializers.ModelSerializer):
-    tiers = BenefitTierSerializer(many=True)
-
-    class Meta:
-        model = DonorBenefit
-        fields = [
-            "id",
-            "name",
-            "blurb",
-            "tiers",
-        ]
+from apps.pages.models import DonationPage, Style, Template
 
 
 class StyleSerializer(serializers.ModelSerializer):
@@ -69,8 +40,6 @@ class DonationPageDetailSerializer(serializers.ModelSerializer):
 class DonationPageFullDetailSerializer(serializers.ModelSerializer):
     styles = StyleSerializer(required=False)
     styles_pk = serializers.IntegerField(allow_null=True, required=False)
-    donor_benefits = DonorBenefitDetailSerializer(allow_null=True, required=False)
-    donor_benefits_pk = serializers.IntegerField(allow_null=True, required=False)
     revenue_program = RevenueProgramSerializer(read_only=True)
     revenue_program_pk = serializers.IntegerField(allow_null=True, required=False)
     organization = serializers.PrimaryKeyRelatedField(read_only=True)
@@ -95,13 +64,13 @@ class DonationPageFullDetailSerializer(serializers.ModelSerializer):
     def _update_related(self, related_field, related_model, validated_data, instance):
         pk_field = f"{related_field}_pk"
         if pk_field in validated_data and validated_data[pk_field] is None:
-            instance.donor_benefits = None
+            setattr(instance, related_field, None)
         elif pk_field in validated_data:
             try:
                 related_instance = related_model.objects.get(pk=validated_data[pk_field])
                 setattr(instance, related_field, related_instance)
             except related_model.DoesNotExist:
-                raise serializers.ValidationError({related_field: "Could not find donor benefits with provided pk."})
+                raise serializers.ValidationError({related_field: "Could not find instance with provided pk."})
 
     def create(self, validated_data):
         if "revenue_program_pk" not in validated_data:
@@ -122,7 +91,6 @@ class DonationPageFullDetailSerializer(serializers.ModelSerializer):
 
     def update(self, instance, validated_data):
         self._update_related("styles", Style, validated_data, instance)
-        self._update_related("donor_benefits", DonorBenefit, validated_data, instance)
         return super().update(instance, validated_data)
 
 

@@ -46,12 +46,16 @@ function DAmount({ element, ...props }) {
               key={i + amnt}
               selected={parseFloat(amount) === parseFloat(amnt)}
               onClick={() => handleAmountSelected(parseFloat(amnt))}
-              data-testid={`amnt-${amnt}`}
+              data-testid={`amount-${amnt}${parseFloat(amount) === parseFloat(amnt) ? '-selected' : ''}`}
             >{`$${amnt}`}</SelectableButton>
           );
         })}
         {(element.content?.allowOther || overrideAmount) && (
-          <S.OtherAmount selected={getAmountIndex(page, amount, frequency) === -1} onClick={handleOtherSelected}>
+          <S.OtherAmount
+            data-testid={`amount-other${getAmountIndex(page, amount, frequency) === -1 ? '-selected' : ''}`}
+            selected={getAmountIndex(page, amount, frequency) === -1}
+            onClick={handleOtherSelected}
+          >
             <span>$</span>
             <S.OtherAmountInput
               ref={inputRef}
@@ -108,7 +112,7 @@ export function getAmountIndex(page, amount, frequency) {
 export function getDefaultAmount(frequency, page) {
   const amountElement = page?.elements?.find((el) => el.type === 'DAmount');
   const amounts = amountElement?.content?.options;
-  const amountsForFreq = amounts[frequency]?.map((amnt) => parseFloat(amnt));
+  const amountsForFreq = amounts ? amounts[frequency]?.map((amnt) => parseFloat(amnt)) : {};
   const defaults = amountElement?.content?.defaults;
 
   // If defaults are defined, and a default is defined for this frequency, and the default defined is a valid amount...

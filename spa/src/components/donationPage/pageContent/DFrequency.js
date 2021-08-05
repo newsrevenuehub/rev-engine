@@ -31,7 +31,7 @@ function DFrequency({ element, ...props }) {
             value={freq.value}
             checked={frequency === freq.value}
             onChange={handleFrequencySelected}
-            data-testid={`frequency-${freq.value}`}
+            data-testid={`frequency-${freq.value}${frequency === freq.value ? '-selected' : ''}`}
           />
         ))}
       </S.DFrequency>

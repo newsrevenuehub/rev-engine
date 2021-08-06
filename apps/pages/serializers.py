@@ -64,9 +64,10 @@ class DonationPageFullDetailSerializer(serializers.ModelSerializer):
         return obj.organization.non_profit
 
     def get_benefit_levels(self, obj):
-        benefit_levels = obj.revenue_program.benefit_levels.all()
-        serializer = BenefitLevelDetailSerializer(benefit_levels, many=True)
-        return serializer.data
+        if obj.revenue_program:
+            benefit_levels = obj.revenue_program.benefit_levels.all()
+            serializer = BenefitLevelDetailSerializer(benefit_levels, many=True)
+            return serializer.data
 
     class Meta:
         model = DonationPage

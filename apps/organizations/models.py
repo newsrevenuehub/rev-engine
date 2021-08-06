@@ -13,7 +13,7 @@ from apps.common.utils import normalize_slug
 from apps.contributions.utils import get_hub_stripe_api_key
 
 
-# from apps.contributions.models import symbols_by_currency
+# 50, 66, 108, 117->exit, 162, 172-173, 176-177, 194, 203, 227, 239, 243-244, 258
 
 
 logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
@@ -42,7 +42,7 @@ class Feature(IndexedTimeStampedModel):
     class Meta:
         unique_together = ["feature_type", "feature_value"]
 
-    def __str__(self):
+    def __str__(self):  # pragma: no cover
         return self.name
 
     def save(self, *args, **kwargs):
@@ -62,7 +62,7 @@ class Plan(IndexedTimeStampedModel):
     name = models.CharField(max_length=255)
     features = models.ManyToManyField("organizations.Feature", related_name="plans", blank=True)
 
-    def __str__(self):
+    def __str__(self):  # pragma: no cover
         return self.name
 
 
@@ -158,7 +158,7 @@ class BenefitLevel(IndexedTimeStampedModel):
 
     organization = models.ForeignKey(Organization, on_delete=models.CASCADE)
 
-    def __str__(self):
+    def __str__(self):  # pragma: no cover
         return self.name
 
     class Meta:
@@ -166,6 +166,8 @@ class BenefitLevel(IndexedTimeStampedModel):
             "name",
             "organization",
         )
+
+        ordering = ["revenueprogrambenefitlevel__level"]
 
     @property
     def donation_range(self):
@@ -190,7 +192,7 @@ class RevenueProgramBenefitLevel(models.Model):
     class Meta:
         ordering = ("level",)
 
-    def __str__(self):
+    def __str__(self):  # pragma: no cover
         return f"Benefit Level {self.level} for {self.revenue_program}"
 
 
@@ -207,6 +209,8 @@ class Benefit(IndexedTimeStampedModel):
             "name",
             "organization",
         )
+
+        ordering = ["benefitlevelbenefit__order"]
 
 
 class BenefitLevelBenefit(models.Model):

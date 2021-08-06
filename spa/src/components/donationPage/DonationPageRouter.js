@@ -53,9 +53,6 @@ function DonationPageRouter({ setOrgAnalytics }) {
   const params = useParams();
   const requestFullPage = useRequest();
 
-  const orgGaId = data?.revenue_program?.org_google_analytics_id;
-  const orgDomainName = data?.revenue_program?.org_google_analytics_domain;
-
   const fetchLivePageContent = useCallback(async () => {
     dispatch({ type: PAGE_FETCH_START });
     const { revProgramSlug, pageSlug } = params;
@@ -71,7 +68,11 @@ function DonationPageRouter({ setOrgAnalytics }) {
         params: requestParams
       },
       {
-        onSuccess: ({ data }) => dispatch({ type: PAGE_FETCH_SUCCESS, payload: data }),
+        onSuccess: ({ data }) => {
+          const { org_google_analytics_id: orgGaId, org_google_analytics_domain: orgGaDomain } = data?.revenue_program;
+          setOrgAnalytics(orgGaId, orgGaDomain);
+          dispatch({ type: PAGE_FETCH_SUCCESS, payload: data });
+        },
         onFailure: () => dispatch({ type: PAGE_FETCH_ERROR })
       }
     );
@@ -80,12 +81,6 @@ function DonationPageRouter({ setOrgAnalytics }) {
   useEffect(() => {
     fetchLivePageContent();
   }, [params, fetchLivePageContent]);
-
-  useEffect(() => {
-    if (orgDomainName && orgGaId) {
-      setOrgAnalytics(orgGaId, orgDomainName);
-    }
-  }, [orgDomainName, orgGaId]);
 
   return (
     <SegregatedStyles page={data}>

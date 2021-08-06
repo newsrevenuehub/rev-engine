@@ -1,5 +1,4 @@
 import googleAnalytics from '@analytics/google-analytics';
-import { ORG_GA_V3_PLUGIN_NAME } from '../../constants';
 
 // NB! changing the instanceName and name signature need to be like this
 // namely, instanceName should be something random, and name should be
@@ -15,7 +14,12 @@ export default function getPlugin(orgGaId, orgDomain, pluginName) {
       instanceName: 'two'
     }),
     {
-      name: pluginName
+      name: pluginName,
+      ready: ({ payload, config, instance }) => {
+        const { ga } = window;
+        ga(`${pluginName}.require`, 'linker');
+        ga(`${pluginName}.linker:autolink`, [orgDomain]);
+      }
     }
   );
 }

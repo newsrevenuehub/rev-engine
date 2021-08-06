@@ -327,7 +327,7 @@ describe('Additional Info Setup', () => {
       { fixture: 'donations/contribution-metadata.json', statusCode: 200 }
     ).as('getContributionMeta');
     cy.visit('edit/my/page');
-    cy.wait(['@login', '@getPage', '@getContributionMeta']);
+    cy.wait(['@getPage', '@getContributionMeta']);
     cy.getByTestId('edit-page-button').click();
     cy.getByTestId('layout-tab').click();
     cy.getByTestId('edit-interface-item').contains('Additional').click();

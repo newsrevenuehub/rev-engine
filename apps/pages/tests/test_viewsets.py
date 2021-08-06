@@ -72,7 +72,7 @@ class PageViewSetTest(AbstractTestCase):
         old_page_pk = page.pk
         detail_url = f"/api/v1/pages/{old_page_pk}/"
         new_heading = "Old DonationPage With New Heading"
-        response = self.client.patch(detail_url, {"heading": new_heading})
+        self.client.patch(detail_url, {"heading": new_heading})
         page = DonationPage.objects.get(pk=old_page_pk)
         self.assertEqual(page.pk, old_page_pk)
         self.assertNotEqual(page.heading, old_page_heading)

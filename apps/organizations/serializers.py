@@ -3,12 +3,10 @@ from rest_framework import serializers
 from apps.organizations.models import (
     Benefit,
     BenefitLevel,
-    BenefitLevelBenefit,
     Feature,
     Organization,
     Plan,
     RevenueProgram,
-    RevenueProgramBenefitLevel,
 )
 
 
@@ -50,7 +48,7 @@ class RevenueProgramSerializer(serializers.ModelSerializer):
         model = RevenueProgram
         fields = ["id", "slug"]
 
-    def get_fields(self):
+    def get_fields(self):  # pragma: no cover
         fields = super().get_fields()
         request = self.context.get("request", None)
         if request and getattr(request, "method", None) == "PATCH":
@@ -61,16 +59,9 @@ class RevenueProgramSerializer(serializers.ModelSerializer):
 
 
 class BenefitDetailSerializer(serializers.ModelSerializer):
-    order = serializers.SerializerMethodField()
-
-    def get_order(self, obj):
-        benefit_level_benefit = BenefitLevelBenefit.objects.get(benefit=obj)
-        return benefit_level_benefit.order
-
     class Meta:
         model = Benefit
         fields = [
-            "order",
             "name",
             "description",
         ]
@@ -78,16 +69,10 @@ class BenefitDetailSerializer(serializers.ModelSerializer):
 
 class BenefitLevelDetailSerializer(serializers.ModelSerializer):
     benefits = BenefitDetailSerializer(many=True)
-    level = serializers.SerializerMethodField()
-
-    def get_level(self, obj):
-        rp_bl = RevenueProgramBenefitLevel.objects.get(benefit_level=obj)
-        return rp_bl.level
 
     class Meta:
         model = BenefitLevel
         fields = [
-            "level",
             "name",
             "donation_range",
             "benefits",

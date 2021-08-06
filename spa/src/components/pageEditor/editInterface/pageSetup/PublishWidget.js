@@ -8,8 +8,9 @@ import { isAfter } from 'date-fns';
 
 // Children
 import Button from 'elements/buttons/Button';
+import FormErrors from 'elements/inputs/FormErrors';
 
-function PublishWidget({ publishDate, onChange }) {
+function PublishWidget({ publishDate, onChange, errors }) {
   const [showPublishNow, setShowPublishNow] = useState(false);
   // TODO: Handle CLEAR published date
 
@@ -42,6 +43,7 @@ function PublishWidget({ publishDate, onChange }) {
         startDate={new Date()}
         data-testid="publish-date-input"
       />
+      {errors && <FormErrors errors={errors} />}
       {showPublishNow && (
         <S.PublishNow>
           <S.Or>- or -</S.Or>

@@ -38,6 +38,8 @@ export const List = styled.ul`
   border-radius: ${(props) => props.theme.radii[0]};
   border: 1px solid;
   border-color: ${(props) => props.theme.colors.grey[0]};
+
+  overflow-y: scroll;
 `;
 
 export const Item = styled.li`

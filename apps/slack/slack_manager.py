@@ -3,9 +3,12 @@ import logging
 from django.conf import settings
 
 from slack_sdk import WebClient
+from slack_sdk.errors import SlackApiError
+
+from apps.organizations.models import Organization
 
 # from slack_sdk.errors import SlackApiError
-from apps.slack.models import HubSlackIntegration, OrganizationSlackIntegration
+from apps.slack.models import HubSlackIntegration
 
 
 logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
@@ -17,6 +20,8 @@ class SlackManagerError(Exception):
 
 class SlackManager:
     common_header_text = "New RevEngine Contribution Received!"
+    hub_integration = None
+    org_integration = None
 
     def __init__(self):
         self.hub_integration = self.get_hub_integration()
@@ -40,7 +45,7 @@ class SlackManager:
     def get_org_integration(self, org):
         try:
             return org.slack_integration
-        except OrganizationSlackIntegration.organization.RelatedObjectDoesNotExist:
+        except Organization.slack_integration.RelatedObjectDoesNotExist:
             logger.info(f"Tried to send slack notification, but {org.name} does not have a SlackIntegration configured")
 
     @classmethod
@@ -108,11 +113,39 @@ class SlackManager:
         return f"{self.common_header_text}: {contribution.formatted_amount} from {contribution.contributor.email}"
 
     def send_hub_message(self, channel, text, blocks):
-        self.hub_client.chat_postMessage(channel=channel, text=text, blocks=blocks)
+        try:
+            self.hub_client.chat_postMessage(channel=channel, text=text, blocks=blocks)
+        except SlackApiError as slack_error:
+            error_type = slack_error.response["error"]
+            if error_type == "invalid_auth":
+                logger.error(
+                    f"SlackApiError. HubSlackIntegration has invalid token. SlackError: {slack_error.response}"
+                )
+            elif error_type == "channel_not_found":
+                logger.error(
+                    f'SlackApiError. No such channel "{channel}" for HubSlackIntegration. SlackError: {slack_error.response}'
+                )
+            else:
+                logger.warn(f"Generic SlackApiError: {slack_error.response}")
 
-    def send_org_message(self, channel, text, blocks):
+    def send_org_message(self, channel, text, blocks, organization):
         org_client = self.get_org_client()
-        org_client.chat_postMessage(channel=channel, text=text, blocks=blocks)
+        try:
+            org_client.chat_postMessage(channel=channel, text=text, blocks=blocks)
+        except SlackApiError as slack_error:
+            error_type = slack_error.response["error"]
+            if error_type == "invalid_auth":
+                logger.warn(
+                    f'SlackApiError. Org "{organization.name}" has an invalid token. SlackError: {slack_error.response}'
+                )
+            elif error_type == "channel_not_found":
+                logger.warn(
+                    f'SlackApiError. No such channel "{channel}" for {organization.name}. SlackError: {slack_error.response}'
+                )
+            else:
+                logger.warn(
+                    f'Generic SlackApiError for Org "{organization.name}" to channel "{channel}". SlackError: {slack_error.response}'
+                )
 
     def send_hub_notifications(self, contribution):
         main_channel = self.hub_integration.channel
@@ -128,7 +161,7 @@ class SlackManager:
         main_channel = self.org_integration.channel
         blocks = self.construct_org_blocks(contribution)
         text = self.construct_org_text(contribution)
-        self.send_org_message(main_channel, text, blocks)
+        self.send_org_message(main_channel, text, blocks, contribution.organization)
 
     def publish_contribution(self, contribution, event_type=None):
         """

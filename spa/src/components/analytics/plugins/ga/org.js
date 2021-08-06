@@ -1,6 +1,6 @@
 import googleAnalytics from '@analytics/google-analytics';
 
-// NB! changing the instanceName and name signature need to be like this
+// NB! The instanceName and name signature need to be like this
 // namely, instanceName should be something random, and name should be
 // the plugin name. Setting both to plugin name causes this to fail,
 // as does omitting instanceName altogether.

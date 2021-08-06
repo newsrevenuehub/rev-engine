@@ -111,7 +111,10 @@ function MainLayout() {
                   path={ROUTES.DONATION_PAGE_SLUG}
                   render={() => <OrgAndHubTrackedPage component={DonationPageRouter} />}
                 />
-                <Route path={ROUTES.REV_PROGRAM_SLUG} component={DonationPageRouter} />
+                <Route
+                  path={ROUTES.REV_PROGRAM_SLUG}
+                  render={() => <OrgAndHubTrackedPage component={DonationPageRouter} />}
+                />
               </Switch>
             </React.Suspense>
           </BrowserRouter>

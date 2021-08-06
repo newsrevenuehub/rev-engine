@@ -31,6 +31,10 @@ class OrganizationAdmin(RevEngineBaseAdmin):  # pragma: no cover
             },
         ),
         (
+            "Email Templates",
+            {"fields": ("uses_email_templates",)},
+        ),
+        (
             "Payment Provider",
             {
                 "fields": (

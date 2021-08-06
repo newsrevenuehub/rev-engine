@@ -131,6 +131,7 @@ class ContributionMetadataTest(TestCase):
         "country": "USA",
         "honoree": "MeMe",
         "test_2": "I love a good test",
+        "default_1": "Default",
     }
 
     def setUp(self):
@@ -142,26 +143,30 @@ class ContributionMetadataTest(TestCase):
             default_value="Required",
             processor_object=ContributionMetadata.ProcessorObjects.ALL,
         )
+        self.cm4 = ContributionMetadataFactory(key="default_1", label="Test 4", donor_supplied=True)
 
     def test_label(self):
         assert str(self.cm1) == self.cm1.label
 
     @patch("apps.contributions.payment_managers.StripePaymentManager")
     def test_bundle_meta_no_lookup(self, pm_mock):
-        all_meta = ContributionMetadata.objects.filter(
-            Q(processor_object=ContributionMetadata.ProcessorObjects.ALL)
-            | Q(processor_object=ContributionMetadata.ProcessorObjects.PAYMENT)
+
+        results = ContributionMetadata.bundle_metadata(
+            self.supplied, ContributionMetadata.ProcessorObjects.PAYMENT, pm_mock
         )
 
-        results = ContributionMetadata.bundle_metadata(all_meta, self.supplied, pm_mock)
+        with self.subTest("Meta with all is present"):
+            assert results.get("req_1", "Required")
 
-        with self.subTest("Required Value is present"):
-            assert results.get("req_1", "") == "Required"
+        with self.subTest("Default value is present"):
+            assert results.get("default_1", "") == "Default"
 
         with self.subTest("Default value defers to supplied"):
-            self.supplied.update({"req_1": "New Value"})
-            results = ContributionMetadata.bundle_metadata(all_meta, self.supplied, pm_mock)
-            assert results.get("req_1", "") == "New Value"
+            self.supplied.update({"default_1": "New Value"})
+            results = ContributionMetadata.bundle_metadata(
+                self.supplied, ContributionMetadata.ProcessorObjects.PAYMENT, pm_mock
+            )
+            assert results.get("default_1", "") == "New Value"
 
         with self.subTest("Empty values are not present"):
             assert results.get("phone", None) is None
@@ -176,12 +181,10 @@ class ContributionMetadataTest(TestCase):
     @patch("apps.contributions.payment_managers.StripePaymentManager")
     def test_bundle_meta_w_lookup_payment(self, pm_mock):
         self.cm4 = ContributionMetadataFactory(key="re_revenue_program_id", label="re_revenue_program_id")
-        all_meta = ContributionMetadata.objects.filter(
-            Q(processor_object=ContributionMetadata.ProcessorObjects.ALL)
-            | Q(processor_object=ContributionMetadata.ProcessorObjects.PAYMENT)
-        )
         pm_mock.return_value.get_donation_page.return_value.pk = 23
-        results = ContributionMetadata.bundle_metadata(all_meta, self.supplied, pm_mock())
+        results = ContributionMetadata.bundle_metadata(
+            self.supplied, ContributionMetadata.ProcessorObjects.PAYMENT, pm_mock()
+        )
         assert results.get("re_revenue_program_id", None) is not None
         assert results.get("re_revenue_program_id", None) == 23
 
@@ -193,12 +196,9 @@ class ContributionMetadataTest(TestCase):
             processor_object=ContributionMetadata.ProcessorObjects.CUSTOMER,
         )
 
-        all_meta = ContributionMetadata.objects.filter(
-            Q(processor_object=ContributionMetadata.ProcessorObjects.ALL)
-            | Q(processor_object=ContributionMetadata.ProcessorObjects.CUSTOMER)
-        )
-
         pm_mock.return_value.get_or_create_contributor.return_value.pk = 55
-        results = ContributionMetadata.bundle_metadata(all_meta, self.supplied, pm_mock())
+        results = ContributionMetadata.bundle_metadata(
+            self.supplied, ContributionMetadata.ProcessorObjects.CUSTOMER, pm_mock()
+        )
         assert results.get("re_contributor_id", None) is not None
         assert results.get("re_contributor_id", None) == 55

@@ -6,10 +6,16 @@ import { usePage } from 'components/donationPage/DonationPage';
 function SHeaderBar() {
   const { page } = usePage();
 
+  const getImageUrl = (img) => {
+    if (img instanceof File) {
+      return URL.createObjectURL(img);
+    } else return img;
+  };
+
   return (
-    <S.SHeaderBar bgImg={page?.header_bg_image} data-testid="s-header-bar">
+    <S.SHeaderBar bgImg={getImageUrl(page?.header_bg_image)} data-testid="s-header-bar">
       <a href={page?.header_link} target="_blank" rel="noreferrer noopener">
-        <S.SHeaderLogo src={page?.header_logo} />
+        <S.SHeaderLogo src={getImageUrl(page?.header_logo)} />
       </a>
     </S.SHeaderBar>
   );

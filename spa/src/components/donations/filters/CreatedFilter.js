@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import * as S from './CreatedFilter.styled';
 
 // Depts
@@ -8,20 +8,25 @@ import DateFnsUtils from '@date-io/date-fns';
 import { MuiPickersUtilsProvider } from '@material-ui/pickers';
 
 // Children
+import XButton from 'elements/buttons/XButton';
 import { FilterWrapper, FilterLabel } from 'components/donations/filters/Filters';
 import formatDatetimeForAPI from 'utilities/formatDatetimeForAPI';
 
 function CreatedFilter({ handleFilterChange }) {
   const theme = useTheme();
-  const [fromDate, setFromDate] = useState(new Date(2019, 0, 1));
+  const [fromDate, setFromDate] = useState(null);
   const [toDate, setToDate] = useState(new Date());
 
   const updateFilters = () => {
     handleFilterChange('created', {
-      created__gte: formatDatetimeForAPI(fromDate, false),
-      created__lte: formatDatetimeForAPI(toDate, false)
+      created__gte: fromDate ? formatDatetimeForAPI(fromDate, false) : '',
+      created__lte: toDate ? formatDatetimeForAPI(toDate, false) : ''
     });
   };
+
+  useEffect(() => {
+    updateFilters();
+  }, [fromDate, toDate]);
 
   return (
     <MuiPickersUtilsProvider utils={DateFnsUtils}>
@@ -31,45 +36,49 @@ function CreatedFilter({ handleFilterChange }) {
           <S.DateFilters>
             <S.DatePickerWrapper>
               <S.DateLabel>From:</S.DateLabel>
-              <S.DatePicker
-                disableToolbar
-                variant="inline"
-                format="MM/dd/yyyy"
-                margin="normal"
-                value={fromDate}
-                onChange={setFromDate}
-                onClose={updateFilters}
-                onBlur={updateFilters}
-                KeyboardButtonProps={{
-                  'aria-label': 'change from date'
-                }}
-                inputProps={{
-                  style: {
-                    fontFamily: theme.font
-                  }
-                }}
-              />
+              <S.DatePickerInner>
+                <S.DatePicker
+                  disableToolbar
+                  variant="inline"
+                  format="MM/dd/yyyy"
+                  placeholder="Select a from date"
+                  margin="normal"
+                  value={fromDate}
+                  onChange={setFromDate}
+                  KeyboardButtonProps={{
+                    'aria-label': 'change from date'
+                  }}
+                  inputProps={{
+                    style: {
+                      fontFamily: theme.font
+                    }
+                  }}
+                />
+                <XButton onClick={() => setFromDate(null)} />
+              </S.DatePickerInner>
             </S.DatePickerWrapper>
             <S.DatePickerWrapper>
               <S.DateLabel>To:</S.DateLabel>
-              <S.DatePicker
-                disableToolbar
-                variant="inline"
-                format="MM/dd/yyyy"
-                margin="normal"
-                value={toDate}
-                onChange={setToDate}
-                onClose={updateFilters}
-                onBlur={updateFilters}
-                KeyboardButtonProps={{
-                  'aria-label': 'change to date'
-                }}
-                inputProps={{
-                  style: {
-                    fontFamily: theme.font
-                  }
-                }}
-              />
+              <S.DatePickerInner>
+                <S.DatePicker
+                  disableToolbar
+                  variant="inline"
+                  format="MM/dd/yyyy"
+                  placeholder="Select a to date"
+                  margin="normal"
+                  value={toDate}
+                  onChange={setToDate}
+                  KeyboardButtonProps={{
+                    'aria-label': 'change to date'
+                  }}
+                  inputProps={{
+                    style: {
+                      fontFamily: theme.font
+                    }
+                  }}
+                />
+                <XButton onClick={() => setToDate(null)} />
+              </S.DatePickerInner>
             </S.DatePickerWrapper>
           </S.DateFilters>
         </S.CreatedFilter>

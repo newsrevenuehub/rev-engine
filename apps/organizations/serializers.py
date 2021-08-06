@@ -1,6 +1,15 @@
 from rest_framework import serializers
 
-from apps.organizations.models import Feature, Organization, Plan, RevenueProgram
+from apps.organizations.models import (
+    Benefit,
+    BenefitLevel,
+    BenefitLevelBenefit,
+    Feature,
+    Organization,
+    Plan,
+    RevenueProgram,
+    RevenueProgramBenefitLevel,
+)
 
 
 class FeatureSerializer(serializers.ModelSerializer):
@@ -25,7 +34,7 @@ class OrganizationSerializer(serializers.ModelSerializer):
         fields = "__all__"
 
 
-class RevenueProgramInlineSerializer(serializers.ModelSerializer):
+class RevenueProgramListInlineSerializer(serializers.ModelSerializer):
     class Meta:
         model = RevenueProgram
         fields = [
@@ -39,7 +48,7 @@ class RevenueProgramSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = RevenueProgram
-        fields = "__all__"
+        fields = ["id", "slug"]
 
     def get_fields(self):
         fields = super().get_fields()
@@ -49,3 +58,37 @@ class RevenueProgramSerializer(serializers.ModelSerializer):
             fields["slug"].read_only = True
             fields["organization"].read_only = True
         return fields
+
+
+class BenefitDetailSerializer(serializers.ModelSerializer):
+    order = serializers.SerializerMethodField()
+
+    def get_order(self, obj):
+        benefit_level_benefit = BenefitLevelBenefit.objects.get(benefit=obj)
+        return benefit_level_benefit.order
+
+    class Meta:
+        model = Benefit
+        fields = [
+            "order",
+            "name",
+            "description",
+        ]
+
+
+class BenefitLevelDetailSerializer(serializers.ModelSerializer):
+    benefits = BenefitDetailSerializer(many=True)
+    level = serializers.SerializerMethodField()
+
+    def get_level(self, obj):
+        rp_bl = RevenueProgramBenefitLevel.objects.get(benefit_level=obj)
+        return rp_bl.level
+
+    class Meta:
+        model = BenefitLevel
+        fields = [
+            "level",
+            "name",
+            "donation_range",
+            "benefits",
+        ]

@@ -28,7 +28,7 @@ import CircleButton from 'elements/buttons/CircleButton';
  */
 function PageSetup({ backToProperties }) {
   const { getUserConfirmation } = useGlobalContext();
-  const { page, errors, availableBenefits } = usePageEditorContext();
+  const { page, errors } = usePageEditorContext();
   const { setPageContent } = useEditInterfaceContext();
 
   // Form state
@@ -150,12 +150,6 @@ function PageSetup({ backToProperties }) {
           errors={errors.post_thank_you_redirect}
         />
       </S.InputWrapper>
-      <BenefitsWidget
-        benefits={availableBenefits}
-        selected={donor_benefits}
-        setSelected={(d) => setDonorBenefits(d)}
-        errors={errors.donor_benefits}
-      />
       <PublishWidget publishDate={published_date} onChange={setPublishedDate} errors={errors.published_date} />
       <S.Buttons>
         <CircleButton

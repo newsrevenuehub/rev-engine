@@ -17,11 +17,11 @@ function calculateStripeFee(amount, isNonProfit) {
 
     NOTE: We are not including any VAT or GST, or any other taxes here, since these are donations.
   */
-
-  if (isNaN(amount)) return null;
+  const amountInt = parseFloat(amount);
+  if (isNaN(amountInt)) return null;
   const RATE = isNonProfit ? STRIPE_NP_RATE : STRIPE_FP_RATE;
   // Get "new amount" after stripe rates are applied
-  let newAmount = (amount + STRIPE_FIXED) / (1 - RATE);
+  let newAmount = (amountInt + STRIPE_FIXED) / (1 - RATE);
   // Calculate fee based on this amount, so that organizations recieve exactly the amount intended without fees
   const fee = newAmount.toFixed(2) * RATE + STRIPE_FIXED;
 

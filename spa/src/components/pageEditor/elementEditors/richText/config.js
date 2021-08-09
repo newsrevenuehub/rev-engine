@@ -1,27 +1,13 @@
-import { BLOCK_TYPE, INLINE_STYLE } from 'draftail';
-
-export const BR_ICON = 'M.436 633.471l296.897-296.898v241.823h616.586V94.117h109.517v593.796H297.333v242.456z';
-
-export const INLINE_CONTROL = {
-  BOLD: { type: INLINE_STYLE.BOLD },
-  ITALIC: { type: INLINE_STYLE.ITALIC },
-  UNDERLINE: { type: INLINE_STYLE.UNDERLINE },
-  STRIKETHROUGH: {
-    type: INLINE_STYLE.STRIKETHROUGH
+const richtextConfig = {
+  options: ['inline', 'blockType', 'list', 'textAlign', 'link'],
+  inline: {
+    options: ['bold', 'italic', 'underline', 'strikethrough']
   },
-  MARK: { type: INLINE_STYLE.MARK }
+  blockType: {
+    inDropdown: false,
+    options: ['Normal', 'H2', 'H3', 'H4', 'Blockquote']
+  },
+  link: { defaultTargetOption: '_blank' }
 };
 
-export const BLOCK_CONTROL = {
-  UNSTYLED: { type: BLOCK_TYPE.UNSTYLED },
-  HEADER_THREE: { type: BLOCK_TYPE.HEADER_THREE },
-  HEADER_FOUR: { type: BLOCK_TYPE.HEADER_FOUR },
-  HEADER_FIVE: { type: BLOCK_TYPE.HEADER_FIVE },
-  HEADER_SIX: { type: BLOCK_TYPE.HEADER_SIX },
-  UNORDERED_LIST_ITEM: {
-    type: BLOCK_TYPE.UNORDERED_LIST_ITEM
-  },
-  ORDERED_LIST_ITEM: {
-    type: BLOCK_TYPE.ORDERED_LIST_ITEM
-  }
-};
+export default richtextConfig;

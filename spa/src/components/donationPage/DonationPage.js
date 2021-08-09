@@ -65,7 +65,7 @@ function DonationPage({ page, live = false }) {
                     {page?.elements?.map((element) => getters.getDynamicElement(element, live))}
                   </S.PageElements>
                 </form>
-                <DonationPageStaticText page={page} />
+                <DonationPageStaticText page={page} frequency={frequency} amount={amount} payFee={payFee} />
               </S.DonationContent>
             </S.SideInner>
           </S.SideOuter>

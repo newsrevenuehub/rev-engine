@@ -86,6 +86,7 @@ class DonationPageFullDetailSerializer(serializers.ModelSerializer):
     organization_is_nonprofit = serializers.SerializerMethodField()
     organization_address = serializers.SerializerMethodField()
     organization_name = serializers.SerializerMethodField()
+    organization_contact_email = serializers.SerializerMethodField()
 
     def get_organization_is_nonprofit(self, obj):
         return obj.organization.non_profit
@@ -101,6 +102,9 @@ class DonationPageFullDetailSerializer(serializers.ModelSerializer):
 
     def get_organization_name(self, obj):
         return obj.organization.name
+
+    def get_organization_contact_email(self, obj):
+        return obj.organization.contact_email
 
     class Meta:
         model = DonationPage

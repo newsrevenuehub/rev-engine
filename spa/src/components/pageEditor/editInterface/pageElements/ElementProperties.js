@@ -71,9 +71,11 @@ function ElementProperties({ selectedElementType }) {
 
   const handleDeleteElement = () => {
     if (!dynamicElements[selectedElement.type].required) {
-      const elementsCopy = [...elements];
+      const isForSidebar = selectedElementType === 'sidebar';
+      const elementsCopy = isForSidebar ? [...sidebarElements] : [...elements];
       const elementsWithout = elementsCopy.filter((el) => el.uuid !== selectedElement.uuid);
-      setElements(elementsWithout);
+      if (isForSidebar) setSidebarElements(elementsWithout);
+      else setElements(elementsWithout);
       setSelectedElement();
     }
   };

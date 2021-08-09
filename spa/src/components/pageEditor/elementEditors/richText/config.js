@@ -7,7 +7,9 @@ const richtextConfig = {
     inDropdown: false,
     options: ['Normal', 'H2', 'H3', 'H4', 'Blockquote']
   },
-  link: { defaultTargetOption: '_blank' }
+  link: {
+    defaultTargetOption: '_blank'
+  }
 };
 
 export default richtextConfig;

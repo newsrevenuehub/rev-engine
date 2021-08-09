@@ -12,8 +12,9 @@
     "name": "MyProgram",
     "organization": 14,
     "default_donation_page": null,
-    "org_google_analytics_id": "UA-2222222",
-    "org_google_analytics_domain": "www.google.com"
+    "org_google_analytics_v3_id": "UA-2222222",
+    "org_google_analytics_v3_domain": "www.google.com",
+    "org_google_analytics_v4_id": "G-2222222"
 
   },
   "revenue_program_pk": null,

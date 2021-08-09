@@ -12,11 +12,11 @@ const HUB_GA_ID = 'UA-203260249-1';
 describe('HubTrackedPage component', () => {
   beforeEach(() => {
     const gaGetScriptUrl = 'https://www.google-analytics.com/analytics.js';
-    const gaCollectUrl = 'https://www.google-analytics.com/j/collect*';
+    const gaV3CollectUrl = 'https://www.google-analytics.com/j/collect*';
     cy.intercept(gaGetScriptUrl, {
       fixture: '../fixtures/analytics/ga_v3_script'
-    }).as('getGaAnalytics');
-    cy.intercept({ url: gaCollectUrl }).as('collect');
+    }).as('getGaV3Analytics');
+    cy.intercept({ url: gaV3CollectUrl }).as('collect');
     cy.intercept(getEndpoint(ORG_STRIPE_ACCOUNT_ID));
   });
   it('should add a Google Analytics V3 tracker for the Hub', () => {
@@ -24,7 +24,7 @@ describe('HubTrackedPage component', () => {
     const hubTrackedPages = [LOGIN, CONTRIBUTOR_ENTRY, CONTRIBUTOR_VERIFY, CONTRIBUTOR_DASHBOARD];
     hubTrackedPages.forEach((page) => {
       cy.visit(page);
-      cy.wait('@getGaAnalytics');
+      cy.wait('@getGaV3Analytics');
       cy.wait('@collect').then((interception) => {
         const searchParams = new URLSearchParams(interception.request.url.split('?')[1]);
         expect(searchParams.get('t')).to.equal('pageview');
@@ -34,21 +34,36 @@ describe('HubTrackedPage component', () => {
   });
 });
 
-describe('OrgAndHubTrackedPage component on live donation page', () => {
+describe.only('OrgAndHubTrackedPage component on live donation page', () => {
   beforeEach(() => {
-    const gaGetScriptUrl = 'https://www.google-analytics.com/analytics.js';
-    const gaCollectUrl = 'https://www.google-analytics.com/j/collect*';
-    cy.intercept(gaGetScriptUrl, {
+    // Intercepts for analytics plugins
+    const gaV3GetScriptUrl = 'https://www.google-analytics.com/analytics.js';
+    const gaV3CollectUrl = new URL('https://www.google-analytics.com/j/collect');
+
+    const gaV4CollectUrl = new URL('https://www.google-analytics.com/g/collect');
+    const gaV4GetScriptUrl = new URL('https://www.googletagmanager.com/gtag/js');
+
+    // google analytics v3, aka universal analytics, aka analytics.js
+    cy.intercept(gaV3GetScriptUrl, {
       fixture: '../fixtures/analytics/ga_v3_script'
-    }).as('getGaAnalytics');
-    cy.intercept({ url: gaCollectUrl }).as('collect');
+    }).as('getGaV3Analytics');
+    cy.intercept({ hostname: gaV3CollectUrl.hostname, pathname: gaV3CollectUrl.pathname }).as('collectGaV3');
+
+    cy.intercept({
+      // method: 'POST',
+      // hostname: gaV4CollectUrl.hostname,
+      pathname: gaV4CollectUrl.pathname
+      // query: {v: "2"}
+    }).as('collectGaV4');
+
+    // Intercepts for stripe
     cy.intercept({ pathname: getEndpoint(ORG_STRIPE_ACCOUNT_ID) }, { statusCode: 200 }).as('getStripe');
   });
 
   it('tracks page view for Hub only when no org GA data', () => {
     const updatedFixture = cloneDeep(livePageFixture);
-    updatedFixture.revenue_program.org_google_analytics_id = null;
-    updatedFixture.revenue_program.org_google_analytics_domain = null;
+    updatedFixture.revenue_program.org_google_analytics_v3_id = null;
+    updatedFixture.revenue_program.org_google_analytics_v3_domain = null;
     cy.intercept({ method: 'GET', pathname: getEndpoint(FULL_PAGE) }, { body: updatedFixture, statusCode: 200 }).as(
       'getPageDetail'
     );
@@ -56,8 +71,8 @@ describe('OrgAndHubTrackedPage component on live donation page', () => {
     cy.visit(LIVE_DONATION_PAGE_ROUTE);
     cy.wait('@getPageDetail');
     cy.wait('@getStripe');
-    cy.wait('@getGaAnalytics');
-    cy.wait('@collect').then((interception) => {
+    cy.wait('@getGaV3Analytics');
+    cy.wait('@collectGaV3').then((interception) => {
       const searchParams = new URLSearchParams(interception.request.url.split('?')[1]);
       expect(searchParams.get('t')).to.equal('pageview');
       expect(searchParams.get('tid')).to.equal(HUB_GA_ID);
@@ -69,16 +84,32 @@ describe('OrgAndHubTrackedPage component on live donation page', () => {
       'getPageDetail'
     );
     cy.visit(LIVE_DONATION_PAGE_ROUTE);
-    cy.wait(['@getPageDetail', '@getStripe', '@getGaAnalytics']);
-    cy.wait('@collect').then((interception) => {
+    cy.wait(['@getPageDetail', '@getStripe', '@getGaV3Analytics']);
+    cy.wait('@collectGaV3').then((interception) => {
       const searchParams = new URLSearchParams(interception.request.url.split('?')[1]);
       expect(searchParams.get('t')).to.equal('pageview');
       expect(searchParams.get('tid')).to.equal(HUB_GA_ID);
     });
-    cy.wait('@collect').then((interception) => {
+    cy.wait('@collectGaV3').then((interception) => {
       const searchParams = new URLSearchParams(interception.request.url.split('?')[1]);
       expect(searchParams.get('t')).to.equal('pageview');
-      expect(searchParams.get('tid')).to.equal(livePageFixture.revenue_program.org_google_analytics_id);
+      expect(searchParams.get('tid')).to.equal(livePageFixture.revenue_program.org_google_analytics_v3_id);
+    });
+  });
+
+  it.only('tracks a pageview in Google Analytics v4 for org when org has enabled Google Analytics v4', () => {
+    const updatedFixture = cloneDeep(livePageFixture);
+    updatedFixture.revenue_program.org_google_analytics_v3_id = null;
+    updatedFixture.revenue_program.org_google_analytics_v3_domain = null;
+    cy.intercept({ method: 'GET', pathname: getEndpoint(FULL_PAGE) }, { body: updatedFixture, statusCode: 200 }).as(
+      'getPageDetail'
+    );
+    cy.visit(LIVE_DONATION_PAGE_ROUTE);
+    cy.wait(['@getPageDetail', '@getStripe', '@collectGaV3']);
+    cy.wait('@collectGaV4', { timeout: 10000 }).then((interception) => {
+      const searchParams = new URLSearchParams(interception.request.url.split('?')[1]);
+      expect(searchParams.get('en')).to.equal('page_view');
+      expect(searchParams.get('tid')).to.equal(updatedFixture.revenue_program.org_google_analytics_v4_id);
     });
   });
 });

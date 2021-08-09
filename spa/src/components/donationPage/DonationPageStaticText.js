@@ -5,7 +5,7 @@ import { getTotalAmount } from 'components/paymentProviders/stripe/stripeFns';
 
 function DonationPageStaticText({ page, amount, payFee, frequency }) {
   return (
-    <S.DonationPageStaticText>
+    <S.DonationPageStaticText data-testid="donation-page-static-text">
       {page.organization_contact_email && (
         <p>
           Have questions or want to change a recurring {page.organization_is_nonprofit ? 'donation' : 'contribution'}?

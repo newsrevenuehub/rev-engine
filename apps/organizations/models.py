@@ -66,6 +66,7 @@ class Plan(IndexedTimeStampedModel):
 class Organization(IndexedTimeStampedModel):
     name = models.CharField(max_length=255, unique=True)
     slug = models.SlugField(blank=True, unique=True)
+    contact_email = models.EmailField(max_length=255, blank=True)
     plan = models.ForeignKey("organizations.Plan", null=True, on_delete=models.CASCADE)
     non_profit = models.BooleanField(default=True, verbose_name="Non-profit?")
     org_addr1 = models.CharField(max_length=255, blank=True, verbose_name="Address 1")

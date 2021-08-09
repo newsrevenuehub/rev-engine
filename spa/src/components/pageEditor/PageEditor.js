@@ -108,7 +108,6 @@ function PageEditor() {
       { method: 'GET', url: FULL_PAGE, params },
       {
         onSuccess: ({ data }) => {
-          console.log('that page', data);
           setPage(data);
           setLoading(false);
         },

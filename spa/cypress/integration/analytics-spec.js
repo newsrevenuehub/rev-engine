@@ -7,7 +7,7 @@ import { FULL_PAGE, ORG_STRIPE_ACCOUNT_ID } from 'ajax/endpoints';
 import { getEndpoint } from '../support/util';
 
 const LIVE_DONATION_PAGE_ROUTE = 'myprogram/mypage';
-const HUB_GA_ID = 'UA-203260249-1';
+const HUB_GA_ID = 'UA-37373737-1';
 
 describe('HubTrackedPage component', () => {
   beforeEach(() => {
@@ -44,9 +44,9 @@ describe('OrgAndHubTrackedPage component on live donation page', () => {
 
     cy.intercept({
       // method: 'POST',
-      // hostname: gaV4CollectUrl.hostname,
-      pathname: gaV4CollectUrl.pathname
-      // query: {v: "2"}
+      hostname: gaV4CollectUrl.hostname,
+      pathname: gaV4CollectUrl.pathname,
+      query: { v: '2' }
     }).as('collectGaV4');
 
     // Intercepts for stripe

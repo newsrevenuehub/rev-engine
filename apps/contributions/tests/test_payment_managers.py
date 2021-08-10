@@ -68,14 +68,14 @@ class StripePaymentManagerAbstractTestCase(APITestCase):
             "amount": self.amount,
             "reason": "Testing",
             "revenue_program_slug": self.revenue_program.slug,
-            "payment_method_id" "donation_page_slug": self.page.slug,
+            "payment_method_id": "test_payment_method_id",
+            "donation_page_slug": self.page.slug,
             "ip": faker.ipv4(),
             "referer": faker.url(),
         }
-        self.contribution = ContributionFactory()
-        self.contribution.contributor = self.contributor
-        self.contribution.organization = self.organization
-        self.contribution.save()
+        self.contribution = ContributionFactory(
+            donation_page=self.page, contributor=self.contributor, organization=self.organization
+        )
 
     def _create_mock_ba_response(self, target_score=None, status_code=200):
         json_body = {"overall_judgment": target_score} if target_score else {"error": "Test error message"}
@@ -293,9 +293,6 @@ class StripeOneTimePaymentManagerTest(StripePaymentManagerAbstractTestCase):
             str(e2.exception), "PaymentManager must be initialized with either data or a contribution, not both."
         )
 
-    def test_stripe_customer_created(self):
-        pass
-
     def test_objects_do_not_exist(self):
         with self.assertRaises(PaymentBadParamsError) as e1:
             data = self.data
@@ -468,3 +465,22 @@ class StripeRecurringPaymentManagerTest(StripePaymentManagerAbstractTestCase):
             pm.complete_payment(reject=False)
         mock_sub_create.assert_called_once()
         self.assertEqual(str(e.exception), "Could not complete payment")
+
+    def test_get_donation_page_should_work_with_contribution_or_validated_data(self, *args):
+        """
+        Test against regression on a bug in which ContributionMetadata lookup_map.re_revenue_program_id
+        accessed payment_manager.get_donation_page, which expected validated data rather than the instance of
+        a Contribution that is available when flagged donations are accepted.
+        """
+        pm_i = self._instantiate_payment_manager_with_instance()
+        donation_page_i = pm_i.get_donation_page()
+        self.assertIsNotNone(donation_page_i)
+
+        pm_v = self._instantiate_payment_manager_with_data()
+        pm_v.validate()
+        donation_page_v = pm_v.get_donation_page()
+        self.assertIsNotNone(donation_page_v)
+
+        # It should raise a ValueError if instantiated with data but not validated
+        pm_v = self._instantiate_payment_manager_with_data()
+        self.assertRaises(ValueError, pm_v.get_donation_page)

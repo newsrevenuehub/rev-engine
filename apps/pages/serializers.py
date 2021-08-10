@@ -5,7 +5,6 @@ from apps.organizations.models import Organization, RevenueProgram
 from apps.organizations.serializers import (
     BenefitLevelDetailSerializer,
     RevenueProgramListInlineSerializer,
-    RevenueProgramSerializer,
 )
 from apps.pages.models import DonationPage, Style, Template
 
@@ -44,7 +43,7 @@ class DonationPageDetailSerializer(serializers.ModelSerializer):
 class DonationPageFullDetailSerializer(serializers.ModelSerializer):
     styles = StyleSerializer(required=False)
     styles_pk = serializers.IntegerField(allow_null=True, required=False)
-    revenue_program = RevenueProgramSerializer(read_only=True)
+
     revenue_program_pk = serializers.IntegerField(allow_null=True, required=False)
     organization = serializers.PrimaryKeyRelatedField(read_only=True)
 

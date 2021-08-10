@@ -11,18 +11,20 @@ import {
 import getHubGaPlugin from 'components/analytics/plugins/ga/v3/hub';
 import getOrgGaPlugin from 'components/analytics/plugins/ga/v3/org';
 import getGaV4Plugin from 'components/analytics/plugins/ga/v4';
+import getFbPixelPlugin, { FB_PIXEL_PLUGIN_NAME } from 'components/analytics/plugins/facebookPixel';
 
-export default function OrgAndHubTrackedPage({ component: Component, ...rest }) {
+export default function OrgAndHubTrackedPage({ triggerConversion = false, component: Component, ...rest }) {
   const location = useLocation();
   const [orgAnalyticsState, setOrgAnalyticsState] = useState({
     orgGaV3Id: null,
     orgGaV3Domain: null,
     orgGaV4Id: null,
+    orgFbPixelId: null,
     orgAnalyticsRetrieveAttempted: false
   });
   const [analyticsInstance, setAnalyticsInstance] = useState(null);
 
-  const { orgAnalyticsRetrieveAttempted, orgGaV3Id, orgGaV3Domain, orgGaV4Id } = orgAnalyticsState;
+  const { orgAnalyticsRetrieveAttempted, orgGaV3Id, orgGaV3Domain, orgGaV4Id, orgFbPixelId } = orgAnalyticsState;
 
   // load analytics
   useEffect(() => {
@@ -36,6 +38,10 @@ export default function OrgAndHubTrackedPage({ component: Component, ...rest }) 
         const orgV4Plugin = getGaV4Plugin(orgGaV4Id);
         plugins.push(orgV4Plugin);
       }
+      if (orgFbPixelId) {
+        const orgFbPixelPlugin = getFbPixelPlugin(orgFbPixelId);
+        plugins.push(orgFbPixelPlugin);
+      }
       const analytics = Analytics({
         app: HUB_ANALYTICS_APP_NAME,
         plugins: plugins
@@ -44,19 +50,24 @@ export default function OrgAndHubTrackedPage({ component: Component, ...rest }) 
     }
   }, [analyticsInstance, orgGaV3Id, orgGaV3Domain, orgAnalyticsRetrieveAttempted]);
 
-  // when page changes, fire page view if analytics loaded
+  // when page changes, fire page view if analytics loaded...
   useEffect(() => {
     if (analyticsInstance) {
       analyticsInstance.page();
     }
-  }, [analyticsInstance, location.pathname]);
+    // ... and if triggers conversion, send that event info
+    if (analyticsInstance && orgFbPixelId && triggerConversion) {
+      analyticsInstance.plugins[FB_PIXEL_PLUGIN_NAME].trackConversion();
+    }
+  }, [analyticsInstance, location.pathname, triggerConversion, orgFbPixelId]);
 
-  const setOrgAnalytics = (orgGaV3Id, orgGaV3Domain, orgGaV4Id) => {
+  const setOrgAnalytics = (orgGaV3Id, orgGaV3Domain, orgGaV4Id, orgFbPixelId) => {
     setOrgAnalyticsState({
       orgAnalyticsRetrieveAttempted: true,
       orgGaV3Id,
       orgGaV3Domain,
-      orgGaV4Id
+      orgGaV4Id,
+      orgFbPixelId
     });
   };
 

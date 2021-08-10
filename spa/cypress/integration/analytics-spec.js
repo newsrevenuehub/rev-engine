@@ -54,6 +54,14 @@ describe('OrgAndHubTrackedPage component on live donation page', () => {
 
   it('tracks page view for Hub only when no org GA data', () => {
     const updatedFixture = cloneDeep(livePageFixture);
+    updatedFixture.revenue_program.google_analytics_v3_domain = null;
+    updatedFixture.revenue_program.google_analytics_v3_id = null;
+    updatedFixture.revenue_program.google_analytics_v4_id = null;
+
+    cy.intercept({ method: 'GET', pathname: getEndpoint(FULL_PAGE) }, { body: updatedFixture, statusCode: 200 }).as(
+      'getPageDetail'
+    );
+    cy.visit(LIVE_DONATION_PAGE_ROUTE);
     cy.wait('@getPageDetail');
     cy.wait('@getStripe');
     cy.wait('@collectGaV3').then((interception) => {
@@ -93,7 +101,7 @@ describe('OrgAndHubTrackedPage component on live donation page', () => {
     cy.wait('@collectGaV4', { timeout: 10000 }).then((interception) => {
       const searchParams = new URLSearchParams(interception.request.url.split('?')[1]);
       expect(searchParams.get('en')).to.equal('page_view');
-      expect(searchParams.get('tid')).to.equal(updatedFixture.revenue_program.org_google_analytics_v4_id);
+      expect(searchParams.get('tid')).to.equal(updatedFixture.revenue_program.google_analytics_v4_id);
     });
   });
 });

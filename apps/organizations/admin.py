@@ -77,7 +77,7 @@ class RevenueProgramAdmin(RevEngineBaseAdmin):  # pragma: no cover
                     "default_donation_page",
                     "google_analytics_v3_domain",
                     "google_analytics_v3_id",
-                    "org_google_analytics_v4_id",
+                    "google_analytics_v4_id",
                 )
             },
         ),

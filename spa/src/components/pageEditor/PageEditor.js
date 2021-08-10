@@ -43,6 +43,7 @@ import SegregatedStyles from 'components/donationPage/SegregatedStyles';
 import DonationPage from 'components/donationPage/DonationPage';
 import GlobalLoading from 'elements/GlobalLoading';
 import EditInterface from 'components/pageEditor/editInterface/EditInterface';
+import BackButton from 'elements/BackButton';
 
 const PageEditorContext = createContext();
 
@@ -360,6 +361,8 @@ function PageEditor() {
             disabled={!updatedPage}
           />
           <CircleButton onClick={handleDelete} icon={faTrash} type="neutral" data-testid="delete-page-button" />
+
+          <BackButton to={PAGES_SLUG} />
         </S.ButtonOverlay>
       </S.PageEditor>
     </PageEditorContext.Provider>

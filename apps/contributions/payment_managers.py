@@ -133,11 +133,24 @@ class PaymentManager:
         return revenue_program.organization
 
     def get_donation_page(self):
-        page_slug = self.validated_data.get("donation_page_slug")
-        try:
-            return DonationPage.objects.get(slug=page_slug) if page_slug else self.revenue_program.default_donation_page
-        except DonationPage.DoesNotExist:
-            raise PaymentBadParamsError("PaymentManager could not find a donation page with slug provided")
+        """
+        A PaymentManager can retrieve a donation page for any given contribution.
+        If validated_data is present, then the contribution has yet to be created. So grab it from the validated data.
+        Otherwise, grab it from the existing contribution.
+        """
+        if self.validated_data:
+            page_slug = self.validated_data.get("donation_page_slug")
+            try:
+                if page_slug:
+                    return DonationPage.objects.get(slug=page_slug)
+                else:
+                    rev_program = self.get_revenue_program()
+                    return rev_program.default_donation_page
+            except DonationPage.DoesNotExist:
+                raise PaymentBadParamsError("PaymentManager could not find a donation page with slug provided")
+        elif self.contribution:
+            return self.contribution.donation_page
+        self.ensure_validated_data()
 
     def get_or_create_contributor(self):
         contributor, _ = Contributor.objects.get_or_create(email=self.validated_data["email"])

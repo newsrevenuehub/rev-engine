@@ -321,12 +321,13 @@ describe('Additional Info Setup', () => {
     cy.intercept(
       { method: 'GET', pathname: getEndpoint(FULL_PAGE) },
       { fixture: 'pages/live-page-1', statusCode: 200 }
-    );
+    ).as('getPage');
     cy.intercept(
       { method: 'GET', pathname: getEndpoint(CONTRIBUTION_META) },
       { fixture: 'donations/contribution-metadata.json', statusCode: 200 }
     ).as('getContributionMeta');
     cy.visit('edit/my/page');
+    return cy.wait('@getPage');
   });
 
   it('additional-info-applied should be empty', () => {

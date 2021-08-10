@@ -40,26 +40,6 @@ export const FB_PIXEL_PLUGIN_NAME = 'facebook-pixel';
 
 // see https://developers.facebook.com/docs/facebook-pixel/implementation
 function loadFbPixel() {
-  // if (window.fbq) return;
-  // const fbq = window.fbq = function() {
-  //   return fbq.callMethod?
-  //     fbq.callMethod.apply(fbq,arguments)
-  //     :fbq.queue.push(arguments)
-  // }
-  // if (!window._fbq) {
-  //   window._fbq = fbq;
-  // }
-  // fbq.push = fbq;
-  // fbq.loaded = !0;
-  // fbq.version='2.0';
-  // fbq.queue = [];
-
-  // const scriptElem = document.createElement('script');
-  // scriptElem.async = !0;
-  // scriptElem.src = FB_PIXEL_SCRIPT_SRC_URL;
-
-  // const currentFirstScriptChild = document.getElementsByTagName('script')[0];
-  // currentFirstScriptChild.parentNode.insertBefore(scriptElem, currentFirstScriptChild);
   return !(function (f, b, e, v, n, t, s) {
     {
       if (f.fbq) return;

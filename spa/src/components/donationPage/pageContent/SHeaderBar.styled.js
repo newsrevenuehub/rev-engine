@@ -2,7 +2,7 @@ import styled from 'styled-components';
 
 export const SHeaderBar = styled.header`
   width: 100%;
-  background: ${(props) => (props.bgImg ? `url(${props.bgImg})` : '#fff')};
+  background: ${(props) => (props.bgImg ? `url(${props.bgImg})` : props.theme.colors.white)};
   background-size: cover;
   height: 60px;
   display: flex;

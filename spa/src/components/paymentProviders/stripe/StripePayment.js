@@ -32,7 +32,8 @@ function StripePayment({ offerPayFees }) {
         onSuccess: ({ data }) => {
           const stripeAccount = data.stripe_account_id;
           setStripe(loadStripe(HUB_STRIPE_PUBLISHABLE_KEY, { stripeAccount }));
-        }
+        },
+        onFailure: () => {}
       }
     );
   }, [params.revProgramSlug]);

@@ -39,13 +39,20 @@ describe('OrgAndHubTrackedPage component on live donation page', () => {
     const gaV3CollectUrl = new URL('https://www.google-analytics.com/j/collect');
 
     const gaV4CollectUrl = new URL('https://www.google-analytics.com/g/collect');
-    cy.intercept({ hostname: gaV3CollectUrl.hostname, pathname: gaV3CollectUrl.pathname }).as('collectGaV3');
+    cy.intercept({
+      hostname: gaV3CollectUrl.hostname,
+      pathname: gaV3CollectUrl.pathname,
+      query: {
+        v: '1',
+        t: 'pageview'
+      }
+    }).as('collectGaV3');
 
     cy.intercept({
       // method: 'POST',
       hostname: gaV4CollectUrl.hostname,
       pathname: gaV4CollectUrl.pathname,
-      query: { v: '2' }
+      query: { v: '2', en: 'page_view' }
     }).as('collectGaV4');
 
     // Intercepts for stripe

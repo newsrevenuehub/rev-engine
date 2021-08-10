@@ -34,19 +34,12 @@ describe('HubTrackedPage component', () => {
   });
 });
 
-describe.only('OrgAndHubTrackedPage component on live donation page', () => {
+describe('OrgAndHubTrackedPage component on live donation page', () => {
   beforeEach(() => {
     // Intercepts for analytics plugins
-    const gaV3GetScriptUrl = 'https://www.google-analytics.com/analytics.js';
     const gaV3CollectUrl = new URL('https://www.google-analytics.com/j/collect');
 
     const gaV4CollectUrl = new URL('https://www.google-analytics.com/g/collect');
-    const gaV4GetScriptUrl = new URL('https://www.googletagmanager.com/gtag/js');
-
-    // google analytics v3, aka universal analytics, aka analytics.js
-    cy.intercept(gaV3GetScriptUrl, {
-      fixture: '../fixtures/analytics/ga_v3_script'
-    }).as('getGaV3Analytics');
     cy.intercept({ hostname: gaV3CollectUrl.hostname, pathname: gaV3CollectUrl.pathname }).as('collectGaV3');
 
     cy.intercept({
@@ -71,7 +64,6 @@ describe.only('OrgAndHubTrackedPage component on live donation page', () => {
     cy.visit(LIVE_DONATION_PAGE_ROUTE);
     cy.wait('@getPageDetail');
     cy.wait('@getStripe');
-    cy.wait('@getGaV3Analytics');
     cy.wait('@collectGaV3').then((interception) => {
       const searchParams = new URLSearchParams(interception.request.url.split('?')[1]);
       expect(searchParams.get('t')).to.equal('pageview');
@@ -84,7 +76,7 @@ describe.only('OrgAndHubTrackedPage component on live donation page', () => {
       'getPageDetail'
     );
     cy.visit(LIVE_DONATION_PAGE_ROUTE);
-    cy.wait(['@getPageDetail', '@getStripe', '@getGaV3Analytics']);
+    cy.wait(['@getPageDetail', '@getStripe']);
     cy.wait('@collectGaV3').then((interception) => {
       const searchParams = new URLSearchParams(interception.request.url.split('?')[1]);
       expect(searchParams.get('t')).to.equal('pageview');
@@ -97,7 +89,7 @@ describe.only('OrgAndHubTrackedPage component on live donation page', () => {
     });
   });
 
-  it.only('tracks a pageview in Google Analytics v4 for org when org has enabled Google Analytics v4', () => {
+  it('tracks a pageview in Google Analytics v4 for org when org has enabled Google Analytics v4', () => {
     const updatedFixture = cloneDeep(livePageFixture);
     updatedFixture.revenue_program.org_google_analytics_v3_id = null;
     updatedFixture.revenue_program.org_google_analytics_v3_domain = null;

@@ -150,8 +150,8 @@ class RevenueProgram(IndexedTimeStampedModel):
     slug = models.SlugField(max_length=100, blank=True, unique=True)
     organization = models.ForeignKey("organizations.Organization", on_delete=models.CASCADE)
     default_donation_page = models.ForeignKey("pages.DonationPage", null=True, blank=True, on_delete=models.SET_NULL)
-    org_google_analytics_domain = models.CharField(max_length=300, null=True, blank=True)
-    org_google_analytics_id = models.CharField(max_length=50, null=True, blank=True)
+    google_analytics_v3_domain = models.CharField(max_length=300, null=True, blank=True)
+    google_analytics_v3_id = models.CharField(max_length=50, null=True, blank=True)
 
     def __str__(self):
         return self.name

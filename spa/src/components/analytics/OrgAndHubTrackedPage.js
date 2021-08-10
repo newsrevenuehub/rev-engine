@@ -14,20 +14,20 @@ import getOrgGaPlugin from 'components/analytics/plugins/ga/org';
 export default function OrgAndHubTrackedPage({ component: Component, ...rest }) {
   const location = useLocation();
   const [orgAnalyticsState, setOrgAnalyticsState] = useState({
-    orgGaId: null,
-    orgGaDomain: null,
+    orgGaV3Id: null,
+    orgGaV3Domain: null,
     orgAnalyticsRetrieveAttempted: false
   });
   const [analyticsInstance, setAnalyticsInstance] = useState(null);
 
-  const { orgAnalyticsRetrieveAttempted, orgGaId, orgGaDomain } = orgAnalyticsState;
+  const { orgAnalyticsRetrieveAttempted, orgGaV3Id, orgGaV3Domain } = orgAnalyticsState;
 
   // load analytics
   useEffect(() => {
     if (!analyticsInstance && orgAnalyticsRetrieveAttempted && HUB_GA_V3_ID) {
       const plugins = [getHubGaPlugin(HUB_GA_V3_ID, HUB_GA_V3_PLUGIN_NAME)];
-      if (orgGaId && orgGaDomain) {
-        const orgPlugin = getOrgGaPlugin(orgGaId, orgGaDomain, ORG_GA_V3_PLUGIN_NAME);
+      if (orgGaV3Id && orgGaV3Domain) {
+        const orgPlugin = getOrgGaPlugin(orgGaV3Id, orgGaV3Domain, ORG_GA_V3_PLUGIN_NAME);
         plugins.push(orgPlugin);
       }
       const analytics = Analytics({
@@ -36,7 +36,7 @@ export default function OrgAndHubTrackedPage({ component: Component, ...rest }) 
       });
       setAnalyticsInstance(analytics);
     }
-  }, [analyticsInstance, orgGaId, orgGaDomain, orgAnalyticsRetrieveAttempted]);
+  }, [analyticsInstance, orgGaV3Id, orgGaV3Domain, orgAnalyticsRetrieveAttempted]);
 
   // when page changes, fire page view if analytics loaded
   useEffect(() => {
@@ -45,11 +45,11 @@ export default function OrgAndHubTrackedPage({ component: Component, ...rest }) 
     }
   }, [analyticsInstance, location.pathname]);
 
-  const setOrgAnalytics = (orgGaId, orgGaDomain) => {
+  const setOrgAnalytics = (orgGaV3Id, orgGaV3Domain) => {
     setOrgAnalyticsState({
       orgAnalyticsRetrieveAttempted: true,
-      orgGaId,
-      orgGaDomain
+      orgGaV3Id,
+      orgGaV3Domain
     });
   };
 

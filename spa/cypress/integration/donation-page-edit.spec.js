@@ -1,4 +1,4 @@
-import { DELETE_PAGE, FULL_PAGE, PATCH_PAGE, DONOR_BENEFITS, LIST_PAGES, CONTRIBUTION_META } from 'ajax/endpoints';
+import { DELETE_PAGE, FULL_PAGE, PATCH_PAGE, LIST_PAGES, CONTRIBUTION_META } from 'ajax/endpoints';
 import { getEndpoint } from '../support/util';
 import { getFrequencyAdjective } from 'utilities/parseFrequency';
 import { format } from 'date-fns';
@@ -12,10 +12,6 @@ describe('Donation page edit', () => {
     cy.intercept(
       { method: 'GET', pathname: getEndpoint(FULL_PAGE) },
       { fixture: 'pages/live-page-1', statusCode: 200 }
-    );
-    cy.intercept(
-      { method: 'GET', pathname: getEndpoint(DONOR_BENEFITS) },
-      { fixture: 'org/donor-benefits-1.json', statusCode: 200 }
     );
     cy.visit('edit/my/page');
   });

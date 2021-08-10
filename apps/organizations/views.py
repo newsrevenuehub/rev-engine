@@ -85,9 +85,3 @@ class PlanViewSet(viewsets.ReadOnlyModelViewSet, ReadOnly):
     model = Plan
     queryset = Plan.objects.all()
     serializer_class = serializers.PlanSerializer
-
-
-class RevenueProgramViewSet(OrganizationLimitedListView, viewsets.ModelViewSet):
-    model = RevenueProgram
-    permission_classes = [IsAuthenticated, UserBelongsToOrg]
-    serializer_class = serializers.RevenueProgramSerializer

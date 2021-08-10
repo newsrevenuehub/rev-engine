@@ -8,12 +8,13 @@ import { useEffect } from 'react';
 function GenericThankYou({ setOrgAnalytics }) {
   const { state: routedState } = useLocation();
 
-  const orgGaDomain = routedState?.page?.revenue_program?.org_google_analytics_domain;
-  const orgGaId = routedState?.page?.revenue_program?.org_google_analytics_id;
+  const orgGaV3Domain = routedState?.page?.revenue_program?.org_google_analytics_v3_domain;
+  const orgGaV3Id = routedState?.page?.revenue_program?.org_google_analytics_v3_id;
+  const orgGaV4Id = routedState?.page?.revenue_program?.org_google_analytics_v4_id;
 
   useEffect(() => {
-    setOrgAnalytics(orgGaId, orgGaDomain);
-  }, [orgGaDomain, orgGaId]);
+    setOrgAnalytics(orgGaV3Id, orgGaV3Domain.orgGaV4Id);
+  }, [orgGaV3Domain, orgGaV3Id, orgGaV4Id]);
 
   return (
     <SegregatedStyles>

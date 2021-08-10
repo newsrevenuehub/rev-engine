@@ -78,6 +78,7 @@ class RevenueProgramAdmin(RevEngineBaseAdmin):  # pragma: no cover
                     "google_analytics_v3_domain",
                     "google_analytics_v3_id",
                     "google_analytics_v4_id",
+                    "facebook_pixel_id",
                 )
             },
         ),

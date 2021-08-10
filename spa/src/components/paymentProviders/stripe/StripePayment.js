@@ -1,6 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import * as S from './StripePayment.styled';
 
+import { HUB_STRIPE_PUBLISHABLE_KEY } from 'App';
+
 // Deps
 import { loadStripe } from '@stripe/stripe-js';
 import { Elements } from '@stripe/react-stripe-js';
@@ -29,7 +31,7 @@ function StripePayment({ offerPayFees }) {
       {
         onSuccess: ({ data }) => {
           const stripeAccount = data.stripe_account_id;
-          setStripe(loadStripe('pk_test_31XWC5qhlLi9UkV1OzsI634W', { stripeAccount }));
+          setStripe(loadStripe(HUB_STRIPE_PUBLISHABLE_KEY, { stripeAccount }));
         }
       }
     );

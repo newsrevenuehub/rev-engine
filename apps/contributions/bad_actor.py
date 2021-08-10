@@ -1,4 +1,5 @@
 import logging
+from json.decoder import JSONDecodeError
 
 from django.conf import settings
 
@@ -26,6 +27,11 @@ def make_bad_actor_request(validated_data):
     json_data["amount"] = AbstractPaymentSerializer.convert_cents_to_amount(json_data["amount"])
     response = requests.post(url=settings.BAD_ACTOR_API_URL, headers=headers, json=json_data)
     if int(str(response.status_code)[:1]) != 2:
-        logger.warning(f"Received a BadActor API error: {response.json()}")
-        raise BadActorAPIError(response.json())
+        try:
+            logger.warning(f"Received a BadActor API error: {response.json()}")
+            raise BadActorAPIError(response.json())
+        except JSONDecodeError:
+            logger.warning("Received a BadActor API error with malformed JSON")
+            raise BadActorAPIError("Received a BadActor API error with malformed JSON")
+
     return response

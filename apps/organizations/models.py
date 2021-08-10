@@ -153,6 +153,7 @@ class RevenueProgram(IndexedTimeStampedModel):
     google_analytics_v3_domain = models.CharField(max_length=300, null=True, blank=True)
     google_analytics_v3_id = models.CharField(max_length=50, null=True, blank=True)
     google_analytics_v4_id = models.CharField(max_length=50, null=True, blank=True)
+    facebook_pixel_id = models.CharField(max_length=100, null=True, blank=True)
 
     def __str__(self):
         return self.name

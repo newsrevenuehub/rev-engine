@@ -8,8 +8,8 @@ import { useEffect } from 'react';
 function GenericThankYou({ setOrgAnalytics }) {
   const { state: routedState } = useLocation();
 
-  const orgGaV3Domain = routedState?.page?.revenue_program?.org_google_analytics_v3_domain;
-  const orgGaV3Id = routedState?.page?.revenue_program?.org_google_analytics_v3_id;
+  const orgGaV3Domain = routedState?.page?.revenue_program?.google_analytics_v3_domain;
+  const orgGaV3Id = routedState?.page?.revenue_program?.google_analytics_v3_id;
   const orgGaV4Id = routedState?.page?.revenue_program?.org_google_analytics_v4_id;
 
   useEffect(() => {

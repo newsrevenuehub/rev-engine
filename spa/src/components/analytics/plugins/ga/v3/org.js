@@ -6,11 +6,11 @@ import googleAnalytics from '@analytics/google-analytics';
 // as does omitting instanceName altogether.
 // Issue seems to stem from destructuring assignments gone awry
 // here: https://github.com/DavidWells/analytics/blob/master/packages/analytics-plugin-google-analytics/src/browser.js#L50
-export default function getPlugin(orgGaId, orgDomain, pluginName) {
+export default function getPlugin(orgGaV3Id, orgGaV3Domain, pluginName) {
   return Object.assign(
     {},
     googleAnalytics({
-      trackingId: orgGaId,
+      trackingId: orgGaV3Id,
       instanceName: 'two'
     }),
     {
@@ -18,7 +18,7 @@ export default function getPlugin(orgGaId, orgDomain, pluginName) {
       ready: ({ payload, config, instance }) => {
         const { ga } = window;
         ga(`${pluginName}.require`, 'linker');
-        ga(`${pluginName}.linker:autolink`, [orgDomain]);
+        ga(`${pluginName}.linker:autolink`, [orgGaV3Domain]);
       }
     }
   );

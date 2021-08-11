@@ -41,6 +41,16 @@ class MockInvalidRequestError(stripe_errors.InvalidRequestError):
         pass
 
 
+test_stripe_customer_id = "test_stripe_customer_id"
+
+
+class MockStripeCustomer(StripeObject):
+    id = test_stripe_customer_id
+
+    def __init__(self, *args, **kwargs):
+        pass
+
+
 fake_api_key = "TEST_stripe_secret_key"
 
 
@@ -53,8 +63,8 @@ class StripePaymentManagerAbstractTestCase(APITestCase):
         self.amount = "10.99"
         self.data = {
             "email": self.contributor.email,
-            "given_name": "Test",
-            "family_name": "Tester",
+            "first_name": "Test",
+            "last_name": "Tester",
             "amount": self.amount,
             "reason": "Testing",
             "revenue_program_slug": self.revenue_program.slug,
@@ -160,8 +170,9 @@ class StripeOneTimePaymentManagerTest(StripePaymentManagerAbstractTestCase):
         )
 
     @responses.activate
+    @patch("stripe.Customer.create", side_effect=MockStripeCustomer)
     @patch("stripe.PaymentIntent.create", side_effect=MockPaymentIntent)
-    def test_create_payment_intent_when_single_flagged_contribution(self, mock_stripe_create_pi):
+    def test_create_payment_intent_when_single_flagged_contribution(self, mock_stripe_create_pi, *args):
         data = self.data
         data["interval"] = ContributionInterval.ONE_TIME
         pm = self._instantiate_payment_manager_with_data(data=data)
@@ -177,6 +188,7 @@ class StripeOneTimePaymentManagerTest(StripePaymentManagerAbstractTestCase):
         mock_stripe_create_pi.assert_called_once_with(
             amount=1099,
             currency="usd",
+            customer=MockStripeCustomer.id,
             payment_method_types=["card"],
             api_key=fake_api_key,
             stripe_account=self.organization.stripe_account_id,
@@ -193,8 +205,9 @@ class StripeOneTimePaymentManagerTest(StripePaymentManagerAbstractTestCase):
         self.assertIsNotNone(new_contribution.flagged_date)
 
     @responses.activate
+    @patch("stripe.Customer.create", side_effect=MockStripeCustomer)
     @patch("stripe.PaymentIntent.create", side_effect=MockPaymentIntent)
-    def test_create_payment_intent_single_not_flagged(self, mock_stripe_create_pi):
+    def test_create_payment_intent_single_not_flagged(self, mock_stripe_create_pi, *args):
         data = self.data
         data["interval"] = ContributionInterval.ONE_TIME
         pm = self._instantiate_payment_manager_with_data(data=data)
@@ -211,6 +224,7 @@ class StripeOneTimePaymentManagerTest(StripePaymentManagerAbstractTestCase):
         mock_stripe_create_pi.assert_called_once_with(
             amount=1099,
             currency="usd",
+            customer=MockStripeCustomer.id,
             payment_method_types=["card"],
             api_key=fake_api_key,
             stripe_account=self.organization.stripe_account_id,
@@ -279,6 +293,9 @@ class StripeOneTimePaymentManagerTest(StripePaymentManagerAbstractTestCase):
             str(e2.exception), "PaymentManager must be initialized with either data or a contribution, not both."
         )
 
+    def test_stripe_customer_created(self):
+        pass
+
     def test_objects_do_not_exist(self):
         with self.assertRaises(PaymentBadParamsError) as e1:
             data = self.data
@@ -300,16 +317,6 @@ class StripeOneTimePaymentManagerTest(StripePaymentManagerAbstractTestCase):
     @override_settings(BAD_ACTOR_API_KEY=None)
     def test_bad_actor_throws_error_missing_settings(self):
         self.assertRaises(BadActorAPIError, make_bad_actor_request, {})
-
-
-test_stripe_customer_id = "test_stripe_customer_id"
-
-
-class MockStripeCustomer(StripeObject):
-    id = test_stripe_customer_id
-
-    def __init__(self, *args, **kwargs):
-        pass
 
 
 test_stripe_subscription = "test_stripe_subscription"

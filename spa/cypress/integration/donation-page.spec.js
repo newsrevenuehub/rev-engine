@@ -154,7 +154,7 @@ describe('Donation page', () => {
     });
   });
 
-  describe.only('Donation page side effects', () => {
+  describe('Donation page side effects', () => {
     it('should pass salesforce campaign id from query parameter to request body', () => {
       const sfCampaignId = 'my-test-sf-campaign-id';
       cy.intercept(

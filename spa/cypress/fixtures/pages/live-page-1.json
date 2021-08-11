@@ -15,6 +15,7 @@
       }}
     },
     {"type": "DDonorInfo", "uuid": "testDonorInfo1"},
+    {"type": "DDonorAddress", "uuid": "testDonorAddress1"},
     {"type": "DAdditionalInfo", "uuid": "testAdditionalInfo", "content": []},
     {"type": "DPayment", "uuid": "testPayment1", "content": {"offerPayFees": true, "stripe": ["card", "apple", "google", "browser"]}}
   ],

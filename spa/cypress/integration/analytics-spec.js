@@ -37,8 +37,8 @@ describe('OrgAndHubTrackedPage component on live donation page', () => {
   beforeEach(() => {
     // Intercepts for analytics plugins
     const gaV3CollectUrl = new URL('https://www.google-analytics.com/j/collect');
-
     const gaV4CollectUrl = new URL('https://www.google-analytics.com/g/collect');
+
     cy.intercept({
       hostname: gaV3CollectUrl.hostname,
       pathname: gaV3CollectUrl.pathname,
@@ -54,6 +54,41 @@ describe('OrgAndHubTrackedPage component on live donation page', () => {
       pathname: gaV4CollectUrl.pathname,
       query: { v: '2', en: 'page_view' }
     }).as('collectGaV4');
+
+    const fbPixelInitUrl = new URL(
+      `https://connect.facebook.net/signals/config/${livePageFixture.revenue_program.facebook_pixel_id}`
+    );
+    console.log(fbPixelInitUrl);
+    const fbPixelCollectUrl = new URL('https://www.facebook.com/tr/');
+
+    cy.intercept({
+      hostname: fbPixelInitUrl.hostname,
+      pathname: fbPixelInitUrl.pathname
+    }).as('initFbPixelInstance');
+
+    cy.intercept({
+      hostname: fbPixelCollectUrl.hostname,
+      pathname: fbPixelCollectUrl.pathname,
+      query: {
+        ev: 'PageView'
+      }
+    }).as('fbPixelTrackPageView');
+
+    cy.intercept({
+      hostname: fbPixelCollectUrl.hostname,
+      pathname: fbPixelCollectUrl.pathname,
+      query: {
+        ev: 'Donation'
+      }
+    }).as('fbPixelTrackDonation');
+
+    cy.intercept({
+      hostname: fbPixelCollectUrl.hostname,
+      pathname: fbPixelCollectUrl.pathname,
+      query: {
+        ev: 'Purchase'
+      }
+    }).as('fbPixelTrackPurchase');
 
     // Intercepts for stripe
     cy.intercept({ pathname: getEndpoint(ORG_STRIPE_ACCOUNT_ID) }, { statusCode: 200 }).as('getStripe');
@@ -105,10 +140,53 @@ describe('OrgAndHubTrackedPage component on live donation page', () => {
     );
     cy.visit(LIVE_DONATION_PAGE_ROUTE);
     cy.wait(['@getPageDetail', '@getStripe', '@collectGaV3']);
-    cy.wait('@collectGaV4', { timeout: 10000 }).then((interception) => {
+    cy.wait('@collectGaV4').then((interception) => {
       const searchParams = new URLSearchParams(interception.request.url.split('?')[1]);
       expect(searchParams.get('en')).to.equal('page_view');
       expect(searchParams.get('tid')).to.equal(updatedFixture.revenue_program.google_analytics_v4_id);
     });
   });
+
+  it('tracks a pageview in Facebook Pixel v4 for org when org has a Facebook Pixel id for rev program', () => {
+    cy.intercept({ method: 'GET', pathname: getEndpoint(FULL_PAGE) }, { body: livePageFixture, statusCode: 200 }).as(
+      'getPageDetail'
+    );
+    cy.visit(LIVE_DONATION_PAGE_ROUTE);
+    cy.wait('@fbPixelTrackPageView').then((interception) => {
+      const queryString = interception.request.url.split('?')[1];
+      const query = new URLSearchParams(queryString);
+      expect(query.get('id')).to.equal(livePageFixture.revenue_program.facebook_pixel_id);
+      const trackedUrl = new URL(query.get('dl'));
+      expect(trackedUrl.pathname).to.equal(`/${LIVE_DONATION_PAGE_ROUTE}`);
+    });
+  });
+
+  // it.only('tracks a donation and purchase in Facebook Pixel on sucessful donation for rev program with Facebook Pixel id', () => {
+  //   cy.intercept({ method: 'GET', pathname: getEndpoint(FULL_PAGE) }, { body: livePageFixture, statusCode: 200 }).as(
+  //     'getPageDetail'
+  //   );
+  //   cy.intercept('/api/v1/organizations/stripe_account_id/**', { fixture: 'stripe/org-account-id.json' });
+
+  //   const interval = 'one_time';
+  //   const amount = '120';
+
+  //   cy.interceptDonation();
+
+  //   cy.visit(LIVE_DONATION_PAGE_ROUTE);
+
+  //   cy.setUpDonation(interval, amount);
+  //   cy.makeDonation();
+
+  //   cy.wait('@fbPixelTrackDonation').then((interception) => {
+  //     const queryString = interception.request.url.split('?')[1];
+  //     const query = new URLSearchParams(queryString);
+  //     expect(query.get('id').to.equal(livePageFixture.revenue_program.facebook_pixel_id));
+  //   });
+  //   cy.wait('@fbPixelTrackPurchase').then((interception) => {
+  //     const queryString = interception.request.url.split('?')[1];
+  //     const query = new URLSearchParams(queryString);
+  //     expect(query.get('id')).to.equal(livePageFixture.revenue_program.facebook_pixel_id);
+  //     expect(query.get('amount')).to.equal(donationAmount);
+  //   });
+  // });
 });

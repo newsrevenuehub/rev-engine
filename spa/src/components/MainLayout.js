@@ -101,11 +101,11 @@ function MainLayout() {
                 {/* Live Donation Pages are caught here */}
                 <Route
                   path={ROUTES.DONATION_PAGE_SLUG + ROUTES.THANK_YOU_SLUG}
-                  render={() => <OrgAndHubTrackedPage triggerConversion={true} component={GenericThankYou} />}
+                  render={() => <OrgAndHubTrackedPage component={GenericThankYou} />}
                 />
                 <Route
                   path={ROUTES.REV_PROGRAM_SLUG + ROUTES.THANK_YOU_SLUG}
-                  render={() => <OrgAndHubTrackedPage triggerConversion={true} component={GenericThankYou} />}
+                  render={() => <OrgAndHubTrackedPage component={GenericThankYou} />}
                 />
                 <Route
                   path={ROUTES.DONATION_PAGE_SLUG}

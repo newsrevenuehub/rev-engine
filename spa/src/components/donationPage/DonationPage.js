@@ -5,7 +5,7 @@ import { frequencySort } from 'components/donationPage/pageContent/DFrequency';
 
 const DonationPageContext = createContext({});
 
-function DonationPage({ page, live = false }) {
+function DonationPage({ page, live = false, trackDonation }) {
   const formRef = useRef();
   const [frequency, setFrequency] = useState(getInitialFrequency(page));
   const [payFee, setPayFee] = useState(false);
@@ -24,7 +24,8 @@ function DonationPage({ page, live = false }) {
         amount,
         setAmount,
         errors,
-        setErrors
+        setErrors,
+        trackDonation
       }}
     >
       <S.DonationPage data-testid="donation-page">

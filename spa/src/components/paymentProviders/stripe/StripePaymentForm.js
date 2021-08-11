@@ -192,7 +192,8 @@ function StripePaymentForm({ loading, setLoading, offerPayFees }) {
 
   // We add a catch here for the times when the ad-hoc donation amount ("other") value
   // is not a valid number (e.g. first clicking on the element, or typing a decimal "0.5")
-  if (isNaN(amount) || amount <= 0) return <S.EnterValidAmount>Enter a valid donation amount</S.EnterValidAmount>;
+  if (isNaN(amount) || amount < 1)
+    return <S.EnterValidAmount>Please enter an amount of at least $1</S.EnterValidAmount>;
   return !forceManualCard && paymentRequest ? (
     <>
       <S.PaymentRequestWrapper>

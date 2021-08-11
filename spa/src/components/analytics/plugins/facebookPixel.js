@@ -78,7 +78,7 @@ function isLoaded(fbId) {
 
 function page() {
   const { fbq } = window;
-  fbq('track', 'PageView');
+  return fbq('track', 'PageView');
 }
 
 export default function fbPixel(fbId) {
@@ -90,10 +90,10 @@ export default function fbPixel(fbId) {
     track: ({ payload }) => {},
     identify: ({ payload }) => {},
     methods: {
-      trackConversion: () => {
+      trackConversion: (amount) => {
         const { fbq } = window;
         fbq('track', 'Donate');
-        fbq('track', 'Purchase', { currency: 'USD' });
+        fbq('track', 'Purchase', { currency: 'USD', value: amount });
       }
     }
   };

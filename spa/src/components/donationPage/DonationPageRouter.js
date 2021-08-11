@@ -48,7 +48,7 @@ const livePageReducer = (state, action) => {
   }
 };
 
-function DonationPageRouter({ setOrgAnalytics }) {
+function DonationPageRouter({ setOrgAnalytics, trackDonation }) {
   const [{ loading, error, data }, dispatch] = useReducer(livePageReducer, initialState);
   const params = useParams();
   const requestFullPage = useRequest();
@@ -89,7 +89,13 @@ function DonationPageRouter({ setOrgAnalytics }) {
 
   return (
     <SegregatedStyles page={data}>
-      {loading ? <LiveLoading /> : error || !data ? <LivePage404 /> : <DonationPage live page={data} />}
+      {loading ? (
+        <LiveLoading />
+      ) : error || !data ? (
+        <LivePage404 />
+      ) : (
+        <DonationPage live page={data} trackDonation={trackDonation} />
+      )}
     </SegregatedStyles>
   );
 }

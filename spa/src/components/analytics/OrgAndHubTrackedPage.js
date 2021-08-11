@@ -30,6 +30,7 @@ export default function OrgAndHubTrackedPage({ triggerConversion = false, compon
   useEffect(() => {
     if (!analyticsInstance && orgAnalyticsRetrieveAttempted && HUB_GA_V3_ID) {
       const plugins = [getHubGaPlugin(HUB_GA_V3_ID, HUB_GA_V3_PLUGIN_NAME)];
+
       if (orgGaV3Id && orgGaV3Domain) {
         const orgV3Plugin = getOrgGaPlugin(orgGaV3Id, orgGaV3Domain, ORG_GA_V3_PLUGIN_NAME);
         plugins.push(orgV3Plugin);
@@ -42,6 +43,7 @@ export default function OrgAndHubTrackedPage({ triggerConversion = false, compon
         const orgFbPixelPlugin = getFbPixelPlugin(orgFbPixelId);
         plugins.push(orgFbPixelPlugin);
       }
+
       const analytics = Analytics({
         app: HUB_ANALYTICS_APP_NAME,
         plugins: plugins
@@ -71,5 +73,9 @@ export default function OrgAndHubTrackedPage({ triggerConversion = false, compon
     });
   };
 
-  return <Component {...rest} setOrgAnalytics={setOrgAnalytics} />;
+  const trackDonation = (amount) => {
+    analyticsInstance?.plugins[FB_PIXEL_PLUGIN_NAME].trackConversion(amount);
+  };
+
+  return <Component {...rest} setOrgAnalytics={setOrgAnalytics} trackDonation={trackDonation} />;
 }

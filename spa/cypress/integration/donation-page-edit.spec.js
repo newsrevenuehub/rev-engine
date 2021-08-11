@@ -10,10 +10,12 @@ describe('Donation page edit', () => {
   before(() => {
     cy.login('user/stripe-verified.json');
     cy.intercept(
-      { method: 'GET', pathname: getEndpoint(FULL_PAGE) },
+      { method: 'GET', pathname: `${getEndpoint(FULL_PAGE)}**` },
       { fixture: 'pages/live-page-1', statusCode: 200 }
-    );
+    ).as('getPage');
     cy.visit('edit/my/page');
+    cy.url().should('include', 'edit/my/page');
+    cy.wait('@getPage');
   });
 
   it('should render page edit buttons', () => {
@@ -146,7 +148,15 @@ describe('Donation page edit', () => {
   describe('Donor info editor', () => {
     it('should render the DonorInfoEditor', () => {
       cy.contains('Donor info').click();
-      cy.getByTestId('donor-info-editor');
+      cy.getByTestId('donor-info-editor').should('exist');
+      cy.getByTestId('discard-element-changes-button').click();
+    });
+  });
+
+  describe('Donor address editor', () => {
+    it('should render the DonorAmountEditor', () => {
+      cy.contains('Donor address').click();
+      cy.getByTestId('donor-address-editor').should('exist');
       cy.getByTestId('discard-element-changes-button').click();
     });
   });
@@ -154,7 +164,7 @@ describe('Donation page edit', () => {
   describe('Payment editor', () => {
     it('should render the PaymentEditor', () => {
       cy.contains('Payment').click();
-      cy.getByTestId('payment-editor');
+      cy.getByTestId('payment-editor').should('exist');
       cy.getByTestId('discard-element-changes-button').click();
     });
   });
@@ -235,6 +245,7 @@ describe('Donation page edit', () => {
         { fixture: 'pages/live-page-1', statusCode: 200 }
       ).as('getPageDetail');
       cy.visit('edit/my/page');
+      cy.url().should('include', 'edit/my/page');
       cy.wait('@getPageDetail');
       cy.getByTestId('edit-page-button').click({ force: true });
       cy.getByTestId('setup-tab').click({ force: true });
@@ -317,12 +328,14 @@ describe('Additional Info Setup', () => {
     cy.intercept(
       { method: 'GET', pathname: getEndpoint(FULL_PAGE) },
       { fixture: 'pages/live-page-1', statusCode: 200 }
-    );
+    ).as('getPage');
     cy.intercept(
       { method: 'GET', pathname: getEndpoint(CONTRIBUTION_META) },
       { fixture: 'donations/contribution-metadata.json', statusCode: 200 }
     ).as('getContributionMeta');
     cy.visit('edit/my/page');
+    cy.url().should('include', 'edit/my/page');
+    cy.wait('@getPage');
   });
 
   it('additional-info-applied should be empty', () => {

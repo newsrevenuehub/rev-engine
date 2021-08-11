@@ -7,7 +7,8 @@ import {
   faHandHoldingUsd,
   faUser,
   faPlus,
-  faCreditCard
+  faCreditCard,
+  faAddressCard
 } from '@fortawesome/free-solid-svg-icons';
 
 import * as dynamicElements from 'components/donationPage/pageContent/dynamicElements';
@@ -50,6 +51,9 @@ function getElementIcon(elementType) {
 
     case 'DDonorInfo':
       return faUser;
+
+    case 'DDonorAddress':
+      return faAddressCard;
 
     case 'DAdditionalInfo':
       return faPlus;

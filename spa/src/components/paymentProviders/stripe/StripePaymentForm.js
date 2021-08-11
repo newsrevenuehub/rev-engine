@@ -32,6 +32,7 @@ function StripePaymentForm({ loading, setLoading, offerPayFees }) {
   const { url, params } = useRouteMatch();
   const { page, amount, frequency, payFee, formRef, errors, setErrors, salesforceCampaignId } = usePage();
 
+  const [cardReady, setCardReady] = useState(false);
   const [succeeded, setSucceeded] = useState(false);
   const [disabled, setDisabled] = useState(true);
   const [paymentRequest, setPaymentRequest] = useState(null);
@@ -47,6 +48,7 @@ function StripePaymentForm({ loading, setLoading, offerPayFees }) {
    * Listen for changes in the CardElement and display any errors as the customer types their card details
    */
   const handleChange = async (event) => {
+    setCardReady(event.complete);
     setDisabled(event.empty);
     setErrors({ ...errors, stripe: event.error ? event.error.message : '' });
   };
@@ -205,20 +207,21 @@ function StripePaymentForm({ loading, setLoading, offerPayFees }) {
       <S.PaymentElementWrapper>
         <CardElement id="card-element" options={{ style: S.CardElementStyle(theme) }} onChange={handleChange} />
       </S.PaymentElementWrapper>
-      {offerPayFees && <PayFeesWidget />}
-      <Button
-        onClick={handleCardSubmit}
-        disabled={loading || disabled || succeeded || amount === 0}
-        loading={loading}
-        data-testid="donation-submit"
-      >
-        Give ${getTotalAmount(amount, payFee, page.organization_is_nonprofit)} {getFrequencyAdverb(frequency)}
-      </Button>
       {errors?.stripe && (
         <S.PaymentError role="alert" data-testid="donation-error">
           {errors.stripe}
         </S.PaymentError>
       )}
+      {offerPayFees && <PayFeesWidget />}
+      <Button
+        onClick={handleCardSubmit}
+        disabled={!cardReady || loading || disabled || succeeded || amount === 0}
+        loading={loading}
+        data-testid="donation-submit"
+      >
+        Give ${getTotalAmount(amount, payFee, page.organization_is_nonprofit)} {getFrequencyAdverb(frequency)}
+      </Button>
+
       <S.IconWrapper>
         <S.Icon icon={ICONS.STRIPE_POWERED} />
       </S.IconWrapper>

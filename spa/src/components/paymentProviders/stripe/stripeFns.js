@@ -99,6 +99,7 @@ export function serializeData(formRef, state) {
   serializedData['amount'] = getTotalAmount(state.amount, state.payFee, state.orgIsNonProfit).toString();
   serializedData['revenue_program_slug'] = state.revProgramSlug;
   serializedData['donation_page_slug'] = state.pageSlug;
+  serializedData['sf_campaign_id'] = state.salesforceCampaignId;
 
   return serializedData;
 }
@@ -185,8 +186,8 @@ async function tryRecurringPayment(stripe, data, { card, paymentRequest }) {
  */
 export async function createPaymentMethod(stripe, card, data) {
   const billing_details = {};
-  if (data?.given_name || data?.family_name) {
-    billing_details.name = `${data.given_name} ${data.family_name}`;
+  if (data?.first_name || data?.last_name) {
+    billing_details.name = `${data.first_name} ${data.last_name}`;
   }
   return await stripe.createPaymentMethod({
     type: 'card',

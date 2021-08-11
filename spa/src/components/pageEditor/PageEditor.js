@@ -237,7 +237,27 @@ function PageEditor() {
     return patchedPage;
   };
 
+  function processImages(datum, formData) {
+    /* processImages
+      Attaches a File object to the formData to be returned to the backend.
+
+      Datastore expects
+      data = [{"uuid": str, "type": "DImage", "content": {}]
+      files = {"str(<UUID>)": Blob}
+    */
+    datum.map((item) => {
+      if (item.type === 'DImage' && item.content instanceof File) {
+        formData.append(item.uuid, item.content, item.content.name);
+      }
+    });
+    return datum;
+  }
+
   const processPageData = (patchedPage) => {
+    /* processPageData
+     *  The primary function for serializing the DP data before transmitting to the backend.
+     *  If a new section is added that requires DImages, follow the pattern for `sidebar_elements`
+     * */
     const formData = new FormData();
     for (const pageKey in patchedPage) {
       let datumKey = pageKey;
@@ -245,7 +265,7 @@ function PageEditor() {
         let datum = patchedPage[datumKey];
         if (datum instanceof Date) datum = formatDatetimeForAPI(datum);
         if (datumKey === 'elements') datum = JSON.stringify(datum);
-        if (datumKey === 'sidebar_elements') datum = JSON.stringify(datum);
+        if (datumKey === 'sidebar_elements') datum = JSON.stringify(processImages(datum, formData));
         if (datumKey === 'donor_benefits') {
           datumKey = 'donor_benefits_pk';
           if (datum === null) datum = '';

@@ -1,5 +1,4 @@
 import logging
-from pathlib import Path
 
 from django.conf import settings
 
@@ -76,10 +75,15 @@ class PageViewSet(OrganizationLimitedListView, viewsets.ModelViewSet):
         return Response(page_serializer.data, status=status.HTTP_200_OK)
 
     def partial_update(self, request, *args, **kwargs):
-        for file in request.FILES:
-            thumb = serializers.HyperlinkedSorlImageField("300", source=file, read_only=True)
-        data = MediaImage.create_from_request(request.data, request.FILES, Path(request.path).parts[-1])
-        return super().partial_update(request, *args, **kwargs)
+        response = super().partial_update(request, *args, **kwargs)
+        if request.FILES:
+            # Link up thumbs and MediaImages
+            data = MediaImage.create_from_request(request.POST, request.FILES, kwargs["pk"])
+            response.data["sidebar_elements"] = data.get("sidebar_elements")
+            page = DonationPage.objects.get(pk=kwargs["pk"])
+            page.sidebar_elements = response.data["sidebar_elements"]
+            page.save()
+        return response
 
     def destroy(self, request, pk):
         page = self.model.objects.get(pk=pk)

@@ -110,6 +110,7 @@
     ]
   },
   "devDependencies": {
+    "cypress": "^8.2.0",
     "eslint-plugin-chai-friendly": "^0.7.1",
     "lodash.clonedeep": "^4.5.0"
   }

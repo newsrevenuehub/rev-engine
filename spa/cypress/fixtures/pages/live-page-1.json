@@ -38,8 +38,8 @@
     "organization": 14,
     "default_donation_page": null,
     "google_analytics_v3_id": "UA-2222222",
-    "google_analytics_v3_domain": "www.google.com"
-
+    "google_analytics_v3_domain": "www.google.com",
+    "google_analytics_v4_id": "G-2222222"
   },
   "revenue_program_pk": 1
 }

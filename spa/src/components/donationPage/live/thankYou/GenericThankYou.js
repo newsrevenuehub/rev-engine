@@ -10,10 +10,11 @@ function GenericThankYou({ setOrgAnalytics }) {
 
   const orgGaV3Domain = routedState?.page?.revenue_program?.google_analytics_v3_domain;
   const orgGaV3Id = routedState?.page?.revenue_program?.google_analytics_v3_id;
+  const orgGaV4Id = routedState?.page?.revenue_program?.google_analytics_v4_id;
 
   useEffect(() => {
-    setOrgAnalytics(orgGaV3Id, orgGaV3Domain);
-  }, [orgGaV3Domain, orgGaV3Id]);
+    setOrgAnalytics(orgGaV3Id, orgGaV3Domain, orgGaV4Id);
+  }, [orgGaV3Domain, orgGaV3Id, orgGaV4Id]);
 
   return (
     <SegregatedStyles>

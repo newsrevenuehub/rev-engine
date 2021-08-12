@@ -275,6 +275,55 @@ describe('Donation page edit', () => {
       cy.getByTestId('cancel-button').click();
     });
   });
+
+  describe.only('Edit interface: Sidebar', () => {
+    before(() => {
+      cy.login('user/stripe-verified.json');
+      cy.intercept(
+        { method: 'GET', pathname: getEndpoint(FULL_PAGE) },
+        { fixture: 'pages/live-page-1', statusCode: 200 }
+      ).as('getPageDetail');
+      cy.visit('edit/my/page');
+      cy.wait('@getPageDetail');
+    });
+
+    it('should have two elements rendered in the sidebar', () => {
+      cy.get('[data-testid=donation-page__sidebar] > ul > li')
+        .should('have.length', 2)
+        .first()
+        .should('have.text', 'Sidebar Blurb')
+        .next()
+        .find('img')
+        .invoke('attr', 'src')
+        .should('eq', '/media/test.png');
+    });
+
+    it('should render the Sidebar tab', () => {
+      cy.getByTestId('edit-page-button').click({ force: true });
+      cy.getByTestId('sidebar-tab').click({ force: true });
+    });
+
+    it('should have two elements', () => {
+      cy.getByTestId('edit-interface-item').should('have.length', 2);
+    });
+
+    it('Can add an element', () => {
+      cy.getByTestId('add-element-button').click();
+      cy.get('[data-testid=close-modal] + div').children().contains('Rich text').click();
+      cy.get('[data-testid=donation-page__sidebar] > ul > li').should('have.length', 3);
+    });
+
+    it('can be added to the page', () => {
+      cy.get('[data-testid=page-sidebar] > ul > li').first().click();
+      cy.get('[class=DraftEditor-editorContainer]').type('New Rich Text');
+      cy.get('[data-testid=keep-element-changes-button').click();
+      cy.get('[data-testid=preview-page-button').click();
+      cy.get('[data-testid=donation-page__sidebar] > ul > li')
+        .should('have.length', 3)
+        .first()
+        .should('have.text', 'New Rich Text');
+    });
+  });
 });
 
 describe('Donation page delete', () => {

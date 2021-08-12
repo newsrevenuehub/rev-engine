@@ -11,7 +11,7 @@ function PageSidebarElements({ openAddElementModal, goToProperties }) {
   const { sidebarElements, setSidebarElements } = useEditInterfaceContext();
 
   return (
-    <S.PageSidebarElements>
+    <S.PageSidebarElements data-testid="page-sidebar">
       {sidebarElements && (
         <DraggableList
           elements={sidebarElements}

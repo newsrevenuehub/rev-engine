@@ -28,5 +28,18 @@
       "inputBorder": "#c3c3c3"
     },
     "ruleStyle": "dotted"
-  }
+  },
+  "revenue_program": {
+    "id": 1,
+    "slug": "myprogram",
+    "created": "2021-07-20T16:39:40.559524Z",
+    "modified": "2021-07-20T16:39:40.559524Z",
+    "name": "MyProgram",
+    "organization": 14,
+    "default_donation_page": null,
+    "google_analytics_v3_id": "UA-2222222",
+    "google_analytics_v3_domain": "www.google.com"
+
+  },
+  "revenue_program_pk": 1
 }

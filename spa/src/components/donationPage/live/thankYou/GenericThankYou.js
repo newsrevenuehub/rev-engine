@@ -13,7 +13,7 @@ function GenericThankYou({ setOrgAnalytics }) {
   const orgGaV4Id = routedState?.page?.revenue_program?.google_analytics_v4_id;
 
   useEffect(() => {
-    setOrgAnalytics(orgGaV3Id, orgGaV3Domain.orgGaV4Id);
+    setOrgAnalytics(orgGaV3Id, orgGaV3Domain, orgGaV4Id);
   }, [orgGaV3Domain, orgGaV3Id, orgGaV4Id]);
 
   return (

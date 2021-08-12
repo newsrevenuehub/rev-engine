@@ -105,7 +105,7 @@ describe('OrgAndHubTrackedPage component on live donation page', () => {
     );
     cy.visit(LIVE_DONATION_PAGE_ROUTE);
     cy.wait(['@getPageDetail', '@getStripe', '@collectGaV3']);
-    cy.wait('@collectGaV4', { timeout: 10000 }).then((interception) => {
+    cy.wait('@collectGaV4').then((interception) => {
       const searchParams = new URLSearchParams(interception.request.url.split('?')[1]);
       expect(searchParams.get('en')).to.equal('page_view');
       expect(searchParams.get('tid')).to.equal(updatedFixture.revenue_program.google_analytics_v4_id);

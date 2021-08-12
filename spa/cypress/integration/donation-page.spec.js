@@ -154,6 +154,31 @@ describe('Donation page', () => {
     });
   });
 
+  describe.only('Donation page side effects', () => {
+    it('should pass salesforce campaign id from query parameter to request body', () => {
+      const sfCampaignId = 'my-test-sf-campaign-id';
+      cy.intercept(
+        { method: 'GET', pathname: `${getEndpoint(FULL_PAGE)}**` },
+        { fixture: 'pages/live-page-1', statusCode: 200 }
+      ).as('getPageDetail');
+      cy.visit(`/revenue-program-slug/page-slug?campaign=${sfCampaignId}`);
+      cy.wait('@getPageDetail');
+
+      const interval = 'one_time';
+      const amount = '120';
+      cy.intercept(
+        { method: 'POST', pathname: getEndpoint(STRIPE_PAYMENT) },
+        { fixture: 'stripe/payment-intent', statusCode: 200 }
+      ).as('stripePayment');
+      cy.setUpDonation(interval, amount);
+      cy.makeDonation();
+      cy.wait('@stripePayment').then(({ request }) => {
+        expect(request.body).to.have.property('sf_campaign_id');
+        expect(request.body.sf_campaign_id).to.equal(sfCampaignId);
+      });
+    });
+  });
+
   describe('Thank you page', () => {
     it('should show a generic Thank You page at /rev-slug/thank-you', () => {
       cy.intercept(

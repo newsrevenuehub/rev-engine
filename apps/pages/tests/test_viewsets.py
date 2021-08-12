@@ -2,12 +2,16 @@ import datetime
 import json
 
 from django.contrib.auth import get_user_model
+from django.core.files.uploadedfile import SimpleUploadedFile
+from django.test import override_settings
 from django.utils import timezone
 
 from rest_framework.reverse import reverse
 from rest_framework.test import APIRequestFactory, APITestCase, force_authenticate
 
 from apps.common.tests.test_resources import AbstractTestCase
+from apps.common.tests.test_utils import get_test_image_binary, get_test_image_file_jpeg
+from apps.media.tests import setup_sidebar_fixture
 from apps.organizations.tests.factories import RevenueProgramFactory
 from apps.pages.models import DonationPage, DonorBenefit, Style, Template
 from apps.pages.tests.factories import (
@@ -186,6 +190,20 @@ class PagePatchTest(AbstractTestCase):
         request = self._create_patch_request(data=page_data)
         response = self.page_patch_view(request, pk=self.donation_page.pk)
         self.assertEqual(response.data["donor_benefits"]["id"], self.donor_benefits.pk)
+
+    @override_settings(MEDIA_ROOT="/tmp/media")
+    @override_settings(MEDIA_URL="/media/")
+    def test_patch_page_with_sidebar_elements(self):
+        sidebar, files = setup_sidebar_fixture()
+        for k, v in files.items():
+            sidebar[k] = SimpleUploadedFile(
+                name=f"{v.name}", content=get_test_image_file_jpeg().open("rb").read(), content_type="image/jpeg"
+            )
+        request = self._create_patch_request(data=sidebar)
+        response = self.page_patch_view(request, pk=self.donation_page.pk)
+        assert response.status_code == 200
+        dp = DonationPage.objects.get(pk=self.donation_page.pk)
+        assert dp.sidebar_elements == response.data.get("sidebar_elements")
 
 
 class DonationPageFullDetailTest(APITestCase):

@@ -18,7 +18,7 @@ class MediaImage(IndexedTimeStampedModel):
     width = models.PositiveIntegerField()
     image = SorlImageField(upload_to="images", height_field="height", width_field="width")
     thumbnail = models.ImageField(upload_to="images/thumbs", null=True, blank=True)
-    image_attrs = models.JSONField(blank=True)
+    image_attrs = models.JSONField(blank=True, null=True)
 
     def __str__(self):
         return self.image.name
@@ -38,13 +38,13 @@ class MediaImage(IndexedTimeStampedModel):
         """Takes a request.data and builds a MediaImage instance from the json blob data found in the files dict.
 
         Expected Schemas:
-            data = [{"uuid": str, "type": "DImage", "content": {"name": str(filename)}}, n...]
+            data = [{"uuid": str, "type": "DImage", "content": {}, n...]
             files = {"str(<UUID>)": Blob}
         :param data: A copy of the request POST data.
         :param files: A list of dicts. Key=UUID in the request.data for the image element
         :param donation_page: the page that these images are referenced on.
         :param image_key: The key that identifies an Image element.
-        :return: The data[dict] array with a "url" key and value in the content.
+        :return: The data["sidebar_elements"] updated with the storage locations for the image and the thumbnail.
         """
 
         ## TODO: Duplicate detection

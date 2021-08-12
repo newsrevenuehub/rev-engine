@@ -71,9 +71,10 @@ function DonationPageRouter({ setOrgAnalytics }) {
         onSuccess: ({ data }) => {
           const {
             google_analytics_v3_id: orgGaV3Id,
-            google_analytics_v3_domain: orgGaV3Domain
+            google_analytics_v3_domain: orgGaDomain,
+            google_analytics_v4_id: orgGaV4Id
           } = data?.revenue_program;
-          setOrgAnalytics(orgGaV3Id, orgGaV3Domain);
+          setOrgAnalytics(orgGaV3Id, orgGaDomain, orgGaV4Id);
           dispatch({ type: PAGE_FETCH_SUCCESS, payload: data });
         },
         onFailure: () => dispatch({ type: PAGE_FETCH_ERROR })

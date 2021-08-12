@@ -2,7 +2,7 @@ import cloneDeep from 'lodash.clonedeep';
 import { CONTRIBUTOR_ENTRY, CONTRIBUTOR_VERIFY, CONTRIBUTOR_DASHBOARD, LOGIN } from 'routes';
 
 import livePageFixture from '../fixtures/pages/live-page-1.json';
-import { FULL_PAGE, ORG_STRIPE_ACCOUNT_ID } from 'ajax/endpoints';
+import { FULL_PAGE, ORG_STRIPE_ACCOUNT_ID, STRIPE_PAYMENT } from 'ajax/endpoints';
 import { getEndpoint } from '../support/util';
 import { HUB_GA_V3_ID } from 'constants/analyticsConstants';
 
@@ -74,22 +74,6 @@ describe('OrgAndHubTrackedPage component on live donation page', () => {
       }
     }).as('fbPixelTrackPageView');
 
-    cy.intercept({
-      hostname: fbPixelCollectUrl.hostname,
-      pathname: fbPixelCollectUrl.pathname,
-      query: {
-        ev: 'Donation'
-      }
-    }).as('fbPixelTrackDonation');
-
-    cy.intercept({
-      hostname: fbPixelCollectUrl.hostname,
-      pathname: fbPixelCollectUrl.pathname,
-      query: {
-        ev: 'Purchase'
-      }
-    }).as('fbPixelTrackPurchase');
-
     // Intercepts for stripe
     cy.intercept({ pathname: getEndpoint(ORG_STRIPE_ACCOUNT_ID) }, { statusCode: 200 }).as('getStripe');
   });
@@ -159,49 +143,5 @@ describe('OrgAndHubTrackedPage component on live donation page', () => {
       const trackedUrl = new URL(query.get('dl'));
       expect(trackedUrl.pathname).to.equal(`/${LIVE_DONATION_PAGE_ROUTE}`);
     });
-  });
-
-  it.only('tracks a donation and purchase in Facebook Pixel on sucessful donation for rev program with Facebook Pixel id', () => {
-    cy.intercept({ method: 'GET', pathname: getEndpoint(FULL_PAGE) }, { body: livePageFixture, statusCode: 200 }).as(
-      'getPageDetail'
-    );
-    cy.intercept('/api/v1/organizations/stripe_account_id/**', { fixture: 'stripe/org-account-id.json' });
-
-    const interval = 'one_time';
-    const amount = '120';
-
-    cy.interceptDonation();
-
-    cy.intercept({ method: 'POST', url: 'https://api.stripe.com/v1/payment_methods' }).as('stripeCreatePaymentMethod');
-    cy.intercept({ method: 'POST', url: 'http://localhost:3000/api/v1/stripe/payment/' }).as(
-      'stripeConfirmCardPayment'
-    );
-    cy.visit(LIVE_DONATION_PAGE_ROUTE);
-
-    const getPaymentElementIframeWindow = () => {
-      return cy.get('iframe[name*="__privateStripeFrame"]').its('0.contentWindow').should('exist');
-    };
-
-    getPaymentElementIframeWindow().then((win) => {
-      cy.spy(win, 'fetch').as('fetch');
-    });
-
-    cy.setUpDonation(interval, amount);
-    cy.makeDonation();
-
-    cy.get('@fetch').should('have.been.calledOnce');
-
-    // cy.wait(10000);
-    // cy.wait('@fbPixelTrackDonation').then((interception) => {
-    //   const queryString = interception.request.url.split('?')[1];
-    //   const query = new URLSearchParams(queryString);
-    //   expect(query.get('id').to.equal(livePageFixture.revenue_program.facebook_pixel_id));
-    // });
-    // cy.wait('@fbPixelTrackPurchase').then((interception) => {
-    //   const queryString = interception.request.url.split('?')[1];
-    //   const query = new URLSearchParams(queryString);
-    //   expect(query.get('id')).to.equal(livePageFixture.revenue_program.facebook_pixel_id);
-    //   expect(query.get('amount')).to.equal(amount);
-    // });
   });
 });

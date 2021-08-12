@@ -3,9 +3,18 @@ import SegregatedStyles from 'components/donationPage/SegregatedStyles';
 
 // Router
 import { useLocation } from 'react-router-dom';
+import { useEffect } from 'react';
 
-function GenericThankYou() {
+function GenericThankYou({ setOrgAnalytics }) {
   const { state: routedState } = useLocation();
+
+  const orgGaV3Domain = routedState?.page?.revenue_program?.google_analytics_v3_domain;
+  const orgGaV3Id = routedState?.page?.revenue_program?.google_analytics_v3_id;
+  const orgGaV4Id = routedState?.page?.revenue_program?.google_analytics_v4_id;
+
+  useEffect(() => {
+    setOrgAnalytics(orgGaV3Id, orgGaV3Domain, orgGaV4Id);
+  }, [orgGaV3Domain, orgGaV3Id, orgGaV4Id]);
 
   return (
     <SegregatedStyles>

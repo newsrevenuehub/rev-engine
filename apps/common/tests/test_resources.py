@@ -4,6 +4,7 @@ from rest_framework.test import APITestCase
 
 from apps.organizations.models import Organization
 from apps.organizations.tests.factories import OrganizationFactory
+from apps.pages.tests.factories import DonationPageFactory
 
 
 user_model = get_user_model()
@@ -14,6 +15,7 @@ class AbstractTestCase(APITestCase):
     model_factory = None
     resource_count = 5
     org_count = 2
+    donation_pages = []
 
     def setUp(self):
         for i in range(self.org_count):
@@ -26,6 +28,9 @@ class AbstractTestCase(APITestCase):
             org_num = 0 if i % 2 == 0 else 1
             self.model_factory.create(org=self.orgs[org_num])
         self.resources = self.model.objects.all()
+
+    def create_donation_page(self):
+        return DonationPageFactory()
 
     def create_user(self):
         self.email = "test@test.gov"

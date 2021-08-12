@@ -1,13 +1,32 @@
 import random
 from datetime import date, timedelta
+from io import BytesIO
 
 from django.contrib.messages.middleware import MessageMiddleware
 from django.contrib.sessions.middleware import SessionMiddleware
+from django.core.files.images import ImageFile
+
+import PIL.Image
+from faker import Faker
 
 from apps.common.utils import normalize_slug
 
 
 DEFAULT_MAX_SLUG_LENGTH = 50
+
+
+def get_test_image_file_jpeg(filename="test.jpg", colour="white", size=(640, 480)):
+    f = BytesIO()
+    image = PIL.Image.new("RGB", size, colour)
+    image.save(f, "JPEG")
+    return ImageFile(f, name=filename)
+
+
+def get_test_image_binary(colour="white", size=(640, 480)):
+    f = BytesIO()
+    image = PIL.Image.new("RGB", size, colour)
+    image.save(f, "JPEG")
+    return image
 
 
 def test_normalize_slug_name_only():
@@ -50,3 +69,9 @@ def setup_request(user, request):
 
 def generate_random_datetime(start, end):
     return start + timedelta(seconds=random.randint(0, int((end - start).total_seconds())))
+
+
+def get_random_jpg_filename():
+    fake = Faker()
+    Faker.seed(random.randint(1, 10000000))
+    return f"{fake.word()}.jpg"

@@ -276,7 +276,7 @@ describe('Donation page edit', () => {
     });
   });
 
-  describe.only('Edit interface: Sidebar', () => {
+  describe('Edit interface: Sidebar', () => {
     before(() => {
       cy.login('user/stripe-verified.json');
       cy.intercept(

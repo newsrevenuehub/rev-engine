@@ -26,11 +26,16 @@ import Button from 'elements/buttons/Button';
 import { ICONS } from 'assets/icons/SvgIcon';
 import { PayFeesWidget } from 'components/donationPage/pageContent/DPayment';
 
+// Analytics
+import { useAnalyticsContext } from 'components/analytics/AnalyticsContext';
+
 const STRIPE_PAYMENT_REQUEST_LABEL = 'RevEngine Donation';
 
 function StripePaymentForm({ loading, setLoading, offerPayFees }) {
   const { url, params } = useRouteMatch();
   const { page, amount, frequency, payFee, formRef, errors, setErrors, salesforceCampaignId } = usePage();
+
+  const { trackConversion } = useAnalyticsContext();
 
   const [succeeded, setSucceeded] = useState(false);
   const [disabled, setDisabled] = useState(true);
@@ -59,6 +64,7 @@ function StripePaymentForm({ loading, setLoading, offerPayFees }) {
     setErrors({});
     setLoading(false);
     setSucceeded(true);
+    trackConversion(amount);
     if (page.thank_you_redirect) {
       window.location = page.thank_you_redirect;
     } else {

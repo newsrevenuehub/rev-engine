@@ -94,13 +94,7 @@ function DonationPageRouter() {
 
   return (
     <SegregatedStyles page={data}>
-      {loading ? (
-        <LiveLoading />
-      ) : error || !data ? (
-        <LivePage404 />
-      ) : (
-        <DonationPage live page={data} trackDonation={trackDonation} />
-      )}
+      {loading ? <LiveLoading /> : error || !data ? <LivePage404 /> : <DonationPage live page={data} />}
     </SegregatedStyles>
   );
 }

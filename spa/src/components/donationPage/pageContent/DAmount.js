@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useRef } from 'react';
 import PropTypes from 'prop-types';
 import * as S from './DAmount.styled';
 
@@ -14,38 +14,23 @@ import SelectableButton from 'elements/buttons/SelectableButton';
 import FormErrors from 'elements/inputs/FormErrors';
 
 function DAmount({ element, ...props }) {
-  const { frequency, setAmount, errors } = usePage();
-
-  const [selectedAmount, setSelectedAmount] = useState(0);
-  const [otherAmount, setOtherAmount] = useState('');
+  const { page, frequency, amount, setAmount, overrideAmount, errors } = usePage();
 
   const inputRef = useRef();
 
-  const handleAmountSelected = (s) => {
-    setSelectedAmount(s);
-    // Clear "other amount" if present
-    setOtherAmount('');
+  const handleAmountSelected = (a) => {
+    setAmount(a);
   };
 
   const handleOtherSelected = () => {
-    setSelectedAmount('other');
     inputRef.current.focus();
   };
 
-  useEffect(() => {
-    let amount;
-    if (selectedAmount === 'other') {
-      amount = parseFloat(otherAmount || 0);
-    } else {
-      // It's possible options[frequency][selectedAmount] is undefined, in the case that somebody either
-      // has stale development data, or somebody has messed around with page.elements JSONField.
-      amount =
-        element?.content?.options &&
-        element.content?.options[frequency] &&
-        element.content?.options[frequency][selectedAmount];
-    }
-    setAmount(amount);
-  }, [selectedAmount, otherAmount, frequency, element?.content?.options, setAmount]);
+  const getAmounts = (frequency) => {
+    const options = element?.content?.options;
+    const amounts = options[frequency] || [];
+    return overrideAmount ? [] : amounts;
+  };
 
   return (
     <DElement
@@ -55,24 +40,28 @@ function DAmount({ element, ...props }) {
       data-testid="d-amount"
     >
       <S.DAmount>
-        {element.content?.options &&
-          element.content?.options[frequency] &&
-          element.content?.options[frequency].map((amount, i) => (
+        {getAmounts(frequency).map((amnt, i) => {
+          return (
             <SelectableButton
-              key={i + amount}
-              selected={selectedAmount === i}
-              onClick={() => handleAmountSelected(i)}
-              data-testid={`amount-${amount}`}
-            >{`$${amount}`}</SelectableButton>
-          ))}
-        {element.content?.allowOther && (
-          <S.OtherAmount selected={selectedAmount === 'other'} onClick={handleOtherSelected}>
+              key={i + amnt}
+              selected={parseFloat(amount) === parseFloat(amnt)}
+              onClick={() => handleAmountSelected(parseFloat(amnt))}
+              data-testid={`amount-${amnt}${parseFloat(amount) === parseFloat(amnt) ? '-selected' : ''}`}
+            >{`$${amnt}`}</SelectableButton>
+          );
+        })}
+        {(element.content?.allowOther || overrideAmount) && (
+          <S.OtherAmount
+            data-testid={`amount-other${getAmountIndex(page, amount, frequency) === -1 ? '-selected' : ''}`}
+            selected={getAmountIndex(page, amount, frequency) === -1}
+            onClick={handleOtherSelected}
+          >
             <span>$</span>
             <S.OtherAmountInput
               ref={inputRef}
               type="number"
-              value={otherAmount}
-              onChange={(e) => setOtherAmount(e.target.value)}
+              value={amount && getAmountIndex(page, amount, frequency) === -1 ? amount : ''}
+              onChange={(e) => setAmount(e.target.value)}
             />
             <span data-testid="custom-amount-rate">{getFrequencyRate(frequency)}</span>
           </S.OtherAmount>
@@ -86,7 +75,8 @@ function DAmount({ element, ...props }) {
 const paymentPropTypes = {
   offerPayFees: PropTypes.bool,
   allowOther: PropTypes.bool,
-  options: PropTypes.objectOf(PropTypes.arrayOf(PropTypes.oneOfType([PropTypes.number, PropTypes.string]))).isRequired
+  options: PropTypes.objectOf(PropTypes.arrayOf(PropTypes.oneOfType([PropTypes.number, PropTypes.string]))).isRequired,
+  defaults: PropTypes.objectOf(PropTypes.oneOfType([PropTypes.number, PropTypes.string]))
 };
 
 DAmount.propTypes = {
@@ -103,3 +93,36 @@ DAmount.required = true;
 DAmount.unique = true;
 
 export default DAmount;
+
+export function getAmountIndex(page, amount, frequency) {
+  const amountElement = page?.elements?.find((el) => el.type === 'DAmount');
+  const amounts = amountElement?.content?.options;
+  const amountsForFreq = amounts[frequency];
+
+  if (amountsForFreq) {
+    return amounts[frequency]?.findIndex((num) => parseFloat(num) === parseFloat(amount));
+  }
+}
+
+/**
+ * getDefaultAmount
+ * @param {string} frequency - The frequency to get the default for
+ * @param {object} page -
+ */
+export function getDefaultAmount(frequency, page) {
+  const amountElement = page?.elements?.find((el) => el.type === 'DAmount');
+  const amounts = amountElement?.content?.options;
+  const amountsForFreq = amounts ? amounts[frequency]?.map((amnt) => parseFloat(amnt)) : {};
+  const defaults = amountElement?.content?.defaults;
+
+  // If defaults are defined, and a default is defined for this frequency, and the default defined is a valid amount...
+  if (defaults && defaults[frequency] && amountsForFreq?.includes(parseFloat(defaults[frequency]))) {
+    // ... return the default amount for this frequency.
+    return defaults[frequency];
+  }
+  // Otherwise we have any amounts for this frequency...
+  else if (amountsForFreq) {
+    // ... return the first frequency in the list.
+    return amountsForFreq[0];
+  }
+}

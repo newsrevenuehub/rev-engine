@@ -40,3 +40,21 @@ class RevenueProgramFactory(DjangoModelFactory):
 
     name = factory.Sequence(lambda n: f"{' '.join(fake.words(nb=4))}-{str(n)}")
     organization = factory.SubFactory(OrganizationFactory)
+
+
+class BenefitFactory(DjangoModelFactory):
+    class Meta:
+        model = models.Benefit
+
+    name = factory.Sequence(lambda n: fake.sentence(nb_words=2))
+    description = fake.sentence(nb_words=8)
+
+
+class BenefitLevelFactory(DjangoModelFactory):
+    class Meta:
+        model = models.BenefitLevel
+
+    name = factory.Sequence(lambda n: fake.sentence(nb_words=2))
+    organization = factory.SubFactory(OrganizationFactory)
+
+    lower_limit = 1

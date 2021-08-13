@@ -30,7 +30,7 @@ const STRIPE_PAYMENT_REQUEST_LABEL = 'RevEngine Donation';
 
 function StripePaymentForm({ loading, setLoading, offerPayFees }) {
   const { url, params } = useRouteMatch();
-  const { page, amount, frequency, payFee, formRef, errors, setErrors } = usePage();
+  const { page, amount, frequency, payFee, formRef, errors, setErrors, salesforceCampaignId } = usePage();
 
   const [succeeded, setSucceeded] = useState(false);
   const [disabled, setDisabled] = useState(true);
@@ -96,7 +96,7 @@ function StripePaymentForm({ loading, setLoading, offerPayFees }) {
     e.preventDefault();
     setLoading(true);
     const orgIsNonProfit = page.organization_is_nonprofit;
-    const data = serializeData(formRef.current, { amount, payFee, orgIsNonProfit, ...params });
+    const data = serializeData(formRef.current, { amount, payFee, orgIsNonProfit, salesforceCampaignId, ...params });
     await submitPayment(
       stripe,
       data,
@@ -112,7 +112,7 @@ function StripePaymentForm({ loading, setLoading, offerPayFees }) {
   const handlePaymentRequestSubmit = async (state, paymentRequest) => {
     setLoading(true);
     const orgIsNonProfit = page.organization_is_nonprofit;
-    const data = serializeData(formRef.current, { orgIsNonProfit, ...state });
+    const data = serializeData(formRef.current, { orgIsNonProfit, salesforceCampaignId, ...state });
     await submitPayment(
       stripe,
       data,

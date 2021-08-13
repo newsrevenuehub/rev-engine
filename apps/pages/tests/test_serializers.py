@@ -36,7 +36,7 @@ class DonationPageFullDetailSerializerTest(APITestCase):
             revenue_program=self.revenue_program, benefit_level=self.benefit_level_2, level=2
         )
 
-        self.page = DonationPageFactory(revenue_program=self.revenue_program)
+        self.page = DonationPageFactory(organization=self.organization, revenue_program=self.revenue_program)
         self.serializer = DonationPageFullDetailSerializer
 
     def test_get_benefit_levels(self):
@@ -80,7 +80,6 @@ class DonationPageFullDetailSerializerTest(APITestCase):
         self.organization.refresh_from_db()
         serializer = self.serializer(self.page)
         data = serializer.data
-
         self.assertIn("PO Box 321", data["organization_address"])
         self.assertIn("123 Fake Street", data["organization_address"])
         self.assertIn("San Francisco", data["organization_address"])

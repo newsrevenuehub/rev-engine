@@ -9,7 +9,7 @@ from safedelete.admin import SafeDeleteAdmin, highlight_deleted
 from sorl.thumbnail.admin import AdminImageMixin
 
 from apps.common.admin import RevEngineBaseAdmin
-from apps.pages.models import Benefit, BenefitTier, DonationPage, DonorBenefit, Style, Template
+from apps.pages.models import DonationPage, Style, Template
 
 
 logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
@@ -25,10 +25,6 @@ class DonationPageAdminAbstract(AdminImageMixin, RevEngineBaseAdmin):
             },
         ),
         ("Redirects", {"fields": ("thank_you_redirect", "post_thank_you_redirect")}),
-        (
-            "Benefits",
-            {"fields": ("donor_benefits",)},
-        ),
         ("Header", {"fields": ("header_bg_image", "header_logo", "header_link")}),
         ("Heading", {"fields": ("heading", "graphic")}),
         ("Styles", {"fields": ("styles",)}),
@@ -167,66 +163,6 @@ class DonationPageAdmin(DonationPageAdminAbstract, SafeDeleteAdmin):
 
 @admin.register(Style)
 class StyleAdmin(RevEngineBaseAdmin):
-    list_display = (
-        "name",
-        "organization",
-    )
-    list_filter = (
-        "name",
-        "organization",
-    )
-    order = (
-        "name",
-        "organization__name",
-    )
-    search_fields = (
-        "name",
-        "organization__name",
-    )
-
-
-@admin.register(Benefit)
-class BenefitAdmin(RevEngineBaseAdmin):
-    list_display = (
-        "name",
-        "organization",
-    )
-    list_filter = (
-        "name",
-        "organization",
-    )
-    order = (
-        "name",
-        "organization__name",
-    )
-    search_fields = (
-        "name",
-        "organization__name",
-    )
-
-
-@admin.register(BenefitTier)
-class BenefitTierAdmin(RevEngineBaseAdmin):
-    list_display = (
-        "name",
-        "organization",
-    )
-    list_filter = (
-        "name",
-        "organization",
-    )
-    order = (
-        "name",
-        "organization__name",
-    )
-    search_fields = (
-        "name",
-        "organization__name",
-    )
-
-
-@admin.register(DonorBenefit)
-class DonorBenefitAdmin(RevEngineBaseAdmin):
     list_display = (
         "name",
         "organization",

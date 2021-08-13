@@ -41,22 +41,6 @@ class TemplateFactory(DjangoModelFactory):
         return OrganizationFactory()
 
 
-class DonorBenefitFactory(DjangoModelFactory):
-    class Meta:
-        model = models.DonorBenefit
-
-    class Params:
-        org = None
-
-    name = factory.Sequence(lambda n: "Test DonorBenefit %d" % n)
-
-    @factory.lazy_attribute
-    def organization(self):
-        if self.org:
-            return self.org
-        return OrganizationFactory()
-
-
 class StyleFactory(DjangoModelFactory):
     class Meta:
         model = models.Style
@@ -66,38 +50,6 @@ class StyleFactory(DjangoModelFactory):
 
     name = factory.Sequence(lambda n: "Test Style %d" % n)
     styles = {"colors": {"primary": "testing-pink"}}
-
-    @factory.lazy_attribute
-    def organization(self):
-        if self.org:
-            return self.org
-        return OrganizationFactory()
-
-
-class BenefitTierFactory(DjangoModelFactory):
-    class Meta:
-        model = models.BenefitTier
-
-    class Params:
-        org = None
-
-    name = factory.Sequence(lambda n: "Test Style %d" % n)
-
-    @factory.lazy_attribute
-    def organization(self):
-        if self.org:
-            return self.org
-        return OrganizationFactory()
-
-
-class BenefitFactory(DjangoModelFactory):
-    class Meta:
-        model = models.Benefit
-
-    class Params:
-        org = None
-
-    name = factory.Sequence(lambda n: "Test Style %d" % n)
 
     @factory.lazy_attribute
     def organization(self):

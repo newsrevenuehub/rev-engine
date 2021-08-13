@@ -63,8 +63,8 @@ Cypress.Commands.add('interceptDonation', () => {
 });
 
 Cypress.Commands.add('setUpDonation', (frequency, amount) => {
-  cy.getByTestId(`frequency-${frequency}`).click();
-  cy.getByTestId(`amount-${amount}`).click();
+  cy.contains(frequency).click();
+  cy.contains(amount).click();
 });
 
 Cypress.Commands.add('makeDonation', () => {

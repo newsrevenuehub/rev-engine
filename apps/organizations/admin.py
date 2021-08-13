@@ -31,7 +31,8 @@ class BenefitLevelBenefit(admin.TabularInline):
 @admin.register(Organization)
 class OrganizationAdmin(RevEngineBaseAdmin):  # pragma: no cover
     organization_fieldset = (
-        ("Organization", {"fields": ("name", "slug", "salesforce_id")}),
+        ("Organization", {"fields": ("name", "slug", "contact_email")}),
+        (None, {"fields": ("salesforce_id",)}),
         (
             "Address",
             {

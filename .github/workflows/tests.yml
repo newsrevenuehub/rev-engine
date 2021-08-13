@@ -79,7 +79,7 @@ jobs:
           wait-on: http://localhost:3000
           browser: chrome
       - name: Cypress unit tests
-        uses: cypress-io/github-actions@v2
+        uses: cypress-io/github-action@v2
         with:
           working-directory: spa
           install: false

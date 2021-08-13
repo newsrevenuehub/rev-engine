@@ -12,8 +12,10 @@ describe('Donation page edit', () => {
     cy.intercept(
       { method: 'GET', pathname: getEndpoint(FULL_PAGE) },
       { fixture: 'pages/live-page-1', statusCode: 200 }
-    );
+    ).as('getPage');
     cy.visit('edit/my/page');
+    cy.url().should('include', 'edit/my/page');
+    return cy.wait('@getPage');
   });
 
   it('should render page edit buttons', () => {
@@ -318,7 +320,7 @@ describe('Donation page delete', () => {
 });
 
 describe('Additional Info Setup', () => {
-  beforeEach(() => {
+  before(() => {
     cy.login('user/stripe-verified.json');
     cy.intercept(
       { method: 'GET', pathname: getEndpoint(FULL_PAGE) },
@@ -329,6 +331,7 @@ describe('Additional Info Setup', () => {
       { fixture: 'donations/contribution-metadata.json', statusCode: 200 }
     ).as('getContributionMeta');
     cy.visit('edit/my/page');
+    cy.url().should('include', 'edit/my/page');
     return cy.wait(['@getPage', '@getContributionMeta']);
   });
 
@@ -342,11 +345,13 @@ describe('Additional Info Setup', () => {
   it('should have two items available to add', () => {
     cy.get('#downshift-1-toggle-button').click();
     cy.get('#downshift-1-menu').find('li').should('have.length', 2);
+    // Cleanup
+    cy.get('#downshift-1-toggle-button').click();
   });
 
   it('click on one should add to additional-applied-info and remove chosen from dropdown', () => {
     cy.get('#downshift-1-toggle-button').click();
-    cy.get('li').first().contains('In Honor of').click();
+    cy.get('#downshift-1-menu').find('li').first().contains('In Honor of').click();
     cy.getByTestId('additional-info-applied').should('exist').contains('In Honor of');
     cy.get('#downshift-1-toggle-button').click();
     cy.get('#downshift-1-menu').find('li').should('have.length', 1);

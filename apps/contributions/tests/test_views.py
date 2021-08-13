@@ -568,9 +568,9 @@ class ProcessFlaggedContributionTest(APITestCase):
     def test_response_when_successful_reject(self, mock_process_flagged):
         response = self._make_request(contribution_pk=self.contribution.pk, request_args={"reject": True})
         self.assertEqual(response.status_code, 200)
-        mock_process_flagged.assert_called_with(reject=True)
+        mock_process_flagged.assert_called_with(reject="True")
 
     def test_response_when_successful_accept(self, mock_process_flagged):
         response = self._make_request(contribution_pk=self.contribution.pk, request_args={"reject": False})
         self.assertEqual(response.status_code, 200)
-        mock_process_flagged.assert_called_with(reject=False)
+        mock_process_flagged.assert_called_with(reject="False")

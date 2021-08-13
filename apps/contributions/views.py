@@ -222,7 +222,7 @@ def process_flagged(request, pk=None):
 
     try:
         contribution = Contribution.objects.get(pk=pk)
-        contribution.process_flagged_payment(reject=reject == "True")
+        contribution.process_flagged_payment(reject=reject)
     except Contribution.DoesNotExist:
         return Response({"detail": "Could not find contribution"}, status=status.HTTP_404_NOT_FOUND)
     except PaymentProviderError as pp_error:

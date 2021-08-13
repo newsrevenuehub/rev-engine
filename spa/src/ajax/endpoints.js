@@ -13,8 +13,7 @@ export const LIST_PAGES = 'pages/';
 export const PATCH_PAGE = 'pages/';
 export const DELETE_PAGE = 'pages/';
 
-// Donor benefits
-export const DONOR_BENEFITS = 'donor-benefits/';
+// Styles
 export const PAGE_STYLES = 'styles/';
 
 // Revenue Programs

@@ -1,4 +1,5 @@
 import * as S from './FrequencyEditor.styled';
+import { useTheme } from 'styled-components';
 // Context
 import { useEditInterfaceContext } from 'components/pageEditor/editInterface/EditInterface';
 
@@ -14,6 +15,7 @@ const NOT_ENOUGH_FREQS = `You must have at least ${MINIMUM_FREQUENCIES} frequenc
 } for your page to function properly`;
 
 function FrequencyEditor() {
+  const theme = useTheme();
   const { elementContent = [], setElementContent } = useEditInterfaceContext();
 
   const setToggled = (checked, frequency) => {
@@ -29,18 +31,40 @@ function FrequencyEditor() {
     setElementContent(content);
   };
 
+  const makeFreqDefault = (frequency) => {
+    const freqs = [...elementContent];
+    setElementContent(freqs.map((f) => ({ ...f, isDefault: f.value === frequency })));
+  };
+
   return (
     <S.FrequencyEditor data-testid="frequency-editor">
-      {FREQUENCIES.map((frequency) => (
-        <S.ToggleWrapper key={frequency.value}>
-          <S.Toggle
-            label={`${frequency.displayName} payments enabled`}
-            toggle
-            checked={getFrequencyState(frequency.value, elementContent)}
-            onChange={(_e, { checked }) => setToggled(checked, frequency.value)}
-          />
-        </S.ToggleWrapper>
-      ))}
+      {FREQUENCIES.map((frequency) => {
+        const thisFreq = elementContent.find((f) => f.value === frequency.value);
+        return (
+          <S.FieldSetWrapper>
+            <S.ToggleWrapper key={frequency.value}>
+              <S.Toggle
+                label={`${frequency.displayName} payments enabled`}
+                data-testid="frequency-toggle"
+                toggle
+                checked={getFrequencyState(frequency.value, elementContent)}
+                onChange={(_e, { checked }) => setToggled(checked, frequency.value)}
+              />
+            </S.ToggleWrapper>
+            <S.RadioWrapper>
+              <S.Radio
+                id={`${frequency.value}-default`}
+                data-testid={`frequency-default-${frequency.value}`}
+                type="checkbox"
+                color={theme.colors.primary}
+                checked={thisFreq?.isDefault}
+                onChange={() => makeFreqDefault(frequency.value)}
+              />
+              <S.RadioLabel htmlFor={`${frequency.value}-default`}>selected by default</S.RadioLabel>
+            </S.RadioWrapper>
+          </S.FieldSetWrapper>
+        );
+      })}
     </S.FrequencyEditor>
   );
 }

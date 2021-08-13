@@ -117,7 +117,22 @@ class BenefitLevelAdmin(RevEngineBaseAdmin):
 
 @admin.register(RevenueProgram)
 class RevenueProgramAdmin(RevEngineBaseAdmin):  # pragma: no cover
-    fieldsets = (("RevenueProgram", {"fields": ("name", "slug", "organization", "default_donation_page")}),)
+    fieldsets = (
+        (
+            "RevenueProgram",
+            {
+                "fields": (
+                    "name",
+                    "slug",
+                    "organization",
+                    "default_donation_page",
+                    "google_analytics_v3_domain",
+                    "google_analytics_v3_id",
+                    "google_analytics_v4_id",
+                )
+            },
+        ),
+    )
 
     list_display = ["name", "slug"]
 

@@ -3,8 +3,29 @@ from pathlib import Path
 from django.contrib import admin
 
 from apps.common.admin import RevEngineBaseAdmin
-from apps.organizations.models import Feature, Organization, Plan, RevenueProgram
+from apps.organizations.models import (
+    Benefit,
+    BenefitLevel,
+    Feature,
+    Organization,
+    Plan,
+    RevenueProgram,
+)
 from apps.users.admin import UserOrganizationInline
+
+
+class RevenueProgramBenefitLevelInline(admin.TabularInline):
+    model = RevenueProgram.benefit_levels.through
+    verbose_name = "Benefit level"
+    verbose_name_plural = "Benefit levels"
+    extra = 0
+
+
+class BenefitLevelBenefit(admin.TabularInline):
+    model = BenefitLevel.benefits.through
+    verbose_name = "Benefit"
+    verbose_name_plural = "Benefits"
+    extra = 0
 
 
 @admin.register(Organization)
@@ -64,6 +85,36 @@ class OrganizationAdmin(RevEngineBaseAdmin):  # pragma: no cover
         return ["name", "slug"]
 
 
+@admin.register(Benefit)
+class BenefitAdmin(RevEngineBaseAdmin):
+    list_display = ["name", "description", "organization"]
+
+    list_filter = ["organization"]
+
+    fieldsets = ((None, {"fields": ("name", "description", "organization")}),)
+
+
+@admin.register(BenefitLevel)
+class BenefitLevelAdmin(RevEngineBaseAdmin):
+    list_display = ["name", "donation_range", "organization"]
+
+    list_filter = ["organization"]
+
+    fieldsets = (
+        (
+            None,
+            {
+                "fields": ("name", "currency", "lower_limit", "upper_limit", "organization"),
+            },
+        ),
+    )
+
+    # currency is readonly for now, since we don't support intl currencies
+    readonly_fields = ["currency"]
+
+    inlines = [BenefitLevelBenefit]
+
+
 @admin.register(RevenueProgram)
 class RevenueProgramAdmin(RevEngineBaseAdmin):  # pragma: no cover
     fieldsets = (
@@ -86,6 +137,8 @@ class RevenueProgramAdmin(RevEngineBaseAdmin):  # pragma: no cover
     list_display = ["name", "slug"]
 
     list_filter = ["name"]
+
+    inlines = [RevenueProgramBenefitLevelInline]
 
     def get_readonly_fields(self, request, obj=None):
         if Path(request.path).parts[-1] == "add":

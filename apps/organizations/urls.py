@@ -9,6 +9,5 @@ router = routers.DefaultRouter()
 router.register(r"features", views.FeatureViewSet, basename="feature")
 router.register(r"organizations", views.OrganizationViewSet, basename="organization")
 router.register(r"plans", views.PlanViewSet, basename="plan")
-router.register(r"revenue-programs", views.RevenueProgramViewSet, basename="revenueprogram")
 
 urlpatterns = [path("", include(router.urls))]

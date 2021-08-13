@@ -30,13 +30,6 @@ class AbstractPage(IndexedTimeStampedModel):
     elements = models.JSONField(null=True, blank=True, default=list)
     sidebar_elements = models.JSONField(null=True, blank=True, default=list)
 
-    donor_benefits = models.ForeignKey(
-        "pages.DonorBenefit",
-        null=True,
-        blank=True,
-        on_delete=models.SET_NULL,
-    )
-
     thank_you_redirect = models.URLField(
         blank=True, help_text="If not using default Thank You page, add link to orgs Thank You page here"
     )
@@ -180,46 +173,6 @@ class Style(IndexedTimeStampedModel):
     name = models.CharField(max_length=255)
     organization = models.ForeignKey("organizations.Organization", on_delete=models.CASCADE)
     styles = models.JSONField()
-
-    def __str__(self):
-        return self.name
-
-    class Meta:
-        unique_together = (
-            "name",
-            "organization",
-        )
-
-
-class DonorBenefit(IndexedTimeStampedModel):
-    name = models.CharField(max_length=255)
-    blurb = models.TextField(blank=True)
-    tiers = models.ManyToManyField("pages.BenefitTier")
-    organization = models.ForeignKey("organizations.Organization", on_delete=models.CASCADE)
-
-    def __str__(self):
-        return self.name
-
-    class Meta:
-        unique_together = (
-            "name",
-            "organization",
-        )
-
-
-class BenefitTier(IndexedTimeStampedModel):
-    name = models.CharField(max_length=255)
-    description = models.CharField(max_length=255, blank=True)
-    benefits = models.ManyToManyField("pages.Benefit")
-    organization = models.ForeignKey("organizations.Organization", on_delete=models.CASCADE)
-
-    def __str__(self):
-        return self.name
-
-
-class Benefit(IndexedTimeStampedModel):
-    name = models.CharField(max_length=255)
-    organization = models.ForeignKey("organizations.Organization", on_delete=models.CASCADE)
 
     def __str__(self):
         return self.name

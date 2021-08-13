@@ -34,10 +34,8 @@ export const AnalyticsContextWrapper = ({ children }) => {
   };
 
   useEffect(() => {
-    // what if plugins have changed and need diff instance?
     if (analyticsConfig && !analyticsInstance) {
       const { hubGaV3Id, orgGaV3Id, orgGaV3Domain, orgGaV4Id, orgFbPixelId } = analyticsConfig;
-      debugger;
       const plugins = getAnalyticsPlugins(hubGaV3Id, orgGaV3Id, orgGaV3Domain, orgGaV4Id, orgFbPixelId);
       const analytics = Analytics({ app: HUB_ANALYTICS_APP_NAME, plugins });
       setAnalyticsInstance(analytics);

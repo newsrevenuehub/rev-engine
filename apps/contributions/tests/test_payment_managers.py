@@ -484,3 +484,19 @@ class StripeRecurringPaymentManagerTest(StripePaymentManagerAbstractTestCase):
         # It should raise a ValueError if instantiated with data but not validated
         pm_v = self._instantiate_payment_manager_with_data()
         self.assertRaises(ValueError, pm_v.get_donation_page)
+
+    def test_get_donation_page_should_work_with_default_donation_page(self, *args):
+        """
+        Further strengthen the get_donation_page method by ensuring that it can be called without a page slug.
+        """
+        # Set default page on rev program
+        self.revenue_program.default_donation_page = self.page
+        self.revenue_program.save()
+
+        # Remove page_slug from params
+        data = self.data
+        data["donation_page_slug"] = ""
+        pm = self._instantiate_payment_manager_with_data(data=data)
+        pm.validate()
+        donation_page = pm.get_donation_page()
+        self.assertIsNotNone(donation_page)

@@ -1,3 +1,4 @@
+from django.core.exceptions import ValidationError
 from django.test import TestCase
 from django.utils.text import slugify
 
@@ -56,3 +57,30 @@ class RevenueProgramTest(TestCase):
         org = self.instance.organization
         org.delete()
         assert len(self.model_class.objects.all()) == 0
+
+
+class BenefitLevelTest(TestCase):
+    def setUp(self):
+        self.lower_limit = 50
+        self.upper_limit = 100
+        self.benefit_level = factories.BenefitLevelFactory(
+            upper_limit=self.upper_limit,
+            lower_limit=self.lower_limit,
+        )
+
+    def test_donation_range_when_normal(self):
+        self.assertEqual(
+            self.benefit_level.donation_range, f"${self.benefit_level.lower_limit}-{self.benefit_level.upper_limit}"
+        )
+
+    def test_donation_range_when_no_upper(self):
+        self.benefit_level.upper_limit = None
+        self.benefit_level.save()
+        self.assertEqual(self.benefit_level.donation_range, f"${self.benefit_level.lower_limit}+")
+
+    def test_upper_lower_limit_validation(self):
+        self.benefit_level.upper_limit = self.benefit_level.lower_limit - 1
+        with self.assertRaises(ValidationError) as v_error:
+            self.benefit_level.clean()
+
+        self.assertEqual(v_error.exception.message, "Upper limit must be greater than lower limit")

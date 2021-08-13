@@ -9,9 +9,11 @@ import lighten from 'styles/utils/lighten';
 
 export const AmountEditor = styled.div``;
 
-export const HelpText = styled(BaseHelpText)`
-  text-align: center;
+export const HelpTexts = styled.div`
+  margin: 2rem 3rem 2rem 6rem;
 `;
+
+export const HelpText = styled(BaseHelpText)``;
 
 export const FrequenciesList = styled.ul`
   padding: 0;

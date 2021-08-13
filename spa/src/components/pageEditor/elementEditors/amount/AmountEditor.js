@@ -73,7 +73,10 @@ function AmountEditor() {
 
   return (
     <S.AmountEditor data-testid="amount-editor">
-      <S.HelpText>Highlighted amounts will be selected by default</S.HelpText>
+      <S.HelpTexts>
+        <S.HelpText>Click an amount to set a default value</S.HelpText>
+        <S.HelpText>Highlighted amounts will be selected by default on live donation pages</S.HelpText>
+      </S.HelpTexts>
       <S.FrequenciesList>
         {frequencies ? (
           frequencies.map((freq) => {

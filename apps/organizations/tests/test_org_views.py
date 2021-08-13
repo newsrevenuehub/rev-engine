@@ -5,7 +5,7 @@ from rest_framework.reverse import reverse
 from rest_framework.test import APITestCase
 
 from apps.common.tests.test_resources import AbstractTestCase
-from apps.organizations.models import Feature, Organization, Plan
+from apps.organizations.models import Feature, Organization, Plan, RevenueProgram
 from apps.organizations.tests.factories import (
     FeatureFactory,
     OrganizationFactory,
@@ -96,74 +96,63 @@ class OrganziationStripeAccountIdActionTest(APITestCase):
         self.assertEqual(response.data["stripe_account_id"], target_stripe_account_id)
 
 
-# Let's keep this code around for a bit. We've removed the RevenueProgramViewset for now, but eventually
-# we'll want it back in some form. There may be something useful to keep in this testcase
-# class RevenueProgramViewSetTest(AbstractTestCase):
-#     model = RevenueProgram
-#     model_factory = RevenueProgramFactory
+class RevenueProgramViewSetTest(AbstractTestCase):
+    model = RevenueProgram
+    model_factory = RevenueProgramFactory
 
-#     def setUp(self):
-#         super().setUp()
-#         self.list_url = reverse("revenueprogram-list")
-#         self.detail_url = "/api/v1/revenue-programs"
-#         self.create_resources()
+    def setUp(self):
+        super().setUp()
+        self.list_url = reverse("revenue-program-list")
+        self.detail_url = "/api/v1/revenue-programs"
+        self.create_resources()
 
-#     def create_resources(self):
-#         self.orgs = Organization.objects.all()
-#         for i in range(self.resource_count):
-#             org_num = 0 if i % 2 == 0 else 1
-#             self.model_factory.create(organization=self.orgs[org_num])
-#         self.resources = self.model.objects.all()
+    def create_resources(self):
+        self.orgs = Organization.objects.all()
+        for i in range(self.resource_count):
+            org_num = 0 if i % 2 == 0 else 1
+            self.model_factory.create(organization=self.orgs[org_num])
+        self.resources = self.model.objects.all()
 
-#     def test_reverse_works(self):
-#         self.login()
-#         response = self.client.get(self.list_url)
-#         self.assertEqual(response.status_code, 200)
+    def test_reverse_works(self):
+        self.login()
+        response = self.client.get(self.list_url)
+        self.assertEqual(response.status_code, 200)
 
-#     def test_list_returns_expected_count(self):
-#         revp = self.resources[0]
-#         self.authenticate_user_for_resource(revp)
-#         self.login()
-#         response = self.client.get(self.list_url)
-#         self.assertEqual(response.status_code, 200)
-#         self.assertEqual(response.json()["count"], 3)
+    def test_list_returns_expected_count(self):
+        revp = self.resources[0]
+        self.authenticate_user_for_resource(revp)
+        self.login()
+        response = self.client.get(self.list_url)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["count"], 5)
 
-#     def test_created_and_list_are_equivalent(self):
-#         revp = self.resources[0]
-#         self.authenticate_user_for_resource(revp)
-#         self.login()
-#         response = self.client.get(self.list_url)
-#         self.assertEqual(response.status_code, 200)
-#         self.assertEqual(
-#             [x["id"] for x in response.json()["results"]],
-#             [x for x in RevenueProgram.objects.filter(organization=self.orgs[0]).values_list("pk", flat=True)],
-#         )
+    def test_created_and_list_are_equivalent(self):
+        revp = self.resources[0]
+        self.authenticate_user_for_resource(revp)
+        self.login()
+        response = self.client.get(self.list_url)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            [x["id"] for x in response.json()["results"]],
+            [x for x in RevenueProgram.objects.all().values_list("pk", flat=True)],
+        )
 
-#     def test_revenue_program_create_add_program(self):
-#         revp = self.resources[0]
-#         self.authenticate_user_for_resource(revp)
-#         self.login()
-#         response = self.client.post(self.list_url, {"name": "New RevenueProgram", "organization": self.orgs[0].pk})
-#         self.assertEqual(response.status_code, 201)
-#         self.assertEqual(RevenueProgram.objects.count(), self.resource_count + 1)
+    def test_viewset_is_readonly(self):
+        """
+        For now, revprogram viewset is readonly. Test to make sure we don't accidentally change that.
+        """
+        rp = RevenueProgram.objects.all().first()
+        self.authenticate_user_for_resource(rp)
+        self.login()
+        new_name = "A New RevenueProgram Name"
 
-#     def test_cannot_update_revenue_program_name(self):
-#         rp = RevenueProgram.objects.all().first()
-#         self.authenticate_user_for_resource(rp)
-#         self.login()
-#         new_name = "A New RevenueProgram Name"
-#         response = self.client.patch(f"{self.detail_url}/{rp.pk}/", {"name": new_name})
-#         self.assertEqual(response.status_code, 200)
-#         self.assertNotEqual(response.data["name"], new_name)
+        # Method PATCH Not Allowed
+        response = self.client.patch(f"{self.detail_url}/{rp.pk}/", {"name": new_name})
+        self.assertEqual(response.status_code, 405)
 
-#     def test_cannot_update_revenue_program_slug(self):
-#         rp = RevenueProgram.objects.all().first()
-#         self.authenticate_user_for_resource(rp)
-#         self.login()
-#         new_slug = "a-new-slug"
-#         response = self.client.patch(f"{self.detail_url}/{rp.pk}/", {"name": new_slug})
-#         self.assertEqual(response.status_code, 200)
-#         self.assertNotEqual(response.data["slug"], new_slug)
+        # Method POST Not Allowed
+        response = self.client.post(self.list_url, {"name": "New RevenueProgram", "organization": self.orgs[0].pk})
+        self.assertEqual(response.status_code, 405)
 
 
 class PlanViewSetTest(APITestCase):

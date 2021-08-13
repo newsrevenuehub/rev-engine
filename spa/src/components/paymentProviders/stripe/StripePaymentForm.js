@@ -30,17 +30,7 @@ const STRIPE_PAYMENT_REQUEST_LABEL = 'RevEngine Donation';
 
 function StripePaymentForm({ loading, setLoading, offerPayFees }) {
   const { url, params } = useRouteMatch();
-  const {
-    page,
-    amount,
-    frequency,
-    payFee,
-    formRef,
-    errors,
-    setErrors,
-    trackDonation,
-    salesforceCampaignId
-  } = usePage();
+  const { page, amount, frequency, payFee, formRef, errors, setErrors, salesforceCampaignId } = usePage();
 
   const [succeeded, setSucceeded] = useState(false);
   const [disabled, setDisabled] = useState(true);
@@ -65,12 +55,10 @@ function StripePaymentForm({ loading, setLoading, offerPayFees }) {
    * Handle Error and Success *
   \****************************/
   const handlePaymentSuccess = (pr) => {
-    debugger;
     if (pr) pr.complete('success');
     setErrors({});
     setLoading(false);
     setSucceeded(true);
-    trackDonation(30);
     if (page.thank_you_redirect) {
       window.location = page.thank_you_redirect;
     } else {

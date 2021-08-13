@@ -2,5 +2,7 @@
 {
   "baseUrl": "http://localhost:3000",
   "videoUploadOnPasses": false,
-  "chromeWebSecurity": false
+  "chromeWebSecurity": false,
+  "componentFolder": "src/components",
+  "testFiles": "**/*spec.js"
 }

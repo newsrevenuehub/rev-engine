@@ -1,4 +1,4 @@
-import { useState, useContext, createContext, useCallback } from 'react';
+import { useState, useContext, createContext, useCallback, useEffect } from 'react';
 
 import * as S from './Main.styled';
 
@@ -17,6 +17,10 @@ import { LS_USER } from 'constants/authConstants';
 // Children
 import Dashboard from 'components/dashboard/Dashboard';
 
+// Analytics
+import { useAnalyticsContext } from './analytics/AnalyticsContext';
+import { HUB_GA_V3_ID } from 'constants/analyticsConstants';
+
 const OrganizationContext = createContext(null);
 
 function Main() {
@@ -32,6 +36,12 @@ function Main() {
     setCheckingProvider(false);
   }, []);
 
+  const { setAnalyticsConfig } = useAnalyticsContext();
+
+  useEffect(() => {
+    setAnalyticsConfig({ hubGaV3Id: HUB_GA_V3_ID });
+  });
+
   return (
     <OrganizationContext.Provider
       value={{
@@ -41,17 +51,15 @@ function Main() {
         setCheckingProvider
       }}
     >
-      <>
-        <S.Main>
-          <S.MainContent>
-            <Switch>
-              <Route path={MAIN_CONTENT_SLUG}>
-                <Dashboard />
-              </Route>
-            </Switch>
-          </S.MainContent>
-        </S.Main>
-      </>
+      <S.Main>
+        <S.MainContent>
+          <Switch>
+            <Route path={MAIN_CONTENT_SLUG}>
+              <Dashboard />
+            </Route>
+          </Switch>
+        </S.MainContent>
+      </S.Main>
     </OrganizationContext.Provider>
   );
 }

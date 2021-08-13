@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import * as S from './ContributorEntry.styled';
 
 import { GENERIC_ERROR } from 'constants/textConstants';
@@ -11,6 +11,10 @@ import { GET_MAGIC_LINK } from 'ajax/endpoints';
 // Children
 import Input from 'elements/inputs/Input';
 
+// Analytics
+import { useAnalyticsContext } from 'components/analytics/AnalyticsContext';
+import { HUB_GA_V3_ID } from 'constants/analyticsConstants';
+
 function ContributorEntry() {
   const alert = useAlert();
   const [email, setEmail] = useState('');
@@ -18,6 +22,11 @@ function ContributorEntry() {
   const [errors, setErrors] = useState({});
 
   const [showConfirmation, setShowConfirmation] = useState(false);
+  const { setAnalyticsConfig } = useAnalyticsContext();
+
+  useEffect(() => {
+    setAnalyticsConfig({ hubGaV3Id: HUB_GA_V3_ID });
+  }, []);
 
   const handleSendMagicLink = async (e) => {
     e.preventDefault();

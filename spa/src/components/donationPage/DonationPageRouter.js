@@ -7,6 +7,10 @@ import { FULL_PAGE } from 'ajax/endpoints';
 // Router
 import { useParams } from 'react-router-dom';
 
+// Analytics
+import { useAnalyticsContext } from 'components/analytics/AnalyticsContext';
+import { HUB_GA_V3_ID } from 'constants/analyticsConstants';
+
 // Children
 import SegregatedStyles from 'components/donationPage/SegregatedStyles';
 import LiveLoading from 'components/donationPage/live/LiveLoading';
@@ -48,10 +52,11 @@ const livePageReducer = (state, action) => {
   }
 };
 
-function DonationPageRouter({ setOrgAnalytics, trackDonation }) {
+function DonationPageRouter() {
   const [{ loading, error, data }, dispatch] = useReducer(livePageReducer, initialState);
   const params = useParams();
   const requestFullPage = useRequest();
+  const { setAnalyticsConfig, trackDonation } = useAnalyticsContext();
 
   const fetchLivePageContent = useCallback(async () => {
     dispatch({ type: PAGE_FETCH_START });
@@ -73,9 +78,9 @@ function DonationPageRouter({ setOrgAnalytics, trackDonation }) {
             google_analytics_v3_id: orgGaV3Id,
             google_analytics_v3_domain: orgGaDomain,
             google_analytics_v4_id: orgGaV4Id,
-            facebook_pixel_id: fbPixelId
+            facebook_pixel_id: orgFbPixelId
           } = data?.revenue_program;
-          setOrgAnalytics(orgGaV3Id, orgGaDomain, orgGaV4Id, fbPixelId);
+          setAnalyticsConfig({ hubGaV3Id: HUB_GA_V3_ID, orgGaV3Id, orgGaDomain, orgGaV4Id, orgFbPixelId });
           dispatch({ type: PAGE_FETCH_SUCCESS, payload: data });
         },
         onFailure: () => dispatch({ type: PAGE_FETCH_ERROR })

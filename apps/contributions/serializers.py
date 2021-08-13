@@ -184,7 +184,7 @@ class AbstractPaymentSerializer(serializers.Serializer):
     # These are used to attach the contribution to the right organization,
     # and associate it with the page it came from.
     revenue_program_slug = serializers.SlugField()
-    donation_page_slug = serializers.SlugField(required=False)
+    donation_page_slug = serializers.SlugField(required=False, allow_blank=True)
 
     @classmethod
     def convert_cents_to_amount(self, cents):

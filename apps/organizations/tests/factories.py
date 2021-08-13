@@ -32,6 +32,7 @@ class OrganizationFactory(DjangoModelFactory):
 
     name = factory.Sequence(lambda n: f"{fake.company()}-{str(n)}")
     stripe_account_id = fake.uuid4()
+    contact_email = fake.email()
 
 
 class RevenueProgramFactory(DjangoModelFactory):

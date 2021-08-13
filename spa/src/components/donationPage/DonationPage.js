@@ -11,6 +11,10 @@ import { getDefaultAmount } from 'components/donationPage/pageContent/DAmount';
 // Deps
 import queryString from 'query-string';
 
+// Children
+import DonationPageStaticText from 'components/donationPage/DonationPageStaticText';
+import DonationPageFooter from 'components/donationPage/DonationPageFooter';
+
 const SALESFORCE_CAMPAIGN_ID_QUERYPARAM = process.env.REACT_APP_SALESFORCE_CAMPAIGN_ID_QUERYPARAM || 'campaign';
 const AMOUNT_QUERYPARAM = process.env.REACT_APP_AMOUNT_QUERYPARAM || 'amount';
 const FREQUENCY_QUERYPARAM = process.env.REACT_APP_FREQUENCY_QUERYPARAM || 'frequency';
@@ -113,11 +117,13 @@ function DonationPage({ page, live = false }) {
                     {page?.elements?.map((element) => getters.getDynamicElement(element, live))}
                   </S.PageElements>
                 </form>
+                <DonationPageStaticText page={page} frequency={frequency} amount={amount} payFee={payFee} />
               </S.DonationContent>
             </S.SideInner>
           </S.SideOuter>
           {page.donor_benefits && getters.getBenefitsElement()}
         </S.PageMain>
+        <DonationPageFooter page={page} />
       </S.DonationPage>
     </DonationPageContext.Provider>
   );

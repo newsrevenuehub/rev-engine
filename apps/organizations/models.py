@@ -13,7 +13,6 @@ from apps.common.utils import normalize_slug
 from apps.contributions.utils import get_hub_stripe_api_key
 
 
-# 50, 66, 108, 117->exit, 162, 172-173, 176-177, 194, 203, 227, 239, 243-244, 258
 
 
 logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")

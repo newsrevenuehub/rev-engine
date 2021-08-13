@@ -4,7 +4,18 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { baseInputStyles } from 'elements/inputs/BaseField.styled';
 import { Radio as SemanticRadio } from 'semantic-ui-react';
 
-export const AmountEditor = styled.ul`
+import { HelpText as BaseHelpText } from 'elements/inputs/BaseField.styled';
+import lighten from 'styles/utils/lighten';
+
+export const AmountEditor = styled.div``;
+
+export const HelpTexts = styled.div`
+  margin: 2rem 3rem 2rem 6rem;
+`;
+
+export const HelpText = styled(BaseHelpText)``;
+
+export const FrequenciesList = styled.ul`
   padding: 0;
   margin: 0;
   list-style: none;
@@ -43,10 +54,13 @@ export const AmountItem = styled.li`
   justify-content: space-between;
 
   border-radius: 6px;
-  background: ${(props) => props.theme.colors.fieldBackground};
+  background: ${(props) =>
+    props.isDefault ? lighten(props.theme.colors.primary, 30) : props.theme.colors.fieldBackground};
   margin: 1rem;
   font-weight: bold;
   color: ${(props) => props.theme.colors.grey[3]};
+
+  cursor: ${(props) => (props.isDefault ? 'auto' : 'pointer')};
 `;
 
 export const RemoveAmount = styled(FontAwesomeIcon)`

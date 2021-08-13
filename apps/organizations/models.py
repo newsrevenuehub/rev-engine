@@ -13,9 +13,6 @@ from apps.common.utils import normalize_slug
 from apps.contributions.utils import get_hub_stripe_api_key
 
 
-# 50, 66, 108, 117->exit, 162, 172-173, 176-177, 194, 203, 227, 239, 243-244, 258
-
-
 logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
 
 
@@ -236,6 +233,9 @@ class RevenueProgram(IndexedTimeStampedModel):
     slug = models.SlugField(max_length=100, blank=True, unique=True)
     organization = models.ForeignKey("organizations.Organization", on_delete=models.CASCADE)
     default_donation_page = models.ForeignKey("pages.DonationPage", null=True, blank=True, on_delete=models.SET_NULL)
+    google_analytics_v3_domain = models.CharField(max_length=300, null=True, blank=True)
+    google_analytics_v3_id = models.CharField(max_length=50, null=True, blank=True)
+    google_analytics_v4_id = models.CharField(max_length=50, null=True, blank=True)
 
     benefit_levels = models.ManyToManyField(BenefitLevel, through=RevenueProgramBenefitLevel)
 

@@ -38,7 +38,7 @@ describe('Donations list', () => {
           transform: (rawVal) => (rawVal ? formatCurrencyAmount(rawVal) : NO_VALUE)
         },
         {
-          renderedName: 'Payment recieved',
+          renderedName: 'Payment received',
           rawName: 'last_payment_date',
           transform: (rawVal) => (rawVal ? formatDatetimeForDisplay(rawVal) : NO_VALUE)
         },

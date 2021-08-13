@@ -91,7 +91,7 @@ function Donations() {
         Cell: (props) => (props.value ? formatCurrencyAmount(props.value) : NO_VALUE)
       },
       {
-        Header: 'Payment recieved',
+        Header: 'Payment received',
         accessor: 'last_payment_date',
         Cell: (props) => (props.value ? formatDatetimeForDisplay(props.value) : NO_VALUE)
       },

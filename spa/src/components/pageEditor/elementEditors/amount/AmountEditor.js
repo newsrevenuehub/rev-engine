@@ -40,7 +40,8 @@ function AmountEditor() {
     setNewAmounts({ ...newAmounts, [freq]: '' });
   };
 
-  const removeAmount = ({ value: freq }, amount) => {
+  const removeAmount = (e, freq, amount) => {
+    e.stopPropagation();
     const amountsWithout = [...elementContent.options[freq].filter((a) => a !== amount)];
     if (amountsWithout.length === 0) return;
     setElementContent({
@@ -60,48 +61,73 @@ function AmountEditor() {
     }
   };
 
+  const makeAmountDefault = (freq, amount) => {
+    setElementContent({
+      ...elementContent,
+      defaults: {
+        ...(elementContent?.defaults || {}),
+        [freq]: amount
+      }
+    });
+  };
+
   return (
     <S.AmountEditor data-testid="amount-editor">
-      {frequencies ? (
-        frequencies.map((freq) => (
-          <S.FreqGroup key={freq.value}>
-            <S.FreqHeading>{freq.displayName}</S.FreqHeading>
-            <S.AmountsList>
-              {elementContent?.options[freq.value]
-                ?.sort((a, b) => a - b)
-                .map((amount, i) => (
-                  <S.AmountItem key={amount + i}>
-                    {amount}
-                    <XButton onClick={() => removeAmount(freq, amount)} />
-                  </S.AmountItem>
-                ))}
-            </S.AmountsList>
-            <S.AmountInputGroup>
-              <S.AmountInput
-                type="number"
-                value={newAmounts[freq.value] || ''}
-                onChange={(e) => setNewAmounts({ ...newAmounts, [freq.value]: e.target.value })}
-                min="0"
-                onKeyUp={(e) => handleKeyUp(e, freq)}
-                data-testid="amount-input"
-              />
-              <PlusButton onClick={() => addAmount(freq)} data-testid="add-button" />
-            </S.AmountInputGroup>
-          </S.FreqGroup>
-        ))
-      ) : (
-        <S.NoFreqs>Add a Frequency element to your page to modify donation amounts</S.NoFreqs>
-      )}
-      <S.Toggles>
-        <S.ToggleWrapper>
-          <S.Toggle
-            label='Include "other" option'
-            checked={elementContent?.allowOther}
-            onChange={toggleAllowOther}
-            toggle
-          />
-        </S.ToggleWrapper>
-      </S.Toggles>
+      <S.HelpTexts>
+        <S.HelpText>Click an amount to set a default value</S.HelpText>
+        <S.HelpText>Highlighted amounts will be selected by default on live donation pages</S.HelpText>
+      </S.HelpTexts>
+      <S.FrequenciesList>
+        {frequencies ? (
+          frequencies.map((freq) => {
+            const defaults = elementContent?.defaults || {};
+            return (
+              <S.FreqGroup key={freq.value}>
+                <S.FreqHeading>{freq.displayName}</S.FreqHeading>
+                <S.AmountsList>
+                  {elementContent?.options[freq.value]
+                    ?.sort((a, b) => a - b)
+                    .map((amount, i) => {
+                      return (
+                        <S.AmountItem
+                          key={amount + i}
+                          onClick={() => makeAmountDefault(freq.value, amount)}
+                          isDefault={amountIsDefault(amount, freq.value, defaults)}
+                        >
+                          {amount}
+                          <XButton onClick={(e) => removeAmount(e, freq.value, amount)} />
+                        </S.AmountItem>
+                      );
+                    })}
+                </S.AmountsList>
+                <S.AmountInputGroup>
+                  <S.AmountInput
+                    type="number"
+                    value={newAmounts[freq.value] || ''}
+                    onChange={(e) => setNewAmounts({ ...newAmounts, [freq.value]: e.target.value })}
+                    min="0"
+                    onKeyUp={(e) => handleKeyUp(e, freq)}
+                    data-testid="amount-input"
+                  />
+                  <PlusButton onClick={() => addAmount(freq)} data-testid="add-button" />
+                </S.AmountInputGroup>
+              </S.FreqGroup>
+            );
+          })
+        ) : (
+          <S.NoFreqs>Add a Frequency element to your page to modify donation amounts</S.NoFreqs>
+        )}
+        <S.Toggles>
+          <S.ToggleWrapper>
+            <S.Toggle
+              label='Include "other" option'
+              checked={elementContent?.allowOther}
+              onChange={toggleAllowOther}
+              toggle
+            />
+          </S.ToggleWrapper>
+        </S.Toggles>
+      </S.FrequenciesList>
     </S.AmountEditor>
   );
 }
@@ -109,3 +135,8 @@ function AmountEditor() {
 AmountEditor.for = 'DAmount';
 
 export default AmountEditor;
+
+function amountIsDefault(amount, frequency, defaults) {
+  const defaultAmount = defaults[frequency];
+  if (defaultAmount) return parseFloat(amount) === parseFloat(defaultAmount);
+}

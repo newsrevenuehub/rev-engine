@@ -32,7 +32,6 @@ const App = () => {
 
 describe('OrgAndHubTrackedPage.trackDonation', () => {
   it('sends a donation and purchase event to Facebook Pixel when org has FB pixel id', () => {
-    const fbPixelInitUrl = new URL(`https://connect.facebook.net/signals/config/${FB_PIXEL_ID}}`);
     cy.intercept({
       hostname: FB_TRACK_URL.hostname,
       pathname: FB_TRACK_URL.pathname,

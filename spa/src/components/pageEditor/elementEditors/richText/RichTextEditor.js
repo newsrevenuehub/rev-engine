@@ -1,13 +1,13 @@
 import { useState } from 'react';
-// Deps
-import { convertFromHTML, ContentState, EditorState } from 'draft-js';
-import { DraftailEditor } from 'draftail';
-// import { convertFromHTML, convertToHTML } from 'draft-convert';
-import { stateToHTML } from 'draft-js-export-html';
-import 'draftail/dist/draftail.css';
+import * as S from './RichTextEditor.styled';
 
-// Constants
-import * as rtConfig from './config';
+// Draft.js etc
+import { Editor } from 'react-draft-wysiwyg';
+import 'react-draft-wysiwyg/dist/react-draft-wysiwyg.css';
+import { convertToRaw, ContentState, EditorState } from 'draft-js';
+import draftToHtml from 'draftjs-to-html';
+import htmlToDraft from 'html-to-draftjs';
+import richtextConfig from './config';
 
 // Context
 import { useEditInterfaceContext } from 'components/pageEditor/editInterface/EditInterface';
@@ -16,7 +16,7 @@ function RichTextEditor() {
   const { elementContent, setElementContent } = useEditInterfaceContext();
   const [editorState, setEditorState] = useState(() => {
     if (elementContent) {
-      const blocksFromHTML = convertFromHTML(elementContent);
+      const blocksFromHTML = htmlToDraft(elementContent);
       const state = ContentState.createFromBlockArray(blocksFromHTML.contentBlocks, blocksFromHTML.entityMap);
       return EditorState.createWithContent(state);
     }
@@ -24,27 +24,16 @@ function RichTextEditor() {
   });
 
   const handleEditorStateChange = (eState) => {
+    console.log('eState', eState.getCurrentContent());
+    console.log('html eState', draftToHtml(convertToRaw(eState.getCurrentContent())));
     setEditorState(eState);
-    setElementContent(stateToHTML(eState.getCurrentContent()));
+    setElementContent(draftToHtml(convertToRaw(eState.getCurrentContent())));
   };
 
   return (
-    <DraftailEditor
-      data-testid="rich-text-editor"
-      editorState={editorState}
-      onChange={handleEditorStateChange}
-      stripPastedStyles={false}
-      enableHorizontalRule={{
-        description: 'Horizontal rule'
-      }}
-      enableLineBreak={{
-        description: 'Soft line break',
-        icon: rtConfig.BR_ICON
-      }}
-      maxListNesting={6}
-      blockTypes={Object.values(rtConfig.BLOCK_CONTROL)}
-      inlineStyles={Object.values(rtConfig.INLINE_CONTROL)}
-    />
+    <S.RichTextEditorWrapper>
+      <Editor editorState={editorState} onEditorStateChange={handleEditorStateChange} toolbar={richtextConfig} />
+    </S.RichTextEditorWrapper>
   );
 }
 

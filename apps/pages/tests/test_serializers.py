@@ -80,7 +80,6 @@ class DonationPageFullDetailSerializerTest(APITestCase):
         self.organization.refresh_from_db()
         serializer = self.serializer(self.page)
         data = serializer.data
-
         self.assertIn("PO Box 321", data["organization_address"])
         self.assertIn("123 Fake Street", data["organization_address"])
         self.assertIn("San Francisco", data["organization_address"])

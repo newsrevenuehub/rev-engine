@@ -1,4 +1,4 @@
-import { DELETE_PAGE, FULL_PAGE, PATCH_PAGE, DONOR_BENEFITS, LIST_PAGES, CONTRIBUTION_META } from 'ajax/endpoints';
+import { DELETE_PAGE, FULL_PAGE, PATCH_PAGE, LIST_PAGES, CONTRIBUTION_META } from 'ajax/endpoints';
 import { getEndpoint } from '../support/util';
 import { getFrequencyAdjective } from 'utilities/parseFrequency';
 import { format } from 'date-fns';
@@ -12,12 +12,10 @@ describe('Donation page edit', () => {
     cy.intercept(
       { method: 'GET', pathname: getEndpoint(FULL_PAGE) },
       { fixture: 'pages/live-page-1', statusCode: 200 }
-    );
-    cy.intercept(
-      { method: 'GET', pathname: getEndpoint(DONOR_BENEFITS) },
-      { fixture: 'org/donor-benefits-1.json', statusCode: 200 }
-    );
+    ).as('getPage');
     cy.visit('edit/my/page');
+    cy.url().should('include', 'edit/my/page');
+    return cy.wait('@getPage');
   });
 
   it('should render page edit buttons', () => {
@@ -62,20 +60,26 @@ describe('Donation page edit', () => {
 
       it('should validate frequency', () => {
         // Uncheck all the frequencies
-        cy.getByTestId('frequency-editor').find('li').click({ multiple: true });
+        cy.getByTestId('frequency-toggle').click({ multiple: true });
         cy.getByTestId('keep-element-changes-button').click();
         cy.getByTestId('alert').contains('You must have at least');
       });
 
       it('should accept valid input and changes should show on page', () => {
         // Now check one and accept
-        cy.getByTestId('frequency-editor').find('li').first().click();
+        cy.getByTestId('frequency-toggle').contains('One time').click();
         cy.getByTestId('keep-element-changes-button').click();
 
         // Donation page should only show item checked, and nothing else.
         cy.getByTestId('d-frequency').contains('One time');
         cy.getByTestId('d-frequency').should('not.contain', 'Monthly');
         cy.getByTestId('d-frequency').should('not.contain', 'Yearly');
+
+        // Cleanup
+        cy.contains('Donation frequency').click();
+        cy.getByTestId('frequency-toggle').contains('Monthly').click();
+        cy.getByTestId('frequency-toggle').contains('Yearly').click();
+        cy.getByTestId('keep-element-changes-button').click();
       });
     });
   });
@@ -207,7 +211,7 @@ describe('Donation page edit', () => {
       cy.visit('edit/my/page');
       cy.wait('@getPageDetail');
       cy.getByTestId('edit-page-button').click();
-      cy.getByTestId('setup-tab').click();
+      cy.getByTestId('setup-tab').click({ force: true });
       cy.getByTestId('logo-link-input').type('not a valid url');
       cy.getByTestId('keep-element-changes-button').click();
 
@@ -327,7 +331,8 @@ describe('Additional Info Setup', () => {
       { fixture: 'donations/contribution-metadata.json', statusCode: 200 }
     ).as('getContributionMeta');
     cy.visit('edit/my/page');
-    return cy.wait('@getPage');
+    cy.url().should('include', 'edit/my/page');
+    return cy.wait(['@getPage', '@getContributionMeta']);
   });
 
   it('additional-info-applied should be empty', () => {
@@ -340,14 +345,14 @@ describe('Additional Info Setup', () => {
   it('should have two items available to add', () => {
     cy.get('#downshift-1-toggle-button').click();
     cy.get('#downshift-1-menu').find('li').should('have.length', 2);
+    // Cleanup
+    cy.get('#downshift-1-toggle-button').click();
   });
 
-  it('click on one should add to additional-applied-info', () => {
-    cy.get('li').first().contains('In Honor of').click();
+  it('click on one should add to additional-applied-info and remove chosen from dropdown', () => {
+    cy.get('#downshift-1-toggle-button').click();
+    cy.get('#downshift-1-menu').find('li').first().contains('In Honor of').click();
     cy.getByTestId('additional-info-applied').should('exist').contains('In Honor of');
-  });
-
-  it('should now only have one item available to add', () => {
     cy.get('#downshift-1-toggle-button').click();
     cy.get('#downshift-1-menu').find('li').should('have.length', 1);
   });

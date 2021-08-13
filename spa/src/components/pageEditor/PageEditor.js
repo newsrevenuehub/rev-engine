@@ -43,6 +43,8 @@ import SegregatedStyles from 'components/donationPage/SegregatedStyles';
 import DonationPage from 'components/donationPage/DonationPage';
 import GlobalLoading from 'elements/GlobalLoading';
 import EditInterface from 'components/pageEditor/editInterface/EditInterface';
+import { useAnalyticsContext } from 'components/analytics/AnalyticsContext';
+import { HUB_GA_V3_ID } from 'constants/analyticsConstants';
 
 const PageEditorContext = createContext();
 
@@ -95,6 +97,12 @@ function PageEditor() {
   const requestPageDeletion = useRequest();
 
   const history = useHistory();
+
+  const { setAnalyticsConfig } = useAnalyticsContext();
+
+  useEffect(() => {
+    setAnalyticsConfig({ hubGaV3Id: HUB_GA_V3_ID });
+  }, []);
 
   useEffect(() => {
     setLoading(true);

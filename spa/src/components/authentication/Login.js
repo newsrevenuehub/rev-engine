@@ -1,4 +1,4 @@
-import { useState, useReducer } from 'react';
+import { useState, useReducer, useEffect } from 'react';
 import * as S from './Login.styled';
 
 // AJAX
@@ -19,12 +19,22 @@ import { PASSWORD_RESET_URL } from 'constants/authConstants';
 import Input from 'elements/inputs/Input';
 import FormErrors from 'elements/inputs/FormErrors';
 
+// Analytics
+import { useAnalyticsContext } from 'components/analytics/AnalyticsContext';
+import { HUB_GA_V3_ID } from 'constants/analyticsConstants';
+
 function Login({ onSuccess, message }) {
   const history = useHistory();
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [{ loading, errors }, dispatch] = useReducer(fetchReducer, initialState);
+
+  const { setAnalyticsConfig } = useAnalyticsContext();
+
+  useEffect(() => {
+    setAnalyticsConfig({ hubGaV3Id: HUB_GA_V3_ID });
+  }, [setAnalyticsConfig]);
 
   const handlePostLogin = () => {
     if (onSuccess) onSuccess();

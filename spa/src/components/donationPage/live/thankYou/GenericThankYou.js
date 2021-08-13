@@ -5,17 +5,21 @@ import SegregatedStyles from 'components/donationPage/SegregatedStyles';
 import { useLocation } from 'react-router-dom';
 import { useEffect } from 'react';
 
-function GenericThankYou({ setOrgAnalytics }) {
-  const { state: routedState } = useLocation();
+// Analytics
+import { useAnalyticsContext } from 'components/analytics/AnalyticsContext';
+import { HUB_GA_V3_ID } from 'constants/analyticsConstants';
 
+function GenericThankYou() {
+  const { state: routedState } = useLocation();
+  const { setAnalyticsConfig } = useAnalyticsContext();
   const orgGaV3Domain = routedState?.page?.revenue_program?.google_analytics_v3_domain;
   const orgGaV3Id = routedState?.page?.revenue_program?.google_analytics_v3_id;
   const orgGaV4Id = routedState?.page?.revenue_program?.google_analytics_v4_id;
-  const fbPixelId = routedState?.page?.revenue_program?.facebook_pixel_id;
+  const orgFbPixelId = routedState?.page?.revenue_program?.facebook_pixel_id;
 
   useEffect(() => {
-    setOrgAnalytics(orgGaV3Id, orgGaV3Domain, orgGaV4Id, fbPixelId);
-  }, [orgGaV3Domain, orgGaV3Id, orgGaV4Id, fbPixelId]);
+    setAnalyticsConfig({ hubGaV3Id: HUB_GA_V3_ID, orgGaV3Id, orgGaV3Domain, orgGaV4Id, orgFbPixelId });
+  }, [orgGaV3Domain, orgGaV3Id, orgGaV4Id, orgFbPixelId]);
 
   return (
     <SegregatedStyles>

@@ -16,11 +16,20 @@ import { LS_CONTRIBUTOR, LS_CSRF_TOKEN } from 'constants/authConstants';
 // Children
 import GlobalLoading from 'elements/GlobalLoading';
 
+// Analytics
+import { useAnalyticsContext } from 'components/analytics/AnalyticsContext';
+import { HUB_GA_V3_ID } from 'constants/analyticsConstants';
+
 function ContributorVerify() {
   const history = useHistory();
   const location = useLocation();
 
   const [couldNotVerify, setCouldNotVerify] = useState(false);
+
+  const { setAnalyticsConfig } = useAnalyticsContext();
+  useEffect(() => {
+    setAnalyticsConfig({ hubGaV3Id: HUB_GA_V3_ID });
+  }, []);
 
   const handleVerifySuccess = useCallback(
     (response) => {

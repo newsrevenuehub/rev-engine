@@ -352,11 +352,17 @@ describe('Additional Info Setup', () => {
   });
 
   it('should have two items available to add', () => {
+    cy.getByTestId('edit-page-button').click();
+    cy.getByTestId('layout-tab').click();
+    cy.getByTestId('edit-interface-item').contains('Additional').click();
     cy.get('#downshift-1-toggle-button').click();
     cy.get('#downshift-1-menu').find('li').should('have.length', 2);
   });
 
   it('click on one should add to additional-applied-info and remove chosen from dropdown', () => {
+    cy.getByTestId('edit-page-button').click();
+    cy.getByTestId('layout-tab').click();
+    cy.getByTestId('edit-interface-item').contains('Additional').click();
     cy.get('#downshift-1-toggle-button').click();
     cy.get('li').first().contains('In Honor of').click();
     cy.getByTestId('additional-info-applied').should('exist').contains('In Honor of');

@@ -6,8 +6,6 @@ import { FULL_PAGE, ORG_STRIPE_ACCOUNT_ID, STRIPE_PAYMENT } from 'ajax/endpoints
 import { getEndpoint } from '../support/util';
 import { HUB_GA_V3_ID } from 'constants/analyticsConstants';
 
-import * as stripeFns from 'components/paymentProviders/stripe/stripeFns';
-
 const LIVE_DONATION_PAGE_ROUTE = 'myprogram/mypage';
 
 describe('HubTrackedPage component', () => {

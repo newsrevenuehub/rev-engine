@@ -11,7 +11,7 @@ from apps.api.permissions import UserBelongsToOrg
 from apps.organizations.models import RevenueProgram
 from apps.organizations.views import OrganizationLimitedListView
 from apps.pages import serializers
-from apps.pages.models import Benefit, BenefitTier, DonationPage, DonorBenefit, Style, Template
+from apps.pages.models import DonationPage, Style, Template
 
 
 logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
@@ -97,25 +97,4 @@ class StyleViewSet(OrganizationLimitedListView, viewsets.ModelViewSet):
     model = Style
     permission_classes = [IsAuthenticated, UserBelongsToOrg]
     serializer_class = serializers.StyleSerializer
-    pagination_class = None
-
-
-class DonorBenefitViewSet(OrganizationLimitedListView, viewsets.ModelViewSet):
-    model = DonorBenefit
-    permission_classes = [IsAuthenticated, UserBelongsToOrg]
-    serializer_class = serializers.DonorBenefitDetailSerializer
-    pagination_class = None
-
-
-class BenefitTierViewSet(OrganizationLimitedListView, viewsets.ModelViewSet):
-    model = BenefitTier
-    permission_classes = [IsAuthenticated, UserBelongsToOrg]
-    serializer_class = serializers.BenefitTierSerializer
-    pagination_class = None
-
-
-class BenefitViewSet(OrganizationLimitedListView, viewsets.ModelViewSet):
-    model = Benefit
-    permission_classes = [IsAuthenticated, UserBelongsToOrg]
-    serializer_class = serializers.BenefitSerializer
     pagination_class = None

@@ -62,8 +62,9 @@
     "start": "react-scripts start",
     "build": "react-scripts build",
     "cypress:open": "cypress open",
+    "cypress:open:component": "cypress open-ct",
     "cypress:run": "cypress run",
-    "cypress:run:component": "cypress open-ct",
+    "cypress:run:component": "cypress run-ct",
     "eject": "react-scripts eject"
   },
   "jest": {

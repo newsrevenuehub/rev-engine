@@ -70,7 +70,7 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v2
-      - name: Cypress tests
+      - name: Cypress integration tests
         uses: cypress-io/github-action@v2
         with:
           working-directory: spa
@@ -78,6 +78,12 @@ jobs:
           start: npm run start
           wait-on: http://localhost:3000
           browser: chrome
+      - name: Cypress unit tests
+        uses: cypress-io/github-actions@v2
+        with:
+          working-directory: spa
+          install: false
+          command: npm run cypress:run:component
       - uses: actions/upload-artifact@v2
         if: failure()
         with:

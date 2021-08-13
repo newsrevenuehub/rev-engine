@@ -110,21 +110,6 @@ describe('Donation page', () => {
     });
   });
 
-  describe('Stripe payment functions unit tests', () => {
-    before(() => {
-      cy.intercept(
-        { method: 'POST', pathname: getEndpoint(STRIPE_PAYMENT) },
-        { fixture: 'pages/live-page-1', statusCode: 200 }
-      ).as('createStripePayment');
-      cy.intercept({ method: 'POST', url: 'https://api.stripe.com/v1/payment_methods' }).as(
-        'stripeCreatePaymentMethod'
-      );
-      cy.intercept({ method: 'POST', url: 'http://localhost:3000/api/v1/stripe/payment/' }).as(
-        'stripeConfirmCardPayment'
-      );
-    });
-  });
-
   describe('Resulting request', () => {
     it('should send a request with the expected interval', () => {
       cy.intercept(
@@ -132,12 +117,12 @@ describe('Donation page', () => {
         { fixture: 'pages/live-page-1', statusCode: 200 }
       );
 
-      const interval = 'one_time';
+      const interval = 'One time';
       const amount = '120';
       cy.interceptDonation();
       cy.setUpDonation(interval, amount);
       cy.makeDonation();
-      cy.wait('@stripePayment').its('request.body').should('have.property', 'interval', interval);
+      cy.wait('@stripePayment').its('request.body').should('have.property', 'interval', 'one_time');
     });
     it('should send a request with the expected amount', () => {
       cy.intercept(
@@ -145,7 +130,7 @@ describe('Donation page', () => {
         { fixture: 'pages/live-page-1', statusCode: 200 }
       );
 
-      const interval = 'one_time';
+      const interval = 'One time';
       const amount = '120';
       cy.interceptDonation();
       cy.setUpDonation(interval, amount);
@@ -154,7 +139,7 @@ describe('Donation page', () => {
     });
   });
 
-  describe.only('Donation page side effects', () => {
+  describe('Donation page side effects', () => {
     it('should pass salesforce campaign id from query parameter to request body', () => {
       const sfCampaignId = 'my-test-sf-campaign-id';
       cy.intercept(
@@ -164,7 +149,7 @@ describe('Donation page', () => {
       cy.visit(`/revenue-program-slug/page-slug?campaign=${sfCampaignId}`);
       cy.wait('@getPageDetail');
 
-      const interval = 'one_time';
+      const interval = 'One time';
       const amount = '120';
       cy.intercept(
         { method: 'POST', pathname: getEndpoint(STRIPE_PAYMENT) },
@@ -176,6 +161,77 @@ describe('Donation page', () => {
         expect(request.body).to.have.property('sf_campaign_id');
         expect(request.body.sf_campaign_id).to.equal(sfCampaignId);
       });
+    });
+
+    it('should use url frequency and url amount if present', () => {
+      // intercept page, return particular elements
+      const page = livePageOne;
+      const amounts = livePageOne.elements.find((el) => el.type === 'DAmount');
+      const targetFreq = 'monthly';
+      const targetAmount = amounts.content.options.month[1];
+      cy.intercept({ method: 'GET', pathname: `${getEndpoint(FULL_PAGE)}**` }, { body: page }).as('getPageDetail');
+
+      // visit url + querystring
+      cy.visit(`/revenue-program-slug/page-slug?amount=${targetAmount}&frequency=${targetFreq}`);
+      cy.wait('@getPageDetail');
+
+      // assert that the right things are checked
+      cy.getByTestId('frequency-month-selected').should('exist');
+      cy.getByTestId(`amount-${targetAmount}-selected`).should('exist');
+    });
+
+    it('should use url frequency and url amount in "other" if custom', () => {
+      // intercept page, return particular elements
+      const page = livePageOne;
+      const targetFreq = 'monthly';
+      const targetAmount = 99;
+      cy.intercept({ method: 'GET', pathname: `${getEndpoint(FULL_PAGE)}**` }, { body: page }).as('getPageDetail');
+
+      // visit url + querystring
+      cy.visit(`/revenue-program-slug/page-slug?amount=${targetAmount}&frequency=${targetFreq}`);
+      cy.wait('@getPageDetail');
+
+      // assert that the right things are checked
+      cy.getByTestId('frequency-month-selected').should('exist');
+      cy.getByTestId(`amount-other-selected`).within(() => {
+        cy.get('input').should('have.value', targetAmount);
+      });
+    });
+
+    it('should use custom amount and one_time frequency if no frequency in url, and no other amounts should show', () => {
+      // intercept page, return particular elements
+      const page = livePageOne;
+      const targetAmount = 99;
+      const amounts = livePageOne.elements.find((el) => el.type === 'DAmount');
+      cy.intercept({ method: 'GET', pathname: `${getEndpoint(FULL_PAGE)}**` }, { body: page }).as('getPageDetail');
+
+      // visit url + querystring
+      cy.visit(`/revenue-program-slug/page-slug?amount=${targetAmount}`);
+      cy.wait('@getPageDetail');
+
+      // assert that the right things are checked
+      cy.getByTestId('frequency-one_time-selected').should('exist');
+      cy.getByTestId(`amount-other-selected`).within(() => {
+        cy.get('input').should('have.value', targetAmount);
+      });
+
+      amounts.content.options.one_time.forEach((amount) => {
+        cy.getByTestId(`amount-${amount}`).should('not.exist');
+      });
+    });
+
+    it('should use url frequency and default amount', () => {
+      // intercept page, return particular elements
+      const page = livePageOne;
+      const targetFreq = 'monthly';
+      cy.intercept({ method: 'GET', pathname: `${getEndpoint(FULL_PAGE)}**` }, { body: page }).as('getPageDetail');
+
+      // visit url + querystring
+      cy.visit(`/revenue-program-slug/page-slug?frequency=${targetFreq}`);
+      cy.wait('@getPageDetail');
+
+      // assert that the right things are checked
+      cy.getByTestId('frequency-month-selected').should('exist');
     });
   });
 

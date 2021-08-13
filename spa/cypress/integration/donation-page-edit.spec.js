@@ -62,20 +62,26 @@ describe('Donation page edit', () => {
 
       it('should validate frequency', () => {
         // Uncheck all the frequencies
-        cy.getByTestId('frequency-editor').find('li').click({ multiple: true });
+        cy.getByTestId('frequency-toggle').click({ multiple: true });
         cy.getByTestId('keep-element-changes-button').click();
         cy.getByTestId('alert').contains('You must have at least');
       });
 
       it('should accept valid input and changes should show on page', () => {
         // Now check one and accept
-        cy.getByTestId('frequency-editor').find('li').first().click();
+        cy.getByTestId('frequency-toggle').contains('One time').click();
         cy.getByTestId('keep-element-changes-button').click();
 
         // Donation page should only show item checked, and nothing else.
         cy.getByTestId('d-frequency').contains('One time');
         cy.getByTestId('d-frequency').should('not.contain', 'Monthly');
         cy.getByTestId('d-frequency').should('not.contain', 'Yearly');
+
+        // Cleanup
+        cy.contains('Donation frequency').click();
+        cy.getByTestId('frequency-toggle').contains('Monthly').click();
+        cy.getByTestId('frequency-toggle').contains('Yearly').click();
+        cy.getByTestId('keep-element-changes-button').click();
       });
     });
   });
@@ -207,7 +213,7 @@ describe('Donation page edit', () => {
       cy.visit('edit/my/page');
       cy.wait('@getPageDetail');
       cy.getByTestId('edit-page-button').click();
-      cy.getByTestId('setup-tab').click();
+      cy.getByTestId('setup-tab').click({ force: true });
       cy.getByTestId('logo-link-input').type('not a valid url');
       cy.getByTestId('keep-element-changes-button').click();
 

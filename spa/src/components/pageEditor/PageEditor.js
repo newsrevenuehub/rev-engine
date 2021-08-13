@@ -245,9 +245,6 @@ function PageEditor() {
     data = cleanData(data);
     data = processPageData(data);
     if (CAPTURE_PAGE_SCREENSHOT) data = await addScreenshotToCleanedData(data, page.name);
-    for (const d of data.entries()) {
-      console.log(d[0], d[1]);
-    }
     requestPatchPage(
       {
         method: 'PATCH',
@@ -264,7 +261,6 @@ function PageEditor() {
           setLoading(false);
         },
         onFailure: (e) => {
-          console.log('e.response', e.response);
           if (e?.response?.data) {
             setErrors({ ...errors, ...e.response.data });
             setSelectedButton(EDIT);

@@ -48,7 +48,7 @@ const livePageReducer = (state, action) => {
   }
 };
 
-function DonationPageRouter() {
+function DonationPageRouter({ setOrgAnalytics }) {
   const [{ loading, error, data }, dispatch] = useReducer(livePageReducer, initialState);
   const params = useParams();
   const requestFullPage = useRequest();
@@ -68,7 +68,15 @@ function DonationPageRouter() {
         params: requestParams
       },
       {
-        onSuccess: ({ data }) => dispatch({ type: PAGE_FETCH_SUCCESS, payload: data }),
+        onSuccess: ({ data }) => {
+          const {
+            google_analytics_v3_id: orgGaV3Id,
+            google_analytics_v3_domain: orgGaDomain,
+            google_analytics_v4_id: orgGaV4Id
+          } = data?.revenue_program;
+          setOrgAnalytics(orgGaV3Id, orgGaDomain, orgGaV4Id);
+          dispatch({ type: PAGE_FETCH_SUCCESS, payload: data });
+        },
         onFailure: () => dispatch({ type: PAGE_FETCH_ERROR })
       }
     );

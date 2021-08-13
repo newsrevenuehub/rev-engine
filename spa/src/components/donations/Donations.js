@@ -5,6 +5,7 @@ import * as S from './Donations.styled';
 // AJAX
 import { CONTRIBUTIONS } from 'ajax/endpoints';
 import useRequest from 'hooks/useRequest';
+import { getFrequencyAdjective } from 'utilities/parseFrequency';
 
 // Deps
 import queryString from 'query-string';
@@ -89,6 +90,11 @@ function Donations() {
         Header: 'Amount',
         accessor: 'amount',
         Cell: (props) => (props.value ? formatCurrencyAmount(props.value) : NO_VALUE)
+      },
+      {
+        Header: 'Frequency',
+        accessor: 'interval',
+        Cell: (props) => (props.value ? getFrequencyAdjective(props.value) : NO_VALUE)
       },
       {
         Header: 'Payment received',

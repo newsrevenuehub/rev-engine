@@ -14,7 +14,7 @@ const SALESFORCE_CAMPAIGN_ID_QUERYPARAM = process.env.REACT_APP_SALESFORCE_CAMPA
 
 const DonationPageContext = createContext({});
 
-function DonationPage({ page, live = false, trackDonation }) {
+function DonationPage({ page, live = false }) {
   const location = useLocation();
   const formRef = useRef();
   const [frequency, setFrequency] = useState(getInitialFrequency(page));
@@ -41,7 +41,6 @@ function DonationPage({ page, live = false, trackDonation }) {
         setAmount,
         errors,
         setErrors,
-        trackDonation,
         salesforceCampaignId
       }}
     >

@@ -30,7 +30,7 @@ const App = () => {
   );
 };
 
-describe('OrgAndHubTrackedPage.trackDonation', () => {
+describe('trackDonation', () => {
   it('sends a donation and purchase event to Facebook Pixel when org has FB pixel id', () => {
     cy.intercept({
       hostname: FB_TRACK_URL.hostname,
@@ -49,7 +49,6 @@ describe('OrgAndHubTrackedPage.trackDonation', () => {
       }
     }).as('fbTrackPurchase');
     const app = mount(<App />);
-
     cy.wait(['@fbTrackPurchase', '@fbTrackDonation']);
   });
 });

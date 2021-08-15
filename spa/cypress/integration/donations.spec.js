@@ -6,6 +6,7 @@ import { NO_VALUE } from 'constants/textConstants';
 import donationsData from '../fixtures/donations/18-results.json';
 
 // Utils
+import { getFrequencyAdjective } from 'utilities/parseFrequency';
 import formatDatetimeForDisplay from 'utilities/formatDatetimeForDisplay';
 import formatCurrencyAmount from 'utilities/formatCurrencyAmount';
 import toTitleCase from 'utilities/toTitleCase';
@@ -36,6 +37,11 @@ describe('Donations list', () => {
           renderedName: 'Amount',
           rawName: 'amount',
           transform: (rawVal) => (rawVal ? formatCurrencyAmount(rawVal) : NO_VALUE)
+        },
+        {
+          renderedName: 'Frequency',
+          rawName: 'interval',
+          transform: (rawVal) => (rawVal ? getFrequencyAdjective(rawVal) : NO_VALUE)
         },
         {
           renderedName: 'Payment received',

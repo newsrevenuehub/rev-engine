@@ -21,7 +21,7 @@ import { useParams } from 'react-router-dom';
 
 // AJAX
 import useRequest from 'hooks/useRequest';
-import { DELETE_PAGE, FULL_PAGE, PATCH_PAGE, DONOR_BENEFITS, PAGE_STYLES, CONTRIBUTION_META } from 'ajax/endpoints';
+import { DELETE_PAGE, FULL_PAGE, PATCH_PAGE, PAGE_STYLES, CONTRIBUTION_META } from 'ajax/endpoints';
 
 // Routes
 import { PAGES_SLUG } from 'routes';
@@ -45,6 +45,7 @@ import GlobalLoading from 'elements/GlobalLoading';
 import EditInterface from 'components/pageEditor/editInterface/EditInterface';
 import { useAnalyticsContext } from 'components/analytics/AnalyticsContext';
 import { HUB_GA_V3_ID } from 'constants/analyticsConstants';
+import BackButton from 'elements/BackButton';
 
 const PageEditorContext = createContext();
 
@@ -80,7 +81,6 @@ function PageEditor() {
   // State
   const [loading, setLoading] = useState(false);
   const [page, setPage] = useState();
-  const [availableBenefits, setAvailableBenefits] = useState([]);
   const [availableStyles, setAvailableStyles] = useState([]);
   const [contributionMetadata, setContributionMetadata] = useState([]);
 
@@ -90,7 +90,6 @@ function PageEditor() {
   const [errors, setErrors] = useState({});
 
   const requestGetPage = useRequest();
-  const requestGetDonorBenefits = useRequest();
   const requestGetDonorMetadata = useRequest();
   const requestGetPageStyles = useRequest();
   const requestPatchPage = useRequest();
@@ -124,23 +123,6 @@ function PageEditor() {
     );
     // Don't include requestGetPage for now.
   }, [parameters.revProgramSlug, parameters.pageSlug]);
-
-  useEffect(() => {
-    setLoading(true);
-    requestGetDonorBenefits(
-      { method: 'GET', url: DONOR_BENEFITS },
-      {
-        onSuccess: ({ data }) => {
-          setAvailableBenefits(data);
-          setLoading(false);
-        },
-        onFailure: () => {
-          setLoading(false);
-        }
-      }
-    );
-    // Don't include requestGetDonorBenefits for now.
-  }, []);
 
   useEffect(() => {
     setLoading(true);
@@ -272,9 +254,6 @@ function PageEditor() {
     data = cleanData(data);
     data = processPageData(data);
     if (CAPTURE_PAGE_SCREENSHOT) data = await addScreenshotToCleanedData(data, page.name);
-    for (const d of data.entries()) {
-      console.log(d[0], d[1]);
-    }
     requestPatchPage(
       {
         method: 'PATCH',
@@ -291,7 +270,6 @@ function PageEditor() {
           setLoading(false);
         },
         onFailure: (e) => {
-          console.log('e.response', e.response);
           if (e?.response?.data) {
             setErrors({ ...errors, ...e.response.data });
             setSelectedButton(EDIT);
@@ -320,7 +298,6 @@ function PageEditor() {
       value={{
         page,
         setPage,
-        availableBenefits,
         availableStyles,
         contributionMetadata,
         setAvailableStyles,
@@ -368,6 +345,8 @@ function PageEditor() {
             disabled={!updatedPage}
           />
           <CircleButton onClick={handleDelete} icon={faTrash} type="neutral" data-testid="delete-page-button" />
+
+          <BackButton to={PAGES_SLUG} />
         </S.ButtonOverlay>
       </S.PageEditor>
     </PageEditorContext.Provider>

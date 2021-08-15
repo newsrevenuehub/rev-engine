@@ -39,7 +39,7 @@ class Feature(IndexedTimeStampedModel):
     class Meta:
         unique_together = ["feature_type", "feature_value"]
 
-    def __str__(self):
+    def __str__(self):  # pragma: no cover
         return self.name
 
     def save(self, *args, **kwargs):
@@ -59,13 +59,14 @@ class Plan(IndexedTimeStampedModel):
     name = models.CharField(max_length=255)
     features = models.ManyToManyField("organizations.Feature", related_name="plans", blank=True)
 
-    def __str__(self):
+    def __str__(self):  # pragma: no cover
         return self.name
 
 
 class Organization(IndexedTimeStampedModel):
     name = models.CharField(max_length=255, unique=True)
     slug = models.SlugField(blank=True, unique=True)
+    contact_email = models.EmailField(max_length=255, blank=True)
     plan = models.ForeignKey("organizations.Plan", null=True, on_delete=models.CASCADE)
     non_profit = models.BooleanField(default=True, verbose_name="Non-profit?")
     org_addr1 = models.CharField(max_length=255, blank=True, verbose_name="Address 1")
@@ -86,7 +87,7 @@ class Organization(IndexedTimeStampedModel):
         help_text='A fully verified Stripe Connected account should have "charges_enabled: true" in Stripe',
     )
     stripe_product_id = models.CharField(max_length=255, blank=True)
-    domain_apple_verified_date = models.DateTimeField(null=True)
+    domain_apple_verified_date = models.DateTimeField(blank=True, null=True)
     uses_email_templates = models.BooleanField(default=False)
 
     def __str__(self):
@@ -145,6 +146,89 @@ class Organization(IndexedTimeStampedModel):
                 )
 
 
+class BenefitLevel(IndexedTimeStampedModel):
+    name = models.CharField(max_length=128)
+    lower_limit = models.PositiveIntegerField()
+    upper_limit = models.PositiveIntegerField(null=True, blank=True)
+    currency = models.CharField(max_length=3, default="usd")
+
+    benefits = models.ManyToManyField("organizations.Benefit", through="organizations.BenefitLevelBenefit")
+
+    organization = models.ForeignKey(Organization, on_delete=models.CASCADE)
+
+    def __str__(self):  # pragma: no cover
+        return self.name
+
+    class Meta:
+        unique_together = (
+            "name",
+            "organization",
+        )
+
+        ordering = ["revenueprogrambenefitlevel__level"]
+
+    @property
+    def donation_range(self):
+        upper_limit_str = f"-{self.upper_limit}" if self.upper_limit else "+"
+        return f"${self.lower_limit}{upper_limit_str}"
+
+    def clean(self):
+        if self.upper_limit and self.upper_limit <= self.lower_limit:
+            raise ValidationError("Upper limit must be greater than lower limit")
+
+
+class RevenueProgramBenefitLevel(models.Model):
+    """
+    Through table for the relationship between Organization and Benefit Level.
+    Determines the order in which Benefit Levels appear
+    """
+
+    revenue_program = models.ForeignKey("organizations.RevenueProgram", on_delete=models.CASCADE)
+    benefit_level = models.ForeignKey("organizations.BenefitLevel", on_delete=models.CASCADE)
+    level = models.PositiveSmallIntegerField(help_text="Is this a first-level benefit, second-level, etc?")
+
+    class Meta:
+        ordering = ("level",)
+
+    def __str__(self):  # pragma: no cover
+        return f"Benefit Level {self.level} for {self.revenue_program}"
+
+
+class Benefit(IndexedTimeStampedModel):
+    name = models.CharField(max_length=128, help_text="A way to uniquely identify this Benefit")
+    description = models.TextField(help_text="The text that appears on the donation page")
+    organization = models.ForeignKey("organizations.Organization", on_delete=models.CASCADE)
+
+    def __str__(self):
+        return self.name
+
+    class Meta:
+        unique_together = (
+            "name",
+            "organization",
+        )
+
+        ordering = ["benefitlevelbenefit__order"]
+
+
+class BenefitLevelBenefit(models.Model):
+    """
+    The through table for the M2M relationship BenefitLevel <--> Benefit,
+    including relationship metadata such as the order the Benefit shuold appear
+    in for that BenefitLevel
+    """
+
+    benefit = models.ForeignKey(Benefit, on_delete=models.CASCADE)
+    benefit_level = models.ForeignKey(BenefitLevel, on_delete=models.CASCADE)
+    order = models.PositiveSmallIntegerField(help_text="The order in which this Benefit appears in this BenefitLevel")
+
+    class Meta:
+        ordering = ("order",)
+
+    def __str__(self):
+        return f'Benefit {self.order} for "{self.benefit_level}" benefit level'
+
+
 class RevenueProgram(IndexedTimeStampedModel):
     name = models.CharField(max_length=255)
     slug = models.SlugField(max_length=100, blank=True, unique=True)
@@ -154,6 +238,8 @@ class RevenueProgram(IndexedTimeStampedModel):
     google_analytics_v3_id = models.CharField(max_length=50, null=True, blank=True)
     google_analytics_v4_id = models.CharField(max_length=50, null=True, blank=True)
     facebook_pixel_id = models.CharField(max_length=100, null=True, blank=True)
+
+    benefit_levels = models.ManyToManyField(BenefitLevel, through=RevenueProgramBenefitLevel)
 
     def __str__(self):
         return self.name

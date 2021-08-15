@@ -16,11 +16,6 @@ logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
 
 
 class ReadOnly(permissions.BasePermission):
-    """
-    Object-level permission to only allow owners of an object to edit it.
-    Assumes the model instance has an `owner` attribute.
-    """
-
     def has_object_permission(self, request, view, obj):
         # Read permissions are allowed to any request,
         # so we'll always allow GET, HEAD or OPTIONS requests.
@@ -85,9 +80,3 @@ class PlanViewSet(viewsets.ReadOnlyModelViewSet, ReadOnly):
     model = Plan
     queryset = Plan.objects.all()
     serializer_class = serializers.PlanSerializer
-
-
-class RevenueProgramViewSet(OrganizationLimitedListView, viewsets.ModelViewSet):
-    model = RevenueProgram
-    permission_classes = [IsAuthenticated, UserBelongsToOrg]
-    serializer_class = serializers.RevenueProgramSerializer

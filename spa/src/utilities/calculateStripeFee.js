@@ -20,7 +20,8 @@ function calculateStripeFee(amount, isNonProfit) {
   const amountInt = parseFloat(amount);
   if (isNaN(amountInt)) return null;
   const RATE = isNonProfit ? STRIPE_NP_RATE : STRIPE_FP_RATE;
-  return roundTo2DecimalPlaces((amount + STRIPE_FIXED) / (1 - RATE));
+  const amountWithFee = roundTo2DecimalPlaces((amountInt + STRIPE_FIXED) / (1 - RATE));
+  return roundTo2DecimalPlaces(amountWithFee - amountInt);
 }
 
 export default calculateStripeFee;

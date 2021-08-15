@@ -9,13 +9,8 @@ from rest_framework.test import APIRequestFactory, APITestCase, force_authentica
 
 from apps.common.tests.test_resources import AbstractTestCase
 from apps.organizations.tests.factories import RevenueProgramFactory
-from apps.pages.models import DonationPage, DonorBenefit, Style, Template
-from apps.pages.tests.factories import (
-    DonationPageFactory,
-    DonorBenefitFactory,
-    StyleFactory,
-    TemplateFactory,
-)
+from apps.pages.models import DonationPage, Style, Template
+from apps.pages.tests.factories import DonationPageFactory, StyleFactory, TemplateFactory
 from apps.pages.views import PageViewSet
 
 
@@ -77,7 +72,7 @@ class PageViewSetTest(AbstractTestCase):
         old_page_pk = page.pk
         detail_url = f"/api/v1/pages/{old_page_pk}/"
         new_heading = "Old DonationPage With New Heading"
-        response = self.client.patch(detail_url, {"heading": new_heading})
+        self.client.patch(detail_url, {"heading": new_heading})
         page = DonationPage.objects.get(pk=old_page_pk)
         self.assertEqual(page.pk, old_page_pk)
         self.assertNotEqual(page.heading, old_page_heading)
@@ -154,7 +149,6 @@ class PagePatchTest(AbstractTestCase):
         self.request_factory = APIRequestFactory()
         self.donation_page = self.resources[0]
         self.styles = StyleFactory()
-        self.donor_benefits = DonorBenefitFactory()
         self.url = reverse("donationpage-detail", kwargs={"pk": self.donation_page.pk})
         self.authenticate_user_for_resource(self.donation_page)
         self.patch_data = {
@@ -180,12 +174,6 @@ class PagePatchTest(AbstractTestCase):
         request = self._create_patch_request(data=page_data)
         response = self.page_patch_view(request, pk=self.donation_page.pk)
         self.assertEqual(response.data["styles"]["id"], self.styles.pk)
-
-    def test_patch_page_with_donor_benefits(self):
-        page_data = {"donor_benefits_pk": self.donor_benefits.pk}
-        request = self._create_patch_request(data=page_data)
-        response = self.page_patch_view(request, pk=self.donation_page.pk)
-        self.assertEqual(response.data["donor_benefits"]["id"], self.donor_benefits.pk)
 
 
 class DonationPageFullDetailTest(APITestCase):
@@ -343,30 +331,6 @@ class TemplateViewSetTest(AbstractTestCase):
         expected_ids = [p.id for p in user_templates]
         # Should return expected pages
         self.assertEqual(set(expected_ids), set(returned_ids))
-
-
-class DonorBenefitViewSetTest(AbstractTestCase):
-    model = DonorBenefit
-    model_factory = DonorBenefitFactory
-
-    def setUp(self):
-        super().setUp()
-        self.create_resources()
-
-    def test_donor_benefit_list_uses_list_serializer(self):
-        self.authenticate_user_for_resource()
-        self.login()
-        response = self.client.get("/api/v1/donor-benefits/")
-        # list serializer does not have 'tiers' field
-        self.assertNotIn("tiers", response.json())
-
-    def test_donor_benefit_detail_uses_detail_serializer(self):
-        donor_benefit = self.resources[0]
-        self.authenticate_user_for_resource(donor_benefit)
-        self.login()
-        response = self.client.get(f"/api/v1/donor-benefits/{donor_benefit.pk}/")
-        # detail serializer should have 'tiers' field
-        self.assertIn("tiers", response.json())
 
 
 class StylesViewsetTest(AbstractTestCase):

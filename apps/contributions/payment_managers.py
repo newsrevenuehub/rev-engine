@@ -76,7 +76,7 @@ class PaymentManager:
     def bundle_metadata(self, metadata: dict, processor_obj: str):
         return ContributionMetadata.bundle_metadata(metadata, processor_obj, self)
 
-    def get_serializer_class(self, **kwargs):
+    def get_serializer_class(self, **kwargs):  # pragma: no cover
         raise NotImplementedError("Subclasses of PaymentManager must implement get_serializer_class")
 
     def validate(self):
@@ -118,14 +118,17 @@ class PaymentManager:
         return self.bad_actor_score >= settings.BAD_ACTOR_FAIL_ABOVE
 
     def get_revenue_program(self):
-        try:
+        if self.validated_data:
             rp_slug = self.validated_data.get("revenue_program_slug") if self.validated_data else None
-            self.revenue_program = (
-                self.revenue_program if self.revenue_program else RevenueProgram.objects.get(slug=rp_slug)
-            )
-            return self.revenue_program
-        except RevenueProgram.DoesNotExist:
-            raise PaymentBadParamsError("PaymentManager could not find a revenue program with slug provided")
+            try:
+
+                self.revenue_program = (
+                    self.revenue_program if self.revenue_program else RevenueProgram.objects.get(slug=rp_slug)
+                )
+                return self.revenue_program
+            except RevenueProgram.DoesNotExist:
+                raise PaymentBadParamsError("PaymentManager could not find a revenue program with slug provided")
+        return self.contribution.donation_page.revenue_program
 
     def get_organization(self):
         revenue_program = self.get_revenue_program()

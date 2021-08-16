@@ -58,7 +58,7 @@ class StripePaymentManagerAbstractTestCase(APITestCase):
     def setUp(self):
         self.organization = OrganizationFactory()
         self.revenue_program = RevenueProgramFactory(organization=self.organization)
-        self.page = DonationPageFactory()
+        self.page = DonationPageFactory(revenue_program=self.revenue_program)
         self.contributor = ContributorFactory()
         self.amount = "10.99"
         self.data = {
@@ -500,3 +500,8 @@ class StripeRecurringPaymentManagerTest(StripePaymentManagerAbstractTestCase):
         pm.validate()
         donation_page = pm.get_donation_page()
         self.assertIsNotNone(donation_page)
+
+    def test_get_revenue_program_should_work_without_validated_data(self, *args):
+        pm = self._instantiate_payment_manager_with_instance()
+        revenue_program = pm.get_revenue_program()
+        self.assertIsNotNone(revenue_program)

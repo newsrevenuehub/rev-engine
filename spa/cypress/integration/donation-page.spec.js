@@ -269,7 +269,7 @@ describe('Donation page', () => {
     });
 
     it('should render organization address if present, nothing if not', () => {
-      const expectedString = `Prefer to mail a check? Our mailing address is ${livePageOne.organization_address}`;
+      const expectedString = `Prefer to mail a check? Our mailing address is ${livePageOne.organization_address}.`;
       // If organization_address is present, should show...
       cy.getByTestId('donation-page-static-text').contains(expectedString).should('exist');
 

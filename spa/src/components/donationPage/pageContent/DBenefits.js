@@ -30,10 +30,10 @@ function DBenefits({ live }) {
             const prevLevel = i !== 0 ? benefit_levels[i - 1] : 0;
             return (
               <S.Level key={level.name + i} data-testid="level">
-                <S.BenefitLevelName>
-                  {level.name}: {level.donation_range}
-                </S.BenefitLevelName>
-                <S.LevelDescription data-testid="level-description">{level.description}</S.LevelDescription>
+                <S.BenefitLevelDetails>
+                  <S.LevelName>{level.name}</S.LevelName>
+                  <S.LevelRange data-testid="level-range">{level.donation_range}</S.LevelRange>
+                </S.BenefitLevelDetails>
                 {i !== 0 && <S.LevelInclusion>Everything from {prevLevel.name}, plus</S.LevelInclusion>}
                 <S.LevelBenefitList data-testid="level-benefit-list">
                   {level.benefits?.map((benefit, i) => {

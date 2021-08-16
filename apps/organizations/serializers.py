@@ -52,9 +52,7 @@ class RevenueProgramSerializer(serializers.ModelSerializer):
         fields = super().get_fields()
         request = self.context.get("request", None)
         if request and getattr(request, "method", None) == "PATCH":
-            fields["name"].read_only = True
             fields["slug"].read_only = True
-            fields["organization"].read_only = True
         return fields
 
 

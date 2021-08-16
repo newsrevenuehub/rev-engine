@@ -119,10 +119,9 @@ class PaymentManager:
 
     def get_revenue_program(self):
         try:
+            rp_slug = self.validated_data.get("revenue_program_slug") if self.validated_data else None
             self.revenue_program = (
-                self.revenue_program
-                if self.revenue_program
-                else RevenueProgram.objects.get(slug=self.validated_data["revenue_program_slug"])
+                self.revenue_program if self.revenue_program else RevenueProgram.objects.get(slug=rp_slug)
             )
             return self.revenue_program
         except RevenueProgram.DoesNotExist:

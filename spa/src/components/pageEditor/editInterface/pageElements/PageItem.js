@@ -8,13 +8,18 @@ import {
   faUser,
   faPlus,
   faCreditCard,
-  faAddressCard
+  faAddressCard,
+  faImage,
+  faGifts
 } from '@fortawesome/free-solid-svg-icons';
 
-import * as dynamicElements from 'components/donationPage/pageContent/dynamicElements';
+import * as dynamicPageElements from 'components/donationPage/pageContent/dynamicElements';
+import * as dynamicSidebarElements from 'components/donationPage/pageContent/dynamicSidebarElements';
+
+const dynamicElements = { ...dynamicPageElements, ...dynamicSidebarElements };
 
 function PageItem({ element, disabled, dragState, isStatic, handleItemClick, ...props }) {
-  const handleOpenProperties = (e) => {
+  const handleOpenProperties = () => {
     if (dragState !== 'idle') return;
     handleItemClick(element);
   };
@@ -33,7 +38,6 @@ function PageItem({ element, disabled, dragState, isStatic, handleItemClick, ...
         <S.ItemName>{dynamicElements[element.type].displayName}</S.ItemName>
         <S.ItemDescription>{dynamicElements[element.type].description}</S.ItemDescription>
       </S.ItemContentWrapper>
-      {/* {dynamicElements[element.type].isRequired} */}
     </S.PageItem>
   );
 }
@@ -60,6 +64,12 @@ function getElementIcon(elementType) {
 
     case 'DPayment':
       return faCreditCard;
+
+    case 'DImage':
+      return faImage;
+
+    case 'DBenefits':
+      return faGifts;
 
     default:
       return undefined;

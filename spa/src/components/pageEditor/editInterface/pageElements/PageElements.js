@@ -21,7 +21,13 @@ function PageElements({ openAddElementModal, goToProperties }) {
 
   return (
     <S.PageElements>
-      {elements && <DraggableList elements={elements} setElements={setElements} handleItemClick={goToProperties} />}
+      {elements && (
+        <DraggableList
+          elements={elements}
+          setElements={setElements}
+          handleItemClick={(element) => goToProperties(element, 'layout')}
+        />
+      )}
       <S.AddElementButton onClick={openAddElementModal} data-testid="add-element-button">
         <S.AddElementIcon icon={faPlus} />
       </S.AddElementButton>

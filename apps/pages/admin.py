@@ -28,7 +28,7 @@ class DonationPageAdminAbstract(AdminImageMixin, RevEngineBaseAdmin):
         ("Header", {"fields": ("header_bg_image", "header_logo", "header_link")}),
         ("Heading", {"fields": ("heading", "graphic")}),
         ("Styles", {"fields": ("styles",)}),
-        ("Content", {"fields": ("elements",)}),
+        ("Content", {"fields": ("elements", "sidebar_elements")}),
     )
 
 

@@ -4,7 +4,6 @@ import { useAlert } from 'react-alert';
 
 // Elements
 import getElementEditor, { getElementValidator } from 'components/pageEditor/elementEditors/getElementEditor';
-import * as dynamicElements from 'components/donationPage/pageContent/dynamicElements';
 
 // Assets
 import { faCheck, faTimes, faTrash } from '@fortawesome/free-solid-svg-icons';
@@ -15,6 +14,11 @@ import { useEditInterfaceContext } from 'components/pageEditor/editInterface/Edi
 // Children
 import CircleButton from 'elements/buttons/CircleButton';
 
+import * as dynamicPageElements from 'components/donationPage/pageContent/dynamicElements';
+import * as dynamicSidebarElements from 'components/donationPage/pageContent/dynamicSidebarElements';
+
+const dynamicElements = { ...dynamicPageElements, ...dynamicSidebarElements };
+
 /**
  * ElementProperties
  * ElementProperties is a detail view for an individual page element. It is responsible for
@@ -23,10 +27,18 @@ import CircleButton from 'elements/buttons/CircleButton';
  *
  * ElementProperties is a direct child of EditInterface
  */
-function ElementProperties() {
+function ElementProperties({ selectedElementType }) {
   const alert = useAlert();
 
-  const { selectedElement, setSelectedElement, elementContent, elements, setElements } = useEditInterfaceContext();
+  const {
+    selectedElement,
+    setSelectedElement,
+    elementContent,
+    elements,
+    setElements,
+    sidebarElements,
+    setSidebarElements
+  } = useEditInterfaceContext();
 
   const changesAreValid = () => {
     const getHasErrors = getElementValidator(selectedElement.type);
@@ -41,10 +53,14 @@ function ElementProperties() {
 
   const handleKeepChanges = () => {
     if (changesAreValid()) {
-      const elementsCopy = [...elements];
+      const isForSidebar = selectedElementType === 'sidebar';
+      const elementsCopy = isForSidebar ? [...sidebarElements] : [...elements];
       const thisIndex = elementsCopy.findIndex((el) => el.uuid === selectedElement.uuid);
+
       elementsCopy[thisIndex].content = elementContent;
-      setElements(elementsCopy);
+
+      if (isForSidebar) setSidebarElements(elementsCopy);
+      else setElements(elementsCopy);
       setSelectedElement();
     }
   };
@@ -55,9 +71,11 @@ function ElementProperties() {
 
   const handleDeleteElement = () => {
     if (!dynamicElements[selectedElement.type].required) {
-      const elementsCopy = [...elements];
+      const isForSidebar = selectedElementType === 'sidebar';
+      const elementsCopy = isForSidebar ? [...sidebarElements] : [...elements];
       const elementsWithout = elementsCopy.filter((el) => el.uuid !== selectedElement.uuid);
-      setElements(elementsWithout);
+      if (isForSidebar) setSidebarElements(elementsWithout);
+      else setElements(elementsWithout);
       setSelectedElement();
     }
   };

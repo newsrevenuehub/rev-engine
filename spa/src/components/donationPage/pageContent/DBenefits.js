@@ -1,5 +1,6 @@
 import React from 'react';
-import * as S from './SBenefits.styled';
+import * as S from './DBenefits.styled';
+import PropTypes from 'prop-types';
 
 // Assets
 import { ICONS } from 'assets/icons/SvgIcon';
@@ -7,15 +8,22 @@ import { ICONS } from 'assets/icons/SvgIcon';
 // Context
 import { usePage } from 'components/donationPage/DonationPage';
 
-function SBenefits() {
+// Children
+import DElement, { DynamicElementPropTypes } from 'components/donationPage/pageContent/DElement';
+import ElementError from 'components/donationPage/pageContent/ElementError';
+
+function DBenefits({ live }) {
   const {
     page: { donor_benefits }
   } = usePage();
 
-  if (!donor_benefits || donor_benefits.name === '----none----') return null;
+  if (!donor_benefits || donor_benefits.name === '----none----') {
+    if (live) return null;
+    return <ElementError>No Donor Benefits configured for this page</ElementError>;
+  }
 
   return (
-    <S.SBenefits data-testid="s-benefits">
+    <DElement data-testid="d-benefits">
       <S.BenefitsContent>
         <S.BenefitsName>{donor_benefits.name}</S.BenefitsName>
         <S.TiersList>
@@ -41,8 +49,25 @@ function SBenefits() {
           })}
         </S.TiersList>
       </S.BenefitsContent>
-    </S.SBenefits>
+    </DElement>
   );
 }
 
-export default SBenefits;
+const imagePropTypes = {
+  url: PropTypes.string.isRequired
+};
+
+DBenefits.propTypes = {
+  element: PropTypes.shape({
+    ...DynamicElementPropTypes,
+    content: PropTypes.shape(imagePropTypes)
+  })
+};
+
+DBenefits.type = 'DBenefits';
+DBenefits.displayName = 'Donor benefits';
+DBenefits.description = 'Display donor benefits';
+DBenefits.required = false;
+DBenefits.unique = true;
+
+export default DBenefits;

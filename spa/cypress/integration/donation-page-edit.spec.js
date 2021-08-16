@@ -175,7 +175,7 @@ describe('Donation page edit', () => {
     });
   });
 
-  describe('Validations', () => {
+  describe.only('Validations', () => {
     it('should render an alert with a list of missing required elements', () => {
       const missingElementType = 'DPayment';
       const page = { ...livePage };
@@ -334,7 +334,7 @@ describe('Donation page edit', () => {
       cy.get('[data-testid=donation-page__sidebar] > ul > li')
         .should('have.length', 3)
         .first()
-        .should('have.text', 'New Rich Text');
+        .should('contain.text', 'New Rich Text');
     });
   });
 });

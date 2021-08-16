@@ -14,40 +14,48 @@ import ElementError from 'components/donationPage/pageContent/ElementError';
 
 function DBenefits({ live }) {
   const {
-    page: { donor_benefits }
+    page: { benefit_levels }
   } = usePage();
 
-  if (!donor_benefits || donor_benefits.name === '----none----') {
+  if (!benefit_levels) {
     if (live) return null;
     return <ElementError>No Donor Benefits configured for this page</ElementError>;
   }
-
+  debugger;
   return (
     <DElement data-testid="d-benefits">
       <S.BenefitsContent>
-        <S.BenefitsName>{donor_benefits.name}</S.BenefitsName>
-        <S.TiersList>
-          {donor_benefits.tiers?.map((tier, i) => {
-            const prevTier = i !== 0 ? donor_benefits.tiers[i - 1] : 0;
+        <S.LevelsList data-testid="levels-list">
+          {benefit_levels?.map((level, i) => {
+            const prevLevel = i !== 0 ? benefit_levels[i - 1] : 0;
             return (
-              <S.Tier key={tier.name + i}>
-                <S.TierName>{tier.name}</S.TierName>
-                <S.TierDescription>{tier.description}</S.TierDescription>
-                {i !== 0 && <S.TierInclusion>Everything from {prevTier.name}, plus</S.TierInclusion>}
-                <S.TierBenefitList>
-                  {tier.benefits?.map((benefit, i) => (
-                    <S.Benefit key={benefit.name + i}>
-                      <S.BenefitCheck>
-                        <S.BenefitIcon icon={ICONS.CHECK_MARK} />
-                      </S.BenefitCheck>
-                      <S.BenefitDescription>{benefit.name}</S.BenefitDescription>
-                    </S.Benefit>
-                  ))}
-                </S.TierBenefitList>
-              </S.Tier>
+              <S.Level key={level.name + i} data-testid="level">
+                <S.BenefitLevelName>
+                  {level.name}: {level.donation_range}
+                </S.BenefitLevelName>
+                <S.LevelDescription data-testid="level-description">{level.description}</S.LevelDescription>
+                {i !== 0 && <S.LevelInclusion>Everything from {prevLevel.name}, plus</S.LevelInclusion>}
+                <S.LevelBenefitList data-testid="level-benefit-list">
+                  {level.benefits?.map((benefit, i) => {
+                    return (
+                      <S.Benefit key={benefit.name + i} data-testid="level-benefit">
+                        <S.BenefitCheck>
+                          <S.BenefitIcon icon={ICONS.CHECK_MARK} />
+                        </S.BenefitCheck>
+                        <S.BenefitDetails>
+                          <S.BenefitName>{benefit.name}</S.BenefitName>
+                          <S.BenefitDescription data-testid="level-benefit__description">
+                            {benefit.description}
+                          </S.BenefitDescription>
+                        </S.BenefitDetails>
+                      </S.Benefit>
+                    );
+                  })}
+                </S.LevelBenefitList>
+              </S.Level>
             );
           })}
-        </S.TiersList>
+        </S.LevelsList>
       </S.BenefitsContent>
     </DElement>
   );

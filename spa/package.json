@@ -94,8 +94,7 @@
         ],
         "rules": {
           "jest/valid-expect": 0,
-          "jest/valid-expect-in-promise": 0,
-          "no-debugger": 2
+          "jest/valid-expect-in-promise": 0
         }
       }
     ]

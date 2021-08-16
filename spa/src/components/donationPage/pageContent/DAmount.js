@@ -32,7 +32,6 @@ function DAmount({ element, ...props }) {
       const amounts = options[frequency] || [];
       return overrideAmount ? [] : amounts;
     }
-    debugger;
     return [];
   };
 

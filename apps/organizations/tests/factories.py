@@ -47,7 +47,7 @@ class BenefitFactory(DjangoModelFactory):
     class Meta:
         model = models.Benefit
 
-    name = factory.Sequence(lambda n: fake.sentence(nb_words=2))
+    name = factory.Sequence(lambda n: f"{fake.sentence(nb_words=2)}-{str(n)}")
     description = fake.sentence(nb_words=8)
 
 

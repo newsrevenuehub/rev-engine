@@ -6,41 +6,36 @@ export const DBenefits = styled.aside``;
 
 export const BenefitsContent = styled.div``;
 
-export const BenefitsName = styled.h2`
+export const BenefitLevelName = styled.h2`
   font-size: ${(props) => props.theme.fontSizes[2]};
   font-weight: normal;
   padding-bottom: 1rem;
   border-bottom: 1px ${(props) => props.theme.ruleStyle || 'solid'} ${(props) => props.theme.colors.grey[1]};
 `;
 
-export const TiersList = styled.ul`
+export const LevelsList = styled.ul`
   padding: 0;
   margin: 0;
   list-style: none;
 `;
 
-export const Tier = styled.li`
-  &:not(:last-child) {
-    border-bottom: 1px ${(props) => props.theme.ruleStyle || 'solid'} ${(props) => props.theme.colors.grey[1]};
-    margin-bottom: 2rem;
-  }
-`;
+export const Level = styled.li``;
 
-export const TierName = styled.h3`
+export const LevelName = styled.h3`
   font-size: ${(props) => props.theme.fontSizes[1]};
 `;
 
-export const TierDescription = styled.p`
+export const LevelDescription = styled.p`
   font-size: ${(props) => props.theme.fontSizes[2]};
 `;
 
-export const TierInclusion = styled.p`
+export const LevelInclusion = styled.p`
   font-size: ${(props) => props.theme.fontSizes[0]};
   font-style: italic;
   margin-bottom: 2rem;
 `;
 
-export const TierBenefitList = styled.ul`
+export const LevelBenefitList = styled.ul`
   padding: 0;
   margin: 0;
   list-style: none;
@@ -49,8 +44,8 @@ export const TierBenefitList = styled.ul`
 export const Benefit = styled.li`
   display: flex;
   flex-direction: row;
-  align-items: center;
-  margin-bottom: 2rem;
+  align-items: top;
+  margin-bottom: 1rem;
 `;
 
 export const BenefitCheck = styled.i`
@@ -72,9 +67,26 @@ export const BenefitIcon = styled(SvgIcon)`
   fill: ${(props) => props.theme.colors.white};
 `;
 
+export const BenefitDetails = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: left;
+  margin-bottom: 1rem;
+  line-height: normal;
+`;
+
+export const BenefitName = styled.h4`
+  display: inline-block;
+  margin-left: 2rem;
+  flex: 1;
+`;
+
+export const HR = styled.br``;
+
 export const BenefitDescription = styled.p`
   display: inline-block;
   margin-left: 2rem;
+  font-style: italic;
   flex: 1;
   white-space: wrap;
 `;

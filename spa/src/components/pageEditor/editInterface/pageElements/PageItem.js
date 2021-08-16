@@ -8,6 +8,7 @@ import {
   faUser,
   faPlus,
   faCreditCard,
+  faAddressCard,
   faImage,
   faGifts
 } from '@fortawesome/free-solid-svg-icons';
@@ -54,6 +55,9 @@ function getElementIcon(elementType) {
 
     case 'DDonorInfo':
       return faUser;
+
+    case 'DDonorAddress':
+      return faAddressCard;
 
     case 'DAdditionalInfo':
       return faPlus;

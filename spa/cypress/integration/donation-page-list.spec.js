@@ -8,21 +8,20 @@ describe('Donation page list', () => {
     cy.intercept(
       { method: 'GET', pathname: getEndpoint(LIST_PAGES) },
       { fixture: 'pages/list-pages-1', statusCode: 200 }
-    );
+    ).as('listPages');
 
     cy.visit(PAGES_SLUG);
+    cy.url().should('include', PAGES_SLUG);
+    cy.wait('@listPages');
   });
 
   it('should render pages list', () => {
-    cy.getByTestId('pages-list');
+    cy.getByTestId('pages-list').should('exist');
   });
 
   describe('Donation page create', () => {
-    before(() => {
-      cy.getByTestId('page-create-button').click();
-    });
-
     it('should render page creation modal', () => {
+      cy.getByTestId('page-create-button').click();
       cy.getByTestId('page-create-modal');
     });
 

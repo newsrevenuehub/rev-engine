@@ -1,5 +1,7 @@
-import * as dynamicElements from 'components/donationPage/pageContent/dynamicElements';
+import * as dynamicLayoutElements from 'components/donationPage/pageContent/dynamicElements';
+import * as dynamicSidebarElements from 'components/donationPage/pageContent/dynamicSidebarElements';
 import * as staticElements from 'components/donationPage/pageContent/staticElements';
+import ElementError from 'components/donationPage/pageContent/ElementError';
 
 export const getHeaderBarElement = () => {
   return <staticElements.SHeaderBar />;
@@ -13,15 +15,12 @@ export const getGraphicElement = () => {
   return <staticElements.SGraphic />;
 };
 
-export const getBenefitsElement = () => {
-  return <staticElements.SBenefits />;
-};
-
 export const getDynamicElement = (element, live) => {
   return getComponentForElement(element, live);
 };
 
 function getComponentForElement(element, live) {
+  const dynamicElements = { ...dynamicLayoutElements, ...dynamicSidebarElements };
   const El = dynamicElements[element.type];
   if (!El) {
     return live ? null : <NoComponentError name={element.type} key={element.uuid} />;
@@ -30,5 +29,5 @@ function getComponentForElement(element, live) {
 }
 
 function NoComponentError({ name }) {
-  return <p>Missing component defintion for "{name}"</p>;
+  return <ElementError>Missing component defintion for "{name}"</ElementError>;
 }

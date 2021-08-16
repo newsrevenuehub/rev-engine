@@ -8,6 +8,9 @@ import * as getters from 'components/donationPage/pageGetters';
 import { frequencySort } from 'components/donationPage/pageContent/DFrequency';
 import { getDefaultAmount } from 'components/donationPage/pageContent/DAmount';
 
+// Children
+import DonationPageSidebar from 'components/donationPage/DonationPageSidebar';
+
 // Deps
 import queryString from 'query-string';
 
@@ -121,7 +124,7 @@ function DonationPage({ page, live = false }) {
               </S.DonationContent>
             </S.SideInner>
           </S.SideOuter>
-          {page.donor_benefits && getters.getBenefitsElement()}
+          <DonationPageSidebar sidebarContent={page?.sidebar_elements} live={live} />
         </S.PageMain>
         <DonationPageFooter page={page} />
       </S.DonationPage>
@@ -135,9 +138,9 @@ export default DonationPage;
 
 function getInitialFrequency(page) {
   const frequencyElement = page?.elements?.find((el) => el.type === 'DFrequency');
-  if (frequencyElement) {
+  if (frequencyElement?.content) {
     // If there's a default frequency, use it...
-    const defaultFreq = frequencyElement.content.find((freq) => freq.isDefault);
+    const defaultFreq = frequencyElement.content?.find((freq) => freq.isDefault);
     if (defaultFreq) return defaultFreq.value;
 
     // ...otherwise, use the "first" in the list.

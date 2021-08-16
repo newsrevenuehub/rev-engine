@@ -8,6 +8,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
 from apps.api.permissions import UserBelongsToOrg
+from apps.media.models import MediaImage
 from apps.organizations.models import RevenueProgram
 from apps.organizations.views import OrganizationLimitedListView
 from apps.pages import serializers
@@ -72,6 +73,17 @@ class PageViewSet(OrganizationLimitedListView, viewsets.ModelViewSet):
         serializer = self.get_serializer_class()
         page_serializer = serializer(instance=donation_page)
         return Response(page_serializer.data, status=status.HTTP_200_OK)
+
+    def partial_update(self, request, *args, **kwargs):
+        response = super().partial_update(request, *args, **kwargs)
+        if request.FILES and request.data.get("sidebar_elements", None):
+            # Link up thumbs and MediaImages
+            data = MediaImage.create_from_request(request.POST, request.FILES, kwargs["pk"])
+            response.data["sidebar_elements"] = data.get("sidebar_elements")
+            page = DonationPage.objects.get(pk=kwargs["pk"])
+            page.sidebar_elements = response.data["sidebar_elements"]
+            page.save()
+        return response
 
     def destroy(self, request, pk):
         page = self.model.objects.get(pk=pk)

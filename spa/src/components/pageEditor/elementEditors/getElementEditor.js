@@ -9,7 +9,7 @@ function getElementEditor(elementType) {
   });
   if (!Editor) {
     console.warn(
-      `No element editor avaialble for element type ${elementType}. Did you forget to define [ElementEditor].for property? Is it exported from elementEditors.index.js?`
+      `No element editor available for element type ${elementType}. Did you forget to define [ElementEditor].for property? Is it exported from elementEditors.index.js?`
     );
     return;
   }

@@ -11,6 +11,8 @@ import {
   PAGES_SLUG
 } from 'routes';
 
+import { VERIFY_TOKEN } from 'ajax/endpoints';
+
 import livePageFixture from '../fixtures/pages/live-page-1.json';
 import { FULL_PAGE } from 'ajax/endpoints';
 import { getEndpoint } from '../support/util';
@@ -23,20 +25,19 @@ const DONATION_PAGE_VIA_REV_PROGRAM_PAGE = `/${REVENUE_PROGRAM}/${PAGE_NAME}`;
 const DONATION_PAGE_VIA_REV_PROGRAM = `/${REVENUE_PROGRAM}`;
 
 const EDITOR_ROUTE_REV = `${EDITOR_ROUTE}/${REVENUE_PROGRAM}`;
-const EDITOR_ROUTE_PAGE = `${EDITOR_ROUTE}/${DONATION_PAGE_VIA_REV_PROGRAM_PAGE}`;
+const EDITOR_ROUTE_PAGE = `${EDITOR_ROUTE}${DONATION_PAGE_VIA_REV_PROGRAM_PAGE}`;
 
-const HUB_TRACKED_PAGES = [
-  LOGIN,
+const HUB_TRACKED_PAGES_REQURING_NO_LOGIN = [LOGIN];
+
+const HUB_TRACKED_PAGES_REQUIRING_HUB_LOGIN = [
   MAIN_CONTENT_SLUG,
   ORGANIZATION_SLUG,
   DONATIONS_SLUG,
   PAGES_SLUG,
-  EDITOR_ROUTE,
   EDITOR_ROUTE_REV,
   EDITOR_ROUTE_PAGE,
   CONTRIBUTOR_ENTRY,
-  CONTRIBUTOR_VERIFY,
-  CONTRIBUTOR_DASHBOARD
+  CONTRIBUTOR_VERIFY
 ];
 
 // NB: The THANK_YOU_SLUG page is also tracked by both hub and org
@@ -46,36 +47,71 @@ const HUB_TRACKED_PAGES = [
 // with the Stripe API, which doesn't happen by default (long story, that one...)
 const HUB_AND_ORG_TRACKED_PAGES = [DONATION_PAGE_VIA_REV_PROGRAM, DONATION_PAGE_VIA_REV_PROGRAM_PAGE];
 
-describe('Pages that are only tracked by Hub', () => {
+describe.only('Pages that are only tracked by Hub', () => {
   beforeEach(() => {
-    // const gaGetScriptUrl = 'https://www.google-analytics.com/analytics.js';
-    // const gaV3CollectUrl = 'https://www.google-analytics.com/j/collect*';
     const gaV3CollectUrl = new URL('https://www.google-analytics.com/j/collect');
-    // cy.intercept(gaGetScriptUrl, {
-    //   fixture: '../fixtures/analytics/ga_v3_script'
-    // }).as('getGaV3Analytics');
     cy.intercept({
       hostname: gaV3CollectUrl.hostname,
       pathname: gaV3CollectUrl.pathname,
+      method: 'POST',
       query: {
         t: 'pageview',
         tid: HUB_GA_V3_ID
       }
     }).as('trackPageViewOnHubGaV3');
-    // cy.intercept(getEndpoint(ORG_STRIPE_ACCOUNT_ID));
   });
-  it('should send a page view to the Hub Google Analytics v3 account for all Hub-only pages', () => {
-    HUB_TRACKED_PAGES.forEach((page) => {
+
+  it('pages that require no login', () => {
+    HUB_TRACKED_PAGES_REQURING_NO_LOGIN.forEach((page) => {
       cy.visit(page);
       cy.wait('@trackPageViewOnHubGaV3').then((interception) => {
-        // show correct page reflected
+        const queryParams = new URLSearchParams(interception.request.url.split('?')[1]);
+        const trackedUrl = new URL(queryParams.get('dl'));
+        expect(trackedUrl.pathname).to.equal(page);
       });
+    });
+  });
+
+  it('pages that require hub login', () => {
+    cy.login('user/stripe-verified.json');
+    // logging in will create an initial page view, and we wait for same intercept below per page, so wait on
+    // login triggered page view now.
+    cy.wait('@trackPageViewOnHubGaV3');
+
+    HUB_TRACKED_PAGES_REQUIRING_HUB_LOGIN.forEach((page) => {
+      cy.visit(page);
+      cy.wait('@trackPageViewOnHubGaV3').then((interception) => {
+        const queryParams = new URLSearchParams(interception.request.url.split('?')[1]);
+        const trackedUrl = new URL(queryParams.get('dl'));
+        expect(trackedUrl.pathname).to.equal(page);
+      });
+    });
+  });
+
+  it('pages that require contributor login', () => {
+    cy.login('user/valid-contributor-1.json');
+    // logging in will create an initial page view, and we wait for same intercept below per page, so wait on
+    // login triggered page view now.
+    cy.wait('@trackPageViewOnHubGaV3');
+
+    cy.intercept({ method: 'POST', url: getEndpoint(VERIFY_TOKEN) }, { fixture: 'user/valid-contributor-1.json' }).as(
+      'login'
+    );
+    cy.interceptPaginatedDonations();
+    cy.visit(CONTRIBUTOR_VERIFY);
+    cy.url().should('contain', CONTRIBUTOR_DASHBOARD);
+    cy.wait('@trackPageViewOnHubGaV3').then((interception) => {
+      const queryParams = new URLSearchParams(interception.request.url.split('?')[1]);
+      const trackedUrl = new URL(queryParams.get('dl'));
+      expect(trackedUrl.pathname).to.equal(CONTRIBUTOR_DASHBOARD);
     });
   });
 });
 
 describe('Pages that are tracked by both the hub and the org', () => {
-  beforeEach(() => {
+  before(() => {
+    cy.login('user/stripe-verified.json');
+
     // Google Analytics V3
     const gaV3CollectUrl = new URL('https://www.google-analytics.com/j/collect');
 
@@ -83,7 +119,6 @@ describe('Pages that are tracked by both the hub and the org', () => {
       hostname: gaV3CollectUrl.hostname,
       pathname: gaV3CollectUrl.pathname,
       query: {
-        v: '1',
         t: 'pageview',
         tid: HUB_GA_V3_ID
       }
@@ -93,7 +128,6 @@ describe('Pages that are tracked by both the hub and the org', () => {
       hostname: gaV3CollectUrl.hostname,
       pathname: gaV3CollectUrl.pathname,
       query: {
-        v: '1',
         t: 'pageview',
         tid: livePageFixture.revenue_program.google_analytics_v3_id
       }
@@ -108,14 +142,7 @@ describe('Pages that are tracked by both the hub and the org', () => {
     }).as('trackPageViewOnOrgGaV4');
 
     // Facebook Pixel
-    // const fbPixelInitUrl = new URL(
-    //   `https://connect.facebook.net/signals/config/${livePageFixture.revenue_program.facebook_pixel_id}`
-    // );
     const fbPixelCollectUrl = new URL('https://www.facebook.com/tr/');
-    // cy.intercept({
-    //   hostname: fbPixelInitUrl.hostname,
-    //   pathname: fbPixelInitUrl.pathname
-    // }).as('initFbPixelInstance');
     cy.intercept({
       hostname: fbPixelCollectUrl.hostname,
       pathname: fbPixelCollectUrl.pathname,
@@ -124,6 +151,7 @@ describe('Pages that are tracked by both the hub and the org', () => {
       }
     }).as('trackPageViewOnOrgFbPixel');
   });
+
   it('tracks page view for Hub only when no org GA data', () => {
     const updatedFixture = cloneDeep(livePageFixture);
     updatedFixture.revenue_program.google_analytics_v3_domain = null;
@@ -136,8 +164,9 @@ describe('Pages that are tracked by both the hub and the org', () => {
       cy.visit(page);
       cy.wait('@getPageDetail');
       cy.wait('@trackPageViewOnHubGaV3').then((interception) => {
-        // confirm correct page view data sent
-        expect(interception.request.dl).to('equal');
+        const queryParams = new URLSearchParams(interception.request.url.split('?')[1]);
+        const trackedUrl = new URL(queryParams.get('dl'));
+        expect(trackedUrl.pathname).to('equal', page);
       });
     });
   });
@@ -148,7 +177,16 @@ describe('Pages that are tracked by both the hub and the org', () => {
     HUB_AND_ORG_TRACKED_PAGES.forEach((page) => {
       cy.visit(page);
       cy.wait('@getPageDetail');
-      cy.wait(['@trackPageViewOnHubGaV3', '@trackPageViewOnOrgGaV3']);
+      cy.wait('@trackPageViewOnHubGaV3').then((interception) => {
+        const queryParams = new URLSearchParams(interception.request.url.split('?')[1]);
+        const trackedUrl = new URL(queryParams.get('dl'));
+        expect(trackedUrl.pathname).to('equal', page);
+      });
+      cy.wait('@trackPageViewOnOrgGaV3').then((interception) => {
+        const queryParams = new URLSearchParams(interception.request.url.split('?')[1]);
+        const trackedUrl = new URL(queryParams.get('dl'));
+        expect(trackedUrl.pathname).to('equal', page);
+      });
     });
   });
   it('tracks a page view in Google Analytics v4 for org when org has enabled Google Analytics v4', () => {

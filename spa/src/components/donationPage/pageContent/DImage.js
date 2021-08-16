@@ -15,14 +15,9 @@ function DImage({ element, ...props }) {
   );
 }
 
-const imagePropTypes = {
-  url: PropTypes.string.isRequired
-};
-
 DImage.propTypes = {
   element: PropTypes.shape({
-    ...DynamicElementPropTypes,
-    content: PropTypes.shape(imagePropTypes)
+    ...DynamicElementPropTypes
   })
 };
 

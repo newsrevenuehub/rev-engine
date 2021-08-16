@@ -138,9 +138,10 @@ export default DonationPage;
 
 function getInitialFrequency(page) {
   const frequencyElement = page?.elements?.find((el) => el.type === 'DFrequency');
-  if (frequencyElement) {
+  if (frequencyElement.content) {
+    debugger;
     // If there's a default frequency, use it...
-    const defaultFreq = frequencyElement.content.find((freq) => freq.isDefault);
+    const defaultFreq = frequencyElement.content?.find((freq) => freq.isDefault);
     if (defaultFreq) return defaultFreq.value;
 
     // ...otherwise, use the "first" in the list.

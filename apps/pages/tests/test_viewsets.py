@@ -11,7 +11,7 @@ from rest_framework.test import APIRequestFactory, APITestCase, force_authentica
 
 from apps.common.tests.test_resources import AbstractTestCase
 from apps.common.tests.test_utils import get_test_image_binary, get_test_image_file_jpeg
-from apps.media.tests import setup_sidebar_fixture
+from apps.element_media.tests import setup_sidebar_fixture
 from apps.organizations.tests.factories import RevenueProgramFactory
 from apps.pages.models import DonationPage, Style, Template
 from apps.pages.tests.factories import DonationPageFactory, StyleFactory, TemplateFactory

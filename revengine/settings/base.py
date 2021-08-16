@@ -37,7 +37,7 @@ INSTALLED_APPS = [
     "apps.emails",
     "apps.contributions",
     "apps.slack",
-    "apps.media",
+    "apps.element_media",
     "apps.public",
     "django.contrib.admin",
     "django.contrib.auth",

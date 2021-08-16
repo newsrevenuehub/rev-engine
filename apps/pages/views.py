@@ -8,7 +8,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
 from apps.api.permissions import UserBelongsToOrg
-from apps.media.models import MediaImage
+from apps.element_media.models import MediaImage
 from apps.organizations.models import RevenueProgram
 from apps.organizations.views import OrganizationLimitedListView
 from apps.pages import serializers

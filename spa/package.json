@@ -65,7 +65,8 @@
     "build": "react-scripts build",
     "cypress:open": "cypress open",
     "cypress:run": "cypress run",
-    "eject": "react-scripts eject"
+    "eject": "react-scripts eject",
+    "heroku-postbuild": "react-scripts build"
   },
   "jest": {
     "coveragePathIgnorePatterns": [

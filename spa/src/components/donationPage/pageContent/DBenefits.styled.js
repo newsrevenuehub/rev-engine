@@ -6,11 +6,20 @@ export const DBenefits = styled.aside``;
 
 export const BenefitsContent = styled.div``;
 
-export const BenefitLevelName = styled.h2`
+export const BenefitLevelDetails = styled.h2`
   font-size: ${(props) => props.theme.fontSizes[2]};
   font-weight: normal;
   padding-bottom: 1rem;
   border-bottom: 1px ${(props) => props.theme.ruleStyle || 'solid'} ${(props) => props.theme.colors.grey[1]};
+  margin-bottom: 1rem;
+`;
+
+export const LevelName = styled.h3`
+  font-size: ${(props) => props.theme.fontSizes[1]};
+`;
+
+export const LevelRange = styled.p`
+  font-size: ${(props) => props.theme.fontSizes[2]};
 `;
 
 export const LevelsList = styled.ul`
@@ -20,14 +29,6 @@ export const LevelsList = styled.ul`
 `;
 
 export const Level = styled.li``;
-
-export const LevelName = styled.h3`
-  font-size: ${(props) => props.theme.fontSizes[1]};
-`;
-
-export const LevelDescription = styled.p`
-  font-size: ${(props) => props.theme.fontSizes[2]};
-`;
 
 export const LevelInclusion = styled.p`
   font-size: ${(props) => props.theme.fontSizes[0]};
@@ -80,8 +81,6 @@ export const BenefitName = styled.h4`
   margin-left: 2rem;
   flex: 1;
 `;
-
-export const HR = styled.br``;
 
 export const BenefitDescription = styled.p`
   display: inline-block;

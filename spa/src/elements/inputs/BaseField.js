@@ -8,7 +8,7 @@ import { AnimatePresence } from 'framer-motion';
 
 const hasErrors = (errors) => errors.length > 0;
 
-function BaseField({ label, errors, inline, labelProps, helpText, children }) {
+function BaseField({ label, errors, inline, labelProps, helpText, required, children }) {
   const errorsRef = useRef();
 
   useEffect(() => {
@@ -22,7 +22,7 @@ function BaseField({ label, errors, inline, labelProps, helpText, children }) {
       <S.FieldWrapper inline={inline}>
         {label && (
           <S.Label htmlFor={label} {...labelProps}>
-            {label}
+            {label} {required && <S.Required>*</S.Required>}
           </S.Label>
         )}
         {children}

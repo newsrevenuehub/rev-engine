@@ -155,22 +155,36 @@ class ContributorSerializer(serializers.ModelSerializer):
 
 
 class AbstractPaymentSerializer(serializers.Serializer):
-    # These are the fields required for the BadActor API
-    email = serializers.EmailField()
-    ip = serializers.IPAddressField()
-    first_name = serializers.CharField(max_length=255)
-    last_name = serializers.CharField(max_length=255)
-    referer = serializers.URLField()
+    # Payment details
     amount = serializers.IntegerField()
+    interval = serializers.ChoiceField(choices=ContributionInterval.choices, default=ContributionInterval.ONE_TIME)
+
+    # DonorInfo
+    first_name = serializers.CharField(max_length=40)
+    last_name = serializers.CharField(max_length=80)
+    email = serializers.EmailField(max_length=80)
+
+    # DonorAddress
+    mailing_postal_code = serializers.CharField(max_length=20)
+    mailing_street = serializers.CharField(max_length=255)
+    mailing_city = serializers.CharField(max_length=40)
+    mailing_state = serializers.CharField(max_length=80)
+    mailing_country = serializers.CharField(max_length=80)
+
+    # Any additional info that should be passed through
     reason = serializers.CharField(max_length=255, required=False, allow_blank=True)
+
+    # Params/Pass-through
     sf_campaign_id = serializers.CharField(max_length=255, required=False, allow_blank=True)
 
-    # These are use to attach the contribution to the right organization,
+    # Request metadata
+    ip = serializers.IPAddressField()
+    referer = serializers.URLField()
+
+    # These are used to attach the contribution to the right organization,
     # and associate it with the page it came from.
     revenue_program_slug = serializers.SlugField()
     donation_page_slug = serializers.SlugField(required=False, allow_blank=True)
-
-    interval = serializers.ChoiceField(choices=ContributionInterval.choices, default=ContributionInterval.ONE_TIME)
 
     @classmethod
     def convert_cents_to_amount(self, cents):

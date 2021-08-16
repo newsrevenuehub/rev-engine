@@ -27,6 +27,7 @@ function DAmount({ element, ...props }) {
   };
 
   const getAmounts = (frequency) => {
+    debugger;
     const options = element?.content?.options;
     if (typeof options !== 'undefined') {
       const amounts = options[frequency] || [];

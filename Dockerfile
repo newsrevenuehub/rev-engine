@@ -6,7 +6,7 @@ COPY ./spa/package.json ./spa/package-lock.json /code/
 RUN npm install --silent
 COPY ./spa /code/spa/
 WORKDIR /code/spa/
-RUN npm run build
+RUN NODE_ENV=production npm run build
 
 FROM python:3.9-slim as base
 

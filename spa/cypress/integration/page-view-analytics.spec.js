@@ -1,4 +1,3 @@
-import cloneDeep from 'lodash.clonedeep';
 import {
   CONTRIBUTOR_ENTRY,
   CONTRIBUTOR_VERIFY,

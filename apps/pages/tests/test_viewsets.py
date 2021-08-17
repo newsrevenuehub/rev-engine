@@ -68,6 +68,23 @@ class PageViewSetTest(AbstractTestCase):
         self.assertEqual(response.status_code, 400)
         self.assertEqual(str(response.data["revenue_program_pk"]), "Could not find revenue program with provided pk")
 
+    def test_page_create_returns_revenue_program_slug(self):
+        """
+        Page create must return revenue_program in order to navigate the user to the
+        correct url for page edit, after creating a page.
+        """
+        self.login()
+        list_url = reverse("donationpage-list")
+        page_data = {
+            "name": "My page, tho",
+            "heading": "New DonationPage",
+            "slug": "new-page",
+            "revenue_program_pk": self.rev_program.pk,
+        }
+        response = self.client.post(list_url, page_data)
+        self.assertIn("revenue_program", response.data)
+        self.assertIn("slug", response.data["revenue_program"])
+
     def test_page_update_updates_page(self):
         page = self.resources[0]
         self.authenticate_user_for_resource(page)

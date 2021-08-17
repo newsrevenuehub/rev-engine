@@ -33,15 +33,25 @@ class OrganizationSerializer(serializers.ModelSerializer):
 
 
 class RevenueProgramListInlineSerializer(serializers.ModelSerializer):
+    """
+    I am needed for Page creation. In particular, if "slug" is not provided,
+    the user is redirected to `/edit/undefined/page-slug` after page creation.
+    """
+
     class Meta:
         model = RevenueProgram
         fields = [
             "id",
             "name",
+            "slug",
         ]
 
 
 class RevenueProgramSerializer(serializers.ModelSerializer):
+    """
+    This is the RevenueProgram serializer you should consider updating.
+    """
+
     slug = serializers.SlugField(required=False)
 
     class Meta:

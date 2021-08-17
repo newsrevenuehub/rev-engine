@@ -6,7 +6,7 @@ from django.conf import settings
 logger = logging.getLogger(__name__)
 
 
-class LogFourHundredsMiddleware:
+class LogFourHundredsMiddleware:  # pragma: no cover
     def __init__(self, get_response) -> None:
         self.get_response = get_response
 

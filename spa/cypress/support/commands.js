@@ -25,6 +25,7 @@ Cypress.Commands.add('visitDonationPage', () => {
     { fixture: 'pages/live-page-1', statusCode: 200 }
   ).as('getPageDetail');
   cy.visit('/revenue-program-slug/page-slug');
+  cy.url().should('include', '/revenue-program-slug/page-slug');
   cy.wait('@getPageDetail');
 });
 

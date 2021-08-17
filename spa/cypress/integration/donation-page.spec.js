@@ -49,7 +49,7 @@ describe('Donation page', () => {
     });
   });
 
-  describe('DonationPage elements', () => {
+  describe.only('DonationPage elements', () => {
     it('should render expected rich text content', () => {
       cy.visitDonationPage();
 
@@ -107,6 +107,21 @@ describe('Donation page', () => {
           cy.getByTestId('pay-fees').scrollIntoView().find('label').contains(calculatedFee);
         });
       });
+    });
+
+    it('should select agreeToPayFees by default if appropriate page property is set', () => {
+      const page = livePageOne;
+      const paymentIndex = livePageOne.elements.findIndex((el) => el.type === 'DPayment');
+      page.elements[paymentIndex].content.payFeesDefault = true;
+      cy.intercept({ method: 'GET', pathname: getEndpoint(FULL_PAGE) }, { body: page, statusCode: 200 }).as(
+        'getPageWithPayFeesDefault'
+      );
+      cy.visit('/revenue-program-slug/page-slug');
+      cy.url().should('include', '/revenue-program-slug/page-slug');
+      cy.wait('@getPageWithPayFeesDefault');
+
+      cy.getByTestId('pay-fees-checked').should('exist');
+      cy.getByTestId('pay-fees-not-checked').should('not.exist');
     });
   });
 

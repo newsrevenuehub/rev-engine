@@ -27,7 +27,10 @@ function DPayment({ element, live, ...props }) {
       {live ? (
         <S.DPayment>
           {element?.content && element.content['stripe'] && (
-            <StripePayment offerPayFees={element.content?.offerPayFees} />
+            <StripePayment
+              offerPayFees={element.content?.offerPayFees}
+              payFeesDefault={element.content?.payFeesDefault}
+            />
           )}
         </S.DPayment>
       ) : (
@@ -68,6 +71,7 @@ export function PayFeesWidget() {
         toggle
         checked={payFee}
         onChange={(_e, { checked }) => setPayFee(checked)}
+        data-testid={`pay-fees-${payFee ? 'checked' : 'not-checked'}`}
       />
       <S.PayFeesDescription>
         Paying the Stripe transaction fee, while not required, directs more money in support of our mission.

@@ -1,4 +1,5 @@
 import * as S from './PaymentEditor.styled';
+import { useTheme } from 'styled-components';
 
 import { useEditInterfaceContext } from 'components/pageEditor/editInterface/EditInterface';
 
@@ -11,6 +12,7 @@ const STRIPE_PAYMENT_METHODS = [
 const NOT_ENOUGH_PAYMENT_METHODS = 'You must enable at least one payment method';
 
 function PaymentEditor() {
+  const theme = useTheme();
   const { elementContent, setElementContent } = useEditInterfaceContext();
 
   const setToggled = (checked, method, provider) => {
@@ -30,6 +32,11 @@ function PaymentEditor() {
   const toggleOfferPayFees = (_, { checked }) => {
     const offerPayFees = checked;
     setElementContent({ ...elementContent, offerPayFees });
+  };
+
+  const togglePayFeesDefault = (_, checked) => {
+    const payFeesDefault = checked;
+    setElementContent({ ...elementContent, payFeesDefault });
   };
 
   return (
@@ -55,6 +62,17 @@ function PaymentEditor() {
             toggle
           />
         </S.ToggleWrapper>
+        <S.RadioWrapper>
+          <S.Radio
+            id="pay-fees-by-default"
+            data-testid="pay-fees-by-default"
+            type="checkbox"
+            color={theme.colors.primary}
+            checked={elementContent?.payFeesDefault}
+            onChange={togglePayFeesDefault}
+          />
+          <S.RadioLabel htmlFor="pay-fees-by-default">selected by default</S.RadioLabel>
+        </S.RadioWrapper>
       </S.OtherOptionsList>
     </S.PaymentEditor>
   );

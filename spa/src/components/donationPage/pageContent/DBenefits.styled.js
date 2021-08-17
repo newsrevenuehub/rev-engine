@@ -9,8 +9,6 @@ export const BenefitsContent = styled.div``;
 export const BenefitLevelDetails = styled.h2`
   font-size: ${(props) => props.theme.fontSizes[2]};
   font-weight: normal;
-  padding-bottom: 1rem;
-  border-bottom: 1px ${(props) => props.theme.ruleStyle || 'solid'} ${(props) => props.theme.colors.grey[1]};
   margin-bottom: 1rem;
 `;
 
@@ -28,7 +26,10 @@ export const LevelsList = styled.ul`
   list-style: none;
 `;
 
-export const Level = styled.li``;
+export const Level = styled.li`
+  border-bottom: 1px ${(props) => props.theme.ruleStyle || 'solid'} ${(props) => props.theme.colors.grey[1]};
+  padding: 2rem 0;
+`;
 
 export const LevelInclusion = styled.p`
   font-size: ${(props) => props.theme.fontSizes[0]};
@@ -46,7 +47,10 @@ export const Benefit = styled.li`
   display: flex;
   flex-direction: row;
   align-items: top;
-  margin-bottom: 1rem;
+
+  &:not(:last-child) {
+    margin-bottom: 2rem;
+  }
 `;
 
 export const BenefitCheck = styled.i`
@@ -72,7 +76,6 @@ export const BenefitDetails = styled.div`
   display: flex;
   flex-direction: column;
   align-items: left;
-  margin-bottom: 1rem;
   line-height: normal;
 `;
 

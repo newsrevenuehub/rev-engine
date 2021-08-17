@@ -65,7 +65,9 @@ export function PayFeesWidget() {
       <S.Checkbox
         label={
           amount
-            ? `$${calculateStripeFee(amount, page.organization_is_nonprofit)} ${getFrequencyAdverb(frequency)}`
+            ? `$${calculateStripeFee(amount, frequency, page.organization_is_nonprofit)} ${getFrequencyAdverb(
+                frequency
+              )}`
             : ''
         }
         toggle

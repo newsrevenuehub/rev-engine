@@ -49,7 +49,7 @@ describe('Donation page', () => {
     });
   });
 
-  describe.only('DonationPage elements', () => {
+  describe('DonationPage elements', () => {
     it('should render expected rich text content', () => {
       cy.visitDonationPage();
 
@@ -103,7 +103,7 @@ describe('Donation page', () => {
         cy.contains(freq.displayName).click();
         amounts.content.options[freq.value].forEach((amount) => {
           cy.contains(amount).click();
-          const calculatedFee = calculateStripeFee(amount, true, true);
+          const calculatedFee = calculateStripeFee(amount, freq.value, true);
           cy.getByTestId('pay-fees').scrollIntoView().find('label').contains(calculatedFee);
         });
       });

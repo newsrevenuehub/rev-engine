@@ -15,7 +15,7 @@ import formatDatetimeForAPI from 'utilities/formatDatetimeForAPI';
 function CreatedFilter({ handleFilterChange }) {
   const theme = useTheme();
   const [fromDate, setFromDate] = useState(null);
-  const [toDate, setToDate] = useState(new Date());
+  const [toDate, setToDate] = useState(null);
 
   const updateFilters = () => {
     handleFilterChange('created', {

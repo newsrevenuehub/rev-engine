@@ -267,7 +267,6 @@ class ContributionMetadata(IndexedTimeStampedModel):
 
     @staticmethod
     def bundle_metadata(supplied: dict, processor_obj, payment_manager):
-        """Small change"""
         processor_meta = ContributionMetadata.objects.filter(processor_object=processor_obj)
         meta_for_all = ContributionMetadata.objects.filter(processor_object=ContributionMetadata.ProcessorObjects.ALL)
         collected = {}

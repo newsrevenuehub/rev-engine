@@ -27,5 +27,5 @@ function calculateStripeFee(amount, isNonProfit) {
 export default calculateStripeFee;
 
 function roundTo2DecimalPlaces(num) {
-  return Math.round(num * 100) / 100;
+  return (Math.round(num * 100) / 100).toFixed(2);
 }

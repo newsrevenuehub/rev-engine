@@ -24,8 +24,6 @@ function RichTextEditor() {
   });
 
   const handleEditorStateChange = (eState) => {
-    console.log('eState', eState.getCurrentContent());
-    console.log('html eState', draftToHtml(convertToRaw(eState.getCurrentContent())));
     setEditorState(eState);
     setElementContent(draftToHtml(convertToRaw(eState.getCurrentContent())));
   };

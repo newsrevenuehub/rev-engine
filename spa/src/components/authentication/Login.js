@@ -34,7 +34,7 @@ function Login({ onSuccess, message }) {
 
   useEffect(() => {
     setAnalyticsConfig({ hubGaV3Id: HUB_GA_V3_ID });
-  }, [setAnalyticsConfig]);
+  }, []);
 
   const handlePostLogin = () => {
     if (onSuccess) onSuccess();

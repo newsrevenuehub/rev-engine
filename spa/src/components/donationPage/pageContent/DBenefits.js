@@ -21,7 +21,7 @@ function DBenefits({ live }) {
     if (live) return null;
     return <ElementError>No Donor Benefits configured for this page</ElementError>;
   }
-  debugger;
+
   return (
     <DElement data-testid="d-benefits">
       <S.BenefitsContent>

@@ -75,7 +75,7 @@ describe('Pages that are only tracked by Hub', () => {
   });
 
   HUB_TRACKED_PAGES_REQUIRING_HUB_LOGIN.forEach((page) => {
-    it(`should track a page view for  ${page}`, () => {
+    it(`should track a page view for ${page}`, () => {
       cy.login('user/stripe-verified.json');
       // logging in will create an initial page view, and we wait for same intercept below per page,
       // so wait on login triggered page view now.

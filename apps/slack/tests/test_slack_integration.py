@@ -8,7 +8,7 @@ from slack_sdk.errors import SlackApiError
 from apps.contributions.models import ContributionInterval
 from apps.contributions.tests.factories import ContributionFactory, ContributorFactory
 from apps.organizations.tests.factories import OrganizationFactory
-from apps.slack.models import HubSlackIntegration, OrganizationSlackIntegration
+from apps.slack.models import HubSlackIntegration, OrganizationSlackIntegration, format_channel_name
 from apps.slack.slack_manager import SlackManager
 
 
@@ -147,3 +147,12 @@ class SlackIntegrationTest(TestCase):
             "Tried to send slack notification, but News Revenue Hub does not have a SlackIntegration configured"
         )
         mock_postmessage.assert_not_called()
+
+    def test_format_channel_name(self, *args):
+        """
+        format_channel_name should ensure that a whatever string it is passed turns in to a valid Slack Channel name
+        """
+        # Missing hash should be added
+        self.assertEqual(format_channel_name("testing")[0], "#")
+        # Should not add additional hash if already present
+        self.assertNotIn(format_channel_name("#testing-channel"), "##")

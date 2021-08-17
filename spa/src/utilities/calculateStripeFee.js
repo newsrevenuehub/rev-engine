@@ -1,8 +1,9 @@
-const STRIPE_NP_RATE = 0.027;
+const STRIPE_NP_RATE = 0.022;
 const STRIPE_FP_RATE = 0.029;
 const STRIPE_FIXED = 0.3;
+const SUBSCRIPTION_UPCHARGE = 0.005;
 
-function calculateStripeFee(amount, isNonProfit) {
+function calculateStripeFee(amount, interval, isNonProfit) {
   /*
     Stripe calculates a fee based on a rate and a flat fee. We must apply the flat fee first,
     then apply the rate to amount + flat fee.
@@ -17,9 +18,14 @@ function calculateStripeFee(amount, isNonProfit) {
 
     NOTE: We are not including any VAT or GST, or any other taxes here, since these are donations.
   */
+
   const amountInt = parseFloat(amount);
   if (isNaN(amountInt)) return null;
-  const RATE = isNonProfit ? STRIPE_NP_RATE : STRIPE_FP_RATE;
+  const isRecurring = interval !== 'one_time';
+  let RATE = isNonProfit ? STRIPE_NP_RATE : STRIPE_FP_RATE;
+
+  if (isRecurring) RATE += SUBSCRIPTION_UPCHARGE;
+
   const amountWithFee = roundTo2DecimalPlaces((amountInt + STRIPE_FIXED) / (1 - RATE));
   return roundTo2DecimalPlaces(amountWithFee - amountInt);
 }

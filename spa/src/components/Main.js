@@ -40,7 +40,7 @@ function Main() {
 
   useEffect(() => {
     setAnalyticsConfig({ hubGaV3Id: HUB_GA_V3_ID });
-  });
+  }, []);
 
   return (
     <OrganizationContext.Provider

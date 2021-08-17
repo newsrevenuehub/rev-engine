@@ -56,7 +56,7 @@ function DonationPageRouter() {
   const [{ loading, error, data }, dispatch] = useReducer(livePageReducer, initialState);
   const params = useParams();
   const requestFullPage = useRequest();
-  const { setAnalyticsConfig, trackDonation } = useAnalyticsContext();
+  const { setAnalyticsConfig } = useAnalyticsContext();
 
   const fetchLivePageContent = useCallback(async () => {
     dispatch({ type: PAGE_FETCH_START });

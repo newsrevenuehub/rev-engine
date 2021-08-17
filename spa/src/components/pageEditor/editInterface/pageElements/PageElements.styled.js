@@ -35,3 +35,10 @@ export const AddElementButton = styled.button`
 export const AddElementIcon = styled(FontAwesomeIcon)`
   color: ${(props) => props.theme.colors.primary};
 `;
+
+export const EmptyElements = styled.h4`
+  text-align: center;
+  font-size: 2rem;
+  font-weight: 200;
+  padding-top: 4rem;
+`;

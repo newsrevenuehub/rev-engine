@@ -4,7 +4,12 @@ export const DonationPage = styled.div`
   background: ${(props) => props.theme.colors.fieldBackground};
 `;
 
-export const NoElements = styled.h2``;
+export const NoElements = styled.h4`
+  text-align: center;
+  font-size: 3rem;
+  font-weight: 200;
+  padding: 2rem 0;
+`;
 
 export const PageMain = styled.main`
   display: flex;

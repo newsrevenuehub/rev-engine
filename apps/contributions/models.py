@@ -176,7 +176,12 @@ def _get_rev_program_id(payment_manager):
 
 
 def _get_rev_program_slug(payment_manager):
-    return payment_manager.revenue_program.slug
+    # revenue_program isn't necessarily availabe on payment_manager at time of
+    # instantiation
+    rev_program = payment_manager.revenue_program
+    if not rev_program:
+        rev_program = payment_manager.get_revenue_program()
+    return rev_program.slug
 
 
 class ContributionMetadata(IndexedTimeStampedModel):
@@ -262,7 +267,6 @@ class ContributionMetadata(IndexedTimeStampedModel):
 
     @staticmethod
     def bundle_metadata(supplied: dict, processor_obj, payment_manager):
-        """Small change"""
         processor_meta = ContributionMetadata.objects.filter(processor_object=processor_obj)
         meta_for_all = ContributionMetadata.objects.filter(processor_object=ContributionMetadata.ProcessorObjects.ALL)
         collected = {}

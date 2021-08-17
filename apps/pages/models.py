@@ -28,6 +28,7 @@ class AbstractPage(IndexedTimeStampedModel):
     styles = models.ForeignKey("pages.Style", null=True, blank=True, on_delete=models.SET_NULL)
 
     elements = models.JSONField(null=True, blank=True, default=list)
+    sidebar_elements = models.JSONField(null=True, blank=True, default=list)
 
     thank_you_redirect = models.URLField(
         blank=True, help_text="If not using default Thank You page, add link to orgs Thank You page here"

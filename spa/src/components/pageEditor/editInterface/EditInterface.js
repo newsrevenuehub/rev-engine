@@ -13,6 +13,7 @@ import AddElementModal from 'components/pageEditor/editInterface/pageElements/ad
 
 import PageElements from 'components/pageEditor/editInterface/pageElements/PageElements';
 import PageSetup, { PAGE_SETUP_FIELDS } from 'components/pageEditor/editInterface/pageSetup/PageSetup';
+import PageSidebarElements from 'components/pageEditor/editInterface/pageSidebarElements/PageSidebarElements';
 import PageStyles from 'components/pageEditor/editInterface/pageStyles/PageStyles';
 
 const editInterfaceAnimation = {
@@ -42,10 +43,12 @@ function EditInterface() {
     showEditInterface,
     setSelectedButton
   } = usePageEditorContext();
+  const [tab, setTab] = useState(0);
+  const [elementDestination, setElementDestination] = useState();
   const [addElementModalOpen, setAddElementModalOpen] = useState(false);
   const [selectedElement, setSelectedElement] = useState();
+  const [selectedElementType, setSelectedElementType] = useState();
 
-  const [tab, setTab] = useState(0);
   // Since you can only edit one element at a time, it's safe (and much easier)
   // to only store one set of "unconfirmed" changes at a time.
   const [elementContent, setElementContent] = useState();
@@ -85,7 +88,12 @@ function EditInterface() {
     setPageContent({ elements });
   };
 
-  const goToProperties = (element) => {
+  const setSidebarElements = (sidebar_elements) => {
+    setPageContent({ sidebar_elements });
+  };
+
+  const goToProperties = (element, elementsType) => {
+    setSelectedElementType(elementsType);
     setSelectedElement(element);
     setElementContent(element.content);
   };
@@ -98,6 +106,8 @@ function EditInterface() {
         elements: page.elements,
         setElements,
         selectedElement,
+        sidebarElements: page.sidebar_elements,
+        setSidebarElements,
         setSelectedElement,
         elementContent,
         setElementContent,
@@ -107,22 +117,38 @@ function EditInterface() {
       <>
         <S.EditInterface {...editInterfaceAnimation} data-testid="edit-interface">
           {selectedElement ? (
-            <ElementProperties />
+            <ElementProperties selectedElementType={selectedElementType} />
           ) : (
             <>
               <EditInterfaceTabs tab={tab} setTab={setTab} />
               {tab === 0 && (
                 <PageElements
-                  openAddElementModal={() => setAddElementModalOpen(true)}
+                  openAddElementModal={() => {
+                    setElementDestination('layout');
+                    setAddElementModalOpen(true);
+                  }}
                   goToProperties={goToProperties}
                 />
               )}
-              {tab === 1 && <PageSetup backToProperties={() => setTab(0)} />}
-              {tab === 2 && <PageStyles backToProperties={() => setTab(0)} />}
+              {tab === 1 && (
+                <PageSidebarElements
+                  goToProperties={goToProperties}
+                  openAddElementModal={() => {
+                    setElementDestination('sidebar');
+                    setAddElementModalOpen(true);
+                  }}
+                />
+              )}
+              {tab === 2 && <PageSetup backToProperties={() => setTab(0)} />}
+              {tab === 3 && <PageStyles backToProperties={() => setTab(0)} />}
             </>
           )}
         </S.EditInterface>
-        <AddElementModal addElementModalOpen={addElementModalOpen} setAddElementModalOpen={setAddElementModalOpen} />
+        <AddElementModal
+          addElementModalOpen={addElementModalOpen}
+          setAddElementModalOpen={setAddElementModalOpen}
+          destination={elementDestination}
+        />
       </>
     </EditInterfaceContext.Provider>
   );

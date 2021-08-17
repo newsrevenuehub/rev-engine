@@ -10,7 +10,7 @@ describe('Donation page edit', () => {
   before(() => {
     cy.login('user/stripe-verified.json');
     cy.intercept(
-      { method: 'GET', pathname: getEndpoint(FULL_PAGE) },
+      { method: 'GET', pathname: `${getEndpoint(FULL_PAGE)}**` },
       { fixture: 'pages/live-page-1', statusCode: 200 }
     ).as('getPage');
     cy.visit('edit/my/page');
@@ -154,7 +154,15 @@ describe('Donation page edit', () => {
   describe('Donor info editor', () => {
     it('should render the DonorInfoEditor', () => {
       cy.contains('Donor info').click();
-      cy.getByTestId('donor-info-editor');
+      cy.getByTestId('donor-info-editor').should('exist');
+      cy.getByTestId('discard-element-changes-button').click();
+    });
+  });
+
+  describe('Donor address editor', () => {
+    it('should render the DonorAmountEditor', () => {
+      cy.contains('Donor address').click();
+      cy.getByTestId('donor-address-editor').should('exist');
       cy.getByTestId('discard-element-changes-button').click();
     });
   });
@@ -162,7 +170,7 @@ describe('Donation page edit', () => {
   describe('Payment editor', () => {
     it('should render the PaymentEditor', () => {
       cy.contains('Payment').click();
-      cy.getByTestId('payment-editor');
+      cy.getByTestId('payment-editor').should('exist');
       cy.getByTestId('discard-element-changes-button').click();
     });
   });
@@ -243,6 +251,7 @@ describe('Donation page edit', () => {
         { fixture: 'pages/live-page-1', statusCode: 200 }
       ).as('getPageDetail');
       cy.visit('edit/my/page');
+      cy.url().should('include', 'edit/my/page');
       cy.wait('@getPageDetail');
       cy.getByTestId('edit-page-button').click({ force: true });
       cy.getByTestId('setup-tab').click({ force: true });
@@ -277,6 +286,55 @@ describe('Donation page edit', () => {
       cy.getByTestId('save-page-button').click();
       cy.getByTestId('confirmation-modal').contains("You're making changes to a live donation page. Continue?");
       cy.getByTestId('cancel-button').click();
+    });
+  });
+
+  describe('Edit interface: Sidebar', () => {
+    before(() => {
+      cy.login('user/stripe-verified.json');
+      cy.intercept(
+        { method: 'GET', pathname: getEndpoint(FULL_PAGE) },
+        { fixture: 'pages/live-page-1', statusCode: 200 }
+      ).as('getPageDetail');
+      cy.visit('edit/my/page');
+      cy.wait('@getPageDetail');
+    });
+
+    it('should have two elements rendered in the sidebar', () => {
+      cy.get('[data-testid=donation-page__sidebar] > ul > li')
+        .should('have.length', 2)
+        .first()
+        .should('have.text', 'Sidebar Blurb')
+        .next()
+        .find('img')
+        .invoke('attr', 'src')
+        .should('eq', '/media/test.png');
+    });
+
+    it('should render the Sidebar tab', () => {
+      cy.getByTestId('edit-page-button').click({ force: true });
+      cy.getByTestId('sidebar-tab').click({ force: true });
+    });
+
+    it('should have two elements', () => {
+      cy.getByTestId('edit-interface-item').should('have.length', 2);
+    });
+
+    it('Can add an element', () => {
+      cy.getByTestId('add-element-button').click();
+      cy.get('[data-testid=close-modal] + div').children().contains('Rich text').click();
+      cy.get('[data-testid=donation-page__sidebar] > ul > li').should('have.length', 3);
+    });
+
+    it('can be added to the page', () => {
+      cy.get('[data-testid=page-sidebar] > ul > li').first().click();
+      cy.get('[class=DraftEditor-editorContainer]').type('New Rich Text');
+      cy.get('[data-testid=keep-element-changes-button').click();
+      cy.get('[data-testid=preview-page-button').click();
+      cy.get('[data-testid=donation-page__sidebar] > ul > li')
+        .should('have.length', 3)
+        .first()
+        .should('contain.text', 'New Rich Text');
     });
   });
 });

@@ -1,13 +1,6 @@
 import styled from 'styled-components';
 
-export const DElement = styled.fieldset`
-  border: none;
-  padding: 4rem 0;
-  margin: 0;
-  &:not(:last-child) {
-    border-bottom: 1px ${(props) => props.theme.ruleStyle || 'solid'} ${(props) => props.theme.colors.grey[1]};
-  }
-`;
+export const DElement = styled.li``;
 
 export const Label = styled.h3`
   font-size: ${(props) => props.theme.fontSizes[2]};

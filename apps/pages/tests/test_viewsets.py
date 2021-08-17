@@ -2,12 +2,16 @@ import datetime
 import json
 
 from django.contrib.auth import get_user_model
+from django.core.files.uploadedfile import SimpleUploadedFile
+from django.test import override_settings
 from django.utils import timezone
 
 from rest_framework.reverse import reverse
 from rest_framework.test import APIRequestFactory, APITestCase, force_authenticate
 
 from apps.common.tests.test_resources import AbstractTestCase
+from apps.common.tests.test_utils import get_test_image_binary, get_test_image_file_jpeg
+from apps.element_media.tests import setup_sidebar_fixture
 from apps.organizations.tests.factories import RevenueProgramFactory
 from apps.pages.models import DonationPage, Style, Template
 from apps.pages.tests.factories import DonationPageFactory, StyleFactory, TemplateFactory
@@ -63,6 +67,23 @@ class PageViewSetTest(AbstractTestCase):
         response = self.client.post(list_url, page_data)
         self.assertEqual(response.status_code, 400)
         self.assertEqual(str(response.data["revenue_program_pk"]), "Could not find revenue program with provided pk")
+
+    def test_page_create_returns_revenue_program_slug(self):
+        """
+        Page create must return revenue_program in order to navigate the user to the
+        correct url for page edit, after creating a page.
+        """
+        self.login()
+        list_url = reverse("donationpage-list")
+        page_data = {
+            "name": "My page, tho",
+            "heading": "New DonationPage",
+            "slug": "new-page",
+            "revenue_program_pk": self.rev_program.pk,
+        }
+        response = self.client.post(list_url, page_data)
+        self.assertIn("revenue_program", response.data)
+        self.assertIn("slug", response.data["revenue_program"])
 
     def test_page_update_updates_page(self):
         page = self.resources[0]
@@ -174,6 +195,20 @@ class PagePatchTest(AbstractTestCase):
         request = self._create_patch_request(data=page_data)
         response = self.page_patch_view(request, pk=self.donation_page.pk)
         self.assertEqual(response.data["styles"]["id"], self.styles.pk)
+
+    @override_settings(MEDIA_ROOT="/tmp/media")
+    @override_settings(MEDIA_URL="/media/")
+    def test_patch_page_with_sidebar_elements(self):
+        sidebar, files = setup_sidebar_fixture()
+        for k, v in files.items():
+            sidebar[k] = SimpleUploadedFile(
+                name=f"{v.name}", content=get_test_image_file_jpeg().open("rb").read(), content_type="image/jpeg"
+            )
+        request = self._create_patch_request(data=sidebar)
+        response = self.page_patch_view(request, pk=self.donation_page.pk)
+        assert response.status_code == 200
+        dp = DonationPage.objects.get(pk=self.donation_page.pk)
+        assert dp.sidebar_elements == response.data.get("sidebar_elements")
 
 
 class DonationPageFullDetailTest(APITestCase):

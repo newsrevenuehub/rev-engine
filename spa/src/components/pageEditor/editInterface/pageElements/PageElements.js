@@ -21,7 +21,15 @@ function PageElements({ openAddElementModal, goToProperties }) {
 
   return (
     <S.PageElements>
-      {elements && <DraggableList elements={elements} setElements={setElements} handleItemClick={goToProperties} />}
+      {elements && elements?.length > 0 ? (
+        <DraggableList
+          elements={elements}
+          setElements={setElements}
+          handleItemClick={(element) => goToProperties(element, 'layout')}
+        />
+      ) : (
+        <EmptyElements />
+      )}
       <S.AddElementButton onClick={openAddElementModal} data-testid="add-element-button">
         <S.AddElementIcon icon={faPlus} />
       </S.AddElementButton>
@@ -30,3 +38,7 @@ function PageElements({ openAddElementModal, goToProperties }) {
 }
 
 export default PageElements;
+
+export function EmptyElements() {
+  return <S.EmptyElements>Click the "plus" button below to start adding page elements</S.EmptyElements>;
+}

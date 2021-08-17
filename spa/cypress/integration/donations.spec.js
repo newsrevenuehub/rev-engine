@@ -86,7 +86,7 @@ describe('Donations list', () => {
           const dataVal = dataRow[colAccessor];
           const { transform } = columnExpectations.find((element) => element.rawName === colAccessor);
           const cellVal = $cellEl.innerText;
-          expect(cellVal).to.equal(transform(dataVal));
+          expect(cellVal).to.include(transform(dataVal));
         });
       });
     });

@@ -84,7 +84,7 @@ function Donations() {
       {
         Header: 'Date',
         accessor: 'created',
-        Cell: (props) => (props.value ? formatDatetimeForDisplay(props.value) : NO_VALUE)
+        Cell: (props) => (props.value ? <DateAndTimeCell dateTime={props.value} /> : NO_VALUE)
       },
       {
         Header: 'Amount',
@@ -99,7 +99,7 @@ function Donations() {
       {
         Header: 'Payment received',
         accessor: 'last_payment_date',
-        Cell: (props) => (props.value ? formatDatetimeForDisplay(props.value) : NO_VALUE)
+        Cell: (props) => (props.value ? <DateAndTimeCell dateTime={props.value} /> : NO_VALUE)
       },
       {
         Header: 'Donor',
@@ -114,7 +114,7 @@ function Donations() {
       {
         Header: 'Date flagged',
         accessor: 'flagged_date',
-        Cell: (props) => (props.value ? formatDatetimeForDisplay(props.value) : NO_VALUE)
+        Cell: (props) => (props.value ? <DateAndTimeCell dateTime={props.value} /> : NO_VALUE)
       },
       {
         Header: 'Auto-resolution date',
@@ -153,6 +153,15 @@ function Donations() {
 
 export default Donations;
 
+export function DateAndTimeCell({ dateTime }) {
+  return (
+    <S.DateTimeCell>
+      <S.DateSpan>{formatDatetimeForDisplay(dateTime, false)}</S.DateSpan>
+      <S.Time>{formatDatetimeForDisplay(dateTime, true)}</S.Time>
+    </S.DateTimeCell>
+  );
+}
+
 function ResolutionDateCaution({ date }) {
   if (!date) return null;
   const getDateUrgency = (d) => {
@@ -164,6 +173,8 @@ function ResolutionDateCaution({ date }) {
     else if (threshold <= IS_SOON_THRESHOLD_DAYS) return 'soon';
   };
   return (
-    <S.ResolutionDateCaution urgency={getDateUrgency(date)}>{formatDatetimeForDisplay(date)}</S.ResolutionDateCaution>
+    <S.ResolutionDateCaution urgency={getDateUrgency(date)}>
+      <DateAndTimeCell dateTime={date} />
+    </S.ResolutionDateCaution>
   );
 }

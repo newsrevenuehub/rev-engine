@@ -18,3 +18,14 @@ export const ResolutionDateCaution = styled.div`
     }
   }};
 `;
+
+export const DateTimeCell = styled.div``;
+
+export const DateSpan = styled.span`
+  display: block;
+`;
+
+export const Time = styled.span`
+  display: block;
+  font-weight: 200;
+`;

@@ -110,8 +110,8 @@ describe('Donation page', () => {
     });
 
     it('should select agreeToPayFees by default if appropriate page property is set', () => {
-      const page = livePageOne;
-      const paymentIndex = livePageOne.elements.findIndex((el) => el.type === 'DPayment');
+      const page = { ...livePageOne };
+      const paymentIndex = page.elements.findIndex((el) => el.type === 'DPayment');
       page.elements[paymentIndex].content.payFeesDefault = true;
       cy.intercept({ method: 'GET', pathname: getEndpoint(FULL_PAGE) }, { body: page, statusCode: 200 }).as(
         'getPageWithPayFeesDefault'
@@ -130,7 +130,11 @@ describe('Donation page', () => {
       cy.intercept(
         { method: 'GET', pathname: getEndpoint(FULL_PAGE) },
         { fixture: 'pages/live-page-1', statusCode: 200 }
-      );
+      ).as('getPage');
+
+      cy.visit('/rev-program-slug');
+      cy.url().should('include', 'rev-program-slug');
+      cy.wait('@getPage');
 
       const interval = 'One time';
       const amount = '120';
@@ -139,11 +143,16 @@ describe('Donation page', () => {
       cy.makeDonation();
       cy.wait('@stripePayment').its('request.body').should('have.property', 'interval', 'one_time');
     });
+
     it('should send a request with the expected amount', () => {
       cy.intercept(
         { method: 'GET', pathname: getEndpoint(FULL_PAGE) },
         { fixture: 'pages/live-page-1', statusCode: 200 }
-      );
+      ).as('getPage');
+
+      cy.visit('/rev-program-slug');
+      cy.url().should('include', 'rev-program-slug');
+      cy.wait('@getPage');
 
       const interval = 'One time';
       const amount = '120';
@@ -311,15 +320,22 @@ describe('Donation page', () => {
     });
 
     it('should show different content based on the selected amount and frequency', () => {
+      cy.intercept(
+        { method: 'GET', pathname: getEndpoint(FULL_PAGE) },
+        { fixture: 'pages/live-page-1', statusCode: 200 }
+      ).as('getPage');
+      cy.visit('/revenue-program-slug/page-slug-3');
+      cy.url().should('include', 'revenue-program-slug/page-slug-3');
+      cy.wait('@getPage');
       const targetAmount = 15;
       // if frequency is recurring, show additional agreement statement...
-      cy.getByTestId(`frequency-month`).click();
+      cy.getByTestId('frequency-month').click();
       cy.getByTestId(`amount-${targetAmount}`).click();
       const expectedText = `payments of $${targetAmount}, to be processed on or adjacent to the ${new Date().getDate()}`;
       cy.getByTestId('donation-page-static-text').contains(expectedText).should('exist');
 
       // ... but if it's one-time, don't
-      cy.getByTestId(`frequency-one_time`).click();
+      cy.getByTestId('frequency-one_time').click();
       cy.getByTestId('donation-page-static-text').contains(expectedText).should('not.exist');
     });
   });

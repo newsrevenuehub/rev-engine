@@ -66,7 +66,7 @@ function DAmount({ element, ...props }) {
         })}
         {(element.content?.allowOther || overrideAmount) && (
           <S.OtherAmount
-            data-testid={`amount-other${otherFocused ? '-selected' : ''}`}
+            data-testid={`amount-other${otherFocused || !amountIsPreset ? '-selected' : ''}`}
             selected={otherFocused}
             onClick={handleOtherSelected}
           >

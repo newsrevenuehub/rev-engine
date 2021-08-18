@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useLocation, Route } from 'react-router';
+import { useLocation } from 'react-router';
 
 import Analytics from 'analytics';
 import { HUB_ANALYTICS_APP_NAME, HUB_GA_V3_ID, HUB_GA_V3_PLUGIN_NAME } from 'constants/analyticsConstants';

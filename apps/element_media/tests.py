@@ -48,8 +48,6 @@ class TestMediaImage(AbstractTestCase):
         mi = MediaImage.objects.create(
             spa_key=uuid4(), image=get_test_image_file_jpeg(filename=get_random_jpg_filename()), page_id=self.dp
         )
-        assert mi.width == 640
-        assert mi.height == 480
         assert str(mi) == mi.image.name
         assert MediaImage.objects.all().count() == 1
 
@@ -64,7 +62,7 @@ class TestMediaImage(AbstractTestCase):
         assert serialized.get("uuid") == str(mi.spa_key)
         assert serialized.get("type") == "DImage"
         assert serialized.get("content").get("url") == mi.image.storage.url(name=mi.image.name)
-        assert serialized.get("content").get("thumbnail") == mi.thumbnail.name
+        assert serialized.get("content").get("thumbnail") == mi.thumbnail.storage.url(name=mi.thumbnail.name)
 
     def test_link_multiple_images_to_page(self):
         sidebar, files = setup_sidebar_fixture()

@@ -69,7 +69,9 @@ export function getTotalAmount(amount, shouldPayFee, frequency, orgIsNonProfit) 
 export const amountToCents = (amount) => {
   if (isNaN(amount)) return null;
   const cents = amount * 100;
-  return cents;
+  // amount * 100 above can results in something like 26616.000000000004.
+  // We just round to an integer here.
+  return Math.round(cents);
 };
 
 function serializeForm(form) {

@@ -46,14 +46,16 @@ export default submitPayment;
  * @param {number} amount - float or integer, human-readable amount to be donated
  * @param {number} fee - the fee to include, if shouldPayFee
  * @param {boolean} shouldPayFee - whether or not to include the fee in the total value
+ * @param {string} frequency - The donation interval (ie 'one_time', 'monthly', etc). Used to determine stripe fee
+ * @param {boolean} orgIsNonProfit - whether or not the org reports as non-profit. Used to determine stripe fee
  * @returns A human readable amount in dollars
  */
-export function getTotalAmount(amount, shouldPayFee, orgIsNonProfit) {
+export function getTotalAmount(amount, shouldPayFee, frequency, orgIsNonProfit) {
   /*
     If we get 10, we should see 10. If we get 10.3, we should see 10.30.
   */
   let total = parseFloat(amount);
-  if (shouldPayFee) total += parseFloat(calculateStripeFee(amount, orgIsNonProfit));
+  if (shouldPayFee) total += parseFloat(calculateStripeFee(amount, frequency, orgIsNonProfit));
   total = total.toFixed(2);
   if (total.endsWith('.00')) total = total.substring(0, total.length - 3);
   return total;
@@ -96,7 +98,12 @@ function serializeForm(form) {
  */
 export function serializeData(formRef, state) {
   const serializedData = serializeForm(formRef);
-  serializedData['amount'] = getTotalAmount(state.amount, state.payFee, state.orgIsNonProfit).toString();
+  serializedData['amount'] = getTotalAmount(
+    state.amount,
+    state.payFee,
+    state.frequency,
+    state.orgIsNonProfit
+  ).toString();
   serializedData['revenue_program_slug'] = state.revProgramSlug;
   serializedData['donation_page_slug'] = state.pageSlug;
   serializedData['sf_campaign_id'] = state.salesforceCampaignId;

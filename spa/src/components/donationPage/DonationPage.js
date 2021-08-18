@@ -35,7 +35,7 @@ function DonationPage({ page, live = false }) {
   const location = useLocation();
   const formRef = useRef();
   const [frequency, setFrequency] = useState(getInitialFrequency(page));
-  const [payFee, setPayFee] = useState(false);
+  const [payFee, setPayFee] = useState(getInitialPayFees(page));
   const [amount, setAmount] = useState(getDefaultAmount(frequency, page));
 
   // overrideAmount causes only the custom amount to show (initially)
@@ -150,4 +150,16 @@ function getInitialFrequency(page) {
   }
   // Or, if for some reason non of these conditions are met, just return one_time
   return 'one_time';
+}
+
+function getInitialPayFees(page) {
+  const paymentElement = page?.elements?.find((el) => el.type === 'DPayment');
+  const payFeesDefault = paymentElement?.content?.payFeesDefault;
+  // If payFeesDefault is true or false...
+  if (payFeesDefault === true || payFeesDefault === false) {
+    // ...initial value should be payFeesDefault...
+    return payFeesDefault;
+  }
+  // ...else, default to false
+  return false;
 }

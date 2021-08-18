@@ -24,6 +24,7 @@ function DonationPageStaticText({ page, amount, payFee, frequency }) {
           `Additionally, by proceeding with this transaction, you're authorizing today's payment, along with all future recurring payments of $${getTotalAmount(
             amount,
             payFee,
+            frequency,
             page.organization_is_nonprofit
           )}, to be processed on or adjacent to the ${format(new Date(), 'do')} of the month until you cancel.`}
       </p>

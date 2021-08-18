@@ -279,7 +279,7 @@ class ContributionMetadata(IndexedTimeStampedModel):
                 collected.update({obj.key: supplied[obj.key]})
                 continue
         for obj in meta_for_all:
-            collected.update({obj.key: obj.default_value})
+            collected.update({obj.key: supplied.get(obj.key, obj.default_value)})
         final = {k: v for k, v in collected.items() if v is not None}
         return final
 

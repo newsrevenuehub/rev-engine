@@ -132,6 +132,7 @@ class ContributionMetadataTest(TestCase):
         "honoree": "MeMe",
         "test_2": "I love a good test",
         "default_1": "Default",
+        "fe_supplied_all": "abc-123",
     }
 
     def setUp(self):
@@ -144,6 +145,12 @@ class ContributionMetadataTest(TestCase):
             processor_object=ContributionMetadata.ProcessorObjects.ALL,
         )
         self.cm4 = ContributionMetadataFactory(key="default_1", label="Test 4", donor_supplied=True)
+        self.cm5 = ContributionMetadataFactory(
+            key="fe_supplied_all",
+            label="fe_supplied_all",
+            donor_supplied=False,
+            processor_object=ContributionMetadata.ProcessorObjects.ALL,
+        )
 
     def test_label(self):
         assert str(self.cm1) == self.cm1.label
@@ -157,6 +164,8 @@ class ContributionMetadataTest(TestCase):
 
         with self.subTest("Meta with all is present"):
             assert results.get("req_1", "Required")
+            # This should not be empty even though default is empty
+            assert results.get("fe_supplied_all", "abc-123")
 
         with self.subTest("Default value is present"):
             assert results.get("default_1", "") == "Default"

@@ -1,6 +1,7 @@
 import logging
 
 from django.conf import settings
+from django.contrib.auth import get_user_model
 
 from rest_framework import permissions, status, viewsets
 from rest_framework.decorators import action
@@ -11,6 +12,8 @@ from apps.api.permissions import UserBelongsToOrg
 from apps.organizations import serializers
 from apps.organizations.models import Feature, Organization, Plan, RevenueProgram
 
+
+user_model = get_user_model()
 
 logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
 
@@ -30,7 +33,7 @@ class OrganizationLimitedListView:
         if isinstance(self, Organization):
             return self.model.objects.filter(pk=self.id)
 
-        if self.action == "list" and hasattr(self.model, "organization"):
+        if isinstance(self.request.user, user_model) and self.action == "list" and hasattr(self.model, "organization"):
             return self.model.objects.filter(organization__users=self.request.user)
         return self.model.objects.all()
 

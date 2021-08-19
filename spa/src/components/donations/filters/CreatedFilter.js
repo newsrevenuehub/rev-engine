@@ -10,7 +10,7 @@ import { MuiPickersUtilsProvider } from '@material-ui/pickers';
 // Children
 import XButton from 'elements/buttons/XButton';
 import { FilterWrapper, FilterLabel } from 'components/donations/filters/Filters';
-import formatDatetimeForAPI from 'utilities/formatDatetimeForAPI';
+import { formatDatetimeRoundedDay } from 'utilities/formatDatetimeForAPI';
 
 function CreatedFilter({ handleFilterChange }) {
   const theme = useTheme();
@@ -19,8 +19,8 @@ function CreatedFilter({ handleFilterChange }) {
 
   const updateFilters = () => {
     handleFilterChange('created', {
-      created__gte: fromDate ? formatDatetimeForAPI(fromDate, false) : '',
-      created__lte: toDate ? formatDatetimeForAPI(toDate, false) : ''
+      created__gte: fromDate ? formatDatetimeRoundedDay(fromDate, true) : '',
+      created__lte: toDate ? formatDatetimeRoundedDay(toDate, false) : ''
     });
   };
 

@@ -331,7 +331,8 @@ function PageEditor() {
         )}
         {page && (
           <SegregatedStyles page={page}>
-            <DonationPage live={false} page={page} />
+            {/* set stringified page as key to guarantee that ALL page changes will re-render the page in edit mode */}
+            <DonationPage key={page ? JSON.stringify(page) : ''} live={false} page={page} />
           </SegregatedStyles>
         )}
         <S.ButtonOverlay>

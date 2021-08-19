@@ -102,6 +102,11 @@ class DonationPageFullDetailSerializer(serializers.ModelSerializer):
             except related_model.DoesNotExist:
                 raise serializers.ValidationError({related_field: "Could not find instance with provided pk."})
 
+    # # TEMP
+    # def to_representation(self, instance):
+    #     breakpoint()
+    #     return super().to_representation(instance)
+
     def create(self, validated_data):
         if "revenue_program_pk" not in validated_data:
             raise serializers.ValidationError(

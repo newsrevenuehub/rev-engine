@@ -37,6 +37,10 @@ class PageViewSet(OrganizationLimitedListView, viewsets.ModelViewSet):
         else:
             return serializers.DonationPageListSerializer
 
+    # def update(self, request, **kwargs):
+    #     breakpoint()
+    #     return super().update(request, **kwargs)
+
     @action(detail=False, methods=["get"], permission_classes=[], authentication_classes=[])
     def full_detail(self, request):
         """

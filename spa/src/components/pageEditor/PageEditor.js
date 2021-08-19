@@ -231,17 +231,20 @@ function PageEditor() {
     return datum;
   }
 
+  /**
+   * processPageData
+   * The primary function for serializing the DP data before transmitting to the backend.
+   * If a new section is added that requires DImages, follow the pattern for `sidebar_elements`
+   * @param {object} patchedPage - Object containing page data
+   * @returns {FormData} formData
+   */
   const processPageData = (patchedPage) => {
-    /* processPageData
-     *  The primary function for serializing the DP data before transmitting to the backend.
-     *  If a new section is added that requires DImages, follow the pattern for `sidebar_elements`
-     * */
     const formData = new FormData();
     for (const pageKey in patchedPage) {
       let datumKey = pageKey;
       if (Object.hasOwnProperty.call(patchedPage, datumKey)) {
         let datum = patchedPage[datumKey];
-        if (datum instanceof Date) datum = formatDatetimeForAPI(datum);
+        if (datum instanceof Date) datum = formatDatetimeForAPI(datum, true);
         if (datumKey === 'elements') datum = JSON.stringify(datum);
         if (datumKey === 'sidebar_elements') datum = JSON.stringify(processImages(datum, formData));
         if (datumKey === 'donor_benefits') {
@@ -275,6 +278,7 @@ function PageEditor() {
       },
       {
         onSuccess: ({ data }) => {
+          console.log('data from patchPage', data);
           const successMessage = getSuccessMessage(page, data);
           alert.success(successMessage);
           setErrors({});

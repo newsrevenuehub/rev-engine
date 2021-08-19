@@ -13,8 +13,7 @@ class DonationPageTest(TestCase):
         self.instance = DonationPageFactory()
 
     def test_to_string(self):
-        derived_name = f"{self.instance.heading} - {self.instance.slug}"
-        self.assertEqual(derived_name, str(self.instance))
+        self.assertEqual(self.instance.name, str(self.instance))
 
     def test_is_live(self):
         one_minute = datetime.timedelta(minutes=1)

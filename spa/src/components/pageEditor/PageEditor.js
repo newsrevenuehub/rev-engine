@@ -278,7 +278,6 @@ function PageEditor() {
       },
       {
         onSuccess: ({ data }) => {
-          console.log('data from patchPage', data);
           const successMessage = getSuccessMessage(page, data);
           alert.success(successMessage);
           setErrors({});

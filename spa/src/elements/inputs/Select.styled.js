@@ -31,6 +31,7 @@ export const List = styled.ul`
       `;
   }}
   min-width: 100%;
+  max-height: 300px;
   z-index: 2;
   list-style: none;
   background: ${(props) => props.theme.colors.inputBackground};
@@ -39,7 +40,7 @@ export const List = styled.ul`
   border: 1px solid;
   border-color: ${(props) => props.theme.colors.grey[0]};
 
-  overflow-y: scroll;
+  overflow-y: auto;
 `;
 
 export const Item = styled.li`

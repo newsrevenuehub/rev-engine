@@ -252,7 +252,7 @@ class StripeConfirmTest(APITestCase):
         self.organization.refresh_from_db()
         self.assertEqual(self.organization.stripe_product_id, TEST_STRIPE_PRODUCT_ID)
 
-    @override_settings(STRIPE_LIVE_MODE=True)
+    @override_settings(STRIPE_LIVE_MODE="True")
     @override_settings(STRIPE_LIVE_SECRET_KEY=TEST_STRIPE_LIVE_KEY)
     @override_settings(SITE_URL=TEST_SITE_URL)
     @patch("stripe.Account.retrieve", side_effect=MockStripeAccountEnabled)
@@ -270,7 +270,7 @@ class StripeConfirmTest(APITestCase):
         self.organization.refresh_from_db()
         self.assertIsNotNone(self.organization.domain_apple_verified_date)
 
-    @override_settings(STRIPE_LIVE_MODE=False)
+    @override_settings(STRIPE_LIVE_MODE="False")
     @patch("stripe.Account.retrieve", side_effect=MockStripeAccountEnabled)
     @patch("stripe.ApplePayDomain.create")
     def test_apple_domain_verification_not_called_when_newly_verified_and_not_live_mode(
@@ -282,7 +282,7 @@ class StripeConfirmTest(APITestCase):
         self.organization.refresh_from_db()
         self.assertIsNone(self.organization.domain_apple_verified_date)
 
-    @override_settings(STRIPE_LIVE_MODE=True)
+    @override_settings(STRIPE_LIVE_MODE="True")
     @override_settings(SITE_URL=TEST_SITE_URL)
     @patch("stripe.Account.retrieve", side_effect=MockStripeAccountEnabled)
     @patch("stripe.ApplePayDomain.create", side_effect=StripeError)

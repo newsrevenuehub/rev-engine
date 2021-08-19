@@ -124,7 +124,8 @@ class RevenueProgramViewSetTest(AbstractTestCase):
         self.login()
         response = self.client.get(self.list_url)
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.json()["count"], 5)
+        expected_count = RevenueProgram.objects.filter(organization=self.user.get_organization()).count()
+        self.assertEqual(response.json()["count"], expected_count)
 
     def test_created_and_list_are_equivalent(self):
         revp = self.resources[0]
@@ -134,7 +135,12 @@ class RevenueProgramViewSetTest(AbstractTestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(
             [x["id"] for x in response.json()["results"]],
-            [x for x in RevenueProgram.objects.all().values_list("pk", flat=True)],
+            [
+                x
+                for x in RevenueProgram.objects.filter(organization=self.user.get_organization()).values_list(
+                    "pk", flat=True
+                )
+            ],
         )
 
     def test_viewset_is_readonly(self):

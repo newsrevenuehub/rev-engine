@@ -10,7 +10,6 @@ export function formatDatetimeRoundedDay(datetime, startOfDay = true) {
   let dt = datetime;
   if (startOfDay) dt = setTimeToMidnight(dt);
   else dt = setTimeToJustBeforeMidnight(dt);
-  console.log('that dt', format(dt, "y-MM-dd'T'HH:mm:ss.SSSx"));
   return format(dt, "y-MM-dd'T'HH:mm:ss.SSSx");
 }
 

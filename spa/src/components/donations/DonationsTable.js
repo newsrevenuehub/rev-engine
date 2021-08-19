@@ -37,8 +37,7 @@ function DonationsTable({ columns = [], fetchDonations, pageIndex, refetch, onPa
           setTotalResults(count);
           setLoading(false);
         },
-        onFailure: (e) => {
-          console.log('e', e.response);
+        onFailure: () => {
           alert.error(GENERIC_ERROR);
           setLoading(false);
         }

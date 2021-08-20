@@ -3,33 +3,15 @@ import * as S from './Styles.styled';
 import { ButtonSection, PlusButton } from 'components/content/pages/Pages.styled';
 import { faPlus } from '@fortawesome/free-solid-svg-icons';
 
-// AJAX
-import useRequest from 'hooks/useRequest';
-import { LIST_STYLES } from 'ajax/endpoints';
-import { GENERIC_ERROR } from 'constants/textConstants';
-
-// Deps
-import { useAlert } from 'react-alert';
-
 // Children
 import CircleButton from 'elements/buttons/CircleButton';
 import StyleCard from 'components/content/styles/StyleCard';
 
-function Styles({ setShowEditStylesModal, setStyleToEdit }) {
-  const alert = useAlert();
-  const requestGetStyles = useRequest();
-  const [styles, setStyles] = useState([]);
-
+function Styles({ setShowEditStylesModal, setStyleToEdit, fetchStyles, styles }) {
   // Fetch styles
   useEffect(() => {
-    requestGetStyles(
-      { method: 'GET', url: LIST_STYLES },
-      {
-        onSuccess: ({ data }) => setStyles(data),
-        onFailure: () => alert.error(GENERIC_ERROR)
-      }
-    );
-  }, [alert]);
+    fetchStyles();
+  }, [fetchStyles]);
 
   const handleStyleSelect = (style) => {
     setStyleToEdit(style);

@@ -3,7 +3,6 @@ import { ItemCard, LiveIcon, PreviewWrapper, ItemData, ItemName } from 'componen
 import { faBroadcastTower } from '@fortawesome/free-solid-svg-icons';
 
 function StyleCard({ style, onSelect }) {
-  console.log('style', style);
   return (
     <ItemCard onMouseUp={() => onSelect(style)} tabindex="0" data-testid={`style-card-${style.id}`}>
       {style.used_live && <LiveIcon icon={faBroadcastTower} />}

@@ -10,6 +10,7 @@ export const ItemCard = styled.div`
   padding: 2rem 1rem;
   cursor: pointer;
   border-radius: ${(props) => props.theme.radii[0]};
+  width: 200px;
 
   transition: all 0.1s ease-in-out;
   &:hover {

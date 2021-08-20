@@ -2,7 +2,7 @@ import styled from 'styled-components';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { motion } from 'framer-motion';
 
-export const PagesList = styled(motion.div)``;
+export const Pages = styled(motion.div)``;
 
 export const RevProgramList = styled(motion.ul)``;
 
@@ -31,7 +31,7 @@ export const Chevron = styled(FontAwesomeIcon)`
   transform: rotate(${(props) => (props.isOpen ? '0deg' : '180deg')});
 `;
 
-export const InnerPagesList = styled(motion.ul)`
+export const PagesList = styled(motion.ul)`
   display: flex;
   flex-direction: row;
   flex-wrap: wrap;

@@ -40,6 +40,14 @@ export const PagesList = styled(motion.ul)`
   margin: 0;
 `;
 
+export const ButtonSection = styled(motion.div)`
+  margin-top: 2rem;
+  display: flex;
+  justify-content: flex-end;
+`;
+
+export const PlusButton = styled(motion.div)``;
+
 export const accordionAnimation = {
   initial: { y: -10, opacity: 0 },
   animate: { y: 0, opacity: 1 },

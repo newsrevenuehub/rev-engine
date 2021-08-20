@@ -1,10 +1,6 @@
 import { useState } from 'react';
-import * as S from './Content.styled';
-
-import { faPlus } from '@fortawesome/free-solid-svg-icons';
-
 // Children
-import CircleButton from 'elements/buttons/CircleButton';
+
 import DashboardSectionGroup from 'components/dashboard/DashboardSectionGroup';
 import DashboardSection from 'components/dashboard/DashboardSection';
 import Pages from 'components/content/pages/Pages';
@@ -13,21 +9,21 @@ import Styles from 'components/content/styles/Styles';
 
 function Content() {
   const [showAddPageModal, setShowAddPageModal] = useState(false);
+  const [showEditStylesModal, setShowEditStylesModal] = useState(false);
+  const [styleToEdit, setStyleToEdit] = useState(false);
 
   return (
     <>
       <DashboardSectionGroup data-testid="content">
         <DashboardSection heading="Pages" collapsible>
-          <Pages />
+          <Pages setShowAddPageModal={setShowAddPageModal} />
         </DashboardSection>
         <DashboardSection heading="Styles" collapsible>
-          <Styles />
+          <Styles setShowEditStylesModal={setShowEditStylesModal} setStyleToEdit={setStyleToEdit} />
         </DashboardSection>
       </DashboardSectionGroup>
-      {/* <S.PlusButton onClick={() => setShowAddPageModal(true)} data-testid="page-create-button">
-        <CircleButton icon={faPlus} />
-      </S.PlusButton> */}
       {showAddPageModal && <AddPageModal isOpen={showAddPageModal} closeModal={() => setShowAddPageModal(false)} />}
+      {/* {showEditStylesModal && <EditStylesModal styleToEdit={styleToEdit} />} */}
     </>
   );
 }

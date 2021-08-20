@@ -6,7 +6,7 @@ import { useHistory } from 'react-router-dom';
 import { EDITOR_ROUTE } from 'routes';
 
 // Deps
-import { faChevronDown } from '@fortawesome/free-solid-svg-icons';
+import { faChevronDown, faPlus } from '@fortawesome/free-solid-svg-icons';
 import { AnimatePresence } from 'framer-motion';
 import { useAlert } from 'react-alert';
 
@@ -18,9 +18,10 @@ import useRequest from 'hooks/useRequest';
 import { LIST_PAGES } from 'ajax/endpoints';
 
 // Children
+import CircleButton from 'elements/buttons/CircleButton';
 import PageCard from 'components/content/pages/PageCard';
 
-function Pages() {
+function Pages({ setShowAddPageModal }) {
   const alert = useAlert();
   const history = useHistory();
   const requestGetPages = useRequest();
@@ -97,6 +98,11 @@ function Pages() {
           );
         })}
       </S.RevProgramList>
+      <S.ButtonSection>
+        <S.PlusButton onClick={() => setShowAddPageModal(true)} data-testid="page-create-button">
+          <CircleButton icon={faPlus} />
+        </S.PlusButton>
+      </S.ButtonSection>
     </S.Pages>
   );
 }

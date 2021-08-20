@@ -5,7 +5,7 @@ export const StylePreview = styled.div`
 `;
 
 export const ColorSwatch = styled.div`
-  height: 24%;
+  height: 25%;
   background: ${(props) => props.color};
 
   &:not(:last-child) {

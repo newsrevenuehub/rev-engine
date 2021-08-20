@@ -7,20 +7,27 @@ import useRequest from 'hooks/useRequest';
 import { LIST_STYLES } from 'ajax/endpoints';
 
 // Assets
-import { faSave, faTimes } from '@fortawesome/free-solid-svg-icons';
+import { faSave, faTimes, faTrash } from '@fortawesome/free-solid-svg-icons';
 
 // Deps
 import { GENERIC_ERROR } from 'constants/textConstants';
 import { useAlert } from 'react-alert';
 import { ChromePicker } from 'react-color';
 
+// Context
+import { useGlobalContext } from 'components/MainLayout';
+
 // Children
 import XButton from 'elements/buttons/XButton';
 import CircleButton from 'elements/buttons/CircleButton';
 
-function StylesEditor({ styles, setStyles, handleKeepChanges, handleDiscardChanges }) {
+function StylesEditor({ styles, setStyles, handleKeepChanges, handleDiscardChanges, isUpdate }) {
   const alert = useAlert();
+  const { getUserConfirmation } = useGlobalContext();
+  const [loading, setLoading] = useState(false);
   const requestCreateStyles = useRequest();
+  const requestUpdateStyles = useRequest();
+  const requestDeleteStyles = useRequest();
 
   const setName = (name) => {
     setStyles({ ...styles, name });
@@ -45,18 +52,74 @@ function StylesEditor({ styles, setStyles, handleKeepChanges, handleDiscardChang
     setStyles({ ...styles, fontSizes });
   };
 
-  const handleSave = async () => {
+  /*************\ 
+   * AJAX BITS *
+  \*************/
+  const styleDetailUrl = `${LIST_STYLES}${styles.id}/`;
+
+  const handleRequestSuccess = ({ data }) => {
+    setLoading(false);
+    handleKeepChanges(data);
+  };
+
+  const handleRequestError = () => {
+    setLoading(false);
+    alert.error(GENERIC_ERROR);
+  };
+
+  const handleCreateStyles = () => {
+    setLoading(true);
     requestCreateStyles(
       { method: 'POST', url: LIST_STYLES, data: styles },
       {
-        onSuccess: ({ data }) => handleKeepChanges(data),
-        onFailure: () => alert.error(GENERIC_ERROR)
+        onSuccess: handleRequestSuccess,
+        onFailure: handleRequestError
       }
     );
   };
 
+  const handleUpdateStyles = () => {
+    setLoading(true);
+    requestUpdateStyles(
+      { method: 'PATCH', url: styleDetailUrl, data: styles },
+      {
+        onSuccess: handleRequestSuccess,
+        onFailure: handleRequestError
+      }
+    );
+  };
+
+  const handleSave = async () => {
+    if (isUpdate) {
+      handleUpdateStyles();
+    } else {
+      handleCreateStyles();
+    }
+  };
+
   const handleDiscard = () => {
     handleDiscardChanges();
+  };
+
+  const deleteStyles = () => {
+    requestDeleteStyles(
+      {
+        method: 'DELETE',
+        url: styleDetailUrl
+      },
+      {
+        onSuccess: handleRequestSuccess,
+        onFailure: handleRequestError
+      }
+    );
+  };
+
+  const handleDelete = () => {
+    if (styles.used_live) {
+      getUserConfirmation('This set of styles is used on a live page. Are you sure want to delete it?', deleteStyles);
+    } else {
+      deleteStyles();
+    }
   };
 
   return (
@@ -66,6 +129,7 @@ function StylesEditor({ styles, setStyles, handleKeepChanges, handleDiscardChang
           label="Name this set of styles"
           value={styles.name || ''}
           onChange={(e) => setName(e.target.value)}
+          required
         />
         <StylesFieldset label="Colors">
           <S.FieldRow>
@@ -140,8 +204,29 @@ function StylesEditor({ styles, setStyles, handleKeepChanges, handleDiscardChang
         </StylesFieldset>
       </S.StylesForm>
       <S.Buttons>
-        <CircleButton onClick={handleSave} icon={faSave} type="neutral" data-testid="save-styles-button" />
-        <CircleButton onClick={handleDiscard} icon={faTimes} type="neutral" data-testid="discard-styles-button" />
+        <CircleButton
+          onClick={handleSave}
+          icon={faSave}
+          loading={loading}
+          type="neutral"
+          data-testid="save-styles-button"
+        />
+        <CircleButton
+          onClick={handleDiscard}
+          icon={faTimes}
+          loading={loading}
+          type="neutral"
+          data-testid="discard-styles-button"
+        />
+        {isUpdate && (
+          <CircleButton
+            onClick={handleDelete}
+            icon={faTrash}
+            loading={loading}
+            type="caution"
+            data-testid="discard-styles-button"
+          />
+        )}
       </S.Buttons>
     </S.StylesEditor>
   );

@@ -1,15 +1,17 @@
+import { useState } from 'react';
 import * as S from './EditStylesModal.styled';
 
 import Modal from 'elements/modal/Modal';
 import StylesEditor from 'components/stylesEditor/StylesEditor';
-import CreateStyleForm from 'components/content/styles/CreateStyleForm';
 
-// import { revEngineTheme } from 'styles/themes';
-// const STARTING_THEME = revEngineTheme;
+import { revEngineTheme } from 'styles/themes';
+const BASE_STYLES = revEngineTheme;
 
-function EditStylesModal({ isOpen, closeModal, styleToEdit, setStyleToEdit }) {
+function EditStylesModal({ isOpen, closeModal, styleToEdit, onStylesUpdated }) {
+  const [styles, setStyles] = useState(styleToEdit || BASE_STYLES);
+
   const handleKeepChanges = (newStyles) => {
-    // handleAddNewStyles(newStyles);
+    onStylesUpdated();
     closeModal();
   };
 
@@ -21,16 +23,13 @@ function EditStylesModal({ isOpen, closeModal, styleToEdit, setStyleToEdit }) {
     <Modal isOpen={isOpen} closeModal={closeModal}>
       <S.EditStylesModal>
         <S.ModalTitle>{styleToEdit ? `Edit ${styleToEdit.name}` : 'Create new style'}</S.ModalTitle>
-        {styleToEdit ? (
-          <StylesEditor
-            styles={styleToEdit}
-            setStyles={setStyleToEdit}
-            handleKeepChanges={handleKeepChanges}
-            handleDiscardChanges={handleDiscardChanges}
-          />
-        ) : (
-          <CreateStyleForm />
-        )}
+        <StylesEditor
+          isUpdate={!!styleToEdit}
+          styles={styles}
+          setStyles={setStyles}
+          handleKeepChanges={handleKeepChanges}
+          handleDiscardChanges={handleDiscardChanges}
+        />
       </S.EditStylesModal>
     </Modal>
   );

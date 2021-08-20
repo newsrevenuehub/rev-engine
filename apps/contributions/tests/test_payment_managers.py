@@ -37,6 +37,9 @@ class MockPaymentIntent(StripeObject):
 
 
 class MockInvalidRequestError(stripe_errors.InvalidRequestError):
+    _message = "mock invalid request error"
+    request_id = "123"
+
     def __init__(self, *args, **kwargs):
         pass
 

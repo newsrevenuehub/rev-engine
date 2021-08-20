@@ -30,10 +30,17 @@ class OrganizationLimitedListView:
     model = None
 
     def get_queryset(self):
+        """
+        Filters querysets such that only instances belonging to the logged in user's organization are returned.
+        """
         if isinstance(self, Organization):
             return self.model.objects.filter(pk=self.id)
 
-        if isinstance(self.request.user, user_model) and self.action == "list" and hasattr(self.model, "organization"):
+        # Ensure the user in question is a User, not a Contributor
+        is_org_user = isinstance(self.request.user, user_model)
+        # Ensure the model in question has a relationship to Organization
+        model_has_org_rel = hasattr(self.model, "organization")
+        if is_org_user and model_has_org_rel and self.action == "list":
             return self.model.objects.filter(organization__users=self.request.user)
         return self.model.objects.all()
 

@@ -9,6 +9,7 @@ export const AddPageModal = styled.div`
 `;
 
 export const ModalTitle = styled.h2`
+  text-align: center;
   padding: 2rem 4rem 0;
 `;
 

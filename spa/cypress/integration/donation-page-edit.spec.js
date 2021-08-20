@@ -5,6 +5,7 @@ import { format } from 'date-fns';
 import livePage from '../fixtures/pages/live-page-1.json';
 import unpublishedPage from '../fixtures/pages/unpublished-page-1.json';
 import { DELETE_CONFIRM_MESSAGE } from 'components/pageEditor/PageEditor';
+import { CONTENT_SLUG } from 'routes';
 
 describe('Donation page edit', () => {
   before(() => {
@@ -357,7 +358,7 @@ describe('Donation page delete', () => {
       const pkPathIndex = interception.request.url.split('/').length - 2;
       expect(interception.request.url.split('/')[pkPathIndex]).to.equal(unpublishedPage.id.toString());
     });
-    cy.location('pathname').should('eq', '/dashboard/pages');
+    cy.location('pathname').should('eq', CONTENT_SLUG);
   });
   it('should show a confirmation modal and delete a published page when delete button is pushed', () => {
     cy.intercept(
@@ -373,7 +374,7 @@ describe('Donation page delete', () => {
       const pkPathIndex = interception.request.url.split('/').length - 2;
       expect(interception.request.url.split('/')[pkPathIndex]).to.equal(livePage.id.toString());
     });
-    cy.location('pathname').should('eq', '/dashboard/pages');
+    cy.location('pathname').should('eq', CONTENT_SLUG);
   });
 });
 

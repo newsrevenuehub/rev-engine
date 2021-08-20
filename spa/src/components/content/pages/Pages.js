@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from 'react';
-import * as S from './PagesList.styled';
+import * as S from './Pages.styled';
 
 // Router
 import { useHistory } from 'react-router-dom';
@@ -18,9 +18,9 @@ import useRequest from 'hooks/useRequest';
 import { LIST_PAGES } from 'ajax/endpoints';
 
 // Children
-import PageCard from 'components/pages/PageCard';
+import PageCard from 'components/content/pages/PageCard';
 
-function PagesList() {
+function Pages() {
   const alert = useAlert();
   const history = useHistory();
   const requestGetPages = useRequest();
@@ -69,7 +69,7 @@ function PagesList() {
   };
 
   return (
-    <S.PagesList data-testid="pages-list" layout>
+    <S.Pages data-testid="pages-list" layout>
       <S.RevProgramList layout>
         {pagesByRevenueProgram.map((rp, i) => {
           const isOpen = !closedAccordions.includes(i);
@@ -86,22 +86,22 @@ function PagesList() {
               </S.AccordionHeading>
               <AnimatePresence>
                 {isOpen && (
-                  <S.InnerPagesList layout {...S.accordionAnimation} data-testid={`${rp.name}-pages-list`}>
+                  <S.PagesList layout {...S.accordionAnimation} data-testid={`${rp.name}-pages-list`}>
                     {rp.pages.map((page) => (
                       <PageCard key={page.id} page={page} onClick={handleEditPage} />
                     ))}
-                  </S.InnerPagesList>
+                  </S.PagesList>
                 )}
               </AnimatePresence>
             </S.RevenueProgramSection>
           );
         })}
       </S.RevProgramList>
-    </S.PagesList>
+    </S.Pages>
   );
 }
 
-export default PagesList;
+export default Pages;
 
 function revProgramKeysSort(a, b) {
   const nameA = a.name.toLowerCase();

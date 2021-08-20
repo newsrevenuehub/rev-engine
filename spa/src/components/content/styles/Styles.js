@@ -19,7 +19,7 @@ function Styles({ setShowEditStylesModal, setStyleToEdit, fetchStyles, styles })
   };
 
   return (
-    <S.Styles>
+    <S.Styles data-testid="styles-list">
       <S.StylesList>
         {styles.map((style) => (
           <StyleCard style={style} onSelect={handleStyleSelect} />

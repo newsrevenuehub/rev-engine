@@ -42,10 +42,10 @@ function Content() {
   return (
     <>
       <DashboardSectionGroup data-testid="content">
-        <DashboardSection heading="Pages" collapsible>
+        <DashboardSection heading="Pages" collapsible data-testid="pages-section">
           <Pages setShowAddPageModal={setShowAddPageModal} />
         </DashboardSection>
-        <DashboardSection heading="Styles" collapsible>
+        <DashboardSection heading="Styles" collapsible data-testid="styles-section">
           <Styles
             setShowEditStylesModal={setShowEditStylesModal}
             setStyleToEdit={setStyleToEdit}

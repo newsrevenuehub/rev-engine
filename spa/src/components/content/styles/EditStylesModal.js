@@ -21,7 +21,7 @@ function EditStylesModal({ isOpen, closeModal, styleToEdit, onStylesUpdated }) {
 
   return (
     <Modal isOpen={isOpen} closeModal={closeModal}>
-      <S.EditStylesModal>
+      <S.EditStylesModal data-testid={`edit-styles-modal-${!!styleToEdit ? 'update' : 'create'}`}>
         <S.ModalTitle>{styleToEdit ? `Edit ${styleToEdit.name}` : 'Create new style'}</S.ModalTitle>
         <StylesEditor
           isUpdate={!!styleToEdit}

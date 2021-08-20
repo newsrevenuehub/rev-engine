@@ -5,7 +5,7 @@ import { faBroadcastTower } from '@fortawesome/free-solid-svg-icons';
 function StyleCard({ style, onSelect }) {
   return (
     <ItemCard onMouseUp={() => onSelect(style)} tabindex="0" data-testid={`style-card-${style.id}`}>
-      {style.used_live && <LiveIcon icon={faBroadcastTower} />}
+      {style.used_live && <LiveIcon icon={faBroadcastTower} data-testid={`style-${style.id}-live`} />}
       <PreviewWrapper>
         <S.StylePreview style={style}>
           {style.colors?.primary && <S.ColorSwatch color={style.colors.primary} />}

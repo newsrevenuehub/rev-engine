@@ -18,6 +18,8 @@ function CreatedFilter({ handleFilterChange }) {
   const [toDate, setToDate] = useState(null);
 
   const updateFilters = () => {
+    // created__gte time should be set to midnight so that it is inclusive of the entire day selected.
+    // created__lte should be set to 23:59.999 so that it is inclusive of the entire day selected.
     handleFilterChange('created', {
       created__gte: fromDate ? formatDatetimeRoundedDay(fromDate, true) : '',
       created__lte: toDate ? formatDatetimeRoundedDay(toDate, false) : ''

@@ -6,6 +6,7 @@ export const EditStylesModal = styled.div`
   max-height: 80vh;
   background: ${(props) => props.theme.colors.paneBackground};
   border-radius: ${(props) => props.theme.radii[0]};
+  overflow-y: auto;
 `;
 
 export const ModalTitle = styled.h2`

@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { revEngineTheme } from 'styles/themes';
 
 // Children
 import DashboardSectionGroup from 'components/dashboard/DashboardSectionGroup';
@@ -12,7 +11,12 @@ import EditStylesModal from 'components/content/styles/EditStylesModal';
 function Content() {
   const [showAddPageModal, setShowAddPageModal] = useState(false);
   const [showEditStylesModal, setShowEditStylesModal] = useState(false);
-  const [styleToEdit, setStyleToEdit] = useState(revEngineTheme);
+  const [styleToEdit, setStyleToEdit] = useState(null);
+
+  const handleCloseEditStylesModal = () => {
+    setShowEditStylesModal(false);
+    setStyleToEdit(null);
+  };
 
   return (
     <>
@@ -29,7 +33,7 @@ function Content() {
         <EditStylesModal
           styleToEdit={styleToEdit}
           isOpen={showEditStylesModal}
-          closeModal={() => setShowEditStylesModal(false)}
+          closeModal={handleCloseEditStylesModal}
         />
       )}
     </>

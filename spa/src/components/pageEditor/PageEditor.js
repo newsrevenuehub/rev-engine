@@ -21,7 +21,7 @@ import { useParams } from 'react-router-dom';
 
 // AJAX
 import useRequest from 'hooks/useRequest';
-import { DELETE_PAGE, FULL_PAGE, PATCH_PAGE, PAGE_STYLES, CONTRIBUTION_META } from 'ajax/endpoints';
+import { DELETE_PAGE, FULL_PAGE, PATCH_PAGE, LIST_STYLES, CONTRIBUTION_META } from 'ajax/endpoints';
 
 // Routes
 import { CONTENT_SLUG } from 'routes';
@@ -119,7 +119,7 @@ function PageEditor() {
   useEffect(() => {
     setLoading(true);
     requestGetPageStyles(
-      { method: 'GET', url: PAGE_STYLES },
+      { method: 'GET', url: LIST_STYLES },
       {
         onSuccess: ({ data }) => {
           setAvailableStyles(data);

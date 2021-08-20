@@ -4,6 +4,9 @@ import Modal from 'elements/modal/Modal';
 import StylesEditor from 'components/stylesEditor/StylesEditor';
 import CreateStyleForm from 'components/content/styles/CreateStyleForm';
 
+// import { revEngineTheme } from 'styles/themes';
+// const STARTING_THEME = revEngineTheme;
+
 function EditStylesModal({ isOpen, closeModal, styleToEdit, setStyleToEdit }) {
   const handleKeepChanges = (newStyles) => {
     // handleAddNewStyles(newStyles);

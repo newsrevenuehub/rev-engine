@@ -4,10 +4,10 @@ import * as S from './StylesEditor.styled';
 
 // AJAX
 import useRequest from 'hooks/useRequest';
-import { PAGE_STYLES } from 'ajax/endpoints';
+import { LIST_STYLES } from 'ajax/endpoints';
 
 // Assets
-import { faSave, faTrash } from '@fortawesome/free-solid-svg-icons';
+import { faSave, faTimes } from '@fortawesome/free-solid-svg-icons';
 
 // Deps
 import { GENERIC_ERROR } from 'constants/textConstants';
@@ -47,7 +47,7 @@ function StylesEditor({ styles, setStyles, handleKeepChanges, handleDiscardChang
 
   const handleSave = async () => {
     requestCreateStyles(
-      { method: 'POST', url: PAGE_STYLES, data: styles },
+      { method: 'POST', url: LIST_STYLES, data: styles },
       {
         onSuccess: ({ data }) => handleKeepChanges(data),
         onFailure: () => alert.error(GENERIC_ERROR)
@@ -141,7 +141,7 @@ function StylesEditor({ styles, setStyles, handleKeepChanges, handleDiscardChang
       </S.StylesForm>
       <S.Buttons>
         <CircleButton onClick={handleSave} icon={faSave} type="neutral" data-testid="save-styles-button" />
-        <CircleButton onClick={handleDiscard} icon={faTrash} type="neutral" data-testid="discard-styles-button" />
+        <CircleButton onClick={handleDiscard} icon={faTimes} type="neutral" data-testid="discard-styles-button" />
       </S.Buttons>
     </S.StylesEditor>
   );

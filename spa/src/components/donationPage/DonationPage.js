@@ -67,7 +67,7 @@ function DonationPage({ page, live = false }) {
       if (qsAmount && (!freqIsAvailable || !qsFrequency)) setFrequency('one_time');
       else if (qsFrequency && freqIsAvailable) setFrequency(mappedFrequency);
 
-      const freqAmounts = amounts && amounts[mappedFrequency];
+      const freqAmounts = amounts && amounts[mappedFrequency || 'one_time'];
       const amountIndex = freqAmounts?.findIndex((num) => parseFloat(num) === parseFloat(qsAmount));
 
       if (qsAmount) setAmount(qsAmount);

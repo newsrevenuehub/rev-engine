@@ -18,8 +18,11 @@ import { ChromePicker } from 'react-color';
 import XButton from 'elements/buttons/XButton';
 import CircleButton from 'elements/buttons/CircleButton';
 
+const UNIQUE_NAME_ERROR = 'The fields name, organization must make a unique set.';
+
 function StylesEditor({ styles, setStyles, handleKeepChanges, handleDiscardChanges }) {
   const alert = useAlert();
+  const [errors, setErrors] = useState({});
   const requestCreateStyles = useRequest();
 
   const setName = (name) => {
@@ -45,12 +48,24 @@ function StylesEditor({ styles, setStyles, handleKeepChanges, handleDiscardChang
     setStyles({ ...styles, fontSizes });
   };
 
+  const handleSaveFailure = (error) => {
+    const errors = error?.response?.data;
+    if (errors) {
+      if (errors.non_field_errors && errors.non_field_errors.includes(UNIQUE_NAME_ERROR)) {
+        errors.name = 'This name is already taken';
+      }
+      setErrors(errors);
+    } else {
+      alert.error(GENERIC_ERROR);
+    }
+  };
+
   const handleSave = async () => {
     requestCreateStyles(
       { method: 'POST', url: PAGE_STYLES, data: styles },
       {
         onSuccess: ({ data }) => handleKeepChanges(data),
-        onFailure: () => alert.error(GENERIC_ERROR)
+        onFailure: handleSaveFailure
       }
     );
   };
@@ -66,6 +81,7 @@ function StylesEditor({ styles, setStyles, handleKeepChanges, handleDiscardChang
           label="Name this set of styles"
           value={styles.name || ''}
           onChange={(e) => setName(e.target.value)}
+          errors={errors.name}
         />
         <StylesFieldset label="Colors">
           <S.FieldRow>

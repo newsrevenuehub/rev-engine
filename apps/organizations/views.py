@@ -82,7 +82,7 @@ class PlanViewSet(viewsets.ReadOnlyModelViewSet, ReadOnly):
     serializer_class = serializers.PlanSerializer
 
 
-class RevenueProgramViewSet(viewsets.ReadOnlyModelViewSet, ReadOnly):
+class RevenueProgramViewSet(OrganizationLimitedListView, viewsets.ReadOnlyModelViewSet, ReadOnly):
     model = RevenueProgram
     queryset = RevenueProgram.objects.all()
     serializer_class = serializers.RevenueProgramSerializer

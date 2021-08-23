@@ -17,17 +17,14 @@ class StripeWebhookProcessor:
         self.event = event
         self.obj_data = self.event.data["object"]
 
-    def payment_intent_is_subscription(self):
-        """
-        If it has a customer, it's a recurring payment.
-        """
-        return bool(self.obj_data.get("customer"))
-
     def get_contribution_from_event(self):
-        if self.payment_intent_is_subscription():
-            # Fetch recurring contributions by customer id. A unique Stripe Customer is created for every Subscription.
-            return Contribution.objects.get(provider_customer_id=self.obj_data["customer"])
-        return Contribution.objects.get(provider_payment_id=self.obj_data["id"])
+        try:
+            return Contribution.objects.get(provider_payment_id=self.obj_data["id"])
+        except Contribution.DoesNotExist as e:
+            if customer_id := self.obj_data.get("customer"):
+                # This is fine as long as we continue to generate a unique customer per charge.
+                return Contribution.objects.get(provider_customer_id=customer_id)
+            raise Contribution.DoesNotExist(e)
 
     def process(self):
         logger.info(f'Processing Stripe Event of type "{self.event.type}"')
@@ -78,12 +75,10 @@ class StripeWebhookProcessor:
         contribution.last_payment_date = datetime.fromtimestamp(self.obj_data["created"]).replace(tzinfo=pytz.UTC)
         contribution.status = ContributionStatus.PAID
 
-        if self.payment_intent_is_subscription():
-            # If it's a subscription, we should grab the payment_intent id from the event and store it as provider_payment_id
-            contribution.provider_payment_id = self.obj_data["id"]
-        else:
-            # If it's a one-time payment, grab payment_method_id
-            contribution.provider_payment_method_id = self.obj_data.get("payment_method")
+        # Grab the payment_intent id from the event and store it as provider_payment_id
+        contribution.provider_payment_id = self.obj_data["id"]
+        # Grab payment_method_id
+        contribution.provider_payment_method_id = self.obj_data.get("payment_method")
 
         contribution.save(slack_notification=SlackNotificationTypes.SUCCESS)
         logger.info(f"Contribution {contribution} succeeded.")

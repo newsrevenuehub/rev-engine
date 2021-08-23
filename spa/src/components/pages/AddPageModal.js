@@ -29,7 +29,7 @@ function AddPageModal({ isOpen, closeModal }) {
   const [errors, setErrors] = useState({});
   const [revenuePrograms, setRevenuePrograms] = useState([]);
   const [name, setName] = useState('');
-  const [slug, setSlug] = useState();
+  const [slug, setSlug] = useState('');
   const [revenueProgram, setRevenueProgram] = useState();
 
   useEffect(() => {

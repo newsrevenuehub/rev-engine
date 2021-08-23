@@ -6,6 +6,7 @@ from django.utils import timezone
 from safedelete.models import SafeDeleteModel
 from sorl.thumbnail import ImageField as SorlImageField
 
+from apps.api.error_messages import UNIQUE_PAGE_SLUG
 from apps.common.models import IndexedTimeStampedModel
 from apps.common.utils import normalize_slug
 from apps.organizations.models import Feature
@@ -84,7 +85,13 @@ class DonationPage(AbstractPage, SafeDeleteModel):
     A DonationPage represents a single instance of a Donation Page.
     """
 
-    slug = models.SlugField(unique=True, blank=True, help_text="If not entered, it will be built from the Page name")
+    slug = models.SlugField(
+        unique=True,
+        blank=True,
+        help_text="If not entered, it will be built from the Page name",
+        error_messages={"unique": UNIQUE_PAGE_SLUG},
+    )
+
     revenue_program = models.ForeignKey(
         "organizations.RevenueProgram",
         null=True,
@@ -102,7 +109,7 @@ class DonationPage(AbstractPage, SafeDeleteModel):
         )
 
     def __str__(self):
-        return f"{self.heading} - {self.slug}"
+        return self.name
 
     def has_page_limit(self):
         return Feature.objects.filter(

@@ -19,6 +19,8 @@ THUMBNAIL_SIZE = 300, 300
 def get_thumbnail(image):
     filename, ext = os.path.splitext(image.name)
     with Image.open(image) as thumb:
+        if not ext:
+            ext = thumb.format.lower()
         thumb.thumbnail(THUMBNAIL_SIZE)
         thumb_io = BytesIO()
         thumb.save(thumb_io, thumb.format, quality=80)
@@ -66,16 +68,17 @@ class MediaImage(IndexedTimeStampedModel):
             elements = json.loads(sbe)
             for index, element in enumerate(elements):
                 if element.get("type") == image_key:
-                    img = ImageFile(files.get(element.get("uuid")))
-                    thumb = get_thumbnail(img)
-                    media_image = cls(
-                        spa_key=element.get("uuid"),
-                        image=img,
-                        thumbnail=thumb,
-                        page_id=DonationPage.objects.get(pk=donation_page),
-                        image_attrs={},
-                    )
-                    media_image.save()
-                    elements[index] = media_image.get_as_dict()
+                    if f := files.get(element.get("uuid"), None):
+                        img = ImageFile(f)
+                        thumb = get_thumbnail(img)
+                        media_image = cls(
+                            spa_key=element.get("uuid"),
+                            image=img,
+                            thumbnail=thumb,
+                            page_id=DonationPage.objects.get(pk=donation_page),
+                            image_attrs={},
+                        )
+                        media_image.save()
+                        elements[index] = media_image.get_as_dict()
             mutable["sidebar_elements"] = elements
         return mutable

@@ -20,6 +20,7 @@ function PaginatedTable({
   onRowClick,
   onPageChange,
   getRowIsDisabled,
+  defaultSortBy,
   pageIndex: controlledPageIndex
 }) {
   const {
@@ -37,7 +38,7 @@ function PaginatedTable({
     {
       columns,
       data,
-      initialState: { pageIndex: 0, pageSize: 10, sortBy: [] }, // Pass our hoisted table state
+      initialState: { pageIndex: 0, pageSize: 10, sortBy: defaultSortBy || [] }, // Pass our hoisted table state
       manualPagination: true,
       pageCount,
       manualSortBy: true,

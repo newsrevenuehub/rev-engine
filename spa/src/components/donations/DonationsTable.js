@@ -7,9 +7,7 @@ import { GENERIC_ERROR } from 'constants/textConstants';
 import PaginatedTable from 'elements/table/PaginatedTable';
 
 export const DEFAULT_RESULTS_ORDERING = [
-  { id: 'last_payment_date', desc: true },
-  { id: 'modified', desc: true },
-  { id: 'amount', desc: false },
+  { id: 'created', desc: true },
   { id: 'contributor_email', desc: false }
 ];
 
@@ -58,6 +56,7 @@ function DonationsTable({ columns = [], fetchDonations, pageIndex, refetch, onPa
         loading={loading}
         pageCount={pageCount}
         totalResults={totalResults}
+        defaultSortBy={DEFAULT_RESULTS_ORDERING}
         {...tableProps}
       />
     </S.Donations>

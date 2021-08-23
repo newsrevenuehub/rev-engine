@@ -109,7 +109,7 @@ class DonationPage(AbstractPage, SafeDeleteModel):
         )
 
     def __str__(self):
-        return f"{self.heading} - {self.slug}"
+        return self.name
 
     def has_page_limit(self):
         return Feature.objects.filter(

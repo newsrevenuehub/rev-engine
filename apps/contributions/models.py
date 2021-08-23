@@ -81,6 +81,7 @@ class Contribution(IndexedTimeStampedModel):
 
     class Meta:
         get_latest_by = "modified"
+        ordering = ["-created"]
 
     def __str__(self):
         return f"{self.formatted_amount}, {self.created.strftime('%Y-%m-%d %H:%M:%S')}"

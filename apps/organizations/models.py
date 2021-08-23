@@ -43,15 +43,6 @@ class Feature(IndexedTimeStampedModel):
         return self.name
 
     def save(self, *args, **kwargs):
-        if self.feature_type == self.FeatureType.PAGE_LIMIT and not self.feature_value.isnumeric():
-            raise ValidationError("Page Limit types must be a positive integer value.")
-        if (
-            self.feature_type == self.FeatureType.BOOLEAN
-            and self.feature_value.lower() not in self.VALID_BOOLEAN_INPUTS
-        ):
-            raise ValidationError(
-                f"The feature type '{self.FeatureType.BOOLEAN.label}' requires one of the following [1,0,t,f]"
-            )
         super().save(*args, **kwargs)
 
 

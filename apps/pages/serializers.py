@@ -1,6 +1,7 @@
 from rest_framework import serializers
 from sorl_thumbnail_serializer.fields import HyperlinkedSorlImageField
 
+from apps.api.error_messages import UNIQUE_PAGE_SLUG
 from apps.organizations.models import Organization, RevenueProgram
 from apps.organizations.serializers import (
     BenefitLevelDetailSerializer,
@@ -102,6 +103,11 @@ class DonationPageFullDetailSerializer(serializers.ModelSerializer):
             except related_model.DoesNotExist:
                 raise serializers.ValidationError({related_field: "Could not find instance with provided pk."})
 
+    def _check_against_soft_deleted_slugs(self, validated_data):
+        new_slug = validated_data.get("slug", None)
+        if new_slug and DonationPage.objects.deleted_only().filter(slug=new_slug).exists():
+            raise serializers.ValidationError({"slug": [UNIQUE_PAGE_SLUG]})
+
     def create(self, validated_data):
         if "revenue_program_pk" not in validated_data:
             raise serializers.ValidationError(
@@ -117,6 +123,7 @@ class DonationPageFullDetailSerializer(serializers.ModelSerializer):
         organization = self.context["request"].user.get_organization()
         validated_data["organization"] = organization
 
+        self._check_against_soft_deleted_slugs(validated_data)
         return super().create(validated_data)
 
     def update(self, instance, validated_data):

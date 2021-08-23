@@ -3,6 +3,7 @@ from pathlib import Path
 from django.contrib import admin
 
 from apps.common.admin import RevEngineBaseAdmin
+from apps.organizations.forms import FeatureForm
 from apps.organizations.models import (
     Benefit,
     BenefitLevel,
@@ -158,6 +159,7 @@ class PlanAdmin(RevEngineBaseAdmin):  # pragma: no cover
 
 @admin.register(Feature)
 class FeatureAdmin(RevEngineBaseAdmin):  # pragma: no cover
+    form = FeatureForm
     fieldsets = (("Feature", {"fields": ("name", "feature_type", "feature_value", "description")}),)
 
     list_display = ["name", "feature_type", "feature_value"]

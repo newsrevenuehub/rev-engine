@@ -1,17 +1,15 @@
 import React, { useEffect } from 'react';
 import { mount } from '@cypress/react';
-import { useAnalyticsContext, AnalyticsContextWrapper } from './AnalyticsContext';
-
+import { AnalyticsContextWrapper, useAnalyticsContext } from './AnalyticsContext';
+import { useConfigureAnalytics } from '.';
 const FB_PIXEL_ID = '123456789';
 const DONATION_AMOUNT = 22.0;
 const FB_TRACK_URL = new URL('https://www.facebook.com/tr/');
 
 const MyComponent = () => {
-  const { setAnalyticsConfig, trackConversion, analyticsInstance } = useAnalyticsContext();
+  const { trackConversion, analyticsInstance } = useAnalyticsContext();
 
-  useEffect(() => {
-    setAnalyticsConfig({ hubGaV3Id: 'someId', orgFbPixelId: FB_PIXEL_ID });
-  }, []);
+  useConfigureAnalytics({ orgFbPixelId: FB_PIXEL_ID });
 
   useEffect(() => {
     if (analyticsInstance) {
@@ -48,7 +46,7 @@ describe('trackConversion', () => {
         'cd[value]': DONATION_AMOUNT
       }
     }).as('fbTrackPurchase');
-    const app = mount(<App />);
+    mount(<App />);
     cy.wait(['@fbTrackPurchase', '@fbTrackDonation']);
   });
 });

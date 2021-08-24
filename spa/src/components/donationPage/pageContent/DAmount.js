@@ -1,4 +1,4 @@
-import { useRef } from 'react';
+import { useRef, useState, useMemo } from 'react';
 import PropTypes from 'prop-types';
 import * as S from './DAmount.styled';
 
@@ -15,6 +15,7 @@ import FormErrors from 'elements/inputs/FormErrors';
 
 function DAmount({ element, ...props }) {
   const { page, frequency, amount, setAmount, overrideAmount, errors } = usePage();
+  const [otherFocused, setOtherFocused] = useState(false);
 
   const inputRef = useRef();
 
@@ -23,7 +24,13 @@ function DAmount({ element, ...props }) {
   };
 
   const handleOtherSelected = () => {
+    setAmount('');
+    setOtherFocused(true);
     inputRef.current.focus();
+  };
+
+  const handleOtherBlurred = () => {
+    setOtherFocused(false);
   };
 
   const getAmounts = (frequency) => {
@@ -34,6 +41,10 @@ function DAmount({ element, ...props }) {
     }
     return [];
   };
+
+  const amountIsPreset = useMemo(() => {
+    return getAmountIndex(page, amount, frequency) !== -1;
+  }, [page, amount, frequency]);
 
   return (
     <DElement
@@ -47,7 +58,7 @@ function DAmount({ element, ...props }) {
           return (
             <SelectableButton
               key={i + amnt}
-              selected={parseFloat(amount) === parseFloat(amnt)}
+              selected={parseFloat(amount) === parseFloat(amnt) && !otherFocused}
               onClick={() => handleAmountSelected(parseFloat(amnt))}
               data-testid={`amount-${amnt}${parseFloat(amount) === parseFloat(amnt) ? '-selected' : ''}`}
             >{`$${amnt}`}</SelectableButton>
@@ -55,16 +66,17 @@ function DAmount({ element, ...props }) {
         })}
         {(element.content?.allowOther || overrideAmount) && (
           <S.OtherAmount
-            data-testid={`amount-other${getAmountIndex(page, amount, frequency) === -1 ? '-selected' : ''}`}
-            selected={getAmountIndex(page, amount, frequency) === -1}
+            data-testid={`amount-other${otherFocused || !amountIsPreset ? '-selected' : ''}`}
+            selected={otherFocused}
             onClick={handleOtherSelected}
           >
             <span>$</span>
             <S.OtherAmountInput
               ref={inputRef}
               type="number"
-              value={amount && getAmountIndex(page, amount, frequency) === -1 ? amount : ''}
+              value={otherFocused || !amountIsPreset ? amount : ''}
               onChange={(e) => setAmount(e.target.value)}
+              onBlur={handleOtherBlurred}
             />
             <span data-testid="custom-amount-rate">{getFrequencyRate(frequency)}</span>
           </S.OtherAmount>

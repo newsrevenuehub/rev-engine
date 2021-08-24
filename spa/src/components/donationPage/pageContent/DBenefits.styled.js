@@ -73,6 +73,7 @@ export const BenefitIcon = styled(SvgIcon)`
 `;
 
 export const BenefitDetails = styled.div`
+  flex: 1;
   display: flex;
   flex-direction: column;
   align-items: left;
@@ -90,5 +91,4 @@ export const BenefitDescription = styled.p`
   margin-left: 2rem;
   font-style: italic;
   flex: 1;
-  white-space: wrap;
 `;

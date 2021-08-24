@@ -15,7 +15,6 @@ import { isBefore, isAfter } from 'date-fns';
 // Children
 import ImageWithPreview from 'elements/inputs/ImageWithPreview';
 import Input from 'elements/inputs/Input';
-import BenefitsWidget from './BenefitsWidget';
 import PublishWidget from './PublishWidget';
 import CircleButton from 'elements/buttons/CircleButton';
 

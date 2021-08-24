@@ -103,8 +103,6 @@ class DonationPageAdmin(DonationPageAdminAbstract, SafeDeleteAdmin):
 
     list_display = (
         highlight_deleted,
-        "name",
-        "heading",
         "organization",
         "revenue_program",
         "slug",
@@ -112,18 +110,17 @@ class DonationPageAdmin(DonationPageAdminAbstract, SafeDeleteAdmin):
         "is_live",
         "published_date",
     ) + SafeDeleteAdmin.list_display
+
     list_filter = (
-        "name",
-        "heading",
-        "organization",
-        "revenue_program",
-        "slug",
-        "published_date",
-    ) + SafeDeleteAdmin.list_filter
-    order = (
-        "published_date",
         "organization__name",
+        "revenue_program",
+    ) + SafeDeleteAdmin.list_filter
+
+    order = (
+        "created",
+        "-published_date",
     )
+
     search_fields = (
         "name",
         "heading",

@@ -15,19 +15,28 @@ from ..common.tests.test_resources import AbstractTestCase
 from .models import MediaImage
 
 
-def setup_sidebar_fixture(e_type="DImage"):
+def setup_sidebar_fixture(e_type="DImage", extra=False):
     img1 = get_test_image_file_jpeg(filename=get_random_jpg_filename())
     img2 = get_test_image_file_jpeg(filename=get_random_jpg_filename())
+    img3 = get_test_image_file_jpeg(filename=get_random_jpg_filename())
     uuid1 = uuid4()
     uuid2 = uuid4()
     sidebar_elements = {
-        "sidebar_elements": json.dumps(
-            [
-                {"uuid": f"{uuid1}", "type": e_type, "content": ""},
-                {"uuid": f"{uuid2}", "type": e_type, "content": ""},
-            ]
-        )
+        "sidebar_elements": [
+            {"uuid": f"{uuid1}", "type": e_type, "content": ""},
+            {"uuid": f"{uuid2}", "type": e_type, "content": ""},
+        ]
     }
+    if extra:
+        uuid3 = uuid4()
+        extra_elem = {
+            "uuid": f"{uuid3}",
+            "type": e_type,
+            "content": {"url": f"/media/images/{img3.name}", "thumbnail": f"/media/thumbs/{img3.name}"},
+        }
+        sidebar_elements["sidebar_elements"].append(extra_elem)
+    sidebar_elements["sidebar_elements"] = json.dumps(sidebar_elements["sidebar_elements"])
+
     files = {
         f"{uuid1}": img1,
         f"{uuid2}": img2,
@@ -48,8 +57,6 @@ class TestMediaImage(AbstractTestCase):
         mi = MediaImage.objects.create(
             spa_key=uuid4(), image=get_test_image_file_jpeg(filename=get_random_jpg_filename()), page_id=self.dp
         )
-        assert mi.width == 640
-        assert mi.height == 480
         assert str(mi) == mi.image.name
         assert MediaImage.objects.all().count() == 1
 
@@ -64,7 +71,7 @@ class TestMediaImage(AbstractTestCase):
         assert serialized.get("uuid") == str(mi.spa_key)
         assert serialized.get("type") == "DImage"
         assert serialized.get("content").get("url") == mi.image.storage.url(name=mi.image.name)
-        assert serialized.get("content").get("thumbnail") == mi.thumbnail.name
+        assert serialized.get("content").get("thumbnail") == mi.thumbnail.storage.url(name=mi.thumbnail.name)
 
     def test_link_multiple_images_to_page(self):
         sidebar, files = setup_sidebar_fixture()
@@ -82,5 +89,11 @@ class TestMediaImage(AbstractTestCase):
 
     def test_no_creation_if_no_images(self):
         sidebar, files = setup_sidebar_fixture(e_type="DRichText")
-        result = MediaImage.create_from_request(data=sidebar, files=files, donation_page=self.dp.pk)
+        MediaImage.create_from_request(data=sidebar, files=files, donation_page=self.dp.pk)
         assert not MediaImage.objects.all()
+
+    def test_existing_uuid_with_no_file(self):
+        sidebar, files = setup_sidebar_fixture(extra=True)
+        result = MediaImage.create_from_request(data=sidebar, files=files, donation_page=self.dp.pk)
+        assert MediaImage.objects.all().count() == 2
+        assert len(result["sidebar_elements"]) == 3

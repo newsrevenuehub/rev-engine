@@ -17,6 +17,13 @@ function BaseField({ label, errors, inline, labelProps, helpText, required, chil
     }
   }, [errors]);
 
+  const renderErrors = (e) => {
+    if (Array.isArray(e)) {
+      return errors.map((error) => <S.Error key={error}>{error}</S.Error>);
+    }
+    return <S.Error key={e}>{e}</S.Error>;
+  };
+
   return (
     <S.Wrapper>
       <S.FieldWrapper inline={inline}>
@@ -31,9 +38,7 @@ function BaseField({ label, errors, inline, labelProps, helpText, required, chil
       <AnimatePresence>
         {hasErrors(errors) && (
           <S.Errors ref={errorsRef} {...S.errorsAnimation} data-testid={`errors-${label}`}>
-            {errors.map((error) => (
-              <S.Error key={error}>{error}</S.Error>
-            ))}
+            {renderErrors(errors)}
           </S.Errors>
         )}
       </AnimatePresence>

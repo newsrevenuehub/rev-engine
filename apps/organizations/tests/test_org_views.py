@@ -124,7 +124,8 @@ class RevenueProgramViewSetTest(AbstractTestCase):
         self.login()
         response = self.client.get(self.list_url)
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.json()["count"], 5)
+        expected_count = RevenueProgram.objects.filter(organization=self.user.get_organization()).count()
+        self.assertEqual(response.json()["count"], expected_count)
 
     def test_created_and_list_are_equivalent(self):
         revp = self.resources[0]
@@ -134,7 +135,12 @@ class RevenueProgramViewSetTest(AbstractTestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(
             [x["id"] for x in response.json()["results"]],
-            [x for x in RevenueProgram.objects.all().values_list("pk", flat=True)],
+            [
+                x
+                for x in RevenueProgram.objects.filter(organization=self.user.get_organization()).values_list(
+                    "pk", flat=True
+                )
+            ],
         )
 
     def test_viewset_is_readonly(self):
@@ -197,21 +203,6 @@ class FeatureViewSetTest(APITestCase):
     def test_unique_value(self):
         with self.assertRaises(django.db.utils.IntegrityError):
             FeatureFactory(feature_value=self.limit_feature.feature_value)
-
-    def test_boolean_inputs(self):
-        valid = Feature.VALID_BOOLEAN_INPUTS
-        for v in iter(valid):
-            try:
-                FeatureFactory(feature_type=Feature.FeatureType.BOOLEAN, feature_value=v)
-            except django.core.exceptions.ValidationError as e:
-                self.fail(f"Save raised a validation error on expected valid inputs: {e.message}")
-
-    def test_validation_error_on_bad_input(self):
-        invalid = ["-1", "1.3", "2", "S"]
-        for v in iter(invalid):
-            with self.assertRaises(django.core.exceptions.ValidationError) as cm:
-                FeatureFactory(feature_type=Feature.FeatureType.BOOLEAN, feature_value=v)
-            self.assertEqual(cm.exception.message, "The feature type 'Boolean' requires one of the following [1,0,t,f]")
 
     def test_feature_limits_page_creation(self):
         self.limit_feature.feature_value = "3"

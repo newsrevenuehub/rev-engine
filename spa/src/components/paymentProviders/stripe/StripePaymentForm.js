@@ -104,7 +104,14 @@ function StripePaymentForm({ loading, setLoading, offerPayFees }) {
     e.preventDefault();
     setLoading(true);
     const orgIsNonProfit = page.organization_is_nonprofit;
-    const data = serializeData(formRef.current, { amount, payFee, orgIsNonProfit, salesforceCampaignId, ...params });
+    const data = serializeData(formRef.current, {
+      amount,
+      payFee,
+      orgIsNonProfit,
+      frequency,
+      salesforceCampaignId,
+      ...params
+    });
     await submitPayment(
       stripe,
       data,
@@ -120,7 +127,7 @@ function StripePaymentForm({ loading, setLoading, offerPayFees }) {
   const handlePaymentRequestSubmit = async (state, paymentRequest) => {
     setLoading(true);
     const orgIsNonProfit = page.organization_is_nonprofit;
-    const data = serializeData(formRef.current, { orgIsNonProfit, salesforceCampaignId, ...state });
+    const data = serializeData(formRef.current, { orgIsNonProfit, frequency, salesforceCampaignId, ...state });
     await submitPayment(
       stripe,
       data,
@@ -140,7 +147,7 @@ function StripePaymentForm({ loading, setLoading, offerPayFees }) {
    */
   useEffect(() => {
     const orgIsNonProfit = page.organization_is_nonprofit;
-    const amnt = amountToCents(getTotalAmount(amount, payFee, orgIsNonProfit));
+    const amnt = amountToCents(getTotalAmount(amount, payFee, frequency, orgIsNonProfit));
     const amountIsValid = !isNaN(amnt) && amnt > 0;
     if (stripe && amountIsValid && !paymentRequest) {
       const pr = stripe.paymentRequest({
@@ -184,7 +191,7 @@ function StripePaymentForm({ loading, setLoading, offerPayFees }) {
    */
   useEffect(() => {
     const orgIsNonProfit = page.organization_is_nonprofit;
-    const amnt = amountToCents(getTotalAmount(amount, payFee, orgIsNonProfit));
+    const amnt = amountToCents(getTotalAmount(amount, payFee, frequency, orgIsNonProfit));
     const amountIsValid = !isNaN(amnt) && amnt > 0;
     if (paymentRequest && amountIsValid) {
       paymentRequest.update({
@@ -194,12 +201,13 @@ function StripePaymentForm({ loading, setLoading, offerPayFees }) {
         }
       });
     }
-  }, [amount, payFee, paymentRequest]);
+  }, [amount, payFee, paymentRequest, frequency]);
 
   // We add a catch here for the times when the ad-hoc donation amount ("other") value
   // is not a valid number (e.g. first clicking on the element, or typing a decimal "0.5")
-  if (isNaN(amount) || amount < 1)
+  if (isNaN(amount) || amount < 1) {
     return <S.EnterValidAmount>Please enter an amount of at least $1</S.EnterValidAmount>;
+  }
   return !forceManualCard && paymentRequest ? (
     <>
       <S.PaymentRequestWrapper>
@@ -226,7 +234,8 @@ function StripePaymentForm({ loading, setLoading, offerPayFees }) {
         loading={loading}
         data-testid="donation-submit"
       >
-        Give ${getTotalAmount(amount, payFee, page.organization_is_nonprofit)} {getFrequencyAdverb(frequency)}
+        Give ${getTotalAmount(amount, payFee, frequency, page.organization_is_nonprofit)}{' '}
+        {getFrequencyAdverb(frequency)}
       </Button>
 
       <S.IconWrapper>

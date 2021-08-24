@@ -18,8 +18,7 @@ import { LS_USER } from 'constants/authConstants';
 import Dashboard from 'components/dashboard/Dashboard';
 
 // Analytics
-import { useAnalyticsContext } from './analytics/AnalyticsContext';
-import { HUB_GA_V3_ID } from 'constants/analyticsConstants';
+import { useConfigureAnalytics } from './analytics';
 
 const OrganizationContext = createContext(null);
 
@@ -36,11 +35,7 @@ function Main() {
     setCheckingProvider(false);
   }, []);
 
-  const { setAnalyticsConfig } = useAnalyticsContext();
-
-  useEffect(() => {
-    setAnalyticsConfig({ hubGaV3Id: HUB_GA_V3_ID });
-  }, []);
+  useConfigureAnalytics();
 
   return (
     <OrganizationContext.Provider

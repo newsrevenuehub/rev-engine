@@ -17,8 +17,7 @@ import { LS_CONTRIBUTOR, LS_CSRF_TOKEN } from 'constants/authConstants';
 import GlobalLoading from 'elements/GlobalLoading';
 
 // Analytics
-import { useAnalyticsContext } from 'components/analytics/AnalyticsContext';
-import { HUB_GA_V3_ID } from 'constants/analyticsConstants';
+import { useConfigureAnalytics } from 'components/analytics';
 
 function ContributorVerify() {
   const history = useHistory();
@@ -26,10 +25,7 @@ function ContributorVerify() {
 
   const [couldNotVerify, setCouldNotVerify] = useState(false);
 
-  const { setAnalyticsConfig } = useAnalyticsContext();
-  useEffect(() => {
-    setAnalyticsConfig({ hubGaV3Id: HUB_GA_V3_ID });
-  }, []);
+  useConfigureAnalytics();
 
   const handleVerifySuccess = useCallback(
     (response) => {

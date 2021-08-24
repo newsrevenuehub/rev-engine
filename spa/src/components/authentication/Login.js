@@ -20,8 +20,7 @@ import Input from 'elements/inputs/Input';
 import FormErrors from 'elements/inputs/FormErrors';
 
 // Analytics
-import { useAnalyticsContext } from 'components/analytics/AnalyticsContext';
-import { HUB_GA_V3_ID } from 'constants/analyticsConstants';
+import { useConfigureAnalytics } from '../analytics';
 
 function Login({ onSuccess, message }) {
   const history = useHistory();
@@ -30,11 +29,7 @@ function Login({ onSuccess, message }) {
   const [password, setPassword] = useState('');
   const [{ loading, errors }, dispatch] = useReducer(fetchReducer, initialState);
 
-  const { setAnalyticsConfig } = useAnalyticsContext();
-
-  useEffect(() => {
-    setAnalyticsConfig({ hubGaV3Id: HUB_GA_V3_ID });
-  }, []);
+  useConfigureAnalytics();
 
   const handlePostLogin = () => {
     if (onSuccess) onSuccess();

@@ -12,8 +12,7 @@ import { GET_MAGIC_LINK } from 'ajax/endpoints';
 import Input from 'elements/inputs/Input';
 
 // Analytics
-import { useAnalyticsContext } from 'components/analytics/AnalyticsContext';
-import { HUB_GA_V3_ID } from 'constants/analyticsConstants';
+import { useConfigureAnalytics } from 'components/analytics';
 
 function ContributorEntry() {
   const alert = useAlert();
@@ -22,11 +21,8 @@ function ContributorEntry() {
   const [errors, setErrors] = useState({});
 
   const [showConfirmation, setShowConfirmation] = useState(false);
-  const { setAnalyticsConfig } = useAnalyticsContext();
 
-  useEffect(() => {
-    setAnalyticsConfig({ hubGaV3Id: HUB_GA_V3_ID });
-  }, []);
+  useConfigureAnalytics();
 
   const handleSendMagicLink = async (e) => {
     e.preventDefault();

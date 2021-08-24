@@ -15,8 +15,7 @@ import { useGlobalContext } from 'components/MainLayout';
 import { NO_VALUE } from 'constants/textConstants';
 
 // Analytics
-import { useAnalyticsContext } from 'components/analytics/AnalyticsContext';
-import { HUB_GA_V3_ID } from 'constants/analyticsConstants';
+import { useConfigureAnalytics } from 'components/analytics';
 
 // Utils
 import toTitleCase from 'utilities/toTitleCase';
@@ -52,10 +51,7 @@ function ContributorDashboard() {
   const [pageIndex, setPageIndex] = useState(0);
 
   // Analytics setup
-  const { setAnalyticsConfig } = useAnalyticsContext();
-  useEffect(() => {
-    setAnalyticsConfig({ hubGaV3Id: HUB_GA_V3_ID });
-  }, []);
+  useConfigureAnalytics();
 
   const handlePageChange = (pageIndexChange) => {
     setPageIndex(pageIndex + pageIndexChange);

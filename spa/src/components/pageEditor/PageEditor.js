@@ -36,6 +36,9 @@ import { faEye, faEdit, faSave, faTrash } from '@fortawesome/free-solid-svg-icon
 import { useGlobalContext } from 'components/MainLayout';
 import validatePage from './validatePage';
 
+//
+import { useConfigureAnalytics } from 'components/analytics';
+
 // Children
 import * as dynamicElements from 'components/donationPage/pageContent/dynamicElements';
 import CircleButton from 'elements/buttons/CircleButton';
@@ -43,8 +46,6 @@ import SegregatedStyles from 'components/donationPage/SegregatedStyles';
 import DonationPage from 'components/donationPage/DonationPage';
 import GlobalLoading from 'elements/GlobalLoading';
 import EditInterface from 'components/pageEditor/editInterface/EditInterface';
-import { useAnalyticsContext } from 'components/analytics/AnalyticsContext';
-import { HUB_GA_V3_ID } from 'constants/analyticsConstants';
 import BackButton from 'elements/BackButton';
 
 const PageEditorContext = createContext();
@@ -97,11 +98,7 @@ function PageEditor() {
 
   const history = useHistory();
 
-  const { setAnalyticsConfig } = useAnalyticsContext();
-
-  useEffect(() => {
-    setAnalyticsConfig({ hubGaV3Id: HUB_GA_V3_ID });
-  }, []);
+  useConfigureAnalytics();
 
   useEffect(() => {
     setLoading(true);

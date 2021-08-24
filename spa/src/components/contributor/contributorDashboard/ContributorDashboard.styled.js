@@ -4,6 +4,10 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 
 export const ContributorDashboard = styled.main`
   padding: 4rem 2rem;
+
+  @media (${(props) => props.theme.breakpoints.phoneOnly}) {
+    padding: 0;
+  }
 `;
 
 export const Disclaimer = styled.p`

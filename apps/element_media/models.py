@@ -1,23 +1,37 @@
 import json
+import os.path
+from io import BytesIO
 
+from django.core.files.base import ContentFile
 from django.core.files.images import ImageFile
 from django.db import models
 from django.http.request import QueryDict
 
-from sorl.thumbnail import ImageField as SorlImageField
-from sorl.thumbnail import get_thumbnail
+from PIL import Image
 
 from apps.common.models import IndexedTimeStampedModel
 from apps.pages.models import DonationPage
 
 
+THUMBNAIL_SIZE = 300, 300
+
+
+def get_thumbnail(image):
+    filename, ext = os.path.splitext(image.name)
+    with Image.open(image) as thumb:
+        if not ext:
+            ext = thumb.format.lower()
+        thumb.thumbnail(THUMBNAIL_SIZE)
+        thumb_io = BytesIO()
+        thumb.save(thumb_io, thumb.format, quality=80)
+    return ContentFile(thumb_io.getvalue(), name=f"{filename}_thumbnail{ext}")
+
+
 class MediaImage(IndexedTimeStampedModel):
     spa_key = models.UUIDField(blank=True)
     page_id = models.ForeignKey("pages.DonationPage", null=False, on_delete=models.CASCADE)
-    height = models.PositiveIntegerField()
-    width = models.PositiveIntegerField()
-    image = SorlImageField(upload_to="images", height_field="height", width_field="width")
-    thumbnail = models.ImageField(upload_to="images/thumbs", null=True, blank=True)
+    image = models.ImageField(upload_to="images", null=True)
+    thumbnail = models.ImageField(upload_to="thumbs", null=True, blank=True)
     image_attrs = models.JSONField(blank=True, null=True)
 
     def __str__(self):
@@ -29,7 +43,7 @@ class MediaImage(IndexedTimeStampedModel):
             "type": str(image_key),
             "content": {
                 "url": self.image.storage.url(name=self.image.name),
-                "thumbnail": self.thumbnail.name,
+                "thumbnail": self.thumbnail.storage.url(name=self.thumbnail.name),
             },
         }
 
@@ -54,17 +68,17 @@ class MediaImage(IndexedTimeStampedModel):
             elements = json.loads(sbe)
             for index, element in enumerate(elements):
                 if element.get("type") == image_key:
-                    img = ImageFile(files.get(element.get("uuid")))
-                    m = cls(
-                        spa_key=element.get("uuid"),
-                        image=img,
-                        page_id=DonationPage.objects.get(pk=donation_page),
-                        image_attrs={},
-                    )
-                    # Save to get an upload location for the image
-                    m.save()
-                    m.thumbnail = get_thumbnail(m.image, geometry_string="300").url
-                    m.save()
-                    elements[index] = m.get_as_dict()
+                    if f := files.get(element.get("uuid"), None):
+                        img = ImageFile(f)
+                        thumb = get_thumbnail(img)
+                        media_image = cls(
+                            spa_key=element.get("uuid"),
+                            image=img,
+                            thumbnail=thumb,
+                            page_id=DonationPage.objects.get(pk=donation_page),
+                            image_attrs={},
+                        )
+                        media_image.save()
+                        elements[index] = media_image.get_as_dict()
             mutable["sidebar_elements"] = elements
         return mutable

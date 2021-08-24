@@ -81,6 +81,7 @@ class Contribution(IndexedTimeStampedModel):
 
     class Meta:
         get_latest_by = "modified"
+        ordering = ["-created"]
 
     def __str__(self):
         return f"{self.formatted_amount}, {self.created.strftime('%Y-%m-%d %H:%M:%S')}"
@@ -279,7 +280,7 @@ class ContributionMetadata(IndexedTimeStampedModel):
                 collected.update({obj.key: supplied[obj.key]})
                 continue
         for obj in meta_for_all:
-            collected.update({obj.key: obj.default_value})
+            collected.update({obj.key: supplied.get(obj.key, obj.default_value)})
         final = {k: v for k, v in collected.items() if v is not None}
         return final
 

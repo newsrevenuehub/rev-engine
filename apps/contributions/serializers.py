@@ -176,6 +176,7 @@ class AbstractPaymentSerializer(serializers.Serializer):
 
     # Params/Pass-through
     sf_campaign_id = serializers.CharField(max_length=255, required=False, allow_blank=True)
+    captcha_token = serializers.CharField(max_length=2550, required=False, allow_blank=True)
 
     # Request metadata
     ip = serializers.IPAddressField()

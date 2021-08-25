@@ -189,19 +189,19 @@ class ContributionMetadataTest(TestCase):
 
     @patch("apps.contributions.payment_managers.StripePaymentManager")
     def test_bundle_meta_w_lookup_payment(self, pm_mock):
-        self.cm4 = ContributionMetadataFactory(key="re_revenue_program_id", label="re_revenue_program_id")
+        self.cm4 = ContributionMetadataFactory(key="revenue_program_id", label="revenue_program_id")
         pm_mock.return_value.get_donation_page.return_value.pk = 23
         results = ContributionMetadata.bundle_metadata(
             self.supplied, ContributionMetadata.ProcessorObjects.PAYMENT, pm_mock()
         )
-        assert results.get("re_revenue_program_id", None) is not None
-        assert results.get("re_revenue_program_id", None) == 23
+        assert results.get("revenue_program_id", None) is not None
+        assert results.get("revenue_program_id", None) == 23
 
     @patch("apps.contributions.payment_managers.StripePaymentManager")
     def test_bundle_meta_w_lookup_customer(self, pm_mock):
         self.cm5 = ContributionMetadataFactory(
-            key="re_contributor_id",
-            label="re_contributor_id",
+            key="contributor_id",
+            label="contributor_id",
             processor_object=ContributionMetadata.ProcessorObjects.CUSTOMER,
         )
 
@@ -209,5 +209,5 @@ class ContributionMetadataTest(TestCase):
         results = ContributionMetadata.bundle_metadata(
             self.supplied, ContributionMetadata.ProcessorObjects.CUSTOMER, pm_mock()
         )
-        assert results.get("re_contributor_id", None) is not None
-        assert results.get("re_contributor_id", None) == 55
+        assert results.get("contributor_id", None) is not None
+        assert results.get("contributor_id", None) == 55

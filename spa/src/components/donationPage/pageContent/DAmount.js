@@ -112,7 +112,7 @@ export default DAmount;
 export function getAmountIndex(page, amount, frequency) {
   const amountElement = page?.elements?.find((el) => el.type === 'DAmount');
   const amounts = amountElement?.content?.options;
-  const amountsForFreq = amounts[frequency];
+  const amountsForFreq = amounts && amounts[frequency]?.map((amnt) => parseFloat(amnt));
 
   if (amountsForFreq) {
     return amounts[frequency]?.findIndex((num) => parseFloat(num) === parseFloat(amount));

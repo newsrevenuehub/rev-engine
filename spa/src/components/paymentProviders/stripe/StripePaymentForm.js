@@ -8,6 +8,9 @@ import { useAlert } from 'react-alert';
 // Utils
 import { getFrequencyAdverb } from 'utilities/parseFrequency';
 
+// Hooks
+import usePreviousState from 'hooks/usePreviousState';
+
 // Routing
 import { useHistory, useRouteMatch } from 'react-router-dom';
 import { THANK_YOU_SLUG } from 'routes';
@@ -32,6 +35,7 @@ function StripePaymentForm({ loading, setLoading, offerPayFees }) {
   const { url, params } = useRouteMatch();
   const { page, amount, frequency, payFee, formRef, errors, setErrors, salesforceCampaignId } = usePage();
 
+  const previousAmount = usePreviousState(amount);
   const [cardReady, setCardReady] = useState(false);
   const [succeeded, setSucceeded] = useState(false);
   const [disabled, setDisabled] = useState(true);
@@ -44,10 +48,25 @@ function StripePaymentForm({ loading, setLoading, offerPayFees }) {
   const stripe = useStripe();
   const elements = useElements();
 
+  const amountIsValid = !isNaN(amount) && amount >= 1;
+
+  /**
+   * Listen to changes in amount to determine whether it has changed since last time.
+   * If it has, disable the submit button. "handleCardElementChange" will determine
+   * "ready" state using some Stripe magic.
+   */
+  useEffect(() => {
+    const amountReadyToCompare = amount && amountIsValid;
+    const amountsAreNotEqual = parseFloat(amount) !== parseFloat(previousAmount);
+    if (amountReadyToCompare && amountsAreNotEqual) {
+      setCardReady(false);
+    }
+  }, [amount, amountIsValid, previousAmount]);
+
   /**
    * Listen for changes in the CardElement and display any errors as the customer types their card details
    */
-  const handleChange = async (event) => {
+  const handleCardElementChange = async (event) => {
     setCardReady(event.complete);
     setDisabled(event.empty);
     setErrors({ ...errors, stripe: event.error ? event.error.message : '' });
@@ -142,7 +161,6 @@ function StripePaymentForm({ loading, setLoading, offerPayFees }) {
   useEffect(() => {
     const orgIsNonProfit = page.organization_is_nonprofit;
     const amnt = amountToCents(getTotalAmount(amount, payFee, frequency, orgIsNonProfit));
-    const amountIsValid = !isNaN(amnt) && amnt > 0;
     if (stripe && amountIsValid && !paymentRequest) {
       const pr = stripe.paymentRequest({
         country: 'US',
@@ -186,7 +204,7 @@ function StripePaymentForm({ loading, setLoading, offerPayFees }) {
   useEffect(() => {
     const orgIsNonProfit = page.organization_is_nonprofit;
     const amnt = amountToCents(getTotalAmount(amount, payFee, frequency, orgIsNonProfit));
-    const amountIsValid = !isNaN(amnt) && amnt > 0;
+    // const amountIsValid = !isNaN(amnt) && amnt > 0;
     if (paymentRequest && amountIsValid) {
       paymentRequest.update({
         total: {
@@ -199,9 +217,10 @@ function StripePaymentForm({ loading, setLoading, offerPayFees }) {
 
   // We add a catch here for the times when the ad-hoc donation amount ("other") value
   // is not a valid number (e.g. first clicking on the element, or typing a decimal "0.5")
-  if (isNaN(amount) || amount < 1) {
+  if (!amountIsValid) {
     return <S.EnterValidAmount>Please enter an amount of at least $1</S.EnterValidAmount>;
   }
+
   return !forceManualCard && paymentRequest ? (
     <>
       <S.PaymentRequestWrapper>
@@ -214,7 +233,11 @@ function StripePaymentForm({ loading, setLoading, offerPayFees }) {
   ) : (
     <S.StripePaymentForm>
       <S.PaymentElementWrapper>
-        <CardElement id="card-element" options={{ style: S.CardElementStyle(theme) }} onChange={handleChange} />
+        <CardElement
+          id="card-element"
+          options={{ style: S.CardElementStyle(theme) }}
+          onChange={handleCardElementChange}
+        />
       </S.PaymentElementWrapper>
       {errors?.stripe && (
         <S.PaymentError role="alert" data-testid="donation-error">
@@ -224,7 +247,7 @@ function StripePaymentForm({ loading, setLoading, offerPayFees }) {
       {offerPayFees && <PayFeesWidget />}
       <Button
         onClick={handleCardSubmit}
-        disabled={!cardReady || loading || disabled || succeeded || amount === 0}
+        disabled={!cardReady || loading || disabled || succeeded || !amountIsValid}
         loading={loading}
         data-testid="donation-submit"
       >

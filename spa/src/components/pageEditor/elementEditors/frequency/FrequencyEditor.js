@@ -33,7 +33,8 @@ function FrequencyEditor() {
 
   const makeFreqDefault = (frequency) => {
     const freqs = [...elementContent];
-    setElementContent(freqs.map((f) => ({ ...f, isDefault: f.value === frequency })));
+    const freqIsEnabled = freqs.find((f) => f.value === frequency);
+    if (freqIsEnabled) setElementContent(freqs.map((f) => ({ ...f, isDefault: f.value === frequency })));
   };
 
   return (
@@ -57,7 +58,7 @@ function FrequencyEditor() {
                 data-testid={`frequency-default-${frequency.value}`}
                 type="checkbox"
                 color={theme.colors.primary}
-                checked={thisFreq?.isDefault}
+                checked={!!thisFreq?.isDefault}
                 onChange={() => makeFreqDefault(frequency.value)}
               />
               <S.RadioLabel htmlFor={`${frequency.value}-default`}>selected by default</S.RadioLabel>

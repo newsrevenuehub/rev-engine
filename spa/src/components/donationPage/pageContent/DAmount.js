@@ -1,4 +1,4 @@
-import { useRef, useState, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import PropTypes from 'prop-types';
 import * as S from './DAmount.styled';
 
@@ -17,8 +17,6 @@ function DAmount({ element, ...props }) {
   const { page, frequency, amount, setAmount, overrideAmount, errors } = usePage();
   const [otherFocused, setOtherFocused] = useState(false);
 
-  const inputRef = useRef();
-
   const handleAmountSelected = (a) => {
     setAmount(a);
   };
@@ -26,7 +24,6 @@ function DAmount({ element, ...props }) {
   const handleOtherSelected = () => {
     setAmount('');
     setOtherFocused(true);
-    inputRef.current.focus();
   };
 
   const handleOtherBlurred = () => {
@@ -68,14 +65,13 @@ function DAmount({ element, ...props }) {
           <S.OtherAmount
             data-testid={`amount-other${otherFocused || !amountIsPreset ? '-selected' : ''}`}
             selected={otherFocused}
-            onClick={handleOtherSelected}
           >
             <span>$</span>
             <S.OtherAmountInput
-              ref={inputRef}
               type="number"
               value={otherFocused || !amountIsPreset ? amount : ''}
               onChange={(e) => setAmount(e.target.value)}
+              onFocus={handleOtherSelected}
               onBlur={handleOtherBlurred}
             />
             <span data-testid="custom-amount-rate">{getFrequencyRate(frequency)}</span>

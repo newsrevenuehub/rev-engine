@@ -1,0 +1,11 @@
+{
+  "short_name": "Revenue Engine",
+  "name": "Rev Engine",
+  "icons": [
+    {
+      "src": "favicon.ico",
+      "sizes": "225x225",
+      "type": "image/x-icon"
+    }
+  ]
+}

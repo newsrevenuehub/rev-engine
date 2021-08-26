@@ -41,6 +41,7 @@ function StripePaymentForm({ loading, setLoading, offerPayFees }) {
   const [disabled, setDisabled] = useState(true);
   const [paymentRequest, setPaymentRequest] = useState(null);
   const [forceManualCard, setForceManualCard] = useState(false);
+  const [emailForDonation, setEmailForDonation] = useState('');
 
   const theme = useTheme();
   const history = useHistory();
@@ -72,6 +73,19 @@ function StripePaymentForm({ loading, setLoading, offerPayFees }) {
     setErrors({ ...errors, stripe: event.error ? event.error.message : '' });
   };
 
+  /**
+   * extractEmailFromFormRef
+   * Provided a ref to the form element containing the email address, will set that email
+   * address to state as emailForDonation
+   * @param {Element} form - a ref to the Form element containing the email addreess
+   */
+  const extractEmailFromFormRef = (form) => {
+    const emailInput = form.elements['email'];
+    console.log('form', form);
+    console.log('emailInput', emailInput);
+    return emailInput.value;
+  };
+
   /****************************\
    * Handle Error and Success *
   \****************************/
@@ -83,9 +97,11 @@ function StripePaymentForm({ loading, setLoading, offerPayFees }) {
     if (page.thank_you_redirect) {
       window.location = page.thank_you_redirect;
     } else {
+      const email = extractEmailFromFormRef(formRef.current);
+      console.log('that email getting set: ', email);
       history.push({
         pathname: url + THANK_YOU_SLUG,
-        state: { page }
+        state: { page, amount, email }
       });
     }
   };
@@ -117,6 +133,7 @@ function StripePaymentForm({ loading, setLoading, offerPayFees }) {
     e.preventDefault();
     setLoading(true);
     const orgIsNonProfit = page.organization_is_nonprofit;
+    // extractEmailFromFormRef(formRef.current);
     const data = serializeData(formRef.current, {
       amount,
       payFee,
@@ -140,6 +157,7 @@ function StripePaymentForm({ loading, setLoading, offerPayFees }) {
   const handlePaymentRequestSubmit = async (state, paymentRequest) => {
     setLoading(true);
     const orgIsNonProfit = page.organization_is_nonprofit;
+    // extractEmailFromFormRef(formRef.current);
     const data = serializeData(formRef.current, { orgIsNonProfit, frequency, salesforceCampaignId, ...state });
     await submitPayment(
       stripe,

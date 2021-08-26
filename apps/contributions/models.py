@@ -268,6 +268,7 @@ class ContributionMetadata(IndexedTimeStampedModel):
 
     @staticmethod
     def bundle_metadata(supplied: dict, processor_obj, payment_manager):
+        remove_from_final = ["", None]
         processor_meta = ContributionMetadata.objects.filter(processor_object=processor_obj)
         meta_for_all = ContributionMetadata.objects.filter(processor_object=ContributionMetadata.ProcessorObjects.ALL)
         collected = {}
@@ -281,7 +282,7 @@ class ContributionMetadata(IndexedTimeStampedModel):
                 continue
         for obj in meta_for_all:
             collected.update({obj.key: supplied.get(obj.key, obj.default_value)})
-        final = {k: v for k, v in collected.items() if v is not None}
+        final = {k: v for k, v in collected.items() if v not in remove_from_final}
         return final
 
     class Meta:

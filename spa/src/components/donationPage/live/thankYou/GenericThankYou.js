@@ -39,8 +39,8 @@ function GenericThankYou({ setOrgAnalytics }) {
     const baseUrl = 'https://twitter.com/intent/tweet?';
     const twitterHandle = routedState?.page.revenue_program.twitter_handle;
     const revProgramName = routedState?.page.revenue_program.name;
-    const revProgramHandle = twitterHandle || revProgramName;
-    const handleMention = twitterHandle ? ` ${revProgramHandle}` : '';
+    const revProgramHandle = twitterHandle ? `@${twitterHandle}` : revProgramName;
+    const handleMention = twitterHandle ? ` @${twitterHandle}` : '';
     const message = `I support ${revProgramHandle}. You should too. ${routedState?.donationPageUrl}${handleMention}`;
     return baseUrl + `text=${message}`;
   };

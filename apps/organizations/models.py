@@ -225,21 +225,26 @@ class RevenueProgram(IndexedTimeStampedModel):
     slug = models.SlugField(max_length=100, blank=True, unique=True)
     organization = models.ForeignKey("organizations.Organization", on_delete=models.CASCADE)
     default_donation_page = models.ForeignKey("pages.DonationPage", null=True, blank=True, on_delete=models.SET_NULL)
+
+    # Analytics
     google_analytics_v3_domain = models.CharField(max_length=300, null=True, blank=True)
     google_analytics_v3_id = models.CharField(max_length=50, null=True, blank=True)
     google_analytics_v4_id = models.CharField(max_length=50, null=True, blank=True)
 
     benefit_levels = models.ManyToManyField(BenefitLevel, through=RevenueProgramBenefitLevel)
 
+    # Social links
+    twitter_handle = models.CharField(
+        max_length=15, blank=True, help_text="How can your donors mention you on Twitter? Don't include '@' symbol"
+    )
+    website_url = models.URLField(blank=True, help_text="Does this Revenue Program have a website?")
+
     def __str__(self):
         return self.name
 
     def clean(self):
-        # Avoid state of a rev program's default page not being one of "its pages"
-        if self.default_donation_page and self.default_donation_page.revenue_program != self:
-            raise ValidationError(
-                f'Donation page "{self.default_donation_page}" is already associated with a revenue program, "{self.default_donation_page.revenue_program}"'
-            )
+        self._ensure_owner_of_default_page()
+        self._format_twitter_handle()
 
     def save(self, *args, **kwargs):
         if not self.id:
@@ -254,3 +259,19 @@ class RevenueProgram(IndexedTimeStampedModel):
             self.donationpage_set.add(self.default_donation_page)
 
         super().save(*args, **kwargs)
+
+    def _ensure_owner_of_default_page(self):
+        """
+        Avoid state of a rev program's default page not being one of "its pages"
+        """
+        if self.default_donation_page and self.default_donation_page.revenue_program != self:
+            raise ValidationError(
+                f'Donation page "{self.default_donation_page}" is already associated with a revenue program, "{self.default_donation_page.revenue_program}"'
+            )
+
+    def _format_twitter_handle(self):
+        """
+        Ensure no @ symbol on twitter_handle-- we'll add those later
+        """
+        if self.twitter_handle and self.twitter_handle[0] == "@":
+            self.twitter_handle = self.twitter_handle.replace("@", "")

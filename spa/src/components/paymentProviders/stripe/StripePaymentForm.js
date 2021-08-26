@@ -81,8 +81,6 @@ function StripePaymentForm({ loading, setLoading, offerPayFees }) {
    */
   const extractEmailFromFormRef = (form) => {
     const emailInput = form.elements['email'];
-    console.log('form', form);
-    console.log('emailInput', emailInput);
     return emailInput.value;
   };
 

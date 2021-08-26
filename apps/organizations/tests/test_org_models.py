@@ -58,6 +58,12 @@ class RevenueProgramTest(TestCase):
         org.delete()
         assert len(self.model_class.objects.all()) == 0
 
+    def test_format_twitter_handle(self):
+        target_handle = "testing"
+        self.instance.twitter_handle = "@" + target_handle
+        self.instance.clean()
+        self.assertEqual(self.instance.twitter_handle, target_handle)
+
 
 class BenefitLevelTest(TestCase):
     def setUp(self):

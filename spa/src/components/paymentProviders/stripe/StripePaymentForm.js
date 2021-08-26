@@ -98,10 +98,10 @@ function StripePaymentForm({ loading, setLoading, offerPayFees }) {
       window.location = page.thank_you_redirect;
     } else {
       const email = extractEmailFromFormRef(formRef.current);
-      console.log('that email getting set: ', email);
+      const donationPageUrl = window.location.href;
       history.push({
         pathname: url + THANK_YOU_SLUG,
-        state: { page, amount, email }
+        state: { page, amount, email, donationPageUrl }
       });
     }
   };

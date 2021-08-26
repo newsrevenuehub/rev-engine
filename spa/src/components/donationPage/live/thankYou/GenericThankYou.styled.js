@@ -114,14 +114,3 @@ export const SocialIcon = styled(FontAwesomeIcon)`
 `;
 
 export const Redirect = styled(Button)``;
-
-// export const Redirect = styled.a`
-//   margin-top: 2rem;
-//   display: block;
-//   text-align: center;
-//   padding: 1rem 2rem;
-//   background: ${(props) => props.theme.colors.primary};
-//   border-radius: ${(props) => props.theme.radii[1]};
-//   color: ${(props) => props.theme.colors.white};
-//   font-weight:
-// `;

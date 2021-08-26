@@ -88,10 +88,12 @@ const SocialShareButton = styled.a`
 
   &:hover {
     box-shadow: ${(props) => props.theme.shadows[1]};
+    color: ${(props) => props.theme.colors.black};
   }
 
   &:active {
     box-shadow: ${(props) => props.theme.shadows[0]};
+    color: ${(props) => props.theme.colors.black};
   }
 `;
 
@@ -109,7 +111,7 @@ export const SocialImg = styled.img`
 
 export const SocialIcon = styled(FontAwesomeIcon)`
   font-size: 30px;
-  color: ${(props) => props.theme.colors.grey[1]};
+  color: ${(props) => props.theme.colors.grey[2]};
   margin-right: 0.5rem;
 `;
 

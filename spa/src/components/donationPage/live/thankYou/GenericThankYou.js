@@ -29,6 +29,31 @@ function GenericThankYou({ setOrgAnalytics }) {
     window.open(routedState?.page?.post_thank_you_redirect, '_self');
   };
 
+  const buildFacebookHref = () => {
+    const baseUrl = 'https://www.facebook.com/sharer/sharer.php?';
+    const search = `u=${routedState?.donationPageUrl}`;
+    return baseUrl + search;
+  };
+
+  const buildTwitterHref = () => {
+    const baseUrl = 'https://twitter.com/intent/tweet?';
+    const twitterHandle = routedState?.page.revenue_program.twitter_handle;
+    const revProgramName = routedState?.page.revenue_program.name;
+    const revProgramHandle = twitterHandle || revProgramName;
+    const handleMention = twitterHandle ? ` ${revProgramHandle}` : '';
+    const message = `I support ${revProgramHandle}. You should too. ${routedState?.donationPageUrl}${handleMention}`;
+    return baseUrl + `text=${message}`;
+  };
+
+  const buildEmailHref = () => {
+    const revProgramName = routedState?.page.revenue_program.name;
+    const donationPageUrl = routedState?.donationPageUrl;
+    const revProgramWebsite = routedState?.page.revenue_program.website_url;
+    const subject = `You should really check out ${revProgramName}`;
+    const body = `I just gave to ${revProgramName}, and I think you should too: ${donationPageUrl}%0D%0AIf you're not familiar with ${revProgramName}'s work, you can sign up for their newsletter here: ${revProgramWebsite}%0D%0A %0D%0ASincerely,%0D%0A %0D%0A %0D%0AContribute today: ${donationPageUrl}`;
+    return `mailto:?subject=${subject}&body=${body}`;
+  };
+
   return (
     <SegregatedStyles page={routedState?.page}>
       <S.GenericThankYou data-testid="generic-thank-you">
@@ -52,17 +77,17 @@ function GenericThankYou({ setOrgAnalytics }) {
               <S.Text>Share your support on social media</S.Text>
               <S.SocialShareList>
                 <S.SocialShareItem>
-                  <S.FacebookShare>
+                  <S.FacebookShare href={buildFacebookHref()} target="_blank" rel="noreferrer">
                     <S.SocialImg src={fbLogo} /> Share
                   </S.FacebookShare>
                 </S.SocialShareItem>
                 <S.SocialShareItem>
-                  <S.TwitterShare>
+                  <S.TwitterShare href={buildTwitterHref()} target="_blank" rel="noreferrer">
                     <S.SocialImg src={twLogo} /> Tweet
                   </S.TwitterShare>
                 </S.SocialShareItem>
                 <S.SocialShareItem>
-                  <S.EmailShare>
+                  <S.EmailShare href={buildEmailHref()} target="_blank" rel="noreferrer">
                     <S.SocialIcon icon={faEnvelope} /> Email
                   </S.EmailShare>
                 </S.SocialShareItem>

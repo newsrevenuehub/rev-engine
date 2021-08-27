@@ -17,10 +17,6 @@ function DAmount({ element, ...props }) {
   const { page, frequency, amount, setAmount, overrideAmount, errors } = usePage();
   const [otherFocused, setOtherFocused] = useState(false);
 
-  const handleAmountSelected = (a) => {
-    setAmount(a);
-  };
-
   const handleOtherSelected = () => {
     setAmount('');
     setOtherFocused(true);
@@ -56,7 +52,7 @@ function DAmount({ element, ...props }) {
             <SelectableButton
               key={i + amnt}
               selected={parseFloat(amount) === parseFloat(amnt) && !otherFocused}
-              onClick={() => handleAmountSelected(parseFloat(amnt))}
+              onClick={() => setAmount(parseFloat(amnt))}
               data-testid={`amount-${amnt}${parseFloat(amount) === parseFloat(amnt) ? '-selected' : ''}`}
             >{`$${amnt}`}</SelectableButton>
           );
@@ -64,7 +60,7 @@ function DAmount({ element, ...props }) {
         {(element.content?.allowOther || overrideAmount) && (
           <S.OtherAmount
             data-testid={`amount-other${otherFocused || !amountIsPreset ? '-selected' : ''}`}
-            selected={otherFocused}
+            selected={otherFocused || !amountIsPreset}
           >
             <span>$</span>
             <S.OtherAmountInput
@@ -105,7 +101,7 @@ DAmount.unique = true;
 
 export default DAmount;
 
-export function getAmountIndex(page, amount, frequency) {
+function getAmountIndex(page, amount, frequency) {
   const amountElement = page?.elements?.find((el) => el.type === 'DAmount');
   const amounts = amountElement?.content?.options;
   const amountsForFreq = amounts && amounts[frequency]?.map((amnt) => parseFloat(amnt));
@@ -115,12 +111,7 @@ export function getAmountIndex(page, amount, frequency) {
   }
 }
 
-/**
- * getDefaultAmount
- * @param {string} frequency - The frequency to get the default for
- * @param {object} page -
- */
-export function getDefaultAmount(frequency, page) {
+export function getDefaultAmountForFreq(frequency, page) {
   const amountElement = page?.elements?.find((el) => el.type === 'DAmount');
   const amounts = amountElement?.content?.options;
   const amountsForFreq = amounts ? amounts[frequency]?.map((amnt) => parseFloat(amnt)) : {};

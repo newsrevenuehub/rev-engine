@@ -233,9 +233,9 @@ class ContributionMetadata(IndexedTimeStampedModel):
     """
 
     lookup_map = {
-        "re_contributor_id": _get_contributor_id,
-        "re_revenue_program_id": _get_rev_program_id,
-        "re_revenue_program_slug": _get_rev_program_slug,
+        "contributor_id": _get_contributor_id,
+        "revenue_program_id": _get_rev_program_id,
+        "revenue_program_slug": _get_rev_program_slug,
     }
 
     class MetadataType(models.TextChoices):

@@ -1,10 +1,16 @@
-import { DELETE_PAGE, FULL_PAGE, PATCH_PAGE, LIST_PAGES, CONTRIBUTION_META } from 'ajax/endpoints';
+// Util
 import { getEndpoint } from '../support/util';
 import { getFrequencyAdjective } from 'utilities/parseFrequency';
 import { format } from 'date-fns';
+
+// Fixtures
 import livePage from '../fixtures/pages/live-page-1.json';
 import unpublishedPage from '../fixtures/pages/unpublished-page-1.json';
+
+// Contsants
+import { DELETE_PAGE, FULL_PAGE, PATCH_PAGE, LIST_PAGES, CONTRIBUTION_META } from 'ajax/endpoints';
 import { DELETE_CONFIRM_MESSAGE } from 'components/pageEditor/PageEditor';
+import { CLEARBIT_SCRIPT_SRC } from '../../src/hooks/useClearbit';
 
 describe('Donation page edit', () => {
   before(() => {
@@ -413,5 +419,11 @@ describe('Additional Info Setup', () => {
     cy.getByTestId('additional-info-applied').should('exist').contains('In Honor of');
     cy.get('#downshift-1-toggle-button').click();
     cy.get('#downshift-1-menu').find('li').should('have.length', 1);
+  });
+
+  describe('Page load side effects', () => {
+    it('should NOT contain clearbit.js script in body', () => {
+      cy.get('head').find(`script[src*="${CLEARBIT_SCRIPT_SRC}"]`).should('have.length', 0);
+    });
   });
 });

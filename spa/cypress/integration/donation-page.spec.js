@@ -2,6 +2,9 @@ import { STRIPE_PAYMENT, FULL_PAGE } from 'ajax/endpoints';
 import { getEndpoint, getPageElementByType } from '../support/util';
 import livePageOne from '../fixtures/pages/live-page-1.json';
 
+// Constants
+import { CLEARBIT_SCRIPT_SRC } from '../../src/hooks/useClearbit';
+
 import * as freqUtils from 'utilities/parseFrequency';
 import calculateStripeFee from 'utilities/calculateStripeFee';
 
@@ -256,6 +259,10 @@ describe('Donation page', () => {
 
       // assert that the right things are checked
       cy.getByTestId('frequency-month-selected').should('exist');
+    });
+
+    it('should contain clearbit.js script in body', () => {
+      cy.get('head').find(`script[src*="${CLEARBIT_SCRIPT_SRC}"]`).should('have.length', 1);
     });
   });
 

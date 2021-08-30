@@ -94,15 +94,6 @@ class DonationPageFullDetailSerializerTest(APITestCase):
         data = serializer.data
         self.assertIsNone(data["organization_address"])
 
-    def test_get_organization_contact_email(self):
-        contact_email = "testing@test.com"
-        self.organization.contact_email = contact_email
-        self.organization.save()
-        self.organization.refresh_from_db()
-        serializer = self.serializer(self.page)
-        data = serializer.data
-        self.assertEqual(data["organization_contact_email"], contact_email)
-
     def test_get_organization_name(self):
         serializer = self.serializer(self.page)
         data = serializer.data

@@ -4,7 +4,6 @@
   "heading": "Test Heading 1",
   "published_date": "2020-09-17T00:00:00",
   "organization_is_nonprofit": true,
-  "organization_contact_email": "testing@test.com",
   "organization_address": "123 Fake Street, Fakeville, FK 54321",
   "organization_name": "My Fake Org",
   "elements": [
@@ -42,7 +41,8 @@
     "slug": "myprogram",
     "created": "2021-07-20T16:39:40.559524Z",
     "modified": "2021-07-20T16:39:40.559524Z",
-    "name": "MyProgram",
+    "name": "MyRevProgram",
+    "contact_email": "myrevprogram@mycompany.com",
     "organization": 14,
     "default_donation_page": null,
     "google_analytics_v3_id": "UA-2222222",

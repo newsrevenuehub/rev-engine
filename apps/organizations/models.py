@@ -57,7 +57,6 @@ class Plan(IndexedTimeStampedModel):
 class Organization(IndexedTimeStampedModel):
     name = models.CharField(max_length=255, unique=True)
     slug = models.SlugField(blank=True, unique=True)
-    contact_email = models.EmailField(max_length=255, blank=True)
     plan = models.ForeignKey("organizations.Plan", null=True, on_delete=models.CASCADE)
     non_profit = models.BooleanField(default=True, verbose_name="Non-profit?")
     org_addr1 = models.CharField(max_length=255, blank=True, verbose_name="Address 1")
@@ -224,6 +223,7 @@ class RevenueProgram(IndexedTimeStampedModel):
     name = models.CharField(max_length=255)
     slug = models.SlugField(max_length=100, blank=True, unique=True)
     organization = models.ForeignKey("organizations.Organization", on_delete=models.CASCADE)
+    contact_email = models.EmailField(max_length=255, blank=True)
     default_donation_page = models.ForeignKey("pages.DonationPage", null=True, blank=True, on_delete=models.SET_NULL)
     google_analytics_v3_domain = models.CharField(max_length=300, null=True, blank=True)
     google_analytics_v3_id = models.CharField(max_length=50, null=True, blank=True)

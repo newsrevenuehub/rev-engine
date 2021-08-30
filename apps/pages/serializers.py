@@ -60,7 +60,6 @@ class DonationPageFullDetailSerializer(serializers.ModelSerializer):
     organization_is_nonprofit = serializers.SerializerMethodField()
     organization_address = serializers.SerializerMethodField()
     organization_name = serializers.SerializerMethodField()
-    organization_contact_email = serializers.SerializerMethodField()
 
     benefit_levels = serializers.SerializerMethodField()
 
@@ -73,14 +72,12 @@ class DonationPageFullDetailSerializer(serializers.ModelSerializer):
         If there's not org_addr1, it's not a useable address, so we just bail
         """
         org = obj.organization
+        org_addr2_str = " " + org.org_addr2 if org.org_addr2 else ""
         if org.org_addr1:
-            return f"{org.org_addr1} {org.org_addr2}, {org.org_city}, {org.org_state} {org.org_zip}"
+            return f"{org.org_addr1}{org_addr2_str}, {org.org_city}, {org.org_state} {org.org_zip}"
 
     def get_organization_name(self, obj):
         return obj.organization.name
-
-    def get_organization_contact_email(self, obj):
-        return obj.organization.contact_email
 
     def get_benefit_levels(self, obj):
         if obj.revenue_program:

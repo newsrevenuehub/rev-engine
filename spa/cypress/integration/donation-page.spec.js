@@ -163,7 +163,7 @@ describe('Donation page', () => {
     });
   });
 
-  describe('Donation page side effects', () => {
+  describe.only('Donation page side effects', () => {
     it('should pass salesforce campaign id from query parameter to request body', () => {
       const sfCampaignId = 'my-test-sf-campaign-id';
       cy.intercept(
@@ -189,8 +189,8 @@ describe('Donation page', () => {
 
     it('should use url frequency and url amount if present', () => {
       // intercept page, return particular elements
-      const page = livePageOne;
-      const amounts = livePageOne.elements.find((el) => el.type === 'DAmount');
+      const page = { ...livePageOne };
+      const amounts = page.elements.find((el) => el.type === 'DAmount');
       const targetFreq = 'monthly';
       const targetAmount = amounts.content.options.month[1];
       cy.intercept({ method: 'GET', pathname: `${getEndpoint(FULL_PAGE)}**` }, { body: page }).as('getPageDetail');
@@ -206,7 +206,7 @@ describe('Donation page', () => {
 
     it('should use url frequency and url amount in "other" if custom', () => {
       // intercept page, return particular elements
-      const page = livePageOne;
+      const page = { ...livePageOne };
       const targetFreq = 'monthly';
       const targetAmount = 99;
       cy.intercept({ method: 'GET', pathname: `${getEndpoint(FULL_PAGE)}**` }, { body: page }).as('getPageDetail');
@@ -224,9 +224,9 @@ describe('Donation page', () => {
 
     it('should use custom amount and one_time frequency if no frequency in url, and no other amounts should show', () => {
       // intercept page, return particular elements
-      const page = livePageOne;
+      const page = { ...livePageOne };
       const targetAmount = 99;
-      const amounts = livePageOne.elements.find((el) => el.type === 'DAmount');
+      const amounts = page.elements.find((el) => el.type === 'DAmount');
       cy.intercept({ method: 'GET', pathname: `${getEndpoint(FULL_PAGE)}**` }, { body: page }).as('getPageDetail');
 
       // visit url + querystring
@@ -246,7 +246,7 @@ describe('Donation page', () => {
 
     it('should use url frequency and default amount', () => {
       // intercept page, return particular elements
-      const page = livePageOne;
+      const page = { ...livePageOne };
       const targetFreq = 'monthly';
       cy.intercept({ method: 'GET', pathname: `${getEndpoint(FULL_PAGE)}**` }, { body: page }).as('getPageDetail');
 
@@ -264,8 +264,10 @@ describe('Donation page', () => {
       cy.intercept(
         { method: 'GET', pathname: getEndpoint(FULL_PAGE) },
         { fixture: 'pages/live-page-1', statusCode: 200 }
-      );
+      ).as('getPageInitial');
       cy.visit('/revenue-program-slug/page-slug');
+      cy.url().should('include', '/revenue-program-slug/page-slug');
+      cy.wait('@getPageInitial');
     });
 
     it('should render page footer with link to fundjournalism.org', () => {
@@ -305,16 +307,31 @@ describe('Donation page', () => {
       cy.getByTestId('donation-page-static-text').contains(expectedString).should('not.exist');
     });
 
-    it('should render different text based on whether or not the org is nonprofit', () => {
+    it('should render certain text if the org is nonprofit', () => {
+      const nonProfitPage = { ...livePageOne };
+      // ensure contact_email, so text section shows up at all
+      nonProfitPage.revenue_program.contact_email = 'testing@test.com';
+      nonProfitPage.organization_is_nonprofit = true;
+      cy.intercept({ method: 'GET', pathname: getEndpoint(FULL_PAGE) }, { body: nonProfitPage, statusCode: 200 }).as(
+        'getNonProfitPage'
+      );
+      cy.visit('/revenue-program-slug/page-slug-6');
+      cy.url().should('include', '/revenue-program-slug/page-slug-6');
+      cy.wait('@getNonProfitPage');
       // If org is non-profit, show certain text...
       cy.getByTestId('donation-page-static-text').contains('are tax deductible').should('exist');
       cy.getByTestId('donation-page-static-text').contains('change a recurring donation').should('exist');
+    });
 
-      // ...if not, show different text.
-      const page = { ...livePageOne };
-      page.organization_is_nonprofit = false;
-      cy.intercept({ method: 'GET', pathname: getEndpoint(FULL_PAGE) }, { body: page, statusCode: 200 });
+    it('should render different text if the org is for-profit', () => {
+      const forProfitPage = { ...livePageOne };
+      forProfitPage.organization_is_nonprofit = false;
+      cy.intercept({ method: 'GET', pathname: getEndpoint(FULL_PAGE) }, { body: forProfitPage, statusCode: 200 }).as(
+        'getForProfitPage'
+      );
       cy.visit('/revenue-program-slug/page-slug-2');
+      cy.url().should('include', '/revenue-program-slug/page-slug-2');
+      cy.wait('@getForProfitPage');
       cy.getByTestId('donation-page-static-text').contains('are not tax deductible').should('exist');
       cy.getByTestId('donation-page-static-text').contains('change a recurring contribution').should('exist');
     });

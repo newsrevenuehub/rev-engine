@@ -309,8 +309,10 @@ describe('Donation page', () => {
       cy.intercept(
         { method: 'GET', pathname: getEndpoint(FULL_PAGE) },
         { fixture: 'pages/live-page-1', statusCode: 200 }
-      );
+      ).as('getPage');
       cy.visit('/revenue-program-slug/page-slug');
+      cy.url().should('include', '/revenue-program-slug/page-slug');
+      cy.wait('@getPage');
     });
 
     it('should render page footer with link to fundjournalism.org', () => {

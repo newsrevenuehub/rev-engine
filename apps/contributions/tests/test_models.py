@@ -124,7 +124,7 @@ class ContributionTest(TestCase):
 class ContributionMetadataTest(TestCase):
     supplied = {
         "email": "test@tester.com",
-        "phone": None,
+        "phone": "",
         "state": None,
         "amount": "1400",
         "source": "rev-engine",

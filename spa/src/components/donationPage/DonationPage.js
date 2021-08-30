@@ -3,6 +3,9 @@ import * as S from './DonationPage.styled';
 
 import { useLocation } from 'react-router-dom';
 
+// Hooks
+import useClearbit from 'hooks/useClearbit';
+
 // Util
 import * as getters from 'components/donationPage/pageGetters';
 import { frequencySort } from 'components/donationPage/pageContent/DFrequency';
@@ -42,6 +45,9 @@ function DonationPage({ page, live = false }) {
   const [overrideAmount, setOverrideAmount] = useState(false);
   const [errors, setErrors] = useState({});
   const [salesforceCampaignId, setSalesforceCampaignId] = useState();
+
+  // initialize clearbit.js
+  useClearbit(live);
 
   /**
    * handleIncomingAmountOrFrequency

@@ -310,9 +310,13 @@ describe('Donation page', () => {
         { method: 'GET', pathname: getEndpoint(FULL_PAGE) },
         { fixture: 'pages/live-page-1', statusCode: 200 }
       ).as('getPage');
+      cy.intercept('/api/v1/organizations/stripe_account_id/**', { fixture: 'stripe/org-account-id.json' }).as(
+        'getStripeAccountId'
+      );
       cy.visit('/revenue-program-slug/page-slug');
       cy.url().should('include', '/revenue-program-slug/page-slug');
       cy.wait('@getPage');
+      cy.wait('@getStripeAccountId');
     });
 
     it('should render page footer with link to fundjournalism.org', () => {

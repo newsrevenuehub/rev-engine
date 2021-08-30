@@ -31,7 +31,7 @@ const mapQSFreqToProperFreq = {
 
 const DonationPageContext = createContext({});
 
-function DonationPage({ page, live = false }) {
+function DonationPage({ page, stripeAccountId, live = false }) {
   const location = useLocation();
   const formRef = useRef();
   const [frequency, setFrequency] = useState(getInitialFrequency(page));
@@ -89,6 +89,7 @@ function DonationPage({ page, live = false }) {
     <DonationPageContext.Provider
       value={{
         page,
+        stripeAccountId,
         frequency,
         setFrequency,
         payFee,

@@ -280,13 +280,13 @@ describe('Donation page', () => {
     });
 
     it('should render organization contact email if present, nothing if not', () => {
-      const expectedString = `Contact us at ${livePageOne.organization_contact_email}`;
-      // If organization_contact_email is present, should show...
+      const expectedString = `Contact us at ${livePageOne.revenue_program.contact_email}`;
+      // If revenue_program.contact_email is present, should show...
       cy.getByTestId('donation-page-static-text').contains(expectedString).should('exist');
 
       // ...but if we remove it, shouldn't show
       const page = { ...livePageOne };
-      page.organization_contact_email = '';
+      page.revenue_program.contact_email = '';
       cy.intercept({ method: 'GET', pathname: getEndpoint(FULL_PAGE) }, { body: page, statusCode: 200 });
       cy.visit('/revenue-program-slug/page-slug-2');
       cy.getByTestId('donation-page-static-text').contains(expectedString).should('not.exist');

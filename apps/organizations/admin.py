@@ -126,6 +126,7 @@ class RevenueProgramAdmin(RevEngineBaseAdmin):  # pragma: no cover
                 "fields": (
                     "name",
                     "slug",
+                    "contact_email",
                     "organization",
                     "default_donation_page",
                     "google_analytics_v3_domain",

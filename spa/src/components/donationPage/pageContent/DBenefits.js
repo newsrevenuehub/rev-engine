@@ -32,7 +32,7 @@ function DBenefits({ live }) {
               <S.Level key={level.name + i} data-testid="level">
                 <S.BenefitLevelDetails>
                   <S.LevelName>{level.name}</S.LevelName>
-                  <S.LevelRange data-testid="level-range">{level.donation_range}</S.LevelRange>
+                  <S.LevelRange data-testid="level-range">{level.donation_range} per year</S.LevelRange>
                 </S.BenefitLevelDetails>
                 {i !== 0 && <S.LevelInclusion>Everything from {prevLevel.name}, plus</S.LevelInclusion>}
                 <S.LevelBenefitList data-testid="level-benefit-list">

@@ -329,3 +329,27 @@ _Frontend configuration is not enabled until we can get environment variables to
 ~~`REACT_APP_SALESFORCE_CAMPAIGN_ID_QUERYPARAM`~~
 
 ~~Defaults to 'campaign'. This is the string that we expect to see in urls containing Salesforce Campaign IDs. eg. `?campiagn=my-salesforce-campaign-id`~~
+
+
+## Git tags
+
+This project has cypress tests, which are great, but they can take a long time to run.
+
+If you are working on a branch that needs cypress tests run, you can set a tag that will tell github actions
+to enable the cypress tests workflow.
+
+On the branch you need to run tests, add a `run-cypress` tag
+
+```shell
+(revengine)$> git tag run-cypress
+```
+
+If the tag already exists, which it should if this is the original repo, then an error will tell you so.
+
+Now when you push a branch make sure you include the tag if you want cypress to run.
+
+```shell
+(revengine)$> git push --set-upstream origin <BRANCH_NAME> run-cypress
+```
+
+If you do not add this tag, cypress tests will be skipped.

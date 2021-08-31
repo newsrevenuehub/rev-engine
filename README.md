@@ -335,21 +335,11 @@ _Frontend configuration is not enabled until we can get environment variables to
 
 This project has cypress tests, which are great, but they can take a long time to run.
 
-If you are working on a branch that needs cypress tests run, you can set a tag that will tell github actions
-to enable the cypress tests workflow.
-
-On the branch you need to run tests, add a `run-cypress` tag
+If you are working on a branch that needs cypress tests run, you will need to name your branch with the
+following text in it somewhere: `skipcy`
 
 ```shell
-(revengine)$> git tag run-cypress
+(revengine)$> git checkout -b NRH-2837438--new-component-with-tests-runcy
 ```
 
-If the tag already exists, which it should if this is the original repo, then an error will tell you so.
-
-Now when you push a branch make sure you include the tag if you want cypress to run.
-
-```shell
-(revengine)$> git push --set-upstream origin <BRANCH_NAME> run-cypress
-```
-
-If you do not add this tag, cypress tests will be skipped.
+Any branch that does not have the text `runcy` present will skip the cypress testing.

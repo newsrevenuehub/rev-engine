@@ -37,25 +37,13 @@ class MediaImage(IndexedTimeStampedModel):
     def __str__(self):
         return self.image.name
 
-    def clean_storage_url(self, thumb=False):
-        """clean_storage_url
-        Google storage returns an api url, which has an expiration. We don't care about that and since the images are
-        public remove the params.
-        :param thumb: If thumb is true return the thumb url
-        :return: str: URL for the image without params.
-        """
-        url = self.image.storage.url(name=self.image.name).split("?")[0]
-        if thumb:
-            url = self.thumbnail.storage.url(name=self.thumbnail.name).split("?")[0]
-        return url
-
     def get_as_dict(self, image_key="DImage"):
         return {
             "uuid": str(self.spa_key),
             "type": str(image_key),
             "content": {
-                "url": self.clean_storage_url(),
-                "thumbnail": self.clean_storage_url(thumb=True),
+                "url": self.image.storage.url(name=self.image.name),
+                "thumbnail": self.thumbnail.storage.url(name=self.thumbnail.name),
             },
         }
 

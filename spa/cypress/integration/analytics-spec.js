@@ -3,7 +3,7 @@ import cloneDeep from 'lodash.clonedeep';
 import { CONTRIBUTOR_ENTRY, CONTRIBUTOR_VERIFY, CONTRIBUTOR_DASHBOARD, LOGIN } from 'routes';
 
 import livePageFixture from '../fixtures/pages/live-page-1.json';
-import { FULL_PAGE, ORG_STRIPE_ACCOUNT_ID } from 'ajax/endpoints';
+import { FULL_PAGE, ORG_STRIPE_ACCOUNT_ID, VERIFY_TOKEN } from 'ajax/endpoints';
 import { getEndpoint } from '../support/util';
 import { HUB_GA_V3_ID } from 'constants/analyticsConstants';
 
@@ -20,15 +20,31 @@ describe('HubTrackedPage component', () => {
     cy.intercept(getEndpoint(ORG_STRIPE_ACCOUNT_ID));
   });
   it('should add a Google Analytics V3 tracker for the Hub', () => {
-    const hubTrackedPages = [LOGIN, CONTRIBUTOR_ENTRY, CONTRIBUTOR_VERIFY, CONTRIBUTOR_DASHBOARD];
+    const hubTrackedPages = [LOGIN, CONTRIBUTOR_ENTRY];
     hubTrackedPages.forEach((page) => {
       cy.visit(page);
+      cy.url().should('include', page);
       cy.wait('@getGaV3Analytics');
       cy.wait('@collect').then((interception) => {
         const searchParams = new URLSearchParams(interception.request.url.split('?')[1]);
         expect(searchParams.get('t')).to.equal('pageview');
         expect(searchParams.get('tid')).to.equal(HUB_GA_V3_ID);
       });
+    });
+
+    // Then verify contributor Dashboard (via contributor verify)
+    cy.intercept({ method: 'POST', url: getEndpoint(VERIFY_TOKEN) }, { fixture: 'user/valid-contributor-1.json' }).as(
+      'login'
+    );
+    cy.interceptPaginatedDonations();
+    cy.visit(CONTRIBUTOR_VERIFY);
+    cy.url().should('include', CONTRIBUTOR_DASHBOARD);
+    cy.wait(['@login', '@getDonations']);
+    cy.wait('@getGaV3Analytics');
+    cy.wait('@collect').then((interception) => {
+      const searchParams = new URLSearchParams(interception.request.url.split('?')[1]);
+      expect(searchParams.get('t')).to.equal('pageview');
+      expect(searchParams.get('tid')).to.equal(HUB_GA_V3_ID);
     });
   });
 });
@@ -69,6 +85,7 @@ describe('OrgAndHubTrackedPage component on live donation page', () => {
       'getPageDetail'
     );
     cy.visit(LIVE_DONATION_PAGE_ROUTE);
+    cy.url().should('include', LIVE_DONATION_PAGE_ROUTE);
     cy.wait('@getPageDetail');
     cy.wait('@getStripe');
     cy.wait('@collectGaV3').then((interception) => {
@@ -83,6 +100,7 @@ describe('OrgAndHubTrackedPage component on live donation page', () => {
       'getPageDetail'
     );
     cy.visit(LIVE_DONATION_PAGE_ROUTE);
+    cy.url().should('include', LIVE_DONATION_PAGE_ROUTE);
     cy.wait(['@getPageDetail', '@getStripe']);
     cy.wait('@collectGaV3').then((interception) => {
       const searchParams = new URLSearchParams(interception.request.url.split('?')[1]);
@@ -104,6 +122,7 @@ describe('OrgAndHubTrackedPage component on live donation page', () => {
       'getPageDetail'
     );
     cy.visit(LIVE_DONATION_PAGE_ROUTE);
+    cy.url().should('include', LIVE_DONATION_PAGE_ROUTE);
     cy.wait(['@getPageDetail', '@getStripe', '@collectGaV3']);
     cy.wait('@collectGaV4').then((interception) => {
       const searchParams = new URLSearchParams(interception.request.url.split('?')[1]);

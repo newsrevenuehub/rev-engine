@@ -44,6 +44,8 @@ class RevenueProgramListInlineSerializer(serializers.ModelSerializer):
             "id",
             "name",
             "slug",
+            "twitter_handle",
+            "website_url",
         ]
 
 

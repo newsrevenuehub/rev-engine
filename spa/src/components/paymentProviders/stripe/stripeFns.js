@@ -1,5 +1,6 @@
 import axios from 'ajax/axios';
 import { STRIPE_PAYMENT } from 'ajax/endpoints';
+import { GENERIC_ERROR } from 'constants/textConstants';
 import calculateStripeFee from 'utilities/calculateStripeFee';
 
 const STRIPE_PAYMENT_TIMEOUT = 12 * 1000;
@@ -152,10 +153,10 @@ async function createPaymentIntent(formData) {
  */
 async function confirmCardPayment(stripe, clientSecret, payment_method, handleActions) {
   const { paymentIntent, error } = await stripe.confirmCardPayment(clientSecret, { payment_method }, { handleActions });
-  if (error) throw new StripeError(error);
+  if (error) throw new StripeError(error?.message || GENERIC_ERROR);
   if (paymentIntent.status === 'requires_action') {
     const { error } = await stripe.confirmCardPayment(clientSecret);
-    if (error) throw new StripeError(error);
+    if (error) throw new StripeError(error?.message || GENERIC_ERROR);
   }
 }
 
@@ -178,7 +179,7 @@ async function tryRecurringPayment(stripe, data, { card, paymentRequest }) {
 
   if (!paymentMethod) {
     const { paymentMethod: pm, error } = await createPaymentMethod(stripe, card, data);
-    if (error) throw new StripeError(error);
+    if (error) throw new StripeError(error?.message || GENERIC_ERROR);
     paymentMethod = pm.id;
   }
 

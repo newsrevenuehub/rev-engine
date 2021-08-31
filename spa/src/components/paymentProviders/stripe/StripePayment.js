@@ -16,7 +16,7 @@ function StripePayment({ offerPayFees, stripeAccountId }) {
   const [stripe, setStripe] = useState();
 
   useEffect(() => {
-    if (stripeAccountId) setStripe(loadStripe(HUB_STRIPE_PUBLISHABLE_KEY, { stripeAccountId }));
+    if (stripeAccountId) setStripe(loadStripe(HUB_STRIPE_PUBLISHABLE_KEY, { stripeAccount: stripeAccountId }));
   }, [stripeAccountId]);
 
   return (

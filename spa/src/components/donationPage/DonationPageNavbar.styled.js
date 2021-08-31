@@ -1,6 +1,6 @@
 import styled from 'styled-components';
 
-export const SHeaderBar = styled.header`
+export const DonationPageNavbar = styled.header`
   width: 100%;
   background: ${(props) => (props.bgImg ? `url(${props.bgImg})` : props.theme.colors.white)};
   background-size: cover;
@@ -12,7 +12,7 @@ export const SHeaderBar = styled.header`
   box-shadow: ${(props) => props.theme.shadows[0]};
 `;
 
-export const SHeaderLogo = styled.img`
+export const DonationPageNavbarLogo = styled.img`
   max-height: 50px;
   width: auto;
 `;

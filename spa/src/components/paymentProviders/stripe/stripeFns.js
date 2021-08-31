@@ -106,6 +106,7 @@ export function serializeData(formRef, state) {
     state.frequency,
     state.orgIsNonProfit
   ).toString();
+  serializedData['donor_selected_amount'] = state.amount;
   serializedData['revenue_program_slug'] = state.revProgramSlug;
   serializedData['donation_page_slug'] = state.pageSlug;
   serializedData['sf_campaign_id'] = state.salesforceCampaignId;

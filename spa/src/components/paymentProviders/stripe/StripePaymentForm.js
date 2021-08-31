@@ -41,7 +41,6 @@ function StripePaymentForm({ loading, setLoading, offerPayFees }) {
   const [disabled, setDisabled] = useState(true);
   const [paymentRequest, setPaymentRequest] = useState(null);
   const [forceManualCard, setForceManualCard] = useState(false);
-  const [emailForDonation, setEmailForDonation] = useState('');
 
   const theme = useTheme();
   const history = useHistory();
@@ -75,9 +74,9 @@ function StripePaymentForm({ loading, setLoading, offerPayFees }) {
 
   /**
    * extractEmailFromFormRef
-   * Provided a ref to the form element containing the email address, will set that email
-   * address to state as emailForDonation
+   * Provided a ref to the form element containing the email address, will return that email address
    * @param {Element} form - a ref to the Form element containing the email addreess
+   * @returns {string} email address
    */
   const extractEmailFromFormRef = (form) => {
     const emailInput = form.elements['email'];
@@ -106,8 +105,8 @@ function StripePaymentForm({ loading, setLoading, offerPayFees }) {
 
   const handlePaymentFailure = (error, pr) => {
     if (error instanceof StripeError) {
-      setErrors({ stripe: `Payment failed ${error.message}` });
-      alert.error(`Payment failed ${error.message}`);
+      setErrors({ stripe: `Payment failed: ${error}` });
+      alert.error(`Payment failed: ${error}`);
     } else {
       const internalErrors = error?.response?.data;
       if (internalErrors) {

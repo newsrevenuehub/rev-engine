@@ -67,7 +67,6 @@ jobs:
 
   cypress-run:
     runs-on: ubuntu-latest
-    if: contains(github.ref, "runcy")
     steps:
       - name: Extract branch name
         shell: bash

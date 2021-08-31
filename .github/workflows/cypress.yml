@@ -1,14 +1,13 @@
 name: tests
 
 on:
-  pull_request:
   push:
-    branches: [main, develop]
+    branches:
+      - '*runcy*'
 
 jobs:
   cypress-run:
     runs-on: ubuntu-latest
-    if: ${{ contains(github.ref, "runcy") }}
     steps:
       - name: Checkout
         uses: actions/checkout@v2

@@ -1,6 +1,7 @@
 import { STRIPE_PAYMENT, FULL_PAGE, ORG_STRIPE_ACCOUNT_ID } from 'ajax/endpoints';
 import { getEndpoint, getPageElementByType } from '../support/util';
 import livePageOne from '../fixtures/pages/live-page-1.json';
+import orgAccountIdFixture from '../fixtures/stripe/org-account-id.json';
 
 import * as freqUtils from 'utilities/parseFrequency';
 import calculateStripeFee from 'utilities/calculateStripeFee';
@@ -144,7 +145,7 @@ describe('Donation page', () => {
       cy.wait('@stripePayment').its('request.body').should('have.property', 'interval', 'one_time');
     });
 
-    it('should send a request with the expecxted amount', () => {
+    it('should send a request with the expected amount', () => {
       cy.intercept(
         { method: 'GET', pathname: getEndpoint(FULL_PAGE) },
         { fixture: 'pages/live-page-1', statusCode: 200 }
@@ -160,6 +161,27 @@ describe('Donation page', () => {
       cy.setUpDonation(interval, amount);
       cy.makeDonation();
       cy.wait('@stripePayment').its('request.body').should('have.property', 'amount', amount);
+    });
+
+    it('should send a confirmation request to Stripe with the organization stripe account id in the header', () => {
+      /**
+       * This tests against regressions that might cause the orgs stripe account id to not appear in the header of confirmCardPayment
+       */
+      cy.intercept(
+        { method: 'GET', pathname: getEndpoint(FULL_PAGE) },
+        { fixture: 'pages/live-page-1', statusCode: 200 }
+      ).as('getPage');
+
+      cy.visit('/rev-program-slug');
+      cy.url().should('include', 'rev-program-slug');
+      cy.wait('@getPage');
+
+      const interval = 'One time';
+      const amount = '120';
+      cy.interceptDonation();
+      cy.setUpDonation(interval, amount);
+      cy.makeDonation();
+      cy.wait('@confirmCardPayment').its('request.body').should('include', orgAccountIdFixture.stripe_account_id);
     });
   });
 

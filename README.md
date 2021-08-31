@@ -333,13 +333,14 @@ _Frontend configuration is not enabled until we can get environment variables to
 
 ## Git tags
 
-This project has cypress tests, which are great, but they can take a long time to run.
+This project has cypress tests, which are great, but they can take a long time to run. Sometimes they 
+are not necessary. 
 
-If you are working on a branch that needs cypress tests run, you will need to name your branch with the
+So, if you are working on a branch that does not need cypress tests, you will need to name your branch with the
 following text in it somewhere: `skipcy`
 
 ```shell
-(revengine)$> git checkout -b NRH-2837438--new-component-with-tests-runcy
+(revengine)$> git checkout -b NRH-2837438--new-component-with-tests-skipcy
 ```
 
-Any branch that does not have the text `runcy` present will skip the cypress testing.
+Any branch that does not have the text `skipcy` present will run cypress tests this includes `develop` and `main`.

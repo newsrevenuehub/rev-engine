@@ -66,6 +66,7 @@ jobs:
           DATABASE_URL: postgres://postgres:postgres@127.0.0.1:5432/postgres
 
   cypress-run:
+    if: startsWith(github.event.ref, 'refs/tags/run-cypress')
     runs-on: ubuntu-latest
     steps:
       - name: Checkout

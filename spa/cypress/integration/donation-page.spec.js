@@ -1,4 +1,4 @@
-import { STRIPE_PAYMENT, FULL_PAGE } from 'ajax/endpoints';
+import { STRIPE_PAYMENT, FULL_PAGE, ORG_STRIPE_ACCOUNT_ID } from 'ajax/endpoints';
 import { getEndpoint, getPageElementByType } from '../support/util';
 import livePageOne from '../fixtures/pages/live-page-1.json';
 
@@ -144,7 +144,7 @@ describe('Donation page', () => {
       cy.wait('@stripePayment').its('request.body').should('have.property', 'interval', 'one_time');
     });
 
-    it('should send a request with the expected amount', () => {
+    it('should send a request with the expecxted amount', () => {
       cy.intercept(
         { method: 'GET', pathname: getEndpoint(FULL_PAGE) },
         { fixture: 'pages/live-page-1', statusCode: 200 }
@@ -293,13 +293,64 @@ describe('Donation page', () => {
     });
   });
 
+  describe('404 behavior', () => {
+    it('should show 404 if request live page returns non-200', () => {
+      cy.intercept(
+        { method: 'GET', pathname: getEndpoint(FULL_PAGE) },
+        { fixture: 'pages/live-page-1', statusCode: 404 }
+      ).as('getLivePage');
+      cy.visit('/revenue-program-slug/page-slug');
+      cy.url().should('include', '/revenue-program-slug/page-slug');
+      cy.wait('@getLivePage');
+      cy.getByTestId('live-page-404').should('exist');
+    });
+
+    it('should show 404 if request stripe account id returns non-200', () => {
+      cy.intercept(
+        { method: 'GET', pathname: getEndpoint(FULL_PAGE) },
+        { fixture: 'pages/live-page-1', statusCode: 200 }
+      );
+      cy.intercept(
+        { method: 'GET', pathname: getEndpoint(ORG_STRIPE_ACCOUNT_ID) },
+        { body: { stripe_account_id: 'abc123' }, statusCode: 500 }
+      ).as('getStripeAccountId');
+      cy.visit('/revenue-program-slug/page-slug');
+      cy.url().should('include', '/revenue-program-slug/page-slug');
+      cy.wait('@getStripeAccountId');
+      cy.getByTestId('live-page-404').should('exist');
+    });
+
+    it('should not show 404 otherwise', () => {
+      cy.intercept(
+        { method: 'GET', pathname: getEndpoint(FULL_PAGE) },
+        { fixture: 'pages/live-page-1', statusCode: 200 }
+      ).as('getLivePage');
+      cy.intercept(
+        { method: 'GET', pathname: getEndpoint(ORG_STRIPE_ACCOUNT_ID) },
+        { body: { stripe_account_id: 'abc123' }, statusCode: 200 }
+      ).as('getStripeAccountId');
+      cy.visit('/revenue-program-slug/page-slug');
+      cy.url().should('include', '/revenue-program-slug/page-slug');
+      cy.wait('@getLivePage');
+      cy.wait('@getStripeAccountId');
+      cy.getByTestId('live-page-404').should('not.exist');
+      cy.getByTestId('donation-page').should('exist');
+    });
+  });
+
   describe('Footer-like content', () => {
     before(() => {
       cy.intercept(
         { method: 'GET', pathname: getEndpoint(FULL_PAGE) },
         { fixture: 'pages/live-page-1', statusCode: 200 }
+      ).as('getPage');
+      cy.intercept('/api/v1/organizations/stripe_account_id/**', { fixture: 'stripe/org-account-id.json' }).as(
+        'getStripeAccountId'
       );
       cy.visit('/revenue-program-slug/page-slug');
+      cy.url().should('include', '/revenue-program-slug/page-slug');
+      cy.wait('@getPage');
+      cy.wait('@getStripeAccountId');
     });
 
     it('should render page footer with link to fundjournalism.org', () => {

@@ -13,6 +13,7 @@ import { usePage } from '../DonationPage';
 import StripePayment from 'components/paymentProviders/stripe/StripePayment';
 
 function DPayment({ element, live, ...props }) {
+  const { stripeAccountId } = usePage();
   /*
     element.content is an object, whose keys are providers.
     For instance, element.content.stripe is an array of supported payment types:
@@ -27,10 +28,7 @@ function DPayment({ element, live, ...props }) {
       {live ? (
         <S.DPayment>
           {element?.content && element.content['stripe'] && (
-            <StripePayment
-              offerPayFees={element.content?.offerPayFees}
-              payFeesDefault={element.content?.payFeesDefault}
-            />
+            <StripePayment offerPayFees={element.content?.offerPayFees} stripeAccountId={stripeAccountId} />
           )}
         </S.DPayment>
       ) : (

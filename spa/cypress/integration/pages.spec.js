@@ -7,8 +7,10 @@ const expectedRevPrograms = new Set(pagesList.map((p) => p.revenue_program.name)
 describe('Donation pages list', () => {
   before(() => {
     cy.login('user/stripe-verified.json');
-    cy.intercept(getEndpoint(LIST_PAGES), { fixture: 'pages/list-pages-1' });
+    cy.intercept(getEndpoint(LIST_PAGES), { fixture: 'pages/list-pages-1' }).as('listPages');
     cy.visit('/dashboard/pages/');
+    cy.url().should('include', '/dashboard/pages/');
+    cy.wait('@listPages');
   });
 
   it('should render the pages list component', () => {

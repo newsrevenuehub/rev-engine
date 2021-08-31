@@ -134,6 +134,15 @@ class RevenueProgramAdmin(RevEngineBaseAdmin):  # pragma: no cover
                 )
             },
         ),
+        (
+            "Social media",
+            {
+                "fields": (
+                    "twitter_handle",
+                    "website_url",
+                ),
+            },
+        ),
     )
 
     list_display = ["name", "slug"]

@@ -5,7 +5,7 @@ import * as S from './DFrequency.styled';
 import { usePage } from '../DonationPage';
 
 // Util
-import { getDefaultAmount } from 'components/donationPage/pageContent/DAmount';
+import { getDefaultAmountForFreq } from 'components/donationPage/pageContent/DAmount';
 
 // Children
 import DElement, { DynamicElementPropTypes } from 'components/donationPage/pageContent/DElement';
@@ -15,8 +15,8 @@ function DFrequency({ element, ...props }) {
   const { page, frequency, setFrequency, setAmount, errors, setOverrideAmount } = usePage();
 
   const handleFrequencySelected = (_, { value }) => {
-    setAmount(getDefaultAmount(value, page));
     setOverrideAmount(false);
+    setAmount(getDefaultAmountForFreq(value, page));
     setFrequency(value);
   };
 

@@ -66,9 +66,13 @@ jobs:
           DATABASE_URL: postgres://postgres:postgres@127.0.0.1:5432/postgres
 
   cypress-run:
-    if: startsWith(github.event.ref, 'refs/tags/run-cypress')
     runs-on: ubuntu-latest
+    if: contains(github.ref, "runcy")
     steps:
+      - name: Extract branch name
+        shell: bash
+        run: echo "##[set-output name=branch;]$(echo ${GITHUB_REF#refs/heads/})"
+        id: extract_branch
       - name: Checkout
         uses: actions/checkout@v2
       - name: Cypress tests

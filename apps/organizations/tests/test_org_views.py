@@ -47,17 +47,6 @@ class OrganizationViewSetTest(AbstractTestCase):
         self.client.delete(detail_url)
         self.assertEqual(Organization.objects.count(), self.org_count)
 
-    def test_org_list_uses_list_serializer(self):
-        self.login()
-        response = self.client.get(self.list_url)
-        self.assertNotIn("org_addr1", response.json())
-
-    def test_org_detail_uses_detail_serializer(self):
-        self.login()
-        org = Organization.objects.all().first()
-        response = self.client.get(f"/api/v1/organizations/{org.pk}/")
-        self.assertIn("org_addr1", response.json())
-
 
 class OrganziationStripeAccountIdActionTest(APITestCase):
     def setUp(self):

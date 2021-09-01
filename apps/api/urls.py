@@ -18,6 +18,7 @@ urlpatterns = [
     path("v1/", include(organizations_urlpatterns)),
     path("v1/", include(pages_urlpatterns)),
     path("v1/", include(contributions_urlpatterns)),
+    path("v1/healthcheck", include("health_check.urls")),
     path("v1/public/", include(public_urlpatterns)),
     path("v1/token/", TokenObtainPairCookieView.as_view(), name="token-obtain-pair"),
     path("v1/contrib-email/", RequestContributorTokenEmailView.as_view(), name="contributor-token-request"),

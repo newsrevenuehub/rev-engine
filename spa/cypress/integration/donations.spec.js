@@ -1,6 +1,7 @@
 import isEqual from 'lodash.isequal';
 
 import { NO_VALUE } from 'constants/textConstants';
+import { DONATIONS_SLUG } from 'routes';
 
 // Data
 import donationsData from '../fixtures/donations/18-results.json';
@@ -16,7 +17,7 @@ describe('Donations list', () => {
     beforeEach(() => {
       cy.login('user/stripe-verified.json');
       cy.interceptPaginatedDonations();
-      cy.visit('/dashboard/donations/');
+      cy.visit(DONATIONS_SLUG);
     });
     it('should display the first page of donations by default on page load', () => {
       cy.wait('@getDonations').then((intercept) => {
@@ -246,8 +247,9 @@ describe('Donations list', () => {
       });
     });
 
-    it('should have working page controls', () => {
+    it.only('should have working page controls', () => {
       cy.wait('@getDonations');
+      cy.url().should('include', DONATIONS_SLUG);
       // initial state when 2 pages
       cy.getByTestId('previous-page').should('be.disabled');
       cy.getByTestId('next-page').should('not.be.disabled');
@@ -263,7 +265,7 @@ describe('Donations list', () => {
     beforeEach(() => {
       cy.login('user/stripe-verified.json');
       cy.interceptPaginatedDonations();
-      cy.visit('/dashboard/donations/');
+      cy.visit(DONATIONS_SLUG);
     });
 
     it('should render expected filters', () => {

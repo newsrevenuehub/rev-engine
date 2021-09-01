@@ -21,10 +21,10 @@ function calculateStripeFee(amount, interval, isNonProfit) {
 
   const amountInt = parseFloat(amount);
   if (isNaN(amountInt)) return null;
-  // const isRecurring = interval !== 'one_time';
+  const isRecurring = interval !== 'one_time';
   let RATE = isNonProfit ? STRIPE_NP_RATE : STRIPE_FP_RATE;
 
-  // if (isRecurring) RATE += SUBSCRIPTION_UPCHARGE;
+  if (isRecurring) RATE += SUBSCRIPTION_UPCHARGE;
 
   const amountWithFee = roundTo2DecimalPlaces((amountInt + STRIPE_FIXED) / (1 - RATE));
   return roundTo2DecimalPlaces(amountWithFee - amountInt);

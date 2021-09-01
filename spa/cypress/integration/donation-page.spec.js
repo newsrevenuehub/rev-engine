@@ -3,6 +3,9 @@ import { getEndpoint, getPageElementByType } from '../support/util';
 import livePageOne from '../fixtures/pages/live-page-1.json';
 import orgAccountIdFixture from '../fixtures/stripe/org-account-id.json';
 
+// Constants
+import { CLEARBIT_SCRIPT_SRC } from '../../src/hooks/useClearbit';
+
 import * as freqUtils from 'utilities/parseFrequency';
 import calculateStripeFee from 'utilities/calculateStripeFee';
 
@@ -183,6 +186,24 @@ describe('Donation page', () => {
       cy.makeDonation();
       cy.wait('@confirmCardPayment').its('request.body').should('include', orgAccountIdFixture.stripe_account_id);
     });
+
+    it('should send a request with a Google reCAPTCHA token in request body', () => {
+      cy.intercept(
+        { method: 'GET', pathname: getEndpoint(FULL_PAGE) },
+        { fixture: 'pages/live-page-1', statusCode: 200 }
+      ).as('getPage');
+
+      cy.visit('/rev-program-slug');
+      cy.url().should('include', 'rev-program-slug');
+      cy.wait('@getPage');
+
+      const interval = 'One time';
+      const amount = '120';
+      cy.interceptDonation();
+      cy.setUpDonation(interval, amount);
+      cy.makeDonation();
+      cy.wait('@stripePayment').its('request.body').should('have.property', 'captcha_token');
+    });
   });
 
   describe('Donation page side effects', () => {
@@ -357,6 +378,10 @@ describe('Donation page', () => {
       cy.wait('@getStripeAccountId');
       cy.getByTestId('live-page-404').should('not.exist');
       cy.getByTestId('donation-page').should('exist');
+    });
+
+    it('should contain clearbit.js script in body', () => {
+      cy.get('head').find(`script[src*="${CLEARBIT_SCRIPT_SRC}"]`).should('have.length', 1);
     });
   });
 

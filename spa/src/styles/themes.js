@@ -45,7 +45,7 @@ export const revEngineTheme = {
 
   maxWidths: {
     sm: '300px',
-    md: '700px',
+    md: '890px',
     lg: '1000px',
     xl: '1300px'
   }

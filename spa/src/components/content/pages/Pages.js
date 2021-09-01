@@ -1,12 +1,12 @@
 import { useEffect, useState, useCallback } from 'react';
-import * as S from './PagesList.styled';
+import * as S from './Pages.styled';
 
 // Router
 import { useHistory } from 'react-router-dom';
 import { EDITOR_ROUTE } from 'routes';
 
 // Deps
-import { faChevronDown } from '@fortawesome/free-solid-svg-icons';
+import { faChevronDown, faPlus } from '@fortawesome/free-solid-svg-icons';
 import { AnimatePresence } from 'framer-motion';
 import { useAlert } from 'react-alert';
 
@@ -18,9 +18,10 @@ import useRequest from 'hooks/useRequest';
 import { LIST_PAGES } from 'ajax/endpoints';
 
 // Children
-import PageCard from 'components/pages/PageCard';
+import CircleButton from 'elements/buttons/CircleButton';
+import PageCard from 'components/content/pages/PageCard';
 
-function PagesList() {
+function Pages({ setShowAddPageModal }) {
   const alert = useAlert();
   const history = useHistory();
   const requestGetPages = useRequest();
@@ -69,7 +70,7 @@ function PagesList() {
   };
 
   return (
-    <S.PagesList data-testid="pages-list" layout>
+    <S.Pages data-testid="pages-list" layout>
       <S.RevProgramList layout>
         {pagesByRevenueProgram.map((rp, i) => {
           const isOpen = !closedAccordions.includes(i);
@@ -86,22 +87,27 @@ function PagesList() {
               </S.AccordionHeading>
               <AnimatePresence>
                 {isOpen && (
-                  <S.InnerPagesList layout {...S.accordionAnimation} data-testid={`${rp.name}-pages-list`}>
+                  <S.PagesList layout {...S.accordionAnimation} data-testid={`${rp.name}-pages-list`}>
                     {rp.pages.map((page) => (
                       <PageCard key={page.id} page={page} onClick={handleEditPage} />
                     ))}
-                  </S.InnerPagesList>
+                  </S.PagesList>
                 )}
               </AnimatePresence>
             </S.RevenueProgramSection>
           );
         })}
       </S.RevProgramList>
-    </S.PagesList>
+      <S.ButtonSection>
+        <S.PlusButton onClick={() => setShowAddPageModal(true)} data-testid="page-create-button">
+          <CircleButton icon={faPlus} />
+        </S.PlusButton>
+      </S.ButtonSection>
+    </S.Pages>
   );
 }
 
-export default PagesList;
+export default Pages;
 
 function revProgramKeysSort(a, b) {
   const nameA = a.name.toLowerCase();

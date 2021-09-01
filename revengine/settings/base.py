@@ -54,6 +54,12 @@ INSTALLED_APPS = [
     "anymail",
     "django_json_widget",
     "safedelete",
+    "health_check",
+    "health_check.db",
+    "health_check.cache",
+    "health_check.contrib.migrations",
+    "health_check.contrib.celery",
+    "health_check.contrib.redis",
 ]
 
 

@@ -32,6 +32,9 @@ SERVER_EMAIL = DEFAULT_FROM_EMAIL
 GS_BUCKET_NAME = os.getenv("GS_BUCKET_NAME", "rev-engine-media")
 DEFAULT_FILE_STORAGE = "storages.backends.gcloud.GoogleCloudStorage"
 GS_PROJECT_ID = os.getenv("GS_PROJECT_ID", "revenue-engine")
+# https://django-storages.readthedocs.io/en/latest/backends/gcloud.html#settings
+GS_QUERYSTRING_AUTH = False
+GS_DEFAULT_ACL = None
 # Media files are stored in a 'media' directory
 GS_MEDIA_LOCATION = "media"
 

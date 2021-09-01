@@ -12,7 +12,6 @@ export const StylesEditor = styled.div`
 
 export const StylesForm = styled.div`
   flex: 1;
-  overflow-y: scroll;
   padding: 3rem 3rem 0 3rem;
 `;
 

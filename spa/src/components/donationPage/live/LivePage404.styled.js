@@ -27,4 +27,4 @@ export const FourOhFour = styled.h2`
   }
 `;
 
-export const Description = styled.p``;
+export const Description = styled.div``;

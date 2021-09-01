@@ -58,26 +58,11 @@ class DonationPageFullDetailSerializer(serializers.ModelSerializer):
     header_logo_thumbnail = HyperlinkedSorlImageField("300", source="header_logo", read_only=True)
 
     organization_is_nonprofit = serializers.SerializerMethodField()
-    organization_address = serializers.SerializerMethodField()
-    organization_name = serializers.SerializerMethodField()
 
     benefit_levels = serializers.SerializerMethodField()
 
     def get_organization_is_nonprofit(self, obj):
         return obj.organization.non_profit
-
-    def get_organization_address(self, obj):
-        """
-        Turn address fields in to a string that is a useable address.
-        If there's not org_addr1, it's not a useable address, so we just bail
-        """
-        org = obj.organization
-        org_addr2_str = " " + org.org_addr2 if org.org_addr2 else ""
-        if org.org_addr1:
-            return f"{org.org_addr1}{org_addr2_str}, {org.org_city}, {org.org_state} {org.org_zip}"
-
-    def get_organization_name(self, obj):
-        return obj.organization.name
 
     def get_benefit_levels(self, obj):
         if obj.revenue_program:

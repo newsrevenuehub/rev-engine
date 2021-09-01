@@ -10,20 +10,25 @@ import { faEnvelope } from '@fortawesome/free-solid-svg-icons';
 import { useLocation } from 'react-router-dom';
 import { useEffect } from 'react';
 
+// Analytics
+import { useAnalyticsContext } from 'components/analytics/AnalyticsContext';
+import { HUB_GA_V3_ID } from 'constants/analyticsConstants';
+
 // Children
 import DonationPageNavbar from 'components/donationPage/DonationPageNavbar';
 import DonationPageFooter from 'components/donationPage/DonationPageFooter';
 
-function GenericThankYou({ setOrgAnalytics }) {
+function GenericThankYou() {
   const { state: routedState } = useLocation();
-
+  const { setAnalyticsConfig } = useAnalyticsContext();
   const orgGaV3Domain = routedState?.page?.revenue_program?.google_analytics_v3_domain;
   const orgGaV3Id = routedState?.page?.revenue_program?.google_analytics_v3_id;
   const orgGaV4Id = routedState?.page?.revenue_program?.google_analytics_v4_id;
+  const orgFbPixelId = routedState?.page?.revenue_program?.facebook_pixel_id;
 
   useEffect(() => {
-    setOrgAnalytics(orgGaV3Id, orgGaV3Domain, orgGaV4Id);
-  }, [orgGaV3Domain, orgGaV3Id, orgGaV4Id]);
+    setAnalyticsConfig({ hubGaV3Id: HUB_GA_V3_ID, orgGaV3Id, orgGaV3Domain, orgGaV4Id, orgFbPixelId });
+  }, [orgGaV3Domain, orgGaV3Id, orgGaV4Id, orgFbPixelId]);
 
   const handleRedirect = () => {
     window.open(routedState?.page?.post_thank_you_redirect, '_self');

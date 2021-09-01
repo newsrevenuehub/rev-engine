@@ -64,7 +64,9 @@
     "start": "react-scripts start",
     "build": "react-scripts build",
     "cypress:open": "cypress open",
+    "cypress:open:component": "cypress open-ct",
     "cypress:run": "cypress run",
+    "cypress:run:component": "cypress run-ct",
     "eject": "react-scripts eject",
     "heroku-postbuild": "react-scripts build"
   },
@@ -113,8 +115,9 @@
     ]
   },
   "devDependencies": {
+    "@cypress/react": "^5.9.4",
+    "@cypress/webpack-dev-server": "^1.4.0",
     "cypress": "^8.2.0",
-    "eslint-plugin-chai-friendly": "^0.7.1",
-    "lodash.clonedeep": "^4.5.0"
+    "eslint-plugin-chai-friendly": "^0.7.1"
   }
 }

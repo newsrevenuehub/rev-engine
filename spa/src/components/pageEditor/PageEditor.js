@@ -36,6 +36,9 @@ import { faEye, faEdit, faSave, faTrash } from '@fortawesome/free-solid-svg-icon
 import { useGlobalContext } from 'components/MainLayout';
 import validatePage from './validatePage';
 
+//
+import { useConfigureAnalytics } from 'components/analytics';
+
 // Children
 import * as dynamicElements from 'components/donationPage/pageContent/dynamicElements';
 import CircleButton from 'elements/buttons/CircleButton';
@@ -94,6 +97,8 @@ function PageEditor() {
   const requestPageDeletion = useRequest();
 
   const history = useHistory();
+
+  useConfigureAnalytics();
 
   useEffect(() => {
     setLoading(true);

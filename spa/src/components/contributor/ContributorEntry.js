@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import * as S from './ContributorEntry.styled';
 
 import { GENERIC_ERROR } from 'constants/textConstants';
@@ -11,6 +11,9 @@ import { GET_MAGIC_LINK } from 'ajax/endpoints';
 // Children
 import Input from 'elements/inputs/Input';
 
+// Analytics
+import { useConfigureAnalytics } from 'components/analytics';
+
 function ContributorEntry() {
   const alert = useAlert();
   const [email, setEmail] = useState('');
@@ -18,6 +21,8 @@ function ContributorEntry() {
   const [errors, setErrors] = useState({});
 
   const [showConfirmation, setShowConfirmation] = useState(false);
+
+  useConfigureAnalytics();
 
   const handleSendMagicLink = async (e) => {
     e.preventDefault();

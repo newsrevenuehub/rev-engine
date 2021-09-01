@@ -72,7 +72,6 @@ Cypress.Commands.add('makeDonation', () => {
   cy.getWithinIframe('[name="cardnumber"]').type('4242424242424242');
   cy.getWithinIframe('[name="exp-date"]').type('1232');
   cy.getWithinIframe('[name="cvc"]').type('123');
-  cy.getWithinIframe('[name="postal"]').type('12345');
   cy.getByTestId('donation-submit').click();
 });
 

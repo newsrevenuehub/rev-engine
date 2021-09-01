@@ -49,9 +49,6 @@ function Dashboard() {
               <Route path={CONTENT_SLUG}>
                 <Content />
               </Route>
-              <Route path={MAIN_CONTENT_SLUG}>
-                <Overview />
-              </Route>
             </Switch>
           )}
           {getShouldRequireConnect() && <ProviderConnect />}

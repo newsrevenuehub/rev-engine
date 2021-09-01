@@ -71,7 +71,7 @@ function MainLayout() {
 
                 {/* Nothing lives at "/" -- redirect to dashboard  */}
                 <Route exact path="/">
-                  <Redirect to={ROUTES.MAIN_CONTENT_SLUG} />
+                  <Redirect to={ROUTES.CONTENT_SLUG} />
                 </Route>
 
                 {/* Dashboard */}

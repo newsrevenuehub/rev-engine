@@ -183,6 +183,24 @@ describe('Donation page', () => {
       cy.makeDonation();
       cy.wait('@confirmCardPayment').its('request.body').should('include', orgAccountIdFixture.stripe_account_id);
     });
+
+    it('should send a request with a Google reCAPTCHA token in request body', () => {
+      cy.intercept(
+        { method: 'GET', pathname: getEndpoint(FULL_PAGE) },
+        { fixture: 'pages/live-page-1', statusCode: 200 }
+      ).as('getPage');
+
+      cy.visit('/rev-program-slug');
+      cy.url().should('include', 'rev-program-slug');
+      cy.wait('@getPage');
+
+      const interval = 'One time';
+      const amount = '120';
+      cy.interceptDonation();
+      cy.setUpDonation(interval, amount);
+      cy.makeDonation();
+      cy.wait('@stripePayment').its('request.body').should('have.property', 'captcha_token');
+    });
   });
 
   describe('Donation page side effects', () => {

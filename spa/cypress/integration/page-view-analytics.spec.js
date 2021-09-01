@@ -7,7 +7,7 @@ import {
   LOGIN,
   MAIN_CONTENT_SLUG,
   ORGANIZATION_SLUG,
-  PAGES_SLUG
+  CONTENT_SLUG
 } from 'routes';
 
 import { VERIFY_TOKEN } from 'ajax/endpoints';
@@ -32,12 +32,12 @@ const HUB_TRACKED_PAGES_REQUIRING_HUB_LOGIN = [
   MAIN_CONTENT_SLUG,
   ORGANIZATION_SLUG,
   DONATIONS_SLUG,
-  PAGES_SLUG,
+  CONTENT_SLUG,
   EDITOR_ROUTE_REV,
   EDITOR_ROUTE_PAGE
 ];
 
-const HUB_TRACKED_PAGES_REQURING_CONTRIBUTOR_LOGIN = [CONTRIBUTOR_DASHBOARD];
+// const HUB_TRACKED_PAGES_REQURING_CONTRIBUTOR_LOGIN = [CONTRIBUTOR_DASHBOARD];
 
 // NB: The THANK_YOU_SLUG page is also tracked by both hub and org
 // but at the moment there is not a convenient way to test thank you page

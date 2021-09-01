@@ -1,10 +1,10 @@
-from django.contrib.admin import ModelAdmin
+from django.contrib import admin
 from django.db import models
 
 from django_json_widget.widgets import JSONEditorWidget
 
 
-class RevEngineBaseAdmin(ModelAdmin):
+class RevEngineBaseAdmin(admin.ModelAdmin):
     formfield_overrides = {
         models.JSONField: {"widget": JSONEditorWidget},
     }

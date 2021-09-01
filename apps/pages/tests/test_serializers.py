@@ -72,44 +72,6 @@ class DonationPageFullDetailSerializerTest(APITestCase):
         data = serializer.data
         self.assertEqual(data["organization_is_nonprofit"], False)
 
-    def test_get_organization_address_with_org_addr1(self):
-        self.organization.org_addr1 = "PO Box 321"
-        self.organization.org_addr2 = "123 Fake Street"
-        self.organization.org_city = "San Francisco"
-        self.organization.org_state = "CA"
-        self.organization.org_zip = "54321"
-        self.organization.save()
-        self.organization.refresh_from_db()
-        serializer = self.serializer(self.page)
-        data = serializer.data
-        self.assertIn("PO Box 321", data["organization_address"])
-        self.assertIn("123 Fake Street", data["organization_address"])
-        self.assertIn("San Francisco", data["organization_address"])
-        self.assertIn("CA", data["organization_address"])
-        self.assertIn("54321", data["organization_address"])
-
-    def test_get_organization_address_without_org_addr1(self):
-        self.organization.org_addr1 = ""
-        self.organization.save()
-        self.organization.refresh_from_db()
-        serializer = self.serializer(self.page)
-        data = serializer.data
-        self.assertIsNone(data["organization_address"])
-
-    def test_get_organization_contact_email(self):
-        contact_email = "testing@test.com"
-        self.organization.contact_email = contact_email
-        self.organization.save()
-        self.organization.refresh_from_db()
-        serializer = self.serializer(self.page)
-        data = serializer.data
-        self.assertEqual(data["organization_contact_email"], contact_email)
-
-    def test_get_organization_name(self):
-        serializer = self.serializer(self.page)
-        data = serializer.data
-        self.assertEqual(data["organization_name"], self.organization.name)
-
 
 class StyleListSerializerTest(APITestCase):
     def setUp(self):

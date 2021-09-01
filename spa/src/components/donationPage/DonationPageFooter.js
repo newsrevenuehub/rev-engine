@@ -8,7 +8,7 @@ function DonationPageFooter({ page }) {
           What is fundjournalism.org?
         </a>
         <p>
-          &copy; {new Date().getFullYear()} {page?.organization_name}
+          &copy; {new Date().getFullYear()} {page?.revenue_program.name}
         </p>
       </S.Content>
     </S.DonationPageFooter>

@@ -20,16 +20,19 @@ function DonationPageStaticText({ page, amount, payFee, frequency }) {
 
   return (
     <S.DonationPageStaticText data-testid="donation-page-static-text">
-      {page.organization_contact_email && (
+      {page.revenue_program.contact_email && (
         <p>
           Have questions or want to change a recurring {page.organization_is_nonprofit ? 'donation' : 'contribution'}?
-          Contact us at <a href={`mailto:${page.organization_contact_email}`}>{page.organization_contact_email}</a>.
+          Contact us at{' '}
+          <a href={`mailto:${page.revenue_program.contact_email}`}>{page.revenue_program.contact_email}</a>.
         </p>
       )}
-      {page.organization_address && <p>Prefer to mail a check? Our mailing address is {page.organization_address}.</p>}
+      {page.revenue_program.address && (
+        <p>Prefer to mail a check? Our mailing address is {page.revenue_program.address}.</p>
+      )}
 
       <p>
-        Contributions or gifts to {page.organization_name} {page.organization_is_nonprofit ? 'are' : 'are not'} tax
+        Contributions or gifts to {page.revenue_program.name} {page.organization_is_nonprofit ? 'are' : 'are not'} tax
         deductible.
       </p>
       <p>By proceeding with this transaction, you agree to our terms & conditions.{getFreqDependentText()}</p>

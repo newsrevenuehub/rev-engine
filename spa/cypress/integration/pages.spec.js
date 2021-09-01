@@ -5,7 +5,7 @@ import pagesList from '../fixtures/pages/list-pages-1.json';
 const expectedRevPrograms = new Set(pagesList.map((p) => p.revenue_program.name));
 
 describe('Donation pages list', () => {
-  before(() => {
+  beforeEach(() => {
     cy.login('user/stripe-verified.json');
     cy.intercept(getEndpoint(LIST_PAGES), { fixture: 'pages/list-pages-1' }).as('listPages');
     cy.visit('/dashboard/pages/');

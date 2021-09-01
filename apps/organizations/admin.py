@@ -128,9 +128,17 @@ class RevenueProgramAdmin(RevEngineBaseAdmin):  # pragma: no cover
                     "slug",
                     "organization",
                     "default_donation_page",
+                )
+            },
+        ),
+        (
+            "Analytics",
+            {
+                "fields": (
                     "google_analytics_v3_domain",
                     "google_analytics_v3_id",
                     "google_analytics_v4_id",
+                    "facebook_pixel_id",
                 )
             },
         ),

@@ -5,12 +5,13 @@ import { getTotalAmount } from 'components/paymentProviders/stripe/stripeFns';
 
 function DonationPageStaticText({ page, amount, payFee, frequency }) {
   const getFreqDependentText = () => {
-    if (frequency !== 'one_time') return null;
+    console.log('hey that freq: ', frequency);
+    if (frequency === 'one_time') return null;
     let freqDependentText = ' ';
     const totalAmount = getTotalAmount(amount, payFee, frequency, page.organization_is_nonprofit);
     freqDependentText += `Additionally, by proceeding with this transaction, you're authorizing today's payment, along with all future recurring payments of $${totalAmount}, to be processed on or adjacent to `;
     const monthlyText = `the ${format(new Date(), 'do')} of the month until you cancel.`;
-    const yearlyText = `${format(new Date(), 'L/dd')} yearly until you cancel.`;
+    const yearlyText = `${format(new Date(), 'L/d')} yearly until you cancel.`;
 
     if (frequency === 'month') freqDependentText += monthlyText;
     if (frequency === 'year') freqDependentText += yearlyText;

@@ -1,5 +1,5 @@
 import { LIST_PAGES, REVENUE_PROGRAMS } from 'ajax/endpoints';
-import { PAGES_SLUG } from 'routes';
+import { CONTENT_SLUG } from 'routes';
 import { getEndpoint } from '../support/util';
 
 describe('Donation page list', () => {
@@ -15,8 +15,8 @@ describe('Donation page list', () => {
       { fixture: 'org/revenue-programs-1', statusCode: 200 }
     );
 
-    cy.visit(PAGES_SLUG);
-    cy.url().should('include', PAGES_SLUG);
+    cy.visit(CONTENT_SLUG);
+    cy.url().should('include', CONTENT_SLUG);
     cy.wait('@listPages');
   });
 

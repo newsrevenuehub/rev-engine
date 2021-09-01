@@ -1,3 +1,5 @@
+from django.utils import timezone
+
 from rest_framework.test import APITestCase
 
 from apps.organizations.models import BenefitLevelBenefit, RevenueProgramBenefitLevel
@@ -7,8 +9,8 @@ from apps.organizations.tests.factories import (
     OrganizationFactory,
     RevenueProgramFactory,
 )
-from apps.pages.serializers import DonationPageFullDetailSerializer
-from apps.pages.tests.factories import DonationPageFactory
+from apps.pages.serializers import DonationPageFullDetailSerializer, StyleListSerializer
+from apps.pages.tests.factories import DonationPageFactory, StyleFactory
 
 
 class DonationPageFullDetailSerializerTest(APITestCase):
@@ -107,3 +109,21 @@ class DonationPageFullDetailSerializerTest(APITestCase):
         serializer = self.serializer(self.page)
         data = serializer.data
         self.assertEqual(data["organization_name"], self.organization.name)
+
+
+class StyleListSerializerTest(APITestCase):
+    def setUp(self):
+        self.style_1 = StyleFactory()
+        self.style_2 = StyleFactory()
+        self.donation_page_live = DonationPageFactory(published_date=timezone.now(), styles=self.style_1)
+        self.donation_page_unlive = DonationPageFactory(styles=self.style_2)
+        self.serializer = StyleListSerializer
+
+    def test_get_used_live(self):
+        live_style_serializer = self.serializer(self.style_1)
+        nonlive_style_serializer = self.serializer(self.style_2)
+
+        self.assertIn("used_live", live_style_serializer.data)
+        self.assertTrue(live_style_serializer.data["used_live"])
+        self.assertIn("used_live", nonlive_style_serializer.data)
+        self.assertFalse(nonlive_style_serializer.data["used_live"])

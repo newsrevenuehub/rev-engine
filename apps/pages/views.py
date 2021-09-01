@@ -108,5 +108,5 @@ class TemplateViewSet(OrganizationLimitedListView, viewsets.ModelViewSet):
 class StyleViewSet(OrganizationLimitedListView, viewsets.ModelViewSet):
     model = Style
     permission_classes = [IsAuthenticated, UserBelongsToOrg]
-    serializer_class = serializers.StyleSerializer
+    serializer_class = serializers.StyleListSerializer
     pagination_class = None

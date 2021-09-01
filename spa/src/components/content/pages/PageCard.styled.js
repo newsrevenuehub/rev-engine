@@ -1,7 +1,7 @@
 import styled from 'styled-components';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 
-export const PageCard = styled.div`
+export const ItemCard = styled.div`
   position: relative;
   display: flex;
   flex-direction: column;
@@ -10,6 +10,7 @@ export const PageCard = styled.div`
   padding: 2rem 1rem;
   cursor: pointer;
   border-radius: ${(props) => props.theme.radii[0]};
+  width: 200px;
 
   transition: all 0.1s ease-in-out;
   &:hover {
@@ -31,7 +32,7 @@ export const LiveIcon = styled(FontAwesomeIcon)`
   font-size: 16px;
 `;
 
-export const PageThumbnailWrapper = styled.div`
+export const PreviewWrapper = styled.div`
   height: 150px;
   width: 150px;
   border-radius: 100%;
@@ -55,7 +56,7 @@ export const NoImage = styled.div`
   align-items: center;
 `;
 
-export const PageData = styled.div`
+export const ItemData = styled.div`
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -66,7 +67,7 @@ export const Label = styled.span`
   color: ${(props) => props.theme.colors.grey[2]};
 `;
 
-export const PageName = styled.p`
+export const ItemName = styled.p`
   font-weight: bold;
   color: ${(props) => props.theme.colors.grey[3]};
 `;

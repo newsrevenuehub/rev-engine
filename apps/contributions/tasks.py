@@ -54,7 +54,7 @@ def auto_accept_flagged_contributions():
 
     logger.info(f"Successfully captured {successful_captures} previously-held payments.")
     if failed_captures:
-        logger.warning(f"Failed to capture {failed_captures} previously-held payments")
+        logger.warning(f"Failed to capture {failed_captures} previously-held payments. Check logs for ids.")
 
     ping_healthchecks("auto_accept_flagged_contributions", settings.HEALTHCHECK_URL_AUTO_ACCEPT_FLAGGED_PAYMENTS)
     return successful_captures, failed_captures

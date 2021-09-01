@@ -32,6 +32,7 @@ const mapQSFreqToProperFreq = {
 const DonationPageContext = createContext({});
 
 function DonationPage({ page, live = false }) {
+  console.log('page', page);
   const location = useLocation();
   const formRef = useRef();
   const [frequency, setFrequency] = useState(getInitialFrequency(page));

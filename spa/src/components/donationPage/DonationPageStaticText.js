@@ -13,7 +13,9 @@ function DonationPageStaticText({ page, amount, payFee, frequency }) {
           <a href={`mailto:${page.revenue_program.contact_email}`}>{page.revenue_program.contact_email}</a>.
         </p>
       )}
-      {page.organization_address && <p>Prefer to mail a check? Our mailing address is {page.organization_address}.</p>}
+      {page.revenue_program.address && (
+        <p>Prefer to mail a check? Our mailing address is {page.revenue_program.address}.</p>
+      )}
 
       <p>
         Contributions or gifts to {page.revenue_program.name} {page.organization_is_nonprofit ? 'are' : 'are not'} tax

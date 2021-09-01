@@ -4,8 +4,6 @@
   "heading": "Test Heading 1",
   "published_date": "2020-09-17T00:00:00",
   "organization_is_nonprofit": true,
-  "organization_address": "123 Fake Street, Fakeville, FK 54321",
-  "organization_name": "My Fake Org",
   "elements": [
     {"type": "DRichText", "uuid": "testRichText1", "content": "<p><strong>Your support keeps us going! Become a member today.</strong></p> <p>Because of your generosity, we have the courage, freedom, and independence to dedicate our entire newsroom to telling stories that spark action, improve lives and protect our democracy. Thank you for your support that keeps us going.</p>"}, 
     {"type": "DFrequency", "uuid": "testFreq1", "content": [{"value": "one_time", "displayName": "One time"}, {"value": "month", "displayName": "Monthly"}, {"value": "year", "displayName": "Yearly"}]},
@@ -43,6 +41,7 @@
     "modified": "2021-07-20T16:39:40.559524Z",
     "name": "MyRevProgram",
     "contact_email": "myrevprogram@mycompany.com",
+    "address": "123 Fake Street, Durham, NC 27701",
     "organization": 14,
     "default_donation_page": null,
     "google_analytics_v3_id": "UA-2222222",

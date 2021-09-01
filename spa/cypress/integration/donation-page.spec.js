@@ -277,8 +277,10 @@ describe('Donation page', () => {
         .should('have.attr', 'href', 'https://fundjournalism.org/');
     });
 
-    it('should render correct copyright info, including org name', () => {
-      cy.getByTestId('donation-page-footer').contains(new Date().getFullYear() + ' ' + livePageOne.organization_name);
+    it('should render correct copyright info, including revenue program name', () => {
+      cy.getByTestId('donation-page-footer').contains(
+        new Date().getFullYear() + ' ' + livePageOne.revenue_program.name
+      );
     });
 
     it('should render organization contact email if present, nothing if not', () => {
@@ -294,14 +296,14 @@ describe('Donation page', () => {
       cy.getByTestId('donation-page-static-text').contains(expectedString).should('not.exist');
     });
 
-    it('should render organization address if present, nothing if not', () => {
-      const expectedString = `Prefer to mail a check? Our mailing address is ${livePageOne.organization_address}.`;
-      // If organization_address is present, should show...
+    it('should render revenue program address if present, nothing if not', () => {
+      const expectedString = `Prefer to mail a check? Our mailing address is ${livePageOne.revenue_program.address}.`;
+      // If revenue_program.address is present, should show...
       cy.getByTestId('donation-page-static-text').contains(expectedString).should('exist');
 
       // ...but if we remove it, shouldn't show
       const page = { ...livePageOne };
-      page.organization_address = '';
+      page.revenue_program.address = '';
       cy.intercept({ method: 'GET', pathname: getEndpoint(FULL_PAGE) }, { body: page, statusCode: 200 });
       cy.visit('/revenue-program-slug/page-slug');
       cy.getByTestId('donation-page-static-text').contains(expectedString).should('not.exist');

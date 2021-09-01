@@ -64,33 +64,3 @@ jobs:
         env:
           DJANGO_SETTINGS_MODULE: revengine.settings.dev
           DATABASE_URL: postgres://postgres:postgres@127.0.0.1:5432/postgres
-
-  cypress-run:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v2
-      - name: Cypress integration tests
-        uses: cypress-io/github-action@v2
-        with:
-          working-directory: spa
-          build: npx cypress info
-          start: npm run start
-          wait-on: http://localhost:3000
-          browser: chrome
-      - name: Cypress unit tests
-        uses: cypress-io/github-action@v2
-        with:
-          working-directory: spa
-          install: false
-          command: npm run cypress:run:component
-      - uses: actions/upload-artifact@v2
-        if: failure()
-        with:
-          name: cypress-screenshots
-          path: spa/cypress/screenshots
-      - uses: actions/upload-artifact@v2
-        if: failure()
-        with:
-          name: cypress-videos
-          path: spa/cypress/videos

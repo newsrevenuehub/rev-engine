@@ -329,3 +329,18 @@ _Frontend configuration is not enabled until we can get environment variables to
 ~~`REACT_APP_SALESFORCE_CAMPAIGN_ID_QUERYPARAM`~~
 
 ~~Defaults to 'campaign'. This is the string that we expect to see in urls containing Salesforce Campaign IDs. eg. `?campiagn=my-salesforce-campaign-id`~~
+
+
+## Git tags
+
+This project has cypress tests, which are great, but they can take a long time to run. Sometimes they 
+are not necessary. 
+
+So, if you are working on a branch that does not need cypress tests, you will need to name your branch with the
+following text in it somewhere: `skipcy`
+
+```shell
+(revengine)$> git checkout -b NRH-2837438--new-component-with-tests-skipcy
+```
+
+Any branch that does not have the text `skipcy` present will run cypress tests this includes `develop` and `main`.

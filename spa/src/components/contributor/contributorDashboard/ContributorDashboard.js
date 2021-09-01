@@ -1,4 +1,4 @@
-import { useState, useMemo, createContext, useContext, useCallback } from 'react';
+import { useState, useMemo, createContext, useContext, useCallback, useEffect } from 'react';
 import * as S from './ContributorDashboard.styled';
 import { faCheck, faTimes, faFlag, faSlash, faQuestion, faCogs, faBan } from '@fortawesome/free-solid-svg-icons';
 
@@ -13,6 +13,9 @@ import { useAlert } from 'react-alert';
 // Context
 import { useGlobalContext } from 'components/MainLayout';
 import { NO_VALUE } from 'constants/textConstants';
+
+// Analytics
+import { useConfigureAnalytics } from 'components/analytics';
 
 // Utils
 import toTitleCase from 'utilities/toTitleCase';
@@ -46,6 +49,9 @@ function ContributorDashboard() {
   const [selectedContribution, setSelectedContribution] = useState();
   const [refetch, setRefetch] = useState(false);
   const [pageIndex, setPageIndex] = useState(0);
+
+  // Analytics setup
+  useConfigureAnalytics();
 
   const handlePageChange = (pageIndexChange) => {
     setPageIndex(pageIndex + pageIndexChange);

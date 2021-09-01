@@ -16,11 +16,16 @@ import { LS_CONTRIBUTOR, LS_CSRF_TOKEN } from 'constants/authConstants';
 // Children
 import GlobalLoading from 'elements/GlobalLoading';
 
+// Analytics
+import { useConfigureAnalytics } from 'components/analytics';
+
 function ContributorVerify() {
   const history = useHistory();
   const location = useLocation();
 
   const [couldNotVerify, setCouldNotVerify] = useState(false);
+
+  useConfigureAnalytics();
 
   const handleVerifySuccess = useCallback(
     (response) => {

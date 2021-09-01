@@ -14,7 +14,7 @@ export const PATCH_PAGE = 'pages/';
 export const DELETE_PAGE = 'pages/';
 
 // Styles
-export const PAGE_STYLES = 'styles/';
+export const LIST_STYLES = 'styles/';
 
 // Revenue Programs
 export const REVENUE_PROGRAMS = 'revenue-programs/';

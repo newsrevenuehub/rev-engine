@@ -1,15 +1,16 @@
 import { getEndpoint } from '../support/util';
 import { LIST_PAGES } from 'ajax/endpoints';
 import pagesList from '../fixtures/pages/list-pages-1.json';
+import { CONTENT_SLUG } from 'routes';
 
 const expectedRevPrograms = new Set(pagesList.map((p) => p.revenue_program.name));
 
 describe('Donation pages list', () => {
-  before(() => {
+  beforeEach(() => {
     cy.login('user/stripe-verified.json');
     cy.intercept(getEndpoint(LIST_PAGES), { fixture: 'pages/list-pages-1' }).as('listPages');
-    cy.visit('/dashboard/pages/');
-    cy.url().should('include', '/dashboard/pages/');
+    cy.visit(CONTENT_SLUG);
+    cy.url().should('include', CONTENT_SLUG);
     cy.wait('@listPages');
   });
 

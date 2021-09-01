@@ -1,6 +1,9 @@
 import { useRef, useState, useEffect, createContext, useContext } from 'react';
 import * as S from './DonationPage.styled';
 
+// Hooks
+import useClearbit from 'hooks/useClearbit';
+
 // Util
 import * as getters from 'components/donationPage/pageGetters';
 import { getDefaultAmountForFreq } from 'components/donationPage/pageContent/DAmount';
@@ -36,6 +39,9 @@ function DonationPage({ page, stripeAccountId, live = false }) {
   const [overrideAmount, setOverrideAmount] = useState(false);
   const [errors, setErrors] = useState({});
   const [salesforceCampaignId, setSalesforceCampaignId] = useState();
+
+  // initialize clearbit.js
+  useClearbit(live);
 
   useEffect(() => {
     setFrequency(getInitialFrequency(page, freqQs, amountQs));

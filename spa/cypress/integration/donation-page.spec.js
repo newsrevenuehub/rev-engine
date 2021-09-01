@@ -3,6 +3,9 @@ import { getEndpoint, getPageElementByType } from '../support/util';
 import livePageOne from '../fixtures/pages/live-page-1.json';
 import orgAccountIdFixture from '../fixtures/stripe/org-account-id.json';
 
+// Constants
+import { CLEARBIT_SCRIPT_SRC } from '../../src/hooks/useClearbit';
+
 import * as freqUtils from 'utilities/parseFrequency';
 import calculateStripeFee from 'utilities/calculateStripeFee';
 
@@ -375,6 +378,10 @@ describe('Donation page', () => {
       cy.wait('@getStripeAccountId');
       cy.getByTestId('live-page-404').should('not.exist');
       cy.getByTestId('donation-page').should('exist');
+    });
+
+    it('should contain clearbit.js script in body', () => {
+      cy.get('head').find(`script[src*="${CLEARBIT_SCRIPT_SRC}"]`).should('have.length', 1);
     });
   });
 

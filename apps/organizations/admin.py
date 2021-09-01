@@ -134,10 +134,27 @@ class RevenueProgramAdmin(RevEngineBaseAdmin, ReverseModelAdmin):  # pragma: no 
                     "contact_email",
                     "organization",
                     "default_donation_page",
+                )
+            },
+        ),
+        (
+            "Analytics",
+            {
+                "fields": (
                     "google_analytics_v3_domain",
                     "google_analytics_v3_id",
                     "google_analytics_v4_id",
+                    "facebook_pixel_id",
                 )
+            },
+        ),
+        (
+            "Social media",
+            {
+                "fields": (
+                    "twitter_handle",
+                    "website_url",
+                ),
             },
         ),
     )

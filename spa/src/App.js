@@ -6,8 +6,10 @@ import { ThemeProvider } from 'styled-components';
 import { revEngineTheme } from 'styles/themes';
 import 'semantic-ui-css/semantic.min.css';
 import SvgIcons from 'assets/icons/SvgIcons';
+import hubFavicon from 'assets/icons/favicon.ico';
 
 // Deps
+import Helmet from 'react-helmet';
 import { Provider as AlertProvider } from 'react-alert';
 import Alert, { alertOptions } from 'elements/alert/Alert';
 
@@ -20,6 +22,9 @@ function App() {
   return (
     <ThemeProvider theme={revEngineTheme}>
       <AlertProvider template={Alert} {...alertOptions}>
+        <Helmet>
+          <link rel="icon" type="image/png" href={hubFavicon} sizes="64x64 32x32 24x24 16x16" />
+        </Helmet>
         <AdminGlobalStyles />
         <SvgIcons />
         <S.App>

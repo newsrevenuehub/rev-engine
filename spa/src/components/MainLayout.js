@@ -13,8 +13,9 @@ import GlobalConfirmationModal from 'elements/modal/GlobalConfirmationModal';
 import GlobalLoading from 'elements/GlobalLoading';
 import ReauthModal from 'components/authentication/ReauthModal';
 
-import HubTrackedPage from 'components/analytics/HubTrackedPage';
-import OrgAndHubTrackedPage from 'components/analytics/OrgAndHubTrackedPage';
+// Analytics
+import TrackPageView from './analytics/TrackPageView';
+import { AnalyticsContextWrapper } from './analytics/AnalyticsContext';
 
 // Split bundles
 const Login = React.lazy(() => import('components/authentication/Login'));
@@ -60,13 +61,13 @@ function MainLayout() {
 
   return (
     <GlobalContext.Provider value={{ getUserConfirmation, getReauth }}>
-      <>
+      <AnalyticsContextWrapper>
         <S.MainLayout>
           <BrowserRouter>
             <React.Suspense fallback={<GlobalLoading />}>
               <Switch>
                 {/* Login URL */}
-                <Route exact path={ROUTES.LOGIN} render={() => <HubTrackedPage component={Login} />} />
+                <Route exact path={ROUTES.LOGIN} render={() => <TrackPageView component={Login} />} />
 
                 {/* Nothing lives at "/" -- redirect to dashboard  */}
                 <Route exact path="/">
@@ -74,47 +75,44 @@ function MainLayout() {
                 </Route>
 
                 {/* Dashboard */}
-                <ProtectedRoute path={ROUTES.MAIN_CONTENT_SLUG} render={() => <HubTrackedPage component={Main} />} />
+                <ProtectedRoute path={ROUTES.MAIN_CONTENT_SLUG} render={() => <TrackPageView component={Main} />} />
                 <ProtectedRoute
                   path={ROUTES.EDITOR_ROUTE_PAGE}
-                  render={() => <HubTrackedPage component={PageEditor} />}
+                  render={() => <TrackPageView component={PageEditor} />}
                 />
                 <ProtectedRoute
                   path={ROUTES.EDITOR_ROUTE_REV}
-                  render={() => <HubTrackedPage component={PageEditor} />}
+                  render={() => <TrackPageView component={PageEditor} />}
                 />
 
                 {/* Contributor Dashboard */}
                 <ProtectedRoute
                   path={ROUTES.CONTRIBUTOR_DASHBOARD}
-                  render={() => <HubTrackedPage component={ContributorDashboard} />}
+                  render={() => <TrackPageView component={ContributorDashboard} />}
                   contributor
                 />
 
                 {/* Contributor Entry */}
-                <Route path={ROUTES.CONTRIBUTOR_ENTRY} render={() => <HubTrackedPage component={ContributorEntry} />} />
+                <Route path={ROUTES.CONTRIBUTOR_ENTRY} render={() => <TrackPageView component={ContributorEntry} />} />
                 <Route
                   path={ROUTES.CONTRIBUTOR_VERIFY}
-                  render={() => <HubTrackedPage component={ContributorVerify} />}
+                  render={() => <TrackPageView component={ContributorVerify} />}
                 />
 
                 {/* Live Donation Pages are caught here */}
                 <Route
                   path={ROUTES.DONATION_PAGE_SLUG + ROUTES.THANK_YOU_SLUG}
-                  render={() => <OrgAndHubTrackedPage component={GenericThankYou} />}
+                  render={() => <TrackPageView component={GenericThankYou} />}
                 />
                 <Route
                   path={ROUTES.REV_PROGRAM_SLUG + ROUTES.THANK_YOU_SLUG}
-                  render={() => <OrgAndHubTrackedPage component={GenericThankYou} />}
+                  render={() => <TrackPageView component={GenericThankYou} />}
                 />
                 <Route
                   path={ROUTES.DONATION_PAGE_SLUG}
-                  render={() => <OrgAndHubTrackedPage component={DonationPageRouter} />}
+                  render={() => <TrackPageView component={DonationPageRouter} />}
                 />
-                <Route
-                  path={ROUTES.REV_PROGRAM_SLUG}
-                  render={() => <OrgAndHubTrackedPage component={DonationPageRouter} />}
-                />
+                <Route path={ROUTES.REV_PROGRAM_SLUG} render={() => <TrackPageView component={DonationPageRouter} />} />
               </Switch>
             </React.Suspense>
           </BrowserRouter>
@@ -125,7 +123,7 @@ function MainLayout() {
           closeModal={() => setConfirmationState({ ...confirmationState, isOpen: false })}
         />
         <ReauthModal isOpen={reauthModalOpen} callbacks={reauthCallbacks.current} closeModal={closeReauthModal} />
-      </>
+      </AnalyticsContextWrapper>
     </GlobalContext.Provider>
   );
 }

@@ -1,95 +1,67 @@
-import { useRef, useState, useEffect, useCallback, createContext, useContext } from 'react';
+import { useRef, useState, useEffect, createContext, useContext } from 'react';
 import * as S from './DonationPage.styled';
 
-import { useLocation } from 'react-router-dom';
+// Hooks
+import useClearbit from 'hooks/useClearbit';
 
 // Util
 import * as getters from 'components/donationPage/pageGetters';
+import { getDefaultAmountForFreq } from 'components/donationPage/pageContent/DAmount';
 import { frequencySort } from 'components/donationPage/pageContent/DFrequency';
-import { getDefaultAmount } from 'components/donationPage/pageContent/DAmount';
+
+// Hooks
+import useQueryString from 'hooks/useQueryString';
 
 // Children
 import DonationPageSidebar from 'components/donationPage/DonationPageSidebar';
-
-// Deps
-import queryString from 'query-string';
 
 // Children
 import DonationPageStaticText from 'components/donationPage/DonationPageStaticText';
 import DonationPageFooter from 'components/donationPage/DonationPageFooter';
 
 const SALESFORCE_CAMPAIGN_ID_QUERYPARAM = process.env.REACT_APP_SALESFORCE_CAMPAIGN_ID_QUERYPARAM || 'campaign';
-const AMOUNT_QUERYPARAM = process.env.REACT_APP_AMOUNT_QUERYPARAM || 'amount';
 const FREQUENCY_QUERYPARAM = process.env.REACT_APP_FREQUENCY_QUERYPARAM || 'frequency';
-
-// Keys are the strings expected as querys params, values are our version.
-const mapQSFreqToProperFreq = {
-  once: 'one_time',
-  monthly: 'month',
-  yearly: 'year'
-};
+const AMOUNT_QUERYPARAM = process.env.REACT_APP_AMOUNT_QUERYPARAM || 'amount';
 
 const DonationPageContext = createContext({});
 
-function DonationPage({ page, live = false }) {
-  console.log('page', page);
-  const location = useLocation();
+function DonationPage({ page, stripeAccountId, live = false }) {
   const formRef = useRef();
-  const [frequency, setFrequency] = useState(getInitialFrequency(page));
-  const [payFee, setPayFee] = useState(getInitialPayFees(page));
-  const [amount, setAmount] = useState(getDefaultAmount(frequency, page));
+
+  const salesForceQS = useQueryString(SALESFORCE_CAMPAIGN_ID_QUERYPARAM);
+  const freqQs = useQueryString(FREQUENCY_QUERYPARAM);
+  const amountQs = useQueryString(AMOUNT_QUERYPARAM);
+  const [frequency, setFrequency] = useState();
+  const [amount, setAmount] = useState();
+  const [payFee, setPayFee] = useState(() => getInitialPayFees(page));
 
   // overrideAmount causes only the custom amount to show (initially)
   const [overrideAmount, setOverrideAmount] = useState(false);
   const [errors, setErrors] = useState({});
   const [salesforceCampaignId, setSalesforceCampaignId] = useState();
 
-  /**
-   * handleIncomingAmountOrFrequency
-   * @param {string} queryString - a query string parsed by the query-string library
-   * Set frequency or amount based on incoming querystrings.
-   */
-  const handleIncomingAmountOrFrequency = useCallback(
-    (qs) => {
-      const qsAmount = qs[AMOUNT_QUERYPARAM];
-      const qsFrequency = qs[FREQUENCY_QUERYPARAM];
-
-      const mappedFrequency = mapQSFreqToProperFreq[qsFrequency];
-
-      const amountElement = page?.elements?.find((el) => el.type === 'DAmount');
-      const amounts = amountElement?.content?.options;
-
-      // Check if the incoming frequency is a valid choice
-      const frequencyElement = page?.elements?.find((el) => el.type === 'DFrequency');
-      const frequencies = frequencyElement?.content?.map((f) => f.value);
-      const freqIsAvailable = frequencies.includes(mappedFrequency);
-
-      // If the provided frequency is available, or there is no qsFrequency, use one_time
-      if (qsAmount && (!freqIsAvailable || !qsFrequency)) setFrequency('one_time');
-      else if (qsFrequency && freqIsAvailable) setFrequency(mappedFrequency);
-
-      const freqAmounts = amounts && amounts[mappedFrequency || 'one_time'];
-      const amountIndex = freqAmounts?.findIndex((num) => parseFloat(num) === parseFloat(qsAmount));
-
-      if (qsAmount) setAmount(qsAmount);
-      if (qsAmount && (amountIndex === undefined || amountIndex === -1)) {
-        // It doesn't exist in one_time, so set override.
-        setOverrideAmount(true);
-      }
-    },
-    [page.elements]
-  );
+  // initialize clearbit.js
+  useClearbit(live);
 
   useEffect(() => {
-    const qs = queryString.parse(location.search);
-    if (qs[SALESFORCE_CAMPAIGN_ID_QUERYPARAM]) setSalesforceCampaignId(qs[SALESFORCE_CAMPAIGN_ID_QUERYPARAM]);
-    if (qs[AMOUNT_QUERYPARAM] || qs[FREQUENCY_QUERYPARAM]) handleIncomingAmountOrFrequency(qs);
-  }, [location.search, setSalesforceCampaignId, handleIncomingAmountOrFrequency]);
+    setFrequency(getInitialFrequency(page, freqQs, amountQs));
+  }, [freqQs, amountQs, page]);
+
+  useEffect(() => {
+    const freq = getInitialFrequency(page, freqQs, amountQs);
+    setAmount(getInitialAmount(freq, page, amountQs, setOverrideAmount));
+  }, [amountQs, setOverrideAmount, freqQs, page]);
+
+  // Set sf_campaign_id from queryparams
+  useEffect(() => {
+    if (salesForceQS) setSalesforceCampaignId(salesForceQS);
+  }, [salesForceQS, setSalesforceCampaignId]);
 
   return (
     <DonationPageContext.Provider
       value={{
         page,
+        stripeAccountId,
         frequency,
         setFrequency,
         payFee,
@@ -137,7 +109,27 @@ export const usePage = () => useContext(DonationPageContext);
 
 export default DonationPage;
 
-function getInitialFrequency(page) {
+// Keys are the strings expected as querys params, values are our version.
+const mapQSFreqToProperFreq = {
+  once: 'one_time',
+  monthly: 'month',
+  yearly: 'year'
+};
+
+/**
+ * getInitialFrequency
+ * @param {object} page - page object
+ * @param {string} freqQs - frequency query string
+ * @param {string} amountQs - amount query string
+ */
+function getInitialFrequency(page, freqQs, amountQs) {
+  // First, respond to qs if present.
+  // If there's a freqQs, it's simple, just set frequency to that qs
+  const freqFromQs = mapQSFreqToProperFreq[freqQs];
+  if (freqFromQs) return freqFromQs;
+  // If there's an amountQs, but no freqQs, we want to show that amount as "one-time"
+  if (!freqFromQs && amountQs) return 'one_time';
+  // Otherwise, if there's no freq or amount QS, set default normally, which means...
   const frequencyElement = page?.elements?.find((el) => el.type === 'DFrequency');
   if (frequencyElement?.content) {
     // If there's a default frequency, use it...
@@ -151,6 +143,29 @@ function getInitialFrequency(page) {
   }
   // Or, if for some reason non of these conditions are met, just return one_time
   return 'one_time';
+}
+
+/**
+ * getInitialAmount
+ * @param {string} frequency - The frequency to get the default for
+ * @param {object} page - page object
+ * @param {string} amountQs - amount query string
+ */
+function getInitialAmount(frequency, page, amountQs, setOverrideAmount) {
+  // If there's an amountQs, set it.
+  if (amountQs) {
+    const amountElement = page?.elements?.find((el) => el.type === 'DAmount');
+    const amounts = (amountElement?.content?.options && amountElement.content.options[frequency]) || [];
+    const amountIsPreset = amounts.map((a) => parseFloat(a)).includes(parseFloat(amountQs));
+    // If amountQs isn't in this freqs amounts, set override
+    if (!amountIsPreset) {
+      setOverrideAmount(true);
+    }
+    return parseFloat(amountQs);
+  } else {
+    const defaultAmountForFreq = getDefaultAmountForFreq(frequency, page);
+    return defaultAmountForFreq;
+  }
 }
 
 function getInitialPayFees(page) {

@@ -47,7 +47,7 @@ class RevenueProgramListInlineSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = RevenueProgram
-        fields = ["id", "name", "slug", "contact_email", "address"]
+        fields = ["id", "name", "slug", "twitter_handle", "website_url", "contact_email", "address"]
 
 
 class RevenueProgramSerializer(serializers.ModelSerializer):

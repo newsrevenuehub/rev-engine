@@ -21,10 +21,10 @@ import { useParams } from 'react-router-dom';
 
 // AJAX
 import useRequest from 'hooks/useRequest';
-import { DELETE_PAGE, FULL_PAGE, PATCH_PAGE, PAGE_STYLES, CONTRIBUTION_META } from 'ajax/endpoints';
+import { DELETE_PAGE, FULL_PAGE, PATCH_PAGE, LIST_STYLES, CONTRIBUTION_META } from 'ajax/endpoints';
 
 // Routes
-import { PAGES_SLUG } from 'routes';
+import { CONTENT_SLUG } from 'routes';
 
 // Constants
 import { GENERIC_ERROR } from 'constants/textConstants';
@@ -35,6 +35,9 @@ import { faEye, faEdit, faSave, faTrash } from '@fortawesome/free-solid-svg-icon
 // Context
 import { useGlobalContext } from 'components/MainLayout';
 import validatePage from './validatePage';
+
+//
+import { useConfigureAnalytics } from 'components/analytics';
 
 // Children
 import * as dynamicElements from 'components/donationPage/pageContent/dynamicElements';
@@ -95,6 +98,8 @@ function PageEditor() {
 
   const history = useHistory();
 
+  useConfigureAnalytics();
+
   useEffect(() => {
     setLoading(true);
 
@@ -119,7 +124,7 @@ function PageEditor() {
   useEffect(() => {
     setLoading(true);
     requestGetPageStyles(
-      { method: 'GET', url: PAGE_STYLES },
+      { method: 'GET', url: LIST_STYLES },
       {
         onSuccess: ({ data }) => {
           setAvailableStyles(data);
@@ -180,7 +185,7 @@ function PageEditor() {
       {
         onSuccess: () => {
           setLoading(false);
-          history.push(PAGES_SLUG);
+          history.push(CONTENT_SLUG);
         },
         onFailure: (e) => {
           alert.error(GENERIC_ERROR);
@@ -363,7 +368,7 @@ function PageEditor() {
           />
           <CircleButton onClick={handleDelete} icon={faTrash} type="neutral" data-testid="delete-page-button" />
 
-          <BackButton to={PAGES_SLUG} />
+          <BackButton to={CONTENT_SLUG} />
         </S.ButtonOverlay>
       </S.PageEditor>
     </PageEditorContext.Provider>

@@ -25,9 +25,9 @@ function AddElementModal({ addElementModalOpen, setAddElementModalOpen, destinat
 
   const handleElementSelected = (element) => {
     if (destination === 'sidebar') {
-      setSidebarElements([buildElement(element), ...(sidebarElements || [])]);
+      setSidebarElements([...(sidebarElements || []), buildElement(element)]);
     } else {
-      setElements([buildElement(element), ...(elements || [])]);
+      setElements([...(elements || []), buildElement(element)]);
     }
     setAddElementModalOpen(false);
   };

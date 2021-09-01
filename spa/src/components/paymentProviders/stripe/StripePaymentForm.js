@@ -10,6 +10,10 @@ import { getFrequencyAdverb } from 'utilities/parseFrequency';
 
 // Hooks
 import usePreviousState from 'hooks/usePreviousState';
+import useReCAPTCHAScript from 'hooks/useReCAPTCHAScript';
+
+// Constants
+import { GRECAPTCHA_SITE_KEY } from 'constants/genericConstants';
 
 // Routing
 import { useHistory, useRouteMatch } from 'react-router-dom';
@@ -29,11 +33,16 @@ import Button from 'elements/buttons/Button';
 import { ICONS } from 'assets/icons/SvgIcon';
 import { PayFeesWidget } from 'components/donationPage/pageContent/DPayment';
 
+// Analytics
+import { useAnalyticsContext } from 'components/analytics/AnalyticsContext';
+
 const STRIPE_PAYMENT_REQUEST_LABEL = 'RevEngine Donation';
 
 function StripePaymentForm({ loading, setLoading, offerPayFees }) {
+  useReCAPTCHAScript();
   const { url, params } = useRouteMatch();
   const { page, amount, frequency, payFee, formRef, errors, setErrors, salesforceCampaignId } = usePage();
+  const { trackConversion } = useAnalyticsContext();
 
   const previousAmount = usePreviousState(amount);
   const [cardReady, setCardReady] = useState(false);
@@ -72,6 +81,17 @@ function StripePaymentForm({ loading, setLoading, offerPayFees }) {
     setErrors({ ...errors, stripe: event.error ? event.error.message : '' });
   };
 
+  /**
+   * extractEmailFromFormRef
+   * Provided a ref to the form element containing the email address, will return that email address
+   * @param {Element} form - a ref to the Form element containing the email addreess
+   * @returns {string} email address
+   */
+  const extractEmailFromFormRef = (form) => {
+    const emailInput = form.elements['email'];
+    return emailInput.value;
+  };
+
   /****************************\
    * Handle Error and Success *
   \****************************/
@@ -80,20 +100,23 @@ function StripePaymentForm({ loading, setLoading, offerPayFees }) {
     setErrors({});
     setLoading(false);
     setSucceeded(true);
+    trackConversion(amount);
     if (page.thank_you_redirect) {
       window.location = page.thank_you_redirect;
     } else {
+      const email = extractEmailFromFormRef(formRef.current);
+      const donationPageUrl = window.location.href;
       history.push({
         pathname: url + THANK_YOU_SLUG,
-        state: { page }
+        state: { page, amount, email, donationPageUrl }
       });
     }
   };
 
   const handlePaymentFailure = (error, pr) => {
     if (error instanceof StripeError) {
-      setErrors({ stripe: `Payment failed ${error.message}` });
-      alert.error(`Payment failed ${error.message}`);
+      setErrors({ stripe: `Payment failed: ${error}` });
+      alert.error(`Payment failed: ${error}`);
     } else {
       const internalErrors = error?.response?.data;
       if (internalErrors) {
@@ -110,12 +133,34 @@ function StripePaymentForm({ loading, setLoading, offerPayFees }) {
     setLoading(false);
   };
 
+  /**
+   * If window.grecaptcha is defined-- which should be done in useReCAPTCHAScript hook--
+   * listen for readiness and resolve promise with resulting reCAPTCHA token.
+   * @returns {Promise} - resolves to token or error
+   */
+  const getReCAPTCHAToken = () =>
+    new Promise((resolve, reject) => {
+      if (window.grecaptcha) {
+        window.grecaptcha.ready(async function () {
+          try {
+            const token = window.grecaptcha.execute(GRECAPTCHA_SITE_KEY, { action: 'submit' });
+            resolve(token);
+          } catch (error) {
+            reject(error);
+          }
+        });
+      } else {
+        reject(new Error('window.grecaptcha not defined at getReCAPTCHAToken call time'));
+      }
+    });
+
   /********************************\
    * Inline Card Element Payments *
   \********************************/
   const handleCardSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
+    const reCAPTCHAToken = await getReCAPTCHAToken();
     const orgIsNonProfit = page.organization_is_nonprofit;
     const data = serializeData(formRef.current, {
       amount,
@@ -123,6 +168,7 @@ function StripePaymentForm({ loading, setLoading, offerPayFees }) {
       orgIsNonProfit,
       frequency,
       salesforceCampaignId,
+      reCAPTCHAToken,
       ...params
     });
     await submitPayment(
@@ -139,8 +185,15 @@ function StripePaymentForm({ loading, setLoading, offerPayFees }) {
   \*********************************/
   const handlePaymentRequestSubmit = async (state, paymentRequest) => {
     setLoading(true);
+    const reCAPTCHAToken = await getReCAPTCHAToken();
     const orgIsNonProfit = page.organization_is_nonprofit;
-    const data = serializeData(formRef.current, { orgIsNonProfit, frequency, salesforceCampaignId, ...state });
+    const data = serializeData(formRef.current, {
+      orgIsNonProfit,
+      frequency,
+      salesforceCampaignId,
+      reCAPTCHAToken,
+      ...state
+    });
     await submitPayment(
       stripe,
       data,
@@ -215,11 +268,17 @@ function StripePaymentForm({ loading, setLoading, offerPayFees }) {
     }
   }, [amount, payFee, paymentRequest, frequency]);
 
-  // We add a catch here for the times when the ad-hoc donation amount ("other") value
-  // is not a valid number (e.g. first clicking on the element, or typing a decimal "0.5")
-  if (!amountIsValid) {
-    return <S.EnterValidAmount>Please enter an amount of at least $1</S.EnterValidAmount>;
-  }
+  /**
+   * getButtonText
+   * @returns {string} - The text to display in the submit button.
+   */
+  const getButtonText = () => {
+    const totalAmount = getTotalAmount(amount, payFee, frequency, page.organization_is_nonprofit);
+    if (isNaN(totalAmount)) {
+      return 'Enter a valid amount';
+    }
+    return `Give $${totalAmount} ${getFrequencyAdverb(frequency)}`;
+  };
 
   return !forceManualCard && paymentRequest ? (
     <>
@@ -251,8 +310,7 @@ function StripePaymentForm({ loading, setLoading, offerPayFees }) {
         loading={loading}
         data-testid="donation-submit"
       >
-        Give ${getTotalAmount(amount, payFee, frequency, page.organization_is_nonprofit)}{' '}
-        {getFrequencyAdverb(frequency)}
+        {getButtonText()}
       </Button>
 
       <S.IconWrapper>

@@ -37,8 +37,6 @@ const HUB_TRACKED_PAGES_REQUIRING_HUB_LOGIN = [
   EDITOR_ROUTE_PAGE
 ];
 
-// const HUB_TRACKED_PAGES_REQURING_CONTRIBUTOR_LOGIN = [CONTRIBUTOR_DASHBOARD];
-
 // NB: The THANK_YOU_SLUG page is also tracked by both hub and org
 // but at the moment there is not a convenient way to test thank you page
 // for org analytics, because it depends on being sent there from successful

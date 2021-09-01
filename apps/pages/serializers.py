@@ -1,3 +1,5 @@
+from django.utils import timezone
+
 from rest_framework import serializers
 from sorl_thumbnail_serializer.fields import HyperlinkedSorlImageField
 
@@ -10,10 +12,12 @@ from apps.organizations.serializers import (
 from apps.pages.models import DonationPage, Style, Template
 
 
-class StyleSerializer(serializers.ModelSerializer):
+class StyleInlineSerializer(serializers.ModelSerializer):
     def to_representation(self, instance):
         styles = instance.styles if instance.styles else {}
-        return {"id": instance.pk, "name": instance.name, **styles}
+        representation = super().to_representation(instance)
+        representation.update(**styles)
+        return representation
 
     def to_internal_value(self, data):
         """
@@ -35,6 +39,13 @@ class StyleSerializer(serializers.ModelSerializer):
         fields = "__all__"
 
 
+class StyleListSerializer(StyleInlineSerializer):
+    used_live = serializers.SerializerMethodField()
+
+    def get_used_live(self, obj):
+        return DonationPage.objects.filter(styles=obj, published_date__lte=timezone.now()).exists()
+
+
 class DonationPageDetailSerializer(serializers.ModelSerializer):
     class Meta:
         model = DonationPage
@@ -42,7 +53,7 @@ class DonationPageDetailSerializer(serializers.ModelSerializer):
 
 
 class DonationPageFullDetailSerializer(serializers.ModelSerializer):
-    styles = StyleSerializer(required=False)
+    styles = StyleInlineSerializer(required=False)
     styles_pk = serializers.IntegerField(allow_null=True, required=False)
 
     revenue_program = RevenueProgramListInlineSerializer(read_only=True)

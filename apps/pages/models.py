@@ -172,12 +172,12 @@ class DonationPage(AbstractPage, SafeDeleteModel):
         return (instance, created)
 
 
-class Style(IndexedTimeStampedModel):
+class Style(IndexedTimeStampedModel, SafeDeleteModel):
     """
     Ties a set of styles to a page. Discoverable by name, belonging to an Organization.
     """
 
-    name = models.CharField(max_length=255)
+    name = models.CharField(max_length=50)
     organization = models.ForeignKey("organizations.Organization", on_delete=models.CASCADE)
     styles = models.JSONField()
 
@@ -189,3 +189,5 @@ class Style(IndexedTimeStampedModel):
             "name",
             "organization",
         )
+
+        ordering = ["-created", "name"]

@@ -73,6 +73,9 @@ function MainLayout() {
                 <Route exact path="/">
                   <Redirect to={ROUTES.CONTENT_SLUG} />
                 </Route>
+                <Route exact path="/dashboard">
+                  <Redirect to={ROUTES.CONTENT_SLUG} />
+                </Route>
 
                 {/* Dashboard */}
                 <ProtectedRoute path={ROUTES.MAIN_CONTENT_SLUG} render={() => <TrackPageView component={Main} />} />

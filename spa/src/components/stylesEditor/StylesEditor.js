@@ -23,6 +23,8 @@ import CircleButton from 'elements/buttons/CircleButton';
 
 const UNIQUE_NAME_ERROR = 'The fields name, organization must make a unique set.';
 
+const PANGRAM = 'The quick brown fox jumps over the lazy dog.';
+
 function StylesEditor({ styles, setStyles, handleKeepChanges, handleDiscardChanges, isUpdate }) {
   const alert = useAlert();
   const { getUserConfirmation } = useGlobalContext();
@@ -183,10 +185,10 @@ function StylesEditor({ styles, setStyles, handleKeepChanges, handleDiscardChang
         </StylesFieldset>
         <StylesFieldset label="Font">
           <S.TextExample newStyles={styles}>
-            <h2>The quick brown fox jumps over the lazy dog.</h2>
-            <h4>The quick brown fox jumps over the lazy dog.</h4>
-            <h5>The quick brown fox jumps over the lazy dog.</h5>
-            <p>The quick brown fox jumps over the lazy dog.</p>
+            <h2>{PANGRAM}</h2>
+            <h4>{PANGRAM}</h4>
+            <h5>{PANGRAM}</h5>
+            <p>{PANGRAM}</p>
           </S.TextExample>
           <S.FieldRow>
             <FontFamilyPicker fontFamily={getFontFamilyFromStyle(styles.font)} setFontFamily={setFontFamily} />
@@ -340,9 +342,9 @@ function FontFamilyPicker({ fontFamily, setFontFamily }) {
 }
 
 function getFontFamilyFromStyle(fontStyle) {
-  if (fontStyle.includes('sans')) return SANS_SERIF;
-  else if (fontStyle.includes('serif')) return SERIF;
-  else if (fontStyle.includes('monospace')) return MONOSPACE;
+  if (fontStyle?.includes('sans')) return SANS_SERIF;
+  else if (fontStyle?.includes('serif')) return SERIF;
+  else if (fontStyle?.includes('monospace')) return MONOSPACE;
 }
 
 function getStyleFromFontFamily(fontFamily) {
@@ -352,11 +354,13 @@ function getStyleFromFontFamily(fontFamily) {
 }
 
 function getFontSizesFromFontSize(fontSize) {
+  if (!fontSize) return;
   const factors = [0.75, 1, 1.5, 2, 3, 5, 6];
   return factors.map((factor) => `${fontSize * factor}px`);
 }
 
 function getFontSizeFromFontSizes(fontSizes) {
+  if (!fontSizes || fontSizes.length < 2) return;
   return parseInt(fontSizes[1], 10);
 }
 

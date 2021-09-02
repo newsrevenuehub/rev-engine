@@ -1,15 +1,9 @@
-import { useState, useContext, createContext, useCallback, useEffect } from 'react';
+import { useState, useContext, createContext, useCallback } from 'react';
 
 import * as S from './Main.styled';
 
-// Routing
-import { Switch, Route } from 'react-router-dom';
-
 // Utils
 import getGlobalPaymentProviderStatus from 'utilities/getGlobalPaymentProviderStatus';
-
-// Slugs
-import { MAIN_CONTENT_SLUG } from 'routes';
 
 // AJAX
 import { LS_USER } from 'constants/authConstants';
@@ -48,11 +42,7 @@ function Main() {
     >
       <S.Main>
         <S.MainContent>
-          <Switch>
-            <Route path={MAIN_CONTENT_SLUG}>
-              <Dashboard />
-            </Route>
-          </Switch>
+          <Dashboard />
         </S.MainContent>
       </S.Main>
     </OrganizationContext.Provider>

@@ -10,11 +10,12 @@ from rest_framework.reverse import reverse
 from rest_framework.test import APIRequestFactory, APITestCase, force_authenticate
 
 from apps.common.tests.test_resources import AbstractTestCase
-from apps.common.tests.test_utils import get_test_image_binary, get_test_image_file_jpeg
+from apps.common.tests.test_utils import get_test_image_file_jpeg
 from apps.element_media.tests import setup_sidebar_fixture
 from apps.organizations.tests.factories import RevenueProgramFactory
 from apps.pages.models import DonationPage, Style, Template
 from apps.pages.tests.factories import DonationPageFactory, StyleFactory, TemplateFactory
+from apps.pages.validators import required_style_keys
 from apps.pages.views import PageViewSet
 
 
@@ -377,7 +378,15 @@ class StylesViewsetTest(AbstractTestCase):
         self.list_url = reverse("style-list")
         self.create_resources()
         self.authenticate_user_for_resource(self.resources[0])
-        self.styles_data = {"name": "New Test Styles", "colors": {"primary": "testing-blue"}, "random_property": "test"}
+        valid_styles_json = {}
+        for k, v in required_style_keys.items():
+            valid_styles_json[k] = v()
+        self.styles_data = {
+            "name": "New Test Styles",
+            "random_property": "test",
+            "colors": {"primary": "testing pink"},
+            **valid_styles_json,
+        }
 
     def test_flattened_to_internal_value(self):
         self.client.force_authenticate(user=self.user)

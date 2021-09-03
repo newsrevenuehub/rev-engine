@@ -32,7 +32,6 @@ class OrganizationFactory(DjangoModelFactory):
 
     name = factory.Sequence(lambda n: f"{fake.company()}-{str(n)}")
     stripe_account_id = fake.uuid4()
-    contact_email = fake.email()
 
 
 class RevenueProgramFactory(DjangoModelFactory):
@@ -41,6 +40,7 @@ class RevenueProgramFactory(DjangoModelFactory):
 
     name = factory.Sequence(lambda n: f"{' '.join(fake.words(nb=4))}-{str(n)}")
     organization = factory.SubFactory(OrganizationFactory)
+    contact_email = fake.email()
 
 
 class BenefitFactory(DjangoModelFactory):

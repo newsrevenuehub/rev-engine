@@ -16,7 +16,7 @@ function useClearbit(live) {
       const parent = document.getElementsByTagName('script')[0];
       parent.parentNode.insertBefore(script, parent);
 
-      return () => document.removeElement(script);
+      return () => script.remove();
     }
   }, [live]);
 }

@@ -247,7 +247,7 @@ describe('Donations list', () => {
       });
     });
 
-    it.only('should have working page controls', () => {
+    it('should have working page controls', () => {
       cy.wait('@getDonations');
       cy.url().should('include', DONATIONS_SLUG);
       // initial state when 2 pages

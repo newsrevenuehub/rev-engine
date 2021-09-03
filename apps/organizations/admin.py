@@ -2,6 +2,8 @@ from pathlib import Path
 
 from django.contrib import admin
 
+from django_reverse_admin import ReverseModelAdmin
+
 from apps.common.admin import RevEngineBaseAdmin
 from apps.organizations.forms import FeatureForm
 from apps.organizations.models import (
@@ -13,6 +15,9 @@ from apps.organizations.models import (
     RevenueProgram,
 )
 from apps.users.admin import UserOrganizationInline
+
+
+# from apps.common.admin import OrganizationAddressInline, RevenueProgramAddressInline
 
 
 class RevenueProgramBenefitLevelInline(admin.TabularInline):
@@ -30,20 +35,18 @@ class BenefitLevelBenefit(admin.TabularInline):
 
 
 @admin.register(Organization)
-class OrganizationAdmin(RevEngineBaseAdmin):  # pragma: no cover
+class OrganizationAdmin(RevEngineBaseAdmin, ReverseModelAdmin):  # pragma: no cover
     organization_fieldset = (
-        ("Organization", {"fields": ("name", "slug", "contact_email")}),
-        (None, {"fields": ("salesforce_id",)}),
         (
-            "Address",
+            "Organization",
             {
                 "fields": (
-                    "org_addr1",
-                    "org_addr2",
-                    ("org_city", "org_state", "org_zip"),
+                    "name",
+                    "slug",
                 )
             },
         ),
+        (None, {"fields": ("salesforce_id",)}),
         (
             "Plan",
             {
@@ -73,10 +76,12 @@ class OrganizationAdmin(RevEngineBaseAdmin):  # pragma: no cover
 
     fieldsets = organization_fieldset
 
-    list_display = ["name", "slug", "plan", "org_state"]
+    list_display = ["name", "slug", "plan"]
 
-    list_filter = ["name", "plan", "org_state"]
+    list_filter = ["name", "plan", "address__state"]
 
+    inline_type = "stacked"
+    inline_reverse = [("address", {"fields": ["address1", "address2", "city", "state", "postal_code"]})]
     inlines = [UserOrganizationInline]
 
     readonly_fields = ["name", "slug", "stripe_verified"]
@@ -118,7 +123,7 @@ class BenefitLevelAdmin(RevEngineBaseAdmin):
 
 
 @admin.register(RevenueProgram)
-class RevenueProgramAdmin(RevEngineBaseAdmin):  # pragma: no cover
+class RevenueProgramAdmin(RevEngineBaseAdmin, ReverseModelAdmin):  # pragma: no cover
     fieldsets = (
         (
             "RevenueProgram",
@@ -126,6 +131,7 @@ class RevenueProgramAdmin(RevEngineBaseAdmin):  # pragma: no cover
                 "fields": (
                     "name",
                     "slug",
+                    "contact_email",
                     "organization",
                     "default_donation_page",
                 )
@@ -157,6 +163,8 @@ class RevenueProgramAdmin(RevEngineBaseAdmin):  # pragma: no cover
 
     list_filter = ["name"]
 
+    inline_type = "stacked"
+    inline_reverse = [("address", {"fields": ["address1", "address2", "city", "state", "postal_code"]})]
     inlines = [RevenueProgramBenefitLevelInline]
 
     def get_readonly_fields(self, request, obj=None):

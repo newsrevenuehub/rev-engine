@@ -471,6 +471,14 @@ Django = ">=2.2"
 redis = ">=3.0.0"
 
 [[package]]
+name = "django-reverse-admin"
+version = "2.9.6"
+description = ""
+category = "main"
+optional = false
+python-versions = ">=3"
+
+[[package]]
 name = "django-safedelete"
 version = "1.0.0"
 description = "Mask your objects instead of deleting them from your database."
@@ -1532,7 +1540,7 @@ testing = ["pytest (>=4.6)", "pytest-checkdocs (>=2.4)", "pytest-flake8", "pytes
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.9"
-content-hash = "a15b23e6bbb32bf673afb8dfca8f163af4f14d70731c7540405f4386f337b940"
+content-hash = "960b3cdb4633e245fa69354699d95db00942369044fa2b6d9bcbb1cd2788be85"
 
 [metadata.files]
 amqp = [
@@ -1784,6 +1792,9 @@ django-phonenumber-field = [
 django-redis = [
     {file = "django-redis-4.12.1.tar.gz", hash = "sha256:306589c7021e6468b2656edc89f62b8ba67e8d5a1c8877e2688042263daa7a63"},
     {file = "django_redis-4.12.1-py3-none-any.whl", hash = "sha256:1133b26b75baa3664164c3f44b9d5d133d1b8de45d94d79f38d1adc5b1d502e5"},
+]
+django-reverse-admin = [
+    {file = "django_reverse_admin-2.9.6.zip", hash = "sha256:3c26d7a93181e8f11b1c81f83251f238c566bc7ebea2873520269c949116f0d9"},
 ]
 django-safedelete = [
     {file = "django-safedelete-1.0.0.tar.gz", hash = "sha256:194470a379d41685298105b2dd6d9d9e6b17cec63fdfc52b225010140a85e28b"},

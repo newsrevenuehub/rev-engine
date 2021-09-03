@@ -407,46 +407,63 @@ describe('Donation page', () => {
         .should('have.attr', 'href', 'https://fundjournalism.org/');
     });
 
-    it('should render correct copyright info, including org name', () => {
-      cy.getByTestId('donation-page-footer').contains(new Date().getFullYear() + ' ' + livePageOne.organization_name);
+    it('should render correct copyright info, including revenue program name', () => {
+      cy.getByTestId('donation-page-footer').contains(
+        new Date().getFullYear() + ' ' + livePageOne.revenue_program.name
+      );
     });
 
     it('should render organization contact email if present, nothing if not', () => {
-      const expectedString = `Contact us at ${livePageOne.organization_contact_email}`;
-      // If organization_contact_email is present, should show...
+      const expectedString = `Contact us at ${livePageOne.revenue_program.contact_email}`;
+      // If revenue_program.contact_email is present, should show...
       cy.getByTestId('donation-page-static-text').contains(expectedString).should('exist');
 
       // ...but if we remove it, shouldn't show
       const page = { ...livePageOne };
-      page.organization_contact_email = '';
+      page.revenue_program.contact_email = '';
       cy.intercept({ method: 'GET', pathname: getEndpoint(FULL_PAGE) }, { body: page, statusCode: 200 });
       cy.visit('/revenue-program-slug/page-slug-2');
       cy.getByTestId('donation-page-static-text').contains(expectedString).should('not.exist');
     });
 
-    it('should render organization address if present, nothing if not', () => {
-      const expectedString = `Prefer to mail a check? Our mailing address is ${livePageOne.organization_address}.`;
-      // If organization_address is present, should show...
+    it('should render revenue program address if present, nothing if not', () => {
+      const expectedString = `Prefer to mail a check? Our mailing address is ${livePageOne.revenue_program.address}.`;
+      // If revenue_program.address is present, should show...
       cy.getByTestId('donation-page-static-text').contains(expectedString).should('exist');
 
       // ...but if we remove it, shouldn't show
       const page = { ...livePageOne };
-      page.organization_address = '';
+      page.revenue_program.address = '';
       cy.intercept({ method: 'GET', pathname: getEndpoint(FULL_PAGE) }, { body: page, statusCode: 200 });
       cy.visit('/revenue-program-slug/page-slug');
       cy.getByTestId('donation-page-static-text').contains(expectedString).should('not.exist');
     });
 
-    it('should render different text based on whether or not the org is nonprofit', () => {
+    it('should render certain text if the org is nonprofit', () => {
+      const nonProfitPage = { ...livePageOne };
+      // ensure contact_email, so text section shows up at all
+      nonProfitPage.revenue_program.contact_email = 'testing@test.com';
+      nonProfitPage.organization_is_nonprofit = true;
+      cy.intercept({ method: 'GET', pathname: getEndpoint(FULL_PAGE) }, { body: nonProfitPage, statusCode: 200 }).as(
+        'getNonProfitPage'
+      );
+      cy.visit('/revenue-program-slug/page-slug-6');
+      cy.url().should('include', '/revenue-program-slug/page-slug-6');
+      cy.wait('@getNonProfitPage');
       // If org is non-profit, show certain text...
       cy.getByTestId('donation-page-static-text').contains('are tax deductible').should('exist');
       cy.getByTestId('donation-page-static-text').contains('change a recurring donation').should('exist');
+    });
 
-      // ...if not, show different text.
-      const page = { ...livePageOne };
-      page.organization_is_nonprofit = false;
-      cy.intercept({ method: 'GET', pathname: getEndpoint(FULL_PAGE) }, { body: page, statusCode: 200 });
+    it('should render different text if the org is for-profit', () => {
+      const forProfitPage = { ...livePageOne };
+      forProfitPage.organization_is_nonprofit = false;
+      cy.intercept({ method: 'GET', pathname: getEndpoint(FULL_PAGE) }, { body: forProfitPage, statusCode: 200 }).as(
+        'getForProfitPage'
+      );
       cy.visit('/revenue-program-slug/page-slug-2');
+      cy.url().should('include', '/revenue-program-slug/page-slug-2');
+      cy.wait('@getForProfitPage');
       cy.getByTestId('donation-page-static-text').contains('are not tax deductible').should('exist');
       cy.getByTestId('donation-page-static-text').contains('change a recurring contribution').should('exist');
     });

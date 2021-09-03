@@ -38,15 +38,16 @@ class RevenueProgramListInlineSerializer(serializers.ModelSerializer):
     the user is redirected to `/edit/undefined/page-slug` after page creation.
     """
 
+    address = serializers.SerializerMethodField()
+
+    def get_address(self, obj):
+        if hasattr(obj, "address"):
+            return str(obj.address)
+        return ""
+
     class Meta:
         model = RevenueProgram
-        fields = [
-            "id",
-            "name",
-            "slug",
-            "twitter_handle",
-            "website_url",
-        ]
+        fields = ["id", "name", "slug", "twitter_handle", "website_url", "contact_email", "address"]
 
 
 class RevenueProgramSerializer(serializers.ModelSerializer):

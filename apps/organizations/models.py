@@ -7,7 +7,6 @@ from django.utils import timezone
 
 import stripe
 
-from apps.common.constants import STATE_CHOICES
 from apps.common.models import IndexedTimeStampedModel
 from apps.common.utils import normalize_slug
 from apps.contributions.utils import get_hub_stripe_api_key
@@ -57,14 +56,9 @@ class Plan(IndexedTimeStampedModel):
 class Organization(IndexedTimeStampedModel):
     name = models.CharField(max_length=255, unique=True)
     slug = models.SlugField(blank=True, unique=True)
-    contact_email = models.EmailField(max_length=255, blank=True)
     plan = models.ForeignKey("organizations.Plan", null=True, on_delete=models.CASCADE)
     non_profit = models.BooleanField(default=True, verbose_name="Non-profit?")
-    org_addr1 = models.CharField(max_length=255, blank=True, verbose_name="Address 1")
-    org_addr2 = models.CharField(max_length=255, blank=True, verbose_name="Address 2")
-    org_city = models.CharField(max_length=64, blank=True, verbose_name="City")
-    org_state = models.CharField(max_length=2, blank=True, choices=STATE_CHOICES, verbose_name="State")
-    org_zip = models.CharField(max_length=9, blank=True, verbose_name="Zip")
+    address = models.OneToOneField("common.Address", on_delete=models.SET_NULL, null=True)
     salesforce_id = models.CharField(max_length=255, blank=True, verbose_name="Salesforce ID")
 
     users = models.ManyToManyField("users.User", through="users.OrganizationUser")
@@ -223,7 +217,9 @@ class BenefitLevelBenefit(models.Model):
 class RevenueProgram(IndexedTimeStampedModel):
     name = models.CharField(max_length=255)
     slug = models.SlugField(max_length=100, blank=True, unique=True)
+    address = models.OneToOneField("common.Address", on_delete=models.SET_NULL, null=True)
     organization = models.ForeignKey("organizations.Organization", on_delete=models.CASCADE)
+    contact_email = models.EmailField(max_length=255, blank=True)
     default_donation_page = models.ForeignKey("pages.DonationPage", null=True, blank=True, on_delete=models.SET_NULL)
 
     # Analytics

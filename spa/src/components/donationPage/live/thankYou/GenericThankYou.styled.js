@@ -25,7 +25,7 @@ export const InnerContent = styled.div`
   width: 100%;
   max-width: 700px;
   border-radius: ${(props) => props.theme.radii[1]};
-  border: 6px solid ${(props) => props.theme.colors.primary};
+  border-top: 6px solid ${(props) => props.theme.colors.primary};
   margin: 2rem 0;
   padding: 1rem 3rem;
 `;

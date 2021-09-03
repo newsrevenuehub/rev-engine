@@ -342,13 +342,7 @@ class StripePaymentManager(PaymentManager):
         except stripe.error.InvalidRequestError as invalid_request_error:
             self.contribution.status = previous_status
             self.contribution.save()
-            logger.warning(
-                (
-                    f"Stripe returned an InvalidRequestError at {timezone.now()}. This was caused by attempting to {'reject' if reject else 'capture'} a payment that was flagged in our system, but was already captured or rejected in Stripe's system.\n"
-                    f"This occured for Contribution {self.contribution.pk}.\n"
-                    f"Stripe response: {str(invalid_request_error)}"
-                )
-            )
+            logger.info(f"Contribution error for id({self.contribution.pk}): {str(invalid_request_error)}")
             raise PaymentProviderError(invalid_request_error)
         except stripe.error.StripeError as stripe_error:
             self._handle_stripe_error(stripe_error, previous_status=previous_status)
@@ -356,7 +350,7 @@ class StripePaymentManager(PaymentManager):
     def complete_recurring_payment(self, reject=False):
         if reject:
             """
-            If flagged, creation of the Stripe Subscription is defered until it is "accepted".
+            If flagged, creation of the Stripe Subscription is deferred until it is "accepted".
             So to "reject", just don't create it. Set status of Contribution to "rejected"
             """
             self.contribution.status = ContributionStatus.REJECTED
@@ -410,7 +404,7 @@ class StripePaymentManager(PaymentManager):
         """
         if not settings.USE_DEBUG_INTERVALS == "True":
             return self.contribution.interval
-        logger.warn("Using debug intervals for Stripe Subscriptions")
+        logger.warning("Using debug intervals for Stripe Subscriptions")
         if self.contribution.interval == Contribution.INTERVAL_MONTHLY:
             return "daily"
 

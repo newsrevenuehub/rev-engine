@@ -388,7 +388,7 @@ describe('Donation page', () => {
     });
   });
 
-  describe('Footer-like content', () => {
+  describe.only('Footer-like content', () => {
     before(() => {
       cy.intercept(
         { method: 'GET', pathname: getEndpoint(FULL_PAGE) },
@@ -479,17 +479,18 @@ describe('Donation page', () => {
       cy.visit('/revenue-program-slug/page-slug-3');
       cy.url().should('include', 'revenue-program-slug/page-slug-3');
       cy.wait('@getPage');
-      const targetAmount = 15;
+      const targetMonthlyAmount = 15;
       // if frequency is monthly, show particular agreement statement...
       cy.getByTestId('frequency-month').click();
-      cy.getByTestId(`amount-${targetAmount}`).click();
-      const expectedMonthlyText = `payments of $${targetAmount}, to be processed on or adjacent to the ${new Date().getDate()}`;
+      cy.getByTestId(`amount-${targetMonthlyAmount}`).click();
+      const expectedMonthlyText = `payments of $${targetMonthlyAmount}, to be processed on or adjacent to the ${new Date().getDate()}`;
       cy.getByTestId('donation-page-static-text').contains(expectedMonthlyText).should('exist');
 
       // if frequency is yearly, show another agreement statement...
-      cy.getByTestId('frequency-month').click();
-      cy.getByTestId(`amount-${targetAmount}`).click();
-      const expectedYearlyText = `payments of $${targetAmount}, to be processed on or adjacent to ${format(
+      const targetYearlyAmount = 365;
+      cy.getByTestId('frequency-year').click();
+      cy.getByTestId(`amount-${targetYearlyAmount}`).click();
+      const expectedYearlyText = `payments of $${targetYearlyAmount}, to be processed on or adjacent to ${format(
         new Date(),
         'L/d'
       )} yearly until you cancel`;

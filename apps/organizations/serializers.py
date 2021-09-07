@@ -47,7 +47,19 @@ class RevenueProgramListInlineSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = RevenueProgram
-        fields = ["id", "name", "slug", "twitter_handle", "website_url", "contact_email", "address"]
+        fields = [
+            "id",
+            "name",
+            "slug",
+            "twitter_handle",
+            "website_url",
+            "contact_email",
+            "address",
+            "google_analytics_v3_domain",
+            "google_analytics_v3_id",
+            "google_analytics_v4_id",
+            "facebook_pixel_id",
+        ]
 
 
 class RevenueProgramSerializer(serializers.ModelSerializer):
@@ -59,7 +71,11 @@ class RevenueProgramSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = RevenueProgram
-        fields = ["id", "name", "slug"]
+        fields = [
+            "id",
+            "name",
+            "slug",
+        ]
 
 
 class BenefitDetailSerializer(serializers.ModelSerializer):

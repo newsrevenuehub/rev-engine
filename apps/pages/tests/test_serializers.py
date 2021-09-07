@@ -29,8 +29,13 @@ class DonationPageFullDetailSerializerTest(APITestCase):
 
         BenefitLevelBenefit.objects.create(benefit_level=self.benefit_level_2, benefit=self.benefit_1, order=1)
 
-        self.revenue_program = RevenueProgramFactory(organization=self.organization)
-
+        self.revenue_program = RevenueProgramFactory(
+            organization=self.organization,
+            google_analytics_v3_domain="somedomain.com",
+            google_analytics_v3_id="thisIsAV3Id",
+            google_analytics_v4_id="thisIsAV4Id",
+            facebook_pixel_id="thiIsAFbPixelId",
+        )
         RevenueProgramBenefitLevel.objects.create(
             revenue_program=self.revenue_program, benefit_level=self.benefit_level_1, level=1
         )
@@ -40,6 +45,17 @@ class DonationPageFullDetailSerializerTest(APITestCase):
 
         self.page = DonationPageFactory(organization=self.organization, revenue_program=self.revenue_program)
         self.serializer = DonationPageFullDetailSerializer
+
+    def test_has_analytics_data(self):
+        serializer = self.serializer(self.page)
+        data = serializer.data
+        for key in (
+            "google_analytics_v3_domain",
+            "google_analytics_v3_id",
+            "google_analytics_v4_id",
+            "facebook_pixel_id",
+        ):
+            self.assertEqual(data["revenue_program"][key], getattr(self.revenue_program, key))
 
     def test_get_benefit_levels(self):
         serializer = self.serializer(self.page)

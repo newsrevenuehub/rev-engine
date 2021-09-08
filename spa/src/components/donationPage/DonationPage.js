@@ -16,6 +16,7 @@ import useQueryString from 'hooks/useQueryString';
 import DonationPageSidebar from 'components/donationPage/DonationPageSidebar';
 
 // Children
+import DonationPageSocialTags from 'components/donationPage/DonationPageSocialTags';
 import DonationPageStaticText from 'components/donationPage/DonationPageStaticText';
 import DonationPageFooter from 'components/donationPage/DonationPageFooter';
 
@@ -26,6 +27,7 @@ const AMOUNT_QUERYPARAM = process.env.REACT_APP_AMOUNT_QUERYPARAM || 'amount';
 const DonationPageContext = createContext({});
 
 function DonationPage({ page, stripeAccountId, live = false }) {
+  console.log('page', page);
   const formRef = useRef();
 
   const salesForceQS = useQueryString(SALESFORCE_CAMPAIGN_ID_QUERYPARAM);
@@ -77,6 +79,7 @@ function DonationPage({ page, stripeAccountId, live = false }) {
       }}
     >
       <S.DonationPage data-testid="donation-page">
+        <DonationPageSocialTags revenueProgram={page?.revenue_program} />
         {getters.getHeaderBarElement()}
         <S.PageMain>
           <S.SideOuter>

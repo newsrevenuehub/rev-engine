@@ -294,7 +294,7 @@ function StripePaymentForm({ loading, setLoading, offerPayFees }) {
       <S.PaymentElementWrapper>
         <CardElement
           id="card-element"
-          options={{ style: S.CardElementStyle(theme) }}
+          options={{ style: S.CardElementStyle(theme), hidePostalCode: true }}
           onChange={handleCardElementChange}
         />
       </S.PaymentElementWrapper>

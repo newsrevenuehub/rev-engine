@@ -10,6 +10,7 @@ from apps.api.error_messages import UNIQUE_PAGE_SLUG
 from apps.common.models import IndexedTimeStampedModel
 from apps.common.utils import normalize_slug
 from apps.organizations.models import Feature
+from apps.pages.validators import style_validator
 
 
 def _get_screenshot_upload_path(instance, filename):
@@ -179,7 +180,7 @@ class Style(IndexedTimeStampedModel, SafeDeleteModel):
 
     name = models.CharField(max_length=50)
     organization = models.ForeignKey("organizations.Organization", on_delete=models.CASCADE)
-    styles = models.JSONField()
+    styles = models.JSONField(validators=[style_validator])
 
     def __str__(self):
         return self.name

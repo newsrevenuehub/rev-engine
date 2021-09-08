@@ -1,8 +1,8 @@
 export const LOGIN = '/login';
-export const MAIN_CONTENT_SLUG = '/dashboard';
-export const ORGANIZATION_SLUG = MAIN_CONTENT_SLUG + '/organization';
-export const DONATIONS_SLUG = MAIN_CONTENT_SLUG + '/donations';
-export const CONTENT_SLUG = MAIN_CONTENT_SLUG + '/content';
+export const DASHBOARD_SLUG = '/dashboard';
+export const ORGANIZATION_SLUG = DASHBOARD_SLUG + '/organization';
+export const DONATIONS_SLUG = DASHBOARD_SLUG + '/donations';
+export const CONTENT_SLUG = DASHBOARD_SLUG + '/content';
 
 export const EDITOR_ROUTE = '/edit';
 export const EDITOR_ROUTE_REV = EDITOR_ROUTE + '/:revProgramSlug';

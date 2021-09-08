@@ -2,7 +2,7 @@ import * as S from './Dashboard.styled';
 
 // Routing
 import { Route, Switch } from 'react-router-dom';
-import { DONATIONS_SLUG, CONTENT_SLUG, MAIN_CONTENT_SLUG, ORGANIZATION_SLUG } from 'routes';
+import { DONATIONS_SLUG, CONTENT_SLUG, ORGANIZATION_SLUG } from 'routes';
 
 // State
 import { useOrganizationContext } from 'components/Main';
@@ -10,7 +10,6 @@ import { PP_STATES } from 'components/connect/BaseProviderInfo';
 
 // Children
 import DashboardSidebar from 'components/dashboard/sidebar/DashboardSidebar';
-import Overview from 'components/overview/Overview';
 import Donations from 'components/donations/Donations';
 import Content from 'components/content/Content';
 import GlobalLoading from 'elements/GlobalLoading';
@@ -48,9 +47,6 @@ function Dashboard() {
               </Route>
               <Route path={CONTENT_SLUG}>
                 <Content />
-              </Route>
-              <Route path={MAIN_CONTENT_SLUG}>
-                <Overview />
               </Route>
             </Switch>
           )}

@@ -1,4 +1,4 @@
-import { useState, useReducer, useEffect } from 'react';
+import { useState, useReducer } from 'react';
 import * as S from './Login.styled';
 
 // AJAX
@@ -7,7 +7,7 @@ import { TOKEN } from 'ajax/endpoints';
 
 // Routing
 import { useHistory } from 'react-router-dom';
-import { MAIN_CONTENT_SLUG } from 'routes';
+import { CONTENT_SLUG } from 'routes';
 
 // State management
 import fetchReducer, { initialState, FETCH_START, FETCH_SUCCESS, FETCH_FAILURE } from 'state/fetch-reducer';
@@ -33,7 +33,7 @@ function Login({ onSuccess, message }) {
 
   const handlePostLogin = () => {
     if (onSuccess) onSuccess();
-    else history.push(MAIN_CONTENT_SLUG);
+    else history.push(CONTENT_SLUG);
   };
 
   const handleForgotPassword = (e) => {

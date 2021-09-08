@@ -388,7 +388,7 @@ describe('Donation page', () => {
     });
   });
 
-  describe.only('Footer-like content', () => {
+  describe('Footer-like content', () => {
     before(() => {
       cy.intercept(
         { method: 'GET', pathname: getEndpoint(FULL_PAGE) },

@@ -5,7 +5,6 @@ import { getTotalAmount } from 'components/paymentProviders/stripe/stripeFns';
 
 function DonationPageStaticText({ page, amount, payFee, frequency }) {
   const getFreqDependentText = () => {
-    console.log('hey that freq: ', frequency);
     if (frequency === 'one_time') return null;
     let freqDependentText = ' ';
     const totalAmount = getTotalAmount(amount, payFee, frequency, page.organization_is_nonprofit);

@@ -1,5 +1,5 @@
 import * as S from './DashboardSidebar.styled';
-import { DONATIONS_SLUG, CONTENT_SLUG, MAIN_CONTENT_SLUG, ORGANIZATION_SLUG } from 'routes';
+import { DONATIONS_SLUG, CONTENT_SLUG, ORGANIZATION_SLUG } from 'routes';
 import { ICONS } from 'assets/icons/SvgIcon';
 
 // Hooks
@@ -18,9 +18,6 @@ function DashboardSidebar({ shouldAllowDashboard }) {
   return (
     <S.DashboardSidebar>
       <S.NavList>
-        {/* <S.NavItem exact to={MAIN_CONTENT_SLUG} onClick={handleClick} disabled={!shouldAllowDashboard}>
-          Overview
-        </S.NavItem> */}
         <S.NavItem to={CONTENT_SLUG} onClick={handleClick} disabled={!shouldAllowDashboard}>
           Content
         </S.NavItem>

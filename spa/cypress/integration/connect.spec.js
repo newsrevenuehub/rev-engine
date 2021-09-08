@@ -1,11 +1,11 @@
-import { USER, STRIPE_CONFIRMATION, STRIPE_ONBOARDING } from 'ajax/endpoints';
+import { STRIPE_CONFIRMATION, STRIPE_ONBOARDING } from 'ajax/endpoints';
 import { getEndpoint } from '../support/util';
 
 describe('Payment provider connect', () => {
   it('should not show ProviderConnect if default provider', () => {
     cy.login('user/stripe-verified.json');
     cy.getByTestId('provider-connect').should('not.exist');
-    cy.getByTestId('overview').should('exist');
+    cy.getByTestId('content').should('exist');
   });
 
   it('should direct user to ProviderConnect if no default provider', () => {
@@ -17,8 +17,8 @@ describe('Payment provider connect', () => {
   describe('Stripe', () => {
     it('should redirect user to dashboard if connection is successful', () => {
       cy.intercept('POST', getEndpoint(STRIPE_CONFIRMATION), { fixture: 'stripe/confirm-connected' });
-      cy.intercept('GET', getEndpoint(USER), { fixture: 'user/stripe-verified' }).as('refetchUser');
-      cy.getByTestId('dashboard').should('exist');
+      cy.login('user/stripe-verified.json');
+      cy.getByTestId('content').should('exist');
     });
 
     it('should show a helpful message and "times-circle" if org is restricted', () => {

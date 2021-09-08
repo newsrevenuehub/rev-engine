@@ -218,6 +218,7 @@ class RevenueProgram(IndexedTimeStampedModel):
     name = models.CharField(max_length=255)
     slug = models.SlugField(max_length=100, blank=True, unique=True)
     address = models.OneToOneField("common.Address", on_delete=models.SET_NULL, null=True)
+    social_meta = models.OneToOneField("common.SocialMeta", on_delete=models.SET_NULL, null=True)
     organization = models.ForeignKey("organizations.Organization", on_delete=models.CASCADE)
     contact_email = models.EmailField(max_length=255, blank=True)
     default_donation_page = models.ForeignKey("pages.DonationPage", null=True, blank=True, on_delete=models.SET_NULL)

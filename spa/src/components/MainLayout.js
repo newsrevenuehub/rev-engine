@@ -1,34 +1,17 @@
 import React, { createContext, useState, useContext, useRef } from 'react';
 import * as S from './MainLayout.styled';
 
-import { Route, BrowserRouter, Switch, Redirect } from 'react-router-dom';
-import ProtectedRoute from 'components/authentication/ProtectedRoute';
-
-// Slugs
-import * as ROUTES from 'routes';
-
-import GlobalConfirmationModal from 'elements/modal/GlobalConfirmationModal';
-
-// Children
-import GlobalLoading from 'elements/GlobalLoading';
-import ReauthModal from 'components/authentication/ReauthModal';
+// Hooks
+import useSubdomain from 'hooks/useSubdomain';
 
 // Analytics
-import TrackPageView from './analytics/TrackPageView';
 import { AnalyticsContextWrapper } from './analytics/AnalyticsContext';
 
-// Split bundles
-const Login = React.lazy(() => import('components/authentication/Login'));
-const Main = React.lazy(() => import('components/Main'));
-const GenericThankYou = React.lazy(() => import('components/donationPage/live/thankYou/GenericThankYou'));
-
-const ContributorEntry = React.lazy(() => import('components/contributor/ContributorEntry'));
-const ContributorVerify = React.lazy(() => import('components/contributor/ContributorVerify'));
-const ContributorDashboard = React.lazy(() =>
-  import('components/contributor/contributorDashboard/ContributorDashboard')
-);
-const PageEditor = React.lazy(() => import('components/pageEditor/PageEditor'));
-const DonationPageRouter = React.lazy(() => import('components/donationPage/DonationPageRouter'));
+// Children
+import GlobalConfirmationModal from 'elements/modal/GlobalConfirmationModal';
+import ReauthModal from 'components/authentication/ReauthModal';
+import DonationPageRouter from 'components/DonationPageRouter';
+import DashboardRouter from 'components/DashboardRouter';
 
 const GlobalContext = createContext(null);
 
@@ -37,6 +20,11 @@ function MainLayout() {
   const [confirmationState, setConfirmationState] = useState({});
   const [reauthModalOpen, setReauthModalOpen] = useState(false);
 
+  // Get subdomain for donation-page-routing
+  const subdomain = useSubdomain();
+  console.log('subdomain', subdomain);
+
+  // Store reauth callbacks in ref to persist between renders
   const reauthCallbacks = useRef([]);
 
   const getUserConfirmation = (message, onConfirm, onDecline) => {
@@ -62,61 +50,8 @@ function MainLayout() {
   return (
     <GlobalContext.Provider value={{ getUserConfirmation, getReauth }}>
       <AnalyticsContextWrapper>
-        <S.MainLayout>
-          <BrowserRouter>
-            <React.Suspense fallback={<GlobalLoading />}>
-              <Switch>
-                {/* Login URL */}
-                <Route exact path={ROUTES.LOGIN} render={() => <TrackPageView component={Login} />} />
-
-                {/* Nothing lives at "/" -- redirect to dashboard  */}
-                <Route exact path="/">
-                  <Redirect to={ROUTES.CONTENT_SLUG} />
-                </Route>
-
-                {/* Dashboard */}
-                <ProtectedRoute path={ROUTES.DASHBOARD_SLUG} render={() => <TrackPageView component={Main} />} />
-                <ProtectedRoute
-                  path={ROUTES.EDITOR_ROUTE_PAGE}
-                  render={() => <TrackPageView component={PageEditor} />}
-                />
-                <ProtectedRoute
-                  path={ROUTES.EDITOR_ROUTE_REV}
-                  render={() => <TrackPageView component={PageEditor} />}
-                />
-
-                {/* Contributor Dashboard */}
-                <ProtectedRoute
-                  path={ROUTES.CONTRIBUTOR_DASHBOARD}
-                  render={() => <TrackPageView component={ContributorDashboard} />}
-                  contributor
-                />
-
-                {/* Contributor Entry */}
-                <Route path={ROUTES.CONTRIBUTOR_ENTRY} render={() => <TrackPageView component={ContributorEntry} />} />
-                <Route
-                  path={ROUTES.CONTRIBUTOR_VERIFY}
-                  render={() => <TrackPageView component={ContributorVerify} />}
-                />
-
-                {/* Live Donation Pages are caught here */}
-                <Route
-                  path={ROUTES.DONATION_PAGE_SLUG + ROUTES.THANK_YOU_SLUG}
-                  render={() => <TrackPageView component={GenericThankYou} />}
-                />
-                <Route
-                  path={ROUTES.REV_PROGRAM_SLUG + ROUTES.THANK_YOU_SLUG}
-                  render={() => <TrackPageView component={GenericThankYou} />}
-                />
-                <Route
-                  path={ROUTES.DONATION_PAGE_SLUG}
-                  render={() => <TrackPageView component={DonationPageRouter} />}
-                />
-                <Route path={ROUTES.REV_PROGRAM_SLUG} render={() => <TrackPageView component={DonationPageRouter} />} />
-              </Switch>
-            </React.Suspense>
-          </BrowserRouter>
-        </S.MainLayout>
+        {/* Route to donation page if subdomain exists */}
+        <S.MainLayout>{subdomain ? <DonationPageRouter /> : <DashboardRouter />}</S.MainLayout>
         {/* Modals */}
         <GlobalConfirmationModal
           {...confirmationState}

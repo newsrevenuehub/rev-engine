@@ -5,7 +5,6 @@ services:
       context: .
       dockerfile: Dockerfile.hub
       args:
-        - GOOGLE_PLACES_KEY=AIzaSyA2MY76F27V-9fbDhgazFV1jaqNUG10vZY
         - COLLECTSTATIC_COMPRESS=True
     ports:
       - target: 8000

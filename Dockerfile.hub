@@ -1,0 +1,61 @@
+FROM nikolaik/python-nodejs:python3.9-nodejs14
+
+WORKDIR /code
+ENV PATH /code/node_modules/.bin:$PATH
+COPY ./spa/package.json ./spa/package-lock.json /code/
+COPY ./spa /code/spa/
+WORKDIR /code/spa/
+
+# Install packages needed to run your application (not build deps):
+#   mime-support -- for mime types when serving static files
+#   postgresql-client -- for running database commands
+# We need to recreate the /usr/share/man/man{1..8} directories first because
+# they were clobbered by a parent image.
+RUN set -ex \
+    && RUN_DEPS=" \
+    libpcre3 \
+    mime-support \
+    postgresql-client \
+    vim \
+    curl \
+    " \
+    && seq 1 8 | xargs -I{} mkdir -p /usr/share/man/man{} \
+    && apt-get update && apt-get -y install wget gnupg2 lsb-release \
+    && sh -c 'echo "deb http://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" > /etc/apt/sources.list.d/pgdg.list' \
+    && wget --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc | apt-key add - \
+    && apt-get update && apt-get install -y --no-install-recommends $RUN_DEPS \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy in your requirements file
+ADD poetry.lock /poetry.lock
+ADD pyproject.toml /pyproject.toml
+
+# Install build deps, then run `pip install`, then remove unneeded build deps all in a single step.
+# Correct the path to your production requirements file, if needed.
+RUN set -ex \
+    && BUILD_DEPS=" \
+    build-essential \
+    libpcre3-dev \
+    libpq-dev \
+    " \
+    && apt-get update && apt-get install -y --no-install-recommends $BUILD_DEPS \
+    && pip install poetry \
+    && poetry config virtualenvs.create false \
+    && poetry install --no-root \
+    && apt-get purge -y --auto-remove -o APT::AutoRemove::RecommendsImportant=false $BUILD_DEPS \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy your application code to the container (make sure you create a .dockerignore file if any large files or directories should be excluded)
+#RUN mkdir /code/
+WORKDIR /code/
+ADD . /code/
+
+# Add any static environment variables needed by Django or your settings file here:
+ENV DJANGO_SETTINGS_MODULE=revengine.settings.hub
+
+# Call collectstatic (customize the following line with the minimal environment variables needed for manage.py to run):
+RUN touch /code/.env
+
+RUN DATABASE_URL='' ENVIRONMENT='' DJANGO_SECRET_KEY='dummy' DOMAIN='' python manage.py collectstatic --noinput -i *.scss --no-default-ignore
+
+ENTRYPOINT /bin/bash

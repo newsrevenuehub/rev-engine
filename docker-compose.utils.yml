@@ -1,0 +1,44 @@
+version: '3.6'
+services:
+  pgcli:
+    image: texastribune/pgcli
+    networks:
+      - net
+    environment:
+      - DATABASE_URL=postgres://postgres:postgres@db:5432/revengine
+    depends_on:
+      - db
+  pgweb:
+    image: sosedoff/pgweb
+    networks:
+      - net
+    environment:
+      - DATABASE_URL=postgres://postgres:postgres@db:5432/revengine?sslmode=disable
+    depends_on:
+      - db
+    ports:
+      - target: 8081
+        published: 8002
+
+  refreshable-db:
+    image: postgres:11
+    container_name: db
+    command: >
+             -c "work_mem=32MB"
+             -c "shared_buffers=2GB"
+             -c "maintenance_work_mem=2GB"
+             -c "full_page_writes=off"
+             -c "autovacuum=off"
+             -c "wal_buffers=-1"
+             -c "fsync=false"
+             -c "checkpoint_segments=50"
+    volumes:
+      - db-vol:/var/lib/postgresql/data
+    networks:
+      - net
+
+volumes:
+  db-vol:
+
+networks:
+  net:

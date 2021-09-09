@@ -2,6 +2,7 @@
 clean:
 	@find . -name "*.pyc" -exec rm -rf {} \;
 	@find . -name "__pycache__" -delete
+	-docker-compose down --remove-orphans
 
 
 update_requirements:
@@ -39,3 +40,20 @@ check-dc:
 start-celery:
 	@echo 'Bring up test worker'
 	celery -A revengine worker -l INFO
+
+run-hub:
+	@echo 'Running local development with redis'
+	docker-compose -f docker-compose.yml -f docker-compose-dev.yml -f docker-compose-hub.yml build django
+	docker-compose -f docker-compose.yml -f docker-compose-dev.yml -f docker-compose-hub.yml run --service-ports django
+	docker-compose down
+
+runserver:
+	cd spa; npm install --silent; npm run build
+	cd spa; export PORT=8001; npm start &
+	python manage.py migrate
+	python manage.py runserver 0:8000
+	docker-compose down
+
+pgcli:
+	docker-compose -f docker-compose.yml -f docker-compose.utils.yml run pgcli
+	docker-compose down

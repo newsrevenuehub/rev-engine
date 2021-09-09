@@ -1,0 +1,51 @@
+version: '3.6'
+services:
+  django:
+    build:
+      context: .
+      dockerfile: Dockerfile.hub
+      args:
+        - GOOGLE_PLACES_KEY=AIzaSyA2MY76F27V-9fbDhgazFV1jaqNUG10vZY
+        - COLLECTSTATIC_COMPRESS=True
+    ports:
+      - target: 8000
+        published: 8000
+        protocol: tcp
+        mode: host
+      - target: 1717
+        published: 1717
+      - target: 8001
+        published: 8001
+
+    environment:
+      - CSRF_COOKIE_SECURE=False
+      - CSRF_COOKIE_HTTPONLY=False
+      - DATABASE_URL=postgres://postgres:postgres@db:5432/revengine
+      - DEBUG=True
+      - ENABLE_DJANGO_EXTENSIONS=False
+      - SESSION_COOKIE_SECURE=False
+      - SESSION_COOKIE_NAME=local_sessionid
+      - HOME=/home
+    env_file:
+      - ./.env
+    networks:
+      - net
+    depends_on:
+      - db
+    volumes:
+      - .:/code
+  db:
+    environment:
+      POSTGRES_HOST_AUTH_METHOD: trust
+      POSTGRES_DB: revengine
+      DATABASE_URL: postgres://postgres@db:5432/revengine
+    image: postgres:12-alpine
+    networks: 
+      - net
+    ports:
+      - "5432:5432"
+    volumes:
+      - dev_revengine_data:/var/lib/postgresql/data
+
+networks:
+  net:

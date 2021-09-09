@@ -3,6 +3,9 @@ import { getEndpoint, getPageElementByType } from '../support/util';
 import livePageOne from '../fixtures/pages/live-page-1.json';
 import orgAccountIdFixture from '../fixtures/stripe/org-account-id.json';
 
+// Deps
+import { format } from 'date-fns';
+
 // Constants
 import { CLEARBIT_SCRIPT_SRC } from '../../src/hooks/useClearbit';
 
@@ -476,16 +479,27 @@ describe('Donation page', () => {
       cy.visit('/revenue-program-slug/page-slug-3');
       cy.url().should('include', 'revenue-program-slug/page-slug-3');
       cy.wait('@getPage');
-      const targetAmount = 15;
-      // if frequency is recurring, show additional agreement statement...
+      const targetMonthlyAmount = 15;
+      // if frequency is monthly, show particular agreement statement...
       cy.getByTestId('frequency-month').click();
-      cy.getByTestId(`amount-${targetAmount}`).click();
-      const expectedText = `payments of $${targetAmount}, to be processed on or adjacent to the ${new Date().getDate()}`;
-      cy.getByTestId('donation-page-static-text').contains(expectedText).should('exist');
+      cy.getByTestId(`amount-${targetMonthlyAmount}`).click();
+      const expectedMonthlyText = `payments of $${targetMonthlyAmount}, to be processed on or adjacent to the ${new Date().getDate()}`;
+      cy.getByTestId('donation-page-static-text').contains(expectedMonthlyText).should('exist');
+
+      // if frequency is yearly, show another agreement statement...
+      const targetYearlyAmount = 365;
+      cy.getByTestId('frequency-year').click();
+      cy.getByTestId(`amount-${targetYearlyAmount}`).click();
+      const expectedYearlyText = `payments of $${targetYearlyAmount}, to be processed on or adjacent to ${format(
+        new Date(),
+        'L/d'
+      )} yearly until you cancel`;
+      cy.getByTestId('donation-page-static-text').contains(expectedYearlyText).should('exist');
 
       // ... but if it's one-time, don't
       cy.getByTestId('frequency-one_time').click();
-      cy.getByTestId('donation-page-static-text').contains(expectedText).should('not.exist');
+      cy.getByTestId('donation-page-static-text').contains(expectedMonthlyText).should('not.exist');
+      cy.getByTestId('donation-page-static-text').contains(expectedYearlyText).should('not.exist');
     });
   });
 

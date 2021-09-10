@@ -46,7 +46,8 @@ function validateRequiredElements(elements) {
 
     if (elementMissingRequirements(el_instance[0])) {
       // Right now this only supports a single instance of a type.
-      // TODO: Make this support multiple instances of a type.
+      // TODO: Support multiple instances of a type.
+      // TODO: Support multiple requirements.
       errors.elementErrors.push({ element: requiredElement, message: `${dElement?.contentMissingMsg}` });
     }
   }

@@ -103,12 +103,6 @@ class DonationPage(AbstractPage, SafeDeleteModel):
 
     email_templates = models.ManyToManyField("emails.PageEmailTemplate", blank=True)
 
-    class Meta:
-        unique_together = (
-            "slug",
-            "revenue_program",
-        )
-
     def __str__(self):
         return self.name
 
@@ -138,10 +132,6 @@ class DonationPage(AbstractPage, SafeDeleteModel):
     @property
     def is_live(self):
         return bool(self.published_date and self.published_date <= timezone.now())
-
-    @property
-    def derived_slug(self):
-        return f"{self.revenue_program.slug}/{self.slug}"
 
     def save(self, *args, **kwargs):
         limit = self.has_page_limit()

@@ -216,7 +216,14 @@ class BenefitLevelBenefit(models.Model):
 
 class RevenueProgram(IndexedTimeStampedModel):
     name = models.CharField(max_length=255)
-    slug = models.SlugField(max_length=100, blank=True, unique=True)
+    # RFC-1035 limits domain labels to 63 characters
+    SLUG_MAX_LENGTH = 63
+    slug = models.SlugField(
+        max_length=SLUG_MAX_LENGTH,
+        blank=True,
+        unique=True,
+        help_text="This will be used as the subdomain for donation pages made under this revenue program",
+    )
     address = models.OneToOneField("common.Address", on_delete=models.SET_NULL, null=True)
     organization = models.ForeignKey("organizations.Organization", on_delete=models.CASCADE)
     contact_email = models.EmailField(max_length=255, blank=True)
@@ -245,11 +252,8 @@ class RevenueProgram(IndexedTimeStampedModel):
 
     def save(self, *args, **kwargs):
         if not self.id:
-            self.slug = normalize_slug(
-                self.name,
-                self.slug,
-            )
-            self.slug = normalize_slug(slug=self.slug)
+            self.slug = normalize_slug(self.name, self.slug, max_length=self.SLUG_MAX_LENGTH)
+            self.slug = normalize_slug(slug=self.slug, max_length=self.SLUG_MAX_LENGTH)
 
         # Avoid state of a donation_page not being in the rev program's page set when being added as default page.
         if self.default_donation_page and self.default_donation_page not in self.donationpage_set.all():

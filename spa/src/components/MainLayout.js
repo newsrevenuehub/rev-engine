@@ -22,7 +22,6 @@ function MainLayout() {
 
   // Get subdomain for donation-page-routing
   const subdomain = useSubdomain();
-  console.log('subdomain', subdomain);
 
   // Store reauth callbacks in ref to persist between renders
   const reauthCallbacks = useRef([]);

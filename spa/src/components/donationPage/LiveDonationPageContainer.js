@@ -94,7 +94,7 @@ function LiveDonationPageRouter() {
       page: pageSlug,
       live: 1
     };
-
+    console.log('those requestParams', requestParams);
     requestFullPage(
       {
         method: 'GET',

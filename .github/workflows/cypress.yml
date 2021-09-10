@@ -12,6 +12,12 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v2
+      - name: Setup custom hosts for subdomain testing
+        run: |
+          echo "127.0.0.1 revengine-testabc123.com" | sudo tee -a /etc/hosts
+          echo "127.0.0.1 revenueprogram.revengine-testabc123.com" | sudo tee -a /etc/hosts
+      - name: Debug hosts
+        run: cat /etc/hosts
       - name: Cypress tests
         uses: cypress-io/github-action@v2
         with:

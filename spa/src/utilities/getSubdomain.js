@@ -2,7 +2,7 @@
  * getSubdomain will extract a subdomain, or return false if there
  * is none (or if it's www) reliably, given:
  *    The host is not nested (my.company.example.com)
- *    It doesn't contain a second-level domain (example.co.uk)
+ *    It doesn't contain a country-coded top-level domain (example.co.uk)
  * @param {string} host - window.location.host
  * @returns {string} - empty if no valid subdomain, subdomain string if found
  */

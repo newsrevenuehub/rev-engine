@@ -308,8 +308,8 @@ function PageEditor() {
 
   useEffect(() => {
     if (!isEmpty(errors)) {
-      if (errors.missing) {
-        alert.error(<MissingElementErrors missing={errors.missing} />);
+      if (errors.elementErrors) {
+        alert.error(<ElementErrors elementErrors={errors.elementErrors} />, { timeout: 0 });
       }
     }
   }, [errors, alert]);
@@ -379,13 +379,13 @@ export const usePageEditorContext = () => useContext(PageEditorContext);
 
 export default PageEditor;
 
-function MissingElementErrors({ missing = [] }) {
+function ElementErrors({ elementErrors = [] }) {
   return (
     <>
       The following elements are required for your page to function properly:
       <ul data-testid="missing-elements-alert">
-        {missing.map((missingEl) => (
-          <li key={missingEl}>{dynamicElements[missingEl].displayName}</li>
+        {elementErrors.map((elError) => (
+          <li key={elError.element}>{elError.message}</li>
         ))}
       </ul>
     </>

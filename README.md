@@ -146,6 +146,8 @@ In order to run the donation-page.spec and the page-view-analytics.spec cypress 
 127.0.0.1 revenueprogram.revengine-testabc123.com
 ```
 
+Then run your frontend separately from your backend, using `npm run start:subdomains`
+
 NOTE: Running tests locally like this also depends on your frontend being served at port 3000. (This is the default configuration for both `npm run start` and `make run-dev`)
 
 **7. Set up local env variables**

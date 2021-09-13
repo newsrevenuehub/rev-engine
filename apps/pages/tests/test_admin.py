@@ -28,25 +28,6 @@ class DonationPageAdminTestCase(TestCase):
         new_templates = Template.objects.all()
         self.assertEqual(prev_template_count + 1, len(new_templates))
 
-        # New Template gets its name from previous page's heading
-        self.assertEqual(new_templates[0].name, self.page.name)
-
-    def test_make_template_no_duplicate(self):
-        request = self.factory.get(reverse("admin:pages_donationpage_changelist"))
-        setup_request(self.user, request)
-        prev_template_count = Template.objects.count()
-        page_queryset = DonationPage.objects.all()
-
-        self.page_admin.make_template(request, page_queryset)
-
-        new_templates = Template.objects.all()
-        self.assertNotEqual(prev_template_count, len(new_templates))
-
-        # Run it again with same pages
-        self.page_admin.make_template(request, page_queryset)
-        last_templates_count = Template.objects.count()
-        self.assertEqual(last_templates_count, len(new_templates))
-
 
 class TemplateAdminTest(TestCase):
     def setUp(self):
@@ -56,7 +37,7 @@ class TemplateAdminTest(TestCase):
         self.client.force_login(self.user)
         self.template_admin = TemplateAdmin(Template, AdminSite())
         self.original_page = DonationPageFactory()
-        self.template = self.original_page.save_as_template()[0]
+        self.template = self.original_page.make_template_from_page()
 
     def test_make_template_button_appears_in_change_form(self):
         change_url = reverse("admin:pages_template_change", kwargs={"object_id": self.template.id})
@@ -74,23 +55,6 @@ class TemplateAdminTest(TestCase):
 
         new_pages = DonationPage.objects.all()
         self.assertNotEqual(prev_page_count, len(new_pages))
-
-        # New page's heading should be previous template's name
-        self.assertEqual(new_pages[0].name, self.template.name)
-
-    def test_new_page_creation_fails_gracefully(self):
-        request_body = {"_page-from-template": True}
-        url = reverse("admin:pages_template_change", kwargs={"object_id": self.template.id})
-        self.original_page.name = "A new name"
-        self.original_page.save()
-        request = self.factory.post(url, request_body)
-        setup_request(self.user, request)
-        prev_page_count = DonationPage.objects.count()
-        template = Template.objects.first()
-        response = self.template_admin.response_change(request, template)
-
-        new_pages = DonationPage.objects.all()
-        self.assertEqual(prev_page_count, len(new_pages))
 
     def test_response_change_without_button_click_passes_through(self):
         url = reverse("admin:pages_template_change", kwargs={"object_id": self.template.id})

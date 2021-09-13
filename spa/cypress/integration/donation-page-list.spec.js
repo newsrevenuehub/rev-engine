@@ -1,4 +1,4 @@
-import { LIST_PAGES, REVENUE_PROGRAMS } from 'ajax/endpoints';
+import { LIST_PAGES, REVENUE_PROGRAMS, TEMPLATES } from 'ajax/endpoints';
 import { CONTENT_SLUG } from 'routes';
 import { getEndpoint } from '../support/util';
 
@@ -51,5 +51,15 @@ describe('Donation page list', () => {
       cy.getByTestId('page-name').blur();
       cy.getByTestId('page-slug').should('have.value', 'my-testing-page');
     });
+
+    it('should show template list dropdown, if templates exist', () => {
+      cy.intercept(
+        { method: 'GET', pathname: getEndpoint(TEMPLATES) },
+        { fixture: 'pages/templates.json', statusCode: 200 }
+      );
+      cy.getByTestId('template-picker').should('exist');
+    });
+
+    it('should contain rev_program_pk and template_pk in outoing request', () => {});
   });
 });

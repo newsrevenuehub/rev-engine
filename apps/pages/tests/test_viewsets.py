@@ -33,6 +33,7 @@ class PageViewSetTest(AbstractTestCase):
         self.authenticate_user_for_resource(self.rev_program)
         self.login()
 
+    # CREATE
     def test_page_create_adds_page(self):
         self.assertEqual(len(self.resources), self.resource_count)
         self.login()
@@ -86,6 +87,16 @@ class PageViewSetTest(AbstractTestCase):
         self.assertIn("revenue_program", response.data)
         self.assertIn("slug", response.data["revenue_program"])
 
+    def test_page_create_adds_template_values_when_valid_pk(self):
+        pass
+
+    def test_page_create_returns_validation_error_when_invalid_template_pk(self):
+        pass
+
+    def test_page_create_returns_validation_error_when_template_has_invalid_styles_pk(self):
+        pass
+
+    # UPDATE
     def test_page_update_updates_page(self):
         page = self.resources[0]
         self.authenticate_user_for_resource(page)
@@ -308,15 +319,15 @@ class TemplateViewSetTest(AbstractTestCase):
         template = self.resources[0]
         self.authenticate_user_for_resource(template)
         self.login()
-        old_template_heading = template.heading
+        old_template_name = template.name
         old_template_pk = template.pk
         detail_url = f"/api/v1/templates/{old_template_pk}/"
-        new_heading = "Old Template With New Heading"
-        response = self.client.patch(detail_url, {"heading": new_heading})
+        new_name = "Old Template With New Name"
+        self.client.patch(detail_url, {"name": new_name})
         template = Template.objects.filter(pk=old_template_pk).first()
         self.assertEqual(template.pk, old_template_pk)
-        self.assertNotEqual(template.heading, old_template_heading)
-        self.assertEqual(template.heading, new_heading)
+        self.assertNotEqual(template.name, old_template_name)
+        self.assertEqual(template.name, new_name)
 
     def test_template_delete_deletes_template(self):
         template = self.resources[0]
@@ -324,7 +335,7 @@ class TemplateViewSetTest(AbstractTestCase):
         self.login()
         old_template_pk = template.pk
         detail_url = f"/api/v1/templates/{old_template_pk}/"
-        response = self.client.delete(detail_url)
+        self.client.delete(detail_url)
         self.assertRaises(Template.DoesNotExist, Template.objects.get, pk=old_template_pk)
 
     def test_template_list_uses_list_serializer(self):
@@ -361,9 +372,9 @@ class TemplateViewSetTest(AbstractTestCase):
         data = response.json()
 
         # Should return expected number of pages
-        self.assertEqual(user_templates.count(), data["count"])
+        self.assertEqual(user_templates.count(), len(data))
 
-        returned_ids = [p["id"] for p in data["results"]]
+        returned_ids = [p["id"] for p in data]
         expected_ids = [p.id for p in user_templates]
         # Should return expected pages
         self.assertEqual(set(expected_ids), set(returned_ids))

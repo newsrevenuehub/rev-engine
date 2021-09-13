@@ -182,7 +182,7 @@ describe('Donation page edit', () => {
     });
   });
 
-  describe('Validations', () => {
+  describe.only('Validations', () => {
     it('should render an alert with a list of missing required elements', () => {
       const missingElementType = 'DPayment';
       const page = { ...livePage };
@@ -247,6 +247,29 @@ describe('Donation page edit', () => {
       // Now we should see the Setup tab and our error message
       cy.getByTestId('edit-interface').should('exist');
       cy.getByTestId('errors-Logo link').contains(expectedErrorMessage);
+    });
+
+    it('should catch missing elements and an element that has not been configured.', () => {
+      cy.intercept(
+        { method: 'GET', pathname: getEndpoint(FULL_PAGE) },
+        { fixture: 'pages/live-page-element-validation.json' }
+      ).as('getPageDetailModified');
+      cy.login('user/stripe-verified.json');
+      cy.visit('edit/my/page');
+      cy.wait('@getPageDetailModified');
+      // Need to fake an update to the page to enable save
+      cy.getByTestId('edit-page-button').click();
+      cy.contains('Rich text').click();
+
+      // Accept changes
+      cy.getByTestId('keep-element-changes-button').click();
+
+      // Save changes
+      cy.getByTestId('save-page-button').click();
+      cy.getByTestId('missing-elements-alert').should('exist').contains('Payment');
+      cy.getByTestId('missing-elements-alert').contains('Payment');
+      cy.getByTestId('missing-elements-alert').contains('Donation frequency');
+      cy.getByTestId('missing-elements-alert').contains('Donation amount');
     });
   });
 

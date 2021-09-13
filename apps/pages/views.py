@@ -100,9 +100,18 @@ class PageViewSet(OrganizationLimitedListView, viewsets.ModelViewSet):
 class TemplateViewSet(OrganizationLimitedListView, viewsets.ModelViewSet):
     model = Template
     permission_classes = [IsAuthenticated, UserBelongsToOrg]
+    pagination_class = None
 
     def get_serializer_class(self):
-        return serializers.TemplateDetailSerializer if self.action == "retrieve" else serializers.TemplateListSerializer
+        return (
+            serializers.TemplateDetailSerializer
+            if self.action
+            in (
+                "retrieve",
+                "create",
+            )
+            else serializers.TemplateListSerializer
+        )
 
 
 class StyleViewSet(OrganizationLimitedListView, viewsets.ModelViewSet):

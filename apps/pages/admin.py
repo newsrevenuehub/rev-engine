@@ -134,28 +134,16 @@ class DonationPageAdmin(DonationPageAdminAbstract, SafeDeleteAdmin):
 
     @admin.action(description="Make templates from selected pages")
     def make_template(self, request, queryset):
-        updated = 0
-        duplicated = 0
+        created_template_count = 0
         for page in queryset:
-            _, created = page.save_as_template()
-            if created:
-                updated += 1
-            else:
-                duplicated += 1
+            page.make_template_from_page()
+            created_template_count += 1
 
-        if updated:
-            self.message_user(
-                request,
-                f"{updated} {'template' if updated == 1 else 'templates'} created.",
-                messages.SUCCESS,
-            )
-
-        if duplicated:
-            self.message_user(
-                request,
-                f"{duplicated} {'template' if duplicated == 1 else 'templates'} already {'exists' if duplicated == 1 else 'exist'}",
-                messages.WARNING,
-            )
+        self.message_user(
+            request,
+            f"{created_template_count} {'template' if created_template_count == 1 else 'templates'} created.",
+            messages.SUCCESS,
+        )
 
 
 @admin.register(Style)

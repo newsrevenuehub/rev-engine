@@ -17,9 +17,6 @@ from apps.organizations.models import (
 from apps.users.admin import UserOrganizationInline
 
 
-# from apps.common.admin import OrganizationAddressInline, RevenueProgramAddressInline
-
-
 class RevenueProgramBenefitLevelInline(admin.TabularInline):
     model = RevenueProgram.benefit_levels.through
     verbose_name = "Benefit level"

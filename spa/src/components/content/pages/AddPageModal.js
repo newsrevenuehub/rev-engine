@@ -1,8 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import * as S from './AddPageModal.styled';
 import { useTheme } from 'styled-components';
 
 import { faSave, faTrash } from '@fortawesome/free-solid-svg-icons';
+import { useAlert } from 'react-alert';
 
 // Routes
 import { useHistory } from 'react-router-dom';
@@ -12,39 +13,71 @@ import { EDITOR_ROUTE, REV_PROGRAM_CREATE_SLUG } from 'routes';
 import slugify from 'utilities/slugify';
 
 // AJAX
-import axios from 'ajax/axios';
-import { REVENUE_PROGRAMS, LIST_PAGES } from 'ajax/endpoints';
+import useRequest from 'hooks/useRequest';
+import { REVENUE_PROGRAMS, LIST_PAGES, TEMPLATES } from 'ajax/endpoints';
 
 // Children
 import Modal from 'elements/modal/Modal';
 import Input from 'elements/inputs/Input';
 import Select from 'elements/inputs/Select';
 import CircleButton from 'elements/buttons/CircleButton';
+import { GENERIC_ERROR } from 'constants/textConstants';
 
 function AddPageModal({ isOpen, closeModal }) {
+  const alert = useAlert();
   const theme = useTheme();
   const history = useHistory();
 
+  const fetchRevPrograms = useRequest();
+  const fetchTemplates = useRequest();
+  const createPage = useRequest();
+
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState({});
-  const [revenuePrograms, setRevenuePrograms] = useState([]);
   const [name, setName] = useState('');
   const [slug, setSlug] = useState('');
+
+  const [revenuePrograms, setRevenuePrograms] = useState([]);
   const [revenueProgram, setRevenueProgram] = useState();
+  const [templates, setTemplates] = useState([]);
+  const [template, setTemplate] = useState();
+
+  const handleRequestFailure = useCallback(
+    (e) => {
+      alert.error(GENERIC_ERROR);
+    },
+    [alert]
+  );
 
   useEffect(() => {
-    async function fetchRevPrograms() {
+    async function getRevProgams() {
       setLoading(true);
-      try {
-        const { data } = await axios.get(REVENUE_PROGRAMS);
-        setRevenuePrograms(data.results);
-      } catch (e) {
-      } finally {
-        setLoading(false);
-      }
+      fetchRevPrograms(
+        {
+          method: 'GET',
+          url: REVENUE_PROGRAMS
+        },
+        { onSuccess: ({ data }) => setRevenuePrograms(data.results), onFailure: handleRequestFailure }
+      );
     }
-    fetchRevPrograms();
-  }, []);
+    getRevProgams();
+    setLoading(false);
+  }, [handleRequestFailure]);
+
+  useEffect(() => {
+    async function getTemplates() {
+      setLoading(true);
+      fetchTemplates(
+        {
+          method: 'GET',
+          url: TEMPLATES
+        },
+        { onSuccess: ({ data }) => setTemplates(data), onFailure: handleRequestFailure }
+      );
+    }
+    getTemplates();
+    setLoading(false);
+  }, [handleRequestFailure]);
 
   const handleNameBlur = () => {
     if (!slug) setSlug(slugify(name));
@@ -60,23 +93,38 @@ function AddPageModal({ isOpen, closeModal }) {
 
   const canSavePage = () => !loading && !!revenueProgram && !!slug && !!name;
 
+  const handleSaveFailure = useCallback(
+    (e) => {
+      if (e.response?.data) {
+        setErrors(e.response.data);
+      } else {
+        alert.error('There was an error and we could not create your new page. We have been notified.');
+      }
+    },
+    [alert]
+  );
+
   const handleSave = async () => {
     setLoading(true);
-    try {
-      const formData = {
-        name,
-        slug,
-        revenue_program_pk: revenueProgram.id
-      };
-      const { data } = await axios.post(LIST_PAGES, formData);
-      history.push(`${EDITOR_ROUTE}/${data.revenue_program.slug}/${data.slug}`);
-    } catch (e) {
-      if (e.response) {
-        setErrors(e.response.data);
+
+    const formData = {
+      name,
+      slug,
+      revenue_program_pk: revenueProgram.id
+    };
+    if (template) formData.template_pk = template.id;
+    createPage(
+      {
+        method: 'POST',
+        url: LIST_PAGES,
+        data: formData
+      },
+      {
+        onSuccess: ({ data }) => history.push(`${EDITOR_ROUTE}/${data.revenue_program.slug}/${data.slug}`),
+        onFailure: handleSaveFailure
       }
-    } finally {
-      setLoading(false);
-    }
+    );
+    setLoading(false);
   };
 
   const handleDiscard = () => {
@@ -111,7 +159,7 @@ function AddPageModal({ isOpen, closeModal }) {
             />
           </S.InputWrapper>
           {revenuePrograms.length > 0 && (
-            <S.InputWrapper>
+            <S.InputWrapper data-testid="revenue-program-picker">
               <Select
                 label="Choose a revenue program for this page"
                 onSelectedItemChange={({ selectedItem }) => setRevenueProgram(selectedItem)}
@@ -129,6 +177,20 @@ function AddPageModal({ isOpen, closeModal }) {
               You need to set up a revenue program to create a page.{' '}
               <S.CreateRevProgramLink onClick={handleCreateRevProgram}>Create one?</S.CreateRevProgramLink>
             </S.NoRevPrograms>
+          )}
+          {templates.length > 0 && (
+            <S.InputWrapper data-testid="template-picker">
+              <Select
+                label="[Optional] Choose a page template"
+                onSelectedItemChange={({ selectedItem }) => setTemplate(selectedItem)}
+                selectedItem={template}
+                items={templates}
+                itemToString={(i) => i.name}
+                placeholder="Select a template"
+                dropdownPosition="above"
+                displayAccessor="name"
+              />
+            </S.InputWrapper>
           )}
         </S.PageForm>
         <S.Buttons>

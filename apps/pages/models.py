@@ -1,4 +1,3 @@
-from django.apps import apps
 from django.core.exceptions import ValidationError
 from django.db import models
 from django.utils import timezone
@@ -8,8 +7,8 @@ from sorl.thumbnail import ImageField as SorlImageField
 
 from apps.api.error_messages import UNIQUE_PAGE_SLUG
 from apps.common.models import IndexedTimeStampedModel
-from apps.common.utils import normalize_slug
-from apps.organizations.models import Feature
+from apps.common.utils import cleanup_keys, normalize_slug
+from apps.organizations.models import Feature, Organization
 from apps.pages.validators import style_validator
 
 
@@ -67,18 +66,24 @@ class Template(AbstractPage):
             "organization",
         )
 
-    def make_page_from_template(self):
-        page_model = apps.get_model("pages", "DonationPage")
-        page = page_model()
-        for field in AbstractPage.field_names():
-            template_field = getattr(self, field)
-            setattr(page, field, template_field)
-        if parent_page := DonationPage.objects.filter(name=self.name).first():
-            page.name = f"{page.name}-(COPY)"
-            page.revenue_program = parent_page.revenue_program
-            page.save()
-            return page_model.objects.get(pk=page.pk)
-        raise self.TemplateError(f"A DonationPage with the heading ({self.heading}) could not be found.")
+    def make_page_from_template(self, page_data={}):
+        """
+        Create a page from from template.
+        Expects template_data as dict, and optional page_data (eg. for creating a template page via org admin).
+        We also clean up template and page data here, so that we only copy the fields we want.
+        """
+        template_data = self.__dict__
+        temporary_name = f"{template_data['name']} [COPY]"
+        existing_copies_count = DonationPage.objects.filter(name__contains=temporary_name).count()
+        template_data["name"] = f"{temporary_name}({int(existing_copies_count)})"
+        template_data["slug"] = normalize_slug(name=template_data["name"])
+        template_data["revenue_program"] = self.organization.revenueprogram_set.first()
+
+        unwanted_keys = ["_state", "id", "modified", "created", "published_date"]
+        template = cleanup_keys(template_data, unwanted_keys)
+        page = cleanup_keys(page_data, unwanted_keys)
+        merged_page = template | page
+        return DonationPage.objects.create(**merged_page)
 
 
 class DonationPage(AbstractPage, SafeDeleteModel):
@@ -153,24 +158,26 @@ class DonationPage(AbstractPage, SafeDeleteModel):
 
         super().save(*args, **kwargs)
 
-    def save_as_template(self, name=None):
-        template = Template()
-        for field in AbstractPage.field_names():
-            page_field = getattr(self, field)
-            setattr(template, field, page_field)
-
-        template.name = name or self.name
-
-        template_exists = Template.objects.filter(name=template.name).exists()
-        created = False
-
-        if not template_exists:
-            template.save()
-            created = True
-
-        instance = Template.objects.filter(name=template.name).first()
-
-        return (instance, created)
+    def make_template_from_page(self, template_data={}):
+        unwanted_keys = [
+            "_state",
+            "id",
+            "created",
+            "modified",
+            "slug",
+            "revenue_program_id",
+            "page_screenshot",
+            "deleted",
+            "published_date",
+        ]
+        page = cleanup_keys(self.__dict__, unwanted_keys)
+        template = cleanup_keys(template_data, unwanted_keys)
+        merged_template = page | template
+        target_name = f"{merged_template['name']} [TEMPLATE]"
+        existing_copies_count = Template.objects.filter(name__contains=target_name).count()
+        merged_template["name"] = f"{target_name}({int(existing_copies_count)})"
+        merged_template["organization"] = Organization.objects.get(pk=merged_template.pop("organization_id"))
+        return Template.objects.create(**merged_template)
 
 
 class Style(IndexedTimeStampedModel, SafeDeleteModel):

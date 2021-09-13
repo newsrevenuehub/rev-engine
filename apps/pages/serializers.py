@@ -58,6 +58,7 @@ class DonationPageFullDetailSerializer(serializers.ModelSerializer):
 
     revenue_program = RevenueProgramListInlineSerializer(read_only=True)
     revenue_program_pk = serializers.IntegerField(allow_null=True, required=False)
+    template_pk = serializers.IntegerField(allow_null=True, required=False)
     organization = serializers.PrimaryKeyRelatedField(read_only=True)
 
     graphic = serializers.ImageField(allow_empty_file=True, allow_null=True, required=False)
@@ -101,6 +102,19 @@ class DonationPageFullDetailSerializer(serializers.ModelSerializer):
         if new_slug and DonationPage.objects.deleted_only().filter(slug=new_slug).exists():
             raise serializers.ValidationError({"slug": [UNIQUE_PAGE_SLUG]})
 
+    def _create_from_template(self, validated_data):
+        """
+        Given a template pk, find template and run model method make_page_from_template.
+        Returns DonationPage instance
+        Throws ValidationError if template is somehow missing.
+        """
+        try:
+            template_pk = validated_data.pop("template_pk")
+            template = Template.objects.get(pk=template_pk)
+            return template.make_page_from_template(validated_data)
+        except Template.DoesNotExist:
+            raise serializers.ValidationError({"template": ["This template no longer exists"]})
+
     def create(self, validated_data):
         if "revenue_program_pk" not in validated_data:
             raise serializers.ValidationError(
@@ -113,11 +127,14 @@ class DonationPageFullDetailSerializer(serializers.ModelSerializer):
         except RevenueProgram.DoesNotExist:
             raise serializers.ValidationError({"revenue_program_pk": "Could not find revenue program with provided pk"})
 
-        organization = self.context["request"].user.get_organization()
+        organization = self.context["request"].user.get_organization() if self.context.get("request") else None
         validated_data["organization"] = organization
 
         self._check_against_soft_deleted_slugs(validated_data)
-        return super().create(validated_data)
+        if "template_pk" in validated_data:
+            return self._create_from_template(validated_data)
+        else:
+            return super().create(validated_data)
 
     def update(self, instance, validated_data):
         self._update_related("styles", Style, validated_data, instance)
@@ -143,9 +160,43 @@ class DonationPageListSerializer(serializers.ModelSerializer):
 
 
 class TemplateDetailSerializer(serializers.ModelSerializer):
+    page_pk = serializers.IntegerField(allow_null=True, required=False)
+
+    def _create_from_page(self, validated_data):
+        """
+        Given a page pk, find page and run model method make_template_from_page.
+        Returns Template instance
+        Throws ValidationError if donation page is somehow missing.
+        """
+        try:
+            page_pk = validated_data.pop("page_pk")
+            page = DonationPage.objects.get(pk=page_pk)
+            return page.make_template_from_page(validated_data)
+        except DonationPage.DoesNotExist:
+            raise serializers.ValidationError({"page": ["This page no longer exists"]})
+
+    def create(self, validated_data):
+        if "page_pk" in validated_data:
+            return self._create_from_page(validated_data)
+        return super().create(validated_data)
+
     class Meta:
         model = Template
-        fields = "__all__"
+        fields = [
+            "page_pk",
+            "name",
+            "heading",
+            "graphic",
+            "organization",
+            "header_bg_image",
+            "header_logo",
+            "header_link",
+            "styles",
+            "elements",
+            "sidebar_elements",
+            "thank_you_redirect",
+            "post_thank_you_redirect",
+        ]
 
 
 class TemplateListSerializer(serializers.ModelSerializer):
@@ -154,9 +205,4 @@ class TemplateListSerializer(serializers.ModelSerializer):
         fields = [
             "id",
             "name",
-            "heading",
-            "header_bg_image",
-            "header_logo",
-            "header_link",
-            "organization",
         ]

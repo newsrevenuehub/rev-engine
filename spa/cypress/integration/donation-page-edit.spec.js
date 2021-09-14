@@ -8,7 +8,7 @@ import livePage from '../fixtures/pages/live-page-1.json';
 import unpublishedPage from '../fixtures/pages/unpublished-page-1.json';
 
 // Contsants
-import { DELETE_PAGE, FULL_PAGE, PATCH_PAGE, LIST_PAGES, CONTRIBUTION_META } from 'ajax/endpoints';
+import { DELETE_PAGE, FULL_PAGE, PATCH_PAGE, LIST_PAGES, CONTRIBUTION_META, TEMPLATES } from 'ajax/endpoints';
 import { DELETE_CONFIRM_MESSAGE } from 'components/pageEditor/PageEditor';
 import { CONTENT_SLUG } from 'routes';
 import { CLEARBIT_SCRIPT_SRC } from 'hooks/useClearbit';
@@ -29,6 +29,7 @@ describe('Donation page edit', () => {
     cy.getByTestId('preview-page-button');
     cy.getByTestId('edit-page-button');
     cy.getByTestId('save-page-button');
+    cy.getByTestId('clone-page-button');
     cy.getByTestId('delete-page-button');
   });
 
@@ -425,6 +426,47 @@ describe('Additional Info Setup', () => {
   describe('Page load side effects', () => {
     it('should NOT contain clearbit.js script in body', () => {
       cy.get('head').find(`script[src*="${CLEARBIT_SCRIPT_SRC}"]`).should('have.length', 0);
+    });
+  });
+
+  describe('Template from page', () => {
+    beforeEach(() => {
+      cy.login('user/stripe-verified.json');
+      cy.intercept(
+        { method: 'GET', pathname: getEndpoint(FULL_PAGE) },
+        { fixture: 'pages/live-page-1', statusCode: 200 }
+      ).as('getPageDetail');
+      cy.visit('edit/my/page');
+      cy.url().should('include', 'edit/my/page');
+      cy.wait('@getPageDetail');
+    });
+
+    it('should show warning if page edits are unsaved', () => {
+      cy.getByTestId('edit-page-button').click();
+      cy.contains('Rich text').click({ force: true });
+      cy.getByTestId('keep-element-changes-button').click({ force: true });
+      cy.getByTestId('clone-page-button').click({ force: true });
+      cy.getByTestId('confirmation-modal').should('exist');
+    });
+
+    it('should show template creation modal if continue is clicked', () => {
+      cy.getByTestId('clone-page-button').click({ force: true });
+      cy.getByTestId('template-create-modal').should('exist');
+    });
+    it('should show make request with page pk in body when tepmlate saved', () => {
+      cy.getByTestId('clone-page-button').click({ force: true });
+      cy.getByTestId('template-create-modal').should('exist');
+      cy.intercept({
+        method: 'POST',
+        pathname: getEndpoint(TEMPLATES)
+      }).as('createTemplate');
+      cy.getByTestId('save-template-button').click();
+      cy.wait('@createTemplate').then(({ request }) => {
+        expect(request.body).to.have.property('page_pk');
+        expect(request.body.page_pk).to.equal(livePage.id);
+        expect(request.body).to.have.property('name');
+        expect(request.body.name).to.equal(livePage.name);
+      });
     });
   });
 });

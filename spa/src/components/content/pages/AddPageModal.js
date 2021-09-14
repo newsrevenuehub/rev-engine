@@ -200,14 +200,14 @@ function AddPageModal({ isOpen, closeModal }) {
             color={theme.colors.success}
             type="neutral"
             disabled={!canSavePage()}
-            data-testid="save-styles-button"
+            data-testid="save-new-page-button"
           />
           <CircleButton
             onClick={handleDiscard}
             icon={faTrash}
             color={theme.colors.caution}
             type="neutral"
-            data-testid="discard-styles-button"
+            data-testid="discard-new-page-button"
           />
         </S.Buttons>
       </S.AddPageModal>

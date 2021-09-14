@@ -379,7 +379,7 @@ function PageEditor() {
             data-testid="save-page-button"
             disabled={!updatedPage}
           />
-          <CircleButton onClick={handleMakeTemplate} icon={faClone} type="neutral" data-testid="edit-page-button" />
+          <CircleButton onClick={handleMakeTemplate} icon={faClone} type="neutral" data-testid="clone-page-button" />
           <CircleButton onClick={handleDelete} icon={faTrash} type="caution" data-testid="delete-page-button" />
 
           <BackButton to={CONTENT_SLUG} />

@@ -27,7 +27,6 @@ const AMOUNT_QUERYPARAM = process.env.REACT_APP_AMOUNT_QUERYPARAM || 'amount';
 const DonationPageContext = createContext({});
 
 function DonationPage({ page, stripeAccountId, live = false }) {
-  console.log('page', page);
   const formRef = useRef();
 
   const salesForceQS = useQueryString(SALESFORCE_CAMPAIGN_ID_QUERYPARAM);

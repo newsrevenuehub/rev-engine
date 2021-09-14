@@ -71,7 +71,6 @@ function DonationPageRouter() {
       { method: 'GET', url: ORG_STRIPE_ACCOUNT_ID, params: requestParams },
       {
         onSuccess: ({ data: responseData }) => {
-          console.log('that org stripe id: ', responseData);
           const stripeAccountId = responseData.stripe_account_id;
           dispatch({ type: FETCH_SUCCESS, payload: { [STRIPE_ACCOUNT_ID]: stripeAccountId } });
         },
@@ -98,7 +97,6 @@ function DonationPageRouter() {
       },
       {
         onSuccess: ({ data }) => {
-          console.log('page tho: ', data);
           const {
             google_analytics_v3_id: orgGaV3Id,
             google_analytics_v3_domain: orgGaV3Domain,

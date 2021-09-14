@@ -57,9 +57,33 @@ describe('Donation page list', () => {
         { method: 'GET', pathname: getEndpoint(TEMPLATES) },
         { fixture: 'pages/templates.json', statusCode: 200 }
       );
+      cy.getByTestId('page-create-button').click();
       cy.getByTestId('template-picker').should('exist');
     });
 
-    it('should contain rev_program_pk and template_pk in outoing request', () => {});
+    it('should contain rev_program_pk and template_pk in outoing request', () => {
+      cy.intercept(
+        { method: 'GET', pathname: getEndpoint(REVENUE_PROGRAMS) },
+        { fixture: 'org/revenue-programs-1.json', statusCode: 200 }
+      );
+      cy.intercept(
+        { method: 'GET', pathname: getEndpoint(TEMPLATES) },
+        { fixture: 'pages/templates.json', statusCode: 200 }
+      );
+      cy.getByTestId('page-create-button').click();
+      cy.getByTestId('page-name').type('My Testing Page');
+      cy.getByTestId('page-name').blur();
+      cy.getByTestId('revenue-program-picker').click();
+      cy.getByTestId('select-item-0').click();
+      cy.getByTestId('template-picker').click();
+      cy.getByTestId('select-item-0').click();
+
+      cy.intercept({ method: 'POST', pathname: getEndpoint(LIST_PAGES) }).as('createNewPage');
+      cy.getByTestId('save-new-page-button').click();
+      cy.wait('@createNewPage').then(({ request }) => {
+        expect(request.body).to.have.property('revenue_program_pk');
+        expect(request.body).to.have.property('template_pk');
+      });
+    });
   });
 });

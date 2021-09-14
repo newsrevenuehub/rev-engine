@@ -67,7 +67,7 @@ function CreateTemplateModal({ isOpen, closeModal, page = {} }) {
 
   return (
     <Modal isOpen={isOpen} closeModal={closeModal}>
-      <S.CreateTemplateModal data-testid="page-create-modal">
+      <S.CreateTemplateModal data-testid="template-create-modal">
         <S.ModalTitle>Create a template from page "{page.name}"</S.ModalTitle>
         <S.PageForm>
           <S.InputWrapper>
@@ -88,7 +88,7 @@ function CreateTemplateModal({ isOpen, closeModal, page = {} }) {
             color={theme.colors.success}
             type="neutral"
             disabled={!name || loading}
-            data-testid="save-styles-button"
+            data-testid="save-template-button"
           />
           <CircleButton
             onClick={closeModal}
@@ -96,7 +96,7 @@ function CreateTemplateModal({ isOpen, closeModal, page = {} }) {
             color={theme.colors.caution}
             type="neutral"
             disabled={loading}
-            data-testid="discard-styles-button"
+            data-testid="discard-template-button"
           />
         </S.Buttons>
       </S.CreateTemplateModal>

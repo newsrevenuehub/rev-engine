@@ -187,7 +187,6 @@ class TemplateDetailSerializer(serializers.ModelSerializer):
             "name",
             "heading",
             "graphic",
-            "organization",
             "header_bg_image",
             "header_logo",
             "header_link",

@@ -167,6 +167,18 @@ class TemplateDetailSerializerTest(APITestCase):
         self.assertIn("page", v_error.exception.detail)
         self.assertEqual(str(v_error.exception.detail["page"][0]), "This page no longer exists")
 
+    def test_serializer_does_not_require_org(self):
+        """
+        The organization associated with newly created templates is derived from the originating page.
+        Adding it to the serializer here would require it as a request parameter.
+        """
+        template_data = {
+            "page_pk": self.page.pk,
+            "name": "My New Template",
+        }
+        serializer = self.serializer(data=template_data)
+        self.assertTrue(serializer.is_valid())
+
 
 class StyleListSerializerTest(APITestCase):
     def setUp(self):

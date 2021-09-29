@@ -31,7 +31,7 @@ function validateRequiredElements(elements) {
    */
   if (!elements) return;
 
-  const elementErrors = {};
+  const elementErrors = [{}];
   for (let i = 0; i < requiredElements.length; i++) {
     const requiredElement = requiredElements[i];
     const is_missing = !elements.find((el) => el.type === requiredElement);

@@ -182,7 +182,7 @@ describe('Donation page edit', () => {
     });
   });
 
-  describe.only('Validations', () => {
+  describe('Validations', () => {
     it('should render an alert with a list of missing required elements', () => {
       const missingElementType = 'DPayment';
       const page = { ...livePage };

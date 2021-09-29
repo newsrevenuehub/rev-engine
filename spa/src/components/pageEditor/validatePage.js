@@ -31,27 +31,26 @@ function validateRequiredElements(elements) {
    */
   if (!elements) return;
 
-  const errors = {};
+  const elementErrors = {};
   for (let i = 0; i < requiredElements.length; i++) {
-    errors.elementErrors = errors.elementErrors || [];
     const requiredElement = requiredElements[i];
     const is_missing = !elements.find((el) => el.type === requiredElement);
     const el_instance = elements.filter((el) => el.type === requiredElement);
     const dElement = dynamicElements[requiredElement];
 
     if (is_missing) {
-      errors.elementErrors.push({ element: requiredElement, message: `${dElement.displayName} is missing.` });
+      elementErrors.push({ element: requiredElement, message: `${dElement.displayName} is missing.` });
       continue;
     }
 
     if (elementMissingRequirements(el_instance[0])) {
-      // Right now this only supports a single instance of a type.
       // TODO: Support multiple instances of a type.
       // TODO: Support multiple requirements.
-      errors.elementErrors.push({ element: requiredElement, message: `${dElement?.contentMissingMsg}` });
+      elementErrors.push({ element: requiredElement, message: `${dElement?.contentMissingMsg}` });
     }
   }
-  return errors;
+  // Only return a truthy value here if there really are errors.
+  if (elementErrors.length > 0) return { elementErrors };
 }
 
 export default validatePage;

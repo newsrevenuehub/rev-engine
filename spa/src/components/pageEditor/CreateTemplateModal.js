@@ -19,6 +19,7 @@ import { GENERIC_ERROR } from 'constants/textConstants';
 import CircleButton from 'elements/buttons/CircleButton';
 import Modal from 'elements/modal/Modal';
 import Input from 'elements/inputs/Input';
+import FormErrors from 'elements/inputs/FormErrors';
 
 function CreateTemplateModal({ isOpen, closeModal, page = {} }) {
   const alert = useAlert();
@@ -45,7 +46,8 @@ function CreateTemplateModal({ isOpen, closeModal, page = {} }) {
     }
   };
 
-  const handleSave = () => {
+  const handleSave = (e) => {
+    e.preventDefault();
     setLoading(true);
     const data = {
       page_pk: page.id,
@@ -69,36 +71,39 @@ function CreateTemplateModal({ isOpen, closeModal, page = {} }) {
     <Modal isOpen={isOpen} closeModal={closeModal}>
       <S.CreateTemplateModal data-testid="template-create-modal">
         <S.ModalTitle>Create a template from page "{page.name}"</S.ModalTitle>
-        <S.PageForm>
-          <S.InputWrapper>
-            <Input
-              label="Name this template"
-              helpText="Unique name for this template"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              errors={errors?.name}
-              testid="page-name"
+        <S.TemplateForm onSubmit={handleSave}>
+          <S.FormFields>
+            <S.InputWrapper>
+              <Input
+                label="Name this template"
+                helpText="Unique name for this template"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                errors={errors?.name}
+                testid="page-name"
+              />
+            </S.InputWrapper>
+            <FormErrors errors={errors?.non_field_errors} />
+          </S.FormFields>
+          <S.Buttons>
+            <CircleButton
+              type="submit"
+              icon={faSave}
+              color={theme.colors.success}
+              buttonType="neutral"
+              disabled={!name || loading}
+              data-testid="save-template-button"
             />
-          </S.InputWrapper>
-        </S.PageForm>
-        <S.Buttons>
-          <CircleButton
-            onClick={handleSave}
-            icon={faSave}
-            color={theme.colors.success}
-            type="neutral"
-            disabled={!name || loading}
-            data-testid="save-template-button"
-          />
-          <CircleButton
-            onClick={closeModal}
-            icon={faTrash}
-            color={theme.colors.caution}
-            type="neutral"
-            disabled={loading}
-            data-testid="discard-template-button"
-          />
-        </S.Buttons>
+            <CircleButton
+              onClick={closeModal}
+              icon={faTrash}
+              color={theme.colors.caution}
+              buttonType="neutral"
+              disabled={loading}
+              data-testid="discard-template-button"
+            />
+          </S.Buttons>
+        </S.TemplateForm>
       </S.CreateTemplateModal>
     </Modal>
   );

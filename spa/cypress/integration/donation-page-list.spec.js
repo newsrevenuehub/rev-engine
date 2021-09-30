@@ -61,7 +61,7 @@ describe('Donation page list', () => {
       cy.getByTestId('template-picker').should('exist');
     });
 
-    it('should contain rev_program_pk and template_pk in outoing request', () => {
+    it.only('should contain rev_program_pk and template_pk in outoing request', () => {
       cy.intercept(
         { method: 'GET', pathname: getEndpoint(REVENUE_PROGRAMS) },
         { fixture: 'org/revenue-programs-1.json', statusCode: 200 }

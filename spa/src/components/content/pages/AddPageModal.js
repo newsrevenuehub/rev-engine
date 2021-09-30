@@ -162,7 +162,7 @@ function AddPageModal({ isOpen, closeModal }) {
               />
             </S.InputWrapper>
             {revenuePrograms.length > 0 && (
-              <S.InputWrapper data-testid="revenue-program-picker">
+              <S.InputWrapper>
                 <Select
                   label="Choose a revenue program for this page"
                   onSelectedItemChange={({ selectedItem }) => setRevenueProgram(selectedItem)}
@@ -172,6 +172,7 @@ function AddPageModal({ isOpen, closeModal }) {
                   placeholder="Select a revenue program"
                   dropdownPosition="above"
                   displayAccessor="name"
+                  testId="revenue-program-picker"
                 />
               </S.InputWrapper>
             )}
@@ -182,7 +183,7 @@ function AddPageModal({ isOpen, closeModal }) {
               </S.NoRevPrograms>
             )}
             {templates.length > 0 && (
-              <S.InputWrapper data-testid="template-picker">
+              <S.InputWrapper>
                 <Select
                   label="[Optional] Choose a page template"
                   onSelectedItemChange={({ selectedItem }) => setTemplate(selectedItem)}
@@ -192,6 +193,7 @@ function AddPageModal({ isOpen, closeModal }) {
                   placeholder="Select a template"
                   dropdownPosition="above"
                   displayAccessor="name"
+                  testId="template-picker"
                 />
               </S.InputWrapper>
             )}

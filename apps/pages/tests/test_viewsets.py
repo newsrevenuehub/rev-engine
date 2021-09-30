@@ -87,15 +87,6 @@ class PageViewSetTest(AbstractTestCase):
         self.assertIn("revenue_program", response.data)
         self.assertIn("slug", response.data["revenue_program"])
 
-    def test_page_create_adds_template_values_when_valid_pk(self):
-        pass
-
-    def test_page_create_returns_validation_error_when_invalid_template_pk(self):
-        pass
-
-    def test_page_create_returns_validation_error_when_template_has_invalid_styles_pk(self):
-        pass
-
     # UPDATE
     def test_page_update_updates_page(self):
         page = self.resources[0]
@@ -296,6 +287,7 @@ class TemplateViewSetTest(AbstractTestCase):
     def setUp(self):
         super().setUp()
         self.create_resources()
+        self.page = DonationPageFactory(organization=self.orgs[0])
 
     def test_template_create_adds_template(self):
         self.assertEqual(len(self.resources), self.resource_count)
@@ -305,15 +297,19 @@ class TemplateViewSetTest(AbstractTestCase):
         template_data = {
             "name": "New Template",
             "heading": "New Template",
-            "organization": self.orgs[0].pk,
+            "page_pk": self.page.pk,
         }
-        response = self.client.post(list_url, template_data)
+        # format="json" here in order to prevent serializer from treating self.data as immutable.
+        # https://stackoverflow.com/questions/52367379/why-is-django-rest-frameworks-request-data-sometimes-immutable
+        response = self.client.post(list_url, template_data, format="json")
         self.assertEqual(response.status_code, 201)
         self.assertEqual(Template.objects.count(), self.resource_count + 1)
 
         data = response.json()
         for k, v in template_data.items():
-            self.assertEqual(v, data[k])
+            # page_pk doesn't come back from the serializer.
+            if k != "page_pk":
+                self.assertEqual(v, data[k])
 
     def test_template_update_updates_template(self):
         template = self.resources[0]

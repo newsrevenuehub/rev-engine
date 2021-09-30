@@ -75,14 +75,6 @@ class TemplateAdmin(DonationPageAdminAbstract):
                         messages.ERROR,
                     )
                     return HttpResponseRedirect(reverse("admin:pages_template_change", kwargs={"object_id": obj.id}))
-            except Template.TemplateError as e:
-                logger.error(e)
-                self.message_user(
-                    request,
-                    "Something went wrong. The page this template was created from cannot be found.",
-                    messages.ERROR,
-                )
-                return HttpResponseRedirect(reverse("admin:pages_template_change", kwargs={"object_id": obj.id}))
             return HttpResponseRedirect(reverse("admin:pages_donationpage_change", kwargs={"object_id": new_page.id}))
         return super().response_change(request, obj)
 

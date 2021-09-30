@@ -1,7 +1,7 @@
-from django.core.exceptions import ValidationError
 from django.db import models
 from django.utils import timezone
 
+from rest_framework.exceptions import ValidationError
 from safedelete.models import SafeDeleteModel
 from sorl.thumbnail import ImageField as SorlImageField
 
@@ -73,9 +73,7 @@ class Template(AbstractPage):
         We also clean up template and page data here, so that we only copy the fields we want.
         """
         template_data = self.__dict__
-        temporary_name = f"{template_data['name']} [COPY]"
-        existing_copies_count = DonationPage.objects.filter(name__contains=temporary_name).count()
-        template_data["name"] = f"{temporary_name}({int(existing_copies_count)})"
+        template_data["name"] = f"New Page From Template ({template_data['name']})"
         template_data["slug"] = normalize_slug(name=template_data["name"])
         template_data["revenue_program"] = self.organization.revenueprogram_set.first()
 
@@ -173,9 +171,6 @@ class DonationPage(AbstractPage, SafeDeleteModel):
         page = cleanup_keys(self.__dict__, unwanted_keys)
         template = cleanup_keys(template_data, unwanted_keys)
         merged_template = page | template
-        target_name = f"{merged_template['name']} [TEMPLATE]"
-        existing_copies_count = Template.objects.filter(name__contains=target_name).count()
-        merged_template["name"] = f"{target_name}({int(existing_copies_count)})"
         merged_template["organization"] = Organization.objects.get(pk=merged_template.pop("organization_id"))
         return Template.objects.create(**merged_template)
 

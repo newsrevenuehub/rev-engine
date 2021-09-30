@@ -104,7 +104,9 @@ function AddPageModal({ isOpen, closeModal }) {
     [alert]
   );
 
-  const handleSave = async () => {
+  const handleSave = async (e) => {
+    e.preventDefault();
+    if (!canSavePage()) return;
     setLoading(true);
 
     const formData = {
@@ -135,81 +137,83 @@ function AddPageModal({ isOpen, closeModal }) {
     <Modal isOpen={isOpen} closeModal={closeModal}>
       <S.AddPageModal data-testid="page-create-modal">
         <S.ModalTitle>Create a new donation page</S.ModalTitle>
-        <S.PageForm>
-          <S.InputWrapper>
-            <Input
-              label="Name"
-              helpText="Unique name for this page"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              onBlur={handleNameBlur}
-              errors={errors?.name}
-              testid="page-name"
-            />
-          </S.InputWrapper>
-          <S.InputWrapper>
-            <Input
-              label="Slug"
-              helpText="How this page appears in the url"
-              value={slug}
-              onChange={(e) => setSlug(e.target.value)}
-              onBlur={handleSlugBlur}
-              errors={errors?.slug}
-              testid="page-slug"
-            />
-          </S.InputWrapper>
-          {revenuePrograms.length > 0 && (
-            <S.InputWrapper data-testid="revenue-program-picker">
-              <Select
-                label="Choose a revenue program for this page"
-                onSelectedItemChange={({ selectedItem }) => setRevenueProgram(selectedItem)}
-                selectedItem={revenueProgram}
-                items={revenuePrograms}
-                itemToString={(i) => i.name}
-                placeholder="Select a revenue program"
-                dropdownPosition="above"
-                displayAccessor="name"
+        <S.PageForm onSubmit={handleSave}>
+          <S.FormFields>
+            <S.InputWrapper>
+              <Input
+                label="Name"
+                helpText="Unique name for this page"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                onBlur={handleNameBlur}
+                errors={errors?.name}
+                testid="page-name"
               />
             </S.InputWrapper>
-          )}
-          {!loading && revenuePrograms.length === 0 && (
-            <S.NoRevPrograms>
-              You need to set up a revenue program to create a page.{' '}
-              <S.CreateRevProgramLink onClick={handleCreateRevProgram}>Create one?</S.CreateRevProgramLink>
-            </S.NoRevPrograms>
-          )}
-          {templates.length > 0 && (
-            <S.InputWrapper data-testid="template-picker">
-              <Select
-                label="[Optional] Choose a page template"
-                onSelectedItemChange={({ selectedItem }) => setTemplate(selectedItem)}
-                selectedItem={template}
-                items={templates}
-                itemToString={(i) => i.name}
-                placeholder="Select a template"
-                dropdownPosition="above"
-                displayAccessor="name"
+            <S.InputWrapper>
+              <Input
+                label="Slug"
+                helpText="How this page appears in the url"
+                value={slug}
+                onChange={(e) => setSlug(e.target.value)}
+                onBlur={handleSlugBlur}
+                errors={errors?.slug}
+                testid="page-slug"
               />
             </S.InputWrapper>
-          )}
+            {revenuePrograms.length > 0 && (
+              <S.InputWrapper data-testid="revenue-program-picker">
+                <Select
+                  label="Choose a revenue program for this page"
+                  onSelectedItemChange={({ selectedItem }) => setRevenueProgram(selectedItem)}
+                  selectedItem={revenueProgram}
+                  items={revenuePrograms}
+                  itemToString={(i) => i.name}
+                  placeholder="Select a revenue program"
+                  dropdownPosition="above"
+                  displayAccessor="name"
+                />
+              </S.InputWrapper>
+            )}
+            {!loading && revenuePrograms.length === 0 && (
+              <S.NoRevPrograms>
+                You need to set up a revenue program to create a page.{' '}
+                <S.CreateRevProgramLink onClick={handleCreateRevProgram}>Create one?</S.CreateRevProgramLink>
+              </S.NoRevPrograms>
+            )}
+            {templates.length > 0 && (
+              <S.InputWrapper data-testid="template-picker">
+                <Select
+                  label="[Optional] Choose a page template"
+                  onSelectedItemChange={({ selectedItem }) => setTemplate(selectedItem)}
+                  selectedItem={template}
+                  items={templates}
+                  itemToString={(i) => i.name}
+                  placeholder="Select a template"
+                  dropdownPosition="above"
+                  displayAccessor="name"
+                />
+              </S.InputWrapper>
+            )}
+          </S.FormFields>
+          <S.Buttons>
+            <CircleButton
+              type="submit"
+              icon={faSave}
+              color={theme.colors.success}
+              buttonType="neutral"
+              disabled={!canSavePage()}
+              data-testid="save-new-page-button"
+            />
+            <CircleButton
+              onClick={handleDiscard}
+              icon={faTrash}
+              color={theme.colors.caution}
+              buttonType="neutral"
+              data-testid="discard-new-page-button"
+            />
+          </S.Buttons>
         </S.PageForm>
-        <S.Buttons>
-          <CircleButton
-            onClick={handleSave}
-            icon={faSave}
-            color={theme.colors.success}
-            type="neutral"
-            disabled={!canSavePage()}
-            data-testid="save-new-page-button"
-          />
-          <CircleButton
-            onClick={handleDiscard}
-            icon={faTrash}
-            color={theme.colors.caution}
-            type="neutral"
-            data-testid="discard-new-page-button"
-          />
-        </S.Buttons>
       </S.AddPageModal>
     </Modal>
   );

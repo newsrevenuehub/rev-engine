@@ -2,6 +2,7 @@ import logging
 
 from django.conf import settings
 from django.contrib import admin, messages
+from django.db.utils import IntegrityError
 from django.http import HttpResponseRedirect
 from django.urls import reverse
 
@@ -66,6 +67,14 @@ class TemplateAdmin(DonationPageAdminAbstract):
         if "_page-from-template" in request.POST:
             try:
                 new_page = obj.make_page_from_template()
+            except IntegrityError as integrity_error:
+                if "violates unique constraint" in str(integrity_error):
+                    self.message_user(
+                        request,
+                        f'Donation Page name "{obj.name}" already used in organization. Did you forget to update the name of a previous page created from this template?',
+                        messages.ERROR,
+                    )
+                    return HttpResponseRedirect(reverse("admin:pages_template_change", kwargs={"object_id": obj.id}))
             except Template.TemplateError as e:
                 logger.error(e)
                 self.message_user(
@@ -136,14 +145,21 @@ class DonationPageAdmin(DonationPageAdminAbstract, SafeDeleteAdmin):
     def make_template(self, request, queryset):
         created_template_count = 0
         for page in queryset:
-            page.make_template_from_page()
-            created_template_count += 1
+            try:
+                page.make_template_from_page()
+                created_template_count += 1
+            except IntegrityError as integrity_error:
+                if "violates unique constraint" in str(integrity_error):
+                    self.message_user(
+                        request, f'Template name "{page.name}" already used in organization', messages.ERROR
+                    )
 
-        self.message_user(
-            request,
-            f"{created_template_count} {'template' if created_template_count == 1 else 'templates'} created.",
-            messages.SUCCESS,
-        )
+        if created_template_count:
+            self.message_user(
+                request,
+                f"{created_template_count} {'template' if created_template_count == 1 else 'templates'} created.",
+                messages.SUCCESS,
+            )
 
 
 @admin.register(Style)

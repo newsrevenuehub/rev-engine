@@ -14,7 +14,9 @@ export const ModalTitle = styled.h2`
   padding: 2rem 4rem 0;
 `;
 
-export const PageForm = styled.form`
+export const TemplateForm = styled.form``;
+
+export const FormFields = styled.div`
   flex: 1;
   overflow-y: auto;
   padding: 2rem 4rem;

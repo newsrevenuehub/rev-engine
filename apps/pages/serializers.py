@@ -1,6 +1,7 @@
 from django.utils import timezone
 
 from rest_framework import serializers
+from rest_framework.validators import UniqueTogetherValidator
 from sorl_thumbnail_serializer.fields import HyperlinkedSorlImageField
 
 from apps.api.error_messages import UNIQUE_PAGE_SLUG
@@ -175,6 +176,12 @@ class TemplateDetailSerializer(serializers.ModelSerializer):
         except DonationPage.DoesNotExist:
             raise serializers.ValidationError({"page": ["This page no longer exists"]})
 
+    def is_valid(self, **kwargs):
+        page_pk = self.initial_data["page_pk"]
+        page = DonationPage.objects.get(pk=page_pk)
+        self.initial_data["organization"] = page.organization.pk
+        return super().is_valid(**kwargs)
+
     def create(self, validated_data):
         if "page_pk" in validated_data:
             return self._create_from_page(validated_data)
@@ -184,6 +191,8 @@ class TemplateDetailSerializer(serializers.ModelSerializer):
         model = Template
         fields = [
             "page_pk",
+            # organization is required here to validate name--org unique-togetherness
+            "organization",
             "name",
             "heading",
             "graphic",
@@ -195,6 +204,11 @@ class TemplateDetailSerializer(serializers.ModelSerializer):
             "sidebar_elements",
             "thank_you_redirect",
             "post_thank_you_redirect",
+        ]
+        validators = [
+            UniqueTogetherValidator(
+                queryset=Template.objects.all(), fields=["name", "organization"], message="Template name already in use"
+            )
         ]
 
 

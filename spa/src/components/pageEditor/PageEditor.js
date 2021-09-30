@@ -361,7 +361,7 @@ function PageEditor() {
             onClick={handlePreview}
             selected={selectedButton === PREVIEW}
             icon={faEye}
-            type="neutral"
+            buttonType="neutral"
             color={theme.colors.primary}
             data-testid="preview-page-button"
           />
@@ -369,18 +369,23 @@ function PageEditor() {
             onClick={handleEdit}
             selected={selectedButton === EDIT}
             icon={faEdit}
-            type="neutral"
+            buttonType="neutral"
             data-testid="edit-page-button"
           />
           <CircleButton
             onClick={handleSave}
             icon={faSave}
-            type="neutral"
+            buttonType="neutral"
             data-testid="save-page-button"
             disabled={!updatedPage}
           />
-          <CircleButton onClick={handleMakeTemplate} icon={faClone} type="neutral" data-testid="clone-page-button" />
-          <CircleButton onClick={handleDelete} icon={faTrash} type="caution" data-testid="delete-page-button" />
+          <CircleButton
+            onClick={handleMakeTemplate}
+            icon={faClone}
+            buttonType="neutral"
+            data-testid="clone-page-button"
+          />
+          <CircleButton onClick={handleDelete} icon={faTrash} buttonType="caution" data-testid="delete-page-button" />
 
           <BackButton to={CONTENT_SLUG} />
         </S.ButtonOverlay>

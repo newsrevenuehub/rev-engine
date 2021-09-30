@@ -15,3 +15,7 @@ def normalize_slug(name="", slug="", max_length=50):
     if len(slug) > max_length:
         slug = slug[:max_length].rstrip("-")
     return slug
+
+
+def cleanup_keys(data_dict, unwanted_keys):
+    return {k: v for k, v in data_dict.items() if k not in unwanted_keys}

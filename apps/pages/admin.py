@@ -2,6 +2,7 @@ import logging
 
 from django.conf import settings
 from django.contrib import admin, messages
+from django.db.utils import IntegrityError
 from django.http import HttpResponseRedirect
 from django.urls import reverse
 
@@ -66,14 +67,14 @@ class TemplateAdmin(DonationPageAdminAbstract):
         if "_page-from-template" in request.POST:
             try:
                 new_page = obj.make_page_from_template()
-            except Template.TemplateError as e:
-                logger.error(e)
-                self.message_user(
-                    request,
-                    "Something went wrong. The page this template was created from cannot be found.",
-                    messages.ERROR,
-                )
-                return HttpResponseRedirect(reverse("admin:pages_template_change", kwargs={"object_id": obj.id}))
+            except IntegrityError as integrity_error:
+                if "violates unique constraint" in str(integrity_error):
+                    self.message_user(
+                        request,
+                        f'Donation Page name "{obj.name}" already used in organization. Did you forget to update the name of a previous page created from this template?',
+                        messages.ERROR,
+                    )
+                    return HttpResponseRedirect(reverse("admin:pages_template_change", kwargs={"object_id": obj.id}))
             return HttpResponseRedirect(reverse("admin:pages_donationpage_change", kwargs={"object_id": new_page.id}))
         return super().response_change(request, obj)
 
@@ -134,27 +135,22 @@ class DonationPageAdmin(DonationPageAdminAbstract, SafeDeleteAdmin):
 
     @admin.action(description="Make templates from selected pages")
     def make_template(self, request, queryset):
-        updated = 0
-        duplicated = 0
+        created_template_count = 0
         for page in queryset:
-            _, created = page.save_as_template()
-            if created:
-                updated += 1
-            else:
-                duplicated += 1
+            try:
+                page.make_template_from_page()
+                created_template_count += 1
+            except IntegrityError as integrity_error:
+                if "violates unique constraint" in str(integrity_error):
+                    self.message_user(
+                        request, f'Template name "{page.name}" already used in organization', messages.ERROR
+                    )
 
-        if updated:
+        if created_template_count:
             self.message_user(
                 request,
-                f"{updated} {'template' if updated == 1 else 'templates'} created.",
+                f"{created_template_count} {'template' if created_template_count == 1 else 'templates'} created.",
                 messages.SUCCESS,
-            )
-
-        if duplicated:
-            self.message_user(
-                request,
-                f"{duplicated} {'template' if duplicated == 1 else 'templates'} already {'exists' if duplicated == 1 else 'exist'}",
-                messages.WARNING,
             )
 
 

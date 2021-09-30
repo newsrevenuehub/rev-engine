@@ -41,13 +41,13 @@ function PageStyles({ backToProperties }) {
       <S.Buttons>
         <CircleButton
           icon={faCheck}
-          type="positive"
+          buttonType="positive"
           onClick={handleKeepChanges}
           data-testid="keep-element-changes-button"
         />
         <CircleButton
           icon={faTimes}
-          type="caution"
+          buttonType="caution"
           onClick={handleDiscardChanges}
           data-testid="discard-element-changes-button"
         />

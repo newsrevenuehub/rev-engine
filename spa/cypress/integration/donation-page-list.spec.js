@@ -65,12 +65,13 @@ describe('Donation page list', () => {
       cy.intercept(
         { method: 'GET', pathname: getEndpoint(REVENUE_PROGRAMS) },
         { fixture: 'org/revenue-programs-1.json', statusCode: 200 }
-      );
+      ).as('getRevPrograms');
       cy.intercept(
         { method: 'GET', pathname: getEndpoint(TEMPLATES) },
         { fixture: 'pages/templates.json', statusCode: 200 }
-      );
+      ).as('getTemplates');
       cy.getByTestId('page-create-button').click();
+      cy.wait(['@getRevPrograms', '@getTemplates']);
       cy.getByTestId('page-name').type('My Testing Page');
       cy.getByTestId('page-name').blur();
       cy.getByTestId('revenue-program-picker').click();

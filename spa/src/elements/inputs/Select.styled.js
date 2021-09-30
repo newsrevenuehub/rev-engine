@@ -35,10 +35,10 @@ export const List = styled.ul`
   z-index: 2;
   list-style: none;
   background: ${(props) => props.theme.colors.inputBackground};
-  box-shadow: ${(props) => props.theme.shadows[1]};
+  box-shadow: ${(props) => props.theme.shadows[2]};
   border-radius: ${(props) => props.theme.radii[0]};
   border: 1px solid;
-  border-color: ${(props) => props.theme.colors.grey[0]};
+  border-color: ${(props) => props.theme.colors.grey[2]};
 
   overflow-y: auto;
 `;

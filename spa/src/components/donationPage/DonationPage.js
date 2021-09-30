@@ -16,6 +16,7 @@ import useQueryString from 'hooks/useQueryString';
 import DonationPageSidebar from 'components/donationPage/DonationPageSidebar';
 
 // Children
+import DonationPageSocialTags from 'components/donationPage/DonationPageSocialTags';
 import DonationPageStaticText from 'components/donationPage/DonationPageStaticText';
 import DonationPageFooter from 'components/donationPage/DonationPageFooter';
 
@@ -77,6 +78,7 @@ function DonationPage({ page, stripeAccountId, live = false }) {
       }}
     >
       <S.DonationPage data-testid="donation-page">
+        <DonationPageSocialTags revenueProgram={page?.revenue_program} />
         {getters.getHeaderBarElement()}
         <S.PageMain>
           <S.SideOuter>

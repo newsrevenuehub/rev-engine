@@ -1,6 +1,7 @@
 from django.db import models
 
 from model_utils.fields import AutoCreatedField, AutoLastModifiedField
+from sorl.thumbnail import ImageField as SorlImageField
 
 from apps.common.constants import STATE_CHOICES
 
@@ -24,3 +25,19 @@ class Address(models.Model):
         address2 = " " + self.address2 if self.address2 else ""
         postal_code = " " + self.postal_code if self.postal_code else ""
         return f"{self.address1}{address2}, {self.city}, {self.state}{postal_code}"
+
+
+class SocialMeta(models.Model):
+    # opengraph truncates titles over 95chars
+    title = models.CharField(max_length=95, blank=True)
+    description = models.TextField(blank=True)
+    url = models.URLField(blank=True)
+    card = SorlImageField(null=True, blank=True)
+
+    def __str__(self):
+        related = ""
+        if hasattr(self, "revenueprogram"):
+            related = ("revenueprogram", "Revenue Program")
+        if related:
+            return f'Social media Metatags for {related[1]} "{getattr(self, related[0])}"'
+        return f"Social media Metatags: {self.title}"

@@ -13,6 +13,9 @@ export const LIST_PAGES = 'pages/';
 export const PATCH_PAGE = 'pages/';
 export const DELETE_PAGE = 'pages/';
 
+// Templates
+export const TEMPLATES = 'templates/';
+
 // Styles
 export const LIST_STYLES = 'styles/';
 

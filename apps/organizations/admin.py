@@ -3,6 +3,7 @@ from pathlib import Path
 from django.contrib import admin
 
 from django_reverse_admin import ReverseModelAdmin
+from sorl.thumbnail.admin import AdminImageMixin
 
 from apps.common.admin import RevEngineBaseAdmin
 from apps.organizations.forms import FeatureForm
@@ -15,9 +16,6 @@ from apps.organizations.models import (
     RevenueProgram,
 )
 from apps.users.admin import UserOrganizationInline
-
-
-# from apps.common.admin import OrganizationAddressInline, RevenueProgramAddressInline
 
 
 class RevenueProgramBenefitLevelInline(admin.TabularInline):
@@ -123,7 +121,7 @@ class BenefitLevelAdmin(RevEngineBaseAdmin):
 
 
 @admin.register(RevenueProgram)
-class RevenueProgramAdmin(RevEngineBaseAdmin, ReverseModelAdmin):  # pragma: no cover
+class RevenueProgramAdmin(RevEngineBaseAdmin, ReverseModelAdmin, AdminImageMixin):  # pragma: no cover
     fieldsets = (
         (
             "RevenueProgram",
@@ -170,7 +168,10 @@ class RevenueProgramAdmin(RevEngineBaseAdmin, ReverseModelAdmin):  # pragma: no 
     list_filter = ["name"]
 
     inline_type = "stacked"
-    inline_reverse = [("address", {"fields": ["address1", "address2", "city", "state", "postal_code"]})]
+    inline_reverse = [
+        ("social_meta", {"fields": ["title", "description", "url", "card"]}),
+        ("address", {"fields": ["address1", "address2", "city", "state", "postal_code"]}),
+    ]
     inlines = [RevenueProgramBenefitLevelInline]
 
     def get_readonly_fields(self, request, obj=None):

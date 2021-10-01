@@ -1,6 +1,6 @@
 import styled from 'styled-components';
 
-export const AddPageModal = styled.div`
+export const CreateTemplateModal = styled.div`
   display: flex;
   flex-direction: column;
   max-height: 90vh;
@@ -14,7 +14,7 @@ export const ModalTitle = styled.h2`
   padding: 2rem 4rem 0;
 `;
 
-export const PageForm = styled.form``;
+export const TemplateForm = styled.form``;
 
 export const FormFields = styled.div`
   flex: 1;
@@ -25,13 +25,6 @@ export const FormFields = styled.div`
 export const InputWrapper = styled.div`
   width: 300px;
   margin-bottom: 1.5rem;
-`;
-
-export const NoRevPrograms = styled.p``;
-
-export const CreateRevProgramLink = styled.span`
-  color: ${(props) => props.theme.colors.link};
-  cursor: pointer;
 `;
 
 export const Buttons = styled.div`

@@ -43,6 +43,8 @@ DPayment.displayName = 'Payment';
 DPayment.description = 'Allow donors to contribute';
 DPayment.required = true;
 DPayment.unique = true;
+DPayment.requireContent = true;
+DPayment.contentMissingMsg = `${DPayment.displayName} needs to have at least one payment method configured.`;
 
 export default DPayment;
 

@@ -30,7 +30,7 @@ import { CONTENT_SLUG } from 'routes';
 import { GENERIC_ERROR } from 'constants/textConstants';
 
 // Assets
-import { faEye, faEdit, faSave, faTrash } from '@fortawesome/free-solid-svg-icons';
+import { faEye, faEdit, faSave, faTrash, faClone } from '@fortawesome/free-solid-svg-icons';
 
 // Context
 import { useGlobalContext } from 'components/MainLayout';
@@ -47,6 +47,7 @@ import DonationPage from 'components/donationPage/DonationPage';
 import GlobalLoading from 'elements/GlobalLoading';
 import EditInterface from 'components/pageEditor/editInterface/EditInterface';
 import BackButton from 'elements/BackButton';
+import CreateTemplateModal from 'components/pageEditor/CreateTemplateModal';
 
 const PageEditorContext = createContext();
 
@@ -84,6 +85,7 @@ function PageEditor() {
   const [page, setPage] = useState();
   const [availableStyles, setAvailableStyles] = useState([]);
   const [contributionMetadata, setContributionMetadata] = useState([]);
+  const [showCreateTemplateModal, setShowCreateTemplateModal] = useState(false);
 
   const [updatedPage, setUpdatedPage] = useState();
   const [selectedButton, setSelectedButton] = useState(PREVIEW);
@@ -162,6 +164,16 @@ function PageEditor() {
   const handleEdit = () => {
     setSelectedButton(EDIT);
     setShowEditInterface(true);
+  };
+
+  const handleMakeTemplate = () => {
+    if (updatedPage) {
+      getUserConfirmation('Page template will not include unsaved changes. Continue?', () =>
+        setShowCreateTemplateModal(true)
+      );
+    } else {
+      setShowCreateTemplateModal(true);
+    }
   };
 
   const handleSave = () => {
@@ -287,6 +299,7 @@ function PageEditor() {
           alert.success(successMessage);
           setErrors({});
           setPage(data);
+          setUpdatedPage(null);
           setSelectedButton(PREVIEW);
           setLoading(false);
         },
@@ -308,8 +321,8 @@ function PageEditor() {
 
   useEffect(() => {
     if (!isEmpty(errors)) {
-      if (errors.missing) {
-        alert.error(<MissingElementErrors missing={errors.missing} />);
+      if (errors.elementErrors) {
+        alert.error(<ElementErrors elementErrors={errors.elementErrors} />, { timeout: 0 });
       }
     }
   }, [errors, alert]);
@@ -348,7 +361,7 @@ function PageEditor() {
             onClick={handlePreview}
             selected={selectedButton === PREVIEW}
             icon={faEye}
-            type="neutral"
+            buttonType="neutral"
             color={theme.colors.primary}
             data-testid="preview-page-button"
           />
@@ -356,21 +369,34 @@ function PageEditor() {
             onClick={handleEdit}
             selected={selectedButton === EDIT}
             icon={faEdit}
-            type="neutral"
+            buttonType="neutral"
             data-testid="edit-page-button"
           />
           <CircleButton
             onClick={handleSave}
             icon={faSave}
-            type="neutral"
+            buttonType="neutral"
             data-testid="save-page-button"
             disabled={!updatedPage}
           />
-          <CircleButton onClick={handleDelete} icon={faTrash} type="neutral" data-testid="delete-page-button" />
+          <CircleButton
+            onClick={handleMakeTemplate}
+            icon={faClone}
+            buttonType="neutral"
+            data-testid="clone-page-button"
+          />
+          <CircleButton onClick={handleDelete} icon={faTrash} buttonType="caution" data-testid="delete-page-button" />
 
           <BackButton to={CONTENT_SLUG} />
         </S.ButtonOverlay>
       </S.PageEditor>
+      {showCreateTemplateModal && (
+        <CreateTemplateModal
+          page={page}
+          isOpen={showCreateTemplateModal}
+          closeModal={() => setShowCreateTemplateModal(false)}
+        />
+      )}
     </PageEditorContext.Provider>
   );
 }
@@ -379,13 +405,13 @@ export const usePageEditorContext = () => useContext(PageEditorContext);
 
 export default PageEditor;
 
-function MissingElementErrors({ missing = [] }) {
+function ElementErrors({ elementErrors = [] }) {
   return (
     <>
       The following elements are required for your page to function properly:
       <ul data-testid="missing-elements-alert">
-        {missing.map((missingEl) => (
-          <li key={missingEl}>{dynamicElements[missingEl].displayName}</li>
+        {elementErrors.map((elError) => (
+          <li key={elError.element}>{elError.message}</li>
         ))}
       </ul>
     </>

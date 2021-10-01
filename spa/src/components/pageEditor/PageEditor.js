@@ -1,4 +1,4 @@
-import { useState, useEffect, createContext, useContext } from 'react';
+import { useState, useEffect, createContext, useContext, useCallback } from 'react';
 import { useHistory } from 'react-router-dom';
 import * as S from './PageEditor.styled';
 import { useTheme } from 'styled-components';
@@ -21,7 +21,7 @@ import { useParams } from 'react-router-dom';
 
 // AJAX
 import useRequest from 'hooks/useRequest';
-import { DELETE_PAGE, FULL_PAGE, PATCH_PAGE, LIST_STYLES, CONTRIBUTION_META } from 'ajax/endpoints';
+import { DELETE_PAGE, DRAFT_PAGE_DETAIL, PATCH_PAGE, LIST_STYLES, CONTRIBUTION_META } from 'ajax/endpoints';
 
 // Routes
 import { CONTENT_SLUG } from 'routes';
@@ -40,7 +40,6 @@ import validatePage from './validatePage';
 import { useConfigureAnalytics } from 'components/analytics';
 
 // Children
-import * as dynamicElements from 'components/donationPage/pageContent/dynamicElements';
 import CircleButton from 'elements/buttons/CircleButton';
 import SegregatedStyles from 'components/donationPage/SegregatedStyles';
 import DonationPage from 'components/donationPage/DonationPage';
@@ -102,6 +101,16 @@ function PageEditor() {
 
   useConfigureAnalytics();
 
+  const handleGetPageFailure = useCallback(
+    (error) => {
+      setLoading(false);
+      if (error.response?.data) {
+        alert.error(error.response.data.detail, { timeout: 0 });
+      }
+    },
+    [alert]
+  );
+
   useEffect(() => {
     setLoading(true);
 
@@ -111,17 +120,17 @@ function PageEditor() {
       live: 0
     };
     requestGetPage(
-      { method: 'GET', url: FULL_PAGE, params },
+      { method: 'GET', url: DRAFT_PAGE_DETAIL, params },
       {
         onSuccess: ({ data }) => {
           setPage(data);
           setLoading(false);
         },
-        onFailure: () => setLoading(false)
+        onFailure: handleGetPageFailure //() => setLoading(false)
       }
     );
     // Don't include requestGetPage for now.
-  }, [parameters.revProgramSlug, parameters.pageSlug]);
+  }, [parameters.revProgramSlug, parameters.pageSlug, handleGetPageFailure]);
 
   useEffect(() => {
     setLoading(true);
@@ -356,39 +365,41 @@ function PageEditor() {
             <DonationPage key={page ? JSON.stringify(page) : ''} live={false} page={page} />
           </SegregatedStyles>
         )}
-        <S.ButtonOverlay>
-          <CircleButton
-            onClick={handlePreview}
-            selected={selectedButton === PREVIEW}
-            icon={faEye}
-            buttonType="neutral"
-            color={theme.colors.primary}
-            data-testid="preview-page-button"
-          />
-          <CircleButton
-            onClick={handleEdit}
-            selected={selectedButton === EDIT}
-            icon={faEdit}
-            buttonType="neutral"
-            data-testid="edit-page-button"
-          />
-          <CircleButton
-            onClick={handleSave}
-            icon={faSave}
-            buttonType="neutral"
-            data-testid="save-page-button"
-            disabled={!updatedPage}
-          />
-          <CircleButton
-            onClick={handleMakeTemplate}
-            icon={faClone}
-            buttonType="neutral"
-            data-testid="clone-page-button"
-          />
-          <CircleButton onClick={handleDelete} icon={faTrash} buttonType="caution" data-testid="delete-page-button" />
+        {page && (
+          <S.ButtonOverlay>
+            <CircleButton
+              onClick={handlePreview}
+              selected={selectedButton === PREVIEW}
+              icon={faEye}
+              buttonType="neutral"
+              color={theme.colors.primary}
+              data-testid="preview-page-button"
+            />
+            <CircleButton
+              onClick={handleEdit}
+              selected={selectedButton === EDIT}
+              icon={faEdit}
+              buttonType="neutral"
+              data-testid="edit-page-button"
+            />
+            <CircleButton
+              onClick={handleSave}
+              icon={faSave}
+              buttonType="neutral"
+              data-testid="save-page-button"
+              disabled={!updatedPage}
+            />
+            <CircleButton
+              onClick={handleMakeTemplate}
+              icon={faClone}
+              buttonType="neutral"
+              data-testid="clone-page-button"
+            />
+            <CircleButton onClick={handleDelete} icon={faTrash} buttonType="caution" data-testid="delete-page-button" />
 
-          <BackButton to={CONTENT_SLUG} />
-        </S.ButtonOverlay>
+            <BackButton to={CONTENT_SLUG} />
+          </S.ButtonOverlay>
+        )}
       </S.PageEditor>
       {showCreateTemplateModal && (
         <CreateTemplateModal

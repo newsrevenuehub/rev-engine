@@ -53,10 +53,15 @@ class Plan(IndexedTimeStampedModel):
         return self.name
 
 
+def _get_currency_choices():
+    return [(cur, cur) for cur in settings.CURRENCIES]
+
+
 class Organization(IndexedTimeStampedModel):
     name = models.CharField(max_length=255, unique=True)
     slug = models.SlugField(blank=True, unique=True)
     plan = models.ForeignKey("organizations.Plan", null=True, on_delete=models.CASCADE)
+    default_currency = models.CharField(max_length=3, choices=_get_currency_choices(), default=settings.CURRENCIES[0])
     non_profit = models.BooleanField(default=True, verbose_name="Non-profit?")
     address = models.OneToOneField("common.Address", on_delete=models.SET_NULL, null=True)
     salesforce_id = models.CharField(max_length=255, blank=True, verbose_name="Salesforce ID")

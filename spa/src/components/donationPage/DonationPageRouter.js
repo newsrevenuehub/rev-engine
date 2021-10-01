@@ -19,6 +19,7 @@ import SegregatedStyles from 'components/donationPage/SegregatedStyles';
 import LiveLoading from 'components/donationPage/live/LiveLoading';
 import LivePage404 from 'components/donationPage/live/LivePage404';
 import DonationPage from 'components/donationPage/DonationPage';
+import LiveErrorFallback from 'components/donationPage/live/LiveErrorFallback';
 
 const FETCH_START = 'FETCH_START';
 const FETCH_SUCCESS = 'FETCH_SUCCESS';
@@ -30,7 +31,8 @@ const STRIPE_ACCOUNT_ID = 'stripeAccountId';
 const initialState = {
   loading: false,
   data: {},
-  errors: {}
+  errors: {},
+  display404: false
 };
 
 const livePageReducer = (state, action) => {
@@ -39,19 +41,23 @@ const livePageReducer = (state, action) => {
       return {
         loading: true,
         data: initialState.data,
-        errors: initialState.errors
+        errors: initialState.errors,
+        display404: initialState.display404
       };
     case FETCH_SUCCESS:
       return {
         loading: false,
         data: { ...state.data, ...action.payload },
-        errors: initialState.errors
+        errors: initialState.errors,
+        display404: initialState.display404
       };
     case FETCH_ERROR:
+      const display404 = action.payload?.page?.response?.status === 404;
       return {
         loading: false,
         data: state.data,
-        errors: { ...state.errors, ...action.payload }
+        errors: { ...state.errors, ...action.payload },
+        display404
       };
     default:
       return state;
@@ -59,7 +65,7 @@ const livePageReducer = (state, action) => {
 };
 
 function DonationPageRouter() {
-  const [{ loading, errors, data }, dispatch] = useReducer(livePageReducer, initialState);
+  const [{ loading, errors, data, display404 }, dispatch] = useReducer(livePageReducer, initialState);
   const params = useParams();
   const requestFullPage = useRequest();
   const requestOrgStripeAccountId = useRequest();
@@ -123,8 +129,10 @@ function DonationPageRouter() {
     <SegregatedStyles page={data[PAGE]}>
       {loading ? (
         <LiveLoading />
-      ) : !isEmpty(errors) || !data[PAGE] || !data[STRIPE_ACCOUNT_ID] ? (
+      ) : display404 ? (
         <LivePage404 />
+      ) : !isEmpty(errors) || !data[PAGE] || !data[STRIPE_ACCOUNT_ID] ? (
+        <LiveErrorFallback />
       ) : (
         <DonationPage live page={data[PAGE]} stripeAccountId={data[STRIPE_ACCOUNT_ID]} />
       )}

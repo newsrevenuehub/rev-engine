@@ -1,11 +1,20 @@
 import { useState, useEffect } from 'react';
 import * as S from './LivePage404.styled';
 
+// Analytics
+import { useAnalyticsContext } from 'components/analytics/AnalyticsContext';
+import { HUB_GA_V3_ID } from 'constants/analyticsConstants';
+
 const SHOW_TIMEOUT = 400;
 const FUNDJOURNALISM_404_REDIRECT = 'https://fundjournalism.org/?utm_campaign=404#donate';
 
 function LivePage404() {
   const [shouldShow, setShouldShow] = useState(false);
+  const { setAnalyticsConfig } = useAnalyticsContext();
+
+  useEffect(() => {
+    setAnalyticsConfig({ hubGaV3Id: HUB_GA_V3_ID });
+  }, [HUB_GA_V3_ID]);
 
   useEffect(() => {
     let timeout = setTimeout(() => {

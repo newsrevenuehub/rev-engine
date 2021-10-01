@@ -236,6 +236,9 @@ class RevenueProgram(IndexedTimeStampedModel):
     )
     website_url = models.URLField(blank=True, help_text="Does this Revenue Program have a website?")
 
+    # Stripe Statement descriptor
+    stripe_statement_descriptor_suffix = models.CharField(max_length=10, blank=True, null=True)
+
     def __str__(self):
         return self.name
 

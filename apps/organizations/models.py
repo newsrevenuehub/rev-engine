@@ -10,6 +10,7 @@ import stripe
 from apps.common.models import IndexedTimeStampedModel
 from apps.common.utils import normalize_slug
 from apps.contributions.utils import get_hub_stripe_api_key
+from apps.organizations.validators import validate_statement_descriptor_suffix
 
 
 logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
@@ -237,7 +238,9 @@ class RevenueProgram(IndexedTimeStampedModel):
     website_url = models.URLField(blank=True, help_text="Does this Revenue Program have a website?")
 
     # Stripe Statement descriptor
-    stripe_statement_descriptor_suffix = models.CharField(max_length=10, blank=True, null=True)
+    stripe_statement_descriptor_suffix = models.CharField(
+        max_length=10, blank=True, null=True, validators=[validate_statement_descriptor_suffix]
+    )
 
     def __str__(self):
         return self.name

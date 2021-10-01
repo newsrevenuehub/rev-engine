@@ -16,6 +16,7 @@ import { FULL_PAGE } from 'ajax/endpoints';
 import { getEndpoint } from '../support/util';
 import { HUB_GA_V3_ID } from 'constants/analyticsConstants';
 
+const NON_EXISTENT_ROUTE = 'some-random-fake-route';
 const REVENUE_PROGRAM = 'myprogram';
 const PAGE_NAME = 'mypage';
 
@@ -25,7 +26,7 @@ const DONATION_PAGE_VIA_REV_PROGRAM = `/${REVENUE_PROGRAM}`;
 const EDITOR_ROUTE_REV = `${EDITOR_ROUTE}/${REVENUE_PROGRAM}`;
 const EDITOR_ROUTE_PAGE = `${EDITOR_ROUTE}${DONATION_PAGE_VIA_REV_PROGRAM_PAGE}`;
 
-const HUB_TRACKED_PAGES_REQURING_NO_LOGIN = [LOGIN, CONTRIBUTOR_ENTRY, CONTRIBUTOR_VERIFY];
+const HUB_TRACKED_PAGES_REQURING_NO_LOGIN = [LOGIN, CONTRIBUTOR_ENTRY, CONTRIBUTOR_VERIFY, NON_EXISTENT_ROUTE];
 
 const HUB_TRACKED_PAGES_REQUIRING_HUB_LOGIN = [
   ORGANIZATION_SLUG,

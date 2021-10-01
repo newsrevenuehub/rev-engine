@@ -8,7 +8,7 @@ import livePage from '../fixtures/pages/live-page-1.json';
 import unpublishedPage from '../fixtures/pages/unpublished-page-1.json';
 
 // Contsants
-import { DELETE_PAGE, FULL_PAGE, PATCH_PAGE, LIST_PAGES, CONTRIBUTION_META, TEMPLATES } from 'ajax/endpoints';
+import { DELETE_PAGE, DRAFT_PAGE_DETAIL, PATCH_PAGE, LIST_PAGES, CONTRIBUTION_META, TEMPLATES } from 'ajax/endpoints';
 import { DELETE_CONFIRM_MESSAGE } from 'components/pageEditor/PageEditor';
 import { CONTENT_SLUG } from 'routes';
 import { CLEARBIT_SCRIPT_SRC } from 'hooks/useClearbit';
@@ -17,7 +17,7 @@ describe('Donation page edit', () => {
   before(() => {
     cy.login('user/stripe-verified.json');
     cy.intercept(
-      { method: 'GET', pathname: `${getEndpoint(FULL_PAGE)}**` },
+      { method: 'GET', pathname: `${getEndpoint(DRAFT_PAGE_DETAIL)}**` },
       { fixture: 'pages/live-page-1', statusCode: 200 }
     ).as('getPage');
     cy.visit('edit/my/page');
@@ -190,7 +190,7 @@ describe('Donation page edit', () => {
 
       // Remove element from elements list and set as fixture
       page.elements = page.elements.filter((el) => el.type !== missingElementType);
-      cy.intercept({ method: 'GET', pathname: getEndpoint(FULL_PAGE) }, { body: page, statusCode: 200 }).as(
+      cy.intercept({ method: 'GET', pathname: getEndpoint(DRAFT_PAGE_DETAIL) }, { body: page, statusCode: 200 }).as(
         'getPageDetail'
       );
       cy.login('user/stripe-verified.json');
@@ -220,7 +220,7 @@ describe('Donation page edit', () => {
 
     it('should open appropriate tab for error and scroll to first error', () => {
       cy.intercept(
-        { method: 'GET', pathname: getEndpoint(FULL_PAGE) },
+        { method: 'GET', pathname: getEndpoint(DRAFT_PAGE_DETAIL) },
         { fixture: 'pages/unpublished-page-1.json' }
       ).as('getPageDetail');
       cy.login('user/stripe-verified.json');
@@ -252,7 +252,7 @@ describe('Donation page edit', () => {
 
     it('should catch missing elements and an element that has not been configured.', () => {
       cy.intercept(
-        { method: 'GET', pathname: getEndpoint(FULL_PAGE) },
+        { method: 'GET', pathname: getEndpoint(DRAFT_PAGE_DETAIL) },
         { fixture: 'pages/live-page-element-validation.json' }
       ).as('getPageDetailModified');
       cy.login('user/stripe-verified.json');
@@ -278,7 +278,7 @@ describe('Donation page edit', () => {
     before(() => {
       cy.login('user/stripe-verified.json');
       cy.intercept(
-        { method: 'GET', pathname: getEndpoint(FULL_PAGE) },
+        { method: 'GET', pathname: getEndpoint(DRAFT_PAGE_DETAIL) },
         { fixture: 'pages/live-page-1', statusCode: 200 }
       ).as('getPageDetail');
       cy.visit('edit/my/page');
@@ -324,7 +324,7 @@ describe('Donation page edit', () => {
     before(() => {
       cy.login('user/stripe-verified.json');
       cy.intercept(
-        { method: 'GET', pathname: getEndpoint(FULL_PAGE) },
+        { method: 'GET', pathname: getEndpoint(DRAFT_PAGE_DETAIL) },
         { fixture: 'pages/live-page-1', statusCode: 200 }
       ).as('getPageDetail');
       cy.visit('edit/my/page');
@@ -378,7 +378,7 @@ describe('Donation page delete', () => {
   });
   it('should delete an unpublished page when delete button is pushed', () => {
     cy.intercept(
-      { method: 'GET', pathname: getEndpoint(FULL_PAGE) },
+      { method: 'GET', pathname: getEndpoint(DRAFT_PAGE_DETAIL) },
       { fixture: 'pages/unpublished-page-1', statusCode: 200 }
     ).as('getPage');
     cy.visit('edit/my/page');
@@ -392,7 +392,7 @@ describe('Donation page delete', () => {
   });
   it('should show a confirmation modal and delete a published page when delete button is pushed', () => {
     cy.intercept(
-      { method: 'GET', pathname: getEndpoint(FULL_PAGE) },
+      { method: 'GET', pathname: getEndpoint(DRAFT_PAGE_DETAIL) },
       { fixture: 'pages/live-page-1', statusCode: 200 }
     ).as('getPage');
     cy.visit('edit/my/page');
@@ -412,7 +412,7 @@ describe('Additional Info Setup', () => {
   before(() => {
     cy.login('user/stripe-verified.json');
     cy.intercept(
-      { method: 'GET', pathname: getEndpoint(FULL_PAGE) },
+      { method: 'GET', pathname: getEndpoint(DRAFT_PAGE_DETAIL) },
       { fixture: 'pages/live-page-1', statusCode: 200 }
     ).as('getPage');
     cy.intercept(
@@ -456,7 +456,7 @@ describe('Additional Info Setup', () => {
     beforeEach(() => {
       cy.login('user/stripe-verified.json');
       cy.intercept(
-        { method: 'GET', pathname: getEndpoint(FULL_PAGE) },
+        { method: 'GET', pathname: getEndpoint(DRAFT_PAGE_DETAIL) },
         { fixture: 'pages/live-page-1', statusCode: 200 }
       ).as('getPageDetail');
       cy.visit('edit/my/page');

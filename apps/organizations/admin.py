@@ -62,6 +62,7 @@ class OrganizationAdmin(RevEngineBaseAdmin, ReverseModelAdmin):  # pragma: no co
             "Payment Provider",
             {
                 "fields": (
+                    "currency",
                     "default_payment_provider",
                     "stripe_account_id",
                     "stripe_verified",

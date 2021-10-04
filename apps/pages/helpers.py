@@ -22,11 +22,12 @@ class PageFullDetailHelper:
     revenue_program = None
     donation_page = None
 
-    def __init__(self, request):
+    def __init__(self, request, live=False):
         try:
             self.request = request
             self.revenue_program_slug = request.GET["revenue_program"]
             self.page_slug = request.GET.get("page")
+            self.live = live
         except KeyError:
             raise PageDetailError(message="Missing required parameter", status=status.HTTP_400_BAD_REQUEST)
 
@@ -58,16 +59,32 @@ class PageFullDetailHelper:
                 message="Could not find page matching those parameters", status=status.HTTP_404_NOT_FOUND
             )
 
-    def validate_live_page_request(self):
-        """
-        Once we have a donation page, we must ensure that if page is requested live, the donation page IS published
-        """
+    def validate_page_request(self):
         self._ensure_donation_page()
+        if self.live:
+            self._validate_live_page_request()
+        else:
+            self._validate_draft_page_request()
+
+    def _validate_live_page_request(self):
+        """
+        Once we have a donation page, we must ensure that:
+          - If page is requested live, the donation page IS published
+          - If the page is requested live, the Organization has a verified payment provider
+        """
         if not self.donation_page.is_live:
-            logger.error(f'Request for un-published page "{self.donation_page}" ')
+            logger.info(f'Request for un-published page "{self.donation_page}" ')
             raise PageDetailError(message="This page has not been published", status=status.HTTP_404_NOT_FOUND)
 
-    def validate_draft_page_request(self):
+        if not self.donation_page.organization.is_verified_with_default_provider():
+            logger.info(
+                f'Request made for live page "{self.donation_page}", but "{self.donation_page.organization.name}" does is not verified with its default payment provider'
+            )
+            raise PageDetailError(
+                message="Organization does not have a fully verified payment provider", status=status.HTTP_404_NOT_FOUND
+            )
+
+    def _validate_draft_page_request(self):
         """
         Once we have a donation page, we must ensure that if page is not requested live (edit mode), the requesting user has permission to view that page
         (Actual edit action protections are enforced in the views that manage them)
@@ -77,12 +94,14 @@ class PageFullDetailHelper:
                 message="You do not have permission to edit this page", status=status.HTTP_403_FORBIDDEN
             )
 
-    def get_donation_page_data(self):
+    def get_donation_page_data(
+        self,
+    ):
         """
         Serializer donation page and return JSON
         """
         self._ensure_donation_page()
-        page_serializer = DonationPageFullDetailSerializer(instance=self.donation_page)
+        page_serializer = DonationPageFullDetailSerializer(instance=self.donation_page, context={"live": self.live})
         return page_serializer.data
 
     def _ensure_revenue_program(self):

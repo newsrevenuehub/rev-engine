@@ -39,6 +39,8 @@ function DAmount({ element, ...props }) {
     return getAmountIndex(page, amount, frequency) !== -1;
   }, [page, amount, frequency]);
 
+  const currencySymbol = page?.currency?.symbol;
+
   return (
     <DElement
       label={`${getFrequencyAdjective(frequency)} amount`}
@@ -56,7 +58,8 @@ function DAmount({ element, ...props }) {
               onClick={() => setAmount(parseFloat(amnt))}
               data-testid={`amount-${amnt}${parseFloat(amount) === parseFloat(amnt) ? '-selected' : ''}`}
             >
-              {`$${amnt}`} <S.FreqSubtext selected={selected}>{getFrequencyRate(frequency)}</S.FreqSubtext>
+              {`${currencySymbol}${amnt}`}{' '}
+              <S.FreqSubtext selected={selected}>{getFrequencyRate(frequency)}</S.FreqSubtext>
             </SelectableButton>
           );
         })}
@@ -65,7 +68,7 @@ function DAmount({ element, ...props }) {
             data-testid={`amount-other${otherFocused || !amountIsPreset ? '-selected' : ''}`}
             selected={otherFocused || !amountIsPreset}
           >
-            <span>$</span>
+            <span>{currencySymbol}</span>
             <S.OtherAmountInput
               type="number"
               value={otherFocused || !amountIsPreset ? amount : ''}

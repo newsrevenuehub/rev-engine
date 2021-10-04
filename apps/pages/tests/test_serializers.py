@@ -134,6 +134,9 @@ class DonationPageFullDetailSerializerTest(APITestCase):
         self.assertIn("template", v_error.exception.detail)
         self.assertEqual(str(v_error.exception.detail["template"][0]), "This template no longer exists")
 
+    def test_live_context_adds_org_stripe_account_id(self):
+        pass
+
 
 class TemplateDetailSerializerTest(APITestCase):
     def setUp(self):

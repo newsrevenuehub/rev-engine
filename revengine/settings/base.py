@@ -338,4 +338,4 @@ THUMBNAIL_PRESERVE_FORMAT = True
 MIDDLEWARE_LOGGING_CODES = [400, 404, 403]
 
 # First in this list will be default
-CURRENCIES = ["USD", "CAD"]
+CURRENCIES = {"USD": "$", "CAD": "🍁"}

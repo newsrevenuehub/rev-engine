@@ -49,43 +49,6 @@ class OrganizationViewSetTest(AbstractTestCase):
         self.assertEqual(Organization.objects.count(), self.org_count)
 
 
-class OrganziationStripeAccountIdActionTest(APITestCase):
-    def setUp(self):
-        self.organization = OrganizationFactory()
-        self.rev_program = RevenueProgramFactory(organization=self.organization)
-        self.user = user_model.objects.create_user(email="test@test.com", password="testing")
-
-    def _make_request(self, slug=""):
-        self.client.force_authenticate(user=self.user)
-        return self.client.get(reverse("organization-stripe-account-id"), {"revenue_program_slug": slug})
-
-    def test_request_id_when_missing_required_param(self):
-        response = self._make_request(slug="")
-        self.assertEqual(response.status_code, 400)
-        self.assertEqual(response.data["detail"], 'Missing required parameter "revenue_program_slug"')
-
-    def test_request_id_when_org_provider_not_verified(self):
-        response = self._make_request(slug=self.rev_program.slug)
-        self.assertEqual(response.status_code, 404)
-        self.assertEqual(response.data["detail"], "Organization does not have a fully verified payment provider")
-
-    def test_request_id_when_rev_program_slug_invalid(self):
-        response = self._make_request(slug="no-such-rev-program")
-        self.assertEqual(response.status_code, 404)
-        self.assertEqual(response.data["detail"], "Could not find revenue program with provided slug")
-
-    def test_request_id_when_everythings_fine(self):
-        target_stripe_account_id = "my-test-id"
-        self.organization.default_payment_provider = Organization.STRIPE[0]
-        self.organization.stripe_account_id = target_stripe_account_id
-        self.organization.stripe_verified = True
-        self.organization.save()
-        self.organization.refresh_from_db()
-        response = self._make_request(slug=self.rev_program.slug)
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.data["stripe_account_id"], target_stripe_account_id)
-
-
 class RevenueProgramViewSetTest(AbstractTestCase):
     model = RevenueProgram
     model_factory = RevenueProgramFactory

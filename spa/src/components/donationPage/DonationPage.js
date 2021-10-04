@@ -26,7 +26,7 @@ const AMOUNT_QUERYPARAM = process.env.REACT_APP_AMOUNT_QUERYPARAM || 'amount';
 
 const DonationPageContext = createContext({});
 
-function DonationPage({ page, stripeAccountId, live = false }) {
+function DonationPage({ page, live = false }) {
   const formRef = useRef();
 
   const salesForceQS = useQueryString(SALESFORCE_CAMPAIGN_ID_QUERYPARAM);
@@ -62,7 +62,6 @@ function DonationPage({ page, stripeAccountId, live = false }) {
     <DonationPageContext.Provider
       value={{
         page,
-        stripeAccountId,
         frequency,
         setFrequency,
         payFee,

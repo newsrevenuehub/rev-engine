@@ -29,7 +29,6 @@ const PAGE = 'page';
 const STRIPE_ACCOUNT_ID = 'stripeAccountId';
 
 const initialState = {
-  loading: false,
   data: {},
   errors: {},
   display404: false
@@ -39,14 +38,12 @@ const livePageReducer = (state, action) => {
   switch (action.type) {
     case FETCH_START:
       return {
-        loading: true,
         data: initialState.data,
         errors: initialState.errors,
         display404: initialState.display404
       };
     case FETCH_SUCCESS:
       return {
-        loading: false,
         data: { ...state.data, ...action.payload },
         errors: initialState.errors,
         display404: initialState.display404
@@ -54,7 +51,6 @@ const livePageReducer = (state, action) => {
     case FETCH_ERROR:
       const display404 = action.payload?.page?.response?.status === 404;
       return {
-        loading: false,
         data: state.data,
         errors: { ...state.errors, ...action.payload },
         display404
@@ -65,7 +61,7 @@ const livePageReducer = (state, action) => {
 };
 
 function DonationPageRouter() {
-  const [{ loading, errors, data, display404 }, dispatch] = useReducer(livePageReducer, initialState);
+  const [{ data, display404 }, dispatch] = useReducer(livePageReducer, initialState);
   const params = useParams();
   const requestFullPage = useRequest();
   const requestOrgStripeAccountId = useRequest();
@@ -112,7 +108,10 @@ function DonationPageRouter() {
           setAnalyticsConfig({ hubGaV3Id: HUB_GA_V3_ID, orgGaV3Id, orgGaV3Domain, orgGaV4Id, orgFbPixelId });
           dispatch({ type: FETCH_SUCCESS, payload: { [PAGE]: data } });
         },
-        onFailure: (e) => dispatch({ type: FETCH_ERROR, payload: { [PAGE]: e } })
+        onFailure: (e) => {
+          // debugger;
+          dispatch({ type: FETCH_ERROR, payload: { [PAGE]: e } });
+        }
       }
     );
   }, [params]);
@@ -127,14 +126,12 @@ function DonationPageRouter() {
 
   return (
     <SegregatedStyles page={data[PAGE]}>
-      {loading ? (
-        <LiveLoading />
+      {data[PAGE] ? (
+        <DonationPage live page={data[PAGE]} stripeAccountId={data[STRIPE_ACCOUNT_ID]} />
       ) : display404 ? (
         <LivePage404 />
-      ) : !isEmpty(errors) || !data[PAGE] || !data[STRIPE_ACCOUNT_ID] ? (
-        <LiveErrorFallback />
       ) : (
-        <DonationPage live page={data[PAGE]} stripeAccountId={data[STRIPE_ACCOUNT_ID]} />
+        <LiveLoading />
       )}
     </SegregatedStyles>
   );

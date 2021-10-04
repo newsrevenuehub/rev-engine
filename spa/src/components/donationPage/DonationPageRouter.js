@@ -1,4 +1,4 @@
-import { useEffect, useCallback, useReducer } from 'react';
+import { useEffect, useCallback, useState } from 'react';
 
 // AJAX
 import useRequest from 'hooks/useRequest';
@@ -6,9 +6,6 @@ import { FULL_PAGE, ORG_STRIPE_ACCOUNT_ID } from 'ajax/endpoints';
 
 // Router
 import { useParams } from 'react-router-dom';
-
-// Utils
-import isEmpty from 'lodash.isempty';
 
 // Analytics
 import { useAnalyticsContext } from 'components/analytics/AnalyticsContext';
@@ -19,64 +16,25 @@ import SegregatedStyles from 'components/donationPage/SegregatedStyles';
 import LiveLoading from 'components/donationPage/live/LiveLoading';
 import LivePage404 from 'components/donationPage/live/LivePage404';
 import DonationPage from 'components/donationPage/DonationPage';
-import LiveErrorFallback from 'components/donationPage/live/LiveErrorFallback';
-
-const FETCH_START = 'FETCH_START';
-const FETCH_SUCCESS = 'FETCH_SUCCESS';
-const FETCH_ERROR = 'FETCH_ERROR';
-
-const PAGE = 'page';
-const STRIPE_ACCOUNT_ID = 'stripeAccountId';
-
-const initialState = {
-  data: {},
-  errors: {},
-  display404: false
-};
-
-const livePageReducer = (state, action) => {
-  switch (action.type) {
-    case FETCH_START:
-      return {
-        data: initialState.data,
-        errors: initialState.errors,
-        display404: initialState.display404
-      };
-    case FETCH_SUCCESS:
-      return {
-        data: { ...state.data, ...action.payload },
-        errors: initialState.errors,
-        display404: initialState.display404
-      };
-    case FETCH_ERROR:
-      const display404 = action.payload?.page?.response?.status === 404;
-      return {
-        data: state.data,
-        errors: { ...state.errors, ...action.payload },
-        display404
-      };
-    default:
-      return state;
-  }
-};
 
 function DonationPageRouter() {
-  const [{ data, display404 }, dispatch] = useReducer(livePageReducer, initialState);
+  const [pageData, setPageData] = useState(null);
+  const [stripeAccountId, setStripeAccountId] = useState(null);
+  const [display404, setDisplay404] = useState(false);
+
   const params = useParams();
   const requestFullPage = useRequest();
   const requestOrgStripeAccountId = useRequest();
 
   const fetchOrgStripeAccountId = useCallback(async () => {
-    dispatch({ type: FETCH_START });
     const requestParams = { revenue_program_slug: params.revProgramSlug };
     requestOrgStripeAccountId(
       { method: 'GET', url: ORG_STRIPE_ACCOUNT_ID, params: requestParams },
       {
         onSuccess: ({ data: responseData }) => {
-          const stripeAccountId = responseData.stripe_account_id;
-          dispatch({ type: FETCH_SUCCESS, payload: { [STRIPE_ACCOUNT_ID]: stripeAccountId } });
+          setStripeAccountId(responseData.stripe_account_id);
         },
-        onFailure: (e) => dispatch({ type: FETCH_ERROR, payload: { [STRIPE_ACCOUNT_ID]: e } })
+        onFailure: (e) => setDisplay404(true)
       }
     );
   }, [params.revProgramSlug]);
@@ -84,7 +42,6 @@ function DonationPageRouter() {
   const { setAnalyticsConfig } = useAnalyticsContext();
 
   const fetchLivePageContent = useCallback(async () => {
-    dispatch({ type: FETCH_START });
     const { revProgramSlug, pageSlug } = params;
     const requestParams = {
       revenue_program: revProgramSlug,
@@ -106,11 +63,10 @@ function DonationPageRouter() {
             facebook_pixel_id: orgFbPixelId
           } = data?.revenue_program;
           setAnalyticsConfig({ hubGaV3Id: HUB_GA_V3_ID, orgGaV3Id, orgGaV3Domain, orgGaV4Id, orgFbPixelId });
-          dispatch({ type: FETCH_SUCCESS, payload: { [PAGE]: data } });
+          setPageData(data);
         },
         onFailure: (e) => {
-          // debugger;
-          dispatch({ type: FETCH_ERROR, payload: { [PAGE]: e } });
+          setDisplay404(true);
         }
       }
     );
@@ -125,11 +81,11 @@ function DonationPageRouter() {
   }, [params, fetchOrgStripeAccountId]);
 
   return (
-    <SegregatedStyles page={data[PAGE]}>
-      {data[PAGE] ? (
-        <DonationPage live page={data[PAGE]} stripeAccountId={data[STRIPE_ACCOUNT_ID]} />
-      ) : display404 ? (
+    <SegregatedStyles page={pageData}>
+      {display404 ? (
         <LivePage404 />
+      ) : pageData && stripeAccountId ? (
+        <DonationPage live page={pageData} stripeAccountId={stripeAccountId} />
       ) : (
         <LiveLoading />
       )}

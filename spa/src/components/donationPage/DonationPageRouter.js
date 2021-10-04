@@ -2,7 +2,7 @@ import { useEffect, useCallback, useReducer } from 'react';
 
 // AJAX
 import useRequest from 'hooks/useRequest';
-import { FULL_PAGE } from 'ajax/endpoints';
+import { LIVE_PAGE_DETAIL } from 'ajax/endpoints';
 
 // Router
 import { useParams } from 'react-router-dom';
@@ -86,13 +86,12 @@ function DonationPageRouter() {
     const { revProgramSlug, pageSlug } = params;
     const requestParams = {
       revenue_program: revProgramSlug,
-      page: pageSlug,
-      live: 1
+      page: pageSlug
     };
     requestFullPage(
       {
         method: 'GET',
-        url: FULL_PAGE,
+        url: LIVE_PAGE_DETAIL,
         params: requestParams
       },
       {

@@ -2,7 +2,7 @@ import { useEffect, useCallback, useReducer } from 'react';
 
 // AJAX
 import useRequest from 'hooks/useRequest';
-import { FULL_PAGE, ORG_STRIPE_ACCOUNT_ID } from 'ajax/endpoints';
+import { FULL_PAGE } from 'ajax/endpoints';
 
 // Router
 import { useParams } from 'react-router-dom';
@@ -62,22 +62,22 @@ function DonationPageRouter() {
   const [{ loading, errors, data }, dispatch] = useReducer(livePageReducer, initialState);
   const params = useParams();
   const requestFullPage = useRequest();
-  const requestOrgStripeAccountId = useRequest();
+  // const requestOrgStripeAccountId = useRequest();
 
-  const fetchOrgStripeAccountId = useCallback(async () => {
-    dispatch({ type: FETCH_START });
-    const requestParams = { revenue_program_slug: params.revProgramSlug };
-    requestOrgStripeAccountId(
-      { method: 'GET', url: ORG_STRIPE_ACCOUNT_ID, params: requestParams },
-      {
-        onSuccess: ({ data: responseData }) => {
-          const stripeAccountId = responseData.stripe_account_id;
-          dispatch({ type: FETCH_SUCCESS, payload: { [STRIPE_ACCOUNT_ID]: stripeAccountId } });
-        },
-        onFailure: (e) => dispatch({ type: FETCH_ERROR, payload: { [STRIPE_ACCOUNT_ID]: e } })
-      }
-    );
-  }, [params.revProgramSlug]);
+  // const fetchOrgStripeAccountId = useCallback(async () => {
+  //   dispatch({ type: FETCH_START });
+  //   const requestParams = { revenue_program_slug: params.revProgramSlug };
+  //   requestOrgStripeAccountId(
+  //     { method: 'GET', url: ORG_STRIPE_ACCOUNT_ID, params: requestParams },
+  //     {
+  //       onSuccess: ({ data: responseData }) => {
+  //         const stripeAccountId = responseData.stripe_account_id;
+  //         dispatch({ type: FETCH_SUCCESS, payload: { [STRIPE_ACCOUNT_ID]: stripeAccountId } });
+  //       },
+  //       onFailure: (e) => dispatch({ type: FETCH_ERROR, payload: { [STRIPE_ACCOUNT_ID]: e } })
+  //     }
+  //   );
+  // }, [params.revProgramSlug]);
 
   const { setAnalyticsConfig } = useAnalyticsContext();
 
@@ -115,9 +115,9 @@ function DonationPageRouter() {
     fetchLivePageContent();
   }, [params, fetchLivePageContent]);
 
-  useEffect(() => {
-    fetchOrgStripeAccountId();
-  }, [params, fetchOrgStripeAccountId]);
+  // useEffect(() => {
+  //   fetchOrgStripeAccountId();
+  // }, [params, fetchOrgStripeAccountId]);
 
   return (
     <SegregatedStyles page={data[PAGE]}>

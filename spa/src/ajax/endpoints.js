@@ -5,7 +5,7 @@ export const STRIPE_PAYMENT = 'stripe/payment/';
 export const STRIPE_ONBOARDING = 'stripe/onboarding/';
 export const STRIPE_CONFIRMATION = 'stripe/confirmation/';
 
-export const ORG_STRIPE_ACCOUNT_ID = 'organizations/stripe_account_id/';
+// export const ORG_STRIPE_ACCOUNT_ID = 'organizations/stripe_account_id/';
 
 // Pages
 export const FULL_PAGE = 'pages/full_detail/';

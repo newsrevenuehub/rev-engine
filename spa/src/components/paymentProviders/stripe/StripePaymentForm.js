@@ -78,7 +78,9 @@ function StripePaymentForm({ loading, setLoading, offerPayFees }) {
   const handleCardElementChange = async (event) => {
     setCardReady(event.complete);
     setDisabled(event.empty);
-    setErrors({ ...errors, stripe: event.error ? event.error.message : '' });
+    const errs = { ...errors };
+    if (event?.error?.message) errs.stripe = event.error.message;
+    setErrors(errs);
   };
 
   /**

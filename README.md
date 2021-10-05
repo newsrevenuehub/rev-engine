@@ -129,7 +129,28 @@ Next, copy the url its exposing your port through (example:http://610d1234567.ng
 Then, run `./manage.py create_stripe_webhooks`. This will use the Stripe sdk to add WebhookEndpoints to NRH Stripe account.
 For the STRIPE_WEBHOOK_SECRET, you'll then need access to the Hub Stripe Dashboard. Go to Developers --> Webhooks --> [your newly added endpoint] --> "Signing secret"
 
-**6. Set up local env variables**
+**6. Set up subdomain in /etc/hosts for local development**
+The front end for this app routes donation pages based on subdomain.
+Requests for a donation page with the slug `page-slug` for the revenue program with slug `revenueprogram`
+will be made to `revenueprogram.revengine-testabc123.com/page-slug`. (The second-level domain is arbitrary in this case).
+For that reason, to view donation pages locally, you'll need to make an entry to your /etc/hosts file like so:
+
+```shell
+127.0.0.1 revengine-testabc123.com
+127.0.0.1 slug-for-the-rev-program-you-want-to-test.revengine-testabc123.com
+```
+
+In order to run the donation-page.spec and the page-view-analytics.spec cypress tests locally, also add exactly the following:
+
+```shell
+127.0.0.1 revenueprogram.revengine-testabc123.com
+```
+
+Then run your frontend separately from your backend, using `npm run start:subdomains`
+
+NOTE: Running tests locally like this also depends on your frontend being served at port 3000. (This is the default configuration for both `npm run start` and `make run-dev`)
+
+**7. Set up local env variables**
 
 This project utilizes the [direnv](https://direnv.net/) shell extension to manage project level developer environment
 variables. Direnv is installed system wide so you may already have it. If not, [follow the instructions here](https://direnv.net/docs/installation.html)
@@ -155,7 +176,7 @@ Allow direnv to inject the variable into your environment
 ```
 
 
-**7. Database**
+**8. Database**
 
 The setup for local development assumes that you will be working with dockerized
 services.
@@ -177,7 +198,7 @@ following shell environment variables or add them to your `.envrc` file:
 ```
 
 
-**8. Migrate and create a superuser**
+**9. Migrate and create a superuser**
 
 ```linux
     (revengine)$ docker-compose up -d
@@ -185,25 +206,26 @@ following shell environment variables or add them to your `.envrc` file:
     (revengine)$ python manage.py createsuperuser
 ```
 
-**9. Run the server and start the SPA**
+**10. Run the server and start the SPA**
 
 ```linux
     (revengine)$ docker-compose up -d
     (revengine)$ make run-dev
 ```
 
-The react app will be available at `https://localhost:8001/`, and the django admin will be available at `http://localhost:8000/admin/`
+The react app will be available at `https://localhost:3000/`, and the django admin will be available at `http://localhost:8000/admin/`
 
 
-**10. Access the server**
+**11. Access the server**
 
 The Django admin is at `/admin/`.
 
 
-**11. Test Email Setup**
+**12. Test Email Setup**
+  
 To test production email settings `export TEST_EMAIL=True`, otherwise emails will use the console backend.
 
-**11. Run Django Tests**
+**13. Run Django tests**
 
 revengine uses pytest as a test runner.
 
@@ -211,8 +233,7 @@ revengine uses pytest as a test runner.
 ```sh
     (revengine)$ make run-tests
 ```
-
-**11. Run Cypress Tests**
+**14. Run Cypress Tests**
 Running cypress locally requires 2 terminals
 
 Term 1:
@@ -236,7 +257,7 @@ OR in `spa/` directory:
 ```
 Will run the cypress tests headless.
 
-**12. Reset Media and Database**
+**15. Reset Media and Database**
 
 **Media Reset**
 
@@ -287,7 +308,7 @@ local database.
 (revengine)$> pg_restore --verbose --clean --no-acl --no-owner -d revengine latest.dump
 ```
 
-##**13. Notes on Development conventions**
+##**15. Notes on Development conventions**
 #### 1. Logging
 
 This application makes use of the `WARNING` logging level a bit more than other projects.

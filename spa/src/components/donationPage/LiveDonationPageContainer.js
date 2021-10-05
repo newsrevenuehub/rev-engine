@@ -10,6 +10,9 @@ import { useParams } from 'react-router-dom';
 // Utils
 import isEmpty from 'lodash.isempty';
 
+// Hooks
+import useSubdomain from 'hooks/useSubdomain';
+
 // Analytics
 import { useAnalyticsContext } from 'components/analytics/AnalyticsContext';
 import { HUB_GA_V3_ID } from 'constants/analyticsConstants';
@@ -58,15 +61,17 @@ const livePageReducer = (state, action) => {
   }
 };
 
-function DonationPageRouter() {
+function LiveDonationPageRouter() {
   const [{ loading, errors, data }, dispatch] = useReducer(livePageReducer, initialState);
+
+  const subdomain = useSubdomain();
   const params = useParams();
   const requestFullPage = useRequest();
   const requestOrgStripeAccountId = useRequest();
 
   const fetchOrgStripeAccountId = useCallback(async () => {
     dispatch({ type: FETCH_START });
-    const requestParams = { revenue_program_slug: params.revProgramSlug };
+    const requestParams = { revenue_program_slug: subdomain };
     requestOrgStripeAccountId(
       { method: 'GET', url: ORG_STRIPE_ACCOUNT_ID, params: requestParams },
       {
@@ -77,18 +82,19 @@ function DonationPageRouter() {
         onFailure: (e) => dispatch({ type: FETCH_ERROR, payload: { [STRIPE_ACCOUNT_ID]: e } })
       }
     );
-  }, [params.revProgramSlug]);
+  }, [subdomain]);
 
   const { setAnalyticsConfig } = useAnalyticsContext();
 
   const fetchLivePageContent = useCallback(async () => {
     dispatch({ type: FETCH_START });
-    const { revProgramSlug, pageSlug } = params;
+    const { pageSlug } = params;
     const requestParams = {
-      revenue_program: revProgramSlug,
+      revenue_program: subdomain,
       page: pageSlug,
       live: 1
     };
+    console.log('those requestParams', requestParams);
     requestFullPage(
       {
         method: 'GET',
@@ -109,7 +115,7 @@ function DonationPageRouter() {
         onFailure: (e) => dispatch({ type: FETCH_ERROR, payload: { [PAGE]: e } })
       }
     );
-  }, [params]);
+  }, [params, subdomain]);
 
   useEffect(() => {
     fetchLivePageContent();
@@ -119,17 +125,16 @@ function DonationPageRouter() {
     fetchOrgStripeAccountId();
   }, [params, fetchOrgStripeAccountId]);
 
-  return (
-    <SegregatedStyles page={data[PAGE]}>
-      {loading ? (
-        <LiveLoading />
-      ) : !isEmpty(errors) || !data[PAGE] || !data[STRIPE_ACCOUNT_ID] ? (
-        <LivePage404 />
-      ) : (
+  const hasErrors = !isEmpty(errors) || !data[PAGE] || !data[STRIPE_ACCOUNT_ID];
+
+  if (loading) return <LiveLoading />;
+  if (hasErrors) return <LivePage404 />;
+  else
+    return (
+      <SegregatedStyles page={data[PAGE]}>
         <DonationPage live page={data[PAGE]} stripeAccountId={data[STRIPE_ACCOUNT_ID]} />
-      )}
-    </SegregatedStyles>
-  );
+      </SegregatedStyles>
+    );
 }
 
-export default DonationPageRouter;
+export default LiveDonationPageRouter;

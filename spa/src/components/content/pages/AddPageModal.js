@@ -7,7 +7,7 @@ import { useAlert } from 'react-alert';
 
 // Routes
 import { useHistory } from 'react-router-dom';
-import { EDITOR_ROUTE, REV_PROGRAM_CREATE_SLUG } from 'routes';
+import { EDITOR_ROUTE } from 'routes';
 
 // Util
 import slugify from 'utilities/slugify';
@@ -85,10 +85,6 @@ function AddPageModal({ isOpen, closeModal }) {
 
   const handleSlugBlur = () => {
     setSlug(slugify(slug));
-  };
-
-  const handleCreateRevProgram = () => {
-    history.push(REV_PROGRAM_CREATE_SLUG);
   };
 
   const canSavePage = () => !loading && !!revenueProgram && !!slug && !!name;
@@ -177,10 +173,7 @@ function AddPageModal({ isOpen, closeModal }) {
               </S.InputWrapper>
             )}
             {!loading && revenuePrograms.length === 0 && (
-              <S.NoRevPrograms>
-                You need to set up a revenue program to create a page.{' '}
-                <S.CreateRevProgramLink onClick={handleCreateRevProgram}>Create one?</S.CreateRevProgramLink>
-              </S.NoRevPrograms>
+              <S.NoRevPrograms>You need to set up a revenue program to create a page.</S.NoRevPrograms>
             )}
             {templates.length > 0 && (
               <S.InputWrapper>

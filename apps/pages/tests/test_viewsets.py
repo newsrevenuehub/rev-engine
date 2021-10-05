@@ -286,9 +286,6 @@ class DonationPageFullDetailTest(APITestCase):
         self.assertEqual(response.status_code, 403)
         self.assertEqual(response.data["detail"], "You do not have permission to edit this page")
 
-    def test_full_detail_when_org_unverified(self):
-        pass
-
 
 class TemplateViewSetTest(AbstractTestCase):
     model = Template

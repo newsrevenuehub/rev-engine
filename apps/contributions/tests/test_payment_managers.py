@@ -78,6 +78,8 @@ class StripePaymentManagerAbstractTestCase(APITestCase):
             "revenue_program_slug": self.revenue_program.slug,
             "payment_method_id": "test_payment_method_id",
             "donation_page_slug": self.page.slug,
+            "currency": "usd",
+            "organization_country": "us",
             "ip": faker.ipv4(),
             "referer": faker.url(),
         }

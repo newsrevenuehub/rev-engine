@@ -340,4 +340,5 @@ MIDDLEWARE_LOGGING_CODES = [400, 404, 403]
 # First in this list will be default.
 # Use the 2-char country code here for Stripe's sake.
 COUNTRIES = ["US", "CA"]
-CURRENCIES = {"USD": "$", "CAD": "🍁"}
+# Map currency-code to symbol
+CURRENCIES = {"USD": "$", "CAD": "$"}

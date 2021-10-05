@@ -169,6 +169,7 @@ class PaymentManager:
         return Contribution.objects.create(
             amount=self.validated_data["amount"],
             interval=self.validated_data["interval"],
+            currency=self.validated_data["currency"],
             status=status,
             donation_page=donation_page,
             organization=organization,
@@ -223,7 +224,7 @@ class StripePaymentManager(PaymentManager):
         meta = self.bundle_metadata(self.data, ContributionMetadata.ProcessorObjects.PAYMENT)
         stripe_payment_intent = stripe.PaymentIntent.create(
             amount=self.validated_data["amount"],
-            currency=settings.DEFAULT_CURRENCY,
+            currency=self.validated_data["currency"],
             customer=stripe_customer.id,
             payment_method_types=["card"],
             api_key=get_hub_stripe_api_key(),

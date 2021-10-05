@@ -1,24 +1,24 @@
+import { forwardRef } from 'react';
 import * as S from './Input.styled';
 import PropTypes from 'prop-types';
 import BaseField from 'elements/inputs/BaseField';
 
-function Input({ value, onChange, type, name, ...props }) {
-  return (
-    <BaseField {...props}>
-      <S.Input
-        value={value}
-        onChange={onChange}
-        name={name}
-        type={type}
-        helpText
-        data-testid={props.testid}
-        onClick={props.onClick}
-        onFocus={props.onFocus}
-        onBlur={props.onBlur}
-      />
-    </BaseField>
-  );
-}
+const Input = forwardRef(({ value, onChange, type, name, ...props }, ref) => (
+  <BaseField {...props}>
+    <S.Input
+      ref={ref}
+      value={value}
+      onChange={onChange}
+      name={name}
+      type={type}
+      helpText
+      data-testid={props.testid}
+      onClick={props.onClick}
+      onFocus={props.onFocus}
+      onBlur={props.onBlur}
+    />
+  </BaseField>
+));
 
 Input.types = {
   TEXT: 'text',

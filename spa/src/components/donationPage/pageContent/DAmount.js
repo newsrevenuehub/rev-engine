@@ -48,13 +48,16 @@ function DAmount({ element, ...props }) {
     >
       <S.DAmount>
         {getAmounts(frequency).map((amnt, i) => {
+          const selected = parseFloat(amount) === parseFloat(amnt) && !otherFocused;
           return (
             <SelectableButton
               key={i + amnt}
-              selected={parseFloat(amount) === parseFloat(amnt) && !otherFocused}
+              selected={selected}
               onClick={() => setAmount(parseFloat(amnt))}
               data-testid={`amount-${amnt}${parseFloat(amount) === parseFloat(amnt) ? '-selected' : ''}`}
-            >{`$${amnt}`}</SelectableButton>
+            >
+              {`$${amnt}`} <S.FreqSubtext selected={selected}>{getFrequencyRate(frequency)}</S.FreqSubtext>
+            </SelectableButton>
           );
         })}
         {(element.content?.allowOther || overrideAmount) && (
@@ -70,7 +73,7 @@ function DAmount({ element, ...props }) {
               onFocus={handleOtherSelected}
               onBlur={handleOtherBlurred}
             />
-            <span data-testid="custom-amount-rate">{getFrequencyRate(frequency)}</span>
+            <S.FreqSubtext data-testid="custom-amount-rate">{getFrequencyRate(frequency)}</S.FreqSubtext>
           </S.OtherAmount>
         )}
       </S.DAmount>

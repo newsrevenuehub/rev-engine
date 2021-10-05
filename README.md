@@ -222,9 +222,10 @@ The Django admin is at `/admin/`.
 
 
 **12. Test Email Setup**
+  
 To test production email settings `export TEST_EMAIL=True`, otherwise emails will use the console backend.
 
-**13. Run tests**
+**13. Run Django tests**
 
 revengine uses pytest as a test runner.
 
@@ -232,8 +233,31 @@ revengine uses pytest as a test runner.
 ```sh
     (revengine)$ make run-tests
 ```
+**14. Run Cypress Tests**
+Running cypress locally requires 2 terminals
 
-**14. Reset Media and Database**
+Term 1:
+```shell
+  (revengine)$ cd spa/
+  (revengine)$ npm run start
+```
+
+Term 2:
+```shell
+  (revengine)$ cd spa/
+  (revengine)$ npm run cypress:open
+```
+Will open the cypress application
+
+OR in `spa/` directory:
+
+```shell
+  (revengine)$ cd spa/
+  (revengine)$ npm run cypress:run
+```
+Will run the cypress tests headless.
+
+**15. Reset Media and Database**
 
 **Media Reset**
 

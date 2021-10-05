@@ -38,7 +38,6 @@ describe('Donation page', () => {
       cy.intercept({ method: 'GET', pathname: getEndpoint(FULL_PAGE) }, { body: {} });
       cy.visit('/revenue-program-slug');
       cy.getByTestId('live-page-404').should('exist');
-      // cy.get('head').find(`script[src*="${CLEARBIT_SCRIPT_SRC}"]`).should('have.length', 1);
     });
 
     it('should show a donation page if route is not reserved, first-level', () => {

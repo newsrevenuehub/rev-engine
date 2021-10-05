@@ -16,7 +16,7 @@ import { FULL_PAGE } from 'ajax/endpoints';
 import { getEndpoint } from '../support/util';
 import { HUB_GA_V3_ID } from 'constants/analyticsConstants';
 
-const NON_EXISTENT_ROUTE = 'some-random-fake-route';
+const NON_EXISTENT_ROUTE = '/some-random-fake-route';
 const REVENUE_PROGRAM = 'myprogram';
 const PAGE_NAME = 'mypage';
 

@@ -3,7 +3,11 @@ import { useState } from 'react';
 // Context
 import { usePage } from 'components/donationPage/DonationPage';
 
+// Constants
+import { HUB_GOOGLE_MAPS_API_KEY } from 'constants/genericConstants';
+
 // Deps
+import { usePlacesWidget } from 'react-google-autocomplete';
 import Grid from '@material-ui/core/Grid';
 
 // Children
@@ -18,12 +22,28 @@ function DDonorAddress() {
   const [zip, setZip] = useState('');
   const [country, setCountry] = useState('');
 
+  const { ref } = usePlacesWidget({
+    apiKey: HUB_GOOGLE_MAPS_API_KEY,
+    options: {
+      types: ['address']
+    },
+    onPlaceSelected: (place) => {
+      const addrFields = mapAddressComponentsToAddressFields(place.address_components);
+      setAddress(addrFields.address || '');
+      setCity(addrFields.city || '');
+      setState(addrFields.state || '');
+      setZip(addrFields.zip || '');
+      setCountry(addrFields.country || '');
+    }
+  });
+
   return (
     <DElement>
       <Grid container spacing={3}>
         <Grid item xs={12}>
           <Input
             type="text"
+            ref={ref}
             name="mailing_street"
             label="Address"
             value={address}
@@ -88,3 +108,25 @@ DDonorAddress.required = true;
 DDonorAddress.unique = true;
 
 export default DDonorAddress;
+
+const mapAddrFieldToComponentTypes = {
+  address: ['street_number', 'street_address', 'route'],
+  zip: ['postal_code'],
+  state: ['administrative_area_level_1'],
+  city: ['locality'],
+  country: ['country']
+};
+
+function reduceAddressComponentsToString(addressComponents, targets) {
+  const componentTypes = addressComponents.filter((addrComp) => targets.includes(addrComp.types[0]));
+  return componentTypes.map((cmp) => cmp.long_name).join(' ');
+}
+
+function mapAddressComponentsToAddressFields(addressComponents) {
+  const address = reduceAddressComponentsToString(addressComponents, mapAddrFieldToComponentTypes['address']);
+  const zip = reduceAddressComponentsToString(addressComponents, mapAddrFieldToComponentTypes['zip']);
+  const state = reduceAddressComponentsToString(addressComponents, mapAddrFieldToComponentTypes['state']);
+  const city = reduceAddressComponentsToString(addressComponents, mapAddrFieldToComponentTypes['city']);
+  const country = reduceAddressComponentsToString(addressComponents, mapAddrFieldToComponentTypes['country']);
+  return { address, zip, city, state, country };
+}

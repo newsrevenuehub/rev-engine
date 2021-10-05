@@ -10,6 +10,7 @@ import stripe
 from apps.common.models import IndexedTimeStampedModel
 from apps.common.utils import normalize_slug
 from apps.contributions.utils import get_hub_stripe_api_key
+from apps.organizations.validators import validate_statement_descriptor_suffix
 
 
 logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
@@ -225,6 +226,7 @@ class RevenueProgram(IndexedTimeStampedModel):
         help_text="This will be used as the subdomain for donation pages made under this revenue program",
     )
     address = models.OneToOneField("common.Address", on_delete=models.SET_NULL, null=True)
+    social_meta = models.OneToOneField("common.SocialMeta", on_delete=models.SET_NULL, null=True)
     organization = models.ForeignKey("organizations.Organization", on_delete=models.CASCADE)
     contact_email = models.EmailField(max_length=255, blank=True)
     default_donation_page = models.ForeignKey("pages.DonationPage", null=True, blank=True, on_delete=models.SET_NULL)
@@ -242,6 +244,11 @@ class RevenueProgram(IndexedTimeStampedModel):
         max_length=15, blank=True, help_text="How can your donors mention you on Twitter? Don't include '@' symbol"
     )
     website_url = models.URLField(blank=True, help_text="Does this Revenue Program have a website?")
+
+    # Stripe Statement descriptor
+    stripe_statement_descriptor_suffix = models.CharField(
+        max_length=10, blank=True, null=True, validators=[validate_statement_descriptor_suffix]
+    )
 
     def __str__(self):
         return self.name

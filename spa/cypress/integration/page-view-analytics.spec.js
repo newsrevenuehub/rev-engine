@@ -13,17 +13,14 @@ import { VERIFY_TOKEN } from 'ajax/endpoints';
 
 import livePageFixture from '../fixtures/pages/live-page-1.json';
 import { FULL_PAGE } from 'ajax/endpoints';
-import { getEndpoint } from '../support/util';
+import { getEndpoint, getTestingDonationPageUrl, EXPECTED_RP_SLUG } from '../support/util';
 import { HUB_GA_V3_ID } from 'constants/analyticsConstants';
 
-const REVENUE_PROGRAM = 'myprogram';
+const REVENUE_PROGRAM = EXPECTED_RP_SLUG;
 const PAGE_NAME = 'mypage';
 
-const DONATION_PAGE_VIA_REV_PROGRAM_PAGE = `/${REVENUE_PROGRAM}/${PAGE_NAME}`;
-const DONATION_PAGE_VIA_REV_PROGRAM = `/${REVENUE_PROGRAM}`;
-
 const EDITOR_ROUTE_REV = `${EDITOR_ROUTE}/${REVENUE_PROGRAM}`;
-const EDITOR_ROUTE_PAGE = `${EDITOR_ROUTE}${DONATION_PAGE_VIA_REV_PROGRAM_PAGE}`;
+const EDITOR_ROUTE_PAGE = `${EDITOR_ROUTE}/${REVENUE_PROGRAM}/${PAGE_NAME}`;
 
 const HUB_TRACKED_PAGES_REQURING_NO_LOGIN = [LOGIN, CONTRIBUTOR_ENTRY, CONTRIBUTOR_VERIFY];
 
@@ -40,8 +37,6 @@ const HUB_TRACKED_PAGES_REQUIRING_HUB_LOGIN = [
 // for org analytics, because it depends on being sent there from successful
 // donation on donation page, and in turn, that is tied to things going right
 // with the Stripe API, which doesn't happen by default (long story, that one...)
-const HUB_AND_ORG_TRACKED_PAGES = [DONATION_PAGE_VIA_REV_PROGRAM_PAGE, DONATION_PAGE_VIA_REV_PROGRAM];
-
 describe('Pages that are only tracked by Hub', () => {
   beforeEach(() => {
     const gaV3CollectUrl = new URL('https://www.google-analytics.com/j/collect');
@@ -169,33 +164,33 @@ describe('Pages that are tracked by both the hub and the org', () => {
     ).as('trackPageViewOnOrgFbPixel');
   });
 
-  HUB_AND_ORG_TRACKED_PAGES.forEach((page) => {
-    it(`should track a page view for the page ${page} on Hub GAv3 and enabled Org analytics plugins`, () => {
-      cy.intercept({ method: 'GET', pathname: getEndpoint(FULL_PAGE) }, { body: livePageFixture, statusCode: 200 }).as(
-        'getPageDetail'
-      );
-      cy.visit(page);
-      cy.wait('@getPageDetail');
-      cy.wait('@trackPageViewOnHubGaV3').then((interception) => {
-        const queryParams = new URLSearchParams(interception.request.url.split('?')[1]);
-        const trackedUrl = new URL(queryParams.get('dl'));
-        cy.wrap(trackedUrl.pathname).should('equal', page);
-      });
-      cy.wait('@trackPageViewOnOrgGaV3').then((interception) => {
-        const queryParams = new URLSearchParams(interception.request.url.split('?')[1]);
-        const trackedUrl = new URL(queryParams.get('dl'));
-        cy.wrap(trackedUrl.pathname).should('equal', page);
-      });
-      cy.wait('@trackPageViewOnOrgGaV4').then((interception) => {
-        const queryParams = new URLSearchParams(interception.request.url.split('?')[1]);
-        const trackedUrl = new URL(queryParams.get('dl'));
-        cy.wrap(trackedUrl.pathname).should('equal', page);
-      });
-      cy.wait('@trackPageViewOnOrgFbPixel').then((interception) => {
-        const queryParams = new URLSearchParams(interception.request.url.split('?')[1]);
-        const trackedUrl = new URL(queryParams.get('dl'));
-        cy.wrap(trackedUrl.pathname).should('equal', page);
-      });
+  it('should track a page view for Donatino Pages on Hub GAv3 and enabled Org analytics plugins', () => {
+    cy.intercept({ method: 'GET', pathname: getEndpoint(FULL_PAGE) }, { body: livePageFixture, statusCode: 200 }).as(
+      'getPageDetail'
+    );
+    // cy.visit(page);
+    const expectedPath = '/' + PAGE_NAME;
+    cy.visit(getTestingDonationPageUrl(PAGE_NAME));
+    cy.wait('@getPageDetail');
+    cy.wait('@trackPageViewOnHubGaV3').then((interception) => {
+      const queryParams = new URLSearchParams(interception.request.url.split('?')[1]);
+      const trackedUrl = new URL(queryParams.get('dl'));
+      cy.wrap(trackedUrl.pathname).should('equal', expectedPath);
+    });
+    cy.wait('@trackPageViewOnOrgGaV3').then((interception) => {
+      const queryParams = new URLSearchParams(interception.request.url.split('?')[1]);
+      const trackedUrl = new URL(queryParams.get('dl'));
+      cy.wrap(trackedUrl.pathname).should('equal', expectedPath);
+    });
+    cy.wait('@trackPageViewOnOrgGaV4').then((interception) => {
+      const queryParams = new URLSearchParams(interception.request.url.split('?')[1]);
+      const trackedUrl = new URL(queryParams.get('dl'));
+      cy.wrap(trackedUrl.pathname).should('equal', expectedPath);
+    });
+    cy.wait('@trackPageViewOnOrgFbPixel').then((interception) => {
+      const queryParams = new URLSearchParams(interception.request.url.split('?')[1]);
+      const trackedUrl = new URL(queryParams.get('dl'));
+      cy.wrap(trackedUrl.pathname).should('equal', expectedPath);
     });
   });
 });

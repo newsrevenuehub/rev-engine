@@ -87,12 +87,7 @@ class DonationPageAdmin(DonationPageAdminAbstract, SafeDeleteAdmin):
             (None, {"fields": ("published_date",)}),
             (
                 None,
-                {
-                    "fields": (
-                        "slug",
-                        "derived_slug",
-                    )
-                },
+                {"fields": ("slug",)},
             ),
         )
         + DonationPageAdminAbstract.fieldsets
@@ -107,7 +102,6 @@ class DonationPageAdmin(DonationPageAdminAbstract, SafeDeleteAdmin):
         "organization",
         "revenue_program",
         "slug",
-        "derived_slug",
         "is_live",
         "published_date",
     ) + SafeDeleteAdmin.list_display
@@ -129,7 +123,7 @@ class DonationPageAdmin(DonationPageAdminAbstract, SafeDeleteAdmin):
         "revenue_program__name",
     )
 
-    readonly_fields = ["derived_slug", "email_templates", "page_screenshot"]
+    readonly_fields = ["email_templates", "page_screenshot"]
 
     actions = ("make_template", "undelete_selected")
 

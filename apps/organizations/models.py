@@ -62,7 +62,7 @@ class Organization(IndexedTimeStampedModel):
     plan = models.ForeignKey("organizations.Plan", null=True, on_delete=models.CASCADE)
     currency = models.CharField(max_length=3, choices=CURRENCY_CHOICES, default=CURRENCY_CHOICES[0][0])
     non_profit = models.BooleanField(default=True, verbose_name="Non-profit?")
-    address = models.OneToOneField("common.Address", on_delete=models.SET_NULL, null=True)
+    address = models.OneToOneField("common.Address", on_delete=models.CASCADE)
     salesforce_id = models.CharField(max_length=255, blank=True, verbose_name="Salesforce ID")
 
     users = models.ManyToManyField("users.User", through="users.OrganizationUser")

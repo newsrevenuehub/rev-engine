@@ -162,10 +162,14 @@ function StripePaymentForm({ loading, setLoading, offerPayFees }) {
     setLoading(true);
     const reCAPTCHAToken = await getReCAPTCHAToken();
     const orgIsNonProfit = page.organization_is_nonprofit;
+    const orgCountry = page.organization_country;
+    const currency = page?.currency?.code?.toLowerCase();
     const data = serializeData(formRef.current, {
       amount,
       payFee,
       orgIsNonProfit,
+      orgCountry,
+      currency,
       frequency,
       salesforceCampaignId,
       reCAPTCHAToken,
@@ -187,8 +191,12 @@ function StripePaymentForm({ loading, setLoading, offerPayFees }) {
     setLoading(true);
     const reCAPTCHAToken = await getReCAPTCHAToken();
     const orgIsNonProfit = page.organization_is_nonprofit;
+    const orgCountry = page.organization_country;
+    const currency = page?.currency?.code?.toLowerCase();
     const data = serializeData(formRef.current, {
       orgIsNonProfit,
+      orgCountry,
+      currency,
       frequency,
       salesforceCampaignId,
       reCAPTCHAToken,
@@ -216,7 +224,7 @@ function StripePaymentForm({ loading, setLoading, offerPayFees }) {
     const amnt = amountToCents(getTotalAmount(amount, payFee, frequency, orgIsNonProfit));
     if (stripe && amountIsValid && !paymentRequest) {
       const pr = stripe.paymentRequest({
-        country: 'US',
+        country: page?.organization_country,
         currency: page?.currency?.code?.toLowerCase(),
         total: {
           label: STRIPE_PAYMENT_REQUEST_LABEL,

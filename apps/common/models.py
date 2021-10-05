@@ -17,10 +17,13 @@ class IndexedTimeStampedModel(models.Model):
 
 
 def get_country_choices():
+    """
+    returns a tuple of country choices according to pycountry.countries db
+    """
     country_choices = []
     for country_code in settings.COUNTRIES:
         country = pycountry.countries.lookup(country_code)
-        country_choices.append((country.alpha_3, country.alpha_3))
+        country_choices.append((country.alpha_2, country.alpha_2))
     return country_choices
 
 
@@ -31,7 +34,7 @@ class Address(models.Model):
     state = models.CharField(max_length=2, blank=True, choices=STATE_CHOICES, verbose_name="State/Province")
     postal_code = models.CharField(max_length=9, blank=True, verbose_name="Postal code")
     country = models.CharField(
-        max_length=3,
+        max_length=2,
         blank=True,
         choices=get_country_choices(),
         default=get_country_choices()[0][0],

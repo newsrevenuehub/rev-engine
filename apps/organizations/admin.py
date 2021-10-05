@@ -80,7 +80,7 @@ class OrganizationAdmin(RevEngineBaseAdmin, ReverseModelAdmin):  # pragma: no co
     list_filter = ["name", "plan", "address__state"]
 
     inline_type = "stacked"
-    inline_reverse = [("address", {"fields": ["address1", "address2", "city", "state", "postal_code"]})]
+    inline_reverse = [("address", {"fields": ["address1", "address2", "city", "state", "postal_code", "country"]})]
     inlines = [UserOrganizationInline]
 
     readonly_fields = ["name", "slug", "stripe_verified"]

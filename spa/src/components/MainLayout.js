@@ -4,6 +4,9 @@ import * as S from './MainLayout.styled';
 // Hooks
 import useSubdomain from 'hooks/useSubdomain';
 
+// Constants
+import { ORG_PORTAL_SUBDOMAINS } from 'constants/genericConstants';
+
 // Analytics
 import { AnalyticsContextWrapper } from './analytics/AnalyticsContext';
 
@@ -50,7 +53,9 @@ function MainLayout() {
     <GlobalContext.Provider value={{ getUserConfirmation, getReauth }}>
       <AnalyticsContextWrapper>
         {/* Route to donation page if subdomain exists */}
-        <S.MainLayout>{subdomain ? <DonationPageRouter /> : <DashboardRouter />}</S.MainLayout>
+        <S.MainLayout>
+          {!ORG_PORTAL_SUBDOMAINS.includes(subdomain) ? <DonationPageRouter /> : <DashboardRouter />}
+        </S.MainLayout>
         {/* Modals */}
         <GlobalConfirmationModal
           {...confirmationState}

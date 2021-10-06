@@ -58,7 +58,7 @@ const livePageReducer = (state, action) => {
   }
 };
 
-function LiveDonationPageRouter() {
+function LiveDonationPageContainer() {
   const [{ loading, errors, data }, dispatch] = useReducer(livePageReducer, initialState);
 
   const subdomain = useSubdomain();
@@ -100,9 +100,8 @@ function LiveDonationPageRouter() {
     fetchLivePageContent();
   }, [params, fetchLivePageContent]);
 
-  const hasErrors = !isEmpty(errors) || isEmpty(data);
   if (loading) return <LiveLoading />;
-  if (hasErrors) return <LivePage404 />;
+  if (!isEmpty(errors)) return <LivePage404 />;
   if (!isEmpty(data)) {
     return (
       <SegregatedStyles page={data}>
@@ -113,4 +112,4 @@ function LiveDonationPageRouter() {
   return null;
 }
 
-export default LiveDonationPageRouter;
+export default LiveDonationPageContainer;

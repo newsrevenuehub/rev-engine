@@ -1,7 +1,6 @@
 import { STRIPE_PAYMENT, LIVE_PAGE_DETAIL } from 'ajax/endpoints';
 import { getEndpoint, getPageElementByType, getTestingDonationPageUrl, EXPECTED_RP_SLUG } from '../support/util';
 import livePageOne from '../fixtures/pages/live-page-1.json';
-import orgAccountIdFixture from '../fixtures/stripe/org-account-id.json';
 
 // Deps
 import { format } from 'date-fns';
@@ -15,10 +14,6 @@ import * as freqUtils from 'utilities/parseFrequency';
 import calculateStripeFee from 'utilities/calculateStripeFee';
 
 describe('Donation page', () => {
-  beforeEach(() => {
-    cy.intercept('/api/v1/organizations/stripe_account_id/**', { fixture: 'stripe/org-account-id.json' });
-  });
-
   const expectedPageSlug = 'page-slug';
   describe('Routing', () => {
     it('should send a request containing the correct query params', () => {
@@ -182,7 +177,7 @@ describe('Donation page', () => {
         cy.setUpDonation(interval, amount);
         cy.interceptDonation();
         cy.makeDonation();
-        cy.wait('@confirmCardPayment').its('request.body').should('include', orgAccountIdFixture.stripe_account_id);
+        cy.wait('@confirmCardPayment').its('request.body').should('include', livePageOne.stripe_account_id);
       });
 
       it('should send a request with a Google reCAPTCHA token in request body', () => {
@@ -198,8 +193,8 @@ describe('Donation page', () => {
 
         const interval = 'One time';
         const amount = '120';
-        cy.setUpDonation(interval, amount);
         cy.interceptDonation();
+        cy.setUpDonation(interval, amount);
         cy.makeDonation();
         cy.wait('@stripePayment').its('request.body').should('have.property', 'captcha_token');
       });
@@ -245,13 +240,9 @@ describe('Donation page', () => {
             { method: 'GET', pathname: getEndpoint(LIVE_PAGE_DETAIL) },
             { fixture: 'pages/live-page-1', statusCode: 200 }
           ).as('getPage');
-          cy.intercept('/api/v1/organizations/stripe_account_id/**', { fixture: 'stripe/org-account-id.json' }).as(
-            'getOrgId'
-          );
 
           cy.visit(getTestingDonationPageUrl('my-page'));
           cy.url().should('include', 'my-page');
-          cy.wait(['@getPage', '@getOrgId']);
         });
 
         expectedMetaTags.forEach((metaTagName) => {
@@ -291,13 +282,10 @@ describe('Donation page', () => {
           cy.intercept({ method: 'GET', pathname: getEndpoint(LIVE_PAGE_DETAIL) }, { body, statusCode: 200 }).as(
             'getPage'
           );
-          cy.intercept('/api/v1/organizations/stripe_account_id/**', { fixture: 'stripe/org-account-id.json' }).as(
-            'getOrgId'
-          );
 
           cy.visit(getTestingDonationPageUrl('my-page'));
           cy.url().should('include', 'my-page');
-          cy.wait(['@getPage', '@getOrgId']);
+          cy.wait('@getPage');
         });
 
         expectedMetaTags.forEach((metaTagName) => {
@@ -497,18 +485,6 @@ describe('Donation page', () => {
         cy.getByTestId('live-page-404').should('exist');
       });
 
-      it('should show 404 if request stripe account id returns non-200', () => {
-        cy.intercept(
-          { method: 'GET', pathname: getEndpoint(LIVE_PAGE_DETAIL) },
-          { fixture: 'pages/live-page-1', statusCode: 200 }
-        );
-        cy.visit(getTestingDonationPageUrl(expectedPageSlug));
-        cy.url().should('include', EXPECTED_RP_SLUG);
-        cy.url().should('include', expectedPageSlug);
-        cy.wait('@getStripeAccountId');
-        cy.getByTestId('live-page-404').should('exist');
-      });
-
       it('should not show 404 otherwise', () => {
         cy.intercept(
           { method: 'GET', pathname: getEndpoint(LIVE_PAGE_DETAIL) },
@@ -518,7 +494,6 @@ describe('Donation page', () => {
         cy.url().should('include', EXPECTED_RP_SLUG);
         cy.url().should('include', expectedPageSlug);
         cy.wait('@getLivePage');
-        cy.wait('@getStripeAccountId');
         cy.getByTestId('live-page-404').should('not.exist');
         cy.getByTestId('donation-page').should('exist');
       });
@@ -534,14 +509,10 @@ describe('Donation page', () => {
           { method: 'GET', pathname: getEndpoint(LIVE_PAGE_DETAIL) },
           { fixture: 'pages/live-page-1', statusCode: 200 }
         ).as('getPage');
-        cy.intercept('/api/v1/organizations/stripe_account_id/**', { fixture: 'stripe/org-account-id.json' }).as(
-          'getStripeAccountId'
-        );
         cy.visit(getTestingDonationPageUrl(expectedPageSlug));
         cy.url().should('include', EXPECTED_RP_SLUG);
         cy.url().should('include', expectedPageSlug);
         cy.wait('@getPage');
-        cy.wait('@getStripeAccountId');
       });
 
       it('should render page footer with link to fundjournalism.org', () => {

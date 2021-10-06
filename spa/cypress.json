@@ -1,5 +1,5 @@
 {
-  "baseUrl": "http://revenueprogram.revengine-testabc123.com:3000",
+  "baseUrl": "http://localhost:3000",
   "videoUploadOnPasses": false,
   "chromeWebSecurity": false,
   "componentFolder": "src/components",

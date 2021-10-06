@@ -12,7 +12,7 @@ import {
 import { VERIFY_TOKEN } from 'ajax/endpoints';
 
 import livePageFixture from '../fixtures/pages/live-page-1.json';
-import { FULL_PAGE } from 'ajax/endpoints';
+import { LIVE_PAGE_DETAIL } from 'ajax/endpoints';
 import { getEndpoint, getTestingDonationPageUrl, EXPECTED_RP_SLUG } from '../support/util';
 import { HUB_GA_V3_ID } from 'constants/analyticsConstants';
 
@@ -165,9 +165,10 @@ describe('Pages that are tracked by both the hub and the org', () => {
   });
 
   it('should track a page view for Donatino Pages on Hub GAv3 and enabled Org analytics plugins', () => {
-    cy.intercept({ method: 'GET', pathname: getEndpoint(FULL_PAGE) }, { body: livePageFixture, statusCode: 200 }).as(
-      'getPageDetail'
-    );
+    cy.intercept(
+      { method: 'GET', pathname: getEndpoint(LIVE_PAGE_DETAIL) },
+      { body: livePageFixture, statusCode: 200 }
+    ).as('getPageDetail');
     // cy.visit(page);
     const expectedPath = '/' + PAGE_NAME;
     cy.visit(getTestingDonationPageUrl(PAGE_NAME));

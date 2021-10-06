@@ -2,11 +2,17 @@ import factory
 from factory.django import DjangoModelFactory
 from faker import Faker
 
+from apps.common.models import Address
 from apps.organizations import models
 
 
 fake = Faker()
 Faker.seed(0)
+
+
+class AddressFactory(DjangoModelFactory):
+    class Meta:
+        model = Address
 
 
 class FeatureFactory(DjangoModelFactory):
@@ -32,6 +38,8 @@ class OrganizationFactory(DjangoModelFactory):
 
     name = factory.Sequence(lambda n: f"{fake.company()}-{str(n)}")
     stripe_account_id = fake.uuid4()
+    address = factory.SubFactory(AddressFactory)
+    stripe_verified = True
 
 
 class RevenueProgramFactory(DjangoModelFactory):

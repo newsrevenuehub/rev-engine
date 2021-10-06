@@ -70,12 +70,25 @@ class DonationPageFullDetailSerializer(serializers.ModelSerializer):
     header_bg_image_thumbnail = HyperlinkedSorlImageField("300", source="header_bg_image", read_only=True)
     header_logo_thumbnail = HyperlinkedSorlImageField("300", source="header_logo", read_only=True)
 
-    organization_is_nonprofit = serializers.SerializerMethodField()
+    organization_is_nonprofit = serializers.SerializerMethodField(method_name="get_organization_is_nonprofit")
+    stripe_account_id = serializers.SerializerMethodField(method_name="get_stripe_account_id")
+    currency = serializers.SerializerMethodField(method_name="get_currency")
+    organization_country = serializers.SerializerMethodField(method_name="get_organization_country")
 
-    benefit_levels = serializers.SerializerMethodField()
+    benefit_levels = serializers.SerializerMethodField(method_name="get_benefit_levels")
 
     def get_organization_is_nonprofit(self, obj):
         return obj.organization.non_profit
+
+    def get_stripe_account_id(self, obj):
+        if self.context.get("live"):
+            return obj.organization.stripe_account_id
+
+    def get_currency(self, obj):
+        return obj.organization.get_currency_dict()
+
+    def get_organization_country(self, obj):
+        return obj.organization.address.country
 
     def get_benefit_levels(self, obj):
         if obj.revenue_program:

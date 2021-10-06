@@ -1,5 +1,7 @@
+from django.conf import settings
 from django.db import models
 
+import pycountry
 from model_utils.fields import AutoCreatedField, AutoLastModifiedField
 from sorl.thumbnail import ImageField as SorlImageField
 
@@ -14,12 +16,30 @@ class IndexedTimeStampedModel(models.Model):
         abstract = True
 
 
+def get_country_choices():
+    """
+    returns a tuple of country choices according to pycountry.countries db
+    """
+    country_choices = []
+    for country_code in settings.COUNTRIES:
+        country = pycountry.countries.lookup(country_code)
+        country_choices.append((country.alpha_2, country.alpha_2))
+    return country_choices
+
+
 class Address(models.Model):
     address1 = models.CharField(max_length=255, blank=True, verbose_name="Address 1")
     address2 = models.CharField(max_length=255, blank=True, verbose_name="Address 2")
     city = models.CharField(max_length=64, blank=True, verbose_name="City")
-    state = models.CharField(max_length=2, blank=True, choices=STATE_CHOICES, verbose_name="State")
+    state = models.CharField(max_length=2, blank=True, choices=STATE_CHOICES, verbose_name="State/Province")
     postal_code = models.CharField(max_length=9, blank=True, verbose_name="Postal code")
+    country = models.CharField(
+        max_length=2,
+        blank=True,
+        choices=get_country_choices(),
+        default="US",
+        verbose_name="Country",
+    )
 
     def __str__(self):
         address2 = " " + self.address2 if self.address2 else ""

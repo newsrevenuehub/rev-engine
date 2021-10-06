@@ -233,7 +233,8 @@ class DonationPageFullDetailTest(APITestCase):
         self.revenue_program_1.save()
 
     def _make_full_detail_request_with_params(self, rev_program=None, page=None, live=None):
-        url = reverse("donationpage-full-detail") + "?"
+        url = reverse("donationpage-live-detail") if live else reverse("donationpage-draft-detail")
+        url += "?"
         if rev_program:
             url += f"revenue_program={rev_program}&"
         if page:
@@ -263,14 +264,15 @@ class DonationPageFullDetailTest(APITestCase):
         self.assertEqual(good_response.data["heading"], self.page_1.heading)
 
     def test_full_detail_returns_default_rev_page(self):
-        response = self._make_full_detail_request_with_params(rev_program=self.revenue_program_1.slug)
+        response = self._make_full_detail_request_with_params(rev_program=self.revenue_program_1.slug, live=True)
+
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data["id"], self.page_2.pk)
 
     def test_full_detail_no_such_rev_program(self):
         response = self._make_full_detail_request_with_params(rev_program="made-up-slug")
         self.assertEqual(response.status_code, 404)
-        self.assertEqual(response.data["detail"], "Could not find RevenueProgram from that slug")
+        self.assertEqual(response.data["detail"], "Could not find revenue program matching those parameters")
 
     def test_full_detail_no_such_page(self):
         response = self._make_full_detail_request_with_params(
@@ -278,6 +280,11 @@ class DonationPageFullDetailTest(APITestCase):
         )
         self.assertEqual(response.status_code, 404)
         self.assertEqual(response.data["detail"], "Could not find page matching those parameters")
+
+    def test_full_detail_edit_insufficient_permissions(self):
+        response = self._make_full_detail_request_with_params(rev_program=self.revenue_program_1.slug, live=False)
+        self.assertEqual(response.status_code, 403)
+        self.assertEqual(response.data["detail"], "You do not have permission to edit this page")
 
 
 class TemplateViewSetTest(AbstractTestCase):

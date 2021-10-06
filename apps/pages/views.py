@@ -9,9 +9,9 @@ from rest_framework.response import Response
 
 from apps.api.permissions import UserBelongsToOrg
 from apps.element_media.models import MediaImage
-from apps.organizations.models import RevenueProgram
 from apps.organizations.views import OrganizationLimitedListView
 from apps.pages import serializers
+from apps.pages.helpers import PageDetailError, PageFullDetailHelper
 from apps.pages.models import DonationPage, Style, Template
 
 
@@ -30,49 +30,55 @@ class PageViewSet(OrganizationLimitedListView, viewsets.ModelViewSet):
     pagination_class = None
 
     def get_serializer_class(self):
-        if self.action in ("full_detail", "partial_update", "create"):
+        if self.action in ("partial_update", "create"):
             return serializers.DonationPageFullDetailSerializer
         elif self.action == "retrieve":
             return serializers.DonationPageDetailSerializer
         else:
             return serializers.DonationPageListSerializer
 
-    @action(detail=False, methods=["get"], permission_classes=[], authentication_classes=[])
-    def full_detail(self, request):
+    @action(detail=False, methods=["get"], permission_classes=[], authentication_classes=[], url_path="live-detail")
+    def live_detail(self, request):
         """
-        This is the action requested when a page needs to be viewed/edited.
+        This is the action requested when a page needs to be viewed.
         """
-        revenue_program_slug = request.GET.get("revenue_program")
-        page_slug = request.GET.get("page")
-        live = request.GET.get("live") == "1" or False
-
-        if not revenue_program_slug:
-            return Response({"detail": "Missing required parameter"}, status=status.HTTP_400_BAD_REQUEST)
+        error = None
         try:
-            rev_program = RevenueProgram.objects.get(slug=revenue_program_slug)
-        except RevenueProgram.DoesNotExist:
-            logger.error(f'Request for page with non-existent RevenueProgram by slug "{revenue_program_slug}" ')
-            return Response(
-                {"detail": "Could not find RevenueProgram from that slug"}, status=status.HTTP_404_NOT_FOUND
-            )
+            page_detail_helper = PageFullDetailHelper(request, live=True)
+            page_detail_helper.set_revenue_program()
+            page_detail_helper.set_donation_page()
+            page_detail_helper.validate_page_request()
+            page_data = page_detail_helper.get_donation_page_data()
+        except PageDetailError as page_detail_error:
+            error = (page_detail_error.message, page_detail_error.status)
 
+        if error:
+            return Response({"detail": error[0]}, status=error[1])
+        return Response(page_data, status=status.HTTP_200_OK)
+
+    @action(detail=False, methods=["get"], permission_classes=[], url_path="draft-detail")
+    def draft_detail(self, request):
+        """
+        This is the action requested when a page needs to be edited. Crucially, note the absence of the empty
+        authentication_classes list here as compared to the live_detail version. This way, not only can we ensure
+        users are authenticated before they view the page in edit mode, but the `validate_page_request` method
+        can access request.user to verify an org-level relationship with the page requested.
+
+        The actual edit actions are protected against unauthorized access in their own views.
+        """
+        error = None
         try:
-            donation_page = (
-                rev_program.donationpage_set.get(slug=page_slug) if page_slug else rev_program.default_donation_page
-            )
-        except DonationPage.DoesNotExist:
-            logger.error(f'Request for non-existent page by slug "{page_slug}" ')
-            return Response(
-                {"detail": "Could not find page matching those parameters"}, status=status.HTTP_404_NOT_FOUND
-            )
+            page_detail_helper = PageFullDetailHelper(request, live=False)
+            page_detail_helper.set_revenue_program()
+            page_detail_helper.set_donation_page()
+            page_detail_helper.validate_page_request()
+            page_data = page_detail_helper.get_donation_page_data()
+        except PageDetailError as page_detail_error:
+            error = (page_detail_error.message, page_detail_error.status)
 
-        if live and not donation_page.is_live:
-            logger.error(f'Request for un-published page "{donation_page}" ')
-            return Response({"detail": "This page has not been published"}, status=status.HTTP_404_NOT_FOUND)
-
-        serializer = self.get_serializer_class()
-        page_serializer = serializer(instance=donation_page)
-        return Response(page_serializer.data, status=status.HTTP_200_OK)
+        if error:
+            return Response({"detail": error[0]}, status=error[1])
+        return Response(page_data, status=status.HTTP_200_OK)
 
     def partial_update(self, request, *args, **kwargs):
         response = super().partial_update(request, *args, **kwargs)

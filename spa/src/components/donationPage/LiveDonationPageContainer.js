@@ -2,7 +2,7 @@ import { useEffect, useCallback, useReducer } from 'react';
 
 // AJAX
 import useRequest from 'hooks/useRequest';
-import { FULL_PAGE, ORG_STRIPE_ACCOUNT_ID } from 'ajax/endpoints';
+import { LIVE_PAGE_DETAIL } from 'ajax/endpoints';
 
 // Router
 import { useParams } from 'react-router-dom';
@@ -27,9 +27,6 @@ const FETCH_START = 'FETCH_START';
 const FETCH_SUCCESS = 'FETCH_SUCCESS';
 const FETCH_ERROR = 'FETCH_ERROR';
 
-const PAGE = 'page';
-const STRIPE_ACCOUNT_ID = 'stripeAccountId';
-
 const initialState = {
   loading: false,
   data: {},
@@ -47,42 +44,26 @@ const livePageReducer = (state, action) => {
     case FETCH_SUCCESS:
       return {
         loading: false,
-        data: { ...state.data, ...action.payload },
+        data: action.payload,
         errors: initialState.errors
       };
     case FETCH_ERROR:
       return {
         loading: false,
         data: state.data,
-        errors: { ...state.errors, ...action.payload }
+        errors: action.payload
       };
     default:
       return state;
   }
 };
 
-function LiveDonationPageRouter() {
+function LiveDonationPageContainer() {
   const [{ loading, errors, data }, dispatch] = useReducer(livePageReducer, initialState);
 
   const subdomain = useSubdomain();
   const params = useParams();
   const requestFullPage = useRequest();
-  const requestOrgStripeAccountId = useRequest();
-
-  const fetchOrgStripeAccountId = useCallback(async () => {
-    dispatch({ type: FETCH_START });
-    const requestParams = { revenue_program_slug: subdomain };
-    requestOrgStripeAccountId(
-      { method: 'GET', url: ORG_STRIPE_ACCOUNT_ID, params: requestParams },
-      {
-        onSuccess: ({ data: responseData }) => {
-          const stripeAccountId = responseData.stripe_account_id;
-          dispatch({ type: FETCH_SUCCESS, payload: { [STRIPE_ACCOUNT_ID]: stripeAccountId } });
-        },
-        onFailure: (e) => dispatch({ type: FETCH_ERROR, payload: { [STRIPE_ACCOUNT_ID]: e } })
-      }
-    );
-  }, [subdomain]);
 
   const { setAnalyticsConfig } = useAnalyticsContext();
 
@@ -91,14 +72,12 @@ function LiveDonationPageRouter() {
     const { pageSlug } = params;
     const requestParams = {
       revenue_program: subdomain,
-      page: pageSlug,
-      live: 1
+      page: pageSlug
     };
-    console.log('those requestParams', requestParams);
     requestFullPage(
       {
         method: 'GET',
-        url: FULL_PAGE,
+        url: LIVE_PAGE_DETAIL,
         params: requestParams
       },
       {
@@ -110,9 +89,9 @@ function LiveDonationPageRouter() {
             facebook_pixel_id: orgFbPixelId
           } = data?.revenue_program;
           setAnalyticsConfig({ hubGaV3Id: HUB_GA_V3_ID, orgGaV3Id, orgGaV3Domain, orgGaV4Id, orgFbPixelId });
-          dispatch({ type: FETCH_SUCCESS, payload: { [PAGE]: data } });
+          dispatch({ type: FETCH_SUCCESS, payload: data });
         },
-        onFailure: (e) => dispatch({ type: FETCH_ERROR, payload: { [PAGE]: e } })
+        onFailure: (err) => dispatch({ type: FETCH_ERROR, payload: err })
       }
     );
   }, [params, subdomain]);
@@ -121,20 +100,16 @@ function LiveDonationPageRouter() {
     fetchLivePageContent();
   }, [params, fetchLivePageContent]);
 
-  useEffect(() => {
-    fetchOrgStripeAccountId();
-  }, [params, fetchOrgStripeAccountId]);
-
-  const hasErrors = !isEmpty(errors) || !data[PAGE] || !data[STRIPE_ACCOUNT_ID];
-
   if (loading) return <LiveLoading />;
-  if (hasErrors) return <LivePage404 />;
-  else
+  if (!isEmpty(errors)) return <LivePage404 />;
+  if (!isEmpty(data)) {
     return (
-      <SegregatedStyles page={data[PAGE]}>
-        <DonationPage live page={data[PAGE]} stripeAccountId={data[STRIPE_ACCOUNT_ID]} />
+      <SegregatedStyles page={data}>
+        <DonationPage live page={data} />
       </SegregatedStyles>
     );
+  }
+  return null;
 }
 
-export default LiveDonationPageRouter;
+export default LiveDonationPageContainer;

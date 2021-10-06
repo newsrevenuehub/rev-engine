@@ -110,6 +110,8 @@ export function serializeData(formRef, state) {
   serializedData['donor_selected_amount'] = state.amount;
   serializedData['revenue_program_slug'] = state.revProgramSlug;
   serializedData['donation_page_slug'] = state.pageSlug;
+  serializedData['organization_country'] = state.orgCountry;
+  serializedData['currency'] = state.currency;
   serializedData['sf_campaign_id'] = state.salesforceCampaignId;
   if (state.reCAPTCHAToken) serializedData['captcha_token'] = state.reCAPTCHAToken;
 

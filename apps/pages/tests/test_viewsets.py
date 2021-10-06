@@ -33,6 +33,7 @@ class PageViewSetTest(AbstractTestCase):
         self.authenticate_user_for_resource(self.rev_program)
         self.login()
 
+    # CREATE
     def test_page_create_adds_page(self):
         self.assertEqual(len(self.resources), self.resource_count)
         self.login()
@@ -86,6 +87,7 @@ class PageViewSetTest(AbstractTestCase):
         self.assertIn("revenue_program", response.data)
         self.assertIn("slug", response.data["revenue_program"])
 
+    # UPDATE
     def test_page_update_updates_page(self):
         page = self.resources[0]
         self.authenticate_user_for_resource(page)
@@ -231,7 +233,8 @@ class DonationPageFullDetailTest(APITestCase):
         self.revenue_program_1.save()
 
     def _make_full_detail_request_with_params(self, rev_program=None, page=None, live=None):
-        url = reverse("donationpage-full-detail") + "?"
+        url = reverse("donationpage-live-detail") if live else reverse("donationpage-draft-detail")
+        url += "?"
         if rev_program:
             url += f"revenue_program={rev_program}&"
         if page:
@@ -261,14 +264,15 @@ class DonationPageFullDetailTest(APITestCase):
         self.assertEqual(good_response.data["heading"], self.page_1.heading)
 
     def test_full_detail_returns_default_rev_page(self):
-        response = self._make_full_detail_request_with_params(rev_program=self.revenue_program_1.slug)
+        response = self._make_full_detail_request_with_params(rev_program=self.revenue_program_1.slug, live=True)
+
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data["id"], self.page_2.pk)
 
     def test_full_detail_no_such_rev_program(self):
         response = self._make_full_detail_request_with_params(rev_program="made-up-slug")
         self.assertEqual(response.status_code, 404)
-        self.assertEqual(response.data["detail"], "Could not find RevenueProgram from that slug")
+        self.assertEqual(response.data["detail"], "Could not find revenue program matching those parameters")
 
     def test_full_detail_no_such_page(self):
         response = self._make_full_detail_request_with_params(
@@ -276,6 +280,11 @@ class DonationPageFullDetailTest(APITestCase):
         )
         self.assertEqual(response.status_code, 404)
         self.assertEqual(response.data["detail"], "Could not find page matching those parameters")
+
+    def test_full_detail_edit_insufficient_permissions(self):
+        response = self._make_full_detail_request_with_params(rev_program=self.revenue_program_1.slug, live=False)
+        self.assertEqual(response.status_code, 403)
+        self.assertEqual(response.data["detail"], "You do not have permission to edit this page")
 
 
 class TemplateViewSetTest(AbstractTestCase):
@@ -285,6 +294,7 @@ class TemplateViewSetTest(AbstractTestCase):
     def setUp(self):
         super().setUp()
         self.create_resources()
+        self.page = DonationPageFactory(organization=self.orgs[0])
 
     def test_template_create_adds_template(self):
         self.assertEqual(len(self.resources), self.resource_count)
@@ -294,29 +304,33 @@ class TemplateViewSetTest(AbstractTestCase):
         template_data = {
             "name": "New Template",
             "heading": "New Template",
-            "organization": self.orgs[0].pk,
+            "page_pk": self.page.pk,
         }
-        response = self.client.post(list_url, template_data)
+        # format="json" here in order to prevent serializer from treating self.data as immutable.
+        # https://stackoverflow.com/questions/52367379/why-is-django-rest-frameworks-request-data-sometimes-immutable
+        response = self.client.post(list_url, template_data, format="json")
         self.assertEqual(response.status_code, 201)
         self.assertEqual(Template.objects.count(), self.resource_count + 1)
 
         data = response.json()
         for k, v in template_data.items():
-            self.assertEqual(v, data[k])
+            # page_pk doesn't come back from the serializer.
+            if k != "page_pk":
+                self.assertEqual(v, data[k])
 
     def test_template_update_updates_template(self):
         template = self.resources[0]
         self.authenticate_user_for_resource(template)
         self.login()
-        old_template_heading = template.heading
+        old_template_name = template.name
         old_template_pk = template.pk
         detail_url = f"/api/v1/templates/{old_template_pk}/"
-        new_heading = "Old Template With New Heading"
-        response = self.client.patch(detail_url, {"heading": new_heading})
+        new_name = "Old Template With New Name"
+        self.client.patch(detail_url, {"name": new_name})
         template = Template.objects.filter(pk=old_template_pk).first()
         self.assertEqual(template.pk, old_template_pk)
-        self.assertNotEqual(template.heading, old_template_heading)
-        self.assertEqual(template.heading, new_heading)
+        self.assertNotEqual(template.name, old_template_name)
+        self.assertEqual(template.name, new_name)
 
     def test_template_delete_deletes_template(self):
         template = self.resources[0]
@@ -324,7 +338,7 @@ class TemplateViewSetTest(AbstractTestCase):
         self.login()
         old_template_pk = template.pk
         detail_url = f"/api/v1/templates/{old_template_pk}/"
-        response = self.client.delete(detail_url)
+        self.client.delete(detail_url)
         self.assertRaises(Template.DoesNotExist, Template.objects.get, pk=old_template_pk)
 
     def test_template_list_uses_list_serializer(self):
@@ -361,9 +375,9 @@ class TemplateViewSetTest(AbstractTestCase):
         data = response.json()
 
         # Should return expected number of pages
-        self.assertEqual(user_templates.count(), data["count"])
+        self.assertEqual(user_templates.count(), len(data))
 
-        returned_ids = [p["id"] for p in data["results"]]
+        returned_ids = [p["id"] for p in data]
         expected_ids = [p.id for p in user_templates]
         # Should return expected pages
         self.assertEqual(set(expected_ids), set(returned_ids))

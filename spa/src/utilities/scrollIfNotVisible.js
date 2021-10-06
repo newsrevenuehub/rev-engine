@@ -10,7 +10,7 @@ function isInViewport(el) {
 
 function scrollIfNotVisible(el) {
   if (!isInViewport(el)) {
-    el.scrollIntoView({ block: 'center' });
+    el.scrollIntoView({ behavior: 'smooth', inline: 'nearest', block: 'center' });
   }
 }
 

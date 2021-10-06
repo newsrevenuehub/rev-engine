@@ -1,6 +1,6 @@
 import { TOKEN } from 'ajax/endpoints';
-import { getEndpoint } from './util';
-import { FULL_PAGE, STRIPE_PAYMENT, CONTRIBUTIONS } from 'ajax/endpoints';
+import { getEndpoint, getTestingDonationPageUrl, EXPECTED_RP_SLUG } from './util';
+import { LIVE_PAGE_DETAIL, STRIPE_PAYMENT, CONTRIBUTIONS } from 'ajax/endpoints';
 import { DEFAULT_RESULTS_ORDERING } from 'components/donations/DonationsTable';
 import { ApiResourceList } from '../support/restApi';
 import donationsData from '../fixtures/donations/18-results.json';
@@ -21,11 +21,12 @@ Cypress.Commands.add('login', (userFixture) => {
 
 Cypress.Commands.add('visitDonationPage', () => {
   cy.intercept(
-    { method: 'GET', pathname: getEndpoint(FULL_PAGE) },
+    { method: 'GET', pathname: getEndpoint(LIVE_PAGE_DETAIL) },
     { fixture: 'pages/live-page-1', statusCode: 200 }
   ).as('getPageDetail');
-  cy.visit('/revenue-program-slug/page-slug');
-  cy.url().should('include', '/revenue-program-slug/page-slug');
+  cy.visit(getTestingDonationPageUrl('my-page'));
+  cy.url().should('include', EXPECTED_RP_SLUG);
+  cy.url().should('include', 'my-page');
   cy.wait('@getPageDetail');
 });
 

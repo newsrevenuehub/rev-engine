@@ -19,13 +19,13 @@ setup:
 run-dev:
 	@echo 'Running local development'
 	docker-compose up -d --remove-orphans
-	cd spa; export PORT=8001; npm start &
+	cd spa; export PORT=3000; npm run start:subdomains &
 	python manage.py runserver
 
 run-redis:
 	@echo 'Running local development with redis'
 	docker-compose -f docker-compose.yml -f docker-compose-dev.yml up -d --remove-orphans
-	cd spa; export PORT=8001; npm start &
+	cd spa; export PORT=3000; npm run start:subdomains &
 	python manage.py runserver
 
 run-tests:

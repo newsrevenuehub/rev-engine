@@ -1,6 +1,7 @@
 import django.db.utils
 from django.contrib.auth import get_user_model
 
+from rest_framework.exceptions import ValidationError
 from rest_framework.reverse import reverse
 from rest_framework.test import APITestCase
 
@@ -46,43 +47,6 @@ class OrganizationViewSetTest(AbstractTestCase):
         detail_url = f"/api/v1/organizations/{old_pk}/"
         self.client.delete(detail_url)
         self.assertEqual(Organization.objects.count(), self.org_count)
-
-
-class OrganziationStripeAccountIdActionTest(APITestCase):
-    def setUp(self):
-        self.organization = OrganizationFactory()
-        self.rev_program = RevenueProgramFactory(organization=self.organization)
-        self.user = user_model.objects.create_user(email="test@test.com", password="testing")
-
-    def _make_request(self, slug=""):
-        self.client.force_authenticate(user=self.user)
-        return self.client.get(reverse("organization-stripe-account-id"), {"revenue_program_slug": slug})
-
-    def test_request_id_when_missing_required_param(self):
-        response = self._make_request(slug="")
-        self.assertEqual(response.status_code, 400)
-        self.assertEqual(response.data["detail"], 'Missing required parameter "revenue_program_slug"')
-
-    def test_request_id_when_org_provider_not_verified(self):
-        response = self._make_request(slug=self.rev_program.slug)
-        self.assertEqual(response.status_code, 404)
-        self.assertEqual(response.data["detail"], "Organization does not have a fully verified payment provider")
-
-    def test_request_id_when_rev_program_slug_invalid(self):
-        response = self._make_request(slug="no-such-rev-program")
-        self.assertEqual(response.status_code, 404)
-        self.assertEqual(response.data["detail"], "Could not find revenue program with provided slug")
-
-    def test_request_id_when_everythings_fine(self):
-        target_stripe_account_id = "my-test-id"
-        self.organization.default_payment_provider = Organization.STRIPE[0]
-        self.organization.stripe_account_id = target_stripe_account_id
-        self.organization.stripe_verified = True
-        self.organization.save()
-        self.organization.refresh_from_db()
-        response = self._make_request(slug=self.rev_program.slug)
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.data["stripe_account_id"], target_stripe_account_id)
 
 
 class RevenueProgramViewSetTest(AbstractTestCase):
@@ -203,10 +167,11 @@ class FeatureViewSetTest(APITestCase):
         for i in range(3):
             try:
                 DonationPageFactory(organization=org)
-            except django.core.exceptions.ValidationError as e:
+            except ValidationError as e:
                 self.fail(f"Save raised a validation error on expected valid inputs: {e.message}")
-        with self.assertRaises(django.core.exceptions.ValidationError) as cm:
+        with self.assertRaises(ValidationError) as cm:
             DonationPageFactory(organization=org)
         self.assertEquals(
-            cm.exception.message, f"Your organization has reached its limit of {self.limit_feature.feature_value} pages"
+            str(cm.exception.detail[0]),
+            f"Your organization has reached its limit of {self.limit_feature.feature_value} pages",
         )

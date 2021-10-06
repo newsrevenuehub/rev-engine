@@ -2,10 +2,13 @@ import { useEffect, useCallback, useState } from 'react';
 
 // AJAX
 import useRequest from 'hooks/useRequest';
-import { FULL_PAGE, ORG_STRIPE_ACCOUNT_ID } from 'ajax/endpoints';
+import { LIVE_PAGE_DETAIL } from 'ajax/endpoints';
 
 // Router
 import { useParams } from 'react-router-dom';
+
+// Hooks
+import useSubdomain from 'hooks/useSubdomain';
 
 // Analytics
 import { useAnalyticsContext } from 'components/analytics/AnalyticsContext';
@@ -17,41 +20,26 @@ import LiveLoading from 'components/donationPage/live/LiveLoading';
 import LivePage404 from 'components/donationPage/live/LivePage404';
 import DonationPage from 'components/donationPage/DonationPage';
 
-function DonationPageRouter() {
+function LiveDonationPageContainer() {
   const [pageData, setPageData] = useState(null);
-  const [stripeAccountId, setStripeAccountId] = useState(null);
   const [display404, setDisplay404] = useState(false);
 
+  const subdomain = useSubdomain();
   const params = useParams();
   const requestFullPage = useRequest();
-  const requestOrgStripeAccountId = useRequest();
-
-  const fetchOrgStripeAccountId = useCallback(async () => {
-    const requestParams = { revenue_program_slug: params.revProgramSlug };
-    requestOrgStripeAccountId(
-      { method: 'GET', url: ORG_STRIPE_ACCOUNT_ID, params: requestParams },
-      {
-        onSuccess: ({ data: responseData }) => {
-          setStripeAccountId(responseData.stripe_account_id);
-        },
-        onFailure: (e) => setDisplay404(true)
-      }
-    );
-  }, [params.revProgramSlug]);
 
   const { setAnalyticsConfig } = useAnalyticsContext();
 
   const fetchLivePageContent = useCallback(async () => {
-    const { revProgramSlug, pageSlug } = params;
+    const { pageSlug } = params;
     const requestParams = {
-      revenue_program: revProgramSlug,
-      page: pageSlug,
-      live: 1
+      revenue_program: subdomain,
+      page: pageSlug
     };
     requestFullPage(
       {
         method: 'GET',
-        url: FULL_PAGE,
+        url: LIVE_PAGE_DETAIL,
         params: requestParams
       },
       {
@@ -70,27 +58,17 @@ function DonationPageRouter() {
         }
       }
     );
-  }, [params]);
+  }, [params, subdomain]);
 
   useEffect(() => {
     fetchLivePageContent();
   }, [params, fetchLivePageContent]);
 
-  useEffect(() => {
-    fetchOrgStripeAccountId();
-  }, [params, fetchOrgStripeAccountId]);
-
   return (
     <SegregatedStyles page={pageData}>
-      {display404 ? (
-        <LivePage404 />
-      ) : pageData && stripeAccountId ? (
-        <DonationPage live page={pageData} stripeAccountId={stripeAccountId} />
-      ) : (
-        <LiveLoading />
-      )}
+      {display404 ? <LivePage404 /> : pageData ? <DonationPage live page={pageData} /> : <LiveLoading />}
     </SegregatedStyles>
   );
 }
 
-export default DonationPageRouter;
+export default LiveDonationPageContainer;

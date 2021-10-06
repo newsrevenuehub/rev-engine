@@ -336,3 +336,9 @@ THUMBNAIL_PRESERVE_FORMAT = True
 
 # Middleware Logging Codes
 MIDDLEWARE_LOGGING_CODES = [400, 404, 403]
+
+# First in this list will be default.
+# Use the 2-char country code here for Stripe's sake.
+COUNTRIES = ["US", "CA"]
+# Map currency-code to symbol
+CURRENCIES = {"USD": "$", "CAD": "$"}

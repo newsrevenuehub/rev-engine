@@ -5,8 +5,9 @@ import { faBroadcastTower } from '@fortawesome/free-solid-svg-icons';
 import formatDatetimeForDisplay from 'utilities/formatDatetimeForDisplay';
 
 function PageCard({ page, onClick }) {
+  const derivedSlug = `${page.revenue_program.slug}/${page.slug}`;
   return (
-    <S.ItemCard onMouseUp={() => onClick(page.derived_slug)} tabindex="0" data-testid={`page-card-${page.id}`}>
+    <S.ItemCard onMouseUp={() => onClick(derivedSlug)} tabindex="0" data-testid={`page-card-${page.id}`}>
       {page.is_live && <S.LiveIcon icon={faBroadcastTower} />}
       <S.PreviewWrapper>
         {page.page_screenshot ? (

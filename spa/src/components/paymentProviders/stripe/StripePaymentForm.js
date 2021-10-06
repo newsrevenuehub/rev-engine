@@ -164,10 +164,14 @@ function StripePaymentForm({ loading, setLoading, offerPayFees }) {
     setLoading(true);
     const reCAPTCHAToken = await getReCAPTCHAToken();
     const orgIsNonProfit = page.organization_is_nonprofit;
+    const orgCountry = page.organization_country;
+    const currency = page?.currency?.code?.toLowerCase();
     const data = serializeData(formRef.current, {
       amount,
       payFee,
       orgIsNonProfit,
+      orgCountry,
+      currency,
       frequency,
       salesforceCampaignId,
       reCAPTCHAToken,
@@ -189,8 +193,12 @@ function StripePaymentForm({ loading, setLoading, offerPayFees }) {
     setLoading(true);
     const reCAPTCHAToken = await getReCAPTCHAToken();
     const orgIsNonProfit = page.organization_is_nonprofit;
+    const orgCountry = page.organization_country;
+    const currency = page?.currency?.code?.toLowerCase();
     const data = serializeData(formRef.current, {
       orgIsNonProfit,
+      orgCountry,
+      currency,
       frequency,
       salesforceCampaignId,
       reCAPTCHAToken,
@@ -218,8 +226,8 @@ function StripePaymentForm({ loading, setLoading, offerPayFees }) {
     const amnt = amountToCents(getTotalAmount(amount, payFee, frequency, orgIsNonProfit));
     if (stripe && amountIsValid && !paymentRequest) {
       const pr = stripe.paymentRequest({
-        country: 'US',
-        currency: 'usd',
+        country: page?.organization_country,
+        currency: page?.currency?.code?.toLowerCase(),
         total: {
           label: STRIPE_PAYMENT_REQUEST_LABEL,
           amount: amnt
@@ -270,6 +278,8 @@ function StripePaymentForm({ loading, setLoading, offerPayFees }) {
     }
   }, [amount, payFee, paymentRequest, frequency]);
 
+  const currencySymbol = page?.currency?.symbol;
+
   /**
    * getButtonText
    * @returns {string} - The text to display in the submit button.
@@ -279,7 +289,7 @@ function StripePaymentForm({ loading, setLoading, offerPayFees }) {
     if (isNaN(totalAmount)) {
       return 'Enter a valid amount';
     }
-    return `Give $${totalAmount} ${getFrequencyAdverb(frequency)}`;
+    return `Give ${currencySymbol}${totalAmount} ${getFrequencyAdverb(frequency)}`;
   };
 
   return !forceManualCard && paymentRequest ? (

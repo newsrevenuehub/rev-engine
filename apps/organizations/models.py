@@ -10,6 +10,7 @@ import stripe
 from apps.common.models import IndexedTimeStampedModel
 from apps.common.utils import normalize_slug
 from apps.contributions.utils import get_hub_stripe_api_key
+from apps.organizations.validators import validate_statement_descriptor_suffix
 
 
 logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
@@ -228,7 +229,14 @@ class BenefitLevelBenefit(models.Model):
 
 class RevenueProgram(IndexedTimeStampedModel):
     name = models.CharField(max_length=255)
-    slug = models.SlugField(max_length=100, blank=True, unique=True)
+    # RFC-1035 limits domain labels to 63 characters
+    SLUG_MAX_LENGTH = 63
+    slug = models.SlugField(
+        max_length=SLUG_MAX_LENGTH,
+        blank=True,
+        unique=True,
+        help_text="This will be used as the subdomain for donation pages made under this revenue program",
+    )
     address = models.OneToOneField("common.Address", on_delete=models.SET_NULL, null=True)
     social_meta = models.OneToOneField("common.SocialMeta", on_delete=models.SET_NULL, null=True)
     organization = models.ForeignKey("organizations.Organization", on_delete=models.CASCADE)
@@ -249,6 +257,11 @@ class RevenueProgram(IndexedTimeStampedModel):
     )
     website_url = models.URLField(blank=True, help_text="Does this Revenue Program have a website?")
 
+    # Stripe Statement descriptor
+    stripe_statement_descriptor_suffix = models.CharField(
+        max_length=10, blank=True, null=True, validators=[validate_statement_descriptor_suffix]
+    )
+
     def __str__(self):
         return self.name
 
@@ -258,11 +271,8 @@ class RevenueProgram(IndexedTimeStampedModel):
 
     def save(self, *args, **kwargs):
         if not self.id:
-            self.slug = normalize_slug(
-                self.name,
-                self.slug,
-            )
-            self.slug = normalize_slug(slug=self.slug)
+            self.slug = normalize_slug(self.name, self.slug, max_length=self.SLUG_MAX_LENGTH)
+            self.slug = normalize_slug(slug=self.slug, max_length=self.SLUG_MAX_LENGTH)
 
         # Avoid state of a donation_page not being in the rev program's page set when being added as default page.
         if self.default_donation_page and self.default_donation_page not in self.donationpage_set.all():

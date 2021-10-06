@@ -1,5 +1,5 @@
 import { TOKEN } from 'ajax/endpoints';
-import { getEndpoint } from './util';
+import { getEndpoint, getTestingDonationPageUrl, EXPECTED_RP_SLUG } from './util';
 import { LIVE_PAGE_DETAIL, STRIPE_PAYMENT, CONTRIBUTIONS } from 'ajax/endpoints';
 import { DEFAULT_RESULTS_ORDERING } from 'components/donations/DonationsTable';
 import { ApiResourceList } from '../support/restApi';
@@ -24,8 +24,9 @@ Cypress.Commands.add('visitDonationPage', () => {
     { method: 'GET', pathname: getEndpoint(LIVE_PAGE_DETAIL) },
     { fixture: 'pages/live-page-1', statusCode: 200 }
   ).as('getPageDetail');
-  cy.visit('/revenue-program-slug/page-slug');
-  cy.url().should('include', '/revenue-program-slug/page-slug');
+  cy.visit(getTestingDonationPageUrl('my-page'));
+  cy.url().should('include', EXPECTED_RP_SLUG);
+  cy.url().should('include', 'my-page');
   cy.wait('@getPageDetail');
 });
 

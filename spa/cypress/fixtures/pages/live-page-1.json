@@ -5,7 +5,7 @@
   "published_date": "2020-09-17T00:00:00",
   "organization_is_nonprofit": true,
   "elements": [
-    {"type": "DRichText", "uuid": "testRichText1", "content": "<p><strong>Your support keeps us going! Become a member today.</strong></p> <p>Because of your generosity, we have the courage, freedom, and independence to dedicate our entire newsroom to telling stories that spark action, improve lives and protect our democracy. Thank you for your support that keeps us going.</p>"}, 
+    {"type": "DRichText", "uuid": "testRichText1", "content": "<p><strong>Your support keeps us going! Become a member today.</strong></p> <p>Because of your generosity, we have the courage, freedom, and independence to dedicate our entire newsroom to telling stories that spark action, improve lives and protect our democracy. Thank you for your support that keeps us going.</p>"},
     {"type": "DFrequency", "uuid": "testFreq1", "content": [{"value": "one_time", "displayName": "One time"}, {"value": "month", "displayName": "Monthly"}, {"value": "year", "displayName": "Yearly"}]},
     {"type": "DAmount", "uuid": "testAmount1", "content": { "allowOther": true, "options": {
         "one_time": [120, 180, 365],
@@ -49,5 +49,10 @@
     "google_analytics_v4_id": "G-2222222",
     "facebook_pixel_id": "123456789"
   },
+  "currency": {
+    "code": "CAD", "symbol": "🍁"
+  },
+  "stripe_account_id": "testing_stripe_account_id",
+  "organization_country": "US",
   "revenue_program_pk": 1
 }

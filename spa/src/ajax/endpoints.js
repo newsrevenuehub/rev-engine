@@ -5,13 +5,15 @@ export const STRIPE_PAYMENT = 'stripe/payment/';
 export const STRIPE_ONBOARDING = 'stripe/onboarding/';
 export const STRIPE_CONFIRMATION = 'stripe/confirmation/';
 
-export const ORG_STRIPE_ACCOUNT_ID = 'organizations/stripe_account_id/';
-
 // Pages
-export const FULL_PAGE = 'pages/full_detail/';
+export const LIVE_PAGE_DETAIL = 'pages/live-detail/';
+export const DRAFT_PAGE_DETAIL = 'pages/draft-detail/';
 export const LIST_PAGES = 'pages/';
 export const PATCH_PAGE = 'pages/';
 export const DELETE_PAGE = 'pages/';
+
+// Templates
+export const TEMPLATES = 'templates/';
 
 // Styles
 export const LIST_STYLES = 'styles/';

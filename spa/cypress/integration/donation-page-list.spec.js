@@ -30,14 +30,14 @@ describe('Donation page list', () => {
       cy.getByTestId('page-create-modal');
     });
 
-    it('should ask if user wants to create rev program if none present', () => {
+    it('should show message if there are no revenue programs', () => {
       // override intercept set in beforeEach cause for this case we don't want any programs present
       cy.intercept(
         { method: 'GET', pathname: getEndpoint(REVENUE_PROGRAMS) },
         { body: { results: [] }, statusCode: 200 }
       );
       cy.getByTestId('page-create-button').click();
-      cy.contains('You need to set up a revenue program to create a page. Create one?');
+      cy.contains('You need to set up a revenue program to create a page.');
     });
 
     it('should show select if rev programs present', () => {

@@ -164,8 +164,8 @@ class DonationPageListSerializer(serializers.ModelSerializer):
         fields = [
             "id",
             "name",
-            "derived_slug",
             "page_screenshot",
+            "slug",
             "revenue_program",
             "organization",
             "published_date",

@@ -10,6 +10,9 @@ import { useParams } from 'react-router-dom';
 // Utils
 import isEmpty from 'lodash.isempty';
 
+// Hooks
+import useSubdomain from 'hooks/useSubdomain';
+
 // Analytics
 import { useAnalyticsContext } from 'components/analytics/AnalyticsContext';
 import { HUB_GA_V3_ID } from 'constants/analyticsConstants';
@@ -55,8 +58,10 @@ const livePageReducer = (state, action) => {
   }
 };
 
-function DonationPageRouter() {
+function LiveDonationPageRouter() {
   const [{ loading, errors, data }, dispatch] = useReducer(livePageReducer, initialState);
+
+  const subdomain = useSubdomain();
   const params = useParams();
   const requestFullPage = useRequest();
 
@@ -64,9 +69,9 @@ function DonationPageRouter() {
 
   const fetchLivePageContent = useCallback(async () => {
     dispatch({ type: FETCH_START });
-    const { revProgramSlug, pageSlug } = params;
+    const { pageSlug } = params;
     const requestParams = {
-      revenue_program: revProgramSlug,
+      revenue_program: subdomain,
       page: pageSlug
     };
     requestFullPage(
@@ -89,25 +94,23 @@ function DonationPageRouter() {
         onFailure: (err) => dispatch({ type: FETCH_ERROR, payload: err })
       }
     );
-  }, [params]);
+  }, [params, subdomain]);
 
   useEffect(() => {
     fetchLivePageContent();
   }, [params, fetchLivePageContent]);
 
-  console.log('page, ', data);
+  const hasErrors = !isEmpty(errors) || !isEmpty(data);
 
-  return (
-    <SegregatedStyles page={data}>
-      {loading ? (
-        <LiveLoading />
-      ) : !isEmpty(errors) || !data || !data.stripe_account_id ? (
-        <LivePage404 />
-      ) : (
+  if (loading) return <LiveLoading />;
+  if (hasErrors) return <LivePage404 />;
+  else {
+    return (
+      <SegregatedStyles page={data}>
         <DonationPage live page={data} />
-      )}
-    </SegregatedStyles>
-  );
+      </SegregatedStyles>
+    );
+  }
 }
 
-export default DonationPageRouter;
+export default LiveDonationPageRouter;

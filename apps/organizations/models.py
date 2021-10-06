@@ -61,7 +61,7 @@ class Organization(IndexedTimeStampedModel):
     name = models.CharField(max_length=255, unique=True)
     slug = models.SlugField(blank=True, unique=True)
     plan = models.ForeignKey("organizations.Plan", null=True, on_delete=models.CASCADE)
-    currency = models.CharField(max_length=3, choices=CURRENCY_CHOICES, default=CURRENCY_CHOICES[0][0])
+    currency = models.CharField(max_length=3, choices=CURRENCY_CHOICES, default="USD")
     non_profit = models.BooleanField(default=True, verbose_name="Non-profit?")
     address = models.OneToOneField("common.Address", on_delete=models.CASCADE)
     salesforce_id = models.CharField(max_length=255, blank=True, verbose_name="Salesforce ID")

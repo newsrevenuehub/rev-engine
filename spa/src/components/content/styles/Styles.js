@@ -22,7 +22,7 @@ function Styles({ setShowEditStylesModal, setStyleToEdit, fetchStyles, styles })
     <S.Styles data-testid="styles-list">
       <S.StylesList>
         {styles.map((style) => (
-          <StyleCard style={style} onSelect={handleStyleSelect} />
+          <StyleCard style={style} key={style.id} onSelect={handleStyleSelect} />
         ))}
       </S.StylesList>
       <ButtonSection>

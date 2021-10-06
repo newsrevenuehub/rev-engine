@@ -13,7 +13,6 @@ from apps.contributions.models import Contribution, ContributionInterval, Contri
 from apps.contributions.payment_managers import PaymentBadParamsError, PaymentProviderError
 from apps.contributions.tests.factories import ContributionFactory, ContributorFactory
 from apps.contributions.views import stripe_payment
-from apps.organizations.models import Organization
 from apps.organizations.tests.factories import OrganizationFactory, RevenueProgramFactory
 from apps.pages.tests.factories import DonationPageFactory
 
@@ -58,6 +57,8 @@ class StripePaymentViewAbstract(APITestCase):
                 "mailing_city": "Fakerton",
                 "mailing_state": "FK",
                 "mailing_country": "Fakeland",
+                "organization_country": "US",
+                "currency": "cad",
                 "revenue_program_slug": rev_slug if rev_slug else self.revenue_program.slug,
                 "donation_page_slug": page_slug if page_slug else self.page.slug,
                 "interval": interval if interval else ContributionInterval.ONE_TIME,
@@ -150,7 +151,7 @@ MOCK_ACCOUNT_LINKS = {"test": "test"}
 class StripeOnboardingTest(APITestCase):
     def setUp(self):
         self.user = get_user_model().objects.create(email="user@test.com", password="testing")
-        self.organization = Organization.objects.create(name="My Organization")
+        self.organization = OrganizationFactory(name="My Organization")
         self.organization.user_set.through.objects.create(organization=self.organization, user=self.user, is_owner=True)
 
         self.url = reverse("stripe-onboarding")
@@ -203,7 +204,7 @@ class MockStripeProduct(StripeObject):
 class StripeConfirmTest(APITestCase):
     def setUp(self):
         self.user = get_user_model().objects.create(email="user@test.com", password="testing")
-        self.organization = Organization.objects.create(name="My Organization")
+        self.organization = OrganizationFactory(name="My Organization")
         self.organization.user_set.add(self.user)
         self.url = reverse("stripe-confirmation")
 
@@ -235,13 +236,22 @@ class StripeConfirmTest(APITestCase):
         """
         stripe_confirmation should set stripe_verified to True after confirming with Stripe.
         """
-        self.assertFalse(self.organization.stripe_verified)
+        self.organization.stripe_verified = False
+        self.organization.save()
         response = self.post_to_confirmation(stripe_account_id="testing")
         self.organization.refresh_from_db()
         self.assertTrue(self.organization.stripe_verified)
         mock_account_retrieve.assert_called_once()
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data["status"], "connected")
+
+    @patch("stripe.Account.retrieve", side_effect=MockStripeAccountEnabled)
+    @patch("stripe.ApplePayDomain.create")
+    def test_confirm_stripe_error_response(self, mock_domain_create, mock_account_retrieve, mock_product_create):
+        mock_product_create.side_effect = StripeError
+        response = self.post_to_confirmation(stripe_account_id="testing")
+        self.assertEqual(response.status_code, 500)
+        self.assertEqual(response.data["status"], "failed")
 
     @patch("stripe.Account.retrieve", side_effect=MockStripeAccountEnabled)
     def test_product_create_called_when_newly_verified(self, mock_account_retrieve, mock_product_create):
@@ -305,7 +315,8 @@ class StripeConfirmTest(APITestCase):
         If an organization has connected its account with Hub (has a stripe_account_id), but
         their Stripe account is not ready to recieve payments, they're in a special state.
         """
-        self.assertFalse(self.organization.stripe_verified)
+        self.organization.stripe_verified = False
+        self.organization.save()
         response = self.post_to_confirmation(stripe_account_id="testing")
         mock_account_retrieve.assert_called_once()
         self.assertEqual(response.status_code, 202)
@@ -340,9 +351,9 @@ class StripeConfirmTest(APITestCase):
 class TestContributionsViewSet(APITestCase):
     def setUp(self):
         self.user = get_user_model().objects.create(email="user@org1.com", password="testing")
-        self.organization1 = Organization.objects.create(name="Organization 1")
+        self.organization1 = OrganizationFactory(name="Organization 1")
         self.organization1.user_set.add(self.user)
-        self.organization2 = Organization.objects.create(name="Organization 2")
+        self.organization2 = OrganizationFactory(name="Organization 2")
         self.contributor = Contributor.objects.create(email="contributor@contributor.com")
         self.contributions_per_org_count = 50
         for i in range(self.contributions_per_org_count):

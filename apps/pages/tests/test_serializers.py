@@ -119,7 +119,6 @@ class DonationPageFullDetailSerializerTest(APITestCase):
         self.assertEqual(new_page.heading, template.heading)
 
     def test_create_with_template_pk_throws_error_if_template_missing(self):
-        template = TemplateFactory(organization=self.organization)
         new_page_data = {
             "template_pk": 99999,
             "name": "My New Page From a Template",
@@ -133,6 +132,14 @@ class DonationPageFullDetailSerializerTest(APITestCase):
             serializer.save()
         self.assertIn("template", v_error.exception.detail)
         self.assertEqual(str(v_error.exception.detail["template"][0]), "This template no longer exists")
+
+    def test_live_context_adds_org_stripe_account_id(self):
+        serializer = self.serializer(self.page, context={"live": False})
+        self.assertIsNone(serializer.data["stripe_account_id"])
+
+        serializer = self.serializer(self.page, context={"live": True})
+        self.assertIsNotNone(serializer.data["stripe_account_id"])
+        self.assertEqual(serializer.data["stripe_account_id"], self.page.organization.stripe_account_id)
 
 
 class TemplateDetailSerializerTest(APITestCase):

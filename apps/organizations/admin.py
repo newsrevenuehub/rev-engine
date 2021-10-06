@@ -136,6 +136,12 @@ class RevenueProgramAdmin(RevEngineBaseAdmin, ReverseModelAdmin, AdminImageMixin
             },
         ),
         (
+            "Stripe",
+            {
+                "fields": ("stripe_statement_descriptor_suffix",),
+            },
+        ),
+        (
             "Analytics",
             {
                 "fields": (

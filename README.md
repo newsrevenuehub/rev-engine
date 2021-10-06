@@ -140,6 +140,8 @@ For that reason, to view donation pages locally, you'll need to make an entry to
 127.0.0.1 slug-for-the-rev-program-you-want-to-test.revengine-testabc123.com
 ```
 
+To view a donation page locally, visit `slug-for-the-rev-program-you-want-to-test.revengine-testabc123.com:3000`.  Note the port designation suffix.
+
 In order to run the donation-page.spec and the page-view-analytics.spec cypress tests locally, also add exactly the following:
 
 ```shell

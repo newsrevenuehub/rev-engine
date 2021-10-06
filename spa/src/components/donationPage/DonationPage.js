@@ -4,13 +4,14 @@ import * as S from './DonationPage.styled';
 // Hooks
 import useClearbit from 'hooks/useClearbit';
 
-// Util
+// Utils
 import * as getters from 'components/donationPage/pageGetters';
 import { getDefaultAmountForFreq } from 'components/donationPage/pageContent/DAmount';
 import { frequencySort } from 'components/donationPage/pageContent/DFrequency';
 
 // Hooks
 import useQueryString from 'hooks/useQueryString';
+import useErrorFocus from 'hooks/useErrorFocus';
 
 // Children
 import DonationPageSidebar from 'components/donationPage/DonationPageSidebar';
@@ -40,6 +41,9 @@ function DonationPage({ page, live = false }) {
   const [overrideAmount, setOverrideAmount] = useState(false);
   const [errors, setErrors] = useState({});
   const [salesforceCampaignId, setSalesforceCampaignId] = useState();
+
+  // Focus the first input on the page that has an error
+  useErrorFocus(formRef, errors);
 
   // initialize clearbit.js
   useClearbit(live);

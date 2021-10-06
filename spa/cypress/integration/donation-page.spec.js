@@ -200,6 +200,26 @@ describe('Donation page', () => {
       });
     });
 
+    it('should focus the first input on the page with an error', () => {
+      cy.intercept(
+        { method: 'GET', pathname: `${getEndpoint(LIVE_PAGE_DETAIL)}**` },
+        { fixture: 'pages/live-page-1', statusCode: 200 }
+      ).as('getPageDetail');
+      cy.visit(getTestingDonationPageUrl(expectedPageSlug));
+      cy.wait('@getPageDetail');
+
+      const errorElementName = 'first_name';
+      const errorMessage = 'Something was wrong with first_name';
+      cy.intercept(
+        { method: 'POST', pathname: getEndpoint(STRIPE_PAYMENT) },
+        { body: { [errorElementName]: errorMessage }, statusCode: 400 }
+      ).as('stripePayment');
+      cy.setUpDonation('One time', '120');
+      cy.makeDonation();
+      cy.get(`input[name="${errorElementName}"]`).should('have.focus');
+      cy.contains(errorMessage);
+    });
+
     describe('Donation page social meta tags', () => {
       const { revenue_program } = livePageOne;
       const OG_URL = 'og:url';

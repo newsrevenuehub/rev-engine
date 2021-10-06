@@ -88,7 +88,7 @@ function DonationPage({ page, live = false }) {
                 <form ref={formRef} data-testid="donation-page-form">
                   <S.PageElements>
                     {(!live && !page?.elements) ||
-                      (page?.elements.length === 0 && (
+                      (page?.elements?.length === 0 && (
                         <S.NoElements>Open the edit interface to start adding content</S.NoElements>
                       ))}
                     {page?.elements?.map((element) => getters.getDynamicElement(element, live))}

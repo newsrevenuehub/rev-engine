@@ -1,4 +1,4 @@
-import { STRIPE_PAYMENT, LIVE_PAGE_DETAIL, ORG_STRIPE_ACCOUNT_ID } from 'ajax/endpoints';
+import { STRIPE_PAYMENT, LIVE_PAGE_DETAIL } from 'ajax/endpoints';
 import { getEndpoint, getPageElementByType, getTestingDonationPageUrl, EXPECTED_RP_SLUG } from '../support/util';
 import livePageOne from '../fixtures/pages/live-page-1.json';
 import orgAccountIdFixture from '../fixtures/stripe/org-account-id.json';
@@ -502,10 +502,6 @@ describe('Donation page', () => {
           { method: 'GET', pathname: getEndpoint(LIVE_PAGE_DETAIL) },
           { fixture: 'pages/live-page-1', statusCode: 200 }
         );
-        cy.intercept(
-          { method: 'GET', pathname: getEndpoint(ORG_STRIPE_ACCOUNT_ID) },
-          { body: { stripe_account_id: 'abc123' }, statusCode: 500 }
-        ).as('getStripeAccountId');
         cy.visit(getTestingDonationPageUrl(expectedPageSlug));
         cy.url().should('include', EXPECTED_RP_SLUG);
         cy.url().should('include', expectedPageSlug);
@@ -518,10 +514,6 @@ describe('Donation page', () => {
           { method: 'GET', pathname: getEndpoint(LIVE_PAGE_DETAIL) },
           { fixture: 'pages/live-page-1', statusCode: 200 }
         ).as('getLivePage');
-        cy.intercept(
-          { method: 'GET', pathname: getEndpoint(ORG_STRIPE_ACCOUNT_ID) },
-          { body: { stripe_account_id: 'abc123' }, statusCode: 200 }
-        ).as('getStripeAccountId');
         cy.visit(getTestingDonationPageUrl(expectedPageSlug));
         cy.url().should('include', EXPECTED_RP_SLUG);
         cy.url().should('include', expectedPageSlug);

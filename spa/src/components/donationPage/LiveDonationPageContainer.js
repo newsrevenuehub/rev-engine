@@ -100,17 +100,17 @@ function LiveDonationPageRouter() {
     fetchLivePageContent();
   }, [params, fetchLivePageContent]);
 
-  const hasErrors = !isEmpty(errors) || !isEmpty(data);
-
+  const hasErrors = !isEmpty(errors) || isEmpty(data);
   if (loading) return <LiveLoading />;
   if (hasErrors) return <LivePage404 />;
-  else {
+  if (!isEmpty(data)) {
     return (
       <SegregatedStyles page={data}>
         <DonationPage live page={data} />
       </SegregatedStyles>
     );
   }
+  return null;
 }
 
 export default LiveDonationPageRouter;

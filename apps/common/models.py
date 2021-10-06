@@ -37,7 +37,7 @@ class Address(models.Model):
         max_length=2,
         blank=True,
         choices=get_country_choices(),
-        default=get_country_choices()[0][0],
+        default="US",
         verbose_name="Country",
     )
 

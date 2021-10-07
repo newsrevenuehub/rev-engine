@@ -9,6 +9,7 @@ import { format } from 'date-fns';
 import { CLEARBIT_SCRIPT_SRC } from '../../src/hooks/useClearbit';
 import * as socialMetaGetters from 'components/donationPage/DonationPageSocialTags';
 import hubDefaultSocialCard from 'assets/images/hub-og-card.png';
+import { FUNDJOURNALISM_404_REDIRECT } from 'components/donationPage/live/LivePage404';
 
 import * as freqUtils from 'utilities/parseFrequency';
 import calculateStripeFee from 'utilities/calculateStripeFee';
@@ -39,6 +40,14 @@ describe('Routing', () => {
     cy.visit(getTestingDonationPageUrl(expectedPageSlug));
     cy.wait('@getPageDetail');
     cy.getByTestId('donation-page').should('exist');
+  });
+
+  it('404 should display a link to fundjournalism.org in the text "this page"', () => {
+    cy.intercept({ method: 'GET', pathname: getEndpoint(LIVE_PAGE_DETAIL) }, { statusCode: 404 }).as('getPageDetail');
+    cy.visit(getTestingDonationPageUrl(expectedPageSlug));
+    cy.wait('@getPageDetail');
+    cy.getByTestId('live-page-404').should('exist');
+    cy.get(`a[href="${FUNDJOURNALISM_404_REDIRECT}"]`).should('exist');
   });
 });
 

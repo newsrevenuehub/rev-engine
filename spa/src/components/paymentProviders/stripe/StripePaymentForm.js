@@ -112,7 +112,7 @@ function StripePaymentForm({ loading, setLoading, offerPayFees }) {
       const email = extractEmailFromFormRef(formRef.current);
       const donationPageUrl = window.location.href;
       history.push({
-        pathname: url + THANK_YOU_SLUG,
+        pathname: url === '/' ? THANK_YOU_SLUG : url + THANK_YOU_SLUG,
         state: { page, amount, email, donationPageUrl }
       });
     }

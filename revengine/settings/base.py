@@ -71,6 +71,7 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
+    "csp.middleware.CSPMiddleware",
     "apps.common.middleware.LogFourHundredsMiddleware",
 ]
 
@@ -123,6 +124,7 @@ CONTRIBUTOR_MAGIC_LINK_REQUEST_THROTTLE_RATE = os.getenv("CONTRIBUTOR_MAGIC_LINK
 USER_TTL = timedelta(hours=24)
 
 
+# Security
 AUTH_COOKIE_KEY = "Authorization"
 # Set SAMESITE setting below to 'Strict' to ask recieving browsers not to send this cookie
 # across origins. Once this API supports public access, this needs to be loosened.
@@ -342,3 +344,11 @@ MIDDLEWARE_LOGGING_CODES = [400, 404, 403]
 COUNTRIES = ["US", "CA"]
 # Map currency-code to symbol
 CURRENCIES = {"USD": "$", "CAD": "$"}
+
+
+### Content-Security-Policy
+CSP_DEFAULT_SRC = (
+    "'self'",
+    "*.fundjournalism.org",
+)
+CSP_IMAGE_SRC = ("*",)

@@ -5,7 +5,7 @@ from django.views.decorators.http import require_GET
 from django.views.generic import TemplateView
 
 
-# Serve Single Page Application
+# # Serve Single Page Application
 index = never_cache(TemplateView.as_view(template_name="index.html"))
 
 

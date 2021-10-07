@@ -15,7 +15,7 @@ function useErrorFocus(formRef, errors) {
       const errorNames = Object.keys(errors);
       const inputNames = [...formRef.current.elements].map((el) => el.name);
       const firstErrorName = errorNames.find((name) => inputNames.indexOf(name) !== -1);
-      formRef.current.elements[firstErrorName].focus();
+      formRef.current.elements[firstErrorName]?.focus();
     }
   }, [errors, formRef]);
 }

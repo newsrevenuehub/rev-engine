@@ -42,7 +42,7 @@ def stripe_payment(request):
 
     # Grab required data from headers
     pi_data["referer"] = request.META.get("HTTP_REFERER")
-    pi_data["ip"] = request.META.get("HTTP_X_FORWARDED_FOR")
+    pi_data["ip"] = request.META["REMOTE_ADDR"]
 
     # StripePaymentManager will grab the right serializer based on "interval"
     stripe_payment = StripePaymentManager(data=pi_data)

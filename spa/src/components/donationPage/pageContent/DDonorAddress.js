@@ -123,6 +123,7 @@ function reduceAddressComponentsToString(addressComponents, targets) {
 }
 
 function mapAddressComponentsToAddressFields(addressComponents) {
+  if (!addressComponents) return {};
   const address = reduceAddressComponentsToString(addressComponents, mapAddrFieldToComponentTypes['address']);
   const zip = reduceAddressComponentsToString(addressComponents, mapAddrFieldToComponentTypes['zip']);
   const state = reduceAddressComponentsToString(addressComponents, mapAddrFieldToComponentTypes['state']);

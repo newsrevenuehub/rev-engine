@@ -17,6 +17,20 @@
     {"type": "DDonorInfo", "uuid": "testDonorInfo1"},
     {"type": "DDonorAddress", "uuid": "testDonorAddress1"},
     {"type": "DAdditionalInfo", "uuid": "testAdditionalInfo", "content": []},
+    {"type": "DSwag", "uuid": "testMemberBenefits", "content": {
+      "optOutDefault": false,
+      "swags": [
+        {
+          "swagName": "Totes Dope Tote",
+          "swagOptions": [
+            "Canvas -- blue",
+            "Canvas -- red",
+            "Recycled plastic -- multi-color",
+            "Recycled plastic -- red"
+          ]
+        }
+      ]
+    }},
     {"type": "DPayment", "uuid": "testPayment1", "content": {"offerPayFees": true, "stripe": ["card", "apple", "google", "browser"]}}
   ],
   "sidebar_elements": [

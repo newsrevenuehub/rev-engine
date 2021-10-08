@@ -448,9 +448,9 @@ describe('Footer-like content', () => {
   });
 });
 
-describe.only('Resulting request', () => {
+describe('Resulting request', () => {
   beforeEach(() => {
-    // cy.interceptStripeApi();
+    cy.interceptStripeApi();
     cy.interceptDonation();
     cy.intercept(
       { method: 'GET', pathname: `${getEndpoint(LIVE_PAGE_DETAIL)}**` },

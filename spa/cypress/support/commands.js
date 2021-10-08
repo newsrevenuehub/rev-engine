@@ -30,25 +30,8 @@ Cypress.Commands.add('visitDonationPage', () => {
   cy.wait('@getPageDetail');
 });
 
-Cypress.Commands.add('iframeLoaded', { prevSubject: 'element' }, (iframe) => {
-  const contentWindow = iframe.prop('contentWindow');
-  return new Promise((resolve) => {
-    if (contentWindow && contentWindow.document.readyState === 'complete') {
-      resolve(contentWindow);
-    } else {
-      iframe.on('load', () => {
-        resolve(contentWindow);
-      });
-    }
-  });
-});
-
 Cypress.Commands.add('getInDocument', { prevSubject: 'document' }, (document, selector) =>
   Cypress.$(selector, document)
-);
-
-Cypress.Commands.add('getWithinIframe', (targetElement) =>
-  cy.get('iframe').iframeLoaded().its('document').getInDocument(targetElement)
 );
 
 Cypress.Commands.add('interceptDonation', () => {
@@ -69,11 +52,23 @@ Cypress.Commands.add('setUpDonation', (frequency, amount) => {
   cy.contains(amount).click();
 });
 
+Cypress.Commands.add('interceptStripeApi', () => {
+  cy.intercept({ url: 'https://r.stripe.com/*', method: 'POST' }, { statusCode: 200 });
+  cy.intercept({ url: 'https://m.stripe.com/*', method: 'POST' }, { statusCode: 200 });
+});
+
 Cypress.Commands.add('makeDonation', () => {
-  cy.getWithinIframe('[name="cardnumber"]').type('4242424242424242');
-  cy.getWithinIframe('[name="exp-date"]').type('1232');
-  cy.getWithinIframe('[name="cvc"]').type('123');
-  cy.getByTestId('donation-submit').click();
+  cy.get('iframe')
+    .should((iframe) => expect(iframe.contents().find('body')).to.exist)
+    .then((iframe) => cy.wrap(iframe.contents().find('body')))
+    .within({}, ($iframe) => {
+      cy.get('[name="cardnumber"]').type('4242424242424242');
+      cy.get('[name="exp-date"]').type('1232');
+      cy.get('[name="cvc"]').type('123');
+    })
+    .then(() => {
+      cy.getByTestId('donation-submit').click();
+    });
 });
 
 Cypress.Commands.add('interceptPaginatedDonations', () => {

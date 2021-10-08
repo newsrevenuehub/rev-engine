@@ -24,14 +24,8 @@ describe('Routing', () => {
     cy.visit(getTestingDonationPageUrl(expectedPageSlug));
   });
 
-  it('should show live 404 page if api returns 404', () => {
-    cy.intercept({ method: 'GET', pathname: getEndpoint(LIVE_PAGE_DETAIL) }, { statusCode: 404 }).as('getPageDetail');
-    cy.visit(getTestingDonationPageUrl(expectedPageSlug));
-    cy.wait('@getPageDetail');
-    cy.getByTestId('live-page-404').should('exist');
-  });
-
-  it('should show a donation page if route is not reserved', () => {
+  it('should show a donation page if route is not reserved, first-level', () => {
+    cy.intercept('/api/v1/organizations/stripe_account_id/**', { fixture: 'stripe/org-account-id.json' });
     cy.intercept(
       { method: 'GET', pathname: getEndpoint(LIVE_PAGE_DETAIL) },
       { fixture: 'pages/live-page-1', statusCode: 200 }
@@ -39,6 +33,7 @@ describe('Routing', () => {
     cy.visit(getTestingDonationPageUrl(expectedPageSlug));
     cy.wait('@getPageDetail');
     cy.getByTestId('donation-page').should('exist');
+    cy.get('head').find(`script[src*="${CLEARBIT_SCRIPT_SRC}"]`).should('have.length', 1);
   });
 });
 
@@ -319,6 +314,23 @@ describe('404 behavior', () => {
     cy.url().should('include', expectedPageSlug);
     cy.wait('@getLivePage');
     cy.getByTestId('live-page-404').should('exist');
+  });
+
+  it('should show live 404 page if api returns 404', () => {
+    cy.intercept({ method: 'GET', pathname: getEndpoint(LIVE_PAGE_DETAIL) }, { statusCode: 404 }).as('getPageDetail');
+    cy.visit(getTestingDonationPageUrl(expectedPageSlug));
+    cy.wait('@getPageDetail');
+    cy.getByTestId('live-page-404').should('exist');
+  });
+
+  it('should show a donation page if route is not reserved', () => {
+    cy.intercept(
+      { method: 'GET', pathname: getEndpoint(LIVE_PAGE_DETAIL) },
+      { fixture: 'pages/live-page-1', statusCode: 200 }
+    ).as('getPageDetail');
+    cy.visit(getTestingDonationPageUrl(expectedPageSlug));
+    cy.wait('@getPageDetail');
+    cy.getByTestId('donation-page').should('exist');
   });
 });
 

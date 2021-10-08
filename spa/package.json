@@ -121,7 +121,6 @@
     "@cypress/react": "^5.9.4",
     "@cypress/webpack-dev-server": "^1.4.0",
     "cypress": "^8.5.0",
-    "cypress-iframe": "^1.0.1",
     "eslint-plugin-chai-friendly": "^0.7.1"
   }
 }

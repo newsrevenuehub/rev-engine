@@ -14,7 +14,7 @@ import SelectableButton from 'elements/buttons/SelectableButton';
 import FormErrors from 'elements/inputs/FormErrors';
 
 function DAmount({ element, ...props }) {
-  const { page, frequency, amount, setAmount, overrideAmount, errors } = usePage();
+  const { page, frequency, amount, setAmount, overrideAmount, setTotalUpdated, errors } = usePage();
   const [otherFocused, setOtherFocused] = useState(false);
 
   const handleOtherSelected = () => {
@@ -39,6 +39,11 @@ function DAmount({ element, ...props }) {
     return getAmountIndex(page, amount, frequency) !== -1;
   }, [page, amount, frequency]);
 
+  const handleAmountChange = (newAmount) => {
+    setTotalUpdated(true);
+    setAmount(newAmount);
+  };
+
   const currencySymbol = page?.currency?.symbol;
 
   return (
@@ -55,7 +60,7 @@ function DAmount({ element, ...props }) {
             <SelectableButton
               key={i + amnt}
               selected={selected}
-              onClick={() => setAmount(parseFloat(amnt))}
+              onClick={() => handleAmountChange(parseFloat(amnt))}
               data-testid={`amount-${amnt}${parseFloat(amount) === parseFloat(amnt) ? '-selected' : ''}`}
             >
               {`${currencySymbol}${amnt}`}{' '}
@@ -72,7 +77,7 @@ function DAmount({ element, ...props }) {
             <S.OtherAmountInput
               type="number"
               value={otherFocused || !amountIsPreset ? amount : ''}
-              onChange={(e) => setAmount(e.target.value)}
+              onChange={(e) => handleAmountChange(e.target.value)}
               onFocus={handleOtherSelected}
               onBlur={handleOtherBlurred}
             />

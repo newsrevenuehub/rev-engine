@@ -7,3 +7,4 @@ export { default as PaymentEditor } from './payment/PaymentEditor';
 export { default as AdditionalInfoEditor } from './additionalInfo/AdditionalInfoEditor';
 export { default as ImageEditor } from './image/ImageEditor';
 export { default as BenefitsEditor } from './benefits/BenefitsEditor';
+export { default as SwagEditor } from './swag/SwagEditor';

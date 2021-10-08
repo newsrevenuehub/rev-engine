@@ -10,7 +10,8 @@ import {
   faCreditCard,
   faAddressCard,
   faImage,
-  faGifts
+  faGifts,
+  faShoppingBag
 } from '@fortawesome/free-solid-svg-icons';
 
 import * as dynamicPageElements from 'components/donationPage/pageContent/dynamicElements';
@@ -70,6 +71,9 @@ function getElementIcon(elementType) {
 
     case 'DBenefits':
       return faGifts;
+
+    case 'DSwag':
+      return faShoppingBag;
 
     default:
       return undefined;

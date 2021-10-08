@@ -25,16 +25,16 @@ export const FieldSetWrapper = styled.li`
   margin: 2rem 4rem 2rem 6rem;
 `;
 
-export const RadioWrapper = styled.div`
+export const CheckboxWrapper = styled.div`
   display: flex;
   flex-direction: row;
   align-items: center;
   align-self: flex-end;
 `;
 
-export const Radio = styled(MaterialCheckbox)``;
+export const Checkbox = styled(MaterialCheckbox)``;
 
-export const RadioLabel = styled.label`
+export const CheckboxLabel = styled.label`
   font-size: 12px;
   font-style: italic;
 `;

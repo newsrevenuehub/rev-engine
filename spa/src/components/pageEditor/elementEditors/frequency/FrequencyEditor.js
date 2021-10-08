@@ -52,8 +52,8 @@ function FrequencyEditor() {
                 onChange={(_e, { checked }) => setToggled(checked, frequency.value)}
               />
             </S.ToggleWrapper>
-            <S.RadioWrapper>
-              <S.Radio
+            <S.CheckboxWrapper>
+              <S.Checkbox
                 id={`${frequency.value}-default`}
                 data-testid={`frequency-default-${frequency.value}`}
                 type="checkbox"
@@ -61,8 +61,8 @@ function FrequencyEditor() {
                 checked={!!thisFreq?.isDefault}
                 onChange={() => makeFreqDefault(frequency.value)}
               />
-              <S.RadioLabel htmlFor={`${frequency.value}-default`}>selected by default</S.RadioLabel>
-            </S.RadioWrapper>
+              <S.CheckboxLabel htmlFor={`${frequency.value}-default`}>selected by default</S.CheckboxLabel>
+            </S.CheckboxWrapper>
           </S.FieldSetWrapper>
         );
       })}

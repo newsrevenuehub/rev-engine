@@ -51,19 +51,6 @@ Cypress.Commands.add('getWithinIframe', (targetElement) =>
   cy.get('iframe').iframeLoaded().its('document').getInDocument(targetElement)
 );
 
-Cypress.Commands.add('interceptDonation', () => {
-  cy.intercept(
-    { method: 'POST', pathname: getEndpoint(STRIPE_PAYMENT) },
-    { fixture: 'stripe/payment-intent', statusCode: 200 }
-  ).as('stripePayment');
-
-  cy.intercept('/v1/payment_intents/**', { statusCode: 200 }).as('confirmCardPayment');
-
-  cy.intercept('/v1/payment_methods/**', { fixture: 'stripe/payment-method', statusCode: 200 }).as(
-    'createPaymentMethod'
-  );
-});
-
 Cypress.Commands.add('setUpDonation', (frequency, amount) => {
   cy.contains(frequency).click();
   cy.contains(amount).click();

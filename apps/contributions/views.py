@@ -42,7 +42,7 @@ def stripe_payment(request):
 
     # Grab required data from headers
     pi_data["referer"] = request.META.get("HTTP_REFERER")
-    pi_data["ip"] = request.META.get("HTTP_X_FORWARDED_FOR")
+    pi_data["ip"] = request.META["REMOTE_ADDR"]
 
     parse_pi_data_for_swag_options(pi_data)
 

@@ -126,6 +126,40 @@ describe('DonationPage elements', () => {
     cy.getByTestId('pay-fees-checked').should('exist');
     cy.getByTestId('pay-fees-not-checked').should('not.exist');
   });
+
+  it('should render DSwag', () => {
+    cy.intercept(
+      { method: 'GET', pathname: getEndpoint(LIVE_PAGE_DETAIL) },
+      { fixture: 'pages/live-page-1.json', statusCode: 200 }
+    ).as('getPage');
+    cy.visit(getTestingDonationPageUrl(expectedPageSlug));
+    cy.url().should('include', EXPECTED_RP_SLUG);
+    cy.url().should('include', expectedPageSlug);
+    cy.wait('@getPage');
+
+    cy.getByTestId('d-swag').should('exist');
+  });
+
+  it('should render swag options if swagThreshold is met', () => {
+    const swagElement = livePageOne.elements.find((el) => el.type === 'DSwag');
+    const swagThreshold = swagElement.content.swagThreshold;
+    cy.contains(`Give a total of ${livePageOne.currency.symbol}${swagThreshold} /year or more to be eligible`);
+    cy.getByTestId('swag-content').should('not.exist');
+    cy.setUpDonation('One time', '365');
+    cy.getByTestId('swag-content').should('exist');
+  });
+
+  it('should render a dropdown of swagOptions for each swag in the list', () => {
+    const swagElement = livePageOne.elements.find((el) => el.type === 'DSwag');
+    const swagName = swagElement.content.swags[0].swagName;
+    const optionsNum = swagElement.content.swags[0].swagOptions.length;
+    cy.contains('Totes Dope Tote').should('exist');
+    cy.getByTestId(`swag-item-${swagName}`).should('exist');
+    cy.getByTestId(`swag-choices-${swagName}`).should('exist');
+    cy.getByTestId(`swag-choices-${swagName}`).click();
+    const dropdownName = `swag_choice_${swagName}`;
+    cy.getByTestId(`select-dropdown-${dropdownName}`).find('li').its('length').should('eq', optionsNum);
+  });
 });
 
 describe('Donation page social meta tags', () => {
@@ -231,7 +265,7 @@ describe('Donation page amount and frequency query parameters', () => {
     cy.getByTestId(`amount-${targetAmount}-selected`).should('exist');
   });
 
-  specify('&frequency and @amount custom shows only that amount for frequency', () => {
+  specify('&frequency and @amount custom shows that amount for frequency', () => {
     // intercept page, return particular elements
     const page = livePageOne;
     const targetFreq = 'monthly';
@@ -572,8 +606,9 @@ describe('Resulting request', () => {
       { method: 'POST', pathname: getEndpoint(STRIPE_PAYMENT) },
       { fixture: 'stripe/payment-intent', statusCode: 200 }
     ).as('stripePayment5');
+    cy.intercept('/v1/payment_intents/**', { statusCode: 400 });
     cy.makeDonation();
-    cy.wait('@stripePayment5').its('request.body').should('have.property', 'captcha_token');
+    cy.wait('@stripePayment5', { timeout: 8000 }).its('request.body').should('have.property', 'captcha_token');
   });
 
   it('should focus the first input on the page with an error', () => {

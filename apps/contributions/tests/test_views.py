@@ -28,7 +28,7 @@ class MockPaymentIntent(StripeObject):
         self.client_secret = test_client_secret
 
 
-class StripePaymentViewAbstract(APITestCase):
+class StripePaymentViewTestAbstract(APITestCase):
     def setUp(self):
         self.organization = OrganizationFactory()
         self.revenue_program = RevenueProgramFactory(organization=self.organization)
@@ -76,7 +76,7 @@ class StripePaymentViewAbstract(APITestCase):
         return stripe_payment(self._create_request(**kwargs))
 
 
-class StripeOneTimePaymentViewTest(StripePaymentViewAbstract):
+class StripeOneTimePaymentViewTest(StripePaymentViewTestAbstract):
     @patch("apps.contributions.views.StripePaymentManager.create_one_time_payment", side_effect=MockPaymentIntent)
     def test_one_time_payment_serializer_validates(self, *args):
         # Email is required
@@ -116,7 +116,7 @@ class StripeOneTimePaymentViewTest(StripePaymentViewAbstract):
 
 
 @patch("apps.contributions.views.StripePaymentManager.create_subscription")
-class CreateStripeRecurringPaymentViewTest(StripePaymentViewAbstract):
+class CreateStripeRecurringPaymentViewTest(StripePaymentViewTestAbstract):
     def test_recurring_payment_serializer_validates(self, *args):
         # StripeRecurringPaymentSerializer requires payment_method_id
         response = self._post_valid_one_time_payment(interval=ContributionInterval.MONTHLY)

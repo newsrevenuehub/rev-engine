@@ -6,10 +6,14 @@ import * as S from './DSwag.styled';
 import { useTheme } from 'styled-components';
 import { AnimatePresence } from 'framer-motion';
 
+// Constants
+import { NO_VALUE } from 'constants/textConstants';
+
 // Context
 import { usePage } from '../DonationPage';
 
 // Children
+import Select from 'elements/inputs/Select';
 import DElement, { DynamicElementPropTypes } from 'components/donationPage/pageContent/DElement';
 
 function calculateYearlyAmount(frequency, amount) {
@@ -31,9 +35,6 @@ function calculateYearlyAmount(frequency, amount) {
       yearlyTotal *= 1;
       break;
   }
-  console.log('frequency', frequency);
-  console.log('amount', amount);
-  console.log('yearlyTotal', yearlyTotal);
   return yearlyTotal;
 }
 
@@ -45,24 +46,26 @@ function getYearlyMeetsThreshold(yearly) {
 
 function DSwag({ element, ...props }) {
   const theme = useTheme();
-  const { frequency, amount } = usePage();
+  const { page, frequency, amount } = usePage();
 
   const [shouldShowBenefits, setShouldShowBenefits] = useState(true);
-  const [optOut, setOptOut] = useState(false);
-  // const [compSub, setCompSub] = useState(false);
+  const [optOut, setOptOut] = useState(element?.content?.optOutDefault);
 
   useEffect(() => {
-    console.log('use effect runs');
     setShouldShowBenefits(getYearlyMeetsThreshold(calculateYearlyAmount(frequency, amount)));
   }, [frequency, amount]);
 
   return (
     <DElement label="Member Benefits" {...props} data-testid="d-frequency">
-      <S.ThresholdMessage>Gotta hit those num nums</S.ThresholdMessage>
-
+      {element?.content?.swagThreshold > 0 && (
+        <S.ThresholdMessage>
+          Give a total of {page.currency.symbol}
+          {element.content.swagThreshold}/year or more to be eligible
+        </S.ThresholdMessage>
+      )}
       <AnimatePresence>
         {shouldShowBenefits && (
-          <S.DSwag {...S.swagAnimation}>
+          <S.DSwag {...S.containerSwagimation}>
             <S.OptOut>
               <S.Checkbox
                 id="opt-out"
@@ -77,28 +80,18 @@ function DSwag({ element, ...props }) {
               </S.CheckboxLabel>
             </S.OptOut>
             <AnimatePresence>
-              {/* {!optOut && (
-            <S.SwagOptions>
-              <S.CompSubscription>
-                <S.CompSubDescription>
-                  Add New York Times subscription? Give $15/month, $180/year or more
-                </S.CompSubDescription>
-                <S.CompSubWrapper>
-                  <S.Checkbox
-                    id="comp-subscription"
-                    data-testid="comp-subscription"
-                    type="checkbox"
-                    color={theme.colors.primary}
-                    checked={compSub}
-                    onChange={() => setCompSub(!compSub)}
-                  />
-                  <S.CheckboxLabel htmlFor="comp-subscription">
-                    Yes, I'd like to include a New York Times subscription.
-                  </S.CheckboxLabel>
-                </S.CompSubWrapper>
-              </S.CompSubscription>
-            </S.SwagOptions>
-          )} */}
+              {!optOut && (
+                <S.SwagsList {...S.containerSwagimation}>
+                  {element.content.swags.map((swag) => (
+                    <SwagItem
+                      key={swag.swagName}
+                      swag={swag}
+                      isOnlySwag={element.content.swags.length === 1}
+                      {...S.optSwagimation}
+                    />
+                  ))}
+                </S.SwagsList>
+              )}
             </AnimatePresence>
           </S.DSwag>
         )}
@@ -110,9 +103,6 @@ function DSwag({ element, ...props }) {
 DSwag.propTypes = {
   element: PropTypes.shape({
     ...DynamicElementPropTypes
-    // content: PropTypes.arrayOf(
-    //   PropTypes.shape({ displayName: PropTypes.string.isRequired, value: PropTypes.string.isRequired })
-    // )
   })
 };
 
@@ -123,3 +113,25 @@ DSwag.required = false;
 DSwag.unique = true;
 
 export default DSwag;
+
+const NO_SWAG_OPT = '--No, thank you--';
+
+function SwagItem({ swag, isOnlySwag, ...props }) {
+  const [selectedSwagOption, setSelectedSwagOption] = useState();
+
+  // If it's the only swag item, don't show the "No swag" option, since that's covered by the "optOut" option.
+  const swagOptions = isOnlySwag ? swag.swagOptions : [NO_SWAG_OPT].concat(swag.swagOptions);
+
+  return (
+    <S.SwagItem {...props}>
+      <S.SwagName>{swag.swagName}</S.SwagName>
+      <S.SwagOptions>
+        <Select
+          selectedItem={selectedSwagOption}
+          onSelectedItemChange={({ selectedItem }) => setSelectedSwagOption(selectedItem)}
+          items={swagOptions}
+        />
+      </S.SwagOptions>
+    </S.SwagItem>
+  );
+}

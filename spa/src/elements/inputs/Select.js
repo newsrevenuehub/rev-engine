@@ -25,22 +25,22 @@ function Select({
     <BaseField labelProps={{ ...getLabelProps() }} {...props}>
       <S.SelectWrapper>
         <S.Select type="button" {...getToggleButtonProps()} suppressRefError data-testid={testId}>
-          {(selectedItem && selectedItem[displayAccessor]) || placeholder}
+          {(selectedItem && displayAccessor ? selectedItem[displayAccessor] : selectedItem) || placeholder}
         </S.Select>
-        {isOpen && (
-          <S.List {...getMenuProps()} dropdownPosition={dropdownPosition}>
-            {items.map((item, index) => (
+
+        <S.List {...getMenuProps()} isOpen={isOpen} dropdownPosition={dropdownPosition}>
+          {isOpen &&
+            items.map((item, index) => (
               <S.Item
                 key={`${item}${index}`}
                 highlighted={highlightedIndex === index}
                 data-testid={`select-item-${index}`}
                 {...getItemProps({ item, index })}
               >
-                {item[displayAccessor]}
+                {displayAccessor ? item[displayAccessor] : item}
               </S.Item>
             ))}
-          </S.List>
-        )}
+        </S.List>
       </S.SelectWrapper>
     </BaseField>
   );

@@ -1,11 +1,8 @@
 import styled from 'styled-components';
 import MaterialCheckbox from '@material-ui/core/Checkbox';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { baseInputStyles } from 'elements/inputs/BaseField.styled';
+import { baseInputStyles, HelpText as BaseHelpText } from 'elements/inputs/BaseField.styled';
 import Input from 'elements/inputs/Input';
-import { Radio as SemanticRadio } from 'semantic-ui-react';
-
-import { HelpText as BaseHelpText } from 'elements/inputs/BaseField.styled';
 import lighten from 'styles/utils/lighten';
 
 export const SwagEditor = styled.div`
@@ -28,6 +25,29 @@ export const CheckboxLabel = styled.label`
   font-style: italic;
 `;
 
+export const SwagThreshold = styled.div`
+  padding: 2rem 0;
+  margin: 0;
+  border-top: 1px solid ${(props) => props.theme.colors.grey[1]};
+`;
+
+export const InputContainer = styled.div`
+  ${baseInputStyles};
+  width: 150px;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  color: ${(props) => props.theme.colors.grey[2]};
+`;
+
+export const ThresholdInput = styled.input`
+  border: none;
+  flex: 1;
+  width: 0px;
+  color: ${(props) => props.theme.colors.black};
+  padding: 0.5rem;
+`;
+
 export const Swags = styled.ul`
   list-style: none;
   padding: 2rem 0;
@@ -39,6 +59,8 @@ export const Swag = styled.li`
   margin-bottom: 1rem;
   border: 2px solid ${(props) => props.theme.colors.grey[2]};
   padding: 1rem;
+
+  opacity: ${(props) => (props.isBeingEdited ? 0.3 : 1)};
 `;
 
 export const NoSwags = styled.p`
@@ -48,6 +70,28 @@ export const NoSwags = styled.p`
 
 export const SwagName = styled.p`
   font-weight: bold;
+`;
+
+export const ExistingSwagButtons = styled.div`
+  display: flex;
+  flex-direction: row;
+`;
+
+export const EditButton = styled.button`
+  cursor: pointer;
+  border: none;
+  background: transparent;
+`;
+
+export const EditIcon = styled(FontAwesomeIcon)`
+  transform: translateY(-50%);
+  color: ${(props) => props.theme.colors.success};
+
+  transition: all 0.2s ease-in-out;
+
+  &:hover {
+    opacity: 0.7;
+  }
 `;
 
 export const DeleteButton = styled.button`
@@ -101,7 +145,7 @@ export const SwagOption = styled.li`
 `;
 
 export const AddSwag = styled.div`
-  border-top: 1px solid ${(props) => props.theme.colors.grey[1]};
+  /* border-top: 1px solid ${(props) => props.theme.colors.grey[1]}; */
   padding: 2rem 0;
   margin-bottom: 2rem;
 `;
@@ -132,6 +176,11 @@ export const OptionNameInput = styled.input`
   width: 100%;
   font-size: 14px;
   border-color: ${(props) => props.theme.colors.grey[0]};
+`;
+
+export const HelpText = styled(BaseHelpText)`
+  padding: 0 0.5rem;
+  color: ${(props) => props.theme.colors.grey[3]};
 `;
 
 export const AddSwagButtons = styled.div`

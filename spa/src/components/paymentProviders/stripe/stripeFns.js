@@ -85,10 +85,17 @@ function serializeForm(form) {
     This really is easier than managing all the form state in a common
     parent. Trust me.
   */
+  const booleans = ['swag_opt_out'];
   const obj = {};
   const formData = new FormData(form);
   for (const key of formData.keys()) {
-    obj[key] = formData.get(key);
+    if (booleans.includes(key)) {
+      // If it's a bool checkbox, its mere presence on in FormData indicates that it is checked.
+      // Here we explicitly set that value to "true".
+      obj[key] = true;
+    } else {
+      obj[key] = formData.get(key);
+    }
   }
   return obj;
 }

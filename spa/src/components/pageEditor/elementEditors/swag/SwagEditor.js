@@ -155,7 +155,6 @@ function SwagEditor() {
   const handleKeyUpOptionName = (e) => {
     if (e.key === 'Enter') addNewSwagOption(newSwagOption);
   };
-  console.log('isEditing', isEditing);
 
   return (
     <S.SwagEditor data-testid="swag-editor">

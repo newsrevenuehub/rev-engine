@@ -180,7 +180,7 @@ class AbstractPaymentSerializer(serializers.Serializer):
     mailing_country = serializers.CharField(max_length=80)
 
     # Any additional info that should be passed through
-    reason = serializers.CharField(max_length=255, required=False, allow_blank=True)
+    swag_opt_out = serializers.BooleanField(default=False)
 
     # Params/Pass-through
     sf_campaign_id = serializers.CharField(max_length=255, required=False, allow_blank=True)

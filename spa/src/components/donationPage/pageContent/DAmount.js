@@ -3,6 +3,7 @@ import PropTypes from 'prop-types';
 import * as S from './DAmount.styled';
 
 // Util
+import validateInputPositiveFloat from 'utilities/validateInputPositiveFloat';
 import { getFrequencyAdjective, getFrequencyRate } from 'utilities/parseFrequency';
 
 // Context
@@ -44,6 +45,12 @@ function DAmount({ element, ...props }) {
     setAmount(newAmount);
   };
 
+  const handleOtherAmountChange = (e) => {
+    if (validateInputPositiveFloat(e.target.value)) {
+      handleAmountChange(e.target.value);
+    }
+  };
+
   const currencySymbol = page?.currency?.symbol;
 
   return (
@@ -75,9 +82,8 @@ function DAmount({ element, ...props }) {
           >
             <span>{currencySymbol}</span>
             <S.OtherAmountInput
-              type="number"
               value={otherFocused || !amountIsPreset ? amount : ''}
-              onChange={(e) => handleAmountChange(e.target.value)}
+              onChange={handleOtherAmountChange} //(e) => handleAmountChange(e.target.value)}
               onFocus={handleOtherSelected}
               onBlur={handleOtherBlurred}
             />

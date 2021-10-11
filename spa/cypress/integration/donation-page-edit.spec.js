@@ -183,6 +183,33 @@ describe('Donation page edit', () => {
     });
   });
 
+  describe('Swag editor', () => {
+    const pageSwagElement = livePage.elements.filter((el) => el.type === 'DSwag')[0];
+    before(() => {
+      cy.getByTestId('edit-page-button').click();
+      cy.contains('Member benefits').click();
+    });
+
+    it('should render the swag editor', () => {
+      cy.getByTestId('swag-editor').should('exist');
+    });
+
+    it('should show existing swags', () => {
+      console.log('pageSwagElement', pageSwagElement);
+      const swagName = pageSwagElement.content.swags[0].swagName;
+      cy.getByTestId('swag-editor').getByTestId('existing-swag').contains(swagName);
+    });
+
+    // Update me when we increase this limit!
+    it('should only show add-option if there is fewer than 1 existing swag', () => {
+      const swagName = pageSwagElement.content.swags[0].swagName;
+      cy.getByTestId('swag-name-input').should('not.exist');
+      cy.getByTestId(`remove-existing-swag-${swagName}`).click();
+      cy.getByTestId('swag-editor').getByTestId('existing-swag').should('not.exist');
+      cy.getByTestId('swag-name-input').should('exist');
+    });
+  });
+
   describe('Validations', () => {
     it('should render an alert with a list of missing required elements', () => {
       const missingElementType = 'DPayment';

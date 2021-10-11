@@ -184,7 +184,7 @@ function SwagEditor() {
       {/* List of current swags */}
       <S.Swags>
         {elementContent.swags.map((swag, i) => (
-          <S.Swag key={swag.swagName} isBeingEdited={editingIndex === i}>
+          <S.Swag key={swag.swagName} isBeingEdited={editingIndex === i} data-testid="existing-swag">
             <S.SwagNameWrapper>
               <S.SwagName>{swag.swagName}</S.SwagName>
               <S.ExistingSwagButtons>
@@ -222,7 +222,7 @@ function SwagEditor() {
               placeholder="Swag name"
               value={newSwagName}
               onChange={(e) => setNewSwagName(e.target.value)}
-              data-testid="swag-name-input"
+              testid="swag-name-input"
             />
             <FormErrors errors={errors.newSwagName} />
 

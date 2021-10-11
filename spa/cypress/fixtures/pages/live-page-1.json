@@ -19,6 +19,7 @@
     {"type": "DAdditionalInfo", "uuid": "testAdditionalInfo", "content": []},
     {"type": "DSwag", "uuid": "testMemberBenefits", "content": {
       "optOutDefault": false,
+      "swagThreshold": 240,
       "swags": [
         {
           "swagName": "Totes Dope Tote",

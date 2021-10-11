@@ -34,7 +34,12 @@ function Select({
 
         {/* </S.Select> */}
 
-        <S.List {...getMenuProps()} isOpen={isOpen} dropdownPosition={dropdownPosition}>
+        <S.List
+          {...getMenuProps()}
+          isOpen={isOpen}
+          data-testid={`select-dropdown-${name}`}
+          dropdownPosition={dropdownPosition}
+        >
           {isOpen &&
             items.map((item, index) => (
               <S.Item

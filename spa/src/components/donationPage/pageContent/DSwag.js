@@ -6,9 +6,6 @@ import * as S from './DSwag.styled';
 import { useTheme } from 'styled-components';
 import { AnimatePresence } from 'framer-motion';
 
-// Constants
-import { NO_VALUE } from 'constants/textConstants';
-
 // Context
 import { usePage } from '../DonationPage';
 
@@ -38,10 +35,8 @@ function calculateYearlyAmount(frequency, amount) {
   return yearlyTotal;
 }
 
-const YEARLY_DONATION_SWAG_THRESHOLD = 240;
-
-function getYearlyMeetsThreshold(yearly) {
-  return yearly >= YEARLY_DONATION_SWAG_THRESHOLD;
+function getYearlyMeetsThreshold(yearly, threshold) {
+  return !threshold || yearly >= threshold;
 }
 
 function DSwag({ element, ...props }) {
@@ -52,24 +47,26 @@ function DSwag({ element, ...props }) {
   const [optOut, setOptOut] = useState(element?.content?.optOutDefault);
 
   useEffect(() => {
-    setShouldShowBenefits(getYearlyMeetsThreshold(calculateYearlyAmount(frequency, amount)));
-  }, [frequency, amount]);
+    setShouldShowBenefits(
+      getYearlyMeetsThreshold(calculateYearlyAmount(frequency, amount), element.content.swagThreshold)
+    );
+  }, [frequency, amount, element.content.swagThreshold]);
 
   return (
-    <DElement label="Member benefits" {...props} data-testid="d-frequency">
+    <DElement label="Member benefits" {...props} data-testid="d-swag">
       {element?.content?.swagThreshold > 0 && (
         <S.ThresholdMessage>
           Give a total of {page.currency.symbol}
-          {element.content.swagThreshold}/year or more to be eligible
+          {element.content.swagThreshold} /year or more to be eligible
         </S.ThresholdMessage>
       )}
       <AnimatePresence>
         {shouldShowBenefits && (
-          <S.DSwag {...S.containerSwagimation}>
+          <S.DSwag {...S.containerSwagimation} data-testid="swag-content">
             <S.OptOut>
               <S.Checkbox
                 id="opt-out"
-                data-testid="opt-out"
+                data-testid="swag-opt-out"
                 type="checkbox"
                 name="swag_opt_out"
                 color={theme.colors.primary}
@@ -125,10 +122,11 @@ function SwagItem({ swag, isOnlySwag, ...props }) {
   const [selectedSwagOption, setSelectedSwagOption] = useState(swagOptions[0]);
 
   return (
-    <S.SwagItem {...props}>
+    <S.SwagItem {...props} data-testid={`swag-item-${swag.swagName}`}>
       <S.SwagName>{swag.swagName}</S.SwagName>
       <S.SwagOptions>
         <Select
+          testId={`swag-choices-${swag.swagName}`}
           name={`swag_choice_${swag.swagName}`}
           selectedItem={selectedSwagOption}
           onSelectedItemChange={({ selectedItem }) => setSelectedSwagOption(selectedItem)}

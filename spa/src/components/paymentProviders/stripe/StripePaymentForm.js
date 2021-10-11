@@ -29,6 +29,7 @@ import submitPayment, { serializeData, getTotalAmount, amountToCents, StripeErro
 import { usePage } from 'components/donationPage/DonationPage';
 
 // Children
+import BaseField from 'elements/inputs/BaseField';
 import Button from 'elements/buttons/Button';
 import { ICONS } from 'assets/icons/SvgIcon';
 import { PayFeesWidget } from 'components/donationPage/pageContent/DPayment';
@@ -303,13 +304,15 @@ function StripePaymentForm({ loading, setLoading, offerPayFees }) {
     </>
   ) : (
     <S.StripePaymentForm>
-      <S.PaymentElementWrapper>
-        <CardElement
-          id="card-element"
-          options={{ style: S.CardElementStyle(theme), hidePostalCode: true }}
-          onChange={handleCardElementChange}
-        />
-      </S.PaymentElementWrapper>
+      <BaseField label="Card details" required>
+        <S.PaymentElementWrapper>
+          <CardElement
+            id="card-element"
+            options={{ style: S.CardElementStyle(theme), hidePostalCode: true }}
+            onChange={handleCardElementChange}
+          />
+        </S.PaymentElementWrapper>
+      </BaseField>
       {errors?.stripe && (
         <S.PaymentError role="alert" data-testid="donation-error">
           {errors.stripe}

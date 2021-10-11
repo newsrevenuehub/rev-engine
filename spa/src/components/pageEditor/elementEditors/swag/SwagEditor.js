@@ -24,7 +24,7 @@ const defaultContent = {
   swags: []
 };
 
-const SWAG_LIMIT = 3;
+const SWAG_LIMIT = 1;
 const SWAG_OPTION_MAX_LENGTH = 40;
 
 function SwagEditor() {
@@ -121,7 +121,7 @@ function SwagEditor() {
   const removeExistingSwag = (swagName) => {
     const thisSwagIndex = elementContent.swags.findIndex((swag) => swag.swagName === swagName);
     const swagsUpdated = [...elementContent.swags];
-    swagsUpdated.splice(thisSwagIndex);
+    swagsUpdated.splice(thisSwagIndex, 1);
     setElementContent({
       ...elementContent,
       swags: swagsUpdated

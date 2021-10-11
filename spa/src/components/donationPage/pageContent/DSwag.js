@@ -56,7 +56,7 @@ function DSwag({ element, ...props }) {
   }, [frequency, amount]);
 
   return (
-    <DElement label="Member Benefits" {...props} data-testid="d-frequency">
+    <DElement label="Member benefits" {...props} data-testid="d-frequency">
       {element?.content?.swagThreshold > 0 && (
         <S.ThresholdMessage>
           Give a total of {page.currency.symbol}
@@ -117,10 +117,10 @@ export default DSwag;
 const NO_SWAG_OPT = '--No, thank you--';
 
 function SwagItem({ swag, isOnlySwag, ...props }) {
-  const [selectedSwagOption, setSelectedSwagOption] = useState();
-
   // If it's the only swag item, don't show the "No swag" option, since that's covered by the "optOut" option.
   const swagOptions = isOnlySwag ? swag.swagOptions : [NO_SWAG_OPT].concat(swag.swagOptions);
+
+  const [selectedSwagOption, setSelectedSwagOption] = useState(swagOptions[0]);
 
   return (
     <S.SwagItem {...props}>

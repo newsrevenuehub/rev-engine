@@ -161,6 +161,8 @@ function StripePaymentForm({ loading, setLoading, offerPayFees }) {
    * Inline Card Element Payments *
   \********************************/
   const handleCardSubmit = async (e) => {
+    console.log('formRef', formRef);
+    debugger;
     e.preventDefault();
     setLoading(true);
     const reCAPTCHAToken = await getReCAPTCHAToken();

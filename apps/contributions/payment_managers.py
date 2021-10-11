@@ -222,8 +222,6 @@ class StripePaymentManager(PaymentManager):
         stripe_customer = self.create_organization_customer(organization)
         capture_method = "manual" if self.flagged else "automatic"
         meta = self.bundle_metadata(self.data, ContributionMetadata.ProcessorObjects.PAYMENT)
-        print("--------------------___-------_-_-_--_>")
-        print(meta)
         stripe_payment_intent = stripe.PaymentIntent.create(
             amount=self.validated_data["amount"],
             currency=self.validated_data["currency"],

@@ -13,6 +13,7 @@ function Select({
   displayAccessor,
   placeholder,
   testId,
+  name,
   ...props
 }) {
   const { isOpen, getToggleButtonProps, getLabelProps, getMenuProps, highlightedIndex, getItemProps } = useSelect({
@@ -24,9 +25,14 @@ function Select({
   return (
     <BaseField labelProps={{ ...getLabelProps() }} {...props}>
       <S.SelectWrapper>
-        <S.Select type="button" {...getToggleButtonProps()} suppressRefError data-testid={testId}>
-          {(selectedItem && displayAccessor ? selectedItem[displayAccessor] : selectedItem) || placeholder}
-        </S.Select>
+        <S.Select
+          {...getToggleButtonProps()}
+          name={name}
+          data-testid={testId}
+          value={(selectedItem && displayAccessor ? selectedItem[displayAccessor] : selectedItem) || placeholder}
+        />
+
+        {/* </S.Select> */}
 
         <S.List {...getMenuProps()} isOpen={isOpen} dropdownPosition={dropdownPosition}>
           {isOpen &&

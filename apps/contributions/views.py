@@ -24,7 +24,7 @@ from apps.contributions.payment_managers import (
     PaymentProviderError,
     StripePaymentManager,
 )
-from apps.contributions.utils import get_hub_stripe_api_key
+from apps.contributions.utils import get_hub_stripe_api_key, parse_pi_data_for_swag_options
 from apps.contributions.webhooks import StripeWebhookProcessor
 from apps.emails.models import EmailTemplateError, PageEmailTemplate
 
@@ -43,6 +43,8 @@ def stripe_payment(request):
     # Grab required data from headers
     pi_data["referer"] = request.META.get("HTTP_REFERER")
     pi_data["ip"] = request.META.get("HTTP_X_FORWARDED_FOR")
+
+    parse_pi_data_for_swag_options(pi_data)
 
     # StripePaymentManager will grab the right serializer based on "interval"
     stripe_payment = StripePaymentManager(data=pi_data)

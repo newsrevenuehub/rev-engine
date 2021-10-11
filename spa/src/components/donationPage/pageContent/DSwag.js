@@ -71,8 +71,10 @@ function DSwag({ element, ...props }) {
                 id="opt-out"
                 data-testid="opt-out"
                 type="checkbox"
+                name="swag_opt_out"
                 color={theme.colors.primary}
                 checked={optOut}
+                inputProps={{ 'aria-label': 'controlled' }}
                 onChange={() => setOptOut(!optOut)}
               />
               <S.CheckboxLabel htmlFor="opt-out">
@@ -127,6 +129,7 @@ function SwagItem({ swag, isOnlySwag, ...props }) {
       <S.SwagName>{swag.swagName}</S.SwagName>
       <S.SwagOptions>
         <Select
+          name={`swag_choice_${swag.swagName}`}
           selectedItem={selectedSwagOption}
           onSelectedItemChange={({ selectedItem }) => setSelectedSwagOption(selectedItem)}
           items={swagOptions}

@@ -25,5 +25,8 @@ def _get_swag_choices(pi_data):
 
 def parse_pi_data_for_swag_options(pi_data):
     swag_choices = _get_swag_choices(pi_data)
-    # For now, we only accept one and we force it in to "t_shirt_size"
-    pi_data["t_shirt_size"] = f"{swag_choices[0][0]} -- {swag_choices[0][1]}"
+    # swag_opt_out defaults to false.
+    pi_data["swag_opt_out"] = pi_data.get("swag_opt_out", False)
+    if swag_choices:
+        # For now, we only accept one and we force it in to "t_shirt_size"
+        pi_data["t_shirt_size"] = f"{swag_choices[0][0]} -- {swag_choices[0][1]}"

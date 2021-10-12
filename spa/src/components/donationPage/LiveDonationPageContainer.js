@@ -1,4 +1,4 @@
-import { useEffect, useCallback, useReducer } from 'react';
+import { useEffect, useCallback, useState } from 'react';
 
 // AJAX
 import useRequest from 'hooks/useRequest';
@@ -6,9 +6,6 @@ import { LIVE_PAGE_DETAIL } from 'ajax/endpoints';
 
 // Router
 import { useParams } from 'react-router-dom';
-
-// Utils
-import isEmpty from 'lodash.isempty';
 
 // Hooks
 import useSubdomain from 'hooks/useSubdomain';
@@ -23,43 +20,9 @@ import LiveLoading from 'components/donationPage/live/LiveLoading';
 import LivePage404 from 'components/donationPage/live/LivePage404';
 import DonationPage from 'components/donationPage/DonationPage';
 
-const FETCH_START = 'FETCH_START';
-const FETCH_SUCCESS = 'FETCH_SUCCESS';
-const FETCH_ERROR = 'FETCH_ERROR';
-
-const initialState = {
-  loading: false,
-  data: {},
-  errors: {}
-};
-
-const livePageReducer = (state, action) => {
-  switch (action.type) {
-    case FETCH_START:
-      return {
-        loading: true,
-        data: initialState.data,
-        errors: initialState.errors
-      };
-    case FETCH_SUCCESS:
-      return {
-        loading: false,
-        data: action.payload,
-        errors: initialState.errors
-      };
-    case FETCH_ERROR:
-      return {
-        loading: false,
-        data: state.data,
-        errors: action.payload
-      };
-    default:
-      return state;
-  }
-};
-
 function LiveDonationPageContainer() {
-  const [{ loading, errors, data }, dispatch] = useReducer(livePageReducer, initialState);
+  const [pageData, setPageData] = useState(null);
+  const [display404, setDisplay404] = useState(false);
 
   const subdomain = useSubdomain();
   const params = useParams();
@@ -68,7 +31,6 @@ function LiveDonationPageContainer() {
   const { setAnalyticsConfig } = useAnalyticsContext();
 
   const fetchLivePageContent = useCallback(async () => {
-    dispatch({ type: FETCH_START });
     const { pageSlug } = params;
     const requestParams = {
       revenue_program: subdomain,
@@ -89,9 +51,11 @@ function LiveDonationPageContainer() {
             facebook_pixel_id: orgFbPixelId
           } = data?.revenue_program;
           setAnalyticsConfig({ hubGaV3Id: HUB_GA_V3_ID, orgGaV3Id, orgGaV3Domain, orgGaV4Id, orgFbPixelId });
-          dispatch({ type: FETCH_SUCCESS, payload: data });
+          setPageData(data);
         },
-        onFailure: (err) => dispatch({ type: FETCH_ERROR, payload: err })
+        onFailure: (e) => {
+          setDisplay404(true);
+        }
       }
     );
   }, [params, subdomain]);
@@ -100,16 +64,11 @@ function LiveDonationPageContainer() {
     fetchLivePageContent();
   }, [params, fetchLivePageContent]);
 
-  if (loading) return <LiveLoading />;
-  if (!isEmpty(errors)) return <LivePage404 />;
-  if (!isEmpty(data)) {
-    return (
-      <SegregatedStyles page={data}>
-        <DonationPage live page={data} />
-      </SegregatedStyles>
-    );
-  }
-  return null;
+  return (
+    <SegregatedStyles page={pageData}>
+      {display404 ? <LivePage404 /> : pageData ? <DonationPage live page={pageData} /> : <LiveLoading />}
+    </SegregatedStyles>
+  );
 }
 
 export default LiveDonationPageContainer;

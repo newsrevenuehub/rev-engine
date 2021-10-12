@@ -5,17 +5,35 @@ import pytest
 from apps.organizations.validators import validate_statement_descriptor_suffix
 
 
-test_strings = [r"Fun*", r'except"ion', r"<golf>", r"golf>", r"<golf", r"go<lf", r"bad'wolf", r"bad\wolf", r"\dominus"]
+test_bad_strings = [
+    r"Fun*",
+    r'except"ion',
+    r"<golf>",
+    r"golf>",
+    r"<golf",
+    r"go<lf",
+    r"bad'wolf",
+    r"bad\wolf",
+    r"\dominus",
+    r"12323873",
+]
+
+test_good_strings = [
+    r"THISIS#FINE",
+    r"122373b",
+    r"123b345",
+    r"b123434",
+]
 
 
-@pytest.mark.parametrize("string", test_strings)
-def test_bad_characters(string):
+@pytest.mark.parametrize("bad_string", test_bad_strings)
+def test_bad_characters(bad_string):
     with pytest.raises(ValidationError):
-        validate_statement_descriptor_suffix(string)
+        validate_statement_descriptor_suffix(bad_string)
 
 
-def test_good_characters():
-    good_string = r"THISIS#FINE"
+@pytest.mark.parametrize("good_string", test_good_strings)
+def test_good_characters(good_string):
     try:
         validate_statement_descriptor_suffix(good_string)
     except ValidationError as er:

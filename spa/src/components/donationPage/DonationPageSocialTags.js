@@ -9,9 +9,10 @@ export const getOgImgAlt = (rpName) => `${rpName} social media card`;
 export const DEFAULT_OG_IMG_ALT = 'fund journalism social media card';
 export const DEFAULT_OG_URL = 'https://fundjournalism.org';
 export const OG_TYPE = 'website';
-export const TWITTER_CARD_TYPE = 'summar_large_image';
+export const TWITTER_CARD_TYPE = 'summary_large_image';
 export const DEFAULT_TWITTER_CREATOR = 'fundjournalism';
 export const DEFAULT_TWITTER_SITE = 'fundjournalism';
+export const getImgUrl = (imagePath) => `${window.location.protocol}//${window.location.hostname}${imagePath}`;
 
 function DonationPageSocialTags({ revenueProgram = {} }) {
   return (
@@ -24,7 +25,7 @@ function DonationPageSocialTags({ revenueProgram = {} }) {
         content={revenueProgram.social_description || getDefaultOgDescription(revenueProgram.name)}
       ></meta>
       <meta name="og:type" content={OG_TYPE}></meta>
-      <meta name="og:image" content={revenueProgram.social_card || hubDefaultSocialCard}></meta>
+      <meta name="og:image" content={getImgUrl(revenueProgram.social_card || hubDefaultSocialCard)}></meta>
       <meta
         name="og:image:alt"
         content={revenueProgram.social_card ? getOgImgAlt(revenueProgram.name) : DEFAULT_OG_IMG_ALT}

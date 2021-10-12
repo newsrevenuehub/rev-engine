@@ -9,6 +9,7 @@ import { useAlert } from 'react-alert';
 import { getFrequencyAdverb } from 'utilities/parseFrequency';
 
 // Hooks
+import useSubdomain from 'hooks/useSubdomain';
 import usePreviousState from 'hooks/usePreviousState';
 import useReCAPTCHAScript from 'hooks/useReCAPTCHAScript';
 
@@ -41,6 +42,7 @@ const STRIPE_PAYMENT_REQUEST_LABEL = 'RevEngine Donation';
 
 function StripePaymentForm({ loading, setLoading, offerPayFees }) {
   useReCAPTCHAScript();
+  const subdomain = useSubdomain();
   const { url, params } = useRouteMatch();
   const { page, amount, frequency, payFee, formRef, errors, setErrors, salesforceCampaignId } = usePage();
   const { trackConversion } = useAnalyticsContext();
@@ -110,7 +112,7 @@ function StripePaymentForm({ loading, setLoading, offerPayFees }) {
       const email = extractEmailFromFormRef(formRef.current);
       const donationPageUrl = window.location.href;
       history.push({
-        pathname: url + THANK_YOU_SLUG,
+        pathname: url === '/' ? THANK_YOU_SLUG : url + THANK_YOU_SLUG,
         state: { page, amount, email, donationPageUrl }
       });
     }
@@ -160,23 +162,25 @@ function StripePaymentForm({ loading, setLoading, offerPayFees }) {
   /********************************\
    * Inline Card Element Payments *
   \********************************/
+  const staticParams = {
+    ...params,
+    orgIsNonProfit: page.organization_is_nonprofit,
+    orgCountry: page.organization_country,
+    currency: page?.currency?.code?.toLowerCase(),
+    salesforceCampaignId,
+    revProgramSlug: subdomain
+  };
+
   const handleCardSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
     const reCAPTCHAToken = await getReCAPTCHAToken();
-    const orgIsNonProfit = page.organization_is_nonprofit;
-    const orgCountry = page.organization_country;
-    const currency = page?.currency?.code?.toLowerCase();
     const data = serializeData(formRef.current, {
       amount,
       payFee,
-      orgIsNonProfit,
-      orgCountry,
-      currency,
       frequency,
-      salesforceCampaignId,
       reCAPTCHAToken,
-      ...params
+      ...staticParams
     });
     await submitPayment(
       stripe,
@@ -193,17 +197,11 @@ function StripePaymentForm({ loading, setLoading, offerPayFees }) {
   const handlePaymentRequestSubmit = async (state, paymentRequest) => {
     setLoading(true);
     const reCAPTCHAToken = await getReCAPTCHAToken();
-    const orgIsNonProfit = page.organization_is_nonprofit;
-    const orgCountry = page.organization_country;
-    const currency = page?.currency?.code?.toLowerCase();
     const data = serializeData(formRef.current, {
-      orgIsNonProfit,
-      orgCountry,
-      currency,
       frequency,
-      salesforceCampaignId,
       reCAPTCHAToken,
-      ...state
+      ...state,
+      ...staticParams
     });
     await submitPayment(
       stripe,

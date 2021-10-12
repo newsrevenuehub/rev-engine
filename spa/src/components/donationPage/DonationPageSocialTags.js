@@ -13,6 +13,12 @@ export const TWITTER_CARD_TYPE = 'summary_large_image';
 export const DEFAULT_TWITTER_CREATOR = 'fundjournalism';
 export const DEFAULT_TWITTER_SITE = 'fundjournalism';
 
+export const getImgUrl = (imagePath) => {
+  const base = `${window.location.protocol}//${window.location.hostname}`;
+  const url = new URL(imagePath, base);
+  return url.href;
+};
+
 function DonationPageSocialTags({ revenueProgram = {} }) {
   return (
     <Helmet>
@@ -24,7 +30,7 @@ function DonationPageSocialTags({ revenueProgram = {} }) {
         content={revenueProgram.social_description || getDefaultOgDescription(revenueProgram.name)}
       ></meta>
       <meta name="og:type" content={OG_TYPE}></meta>
-      <meta name="og:image" content={revenueProgram.social_card || hubDefaultSocialCard}></meta>
+      <meta name="og:image" content={getImgUrl(revenueProgram.social_card || hubDefaultSocialCard)}></meta>
       <meta
         name="og:image:alt"
         content={revenueProgram.social_card ? getOgImgAlt(revenueProgram.name) : DEFAULT_OG_IMG_ALT}

@@ -9,6 +9,7 @@ import { format } from 'date-fns';
 import { CLEARBIT_SCRIPT_SRC } from '../../src/hooks/useClearbit';
 import * as socialMetaGetters from 'components/donationPage/DonationPageSocialTags';
 import hubDefaultSocialCard from 'assets/images/hub-og-card.png';
+import { FUNDJOURNALISM_404_REDIRECT } from 'components/donationPage/live/LivePage404';
 
 import * as freqUtils from 'utilities/parseFrequency';
 import calculateStripeFee from 'utilities/calculateStripeFee';
@@ -34,6 +35,14 @@ describe('Routing', () => {
     cy.wait('@getPageDetail');
     cy.getByTestId('donation-page').should('exist');
     cy.get('head').find(`script[src*="${CLEARBIT_SCRIPT_SRC}"]`).should('have.length', 1);
+  });
+
+  it('404 should display a link to fundjournalism.org in the text "this page"', () => {
+    cy.intercept({ method: 'GET', pathname: getEndpoint(LIVE_PAGE_DETAIL) }, { statusCode: 404 }).as('getPageDetail');
+    cy.visit(getTestingDonationPageUrl(expectedPageSlug));
+    cy.wait('@getPageDetail');
+    cy.getByTestId('live-page-404').should('exist');
+    cy.get(`a[href="${FUNDJOURNALISM_404_REDIRECT}"]`).should('exist');
   });
 });
 
@@ -127,13 +136,13 @@ describe('Donation page social meta tags', () => {
   const TW_CREATOR = 'twitter:creator';
   const expectedMetaTags = [OG_URL, OG_TITLE, OG_DESC, OG_TYPE, OG_IMAGE, OG_IMAGE_ALT, TW_CARD, TW_SITE, TW_CREATOR];
 
-  describe('Meta tags exist with default values', () => {
+  describe.only('Meta tags exist with default values', () => {
     const metaTagNameDefaultValueMap = {
       [OG_URL]: socialMetaGetters.DEFAULT_OG_URL,
       [OG_TITLE]: socialMetaGetters.getDefaultOgTitle(revenue_program.name),
       [OG_DESC]: socialMetaGetters.getDefaultOgDescription(revenue_program.name),
       [OG_TYPE]: 'website',
-      [OG_IMAGE]: '/' + hubDefaultSocialCard,
+      [OG_IMAGE]: socialMetaGetters.getImgUrl(hubDefaultSocialCard),
       [OG_IMAGE_ALT]: socialMetaGetters.DEFAULT_OG_IMG_ALT,
       [TW_CARD]: socialMetaGetters.TWITTER_CARD_TYPE,
       [TW_SITE]: '@' + socialMetaGetters.DEFAULT_TWITTER_SITE,
@@ -151,7 +160,7 @@ describe('Donation page social meta tags', () => {
     });
 
     expectedMetaTags.forEach((metaTagName) => {
-      it(`document head should contain metatag with default value for ${metaTagName}`, () => {
+      it.only(`document head should contain metatag with default value for ${metaTagName}`, () => {
         cy.get(`meta[name="${metaTagName}"]`).should('exist');
         cy.get(`meta[name="${metaTagName}"]`).should('have.attr', 'content', metaTagNameDefaultValueMap[metaTagName]);
       });
@@ -463,6 +472,14 @@ describe('Resulting request', () => {
     cy.url().should('include', EXPECTED_RP_SLUG);
     cy.url().should('include', expectedPageSlug);
     cy.url().should('include', sfCampaignId);
+    cy.wait('@getPageDetail');
+
+    const interval = 'One time';
+    const amount = '120';
+
+    cy.setUpDonation(interval, amount);
+    cy.makeDonation();
+    cy.wait('@stripePayment').its('request.body').should('have.property', 'sf_campaign_id', sfCampaignId);
   });
 
   it('should send a request with the expected interval', () => {

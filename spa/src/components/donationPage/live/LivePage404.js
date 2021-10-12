@@ -5,7 +5,7 @@ import * as S from './LivePage404.styled';
 import { useAnalyticsContext } from 'components/analytics/AnalyticsContext';
 import { HUB_GA_V3_ID } from 'constants/analyticsConstants';
 
-const FUNDJOURNALISM_404_REDIRECT = 'https://fundjournalism.org/?utm_campaign=404#donate';
+export const FUNDJOURNALISM_404_REDIRECT = 'https://fundjournalism.org/?utm_campaign=404#donate';
 
 function LivePage404() {
   const { setAnalyticsConfig } = useAnalyticsContext();
@@ -20,8 +20,9 @@ function LivePage404() {
         <S.FourOhFour>404</S.FourOhFour>
         <S.Description>
           <p>The page you requested can’t be found.</p>
-          <p>If you’re trying to make a contribution please visit this page: </p>
-          <a href={FUNDJOURNALISM_404_REDIRECT}>{FUNDJOURNALISM_404_REDIRECT}</a>
+          <p>
+            If you’re trying to make a contribution please visit <a href={FUNDJOURNALISM_404_REDIRECT}>this page</a>.{' '}
+          </p>
         </S.Description>
       </S.Wrapper>
     </S.LivePage404>

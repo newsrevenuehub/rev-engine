@@ -2,6 +2,9 @@ import { useEffect } from 'react';
 
 // Utils
 import isEmpty from 'lodash.isempty';
+import scrollIntoView from 'scroll-into-view';
+
+const scrollOptions = { time: 200 };
 
 /**
  * Given a ref to a form, and an object of errors whose keys match form input 'name' attributes,
@@ -15,7 +18,12 @@ function useErrorFocus(formRef, errors) {
       const errorNames = Object.keys(errors);
       const inputNames = [...formRef.current.elements].map((el) => el.name);
       const firstErrorName = inputNames.find((name) => errorNames.indexOf(name) !== -1);
-      formRef.current.elements[firstErrorName]?.focus();
+      const targetElement = formRef.current.elements[firstErrorName];
+      if (targetElement) {
+        // use this lib as polyfill for Safari iOS.
+        // Focus in callback so we see the smooth scroll on other browsers (the ones that treat "focus" as an implied "scroll into view")
+        scrollIntoView(targetElement, scrollOptions, () => targetElement.focus());
+      }
     }
   }, [errors, formRef]);
 }

@@ -147,7 +147,7 @@ describe('Donation page social meta tags', () => {
       [OG_TITLE]: socialMetaGetters.getDefaultOgTitle(revenue_program.name),
       [OG_DESC]: socialMetaGetters.getDefaultOgDescription(revenue_program.name),
       [OG_TYPE]: 'website',
-      [OG_IMAGE]: window.location.hostname + '/' + hubDefaultSocialCard,
+      [OG_IMAGE]: socialMetaGetters.getImgUrl(hubDefaultSocialCard),
       [OG_IMAGE_ALT]: socialMetaGetters.DEFAULT_OG_IMG_ALT,
       [TW_CARD]: socialMetaGetters.TWITTER_CARD_TYPE,
       [TW_SITE]: '@' + socialMetaGetters.DEFAULT_TWITTER_SITE,

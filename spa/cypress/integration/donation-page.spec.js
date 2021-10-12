@@ -16,10 +16,9 @@ import calculateStripeFee from 'utilities/calculateStripeFee';
 
 const expectedPageSlug = 'page-slug';
 
+const LONG_WAIT = 10000;
+
 describe('Routing', () => {
-  beforeEach(() => {
-    cy.interceptStripeApi();
-  });
   it('should send a request containing the correct query params', () => {
     cy.intercept({ method: 'GET', pathname: getEndpoint(LIVE_PAGE_DETAIL) }, (req) => {
       expect(req.url).contains(`revenue_program=${EXPECTED_RP_SLUG}`);
@@ -50,10 +49,6 @@ describe('Routing', () => {
 });
 
 describe('DonationPage elements', () => {
-  beforeEach(() => {
-    cy.interceptStripeApi();
-  });
-
   it('should render expected rich text content', () => {
     cy.visitDonationPage();
 
@@ -149,14 +144,13 @@ describe('Donation page social meta tags', () => {
       [OG_TITLE]: socialMetaGetters.getDefaultOgTitle(revenue_program.name),
       [OG_DESC]: socialMetaGetters.getDefaultOgDescription(revenue_program.name),
       [OG_TYPE]: 'website',
-      [OG_IMAGE]: socialMetaGetters.getImgUrl('/' + hubDefaultSocialCard),
+      [OG_IMAGE]: socialMetaGetters.getImgUrl(hubDefaultSocialCard),
       [OG_IMAGE_ALT]: socialMetaGetters.DEFAULT_OG_IMG_ALT,
       [TW_CARD]: socialMetaGetters.TWITTER_CARD_TYPE,
       [TW_SITE]: '@' + socialMetaGetters.DEFAULT_TWITTER_SITE,
       [TW_CREATOR]: '@' + socialMetaGetters.DEFAULT_TWITTER_CREATOR
     };
     before(() => {
-      cy.interceptStripeApi();
       cy.intercept(
         { method: 'GET', pathname: getEndpoint(LIVE_PAGE_DETAIL) },
         { fixture: 'pages/live-page-1', statusCode: 200 }
@@ -196,7 +190,6 @@ describe('Donation page social meta tags', () => {
     };
 
     before(() => {
-      cy.interceptStripeApi();
       cy.intercept({ method: 'GET', pathname: getEndpoint(LIVE_PAGE_DETAIL) }, { body, statusCode: 200 }).as('getPage');
       cy.visit(getTestingDonationPageUrl('my-page'));
       cy.url().should('include', 'my-page');
@@ -214,7 +207,6 @@ describe('Donation page social meta tags', () => {
 
 describe('Donation page amount and frequency query parameters', () => {
   beforeEach(() => {
-    cy.interceptStripeApi();
     cy.interceptDonation();
     cy.intercept({ method: 'GET', pathname: `${getEndpoint(LIVE_PAGE_DETAIL)}**` }, { body: livePageOne }).as(
       'getPageDetail'
@@ -466,7 +458,6 @@ describe('Footer-like content', () => {
 
 describe('Resulting request', () => {
   beforeEach(() => {
-    cy.interceptStripeApi();
     cy.interceptDonation();
     cy.intercept(
       { method: 'GET', pathname: `${getEndpoint(LIVE_PAGE_DETAIL)}**` },
@@ -486,8 +477,7 @@ describe('Resulting request', () => {
 
     cy.setUpDonation(interval, amount);
     cy.makeDonation().then(() => {
-      cy.wait('@confirmCardPayment');
-      cy.wait('@stripePayment').its('request.body').should('have.property', 'sf_campaign_id', sfCampaignId);
+      cy.wait('@stripePayment', LONG_WAIT).its('request.body').should('have.property', 'sf_campaign_id', sfCampaignId);
     });
   });
 
@@ -501,7 +491,7 @@ describe('Resulting request', () => {
     const amount = '120';
     cy.setUpDonation(interval, amount);
     cy.makeDonation().then(() => {
-      cy.wait('@stripePayment').then((interception) => {
+      cy.wait('@stripePayment', LONG_WAIT).then((interception) => {
         const { body: paymentData } = interception.request;
         expect(paymentData).to.have.property('interval', 'one_time');
         expect(paymentData).to.have.property('amount', amount);
@@ -523,8 +513,7 @@ describe('Resulting request', () => {
     const amount = '120';
     cy.setUpDonation(interval, amount);
     cy.makeDonation().then(() => {
-      cy.wait('@stripePayment');
-      cy.wait('@confirmCardPayment').its('request.body').should('include', livePageOne.stripe_account_id);
+      cy.wait('@confirmCardPayment', LONG_WAIT).its('request.body').should('include', livePageOne.stripe_account_id);
     });
   });
 

@@ -11,7 +11,6 @@ import isEmpty from 'lodash.isempty';
  */
 function useErrorFocus(formRef, errors) {
   useEffect(() => {
-    console.log('those errors tho', errors);
     if (!isEmpty(errors)) {
       const errorNames = Object.keys(errors);
       const inputNames = [...formRef.current.elements].map((el) => el.name);

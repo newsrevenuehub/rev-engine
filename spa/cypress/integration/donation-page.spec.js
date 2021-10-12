@@ -477,7 +477,9 @@ describe('Resulting request', () => {
 
     cy.setUpDonation(interval, amount);
     cy.makeDonation().then(() => {
-      cy.wait('@stripePayment', LONG_WAIT).its('request.body').should('have.property', 'sf_campaign_id', sfCampaignId);
+      cy.wait('@stripePayment', { timeout: LONG_WAIT })
+        .its('request.body')
+        .should('have.property', 'sf_campaign_id', sfCampaignId);
     });
   });
 
@@ -491,7 +493,7 @@ describe('Resulting request', () => {
     const amount = '120';
     cy.setUpDonation(interval, amount);
     cy.makeDonation().then(() => {
-      cy.wait('@stripePayment', LONG_WAIT).then((interception) => {
+      cy.wait('@stripePayment', { timeout: LONG_WAIT }).then((interception) => {
         const { body: paymentData } = interception.request;
         expect(paymentData).to.have.property('interval', 'one_time');
         expect(paymentData).to.have.property('amount', amount);
@@ -513,7 +515,9 @@ describe('Resulting request', () => {
     const amount = '120';
     cy.setUpDonation(interval, amount);
     cy.makeDonation().then(() => {
-      cy.wait('@confirmCardPayment', LONG_WAIT).its('request.body').should('include', livePageOne.stripe_account_id);
+      cy.wait('@confirmCardPayment', { timeout: LONG_WAIT })
+        .its('request.body')
+        .should('include', livePageOne.stripe_account_id);
     });
   });
 

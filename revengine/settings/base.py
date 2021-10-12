@@ -342,3 +342,7 @@ MIDDLEWARE_LOGGING_CODES = [400, 404, 403]
 COUNTRIES = ["US", "CA"]
 # Map currency-code to symbol
 CURRENCIES = {"USD": "$", "CAD": "$"}
+
+
+# Application subdomains (that are NOT revenue program slugs)
+NON_DONATION_PAGE_DOMAINS = os.getenv("APPLICATION_SUBDOMAINS", ["support", "www"])

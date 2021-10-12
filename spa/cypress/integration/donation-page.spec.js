@@ -7,8 +7,6 @@ import { format } from 'date-fns';
 
 // Constants
 import { CLEARBIT_SCRIPT_SRC } from '../../src/hooks/useClearbit';
-import * as socialMetaGetters from 'components/donationPage/DonationPageSocialTags';
-import hubDefaultSocialCard from 'assets/images/hub-og-card.png';
 import { FUNDJOURNALISM_404_REDIRECT } from 'components/donationPage/live/LivePage404';
 
 import * as freqUtils from 'utilities/parseFrequency';
@@ -120,88 +118,6 @@ describe('DonationPage elements', () => {
 
     cy.getByTestId('pay-fees-checked').should('exist');
     cy.getByTestId('pay-fees-not-checked').should('not.exist');
-  });
-});
-
-describe('Donation page social meta tags', () => {
-  const { revenue_program } = livePageOne;
-  const OG_URL = 'og:url';
-  const OG_TITLE = 'og:title';
-  const OG_DESC = 'og:description';
-  const OG_TYPE = 'og:type';
-  const OG_IMAGE = 'og:image';
-  const OG_IMAGE_ALT = 'og:image:alt';
-  const TW_CARD = 'twitter:card';
-  const TW_SITE = 'twitter:site';
-  const TW_CREATOR = 'twitter:creator';
-  const expectedMetaTags = [OG_URL, OG_TITLE, OG_DESC, OG_TYPE, OG_IMAGE, OG_IMAGE_ALT, TW_CARD, TW_SITE, TW_CREATOR];
-
-  describe('Meta tags exist with default values', () => {
-    const metaTagNameDefaultValueMap = {
-      [OG_URL]: socialMetaGetters.DEFAULT_OG_URL,
-      [OG_TITLE]: socialMetaGetters.getDefaultOgTitle(revenue_program.name),
-      [OG_DESC]: socialMetaGetters.getDefaultOgDescription(revenue_program.name),
-      [OG_TYPE]: 'website',
-      [OG_IMAGE]: socialMetaGetters.getImgUrl('/' + hubDefaultSocialCard),
-      [OG_IMAGE_ALT]: socialMetaGetters.DEFAULT_OG_IMG_ALT,
-      [TW_CARD]: socialMetaGetters.TWITTER_CARD_TYPE,
-      [TW_SITE]: '@' + socialMetaGetters.DEFAULT_TWITTER_SITE,
-      [TW_CREATOR]: '@' + socialMetaGetters.DEFAULT_TWITTER_CREATOR
-    };
-    before(() => {
-      cy.intercept(
-        { method: 'GET', pathname: getEndpoint(LIVE_PAGE_DETAIL) },
-        { fixture: 'pages/live-page-1', statusCode: 200 }
-      ).as('getPage');
-      cy.interceptStripeApi();
-      cy.visit(getTestingDonationPageUrl('my-page'));
-      cy.url().should('include', 'my-page');
-      cy.wait('@getPage');
-    });
-
-    expectedMetaTags.forEach((metaTagName) => {
-      it.only(`document head should contain metatag with default value for ${metaTagName}`, () => {
-        cy.get(`meta[name="${metaTagName}"]`).should('exist');
-        cy.get(`meta[name="${metaTagName}"]`).should('have.attr', 'content', metaTagNameDefaultValueMap[metaTagName]);
-      });
-    });
-  });
-
-  describe('Meta tags exist with revenue program values', () => {
-    const body = { ...livePageOne };
-    const rpName = body.revenue_program.name;
-    body.revenue_program.social_title = 'My social title';
-    body.revenue_program.social_description = 'My social description';
-    body.revenue_program.social_url = 'http://www.google.com';
-    body.revenue_program.social_card = '/media/my-social-card.png';
-    body.revenue_program.twitter_handle = 'myprogram';
-
-    const metaTagNameRPValueMap = {
-      [OG_URL]: body.revenue_program.social_url,
-      [OG_TITLE]: body.revenue_program.social_title,
-      [OG_DESC]: body.revenue_program.social_description,
-      [OG_TYPE]: 'website',
-      [OG_IMAGE]: socialMetaGetters.getImgUrl(body.revenue_program.social_card),
-      [OG_IMAGE_ALT]: socialMetaGetters.getOgImgAlt(rpName),
-      [TW_CARD]: socialMetaGetters.TWITTER_CARD_TYPE,
-      [TW_SITE]: '@' + body.revenue_program.twitter_handle,
-      [TW_CREATOR]: '@' + body.revenue_program.twitter_handle
-    };
-
-    before(() => {
-      cy.interceptStripeApi();
-      cy.intercept({ method: 'GET', pathname: getEndpoint(LIVE_PAGE_DETAIL) }, { body, statusCode: 200 }).as('getPage');
-      cy.visit(getTestingDonationPageUrl('my-page'));
-      cy.url().should('include', 'my-page');
-      cy.wait('@getPage');
-    });
-
-    expectedMetaTags.forEach((metaTagName) => {
-      it(`document head should contain metatag with revenue program value for ${metaTagName}`, () => {
-        cy.get(`meta[name="${metaTagName}"]`).should('exist');
-        cy.get(`meta[name="${metaTagName}"]`).should('have.attr', 'content', metaTagNameRPValueMap[metaTagName]);
-      });
-    });
   });
 });
 

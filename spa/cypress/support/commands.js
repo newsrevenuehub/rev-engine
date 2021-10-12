@@ -52,11 +52,6 @@ Cypress.Commands.add('setUpDonation', (frequency, amount) => {
   cy.contains(amount).click();
 });
 
-Cypress.Commands.add('interceptStripeApi', () => {
-  cy.intercept({ url: 'https://r.stripe.com/*', method: 'POST' }, { statusCode: 200 });
-  cy.intercept({ url: 'https://m.stripe.com/*', method: 'POST' }, { statusCode: 200 });
-});
-
 Cypress.Commands.add('makeDonation', () => {
   cy.get('iframe')
     .should((iframe) => expect(iframe.contents().find('body')).to.exist)

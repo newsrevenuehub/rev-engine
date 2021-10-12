@@ -136,7 +136,7 @@ describe('Donation page social meta tags', () => {
   const TW_CREATOR = 'twitter:creator';
   const expectedMetaTags = [OG_URL, OG_TITLE, OG_DESC, OG_TYPE, OG_IMAGE, OG_IMAGE_ALT, TW_CARD, TW_SITE, TW_CREATOR];
 
-  describe.only('Meta tags exist with default values', () => {
+  describe('Meta tags exist with default values', () => {
     const metaTagNameDefaultValueMap = {
       [OG_URL]: socialMetaGetters.DEFAULT_OG_URL,
       [OG_TITLE]: socialMetaGetters.getDefaultOgTitle(revenue_program.name),
@@ -181,7 +181,7 @@ describe('Donation page social meta tags', () => {
       [OG_TITLE]: body.revenue_program.social_title,
       [OG_DESC]: body.revenue_program.social_description,
       [OG_TYPE]: 'website',
-      [OG_IMAGE]: body.revenue_program.social_card,
+      [OG_IMAGE]: socialMetaGetters.getImgUrl(body.revenue_program.social_card),
       [OG_IMAGE_ALT]: socialMetaGetters.getOgImgAlt(rpName),
       [TW_CARD]: socialMetaGetters.TWITTER_CARD_TYPE,
       [TW_SITE]: '@' + body.revenue_program.twitter_handle,

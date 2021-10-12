@@ -26,6 +26,6 @@ def get_subdomain_from_request(request):
     subdomain = None
     host = request.get_host()
     split_host = host.split(".")
-    if len(split_host) > 2 and not split_host[0] in settings.NON_DONATION_PAGE_DOMAINS:
+    if len(split_host) > 2 and not split_host[0] in settings.NON_DONATION_PAGE_SUBDOMAINS:
         subdomain = split_host[0]
     return subdomain

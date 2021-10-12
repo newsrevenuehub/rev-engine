@@ -53,6 +53,7 @@ function StripePaymentForm({ loading, setLoading, offerPayFees }) {
   const [disabled, setDisabled] = useState(true);
   const [paymentRequest, setPaymentRequest] = useState(null);
   const [forceManualCard, setForceManualCard] = useState(false);
+  const [stripeError, setStripeError] = useState();
 
   const theme = useTheme();
   const history = useHistory();
@@ -81,9 +82,7 @@ function StripePaymentForm({ loading, setLoading, offerPayFees }) {
   const handleCardElementChange = async (event) => {
     setCardReady(event.complete);
     setDisabled(event.empty);
-    const errs = { ...errors };
-    if (event?.error?.message) errs.stripe = event.error.message;
-    setErrors(errs);
+    setStripeError(event?.error?.message);
   };
 
   /**
@@ -103,6 +102,7 @@ function StripePaymentForm({ loading, setLoading, offerPayFees }) {
   const handlePaymentSuccess = (pr) => {
     if (pr) pr.complete('success');
     setErrors({});
+    setStripeError(null);
     setLoading(false);
     setSucceeded(true);
     trackConversion(amount);
@@ -120,7 +120,7 @@ function StripePaymentForm({ loading, setLoading, offerPayFees }) {
 
   const handlePaymentFailure = (error, pr) => {
     if (error instanceof StripeError) {
-      setErrors({ stripe: `Payment failed: ${error}` });
+      setStripeError(`Payment failed: ${error}`);
       alert.error(`Payment failed: ${error}`);
     } else {
       const internalErrors = error?.response?.data;
@@ -311,9 +311,9 @@ function StripePaymentForm({ loading, setLoading, offerPayFees }) {
           />
         </S.PaymentElementWrapper>
       </BaseField>
-      {errors?.stripe && (
+      {stripeError && (
         <S.PaymentError role="alert" data-testid="donation-error">
-          {errors.stripe}
+          {stripeError}
         </S.PaymentError>
       )}
       {offerPayFees && <PayFeesWidget />}

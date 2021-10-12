@@ -24,7 +24,10 @@ function DonationPageSocialTags({ revenueProgram = {} }) {
         content={revenueProgram.social_description || getDefaultOgDescription(revenueProgram.name)}
       ></meta>
       <meta name="og:type" content={OG_TYPE}></meta>
-      <meta name="og:image" content={revenueProgram.social_card || hubDefaultSocialCard}></meta>
+      <meta
+        name="og:image"
+        content={`${window.location.hostname}${revenueProgram.social_card || hubDefaultSocialCard}`}
+      ></meta>
       <meta
         name="og:image:alt"
         content={revenueProgram.social_card ? getOgImgAlt(revenueProgram.name) : DEFAULT_OG_IMG_ALT}

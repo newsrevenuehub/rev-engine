@@ -12,7 +12,12 @@ export const OG_TYPE = 'website';
 export const TWITTER_CARD_TYPE = 'summary_large_image';
 export const DEFAULT_TWITTER_CREATOR = 'fundjournalism';
 export const DEFAULT_TWITTER_SITE = 'fundjournalism';
-export const getImgUrl = (imagePath) => `${window.location.protocol}//${window.location.hostname}${imagePath}`;
+
+export const getImgUrl = (imagePath) => {
+  const base = `${window.location.protocol}//${window.location.hostname}`;
+  const url = new URL(imagePath, base);
+  return url.href;
+};
 
 function DonationPageSocialTags({ revenueProgram = {} }) {
   return (

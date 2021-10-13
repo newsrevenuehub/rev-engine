@@ -76,6 +76,11 @@ Cypress.Commands.add('makeDonation', () => {
     });
 });
 
+Cypress.Commands.add('interceptStripeApi', () => {
+  cy.intercept({ url: 'https://r.stripe.com/*', method: 'POST' }, { statusCode: 200 });
+  cy.intercept({ url: 'https://m.stripe.com/*', method: 'POST' }, { statusCode: 200 });
+});
+
 Cypress.Commands.add('interceptPaginatedDonations', () => {
   const defaultSortBys = {
     columns: DEFAULT_RESULTS_ORDERING.map((item) => item.id),

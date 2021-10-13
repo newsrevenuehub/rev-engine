@@ -25,7 +25,6 @@ jobs:
           build: npx cypress info
           start: npm run start:subdomains
           wait-on: http://localhost:3000
-          browser: chrome
       - uses: actions/upload-artifact@v2
         if: failure()
         with:

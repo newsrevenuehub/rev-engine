@@ -14,7 +14,9 @@ import calculateStripeFee from 'utilities/calculateStripeFee';
 
 const expectedPageSlug = 'page-slug';
 
-const LONG_WAIT = 10000;
+// this is an absurdly long wait time, but BW has watched tests run with cypress open and has seen
+// the stripe API calls take this long to return.
+const LONG_WAIT = 30000;
 
 describe('Routing', () => {
   it('should send a request containing the correct query params', () => {
@@ -374,7 +376,7 @@ describe('Footer-like content', () => {
   });
 });
 
-describe('Resulting request', () => {
+describe.only('Resulting request', () => {
   beforeEach(() => {
     cy.interceptDonation();
     cy.intercept(

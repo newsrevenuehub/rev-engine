@@ -53,8 +53,16 @@ Cypress.Commands.add('setUpDonation', (frequency, amount) => {
 });
 
 Cypress.Commands.add('makeDonation', () => {
-  cy.get('iframe')
-    .should((iframe) => expect(iframe.contents().find('body')).to.exist)
+  return cy
+    .get('iframe')
+    .should((iframe) => {
+      // these inputs asynchronously render on the iframed Stripe element,
+      // and we need to ensure that all three exist in the iframe before
+      // moving on to enter values in inputs and submit the form.
+      expect(iframe.contents().find('[name="cardnumber"]')).to.exist;
+      expect(iframe.contents().find('[name="exp-date"]')).to.exist;
+      expect(iframe.contents().find('[name="cvc"]')).to.exist;
+    })
     .then((iframe) => cy.wrap(iframe.contents().find('body')))
     .within({}, ($iframe) => {
       cy.get('[name="cardnumber"]').type('4242424242424242');
@@ -62,7 +70,9 @@ Cypress.Commands.add('makeDonation', () => {
       cy.get('[name="cvc"]').type('123');
     })
     .then(() => {
-      cy.getByTestId('donation-submit').click();
+      // need to ensure not disabled because otherwise race condition where
+      // it hasn't yet re-rendered to enabled by time we're trying to click
+      cy.getByTestId('donation-submit').should('not.be.disabled').click();
     });
 });
 

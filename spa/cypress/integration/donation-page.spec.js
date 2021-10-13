@@ -14,7 +14,9 @@ import calculateStripeFee from 'utilities/calculateStripeFee';
 
 const expectedPageSlug = 'page-slug';
 
-const LONG_WAIT = 10000;
+// this is an absurdly long wait time, but BW has watched tests run with cypress open and has seen
+// the stripe API calls take this long to return.
+const LONG_WAIT = 30000;
 
 describe('Routing', () => {
   it('should send a request containing the correct query params', () => {
@@ -433,9 +435,11 @@ describe('Resulting request', () => {
     const amount = '120';
     cy.setUpDonation(interval, amount);
     cy.makeDonation().then(() => {
-      cy.wait('@confirmCardPayment', { timeout: LONG_WAIT })
-        .its('request.body')
-        .should('include', livePageOne.stripe_account_id);
+      cy.wait(['@confirmCardPayment', '@stripePayment'], { timeout: LONG_WAIT }).spread(
+        (confirmCardPayment, stripePayment) => {
+          cy.wrap(confirmCardPayment.request.body).should('include', livePageOne.stripe_account_id);
+        }
+      );
     });
   });
 

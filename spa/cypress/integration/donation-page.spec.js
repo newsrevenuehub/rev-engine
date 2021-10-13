@@ -376,7 +376,7 @@ describe('Footer-like content', () => {
   });
 });
 
-describe.only('Resulting request', () => {
+describe('Resulting request', () => {
   beforeEach(() => {
     cy.interceptDonation();
     cy.intercept(

@@ -14,6 +14,8 @@ import calculateStripeFee from 'utilities/calculateStripeFee';
 
 const expectedPageSlug = 'page-slug';
 
+const LONG_WAIT = 10000;
+
 describe('Routing', () => {
   it('should send a request containing the correct query params', () => {
     cy.intercept({ method: 'GET', pathname: getEndpoint(LIVE_PAGE_DETAIL) }, (req) => {
@@ -123,7 +125,6 @@ describe('DonationPage elements', () => {
 
 describe('Donation page amount and frequency query parameters', () => {
   beforeEach(() => {
-    cy.interceptStripeApi();
     cy.interceptDonation();
     cy.intercept({ method: 'GET', pathname: `${getEndpoint(LIVE_PAGE_DETAIL)}**` }, { body: livePageOne }).as(
       'getPageDetail'
@@ -375,7 +376,6 @@ describe('Footer-like content', () => {
 
 describe('Resulting request', () => {
   beforeEach(() => {
-    cy.interceptStripeApi();
     cy.interceptDonation();
     cy.intercept(
       { method: 'GET', pathname: `${getEndpoint(LIVE_PAGE_DETAIL)}**` },
@@ -394,11 +394,14 @@ describe('Resulting request', () => {
     const amount = '120';
 
     cy.setUpDonation(interval, amount);
-    cy.makeDonation();
-    cy.wait('@stripePayment').its('request.body').should('have.property', 'sf_campaign_id', sfCampaignId);
+    cy.makeDonation().then(() => {
+      cy.wait('@stripePayment', { timeout: LONG_WAIT })
+        .its('request.body')
+        .should('have.property', 'sf_campaign_id', sfCampaignId);
+    });
   });
 
-  it('should send a request with the expected interval', () => {
+  it('should send a request with the expected payment properties and values', () => {
     cy.visit(getTestingDonationPageUrl(expectedPageSlug));
     cy.url().should('include', EXPECTED_RP_SLUG);
     cy.url().should('include', expectedPageSlug);
@@ -407,21 +410,14 @@ describe('Resulting request', () => {
     const interval = 'One time';
     const amount = '120';
     cy.setUpDonation(interval, amount);
-    cy.makeDonation();
-    cy.wait('@stripePayment').its('request.body').should('have.property', 'interval', 'one_time');
-  });
-
-  it('should send a request with the expected amount', () => {
-    cy.visit(getTestingDonationPageUrl(expectedPageSlug));
-    cy.url().should('include', EXPECTED_RP_SLUG);
-    cy.url().should('include', expectedPageSlug);
-    cy.wait('@getPageDetail');
-
-    const interval = 'One time';
-    const amount = '120';
-    cy.setUpDonation(interval, amount);
-    cy.makeDonation();
-    cy.wait('@stripePayment').its('request.body').should('have.property', 'amount', amount);
+    cy.makeDonation().then(() => {
+      cy.wait('@stripePayment', { timeout: LONG_WAIT }).then((interception) => {
+        const { body: paymentData } = interception.request;
+        expect(paymentData).to.have.property('interval', 'one_time');
+        expect(paymentData).to.have.property('amount', amount);
+        expect(paymentData).to.have.property('captcha_token');
+      });
+    });
   });
 
   it('should send a confirmation request to Stripe with the organization stripe account id in the header', () => {
@@ -436,29 +432,28 @@ describe('Resulting request', () => {
     const interval = 'One time';
     const amount = '120';
     cy.setUpDonation(interval, amount);
-    cy.makeDonation();
-
-    cy.wait('@confirmCardPayment').its('request.body').should('include', livePageOne.stripe_account_id);
+    cy.makeDonation().then(() => {
+      cy.wait('@confirmCardPayment', { timeout: LONG_WAIT })
+        .its('request.body')
+        .should('include', livePageOne.stripe_account_id);
+    });
   });
 
   it('should contain clearbit.js script in body', () => {
     cy.get('head').find(`script[src*="${CLEARBIT_SCRIPT_SRC}"]`).should('have.length', 1);
   });
+});
 
-  it('should send a request with a Google reCAPTCHA token in request body', () => {
-    cy.visit(getTestingDonationPageUrl(expectedPageSlug));
-    cy.url().should('include', EXPECTED_RP_SLUG);
-    cy.url().should('include', expectedPageSlug);
-    cy.wait('@getPageDetail');
-
-    const interval = 'One time';
-    const amount = '120';
-    cy.setUpDonation(interval, amount);
-    cy.makeDonation();
-    cy.wait('@stripePayment').its('request.body').should('have.property', 'captcha_token');
-  });
-
+// This test is put in a separate describe because it needs a distinct intercept
+// for STRIPE_PAYMENT endpoint, vs. the test in the previous describe and cypress
+// does not provide a way to override on per-test basis.
+describe('Resulting request: special case -- error on submission', () => {
   it('should focus the first input on the page with an error', () => {
+    cy.interceptDonation();
+    cy.intercept(
+      { method: 'GET', pathname: `${getEndpoint(LIVE_PAGE_DETAIL)}**` },
+      { fixture: 'pages/live-page-1', statusCode: 200 }
+    ).as('getPageDetail');
     cy.visit(getTestingDonationPageUrl(expectedPageSlug));
     cy.wait('@getPageDetail');
 
@@ -469,10 +464,11 @@ describe('Resulting request', () => {
       { body: { [errorElementName]: errorMessage }, statusCode: 400 }
     ).as('stripePaymentError');
     cy.setUpDonation('One time', '120');
-    cy.makeDonation();
-    cy.wait('@stripePaymentError');
-    cy.get(`input[name="${errorElementName}"]`).should('have.focus');
-    cy.contains(errorMessage);
+    cy.makeDonation().then(() => {
+      cy.wait('@stripePaymentError');
+      cy.get(`input[name="${errorElementName}"]`).should('have.focus');
+      cy.contains(errorMessage);
+    });
   });
 });
 

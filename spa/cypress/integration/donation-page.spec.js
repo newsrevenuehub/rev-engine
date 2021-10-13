@@ -394,11 +394,10 @@ describe('Resulting request', () => {
     const amount = '120';
 
     cy.setUpDonation(interval, amount);
-    cy.makeDonation().then(() => {
-      cy.wait('@stripePayment', { timeout: LONG_WAIT })
-        .its('request.body')
-        .should('have.property', 'sf_campaign_id', sfCampaignId);
-    });
+    cy.makeDonation();
+    cy.wait('@stripePayment', { timeout: LONG_WAIT })
+      .its('request.body')
+      .should('have.property', 'sf_campaign_id', sfCampaignId);
   });
 
   it('should send a request with the expected payment properties and values', () => {
@@ -410,13 +409,12 @@ describe('Resulting request', () => {
     const interval = 'One time';
     const amount = '120';
     cy.setUpDonation(interval, amount);
-    cy.makeDonation().then(() => {
-      cy.wait('@stripePayment', { timeout: LONG_WAIT }).then((interception) => {
-        const { body: paymentData } = interception.request;
-        expect(paymentData).to.have.property('interval', 'one_time');
-        expect(paymentData).to.have.property('amount', amount);
-        expect(paymentData).to.have.property('captcha_token');
-      });
+    cy.makeDonation();
+    cy.wait('@stripePayment', { timeout: LONG_WAIT }).then((interception) => {
+      const { body: paymentData } = interception.request;
+      expect(paymentData).to.have.property('interval', 'one_time');
+      expect(paymentData).to.have.property('amount', amount);
+      expect(paymentData).to.have.property('captcha_token');
     });
   });
 
@@ -432,11 +430,10 @@ describe('Resulting request', () => {
     const interval = 'One time';
     const amount = '120';
     cy.setUpDonation(interval, amount);
-    cy.makeDonation().then(() => {
-      cy.wait('@confirmCardPayment', { timeout: LONG_WAIT })
-        .its('request.body')
-        .should('include', livePageOne.stripe_account_id);
-    });
+    cy.makeDonation();
+    cy.wait('@confirmCardPayment', { timeout: LONG_WAIT })
+      .its('request.body')
+      .should('include', livePageOne.stripe_account_id);
   });
 
   it('should contain clearbit.js script in body', () => {
@@ -464,11 +461,10 @@ describe('Resulting request: special case -- error on submission', () => {
       { body: { [errorElementName]: errorMessage }, statusCode: 400 }
     ).as('stripePaymentError');
     cy.setUpDonation('One time', '120');
-    cy.makeDonation().then(() => {
-      cy.wait('@stripePaymentError');
-      cy.get(`input[name="${errorElementName}"]`).should('have.focus');
-      cy.contains(errorMessage);
-    });
+    cy.makeDonation();
+    cy.wait('@stripePaymentError');
+    cy.get(`input[name="${errorElementName}"]`).should('have.focus');
+    cy.contains(errorMessage);
   });
 });
 

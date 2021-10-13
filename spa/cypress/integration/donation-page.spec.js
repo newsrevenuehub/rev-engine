@@ -431,9 +431,11 @@ describe('Resulting request', () => {
     const amount = '120';
     cy.setUpDonation(interval, amount);
     cy.makeDonation();
-    cy.wait('@confirmCardPayment', { timeout: LONG_WAIT })
-      .its('request.body')
-      .should('include', livePageOne.stripe_account_id);
+    cy.wait(['@confirmCardPayment', '@stripePayment'], { timeout: LONG_WAIT }).spread(
+      (confirmCardPayment, stripePayment) => {
+        cy.wrap(confirmCardPayment.request.body).should('include', livePageOne.stripe_account_id);
+      }
+    );
   });
 
   it('should contain clearbit.js script in body', () => {

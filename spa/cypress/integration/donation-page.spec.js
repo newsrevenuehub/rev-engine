@@ -7,12 +7,12 @@ import { format } from 'date-fns';
 
 // Constants
 import { CLEARBIT_SCRIPT_SRC } from '../../src/hooks/useClearbit';
-import * as socialMetaGetters from 'components/donationPage/DonationPageSocialTags';
-import hubDefaultSocialCard from 'assets/images/hub-og-card.png';
 import { FUNDJOURNALISM_404_REDIRECT } from 'components/donationPage/live/LivePage404';
 
 import * as freqUtils from 'utilities/parseFrequency';
 import calculateStripeFee from 'utilities/calculateStripeFee';
+import * as socialMetaGetters from 'components/donationPage/DonationPageSocialTags';
+import hubDefaultSocialCard from 'assets/images/hub-og-card.png';
 
 const expectedPageSlug = 'page-slug';
 

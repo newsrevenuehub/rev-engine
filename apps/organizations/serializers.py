@@ -1,6 +1,5 @@
 from rest_framework import serializers
 
-from apps.common.serializers import SocialMetaInlineSerializer
 from apps.organizations.models import (
     Benefit,
     BenefitLevel,
@@ -40,13 +39,6 @@ class RevenueProgramListInlineSerializer(serializers.ModelSerializer):
     """
 
     address = serializers.SerializerMethodField()
-
-    def to_representation(self, instance):
-        social_meta = SocialMetaInlineSerializer(instance.social_meta).data if instance.social_meta else {}
-        representation = super().to_representation(instance)
-        social_meta = {"social_" + k: v for k, v in social_meta.items()}
-        representation.update(**social_meta)
-        return representation
 
     def get_address(self, obj):
         if hasattr(obj, "address"):

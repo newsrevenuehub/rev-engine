@@ -1,3 +1,4 @@
+from django.conf import settings
 from django.utils.text import slugify
 
 
@@ -19,3 +20,12 @@ def normalize_slug(name="", slug="", max_length=50):
 
 def cleanup_keys(data_dict, unwanted_keys):
     return {k: v for k, v in data_dict.items() if k not in unwanted_keys}
+
+
+def get_subdomain_from_request(request):
+    subdomain = None
+    host = request.get_host()
+    split_host = host.split(".")
+    if len(split_host) > 2 and not split_host[0] in settings.NON_DONATION_PAGE_SUBDOMAINS:
+        subdomain = split_host[0]
+    return subdomain

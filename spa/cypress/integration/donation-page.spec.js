@@ -7,14 +7,16 @@ import { format } from 'date-fns';
 
 // Constants
 import { CLEARBIT_SCRIPT_SRC } from '../../src/hooks/useClearbit';
-import * as socialMetaGetters from 'components/donationPage/DonationPageSocialTags';
-import hubDefaultSocialCard from 'assets/images/hub-og-card.png';
 import { FUNDJOURNALISM_404_REDIRECT } from 'components/donationPage/live/LivePage404';
 
 import * as freqUtils from 'utilities/parseFrequency';
 import calculateStripeFee from 'utilities/calculateStripeFee';
 
 const expectedPageSlug = 'page-slug';
+
+// this is an absurdly long wait time, but BW has watched tests run with cypress open and has seen
+// the stripe API calls take this long to return.
+const LONG_WAIT = 30000;
 
 describe('Routing', () => {
   it('should send a request containing the correct query params', () => {
@@ -25,14 +27,8 @@ describe('Routing', () => {
     cy.visit(getTestingDonationPageUrl(expectedPageSlug));
   });
 
-  it('should show live 404 page if api returns 404', () => {
-    cy.intercept({ method: 'GET', pathname: getEndpoint(LIVE_PAGE_DETAIL) }, { statusCode: 404 }).as('getPageDetail');
-    cy.visit(getTestingDonationPageUrl(expectedPageSlug));
-    cy.wait('@getPageDetail');
-    cy.getByTestId('live-page-404').should('exist');
-  });
-
-  it('should show a donation page if route is not reserved', () => {
+  it('should show a donation page if route is not reserved, first-level', () => {
+    cy.intercept('/api/v1/organizations/stripe_account_id/**', { fixture: 'stripe/org-account-id.json' });
     cy.intercept(
       { method: 'GET', pathname: getEndpoint(LIVE_PAGE_DETAIL) },
       { fixture: 'pages/live-page-1', statusCode: 200 }
@@ -40,6 +36,7 @@ describe('Routing', () => {
     cy.visit(getTestingDonationPageUrl(expectedPageSlug));
     cy.wait('@getPageDetail');
     cy.getByTestId('donation-page').should('exist');
+    cy.get('head').find(`script[src*="${CLEARBIT_SCRIPT_SRC}"]`).should('have.length', 1);
   });
 
   it('404 should display a link to fundjournalism.org in the text "this page"', () => {
@@ -162,95 +159,18 @@ describe('DonationPage elements', () => {
   });
 });
 
-describe('Donation page social meta tags', () => {
-  const { revenue_program } = livePageOne;
-  const OG_URL = 'og:url';
-  const OG_TITLE = 'og:title';
-  const OG_DESC = 'og:description';
-  const OG_TYPE = 'og:type';
-  const OG_IMAGE = 'og:image';
-  const OG_IMAGE_ALT = 'og:image:alt';
-  const TW_CARD = 'twitter:card';
-  const TW_SITE = 'twitter:site';
-  const TW_CREATOR = 'twitter:creator';
-  const expectedMetaTags = [OG_URL, OG_TITLE, OG_DESC, OG_TYPE, OG_IMAGE, OG_IMAGE_ALT, TW_CARD, TW_SITE, TW_CREATOR];
-
-  describe('Meta tags exist with default values', () => {
-    const metaTagNameDefaultValueMap = {
-      [OG_URL]: socialMetaGetters.DEFAULT_OG_URL,
-      [OG_TITLE]: socialMetaGetters.getDefaultOgTitle(revenue_program.name),
-      [OG_DESC]: socialMetaGetters.getDefaultOgDescription(revenue_program.name),
-      [OG_TYPE]: 'website',
-      [OG_IMAGE]: '/' + hubDefaultSocialCard,
-      [OG_IMAGE_ALT]: socialMetaGetters.DEFAULT_OG_IMG_ALT,
-      [TW_CARD]: socialMetaGetters.TWITTER_CARD_TYPE,
-      [TW_SITE]: '@' + socialMetaGetters.DEFAULT_TWITTER_SITE,
-      [TW_CREATOR]: '@' + socialMetaGetters.DEFAULT_TWITTER_CREATOR
-    };
-    before(() => {
-      cy.intercept(
-        { method: 'GET', pathname: getEndpoint(LIVE_PAGE_DETAIL) },
-        { fixture: 'pages/live-page-1', statusCode: 200 }
-      ).as('getPage');
-
-      cy.visit(getTestingDonationPageUrl('my-page'));
-      cy.url().should('include', 'my-page');
-      cy.wait('@getPage');
-    });
-
-    expectedMetaTags.forEach((metaTagName) => {
-      it(`document head should contain metatag with default value for ${metaTagName}`, () => {
-        cy.get(`meta[name="${metaTagName}"]`).should('exist');
-        cy.get(`meta[name="${metaTagName}"]`).should('have.attr', 'content', metaTagNameDefaultValueMap[metaTagName]);
-      });
-    });
-  });
-
-  describe('Meta tags exist with revenue program values', () => {
-    const body = { ...livePageOne };
-    const rpName = body.revenue_program.name;
-    body.revenue_program.social_title = 'My social title';
-    body.revenue_program.social_description = 'My social description';
-    body.revenue_program.social_url = 'http://www.google.com';
-    body.revenue_program.social_card = '/media/my-social-card.png';
-    body.revenue_program.twitter_handle = 'myprogram';
-
-    const metaTagNameRPValueMap = {
-      [OG_URL]: body.revenue_program.social_url,
-      [OG_TITLE]: body.revenue_program.social_title,
-      [OG_DESC]: body.revenue_program.social_description,
-      [OG_TYPE]: 'website',
-      [OG_IMAGE]: body.revenue_program.social_card,
-      [OG_IMAGE_ALT]: socialMetaGetters.getOgImgAlt(rpName),
-      [TW_CARD]: socialMetaGetters.TWITTER_CARD_TYPE,
-      [TW_SITE]: '@' + body.revenue_program.twitter_handle,
-      [TW_CREATOR]: '@' + body.revenue_program.twitter_handle
-    };
-
-    before(() => {
-      cy.intercept({ method: 'GET', pathname: getEndpoint(LIVE_PAGE_DETAIL) }, { body, statusCode: 200 }).as('getPage');
-      cy.visit(getTestingDonationPageUrl('my-page'));
-      cy.url().should('include', 'my-page');
-      cy.wait('@getPage');
-    });
-
-    expectedMetaTags.forEach((metaTagName) => {
-      it(`document head should contain metatag with revenue program value for ${metaTagName}`, () => {
-        cy.get(`meta[name="${metaTagName}"]`).should('exist');
-        cy.get(`meta[name="${metaTagName}"]`).should('have.attr', 'content', metaTagNameRPValueMap[metaTagName]);
-      });
-    });
-  });
-});
-
 describe('Donation page amount and frequency query parameters', () => {
+  beforeEach(() => {
+    cy.interceptDonation();
+    cy.intercept({ method: 'GET', pathname: `${getEndpoint(LIVE_PAGE_DETAIL)}**` }, { body: livePageOne }).as(
+      'getPageDetail'
+    );
+  });
   specify('&frequency and &amount uses that frequency and that amount', () => {
     // intercept page, return particular elements
-    const page = livePageOne;
     const amounts = livePageOne.elements.find((el) => el.type === 'DAmount');
     const targetFreq = 'monthly';
     const targetAmount = amounts.content.options.month[1];
-    cy.intercept({ method: 'GET', pathname: `${getEndpoint(LIVE_PAGE_DETAIL)}**` }, { body: page }).as('getPageDetail');
 
     // visit url + querystring
     cy.visit(getTestingDonationPageUrl(expectedPageSlug, `?amount=${targetAmount}&frequency=${targetFreq}`));
@@ -265,13 +185,9 @@ describe('Donation page amount and frequency query parameters', () => {
     cy.getByTestId(`amount-${targetAmount}-selected`).should('exist');
   });
 
-  specify('&frequency and @amount custom shows that amount for frequency', () => {
-    // intercept page, return particular elements
-    const page = livePageOne;
+  specify('&frequency and &amount custom shows only that amount for frequency', () => {
     const targetFreq = 'monthly';
     const targetAmount = 99;
-    cy.intercept({ method: 'GET', pathname: `${getEndpoint(LIVE_PAGE_DETAIL)}**` }, { body: page }).as('getPageDetail');
-
     // visit url + querystring
     cy.visit(getTestingDonationPageUrl(expectedPageSlug, `?amount=${targetAmount}&frequency=${targetFreq}`));
     cy.wait('@getPageDetail');
@@ -289,10 +205,9 @@ describe('Donation page amount and frequency query parameters', () => {
 
   specify('&amount but no &frequency defaults to that amount with the frequency=once', () => {
     // intercept page, return particular elements
-    const page = livePageOne;
     const targetAmount = 99;
     const amounts = livePageOne.elements.find((el) => el.type === 'DAmount');
-    cy.intercept({ method: 'GET', pathname: `${getEndpoint(LIVE_PAGE_DETAIL)}**` }, { body: page }).as('getPageDetail');
+
     // visit url + querystring
     cy.visit(getTestingDonationPageUrl(expectedPageSlug, `?amount=${targetAmount}`));
     cy.wait('@getPageDetail');
@@ -311,11 +226,7 @@ describe('Donation page amount and frequency query parameters', () => {
   });
 
   specify('&frequency=once but no amount defaults to the one-time default set by the page creator', () => {
-    // intercept page, return particular elements
-    const page = livePageOne;
     const targetFreq = 'once';
-    cy.intercept({ method: 'GET', pathname: `${getEndpoint(LIVE_PAGE_DETAIL)}**` }, { body: page }).as('getPageDetail');
-
     // visit url + querystring
     cy.visit(getTestingDonationPageUrl(expectedPageSlug, `?frequency=${targetFreq}`));
     cy.wait('@getPageDetail');
@@ -328,11 +239,7 @@ describe('Donation page amount and frequency query parameters', () => {
   });
 
   specify('&frequency=yearly but no amount defaults to the yearly default set by the page creator', () => {
-    // intercept page, return particular elements
-    const page = livePageOne;
     const targetFreq = 'yearly';
-    cy.intercept({ method: 'GET', pathname: `${getEndpoint(LIVE_PAGE_DETAIL)}**` }, { body: page }).as('getPageDetail');
-
     // visit url + querystring
     cy.visit(getTestingDonationPageUrl(expectedPageSlug, `?frequency=${targetFreq}`));
     cy.wait('@getPageDetail');
@@ -345,11 +252,7 @@ describe('Donation page amount and frequency query parameters', () => {
   });
 
   specify('&frequency=monthly but no amount defaults to the monthly default set by the page creator', () => {
-    // intercept page, return particular elements
-    const page = livePageOne;
     const targetFreq = 'monthly';
-    cy.intercept({ method: 'GET', pathname: `${getEndpoint(LIVE_PAGE_DETAIL)}**` }, { body: page }).as('getPageDetail');
-
     // visit url + querystring
     cy.visit(getTestingDonationPageUrl(expectedPageSlug, `?frequency=${targetFreq}`));
     cy.wait('@getPageDetail');
@@ -373,6 +276,23 @@ describe('404 behavior', () => {
     cy.url().should('include', expectedPageSlug);
     cy.wait('@getLivePage');
     cy.getByTestId('live-page-404').should('exist');
+  });
+
+  it('should show live 404 page if api returns 404', () => {
+    cy.intercept({ method: 'GET', pathname: getEndpoint(LIVE_PAGE_DETAIL) }, { statusCode: 404 }).as('getPageDetail');
+    cy.visit(getTestingDonationPageUrl(expectedPageSlug));
+    cy.wait('@getPageDetail');
+    cy.getByTestId('live-page-404').should('exist');
+  });
+
+  it('should show a donation page if route is not reserved', () => {
+    cy.intercept(
+      { method: 'GET', pathname: getEndpoint(LIVE_PAGE_DETAIL) },
+      { fixture: 'pages/live-page-1', statusCode: 200 }
+    ).as('getPageDetail');
+    cy.visit(getTestingDonationPageUrl(expectedPageSlug));
+    cy.wait('@getPageDetail');
+    cy.getByTestId('donation-page').should('exist');
   });
 });
 
@@ -491,127 +411,83 @@ describe('Footer-like content', () => {
 });
 
 describe('Resulting request', () => {
-  it('should pass salesforce campaign id from query parameter to request body', () => {
-    const sfCampaignId = 'my-test-sf-campaign-id';
+  beforeEach(() => {
+    cy.interceptDonation();
     cy.intercept(
       { method: 'GET', pathname: `${getEndpoint(LIVE_PAGE_DETAIL)}**` },
       { fixture: 'pages/live-page-1', statusCode: 200 }
-    ).as('getPage1');
+    ).as('getPageDetail');
+  });
+  it('should pass salesforce campaign id from query parameter to request body', () => {
+    const sfCampaignId = 'my-test-sf-campaign-id';
     cy.visit(getTestingDonationPageUrl(expectedPageSlug, `?campaign=${sfCampaignId}`));
     cy.url().should('include', EXPECTED_RP_SLUG);
     cy.url().should('include', expectedPageSlug);
     cy.url().should('include', sfCampaignId);
-    cy.wait('@getPage1');
+    cy.wait('@getPageDetail');
 
     const interval = 'One time';
     const amount = '120';
-    cy.intercept(
-      { method: 'POST', pathname: getEndpoint(STRIPE_PAYMENT) },
-      { fixture: 'stripe/payment-intent', statusCode: 200 }
-    ).as('stripePayment1');
+
     cy.setUpDonation(interval, amount);
-    cy.makeDonation();
-    cy.wait('@stripePayment1').its('request.body').should('have.property', 'sf_campaign_id', sfCampaignId);
+    cy.makeDonation().then(() => {
+      cy.wait('@stripePayment', { timeout: LONG_WAIT })
+        .its('request.body')
+        .should('have.property', 'sf_campaign_id', sfCampaignId);
+    });
   });
 
-  it('should send a request with the expected interval', () => {
-    cy.intercept(
-      { method: 'GET', pathname: getEndpoint(LIVE_PAGE_DETAIL) },
-      { fixture: 'pages/live-page-1', statusCode: 200 }
-    ).as('getPage2');
-
+  it('should send a request with the expected payment properties and values', () => {
     cy.visit(getTestingDonationPageUrl(expectedPageSlug));
     cy.url().should('include', EXPECTED_RP_SLUG);
     cy.url().should('include', expectedPageSlug);
-    cy.wait('@getPage2');
-
-    const interval = 'One time';
-    const amount = '120';
-    cy.intercept(
-      { method: 'POST', pathname: getEndpoint(STRIPE_PAYMENT) },
-      { fixture: 'stripe/payment-intent', statusCode: 200 }
-    ).as('stripePayment2');
-    cy.setUpDonation(interval, amount);
-    cy.makeDonation();
-    cy.wait('@stripePayment2').its('request.body').should('have.property', 'interval', 'one_time');
-  });
-
-  it('should send a request with the expected amount', () => {
-    cy.intercept(
-      { method: 'GET', pathname: getEndpoint(LIVE_PAGE_DETAIL) },
-      { fixture: 'pages/live-page-1', statusCode: 200 }
-    ).as('getPage3');
-
-    cy.visit(getTestingDonationPageUrl(expectedPageSlug));
-    cy.url().should('include', EXPECTED_RP_SLUG);
-    cy.url().should('include', expectedPageSlug);
-    cy.wait('@getPage3');
+    cy.wait('@getPageDetail');
 
     const interval = 'One time';
     const amount = '120';
     cy.setUpDonation(interval, amount);
-    cy.intercept(
-      { method: 'POST', pathname: getEndpoint(STRIPE_PAYMENT) },
-      { fixture: 'stripe/payment-intent', statusCode: 200 }
-    ).as('stripePayment3');
-    cy.makeDonation();
-    cy.wait('@stripePayment3').its('request.body').should('have.property', 'amount', amount);
+    cy.makeDonation().then(() => {
+      cy.wait('@stripePayment', { timeout: LONG_WAIT }).then((interception) => {
+        const { body: paymentData } = interception.request;
+        expect(paymentData).to.have.property('interval', 'one_time');
+        expect(paymentData).to.have.property('amount', amount);
+        expect(paymentData).to.have.property('captcha_token');
+      });
+    });
   });
 
   it('should send a confirmation request to Stripe with the organization stripe account id in the header', () => {
     /**
      * This tests against regressions that might cause the orgs stripe account id to not appear in the header of confirmCardPayment
      */
-    cy.intercept(
-      { method: 'GET', pathname: getEndpoint(LIVE_PAGE_DETAIL) },
-      { fixture: 'pages/live-page-1', statusCode: 200 }
-    ).as('getPage4');
-
     cy.visit(getTestingDonationPageUrl(expectedPageSlug));
     cy.url().should('include', EXPECTED_RP_SLUG);
     cy.url().should('include', expectedPageSlug);
-    cy.wait('@getPage4');
+    cy.wait('@getPageDetail');
 
     const interval = 'One time';
     const amount = '120';
     cy.setUpDonation(interval, amount);
-    cy.intercept(
-      { method: 'POST', pathname: getEndpoint(STRIPE_PAYMENT) },
-      { fixture: 'stripe/payment-intent', statusCode: 200 }
-    );
-    cy.intercept('/v1/payment_intents/**', { statusCode: 200 }).as('confirmCardPayment1');
-    cy.makeDonation();
-    cy.wait('@confirmCardPayment1').its('request.body').should('include', livePageOne.stripe_account_id);
+    cy.makeDonation().then(() => {
+      cy.wait(['@confirmCardPayment', '@stripePayment'], { timeout: LONG_WAIT }).spread(
+        (confirmCardPayment, stripePayment) => {
+          cy.wrap(confirmCardPayment.request.body).should('include', livePageOne.stripe_account_id);
+        }
+      );
+    });
   });
 
   it('should contain clearbit.js script in body', () => {
     cy.get('head').find(`script[src*="${CLEARBIT_SCRIPT_SRC}"]`).should('have.length', 1);
   });
+});
 
-  it('should send a request with a Google reCAPTCHA token in request body', () => {
-    cy.intercept(
-      { method: 'GET', pathname: getEndpoint(LIVE_PAGE_DETAIL) },
-      { fixture: 'pages/live-page-1', statusCode: 200 }
-    ).as('getPage');
-
-    cy.visit(getTestingDonationPageUrl(expectedPageSlug));
-    cy.url().should('include', EXPECTED_RP_SLUG);
-    cy.url().should('include', expectedPageSlug);
-    cy.wait('@getPage');
-
-    const interval = 'One time';
-    const amount = '120';
-    cy.setUpDonation(interval, amount);
-    cy.intercept(
-      { method: 'POST', pathname: getEndpoint(STRIPE_PAYMENT) },
-      { fixture: 'stripe/payment-intent', statusCode: 200 }
-    ).as('stripePayment5');
-    cy.intercept('/v1/payment_intents/**', { statusCode: 400 });
-    cy.makeDonation();
-    cy.wait('@stripePayment5', { timeout: 8000 }).its('request.body').should('have.property', 'captcha_token');
-  });
-
+// This test is put in a separate describe because it needs a distinct intercept
+// for STRIPE_PAYMENT endpoint, vs. the test in the previous describe and cypress
+// does not provide a way to override on per-test basis.
+describe('Resulting request: special case -- error on submission', () => {
   it('should focus the first input on the page with an error', () => {
+    cy.interceptDonation();
     cy.intercept(
       { method: 'GET', pathname: `${getEndpoint(LIVE_PAGE_DETAIL)}**` },
       { fixture: 'pages/live-page-1', statusCode: 200 }
@@ -626,10 +502,11 @@ describe('Resulting request', () => {
       { body: { [errorElementName]: errorMessage }, statusCode: 400 }
     ).as('stripePaymentError');
     cy.setUpDonation('One time', '120');
-    cy.makeDonation();
-    cy.wait('@stripePaymentError');
-    cy.get(`input[name="${errorElementName}"]`).should('have.focus');
-    cy.contains(errorMessage);
+    cy.makeDonation().then(() => {
+      cy.wait('@stripePaymentError');
+      cy.get(`input[name="${errorElementName}"]`).should('have.focus');
+      cy.contains(errorMessage);
+    });
   });
 });
 

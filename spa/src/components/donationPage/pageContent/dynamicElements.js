@@ -3,6 +3,5 @@ export { default as DFrequency } from './DFrequency';
 export { default as DAmount } from './DAmount';
 export { default as DDonorInfo } from './DDonorInfo';
 export { default as DDonorAddress } from './DDonorAddress';
-export { default as DAdditionalInfo } from './DAdditionalInfo';
 export { default as DPayment } from './DPayment';
 export { default as DSwag } from './DSwag';

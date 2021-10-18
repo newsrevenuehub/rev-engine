@@ -435,88 +435,59 @@ describe('Donation page delete', () => {
   });
 });
 
-describe('Additional Info Setup', () => {
+describe('Page load side effects', () => {
   before(() => {
     cy.login('user/stripe-verified.json');
     cy.intercept(
       { method: 'GET', pathname: getEndpoint(DRAFT_PAGE_DETAIL) },
       { fixture: 'pages/live-page-1', statusCode: 200 }
-    ).as('getPage');
-    cy.intercept(
-      { method: 'GET', pathname: getEndpoint(CONTRIBUTION_META) },
-      { fixture: 'donations/contribution-metadata.json', statusCode: 200 }
-    ).as('getContributionMeta');
+    ).as('getPageDetail');
     cy.visit('edit/my/page');
     cy.url().should('include', 'edit/my/page');
-    return cy.wait(['@getPage', '@getContributionMeta']);
+    cy.wait('@getPageDetail');
+  });
+  it('should NOT contain clearbit.js script in body', () => {
+    cy.get('head').find(`script[src*="${CLEARBIT_SCRIPT_SRC}"]`).should('have.length', 0);
+  });
+});
+
+describe('Template from page', () => {
+  beforeEach(() => {
+    cy.login('user/stripe-verified.json');
+    cy.intercept(
+      { method: 'GET', pathname: getEndpoint(DRAFT_PAGE_DETAIL) },
+      { fixture: 'pages/live-page-1', statusCode: 200 }
+    ).as('getPageDetail');
+    cy.visit('edit/my/page');
+    cy.url().should('include', 'edit/my/page');
+    cy.wait('@getPageDetail');
   });
 
-  it('additional-info-applied should be empty', () => {
+  it('should show warning if page edits are unsaved', () => {
     cy.getByTestId('edit-page-button').click();
-    cy.getByTestId('layout-tab').click();
-    cy.getByTestId('edit-interface-item').contains('Additional').click();
-    cy.getByTestId('additional-info-applied').should('exist').find('li').should('have.length', 0);
+    cy.contains('Rich text').click({ force: true });
+    cy.getByTestId('keep-element-changes-button').click({ force: true });
+    cy.getByTestId('clone-page-button').click({ force: true });
+    cy.getByTestId('confirmation-modal').should('exist');
   });
 
-  it('should have two items available to add', () => {
-    cy.get('#downshift-1-toggle-button').click();
-    cy.get('#downshift-1-menu').find('li').should('have.length', 2);
-    // Cleanup
-    cy.get('#downshift-1-toggle-button').click();
+  it('should show template creation modal if continue is clicked', () => {
+    cy.getByTestId('clone-page-button').click({ force: true });
+    cy.getByTestId('template-create-modal').should('exist');
   });
-
-  it('click on one should add to additional-applied-info and remove chosen from dropdown', () => {
-    cy.get('#downshift-1-toggle-button').click();
-    cy.get('#downshift-1-menu').find('li').first().contains('In Honor of').click();
-    cy.getByTestId('additional-info-applied').should('exist').contains('In Honor of');
-    cy.get('#downshift-1-toggle-button').click();
-    cy.get('#downshift-1-menu').find('li').should('have.length', 1);
-  });
-
-  describe('Page load side effects', () => {
-    it('should NOT contain clearbit.js script in body', () => {
-      cy.get('head').find(`script[src*="${CLEARBIT_SCRIPT_SRC}"]`).should('have.length', 0);
-    });
-  });
-
-  describe('Template from page', () => {
-    beforeEach(() => {
-      cy.login('user/stripe-verified.json');
-      cy.intercept(
-        { method: 'GET', pathname: getEndpoint(DRAFT_PAGE_DETAIL) },
-        { fixture: 'pages/live-page-1', statusCode: 200 }
-      ).as('getPageDetail');
-      cy.visit('edit/my/page');
-      cy.url().should('include', 'edit/my/page');
-      cy.wait('@getPageDetail');
-    });
-
-    it('should show warning if page edits are unsaved', () => {
-      cy.getByTestId('edit-page-button').click();
-      cy.contains('Rich text').click({ force: true });
-      cy.getByTestId('keep-element-changes-button').click({ force: true });
-      cy.getByTestId('clone-page-button').click({ force: true });
-      cy.getByTestId('confirmation-modal').should('exist');
-    });
-
-    it('should show template creation modal if continue is clicked', () => {
-      cy.getByTestId('clone-page-button').click({ force: true });
-      cy.getByTestId('template-create-modal').should('exist');
-    });
-    it('should show make request with page pk in body when tepmlate saved', () => {
-      cy.getByTestId('clone-page-button').click({ force: true });
-      cy.getByTestId('template-create-modal').should('exist');
-      cy.intercept({
-        method: 'POST',
-        pathname: getEndpoint(TEMPLATES)
-      }).as('createTemplate');
-      cy.getByTestId('save-template-button').click();
-      cy.wait('@createTemplate').then(({ request }) => {
-        expect(request.body).to.have.property('page_pk');
-        expect(request.body.page_pk).to.equal(livePage.id);
-        expect(request.body).to.have.property('name');
-        expect(request.body.name).to.equal(livePage.name);
-      });
+  it('should show make request with page pk in body when tepmlate saved', () => {
+    cy.getByTestId('clone-page-button').click({ force: true });
+    cy.getByTestId('template-create-modal').should('exist');
+    cy.intercept({
+      method: 'POST',
+      pathname: getEndpoint(TEMPLATES)
+    }).as('createTemplate');
+    cy.getByTestId('save-template-button').click();
+    cy.wait('@createTemplate').then(({ request }) => {
+      expect(request.body).to.have.property('page_pk');
+      expect(request.body.page_pk).to.equal(livePage.id);
+      expect(request.body).to.have.property('name');
+      expect(request.body.name).to.equal(livePage.name);
     });
   });
 });

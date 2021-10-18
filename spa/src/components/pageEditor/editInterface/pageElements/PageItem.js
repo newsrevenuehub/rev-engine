@@ -16,6 +16,7 @@ import {
 
 import * as dynamicPageElements from 'components/donationPage/pageContent/dynamicElements';
 import * as dynamicSidebarElements from 'components/donationPage/pageContent/dynamicSidebarElements';
+import { NoComponentError } from 'components/donationPage/pageGetters';
 
 const dynamicElements = { ...dynamicPageElements, ...dynamicSidebarElements };
 
@@ -32,13 +33,19 @@ function PageItem({ element, disabled, dragState, isStatic, handleItemClick, ...
       {...props}
       data-testid="edit-interface-item"
     >
-      <S.ItemIconWrapper>
-        <S.ItemIcon icon={getElementIcon(element.type)} disabled={disabled} />
-      </S.ItemIconWrapper>
-      <S.ItemContentWrapper>
-        <S.ItemName>{dynamicElements[element.type].displayName}</S.ItemName>
-        <S.ItemDescription>{dynamicElements[element.type].description}</S.ItemDescription>
-      </S.ItemContentWrapper>
+      {dynamicElements[element.type] ? (
+        <>
+          <S.ItemIconWrapper>
+            <S.ItemIcon icon={getElementIcon(element.type)} disabled={disabled} />
+          </S.ItemIconWrapper>
+          <S.ItemContentWrapper>
+            <S.ItemName>{dynamicElements[element.type].displayName}</S.ItemName>
+            <S.ItemDescription>{dynamicElements[element.type].description}</S.ItemDescription>
+          </S.ItemContentWrapper>
+        </>
+      ) : (
+        <NoComponentError name={element.type} />
+      )}
     </S.PageItem>
   );
 }

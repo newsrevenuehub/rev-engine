@@ -1,12 +1,36 @@
+import logging
+
 from django.conf import settings
 from django.http import FileResponse
 from django.views.decorators.cache import never_cache
 from django.views.decorators.http import require_GET
 from django.views.generic import TemplateView
 
+from apps.common.serializers import SocialMetaInlineSerializer
+from apps.common.utils import get_subdomain_from_request
+from apps.organizations.models import RevenueProgram
+
+
+logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
+
 
 # Serve Single Page Application
-index = never_cache(TemplateView.as_view(template_name="index.html"))
+class ReactAppView(TemplateView):
+    template_name = "index.html"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        if subdomain := get_subdomain_from_request(self.request):
+            try:
+                revenue_program = RevenueProgram.objects.get(slug=subdomain)
+                serializer = SocialMetaInlineSerializer(revenue_program.social_meta, context={"request": self.request})
+                context["social_meta"] = serializer.data
+            except RevenueProgram.DoesNotExist:
+                logger.warn(f'ReactAppView failed to retrieve RevenueProgram by subdomin "{subdomain}"')
+        return context
+
+
+index = never_cache(ReactAppView.as_view())
 
 
 @require_GET

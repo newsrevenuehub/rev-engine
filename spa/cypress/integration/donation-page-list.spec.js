@@ -42,7 +42,7 @@ describe('Donation page list', () => {
 
     it('should show select if rev programs present', () => {
       cy.getByTestId('page-create-button').click();
-      cy.contains('Select a revenue program');
+      cy.contains('Choose a revenue program');
     });
 
     it('should add suggested slug on name field blur', () => {

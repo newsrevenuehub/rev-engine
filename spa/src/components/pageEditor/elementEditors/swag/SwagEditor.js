@@ -57,6 +57,13 @@ function SwagEditor() {
     });
   };
 
+  const setOfferNytComp = () => {
+    setElementContent({
+      ...elementContent,
+      offerNytComp: !elementContent?.offerNytComp
+    });
+  };
+
   const handleSwagThresholdChange = (e) => {
     if (validateInputPositiveFloat(e.target.value)) {
       setElementContent({
@@ -170,6 +177,20 @@ function SwagEditor() {
         />
         <S.CheckboxLabel htmlFor="opt-out-default">"Opt-out of swag" checked by default?</S.CheckboxLabel>
       </S.OptOutDefault>
+
+      {page.allow_offer_nyt_comp && (
+        <S.OfferNytComp>
+          <S.Checkbox
+            id="offer-nyt-comp"
+            data-testid="offer-nyt-comp"
+            type="checkbox"
+            color={theme.colors.primary}
+            checked={!!elementContent.offerNytComp}
+            onChange={setOfferNytComp}
+          />
+          <S.CheckboxLabel htmlFor="offer-nyt-comp">Offer donors a complimentary NYT subscription?</S.CheckboxLabel>
+        </S.OfferNytComp>
+      )}
 
       {/* "Benefit threshold", aka swagThreshold */}
       <S.SwagThreshold>

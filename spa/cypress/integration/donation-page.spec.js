@@ -48,7 +48,7 @@ describe('Routing', () => {
   });
 });
 
-describe('DonationPage elements', () => {
+describe.only('DonationPage elements', () => {
   it('should render expected rich text content', () => {
     cy.visitDonationPage();
 
@@ -156,6 +156,38 @@ describe('DonationPage elements', () => {
     cy.getByTestId(`swag-choices-${swagName}`).click();
     const dropdownName = `swag_choice_${swagName}`;
     cy.getByTestId(`select-dropdown-${dropdownName}`).find('li').its('length').should('eq', optionsNum);
+  });
+
+  it('should not show nyt comp subscription option if not enabled', () => {
+    const page = { ...livePageOne };
+    const swagIndex = page.elements.findIndex((el) => el.type === 'DSwag');
+    page.elements[swagIndex].content.offerNytComp = false;
+    cy.intercept({ method: 'GET', pathname: getEndpoint(LIVE_PAGE_DETAIL) }, { body: page, statusCode: 200 }).as(
+      'getPage'
+    );
+    cy.visit(getTestingDonationPageUrl(expectedPageSlug));
+    cy.url().should('include', EXPECTED_RP_SLUG);
+    cy.url().should('include', expectedPageSlug);
+    cy.wait('@getPage');
+
+    cy.setUpDonation('One time', '365');
+    cy.getByTestId('nyt-comp-sub').should('not.exist');
+  });
+
+  it('should not show nyt comp subscription option if enabled', () => {
+    const page = { ...livePageOne };
+    const swagIndex = page.elements.findIndex((el) => el.type === 'DSwag');
+    page.elements[swagIndex].content.offerNytComp = true;
+    cy.intercept({ method: 'GET', pathname: getEndpoint(LIVE_PAGE_DETAIL) }, { body: page, statusCode: 200 }).as(
+      'getPage'
+    );
+    cy.visit(getTestingDonationPageUrl(expectedPageSlug));
+    cy.url().should('include', EXPECTED_RP_SLUG);
+    cy.url().should('include', expectedPageSlug);
+    cy.wait('@getPage');
+
+    cy.setUpDonation('One time', '365');
+    cy.getByTestId('nyt-comp-sub').should('exist');
   });
 });
 

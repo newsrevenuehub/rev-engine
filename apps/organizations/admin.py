@@ -162,6 +162,12 @@ class RevenueProgramAdmin(RevEngineBaseAdmin, ReverseModelAdmin, AdminImageMixin
                 ),
             },
         ),
+        (
+            "Other",
+            {
+                "fields": ("allow_offer_nyt_comp",),
+            },
+        ),
     )
 
     list_display = ["name", "slug"]

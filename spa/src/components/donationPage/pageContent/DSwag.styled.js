@@ -23,11 +23,15 @@ export const ThresholdMessage = styled.p`
   font-style: italic;
 `;
 
-export const OptOut = styled.div`
+export const CheckBoxField = styled(motion.div)`
   display: flex;
   flex-direction: row;
   align-items: center;
   align-self: flex-end;
+`;
+
+export const SwagsSection = styled(motion.div)`
+  margin-top: 1rem;
 `;
 
 export const SwagsList = styled(motion.ul)`

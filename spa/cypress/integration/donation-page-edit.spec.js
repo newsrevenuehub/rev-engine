@@ -8,7 +8,7 @@ import livePage from '../fixtures/pages/live-page-1.json';
 import unpublishedPage from '../fixtures/pages/unpublished-page-1.json';
 
 // Contsants
-import { DELETE_PAGE, DRAFT_PAGE_DETAIL, PATCH_PAGE, LIST_PAGES, CONTRIBUTION_META, TEMPLATES } from 'ajax/endpoints';
+import { DELETE_PAGE, DRAFT_PAGE_DETAIL, PATCH_PAGE, LIST_PAGES, TEMPLATES } from 'ajax/endpoints';
 import { DELETE_CONFIRM_MESSAGE } from 'components/pageEditor/PageEditor';
 import { CONTENT_SLUG } from 'routes';
 import { CLEARBIT_SCRIPT_SRC } from 'hooks/useClearbit';
@@ -183,7 +183,7 @@ describe('Donation page edit', () => {
     });
   });
 
-  describe('Swag editor', () => {
+  describe.only('Swag editor', () => {
     const pageSwagElement = livePage.elements.filter((el) => el.type === 'DSwag')[0];
     before(() => {
       cy.getByTestId('edit-page-button').click();
@@ -195,7 +195,6 @@ describe('Donation page edit', () => {
     });
 
     it('should show existing swags', () => {
-      console.log('pageSwagElement', pageSwagElement);
       const swagName = pageSwagElement.content.swags[0].swagName;
       cy.getByTestId('swag-editor').getByTestId('existing-swag').contains(swagName);
     });
@@ -207,6 +206,29 @@ describe('Donation page edit', () => {
       cy.getByTestId(`remove-existing-swag-${swagName}`).click();
       cy.getByTestId('swag-editor').getByTestId('existing-swag').should('not.exist');
       cy.getByTestId('swag-name-input').should('exist');
+    });
+
+    it('should not show option to enable NYT sub if RP has not enabled it', () => {
+      expect(livePage.allow_offer_nyt_comp).to.be.false;
+      cy.getByTestId('offer-nyt-comp').should('not.exist');
+    });
+
+    it('should show option to enable NYT sub if RP has not enabled it', () => {
+      const page = { ...livePage };
+      page.allow_offer_nyt_comp = true;
+
+      cy.login('user/stripe-verified.json');
+      cy.intercept(
+        { method: 'GET', pathname: `${getEndpoint(DRAFT_PAGE_DETAIL)}**` },
+        { body: page, statusCode: 200 }
+      ).as('getPage');
+      cy.visit('edit/my/page');
+      cy.url().should('include', 'edit/my/page');
+      cy.wait('@getPage');
+
+      cy.getByTestId('edit-page-button').click();
+      cy.contains('Member benefits').click();
+      cy.getByTestId('offer-nyt-comp').should('exist');
     });
   });
 

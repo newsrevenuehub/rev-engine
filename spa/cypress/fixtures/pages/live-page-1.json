@@ -69,5 +69,6 @@
   },
   "stripe_account_id": "testing_stripe_account_id",
   "organization_country": "US",
-  "revenue_program_pk": 1
+  "revenue_program_pk": 1,
+  "allow_offer_nyt_comp": false
 }

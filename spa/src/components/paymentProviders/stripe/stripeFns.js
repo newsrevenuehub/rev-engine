@@ -85,7 +85,7 @@ function serializeForm(form) {
     This really is easier than managing all the form state in a common
     parent. Trust me.
   */
-  const booleans = ['swag_opt_out'];
+  const booleans = ['swag_opt_out', 'comp_subscription'];
   const obj = {};
   const formData = new FormData(form);
   for (const key of formData.keys()) {

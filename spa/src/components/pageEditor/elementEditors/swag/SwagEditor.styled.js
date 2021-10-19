@@ -18,6 +18,13 @@ export const OptOutDefault = styled.div`
   padding-bottom: 2rem;
 `;
 
+export const OfferNytComp = styled.div`
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  padding-bottom: 2rem;
+`;
+
 export const Checkbox = styled(MaterialCheckbox)``;
 
 export const CheckboxLabel = styled.label`

@@ -42,3 +42,16 @@ def test_parse_pi_data_for_swag_options():
     test_data["swag_opt_out"] = True
     parse_pi_data_for_swag_options(test_data)
     assert test_data["swag_opt_out"] == True
+
+
+def test_parse_pi_data_for_swag_options_comp_subscription():
+    test_data = {"comp_subscription": True}
+    parse_pi_data_for_swag_options(test_data)
+
+    # comp_subscription: True converts to "nyt" (for now...)
+    assert test_data["comp_subscription"] == "nyt"
+
+    # If comp_subscription is False, return nothing
+    del test_data["comp_subscription"]
+    parse_pi_data_for_swag_options(test_data)
+    assert "comp_subscription" not in test_data

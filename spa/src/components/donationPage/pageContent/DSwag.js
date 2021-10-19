@@ -45,6 +45,7 @@ function DSwag({ element, ...props }) {
 
   const [shouldShowBenefits, setShouldShowBenefits] = useState(true);
   const [optOut, setOptOut] = useState(element?.content?.optOutDefault);
+  const [nytCompSub, setNytCompSub] = useState(false);
 
   useEffect(() => {
     setShouldShowBenefits(
@@ -63,7 +64,7 @@ function DSwag({ element, ...props }) {
       <AnimatePresence>
         {shouldShowBenefits && (
           <S.DSwag {...S.containerSwagimation} data-testid="swag-content">
-            <S.OptOut>
+            <S.CheckBoxField>
               <S.Checkbox
                 id="opt-out"
                 data-testid="swag-opt-out"
@@ -77,19 +78,38 @@ function DSwag({ element, ...props }) {
               <S.CheckboxLabel htmlFor="opt-out">
                 Maximize my donation – I'd rather not receive member merchandise.
               </S.CheckboxLabel>
-            </S.OptOut>
+            </S.CheckBoxField>
             <AnimatePresence>
               {!optOut && (
-                <S.SwagsList {...S.containerSwagimation}>
-                  {element.content.swags.map((swag) => (
-                    <SwagItem
-                      key={swag.swagName}
-                      swag={swag}
-                      isOnlySwag={element.content.swags.length === 1}
-                      {...S.optSwagimation}
-                    />
-                  ))}
-                </S.SwagsList>
+                <S.SwagsSection>
+                  {element.content.offerNytComp && (
+                    <S.CheckBoxField>
+                      <S.Checkbox
+                        id="nyt-comp-sub"
+                        data-testid="nyt-comp-sub"
+                        type="checkbox"
+                        name="comp_subscription"
+                        color={theme.colors.primary}
+                        checked={nytCompSub}
+                        inputProps={{ 'aria-label': 'controlled' }}
+                        onChange={() => setNytCompSub(!nytCompSub)}
+                      />
+                      <S.CheckboxLabel htmlFor="nyt-comp-sub">
+                        I'd like to include a New York Times subscription
+                      </S.CheckboxLabel>
+                    </S.CheckBoxField>
+                  )}
+                  <S.SwagsList {...S.containerSwagimation}>
+                    {element.content.swags.map((swag) => (
+                      <SwagItem
+                        key={swag.swagName}
+                        swag={swag}
+                        isOnlySwag={element.content.swags.length === 1}
+                        {...S.optSwagimation}
+                      />
+                    ))}
+                  </S.SwagsList>
+                </S.SwagsSection>
               )}
             </AnimatePresence>
           </S.DSwag>
@@ -107,7 +127,7 @@ DSwag.propTypes = {
 
 DSwag.type = 'DSwag';
 DSwag.displayName = 'Member benefits';
-DSwag.description = 'Allow donors to make choices out optional swag';
+DSwag.description = 'Allow donors to make choices about optional swag';
 DSwag.required = false;
 DSwag.unique = true;
 

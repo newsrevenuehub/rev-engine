@@ -49,16 +49,16 @@ function DSwag({ element, ...props }) {
 
   useEffect(() => {
     setShouldShowBenefits(
-      getYearlyMeetsThreshold(calculateYearlyAmount(frequency, amount), element.content.swagThreshold)
+      getYearlyMeetsThreshold(calculateYearlyAmount(frequency, amount), element.content?.swagThreshold)
     );
-  }, [frequency, amount, element.content.swagThreshold]);
+  }, [frequency, amount, element.content?.swagThreshold]);
 
   return (
     <DElement label="Member benefits" {...props} data-testid="d-swag">
       {element?.content?.swagThreshold > 0 && (
         <S.ThresholdMessage>
           Give a total of {page.currency.symbol}
-          {element.content.swagThreshold} /year or more to be eligible
+          {element.content?.swagThreshold} /year or more to be eligible
         </S.ThresholdMessage>
       )}
       <AnimatePresence>
@@ -82,7 +82,7 @@ function DSwag({ element, ...props }) {
             <AnimatePresence>
               {!optOut && (
                 <S.SwagsSection>
-                  {element.content.offerNytComp && (
+                  {element.content?.offerNytComp && (
                     <S.CheckBoxField>
                       <S.Checkbox
                         id="nyt-comp-sub"
@@ -100,11 +100,11 @@ function DSwag({ element, ...props }) {
                     </S.CheckBoxField>
                   )}
                   <S.SwagsList {...S.containerSwagimation}>
-                    {element.content.swags.map((swag) => (
+                    {element.content?.swags.map((swag) => (
                       <SwagItem
                         key={swag.swagName}
                         swag={swag}
-                        isOnlySwag={element.content.swags.length === 1}
+                        isOnlySwag={element.content?.swags.length === 1}
                         {...S.optSwagimation}
                       />
                     ))}

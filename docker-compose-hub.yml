@@ -31,6 +31,7 @@ services:
       - net
     depends_on:
       - db
+      - redis
     volumes:
       - .:/code
   db:

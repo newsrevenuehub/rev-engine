@@ -48,7 +48,7 @@ describe('Routing', () => {
   });
 });
 
-describe.only('DonationPage elements', () => {
+describe('DonationPage elements', () => {
   it('should render expected rich text content', () => {
     cy.visitDonationPage();
 

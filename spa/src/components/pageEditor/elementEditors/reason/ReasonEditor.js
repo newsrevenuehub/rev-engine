@@ -70,7 +70,7 @@ function ReasonEditor() {
   };
 
   return (
-    <S.ReasonEditor data-testid="swag-editor">
+    <S.ReasonEditor data-testid="reason-editor">
       <S.ReasonsSection isExpanded={!!elementContent.askReason}>
         <S.CheckboxWrapper>
           <S.Checkbox
@@ -102,7 +102,7 @@ function ReasonEditor() {
         )}
         <AnimatePresence>
           {elementContent.askReason && (
-            <S.CreateReasons {...S.reasonsAnimation}>
+            <S.CreateReasons {...S.reasonsAnimation} data-testid="create-reasons">
               <S.ReasonsLabel>
                 {elementContent.reasons.length === 0
                   ? 'Add a reason for giving below (optional)'

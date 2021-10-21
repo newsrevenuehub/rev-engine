@@ -101,23 +101,6 @@ function StripePaymentForm({ loading, setLoading, offerPayFees }) {
   /****************************\
    * Handle Error and Success *
   \****************************/
-  // const getDataIsValid = (data) => {
-  //   page.elements.forEach((element) => {
-  //     const elementValidator = getElementValidator(element.type);
-  //     console.log('elementValidator');
-  //     if (elementValidator) {
-  //       const validationErrors = elementValidator(data, element);
-  //       if (errors) setErrors({ ...errors, ...validationErrors });
-  //     }
-  //   });
-
-  //   // console.log('dynamicElements', dynamicElements);
-  //   // console.log('page.elements', page.elements);
-
-  //   // TEMP
-  //   return false;
-  // };
-
   const handlePaymentSuccess = (pr) => {
     if (pr) pr.complete('success');
     setErrors({});

@@ -60,7 +60,7 @@ function DReason({ element, ...props }) {
               <S.SupportOptions>
                 {element.content.reasons.length > 0 && (
                   <Select
-                    testId="excited-to-support"
+                    testId="excited-to-support-picklist"
                     name="reason_for_giving"
                     selectedItem={selectedReason}
                     onSelectedItemChange={({ selectedItem }) => setSelectedReason(selectedItem)}
@@ -177,6 +177,7 @@ function TributeSelector({
       <AnimatePresence>
         {showTributeInput && (
           <S.TributeInput
+            testid="tribute-input"
             name={tributeState.isInMemoryOf ? 'in_memory_of' : 'honoree'}
             placeholder={tributeState.isInMemoryOf ? 'In memory of...' : 'In honor of...'}
             value={inputValue}
@@ -197,6 +198,7 @@ function TributeCheckbox({ value, label, name, checked, handleChange, asRadio })
     <S.CheckBoxField>
       {asRadio ? (
         <S.Radio
+          data-testid={`tribute-${value}`}
           id={value}
           checked={checked}
           onChange={handleChange}
@@ -208,15 +210,14 @@ function TributeCheckbox({ value, label, name, checked, handleChange, asRadio })
         />
       ) : (
         <S.Checkbox
+          data-testid={`tribute-${value}`}
           id={name}
-          data-testid={name}
           type="checkbox"
           name={name}
           style={{
             color: theme.colors.primary
           }}
           checked={checked}
-          // inputProps={{ 'aria-label': 'controlled' }}
           onChange={handleChange}
         />
       )}

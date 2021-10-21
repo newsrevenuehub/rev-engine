@@ -12,11 +12,10 @@ import DElement, { DynamicElementPropTypes } from 'components/donationPage/pageC
 import FormErrors from 'elements/inputs/FormErrors';
 
 function DFrequency({ element, ...props }) {
-  const { page, frequency, setFrequency, setAmount, errors, setOverrideAmount, setTotalUpdated } = usePage();
+  const { page, frequency, setFrequency, setAmount, errors, setOverrideAmount } = usePage();
 
   const handleFrequencySelected = (_, { value }) => {
     setOverrideAmount(false);
-    setTotalUpdated(true);
     setAmount(getDefaultAmountForFreq(value, page));
     setFrequency(value);
   };

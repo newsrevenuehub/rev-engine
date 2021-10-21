@@ -131,7 +131,7 @@ class Organization(IndexedTimeStampedModel):
                 self.domain_apple_verified_date = timezone.now()
                 self.save()
             except stripe.error.StripeError as stripe_error:
-                logger.warn(
+                logger.warning(
                     f"Failed to register ApplePayDomain for organization {self.name}. StripeError: {str(stripe_error)}"
                 )
 

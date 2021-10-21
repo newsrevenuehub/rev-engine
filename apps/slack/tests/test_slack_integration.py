@@ -80,8 +80,8 @@ class SlackIntegrationTest(TestCase):
         slack_manager.publish_contribution(self.contribution)
 
         # Org slack errors are warnings
-        mock_logger.warn.assert_called()
-        warning_args = mock_logger.warn.call_args.args[0]
+        mock_logger.warning.assert_called()
+        warning_args = mock_logger.warning.call_args.args[0]
         self.assertIn(self.org.name, warning_args)
         self.assertNotIn("HubSlackIntegration", warning_args)
         self.assertIn("invalid token", warning_args)
@@ -100,9 +100,9 @@ class SlackIntegrationTest(TestCase):
         slack_manager.publish_contribution(self.contribution)
 
         # Org slack errors are warnings
-        mock_logger.warn.assert_called()
+        mock_logger.warning.assert_called()
 
-        for warning_args in mock_logger.warn.call_args.args:
+        for warning_args in mock_logger.warning.call_args.args:
             self.assertNotIn("HubSlackIntegration", warning_args)
             self.assertIn(f'No such channel "{ORG_CHANNEL}" for {self.org.name}', warning_args)
 
@@ -112,7 +112,7 @@ class SlackIntegrationTest(TestCase):
         self.assertIn("HubSlackIntegration", error_args)
         self.assertIn(f'No such channel "{self.org_channel_name}" for HubSlackIntegration', error_args)
 
-    @patch("apps.slack.slack_manager.logger.warn")
+    @patch("apps.slack.slack_manager.logger.warning")
     def test_log_info_when_generic_slack_error(self, mock_warn, mock_postmessage):
         error_message = "some_other_error"
         mock_postmessage.side_effect = SlackApiError("my_slack_error", {"error": error_message})

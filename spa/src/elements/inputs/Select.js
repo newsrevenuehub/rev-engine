@@ -13,6 +13,7 @@ function Select({
   displayAccessor,
   placeholder,
   testId,
+  name,
   ...props
 }) {
   const { isOpen, getToggleButtonProps, getLabelProps, getMenuProps, highlightedIndex, getItemProps } = useSelect({
@@ -24,23 +25,33 @@ function Select({
   return (
     <BaseField labelProps={{ ...getLabelProps() }} {...props}>
       <S.SelectWrapper>
-        <S.Select type="button" {...getToggleButtonProps()} suppressRefError data-testid={testId}>
-          {(selectedItem && selectedItem[displayAccessor]) || placeholder}
-        </S.Select>
-        {isOpen && (
-          <S.List {...getMenuProps()} dropdownPosition={dropdownPosition}>
-            {items.map((item, index) => (
+        <S.Select
+          {...getToggleButtonProps()}
+          name={name}
+          data-testid={testId}
+          value={(selectedItem && displayAccessor ? selectedItem[displayAccessor] : selectedItem) || placeholder}
+        />
+
+        {/* </S.Select> */}
+
+        <S.List
+          {...getMenuProps()}
+          isOpen={isOpen}
+          data-testid={`select-dropdown-${name}`}
+          dropdownPosition={dropdownPosition}
+        >
+          {isOpen &&
+            items.map((item, index) => (
               <S.Item
                 key={`${item}${index}`}
                 highlighted={highlightedIndex === index}
                 data-testid={`select-item-${index}`}
                 {...getItemProps({ item, index })}
               >
-                {item[displayAccessor]}
+                {displayAccessor ? item[displayAccessor] : item}
               </S.Item>
             ))}
-          </S.List>
-        )}
+        </S.List>
       </S.SelectWrapper>
     </BaseField>
   );

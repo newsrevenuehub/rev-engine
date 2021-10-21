@@ -125,7 +125,7 @@ const mapQSFreqToProperFreq = {
  * @param {string} freqQs - frequency query string
  * @param {string} amountQs - amount query string
  */
-function getInitialFrequency(page, freqQs, amountQs) {
+export function getInitialFrequency(page, freqQs, amountQs) {
   // First, respond to qs if present.
   // If there's a freqQs, it's simple, just set frequency to that qs
   const freqFromQs = mapQSFreqToProperFreq[freqQs];
@@ -154,7 +154,7 @@ function getInitialFrequency(page, freqQs, amountQs) {
  * @param {object} page - page object
  * @param {string} amountQs - amount query string
  */
-function getInitialAmount(frequency, page, amountQs, setOverrideAmount) {
+export function getInitialAmount(frequency, page, amountQs, setOverrideAmount) {
   // If there's an amountQs, set it.
   if (amountQs) {
     const amountElement = page?.elements?.find((el) => el.type === 'DAmount');

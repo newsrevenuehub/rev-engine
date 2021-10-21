@@ -24,7 +24,7 @@ from apps.contributions.payment_managers import (
     PaymentProviderError,
     StripePaymentManager,
 )
-from apps.contributions.utils import get_hub_stripe_api_key
+from apps.contributions.utils import get_hub_stripe_api_key, parse_pi_data_for_swag_options
 from apps.contributions.webhooks import StripeWebhookProcessor
 from apps.emails.models import EmailTemplateError, PageEmailTemplate
 
@@ -43,6 +43,8 @@ def stripe_payment(request):
     # Grab required data from headers
     pi_data["referer"] = request.META.get("HTTP_REFERER")
     pi_data["ip"] = request.META["REMOTE_ADDR"]
+
+    parse_pi_data_for_swag_options(pi_data)
 
     # StripePaymentManager will grab the right serializer based on "interval"
     stripe_payment = StripePaymentManager(data=pi_data)
@@ -170,10 +172,10 @@ def process_stripe_webhook_view(request):
         logger.info("Constructing event.")
         event = stripe.Webhook.construct_event(payload, sig_header, settings.STRIPE_WEBHOOK_SECRET)
     except ValueError:
-        logger.warn("Invalid payload from Stripe webhook request")
+        logger.warning("Invalid payload from Stripe webhook request")
         return Response(data={"error": "Invalid payload"}, status=status.HTTP_400_BAD_REQUEST)
     except stripe.error.SignatureVerificationError:
-        logger.warn("Invalid signature on Stripe webhook request. Is STRIPE_WEBHOOK_SECRET set correctly?")
+        logger.warning("Invalid signature on Stripe webhook request. Is STRIPE_WEBHOOK_SECRET set correctly?")
         return Response(data={"error": "Invalid signature"}, status=status.HTTP_400_BAD_REQUEST)
 
     try:

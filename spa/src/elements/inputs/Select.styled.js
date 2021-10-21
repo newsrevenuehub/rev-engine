@@ -5,7 +5,7 @@ export const SelectWrapper = styled.div`
   position: relative;
 `;
 
-export const Select = styled.button`
+export const Select = styled.input`
   position: relative;
   text-align: left;
   padding: 0;
@@ -16,6 +16,7 @@ export const Select = styled.button`
 `;
 
 export const List = styled.ul`
+  display: ${(props) => (props.isOpen ? 'block' : 'None')};
   position: absolute;
   padding: 0;
   margin: 0;

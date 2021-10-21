@@ -4,6 +4,6 @@ export { default as AmountEditor } from './amount/AmountEditor';
 export { default as DonorInfoEditor } from './donorInfo/DonorInfoEditor';
 export { default as DonorAddressEditor } from './donorAddress/DonorAddressEditor';
 export { default as PaymentEditor } from './payment/PaymentEditor';
-export { default as AdditionalInfoEditor } from './additionalInfo/AdditionalInfoEditor';
 export { default as ImageEditor } from './image/ImageEditor';
 export { default as BenefitsEditor } from './benefits/BenefitsEditor';
+export { default as SwagEditor } from './swag/SwagEditor';

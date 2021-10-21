@@ -37,4 +37,9 @@ export default createGlobalStyle`
     font-size: ${(props) => props.theme.fontSizes[2]};
     font-weight: bold;
   }
+
+  input::placeholder {
+    color: ${(props) => props.theme.colors.grey[1]};
+    font-style: italic;
+  }
 `;

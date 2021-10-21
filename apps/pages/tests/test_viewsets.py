@@ -90,6 +90,8 @@ class PageViewSetTest(AbstractTestCase):
     # UPDATE
     def test_page_update_updates_page(self):
         page = self.resources[0]
+        page.revenue_program = self.rev_program
+        page.save()
         self.authenticate_user_for_resource(page)
         self.login()
         old_page_heading = page.heading
@@ -172,6 +174,8 @@ class PagePatchTest(AbstractTestCase):
         self.rev_program = RevenueProgramFactory()
         self.request_factory = APIRequestFactory()
         self.donation_page = self.resources[0]
+        self.donation_page.revenue_program = self.rev_program
+        self.donation_page.save()
         self.styles = StyleFactory()
         self.url = reverse("donationpage-detail", kwargs={"pk": self.donation_page.pk})
         self.authenticate_user_for_resource(self.donation_page)

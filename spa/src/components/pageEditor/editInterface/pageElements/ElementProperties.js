@@ -13,6 +13,7 @@ import { useEditInterfaceContext } from 'components/pageEditor/editInterface/Edi
 
 // Children
 import CircleButton from 'elements/buttons/CircleButton';
+import { NoComponentError } from 'components/donationPage/pageGetters';
 
 import * as dynamicPageElements from 'components/donationPage/pageContent/dynamicElements';
 import * as dynamicSidebarElements from 'components/donationPage/pageContent/dynamicSidebarElements';
@@ -70,7 +71,7 @@ function ElementProperties({ selectedElementType }) {
   };
 
   const handleDeleteElement = () => {
-    if (!dynamicElements[selectedElement.type].required) {
+    if (!dynamicElements[selectedElement.type]?.required) {
       const isForSidebar = selectedElementType === 'sidebar';
       const elementsCopy = isForSidebar ? [...sidebarElements] : [...elements];
       const elementsWithout = elementsCopy.filter((el) => el.uuid !== selectedElement.uuid);
@@ -79,6 +80,19 @@ function ElementProperties({ selectedElementType }) {
       setSelectedElement();
     }
   };
+
+  if (!dynamicElements[selectedElement.type]) {
+    return (
+      <>
+        <S.ElementHeading>
+          <S.DeleteButton onClick={handleDeleteElement}>
+            <S.TrashIcon icon={faTrash} />
+          </S.DeleteButton>
+        </S.ElementHeading>
+        <NoComponentError name={selectedElement.type} />
+      </>
+    );
+  }
 
   return (
     <S.ElementProperties data-testid="element-properties">

@@ -126,7 +126,7 @@ class SlackManager:
                     f'SlackApiError. No such channel "{channel}" for HubSlackIntegration. SlackError: {slack_error.response}'
                 )
             else:
-                logger.warn(f"Generic SlackApiError: {slack_error.response}")
+                logger.warning(f"Generic SlackApiError: {slack_error.response}")
 
     def send_org_message(self, channel, text, blocks, organization):
         org_client = self.get_org_client()
@@ -135,15 +135,15 @@ class SlackManager:
         except SlackApiError as slack_error:
             error_type = slack_error.response["error"]
             if error_type == "invalid_auth":
-                logger.warn(
+                logger.warning(
                     f'SlackApiError. Org "{organization.name}" has an invalid token. SlackError: {slack_error.response}'
                 )
             elif error_type == "channel_not_found":
-                logger.warn(
+                logger.warning(
                     f'SlackApiError. No such channel "{channel}" for {organization.name}. SlackError: {slack_error.response}'
                 )
             else:
-                logger.warn(
+                logger.warning(
                     f'Generic SlackApiError for Org "{organization.name}" to channel "{channel}". SlackError: {slack_error.response}'
                 )
 

@@ -141,6 +141,14 @@ class DonationPageFullDetailSerializerTest(APITestCase):
         self.assertIsNotNone(serializer.data["stripe_account_id"])
         self.assertEqual(serializer.data["stripe_account_id"], self.page.organization.stripe_account_id)
 
+    def test_not_live_context_adds_allow_offer_nyt_comp(self):
+        serializer = self.serializer(self.page, context={"live": True})
+        self.assertIsNone(serializer.data["allow_offer_nyt_comp"])
+
+        serializer = self.serializer(self.page, context={"live": False})
+        self.assertIsNotNone(serializer.data["allow_offer_nyt_comp"])
+        self.assertEqual(serializer.data["allow_offer_nyt_comp"], self.page.revenue_program.allow_offer_nyt_comp)
+
 
 class TemplateDetailSerializerTest(APITestCase):
     def setUp(self):

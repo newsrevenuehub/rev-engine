@@ -179,9 +179,6 @@ class AbstractPaymentSerializer(serializers.Serializer):
     mailing_state = serializers.CharField(max_length=80)
     mailing_country = serializers.CharField(max_length=80)
 
-    # Any additional info that should be passed through
-    reason = serializers.CharField(max_length=255, required=False, allow_blank=True)
-
     # Params/Pass-through
     sf_campaign_id = serializers.CharField(max_length=255, required=False, allow_blank=True)
     captcha_token = serializers.CharField(max_length=2550, required=False, allow_blank=True)

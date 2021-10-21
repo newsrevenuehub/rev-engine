@@ -17,6 +17,21 @@
     {"type": "DDonorInfo", "uuid": "testDonorInfo1"},
     {"type": "DDonorAddress", "uuid": "testDonorAddress1"},
     {"type": "DAdditionalInfo", "uuid": "testAdditionalInfo", "content": []},
+    {"type": "DSwag", "uuid": "testMemberBenefits", "content": {
+      "optOutDefault": false,
+      "swagThreshold": 240,
+      "swags": [
+        {
+          "swagName": "Totes Dope Tote",
+          "swagOptions": [
+            "Canvas -- blue",
+            "Canvas -- red",
+            "Recycled plastic -- multi-color",
+            "Recycled plastic -- red"
+          ]
+        }
+      ]
+    }},
     {"type": "DPayment", "uuid": "testPayment1", "content": {"offerPayFees": true, "stripe": ["card", "apple", "google", "browser"]}}
   ],
   "sidebar_elements": [
@@ -54,5 +69,6 @@
   },
   "stripe_account_id": "testing_stripe_account_id",
   "organization_country": "US",
-  "revenue_program_pk": 1
+  "revenue_program_pk": 1,
+  "allow_offer_nyt_comp": false
 }

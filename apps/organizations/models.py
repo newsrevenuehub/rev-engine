@@ -131,7 +131,7 @@ class Organization(IndexedTimeStampedModel):
                 self.domain_apple_verified_date = timezone.now()
                 self.save()
             except stripe.error.StripeError as stripe_error:
-                logger.warn(
+                logger.warning(
                     f"Failed to register ApplePayDomain for organization {self.name}. StripeError: {str(stripe_error)}"
                 )
 
@@ -260,6 +260,13 @@ class RevenueProgram(IndexedTimeStampedModel):
     # Stripe Statement descriptor
     stripe_statement_descriptor_suffix = models.CharField(
         max_length=10, blank=True, null=True, validators=[validate_statement_descriptor_suffix]
+    )
+
+    # Strange, hopefully temporary, hacky bit to accommodate one ore two particular clients' needs
+    allow_offer_nyt_comp = models.BooleanField(
+        default=False,
+        help_text="Should page authors for this Revenue Program see the option to offer their donors a comp subscription to the New York Times?",
+        verbose_name="Allow page editors to offer an NYT subscription",
     )
 
     def __str__(self):

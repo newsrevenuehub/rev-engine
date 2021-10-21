@@ -1,5 +1,6 @@
 import PropTypes from 'prop-types';
 import * as S from './DFrequency.styled';
+import { useTheme } from 'styled-components';
 
 // Context
 import { usePage } from '../DonationPage';
@@ -12,28 +13,38 @@ import DElement, { DynamicElementPropTypes } from 'components/donationPage/pageC
 import FormErrors from 'elements/inputs/FormErrors';
 
 function DFrequency({ element, ...props }) {
+  const theme = useTheme();
   const { page, frequency, setFrequency, setAmount, errors, setOverrideAmount, setTotalUpdated } = usePage();
 
-  const handleFrequencySelected = (_, { value }) => {
-    setOverrideAmount(false);
-    setTotalUpdated(true);
-    setAmount(getDefaultAmountForFreq(value, page));
-    setFrequency(value);
+  const handleFrequencySelected = (e, checked) => {
+    const value = e.target.value;
+    if (checked) {
+      setOverrideAmount(false);
+      setTotalUpdated(true);
+      setAmount(getDefaultAmountForFreq(value, page));
+      setFrequency(value);
+    }
   };
 
   return (
     <DElement label="Frequency" description="Choose a contribution type" {...props} data-testid="d-frequency">
       <S.DFrequency>
         {element?.content?.sort(frequencySort).map((freq) => (
-          <S.Radio
-            name="interval"
-            key={freq.value}
-            label={freq.displayName}
-            value={freq.value}
-            checked={frequency === freq.value}
-            onChange={handleFrequencySelected}
-            data-testid={`frequency-${freq.value}${frequency === freq.value ? '-selected' : ''}`}
-          />
+          <S.CheckBoxField>
+            <S.Radio
+              id={freq.value}
+              name="interval"
+              key={freq.value}
+              value={freq.value}
+              checked={frequency === freq.value}
+              onChange={handleFrequencySelected}
+              data-testid={`frequency-${freq.value}${frequency === freq.value ? '-selected' : ''}`}
+              style={{
+                color: theme.colors.primary
+              }}
+            />
+            <S.CheckboxLabel htmlFor={freq.value}>{freq.displayName}</S.CheckboxLabel>
+          </S.CheckBoxField>
         ))}
       </S.DFrequency>
       <FormErrors errors={errors.interval} />

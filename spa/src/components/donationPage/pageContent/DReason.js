@@ -23,15 +23,13 @@ const NO_REASON_OPT = '-- Select one --';
 const REASON_OTHER = 'Other';
 
 function DReason({ element, ...props }) {
-  // const { page, frequency, amount } = usePage();
+  const { errors } = usePage();
 
   // Form state
   const [selectedReason, setSelectedReason] = useState('');
   const [reasonOther, setReasonOther] = useState('');
   const [tributeState, setTributeState] = useState(defaultTributeState);
   const [tributeInput, setTributeInput] = useState('');
-
-  console.log('element', element);
 
   // Form control
   const handleTributeSelection = (selectedOption, value) => {
@@ -44,10 +42,6 @@ function DReason({ element, ...props }) {
       });
     }
   };
-
-  // const handleTributeInput = (key, value) => {
-  //   console.log(key, ': ', value);
-  // };
 
   const getReasons = () => {
     const reasons = [...element.content.reasons];
@@ -78,8 +72,10 @@ function DReason({ element, ...props }) {
                     <S.ReasonOtherInput
                       placeholder="What's got you excited to give?"
                       value={reasonOther}
+                      name="reason_other"
                       onChange={(e) => setReasonOther(e.target.value)}
                       maxLength={REASON_OPTION_MAX_LENGTH}
+                      errors={errors.reason_other}
                       {...S.inputAnimations}
                     />
                   )}
@@ -95,6 +91,7 @@ function DReason({ element, ...props }) {
             handleSelection={handleTributeSelection}
             inputValue={tributeInput}
             handleInputChange={(e) => setTributeInput(e.target.value)}
+            errors={errors}
           />
         </S.TributeSection>
       </S.DReason>
@@ -116,7 +113,14 @@ DReason.unique = true;
 
 export default DReason;
 
-function TributeSelector({ elementContent = {}, tributeState, handleSelection, inputValue, handleInputChange }) {
+function TributeSelector({
+  elementContent = {},
+  tributeState,
+  handleSelection,
+  inputValue,
+  handleInputChange,
+  errors
+}) {
   const showTributeInput = tributeState.isHonoree || tributeState.isInMemoryOf;
 
   return (
@@ -127,7 +131,7 @@ function TributeSelector({ elementContent = {}, tributeState, handleSelection, i
           <TributeCheckbox
             asRadio
             label="No"
-            name="reason_for_giving"
+            name="tribute_type"
             checked={!tributeState.isHonoree && !tributeState.isInMemoryOf}
             handleChange={(e) => handleSelection('', e.target.value)}
             value=""
@@ -135,18 +139,18 @@ function TributeSelector({ elementContent = {}, tributeState, handleSelection, i
           <TributeCheckbox
             asRadio
             label="Yes, in honor of..."
-            name="reason_for_giving"
+            name="tribute_type"
             checked={tributeState.isHonoree}
             handleChange={(e) => handleSelection('isHonoree', e.target.value)}
-            value="isHonoree"
+            value="type_honoree"
           />
           <TributeCheckbox
             asRadio
             label="Yes, in memory of..."
-            name="reason_for_giving"
+            name="tribute_type"
             checked={tributeState.isInMemoryOf}
             handleChange={(e) => handleSelection('isInMemoryOf', e.target.value)}
-            value="isInMemoryOf"
+            value="type_in_memory_of"
           />
         </S.BothOptions>
       )}
@@ -174,9 +178,10 @@ function TributeSelector({ elementContent = {}, tributeState, handleSelection, i
         {showTributeInput && (
           <S.TributeInput
             name={tributeState.isInMemoryOf ? 'in_memory_of' : 'honoree'}
-            placeholder="Name"
+            placeholder={tributeState.isInMemoryOf ? 'In memory of...' : 'In honor of...'}
             value={inputValue}
             onChange={handleInputChange}
+            errors={errors[tributeState.isInMemoryOf ? 'in_memory_of' : 'honoree']}
             {...S.inputAnimations}
           />
         )}

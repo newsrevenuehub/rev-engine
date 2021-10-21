@@ -34,7 +34,6 @@ function DonationPage({ page, live = false }) {
   const amountQs = useQueryString(AMOUNT_QUERYPARAM);
   const [frequency, setFrequency] = useState();
   const [amount, setAmount] = useState();
-  const [totalUpdated, setTotalUpdated] = useState(false);
   const [payFee, setPayFee] = useState(() => getInitialPayFees(page));
 
   // overrideAmount causes only the custom amount to show (initially)
@@ -73,8 +72,6 @@ function DonationPage({ page, live = false }) {
         formRef,
         amount,
         setAmount,
-        totalUpdated,
-        setTotalUpdated,
         overrideAmount,
         setOverrideAmount,
         errors,

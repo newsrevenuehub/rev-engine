@@ -25,7 +25,7 @@ class ReactAppView(TemplateView):
             try:
                 revenue_program = RevenueProgram.objects.get(slug=subdomain)
             except RevenueProgram.DoesNotExist:
-                logger.warn(f'ReactAppView failed to retrieve RevenueProgram by subdomain "{subdomain}"')
+                logger.warning(f'ReactAppView failed to retrieve RevenueProgram by subdomain "{subdomain}"')
 
             if revenue_program:
                 serializer = SocialMetaInlineSerializer(revenue_program.social_meta, context={"request": self.request})

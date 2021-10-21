@@ -14,13 +14,12 @@ import FormErrors from 'elements/inputs/FormErrors';
 
 function DFrequency({ element, ...props }) {
   const theme = useTheme();
-  const { page, frequency, setFrequency, setAmount, errors, setOverrideAmount, setTotalUpdated } = usePage();
+  const { page, frequency, setFrequency, setAmount, errors, setOverrideAmount } = usePage();
 
   const handleFrequencySelected = (e, checked) => {
     const value = e.target.value;
     if (checked) {
       setOverrideAmount(false);
-      setTotalUpdated(true);
       setAmount(getDefaultAmountForFreq(value, page));
       setFrequency(value);
     }

@@ -302,7 +302,7 @@ class StripeConfirmTest(APITestCase):
         self.post_to_confirmation(stripe_account_id=target_id)
         mock_applepay_domain_create.assert_called_once()
         # Logger should log stripe error
-        mock_logger.warn.assert_called_once_with(
+        mock_logger.warning.assert_called_once_with(
             f"Failed to register ApplePayDomain for organization {self.organization.name}. StripeError: <empty message>"
         )
         # StripeError above should not prevent everything else from working properly

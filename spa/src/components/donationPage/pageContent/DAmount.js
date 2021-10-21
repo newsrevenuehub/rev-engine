@@ -15,7 +15,7 @@ import SelectableButton from 'elements/buttons/SelectableButton';
 import FormErrors from 'elements/inputs/FormErrors';
 
 function DAmount({ element, ...props }) {
-  const { page, frequency, amount, setAmount, overrideAmount, setTotalUpdated, errors } = usePage();
+  const { page, frequency, amount, setAmount, overrideAmount, errors } = usePage();
   const [otherFocused, setOtherFocused] = useState(false);
 
   const handleOtherSelected = () => {
@@ -41,7 +41,6 @@ function DAmount({ element, ...props }) {
   }, [page, amount, frequency]);
 
   const handleAmountChange = (newAmount) => {
-    setTotalUpdated(true);
     setAmount(newAmount);
   };
 

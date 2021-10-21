@@ -172,10 +172,10 @@ def process_stripe_webhook_view(request):
         logger.info("Constructing event.")
         event = stripe.Webhook.construct_event(payload, sig_header, settings.STRIPE_WEBHOOK_SECRET)
     except ValueError:
-        logger.warn("Invalid payload from Stripe webhook request")
+        logger.warning("Invalid payload from Stripe webhook request")
         return Response(data={"error": "Invalid payload"}, status=status.HTTP_400_BAD_REQUEST)
     except stripe.error.SignatureVerificationError:
-        logger.warn("Invalid signature on Stripe webhook request. Is STRIPE_WEBHOOK_SECRET set correctly?")
+        logger.warning("Invalid signature on Stripe webhook request. Is STRIPE_WEBHOOK_SECRET set correctly?")
         return Response(data={"error": "Invalid signature"}, status=status.HTTP_400_BAD_REQUEST)
 
     try:

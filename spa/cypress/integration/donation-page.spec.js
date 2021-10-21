@@ -48,7 +48,7 @@ describe('Routing', () => {
   });
 });
 
-describe.only('DonationPage elements', () => {
+describe('DonationPage elements', () => {
   it('should render expected rich text content', () => {
     cy.visitDonationPage();
 
@@ -188,6 +188,42 @@ describe.only('DonationPage elements', () => {
 
     cy.setUpDonation('One time', '365');
     cy.getByTestId('nyt-comp-sub').should('exist');
+  });
+});
+
+describe('Reason for Giving element', () => {
+  before(() => {
+    cy.visitDonationPage();
+  });
+
+  it('should render the Reason for Giving element', () => {
+    cy.getByTestId('d-reason').should('exist');
+  });
+
+  it('should render picklist with options', () => {
+    cy.getByTestId('excited-to-support-picklist').should('exist');
+    cy.getByTestId('excited-to-support-picklist').click();
+    cy.getByTestId('select-item-1').click();
+  });
+
+  it('should not show "honoree/in_memory_of" input if "No" is selected', () => {
+    // tribute_type "No" has value "", hense `tribute-""`.
+    cy.getByTestId('tribute-')
+      .get('input')
+      .then(($input) => {
+        cy.log($input);
+        expect($input).to.be.checked;
+      });
+
+    cy.getByTestId('tribute-input').should('not.exist');
+  });
+
+  it('should show tribute input if honoree or in_memory_of is selected', () => {
+    cy.getByTestId('tribute-type_honoree').click();
+    cy.getByTestId('tribute-input').should('exist');
+
+    cy.getByTestId('tribute-type_in_memory_of').click();
+    cy.getByTestId('tribute-input').should('exist');
   });
 });
 

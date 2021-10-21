@@ -183,7 +183,7 @@ describe('Donation page edit', () => {
     });
   });
 
-  describe.only('Swag editor', () => {
+  describe('Swag editor', () => {
     const pageSwagElement = livePage.elements.filter((el) => el.type === 'DSwag')[0];
     before(() => {
       cy.getByTestId('edit-page-button').click();
@@ -497,7 +497,7 @@ describe('Template from page', () => {
     cy.getByTestId('clone-page-button').click({ force: true });
     cy.getByTestId('template-create-modal').should('exist');
   });
-  it('should show make request with page pk in body when tepmlate saved', () => {
+  it('should show make request with page pk in body when template saved', () => {
     cy.getByTestId('clone-page-button').click({ force: true });
     cy.getByTestId('template-create-modal').should('exist');
     cy.intercept({
@@ -511,5 +511,42 @@ describe('Template from page', () => {
       expect(request.body).to.have.property('name');
       expect(request.body.name).to.equal(livePage.name);
     });
+  });
+});
+
+describe('ReasonEditor', () => {
+  before(() => {
+    cy.login('user/stripe-verified.json');
+    cy.intercept(
+      { method: 'GET', pathname: getEndpoint(DRAFT_PAGE_DETAIL) },
+      { fixture: 'pages/live-page-1', statusCode: 200 }
+    ).as('getPageDetail');
+    cy.visit('edit/my/page');
+    cy.url().should('include', 'edit/my/page');
+    cy.wait('@getPageDetail');
+    cy.getByTestId('edit-page-button').click();
+    cy.contains('Reason for Giving').click();
+  });
+
+  it('should render the ReasonEditor', () => {
+    cy.getByTestId('reason-editor').should('exist');
+  });
+
+  it('should show the three "ask-" checkboxes', () => {
+    cy.getByTestId('ask-reason').should('exist');
+    cy.getByTestId('ask-honoree').should('exist');
+    cy.getByTestId('ask-in-memory-of').should('exist');
+  });
+
+  it('should only show reason for giving options if ask-reason is checked', () => {
+    cy.getByTestId('ask-reason')
+      .get('input')
+      .then(($input) => {
+        expect($input).to.be.checked;
+      });
+    cy.getByTestId('create-reasons').should('exist');
+
+    cy.getByTestId('ask-reason').click();
+    cy.getByTestId('create-reasons').should('not.exist');
   });
 });

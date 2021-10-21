@@ -183,6 +183,14 @@ class AbstractPaymentSerializer(serializers.Serializer):
     sf_campaign_id = serializers.CharField(max_length=255, required=False, allow_blank=True)
     captcha_token = serializers.CharField(max_length=2550, required=False, allow_blank=True)
 
+    # Tribute/Reason for Giving
+    reason_for_giving = serializers.CharField(max_length=255, required=False, allow_blank=True)
+    reason_other = serializers.CharField(max_length=255, required=False, allow_blank=True)
+
+    tribute_type = serializers.CharField(max_length=255, required=False, allow_blank=True)
+    honoree = serializers.CharField(max_length=255, required=False, allow_blank=True)
+    in_memory_of = serializers.CharField(max_length=255, required=False, allow_blank=True)
+
     # Request metadata
     ip = serializers.IPAddressField()
     referer = serializers.URLField()
@@ -211,6 +219,29 @@ class AbstractPaymentSerializer(serializers.Serializer):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields["amount"].error_messages["invalid"] = "Enter a valid amount"
+
+    def _validate_reason_for_giving(self, data):
+        """
+        If 'reason_for_giving' is "Other", then 'reason_other' may not be blank.
+        """
+        if data.get("reason_for_giving") == "Other" and not data.get("reason_other"):
+            raise serializers.ValidationError({"reason_other": "This field may not be blank"})
+
+    def _validate_tribute(self, data):
+        """
+        If 'tribute_type' is "type_honoree", then 'honoree' field may not be blank.
+        If 'tribute_type' is "type_in_memory_of", then 'in_memory_of' field may not be blank.
+        """
+        if data.get("tribute_type") == "type_honoree" and not data.get("honoree"):
+            raise serializers.ValidationError({"honoree": "This field may not be blank"})
+
+        if data.get("tribute_type") == "type_in_memory_of" and not data.get("in_memory_of"):
+            raise serializers.ValidationError({"in_memory_of": "This field may not be blank"})
+
+    def validate(self, data):
+        self._validate_reason_for_giving(data)
+        self._validate_tribute(data)
+        return data
 
 
 class StripeOneTimePaymentSerializer(AbstractPaymentSerializer):

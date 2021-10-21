@@ -35,6 +35,11 @@ export const BothOptions = styled.div`
   & > div:not(:last-child) {
     margin-right: 2rem;
   }
+
+  @media (${(props) => props.theme.breakpoints.phoneOnly}) {
+    flex-direction: column;
+    margin: 0;
+  }
 `;
 
 export const SingleOption = styled.div``;
@@ -43,8 +48,8 @@ export const CheckBoxField = styled(motion.div)`
   display: flex;
   flex-direction: row;
   align-items: center;
-  align-self: flex-end;
 `;
+
 export const Checkbox = styled(MaterialCheckbox)``;
 
 export const Radio = styled(MaterialRadio)``;

@@ -1,26 +1,29 @@
 import styled from 'styled-components';
-import { Radio as SemanticRadio } from 'semantic-ui-react';
+import MaterialRadio from '@material-ui/core/Radio';
 
 export const DFrequency = styled.ul`
-  padding: 0;
-`;
+  display: flex;
+  flex-direction: row;
 
-const RADIO_SIZE = '25px';
-export const Radio = styled(SemanticRadio)`
-  line-height: ${RADIO_SIZE} !important;
-
-  &:not(:last-child) {
+  & > div:not(:last-child) {
     margin-right: 2rem;
   }
 
-  & label::before {
-    height: ${RADIO_SIZE} !important;
-    width: ${RADIO_SIZE} !important;
+  @media (${(props) => props.theme.breakpoints.phoneOnly}) {
+    flex-direction: column;
+    margin: 0;
   }
+`;
 
-  & label::after {
-    height: ${RADIO_SIZE} !important;
-    width: ${RADIO_SIZE} !important;
-    background-color: ${(props) => props.theme.pageColorPrimary} !important;
-  }
+export const Radio = styled(MaterialRadio)``;
+
+export const CheckBoxField = styled.div`
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+`;
+
+export const CheckboxLabel = styled.label`
+  font-size: 12px;
+  font-style: italic;
 `;

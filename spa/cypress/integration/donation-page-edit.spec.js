@@ -183,7 +183,7 @@ describe('Donation page edit', () => {
     });
   });
 
-  describe.only('Swag editor', () => {
+  describe('Swag editor', () => {
     const pageSwagElement = livePage.elements.filter((el) => el.type === 'DSwag')[0];
     before(() => {
       cy.getByTestId('edit-page-button').click();

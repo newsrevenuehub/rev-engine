@@ -4,13 +4,14 @@ import * as S from './DonationPage.styled';
 // Hooks
 import useClearbit from 'hooks/useClearbit';
 
-// Util
+// Utils
 import * as getters from 'components/donationPage/pageGetters';
 import { getDefaultAmountForFreq } from 'components/donationPage/pageContent/DAmount';
 import { frequencySort } from 'components/donationPage/pageContent/DFrequency';
 
 // Hooks
 import useQueryString from 'hooks/useQueryString';
+import useErrorFocus from 'hooks/useErrorFocus';
 
 // Children
 import DonationPageSidebar from 'components/donationPage/DonationPageSidebar';
@@ -25,7 +26,7 @@ const AMOUNT_QUERYPARAM = process.env.REACT_APP_AMOUNT_QUERYPARAM || 'amount';
 
 const DonationPageContext = createContext({});
 
-function DonationPage({ page, stripeAccountId, live = false }) {
+function DonationPage({ page, live = false }) {
   const formRef = useRef();
 
   const salesForceQS = useQueryString(SALESFORCE_CAMPAIGN_ID_QUERYPARAM);
@@ -39,6 +40,9 @@ function DonationPage({ page, stripeAccountId, live = false }) {
   const [overrideAmount, setOverrideAmount] = useState(false);
   const [errors, setErrors] = useState({});
   const [salesforceCampaignId, setSalesforceCampaignId] = useState();
+
+  // Focus the first input on the page that has an error
+  useErrorFocus(formRef, errors);
 
   // initialize clearbit.js
   useClearbit(live);
@@ -61,7 +65,6 @@ function DonationPage({ page, stripeAccountId, live = false }) {
     <DonationPageContext.Provider
       value={{
         page,
-        stripeAccountId,
         frequency,
         setFrequency,
         payFee,
@@ -87,7 +90,7 @@ function DonationPage({ page, stripeAccountId, live = false }) {
                 <form ref={formRef} data-testid="donation-page-form">
                   <S.PageElements>
                     {(!live && !page?.elements) ||
-                      (page?.elements.length === 0 && (
+                      (page?.elements?.length === 0 && (
                         <S.NoElements>Open the edit interface to start adding content</S.NoElements>
                       ))}
                     {page?.elements?.map((element) => getters.getDynamicElement(element, live))}
@@ -122,7 +125,7 @@ const mapQSFreqToProperFreq = {
  * @param {string} freqQs - frequency query string
  * @param {string} amountQs - amount query string
  */
-function getInitialFrequency(page, freqQs, amountQs) {
+export function getInitialFrequency(page, freqQs, amountQs) {
   // First, respond to qs if present.
   // If there's a freqQs, it's simple, just set frequency to that qs
   const freqFromQs = mapQSFreqToProperFreq[freqQs];
@@ -151,7 +154,7 @@ function getInitialFrequency(page, freqQs, amountQs) {
  * @param {object} page - page object
  * @param {string} amountQs - amount query string
  */
-function getInitialAmount(frequency, page, amountQs, setOverrideAmount) {
+export function getInitialAmount(frequency, page, amountQs, setOverrideAmount) {
   // If there's an amountQs, set it.
   if (amountQs) {
     const amountElement = page?.elements?.find((el) => el.type === 'DAmount');

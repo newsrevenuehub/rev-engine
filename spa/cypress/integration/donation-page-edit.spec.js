@@ -8,7 +8,7 @@ import livePage from '../fixtures/pages/live-page-1.json';
 import unpublishedPage from '../fixtures/pages/unpublished-page-1.json';
 
 // Contsants
-import { DELETE_PAGE, FULL_PAGE, PATCH_PAGE, LIST_PAGES, CONTRIBUTION_META } from 'ajax/endpoints';
+import { DELETE_PAGE, DRAFT_PAGE_DETAIL, PATCH_PAGE, LIST_PAGES, TEMPLATES } from 'ajax/endpoints';
 import { DELETE_CONFIRM_MESSAGE } from 'components/pageEditor/PageEditor';
 import { CONTENT_SLUG } from 'routes';
 import { CLEARBIT_SCRIPT_SRC } from 'hooks/useClearbit';
@@ -17,7 +17,7 @@ describe('Donation page edit', () => {
   before(() => {
     cy.login('user/stripe-verified.json');
     cy.intercept(
-      { method: 'GET', pathname: `${getEndpoint(FULL_PAGE)}**` },
+      { method: 'GET', pathname: `${getEndpoint(DRAFT_PAGE_DETAIL)}**` },
       { fixture: 'pages/live-page-1', statusCode: 200 }
     ).as('getPage');
     cy.visit('edit/my/page');
@@ -29,6 +29,7 @@ describe('Donation page edit', () => {
     cy.getByTestId('preview-page-button');
     cy.getByTestId('edit-page-button');
     cy.getByTestId('save-page-button');
+    cy.getByTestId('clone-page-button');
     cy.getByTestId('delete-page-button');
   });
 
@@ -182,6 +183,55 @@ describe('Donation page edit', () => {
     });
   });
 
+  describe('Swag editor', () => {
+    const pageSwagElement = livePage.elements.filter((el) => el.type === 'DSwag')[0];
+    before(() => {
+      cy.getByTestId('edit-page-button').click();
+      cy.contains('Member benefits').click();
+    });
+
+    it('should render the swag editor', () => {
+      cy.getByTestId('swag-editor').should('exist');
+    });
+
+    it('should show existing swags', () => {
+      const swagName = pageSwagElement.content.swags[0].swagName;
+      cy.getByTestId('swag-editor').getByTestId('existing-swag').contains(swagName);
+    });
+
+    // Update me when we increase this limit!
+    it('should only show add-option if there is fewer than 1 existing swag', () => {
+      const swagName = pageSwagElement.content.swags[0].swagName;
+      cy.getByTestId('swag-name-input').should('not.exist');
+      cy.getByTestId(`remove-existing-swag-${swagName}`).click();
+      cy.getByTestId('swag-editor').getByTestId('existing-swag').should('not.exist');
+      cy.getByTestId('swag-name-input').should('exist');
+    });
+
+    it('should not show option to enable NYT sub if RP has not enabled it', () => {
+      expect(livePage.allow_offer_nyt_comp).to.be.false;
+      cy.getByTestId('offer-nyt-comp').should('not.exist');
+    });
+
+    it('should show option to enable NYT sub if RP has not enabled it', () => {
+      const page = { ...livePage };
+      page.allow_offer_nyt_comp = true;
+
+      cy.login('user/stripe-verified.json');
+      cy.intercept(
+        { method: 'GET', pathname: `${getEndpoint(DRAFT_PAGE_DETAIL)}**` },
+        { body: page, statusCode: 200 }
+      ).as('getPage');
+      cy.visit('edit/my/page');
+      cy.url().should('include', 'edit/my/page');
+      cy.wait('@getPage');
+
+      cy.getByTestId('edit-page-button').click();
+      cy.contains('Member benefits').click();
+      cy.getByTestId('offer-nyt-comp').should('exist');
+    });
+  });
+
   describe('Validations', () => {
     it('should render an alert with a list of missing required elements', () => {
       const missingElementType = 'DPayment';
@@ -189,7 +239,7 @@ describe('Donation page edit', () => {
 
       // Remove element from elements list and set as fixture
       page.elements = page.elements.filter((el) => el.type !== missingElementType);
-      cy.intercept({ method: 'GET', pathname: getEndpoint(FULL_PAGE) }, { body: page, statusCode: 200 }).as(
+      cy.intercept({ method: 'GET', pathname: getEndpoint(DRAFT_PAGE_DETAIL) }, { body: page, statusCode: 200 }).as(
         'getPageDetail'
       );
       cy.login('user/stripe-verified.json');
@@ -219,7 +269,7 @@ describe('Donation page edit', () => {
 
     it('should open appropriate tab for error and scroll to first error', () => {
       cy.intercept(
-        { method: 'GET', pathname: getEndpoint(FULL_PAGE) },
+        { method: 'GET', pathname: getEndpoint(DRAFT_PAGE_DETAIL) },
         { fixture: 'pages/unpublished-page-1.json' }
       ).as('getPageDetail');
       cy.login('user/stripe-verified.json');
@@ -248,13 +298,36 @@ describe('Donation page edit', () => {
       cy.getByTestId('edit-interface').should('exist');
       cy.getByTestId('errors-Logo link').contains(expectedErrorMessage);
     });
+
+    it('should catch missing elements and an element that has not been configured.', () => {
+      cy.intercept(
+        { method: 'GET', pathname: getEndpoint(DRAFT_PAGE_DETAIL) },
+        { fixture: 'pages/live-page-element-validation.json' }
+      ).as('getPageDetailModified');
+      cy.login('user/stripe-verified.json');
+      cy.visit('edit/my/page');
+      cy.wait('@getPageDetailModified');
+      // Need to fake an update to the page to enable save
+      cy.getByTestId('edit-page-button').click();
+      cy.contains('Rich text').click();
+
+      // Accept changes
+      cy.getByTestId('keep-element-changes-button').click();
+
+      // Save changes
+      cy.getByTestId('save-page-button').click();
+      cy.getByTestId('missing-elements-alert').should('exist').contains('Payment');
+      cy.getByTestId('missing-elements-alert').contains('Payment');
+      cy.getByTestId('missing-elements-alert').contains('Donation frequency');
+      cy.getByTestId('missing-elements-alert').contains('Donation amount');
+    });
   });
 
   describe('Edit interface: Setup', () => {
     before(() => {
       cy.login('user/stripe-verified.json');
       cy.intercept(
-        { method: 'GET', pathname: getEndpoint(FULL_PAGE) },
+        { method: 'GET', pathname: getEndpoint(DRAFT_PAGE_DETAIL) },
         { fixture: 'pages/live-page-1', statusCode: 200 }
       ).as('getPageDetail');
       cy.visit('edit/my/page');
@@ -300,7 +373,7 @@ describe('Donation page edit', () => {
     before(() => {
       cy.login('user/stripe-verified.json');
       cy.intercept(
-        { method: 'GET', pathname: getEndpoint(FULL_PAGE) },
+        { method: 'GET', pathname: getEndpoint(DRAFT_PAGE_DETAIL) },
         { fixture: 'pages/live-page-1', statusCode: 200 }
       ).as('getPageDetail');
       cy.visit('edit/my/page');
@@ -354,7 +427,7 @@ describe('Donation page delete', () => {
   });
   it('should delete an unpublished page when delete button is pushed', () => {
     cy.intercept(
-      { method: 'GET', pathname: getEndpoint(FULL_PAGE) },
+      { method: 'GET', pathname: getEndpoint(DRAFT_PAGE_DETAIL) },
       { fixture: 'pages/unpublished-page-1', statusCode: 200 }
     ).as('getPage');
     cy.visit('edit/my/page');
@@ -368,7 +441,7 @@ describe('Donation page delete', () => {
   });
   it('should show a confirmation modal and delete a published page when delete button is pushed', () => {
     cy.intercept(
-      { method: 'GET', pathname: getEndpoint(FULL_PAGE) },
+      { method: 'GET', pathname: getEndpoint(DRAFT_PAGE_DETAIL) },
       { fixture: 'pages/live-page-1', statusCode: 200 }
     ).as('getPage');
     cy.visit('edit/my/page');
@@ -384,47 +457,59 @@ describe('Donation page delete', () => {
   });
 });
 
-describe('Additional Info Setup', () => {
+describe('Page load side effects', () => {
   before(() => {
     cy.login('user/stripe-verified.json');
     cy.intercept(
-      { method: 'GET', pathname: getEndpoint(FULL_PAGE) },
+      { method: 'GET', pathname: getEndpoint(DRAFT_PAGE_DETAIL) },
       { fixture: 'pages/live-page-1', statusCode: 200 }
-    ).as('getPage');
-    cy.intercept(
-      { method: 'GET', pathname: getEndpoint(CONTRIBUTION_META) },
-      { fixture: 'donations/contribution-metadata.json', statusCode: 200 }
-    ).as('getContributionMeta');
+    ).as('getPageDetail');
     cy.visit('edit/my/page');
     cy.url().should('include', 'edit/my/page');
-    return cy.wait(['@getPage', '@getContributionMeta']);
+    cy.wait('@getPageDetail');
+  });
+  it('should NOT contain clearbit.js script in body', () => {
+    cy.get('head').find(`script[src*="${CLEARBIT_SCRIPT_SRC}"]`).should('have.length', 0);
+  });
+});
+
+describe('Template from page', () => {
+  beforeEach(() => {
+    cy.login('user/stripe-verified.json');
+    cy.intercept(
+      { method: 'GET', pathname: getEndpoint(DRAFT_PAGE_DETAIL) },
+      { fixture: 'pages/live-page-1', statusCode: 200 }
+    ).as('getPageDetail');
+    cy.visit('edit/my/page');
+    cy.url().should('include', 'edit/my/page');
+    cy.wait('@getPageDetail');
   });
 
-  it('additional-info-applied should be empty', () => {
+  it('should show warning if page edits are unsaved', () => {
     cy.getByTestId('edit-page-button').click();
-    cy.getByTestId('layout-tab').click();
-    cy.getByTestId('edit-interface-item').contains('Additional').click();
-    cy.getByTestId('additional-info-applied').should('exist').find('li').should('have.length', 0);
+    cy.contains('Rich text').click({ force: true });
+    cy.getByTestId('keep-element-changes-button').click({ force: true });
+    cy.getByTestId('clone-page-button').click({ force: true });
+    cy.getByTestId('confirmation-modal').should('exist');
   });
 
-  it('should have two items available to add', () => {
-    cy.get('#downshift-1-toggle-button').click();
-    cy.get('#downshift-1-menu').find('li').should('have.length', 2);
-    // Cleanup
-    cy.get('#downshift-1-toggle-button').click();
+  it('should show template creation modal if continue is clicked', () => {
+    cy.getByTestId('clone-page-button').click({ force: true });
+    cy.getByTestId('template-create-modal').should('exist');
   });
-
-  it('click on one should add to additional-applied-info and remove chosen from dropdown', () => {
-    cy.get('#downshift-1-toggle-button').click();
-    cy.get('#downshift-1-menu').find('li').first().contains('In Honor of').click();
-    cy.getByTestId('additional-info-applied').should('exist').contains('In Honor of');
-    cy.get('#downshift-1-toggle-button').click();
-    cy.get('#downshift-1-menu').find('li').should('have.length', 1);
-  });
-
-  describe('Page load side effects', () => {
-    it('should NOT contain clearbit.js script in body', () => {
-      cy.get('head').find(`script[src*="${CLEARBIT_SCRIPT_SRC}"]`).should('have.length', 0);
+  it('should show make request with page pk in body when tepmlate saved', () => {
+    cy.getByTestId('clone-page-button').click({ force: true });
+    cy.getByTestId('template-create-modal').should('exist');
+    cy.intercept({
+      method: 'POST',
+      pathname: getEndpoint(TEMPLATES)
+    }).as('createTemplate');
+    cy.getByTestId('save-template-button').click();
+    cy.wait('@createTemplate').then(({ request }) => {
+      expect(request.body).to.have.property('page_pk');
+      expect(request.body.page_pk).to.equal(livePage.id);
+      expect(request.body).to.have.property('name');
+      expect(request.body.name).to.equal(livePage.name);
     });
   });
 });

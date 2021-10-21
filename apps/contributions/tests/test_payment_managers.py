@@ -76,8 +76,11 @@ class StripePaymentManagerAbstractTestCase(APITestCase):
             "amount": self.amount,
             "reason": "Testing",
             "revenue_program_slug": self.revenue_program.slug,
+            "statement_descriptor_suffix": None,
             "payment_method_id": "test_payment_method_id",
             "donation_page_slug": self.page.slug,
+            "currency": "usd",
+            "organization_country": "us",
             "ip": faker.ipv4(),
             "referer": faker.url(),
         }
@@ -202,6 +205,7 @@ class StripeOneTimePaymentManagerTest(StripePaymentManagerAbstractTestCase):
             stripe_account=self.organization.stripe_account_id,
             capture_method="manual",
             receipt_email=data["email"],
+            statement_descriptor_suffix=self.revenue_program.stripe_statement_descriptor_suffix,
             metadata=pm.bundle_metadata(pm.data, ContributionMetadata.ProcessorObjects.PAYMENT),
         )
         # New contribution is created...
@@ -238,6 +242,7 @@ class StripeOneTimePaymentManagerTest(StripePaymentManagerAbstractTestCase):
             stripe_account=self.organization.stripe_account_id,
             capture_method="automatic",
             receipt_email=data["email"],
+            statement_descriptor_suffix=self.revenue_program.stripe_statement_descriptor_suffix,
             metadata=pm.bundle_metadata(pm.data, ContributionMetadata.ProcessorObjects.PAYMENT),
         )
         # New contribution is created...

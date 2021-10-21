@@ -7,11 +7,8 @@ export const CONTENT_SLUG = DASHBOARD_SLUG + '/content';
 export const EDITOR_ROUTE = '/edit';
 export const EDITOR_ROUTE_REV = EDITOR_ROUTE + '/:revProgramSlug';
 export const EDITOR_ROUTE_PAGE = EDITOR_ROUTE + '/:revProgramSlug/:pageSlug';
-export const REV_PROGRAM_SLUG = '/:revProgramSlug';
-export const DONATION_PAGE_SLUG = '/:revProgramSlug/:pageSlug';
+export const DONATION_PAGE_SLUG = '/:pageSlug';
 export const THANK_YOU_SLUG = '/thank-you';
-
-export const REV_PROGRAM_CREATE_SLUG = '/this-is-a-placeholder';
 
 // Contributor
 export const CONTRIBUTOR_ENTRY = '/contributor';

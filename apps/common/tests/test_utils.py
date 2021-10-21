@@ -1,15 +1,16 @@
 import random
-from datetime import date, timedelta
+from datetime import timedelta
 from io import BytesIO
 
 from django.contrib.messages.middleware import MessageMiddleware
 from django.contrib.sessions.middleware import SessionMiddleware
 from django.core.files.images import ImageFile
+from django.test import RequestFactory, override_settings
 
 import PIL.Image
 from faker import Faker
 
-from apps.common.utils import normalize_slug
+from apps.common.utils import get_subdomain_from_request, normalize_slug
 
 
 DEFAULT_MAX_SLUG_LENGTH = 50
@@ -75,3 +76,23 @@ def get_random_jpg_filename():
     fake = Faker()
     Faker.seed(random.randint(1, 10000000))
     return f"{fake.word()}.jpg"
+
+
+test_domain = ".test.org"
+
+
+@override_settings(ALLOWED_HOSTS=[test_domain])
+def test_get_subdomain_from_request():
+    factory = RequestFactory()
+    request = factory.get("/")
+
+    # URL with subdomain returns subdomain
+    target_subdomain = "my-subby"
+    request.META["HTTP_HOST"] = f"{target_subdomain}{test_domain}"
+    resultant_subdomain = get_subdomain_from_request(request)
+    assert resultant_subdomain == target_subdomain
+
+    # URL without subdomain returns nothing
+    request.META["HTTP_HOST"] = "test.org"
+    no_subdomain = get_subdomain_from_request(request)
+    assert not no_subdomain

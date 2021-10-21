@@ -3,7 +3,8 @@ import styled from 'styled-components';
 export const AddPageModal = styled.div`
   display: flex;
   flex-direction: column;
-  max-height: 80vh;
+  max-height: 90vh;
+  overflow-y: auto;
   background: ${(props) => props.theme.colors.paneBackground};
   border-radius: ${(props) => props.theme.radii[0]};
 `;
@@ -13,7 +14,9 @@ export const ModalTitle = styled.h2`
   padding: 2rem 4rem 0;
 `;
 
-export const PageForm = styled.form`
+export const PageForm = styled.form``;
+
+export const FormFields = styled.div`
   flex: 1;
   overflow-y: auto;
   padding: 2rem 4rem;

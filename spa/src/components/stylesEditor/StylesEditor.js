@@ -222,14 +222,14 @@ function StylesEditor({ styles, setStyles, handleKeepChanges, handleDiscardChang
           onClick={handleSave}
           icon={faSave}
           loading={loading}
-          type="neutral"
+          buttonType="neutral"
           data-testid="save-styles-button"
         />
         <CircleButton
           onClick={handleDiscard}
           icon={faTimes}
           loading={loading}
-          type="neutral"
+          buttonType="neutral"
           data-testid="discard-styles-button"
         />
         {isUpdate && (
@@ -237,7 +237,7 @@ function StylesEditor({ styles, setStyles, handleKeepChanges, handleDiscardChang
             onClick={handleDelete}
             icon={faTrash}
             loading={loading}
-            type="caution"
+            buttonType="caution"
             data-testid="discard-styles-button"
           />
         )}

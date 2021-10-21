@@ -28,6 +28,6 @@ function getComponentForElement(element, live) {
   return <El element={element} key={element.uuid} live={live} />;
 }
 
-function NoComponentError({ name }) {
+export function NoComponentError({ name }) {
   return <ElementError>Missing component defintion for "{name}"</ElementError>;
 }

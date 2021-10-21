@@ -1,6 +1,9 @@
 import { useEffect, useState } from 'react';
 import * as S from './AmountEditor.styled';
 
+// Util
+import validateInputPositiveFloat from 'utilities/validateInputPositiveFloat';
+
 // Context
 import { useEditInterfaceContext } from 'components/pageEditor/editInterface/EditInterface';
 
@@ -22,6 +25,10 @@ function AmountEditor() {
       setFrequencies(pageFreqs?.content);
     }
   }, [page, updatedPage]);
+
+  const handleNewAmountsChange = (frequency, value) => {
+    if (validateInputPositiveFloat(value)) setNewAmounts({ ...newAmounts, [frequency]: value });
+  };
 
   const addAmount = ({ value: freq }) => {
     const newAmount = newAmounts[freq];
@@ -102,9 +109,8 @@ function AmountEditor() {
                 </S.AmountsList>
                 <S.AmountInputGroup>
                   <S.AmountInput
-                    type="number"
                     value={newAmounts[freq.value] || ''}
-                    onChange={(e) => setNewAmounts({ ...newAmounts, [freq.value]: e.target.value })}
+                    onChange={(e) => handleNewAmountsChange(freq.value, e.target.value)}
                     min="0"
                     onKeyUp={(e) => handleKeyUp(e, freq)}
                     data-testid="amount-input"

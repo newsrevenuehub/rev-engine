@@ -1,6 +1,6 @@
 import { TOKEN } from 'ajax/endpoints';
-import { getEndpoint } from './util';
-import { FULL_PAGE, STRIPE_PAYMENT, CONTRIBUTIONS } from 'ajax/endpoints';
+import { getEndpoint, getTestingDonationPageUrl, EXPECTED_RP_SLUG } from './util';
+import { LIVE_PAGE_DETAIL, STRIPE_PAYMENT, CONTRIBUTIONS } from 'ajax/endpoints';
 import { DEFAULT_RESULTS_ORDERING } from 'components/donations/DonationsTable';
 import { ApiResourceList } from '../support/restApi';
 import donationsData from '../fixtures/donations/18-results.json';
@@ -21,33 +21,17 @@ Cypress.Commands.add('login', (userFixture) => {
 
 Cypress.Commands.add('visitDonationPage', () => {
   cy.intercept(
-    { method: 'GET', pathname: getEndpoint(FULL_PAGE) },
+    { method: 'GET', pathname: getEndpoint(LIVE_PAGE_DETAIL) },
     { fixture: 'pages/live-page-1', statusCode: 200 }
   ).as('getPageDetail');
-  cy.visit('/revenue-program-slug/page-slug');
-  cy.url().should('include', '/revenue-program-slug/page-slug');
+  cy.visit(getTestingDonationPageUrl('my-page'));
+  cy.url().should('include', EXPECTED_RP_SLUG);
+  cy.url().should('include', 'my-page');
   cy.wait('@getPageDetail');
-});
-
-Cypress.Commands.add('iframeLoaded', { prevSubject: 'element' }, (iframe) => {
-  const contentWindow = iframe.prop('contentWindow');
-  return new Promise((resolve) => {
-    if (contentWindow && contentWindow.document.readyState === 'complete') {
-      resolve(contentWindow);
-    } else {
-      iframe.on('load', () => {
-        resolve(contentWindow);
-      });
-    }
-  });
 });
 
 Cypress.Commands.add('getInDocument', { prevSubject: 'document' }, (document, selector) =>
   Cypress.$(selector, document)
-);
-
-Cypress.Commands.add('getWithinIframe', (targetElement) =>
-  cy.get('iframe').iframeLoaded().its('document').getInDocument(targetElement)
 );
 
 Cypress.Commands.add('interceptDonation', () => {
@@ -69,10 +53,32 @@ Cypress.Commands.add('setUpDonation', (frequency, amount) => {
 });
 
 Cypress.Commands.add('makeDonation', () => {
-  cy.getWithinIframe('[name="cardnumber"]').type('4242424242424242');
-  cy.getWithinIframe('[name="exp-date"]').type('1232');
-  cy.getWithinIframe('[name="cvc"]').type('123');
-  cy.getByTestId('donation-submit').click();
+  return cy
+    .get('iframe')
+    .should((iframe) => {
+      // these inputs asynchronously render on the iframed Stripe element,
+      // and we need to ensure that all three exist in the iframe before
+      // moving on to enter values in inputs and submit the form.
+      expect(iframe.contents().find('[name="cardnumber"]')).to.exist;
+      expect(iframe.contents().find('[name="exp-date"]')).to.exist;
+      expect(iframe.contents().find('[name="cvc"]')).to.exist;
+    })
+    .then((iframe) => cy.wrap(iframe.contents().find('body')))
+    .within({}, ($iframe) => {
+      cy.get('[name="cardnumber"]').type('4242424242424242');
+      cy.get('[name="exp-date"]').type('1232');
+      cy.get('[name="cvc"]').type('123');
+    })
+    .then(() => {
+      // need to ensure not disabled because otherwise race condition where
+      // it hasn't yet re-rendered to enabled by time we're trying to click
+      cy.getByTestId('donation-submit').should('not.be.disabled').click();
+    });
+});
+
+Cypress.Commands.add('interceptStripeApi', () => {
+  cy.intercept({ url: 'https://r.stripe.com/*', method: 'POST' }, { statusCode: 200 });
+  cy.intercept({ url: 'https://m.stripe.com/*', method: 'POST' }, { statusCode: 200 });
 });
 
 Cypress.Commands.add('interceptPaginatedDonations', () => {

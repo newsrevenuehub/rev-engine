@@ -13,5 +13,5 @@ export function useConfigureAnalytics({
 
   useEffect(() => {
     setAnalyticsConfig({ hubGaV3Id, orgGaV3Id, orgGaV3Domain, orgGaV4Id, orgFbPixelId });
-  }, [hubGaV3Id, orgGaV3Id, orgGaV3Domain, orgGaV4Id, orgFbPixelId, setAnalyticsConfig]);
+  }, [hubGaV3Id, orgGaV3Id, orgGaV3Domain, orgGaV4Id, orgFbPixelId]);
 }

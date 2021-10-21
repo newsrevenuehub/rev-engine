@@ -12,8 +12,10 @@ import { usePage } from '../DonationPage';
 // Stripe
 import StripePayment from 'components/paymentProviders/stripe/StripePayment';
 
-function DPayment({ element, live, ...props }) {
-  const { stripeAccountId } = usePage();
+function DPayment({ element, live }) {
+  const {
+    page: { stripe_account_id }
+  } = usePage();
   /*
     element.content is an object, whose keys are providers.
     For instance, element.content.stripe is an array of supported payment types:
@@ -28,7 +30,7 @@ function DPayment({ element, live, ...props }) {
       {live ? (
         <S.DPayment>
           {element?.content && element.content['stripe'] && (
-            <StripePayment offerPayFees={element.content?.offerPayFees} stripeAccountId={stripeAccountId} />
+            <StripePayment offerPayFees={element.content?.offerPayFees} stripeAccountId={stripe_account_id} />
           )}
         </S.DPayment>
       ) : (
@@ -43,6 +45,8 @@ DPayment.displayName = 'Payment';
 DPayment.description = 'Allow donors to contribute';
 DPayment.required = true;
 DPayment.unique = true;
+DPayment.requireContent = true;
+DPayment.contentMissingMsg = `${DPayment.displayName} needs to have at least one payment method configured.`;
 
 export default DPayment;
 
@@ -57,13 +61,15 @@ function NotLivePlaceholder() {
 export function PayFeesWidget() {
   const { page, frequency, amount, payFee, setPayFee } = usePage();
 
+  const currencySymbol = page?.currency?.symbol;
+
   return (
     <S.PayFees data-testid="pay-fees">
       <S.PayFeesQQ>Agree to pay fees?</S.PayFeesQQ>
       <S.Checkbox
         label={
           amount
-            ? `$${calculateStripeFee(amount, frequency, page.organization_is_nonprofit).toFixed(
+            ? `${currencySymbol}${calculateStripeFee(amount, frequency, page.organization_is_nonprofit).toFixed(
                 2
               )} ${getFrequencyAdverb(frequency)}`
             : ''

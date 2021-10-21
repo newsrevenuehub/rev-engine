@@ -1,5 +1,6 @@
 import styled from 'styled-components';
 import SvgIcon from 'assets/icons/SvgIcon';
+import { baseInputStyles } from 'elements/inputs/BaseField.styled';
 
 export const StripePaymentForm = styled.div``;
 
@@ -8,11 +9,9 @@ export const PaymentRequestWrapper = styled.div``;
 export const PaymentElementWrapper = styled.div`
   margin-bottom: 2rem;
 
-  /* This is how we style the inputs inside the element */
-  .StripeElement {
-    padding: 0.5rem 0;
-    border-bottom: 1px solid ${(props) => props.theme.colors.grey[1]};
-  }
+  ${baseInputStyles};
+  height: auto;
+  padding: 1rem;
 `;
 
 export const EnterValidAmount = styled.h5``;

@@ -27,18 +27,6 @@ class DonationPageTest(TestCase):
 
         self.assertFalse(self.instance.is_live)
 
-    def test_save_as_template(self):
-        # without name arugment, uses page.heading for template.name
-        template, _ = self.instance.save_as_template()
-
-        self.assertEqual(template.name, self.instance.name)
-
-        # with name argument, uses that for template.name
-        new_name = "My New Template"
-        template, _ = self.instance.save_as_template(name=new_name)
-
-        self.assertEqual(template.name, new_name)
-
 
 class StyleTest(TestCase):
     def setUp(self):

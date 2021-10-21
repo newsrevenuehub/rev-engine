@@ -3,6 +3,7 @@ import PropTypes from 'prop-types';
 import * as S from './DAmount.styled';
 
 // Util
+import validateInputPositiveFloat from 'utilities/validateInputPositiveFloat';
 import { getFrequencyAdjective, getFrequencyRate } from 'utilities/parseFrequency';
 
 // Context
@@ -39,6 +40,18 @@ function DAmount({ element, ...props }) {
     return getAmountIndex(page, amount, frequency) !== -1;
   }, [page, amount, frequency]);
 
+  const handleAmountChange = (newAmount) => {
+    setAmount(newAmount);
+  };
+
+  const handleOtherAmountChange = (e) => {
+    if (validateInputPositiveFloat(e.target.value)) {
+      handleAmountChange(e.target.value);
+    }
+  };
+
+  const currencySymbol = page?.currency?.symbol;
+
   return (
     <DElement
       label={`${getFrequencyAdjective(frequency)} amount`}
@@ -48,13 +61,17 @@ function DAmount({ element, ...props }) {
     >
       <S.DAmount>
         {getAmounts(frequency).map((amnt, i) => {
+          const selected = parseFloat(amount) === parseFloat(amnt) && !otherFocused;
           return (
             <SelectableButton
               key={i + amnt}
-              selected={parseFloat(amount) === parseFloat(amnt) && !otherFocused}
-              onClick={() => setAmount(parseFloat(amnt))}
+              selected={selected}
+              onClick={() => handleAmountChange(parseFloat(amnt))}
               data-testid={`amount-${amnt}${parseFloat(amount) === parseFloat(amnt) ? '-selected' : ''}`}
-            >{`$${amnt}`}</SelectableButton>
+            >
+              {`${currencySymbol}${amnt}`}{' '}
+              <S.FreqSubtext selected={selected}>{getFrequencyRate(frequency)}</S.FreqSubtext>
+            </SelectableButton>
           );
         })}
         {(element.content?.allowOther || overrideAmount) && (
@@ -62,15 +79,14 @@ function DAmount({ element, ...props }) {
             data-testid={`amount-other${otherFocused || !amountIsPreset ? '-selected' : ''}`}
             selected={otherFocused || !amountIsPreset}
           >
-            <span>$</span>
+            <span>{currencySymbol}</span>
             <S.OtherAmountInput
-              type="number"
               value={otherFocused || !amountIsPreset ? amount : ''}
-              onChange={(e) => setAmount(e.target.value)}
+              onChange={handleOtherAmountChange} //(e) => handleAmountChange(e.target.value)}
               onFocus={handleOtherSelected}
               onBlur={handleOtherBlurred}
             />
-            <span data-testid="custom-amount-rate">{getFrequencyRate(frequency)}</span>
+            <S.FreqSubtext data-testid="custom-amount-rate">{getFrequencyRate(frequency)}</S.FreqSubtext>
           </S.OtherAmount>
         )}
       </S.DAmount>

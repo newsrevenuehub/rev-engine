@@ -36,3 +36,8 @@ export const OtherAmountInput = styled.input`
   min-width: 50px;
   width: 100%;
 `;
+
+export const FreqSubtext = styled.span`
+  font-weight: 300;
+  color: ${(props) => (props.selected ? props.theme.colors.white : props.theme.colors.grey[3])};
+`;

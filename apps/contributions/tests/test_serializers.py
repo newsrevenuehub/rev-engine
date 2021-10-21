@@ -5,7 +5,7 @@ from django.test import TestCase
 from django.utils import timezone
 
 from apps.contributions import serializers
-from apps.contributions.models import Contribution, ContributionStatus
+from apps.contributions.models import ContributionStatus
 from apps.contributions.tests.factories import ContributionFactory, ContributorFactory
 from apps.organizations.tests.factories import OrganizationFactory
 

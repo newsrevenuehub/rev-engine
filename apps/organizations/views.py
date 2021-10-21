@@ -3,10 +3,8 @@ import logging
 from django.conf import settings
 from django.contrib.auth import get_user_model
 
-from rest_framework import permissions, status, viewsets
-from rest_framework.decorators import action
+from rest_framework import permissions, viewsets
 from rest_framework.permissions import IsAuthenticated
-from rest_framework.response import Response
 
 from apps.api.permissions import UserBelongsToOrg
 from apps.organizations import serializers
@@ -49,35 +47,6 @@ class OrganizationViewSet(OrganizationLimitedListView, viewsets.ReadOnlyModelVie
     model = Organization
     permission_classes = [IsAuthenticated, UserBelongsToOrg, ReadOnly]
     serializer_class = serializers.OrganizationSerializer
-
-    @action(detail=False, methods=["get"], permission_classes=[], authentication_classes=[])
-    def stripe_account_id(self, request):
-        revenue_program_slug = request.GET.get("revenue_program_slug")
-        if not revenue_program_slug:
-            return Response(
-                {"detail": 'Missing required parameter "revenue_program_slug"'}, status=status.HTTP_400_BAD_REQUEST
-            )
-
-        try:
-            revenue_program = RevenueProgram.objects.get(slug=revenue_program_slug)
-            if not revenue_program.organization.is_verified_with_default_provider():
-                logger.error(
-                    f'Donor visited donation page for revenue program "{revenue_program_slug}", but the corresponding organization does not have a verified default payment provider'
-                )
-                return Response(
-                    {"detail": "Organization does not have a fully verified payment provider"},
-                    status=status.HTTP_404_NOT_FOUND,
-                )
-            return Response(
-                {"stripe_account_id": revenue_program.organization.stripe_account_id}, status=status.HTTP_200_OK
-            )
-        except RevenueProgram.DoesNotExist:
-            logger.error(
-                f"Donor visited rev_program slug {revenue_program_slug}, but no rev_program could be found by that slug"
-            )
-            return Response(
-                {"detail": "Could not find revenue program with provided slug"}, status=status.HTTP_404_NOT_FOUND
-            )
 
 
 class FeatureViewSet(viewsets.ReadOnlyModelViewSet, ReadOnly):

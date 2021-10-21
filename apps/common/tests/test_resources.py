@@ -26,7 +26,7 @@ class AbstractTestCase(APITestCase):
         self.orgs = Organization.objects.all()
         for i in range(self.resource_count):
             org_num = 0 if i % 2 == 0 else 1
-            self.model_factory.create(org=self.orgs[org_num])
+            instance = self.model_factory.create(org=self.orgs[org_num])
         self.resources = self.model.objects.all()
 
     def create_donation_page(self):

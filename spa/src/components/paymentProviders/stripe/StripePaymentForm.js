@@ -9,6 +9,7 @@ import { useAlert } from 'react-alert';
 import { getFrequencyAdverb } from 'utilities/parseFrequency';
 
 // Hooks
+import useSubdomain from 'hooks/useSubdomain';
 import usePreviousState from 'hooks/usePreviousState';
 import useReCAPTCHAScript from 'hooks/useReCAPTCHAScript';
 
@@ -29,6 +30,7 @@ import submitPayment, { serializeData, getTotalAmount, amountToCents, StripeErro
 import { usePage } from 'components/donationPage/DonationPage';
 
 // Children
+import BaseField from 'elements/inputs/BaseField';
 import Button from 'elements/buttons/Button';
 import { ICONS } from 'assets/icons/SvgIcon';
 import { PayFeesWidget } from 'components/donationPage/pageContent/DPayment';
@@ -40,6 +42,7 @@ const STRIPE_PAYMENT_REQUEST_LABEL = 'RevEngine Donation';
 
 function StripePaymentForm({ loading, setLoading, offerPayFees }) {
   useReCAPTCHAScript();
+  const subdomain = useSubdomain();
   const { url, params } = useRouteMatch();
   const { page, amount, frequency, payFee, formRef, errors, setErrors, salesforceCampaignId } = usePage();
   const { trackConversion } = useAnalyticsContext();
@@ -50,6 +53,7 @@ function StripePaymentForm({ loading, setLoading, offerPayFees }) {
   const [disabled, setDisabled] = useState(true);
   const [paymentRequest, setPaymentRequest] = useState(null);
   const [forceManualCard, setForceManualCard] = useState(false);
+  const [stripeError, setStripeError] = useState();
 
   const theme = useTheme();
   const history = useHistory();
@@ -78,7 +82,7 @@ function StripePaymentForm({ loading, setLoading, offerPayFees }) {
   const handleCardElementChange = async (event) => {
     setCardReady(event.complete);
     setDisabled(event.empty);
-    setErrors({ ...errors, stripe: event.error ? event.error.message : '' });
+    setStripeError(event?.error?.message);
   };
 
   /**
@@ -98,6 +102,7 @@ function StripePaymentForm({ loading, setLoading, offerPayFees }) {
   const handlePaymentSuccess = (pr) => {
     if (pr) pr.complete('success');
     setErrors({});
+    setStripeError(null);
     setLoading(false);
     setSucceeded(true);
     trackConversion(amount);
@@ -107,7 +112,7 @@ function StripePaymentForm({ loading, setLoading, offerPayFees }) {
       const email = extractEmailFromFormRef(formRef.current);
       const donationPageUrl = window.location.href;
       history.push({
-        pathname: url + THANK_YOU_SLUG,
+        pathname: url === '/' ? THANK_YOU_SLUG : url + THANK_YOU_SLUG,
         state: { page, amount, email, donationPageUrl }
       });
     }
@@ -115,7 +120,7 @@ function StripePaymentForm({ loading, setLoading, offerPayFees }) {
 
   const handlePaymentFailure = (error, pr) => {
     if (error instanceof StripeError) {
-      setErrors({ stripe: `Payment failed: ${error}` });
+      setStripeError(`Payment failed: ${error}`);
       alert.error(`Payment failed: ${error}`);
     } else {
       const internalErrors = error?.response?.data;
@@ -157,19 +162,25 @@ function StripePaymentForm({ loading, setLoading, offerPayFees }) {
   /********************************\
    * Inline Card Element Payments *
   \********************************/
+  const staticParams = {
+    ...params,
+    orgIsNonProfit: page.organization_is_nonprofit,
+    orgCountry: page.organization_country,
+    currency: page?.currency?.code?.toLowerCase(),
+    salesforceCampaignId,
+    revProgramSlug: subdomain
+  };
+
   const handleCardSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
     const reCAPTCHAToken = await getReCAPTCHAToken();
-    const orgIsNonProfit = page.organization_is_nonprofit;
     const data = serializeData(formRef.current, {
       amount,
       payFee,
-      orgIsNonProfit,
       frequency,
-      salesforceCampaignId,
       reCAPTCHAToken,
-      ...params
+      ...staticParams
     });
     await submitPayment(
       stripe,
@@ -186,13 +197,11 @@ function StripePaymentForm({ loading, setLoading, offerPayFees }) {
   const handlePaymentRequestSubmit = async (state, paymentRequest) => {
     setLoading(true);
     const reCAPTCHAToken = await getReCAPTCHAToken();
-    const orgIsNonProfit = page.organization_is_nonprofit;
     const data = serializeData(formRef.current, {
-      orgIsNonProfit,
       frequency,
-      salesforceCampaignId,
       reCAPTCHAToken,
-      ...state
+      ...state,
+      ...staticParams
     });
     await submitPayment(
       stripe,
@@ -216,8 +225,8 @@ function StripePaymentForm({ loading, setLoading, offerPayFees }) {
     const amnt = amountToCents(getTotalAmount(amount, payFee, frequency, orgIsNonProfit));
     if (stripe && amountIsValid && !paymentRequest) {
       const pr = stripe.paymentRequest({
-        country: 'US',
-        currency: 'usd',
+        country: page?.organization_country,
+        currency: page?.currency?.code?.toLowerCase(),
         total: {
           label: STRIPE_PAYMENT_REQUEST_LABEL,
           amount: amnt
@@ -268,6 +277,8 @@ function StripePaymentForm({ loading, setLoading, offerPayFees }) {
     }
   }, [amount, payFee, paymentRequest, frequency]);
 
+  const currencySymbol = page?.currency?.symbol;
+
   /**
    * getButtonText
    * @returns {string} - The text to display in the submit button.
@@ -277,7 +288,7 @@ function StripePaymentForm({ loading, setLoading, offerPayFees }) {
     if (isNaN(totalAmount)) {
       return 'Enter a valid amount';
     }
-    return `Give $${totalAmount} ${getFrequencyAdverb(frequency)}`;
+    return `Give ${currencySymbol}${totalAmount} ${getFrequencyAdverb(frequency)}`;
   };
 
   return !forceManualCard && paymentRequest ? (
@@ -291,16 +302,18 @@ function StripePaymentForm({ loading, setLoading, offerPayFees }) {
     </>
   ) : (
     <S.StripePaymentForm>
-      <S.PaymentElementWrapper>
-        <CardElement
-          id="card-element"
-          options={{ style: S.CardElementStyle(theme), hidePostalCode: true }}
-          onChange={handleCardElementChange}
-        />
-      </S.PaymentElementWrapper>
-      {errors?.stripe && (
+      <BaseField label="Card details" required>
+        <S.PaymentElementWrapper>
+          <CardElement
+            id="card-element"
+            options={{ style: S.CardElementStyle(theme), hidePostalCode: true }}
+            onChange={handleCardElementChange}
+          />
+        </S.PaymentElementWrapper>
+      </BaseField>
+      {stripeError && (
         <S.PaymentError role="alert" data-testid="donation-error">
-          {errors.stripe}
+          {stripeError}
         </S.PaymentError>
       )}
       {offerPayFees && <PayFeesWidget />}

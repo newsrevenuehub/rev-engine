@@ -1,4 +1,4 @@
-import { useState, useEffect, createContext, useContext } from 'react';
+import { useState, useEffect, createContext, useContext, useCallback } from 'react';
 import { useHistory } from 'react-router-dom';
 import * as S from './PageEditor.styled';
 import { useTheme } from 'styled-components';
@@ -21,7 +21,7 @@ import { useParams } from 'react-router-dom';
 
 // AJAX
 import useRequest from 'hooks/useRequest';
-import { DELETE_PAGE, FULL_PAGE, PATCH_PAGE, LIST_STYLES, CONTRIBUTION_META } from 'ajax/endpoints';
+import { DELETE_PAGE, DRAFT_PAGE_DETAIL, PATCH_PAGE, LIST_STYLES, CONTRIBUTION_META } from 'ajax/endpoints';
 
 // Routes
 import { CONTENT_SLUG } from 'routes';
@@ -30,7 +30,7 @@ import { CONTENT_SLUG } from 'routes';
 import { GENERIC_ERROR } from 'constants/textConstants';
 
 // Assets
-import { faEye, faEdit, faSave, faTrash } from '@fortawesome/free-solid-svg-icons';
+import { faEye, faEdit, faSave, faTrash, faClone } from '@fortawesome/free-solid-svg-icons';
 
 // Context
 import { useGlobalContext } from 'components/MainLayout';
@@ -40,13 +40,13 @@ import validatePage from './validatePage';
 import { useConfigureAnalytics } from 'components/analytics';
 
 // Children
-import * as dynamicElements from 'components/donationPage/pageContent/dynamicElements';
 import CircleButton from 'elements/buttons/CircleButton';
 import SegregatedStyles from 'components/donationPage/SegregatedStyles';
 import DonationPage from 'components/donationPage/DonationPage';
 import GlobalLoading from 'elements/GlobalLoading';
 import EditInterface from 'components/pageEditor/editInterface/EditInterface';
 import BackButton from 'elements/BackButton';
+import CreateTemplateModal from 'components/pageEditor/CreateTemplateModal';
 
 const PageEditorContext = createContext();
 
@@ -84,6 +84,7 @@ function PageEditor() {
   const [page, setPage] = useState();
   const [availableStyles, setAvailableStyles] = useState([]);
   const [contributionMetadata, setContributionMetadata] = useState([]);
+  const [showCreateTemplateModal, setShowCreateTemplateModal] = useState(false);
 
   const [updatedPage, setUpdatedPage] = useState();
   const [selectedButton, setSelectedButton] = useState(PREVIEW);
@@ -100,6 +101,16 @@ function PageEditor() {
 
   useConfigureAnalytics();
 
+  const handleGetPageFailure = useCallback(
+    (error) => {
+      setLoading(false);
+      if (error.response?.data) {
+        alert.error(error.response.data.detail, { timeout: 0 });
+      }
+    },
+    [alert]
+  );
+
   useEffect(() => {
     setLoading(true);
 
@@ -109,17 +120,17 @@ function PageEditor() {
       live: 0
     };
     requestGetPage(
-      { method: 'GET', url: FULL_PAGE, params },
+      { method: 'GET', url: DRAFT_PAGE_DETAIL, params },
       {
         onSuccess: ({ data }) => {
           setPage(data);
           setLoading(false);
         },
-        onFailure: () => setLoading(false)
+        onFailure: handleGetPageFailure //() => setLoading(false)
       }
     );
     // Don't include requestGetPage for now.
-  }, [parameters.revProgramSlug, parameters.pageSlug]);
+  }, [parameters.revProgramSlug, parameters.pageSlug, handleGetPageFailure]);
 
   useEffect(() => {
     setLoading(true);
@@ -162,6 +173,16 @@ function PageEditor() {
   const handleEdit = () => {
     setSelectedButton(EDIT);
     setShowEditInterface(true);
+  };
+
+  const handleMakeTemplate = () => {
+    if (updatedPage) {
+      getUserConfirmation('Page template will not include unsaved changes. Continue?', () =>
+        setShowCreateTemplateModal(true)
+      );
+    } else {
+      setShowCreateTemplateModal(true);
+    }
   };
 
   const handleSave = () => {
@@ -287,6 +308,7 @@ function PageEditor() {
           alert.success(successMessage);
           setErrors({});
           setPage(data);
+          setUpdatedPage(null);
           setSelectedButton(PREVIEW);
           setLoading(false);
         },
@@ -308,8 +330,8 @@ function PageEditor() {
 
   useEffect(() => {
     if (!isEmpty(errors)) {
-      if (errors.missing) {
-        alert.error(<MissingElementErrors missing={errors.missing} />);
+      if (errors.elementErrors) {
+        alert.error(<ElementErrors elementErrors={errors.elementErrors} />, { timeout: 0 });
       }
     }
   }, [errors, alert]);
@@ -343,34 +365,49 @@ function PageEditor() {
             <DonationPage key={page ? JSON.stringify(page) : ''} live={false} page={page} />
           </SegregatedStyles>
         )}
-        <S.ButtonOverlay>
-          <CircleButton
-            onClick={handlePreview}
-            selected={selectedButton === PREVIEW}
-            icon={faEye}
-            type="neutral"
-            color={theme.colors.primary}
-            data-testid="preview-page-button"
-          />
-          <CircleButton
-            onClick={handleEdit}
-            selected={selectedButton === EDIT}
-            icon={faEdit}
-            type="neutral"
-            data-testid="edit-page-button"
-          />
-          <CircleButton
-            onClick={handleSave}
-            icon={faSave}
-            type="neutral"
-            data-testid="save-page-button"
-            disabled={!updatedPage}
-          />
-          <CircleButton onClick={handleDelete} icon={faTrash} type="neutral" data-testid="delete-page-button" />
+        {page && (
+          <S.ButtonOverlay>
+            <CircleButton
+              onClick={handlePreview}
+              selected={selectedButton === PREVIEW}
+              icon={faEye}
+              buttonType="neutral"
+              color={theme.colors.primary}
+              data-testid="preview-page-button"
+            />
+            <CircleButton
+              onClick={handleEdit}
+              selected={selectedButton === EDIT}
+              icon={faEdit}
+              buttonType="neutral"
+              data-testid="edit-page-button"
+            />
+            <CircleButton
+              onClick={handleSave}
+              icon={faSave}
+              buttonType="neutral"
+              data-testid="save-page-button"
+              disabled={!updatedPage}
+            />
+            <CircleButton
+              onClick={handleMakeTemplate}
+              icon={faClone}
+              buttonType="neutral"
+              data-testid="clone-page-button"
+            />
+            <CircleButton onClick={handleDelete} icon={faTrash} buttonType="caution" data-testid="delete-page-button" />
 
-          <BackButton to={CONTENT_SLUG} />
-        </S.ButtonOverlay>
+            <BackButton to={CONTENT_SLUG} />
+          </S.ButtonOverlay>
+        )}
       </S.PageEditor>
+      {showCreateTemplateModal && (
+        <CreateTemplateModal
+          page={page}
+          isOpen={showCreateTemplateModal}
+          closeModal={() => setShowCreateTemplateModal(false)}
+        />
+      )}
     </PageEditorContext.Provider>
   );
 }
@@ -379,13 +416,13 @@ export const usePageEditorContext = () => useContext(PageEditorContext);
 
 export default PageEditor;
 
-function MissingElementErrors({ missing = [] }) {
+function ElementErrors({ elementErrors = [] }) {
   return (
     <>
       The following elements are required for your page to function properly:
       <ul data-testid="missing-elements-alert">
-        {missing.map((missingEl) => (
-          <li key={missingEl}>{dynamicElements[missingEl].displayName}</li>
+        {elementErrors.map((elError) => (
+          <li key={elError.element}>{elError.message}</li>
         ))}
       </ul>
     </>

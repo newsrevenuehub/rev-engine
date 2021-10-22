@@ -63,6 +63,7 @@ class StripePaymentViewTestAbstract(APITestCase):
                 "donation_page_slug": page_slug if page_slug else self.page.slug,
                 "interval": interval if interval else ContributionInterval.ONE_TIME,
                 "payment_method_id": payment_method_id,
+                "page_id": self.page.pk,
             },
             format="json",
         )

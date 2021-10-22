@@ -166,9 +166,10 @@ function StripePaymentForm({ loading, setLoading, offerPayFees }) {
     ...params,
     orgIsNonProfit: page.organization_is_nonprofit,
     orgCountry: page.organization_country,
-    currency: page?.currency?.code?.toLowerCase(),
+    currency: page.currency?.code?.toLowerCase(),
     salesforceCampaignId,
-    revProgramSlug: subdomain
+    revProgramSlug: subdomain,
+    pageId: page.id
   };
 
   const handleCardSubmit = async (e) => {

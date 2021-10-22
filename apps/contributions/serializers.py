@@ -9,6 +9,7 @@ from apps.contributions.models import (
     ContributionStatus,
     Contributor,
 )
+from apps.pages.models import DonationPage
 
 
 class ContributionMetadataSerializer(serializers.ModelSerializer):
@@ -192,6 +193,10 @@ class AbstractPaymentSerializer(serializers.Serializer):
     revenue_program_slug = serializers.SlugField()
     donation_page_slug = serializers.SlugField(required=False, allow_blank=True)
 
+    # Page id is a nice shortcut
+    page_id = serializers.IntegerField(required=False)
+    phone = serializers.CharField(max_length=40, required=False, allow_blank=True)
+
     @classmethod
     def convert_cents_to_amount(self, cents):
         return str(float(cents / 100))
@@ -211,6 +216,23 @@ class AbstractPaymentSerializer(serializers.Serializer):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields["amount"].error_messages["invalid"] = "Enter a valid amount"
+        self._update_field_properties_from_page_elements()
+
+    def _update_field_properties_from_page_elements(self):
+        page = DonationPage.objects.get(pk=self.initial_data["page_id"])
+        self._set_conditionally_required_fields(page.elements)
+
+    def _set_conditionally_required_fields(self, page_elements):
+        """
+        Elements may define a "requiredFields" key, which is a list of field names that may not be blank or absent when submitting a donation.
+        """
+        # Get list of lists of required fields
+        required_fields = [element.get("requiredFields", []) for element in page_elements]
+        # Flatten to single list of required fields
+        required_fields = [item for fieldsList in required_fields for item in fieldsList]
+        # For every required field, update the field definition
+        for required_field in required_fields:
+            self.fields[required_field].required = True
 
 
 class StripeOneTimePaymentSerializer(AbstractPaymentSerializer):

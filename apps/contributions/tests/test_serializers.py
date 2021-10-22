@@ -4,10 +4,13 @@ from django.conf import settings
 from django.test import TestCase
 from django.utils import timezone
 
+from rest_framework.serializers import ValidationError
+
 from apps.contributions import serializers
 from apps.contributions.models import ContributionStatus
 from apps.contributions.tests.factories import ContributionFactory, ContributorFactory
 from apps.organizations.tests.factories import OrganizationFactory
+from apps.pages.tests.factories import DonationPageFactory
 
 
 class ContributionSerializer(TestCase):
@@ -137,3 +140,50 @@ class ContributorContributionSerializerTest(TestCase):
         contribution = self._create_contribution()
         data = self.serializer(contribution).data
         self.assertEqual(data["org_stripe_id"], self.test_stripe_account_id)
+
+
+class AbstractPaymentSerializerTest(TestCase):
+    def setUp(self):
+        self.payment_data = {}
+        self.serializer = serializers.AbstractPaymentSerializer
+        self.page = DonationPageFactory()
+        self.element = {"type": "Testing", "uuid": "testing-123", "requiredFields": [], "content": {}}
+
+        self.payment_data = {
+            "amount": 123,
+            "currency": "USD",
+            "email": "test@test.com",
+            "first_name": "test",
+            "last_name": "test",
+            "ip": "127.0.0.1",
+            "mailing_city": "test",
+            "mailing_country": "test",
+            "mailing_postal_code": "12345",
+            "mailing_state": "test",
+            "mailing_street": "test",
+            "organization_country": "ts",
+            "referer": "https://test.test",
+            "revenue_program_slug": "test",
+            "page_id": self.page.pk,
+        }
+
+    def _add_element_to_page(self, element):
+        self.page.elements = [element]
+        self.page.save()
+
+    def test_validates_page_element_if_conditionally_required(self):
+        """
+        Any input within any element of page.elements might be required to submit a payment. AbstractPaymentSerializer is responsible for enforcing this requirement and does so by updating the serializer field definition in __init__ based on page.elements content.
+        """
+        req_field = "phone"
+        self.element["requiredFields"].append(req_field)
+        self._add_element_to_page(self.element)
+        serializer = self.serializer(data=self.payment_data)
+        self.assertFalse(serializer.is_valid())
+        self.assertIn("phone", serializer.errors)
+        self.assertEqual(serializer.errors["phone"][0].code, "required")
+
+    def test_validates_page_element_if_conditionally_not_required(self):
+        self.assertNotIn("phone", self.element["requiredFields"])
+        serializer = self.serializer(data=self.payment_data)
+        self.assertTrue(serializer.is_valid())

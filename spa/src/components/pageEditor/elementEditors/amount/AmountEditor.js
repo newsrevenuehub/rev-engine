@@ -41,7 +41,8 @@ function AmountEditor() {
       });
       return;
     }
-    const currentAmounts = elementContent.options[freq].map((a) => parseFloat(a)) || [];
+    const currentAmounts =
+      (elementContent.options[freq] && elementContent.options[freq].map((a) => parseFloat(a))) || [];
     const amounts = [...currentAmounts];
     amounts.push(newAmount);
     if (currentAmounts.includes(newAmount)) {

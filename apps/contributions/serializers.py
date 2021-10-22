@@ -233,6 +233,7 @@ class AbstractPaymentSerializer(serializers.Serializer):
         # For every required field, update the field definition
         for required_field in required_fields:
             self.fields[required_field].required = True
+            self.fields[required_field].allow_blank = False
 
 
 class StripeOneTimePaymentSerializer(AbstractPaymentSerializer):

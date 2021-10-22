@@ -84,16 +84,18 @@ function DReason({ element, ...props }) {
             </S.SupportSelect>
           </S.SupportSection>
         )}
-        <S.TributeSection>
-          <TributeSelector
-            elementContent={element.content}
-            tributeState={tributeState}
-            handleSelection={handleTributeSelection}
-            inputValue={tributeInput}
-            handleInputChange={(e) => setTributeInput(e.target.value)}
-            errors={errors}
-          />
-        </S.TributeSection>
+        {(element.content.askHonoree || element.content.askInMemoryOf) && (
+          <S.TributeSection>
+            <TributeSelector
+              elementContent={element.content}
+              tributeState={tributeState}
+              handleSelection={handleTributeSelection}
+              inputValue={tributeInput}
+              handleInputChange={(e) => setTributeInput(e.target.value)}
+              errors={errors}
+            />
+          </S.TributeSection>
+        )}
       </S.DReason>
     </DElement>
   );

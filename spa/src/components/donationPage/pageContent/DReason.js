@@ -160,7 +160,7 @@ function TributeSelector({
         <S.SingleOption>
           <TributeCheckbox
             label="Give in honor of..."
-            name="honoree"
+            name="tribute_type_honoree"
             checked={tributeState.isHonoree}
             handleChange={(e) => handleSelection('isHonoree', e.target.value)}
           />
@@ -170,7 +170,7 @@ function TributeSelector({
         <S.SingleOption>
           <TributeCheckbox
             label="Give in memory of..."
-            name="in_memory_of"
+            name="tribute_type_in_memory_of"
             checked={tributeState.isInMemoryOf}
             handleChange={(e) => handleSelection('isInMemoryOf', e.target.value)}
           />

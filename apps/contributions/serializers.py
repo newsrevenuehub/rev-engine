@@ -232,6 +232,7 @@ class AbstractPaymentSerializer(serializers.Serializer):
         If 'tribute_type' is "type_honoree", then 'honoree' field may not be blank.
         If 'tribute_type' is "type_in_memory_of", then 'in_memory_of' field may not be blank.
         """
+        # breakpoint()
         if data.get("tribute_type") == "type_honoree" and not data.get("honoree"):
             raise serializers.ValidationError({"honoree": "This field may not be blank"})
 

@@ -22,8 +22,7 @@ export const CreateReasons = styled(motion.ul)`
 `;
 
 export const ReasonsLabel = styled.label`
-  font-size: 12px;
-  font-style: italic;
+  font-size: ${(props) => props.theme.fontSizes[1]};
 `;
 
 export const ReasonItem = styled.li`
@@ -70,8 +69,7 @@ export const CheckboxWrapper = styled.div`
 export const Checkbox = styled(MaterialCheckbox)``;
 
 export const CheckboxLabel = styled.label`
-  font-size: 12px;
-  font-style: italic;
+  font-size: ${(props) => props.theme.fontSizes[1]};
 `;
 
 export const OtherSection = styled.div`

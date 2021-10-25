@@ -28,8 +28,7 @@ export const OfferNytComp = styled.div`
 export const Checkbox = styled(MaterialCheckbox)``;
 
 export const CheckboxLabel = styled.label`
-  font-size: 12px;
-  font-style: italic;
+  font-size: ${(props) => props.theme.fontSizes[1]};
 `;
 
 export const SwagThreshold = styled.div`

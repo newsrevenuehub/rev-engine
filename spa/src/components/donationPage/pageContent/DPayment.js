@@ -3,6 +3,7 @@ import DElement from './DElement';
 import { ICONS } from 'assets/icons/SvgIcon';
 
 // Util
+import formatStringAmountForDisplay from 'utilities/formatStringAmountForDisplay';
 import { getFrequencyAdverb } from 'utilities/parseFrequency';
 import calculateStripeFee from 'utilities/calculateStripeFee';
 
@@ -69,8 +70,8 @@ export function PayFeesWidget() {
       <S.Checkbox
         label={
           amount
-            ? `${currencySymbol}${calculateStripeFee(amount, frequency, page.organization_is_nonprofit).toFixed(
-                2
+            ? `${currencySymbol}${formatStringAmountForDisplay(
+                calculateStripeFee(amount, frequency, page.organization_is_nonprofit)
               )} ${getFrequencyAdverb(frequency)}`
             : ''
         }

@@ -24,19 +24,21 @@ import { THANK_YOU_SLUG } from 'routes';
 import { CardElement, useStripe, useElements, PaymentRequestButtonElement } from '@stripe/react-stripe-js';
 
 // Util
+import formatStringAmountForDisplay from 'utilities/formatStringAmountForDisplay';
 import submitPayment, { serializeData, getTotalAmount, amountToCents, StripeError } from './stripeFns';
 
 // Context
 import { usePage } from 'components/donationPage/DonationPage';
+
+// Analytics
+import { useAnalyticsContext } from 'components/analytics/AnalyticsContext';
 
 // Children
 import BaseField from 'elements/inputs/BaseField';
 import Button from 'elements/buttons/Button';
 import { ICONS } from 'assets/icons/SvgIcon';
 import { PayFeesWidget } from 'components/donationPage/pageContent/DPayment';
-
-// Analytics
-import { useAnalyticsContext } from 'components/analytics/AnalyticsContext';
+import FormErrors from 'elements/inputs/FormErrors';
 
 const STRIPE_PAYMENT_REQUEST_LABEL = 'RevEngine Donation';
 
@@ -61,7 +63,7 @@ function StripePaymentForm({ loading, setLoading, offerPayFees }) {
   const stripe = useStripe();
   const elements = useElements();
 
-  const amountIsValid = !isNaN(amount) && amount >= 1;
+  const amountIsValid = !isNaN(amount);
 
   /**
    * Listen to changes in amount to determine whether it has changed since last time.
@@ -288,7 +290,8 @@ function StripePaymentForm({ loading, setLoading, offerPayFees }) {
     if (isNaN(totalAmount)) {
       return 'Enter a valid amount';
     }
-    return `Give ${currencySymbol}${totalAmount} ${getFrequencyAdverb(frequency)}`;
+    console.log(typeof totalAmount);
+    return `Give ${currencySymbol}${formatStringAmountForDisplay(totalAmount)} ${getFrequencyAdverb(frequency)}`;
   };
 
   return !forceManualCard && paymentRequest ? (

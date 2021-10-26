@@ -8,6 +8,7 @@ import validateInputPositiveFloat from 'utilities/validateInputPositiveFloat';
 import { useEditInterfaceContext } from 'components/pageEditor/editInterface/EditInterface';
 
 // Elememts
+import FormErrors from 'elements/inputs/FormErrors';
 import PlusButton from 'elements/buttons/PlusButton';
 import XButton from 'elements/buttons/XButton';
 
@@ -15,6 +16,7 @@ function AmountEditor() {
   const { elementContent = { options: {} }, setElementContent, page, updatedPage } = useEditInterfaceContext();
   const [frequencies, setFrequencies] = useState([]);
   const [newAmounts, setNewAmounts] = useState({});
+  const [errors, setErrors] = useState({});
 
   useEffect(() => {
     const updatedFreqs = updatedPage?.elements?.find((el) => el.type === 'DFrequency');
@@ -31,12 +33,24 @@ function AmountEditor() {
   };
 
   const addAmount = ({ value: freq }) => {
-    const newAmount = newAmounts[freq];
-    if (!newAmount) return;
-    const currentAmounts = elementContent.options[freq] || [];
+    const newAmount = parseFloat(newAmounts[freq]);
+    if (!newAmount) {
+      setErrors({
+        ...errors,
+        [freq]: 'Please enter an amount greater than zero'
+      });
+      return;
+    }
+    const currentAmounts = elementContent.options[freq].map((a) => parseFloat(a)) || [];
     const amounts = [...currentAmounts];
     amounts.push(newAmount);
-    if (currentAmounts.includes(newAmounts[freq])) return;
+    if (currentAmounts.includes(newAmount)) {
+      setErrors({
+        ...errors,
+        [freq]: 'Cannot duplicate amounts'
+      });
+      return;
+    }
     setElementContent({
       ...elementContent,
       options: {
@@ -45,6 +59,7 @@ function AmountEditor() {
       }
     });
     setNewAmounts({ ...newAmounts, [freq]: '' });
+    setErrors({});
   };
 
   const removeAmount = (e, freq, amount) => {
@@ -117,6 +132,7 @@ function AmountEditor() {
                   />
                   <PlusButton onClick={() => addAmount(freq)} data-testid="add-button" />
                 </S.AmountInputGroup>
+                <FormErrors errors={errors[freq.value]} />
               </S.FreqGroup>
             );
           })

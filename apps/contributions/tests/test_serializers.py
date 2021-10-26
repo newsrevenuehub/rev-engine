@@ -7,6 +7,7 @@ from django.utils import timezone
 from apps.contributions import serializers
 from apps.contributions.models import ContributionStatus
 from apps.contributions.tests.factories import ContributionFactory, ContributorFactory
+from apps.contributions.utils import format_ambiguous_currency
 from apps.organizations.tests.factories import OrganizationFactory
 
 
@@ -137,3 +138,40 @@ class ContributorContributionSerializerTest(TestCase):
         contribution = self._create_contribution()
         data = self.serializer(contribution).data
         self.assertEqual(data["org_stripe_id"], self.test_stripe_account_id)
+
+
+class AbstractPaymentSerializerTest(TestCase):
+    def setUp(self):
+        self.serializer = serializers.AbstractPaymentSerializer
+        self.payment_data = {
+            "amount": 123,
+            "currency": "USD",
+            "email": "test@test.com",
+            "first_name": "test",
+            "last_name": "test",
+            "ip": "127.0.0.1",
+            "mailing_city": "test",
+            "mailing_country": "test",
+            "mailing_postal_code": "12345",
+            "mailing_state": "test",
+            "mailing_street": "test",
+            "organization_country": "ts",
+            "referer": "https://test.test",
+            "revenue_program_slug": "test",
+        }
+
+    def test_amount_validation_min(self):
+        self.payment_data["amount"] = serializers.REVENGINE_MIN_AMOUNT - 1
+        serializer = self.serializer(data=self.payment_data)
+        self.assertFalse(serializer.is_valid())
+        self.assertIn("amount", serializer.errors)
+        expected_msg = f"We can only accept contributions greater than or equal to {format_ambiguous_currency(serializers.REVENGINE_MIN_AMOUNT)}"
+        self.assertEqual(str(serializer.errors["amount"][0]), expected_msg)
+
+    def test_amount_validation_max(self):
+        self.payment_data["amount"] = serializers.STRIPE_MAX_AMOUNT + 1
+        serializer = self.serializer(data=self.payment_data)
+        self.assertFalse(serializer.is_valid())
+        self.assertIn("amount", serializer.errors)
+        expected_msg = f"We can only accept contributions less than or equal to {format_ambiguous_currency(serializers.STRIPE_MAX_AMOUNT)}"
+        self.assertEqual(str(serializer.errors["amount"][0]), expected_msg)

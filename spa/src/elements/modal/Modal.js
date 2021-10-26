@@ -12,6 +12,14 @@ function Modal({ children, isOpen, closeModal, ...props }) {
     return () => (document.body.style.overflow = '');
   }, [isOpen]);
 
+  useEffect(() => {
+    const closeOnEscape = (e) => {
+      if (e.key === 'Escape' && closeModal) closeModal();
+    };
+    document.addEventListener('keyup', closeOnEscape);
+    return () => document.removeEventListener('keyup', closeOnEscape);
+  }, [closeModal]);
+
   return createPortal(
     <AnimatePresence>
       {isOpen && (

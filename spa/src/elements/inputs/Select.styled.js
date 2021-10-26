@@ -1,18 +1,31 @@
 import styled, { css } from 'styled-components';
 import { baseInputStyles } from 'elements/inputs/BaseField.styled';
+import { motion } from 'framer-motion';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 
 export const SelectWrapper = styled.div`
   position: relative;
 `;
 
 export const Select = styled.input`
+  ${baseInputStyles};
   position: relative;
   text-align: left;
-  padding: 0;
-  margin: 0;
-  border: none;
   width: 100%;
-  ${baseInputStyles};
+  padding-right: 2rem;
+`;
+
+export const CaretWrapper = styled(motion.span)`
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  height: 0;
+  display: inline-block;
+`;
+
+export const Caret = styled(FontAwesomeIcon)`
+  color: ${(props) => props.theme.colors.grey[3]};
+  transform: translateY(-50%);
 `;
 
 export const List = styled.ul`

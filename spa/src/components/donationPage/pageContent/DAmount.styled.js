@@ -7,6 +7,10 @@ export const DAmount = styled.ul`
 
   padding: 0;
   margin: 1.5rem 0;
+
+  @media (${(props) => props.theme.breakpoints.phoneOnly}) {
+    grid-template-columns: 1fr;
+  }
 `;
 
 export const OtherAmount = styled.div`

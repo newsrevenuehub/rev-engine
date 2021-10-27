@@ -9,6 +9,17 @@ from apps.contributions.models import (
     ContributionStatus,
     Contributor,
 )
+from apps.contributions.utils import format_ambiguous_currency
+from apps.pages.models import DonationPage
+
+
+# See https://stripe.com/docs/api/payment_intents/object#payment_intent_object-amount
+# Stripe allows a maximum of eight digits here
+STRIPE_MAX_AMOUNT = 99999999
+
+# Revengine has its own restrictions (greater than Stripe's restrictions) on the min amount.
+# Remember that 100 here is $1.00
+REVENGINE_MIN_AMOUNT = 100
 
 
 class ContributionMetadataSerializer(serializers.ModelSerializer):
@@ -156,10 +167,17 @@ class ContributorSerializer(serializers.ModelSerializer):
 
 class AbstractPaymentSerializer(serializers.Serializer):
     # Payment details
-    amount = serializers.IntegerField()
+    amount = serializers.IntegerField(
+        min_value=REVENGINE_MIN_AMOUNT,
+        max_value=STRIPE_MAX_AMOUNT,
+        error_messages={
+            "max_value": f"We can only accept contributions less than or equal to {format_ambiguous_currency(STRIPE_MAX_AMOUNT)}",
+            "min_value": f"We can only accept contributions greater than or equal to {format_ambiguous_currency(REVENGINE_MIN_AMOUNT)}",
+        },
+    )
     interval = serializers.ChoiceField(choices=ContributionInterval.choices, default=ContributionInterval.ONE_TIME)
 
-    # organization_country and currency are a different pattern, but important here.
+    # organization_country tand currency are a different pattern, but important here.
     # They could be derived from the organization that this contribution is tied to,
     # but instead we send that info to each donation page load and pass it back as params;
     # that way we are certain that the currency and country used by payment provider in the
@@ -183,6 +201,14 @@ class AbstractPaymentSerializer(serializers.Serializer):
     sf_campaign_id = serializers.CharField(max_length=255, required=False, allow_blank=True)
     captcha_token = serializers.CharField(max_length=2550, required=False, allow_blank=True)
 
+    # Tribute/Reason for Giving
+    reason_for_giving = serializers.CharField(max_length=255, required=False, allow_blank=True)
+    reason_other = serializers.CharField(max_length=255, required=False, allow_blank=True)
+
+    tribute_type = serializers.CharField(max_length=255, required=False, allow_blank=True)
+    honoree = serializers.CharField(max_length=255, required=False, allow_blank=True)
+    in_memory_of = serializers.CharField(max_length=255, required=False, allow_blank=True)
+
     # Request metadata
     ip = serializers.IPAddressField()
     referer = serializers.URLField()
@@ -191,6 +217,10 @@ class AbstractPaymentSerializer(serializers.Serializer):
     # and associate it with the page it came from.
     revenue_program_slug = serializers.SlugField()
     donation_page_slug = serializers.SlugField(required=False, allow_blank=True)
+
+    # Page id is a nice shortcut
+    page_id = serializers.IntegerField(required=False)
+    phone = serializers.CharField(max_length=40, required=False, allow_blank=True)
 
     @classmethod
     def convert_cents_to_amount(self, cents):
@@ -211,6 +241,47 @@ class AbstractPaymentSerializer(serializers.Serializer):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields["amount"].error_messages["invalid"] = "Enter a valid amount"
+        self._update_field_properties_from_page_elements()
+
+    def _update_field_properties_from_page_elements(self):
+        page = DonationPage.objects.get(pk=self.initial_data["page_id"])
+        self._set_conditionally_required_fields(page.elements)
+
+    def _set_conditionally_required_fields(self, page_elements):
+        """
+        Elements may define a "requiredFields" key, which is a list of field names that may not be blank or absent when submitting a donation.
+        """
+        # Get list of lists of required fields
+        required_fields = [element.get("requiredFields", []) for element in page_elements]
+        # Flatten to single list of required fields
+        required_fields = [item for fieldsList in required_fields for item in fieldsList]
+        # For every required field, update the field definition
+        for required_field in required_fields:
+            self.fields[required_field].required = True
+            self.fields[required_field].allow_blank = False
+
+    def _validate_reason_for_giving(self, data):
+        """
+        If 'reason_for_giving' is "Other", then 'reason_other' may not be blank.
+        """
+        if data.get("reason_for_giving") == "Other" and not data.get("reason_other"):
+            raise serializers.ValidationError({"reason_other": "This field may not be blank"})
+
+    def _validate_tribute(self, data):
+        """
+        If 'tribute_type' is "type_honoree", then 'honoree' field may not be blank.
+        If 'tribute_type' is "type_in_memory_of", then 'in_memory_of' field may not be blank.
+        """
+        if data.get("tribute_type") == "type_honoree" and not data.get("honoree"):
+            raise serializers.ValidationError({"honoree": "This field may not be blank"})
+
+        if data.get("tribute_type") == "type_in_memory_of" and not data.get("in_memory_of"):
+            raise serializers.ValidationError({"in_memory_of": "This field may not be blank"})
+
+    def validate(self, data):
+        self._validate_reason_for_giving(data)
+        self._validate_tribute(data)
+        return data
 
 
 class StripeOneTimePaymentSerializer(AbstractPaymentSerializer):

@@ -9,11 +9,12 @@ import { usePage } from 'components/donationPage/DonationPage';
 import DElement from 'components/donationPage/pageContent/DElement';
 import Input from 'elements/inputs/Input';
 
-function DDonorInfo(props) {
+function DDonorInfo({ element, ...props }) {
   const { errors } = usePage();
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
+  const [phone, setPhone] = useState('');
 
   return (
     <DElement {...props} data-testid="d-donor-info">
@@ -40,7 +41,7 @@ function DDonorInfo(props) {
             required
           />
         </Grid>
-        <Grid item xs={12}>
+        <Grid item xs={12} md={element.content?.askPhone ? 6 : 12}>
           <Input
             type="email"
             name="email"
@@ -51,6 +52,20 @@ function DDonorInfo(props) {
             required
           />
         </Grid>
+        {element.content?.askPhone && (
+          <Grid item xs={12} md={6}>
+            <Input
+              type="tel"
+              name="phone"
+              label="Phone"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              maxLength={40}
+              errors={errors.phone}
+              required={element.requiredFields?.includes('phone')}
+            />
+          </Grid>
+        )}
       </Grid>
     </DElement>
   );

@@ -6,7 +6,7 @@ import { AnimatePresence } from 'framer-motion';
 
 const hasErrors = (errors) => errors.length > 0;
 
-function BaseField({ label, errors, inline, labelProps, helpText, required, children }) {
+function BaseField({ label, errors, inline, labelProps, helpText, required, children, ...props }) {
   const renderErrors = (e) => {
     if (Array.isArray(e)) {
       return errors.map((error) => <S.Error key={error}>{error}</S.Error>);
@@ -15,7 +15,7 @@ function BaseField({ label, errors, inline, labelProps, helpText, required, chil
   };
 
   return (
-    <S.Wrapper>
+    <S.Wrapper {...props}>
       <S.FieldWrapper inline={inline}>
         {label && (
           <S.Label htmlFor={label} {...labelProps}>

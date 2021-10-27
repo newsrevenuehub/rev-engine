@@ -5,3 +5,4 @@ export { default as DDonorInfo } from './DDonorInfo';
 export { default as DDonorAddress } from './DDonorAddress';
 export { default as DPayment } from './DPayment';
 export { default as DSwag } from './DSwag';
+export { default as DReason } from './DReason';

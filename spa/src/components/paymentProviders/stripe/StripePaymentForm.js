@@ -10,7 +10,6 @@ import { getFrequencyAdverb } from 'utilities/parseFrequency';
 
 // Hooks
 import useSubdomain from 'hooks/useSubdomain';
-import usePreviousState from 'hooks/usePreviousState';
 import useReCAPTCHAScript from 'hooks/useReCAPTCHAScript';
 
 // Constants
@@ -24,10 +23,15 @@ import { THANK_YOU_SLUG } from 'routes';
 import { CardElement, useStripe, useElements, PaymentRequestButtonElement } from '@stripe/react-stripe-js';
 
 // Util
+import formatStringAmountForDisplay from 'utilities/formatStringAmountForDisplay';
 import submitPayment, { serializeData, getTotalAmount, amountToCents, StripeError } from './stripeFns';
 
 // Context
 import { usePage } from 'components/donationPage/DonationPage';
+import * as dynamicElements from 'components/donationPage/pageContent/dynamicElements';
+
+// Analytics
+import { useAnalyticsContext } from 'components/analytics/AnalyticsContext';
 
 // Children
 import BaseField from 'elements/inputs/BaseField';
@@ -35,19 +39,15 @@ import Button from 'elements/buttons/Button';
 import { ICONS } from 'assets/icons/SvgIcon';
 import { PayFeesWidget } from 'components/donationPage/pageContent/DPayment';
 
-// Analytics
-import { useAnalyticsContext } from 'components/analytics/AnalyticsContext';
-
 const STRIPE_PAYMENT_REQUEST_LABEL = 'RevEngine Donation';
 
 function StripePaymentForm({ loading, setLoading, offerPayFees }) {
   useReCAPTCHAScript();
   const subdomain = useSubdomain();
   const { url, params } = useRouteMatch();
-  const { page, amount, frequency, payFee, formRef, errors, setErrors, salesforceCampaignId } = usePage();
+  const { page, amount, frequency, payFee, formRef, setErrors, salesforceCampaignId } = usePage();
   const { trackConversion } = useAnalyticsContext();
 
-  const previousAmount = usePreviousState(amount);
   const [cardReady, setCardReady] = useState(false);
   const [succeeded, setSucceeded] = useState(false);
   const [disabled, setDisabled] = useState(true);
@@ -61,20 +61,7 @@ function StripePaymentForm({ loading, setLoading, offerPayFees }) {
   const stripe = useStripe();
   const elements = useElements();
 
-  const amountIsValid = !isNaN(amount) && amount >= 1;
-
-  /**
-   * Listen to changes in amount to determine whether it has changed since last time.
-   * If it has, disable the submit button. "handleCardElementChange" will determine
-   * "ready" state using some Stripe magic.
-   */
-  useEffect(() => {
-    const amountReadyToCompare = amount && amountIsValid;
-    const amountsAreNotEqual = parseFloat(amount) !== parseFloat(previousAmount);
-    if (amountReadyToCompare && amountsAreNotEqual) {
-      setCardReady(false);
-    }
-  }, [amount, amountIsValid, previousAmount]);
+  const amountIsValid = !isNaN(amount);
 
   /**
    * Listen for changes in the CardElement and display any errors as the customer types their card details
@@ -166,22 +153,29 @@ function StripePaymentForm({ loading, setLoading, offerPayFees }) {
     ...params,
     orgIsNonProfit: page.organization_is_nonprofit,
     orgCountry: page.organization_country,
-    currency: page?.currency?.code?.toLowerCase(),
+    currency: page.currency?.code?.toLowerCase(),
     salesforceCampaignId,
-    revProgramSlug: subdomain
+    revProgramSlug: subdomain,
+    pageId: page.id
   };
 
-  const handleCardSubmit = async (e) => {
-    e.preventDefault();
-    setLoading(true);
+  const getData = async (state = {}) => {
     const reCAPTCHAToken = await getReCAPTCHAToken();
     const data = serializeData(formRef.current, {
       amount,
       payFee,
       frequency,
       reCAPTCHAToken,
-      ...staticParams
+      ...staticParams,
+      ...state
     });
+    return data;
+  };
+
+  const handleCardSubmit = async (e) => {
+    e.preventDefault();
+    const data = await getData();
+    setLoading(true);
     await submitPayment(
       stripe,
       data,
@@ -195,14 +189,8 @@ function StripePaymentForm({ loading, setLoading, offerPayFees }) {
    * PaymentRequestButton Payments *
   \*********************************/
   const handlePaymentRequestSubmit = async (state, paymentRequest) => {
+    const data = await getData(state);
     setLoading(true);
-    const reCAPTCHAToken = await getReCAPTCHAToken();
-    const data = serializeData(formRef.current, {
-      frequency,
-      reCAPTCHAToken,
-      ...state,
-      ...staticParams
-    });
     await submitPayment(
       stripe,
       data,
@@ -288,7 +276,8 @@ function StripePaymentForm({ loading, setLoading, offerPayFees }) {
     if (isNaN(totalAmount)) {
       return 'Enter a valid amount';
     }
-    return `Give ${currencySymbol}${totalAmount} ${getFrequencyAdverb(frequency)}`;
+    console.log(typeof totalAmount);
+    return `Give ${currencySymbol}${formatStringAmountForDisplay(totalAmount)} ${getFrequencyAdverb(frequency)}`;
   };
 
   return !forceManualCard && paymentRequest ? (
@@ -334,3 +323,8 @@ function StripePaymentForm({ loading, setLoading, offerPayFees }) {
 }
 
 export default StripePaymentForm;
+
+function getElementValidator(elementType) {
+  const El = dynamicElements[elementType];
+  return El.validator;
+}

@@ -10,7 +10,6 @@ import { getFrequencyAdverb } from 'utilities/parseFrequency';
 
 // Hooks
 import useSubdomain from 'hooks/useSubdomain';
-import usePreviousState from 'hooks/usePreviousState';
 import useReCAPTCHAScript from 'hooks/useReCAPTCHAScript';
 
 // Constants
@@ -46,10 +45,9 @@ function StripePaymentForm({ loading, setLoading, offerPayFees }) {
   useReCAPTCHAScript();
   const subdomain = useSubdomain();
   const { url, params } = useRouteMatch();
-  const { page, amount, frequency, payFee, formRef, errors, setErrors, salesforceCampaignId } = usePage();
+  const { page, amount, frequency, payFee, formRef, setErrors, salesforceCampaignId } = usePage();
   const { trackConversion } = useAnalyticsContext();
 
-  const previousAmount = usePreviousState(amount);
   const [cardReady, setCardReady] = useState(false);
   const [succeeded, setSucceeded] = useState(false);
   const [disabled, setDisabled] = useState(true);
@@ -64,19 +62,6 @@ function StripePaymentForm({ loading, setLoading, offerPayFees }) {
   const elements = useElements();
 
   const amountIsValid = !isNaN(amount) && amount >= 1;
-
-  /**
-   * Listen to changes in amount to determine whether it has changed since last time.
-   * If it has, disable the submit button. "handleCardElementChange" will determine
-   * "ready" state using some Stripe magic.
-   */
-  useEffect(() => {
-    const amountReadyToCompare = amount && amountIsValid;
-    const amountsAreNotEqual = parseFloat(amount) !== parseFloat(previousAmount);
-    if (amountReadyToCompare && amountsAreNotEqual) {
-      setCardReady(false);
-    }
-  }, [amount, amountIsValid, previousAmount]);
 
   /**
    * Listen for changes in the CardElement and display any errors as the customer types their card details

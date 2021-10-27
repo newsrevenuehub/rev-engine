@@ -10,7 +10,7 @@ export const Label = styled.h3`
 `;
 
 export const Description = styled.p`
-  font-size: ${(props) => props.theme.fontSizes[0]};
+  font-size: ${(props) => props.theme.fontSizes[1]};
   font-weight: 500;
   color: ${(props) => props.theme.colors.black};
 `;

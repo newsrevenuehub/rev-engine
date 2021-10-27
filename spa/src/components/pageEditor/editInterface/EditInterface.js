@@ -52,6 +52,7 @@ function EditInterface() {
   // Since you can only edit one element at a time, it's safe (and much easier)
   // to only store one set of "unconfirmed" changes at a time.
   const [elementContent, setElementContent] = useState();
+  const [elementRequiredFields, setElementRequiredFields] = useState([]);
 
   /**
    * This method exists to acknowledge potential additional complexity. Lucky for this developer,
@@ -96,6 +97,7 @@ function EditInterface() {
     setSelectedElementType(elementsType);
     setSelectedElement(element);
     setElementContent(element.content);
+    setElementRequiredFields(element.requiredFields || []);
   };
 
   return (
@@ -111,6 +113,8 @@ function EditInterface() {
         setSelectedElement,
         elementContent,
         setElementContent,
+        elementRequiredFields,
+        setElementRequiredFields,
         setPageContent
       }}
     >

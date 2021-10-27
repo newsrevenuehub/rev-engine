@@ -254,8 +254,8 @@ function StripePaymentForm({ loading, setLoading, offerPayFees }) {
   useEffect(() => {
     const orgIsNonProfit = page.organization_is_nonprofit;
     const amnt = amountToCents(getTotalAmount(amount, payFee, frequency, orgIsNonProfit));
-    // const amountIsValid = !isNaN(amnt) && amnt > 0;
-    if (paymentRequest && amountIsValid) {
+    const amntIsValid = !isNaN(amnt) && amnt > 0;
+    if (paymentRequest && amntIsValid) {
       paymentRequest.update({
         total: {
           label: STRIPE_PAYMENT_REQUEST_LABEL,

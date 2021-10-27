@@ -190,7 +190,6 @@ function TributeSelector({
               value={inputValue}
               onChange={handleInputChange}
               errors={errors[tributeState.isInMemoryOf ? 'in_memory_of' : 'honoree']}
-              {...S.inputAnimations}
             />
           </motion.div>
         )}

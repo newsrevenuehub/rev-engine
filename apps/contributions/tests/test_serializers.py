@@ -1,5 +1,3 @@
-# apps/contributions/serializers.py    1-15
-
 from django.conf import settings
 from django.test import TestCase
 from django.utils import timezone
@@ -144,7 +142,6 @@ class ContributorContributionSerializerTest(TestCase):
 
 class AbstractPaymentSerializerTest(TestCase):
     def setUp(self):
-        self.payment_data = {}
         self.serializer = serializers.AbstractPaymentSerializer
         self.page = DonationPageFactory()
         self.element = {"type": "Testing", "uuid": "testing-123", "requiredFields": [], "content": {}}
@@ -187,3 +184,33 @@ class AbstractPaymentSerializerTest(TestCase):
         self.assertNotIn("phone", self.element["requiredFields"])
         serializer = self.serializer(data=self.payment_data)
         self.assertTrue(serializer.is_valid())
+
+    def test_validate_reason_for_giving(self):
+        # If reason_for_giving is "Other" and "reason_other" is present, it passes
+        self.payment_data["reason_for_giving"] = "Other"
+        self.payment_data["reason_other"] = "Testing"
+        serializer = self.serializer(data=self.payment_data)
+        is_valid = serializer._validate_reason_for_giving(self.payment_data)
+        self.assertIsNone(is_valid)
+
+        # If it's empty, raise validation error
+        self.payment_data["reason_other"] = ""
+        self.assertRaises(ValidationError, serializer._validate_reason_for_giving, self.payment_data)
+
+    def test_validate_tribute_honoree(self):
+        serializer = self.serializer(data=self.payment_data)
+        self.payment_data["tribute_type"] = "type_honoree"
+        self.payment_data["honoree"] = ""
+        self.assertRaises(ValidationError, serializer._validate_tribute, self.payment_data)
+
+        self.payment_data["honoree"] = "Testing"
+        self.assertIsNone(serializer._validate_tribute(self.payment_data))
+
+    def test_validate_tribute_in_memory_of(self):
+        serializer = self.serializer(data=self.payment_data)
+        self.payment_data["tribute_type"] = "type_in_memory_of"
+        self.payment_data["in_memory_of"] = ""
+        self.assertRaises(ValidationError, serializer._validate_tribute, self.payment_data)
+
+        self.payment_data["in_memory_of"] = "Testing"
+        self.assertIsNone(serializer._validate_tribute(self.payment_data))

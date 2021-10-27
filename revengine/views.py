@@ -20,6 +20,10 @@ class ReactAppView(TemplateView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
+        self._add_social_media_context(context)
+        return context
+
+    def _add_social_media_context(self, context):
         if subdomain := get_subdomain_from_request(self.request):
             revenue_program = None
             try:
@@ -30,8 +34,6 @@ class ReactAppView(TemplateView):
             if revenue_program:
                 serializer = SocialMetaInlineSerializer(revenue_program.social_meta, context={"request": self.request})
                 context["social_meta"] = serializer.data
-
-        return context
 
 
 index = never_cache(ReactAppView.as_view())

@@ -34,3 +34,7 @@ def parse_pi_data_for_swag_options(pi_data):
     if swag_choices:
         # For now, we only accept one and we force it in to "t_shirt_size"
         pi_data["t_shirt_size"] = f"{swag_choices[0][0]} -- {swag_choices[0][1]}"
+
+
+def format_ambiguous_currency(integer):
+    return f"{integer / 100:,.2f}"

@@ -27,8 +27,7 @@ export const Icon = styled(SvgIcon)`
 `;
 
 export const PaymentError = styled.div`
-  padding: 1rem 0;
-  margin-bottom: 1rem;
+  margin-bottom: 2rem;
   color: ${(props) => props.theme.colors.caution};
 `;
 

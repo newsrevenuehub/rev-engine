@@ -7,6 +7,7 @@ from rest_framework.serializers import ValidationError
 from apps.contributions import serializers
 from apps.contributions.models import ContributionStatus
 from apps.contributions.tests.factories import ContributionFactory, ContributorFactory
+from apps.contributions.utils import format_ambiguous_currency
 from apps.organizations.tests.factories import OrganizationFactory
 from apps.pages.tests.factories import DonationPageFactory
 
@@ -214,3 +215,19 @@ class AbstractPaymentSerializerTest(TestCase):
 
         self.payment_data["in_memory_of"] = "Testing"
         self.assertIsNone(serializer._validate_tribute(self.payment_data))
+
+    def test_amount_validation_min(self):
+        self.payment_data["amount"] = serializers.REVENGINE_MIN_AMOUNT - 1
+        serializer = self.serializer(data=self.payment_data)
+        self.assertFalse(serializer.is_valid())
+        self.assertIn("amount", serializer.errors)
+        expected_msg = f"We can only accept contributions greater than or equal to {format_ambiguous_currency(serializers.REVENGINE_MIN_AMOUNT)}"
+        self.assertEqual(str(serializer.errors["amount"][0]), expected_msg)
+
+    def test_amount_validation_max(self):
+        self.payment_data["amount"] = serializers.STRIPE_MAX_AMOUNT + 1
+        serializer = self.serializer(data=self.payment_data)
+        self.assertFalse(serializer.is_valid())
+        self.assertIn("amount", serializer.errors)
+        expected_msg = f"We can only accept contributions less than or equal to {format_ambiguous_currency(serializers.STRIPE_MAX_AMOUNT)}"
+        self.assertEqual(str(serializer.errors["amount"][0]), expected_msg)

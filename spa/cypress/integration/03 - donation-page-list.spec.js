@@ -80,7 +80,7 @@ describe('Donation page list', () => {
       cy.getByTestId('select-item-0').click();
 
       cy.intercept({ method: 'POST', pathname: getEndpoint(LIST_PAGES) }).as('createNewPage');
-      cy.getByTestId('save-new-page-button').click();
+      cy.getByTestId('save-new-page-button').click({ force: true });
       cy.wait('@createNewPage').then(({ request }) => {
         expect(request.body).to.have.property('revenue_program_pk');
         expect(request.body).to.have.property('template_pk');

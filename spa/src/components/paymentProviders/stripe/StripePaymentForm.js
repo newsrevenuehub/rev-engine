@@ -10,7 +10,6 @@ import { getFrequencyAdverb } from 'utilities/parseFrequency';
 
 // Hooks
 import useSubdomain from 'hooks/useSubdomain';
-import usePreviousState from 'hooks/usePreviousState';
 import useReCAPTCHAScript from 'hooks/useReCAPTCHAScript';
 
 // Constants
@@ -29,6 +28,7 @@ import submitPayment, { serializeData, getTotalAmount, amountToCents, StripeErro
 
 // Context
 import { usePage } from 'components/donationPage/DonationPage';
+import * as dynamicElements from 'components/donationPage/pageContent/dynamicElements';
 
 // Analytics
 import { useAnalyticsContext } from 'components/analytics/AnalyticsContext';
@@ -38,7 +38,6 @@ import BaseField from 'elements/inputs/BaseField';
 import Button from 'elements/buttons/Button';
 import { ICONS } from 'assets/icons/SvgIcon';
 import { PayFeesWidget } from 'components/donationPage/pageContent/DPayment';
-import FormErrors from 'elements/inputs/FormErrors';
 
 const STRIPE_PAYMENT_REQUEST_LABEL = 'RevEngine Donation';
 
@@ -46,10 +45,9 @@ function StripePaymentForm({ loading, setLoading, offerPayFees }) {
   useReCAPTCHAScript();
   const subdomain = useSubdomain();
   const { url, params } = useRouteMatch();
-  const { page, amount, frequency, payFee, formRef, errors, setErrors, salesforceCampaignId } = usePage();
+  const { page, amount, frequency, payFee, formRef, setErrors, salesforceCampaignId } = usePage();
   const { trackConversion } = useAnalyticsContext();
 
-  const previousAmount = usePreviousState(amount);
   const [cardReady, setCardReady] = useState(false);
   const [succeeded, setSucceeded] = useState(false);
   const [disabled, setDisabled] = useState(true);
@@ -64,19 +62,6 @@ function StripePaymentForm({ loading, setLoading, offerPayFees }) {
   const elements = useElements();
 
   const amountIsValid = !isNaN(amount);
-
-  /**
-   * Listen to changes in amount to determine whether it has changed since last time.
-   * If it has, disable the submit button. "handleCardElementChange" will determine
-   * "ready" state using some Stripe magic.
-   */
-  useEffect(() => {
-    const amountReadyToCompare = amount && amountIsValid;
-    const amountsAreNotEqual = parseFloat(amount) !== parseFloat(previousAmount);
-    if (amountReadyToCompare && amountsAreNotEqual) {
-      setCardReady(false);
-    }
-  }, [amount, amountIsValid, previousAmount]);
 
   /**
    * Listen for changes in the CardElement and display any errors as the customer types their card details
@@ -168,22 +153,29 @@ function StripePaymentForm({ loading, setLoading, offerPayFees }) {
     ...params,
     orgIsNonProfit: page.organization_is_nonprofit,
     orgCountry: page.organization_country,
-    currency: page?.currency?.code?.toLowerCase(),
+    currency: page.currency?.code?.toLowerCase(),
     salesforceCampaignId,
-    revProgramSlug: subdomain
+    revProgramSlug: subdomain,
+    pageId: page.id
   };
 
-  const handleCardSubmit = async (e) => {
-    e.preventDefault();
-    setLoading(true);
+  const getData = async (state = {}) => {
     const reCAPTCHAToken = await getReCAPTCHAToken();
     const data = serializeData(formRef.current, {
       amount,
       payFee,
       frequency,
       reCAPTCHAToken,
-      ...staticParams
+      ...staticParams,
+      ...state
     });
+    return data;
+  };
+
+  const handleCardSubmit = async (e) => {
+    e.preventDefault();
+    const data = await getData();
+    setLoading(true);
     await submitPayment(
       stripe,
       data,
@@ -197,14 +189,8 @@ function StripePaymentForm({ loading, setLoading, offerPayFees }) {
    * PaymentRequestButton Payments *
   \*********************************/
   const handlePaymentRequestSubmit = async (state, paymentRequest) => {
+    const data = await getData(state);
     setLoading(true);
-    const reCAPTCHAToken = await getReCAPTCHAToken();
-    const data = serializeData(formRef.current, {
-      frequency,
-      reCAPTCHAToken,
-      ...state,
-      ...staticParams
-    });
     await submitPayment(
       stripe,
       data,
@@ -337,3 +323,8 @@ function StripePaymentForm({ loading, setLoading, offerPayFees }) {
 }
 
 export default StripePaymentForm;
+
+function getElementValidator(elementType) {
+  const El = dynamicElements[elementType];
+  return El.validator;
+}

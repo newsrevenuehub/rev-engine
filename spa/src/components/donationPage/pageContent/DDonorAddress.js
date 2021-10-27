@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, forwardRef } from 'react';
+import * as S from './DDonorAddress.styled';
 
 // Context
 import { usePage } from 'components/donationPage/DonationPage';
@@ -37,19 +38,22 @@ function DDonorAddress() {
     }
   });
 
+  // Ok-- let's just get this logic on develop so we can easily switch this feature on
+  // when the time comes. shouldUseAutocomplete should be false when the page editor has
+  // chosen to only show zip and/or country fields. Right now they cannot change the fields
+  // shown in this element, so it's a moot point.
+  const shouldUseAutocomplete = true;
+
   return (
     <DElement>
       <Grid container spacing={3}>
         <Grid item xs={12}>
-          <Input
-            type="text"
+          <ConditionalAddressAutocomplete
+            useAutocomplete={shouldUseAutocomplete}
             ref={ref}
-            name="mailing_street"
-            label="Address"
-            value={address}
-            onChange={(e) => setAddress(e.target.value)}
+            address={address}
+            setAddress={setAddress}
             errors={errors.mailing_street}
-            required
           />
         </Grid>
         <Grid item xs={12}>
@@ -108,6 +112,34 @@ DDonorAddress.required = true;
 DDonorAddress.unique = true;
 
 export default DDonorAddress;
+
+const ConditionalAddressAutocomplete = forwardRef(({ useAutocomplete, address, setAddress, errors }, ref) => {
+  return (
+    <>
+      <S.ConditionallyHiddenInput
+        show={!useAutocomplete}
+        type="text"
+        name="mailing_street"
+        label="Address"
+        value={address}
+        onChange={(e) => setAddress(e.target.value)}
+        errors={errors}
+        required
+      />
+      <S.ConditionallyHiddenInput
+        show={useAutocomplete}
+        type="text"
+        ref={ref}
+        name="mailing_street"
+        label="Address"
+        value={address}
+        onChange={(e) => setAddress(e.target.value)}
+        errors={errors}
+        required
+      />
+    </>
+  );
+});
 
 const mapAddrFieldToComponentTypes = {
   address: ['street_number', 'street_address', 'route'],

@@ -35,6 +35,7 @@ function ElementProperties({ selectedElementType }) {
     selectedElement,
     setSelectedElement,
     elementContent,
+    elementRequiredFields,
     elements,
     setElements,
     sidebarElements,
@@ -59,6 +60,7 @@ function ElementProperties({ selectedElementType }) {
       const thisIndex = elementsCopy.findIndex((el) => el.uuid === selectedElement.uuid);
 
       elementsCopy[thisIndex].content = elementContent;
+      elementsCopy[thisIndex].requiredFields = elementRequiredFields;
 
       if (isForSidebar) setSidebarElements(elementsCopy);
       else setElements(elementsCopy);
@@ -105,20 +107,22 @@ function ElementProperties({ selectedElementType }) {
         )}
       </S.ElementHeading>
       <S.ElementEditor>{getElementEditor(selectedElement.type)}</S.ElementEditor>
-      <S.Buttons>
-        <CircleButton
-          icon={faCheck}
-          buttonType="positive"
-          onClick={handleKeepChanges}
-          data-testid="keep-element-changes-button"
-        />
-        <CircleButton
-          icon={faTimes}
-          buttonType="caution"
-          onClick={handleDiscardChanges}
-          data-testid="discard-element-changes-button"
-        />
-      </S.Buttons>
+      <S.ButtonsSection>
+        <S.Buttons>
+          <CircleButton
+            icon={faCheck}
+            buttonType="positive"
+            onClick={handleKeepChanges}
+            data-testid="keep-element-changes-button"
+          />
+          <CircleButton
+            icon={faTimes}
+            buttonType="caution"
+            onClick={handleDiscardChanges}
+            data-testid="discard-element-changes-button"
+          />
+        </S.Buttons>
+      </S.ButtonsSection>
     </S.ElementProperties>
   );
 }

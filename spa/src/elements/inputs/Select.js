@@ -5,6 +5,8 @@ import BaseField from 'elements/inputs/BaseField';
 // Deps
 import { useSelect } from 'downshift';
 
+export const NULL_CHOICE = '----';
+
 function Select({
   selectedItem,
   onSelectedItemChange,
@@ -26,13 +28,11 @@ function Select({
     <BaseField labelProps={{ ...getLabelProps() }} {...props}>
       <S.SelectWrapper>
         <S.Select
-          {...getToggleButtonProps()}
+          {...getToggleButtonProps({ placeholder })}
           name={name}
           data-testid={testId}
-          value={(selectedItem && displayAccessor ? selectedItem[displayAccessor] : selectedItem) || placeholder}
+          value={selectedItem && displayAccessor ? selectedItem[displayAccessor] : selectedItem}
         />
-
-        {/* </S.Select> */}
 
         <S.List
           {...getMenuProps()}

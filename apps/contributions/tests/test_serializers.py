@@ -1,14 +1,15 @@
-# apps/contributions/serializers.py    1-15
-
 from django.conf import settings
 from django.test import TestCase
 from django.utils import timezone
+
+from rest_framework.serializers import ValidationError
 
 from apps.contributions import serializers
 from apps.contributions.models import ContributionStatus
 from apps.contributions.tests.factories import ContributionFactory, ContributorFactory
 from apps.contributions.utils import format_ambiguous_currency
 from apps.organizations.tests.factories import OrganizationFactory
+from apps.pages.tests.factories import DonationPageFactory
 
 
 class ContributionSerializer(TestCase):
@@ -143,6 +144,9 @@ class ContributorContributionSerializerTest(TestCase):
 class AbstractPaymentSerializerTest(TestCase):
     def setUp(self):
         self.serializer = serializers.AbstractPaymentSerializer
+        self.page = DonationPageFactory()
+        self.element = {"type": "Testing", "uuid": "testing-123", "requiredFields": [], "content": {}}
+
         self.payment_data = {
             "amount": 123,
             "currency": "USD",
@@ -158,7 +162,59 @@ class AbstractPaymentSerializerTest(TestCase):
             "organization_country": "ts",
             "referer": "https://test.test",
             "revenue_program_slug": "test",
+            "page_id": self.page.pk,
         }
+
+    def _add_element_to_page(self, element):
+        self.page.elements = [element]
+        self.page.save()
+
+    def test_validates_page_element_if_conditionally_required(self):
+        """
+        Any input within any element of page.elements might be required to submit a payment. AbstractPaymentSerializer is responsible for enforcing this requirement and does so by updating the serializer field definition in __init__ based on page.elements content.
+        """
+        req_field = "phone"
+        self.element["requiredFields"].append(req_field)
+        self._add_element_to_page(self.element)
+        serializer = self.serializer(data=self.payment_data)
+        self.assertFalse(serializer.is_valid())
+        self.assertIn("phone", serializer.errors)
+        self.assertEqual(serializer.errors["phone"][0].code, "required")
+
+    def test_validates_page_element_if_conditionally_not_required(self):
+        self.assertNotIn("phone", self.element["requiredFields"])
+        serializer = self.serializer(data=self.payment_data)
+        self.assertTrue(serializer.is_valid())
+
+    def test_validate_reason_for_giving(self):
+        # If reason_for_giving is "Other" and "reason_other" is present, it passes
+        self.payment_data["reason_for_giving"] = "Other"
+        self.payment_data["reason_other"] = "Testing"
+        serializer = self.serializer(data=self.payment_data)
+        is_valid = serializer._validate_reason_for_giving(self.payment_data)
+        self.assertIsNone(is_valid)
+
+        # If it's empty, raise validation error
+        self.payment_data["reason_other"] = ""
+        self.assertRaises(ValidationError, serializer._validate_reason_for_giving, self.payment_data)
+
+    def test_validate_tribute_honoree(self):
+        serializer = self.serializer(data=self.payment_data)
+        self.payment_data["tribute_type"] = "type_honoree"
+        self.payment_data["honoree"] = ""
+        self.assertRaises(ValidationError, serializer._validate_tribute, self.payment_data)
+
+        self.payment_data["honoree"] = "Testing"
+        self.assertIsNone(serializer._validate_tribute(self.payment_data))
+
+    def test_validate_tribute_in_memory_of(self):
+        serializer = self.serializer(data=self.payment_data)
+        self.payment_data["tribute_type"] = "type_in_memory_of"
+        self.payment_data["in_memory_of"] = ""
+        self.assertRaises(ValidationError, serializer._validate_tribute, self.payment_data)
+
+        self.payment_data["in_memory_of"] = "Testing"
+        self.assertIsNone(serializer._validate_tribute(self.payment_data))
 
     def test_amount_validation_min(self):
         self.payment_data["amount"] = serializers.REVENGINE_MIN_AMOUNT - 1

@@ -57,7 +57,9 @@ function FrequencyEditor() {
                 id={`${frequency.value}-default`}
                 data-testid={`frequency-default-${frequency.value}`}
                 type="checkbox"
-                color={theme.colors.primary}
+                style={{
+                  color: theme.colors.primary
+                }}
                 checked={!!thisFreq?.isDefault}
                 onChange={() => makeFreqDefault(frequency.value)}
               />

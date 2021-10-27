@@ -171,7 +171,9 @@ function SwagEditor() {
           id="opt-out-default"
           data-testid="opt-out-default"
           type="checkbox"
-          color={theme.colors.primary}
+          style={{
+            color: theme.colors.primary
+          }}
           checked={elementContent.optOutDefault}
           onChange={setOptOutDefault}
         />
@@ -184,7 +186,9 @@ function SwagEditor() {
             id="offer-nyt-comp"
             data-testid="offer-nyt-comp"
             type="checkbox"
-            color={theme.colors.primary}
+            style={{
+              color: theme.colors.primary
+            }}
             checked={!!elementContent.offerNytComp}
             onChange={setOfferNytComp}
           />

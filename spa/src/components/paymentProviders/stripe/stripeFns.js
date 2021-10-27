@@ -85,7 +85,8 @@ function serializeForm(form) {
     This really is easier than managing all the form state in a common
     parent. Trust me.
   */
-  const booleans = ['swag_opt_out', 'comp_subscription'];
+  const booleans = ['swag_opt_out', 'comp_subscription', 'tribute_type_honoree', 'tribute_type_in_memory_of'];
+  const tributesToConvert = { tribute_type_honoree: 'type_honoree', tribute_type_in_memory_of: 'type_in_memory_of' };
   const obj = {};
   const formData = new FormData(form);
   for (const key of formData.keys()) {
@@ -96,6 +97,9 @@ function serializeForm(form) {
     } else {
       obj[key] = formData.get(key);
     }
+    // tribute_type could be either a radio or a checkbox.
+    // If it's a checkbox, we need to convert the "true" value to the expected value
+    if (tributesToConvert[key]) obj.tribute_type = tributesToConvert[key];
   }
   return obj;
 }
@@ -119,7 +123,7 @@ export function serializeData(formRef, state) {
   serializedData['donation_page_slug'] = state.pageSlug;
   serializedData['organization_country'] = state.orgCountry;
   serializedData['currency'] = state.currency;
-  serializedData['sf_campaign_id'] = state.salesforceCampaignId;
+  if (state.salesforceCampaignId) serializedData['sf_campaign_id'] = state.salesforceCampaignId;
   if (state.reCAPTCHAToken) serializedData['captcha_token'] = state.reCAPTCHAToken;
 
   return serializedData;

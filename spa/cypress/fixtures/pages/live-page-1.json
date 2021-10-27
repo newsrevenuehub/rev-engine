@@ -17,6 +17,13 @@
     {"type": "DDonorInfo", "uuid": "testDonorInfo1"},
     {"type": "DDonorAddress", "uuid": "testDonorAddress1"},
     {"type": "DAdditionalInfo", "uuid": "testAdditionalInfo", "content": []},
+    {"type": "DReason", "uuid": "testReason", "content": {
+        "askReason": true,
+        "reasons": ["test1", "test2", "test3"],
+        "askHonoree": true,
+        "askInMemoryOf": true
+      }
+    },
     {"type": "DSwag", "uuid": "testMemberBenefits", "content": {
       "optOutDefault": false,
       "swagThreshold": 240,

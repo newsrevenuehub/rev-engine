@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import PropTypes from 'prop-types';
 import { useTheme } from 'styled-components';
+import { motion } from 'framer-motion';
 
 // Styles
 import * as S from './DReason.styled';
@@ -71,15 +72,16 @@ function DReason({ element, ...props }) {
                 )}
                 <AnimatePresence>
                   {(elementContent.reasons?.length === 0 || selectedReason === REASON_OTHER) && (
-                    <S.ReasonOtherInput
-                      placeholder="What's got you excited to give?"
-                      value={reasonOther}
-                      name="reason_other"
-                      onChange={(e) => setReasonOther(e.target.value)}
-                      maxLength={REASON_OPTION_MAX_LENGTH}
-                      errors={errors.reason_other}
-                      {...S.inputAnimations}
-                    />
+                    <motion.div {...S.inputAnimations}>
+                      <S.ReasonOtherInput
+                        placeholder="What's got you excited to give?"
+                        value={reasonOther}
+                        name="reason_other"
+                        onChange={(e) => setReasonOther(e.target.value)}
+                        maxLength={REASON_OPTION_MAX_LENGTH}
+                        errors={errors.reason_other}
+                      />
+                    </motion.div>
                   )}
                 </AnimatePresence>
               </S.SupportOptions>
@@ -180,15 +182,17 @@ function TributeSelector({
       )}
       <AnimatePresence>
         {showTributeInput && (
-          <S.TributeInput
-            testid="tribute-input"
-            name={tributeState.isInMemoryOf ? 'in_memory_of' : 'honoree'}
-            placeholder={tributeState.isInMemoryOf ? 'In memory of...' : 'In honor of...'}
-            value={inputValue}
-            onChange={handleInputChange}
-            errors={errors[tributeState.isInMemoryOf ? 'in_memory_of' : 'honoree']}
-            {...S.inputAnimations}
-          />
+          <motion.div {...S.inputAnimations}>
+            <S.TributeInput
+              testid="tribute-input"
+              name={tributeState.isInMemoryOf ? 'in_memory_of' : 'honoree'}
+              placeholder={tributeState.isInMemoryOf ? 'In memory of...' : 'In honor of...'}
+              value={inputValue}
+              onChange={handleInputChange}
+              errors={errors[tributeState.isInMemoryOf ? 'in_memory_of' : 'honoree']}
+              {...S.inputAnimations}
+            />
+          </motion.div>
         )}
       </AnimatePresence>
     </S.TributeSelector>

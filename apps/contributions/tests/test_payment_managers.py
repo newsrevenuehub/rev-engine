@@ -83,6 +83,7 @@ class StripePaymentManagerAbstractTestCase(APITestCase):
             "organization_country": "us",
             "ip": faker.ipv4(),
             "referer": faker.url(),
+            "page_id": self.page.pk,
         }
         self.contribution = ContributionFactory(
             donation_page=self.page, contributor=self.contributor, organization=self.organization

@@ -46,7 +46,7 @@ export const SideInner = styled.div`
 `;
 
 export const DonationContent = styled.div`
-  padding: 3rem 5rem;
+  padding: 1rem 5rem 3rem 5rem;
   @media (${(props) => props.theme.breakpoints.phoneOnly}) {
     padding: 1rem;
   }
@@ -58,7 +58,7 @@ export const PageElements = styled.ul`
   list-style: none;
 
   & > li {
-    padding: 4rem 0;
+    padding: 2rem 0;
     margin: 0;
   }
 

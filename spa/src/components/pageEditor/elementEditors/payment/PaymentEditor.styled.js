@@ -37,6 +37,5 @@ export const RadioWrapper = styled.div`
 export const Radio = styled(MaterialCheckbox)``;
 
 export const RadioLabel = styled.label`
-  font-size: 12px;
-  font-style: italic;
+  font-size: ${(props) => props.theme.fontSizes[1]};
 `;

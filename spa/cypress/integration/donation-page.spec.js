@@ -480,7 +480,6 @@ describe('Footer-like content', () => {
 
 describe('Resulting request', () => {
   beforeEach(() => {
-    cy.interceptDonation();
     cy.intercept(
       { method: 'GET', pathname: `${getEndpoint(LIVE_PAGE_DETAIL)}**` },
       { fixture: 'pages/live-page-1', statusCode: 200 }
@@ -488,6 +487,10 @@ describe('Resulting request', () => {
   });
   it('should pass salesforce campaign id from query parameter to request body', () => {
     const sfCampaignId = 'my-test-sf-campaign-id';
+    cy.intercept(
+      { method: 'GET', pathname: `${getEndpoint(LIVE_PAGE_DETAIL)}**` },
+      { fixture: 'pages/live-page-1', statusCode: 200 }
+    ).as('getPageDetail');
     cy.visit(getTestingDonationPageUrl(expectedPageSlug, `?campaign=${sfCampaignId}`));
     cy.url().should('include', EXPECTED_RP_SLUG);
     cy.url().should('include', expectedPageSlug);
@@ -497,25 +500,34 @@ describe('Resulting request', () => {
     const interval = 'One time';
     const amount = '120';
 
+    cy.intercept(
+      { method: 'POST', pathname: getEndpoint(STRIPE_PAYMENT) },
+      { fixture: 'stripe/payment-intent', statusCode: 200 }
+    ).as('stripePaymentWithSfId');
     cy.setUpDonation(interval, amount);
-    cy.makeDonation().then(() => {
-      cy.wait('@stripePayment', { timeout: LONG_WAIT })
-        .its('request.body')
-        .should('have.property', 'sf_campaign_id', sfCampaignId);
-    });
+    cy.makeDonation();
+    cy.wait('@stripePaymentWithSfId').its('request.body').should('have.property', 'sf_campaign_id', sfCampaignId);
   });
 
   it('should send a request with the expected payment properties and values', () => {
+    cy.intercept(
+      { method: 'GET', pathname: `${getEndpoint(LIVE_PAGE_DETAIL)}**` },
+      { fixture: 'pages/live-page-1', statusCode: 200 }
+    ).as('getPageDetail');
     cy.visit(getTestingDonationPageUrl(expectedPageSlug));
     cy.url().should('include', EXPECTED_RP_SLUG);
     cy.url().should('include', expectedPageSlug);
     cy.wait('@getPageDetail');
 
+    cy.intercept(
+      { method: 'POST', pathname: getEndpoint(STRIPE_PAYMENT) },
+      { fixture: 'stripe/payment-intent', statusCode: 200 }
+    ).as('stripePaymentWithProperties');
     const interval = 'One time';
     const amount = '120';
     cy.setUpDonation(interval, amount);
     cy.makeDonation().then(() => {
-      cy.wait('@stripePayment', { timeout: LONG_WAIT }).then((interception) => {
+      cy.wait('@stripePaymentWithProperties', { timeout: LONG_WAIT }).then((interception) => {
         const { body: paymentData } = interception.request;
         expect(paymentData).to.have.property('interval', 'one_time');
         expect(paymentData).to.have.property('amount', amount);
@@ -528,21 +540,26 @@ describe('Resulting request', () => {
     /**
      * This tests against regressions that might cause the orgs stripe account id to not appear in the header of confirmCardPayment
      */
+    cy.intercept(
+      { method: 'GET', pathname: `${getEndpoint(LIVE_PAGE_DETAIL)}**` },
+      { fixture: 'pages/live-page-1', statusCode: 200 }
+    ).as('getPageDetail');
     cy.visit(getTestingDonationPageUrl(expectedPageSlug));
     cy.url().should('include', EXPECTED_RP_SLUG);
     cy.url().should('include', expectedPageSlug);
     cy.wait('@getPageDetail');
 
+    cy.intercept(
+      { method: 'POST', pathname: getEndpoint(STRIPE_PAYMENT) },
+      { fixture: 'stripe/payment-intent', statusCode: 200 }
+    );
+    cy.intercept('/v1/payment_intents/**', { statusCode: 200 }).as('confirmCardPaymentWithAccountId');
+
     const interval = 'One time';
     const amount = '120';
     cy.setUpDonation(interval, amount);
-    cy.makeDonation().then(() => {
-      cy.wait(['@confirmCardPayment', '@stripePayment'], { timeout: LONG_WAIT }).spread(
-        (confirmCardPayment, stripePayment) => {
-          cy.wrap(confirmCardPayment.request.body).should('include', livePageOne.stripe_account_id);
-        }
-      );
-    });
+    cy.makeDonation();
+    cy.wait('@confirmCardPaymentWithAccountId').its('request.body').should('include', livePageOne.stripe_account_id);
   });
 
   it('should contain clearbit.js script in body', () => {
@@ -555,7 +572,6 @@ describe('Resulting request', () => {
 // does not provide a way to override on per-test basis.
 describe('Resulting request: special case -- error on submission', () => {
   it('should focus the first input on the page with an error', () => {
-    cy.interceptDonation();
     cy.intercept(
       { method: 'GET', pathname: `${getEndpoint(LIVE_PAGE_DETAIL)}**` },
       { fixture: 'pages/live-page-1', statusCode: 200 }
@@ -569,6 +585,8 @@ describe('Resulting request: special case -- error on submission', () => {
       { method: 'POST', pathname: getEndpoint(STRIPE_PAYMENT) },
       { body: { [errorElementName]: errorMessage }, statusCode: 400 }
     ).as('stripePaymentError');
+    cy.intercept('/v1/payment_intents/**', { statusCode: 200 });
+    cy.intercept('/v1/payment_methods/**', { fixture: 'stripe/payment-method', statusCode: 200 });
     cy.setUpDonation('One time', '120');
     cy.makeDonation().then(() => {
       cy.wait('@stripePaymentError');

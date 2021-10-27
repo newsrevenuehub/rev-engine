@@ -62,7 +62,7 @@ export const TributeSelector = styled.div``;
 
 export const TributeHeading = styled.p``;
 
-export const TributeInput = styled(motion(Input))``;
+export const TributeInput = styled(Input)``;
 
 export const inputAnimations = {
   initial: { x: -10, opacity: 0 },

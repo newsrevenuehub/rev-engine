@@ -35,6 +35,7 @@ function ElementProperties({ selectedElementType }) {
     selectedElement,
     setSelectedElement,
     elementContent,
+    elementRequiredFields,
     elements,
     setElements,
     sidebarElements,
@@ -59,6 +60,7 @@ function ElementProperties({ selectedElementType }) {
       const thisIndex = elementsCopy.findIndex((el) => el.uuid === selectedElement.uuid);
 
       elementsCopy[thisIndex].content = elementContent;
+      elementsCopy[thisIndex].requiredFields = elementRequiredFields;
 
       if (isForSidebar) setSidebarElements(elementsCopy);
       else setElements(elementsCopy);

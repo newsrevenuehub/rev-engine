@@ -9,7 +9,17 @@ from apps.contributions.models import (
     ContributionStatus,
     Contributor,
 )
+from apps.contributions.utils import format_ambiguous_currency
 from apps.pages.models import DonationPage
+
+
+# See https://stripe.com/docs/api/payment_intents/object#payment_intent_object-amount
+# Stripe allows a maximum of eight digits here
+STRIPE_MAX_AMOUNT = 99999999
+
+# Revengine has its own restrictions (greater than Stripe's restrictions) on the min amount.
+# Remember that 100 here is $1.00
+REVENGINE_MIN_AMOUNT = 100
 
 
 class ContributionMetadataSerializer(serializers.ModelSerializer):
@@ -157,10 +167,17 @@ class ContributorSerializer(serializers.ModelSerializer):
 
 class AbstractPaymentSerializer(serializers.Serializer):
     # Payment details
-    amount = serializers.IntegerField()
+    amount = serializers.IntegerField(
+        min_value=REVENGINE_MIN_AMOUNT,
+        max_value=STRIPE_MAX_AMOUNT,
+        error_messages={
+            "max_value": f"We can only accept contributions less than or equal to {format_ambiguous_currency(STRIPE_MAX_AMOUNT)}",
+            "min_value": f"We can only accept contributions greater than or equal to {format_ambiguous_currency(REVENGINE_MIN_AMOUNT)}",
+        },
+    )
     interval = serializers.ChoiceField(choices=ContributionInterval.choices, default=ContributionInterval.ONE_TIME)
 
-    # organization_country and currency are a different pattern, but important here.
+    # organization_country tand currency are a different pattern, but important here.
     # They could be derived from the organization that this contribution is tied to,
     # but instead we send that info to each donation page load and pass it back as params;
     # that way we are certain that the currency and country used by payment provider in the

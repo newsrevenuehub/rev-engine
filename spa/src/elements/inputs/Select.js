@@ -4,6 +4,7 @@ import BaseField from 'elements/inputs/BaseField';
 
 // Deps
 import { useSelect } from 'downshift';
+import { faAngleDown } from '@fortawesome/free-solid-svg-icons';
 
 export const NULL_CHOICE = '----';
 
@@ -33,7 +34,9 @@ function Select({
           data-testid={testId}
           value={selectedItem && displayAccessor ? selectedItem[displayAccessor] : selectedItem}
         />
-
+        <S.CaretWrapper animate={isOpen ? 'open' : 'closed'} variants={caretVariants}>
+          <S.Caret icon={faAngleDown} />
+        </S.CaretWrapper>
         <S.List
           {...getMenuProps()}
           isOpen={isOpen}
@@ -67,3 +70,8 @@ Select.defaultProps = {
 };
 
 export default Select;
+
+const caretVariants = {
+  open: { rotate: '180deg' },
+  closed: { rotate: '0deg' }
+};

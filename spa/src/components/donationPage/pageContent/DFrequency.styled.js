@@ -24,6 +24,5 @@ export const CheckBoxField = styled.div`
 `;
 
 export const CheckboxLabel = styled.label`
-  font-size: 12px;
-  font-style: italic;
+  font-size: ${(props) => props.theme.fontSizes[1]};
 `;

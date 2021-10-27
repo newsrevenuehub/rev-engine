@@ -25,7 +25,7 @@ export const SupportOptions = styled.div`
 export const ReasonOtherInput = styled(motion(Input))``;
 
 export const TributeSection = styled.div`
-  margin: 2rem;
+  margin: 2rem 2rem 0 2rem;
 `;
 
 export const BothOptions = styled.div`
@@ -55,8 +55,7 @@ export const Checkbox = styled(MaterialCheckbox)``;
 export const Radio = styled(MaterialRadio)``;
 
 export const CheckboxLabel = styled.label`
-  font-size: 12px;
-  font-style: italic;
+  font-size: ${(props) => props.theme.fontSizes[1]};
 `;
 
 export const TributeSelector = styled.div``;

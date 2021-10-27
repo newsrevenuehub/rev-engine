@@ -69,14 +69,14 @@ describe('Donation page edit', () => {
       it('should validate frequency', () => {
         // Uncheck all the frequencies
         cy.getByTestId('frequency-toggle').click({ multiple: true });
-        cy.getByTestId('keep-element-changes-button').click();
+        cy.getByTestId('keep-element-changes-button').click({ force: true });
         cy.getByTestId('alert').contains('You must have at least');
       });
 
       it('should accept valid input and changes should show on page', () => {
         // Now check one and accept
         cy.getByTestId('frequency-toggle').contains('One time').click();
-        cy.getByTestId('keep-element-changes-button').click();
+        cy.getByTestId('keep-element-changes-button').click({ force: true });
 
         // Donation page should only show item checked, and nothing else.
         cy.getByTestId('d-frequency').contains('One time');
@@ -87,7 +87,7 @@ describe('Donation page edit', () => {
         cy.contains('Donation frequency').click();
         cy.getByTestId('frequency-toggle').contains('Monthly').click();
         cy.getByTestId('frequency-toggle').contains('Yearly').click();
-        cy.getByTestId('keep-element-changes-button').click();
+        cy.getByTestId('keep-element-changes-button').click({ force: true });
       });
     });
   });
@@ -100,7 +100,7 @@ describe('Donation page edit', () => {
       cy.contains('Donation frequency').click();
       cy.getByTestId('frequency-editor').find('li').first().click();
       cy.getByTestId('frequency-editor').find('li').click({ multiple: true });
-      cy.getByTestId('keep-element-changes-button').click();
+      cy.getByTestId('keep-element-changes-button').click({ force: true });
     });
 
     it('should render the amount editor', () => {
@@ -251,7 +251,7 @@ describe('Donation page edit', () => {
       cy.contains('Rich text').click();
 
       // Accept changes
-      cy.getByTestId('keep-element-changes-button').click();
+      cy.getByTestId('keep-element-changes-button').click({ force: true });
 
       // Save changes
       cy.getByTestId('save-page-button').click();
@@ -278,7 +278,7 @@ describe('Donation page edit', () => {
       cy.getByTestId('edit-page-button').click();
       cy.getByTestId('setup-tab').click({ force: true });
       cy.getByTestId('logo-link-input').type('not a valid url');
-      cy.getByTestId('keep-element-changes-button').click();
+      cy.getByTestId('keep-element-changes-button').click({ force: true });
 
       // Before we save, let's close the tab so we can more meaningfully assert its presence later.
       cy.getByTestId('preview-page-button').click();
@@ -312,7 +312,7 @@ describe('Donation page edit', () => {
       cy.contains('Rich text').click();
 
       // Accept changes
-      cy.getByTestId('keep-element-changes-button').click();
+      cy.getByTestId('keep-element-changes-button').click({ force: true });
 
       // Save changes
       cy.getByTestId('save-page-button').click();
@@ -362,7 +362,7 @@ describe('Donation page edit', () => {
     it('should show a warning when updating a live page', () => {
       cy.getByTestId('publish-widget').click();
       cy.contains('18').click();
-      cy.getByTestId('keep-element-changes-button').click();
+      cy.getByTestId('keep-element-changes-button').click({ force: true });
       cy.getByTestId('save-page-button').click();
       cy.getByTestId('confirmation-modal').contains("You're making changes to a live donation page. Continue?");
       cy.getByTestId('cancel-button').click();
@@ -497,7 +497,7 @@ describe('Template from page', () => {
     cy.getByTestId('clone-page-button').click({ force: true });
     cy.getByTestId('template-create-modal').should('exist');
   });
-  it('should show make request with page pk in body when tepmlate saved', () => {
+  it('should show make request with page pk in body when template saved', () => {
     cy.getByTestId('clone-page-button').click({ force: true });
     cy.getByTestId('template-create-modal').should('exist');
     cy.intercept({
@@ -511,5 +511,42 @@ describe('Template from page', () => {
       expect(request.body).to.have.property('name');
       expect(request.body.name).to.equal(livePage.name);
     });
+  });
+});
+
+describe('ReasonEditor', () => {
+  before(() => {
+    cy.login('user/stripe-verified.json');
+    cy.intercept(
+      { method: 'GET', pathname: getEndpoint(DRAFT_PAGE_DETAIL) },
+      { fixture: 'pages/live-page-1', statusCode: 200 }
+    ).as('getPageDetail');
+    cy.visit('edit/my/page');
+    cy.url().should('include', 'edit/my/page');
+    cy.wait('@getPageDetail');
+    cy.getByTestId('edit-page-button').click();
+    cy.contains('Reason for Giving').click();
+  });
+
+  it('should render the ReasonEditor', () => {
+    cy.getByTestId('reason-editor').should('exist');
+  });
+
+  it('should show the three "ask-" checkboxes', () => {
+    cy.getByTestId('ask-reason').should('exist');
+    cy.getByTestId('ask-honoree').should('exist');
+    cy.getByTestId('ask-in-memory-of').should('exist');
+  });
+
+  it('should only show reason for giving options if ask-reason is checked', () => {
+    cy.getByTestId('ask-reason')
+      .get('input')
+      .then(($input) => {
+        expect($input).to.be.checked;
+      });
+    cy.getByTestId('create-reasons').should('exist');
+
+    cy.getByTestId('ask-reason').click();
+    cy.getByTestId('create-reasons').should('not.exist');
   });
 });

@@ -1,4 +1,5 @@
 import merge from 'lodash/merge';
+import { createMuiTheme } from '@material-ui/core';
 
 export const revEngineTheme = {
   colors: {
@@ -57,5 +58,12 @@ export const donationPageBase = merge({}, revEngineTheme, {
     md: '890px',
     lg: '1100px',
     xl: '1300px'
+  }
+});
+
+export const muiThemeOverrides = createMuiTheme({
+  palette: {
+    primary: { main: revEngineTheme.colors.primary },
+    secondary: { main: revEngineTheme.colors.primary }
   }
 });

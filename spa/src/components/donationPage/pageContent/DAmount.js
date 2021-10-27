@@ -82,9 +82,14 @@ function DAmount({ element, ...props }) {
             <span>{currencySymbol}</span>
             <S.OtherAmountInput
               value={otherFocused || !amountIsPreset ? amount : ''}
-              onChange={handleOtherAmountChange} //(e) => handleAmountChange(e.target.value)}
+              name="amount"
+              onChange={handleOtherAmountChange}
               onFocus={handleOtherSelected}
               onBlur={handleOtherBlurred}
+              // We're validating maximum amount on the backend, but let's restrict input
+              // to prevent hitting javascript's mathmatical limitations and displaying
+              // weird numbers after calculating fees and fixing decimals
+              maxLength="9"
             />
             <S.FreqSubtext data-testid="custom-amount-rate">{getFrequencyRate(frequency)}</S.FreqSubtext>
           </S.OtherAmount>

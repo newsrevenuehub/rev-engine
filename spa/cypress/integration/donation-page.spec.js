@@ -555,7 +555,6 @@ describe('Resulting request', () => {
 // does not provide a way to override on per-test basis.
 describe('Resulting request: special case -- error on submission', () => {
   it('should focus the first input on the page with an error', () => {
-    cy.interceptDonation();
     cy.intercept(
       { method: 'GET', pathname: `${getEndpoint(LIVE_PAGE_DETAIL)}**` },
       { fixture: 'pages/live-page-1', statusCode: 200 }
@@ -569,6 +568,8 @@ describe('Resulting request: special case -- error on submission', () => {
       { method: 'POST', pathname: getEndpoint(STRIPE_PAYMENT) },
       { body: { [errorElementName]: errorMessage }, statusCode: 400 }
     ).as('stripePaymentError');
+    cy.intercept('/v1/payment_intents/**', { statusCode: 200 });
+    cy.intercept('/v1/payment_methods/**', { fixture: 'stripe/payment-method', statusCode: 200 });
     cy.setUpDonation('One time', '120');
     cy.makeDonation().then(() => {
       cy.wait('@stripePaymentError');

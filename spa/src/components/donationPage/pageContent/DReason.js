@@ -50,15 +50,17 @@ function DReason({ element, ...props }) {
     return reasons;
   };
 
+  const elementContent = element?.content || {};
+
   return (
     <DElement label="What inspired you to give?" {...props} data-testid="d-reason">
       <S.DReason>
-        {element.content?.askReason && (
+        {elementContent.askReason && (
           <S.SupportSection>
             <S.SupportSelect>
               <S.SupportLabel>I'm excited to support...</S.SupportLabel>
               <S.SupportOptions>
-                {element.content.reasons.length > 0 && (
+                {elementContent.reasons.length > 0 && (
                   <Select
                     testId="excited-to-support-picklist"
                     name="reason_for_giving"
@@ -68,7 +70,7 @@ function DReason({ element, ...props }) {
                   />
                 )}
                 <AnimatePresence>
-                  {(element.content.reasons.length === 0 || selectedReason === REASON_OTHER) && (
+                  {(elementContent.reasons?.length === 0 || selectedReason === REASON_OTHER) && (
                     <S.ReasonOtherInput
                       placeholder="What's got you excited to give?"
                       value={reasonOther}
@@ -84,10 +86,10 @@ function DReason({ element, ...props }) {
             </S.SupportSelect>
           </S.SupportSection>
         )}
-        {(element.content.askHonoree || element.content.askInMemoryOf) && (
+        {(elementContent.askHonoree || elementContent.askInMemoryOf) && (
           <S.TributeSection>
             <TributeSelector
-              elementContent={element.content}
+              elementContent={elementContent}
               tributeState={tributeState}
               handleSelection={handleTributeSelection}
               inputValue={tributeInput}

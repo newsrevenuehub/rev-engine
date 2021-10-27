@@ -107,20 +107,22 @@ function ElementProperties({ selectedElementType }) {
         )}
       </S.ElementHeading>
       <S.ElementEditor>{getElementEditor(selectedElement.type)}</S.ElementEditor>
-      <S.Buttons>
-        <CircleButton
-          icon={faCheck}
-          buttonType="positive"
-          onClick={handleKeepChanges}
-          data-testid="keep-element-changes-button"
-        />
-        <CircleButton
-          icon={faTimes}
-          buttonType="caution"
-          onClick={handleDiscardChanges}
-          data-testid="discard-element-changes-button"
-        />
-      </S.Buttons>
+      <S.ButtonsSection>
+        <S.Buttons>
+          <CircleButton
+            icon={faCheck}
+            buttonType="positive"
+            onClick={handleKeepChanges}
+            data-testid="keep-element-changes-button"
+          />
+          <CircleButton
+            icon={faTimes}
+            buttonType="caution"
+            onClick={handleDiscardChanges}
+            data-testid="discard-element-changes-button"
+          />
+        </S.Buttons>
+      </S.ButtonsSection>
     </S.ElementProperties>
   );
 }

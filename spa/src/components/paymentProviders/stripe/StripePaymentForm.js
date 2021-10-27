@@ -29,6 +29,8 @@ import submitPayment, { serializeData, getTotalAmount, amountToCents, StripeErro
 // Context
 import { usePage } from 'components/donationPage/DonationPage';
 
+import * as dynamicElements from 'components/donationPage/pageContent/dynamicElements';
+
 // Children
 import BaseField from 'elements/inputs/BaseField';
 import Button from 'elements/buttons/Button';
@@ -172,17 +174,23 @@ function StripePaymentForm({ loading, setLoading, offerPayFees }) {
     pageId: page.id
   };
 
-  const handleCardSubmit = async (e) => {
-    e.preventDefault();
-    setLoading(true);
+  const getData = async (state = {}) => {
     const reCAPTCHAToken = await getReCAPTCHAToken();
     const data = serializeData(formRef.current, {
       amount,
       payFee,
       frequency,
       reCAPTCHAToken,
-      ...staticParams
+      ...staticParams,
+      ...state
     });
+    return data;
+  };
+
+  const handleCardSubmit = async (e) => {
+    e.preventDefault();
+    const data = await getData();
+    setLoading(true);
     await submitPayment(
       stripe,
       data,
@@ -196,14 +204,8 @@ function StripePaymentForm({ loading, setLoading, offerPayFees }) {
    * PaymentRequestButton Payments *
   \*********************************/
   const handlePaymentRequestSubmit = async (state, paymentRequest) => {
+    const data = await getData(state);
     setLoading(true);
-    const reCAPTCHAToken = await getReCAPTCHAToken();
-    const data = serializeData(formRef.current, {
-      frequency,
-      reCAPTCHAToken,
-      ...state,
-      ...staticParams
-    });
     await submitPayment(
       stripe,
       data,
@@ -335,3 +337,8 @@ function StripePaymentForm({ loading, setLoading, offerPayFees }) {
 }
 
 export default StripePaymentForm;
+
+function getElementValidator(elementType) {
+  const El = dynamicElements[elementType];
+  return El.validator;
+}

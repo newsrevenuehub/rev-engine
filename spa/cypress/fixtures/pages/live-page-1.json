@@ -16,7 +16,14 @@
     },
     {"type": "DDonorInfo", "uuid": "testDonorInfo1", "requiredFields": [], "content": { "askPhone": true }},
     {"type": "DDonorAddress", "uuid": "testDonorAddress1"},
-    {"type": "DAdditionalInfo", "uuid": "testAdditionalInfo", "requiredFields": [], "content": []},
+    {"type": "DAdditionalInfo", "uuid": "testAdditionalInfo", "requiredFields": [] ,"content": []},
+    {"type": "DReason", "uuid": "testReason", "requiredFields": [] ,"content": {
+        "askReason": true,
+        "reasons": ["test1", "test2", "test3"],
+        "askHonoree": true,
+        "askInMemoryOf": true
+      }
+    },
     {"type": "DSwag", "uuid": "testMemberBenefits", "requiredFields": [], "content": {
       "optOutDefault": false,
       "swagThreshold": 240,

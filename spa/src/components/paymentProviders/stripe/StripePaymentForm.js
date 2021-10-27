@@ -276,7 +276,6 @@ function StripePaymentForm({ loading, setLoading, offerPayFees }) {
     if (isNaN(totalAmount)) {
       return 'Enter a valid amount';
     }
-    console.log(typeof totalAmount);
     return `Give ${currencySymbol}${formatStringAmountForDisplay(totalAmount)} ${getFrequencyAdverb(frequency)}`;
   };
 

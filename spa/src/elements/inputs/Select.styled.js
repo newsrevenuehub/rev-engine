@@ -13,6 +13,8 @@ export const Select = styled.input`
   text-align: left;
   width: 100%;
   padding-right: 2rem;
+  cursor: default;
+  caret-color: transparent;
 `;
 
 export const CaretWrapper = styled(motion.span)`
@@ -21,6 +23,7 @@ export const CaretWrapper = styled(motion.span)`
   top: 50%;
   height: 0;
   display: inline-block;
+  pointer-events: none;
 `;
 
 export const Caret = styled(FontAwesomeIcon)`

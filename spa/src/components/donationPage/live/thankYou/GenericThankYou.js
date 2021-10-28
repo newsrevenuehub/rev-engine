@@ -45,8 +45,7 @@ function GenericThankYou() {
     const twitterHandle = routedState?.page.revenue_program.twitter_handle;
     const revProgramName = routedState?.page.revenue_program.name;
     const revProgramHandle = twitterHandle ? `@${twitterHandle}` : revProgramName;
-    const handleMention = twitterHandle ? ` @${twitterHandle}` : '';
-    const message = `I support ${revProgramHandle}. You should too. ${routedState?.donationPageUrl}${handleMention}`;
+    const message = `I support ${revProgramHandle}. You should too. ${routedState?.donationPageUrl} @fundjournalism`;
     return baseUrl + `text=${message}`;
   };
 

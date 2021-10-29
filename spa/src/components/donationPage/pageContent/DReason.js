@@ -74,7 +74,7 @@ function DReason({ element, ...props }) {
                   {(elementContent.reasons?.length === 0 || selectedReason === REASON_OTHER) && (
                     <motion.div {...S.inputAnimations}>
                       <S.ReasonOtherInput
-                        placeholder="Tell us why you suport us?"
+                        placeholder="Tell us why you suport our work"
                         value={reasonOther}
                         name="reason_other"
                         onChange={(e) => setReasonOther(e.target.value)}

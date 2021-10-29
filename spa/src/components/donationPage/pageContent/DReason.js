@@ -54,12 +54,12 @@ function DReason({ element, ...props }) {
   const elementContent = element?.content || {};
 
   return (
-    <DElement label="What inspired you to give?" {...props} data-testid="d-reason">
+    <DElement label="Reason for giving" {...props} data-testid="d-reason">
       <S.DReason>
         {elementContent.askReason && (
           <S.SupportSection>
             <S.SupportSelect>
-              <S.SupportLabel>I'm excited to support...</S.SupportLabel>
+              <S.SupportLabel>I'm giving because...</S.SupportLabel>
               <S.SupportOptions>
                 {elementContent.reasons.length > 0 && (
                   <Select
@@ -74,7 +74,7 @@ function DReason({ element, ...props }) {
                   {(elementContent.reasons?.length === 0 || selectedReason === REASON_OTHER) && (
                     <motion.div {...S.inputAnimations}>
                       <S.ReasonOtherInput
-                        placeholder="What's got you excited to give?"
+                        placeholder="Tell us why you suport us?"
                         value={reasonOther}
                         name="reason_other"
                         onChange={(e) => setReasonOther(e.target.value)}

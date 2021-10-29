@@ -59,7 +59,7 @@ function DReason({ element, ...props }) {
         {elementContent.askReason && (
           <S.SupportSection>
             <S.SupportSelect>
-              <S.SupportLabel>I'm giving because...</S.SupportLabel>
+              <S.SupportLabel>I support your work because...</S.SupportLabel>
               <S.SupportOptions>
                 {elementContent.reasons.length > 0 && (
                   <Select

@@ -348,4 +348,5 @@ CURRENCIES = {"USD": "$", "CAD": "$"}
 NON_DONATION_PAGE_SUBDOMAINS = os.getenv("NON_DONATION_PAGE_SUBDOMAINS", ["support", "www"])
 
 # Stripe API Target Version
-STRIPE_API_VERSION = os.getenv("STRIPE_API_VERSION", "2020-08-27")
+# Make sure this is also updated in genericConstants.js for the frontend
+STRIPE_API_VERSION = "2020-08-27"

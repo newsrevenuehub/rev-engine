@@ -5,7 +5,6 @@ from django.db import models
 import stripe
 
 from apps.common.models import IndexedTimeStampedModel
-from apps.contributions.utils import get_hub_stripe_api_key
 from apps.slack.models import SlackNotificationTypes
 from apps.slack.slack_manager import SlackManager
 
@@ -137,7 +136,6 @@ class Contribution(IndexedTimeStampedModel):
             raise ValueError("Cannot fetch PaymentMethod without provider_payment_method_id")
         return stripe.PaymentMethod.retrieve(
             self.provider_payment_method_id,
-            api_key=get_hub_stripe_api_key(),
             stripe_account=self.organization.stripe_account_id,
         )
 

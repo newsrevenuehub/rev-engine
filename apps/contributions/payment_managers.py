@@ -17,7 +17,6 @@ from apps.contributions.serializers import (
     StripeOneTimePaymentSerializer,
     StripeRecurringPaymentSerializer,
 )
-from apps.contributions.utils import get_hub_stripe_api_key
 from apps.organizations.models import RevenueProgram
 from apps.pages.models import DonationPage
 
@@ -227,7 +226,6 @@ class StripePaymentManager(PaymentManager):
             currency=self.validated_data["currency"],
             customer=stripe_customer.id,
             payment_method_types=["card"],
-            api_key=get_hub_stripe_api_key(),
             stripe_account=organization.stripe_account_id,
             capture_method=capture_method,
             statement_descriptor_suffix=self.get_revenue_program().stripe_statement_descriptor_suffix,
@@ -267,7 +265,6 @@ class StripePaymentManager(PaymentManager):
         meta = self.bundle_metadata(self.data, ContributionMetadata.ProcessorObjects.CUSTOMER)
         return stripe.Customer.create(
             email=self.validated_data["email"],
-            api_key=get_hub_stripe_api_key(),
             stripe_account=organization.stripe_account_id,
             metadata=meta,
         )
@@ -277,7 +274,6 @@ class StripePaymentManager(PaymentManager):
             stripe.PaymentMethod.attach(
                 payment_method_id if payment_method_id else self.validated_data["payment_method_id"],
                 customer=stripe_customer_id,
-                api_key=get_hub_stripe_api_key(),
                 stripe_account=org_strip_account,
             )
         except stripe.error.StripeError as stripe_error:
@@ -290,7 +286,6 @@ class StripePaymentManager(PaymentManager):
         try:
             stripe.Subscription.delete(
                 self.contribution.provider_subscription_id,
-                api_key=get_hub_stripe_api_key(),
                 stripe_account=organization.stripe_account_id,
             )
         except stripe.error.StripeError as stripe_error:
@@ -308,7 +303,6 @@ class StripePaymentManager(PaymentManager):
                 self.contribution.provider_subscription_id,
                 default_payment_method=payment_method_id,
                 stripe_account=organization.stripe_account_id,
-                api_key=get_hub_stripe_api_key(),
             )
         except stripe.error.StripeError as stripe_error:
             logger.error(f"stripe.Subscription.modify returned a StripeError: {str(stripe_error)}")
@@ -331,14 +325,12 @@ class StripePaymentManager(PaymentManager):
                 stripe.PaymentIntent.cancel(
                     self.contribution.provider_payment_id,
                     stripe_account=organization.stripe_account_id,
-                    api_key=get_hub_stripe_api_key(),
                     cancellation_reason="fraudulent",
                 )
             else:
                 stripe.PaymentIntent.capture(
                     self.contribution.provider_payment_id,
                     stripe_account=organization.stripe_account_id,
-                    api_key=get_hub_stripe_api_key(),
                 )
 
         except stripe.error.InvalidRequestError as invalid_request_error:
@@ -380,7 +372,6 @@ class StripePaymentManager(PaymentManager):
                 default_payment_method=self.contribution.provider_payment_method_id,
                 items=[{"price_data": price_data}],
                 stripe_account=organization.stripe_account_id,
-                api_key=get_hub_stripe_api_key(),
                 metadata=meta,
             )
         except stripe.error.StripeError as stripe_error:

@@ -346,3 +346,6 @@ CURRENCIES = {"USD": "$", "CAD": "$"}
 
 # Application subdomains (that are NOT revenue program slugs)
 NON_DONATION_PAGE_SUBDOMAINS = os.getenv("NON_DONATION_PAGE_SUBDOMAINS", ["support", "www"])
+
+# Stripe API Target Version
+STRIPE_API_VERSION = os.getenv("STRIPE_API_VERSION", "2020-08-27")

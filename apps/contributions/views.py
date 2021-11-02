@@ -24,7 +24,7 @@ from apps.contributions.payment_managers import (
     PaymentProviderError,
     StripePaymentManager,
 )
-from apps.contributions.utils import get_hub_stripe_api_key, parse_pi_data_for_swag_options
+from apps.contributions.utils import parse_pi_data_for_swag_options
 from apps.contributions.webhooks import StripeWebhookProcessor
 from apps.emails.models import EmailTemplateError, PageEmailTemplate
 
@@ -90,7 +90,6 @@ def stripe_onboarding(request):
     try:
         account = stripe.Account.create(
             type="standard",
-            api_key=get_hub_stripe_api_key(),
         )
 
         organization.stripe_account_id = account.id
@@ -101,7 +100,6 @@ def stripe_onboarding(request):
             refresh_url=f"{settings.SITE_URL}?cb=stripe_reauth",
             return_url=f"{settings.SITE_URL}?cb=stripe_return",
             type="account_onboarding",
-            api_key=get_hub_stripe_api_key(),
         )
     except stripe.error.StripeError:
         return Response(
@@ -126,7 +124,7 @@ def stripe_confirmation(request):
             return Response({"status": "connected"}, status=status.HTTP_200_OK)
 
         # A "Confirmed" stripe account has "charges_enabled": true on return from stripe.Account.retrieve
-        stripe_account = stripe.Account.retrieve(organization.stripe_account_id, api_key=get_hub_stripe_api_key())
+        stripe_account = stripe.Account.retrieve(organization.stripe_account_id)
 
     except stripe.error.StripeError:
         logger.error("stripe.Account.retrieve failed with a StripeError")

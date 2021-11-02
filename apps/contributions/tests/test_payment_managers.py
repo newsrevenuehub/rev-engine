@@ -198,7 +198,6 @@ class StripeOneTimePaymentManagerTest(StripePaymentManagerAbstractTestCase):
             currency="usd",
             customer=MockStripeCustomer.id,
             payment_method_types=["card"],
-            api_key=fake_api_key,
             stripe_account=self.organization.stripe_account_id,
             capture_method="manual",
             receipt_email=data["email"],
@@ -235,7 +234,6 @@ class StripeOneTimePaymentManagerTest(StripePaymentManagerAbstractTestCase):
             currency="usd",
             customer=MockStripeCustomer.id,
             payment_method_types=["card"],
-            api_key=fake_api_key,
             stripe_account=self.organization.stripe_account_id,
             capture_method="automatic",
             receipt_email=data["email"],
@@ -257,7 +255,6 @@ class StripeOneTimePaymentManagerTest(StripePaymentManagerAbstractTestCase):
         mock_pi_cancel.assert_called_once_with(
             None,
             stripe_account=self.organization.stripe_account_id,
-            api_key=fake_api_key,
             cancellation_reason="fraudulent",
         )
 
@@ -270,7 +267,6 @@ class StripeOneTimePaymentManagerTest(StripePaymentManagerAbstractTestCase):
         mock_pi_capture.assert_called_once_with(
             None,
             stripe_account=self.organization.stripe_account_id,
-            api_key=fake_api_key,
         )
 
     @patch("stripe.PaymentIntent.capture", side_effect=MockInvalidRequestError)
@@ -382,7 +378,6 @@ class StripeRecurringPaymentManagerTest(StripePaymentManagerAbstractTestCase):
         pm.create_subscription()
         mock_customer_create.assert_called_once_with(
             email=self.contributor.email,
-            api_key=fake_api_key,
             stripe_account=self.organization.stripe_account_id,
             metadata=pm.bundle_metadata("CUSTOMER"),
         )
@@ -397,7 +392,6 @@ class StripeRecurringPaymentManagerTest(StripePaymentManagerAbstractTestCase):
             self.payment_method_id,
             customer=test_stripe_customer_id,
             stripe_account=self.organization.stripe_account_id,
-            api_key=fake_api_key,
         )
 
     @patch("stripe.Customer.create", side_effect=MockStripeCustomer)
@@ -420,7 +414,6 @@ class StripeRecurringPaymentManagerTest(StripePaymentManagerAbstractTestCase):
                 }
             ],
             stripe_account=self.organization.stripe_account_id,
-            api_key=fake_api_key,
             metadata=pm.bundle_metadata("PAYMENT"),
         )
 
@@ -461,7 +454,6 @@ class StripeRecurringPaymentManagerTest(StripePaymentManagerAbstractTestCase):
                 }
             ],
             stripe_account=self.organization.stripe_account_id,
-            api_key=fake_api_key,
             metadata=None,
         )
         self.assertEqual(self.contribution.status, ContributionStatus.PROCESSING)

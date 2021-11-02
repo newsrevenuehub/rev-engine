@@ -9,11 +9,11 @@ from apps.contributions.bad_actor import BadActorAPIError, make_bad_actor_reques
 from apps.contributions.models import (
     Contribution,
     ContributionInterval,
-    ContributionMetadata,
     ContributionStatus,
     Contributor,
 )
 from apps.contributions.serializers import (
+    ContributionMetadataSerializer,
     StripeOneTimePaymentSerializer,
     StripeRecurringPaymentSerializer,
 )
@@ -72,8 +72,23 @@ class PaymentManager:
         self.data = data
         self.serializer_class = self.get_serializer_class(data=data, contribution=contribution)
 
-    def bundle_metadata(self, metadata: dict, processor_obj: str):
-        return ContributionMetadata.bundle_metadata(metadata, processor_obj, self)
+    def bundle_metadata(self, processor_obj: str):
+        """
+        ContributionMetadataSerializer should use raw self.data, not self.validated_data.
+        It will perform its own valiation, distinct in some cases from the payment serializer.
+
+        In some cases, revenue_program_id or contributor_id may not be defined yet, so grab them
+        here just in case.
+        """
+        if not self.data.get("revenue_program_id"):
+            self.get_revenue_program()
+
+        if not self.data.get("contributor_id"):
+            self.get_or_create_contributor()
+
+        serializer = ContributionMetadataSerializer(data=self.data)
+        serializer.is_valid(raise_exception=True)
+        return serializer.bundle_metadata(processor_obj)
 
     def get_serializer_class(self, **kwargs):  # pragma: no cover
         raise NotImplementedError("Subclasses of PaymentManager must implement get_serializer_class")
@@ -117,6 +132,7 @@ class PaymentManager:
         return self.bad_actor_score >= settings.BAD_ACTOR_FAIL_ABOVE
 
     def get_revenue_program(self):
+        revenue_program = None
         if self.validated_data:
             rp_slug = self.validated_data.get("revenue_program_slug") if self.validated_data else None
             try:
@@ -124,10 +140,13 @@ class PaymentManager:
                 self.revenue_program = (
                     self.revenue_program if self.revenue_program else RevenueProgram.objects.get(slug=rp_slug)
                 )
-                return self.revenue_program
+                revenue_program = self.revenue_program
             except RevenueProgram.DoesNotExist:
                 raise PaymentBadParamsError("PaymentManager could not find a revenue program with slug provided")
-        return self.contribution.donation_page.revenue_program
+        else:
+            revenue_program = self.contribution.donation_page.revenue_program
+        self.data["revenue_program_id"] = revenue_program.pk
+        return revenue_program
 
     def get_organization(self):
         revenue_program = self.get_revenue_program()
@@ -155,9 +174,12 @@ class PaymentManager:
 
     def get_or_create_contributor(self):
         contributor, _ = Contributor.objects.get_or_create(email=self.validated_data["email"])
+        self.data["contributor_id"] = contributor.pk
         return contributor
 
-    def create_contribution(self, organization, contributor, provider_reference_instance=None, provider_customer_id=""):
+    def create_contribution(
+        self, organization, contributor, provider_reference_instance=None, provider_customer_id="", metadata={}
+    ):
         if not self.payment_provider_name:
             raise ValueError("Subclass of PaymentManager must set payment_provider_name property")
 
@@ -181,7 +203,7 @@ class PaymentManager:
             flagged_date=self.flagged_date,
             bad_actor_score=self.bad_actor_score,
             bad_actor_response=self.bad_actor_response,
-            contribution_metadata=self.data,
+            contribution_metadata=metadata,
         )
 
     @staticmethod
@@ -220,7 +242,8 @@ class StripePaymentManager(PaymentManager):
         contributor = self.get_or_create_contributor()
         stripe_customer = self.create_organization_customer(organization)
         capture_method = "manual" if self.flagged else "automatic"
-        meta = self.bundle_metadata(self.data, ContributionMetadata.ProcessorObjects.PAYMENT)
+        revenue_program = self.get_revenue_program()
+        metadata = self.bundle_metadata(ContributionMetadataSerializer.PAYMENT)
         stripe_payment_intent = stripe.PaymentIntent.create(
             amount=self.validated_data["amount"],
             currency=self.validated_data["currency"],
@@ -228,15 +251,16 @@ class StripePaymentManager(PaymentManager):
             payment_method_types=["card"],
             stripe_account=organization.stripe_account_id,
             capture_method=capture_method,
-            statement_descriptor_suffix=self.get_revenue_program().stripe_statement_descriptor_suffix,
+            statement_descriptor_suffix=revenue_program.stripe_statement_descriptor_suffix,
             receipt_email=self.validated_data["email"],
-            metadata=meta,
+            metadata=metadata,
         )
         self.create_contribution(
             organization,
             contributor,
             provider_reference_instance=stripe_payment_intent,
             provider_customer_id=stripe_customer.id,
+            metadata=metadata,
         )
         return stripe_payment_intent
 
@@ -255,14 +279,16 @@ class StripePaymentManager(PaymentManager):
         stripe_customer = self.create_organization_customer(organization)
         # ...attach paymentMethod to that customer.
         self.attach_payment_method_to_customer(stripe_customer.id, organization.stripe_account_id)
-
-        contribution = self.create_contribution(organization, contributor, provider_customer_id=stripe_customer.id)
+        metadata = self.bundle_metadata(ContributionMetadataSerializer.PAYMENT)
+        contribution = self.create_contribution(
+            organization, contributor, provider_customer_id=stripe_customer.id, metadata=metadata
+        )
         if not self.flagged:
             self.contribution = contribution
             self.complete_payment(reject=False)
 
     def create_organization_customer(self, organization):
-        meta = self.bundle_metadata(self.data, ContributionMetadata.ProcessorObjects.CUSTOMER)
+        meta = self.bundle_metadata(ContributionMetadataSerializer.CUSTOMER)
         return stripe.Customer.create(
             email=self.validated_data["email"],
             stripe_account=organization.stripe_account_id,
@@ -355,9 +381,6 @@ class StripePaymentManager(PaymentManager):
         previous_status = self.contribution.status
         self.contribution.status = ContributionStatus.PROCESSING
         self.contribution.save()
-        meta = self.bundle_metadata(
-            self.contribution.contribution_metadata, ContributionMetadata.ProcessorObjects.PAYMENT
-        )
         try:
             price_data = {
                 "unit_amount": self.contribution.amount,
@@ -372,7 +395,7 @@ class StripePaymentManager(PaymentManager):
                 default_payment_method=self.contribution.provider_payment_method_id,
                 items=[{"price_data": price_data}],
                 stripe_account=organization.stripe_account_id,
-                metadata=meta,
+                metadata=self.contribution.contribution_metadata,
             )
         except stripe.error.StripeError as stripe_error:
             self._handle_stripe_error(stripe_error, previous_status=previous_status)

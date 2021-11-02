@@ -65,8 +65,3 @@ class ContributionFactory(DjangoModelFactory):
     flagged_date = factory.LazyAttribute(lambda o: _get_flagged_date(o.bad_actor_score, o.created))
     status = factory.LazyAttribute(lambda o: _get_status(o.bad_actor_score))
     payment_provider_used = "Stripe"
-
-
-class ContributionMetadataFactory(DjangoModelFactory):
-    class Meta:
-        model = models.ContributionMetadata

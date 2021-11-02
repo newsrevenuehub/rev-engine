@@ -186,6 +186,80 @@ class AbstractPaymentSerializerTest(TestCase):
         serializer = self.serializer(data=self.payment_data)
         self.assertTrue(serializer.is_valid())
 
+    def test_amount_validation_min(self):
+        self.payment_data["amount"] = serializers.REVENGINE_MIN_AMOUNT - 1
+        serializer = self.serializer(data=self.payment_data)
+        self.assertFalse(serializer.is_valid())
+        self.assertIn("amount", serializer.errors)
+        expected_msg = f"We can only accept contributions greater than or equal to {format_ambiguous_currency(serializers.REVENGINE_MIN_AMOUNT)}"
+        self.assertEqual(str(serializer.errors["amount"][0]), expected_msg)
+
+    def test_amount_validation_max(self):
+        self.payment_data["amount"] = serializers.STRIPE_MAX_AMOUNT + 1
+        serializer = self.serializer(data=self.payment_data)
+        self.assertFalse(serializer.is_valid())
+        self.assertIn("amount", serializer.errors)
+        expected_msg = f"We can only accept contributions less than or equal to {format_ambiguous_currency(serializers.STRIPE_MAX_AMOUNT)}"
+        self.assertEqual(str(serializer.errors["amount"][0]), expected_msg)
+
+
+class ContributionMetadataSerializerTest(TestCase):
+    def setUp(self):
+        self.serializer = serializers.ContributionMetadataSerializer
+        self.page = DonationPageFactory()
+        self.processor_mapping = serializers.ContributionMetadataSerializer.PROCESSOR_MAPPING
+        self.all_fields = [k for k, v in self.processor_mapping.items() if v == self.serializer.ALL]
+        self.payment_fields = [k for k, v in self.processor_mapping.items() if v == self.serializer.PAYMENT]
+        self.customer_fields = [k for k, v in self.processor_mapping.items() if v == self.serializer.CUSTOMER]
+        self.payment_data = {
+            "amount": 123,
+            "donor_selected_amount": 123,
+            "currency": "USD",
+            "email": "test@test.com",
+            "first_name": "test",
+            "last_name": "test",
+            "ip": "127.0.0.1",
+            "mailing_city": "test",
+            "mailing_country": "test",
+            "mailing_postal_code": "12345",
+            "mailing_state": "test",
+            "mailing_street": "test",
+            "organization_country": "ts",
+            "referer": "https://test.test",
+            "revenue_program_slug": "test",
+            "page_id": self.page.pk,
+            "contributor_id": 1,
+            "revenue_program_id": 1,
+            "reason_for_giving": "Extortion",
+            "sf_campaign_id": "TEST123",
+        }
+
+    def test_bundle_metadata_validation_error_when_is_valid_not_called(self):
+        serializer = self.serializer(data=self.payment_data)
+        # The serializer depends on DRFs serializers.Serializer class's assertions about calling self.data.
+        self.assertRaises(AssertionError, serializer.bundle_metadata, self.serializer.ALL)
+
+    def test_bundle_metadata_CUSTOMER(self):
+        serializer = self.serializer(data=self.payment_data)
+        self.assertTrue(serializer.is_valid())
+        metadata = serializer.bundle_metadata(self.serializer.CUSTOMER)
+        self.assertTrue(all(k in metadata.keys() for k in self.all_fields))
+        self.assertTrue(all(k in metadata.keys() for k in self.customer_fields))
+
+    def test_bundle_metadata_PAYMENT_INTENT(self):
+        serializer = self.serializer(data=self.payment_data)
+        self.assertTrue(serializer.is_valid())
+        metadata = serializer.bundle_metadata(self.serializer.PAYMENT)
+        self.assertTrue(all(k in metadata.keys() for k in self.all_fields))
+        self.assertTrue(all(k in metadata.keys() for k in self.payment_fields))
+
+    def test_bundle_metadata_SUBSCRIPTION(self):
+        serializer = self.serializer(data=self.payment_data)
+        self.assertTrue(serializer.is_valid())
+        metadata = serializer.bundle_metadata(self.serializer.PAYMENT)
+        self.assertTrue(all(k in metadata.keys() for k in self.all_fields))
+        self.assertTrue(all(k in metadata.keys() for k in self.payment_fields))
+
     def test_validate_reason_for_giving(self):
         # If reason_for_giving is "Other" and "reason_other" is present, it passes
         self.payment_data["reason_for_giving"] = "Other"
@@ -215,19 +289,3 @@ class AbstractPaymentSerializerTest(TestCase):
 
         self.payment_data["in_memory_of"] = "Testing"
         self.assertIsNone(serializer._validate_tribute(self.payment_data))
-
-    def test_amount_validation_min(self):
-        self.payment_data["amount"] = serializers.REVENGINE_MIN_AMOUNT - 1
-        serializer = self.serializer(data=self.payment_data)
-        self.assertFalse(serializer.is_valid())
-        self.assertIn("amount", serializer.errors)
-        expected_msg = f"We can only accept contributions greater than or equal to {format_ambiguous_currency(serializers.REVENGINE_MIN_AMOUNT)}"
-        self.assertEqual(str(serializer.errors["amount"][0]), expected_msg)
-
-    def test_amount_validation_max(self):
-        self.payment_data["amount"] = serializers.STRIPE_MAX_AMOUNT + 1
-        serializer = self.serializer(data=self.payment_data)
-        self.assertFalse(serializer.is_valid())
-        self.assertIn("amount", serializer.errors)
-        expected_msg = f"We can only accept contributions less than or equal to {format_ambiguous_currency(serializers.STRIPE_MAX_AMOUNT)}"
-        self.assertEqual(str(serializer.errors["amount"][0]), expected_msg)

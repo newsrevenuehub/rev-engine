@@ -69,6 +69,7 @@ class StripePaymentManagerAbstractTestCase(APITestCase):
             "mailing_state": "FK",
             "mailing_country": "Fakeland",
             "amount": self.amount,
+            "donor_selected_amount": self.amount,
             "reason": "Testing",
             "revenue_program_slug": self.revenue_program.slug,
             "statement_descriptor_suffix": None,
@@ -202,7 +203,7 @@ class StripeOneTimePaymentManagerTest(StripePaymentManagerAbstractTestCase):
             capture_method="manual",
             receipt_email=data["email"],
             statement_descriptor_suffix=self.revenue_program.stripe_statement_descriptor_suffix,
-            metadata=pm.bundle_metadata(pm.data, "PAYMENT"),
+            metadata=pm.bundle_metadata("PAYMENT"),
         )
         # New contribution is created...
         new_contribution = Contribution.objects.filter(amount=1099).first()
@@ -239,7 +240,7 @@ class StripeOneTimePaymentManagerTest(StripePaymentManagerAbstractTestCase):
             capture_method="automatic",
             receipt_email=data["email"],
             statement_descriptor_suffix=self.revenue_program.stripe_statement_descriptor_suffix,
-            metadata=pm.bundle_metadata(pm.data, "PAYMENT"),
+            metadata=pm.bundle_metadata("PAYMENT"),
         )
         # New contribution is created...
         new_contribution = Contribution.objects.filter(amount=1099).first()
@@ -383,7 +384,7 @@ class StripeRecurringPaymentManagerTest(StripePaymentManagerAbstractTestCase):
             email=self.contributor.email,
             api_key=fake_api_key,
             stripe_account=self.organization.stripe_account_id,
-            metadata=pm.bundle_metadata(pm.data, "CUSTOMER"),
+            metadata=pm.bundle_metadata("CUSTOMER"),
         )
 
     @patch("stripe.Customer.create", side_effect=MockStripeCustomer)
@@ -420,7 +421,7 @@ class StripeRecurringPaymentManagerTest(StripePaymentManagerAbstractTestCase):
             ],
             stripe_account=self.organization.stripe_account_id,
             api_key=fake_api_key,
-            metadata={},
+            metadata=pm.bundle_metadata("PAYMENT"),
         )
 
     @patch("stripe.Customer.create", side_effect=MockStripeCustomer)
@@ -461,7 +462,7 @@ class StripeRecurringPaymentManagerTest(StripePaymentManagerAbstractTestCase):
             ],
             stripe_account=self.organization.stripe_account_id,
             api_key=fake_api_key,
-            metadata={},
+            metadata=None,
         )
         self.assertEqual(self.contribution.status, ContributionStatus.PROCESSING)
 

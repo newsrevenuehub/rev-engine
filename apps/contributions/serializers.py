@@ -163,7 +163,9 @@ class ContributionMetadataSerializer(serializers.Serializer):
     """
     payment_managers use this serializer to key incoming contribution data to the expected metadata key.
     The metadata is then added to the metadata field for the appropriate Stripe object. ProcessorObjects
-    defines options for Stripe Objects
+    defines options for Stripe Objects.
+
+    The validtion on these fields is important and represents downstream requirements.
     """
 
     source = serializers.CharField(max_length=100, default="rev-engine")
@@ -191,10 +193,7 @@ class ContributionMetadataSerializer(serializers.Serializer):
     referer = serializers.URLField()
     revenue_program_id = serializers.IntegerField()
     revenue_program_slug = serializers.SlugField(max_length=RevenueProgram.SLUG_MAX_LENGTH)
-    # Page id is a nice shortcut for getting the page, instead of page_slug + rp_slug
-    page_id = serializers.IntegerField(required=False)
 
-    # class ProcessorObjects(TextChoices):
     PAYMENT = "PAYMENT"
     CUSTOMER = "CUSTOMER"
     ALL = "ALL"
@@ -202,6 +201,7 @@ class ContributionMetadataSerializer(serializers.Serializer):
     PROCESSOR_MAPPING = {
         "source": ALL,
         "schema_version": ALL,
+        "contributor_id": ALL,
         "first_name": CUSTOMER,
         "last_name": CUSTOMER,
         "mailing_postal_code": CUSTOMER,
@@ -209,7 +209,6 @@ class ContributionMetadataSerializer(serializers.Serializer):
         "mailing_city": CUSTOMER,
         "mailing_state": CUSTOMER,
         "mailing_country": CUSTOMER,
-        "contributor_id": ALL,
         "agreed_to_pay_fees": PAYMENT,
         "donor_selected_amount": PAYMENT,
         "reason_for_giving": PAYMENT,
@@ -218,9 +217,6 @@ class ContributionMetadataSerializer(serializers.Serializer):
         "revenue_program_slug": PAYMENT,
         "sf_campaign_id": PAYMENT,
     }
-
-    def map_fieldname_to_processor_object(self, fieldname):
-        return self.PROCESSOR_MAPPING[fieldname]
 
     def _parse_reason_other(self, data):
         """
@@ -233,13 +229,39 @@ class ContributionMetadataSerializer(serializers.Serializer):
         self._parse_reason_other(data)
         return super().to_internal_value(data)
 
+    def _validate_reason_for_giving(self, data):
+        """
+        If 'reason_for_giving' is "Other", then 'reason_other' may not be blank.
+        """
+        if data.get("reason_for_giving") == "Other" and not data.get("reason_other"):
+            raise serializers.ValidationError({"reason_other": "This field may not be blank"})
+
+    def _validate_tribute(self, data):
+        """
+        If 'tribute_type' is "type_honoree", then 'honoree' field may not be blank.
+        If 'tribute_type' is "type_in_memory_of", then 'in_memory_of' field may not be blank.
+        """
+        if data.get("tribute_type") == "type_honoree" and not data.get("honoree"):
+            raise serializers.ValidationError({"honoree": "This field may not be blank"})
+
+        if data.get("tribute_type") == "type_in_memory_of" and not data.get("in_memory_of"):
+            raise serializers.ValidationError({"in_memory_of": "This field may not be blank"})
+
+    def validate(self, data):
+        self._validate_reason_for_giving(data)
+        self._validate_tribute(data)
+        return super().validate(data)
+
     def bundle_metadata(self, processor_obj):
-        if not self.data:
-            raise ValueError("Cannot call ContributionMetadata.bundle_metadata without first calling .is_valid()")
-        relevant_metadata = {k: v for k, v in self.data.items() if self.PROCESSOR_MAPPING.get(k) == self.ALL}
-        # Don't forget to add "ALL" to all of em
-        # breakpoint()
-        # ! WIP
+        """
+        Validating the data first is important. Downstream applications have their own requirements and limits for these values, so skipping validation will break those integrations. Luckily, inheriting from serializers.Serializer gives us this check for free.
+        Here we use the PROCESSOR_MAPPING property of this serializer to get the appropriate metadata based on the reported processor_obj, plus "All"
+        """
+        return {
+            k: v
+            for k, v in self.data.items()
+            if self.PROCESSOR_MAPPING.get(k) == self.ALL or self.PROCESSOR_MAPPING.get(k) == processor_obj
+        }
 
 
 class AbstractPaymentSerializer(serializers.Serializer):
@@ -278,14 +300,6 @@ class AbstractPaymentSerializer(serializers.Serializer):
     # sf_campaign_id = serializers.CharField(max_length=255, required=False, allow_blank=True)
     captcha_token = serializers.CharField(max_length=2550, required=False, allow_blank=True)
 
-    # Tribute/Reason for Giving
-    reason_for_giving = serializers.CharField(max_length=255, required=False, allow_blank=True)
-    reason_other = serializers.CharField(max_length=255, required=False, allow_blank=True)
-
-    tribute_type = serializers.CharField(max_length=255, required=False, allow_blank=True)
-    honoree = serializers.CharField(max_length=255, required=False, allow_blank=True)
-    in_memory_of = serializers.CharField(max_length=255, required=False, allow_blank=True)
-
     # Request metadata
     ip = serializers.IPAddressField()
     referer = serializers.URLField()
@@ -294,7 +308,8 @@ class AbstractPaymentSerializer(serializers.Serializer):
     # and associate it with the page it came from.
     revenue_program_slug = serializers.SlugField()
     donation_page_slug = serializers.SlugField(required=False, allow_blank=True)
-
+    # Page id is a nice shortcut for getting the page, instead of page_slug + rp_slug
+    page_id = serializers.IntegerField(required=False)
     phone = serializers.CharField(max_length=40, required=False, allow_blank=True)
 
     @classmethod
@@ -337,28 +352,28 @@ class AbstractPaymentSerializer(serializers.Serializer):
             self.fields[required_field].required = True
             self.fields[required_field].allow_blank = False
 
-    def _validate_reason_for_giving(self, data):
-        """
-        If 'reason_for_giving' is "Other", then 'reason_other' may not be blank.
-        """
-        if data.get("reason_for_giving") == "Other" and not data.get("reason_other"):
-            raise serializers.ValidationError({"reason_other": "This field may not be blank"})
+    # def _validate_reason_for_giving(self, data):
+    #     """
+    #     If 'reason_for_giving' is "Other", then 'reason_other' may not be blank.
+    #     """
+    #     if data.get("reason_for_giving") == "Other" and not data.get("reason_other"):
+    #         raise serializers.ValidationError({"reason_other": "This field may not be blank"})
 
-    def _validate_tribute(self, data):
-        """
-        If 'tribute_type' is "type_honoree", then 'honoree' field may not be blank.
-        If 'tribute_type' is "type_in_memory_of", then 'in_memory_of' field may not be blank.
-        """
-        if data.get("tribute_type") == "type_honoree" and not data.get("honoree"):
-            raise serializers.ValidationError({"honoree": "This field may not be blank"})
+    # def _validate_tribute(self, data):
+    #     """
+    #     If 'tribute_type' is "type_honoree", then 'honoree' field may not be blank.
+    #     If 'tribute_type' is "type_in_memory_of", then 'in_memory_of' field may not be blank.
+    #     """
+    #     if data.get("tribute_type") == "type_honoree" and not data.get("honoree"):
+    #         raise serializers.ValidationError({"honoree": "This field may not be blank"})
 
-        if data.get("tribute_type") == "type_in_memory_of" and not data.get("in_memory_of"):
-            raise serializers.ValidationError({"in_memory_of": "This field may not be blank"})
+    #     if data.get("tribute_type") == "type_in_memory_of" and not data.get("in_memory_of"):
+    #         raise serializers.ValidationError({"in_memory_of": "This field may not be blank"})
 
-    def validate(self, data):
-        self._validate_reason_for_giving(data)
-        self._validate_tribute(data)
-        return super().validate(data)
+    # def validate(self, data):
+    #     self._validate_reason_for_giving(data)
+    #     self._validate_tribute(data)
+    #     return super().validate(data)
 
 
 class StripeOneTimePaymentSerializer(AbstractPaymentSerializer):

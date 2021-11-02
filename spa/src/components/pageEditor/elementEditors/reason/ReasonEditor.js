@@ -83,7 +83,7 @@ function ReasonEditor() {
             checked={!!elementContent.askReason}
             onChange={() => toggleElementContent('askReason')}
           />
-          <S.CheckboxLabel htmlFor="ask-reason">Ask donor what they're excited to support</S.CheckboxLabel>
+          <S.CheckboxLabel htmlFor="ask-reason">Ask donor why they are making a contribution</S.CheckboxLabel>
         </S.CheckboxWrapper>
         {elementContent.askReason && (
           <S.CheckboxWrapper>

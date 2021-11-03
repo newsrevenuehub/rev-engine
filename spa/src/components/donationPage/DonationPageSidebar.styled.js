@@ -18,7 +18,7 @@ export const SidebarContent = styled.ul`
   list-style: none;
 
   & > li {
-    padding: 2rem 0;
+    padding: 1rem 0;
   }
 
   @media (${(props) => props.theme.breakpoints.tabletLandscapeDown}) {

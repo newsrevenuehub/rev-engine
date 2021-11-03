@@ -352,29 +352,6 @@ class AbstractPaymentSerializer(serializers.Serializer):
             self.fields[required_field].required = True
             self.fields[required_field].allow_blank = False
 
-    # def _validate_reason_for_giving(self, data):
-    #     """
-    #     If 'reason_for_giving' is "Other", then 'reason_other' may not be blank.
-    #     """
-    #     if data.get("reason_for_giving") == "Other" and not data.get("reason_other"):
-    #         raise serializers.ValidationError({"reason_other": "This field may not be blank"})
-
-    # def _validate_tribute(self, data):
-    #     """
-    #     If 'tribute_type' is "type_honoree", then 'honoree' field may not be blank.
-    #     If 'tribute_type' is "type_in_memory_of", then 'in_memory_of' field may not be blank.
-    #     """
-    #     if data.get("tribute_type") == "type_honoree" and not data.get("honoree"):
-    #         raise serializers.ValidationError({"honoree": "This field may not be blank"})
-
-    #     if data.get("tribute_type") == "type_in_memory_of" and not data.get("in_memory_of"):
-    #         raise serializers.ValidationError({"in_memory_of": "This field may not be blank"})
-
-    # def validate(self, data):
-    #     self._validate_reason_for_giving(data)
-    #     self._validate_tribute(data)
-    #     return super().validate(data)
-
 
 class StripeOneTimePaymentSerializer(AbstractPaymentSerializer):
     """

@@ -21,7 +21,7 @@ import { useParams } from 'react-router-dom';
 
 // AJAX
 import useRequest from 'hooks/useRequest';
-import { DELETE_PAGE, DRAFT_PAGE_DETAIL, PATCH_PAGE, LIST_STYLES, CONTRIBUTION_META } from 'ajax/endpoints';
+import { DELETE_PAGE, DRAFT_PAGE_DETAIL, PATCH_PAGE, LIST_STYLES } from 'ajax/endpoints';
 
 // Routes
 import { CONTENT_SLUG } from 'routes';
@@ -83,7 +83,6 @@ function PageEditor() {
   const [loading, setLoading] = useState(false);
   const [page, setPage] = useState();
   const [availableStyles, setAvailableStyles] = useState([]);
-  const [contributionMetadata, setContributionMetadata] = useState([]);
   const [showCreateTemplateModal, setShowCreateTemplateModal] = useState(false);
 
   const [updatedPage, setUpdatedPage] = useState();
@@ -92,7 +91,6 @@ function PageEditor() {
   const [errors, setErrors] = useState({});
 
   const requestGetPage = useRequest();
-  const requestGetDonorMetadata = useRequest();
   const requestGetPageStyles = useRequest();
   const requestPatchPage = useRequest();
   const requestPageDeletion = useRequest();
@@ -147,22 +145,6 @@ function PageEditor() {
       }
     );
     // Don't include requestGetPageStyles for now.
-  }, []);
-
-  useEffect(() => {
-    setLoading(true);
-    requestGetDonorMetadata(
-      { method: 'GET', url: CONTRIBUTION_META },
-      {
-        onSuccess: ({ data }) => {
-          setContributionMetadata(data.filter((e) => e.donor_supplied));
-          setLoading(false);
-        },
-        onFailure: () => {
-          setLoading(false);
-        }
-      }
-    );
   }, []);
 
   const handlePreview = () => {
@@ -342,7 +324,6 @@ function PageEditor() {
         page,
         setPage,
         availableStyles,
-        contributionMetadata,
         setAvailableStyles,
         updatedPage,
         setUpdatedPage,

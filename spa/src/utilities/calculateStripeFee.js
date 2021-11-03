@@ -2,6 +2,7 @@ const STRIPE_NP_RATE = 0.022;
 const STRIPE_FP_RATE = 0.029;
 const STRIPE_FIXED = 0.3;
 const SUBSCRIPTION_UPCHARGE = 0.005;
+const SUBSCRIPTION_UPCHARGE_ENABLED = false;
 
 function calculateStripeFee(amount, interval, isNonProfit) {
   /*
@@ -24,7 +25,7 @@ function calculateStripeFee(amount, interval, isNonProfit) {
   const isRecurring = interval !== 'one_time';
   let RATE = isNonProfit ? STRIPE_NP_RATE : STRIPE_FP_RATE;
 
-  if (isRecurring) RATE += SUBSCRIPTION_UPCHARGE;
+  if (isRecurring && SUBSCRIPTION_UPCHARGE_ENABLED) RATE += SUBSCRIPTION_UPCHARGE;
 
   const amountWithFee = roundTo2DecimalPlaces((amountInt + STRIPE_FIXED) / (1 - RATE));
   return roundTo2DecimalPlaces(amountWithFee - amountInt);

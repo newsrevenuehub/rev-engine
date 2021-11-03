@@ -247,8 +247,8 @@ class StripeConfirmTest(APITestCase):
         self.assertEqual(response.data["status"], "connected")
 
     @patch("stripe.Account.retrieve", side_effect=MockStripeAccountEnabled)
-    @patch("stripe.ApplePayDomain.create")
-    def test_confirm_stripe_error_response(self, mock_domain_create, mock_account_retrieve, mock_product_create):
+    # @patch("stripe.ApplePayDomain.create")
+    def test_confirm_stripe_error_response(self, mock_account_retrieve, mock_product_create):
         mock_product_create.side_effect = StripeError
         response = self.post_to_confirmation(stripe_account_id="testing")
         self.assertEqual(response.status_code, 500)
@@ -263,52 +263,52 @@ class StripeConfirmTest(APITestCase):
         self.organization.refresh_from_db()
         self.assertEqual(self.organization.stripe_product_id, TEST_STRIPE_PRODUCT_ID)
 
-    @override_settings(STRIPE_LIVE_MODE="True")
-    @override_settings(STRIPE_LIVE_SECRET_KEY=TEST_STRIPE_LIVE_KEY)
-    @override_settings(SITE_URL=TEST_SITE_URL)
-    @patch("stripe.Account.retrieve", side_effect=MockStripeAccountEnabled)
-    @patch("stripe.ApplePayDomain.create")
-    def test_apple_domain_verification_called_when_newly_verified_and_live_mode(
-        self, mock_applepay_domain_create, *args
-    ):
-        stripe_account_id = "my_test_stripe_account_id"
-        self.post_to_confirmation(stripe_account_id=stripe_account_id)
-        # Newly confirmed accounts should register the domain with apply pay
-        domain_from_site_url = TEST_SITE_URL.split("//")[1]
-        mock_applepay_domain_create.assert_called_once_with(
-            api_key=TEST_STRIPE_LIVE_KEY, domain_name=domain_from_site_url, stripe_account=stripe_account_id
-        )
-        self.organization.refresh_from_db()
-        self.assertIsNotNone(self.organization.domain_apple_verified_date)
+    # @override_settings(STRIPE_LIVE_MODE="True")
+    # @override_settings(STRIPE_LIVE_SECRET_KEY=TEST_STRIPE_LIVE_KEY)
+    # @override_settings(SITE_URL=TEST_SITE_URL)
+    # @patch("stripe.Account.retrieve", side_effect=MockStripeAccountEnabled)
+    # @patch("stripe.ApplePayDomain.create")
+    # def test_apple_domain_verification_called_when_newly_verified_and_live_mode(
+    #     self, mock_applepay_domain_create, *args
+    # ):
+    #     stripe_account_id = "my_test_stripe_account_id"
+    #     self.post_to_confirmation(stripe_account_id=stripe_account_id)
+    #     # Newly confirmed accounts should register the domain with apply pay
+    #     domain_from_site_url = TEST_SITE_URL.split("//")[1]
+    #     mock_applepay_domain_create.assert_called_once_with(
+    #         api_key=TEST_STRIPE_LIVE_KEY, domain_name=domain_from_site_url, stripe_account=stripe_account_id
+    #     )
+    #     self.organization.refresh_from_db()
+    #     self.assertIsNotNone(self.organization.domain_apple_verified_date)
 
-    @override_settings(STRIPE_LIVE_MODE="False")
-    @patch("stripe.Account.retrieve", side_effect=MockStripeAccountEnabled)
-    @patch("stripe.ApplePayDomain.create")
-    def test_apple_domain_verification_not_called_when_newly_verified_and_not_live_mode(
-        self, mock_applepay_domain_create, *args
-    ):
-        self.post_to_confirmation(stripe_account_id="testing")
-        # Newly confirmed accounts should not register domain with apple pay unless in live mode.
-        mock_applepay_domain_create.assert_not_called()
-        self.organization.refresh_from_db()
-        self.assertIsNone(self.organization.domain_apple_verified_date)
+    # @override_settings(STRIPE_LIVE_MODE="False")
+    # @patch("stripe.Account.retrieve", side_effect=MockStripeAccountEnabled)
+    # @patch("stripe.ApplePayDomain.create")
+    # def test_apple_domain_verification_not_called_when_newly_verified_and_not_live_mode(
+    #     self, mock_applepay_domain_create, *args
+    # ):
+    #     self.post_to_confirmation(stripe_account_id="testing")
+    #     # Newly confirmed accounts should not register domain with apple pay unless in live mode.
+    #     mock_applepay_domain_create.assert_not_called()
+    #     self.organization.refresh_from_db()
+    #     self.assertIsNone(self.organization.domain_apple_verified_date)
 
-    @override_settings(STRIPE_LIVE_MODE="True")
-    @override_settings(SITE_URL=TEST_SITE_URL)
-    @patch("stripe.Account.retrieve", side_effect=MockStripeAccountEnabled)
-    @patch("stripe.ApplePayDomain.create", side_effect=StripeError)
-    @patch("apps.organizations.models.logger")
-    def test_apple_domain_verification_failure(self, mock_logger, mock_applepay_domain_create, *args):
-        target_id = "testing_stripe_account_id"
-        self.post_to_confirmation(stripe_account_id=target_id)
-        mock_applepay_domain_create.assert_called_once()
-        # Logger should log stripe error
-        mock_logger.warning.assert_called_once_with(
-            f"Failed to register ApplePayDomain for organization {self.organization.name}. StripeError: <empty message>"
-        )
-        # StripeError above should not prevent everything else from working properly
-        self.organization.refresh_from_db()
-        self.assertEqual(self.organization.stripe_account_id, target_id)
+    # @override_settings(STRIPE_LIVE_MODE="True")
+    # @override_settings(SITE_URL=TEST_SITE_URL)
+    # @patch("stripe.Account.retrieve", side_effect=MockStripeAccountEnabled)
+    # @patch("stripe.ApplePayDomain.create", side_effect=StripeError)
+    # @patch("apps.organizations.models.logger")
+    # def test_apple_domain_verification_failure(self, mock_logger, mock_applepay_domain_create, *args):
+    #     target_id = "testing_stripe_account_id"
+    #     self.post_to_confirmation(stripe_account_id=target_id)
+    #     mock_applepay_domain_create.assert_called_once()
+    #     # Logger should log stripe error
+    #     mock_logger.warning.assert_called_once_with(
+    #         f"Failed to register ApplePayDomain for organization {self.organization.name}. StripeError: <empty message>"
+    #     )
+    #     # StripeError above should not prevent everything else from working properly
+    #     self.organization.refresh_from_db()
+    #     self.assertEqual(self.organization.stripe_account_id, target_id)
 
     @patch("stripe.Account.retrieve", side_effect=MockStripeAccountNotEnabled)
     def test_confirm_connected_not_verified(self, mock_account_retrieve, *args):

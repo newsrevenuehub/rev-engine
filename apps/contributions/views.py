@@ -139,12 +139,8 @@ def stripe_confirmation(request):
     try:
         # Now that we're verified, create and associate default product
         organization.stripe_create_default_product()
-        # And register domain with ApplePay
-        organization.stripe_create_apple_pay_domain()
     except stripe.error.StripeError as stripe_error:
-        logger.error(
-            f"stripe_create_default_product or stripe_create_apple_pay_domain failed with a StripeError: {stripe_error}"
-        )
+        logger.error(f"stripe_create_default_product failed with a StripeError: {stripe_error}")
         return Response(
             {"status": "failed"},
             status=status.HTTP_500_INTERNAL_SERVER_ERROR,

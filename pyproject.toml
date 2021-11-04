@@ -69,6 +69,7 @@ django-safedelete = "^1.0.0"
 django-reverse-admin = "^2.9.6"
 django-health-check = "^3.16.4"
 pycountry = "^20.7.3"
+django-csp = "^3.7"
 
 [tool.poetry.dev-dependencies]
 appnope = "0.1.2"

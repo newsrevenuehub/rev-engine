@@ -3,7 +3,6 @@ import logging
 from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.db import models
-from django.utils import timezone
 
 import stripe
 
@@ -109,29 +108,29 @@ class Organization(IndexedTimeStampedModel):
             self.stripe_product_id = product.id
             self.save()
 
-    def stripe_create_apple_pay_domain(self):
-        """
-        Register an ApplePay domain with Apple (by proxy) for this organization, so that
-        we only register domains in production environments.
+    # def stripe_create_apple_pay_domain(self):
+    #     """
+    #     Register an ApplePay domain with Apple (by proxy) for this organization, so that
+    #     we only register domains in production environments.
 
-        NOTE: Cannot create ApplePay Domains using test key.
+    #     NOTE: Cannot create ApplePay Domains using test key.
 
-        "If you're hoping to test this locally, pretty much too bad"
-            -- Steve Jobs
-        """
-        if settings.STRIPE_LIVE_MODE == "True":
-            try:
-                stripe.ApplePayDomain.create(
-                    api_key=settings.STRIPE_LIVE_SECRET_KEY,
-                    domain_name=settings.SITE_URL.split("//")[1],
-                    stripe_account=self.stripe_account_id,
-                )
-                self.domain_apple_verified_date = timezone.now()
-                self.save()
-            except stripe.error.StripeError as stripe_error:
-                logger.warning(
-                    f"Failed to register ApplePayDomain for organization {self.name}. StripeError: {str(stripe_error)}"
-                )
+    #     "If you're hoping to test this locally, pretty much too bad"
+    #         -- Steve Jobs
+    #     """
+    #     if settings.STRIPE_LIVE_MODE == "True":
+    #         try:
+    #             stripe.ApplePayDomain.create(
+    #                 api_key=settings.STRIPE_LIVE_SECRET_KEY,
+    #                 domain_name=settings.SITE_URL.split("//")[1],
+    #                 stripe_account=self.stripe_account_id,
+    #             )
+    #             self.domain_apple_verified_date = timezone.now()
+    #             self.save()
+    #         except stripe.error.StripeError as stripe_error:
+    #             logger.warning(
+    #                 f"Failed to register ApplePayDomain for organization {self.name}. StripeError: {str(stripe_error)}"
+    #             )
 
     def get_currency_dict(self):
         try:

@@ -7,6 +7,9 @@ import { HUB_STRIPE_PUBLISHABLE_KEY } from 'App';
 import { loadStripe } from '@stripe/stripe-js';
 import { Elements } from '@stripe/react-stripe-js';
 
+// Constants
+import { STRIPE_API_VERSION } from 'constants/genericConstants';
+
 // Children
 import ElementLoading from 'components/donationPage/pageContent/ElementLoading';
 import StripePaymentForm from 'components/paymentProviders/stripe/StripePaymentForm';
@@ -16,7 +19,10 @@ function StripePayment({ offerPayFees, stripeAccountId }) {
   const [stripe, setStripe] = useState();
 
   useEffect(() => {
-    if (stripeAccountId) setStripe(loadStripe(HUB_STRIPE_PUBLISHABLE_KEY, { stripeAccount: stripeAccountId }));
+    if (stripeAccountId)
+      setStripe(
+        loadStripe(HUB_STRIPE_PUBLISHABLE_KEY, { stripeAccount: stripeAccountId, apiVersion: STRIPE_API_VERSION })
+      );
   }, [stripeAccountId]);
 
   return (

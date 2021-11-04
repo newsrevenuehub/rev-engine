@@ -20,12 +20,21 @@ function useErrorFocus(formRef, errors) {
       const firstErrorName = inputNames.find((name) => errorNames.indexOf(name) !== -1);
       const targetElement = formRef.current.elements[firstErrorName];
       if (targetElement) {
+        let scrollableElement = targetElement;
+        if (targetElement.length) {
+          // targetElement, in some cases, is a NodeList with multiples, only one of which is visible in the DOM.
+          scrollableElement = findFirstVisibleChild(targetElement);
+        }
         // use this lib as polyfill for Safari iOS.
         // Focus in callback so we see the smooth scroll on other browsers (the ones that treat "focus" as an implied "scroll into view")
-        scrollIntoView(targetElement, scrollOptions, () => targetElement.focus());
+        scrollIntoView(scrollableElement, scrollOptions, () => scrollableElement.focus());
       }
     }
   }, [errors, formRef]);
 }
 
 export default useErrorFocus;
+
+function findFirstVisibleChild(nodeList) {
+  return [...nodeList].find((el) => el.offsetParent);
+}

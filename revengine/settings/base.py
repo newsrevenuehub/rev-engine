@@ -72,6 +72,7 @@ MIDDLEWARE = [
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "apps.common.middleware.LogFourHundredsMiddleware",
+    "csp.middleware.CSPMiddleware",
 ]
 
 ROOT_URLCONF = "revengine.urls"
@@ -346,6 +347,29 @@ CURRENCIES = {"USD": "$", "CAD": "$"}
 
 # Application subdomains (that are NOT revenue program slugs)
 NON_DONATION_PAGE_SUBDOMAINS = os.getenv("NON_DONATION_PAGE_SUBDOMAINS", ["support", "www"])
+
+# Django-CSP configuration
+# For now, report only.
+CSP_REPORT_ONLY = os.getenv("CSP_REPORT_ONLY", True)
+CSP_REPORT_URI = f"https://o320544.ingest.sentry.io/api/6046263/security/?sentry_key=d576a6738e41453db36130d03e4e95be&sentry_environment={ENVIRONMENT}"
+CSP_DEFAULT_SRC = ("'self'",)
+CSP_IMG_SRC = ("*",)
+CSP_SCRIPT_SRC = (
+    "https://js.stripe.com",
+    "https://risk.clearbit.com",
+    "https://www.google-analytics.com",
+    "https://maps.googleapis.com",
+    "https://www.google.com/recaptcha/",
+    "https://www.gstatic.com/recaptcha/",
+    "https://pay.google.com",
+)
+CSP_FRAME_SRC = (
+    "https://js.stripe.com",
+    "https://hooks.stripe.com",
+    "https://www.google.com/recaptcha/",
+    "https://recaptcha.google.com/recaptcha/",
+    "https://pay.google.com",
+)
 
 # Stripe API Target Version
 # Make sure this is also updated in genericConstants.js for the frontend

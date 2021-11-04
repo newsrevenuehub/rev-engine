@@ -348,7 +348,6 @@ CURRENCIES = {"USD": "$", "CAD": "$"}
 # Application subdomains (that are NOT revenue program slugs)
 NON_DONATION_PAGE_SUBDOMAINS = os.getenv("NON_DONATION_PAGE_SUBDOMAINS", ["support", "www"])
 
-
 # Django-CSP configuration
 # For now, report only.
 CSP_REPORT_ONLY = os.getenv("CSP_REPORT_ONLY", True)
@@ -371,3 +370,7 @@ CSP_FRAME_SRC = (
     "https://recaptcha.google.com/recaptcha/",
     "https://pay.google.com",
 )
+
+# Stripe API Target Version
+# Make sure this is also updated in genericConstants.js for the frontend
+STRIPE_API_VERSION = "2020-08-27"

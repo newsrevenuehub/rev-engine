@@ -443,7 +443,6 @@ class UpdatePaymentMethodTest(APITestCase):
         mock_attach.assert_called_once_with(
             self.payment_method_id,
             customer=self.customer_id,
-            api_key=TEST_STRIPE_API_KEY,
             stripe_account=self.stripe_account_id,
         )
         mock_modify.assert_not_called()
@@ -459,14 +458,12 @@ class UpdatePaymentMethodTest(APITestCase):
             self.payment_method_id,
             customer=self.customer_id,
             stripe_account=self.stripe_account_id,
-            api_key=TEST_STRIPE_API_KEY,
         )
 
         mock_modify.assert_called_once_with(
             self.subscription_id,
             default_payment_method=self.payment_method_id,
             stripe_account=self.stripe_account_id,
-            api_key=TEST_STRIPE_API_KEY,
         )
 
     @patch("stripe.PaymentMethod.attach")
@@ -480,14 +477,12 @@ class UpdatePaymentMethodTest(APITestCase):
             self.payment_method_id,
             customer=self.customer_id,
             stripe_account=self.stripe_account_id,
-            api_key=TEST_STRIPE_API_KEY,
         )
 
         mock_modify.assert_called_once_with(
             self.subscription_id,
             default_payment_method=self.payment_method_id,
             stripe_account=self.stripe_account_id,
-            api_key=TEST_STRIPE_API_KEY,
         )
 
 
@@ -524,9 +519,7 @@ class CancelRecurringPaymentTest(APITestCase):
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.data["detail"], "Could not complete payment")
 
-        mock_delete.assert_called_once_with(
-            self.subscription_id, stripe_account=self.stripe_account_id, api_key=TEST_STRIPE_API_KEY
-        )
+        mock_delete.assert_called_once_with(self.subscription_id, stripe_account=self.stripe_account_id)
 
     @patch("stripe.Subscription.delete")
     def test_delete_recurring_success(self, mock_delete):
@@ -534,9 +527,7 @@ class CancelRecurringPaymentTest(APITestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data["detail"], "Success")
 
-        mock_delete.assert_called_once_with(
-            self.subscription_id, stripe_account=self.stripe_account_id, api_key=TEST_STRIPE_API_KEY
-        )
+        mock_delete.assert_called_once_with(self.subscription_id, stripe_account=self.stripe_account_id)
 
 
 @patch("apps.contributions.models.Contribution.process_flagged_payment")

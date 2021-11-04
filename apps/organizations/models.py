@@ -9,7 +9,6 @@ import stripe
 
 from apps.common.models import IndexedTimeStampedModel
 from apps.common.utils import normalize_slug
-from apps.contributions.utils import get_hub_stripe_api_key
 from apps.organizations.validators import validate_statement_descriptor_suffix
 
 
@@ -105,7 +104,6 @@ class Organization(IndexedTimeStampedModel):
         if not self.stripe_product_id:
             product = stripe.Product.create(
                 name=settings.GENERIC_STRIPE_PRODUCT_NAME,
-                api_key=get_hub_stripe_api_key(),
                 stripe_account=self.stripe_account_id,
             )
             self.stripe_product_id = product.id

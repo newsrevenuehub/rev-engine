@@ -354,7 +354,16 @@ CSP_REPORT_ONLY = os.getenv("CSP_REPORT_ONLY", True)
 CSP_REPORT_URI = f"https://o320544.ingest.sentry.io/api/6046263/security/?sentry_key=d576a6738e41453db36130d03e4e95be&sentry_environment={ENVIRONMENT}"
 CSP_DEFAULT_SRC = ("'self'",)
 CSP_IMG_SRC = ("*",)
+CSP_STYLE_SRC = (
+    "'self'",
+    "https://fonts.googleapis.com",
+)
+CSP_FONT_SRC = (
+    "'self'",
+    "https://fonts.gstatic.com",
+)
 CSP_SCRIPT_SRC = (
+    "'self'",
     "https://js.stripe.com",
     "https://risk.clearbit.com",
     "https://www.google-analytics.com",

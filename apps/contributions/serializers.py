@@ -226,6 +226,8 @@ class ContributionMetadataSerializer(serializers.Serializer):
         "agreed_to_pay_fees": PAYMENT,
         "donor_selected_amount": PAYMENT,
         "reason_for_giving": PAYMENT,
+        "honoree": PAYMENT,
+        "in_memory_of": PAYMENT,
         "comp_subscription": PAYMENT,
         "swag_opt_out": PAYMENT,
         "t_shirt_size": PAYMENT,

@@ -14,8 +14,6 @@ https://docs.djangoproject.com/en/3.0/ref/settings/
 import os
 from datetime import timedelta
 
-from celery.schedules import crontab
-
 
 PROJECT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 BASE_DIR = os.path.dirname(PROJECT_DIR)
@@ -350,6 +348,10 @@ NON_DONATION_PAGE_SUBDOMAINS = os.getenv("NON_DONATION_PAGE_SUBDOMAINS", ["suppo
 
 # Django-CSP configuration
 # For now, report only.
+CSP_INCLUDE_NONCE_IN = (
+    "style-src",
+    "script-src",
+)
 CSP_REPORT_ONLY = os.getenv("CSP_REPORT_ONLY", True)
 CSP_REPORT_URI = f"https://o320544.ingest.sentry.io/api/6046263/security/?sentry_key=d576a6738e41453db36130d03e4e95be&sentry_environment={ENVIRONMENT}"
 CSP_DEFAULT_SRC = ("'self'",)
@@ -360,6 +362,7 @@ CSP_STYLE_SRC = (
 )
 CSP_FONT_SRC = (
     "'self'",
+    "data:",
     "https://fonts.gstatic.com",
 )
 CSP_SCRIPT_SRC = (

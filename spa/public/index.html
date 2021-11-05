@@ -29,6 +29,12 @@
     <title>RevEngine</title>
   </head>
   <body>
+    {% if request.csp_nonce %}
+    <script type="text/javascript" nonce="{{ request.csp_nonce }}">
+      window.csp_nonce = '{{ request.csp_nonce }}';
+    </script>
+    {% endif %}
+
     <noscript>You need to enable JavaScript to run this app.</noscript>
     <div id="root"></div>
     <div id="modal-root"></div>

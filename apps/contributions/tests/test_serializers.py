@@ -232,6 +232,8 @@ class ContributionMetadataSerializerTest(TestCase):
             "contributor_id": 1,
             "revenue_program_id": 1,
             "reason_for_giving": "Extortion",
+            "honoree": "test honoree",
+            "in_memory_of": "test in memory of",
             "sf_campaign_id": "TEST123",
             "comp_subscription": True,
             "swag_choice_T Shirt": "sm",

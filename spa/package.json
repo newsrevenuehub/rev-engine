@@ -66,7 +66,7 @@
   "scripts": {
     "start": "react-scripts start",
     "start:subdomains": "DANGEROUSLY_DISABLE_HOST_CHECK=true react-scripts start",
-    "build": "react-scripts build",
+    "build": "INLINE_RUNTIME_CHUNK=false react-scripts build",
     "cypress:open": "cypress open",
     "cypress:open:component": "cypress open-ct",
     "cypress:run": "cypress run",

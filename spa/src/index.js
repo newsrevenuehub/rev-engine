@@ -6,6 +6,12 @@ import App from './App';
 import * as Sentry from '@sentry/react';
 import { Integrations } from '@sentry/tracing';
 
+// Fontawesome config for CSP`
+import { config as fontawesomeConfig } from '@fortawesome/fontawesome-svg-core';
+import 'node_modules/@fortawesome/fontawesome-svg-core/styles.css';
+// Load css via webpack, not via inline styles (fontawesome default)
+fontawesomeConfig.autoAddCss = false;
+
 if (process.env.NODE_ENV !== 'development') {
   Sentry.init({
     dsn: 'https://e7c3a0467b6e4474a99922d00cec182e@o168020.ingest.sentry.io/5774473',

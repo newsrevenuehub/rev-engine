@@ -31,7 +31,6 @@
   <body>
     {% if request.csp_nonce %}
     <script type="text/javascript" nonce="{{ request.csp_nonce }}">
-      window.__webpack_nonce__ = '{{ request.csp_nonce }}';
       window.csp_nonce = '{{ request.csp_nonce }}';
     </script>
     {% endif %}

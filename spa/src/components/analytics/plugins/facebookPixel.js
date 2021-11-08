@@ -17,6 +17,7 @@ function loadFbPixel() {
     t = b.createElement(e);
     t.async = !0;
     t.src = v;
+    t.nonce = window.csp_nonce;
     s = b.getElementsByTagName(e)[0];
     s.parentNode.insertBefore(t, s);
   })(window, document, 'script', FB_PIXEL_SCRIPT_SRC_URL);

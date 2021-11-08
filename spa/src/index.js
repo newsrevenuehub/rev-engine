@@ -8,7 +8,8 @@ import { Integrations } from '@sentry/tracing';
 
 // Fontawesome config for CSP`
 import { config as fontawesomeConfig } from '@fortawesome/fontawesome-svg-core';
-import 'node_modules/@fortawesome/fontawesome-svg-core/styles.css';
+import '@fortawesome/fontawesome-svg-core/styles.css';
+// import 'node_modules/@fortawesome/fontawesome-svg-core/styles.css';
 // Load css via webpack, not via inline styles (fontawesome default)
 fontawesomeConfig.autoAddCss = false;
 

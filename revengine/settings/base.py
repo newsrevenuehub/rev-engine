@@ -348,18 +348,24 @@ NON_DONATION_PAGE_SUBDOMAINS = os.getenv("NON_DONATION_PAGE_SUBDOMAINS", ["suppo
 
 # Django-CSP configuration
 # For now, report only.
-CSP_INCLUDE_NONCE_IN = (
-    "style-src",
-    "script-src",
-)
-# TODO Change below to True and uncomment
+
+# For now, we're drastically relaxing the CSP by allowing 'unsafe-eval' and 'unsafe-inline'. Adding those rules precludes the use of a nonce.
+# Restore this nonce setup when we successfully disallow 'unsafe-eval' and 'unsafe-inline'
+# CSP_INCLUDE_NONCE_IN = (
+#     "style-src",
+#     "script-src",
+# )
 CSP_REPORT_ONLY = os.getenv("CSP_REPORT_ONLY", True)
-# CSP_REPORT_URI = f"https://o320544.ingest.sentry.io/api/6046263/security/?sentry_key=d576a6738e41453db36130d03e4e95be&sentry_environment={ENVIRONMENT}"
+CSP_REPORT_URI = f"https://o320544.ingest.sentry.io/api/6046263/security/?sentry_key=d576a6738e41453db36130d03e4e95be&sentry_environment={ENVIRONMENT}"
 CSP_DEFAULT_SRC = ("'self'",)
-CSP_IMG_SRC = ("*",)
+CSP_IMG_SRC = (
+    "*",
+    "'self'",
+    "data:",
+)
 CSP_STYLE_SRC = (
     "'self'",
-    "https://fonts.googleapis.com",
+    "'unsafe-inline'" "https://fonts.googleapis.com",  # this is gross. Fix me ASAP
     "https://maps.googleapis.com",
 )
 CSP_FONT_SRC = (
@@ -376,6 +382,8 @@ CSP_CONNECT_SRC = (
 )
 CSP_SCRIPT_SRC = (
     "'self'",
+    "'unsafe-inline'",  # this is gross. Fix me ASAP
+    "'unsafe-eval'",  # this is gross. Fix me ASAP
     "https://js.stripe.com",
     "https://risk.clearbit.com",
     "https://www.google-analytics.com",

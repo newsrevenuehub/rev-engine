@@ -352,8 +352,9 @@ CSP_INCLUDE_NONCE_IN = (
     "style-src",
     "script-src",
 )
-CSP_REPORT_ONLY = os.getenv("CSP_REPORT_ONLY", True)
-CSP_REPORT_URI = f"https://o320544.ingest.sentry.io/api/6046263/security/?sentry_key=d576a6738e41453db36130d03e4e95be&sentry_environment={ENVIRONMENT}"
+# TODO Change below to True and uncomment
+CSP_REPORT_ONLY = os.getenv("CSP_REPORT_ONLY", False)
+# CSP_REPORT_URI = f"https://o320544.ingest.sentry.io/api/6046263/security/?sentry_key=d576a6738e41453db36130d03e4e95be&sentry_environment={ENVIRONMENT}"
 CSP_DEFAULT_SRC = ("'self'",)
 CSP_IMG_SRC = ("*",)
 CSP_STYLE_SRC = (

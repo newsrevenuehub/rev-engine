@@ -359,7 +359,7 @@ CSP_DEFAULT_SRC = ("'self'",)
 CSP_IMG_SRC = ("*",)
 CSP_STYLE_SRC = (
     "'self'",
-    "'unsafe-inline'",
+    # "'unsafe-inline'",
     "webpack:",
     "https://fonts.googleapis.com",
 )
@@ -367,6 +367,13 @@ CSP_FONT_SRC = (
     "'self'",
     "data:",
     "https://fonts.gstatic.com",
+)
+CSP_CONNECT_SRC = (
+    "'self'",
+    "https://www.google-analytics.com",
+    "https://maps.googleapis.com",
+    "https://*.ingest.sentry.io",
+    "https://risk.clearbit.com",
 )
 CSP_SCRIPT_SRC = (
     "'self'",

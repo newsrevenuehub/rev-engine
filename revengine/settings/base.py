@@ -359,9 +359,8 @@ CSP_DEFAULT_SRC = ("'self'",)
 CSP_IMG_SRC = ("*",)
 CSP_STYLE_SRC = (
     "'self'",
-    # "'unsafe-inline'",
-    "webpack:",
     "https://fonts.googleapis.com",
+    "https://maps.googleapis.com",
 )
 CSP_FONT_SRC = (
     "'self'",
@@ -377,7 +376,6 @@ CSP_CONNECT_SRC = (
 )
 CSP_SCRIPT_SRC = (
     "'self'",
-    "webpack:",
     "https://js.stripe.com",
     "https://risk.clearbit.com",
     "https://www.google-analytics.com",
@@ -385,6 +383,7 @@ CSP_SCRIPT_SRC = (
     "https://www.google.com/recaptcha/",
     "https://www.gstatic.com/recaptcha/",
     "https://pay.google.com",
+    "https://connect.facebook.net",
 )
 CSP_FRAME_SRC = (
     "https://js.stripe.com",

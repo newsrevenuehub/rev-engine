@@ -359,6 +359,7 @@ CSP_DEFAULT_SRC = ("'self'",)
 CSP_IMG_SRC = ("*",)
 CSP_STYLE_SRC = (
     "'self'",
+    "'unsafe-inline'",
     "webpack:",
     "https://fonts.googleapis.com",
 )
@@ -385,6 +386,7 @@ CSP_FRAME_SRC = (
     "https://recaptcha.google.com/recaptcha/",
     "https://pay.google.com",
 )
+CSP_OBJECT_SRC = ("'none'",)
 
 # Stripe API Target Version
 # Make sure this is also updated in genericConstants.js for the frontend

@@ -359,7 +359,7 @@ CSP_DEFAULT_SRC = ("'self'",)
 CSP_IMG_SRC = ("*",)
 CSP_STYLE_SRC = (
     "'self'",
-    "webpack://",
+    "webpack:",
     "https://fonts.googleapis.com",
 )
 CSP_FONT_SRC = (
@@ -369,7 +369,7 @@ CSP_FONT_SRC = (
 )
 CSP_SCRIPT_SRC = (
     "'self'",
-    "webpack://",
+    "webpack:",
     "https://js.stripe.com",
     "https://risk.clearbit.com",
     "https://www.google-analytics.com",

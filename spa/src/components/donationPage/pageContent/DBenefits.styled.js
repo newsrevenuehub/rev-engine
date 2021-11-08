@@ -29,6 +29,10 @@ export const LevelsList = styled.ul`
 export const Level = styled.li`
   border-bottom: 1px ${(props) => props.theme.ruleStyle || 'solid'} ${(props) => props.theme.colors.grey[1]};
   padding: 2rem 0;
+
+  &:first-child {
+    padding-top: 0;
+  }
 `;
 
 export const LevelInclusion = styled.p`

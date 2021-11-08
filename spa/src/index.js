@@ -15,6 +15,9 @@ if (process.env.NODE_ENV !== 'development') {
   });
 }
 
+// webpack CSP nonce concession
+window.__webpack_nonce__ = window.csp_nonce;
+
 ReactDOM.render(
   <React.StrictMode>
     <App />

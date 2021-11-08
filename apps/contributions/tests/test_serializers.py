@@ -224,6 +224,7 @@ class ContributionMetadataSerializerTest(TestCase):
             "mailing_postal_code": "12345",
             "mailing_state": "test",
             "mailing_street": "test",
+            "phone": "9195555555",
             "organization_country": "ts",
             "referer": "https://test.test",
             "revenue_program_slug": "test",
@@ -231,7 +232,11 @@ class ContributionMetadataSerializerTest(TestCase):
             "contributor_id": 1,
             "revenue_program_id": 1,
             "reason_for_giving": "Extortion",
+            "honoree": "test honoree",
+            "in_memory_of": "test in memory of",
             "sf_campaign_id": "TEST123",
+            "comp_subscription": True,
+            "swag_choice_T Shirt": "sm",
         }
 
     def test_bundle_metadata_validation_error_when_is_valid_not_called(self):
@@ -289,3 +294,19 @@ class ContributionMetadataSerializerTest(TestCase):
 
         self.payment_data["in_memory_of"] = "Testing"
         self.assertIsNone(serializer._validate_tribute(self.payment_data))
+
+    def test_swag_data(self):
+        data = self.payment_data
+        # comp_subscription = True should results in comp_subscription = "nyt" for now.
+        data["comp_subscription"] = True
+        serializer = self.serializer(data=data)
+        self.assertTrue(serializer.is_valid())
+        self.assertEqual(serializer.data["comp_subscription"], "nyt")
+
+        # t_shirt_size stores the swag option chosen, with swag-name + swag-option
+        data = self.payment_data
+        data["swag_choice_T Shirt"] = "xxl"
+        expected_value = "T Shirt -- xxl"
+        serializer = self.serializer(data=data)
+        self.assertTrue(serializer.is_valid())
+        self.assertEqual(serializer.data["t_shirt_size"], expected_value)

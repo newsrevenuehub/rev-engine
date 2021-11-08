@@ -1,4 +1,5 @@
 from django.conf import settings
+from django.db.models import TextChoices
 
 from rest_framework import serializers
 
@@ -159,6 +160,10 @@ class ContributorSerializer(serializers.ModelSerializer):
         fields = "__all__"
 
 
+class CompSubscriptions(TextChoices):
+    NYT = "nyt", "nyt"
+
+
 class ContributionMetadataSerializer(serializers.Serializer):
     """
     payment_managers use this serializer to key incoming contribution data to the expected metadata key.
@@ -180,14 +185,22 @@ class ContributionMetadataSerializer(serializers.Serializer):
     mailing_city = serializers.CharField(max_length=40)
     mailing_state = serializers.CharField(max_length=80)
     mailing_country = serializers.CharField(max_length=80)
+    phone = serializers.CharField(max_length=40, required=False, allow_blank=True)
 
     agreed_to_pay_fees = serializers.BooleanField(default=False)
     donor_selected_amount = serializers.CharField(max_length=255)
+
+    # Reason for Giving
     reason_for_giving = serializers.CharField(max_length=255, required=False, allow_blank=True)
     reason_other = serializers.CharField(max_length=255, required=False, allow_blank=True)
     tribute_type = serializers.CharField(max_length=255, required=False, allow_blank=True)
     honoree = serializers.CharField(max_length=255, required=False, allow_blank=True)
     in_memory_of = serializers.CharField(max_length=255, required=False, allow_blank=True)
+
+    # Swag
+    swag_opt_out = serializers.BooleanField(default=False)
+    comp_subscription = serializers.ChoiceField(choices=CompSubscriptions.choices, required=False, allow_blank=True)
+    t_shirt_size = serializers.CharField(max_length=500, required=False, allow_blank=True)
 
     sf_campaign_id = serializers.CharField(max_length=255, required=False, allow_blank=True)
     referer = serializers.URLField()
@@ -209,14 +222,42 @@ class ContributionMetadataSerializer(serializers.Serializer):
         "mailing_city": CUSTOMER,
         "mailing_state": CUSTOMER,
         "mailing_country": CUSTOMER,
+        "phone": CUSTOMER,
         "agreed_to_pay_fees": PAYMENT,
         "donor_selected_amount": PAYMENT,
         "reason_for_giving": PAYMENT,
+        "honoree": PAYMENT,
+        "in_memory_of": PAYMENT,
+        "comp_subscription": PAYMENT,
+        "swag_opt_out": PAYMENT,
+        "t_shirt_size": PAYMENT,
         "referer": PAYMENT,
         "revenue_program_id": PAYMENT,
         "revenue_program_slug": PAYMENT,
         "sf_campaign_id": PAYMENT,
     }
+
+    SWAG_CHOICE_KEY_PREFIX = "swag_choice"
+
+    def _get_option_name_from_swag_key(self, key):
+        return key.split(f"{self.SWAG_CHOICE_KEY_PREFIX}_")[1]
+
+    def _get_swag_choices(self, data):
+        return [
+            (self._get_option_name_from_swag_key(key), data[key])
+            for key in data
+            if self.SWAG_CHOICE_KEY_PREFIX in key.lower()
+        ]
+
+    def _parse_pi_data_for_swag_options(self, data):
+        swag_choices = self._get_swag_choices(data)
+        # For now, comp_subscription is a special field that only applies to NYT subscriptions.
+        # This is hopefully an edge case we can remove entirely when it gets handled in a different way.
+        if data.get("comp_subscription"):
+            data["comp_subscription"] = "nyt"
+        if swag_choices:
+            # For now, we only accept one and we force it in to "t_shirt_size"
+            data["t_shirt_size"] = f"{swag_choices[0][0]} -- {swag_choices[0][1]}"
 
     def _parse_reason_other(self, data):
         """
@@ -227,6 +268,7 @@ class ContributionMetadataSerializer(serializers.Serializer):
 
     def to_internal_value(self, data):
         self._parse_reason_other(data)
+        self._parse_pi_data_for_swag_options(data)
         return super().to_internal_value(data)
 
     def _validate_reason_for_giving(self, data):

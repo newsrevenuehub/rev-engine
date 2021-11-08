@@ -19,8 +19,6 @@ from apps.contributions.payment_managers import (
     PaymentProviderError,
     StripePaymentManager,
 )
-
-# from apps.contributions.utils import parse_pi_data_for_swag_options
 from apps.contributions.webhooks import StripeWebhookProcessor
 from apps.emails.models import EmailTemplateError, PageEmailTemplate
 

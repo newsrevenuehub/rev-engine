@@ -358,28 +358,6 @@ NON_DONATION_PAGE_SUBDOMAINS = os.getenv("NON_DONATION_PAGE_SUBDOMAINS", ["suppo
 CSP_REPORT_ONLY = os.getenv("CSP_REPORT_ONLY", True)
 CSP_REPORT_URI = f"https://o320544.ingest.sentry.io/api/6046263/security/?sentry_key=d576a6738e41453db36130d03e4e95be&sentry_environment={ENVIRONMENT}"
 CSP_DEFAULT_SRC = ("'self'",)
-CSP_IMG_SRC = (
-    "*",
-    "'self'",
-    "data:",
-)
-CSP_STYLE_SRC = (
-    "'self'",
-    "'unsafe-inline'" "https://fonts.googleapis.com",  # this is gross. Fix me ASAP
-    "https://maps.googleapis.com",
-)
-CSP_FONT_SRC = (
-    "'self'",
-    "data:",
-    "https://fonts.gstatic.com",
-)
-CSP_CONNECT_SRC = (
-    "'self'",
-    "https://www.google-analytics.com",
-    "https://maps.googleapis.com",
-    "https://*.ingest.sentry.io",
-    "https://risk.clearbit.com",
-)
 CSP_SCRIPT_SRC = (
     "'self'",
     "'unsafe-inline'",  # this is gross. Fix me ASAP
@@ -393,12 +371,35 @@ CSP_SCRIPT_SRC = (
     "https://pay.google.com",
     "https://connect.facebook.net",
 )
+CSP_STYLE_SRC = (
+    "'self'",
+    "'unsafe-inline'",
+    "https://fonts.googleapis.com",  # this is gross. Fix me ASAP
+    "https://maps.googleapis.com",
+)
+CSP_IMG_SRC = (
+    "*",
+    "'self'",
+    "data:",
+)
+CSP_FONT_SRC = (
+    "'self'",
+    "data:",
+    "https://fonts.gstatic.com",
+)
 CSP_FRAME_SRC = (
     "https://js.stripe.com",
     "https://hooks.stripe.com",
     "https://www.google.com/recaptcha/",
     "https://recaptcha.google.com/recaptcha/",
     "https://pay.google.com",
+)
+CSP_CONNECT_SRC = (
+    "'self'",
+    "https://www.google-analytics.com",
+    "https://maps.googleapis.com",
+    "https://*.ingest.sentry.io",
+    "https://risk.clearbit.com",
 )
 CSP_OBJECT_SRC = ("'none'",)
 

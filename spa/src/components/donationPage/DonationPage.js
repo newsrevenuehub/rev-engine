@@ -20,12 +20,11 @@ import DonationPageSidebar from 'components/donationPage/DonationPageSidebar';
 import DonationPageStaticText from 'components/donationPage/DonationPageStaticText';
 import DonationPageFooter from 'components/donationPage/DonationPageFooter';
 
-import { 
+import {
   REACT_APP_SALESFORCE_CAMPAIGN_ID_QUERYPARAM,
   REACT_APP_FREQUENCY_QUERYPARAM,
   REACT_APP_AMOUNT_QUERYPARAM
- } from '../../settings';
-
+} from 'settings';
 
 const DonationPageContext = createContext({});
 

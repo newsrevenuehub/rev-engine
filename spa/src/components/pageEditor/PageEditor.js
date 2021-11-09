@@ -30,7 +30,7 @@ import { CONTENT_SLUG } from 'routes';
 import { GENERIC_ERROR } from 'constants/textConstants';
 
 // Settings
-import { REACT_APP_CAPTURE_PAGE_SCREENSHOT } from '../../../settings';
+import { REACT_APP_CAPTURE_PAGE_SCREENSHOT } from 'settings';
 
 // Assets
 import { faEye, faEdit, faSave, faTrash, faClone } from '@fortawesome/free-solid-svg-icons';
@@ -52,7 +52,6 @@ import BackButton from 'elements/BackButton';
 import CreateTemplateModal from 'components/pageEditor/CreateTemplateModal';
 
 const PageEditorContext = createContext();
-
 
 export const EDIT = 'EDIT';
 export const PREVIEW = 'PREVIEW';

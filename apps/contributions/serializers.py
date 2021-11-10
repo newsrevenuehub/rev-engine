@@ -1,18 +1,20 @@
 from django.conf import settings
+from django.db.models import TextChoices
 
 from rest_framework import serializers
 
 from apps.contributions.models import (
     Contribution,
     ContributionInterval,
-    ContributionMetadata,
     ContributionStatus,
     Contributor,
 )
 from apps.contributions.utils import format_ambiguous_currency
+from apps.organizations.models import RevenueProgram
 from apps.pages.models import DonationPage
 
 
+# See https://stripe.com/docs/api/payment_intents/object#payment_intent_object-amount
 # See https://stripe.com/docs/api/payment_intents/object#payment_intent_object-amount
 # Stripe allows a maximum of eight digits here
 STRIPE_MAX_AMOUNT = 99999999
@@ -20,13 +22,6 @@ STRIPE_MAX_AMOUNT = 99999999
 # Revengine has its own restrictions (greater than Stripe's restrictions) on the min amount.
 # Remember that 100 here is $1.00
 REVENGINE_MIN_AMOUNT = 100
-
-
-class ContributionMetadataSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = ContributionMetadata
-        fields = ["key", "label", "additional_help_text", "metadata_type", "donor_supplied"]
-        read_only_fields = fields
 
 
 class ContributionSerializer(serializers.ModelSerializer):
@@ -165,6 +160,152 @@ class ContributorSerializer(serializers.ModelSerializer):
         fields = "__all__"
 
 
+class CompSubscriptions(TextChoices):
+    NYT = "nyt", "nyt"
+
+
+class ContributionMetadataSerializer(serializers.Serializer):
+    """
+    payment_managers use this serializer to key incoming contribution data to the expected metadata key.
+    The metadata is then added to the metadata field for the appropriate Stripe object. ProcessorObjects
+    defines options for Stripe Objects.
+
+    The validtion on these fields is important and represents downstream requirements.
+    """
+
+    source = serializers.CharField(max_length=100, default="rev-engine")
+    schema_version = serializers.CharField(max_length=12, default="1.0")
+
+    contributor_id = serializers.IntegerField()
+    first_name = serializers.CharField(max_length=40)
+    last_name = serializers.CharField(max_length=80)
+
+    mailing_postal_code = serializers.CharField(max_length=20)
+    mailing_street = serializers.CharField(max_length=255)
+    mailing_city = serializers.CharField(max_length=40)
+    mailing_state = serializers.CharField(max_length=80)
+    mailing_country = serializers.CharField(max_length=80)
+    phone = serializers.CharField(max_length=40, required=False, allow_blank=True)
+
+    agreed_to_pay_fees = serializers.BooleanField(default=False)
+    donor_selected_amount = serializers.CharField(max_length=255)
+
+    # Reason for Giving
+    reason_for_giving = serializers.CharField(max_length=255, required=False, allow_blank=True)
+    reason_other = serializers.CharField(max_length=255, required=False, allow_blank=True)
+    tribute_type = serializers.CharField(max_length=255, required=False, allow_blank=True)
+    honoree = serializers.CharField(max_length=255, required=False, allow_blank=True)
+    in_memory_of = serializers.CharField(max_length=255, required=False, allow_blank=True)
+
+    # Swag
+    swag_opt_out = serializers.BooleanField(default=False)
+    comp_subscription = serializers.ChoiceField(choices=CompSubscriptions.choices, required=False, allow_blank=True)
+    t_shirt_size = serializers.CharField(max_length=500, required=False, allow_blank=True)
+
+    sf_campaign_id = serializers.CharField(max_length=255, required=False, allow_blank=True)
+    referer = serializers.URLField()
+    revenue_program_id = serializers.IntegerField()
+    revenue_program_slug = serializers.SlugField(max_length=RevenueProgram.SLUG_MAX_LENGTH)
+
+    PAYMENT = "PAYMENT"
+    CUSTOMER = "CUSTOMER"
+    ALL = "ALL"
+
+    PROCESSOR_MAPPING = {
+        "source": ALL,
+        "schema_version": ALL,
+        "contributor_id": ALL,
+        "first_name": CUSTOMER,
+        "last_name": CUSTOMER,
+        "mailing_postal_code": CUSTOMER,
+        "mailing_street": CUSTOMER,
+        "mailing_city": CUSTOMER,
+        "mailing_state": CUSTOMER,
+        "mailing_country": CUSTOMER,
+        "phone": CUSTOMER,
+        "agreed_to_pay_fees": PAYMENT,
+        "donor_selected_amount": PAYMENT,
+        "reason_for_giving": PAYMENT,
+        "honoree": PAYMENT,
+        "in_memory_of": PAYMENT,
+        "comp_subscription": PAYMENT,
+        "swag_opt_out": PAYMENT,
+        "t_shirt_size": PAYMENT,
+        "referer": PAYMENT,
+        "revenue_program_id": PAYMENT,
+        "revenue_program_slug": PAYMENT,
+        "sf_campaign_id": PAYMENT,
+    }
+
+    SWAG_CHOICE_KEY_PREFIX = "swag_choice"
+
+    def _get_option_name_from_swag_key(self, key):
+        return key.split(f"{self.SWAG_CHOICE_KEY_PREFIX}_")[1]
+
+    def _get_swag_choices(self, data):
+        return [
+            (self._get_option_name_from_swag_key(key), data[key])
+            for key in data
+            if self.SWAG_CHOICE_KEY_PREFIX in key.lower()
+        ]
+
+    def _parse_pi_data_for_swag_options(self, data):
+        swag_choices = self._get_swag_choices(data)
+        # For now, comp_subscription is a special field that only applies to NYT subscriptions.
+        # This is hopefully an edge case we can remove entirely when it gets handled in a different way.
+        if data.get("comp_subscription"):
+            data["comp_subscription"] = "nyt"
+        if swag_choices:
+            # For now, we only accept one and we force it in to "t_shirt_size"
+            data["t_shirt_size"] = f"{swag_choices[0][0]} -- {swag_choices[0][1]}"
+
+    def _parse_reason_other(self, data):
+        """
+        If "reason_other" has a value, it should be renamed "reason_for_giving"
+        """
+        if reason_other := data.get("reason_other"):
+            data["reason_for_giving"] = reason_other
+
+    def to_internal_value(self, data):
+        self._parse_reason_other(data)
+        self._parse_pi_data_for_swag_options(data)
+        return super().to_internal_value(data)
+
+    def _validate_reason_for_giving(self, data):
+        """
+        If 'reason_for_giving' is "Other", then 'reason_other' may not be blank.
+        """
+        if data.get("reason_for_giving") == "Other" and not data.get("reason_other"):
+            raise serializers.ValidationError({"reason_other": "This field may not be blank"})
+
+    def _validate_tribute(self, data):
+        """
+        If 'tribute_type' is "type_honoree", then 'honoree' field may not be blank.
+        If 'tribute_type' is "type_in_memory_of", then 'in_memory_of' field may not be blank.
+        """
+        if data.get("tribute_type") == "type_honoree" and not data.get("honoree"):
+            raise serializers.ValidationError({"honoree": "This field may not be blank"})
+
+        if data.get("tribute_type") == "type_in_memory_of" and not data.get("in_memory_of"):
+            raise serializers.ValidationError({"in_memory_of": "This field may not be blank"})
+
+    def validate(self, data):
+        self._validate_reason_for_giving(data)
+        self._validate_tribute(data)
+        return super().validate(data)
+
+    def bundle_metadata(self, processor_obj):
+        """
+        Validating the data first is important. Downstream applications have their own requirements and limits for these values, so skipping validation will break those integrations. Luckily, inheriting from serializers.Serializer gives us this check for free.
+        Here we use the PROCESSOR_MAPPING property of this serializer to get the appropriate metadata based on the reported processor_obj, plus "All"
+        """
+        return {
+            k: v
+            for k, v in self.data.items()
+            if self.PROCESSOR_MAPPING.get(k) == self.ALL or self.PROCESSOR_MAPPING.get(k) == processor_obj
+        }
+
+
 class AbstractPaymentSerializer(serializers.Serializer):
     # Payment details
     amount = serializers.IntegerField(
@@ -198,16 +339,8 @@ class AbstractPaymentSerializer(serializers.Serializer):
     mailing_country = serializers.CharField(max_length=80)
 
     # Params/Pass-through
-    sf_campaign_id = serializers.CharField(max_length=255, required=False, allow_blank=True)
+    # sf_campaign_id = serializers.CharField(max_length=255, required=False, allow_blank=True)
     captcha_token = serializers.CharField(max_length=2550, required=False, allow_blank=True)
-
-    # Tribute/Reason for Giving
-    reason_for_giving = serializers.CharField(max_length=255, required=False, allow_blank=True)
-    reason_other = serializers.CharField(max_length=255, required=False, allow_blank=True)
-
-    tribute_type = serializers.CharField(max_length=255, required=False, allow_blank=True)
-    honoree = serializers.CharField(max_length=255, required=False, allow_blank=True)
-    in_memory_of = serializers.CharField(max_length=255, required=False, allow_blank=True)
 
     # Request metadata
     ip = serializers.IPAddressField()
@@ -217,8 +350,7 @@ class AbstractPaymentSerializer(serializers.Serializer):
     # and associate it with the page it came from.
     revenue_program_slug = serializers.SlugField()
     donation_page_slug = serializers.SlugField(required=False, allow_blank=True)
-
-    # Page id is a nice shortcut
+    # Page id is a nice shortcut for getting the page, instead of page_slug + rp_slug
     page_id = serializers.IntegerField(required=False)
     phone = serializers.CharField(max_length=40, required=False, allow_blank=True)
 
@@ -233,6 +365,8 @@ class AbstractPaymentSerializer(serializers.Serializer):
         return int(float(amount) * 100)
 
     def to_internal_value(self, data):
+        # Incoming "amount" will be a money-like string, like "12.99".
+        # Stripe wants 1299
         amount = data.get("amount")
         if isinstance(amount, str):
             data["amount"] = self.convert_amount_to_cents(data["amount"])
@@ -259,29 +393,6 @@ class AbstractPaymentSerializer(serializers.Serializer):
         for required_field in required_fields:
             self.fields[required_field].required = True
             self.fields[required_field].allow_blank = False
-
-    def _validate_reason_for_giving(self, data):
-        """
-        If 'reason_for_giving' is "Other", then 'reason_other' may not be blank.
-        """
-        if data.get("reason_for_giving") == "Other" and not data.get("reason_other"):
-            raise serializers.ValidationError({"reason_other": "This field may not be blank"})
-
-    def _validate_tribute(self, data):
-        """
-        If 'tribute_type' is "type_honoree", then 'honoree' field may not be blank.
-        If 'tribute_type' is "type_in_memory_of", then 'in_memory_of' field may not be blank.
-        """
-        if data.get("tribute_type") == "type_honoree" and not data.get("honoree"):
-            raise serializers.ValidationError({"honoree": "This field may not be blank"})
-
-        if data.get("tribute_type") == "type_in_memory_of" and not data.get("in_memory_of"):
-            raise serializers.ValidationError({"in_memory_of": "This field may not be blank"})
-
-    def validate(self, data):
-        self._validate_reason_for_giving(data)
-        self._validate_tribute(data)
-        return data
 
 
 class StripeOneTimePaymentSerializer(AbstractPaymentSerializer):

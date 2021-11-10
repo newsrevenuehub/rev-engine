@@ -119,6 +119,7 @@ export function serializeData(formRef, state) {
     state.orgIsNonProfit
   ).toString();
   serializedData['donor_selected_amount'] = state.amount;
+  serializedData['agreed_to_pay_fees'] = state.payFee;
   serializedData['revenue_program_slug'] = state.revProgramSlug;
   serializedData['donation_page_slug'] = state.pageSlug;
   serializedData['organization_country'] = state.orgCountry;

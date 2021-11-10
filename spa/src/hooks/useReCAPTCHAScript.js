@@ -14,6 +14,7 @@ function useReCAPTCHAScript() {
   useEffect(() => {
     const script = document.createElement('script');
     script.src = GRECAPTCHA_SCRIPT_URL + `?render=${GRECAPTCHA_SITE_KEY}`;
+    script.nonce = window.csp_nonce;
     document.body.appendChild(script);
     return () => document.body.removeChild(script);
   }, []);

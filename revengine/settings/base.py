@@ -14,8 +14,6 @@ https://docs.djangoproject.com/en/3.0/ref/settings/
 import os
 from datetime import timedelta
 
-from celery.schedules import crontab
-
 
 PROJECT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 BASE_DIR = os.path.dirname(PROJECT_DIR)
@@ -72,6 +70,7 @@ MIDDLEWARE = [
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "apps.common.middleware.LogFourHundredsMiddleware",
+    "csp.middleware.CSPMiddleware",
 ]
 
 ROOT_URLCONF = "revengine.urls"
@@ -299,7 +298,7 @@ STRIPE_WEBHOOK_EVENTS = [
 SITE_URL = os.getenv("SITE_URL", "")
 
 # BadActor API
-BAD_ACTOR_API_URL = "https://bad-actor-test.fundjournalism.org/v1/bad_actor/"
+BAD_ACTOR_API_URL = os.getenv("BAD_ACTOR_API_URL", "https://bad-actor-test.fundjournalism.org/v1/bad_actor/")
 # NOTE: We've been given keys with some characters that might need escaping as environment variables, eg "$"
 BAD_ACTOR_API_KEY = os.getenv("BAD_ACTOR_API_KEY", "testing_123")
 
@@ -346,3 +345,65 @@ CURRENCIES = {"USD": "$", "CAD": "$"}
 
 # Application subdomains (that are NOT revenue program slugs)
 NON_DONATION_PAGE_SUBDOMAINS = os.getenv("NON_DONATION_PAGE_SUBDOMAINS", ["support", "www"])
+
+# Django-CSP configuration
+# For now, report only.
+
+# For now, we're drastically relaxing the CSP by allowing 'unsafe-eval' and 'unsafe-inline'. Adding those rules precludes the use of a nonce.
+# Restore this nonce setup when we successfully disallow 'unsafe-eval' and 'unsafe-inline'
+# CSP_INCLUDE_NONCE_IN = (
+#     "style-src",
+#     "script-src",
+# )
+CSP_REPORT_ONLY = os.getenv("CSP_REPORT_ONLY", True)
+CSP_REPORT_URI = f"https://o320544.ingest.sentry.io/api/6046263/security/?sentry_key=d576a6738e41453db36130d03e4e95be&sentry_environment={ENVIRONMENT}"
+CSP_DEFAULT_SRC = ("'self'",)
+CSP_SCRIPT_SRC = (
+    "'self'",
+    "'unsafe-inline'",  # this is gross. Fix me ASAP
+    "'unsafe-eval'",  # this is gross. Fix me ASAP
+    "https://js.stripe.com",
+    "https://risk.clearbit.com",
+    "https://www.google-analytics.com",
+    "https://maps.googleapis.com",
+    "https://www.google.com/recaptcha/",
+    "https://www.gstatic.com/recaptcha/",
+    "https://pay.google.com",
+    "https://connect.facebook.net",
+)
+CSP_STYLE_SRC = (
+    "'self'",
+    "'unsafe-inline'",
+    "https://fonts.googleapis.com",  # this is gross. Fix me ASAP
+    "https://maps.googleapis.com",
+)
+CSP_IMG_SRC = (
+    "*",
+    "'self'",
+    "data:",
+)
+CSP_FONT_SRC = (
+    "'self'",
+    "data:",
+    "https://fonts.gstatic.com",
+)
+CSP_FRAME_SRC = (
+    "https://js.stripe.com",
+    "https://hooks.stripe.com",
+    "https://www.google.com/recaptcha/",
+    "https://recaptcha.google.com/recaptcha/",
+    "https://pay.google.com",
+    "https://www.facebook.com",
+)
+CSP_CONNECT_SRC = (
+    "'self'",
+    "https://www.google-analytics.com",
+    "https://maps.googleapis.com",
+    "https://*.ingest.sentry.io",
+    "https://risk.clearbit.com",
+)
+CSP_OBJECT_SRC = ("'none'",)
+
+# Stripe API Target Version
+# Make sure this is also updated in genericConstants.js for the frontend
+STRIPE_API_VERSION = "2020-08-27"

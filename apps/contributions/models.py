@@ -5,7 +5,6 @@ from django.db import models
 import stripe
 
 from apps.common.models import IndexedTimeStampedModel
-from apps.contributions.utils import get_hub_stripe_api_key
 from apps.slack.models import SlackNotificationTypes
 from apps.slack.slack_manager import SlackManager
 
@@ -137,7 +136,6 @@ class Contribution(IndexedTimeStampedModel):
             raise ValueError("Cannot fetch PaymentMethod without provider_payment_method_id")
         return stripe.PaymentMethod.retrieve(
             self.provider_payment_method_id,
-            api_key=get_hub_stripe_api_key(),
             stripe_account=self.organization.stripe_account_id,
         )
 
@@ -166,127 +164,3 @@ class Contribution(IndexedTimeStampedModel):
             # ...get details on payment method
             self.provider_payment_method_details = self.fetch_stripe_payment_method()
         super().save(*args, **kwargs)
-
-
-def _get_contributor_id(payment_manager):
-    return payment_manager.get_or_create_contributor().pk
-
-
-def _get_rev_program_id(payment_manager):
-    return payment_manager.get_donation_page().pk
-
-
-def _get_rev_program_slug(payment_manager):
-    # revenue_program isn't necessarily availabe on payment_manager at time of
-    # instantiation
-    rev_program = payment_manager.revenue_program
-    if not rev_program:
-        rev_program = payment_manager.get_revenue_program()
-    return rev_program.slug
-
-
-class ContributionMetadata(IndexedTimeStampedModel):
-    """
-    ContributionMetadata provides a model that allows admins to add form fields to the AdditionalInfo editor for
-    inclusion in payment provider metadata.
-
-    Currently the only implemented type is Text input which renders a `text` input on the DonationPage.
-
-    key: (Required)
-        The expected key in the metadata object sent to the provider: EXAMPLE: first_name, address1
-
-    label: (Required)
-        The display value that is shown to identify the form field on the page
-
-    default_value: (Optional)
-        A value that will be added to the meta object, if it is not overridden by input from the form.
-
-    additional_help_text: (Optional)
-        This text will display below the form field to give more context about the intent of the field.
-
-    metadata_type: (Optional)
-        Identifies what type of element will appear in the form.
-
-    payment_processor: (Optional)
-        This is a placeholder for now, but if other payment processors are added in the future this would be
-        used to filter for specific metadata requirements of the processor. Fixed at "stripe" for now.
-
-    processor_object:  (Required)
-        This is meant to identify (if applicable) on which object the payment processor the metadata should be
-        included.
-             ALL: metadata that should be attached to every processor object.
-         PAYMENT: metadata that should be attached to PaymentIntents and Subscriptions.
-        CUSTOMER: metadata that should be attached to Customer.
-
-    description:  (Optional)
-        Text supplied as a guide for internal users so they understand how the object is meant to behave.
-
-    donor_supplied: (Required)
-        This identifies whether the metadata value will be supplied by the revengine system or by input from a
-        donor on the page.
-
-        If the value is False, this object will not be available for Org Admins to add to DonorPages
-        If the value is True, this object will need a method, either default value or lookup method, to
-        get the value from the system. If it is a system lookup add the key to the `lookup_map` dict with
-        a callable function that returns the system value.
-
-    """
-
-    lookup_map = {
-        "contributor_id": _get_contributor_id,
-        "revenue_program_id": _get_rev_program_id,
-        "revenue_program_slug": _get_rev_program_slug,
-    }
-
-    class MetadataType(models.TextChoices):
-        TEXT = "TXT", "Text Values"
-
-    class ProcessorObjects(models.TextChoices):
-        PAYMENT = "PYMT", "Payment"
-        CUSTOMER = "CUST", "Customer"
-        ALL = "ALL", "All"
-
-    key = models.CharField(max_length=255, unique=True)
-    label = models.CharField(max_length=255)
-    default_value = models.CharField(max_length=255, null=True, blank=True)
-    additional_help_text = models.TextField(
-        max_length=255,
-        help_text="Will be displayed on the donation page underneath the label.",
-        null=True,
-        blank=True,
-    )
-    metadata_type = models.CharField(max_length=3, choices=MetadataType.choices, default=MetadataType.TEXT)
-    payment_processor = models.CharField(max_length=32, default="stripe", null=True, blank=True)
-    processor_object = models.CharField(
-        max_length=4, choices=ProcessorObjects.choices, default=ProcessorObjects.PAYMENT
-    )
-    description = models.TextField(null=True, blank=True)
-    donor_supplied = models.BooleanField(
-        default=False,
-        help_text="If on, this field will be available for Org Admins to add to a donation page. If off, this field will not be visible on the front end.",
-    )
-
-    @staticmethod
-    def bundle_metadata(supplied: dict, processor_obj, payment_manager):
-        remove_from_final = ["", None]
-        processor_meta = ContributionMetadata.objects.filter(processor_object=processor_obj)
-        meta_for_all = ContributionMetadata.objects.filter(processor_object=ContributionMetadata.ProcessorObjects.ALL)
-        collected = {}
-        lookup_map = ContributionMetadata.lookup_map
-        for obj in processor_meta:
-            if obj.key in lookup_map.keys():
-                collected.update({obj.key: lookup_map[obj.key](payment_manager)})
-                continue
-            if obj.key in supplied.keys():
-                collected.update({obj.key: supplied[obj.key]})
-                continue
-        for obj in meta_for_all:
-            collected.update({obj.key: supplied.get(obj.key, obj.default_value)})
-        final = {k: v for k, v in collected.items() if v not in remove_from_final}
-        return final
-
-    class Meta:
-        verbose_name_plural = "Contribution Metadata"
-
-    def __str__(self):
-        return self.label

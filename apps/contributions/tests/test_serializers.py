@@ -313,3 +313,26 @@ class ContributionMetadataSerializerTest(TestCase):
         serializer = self.serializer(data=data)
         self.assertTrue(serializer.is_valid())
         self.assertEqual(serializer.data["t_shirt_size"], expected_value)
+
+    def test_validate_secondary_metadata_fails_when_called_out_of_order(self):
+        serializer = self.serializer(data=self.payment_data)
+        with self.assertRaises(AssertionError) as a_error:
+            serializer.validate_secondary_metadata(self.payment_data)
+        self.assertEqual(
+            str(a_error.exception), "Cannot call `.validate_secondary_metadata()` without first calling `.is_valid()`"
+        )
+
+    def test_validate_secondary_metadata_fails_when_no_contributor_id(self):
+        del self.payment_data["contributor_id"]
+        serializer = self.serializer(data=self.payment_data)
+        self.assertTrue(serializer.is_valid())
+
+        self.assertNotIn("contributor_id", self.payment_data)
+        self.assertRaises(ValidationError, serializer.validate_secondary_metadata, self.payment_data)
+
+    def test_validate_secondary_metadata_succeeds_when_contributor_id_present(self):
+        serializer = self.serializer(data=self.payment_data)
+        self.assertTrue(serializer.is_valid())
+
+        self.assertIn("contributor_id", self.payment_data)
+        self.assertTrue(serializer.validate_secondary_metadata(self.payment_data))

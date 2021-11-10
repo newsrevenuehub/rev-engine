@@ -25,7 +25,7 @@ import { loadStripe } from '@stripe/stripe-js';
 import { CardElement, Elements, useStripe, useElements } from '@stripe/react-stripe-js';
 import { createPaymentMethod } from 'components/paymentProviders/stripe/stripeFns';
 
-import { HUB_STRIPE_PUBLISHABLE_KEY } from 'App';
+import { HUB_STRIPE_PUBLISHABLE_KEY } from 'settings';
 
 // Children
 import Modal from 'elements/modal/Modal';

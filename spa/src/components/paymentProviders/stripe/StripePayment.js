@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import * as S from './StripePayment.styled';
 
-import { HUB_STRIPE_PUBLISHABLE_KEY } from 'App';
+import { HUB_STRIPE_PUBLISHABLE_KEY } from 'settings';
 
 // Deps
 import { loadStripe } from '@stripe/stripe-js';

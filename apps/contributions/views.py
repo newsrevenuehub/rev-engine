@@ -13,18 +13,12 @@ from rest_framework.response import Response
 from apps.api.permissions import ContributorOwnsContribution, IsContributor, UserBelongsToOrg
 from apps.contributions import serializers
 from apps.contributions.filters import ContributionFilter
-from apps.contributions.models import (
-    Contribution,
-    ContributionInterval,
-    ContributionMetadata,
-    Contributor,
-)
+from apps.contributions.models import Contribution, ContributionInterval, Contributor
 from apps.contributions.payment_managers import (
     PaymentBadParamsError,
     PaymentProviderError,
     StripePaymentManager,
 )
-from apps.contributions.utils import get_hub_stripe_api_key, parse_pi_data_for_swag_options
 from apps.contributions.webhooks import StripeWebhookProcessor
 from apps.emails.models import EmailTemplateError, PageEmailTemplate
 
@@ -43,8 +37,6 @@ def stripe_payment(request):
     # Grab required data from headers
     pi_data["referer"] = request.META.get("HTTP_REFERER")
     pi_data["ip"] = request.META["REMOTE_ADDR"]
-
-    parse_pi_data_for_swag_options(pi_data)
 
     # StripePaymentManager will grab the right serializer based on "interval"
     stripe_payment = StripePaymentManager(data=pi_data)
@@ -90,7 +82,6 @@ def stripe_onboarding(request):
     try:
         account = stripe.Account.create(
             type="standard",
-            api_key=get_hub_stripe_api_key(),
         )
 
         organization.stripe_account_id = account.id
@@ -101,7 +92,6 @@ def stripe_onboarding(request):
             refresh_url=f"{settings.SITE_URL}?cb=stripe_reauth",
             return_url=f"{settings.SITE_URL}?cb=stripe_return",
             type="account_onboarding",
-            api_key=get_hub_stripe_api_key(),
         )
     except stripe.error.StripeError:
         return Response(
@@ -126,7 +116,7 @@ def stripe_confirmation(request):
             return Response({"status": "connected"}, status=status.HTTP_200_OK)
 
         # A "Confirmed" stripe account has "charges_enabled": true on return from stripe.Account.retrieve
-        stripe_account = stripe.Account.retrieve(organization.stripe_account_id, api_key=get_hub_stripe_api_key())
+        stripe_account = stripe.Account.retrieve(organization.stripe_account_id)
 
     except stripe.error.StripeError:
         logger.error("stripe.Account.retrieve failed with a StripeError")
@@ -144,12 +134,8 @@ def stripe_confirmation(request):
     try:
         # Now that we're verified, create and associate default product
         organization.stripe_create_default_product()
-        # And register domain with ApplePay
-        organization.stripe_create_apple_pay_domain()
     except stripe.error.StripeError as stripe_error:
-        logger.error(
-            f"stripe_create_default_product or stripe_create_apple_pay_domain failed with a StripeError: {stripe_error}"
-        )
+        logger.error(f"stripe_create_default_product failed with a StripeError: {stripe_error}")
         return Response(
             {"status": "failed"},
             status=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -281,12 +267,3 @@ def cancel_recurring_payment(request, pk):
         return Response({"detail": error_message}, status=status.HTTP_400_BAD_REQUEST)
 
     return Response({"detail": "Success"}, status=status.HTTP_200_OK)
-
-
-class ContributionMetadataListView(viewsets.ReadOnlyModelViewSet):
-    serializer_class = serializers.ContributionMetadataSerializer
-    model = ContributionMetadata
-    pagination_class = None
-
-    def get_queryset(self):
-        return self.model.objects.all()

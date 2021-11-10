@@ -11,12 +11,7 @@ from stripe import error as stripe_errors
 from stripe.stripe_object import StripeObject
 
 from apps.contributions.bad_actor import BadActorAPIError, make_bad_actor_request
-from apps.contributions.models import (
-    Contribution,
-    ContributionInterval,
-    ContributionMetadata,
-    ContributionStatus,
-)
+from apps.contributions.models import Contribution, ContributionInterval, ContributionStatus
 from apps.contributions.payment_managers import (
     PaymentBadParamsError,
     PaymentProviderError,
@@ -74,6 +69,7 @@ class StripePaymentManagerAbstractTestCase(APITestCase):
             "mailing_state": "FK",
             "mailing_country": "Fakeland",
             "amount": self.amount,
+            "donor_selected_amount": self.amount,
             "reason": "Testing",
             "revenue_program_slug": self.revenue_program.slug,
             "statement_descriptor_suffix": None,
@@ -202,12 +198,11 @@ class StripeOneTimePaymentManagerTest(StripePaymentManagerAbstractTestCase):
             currency="usd",
             customer=MockStripeCustomer.id,
             payment_method_types=["card"],
-            api_key=fake_api_key,
             stripe_account=self.organization.stripe_account_id,
             capture_method="manual",
             receipt_email=data["email"],
             statement_descriptor_suffix=self.revenue_program.stripe_statement_descriptor_suffix,
-            metadata=pm.bundle_metadata(pm.data, ContributionMetadata.ProcessorObjects.PAYMENT),
+            metadata=pm.bundle_metadata("PAYMENT"),
         )
         # New contribution is created...
         new_contribution = Contribution.objects.filter(amount=1099).first()
@@ -239,12 +234,11 @@ class StripeOneTimePaymentManagerTest(StripePaymentManagerAbstractTestCase):
             currency="usd",
             customer=MockStripeCustomer.id,
             payment_method_types=["card"],
-            api_key=fake_api_key,
             stripe_account=self.organization.stripe_account_id,
             capture_method="automatic",
             receipt_email=data["email"],
             statement_descriptor_suffix=self.revenue_program.stripe_statement_descriptor_suffix,
-            metadata=pm.bundle_metadata(pm.data, ContributionMetadata.ProcessorObjects.PAYMENT),
+            metadata=pm.bundle_metadata("PAYMENT"),
         )
         # New contribution is created...
         new_contribution = Contribution.objects.filter(amount=1099).first()
@@ -261,7 +255,6 @@ class StripeOneTimePaymentManagerTest(StripePaymentManagerAbstractTestCase):
         mock_pi_cancel.assert_called_once_with(
             None,
             stripe_account=self.organization.stripe_account_id,
-            api_key=fake_api_key,
             cancellation_reason="fraudulent",
         )
 
@@ -274,7 +267,6 @@ class StripeOneTimePaymentManagerTest(StripePaymentManagerAbstractTestCase):
         mock_pi_capture.assert_called_once_with(
             None,
             stripe_account=self.organization.stripe_account_id,
-            api_key=fake_api_key,
         )
 
     @patch("stripe.PaymentIntent.capture", side_effect=MockInvalidRequestError)
@@ -386,9 +378,8 @@ class StripeRecurringPaymentManagerTest(StripePaymentManagerAbstractTestCase):
         pm.create_subscription()
         mock_customer_create.assert_called_once_with(
             email=self.contributor.email,
-            api_key=fake_api_key,
             stripe_account=self.organization.stripe_account_id,
-            metadata=pm.bundle_metadata(pm.data, ContributionMetadata.ProcessorObjects.CUSTOMER),
+            metadata=pm.bundle_metadata("CUSTOMER"),
         )
 
     @patch("stripe.Customer.create", side_effect=MockStripeCustomer)
@@ -401,7 +392,6 @@ class StripeRecurringPaymentManagerTest(StripePaymentManagerAbstractTestCase):
             self.payment_method_id,
             customer=test_stripe_customer_id,
             stripe_account=self.organization.stripe_account_id,
-            api_key=fake_api_key,
         )
 
     @patch("stripe.Customer.create", side_effect=MockStripeCustomer)
@@ -424,8 +414,7 @@ class StripeRecurringPaymentManagerTest(StripePaymentManagerAbstractTestCase):
                 }
             ],
             stripe_account=self.organization.stripe_account_id,
-            api_key=fake_api_key,
-            metadata={},
+            metadata=pm.bundle_metadata("PAYMENT"),
         )
 
     @patch("stripe.Customer.create", side_effect=MockStripeCustomer)
@@ -465,8 +454,7 @@ class StripeRecurringPaymentManagerTest(StripePaymentManagerAbstractTestCase):
                 }
             ],
             stripe_account=self.organization.stripe_account_id,
-            api_key=fake_api_key,
-            metadata={},
+            metadata=None,
         )
         self.assertEqual(self.contribution.status, ContributionStatus.PROCESSING)
 
@@ -519,3 +507,6 @@ class StripeRecurringPaymentManagerTest(StripePaymentManagerAbstractTestCase):
         pm = self._instantiate_payment_manager_with_instance()
         revenue_program = pm.get_revenue_program()
         self.assertIsNotNone(revenue_program)
+
+    # def test_create_one_time_payment_adds_metadata_to_contribution(self):
+    # def test_create_subscription_adds_metadata_to_contribution

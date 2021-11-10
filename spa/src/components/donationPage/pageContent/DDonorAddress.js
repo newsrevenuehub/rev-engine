@@ -89,7 +89,7 @@ function DDonorAddress() {
             required
           />
         </Grid>
-        <Grid item xs={12} sm={4}>
+        <Grid item xs={12} md={4}>
           <Input
             type="text"
             name="mailing_country"

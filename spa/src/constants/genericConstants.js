@@ -5,3 +5,6 @@ export const HUB_GOOGLE_MAPS_API_KEY = 'AIzaSyDYgR8mULDoecl92BQ734H7YTLFzgjvtJ0'
 
 // These subdomain labels will redirect to the org portal.
 export const ORG_PORTAL_SUBDOMAINS = ['', 'support'];
+
+// Stripe API Version (This should equal the stripe api version declared in base.py)
+export const STRIPE_API_VERSION = '2020-08-27';

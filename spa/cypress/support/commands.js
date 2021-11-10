@@ -59,9 +59,12 @@ Cypress.Commands.add('makeDonation', () => {
       // these inputs asynchronously render on the iframed Stripe element,
       // and we need to ensure that all three exist in the iframe before
       // moving on to enter values in inputs and submit the form.
-      expect(iframe.contents().find('[name="cardnumber"]')).to.exist;
-      expect(iframe.contents().find('[name="exp-date"]')).to.exist;
-      expect(iframe.contents().find('[name="cvc"]')).to.exist;
+      cy.get('[name="cardnumber"]').should('exist');
+      cy.get('[name="exp-date"]').should('exist');
+      cy.get('[name="cvc"]').should('exist');
+      // expect(iframe.contents().find('[name="cardnumber"]')).to.exist;
+      // expect(iframe.contents().find('[name="exp-date"]')).to.exist;
+      // expect(iframe.contents().find('[name="cvc"]')).to.exist;
     })
     .then((iframe) => cy.wrap(iframe.contents().find('body')))
     .within({}, ($iframe) => {

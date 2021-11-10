@@ -571,7 +571,7 @@ describe.skip('Resulting request', () => {
 // This test is put in a separate describe because it needs a distinct intercept
 // for STRIPE_PAYMENT endpoint, vs. the test in the previous describe and cypress
 // does not provide a way to override on per-test basis.
-describe('Resulting request: special case -- error on submission', () => {
+describe.skip('Resulting request: special case -- error on submission', () => {
   it('should focus the first input on the page with an error', () => {
     cy.intercept(
       { method: 'GET', pathname: `${getEndpoint(LIVE_PAGE_DETAIL)}**` },

@@ -270,30 +270,33 @@ class ContributionMetadataSerializerTest(TestCase):
         self.payment_data["reason_for_giving"] = "Other"
         self.payment_data["reason_other"] = "Testing"
         serializer = self.serializer(data=self.payment_data)
-        is_valid = serializer._validate_reason_for_giving(self.payment_data)
-        self.assertIsNone(is_valid)
+        self.assertTrue(serializer.is_valid())
 
         # If it's empty, raise validation error
+        self.payment_data["reason_for_giving"] = "Other"
         self.payment_data["reason_other"] = ""
-        self.assertRaises(ValidationError, serializer._validate_reason_for_giving, self.payment_data)
+        bad_serializer = self.serializer(data=self.payment_data)
+        self.assertFalse(bad_serializer.is_valid())
 
     def test_validate_tribute_honoree(self):
-        serializer = self.serializer(data=self.payment_data)
         self.payment_data["tribute_type"] = "type_honoree"
         self.payment_data["honoree"] = ""
-        self.assertRaises(ValidationError, serializer._validate_tribute, self.payment_data)
+        serializer = self.serializer(data=self.payment_data)
+        self.assertFalse(serializer.is_valid())
 
         self.payment_data["honoree"] = "Testing"
-        self.assertIsNone(serializer._validate_tribute(self.payment_data))
+        good_serializer = self.serializer(data=self.payment_data)
+        self.assertTrue(good_serializer.is_valid())
 
     def test_validate_tribute_in_memory_of(self):
-        serializer = self.serializer(data=self.payment_data)
         self.payment_data["tribute_type"] = "type_in_memory_of"
         self.payment_data["in_memory_of"] = ""
-        self.assertRaises(ValidationError, serializer._validate_tribute, self.payment_data)
+        serializer = self.serializer(data=self.payment_data)
+        self.assertFalse(serializer.is_valid())
 
         self.payment_data["in_memory_of"] = "Testing"
-        self.assertIsNone(serializer._validate_tribute(self.payment_data))
+        good_serializer = self.serializer(data=self.payment_data)
+        self.assertTrue(good_serializer.is_valid())
 
     def test_swag_data(self):
         data = self.payment_data

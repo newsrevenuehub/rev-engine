@@ -3,6 +3,7 @@ from django.db.models import TextChoices
 
 from rest_framework import serializers
 
+from apps.api.error_messages import GENERIC_BLANK
 from apps.contributions.models import (
     Contribution,
     ContributionInterval,
@@ -170,13 +171,13 @@ class ContributionMetadataSerializer(serializers.Serializer):
     The metadata is then added to the metadata field for the appropriate Stripe object. ProcessorObjects
     defines options for Stripe Objects.
 
-    The validtion on these fields is important and represents downstream requirements.
+    The validation on these fields is important and represents downstream requirements.
     """
 
-    source = serializers.CharField(max_length=100, default="rev-engine")
-    schema_version = serializers.CharField(max_length=12, default="1.0")
+    source = serializers.CharField(max_length=100, default=settings.METADATA_SOURCE)
+    schema_version = serializers.CharField(max_length=12, default=settings.METADATA_SCHEMA_VERSION)
 
-    contributor_id = serializers.IntegerField()
+    contributor_id = serializers.IntegerField(required=False)
     first_name = serializers.CharField(max_length=40)
     last_name = serializers.CharField(max_length=80)
 
@@ -276,7 +277,7 @@ class ContributionMetadataSerializer(serializers.Serializer):
         If 'reason_for_giving' is "Other", then 'reason_other' may not be blank.
         """
         if data.get("reason_for_giving") == "Other" and not data.get("reason_other"):
-            raise serializers.ValidationError({"reason_other": "This field may not be blank"})
+            self._errors.update({"reason_other": GENERIC_BLANK})
 
     def _validate_tribute(self, data):
         """
@@ -284,15 +285,35 @@ class ContributionMetadataSerializer(serializers.Serializer):
         If 'tribute_type' is "type_in_memory_of", then 'in_memory_of' field may not be blank.
         """
         if data.get("tribute_type") == "type_honoree" and not data.get("honoree"):
-            raise serializers.ValidationError({"honoree": "This field may not be blank"})
+            self._errors.update({"honoree": GENERIC_BLANK})
 
         if data.get("tribute_type") == "type_in_memory_of" and not data.get("in_memory_of"):
-            raise serializers.ValidationError({"in_memory_of": "This field may not be blank"})
+            self._errors.update({"in_memory_of": GENERIC_BLANK})
 
-    def validate(self, data):
-        self._validate_reason_for_giving(data)
-        self._validate_tribute(data)
-        return super().validate(data)
+    def is_valid(self, raise_exception=False, **kwargs):
+        is_valid = super().is_valid(raise_exception, **kwargs)
+        self._validate_reason_for_giving(self.initial_data)
+        self._validate_tribute(self.initial_data)
+
+        if self._errors and raise_exception:
+            raise serializers.ValidationError(self.errors)
+
+        return not bool(self._errors) and is_valid
+
+    def validate_secondary_metadata(self, secondary_metadata):
+        # ? TEST: Secondary metadata validation fails if missing contributor_id
+        """
+        Validaiton for values not present at the time of original validation. Generally, these values must be derived from
+        values created after that initial validation. contributor_id is the only example of this so far.
+        """
+        # "Reset" data to validate
+        self.initial_data = secondary_metadata
+        # "Reset" validation
+        delattr(self, "_validated_data")
+        # Set secondary validation rules
+        self.fields["contributor_id"].required = True
+        # Re-run validation
+        return self.is_valid(raise_exception=True)
 
     def bundle_metadata(self, processor_obj):
         """
@@ -327,19 +348,9 @@ class AbstractPaymentSerializer(serializers.Serializer):
     currency = serializers.CharField(max_length=3, required=True)
 
     # DonorInfo
-    first_name = serializers.CharField(max_length=40)
-    last_name = serializers.CharField(max_length=80)
     email = serializers.EmailField(max_length=80)
 
-    # DonorAddress
-    mailing_postal_code = serializers.CharField(max_length=20)
-    mailing_street = serializers.CharField(max_length=255)
-    mailing_city = serializers.CharField(max_length=40)
-    mailing_state = serializers.CharField(max_length=80)
-    mailing_country = serializers.CharField(max_length=80)
-
     # Params/Pass-through
-    # sf_campaign_id = serializers.CharField(max_length=255, required=False, allow_blank=True)
     captcha_token = serializers.CharField(max_length=2550, required=False, allow_blank=True)
 
     # Request metadata
@@ -350,6 +361,7 @@ class AbstractPaymentSerializer(serializers.Serializer):
     # and associate it with the page it came from.
     revenue_program_slug = serializers.SlugField()
     donation_page_slug = serializers.SlugField(required=False, allow_blank=True)
+
     # Page id is a nice shortcut for getting the page, instead of page_slug + rp_slug
     page_id = serializers.IntegerField(required=False)
     phone = serializers.CharField(max_length=40, required=False, allow_blank=True)

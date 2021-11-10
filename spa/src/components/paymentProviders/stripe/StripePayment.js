@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import * as S from './StripePayment.styled';
 
-import { HUB_STRIPE_PUBLISHABLE_KEY } from 'settings';
+import { HUB_STRIPE_API_PUB_KEY } from 'settings';
 
 // Deps
 import { loadStripe } from '@stripe/stripe-js';
@@ -16,7 +16,7 @@ function StripePayment({ offerPayFees, stripeAccountId }) {
   const [stripe, setStripe] = useState();
 
   useEffect(() => {
-    if (stripeAccountId) setStripe(loadStripe(HUB_STRIPE_PUBLISHABLE_KEY, { stripeAccount: stripeAccountId }));
+    if (stripeAccountId) setStripe(loadStripe(HUB_STRIPE_API_PUB_KEY, { stripeAccount: stripeAccountId }));
   }, [stripeAccountId]);
 
   return (

@@ -303,9 +303,12 @@ class ContributionMetadataSerializer(serializers.Serializer):
     def validate_secondary_metadata(self, secondary_metadata):
         # ? TEST: Secondary metadata validation fails if missing contributor_id
         """
-        Validaiton for values not present at the time of original validation. Generally, these values must be derived from
+        Validation for values not present at the time of original validation. Generally, these values must be derived from
         values created after that initial validation. contributor_id is the only example of this so far.
         """
+        assert hasattr(
+            self, "_validated_data"
+        ), "Cannot call `.validate_secondary_metadata()` without first calling `.is_valid()`"
         # "Reset" data to validate
         self.initial_data = secondary_metadata
         # "Reset" validation

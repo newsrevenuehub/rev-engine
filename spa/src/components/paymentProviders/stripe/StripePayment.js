@@ -19,7 +19,8 @@ function StripePayment({ offerPayFees, stripeAccountId }) {
   const [stripe, setStripe] = useState();
 
   useEffect(() => {
-    if (stripeAccountId) setStripe(loadStripe(HUB_STRIPE_API_PUB_KEY, { stripeAccount: stripeAccountId, apiVersion: STRIPE_API_VERSION }));
+    if (stripeAccountId)
+      setStripe(loadStripe(HUB_STRIPE_API_PUB_KEY, { stripeAccount: stripeAccountId, apiVersion: STRIPE_API_VERSION }));
   }, [stripeAccountId]);
 
   return (

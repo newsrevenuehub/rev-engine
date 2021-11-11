@@ -407,3 +407,8 @@ CSP_OBJECT_SRC = ("'none'",)
 # Stripe API Target Version
 # Make sure this is also updated in genericConstants.js for the frontend
 STRIPE_API_VERSION = "2020-08-27"
+
+
+# Meta data static values
+METADATA_SOURCE = os.getenv("METADATA_SOURCE", "rev-engine")
+METADATA_SCHEMA_VERSION = os.getenv("METADATA_SCHEMA_VERSION", "1.0")

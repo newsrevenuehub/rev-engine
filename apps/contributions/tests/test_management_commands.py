@@ -14,6 +14,7 @@ test_site_url = "https://testing.gov"
 
 test_key = "test_key"
 live_key = "live_key"
+test_stripe_api_version = "01-01-2022"
 
 
 def mock_create_stripe_endpoint(*args, **kwargs):
@@ -24,6 +25,7 @@ def mock_create_stripe_endpoint(*args, **kwargs):
 @override_settings(SITE_URL=test_site_url)
 @override_settings(STRIPE_LIVE_SECRET_KEY=live_key)
 @override_settings(STRIPE_TEST_SECRET_KEY=test_key)
+@override_settings(STRIPE_API_VERSION=test_stripe_api_version)
 @patch("stripe.WebhookEndpoint.create", side_effect=mock_create_stripe_endpoint)
 class CreateStripeWebhooksTest(TestCase):
     def setUp(self):
@@ -41,6 +43,7 @@ class CreateStripeWebhooksTest(TestCase):
             enabled_events=test_events,
             connect=True,
             api_key=live_key,
+            api_version=test_stripe_api_version,
         )
 
     def test_proper_args_without_live_flag(self, mock_endpoint_create):
@@ -50,11 +53,12 @@ class CreateStripeWebhooksTest(TestCase):
             enabled_events=test_events,
             connect=True,
             api_key=test_key,
+            api_version=test_stripe_api_version,
         )
 
     def test_proper_args_with_custom_url(self, mock_endpoint_create):
         url = "http://google.com"
         self.run_command(url=url)
         stripe.WebhookEndpoint.create.assert_called_with(
-            url=url, enabled_events=test_events, connect=True, api_key=test_key
+            url=url, enabled_events=test_events, connect=True, api_key=test_key, api_version=test_stripe_api_version
         )

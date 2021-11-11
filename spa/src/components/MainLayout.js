@@ -16,7 +16,7 @@ import ReauthModal from 'components/authentication/ReauthModal';
 import DonationPageRouter from 'components/DonationPageRouter';
 import DashboardRouter from 'components/DashboardRouter';
 
-const GlobalContext = createContext(null);
+export const GlobalContext = createContext(null);
 
 function MainLayout() {
   // Global Context management

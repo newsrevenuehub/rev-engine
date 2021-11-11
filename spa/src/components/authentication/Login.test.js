@@ -1,10 +1,12 @@
 import { render, screen, user, waitFor } from 'test-utils';
 import { server, rest, revengineApi } from 'test-server';
-import Login from './Login';
 
 // Constants
 import { PASSWORD_RESET_URL } from 'constants/authConstants';
 import { TOKEN } from 'ajax/endpoints';
+
+// Test Subject
+import Login from './Login';
 
 it('should render "message" prop', () => {
   const testMessage = 'My Test Message';

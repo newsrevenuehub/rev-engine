@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useEffect } from 'react';
 import * as S from './Styles.styled';
 import { ButtonSection, PlusButton } from 'components/content/pages/Pages.styled';
 import { faPlus } from '@fortawesome/free-solid-svg-icons';

@@ -20,9 +20,10 @@ export const AccordionHeading = styled(motion.div)`
   align-items: center;
 `;
 
-export const RevProgramName = styled.p`
+export const RevProgramName = styled.h3`
   margin: 0;
   padding: 0;
+  font-weight: normal;
   font-size: ${(props) => props.theme.fontSizes[2]};
 `;
 

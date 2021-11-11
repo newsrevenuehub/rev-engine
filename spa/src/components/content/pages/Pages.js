@@ -70,24 +70,26 @@ function Pages({ setShowAddPageModal }) {
   };
 
   return (
-    <S.Pages data-testid="pages-list" layout>
+    <S.Pages layout>
       <S.RevProgramList layout>
         {pagesByRevenueProgram.map((rp, i) => {
           const isOpen = !closedAccordions.includes(i);
           return (
-            <S.RevenueProgramSection key={rp.name + i} layout data-testid={`rev-list-${rp.name}`}>
+            <S.RevenueProgramSection key={rp.name + i} layout>
               <S.AccordionHeading
                 layout
                 isOpen={isOpen}
                 onClick={() => handleAccordionClick(i)}
-                data-testid={`rev-list-heading-${rp.name}`}
+                role="button"
+                aria-expanded={isOpen}
+                aria-controls={`${rp.name}-content`}
               >
                 <S.RevProgramName>{rp.name}</S.RevProgramName>
                 <S.Chevron icon={faChevronDown} isOpen={isOpen} />
               </S.AccordionHeading>
               <AnimatePresence>
                 {isOpen && (
-                  <S.PagesList layout {...S.accordionAnimation} data-testid={`${rp.name}-pages-list`}>
+                  <S.PagesList layout {...S.accordionAnimation} id={`${rp.name}-content`}>
                     {rp.pages.map((page) => (
                       <PageCard key={page.id} page={page} onClick={handleEditPage} />
                     ))}

@@ -25,7 +25,7 @@ import { loadStripe } from '@stripe/stripe-js';
 import { CardElement, Elements, useStripe, useElements } from '@stripe/react-stripe-js';
 import { createPaymentMethod } from 'components/paymentProviders/stripe/stripeFns';
 
-import { HUB_STRIPE_API_PUB_KEY } from 'settings';
+import { HUB_STRIPE_PUBLISHABLE_KEY } from 'App';
 
 // Children
 import Modal from 'elements/modal/Modal';
@@ -34,7 +34,7 @@ import Button from 'elements/buttons/Button';
 import GlobalLoading from 'elements/GlobalLoading';
 
 function EditRecurringPaymentModal({ isOpen, closeModal, contribution, onComplete }) {
-  const stripe = useRef(loadStripe(HUB_STRIPE_API_PUB_KEY, { stripeAccount: contribution.org_stripe_id }));
+  const stripe = useRef(loadStripe(HUB_STRIPE_PUBLISHABLE_KEY, { stripeAccount: contribution.org_stripe_id }));
   const [showCompletedMessage, setShowCompletedMessage] = useState(false);
 
   const handleNewPaymentMethod = async (paymentMethod, onCompleteCallback) => {

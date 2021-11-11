@@ -32,11 +32,10 @@ function DFrequency({ element, ...props }) {
         <GroupedLabel>Choose a contribution type</GroupedLabel>
         <GroupedWrapper>
           {element?.content?.sort(frequencySort).map((freq) => (
-            <S.CheckBoxField>
+            <S.CheckBoxField key={freq.value}>
               <S.Radio
                 id={freq.value}
                 name="interval"
-                key={freq.value}
                 value={freq.value}
                 checked={frequency === freq.value}
                 onChange={handleFrequencySelected}

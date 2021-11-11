@@ -58,5 +58,5 @@ it('should fire "onSuccess" callback if auth is successfull', async () => {
   user.type(emailInput, 'test@test.com');
   user.type(passwordInput, 'testpasword');
   user.click(signInButton);
-  await waitFor(() => expect(onSuccessSpy).toBeCalledTimes(1), { interval: 100 });
+  await waitFor(() => expect(onSuccessSpy).toBeCalledTimes(5), { interval: 100 });
 });

@@ -6,9 +6,7 @@ export const DBenefits = styled.aside``;
 
 export const BenefitsContent = styled.div``;
 
-export const BenefitLevelDetails = styled.h2`
-  font-size: ${(props) => props.theme.fontSizes[2]};
-  font-weight: normal;
+export const BenefitLevelDetails = styled.div`
   margin-bottom: 1rem;
 `;
 

@@ -68,13 +68,15 @@
     "start:subdomains": "DANGEROUSLY_DISABLE_HOST_CHECK=true react-scripts start",
     "build": "INLINE_RUNTIME_CHUNK=false react-scripts build",
     "test": "react-scripts test",
+    "test:coverage": "CI=true npm test -- --env=jsdom --coverage",
     "eject": "react-scripts eject",
     "heroku-postbuild": "react-scripts build"
   },
   "jest": {
-    "coveragePathIgnorePatterns": [
-      "/nodes_modules/",
-      "/(__)w+/g"
+    "collectCoverageFrom": [
+      "**/*.{js,jsx}",
+      "!**/node_modules/**",
+      "!**/*.styled.js"
     ]
   },
   "eslintConfig": {

@@ -17,6 +17,7 @@ function Select({
   placeholder,
   testId,
   name,
+  maxWidth = '100%',
   ...props
 }) {
   const { isOpen, getToggleButtonProps, getLabelProps, getMenuProps, highlightedIndex, getItemProps } = useSelect({
@@ -27,7 +28,7 @@ function Select({
 
   return (
     <BaseField labelProps={{ ...getLabelProps() }} {...props}>
-      <S.SelectWrapper>
+      <S.SelectWrapper maxWidth={maxWidth}>
         <S.Select
           {...getToggleButtonProps({ placeholder })}
           name={name}

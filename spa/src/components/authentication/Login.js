@@ -36,11 +36,6 @@ function Login({ onSuccess, message }) {
     else history.push(CONTENT_SLUG);
   };
 
-  const handleForgotPassword = (e) => {
-    e.preventDefault();
-    window.location = PASSWORD_RESET_URL;
-  };
-
   const handleLogin = async (e) => {
     e.preventDefault();
     dispatch({ type: FETCH_START });
@@ -68,6 +63,7 @@ function Login({ onSuccess, message }) {
               errors={errors?.email}
               disabled={loading}
               label="email"
+              name="email"
               type={Input.types.EMAIL}
               testid="login-email"
             />
@@ -80,6 +76,7 @@ function Login({ onSuccess, message }) {
               errors={errors?.password}
               disabled={loading}
               label="password"
+              name="password"
               type={Input.types.PASSWORD}
               testid="login-password"
             />
@@ -88,12 +85,10 @@ function Login({ onSuccess, message }) {
           <FormErrors errors={errors?.detail} />
 
           <S.LoginButtons>
-            <S.LoginButton onClick={handleLogin} disabled={loading} type="submit" data-testid="login-button">
+            <S.LoginButton onClick={handleLogin} disabled={loading} type="submit">
               Sign in
             </S.LoginButton>
-            <S.ForgotPasswordLink onClick={handleForgotPassword} data-testid="forgot-password">
-              Forgot password
-            </S.ForgotPasswordLink>
+            <S.ForgotPasswordLink href={PASSWORD_RESET_URL}>Forgot password</S.ForgotPasswordLink>
           </S.LoginButtons>
         </S.LoginForm>
       </S.LoginCard>

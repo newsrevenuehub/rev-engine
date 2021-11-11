@@ -7,6 +7,7 @@ const Input = forwardRef(({ value, onChange, type, placeholder, name, maxLength,
   <BaseField {...props}>
     <S.Input
       ref={ref}
+      id={props.label}
       value={value}
       onChange={onChange}
       name={name}

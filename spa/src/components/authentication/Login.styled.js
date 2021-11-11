@@ -43,9 +43,6 @@ export const LoginButton = styled.button`
   margin-bottom: 1rem;
 `;
 
-export const ForgotPasswordLink = styled.button`
-  background: none;
-  border: none;
-  cursor: pointer;
+export const ForgotPasswordLink = styled.a`
   text-decoration: underline;
 `;

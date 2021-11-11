@@ -404,6 +404,11 @@ CSP_CONNECT_SRC = (
 )
 CSP_OBJECT_SRC = ("'none'",)
 
+# More security headers
+SECURE_CONTENT_TYPE_NOSNIFF = True
+X_FRAME_OPTIONS = "SAMEORIGIN"
+SECURE_REFERRER_POLICY = "strict-origin-when-cross-origin"
+
 # Stripe API Target Version
 # Make sure this is also updated in genericConstants.js for the frontend
 STRIPE_API_VERSION = "2020-08-27"

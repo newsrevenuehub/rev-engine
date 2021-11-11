@@ -16,5 +16,5 @@ jobs:
       - name: Install node dependencies, build and test
         run: |
           cd spa
-          npm run ci
+          npm ci
           npm run test:covereage

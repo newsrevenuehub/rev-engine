@@ -5,6 +5,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 
 export const SelectWrapper = styled.div`
   position: relative;
+  max-width: ${(props) => props.maxWidth};
 `;
 
 export const Select = styled.input`

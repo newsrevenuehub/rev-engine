@@ -1,4 +1,4 @@
-import { render, screen, user, act, waitFor } from 'test-utils';
+import { render, screen, user, waitFor } from 'test-utils';
 import { server, rest, revengineApi } from 'test-server';
 import Login from './Login';
 

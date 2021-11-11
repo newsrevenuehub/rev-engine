@@ -404,6 +404,9 @@ CSP_CONNECT_SRC = (
 )
 CSP_OBJECT_SRC = ("'none'",)
 
+# More Security Headers
+SECURE_BROWSER_XSS_FILTER = True
+
 # Stripe API Target Version
 # Make sure this is also updated in genericConstants.js for the frontend
 STRIPE_API_VERSION = "2020-08-27"

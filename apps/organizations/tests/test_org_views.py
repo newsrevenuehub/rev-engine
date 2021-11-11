@@ -78,7 +78,7 @@ class RevenueProgramViewSetTest(AbstractTestCase):
         response = self.client.get(self.list_url)
         self.assertEqual(response.status_code, 200)
         expected_count = RevenueProgram.objects.filter(organization=self.user.get_organization()).count()
-        self.assertEqual(response.json()["count"], expected_count)
+        self.assertEqual(len(response.json()), expected_count)
 
     def test_created_and_list_are_equivalent(self):
         revp = self.resources[0]
@@ -87,7 +87,7 @@ class RevenueProgramViewSetTest(AbstractTestCase):
         response = self.client.get(self.list_url)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(
-            [x["id"] for x in response.json()["results"]],
+            [x["id"] for x in response.json()],
             [
                 x
                 for x in RevenueProgram.objects.filter(organization=self.user.get_organization()).values_list(
@@ -112,6 +112,16 @@ class RevenueProgramViewSetTest(AbstractTestCase):
         # Method POST Not Allowed
         response = self.client.post(self.list_url, {"name": "New RevenueProgram", "organization": self.orgs[0].pk})
         self.assertEqual(response.status_code, 405)
+
+    def test_pagination_disabled(self):
+        revp = self.resources[0]
+        self.authenticate_user_for_resource(revp)
+        self.login()
+        response = self.client.get(self.list_url)
+        self.assertEqual(response.status_code, 200)
+        # 'count' and 'results' keys are only present in paginated responses
+        self.assertNotIn("count", response.json())
+        self.assertNotIn("results", response.json())
 
 
 class PlanViewSetTest(APITestCase):

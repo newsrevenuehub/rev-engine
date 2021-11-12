@@ -17,6 +17,8 @@ import Alert, { alertOptions } from 'elements/alert/Alert';
 // Routing
 import MainLayout from 'components/MainLayout';
 
+export const HUB_STRIPE_PUBLISHABLE_KEY = 'pk_test_31XWC5qhlLi9UkV1OzsI634W'; // process.env.REACT_APP_HUB_STRIPE_PUBLISHABLE_KEY
+
 function App() {
   return (
     <ThemeProvider theme={revEngineTheme}>

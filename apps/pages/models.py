@@ -90,7 +90,6 @@ class DonationPage(AbstractPage, SafeDeleteModel):
     """
 
     slug = models.SlugField(
-        unique=True,
         blank=True,
         help_text="If not entered, it will be built from the Page name",
         error_messages={"unique": UNIQUE_PAGE_SLUG},
@@ -105,6 +104,12 @@ class DonationPage(AbstractPage, SafeDeleteModel):
     page_screenshot = SorlImageField(null=True, blank=True, upload_to=_get_screenshot_upload_path)
 
     email_templates = models.ManyToManyField("emails.PageEmailTemplate", blank=True)
+
+    class Meta:
+        unique_together = (
+            "slug",
+            "revenue_program",
+        )
 
     def __str__(self):
         return self.name

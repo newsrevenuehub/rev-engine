@@ -14,6 +14,7 @@ from apps.contributions.models import (
     Contributor,
 )
 from apps.contributions.serializers import (
+    BadActorSerializer,
     ContributionMetadataSerializer,
     StripeOneTimePaymentSerializer,
     StripeRecurringPaymentSerializer,
@@ -109,15 +110,27 @@ class PaymentManager:
 
         self.validated_data = data_serializer.data
 
+    def validate_badactor_data(self):
+        # validate_badactor_data should not be called without first validating payment data.
+        self.ensure_validated_data()
+        serializer = BadActorSerializer(data=self.data)
+        try:
+            # Here we raise an exception and catch it to handle it on our own,
+            # rather than let it pass through to the user.
+            serializer.is_valid(raise_exception=True)
+        except drf_serializers.ValidationError as ba_validation_error:
+            logger.warning(f"BadActor serializer raised a ValidationError: {str(ba_validation_error)}")
+        self.validated_badactor_data = serializer.data
+
     def ensure_validated_data(self):
         if not self.validated_data:
             raise ValueError("PaymentManager must call 'validate' before performing this action")
 
     def get_bad_actor_score(self):
-        self.ensure_validated_data()
+        self.validate_badactor_data()
 
         try:
-            response = make_bad_actor_request(self.validated_data)
+            response = make_bad_actor_request(self.validated_badactor_data)
             self.bad_actor_score = response.json()["overall_judgment"]
             self.bad_actor_response = response.json()
             if self.should_flag():

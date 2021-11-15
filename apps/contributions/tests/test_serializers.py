@@ -265,6 +265,22 @@ class ContributionMetadataSerializerTest(TestCase):
         self.assertTrue(all(k in metadata.keys() for k in self.all_fields))
         self.assertTrue(all(k in metadata.keys() for k in self.payment_fields))
 
+    def test_bundle_metadata_ignores_blank_metadata(self):
+        serializer_without_blank = self.serializer(data=self.payment_data)
+        self.assertTrue(serializer_without_blank.is_valid())
+
+        # First, verify that "reason_for_giving" is in the metadata if it's not blank
+        metadata = serializer_without_blank.bundle_metadata(self.serializer.PAYMENT)
+        self.assertIn("reason_for_giving", metadata)
+        self.assertEqual(metadata["reason_for_giving"], self.payment_data["reason_for_giving"])
+
+        # Next, ensure that blank fields do not get added to metadata
+        self.payment_data["reason_for_giving"] = ""
+        serializer_with_blank = self.serializer(data=self.payment_data)
+        self.assertTrue(serializer_with_blank.is_valid())
+        metadata = serializer_with_blank.bundle_metadata(self.serializer.PAYMENT)
+        self.assertNotIn("reason_for_giving", metadata)
+
     def test_validate_reason_for_giving(self):
         # If reason_for_giving is "Other" and "reason_other" is present, it passes
         self.payment_data["reason_for_giving"] = "Other"

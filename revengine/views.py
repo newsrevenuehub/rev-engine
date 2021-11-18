@@ -21,7 +21,11 @@ class ReactAppView(TemplateView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         self._add_social_media_context(context)
+        self._serve_spa_env_vars()
         return context
+
+    def _serve_spa_env_vars(self):
+        self.request["spa_env"] = settings.SPA_ENV
 
     def _add_social_media_context(self, context):
         if subdomain := get_subdomain_from_request(self.request):

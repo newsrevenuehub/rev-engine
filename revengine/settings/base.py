@@ -89,6 +89,7 @@ TEMPLATES = [
                 "django.template.context_processors.request",
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
+                "revengine.context_processors.get_context_data",
             ],
         },
     },
@@ -405,5 +406,15 @@ CSP_CONNECT_SRC = (
 CSP_OBJECT_SRC = ("'none'",)
 
 # Stripe API Target Version
-# Make sure this is also updated in genericConstants.js for the frontend
 STRIPE_API_VERSION = "2020-08-27"
+
+# Front End Environment Variables - Config Vars Heroku
+SPA_ENV_VARS = {
+    "HUB_STRIPE_API_PUB_KEY": os.getenv("SPA_ENV_HUB_STRIPE_API_PUB_KEY"),
+    "CAPTURE_PAGE_SCREENSHOT": os.getenv("SPA_ENV_CAPTURE_PAGE_SCREENSHOT"),
+    "APP_SALESFORCE_CAMPAIGN_ID_QUERYPARAM": os.getenv("SPA_ENV_APP_SALESFORCE_CAMPAIGN_ID_QUERYPARAM"),
+    "FREQUENCY_QUERYPARAM": os.getenv("SPA_ENV_FREQUENCY_QUERYPARAM"),
+    "AMOUNT_QUERYPARAM": os.getenv("SPA_ENV_AMOUNT_QUERYPARAM"),
+    "REACT_API_VERSION": os.getenv("SPA_ENV_REACT_API_VERSION"),
+    "STRIPE_API_VERSION": STRIPE_API_VERSION,
+}

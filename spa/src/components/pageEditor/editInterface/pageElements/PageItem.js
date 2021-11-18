@@ -18,30 +18,30 @@ import {
 import * as dynamicPageElements from 'components/donationPage/pageContent/dynamicElements';
 import * as dynamicSidebarElements from 'components/donationPage/pageContent/dynamicSidebarElements';
 import { NoComponentError } from 'components/donationPage/pageGetters';
+import PencilButton from 'elements/buttons/PencilButton';
+import TrashButton from 'elements/buttons/TrashButton';
 
 const dynamicElements = { ...dynamicPageElements, ...dynamicSidebarElements };
 
-function PageItem({ element, disabled, dragState, isStatic, handleItemClick, ...props }) {
-  const handleOpenProperties = () => {
-    if (dragState !== 'idle') return;
-    handleItemClick(element);
-  };
-
+function PageItem({ element, disabled, isStatic, handleItemClick, handleItemEdit, handleItemDelete, ...props }) {
   return (
-    <S.PageItem
-      disabled={disabled}
-      onMouseUp={isStatic ? () => {} : handleOpenProperties}
-      {...props}
-      data-testid="edit-interface-item"
-    >
+    <S.PageItem disabled={disabled} {...props} data-testid="edit-interface-item">
       {dynamicElements[element.type] ? (
         <>
           <S.ItemIconWrapper>
             <S.ItemIcon icon={getElementIcon(element.type)} disabled={disabled} />
           </S.ItemIconWrapper>
           <S.ItemContentWrapper>
-            <S.ItemName>{dynamicElements[element.type].displayName}</S.ItemName>
-            <S.ItemDescription>{dynamicElements[element.type].description}</S.ItemDescription>
+            <S.ContentLeft>
+              <S.ItemName>{dynamicElements[element.type].displayName}</S.ItemName>
+              <S.ItemDescription>{dynamicElements[element.type].description}</S.ItemDescription>
+            </S.ContentLeft>
+            {!isStatic && (
+              <S.ContentRight>
+                <PencilButton onClick={handleItemEdit} />
+                {!dynamicElements[element.type].required && <TrashButton onClick={handleItemDelete} />}
+              </S.ContentRight>
+            )}
           </S.ItemContentWrapper>
         </>
       ) : (

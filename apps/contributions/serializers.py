@@ -336,6 +336,40 @@ class ContributionMetadataSerializer(serializers.Serializer):
         return {k: v for k, v in self.data.items() if self._should_include_metadata(k, v, processor_obj)}
 
 
+class BadActorSerializer(serializers.Serializer):
+    # Donation info
+    amount = serializers.CharField(max_length=12)
+
+    # Donor info
+    first_name = serializers.CharField(max_length=40)
+    last_name = serializers.CharField(max_length=80)
+    email = serializers.EmailField(max_length=80)
+    street = serializers.CharField(max_length=255)
+    city = serializers.CharField(max_length=40)
+    state = serializers.CharField(max_length=80)
+    country = serializers.CharField(max_length=80)
+    zipcode = serializers.CharField(max_length=20)
+
+    # Third-party risk assessment
+    captcha_token = serializers.CharField(max_length=2550, required=False, allow_blank=True)
+
+    # Request metadata
+    ip = serializers.IPAddressField()
+    referer = serializers.URLField()
+
+    # Donation additional
+    reason_for_giving = serializers.CharField(max_length=255, required=False, allow_blank=True)
+
+    def to_internal_value(self, data):
+        data["street"] = data.get("mailing_street")
+        data["city"] = data.get("mailing_city")
+        data["state"] = data.get("mailing_state")
+        data["zipcode"] = data.get("mailing_postal_code")
+        data["country"] = data.get("mailing_country")
+        data["reason"] = data.get("reason_for_giving")
+        return super().to_internal_value(data)
+
+
 class AbstractPaymentSerializer(serializers.Serializer):
     # Payment details
     amount = serializers.IntegerField(
@@ -347,7 +381,6 @@ class AbstractPaymentSerializer(serializers.Serializer):
         },
     )
     interval = serializers.ChoiceField(choices=ContributionInterval.choices, default=ContributionInterval.ONE_TIME)
-
     # organization_country tand currency are a different pattern, but important here.
     # They could be derived from the organization that this contribution is tied to,
     # but instead we send that info to each donation page load and pass it back as params;
@@ -358,13 +391,6 @@ class AbstractPaymentSerializer(serializers.Serializer):
 
     # DonorInfo
     email = serializers.EmailField(max_length=80)
-
-    # Params/Pass-through
-    captcha_token = serializers.CharField(max_length=2550, required=False, allow_blank=True)
-
-    # Request metadata
-    ip = serializers.IPAddressField()
-    referer = serializers.URLField()
 
     # These are used to attach the contribution to the right organization,
     # and associate it with the page it came from.

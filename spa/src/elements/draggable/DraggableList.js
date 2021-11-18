@@ -1,4 +1,4 @@
-import { useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import * as S from './DraggableList.styled';
 import { motion } from 'framer-motion';
 
@@ -54,21 +54,31 @@ function DraggableItem({ index, height, color, itemProps, element, handleItemCli
 }
 
 function DraggableList({ elements, setElements, handleItemClick }) {
+  const [list, setList] = useState(elements);
   const onPositionUpdate = useCallback(
+    (startIndex, endIndex) => {
+      setList(moveArray(list, startIndex, endIndex));
+    },
+    [list, setList]
+  );
+
+  const onDragEnd = useCallback(
     (startIndex, endIndex) => {
       setElements(moveArray(elements, startIndex, endIndex));
     },
     [elements, setElements]
   );
+
   const props = useDynamicList({
     elements,
     swapDistance: calculateSwapDistance,
-    onPositionUpdate
+    onPositionUpdate,
+    onDragEnd
   });
 
   return (
     <S.DraggableList>
-      {elements.map((item, i) => (
+      {list.map((item, i) => (
         <DraggableItem
           key={item.uuid}
           height={item.height || ITEM_FIXED_HEIGHT}

@@ -23,7 +23,7 @@ export const findIndex = (i, yOffset, sizes, swapDistance) => {
   return Math.min(Math.max(target, 0), sizes.length);
 };
 
-export function useDynamicList({ elements, swapDistance, onPositionUpdate, onPositionChange }) {
+export function useDynamicList({ elements, swapDistance, onPositionUpdate, onDragEnd, onPositionChange }) {
   const sizes = useRef(new Array(elements.length).fill(0)).current;
   const [startIndex, handleDragStart] = useState(-1);
 
@@ -44,9 +44,10 @@ export function useDynamicList({ elements, swapDistance, onPositionUpdate, onPos
   const handleDragEnd = useCallback(
     (endIndex) => {
       if (onPositionChange && startIndex !== endIndex) onPositionChange(startIndex, endIndex);
+      onDragEnd(startIndex, endIndex);
       handleDragStart(-1);
     },
-    [startIndex, onPositionChange]
+    [startIndex, onPositionChange, onDragEnd]
   );
 
   const handleMeasure = useCallback(

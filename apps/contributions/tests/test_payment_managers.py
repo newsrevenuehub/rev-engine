@@ -130,6 +130,22 @@ class StripeOneTimePaymentManagerTest(StripePaymentManagerAbstractTestCase):
         )
         mock_delete_sub.assert_not_called()
 
+    @patch("apps.contributions.payment_managers.logger.warning")
+    @responses.activate
+    def test_badactor_validation_error_logs_warning(self, logger_warning):
+        self._create_mock_ba_response(target_score=2)
+        data = self.data
+        data["ip"] = ""
+        pm = self._instantiate_payment_manager_with_data(data=data)
+        self.assertIsNone(pm.validate())
+        pm.get_bad_actor_score()
+        # First, ensure that badactor is still called.
+        self.assertEqual(len(responses.calls), 1)
+        # Then ensure that logger.warning is called
+        logger_warning.assert_called_once_with(
+            "BadActor serializer raised a ValidationError: {'ip': [ErrorDetail(string='This information is required', code='blank')]}"
+        )
+
     def test_calling_badactor_before_validate_throws_error(self):
         pm = self._instantiate_payment_manager_with_data()
         with self.assertRaises(ValueError) as e:

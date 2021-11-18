@@ -301,7 +301,6 @@ class ContributionMetadataSerializer(serializers.Serializer):
         return not bool(self._errors) and is_valid
 
     def validate_secondary_metadata(self, secondary_metadata):
-        # ? TEST: Secondary metadata validation fails if missing contributor_id
         """
         Validation for values not present at the time of original validation. Generally, these values must be derived from
         values created after that initial validation. contributor_id is the only example of this so far.
@@ -318,16 +317,23 @@ class ContributionMetadataSerializer(serializers.Serializer):
         # Re-run validation
         return self.is_valid(raise_exception=True)
 
+    def _should_include_metadata(self, k, v, processor_obj):
+        """
+        Include metadata in bundle if:
+        value is not blank,
+        metadata key is in "All",
+        metadata key is in target "processor_obj"
+        """
+        includes_all = self.PROCESSOR_MAPPING.get(k) == self.ALL
+        includes_process_obj = self.PROCESSOR_MAPPING.get(k) == processor_obj
+        return v != "" and (includes_all or includes_process_obj)
+
     def bundle_metadata(self, processor_obj):
         """
         Validating the data first is important. Downstream applications have their own requirements and limits for these values, so skipping validation will break those integrations. Luckily, inheriting from serializers.Serializer gives us this check for free.
         Here we use the PROCESSOR_MAPPING property of this serializer to get the appropriate metadata based on the reported processor_obj, plus "All"
         """
-        return {
-            k: v
-            for k, v in self.data.items()
-            if self.PROCESSOR_MAPPING.get(k) == self.ALL or self.PROCESSOR_MAPPING.get(k) == processor_obj
-        }
+        return {k: v for k, v in self.data.items() if self._should_include_metadata(k, v, processor_obj)}
 
 
 class AbstractPaymentSerializer(serializers.Serializer):

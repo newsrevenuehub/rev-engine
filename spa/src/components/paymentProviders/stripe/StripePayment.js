@@ -1,14 +1,12 @@
 import { useState, useEffect } from 'react';
 import * as S from './StripePayment.styled';
 
-import { HUB_STRIPE_PUBLISHABLE_KEY } from 'App';
-
 // Deps
 import { loadStripe } from '@stripe/stripe-js';
 import { Elements } from '@stripe/react-stripe-js';
 
 // Constants
-import { STRIPE_API_VERSION } from 'constants/genericConstants';
+import { HUB_STRIPE_API_PUB_KEY, STRIPE_API_VERSION } from 'constants/genericConstants';
 
 // Children
 import ElementLoading from 'components/donationPage/pageContent/ElementLoading';
@@ -20,9 +18,7 @@ function StripePayment({ offerPayFees, stripeAccountId }) {
 
   useEffect(() => {
     if (stripeAccountId)
-      setStripe(
-        loadStripe(HUB_STRIPE_PUBLISHABLE_KEY, { stripeAccount: stripeAccountId, apiVersion: STRIPE_API_VERSION })
-      );
+      setStripe(loadStripe(HUB_STRIPE_API_PUB_KEY, { stripeAccount: stripeAccountId, apiVersion: STRIPE_API_VERSION }));
   }, [stripeAccountId]);
 
   return (

@@ -20,20 +20,16 @@ import DonationPageSidebar from 'components/donationPage/DonationPageSidebar';
 import DonationPageStaticText from 'components/donationPage/DonationPageStaticText';
 import DonationPageFooter from 'components/donationPage/DonationPageFooter';
 
-import {
-  REACT_APP_SALESFORCE_CAMPAIGN_ID_QUERYPARAM,
-  REACT_APP_FREQUENCY_QUERYPARAM,
-  REACT_APP_AMOUNT_QUERYPARAM
-} from 'settings';
+import { SALESFORCE_CAMPAIGN_ID_QUERYPARAM, FREQUENCY_QUERYPARAM, AMOUNT_QUERYPARAM } from 'constants/genericConstants';
 
 const DonationPageContext = createContext({});
 
 function DonationPage({ page, live = false }) {
   const formRef = useRef();
 
-  const salesForceQS = useQueryString(REACT_APP_SALESFORCE_CAMPAIGN_ID_QUERYPARAM);
-  const freqQs = useQueryString(REACT_APP_FREQUENCY_QUERYPARAM);
-  const amountQs = useQueryString(REACT_APP_AMOUNT_QUERYPARAM);
+  const salesForceQS = useQueryString(SALESFORCE_CAMPAIGN_ID_QUERYPARAM);
+  const freqQs = useQueryString(FREQUENCY_QUERYPARAM);
+  const amountQs = useQueryString(AMOUNT_QUERYPARAM);
   const [frequency, setFrequency] = useState();
   const [amount, setAmount] = useState();
   const [payFee, setPayFee] = useState(() => getInitialPayFees(page));

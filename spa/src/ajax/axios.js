@@ -1,9 +1,9 @@
 import axios from 'axios';
 import { LS_CSRF_TOKEN, CSRF_HEADER } from 'constants/authConstants';
 import { TOKEN } from './endpoints';
-import { REACT_APP_API_VERSION } from 'settings';
+import { REACT_API_VERSION } from 'constants/genericConstants';
 
-export const apiBaseUrl = `/api/${REACT_APP_API_VERSION}/`;
+export const apiBaseUrl = `/api/${REACT_API_VERSION}/`;
 
 const Axios = axios.create({
   baseURL: apiBaseUrl,

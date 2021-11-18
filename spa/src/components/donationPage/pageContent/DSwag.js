@@ -149,7 +149,7 @@ function SwagItem({ swag, isOnlySwag, ...props }) {
           selectedItem={selectedSwagOption}
           onSelectedItemChange={({ selectedItem }) => setSelectedSwagOption(selectedItem)}
           items={swagOptions}
-          helpText="Your donation comes with member merchandise. Please choose an option."
+          helpText="Your contribution comes with member merchandise. Please choose an option."
           maxWidth="300px"
         />
       </S.SwagOptions>

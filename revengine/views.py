@@ -1,3 +1,4 @@
+import json
 import logging
 
 from django.conf import settings
@@ -25,7 +26,7 @@ class ReactAppView(TemplateView):
         return context
 
     def _serve_spa_env_vars(self):
-        self.request["spa_env"] = settings.SPA_ENV
+        self.request.spa_env = json.dumps(settings.SPA_ENV_VARS)
 
     def _add_social_media_context(self, context):
         if subdomain := get_subdomain_from_request(self.request):

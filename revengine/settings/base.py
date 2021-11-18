@@ -89,7 +89,6 @@ TEMPLATES = [
                 "django.template.context_processors.request",
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
-                "revengine.context_processors.get_context_data",
             ],
         },
     },
@@ -417,4 +416,5 @@ SPA_ENV_VARS = {
     "AMOUNT_QUERYPARAM": os.getenv("SPA_ENV_AMOUNT_QUERYPARAM"),
     "REACT_API_VERSION": os.getenv("SPA_ENV_REACT_API_VERSION"),
     "STRIPE_API_VERSION": STRIPE_API_VERSION,
+    "HUB_GOOGLE_MAPS_API_KEY": os.getenv("SPA_ENV_HUB_GOOGLE_MAPS_API_KEY"),
 }

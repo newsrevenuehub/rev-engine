@@ -1,95 +1,46 @@
-import { useState, useCallback } from 'react';
+import { useRef } from 'react';
 import * as S from './DraggableList.styled';
-import { motion } from 'framer-motion';
-
-// Util
-import { moveArray, getDragStateZIndex, calculateSwapDistance } from './drag-utils';
-import { useDynamicList, useDynamicListItem } from './dynamic';
+import { motion, Reorder, useElementScroll } from 'framer-motion';
 
 // Children
 import PageItem from 'components/pageEditor/editInterface/pageElements/PageItem';
 
-const ITEM_FIXED_HEIGHT = 80;
-
-/* A relatively simple implementation of Framer-Motion's Reorderable List Example:
-  https://codesandbox.io/s/framer-motion-2-drag-to-reorder-forked-njcdl
-*/
-function DraggableItem({ index, height, color, itemProps, element, handleItemClick }) {
-  const [dragState, ref, eventHandlers] = useDynamicListItem(index, 'y', itemProps);
+function DraggableList({ elements, setElements, handleItemEdit, handleItemDelete }) {
+  const ref = useRef(null);
+  const [handlePan, scroll] = usePanAndScroll(ref);
 
   return (
-    <S.DraggableListItem
-      style={{
-        padding: 0,
-        height,
-        margin: '1rem 0',
-        // If we're dragging, we want to set the zIndex of that item to be on top of the other items.
-        zIndex: getDragStateZIndex(dragState)
-      }}
-    >
-      <motion.div
-        layout
-        initial={false}
-        drag="y"
-        ref={ref}
-        style={{
-          background: color,
-          height,
-          borderRadius: 5
-        }}
-        whileHover={{
-          scale: 1.03,
-          boxShadow: '0px 3px 3px rgba(0,0,0,0.15)'
-        }}
-        whileTap={{
-          scale: 1.1,
-          boxShadow: '0px 5px 5px rgba(0,0,0,0.1)'
-        }}
-        {...eventHandlers}
-      >
-        <PageItem element={element} dragState={dragState} handleItemClick={handleItemClick} />
-      </motion.div>
-    </S.DraggableListItem>
-  );
-}
-
-function DraggableList({ elements, setElements, handleItemClick }) {
-  const [list, setList] = useState(elements);
-  const onPositionUpdate = useCallback(
-    (startIndex, endIndex) => {
-      setList(moveArray(list, startIndex, endIndex));
-    },
-    [list, setList]
-  );
-
-  const onDragEnd = useCallback(
-    (startIndex, endIndex) => {
-      setElements(moveArray(elements, startIndex, endIndex));
-    },
-    [elements, setElements]
-  );
-
-  const props = useDynamicList({
-    elements,
-    swapDistance: calculateSwapDistance,
-    onPositionUpdate,
-    onDragEnd
-  });
-
-  return (
-    <S.DraggableList>
-      {list.map((item, i) => (
-        <DraggableItem
-          key={item.uuid}
-          height={item.height || ITEM_FIXED_HEIGHT}
-          index={i}
-          element={item}
-          itemProps={props}
-          handleItemClick={handleItemClick}
-        />
-      ))}
-    </S.DraggableList>
+    <motion.div ref={ref} onPan={handlePan} layoutScroll>
+      <Reorder.Group axis="y" values={elements} onReorder={setElements} style={S.DraggableListStyles}>
+        {elements.map((element) => (
+          <Reorder.Item
+            key={element.uuid}
+            value={element}
+            style={S.DraggableListItemStyles}
+            scroll={scroll}
+            {...S.ItemActiveStyles}
+          >
+            <PageItem
+              element={element}
+              handleItemEdit={() => handleItemEdit(element)}
+              handleItemDelete={() => handleItemDelete(element)}
+            />
+          </Reorder.Item>
+        ))}
+      </Reorder.Group>
+    </motion.div>
   );
 }
 
 export default DraggableList;
+
+function usePanAndScroll(ref) {
+  const scroll = useElementScroll(ref);
+  const handlePan = (_, pointInfo) => {
+    if (Math.abs(ref.current.getBoundingClientRect().y - pointInfo.point.y) > 270) {
+      ref.current.scroll({ top: scroll.scrollY.get() + 3, left: 0 });
+    }
+  };
+
+  return [handlePan, scroll];
+}

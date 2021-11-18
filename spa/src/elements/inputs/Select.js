@@ -34,7 +34,7 @@ function Select({
           name={name}
           data-testid={testId}
           value={selectedItem && displayAccessor ? selectedItem[displayAccessor] : selectedItem}
-          readonly
+          readOnly
           inputmode="none"
         />
         <S.CaretWrapper animate={isOpen ? 'open' : 'closed'} variants={caretVariants}>

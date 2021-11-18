@@ -15,6 +15,12 @@
     </script>
     {% endif %}
 
+    {% if request.spa_env|json %}
+    <script type="text/javascript" spaenv="{{ request.spa_env }}">
+      window.ENV = '{{ request.spa_env }}';
+    </script>
+    {% endif %}
+
     <link rel="manifest" href="%PUBLIC_URL%/manifest.json" />
     <link rel="preconnect" href="https://fonts.gstatic.com" />
     <link

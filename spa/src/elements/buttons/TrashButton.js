@@ -3,7 +3,7 @@ import { faTrash } from '@fortawesome/free-solid-svg-icons';
 
 function TrashButton(props) {
   return (
-    <S.TrashButton {...props} data-testid="delete-button">
+    <S.TrashButton {...props} data-testid="trash-button">
       <S.TrashIcon icon={faTrash} />
     </S.TrashButton>
   );

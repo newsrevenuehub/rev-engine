@@ -53,15 +53,15 @@ describe('Donation page edit', () => {
       cy.getByTestId('setup-tab');
     });
 
-    it('should render element detail when item is clicked', () => {
-      cy.contains('Rich text').click();
+    it('should render element detail when edit item is clicked', () => {
+      cy.editElement('DRichText');
       cy.getByTestId('element-properties');
       cy.getByTestId('discard-element-changes-button').click();
     });
 
     describe('Frequency editor', () => {
-      it('should render the frequency editor when item is clicked', () => {
-        cy.contains('Donation frequency').click();
+      it('should render the frequency editor when edit item is clicked', () => {
+        cy.editElement('DFrequency');
         cy.getByTestId('frequency-editor');
         cy.contains('Donation frequency');
       });
@@ -84,7 +84,7 @@ describe('Donation page edit', () => {
         cy.getByTestId('d-frequency').should('not.contain', 'Yearly');
 
         // Cleanup
-        cy.contains('Donation frequency').click();
+        cy.editElement('DFrequency');
         cy.getByTestId('frequency-toggle').contains('Monthly').click();
         cy.getByTestId('frequency-toggle').contains('Yearly').click();
         cy.getByTestId('keep-element-changes-button').click({ force: true });
@@ -97,14 +97,14 @@ describe('Donation page edit', () => {
     const options = amountElement.content.options;
 
     before(() => {
-      cy.contains('Donation frequency').click();
+      cy.editElement('DFrequency');
       cy.getByTestId('frequency-editor').find('li').first().click();
       cy.getByTestId('frequency-editor').find('li').click({ multiple: true });
       cy.getByTestId('keep-element-changes-button').click({ force: true });
     });
 
     it('should render the amount editor', () => {
-      cy.contains('Donation amount').click();
+      cy.editElement('DAmount');
       cy.getByTestId('amount-editor');
     });
 
@@ -161,7 +161,7 @@ describe('Donation page edit', () => {
 
   describe('Donor info editor', () => {
     it('should render the DonorInfoEditor', () => {
-      cy.contains('Donor info').click();
+      cy.editElement('DDonorInfo');
       cy.getByTestId('donor-info-editor').should('exist');
       cy.getByTestId('discard-element-changes-button').click();
     });
@@ -169,7 +169,7 @@ describe('Donation page edit', () => {
 
   describe('Donor address editor', () => {
     it('should render the DonorAmountEditor', () => {
-      cy.contains('Donor address').click();
+      cy.editElement('DDonorAddress');
       cy.getByTestId('donor-address-editor').should('exist');
       cy.getByTestId('discard-element-changes-button').click();
     });
@@ -177,7 +177,7 @@ describe('Donation page edit', () => {
 
   describe('Payment editor', () => {
     it('should render the PaymentEditor', () => {
-      cy.contains('Payment').click();
+      cy.editElement('DPayment');
       cy.getByTestId('payment-editor').should('exist');
       cy.getByTestId('discard-element-changes-button').click();
     });
@@ -187,7 +187,7 @@ describe('Donation page edit', () => {
     const pageSwagElement = livePage.elements.filter((el) => el.type === 'DSwag')[0];
     before(() => {
       cy.getByTestId('edit-page-button').click();
-      cy.contains('Member benefits').click();
+      cy.editElement('DSwag');
     });
 
     it('should render the swag editor', () => {
@@ -213,7 +213,7 @@ describe('Donation page edit', () => {
       cy.getByTestId('offer-nyt-comp').should('not.exist');
     });
 
-    it('should show option to enable NYT sub if RP has not enabled it', () => {
+    it('should show option to enable NYT sub if RP has enabled it', () => {
       const page = { ...livePage };
       page.allow_offer_nyt_comp = true;
 
@@ -227,7 +227,7 @@ describe('Donation page edit', () => {
       cy.wait('@getPage');
 
       cy.getByTestId('edit-page-button').click();
-      cy.contains('Member benefits').click();
+      cy.editElement('DSwag');
       cy.getByTestId('offer-nyt-comp').should('exist');
     });
   });
@@ -248,7 +248,7 @@ describe('Donation page edit', () => {
 
       // Need to fake an update to the page to enable save
       cy.getByTestId('edit-page-button').click();
-      cy.contains('Rich text').click();
+      cy.editElement('DRichText');
 
       // Accept changes
       cy.getByTestId('keep-element-changes-button').click({ force: true });
@@ -264,7 +264,7 @@ describe('Donation page edit', () => {
       cy.getByTestId('edit-page-button').click();
       cy.wait(300);
       cy.getByTestId('add-element-button').click();
-      cy.getByTestId('edit-interface-item').contains('Payment').click({ force: true });
+      cy.contains('Payment').click();
     });
 
     it('should open appropriate tab for error and scroll to first error', () => {
@@ -309,7 +309,7 @@ describe('Donation page edit', () => {
       cy.wait('@getPageDetailModified');
       // Need to fake an update to the page to enable save
       cy.getByTestId('edit-page-button').click();
-      cy.contains('Rich text').click();
+      cy.editElement('DRichText');
 
       // Accept changes
       cy.getByTestId('keep-element-changes-button').click({ force: true });
@@ -396,21 +396,22 @@ describe('Donation page edit', () => {
       cy.getByTestId('sidebar-tab').click({ force: true });
     });
 
-    it('should have two elements', () => {
-      cy.getByTestId('edit-interface-item').should('have.length', 2);
-    });
-
     it('Can add an element', () => {
       cy.getByTestId('add-element-button').click();
-      cy.get('[data-testid=close-modal] + div').children().contains('Rich text').click();
+      cy.getByTestId('add-page-modal').within(() => {
+        cy.getByTestId('page-item-DRichText').click();
+      });
+      cy.getByTestId('preview-page-button').click();
       cy.get('[data-testid=donation-page__sidebar] > ul > li').should('have.length', 3);
     });
 
     it('can be added to the page', () => {
-      cy.get('[data-testid=page-sidebar] > ul > li').first().click();
+      cy.getByTestId('edit-page-button').click({ force: true });
+      cy.getByTestId('sidebar-tab').click({ force: true });
+      cy.editElement('DRichText');
       cy.get('[class=DraftEditor-editorContainer]').type('New Rich Text');
-      cy.get('[data-testid=keep-element-changes-button').click();
-      cy.get('[data-testid=preview-page-button').click();
+      cy.getByTestId('keep-element-changes-button').click();
+      cy.getByTestId('preview-page-button').click();
       cy.get('[data-testid=donation-page__sidebar] > ul > li')
         .should('have.length', 3)
         .first()
@@ -487,7 +488,7 @@ describe('Template from page', () => {
 
   it('should show warning if page edits are unsaved', () => {
     cy.getByTestId('edit-page-button').click();
-    cy.contains('Rich text').click({ force: true });
+    cy.editElement('DRichText');
     cy.getByTestId('keep-element-changes-button').click({ force: true });
     cy.getByTestId('clone-page-button').click({ force: true });
     cy.getByTestId('confirmation-modal').should('exist');
@@ -525,7 +526,7 @@ describe('ReasonEditor', () => {
     cy.url().should('include', 'edit/my/page');
     cy.wait('@getPageDetail');
     cy.getByTestId('edit-page-button').click();
-    cy.contains('Reason for Giving').click();
+    cy.editElement('DReason');
   });
 
   it('should render the ReasonEditor', () => {

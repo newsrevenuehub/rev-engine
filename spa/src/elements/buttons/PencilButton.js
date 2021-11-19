@@ -3,7 +3,7 @@ import { faPencilAlt } from '@fortawesome/free-solid-svg-icons';
 
 function PencilButton(props) {
   return (
-    <S.PencilButton {...props} data-testid="edit-button">
+    <S.PencilButton {...props} data-testid="pencil-button">
       <S.PencilIcon icon={faPencilAlt} />
     </S.PencilButton>
   );

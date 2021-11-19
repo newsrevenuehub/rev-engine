@@ -16,7 +16,6 @@ import XButton from 'elements/buttons/XButton';
 
 const defaultContent = {
   askReason: false,
-  reasonRequired: false,
   reasons: [],
 
   askHonoree: false,
@@ -25,7 +24,12 @@ const defaultContent = {
 
 function ReasonEditor() {
   const theme = useTheme();
-  const { elementContent = defaultContent, setElementContent } = useEditInterfaceContext();
+  const {
+    elementContent = defaultContent,
+    setElementContent,
+    elementRequiredFields,
+    setElementRequiredFields
+  } = useEditInterfaceContext();
 
   // Form state
   const [errors, setErrors] = useState({});
@@ -36,6 +40,10 @@ function ReasonEditor() {
       ...elementContent,
       [key]: !elementContent[key]
     });
+
+    if (key === 'askReason' && !!elementContent[key]) {
+      _toggleOffReasonRequired();
+    }
   };
 
   // Form control
@@ -69,6 +77,18 @@ function ReasonEditor() {
     if (e.key === 'Enter') addNewReason();
   };
 
+  const toggleReasonRequired = (_e, checked) => {
+    if (checked && !elementRequiredFields.includes('reason_for_giving')) {
+      setElementRequiredFields([...elementRequiredFields, 'reason_for_giving']);
+    } else {
+      _toggleOffReasonRequired();
+    }
+  };
+
+  const _toggleOffReasonRequired = () => {
+    setElementRequiredFields(elementRequiredFields.filter((f) => f !== 'reason_for_giving'));
+  };
+
   return (
     <S.ReasonEditor data-testid="reason-editor">
       <S.ReasonsSection isExpanded={!!elementContent.askReason}>
@@ -94,8 +114,8 @@ function ReasonEditor() {
               style={{
                 color: theme.colors.primary
               }}
-              checked={!!elementContent.reasonRequired}
-              onChange={() => toggleElementContent('reasonRequired')}
+              checked={!!elementRequiredFields.includes('reason_for_giving')}
+              onChange={toggleReasonRequired}
             />
             <S.CheckboxLabel htmlFor="reason-required">Should filling this out be required?</S.CheckboxLabel>
           </S.CheckboxWrapper>

@@ -165,7 +165,31 @@ class CompSubscriptions(TextChoices):
     NYT = "nyt", "nyt"
 
 
-class ContributionMetadataSerializer(serializers.Serializer):
+class ConditionalRequirementsSerializerMixin(serializers.Serializer):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._update_field_properties_from_page_elements()
+
+    def _update_field_properties_from_page_elements(self):
+        page = DonationPage.objects.get(pk=self.initial_data["page_id"])
+        self._set_conditionally_required_fields(page.elements)
+
+    def _set_conditionally_required_fields(self, page_elements):
+        """
+        Elements may define a "requiredFields" key, which is a list of field names that may not be blank or absent when submitting a donation.
+        """
+        # Get list of lists of required fields
+        required_fields = [element.get("requiredFields", []) for element in page_elements]
+        # Flatten to single list of required fields
+        required_fields = [item for fieldsList in required_fields for item in fieldsList]
+        # For every required field, update the field definition
+        for required_field in required_fields:
+            if required_field in self.fields:
+                self.fields[required_field].required = True
+                self.fields[required_field].allow_blank = False
+
+
+class ContributionMetadataSerializer(ConditionalRequirementsSerializerMixin):
     """
     payment_managers use this serializer to key incoming contribution data to the expected metadata key.
     The metadata is then added to the metadata field for the appropriate Stripe object. ProcessorObjects
@@ -370,7 +394,7 @@ class BadActorSerializer(serializers.Serializer):
         return super().to_internal_value(data)
 
 
-class AbstractPaymentSerializer(serializers.Serializer):
+class AbstractPaymentSerializer(ConditionalRequirementsSerializerMixin):
     # Payment details
     amount = serializers.IntegerField(
         min_value=REVENGINE_MIN_AMOUNT,
@@ -422,24 +446,6 @@ class AbstractPaymentSerializer(serializers.Serializer):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields["amount"].error_messages["invalid"] = "Enter a valid amount"
-        self._update_field_properties_from_page_elements()
-
-    def _update_field_properties_from_page_elements(self):
-        page = DonationPage.objects.get(pk=self.initial_data["page_id"])
-        self._set_conditionally_required_fields(page.elements)
-
-    def _set_conditionally_required_fields(self, page_elements):
-        """
-        Elements may define a "requiredFields" key, which is a list of field names that may not be blank or absent when submitting a donation.
-        """
-        # Get list of lists of required fields
-        required_fields = [element.get("requiredFields", []) for element in page_elements]
-        # Flatten to single list of required fields
-        required_fields = [item for fieldsList in required_fields for item in fieldsList]
-        # For every required field, update the field definition
-        for required_field in required_fields:
-            self.fields[required_field].required = True
-            self.fields[required_field].allow_blank = False
 
 
 class StripeOneTimePaymentSerializer(AbstractPaymentSerializer):

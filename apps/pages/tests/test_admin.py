@@ -49,7 +49,8 @@ class TemplateAdminTest(TestCase):
         self.user = user_model.objects.create_superuser(email="test@test.com", password="testing")
         self.client.force_login(self.user)
         self.template_admin = TemplateAdmin(Template, AdminSite())
-        self.original_page = DonationPageFactory(name="My Test Page")
+        self.revenue_program = RevenueProgramFactory()
+        self.original_page = DonationPageFactory(name="My Test Page", revenue_program=self.revenue_program)
         self.template = self.original_page.make_template_from_page()
 
     def _get_change_url(self, template_id):
@@ -67,7 +68,7 @@ class TemplateAdminTest(TestCase):
         setup_request(self.user, request)
         prev_page_count = DonationPage.objects.count()
         template = Template.objects.first()
-        response = self.template_admin.response_change(request, template)
+        self.template_admin.response_change(request, template)
 
         new_pages = DonationPage.objects.all()
         self.assertNotEqual(prev_page_count, len(new_pages))
@@ -81,3 +82,11 @@ class TemplateAdminTest(TestCase):
 
         self.assertEqual(response.status_code, 302)
         self.assertEqual(reverse("admin:pages_template_changelist"), response.url)
+
+    def test_make_page_allows_duplicate_name(self):
+        change_url = self._get_change_url(self.template.id)
+        # Make page with target name once...
+        self.client.post(change_url, {"_page-from-template": True})
+        # ...then try to do it again
+        response = self.client.post(change_url, {"_page-from-template": True})
+        self.assertEqual(response.status_code, 302)

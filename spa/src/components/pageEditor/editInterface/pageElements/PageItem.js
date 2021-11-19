@@ -25,7 +25,7 @@ const dynamicElements = { ...dynamicPageElements, ...dynamicSidebarElements };
 
 function PageItem({ element, disabled, isStatic, handleItemClick, handleItemEdit, handleItemDelete, ...props }) {
   return (
-    <S.PageItem disabled={disabled} {...props} data-testid="edit-interface-item">
+    <S.PageItem disabled={disabled} {...props} data-testid={`page-item-${element.type}`}>
       {dynamicElements[element.type] ? (
         <>
           <S.ItemIconWrapper>

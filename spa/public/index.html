@@ -15,8 +15,8 @@
     </script>
     {% endif %}
 
-    {% if request.spa_env %}
-    {{ request.spa_env|json_script:"spa_env" }}
+    {% if spa_env %}
+    {{ spa_env|json_script:"spa_env" }}
     <script>
       window.ENV = JSON.parse(document.getElementById('spa_env').textContent);
     </script>

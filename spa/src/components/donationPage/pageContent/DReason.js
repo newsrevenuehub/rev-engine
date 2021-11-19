@@ -48,7 +48,7 @@ function DReason({ element, ...props }) {
 
   const getReasons = () => {
     const reasons = [...element.content.reasons];
-    if (element?.requiredFields?.includes('reason_for_giving')) reasons.unshift(NO_REASON_OPT);
+    if (!element?.requiredFields?.includes('reason_for_giving')) reasons.unshift(NO_REASON_OPT);
     reasons.push(REASON_OTHER);
     return reasons;
   };

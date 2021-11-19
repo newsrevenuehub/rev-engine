@@ -81,17 +81,3 @@ class TemplateAdminTest(TestCase):
 
         self.assertEqual(response.status_code, 302)
         self.assertEqual(reverse("admin:pages_template_changelist"), response.url)
-
-    def test_make_page_error_messages_when_duplicate_name(self):
-        change_url = self._get_change_url(self.template.id)
-        # Make page with target name once...
-        self.client.post(change_url, {"_page-from-template": True})
-        # ...then try to do it again
-        response = self.client.post(change_url, {"_page-from-template": True})
-        messages = [m.message for m in get_messages(response.wsgi_request)]
-        self.assertEqual(
-            messages,
-            [
-                f'Donation Page name "New Page From Template ({self.template.name})" already used in organization. Did you forget to update the name of a previous page created from this template?'
-            ],
-        )

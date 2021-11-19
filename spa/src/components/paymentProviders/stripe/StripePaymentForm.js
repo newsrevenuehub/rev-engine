@@ -286,7 +286,7 @@ function StripePaymentForm({ loading, setLoading, offerPayFees }) {
         <PaymentRequestButtonElement options={{ paymentRequest, style: S.PaymentRequestButtonStyle }} />
       </S.PaymentRequestWrapper>
       <S.PayWithCardOption onClick={() => setForceManualCard(true)}>
-        -- or manually enter credit card --
+        - I prefer to manually enter my credit card -
       </S.PayWithCardOption>
     </>
   ) : (

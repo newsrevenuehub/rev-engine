@@ -30,9 +30,8 @@ class SocialMetaInlineSerializer(serializers.ModelSerializer):
 
     def get_card(self, obj):
         request = self.context.get("request")
-        request_uri = request.build_absolute_uri()
-        card_uri = request_uri[:-1]
-        card_uri = obj.card.url if obj.card else card_uri + static("hub-og-card.png")
+        site_url = f"{request.scheme}://{request.get_host()}"
+        card_uri = obj.card.url if obj.card else site_url + static("hub-og-card.png")
         return card_uri
 
     def get_twitter_handle(self, obj):

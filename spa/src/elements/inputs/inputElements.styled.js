@@ -2,10 +2,6 @@ import styled from 'styled-components';
 
 export const InputGroup = styled.div``;
 
-export const GroupedLabel = styled.p`
-  font-size: ${(props) => props.theme.fontSizes[1]};
-`;
-
 export const GroupedWrapper = styled.div`
   display: flex;
   flex-direction: row;

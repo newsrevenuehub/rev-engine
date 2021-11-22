@@ -13,7 +13,8 @@ import { usePage } from '../DonationPage';
 import Select from 'elements/inputs/Select';
 import Checkbox from 'elements/inputs/Checkbox';
 import DElement, { DynamicElementPropTypes } from 'components/donationPage/pageContent/DElement';
-import { GroupedLabel, InputGroup } from 'elements/inputs/inputElements.styled';
+import GroupedLabel from 'elements/inputs/GroupedLabel';
+import { InputGroup } from 'elements/inputs/inputElements.styled';
 
 function calculateYearlyAmount(frequency, amount) {
   let yearlyTotal = amount;

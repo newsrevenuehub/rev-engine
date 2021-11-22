@@ -87,6 +87,25 @@ class PageViewSetTest(AbstractTestCase):
         self.assertIn("revenue_program", response.data)
         self.assertIn("slug", response.data["revenue_program"])
 
+    def test_page_create_returns_validation_error_when_violiates_unique_constraint(self):
+        self.login()
+        list_url = reverse("donationpage-list")
+        page_data = {
+            "name": "My page, tho",
+            "heading": "New DonationPage",
+            "slug": "new-page",
+            "revenue_program_pk": self.rev_program.pk,
+        }
+        response = self.client.post(list_url, page_data)
+        # make sure first page was created successfully
+        self.assertEqual(response.status_code, 201)
+
+        # Then make it again and expect a validation error
+        error_response = self.client.post(list_url, page_data)
+        self.assertEqual(error_response.status_code, 400)
+        self.assertIn("slug", error_response.data)
+        self.assertEqual(str(error_response.data["slug"]), "This slug is already in use on this Revenue Program")
+
     # UPDATE
     def test_page_update_updates_page(self):
         page = self.resources[0]

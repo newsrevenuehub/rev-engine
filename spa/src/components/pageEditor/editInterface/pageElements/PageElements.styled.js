@@ -4,6 +4,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 export const PageElements = styled.div`
   position: relative;
   height: 100%;
+  overflow: hidden;
 `;
 
 export const AddElementButton = styled.button`

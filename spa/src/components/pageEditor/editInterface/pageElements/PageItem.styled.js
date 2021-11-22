@@ -26,10 +26,21 @@ export const ItemIcon = styled(FontAwesomeIcon)`
 `;
 
 export const ItemContentWrapper = styled.div`
+  display: flex;
+  flex-direction: row;
+  padding: 1rem;
   flex: 1;
+`;
+
+export const ContentLeft = styled.div`
+  flex: 1;
+`;
+
+export const ContentRight = styled.div`
   display: flex;
   flex-direction: column;
-  padding: 1rem;
+  padding-left: 1rem;
+  justify-content: space-between;
 `;
 
 export const ItemName = styled.h5`

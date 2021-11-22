@@ -10,7 +10,8 @@ import { getDefaultAmountForFreq } from 'components/donationPage/pageContent/DAm
 
 // Children
 import DElement, { DynamicElementPropTypes } from 'components/donationPage/pageContent/DElement';
-import { InputGroup, GroupedLabel, GroupedWrapper } from 'elements/inputs/inputElements.styled';
+import GroupedLabel from 'elements/inputs/GroupedLabel';
+import { InputGroup, GroupedWrapper } from 'elements/inputs/inputElements.styled';
 import FormErrors from 'elements/inputs/FormErrors';
 
 function DFrequency({ element, ...props }) {

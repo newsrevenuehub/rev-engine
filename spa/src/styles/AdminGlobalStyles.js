@@ -13,23 +13,23 @@ export default createGlobalStyle`
 
   body {
     color: ${(props) => props.theme.colors.black};
-    font-family: ${(props) => props.theme.font};
+    font-family: ${(props) => props.theme.font.body};
     box-sizing: border-box;
   }
 
   p {
     color: ${(props) => props.theme.colors.black};
-    font-family: ${(props) => props.theme.font};
+    font-family: ${(props) => props.theme.font.body};
   }
 
   h1, h2 {
-    font-family: ${(props) => props.theme.font};
+    font-family: ${(props) => props.theme.font.heading};
     font-weight: normal;
   }
 
   h3, h4, h5, h6 {
     color: ${(props) => props.theme.colors.black};
-    font-family: ${(props) => props.theme.font};
+    font-family: ${(props) => props.theme.font.heading};
   }
 
   h2 {

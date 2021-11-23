@@ -20,6 +20,7 @@ import { useGlobalContext } from 'components/MainLayout';
 // Children
 import XButton from 'elements/buttons/XButton';
 import CircleButton from 'elements/buttons/CircleButton';
+import Select from 'elements/inputs/Select';
 
 const UNIQUE_NAME_ERROR = 'The fields name, organization must make a unique set.';
 
@@ -47,8 +48,9 @@ function StylesEditor({ styles, setStyles, handleKeepChanges, handleDiscardChang
     setStyles({ ...styles, radii });
   };
 
-  const setFontFamily = (fontFamily) => {
-    const font = getStyleFromFontFamily(fontFamily);
+  const setSelectedFonts = (fontType, selectedFont) => {
+    const font = { ...styles.font };
+    font[fontType] = selectedFont;
     setStyles({ ...styles, font });
   };
 
@@ -185,13 +187,17 @@ function StylesEditor({ styles, setStyles, handleKeepChanges, handleDiscardChang
         </StylesFieldset>
         <StylesFieldset label="Font">
           <S.TextExample newStyles={styles}>
+            <em>Heading</em>
             <h2>{PANGRAM}</h2>
+            <em>Heading</em>
             <h4>{PANGRAM}</h4>
+            <em>Heading</em>
             <h5>{PANGRAM}</h5>
+            <em>Body</em>
             <p>{PANGRAM}</p>
           </S.TextExample>
           <S.FieldRow>
-            <FontFamilyPicker fontFamily={getFontFamilyFromStyle(styles.font)} setFontFamily={setFontFamily} />
+            <FontFamilyPicker selectedFonts={styles.fonts} setSelectedFonts={setSelectedFonts} />
           </S.FieldRow>
           <S.FieldRow>
             <SliderPicker
@@ -317,40 +323,31 @@ function getBaseFromRadii(radii) {
   return 1;
 }
 
-const SANS_SERIF = 'SANS_SERIF';
-const SERIF = 'SERIF';
-const MONOSPACE = 'MONOSPACE';
-
-function FontFamilyPicker({ fontFamily, setFontFamily }) {
+function FontFamilyPicker({ selectedFonts = {}, setSelectedFonts }) {
   return (
     <S.FieldRow>
-      <S.Checkbox label="Serif" toggle checked={fontFamily === SERIF} onChange={() => setFontFamily(SERIF)} />
-      <S.Checkbox
-        label="Sans-serif"
-        toggle
-        checked={fontFamily === SANS_SERIF}
-        onChange={() => setFontFamily(SANS_SERIF)}
+      <Select
+        label="Heading font"
+        items={[]}
+        selectedItem={selectedFonts.heading}
+        onSelectedItemChange={({ selectedItem }) => setSelectedFonts('heading', selectedItem)}
+        testId="heading-font-select"
+        name="heading_font"
+        helpText='Choose a font for your "Heading" level text'
+        placeholder="Select a font"
       />
-      <S.Checkbox
-        label="Monospace"
-        toggle
-        checked={fontFamily === MONOSPACE}
-        onChange={() => setFontFamily(MONOSPACE)}
+      <Select
+        label="Body font"
+        items={[]}
+        selectedItem={selectedFonts.body}
+        onSelectedItemChange={({ selectedItem }) => setSelectedFonts('body', selectedItem)}
+        testId="body-font-select"
+        name="body_font"
+        helpText='Choose a font for your "Body" level text'
+        placeholder="Select a font"
       />
     </S.FieldRow>
   );
-}
-
-function getFontFamilyFromStyle(fontStyle) {
-  if (fontStyle?.includes('sans')) return SANS_SERIF;
-  else if (fontStyle?.includes('serif')) return SERIF;
-  else if (fontStyle?.includes('monospace')) return MONOSPACE;
-}
-
-function getStyleFromFontFamily(fontFamily) {
-  if (fontFamily === SANS_SERIF) return "'Montserrat', sans-serif";
-  else if (fontFamily === SERIF) return "'Times New Roman', serif";
-  else if (fontFamily === MONOSPACE) return "'Courier New', monospace";
 }
 
 function getFontSizesFromFontSize(fontSize) {

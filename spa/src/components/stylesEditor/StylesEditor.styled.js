@@ -33,7 +33,6 @@ export const StylesFieldset = styled.fieldset`
 export const FieldRow = styled.div`
   display: flex;
   flex-direction: row;
-  align-items: center;
   & > :not(:last-child) {
     margin-right: 3rem;
   }
@@ -134,6 +133,16 @@ export const TextExample = styled.div`
   padding: 3rem;
   border: 1px solid ${(props) => props.theme.colors.grey[1]};
   border-radius: ${(props) => props.theme.radii[1]};
+
+  & > * {
+    margin-top: 0;
+  }
+
+  em {
+    display: block;
+    margin-top: 1rem;
+    font-size: 10px;
+  }
 
   h2 {
     font-size: ${(props) => props.newStyles.fontSizes[3]};

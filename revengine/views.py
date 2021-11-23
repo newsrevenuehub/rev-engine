@@ -1,4 +1,3 @@
-import json
 import logging
 
 from django.conf import settings
@@ -22,7 +21,6 @@ class ReactAppView(TemplateView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         self._add_social_media_context(context)
-        context["spa_env"] = json.dumps(settings.SPA_ENV_VARS)
         return context
 
     def _add_social_media_context(self, context):

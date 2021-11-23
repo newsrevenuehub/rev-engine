@@ -1,3 +1,4 @@
+{% load revengine_tags %}
 <!DOCTYPE html>
 <html lang="en">
   <head>
@@ -15,12 +16,7 @@
     </script>
     {% endif %}
 
-    {% if spa_env %}
-    {{ spa_env|json_script:"spa_env" }}
-    <script>
-      window.ENV = JSON.parse(document.getElementById('spa_env').textContent);
-    </script>
-    {% endif %}
+    {% insert_spa_env %}
 
     <link rel="manifest" href="%PUBLIC_URL%/manifest.json" />
     <link rel="preconnect" href="https://fonts.gstatic.com" />

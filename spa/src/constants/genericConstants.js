@@ -7,7 +7,7 @@ export const HUB_GOOGLE_MAPS_API_KEY = window.ENV.HUB_GOOGLE_MAPS_API_KEY;
 export const ORG_PORTAL_SUBDOMAINS = ['', 'support'];
 
 export const HUB_STRIPE_API_PUB_KEY = window.ENV.HUB_STRIPE_API_PUB_KEY;
-export const REACT_API_VERSION = window.ENV.REACT_API_VERSION || 'v1';
+export const REVENGINE_API_VERSION = window.ENV.REVENGINE_API_VERSION || 'v1';
 export const SALESFORCE_CAMPAIGN_ID_QUERYPARAM = window.ENV.SALESFORCE_CAMPAIGN_ID_QUERYPARAM || 'campaign';
 export const FREQUENCY_QUERYPARAM = window.ENV.FREQUENCY_QUERYPARAM || 'frequency';
 export const AMOUNT_QUERYPARAM = window.ENV.AMOUNT_QUERYPARAM || 'amount';

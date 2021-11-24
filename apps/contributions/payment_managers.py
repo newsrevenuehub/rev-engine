@@ -187,8 +187,7 @@ class PaymentManager:
         if page_slug := self.data.get("donation_page_slug"):
             if donation_page := DonationPage.objects.filter(revenue_program=rev_program, slug=page_slug).first():
                 return donation_page
-            else:
-                raise PaymentBadParamsError("PaymentManager could not find a donation page with slug provided")
+            raise PaymentBadParamsError("PaymentManager could not find a donation page with slug provided")
         return rev_program.default_donation_page
 
     def get_or_create_contributor(self):

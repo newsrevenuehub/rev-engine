@@ -1,7 +1,7 @@
 from django.core.exceptions import ValidationError
 
 
-required_style_keys = {"radii": list, "font": str, "fontSizes": list}
+required_style_keys = {"radii": list, "font": dict, "fontSizes": list}
 
 
 def style_validator(value):

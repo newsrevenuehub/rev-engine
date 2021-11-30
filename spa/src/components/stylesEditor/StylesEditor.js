@@ -1,10 +1,10 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { HelpText, Label } from 'elements/inputs/BaseField.styled';
 import * as S from './StylesEditor.styled';
 
 // AJAX
 import useRequest from 'hooks/useRequest';
-import { LIST_STYLES } from 'ajax/endpoints';
+import { LIST_STYLES, LIST_FONTS } from 'ajax/endpoints';
 
 // Assets
 import { faSave, faTimes, faTrash } from '@fortawesome/free-solid-svg-icons';
@@ -14,6 +14,9 @@ import { GENERIC_ERROR } from 'constants/textConstants';
 import { useAlert } from 'react-alert';
 import { ChromePicker } from 'react-color';
 
+// Hooks
+import useWebFonts from 'hooks/useWebFonts';
+
 // Context
 import { useGlobalContext } from 'components/MainLayout';
 
@@ -21,6 +24,7 @@ import { useGlobalContext } from 'components/MainLayout';
 import XButton from 'elements/buttons/XButton';
 import CircleButton from 'elements/buttons/CircleButton';
 import Select from 'elements/inputs/Select';
+import Spinner from 'elements/Spinner';
 
 const UNIQUE_NAME_ERROR = 'The fields name, organization must make a unique set.';
 
@@ -31,9 +35,13 @@ function StylesEditor({ styles, setStyles, handleKeepChanges, handleDiscardChang
   const { getUserConfirmation } = useGlobalContext();
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
+  const [availableFonts, setAvailableFonts] = useState([]);
+  const requestGetFonts = useRequest();
   const requestCreateStyles = useRequest();
   const requestUpdateStyles = useRequest();
   const requestDeleteStyles = useRequest();
+
+  useWebFonts(styles.font);
 
   const setName = (name) => {
     setStyles({ ...styles, name });
@@ -49,7 +57,10 @@ function StylesEditor({ styles, setStyles, handleKeepChanges, handleDiscardChang
   };
 
   const setSelectedFonts = (fontType, selectedFont) => {
-    const font = { ...styles.font };
+    let font = {};
+    if (typeof styles.font !== 'string') {
+      font = { ...styles.font };
+    }
     font[fontType] = selectedFont;
     setStyles({ ...styles, font });
   };
@@ -62,6 +73,23 @@ function StylesEditor({ styles, setStyles, handleKeepChanges, handleDiscardChang
   /*************\ 
    * AJAX BITS *
   \*************/
+  useEffect(() => {
+    setLoading(true);
+    requestGetFonts(
+      { method: 'GET', url: LIST_FONTS },
+      {
+        onSuccess: ({ data }) => {
+          setLoading(false);
+          setAvailableFonts(data);
+        },
+        onFailure: () => {
+          setLoading(false);
+          alert.error(GENERIC_ERROR);
+        }
+      }
+    );
+  }, [alert]);
+
   const styleDetailUrl = `${LIST_STYLES}${styles.id}/`;
 
   const handleRequestSuccess = ({ data }) => {
@@ -186,18 +214,18 @@ function StylesEditor({ styles, setStyles, handleKeepChanges, handleDiscardChang
           </S.FieldRow>
         </StylesFieldset>
         <StylesFieldset label="Font">
-          <S.TextExample newStyles={styles}>
-            <em>Heading</em>
-            <h2>{PANGRAM}</h2>
-            <em>Heading</em>
-            <h4>{PANGRAM}</h4>
-            <em>Heading</em>
-            <h5>{PANGRAM}</h5>
-            <em>Body</em>
-            <p>{PANGRAM}</p>
+          <S.TextExample>
+            <S.PangramText newStyles={styles}>
+              <em>Heading</em>
+              <h2>{PANGRAM}</h2>
+              <em>Heading</em>
+              <h4>{PANGRAM}</h4>
+              <em>Body</em>
+              <p>{PANGRAM}</p>
+            </S.PangramText>
           </S.TextExample>
           <S.FieldRow>
-            <FontFamilyPicker selectedFonts={styles.fonts} setSelectedFonts={setSelectedFonts} />
+            <FontFamilyPicker fonts={availableFonts} selectedFonts={styles.font} setSelectedFonts={setSelectedFonts} />
           </S.FieldRow>
           <S.FieldRow>
             <SliderPicker
@@ -323,28 +351,30 @@ function getBaseFromRadii(radii) {
   return 1;
 }
 
-function FontFamilyPicker({ selectedFonts = {}, setSelectedFonts }) {
+function FontFamilyPicker({ fonts, selectedFonts = {}, setSelectedFonts }) {
   return (
     <S.FieldRow>
       <Select
         label="Heading font"
-        items={[]}
-        selectedItem={selectedFonts.heading}
+        items={fonts}
+        selectedItem={selectedFonts.heading || ''}
         onSelectedItemChange={({ selectedItem }) => setSelectedFonts('heading', selectedItem)}
         testId="heading-font-select"
         name="heading_font"
         helpText='Choose a font for your "Heading" level text'
         placeholder="Select a font"
+        displayAccessor="name"
       />
       <Select
         label="Body font"
-        items={[]}
-        selectedItem={selectedFonts.body}
+        items={fonts}
+        selectedItem={selectedFonts.body || ''}
         onSelectedItemChange={({ selectedItem }) => setSelectedFonts('body', selectedItem)}
         testId="body-font-select"
         name="body_font"
         helpText='Choose a font for your "Body" level text'
         placeholder="Select a font"
+        displayAccessor="name"
       />
     </S.FieldRow>
   );

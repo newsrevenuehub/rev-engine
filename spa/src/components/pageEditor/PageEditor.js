@@ -39,7 +39,8 @@ import { faEye, faEdit, faSave, faTrash, faClone } from '@fortawesome/free-solid
 import { useGlobalContext } from 'components/MainLayout';
 import validatePage from './validatePage';
 
-//
+// Hooks
+import useWebFonts from 'hooks/useWebFonts';
 import { useConfigureAnalytics } from 'components/analytics';
 
 // Children
@@ -97,6 +98,8 @@ function PageEditor() {
   const requestPageDeletion = useRequest();
 
   const history = useHistory();
+
+  useWebFonts(page?.styles?.font);
 
   useConfigureAnalytics();
 

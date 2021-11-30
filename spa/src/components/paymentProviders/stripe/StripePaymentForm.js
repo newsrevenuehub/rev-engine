@@ -323,8 +323,3 @@ function StripePaymentForm({ loading, setLoading, offerPayFees }) {
 }
 
 export default StripePaymentForm;
-
-function getElementValidator(elementType) {
-  const El = dynamicElements[elementType];
-  return El.validator;
-}

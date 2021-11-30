@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <meta name="theme-color" content="#000000" />
+    <meta name="description" content="RevEngine" />
+
+    <script id="spa_env" type="application/json" nonce="">
+        {"HUB_V3_GOOGLE_ANALYTICS_ID": <%= JSON.stringify(htmlWebpackPlugin.options.HUB_V3_GOOGLE_ANALYTICS_ID) %>}
+    </script>
+    <script nonce="">
+        window.ENV = JSON.parse(document.getElementById('spa_env').textContent);
+    </script>
+    <link rel="manifest" href="%PUBLIC_URL%/manifest.json" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,100;0,300;0,400;0,700;1,100;1,200;1,400;1,700&display=swap"
+      rel="stylesheet"
+    />
+
+    <title>RevEngine</title>
+  </head>
+  <body>
+    <noscript>You need to enable JavaScript to run this app.</noscript>
+    <div id="root"></div>
+    <div id="modal-root"></div>
+  </body>
+</html>

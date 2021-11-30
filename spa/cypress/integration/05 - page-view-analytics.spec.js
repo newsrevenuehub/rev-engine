@@ -14,7 +14,7 @@ import { VERIFY_TOKEN } from 'ajax/endpoints';
 import livePageFixture from '../fixtures/pages/live-page-1.json';
 import { LIVE_PAGE_DETAIL } from 'ajax/endpoints';
 import { getEndpoint, getTestingDonationPageUrl, EXPECTED_RP_SLUG } from '../support/util';
-import { HUB_GA_V3_ID } from 'settings';
+import { TEST_HUB_GA_V3_ID } from '../../testSettings';
 
 const REVENUE_PROGRAM = EXPECTED_RP_SLUG;
 const PAGE_NAME = 'mypage';
@@ -47,7 +47,7 @@ describe('Pages that are only tracked by Hub', () => {
         method: 'POST',
         query: {
           t: 'pageview',
-          tid: HUB_GA_V3_ID
+          tid: TEST_HUB_GA_V3_ID
         }
       },
       { statusCode: 200, body: {} }
@@ -93,7 +93,7 @@ describe.skip('Special case: page tracking for contributor dashboard', () => {
         url: 'https://www.google-analytics.com/j/collect*',
         query: {
           t: 'pageview',
-          tid: HUB_GA_V3_ID,
+          tid: TEST_HUB_GA_V3_ID,
           dl: `**${CONTRIBUTOR_DASHBOARD}`
         }
       },
@@ -120,7 +120,7 @@ describe('Pages that are tracked by both the hub and the org', () => {
         pathname: gaV3CollectUrl.pathname,
         query: {
           t: 'pageview',
-          tid: HUB_GA_V3_ID
+          tid: TEST_HUB_GA_V3_ID
         }
       },
       { statusCode: 200, body: {} }

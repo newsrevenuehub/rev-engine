@@ -66,6 +66,7 @@
   },
   "scripts": {
     "start": "craco start",
+    "start:test": "export NODE_ENV=test && craco start",
     "start:subdomains": "DANGEROUSLY_DISABLE_HOST_CHECK=true craco start",
     "build": "INLINE_RUNTIME_CHUNK=false craco build",
     "cypress:open": "cypress open",

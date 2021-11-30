@@ -28,7 +28,6 @@ import submitPayment, { serializeData, getTotalAmount, amountToCents, StripeErro
 
 // Context
 import { usePage } from 'components/donationPage/DonationPage';
-import * as dynamicElements from 'components/donationPage/pageContent/dynamicElements';
 
 // Analytics
 import { useAnalyticsContext } from 'components/analytics/AnalyticsContext';

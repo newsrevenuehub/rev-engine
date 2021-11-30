@@ -16,26 +16,8 @@
     {% endif %}
 
     <link rel="manifest" href="%PUBLIC_URL%/manifest.json" />
-    {% comment %}
-    <link rel="preconnect" href="https://fonts.gstatic.com" />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,100;0,300;0,400;0,700;1,100;1,200;1,400;1,700&display=swap"
-      rel="stylesheet"
-    />
-    {% endcomment %}
-    <script
-      nonce="{{ request.csp_nonce }}"
-      src="https://ajax.googleapis.com/ajax/libs/webfont/1.6.26/webfont.js"
-    ></script>
-    <script nonce="{{ request.csp_nonce }}">
-      WebFont.load({
-        google: {
-          families: ['Montserrat:ital,wght@0,100;0,300;0,400;0,700;1,400']
-        }
-      });
-    </script>
 
-    {% if social_meta %}
+    {% include "webfonts.html" %} {% if social_meta %}
     <meta name="og:type" content="website" />
     <meta name="og:url" content="{{ social_meta.url }}" />
     <meta name="og:title" content="{{ social_meta.title }}" />

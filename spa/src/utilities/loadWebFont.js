@@ -1,6 +1,6 @@
 import { GOOGLE_FONT_MODS } from 'constants/genericConstants';
 
-const loadWebFont = (fontObj, context) =>
+const loadWebFont = (fontObj) =>
   new Promise((resolve, reject) => {
     const webfontConfig = {};
     if (fontObj.source === 'typekit') {
@@ -9,10 +9,9 @@ const loadWebFont = (fontObj, context) =>
     if (fontObj.source === 'google') {
       webfontConfig.families = [`${fontObj.accessor}:${GOOGLE_FONT_MODS}`];
     }
-    console.log('that context tho', context);
+
     window.WebFont.load({
       [fontObj.source]: webfontConfig,
-      context,
       active: resolve,
       inactive: reject
     });

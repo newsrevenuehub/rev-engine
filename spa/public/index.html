@@ -34,7 +34,7 @@
     <meta name="twitter:creator" content="{{ social_meta.twitter_handle }}" />
     {% endif %}
 
-    <title>RevEngine</title>
+    <title>{% if revenue_program_name %}Join | {{ revenue_program_name }}{% else %}RevEngine{% endif %}</title>
   </head>
   <body>
     <noscript>You need to enable JavaScript to run this app.</noscript>

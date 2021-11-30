@@ -30,7 +30,7 @@ import { CONTENT_SLUG } from 'routes';
 import { GENERIC_ERROR } from 'constants/textConstants';
 
 // Settings
-import { CAPTURE_PAGE_SCREENSHOT } from 'constants/genericConstants';
+import { CAPTURE_PAGE_SCREENSHOT } from 'settings';
 
 // Assets
 import { faEye, faEdit, faSave, faTrash, faClone } from '@fortawesome/free-solid-svg-icons';

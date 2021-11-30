@@ -20,7 +20,7 @@ import DonationPageSidebar from 'components/donationPage/DonationPageSidebar';
 import DonationPageStaticText from 'components/donationPage/DonationPageStaticText';
 import DonationPageFooter from 'components/donationPage/DonationPageFooter';
 
-import { SALESFORCE_CAMPAIGN_ID_QUERYPARAM, FREQUENCY_QUERYPARAM, AMOUNT_QUERYPARAM } from 'constants/genericConstants';
+import { SALESFORCE_CAMPAIGN_ID_QUERYPARAM, FREQUENCY_QUERYPARAM, AMOUNT_QUERYPARAM } from 'settings';
 
 const DonationPageContext = createContext({});
 

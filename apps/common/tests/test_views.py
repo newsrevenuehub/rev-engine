@@ -13,11 +13,11 @@ class ReactAppViewTestCase(TestCase):
         print(response.status_code)
         print(response.content)
         self.assertEqual(response.status_code, 200)
-        # self.assertIn(response.content, f"<title>Join | {self.revenue_program.name}</title>")
+        self.assertIn(f"<title>Join | {self.revenue_program.name}</title>", str(response.content))
 
     def test_page_title_is_default_when_not_subdomain(self):
         response = self.client.get(reverse("index"))
         print(response.status_code)
         print(response.content)
         self.assertEqual(response.status_code, 200)
-        # self.assertIn(response.content, "<title>RevEngine</title>")
+        self.assertIn("<title>RevEngine</title>", str(response.content))

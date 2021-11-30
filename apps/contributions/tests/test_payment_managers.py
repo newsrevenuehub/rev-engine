@@ -130,6 +130,22 @@ class StripeOneTimePaymentManagerTest(StripePaymentManagerAbstractTestCase):
         )
         mock_delete_sub.assert_not_called()
 
+    @patch("apps.contributions.payment_managers.logger.warning")
+    @responses.activate
+    def test_badactor_validation_error_logs_warning(self, logger_warning):
+        self._create_mock_ba_response(target_score=2)
+        data = self.data
+        data["ip"] = ""
+        pm = self._instantiate_payment_manager_with_data(data=data)
+        self.assertIsNone(pm.validate())
+        pm.get_bad_actor_score()
+        # First, ensure that badactor is still called.
+        self.assertEqual(len(responses.calls), 1)
+        # Then ensure that logger.warning is called
+        logger_warning.assert_called_once_with(
+            "BadActor serializer raised a ValidationError: {'ip': [ErrorDetail(string='This information is required', code='blank')]}"
+        )
+
     def test_calling_badactor_before_validate_throws_error(self):
         pm = self._instantiate_payment_manager_with_data()
         with self.assertRaises(ValueError) as e:
@@ -309,6 +325,7 @@ class StripeOneTimePaymentManagerTest(StripePaymentManagerAbstractTestCase):
 
         with self.assertRaises(PaymentBadParamsError) as e2:
             data = self.data
+            data["revenue_program_slug"] = self.revenue_program.slug
             data["donation_page_slug"] = "doesnt-exist"
             pm = StripePaymentManager(data=data)
             pm.validate()
@@ -468,25 +485,6 @@ class StripeRecurringPaymentManagerTest(StripePaymentManagerAbstractTestCase):
         mock_sub_create.assert_called_once()
         self.assertEqual(str(e.exception), "Could not complete payment")
 
-    def test_get_donation_page_should_work_with_contribution_or_validated_data(self, *args):
-        """
-        Test against regression on a bug in which ContributionMetadata lookup_map.re_revenue_program_id
-        accessed payment_manager.get_donation_page, which expected validated data rather than the instance of
-        a Contribution that is available when flagged donations are accepted.
-        """
-        pm_i = self._instantiate_payment_manager_with_instance()
-        donation_page_i = pm_i.get_donation_page()
-        self.assertIsNotNone(donation_page_i)
-
-        pm_v = self._instantiate_payment_manager_with_data()
-        pm_v.validate()
-        donation_page_v = pm_v.get_donation_page()
-        self.assertIsNotNone(donation_page_v)
-
-        # It should raise a ValueError if instantiated with data but not validated
-        pm_v = self._instantiate_payment_manager_with_data()
-        self.assertRaises(ValueError, pm_v.get_donation_page)
-
     def test_get_donation_page_should_work_with_default_donation_page(self, *args):
         """
         Further strengthen the get_donation_page method by ensuring that it can be called without a page slug.
@@ -507,6 +505,3 @@ class StripeRecurringPaymentManagerTest(StripePaymentManagerAbstractTestCase):
         pm = self._instantiate_payment_manager_with_instance()
         revenue_program = pm.get_revenue_program()
         self.assertIsNotNone(revenue_program)
-
-    # def test_create_one_time_payment_adds_metadata_to_contribution(self):
-    # def test_create_subscription_adds_metadata_to_contribution

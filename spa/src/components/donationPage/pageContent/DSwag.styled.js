@@ -23,7 +23,9 @@ export const ThresholdMessage = styled.p`
 `;
 
 export const SwagsSection = styled(motion.div)`
-  margin-top: 1rem;
+  & > div {
+    margin: 1rem 0;
+  }
 `;
 
 export const SwagsList = styled(motion.ul)`
@@ -37,6 +39,4 @@ export const SwagItem = styled(motion.div)`
 
 export const SwagName = styled.p``;
 
-export const SwagOptions = styled.div`
-  max-width: 300px;
-`;
+export const SwagOptions = styled.div``;

@@ -56,7 +56,7 @@ function AddElementModal({ addElementModalOpen, setAddElementModalOpen, destinat
   return (
     <Modal isOpen={addElementModalOpen} closeModal={() => setAddElementModalOpen(false)}>
       {addElementModalOpen && (
-        <S.AddElementModal>
+        <S.AddElementModal data-testid="add-page-modal">
           <S.ModalContent>
             <S.AvailableElements>{renderDynamicLayoutElements()}</S.AvailableElements>
           </S.ModalContent>

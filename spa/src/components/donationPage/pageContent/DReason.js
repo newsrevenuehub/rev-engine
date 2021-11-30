@@ -12,7 +12,8 @@ import { usePage } from '../DonationPage';
 import DElement, { DynamicElementPropTypes } from 'components/donationPage/pageContent/DElement';
 
 // Children
-import { InputGroup, GroupedLabel, GroupedWrapper } from 'elements/inputs/inputElements.styled';
+import GroupedLabel from 'elements/inputs/GroupedLabel';
+import { InputGroup, GroupedWrapper } from 'elements/inputs/inputElements.styled';
 import Select from 'elements/inputs/Select';
 
 const defaultTributeState = {
@@ -47,7 +48,7 @@ function DReason({ element, ...props }) {
 
   const getReasons = () => {
     const reasons = [...element.content.reasons];
-    if (!element.content.reasonRequired) reasons.unshift(NO_REASON_OPT);
+    if (!element?.requiredFields?.includes('reason_for_giving')) reasons.unshift(NO_REASON_OPT);
     reasons.push(REASON_OTHER);
     return reasons;
   };
@@ -59,7 +60,9 @@ function DReason({ element, ...props }) {
       <S.ReasonGroup>
         {elementContent.askReason && (
           <InputGroup>
-            <GroupedLabel>I support your work because...</GroupedLabel>
+            <GroupedLabel required={element?.requiredFields?.includes('reason_for_giving')}>
+              I support your work because...
+            </GroupedLabel>
             <S.SupportOptions>
               {elementContent.reasons.length > 0 && (
                 <Select
@@ -68,6 +71,7 @@ function DReason({ element, ...props }) {
                   selectedItem={selectedReason}
                   onSelectedItemChange={({ selectedItem }) => setSelectedReason(selectedItem)}
                   items={getReasons()}
+                  errors={errors?.reason_for_giving}
                 />
               )}
               <AnimatePresence>

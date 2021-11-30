@@ -102,3 +102,11 @@ Cypress.Commands.add('interceptPaginatedDonations', () => {
     req.reply(api.getResponse(pageSize, pageNum, ordering, filters));
   }).as('getDonations');
 });
+
+Cypress.Commands.add('editElement', (elementType) => {
+  cy.getByTestId(`page-item-${elementType}`)
+    .first()
+    .within(() => {
+      cy.getByTestId('pencil-button').click({ force: true });
+    });
+});

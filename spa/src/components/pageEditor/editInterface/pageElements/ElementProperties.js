@@ -39,7 +39,8 @@ function ElementProperties({ selectedElementType }) {
     elements,
     setElements,
     sidebarElements,
-    setSidebarElements
+    setSidebarElements,
+    handleRemoveElement
   } = useEditInterfaceContext();
 
   const changesAreValid = () => {
@@ -73,14 +74,8 @@ function ElementProperties({ selectedElementType }) {
   };
 
   const handleDeleteElement = () => {
-    if (!dynamicElements[selectedElement.type]?.required) {
-      const isForSidebar = selectedElementType === 'sidebar';
-      const elementsCopy = isForSidebar ? [...sidebarElements] : [...elements];
-      const elementsWithout = elementsCopy.filter((el) => el.uuid !== selectedElement.uuid);
-      if (isForSidebar) setSidebarElements(elementsWithout);
-      else setElements(elementsWithout);
-      setSelectedElement();
-    }
+    handleRemoveElement(selectedElement, selectedElementType);
+    setSelectedElement();
   };
 
   if (!dynamicElements[selectedElement.type]) {

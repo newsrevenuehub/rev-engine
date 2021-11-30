@@ -88,11 +88,12 @@ function StripePaymentForm({ loading, setLoading, offerPayFees }) {
   \****************************/
   const handlePaymentSuccess = (pr) => {
     if (pr) pr.complete('success');
+    const totalAmount = getTotalAmount(amount, payFee, frequency, page.organization_is_nonprofit);
     setErrors({});
     setStripeError(null);
     setLoading(false);
     setSucceeded(true);
-    trackConversion(amount);
+    trackConversion(totalAmount);
     if (page.thank_you_redirect) {
       window.location = page.thank_you_redirect;
     } else {
@@ -100,7 +101,7 @@ function StripePaymentForm({ loading, setLoading, offerPayFees }) {
       const donationPageUrl = window.location.href;
       history.push({
         pathname: url === '/' ? THANK_YOU_SLUG : url + THANK_YOU_SLUG,
-        state: { page, amount, email, donationPageUrl }
+        state: { page, amount: totalAmount, email, donationPageUrl }
       });
     }
   };
@@ -285,7 +286,7 @@ function StripePaymentForm({ loading, setLoading, offerPayFees }) {
         <PaymentRequestButtonElement options={{ paymentRequest, style: S.PaymentRequestButtonStyle }} />
       </S.PaymentRequestWrapper>
       <S.PayWithCardOption onClick={() => setForceManualCard(true)}>
-        -- or manually enter credit card --
+        - I prefer to manually enter my credit card -
       </S.PayWithCardOption>
     </>
   ) : (

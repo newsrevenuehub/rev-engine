@@ -32,7 +32,7 @@ class StripePaymentViewTestAbstract(APITestCase):
     def setUp(self):
         self.organization = OrganizationFactory()
         self.revenue_program = RevenueProgramFactory(organization=self.organization)
-        self.page = DonationPageFactory()
+        self.page = DonationPageFactory(revenue_program=self.revenue_program)
         self.contributor = ContributorFactory()
 
         self.url = reverse("stripe-payment")
@@ -52,6 +52,7 @@ class StripePaymentViewTestAbstract(APITestCase):
                 "first_name": "Test",
                 "last_name": "Tester",
                 "amount": self.payment_amount,
+                "donor_selected_amount": self.payment_amount,
                 "mailing_postal_code": 12345,
                 "mailing_street": "123 Fake Street",
                 "mailing_city": "Fakerton",

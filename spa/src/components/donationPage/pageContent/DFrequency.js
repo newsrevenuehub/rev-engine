@@ -10,7 +10,8 @@ import { getDefaultAmountForFreq } from 'components/donationPage/pageContent/DAm
 
 // Children
 import DElement, { DynamicElementPropTypes } from 'components/donationPage/pageContent/DElement';
-import { InputGroup, GroupedLabel, GroupedWrapper } from 'elements/inputs/inputElements.styled';
+import GroupedLabel from 'elements/inputs/GroupedLabel';
+import { InputGroup, GroupedWrapper } from 'elements/inputs/inputElements.styled';
 import FormErrors from 'elements/inputs/FormErrors';
 
 function DFrequency({ element, ...props }) {
@@ -32,11 +33,10 @@ function DFrequency({ element, ...props }) {
         <GroupedLabel>Choose a contribution type</GroupedLabel>
         <GroupedWrapper>
           {element?.content?.sort(frequencySort).map((freq) => (
-            <S.CheckBoxField>
+            <S.CheckBoxField key={freq.value}>
               <S.Radio
                 id={freq.value}
                 name="interval"
-                key={freq.value}
                 value={freq.value}
                 checked={frequency === freq.value}
                 onChange={handleFrequencySelected}

@@ -357,7 +357,10 @@ NON_DONATION_PAGE_SUBDOMAINS = os.getenv("NON_DONATION_PAGE_SUBDOMAINS", ["suppo
 # )
 CSP_REPORT_ONLY = os.getenv("CSP_REPORT_ONLY", True)
 CSP_REPORT_URI = f"https://o320544.ingest.sentry.io/api/6046263/security/?sentry_key=d576a6738e41453db36130d03e4e95be&sentry_environment={ENVIRONMENT}"
-CSP_DEFAULT_SRC = ("'self'",)
+CSP_DEFAULT_SRC = (
+    "'self'",
+    "*.fundjournalism.org",
+)
 CSP_SCRIPT_SRC = (
     "'self'",
     "'unsafe-inline'",  # this is gross. Fix me ASAP
@@ -404,6 +407,11 @@ CSP_CONNECT_SRC = (
 )
 CSP_OBJECT_SRC = ("'none'",)
 
+# More security headers
+SECURE_CONTENT_TYPE_NOSNIFF = True
+X_FRAME_OPTIONS = "SAMEORIGIN"
+SECURE_REFERRER_POLICY = "strict-origin-when-cross-origin"
+
 # Stripe API Target Version
 STRIPE_API_VERSION = "2020-08-27"
 
@@ -419,3 +427,7 @@ SPA_ENV_VARS = {
     "HUB_GOOGLE_MAPS_API_KEY": os.getenv("SPA_ENV_HUB_GOOGLE_MAPS_API_KEY"),
     "HUB_V3_GOOGLE_ANALYTICS_ID": os.getenv("SPA_ENV_HUB_V3_GOOGLE_ANALYTICS_ID"),
 }
+
+# Meta data static values
+METADATA_SOURCE = os.getenv("METADATA_SOURCE", "rev-engine")
+METADATA_SCHEMA_VERSION = os.getenv("METADATA_SCHEMA_VERSION", "1.0")

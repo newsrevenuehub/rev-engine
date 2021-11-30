@@ -13,7 +13,8 @@ import { usePage } from '../DonationPage';
 import Select from 'elements/inputs/Select';
 import Checkbox from 'elements/inputs/Checkbox';
 import DElement, { DynamicElementPropTypes } from 'components/donationPage/pageContent/DElement';
-import { GroupedLabel, InputGroup } from 'elements/inputs/inputElements.styled';
+import GroupedLabel from 'elements/inputs/GroupedLabel';
+import { InputGroup } from 'elements/inputs/inputElements.styled';
 
 function calculateYearlyAmount(frequency, amount) {
   let yearlyTotal = amount;
@@ -149,6 +150,8 @@ function SwagItem({ swag, isOnlySwag, ...props }) {
           selectedItem={selectedSwagOption}
           onSelectedItemChange={({ selectedItem }) => setSelectedSwagOption(selectedItem)}
           items={swagOptions}
+          helpText="Your contribution comes with member merchandise. Please choose an option."
+          maxWidth="300px"
         />
       </S.SwagOptions>
     </InputGroup>

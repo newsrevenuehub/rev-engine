@@ -7,6 +7,7 @@ import { useEditInterfaceContext } from 'components/pageEditor/editInterface/Edi
 
 // Children
 import DraggableList from 'elements/draggable/DraggableList';
+import ScrollBox from 'elements/ScrollBox';
 
 /**
  * PageElements
@@ -16,17 +17,20 @@ import DraggableList from 'elements/draggable/DraggableList';
  *
  * PageElements is a direct child of EditInterface.
  */
-function PageElements({ openAddElementModal, goToProperties }) {
+function PageElements({ openAddElementModal, goToProperties, handleRemoveElement }) {
   const { elements, setElements } = useEditInterfaceContext();
 
   return (
     <S.PageElements>
       {elements && elements?.length > 0 ? (
-        <DraggableList
-          elements={elements}
-          setElements={setElements}
-          handleItemClick={(element) => goToProperties(element, 'layout')}
-        />
+        <ScrollBox>
+          <DraggableList
+            elements={elements}
+            setElements={setElements}
+            handleItemEdit={(element) => goToProperties(element, 'layout')}
+            handleItemDelete={(element) => handleRemoveElement(element, 'layout')}
+          />
+        </ScrollBox>
       ) : (
         <EmptyElements />
       )}

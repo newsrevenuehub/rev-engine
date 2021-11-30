@@ -9,4 +9,4 @@ serializers.CharField.default_error_messages["blank"] = GENERIC_BLANK
 
 
 # Model-field specific
-UNIQUE_PAGE_SLUG = "This slug has already been used"
+UNIQUE_PAGE_SLUG = "This slug is already in use on this Revenue Program"

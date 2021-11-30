@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { useAnalyticsContext } from './AnalyticsContext';
-import { HUB_GA_V3_ID } from 'constants/analyticsConstants';
+import { HUB_GA_V3_ID } from 'settings';
 
 export function useConfigureAnalytics({
   orgGaV3Id,

@@ -30,7 +30,7 @@ import { CONTENT_SLUG } from 'routes';
 import { GENERIC_ERROR } from 'constants/textConstants';
 
 // Settings
-import { REACT_APP_CAPTURE_PAGE_SCREENSHOT } from 'settings';
+import { CAPTURE_PAGE_SCREENSHOT } from 'settings';
 
 // Assets
 import { faEye, faEdit, faSave, faTrash, faClone } from '@fortawesome/free-solid-svg-icons';
@@ -278,7 +278,7 @@ function PageEditor() {
     let data = cleanImageKeys(patchedPage);
     data = cleanData(data);
     data = processPageData(data);
-    if (REACT_APP_CAPTURE_PAGE_SCREENSHOT) data = await addScreenshotToCleanedData(data, page.name);
+    if (CAPTURE_PAGE_SCREENSHOT) data = await addScreenshotToCleanedData(data, page.name);
     requestPatchPage(
       {
         method: 'PATCH',

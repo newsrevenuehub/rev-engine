@@ -413,9 +413,20 @@ X_FRAME_OPTIONS = "SAMEORIGIN"
 SECURE_REFERRER_POLICY = "strict-origin-when-cross-origin"
 
 # Stripe API Target Version
-# Make sure this is also updated in genericConstants.js for the frontend
 STRIPE_API_VERSION = "2020-08-27"
 
+# Front End Environment Variables - Config Vars Heroku
+SPA_ENV_VARS = {
+    "HUB_STRIPE_API_PUB_KEY": os.getenv("SPA_ENV_HUB_STRIPE_API_PUB_KEY"),
+    "CAPTURE_PAGE_SCREENSHOT": os.getenv("SPA_ENV_CAPTURE_PAGE_SCREENSHOT"),
+    "APP_SALESFORCE_CAMPAIGN_ID_QUERYPARAM": os.getenv("SPA_ENV_APP_SALESFORCE_CAMPAIGN_ID_QUERYPARAM"),
+    "FREQUENCY_QUERYPARAM": os.getenv("SPA_ENV_FREQUENCY_QUERYPARAM"),
+    "AMOUNT_QUERYPARAM": os.getenv("SPA_ENV_AMOUNT_QUERYPARAM"),
+    "REVENGINE_API_VERSION": os.getenv("SPA_ENV_REVENGINE_API_VERSION"),
+    "STRIPE_API_VERSION": STRIPE_API_VERSION,
+    "HUB_GOOGLE_MAPS_API_KEY": os.getenv("SPA_ENV_HUB_GOOGLE_MAPS_API_KEY"),
+    "HUB_V3_GOOGLE_ANALYTICS_ID": os.getenv("SPA_ENV_HUB_V3_GOOGLE_ANALYTICS_ID"),
+}
 
 # Meta data static values
 METADATA_SOURCE = os.getenv("METADATA_SOURCE", "rev-engine")

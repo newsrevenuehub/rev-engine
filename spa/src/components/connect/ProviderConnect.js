@@ -12,7 +12,7 @@ import { useOrganizationContext } from 'components/Main';
 import { useAlert } from 'react-alert';
 
 // Constants
-import { LS_USER } from 'constants/authConstants';
+import { LS_USER } from 'settings';
 import { GENERIC_ERROR } from 'constants/textConstants';
 
 // Children

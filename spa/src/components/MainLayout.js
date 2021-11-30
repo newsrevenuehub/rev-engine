@@ -5,7 +5,7 @@ import * as S from './MainLayout.styled';
 import useSubdomain from 'hooks/useSubdomain';
 
 // Constants
-import { ORG_PORTAL_SUBDOMAINS } from 'constants/genericConstants';
+import { ORG_PORTAL_SUBDOMAINS } from 'settings';
 
 // Analytics
 import { AnalyticsContextWrapper } from './analytics/AnalyticsContext';

@@ -46,3 +46,7 @@ if os.getenv("TEST_EMAIL", "False") == "True":
 BROKER_URL = "redis://localhost:6379"
 CELERY_RESULT_BACKEND = "redis://localhost:6379"
 CELERY_IMPORTS = ("apps.emails.tasks",)
+
+# Serve SPA via django
+FRONTEND_BUILD_DIR = Path(BASE_DIR) / "spa/public"
+TEMPLATES[0]["DIRS"] = [FRONTEND_BUILD_DIR, os.path.join(PROJECT_DIR, "templates")]

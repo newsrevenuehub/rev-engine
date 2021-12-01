@@ -2,9 +2,10 @@
 export const ORG_PORTAL_SUBDOMAINS = ['', 'support'];
 
 //Rev Engine - General
-export const REVENGINE_API_VERSION = window.ENV?.REVENGINE_API_VERSION || 'v1';
-export const FREQUENCY_QUERYPARAM = window.ENV?.FREQUENCY_QUERYPARAM || 'frequency';
-export const AMOUNT_QUERYPARAM = window.ENV?.AMOUNT_QUERYPARAM || 'amount';
+export const REVENGINE_API_VERSION = window.ENV?.REVENGINE_API_VERSION;
+export const FREQUENCY_QUERYPARAM = window.ENV?.FREQUENCY_QUERYPARAM;
+export const AMOUNT_QUERYPARAM = window.ENV?.AMOUNT_QUERYPARAM;
+export const SALESFORCE_CAMPAIGN_ID_QUERYPARAM = window.ENV?.SALESFORCE_CAMPAIGN_ID_QUERYPARAM;
 export const CAPTURE_PAGE_SCREENSHOT = window.ENV?.CAPTURE_PAGE_SCREENSHOT === 'true';
 
 // Analytics
@@ -31,6 +32,3 @@ export const HUB_GOOGLE_MAPS_API_KEY = window.ENV?.HUB_GOOGLE_MAPS_API_KEY;
 // Stripe
 export const HUB_STRIPE_API_PUB_KEY = window.ENV?.HUB_STRIPE_API_PUB_KEY;
 export const STRIPE_API_VERSION = window.ENV?.STRIPE_API_VERSION;
-
-// Salesforce
-export const SALESFORCE_CAMPAIGN_ID_QUERYPARAM = window.ENV?.SALESFORCE_CAMPAIGN_ID_QUERYPARAM || 'campaign';

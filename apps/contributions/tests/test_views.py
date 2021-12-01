@@ -7,6 +7,7 @@ from django.urls import reverse
 from faker import Faker
 from rest_framework.test import APIRequestFactory, APITestCase
 from stripe.error import StripeError
+from stripe.oauth_error import InvalidGrantError as StripeInvalidGrantError
 from stripe.stripe_object import StripeObject
 
 from apps.contributions.models import Contribution, ContributionInterval, Contributor
@@ -150,36 +151,86 @@ class MockStripeAccount(StripeObject):
 MOCK_ACCOUNT_LINKS = {"test": "test"}
 
 
-class StripeOnboardingTest(APITestCase):
+class MockOAuthResponse(StripeObject):
+    def __init__(self, *args, **kwargs):
+        self.stripe_user_id = kwargs.get("stripe_user_id")
+        self.refresh_token = kwargs.get("refresh_token")
+
+
+expected_oauth_scope = "my_test_scope"
+
+
+@override_settings(STRIPE_OAUTH_SCOPE=expected_oauth_scope)
+class StripeOAuthTest(APITestCase):
     def setUp(self):
         self.user = get_user_model().objects.create(email="user@test.com", password="testing")
         self.organization = OrganizationFactory(name="My Organization")
         self.organization.user_set.through.objects.create(organization=self.organization, user=self.user, is_owner=True)
 
-        self.url = reverse("stripe-onboarding")
+        self.url = reverse("stripe-oauth")
 
-    # @patch("stripe.Account.create", side_effect=MockStripeAccount)
-    # @patch("stripe.AccountLink.create", side_effect=MOCK_ACCOUNT_LINKS)
-    # def test_successful_onboarding(self, *args):
-    #     """
-    #     Test happy-path
-    #     """
-    #     self.client.force_authenticate(user=self.user)
-    #     response = self.client.post(self.url)
-    #     # response should be 200, with test account link value
-    #     self.assertContains(response, "test")
-    #     self.organization.refresh_from_db()
-    #     self.assertEqual(self.organization.stripe_account_id, TEST_STRIPE_ACCOUNT_ID)
+    def _make_request(self, code=None, scope=None):
+        self.client.force_authenticate(user=self.user)
+        body = {}
+        if code:
+            body["code"] = code
+        if scope:
+            body["scope"] = scope
+        return self.client.post(self.url, body)
 
-    # @patch("stripe.Account.create", side_effect=StripeError)
-    # def test_stripe_error_returns_expected_message(self, *args):
-    #     """
-    #     If stripe.Account.create returns a StripeError, handle it with resposne.
-    #     """
-    #     self.client.force_authenticate(user=self.user)
-    #     response = self.client.post(self.url)
-    #     self.assertEqual(response.status_code, 500)
-    #     self.assertEqual(response.data["detail"], "There was a problem connecting to Stripe. Please try again.")
+    @patch("stripe.OAuth.token")
+    def test_response_when_missing_params(self, stripe_oauth_token):
+        # Missing code
+        response = self._make_request(code=None, scope=expected_oauth_scope)
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("missing_params", response.data)
+        stripe_oauth_token.assert_not_called()
+
+        # Missing scope
+        response = self._make_request(code="12345", scope=None)
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("missing_params", response.data)
+        stripe_oauth_token.assert_not_called()
+
+        # Missing both
+        response = self._make_request(code=None, scope=None)
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("missing_params", response.data)
+        stripe_oauth_token.assert_not_called()
+
+    @patch("stripe.OAuth.token")
+    def test_response_when_scope_param_mismatch(self, stripe_oauth_token):
+        """
+        We verify that the "scope" parameter provided by the frontend matches the scope we expect
+        """
+        response = self._make_request(code="1234", scope="not_expected_scope")
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("scope_mismatch", response.data)
+        stripe_oauth_token.assert_not_called()
+
+    @patch("stripe.OAuth.token")
+    def test_response_when_invalid_code(self, stripe_oauth_token):
+        stripe_oauth_token.side_effect = StripeInvalidGrantError(code="error_code", description="error_description")
+        response = self._make_request(code="1234", scope=expected_oauth_scope)
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("invalid_code", response.data)
+        stripe_oauth_token.assert_called_with(code="1234", grant_type="authorization_code")
+
+    @patch("stripe.OAuth.token")
+    def test_response_success(self, stripe_oauth_token):
+        expected_stripe_account_id = "my_test_account_id"
+        expected_refresh_token = "my_test_refresh_token"
+        stripe_oauth_token.return_value = MockOAuthResponse(
+            stripe_user_id=expected_stripe_account_id, refresh_token=expected_refresh_token
+        )
+        response = self._make_request(code="1234", scope=expected_oauth_scope)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data["detail"], "success")
+        stripe_oauth_token.assert_called_with(code="1234", grant_type="authorization_code")
+        # Org should have new values based on OAuth response
+        self.organization.refresh_from_db()
+        self.assertEqual(self.organization.stripe_account_id, expected_stripe_account_id)
+        self.assertEqual(self.organization.stripe_oauth_refresh_token, expected_refresh_token)
 
 
 class MockStripeAccountEnabled(MockStripeAccount):

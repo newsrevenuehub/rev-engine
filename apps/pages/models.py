@@ -205,7 +205,6 @@ class Font(models.Model):
     )
     accessor = models.CharField(
         max_length=255,
-        unique=True,
         help_text="For typekit fonts, use the kitId. For google fonts, use the value of the 'family' query param",
     )
 

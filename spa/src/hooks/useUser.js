@@ -1,4 +1,4 @@
-import { LS_USER } from 'constants/authConstants';
+import { LS_USER } from 'settings';
 
 function useUser() {
   return JSON.parse(localStorage.getItem(LS_USER));

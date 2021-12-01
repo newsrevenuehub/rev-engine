@@ -12,7 +12,7 @@ import useSubdomain from 'hooks/useSubdomain';
 
 // Analytics
 import { useAnalyticsContext } from 'components/analytics/AnalyticsContext';
-import { HUB_GA_V3_ID } from 'constants/analyticsConstants';
+import { HUB_GA_V3_ID } from 'settings';
 
 // Children
 import SegregatedStyles from 'components/donationPage/SegregatedStyles';

@@ -25,7 +25,6 @@ function ProviderConnect() {
   const alert = useAlert();
   const requestUpdateUser = useRequest();
   const { updateDefaultPaymentProvider } = useOrganizationContext();
-  const [providerConnectInProgress, setProviderConnectInProgress] = useState(false);
 
   const handleConnectSuccess = () => {
     requestUpdateUser(
@@ -41,15 +40,12 @@ function ProviderConnect() {
   };
 
   return (
-    <ProviderFetchContext.Provider
-      value={{ providerConnectInProgress, setProviderConnectInProgress, handleConnectSuccess }}
-    >
+    <ProviderFetchContext.Provider value={{ handleConnectSuccess }}>
       <S.ProviderConnect data-testid="provider-connect">
         <h2>To continue, please connect a payment provider</h2>
         <S.ProvidersList>
           <StripeProvider />
         </S.ProvidersList>
-        {providerConnectInProgress && <ConnectProcessing />}
       </S.ProviderConnect>
     </ProviderFetchContext.Provider>
   );

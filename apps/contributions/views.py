@@ -102,33 +102,6 @@ def stripe_oauth(request):
     return Response({"detail": "success"}, status=status.HTTP_200_OK)
 
 
-# @api_view(["POST"])
-# def stripe_onboarding(request):
-#     organization = request.user.get_organization()
-
-#     try:
-#         account = stripe.Account.create(
-#             type="standard",
-#         )
-
-#         organization.stripe_account_id = account.id
-#         organization.save()
-
-#         account_links = stripe.AccountLink.create(
-#             account=account.id,
-#             refresh_url=f"{settings.SITE_URL}?cb=stripe_reauth",
-#             return_url=f"{settings.SITE_URL}?cb=stripe_return",
-#             type="account_onboarding",
-#         )
-#     except stripe.error.StripeError:
-#         return Response(
-#             {"detail": "There was a problem connecting to Stripe. Please try again."},
-#             status=status.HTTP_500_INTERNAL_SERVER_ERROR,
-#         )
-
-#     return Response(account_links, status=status.HTTP_200_OK)
-
-
 @api_view(["POST"])
 def stripe_confirmation(request):
     try:

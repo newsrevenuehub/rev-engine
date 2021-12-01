@@ -24,7 +24,7 @@ describe('Payment provider connect', () => {
     it('should show a helpful message and "times-circle" if org is restricted', () => {
       cy.intercept('POST', getEndpoint(STRIPE_CONFIRMATION), { fixture: 'stripe/confirm-restricted' });
       cy.login('user/not-connected.json');
-      cy.contains('Stripe needs more information before you can accept payments.').should('exist');
+      cy.contains('Stripe needs more information before you can accept donations.').should('exist');
       cy.getByTestId('svg-icon_times-circle').should('exist');
     });
 

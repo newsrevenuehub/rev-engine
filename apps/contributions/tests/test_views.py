@@ -32,7 +32,7 @@ class StripePaymentViewTestAbstract(APITestCase):
     def setUp(self):
         self.organization = OrganizationFactory()
         self.revenue_program = RevenueProgramFactory(organization=self.organization)
-        self.page = DonationPageFactory()
+        self.page = DonationPageFactory(revenue_program=self.revenue_program)
         self.contributor = ContributorFactory()
 
         self.url = reverse("stripe-payment")

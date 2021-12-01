@@ -39,7 +39,7 @@ function StripeProvider() {
 
   const handleStripeConfirmationFailure = useCallback(
     (e) => {
-      if (e.response.data.status === 'failed') {
+      if (e?.response?.data?.status === 'failed') {
         setStripeState(PP_STATES.FAILED);
       } else {
         alert.error('There was a problem verifying your Stripe connection. We have been notified.');
@@ -73,7 +73,9 @@ function StripeProvider() {
       data-testid="stripe-provider"
     >
       {isLoading && <Spinner />}
-      {!isLoading && stripeState === PP_STATES.NOT_CONNECTED && <StripeConnect />}
+      {!isLoading && (stripeState === PP_STATES.NOT_CONNECTED || !stripeState) && (
+        <StripeConnect getStripeVerification={getStripeVerification} />
+      )}
       {!isLoading && stripeState === PP_STATES.RESTRICTED && <StripeRestricted />}
       {!isLoading && stripeState === PP_STATES.FAILED && <StripeConnect />}
       {!isLoading && stripeState === PP_STATES.CONNECTED && <StripeConnected />}
@@ -84,7 +86,7 @@ function StripeProvider() {
 function StripeRestricted() {
   return (
     <S.StripeRestricted data-testid="stripe-restricted">
-      Stripe needs more information before you can accept payments. Visit your{' '}
+      Stripe needs more information before you can accept donations. Visit your{' '}
       <a href="https://dashboard.stripe.com/dashboard" target="_blank" rel="noopener noreferrer">
         Stripe dashboard
       </a>{' '}

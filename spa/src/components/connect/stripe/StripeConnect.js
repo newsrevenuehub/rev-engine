@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import * as S from './StripeConnect.styled';
 
 // Deps
@@ -11,15 +11,13 @@ import useQueryString from 'hooks/useQueryString';
 import useRequest from 'hooks/useRequest';
 import { STRIPE_OAUTH } from 'ajax/endpoints';
 
-// State
-import { useProviderFetchContext } from 'components/connect/ProviderConnect';
-
 // Elements
-import Spinner from 'elements/Spinner';
 import { GENERIC_ERROR } from 'constants/textConstants';
+import GlobalLoading from 'elements/GlobalLoading';
 
-function StripeConnect() {
+function StripeConnect({ getStripeVerification }) {
   const alert = useAlert();
+  const [loading, setLoading] = useState(false);
   const stripeOAuthScope = useQueryString('scope');
   const stripeOAuthCode = useQueryString('code');
 
@@ -31,6 +29,7 @@ function StripeConnect() {
 
   useEffect(() => {
     if (stripeOAuthScope && stripeOAuthCode) {
+      setLoading(true);
       requestStripeOAuth(
         {
           method: 'POST',
@@ -38,41 +37,26 @@ function StripeConnect() {
           data: { scope: stripeOAuthScope, code: stripeOAuthCode }
         },
         {
-          onSuccess: ({ data }) => {},
-          onFailure: (e) => alert.error(GENERIC_ERROR)
+          onSuccess: (res) => {
+            setLoading(false);
+            getStripeVerification();
+          },
+          onFailure: (e) => {
+            setLoading(false);
+            alert.error(GENERIC_ERROR);
+          }
         }
       );
     }
-  }, [stripeOAuthScope, stripeOAuthCode]);
-
-  // const handleStripeOnboarding = useCallback(async () => {
-  //   if (isLoading || providerConnectInProgress) return;
-  //   setIsLoading(true);
-  //   requestStripeOnboarding(
-  //     {
-  //       method: 'POST',
-  //       url: STRIPE_ONBOARDING
-  //     },
-  //     {
-  //       onSuccess: ({ data }) => {
-  //         window.open(data.url);
-  //         setIsLoading(false);
-  //         setProviderConnectInProgress(true);
-  //       },
-  //       onFailure: (e) => {
-  //         setIsLoading(false);
-  //         let alertMessage = "Something went wrong! We've been notified";
-  //         if (e.response?.data?.detail) alertMessage = e.response.data.detail;
-  //         alert.error(alertMessage, { timeout: 8000 });
-  //       }
-  //     }
-  //   );
-  // }, [isLoading, providerConnectInProgress, alert, setProviderConnectInProgress]);
+  }, [stripeOAuthScope, stripeOAuthCode, alert]);
 
   return (
-    <S.StripeConnect href={getStripeOAuthLink()} data-testid="stripe-connect-button">
-      <span>Connect with</span>
-    </S.StripeConnect>
+    <>
+      <S.StripeConnect href={getStripeOAuthLink()} data-testid="stripe-connect-button">
+        <span>Connect with</span>
+      </S.StripeConnect>
+      {loading && <GlobalLoading />}
+    </>
   );
 }
 

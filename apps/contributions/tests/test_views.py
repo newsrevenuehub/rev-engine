@@ -158,28 +158,28 @@ class StripeOnboardingTest(APITestCase):
 
         self.url = reverse("stripe-onboarding")
 
-    @patch("stripe.Account.create", side_effect=MockStripeAccount)
-    @patch("stripe.AccountLink.create", side_effect=MOCK_ACCOUNT_LINKS)
-    def test_successful_onboarding(self, *args):
-        """
-        Test happy-path
-        """
-        self.client.force_authenticate(user=self.user)
-        response = self.client.post(self.url)
-        # response should be 200, with test account link value
-        self.assertContains(response, "test")
-        self.organization.refresh_from_db()
-        self.assertEqual(self.organization.stripe_account_id, TEST_STRIPE_ACCOUNT_ID)
+    # @patch("stripe.Account.create", side_effect=MockStripeAccount)
+    # @patch("stripe.AccountLink.create", side_effect=MOCK_ACCOUNT_LINKS)
+    # def test_successful_onboarding(self, *args):
+    #     """
+    #     Test happy-path
+    #     """
+    #     self.client.force_authenticate(user=self.user)
+    #     response = self.client.post(self.url)
+    #     # response should be 200, with test account link value
+    #     self.assertContains(response, "test")
+    #     self.organization.refresh_from_db()
+    #     self.assertEqual(self.organization.stripe_account_id, TEST_STRIPE_ACCOUNT_ID)
 
-    @patch("stripe.Account.create", side_effect=StripeError)
-    def test_stripe_error_returns_expected_message(self, *args):
-        """
-        If stripe.Account.create returns a StripeError, handle it with resposne.
-        """
-        self.client.force_authenticate(user=self.user)
-        response = self.client.post(self.url)
-        self.assertEqual(response.status_code, 500)
-        self.assertEqual(response.data["detail"], "There was a problem connecting to Stripe. Please try again.")
+    # @patch("stripe.Account.create", side_effect=StripeError)
+    # def test_stripe_error_returns_expected_message(self, *args):
+    #     """
+    #     If stripe.Account.create returns a StripeError, handle it with resposne.
+    #     """
+    #     self.client.force_authenticate(user=self.user)
+    #     response = self.client.post(self.url)
+    #     self.assertEqual(response.status_code, 500)
+    #     self.assertEqual(response.data["detail"], "There was a problem connecting to Stripe. Please try again.")
 
 
 class MockStripeAccountEnabled(MockStripeAccount):

@@ -31,6 +31,8 @@ export const HUB_GOOGLE_MAPS_API_KEY = window.ENV?.HUB_GOOGLE_MAPS_API_KEY;
 // Stripe
 export const HUB_STRIPE_API_PUB_KEY = window.ENV?.HUB_STRIPE_API_PUB_KEY;
 export const STRIPE_API_VERSION = window.ENV?.STRIPE_API_VERSION;
+export const STRIPE_CLIENT_ID = window.ENV?.STRIPE_CLIENT_ID;
+export const STRIPE_OAUTH_SCOPE = window.ENV?.STRIPE_OAUTH_SCOPE;
 
 // Salesforce
 export const SALESFORCE_CAMPAIGN_ID_QUERYPARAM = window.ENV?.SALESFORCE_CAMPAIGN_ID_QUERYPARAM || 'campaign';

@@ -1,6 +1,9 @@
-import { STRIPE_CONFIRMATION, STRIPE_ONBOARDING } from 'ajax/endpoints';
+import { STRIPE_CONFIRMATION, STRIPE_OAUTH } from 'ajax/endpoints';
 import { getEndpoint } from '../support/util';
+// Constants
+import { STRIPE_CLIENT_ID, STRIPE_OAUTH_SCOPE } from 'settings';
 
+const redirectPath = '/dashboard/content';
 describe('Payment provider connect', () => {
   it('should not show ProviderConnect if default provider', () => {
     cy.login('user/stripe-verified.json');
@@ -31,24 +34,35 @@ describe('Payment provider connect', () => {
     it('should show Stripe connect button and "times-circle" if connection failed', () => {
       cy.intercept('POST', getEndpoint(STRIPE_CONFIRMATION), { fixture: 'stripe/confirm-failed', statusCode: 500 });
       cy.login('user/not-connected.json');
-      cy.getByTestId('stripe-connect-button').should('exist');
+      cy.getByTestId('stripe-connect-link').should('exist');
       cy.getByTestId('svg-icon_times-circle').should('exist');
     });
 
     it('should show Stripe Connect and no icon if org is not connected', () => {
       cy.intercept('POST', getEndpoint(STRIPE_CONFIRMATION), { fixture: 'stripe/confirm-not-connected' });
       cy.login('user/not-connected.json');
-      cy.getByTestId('stripe-connect-button').should('exist');
+      cy.getByTestId('stripe-connect-link').should('exist');
       cy.getByTestId('svg-icon_check-circle').should('not.exist');
       cy.getByTestId('svg-icon_times-circle').should('not.exist');
     });
 
-    it('should show overlay when stripe onboarding begins', () => {
+    it('should render a connect button with the expected href', () => {
+      const expectedRedirectUri = `${window.location.host}${redirectPath}`;
+      const expectedHref = `https://connect.stripe.com/oauth/authorize?response_type=code&client_id=${STRIPE_CLIENT_ID}&scope=${STRIPE_OAUTH_SCOPE}&redirect_uri=${expectedRedirectUri}`;
+      cy.getByTestId('stripe-connect-link').should('have.attr', 'href', expectedHref);
+    });
+
+    it('should send a request to oauth verification if params present', () => {
+      const code = '1234';
+      const scope = 'read_write';
       cy.intercept('POST', getEndpoint(STRIPE_CONFIRMATION), { fixture: 'stripe/confirm-not-connected' });
+      cy.intercept('POST', getEndpoint(STRIPE_OAUTH)).as('oauthConfirm');
       cy.login('user/not-connected.json');
-      cy.intercept('POST', getEndpoint(STRIPE_ONBOARDING), { fixture: 'stripe/onboarding' });
-      cy.getByTestId('stripe-connect-button').click();
-      cy.contains('Complete connection in other tab. This tab can be closed.');
+      cy.visit(redirectPath + `?code=${code}&scope=${scope}`);
+      cy.wait('@oauthConfirm').then((interception) => {
+        expect(interception.request.body).to.have.property('code', code);
+        expect(interception.request.body).to.have.property('scope', scope);
+      });
     });
   });
 });

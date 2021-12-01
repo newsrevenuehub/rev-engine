@@ -4,6 +4,9 @@ import * as S from './StripeConnect.styled';
 // Deps
 import { useAlert } from 'react-alert';
 
+// Constants
+import { STRIPE_CLIENT_ID, STRIPE_OAUTH_SCOPE } from 'settings';
+
 // Hooks
 import useQueryString from 'hooks/useQueryString';
 
@@ -22,9 +25,10 @@ function StripeConnect({ getStripeVerification }) {
   const stripeOAuthCode = useQueryString('code');
 
   const requestStripeOAuth = useRequest();
-
+  // STRIPE_OAUTH_REDIRECT_URI =
+  const STRIPE_OAUTH_REDIRECT_URI = `${window.location.host}/dashboard/content`;
   const getStripeOAuthLink = () => {
-    return 'https://connect.stripe.com/oauth/authorize?response_type=code&client_id=ca_JGxDCnO08VRFiIKWUuBfOmOx70wFiBW0&scope=read_write&redirect_uri=http://support.revengine-local.com:3000/dashboard/content';
+    return `https://connect.stripe.com/oauth/authorize?response_type=code&client_id=${STRIPE_CLIENT_ID}&scope=${STRIPE_OAUTH_SCOPE}&redirect_uri=${STRIPE_OAUTH_REDIRECT_URI}`;
   };
 
   useEffect(() => {
@@ -52,7 +56,7 @@ function StripeConnect({ getStripeVerification }) {
 
   return (
     <>
-      <S.StripeConnect href={getStripeOAuthLink()} data-testid="stripe-connect-button">
+      <S.StripeConnect href={getStripeOAuthLink()} data-testid="stripe-connect-link">
         <span>Connect with</span>
       </S.StripeConnect>
       {loading && <GlobalLoading />}

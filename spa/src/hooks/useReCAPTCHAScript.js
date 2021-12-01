@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 
 // Constants
-import { GRECAPTCHA_SCRIPT_URL, GRECAPTCHA_SITE_KEY } from 'constants/genericConstants';
+import { GRECAPTCHA_SCRIPT_URL, GRECAPTCHA_SITE_KEY } from 'settings';
 
 /**
  * Load Google reCAPTCHA script and set token callback

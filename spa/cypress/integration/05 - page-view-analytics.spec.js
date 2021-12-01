@@ -14,7 +14,7 @@ import { VERIFY_TOKEN } from 'ajax/endpoints';
 import livePageFixture from '../fixtures/pages/live-page-1.json';
 import { LIVE_PAGE_DETAIL } from 'ajax/endpoints';
 import { getEndpoint, getTestingDonationPageUrl, EXPECTED_RP_SLUG } from '../support/util';
-import { HUB_GA_V3_ID } from 'constants/analyticsConstants';
+import { HUB_GA_V3_ID } from 'settings';
 
 const REVENUE_PROGRAM = EXPECTED_RP_SLUG;
 const PAGE_NAME = 'mypage';

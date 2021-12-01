@@ -13,7 +13,7 @@ import useSubdomain from 'hooks/useSubdomain';
 import useReCAPTCHAScript from 'hooks/useReCAPTCHAScript';
 
 // Constants
-import { GRECAPTCHA_SITE_KEY } from 'constants/genericConstants';
+import { GRECAPTCHA_SITE_KEY } from 'settings';
 
 // Routing
 import { useHistory, useRouteMatch } from 'react-router-dom';

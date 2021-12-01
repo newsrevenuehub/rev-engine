@@ -12,7 +12,7 @@ import { useEffect } from 'react';
 
 // Analytics
 import { useAnalyticsContext } from 'components/analytics/AnalyticsContext';
-import { HUB_GA_V3_ID } from 'constants/analyticsConstants';
+import { HUB_GA_V3_ID } from 'settings';
 
 // Children
 import DonationPageNavbar from 'components/donationPage/DonationPageNavbar';

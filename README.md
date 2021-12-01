@@ -369,7 +369,7 @@ The following environment variables are available for configuration:
 
 _Frontend configuration is not enabled until we can get environment variables to apply properly_
 
-~~`REACT_APP_CAPTURE_PAGE_SCREENSHOT`~~
+~~`_CAPTURE_PAGE_SCREENSHOT`~~
 
 ~~If 'true', saving edits to a donation page will also capture a "screenshot" and save it. This is used as a thumbnail in the Donation Page List view.~~
 

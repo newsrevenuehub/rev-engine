@@ -1,4 +1,4 @@
-import { GOOGLE_FONT_MODS } from 'constants/genericConstants';
+import { GOOGLE_FONT_MODS } from 'constants/textConstants';
 
 const loadWebFont = (fontObj) =>
   new Promise((resolve, reject) => {

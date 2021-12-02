@@ -19,7 +19,6 @@ import DonationPageSidebar from 'components/donationPage/DonationPageSidebar';
 // Children
 import DonationPageStaticText from 'components/donationPage/DonationPageStaticText';
 import DonationPageFooter from 'components/donationPage/DonationPageFooter';
-
 import { SALESFORCE_CAMPAIGN_ID_QUERYPARAM, FREQUENCY_QUERYPARAM, AMOUNT_QUERYPARAM } from 'settings';
 
 const DonationPageContext = createContext({});

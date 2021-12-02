@@ -20,20 +20,21 @@ class ReactAppView(TemplateView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        self._add_social_media_context(context)
+        if revenue_program := self._get_revenue_program_from_subdomain():
+            self._add_social_media_context(revenue_program, context)
+            context["revenue_program_name"] = revenue_program.name
         return context
 
-    def _add_social_media_context(self, context):
+    def _get_revenue_program_from_subdomain(self):
         if subdomain := get_subdomain_from_request(self.request):
-            revenue_program = None
             try:
-                revenue_program = RevenueProgram.objects.get(slug=subdomain)
+                return RevenueProgram.objects.get(slug=subdomain)
             except RevenueProgram.DoesNotExist:
                 logger.warning(f'ReactAppView failed to retrieve RevenueProgram by subdomain "{subdomain}"')
 
-            if revenue_program:
-                serializer = SocialMetaInlineSerializer(revenue_program.social_meta, context={"request": self.request})
-                context["social_meta"] = serializer.data
+    def _add_social_media_context(self, revenue_program, context):
+        serializer = SocialMetaInlineSerializer(revenue_program.social_meta, context={"request": self.request})
+        context["social_meta"] = serializer.data
 
 
 index = never_cache(ReactAppView.as_view())

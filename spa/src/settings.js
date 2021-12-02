@@ -1,3 +1,13 @@
+/*
+  These constants may be static values, or read from the "environment".
+  Constants read from the "environment" locally are analyzed by webpack and 
+  converted to static values at build time using the built-in 
+  .env -> "REACT_APP_ENV_VAR" -> string
+  Constants read from the "environment" in a deployed environment are actually added
+  to the window object when the initial index.html is requested and are available as properties
+  of window.ENV.
+*/
+
 // These subdomain labels will redirect to the org portal.
 export const ORG_PORTAL_SUBDOMAINS = ['', 'support'];
 
@@ -37,9 +47,12 @@ export const HUB_STRIPE_API_PUB_KEY = resolveConstantFromEnv('HUB_STRIPE_API_PUB
 export const STRIPE_API_VERSION = resolveConstantFromEnv('STRIPE_API_VERSION', '2020-08-27');
 
 function resolveConstantFromEnv(constantName, defaultValue) {
-  console.log('node_env', process.env.NODE_ENV);
-  console.log(constantName, process.env[`REACT_APP_${constantName}`]);
-  // console.log('process.env.REACT_APP_HUB_STRIPE_API_PUB_KEY', process.env.REACT_APP_HUB_STRIPE_API_PUB_KEY)
+  /*
+    If we're in development, use webpack's process.env string replace.
+    If not, use window.ENV vars.
+    Oddly enough, this dynamically read process.env[ENV_VAR_NAME] seems to work here, despite the fact that
+    webpack seems to do a relatively simple string replace on "process.env.ENV_VAR" at build time.
+  */
   if (process.env.NODE_ENV === 'development') return process.env[`REACT_APP_${constantName}`] || defaultValue;
   else return window.ENV[constantName] || defaultValue;
 }

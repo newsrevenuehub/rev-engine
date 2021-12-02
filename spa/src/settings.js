@@ -54,5 +54,6 @@ function resolveConstantFromEnv(constantName, defaultValue) {
     webpack seems to do a relatively simple string replace on "process.env.ENV_VAR" at build time.
   */
   if (process.env.NODE_ENV === 'development') return process.env[`REACT_APP_${constantName}`] || defaultValue;
-  else return window.ENV[constantName] || defaultValue;
+  else if (window.ENV) return window.ENV[constantName] || defaultValue;
+  else return defaultValue;
 }

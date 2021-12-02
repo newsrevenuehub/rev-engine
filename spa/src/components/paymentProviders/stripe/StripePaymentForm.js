@@ -39,8 +39,6 @@ import Button from 'elements/buttons/Button';
 import { ICONS } from 'assets/icons/SvgIcon';
 import { PayFeesWidget } from 'components/donationPage/pageContent/DPayment';
 
-const STRIPE_PAYMENT_REQUEST_LABEL = 'RevEngine Donation';
-
 function StripePaymentForm({ loading, setLoading, offerPayFees }) {
   useReCAPTCHAScript();
   const subdomain = useSubdomain();
@@ -217,7 +215,7 @@ function StripePaymentForm({ loading, setLoading, offerPayFees }) {
         country: page?.organization_country,
         currency: page?.currency?.code?.toLowerCase(),
         total: {
-          label: STRIPE_PAYMENT_REQUEST_LABEL,
+          label: page.revenue_program.name,
           amount: amnt
         }
       });
@@ -259,7 +257,7 @@ function StripePaymentForm({ loading, setLoading, offerPayFees }) {
     if (paymentRequest && amntIsValid) {
       paymentRequest.update({
         total: {
-          label: STRIPE_PAYMENT_REQUEST_LABEL,
+          label: page.revenue_program.name,
           amount: amnt
         }
       });
@@ -323,8 +321,3 @@ function StripePaymentForm({ loading, setLoading, offerPayFees }) {
 }
 
 export default StripePaymentForm;
-
-function getElementValidator(elementType) {
-  const El = dynamicElements[elementType];
-  return El.validator;
-}

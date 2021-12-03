@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { lazy } from 'react';
 
 // Router
 import { Route, BrowserRouter, Switch } from 'react-router-dom';
@@ -10,11 +10,18 @@ import TrackPageView from 'components/analytics/TrackPageView';
 // Elements
 import GlobalLoading from 'elements/GlobalLoading';
 
+// Utilities
+import componentLoader from 'utilities/componentLoader';
+
 /**
  * Split Bundles
  */
-const GenericThankYou = React.lazy(() => import('components/donationPage/live/thankYou/GenericThankYou'));
-const LiveDonationPageContainer = React.lazy(() => import('components/donationPage/LiveDonationPageContainer'));
+const GenericThankYou = lazy(() =>
+  componentLoader(() => import(`components/donationPage/live/thankYou/GenericThankYou`))
+);
+const LiveDonationPageContainer = lazy(() =>
+  componentLoader(() => import(`components/donationPage/LiveDonationPageContainer`))
+);
 
 function DonationPageRouter() {
   return (

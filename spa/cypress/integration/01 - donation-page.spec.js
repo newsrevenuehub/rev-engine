@@ -84,7 +84,7 @@ describe('DonationPage elements', () => {
       const rate = freqUtils.getFrequencyRate(freq.value);
       const adverb = freqUtils.getFrequencyAdverb(freq.value);
 
-      cy.getByTestId('d-amount').find('h3').contains(adjective);
+      cy.getByTestId('d-amount').find('h2').contains(adjective);
       if (rate) {
         cy.getByTestId('custom-amount-rate').contains(rate);
       }

@@ -6,7 +6,6 @@ export const PageItem = styled.div`
   border: 2px solid;
   border-color: ${(props) => (props.disabled ? props.theme.colors.disabled : props.theme.colors.primary)};
   border-radius: ${(props) => props.theme.radii[0]};
-  height: 100%;
   background: ${(props) => props.theme.colors.paneBackground};
   display: flex;
   flex-direction: row;

@@ -371,7 +371,12 @@ First:
 ```
 
 To enable Stripe related features (Payments on donation pages, changing payment methods), set:  
-`REACT_APP_HUB_STRIPE_API_PUB_KEY=pk_test_therealvaluehere`
+`REACT_APP_HUB_STRIPE_API_PUB_KEY=pk_test_therealvaluehere`  
+You can get this value from the Hub stripe dashboard
+
+To enable Stripe Onboarding, set:  
+`REACT_APP_STRIPE_CLIENT_ID=therealvalue`  
+You can get this value from the Hub stripe dashboard
 
 To enable google address autocomplete in the donation page form, set:  
 `REACT_APP_HUB_GOOGLE_MAPS_API_KEY=therealvalueere`

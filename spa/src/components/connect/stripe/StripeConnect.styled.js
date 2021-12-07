@@ -1,7 +1,6 @@
 import styled from 'styled-components';
 
-export const StripeConnect = styled.div`
-  cursor: ${(props) => (props.isLoading ? 'default' : 'pointer')};
+export const StripeConnect = styled.a`
   background: #635bff;
   display: inline-block;
   height: 38px;
@@ -20,7 +19,7 @@ export const StripeConnect = styled.div`
   -webkit-font-smoothing: antialiased;
 
   &:hover {
-    background: ${(props) => (props.isLoading ? '#635bff' : '#7a73ff')};
+    background: #7a73ff;
   }
 
   span {

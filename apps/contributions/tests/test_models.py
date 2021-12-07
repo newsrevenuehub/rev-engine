@@ -1,7 +1,6 @@
 import datetime
 from unittest.mock import patch
 
-from django.db.models import Q
 from django.test import TestCase, override_settings
 from django.utils import timezone
 

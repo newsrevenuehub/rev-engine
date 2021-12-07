@@ -8,3 +8,4 @@ export { default as ImageEditor } from './image/ImageEditor';
 export { default as BenefitsEditor } from './benefits/BenefitsEditor';
 export { default as SwagEditor } from './swag/SwagEditor';
 export { default as ReasonEditor } from './reason/ReasonEditor';
+export { default as MarketingEditor } from './marketing/MarketingEditor';

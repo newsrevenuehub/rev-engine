@@ -45,6 +45,8 @@ export const HUB_GOOGLE_MAPS_API_KEY = resolveConstantFromEnv('HUB_GOOGLE_MAPS_A
 // Stripe
 export const HUB_STRIPE_API_PUB_KEY = resolveConstantFromEnv('HUB_STRIPE_API_PUB_KEY');
 export const STRIPE_API_VERSION = resolveConstantFromEnv('STRIPE_API_VERSION', '2020-08-27');
+export const STRIPE_CLIENT_ID = resolveConstantFromEnv('STRIPE_CLIENT_ID', 'test_1234');
+export const STRIPE_OAUTH_SCOPE = resolveConstantFromEnv('STRIPE_OAUTH_SCOPE', 'read_write');
 
 function resolveConstantFromEnv(constantName, defaultValue) {
   /*

@@ -345,6 +345,7 @@ CURRENCIES = {"USD": "$", "CAD": "$"}
 
 # Application subdomains (that are NOT revenue program slugs)
 NON_DONATION_PAGE_SUBDOMAINS = os.getenv("NON_DONATION_PAGE_SUBDOMAINS", ["support", "www"])
+DOMAIN_APEX = os.getenv("DOMAIN_APEX")
 
 # Django-CSP configuration
 # For now, report only.

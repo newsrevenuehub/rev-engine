@@ -1,54 +1,66 @@
-import { useState, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import * as S from './StripeConnect.styled';
 
 // Deps
 import { useAlert } from 'react-alert';
 
+// Constants
+import { STRIPE_CLIENT_ID, STRIPE_OAUTH_SCOPE } from 'settings';
+
+// Hooks
+import useQueryString from 'hooks/useQueryString';
+
 // AJAX
 import useRequest from 'hooks/useRequest';
-import { STRIPE_ONBOARDING } from 'ajax/endpoints';
-
-// State
-import { useProviderFetchContext } from 'components/connect/ProviderConnect';
+import { STRIPE_OAUTH } from 'ajax/endpoints';
 
 // Elements
-import Spinner from 'elements/Spinner';
+import { GENERIC_ERROR } from 'constants/textConstants';
+import GlobalLoading from 'elements/GlobalLoading';
 
-function StripeConnect() {
+function StripeConnect({ getStripeVerification }) {
   const alert = useAlert();
-  const { providerConnectInProgress, setProviderConnectInProgress } = useProviderFetchContext();
-  const [isLoading, setIsLoading] = useState();
+  const [loading, setLoading] = useState(false);
+  const stripeOAuthScope = useQueryString('scope');
+  const stripeOAuthCode = useQueryString('code');
 
-  const requestStripeOnboarding = useRequest();
+  const requestStripeOAuth = useRequest();
+  // STRIPE_OAUTH_REDIRECT_URI =
+  const STRIPE_OAUTH_REDIRECT_URI = `${window.location.host}/dashboard/content`;
+  const getStripeOAuthLink = () => {
+    return `https://connect.stripe.com/oauth/authorize?response_type=code&client_id=${STRIPE_CLIENT_ID}&scope=${STRIPE_OAUTH_SCOPE}&redirect_uri=${STRIPE_OAUTH_REDIRECT_URI}`;
+  };
 
-  const handleStripeOnboarding = useCallback(async () => {
-    if (isLoading || providerConnectInProgress) return;
-    setIsLoading(true);
-    requestStripeOnboarding(
-      {
-        method: 'POST',
-        url: STRIPE_ONBOARDING
-      },
-      {
-        onSuccess: ({ data }) => {
-          window.open(data.url);
-          setIsLoading(false);
-          setProviderConnectInProgress(true);
+  useEffect(() => {
+    if (stripeOAuthScope && stripeOAuthCode) {
+      setLoading(true);
+      requestStripeOAuth(
+        {
+          method: 'POST',
+          url: STRIPE_OAUTH,
+          data: { scope: stripeOAuthScope, code: stripeOAuthCode }
         },
-        onFailure: (e) => {
-          setIsLoading(false);
-          let alertMessage = "Something went wrong! We've been notified";
-          if (e.response?.data?.detail) alertMessage = e.response.data.detail;
-          alert.error(alertMessage, { timeout: 8000 });
+        {
+          onSuccess: (res) => {
+            setLoading(false);
+            getStripeVerification();
+          },
+          onFailure: (e) => {
+            setLoading(false);
+            alert.error(GENERIC_ERROR);
+          }
         }
-      }
-    );
-  }, [isLoading, providerConnectInProgress, alert, setProviderConnectInProgress]);
+      );
+    }
+  }, [stripeOAuthScope, stripeOAuthCode, alert]);
 
   return (
-    <S.StripeConnect onClick={handleStripeOnboarding} isLoading={isLoading} data-testid="stripe-connect-button">
-      {isLoading ? <Spinner /> : <span>Connect with</span>}
-    </S.StripeConnect>
+    <>
+      <S.StripeConnect href={getStripeOAuthLink()} data-testid="stripe-connect-link">
+        <span>Connect with</span>
+      </S.StripeConnect>
+      {loading && <GlobalLoading />}
+    </>
   );
 }
 

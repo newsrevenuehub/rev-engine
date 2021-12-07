@@ -5,6 +5,7 @@ from django.test import TestCase, override_settings
 from django.utils.text import slugify
 
 from faker import Faker
+from stripe.error import StripeError
 
 from apps.organizations import models
 from apps.organizations.tests import factories
@@ -32,13 +33,18 @@ class OrganizationTest(TestCase):
 
 
 TEST_STRIPE_LIVE_KEY = "my_test_live_key"
-TEST_SITE_URL = "https://mytesturl.com"
+TEST_DOMAIN_APEX = "testapexdomain.com"
 
 
 class RevenueProgramTest(TestCase):
     def setUp(self):
         self.model_class = models.RevenueProgram
+        self.stripe_account_id = "my_stripe_account_id"
+        self.organization = factories.OrganizationFactory(stripe_account_id=self.stripe_account_id)
         self.instance = factories.RevenueProgramFactory()
+
+    def _create_revenue_program(self):
+        return models.RevenueProgram.objects.create(name="Testing", slug="testing", organization=self.organization)
 
     def test_slug_created(self):
         assert self.instance.slug
@@ -72,63 +78,45 @@ class RevenueProgramTest(TestCase):
 
     @override_settings(STRIPE_LIVE_MODE="True")
     @override_settings(STRIPE_LIVE_SECRET_KEY=TEST_STRIPE_LIVE_KEY)
-    @override_settings(SITE_URL=TEST_SITE_URL)
+    @override_settings(DOMAIN_APEX=TEST_DOMAIN_APEX)
     @patch("stripe.ApplePayDomain.create")
     def test_apple_pay_domain_verification_called_when_created_and_live(self, apple_pay_domain_create):
-        revenue_program = models.RevenueProgram.objects.create(name="Testing", slug="testing")
+        revenue_program = self._create_revenue_program()
+        expected_domain = f"{revenue_program.slug}.{TEST_DOMAIN_APEX}"
+        apple_pay_domain_create.assert_called_once_with(
+            api_key=TEST_STRIPE_LIVE_KEY,
+            domain_name=expected_domain,
+            stripe_account=self.organization.stripe_account_id,
+        )
+        # revenue_program should have a non-null domain_apple_verified_date
+        self.assertIsNotNone(revenue_program.domain_apple_verified_date)
 
-    def test_apple_pay_domain_verification_not_called_when_created_and_not_live(self):
-        pass
+    @override_settings(STRIPE_LIVE_MODE="False")
+    @patch("stripe.ApplePayDomain.create")
+    def test_apple_pay_domain_verification_not_called_when_created_and_not_live(self, apple_pay_domain_create):
+        self._create_revenue_program()
+        apple_pay_domain_create.assert_not_called()
 
-    def test_apple_pay_domain_verification_not_called_when_updated_and_live(self):
-        pass
+    @override_settings(STRIPE_LIVE_MODE="True")
+    @override_settings(STRIPE_LIVE_SECRET_KEY=TEST_STRIPE_LIVE_KEY)
+    @override_settings(DOMAIN_APEX=TEST_DOMAIN_APEX)
+    @patch("stripe.ApplePayDomain.create")
+    def test_apple_pay_domain_verification_not_called_when_updated_and_live(self, apple_pay_domain_create):
+        rp = models.RevenueProgram.objects.get(pk=self.instance.pk)
+        rp.slug = "my-new-slug"
+        rp.save()
+        apple_pay_domain_create.assert_not_called()
 
-    # @override_settings(STRIPE_LIVE_MODE="True")
-    # @override_settings(STRIPE_LIVE_SECRET_KEY=TEST_STRIPE_LIVE_KEY)
-    # @override_settings(SITE_URL=TEST_SITE_URL)
-    # @patch("stripe.Account.retrieve", side_effect=MockStripeAccountEnabled)
-    # @patch("stripe.ApplePayDomain.create")
-    # def test_apple_domain_verification_called_when_newly_verified_and_live_mode(
-    #     self, mock_applepay_domain_create, *args
-    # ):
-    #     stripe_account_id = "my_test_stripe_account_id"
-    #     self.post_to_confirmation(stripe_account_id=stripe_account_id)
-    #     # Newly confirmed accounts should register the domain with apply pay
-    #     domain_from_site_url = TEST_SITE_URL.split("//")[1]
-    #     mock_applepay_domain_create.assert_called_once_with(
-    #         api_key=TEST_STRIPE_LIVE_KEY, domain_name=domain_from_site_url, stripe_account=stripe_account_id
-    #     )
-    #     self.organization.refresh_from_db()
-    #     self.assertIsNotNone(self.organization.domain_apple_verified_date)
-
-    # @override_settings(STRIPE_LIVE_MODE="False")
-    # @patch("stripe.Account.retrieve", side_effect=MockStripeAccountEnabled)
-    # @patch("stripe.ApplePayDomain.create")
-    # def test_apple_domain_verification_not_called_when_newly_verified_and_not_live_mode(
-    #     self, mock_applepay_domain_create, *args
-    # ):
-    #     self.post_to_confirmation(stripe_account_id="testing")
-    #     # Newly confirmed accounts should not register domain with apple pay unless in live mode.
-    #     mock_applepay_domain_create.assert_not_called()
-    #     self.organization.refresh_from_db()
-    #     self.assertIsNone(self.organization.domain_apple_verified_date)
-
-    # @override_settings(STRIPE_LIVE_MODE="True")
-    # @override_settings(SITE_URL=TEST_SITE_URL)
-    # @patch("stripe.Account.retrieve", side_effect=MockStripeAccountEnabled)
-    # @patch("stripe.ApplePayDomain.create", side_effect=StripeError)
-    # @patch("apps.organizations.models.logger")
-    # def test_apple_domain_verification_failure(self, mock_logger, mock_applepay_domain_create, *args):
-    #     target_id = "testing_stripe_account_id"
-    #     self.post_to_confirmation(stripe_account_id=target_id)
-    #     mock_applepay_domain_create.assert_called_once()
-    #     # Logger should log stripe error
-    #     mock_logger.warning.assert_called_once_with(
-    #         f"Failed to register ApplePayDomain for organization {self.organization.name}. StripeError: <empty message>"
-    #     )
-    #     # StripeError above should not prevent everything else from working properly
-    #     self.organization.refresh_from_db()
-    #     self.assertEqual(self.organization.stripe_account_id, target_id)
+    @override_settings(STRIPE_LIVE_MODE="True")
+    @override_settings(STRIPE_LIVE_SECRET_KEY=TEST_STRIPE_LIVE_KEY)
+    @override_settings(DOMAIN_APEX=TEST_DOMAIN_APEX)
+    @patch("stripe.ApplePayDomain.create")
+    @patch("apps.organizations.models.logger")
+    def test_apple_pay_domain_verification_when_stripe_error(self, mock_logger, apple_pay_domain_create):
+        apple_pay_domain_create.side_effect = StripeError
+        self._create_revenue_program()
+        apple_pay_domain_create.assert_called_once()
+        mock_logger.warning.assert_called_once()
 
 
 class BenefitLevelTest(TestCase):

@@ -299,11 +299,11 @@ class RevenueProgram(IndexedTimeStampedModel):
                 stripe.ApplePayDomain.create(
                     api_key=settings.STRIPE_LIVE_SECRET_KEY,
                     domain_name=self._get_host(),
-                    stripe_account=self.stripe_account_id,
+                    stripe_account=self.organization.stripe_account_id,
                 )
                 self.domain_apple_verified_date = timezone.now()
                 self.save()
             except stripe.error.StripeError as stripe_error:
                 logger.warning(
-                    f"Failed to register ApplePayDomain for organization {self.name}. StripeError: {str(stripe_error)}"
+                    f"Failed to register ApplePayDomain for RevenueProgram {self.name}. StripeError: {str(stripe_error)}"
                 )

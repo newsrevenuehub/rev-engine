@@ -47,7 +47,7 @@ describe('Payment provider connect', () => {
     });
 
     it('should render a connect button with the expected href', () => {
-      const expectedRedirectUri = `${window.location.host}${redirectPath}`;
+      const expectedRedirectUri = `${window.location.protocol}//${window.location.host}${redirectPath}`;
       const expectedHref = `https://connect.stripe.com/oauth/authorize?response_type=code&client_id=${STRIPE_CLIENT_ID}&scope=${STRIPE_OAUTH_SCOPE}&redirect_uri=${expectedRedirectUri}`;
       cy.getByTestId('stripe-connect-link').should('have.attr', 'href', expectedHref);
     });

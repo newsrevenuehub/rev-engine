@@ -26,7 +26,7 @@ function StripeConnect({ getStripeVerification }) {
 
   const requestStripeOAuth = useRequest();
   // STRIPE_OAUTH_REDIRECT_URI =
-  const STRIPE_OAUTH_REDIRECT_URI = `${window.location.host}/dashboard/content`;
+  const STRIPE_OAUTH_REDIRECT_URI = `${window.location.protocol}//${window.location.host}/dashboard/content`;
   const getStripeOAuthLink = () => {
     return `https://connect.stripe.com/oauth/authorize?response_type=code&client_id=${STRIPE_CLIENT_ID}&scope=${STRIPE_OAUTH_SCOPE}&redirect_uri=${STRIPE_OAUTH_REDIRECT_URI}`;
   };

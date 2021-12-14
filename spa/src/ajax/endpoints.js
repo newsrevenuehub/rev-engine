@@ -1,8 +1,8 @@
 export const TOKEN = 'token/';
 export const USER = 'users/';
 
+export const STRIPE_OAUTH = 'stripe/oauth/';
 export const STRIPE_PAYMENT = 'stripe/payment/';
-export const STRIPE_ONBOARDING = 'stripe/onboarding/';
 export const STRIPE_CONFIRMATION = 'stripe/confirmation/';
 
 // Pages

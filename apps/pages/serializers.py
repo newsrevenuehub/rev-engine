@@ -11,7 +11,7 @@ from apps.organizations.serializers import (
     BenefitLevelDetailSerializer,
     RevenueProgramListInlineSerializer,
 )
-from apps.pages.models import DonationPage, Style, Template
+from apps.pages.models import DonationPage, Font, Style, Template
 
 
 class StyleInlineSerializer(serializers.ModelSerializer):
@@ -242,3 +242,9 @@ class TemplateListSerializer(serializers.ModelSerializer):
             "id",
             "name",
         ]
+
+
+class FontSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Font
+        fields = ["id", "name", "font_name", "source", "accessor"]

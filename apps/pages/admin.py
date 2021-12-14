@@ -10,7 +10,7 @@ from safedelete.admin import SafeDeleteAdmin, highlight_deleted
 from sorl.thumbnail.admin import AdminImageMixin
 
 from apps.common.admin import RevEngineBaseAdmin
-from apps.pages.models import DonationPage, Style, Template
+from apps.pages.models import DonationPage, Font, Style, Template
 
 
 logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
@@ -166,3 +166,17 @@ class StyleAdmin(RevEngineBaseAdmin):
         "name",
         "organization__name",
     )
+
+
+@admin.register(Font)
+class FontAdmin(RevEngineBaseAdmin):
+    list_display = (
+        "name",
+        "source",
+    )
+    list_filter = ("source",)
+    order = (
+        "name",
+        "source",
+    )
+    search_fields = ("name",)

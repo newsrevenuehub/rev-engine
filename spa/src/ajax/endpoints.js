@@ -17,6 +17,7 @@ export const TEMPLATES = 'templates/';
 
 // Styles
 export const LIST_STYLES = 'styles/';
+export const LIST_FONTS = 'fonts/';
 
 // Revenue Programs
 export const REVENUE_PROGRAMS = 'revenue-programs/';

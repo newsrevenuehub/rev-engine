@@ -3,7 +3,7 @@ from django.dispatch import receiver
 
 
 @receiver(post_save, sender="organizations.RevenueProgram")
-def my_handler(sender, **kwargs):
+def handle_revenue_program_post_save(sender, **kwargs):
     revenue_program = kwargs.get("instance")
     created = kwargs.get("created")
     if created:

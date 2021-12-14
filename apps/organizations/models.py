@@ -70,6 +70,7 @@ class Organization(IndexedTimeStampedModel):
     SUPPORTED_PROVIDERS = (STRIPE,)
     default_payment_provider = models.CharField(max_length=100, choices=SUPPORTED_PROVIDERS, default=STRIPE[0])
     stripe_account_id = models.CharField(max_length=255, blank=True)
+    stripe_oauth_refresh_token = models.CharField(max_length=255, blank=True)
     stripe_verified = models.BooleanField(
         default=False,
         help_text='A fully verified Stripe Connected account should have "charges_enabled: true" in Stripe',

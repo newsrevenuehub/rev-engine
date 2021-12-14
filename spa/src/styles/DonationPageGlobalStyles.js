@@ -24,7 +24,7 @@ export default createGlobalStyle`
 
   h1, h2 {
     font-family: ${(props) => props.theme.font.heading?.font_name};
-    font-weight: normal;
+    font-weight: bold;
   }
 
   h3, h4, h5, h6 {
@@ -35,6 +35,5 @@ export default createGlobalStyle`
   h2 {
     color: ${(props) => props.theme.colors.black};
     font-size: ${(props) => props.theme.fontSizes[2]};
-    font-weight: bold;
   }
 `;

@@ -98,7 +98,7 @@ function GenericThankYou() {
               </S.SocialShareList>
             </S.SocialShareSection>
             {routedState?.page?.post_thank_you_redirect && (
-              <S.Redirect onClick={handleRedirect}>Take me back to the news</S.Redirect>
+              <S.Redirect onClick={handleRedirect}>Return to website</S.Redirect>
             )}
           </S.InnerContent>
         </S.Wrapper>

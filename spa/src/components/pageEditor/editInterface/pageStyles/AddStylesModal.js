@@ -1,13 +1,13 @@
 import { useState } from 'react';
 import * as S from './AddStylesModal.styled';
-import { revEngineTheme } from 'styles/themes';
+import { donationPageBase } from 'styles/themes';
 
 // Children
 import StylesEditor from 'components/stylesEditor/StylesEditor';
 import Modal from 'elements/modal/Modal';
 
 function AddStylesModal({ isOpen, closeModal, handleAddNewStyles }) {
-  const [styles, setStyles] = useState(revEngineTheme);
+  const [styles, setStyles] = useState(donationPageBase);
 
   const handleKeepChanges = (newStyles) => {
     handleAddNewStyles(newStyles);

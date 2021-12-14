@@ -31,7 +31,7 @@ export const revEngineTheme = {
     tableRowActive: '#dce8fa'
   },
 
-  font: "'Montserrat', sans-serif",
+  font: { body: "'Montserrat', sans-serif", heading: "'Montserrat', sans-serif" },
 
   fontSizes: ['12px', '16px', '24px', '32px', '48px', '84px', '96px'],
 
@@ -58,7 +58,8 @@ export const donationPageBase = merge({}, revEngineTheme, {
     md: '890px',
     lg: '1100px',
     xl: '1300px'
-  }
+  },
+  font: { body: "'Montserrat', sans-serif", heading: "'Montserrat', sans-serif" }
 });
 
 export const muiThemeOverrides = createMuiTheme({

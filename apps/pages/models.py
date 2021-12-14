@@ -189,3 +189,24 @@ class Style(IndexedTimeStampedModel, SafeDeleteModel):
         )
 
         ordering = ["-created", "name"]
+
+
+class Font(models.Model):
+    class FontSourceChoices(models.TextChoices):
+        TYPEKIT = "typekit", "Typekit"
+        GOOGLE_FONTS = "google", "Google fonts"
+
+    name = models.CharField(
+        max_length=255, unique=True, help_text="This is how the font will be displayed in the Org admin"
+    )
+    source = models.CharField(max_length=7, choices=FontSourceChoices.choices)
+    font_name = models.CharField(
+        max_length=255, unique=True, help_text="This is the name by which CSS will use the font"
+    )
+    accessor = models.CharField(
+        max_length=255,
+        help_text="For typekit fonts, use the kitId. For google fonts, use the value of the 'family' query param",
+    )
+
+    def __str__(self):
+        return f"{self.name} ({self.source})"

@@ -13,7 +13,7 @@ import useSubdomain from 'hooks/useSubdomain';
 import useReCAPTCHAScript from 'hooks/useReCAPTCHAScript';
 
 // Constants
-import { GRECAPTCHA_SITE_KEY } from 'constants/genericConstants';
+import { GRECAPTCHA_SITE_KEY } from 'settings';
 
 // Routing
 import { useHistory, useRouteMatch } from 'react-router-dom';
@@ -28,7 +28,6 @@ import submitPayment, { serializeData, getTotalAmount, amountToCents, StripeErro
 
 // Context
 import { usePage } from 'components/donationPage/DonationPage';
-import * as dynamicElements from 'components/donationPage/pageContent/dynamicElements';
 
 // Analytics
 import { useAnalyticsContext } from 'components/analytics/AnalyticsContext';
@@ -38,8 +37,6 @@ import BaseField from 'elements/inputs/BaseField';
 import Button from 'elements/buttons/Button';
 import { ICONS } from 'assets/icons/SvgIcon';
 import { PayFeesWidget } from 'components/donationPage/pageContent/DPayment';
-
-const STRIPE_PAYMENT_REQUEST_LABEL = 'RevEngine Donation';
 
 function StripePaymentForm({ loading, setLoading, offerPayFees }) {
   useReCAPTCHAScript();
@@ -88,11 +85,12 @@ function StripePaymentForm({ loading, setLoading, offerPayFees }) {
   \****************************/
   const handlePaymentSuccess = (pr) => {
     if (pr) pr.complete('success');
+    const totalAmount = getTotalAmount(amount, payFee, frequency, page.organization_is_nonprofit);
     setErrors({});
     setStripeError(null);
     setLoading(false);
     setSucceeded(true);
-    trackConversion(amount);
+    trackConversion(totalAmount);
     if (page.thank_you_redirect) {
       window.location = page.thank_you_redirect;
     } else {
@@ -100,7 +98,7 @@ function StripePaymentForm({ loading, setLoading, offerPayFees }) {
       const donationPageUrl = window.location.href;
       history.push({
         pathname: url === '/' ? THANK_YOU_SLUG : url + THANK_YOU_SLUG,
-        state: { page, amount, email, donationPageUrl }
+        state: { page, amount: totalAmount, email, donationPageUrl }
       });
     }
   };
@@ -216,7 +214,7 @@ function StripePaymentForm({ loading, setLoading, offerPayFees }) {
         country: page?.organization_country,
         currency: page?.currency?.code?.toLowerCase(),
         total: {
-          label: STRIPE_PAYMENT_REQUEST_LABEL,
+          label: page.revenue_program.name,
           amount: amnt
         }
       });
@@ -258,7 +256,7 @@ function StripePaymentForm({ loading, setLoading, offerPayFees }) {
     if (paymentRequest && amntIsValid) {
       paymentRequest.update({
         total: {
-          label: STRIPE_PAYMENT_REQUEST_LABEL,
+          label: page.revenue_program.name,
           amount: amnt
         }
       });
@@ -285,7 +283,7 @@ function StripePaymentForm({ loading, setLoading, offerPayFees }) {
         <PaymentRequestButtonElement options={{ paymentRequest, style: S.PaymentRequestButtonStyle }} />
       </S.PaymentRequestWrapper>
       <S.PayWithCardOption onClick={() => setForceManualCard(true)}>
-        -- or manually enter credit card --
+        - I prefer to manually enter my credit card -
       </S.PayWithCardOption>
     </>
   ) : (
@@ -322,8 +320,3 @@ function StripePaymentForm({ loading, setLoading, offerPayFees }) {
 }
 
 export default StripePaymentForm;
-
-function getElementValidator(elementType) {
-  const El = dynamicElements[elementType];
-  return El.validator;
-}

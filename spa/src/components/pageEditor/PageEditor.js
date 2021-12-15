@@ -29,6 +29,9 @@ import { CONTENT_SLUG } from 'routes';
 // Constants
 import { GENERIC_ERROR } from 'constants/textConstants';
 
+// Settings
+import { CAPTURE_PAGE_SCREENSHOT } from 'settings';
+
 // Assets
 import { faEye, faEdit, faSave, faTrash, faClone } from '@fortawesome/free-solid-svg-icons';
 
@@ -36,7 +39,8 @@ import { faEye, faEdit, faSave, faTrash, faClone } from '@fortawesome/free-solid
 import { useGlobalContext } from 'components/MainLayout';
 import validatePage from './validatePage';
 
-//
+// Hooks
+import useWebFonts from 'hooks/useWebFonts';
 import { useConfigureAnalytics } from 'components/analytics';
 
 // Children
@@ -49,8 +53,6 @@ import BackButton from 'elements/BackButton';
 import CreateTemplateModal from 'components/pageEditor/CreateTemplateModal';
 
 const PageEditorContext = createContext();
-
-const CAPTURE_PAGE_SCREENSHOT = process.env.REACT_APP_CAPTURE_PAGE_SCREENSHOT === 'true';
 
 export const EDIT = 'EDIT';
 export const PREVIEW = 'PREVIEW';
@@ -96,6 +98,8 @@ function PageEditor() {
   const requestPageDeletion = useRequest();
 
   const history = useHistory();
+
+  useWebFonts(page?.styles?.font);
 
   useConfigureAnalytics();
 

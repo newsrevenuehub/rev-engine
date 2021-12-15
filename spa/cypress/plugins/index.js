@@ -16,6 +16,15 @@ module.exports = (on, config) => {
 
   findWebpack.cleanForCypress(cleanOptions, webpackOptions);
 
+  webpackOptions.module.rules = [
+    ...webpackOptions.module.rules,
+    {
+      type: 'javascript/auto',
+      test: /\.mjs$/,
+      include: /node_modules/
+    }
+  ];
+
   const options = {
     webpackOptions,
     watchOptions: {}

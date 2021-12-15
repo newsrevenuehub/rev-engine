@@ -12,7 +12,7 @@ import { useEffect } from 'react';
 
 // Analytics
 import { useAnalyticsContext } from 'components/analytics/AnalyticsContext';
-import { HUB_GA_V3_ID } from 'constants/analyticsConstants';
+import { HUB_GA_V3_ID } from 'settings';
 
 // Children
 import DonationPageNavbar from 'components/donationPage/DonationPageNavbar';
@@ -98,7 +98,7 @@ function GenericThankYou() {
               </S.SocialShareList>
             </S.SocialShareSection>
             {routedState?.page?.post_thank_you_redirect && (
-              <S.Redirect onClick={handleRedirect}>Take me back to the news</S.Redirect>
+              <S.Redirect onClick={handleRedirect}>Return to website</S.Redirect>
             )}
           </S.InnerContent>
         </S.Wrapper>

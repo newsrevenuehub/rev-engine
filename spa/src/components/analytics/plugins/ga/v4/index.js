@@ -41,6 +41,7 @@ function addGaScript(gaId) {
   const script = document.createElement('script');
   script.src = scriptSrc;
   script.async = true;
+  script.nonce = window.csp_nonce;
   const target = document.getElementsByTagName('script')[0];
   target.parentNode.insertBefore(script, target);
 }

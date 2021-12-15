@@ -224,6 +224,7 @@ class ContributionMetadataSerializerTest(TestCase):
             "mailing_postal_code": "12345",
             "mailing_state": "test",
             "mailing_street": "test",
+            "phone": "9195555555",
             "organization_country": "ts",
             "referer": "https://test.test",
             "revenue_program_slug": "test",
@@ -231,7 +232,11 @@ class ContributionMetadataSerializerTest(TestCase):
             "contributor_id": 1,
             "revenue_program_id": 1,
             "reason_for_giving": "Extortion",
+            "honoree": "test honoree",
+            "in_memory_of": "test in memory of",
             "sf_campaign_id": "TEST123",
+            "comp_subscription": True,
+            "swag_choice_T Shirt": "sm",
         }
 
     def test_bundle_metadata_validation_error_when_is_valid_not_called(self):
@@ -260,32 +265,90 @@ class ContributionMetadataSerializerTest(TestCase):
         self.assertTrue(all(k in metadata.keys() for k in self.all_fields))
         self.assertTrue(all(k in metadata.keys() for k in self.payment_fields))
 
+    def test_bundle_metadata_ignores_blank_metadata(self):
+        serializer_without_blank = self.serializer(data=self.payment_data)
+        self.assertTrue(serializer_without_blank.is_valid())
+
+        # First, verify that "reason_for_giving" is in the metadata if it's not blank
+        metadata = serializer_without_blank.bundle_metadata(self.serializer.PAYMENT)
+        self.assertIn("reason_for_giving", metadata)
+        self.assertEqual(metadata["reason_for_giving"], self.payment_data["reason_for_giving"])
+
+        # Next, ensure that blank fields do not get added to metadata
+        self.payment_data["reason_for_giving"] = ""
+        serializer_with_blank = self.serializer(data=self.payment_data)
+        self.assertTrue(serializer_with_blank.is_valid())
+        metadata = serializer_with_blank.bundle_metadata(self.serializer.PAYMENT)
+        self.assertNotIn("reason_for_giving", metadata)
+
     def test_validate_reason_for_giving(self):
         # If reason_for_giving is "Other" and "reason_other" is present, it passes
         self.payment_data["reason_for_giving"] = "Other"
         self.payment_data["reason_other"] = "Testing"
         serializer = self.serializer(data=self.payment_data)
-        is_valid = serializer._validate_reason_for_giving(self.payment_data)
-        self.assertIsNone(is_valid)
+        self.assertTrue(serializer.is_valid())
 
         # If it's empty, raise validation error
+        self.payment_data["reason_for_giving"] = "Other"
         self.payment_data["reason_other"] = ""
-        self.assertRaises(ValidationError, serializer._validate_reason_for_giving, self.payment_data)
+        bad_serializer = self.serializer(data=self.payment_data)
+        self.assertFalse(bad_serializer.is_valid())
 
     def test_validate_tribute_honoree(self):
-        serializer = self.serializer(data=self.payment_data)
         self.payment_data["tribute_type"] = "type_honoree"
         self.payment_data["honoree"] = ""
-        self.assertRaises(ValidationError, serializer._validate_tribute, self.payment_data)
+        serializer = self.serializer(data=self.payment_data)
+        self.assertFalse(serializer.is_valid())
 
         self.payment_data["honoree"] = "Testing"
-        self.assertIsNone(serializer._validate_tribute(self.payment_data))
+        good_serializer = self.serializer(data=self.payment_data)
+        self.assertTrue(good_serializer.is_valid())
 
     def test_validate_tribute_in_memory_of(self):
-        serializer = self.serializer(data=self.payment_data)
         self.payment_data["tribute_type"] = "type_in_memory_of"
         self.payment_data["in_memory_of"] = ""
-        self.assertRaises(ValidationError, serializer._validate_tribute, self.payment_data)
+        serializer = self.serializer(data=self.payment_data)
+        self.assertFalse(serializer.is_valid())
 
         self.payment_data["in_memory_of"] = "Testing"
-        self.assertIsNone(serializer._validate_tribute(self.payment_data))
+        good_serializer = self.serializer(data=self.payment_data)
+        self.assertTrue(good_serializer.is_valid())
+
+    def test_swag_data(self):
+        data = self.payment_data
+        # comp_subscription = True should results in comp_subscription = "nyt" for now.
+        data["comp_subscription"] = True
+        serializer = self.serializer(data=data)
+        self.assertTrue(serializer.is_valid())
+        self.assertEqual(serializer.data["comp_subscription"], "nyt")
+
+        # t_shirt_size stores the swag option chosen, with swag-name + swag-option
+        data = self.payment_data
+        data["swag_choice_T Shirt"] = "xxl"
+        expected_value = "T Shirt -- xxl"
+        serializer = self.serializer(data=data)
+        self.assertTrue(serializer.is_valid())
+        self.assertEqual(serializer.data["t_shirt_size"], expected_value)
+
+    def test_validate_secondary_metadata_fails_when_called_out_of_order(self):
+        serializer = self.serializer(data=self.payment_data)
+        with self.assertRaises(AssertionError) as a_error:
+            serializer.validate_secondary_metadata(self.payment_data)
+        self.assertEqual(
+            str(a_error.exception), "Cannot call `.validate_secondary_metadata()` without first calling `.is_valid()`"
+        )
+
+    def test_validate_secondary_metadata_fails_when_no_contributor_id(self):
+        del self.payment_data["contributor_id"]
+        serializer = self.serializer(data=self.payment_data)
+        self.assertTrue(serializer.is_valid())
+
+        self.assertNotIn("contributor_id", self.payment_data)
+        self.assertRaises(ValidationError, serializer.validate_secondary_metadata, self.payment_data)
+
+    def test_validate_secondary_metadata_succeeds_when_contributor_id_present(self):
+        serializer = self.serializer(data=self.payment_data)
+        self.assertTrue(serializer.is_valid())
+
+        self.assertIn("contributor_id", self.payment_data)
+        self.assertTrue(serializer.validate_secondary_metadata(self.payment_data))

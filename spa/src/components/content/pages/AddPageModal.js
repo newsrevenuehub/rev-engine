@@ -57,7 +57,7 @@ function AddPageModal({ isOpen, closeModal }) {
           method: 'GET',
           url: REVENUE_PROGRAMS
         },
-        { onSuccess: ({ data }) => setRevenuePrograms(data.results), onFailure: handleRequestFailure }
+        { onSuccess: ({ data }) => setRevenuePrograms(data), onFailure: handleRequestFailure }
       );
     }
     getRevProgams();

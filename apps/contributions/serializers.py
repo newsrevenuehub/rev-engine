@@ -1,7 +1,9 @@
 from django.conf import settings
+from django.db.models import TextChoices
 
 from rest_framework import serializers
 
+from apps.api.error_messages import GENERIC_BLANK
 from apps.contributions.models import (
     Contribution,
     ContributionInterval,
@@ -159,19 +161,47 @@ class ContributorSerializer(serializers.ModelSerializer):
         fields = "__all__"
 
 
-class ContributionMetadataSerializer(serializers.Serializer):
+class CompSubscriptions(TextChoices):
+    NYT = "nyt", "nyt"
+
+
+class ConditionalRequirementsSerializerMixin(serializers.Serializer):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._update_field_properties_from_page_elements()
+
+    def _update_field_properties_from_page_elements(self):
+        page = DonationPage.objects.get(pk=self.initial_data["page_id"])
+        self._set_conditionally_required_fields(page.elements)
+
+    def _set_conditionally_required_fields(self, page_elements):
+        """
+        Elements may define a "requiredFields" key, which is a list of field names that may not be blank or absent when submitting a donation.
+        """
+        # Get list of lists of required fields
+        required_fields = [element.get("requiredFields", []) for element in page_elements]
+        # Flatten to single list of required fields
+        required_fields = [item for fieldsList in required_fields for item in fieldsList]
+        # For every required field, update the field definition
+        for required_field in required_fields:
+            if required_field in self.fields:
+                self.fields[required_field].required = True
+                self.fields[required_field].allow_blank = False
+
+
+class ContributionMetadataSerializer(ConditionalRequirementsSerializerMixin):
     """
     payment_managers use this serializer to key incoming contribution data to the expected metadata key.
     The metadata is then added to the metadata field for the appropriate Stripe object. ProcessorObjects
     defines options for Stripe Objects.
 
-    The validtion on these fields is important and represents downstream requirements.
+    The validation on these fields is important and represents downstream requirements.
     """
 
-    source = serializers.CharField(max_length=100, default="rev-engine")
-    schema_version = serializers.CharField(max_length=12, default="1.0")
+    source = serializers.CharField(max_length=100, default=settings.METADATA_SOURCE)
+    schema_version = serializers.CharField(max_length=12, default=settings.METADATA_SCHEMA_VERSION)
 
-    contributor_id = serializers.IntegerField()
+    contributor_id = serializers.IntegerField(required=False)
     first_name = serializers.CharField(max_length=40)
     last_name = serializers.CharField(max_length=80)
 
@@ -180,14 +210,22 @@ class ContributionMetadataSerializer(serializers.Serializer):
     mailing_city = serializers.CharField(max_length=40)
     mailing_state = serializers.CharField(max_length=80)
     mailing_country = serializers.CharField(max_length=80)
+    phone = serializers.CharField(max_length=40, required=False, allow_blank=True)
 
     agreed_to_pay_fees = serializers.BooleanField(default=False)
     donor_selected_amount = serializers.CharField(max_length=255)
+
+    # Reason for Giving
     reason_for_giving = serializers.CharField(max_length=255, required=False, allow_blank=True)
     reason_other = serializers.CharField(max_length=255, required=False, allow_blank=True)
     tribute_type = serializers.CharField(max_length=255, required=False, allow_blank=True)
     honoree = serializers.CharField(max_length=255, required=False, allow_blank=True)
     in_memory_of = serializers.CharField(max_length=255, required=False, allow_blank=True)
+
+    # Swag
+    swag_opt_out = serializers.BooleanField(default=False)
+    comp_subscription = serializers.ChoiceField(choices=CompSubscriptions.choices, required=False, allow_blank=True)
+    t_shirt_size = serializers.CharField(max_length=500, required=False, allow_blank=True)
 
     sf_campaign_id = serializers.CharField(max_length=255, required=False, allow_blank=True)
     referer = serializers.URLField()
@@ -209,14 +247,42 @@ class ContributionMetadataSerializer(serializers.Serializer):
         "mailing_city": CUSTOMER,
         "mailing_state": CUSTOMER,
         "mailing_country": CUSTOMER,
+        "phone": CUSTOMER,
         "agreed_to_pay_fees": PAYMENT,
         "donor_selected_amount": PAYMENT,
         "reason_for_giving": PAYMENT,
+        "honoree": PAYMENT,
+        "in_memory_of": PAYMENT,
+        "comp_subscription": PAYMENT,
+        "swag_opt_out": PAYMENT,
+        "t_shirt_size": PAYMENT,
         "referer": PAYMENT,
         "revenue_program_id": PAYMENT,
         "revenue_program_slug": PAYMENT,
         "sf_campaign_id": PAYMENT,
     }
+
+    SWAG_CHOICE_KEY_PREFIX = "swag_choice"
+
+    def _get_option_name_from_swag_key(self, key):
+        return key.split(f"{self.SWAG_CHOICE_KEY_PREFIX}_")[1]
+
+    def _get_swag_choices(self, data):
+        return [
+            (self._get_option_name_from_swag_key(key), data[key])
+            for key in data
+            if self.SWAG_CHOICE_KEY_PREFIX in key.lower()
+        ]
+
+    def _parse_pi_data_for_swag_options(self, data):
+        swag_choices = self._get_swag_choices(data)
+        # For now, comp_subscription is a special field that only applies to NYT subscriptions.
+        # This is hopefully an edge case we can remove entirely when it gets handled in a different way.
+        if data.get("comp_subscription"):
+            data["comp_subscription"] = "nyt"
+        if swag_choices:
+            # For now, we only accept one and we force it in to "t_shirt_size"
+            data["t_shirt_size"] = f"{swag_choices[0][0]} -- {swag_choices[0][1]}"
 
     def _parse_reason_other(self, data):
         """
@@ -227,6 +293,7 @@ class ContributionMetadataSerializer(serializers.Serializer):
 
     def to_internal_value(self, data):
         self._parse_reason_other(data)
+        self._parse_pi_data_for_swag_options(data)
         return super().to_internal_value(data)
 
     def _validate_reason_for_giving(self, data):
@@ -234,7 +301,7 @@ class ContributionMetadataSerializer(serializers.Serializer):
         If 'reason_for_giving' is "Other", then 'reason_other' may not be blank.
         """
         if data.get("reason_for_giving") == "Other" and not data.get("reason_other"):
-            raise serializers.ValidationError({"reason_other": "This field may not be blank"})
+            self._errors.update({"reason_other": GENERIC_BLANK})
 
     def _validate_tribute(self, data):
         """
@@ -242,29 +309,92 @@ class ContributionMetadataSerializer(serializers.Serializer):
         If 'tribute_type' is "type_in_memory_of", then 'in_memory_of' field may not be blank.
         """
         if data.get("tribute_type") == "type_honoree" and not data.get("honoree"):
-            raise serializers.ValidationError({"honoree": "This field may not be blank"})
+            self._errors.update({"honoree": GENERIC_BLANK})
 
         if data.get("tribute_type") == "type_in_memory_of" and not data.get("in_memory_of"):
-            raise serializers.ValidationError({"in_memory_of": "This field may not be blank"})
+            self._errors.update({"in_memory_of": GENERIC_BLANK})
 
-    def validate(self, data):
-        self._validate_reason_for_giving(data)
-        self._validate_tribute(data)
-        return super().validate(data)
+    def is_valid(self, raise_exception=False, **kwargs):
+        is_valid = super().is_valid(raise_exception, **kwargs)
+        self._validate_reason_for_giving(self.initial_data)
+        self._validate_tribute(self.initial_data)
+
+        if self._errors and raise_exception:
+            raise serializers.ValidationError(self.errors)
+
+        return not bool(self._errors) and is_valid
+
+    def validate_secondary_metadata(self, secondary_metadata):
+        """
+        Validation for values not present at the time of original validation. Generally, these values must be derived from
+        values created after that initial validation. contributor_id is the only example of this so far.
+        """
+        assert hasattr(
+            self, "_validated_data"
+        ), "Cannot call `.validate_secondary_metadata()` without first calling `.is_valid()`"
+        # "Reset" data to validate
+        self.initial_data = secondary_metadata
+        # "Reset" validation
+        delattr(self, "_validated_data")
+        # Set secondary validation rules
+        self.fields["contributor_id"].required = True
+        # Re-run validation
+        return self.is_valid(raise_exception=True)
+
+    def _should_include_metadata(self, k, v, processor_obj):
+        """
+        Include metadata in bundle if:
+        value is not blank,
+        metadata key is in "All",
+        metadata key is in target "processor_obj"
+        """
+        includes_all = self.PROCESSOR_MAPPING.get(k) == self.ALL
+        includes_process_obj = self.PROCESSOR_MAPPING.get(k) == processor_obj
+        return v != "" and (includes_all or includes_process_obj)
 
     def bundle_metadata(self, processor_obj):
         """
         Validating the data first is important. Downstream applications have their own requirements and limits for these values, so skipping validation will break those integrations. Luckily, inheriting from serializers.Serializer gives us this check for free.
         Here we use the PROCESSOR_MAPPING property of this serializer to get the appropriate metadata based on the reported processor_obj, plus "All"
         """
-        return {
-            k: v
-            for k, v in self.data.items()
-            if self.PROCESSOR_MAPPING.get(k) == self.ALL or self.PROCESSOR_MAPPING.get(k) == processor_obj
-        }
+        return {k: v for k, v in self.data.items() if self._should_include_metadata(k, v, processor_obj)}
 
 
-class AbstractPaymentSerializer(serializers.Serializer):
+class BadActorSerializer(serializers.Serializer):
+    # Donation info
+    amount = serializers.CharField(max_length=12)
+
+    # Donor info
+    first_name = serializers.CharField(max_length=40)
+    last_name = serializers.CharField(max_length=80)
+    email = serializers.EmailField(max_length=80)
+    street = serializers.CharField(max_length=255)
+    city = serializers.CharField(max_length=40)
+    state = serializers.CharField(max_length=80)
+    country = serializers.CharField(max_length=80)
+    zipcode = serializers.CharField(max_length=20)
+
+    # Third-party risk assessment
+    captcha_token = serializers.CharField(max_length=2550, required=False, allow_blank=True)
+
+    # Request metadata
+    ip = serializers.IPAddressField()
+    referer = serializers.URLField()
+
+    # Donation additional
+    reason_for_giving = serializers.CharField(max_length=255, required=False, allow_blank=True)
+
+    def to_internal_value(self, data):
+        data["street"] = data.get("mailing_street")
+        data["city"] = data.get("mailing_city")
+        data["state"] = data.get("mailing_state")
+        data["zipcode"] = data.get("mailing_postal_code")
+        data["country"] = data.get("mailing_country")
+        data["reason"] = data.get("reason_for_giving")
+        return super().to_internal_value(data)
+
+
+class AbstractPaymentSerializer(ConditionalRequirementsSerializerMixin):
     # Payment details
     amount = serializers.IntegerField(
         min_value=REVENGINE_MIN_AMOUNT,
@@ -275,7 +405,6 @@ class AbstractPaymentSerializer(serializers.Serializer):
         },
     )
     interval = serializers.ChoiceField(choices=ContributionInterval.choices, default=ContributionInterval.ONE_TIME)
-
     # organization_country tand currency are a different pattern, but important here.
     # They could be derived from the organization that this contribution is tied to,
     # but instead we send that info to each donation page load and pass it back as params;
@@ -285,29 +414,13 @@ class AbstractPaymentSerializer(serializers.Serializer):
     currency = serializers.CharField(max_length=3, required=True)
 
     # DonorInfo
-    first_name = serializers.CharField(max_length=40)
-    last_name = serializers.CharField(max_length=80)
     email = serializers.EmailField(max_length=80)
-
-    # DonorAddress
-    mailing_postal_code = serializers.CharField(max_length=20)
-    mailing_street = serializers.CharField(max_length=255)
-    mailing_city = serializers.CharField(max_length=40)
-    mailing_state = serializers.CharField(max_length=80)
-    mailing_country = serializers.CharField(max_length=80)
-
-    # Params/Pass-through
-    # sf_campaign_id = serializers.CharField(max_length=255, required=False, allow_blank=True)
-    captcha_token = serializers.CharField(max_length=2550, required=False, allow_blank=True)
-
-    # Request metadata
-    ip = serializers.IPAddressField()
-    referer = serializers.URLField()
 
     # These are used to attach the contribution to the right organization,
     # and associate it with the page it came from.
     revenue_program_slug = serializers.SlugField()
     donation_page_slug = serializers.SlugField(required=False, allow_blank=True)
+
     # Page id is a nice shortcut for getting the page, instead of page_slug + rp_slug
     page_id = serializers.IntegerField(required=False)
     phone = serializers.CharField(max_length=40, required=False, allow_blank=True)
@@ -333,24 +446,6 @@ class AbstractPaymentSerializer(serializers.Serializer):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields["amount"].error_messages["invalid"] = "Enter a valid amount"
-        self._update_field_properties_from_page_elements()
-
-    def _update_field_properties_from_page_elements(self):
-        page = DonationPage.objects.get(pk=self.initial_data["page_id"])
-        self._set_conditionally_required_fields(page.elements)
-
-    def _set_conditionally_required_fields(self, page_elements):
-        """
-        Elements may define a "requiredFields" key, which is a list of field names that may not be blank or absent when submitting a donation.
-        """
-        # Get list of lists of required fields
-        required_fields = [element.get("requiredFields", []) for element in page_elements]
-        # Flatten to single list of required fields
-        required_fields = [item for fieldsList in required_fields for item in fieldsList]
-        # For every required field, update the field definition
-        for required_field in required_fields:
-            self.fields[required_field].required = True
-            self.fields[required_field].allow_blank = False
 
 
 class StripeOneTimePaymentSerializer(AbstractPaymentSerializer):

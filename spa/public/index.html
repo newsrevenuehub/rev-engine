@@ -1,30 +1,38 @@
+{% load revengine_tags %}
 <!DOCTYPE html>
 <html lang="en">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    
+
     <meta name="theme-color" content="#000000" />
     <meta name="description" content="RevEngine" />
 
-    <link rel="manifest" href="%PUBLIC_URL%/manifest.json" />
-    <link rel="preconnect" href="https://fonts.gstatic.com">
-    <link href="https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,100;0,300;0,400;0,700;1,100;1,200;1,400;1,700&display=swap" rel="stylesheet">
+    <meta property="csp-nonce" content="{{ request.csp_nonce }}" />
 
-    
-    {% if social_meta %}
-      <meta name="og:type" content="website">
-      <meta name="og:url" content="{{ social_meta.url }}" />
-      <meta name="og:title" content="{{ social_meta.title }}">
-      <meta name="og:description" content="{{ social_meta.description }}">
-      <meta name="og:image:alt" content="{{ social_meta.image_alt }}">
-      <meta name="og:image" content="{{ social_meta.card }}" />
-      <meta name="twitter:card" content="summary_large_image" />
-      <meta name="twitter:site" content="{{ social_meta.twitter_handle }}" />
-      <meta name="twitter:creator" content="{{ social_meta.twitter_handle }}" />
+    {% if request.csp_nonce %}
+    <script type="text/javascript" nonce="{{ request.csp_nonce }}">
+      window.csp_nonce = '{{ request.csp_nonce }}';
+    </script>
     {% endif %}
 
-    <title>RevEngine</title>
+    {% insert_spa_env %}
+
+    <link rel="manifest" href="%PUBLIC_URL%/manifest.json" />
+
+    {% include "webfonts.html" %} {% if social_meta %}
+    <meta name="og:type" content="website" />
+    <meta name="og:url" content="{{ social_meta.url }}" />
+    <meta name="og:title" content="{{ social_meta.title }}" />
+    <meta name="og:description" content="{{ social_meta.description }}" />
+    <meta name="og:image:alt" content="{{ social_meta.image_alt }}" />
+    <meta name="og:image" content="{{ social_meta.card }}" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:site" content="{{ social_meta.twitter_handle }}" />
+    <meta name="twitter:creator" content="{{ social_meta.twitter_handle }}" />
+    {% endif %}
+
+    <title>{% if revenue_program_name %}Join | {{ revenue_program_name }}{% else %}RevEngine{% endif %}</title>
   </head>
   <body>
     <noscript>You need to enable JavaScript to run this app.</noscript>

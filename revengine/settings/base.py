@@ -14,8 +14,6 @@ https://docs.djangoproject.com/en/3.0/ref/settings/
 import os
 from datetime import timedelta
 
-from celery.schedules import crontab
-
 
 PROJECT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 BASE_DIR = os.path.dirname(PROJECT_DIR)
@@ -72,6 +70,7 @@ MIDDLEWARE = [
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "apps.common.middleware.LogFourHundredsMiddleware",
+    "csp.middleware.CSPMiddleware",
 ]
 
 ROOT_URLCONF = "revengine.urls"
@@ -276,6 +275,7 @@ PHONENUMBER_DEFAULT_REGION = "US"
 # Stripe configs
 STRIPE_LIVE_SECRET_KEY = os.getenv("LIVE_HUB_STRIPE_API_SECRET_KEY", "")
 STRIPE_TEST_SECRET_KEY = os.getenv("TEST_HUB_STRIPE_API_SECRET_KEY", "")
+STRIPE_OAUTH_SCOPE = "read_write"
 STRIPE_LIVE_MODE = os.getenv("STRIPE_LIVE_MODE", "False")
 
 GENERIC_STRIPE_PRODUCT_NAME = "Donation via RevEngine"
@@ -346,3 +346,92 @@ CURRENCIES = {"USD": "$", "CAD": "$"}
 
 # Application subdomains (that are NOT revenue program slugs)
 NON_DONATION_PAGE_SUBDOMAINS = os.getenv("NON_DONATION_PAGE_SUBDOMAINS", ["support", "www"])
+DOMAIN_APEX = os.getenv("DOMAIN_APEX")
+
+# Django-CSP configuration
+# For now, report only.
+
+# For now, we're drastically relaxing the CSP by allowing 'unsafe-eval' and 'unsafe-inline'. Adding those rules precludes the use of a nonce.
+# Restore this nonce setup when we successfully disallow 'unsafe-eval' and 'unsafe-inline'
+# CSP_INCLUDE_NONCE_IN = (
+#     "style-src",
+#     "script-src",
+# )
+CSP_REPORT_ONLY = os.getenv("CSP_REPORT_ONLY", True)
+CSP_REPORT_URI = f"https://o320544.ingest.sentry.io/api/6046263/security/?sentry_key=d576a6738e41453db36130d03e4e95be&sentry_environment={ENVIRONMENT}"
+CSP_DEFAULT_SRC = (
+    "'self'",
+    "*.fundjournalism.org",
+)
+CSP_SCRIPT_SRC = (
+    "'self'",
+    "'unsafe-inline'",  # this is gross. Fix me ASAP
+    "'unsafe-eval'",  # this is gross. Fix me ASAP
+    "https://js.stripe.com",
+    "https://risk.clearbit.com",
+    "https://www.google-analytics.com",
+    "https://maps.googleapis.com",
+    "https://www.google.com/recaptcha/",
+    "https://www.gstatic.com/recaptcha/",
+    "https://pay.google.com",
+    "https://connect.facebook.net",
+)
+CSP_STYLE_SRC = (
+    "'self'",
+    "'unsafe-inline'",
+    "https://fonts.googleapis.com",  # this is gross. Fix me ASAP
+    "https://maps.googleapis.com",
+)
+CSP_IMG_SRC = (
+    "*",
+    "'self'",
+    "data:",
+)
+CSP_FONT_SRC = (
+    "'self'",
+    "data:",
+    "https://fonts.gstatic.com",
+)
+CSP_FRAME_SRC = (
+    "https://js.stripe.com",
+    "https://hooks.stripe.com",
+    "https://www.google.com/recaptcha/",
+    "https://recaptcha.google.com/recaptcha/",
+    "https://pay.google.com",
+    "https://www.facebook.com",
+)
+CSP_CONNECT_SRC = (
+    "'self'",
+    "https://www.google-analytics.com",
+    "https://maps.googleapis.com",
+    "https://*.ingest.sentry.io",
+    "https://risk.clearbit.com",
+)
+CSP_OBJECT_SRC = ("'none'",)
+
+# More security headers
+SECURE_CONTENT_TYPE_NOSNIFF = True
+X_FRAME_OPTIONS = "SAMEORIGIN"
+SECURE_REFERRER_POLICY = "strict-origin-when-cross-origin"
+
+# Stripe API Target Version
+STRIPE_API_VERSION = "2020-08-27"
+
+# Front End Environment Variables - Config Vars Heroku
+SPA_ENV_VARS = {
+    "HUB_STRIPE_API_PUB_KEY": os.getenv("SPA_ENV_HUB_STRIPE_API_PUB_KEY"),
+    "CAPTURE_PAGE_SCREENSHOT": os.getenv("SPA_ENV_CAPTURE_PAGE_SCREENSHOT", "false"),
+    "SALESFORCE_CAMPAIGN_ID_QUERYPARAM": os.getenv("SPA_ENV_APP_SALESFORCE_CAMPAIGN_ID_QUERYPARAM", "campaign"),
+    "FREQUENCY_QUERYPARAM": os.getenv("SPA_ENV_FREQUENCY_QUERYPARAM", "frequency"),
+    "AMOUNT_QUERYPARAM": os.getenv("SPA_ENV_AMOUNT_QUERYPARAM", "amount"),
+    "REVENGINE_API_VERSION": os.getenv("SPA_ENV_REVENGINE_API_VERSION", "v1"),
+    "STRIPE_API_VERSION": STRIPE_API_VERSION,
+    "STRIPE_OAUTH_SCOPE": STRIPE_OAUTH_SCOPE,
+    "STRIPE_CLIENT_ID": os.getenv("SPA_ENV_STRIPE_CLIENT_ID"),
+    "HUB_GOOGLE_MAPS_API_KEY": os.getenv("SPA_ENV_HUB_GOOGLE_MAPS_API_KEY"),
+    "HUB_V3_GOOGLE_ANALYTICS_ID": os.getenv("SPA_ENV_HUB_V3_GOOGLE_ANALYTICS_ID"),
+}
+
+# Meta data static values
+METADATA_SOURCE = os.getenv("METADATA_SOURCE", "rev-engine")
+METADATA_SCHEMA_VERSION = os.getenv("METADATA_SCHEMA_VERSION", "1.0")

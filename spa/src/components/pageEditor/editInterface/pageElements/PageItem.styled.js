@@ -6,7 +6,6 @@ export const PageItem = styled.div`
   border: 2px solid;
   border-color: ${(props) => (props.disabled ? props.theme.colors.disabled : props.theme.colors.primary)};
   border-radius: ${(props) => props.theme.radii[0]};
-  height: 100%;
   background: ${(props) => props.theme.colors.paneBackground};
   display: flex;
   flex-direction: row;
@@ -26,10 +25,21 @@ export const ItemIcon = styled(FontAwesomeIcon)`
 `;
 
 export const ItemContentWrapper = styled.div`
+  display: flex;
+  flex-direction: row;
+  padding: 1rem;
   flex: 1;
+`;
+
+export const ContentLeft = styled.div`
+  flex: 1;
+`;
+
+export const ContentRight = styled.div`
   display: flex;
   flex-direction: column;
-  padding: 1rem;
+  padding-left: 1rem;
+  justify-content: space-between;
 `;
 
 export const ItemName = styled.h5`

@@ -6,7 +6,7 @@ import * as S from './Main.styled';
 import getGlobalPaymentProviderStatus from 'utilities/getGlobalPaymentProviderStatus';
 
 // AJAX
-import { LS_USER } from 'constants/authConstants';
+import { LS_USER } from 'settings';
 
 // Children
 import Dashboard from 'components/dashboard/Dashboard';

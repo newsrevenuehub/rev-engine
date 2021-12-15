@@ -35,6 +35,7 @@ export const PayWithCardOption = styled.p`
   cursor: pointer;
   color: ${(props) => props.theme.colors.primary};
   font-size: ${(props) => props.theme.fontSizes[1]};
+  font-style: italic;
   text-align: center;
   padding: 2rem;
 `;
@@ -44,7 +45,7 @@ export const CardElementStyle = (theme) => ({
     iconColor: '#666ee8',
     color: '#31325f',
     fontWeight: 400,
-    fontFamily: theme.font,
+    fontFamily: theme.font.body?.font_name,
     fontSmoothing: 'antialiased',
     fontSize: theme.fontSizes[1],
     '::placeholder': {

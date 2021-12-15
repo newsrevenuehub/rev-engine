@@ -19,7 +19,6 @@ from apps.contributions.payment_managers import (
     PaymentProviderError,
     StripePaymentManager,
 )
-from apps.contributions.utils import get_hub_stripe_api_key, parse_pi_data_for_swag_options
 from apps.contributions.webhooks import StripeWebhookProcessor
 from apps.emails.models import EmailTemplateError, PageEmailTemplate
 
@@ -38,8 +37,6 @@ def stripe_payment(request):
     # Grab required data from headers
     pi_data["referer"] = request.META.get("HTTP_REFERER")
     pi_data["ip"] = request.META["REMOTE_ADDR"]
-
-    parse_pi_data_for_swag_options(pi_data)
 
     # StripePaymentManager will grab the right serializer based on "interval"
     stripe_payment = StripePaymentManager(data=pi_data)
@@ -79,32 +76,30 @@ def stripe_payment(request):
 
 
 @api_view(["POST"])
-def stripe_onboarding(request):
-    organization = request.user.get_organization()
+def stripe_oauth(request):
+    scope = request.data.get("scope")
+    code = request.data.get("code")
+    if not scope or not code:
+        return Response({"missing_params": "stripe_oauth missing required params"}, status=status.HTTP_400_BAD_REQUEST)
 
-    try:
-        account = stripe.Account.create(
-            type="standard",
-            api_key=get_hub_stripe_api_key(),
-        )
-
-        organization.stripe_account_id = account.id
-        organization.save()
-
-        account_links = stripe.AccountLink.create(
-            account=account.id,
-            refresh_url=f"{settings.SITE_URL}?cb=stripe_reauth",
-            return_url=f"{settings.SITE_URL}?cb=stripe_return",
-            type="account_onboarding",
-            api_key=get_hub_stripe_api_key(),
-        )
-    except stripe.error.StripeError:
+    if scope != settings.STRIPE_OAUTH_SCOPE:
         return Response(
-            {"detail": "There was a problem connecting to Stripe. Please try again."},
-            status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            {"scope_mismatch": "stripe_oauth received unexpected scope"}, status=status.HTTP_400_BAD_REQUEST
         )
+    try:
+        oauth_response = stripe.OAuth.token(
+            grant_type="authorization_code",
+            code=code,
+        )
+        organization = request.user.get_organization()
+        organization.stripe_account_id = oauth_response["stripe_user_id"]
+        organization.stripe_oauth_refresh_token = oauth_response["refresh_token"]
+        organization.save()
+    except stripe.oauth_error.InvalidGrantError:
+        logger.error("stripe.OAuth.token failed due to an invalid code")
+        return Response({"invalid_code": "stripe_oauth received an invalid code"}, status=status.HTTP_400_BAD_REQUEST)
 
-    return Response(account_links, status=status.HTTP_200_OK)
+    return Response({"detail": "success"}, status=status.HTTP_200_OK)
 
 
 @api_view(["POST"])
@@ -121,7 +116,7 @@ def stripe_confirmation(request):
             return Response({"status": "connected"}, status=status.HTTP_200_OK)
 
         # A "Confirmed" stripe account has "charges_enabled": true on return from stripe.Account.retrieve
-        stripe_account = stripe.Account.retrieve(organization.stripe_account_id, api_key=get_hub_stripe_api_key())
+        stripe_account = stripe.Account.retrieve(organization.stripe_account_id)
 
     except stripe.error.StripeError:
         logger.error("stripe.Account.retrieve failed with a StripeError")
@@ -139,12 +134,8 @@ def stripe_confirmation(request):
     try:
         # Now that we're verified, create and associate default product
         organization.stripe_create_default_product()
-        # And register domain with ApplePay
-        organization.stripe_create_apple_pay_domain()
     except stripe.error.StripeError as stripe_error:
-        logger.error(
-            f"stripe_create_default_product or stripe_create_apple_pay_domain failed with a StripeError: {stripe_error}"
-        )
+        logger.error(f"stripe_create_default_product failed with a StripeError: {stripe_error}")
         return Response(
             {"status": "failed"},
             status=status.HTTP_500_INTERNAL_SERVER_ERROR,

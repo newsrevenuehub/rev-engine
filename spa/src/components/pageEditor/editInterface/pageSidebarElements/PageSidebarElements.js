@@ -6,20 +6,24 @@ import { faPlus } from '@fortawesome/free-solid-svg-icons';
 import { useEditInterfaceContext } from 'components/pageEditor/editInterface/EditInterface';
 
 // Children
+import ScrollBox from 'elements/ScrollBox';
 import DraggableList from 'elements/draggable/DraggableList';
 import { EmptyElements } from '../pageElements/PageElements';
 
-function PageSidebarElements({ openAddElementModal, goToProperties }) {
+function PageSidebarElements({ openAddElementModal, goToProperties, handleRemoveElement }) {
   const { sidebarElements, setSidebarElements } = useEditInterfaceContext();
 
   return (
     <S.PageSidebarElements data-testid="page-sidebar">
       {sidebarElements && sidebarElements?.length > 0 ? (
-        <DraggableList
-          elements={sidebarElements}
-          setElements={setSidebarElements}
-          handleItemClick={(element) => goToProperties(element, 'sidebar')}
-        />
+        <ScrollBox>
+          <DraggableList
+            elements={sidebarElements}
+            setElements={setSidebarElements}
+            handleItemEdit={(element) => goToProperties(element, 'sidebar')}
+            handleItemDelete={(element) => handleRemoveElement(element, 'sidebar')}
+          />
+        </ScrollBox>
       ) : (
         <EmptyElements />
       )}

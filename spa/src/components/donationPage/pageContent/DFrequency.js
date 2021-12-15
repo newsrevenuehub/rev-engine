@@ -10,6 +10,8 @@ import { getDefaultAmountForFreq } from 'components/donationPage/pageContent/DAm
 
 // Children
 import DElement, { DynamicElementPropTypes } from 'components/donationPage/pageContent/DElement';
+import GroupedLabel from 'elements/inputs/GroupedLabel';
+import { InputGroup, GroupedWrapper } from 'elements/inputs/inputElements.styled';
 import FormErrors from 'elements/inputs/FormErrors';
 
 function DFrequency({ element, ...props }) {
@@ -26,27 +28,29 @@ function DFrequency({ element, ...props }) {
   };
 
   return (
-    <DElement label="Frequency" description="Choose a contribution type" {...props} data-testid="d-frequency">
-      <S.DFrequency>
-        {element?.content?.sort(frequencySort).map((freq) => (
-          <S.CheckBoxField>
-            <S.Radio
-              id={freq.value}
-              name="interval"
-              key={freq.value}
-              value={freq.value}
-              checked={frequency === freq.value}
-              onChange={handleFrequencySelected}
-              data-testid={`frequency-${freq.value}${frequency === freq.value ? '-selected' : ''}`}
-              style={{
-                color: theme.colors.primary
-              }}
-            />
-            <S.CheckboxLabel htmlFor={freq.value}>{freq.displayName}</S.CheckboxLabel>
-          </S.CheckBoxField>
-        ))}
-      </S.DFrequency>
-      <FormErrors errors={errors.interval} />
+    <DElement label="Frequency" {...props} data-testid="d-frequency">
+      <InputGroup>
+        <GroupedLabel>Choose a contribution type</GroupedLabel>
+        <GroupedWrapper>
+          {element?.content?.sort(frequencySort).map((freq) => (
+            <S.CheckBoxField key={freq.value}>
+              <S.Radio
+                id={freq.value}
+                name="interval"
+                value={freq.value}
+                checked={frequency === freq.value}
+                onChange={handleFrequencySelected}
+                data-testid={`frequency-${freq.value}${frequency === freq.value ? '-selected' : ''}`}
+                style={{
+                  color: theme.colors.primary
+                }}
+              />
+              <S.CheckboxLabel htmlFor={freq.value}>{freq.displayName}</S.CheckboxLabel>
+            </S.CheckBoxField>
+          ))}
+        </GroupedWrapper>
+        <FormErrors errors={errors.interval} />
+      </InputGroup>
     </DElement>
   );
 }

@@ -11,7 +11,7 @@ import { useHistory, useLocation } from 'react-router-dom';
 // AJAX
 import axios from 'ajax/axios';
 import { VERIFY_TOKEN } from 'ajax/endpoints';
-import { LS_CONTRIBUTOR, LS_CSRF_TOKEN } from 'constants/authConstants';
+import { LS_CONTRIBUTOR, LS_CSRF_TOKEN } from 'settings';
 
 // Children
 import GlobalLoading from 'elements/GlobalLoading';

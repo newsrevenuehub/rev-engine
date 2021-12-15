@@ -65,3 +65,4 @@ class RevenueProgramViewSet(OrganizationLimitedListView, viewsets.ReadOnlyModelV
     model = RevenueProgram
     queryset = RevenueProgram.objects.all()
     serializer_class = serializers.RevenueProgramSerializer
+    pagination_class = None

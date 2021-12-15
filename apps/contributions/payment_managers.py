@@ -4,6 +4,7 @@ from django.conf import settings
 from django.utils import timezone
 
 import stripe
+from rest_framework import serializers as drf_serializers
 
 from apps.contributions.bad_actor import BadActorAPIError, make_bad_actor_request
 from apps.contributions.models import (
@@ -13,11 +14,11 @@ from apps.contributions.models import (
     Contributor,
 )
 from apps.contributions.serializers import (
+    BadActorSerializer,
     ContributionMetadataSerializer,
     StripeOneTimePaymentSerializer,
     StripeRecurringPaymentSerializer,
 )
-from apps.contributions.utils import get_hub_stripe_api_key
 from apps.organizations.models import RevenueProgram
 from apps.pages.models import DonationPage
 
@@ -73,41 +74,63 @@ class PaymentManager:
         self.data = data
         self.serializer_class = self.get_serializer_class(data=data, contribution=contribution)
 
-    def bundle_metadata(self, processor_obj: str):
-        """
-        ContributionMetadataSerializer should use raw self.data, not self.validated_data.
-        It will perform its own valiation, distinct in some cases from the payment serializer.
+    def get_serializer_class(self, **kwargs):  # pragma: no cover
+        raise NotImplementedError("Subclasses of PaymentManager must implement get_serializer_class")
 
-        In some cases, revenue_program_id or contributor_id may not be defined yet, so grab them
-        here just in case.
-        """
-        if not self.data.get("revenue_program_id"):
-            self.get_revenue_program()
+    def bundle_metadata(self, processor_obj: str):
+        self.ensure_validated_data()
 
         if not self.data.get("contributor_id"):
             self.get_or_create_contributor()
 
-        serializer = ContributionMetadataSerializer(data=self.data)
-        serializer.is_valid(raise_exception=True)
-        return serializer.bundle_metadata(processor_obj)
+        self.metadata_serializer.validate_secondary_metadata(self.data)
+        return self.metadata_serializer.bundle_metadata(processor_obj)
 
-    def get_serializer_class(self, **kwargs):  # pragma: no cover
-        raise NotImplementedError("Subclasses of PaymentManager must implement get_serializer_class")
+    def _serialize_data(self):
+        self.data_serializer = self.serializer_class(data=self.data)
+        return self.data_serializer
+
+    def _serialize_metadata(self):
+        if not self.data.get("revenue_program_id"):
+            self.get_revenue_program()
+
+        self.metadata_serializer = ContributionMetadataSerializer(data=self.data)
+        return self.metadata_serializer
 
     def validate(self):
-        serializer = self.serializer_class(data=self.data)
-        serializer.is_valid(raise_exception=True)
-        self.validated_data = serializer.data
+        data_serializer = self._serialize_data()
+        data_serializer.is_valid(raise_exception=False)
+
+        metadata_serializer = self._serialize_metadata()
+        metadata_serializer.is_valid(raise_exception=False)
+
+        if data_serializer.errors or metadata_serializer.errors:
+            errors = {**data_serializer.errors, **metadata_serializer.errors}
+            raise drf_serializers.ValidationError(errors)
+
+        self.validated_data = data_serializer.data
+
+    def validate_badactor_data(self):
+        # validate_badactor_data should not be called without first validating payment data.
+        self.ensure_validated_data()
+        serializer = BadActorSerializer(data=self.data)
+        try:
+            # Here we raise an exception and catch it to handle it on our own,
+            # rather than let it pass through to the user.
+            serializer.is_valid(raise_exception=True)
+        except drf_serializers.ValidationError as ba_validation_error:
+            logger.warning(f"BadActor serializer raised a ValidationError: {str(ba_validation_error)}")
+        self.validated_badactor_data = serializer.data
 
     def ensure_validated_data(self):
         if not self.validated_data:
             raise ValueError("PaymentManager must call 'validate' before performing this action")
 
     def get_bad_actor_score(self):
-        self.ensure_validated_data()
+        self.validate_badactor_data()
 
         try:
-            response = make_bad_actor_request(self.validated_data)
+            response = make_bad_actor_request(self.validated_badactor_data)
             self.bad_actor_score = response.json()["overall_judgment"]
             self.bad_actor_response = response.json()
             if self.should_flag():
@@ -133,19 +156,17 @@ class PaymentManager:
         return self.bad_actor_score >= settings.BAD_ACTOR_FAIL_ABOVE
 
     def get_revenue_program(self):
-        revenue_program = None
-        if self.validated_data:
-            rp_slug = self.validated_data.get("revenue_program_slug") if self.validated_data else None
+        if self.contribution:
+            revenue_program = self.revenue_program = self.contribution.donation_page.revenue_program
+        else:
             try:
-
-                self.revenue_program = (
-                    self.revenue_program if self.revenue_program else RevenueProgram.objects.get(slug=rp_slug)
+                revenue_program = self.revenue_program = (
+                    self.revenue_program
+                    if self.revenue_program
+                    else RevenueProgram.objects.get(slug=self.data.get("revenue_program_slug"))
                 )
-                revenue_program = self.revenue_program
             except RevenueProgram.DoesNotExist:
                 raise PaymentBadParamsError("PaymentManager could not find a revenue program with slug provided")
-        else:
-            revenue_program = self.contribution.donation_page.revenue_program
         self.data["revenue_program_id"] = revenue_program.pk
         return revenue_program
 
@@ -159,19 +180,15 @@ class PaymentManager:
         If validated_data is present, then the contribution has yet to be created. So grab it from the validated data.
         Otherwise, grab it from the existing contribution.
         """
-        if self.validated_data:
-            page_slug = self.validated_data.get("donation_page_slug")
-            try:
-                if page_slug:
-                    return DonationPage.objects.get(slug=page_slug)
-                else:
-                    rev_program = self.get_revenue_program()
-                    return rev_program.default_donation_page
-            except DonationPage.DoesNotExist:
-                raise PaymentBadParamsError("PaymentManager could not find a donation page with slug provided")
-        elif self.contribution:
+        if self.contribution:
             return self.contribution.donation_page
-        self.ensure_validated_data()
+
+        rev_program = self.get_revenue_program()
+        if page_slug := self.data.get("donation_page_slug"):
+            if donation_page := DonationPage.objects.filter(revenue_program=rev_program, slug=page_slug).first():
+                return donation_page
+            raise PaymentBadParamsError("PaymentManager could not find a donation page with slug provided")
+        return rev_program.default_donation_page
 
     def get_or_create_contributor(self):
         contributor, _ = Contributor.objects.get_or_create(email=self.validated_data["email"])
@@ -250,7 +267,6 @@ class StripePaymentManager(PaymentManager):
             currency=self.validated_data["currency"],
             customer=stripe_customer.id,
             payment_method_types=["card"],
-            api_key=get_hub_stripe_api_key(),
             stripe_account=organization.stripe_account_id,
             capture_method=capture_method,
             statement_descriptor_suffix=revenue_program.stripe_statement_descriptor_suffix,
@@ -293,7 +309,6 @@ class StripePaymentManager(PaymentManager):
         meta = self.bundle_metadata(ContributionMetadataSerializer.CUSTOMER)
         return stripe.Customer.create(
             email=self.validated_data["email"],
-            api_key=get_hub_stripe_api_key(),
             stripe_account=organization.stripe_account_id,
             metadata=meta,
         )
@@ -303,7 +318,6 @@ class StripePaymentManager(PaymentManager):
             stripe.PaymentMethod.attach(
                 payment_method_id if payment_method_id else self.validated_data["payment_method_id"],
                 customer=stripe_customer_id,
-                api_key=get_hub_stripe_api_key(),
                 stripe_account=org_strip_account,
             )
         except stripe.error.StripeError as stripe_error:
@@ -316,7 +330,6 @@ class StripePaymentManager(PaymentManager):
         try:
             stripe.Subscription.delete(
                 self.contribution.provider_subscription_id,
-                api_key=get_hub_stripe_api_key(),
                 stripe_account=organization.stripe_account_id,
             )
         except stripe.error.StripeError as stripe_error:
@@ -334,7 +347,6 @@ class StripePaymentManager(PaymentManager):
                 self.contribution.provider_subscription_id,
                 default_payment_method=payment_method_id,
                 stripe_account=organization.stripe_account_id,
-                api_key=get_hub_stripe_api_key(),
             )
         except stripe.error.StripeError as stripe_error:
             logger.error(f"stripe.Subscription.modify returned a StripeError: {str(stripe_error)}")
@@ -357,14 +369,12 @@ class StripePaymentManager(PaymentManager):
                 stripe.PaymentIntent.cancel(
                     self.contribution.provider_payment_id,
                     stripe_account=organization.stripe_account_id,
-                    api_key=get_hub_stripe_api_key(),
                     cancellation_reason="fraudulent",
                 )
             else:
                 stripe.PaymentIntent.capture(
                     self.contribution.provider_payment_id,
                     stripe_account=organization.stripe_account_id,
-                    api_key=get_hub_stripe_api_key(),
                 )
 
         except stripe.error.InvalidRequestError as invalid_request_error:
@@ -403,7 +413,6 @@ class StripePaymentManager(PaymentManager):
                 default_payment_method=self.contribution.provider_payment_method_id,
                 items=[{"price_data": price_data}],
                 stripe_account=organization.stripe_account_id,
-                api_key=get_hub_stripe_api_key(),
                 metadata=self.contribution.contribution_metadata,
             )
         except stripe.error.StripeError as stripe_error:

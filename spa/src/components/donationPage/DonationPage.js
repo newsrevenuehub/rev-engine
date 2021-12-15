@@ -19,10 +19,7 @@ import DonationPageSidebar from 'components/donationPage/DonationPageSidebar';
 // Children
 import DonationPageStaticText from 'components/donationPage/DonationPageStaticText';
 import DonationPageFooter from 'components/donationPage/DonationPageFooter';
-
-const SALESFORCE_CAMPAIGN_ID_QUERYPARAM = process.env.REACT_APP_SALESFORCE_CAMPAIGN_ID_QUERYPARAM || 'campaign';
-const FREQUENCY_QUERYPARAM = process.env.REACT_APP_FREQUENCY_QUERYPARAM || 'frequency';
-const AMOUNT_QUERYPARAM = process.env.REACT_APP_AMOUNT_QUERYPARAM || 'amount';
+import { SALESFORCE_CAMPAIGN_ID_QUERYPARAM, FREQUENCY_QUERYPARAM, AMOUNT_QUERYPARAM } from 'settings';
 
 const DonationPageContext = createContext({});
 

@@ -26,14 +26,13 @@ export const StylesFieldset = styled.fieldset`
   }
 
   & > div {
-    padding: 1rem;
+    margin: 1rem;
   }
 `;
 
 export const FieldRow = styled.div`
   display: flex;
   flex-direction: row;
-  align-items: center;
   & > :not(:last-child) {
     margin-right: 3rem;
   }
@@ -131,28 +130,36 @@ export const Slider = styled(MaterialSlider)`
 `;
 
 export const TextExample = styled.div`
-  padding: 3rem;
+  padding: 1rem;
   border: 1px solid ${(props) => props.theme.colors.grey[1]};
   border-radius: ${(props) => props.theme.radii[1]};
+  position: relative;
+`;
+
+export const PangramText = styled.div`
+  & > * {
+    margin-top: 0;
+  }
+
+  em {
+    display: block;
+    margin-top: 1rem;
+    font-size: 10px;
+  }
 
   h2 {
     font-size: ${(props) => props.newStyles.fontSizes[3]};
-    font-family: ${(props) => props.newStyles.font};
+    font-family: ${(props) => props.newStyles.font.heading?.font_name};
     font-weight: normal;
   }
   h4 {
     font-size: ${(props) => props.newStyles.fontSizes[2]};
-    font-family: ${(props) => props.newStyles.font};
-    font-weight: normal;
-  }
-  h5 {
-    font-size: ${(props) => props.newStyles.fontSizes[1]};
-    font-family: ${(props) => props.newStyles.font};
+    font-family: ${(props) => props.newStyles.font.heading?.font_name};
     font-weight: normal;
   }
   p {
-    font-size: ${(props) => props.newStyles.fontSizes[0]};
-    font-family: ${(props) => props.newStyles.font};
+    font-size: ${(props) => props.newStyles.fontSizes[1]};
+    font-family: ${(props) => props.newStyles.font.body?.font_name};
     font-weight: normal;
   }
 `;

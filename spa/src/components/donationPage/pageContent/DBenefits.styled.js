@@ -6,9 +6,7 @@ export const DBenefits = styled.aside``;
 
 export const BenefitsContent = styled.div``;
 
-export const BenefitLevelDetails = styled.h2`
-  font-size: ${(props) => props.theme.fontSizes[2]};
-  font-weight: normal;
+export const BenefitLevelDetails = styled.div`
   margin-bottom: 1rem;
 `;
 
@@ -29,6 +27,10 @@ export const LevelsList = styled.ul`
 export const Level = styled.li`
   border-bottom: 1px ${(props) => props.theme.ruleStyle || 'solid'} ${(props) => props.theme.colors.grey[1]};
   padding: 2rem 0;
+
+  &:first-child {
+    padding-top: 0;
+  }
 `;
 
 export const LevelInclusion = styled.p`

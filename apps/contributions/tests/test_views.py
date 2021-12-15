@@ -7,6 +7,7 @@ from django.urls import reverse
 from faker import Faker
 from rest_framework.test import APIRequestFactory, APITestCase
 from stripe.error import StripeError
+from stripe.oauth_error import InvalidGrantError as StripeInvalidGrantError
 from stripe.stripe_object import StripeObject
 
 from apps.contributions.models import Contribution, ContributionInterval, Contributor
@@ -32,7 +33,7 @@ class StripePaymentViewTestAbstract(APITestCase):
     def setUp(self):
         self.organization = OrganizationFactory()
         self.revenue_program = RevenueProgramFactory(organization=self.organization)
-        self.page = DonationPageFactory()
+        self.page = DonationPageFactory(revenue_program=self.revenue_program)
         self.contributor = ContributorFactory()
 
         self.url = reverse("stripe-payment")
@@ -52,6 +53,7 @@ class StripePaymentViewTestAbstract(APITestCase):
                 "first_name": "Test",
                 "last_name": "Tester",
                 "amount": self.payment_amount,
+                "donor_selected_amount": self.payment_amount,
                 "mailing_postal_code": 12345,
                 "mailing_street": "123 Fake Street",
                 "mailing_city": "Fakerton",
@@ -149,36 +151,86 @@ class MockStripeAccount(StripeObject):
 MOCK_ACCOUNT_LINKS = {"test": "test"}
 
 
-class StripeOnboardingTest(APITestCase):
+class MockOAuthResponse(StripeObject):
+    def __init__(self, *args, **kwargs):
+        self.stripe_user_id = kwargs.get("stripe_user_id")
+        self.refresh_token = kwargs.get("refresh_token")
+
+
+expected_oauth_scope = "my_test_scope"
+
+
+@override_settings(STRIPE_OAUTH_SCOPE=expected_oauth_scope)
+class StripeOAuthTest(APITestCase):
     def setUp(self):
         self.user = get_user_model().objects.create(email="user@test.com", password="testing")
         self.organization = OrganizationFactory(name="My Organization")
         self.organization.user_set.through.objects.create(organization=self.organization, user=self.user, is_owner=True)
 
-        self.url = reverse("stripe-onboarding")
+        self.url = reverse("stripe-oauth")
 
-    @patch("stripe.Account.create", side_effect=MockStripeAccount)
-    @patch("stripe.AccountLink.create", side_effect=MOCK_ACCOUNT_LINKS)
-    def test_successful_onboarding(self, *args):
-        """
-        Test happy-path
-        """
+    def _make_request(self, code=None, scope=None):
         self.client.force_authenticate(user=self.user)
-        response = self.client.post(self.url)
-        # response should be 200, with test account link value
-        self.assertContains(response, "test")
+        body = {}
+        if code:
+            body["code"] = code
+        if scope:
+            body["scope"] = scope
+        return self.client.post(self.url, body)
+
+    @patch("stripe.OAuth.token")
+    def test_response_when_missing_params(self, stripe_oauth_token):
+        # Missing code
+        response = self._make_request(code=None, scope=expected_oauth_scope)
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("missing_params", response.data)
+        stripe_oauth_token.assert_not_called()
+
+        # Missing scope
+        response = self._make_request(code="12345", scope=None)
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("missing_params", response.data)
+        stripe_oauth_token.assert_not_called()
+
+        # Missing both
+        response = self._make_request(code=None, scope=None)
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("missing_params", response.data)
+        stripe_oauth_token.assert_not_called()
+
+    @patch("stripe.OAuth.token")
+    def test_response_when_scope_param_mismatch(self, stripe_oauth_token):
+        """
+        We verify that the "scope" parameter provided by the frontend matches the scope we expect
+        """
+        response = self._make_request(code="1234", scope="not_expected_scope")
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("scope_mismatch", response.data)
+        stripe_oauth_token.assert_not_called()
+
+    @patch("stripe.OAuth.token")
+    def test_response_when_invalid_code(self, stripe_oauth_token):
+        stripe_oauth_token.side_effect = StripeInvalidGrantError(code="error_code", description="error_description")
+        response = self._make_request(code="1234", scope=expected_oauth_scope)
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("invalid_code", response.data)
+        stripe_oauth_token.assert_called_with(code="1234", grant_type="authorization_code")
+
+    @patch("stripe.OAuth.token")
+    def test_response_success(self, stripe_oauth_token):
+        expected_stripe_account_id = "my_test_account_id"
+        expected_refresh_token = "my_test_refresh_token"
+        stripe_oauth_token.return_value = MockOAuthResponse(
+            stripe_user_id=expected_stripe_account_id, refresh_token=expected_refresh_token
+        )
+        response = self._make_request(code="1234", scope=expected_oauth_scope)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data["detail"], "success")
+        stripe_oauth_token.assert_called_with(code="1234", grant_type="authorization_code")
+        # Org should have new values based on OAuth response
         self.organization.refresh_from_db()
-        self.assertEqual(self.organization.stripe_account_id, TEST_STRIPE_ACCOUNT_ID)
-
-    @patch("stripe.Account.create", side_effect=StripeError)
-    def test_stripe_error_returns_expected_message(self, *args):
-        """
-        If stripe.Account.create returns a StripeError, handle it with resposne.
-        """
-        self.client.force_authenticate(user=self.user)
-        response = self.client.post(self.url)
-        self.assertEqual(response.status_code, 500)
-        self.assertEqual(response.data["detail"], "There was a problem connecting to Stripe. Please try again.")
+        self.assertEqual(self.organization.stripe_account_id, expected_stripe_account_id)
+        self.assertEqual(self.organization.stripe_oauth_refresh_token, expected_refresh_token)
 
 
 class MockStripeAccountEnabled(MockStripeAccount):
@@ -192,8 +244,6 @@ class MockStripeAccountNotEnabled(MockStripeAccount):
 
 
 TEST_STRIPE_PRODUCT_ID = "my_test_product_id"
-TEST_STRIPE_LIVE_KEY = "my_test_live_key"
-TEST_SITE_URL = "https://mytesturl.com"
 
 
 class MockStripeProduct(StripeObject):
@@ -247,8 +297,7 @@ class StripeConfirmTest(APITestCase):
         self.assertEqual(response.data["status"], "connected")
 
     @patch("stripe.Account.retrieve", side_effect=MockStripeAccountEnabled)
-    @patch("stripe.ApplePayDomain.create")
-    def test_confirm_stripe_error_response(self, mock_domain_create, mock_account_retrieve, mock_product_create):
+    def test_confirm_stripe_error_response(self, mock_account_retrieve, mock_product_create):
         mock_product_create.side_effect = StripeError
         response = self.post_to_confirmation(stripe_account_id="testing")
         self.assertEqual(response.status_code, 500)
@@ -262,53 +311,6 @@ class StripeConfirmTest(APITestCase):
         mock_product_create.assert_called_once()
         self.organization.refresh_from_db()
         self.assertEqual(self.organization.stripe_product_id, TEST_STRIPE_PRODUCT_ID)
-
-    @override_settings(STRIPE_LIVE_MODE="True")
-    @override_settings(STRIPE_LIVE_SECRET_KEY=TEST_STRIPE_LIVE_KEY)
-    @override_settings(SITE_URL=TEST_SITE_URL)
-    @patch("stripe.Account.retrieve", side_effect=MockStripeAccountEnabled)
-    @patch("stripe.ApplePayDomain.create")
-    def test_apple_domain_verification_called_when_newly_verified_and_live_mode(
-        self, mock_applepay_domain_create, *args
-    ):
-        stripe_account_id = "my_test_stripe_account_id"
-        self.post_to_confirmation(stripe_account_id=stripe_account_id)
-        # Newly confirmed accounts should register the domain with apply pay
-        domain_from_site_url = TEST_SITE_URL.split("//")[1]
-        mock_applepay_domain_create.assert_called_once_with(
-            api_key=TEST_STRIPE_LIVE_KEY, domain_name=domain_from_site_url, stripe_account=stripe_account_id
-        )
-        self.organization.refresh_from_db()
-        self.assertIsNotNone(self.organization.domain_apple_verified_date)
-
-    @override_settings(STRIPE_LIVE_MODE="False")
-    @patch("stripe.Account.retrieve", side_effect=MockStripeAccountEnabled)
-    @patch("stripe.ApplePayDomain.create")
-    def test_apple_domain_verification_not_called_when_newly_verified_and_not_live_mode(
-        self, mock_applepay_domain_create, *args
-    ):
-        self.post_to_confirmation(stripe_account_id="testing")
-        # Newly confirmed accounts should not register domain with apple pay unless in live mode.
-        mock_applepay_domain_create.assert_not_called()
-        self.organization.refresh_from_db()
-        self.assertIsNone(self.organization.domain_apple_verified_date)
-
-    @override_settings(STRIPE_LIVE_MODE="True")
-    @override_settings(SITE_URL=TEST_SITE_URL)
-    @patch("stripe.Account.retrieve", side_effect=MockStripeAccountEnabled)
-    @patch("stripe.ApplePayDomain.create", side_effect=StripeError)
-    @patch("apps.organizations.models.logger")
-    def test_apple_domain_verification_failure(self, mock_logger, mock_applepay_domain_create, *args):
-        target_id = "testing_stripe_account_id"
-        self.post_to_confirmation(stripe_account_id=target_id)
-        mock_applepay_domain_create.assert_called_once()
-        # Logger should log stripe error
-        mock_logger.warning.assert_called_once_with(
-            f"Failed to register ApplePayDomain for organization {self.organization.name}. StripeError: <empty message>"
-        )
-        # StripeError above should not prevent everything else from working properly
-        self.organization.refresh_from_db()
-        self.assertEqual(self.organization.stripe_account_id, target_id)
 
     @patch("stripe.Account.retrieve", side_effect=MockStripeAccountNotEnabled)
     def test_confirm_connected_not_verified(self, mock_account_retrieve, *args):
@@ -443,7 +445,6 @@ class UpdatePaymentMethodTest(APITestCase):
         mock_attach.assert_called_once_with(
             self.payment_method_id,
             customer=self.customer_id,
-            api_key=TEST_STRIPE_API_KEY,
             stripe_account=self.stripe_account_id,
         )
         mock_modify.assert_not_called()
@@ -459,14 +460,12 @@ class UpdatePaymentMethodTest(APITestCase):
             self.payment_method_id,
             customer=self.customer_id,
             stripe_account=self.stripe_account_id,
-            api_key=TEST_STRIPE_API_KEY,
         )
 
         mock_modify.assert_called_once_with(
             self.subscription_id,
             default_payment_method=self.payment_method_id,
             stripe_account=self.stripe_account_id,
-            api_key=TEST_STRIPE_API_KEY,
         )
 
     @patch("stripe.PaymentMethod.attach")
@@ -480,14 +479,12 @@ class UpdatePaymentMethodTest(APITestCase):
             self.payment_method_id,
             customer=self.customer_id,
             stripe_account=self.stripe_account_id,
-            api_key=TEST_STRIPE_API_KEY,
         )
 
         mock_modify.assert_called_once_with(
             self.subscription_id,
             default_payment_method=self.payment_method_id,
             stripe_account=self.stripe_account_id,
-            api_key=TEST_STRIPE_API_KEY,
         )
 
 
@@ -524,9 +521,7 @@ class CancelRecurringPaymentTest(APITestCase):
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.data["detail"], "Could not complete payment")
 
-        mock_delete.assert_called_once_with(
-            self.subscription_id, stripe_account=self.stripe_account_id, api_key=TEST_STRIPE_API_KEY
-        )
+        mock_delete.assert_called_once_with(self.subscription_id, stripe_account=self.stripe_account_id)
 
     @patch("stripe.Subscription.delete")
     def test_delete_recurring_success(self, mock_delete):
@@ -534,9 +529,7 @@ class CancelRecurringPaymentTest(APITestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data["detail"], "Success")
 
-        mock_delete.assert_called_once_with(
-            self.subscription_id, stripe_account=self.stripe_account_id, api_key=TEST_STRIPE_API_KEY
-        )
+        mock_delete.assert_called_once_with(self.subscription_id, stripe_account=self.stripe_account_id)
 
 
 @patch("apps.contributions.models.Contribution.process_flagged_payment")

@@ -1,16 +1,23 @@
 import styled from 'styled-components';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 
-export const DraggableList = styled.ul`
-  padding: 0;
-  width: 90%;
-  margin: 0 auto;
-  list-style: none;
-`;
+export const DraggableListStyles = {
+  padding: 0,
+  width: '90%',
+  margin: '0 auto'
+};
 
-export const DraggableListItem = styled.li`
-  width: 100%;
-`;
+export const DraggableListItemStyles = {
+  width: '100%',
+  listStyle: 'none',
+  margin: '2rem 0'
+};
+
+export const ItemActiveStyles = {
+  whileHover: {
+    scale: 1.03
+  }
+};
 
 export const PanelItemDeleteButton = styled.button`
   display: flex;

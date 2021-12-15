@@ -1,4 +1,4 @@
-import { LS_USER, LS_CSRF_TOKEN } from 'constants/authConstants';
+import { LS_USER, LS_CSRF_TOKEN } from 'settings';
 
 export function handleLoginSuccess(data) {
   localStorage.setItem(LS_USER, JSON.stringify(data.user));

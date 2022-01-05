@@ -21,4 +21,5 @@ class Command(BaseCommand):
             enabled_events=settings.STRIPE_WEBHOOK_EVENTS,
             connect=True,
             api_key=api_key,
+            api_version=settings.STRIPE_API_VERSION,
         )

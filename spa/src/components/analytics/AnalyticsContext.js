@@ -1,6 +1,6 @@
 import { createContext, useContext, useState, useEffect } from 'react';
 import Analytics from 'analytics';
-import { HUB_ANALYTICS_APP_NAME, HUB_GA_V3_PLUGIN_NAME, ORG_GA_V3_PLUGIN_NAME } from 'constants/analyticsConstants';
+import { HUB_ANALYTICS_APP_NAME, HUB_GA_V3_PLUGIN_NAME, ORG_GA_V3_PLUGIN_NAME } from 'settings';
 import getHubGaPlugin from 'components/analytics/plugins/ga/v3/hub';
 import getOrgGaPlugin from 'components/analytics/plugins/ga/v3/org';
 import getGaV4Plugin from 'components/analytics/plugins/ga/v4';

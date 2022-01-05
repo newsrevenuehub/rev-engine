@@ -12,7 +12,7 @@ from apps.element_media.models import MediaImage
 from apps.organizations.views import OrganizationLimitedListView
 from apps.pages import serializers
 from apps.pages.helpers import PageDetailError, PageFullDetailHelper
-from apps.pages.models import DonationPage, Style, Template
+from apps.pages.models import DonationPage, Font, Style, Template
 
 
 logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
@@ -124,4 +124,11 @@ class StyleViewSet(OrganizationLimitedListView, viewsets.ModelViewSet):
     model = Style
     permission_classes = [IsAuthenticated, UserBelongsToOrg]
     serializer_class = serializers.StyleListSerializer
+    pagination_class = None
+
+
+class FontViewSet(viewsets.ReadOnlyModelViewSet):
+    queryset = Font.objects.all()
+    permission_classes = [IsAuthenticated]
+    serializer_class = serializers.FontSerializer
     pagination_class = None

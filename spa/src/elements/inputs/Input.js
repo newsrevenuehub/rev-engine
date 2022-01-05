@@ -26,7 +26,8 @@ Input.types = {
   TEXT: 'text',
   EMAIL: 'email',
   PASSWORD: 'password',
-  NUMBER: 'number'
+  NUMBER: 'number',
+  TEL: 'tel'
 };
 
 Input.propTypes = {

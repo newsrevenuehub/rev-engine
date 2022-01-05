@@ -16,6 +16,11 @@ import PageSetup, { PAGE_SETUP_FIELDS } from 'components/pageEditor/editInterfac
 import PageSidebarElements from 'components/pageEditor/editInterface/pageSidebarElements/PageSidebarElements';
 import PageStyles from 'components/pageEditor/editInterface/pageStyles/PageStyles';
 
+import * as dynamicPageElements from 'components/donationPage/pageContent/dynamicElements';
+import * as dynamicSidebarElements from 'components/donationPage/pageContent/dynamicSidebarElements';
+
+const dynamicElements = { ...dynamicPageElements, ...dynamicSidebarElements };
+
 const editInterfaceAnimation = {
   initial: { opacity: 0, x: 200 },
   animate: { opacity: 1, x: 0 },
@@ -93,6 +98,20 @@ function EditInterface() {
     setPageContent({ sidebar_elements });
   };
 
+  const handleRemoveElement = (element, elementsType) => {
+    if (!dynamicElements[element.type]?.required) {
+    }
+    if (elementsType === 'layout') {
+      const elementsWithout = page?.elements?.filter((el) => el.uuid !== element.uuid);
+      setPageContent({ elements: elementsWithout });
+    }
+
+    if (elementsType === 'sidebar') {
+      const elementsWithout = page?.sidebar_elements?.filter((el) => el.uuid !== element.uuid);
+      setPageContent({ sidebar_elements: elementsWithout });
+    }
+  };
+
   const goToProperties = (element, elementsType) => {
     setSelectedElementType(elementsType);
     setSelectedElement(element);
@@ -115,7 +134,8 @@ function EditInterface() {
         setElementContent,
         elementRequiredFields,
         setElementRequiredFields,
-        setPageContent
+        setPageContent,
+        handleRemoveElement
       }}
     >
       <>
@@ -132,11 +152,13 @@ function EditInterface() {
                     setAddElementModalOpen(true);
                   }}
                   goToProperties={goToProperties}
+                  handleRemoveElement={handleRemoveElement}
                 />
               )}
               {tab === 1 && (
                 <PageSidebarElements
                   goToProperties={goToProperties}
+                  handleRemoveElement={handleRemoveElement}
                   openAddElementModal={() => {
                     setElementDestination('sidebar');
                     setAddElementModalOpen(true);

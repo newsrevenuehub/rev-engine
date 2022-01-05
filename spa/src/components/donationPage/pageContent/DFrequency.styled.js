@@ -21,6 +21,7 @@ export const CheckBoxField = styled.div`
   display: flex;
   flex-direction: row;
   align-items: center;
+  margin-left: -9px;
 `;
 
 export const CheckboxLabel = styled.label`

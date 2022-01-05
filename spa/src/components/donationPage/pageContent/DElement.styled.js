@@ -2,9 +2,8 @@ import styled from 'styled-components';
 
 export const DElement = styled.li``;
 
-export const Label = styled.h3`
+export const Label = styled.h2`
   font-size: ${(props) => props.theme.fontSizes[2]};
-  font-weight: 100;
   letter-spacing: 0.03em;
   color: ${(props) => props.theme.colors.black};
 `;

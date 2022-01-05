@@ -1,7 +1,6 @@
 import datetime
 from unittest.mock import patch
 
-from django.db.models import Q
 from django.test import TestCase, override_settings
 from django.utils import timezone
 
@@ -88,9 +87,7 @@ class ContributionTest(TestCase):
         contribution = Contribution(**self.required_data)
         contribution.provider_payment_method_id = target_pm_id
         contribution.save()
-        mock_retrieve_pm.assert_called_once_with(
-            target_pm_id, api_key=test_key, stripe_account=self.org_stripe_account_id
-        )
+        mock_retrieve_pm.assert_called_once_with(target_pm_id, stripe_account=self.org_stripe_account_id)
 
     @patch("stripe.PaymentMethod.retrieve", side_effect="{}")
     def test_request_stripe_payment_method_details_when_old_updating_payment_method(self, mock_retrieve_pm):
@@ -100,9 +97,7 @@ class ContributionTest(TestCase):
         target_pm_id = "new-pm-id"
         self.contribution.provider_payment_method_id = target_pm_id
         self.contribution.save()
-        mock_retrieve_pm.assert_called_once_with(
-            target_pm_id, api_key=test_key, stripe_account=self.org_stripe_account_id
-        )
+        mock_retrieve_pm.assert_called_once_with(target_pm_id, stripe_account=self.org_stripe_account_id)
 
     @patch("stripe.PaymentMethod.retrieve", side_effect="{}")
     def test_do_not_request_stripe_payment_method_details_when_updating_anything_else(self, mock_retrieve_pm):

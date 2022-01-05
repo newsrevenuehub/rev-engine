@@ -4,8 +4,8 @@ import * as S from './EditStylesModal.styled';
 import Modal from 'elements/modal/Modal';
 import StylesEditor from 'components/stylesEditor/StylesEditor';
 
-import { revEngineTheme } from 'styles/themes';
-const BASE_STYLES = revEngineTheme;
+import { donationPageBase } from 'styles/themes';
+const BASE_STYLES = donationPageBase;
 
 function EditStylesModal({ isOpen, closeModal, styleToEdit, onStylesUpdated }) {
   const [styles, setStyles] = useState(styleToEdit || BASE_STYLES);

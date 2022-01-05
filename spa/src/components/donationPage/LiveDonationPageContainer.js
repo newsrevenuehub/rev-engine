@@ -8,17 +8,20 @@ import { LIVE_PAGE_DETAIL } from 'ajax/endpoints';
 import { useParams } from 'react-router-dom';
 
 // Hooks
+import useWebFonts from 'hooks/useWebFonts';
 import useSubdomain from 'hooks/useSubdomain';
 
 // Analytics
 import { useAnalyticsContext } from 'components/analytics/AnalyticsContext';
-import { HUB_GA_V3_ID } from 'constants/analyticsConstants';
+import { HUB_GA_V3_ID } from 'settings';
 
 // Children
 import SegregatedStyles from 'components/donationPage/SegregatedStyles';
 import LiveLoading from 'components/donationPage/live/LiveLoading';
 import LivePage404 from 'components/donationPage/live/LivePage404';
 import DonationPage from 'components/donationPage/DonationPage';
+
+const STRIPE_IFRAME_SELECTOR = "iframe[title='Secure card payment input frame']";
 
 function LiveDonationPageContainer() {
   const [pageData, setPageData] = useState(null);
@@ -28,6 +31,7 @@ function LiveDonationPageContainer() {
   const params = useParams();
   const requestFullPage = useRequest();
 
+  useWebFonts(pageData?.styles?.font, { context: document.querySelector(STRIPE_IFRAME_SELECTOR) });
   const { setAnalyticsConfig } = useAnalyticsContext();
 
   const fetchLivePageContent = useCallback(async () => {

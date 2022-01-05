@@ -4,14 +4,17 @@ import PropTypes from 'prop-types';
 // Styles
 import * as S from './DSwag.styled';
 import { useTheme } from 'styled-components';
-import { AnimatePresence } from 'framer-motion';
+import { AnimatePresence, motion } from 'framer-motion';
 
 // Context
 import { usePage } from '../DonationPage';
 
 // Children
 import Select from 'elements/inputs/Select';
+import Checkbox from 'elements/inputs/Checkbox';
 import DElement, { DynamicElementPropTypes } from 'components/donationPage/pageContent/DElement';
+import GroupedLabel from 'elements/inputs/GroupedLabel';
+import { InputGroup } from 'elements/inputs/inputElements.styled';
 
 function calculateYearlyAmount(frequency, amount) {
   let yearlyTotal = amount;
@@ -64,8 +67,8 @@ function DSwag({ element, ...props }) {
       <AnimatePresence>
         {shouldShowBenefits && (
           <S.DSwag {...S.containerSwagimation} data-testid="swag-content">
-            <S.CheckBoxField>
-              <S.Checkbox
+            <motion.div>
+              <Checkbox
                 id="opt-out"
                 data-testid="swag-opt-out"
                 type="checkbox"
@@ -74,17 +77,15 @@ function DSwag({ element, ...props }) {
                 checked={optOut}
                 inputProps={{ 'aria-label': 'controlled' }}
                 onChange={() => setOptOut(!optOut)}
+                label="Maximize my donation – I'd rather not receive member merchandise."
               />
-              <S.CheckboxLabel htmlFor="opt-out">
-                Maximize my donation – I'd rather not receive member merchandise.
-              </S.CheckboxLabel>
-            </S.CheckBoxField>
+            </motion.div>
             <AnimatePresence>
               {!optOut && (
                 <S.SwagsSection>
                   {element.content?.offerNytComp && (
-                    <S.CheckBoxField>
-                      <S.Checkbox
+                    <motion.div>
+                      <Checkbox
                         id="nyt-comp-sub"
                         data-testid="nyt-comp-sub"
                         type="checkbox"
@@ -93,11 +94,9 @@ function DSwag({ element, ...props }) {
                         checked={nytCompSub}
                         inputProps={{ 'aria-label': 'controlled' }}
                         onChange={() => setNytCompSub(!nytCompSub)}
+                        label="I'd like to include a New York Times subscription"
                       />
-                      <S.CheckboxLabel htmlFor="nyt-comp-sub">
-                        I'd like to include a New York Times subscription
-                      </S.CheckboxLabel>
-                    </S.CheckBoxField>
+                    </motion.div>
                   )}
                   <S.SwagsList {...S.containerSwagimation}>
                     {element.content?.swags.map((swag) => (
@@ -142,8 +141,8 @@ function SwagItem({ swag, isOnlySwag, ...props }) {
   const [selectedSwagOption, setSelectedSwagOption] = useState(swagOptions[0]);
 
   return (
-    <S.SwagItem {...props} data-testid={`swag-item-${swag.swagName}`}>
-      <S.SwagName>{swag.swagName}</S.SwagName>
+    <InputGroup {...props} data-testid={`swag-item-${swag.swagName}`}>
+      <GroupedLabel>{swag.swagName}</GroupedLabel>
       <S.SwagOptions>
         <Select
           testId={`swag-choices-${swag.swagName}`}
@@ -151,8 +150,10 @@ function SwagItem({ swag, isOnlySwag, ...props }) {
           selectedItem={selectedSwagOption}
           onSelectedItemChange={({ selectedItem }) => setSelectedSwagOption(selectedItem)}
           items={swagOptions}
+          helpText="Your contribution comes with member merchandise. Please choose an option."
+          maxWidth="300px"
         />
       </S.SwagOptions>
-    </S.SwagItem>
+    </InputGroup>
   );
 }

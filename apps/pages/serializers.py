@@ -1,3 +1,4 @@
+from django.db.utils import IntegrityError
 from django.utils import timezone
 
 from rest_framework import serializers
@@ -10,7 +11,7 @@ from apps.organizations.serializers import (
     BenefitLevelDetailSerializer,
     RevenueProgramListInlineSerializer,
 )
-from apps.pages.models import DonationPage, Style, Template
+from apps.pages.models import DonationPage, Font, Style, Template
 
 
 class StyleInlineSerializer(serializers.ModelSerializer):
@@ -152,8 +153,12 @@ class DonationPageFullDetailSerializer(serializers.ModelSerializer):
         self._check_against_soft_deleted_slugs(validated_data)
         if "template_pk" in validated_data:
             return self._create_from_template(validated_data)
-        else:
+
+        try:
             return super().create(validated_data)
+        except IntegrityError as integrity_error:
+            if "violates unique constraint" in str(integrity_error):
+                raise serializers.ValidationError({"slug": UNIQUE_PAGE_SLUG})
 
     def update(self, instance, validated_data):
         self._update_related("styles", Style, validated_data, instance)
@@ -237,3 +242,9 @@ class TemplateListSerializer(serializers.ModelSerializer):
             "id",
             "name",
         ]
+
+
+class FontSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Font
+        fields = ["id", "name", "font_name", "source", "accessor"]

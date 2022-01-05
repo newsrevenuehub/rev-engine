@@ -3,7 +3,7 @@ import * as S from './LivePage404.styled';
 
 // Analytics
 import { useAnalyticsContext } from 'components/analytics/AnalyticsContext';
-import { HUB_GA_V3_ID } from 'constants/analyticsConstants';
+import { HUB_GA_V3_ID } from 'settings';
 
 export const FUNDJOURNALISM_404_REDIRECT = 'https://fundjournalism.org/?utm_campaign=404#donate';
 

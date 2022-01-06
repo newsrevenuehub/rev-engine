@@ -348,6 +348,8 @@ CURRENCIES = {"USD": "$", "CAD": "$"}
 NON_DONATION_PAGE_SUBDOMAINS = os.getenv("NON_DONATION_PAGE_SUBDOMAINS", ["support", "www"])
 DOMAIN_APEX = os.getenv("DOMAIN_APEX")
 
+SENTRY_DSN = os.getenv("SENTRY_DSN", "dsn-unavailable")
+
 # Django-CSP configuration
 # For now, report only.
 
@@ -358,7 +360,10 @@ DOMAIN_APEX = os.getenv("DOMAIN_APEX")
 #     "script-src",
 # )
 CSP_REPORT_ONLY = os.getenv("CSP_REPORT_ONLY", True)
-CSP_REPORT_URI = f"https://o320544.ingest.sentry.io/api/6046263/security/?sentry_key=d576a6738e41453db36130d03e4e95be&sentry_environment={ENVIRONMENT}"
+
+CSP_REPORT_URI = (
+    f"https://o320544.ingest.sentry.io/api/6046263/security/?sentry_key={SENTRY_DSN}&sentry_environment={ENVIRONMENT}"
+)
 CSP_DEFAULT_SRC = (
     "'self'",
     "*.fundjournalism.org",

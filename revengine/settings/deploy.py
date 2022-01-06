@@ -120,6 +120,8 @@ if SENTRY_DSN:
         environment=ENVIRONMENT,
     )
 
+    SPA_ENV_VARS["SENTRY_DSN"] = SENTRY_DSN
+
 
 # BadActor API
 BAD_ACTOR_API_URL = "https://bad-actor.fundjournalism.org/v1/bad_actor/"

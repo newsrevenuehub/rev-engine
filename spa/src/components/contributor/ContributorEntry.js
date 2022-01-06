@@ -57,7 +57,7 @@ function ContributorEntry() {
           <S.EmailForm>
             <S.InputWrapper>
               <Input
-                label="Enter the email address you used to make a conribution"
+                label="Enter the email address you used to make a contribution"
                 value={email}
                 type="email"
                 onChange={(e) => setEmail(e.target.value)}

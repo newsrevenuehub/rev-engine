@@ -361,9 +361,7 @@ SENTRY_DSN = os.getenv("SENTRY_DSN", "dsn-unavailable")
 # )
 CSP_REPORT_ONLY = os.getenv("CSP_REPORT_ONLY", True)
 
-CSP_REPORT_URI = (
-    f"https://o320544.ingest.sentry.io/api/6046263/security/?sentry_key={SENTRY_DSN}&sentry_environment={ENVIRONMENT}"
-)
+CSP_REPORT_URI = os.getenv("CSP_REPORT_URI")
 CSP_DEFAULT_SRC = (
     "'self'",
     "*.fundjournalism.org",

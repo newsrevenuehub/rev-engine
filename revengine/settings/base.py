@@ -324,7 +324,7 @@ EMAIL_TEMPLATE_IDENTIFIER_MAGIC_LINK_DONOR = os.environ.get(
 
 # this is only used by HubAdmins, not OrgAdmins, but needs to be named generically as LOGIN_URL
 # so our implementation of password reset flow for HubAdmins works as expected
-LOGIN_URL = "/admin/"
+LOGIN_URL = "/nrhadmin/"
 
 # Set USE_DEBUG_INTERVALS to True if you want recurring payment intervals to be truncated for testing (as much as possible, currently)
 USE_DEBUG_INTERVALS = os.getenv("USE_DEBUG_INTERVALS", False)

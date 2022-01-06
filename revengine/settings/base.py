@@ -375,6 +375,8 @@ CSP_SCRIPT_SRC = (
     "https://www.gstatic.com/recaptcha/",
     "https://pay.google.com",
     "https://connect.facebook.net",
+    "https://ajax.googleapis.com",
+    "https://use.typekit.net",
 )
 CSP_STYLE_SRC = (
     "'self'",
@@ -387,11 +389,7 @@ CSP_IMG_SRC = (
     "'self'",
     "data:",
 )
-CSP_FONT_SRC = (
-    "'self'",
-    "data:",
-    "https://fonts.gstatic.com",
-)
+CSP_FONT_SRC = ("'self'", "data:", "https://fonts.gstatic.com", "https://use.typekit.net")
 CSP_FRAME_SRC = (
     "https://js.stripe.com",
     "https://hooks.stripe.com",

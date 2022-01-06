@@ -348,8 +348,8 @@ CURRENCIES = {"USD": "$", "CAD": "$"}
 NON_DONATION_PAGE_SUBDOMAINS = os.getenv("NON_DONATION_PAGE_SUBDOMAINS", ["support", "www"])
 DOMAIN_APEX = os.getenv("DOMAIN_APEX")
 
-SENTRY_DSN = os.getenv("SENTRY_DSN", "dsn-unavailable")
 
+CSP_REPORTING_ENABLE = os.environ.get("CSP_REPORTING_ENABLE", "false").lower() == "true"
 # Django-CSP configuration
 # For now, report only.
 
@@ -361,7 +361,9 @@ SENTRY_DSN = os.getenv("SENTRY_DSN", "dsn-unavailable")
 # )
 CSP_REPORT_ONLY = os.getenv("CSP_REPORT_ONLY", True)
 
-CSP_REPORT_URI = os.getenv("CSP_REPORT_URI")
+if CSP_REPORTING_ENABLE:
+    CSP_REPORT_URI = os.getenv("CSP_REPORT_URI")
+
 CSP_DEFAULT_SRC = (
     "'self'",
     "*.fundjournalism.org",
@@ -418,6 +420,8 @@ SECURE_REFERRER_POLICY = "strict-origin-when-cross-origin"
 # Stripe API Target Version
 STRIPE_API_VERSION = "2020-08-27"
 
+SENTRY_ENABLE = os.environ.get("SENTRY_ENABLE", "false").lower() == "true"
+
 # Front End Environment Variables - Config Vars Heroku
 SPA_ENV_VARS = {
     "HUB_STRIPE_API_PUB_KEY": os.getenv("SPA_ENV_HUB_STRIPE_API_PUB_KEY"),
@@ -428,6 +432,7 @@ SPA_ENV_VARS = {
     "REVENGINE_API_VERSION": os.getenv("SPA_ENV_REVENGINE_API_VERSION", "v1"),
     "STRIPE_API_VERSION": STRIPE_API_VERSION,
     "STRIPE_OAUTH_SCOPE": STRIPE_OAUTH_SCOPE,
+    "SENTRY_ENABLE": SENTRY_ENABLE,
     "STRIPE_CLIENT_ID": os.getenv("SPA_ENV_STRIPE_CLIENT_ID"),
     "HUB_GOOGLE_MAPS_API_KEY": os.getenv("SPA_ENV_HUB_GOOGLE_MAPS_API_KEY"),
     "HUB_V3_GOOGLE_ANALYTICS_ID": os.getenv("SPA_ENV_HUB_V3_GOOGLE_ANALYTICS_ID"),

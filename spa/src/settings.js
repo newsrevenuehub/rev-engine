@@ -43,6 +43,7 @@ export const GRECAPTCHA_SITE_KEY = '6Lfuse8UAAAAAD9E6tCxKYrxO1IbnXp8IBa4u5Ri';
 export const HUB_GOOGLE_MAPS_API_KEY = resolveConstantFromEnv('HUB_GOOGLE_MAPS_API_KEY');
 
 // Sentry
+export const SENTRY_ENABLE = resolveConstantFromEnv('SENTRY_ENABLE', '').toLowerCase() === 'true';
 export const SENTRY_DSN = resolveConstantFromEnv('SENTRY_DSN');
 
 // Stripe

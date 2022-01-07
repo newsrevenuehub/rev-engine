@@ -43,8 +43,9 @@ export const GRECAPTCHA_SITE_KEY = '6Lfuse8UAAAAAD9E6tCxKYrxO1IbnXp8IBa4u5Ri';
 export const HUB_GOOGLE_MAPS_API_KEY = resolveConstantFromEnv('HUB_GOOGLE_MAPS_API_KEY');
 
 // Sentry
-export const SENTRY_ENABLE = resolveConstantFromEnv('SENTRY_ENABLE', '').toLowerCase() === 'true';
-export const SENTRY_DSN = resolveConstantFromEnv('SENTRY_DSN');
+export const SENTRY_ENABLE_FRONTEND =
+  resolveConstantFromEnv('SENTRY_ENABLE_FRONTEND', 'false').toLowerCase() === 'true';
+export const SENTRY_DSN_FRONTEND = resolveConstantFromEnv('SENTRY_DSN_FRONTEND');
 
 // Stripe
 export const HUB_STRIPE_API_PUB_KEY = resolveConstantFromEnv('HUB_STRIPE_API_PUB_KEY');

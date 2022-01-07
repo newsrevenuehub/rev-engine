@@ -420,7 +420,13 @@ SECURE_REFERRER_POLICY = "strict-origin-when-cross-origin"
 # Stripe API Target Version
 STRIPE_API_VERSION = "2020-08-27"
 
-SENTRY_ENABLE = os.environ.get("SENTRY_ENABLE", "false").lower() == "true"
+
+# Sentry Configuration
+SENTRY_ENABLE_FRONTEND = os.environ.get("SENTRY_ENABLE_FRONTEND", "false").lower() == "true"
+SENTRY_DSN_FRONTEND = os.environ.get("SENTRY_DSN_FRONTEND")
+
+SENTRY_ENABLE_BACKEND = os.environ.get("SENTRY_ENABLE_BACKEND", "false").lower() == "true"
+SENTRY_DSN_BACKEND = os.environ.get("SENTRY_DSN_BACKEND")
 
 # Front End Environment Variables - Config Vars Heroku
 SPA_ENV_VARS = {
@@ -432,7 +438,8 @@ SPA_ENV_VARS = {
     "REVENGINE_API_VERSION": os.getenv("SPA_ENV_REVENGINE_API_VERSION", "v1"),
     "STRIPE_API_VERSION": STRIPE_API_VERSION,
     "STRIPE_OAUTH_SCOPE": STRIPE_OAUTH_SCOPE,
-    "SENTRY_ENABLE": SENTRY_ENABLE,
+    "SENTRY_ENABLE_FRONTEND": SENTRY_ENABLE_FRONTEND,
+    "SENTRY_DSN_FRONTEND": SENTRY_DSN_FRONTEND,
     "STRIPE_CLIENT_ID": os.getenv("SPA_ENV_STRIPE_CLIENT_ID"),
     "HUB_GOOGLE_MAPS_API_KEY": os.getenv("SPA_ENV_HUB_GOOGLE_MAPS_API_KEY"),
     "HUB_V3_GOOGLE_ANALYTICS_ID": os.getenv("SPA_ENV_HUB_V3_GOOGLE_ANALYTICS_ID"),

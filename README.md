@@ -210,11 +210,11 @@ following shell environment variables or add them to your `.envrc` file:
     (revengine)$ make run-dev
 ```
 
-The react app will be available at `https://localhost:3000/`, and the django admin will be available at `http://localhost:8000/admin/`
+The react app will be available at `https://localhost:3000/`, and the django admin will be available at `http://localhost:8000/nrhadmin/`
 
 **11. Access the server**
 
-The Django admin is at `/admin/`.
+The Django admin is at `/nrhadmin/`.
 
 **12. Test Email Setup**
 

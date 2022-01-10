@@ -9,6 +9,7 @@ import TrackPageView from 'components/analytics/TrackPageView';
 
 // Elements
 import GlobalLoading from 'elements/GlobalLoading';
+import ChunkErrorBoundary from 'components/errors/ChunkErrorBoundary';
 
 // Utilities
 import componentLoader from 'utilities/componentLoader';
@@ -26,20 +27,22 @@ const LiveDonationPageContainer = lazy(() =>
 function DonationPageRouter() {
   return (
     <BrowserRouter>
-      <React.Suspense fallback={<GlobalLoading />}>
-        <Switch>
-          <Route
-            path={ROUTES.DONATION_PAGE_SLUG + ROUTES.THANK_YOU_SLUG}
-            render={() => <TrackPageView component={GenericThankYou} />}
-          />
-          <Route path={ROUTES.THANK_YOU_SLUG} render={() => <TrackPageView component={GenericThankYou} />} />
-          <Route
-            path={ROUTES.DONATION_PAGE_SLUG}
-            render={() => <TrackPageView component={LiveDonationPageContainer} />}
-          />
-          <Route path={'/'} render={() => <TrackPageView component={LiveDonationPageContainer} />} />
-        </Switch>
-      </React.Suspense>
+      <ChunkErrorBoundary>
+        <React.Suspense fallback={<GlobalLoading />}>
+          <Switch>
+            <Route
+              path={ROUTES.DONATION_PAGE_SLUG + ROUTES.THANK_YOU_SLUG}
+              render={() => <TrackPageView component={GenericThankYou} />}
+            />
+            <Route path={ROUTES.THANK_YOU_SLUG} render={() => <TrackPageView component={GenericThankYou} />} />
+            <Route
+              path={ROUTES.DONATION_PAGE_SLUG}
+              render={() => <TrackPageView component={LiveDonationPageContainer} />}
+            />
+            <Route path={'/'} render={() => <TrackPageView component={LiveDonationPageContainer} />} />
+          </Switch>
+        </React.Suspense>
+      </ChunkErrorBoundary>
     </BrowserRouter>
   );
 }

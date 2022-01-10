@@ -1,21 +1,23 @@
-import React, { Fragment, useState, useEffect } from 'react';
+import React from 'react';
 import * as Sentry from '@sentry/react';
 
-import Button from 'elements/buttons/Button';
 import * as S from '../../elements/buttons/Button.styled';
 import * as ErrorS from './ErrorFallback.styled';
 
-const ChunkErrorFallback = (error, componentStack, handleReset, resetError) => {
+const ChunkErrorFallback = (error, componentStack, resetError) => {
+  console.log(error, componentStack, resetError);
   const chunkFailedMessage = /Loading chunk [\d]+ failed/;
 
   if (error?.message && chunkFailedMessage.test(error.message)) {
+    // Leaving this here for testing purposes, should retry only for chunk loading errors
+    console.error(error);
     resetError();
   } else {
     return (
-      <Fragment>
+      <>
         <ErrorS.ErrorWrapper>
           <ErrorS.ErrorHeading layout>
-            <h2>You have encountered an error</h2>
+            <h2>😰 We've encountered a problem. Click below to reload the page</h2>
           </ErrorS.ErrorHeading>
           <ErrorS.ErrorMessage>
             <div>{error.toString()}</div>
@@ -23,34 +25,24 @@ const ChunkErrorFallback = (error, componentStack, handleReset, resetError) => {
           <ErrorS.ErrorStack>
             <div>{componentStack}</div>
           </ErrorS.ErrorStack>
-          <S.Button>
-            <Button
-              onClick={() => {
-                handleReset('An error has occurred');
-                resetError();
-              }}
-            >
-              Click here to reload this page
-            </Button>
+          <S.Button
+            onClick={() => {
+              resetError();
+            }}
+          >
+            Reload Page
           </S.Button>
         </ErrorS.ErrorWrapper>
-      </Fragment>
+      </>
     );
   }
 };
 
 const ChunkErrorBoundary = (props) => {
-  const [message, setMessage] = useState();
-
-  const handleReset = (newMessage) => {
-    setMessage(newMessage);
-  };
-
+  console.log(props);
   return (
     <Sentry.ErrorBoundary
-      fallback={({ error, componentStack, resetError }) =>
-        ChunkErrorFallback(error, componentStack, handleReset, resetError)
-      }
+      fallback={({ error, componentStack, resetError }) => ChunkErrorFallback(error, componentStack, resetError)}
     >
       {props.children}
     </Sentry.ErrorBoundary>

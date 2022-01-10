@@ -41,9 +41,6 @@ function DFrequency({ element, ...props }) {
                 checked={frequency === freq.value}
                 onChange={handleFrequencySelected}
                 data-testid={`frequency-${freq.value}${frequency === freq.value ? '-selected' : ''}`}
-                style={{
-                  color: theme.colors.primary
-                }}
               />
               <S.CheckboxLabel htmlFor={freq.value}>{freq.displayName}</S.CheckboxLabel>
             </S.CheckBoxField>

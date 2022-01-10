@@ -8,10 +8,11 @@ function StyleCard({ style, onSelect }) {
       {style.used_live && <LiveIcon icon={faBroadcastTower} data-testid={`style-${style.id}-live`} />}
       <PreviewWrapper>
         <S.StylePreview style={style}>
-          {style.colors?.primary && <S.ColorSwatch color={style.colors.primary} />}
-          {style.colors?.secondary && <S.ColorSwatch color={style.colors.secondary} />}
-          {style.colors?.fieldBackground && <S.ColorSwatch color={style.colors.fieldBackground} />}
-          {style.colors?.paneBackground && <S.ColorSwatch color={style.colors.paneBackground} />}
+          {style.colors?.cstm_mainBackground && <S.ColorSwatch color={style.colors.cstm_mainBackground} />}
+          {style.colors?.cstm_formPanelBackground && <S.ColorSwatch color={style.colors.cstm_formPanelBackground} />}
+          {style.colors?.cstm_mainHeader && <S.ColorSwatch color={style.colors.cstm_mainHeader} />}
+          {style.colors?.cstm_CTAs && <S.ColorSwatch color={style.colors.cstm_CTAs} />}
+          {style.colors?.cstm_ornaments && <S.ColorSwatch color={style.colors.cstm_ornaments} />}
         </S.StylePreview>
       </PreviewWrapper>
       <ItemData>

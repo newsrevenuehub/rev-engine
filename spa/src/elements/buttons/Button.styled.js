@@ -1,6 +1,10 @@
 import styled, { css } from 'styled-components';
 import lighten from 'styles/utils/lighten';
 
+function getBg(props) {
+  return props.theme.styles?.colors?.cstm_CTAs || props.theme.colors?.primary;
+}
+
 export const Button = styled.button`
   display: block;
   text-align: center;
@@ -52,11 +56,11 @@ export const Button = styled.button`
       `;
     } else {
       return css`
-        background: ${(props) => props.theme.colors.primary};
-        border-color: ${(props) => props.theme.colors.primary};
+        background: ${(props) => getBg(props)};
+        border-color: ${(props) => getBg(props)};
         color: ${(props) => props.theme.colors.white};
         &:hover {
-          border-color: ${(props) => lighten(props.theme.colors.primary)};
+          border-color: ${(props) => lighten(getBg(props))};
           color: ${(props) => lighten(props.theme.colors.white)};
         }
       `;

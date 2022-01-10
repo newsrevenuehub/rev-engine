@@ -76,7 +76,7 @@ class RevenueProgramTest(TestCase):
         self.instance.clean()
         self.assertEqual(self.instance.twitter_handle, target_handle)
 
-    @override_settings(STRIPE_LIVE_MODE="True")
+    @override_settings(STRIPE_LIVE_MODE=True)
     @override_settings(STRIPE_LIVE_SECRET_KEY=TEST_STRIPE_LIVE_KEY)
     @override_settings(DOMAIN_APEX=TEST_DOMAIN_APEX)
     @patch("stripe.ApplePayDomain.create")
@@ -91,13 +91,13 @@ class RevenueProgramTest(TestCase):
         # revenue_program should have a non-null domain_apple_verified_date
         self.assertIsNotNone(revenue_program.domain_apple_verified_date)
 
-    @override_settings(STRIPE_LIVE_MODE="False")
+    @override_settings(STRIPE_LIVE_MODE=False)
     @patch("stripe.ApplePayDomain.create")
     def test_apple_pay_domain_verification_not_called_when_created_and_not_live(self, apple_pay_domain_create):
         self._create_revenue_program()
         apple_pay_domain_create.assert_not_called()
 
-    @override_settings(STRIPE_LIVE_MODE="True")
+    @override_settings(STRIPE_LIVE_MODE=True)
     @override_settings(STRIPE_LIVE_SECRET_KEY=TEST_STRIPE_LIVE_KEY)
     @override_settings(DOMAIN_APEX=TEST_DOMAIN_APEX)
     @patch("stripe.ApplePayDomain.create")
@@ -107,7 +107,7 @@ class RevenueProgramTest(TestCase):
         rp.save()
         apple_pay_domain_create.assert_not_called()
 
-    @override_settings(STRIPE_LIVE_MODE="True")
+    @override_settings(STRIPE_LIVE_MODE=True)
     @override_settings(STRIPE_LIVE_SECRET_KEY=TEST_STRIPE_LIVE_KEY)
     @override_settings(DOMAIN_APEX=TEST_DOMAIN_APEX)
     @patch("stripe.ApplePayDomain.create")

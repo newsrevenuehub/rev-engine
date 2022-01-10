@@ -1,4 +1,4 @@
-const componentLoader = (lazyComponent, attemptsLeft = 3, interval = 1000) => {
+const componentLoader = (lazyComponent, attemptsLeft = 10, interval = 1500) => {
   return new Promise((resolve, reject) => {
     lazyComponent()
       .then(resolve)

@@ -42,4 +42,13 @@ export default createGlobalStyle`
     color: ${(props) => props.theme.colors.grey[1]};
     font-style: italic;
   }
+
+  a {
+    color: #4183c4;
+    text-decoration: none;
+
+    &:hover {
+      text-decoration: underline;
+    }
+  }
 `;

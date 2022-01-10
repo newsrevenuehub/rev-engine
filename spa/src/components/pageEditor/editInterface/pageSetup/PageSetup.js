@@ -79,56 +79,54 @@ function PageSetup({ backToProperties }) {
   return (
     <S.PageSetup data-testid="page-setup">
       <S.PageName>{page.name}</S.PageName>
+      <S.ImageSelectorWrapper>
+        <ImageWithPreview
+          thumbnail={page.header_bg_image_thumbnail}
+          onChange={(file) => handleImageChange('header_bg_image', file)}
+          label="Main header background"
+          helpText="Background of header bar"
+          errors={errors.header_bg_image}
+        />
+      </S.ImageSelectorWrapper>
+      <S.ImageSelectorWrapper>
+        <ImageWithPreview
+          thumbnail={page.header_logo_thumbnail}
+          onChange={(file) => handleImageChange('header_logo', file)}
+          label="Main header logo"
+          helpText="Logo to display in header"
+          errors={errors.header_logo_thumbnail}
+        />
+      </S.ImageSelectorWrapper>
       <S.InputWrapper border>
         <Input
           type="text"
-          label="Page heading"
+          label="Logo link"
+          value={header_link}
+          helpText="Where does clicking your logo take your users?"
+          onChange={(e) => setHeaderLink(e.target.value)}
+          errors={errors.header_link}
+          testid="logo-link-input"
+        />
+      </S.InputWrapper>
+      <S.InputWrapper border>
+        <Input
+          type="text"
+          label="Form panel heading"
           value={heading}
           onChange={(e) => setPageHeading(e.target.value)}
           testid="setup-heading-input"
           errors={errors.heading}
         />
       </S.InputWrapper>
-      <S.Images>
-        <S.ImageSelectorWrapper>
-          <ImageWithPreview
-            thumbnail={page.header_bg_image_thumbnail}
-            onChange={(file) => handleImageChange('header_bg_image', file)}
-            label="Header background"
-            helpText="Background of header bar"
-            errors={errors.header_bg_image}
-          />
-        </S.ImageSelectorWrapper>
-        <S.ImageSelectorWrapper>
-          <ImageWithPreview
-            thumbnail={page.header_logo_thumbnail}
-            onChange={(file) => handleImageChange('header_logo', file)}
-            label="Header logo"
-            helpText="Logo to display in header"
-            errors={errors.header_logo_thumbnail}
-          />
-          <S.InputWrapper>
-            <Input
-              type="text"
-              label="Logo link"
-              value={header_link}
-              helpText="Where does clicking your logo take your users?"
-              onChange={(e) => setHeaderLink(e.target.value)}
-              errors={errors.header_link}
-              testid="logo-link-input"
-            />
-          </S.InputWrapper>
-        </S.ImageSelectorWrapper>
-        <S.ImageSelectorWrapper>
-          <ImageWithPreview
-            thumbnail={page.graphic_thumbnail}
-            onChange={(file) => handleImageChange('graphic', file)}
-            label="Graphic"
-            helpText="Graphic displays below page title"
-            errors={errors.graphic_thumbnail}
-          />
-        </S.ImageSelectorWrapper>
-      </S.Images>
+      <S.ImageSelectorWrapper>
+        <ImageWithPreview
+          thumbnail={page.graphic_thumbnail}
+          onChange={(file) => handleImageChange('graphic', file)}
+          label="Graphic"
+          helpText="Graphic displays below form panel heading"
+          errors={errors.graphic_thumbnail}
+        />
+      </S.ImageSelectorWrapper>
       <S.InputWrapper>
         <Input
           label="Thank You page link"

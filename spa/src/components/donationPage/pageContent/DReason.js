@@ -212,9 +212,6 @@ function TributeCheckbox({ value, label, name, checked, handleChange, asRadio })
           onChange={handleChange}
           value={value}
           name={name}
-          style={{
-            color: theme.colors.primary
-          }}
         />
       ) : (
         <S.Checkbox
@@ -222,9 +219,6 @@ function TributeCheckbox({ value, label, name, checked, handleChange, asRadio })
           id={name}
           type="checkbox"
           name={name}
-          style={{
-            color: theme.colors.primary
-          }}
           checked={checked}
           onChange={handleChange}
         />

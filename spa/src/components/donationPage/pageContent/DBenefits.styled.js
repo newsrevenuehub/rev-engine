@@ -59,7 +59,7 @@ export const BenefitCheck = styled.i`
   display: inline-block;
   position: relative;
   border-radius: 50%;
-  background: ${(props) => props.theme.colors.secondary};
+  background: ${(props) => props.theme.colors.cstm_ornaments};
   width: 36px;
   height: 36px;
 `;

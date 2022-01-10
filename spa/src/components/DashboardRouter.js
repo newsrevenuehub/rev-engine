@@ -16,14 +16,14 @@ import ChunkErrorBoundary from 'components/errors/ChunkErrorBoundary';
 import componentLoader from 'utilities/componentLoader';
 
 // Split bundles
-const Login = lazy(() => componentLoader(() => import(`components/authentication/Login`)));
-const Main = lazy(() => componentLoader(() => import(`components/Main`)));
-const ContributorEntry = lazy(() => componentLoader(() => import(`components/contributor/ContributorEntry`)));
-const ContributorVerify = lazy(() => componentLoader(() => import(`components/contributor/ContributorVerify`)));
+const Login = lazy(() => componentLoader(() => import('components/authentication/Login')));
+const Main = lazy(() => componentLoader(() => import('components/Main')));
+const ContributorEntry = lazy(() => componentLoader(() => import('components/contributor/ContributorEntry')));
+const ContributorVerify = lazy(() => componentLoader(() => import('components/contributor/ContributorVerify')));
 const ContributorDashboard = lazy(() =>
-  componentLoader(() => import(`components/contributor/contributorDashboard/ContributorDashboard`))
+  componentLoader(() => import('components/contributor/contributorDashboard/ContributorDashboard'))
 );
-const PageEditor = lazy(() => componentLoader(() => import(`components/pageEditor/PageEditor`)));
+const PageEditor = lazy(() => componentLoader(() => import('components/pageEditor/PageEditor')));
 
 function DashboardRouter() {
   return (

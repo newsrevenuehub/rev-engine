@@ -16,9 +16,8 @@ export const MainContent = styled.div`
   display: flex;
 `;
 
-export const Images = styled.div``;
-
 export const ImageSelectorWrapper = styled.div`
+  width: 100%;
   margin: 2rem auto;
   padding-bottom: 2rem;
 

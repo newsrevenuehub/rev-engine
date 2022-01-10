@@ -21,7 +21,6 @@ import useWebFonts from 'hooks/useWebFonts';
 import { useGlobalContext } from 'components/MainLayout';
 
 // Children
-import XButton from 'elements/buttons/XButton';
 import CircleButton from 'elements/buttons/CircleButton';
 import Select from 'elements/inputs/Select';
 

@@ -307,7 +307,7 @@ BAD_ACTOR_FAIL_ABOVE = 3
 
 # This is the interval at which flagged payments will be automatically captured.
 # NOTE: Stripe automatically REJECTS flagged payments every 7 days. Make sure this delta is less than 6.5 days to be safe.
-FLAGGED_PAYMENT_AUTO_ACCEPT_DELTA = timedelta(days=4)
+FLAGGED_PAYMENT_AUTO_ACCEPT_DELTA = timedelta(days=3)
 
 HEALTHCHECK_URL_AUTO_ACCEPT_FLAGGED_PAYMENTS = os.environ.get("HEALTHCHECK_URL_AUTO_ACCEPT_FLAGGED_PAYMENTS")
 

@@ -108,14 +108,12 @@ CELERYBEAT_SCHEDULER = "django_celery_beat.schedulers:DatabaseScheduler"
 CELERY_HIJACK_ROOT_LOGGER = False
 
 ### 3rd-party appplications
-
-SENTRY_DSN = os.getenv("SENTRY_DSN")
-if SENTRY_DSN:
+if SENTRY_ENABLE_BACKEND and SENTRY_DSN_BACKEND:
     import sentry_sdk
     from sentry_sdk.integrations.django import DjangoIntegration
 
     sentry_sdk.init(
-        dsn=SENTRY_DSN,
+        dsn=SENTRY_DSN_BACKEND,
         integrations=[DjangoIntegration()],
         environment=ENVIRONMENT,
     )

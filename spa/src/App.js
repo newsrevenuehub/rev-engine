@@ -9,6 +9,9 @@ import 'semantic-ui-css/semantic.min.css';
 import SvgIcons from 'assets/icons/SvgIcons';
 import hubFavicon from 'assets/icons/favicon.ico';
 
+// Hooks
+import useSentry from 'hooks/useSentry';
+
 // Deps
 import Helmet from 'react-helmet';
 import { Provider as AlertProvider } from 'react-alert';
@@ -18,6 +21,8 @@ import Alert, { alertOptions } from 'elements/alert/Alert';
 import MainLayout from 'components/MainLayout';
 
 function App() {
+  useSentry();
+
   return (
     <ThemeProvider theme={revEngineTheme}>
       <MuiThemeProvider theme={muiThemeOverrides}>

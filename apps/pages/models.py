@@ -192,7 +192,7 @@ class DonationPage(AbstractDonationPage, SafeDeleteModel):
         return TranslatedPage.objects.create(**merged_translation, page=self)
 
     def get_translation(self, lang_code):
-        if lang_code not in settings.SUPPORTED_LANGUAGES:
+        if lang_code == "en" or lang_code not in settings.SUPPORTED_LANGUAGES:
             raise ValueError(f'Language "{lang_code}" not supported')
         return self.translations.get(language=lang_code)
 
@@ -212,6 +212,10 @@ class TranslatedPage(AbstractDonationPage):
 
     class Meta:
         unique_together = ("page", "language")
+
+    @property
+    def is_live(self):
+        return bool(self.published_date and self.published_date <= timezone.now())
 
     def __str__(self):
         return f"{self.language} translation of {self.page.name}"

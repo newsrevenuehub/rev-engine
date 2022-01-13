@@ -43,16 +43,27 @@ class PageFullDetailHelper:
                 message="Could not find revenue program matching those parameters", status=status.HTTP_404_NOT_FOUND
             )
 
+    def get_translation(self, page):
+        """
+        Does things
+        """
+        try:
+            return page.get_translation(self.request.LANGUAGE_CODE)
+        except Exception:
+            # Whatever happens here, return the default page
+            return page
+
     def set_donation_page(self):
         """
-        Try to get a donation page from either the revenue_program detault, or the provided page slug
+        Try to get a donation page from either the revenue_program default, or the provided page slug
         """
         self._ensure_revenue_program()
-        self.donation_page = (
+        page = (
             self.revenue_program.donationpage_set.filter(slug=self.page_slug).first()
             if self.page_slug
             else self.revenue_program.default_donation_page
         )
+        self.donation_page = self.get_translation(page)
         if not self.donation_page:
             logger.warning(f'Request for non-existent page by slug "{self.page_slug}" ')
             raise PageDetailError(

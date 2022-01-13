@@ -19,7 +19,7 @@ export const SALESFORCE_CAMPAIGN_ID_QUERYPARAM = resolveConstantFromEnv(
   'SALESFORCE_CAMPAIGN_ID_QUERYPARAM',
   'campaign'
 );
-export const CAPTURE_PAGE_SCREENSHOT = resolveConstantFromEnv('CAPTURE_PAGE_SCREENSHOT') === 'true';
+export const CAPTURE_PAGE_SCREENSHOT = resolveConstantFromEnv('CAPTURE_PAGE_SCREENSHOT');
 
 // Analytics
 export const HUB_ANALYTICS_APP_NAME = 'rev-engine-analytics';
@@ -43,8 +43,7 @@ export const GRECAPTCHA_SITE_KEY = '6Lfuse8UAAAAAD9E6tCxKYrxO1IbnXp8IBa4u5Ri';
 export const HUB_GOOGLE_MAPS_API_KEY = resolveConstantFromEnv('HUB_GOOGLE_MAPS_API_KEY');
 
 // Sentry
-export const SENTRY_ENABLE_FRONTEND =
-  resolveConstantFromEnv('SENTRY_ENABLE_FRONTEND', 'false').toLowerCase() === 'true';
+export const SENTRY_ENABLE_FRONTEND = resolveConstantFromEnv('SENTRY_ENABLE_FRONTEND', false);
 export const SENTRY_DSN_FRONTEND = resolveConstantFromEnv('SENTRY_DSN_FRONTEND');
 
 // Stripe

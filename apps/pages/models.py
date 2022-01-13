@@ -85,11 +85,7 @@ class Template(AbstractPage):
         return DonationPage.objects.create(**merged_page)
 
 
-class DonationPage(AbstractPage, SafeDeleteModel):
-    """
-    A DonationPage represents a single instance of a Donation Page.
-    """
-
+class AbstractDonationPage(AbstractPage):
     slug = models.SlugField(
         blank=True,
         help_text="If not entered, it will be built from the Page name",
@@ -105,6 +101,15 @@ class DonationPage(AbstractPage, SafeDeleteModel):
     page_screenshot = SorlImageField(null=True, blank=True, upload_to=_get_screenshot_upload_path)
 
     email_templates = models.ManyToManyField("emails.PageEmailTemplate", blank=True)
+
+    class Meta:
+        abstract = True
+
+
+class DonationPage(AbstractDonationPage, SafeDeleteModel):
+    """
+    A DonationPage represents a single instance of a Donation Page.
+    """
 
     class Meta:
         unique_together = (
@@ -170,13 +175,38 @@ class DonationPage(AbstractPage, SafeDeleteModel):
         merged_template["organization"] = Organization.objects.get(pk=merged_template.pop("organization_id"))
         return Template.objects.create(**merged_template)
 
+    def make_translatedpage_from_page(self, translated_page_data={}):
+        unwanted_keys = [
+            "_state",
+            "id",
+            "created",
+            "modified",
+            "page_screenshot",
+            "deleted",
+            "published_date",
+        ]
+
+        page = cleanup_keys(self.__dict__, unwanted_keys)
+        translation = cleanup_keys(translated_page_data, unwanted_keys)
+        merged_translation = page | translation
+        return TranslatedPage.objects.create(**merged_translation, page=self)
+
     def get_translation(self, lang_code):
         if lang_code not in settings.SUPPORTED_LANGUAGES:
             raise ValueError(f'Language "{lang_code}" not supported')
         return self.translations.get(language=lang_code)
 
+    @property
+    def available_translations(self):
+        """
+        Return a list of language codes representing languages that this page has not been translated in to yet.
+        """
+        supported_languages = settings.SUPPORTED_LANGUAGES
+        page_translations = self.translations.all().only("language")
+        return [l for l in supported_languages if l not in page_translations]
 
-class TranslatedPage(AbstractPage, SafeDeleteModel):
+
+class TranslatedPage(AbstractDonationPage):
     page = models.ForeignKey("pages.DonationPage", on_delete=models.CASCADE, related_name="translations")
     language = models.CharField(max_length=20)
 

@@ -10,6 +10,7 @@ from safedelete.admin import SafeDeleteAdmin, highlight_deleted
 from sorl.thumbnail.admin import AdminImageMixin
 
 from apps.common.admin import RevEngineBaseAdmin
+from apps.pages.forms import TranslatedPageAdminChangeForm
 from apps.pages.models import DonationPage, Font, Style, Template, TranslatedPage
 
 
@@ -157,32 +158,54 @@ class DonationPageAdmin(DonationPageAdminAbstract, SafeDeleteAdmin):
 
             We first must ensure that this page does not already have translations for all supported languages
             """
-            translations = obj.translations.all()
-            # for each item in this list
-            # obj.translations.filter(language__in=settings.SUPPORTED_LANGUAGES)
+            translation_is_novel = bool(obj.available_translations)
 
-            # try:
-            #     new_page = obj.make_page_from_template()
-            # except IntegrityError as integrity_error:
-            #     if "violates unique constraint" in str(integrity_error):
-            #         self.message_user(
-            #             request,
-            #             f'Donation Page name "{obj.name}" already used in organization. Did you forget to update the name of a previous page created from this template?',
-            #             messages.ERROR,
-            #         )
-            #         return HttpResponseRedirect(reverse("admin:pages_template_change", kwargs={"object_id": obj.id}))
-            # return HttpResponseRedirect(reverse("admin:pages_donationpage_change", kwargs={"object_id": new_page.id}))
+            if not translation_is_novel:
+                self.message_user(
+                    request,
+                    f"This page already has translations in all supported languages. Please update existing translations, or delete them to create a new translation. \n Currently supported languages: {settings.SUPPORTED_LANGUAGES}",
+                    messages.ERROR,
+                )
+                return HttpResponseRedirect(reverse("admin:pages_donationpage_change", kwargs={"object_id": obj.id}))
+
+            if translation_is_novel:
+                new_translation = obj.make_translatedpage_from_page()
+                return HttpResponseRedirect(
+                    reverse("admin:pages_translatedpage_change", kwargs={"object_id": new_translation.id})
+                )
         return super().response_change(request, obj)
 
 
 @admin.register(TranslatedPage)
 class TranslatedPageAdmin(DonationPageAdminAbstract):
-    list_display = ("page", "language")
-    list_filter = ("page", "language")
-    order = "page" "-created"
-    search_fields = ("name", "page.name")
+    list_display = ("page", "language", "revenue_program", "organization")
+    list_filter = ("page", "language", "revenue_program", "organization")
+    order = ("page", "language", "-created")
+    search_fields = ("name", "page__name")
 
-    fieldsets = (("Translation", {"fields": ("page", "language")}),) + DonationPageAdminAbstract.fieldsets
+    fieldsets = (
+        (
+            "Original Page",
+            {
+                "fields": (
+                    "organization",
+                    "page",
+                    "slug",
+                    "published_date",
+                )
+            },
+        ),
+        ("Translation", {"fields": ("language",)}),
+        ("Redirects", {"fields": ("thank_you_redirect", "post_thank_you_redirect")}),
+        ("Header", {"fields": ("header_bg_image", "header_logo", "header_link")}),
+        ("Heading", {"fields": ("heading", "graphic")}),
+        ("Styles", {"fields": ("styles",)}),
+        ("Content", {"fields": ("elements", "sidebar_elements")}),
+    )
+
+    readonly_fields = ["page", "organization", "slug"]
+
+    form = TranslatedPageAdminChangeForm
 
     def has_add_permission(self, *args, **kwargs):
         return False

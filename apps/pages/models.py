@@ -1,3 +1,4 @@
+from django.conf import settings
 from django.db import models
 from django.utils import timezone
 
@@ -168,6 +169,22 @@ class DonationPage(AbstractPage, SafeDeleteModel):
         merged_template = page | template
         merged_template["organization"] = Organization.objects.get(pk=merged_template.pop("organization_id"))
         return Template.objects.create(**merged_template)
+
+    def get_translation(self, lang_code):
+        if lang_code not in settings.SUPPORTED_LANGUAGES:
+            raise ValueError(f'Language "{lang_code}" not supported')
+        return self.translations.get(language=lang_code)
+
+
+class TranslatedPage(AbstractPage, SafeDeleteModel):
+    page = models.ForeignKey("pages.DonationPage", on_delete=models.CASCADE, related_name="translations")
+    language = models.CharField(max_length=20)
+
+    class Meta:
+        unique_together = ("page", "language")
+
+    def __str__(self):
+        return f"{self.language} translation of {self.page.name}"
 
 
 class Style(IndexedTimeStampedModel, SafeDeleteModel):

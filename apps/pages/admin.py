@@ -10,7 +10,7 @@ from safedelete.admin import SafeDeleteAdmin, highlight_deleted
 from sorl.thumbnail.admin import AdminImageMixin
 
 from apps.common.admin import RevEngineBaseAdmin
-from apps.pages.models import DonationPage, Font, Style, Template
+from apps.pages.models import DonationPage, Font, Style, Template, TranslatedPage
 
 
 logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
@@ -146,6 +146,46 @@ class DonationPageAdmin(DonationPageAdminAbstract, SafeDeleteAdmin):
                 f"{created_template_count} {'template' if created_template_count == 1 else 'templates'} created.",
                 messages.SUCCESS,
             )
+
+    change_form_template = "pages/donationpages_changeform.html"
+
+    def response_change(self, request, obj):
+        if "_translate_page" in request.POST:
+            """
+            "Translating a page" from django admin means creating a new TranslatedPage that is a clone
+            of the current page and redirecting to the admin user to the changeform for that translation.
+
+            We first must ensure that this page does not already have translations for all supported languages
+            """
+            translations = obj.translations.all()
+            # for each item in this list
+            # obj.translations.filter(language__in=settings.SUPPORTED_LANGUAGES)
+
+            # try:
+            #     new_page = obj.make_page_from_template()
+            # except IntegrityError as integrity_error:
+            #     if "violates unique constraint" in str(integrity_error):
+            #         self.message_user(
+            #             request,
+            #             f'Donation Page name "{obj.name}" already used in organization. Did you forget to update the name of a previous page created from this template?',
+            #             messages.ERROR,
+            #         )
+            #         return HttpResponseRedirect(reverse("admin:pages_template_change", kwargs={"object_id": obj.id}))
+            # return HttpResponseRedirect(reverse("admin:pages_donationpage_change", kwargs={"object_id": new_page.id}))
+        return super().response_change(request, obj)
+
+
+@admin.register(TranslatedPage)
+class TranslatedPageAdmin(DonationPageAdminAbstract):
+    list_display = ("page", "language")
+    list_filter = ("page", "language")
+    order = "page" "-created"
+    search_fields = ("name", "page.name")
+
+    fieldsets = (("Translation", {"fields": ("page", "language")}),) + DonationPageAdminAbstract.fieldsets
+
+    def has_add_permission(self, *args, **kwargs):
+        return False
 
 
 @admin.register(Style)

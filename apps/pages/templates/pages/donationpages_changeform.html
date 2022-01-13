@@ -1,0 +1,8 @@
+{% extends 'admin/change_form.html' %}
+
+{% block submit_buttons_bottom %}
+    <div class="submit-row">
+        <input type="submit" value="Add a translation" name="_translate_page">
+    </div>
+    {{ block.super }}
+{% endblock %}

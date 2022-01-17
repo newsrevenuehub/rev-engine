@@ -276,7 +276,7 @@ PHONENUMBER_DEFAULT_REGION = "US"
 STRIPE_LIVE_SECRET_KEY = os.getenv("LIVE_HUB_STRIPE_API_SECRET_KEY", "")
 STRIPE_TEST_SECRET_KEY = os.getenv("TEST_HUB_STRIPE_API_SECRET_KEY", "")
 STRIPE_OAUTH_SCOPE = "read_write"
-STRIPE_LIVE_MODE = os.getenv("STRIPE_LIVE_MODE", "False")
+STRIPE_LIVE_MODE = os.environ.get("STRIPE_LIVE_MODE", "false").lower() == "true"
 
 GENERIC_STRIPE_PRODUCT_NAME = "Donation via RevEngine"
 
@@ -307,7 +307,7 @@ BAD_ACTOR_FAIL_ABOVE = 3
 
 # This is the interval at which flagged payments will be automatically captured.
 # NOTE: Stripe automatically REJECTS flagged payments every 7 days. Make sure this delta is less than 6.5 days to be safe.
-FLAGGED_PAYMENT_AUTO_ACCEPT_DELTA = timedelta(days=4)
+FLAGGED_PAYMENT_AUTO_ACCEPT_DELTA = timedelta(days=3)
 
 HEALTHCHECK_URL_AUTO_ACCEPT_FLAGGED_PAYMENTS = os.environ.get("HEALTHCHECK_URL_AUTO_ACCEPT_FLAGGED_PAYMENTS")
 
@@ -324,7 +324,7 @@ EMAIL_TEMPLATE_IDENTIFIER_MAGIC_LINK_DONOR = os.environ.get(
 
 # this is only used by HubAdmins, not OrgAdmins, but needs to be named generically as LOGIN_URL
 # so our implementation of password reset flow for HubAdmins works as expected
-LOGIN_URL = "/admin/"
+LOGIN_URL = "/nrhadmin/"
 
 # Set USE_DEBUG_INTERVALS to True if you want recurring payment intervals to be truncated for testing (as much as possible, currently)
 USE_DEBUG_INTERVALS = os.getenv("USE_DEBUG_INTERVALS", False)
@@ -348,6 +348,8 @@ CURRENCIES = {"USD": "$", "CAD": "$"}
 NON_DONATION_PAGE_SUBDOMAINS = os.getenv("NON_DONATION_PAGE_SUBDOMAINS", ["support", "www"])
 DOMAIN_APEX = os.getenv("DOMAIN_APEX")
 
+
+CSP_REPORTING_ENABLE = os.environ.get("CSP_REPORTING_ENABLE", "false").lower() == "true"
 # Django-CSP configuration
 # For now, report only.
 
@@ -358,7 +360,10 @@ DOMAIN_APEX = os.getenv("DOMAIN_APEX")
 #     "script-src",
 # )
 CSP_REPORT_ONLY = os.getenv("CSP_REPORT_ONLY", True)
-CSP_REPORT_URI = f"https://o320544.ingest.sentry.io/api/6046263/security/?sentry_key=d576a6738e41453db36130d03e4e95be&sentry_environment={ENVIRONMENT}"
+
+if CSP_REPORTING_ENABLE:
+    CSP_REPORT_URI = os.getenv("CSP_REPORT_URI")
+
 CSP_DEFAULT_SRC = (
     "'self'",
     "*.fundjournalism.org",
@@ -375,6 +380,8 @@ CSP_SCRIPT_SRC = (
     "https://www.gstatic.com/recaptcha/",
     "https://pay.google.com",
     "https://connect.facebook.net",
+    "https://ajax.googleapis.com",
+    "https://use.typekit.net",
 )
 CSP_STYLE_SRC = (
     "'self'",
@@ -387,11 +394,7 @@ CSP_IMG_SRC = (
     "'self'",
     "data:",
 )
-CSP_FONT_SRC = (
-    "'self'",
-    "data:",
-    "https://fonts.gstatic.com",
-)
+CSP_FONT_SRC = ("'self'", "data:", "https://fonts.gstatic.com", "https://use.typekit.net")
 CSP_FRAME_SRC = (
     "https://js.stripe.com",
     "https://hooks.stripe.com",
@@ -417,19 +420,31 @@ SECURE_REFERRER_POLICY = "strict-origin-when-cross-origin"
 # Stripe API Target Version
 STRIPE_API_VERSION = "2020-08-27"
 
+
 # Google Tag Manager ID - Config Vars Heroku
 HUB_GTM_ID = os.getenv("HUB_GTM_ID")
+
+
+# Sentry Configuration
+SENTRY_ENABLE_FRONTEND = os.environ.get("SENTRY_ENABLE_FRONTEND", "false").lower() == "true"
+SENTRY_DSN_FRONTEND = os.environ.get("SENTRY_DSN_FRONTEND")
+
+SENTRY_ENABLE_BACKEND = os.environ.get("SENTRY_ENABLE_BACKEND", "false").lower() == "true"
+SENTRY_DSN_BACKEND = os.environ.get("SENTRY_DSN_BACKEND")
+
 
 # Front End Environment Variables - Config Vars Heroku
 SPA_ENV_VARS = {
     "HUB_STRIPE_API_PUB_KEY": os.getenv("SPA_ENV_HUB_STRIPE_API_PUB_KEY"),
-    "CAPTURE_PAGE_SCREENSHOT": os.getenv("SPA_ENV_CAPTURE_PAGE_SCREENSHOT", "false"),
+    "CAPTURE_PAGE_SCREENSHOT": os.getenv("SPA_ENV_CAPTURE_PAGE_SCREENSHOT", "false").lower() == "true",
     "SALESFORCE_CAMPAIGN_ID_QUERYPARAM": os.getenv("SPA_ENV_APP_SALESFORCE_CAMPAIGN_ID_QUERYPARAM", "campaign"),
     "FREQUENCY_QUERYPARAM": os.getenv("SPA_ENV_FREQUENCY_QUERYPARAM", "frequency"),
     "AMOUNT_QUERYPARAM": os.getenv("SPA_ENV_AMOUNT_QUERYPARAM", "amount"),
     "REVENGINE_API_VERSION": os.getenv("SPA_ENV_REVENGINE_API_VERSION", "v1"),
     "STRIPE_API_VERSION": STRIPE_API_VERSION,
     "STRIPE_OAUTH_SCOPE": STRIPE_OAUTH_SCOPE,
+    "SENTRY_ENABLE_FRONTEND": SENTRY_ENABLE_FRONTEND,
+    "SENTRY_DSN_FRONTEND": SENTRY_DSN_FRONTEND,
     "STRIPE_CLIENT_ID": os.getenv("SPA_ENV_STRIPE_CLIENT_ID"),
     "HUB_GOOGLE_MAPS_API_KEY": os.getenv("SPA_ENV_HUB_GOOGLE_MAPS_API_KEY"),
     "HUB_V3_GOOGLE_ANALYTICS_ID": os.getenv("SPA_ENV_HUB_V3_GOOGLE_ANALYTICS_ID"),

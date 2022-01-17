@@ -78,7 +78,9 @@ function GenericThankYou() {
               )}
             </S.TextSection>
             <S.SocialShareSection>
-              <S.Text>Share your support on social media</S.Text>
+              <S.Text>
+                <strong>Share your support on social media:</strong>
+              </S.Text>
               <S.SocialShareList>
                 <S.SocialShareItem>
                   <S.FacebookShare href={buildFacebookHref()} target="_blank" rel="noreferrer">

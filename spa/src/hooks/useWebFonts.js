@@ -1,8 +1,11 @@
 import { useEffect } from 'react';
 import loadWebFont from 'utilities/loadWebFont';
 
-function useWebFonts(fonts = {}, { onSuccess = () => {}, onError = () => {} } = {}) {
+const NO_OP = () => {};
+
+function useWebFonts(fonts = {}, { onSuccess = NO_OP, onError = NO_OP } = {}) {
   useEffect(() => {
+    if (typeof fonts === 'string') return;
     Object.keys(fonts).forEach((fontKey) => {
       loadWebFont(fonts[fontKey]).then(onSuccess, onError);
     });

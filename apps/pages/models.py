@@ -24,7 +24,7 @@ class AbstractPage(IndexedTimeStampedModel):
 
     header_bg_image = SorlImageField(null=True, blank=True)
     header_logo = SorlImageField(null=True, blank=True)
-    header_link = models.URLField(null=True, blank=True)
+    header_link = models.URLField(blank=True)
 
     styles = models.ForeignKey("pages.Style", null=True, blank=True, on_delete=models.SET_NULL)
 

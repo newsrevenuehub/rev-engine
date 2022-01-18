@@ -85,15 +85,13 @@ function Pages({ setShowAddPageModal }) {
                 <S.RevProgramName>{rp.name}</S.RevProgramName>
                 <S.Chevron icon={faChevronDown} isOpen={isOpen} />
               </S.AccordionHeading>
-              <AnimatePresence>
-                {isOpen && (
-                  <S.PagesList layout {...S.accordionAnimation} data-testid={`${rp.name}-pages-list`}>
-                    {rp.pages.map((page) => (
-                      <PageCard key={page.id} page={page} onClick={handleEditPage} />
-                    ))}
-                  </S.PagesList>
-                )}
-              </AnimatePresence>
+              {isOpen && (
+                <S.PagesList layout {...S.accordionAnimation} data-testid={`${rp.name}-pages-list`}>
+                  {rp.pages.map((page) => (
+                    <PageCard key={page.id} page={page} onClick={handleEditPage} />
+                  ))}
+                </S.PagesList>
+              )}
             </S.RevenueProgramSection>
           );
         })}

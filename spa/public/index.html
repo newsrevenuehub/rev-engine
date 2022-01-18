@@ -22,25 +22,27 @@
     <!-- End Google Tag Manager -->
 
     {% if request.csp_nonce %}
-    <script type="text/javascript" nonce="{{ request.csp_nonce }}">
-      window.csp_nonce = '{{ request.csp_nonce }}';
-    </script>
+      <script type="text/javascript" nonce="{{ request.csp_nonce }}">
+        window.csp_nonce = '{{ request.csp_nonce }}';
+      </script>
     {% endif %}
 
     {% insert_spa_env %}
 
     <link rel="manifest" href="%PUBLIC_URL%/manifest.json" />
 
-    {% include "webfonts.html" %} {% if social_meta %}
-    <meta name="og:type" content="website" />
-    <meta name="og:url" content="{{ social_meta.url }}" />
-    <meta name="og:title" content="{{ social_meta.title }}" />
-    <meta name="og:description" content="{{ social_meta.description }}" />
-    <meta name="og:image:alt" content="{{ social_meta.image_alt }}" />
-    <meta name="og:image" content="{{ social_meta.card }}" />
-    <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:site" content="{{ social_meta.twitter_handle }}" />
-    <meta name="twitter:creator" content="{{ social_meta.twitter_handle }}" />
+    {% include "webfonts.html" %}
+    
+    {% if social_meta %}
+      <meta name="og:type" content="website" />
+      <meta name="og:url" content="{{ social_meta.url }}" />
+      <meta name="og:title" content="{{ social_meta.title }}" />
+      <meta name="og:description" content="{{ social_meta.description }}" />
+      <meta name="og:image:alt" content="{{ social_meta.image_alt }}" />
+      <meta name="og:image" content="{{ social_meta.card }}" />
+      <meta name="twitter:card" content="summary_large_image" />
+      <meta name="twitter:site" content="{{ social_meta.twitter_handle }}" />
+      <meta name="twitter:creator" content="{{ social_meta.twitter_handle }}" />
     {% endif %}
 
     <title>RevEngine</title>

@@ -210,3 +210,6 @@ class Font(models.Model):
 
     def __str__(self):
         return f"{self.name} ({self.source})"
+
+    class Meta:
+        ordering = [models.functions.Lower("name")]

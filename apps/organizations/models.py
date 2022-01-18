@@ -294,7 +294,7 @@ class RevenueProgram(IndexedTimeStampedModel):
         "If you're hoping to test this locally, pretty much too bad"
             -- Steve Jobs
         """
-        if settings.STRIPE_LIVE_MODE == "True":
+        if settings.STRIPE_LIVE_MODE:
             try:
                 stripe.ApplePayDomain.create(
                     api_key=settings.STRIPE_LIVE_SECRET_KEY,

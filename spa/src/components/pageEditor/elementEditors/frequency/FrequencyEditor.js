@@ -42,8 +42,8 @@ function FrequencyEditor() {
       {FREQUENCIES.map((frequency) => {
         const thisFreq = elementContent.find((f) => f.value === frequency.value);
         return (
-          <S.FieldSetWrapper>
-            <S.ToggleWrapper key={frequency.value}>
+          <S.FieldSetWrapper key={frequency.value}>
+            <S.ToggleWrapper>
               <S.Toggle
                 label={`${frequency.displayName} payments enabled`}
                 data-testid="frequency-toggle"
@@ -86,4 +86,15 @@ FrequencyEditor.hasErrors = (content) => {
     return NOT_ENOUGH_FREQS;
   }
   return false;
+};
+
+const DEFAULT_TEXT = {};
+
+FrequencyEditor.TextEditor = function TextEditor() {
+  const { page, elementText = DEFAULT_TEXT, setElementText } = useEditInterfaceContext();
+  console.log('page', page);
+  console.log('elementText', elementText);
+
+  if (!page.language) return null;
+  return <h1>Hola!</h1>;
 };

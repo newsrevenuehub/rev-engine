@@ -3,7 +3,10 @@ import * as S from './ElementProperties.styled';
 import { useAlert } from 'react-alert';
 
 // Elements
-import getElementEditor, { getElementValidator } from 'components/pageEditor/elementEditors/getElementEditor';
+import getElementEditor, {
+  getElementValidator,
+  getElementTextEditor
+} from 'components/pageEditor/elementEditors/getElementEditor';
 
 // Assets
 import { faCheck, faTimes, faTrash } from '@fortawesome/free-solid-svg-icons';
@@ -101,7 +104,10 @@ function ElementProperties({ selectedElementType }) {
           </S.DeleteButton>
         )}
       </S.ElementHeading>
-      <S.ElementEditor>{getElementEditor(selectedElement.type)}</S.ElementEditor>
+      <S.ElementEditor>
+        {getElementEditor(selectedElement.type)}
+        {getElementTextEditor(selectedElement.type)}
+      </S.ElementEditor>
       <S.ButtonsSection>
         <S.Buttons>
           <CircleButton

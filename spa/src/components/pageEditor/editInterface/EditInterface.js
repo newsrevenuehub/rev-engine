@@ -57,6 +57,7 @@ function EditInterface() {
   // Since you can only edit one element at a time, it's safe (and much easier)
   // to only store one set of "unconfirmed" changes at a time.
   const [elementContent, setElementContent] = useState();
+  const [elementText, setElementText] = useState();
   const [elementRequiredFields, setElementRequiredFields] = useState([]);
 
   /**
@@ -116,6 +117,7 @@ function EditInterface() {
     setSelectedElementType(elementsType);
     setSelectedElement(element);
     setElementContent(element.content);
+    setElementText(element.text);
     setElementRequiredFields(element.requiredFields || []);
   };
 
@@ -135,7 +137,9 @@ function EditInterface() {
         elementRequiredFields,
         setElementRequiredFields,
         setPageContent,
-        handleRemoveElement
+        handleRemoveElement,
+        elementText,
+        setElementText
       }}
     >
       <>
@@ -166,7 +170,7 @@ function EditInterface() {
                 />
               )}
               {tab === 2 && <PageSetup backToProperties={() => setTab(0)} />}
-              {tab === 3 && <PageStyles backToProperties={() => setTab(0)} />}
+              {/* {tab === 3 && <PageStyles backToProperties={() => setTab(0)} />} */}
             </>
           )}
         </S.EditInterface>

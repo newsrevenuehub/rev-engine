@@ -2,7 +2,7 @@ import { useState } from 'react';
 import * as S from './PageSetup.styled';
 
 // Assets
-import { faCheck, faTimes } from '@fortawesome/free-solid-svg-icons';
+import { faCheck, faPlus, faTimes } from '@fortawesome/free-solid-svg-icons';
 
 // Context
 import { usePageEditorContext } from 'components/pageEditor/PageEditor';
@@ -17,6 +17,8 @@ import ImageWithPreview from 'elements/inputs/ImageWithPreview';
 import Input from 'elements/inputs/Input';
 import PublishWidget from './PublishWidget';
 import CircleButton from 'elements/buttons/CircleButton';
+import StylesChooser from '../pageStyles/StylesChooser';
+import AddStylesModal from '../pageStyles/AddStylesModal';
 
 /**
  * PageSetup
@@ -27,7 +29,7 @@ import CircleButton from 'elements/buttons/CircleButton';
  */
 function PageSetup({ backToProperties }) {
   const { getUserConfirmation } = useGlobalContext();
-  const { page, errors } = usePageEditorContext();
+  const { page, errors, availableStyles, setAvailableStyles } = usePageEditorContext();
   const { setPageContent } = useEditInterfaceContext();
 
   // Form state
@@ -37,6 +39,8 @@ function PageSetup({ backToProperties }) {
   const [thank_you_redirect, setThankYouRedirect] = useState(page.thank_you_redirect);
   const [post_thank_you_redirect, setPostThankYouRedirect] = useState(page.post_thank_you_redirect);
   const [donor_benefits, setDonorBenefits] = useState(page.donor_benefits);
+  const [styles, setStyles] = useState(page.styles);
+  const [addStylesModalOpen, setAddStylesModalOpen] = useState(false);
   const [published_date, setPublishedDate] = useState(page.published_date ? new Date(page.published_date) : undefined);
 
   const handleKeepChanges = () => {
@@ -74,6 +78,16 @@ function PageSetup({ backToProperties }) {
     } else {
       cb();
     }
+  };
+
+  // const handleKeepChanges = () => {
+  //   setPageContent({ styles });
+  //   backToProperties();
+  // };
+
+  const handleAddNewStyles = (newStyles) => {
+    setAvailableStyles([newStyles, ...availableStyles]);
+    setStyles(newStyles);
   };
 
   return (
@@ -147,7 +161,14 @@ function PageSetup({ backToProperties }) {
           errors={errors.post_thank_you_redirect}
         />
       </S.InputWrapper>
-      <PublishWidget publishDate={published_date} onChange={setPublishedDate} errors={errors.published_date} />
+      <S.InputWrapper>
+        <StylesChooser styles={availableStyles} selected={styles} setSelected={(s) => setStyles(s)} />
+        <p>or</p>
+        <p role="button">Create new styles</p>
+      </S.InputWrapper>
+      <S.InputWrapper>
+        <PublishWidget publishDate={published_date} onChange={setPublishedDate} errors={errors.published_date} />
+      </S.InputWrapper>
       <S.Buttons>
         <CircleButton
           icon={faCheck}
@@ -162,6 +183,14 @@ function PageSetup({ backToProperties }) {
           data-testid="discard-element-changes-button"
         />
       </S.Buttons>
+      {/* <S.AddStylesButton onClick={() => setAddStylesModalOpen(true)} data-testid="add-element-button">
+        <S.AddStylesIcon icon={faPlus} />
+      </S.AddStylesButton> */}
+      <AddStylesModal
+        isOpen={addStylesModalOpen}
+        closeModal={() => setAddStylesModalOpen(false)}
+        handleAddNewStyles={handleAddNewStyles}
+      />
     </S.PageSetup>
   );
 }

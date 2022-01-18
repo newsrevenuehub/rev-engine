@@ -9,6 +9,8 @@ import { useAlert } from 'react-alert';
 import isEmpty from 'lodash.isempty';
 import { isBefore, isAfter } from 'date-fns';
 import html2canvas from 'html2canvas';
+// import { useLocation } from 'react-router-dom';
+import queryString from 'query-string';
 
 // Utils
 import formatDatetimeForAPI from 'utilities/formatDatetimeForAPI';
@@ -41,6 +43,7 @@ import validatePage from './validatePage';
 
 // Hooks
 import useWebFonts from 'hooks/useWebFonts';
+import useQueryString from 'hooks/useQueryString';
 import { useConfigureAnalytics } from 'components/analytics';
 
 // Children
@@ -77,6 +80,8 @@ function PageEditor() {
   const alert = useAlert();
   const theme = useTheme();
   const parameters = useParams();
+  // const location = useLocation();
+  const language = useQueryString('lang');
 
   // Context
   const { getUserConfirmation } = useGlobalContext();
@@ -121,6 +126,8 @@ function PageEditor() {
       page: parameters.pageSlug,
       live: 0
     };
+
+    if (language) params['language'] = language;
     requestGetPage(
       { method: 'GET', url: DRAFT_PAGE_DETAIL, params },
       {

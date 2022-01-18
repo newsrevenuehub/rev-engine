@@ -5,7 +5,8 @@ from django.conf import settings
 from rest_framework import status
 
 from apps.organizations.models import RevenueProgram
-from apps.pages.serializers import DonationPageFullDetailSerializer
+from apps.pages.models import TranslatedPage
+from apps.pages.serializers import DonationPageFullDetailSerializer, TranslatedPageEditSerializer
 
 
 logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
@@ -28,6 +29,7 @@ class PageFullDetailHelper:
             self.revenue_program_slug = request.GET["revenue_program"]
             self.page_slug = request.GET.get("page")
             self.live = live
+            self.edit_lang = request.GET.get("language")
         except KeyError:
             raise PageDetailError(message="Missing required parameter", status=status.HTTP_400_BAD_REQUEST)
 
@@ -45,10 +47,15 @@ class PageFullDetailHelper:
 
     def get_translation(self, page):
         """
-        Does things
+        Given a DonationPage, return a translated version of that page based on request.LANGUAGE_CODE
+        or, if no translation is present, return the DonationPage itself.
         """
+        # Do not translate pages in edit mode unless the edit_lang param is present
+        language = self.request.LANGUAGE_CODE if self.live else self.edit_lang
+        if not self.live and not self.edit_lang:
+            return page
         try:
-            return page.get_translation(self.request.LANGUAGE_CODE)
+            return page.get_translation(language)
         except Exception:
             # Whatever happens here, return the default page
             return page
@@ -105,14 +112,19 @@ class PageFullDetailHelper:
                 message="You do not have permission to edit this page", status=status.HTTP_403_FORBIDDEN
             )
 
-    def get_donation_page_data(
-        self,
-    ):
+    def get_serializer(self):
+        self._ensure_donation_page()
+        if not self.live and isinstance(self.donation_page, TranslatedPage):
+            return TranslatedPageEditSerializer
+        return DonationPageFullDetailSerializer
+
+    def get_donation_page_data(self):
         """
         Serializer donation page and return JSON
         """
         self._ensure_donation_page()
-        page_serializer = DonationPageFullDetailSerializer(instance=self.donation_page, context={"live": self.live})
+        serializer = self.get_serializer()
+        page_serializer = serializer(instance=self.donation_page, context={"live": self.live})
         return page_serializer.data
 
     def _ensure_revenue_program(self):

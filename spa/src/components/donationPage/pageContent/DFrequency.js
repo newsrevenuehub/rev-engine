@@ -7,6 +7,7 @@ import { usePage } from '../DonationPage';
 
 // Util
 import { getDefaultAmountForFreq } from 'components/donationPage/pageContent/DAmount';
+import getText from 'utilities/getText';
 
 // Children
 import DElement, { DynamicElementPropTypes } from 'components/donationPage/pageContent/DElement';
@@ -28,9 +29,9 @@ function DFrequency({ element, ...props }) {
   };
 
   return (
-    <DElement label="Frequency" {...props} data-testid="d-frequency">
+    <DElement label={getText(element, 'heading', 'Frequency')} {...props} data-testid="d-frequency">
       <InputGroup>
-        <GroupedLabel>Choose a contribution type</GroupedLabel>
+        <GroupedLabel>{getText(element, 'description', 'Choose a contribution type')}</GroupedLabel>
         <GroupedWrapper>
           {element?.content?.sort(frequencySort).map((freq) => (
             <S.CheckBoxField key={freq.value}>
@@ -45,7 +46,7 @@ function DFrequency({ element, ...props }) {
                   color: theme.colors.primary
                 }}
               />
-              <S.CheckboxLabel htmlFor={freq.value}>{freq.displayName}</S.CheckboxLabel>
+              <S.CheckboxLabel htmlFor={freq.value}>{getText(element, `amounts.${freq.value}`)}</S.CheckboxLabel>
             </S.CheckBoxField>
           ))}
         </GroupedWrapper>

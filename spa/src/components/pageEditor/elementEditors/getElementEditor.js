@@ -16,9 +16,18 @@ function getElementEditor(elementType) {
   return <Editor />;
 }
 
+export default getElementEditor;
+
 export function getElementValidator(elementType) {
-  const editorKey = Object.keys(elementEditors).find((editorKey) => elementEditors[editorKey].for === elementType);
-  return elementEditors[editorKey]?.hasErrors;
+  return elementEditors[_getEditorKey(elementType)]?.hasErrors;
 }
 
-export default getElementEditor;
+export function getElementTextEditor(elementType) {
+  const Editor = elementEditors[_getEditorKey(elementType)];
+  if (Editor?.TextEditor) return <Editor.TextEditor />;
+  return null;
+}
+
+function _getEditorKey(elementType) {
+  return Object.keys(elementEditors).find((editorKey) => elementEditors[editorKey].for === elementType);
+}

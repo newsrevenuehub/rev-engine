@@ -165,6 +165,14 @@ class DonationPageFullDetailSerializer(serializers.ModelSerializer):
         return super().update(instance, validated_data)
 
 
+class TranslatedPageEditSerializer(DonationPageFullDetailSerializer):
+    language = serializers.CharField(read_only=True)
+    original_page = serializers.SerializerMethodField(method_name="get_original_page", read_only=True)
+
+    def get_original_page(self, obj):
+        return DonationPageFullDetailSerializer(obj.page).data
+
+
 class DonationPageListSerializer(serializers.ModelSerializer):
     revenue_program = RevenueProgramListInlineSerializer(read_only=True)
     organization = serializers.PrimaryKeyRelatedField(queryset=Organization.objects.all())

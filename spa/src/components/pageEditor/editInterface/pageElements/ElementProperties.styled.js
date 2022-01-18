@@ -23,6 +23,10 @@ export const ElementHeading = styled.div`
 export const ElementEditor = styled.div`
   flex: 1;
   overflow-y: auto;
+
+  &:not(:last-child) {
+    border-bottom: 1px solid ${(props) => props.theme.colors.grey[1]};
+  }
 `;
 
 export const ButtonsSection = styled.div`

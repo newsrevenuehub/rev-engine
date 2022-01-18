@@ -175,7 +175,7 @@ class FontAdmin(RevEngineBaseAdmin):
         "source",
     )
     list_filter = ("source",)
-    order = (
+    ordering = (
         "name",
         "source",
     )

@@ -18,7 +18,7 @@ export const OtherAmount = styled.div`
   justify-content: space-between;
   background: ${(props) => props.theme.colors.white};
   border: 1px solid;
-  border-color: ${(props) => (props.selected ? props.theme.colors.primary : '#c3c3c3')};
+  border-color: ${(props) => (props.selected ? props.theme.colors.cstm_CTAs : '#c3c3c3')};
   cursor: text;
   border-radius: ${(props) => props.theme.radii[1]};
   min-height: 48px;

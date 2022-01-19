@@ -2,9 +2,9 @@ import styled from 'styled-components';
 
 export const SelectableButton = styled.div`
   text-align: center;
-  background: ${(props) => (props.selected ? props.theme.colors.primary : '#efefef')};
+  background: ${(props) => (props.selected ? props.theme.colors.cstm_CTAs : '#efefef')};
   border: 1px solid;
-  border-color: ${(props) => (props.selected ? props.theme.colors.primary : '#c3c3c3')};
+  border-color: ${(props) => (props.selected ? props.theme.colors.cstm_CTAs : '#c3c3c3')};
 
   border-radius: ${(props) => props.theme.radii[1]};
   min-height: 48px;

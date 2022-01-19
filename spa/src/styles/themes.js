@@ -68,3 +68,12 @@ export const muiThemeOverrides = createMuiTheme({
     secondary: { main: revEngineTheme.colors.primary }
   }
 });
+
+export function mapCustomStylesToMuiOverrides(styles = {}) {
+  return createMuiTheme({
+    palette: {
+      primary: { main: styles?.colors?.cstm_CTAs || revEngineTheme.colors.grey[1] },
+      secondary: { main: styles?.colors?.cstm_CTAs || revEngineTheme.colors.grey[1] }
+    }
+  });
+}

@@ -21,10 +21,8 @@ import useWebFonts from 'hooks/useWebFonts';
 import { useGlobalContext } from 'components/MainLayout';
 
 // Children
-import XButton from 'elements/buttons/XButton';
 import CircleButton from 'elements/buttons/CircleButton';
 import Select from 'elements/inputs/Select';
-import Spinner from 'elements/Spinner';
 
 const UNIQUE_NAME_ERROR = 'The fields name, organization must make a unique set.';
 
@@ -178,38 +176,43 @@ function StylesEditor({ styles, setStyles, handleKeepChanges, handleDiscardChang
         <StylesFieldset label="Colors">
           <S.FieldRow>
             <ColorPicker
-              label="Primary"
-              value={styles?.colors?.primary || ''}
-              onChange={(color) => setColor('primary', color)}
+              label="Main header"
+              value={styles?.colors?.cstm_mainHeader || ''}
+              onChange={(color) => setColor('cstm_mainHeader', color)}
             />
             <ColorPicker
-              label="Secondary"
-              value={styles?.colors?.secondary || ''}
-              onChange={(color) => setColor('secondary', color)}
+              label="Main background"
+              value={styles?.colors?.cstm_mainBackground || ''}
+              onChange={(color) => setColor('cstm_mainBackground', color)}
+            />
+            <ColorPicker
+              label="Form panel background"
+              value={styles?.colors?.cstm_formPanelBackground || ''}
+              onChange={(color) => setColor('cstm_formPanelBackground', color)}
             />
           </S.FieldRow>
           <S.FieldRow>
             <ColorPicker
-              label="Main background"
-              value={styles?.colors?.fieldBackground || ''}
-              onChange={(color) => setColor('fieldBackground', color)}
+              label="CTAs"
+              value={styles?.colors?.cstm_CTAs || ''}
+              onChange={(color) => setColor('cstm_CTAs', color)}
             />
             <ColorPicker
-              label="Pane background"
-              value={styles?.colors?.paneBackground || ''}
-              onChange={(color) => setColor('paneBackground', color)}
+              label="Ornaments"
+              value={styles?.colors?.cstm_ornaments || ''}
+              onChange={(color) => setColor('cstm_ornaments', color)}
             />
           </S.FieldRow>
           <S.FieldRow>
             <ColorPicker
               label="Input background"
-              value={styles?.colors?.inputBackground || ''}
-              onChange={(color) => setColor('inputBackground', color)}
+              value={styles?.colors?.cstm_inputBackground || ''}
+              onChange={(color) => setColor('cstm_inputBackground', color)}
             />
             <ColorPicker
               label="Input border"
-              value={styles?.colors?.inputBorder || ''}
-              onChange={(color) => setColor('inputBorder', color)}
+              value={styles?.colors?.cstm_inputBorder || ''}
+              onChange={(color) => setColor('cstm_inputBorder', color)}
             />
           </S.FieldRow>
         </StylesFieldset>
@@ -312,7 +315,6 @@ function ColorPicker({ label, helpText, value, onChange }) {
               {internalValue.hex || <S.NoColor>Select a color...</S.NoColor>}
             </S.ColorButtonHex>
           </S.ColorButton>
-          <XButton />
         </S.ColorButtonWrapper>
         {helpText && <HelpText>{helpText}</HelpText>}
         {colorPickerOpen && (

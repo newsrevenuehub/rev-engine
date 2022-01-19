@@ -1,7 +1,7 @@
 import styled from 'styled-components';
 
 export const DonationPage = styled.div`
-  background: ${(props) => props.theme.colors.fieldBackground};
+  background: ${(props) => props.theme.colors.cstm_mainBackground};
 `;
 
 export const NoElements = styled.h4`
@@ -33,7 +33,7 @@ export const SideOuter = styled.div`
 `;
 
 export const SideInner = styled.div`
-  background: ${(props) => props.theme.colors.paneBackground};
+  background: ${(props) => props.theme.colors.cstm_formPanelBackground};
   box-shadow: ${(props) => props.theme.shadows[1]};
   max-width: ${(props) => props.theme.maxWidths.md};
   margin: 0 auto;

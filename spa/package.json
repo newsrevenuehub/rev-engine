@@ -83,6 +83,10 @@
       "**/*.{js,jsx}",
       "!**/node_modules/**",
       "!**/*.styled.js"
+    ],
+    "transformIgnorePatterns": [
+      "node_modules/(?!(cypress)/)",
+      "\\.pnp\\.[^\\\/]+$"
     ]
   },
   "eslintConfig": {

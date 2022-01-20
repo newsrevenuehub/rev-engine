@@ -4,7 +4,7 @@ import { render } from 'test-utils';
 import DonationPageStaticText from './DonationPageStaticText';
 
 // Mock data
-import mockPage from '../../../cypress/fixtures/pages/live-page-1.json';
+import mockPage from '../../../cypress/fixtures/pages/live-page-1';
 
 it('should just do something to test testing', () => {
   const amount = 120;

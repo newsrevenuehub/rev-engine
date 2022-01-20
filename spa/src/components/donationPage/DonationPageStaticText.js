@@ -1,41 +1,53 @@
+import { useMemo } from 'react';
 import * as S from './DonationPageStaticText.styled';
 import { format } from 'date-fns';
 
 import { getTotalAmount } from 'components/paymentProviders/stripe/stripeFns';
 
 function DonationPageStaticText({ page, amount, payFee, frequency }) {
-  const getFreqDependentText = () => {
-    if (frequency === 'one_time') return null;
-    let freqDependentText = ' ';
-    const totalAmount = getTotalAmount(amount, payFee, frequency, page.organization_is_nonprofit);
-    freqDependentText += `Additionally, by proceeding with this transaction, you're authorizing today's payment, along with all future recurring payments of $${totalAmount}, to be processed on or adjacent to `;
-    const monthlyText = `the ${format(new Date(), 'do')} of the month until you cancel.`;
-    const yearlyText = `${format(new Date(), 'L/d')} yearly until you cancel.`;
+  const getFreqText = () =>
+    frequency === 'one_time' ? (
+      ''
+    ) : (
+      <span>
+        , <strong>along with all future recurring payments</strong>
+      </span>
+    );
 
-    if (frequency === 'month') freqDependentText += monthlyText;
-    if (frequency === 'year') freqDependentText += yearlyText;
-
-    return freqDependentText;
+  const getAmountText = () => {
+    if (frequency === 'one_time') return format(new Date(), 'MMM do, y');
+    if (frequency === 'month') return `the ${format(new Date(), 'do')} of the month until you cancel`;
+    if (frequency === 'year') return `${format(new Date(), 'L/d')} yearly until you cancel `;
   };
+
+  const totalAmount = useMemo(
+    () =>
+      `${page.currency?.symbol}${getTotalAmount(amount, payFee, frequency, page.organization_is_nonprofit)}${
+        frequency === 'one_time' ? '' : ','
+      }`,
+    [amount, payFee, frequency, page.organization_is_nonprofit, page.currency.symbol]
+  );
 
   return (
     <S.DonationPageStaticText data-testid="donation-page-static-text">
-      {page.revenue_program.contact_email && (
-        <p>
-          Have questions or want to change a recurring {page.organization_is_nonprofit ? 'donation' : 'contribution'}?
-          Contact us at{' '}
-          <a href={`mailto:${page.revenue_program.contact_email}`}>{page.revenue_program.contact_email}</a>.
-        </p>
-      )}
-      {page.revenue_program.address && (
-        <p>Prefer to mail a check? Our mailing address is {page.revenue_program.address}.</p>
-      )}
-
       <p>
-        Contributions or gifts to {page.revenue_program.name} {page.organization_is_nonprofit ? 'are' : 'are not'} tax
-        deductible.
+        By proceeding with this transaction, you agree to our{' '}
+        <strong>
+          <a href="https://fundjournalism.org/faq/privacy-policy/" target="blank" rel="noopener noreferrer">
+            privacy policy
+          </a>
+        </strong>{' '}
+        and{' '}
+        <strong>
+          <a href="https://fundjournalism.org/faq/terms-of-service" target="blank" rel="noopener noreferrer">
+            terms & conditions
+          </a>
+        </strong>
+        . Additionally, by proceeding with this transaction, you're authorizing today's payment{getFreqText()} of{' '}
+        <strong>
+          {totalAmount} to be processed on or adjacent to {getAmountText()}.
+        </strong>
       </p>
-      <p>By proceeding with this transaction, you agree to our terms & conditions.{getFreqDependentText()}</p>
     </S.DonationPageStaticText>
   );
 }

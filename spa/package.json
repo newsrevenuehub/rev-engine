@@ -75,7 +75,8 @@
     "cypress:run": "cypress run",
     "cypress:run:component": "cypress run-ct",
     "test": "react-scripts test",
-    "test:coverage": "CI=true npm test -- --env=jsdom --coverage"
+    "test:coverage": "CI=true npm test -- --env=jsdom --coverage",
+    "test:ci": "CI=true npm test -- --env=jsdom"
   },
   "jest": {
     "collectCoverageFrom": [

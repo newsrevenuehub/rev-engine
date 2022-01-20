@@ -17,7 +17,7 @@ function DonationPageStaticText({ page, amount, payFee, frequency }) {
   const getAmountText = () => {
     if (frequency === 'one_time') return format(new Date(), 'MMM do, y');
     if (frequency === 'month') return `the ${format(new Date(), 'do')} of the month until you cancel`;
-    if (frequency === 'year') return `${format(new Date(), 'L/d')} yearly until you cancel `;
+    if (frequency === 'year') return `${format(new Date(), 'L/d')} yearly until you cancel`;
   };
 
   const totalAmount = useMemo(
@@ -39,7 +39,7 @@ function DonationPageStaticText({ page, amount, payFee, frequency }) {
         </strong>{' '}
         and{' '}
         <strong>
-          <a href="https://fundjournalism.org/faq/terms-of-service" target="blank" rel="noopener noreferrer">
+          <a href="https://fundjournalism.org/faq/terms-of-service/" target="blank" rel="noopener noreferrer">
             terms & conditions
           </a>
         </strong>

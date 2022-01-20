@@ -1,6 +1,6 @@
 import { STRIPE_PAYMENT, LIVE_PAGE_DETAIL } from 'ajax/endpoints';
 import { getEndpoint, getPageElementByType, getTestingDonationPageUrl, EXPECTED_RP_SLUG } from '../support/util';
-import livePageOne from '../fixtures/pages/live-page-1.json';
+import livePageOne from '../fixtures/pages/live-page-1.js';
 
 // Deps
 import { format } from 'date-fns';

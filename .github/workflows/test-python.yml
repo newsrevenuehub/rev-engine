@@ -1,4 +1,4 @@
-name: tests
+name: Build and Test Python
 
 on:
   pull_request:
@@ -6,7 +6,7 @@ on:
     branches: [main, develop]
 
 jobs:
-  build-ubuntu:
+  build_test_python:
     runs-on: ubuntu-latest
     services:
       postgres:

@@ -9,6 +9,7 @@ from apps.api.error_messages import UNIQUE_PAGE_SLUG
 from apps.common.models import IndexedTimeStampedModel
 from apps.common.utils import cleanup_keys, normalize_slug
 from apps.organizations.models import Feature, Organization
+from apps.pages import defaults
 from apps.pages.validators import style_validator
 
 
@@ -23,13 +24,11 @@ class AbstractPage(IndexedTimeStampedModel):
     graphic = SorlImageField(null=True, blank=True)
 
     header_bg_image = SorlImageField(null=True, blank=True)
-    header_logo = SorlImageField(null=True, blank=True)
     header_link = models.URLField(blank=True)
 
-    styles = models.ForeignKey("pages.Style", null=True, blank=True, on_delete=models.SET_NULL)
-
-    elements = models.JSONField(null=True, blank=True, default=list)
     sidebar_elements = models.JSONField(null=True, blank=True, default=list)
+
+    styles = models.ForeignKey("pages.Style", null=True, blank=True, on_delete=models.SET_NULL)
 
     thank_you_redirect = models.URLField(
         blank=True, help_text="If not using default Thank You page, add link to orgs Thank You page here"
@@ -53,6 +52,11 @@ class Template(AbstractPage):
     """
     A "Snapshot" of a Page at a particular state.
     """
+
+    # 'header_logo' and 'elements' are special. They have default values when they are on a DonationPage
+    # but should not have defaults as a Template
+    header_logo = SorlImageField(null=True, blank=True)
+    elements = models.JSONField(null=True, blank=True, default=list)
 
     class TemplateError(Exception):
         pass
@@ -88,6 +92,11 @@ class DonationPage(AbstractPage, SafeDeleteModel):
     """
     A DonationPage represents a single instance of a Donation Page.
     """
+
+    # 'header_logo' and 'elements' are special. They have default values when they are on a DonationPage
+    # but should not have defaults as a Template
+    header_logo = SorlImageField(null=True, blank=True, default=defaults.DEFAULT_HEADER_LOGO)
+    elements = models.JSONField(null=True, blank=True, default=defaults.get_default_page_elements)
 
     slug = models.SlugField(
         blank=True,

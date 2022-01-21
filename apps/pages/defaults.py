@@ -1,7 +1,8 @@
 from django.templatetags.static import static
 
 
-DEFAULT_HEADER_LOGO = static("NewsRevenueHub-Horizontal.png")
+def get_default_header_logo():
+    return static("NewsRevenueHub-Horizontal.png")
 
 
 def get_default_page_elements():

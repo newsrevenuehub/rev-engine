@@ -95,7 +95,7 @@ class DonationPage(AbstractPage, SafeDeleteModel):
 
     # 'header_logo' and 'elements' are special. They have default values when they are on a DonationPage
     # but should not have defaults as a Template
-    header_logo = SorlImageField(null=True, blank=True, default=defaults.DEFAULT_HEADER_LOGO)
+    header_logo = SorlImageField(null=True, blank=True, default=defaults.get_default_header_logo)
     elements = models.JSONField(null=True, blank=True, default=defaults.get_default_page_elements)
 
     slug = models.SlugField(

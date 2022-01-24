@@ -182,6 +182,6 @@ class FeatureViewSetTest(APITestCase):
         with self.assertRaises(ValidationError) as cm:
             DonationPageFactory(organization=org)
         self.assertEquals(
-            str(cm.exception.detail[0]),
+            str(cm.exception.detail["non_field_errors"][0]),
             f"Your organization has reached its limit of {self.limit_feature.feature_value} pages",
         )

@@ -3,6 +3,7 @@ from django.utils import timezone
 
 from rest_framework.exceptions import ValidationError
 from safedelete.models import SafeDeleteModel
+from solo.models import SingletonModel
 from sorl.thumbnail import ImageField as SorlImageField
 
 from apps.api.error_messages import UNIQUE_PAGE_SLUG
@@ -24,6 +25,8 @@ class AbstractPage(IndexedTimeStampedModel):
     graphic = SorlImageField(null=True, blank=True)
 
     header_bg_image = SorlImageField(null=True, blank=True)
+    # header_logo should default to None. Elsewhere, None means use default image while blank means no image.
+    header_logo = SorlImageField(null=True, blank=True, default=None)
     header_link = models.URLField(blank=True)
 
     sidebar_elements = models.JSONField(null=True, blank=True, default=list)
@@ -53,9 +56,8 @@ class Template(AbstractPage):
     A "Snapshot" of a Page at a particular state.
     """
 
-    # 'header_logo' and 'elements' are special. They have default values when they are on a DonationPage
-    # but should not have defaults as a Template
-    header_logo = SorlImageField(null=True, blank=True)
+    # 'elements' is special. It has a default value when on a DonationPage
+    # but should not have a default as a Template
     elements = models.JSONField(null=True, blank=True, default=list)
 
     class TemplateError(Exception):
@@ -93,9 +95,8 @@ class DonationPage(AbstractPage, SafeDeleteModel):
     A DonationPage represents a single instance of a Donation Page.
     """
 
-    # 'header_logo' and 'elements' are special. They have default values when they are on a DonationPage
-    # but should not have defaults as a Template
-    header_logo = SorlImageField(null=True, blank=True, default=defaults.get_default_header_logo)
+    # 'elements' is special. It has a default value when on a DonationPage
+    # but should not have a default as a Template
     elements = models.JSONField(null=True, blank=True, default=defaults.get_default_page_elements)
 
     slug = models.SlugField(
@@ -150,13 +151,27 @@ class DonationPage(AbstractPage, SafeDeleteModel):
     def is_live(self):
         return bool(self.published_date and self.published_date <= timezone.now())
 
+    def set_default_logo(self):
+        """
+        If this is the first time this model is being created (not self.pk),
+        there isn't a header_logo value, and there is a DefaultPageLogo set up,
+        use DefaultPageLogo.logo as self.header_logo
+        """
+        default_logo = DefaultPageLogo.get_solo()
+        if not self.pk and not self.header_logo and default_logo.logo:
+            self.header_logo = default_logo.logo
+
     def save(self, *args, **kwargs):
         limit = self.has_page_limit()
         if limit and not self.id:
             if self.total_pages + 1 > int(limit.feature_value):
-                raise ValidationError(f"Your organization has reached its limit of {limit.feature_value} pages")
+                raise ValidationError(
+                    {"non_field_errors": [f"Your organization has reached its limit of {limit.feature_value} pages"]}
+                )
 
         self.slug = normalize_slug(self.name, self.slug)
+
+        self.set_default_logo()
 
         super().save(*args, **kwargs)
 
@@ -222,3 +237,10 @@ class Font(models.Model):
 
     class Meta:
         ordering = [models.functions.Lower("name")]
+
+
+class DefaultPageLogo(SingletonModel):
+    logo = SorlImageField(null=True)
+
+    def __str__(self):
+        return "Default Page Logo"

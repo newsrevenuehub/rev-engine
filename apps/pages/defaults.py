@@ -1,10 +1,3 @@
-from django.templatetags.static import static
-
-
-def get_default_header_logo():
-    return static("NewsRevenueHub-Horizontal.png")
-
-
 def get_default_page_elements():
     return [
         {

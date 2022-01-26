@@ -1,6 +1,8 @@
+from functools import partial
 from pathlib import Path
 
 from django.contrib import admin
+from django.db.models import Q
 
 from django_reverse_admin import ReverseModelAdmin
 from sorl.thumbnail.admin import AdminImageMixin
@@ -24,12 +26,22 @@ class RevenueProgramBenefitLevelInline(admin.TabularInline):
     verbose_name_plural = "Benefit levels"
     extra = 0
 
+    def has_add_permission(self, *args, **kwargs):
+        return False
+
 
 class BenefitLevelBenefit(admin.TabularInline):
     model = BenefitLevel.benefits.through
     verbose_name = "Benefit"
     verbose_name_plural = "Benefits"
     extra = 0
+
+    def get_formset(self, request, obj=None, **kwargs):
+        formset = super().get_formset(request, obj, **kwargs)
+        form = formset.form
+        form.base_fields["benefit"].widget.can_add_related = False
+        form.base_fields["benefit"].widget.can_change_related = False
+        return formset
 
 
 @admin.register(Organization)
@@ -120,6 +132,13 @@ class BenefitLevelAdmin(RevEngineBaseAdmin):
 
     inlines = [BenefitLevelBenefit]
 
+    change_form_template = "organizations/benefitlevel_changeform.html"
+
+    def get_readonly_fields(self, request, obj=None):
+        if obj:
+            return self.readonly_fields + ["organization"]
+        return self.readonly_fields
+
 
 @admin.register(RevenueProgram)
 class RevenueProgramAdmin(RevEngineBaseAdmin, ReverseModelAdmin, AdminImageMixin):  # pragma: no cover
@@ -182,9 +201,22 @@ class RevenueProgramAdmin(RevEngineBaseAdmin, ReverseModelAdmin, AdminImageMixin
     inlines = [RevenueProgramBenefitLevelInline]
 
     def get_readonly_fields(self, request, obj=None):
-        if Path(request.path).parts[-1] == "add":
-            return []
-        return ["name", "slug", "organization"]
+        if obj:
+            return ["name", "slug", "organization"]
+        if not obj:
+            return ["default_donation_page"]
+
+    def get_form(self, request, obj=None, **kwargs):
+        kwargs["formfield_callback"] = partial(self.formfield_for_dbfield, request=request, obj=obj)
+        return super().get_form(request, obj, **kwargs)
+
+    def formfield_for_dbfield(self, db_field, **kwargs):
+        revenue_program = kwargs.pop("obj", None)
+        formfield = super().formfield_for_dbfield(db_field, **kwargs)
+
+        if db_field.name == "default_donation_page" and revenue_program:
+            formfield.limit_choices_to = Q(revenue_program=revenue_program)
+        return formfield
 
 
 @admin.register(Plan)

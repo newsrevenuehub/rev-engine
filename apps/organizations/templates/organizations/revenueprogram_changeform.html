@@ -1,0 +1,8 @@
+{% extends "admin/change_form.html" %}
+
+{% load revengine_tags %}
+
+{% block admin_change_form_document_ready %}
+{{ block.super }}
+{% admin_limited_select "organizations.RevenueProgram" "pages.Style" "pk" "styles" "admin_style_options"%}
+{% endblock %}

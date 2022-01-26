@@ -26,9 +26,6 @@ class RevenueProgramBenefitLevelInline(admin.TabularInline):
     verbose_name_plural = "Benefit levels"
     extra = 0
 
-    def has_add_permission(self, *args, **kwargs):
-        return False
-
 
 class BenefitLevelBenefit(admin.TabularInline):
     model = BenefitLevel.benefits.through
@@ -199,6 +196,8 @@ class RevenueProgramAdmin(RevEngineBaseAdmin, ReverseModelAdmin, AdminImageMixin
         ("address", {"fields": ["address1", "address2", "city", "state", "postal_code"]}),
     ]
     inlines = [RevenueProgramBenefitLevelInline]
+
+    change_form_template = "organizations/revenueprogram_changeform.html"
 
     def get_readonly_fields(self, request, obj=None):
         if obj:

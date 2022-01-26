@@ -52,7 +52,7 @@ def read_apple_developer_merchant_id(request):
 
 
 SAFE_ADMIN_SELECT_PARENTS = ["organizations.Organization", "organizations.RevenueProgram"]
-SAFE_ADMIN_SELECT_ACCESSOR_METHODS = ["admin_style_options", "admin_benefit_options"]
+SAFE_ADMIN_SELECT_ACCESSOR_METHODS = ["admin_style_options", "admin_benefit_options", "admin_benefitlevel_options"]
 
 
 @require_GET

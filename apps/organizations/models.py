@@ -85,6 +85,11 @@ class Organization(IndexedTimeStampedModel):
         benefits = self.benefit_set.all()
         return [(c.name, c.pk) for c in benefits]
 
+    @property
+    def admin_benefitlevel_options(self):
+        benefit_levels = self.benefitlevel_set.all()
+        return [(c.name, c.pk) for c in benefit_levels]
+
     def __str__(self):
         return self.name
 

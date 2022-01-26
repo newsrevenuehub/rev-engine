@@ -1,0 +1,15 @@
+{% load static %}
+
+<script id="admin-limited-select-config" type="application/json"  nonce="{{ request.csp_nonce }}">
+    {
+        "adminSelectUrl": "{{admin_select_url}}",
+        "parentModelName": "{{parent_model_name}}",
+        "childModelName": "{{child_model_name}}",
+
+        "parentSelector": "{{parent_selector}}",
+        "childSelector": "{{child_selector}}",
+        "parentModel": "{{parent_model}}",
+        "accessorMethod": "{{accessor_method}}"
+    }
+</script>
+<script src="{% static 'common/admin-limited-select.js' %}" nonce="{{ request.csp_nonce }}"></script>

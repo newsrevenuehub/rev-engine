@@ -79,8 +79,12 @@
     "test:ci": "CI=true npm test -- --env=jsdom"
   },
   "jest": {
+    "testMatch": [
+      "**/__tests__/**/*.[jt]s?(x)",
+      "**/?(*.)+(test).[jt]s?(x)"
+    ],
     "collectCoverageFrom": [
-      "**/*.{js,jsx}",
+      "**/*.test.{js,jsx}",
       "!**/node_modules/**",
       "!**/*.styled.js"
     ],

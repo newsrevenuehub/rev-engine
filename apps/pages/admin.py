@@ -121,6 +121,7 @@ class DonationPageAdmin(DonationPageAdminAbstract, SafeDeleteAdmin):
 
     actions = ("make_template", "undelete_selected")
 
+    # Overriding this template to add the `admin_limited_select` inclusion tag
     change_form_template = "pages/donationpage_changeform.html"
 
     @admin.action(description="Make templates from selected pages")

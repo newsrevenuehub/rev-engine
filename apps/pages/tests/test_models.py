@@ -40,7 +40,11 @@ class DonationPageTest(TestCase):
         self.assertFalse(self.instance.is_live)
 
     def test_new_pages_save_with_default_elements(self):
-        self.assertEqual(self.instance.elements, defaults.get_default_page_elements())
+        default_elements = defaults.get_default_page_elements()
+        for i, el in enumerate(self.instance.elements):
+            self.assertEqual(el["type"], default_elements[i]["type"])
+            if el["type"] != "DDonorAddress":
+                self.assertEqual(el["content"], default_elements[i]["content"])
 
     def test_new_pages_save_with_default_header_logo(self):
         page, default_logo = self._create_page_with_default_logo()

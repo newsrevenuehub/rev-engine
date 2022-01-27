@@ -46,7 +46,7 @@ class DonationPageTest(TestCase):
         page, default_logo = self._create_page_with_default_logo()
         self.assertEqual(page.header_logo, default_logo)
 
-    def test_pages_can_still_set_header_logo_to_null(self):
+    def test_pages_can_still_clear_header_logo(self):
         """
         Although we set a default image for the header_logo on create, we still ought to be able to set it empty in subsequent updates.
         """

@@ -4,7 +4,7 @@ import { render } from 'test-utils';
 import DonationPageStaticText from './DonationPageStaticText';
 
 // Mock data
-import mockPage from '../../../cypress/fixtures/pages/live-page-1';
+import mockPage from '../../../cypress/fixtures/pages/live-page-1.json';
 
 it('should render some initial static text', () => {
   const { getByText } = render(

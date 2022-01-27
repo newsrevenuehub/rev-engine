@@ -78,7 +78,7 @@ def admin_select_options(request):
 
     # Since we're using params to execute a model method, restrict those methods to a limited set of approved methods.
     if accessor_method not in SAFE_ADMIN_SELECT_ACCESSOR_METHODS:
-        raise ValueError("Acessor method not accepted")
+        raise ValueError("Accessor method not accepted")
 
     parent_model = apps.get_model(parent_model_name)
     parent_instance = parent_model.objects.get(pk=parent_id)

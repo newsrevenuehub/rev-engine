@@ -17,6 +17,21 @@ def insert_spa_env():
 
 @register.inclusion_tag("admin_limited_select.html")
 def admin_limited_select(parent_model, child_model, parent_selector, child_selector, accessor_method):
+    """
+    When a user in DjangoAdmin makes a change to a dropdown for `parent_model`, as identified in the DOM by the `parent_selector`, a request is made to get the values using  that should then populate the dropdown for `child_model`, as identified by `child_selector`.
+    `parent_selector` and `child_selector` are used in javascript like so:
+
+    $('select[name="{{parent_selector}}"]')
+    $('select[name*="{{child_selector}}"]')
+
+    Note the "name*" wildcard in the child_selector selector. This is necessary due to the way Django names
+    selects that contain models added to the admin via Inlines.
+
+    Added to a DjangoAdmin changeform template `admin_change_form_document_ready` block,
+    this inclusion tag will add two scripts to the Document. The second script contains
+    the javascript necessary to perfrom the actions described above. The first is a JSON
+    mapping of the dict returned by this tag.
+    """
     parent_model_class = apps.get_model(parent_model)
     child_model_class = apps.get_model(child_model)
 

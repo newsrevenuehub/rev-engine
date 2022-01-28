@@ -7,6 +7,8 @@ from django.utils.text import slugify
 from faker import Faker
 from stripe.error import StripeError
 
+from apps.config.tests.factories import DenyListWordFactory
+from apps.config.validators import GENERIC_SLUG_DENIED_MSG, SLUG_DENIED_CODE
 from apps.organizations import models
 from apps.organizations.tests import factories
 
@@ -105,6 +107,17 @@ class RevenueProgramTest(TestCase):
         self._create_revenue_program()
         apple_pay_domain_create.assert_called_once()
         mock_logger.warning.assert_called_once()
+
+    def test_slug_validated_against_denylist(self):
+        denied_word = DenyListWordFactory()
+        rp = models.RevenueProgram(name="My rp", organization=self.organization)
+        rp.slug = denied_word.word
+        with self.assertRaises(ValidationError) as validation_error:
+            rp.clean_fields()
+
+        self.assertIn("slug", validation_error.exception.error_dict)
+        self.assertEqual(SLUG_DENIED_CODE, validation_error.exception.error_dict["slug"][0].code)
+        self.assertEqual(GENERIC_SLUG_DENIED_MSG, validation_error.exception.error_dict["slug"][0].message)
 
 
 class BenefitLevelTest(TestCase):

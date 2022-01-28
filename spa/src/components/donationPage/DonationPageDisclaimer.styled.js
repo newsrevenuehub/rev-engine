@@ -1,6 +1,6 @@
 import styled from 'styled-components';
 
-export const DonationPageStaticText = styled.div`
+export const DonationPageDisclaimer = styled.div`
   margin: 0 auto;
   max-width: 450px;
   width: 100%;

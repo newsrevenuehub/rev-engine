@@ -58,7 +58,6 @@ CURRENCY_CHOICES = [(k, k) for k, _ in settings.CURRENCIES.items()]
 
 class Organization(IndexedTimeStampedModel):
     name = models.CharField(max_length=255, unique=True)
-    slug = models.SlugField(blank=True, unique=True)
     plan = models.ForeignKey("organizations.Plan", null=True, on_delete=models.CASCADE)
     currency = models.CharField(max_length=3, choices=CURRENCY_CHOICES, default="USD")
     non_profit = models.BooleanField(default=True, verbose_name="Non-profit?")
@@ -82,12 +81,6 @@ class Organization(IndexedTimeStampedModel):
 
     def __str__(self):
         return self.name
-
-    def save(self, *args, **kwargs):
-        if not self.pk:
-            self.slug = normalize_slug(self.name, self.slug)
-
-        super().save(*args, **kwargs)
 
     def user_is_member(self, user):
         return user in self.users.all()

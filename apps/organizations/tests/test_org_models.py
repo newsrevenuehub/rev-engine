@@ -16,18 +16,6 @@ class OrganizationTest(TestCase):
         self.model_class = models.Organization
         self.instance = factories.OrganizationFactory()
 
-    def test_slug_created(self):
-        assert self.instance.slug
-
-    def test_slug_equals_orgname(self):
-        self.assertEqual(self.instance.slug, slugify(self.instance.name, allow_unicode=True))
-
-    def test_slug_immutable(self):
-        self.instance.name = "A new Name"
-        self.instance.save()
-        self.instance.refresh_from_db()
-        self.assertNotIn(slugify("A new Name"), self.instance.slug)
-
     def test_default_no_plan(self):
         assert not self.instance.plan
 

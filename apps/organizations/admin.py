@@ -37,12 +37,7 @@ class OrganizationAdmin(RevEngineBaseAdmin, ReverseModelAdmin):  # pragma: no co
     organization_fieldset = (
         (
             "Organization",
-            {
-                "fields": (
-                    "name",
-                    "slug",
-                )
-            },
+            {"fields": ("name",)},
         ),
         (None, {"fields": ("salesforce_id",)}),
         (
@@ -75,7 +70,7 @@ class OrganizationAdmin(RevEngineBaseAdmin, ReverseModelAdmin):  # pragma: no co
 
     fieldsets = organization_fieldset
 
-    list_display = ["name", "slug", "plan"]
+    list_display = ["name", "plan"]
 
     list_filter = ["name", "plan", "address__state"]
 
@@ -83,12 +78,12 @@ class OrganizationAdmin(RevEngineBaseAdmin, ReverseModelAdmin):  # pragma: no co
     inline_reverse = [("address", {"fields": ["address1", "address2", "city", "state", "postal_code", "country"]})]
     inlines = [UserOrganizationInline]
 
-    readonly_fields = ["name", "slug", "stripe_verified"]
+    readonly_fields = ["name", "stripe_verified"]
 
     def get_readonly_fields(self, request, obj=None):
         if Path(request.path).parts[-1] == "add":
             return []
-        return ["name", "slug"]
+        return ["name"]
 
 
 @admin.register(Benefit)

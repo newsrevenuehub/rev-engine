@@ -7,10 +7,11 @@ from django.http import HttpResponseRedirect
 from django.urls import reverse
 
 from safedelete.admin import SafeDeleteAdmin, highlight_deleted
+from solo.admin import SingletonModelAdmin
 from sorl.thumbnail.admin import AdminImageMixin
 
 from apps.common.admin import RevEngineBaseAdmin
-from apps.pages.models import DonationPage, Font, Style, Template
+from apps.pages import models
 
 
 logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
@@ -33,7 +34,7 @@ class DonationPageAdminAbstract(AdminImageMixin, RevEngineBaseAdmin):
     )
 
 
-@admin.register(Template)
+@admin.register(models.Template)
 class TemplateAdmin(DonationPageAdminAbstract):
     list_display = (
         "name",
@@ -79,7 +80,7 @@ class TemplateAdmin(DonationPageAdminAbstract):
         return super().response_change(request, obj)
 
 
-@admin.register(DonationPage)
+@admin.register(models.DonationPage)
 class DonationPageAdmin(DonationPageAdminAbstract, SafeDeleteAdmin):
     fieldsets = (
         (
@@ -148,7 +149,7 @@ class DonationPageAdmin(DonationPageAdminAbstract, SafeDeleteAdmin):
             )
 
 
-@admin.register(Style)
+@admin.register(models.Style)
 class StyleAdmin(RevEngineBaseAdmin):
     list_display = (
         "name",
@@ -168,7 +169,7 @@ class StyleAdmin(RevEngineBaseAdmin):
     )
 
 
-@admin.register(Font)
+@admin.register(models.Font)
 class FontAdmin(RevEngineBaseAdmin):
     list_display = (
         "name",
@@ -180,3 +181,8 @@ class FontAdmin(RevEngineBaseAdmin):
         "source",
     )
     search_fields = ("name",)
+
+
+@admin.register(models.DefaultPageLogo)
+class DefaultPageLogoAdmin(SingletonModelAdmin, AdminImageMixin):
+    pass

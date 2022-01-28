@@ -1,10 +1,10 @@
 import { useMemo } from 'react';
-import * as S from './DonationPageStaticText.styled';
+import * as S from './DonationPageDisclaimer.styled';
 import { format } from 'date-fns';
 
 import { getTotalAmount } from 'components/paymentProviders/stripe/stripeFns';
 
-function DonationPageStaticText({ page, amount, payFee, frequency }) {
+function DonationPageDisclaimer({ page, amount, payFee, frequency }) {
   const getFreqText = () =>
     frequency === 'one_time' ? (
       ''
@@ -29,7 +29,7 @@ function DonationPageStaticText({ page, amount, payFee, frequency }) {
   );
 
   return (
-    <S.DonationPageStaticText data-testid="donation-page-static-text">
+    <S.DonationPageDisclaimer data-testid="donation-page-static-text">
       <p>
         By proceeding with this transaction, you agree to our{' '}
         <strong>
@@ -48,8 +48,8 @@ function DonationPageStaticText({ page, amount, payFee, frequency }) {
           {totalAmount} to be processed on or adjacent to {getAmountText()}.
         </strong>
       </p>
-    </S.DonationPageStaticText>
+    </S.DonationPageDisclaimer>
   );
 }
 
-export default DonationPageStaticText;
+export default DonationPageDisclaimer;

@@ -6,7 +6,7 @@ export const GenericThankYou = styled.main`
   flex: 1;
   display: flex;
   flex-direction: column;
-  background: ${(props) => props.theme.colors.fieldBackground};
+  background: ${(props) => props.theme.colors.cstm_mainBackground || props.theme.colors.white};
 `;
 
 export const Wrapper = styled.div`
@@ -20,12 +20,11 @@ export const InnerContent = styled.div`
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  background: ${(props) => props.theme.colors.white};
+  background: ${(props) => props.theme.colors.cstm_formPanelBackground || props.theme.colors.white};
   box-shadow: ${(props) => props.theme.shadows[1]};
   width: 100%;
   max-width: 700px;
-  border-radius: ${(props) => props.theme.radii[1]};
-  border-top: 6px solid ${(props) => props.theme.colors.primary};
+  border-top: 6px solid ${(props) => props.theme.colors.cstm_ornaments || props.theme.colors.primary};
   margin: 2rem 0;
   padding: 1rem 3rem;
 `;

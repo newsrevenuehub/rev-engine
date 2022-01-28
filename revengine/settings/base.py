@@ -37,6 +37,7 @@ INSTALLED_APPS = [
     "apps.slack",
     "apps.element_media",
     "apps.public",
+    "apps.config",
     "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",

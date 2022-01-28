@@ -37,6 +37,7 @@ import BaseField from 'elements/inputs/BaseField';
 import Button from 'elements/buttons/Button';
 import { ICONS } from 'assets/icons/SvgIcon';
 import { PayFeesWidget } from 'components/donationPage/pageContent/DPayment';
+import DonationPageDisclaimer from 'components/donationPage/DonationPageDisclaimer';
 
 function StripePaymentForm({ loading, setLoading, offerPayFees }) {
   useReCAPTCHAScript();
@@ -277,45 +278,50 @@ function StripePaymentForm({ loading, setLoading, offerPayFees }) {
     return `Give ${currencySymbol}${formatStringAmountForDisplay(totalAmount)} ${getFrequencyAdverb(frequency)}`;
   };
 
-  return !forceManualCard && paymentRequest ? (
+  return (
     <>
-      <S.PaymentRequestWrapper>
-        <PaymentRequestButtonElement options={{ paymentRequest, style: S.PaymentRequestButtonStyle }} />
-      </S.PaymentRequestWrapper>
-      <S.PayWithCardOption onClick={() => setForceManualCard(true)}>
-        - I prefer to manually enter my credit card -
-      </S.PayWithCardOption>
-    </>
-  ) : (
-    <S.StripePaymentForm>
-      <BaseField label="Card details" required>
-        <S.PaymentElementWrapper>
-          <CardElement
-            id="card-element"
-            options={{ style: S.CardElementStyle(theme), hidePostalCode: true }}
-            onChange={handleCardElementChange}
-          />
-        </S.PaymentElementWrapper>
-      </BaseField>
-      {stripeError && (
-        <S.PaymentError role="alert" data-testid="donation-error">
-          {stripeError}
-        </S.PaymentError>
+      {!forceManualCard && paymentRequest ? (
+        <>
+          <S.PaymentRequestWrapper>
+            <PaymentRequestButtonElement options={{ paymentRequest, style: S.PaymentRequestButtonStyle }} />
+          </S.PaymentRequestWrapper>
+          <S.PayWithCardOption onClick={() => setForceManualCard(true)}>
+            - I prefer to manually enter my credit card -
+          </S.PayWithCardOption>
+        </>
+      ) : (
+        <S.StripePaymentForm>
+          <BaseField label="Card details" required>
+            <S.PaymentElementWrapper>
+              <CardElement
+                id="card-element"
+                options={{ style: S.CardElementStyle(theme), hidePostalCode: true }}
+                onChange={handleCardElementChange}
+              />
+            </S.PaymentElementWrapper>
+          </BaseField>
+          {stripeError && (
+            <S.PaymentError role="alert" data-testid="donation-error">
+              {stripeError}
+            </S.PaymentError>
+          )}
+          {offerPayFees && <PayFeesWidget />}
+          <Button
+            onClick={handleCardSubmit}
+            disabled={!cardReady || loading || disabled || succeeded || !amountIsValid}
+            loading={loading}
+            data-testid="donation-submit"
+          >
+            {getButtonText()}
+          </Button>
+        </S.StripePaymentForm>
       )}
-      {offerPayFees && <PayFeesWidget />}
-      <Button
-        onClick={handleCardSubmit}
-        disabled={!cardReady || loading || disabled || succeeded || !amountIsValid}
-        loading={loading}
-        data-testid="donation-submit"
-      >
-        {getButtonText()}
-      </Button>
 
       <S.IconWrapper>
         <S.Icon icon={ICONS.STRIPE_POWERED} />
       </S.IconWrapper>
-    </S.StripePaymentForm>
+      <DonationPageDisclaimer page={page} amount={amount} payFee={payFee} frequency={frequency} />
+    </>
   );
 }
 

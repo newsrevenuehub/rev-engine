@@ -17,7 +17,6 @@ import useErrorFocus from 'hooks/useErrorFocus';
 import DonationPageSidebar from 'components/donationPage/DonationPageSidebar';
 
 // Children
-import DonationPageStaticText from 'components/donationPage/DonationPageStaticText';
 import DonationPageFooter from 'components/donationPage/DonationPageFooter';
 import { SALESFORCE_CAMPAIGN_ID_QUERYPARAM, FREQUENCY_QUERYPARAM, AMOUNT_QUERYPARAM } from 'settings';
 
@@ -93,7 +92,6 @@ function DonationPage({ page, live = false }) {
                     {page?.elements?.map((element) => getters.getDynamicElement(element, live))}
                   </S.PageElements>
                 </form>
-                <DonationPageStaticText page={page} frequency={frequency} amount={amount} payFee={payFee} />
               </S.DonationContent>
             </S.SideInner>
           </S.SideOuter>

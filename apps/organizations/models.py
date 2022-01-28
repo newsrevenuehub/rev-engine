@@ -9,6 +9,7 @@ import stripe
 
 from apps.common.models import IndexedTimeStampedModel
 from apps.common.utils import normalize_slug
+from apps.config.validators import validate_slug_against_denylist
 from apps.organizations.validators import validate_statement_descriptor_suffix
 
 
@@ -203,7 +204,8 @@ class RevenueProgram(IndexedTimeStampedModel):
         max_length=SLUG_MAX_LENGTH,
         blank=True,
         unique=True,
-        help_text="This will be used as the subdomain for donation pages made under this revenue program",
+        help_text="This will be used as the subdomain for donation pages made under this revenue program. If left blank, it will be derived from the Revenue Program name.",
+        validators=[validate_slug_against_denylist],
     )
     address = models.OneToOneField("common.Address", on_delete=models.SET_NULL, null=True)
     social_meta = models.OneToOneField("common.SocialMeta", on_delete=models.SET_NULL, null=True)
@@ -240,20 +242,15 @@ class RevenueProgram(IndexedTimeStampedModel):
     def __str__(self):
         return self.name
 
-    def clean(self):
-        self._ensure_owner_of_default_page()
-        self._format_twitter_handle()
-
-    def save(self, *args, **kwargs):
+    def clean_fields(self, **kwargs):
         if not self.id:
             self.slug = normalize_slug(self.name, self.slug, max_length=self.SLUG_MAX_LENGTH)
             self.slug = normalize_slug(slug=self.slug, max_length=self.SLUG_MAX_LENGTH)
+        super().clean_fields(**kwargs)
 
-        # Avoid state of a donation_page not being in the rev program's page set when being added as default page.
-        if self.default_donation_page and self.default_donation_page not in self.donationpage_set.all():
-            self.donationpage_set.add(self.default_donation_page)
-
-        super().save(*args, **kwargs)
+    def clean(self):
+        self._ensure_owner_of_default_page()
+        self._format_twitter_handle()
 
     def _ensure_owner_of_default_page(self):
         """

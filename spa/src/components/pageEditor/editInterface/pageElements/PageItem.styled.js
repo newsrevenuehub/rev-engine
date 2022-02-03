@@ -44,9 +44,12 @@ export const ContentRight = styled.div`
 
 export const ItemName = styled.h5`
   margin: 0 0 0.5rem 0;
+  font-family: ${(props) => props.theme.systemFont};
 `;
 
-export const ItemDescription = styled.p``;
+export const ItemDescription = styled.p`
+  font-family: ${(props) => props.theme.systemFont};
+`;
 
 export const TrashIcon = styled(FontAwesomeIcon)`
   color: ${(props) => props.theme.colors.caution};

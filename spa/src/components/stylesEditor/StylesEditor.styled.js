@@ -17,6 +17,19 @@ export const StylesEditor = styled.div`
   @media (${(props) => props.theme.breakpoints.tabletLandscapeDown}) {
     width: 95%;
   }
+
+  font-family: ${(props) => props.theme.systemFont};
+
+  p {
+    font-family: ${(props) => props.theme.systemFont};
+  }
+
+  h2,
+  h3,
+  h4,
+  h5 {
+    font-family: ${(props) => props.theme.systemFont};
+  }
 `;
 
 export const StylesForm = styled.div`

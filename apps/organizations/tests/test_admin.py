@@ -3,6 +3,9 @@ from django.urls import reverse
 import pytest
 from bs4 import BeautifulSoup as bs4
 
+from apps.organizations.tests.factories import RevenueProgramFactory
+from apps.pages.tests.factories import DonationPageFactory
+
 from ..models import Feature
 
 
@@ -58,3 +61,19 @@ def test_feature_add_limit_fail(admin_client):
         soup = bs4(response.content)
         assert soup.find(class_="errorlist nonfield")
     assert Feature.objects.all().count() == 0
+
+
+def test_revenue_program_default_donation_page_options_limited(admin_client):
+    my_revenue_program = RevenueProgramFactory()
+    some_other_rp = RevenueProgramFactory()
+    dp1 = DonationPageFactory(revenue_program=my_revenue_program)
+    dp2 = DonationPageFactory(revenue_program=my_revenue_program)
+    dp3 = DonationPageFactory(revenue_program=some_other_rp)
+
+    response = admin_client.get(reverse("admin:organizations_revenueprogram_change", args=[my_revenue_program.pk]))
+    soup = bs4(response.content)
+
+    select = soup.find("select", {"name": "default_donation_page"})
+    assert str(dp1.pk) in str(select)
+    assert str(dp2.pk) in str(select)
+    assert str(dp3.pk) not in str(select)

@@ -80,6 +80,16 @@ class Organization(IndexedTimeStampedModel):
     domain_apple_verified_date = models.DateTimeField(blank=True, null=True)
     uses_email_templates = models.BooleanField(default=False)
 
+    @property
+    def admin_benefit_options(self):
+        benefits = self.benefit_set.all()
+        return [(c.name, c.pk) for c in benefits]
+
+    @property
+    def admin_benefitlevel_options(self):
+        benefit_levels = self.benefitlevel_set.all()
+        return [(c.name, c.pk) for c in benefit_levels]
+
     def __str__(self):
         return self.name
 
@@ -211,7 +221,13 @@ class RevenueProgram(IndexedTimeStampedModel):
     social_meta = models.OneToOneField("common.SocialMeta", on_delete=models.SET_NULL, null=True)
     organization = models.ForeignKey("organizations.Organization", on_delete=models.CASCADE)
     contact_email = models.EmailField(max_length=255, blank=True)
-    default_donation_page = models.ForeignKey("pages.DonationPage", null=True, blank=True, on_delete=models.SET_NULL)
+    default_donation_page = models.ForeignKey(
+        "pages.DonationPage",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        help_text="Choose an optional default donation page once you've saved your initial revenue program",
+    )
 
     # Analytics
     google_analytics_v3_domain = models.CharField(max_length=300, null=True, blank=True)
@@ -238,6 +254,11 @@ class RevenueProgram(IndexedTimeStampedModel):
         help_text="Should page authors for this Revenue Program see the option to offer their donors a comp subscription to the New York Times?",
         verbose_name="Allow page editors to offer an NYT subscription",
     )
+
+    @property
+    def admin_style_options(self):
+        styles = self.organization.style_set.all()
+        return [(c.name, c.pk) for c in styles]
 
     def __str__(self):
         return self.name

@@ -2,7 +2,7 @@ import styled, { css } from 'styled-components';
 import lighten from 'styles/utils/lighten';
 
 function getBg(props) {
-  return props.theme.styles?.colors?.cstm_CTAs || props.theme.colors?.primary;
+  return props.theme.colors?.cstm_CTAs || props.theme.colors?.primary;
 }
 
 export const Button = styled.button`

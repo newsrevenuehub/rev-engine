@@ -29,7 +29,7 @@ export const PayFeesQQ = styled.h5`
 export const Checkbox = styled(SemanticRadio)`
   &.ui.toggle.checkbox input:checked ~ .box:before,
   &.ui.toggle.checkbox input:checked ~ label:before {
-    background-color: ${(props) => props.theme.colors.primary} !important;
+    background-color: ${(props) => props.theme.colors?.cstm_CTAs || props.theme.colors?.primary} !important;
   }
 `;
 

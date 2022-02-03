@@ -8,7 +8,7 @@ from django.views.generic.base import RedirectView
 from apps.api.urls import urlpatterns as api_urlpatterns
 from apps.users.urls import orgadmin_user_management_urls
 
-from .views import index, read_apple_developer_merchant_id
+from .views import admin_select_options, index, read_apple_developer_merchant_id
 
 
 urlpatterns = [
@@ -35,6 +35,7 @@ urlpatterns = [
     path("nrhadmin", RedirectView.as_view(url="/nrhadmin/")),
     path("nrhadmin/", admin.site.urls),
     path("users/", include(orgadmin_user_management_urls)),
+    path("admin-select/", admin_select_options, name="admin-select-options"),
     path("api/", include(api_urlpatterns)),
     path(".well-known/apple-developer-merchantid-domain-association", read_apple_developer_merchant_id),
 ]

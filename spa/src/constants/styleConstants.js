@@ -1,1 +1,1 @@
-export const DISCLAIMER_TEXT_SIZE = '13px';
+export const DISCLAIMER_TEXT_SIZE_PX = '13px';

@@ -1,4 +1,10 @@
+/**
+ * This module, loaded by apps/common/templatetags/revengine_tags.py#admin_limited_select, is
+ * responsible for responding to changes in a django admin foreign key related field dropdown (parentField) by
+ * updating a dependent model's (childField) related field dropdown.
+ */
 (function ($) {
+  // Grab configuration JSON from script tag.
   var config = JSON.parse(
     document.getElementById("admin-limited-select-config").textContent
   );
@@ -6,6 +12,18 @@
   var options = [];
   var parentFieldSelector = "select[name='" + config.parentSelector + "']";
   var childFieldSelector = "select[name*='" + config.childSelector + "']";
+  var noChildrenText =
+    "The " +
+    config.parentModelName +
+    " you've selected does not have any " +
+    config.childModelName +
+    "s defined";
+  var noParentText =
+    "Please select an " +
+    config.parentModelName +
+    " before selecting " +
+    config.childModelName +
+    "s";
 
   $(parentFieldSelector).on("change", function (e) {
     // Every time the parent model is changed, fetch options and set them to var
@@ -18,6 +36,9 @@
   });
 
   $(document).on("formset:added", function (_, $row) {
+    // This handler listens to Django's custom event, "formset:added", which occurs
+    // when an inline formset is added to the page. Here, we take the row that was added and,
+    // if it contains our expected selector, we set its options.
     var select = $row.find(childFieldSelector);
     setSelectOptions($(select));
   });
@@ -55,21 +76,8 @@
 
     if (options.length === 0) {
       var text = "";
-      if (parentSelected) {
-        text =
-          "The " +
-          config.parentModelName +
-          " you've selected does not have any " +
-          config.childModelName +
-          "s defined";
-      } else {
-        text =
-          "Please select an " +
-          config.parentModelName +
-          " before selecting " +
-          config.childModelName +
-          "s";
-      }
+      if (parentSelected) text = noChildrenText;
+      else text = noParentText;
       $select.prop("disabled", true);
       $select.append($("<option></option>").attr("value", "").text(text));
     } else {

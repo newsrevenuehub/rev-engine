@@ -18,7 +18,10 @@ def insert_spa_env():
 @register.inclusion_tag("admin_limited_select.html")
 def admin_limited_select(parent_model, child_model, parent_selector, child_selector, accessor_method):
     """
-    When a user in DjangoAdmin makes a change to a dropdown for `parent_model`, as identified in the DOM by the `parent_selector`, a request is made to get the values using  that should then populate the dropdown for `child_model`, as identified by `child_selector`.
+    When a user in DjangoAdmin makes a change to a dropdown for `parent_model`, as identified in the DOM by
+    the `parent_selector`, a request is made to get the values using `accessor_method` that should then populate the dropdown
+    for `child_model`, as identified by `child_selector`.
+
     `parent_selector` and `child_selector` are used in javascript like so:
 
     $('select[name="{{parent_selector}}"]')

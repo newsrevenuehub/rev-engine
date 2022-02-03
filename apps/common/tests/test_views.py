@@ -33,7 +33,7 @@ class AdminSelectOptionsTest(TestCase):
         self.client.force_login(user=user)
         return self.client.get(reverse("admin-select-options"), params)
 
-    def test_only_responds_to_get_method(self):
+    def test_does_not_respond_to_non_get_methods(self):
         response = self.client.post(reverse("admin-select-options"))
         self.assertEqual(response.status_code, 405)
 
@@ -46,7 +46,7 @@ class AdminSelectOptionsTest(TestCase):
         response = self.client.delete(reverse("admin-select-options"))
         self.assertEqual(response.status_code, 405)
 
-    def test_can_only_be_accessed_by_staff(self):
+    def test_cannot_be_accessed_by_non_staff(self):
         not_staff = user_model.objects.create(email="notstaff@test.com", password="testing")
         response = self._make_request_to_view(user=not_staff)
         # Should redirect...

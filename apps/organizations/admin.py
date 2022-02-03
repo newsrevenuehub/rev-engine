@@ -34,6 +34,12 @@ class BenefitLevelBenefit(admin.TabularInline):
     extra = 0
 
     def get_formset(self, request, obj=None, **kwargs):
+        """
+        Override get_formset to adjust the properties of the related `benefit` field
+        such that users are unable to create or edit Benefits inline. This is important
+        because Benefits created or edited this way allow you to select an Organization.
+        We cannot allow a Benefit for orgB to be set on a BenefitLevel for orgA.
+        """
         formset = super().get_formset(request, obj, **kwargs)
         form = formset.form
         form.base_fields["benefit"].widget.can_add_related = False
@@ -133,6 +139,9 @@ class BenefitLevelAdmin(RevEngineBaseAdmin):
     change_form_template = "organizations/benefitlevel_changeform.html"
 
     def get_readonly_fields(self, request, obj=None):
+        """
+        Organization becomes readonly after initial creation.
+        """
         if obj:
             return self.readonly_fields + ["organization"]
         return self.readonly_fields

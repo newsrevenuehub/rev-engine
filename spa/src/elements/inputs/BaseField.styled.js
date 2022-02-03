@@ -48,6 +48,7 @@ export const Errors = styled(motion.ul)`
 
 export const Error = styled(motion.li)`
   color: ${(props) => props.theme.colors.caution};
+  font-family: ${(props) => props.theme.systemFont};
 `;
 
 export const errorsAnimation = {

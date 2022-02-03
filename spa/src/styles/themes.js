@@ -31,6 +31,8 @@ export const revEngineTheme = {
     tableRowActive: '#dce8fa'
   },
 
+  systemFont: "'Montserrat', sans-serif",
+
   font: { body: "'Montserrat', sans-serif", heading: "'Montserrat', sans-serif" },
 
   fontSizes: ['12px', '16px', '24px', '32px', '48px', '84px', '96px'],

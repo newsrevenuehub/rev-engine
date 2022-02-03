@@ -42,4 +42,5 @@ export const EmptyElements = styled.h4`
   font-size: 2rem;
   font-weight: 200;
   padding-top: 4rem;
+  font-family: ${(props) => props.theme.systemFont};
 `;

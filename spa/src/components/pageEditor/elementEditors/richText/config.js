@@ -13,7 +13,8 @@ const richtextConfig = {
     //   - 16px - the size of some elements on the page
     //   - 18px - the size of <h3> elements on the page
     //   - 24px - the size of <h2> elements on the page
-    options: [parseInt(DISCLAIMER_TEXT_SIZE), 14, 15, 16, 24]
+    // Use ...new Set() to make sure no text sizes are repeated
+    options: [...new Set([parseInt(DISCLAIMER_TEXT_SIZE), 14, 15, 16, 24])]
   },
   blockType: {
     inDropdown: false,

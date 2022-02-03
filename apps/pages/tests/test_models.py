@@ -1,9 +1,13 @@
 import datetime
 
+from django.core.exceptions import ValidationError
 from django.test import TestCase
 from django.utils import timezone
 
 from apps.common.tests.test_utils import get_test_image_file_jpeg
+from apps.config.tests.factories import DenyListWordFactory
+from apps.config.validators import GENERIC_SLUG_DENIED_MSG, SLUG_DENIED_CODE
+from apps.organizations.tests.factories import OrganizationFactory
 from apps.pages import defaults
 from apps.pages.models import DefaultPageLogo, DonationPage
 from apps.pages.tests.factories import DonationPageFactory, StyleFactory
@@ -13,6 +17,7 @@ class DonationPageTest(TestCase):
     def setUp(self):
         self.model_class = DonationPage
         self.instance = DonationPageFactory()
+        self.org = OrganizationFactory()
 
     def _create_page_with_default_logo(self):
         default_logo = DefaultPageLogo.get_solo()
@@ -59,6 +64,17 @@ class DonationPageTest(TestCase):
         page.header_logo = ""
         page.save()
         self.assertTrue(not page.header_logo)
+
+    def test_slug_validated_against_denylist(self):
+        denied_word = DenyListWordFactory()
+        page = DonationPage(name="My page", organization=self.org)
+        page.slug = denied_word.word
+        with self.assertRaises(ValidationError) as validation_error:
+            page.clean_fields()
+
+        self.assertIn("slug", validation_error.exception.error_dict)
+        self.assertEqual(SLUG_DENIED_CODE, validation_error.exception.error_dict["slug"][0].code)
+        self.assertEqual(GENERIC_SLUG_DENIED_MSG, validation_error.exception.error_dict["slug"][0].message)
 
 
 class StyleTest(TestCase):

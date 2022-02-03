@@ -9,6 +9,7 @@ import stripe
 
 from apps.common.models import IndexedTimeStampedModel
 from apps.common.utils import normalize_slug
+from apps.config.validators import validate_slug_against_denylist
 from apps.organizations.validators import validate_statement_descriptor_suffix
 
 
@@ -58,7 +59,6 @@ CURRENCY_CHOICES = [(k, k) for k, _ in settings.CURRENCIES.items()]
 
 class Organization(IndexedTimeStampedModel):
     name = models.CharField(max_length=255, unique=True)
-    slug = models.SlugField(blank=True, unique=True)
     plan = models.ForeignKey("organizations.Plan", null=True, on_delete=models.CASCADE)
     currency = models.CharField(max_length=3, choices=CURRENCY_CHOICES, default="USD")
     non_profit = models.BooleanField(default=True, verbose_name="Non-profit?")
@@ -80,14 +80,18 @@ class Organization(IndexedTimeStampedModel):
     domain_apple_verified_date = models.DateTimeField(blank=True, null=True)
     uses_email_templates = models.BooleanField(default=False)
 
+    @property
+    def admin_benefit_options(self):
+        benefits = self.benefit_set.all()
+        return [(c.name, c.pk) for c in benefits]
+
+    @property
+    def admin_benefitlevel_options(self):
+        benefit_levels = self.benefitlevel_set.all()
+        return [(c.name, c.pk) for c in benefit_levels]
+
     def __str__(self):
         return self.name
-
-    def save(self, *args, **kwargs):
-        if not self.pk:
-            self.slug = normalize_slug(self.name, self.slug)
-
-        super().save(*args, **kwargs)
 
     def user_is_member(self, user):
         return user in self.users.all()
@@ -210,13 +214,20 @@ class RevenueProgram(IndexedTimeStampedModel):
         max_length=SLUG_MAX_LENGTH,
         blank=True,
         unique=True,
-        help_text="This will be used as the subdomain for donation pages made under this revenue program",
+        help_text="This will be used as the subdomain for donation pages made under this revenue program. If left blank, it will be derived from the Revenue Program name.",
+        validators=[validate_slug_against_denylist],
     )
     address = models.OneToOneField("common.Address", on_delete=models.SET_NULL, null=True)
     social_meta = models.OneToOneField("common.SocialMeta", on_delete=models.SET_NULL, null=True)
     organization = models.ForeignKey("organizations.Organization", on_delete=models.CASCADE)
     contact_email = models.EmailField(max_length=255, blank=True)
-    default_donation_page = models.ForeignKey("pages.DonationPage", null=True, blank=True, on_delete=models.SET_NULL)
+    default_donation_page = models.ForeignKey(
+        "pages.DonationPage",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        help_text="Choose an optional default donation page once you've saved your initial revenue program",
+    )
 
     # Analytics
     google_analytics_v3_domain = models.CharField(max_length=300, null=True, blank=True)
@@ -244,23 +255,23 @@ class RevenueProgram(IndexedTimeStampedModel):
         verbose_name="Allow page editors to offer an NYT subscription",
     )
 
+    @property
+    def admin_style_options(self):
+        styles = self.organization.style_set.all()
+        return [(c.name, c.pk) for c in styles]
+
     def __str__(self):
         return self.name
+
+    def clean_fields(self, **kwargs):
+        if not self.id:
+            self.slug = normalize_slug(self.name, self.slug, max_length=self.SLUG_MAX_LENGTH)
+            self.slug = normalize_slug(slug=self.slug, max_length=self.SLUG_MAX_LENGTH)
+        super().clean_fields(**kwargs)
 
     def clean(self):
         self._ensure_owner_of_default_page()
         self._format_twitter_handle()
-
-    def save(self, *args, **kwargs):
-        if not self.id:
-            self.slug = normalize_slug(self.name, self.slug, max_length=self.SLUG_MAX_LENGTH)
-            self.slug = normalize_slug(slug=self.slug, max_length=self.SLUG_MAX_LENGTH)
-
-        # Avoid state of a donation_page not being in the rev program's page set when being added as default page.
-        if self.default_donation_page and self.default_donation_page not in self.donationpage_set.all():
-            self.donationpage_set.add(self.default_donation_page)
-
-        super().save(*args, **kwargs)
 
     def _ensure_owner_of_default_page(self):
         """

@@ -20,12 +20,6 @@ logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
 class DonationPageAdminAbstract(AdminImageMixin, RevEngineBaseAdmin):
     fieldsets = (
         (None, {"fields": ("name",)}),
-        (
-            None,
-            {
-                "fields": ("organization",),
-            },
-        ),
         ("Redirects", {"fields": ("thank_you_redirect", "post_thank_you_redirect")}),
         ("Header", {"fields": ("header_bg_image", "header_logo", "header_link")}),
         ("Heading", {"fields": ("heading", "graphic")}),
@@ -127,6 +121,9 @@ class DonationPageAdmin(DonationPageAdminAbstract, SafeDeleteAdmin):
     readonly_fields = ["email_templates", "page_screenshot"]
 
     actions = ("make_template", "undelete_selected")
+
+    # Overriding this template to add the `admin_limited_select` inclusion tag
+    change_form_template = "pages/donationpage_changeform.html"
 
     @admin.action(description="Make templates from selected pages")
     def make_template(self, request, queryset):

@@ -66,6 +66,8 @@ export const donationPageBase = merge({}, revEngineTheme, {
     cstm_formPanelBackground: revEngineTheme.colors.white,
     cstm_CTAs: revEngineTheme.colors.primary,
     cstm_ornaments: '#2b2869'
+    cstm_inputBackground: revEngineTheme.colors.white,
+    cstm_inputBorder: revEngineTheme.colors.black
   }
 });
 

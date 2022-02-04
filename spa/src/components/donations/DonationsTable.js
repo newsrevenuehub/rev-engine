@@ -4,7 +4,9 @@ import { useCallback, useState } from 'react';
 import { useAlert } from 'react-alert';
 import { GENERIC_ERROR } from 'constants/textConstants';
 
+// Children
 import PaginatedTable from 'elements/table/PaginatedTable';
+import GenericErrorBoundary from 'components/errors/GenericErrorBoundary';
 
 export const DEFAULT_RESULTS_ORDERING = [
   { id: 'created', desc: true },
@@ -46,19 +48,21 @@ function DonationsTable({ columns = [], fetchDonations, pageIndex, refetch, onPa
 
   return (
     <S.Donations>
-      <PaginatedTable
-        onPageChange={onPageChange}
-        pageIndex={pageIndex}
-        columns={columns}
-        data={data}
-        refetch={refetch}
-        fetchData={fetchData}
-        loading={loading}
-        pageCount={pageCount}
-        totalResults={totalResults}
-        defaultSortBy={DEFAULT_RESULTS_ORDERING}
-        {...tableProps}
-      />
+      <GenericErrorBoundary>
+        <PaginatedTable
+          onPageChange={onPageChange}
+          pageIndex={pageIndex}
+          columns={columns}
+          data={data}
+          refetch={refetch}
+          fetchData={fetchData}
+          loading={loading}
+          pageCount={pageCount}
+          totalResults={totalResults}
+          defaultSortBy={DEFAULT_RESULTS_ORDERING}
+          {...tableProps}
+        />
+      </GenericErrorBoundary>
     </S.Donations>
   );
 }

@@ -1,3 +1,4 @@
+import logging
 import os
 from pathlib import Path
 
@@ -111,10 +112,15 @@ CELERY_HIJACK_ROOT_LOGGER = False
 if SENTRY_ENABLE_BACKEND and SENTRY_DSN_BACKEND:
     import sentry_sdk
     from sentry_sdk.integrations.django import DjangoIntegration
+    from sentry_sdk.integrations.logging import LoggingIntegration
 
+    sentry_logging = LoggingIntegration(
+        level=logging.DEBUG,
+        event_level=logging.WARNING,
+    )  # Capture debug and above as breadcrumbs
     sentry_sdk.init(
         dsn=SENTRY_DSN_BACKEND,
-        integrations=[DjangoIntegration()],
+        integrations=[sentry_logging, DjangoIntegration()],
         environment=ENVIRONMENT,
     )
 

@@ -3,6 +3,7 @@ from django.utils import timezone
 
 from rest_framework.exceptions import ValidationError
 from safedelete.models import SafeDeleteModel
+from simple_history.models import HistoricalRecords
 from solo.models import SingletonModel
 from sorl.thumbnail import ImageField as SorlImageField
 
@@ -61,6 +62,9 @@ class Template(AbstractPage):
     # but should not have a default as a Template
     elements = models.JSONField(null=True, blank=True, default=list)
 
+    # A history of changes to this model, using django-simple-history.
+    history = HistoricalRecords()
+
     class TemplateError(Exception):
         pass
 
@@ -116,6 +120,9 @@ class DonationPage(AbstractPage, SafeDeleteModel):
     page_screenshot = SorlImageField(null=True, blank=True, upload_to=_get_screenshot_upload_path)
 
     email_templates = models.ManyToManyField("emails.PageEmailTemplate", blank=True)
+
+    # A history of changes to this model, using django-simple-history.
+    history = HistoricalRecords()
 
     class Meta:
         unique_together = (
@@ -207,6 +214,9 @@ class Style(IndexedTimeStampedModel, SafeDeleteModel):
     organization = models.ForeignKey("organizations.Organization", on_delete=models.CASCADE)
     styles = models.JSONField(validators=[style_validator])
 
+    # A history of changes to this model, using django-simple-history.
+    history = HistoricalRecords()
+
     def __str__(self):
         return self.name
 
@@ -235,6 +245,9 @@ class Font(models.Model):
         max_length=255,
         help_text="For typekit fonts, use the kitId. For google fonts, use the value of the 'family' query param",
     )
+
+    # A history of changes to this model, using django-simple-history.
+    history = HistoricalRecords()
 
     def __str__(self):
         return f"{self.name} ({self.source})"

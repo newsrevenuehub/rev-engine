@@ -61,6 +61,7 @@ class StripePaymentViewTestAbstract(APITestCase):
                 "mailing_country": "Fakeland",
                 "organization_country": "US",
                 "currency": "cad",
+                "phone": "123-456-7890",
                 "revenue_program_slug": rev_slug if rev_slug else self.revenue_program.slug,
                 "donation_page_slug": page_slug if page_slug else self.page.slug,
                 "interval": interval if interval else ContributionInterval.ONE_TIME,

@@ -63,6 +63,7 @@ class StripePaymentManagerAbstractTestCase(APITestCase):
             "email": self.contributor.email,
             "first_name": "Test",
             "last_name": "Tester",
+            "phone": "123-456-7890",
             "mailing_postal_code": 12345,
             "mailing_street": "123 Fake Street",
             "mailing_city": "Fakerton",

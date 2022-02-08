@@ -20,31 +20,59 @@ from apps.organizations.models import (
 from apps.users.admin import UserOrganizationInline
 
 
-class RevenueProgramBenefitLevelInline(admin.TabularInline):
+class NoRelatedInlineAddEditAdminMixin:
+    related_fieldname = None
+
+    def get_formset(self, request, obj=None, **kwargs):
+        """
+        Override get_formset to adjust the properties of the related field
+        such that users are unable to create or edit them inline (only add existing).
+        """
+        formset = super().get_formset(request, obj, **kwargs)
+
+        if self.related_fieldname:
+            form = formset.form
+            form.base_fields[self.related_fieldname].widget.can_add_related = False
+            form.base_fields[self.related_fieldname].widget.can_change_related = False
+        return formset
+
+
+class ReadOnlyOrgLimitedTabularInlineMixin(admin.TabularInline):
+    related_fieldname = None
+    org_limited_fieldname = None
+
+    def formfield_for_foreignkey(self, db_field, request=None, **kwargs):
+        """
+        Here we limit the choices of "benefit_level" inlines to those related by org.
+        """
+        formfield = super().formfield_for_foreignkey(db_field, request, **kwargs)
+        if self.related_fieldname:
+            try:
+                parent_id = int(Path(request.path).parts[-2])
+            except ValueError:
+                parent_id = None
+            if db_field.name == self.related_fieldname and parent_id:
+                parent_instance = self.parent_model.objects.filter(pk=parent_id).first()
+                formfield.limit_choices_to = Q(organization=parent_instance.organization)
+        return formfield
+
+
+class RevenueProgramBenefitLevelInline(NoRelatedInlineAddEditAdminMixin, ReadOnlyOrgLimitedTabularInlineMixin):
     model = RevenueProgram.benefit_levels.through
     verbose_name = "Benefit level"
     verbose_name_plural = "Benefit levels"
     extra = 0
 
+    related_fieldname = "benefit_level"
 
-class BenefitLevelBenefit(admin.TabularInline):
+
+class BenefitLevelBenefit(NoRelatedInlineAddEditAdminMixin, ReadOnlyOrgLimitedTabularInlineMixin):
     model = BenefitLevel.benefits.through
     verbose_name = "Benefit"
     verbose_name_plural = "Benefits"
     extra = 0
 
-    def get_formset(self, request, obj=None, **kwargs):
-        """
-        Override get_formset to adjust the properties of the related `benefit` field
-        such that users are unable to create or edit Benefits inline. This is important
-        because Benefits created or edited this way allow you to select an Organization.
-        We cannot allow a Benefit for orgB to be set on a BenefitLevel for orgA.
-        """
-        formset = super().get_formset(request, obj, **kwargs)
-        form = formset.form
-        form.base_fields["benefit"].widget.can_add_related = False
-        form.base_fields["benefit"].widget.can_change_related = False
-        return formset
+    related_fieldname = "benefit"
 
 
 @admin.register(Organization)

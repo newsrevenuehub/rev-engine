@@ -8,10 +8,13 @@
   var config = JSON.parse(
     document.getElementById("admin-limited-select-config").textContent
   );
+
   var parentSelected = false;
   var options = [];
   var parentFieldSelector = "select[name='" + config.parentSelector + "']";
   var childFieldSelector = "select[name*='" + config.childSelector + "']";
+  var parentReadable = !!$(parentFieldSelector)[0];
+
   var noChildrenText =
     "The " +
     config.parentModelName +
@@ -72,24 +75,27 @@
   }
 
   function setSelectOptions($select) {
-    $select.empty();
-
-    if (options.length === 0) {
-      var text = "";
-      if (parentSelected) text = noChildrenText;
-      else text = noParentText;
-      $select.prop("disabled", true);
-      $select.append($("<option></option>").attr("value", "").text(text));
-    } else {
-      $select.prop("disabled", false);
-      // Add back the "empty" value
-      $select.append($("<option></option>").attr("value", "").text("----"));
-      // Then for each option, add an <option>
-      $.each(options, function (_, option) {
-        $select.append(
-          $("<option></option>").attr("value", option[1]).text(option[0])
-        );
-      });
+    if (parentReadable) {
+      $select.empty();
+      if (options.length === 0 && parentReadable) {
+        var text = "";
+        if (parentSelected) text = noChildrenText;
+        else text = noParentText;
+        $select.prop("disabled", true);
+        $select.append($("<option></option>").attr("value", "").text(text));
+      } else if (parentReadable) {
+        $select.prop("disabled", false);
+        // Add back the "empty" value
+        $select.append($("<option></option>").attr("value", "").text("----"));
+        // Then for each option, add an <option>
+        $.each(options, function (_, option) {
+          $select.append(
+            $("<option></option>").attr("value", option[1]).text(option[0])
+          );
+        });
+      }
     }
+    // If parentReadable is false, this indicates that the parent field isn't in the state we expect it to be.
+    // This includes things like the field being in a readonly state.
   }
 })(window.django.jQuery);

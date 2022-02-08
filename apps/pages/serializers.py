@@ -146,10 +146,6 @@ class DonationPageFullDetailSerializer(serializers.ModelSerializer):
         except RevenueProgram.DoesNotExist:
             raise serializers.ValidationError({"revenue_program_pk": "Could not find revenue program with provided pk"})
 
-        # # TODO: Verify that User is member of this org
-        # organization = self.context["request"].user.get_organization() if self.context.get("request") else None
-        # validated_data["organization"] = organization  # rev_program.organization
-
         self._check_against_soft_deleted_slugs(validated_data)
         if "template_pk" in validated_data:
             return self._create_from_template(validated_data)

@@ -160,7 +160,7 @@ class PageViewSetTest(AbstractTestCase):
         # detail serializer should have 'styles' field
         self.assertIn("styles", response.json())
 
-    def test_page_list_results_are_limited_by_ownership(self):
+    def test_page_list_results_are_limited_by_revenue_program(self):
         user = user_model.objects.create()
         user_org = self.orgs[0]
         user.organizations.add(user_org)
@@ -181,6 +181,17 @@ class PageViewSetTest(AbstractTestCase):
         expected_ids = [p.id for p in user_pages]
         # Should return expected pages
         self.assertEqual(set(expected_ids), set(returned_ids))
+
+    def test_page_list_results_not_limited_when_superuser(self):
+        superuser = user_model.objects.create_superuser(email="superuser@example.com")
+        self.user = superuser
+        self.login()
+
+        list_url = reverse("donationpage-list")
+        response = self.client.get(list_url)
+        data = response.json()
+
+        self.assertEqual(self.resource_count, len(data))
 
 
 class PagePatchTest(AbstractTestCase):

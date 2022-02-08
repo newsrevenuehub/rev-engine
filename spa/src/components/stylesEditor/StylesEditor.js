@@ -180,6 +180,8 @@ function StylesEditor({ styles, setStyles, handleKeepChanges, handleDiscardChang
               value={styles?.colors?.cstm_mainHeader || ''}
               onChange={(color) => setColor('cstm_mainHeader', color)}
             />
+          </S.FieldRow>
+          <S.FieldRow>
             <ColorPicker
               label="Main background"
               value={styles?.colors?.cstm_mainBackground || ''}

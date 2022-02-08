@@ -9,7 +9,7 @@ from rest_framework.response import Response
 
 from apps.api.permissions import UserBelongsToOrg
 from apps.element_media.models import MediaImage
-from apps.organizations.views import OrganizationLimitedListView
+from apps.organizations.views import OrganizationLimitedListView, RevenueProgramLimitedMixin
 from apps.pages import serializers
 from apps.pages.helpers import PageDetailError, PageFullDetailHelper
 from apps.pages.models import DonationPage, Font, Style, Template
@@ -18,7 +18,7 @@ from apps.pages.models import DonationPage, Font, Style, Template
 logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
 
 
-class PageViewSet(OrganizationLimitedListView, viewsets.ModelViewSet):
+class PageViewSet(RevenueProgramLimitedMixin, viewsets.ModelViewSet):
     model = DonationPage
     permission_classes = [IsAuthenticated, UserBelongsToOrg]
     filter_backends = [filters.OrderingFilter]
@@ -103,7 +103,7 @@ class PageViewSet(OrganizationLimitedListView, viewsets.ModelViewSet):
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 
-class TemplateViewSet(OrganizationLimitedListView, viewsets.ModelViewSet):
+class TemplateViewSet(RevenueProgramLimitedMixin, viewsets.ModelViewSet):
     model = Template
     permission_classes = [IsAuthenticated, UserBelongsToOrg]
     pagination_class = None

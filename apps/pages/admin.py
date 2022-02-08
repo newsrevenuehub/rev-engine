@@ -33,21 +33,20 @@ class TemplateAdmin(DonationPageAdminAbstract):
     list_display = (
         "name",
         "heading",
-        "organization",
     )
     list_filter = (
         "name",
         "heading",
-        "organization",
+        "revenue_program",
     )
     ordering = (
         "name",
-        "organization__name",
+        "revenue_program__name",
     )
     search_fields = (
         "name",
         "heading",
-        "organization__name",
+        "revenue_program__name",
     )
 
     change_form_template = "pages/templates_changeform.html"
@@ -101,10 +100,7 @@ class DonationPageAdmin(DonationPageAdminAbstract, SafeDeleteAdmin):
         "published_date",
     ) + SafeDeleteAdmin.list_display
 
-    list_filter = (
-        "organization__name",
-        "revenue_program",
-    ) + SafeDeleteAdmin.list_filter
+    list_filter = ("revenue_program",) + SafeDeleteAdmin.list_filter
 
     order = (
         "created",
@@ -114,7 +110,6 @@ class DonationPageAdmin(DonationPageAdminAbstract, SafeDeleteAdmin):
     search_fields = (
         "name",
         "heading",
-        "organization__name",
         "revenue_program__name",
     )
 
@@ -144,6 +139,13 @@ class DonationPageAdmin(DonationPageAdminAbstract, SafeDeleteAdmin):
                 f"{created_template_count} {'template' if created_template_count == 1 else 'templates'} created.",
                 messages.SUCCESS,
             )
+
+    def get_form(self, request, obj=None, **kwargs):
+        form = super().get_form(request, obj, **kwargs)
+        form.base_fields["styles"].widget.can_add_related = False
+        form.base_fields["styles"].widget.can_change_related = False
+        form.base_fields["styles"].widget.can_delete_related = False
+        return form
 
 
 @admin.register(models.Style)

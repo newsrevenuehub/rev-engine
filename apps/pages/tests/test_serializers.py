@@ -48,7 +48,7 @@ class DonationPageFullDetailSerializerTest(APITestCase):
             revenue_program=self.revenue_program, benefit_level=self.benefit_level_2, level=2
         )
 
-        self.page = DonationPageFactory(organization=self.organization, revenue_program=self.revenue_program)
+        self.page = DonationPageFactory(revenue_program=self.revenue_program)
         self.serializer = DonationPageFullDetailSerializer
 
     def test_has_analytics_data(self):
@@ -105,7 +105,7 @@ class DonationPageFullDetailSerializerTest(APITestCase):
         self.assertRaises(serializers.ValidationError, serializer._check_against_soft_deleted_slugs, validated_data)
 
     def test_create_with_template_pk_uses_template_as_data(self):
-        template = TemplateFactory(organization=self.organization)
+        template = TemplateFactory()
         # new_page_name
         new_page_data = {
             "template_pk": template.pk,
@@ -153,7 +153,7 @@ class DonationPageFullDetailSerializerTest(APITestCase):
 class TemplateDetailSerializerTest(APITestCase):
     def setUp(self):
         self.organization = OrganizationFactory()
-        self.template = TemplateFactory(organization=self.organization)
+        self.template = TemplateFactory()
         self.page = DonationPageFactory()
         self.serializer = TemplateDetailSerializer
 

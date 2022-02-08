@@ -171,7 +171,6 @@ class DonationPage(AbstractPage, SafeDeleteModel):
 
     def save(self, *args, **kwargs):
         limit = self.has_page_limit()
-        # breakpoint()
         if limit and not self.id and self.get_total_org_pages() + 1 > int(limit.feature_value):
             raise ValidationError(
                 {"non_field_errors": [f"Your organization has reached its limit of {limit.feature_value} pages"]}

@@ -59,13 +59,6 @@ class RevenueProgramViewSetTest(AbstractTestCase):
         self.detail_url = "/api/v1/revenue-programs"
         self.create_resources()
 
-    # def create_resources(self):
-    #     self.orgs = Organization.objects.all()
-    #     for i in range(self.resource_count):
-    #         org_num = 0 if i % 2 == 0 else 1
-    #         self.model_factory.create(organization=self.orgs[org_num])
-    #     self.resources = self.model.objects.all()
-
     def test_reverse_works(self):
         self.login()
         response = self.client.get(self.list_url)

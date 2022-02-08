@@ -38,6 +38,13 @@ class User(AbstractBaseUser, PermissionsMixin, IndexedTimeStampedModel):
         """
         return self.organization_set.first()
 
+    def get_revenue_programs(self):
+        """
+        Return queryset of revenue programs this user has permission to access
+        """
+        organization = self.get_organization()
+        return organization.revenueprogram_set.all() if organization else None
+
     def __str__(self):
         return self.email
 

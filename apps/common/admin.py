@@ -6,6 +6,7 @@ from django_json_widget.widgets import JSONEditorWidget
 from simple_history.admin import SimpleHistoryAdmin
 
 from apps.common.models import RevEngineHistoricalChange
+from apps.common.utils import get_changes_from_prev_history_obj
 
 
 class RevEngineBaseAdmin(ModelAdmin):
@@ -18,21 +19,12 @@ class RevEngineSimpleHistoryAdmin(RevEngineBaseAdmin, SimpleHistoryAdmin):
     history_list_display = ["changes"]
 
     def changes(self, obj):
-        """Return the changes for a particular historical record."""
-        if obj.prev_record:
-            delta = obj.diff_against(obj.prev_record)
-            changes_list = []
-            for change in delta.changes:
-                field = obj._meta.get_field(change.field)
-                field_verbose_name = field.verbose_name
-                # Write the changed data to changes_list. If the field is a JSONField,
-                # then just write the field name to changes_list, since the data
-                # will be very long.
-                if field.get_internal_type() in ["JSONField"]:
-                    changes_list.append(f"'{field_verbose_name}' changed")
-                else:
-                    changes_list.append(f"'{field_verbose_name}' changed from '{change.old}' to '{change.new}'")
+        """Show the changes for this object in relation to the previous history object."""
+        changes_list = get_changes_from_prev_history_obj(obj)
+        if obj.prev_record and changes_list:
             return format_html(".<br><br>".join(changes_list))
+        elif obj.prev_record:
+            return "No changes"
         else:
             return "No previous record"
 

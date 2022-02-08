@@ -8,7 +8,7 @@ from apps.contributions import serializers
 from apps.contributions.models import ContributionStatus
 from apps.contributions.tests.factories import ContributionFactory, ContributorFactory
 from apps.contributions.utils import format_ambiguous_currency
-from apps.organizations.tests.factories import OrganizationFactory
+from apps.organizations.tests.factories import OrganizationFactory, RevenueProgramFactory
 from apps.pages.tests.factories import DonationPageFactory
 
 
@@ -144,7 +144,8 @@ class ContributorContributionSerializerTest(TestCase):
 class AbstractPaymentSerializerTest(TestCase):
     def setUp(self):
         self.serializer = serializers.AbstractPaymentSerializer
-        self.page = DonationPageFactory()
+        self.revenue_program = RevenueProgramFactory()
+        self.page = DonationPageFactory(revenue_program=self.revenue_program)
         self.element = {"type": "Testing", "uuid": "testing-123", "requiredFields": [], "content": {}}
 
         self.payment_data = {
@@ -206,7 +207,8 @@ class AbstractPaymentSerializerTest(TestCase):
 class ContributionMetadataSerializerTest(TestCase):
     def setUp(self):
         self.serializer = serializers.ContributionMetadataSerializer
-        self.page = DonationPageFactory()
+        self.revenue_program = RevenueProgramFactory()
+        self.page = DonationPageFactory(revenue_program=self.revenue_program)
         self.processor_mapping = serializers.ContributionMetadataSerializer.PROCESSOR_MAPPING
         self.all_fields = [k for k, v in self.processor_mapping.items() if v == self.serializer.ALL]
         self.payment_fields = [k for k, v in self.processor_mapping.items() if v == self.serializer.PAYMENT]
@@ -227,10 +229,10 @@ class ContributionMetadataSerializerTest(TestCase):
             "phone": "9195555555",
             "organization_country": "ts",
             "referer": "https://test.test",
-            "revenue_program_slug": "test",
+            "revenue_program_slug": self.revenue_program.slug,
             "page_id": self.page.pk,
             "contributor_id": 1,
-            "revenue_program_id": 1,
+            "revenue_program_id": self.revenue_program.pk,
             "reason_for_giving": "Extortion",
             "honoree": "test honoree",
             "in_memory_of": "test in memory of",

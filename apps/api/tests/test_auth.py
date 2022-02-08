@@ -14,7 +14,7 @@ from apps.api.authentication import JWTHttpOnlyCookieAuthentication
 from apps.api.permissions import ContributorOwnsContribution, IsContributor, UserBelongsToOrg
 from apps.contributions.tests.factories import ContributionFactory, ContributorFactory
 from apps.organizations.tests.factories import OrganizationFactory
-from apps.pages.tests.factories import DonationPageFactory
+from apps.pages.tests.factories import StyleFactory
 
 
 user_model = get_user_model()
@@ -107,14 +107,14 @@ class UserBelongsToOrgPermissionTest(APITestCase):
         self.user = user_model.objects.create_user(email="test@test.com", password="testing")
         self.request.user = self.user
         self.org = OrganizationFactory()
-        self.page = DonationPageFactory(org=self.org)
+        self.style = StyleFactory(org=self.org)
 
     def test_object_with_wrong_org_forbidden(self):
-        self.assertFalse(UserBelongsToOrg().has_object_permission(self.request, {}, self.page))
+        self.assertFalse(UserBelongsToOrg().has_object_permission(self.request, {}, self.style))
 
     def test_object_with_correct_org_allowed(self):
         self.user.organizations.add(self.org)
-        self.assertTrue(UserBelongsToOrg().has_object_permission(self.request, {}, self.page))
+        self.assertTrue(UserBelongsToOrg().has_object_permission(self.request, {}, self.style))
 
     def test_object_with_no_org_allowed(self):
         unrelated_object = self.UnrelatedObject()

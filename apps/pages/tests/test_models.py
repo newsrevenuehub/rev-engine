@@ -24,8 +24,7 @@ class DonationPageTest(TestCase):
         default_logo.logo = get_test_image_file_jpeg()
         default_logo.save()
         page = self.model_class()
-        # just use factory-made page's org for this new org.
-        page.organization = self.instance.organization
+        page.revenue_program = self.instance.revenue_program
         page.save()
         return page, default_logo.logo
 
@@ -67,7 +66,7 @@ class DonationPageTest(TestCase):
 
     def test_slug_validated_against_denylist(self):
         denied_word = DenyListWordFactory()
-        page = DonationPage(name="My page", organization=self.org)
+        page = DonationPage(name="My page")
         page.slug = denied_word.word
         with self.assertRaises(ValidationError) as validation_error:
             page.clean_fields()

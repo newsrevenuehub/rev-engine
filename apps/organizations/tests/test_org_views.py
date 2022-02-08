@@ -59,12 +59,12 @@ class RevenueProgramViewSetTest(AbstractTestCase):
         self.detail_url = "/api/v1/revenue-programs"
         self.create_resources()
 
-    def create_resources(self):
-        self.orgs = Organization.objects.all()
-        for i in range(self.resource_count):
-            org_num = 0 if i % 2 == 0 else 1
-            self.model_factory.create(organization=self.orgs[org_num])
-        self.resources = self.model.objects.all()
+    # def create_resources(self):
+    #     self.orgs = Organization.objects.all()
+    #     for i in range(self.resource_count):
+    #         org_num = 0 if i % 2 == 0 else 1
+    #         self.model_factory.create(organization=self.orgs[org_num])
+    #     self.resources = self.model.objects.all()
 
     def test_reverse_works(self):
         self.login()
@@ -174,13 +174,14 @@ class FeatureViewSetTest(APITestCase):
         plan.features.add(self.limit_feature)
         plan.save()
         org = OrganizationFactory(plan=plan)
+        rev_program = RevenueProgramFactory(organization=org)
         for i in range(3):
             try:
-                DonationPageFactory(organization=org)
+                DonationPageFactory(revenue_program=rev_program)
             except ValidationError as e:
                 self.fail(f"Save raised a validation error on expected valid inputs: {e.message}")
         with self.assertRaises(ValidationError) as cm:
-            DonationPageFactory(organization=org)
+            DonationPageFactory(revenue_program=rev_program)
         self.assertEquals(
             str(cm.exception.detail["non_field_errors"][0]),
             f"Your organization has reached its limit of {self.limit_feature.feature_value} pages",

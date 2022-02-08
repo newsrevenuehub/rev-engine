@@ -1,16 +1,11 @@
 import * as S from './DashboardSidebar.styled';
-import { DONATIONS_SLUG, CONTENT_SLUG, ORGANIZATION_SLUG } from 'routes';
+import { DONATIONS_SLUG, CONTENT_SLUG } from 'routes';
 import { ICONS } from 'assets/icons/SvgIcon';
-
-// Hooks
-import useUser from 'hooks/useUser';
 
 // Util
 import logout from 'components/authentication/logout';
 
 function DashboardSidebar({ shouldAllowDashboard }) {
-  const user = useUser();
-
   const handleClick = (e) => {
     if (!shouldAllowDashboard) e.preventDefault();
   };
@@ -23,9 +18,6 @@ function DashboardSidebar({ shouldAllowDashboard }) {
         </S.NavItem>
         <S.NavItem to={DONATIONS_SLUG} onClick={handleClick} disabled={!shouldAllowDashboard}>
           Donations
-        </S.NavItem>
-        <S.NavItem to={ORGANIZATION_SLUG} onClick={handleClick} disabled={!shouldAllowDashboard}>
-          {user?.organization?.name}
         </S.NavItem>
       </S.NavList>
       <S.OtherContent>

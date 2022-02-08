@@ -183,6 +183,8 @@ class AbstractPaymentSerializerTest(TestCase):
         self.assertEqual(serializer.errors["phone"][0].code, "required")
 
     def test_validates_page_element_if_conditionally_not_required(self):
+        self.element["requiredFields"] = []
+        self._add_element_to_page(self.element)
         self.assertNotIn("phone", self.element["requiredFields"])
         serializer = self.serializer(data=self.payment_data)
         self.assertTrue(serializer.is_valid())

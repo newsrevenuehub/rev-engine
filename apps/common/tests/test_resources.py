@@ -27,9 +27,11 @@ class AbstractTestCase(APITestCase):
             RevenueProgramFactory(organization=orgs[org_num])
         self.create_user()
 
-    def _resource_is_org_related(self, resource):
+    def _resource_has_org_fk(self, resource):
         """
-        Resource may not be directly related to Org-- if it isn't we assume it is related to an Org by way of RevenueProgram
+        Returns True if the provided resource has a ForeignKey to Organization.
+        "organization" may still be a derived property on the model, so just
+        checking `hasattr` is insufficient.
         """
         return hasattr(resource, "organization") and type(resource.organization) is not property
 
@@ -38,7 +40,7 @@ class AbstractTestCase(APITestCase):
         self.rev_programs = RevenueProgram.objects.all()
         for i in range(self.resource_count):
             num = 0 if i % 2 == 0 else 1
-            if self._resource_is_org_related(self.model):
+            if self._resource_has_org_fk(self.model):
                 self.model_factory.create(organization=self.orgs[num])
             else:
                 self.model_factory.create(revenue_program=self.rev_programs[num])
@@ -56,7 +58,7 @@ class AbstractTestCase(APITestCase):
         if resource:
             if isinstance(resource, Organization):
                 resource.users.add(self.user)
-            elif self._resource_is_org_related(resource):
+            elif self._resource_has_org_fk(resource):
                 resource.organization.users.add(self.user)
             else:
                 resource.revenue_program.organization.users.add(self.user)

@@ -90,7 +90,6 @@ class Template(AbstractPage):
         template_data = self.__dict__
         template_data["name"] = f"New Page From Template ({template_data['name']})"
         template_data["slug"] = normalize_slug(name=template_data["name"])
-        # template_data["revenue_program"] = self.organization.revenueprogram_set.first()
 
         unwanted_keys = ["_state", "id", "modified", "created", "published_date"]
         template = cleanup_keys(template_data, unwanted_keys)
@@ -172,11 +171,11 @@ class DonationPage(AbstractPage, SafeDeleteModel):
 
     def save(self, *args, **kwargs):
         limit = self.has_page_limit()
-        if limit and not self.id:
-            if self.get_total_org_pages() + 1 > int(limit.feature_value):
-                raise ValidationError(
-                    {"non_field_errors": [f"Your organization has reached its limit of {limit.feature_value} pages"]}
-                )
+        # breakpoint()
+        if limit and not self.id and self.get_total_org_pages() + 1 > int(limit.feature_value):
+            raise ValidationError(
+                {"non_field_errors": [f"Your organization has reached its limit of {limit.feature_value} pages"]}
+            )
 
         self.set_default_logo()
 

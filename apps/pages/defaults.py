@@ -35,7 +35,7 @@ def get_default_page_elements():
         {
             "type": "DDonorInfo",
             "uuid": str(uuid4()),
-            "content": {"askPhone": False},
+            "content": {"askPhone": True},
             "requiredFields": [],
         },
         {"type": "DDonorAddress", "uuid": str(uuid4()), "requiredFields": []},

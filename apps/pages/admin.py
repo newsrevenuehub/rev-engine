@@ -33,21 +33,20 @@ class TemplateAdmin(DonationPageAdminAbstract):
     list_display = (
         "name",
         "heading",
-        "organization",
     )
     list_filter = (
         "name",
         "heading",
-        "organization",
+        "revenue_program",
     )
     ordering = (
         "name",
-        "organization__name",
+        "revenue_program__name",
     )
     search_fields = (
         "name",
         "heading",
-        "organization__name",
+        "revenue_program__name",
     )
 
     change_form_template = "pages/templates_changeform.html"
@@ -101,10 +100,7 @@ class DonationPageAdmin(DonationPageAdminAbstract, SafeDeleteAdmin):
         "published_date",
     ) + SafeDeleteAdmin.list_display
 
-    list_filter = (
-        "organization__name",
-        "revenue_program",
-    ) + SafeDeleteAdmin.list_filter
+    list_filter = ("revenue_program",) + SafeDeleteAdmin.list_filter
 
     order = (
         "created",
@@ -114,7 +110,6 @@ class DonationPageAdmin(DonationPageAdminAbstract, SafeDeleteAdmin):
     search_fields = (
         "name",
         "heading",
-        "organization__name",
         "revenue_program__name",
     )
 

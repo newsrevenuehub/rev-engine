@@ -10,7 +10,7 @@ from apps.api.error_messages import UNIQUE_PAGE_SLUG
 from apps.common.models import IndexedTimeStampedModel
 from apps.common.utils import cleanup_keys, normalize_slug
 from apps.config.validators import validate_slug_against_denylist
-from apps.organizations.models import Feature, Organization
+from apps.organizations.models import Feature, RevenueProgram
 from apps.pages import defaults
 from apps.pages.validators import style_validator
 
@@ -42,7 +42,15 @@ class AbstractPage(IndexedTimeStampedModel):
         help_text='Donors can click a link to go "back to the news" after viewing the default thank you page',
     )
 
-    organization = models.ForeignKey("organizations.Organization", on_delete=models.CASCADE)
+    revenue_program = models.ForeignKey(
+        "organizations.RevenueProgram",
+        null=True,
+        on_delete=models.SET_NULL,
+    )
+
+    @property
+    def organization(self):
+        return self.revenue_program.organization
 
     @classmethod
     def field_names(cls):
@@ -70,7 +78,7 @@ class Template(AbstractPage):
     class Meta:
         unique_together = (
             "name",
-            "organization",
+            "revenue_program",
         )
 
     def make_page_from_template(self, page_data={}):
@@ -82,7 +90,7 @@ class Template(AbstractPage):
         template_data = self.__dict__
         template_data["name"] = f"New Page From Template ({template_data['name']})"
         template_data["slug"] = normalize_slug(name=template_data["name"])
-        template_data["revenue_program"] = self.organization.revenueprogram_set.first()
+        # template_data["revenue_program"] = self.organization.revenueprogram_set.first()
 
         unwanted_keys = ["_state", "id", "modified", "created", "published_date"]
         template = cleanup_keys(template_data, unwanted_keys)
@@ -107,11 +115,6 @@ class DonationPage(AbstractPage, SafeDeleteModel):
         validators=[validate_slug_against_denylist],
     )
 
-    revenue_program = models.ForeignKey(
-        "organizations.RevenueProgram",
-        null=True,
-        on_delete=models.SET_NULL,
-    )
     published_date = models.DateTimeField(null=True, blank=True)
     page_screenshot = SorlImageField(null=True, blank=True, upload_to=_get_screenshot_upload_path)
 
@@ -145,9 +148,9 @@ class DonationPage(AbstractPage, SafeDeleteModel):
         else:
             self.email_templates.add(template)
 
-    @property
-    def total_pages(self):
-        return DonationPage.objects.filter(organization=self.organization).count()
+    def get_total_org_pages(self):
+        org = self.revenue_program.organization
+        return DonationPage.objects.filter(revenue_program__in=org.revenueprogram_set.all()).count()
 
     @property
     def is_live(self):
@@ -170,7 +173,7 @@ class DonationPage(AbstractPage, SafeDeleteModel):
     def save(self, *args, **kwargs):
         limit = self.has_page_limit()
         if limit and not self.id:
-            if self.total_pages + 1 > int(limit.feature_value):
+            if self.get_total_org_pages() + 1 > int(limit.feature_value):
                 raise ValidationError(
                     {"non_field_errors": [f"Your organization has reached its limit of {limit.feature_value} pages"]}
                 )
@@ -186,7 +189,6 @@ class DonationPage(AbstractPage, SafeDeleteModel):
             "created",
             "modified",
             "slug",
-            "revenue_program_id",
             "page_screenshot",
             "deleted",
             "published_date",
@@ -194,7 +196,7 @@ class DonationPage(AbstractPage, SafeDeleteModel):
         page = cleanup_keys(self.__dict__, unwanted_keys)
         template = cleanup_keys(template_data, unwanted_keys)
         merged_template = page | template
-        merged_template["organization"] = Organization.objects.get(pk=merged_template.pop("organization_id"))
+        merged_template["revenue_program"] = RevenueProgram.objects.get(pk=merged_template.pop("revenue_program_id"))
         return Template.objects.create(**merged_template)
 
 

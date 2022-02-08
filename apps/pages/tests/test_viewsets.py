@@ -165,7 +165,7 @@ class PageViewSetTest(AbstractTestCase):
         user_org = self.orgs[0]
         user.organizations.add(user_org)
 
-        user_pages = DonationPage.objects.filter(organization=user_org)
+        user_pages = DonationPage.objects.filter(revenue_program=user_org.revenueprogram_set.first())
 
         list_url = reverse("donationpage-list")
 
@@ -317,7 +317,7 @@ class TemplateViewSetTest(AbstractTestCase):
     def setUp(self):
         super().setUp()
         self.create_resources()
-        self.page = DonationPageFactory(organization=self.orgs[0])
+        self.page = DonationPageFactory(revenue_program=self.rev_programs[0])
 
     def test_template_create_adds_template(self):
         self.assertEqual(len(self.resources), self.resource_count)
@@ -388,7 +388,7 @@ class TemplateViewSetTest(AbstractTestCase):
         user_org = self.orgs[0]
         user.organizations.add(user_org)
 
-        user_templates = self.model.objects.filter(organization=user_org)
+        user_templates = self.model.objects.filter(revenue_program=user_org.revenueprogram_set.first())
 
         list_url = reverse("template-list")
 

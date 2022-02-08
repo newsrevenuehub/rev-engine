@@ -35,7 +35,7 @@ class DonationPageAdminTestCase(TestCase):
     def test_make_template_error_messages_when_duplicate_name(self):
         self.client.force_login(user=self.user)
         # Make template from target page once...
-        Template.objects.create(name=self.page.name, organization=self.page.organization)
+        Template.objects.create(name=self.page.name, revenue_program=self.revenue_program)
         # ...then try to make one by the same name (through admin action)
         response = self.client.post(self.change_url, {"action": "make_template", "_selected_action": [self.page.pk]})
         messages = [m.message for m in get_messages(response.wsgi_request)]

@@ -6,7 +6,7 @@ from rest_framework.validators import UniqueTogetherValidator
 from sorl_thumbnail_serializer.fields import HyperlinkedSorlImageField
 
 from apps.api.error_messages import UNIQUE_PAGE_SLUG
-from apps.organizations.models import Organization, RevenueProgram
+from apps.organizations.models import RevenueProgram
 from apps.organizations.serializers import (
     BenefitLevelDetailSerializer,
     RevenueProgramListInlineSerializer,
@@ -61,7 +61,6 @@ class DonationPageFullDetailSerializer(serializers.ModelSerializer):
     revenue_program = RevenueProgramListInlineSerializer(read_only=True)
     revenue_program_pk = serializers.IntegerField(allow_null=True, required=False)
     template_pk = serializers.IntegerField(allow_null=True, required=False)
-    organization = serializers.PrimaryKeyRelatedField(read_only=True)
 
     graphic = serializers.ImageField(allow_empty_file=True, allow_null=True, required=False)
     header_bg_image = serializers.ImageField(allow_empty_file=True, allow_null=True, required=False)
@@ -147,8 +146,9 @@ class DonationPageFullDetailSerializer(serializers.ModelSerializer):
         except RevenueProgram.DoesNotExist:
             raise serializers.ValidationError({"revenue_program_pk": "Could not find revenue program with provided pk"})
 
-        organization = self.context["request"].user.get_organization() if self.context.get("request") else None
-        validated_data["organization"] = organization
+        # # TODO: Verify that User is member of this org
+        # organization = self.context["request"].user.get_organization() if self.context.get("request") else None
+        # validated_data["organization"] = organization  # rev_program.organization
 
         self._check_against_soft_deleted_slugs(validated_data)
         if "template_pk" in validated_data:
@@ -167,7 +167,6 @@ class DonationPageFullDetailSerializer(serializers.ModelSerializer):
 
 class DonationPageListSerializer(serializers.ModelSerializer):
     revenue_program = RevenueProgramListInlineSerializer(read_only=True)
-    organization = serializers.PrimaryKeyRelatedField(queryset=Organization.objects.all())
 
     class Meta:
         model = DonationPage
@@ -177,7 +176,6 @@ class DonationPageListSerializer(serializers.ModelSerializer):
             "page_screenshot",
             "slug",
             "revenue_program",
-            "organization",
             "published_date",
             "is_live",
         ]
@@ -202,7 +200,7 @@ class TemplateDetailSerializer(serializers.ModelSerializer):
     def is_valid(self, **kwargs):
         page_pk = self.initial_data["page_pk"]
         page = DonationPage.objects.get(pk=page_pk)
-        self.initial_data["organization"] = page.organization.pk
+        self.initial_data["revenue_program"] = page.revenue_program.pk
         return super().is_valid(**kwargs)
 
     def create(self, validated_data):
@@ -214,10 +212,9 @@ class TemplateDetailSerializer(serializers.ModelSerializer):
         model = Template
         fields = [
             "page_pk",
-            # organization is required here to validate name--org unique-togetherness
-            "organization",
             "name",
             "heading",
+            "revenue_program",
             "graphic",
             "header_bg_image",
             "header_logo",
@@ -230,7 +227,9 @@ class TemplateDetailSerializer(serializers.ModelSerializer):
         ]
         validators = [
             UniqueTogetherValidator(
-                queryset=Template.objects.all(), fields=["name", "organization"], message="Template name already in use"
+                queryset=Template.objects.all(),
+                fields=["name", "revenue_program"],
+                message="Template name already in use",
             )
         ]
 

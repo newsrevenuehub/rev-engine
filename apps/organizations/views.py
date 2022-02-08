@@ -24,6 +24,24 @@ class ReadOnly(permissions.BasePermission):
             return True
 
 
+class RevenueProgramLimitedMixin:
+    model = None
+
+    def get_queryset(self):
+        """
+        Filter quersets such that only instances belonging to revenue programs this user has access to are returned.
+        """
+        # Ensure the user in question is a User, not a Contributor
+        is_org_user = isinstance(self.request.user, user_model)
+
+        model_has_rp_rel = hasattr(self.model, "revenue_program")
+
+        if is_org_user and model_has_rp_rel and not self.request.user.is_superuser:
+            revenue_programs = self.request.user.get_revenue_programs()
+            return self.model.objects.filter(revenue_program__in=revenue_programs)
+        return self.model.objects.all()
+
+
 class OrganizationLimitedListView:
     model = None
 
@@ -38,7 +56,7 @@ class OrganizationLimitedListView:
         is_org_user = isinstance(self.request.user, user_model)
         # Ensure the model in question has a relationship to Organization
         model_has_org_rel = hasattr(self.model, "organization")
-        if is_org_user and model_has_org_rel and self.action == "list":
+        if is_org_user and model_has_org_rel and self.action == "list" and not self.request.user.is_superuser:
             return self.model.objects.filter(organization__users=self.request.user)
         return self.model.objects.all()
 

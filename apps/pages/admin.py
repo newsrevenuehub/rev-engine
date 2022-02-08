@@ -140,6 +140,13 @@ class DonationPageAdmin(DonationPageAdminAbstract, SafeDeleteAdmin):
                 messages.SUCCESS,
             )
 
+    def get_form(self, request, obj=None, **kwargs):
+        form = super().get_form(request, obj, **kwargs)
+        form.base_fields["styles"].widget.can_add_related = False
+        form.base_fields["styles"].widget.can_change_related = False
+        form.base_fields["styles"].widget.can_delete_related = False
+        return form
+
 
 @admin.register(models.Style)
 class StyleAdmin(RevEngineBaseAdmin):

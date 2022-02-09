@@ -8,8 +8,8 @@ export const StylesEditor = styled.div`
   display: flex;
   flex-direction: column;
   height: 80vh;
+  width: 85vw;
   padding: 2rem;
-  width: 100%;
   background: ${(props) => props.theme.colors.paneBackground};
   border-radius: ${(props) => props.theme.radii[0]};
   overflow-y: auto;
@@ -42,9 +42,9 @@ export const StylesFieldset = styled.fieldset`
 export const FieldRow = styled.div`
   display: flex;
   flex-direction: row;
+  margin-bottom: 3rem;
   & > :not(:last-child) {
     margin-right: 3rem;
-    margin-bottom: 2rem;
   }
 
   @media (${(props) => props.theme.breakpoints.tabletLandscapeDown}) {

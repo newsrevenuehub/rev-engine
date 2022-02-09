@@ -9,6 +9,7 @@ from sorl.thumbnail import ImageField as SorlImageField
 from apps.api.error_messages import UNIQUE_PAGE_SLUG
 from apps.common.models import IndexedTimeStampedModel
 from apps.common.utils import cleanup_keys, normalize_slug
+from apps.config.validators import validate_slug_against_denylist
 from apps.organizations.models import Feature, Organization
 from apps.pages import defaults
 from apps.pages.validators import style_validator
@@ -103,6 +104,7 @@ class DonationPage(AbstractPage, SafeDeleteModel):
         blank=True,
         help_text="If not entered, it will be built from the Page name",
         error_messages={"unique": UNIQUE_PAGE_SLUG},
+        validators=[validate_slug_against_denylist],
     )
 
     revenue_program = models.ForeignKey(
@@ -161,6 +163,10 @@ class DonationPage(AbstractPage, SafeDeleteModel):
         if not self.pk and not self.header_logo and default_logo.logo:
             self.header_logo = default_logo.logo
 
+    def clean_fields(self, **kwargs):
+        self.slug = normalize_slug(self.name, self.slug)
+        super().clean_fields(**kwargs)
+
     def save(self, *args, **kwargs):
         limit = self.has_page_limit()
         if limit and not self.id:
@@ -168,8 +174,6 @@ class DonationPage(AbstractPage, SafeDeleteModel):
                 raise ValidationError(
                     {"non_field_errors": [f"Your organization has reached its limit of {limit.feature_value} pages"]}
                 )
-
-        self.slug = normalize_slug(self.name, self.slug)
 
         self.set_default_logo()
 

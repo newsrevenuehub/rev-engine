@@ -7,6 +7,8 @@ from django.utils.text import slugify
 from faker import Faker
 from stripe.error import StripeError
 
+from apps.config.tests.factories import DenyListWordFactory
+from apps.config.validators import GENERIC_SLUG_DENIED_MSG, SLUG_DENIED_CODE
 from apps.organizations import models
 from apps.organizations.tests import factories
 
@@ -15,18 +17,6 @@ class OrganizationTest(TestCase):
     def setUp(self):
         self.model_class = models.Organization
         self.instance = factories.OrganizationFactory()
-
-    def test_slug_created(self):
-        assert self.instance.slug
-
-    def test_slug_equals_orgname(self):
-        self.assertEqual(self.instance.slug, slugify(self.instance.name, allow_unicode=True))
-
-    def test_slug_immutable(self):
-        self.instance.name = "A new Name"
-        self.instance.save()
-        self.instance.refresh_from_db()
-        self.assertNotIn(slugify("A new Name"), self.instance.slug)
 
     def test_default_no_plan(self):
         assert not self.instance.plan
@@ -117,6 +107,17 @@ class RevenueProgramTest(TestCase):
         self._create_revenue_program()
         apple_pay_domain_create.assert_called_once()
         mock_logger.warning.assert_called_once()
+
+    def test_slug_validated_against_denylist(self):
+        denied_word = DenyListWordFactory()
+        rp = models.RevenueProgram(name="My rp", organization=self.organization)
+        rp.slug = denied_word.word
+        with self.assertRaises(ValidationError) as validation_error:
+            rp.clean_fields()
+
+        self.assertIn("slug", validation_error.exception.error_dict)
+        self.assertEqual(SLUG_DENIED_CODE, validation_error.exception.error_dict["slug"][0].code)
+        self.assertEqual(GENERIC_SLUG_DENIED_MSG, validation_error.exception.error_dict["slug"][0].message)
 
 
 class BenefitLevelTest(TestCase):

@@ -3,6 +3,7 @@ from factory.django import DjangoModelFactory
 from faker import Faker
 
 from apps.common.models import Address
+from apps.common.utils import normalize_slug
 from apps.organizations import models
 
 
@@ -47,6 +48,7 @@ class RevenueProgramFactory(DjangoModelFactory):
         model = models.RevenueProgram
 
     name = factory.Sequence(lambda n: f"{' '.join(fake.words(nb=4))}-{str(n)}")
+    slug = factory.lazy_attribute(lambda o: normalize_slug(name=o.name))
     organization = factory.SubFactory(OrganizationFactory)
     contact_email = fake.email()
 

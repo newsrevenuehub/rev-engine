@@ -78,14 +78,14 @@ class Migration(migrations.Migration):
                     ),
                 ),
                 (
-                    "organization",
+                    "revenue_program",
                     models.ForeignKey(
                         blank=True,
                         db_constraint=False,
                         null=True,
                         on_delete=django.db.models.deletion.DO_NOTHING,
                         related_name="+",
-                        to="organizations.organization",
+                        to="organizations.revenueprogram",
                     ),
                 ),
                 (
@@ -281,17 +281,6 @@ class Migration(migrations.Migration):
                         on_delete=django.db.models.deletion.SET_NULL,
                         related_name="+",
                         to=settings.AUTH_USER_MODEL,
-                    ),
-                ),
-                (
-                    "organization",
-                    models.ForeignKey(
-                        blank=True,
-                        db_constraint=False,
-                        null=True,
-                        on_delete=django.db.models.deletion.DO_NOTHING,
-                        related_name="+",
-                        to="organizations.organization",
                     ),
                 ),
                 (

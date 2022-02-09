@@ -19,7 +19,7 @@ class Migration(migrations.Migration):
             "organizations",
             "0047_track_model_history",
         ),
-        ("pages", "0038_alter_donationpage_slug"),
+        ("pages", "0039_auto_20220207_1645"),
     ]
 
     operations = [

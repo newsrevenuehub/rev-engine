@@ -1,16 +1,13 @@
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.db import models
-from django.dispatch import receiver
 from django.shortcuts import reverse
 
 import pycountry
 from model_utils.fields import AutoCreatedField, AutoLastModifiedField
-from simple_history.signals import post_create_historical_record
 from sorl.thumbnail import ImageField as SorlImageField
 
 from apps.common.constants import STATE_CHOICES
-from apps.common.utils import get_changes_from_prev_history_obj
 
 
 class IndexedTimeStampedModel(models.Model):
@@ -113,41 +110,3 @@ class RevEngineHistoricalChange(models.Model):
     def get_object_history_admin_url(self):
         """Return the URL in the Django admin for the object's history changelist."""
         return reverse(f"admin:{self.app_label}_{self.model}_history", kwargs={"object_id": self.object_id})
-
-
-@receiver(post_create_historical_record)
-def post_create_historical_record_callback(sender, **kwargs):
-    """
-    Create a RevEngineHistoricalChange object for this change.
-
-    Whenever django_simple_history creates an instance of one of its historical_*
-    objects, we also create an instance of a RevEngineHistoricalChange.
-    """
-    history_instance = kwargs["history_instance"]
-    changes_list = get_changes_from_prev_history_obj(history_instance)
-
-    # Decide if a RevEngineHistoricalChange object should be created:
-    #   - if the user has made changes, then create a RevEngineHistoricalChange object
-    #   - if the user is creating or deleting an object, then create a
-    #     RevEngineHistoricalChange object
-    #   - otherwise, do not create a RevEngineHistoricalChange object
-    need_to_create_historical_obj = False
-    if changes_list:
-        need_to_create_historical_obj = True
-    elif history_instance.history_type in [
-        RevEngineHistoricalChange.SIMPLE_HISTORY_TYPE_CREATED,
-        RevEngineHistoricalChange.SIMPLE_HISTORY_TYPE_DELETED,
-    ]:
-        need_to_create_historical_obj = True
-    # Create a RevEngineHistoricalChange.
-    if need_to_create_historical_obj:
-        RevEngineHistoricalChange.objects.create(
-            app_label=kwargs["instance"]._meta.app_label,
-            model=kwargs["instance"]._meta.model_name,
-            object_id=kwargs["instance"].id,
-            history_date=history_instance.history_date,
-            history_type=history_instance.history_type,
-            history_user=history_instance.history_user,
-            history_change_reason=history_instance.history_change_reason or "",
-            changes_html=".<br><br>".join(changes_list),
-        )

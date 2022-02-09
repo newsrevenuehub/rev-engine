@@ -200,11 +200,12 @@ class DonationPage(AbstractPage, SafeDeleteModel):
 
 class Style(IndexedTimeStampedModel, SafeDeleteModel):
     """
-    Ties a set of styles to a page. Discoverable by name, belonging to an Organization.
+    Ties a set of styles to a page. Discoverable by name, belonging to a RevenueProgram.
     """
 
     name = models.CharField(max_length=50)
-    organization = models.ForeignKey("organizations.Organization", on_delete=models.CASCADE)
+    organization = models.ForeignKey("organizations.Organization", null=True, on_delete=models.SET_NULL)
+    revenue_program = models.ForeignKey("organizations.RevenueProgram", null=True, on_delete=models.SET_NULL)
     styles = models.JSONField(validators=[style_validator])
 
     def __str__(self):
@@ -213,7 +214,7 @@ class Style(IndexedTimeStampedModel, SafeDeleteModel):
     class Meta:
         unique_together = (
             "name",
-            "organization",
+            "revenue_program",
         )
 
         ordering = ["-created", "name"]

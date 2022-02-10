@@ -4,6 +4,7 @@ import * as S from './Modal.styled';
 
 import { AnimatePresence } from 'framer-motion';
 import { faTimes } from '@fortawesome/free-solid-svg-icons';
+import GenericErrorBoundary from 'components/errors/GenericErrorBoundary';
 
 function Modal({ children, isOpen, closeModal, ...props }) {
   useEffect(() => {
@@ -31,7 +32,7 @@ function Modal({ children, isOpen, closeModal, ...props }) {
                 <S.CloseIcon icon={faTimes} />
               </S.CloseButton>
             )}
-            {children}
+            <GenericErrorBoundary>{children}</GenericErrorBoundary>
           </S.Modal>
         </>
       )}

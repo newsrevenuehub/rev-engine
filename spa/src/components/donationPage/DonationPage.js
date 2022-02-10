@@ -9,16 +9,16 @@ import * as getters from 'components/donationPage/pageGetters';
 import { getDefaultAmountForFreq } from 'components/donationPage/pageContent/DAmount';
 import { frequencySort } from 'components/donationPage/pageContent/DFrequency';
 
+import { SALESFORCE_CAMPAIGN_ID_QUERYPARAM, FREQUENCY_QUERYPARAM, AMOUNT_QUERYPARAM } from 'settings';
+
 // Hooks
 import useQueryString from 'hooks/useQueryString';
 import useErrorFocus from 'hooks/useErrorFocus';
 
 // Children
 import DonationPageSidebar from 'components/donationPage/DonationPageSidebar';
-
-// Children
 import DonationPageFooter from 'components/donationPage/DonationPageFooter';
-import { SALESFORCE_CAMPAIGN_ID_QUERYPARAM, FREQUENCY_QUERYPARAM, AMOUNT_QUERYPARAM } from 'settings';
+import GenericErrorBoundary from 'components/errors/GenericErrorBoundary';
 
 const DonationPageContext = createContext({});
 
@@ -89,7 +89,9 @@ function DonationPage({ page, live = false }) {
                       (page?.elements?.length === 0 && (
                         <S.NoElements>Open the edit interface to start adding content</S.NoElements>
                       ))}
-                    {page?.elements?.map((element) => getters.getDynamicElement(element, live))}
+                    {page?.elements?.map((element) => (
+                      <GenericErrorBoundary>{getters.getDynamicElement(element, live)}</GenericErrorBoundary>
+                    ))}
                   </S.PageElements>
                 </form>
               </S.DonationContent>

@@ -14,4 +14,17 @@ export const EditInterface = styled(motion.aside)`
   display: flex;
   flex-direction: column;
   overflow-y: scroll;
+
+  font-family: ${(props) => props.theme.systemFont};
+
+  p {
+    font-family: ${(props) => props.theme.systemFont};
+  }
+
+  h2,
+  h3,
+  h4,
+  h5 {
+    font-family: ${(props) => props.theme.systemFont};
+  }
 `;

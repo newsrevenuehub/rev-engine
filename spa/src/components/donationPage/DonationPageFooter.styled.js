@@ -5,6 +5,7 @@ export const DonationPageFooter = styled.footer`
   background: ${(props) => props.theme.colors.white};
   padding: 4rem 0;
   box-shadow: ${(props) => props.theme.shadows[0]};
+  font-family: ${(props) => props.theme.systemFont};
 `;
 
 export const Content = styled.div`
@@ -13,5 +14,6 @@ export const Content = styled.div`
 
   p {
     margin-top: 1rem;
+    font-family: ${(props) => props.theme.systemFont};
   }
 `;

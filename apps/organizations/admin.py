@@ -250,7 +250,12 @@ class RevenueProgramAdmin(RevEngineSimpleHistoryAdmin, ReverseModelAdmin, AdminI
         # self.formfield_for_dbfield, and pass in an extra argument, obj. In this way, we're passing
         # the model instance downstream to the formfield_for_dbfield method.
         kwargs["formfield_callback"] = partial(self.formfield_for_dbfield, request=request, obj=obj)
-        return super().get_form(request, obj, **kwargs)
+        form = super().get_form(request, obj, **kwargs)
+        form.base_fields["default_donation_page"].widget.can_add_related = False
+        form.base_fields["default_donation_page"].widget.can_change_related = False
+        form.base_fields["default_donation_page"].widget.can_delete_related = False
+
+        return form
 
     def formfield_for_dbfield(self, db_field, **kwargs):
         # Here, use the `obj` arg added to the partial derivation of this method above to get the instance.

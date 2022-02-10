@@ -10,5 +10,6 @@ export const DonationPageDisclaimer = styled.div`
 
   p {
     margin: 0.5rem;
+    font-family: ${(props) => props.theme.systemFont};
   }
 `;

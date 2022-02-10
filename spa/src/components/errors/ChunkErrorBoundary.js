@@ -2,7 +2,7 @@ import React from 'react';
 import * as Sentry from '@sentry/react';
 
 import * as S from '../../elements/buttons/Button.styled';
-import * as ErrorS from './ErrorFallback.styled';
+import * as ErrorS from './ChunkErrorFallback.styled';
 
 const ChunkErrorFallback = () => {
   return (

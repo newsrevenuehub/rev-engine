@@ -2,6 +2,11 @@ import styled from 'styled-components';
 
 export const DonationPage = styled.div`
   background: ${(props) => props.theme.colors.cstm_mainBackground};
+
+  label,
+  input {
+    font-family: ${(props) => props.theme.systemFont};
+  }
 `;
 
 export const NoElements = styled.h4`

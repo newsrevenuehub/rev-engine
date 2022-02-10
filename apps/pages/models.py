@@ -95,7 +95,7 @@ class Template(AbstractPage):
         template_data["name"] = f"New Page From Template ({template_data['name']})"
         template_data["slug"] = normalize_slug(name=template_data["name"])
 
-        unwanted_keys = ["_state", "id", "modified", "created", "published_date"]
+        unwanted_keys = ["_state", "id", "modified", "created", "published_date", "_history_user"]
         template = cleanup_keys(template_data, unwanted_keys)
         page = cleanup_keys(page_data, unwanted_keys)
         merged_page = template | page

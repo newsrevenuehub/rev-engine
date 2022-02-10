@@ -6,6 +6,7 @@ export const GlobalConfirmationModal = styled.div`
   background: ${(props) => props.theme.colors.white};
   padding: 2rem;
   box-shadow: ${(props) => props.theme.shadows[2]};
+  font-family: ${(props) => props.theme.systemFont};
 `;
 
 export const Warning = styled.div`
@@ -22,6 +23,7 @@ export const Icon = styled(FontAwesomeIcon)`
 
 export const Message = styled.p`
   margin: 2rem 0;
+  font-family: ${(props) => props.theme.systemFont};
 `;
 
 export const Buttons = styled.div`

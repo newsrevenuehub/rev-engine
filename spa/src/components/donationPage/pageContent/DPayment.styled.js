@@ -5,6 +5,7 @@ import { Radio as SemanticRadio } from 'semantic-ui-react';
 export const DPayment = styled.div``;
 
 export const NotLivePlaceholder = styled.div`
+  font-family: ${(props) => props.theme.systemFont};
   display: flex;
   flex-direction: column;
   align-items: center;

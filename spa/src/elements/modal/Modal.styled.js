@@ -21,7 +21,6 @@ export const Modal = styled.div`
   transform: translate(-50%, -50%);
   z-index: 1002;
   min-width: 400px;
-  min-height: 300px;
 `;
 
 export const CloseButton = styled.button`

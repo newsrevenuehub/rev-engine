@@ -14,7 +14,7 @@ export const revEngineTheme = {
 
     black: '#080708',
 
-    white: '#fff',
+    white: '#ffffff',
 
     grey: ['#eee', '#ccc', '#999', '#666', '#333'],
 
@@ -61,7 +61,17 @@ export const donationPageBase = merge({}, revEngineTheme, {
     lg: '1100px',
     xl: '1300px'
   },
-  font: { body: "'Montserrat', sans-serif", heading: "'Montserrat', sans-serif" }
+  font: { body: "'Montserrat', sans-serif", heading: "'Montserrat', sans-serif" },
+  colors: {
+    ...revEngineTheme.colors,
+    cstm_mainHeader: revEngineTheme.colors.white,
+    cstm_mainBackground: '#faf8f8',
+    cstm_formPanelBackground: revEngineTheme.colors.white,
+    cstm_CTAs: revEngineTheme.colors.primary,
+    cstm_ornaments: '#2b2869',
+    cstm_inputBackground: revEngineTheme.colors.white,
+    cstm_inputBorder: revEngineTheme.colors.black
+  }
 });
 
 export const muiThemeOverrides = createMuiTheme({

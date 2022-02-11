@@ -24,15 +24,12 @@ class StyleInlineSerializer(serializers.ModelSerializer):
     def to_internal_value(self, data):
         """
         data comes in as a dict with name and styles flattened. We need
-        to stick styles in its own value and pull out name. Also get organization
-        from request.user.
+        to stick styles in its own value and pull out name.
         """
-        organization = self.context["request"].user.get_organization()
-        if not data.get("name"):
-            raise serializers.ValidationError({"name": "This field is required."})
 
-        name = data.pop("name")
-        data = {"name": name, "organization": organization.pk, "styles": data}
+        name = data.pop("name", None)
+        revenue_program = data.pop("revenue_program", None)
+        data = {"name": name, "revenue_program": revenue_program, "styles": data}
 
         return super().to_internal_value(data)
 

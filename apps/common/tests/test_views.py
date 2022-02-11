@@ -81,8 +81,8 @@ class AdminSelectOptionsTest(TestCase):
 
         org = OrganizationFactory()
         revenue_program = RevenueProgramFactory(organization=org)
-        style1 = StyleFactory(organization=org)
-        style2 = StyleFactory(organization=org)
+        style1 = StyleFactory(revenue_program=revenue_program)
+        style2 = StyleFactory(revenue_program=revenue_program)
 
         response = self._make_request_to_view(
             parentModel=parent_model_name, accessorMethod=accessor_method, parentId=revenue_program.pk

@@ -17,11 +17,10 @@ def forwards_func(apps, schema_editor):
 
     for style in Style.objects.all():
         # RevenuePrograms that have DonationPages that use this style
-        revenue_programs = RevenueProgram.objects.filter(donationpage__styles=style)
+        revenue_programs = RevenueProgram.objects.filter(donationpage__styles=style).distinct()
 
-        # For the first RevenueProgram that has DonationPages that use this style...
         if revenue_programs:
-            # ... assign this Style to that RevenueProgram.
+            # For the first RevenueProgram that has DonationPages that use this style, assign this Style to that RevenueProgram.
             style.revenue_program = revenue_programs[0]
 
             # For the rest of the RevenuePrograms...
@@ -50,7 +49,15 @@ def forwards_func(apps, schema_editor):
 
 
 def reverse_func(apps, schema_editor):
-    pass
+    """
+    There's very little we can do here. The best we can manage is to assign Styles to the Organization
+    that their RevenueProgram belongs to. "Undoing" the duplicates is almost certainly not worth it here.
+    """
+    Style = apps.get_model("pages", "Style")
+
+    for style in Style.objects.all():
+        style.organization = style.revenue_program.organization
+        style.save()
 
 
 class Migration(migrations.Migration):

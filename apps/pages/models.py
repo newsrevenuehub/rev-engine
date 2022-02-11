@@ -204,8 +204,7 @@ class Style(IndexedTimeStampedModel, SafeDeleteModel):
     """
 
     name = models.CharField(max_length=50)
-    organization = models.ForeignKey("organizations.Organization", null=True, on_delete=models.SET_NULL)
-    revenue_program = models.ForeignKey("organizations.RevenueProgram", null=True, on_delete=models.SET_NULL)
+    revenue_program = models.ForeignKey("organizations.RevenueProgram", on_delete=models.CASCADE)
     styles = models.JSONField(validators=[style_validator])
 
     def __str__(self):

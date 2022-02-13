@@ -281,7 +281,7 @@ describe('Donation page edit', () => {
       cy.getByTestId('keep-element-changes-button').click({ force: true });
 
       // Before we save, let's close the tab so we can more meaningfully assert its presence later.
-      cy.getByTestId('preview-page-button').click();
+      cy.getByTestId('preview-page-button').click({ force: true });
       cy.getByTestId('edit-interface').should('not.exist');
 
       const expectedErrorMessage = 'Not a valid url';
@@ -291,7 +291,7 @@ describe('Donation page edit', () => {
       ).as('patchPage');
 
       // Save
-      cy.getByTestId('save-page-button').click();
+      cy.getByTestId('save-page-button').click({ force: true });
       cy.wait('@patchPage');
 
       // Now we should see the Setup tab and our error message

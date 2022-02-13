@@ -7,10 +7,11 @@ from django.http import HttpResponseRedirect
 from django.urls import reverse
 
 from safedelete.admin import SafeDeleteAdmin, highlight_deleted
+from solo.admin import SingletonModelAdmin
 from sorl.thumbnail.admin import AdminImageMixin
 
 from apps.common.admin import RevEngineBaseAdmin
-from apps.pages.models import DonationPage, Font, Style, Template
+from apps.pages import models
 
 
 logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
@@ -19,12 +20,6 @@ logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
 class DonationPageAdminAbstract(AdminImageMixin, RevEngineBaseAdmin):
     fieldsets = (
         (None, {"fields": ("name",)}),
-        (
-            None,
-            {
-                "fields": ("organization",),
-            },
-        ),
         ("Redirects", {"fields": ("thank_you_redirect", "post_thank_you_redirect")}),
         ("Header", {"fields": ("header_bg_image", "header_logo", "header_link")}),
         ("Heading", {"fields": ("heading", "graphic")}),
@@ -33,26 +28,25 @@ class DonationPageAdminAbstract(AdminImageMixin, RevEngineBaseAdmin):
     )
 
 
-@admin.register(Template)
+@admin.register(models.Template)
 class TemplateAdmin(DonationPageAdminAbstract):
     list_display = (
         "name",
         "heading",
-        "organization",
     )
     list_filter = (
         "name",
         "heading",
-        "organization",
+        "revenue_program",
     )
     ordering = (
         "name",
-        "organization__name",
+        "revenue_program__name",
     )
     search_fields = (
         "name",
         "heading",
-        "organization__name",
+        "revenue_program__name",
     )
 
     change_form_template = "pages/templates_changeform.html"
@@ -79,7 +73,7 @@ class TemplateAdmin(DonationPageAdminAbstract):
         return super().response_change(request, obj)
 
 
-@admin.register(DonationPage)
+@admin.register(models.DonationPage)
 class DonationPageAdmin(DonationPageAdminAbstract, SafeDeleteAdmin):
     fieldsets = (
         (
@@ -106,10 +100,7 @@ class DonationPageAdmin(DonationPageAdminAbstract, SafeDeleteAdmin):
         "published_date",
     ) + SafeDeleteAdmin.list_display
 
-    list_filter = (
-        "organization__name",
-        "revenue_program",
-    ) + SafeDeleteAdmin.list_filter
+    list_filter = ("revenue_program",) + SafeDeleteAdmin.list_filter
 
     order = (
         "created",
@@ -119,13 +110,15 @@ class DonationPageAdmin(DonationPageAdminAbstract, SafeDeleteAdmin):
     search_fields = (
         "name",
         "heading",
-        "organization__name",
         "revenue_program__name",
     )
 
     readonly_fields = ["email_templates", "page_screenshot"]
 
     actions = ("make_template", "undelete_selected")
+
+    # Overriding this template to add the `admin_limited_select` inclusion tag
+    change_form_template = "pages/donationpage_changeform.html"
 
     @admin.action(description="Make templates from selected pages")
     def make_template(self, request, queryset):
@@ -147,8 +140,15 @@ class DonationPageAdmin(DonationPageAdminAbstract, SafeDeleteAdmin):
                 messages.SUCCESS,
             )
 
+    def get_form(self, request, obj=None, **kwargs):
+        form = super().get_form(request, obj, **kwargs)
+        form.base_fields["styles"].widget.can_add_related = False
+        form.base_fields["styles"].widget.can_change_related = False
+        form.base_fields["styles"].widget.can_delete_related = False
+        return form
 
-@admin.register(Style)
+
+@admin.register(models.Style)
 class StyleAdmin(RevEngineBaseAdmin):
     list_display = (
         "name",
@@ -168,15 +168,20 @@ class StyleAdmin(RevEngineBaseAdmin):
     )
 
 
-@admin.register(Font)
+@admin.register(models.Font)
 class FontAdmin(RevEngineBaseAdmin):
     list_display = (
         "name",
         "source",
     )
     list_filter = ("source",)
-    order = (
+    ordering = (
         "name",
         "source",
     )
     search_fields = ("name",)
+
+
+@admin.register(models.DefaultPageLogo)
+class DefaultPageLogoAdmin(SingletonModelAdmin, AdminImageMixin):
+    pass

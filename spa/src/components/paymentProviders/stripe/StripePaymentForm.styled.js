@@ -18,12 +18,14 @@ export const EnterValidAmount = styled.h5``;
 
 export const IconWrapper = styled.div`
   display: flex;
-  justify-content: center;
+  height: 25px;
+  margin: 2rem 0;
 `;
 
 export const Icon = styled(SvgIcon)`
-  width: 100px;
-  height: auto;
+  height: 100%;
+  width: auto;
+  margin: 0 auto;
 `;
 
 export const PaymentError = styled.div`
@@ -33,11 +35,17 @@ export const PaymentError = styled.div`
 
 export const PayWithCardOption = styled.p`
   cursor: pointer;
-  color: ${(props) => props.theme.colors.primary};
   font-size: ${(props) => props.theme.fontSizes[1]};
   font-style: italic;
   text-align: center;
   padding: 2rem;
+
+  color: #4183c4;
+  text-decoration: none;
+
+  &:hover {
+    text-decoration: underline;
+  }
 `;
 
 export const CardElementStyle = (theme) => ({

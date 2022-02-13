@@ -1,7 +1,7 @@
 import styled from 'styled-components';
 
 export const SPageHeading = styled.section`
-  background: ${(props) => props.theme.colors.primary};
+  background: ${(props) => props.theme.colors.cstm_ornaments};
   padding: 1rem 3rem;
   border-top-left-radius: ${(props) => props.theme.radii[0]};
   border-top-right-radius: ${(props) => props.theme.radii[0]};

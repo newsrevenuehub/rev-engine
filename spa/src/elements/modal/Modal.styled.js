@@ -14,6 +14,7 @@ export const Underlay = styled.div`
 `;
 
 export const Modal = styled.div`
+  background: ${(props) => props.theme.colors.white};
   position: fixed;
   top: 50%;
   left: 50%;

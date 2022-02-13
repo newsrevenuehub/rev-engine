@@ -12,6 +12,9 @@ class UserBelongsToOrg(permissions.BasePermission):
     message = "User does not have permission to access this resource."
 
     def has_object_permission(self, request, view, obj):
+        if request.user.is_superuser:
+            return True
+
         # This doesn't apply to Contributors
         if isinstance(request.user, Contributor):
             return True

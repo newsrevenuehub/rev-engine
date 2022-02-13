@@ -9,7 +9,7 @@ const hasErrors = (errors) => {
 
 const renderErrors = (errors) => {
   if (Array.isArray(errors)) {
-    return errors.map((error) => <Error>{error}</Error>);
+    return errors.map((error) => <Error key={error}>{error}</Error>);
   } else return <Error>{errors}</Error>;
 };
 

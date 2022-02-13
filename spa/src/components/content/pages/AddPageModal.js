@@ -22,7 +22,7 @@ import Input from 'elements/inputs/Input';
 import Select from 'elements/inputs/Select';
 import CircleButton from 'elements/buttons/CircleButton';
 import { GENERIC_ERROR } from 'constants/textConstants';
-
+import FormErrors from 'elements/inputs/FormErrors';
 function AddPageModal({ isOpen, closeModal }) {
   const alert = useAlert();
   const theme = useTheme();
@@ -190,6 +190,7 @@ function AddPageModal({ isOpen, closeModal }) {
                 />
               </S.InputWrapper>
             )}
+            <FormErrors errors={errors?.non_field_errors} />
           </S.FormFields>
           <S.Buttons>
             <CircleButton

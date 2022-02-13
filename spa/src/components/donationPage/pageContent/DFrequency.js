@@ -1,6 +1,5 @@
 import PropTypes from 'prop-types';
 import * as S from './DFrequency.styled';
-import { useTheme } from 'styled-components';
 
 // Context
 import { usePage } from '../DonationPage';
@@ -15,7 +14,6 @@ import { InputGroup, GroupedWrapper } from 'elements/inputs/inputElements.styled
 import FormErrors from 'elements/inputs/FormErrors';
 
 function DFrequency({ element, ...props }) {
-  const theme = useTheme();
   const { page, frequency, setFrequency, setAmount, errors, setOverrideAmount } = usePage();
 
   const handleFrequencySelected = (e, checked) => {
@@ -41,9 +39,6 @@ function DFrequency({ element, ...props }) {
                 checked={frequency === freq.value}
                 onChange={handleFrequencySelected}
                 data-testid={`frequency-${freq.value}${frequency === freq.value ? '-selected' : ''}`}
-                style={{
-                  color: theme.colors.primary
-                }}
               />
               <S.CheckboxLabel htmlFor={freq.value}>{freq.displayName}</S.CheckboxLabel>
             </S.CheckBoxField>

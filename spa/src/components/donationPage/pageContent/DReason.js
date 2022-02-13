@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import PropTypes from 'prop-types';
-import { useTheme } from 'styled-components';
 import { motion } from 'framer-motion';
 
 // Styles
@@ -200,8 +199,6 @@ function TributeSelector({
 }
 
 function TributeCheckbox({ value, label, name, checked, handleChange, asRadio }) {
-  const theme = useTheme();
-
   return (
     <S.CheckBoxField>
       {asRadio ? (
@@ -212,9 +209,6 @@ function TributeCheckbox({ value, label, name, checked, handleChange, asRadio })
           onChange={handleChange}
           value={value}
           name={name}
-          style={{
-            color: theme.colors.primary
-          }}
         />
       ) : (
         <S.Checkbox
@@ -222,9 +216,6 @@ function TributeCheckbox({ value, label, name, checked, handleChange, asRadio })
           id={name}
           type="checkbox"
           name={name}
-          style={{
-            color: theme.colors.primary
-          }}
           checked={checked}
           onChange={handleChange}
         />

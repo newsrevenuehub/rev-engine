@@ -1,4 +1,4 @@
-name: tests
+name: Build and Test React Application
 
 on:
   push:
@@ -7,7 +7,20 @@ on:
       - '!*skipcy*'
 
 jobs:
-  cypress-run:
+  js-test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@v2
+      - name: Setup Node.js
+        uses: actions/setup-node@v2
+      - name: Install node dependencies, build and test
+        run: |
+          cd spa
+          npm ci
+          npm run test:ci
+
+  cypress-test:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout

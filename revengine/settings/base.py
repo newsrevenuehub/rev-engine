@@ -37,6 +37,7 @@ INSTALLED_APPS = [
     "apps.slack",
     "apps.element_media",
     "apps.public",
+    "apps.config",
     "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
@@ -421,12 +422,17 @@ SECURE_REFERRER_POLICY = "strict-origin-when-cross-origin"
 STRIPE_API_VERSION = "2020-08-27"
 
 
+# Google Tag Manager ID - Config Vars Heroku
+HUB_GTM_ID = os.getenv("HUB_GTM_ID")
+
+
 # Sentry Configuration
 SENTRY_ENABLE_FRONTEND = os.environ.get("SENTRY_ENABLE_FRONTEND", "false").lower() == "true"
 SENTRY_DSN_FRONTEND = os.environ.get("SENTRY_DSN_FRONTEND")
 
 SENTRY_ENABLE_BACKEND = os.environ.get("SENTRY_ENABLE_BACKEND", "false").lower() == "true"
 SENTRY_DSN_BACKEND = os.environ.get("SENTRY_DSN_BACKEND")
+
 
 # Front End Environment Variables - Config Vars Heroku
 SPA_ENV_VARS = {

@@ -2,7 +2,8 @@ import styled from 'styled-components';
 
 export const DonationPageNavbar = styled.header`
   width: 100%;
-  background: ${(props) => (props.bgImg ? `url(${props.bgImg})` : props.theme.colors.white)};
+  background: ${(props) =>
+    props.bgImg ? `url(${props.bgImg})` : props.theme.colors.cstm_mainHeader || props.theme.colors.white};
   background-size: cover;
   height: 60px;
   display: flex;

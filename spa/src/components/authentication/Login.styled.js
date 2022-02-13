@@ -8,7 +8,6 @@ export const Login = styled.div`
 `;
 
 export const LoginCard = styled.section`
-  margin-top: 10rem;
   padding: 4rem;
   background: ${(props) => props.theme.colors.white};
   max-width: 450px;

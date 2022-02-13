@@ -89,7 +89,7 @@ class PageFullDetailHelper:
         Once we have a donation page, we must ensure that if page is not requested live (edit mode), the requesting user has permission to view that page
         (Actual edit action protections are enforced in the views that manage them)
         """
-        if not self.donation_page.organization.user_is_member(self.request.user):
+        if not self.donation_page.organization.user_is_member(self.request.user) and not self.request.user.is_superuser:
             raise PageDetailError(
                 message="You do not have permission to edit this page", status=status.HTTP_403_FORBIDDEN
             )

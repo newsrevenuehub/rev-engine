@@ -7,7 +7,16 @@ import Input from 'elements/inputs/Input';
 export const StylesEditor = styled.div`
   display: flex;
   flex-direction: column;
-  height: 100%;
+  height: 80vh;
+  width: 85vw;
+  padding: 2rem;
+  background: ${(props) => props.theme.colors.paneBackground};
+  border-radius: ${(props) => props.theme.radii[0]};
+  overflow-y: auto;
+
+  @media (${(props) => props.theme.breakpoints.tabletLandscapeDown}) {
+    width: 95%;
+  }
 `;
 
 export const StylesForm = styled.div`
@@ -33,8 +42,13 @@ export const StylesFieldset = styled.fieldset`
 export const FieldRow = styled.div`
   display: flex;
   flex-direction: row;
+  margin-bottom: 3rem;
   & > :not(:last-child) {
     margin-right: 3rem;
+  }
+
+  @media (${(props) => props.theme.breakpoints.tabletLandscapeDown}) {
+    flex-direction: column;
   }
 `;
 
@@ -83,8 +97,6 @@ export const ColorButtonSwatch = styled.div`
 
 export const ColorButtonHex = styled.span`
   flex: 1;
-  /* color: ${(props) => props.color}; */
-  /* font-weight: bold; */
   font-weight: 200;
 `;
 
@@ -173,14 +185,12 @@ export const Checkbox = styled(SemanticRadio)`
 
 export const Buttons = styled.div`
   border-top: 1px solid ${(props) => props.theme.colors.grey[1]};
-  height: 50px;
   width: 100%;
   display: flex;
   flex-direction: row;
   justify-content: center;
   align-items: center;
-  padding-top: 1rem;
-  margin-bottom: 2rem;
+  padding: 1rem 0;
 
   & button:not(:last-child) {
     margin-right: 2rem;

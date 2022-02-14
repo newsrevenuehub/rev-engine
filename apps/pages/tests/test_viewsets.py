@@ -432,7 +432,7 @@ class StylesViewsetTest(AbstractTestCase):
             valid_styles_json[k] = v()
         self.styles_data = {
             "name": "New Test Styles",
-            "revenue_program": revenue_program.pk,
+            "revenue_program": {"name": revenue_program.name, "slug": revenue_program.slug},
             "random_property": "test",
             "colors": {"primary": "testing pink"},
             **valid_styles_json,

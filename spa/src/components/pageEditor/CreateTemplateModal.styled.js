@@ -7,9 +7,11 @@ export const CreateTemplateModal = styled.div`
   overflow-y: auto;
   background: ${(props) => props.theme.colors.paneBackground};
   border-radius: ${(props) => props.theme.radii[0]};
+  font-family: ${(props) => props.theme.systemFont};
 `;
 
 export const ModalTitle = styled.h2`
+  font-family: ${(props) => props.theme.systemFont};
   text-align: center;
   padding: 2rem 4rem 0;
 `;

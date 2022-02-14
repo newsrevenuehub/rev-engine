@@ -31,7 +31,7 @@ export const InnerContent = styled.div`
 `;
 
 export const ThankYou = styled.h2`
-  font-family: ${(props) => props.theme.systemFont};
+  font-family: ${(props) => props.theme.font.heading?.font_name};
   font-size: ${(props) => props.theme.fontSizes[4]};
   font-weight: 900;
   text-align: center;

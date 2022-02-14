@@ -19,6 +19,7 @@ export const optSwagimation = {
 };
 
 export const ThresholdMessage = styled.p`
+  font-family: ${(props) => props.theme.systemFont};
   font-style: italic;
 `;
 

@@ -28,8 +28,7 @@ export const NameInput = styled(Input)``;
 
 export const StylesFieldset = styled.fieldset`
   border: none;
-  padding: 4rem 0;
-  margin: 0;
+  margin: 4rem 0;
   &:not(:last-child) {
     border-bottom: 1px solid ${(props) => props.theme.colors.grey[1]};
   }

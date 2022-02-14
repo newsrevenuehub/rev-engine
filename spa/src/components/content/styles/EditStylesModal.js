@@ -10,7 +10,7 @@ const BASE_STYLES = donationPageBase;
 function EditStylesModal({ isOpen, closeModal, styleToEdit, onStylesUpdated }) {
   const [styles, setStyles] = useState(styleToEdit || BASE_STYLES);
 
-  const handleKeepChanges = (newStyles) => {
+  const handleKeepChanges = () => {
     onStylesUpdated();
     closeModal();
   };
@@ -23,6 +23,7 @@ function EditStylesModal({ isOpen, closeModal, styleToEdit, onStylesUpdated }) {
     <Modal isOpen={isOpen} closeModal={closeModal}>
       <S.EditStylesModal data-testid={`edit-styles-modal-${!!styleToEdit ? 'update' : 'create'}`}>
         <S.ModalTitle>{styleToEdit ? `Edit ${styleToEdit.name}` : 'Create new style'}</S.ModalTitle>
+        {styleToEdit && <S.RevenueProgramName>{styleToEdit.revenue_program?.name}</S.RevenueProgramName>}
         <StylesEditor
           isUpdate={!!styleToEdit}
           styles={styles}

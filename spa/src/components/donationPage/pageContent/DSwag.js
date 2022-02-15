@@ -139,7 +139,7 @@ function SwagItem({ swag, isOnlySwag, ...props }) {
   const swagOptions = isOnlySwag ? swag.swagOptions : [NO_SWAG_OPT].concat(swag.swagOptions);
 
   const [selectedSwagOption, setSelectedSwagOption] = useState(swagOptions[0]);
-  debugger;
+
   return (
     <InputGroup {...props} data-testid={`swag-item-${swag.swagName}`}>
       <GroupedLabel>{swag.swagName}</GroupedLabel>

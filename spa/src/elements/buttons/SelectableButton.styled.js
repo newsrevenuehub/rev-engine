@@ -12,6 +12,7 @@ export const SelectableButton = styled.div`
   cursor: pointer;
   padding: 0 1rem;
   position: relative;
+  font-family: ${(props) => props.theme.systemFont};
   font-size: ${(props) => props.theme.fontSizes[1]};
   font-weight: 700;
   color: ${(props) => (props.selected ? props.theme.colors.white : props.theme.colors.black)};

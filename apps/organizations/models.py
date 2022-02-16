@@ -81,6 +81,11 @@ class Organization(IndexedTimeStampedModel):
     uses_email_templates = models.BooleanField(default=False)
 
     @property
+    def admin_revenueprogram_options(self):
+        rps = self.revenueprogram_set.all()
+        return [(rp.name, rp.pk) for rp in rps]
+
+    @property
     def admin_benefit_options(self):
         benefits = self.benefit_set.all()
         return [(c.name, c.pk) for c in benefits]

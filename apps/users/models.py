@@ -1,4 +1,5 @@
 from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin
+from django.core.exceptions import ValidationError
 from django.db import models
 from django.utils.translation import ugettext_lazy as _
 
@@ -53,3 +54,61 @@ class OrganizationUser(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     organization = models.ForeignKey("organizations.Organization", on_delete=models.CASCADE)
     is_owner = models.BooleanField(default=False)
+
+
+class Roles(models.TextChoices):
+    HUB_ADMIN = "hub_admin", "Hub Admin"
+    ORG_ADMIN = "org_admin", "Org Admin"
+    RP_ADMIN = "rp_admin", "RP Admin"
+
+
+class RoleAssignment(models.Model):
+    user = models.OneToOneField(User, on_delete=models.CASCADE)
+    role_type = models.CharField(max_length=max(len(x) for x in Roles.values), choices=Roles.choices)
+    organization = models.ForeignKey("organizations.Organization", null=True, blank=True, on_delete=models.SET_NULL)
+    revenue_programs = models.ManyToManyField("organizations.RevenueProgram", blank=True)
+
+    def __str__(self):
+        if self.role_type == Roles.HUB_ADMIN:
+            return Roles.HUB_ADMIN.label
+        if self.role_type == Roles.ORG_ADMIN:
+            return f"{Roles.ORG_ADMIN.label} for {self.organization.name}"
+        if self.role_type == Roles.RP_ADMIN:
+            return f"{Roles.RP_ADMIN.label} for {self.organization.name}"
+        return f"Unspecified RoleAssignment ({self.pk})"
+
+    def clean(self):
+        """
+        Here we ensure that:
+        - Hub Admins do NOT have Orgs or RevenuePrograms defined
+        - Org Admins DO have an Org defined, but do NOT have RevenuePrograms defined
+        - RP Admins DO have both Orgs and RevenuePrograms defined
+        """
+        no_org_message = "This role may not be assigned an Organization"
+        no_rp_message = "This role may not be assigned RevenuePrograms"
+        missing_org_message = "This role must be assigned an Organization"
+        missing_rp_message = "This role must be assigned at least one RevenueProgram"
+
+        error_dict = {}
+
+        has_rps = self.revenue_programs.exists()
+        if self.role_type == Roles.HUB_ADMIN:
+            if self.organization:
+                error_dict["organization"] = no_org_message
+            if has_rps:
+                error_dict["revenue_programs"] = no_rp_message
+
+        if self.role_type == Roles.ORG_ADMIN:
+            if not self.organization:
+                error_dict["organization"] = missing_org_message
+            if has_rps:
+                error_dict["revenue_programs"] = no_rp_message
+
+        if self.role_type == Roles.RP_ADMIN:
+            if not self.organization:
+                error_dict["organization"] = missing_org_message
+            if not has_rps:
+                error_dict["revenue_programs"] = missing_rp_message
+
+        if error_dict:
+            raise ValidationError(error_dict)

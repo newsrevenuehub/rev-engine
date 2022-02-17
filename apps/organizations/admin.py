@@ -79,7 +79,12 @@ class OrganizationAdmin(RevEngineBaseAdmin, ReverseModelAdmin):  # pragma: no co
     organization_fieldset = (
         (
             "Organization",
-            {"fields": ("name",)},
+            {
+                "fields": (
+                    "name",
+                    "slug",
+                )
+            },
         ),
         (None, {"fields": ("salesforce_id",)}),
         (

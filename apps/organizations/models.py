@@ -15,6 +15,9 @@ from apps.organizations.validators import validate_statement_descriptor_suffix
 
 logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
 
+# RFC-1035 limits domain labels to 63 characters
+SLUG_MAX_LENGTH = 63
+
 
 class Feature(IndexedTimeStampedModel):
     VALID_BOOLEAN_INPUTS = ["t", "f", "0", "1"]
@@ -64,6 +67,12 @@ class Organization(IndexedTimeStampedModel):
     non_profit = models.BooleanField(default=True, verbose_name="Non-profit?")
     address = models.OneToOneField("common.Address", on_delete=models.CASCADE)
     salesforce_id = models.CharField(max_length=255, blank=True, verbose_name="Salesforce ID")
+
+    slug = models.SlugField(
+        max_length=SLUG_MAX_LENGTH,
+        unique=True,
+        validators=[validate_slug_against_denylist],
+    )
 
     users = models.ManyToManyField("users.User", through="users.OrganizationUser")
 
@@ -208,8 +217,7 @@ class BenefitLevelBenefit(models.Model):
 
 class RevenueProgram(IndexedTimeStampedModel):
     name = models.CharField(max_length=255)
-    # RFC-1035 limits domain labels to 63 characters
-    SLUG_MAX_LENGTH = 63
+
     slug = models.SlugField(
         max_length=SLUG_MAX_LENGTH,
         blank=True,

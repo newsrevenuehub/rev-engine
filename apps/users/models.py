@@ -31,12 +31,19 @@ class User(AbstractBaseUser, PermissionsMixin, IndexedTimeStampedModel):
     def get_short_name(self):
         return self.email
 
-    def get_organization(self):
-        """
-        We don't currently support users belonging to multiple orgs,
-        so for now, just grab the one-and-only org in their set.
-        """
+    def get_role_assignment(self):
+        try:
+            return self.roleassignment
+        except self.__class__.roleassignment.RelatedObjectDoesNotExist:
+            return None
+
+    def get_organization(self, request):
+        # ! Refactor for role assignments
         return self.organization_set.first()
+
+    def has_perm_for_resource(self, resource):
+        # ! Refactor for role assignments
+        pass
 
     def get_revenue_programs(self):
         """

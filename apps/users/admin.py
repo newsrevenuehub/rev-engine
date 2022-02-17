@@ -3,7 +3,6 @@ from django.contrib.auth.admin import UserAdmin
 from django.db.models import Q
 from django.utils.translation import ugettext_lazy as _
 
-from apps.organizations.models import Organization
 from apps.users.forms import RoleAssignmentAdminForm
 from apps.users.models import RoleAssignment, User
 
@@ -20,10 +19,7 @@ class CustomUserAdmin(UserAdmin):
     )
 
     def role_assignment(self, obj):
-        try:
-            return str(obj.roleassignment)
-        except self.model.roleassignment.RelatedObjectDoesNotExist:
-            return None
+        return str(obj.get_role_assignment())
 
     fieldsets = (
         (None, {"fields": ("email", "password")}),
@@ -45,10 +41,6 @@ class CustomUserAdmin(UserAdmin):
     add_fieldsets = ((None, {"classes": ("wide",), "fields": ("email", "password1", "password2")}),)
 
     readonly_fields = ("roleassignment",)
-
-
-class UserOrganizationInline(admin.TabularInline):
-    model = Organization.users.through
 
 
 @admin.register(RoleAssignment)

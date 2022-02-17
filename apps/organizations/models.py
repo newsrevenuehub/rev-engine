@@ -16,6 +16,9 @@ from apps.organizations.validators import validate_statement_descriptor_suffix
 logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
 
 
+SLUG_MAX_LENGTH = 63
+
+
 class Feature(IndexedTimeStampedModel):
     VALID_BOOLEAN_INPUTS = ["t", "f", "0", "1"]
 
@@ -79,11 +82,6 @@ class Organization(IndexedTimeStampedModel):
     stripe_product_id = models.CharField(max_length=255, blank=True)
     domain_apple_verified_date = models.DateTimeField(blank=True, null=True)
     uses_email_templates = models.BooleanField(default=False)
-
-    @property
-    def admin_revenueprogram_options(self):
-        rps = self.revenueprogram_set.all()
-        return [(rp.name, rp.pk) for rp in rps]
 
     @property
     def admin_benefit_options(self):
@@ -213,8 +211,6 @@ class BenefitLevelBenefit(models.Model):
 
 class RevenueProgram(IndexedTimeStampedModel):
     name = models.CharField(max_length=255)
-    # RFC-1035 limits domain labels to 63 characters
-    SLUG_MAX_LENGTH = 63
     slug = models.SlugField(
         max_length=SLUG_MAX_LENGTH,
         blank=True,

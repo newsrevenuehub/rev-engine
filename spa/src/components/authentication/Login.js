@@ -47,6 +47,7 @@ function Login({ onSuccess, message }) {
     try {
       const { data, status } = await axios.post(TOKEN, { email, password });
       if (status === 200 && data.detail === 'success') {
+        console.log('data form login', data);
         handleLoginSuccess(data);
         handlePostLogin();
       }

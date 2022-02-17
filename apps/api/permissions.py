@@ -6,7 +6,7 @@ from apps.contributions.models import Contributor
 class UserBelongsToOrg(permissions.BasePermission):
     """
     Object-level permission to only allow access to users associated with
-    an Organization that owns the resrouce.
+    an Organization that owns the resource.
     """
 
     message = "User does not have permission to access this resource."

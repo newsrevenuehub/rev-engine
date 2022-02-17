@@ -1,5 +1,4 @@
 from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin
-from django.core.exceptions import ValidationError
 from django.db import models
 from django.utils.translation import ugettext_lazy as _
 
@@ -76,39 +75,3 @@ class RoleAssignment(models.Model):
         if self.role_type == Roles.RP_ADMIN:
             return f"{Roles.RP_ADMIN.label} for {self.organization.name}"
         return f"Unspecified RoleAssignment ({self.pk})"
-
-    def clean(self):
-        """
-        Here we ensure that:
-        - Hub Admins do NOT have Orgs or RevenuePrograms defined
-        - Org Admins DO have an Org defined, but do NOT have RevenuePrograms defined
-        - RP Admins DO have both Orgs and RevenuePrograms defined
-        """
-        no_org_message = "This role may not be assigned an Organization"
-        no_rp_message = "This role may not be assigned RevenuePrograms"
-        missing_org_message = "This role must be assigned an Organization"
-        missing_rp_message = "This role must be assigned at least one RevenueProgram"
-
-        error_dict = {}
-
-        has_rps = self.revenue_programs.exists()
-        if self.role_type == Roles.HUB_ADMIN:
-            if self.organization:
-                error_dict["organization"] = no_org_message
-            if has_rps:
-                error_dict["revenue_programs"] = no_rp_message
-
-        if self.role_type == Roles.ORG_ADMIN:
-            if not self.organization:
-                error_dict["organization"] = missing_org_message
-            if has_rps:
-                error_dict["revenue_programs"] = no_rp_message
-
-        if self.role_type == Roles.RP_ADMIN:
-            if not self.organization:
-                error_dict["organization"] = missing_org_message
-            if not has_rps:
-                error_dict["revenue_programs"] = missing_rp_message
-
-        if error_dict:
-            raise ValidationError(error_dict)

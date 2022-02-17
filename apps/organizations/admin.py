@@ -219,7 +219,7 @@ class RevenueProgramAdmin(RevEngineBaseAdmin, ReverseModelAdmin, AdminImageMixin
         ),
     )
 
-    list_display = ["name", "slug"]
+    list_display = ["name", "organization", "slug"]
 
     list_filter = ["name"]
 

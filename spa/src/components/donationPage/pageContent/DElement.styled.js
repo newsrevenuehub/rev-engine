@@ -9,6 +9,7 @@ export const Label = styled.h2`
 `;
 
 export const Description = styled.p`
+  font-family: ${(props) => props.theme.systemFont};
   font-size: ${(props) => props.theme.fontSizes[1]};
   font-weight: 500;
   color: ${(props) => props.theme.colors.black};

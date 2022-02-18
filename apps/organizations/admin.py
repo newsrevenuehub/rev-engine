@@ -251,9 +251,11 @@ class RevenueProgramAdmin(RevEngineSimpleHistoryAdmin, ReverseModelAdmin, AdminI
         # the model instance downstream to the formfield_for_dbfield method.
         kwargs["formfield_callback"] = partial(self.formfield_for_dbfield, request=request, obj=obj)
         form = super().get_form(request, obj, **kwargs)
-        form.base_fields["default_donation_page"].widget.can_add_related = False
-        form.base_fields["default_donation_page"].widget.can_change_related = False
-        form.base_fields["default_donation_page"].widget.can_delete_related = False
+
+        if default_dp_field := form.base_fields.get("default_donation_page", None):
+            default_dp_field.widget.can_add_related = False
+            default_dp_field.widget.can_change_related = False
+            default_dp_field.widget.can_delete_related = False
 
         return form
 

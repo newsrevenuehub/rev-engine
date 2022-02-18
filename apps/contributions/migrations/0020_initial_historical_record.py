@@ -42,8 +42,8 @@ def create_initial_historicalrecord(apps, schema_editor):
         HistoricalContribution.objects.create(
             # Fields copied from Contribution object.
             id=contribution.id,
-            created=contributor.created,
-            modified=contributor.modified,
+            created=contribution.created,
+            modified=contribution.modified,
             amount=contribution.amount,
             currency=contribution.currency,
             reason=contribution.reason,

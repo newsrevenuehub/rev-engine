@@ -31,6 +31,14 @@ class Contributor(IndexedTimeStampedModel):
         """
         return True
 
+    @property
+    def is_superuser(self):
+        """
+        Contributors essentially impersonate Users. Ensure that they can never be superusers.
+        Note: It's useful to keep this as a property, since properties defined this way are immutable.
+        """
+        return False
+
     def __str__(self):
         return self.email
 

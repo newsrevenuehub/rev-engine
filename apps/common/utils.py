@@ -1,5 +1,18 @@
+import operator
+from functools import reduce
+
 from django.conf import settings
 from django.utils.text import slugify
+
+
+def reduce_queryset_with_filters(queryset, filters):
+    """
+    Given a queryset and a list of Q objects, return a that queryset
+    filtered by those Qs, joined with AND.
+    """
+    if not filters:
+        return queryset
+    return queryset.filter(reduce(operator.and_, filters))
 
 
 def normalize_slug(name="", slug="", max_length=50):

@@ -1,7 +1,7 @@
 import React, { lazy } from 'react';
 
 // Routing
-import { Route, BrowserRouter, Switch, Redirect } from 'react-router-dom';
+import { Route, BrowserRouter, Switch } from 'react-router-dom';
 import ProtectedRoute from 'components/authentication/ProtectedRoute';
 
 // Slugs
@@ -35,14 +35,16 @@ function DashboardRouter() {
             <Route exact path={ROUTES.LOGIN} render={() => <TrackPageView component={Login} />} />
 
             {/* Nothing lives at "/" -- redirect to dashboard  */}
-            <Route exact path="/">
+            {/* <Route exact path="/">
               <Redirect to={ROUTES.CONTENT_SLUG} />
-            </Route>
+            </Route> */}
+
+            {/* This route exists mostly for superusers-- we don't know where else to direct them by default */}
+            {/* <ProtectedRoute exact path={ROUTES.DASHBOARD_BASE} render={() => <TrackPageView component={Main} />} /> */}
 
             {/* Organization Dashboard */}
-            <ProtectedRoute path={ROUTES.DASHBOARD_SLUG} render={() => <TrackPageView component={Main} />} />
-            <ProtectedRoute path={ROUTES.EDITOR_ROUTE_PAGE} render={() => <TrackPageView component={PageEditor} />} />
-            <ProtectedRoute path={ROUTES.EDITOR_ROUTE_REV} render={() => <TrackPageView component={PageEditor} />} />
+            {/* <ProtectedRoute path={ROUTES.DASHBOARD_SLUG} render={() => <TrackPageView component={Main} />} /> */}
+            {/* <ProtectedRoute path={ROUTES.EDITOR_ROUTE_REV} render={() => <TrackPageView component={PageEditor} />} /> */}
 
             {/* Contributor Dashboard */}
             <ProtectedRoute
@@ -52,6 +54,9 @@ function DashboardRouter() {
             />
             <Route path={ROUTES.CONTRIBUTOR_ENTRY} render={() => <TrackPageView component={ContributorEntry} />} />
             <Route path={ROUTES.CONTRIBUTOR_VERIFY} render={() => <TrackPageView component={ContributorVerify} />} />
+
+            <ProtectedRoute path={ROUTES.EDITOR_ROUTE} render={() => <TrackPageView component={PageEditor} />} />
+            <ProtectedRoute path="/" render={() => <TrackPageView component={Main} />} />
           </Switch>
         </React.Suspense>
       </ChunkErrorBoundary>

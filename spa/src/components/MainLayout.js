@@ -20,6 +20,7 @@ const GlobalContext = createContext(null);
 
 function MainLayout() {
   // Global Context management
+  const [blockMainContentReason, setBlockMainContentReason] = useState(false);
   const [confirmationState, setConfirmationState] = useState({});
   const [reauthModalOpen, setReauthModalOpen] = useState(false);
 
@@ -50,7 +51,9 @@ function MainLayout() {
   };
 
   return (
-    <GlobalContext.Provider value={{ getUserConfirmation, getReauth }}>
+    <GlobalContext.Provider
+      value={{ getUserConfirmation, getReauth, blockMainContentReason, setBlockMainContentReason }}
+    >
       <AnalyticsContextWrapper>
         {/* Route to donation page if subdomain exists */}
         <S.MainLayout>

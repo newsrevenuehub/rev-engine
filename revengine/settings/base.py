@@ -102,8 +102,10 @@ REST_FRAMEWORK = {
     ],
     "DEFAULT_PERMISSION_CLASSES": [
         "rest_framework.permissions.IsAuthenticated",
+        "apps.api.permissions.HasRoleAssignment",
     ],
     "DEFAULT_PAGINATION_CLASS": "apps.api.pagination.ApiStandardPagination",
+    "DEFAULT_FILTER_BACKENDS": ["apps.api.filters.RoleAssignmentFilterBackend"],
     "PAGE_SIZE": 10,
 }
 
@@ -128,6 +130,8 @@ AUTH_COOKIE_KEY = "Authorization"
 # across origins. Once this API supports public access, this needs to be loosened.
 AUTH_COOKIE_SAMESITE = "Strict"  # or 'Lax' or None
 
+ORG_SLUG_PARAM = "orgSlug"
+RP_SLUG_PARAM = "revProgramSlug"
 
 WSGI_APPLICATION = "revengine.wsgi.application"
 

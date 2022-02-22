@@ -1,10 +1,15 @@
-// import { useCallback } from 'react';
 import axios, { AuthenticationError } from 'ajax/axios';
 import { useGlobalContext } from 'components/MainLayout';
+import { useParams } from 'react-router-dom';
 
 function useRequest() {
+  const { orgSlug, revProgramSlug } = useParams();
   const { getReauth } = useGlobalContext();
   const makeRequest = (config, callbacks) => {
+    config.params = config.params || {};
+    if (orgSlug) config.params.orgSlug = orgSlug;
+    if (revProgramSlug) config.params.revProgramSlug = revProgramSlug;
+    console.log('axios config: ', config);
     const { onSuccess, onFailure } = callbacks;
     axios.request(config).then(onSuccess, (e) => {
       if (e instanceof AuthenticationError) {

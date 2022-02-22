@@ -19,6 +19,9 @@ export const TEMPLATES = 'templates/';
 export const LIST_STYLES = 'styles/';
 export const LIST_FONTS = 'fonts/';
 
+// Orgs
+export const ORGANIZATIONS = 'organizations/';
+
 // Revenue Programs
 export const REVENUE_PROGRAMS = 'revenue-programs/';
 

@@ -37,20 +37,14 @@ class User(AbstractBaseUser, PermissionsMixin, IndexedTimeStampedModel):
         except self.__class__.roleassignment.RelatedObjectDoesNotExist:
             return None
 
-    def get_organization(self, request):
-        # ! Refactor for role assignments
-        return self.organization_set.first()
-
-    def has_perm_for_resource(self, resource):
-        # ! Refactor for role assignments
-        pass
-
     def get_revenue_programs(self):
         """
         Return queryset of revenue programs this user has permission to access
         """
-        organization = self.get_organization()
-        return organization.revenueprogram_set.all() if organization else None
+        role_assignment = self.get_role_assignment()
+        return role_assignment.revenueprogram_set.all()
+        # organization = self.get_organization()
+        # return organization.revenueprogram_set.all() if organization else None
 
     def __str__(self):
         return self.email

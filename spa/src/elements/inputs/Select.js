@@ -17,6 +17,8 @@ function Select({
   placeholder,
   testId,
   name,
+  readOnly,
+  highlighted,
   maxWidth = '100%',
   ...props
 }) {
@@ -25,6 +27,8 @@ function Select({
     selectedItem,
     onSelectedItemChange
   });
+
+  // ! WIP is making this readOnly and highlighted stuff work
 
   return (
     <BaseField labelProps={{ ...getLabelProps() }} {...props}>
@@ -37,27 +41,32 @@ function Select({
           readOnly
           inputmode="none"
         />
-        <S.CaretWrapper animate={isOpen ? 'open' : 'closed'} variants={caretVariants}>
-          <S.Caret icon={faAngleDown} />
-        </S.CaretWrapper>
-        <S.List
-          {...getMenuProps()}
-          isOpen={isOpen}
-          data-testid={`select-dropdown-${name}`}
-          dropdownPosition={dropdownPosition}
-        >
-          {isOpen &&
-            items.map((item, index) => (
-              <S.Item
-                key={`${item}${index}`}
-                highlighted={highlightedIndex === index}
-                data-testid={`select-item-${index}`}
-                {...getItemProps({ item, index })}
-              >
-                {displayAccessor ? item[displayAccessor] : item}
-              </S.Item>
-            ))}
-        </S.List>
+        {!readOnly && (
+          <>
+            {' '}
+            <S.CaretWrapper animate={isOpen ? 'open' : 'closed'} variants={caretVariants}>
+              <S.Caret icon={faAngleDown} />
+            </S.CaretWrapper>
+            <S.List
+              {...getMenuProps()}
+              isOpen={isOpen}
+              data-testid={`select-dropdown-${name}`}
+              dropdownPosition={dropdownPosition}
+            >
+              {isOpen &&
+                items.map((item, index) => (
+                  <S.Item
+                    key={`${item}${index}`}
+                    highlighted={highlightedIndex === index}
+                    data-testid={`select-item-${index}`}
+                    {...getItemProps({ item, index })}
+                  >
+                    {displayAccessor ? item[displayAccessor] : item}
+                  </S.Item>
+                ))}
+            </S.List>
+          </>
+        )}
       </S.SelectWrapper>
     </BaseField>
   );

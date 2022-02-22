@@ -14,7 +14,7 @@ import Dashboard from 'components/dashboard/Dashboard';
 // Analytics
 import { useConfigureAnalytics } from './analytics';
 
-const OrganizationContext = createContext(null);
+const ConnectContext = createContext(null);
 
 function Main() {
   // Organization Context management
@@ -32,7 +32,7 @@ function Main() {
   useConfigureAnalytics();
 
   return (
-    <OrganizationContext.Provider
+    <ConnectContext.Provider
       value={{
         paymentProviderConnectState,
         updateDefaultPaymentProvider,
@@ -45,10 +45,10 @@ function Main() {
           <Dashboard />
         </S.MainContent>
       </S.Main>
-    </OrganizationContext.Provider>
+    </ConnectContext.Provider>
   );
 }
 
-export const useOrganizationContext = () => useContext(OrganizationContext);
+export const useConnectContext = () => useContext(ConnectContext);
 
 export default Main;

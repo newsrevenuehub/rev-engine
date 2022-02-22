@@ -9,11 +9,17 @@ import { PP_STATES } from 'components/connect/BaseProviderInfo';
  * If these conditions are met, user "has payment provider"
  */
 function getGlobalPaymentProviderStatus(user) {
-  const defaultProvider = user?.organization?.default_payment_provider;
+  const organization = user?.role_assignment?.organization;
 
-  if (defaultProvider === 'stripe') {
-    const accountIdPresent = !!user?.organization?.stripe_account_id;
-    const accountVerified = !!user?.organization?.stripe_verified;
+  if (!organization) {
+    // If a user's role is not associated with any organization, they must be a hub_admin or a super user.
+    // In this case, we just tell the system that everything's fine so they can proceed.
+    return PP_STATES.CONNECTED;
+  }
+
+  if (organization.default_payment_provider === 'stripe') {
+    const accountIdPresent = !!organization.stripe_account_id;
+    const accountVerified = !!organization.stripe_verified;
     return getStripePaymentManagerProviderStatus(accountIdPresent, accountVerified);
   }
 

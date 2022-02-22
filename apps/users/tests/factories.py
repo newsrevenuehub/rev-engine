@@ -12,6 +12,11 @@ Faker.seed(0)
 DEFAULT_PASSWORD = "s3cur3pa55w0rd"
 
 
+class RoleAssignmentFactory(DjangoModelFactory):
+    class Meta:
+        model = models.RoleAssignment
+
+
 class UserFactory(DjangoModelFactory):
     class Meta:
         model = models.User

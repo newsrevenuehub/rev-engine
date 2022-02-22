@@ -49,6 +49,8 @@ class TokenObtainPairCookieView(simplejwt_views.TokenObtainPairView):
     Subclasses simplejwt's TokenObtainPairView to handle tokens in cookies
     """
 
+    permission_classes = []
+    filter_backends = []
     serializer_class = TokenObtainPairCookieSerializer
 
     def post(self, request, *args, **kwargs):
@@ -95,6 +97,7 @@ class RequestContributorTokenEmailView(APIView):
 
     authentication_classes = []
     permission_classes = []
+    filter_backends = []
     throttle_classes = [ContributorRateThrottle]
 
     def post(self, request, *args, **kwargs):

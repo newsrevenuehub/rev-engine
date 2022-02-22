@@ -1,11 +1,12 @@
 import * as S from './Dashboard.styled';
 
 // Routing
-import { Route, Switch } from 'react-router-dom';
-import { DONATIONS_SLUG, CONTENT_SLUG, ORGANIZATION_SLUG } from 'routes';
+import { Route } from 'react-router-dom';
+import { DONATIONS_SLUG, CONTENT_SLUG } from 'routes';
 
 // State
-import { useOrganizationContext } from 'components/Main';
+import { useGlobalContext } from 'components/MainLayout';
+import { useConnectContext } from 'components/Main';
 import { PP_STATES } from 'components/connect/BaseProviderInfo';
 
 // Children
@@ -14,10 +15,22 @@ import Donations from 'components/donations/Donations';
 import Content from 'components/content/Content';
 import GlobalLoading from 'elements/GlobalLoading';
 import ProviderConnect from 'components/connect/ProviderConnect';
-import Organization from 'components/organization/Organization';
+import MainContentBlocker from 'elements/MainContentBlocker';
+
+export const DASHBOARD_ROUTES = [
+  {
+    path: CONTENT_SLUG,
+    component: Content
+  },
+  {
+    path: DONATIONS_SLUG,
+    component: Donations
+  }
+];
 
 function Dashboard() {
-  const { checkingProvider, paymentProviderConnectState } = useOrganizationContext();
+  const { blockMainContentReason } = useGlobalContext();
+  const { checkingProvider, paymentProviderConnectState } = useConnectContext();
 
   const getShouldAllowDashboard = () => {
     const isConnected =
@@ -35,20 +48,16 @@ function Dashboard() {
     <S.Dashboard data-testid="dashboard">
       <DashboardSidebar shouldAllowDashboard={getShouldAllowDashboard()} />
       <S.DashboardMain>
+        {blockMainContentReason && <MainContentBlocker message={blockMainContentReason} />}
         {checkingProvider && <GlobalLoading />}
         <S.DashboardContent>
           {getShouldAllowDashboard() && (
-            <Switch>
-              <Route path={ORGANIZATION_SLUG}>
-                <Organization />
-              </Route>
-              <Route path={DONATIONS_SLUG}>
-                <Donations />
-              </Route>
-              <Route path={CONTENT_SLUG}>
-                <Content />
-              </Route>
-            </Switch>
+            <>
+              {DASHBOARD_ROUTES.map((route) => (
+                <Route path={route.path} component={route.component} />
+              ))}
+              =
+            </>
           )}
           {getShouldRequireConnect() && <ProviderConnect />}
         </S.DashboardContent>

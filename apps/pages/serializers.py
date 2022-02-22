@@ -27,6 +27,7 @@ class StyleInlineSerializer(serializers.ModelSerializer):
         to stick styles in its own value and pull out name. Also get organization
         from request.user.
         """
+        # TODO: Get organization from filter, not request.user
         organization = self.context["request"].user.get_organization()
         if not data.get("name"):
             raise serializers.ValidationError({"name": "This field is required."})

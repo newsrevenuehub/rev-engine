@@ -45,7 +45,10 @@ def forwards_func(apps, schema_editor):
             # Organization owns.
             style.revenue_program = style.organization.revenueprogram_set.first()
 
-        style.save()
+        if style.revenue_program.style_set.filter(name=style.name).exists():
+            style.delete()
+        else:
+            style.save()
 
 
 def reverse_func(apps, schema_editor):

@@ -4,7 +4,7 @@ import SvgIcon from 'assets/icons/SvgIcon';
 import { motion } from 'framer-motion';
 
 export const DashboardSidebar = styled.aside`
-  width: 180px;
+  width: 220px;
   height: 100%;
   padding-top: 2rem;
   background: ${(props) => props.theme.colors.paneBackground};
@@ -77,4 +77,10 @@ export const LogoutIcon = styled(SvgIcon)`
   height: 10px;
   margin-right: 0.75rem;
   transform: rotate(180deg);
+`;
+
+export const Pickers = styled.div``;
+
+export const SelectWrapper = styled.div`
+  padding: 1rem;
 `;

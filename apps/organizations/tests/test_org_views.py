@@ -14,6 +14,7 @@ from apps.organizations.tests.factories import (
     RevenueProgramFactory,
 )
 from apps.pages.tests.factories import DonationPageFactory
+from apps.users.tests.utils import create_test_user
 
 
 user_model = get_user_model()
@@ -124,7 +125,7 @@ class PlanViewSetTest(APITestCase):
             PlanFactory()
         self.list_url = reverse("plan-list")
         self.detail_url = "/api/v1/plans"
-        self.user = user_model.objects.create_user(email="test@test.com", password="testing")
+        self.user = create_test_user()
         self.client.force_authenticate(user=self.user)
 
     def test_reverse_works(self):

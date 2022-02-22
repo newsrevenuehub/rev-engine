@@ -11,7 +11,7 @@ from rest_framework_simplejwt.exceptions import InvalidToken
 from rest_framework_simplejwt.tokens import AccessToken
 
 from apps.api.authentication import JWTHttpOnlyCookieAuthentication
-from apps.api.permissions import ContributorOwnsContribution, IsContributor, UserBelongsToOrg
+from apps.api.permissions import ContributorOwnsContribution, IsContributor
 from apps.contributions.tests.factories import ContributionFactory, ContributorFactory
 from apps.organizations.tests.factories import OrganizationFactory
 from apps.pages.tests.factories import StyleFactory
@@ -97,28 +97,28 @@ class JWTCookieAuthenticationTest(APITestCase):
             JWTHttpOnlyCookieAuthentication().authenticate(self.request)
 
 
-class UserBelongsToOrgPermissionTest(APITestCase):
-    class UnrelatedObject:
-        pass
+# class UserBelongsToOrgPermissionTest(APITestCase):
+#     class UnrelatedObject:
+#         pass
 
-    def setUp(self):
-        factory = RequestFactory()
-        self.request = factory.get(reverse("donationpage-list"))
-        self.user = user_model.objects.create_user(email="test@test.com", password="testing")
-        self.request.user = self.user
-        self.org = OrganizationFactory()
-        self.style = StyleFactory(org=self.org)
+#     def setUp(self):
+#         factory = RequestFactory()
+#         self.request = factory.get(reverse("donationpage-list"))
+#         self.user = user_model.objects.create_user(email="test@test.com", password="testing")
+#         self.request.user = self.user
+#         self.org = OrganizationFactory()
+#         self.style = StyleFactory(org=self.org)
 
-    def test_object_with_wrong_org_forbidden(self):
-        self.assertFalse(UserBelongsToOrg().has_object_permission(self.request, {}, self.style))
+#     def test_object_with_wrong_org_forbidden(self):
+#         self.assertFalse(UserBelongsToOrg().has_object_permission(self.request, {}, self.style))
 
-    def test_object_with_correct_org_allowed(self):
-        self.user.organizations.add(self.org)
-        self.assertTrue(UserBelongsToOrg().has_object_permission(self.request, {}, self.style))
+#     def test_object_with_correct_org_allowed(self):
+#         self.user.organizations.add(self.org)
+#         self.assertTrue(UserBelongsToOrg().has_object_permission(self.request, {}, self.style))
 
-    def test_object_with_no_org_allowed(self):
-        unrelated_object = self.UnrelatedObject()
-        self.assertTrue(UserBelongsToOrg().has_object_permission(self.request, {}, unrelated_object))
+#     def test_object_with_no_org_allowed(self):
+#         unrelated_object = self.UnrelatedObject()
+#         self.assertTrue(UserBelongsToOrg().has_object_permission(self.request, {}, unrelated_object))
 
 
 class IsContributorTest(APITestCase):

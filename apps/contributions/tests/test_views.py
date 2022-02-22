@@ -1,5 +1,6 @@
 from unittest.mock import patch
 
+from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.test import override_settings
 from django.urls import reverse
@@ -16,6 +17,7 @@ from apps.contributions.tests.factories import ContributionFactory, ContributorF
 from apps.contributions.views import stripe_payment
 from apps.organizations.tests.factories import OrganizationFactory, RevenueProgramFactory
 from apps.pages.tests.factories import DonationPageFactory
+from apps.users.tests.utils import create_test_user
 
 
 faker = Faker()
@@ -164,7 +166,7 @@ expected_oauth_scope = "my_test_scope"
 @override_settings(STRIPE_OAUTH_SCOPE=expected_oauth_scope)
 class StripeOAuthTest(APITestCase):
     def setUp(self):
-        self.user = get_user_model().objects.create(email="user@test.com", password="testing")
+        self.user = create_test_user()
         self.organization = OrganizationFactory(name="My Organization")
         self.organization.user_set.through.objects.create(organization=self.organization, user=self.user, is_owner=True)
 
@@ -177,7 +179,7 @@ class StripeOAuthTest(APITestCase):
             body["code"] = code
         if scope:
             body["scope"] = scope
-        return self.client.post(self.url, body)
+        return self.client.post(self.url + f"?{settings.ORG_SLUG_PARAM}={self.organization.slug}", body)
 
     @patch("stripe.OAuth.token")
     def test_response_when_missing_params(self, stripe_oauth_token):
@@ -255,7 +257,7 @@ class MockStripeProduct(StripeObject):
 @patch("stripe.Product.create", side_effect=MockStripeProduct)
 class StripeConfirmTest(APITestCase):
     def setUp(self):
-        self.user = get_user_model().objects.create(email="user@test.com", password="testing")
+        self.user = create_test_user()
         self.organization = OrganizationFactory(name="My Organization")
         self.organization.user_set.add(self.user)
         self.url = reverse("stripe-confirmation")
@@ -268,7 +270,7 @@ class StripeConfirmTest(APITestCase):
         self.organization.refresh_from_db()
 
         self.client.force_authenticate(user=self.user)
-        return self.client.post(self.url)
+        return self.client.post(self.url + f"?{settings.ORG_SLUG_PARAM}={self.organization.slug}")
 
     @patch("stripe.Account.retrieve", side_effect=MockStripeAccountEnabled)
     def test_confirm_already_verified(self, mock_account_retrieve, *args):
@@ -354,7 +356,7 @@ class StripeConfirmTest(APITestCase):
 
 class TestContributionsViewSet(APITestCase):
     def setUp(self):
-        self.user = get_user_model().objects.create(email="user@org1.com", password="testing")
+        self.user = create_test_user()
         self.organization1 = OrganizationFactory(name="Organization 1")
         self.organization1.user_set.add(self.user)
         self.organization2 = OrganizationFactory(name="Organization 2")
@@ -374,7 +376,7 @@ class TestContributionsViewSet(APITestCase):
                 organization=self.organization2,
             )
 
-        self.url = reverse("contributions-list")
+        self.url = reverse("contributions-list") + f"?{settings.ORG_SLUG_PARAM}={self.organization1.slug}"
 
     def test_happy_path(self):
         """Should get back only contributions belonging to my org"""
@@ -536,7 +538,7 @@ class CancelRecurringPaymentTest(APITestCase):
 @patch("apps.contributions.models.Contribution.process_flagged_payment")
 class ProcessFlaggedContributionTest(APITestCase):
     def setUp(self):
-        self.user = get_user_model().objects.create(email="user@test.com", password="testing")
+        self.user = create_test_user()
         self.subscription_id = "test-subscription-id"
         self.stripe_account_id = "testing-stripe-account-id"
         self.org = OrganizationFactory(stripe_account_id=self.stripe_account_id)

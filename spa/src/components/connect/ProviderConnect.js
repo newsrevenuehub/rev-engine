@@ -1,4 +1,4 @@
-import { useState, createContext, useContext } from 'react';
+import { createContext, useContext } from 'react';
 import * as S from './ProviderConnect.styled';
 
 // AJAX
@@ -6,7 +6,7 @@ import useRequest from 'hooks/useRequest';
 import { USER } from 'ajax/endpoints';
 
 // Context
-import { useOrganizationContext } from 'components/Main';
+import { useConnectContext } from 'components/Main';
 
 // Deps
 import { useAlert } from 'react-alert';
@@ -24,7 +24,7 @@ const ProviderFetchContext = createContext();
 function ProviderConnect() {
   const alert = useAlert();
   const requestUpdateUser = useRequest();
-  const { updateDefaultPaymentProvider } = useOrganizationContext();
+  const { updateDefaultPaymentProvider } = useConnectContext();
 
   const handleConnectSuccess = () => {
     requestUpdateUser(

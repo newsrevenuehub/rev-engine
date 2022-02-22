@@ -19,9 +19,6 @@ logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
 SLUG_MAX_LENGTH = 63
 
 
-SLUG_MAX_LENGTH = 63
-
-
 class Feature(IndexedTimeStampedModel):
     VALID_BOOLEAN_INPUTS = ["t", "f", "0", "1"]
 
@@ -91,6 +88,11 @@ class Organization(IndexedTimeStampedModel):
     stripe_product_id = models.CharField(max_length=255, blank=True)
     domain_apple_verified_date = models.DateTimeField(blank=True, null=True)
     uses_email_templates = models.BooleanField(default=False)
+
+    @property
+    def admin_revenueprogram_options(self):
+        rps = self.revenueprogram_set.all()
+        return [(rp.name, rp.pk) for rp in rps]
 
     @property
     def admin_benefit_options(self):
@@ -275,8 +277,8 @@ class RevenueProgram(IndexedTimeStampedModel):
 
     def clean_fields(self, **kwargs):
         if not self.id:
-            self.slug = normalize_slug(self.name, self.slug, max_length=self.SLUG_MAX_LENGTH)
-            self.slug = normalize_slug(slug=self.slug, max_length=self.SLUG_MAX_LENGTH)
+            self.slug = normalize_slug(self.name, self.slug, max_length=SLUG_MAX_LENGTH)
+            self.slug = normalize_slug(slug=self.slug, max_length=SLUG_MAX_LENGTH)
         super().clean_fields(**kwargs)
 
     def clean(self):

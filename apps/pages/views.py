@@ -7,9 +7,9 @@ from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
-from apps.api.permissions import UserBelongsToOrg
+from apps.api.filters import RoleAssignmentFilterBackend
+from apps.api.permissions import reset_permission_classes
 from apps.element_media.models import MediaImage
-from apps.organizations.views import OrganizationLimitedListView, RevenueProgramLimitedMixin
 from apps.pages import serializers
 from apps.pages.helpers import PageDetailError, PageFullDetailHelper
 from apps.pages.models import DonationPage, Font, Style, Template
@@ -18,10 +18,10 @@ from apps.pages.models import DonationPage, Font, Style, Template
 logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
 
 
-class PageViewSet(RevenueProgramLimitedMixin, viewsets.ModelViewSet):
+class PageViewSet(viewsets.ModelViewSet):
     model = DonationPage
-    permission_classes = [IsAuthenticated, UserBelongsToOrg]
-    filter_backends = [filters.OrderingFilter]
+    queryset = DonationPage.objects.all()
+    filter_backends = [RoleAssignmentFilterBackend, filters.OrderingFilter]
     ordering_fields = ["username", "email"]
     ordering = ["published_date", "name"]
     # We don't expect orgs to have a huge number of pages here.
@@ -103,9 +103,9 @@ class PageViewSet(RevenueProgramLimitedMixin, viewsets.ModelViewSet):
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 
-class TemplateViewSet(RevenueProgramLimitedMixin, viewsets.ModelViewSet):
+class TemplateViewSet(viewsets.ModelViewSet):
     model = Template
-    permission_classes = [IsAuthenticated, UserBelongsToOrg]
+    queryset = Template.objects.all()
     pagination_class = None
 
     def get_serializer_class(self):
@@ -120,15 +120,16 @@ class TemplateViewSet(RevenueProgramLimitedMixin, viewsets.ModelViewSet):
         )
 
 
-class StyleViewSet(OrganizationLimitedListView, viewsets.ModelViewSet):
+class StyleViewSet(viewsets.ModelViewSet):
     model = Style
-    permission_classes = [IsAuthenticated, UserBelongsToOrg]
+    queryset = Style.objects.all()
     serializer_class = serializers.StyleListSerializer
     pagination_class = None
 
 
 class FontViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = Font.objects.all()
-    permission_classes = [IsAuthenticated]
+    # Don't require a RoleAssignment for this endpoint.
+    permission_classes = reset_permission_classes([IsAuthenticated])
     serializer_class = serializers.FontSerializer
     pagination_class = None

@@ -5,6 +5,7 @@ from rest_framework.test import APITestCase
 from apps.organizations.models import Organization, RevenueProgram
 from apps.organizations.tests.factories import OrganizationFactory, RevenueProgramFactory
 from apps.pages.tests.factories import DonationPageFactory
+from apps.users.tests.utils import create_test_user
 
 
 user_model = get_user_model()
@@ -52,7 +53,7 @@ class AbstractTestCase(APITestCase):
     def create_user(self):
         self.email = "test@test.gov"
         self.password = "testpassy"
-        self.user = user_model.objects.create_user(email=self.email, password=self.password)
+        self.user = create_test_user()
 
     def authenticate_user_for_resource(self, resource=None):
         if resource:

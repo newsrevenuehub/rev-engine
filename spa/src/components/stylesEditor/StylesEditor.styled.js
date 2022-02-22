@@ -17,6 +17,19 @@ export const StylesEditor = styled.div`
   @media (${(props) => props.theme.breakpoints.tabletLandscapeDown}) {
     width: 95%;
   }
+
+  font-family: ${(props) => props.theme.systemFont};
+
+  p {
+    font-family: ${(props) => props.theme.systemFont};
+  }
+
+  h2,
+  h3,
+  h4,
+  h5 {
+    font-family: ${(props) => props.theme.systemFont};
+  }
 `;
 
 export const StylesForm = styled.div`
@@ -83,15 +96,13 @@ export const ColorButton = styled.button`
 `;
 
 export const ColorButtonSwatch = styled.div`
-  border-top-left-radius: ${(props) => props.theme.radii[0]};
-  border-bottom-left-radius: ${(props) => props.theme.radii[0]};
-  border: 1px solid;
+  border-top-left-radius: calc(${(props) => props.theme.radii[0]} - 1px);
+  border-bottom-left-radius: calc(${(props) => props.theme.radii[0]} - 1px);
+  border-right: 1px solid;
   border-color: ${(props) => props.theme.colors.grey[1]};
-  border-right: none;
   background: ${(props) => props.color};
   width: 30px;
-  height: calc(100% + 2px);
-  margin-left: -1px;
+  height: 100%;
 `;
 
 export const ColorButtonHex = styled.span`

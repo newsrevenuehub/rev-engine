@@ -26,6 +26,7 @@ import DonationDetail from 'components/donations/DonationDetail';
 import DonationsTable from 'components/donations/DonationsTable';
 import { StatusCellIcon } from 'components/contributor/contributorDashboard/ContributorDashboard';
 import Filters from 'components/donations/filters/Filters';
+import GenericErrorBoundary from 'components/errors/GenericErrorBoundary';
 
 const IS_URGENT_THRESHOLD_DAYS = 1;
 const IS_SOON_THRESHOLD_DAYS = 2;
@@ -137,13 +138,15 @@ function Donations() {
         <Route>
           <DashboardSection heading="Donations">
             <Filters filters={filters} handleFilterChange={handleFilterChange} donationsCount={donationsCount} />
-            <DonationsTable
-              onRowClick={handleRowClick}
-              columns={columns}
-              fetchDonations={fetchDonations}
-              pageIndex={pageIndex}
-              onPageChange={handlePageChange}
-            />
+            <GenericErrorBoundary>
+              <DonationsTable
+                onRowClick={handleRowClick}
+                columns={columns}
+                fetchDonations={fetchDonations}
+                pageIndex={pageIndex}
+                onPageChange={handlePageChange}
+              />
+            </GenericErrorBoundary>
           </DashboardSection>
         </Route>
       </Switch>

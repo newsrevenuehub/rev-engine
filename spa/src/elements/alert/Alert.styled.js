@@ -8,6 +8,7 @@ export const Alert = styled.div`
   max-width: 400px;
   padding: 2rem;
   border-radius: ${(props) => props.theme.radii[0]};
+  font-family: ${(props) => props.theme.systemFont};
 
   ${(props) => {
     if (props.type === 'info') {

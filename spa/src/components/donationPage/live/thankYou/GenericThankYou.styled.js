@@ -7,6 +7,7 @@ export const GenericThankYou = styled.main`
   display: flex;
   flex-direction: column;
   background: ${(props) => props.theme.colors.cstm_mainBackground || props.theme.colors.white};
+  font-family: ${(props) => props.theme.systemFont};
 `;
 
 export const Wrapper = styled.div`
@@ -30,6 +31,7 @@ export const InnerContent = styled.div`
 `;
 
 export const ThankYou = styled.h2`
+  font-family: ${(props) => props.theme.font.heading?.font_name};
   font-size: ${(props) => props.theme.fontSizes[4]};
   font-weight: 900;
   text-align: center;
@@ -44,7 +46,9 @@ export const ThankYou = styled.h2`
 
 export const TextSection = styled.div``;
 
-export const Text = styled.p``;
+export const Text = styled.p`
+  font-family: ${(props) => props.theme.systemFont};
+`;
 
 export const SocialShareSection = styled.div`
   margin-top: 3rem;
@@ -75,6 +79,7 @@ export const SocialShareItem = styled.li`
 `;
 
 const SocialShareButton = styled.a`
+  font-family: ${(props) => props.theme.systemFont};
   background: none;
   border: none;
   display: flex;
@@ -114,4 +119,6 @@ export const SocialIcon = styled(FontAwesomeIcon)`
   margin-right: 0.5rem;
 `;
 
-export const Redirect = styled(Button)``;
+export const Redirect = styled(Button)`
+  font-family: ${(props) => props.theme.systemFont};
+`;

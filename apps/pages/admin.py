@@ -10,14 +10,14 @@ from safedelete.admin import SafeDeleteAdmin, highlight_deleted
 from solo.admin import SingletonModelAdmin
 from sorl.thumbnail.admin import AdminImageMixin
 
-from apps.common.admin import RevEngineBaseAdmin
+from apps.common.admin import RevEngineSimpleHistoryAdmin
 from apps.pages import models
 
 
 logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
 
 
-class DonationPageAdminAbstract(AdminImageMixin, RevEngineBaseAdmin):
+class DonationPageAdminAbstract(AdminImageMixin, RevEngineSimpleHistoryAdmin):
     fieldsets = (
         (None, {"fields": ("name",)}),
         ("Redirects", {"fields": ("thank_you_redirect", "post_thank_you_redirect")}),
@@ -149,7 +149,7 @@ class DonationPageAdmin(DonationPageAdminAbstract, SafeDeleteAdmin):
 
 
 @admin.register(models.Style)
-class StyleAdmin(RevEngineBaseAdmin):
+class StyleAdmin(RevEngineSimpleHistoryAdmin):
     list_display = (
         "name",
         "organization",
@@ -169,7 +169,7 @@ class StyleAdmin(RevEngineBaseAdmin):
 
 
 @admin.register(models.Font)
-class FontAdmin(RevEngineBaseAdmin):
+class FontAdmin(RevEngineSimpleHistoryAdmin):
     list_display = (
         "name",
         "source",

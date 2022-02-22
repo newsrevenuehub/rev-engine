@@ -34,7 +34,6 @@ import { useAnalyticsContext } from 'components/analytics/AnalyticsContext';
 
 // Children
 import BaseField from 'elements/inputs/BaseField';
-import Button from 'elements/buttons/Button';
 import { ICONS } from 'assets/icons/SvgIcon';
 import { PayFeesWidget } from 'components/donationPage/pageContent/DPayment';
 import DonationPageDisclaimer from 'components/donationPage/DonationPageDisclaimer';
@@ -306,14 +305,14 @@ function StripePaymentForm({ loading, setLoading, offerPayFees }) {
             </S.PaymentError>
           )}
           {offerPayFees && <PayFeesWidget />}
-          <Button
+          <S.PaymentSubmitButton
             onClick={handleCardSubmit}
             disabled={!cardReady || loading || disabled || succeeded || !amountIsValid}
             loading={loading}
             data-testid="donation-submit"
           >
             {getButtonText()}
-          </Button>
+          </S.PaymentSubmitButton>
         </S.StripePaymentForm>
       )}
 

@@ -25,6 +25,7 @@ export const OtherAmount = styled.div`
   line-height: 48px;
   padding: 0 1rem;
   font-size: ${(props) => props.theme.fontSizes[1]};
+  font-family: ${(props) => props.theme.systemFont};
   font-weight: 700;
 
   @media (${(props) => props.theme.breakpoints.phoneOnly}) {

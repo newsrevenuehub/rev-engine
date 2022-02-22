@@ -5,6 +5,7 @@ import { Radio as SemanticRadio } from 'semantic-ui-react';
 export const DPayment = styled.div``;
 
 export const NotLivePlaceholder = styled.div`
+  font-family: ${(props) => props.theme.systemFont};
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -21,6 +22,7 @@ export const PayFees = styled.div`
 `;
 
 export const PayFeesQQ = styled.h5`
+  font-family: ${(props) => props.theme.systemFont};
   font-size: ${(props) => props.theme.fontSizes[1]};
   font-weight: 500;
   margin: 1rem 0;
@@ -34,6 +36,7 @@ export const Checkbox = styled(SemanticRadio)`
 `;
 
 export const PayFeesDescription = styled.p`
+  font-family: ${(props) => props.theme.systemFont};
   font-size: ${(props) => props.theme.fontSizes[0]};
   line-height: 1.3;
   padding: 0.5rem 0;

@@ -31,6 +31,7 @@ export const Icon = styled(SvgIcon)`
 export const PaymentError = styled.div`
   margin-bottom: 2rem;
   color: ${(props) => props.theme.colors.caution};
+  font-family: ${(props) => props.theme.systemFont};
 `;
 
 export const PayWithCardOption = styled.p`
@@ -53,7 +54,7 @@ export const CardElementStyle = (theme) => ({
     iconColor: '#666ee8',
     color: '#31325f',
     fontWeight: 400,
-    fontFamily: theme.font.body?.font_name,
+    fontFamily: theme.systemFont,
     fontSmoothing: 'antialiased',
     fontSize: theme.fontSizes[1],
     '::placeholder': {

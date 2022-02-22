@@ -7,7 +7,7 @@ from django.db.models import Q
 from django_reverse_admin import ReverseModelAdmin
 from sorl.thumbnail.admin import AdminImageMixin
 
-from apps.common.admin import RevEngineBaseAdmin
+from apps.common.admin import RevEngineSimpleHistoryAdmin
 from apps.organizations.forms import FeatureForm
 from apps.organizations.models import (
     Benefit,
@@ -76,7 +76,7 @@ class BenefitLevelBenefit(NoRelatedInlineAddEditAdminMixin, ReadOnlyOrgLimitedTa
 
 
 @admin.register(Organization)
-class OrganizationAdmin(RevEngineBaseAdmin, ReverseModelAdmin):  # pragma: no cover
+class OrganizationAdmin(RevEngineSimpleHistoryAdmin, ReverseModelAdmin):  # pragma: no cover
     organization_fieldset = (
         (
             "Organization",
@@ -130,7 +130,7 @@ class OrganizationAdmin(RevEngineBaseAdmin, ReverseModelAdmin):  # pragma: no co
 
 
 @admin.register(Benefit)
-class BenefitAdmin(RevEngineBaseAdmin):
+class BenefitAdmin(RevEngineSimpleHistoryAdmin):
     list_display = ["name", "description", "organization"]
 
     list_filter = ["organization"]
@@ -139,7 +139,7 @@ class BenefitAdmin(RevEngineBaseAdmin):
 
 
 @admin.register(BenefitLevel)
-class BenefitLevelAdmin(RevEngineBaseAdmin):
+class BenefitLevelAdmin(RevEngineSimpleHistoryAdmin):
     list_display = ["name", "donation_range", "organization"]
 
     list_filter = ["organization"]
@@ -171,7 +171,7 @@ class BenefitLevelAdmin(RevEngineBaseAdmin):
 
 
 @admin.register(RevenueProgram)
-class RevenueProgramAdmin(RevEngineBaseAdmin, ReverseModelAdmin, AdminImageMixin):  # pragma: no cover
+class RevenueProgramAdmin(RevEngineSimpleHistoryAdmin, ReverseModelAdmin, AdminImageMixin):  # pragma: no cover
     fieldsets = (
         (
             "RevenueProgram",
@@ -250,7 +250,14 @@ class RevenueProgramAdmin(RevEngineBaseAdmin, ReverseModelAdmin, AdminImageMixin
         # self.formfield_for_dbfield, and pass in an extra argument, obj. In this way, we're passing
         # the model instance downstream to the formfield_for_dbfield method.
         kwargs["formfield_callback"] = partial(self.formfield_for_dbfield, request=request, obj=obj)
-        return super().get_form(request, obj, **kwargs)
+        form = super().get_form(request, obj, **kwargs)
+
+        if default_dp_field := form.base_fields.get("default_donation_page", None):
+            default_dp_field.widget.can_add_related = False
+            default_dp_field.widget.can_change_related = False
+            default_dp_field.widget.can_delete_related = False
+
+        return form
 
     def formfield_for_dbfield(self, db_field, **kwargs):
         # Here, use the `obj` arg added to the partial derivation of this method above to get the instance.
@@ -266,7 +273,7 @@ class RevenueProgramAdmin(RevEngineBaseAdmin, ReverseModelAdmin, AdminImageMixin
 
 
 @admin.register(Plan)
-class PlanAdmin(RevEngineBaseAdmin):  # pragma: no cover
+class PlanAdmin(RevEngineSimpleHistoryAdmin):  # pragma: no cover
     fieldsets = (("Plan", {"fields": ("name", "features")}),)
 
     list_display = ["name"]
@@ -275,7 +282,7 @@ class PlanAdmin(RevEngineBaseAdmin):  # pragma: no cover
 
 
 @admin.register(Feature)
-class FeatureAdmin(RevEngineBaseAdmin):  # pragma: no cover
+class FeatureAdmin(RevEngineSimpleHistoryAdmin):  # pragma: no cover
     form = FeatureForm
     fieldsets = (("Feature", {"fields": ("name", "feature_type", "feature_value", "description")}),)
 

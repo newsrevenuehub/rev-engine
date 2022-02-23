@@ -166,20 +166,18 @@ class PageViewSetTest(AbstractTestCase):
         user_org = self.orgs[0]
         user.organizations.add(user_org)
 
-        user_pages = DonationPage.objects.filter(revenue_program=user_org.revenueprogram_set.first())
-
         list_url = reverse("donationpage-list")
 
-        self.authenticate_user_for_resource(user_pages[0])
+        # self.authenticate_user_for_resource(user_pages[0])
         self.login()
         response = self.client.get(list_url)
         data = response.json()
-
+        expected_pages = DonationPage.objects.all()
         # Should return expected number of pages
-        self.assertEqual(user_pages.count(), len(data))
+        self.assertEqual(expected_pages.count(), len(data))
 
         returned_ids = [p["id"] for p in data]
-        expected_ids = [p.id for p in user_pages]
+        expected_ids = list(expected_pages.values_list("pk", flat=True))
         # Should return expected pages
         self.assertEqual(set(expected_ids), set(returned_ids))
 

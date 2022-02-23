@@ -5,8 +5,8 @@ from rest_framework import serializers
 from rest_framework.validators import UniqueTogetherValidator
 from sorl_thumbnail_serializer.fields import HyperlinkedSorlImageField
 
-from apps.api.error_messages import UNIQUE_PAGE_SLUG
-from apps.organizations.models import RevenueProgram
+from apps.api.error_messages import GENERIC_BLANK, GENERIC_NOT_FOUND, UNIQUE_PAGE_SLUG
+from apps.organizations.models import Organization, RevenueProgram
 from apps.organizations.serializers import (
     BenefitLevelDetailSerializer,
     RevenueProgramListInlineSerializer,
@@ -27,12 +27,17 @@ class StyleInlineSerializer(serializers.ModelSerializer):
         to stick styles in its own value and pull out name. Also get organization
         from request.user.
         """
-        # TODO: Get organization from filter, not request.user
-        organization = self.context["request"].user.get_organization()
-        if not data.get("name"):
-            raise serializers.ValidationError({"name": "This field is required."})
+        name = data.pop("name", None)
+        if not name:
+            raise serializers.ValidationError({"name": GENERIC_BLANK})
 
-        name = data.pop("name")
+        try:
+            organization = Organization.objects.get(slug=data.pop("organization_slug"))
+        except KeyError:
+            raise serializers.ValidationError({"organization_slug": GENERIC_BLANK})
+        except Organization.DoesNotExist:
+            raise serializers.ValidationError({"organization_slug": GENERIC_NOT_FOUND})
+
         data = {"name": name, "organization": organization.pk, "styles": data}
 
         return super().to_internal_value(data)

@@ -17,6 +17,7 @@ from apps.pages.models import DonationPage, Style, Template
 from apps.pages.tests.factories import DonationPageFactory, StyleFactory, TemplateFactory
 from apps.pages.validators import required_style_keys
 from apps.pages.views import PageViewSet
+from apps.users.models import Roles
 from apps.users.tests.utils import create_test_user
 
 
@@ -138,9 +139,14 @@ class PageViewSetTest(AbstractTestCase):
         page = self.resources[0]
         org = self.resources[1].organization
         self.assertNotEqual(page.organization, org)
-        org.users.add(self.user)
-        org.save()
-
+        # org.users.add(self.user)
+        # org.save()
+        self.user = create_test_user(
+            role_assignment_data={
+                "role_type": Roles.ORG_ADMIN,
+                "organization": org,
+            },
+        )
         detail_url = f"/api/v1/pages/{page.pk}/"
         self.login()
         response = self.client.delete(detail_url)

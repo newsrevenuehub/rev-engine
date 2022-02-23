@@ -6,7 +6,8 @@ from django.db.models.query import QuerySet
 from rest_framework.reverse import reverse
 from rest_framework.test import APIRequestFactory, APITestCase
 
-from apps.api.filters import ALL_ACCESSOR, RoleAssignmentFilterBackend
+from apps.api.filters import RoleAssignmentFilterBackend
+from apps.api.permissions import ALL_ACCESSOR
 from apps.common.utils import reduce_queryset_with_filters
 from apps.organizations.tests.factories import OrganizationFactory, RevenueProgramFactory
 from apps.pages.models import DonationPage

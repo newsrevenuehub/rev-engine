@@ -19,7 +19,7 @@ class TestCustomPasswordResetView(TestCase):
     def setUp(self):
         self.client = Client()
         self.mailbox = mail.outbox
-        self.staff_user = create_test_user()
+        self.staff_user = user_model.objects.create_superuser(email="test_superuser@test.com", password="testing")
         organization = OrganizationFactory()
         self.org_admin_user = create_test_user()
         self.org_admin_user.organizations.add(organization)

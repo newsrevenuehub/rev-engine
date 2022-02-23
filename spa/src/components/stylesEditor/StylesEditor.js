@@ -4,7 +4,7 @@ import * as S from './StylesEditor.styled';
 
 // AJAX
 import useRequest from 'hooks/useRequest';
-import { LIST_STYLES, LIST_FONTS } from 'ajax/endpoints';
+import { LIST_STYLES, LIST_FONTS, REVENUE_PROGRAMS } from 'ajax/endpoints';
 
 // Assets
 import { faSave, faTimes, faTrash } from '@fortawesome/free-solid-svg-icons';
@@ -34,7 +34,11 @@ function StylesEditor({ styles, setStyles, handleKeepChanges, handleDiscardChang
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
   const [availableFonts, setAvailableFonts] = useState([]);
+  const [availableRevenuePrograms, setAvailableRevenuePrograms] = useState([]);
+
   const requestGetFonts = useRequest();
+  const requestGetRevenuePrograms = useRequest();
+
   const requestCreateStyles = useRequest();
   const requestUpdateStyles = useRequest();
   const requestDeleteStyles = useRequest();
@@ -79,6 +83,23 @@ function StylesEditor({ styles, setStyles, handleKeepChanges, handleDiscardChang
         onSuccess: ({ data }) => {
           setLoading(false);
           setAvailableFonts(data);
+        },
+        onFailure: () => {
+          setLoading(false);
+          alert.error(GENERIC_ERROR);
+        }
+      }
+    );
+  }, [alert]);
+
+  useEffect(() => {
+    setLoading(true);
+    requestGetRevenuePrograms(
+      { method: 'GET', url: REVENUE_PROGRAMS },
+      {
+        onSuccess: ({ data }) => {
+          setLoading(false);
+          setAvailableRevenuePrograms(data);
         },
         onFailure: () => {
           setLoading(false);
@@ -166,13 +187,27 @@ function StylesEditor({ styles, setStyles, handleKeepChanges, handleDiscardChang
   return (
     <S.StylesEditor>
       <S.StylesForm>
-        <S.NameInput
-          label="Name this set of styles"
-          value={styles.name || ''}
-          onChange={(e) => setName(e.target.value)}
-          errors={errors.name}
-          required
-        />
+        <S.FieldRow>
+          <S.NameInput
+            label="Name this set of styles"
+            value={styles.name || ''}
+            onChange={(e) => setName(e.target.value)}
+            errors={errors.name}
+            required
+          />
+        </S.FieldRow>
+        {!isUpdate && (
+          <Select
+            label="Select a revenue program"
+            items={availableRevenuePrograms}
+            selectedItem={styles.revenue_program}
+            onSelectedItemChange={({ selectedItem }) => setStyles({ ...styles, revenue_program: selectedItem })}
+            testId="heading-font-select"
+            name="revenue_program"
+            placeholder="Select a revenue program"
+            displayAccessor="name"
+          />
+        )}
         <StylesFieldset label="Colors">
           <S.FieldRow>
             <ColorPicker

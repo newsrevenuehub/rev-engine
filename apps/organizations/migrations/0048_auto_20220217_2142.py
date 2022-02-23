@@ -9,7 +9,11 @@ def forwards(apps, *args):
     org_model = apps.get_model("organizations", "Organization")
 
     for org in org_model.objects.all():
-        org.slug = normalize_slug(name=org.name)
+        new_slug = normalize_slug(name=org.name)
+        if org_model.objects.filter(slug=new_slug).exists():
+            org.slug = new_slug + "-duplicate"
+        else:
+            org.slug = new_slug
         org.save()
 
 

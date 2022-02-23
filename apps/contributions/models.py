@@ -3,6 +3,7 @@ import uuid
 from django.db import models
 
 import stripe
+from simple_history.models import HistoricalRecords
 
 from apps.common.models import IndexedTimeStampedModel
 from apps.slack.models import SlackNotificationTypes
@@ -12,6 +13,9 @@ from apps.slack.slack_manager import SlackManager
 class Contributor(IndexedTimeStampedModel):
     uuid = models.UUIDField(default=uuid.uuid4, primary_key=False, editable=False)
     email = models.EmailField(unique=True)
+
+    # A history of changes to this model, using django-simple-history.
+    history = HistoricalRecords()
 
     @property
     def contributions_count(self):
@@ -85,6 +89,9 @@ class Contribution(IndexedTimeStampedModel):
     contribution_metadata = models.JSONField(null=True)
 
     status = models.CharField(max_length=10, choices=ContributionStatus.choices, null=True)
+
+    # A history of changes to this model, using django-simple-history.
+    history = HistoricalRecords()
 
     class Meta:
         get_latest_by = "modified"

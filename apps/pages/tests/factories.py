@@ -1,7 +1,7 @@
 import factory
 from factory.django import DjangoModelFactory
 
-from apps.organizations.tests.factories import OrganizationFactory, RevenueProgramFactory
+from apps.organizations.tests.factories import RevenueProgramFactory
 from apps.pages import models
 
 
@@ -32,9 +32,4 @@ class StyleFactory(DjangoModelFactory):
 
     name = factory.Sequence(lambda n: "Test Style %d" % n)
     styles = {"colors": {"primary": "testing-pink"}}
-
-    @factory.lazy_attribute
-    def organization(self):
-        if self.org:
-            return self.org
-        return OrganizationFactory()
+    revenue_program = factory.SubFactory(RevenueProgramFactory)

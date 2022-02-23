@@ -403,11 +403,13 @@ class StylesViewsetTest(AbstractTestCase):
         self.list_url = reverse("style-list")
         self.create_resources()
         self.authenticate_user_for_resource(self.resources[0])
+        revenue_program = RevenueProgramFactory()
         valid_styles_json = {}
         for k, v in required_style_keys.items():
             valid_styles_json[k] = v()
         self.styles_data = {
             "name": "New Test Styles",
+            "revenue_program": {"name": revenue_program.name, "slug": revenue_program.slug},
             "random_property": "test",
             "colors": {"primary": "testing pink"},
             **valid_styles_json,

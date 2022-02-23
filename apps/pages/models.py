@@ -207,11 +207,11 @@ class DonationPage(AbstractPage, SafeDeleteModel):
 
 class Style(IndexedTimeStampedModel, SafeDeleteModel):
     """
-    Ties a set of styles to a page. Discoverable by name, belonging to an Organization.
+    Ties a set of styles to a page. Discoverable by name, belonging to a RevenueProgram.
     """
 
     name = models.CharField(max_length=50)
-    organization = models.ForeignKey("organizations.Organization", on_delete=models.CASCADE)
+    revenue_program = models.ForeignKey("organizations.RevenueProgram", on_delete=models.CASCADE)
     styles = models.JSONField(validators=[style_validator])
 
     # A history of changes to this model, using django-simple-history.
@@ -223,7 +223,7 @@ class Style(IndexedTimeStampedModel, SafeDeleteModel):
     class Meta:
         unique_together = (
             "name",
-            "organization",
+            "revenue_program",
         )
 
         ordering = ["-created", "name"]

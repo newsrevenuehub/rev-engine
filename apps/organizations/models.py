@@ -276,7 +276,7 @@ class RevenueProgram(IndexedTimeStampedModel):
 
     @property
     def admin_style_options(self):
-        styles = self.organization.style_set.all()
+        styles = self.style_set.all()
         return [(c.name, c.pk) for c in styles]
 
     def __str__(self):

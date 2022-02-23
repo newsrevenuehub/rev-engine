@@ -9,7 +9,7 @@ from rest_framework.response import Response
 
 from apps.api.permissions import UserBelongsToOrg
 from apps.element_media.models import MediaImage
-from apps.organizations.views import OrganizationLimitedListView, RevenueProgramLimitedMixin
+from apps.organizations.views import RevenueProgramLimitedMixin
 from apps.pages import serializers
 from apps.pages.helpers import PageDetailError, PageFullDetailHelper
 from apps.pages.models import DonationPage, Font, Style, Template
@@ -120,7 +120,7 @@ class TemplateViewSet(RevenueProgramLimitedMixin, viewsets.ModelViewSet):
         )
 
 
-class StyleViewSet(OrganizationLimitedListView, viewsets.ModelViewSet):
+class StyleViewSet(RevenueProgramLimitedMixin, viewsets.ModelViewSet):
     model = Style
     permission_classes = [IsAuthenticated, UserBelongsToOrg]
     serializer_class = serializers.StyleListSerializer

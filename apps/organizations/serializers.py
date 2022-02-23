@@ -75,6 +75,7 @@ class RevenueProgramSerializer(serializers.ModelSerializer):
             "id",
             "name",
             "slug",
+            "benefit_levels",
         ]
 
 

@@ -152,19 +152,19 @@ class DonationPageAdmin(DonationPageAdminAbstract, SafeDeleteAdmin):
 class StyleAdmin(RevEngineSimpleHistoryAdmin):
     list_display = (
         "name",
-        "organization",
+        "revenue_program",
     )
     list_filter = (
         "name",
-        "organization",
+        "revenue_program",
     )
     order = (
         "name",
-        "organization__name",
+        "revenue_program__name",
     )
     search_fields = (
         "name",
-        "organization__name",
+        "revenue_program__name",
     )
 
 

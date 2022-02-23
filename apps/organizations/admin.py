@@ -80,7 +80,12 @@ class OrganizationAdmin(RevEngineSimpleHistoryAdmin, ReverseModelAdmin):  # prag
     organization_fieldset = (
         (
             "Organization",
-            {"fields": ("name",)},
+            {
+                "fields": (
+                    "name",
+                    "slug",
+                )
+            },
         ),
         (None, {"fields": ("salesforce_id",)}),
         (

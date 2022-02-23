@@ -51,7 +51,8 @@ class AbstractPage(IndexedTimeStampedModel):
 
     @property
     def organization(self):
-        return self.revenue_program.organization
+        if self.revenue_program:
+            return self.revenue_program.organization
 
     @classmethod
     def field_names(cls):

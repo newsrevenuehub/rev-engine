@@ -3,6 +3,7 @@ from django.utils import timezone
 
 from rest_framework.exceptions import ValidationError
 from safedelete.models import SafeDeleteModel
+from simple_history.models import HistoricalRecords
 from solo.models import SingletonModel
 from sorl.thumbnail import ImageField as SorlImageField
 
@@ -50,7 +51,8 @@ class AbstractPage(IndexedTimeStampedModel):
 
     @property
     def organization(self):
-        return self.revenue_program.organization
+        if self.revenue_program:
+            return self.revenue_program.organization
 
     @classmethod
     def field_names(cls):
@@ -68,6 +70,9 @@ class Template(AbstractPage):
     # 'elements' is special. It has a default value when on a DonationPage
     # but should not have a default as a Template
     elements = models.JSONField(null=True, blank=True, default=list)
+
+    # A history of changes to this model, using django-simple-history.
+    history = HistoricalRecords()
 
     class TemplateError(Exception):
         pass
@@ -91,7 +96,7 @@ class Template(AbstractPage):
         template_data["name"] = f"New Page From Template ({template_data['name']})"
         template_data["slug"] = normalize_slug(name=template_data["name"])
 
-        unwanted_keys = ["_state", "id", "modified", "created", "published_date"]
+        unwanted_keys = ["_state", "id", "modified", "created", "published_date", "_history_user"]
         template = cleanup_keys(template_data, unwanted_keys)
         page = cleanup_keys(page_data, unwanted_keys)
         merged_page = template | page
@@ -118,6 +123,9 @@ class DonationPage(AbstractPage, SafeDeleteModel):
     page_screenshot = SorlImageField(null=True, blank=True, upload_to=_get_screenshot_upload_path)
 
     email_templates = models.ManyToManyField("emails.PageEmailTemplate", blank=True)
+
+    # A history of changes to this model, using django-simple-history.
+    history = HistoricalRecords()
 
     class Meta:
         unique_together = (
@@ -200,12 +208,15 @@ class DonationPage(AbstractPage, SafeDeleteModel):
 
 class Style(IndexedTimeStampedModel, SafeDeleteModel):
     """
-    Ties a set of styles to a page. Discoverable by name, belonging to an Organization.
+    Ties a set of styles to a page. Discoverable by name, belonging to a RevenueProgram.
     """
 
     name = models.CharField(max_length=50)
-    organization = models.ForeignKey("organizations.Organization", on_delete=models.CASCADE)
+    revenue_program = models.ForeignKey("organizations.RevenueProgram", on_delete=models.CASCADE)
     styles = models.JSONField(validators=[style_validator])
+
+    # A history of changes to this model, using django-simple-history.
+    history = HistoricalRecords()
 
     def __str__(self):
         return self.name
@@ -213,7 +224,7 @@ class Style(IndexedTimeStampedModel, SafeDeleteModel):
     class Meta:
         unique_together = (
             "name",
-            "organization",
+            "revenue_program",
         )
 
         ordering = ["-created", "name"]
@@ -235,6 +246,9 @@ class Font(models.Model):
         max_length=255,
         help_text="For typekit fonts, use the kitId. For google fonts, use the value of the 'family' query param",
     )
+
+    # A history of changes to this model, using django-simple-history.
+    history = HistoricalRecords()
 
     def __str__(self):
         return f"{self.name} ({self.source})"

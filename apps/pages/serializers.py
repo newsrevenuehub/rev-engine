@@ -10,6 +10,7 @@ from apps.organizations.models import RevenueProgram
 from apps.organizations.serializers import (
     BenefitLevelDetailSerializer,
     RevenueProgramListInlineSerializer,
+    RevenueProgramSerializer,
 )
 from apps.pages.models import DonationPage, Font, Style, Template
 
@@ -24,15 +25,12 @@ class StyleInlineSerializer(serializers.ModelSerializer):
     def to_internal_value(self, data):
         """
         data comes in as a dict with name and styles flattened. We need
-        to stick styles in its own value and pull out name. Also get organization
-        from request.user.
+        to stick styles in its own value and pull out name.
         """
-        organization = self.context["request"].user.get_organization()
-        if not data.get("name"):
-            raise serializers.ValidationError({"name": "This field is required."})
 
-        name = data.pop("name")
-        data = {"name": name, "organization": organization.pk, "styles": data}
+        name = data.pop("name", None)
+        revenue_program = data.pop("revenue_program", None)
+        data = {"name": name, "revenue_program": revenue_program, "styles": data}
 
         return super().to_internal_value(data)
 
@@ -42,7 +40,23 @@ class StyleInlineSerializer(serializers.ModelSerializer):
 
 
 class StyleListSerializer(StyleInlineSerializer):
+    revenue_program = RevenueProgramSerializer()
     used_live = serializers.SerializerMethodField()
+
+    def create(self, validated_data):
+        self.set_revenue_program(validated_data)
+        return super().create(validated_data)
+
+    def set_revenue_program(self, validated_data):
+        rp_data = validated_data.get("revenue_program")
+        if not rp_data:
+            raise serializers.ValidationError(
+                {"revenue_program": "revenue_program is required when creating a new Style"}
+            )
+        try:
+            validated_data["revenue_program"] = RevenueProgram.objects.get(slug=rp_data["slug"])
+        except RevenueProgram.DoesNotExist:
+            raise serializers.ValidationError({"revenue_program": "no such revenue_program"})
 
     def get_used_live(self, obj):
         return DonationPage.objects.filter(styles=obj, published_date__lte=timezone.now()).exists()

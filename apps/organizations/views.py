@@ -17,24 +17,24 @@ logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
 
 class OrganizationViewSet(viewsets.ReadOnlyModelViewSet):
     model = Organization
+    queryset = Organization.objects.all()
     permission_classes = append_permission_classes([ReadOnly])
     serializer_class = serializers.OrganizationSerializer
     pagination_class = None
-
-    # TEMP
-    queryset = Organization.objects.all()
 
 
 class FeatureViewSet(viewsets.ReadOnlyModelViewSet, ReadOnly):
     model = Feature
     queryset = Feature.objects.all()
     serializer_class = serializers.FeatureSerializer
+    pagination_class = None
 
 
 class PlanViewSet(viewsets.ReadOnlyModelViewSet, ReadOnly):
     model = Plan
     queryset = Plan.objects.all()
     serializer_class = serializers.PlanSerializer
+    pagination_class = None
 
 
 class RevenueProgramViewSet(viewsets.ReadOnlyModelViewSet, ReadOnly):
@@ -42,6 +42,3 @@ class RevenueProgramViewSet(viewsets.ReadOnlyModelViewSet, ReadOnly):
     queryset = RevenueProgram.objects.all()
     serializer_class = serializers.RevenueProgramSerializer
     pagination_class = None
-
-    # TEMP
-    queryset = RevenueProgram.objects.all()

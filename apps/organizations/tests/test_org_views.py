@@ -30,8 +30,8 @@ class OrganizationViewSetTest(AbstractTestCase):
         response = self.client.get(self.list_url)
         self.assertEqual(response.status_code, 200)
         orgs = Organization.objects.all()
-        self.assertEqual(response.json()["count"], len(orgs))
-        org_names = [o["name"] for o in response.json()["results"]]
+        self.assertEqual(len(response.json()), len(orgs))
+        org_names = [o["name"] for o in response.json()]
         expected_org_names = [o.name for o in orgs]
         self.assertEqual(org_names, expected_org_names)
 
@@ -71,7 +71,7 @@ class RevenueProgramViewSetTest(AbstractTestCase):
         self.login()
         response = self.client.get(self.list_url)
         self.assertEqual(response.status_code, 200)
-        expected_count = RevenueProgram.objects.filter(organization=self.user.get_organization()).count()
+        expected_count = RevenueProgram.objects.count()
         self.assertEqual(len(response.json()), expected_count)
 
     def test_created_and_list_are_equivalent(self):
@@ -79,16 +79,7 @@ class RevenueProgramViewSetTest(AbstractTestCase):
         self.authenticate_user_for_resource(revp)
         self.login()
         response = self.client.get(self.list_url)
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(
-            [x["id"] for x in response.json()],
-            [
-                x
-                for x in RevenueProgram.objects.filter(organization=self.user.get_organization()).values_list(
-                    "pk", flat=True
-                )
-            ],
-        )
+        self.assertEqual([x["id"] for x in response.json()], list(RevenueProgram.objects.values_list("pk", flat=True)))
 
     def test_viewset_is_readonly(self):
         """
@@ -135,8 +126,8 @@ class PlanViewSetTest(APITestCase):
     def test_list_returns_expected_count(self):
         response = self.client.get(self.list_url)
         self.assertEqual(response.status_code, 200)
-        self.assertNotEqual(response.json()["count"], 0)
-        self.assertEqual(response.json()["count"], Plan.objects.count())
+        self.assertNotEqual(len(response.json()), 0)
+        self.assertEqual(len(response.json()), Plan.objects.count())
 
 
 class FeatureViewSetTest(APITestCase):

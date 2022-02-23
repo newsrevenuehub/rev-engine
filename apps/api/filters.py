@@ -28,10 +28,10 @@ class RoleAssignmentFilterBackend(filters.BaseFilterBackend):
 
         # Prevent users who have not been assigned a Role from viewing resources
         role_assignment = request.user.get_role_assignment()
-        if not role_assignment:
+        if not role_assignment and not request.user.is_superuser:
             return queryset.none()
 
-        user_role = role_assignment.role_type
+        user_role = role_assignment.role_type if role_assignment else None
 
         # If this isn't a ModelViewSet, we don't have anything to filter here.
         if not hasattr(view, "model"):
@@ -76,7 +76,7 @@ class RoleAssignmentFilterBackend(filters.BaseFilterBackend):
         This is a request for Orgs. org_slug does not come in to play here, only
         the role_type.
         """
-        if role_assignment.role_type != Roles.HUB_ADMIN:
+        if role_assignment and role_assignment.role_type != Roles.HUB_ADMIN:
             return queryset.filter(pk=role_assignment.organization.pk)
         return queryset
 
@@ -87,7 +87,7 @@ class RoleAssignmentFilterBackend(filters.BaseFilterBackend):
         """
         filters = []
         qs = queryset
-        if role_assignment.role_type != Roles.HUB_ADMIN:
+        if role_assignment and role_assignment.role_type != Roles.HUB_ADMIN:
             qs = role_assignment.revenue_programs.all()
 
         if org_slug and org_slug != ALL_ACCESSOR:

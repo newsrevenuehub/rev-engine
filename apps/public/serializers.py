@@ -26,6 +26,7 @@ class BenefitLevelSerializer(serializers.ModelSerializer):
     class Meta:
         model = BenefitLevel
         fields = [
+            "id",
             "name",
             "donation_range",
             "benefits",

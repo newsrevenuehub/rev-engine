@@ -11,7 +11,8 @@ Faker.seed(0)
 
 
 def create_test_user(user=None, role_assignment_data=None):
-    user = get_user_model().objects.create_user(email=fake.email(), password="testing")
+    if not user:
+        user = get_user_model().objects.create_user(email=fake.email(), password="testing")
     if role_assignment_data:
         RoleAssignment.objects.create(user=user, **role_assignment_data)
     else:

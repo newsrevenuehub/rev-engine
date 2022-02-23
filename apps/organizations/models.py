@@ -6,6 +6,7 @@ from django.db import models
 from django.utils import timezone
 
 import stripe
+from simple_history.models import HistoricalRecords
 
 from apps.common.models import IndexedTimeStampedModel
 from apps.common.utils import normalize_slug
@@ -39,6 +40,9 @@ class Feature(IndexedTimeStampedModel):
     )
     description = models.TextField(blank=True)
 
+    # A history of changes to this model, using django-simple-history.
+    history = HistoricalRecords()
+
     class Meta:
         unique_together = ["feature_type", "feature_value"]
 
@@ -52,6 +56,9 @@ class Feature(IndexedTimeStampedModel):
 class Plan(IndexedTimeStampedModel):
     name = models.CharField(max_length=255)
     features = models.ManyToManyField("organizations.Feature", related_name="plans", blank=True)
+
+    # A history of changes to this model, using django-simple-history.
+    history = HistoricalRecords()
 
     def __str__(self):  # pragma: no cover
         return self.name
@@ -88,6 +95,9 @@ class Organization(IndexedTimeStampedModel):
     stripe_product_id = models.CharField(max_length=255, blank=True)
     domain_apple_verified_date = models.DateTimeField(blank=True, null=True)
     uses_email_templates = models.BooleanField(default=False)
+
+    # A history of changes to this model, using django-simple-history.
+    history = HistoricalRecords()
 
     @property
     def admin_benefit_options(self):
@@ -142,6 +152,9 @@ class BenefitLevel(IndexedTimeStampedModel):
 
     organization = models.ForeignKey(Organization, on_delete=models.CASCADE)
 
+    # A history of changes to this model, using django-simple-history.
+    history = HistoricalRecords()
+
     def __str__(self):  # pragma: no cover
         return self.name
 
@@ -184,6 +197,9 @@ class Benefit(IndexedTimeStampedModel):
     name = models.CharField(max_length=128, help_text="A way to uniquely identify this Benefit")
     description = models.TextField(help_text="The text that appears on the donation page")
     organization = models.ForeignKey("organizations.Organization", on_delete=models.CASCADE)
+
+    # A history of changes to this model, using django-simple-history.
+    history = HistoricalRecords()
 
     def __str__(self):
         return self.name
@@ -263,9 +279,12 @@ class RevenueProgram(IndexedTimeStampedModel):
         verbose_name="Allow page editors to offer an NYT subscription",
     )
 
+    # A history of changes to this model, using django-simple-history.
+    history = HistoricalRecords()
+
     @property
     def admin_style_options(self):
-        styles = self.organization.style_set.all()
+        styles = self.style_set.all()
         return [(c.name, c.pk) for c in styles]
 
     def __str__(self):

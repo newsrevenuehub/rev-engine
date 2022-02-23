@@ -1,5 +1,6 @@
 import styled from 'styled-components';
 import SvgIcon from 'assets/icons/SvgIcon';
+import Button from 'elements/buttons/Button';
 import { baseInputStyles } from 'elements/inputs/BaseField.styled';
 
 export const StripePaymentForm = styled.div``;
@@ -47,6 +48,10 @@ export const PayWithCardOption = styled.p`
   &:hover {
     text-decoration: underline;
   }
+`;
+
+export const PaymentSubmitButton = styled(Button)`
+  font-family: ${(props) => props.theme.systemFont};
 `;
 
 export const CardElementStyle = (theme) => ({

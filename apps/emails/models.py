@@ -4,6 +4,8 @@ from django.conf import settings
 from django.db import models
 from django.utils import timezone
 
+from simple_history.models import HistoricalRecords
+
 from apps.emails.tasks import send_donor_email
 
 
@@ -87,6 +89,9 @@ class PageEmailTemplate(BaseEmailTemplate):
     TODO: Allow update of template on the ESP.
     TODO: Allow deletion of template on the ESP
     """
+
+    # A history of changes to this model, using django-simple-history.
+    history = HistoricalRecords()
 
     @staticmethod
     def get_template(template_type, donation_page):

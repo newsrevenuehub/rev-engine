@@ -53,6 +53,7 @@ INSTALLED_APPS = [
     "anymail",
     "django_json_widget",
     "safedelete",
+    "simple_history",
     "health_check",
     "health_check.db",
     "health_check.cache",
@@ -72,6 +73,7 @@ MIDDLEWARE = [
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "apps.common.middleware.LogFourHundredsMiddleware",
     "csp.middleware.CSPMiddleware",
+    "simple_history.middleware.HistoryRequestMiddleware",
 ]
 
 ROOT_URLCONF = "revengine.urls"

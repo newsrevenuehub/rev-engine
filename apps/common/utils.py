@@ -42,3 +42,28 @@ def get_subdomain_from_request(request):
     if len(split_host) > 2 and not split_host[0] in settings.NON_DONATION_PAGE_SUBDOMAINS:
         subdomain = split_host[0]
     return subdomain
+
+
+def get_changes_from_prev_history_obj(obj):
+    """
+    Return the changes for a particular historical record object.
+
+    :param obj: an instance of a historical record, for example, a HistoricalOrganization.
+                The HistoricalOrganization database table was added when the Organization
+                model added a 'history' field that points to simple_history.models.HistoricalRecords.
+    """
+    changes_list = []
+    if obj.prev_record:
+        delta = obj.diff_against(obj.prev_record)
+
+        for change in delta.changes:
+            field = obj._meta.get_field(change.field)
+            field_verbose_name = field.verbose_name
+            # Write the changed data to changes_list. If the field is a JSONField,
+            # then just write the field name to changes_list, since the data
+            # will be very long.
+            if field.get_internal_type() in ["JSONField"]:
+                changes_list.append(f"'{field_verbose_name}' changed")
+            else:
+                changes_list.append(f"'{field_verbose_name}' changed from '{change.old}' to '{change.new}'")
+    return changes_list

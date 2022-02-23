@@ -13,8 +13,7 @@ from rest_framework_simplejwt.tokens import AccessToken
 from apps.api.authentication import JWTHttpOnlyCookieAuthentication
 from apps.api.permissions import ContributorOwnsContribution, IsContributor
 from apps.contributions.tests.factories import ContributionFactory, ContributorFactory
-from apps.organizations.tests.factories import OrganizationFactory
-from apps.pages.tests.factories import StyleFactory
+from apps.organizations.tests.factories import OrganizationFactory, RevenueProgramFactory
 
 
 user_model = get_user_model()

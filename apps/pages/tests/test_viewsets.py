@@ -17,6 +17,7 @@ from apps.pages.models import DonationPage, Style, Template
 from apps.pages.tests.factories import DonationPageFactory, StyleFactory, TemplateFactory
 from apps.pages.validators import required_style_keys
 from apps.pages.views import PageViewSet
+from apps.users.tests.utils import create_test_user
 
 
 user_model = get_user_model()
@@ -393,28 +394,6 @@ class TemplateViewSetTest(AbstractTestCase):
 
         list_url = reverse("donationpage-list")
         response = self.client.get(list_url)
-
-    def test_template_list_results_are_limited_by_ownership(self):
-        user = user_model.objects.create()
-        user_org = self.orgs[0]
-        user.organizations.add(user_org)
-
-        user_templates = self.model.objects.filter(revenue_program=user_org.revenueprogram_set.first())
-
-        list_url = reverse("template-list")
-
-        self.authenticate_user_for_resource(user_templates[0])
-        self.login()
-        response = self.client.get(list_url)
-        data = response.json()
-
-        # Should return expected number of pages
-        self.assertEqual(user_templates.count(), len(data))
-
-        returned_ids = [p["id"] for p in data]
-        expected_ids = [p.id for p in user_templates]
-        # Should return expected pages
-        self.assertEqual(set(expected_ids), set(returned_ids))
 
 
 class StylesViewsetTest(AbstractTestCase):

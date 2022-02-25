@@ -29,7 +29,7 @@ class RevenueProgramLimitedMixin:
 
     def get_queryset(self):
         """
-        Filter quersets such that only instances belonging to revenue programs this user has access to are returned.
+        Filter querysets such that only instances belonging to revenue programs this user has access to are returned.
         """
         model_has_rp_rel = hasattr(self.model, "revenue_program")
         if model_has_rp_rel and not self.request.user.is_superuser:

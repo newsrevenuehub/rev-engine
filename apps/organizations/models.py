@@ -114,6 +114,13 @@ class Organization(IndexedTimeStampedModel):
         benefit_levels = self.benefitlevel_set.all()
         return [(c.name, c.pk) for c in benefit_levels]
 
+    @property
+    def needs_payment_provider(self):
+        """
+        Right now this is simple. If the org is not "stripe_verified", then they "need a provider"
+        """
+        return not self.stripe_verified
+
     def __str__(self):
         return self.name
 

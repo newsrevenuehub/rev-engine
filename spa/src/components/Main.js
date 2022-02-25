@@ -1,54 +1,98 @@
-import { useState, useContext, createContext, useCallback } from 'react';
-
+import React, { createContext, useState, useContext } from 'react';
 import * as S from './Main.styled';
 
-// Utils
-import getGlobalPaymentProviderStatus from 'utilities/getGlobalPaymentProviderStatus';
+// Hooks
+import useSubdomain from 'hooks/useSubdomain';
 
-// AJAX
-import { LS_USER } from 'settings';
-
-// Children
-import Dashboard from 'components/dashboard/Dashboard';
+// Constants
+import { ORG_PORTAL_SUBDOMAINS } from 'settings';
 
 // Analytics
-import { useConfigureAnalytics } from './analytics';
+import { AnalyticsContextWrapper } from './analytics/AnalyticsContext';
 
-const ConnectContext = createContext(null);
+// Constants
+import * as ROUTES from 'routes';
+
+// Routing
+import { Route, BrowserRouter, Switch } from 'react-router-dom';
+import ProtectedRoute from 'components/authentication/ProtectedRoute';
+import GlobalLoading from 'elements/GlobalLoading';
+import ChunkErrorBoundary from 'components/errors/ChunkErrorBoundary';
+
+// Utilities
+import componentLoader from 'utilities/componentLoader';
+
+// Children
+import GlobalConfirmationModal from 'elements/modal/GlobalConfirmationModal';
+import DonationPageRouter from 'components/DonationPageRouter';
+import OrgPortalRouter from 'components/OrgPortalRouter';
+import TrackPageView from 'components/analytics/TrackPageView';
+
+const ContributorEntry = React.lazy(() => componentLoader(() => import('components/contributor/ContributorEntry')));
+const ContributorVerify = React.lazy(() => componentLoader(() => import('components/contributor/ContributorVerify')));
+const ContributorDashboard = React.lazy(() =>
+  componentLoader(() => import('components/contributor/contributorDashboard/ContributorDashboard'))
+);
+
+const GlobalContext = createContext(null);
 
 function Main() {
-  // Organization Context management
-  const [checkingProvider, setCheckingProvider] = useState(false);
-  const [paymentProviderConnectState, setPaymentProviderConnectState] = useState(
-    getGlobalPaymentProviderStatus(JSON.parse(localStorage.getItem(LS_USER)))
-  );
+  // Global Context management
 
-  const updateDefaultPaymentProvider = useCallback((updatedUser) => {
-    setCheckingProvider(true);
-    setPaymentProviderConnectState(getGlobalPaymentProviderStatus(updatedUser));
-    setCheckingProvider(false);
-  }, []);
+  const [confirmationState, setConfirmationState] = useState({});
 
-  useConfigureAnalytics();
+  // Get subdomain for donation-page-routing
+  const subdomain = useSubdomain();
+
+  const getUserConfirmation = (message, onConfirm, onDecline) => {
+    setConfirmationState({ message, onConfirm, onDecline, isOpen: true });
+  };
 
   return (
-    <ConnectContext.Provider
-      value={{
-        paymentProviderConnectState,
-        updateDefaultPaymentProvider,
-        checkingProvider,
-        setCheckingProvider
-      }}
-    >
-      <S.Main>
-        <S.MainContent>
-          <Dashboard />
-        </S.MainContent>
-      </S.Main>
-    </ConnectContext.Provider>
+    <GlobalContext.Provider value={{ getUserConfirmation }}>
+      <AnalyticsContextWrapper>
+        {/* Route to donation page if subdomain exists */}
+        <S.Main>
+          <BrowserRouter>
+            <ChunkErrorBoundary>
+              <React.Suspense fallback={<GlobalLoading />}>
+                {/* If the subdomain is not one of the supported org-portal subdomains, user is visiting a live DonationPage */}
+                {!ORG_PORTAL_SUBDOMAINS.includes(subdomain) ? (
+                  <DonationPageRouter />
+                ) : (
+                  // Otheriwse, user is visiting either the org-portal, or the contributor-portal
+                  <Switch>
+                    <ProtectedRoute
+                      path={ROUTES.CONTRIBUTOR_DASHBOARD}
+                      render={() => <TrackPageView component={ContributorDashboard} />}
+                    />
+                    <Route
+                      path={ROUTES.CONTRIBUTOR_ENTRY}
+                      render={() => <TrackPageView component={ContributorEntry} />}
+                    />
+                    <Route
+                      path={ROUTES.CONTRIBUTOR_VERIFY}
+                      render={() => <TrackPageView component={ContributorVerify} />}
+                    />
+                    <Route path="/">
+                      <OrgPortalRouter />
+                    </Route>
+                  </Switch>
+                )}
+              </React.Suspense>
+            </ChunkErrorBoundary>
+          </BrowserRouter>
+        </S.Main>
+        {/* Modals */}
+        <GlobalConfirmationModal
+          {...confirmationState}
+          closeModal={() => setConfirmationState({ ...confirmationState, isOpen: false })}
+        />
+      </AnalyticsContextWrapper>
+    </GlobalContext.Provider>
   );
 }
 
-export const useConnectContext = () => useContext(ConnectContext);
+export const useGlobalContext = () => useContext(GlobalContext);
 
 export default Main;

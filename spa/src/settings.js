@@ -28,15 +28,21 @@ export const HUB_GA_V3_PLUGIN_NAME = 'ga-v3-hub';
 export const HUB_GA_V3_ID = resolveConstantFromEnv('HUB_V3_GOOGLE_ANALYTICS_ID', 'UA-37373737yesyesyes');
 export const ORG_GA_V3_PLUGIN_NAME = 'ga-v3-org';
 
+const LS_BASE = 'REVENGINE_';
+
 // Auth
-export const LS_USER = 'REVENGINE_USER';
-export const LS_CONTRIBUTOR = 'REVENGINE_CONTRIBUTOR';
+export const LS_USER = LS_BASE + 'USER';
+export const LS_CONTRIBUTOR = LS_BASE + 'CONTRIBUTOR';
 export const LS_CSRF_TOKEN = 'CSRF_TOKEN';
-export const LS_ORG = 'REVENGINE_ORG';
-export const LS_RP = 'REVENGINE_RP';
 export const CSRF_HEADER = 'X-CSRFTOKEN';
 export const ORG_HEADER = 'X-ORG_ID';
 export const RP_HEADER = 'X-RP_ID';
+
+// Org and RP Permissions
+export const LS_SELECTED_ORG = LS_BASE + 'SELECTED_ORG';
+export const LS_SELECTED_RP = LS_BASE + 'SELECTTED_RP';
+export const LS_AVAILABLE_ORGS = LS_BASE + 'AVAIL_ORGS';
+export const LS_AVAILABLE_RPS = LS_BASE + 'AVAIL_RPS';
 
 export const PASSWORD_RESET_URL = '/users/password-reset/';
 

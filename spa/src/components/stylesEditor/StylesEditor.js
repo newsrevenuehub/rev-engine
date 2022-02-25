@@ -18,7 +18,7 @@ import { ChromePicker } from 'react-color';
 import useWebFonts from 'hooks/useWebFonts';
 
 // Context
-import { useGlobalContext } from 'components/MainLayout';
+import { useGlobalContext } from 'components/Main';
 
 // Children
 import CircleButton from 'elements/buttons/CircleButton';

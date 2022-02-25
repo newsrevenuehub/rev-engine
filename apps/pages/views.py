@@ -128,6 +128,7 @@ class StyleViewSet(viewsets.ModelViewSet):
 
 
 class FontViewSet(viewsets.ReadOnlyModelViewSet):
+    model = Font
     queryset = Font.objects.all()
     # Don't require a RoleAssignment for this endpoint.
     permission_classes = reset_permission_classes([IsAuthenticated])

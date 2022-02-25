@@ -11,7 +11,7 @@ import useRequest from 'hooks/useRequest';
 import { CONTRIBUTIONS, PROCESS_FLAGGED } from 'ajax/endpoints';
 
 // Context
-import { useGlobalContext } from 'components/MainLayout';
+import { useGlobalContext } from 'components/Main';
 
 import { GENERIC_ERROR, NO_VALUE } from 'constants/textConstants';
 import Button from 'elements/buttons/Button';

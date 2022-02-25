@@ -12,18 +12,20 @@ import { CONTENT_SLUG } from 'routes';
 // State management
 import fetchReducer, { initialState, FETCH_START, FETCH_SUCCESS, FETCH_FAILURE } from 'state/fetch-reducer';
 
-import { handleLoginSuccess } from 'components/authentication/util';
+import { setTokenDataToLS } from 'components/authentication/util';
 import { PASSWORD_RESET_URL } from 'settings';
 
 // Elements
 import Input from 'elements/inputs/Input';
 import FormErrors from 'elements/inputs/FormErrors';
 
-// Analytics
+// Hooks
 import { useConfigureAnalytics } from '../analytics';
+import { useOrgPortalContext } from 'components/OrgPortalRouter';
 
 function Login({ onSuccess, message }) {
   const history = useHistory();
+  // const { setAvailableOrganizations, setAvailableRevenuePrograms } = useOrgPortalContext();
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -31,9 +33,10 @@ function Login({ onSuccess, message }) {
 
   useConfigureAnalytics();
 
-  const handlePostLogin = () => {
+  const handleLoginSuccess = (data) => {
     if (onSuccess) onSuccess();
-    else history.push(CONTENT_SLUG);
+    history.push('/');
+    // else history.push(CONTENT_SLUG);
   };
 
   const handleForgotPassword = (e) => {
@@ -47,9 +50,8 @@ function Login({ onSuccess, message }) {
     try {
       const { data, status } = await axios.post(TOKEN, { email, password });
       if (status === 200 && data.detail === 'success') {
-        console.log('data form login', data);
+        setTokenDataToLS(data);
         handleLoginSuccess(data);
-        handlePostLogin();
       }
       dispatch({ type: FETCH_SUCCESS });
     } catch (e) {

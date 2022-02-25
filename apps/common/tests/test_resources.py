@@ -5,7 +5,7 @@ from rest_framework.test import APITestCase
 from apps.organizations.models import Organization, RevenueProgram
 from apps.organizations.tests.factories import OrganizationFactory, RevenueProgramFactory
 from apps.pages.tests.factories import DonationPageFactory
-from apps.users.models import RoleAssignment, Roles
+from apps.users.models import Roles
 from apps.users.tests.utils import create_test_user
 
 

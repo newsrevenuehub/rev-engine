@@ -2,16 +2,14 @@ import styled from 'styled-components';
 import { NavLink } from 'react-router-dom';
 import SvgIcon from 'assets/icons/SvgIcon';
 import { motion } from 'framer-motion';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 
 export const DashboardSidebar = styled.aside`
   width: 220px;
-  height: 100%;
   padding-top: 2rem;
   background: ${(props) => props.theme.colors.paneBackground};
   box-shadow: ${(props) => props.theme.shadows[0]};
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
+
   overflow-y: auto;
 
   @media (${(props) => props.theme.breakpoints.tabletLandscapeDown}) {
@@ -44,6 +42,13 @@ export const NavItem = styled(NavLink)`
 
   cursor: ${(props) => (props.disabled ? 'default' : 'pointer')};
 
+  display: flex;
+  flex-direction: row;
+
+  & span:first-child {
+    flex: 1;
+  }
+
   &.active {
     border-left: 5px solid ${(props) => props.theme.colors.primary};
   }
@@ -57,6 +62,10 @@ export const NavItem = styled(NavLink)`
       border-bottom: 5px solid ${(props) => props.theme.colors.primary};
     }
   }
+`;
+
+export const FlaggedIcon = styled(FontAwesomeIcon)`
+  color: ${(props) => props.theme.colors.caution};
 `;
 
 export const OtherContent = styled.div`

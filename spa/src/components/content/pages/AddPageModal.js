@@ -7,14 +7,18 @@ import { useAlert } from 'react-alert';
 
 // Routes
 import { useHistory } from 'react-router-dom';
-import { EDITOR_ROUTE } from 'routes';
+import { EDITOR_SLUG } from 'routes';
+
+// Hooks
+import useOrgParams from 'hooks/useOrgParams';
 
 // Util
 import slugify from 'utilities/slugify';
+// import { getLSAvailableRPs } from 'components/authentication/util';
 
 // AJAX
 import useRequest from 'hooks/useRequest';
-import { REVENUE_PROGRAMS, LIST_PAGES, TEMPLATES } from 'ajax/endpoints';
+import { LIST_PAGES, TEMPLATES } from 'ajax/endpoints';
 
 // Children
 import Modal from 'elements/modal/Modal';
@@ -23,12 +27,12 @@ import Select from 'elements/inputs/Select';
 import CircleButton from 'elements/buttons/CircleButton';
 import { GENERIC_ERROR } from 'constants/textConstants';
 import FormErrors from 'elements/inputs/FormErrors';
+
 function AddPageModal({ isOpen, closeModal }) {
   const alert = useAlert();
   const theme = useTheme();
   const history = useHistory();
 
-  const fetchRevPrograms = useRequest();
   const fetchTemplates = useRequest();
   const createPage = useRequest();
 
@@ -37,8 +41,6 @@ function AddPageModal({ isOpen, closeModal }) {
   const [name, setName] = useState('');
   const [slug, setSlug] = useState('');
 
-  const [revenuePrograms, setRevenuePrograms] = useState([]);
-  const [revenueProgram, setRevenueProgram] = useState();
   const [templates, setTemplates] = useState([]);
   const [template, setTemplate] = useState();
 
@@ -48,21 +50,6 @@ function AddPageModal({ isOpen, closeModal }) {
     },
     [alert]
   );
-
-  useEffect(() => {
-    async function getRevProgams() {
-      setLoading(true);
-      fetchRevPrograms(
-        {
-          method: 'GET',
-          url: REVENUE_PROGRAMS
-        },
-        { onSuccess: ({ data }) => setRevenuePrograms(data), onFailure: handleRequestFailure }
-      );
-    }
-    getRevProgams();
-    setLoading(false);
-  }, [handleRequestFailure]);
 
   useEffect(() => {
     async function getTemplates() {
@@ -87,7 +74,7 @@ function AddPageModal({ isOpen, closeModal }) {
     setSlug(slugify(slug));
   };
 
-  const canSavePage = () => !loading && !!revenueProgram && !!slug && !!name;
+  const canSavePage = () => !loading && !!slug && !!name;
 
   const handleSaveFailure = useCallback(
     (e) => {
@@ -107,8 +94,7 @@ function AddPageModal({ isOpen, closeModal }) {
 
     const formData = {
       name,
-      slug,
-      revenue_program_pk: revenueProgram.id
+      slug
     };
     if (template) formData.template_pk = template.id;
     createPage(
@@ -118,7 +104,7 @@ function AddPageModal({ isOpen, closeModal }) {
         data: formData
       },
       {
-        onSuccess: ({ data }) => history.push(`${EDITOR_ROUTE}/${data.revenue_program.slug}/${data.slug}`),
+        onSuccess: ({ data }) => history.push(`${EDITOR_SLUG}/${data.revenue_program.slug}/${data.slug}`),
         onFailure: handleSaveFailure
       }
     );
@@ -157,24 +143,6 @@ function AddPageModal({ isOpen, closeModal }) {
                 testid="page-slug"
               />
             </S.InputWrapper>
-            {revenuePrograms.length > 0 && (
-              <S.InputWrapper>
-                <Select
-                  label="Choose a revenue program for this page"
-                  onSelectedItemChange={({ selectedItem }) => setRevenueProgram(selectedItem)}
-                  selectedItem={revenueProgram}
-                  items={revenuePrograms}
-                  itemToString={(i) => i.name}
-                  placeholder="Select a revenue program"
-                  dropdownPosition="above"
-                  displayAccessor="name"
-                  testId="revenue-program-picker"
-                />
-              </S.InputWrapper>
-            )}
-            {!loading && revenuePrograms.length === 0 && (
-              <S.NoRevPrograms>You need to set up a revenue program to create a page.</S.NoRevPrograms>
-            )}
             {templates.length > 0 && (
               <S.InputWrapper>
                 <Select

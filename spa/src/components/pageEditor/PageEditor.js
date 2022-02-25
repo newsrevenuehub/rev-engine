@@ -36,7 +36,7 @@ import { CAPTURE_PAGE_SCREENSHOT } from 'settings';
 import { faEye, faEdit, faSave, faTrash, faClone } from '@fortawesome/free-solid-svg-icons';
 
 // Context
-import { useGlobalContext } from 'components/MainLayout';
+import { useGlobalContext } from 'components/Main';
 import validatePage from './validatePage';
 
 // Hooks
@@ -382,7 +382,7 @@ function PageEditor() {
             />
             <CircleButton onClick={handleDelete} icon={faTrash} buttonType="caution" data-testid="delete-page-button" />
 
-            <BackButton to={CONTENT_SLUG} />
+            <BackButton />
           </S.ButtonOverlay>
         )}
       </S.PageEditor>

@@ -1,46 +1,59 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import * as S from './DashboardSidebar.styled';
-import { DONATIONS_SLUG, CONTENT_SLUG } from 'routes';
 import { ICONS } from 'assets/icons/SvgIcon';
 
 // Hooks
-import { useHistory, useParams, useRouteMatch, generatePath, matchPath } from 'react-router-dom';
-import usePreviousState from 'hooks/usePreviousState';
+import { useHistory, useRouteMatch, generatePath, matchPath } from 'react-router-dom';
+import useScopedRoute from 'hooks/useScopedRoute';
 
 // Util
 import logout from 'components/authentication/logout';
-import { DASHBOARD_ROUTES } from 'components/dashboard/Dashboard';
+import { DASHBOARD_ROUTES, useDashboardContext } from 'components/dashboard/Dashboard';
 
-// AJAX
-import useRequest from 'hooks/useRequest';
-import { ORGANIZATIONS, REVENUE_PROGRAMS } from 'ajax/endpoints';
+// Constants
+import * as routes from 'routes';
+import * as LSUtils from 'components/authentication/util';
 
 // Components
 import Select from 'elements/inputs/Select';
-import { LS_USER } from 'settings';
-import { getLSOrg, getLSRP } from 'components/authentication/util';
-import { useGlobalContext } from 'components/MainLayout';
+import { faExclamationTriangle } from '@fortawesome/free-solid-svg-icons';
 
-function DashboardSidebar({ shouldAllowDashboard }) {
-  const [organization, setOrganization] = useState({});
+function DashboardSidebar() {
+  const availableOrganizations = useRef(LSUtils.getLSAvailableOrgs());
+  const availableRevenuePrograms = useRef(LSUtils.getLSAvailableRPs());
+  const [filteredRevenuePrograms, setFilteredRevenuePrograms] = useState([]);
 
-  const handleClick = (e) => {
-    if (!shouldAllowDashboard) e.preventDefault();
-  };
+  const [selectedOrganization, setSelectedOrganization] = useState(null);
+  const [selectedRevenueProgram, setSelectedRevenueProgram] = useState(null);
+
+  const scopedContentRoute = useScopedRoute(routes.CONTENT_SLUG, DASHBOARD_ROUTES);
+  const scopedDonationsRoute = useScopedRoute(routes.DONATIONS_SLUG, DASHBOARD_ROUTES);
+  const scopedConnectRoute = useScopedRoute(routes.CONNECT_SLUG, DASHBOARD_ROUTES);
 
   return (
     <S.DashboardSidebar>
       <div>
         <S.Pickers>
-          <OrganizationPicker selectedOrganization={organization} setSelectedOrganization={setOrganization} />
-          <RevenueProgramPicker selectedOrganization={organization} />
+          <OrganizationPicker
+            availableOrganizations={availableOrganizations?.current}
+            selectedOrganization={selectedOrganization}
+            setSelectedOrganization={setSelectedOrganization}
+          />
+          <RevenueProgramPicker
+            availableRevenuePrograms={availableRevenuePrograms?.current}
+            filteredRevenuePrograms={filteredRevenuePrograms}
+            setFilteredRevenuePrograms={setFilteredRevenuePrograms}
+            selectedRevenueProgram={selectedRevenueProgram}
+            setSelectedRevenueProgram={setSelectedRevenueProgram}
+            selectedOrganization={selectedOrganization}
+          />
         </S.Pickers>
         <S.NavList>
-          <S.NavItem to={CONTENT_SLUG} onClick={handleClick} disabled={!shouldAllowDashboard}>
-            Content
-          </S.NavItem>
-          <S.NavItem to={DONATIONS_SLUG} onClick={handleClick} disabled={!shouldAllowDashboard}>
-            Donations
+          <S.NavItem to={scopedContentRoute}>Content</S.NavItem>
+          <S.NavItem to={scopedDonationsRoute}>Donations</S.NavItem>
+          <S.NavItem to={scopedConnectRoute}>
+            <span>Payment Provider</span>
+            {selectedOrganization?.needs_payment_provider && <S.FlaggedIcon icon={faExclamationTriangle} />}
           </S.NavItem>
         </S.NavList>
       </div>
@@ -56,42 +69,52 @@ function DashboardSidebar({ shouldAllowDashboard }) {
 
 export default DashboardSidebar;
 
-function OrganizationPicker({ selectedOrganization, setSelectedOrganization }) {
+function OrganizationPicker({ availableOrganizations, selectedOrganization, setSelectedOrganization }) {
   const history = useHistory();
   const { params } = matchPath(history.location.pathname, { path: DASHBOARD_ROUTES.map((r) => r.path) }) || {};
-
-  const requestFetchOrganizations = useRequest();
-  const [error, setError] = useState();
-  const [organizations, setOrganizations] = useState([]);
-
-  const lsUser = JSON.parse(localStorage.getItem(LS_USER) || '');
-  const userRole = lsUser?.role_assignment?.role_type;
-
+  /**
+   * 1. On first render, inspect localStorage for previously selected Organization and set it here if present
+   */
   useEffect(() => {
-    if (organizations) {
-      const orgByUrl = organizations.find((org) => org.slug === params?.orgSlug);
-      setSelectedOrganization(orgByUrl);
-    }
-  }, [organizations, params?.orgSlug, setSelectedOrganization]);
+    setSelectedOrganization((selectedOrg) => {
+      if (!selectedOrg) {
+        try {
+          return LSUtils.getLSSelectedOrg();
+        } catch {}
+      }
+      return selectedOrg;
+    });
+  }, [setSelectedOrganization]);
 
+  /**
+   * 2. Respond to changes to selectedOrganization by updating localStorage to the updated value
+   */
   useEffect(() => {
-    if (userRole === 'hub_admin') {
-      requestFetchOrganizations(
-        { method: 'GET', url: ORGANIZATIONS },
-        {
-          onSuccess: ({ data }) => setOrganizations(data),
-          onFailure: (err) => setError(err?.response?.detail)
-        }
-      );
+    try {
+      LSUtils.setLSSelectedOrg(JSON.stringify(selectedOrganization));
+    } catch {
+      LSUtils.setLSSelectedOrg(null);
     }
-  }, [userRole]);
+  }, [selectedOrganization]);
 
+  /**
+   * 3.
+   */
   useEffect(() => {
-    if (userRole === 'hub_admin' && params?.orgSlug) {
-      const orgBySlug = organizations.find((org) => org.slug === params?.orgSlug);
-      setSelectedOrganization(orgBySlug);
+    if (availableOrganizations.length === 1) {
+      setSelectedOrganization(availableOrganizations[0]);
     }
-  }, [userRole, organizations, params?.orgSlug, setSelectedOrganization]);
+  }, [availableOrganizations, setSelectedOrganization]);
+
+  /**
+   * 4. Finally, if the URL params include an orgSlug, set the selected value accordingly
+   */
+  useEffect(() => {
+    if (params?.orgSlug) {
+      const rp = availableOrganizations.find((rp) => rp.slug === params.orgSlug);
+      if (rp) setSelectedOrganization(rp);
+    }
+  }, [params?.orgSlug, setSelectedOrganization, availableOrganizations]);
 
   return (
     <S.SelectWrapper>
@@ -101,83 +124,118 @@ function OrganizationPicker({ selectedOrganization, setSelectedOrganization }) {
         selectedItem={selectedOrganization}
         onSelectedItemChange={({ selectedItem }) => setSelectedOrganization(selectedItem)}
         displayAccessor="name"
-        items={organizations}
-        errors={error}
-        readOnly={organizations.length <= 1}
+        flaggedAccessor="needs_payment_provider"
+        items={availableOrganizations}
+        readOnly={availableOrganizations.length <= 1}
         highlighted={!selectedOrganization}
       />
     </S.SelectWrapper>
   );
 }
 
-function RevenueProgramPicker({ selectedOrganization }) {
-  const { setBlockMainContentReason } = useGlobalContext();
+function RevenueProgramPicker({
+  availableRevenuePrograms,
+  filteredRevenuePrograms,
+  setFilteredRevenuePrograms,
+  selectedRevenueProgram,
+  setSelectedRevenueProgram,
+  selectedOrganization
+}) {
+  const { setBlockMainContentReason } = useDashboardContext();
   const history = useHistory();
   const route = useRouteMatch();
   const { params } = matchPath(history.location.pathname, { path: DASHBOARD_ROUTES.map((r) => r.path) }) || {};
 
-  const { revProgramSlug } = useParams();
-  const prevRevProgramSlug = usePreviousState(revProgramSlug);
-  const prevOrganization = usePreviousState(selectedOrganization);
-  const requestFetchRevenuePrograms = useRequest();
-  const [error, setError] = useState();
-  const [revenuePrograms, setRevenuePrograms] = useState([]);
-  const [selectedRevenueProgram, setSelectedRevenueProgram] = useState({});
-
-  const lsUser = JSON.parse(localStorage.getItem(LS_USER) || '');
-  const userRole = lsUser?.role_assignment?.role_type;
-
-  useEffect(() => {
-    if (revenuePrograms) {
-      const rpByURL = revenuePrograms.find((rp) => rp.slug === params?.revProgramSlug);
-      setSelectedRevenueProgram(rpByURL);
-    }
-  }, [revenuePrograms, params?.revProgramSlug, setSelectedRevenueProgram]);
-
-  useEffect(() => {
-    const userCanSeeAnyRP = userRole !== 'rp_admin';
-    if (userCanSeeAnyRP && selectedOrganization?.id && prevOrganization?.id !== selectedOrganization?.id) {
-      requestFetchRevenuePrograms(
-        { method: 'GET', url: REVENUE_PROGRAMS, params: { orgSlug: selectedOrganization.slug } },
-        {
-          onSuccess: ({ data }) => setRevenuePrograms(data),
-          onFailure: (err) => setError(err?.response?.detail)
-        }
-      );
-    }
-  }, [prevOrganization?.id, userRole, selectedOrganization]);
-
-  useEffect(() => {
-    console.log('org', selectedOrganization);
-    console.log('rp', selectedRevenueProgram);
-    if (selectedOrganization && selectedRevenueProgram) setBlockMainContentReason(false);
-    else setBlockMainContentReason('Select an Organization and Revenue Program');
-  }, [selectedRevenueProgram, selectedOrganization, setBlockMainContentReason]);
-
-  // useEffect(() => {
-  //   if (!prevRevProgramSlug || revProgramSlug !== prevRevProgramSlug) {
-  //     const rpBySlug = revenuePrograms.find(rp => rp.slug === revProgramSlug);
-  //     setSelectedRevenueProgram(rpBySlug)
-  //   }
-  // }, [prevRevProgramSlug, lsUser?.is_superuser, revProgramSlug, revenuePrograms])
-
   /**
-   * Update route based on org and rp
+   * 1. Respond to changes to selectedOrganization by filtering the RevenueProgram options available based on the selected Organization
    */
   useEffect(() => {
-    if (selectedOrganization?.slug && selectedRevenueProgram?.slug) {
-      if (route.path === '/') {
-        history.push(
-          generatePath(CONTENT_SLUG, {
-            orgSlug: selectedOrganization.slug,
-            revProgramSlug: selectedRevenueProgram.slug
-          })
-        );
-      } else {
-        console.log('OY, REAL PATH HERE THO!');
-      }
+    let rps = availableRevenuePrograms;
+    if (selectedOrganization) {
+      rps = availableRevenuePrograms.filter(
+        (rp) => selectedOrganization && rp.organization === selectedOrganization.id
+      );
     }
-  }, [selectedRevenueProgram, selectedOrganization, history, route.path]);
+    setFilteredRevenuePrograms(rps);
+  }, [selectedOrganization, availableRevenuePrograms, setFilteredRevenuePrograms]);
+
+  /**
+   * 2. Respond to changes to filteredRevenuePrograms by updating the selectedRevenueProgram if it doesn't belong to the selectedOrganization
+   */
+  useEffect(() => {
+    setSelectedRevenueProgram((currentlySelectedRP) => {
+      if (
+        filteredRevenuePrograms.length > 0 &&
+        currentlySelectedRP &&
+        !filteredRevenuePrograms.find((rp) => rp.id === currentlySelectedRP.id)
+      ) {
+        return filteredRevenuePrograms[0];
+      }
+      return currentlySelectedRP;
+    });
+  }, [filteredRevenuePrograms, setSelectedRevenueProgram]);
+
+  /**
+   * 3. On first render, inspect localStorage for previously selected RevenueProgram and set it here if present
+   * NOTE: This needs to run AFTER we filter by org and BEFORE we set the selectedRevenueProgram based on LS,
+   * otherwise it get's "filtered out" by the intitial null selectedOrganization
+   */
+  useEffect(() => {
+    setSelectedRevenueProgram((selectedRP) => {
+      if (!selectedRP) {
+        try {
+          return LSUtils.getLSSelectedRP();
+        } catch {}
+      }
+      return selectedRP;
+    });
+  }, [setSelectedRevenueProgram]);
+
+  /**
+   * 4. Respond to changes to selectedRevenueProgram by updating localStorage to the updated value
+   */
+  useEffect(() => {
+    try {
+      LSUtils.setLSSelectedRP(JSON.stringify(selectedRevenueProgram));
+    } catch {
+      LSUtils.setLSSelectedRP(null);
+    }
+  }, [selectedRevenueProgram]);
+
+  /**
+   * 5. Respond to changes to selectedOrganization and selectedRevenueProgram by navigating to a new url.
+   */
+  useEffect(() => {
+    // Only update url when both Organization and RevenueProgram are set.
+    if (selectedOrganization && selectedRevenueProgram) {
+      const slug = negotiateTargetSlug(history.location.pathname);
+      history.push(
+        generatePath(slug, {
+          orgSlug: selectedOrganization.slug,
+          revProgramSlug: selectedRevenueProgram.slug
+        }),
+        { state: { refetch: true } }
+      );
+    }
+  }, [selectedOrganization, selectedRevenueProgram, history, route.path]);
+
+  /**
+   * 6. Finally, if the URL params include a revProgramSlug the selected value accordingly
+   */
+  useEffect(() => {
+    if (params?.revProgramSlug) {
+      const rp = filteredRevenuePrograms.find((rp) => rp.slug === params.revProgramSlug);
+      if (rp) setSelectedRevenueProgram(rp);
+    }
+  }, [params?.revProgramSlug, setSelectedRevenueProgram, filteredRevenuePrograms]);
+
+  /**
+   * Respond to changes to selectedRevenueProgram and freeze the UI if it's blank.
+   */
+  useEffect(() => {
+    if (!selectedRevenueProgram) setBlockMainContentReason('Select an Organization and RevenueProgram');
+    else setBlockMainContentReason(false);
+  }, [selectedRevenueProgram, setBlockMainContentReason]);
 
   return (
     <S.SelectWrapper>
@@ -187,28 +245,36 @@ function RevenueProgramPicker({ selectedOrganization }) {
         selectedItem={selectedRevenueProgram}
         displayAccessor="name"
         onSelectedItemChange={({ selectedItem }) => setSelectedRevenueProgram(selectedItem)}
-        items={revenuePrograms}
-        readOnly={revenuePrograms.length <= 1}
-        errors={error}
+        items={filteredRevenuePrograms}
+        readOnly={filteredRevenuePrograms.length <= 1}
         highlighted={!selectedRevenueProgram}
       />
     </S.SelectWrapper>
   );
 }
 
-// function getInitialOrganization(organizationSlug) {
-//   // Use LS_ORG first, then LS_USER.role_assignment.organization
-//   const lsOrg = getLSOrg()
-//   const lsUser = JSON.parse(localStorage.getItem(LS_USER) || "")
+function slugPart(slugPart) {
+  return `/${slugPart}`;
+}
 
-//   return lsOrg || lsUser?.role_assignment?.organization
-// }
+// TODO: This could probably be refactored to work without manually adding routes in an if statement.
+// As it exists now, any time you add a route the sidebar you'll have to add it here as well.
+function negotiateTargetSlug(path) {
+  const splitPath = path.split('/');
+  const pathEnd = splitPath[splitPath.length - 1];
 
-// function getInitialRevenueProgram() {
-//   return getLSRP() || {}
-// }
+  if (path === '/' || slugPart(pathEnd) === routes.CONTENT_SLUG_PART) {
+    return routes.CONTENT_SLUG;
+  }
 
-// function getInitialRevenuePrograms() {
-//   const lsUser = JSON.parse(localStorage.getItem(LS_USER) || "");
-//   return lsUser?.role_assignment?.revenue_programs || []
-// }
+  if (slugPart(pathEnd) === routes.DONATIONS_SLUG_PART) {
+    return routes.DONATIONS_SLUG;
+  }
+
+  if (slugPart(pathEnd) === routes.CONNECT_SLUG_PART) {
+    return routes.CONNECT_SLUG;
+  }
+
+  // Fallback to content
+  return routes.CONTENT_SLUG;
+}

@@ -65,4 +65,14 @@ export const Item = styled.li`
   padding: 1rem 1.5rem;
   background: ${(props) => (props.highlighted ? props.theme.colors.grey[0] : 'transparent')};
   font-family: ${(props) => props.theme.systemFont};
+  display: flex;
+  flex-direction: row;
+`;
+
+export const ItemText = styled.span`
+  flex: 1;
+`;
+
+export const FlaggedIcon = styled(FontAwesomeIcon)`
+  color: ${(props) => props.theme.colors.caution};
 `;

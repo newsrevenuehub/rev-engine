@@ -1,21 +1,20 @@
+import { useState, useRef, createContext, useContext } from 'react';
 import * as S from './Dashboard.styled';
 
 // Routing
 import { Route } from 'react-router-dom';
-import { DONATIONS_SLUG, CONTENT_SLUG } from 'routes';
+import { DONATIONS_SLUG, CONTENT_SLUG, CONNECT_SLUG } from 'routes';
 
 // State
-import { useGlobalContext } from 'components/MainLayout';
-import { useConnectContext } from 'components/Main';
-import { PP_STATES } from 'components/connect/BaseProviderInfo';
 
 // Children
 import DashboardSidebar from 'components/dashboard/sidebar/DashboardSidebar';
 import Donations from 'components/donations/Donations';
 import Content from 'components/content/Content';
-import GlobalLoading from 'elements/GlobalLoading';
 import ProviderConnect from 'components/connect/ProviderConnect';
 import MainContentBlocker from 'elements/MainContentBlocker';
+import ReauthModal from 'components/authentication/ReauthModal';
+import StatefulRoute from 'components/hoc/StatefulRoute';
 
 export const DASHBOARD_ROUTES = [
   {
@@ -25,45 +24,69 @@ export const DASHBOARD_ROUTES = [
   {
     path: DONATIONS_SLUG,
     component: Donations
+  },
+  {
+    path: CONNECT_SLUG,
+    component: ProviderConnect
   }
 ];
 
-function Dashboard() {
-  const { blockMainContentReason } = useGlobalContext();
-  const { checkingProvider, paymentProviderConnectState } = useConnectContext();
+const DashboardContext = createContext(null);
 
-  const getShouldAllowDashboard = () => {
-    const isConnected =
-      paymentProviderConnectState === PP_STATES.CONNECTED || paymentProviderConnectState === PP_STATES.RESTRICTED;
-    return !checkingProvider && isConnected;
+function Dashboard() {
+  const [blockMainContentReason, setBlockMainContentReason] = useState(false);
+  const [reauthModalOpen, setReauthModalOpen] = useState(false);
+  // Store reauth callbacks in ref to persist between renders
+  const reauthCallbacks = useRef([]);
+
+  const getReauth = (cb) => {
+    /*
+      getReauth can be called multiple times per-load. Because of this,
+      store references to the callbacks provided each time and call them
+      later.
+    */
+    reauthCallbacks.current.push(cb);
+    setReauthModalOpen(true);
   };
 
-  const getShouldRequireConnect = () => {
-    const notConnected =
-      paymentProviderConnectState === PP_STATES.NOT_CONNECTED || paymentProviderConnectState === PP_STATES.FAILED;
-    return !checkingProvider && notConnected;
+  const closeReauthModal = () => {
+    // Don't forget to clear out the refs when the modal closes.
+    reauthCallbacks.current = [];
+    setReauthModalOpen(false);
   };
 
   return (
-    <S.Dashboard data-testid="dashboard">
-      <DashboardSidebar shouldAllowDashboard={getShouldAllowDashboard()} />
-      <S.DashboardMain>
-        {blockMainContentReason && <MainContentBlocker message={blockMainContentReason} />}
-        {checkingProvider && <GlobalLoading />}
-        <S.DashboardContent>
-          {getShouldAllowDashboard() && (
-            <>
-              {DASHBOARD_ROUTES.map((route) => (
-                <Route path={route.path} component={route.component} />
+    <DashboardContext.Provider
+      value={{
+        getReauth,
+        closeReauthModal,
+        blockMainContentReason,
+        setBlockMainContentReason
+      }}
+    >
+      <>
+        <S.Dashboard data-testid="dashboard">
+          <DashboardSidebar />
+          <S.DashboardMain>
+            <S.DashboardContent>
+              {DASHBOARD_ROUTES.map(({ path, component: Component }) => (
+                <Route path={path} key={path}>
+                  <StatefulRoute>
+                    <Component />
+                  </StatefulRoute>
+                </Route>
               ))}
-              =
-            </>
-          )}
-          {getShouldRequireConnect() && <ProviderConnect />}
-        </S.DashboardContent>
-      </S.DashboardMain>
-    </S.Dashboard>
+            </S.DashboardContent>
+            {blockMainContentReason && <MainContentBlocker message={blockMainContentReason} />}
+          </S.DashboardMain>
+        </S.Dashboard>
+
+        <ReauthModal isOpen={reauthModalOpen} callbacks={reauthCallbacks.current} closeModal={closeReauthModal} />
+      </>
+    </DashboardContext.Provider>
   );
 }
+
+export const useDashboardContext = () => useContext(DashboardContext);
 
 export default Dashboard;

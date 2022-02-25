@@ -15,6 +15,7 @@ import Pages from 'components/content/pages/Pages';
 import AddPageModal from 'components/content/pages/AddPageModal';
 import Styles from 'components/content/styles/Styles';
 import EditStylesModal from 'components/content/styles/EditStylesModal';
+import { useEffect } from 'react';
 
 function Content() {
   const alert = useAlert();

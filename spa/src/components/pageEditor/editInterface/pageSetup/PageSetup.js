@@ -7,7 +7,7 @@ import { faCheck, faTimes } from '@fortawesome/free-solid-svg-icons';
 // Context
 import { usePageEditorContext } from 'components/pageEditor/PageEditor';
 import { useEditInterfaceContext } from 'components/pageEditor/editInterface/EditInterface';
-import { useGlobalContext } from 'components/MainLayout';
+import { useGlobalContext } from 'components/Main';
 
 // Deps
 import { isBefore, isAfter } from 'date-fns';

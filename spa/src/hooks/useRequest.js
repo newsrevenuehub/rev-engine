@@ -1,21 +1,20 @@
 import axios, { AuthenticationError } from 'ajax/axios';
-import { useGlobalContext } from 'components/MainLayout';
+import { useDashboardContext } from 'components/dashboard/Dashboard';
 import { useParams } from 'react-router-dom';
 
 function useRequest() {
-  const { orgSlug, revProgramSlug } = useParams();
-  const { getReauth } = useGlobalContext();
+  const params = useParams();
+  const dashboardContext = useDashboardContext();
+
   const makeRequest = (config, callbacks) => {
-    config.params = config.params || {};
-    if (orgSlug) config.params.orgSlug = orgSlug;
-    if (revProgramSlug) config.params.revProgramSlug = revProgramSlug;
-    console.log('axios config: ', config);
+    updateConfigParamsWithParams(config, params);
     const { onSuccess, onFailure } = callbacks;
     axios.request(config).then(onSuccess, (e) => {
-      if (e instanceof AuthenticationError) {
-        // If this custom error type is raised, we know a
-        // 401 has been returned and we should offer reauth.
-        getReauth(() => makeRequest(config, callbacks));
+      if (dashboardContext && e instanceof AuthenticationError) {
+        // We take dashboardContext being falsey as an indication that this useRequest is
+        // occuring outside of an authenticated context. Otherwise, if this custom error
+        // type is raised, we know a 401 has been returned and we should offer reauth.
+        dashboardContext.getReauth(() => makeRequest(config, callbacks));
       } else {
         onFailure(e);
       }
@@ -26,3 +25,10 @@ function useRequest() {
 }
 
 export default useRequest;
+
+function updateConfigParamsWithParams(config, params = {}) {
+  const { orgSlug, revProgramSlug } = params;
+  config.params = config.params || {};
+  if (orgSlug && !config.params.orgSlug) config.params.orgSlug = orgSlug;
+  if (revProgramSlug && !config.params.revProgramSlug) config.params.revProgramSlug = revProgramSlug;
+}

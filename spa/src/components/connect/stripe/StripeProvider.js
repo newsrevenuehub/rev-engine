@@ -8,7 +8,6 @@ import { useAlert } from 'react-alert';
 
 // State
 import { PP_STATES } from 'components/connect/BaseProviderInfo';
-import { useProviderFetchContext } from 'components/connect/ProviderConnect';
 
 // AJAX
 import useRequest from 'hooks/useRequest';
@@ -20,7 +19,7 @@ import StripeConnect from 'components/connect/stripe/StripeConnect';
 
 function StripeProvider() {
   const alert = useAlert();
-  const { handleConnectSuccess } = useProviderFetchContext();
+
   const requestStripeConfirmation = useRequest();
   const [stripeState, setStripeState] = useState();
   const [isLoading, setIsLoading] = useState(false);
@@ -28,7 +27,6 @@ function StripeProvider() {
   const handleStripeConfirmationSuccess = useCallback(({ data }) => {
     if (data.status === 'connected') {
       setStripeState(PP_STATES.CONNECTED);
-      handleConnectSuccess();
     } else if (data.status === 'restricted') {
       setStripeState(PP_STATES.RESTRICTED);
     } else if (data.status === 'not_connected') {

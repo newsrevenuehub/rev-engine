@@ -23,6 +23,17 @@ def reset_permission_classes(classes=[]):
     return list(classes)
 
 
+def append_filter_backends(classes=[]):
+    default_backends = [
+        import_string(backend_classname) for backend_classname in settings.REST_FRAMEWORK["DEFAULT_FILTER_BACKENDS"]
+    ]
+    return default_backends + list(classes)
+
+
+def reset_filter_backends(classes=[]):
+    return list(classes)
+
+
 class ReadOnly(permissions.BasePermission):
     def has_object_permission(self, request, *args):
         # Read permissions are allowed to any request,
@@ -80,6 +91,10 @@ def filter_from_permissions(request, queryset, model):
     rp_slug = request.GET.get(settings.RP_SLUG_PARAM)
     user = request.user
 
+    # If it's a contributor, pass through-- there's filtering for contributors downstream.
+    if isinstance(user, Contributor):
+        return queryset
+
     # Just for thoroughness, prevent AnonymousUser from viewing resources
     if not hasattr(user, "get_role_assignment"):
         return queryset.none()
@@ -101,11 +116,11 @@ def filter_from_permissions(request, queryset, model):
     filters = []
     if hasattr(model, "organization") and type(model.organization) != property:
         # If the user is a hub_admin, we don't have a single org to restrict by
-        if user_role != Roles.HUB_ADMIN:
+        if user_role != Roles.HUB_ADMIN and not user.is_superuser:
             filters.append(Q(organization=role_assignment.organization))
 
         if org_slug and org_slug != ALL_ACCESSOR:
-            filters.append(Q(organziation__slug=org_slug))
+            filters.append(Q(organization__slug=org_slug))
 
     if hasattr(model, "revenue_program") and type(model.revenue_program) != property:
         if user_role == Roles.ORG_ADMIN:

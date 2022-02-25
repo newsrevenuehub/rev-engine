@@ -4,7 +4,7 @@ import BaseField from 'elements/inputs/BaseField';
 
 // Deps
 import { useSelect } from 'downshift';
-import { faAngleDown } from '@fortawesome/free-solid-svg-icons';
+import { faAngleDown, faExclamationTriangle } from '@fortawesome/free-solid-svg-icons';
 
 export const NULL_CHOICE = '----';
 
@@ -14,6 +14,7 @@ function Select({
   items,
   dropdownPosition,
   displayAccessor,
+  flaggedAccessor,
   placeholder,
   testId,
   name,
@@ -28,8 +29,6 @@ function Select({
     onSelectedItemChange
   });
 
-  // ! WIP is making this readOnly and highlighted stuff work
-
   return (
     <BaseField labelProps={{ ...getLabelProps() }} {...props}>
       <S.SelectWrapper maxWidth={maxWidth}>
@@ -38,12 +37,12 @@ function Select({
           name={name}
           data-testid={testId}
           value={selectedItem && displayAccessor ? selectedItem[displayAccessor] : selectedItem}
-          readOnly
+          readOnly={readOnly}
+          highlighted={highlighted}
           inputmode="none"
         />
         {!readOnly && (
           <>
-            {' '}
             <S.CaretWrapper animate={isOpen ? 'open' : 'closed'} variants={caretVariants}>
               <S.Caret icon={faAngleDown} />
             </S.CaretWrapper>
@@ -61,7 +60,8 @@ function Select({
                     data-testid={`select-item-${index}`}
                     {...getItemProps({ item, index })}
                   >
-                    {displayAccessor ? item[displayAccessor] : item}
+                    <S.ItemText>{displayAccessor ? item[displayAccessor] : item}</S.ItemText>
+                    {flaggedAccessor && item[flaggedAccessor] && <S.FlaggedIcon icon={faExclamationTriangle} />}
                   </S.Item>
                 ))}
             </S.List>

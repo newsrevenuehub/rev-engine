@@ -13,6 +13,7 @@ from rest_framework.response import Response
 from apps.api.permissions import (
     ContributorOwnsContribution,
     IsContributor,
+    append_filter_backends,
     append_permission_classes,
     reset_permission_classes,
 )
@@ -128,7 +129,6 @@ def stripe_confirmation(request):
         return Response(
             {"no_such_org": "Could not find organization by provided slug"}, status=status.HTTP_400_BAD_REQUEST
         )
-
     try:
         # An org that doesn't have a stripe_account_id hasn't gone through onboarding
         if not organization.stripe_account_id:
@@ -204,7 +204,7 @@ class ContributionsViewSet(viewsets.ReadOnlyModelViewSet):
     permission_classes = append_permission_classes([ContributorOwnsContribution])
     model = Contribution
 
-    filter_backends = [DjangoFilterBackend, filters.OrderingFilter]
+    filter_backends = append_filter_backends([DjangoFilterBackend, filters.OrderingFilter])
     filterset_class = ContributionFilter
 
     def get_queryset(self):
@@ -214,9 +214,6 @@ class ContributionsViewSet(viewsets.ReadOnlyModelViewSet):
         """
         if isinstance(self.request.user, Contributor):
             return self.model.objects.filter(contributor=self.request.user)
-
-        if self.action == "list" and hasattr(self.model, "organization"):
-            return self.model.objects.filter(organization__users=self.request.user)
         return self.model.objects.all()
 
     def get_serializer_class(self):

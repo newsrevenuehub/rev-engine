@@ -1,7 +1,6 @@
 import AdminGlobalStyles from 'styles/AdminGlobalStyles.js';
 
 // Styles
-import * as S from './App.styled';
 import { ThemeProvider } from 'styled-components';
 import { ThemeProvider as MuiThemeProvider } from '@material-ui/core';
 import { revEngineTheme, muiThemeOverrides } from 'styles/themes';
@@ -18,7 +17,7 @@ import { Provider as AlertProvider } from 'react-alert';
 import Alert, { alertOptions } from 'elements/alert/Alert';
 
 // Routing
-import MainLayout from 'components/MainLayout';
+import Main from 'components/Main';
 
 function App() {
   useSentry();
@@ -32,9 +31,7 @@ function App() {
           </Helmet>
           <AdminGlobalStyles />
           <SvgIcons />
-          <S.App>
-            <MainLayout />
-          </S.App>
+          <Main />
         </AlertProvider>
       </MuiThemeProvider>
     </ThemeProvider>

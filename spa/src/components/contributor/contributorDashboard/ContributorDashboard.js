@@ -11,7 +11,7 @@ import discover from 'assets/images/discover-logo.png';
 import { useAlert } from 'react-alert';
 
 // Context
-import { useGlobalContext } from 'components/MainLayout';
+import { useGlobalContext } from 'components/Main';
 import { NO_VALUE } from 'constants/textConstants';
 
 // Analytics

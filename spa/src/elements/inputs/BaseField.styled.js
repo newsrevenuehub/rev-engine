@@ -1,8 +1,13 @@
 import styled, { css } from 'styled-components';
 import { motion } from 'framer-motion';
 
-export const getInputBorder = (props) =>
-  props.hasErrors ? props.theme.colors.caution : props.theme.colors.inputBorder;
+export const getInputBorder = (props) => {
+  const { highlighted, readOnly, theme, hasErrors } = props;
+  if (hasErrors) return theme.colors.caution;
+  if (highlighted) return theme.colors.caution;
+  if (readOnly) return theme.colors.grey[3];
+  return props.theme.colors.cstm_inputBorder || props.theme.colors.inputBorder;
+};
 
 export const baseInputStyles = css`
   height: 45px;
@@ -13,10 +18,7 @@ export const baseInputStyles = css`
   color: ${(props) => (props.readOnly ? props.theme.colors.grey[3] : props.theme.colors.black)};
   background: ${(props) => props.theme.colors.cstm_inputBackground || props.theme.colors.inputBackground};
   border: 1px solid;
-  border-color: ${(props) =>
-    props.readOnly
-      ? props.theme.colors.grey[3]
-      : props.theme.colors.cstm_inputBorder || props.theme.colors.inputBorder};
+  border-color: ${(props) => getInputBorder(props)};
   border-radius: ${(props) => props.theme.radii[0]};
   font-size: ${(props) => props.theme.fontSizes[1]};
 `;

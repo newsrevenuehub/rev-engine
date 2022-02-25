@@ -3,6 +3,11 @@ import Login from './Login';
 
 function ReauthModal({ isOpen, closeModal, callbacks }) {
   const onSuccess = () => {
+    // TODO: What happens here if the user has signed in to a different account?
+    // If we send orgSlug and rpSlug via params, then calling these callbacks will
+    // send the orgSlug and rpSlug from the previously logged in user.
+    // That might be fine. Since a different user's JWT is sent, the callback requests
+    // will succeed if permitted and fail if not-- just like normal.
     callbacks.forEach((cb) => cb());
     closeModal();
   };

@@ -2,14 +2,17 @@ import { useEffect, useState, useCallback } from 'react';
 import * as S from './Pages.styled';
 
 // Router
-import { useHistory } from 'react-router-dom';
-import { EDITOR_ROUTE } from 'routes';
+import { useHistory, generatePath } from 'react-router-dom';
+
+// Hooks
+import useOrgParams from 'hooks/useOrgParams';
 
 // Deps
 import { faChevronDown, faPlus } from '@fortawesome/free-solid-svg-icons';
 import { useAlert } from 'react-alert';
 
 // Constants
+import { EDITOR_SLUG } from 'routes';
 import { GENERIC_ERROR } from 'constants/textConstants';
 
 // AJAX
@@ -27,6 +30,8 @@ function Pages({ setShowAddPageModal }) {
   const requestGetPages = useRequest();
   const [pagesByRevenueProgram, setPagesByRevenueProgram] = useState([]);
   const [closedAccordions, setClosedAccordions] = useState([]);
+
+  const orgURLParams = useOrgParams();
 
   const formatPagesList = useCallback((pgs) => {
     const pagesByRevProgram = [];
@@ -54,7 +59,7 @@ function Pages({ setShowAddPageModal }) {
   }, [alert, formatPagesList]);
 
   const handleEditPage = (pageSlug) => {
-    history.push(`${EDITOR_ROUTE}/${pageSlug}`);
+    history.push(generatePath(EDITOR_SLUG, { ...orgURLParams, pageSlug }));
   };
 
   const handleAccordionClick = (i) => {

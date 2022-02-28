@@ -11,6 +11,7 @@ from apps.organizations.models import RevenueProgram
 from apps.organizations.serializers import (
     BenefitLevelDetailSerializer,
     RevenueProgramListInlineSerializer,
+    RevenueProgramSerializer,
 )
 from apps.pages.models import DonationPage, Font, Style, Template
 
@@ -39,7 +40,7 @@ class StyleInlineSerializer(serializers.ModelSerializer):
 
 
 class StyleListSerializer(StyleInlineSerializer):
-    # revenue_program = RevenueProgramSerializer()
+    revenue_program = RevenueProgramSerializer()
     used_live = serializers.SerializerMethodField()
 
     def __init__(self, *args, **kwargs):

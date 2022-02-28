@@ -32,7 +32,7 @@ class PageViewSetTest(AbstractTestCase):
     def setUp(self):
         super().setUp()
         self.create_resources()
-        self.rev_program = RevenueProgramFactory()
+        self.rev_program = self.rev_programs[0]
         self.login()
 
         self.url = f"{reverse('donationpage-list')}?{settings.RP_SLUG_PARAM}={self.rev_program.slug}&{settings.ORG_SLUG_PARAM}={self.rev_program.organization.slug}"
@@ -164,7 +164,7 @@ class PageViewSetTest(AbstractTestCase):
         response = self.client.get(self.url)
         data = response.json()
 
-        self.assertEqual(self.resource_count, len(data))
+        self.assertEqual(self.rev_program.donationpage_set.count(), len(data))
 
 
 class PagePatchTest(AbstractTestCase):
@@ -369,22 +369,23 @@ class StylesViewsetTest(AbstractTestCase):
     def setUp(self):
         super().setUp()
         self.create_resources()
+        self.rev_program = RevenueProgramFactory()
         valid_styles_json = {}
         for k, v in required_style_keys.items():
             valid_styles_json[k] = v()
         self.styles_data = {
             "name": "New Test Styles",
+            "revenue_program": {"name": self.rev_program.name, "slug": self.rev_program.slug},
             "random_property": "test",
             "colors": {"primary": "testing pink"},
             **valid_styles_json,
         }
-        self.rev_program = RevenueProgramFactory()
         self.list_url = f'{reverse("style-list")}?{settings.RP_SLUG_PARAM}={self.rev_program.slug}&{settings.ORG_SLUG_PARAM}={self.rev_program.organization.slug}'
 
     def test_flattened_to_internal_value(self):
         self.client.force_authenticate(user=self.user)
         response = self.client.post(self.list_url, data=json.dumps(self.styles_data), content_type="application/json")
-        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.status_code, 201)
         self.assertIn("id", response.data)
         new_styles_id = response.data["id"]
         new_styles = Style.objects.get(pk=new_styles_id)

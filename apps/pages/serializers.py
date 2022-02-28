@@ -27,7 +27,6 @@ class StyleInlineSerializer(serializers.ModelSerializer):
         data comes in as a dict with name and styles flattened. We need
         to stick styles in its own value and pull out name.
         """
-
         name = data.pop("name", None)
         revenue_program = data.pop("revenue_program", None)
         data = {"name": name, "revenue_program": revenue_program, "styles": data}
@@ -42,6 +41,16 @@ class StyleInlineSerializer(serializers.ModelSerializer):
 class StyleListSerializer(StyleInlineSerializer):
     revenue_program = RevenueProgramSerializer()
     used_live = serializers.SerializerMethodField()
+
+    def __init__(self, *args, **kwargs):
+        """
+        Remove the RevenueProgramSerializer on PATCH but not on PUT. PATCH here is
+        only updating the style and cares naught about the revenue program.
+        """
+        kwargs.pop("fields", {})
+        super().__init__(*args, **kwargs)
+        if self.context.get("request") and self.context.get("request").method == "PATCH":
+            self.fields.pop("revenue_program")
 
     def create(self, validated_data):
         self.set_revenue_program(validated_data)

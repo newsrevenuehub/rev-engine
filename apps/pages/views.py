@@ -120,8 +120,9 @@ class TemplateViewSet(RevenueProgramLimitedMixin, viewsets.ModelViewSet):
         )
 
 
-class StyleViewSet(RevenueProgramLimitedMixin, viewsets.ModelViewSet):
+class StyleViewSet(viewsets.ModelViewSet, RevenueProgramLimitedMixin):
     model = Style
+    queryset = Style.objects.all()
     permission_classes = [IsAuthenticated, UserBelongsToOrg]
     serializer_class = serializers.StyleListSerializer
     pagination_class = None

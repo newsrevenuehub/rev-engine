@@ -1,5 +1,4 @@
 from django.conf import settings
-from django.urls import reverse
 from django.utils import timezone
 
 from rest_framework import serializers
@@ -18,6 +17,7 @@ from apps.pages.serializers import (
     TemplateDetailSerializer,
 )
 from apps.pages.tests.factories import DonationPageFactory, StyleFactory, TemplateFactory
+from apps.pages.validators import required_style_keys
 
 
 class DonationPageFullDetailSerializerTest(APITestCase):
@@ -207,11 +207,23 @@ class TemplateDetailSerializerTest(APITestCase):
 
 class StyleListSerializerTest(APITestCase):
     def setUp(self):
-        self.style_1 = StyleFactory()
-        self.style_2 = StyleFactory()
-        self.donation_page_live = DonationPageFactory(published_date=timezone.now(), styles=self.style_1)
-        self.donation_page_unlive = DonationPageFactory(styles=self.style_2)
+        self.rev_program = RevenueProgramFactory()
+        self.style_1 = StyleFactory(revenue_program=self.rev_program)
+        self.style_2 = StyleFactory(revenue_program=self.rev_program)
+        self.donation_page_live = DonationPageFactory(
+            published_date=timezone.now(), styles=self.style_1, revenue_program=self.rev_program
+        )
+        self.donation_page_unlive = DonationPageFactory(styles=self.style_2, revenue_program=self.rev_program)
         self.serializer = StyleListSerializer
+        self.other_rev_program = RevenueProgramFactory()
+        valid_styles_json = {}
+        for k, v in required_style_keys.items():
+            valid_styles_json[k] = v()
+        self.updated_styled_data = {
+            "name": "New Test Styles",
+            "revenue_program": {"name": self.rev_program.name, "slug": self.rev_program.slug},
+            **valid_styles_json,
+        }
 
     def test_get_used_live(self):
         live_style_serializer = self.serializer(self.style_1)

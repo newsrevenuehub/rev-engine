@@ -1,7 +1,6 @@
 from unittest.mock import patch
 
 from django.conf import settings
-from django.contrib.auth import get_user_model
 from django.test import override_settings
 from django.urls import reverse
 
@@ -17,6 +16,7 @@ from apps.contributions.tests.factories import ContributionFactory, ContributorF
 from apps.contributions.views import stripe_payment
 from apps.organizations.tests.factories import OrganizationFactory, RevenueProgramFactory
 from apps.pages.tests.factories import DonationPageFactory
+from apps.users.models import Roles
 from apps.users.tests.utils import create_test_user
 
 
@@ -356,12 +356,13 @@ class StripeConfirmTest(APITestCase):
 
 class TestContributionsViewSet(APITestCase):
     def setUp(self):
-        self.user = create_test_user()
         self.organization1 = OrganizationFactory(name="Organization 1")
-        self.organization1.user_set.add(self.user)
+        self.user = create_test_user(
+            role_assignment_data={"role_type": Roles.HUB_ADMIN, "organization": self.organization1}
+        )
         self.organization2 = OrganizationFactory(name="Organization 2")
         self.contributor = Contributor.objects.create(email="contributor@contributor.com")
-        self.contributions_per_org_count = 50
+        self.contributions_per_org_count = 10
         for i in range(self.contributions_per_org_count):
             Contribution.objects.create(
                 amount=1000,

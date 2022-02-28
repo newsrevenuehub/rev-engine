@@ -37,6 +37,7 @@ export const PaymentError = styled.div`
 
 export const PayWithCardOption = styled.p`
   cursor: pointer;
+  font-family: ${(props) => props.theme.systemFont};
   font-size: ${(props) => props.theme.fontSizes[1]};
   font-style: italic;
   text-align: center;

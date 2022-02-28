@@ -1,5 +1,6 @@
+from django.conf import settings
 from django.contrib.auth import get_user_model
-from django.test import TestCase
+from django.test import TestCase, override_settings
 from django.urls import reverse
 
 from apps.organizations.tests.factories import OrganizationFactory, RevenueProgramFactory
@@ -10,6 +11,7 @@ from revengine.views import SAFE_ADMIN_SELECT_ACCESSOR_METHODS, SAFE_ADMIN_SELEC
 user_model = get_user_model()
 
 
+@override_settings(ALLOWED_HOSTS=["my-test.test-domain.com", "testserver"])
 class ReactAppViewTestCase(TestCase):
     def setUp(self):
         self.revenue_program = RevenueProgramFactory(name="My Test", slug="my-test")

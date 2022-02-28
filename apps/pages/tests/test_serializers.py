@@ -1,7 +1,9 @@
+from django.conf import settings
+from django.urls import reverse
 from django.utils import timezone
 
 from rest_framework import serializers
-from rest_framework.test import APITestCase
+from rest_framework.test import APIRequestFactory, APITestCase
 
 from apps.organizations.models import BenefitLevelBenefit, RevenueProgramBenefitLevel
 from apps.organizations.tests.factories import (
@@ -50,6 +52,12 @@ class DonationPageFullDetailSerializerTest(APITestCase):
 
         self.page = DonationPageFactory(revenue_program=self.revenue_program)
         self.serializer = DonationPageFullDetailSerializer
+        self.request_factory = APIRequestFactory()
+
+    def _create_request_for_serializer(self, data=None):
+        if not data:
+            data = {settings.ORG_SLUG_PARAM: self.organization.slug, settings.RP_SLUG_PARAM: self.revenue_program.slug}
+        return self.request_factory.get("/", data=data)
 
     def test_has_analytics_data(self):
         serializer = self.serializer(self.page)
@@ -111,9 +119,10 @@ class DonationPageFullDetailSerializerTest(APITestCase):
             "template_pk": template.pk,
             "name": "My New Page From a Template",
             "slug": "my-new-page-from-a-template",
-            "revenue_program_pk": self.revenue_program.pk,
         }
         serializer = self.serializer(data=new_page_data)
+        request = self._create_request_for_serializer()
+        serializer.context["request"] = request
         self.assertTrue(serializer.is_valid())
         new_page = serializer.save()
         self.assertEqual(new_page.heading, template.heading)
@@ -123,9 +132,10 @@ class DonationPageFullDetailSerializerTest(APITestCase):
             "template_pk": 99999,
             "name": "My New Page From a Template",
             "slug": "my-new-page-from-a-template",
-            "revenue_program_pk": self.revenue_program.pk,
         }
         serializer = self.serializer(data=new_page_data)
+        request = self._create_request_for_serializer()
+        serializer.context["request"] = request
         self.assertTrue(serializer.is_valid())
         # Should raise validation error if invalid pk
         with self.assertRaises(serializers.ValidationError) as v_error:

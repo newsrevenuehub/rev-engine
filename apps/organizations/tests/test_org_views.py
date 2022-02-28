@@ -67,8 +67,6 @@ class RevenueProgramViewSetTest(AbstractTestCase):
         self.assertEqual(response.status_code, 200)
 
     def test_list_returns_expected_count(self):
-        revp = self.resources[0]
-        self.authenticate_user_for_resource(revp)
         self.login()
         response = self.client.get(self.list_url)
         self.assertEqual(response.status_code, 200)
@@ -76,8 +74,6 @@ class RevenueProgramViewSetTest(AbstractTestCase):
         self.assertEqual(len(response.json()), expected_count)
 
     def test_created_and_list_are_equivalent(self):
-        revp = self.resources[0]
-        self.authenticate_user_for_resource(revp)
         self.login()
         response = self.client.get(self.list_url)
         self.assertEqual([x["id"] for x in response.json()], list(RevenueProgram.objects.values_list("pk", flat=True)))
@@ -87,7 +83,6 @@ class RevenueProgramViewSetTest(AbstractTestCase):
         For now, revprogram viewset is readonly. Test to make sure we don't accidentally change that.
         """
         rp = RevenueProgram.objects.all().first()
-        self.authenticate_user_for_resource(rp)
         self.login()
         new_name = "A New RevenueProgram Name"
 
@@ -100,8 +95,6 @@ class RevenueProgramViewSetTest(AbstractTestCase):
         self.assertEqual(response.status_code, 405)
 
     def test_pagination_disabled(self):
-        revp = self.resources[0]
-        self.authenticate_user_for_resource(revp)
         self.login()
         response = self.client.get(self.list_url)
         self.assertEqual(response.status_code, 200)

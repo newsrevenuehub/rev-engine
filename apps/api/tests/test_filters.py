@@ -88,7 +88,7 @@ class RoleAssignmentFilterBackendTest(APITestCase):
     def assert_correct_rp_set(self, filtered, rps):
         distinct_rps = filtered.values_list("revenue_program", flat=True).distinct()
         expected_rps = [rp.pk for rp in rps]
-        self.assertEqual(list(distinct_rps), expected_rps)
+        self.assertEqual(list(distinct_rps).sort(), expected_rps.sort())
 
     def assert_expected_pages(self, filtered, org=None, rps=None):
         filters = []
@@ -159,7 +159,9 @@ class RoleAssignmentFilterBackendTest(APITestCase):
         self.assert_correct_org(filtered, target_org)
         expected_pages = self.page_queryset.filter(revenue_program__in=target_org.revenueprogram_set.all())
 
-        self.assertEqual(list(expected_pages.values_list("pk", flat=True)), list(filtered.values_list("pk", flat=True)))
+        self.assertEqual(
+            list(expected_pages.values_list("pk", flat=True)).sort(), list(filtered.values_list("pk", flat=True)).sort()
+        )
 
     def test_org_admin_without_slugs(self):
         assigned_org = self.orgs[0]

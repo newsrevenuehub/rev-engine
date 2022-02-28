@@ -56,15 +56,6 @@ class AbstractTestCase(APITestCase):
         self.password = "testpassy"
         self.user = create_test_user(role_assignment_data={"role_type": Roles.HUB_ADMIN})
 
-    def authenticate_user_for_resource(self, resource=None):
-        if resource:
-            if isinstance(resource, Organization):
-                resource.users.add(self.user)
-            elif self._resource_has_org_fk(resource):
-                resource.organization.users.add(self.user)
-            else:
-                resource.revenue_program.organization.users.add(self.user)
-
     def login(self):
         self.client.force_authenticate(user=self.user)
 

@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import * as S from './Modal.styled';
 
@@ -7,6 +7,14 @@ import { faTimes } from '@fortawesome/free-solid-svg-icons';
 import GenericErrorBoundary from 'components/errors/GenericErrorBoundary';
 
 function Modal({ children, isOpen, closeModal, ...props }) {
+  const portalNode = useRef(document.createElement('div'));
+
+  useEffect(() => {
+    const portalDiv = portalNode.current;
+    document.body.append(portalDiv);
+    return () => portalDiv.parentNode.removeChild(portalDiv);
+  }, []);
+
   useEffect(() => {
     if (isOpen) document.body.style.overflow = 'hidden';
     else document.body.style.overflow = '';
@@ -37,7 +45,7 @@ function Modal({ children, isOpen, closeModal, ...props }) {
         </>
       )}
     </AnimatePresence>,
-    document.getElementById('modal-root')
+    portalNode.current
   );
 }
 

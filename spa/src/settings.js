@@ -35,8 +35,6 @@ export const LS_USER = LS_BASE + 'USER';
 export const LS_CONTRIBUTOR = LS_BASE + 'CONTRIBUTOR';
 export const LS_CSRF_TOKEN = 'CSRF_TOKEN';
 export const CSRF_HEADER = 'X-CSRFTOKEN';
-export const ORG_HEADER = 'X-ORG_ID';
-export const RP_HEADER = 'X-RP_ID';
 
 // Org and RP Permissions
 export const LS_SELECTED_ORG = LS_BASE + 'SELECTED_ORG';

@@ -69,10 +69,10 @@ function Dashboard() {
           <DashboardSidebar />
           <S.DashboardMain>
             <S.DashboardContent>
-              {DASHBOARD_ROUTES.map(({ path, component: Component }) => (
+              {DASHBOARD_ROUTES.map(({ path, component: RoutedComponent }) => (
                 <Route path={path} key={path}>
                   <StatefulRoute>
-                    <Component />
+                    <RoutedComponent />
                   </StatefulRoute>
                 </Route>
               ))}

@@ -1,0 +1,70 @@
+{
+  "detail": "success",
+  "user": {
+    "id": 1,
+    "email": "michael.ashton@caktusgroup.com",
+    "role_type": [
+      "superuser",
+      "Superuser"
+    ],
+    "organizations": [
+      {
+        "id": 1,
+        "name": "The Trace",
+        "slug": "the-trace",
+        "needs_payment_provider": false
+      },
+      {
+        "id": 4,
+        "name": "NPR",
+        "slug": "npr",
+        "needs_payment_provider": false
+      },
+      {
+        "id": 2,
+        "name": "Billy Penn",
+        "slug": "billy-penn",
+        "needs_payment_provider": true
+      }
+    ],
+    "revenue_programs": [
+      {
+        "id": 2,
+        "name": "The Spore",
+        "slug": "the-spore",
+        "organization": 1
+      },
+      {
+        "id": 3,
+        "name": "The Trail",
+        "slug": "the-trail",
+        "organization": 1
+      },
+      {
+        "id": 4,
+        "name": "Radio Inflagrante",
+        "slug": "radio-inflagrante",
+        "organization": 4
+      },
+      {
+        "id": 5,
+        "name": "Science Fridays",
+        "slug": "science-fridays",
+        "organization": 4
+      },
+      {
+        "id": 6,
+        "name": "Liberty Bell",
+        "slug": "liberty-bell",
+        "organization": 2
+      },
+      {
+        "id": 1,
+        "name": "The Trace",
+        "slug": "the-trace",
+        "organization": 1
+      }
+    ]
+  },
+  "csrftoken": "1234abcd"
+}

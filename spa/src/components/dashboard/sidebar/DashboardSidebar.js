@@ -69,7 +69,8 @@ function DashboardSidebar() {
 
 export default DashboardSidebar;
 
-function OrganizationPicker({ availableOrganizations, selectedOrganization, setSelectedOrganization }) {
+// exported for tests
+export function OrganizationPicker({ availableOrganizations, selectedOrganization, setSelectedOrganization }) {
   const history = useHistory();
   const { params } = matchPath(history.location.pathname, { path: DASHBOARD_ROUTES.map((r) => r.path) }) || {};
   /**
@@ -133,7 +134,8 @@ function OrganizationPicker({ availableOrganizations, selectedOrganization, setS
   );
 }
 
-function RevenueProgramPicker({
+// exported for tests
+export function RevenueProgramPicker({
   availableRevenuePrograms,
   filteredRevenuePrograms,
   setFilteredRevenuePrograms,
@@ -233,7 +235,7 @@ function RevenueProgramPicker({
    * Respond to changes to selectedRevenueProgram and freeze the UI if it's blank.
    */
   useEffect(() => {
-    if (!selectedRevenueProgram) setBlockMainContentReason('Select an Organization and RevenueProgram');
+    if (!selectedRevenueProgram) setBlockMainContentReason('Select an Organization and Revenue Program');
     else setBlockMainContentReason(false);
   }, [selectedRevenueProgram, setBlockMainContentReason]);
 
@@ -241,7 +243,7 @@ function RevenueProgramPicker({
     <S.SelectWrapper>
       <Select
         label="Revenue Program"
-        placeholder={selectedOrganization ? 'Select a revenue program' : 'Select and organization first'}
+        placeholder={selectedOrganization ? 'Select a revenue program' : 'Select an organization first'}
         selectedItem={selectedRevenueProgram}
         displayAccessor="name"
         onSelectedItemChange={({ selectedItem }) => setSelectedRevenueProgram(selectedItem)}

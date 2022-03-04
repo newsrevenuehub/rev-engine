@@ -1,0 +1,34 @@
+{
+  "detail": "success",
+  "user": {
+    "id": 1,
+    "email": "michael.ashton@caktusgroup.com",
+    "role_type": [
+      "rp_admin",
+      "RP Admin"
+    ],
+    "organizations": [
+      {
+        "id": 1,
+        "name": "The Trace",
+        "slug": "the-trace",
+        "needs_payment_provider": false
+      }
+    ],
+    "revenue_programs": [
+      {
+        "id": 2,
+        "name": "The Spore",
+        "slug": "the-spore",
+        "organization": 1
+      },
+      {
+        "id": 1,
+        "name": "The Trace",
+        "slug": "the-trace",
+        "organization": 1
+      }
+    ]
+  },
+  "csrftoken": "1234abcd"
+}

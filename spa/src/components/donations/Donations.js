@@ -11,7 +11,6 @@ import { getFrequencyAdjective } from 'utilities/parseFrequency';
 import queryString from 'query-string';
 
 // Contants
-import { DONATIONS_SLUG } from 'routes';
 import { NO_VALUE } from 'constants/textConstants';
 
 // Util
@@ -40,7 +39,7 @@ function Donations() {
   const [donationsCount, setDonationsCount] = useState([]);
   const [pageIndex, setPageIndex] = useState(0);
 
-  const handleRowClick = (row) => history.push(`${DONATIONS_SLUG}/${row.id}/`);
+  const handleRowClick = (row) => history.push(`${history.location.pathname}/${row.id}/`);
 
   const handlePageChange = (pageIndexChange) => {
     setPageIndex(pageIndex + pageIndexChange);

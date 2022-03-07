@@ -2,8 +2,10 @@ import isEqual from 'lodash.isequal';
 
 import { NO_VALUE } from 'constants/textConstants';
 import { DONATIONS_SLUG } from 'routes';
+import { generatePath } from 'react-router-dom';
 
-// Data
+// Fixtures
+import hubAdmin from '../fixtures/user/hub-admin.json';
 import donationsData from '../fixtures/donations/18-results.json';
 
 // Utils
@@ -12,12 +14,20 @@ import formatDatetimeForDisplay from 'utilities/formatDatetimeForDisplay';
 import formatCurrencyAmount from 'utilities/formatCurrencyAmount';
 import toTitleCase from 'utilities/toTitleCase';
 
+const { organizations, revenue_programs } = hubAdmin.user;
+const targetOrg = organizations[0];
+const targetRP = revenue_programs.find((rp) => rp.organization === targetOrg.id);
+const targetUrl = generatePath(DONATIONS_SLUG, {
+  orgSlug: targetOrg.slug,
+  revProgramSlug: targetRP.slug
+});
+
 describe('Donations list', () => {
   describe('Table', () => {
     beforeEach(() => {
-      cy.login('user/stripe-verified.json');
+      cy.login('user/hub-admin.json');
       cy.interceptPaginatedDonations();
-      cy.visit(DONATIONS_SLUG);
+      cy.visit(targetUrl);
     });
     it('should display the first page of donations by default on page load', () => {
       cy.wait('@getDonations').then((intercept) => {
@@ -249,7 +259,7 @@ describe('Donations list', () => {
 
     it('should have working page controls', () => {
       cy.wait('@getDonations');
-      cy.url().should('include', DONATIONS_SLUG);
+      cy.url().should('include', targetUrl);
       // initial state when 2 pages
       cy.getByTestId('previous-page').should('be.disabled');
       cy.getByTestId('next-page').should('not.be.disabled');
@@ -263,9 +273,9 @@ describe('Donations list', () => {
 
   describe('Filtering', () => {
     beforeEach(() => {
-      cy.login('user/stripe-verified.json');
+      cy.login('user/hub-admin.json');
       cy.interceptPaginatedDonations();
-      cy.visit(DONATIONS_SLUG);
+      cy.visit(targetUrl);
     });
 
     it('should render expected filters', () => {

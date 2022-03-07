@@ -1,22 +1,29 @@
-import { LIST_PAGES, REVENUE_PROGRAMS, TEMPLATES } from 'ajax/endpoints';
+import { LIST_PAGES, TEMPLATES } from 'ajax/endpoints';
 import { CONTENT_SLUG } from 'routes';
 import { getEndpoint } from '../support/util';
+import { generatePath } from 'react-router-dom';
+
+// Fixtures
+import hubAdmin from '../fixtures/user/hub-admin.json';
+
+const { organizations, revenue_programs } = hubAdmin.user;
+const targetOrg = organizations[0];
+const targetRP = revenue_programs.find((rp) => rp.organization === targetOrg.id);
+const targetUrl = generatePath(CONTENT_SLUG, {
+  orgSlug: targetOrg.slug,
+  revProgramSlug: targetRP.slug
+});
 
 describe('Donation page list', () => {
   beforeEach(() => {
-    cy.login('user/stripe-verified.json');
+    cy.login('user/hub-admin.json');
     cy.intercept(
       { method: 'GET', pathname: getEndpoint(LIST_PAGES) },
       { fixture: 'pages/list-pages-1', statusCode: 200 }
     ).as('listPages');
 
-    cy.intercept(
-      { method: 'GET', pathname: getEndpoint(REVENUE_PROGRAMS) },
-      { fixture: 'org/revenue-programs-1', statusCode: 200 }
-    );
-
-    cy.visit(CONTENT_SLUG);
-    cy.url().should('include', CONTENT_SLUG);
+    cy.visit(targetUrl);
+    cy.url().should('include', targetUrl);
     cy.wait('@listPages');
   });
 
@@ -28,18 +35,6 @@ describe('Donation page list', () => {
     it('should render page creation modal', () => {
       cy.getByTestId('page-create-button').click();
       cy.getByTestId('page-create-modal');
-    });
-
-    it('should show message if there are no revenue programs', () => {
-      // override intercept set in beforeEach cause for this case we don't want any programs present
-      cy.intercept({ method: 'GET', pathname: getEndpoint(REVENUE_PROGRAMS) }, { body: [], statusCode: 200 });
-      cy.getByTestId('page-create-button').click();
-      cy.contains('You need to set up a revenue program to create a page.');
-    });
-
-    it('should show select if rev programs present', () => {
-      cy.getByTestId('page-create-button').click();
-      cy.contains('Choose a revenue program');
     });
 
     it('should add suggested slug on name field blur', () => {
@@ -58,28 +53,21 @@ describe('Donation page list', () => {
       cy.getByTestId('template-picker').should('exist');
     });
 
-    it('should contain rev_program_pk and template_pk in outoing request', () => {
-      cy.intercept(
-        { method: 'GET', pathname: getEndpoint(REVENUE_PROGRAMS) },
-        { fixture: 'org/revenue-programs-1.json', statusCode: 200 }
-      ).as('getRevPrograms');
+    it('should contain and template_pk in outoing request', () => {
       cy.intercept(
         { method: 'GET', pathname: getEndpoint(TEMPLATES) },
         { fixture: 'pages/templates.json', statusCode: 200 }
       ).as('getTemplates');
       cy.getByTestId('page-create-button').click();
-      cy.wait(['@getRevPrograms', '@getTemplates']);
+      cy.wait('@getTemplates');
       cy.getByTestId('page-name').type('My Testing Page');
       cy.getByTestId('page-name').blur();
-      cy.getByTestId('revenue-program-picker').click();
-      cy.getByTestId('select-item-0').click();
       cy.getByTestId('template-picker').click();
       cy.getByTestId('select-item-0').click();
 
       cy.intercept({ method: 'POST', pathname: getEndpoint(LIST_PAGES) }).as('createNewPage');
       cy.getByTestId('save-new-page-button').click({ force: true });
       cy.wait('@createNewPage').then(({ request }) => {
-        expect(request.body).to.have.property('revenue_program_pk');
         expect(request.body).to.have.property('template_pk');
       });
     });

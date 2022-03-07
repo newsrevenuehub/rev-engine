@@ -4,6 +4,7 @@ import { getFrequencyAdjective } from 'utilities/parseFrequency';
 import { format } from 'date-fns';
 
 // Fixtures
+import hubAdmin from '../fixtures/user/hub-admin.json';
 import livePage from '../fixtures/pages/live-page-1.json';
 import unpublishedPage from '../fixtures/pages/unpublished-page-1.json';
 
@@ -13,15 +14,22 @@ import { DELETE_CONFIRM_MESSAGE } from 'components/pageEditor/PageEditor';
 import { CONTENT_SLUG } from 'routes';
 import { CLEARBIT_SCRIPT_SRC } from 'hooks/useClearbit';
 
+const { organizations, revenue_programs } = hubAdmin.user;
+const targetOrg = organizations[0];
+const targetUrl = `${targetOrg.slug}/${
+  revenue_programs.find((rp) => rp.organization === targetOrg.id).slug
+}/edit/page-slug`;
+
 describe('Donation page edit', () => {
   before(() => {
-    cy.login('user/stripe-verified.json');
+    cy.login('user/hub-admin.json');
     cy.intercept(
       { method: 'GET', pathname: `${getEndpoint(DRAFT_PAGE_DETAIL)}**` },
       { fixture: 'pages/live-page-1', statusCode: 200 }
     ).as('getPage');
-    cy.visit('edit/my/page');
-    cy.url().should('include', 'edit/my/page');
+
+    cy.visit(targetUrl);
+    cy.url().should('include', targetUrl);
     return cy.wait('@getPage');
   });
 
@@ -217,13 +225,13 @@ describe('Donation page edit', () => {
       const page = { ...livePage };
       page.allow_offer_nyt_comp = true;
 
-      cy.login('user/stripe-verified.json');
+      cy.login('user/hub-admin.json');
       cy.intercept(
         { method: 'GET', pathname: `${getEndpoint(DRAFT_PAGE_DETAIL)}**` },
         { body: page, statusCode: 200 }
       ).as('getPage');
-      cy.visit('edit/my/page');
-      cy.url().should('include', 'edit/my/page');
+      cy.visit(targetUrl);
+      cy.url().should('include', targetUrl);
       cy.wait('@getPage');
 
       cy.getByTestId('edit-page-button').click();
@@ -242,8 +250,8 @@ describe('Donation page edit', () => {
       cy.intercept({ method: 'GET', pathname: getEndpoint(DRAFT_PAGE_DETAIL) }, { body: page, statusCode: 200 }).as(
         'getPageDetail'
       );
-      cy.login('user/stripe-verified.json');
-      cy.visit('edit/my/page');
+      cy.login('user/hub-admin.json');
+      cy.visit(targetUrl);
       cy.wait('@getPageDetail');
 
       // Need to fake an update to the page to enable save
@@ -272,8 +280,8 @@ describe('Donation page edit', () => {
         { method: 'GET', pathname: getEndpoint(DRAFT_PAGE_DETAIL) },
         { fixture: 'pages/unpublished-page-1.json' }
       ).as('getPageDetail');
-      cy.login('user/stripe-verified.json');
-      cy.visit('edit/my/page');
+      cy.login('user/hub-admin.json');
+      cy.visit(targetUrl);
       cy.wait('@getPageDetail');
       cy.getByTestId('edit-page-button').click();
       cy.getByTestId('setup-tab').click({ force: true });
@@ -304,8 +312,8 @@ describe('Donation page edit', () => {
         { method: 'GET', pathname: getEndpoint(DRAFT_PAGE_DETAIL) },
         { fixture: 'pages/live-page-element-validation.json' }
       ).as('getPageDetailModified');
-      cy.login('user/stripe-verified.json');
-      cy.visit('edit/my/page');
+      cy.login('user/hub-admin.json');
+      cy.visit(targetUrl);
       cy.wait('@getPageDetailModified');
       // Need to fake an update to the page to enable save
       cy.getByTestId('edit-page-button').click();
@@ -325,13 +333,13 @@ describe('Donation page edit', () => {
 
   describe('Edit interface: Setup', () => {
     before(() => {
-      cy.login('user/stripe-verified.json');
+      cy.login('user/hub-admin.json');
       cy.intercept(
         { method: 'GET', pathname: getEndpoint(DRAFT_PAGE_DETAIL) },
         { fixture: 'pages/live-page-1', statusCode: 200 }
       ).as('getPageDetail');
-      cy.visit('edit/my/page');
-      cy.url().should('include', 'edit/my/page');
+      cy.visit(targetUrl);
+      cy.url().should('include', targetUrl);
       cy.wait('@getPageDetail');
       cy.getByTestId('edit-page-button').click({ force: true });
       cy.getByTestId('setup-tab').click({ force: true });
@@ -371,12 +379,12 @@ describe('Donation page edit', () => {
 
   describe('Edit interface: Sidebar', () => {
     before(() => {
-      cy.login('user/stripe-verified.json');
+      cy.login('user/hub-admin.json');
       cy.intercept(
         { method: 'GET', pathname: getEndpoint(DRAFT_PAGE_DETAIL) },
         { fixture: 'pages/live-page-1', statusCode: 200 }
       ).as('getPageDetail');
-      cy.visit('edit/my/page');
+      cy.visit(targetUrl);
       cy.wait('@getPageDetail');
     });
 
@@ -422,7 +430,7 @@ describe('Donation page edit', () => {
 
 describe('Donation page delete', () => {
   beforeEach(() => {
-    cy.login('user/stripe-verified.json');
+    cy.login('user/hub-admin.json');
     cy.intercept({ method: 'DELETE', pathname: getEndpoint(`${DELETE_PAGE}*/`) }, { statusCode: 204 }).as('deletePage');
     cy.intercept({ method: 'GET', pathname: getEndpoint(LIST_PAGES) }, { body: [], statusCode: 200 });
   });
@@ -431,7 +439,7 @@ describe('Donation page delete', () => {
       { method: 'GET', pathname: getEndpoint(DRAFT_PAGE_DETAIL) },
       { fixture: 'pages/unpublished-page-1', statusCode: 200 }
     ).as('getPage');
-    cy.visit('edit/my/page');
+    cy.visit(targetUrl);
     cy.wait(['@getPage']);
     cy.getByTestId('delete-page-button').click();
     cy.wait('@deletePage').then((interception) => {
@@ -445,7 +453,7 @@ describe('Donation page delete', () => {
       { method: 'GET', pathname: getEndpoint(DRAFT_PAGE_DETAIL) },
       { fixture: 'pages/live-page-1', statusCode: 200 }
     ).as('getPage');
-    cy.visit('edit/my/page');
+    cy.visit(targetUrl);
     cy.wait(['@getPage']);
     cy.getByTestId('delete-page-button').click();
 
@@ -460,13 +468,13 @@ describe('Donation page delete', () => {
 
 describe('Page load side effects', () => {
   before(() => {
-    cy.login('user/stripe-verified.json');
+    cy.login('user/hub-admin.json');
     cy.intercept(
       { method: 'GET', pathname: getEndpoint(DRAFT_PAGE_DETAIL) },
       { fixture: 'pages/live-page-1', statusCode: 200 }
     ).as('getPageDetail');
-    cy.visit('edit/my/page');
-    cy.url().should('include', 'edit/my/page');
+    cy.visit(targetUrl);
+    cy.url().should('include', targetUrl);
     cy.wait('@getPageDetail');
   });
   it('should NOT contain clearbit.js script in body', () => {
@@ -476,13 +484,13 @@ describe('Page load side effects', () => {
 
 describe('Template from page', () => {
   beforeEach(() => {
-    cy.login('user/stripe-verified.json');
+    cy.login('user/hub-admin.json');
     cy.intercept(
       { method: 'GET', pathname: getEndpoint(DRAFT_PAGE_DETAIL) },
       { fixture: 'pages/live-page-1', statusCode: 200 }
     ).as('getPageDetail');
-    cy.visit('edit/my/page');
-    cy.url().should('include', 'edit/my/page');
+    cy.visit(targetUrl);
+    cy.url().should('include', targetUrl);
     cy.wait('@getPageDetail');
   });
 
@@ -517,13 +525,13 @@ describe('Template from page', () => {
 
 describe('ReasonEditor', () => {
   before(() => {
-    cy.login('user/stripe-verified.json');
+    cy.login('user/hub-admin.json');
     cy.intercept(
       { method: 'GET', pathname: getEndpoint(DRAFT_PAGE_DETAIL) },
       { fixture: 'pages/live-page-1', statusCode: 200 }
     ).as('getPageDetail');
-    cy.visit('edit/my/page');
-    cy.url().should('include', 'edit/my/page');
+    cy.visit(targetUrl);
+    cy.url().should('include', targetUrl);
     cy.wait('@getPageDetail');
     cy.getByTestId('edit-page-button').click();
     cy.editElement('DReason');

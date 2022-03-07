@@ -8,6 +8,10 @@ import {
   CONTENT_SLUG
 } from 'routes';
 
+// Fixtures
+import hubAdmin from '../fixtures/user/hub-admin.json';
+
+import { generatePath } from 'react-router-dom';
 import { VERIFY_TOKEN } from 'ajax/endpoints';
 
 import livePageFixture from '../fixtures/pages/live-page-1.json';
@@ -24,6 +28,10 @@ const EDITOR_SLUG_PAGE = `${EDITOR_SLUG}/${REVENUE_PROGRAM}/${PAGE_NAME}`;
 const HUB_TRACKED_PAGES_REQURING_NO_LOGIN = [LOGIN, CONTRIBUTOR_ENTRY, CONTRIBUTOR_VERIFY];
 
 const HUB_TRACKED_PAGES_REQUIRING_HUB_LOGIN = [DONATIONS_SLUG, CONTENT_SLUG, EDITOR_SLUG_REV, EDITOR_SLUG_PAGE];
+
+const { organizations, revenue_programs } = hubAdmin.user;
+const targetOrg = organizations[0];
+const targetRP = revenue_programs.find((rp) => rp.organization === targetOrg.id);
 
 // NB: The THANK_YOU_SLUG page is also tracked by both hub and org
 // but at the moment there is not a convenient way to test thank you page
@@ -58,9 +66,15 @@ describe('Pages that are only tracked by Hub', () => {
     });
   });
 
-  HUB_TRACKED_PAGES_REQUIRING_HUB_LOGIN.forEach((page) => {
+  HUB_TRACKED_PAGES_REQUIRING_HUB_LOGIN.forEach((path) => {
+    const pathConfig = {
+      orgSlug: targetOrg.slug,
+      revProgramSlug: targetRP.slug
+    };
+    if (path.includes(':pageSlug')) pathConfig.pageSlug = 'my-page';
+    const page = generatePath(path, pathConfig);
     it(`should track a page view for ${page}`, () => {
-      cy.login('user/stripe-verified.json');
+      cy.login('user/hub-admin.json');
       // logging in will create an initial page view, and we wait for same intercept below per page,
       // so wait on login triggered page view now.
       cy.wait('@trackPageViewOnHubGaV3');

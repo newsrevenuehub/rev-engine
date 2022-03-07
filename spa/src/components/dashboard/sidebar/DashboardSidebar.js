@@ -265,16 +265,26 @@ function negotiateTargetSlug(path) {
   const splitPath = path.split('/');
   const pathEnd = splitPath[splitPath.length - 1];
 
-  if (path === '/' || slugPart(pathEnd) === routes.CONTENT_SLUG_PART) {
+  const slug = slugPart(pathEnd);
+
+  if (path === '/' || slug === routes.CONTENT_SLUG_PART) {
     return routes.CONTENT_SLUG;
   }
 
-  if (slugPart(pathEnd) === routes.DONATIONS_SLUG_PART) {
+  if (slug === routes.DONATIONS_SLUG_PART) {
     return routes.DONATIONS_SLUG;
   }
 
-  if (slugPart(pathEnd) === routes.CONNECT_SLUG_PART) {
+  if (slug === routes.CONNECT_SLUG_PART) {
     return routes.CONNECT_SLUG;
+  }
+
+  // !
+  // TODO: the wip is getting this pattern to work with the contribution detail route
+  console.log('slug-end in negotiateTargetSlug', slug);
+
+  if (slug === routes.DONATION_DETAIL_PART) {
+    return routes.DONATION_DETAIL_SLUG;
   }
 
   // Fallback to content

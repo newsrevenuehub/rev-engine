@@ -2,21 +2,33 @@ import unflaggedContributionDetailData from '../fixtures/donations/donation-not-
 import prevFlaggedContributionDetailData from '../fixtures/donations/donation-prev-flagged.json';
 import flaggedContributionDetailData from '../fixtures/donations/donation-flagged.json';
 
+// Fixtures
+import hubAdmin from '../fixtures/user/hub-admin.json';
+
 import { DONATIONS_SLUG } from 'routes';
 import { CONTRIBUTIONS, PROCESS_FLAGGED } from 'ajax/endpoints';
 import { getEndpoint } from '../support/util';
 import { GENERIC_ERROR } from 'constants/textConstants';
+import { generatePath } from 'react-router-dom';
+
+const { organizations, revenue_programs } = hubAdmin.user;
+const targetOrg = organizations[0];
+const targetRP = revenue_programs.find((rp) => rp.organization === targetOrg.id);
+const targetUrl = generatePath(DONATIONS_SLUG, {
+  orgSlug: targetOrg.slug,
+  revProgramSlug: targetRP.slug
+});
 
 const CONTRIBUTION_PK = 123;
 
 describe('Donation detail', () => {
   describe('Unflagged donation', () => {
     beforeEach(() => {
-      cy.login('user/stripe-verified.json');
+      cy.login('user/hub-admin.json');
       cy.intercept('GET', getEndpoint(`${CONTRIBUTIONS}/${CONTRIBUTION_PK}/`), {
         body: unflaggedContributionDetailData
       }).as('getUnflaggedDonation');
-      cy.visit(`/dashboard/donations/${CONTRIBUTION_PK}`);
+      cy.visit(`${targetUrl}/${CONTRIBUTION_PK}/`);
     });
     it('should display donation details', () => {
       cy.wait('@getUnflaggedDonation');
@@ -37,11 +49,11 @@ describe('Donation detail', () => {
   });
   describe('Previously but no-longer-flagged donation', () => {
     beforeEach(() => {
-      cy.login('user/stripe-verified.json');
+      cy.login('user/hub-admin.json');
       cy.intercept('GET', getEndpoint(`${CONTRIBUTIONS}/${CONTRIBUTION_PK}/`), {
         body: prevFlaggedContributionDetailData
       }).as('getNoLongerFlaggedDonation');
-      cy.visit(`/dashboard/donations/${CONTRIBUTION_PK}`);
+      cy.visit(`${targetUrl}/${CONTRIBUTION_PK}/`);
     });
 
     it('should display flagged details in addition to donation details', () => {
@@ -67,11 +79,11 @@ describe('Donation detail', () => {
 
   describe('Flagged donation', () => {
     before(() => {
-      cy.login('user/stripe-verified.json');
+      cy.login('user/hub-admin.json');
       cy.intercept('GET', getEndpoint(`${CONTRIBUTIONS}${CONTRIBUTION_PK}/`), {
         body: flaggedContributionDetailData
       }).as('getFlaggedDonation');
-      cy.visit(`${DONATIONS_SLUG}/${CONTRIBUTION_PK}`);
+      cy.visit(`${targetUrl}/${CONTRIBUTION_PK}/`);
     });
 
     it('should show flagged details with accept/reject buttons', () => {
@@ -95,11 +107,11 @@ describe('Donation detail', () => {
       // There's a frustrating issue with cypress and the way we're utilizing React.createPortal for the confirmation modal.
       // For whatever reason, cypress returns to the login screen here.
       const contributionId = flaggedContributionDetailData.id;
-      cy.login('user/stripe-verified.json');
+      cy.login('user/hub-admin.json');
       cy.intercept('GET', getEndpoint(`${CONTRIBUTIONS}${contributionId}/`), {
         body: flaggedContributionDetailData
       }).as('getFlaggedDonation');
-      cy.visit(`${DONATIONS_SLUG}/${contributionId}`);
+      cy.visit(`${targetUrl}/${contributionId}`);
 
       // The proper test
       cy.getByTestId('reject-flagged-button').click();
@@ -127,11 +139,11 @@ describe('Donation detail', () => {
       // There's a frustrating issue with cypress and the way we're utilizing React.createPortal for the confirmation modal.
       // For whatever reason, cypress returns to the login screen here.
       const contributionId = flaggedContributionDetailData.id;
-      cy.login('user/stripe-verified.json');
+      cy.login('user/hub-admin.json');
       cy.intercept('GET', getEndpoint(`${CONTRIBUTIONS}${contributionId}/`), {
         body: flaggedContributionDetailData
       }).as('getFlaggedDonation');
-      cy.visit(`${DONATIONS_SLUG}/${contributionId}`);
+      cy.visit(`${targetUrl}/${contributionId}`);
 
       cy.getByTestId('reject-flagged-button').click();
       cy.intercept('POST', getEndpoint(`${CONTRIBUTIONS}${contributionId}/${PROCESS_FLAGGED}`), {
@@ -146,11 +158,11 @@ describe('Donation detail', () => {
       // There's a frustrating issue with cypress and the way we're utilizing React.createPortal for the confirmation modal.
       // For whatever reason, cypress returns to the login screen here.
       const contributionId = flaggedContributionDetailData.id;
-      cy.login('user/stripe-verified.json');
+      cy.login('user/hub-admin.json');
       cy.intercept('GET', getEndpoint(`${CONTRIBUTIONS}${contributionId}/`), {
         body: flaggedContributionDetailData
       }).as('getFlaggedDonation');
-      cy.visit(`${DONATIONS_SLUG}/${contributionId}`);
+      cy.visit(`${targetUrl}/${contributionId}`);
 
       cy.intercept('POST', getEndpoint(`${CONTRIBUTIONS}${contributionId}/${PROCESS_FLAGGED}`), {
         body: { detail: 'accepted' }

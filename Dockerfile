@@ -24,7 +24,7 @@ RUN set -ex \
     curl \
     " \
     && seq 1 8 | xargs -I{} mkdir -p /usr/share/man/man{} \
-    && apt-get update && apt-get -y install wget gnupg2 lsb-release \
+    && apt-get update && apt-get -y install --no-install-recommends wget gnupg2 lsb-release \
     && sh -c 'echo "deb http://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" > /etc/apt/sources.list.d/pgdg.list' \
     && wget --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc | apt-key add - \
     && apt-get update && apt-get install -y --no-install-recommends $RUN_DEPS \
@@ -33,9 +33,6 @@ RUN set -ex \
 # Copy in your requirements file
 ADD poetry.lock /poetry.lock
 ADD pyproject.toml /pyproject.toml
-
-# OR, if you're using a directory for your requirements, copy everything (comment out the above and uncomment this if so):
-# ADD requirements /requirements
 
 # Install build deps, then run `pip install`, then remove unneeded build deps all in a single step.
 # Correct the path to your production requirements file, if needed.
@@ -57,7 +54,7 @@ RUN mkdir /code/
 WORKDIR /code/
 ADD . /code/
 
-FROM base AS deploy
+FROM base:3.9-slim  AS deploy
 
 # Copy React SPA build into final image
 COPY --from=static_files /code/spa/build /code/build

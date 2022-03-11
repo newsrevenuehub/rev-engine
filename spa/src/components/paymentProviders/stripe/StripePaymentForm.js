@@ -304,7 +304,7 @@ function StripePaymentForm({ loading, setLoading, offerPayFees }) {
               {stripeError}
             </S.PaymentError>
           )}
-          {offerPayFees && <PayFeesWidget />}
+          
           <S.PaymentSubmitButton
             onClick={handleCardSubmit}
             disabled={!cardReady || loading || disabled || succeeded || !amountIsValid}
@@ -316,6 +316,9 @@ function StripePaymentForm({ loading, setLoading, offerPayFees }) {
         </S.StripePaymentForm>
       )}
 
+      <S.PayFeesWidget>
+        {offerPayFees && <PayFeesWidget />}
+      </S.PayFeesWidget>
       <S.IconWrapper>
         <S.Icon icon={ICONS.STRIPE_POWERED} />
       </S.IconWrapper>

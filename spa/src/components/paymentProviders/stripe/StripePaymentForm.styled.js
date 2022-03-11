@@ -83,10 +83,3 @@ export const PaymentRequestButtonStyle = {
     height: '64px'
   }
 };
-
-export const PayFeesWidget = styled.div`
-  margin: 25px auto 0px;
-  max-width: 450px;
-  width: 100%;
-`;
-

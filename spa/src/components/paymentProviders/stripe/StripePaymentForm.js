@@ -320,7 +320,7 @@ function StripePaymentForm({ loading, setLoading, offerPayFees }) {
         <S.PayFeesWidget>
           <PayFeesWidget />
         </S.PayFeesWidget>
-        )}
+      )}
       <S.IconWrapper>
         <S.Icon icon={ICONS.STRIPE_POWERED} />
       </S.IconWrapper>

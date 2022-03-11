@@ -282,7 +282,7 @@ function StripePaymentForm({ loading, setLoading, offerPayFees }) {
       {!forceManualCard && paymentRequest ? (
         <>
           <S.PaymentRequestWrapper>
-            {offerPayFees && (<PayFeesWidget /> )}
+            {offerPayFees && <PayFeesWidget />}
             <PaymentRequestButtonElement options={{ paymentRequest, style: S.PaymentRequestButtonStyle }} />
           </S.PaymentRequestWrapper>
           <S.PayWithCardOption onClick={() => setForceManualCard(true)}>
@@ -305,7 +305,7 @@ function StripePaymentForm({ loading, setLoading, offerPayFees }) {
               {stripeError}
             </S.PaymentError>
           )}
-          {offerPayFees && (<PayFeesWidget /> )}
+          {offerPayFees && <PayFeesWidget />}
           <S.PaymentSubmitButton
             onClick={handleCardSubmit}
             disabled={!cardReady || loading || disabled || succeeded || !amountIsValid}

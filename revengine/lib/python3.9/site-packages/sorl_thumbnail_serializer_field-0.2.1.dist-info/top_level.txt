@@ -1,0 +1,2 @@
+sorl_thumbnail_serializer
+tests

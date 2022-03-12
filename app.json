@@ -25,5 +25,8 @@
     }
   },
   "name": "rev-engine",
-  "stack": "container"
+  "stack": "container",
+  "scripts": {
+      "postdeploy": "scripts/heroku-postdeploy.sh"
+  }
 }

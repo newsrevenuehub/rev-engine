@@ -28,6 +28,6 @@
   "name": "rev-engine",
   "stack": "container",
   "scripts": {
-      "postdeploy": "pg_dump --format=custom ${HEROKU_POSTGRESQL_CRIMSON_URL} | pg_restore --clean --no-owner --no-acl --format=custom --if-exists -d ${DATABASE_URL} || true"
+      "postdeploy": "pg_dump --format=custom ${REVIEW_APP_SOURCE_DATABASE_URL} | pg_restore --clean --no-owner --no-acl --format=custom --if-exists -d ${DATABASE_URL} || true"
   }
 }

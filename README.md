@@ -127,17 +127,17 @@ Then, run `./manage.py create_stripe_webhooks`. This will use the Stripe sdk to 
 For the STRIPE_WEBHOOK_SECRET, you'll then need access to the Hub Stripe Dashboard. Go to Developers --> Webhooks --> [your newly added endpoint] --> "Signing secret"
 
 **6. Set up subdomain in /etc/hosts for local development**
-The front end for this app routes donation pages based on subdomain.
-Requests for a donation page with the slug `page-slug` for the revenue program with slug `revenueprogram`
+The front end for this app routes contribution pages based on subdomain.
+Requests for a contribution page with the slug `page-slug` for the revenue program with slug `revenueprogram`
 will be made to `revenueprogram.revengine-testabc123.com/page-slug`. (The second-level domain is arbitrary in this case).
-For that reason, to view donation pages locally, you'll need to make an entry to your /etc/hosts file like so:
+For that reason, to view contribution pages locally, you'll need to make an entry to your /etc/hosts file like so:
 
 ```shell
 127.0.0.1 revengine-testabc123.com
 127.0.0.1 slug-for-the-rev-program-you-want-to-test.revengine-testabc123.com
 ```
 
-To view a donation page locally, visit `slug-for-the-rev-program-you-want-to-test.revengine-testabc123.com:3000`. Note the port designation suffix.
+To view a contribution page locally, visit `slug-for-the-rev-program-you-want-to-test.revengine-testabc123.com:3000`. Note the port designation suffix.
 
 In order to run the donation-page.spec and the page-view-analytics.spec cypress tests locally, also add exactly the following:
 
@@ -370,7 +370,7 @@ First:
 (revengine)$> touch ./spa/.env
 ```
 
-To enable Stripe related features (Payments on donation pages, changing payment methods), set:  
+To enable Stripe related features (Payments on contribution pages, changing payment methods), set:  
 `REACT_APP_HUB_STRIPE_API_PUB_KEY=pk_test_therealvaluehere`  
 You can get this value from the Hub stripe dashboard
 
@@ -378,7 +378,7 @@ To enable Stripe Onboarding, set:
 `REACT_APP_STRIPE_CLIENT_ID=therealvalue`  
 You can get this value from the Hub stripe dashboard
 
-To enable google address autocomplete in the donation page form, set:  
+To enable google address autocomplete in the contribution page form, set:  
 `REACT_APP_HUB_GOOGLE_MAPS_API_KEY=therealvalueere`
 
 To enable google analytics, set:

@@ -4,6 +4,17 @@
     "heroku-redis",
     "papertrail"
   ],
+    "buildpacks": [
+      {
+        "url": "https://github.com/moneymeets/python-poetry-buildpack"
+      },
+      {
+        "url": "heroku/python"
+      },
+      {
+        "url": "heroku/nodejs"
+      }
+    ],
   "env": {
     "DJANGO_SETTINGS_MODULE": {
       "value": "revengine.settings.deploy"
@@ -26,7 +37,7 @@
     }
   },
   "name": "rev-engine",
-  "stack": "container",
+  "stack": "heroku-20",
   "scripts": {
       "postdeploy": "echo hello"
   }

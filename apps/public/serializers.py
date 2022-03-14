@@ -29,6 +29,8 @@ class BenefitLevelSerializer(serializers.ModelSerializer):
             "id",
             "name",
             "donation_range",
+            "lower_limit",
+            "upper_limit",
             "benefits",
         ]
 

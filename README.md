@@ -330,7 +330,7 @@ Instead of the usual `logger = logging.getLogger(__name__)` use `logger = loggin
 
 Lists the apps running on the connected account.
 
-NOTE: On this project, PRs will spawn apps that can be independently tested. Each PR app has a clean database and a single user: `qatester@example.com` with password `qatester`.
+NOTE: On this project, PRs will spawn apps that can be independently tested. 
 
 ```shell
 (revengine)$> heroku apps

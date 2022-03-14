@@ -21,8 +21,8 @@ To begin you should have the following applications installed on your local deve
 First clone the repository from Github and switch to the new directory:
 
 ```linux
-    $ git clone git@github.com:caktus/revengine.git
-    $ cd revengine
+    $ git clone https://github.com/newsrevenuehub/rev-engine
+    $ cd rev-engine
 ```
 
 **2. Set up virtual environment**
@@ -109,8 +109,6 @@ If you want to test Stripe payments locally, add the Hub testing "Secret key", s
 ```
 
 TEST_HUB_STRIPE_API_SECRET_KEY and REACT_APP_HUB_STRIPE_API_PUB_KEY are the Secret Key and Publishable Key for the NRH Stripe Account.
-
-You'll also need a "Connected" account to test with. CaktusGroup has an account for Caktus members, credentials for which can be found in LastPass under "NRH Stripe Test Account".
 
 Then, in Django-admin, create an Organization for that connected stripe account and add your Stripe Account ID to the stripe_account_id field. Make sure that default_payment_provider is "stripe". The Stripe Account ID can be found in the stripe dashboard, settings --> Business Settings --> Your Business --> Account details, in the top right corner.
 

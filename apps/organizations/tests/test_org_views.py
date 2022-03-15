@@ -14,6 +14,7 @@ from apps.organizations.tests.factories import (
     RevenueProgramFactory,
 )
 from apps.pages.tests.factories import DonationPageFactory
+from apps.users.tests.utils import create_test_user
 
 
 user_model = get_user_model()
@@ -29,8 +30,8 @@ class OrganizationViewSetTest(AbstractTestCase):
         response = self.client.get(self.list_url)
         self.assertEqual(response.status_code, 200)
         orgs = Organization.objects.all()
-        self.assertEqual(response.json()["count"], len(orgs))
-        org_names = [o["name"] for o in response.json()["results"]]
+        self.assertEqual(len(response.json()), len(orgs))
+        org_names = [o["name"] for o in response.json()]
         expected_org_names = [o.name for o in orgs]
         self.assertEqual(org_names, expected_org_names)
 
@@ -55,6 +56,7 @@ class RevenueProgramViewSetTest(AbstractTestCase):
 
     def setUp(self):
         super().setUp()
+        self.user = user_model.objects.create_superuser(email="superuser@example.com", password="password")
         self.list_url = reverse("revenue-program-list")
         self.detail_url = "/api/v1/revenue-programs"
         self.create_resources()
@@ -65,36 +67,22 @@ class RevenueProgramViewSetTest(AbstractTestCase):
         self.assertEqual(response.status_code, 200)
 
     def test_list_returns_expected_count(self):
-        revp = self.resources[0]
-        self.authenticate_user_for_resource(revp)
         self.login()
         response = self.client.get(self.list_url)
         self.assertEqual(response.status_code, 200)
-        expected_count = RevenueProgram.objects.filter(organization=self.user.get_organization()).count()
+        expected_count = RevenueProgram.objects.count()
         self.assertEqual(len(response.json()), expected_count)
 
     def test_created_and_list_are_equivalent(self):
-        revp = self.resources[0]
-        self.authenticate_user_for_resource(revp)
         self.login()
         response = self.client.get(self.list_url)
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(
-            [x["id"] for x in response.json()],
-            [
-                x
-                for x in RevenueProgram.objects.filter(organization=self.user.get_organization()).values_list(
-                    "pk", flat=True
-                )
-            ],
-        )
+        self.assertEqual([x["id"] for x in response.json()], list(RevenueProgram.objects.values_list("pk", flat=True)))
 
     def test_viewset_is_readonly(self):
         """
         For now, revprogram viewset is readonly. Test to make sure we don't accidentally change that.
         """
         rp = RevenueProgram.objects.all().first()
-        self.authenticate_user_for_resource(rp)
         self.login()
         new_name = "A New RevenueProgram Name"
 
@@ -107,8 +95,6 @@ class RevenueProgramViewSetTest(AbstractTestCase):
         self.assertEqual(response.status_code, 405)
 
     def test_pagination_disabled(self):
-        revp = self.resources[0]
-        self.authenticate_user_for_resource(revp)
         self.login()
         response = self.client.get(self.list_url)
         self.assertEqual(response.status_code, 200)
@@ -124,7 +110,7 @@ class PlanViewSetTest(APITestCase):
             PlanFactory()
         self.list_url = reverse("plan-list")
         self.detail_url = "/api/v1/plans"
-        self.user = user_model.objects.create_user(email="test@test.com", password="testing")
+        self.user = user_model.objects.create_superuser(email="superuser@test.com", password="password")
         self.client.force_authenticate(user=self.user)
 
     def test_reverse_works(self):
@@ -134,8 +120,8 @@ class PlanViewSetTest(APITestCase):
     def test_list_returns_expected_count(self):
         response = self.client.get(self.list_url)
         self.assertEqual(response.status_code, 200)
-        self.assertNotEqual(response.json()["count"], 0)
-        self.assertEqual(response.json()["count"], Plan.objects.count())
+        self.assertNotEqual(len(response.json()), 0)
+        self.assertEqual(len(response.json()), Plan.objects.count())
 
 
 class FeatureViewSetTest(APITestCase):
@@ -143,8 +129,14 @@ class FeatureViewSetTest(APITestCase):
         self.limit_feature = FeatureFactory()
         self.list_url = reverse("feature-list")
         self.detail_url = "/api/v1/features"
-        self.user = user_model.objects.create_user(email="test@test.com", password="testing")
+        self.user = user_model.objects.create_superuser(email="superuser@test.com", password="testing")
         self.client.force_authenticate(user=self.user)
+
+    def test_non_superuser_cannot_access(self):
+        non_superuser = user_model.objects.create_user(email="test@test.com", password="testing")
+        self.client.force_authenticate(user=non_superuser)
+        response = self.client.get(self.list_url)
+        self.assertEqual(response.status_code, 403)
 
     def test_reverse_works(self):
         response = self.client.get(self.list_url)
@@ -153,8 +145,8 @@ class FeatureViewSetTest(APITestCase):
     def test_list_returns_expected_count(self):
         response = self.client.get(self.list_url)
         self.assertEqual(response.status_code, 200)
-        self.assertNotEqual(response.json()["count"], 0)
-        self.assertEqual(response.json()["count"], Feature.objects.count())
+        self.assertNotEqual(len(response.json()), 0)
+        self.assertEqual(len(response.json()), Feature.objects.count())
 
     def test_unique_value(self):
         with self.assertRaises(django.db.utils.IntegrityError):

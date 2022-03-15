@@ -1,7 +1,8 @@
+from django.conf import settings
 from django.utils import timezone
 
 from rest_framework import serializers
-from rest_framework.test import APITestCase
+from rest_framework.test import APIRequestFactory, APITestCase
 
 from apps.organizations.models import BenefitLevelBenefit, RevenueProgramBenefitLevel
 from apps.organizations.tests.factories import (
@@ -16,6 +17,7 @@ from apps.pages.serializers import (
     TemplateDetailSerializer,
 )
 from apps.pages.tests.factories import DonationPageFactory, StyleFactory, TemplateFactory
+from apps.pages.validators import required_style_keys
 
 
 class DonationPageFullDetailSerializerTest(APITestCase):
@@ -50,6 +52,12 @@ class DonationPageFullDetailSerializerTest(APITestCase):
 
         self.page = DonationPageFactory(revenue_program=self.revenue_program)
         self.serializer = DonationPageFullDetailSerializer
+        self.request_factory = APIRequestFactory()
+
+    def _create_request_for_serializer(self, data=None):
+        if not data:
+            data = {settings.ORG_SLUG_PARAM: self.organization.slug, settings.RP_SLUG_PARAM: self.revenue_program.slug}
+        return self.request_factory.get("/", data=data)
 
     def test_has_analytics_data(self):
         serializer = self.serializer(self.page)
@@ -111,9 +119,10 @@ class DonationPageFullDetailSerializerTest(APITestCase):
             "template_pk": template.pk,
             "name": "My New Page From a Template",
             "slug": "my-new-page-from-a-template",
-            "revenue_program_pk": self.revenue_program.pk,
         }
         serializer = self.serializer(data=new_page_data)
+        request = self._create_request_for_serializer()
+        serializer.context["request"] = request
         self.assertTrue(serializer.is_valid())
         new_page = serializer.save()
         self.assertEqual(new_page.heading, template.heading)
@@ -123,9 +132,10 @@ class DonationPageFullDetailSerializerTest(APITestCase):
             "template_pk": 99999,
             "name": "My New Page From a Template",
             "slug": "my-new-page-from-a-template",
-            "revenue_program_pk": self.revenue_program.pk,
         }
         serializer = self.serializer(data=new_page_data)
+        request = self._create_request_for_serializer()
+        serializer.context["request"] = request
         self.assertTrue(serializer.is_valid())
         # Should raise validation error if invalid pk
         with self.assertRaises(serializers.ValidationError) as v_error:
@@ -197,11 +207,23 @@ class TemplateDetailSerializerTest(APITestCase):
 
 class StyleListSerializerTest(APITestCase):
     def setUp(self):
-        self.style_1 = StyleFactory()
-        self.style_2 = StyleFactory()
-        self.donation_page_live = DonationPageFactory(published_date=timezone.now(), styles=self.style_1)
-        self.donation_page_unlive = DonationPageFactory(styles=self.style_2)
+        self.rev_program = RevenueProgramFactory()
+        self.style_1 = StyleFactory(revenue_program=self.rev_program)
+        self.style_2 = StyleFactory(revenue_program=self.rev_program)
+        self.donation_page_live = DonationPageFactory(
+            published_date=timezone.now(), styles=self.style_1, revenue_program=self.rev_program
+        )
+        self.donation_page_unlive = DonationPageFactory(styles=self.style_2, revenue_program=self.rev_program)
         self.serializer = StyleListSerializer
+        self.other_rev_program = RevenueProgramFactory()
+        valid_styles_json = {}
+        for k, v in required_style_keys.items():
+            valid_styles_json[k] = v()
+        self.updated_styled_data = {
+            "name": "New Test Styles",
+            "revenue_program": {"name": self.rev_program.name, "slug": self.rev_program.slug},
+            **valid_styles_json,
+        }
 
     def test_get_used_live(self):
         live_style_serializer = self.serializer(self.style_1)

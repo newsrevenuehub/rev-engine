@@ -32,6 +32,17 @@ class OrganizationSerializer(serializers.ModelSerializer):
         fields = "__all__"
 
 
+class OrganizationInlineSerializer(serializers.ModelSerializer):
+    needs_payment_provider = serializers.SerializerMethodField(method_name="get_needs_payment_provider")
+
+    def get_needs_payment_provider(self, obj):
+        return obj.needs_payment_provider
+
+    class Meta:
+        model = Organization
+        fields = ["id", "name", "slug", "needs_payment_provider"]
+
+
 class RevenueProgramListInlineSerializer(serializers.ModelSerializer):
     """
     I am needed for Page creation. In particular, if "slug" is not provided,
@@ -59,6 +70,21 @@ class RevenueProgramListInlineSerializer(serializers.ModelSerializer):
             "google_analytics_v3_id",
             "google_analytics_v4_id",
             "facebook_pixel_id",
+        ]
+
+
+class RevenueProgramInlineSerializer(serializers.ModelSerializer):
+    """
+    Used by the UserSerializer when users log in.
+    """
+
+    class Meta:
+        model = RevenueProgram
+        fields = [
+            "id",
+            "name",
+            "slug",
+            "organization",
         ]
 
 

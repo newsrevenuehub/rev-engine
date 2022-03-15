@@ -6,6 +6,7 @@ from rest_framework.validators import UniqueTogetherValidator
 from sorl_thumbnail_serializer.fields import HyperlinkedSorlImageField
 
 from apps.api.error_messages import UNIQUE_PAGE_SLUG
+from apps.common.utils import get_org_and_rp_from_request
 from apps.organizations.models import RevenueProgram
 from apps.organizations.serializers import (
     BenefitLevelDetailSerializer,
@@ -57,13 +58,11 @@ class StyleListSerializer(StyleInlineSerializer):
         return super().create(validated_data)
 
     def set_revenue_program(self, validated_data):
-        rp_data = validated_data.get("revenue_program")
-        if not rp_data:
-            raise serializers.ValidationError(
-                {"revenue_program": "revenue_program is required when creating a new Style"}
-            )
+        _, rp_slug = get_org_and_rp_from_request(self.context["request"])
+        if not rp_slug:
+            raise serializers.ValidationError({"rp_slug": "RevenueProgram.slug is required when creating a new page"})
         try:
-            validated_data["revenue_program"] = RevenueProgram.objects.get(slug=rp_data["slug"])
+            validated_data["revenue_program"] = RevenueProgram.objects.get(slug=rp_slug)
         except RevenueProgram.DoesNotExist:
             raise serializers.ValidationError({"revenue_program": "no such revenue_program"})
 
@@ -82,7 +81,7 @@ class DonationPageFullDetailSerializer(serializers.ModelSerializer):
     styles_pk = serializers.IntegerField(allow_null=True, required=False)
 
     revenue_program = RevenueProgramListInlineSerializer(read_only=True)
-    revenue_program_pk = serializers.IntegerField(allow_null=True, required=False)
+    # revenue_program_pk = serializers.IntegerField(allow_null=True, required=False)
     template_pk = serializers.IntegerField(allow_null=True, required=False)
 
     graphic = serializers.ImageField(allow_empty_file=True, allow_null=True, required=False)
@@ -158,13 +157,11 @@ class DonationPageFullDetailSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError({"template": ["This template no longer exists"]})
 
     def create(self, validated_data):
-        if "revenue_program_pk" not in validated_data:
-            raise serializers.ValidationError(
-                {"revenue_program_pk": "revenue_program_pk is required when creating a new page"}
-            )
+        _, rp_slug = get_org_and_rp_from_request(self.context["request"])
+        if not rp_slug:
+            raise serializers.ValidationError({"rp_slug": "RevenueProgram.slug is required when creating a new page"})
         try:
-            rev_program_pk = validated_data.pop("revenue_program_pk")
-            rev_program = RevenueProgram.objects.get(pk=rev_program_pk)
+            rev_program = RevenueProgram.objects.get(slug=rp_slug)
             validated_data["revenue_program"] = rev_program
         except RevenueProgram.DoesNotExist:
             raise serializers.ValidationError({"revenue_program_pk": "Could not find revenue program with provided pk"})

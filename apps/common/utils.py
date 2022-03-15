@@ -1,5 +1,18 @@
+import operator
+from functools import reduce
+
 from django.conf import settings
 from django.utils.text import slugify
+
+
+def reduce_queryset_with_filters(queryset, filters):
+    """
+    Given a queryset and a list of Q objects, return a that queryset
+    filtered by those Qs, joined with AND.
+    """
+    if not filters:
+        return queryset
+    return queryset.filter(reduce(operator.and_, filters))
 
 
 def normalize_slug(name="", slug="", max_length=50):
@@ -54,3 +67,7 @@ def get_changes_from_prev_history_obj(obj):
             else:
                 changes_list.append(f"'{field_verbose_name}' changed from '{change.old}' to '{change.new}'")
     return changes_list
+
+
+def get_org_and_rp_from_request(request):
+    return (request.GET.get(settings.ORG_SLUG_PARAM), request.GET.get(settings.RP_SLUG_PARAM))

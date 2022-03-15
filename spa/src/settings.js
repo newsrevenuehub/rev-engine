@@ -53,7 +53,7 @@ export const STRIPE_CLIENT_ID = resolveConstantFromEnv('STRIPE_CLIENT_ID', 'test
 export const STRIPE_OAUTH_SCOPE = resolveConstantFromEnv('STRIPE_OAUTH_SCOPE', 'read_write');
 
 // Environment {production, staging, test, dev, demo}
-export const ENVIRONMENT = resolveConstantFromEnv('ENVIRONMENT', 'staging');
+export const ENVIRONMENT = resolveConstantFromEnv('ENVIRONMENT');
 
 function resolveConstantFromEnv(constantName, defaultValue) {
   /*

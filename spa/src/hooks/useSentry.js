@@ -5,7 +5,7 @@ import * as Sentry from '@sentry/react';
 import { Integrations } from '@sentry/tracing';
 
 // Const
-import { SENTRY_DSN_FRONTEND, SENTRY_ENABLE_FRONTEND } from 'settings';
+import { SENTRY_DSN_FRONTEND, SENTRY_ENABLE_FRONTEND, ENVIRONMENT } from 'settings';
 
 /**
  * Typically, just loading sentry at build time is sufficient.
@@ -19,7 +19,7 @@ function useSentry() {
         dsn: SENTRY_DSN_FRONTEND,
         integrations: [new Integrations.BrowserTracing()],
         tracesSampleRate: 1.0,
-        environment: window.ENV['ENVIRONMENT']
+        environment: ENVIRONMENT
       });
     }
   });

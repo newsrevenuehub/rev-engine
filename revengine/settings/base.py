@@ -224,42 +224,10 @@ LOGGING = {
     "filters": {"require_debug_false": {"()": "django.utils.log.RequireDebugFalse"}},
     "formatters": {"basic": {"format": "%(asctime)s %(name)-20s %(levelname)-8s %(message)s"}},
     "handlers": {
-        "mail_admins": {
-            "level": "ERROR",
-            "filters": ["require_debug_false"],
-            "class": "django.utils.log.AdminEmailHandler",
-        },
-        "warn_admins": {
-            "level": "WARNING",
-            "filters": ["require_debug_false"],
-            "class": "django.utils.log.AdminEmailHandler",
-        },
         "console": {
-            "level": "DEBUG",
+            "level": "INFO",
             "class": "logging.StreamHandler",
             "formatter": "basic",
-        },
-    },
-    "loggers": {
-        "django.request": {
-            "handlers": ["mail_admins"],
-            "level": "ERROR",
-            "propagate": True,
-        },
-        "django.security": {
-            "handlers": ["mail_admins"],
-            "level": "ERROR",
-            "propagate": True,
-        },
-        "apps": {
-            "level": "DEBUG",
-            "handlers": ["console"],
-            "propagate": False,
-        },
-        "warn": {
-            "handlers": ["warn_admins"],
-            "level": "WARNING",
-            "propagate": True,
         },
     },
     "root": {
@@ -318,7 +286,7 @@ HEALTHCHECK_URL_AUTO_ACCEPT_FLAGGED_PAYMENTS = os.environ.get("HEALTHCHECK_URL_A
 EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
 EMAIL_SUBJECT_PREFIX = "[RevEngine] "
 
-ADMINS = [("nrh-team", "nrh-team@caktusgroup.com")]
+ADMINS = [("dc", "daniel@fundjournalism.org")]
 
 # Revengine template identifiers
 EMAIL_TEMPLATE_IDENTIFIER_MAGIC_LINK_DONOR = os.environ.get(

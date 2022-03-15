@@ -104,8 +104,10 @@ REST_FRAMEWORK = {
     ],
     "DEFAULT_PERMISSION_CLASSES": [
         "rest_framework.permissions.IsAuthenticated",
+        "apps.api.permissions.HasRoleAssignment",
     ],
     "DEFAULT_PAGINATION_CLASS": "apps.api.pagination.ApiStandardPagination",
+    "DEFAULT_FILTER_BACKENDS": ["apps.api.filters.RoleAssignmentFilterBackend"],
     "PAGE_SIZE": 10,
 }
 
@@ -130,6 +132,8 @@ AUTH_COOKIE_KEY = "Authorization"
 # across origins. Once this API supports public access, this needs to be loosened.
 AUTH_COOKIE_SAMESITE = "Strict"  # or 'Lax' or None
 
+ORG_SLUG_PARAM = "orgSlug"
+RP_SLUG_PARAM = "revProgramSlug"
 
 WSGI_APPLICATION = "revengine.wsgi.application"
 
@@ -224,10 +228,42 @@ LOGGING = {
     "filters": {"require_debug_false": {"()": "django.utils.log.RequireDebugFalse"}},
     "formatters": {"basic": {"format": "%(asctime)s %(name)-20s %(levelname)-8s %(message)s"}},
     "handlers": {
+        "mail_admins": {
+            "level": "ERROR",
+            "filters": ["require_debug_false"],
+            "class": "django.utils.log.AdminEmailHandler",
+        },
+        "warn_admins": {
+            "level": "WARNING",
+            "filters": ["require_debug_false"],
+            "class": "django.utils.log.AdminEmailHandler",
+        },
         "console": {
-            "level": "INFO",
+            "level": "DEBUG",
             "class": "logging.StreamHandler",
             "formatter": "basic",
+        },
+    },
+    "loggers": {
+        "django.request": {
+            "handlers": ["mail_admins"],
+            "level": "ERROR",
+            "propagate": True,
+        },
+        "django.security": {
+            "handlers": ["mail_admins"],
+            "level": "ERROR",
+            "propagate": True,
+        },
+        "apps": {
+            "level": "DEBUG",
+            "handlers": ["console"],
+            "propagate": False,
+        },
+        "warn": {
+            "handlers": ["warn_admins"],
+            "level": "WARNING",
+            "propagate": True,
         },
     },
     "root": {
@@ -286,7 +322,7 @@ HEALTHCHECK_URL_AUTO_ACCEPT_FLAGGED_PAYMENTS = os.environ.get("HEALTHCHECK_URL_A
 EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
 EMAIL_SUBJECT_PREFIX = "[RevEngine] "
 
-ADMINS = [("dc", "daniel@fundjournalism.org")]
+ADMINS = [("nrh-team", "nrh-team@caktusgroup.com")]
 
 # Revengine template identifiers
 EMAIL_TEMPLATE_IDENTIFIER_MAGIC_LINK_DONOR = os.environ.get(

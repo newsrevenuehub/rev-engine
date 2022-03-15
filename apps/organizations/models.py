@@ -100,6 +100,11 @@ class Organization(IndexedTimeStampedModel):
     history = HistoricalRecords()
 
     @property
+    def admin_revenueprogram_options(self):
+        rps = self.revenueprogram_set.all()
+        return [(rp.name, rp.pk) for rp in rps]
+
+    @property
     def admin_benefit_options(self):
         benefits = self.benefit_set.all()
         return [(c.name, c.pk) for c in benefits]
@@ -108,6 +113,13 @@ class Organization(IndexedTimeStampedModel):
     def admin_benefitlevel_options(self):
         benefit_levels = self.benefitlevel_set.all()
         return [(c.name, c.pk) for c in benefit_levels]
+
+    @property
+    def needs_payment_provider(self):
+        """
+        Right now this is simple. If the org is not "stripe_verified", then they "need a provider"
+        """
+        return not self.stripe_verified
 
     def __str__(self):
         return self.name
@@ -233,7 +245,6 @@ class BenefitLevelBenefit(models.Model):
 
 class RevenueProgram(IndexedTimeStampedModel):
     name = models.CharField(max_length=255)
-
     slug = models.SlugField(
         max_length=SLUG_MAX_LENGTH,
         blank=True,

@@ -10,7 +10,13 @@ from rest_framework.decorators import api_view, authentication_classes, permissi
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
-from apps.api.permissions import ContributorOwnsContribution, IsContributor, UserBelongsToOrg
+from apps.api.permissions import (
+    ContributorOwnsContribution,
+    IsContributor,
+    append_filter_backends,
+    append_permission_classes,
+    reset_permission_classes,
+)
 from apps.contributions import serializers
 from apps.contributions.filters import ContributionFilter
 from apps.contributions.models import Contribution, ContributionInterval, Contributor
@@ -21,6 +27,7 @@ from apps.contributions.payment_managers import (
 )
 from apps.contributions.webhooks import StripeWebhookProcessor
 from apps.emails.models import EmailTemplateError, PageEmailTemplate
+from apps.organizations.models import Organization
 
 
 logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
@@ -76,9 +83,12 @@ def stripe_payment(request):
 
 
 @api_view(["POST"])
+@permission_classes(reset_permission_classes([IsAuthenticated]))
 def stripe_oauth(request):
     scope = request.data.get("scope")
     code = request.data.get("code")
+    organization_slug = request.GET.get(settings.ORG_SLUG_PARAM, None)
+
     if not scope or not code:
         return Response({"missing_params": "stripe_oauth missing required params"}, status=status.HTTP_400_BAD_REQUEST)
 
@@ -86,12 +96,19 @@ def stripe_oauth(request):
         return Response(
             {"scope_mismatch": "stripe_oauth received unexpected scope"}, status=status.HTTP_400_BAD_REQUEST
         )
+
+    try:
+        organization = Organization.objects.get(slug=organization_slug)
+    except Organization.DoesNotExist:
+        return Response(
+            {"no_such_org": "Could not find organization by provided slug"}, status=status.HTTP_400_BAD_REQUEST
+        )
+
     try:
         oauth_response = stripe.OAuth.token(
             grant_type="authorization_code",
             code=code,
         )
-        organization = request.user.get_organization()
         organization.stripe_account_id = oauth_response["stripe_user_id"]
         organization.stripe_oauth_refresh_token = oauth_response["refresh_token"]
         organization.save()
@@ -103,9 +120,16 @@ def stripe_oauth(request):
 
 
 @api_view(["POST"])
+@permission_classes(reset_permission_classes([IsAuthenticated]))
 def stripe_confirmation(request):
+    organization_slug = request.GET.get(settings.ORG_SLUG_PARAM, None)
     try:
-        organization = request.user.get_organization()
+        organization = Organization.objects.get(slug=organization_slug)
+    except Organization.DoesNotExist:
+        return Response(
+            {"no_such_org": "Could not find organization by provided slug"}, status=status.HTTP_400_BAD_REQUEST
+        )
+    try:
         # An org that doesn't have a stripe_account_id hasn't gone through onboarding
         if not organization.stripe_account_id:
             return Response({"status": "not_connected"}, status=status.HTTP_202_ACCEPTED)
@@ -177,10 +201,10 @@ def process_stripe_webhook_view(request):
 
 
 class ContributionsViewSet(viewsets.ReadOnlyModelViewSet):
-    permission_classes = [IsAuthenticated, UserBelongsToOrg, ContributorOwnsContribution]
+    permission_classes = append_permission_classes([ContributorOwnsContribution])
     model = Contribution
 
-    filter_backends = [DjangoFilterBackend, filters.OrderingFilter]
+    filter_backends = append_filter_backends([DjangoFilterBackend, filters.OrderingFilter])
     filterset_class = ContributionFilter
 
     def get_queryset(self):
@@ -190,9 +214,6 @@ class ContributionsViewSet(viewsets.ReadOnlyModelViewSet):
         """
         if isinstance(self.request.user, Contributor):
             return self.model.objects.filter(contributor=self.request.user)
-
-        if self.action == "list" and hasattr(self.model, "organization"):
-            return self.model.objects.filter(organization__users=self.request.user)
         return self.model.objects.all()
 
     def get_serializer_class(self):
@@ -202,7 +223,6 @@ class ContributionsViewSet(viewsets.ReadOnlyModelViewSet):
 
 
 @api_view(["POST"])
-@permission_classes([IsAuthenticated, UserBelongsToOrg])
 def process_flagged(request, pk=None):
     reject = request.data.get("reject", None)
     if reject is None:
@@ -220,7 +240,7 @@ def process_flagged(request, pk=None):
 
 
 @api_view(["PATCH"])
-@permission_classes([IsAuthenticated, IsContributor])
+@permission_classes(reset_permission_classes([IsAuthenticated, IsContributor]))
 def update_payment_method(request, pk):
     if request.data.keys() != {"payment_method_id"}:
         return Response({"detail": "Request contains unsupported fields"}, status=status.HTTP_400_BAD_REQUEST)
@@ -245,7 +265,7 @@ def update_payment_method(request, pk):
 
 
 @api_view(["POST"])
-@permission_classes([IsAuthenticated, IsContributor])
+@permission_classes(reset_permission_classes([IsAuthenticated, IsContributor]))
 def cancel_recurring_payment(request, pk):
     try:
         contribution = request.user.contribution_set.get(pk=pk)

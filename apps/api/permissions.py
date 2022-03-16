@@ -59,6 +59,10 @@ def _handle_contributor_user(request, queryset, model):
     return queryset
 
 
+def _handle_superuser_user(request, queryset, model):
+    return queryset
+
+
 def _is_contributor(user):
     return isinstance(user, Contributor)
 
@@ -123,9 +127,12 @@ def filter_from_permissions(request, queryset, model):
     if _user_is_anonymous(request.user):
         return queryset.none()
 
+    if request.user.is_superuser:
+        return _handle_superuser_user(request, queryset, model)
+
     # Prevent users who have not been assigned a Role from viewing resources
     role_assignment = request.user.get_role_assignment()
-    if not role_assignment and not request.user.is_superuser:
+    if not role_assignment:
         return queryset.none()
 
     user_role = role_assignment.role_type if role_assignment else None

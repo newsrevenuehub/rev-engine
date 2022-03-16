@@ -357,10 +357,11 @@ class StripeConfirmTest(APITestCase):
 
 class TestContributionsViewSet(APITestCase):
     def setUp(self):
-        self.user = create_test_user(role_assignment_data={"role_type": Roles.ORG_ADMIN})
         self.organization1 = OrganizationFactory(name="Organization 1")
-        self.organization1.user_set.add(self.user)
         self.organization2 = OrganizationFactory(name="Organization 2")
+        self.org1_user = create_test_user(
+            role_assignment_data={"role_type": Roles.ORG_ADMIN, "organization": self.organization1}
+        )
         self.contributor = Contributor.objects.create(email="contributor@contributor.com")
         self.contributions_per_org_count = 50
         for i in range(self.contributions_per_org_count):
@@ -381,7 +382,7 @@ class TestContributionsViewSet(APITestCase):
 
     def test_happy_path(self):
         """Should get back only contributions belonging to my org"""
-        self.client.force_authenticate(user=self.user)
+        self.client.force_authenticate(user=self.org1_user)
         response = self.client.get(self.url)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json()["count"], self.contributions_per_org_count)

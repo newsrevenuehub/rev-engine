@@ -15,9 +15,16 @@ def create_test_user(user=None, role_assignment_data=None):
         user = get_user_model().objects.create_user(email=fake.email(), password="testing")
     if role_assignment_data:
         rps = role_assignment_data.pop("revenue_programs", None)
+        org = role_assignment_data.pop("organization", None)
         ra = RoleAssignment.objects.create(user=user, **role_assignment_data)
+        do_save = False
         if rps:
             ra.revenue_programs.set(rps)
+            do_save = True
+        if org:
+            do_save = True
+            ra.organization = org
+        if do_save:
             ra.save()
     else:
         RoleAssignmentFactory(user=user)

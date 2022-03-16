@@ -8,7 +8,6 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
 from apps.api.filters import RoleAssignmentFilterBackend
-from apps.api.permissions import reset_permission_classes
 from apps.element_media.models import MediaImage
 from apps.pages import serializers
 from apps.pages.helpers import PageDetailError, PageFullDetailHelper
@@ -131,6 +130,6 @@ class FontViewSet(viewsets.ReadOnlyModelViewSet):
     model = Font
     queryset = Font.objects.all()
     # Don't require a RoleAssignment for this endpoint.
-    permission_classes = reset_permission_classes([IsAuthenticated])
+    permission_classes = [IsAuthenticated]
     serializer_class = serializers.FontSerializer
     pagination_class = None

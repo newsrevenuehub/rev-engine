@@ -1,5 +1,6 @@
 from unittest.mock import patch
 
+from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.test import override_settings
 from django.urls import reverse
@@ -16,6 +17,8 @@ from apps.contributions.tests.factories import ContributionFactory, ContributorF
 from apps.contributions.views import stripe_payment
 from apps.organizations.tests.factories import OrganizationFactory, RevenueProgramFactory
 from apps.pages.tests.factories import DonationPageFactory
+from apps.users.models import Roles
+from apps.users.tests.utils import create_test_user
 
 
 faker = Faker()
@@ -164,20 +167,20 @@ expected_oauth_scope = "my_test_scope"
 @override_settings(STRIPE_OAUTH_SCOPE=expected_oauth_scope)
 class StripeOAuthTest(APITestCase):
     def setUp(self):
-        self.user = get_user_model().objects.create(email="user@test.com", password="testing")
+        self.user = create_test_user(role_assignment_data={"role_type": Roles.HUB_ADMIN})
         self.organization = OrganizationFactory(name="My Organization")
         self.organization.user_set.through.objects.create(organization=self.organization, user=self.user, is_owner=True)
 
-        self.url = reverse("stripe-oauth")
-
     def _make_request(self, code=None, scope=None):
         self.client.force_authenticate(user=self.user)
+        url = reverse("stripe-oauth")
+        complete_url = f"{url}?{settings.ORG_SLUG_PARAM}={self.organization.slug}"
         body = {}
         if code:
             body["code"] = code
         if scope:
             body["scope"] = scope
-        return self.client.post(self.url, body)
+        return self.client.post(complete_url, body)
 
     @patch("stripe.OAuth.token")
     def test_response_when_missing_params(self, stripe_oauth_token):
@@ -258,7 +261,7 @@ class StripeConfirmTest(APITestCase):
         self.user = get_user_model().objects.create(email="user@test.com", password="testing")
         self.organization = OrganizationFactory(name="My Organization")
         self.organization.user_set.add(self.user)
-        self.url = reverse("stripe-confirmation")
+        self.url = f'{reverse("stripe-confirmation")}?{settings.ORG_SLUG_PARAM}={self.organization.slug}'
 
     def post_to_confirmation(self, stripe_account_id="", stripe_verified=None, stripe_product_id=""):
         self.organization.stripe_account_id = stripe_account_id
@@ -354,7 +357,7 @@ class StripeConfirmTest(APITestCase):
 
 class TestContributionsViewSet(APITestCase):
     def setUp(self):
-        self.user = get_user_model().objects.create(email="user@org1.com", password="testing")
+        self.user = create_test_user(role_assignment_data={"role_type": Roles.ORG_ADMIN})
         self.organization1 = OrganizationFactory(name="Organization 1")
         self.organization1.user_set.add(self.user)
         self.organization2 = OrganizationFactory(name="Organization 2")
@@ -536,7 +539,7 @@ class CancelRecurringPaymentTest(APITestCase):
 @patch("apps.contributions.models.Contribution.process_flagged_payment")
 class ProcessFlaggedContributionTest(APITestCase):
     def setUp(self):
-        self.user = get_user_model().objects.create(email="user@test.com", password="testing")
+        self.user = create_test_user(role_assignment_data={"role_type": Roles.HUB_ADMIN})
         self.subscription_id = "test-subscription-id"
         self.stripe_account_id = "testing-stripe-account-id"
         self.org = OrganizationFactory(stripe_account_id=self.stripe_account_id)

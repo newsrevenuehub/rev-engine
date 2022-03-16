@@ -1,6 +1,5 @@
 from django.conf import settings
 from django.db.models import Q
-from django.utils.module_loading import import_string
 
 from rest_framework import permissions
 
@@ -10,28 +9,6 @@ from apps.users.models import Roles
 
 
 ALL_ACCESSOR = "all"
-
-
-def append_permission_classes(classes=[]):
-    default_permissions = [
-        import_string(perm_classname) for perm_classname in settings.REST_FRAMEWORK["DEFAULT_PERMISSION_CLASSES"]
-    ]
-    return default_permissions + list(classes)
-
-
-def reset_permission_classes(classes=[]):
-    return list(classes)
-
-
-def append_filter_backends(classes=[]):
-    default_backends = [
-        import_string(backend_classname) for backend_classname in settings.REST_FRAMEWORK["DEFAULT_FILTER_BACKENDS"]
-    ]
-    return default_backends + list(classes)
-
-
-def reset_filter_backends(classes=[]):
-    return list(classes)
 
 
 class ReadOnly(permissions.BasePermission):
@@ -53,20 +30,15 @@ class ContributorOwnsContribution(permissions.BasePermission):
         If request is coming from a contributor, verify that the requested contribution
         belongs to them.
         """
-        if isinstance(request.user, Contributor):
-            return obj.contributor.pk == request.user.pk
-        return True
+        return all([isinstance(request.user, Contributor), obj.contributor.pk == request.user.pk])
 
 
 class HasRoleAssignment(permissions.BasePermission):
     def has_permission(self, request, view):
         """
-        In general, a user must either be a Contributor or have a role_assignment to access anything from this API.
+        Determine if the request user has a role assignment. Contributors will not.
         """
-        if isinstance(request.user, Contributor):
-            return True
-
-        return bool(request.user.get_role_assignment()) or request.user.is_superuser
+        return getattr(request.user, "get_role_assignment", False) and bool(request.user.get_role_assignment())
 
     def has_object_permission(self, request, view, obj):
         """

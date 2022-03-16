@@ -148,11 +148,3 @@ class ContributorOwnsContributionTest(APITestCase):
         request = self._create_request(self.wrong_contributor)
         has_permission = self.permission.has_object_permission(request, {}, self.contribution)
         self.assertFalse(has_permission)
-
-    def test_success_when_not_a_contributor(self):
-        """
-        This permission does not prevent non-contributors from accessing resources.
-        """
-        request = self._create_request(self.regular_user)
-        has_permission = self.permission.has_object_permission(request, {}, self.contribution)
-        self.assertTrue(has_permission)

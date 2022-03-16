@@ -6,7 +6,7 @@ from django.contrib.auth import get_user_model
 from rest_framework import viewsets
 from rest_framework.permissions import IsAuthenticated
 
-from apps.api.permissions import ReadOnly, append_permission_classes, reset_permission_classes
+from apps.api.permissions import ReadOnly
 from apps.organizations import serializers
 from apps.organizations.models import Feature, Organization, Plan, RevenueProgram
 from apps.public.permissions import IsSuperUser
@@ -20,14 +20,14 @@ logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
 class OrganizationViewSet(viewsets.ReadOnlyModelViewSet):
     model = Organization
     queryset = Organization.objects.all()
-    permission_classes = append_permission_classes([ReadOnly])
+    permission_classes = [ReadOnly]
     serializer_class = serializers.OrganizationSerializer
     pagination_class = None
 
 
 class FeatureViewSet(viewsets.ReadOnlyModelViewSet, ReadOnly):
     model = Feature
-    permission_classes = reset_permission_classes([IsAuthenticated, IsSuperUser])
+    permission_classes = [IsAuthenticated, IsSuperUser]
     queryset = Feature.objects.all()
     serializer_class = serializers.FeatureSerializer
     pagination_class = None
@@ -36,7 +36,7 @@ class FeatureViewSet(viewsets.ReadOnlyModelViewSet, ReadOnly):
 class PlanViewSet(viewsets.ReadOnlyModelViewSet, ReadOnly):
     model = Plan
     queryset = Plan.objects.all()
-    permission_classes = reset_permission_classes([IsAuthenticated, IsSuperUser])
+    permission_classes = [IsAuthenticated, IsSuperUser]
     serializer_class = serializers.PlanSerializer
     pagination_class = None
 
@@ -44,6 +44,6 @@ class PlanViewSet(viewsets.ReadOnlyModelViewSet, ReadOnly):
 class RevenueProgramViewSet(viewsets.ReadOnlyModelViewSet, ReadOnly):
     model = RevenueProgram
     queryset = RevenueProgram.objects.all()
-    permission_classes = reset_permission_classes([IsAuthenticated, IsSuperUser])
+    permission_classes = [IsAuthenticated, IsSuperUser]
     serializer_class = serializers.RevenueProgramSerializer
     pagination_class = None

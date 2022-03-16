@@ -10,13 +10,8 @@ from rest_framework.decorators import api_view, authentication_classes, permissi
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
-from apps.api.permissions import (
-    ContributorOwnsContribution,
-    IsContributor,
-    append_filter_backends,
-    append_permission_classes,
-    reset_permission_classes,
-)
+from apps.api.filters import RoleAssignmentFilterBackend
+from apps.api.permissions import ContributorOwnsContribution, HasRoleAssignment, IsContributor
 from apps.contributions import serializers
 from apps.contributions.filters import ContributionFilter
 from apps.contributions.models import Contribution, ContributionInterval, Contributor
@@ -83,7 +78,7 @@ def stripe_payment(request):
 
 
 @api_view(["POST"])
-@permission_classes(reset_permission_classes([IsAuthenticated]))
+@permission_classes([IsAuthenticated])
 def stripe_oauth(request):
     scope = request.data.get("scope")
     code = request.data.get("code")
@@ -120,7 +115,7 @@ def stripe_oauth(request):
 
 
 @api_view(["POST"])
-@permission_classes(reset_permission_classes([IsAuthenticated]))
+@permission_classes([IsAuthenticated])
 def stripe_confirmation(request):
     organization_slug = request.GET.get(settings.ORG_SLUG_PARAM, None)
     try:
@@ -201,10 +196,10 @@ def process_stripe_webhook_view(request):
 
 
 class ContributionsViewSet(viewsets.ReadOnlyModelViewSet):
-    permission_classes = append_permission_classes([ContributorOwnsContribution])
+    permission_classes = [IsAuthenticated, HasRoleAssignment | (IsContributor & ContributorOwnsContribution)]
     model = Contribution
 
-    filter_backends = append_filter_backends([DjangoFilterBackend, filters.OrderingFilter])
+    filter_backends = [DjangoFilterBackend, filters.OrderingFilter, RoleAssignmentFilterBackend]
     filterset_class = ContributionFilter
 
     def get_queryset(self):
@@ -214,6 +209,7 @@ class ContributionsViewSet(viewsets.ReadOnlyModelViewSet):
         """
         if isinstance(self.request.user, Contributor):
             return self.model.objects.filter(contributor=self.request.user)
+
         return self.model.objects.all()
 
     def get_serializer_class(self):
@@ -240,7 +236,7 @@ def process_flagged(request, pk=None):
 
 
 @api_view(["PATCH"])
-@permission_classes(reset_permission_classes([IsAuthenticated, IsContributor]))
+@permission_classes([IsAuthenticated, IsContributor])
 def update_payment_method(request, pk):
     if request.data.keys() != {"payment_method_id"}:
         return Response({"detail": "Request contains unsupported fields"}, status=status.HTTP_400_BAD_REQUEST)
@@ -265,7 +261,7 @@ def update_payment_method(request, pk):
 
 
 @api_view(["POST"])
-@permission_classes(reset_permission_classes([IsAuthenticated, IsContributor]))
+@permission_classes([IsAuthenticated, IsContributor])
 def cancel_recurring_payment(request, pk):
     try:
         contribution = request.user.contribution_set.get(pk=pk)

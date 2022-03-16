@@ -35,23 +35,20 @@ class PageViewSetTest(AbstractTestCase):
         self.rev_program = self.rev_programs[0]
         self.login()
 
-        self.url = f"{reverse('donationpage-list')}?{settings.RP_SLUG_PARAM}={self.rev_program.slug}&{settings.ORG_SLUG_PARAM}={self.rev_program.organization.slug}"
-
     # CREATE
     def test_page_create_adds_page(self):
         self.assertEqual(len(self.resources), self.resource_count)
-        self.login()
         page_data = {
             "name": "My page, tho",
             "heading": "New DonationPage",
             "slug": "new-page",
         }
-        response = self.client.post(self.url, page_data)
+        url = f"{reverse('donationpage-list')}?{settings.RP_SLUG_PARAM}={self.rev_program.slug}&{settings.ORG_SLUG_PARAM}={self.rev_program.organization.slug}"
+        response = self.client.post(url, page_data)
         self.assertEqual(response.status_code, 201)
         self.assertEqual(DonationPage.objects.count(), self.resource_count + 1)
 
     def test_page_create_returns_valdiation_error_when_missing_rev_pk(self):
-        self.login()
         url = f"{reverse('donationpage-list')}?{settings.ORG_SLUG_PARAM}={self.rev_program.organization.slug}"
         page_data = {
             "name": "My page, tho",
@@ -63,7 +60,6 @@ class PageViewSetTest(AbstractTestCase):
         self.assertEqual(str(response.data["rp_slug"]), "RevenueProgram.slug is required when creating a new page")
 
     def test_page_create_returns_valdiation_error_when_bad_rev_pk(self):
-        self.login()
         url = f"{reverse('donationpage-list')}?{settings.RP_SLUG_PARAM}=0&{settings.ORG_SLUG_PARAM}={self.rev_program.organization.slug}"
         page_data = {"name": "My page, tho", "heading": "New DonationPage", "slug": "new-page"}
         response = self.client.post(url, page_data)
@@ -75,30 +71,30 @@ class PageViewSetTest(AbstractTestCase):
         Page create must return revenue_program in order to navigate the user to the
         correct url for page edit, after creating a page.
         """
-        self.login()
         page_data = {
             "name": "My page, tho",
             "heading": "New DonationPage",
             "slug": "new-page",
         }
-        response = self.client.post(self.url, page_data)
+        url = f"{reverse('donationpage-list')}?{settings.RP_SLUG_PARAM}={self.rev_program.slug}&{settings.ORG_SLUG_PARAM}={self.rev_program.organization.slug}"
+        response = self.client.post(url, page_data)
         self.assertIn("revenue_program", response.data)
         self.assertIn("slug", response.data["revenue_program"])
 
     def test_page_create_returns_validation_error_when_violiates_unique_constraint(self):
-        self.login()
         page_data = {
             "name": "My page, tho",
             "heading": "New DonationPage",
             "slug": "new-page",
             "revenue_program_pk": self.rev_program.pk,
         }
-        response = self.client.post(self.url, page_data)
+        url = f"{reverse('donationpage-list')}?{settings.RP_SLUG_PARAM}={self.rev_program.slug}&{settings.ORG_SLUG_PARAM}={self.rev_program.organization.slug}"
+        response = self.client.post(url, page_data)
         # make sure first page was created successfully
         self.assertEqual(response.status_code, 201)
 
         # Then make it again and expect a validation error
-        error_response = self.client.post(self.url, page_data)
+        error_response = self.client.post(url, page_data)
         self.assertEqual(error_response.status_code, 400)
         self.assertIn("slug", error_response.data)
         self.assertEqual(str(error_response.data["slug"]), "This slug is already in use on this Revenue Program")
@@ -108,7 +104,6 @@ class PageViewSetTest(AbstractTestCase):
         page = self.resources[0]
         page.revenue_program = self.rev_program
         page.save()
-        self.login()
         old_page_heading = page.heading
         old_page_pk = page.pk
         detail_url = f"/api/v1/pages/{old_page_pk}/"
@@ -121,7 +116,6 @@ class PageViewSetTest(AbstractTestCase):
 
     def test_page_delete_deletes_page(self):
         page = self.resources[0]
-        self.login()
         old_page_pk = page.pk
         detail_url = f"/api/v1/pages/{old_page_pk}/"
 
@@ -139,18 +133,17 @@ class PageViewSetTest(AbstractTestCase):
             },
         )
         detail_url = f"/api/v1/pages/{page.pk}/"
-        self.login()
         response = self.client.delete(detail_url)
         self.assertEqual(response.status_code, 403)
         self.assertEqual(DonationPage.objects.filter(pk=page.pk).count(), 1)
 
     def test_page_list_uses_list_serializer(self):
-        response = self.client.get(self.url)
+        url = f"{reverse('donationpage-list')}?{settings.RP_SLUG_PARAM}={self.rev_program.slug}&{settings.ORG_SLUG_PARAM}={self.rev_program.organization.slug}"
+        response = self.client.get(url)
         # list serializer does not have 'styles' field
         self.assertNotIn("styles", response.json())
 
     def test_page_detail_uses_detail_serializer(self):
-        self.login()
         page_pk = self.resources[0].pk
         response = self.client.get(f"/api/v1/pages/{page_pk}/")
         # detail serializer should have 'styles' field
@@ -159,11 +152,8 @@ class PageViewSetTest(AbstractTestCase):
     def test_page_list_results_not_limited_when_superuser(self):
         superuser = user_model.objects.create_superuser(email="superuser@example.com")
         self.user = superuser
-        self.login()
-
-        response = self.client.get(self.url)
+        response = self.client.get(reverse("donationpage-list"))
         data = response.json()
-
         self.assertEqual(self.rev_program.donationpage_set.count(), len(data))
 
 

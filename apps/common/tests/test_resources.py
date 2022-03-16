@@ -51,10 +51,11 @@ class AbstractTestCase(APITestCase):
     def create_donation_page(self, revenue_program=None):
         return DonationPageFactory(revenue_program=revenue_program if revenue_program else RevenueProgramFactory())
 
-    def create_user(self, role_type=Roles.HUB_ADMIN):
+    def create_user(self, role_assignment_data=None):
+        role_assignment_data = role_assignment_data if role_assignment_data else {}
         self.email = "test@test.gov"
         self.password = "testpassy"
-        self.user = create_test_user(role_assignment_data={"role_type": role_type})
+        self.user = create_test_user(role_assignment_data=role_assignment_data)
 
     def login(self):
         self.client.force_authenticate(user=self.user)

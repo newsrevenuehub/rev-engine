@@ -33,6 +33,7 @@ class PageViewSetTest(AbstractTestCase):
         super().setUp()
         self.create_resources()
         self.rev_program = self.rev_programs[0]
+        self.create_user(role_assignment_data={"role_type": Roles.ORG_ADMIN, "organization": self.orgs[0]})
         self.login()
 
     # CREATE
@@ -123,19 +124,13 @@ class PageViewSetTest(AbstractTestCase):
         self.assertRaises(DonationPage.DoesNotExist, DonationPage.objects.get, pk=old_page_pk)
 
     def test_cant_delete_page_owned_by_other_org(self):
-        page = self.resources[0]
-        org = self.resources[1].organization
-        self.assertNotEqual(page.organization, org)
-        self.user = create_test_user(
-            role_assignment_data={
-                "role_type": Roles.ORG_ADMIN,
-                "organization": org,
-            },
-        )
-        detail_url = f"/api/v1/pages/{page.pk}/"
+        not_my_org = self.orgs[1]
+        assert not self.user.organizations.filter(pk=not_my_org.pk).exists()
+        not_my_orgs_page = DonationPage.objects.filter(revenue_program__organization=not_my_org).first()
+        detail_url = f"/api/v1/pages/{not_my_orgs_page.pk}/"
         response = self.client.delete(detail_url)
         self.assertEqual(response.status_code, 403)
-        self.assertEqual(DonationPage.objects.filter(pk=page.pk).count(), 1)
+        self.assertEqual(DonationPage.objects.filter(pk=not_my_orgs_page.pk).count(), 1)
 
     def test_page_list_uses_list_serializer(self):
         url = f"{reverse('donationpage-list')}?{settings.RP_SLUG_PARAM}={self.rev_program.slug}&{settings.ORG_SLUG_PARAM}={self.rev_program.organization.slug}"

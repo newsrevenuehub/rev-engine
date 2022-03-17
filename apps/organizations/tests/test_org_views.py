@@ -14,6 +14,7 @@ from apps.organizations.tests.factories import (
     RevenueProgramFactory,
 )
 from apps.pages.tests.factories import DonationPageFactory
+from apps.users.models import Roles
 from apps.users.tests.utils import create_test_user
 
 
@@ -21,12 +22,17 @@ user_model = get_user_model()
 
 
 class OrganizationViewSetTest(AbstractTestCase):
+    model_factory = OrganizationFactory
+    model = Organization
+
     def setUp(self):
         super().setUp()
         self.list_url = reverse("organization-list")
+        role_assignment_data = {"role_type": Roles.HUB_ADMIN}
+        self.create_user(role_assignment_data=role_assignment_data)
+        self.login()
 
     def test_list_of_orgs(self):
-        self.login()
         response = self.client.get(self.list_url)
         self.assertEqual(response.status_code, 200)
         orgs = Organization.objects.all()

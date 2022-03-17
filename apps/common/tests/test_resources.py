@@ -37,6 +37,9 @@ class AbstractTestCase(APITestCase):
         """
         return hasattr(resource, "organization") and type(resource.organization) is not property
 
+    def _resource_has_rp_fk(self, resource, related_name="revenueprogram_set"):
+        return hasattr(resource, related_name)
+
     def create_resources(self):
         self.orgs = Organization.objects.all()
         self.rev_programs = RevenueProgram.objects.all()
@@ -44,8 +47,10 @@ class AbstractTestCase(APITestCase):
             num = 0 if i % 2 == 0 else 1
             if self._resource_has_org_fk(self.model):
                 self.model_factory.create(organization=self.orgs[num])
-            else:
+            elif self._resource_has_rp_fk(self.model):
                 self.model_factory.create(revenue_program=self.rev_programs[num])
+            else:
+                self.model_factory.create()
         self.resources = self.model.objects.all()
 
     def create_donation_page(self, revenue_program=None):

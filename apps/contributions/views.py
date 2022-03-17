@@ -23,6 +23,7 @@ from apps.contributions.payment_managers import (
 from apps.contributions.webhooks import StripeWebhookProcessor
 from apps.emails.models import EmailTemplateError, PageEmailTemplate
 from apps.organizations.models import Organization
+from apps.public.permissions import IsSuperUser
 
 
 logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
@@ -78,7 +79,7 @@ def stripe_payment(request):
 
 
 @api_view(["POST"])
-@permission_classes([IsAuthenticated])
+@permission_classes([IsAuthenticated, HasRoleAssignment | IsSuperUser])
 def stripe_oauth(request):
     scope = request.data.get("scope")
     code = request.data.get("code")
@@ -115,7 +116,7 @@ def stripe_oauth(request):
 
 
 @api_view(["POST"])
-@permission_classes([IsAuthenticated])
+@permission_classes([IsAuthenticated, HasRoleAssignment | IsSuperUser])
 def stripe_confirmation(request):
     organization_slug = request.GET.get(settings.ORG_SLUG_PARAM, None)
     try:

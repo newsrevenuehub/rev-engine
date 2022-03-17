@@ -197,9 +197,11 @@ def process_stripe_webhook_view(request):
 
 
 class ContributionsViewSet(viewsets.ReadOnlyModelViewSet):
-    permission_classes = [IsAuthenticated, HasRoleAssignment | (IsContributor & ContributorOwnsContribution)]
+    permission_classes = [
+        IsAuthenticated,
+        IsSuperUser | HasRoleAssignment | (IsContributor & ContributorOwnsContribution),
+    ]
     model = Contribution
-
     filter_backends = [DjangoFilterBackend, filters.OrderingFilter, RoleAssignmentFilterBackend]
     filterset_class = ContributionFilter
 

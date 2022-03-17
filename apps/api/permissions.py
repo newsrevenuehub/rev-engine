@@ -141,9 +141,12 @@ def filter_from_permissions(request, queryset, model):
     # Now based on the type of modeling we're dealing with
 
     if model_name == "Organization":
-        return get_organization_queryset(role_assignment, queryset)
+        return _get_organization_queryset(role_assignment, queryset)
     if model_name == "RevenueProgram":
-        return get_revenue_program_queryset(role_assignment, org_slug, queryset)
+        return _get_revenue_program_queryset(role_assignment, org_slug, queryset)
+    if model_name == "Contribution":
+        return _get_contributions_queryset(role_assignment, queryset, org_slug, rp_slug)
+
     if _model_relates_via_organization(model):
         return _reduce_organization_queryset_with_filters(
             user_role, request.user.is_superuser, role_assignment.organization, org_slug, queryset
@@ -163,7 +166,7 @@ def filter_from_permissions(request, queryset, model):
         )
 
 
-def get_organization_queryset(role_assignment, queryset):
+def _get_organization_queryset(role_assignment, queryset):
     """
     This is a request for Orgs. org_slug does not come in to play here, only
     the role_type.
@@ -173,17 +176,32 @@ def get_organization_queryset(role_assignment, queryset):
     return queryset
 
 
-def get_revenue_program_queryset(role_assignment, org_slug, queryset):
+def _get_revenue_program_queryset(role_assignment, org_slug, queryset):
     """
     Return queryset of RevenuePrograms that the user has permission to view AND that is filtered
     by org_slug
     """
     filters = []
-    qs = queryset
     if role_assignment and role_assignment.role_type != Roles.HUB_ADMIN:
-        qs = role_assignment.revenue_programs.all()
+        queryset = role_assignment.revenue_programs.all()
 
     if org_slug and org_slug != ALL_ACCESSOR:
         filters.append(Q(organization__slug=org_slug))
 
-    return reduce_queryset_with_filters(qs, filters)
+    return reduce_queryset_with_filters(queryset, filters)
+
+
+def _get_contributions_queryset(role_assignment, queryset, org_slug, rp_slugs):
+    """ """
+    filters = []
+    if role_assignment.role_type == Roles.ORG_ADMIN:
+        queryset = queryset.filter(organization=role_assignment.organization)
+    if role_assignment.role_type == Roles.RP_ADMIN:
+        queryset = queryset.filter(
+            donation_page__revenue_program__pk__in=[item.id for item in role_assignment.revenue_programs.all()]
+        )
+    if org_slug and org_slug != ALL_ACCESSOR:
+        filters.append(Q(organization__slug=org_slug))
+    if rp_slugs:
+        filters.append(Q(donation_page__revenue_program__slug__in=rp_slugs))
+    return reduce_queryset_with_filters(queryset, filters)

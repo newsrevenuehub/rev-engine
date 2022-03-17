@@ -101,6 +101,8 @@ class ContributionSerializer(serializers.ModelSerializer):
             "provider_subscription_url",
             "provider_customer_url",
             "status",
+            "donation_page_id",
+            "organization_id",
         ]
 
 

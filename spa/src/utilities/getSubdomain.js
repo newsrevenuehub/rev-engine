@@ -9,6 +9,7 @@
 function getSubdomain(host) {
   const splitHost = host.split('.');
   if (splitHost.length < 3) return '';
+  if (splitHost[splitHost.length - 2] === 'herokuapp' && splitHost.length === 3) return '';
   if (splitHost[0] === 'www') return '';
   return splitHost[0];
 }

@@ -1,7 +1,9 @@
 from unittest.mock import patch
+from venv import create
 
 from django.conf import settings
 from django.contrib.auth import get_user_model
+from django.middleware import csrf
 from django.test import override_settings
 from django.urls import reverse
 
@@ -11,11 +13,14 @@ from stripe.error import StripeError
 from stripe.oauth_error import InvalidGrantError as StripeInvalidGrantError
 from stripe.stripe_object import StripeObject
 
+from apps import organizations
+from apps.api.tokens import ContributorRefreshToken
 from apps.contributions.models import Contribution, ContributionInterval, Contributor
 from apps.contributions.payment_managers import PaymentBadParamsError, PaymentProviderError
 from apps.contributions.tests.factories import ContributionFactory, ContributorFactory
 from apps.contributions.views import stripe_payment
 from apps.organizations.tests.factories import OrganizationFactory, RevenueProgramFactory
+from apps.pages.models import DonationPage
 from apps.pages.tests.factories import DonationPageFactory
 from apps.users.models import Roles
 from apps.users.tests.utils import create_test_user
@@ -258,9 +263,10 @@ class MockStripeProduct(StripeObject):
 @patch("stripe.Product.create", side_effect=MockStripeProduct)
 class StripeConfirmTest(APITestCase):
     def setUp(self):
-        self.user = get_user_model().objects.create(email="user@test.com", password="testing")
         self.organization = OrganizationFactory(name="My Organization")
-        self.organization.user_set.add(self.user)
+        self.user = create_test_user(
+            role_assignment_data={"role_type": Roles.ORG_ADMIN, "organization": self.organization}
+        )
         self.url = f'{reverse("stripe-confirmation")}?{settings.ORG_SLUG_PARAM}={self.organization.slug}'
 
     def post_to_confirmation(self, stripe_account_id="", stripe_verified=None, stripe_product_id=""):
@@ -278,6 +284,7 @@ class StripeConfirmTest(APITestCase):
         """
         stripe_confirmation should return early if the org already has stripe_verified=True.
         """
+
         response = self.post_to_confirmation(
             stripe_verified=True, stripe_account_id="testing", stripe_product_id="test_product_id"
         )
@@ -357,35 +364,103 @@ class StripeConfirmTest(APITestCase):
 
 class TestContributionsViewSet(APITestCase):
     def setUp(self):
-        self.organization1 = OrganizationFactory(name="Organization 1")
-        self.organization2 = OrganizationFactory(name="Organization 2")
-        self.org1_user = create_test_user(
-            role_assignment_data={"role_type": Roles.ORG_ADMIN, "organization": self.organization1}
+        self.org1 = OrganizationFactory(name="Organization 1")
+        self.org1_rp_1 = RevenueProgramFactory(name="Org 1 RP 1", organization=self.org1)
+        self.org1_rp_2 = RevenueProgramFactory(name="Org 1 RP 2", organization=self.org1)
+        self.org1_rp_1_dp = DonationPageFactory(
+            name="Org 1 RP 1 DP 1",
+            revenue_program=self.org1_rp_1,
         )
+        self.org1_rp_2_dp = DonationPageFactory(
+            name="Org 1 RP 2 DP 1",
+            revenue_program=self.org1_rp_2,
+        )
+
+        self.org2 = OrganizationFactory(name="Organization 2")
+        self.org2_rp = RevenueProgramFactory(
+            name="Org 2 RP 1",
+            organization=self.org2,
+        )
+        self.org2_rp_dp = DonationPageFactory(name="Org 2 RP 1 DP 1", revenue_program=self.org2_rp)
+
+        self.superuser = get_user_model().objects.create_superuser(email="user@test.com", password="testing")
+        self.org1_user = create_test_user(
+            role_assignment_data={"role_type": Roles.ORG_ADMIN, "organization": self.org1}
+        )
+        self.or1_rp_user = create_test_user(
+            role_assignment_data={"role_type": Roles.RP_ADMIN, "revenue_programs": [self.org1_rp_1]}
+        )
+
         self.contributor = Contributor.objects.create(email="contributor@contributor.com")
-        self.contributions_per_org_count = 50
-        for i in range(self.contributions_per_org_count):
-            Contribution.objects.create(
-                amount=1000,
-                interval=ContributionInterval.ONE_TIME[0],
-                contributor=self.contributor,
-                organization=self.organization1,
-            )
-            Contribution.objects.create(
-                amount=2000,
-                interval=ContributionInterval.ONE_TIME[0],
-                contributor=self.contributor,
-                organization=self.organization2,
-            )
+        self.contributor2 = Contributor.objects.create(email="contributor2@contributor.com")
+        self.contributions_per_donation_page_count = 50
+
+        for dp in [self.org1_rp_1_dp, self.org1_rp_2_dp, self.org2_rp_dp]:
+            for i in range(self.contributions_per_donation_page_count):
+                Contribution.objects.create(
+                    amount=1000,
+                    interval=ContributionInterval.ONE_TIME[0],
+                    contributor=self.contributor,
+                    organization=dp.revenue_program.organization,
+                    donation_page=dp,
+                )
+                Contribution.objects.create(
+                    amount=500,
+                    interval=ContributionInterval.ONE_TIME[0],
+                    contributor=self.contributor2,
+                    organization=dp.revenue_program.organization,
+                )
 
         self.url = reverse("contributions-list")
 
-    def test_happy_path(self):
+    def test_org_admin_gets_only_their_contributions(self):
         """Should get back only contributions belonging to my org"""
         self.client.force_authenticate(user=self.org1_user)
         response = self.client.get(self.url)
+        # ensure there are inaccessible contributions, so test not trivial
+        self.assertGreater(Contribution.objects.exclude(organization=self.org1).count(), 0)
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.json()["count"], self.contributions_per_org_count)
+        self.assertEqual(response.json()["count"], Contribution.objects.filter(organization=self.org1).count())
+        results = response.json()["results"]
+        self.assertTrue(all([contrib["organization_id"] == self.org1.pk for contrib in results]))
+
+    def test_superuser_gets_all_contributions(self):
+        self.client.force_authenticate(user=self.superuser)
+        response = self.client.get(self.url)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["count"], Contribution.objects.count())
+
+    def test_rp_admin_gets_only_their_contributions(self):
+        self.client.force_authenticate(user=self.or1_rp_user)
+        response = self.client.get(self.url)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            response.json()["count"], Contribution.objects.filter(donation_page__revenue_program=self.org1_rp_1).count()
+        )
+        results = response.json()["results"]
+        self.assertTrue(all([contrib["organization_id"] == self.org1.pk for contrib in results]))
+        donation_page_ids = [contrib["donation_page_id"] for contrib in results]
+        referenced_rps = (
+            DonationPage.objects.filter(pk__in=donation_page_ids)
+            .order_by("revenue_program")
+            .values_list("revenue_program", flat=True)
+            .distinct()
+        )
+        self.assertEqual(set(referenced_rps), set([self.org1_rp_1.pk]))
+
+    def test_contributor_gets_only_their_contributions(self):
+        refresh_token = ContributorRefreshToken.for_contributor(self.contributor.uuid)
+        self.client.cookies["Authorization"] = refresh_token.long_lived_access_token
+        self.client.cookies["csrftoken"] = csrf._get_new_csrf_token()
+        response = self.client.get(self.url)
+        # ensure subsequent assertions won't be trivial
+        self.assertGreater(Contribution.objects.exclude(contributor=self.contributor).count(), 0)
+        self.assertEqual(Contribution.objects.filter(contributor=self.contributor).count(), response.json()["count"])
+        self.assertTrue(
+            set([contrib["id"] for contrib in response.json()["results"]]).issubset(
+                set(Contribution.objects.filter(contributor=self.contributor).values_list("pk", flat=True))
+            )
+        )
 
 
 TEST_STRIPE_API_KEY = "test_stripe_api_key"

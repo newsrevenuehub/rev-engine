@@ -76,6 +76,18 @@ function PageSetup({ backToProperties }) {
     }
   };
 
+  let showLogoInput = false;
+  if (page.header_logo_thumbnail) {
+    showLogoInput = true;
+    if ('header_logo' in images && images['header_logo'] === '') {
+      showLogoInput = false;
+    }
+  }
+
+  if ('header_logo' in images && images['header_logo'] !== '') {
+    showLogoInput = true;
+  }
+
   return (
     <S.PageSetup data-testid="page-setup">
       <S.PageName>{page.name}</S.PageName>
@@ -97,17 +109,20 @@ function PageSetup({ backToProperties }) {
           errors={errors.header_logo_thumbnail}
         />
       </S.ImageSelectorWrapper>
-      <S.InputWrapper border>
-        <Input
-          type="text"
-          label="Logo link"
-          value={header_link}
-          helpText="Where does clicking your logo take your users?"
-          onChange={(e) => setHeaderLink(e.target.value)}
-          errors={errors.header_link}
-          testid="logo-link-input"
-        />
-      </S.InputWrapper>
+      {showLogoInput ? (
+        <S.InputWrapper border>
+          <Input
+            type="text"
+            label="Logo link"
+            value={header_link}
+            helpText="Where does clicking your logo take your users?"
+            onChange={(e) => setHeaderLink(e.target.value)}
+            errors={errors.header_link}
+            testid="logo-link-input"
+          />
+        </S.InputWrapper>
+      ) : null}
+
       <S.InputWrapper border>
         <Input
           type="text"

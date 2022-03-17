@@ -151,6 +151,39 @@ class PageViewSetTest(AbstractTestCase):
         data = response.json()
         self.assertEqual(self.rev_program.donationpage_set.count(), len(data))
 
+    def test_page_list_results_not_limited_when_hub_admin(self):
+        self.create_user(role_assignment_data={"role_type": Roles.HUB_ADMIN})
+        self.login()
+        response = self.client.get(reverse("donationpage-list"))
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.json()), DonationPage.objects.count())
+
+    def test_page_list_results_limited_when_rp_user(self):
+        self.create_user(role_assignment_data={"role_type": Roles.RP_ADMIN, "revenue_programs": [self.rev_programs[0]]})
+        self.login()
+        response = self.client.get(reverse("donationpage-list"))
+        self.assertEqual(response.status_code, 200)
+        # ensure next assertions aren't trivial
+        self.assertTrue(DonationPage.objects.exclude(revenue_program__in=[self.rev_programs[0]]).exists())
+        self.assertEqual(
+            len(response.json()),
+            DonationPage.objects.filter(
+                revenue_program__in=[
+                    self.rev_programs[0],
+                ]
+            ).count(),
+        )
+        self.assertEqual(
+            set([item["id"] for item in response.json()]),
+            set(
+                DonationPage.objects.filter(
+                    revenue_program__in=[
+                        self.rev_programs[0],
+                    ]
+                ).values_list("id", flat=True)
+            ),
+        )
+
 
 class PagePatchTest(AbstractTestCase):
     model = DonationPage

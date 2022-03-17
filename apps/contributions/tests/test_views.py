@@ -167,7 +167,7 @@ expected_oauth_scope = "my_test_scope"
 @override_settings(STRIPE_OAUTH_SCOPE=expected_oauth_scope)
 class StripeOAuthTest(APITestCase):
     def setUp(self):
-        self.user = create_test_user(role_assignment_data={"role_type": Roles.HUB_ADMIN})
+        self.user = create_test_user(role_assignment_data={"role_type": Roles.ORG_ADMIN})
         self.organization = OrganizationFactory(name="My Organization")
         self.organization.user_set.through.objects.create(organization=self.organization, user=self.user, is_owner=True)
 

@@ -74,7 +74,7 @@ class BaseEmailTemplate(models.Model):
         The override makes sure that the default schema is always present.
         """
         default_schema = self.ContactType.default_schema()
-        self.schema = default_schema if default_schema else self.schema
+        self.schema = self.ContactType.default_schema() or self.schema
         super().save(*args, **kwargs)
 
     def __str__(self):

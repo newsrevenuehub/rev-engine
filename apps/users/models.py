@@ -55,7 +55,7 @@ class Roles(models.TextChoices):
 
 class RoleAssignment(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE)
-    role_type = models.CharField(max_length=max(len(x) for x in Roles.values), choices=Roles.choices)
+    role_type = models.CharField(max_length=50, choices=Roles.choices)
     organization = models.ForeignKey("organizations.Organization", null=True, blank=True, on_delete=models.SET_NULL)
     revenue_programs = models.ManyToManyField("organizations.RevenueProgram", blank=True)
 

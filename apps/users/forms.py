@@ -54,9 +54,3 @@ class RoleAssignmentAdminForm(forms.ModelForm):
     class Meta:
         model = RoleAssignment
         fields = "__all__"
-
-    # class Media:
-    #     css = {
-    #         "all": ("/static/admin/css/widgets.css",),
-    #     }
-    #     js = ("/admin/jsi18n",)

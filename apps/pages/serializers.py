@@ -81,7 +81,7 @@ class DonationPageFullDetailSerializer(serializers.ModelSerializer):
     styles_pk = serializers.IntegerField(allow_null=True, required=False)
 
     revenue_program = RevenueProgramListInlineSerializer(read_only=True)
-    # revenue_program_pk = serializers.IntegerField(allow_null=True, required=False)
+    revenue_program_pk = serializers.IntegerField(allow_null=True, required=False)
     template_pk = serializers.IntegerField(allow_null=True, required=False)
 
     graphic = serializers.ImageField(allow_empty_file=True, allow_null=True, required=False)

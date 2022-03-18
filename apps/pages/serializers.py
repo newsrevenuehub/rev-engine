@@ -1,3 +1,4 @@
+from django.conf import settings
 from django.db.utils import IntegrityError
 from django.utils import timezone
 
@@ -60,11 +61,13 @@ class StyleListSerializer(StyleInlineSerializer):
     def set_revenue_program(self, validated_data):
         _, rp_slug = get_org_and_rp_from_request(self.context["request"])
         if not rp_slug:
-            raise serializers.ValidationError({"rp_slug": "RevenueProgram.slug is required when creating a new page"})
+            raise serializers.ValidationError(
+                {settings.RP_SLUG_PARAM: "RevenueProgram.slug is required when creating a new page"}
+            )
         try:
             validated_data["revenue_program"] = RevenueProgram.objects.get(slug=rp_slug)
         except RevenueProgram.DoesNotExist:
-            raise serializers.ValidationError({"revenue_program": "no such revenue_program"})
+            raise serializers.ValidationError({settings.RP_SLUG_PARAM: "no such revenue_program"})
 
     def get_used_live(self, obj):
         return DonationPage.objects.filter(styles=obj, published_date__lte=timezone.now()).exists()

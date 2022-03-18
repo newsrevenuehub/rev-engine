@@ -99,8 +99,7 @@ class Template(AbstractPage):
         unwanted_keys = ["_state", "id", "modified", "created", "published_date", "_history_user"]
         template = cleanup_keys(template_data, unwanted_keys)
         page = cleanup_keys(page_data, unwanted_keys)
-        merged_page = template if template else page
-        return DonationPage.objects.create(**merged_page)
+        return DonationPage.objects.create(**{**template, **page})
 
 
 class DonationPage(AbstractPage, SafeDeleteModel):
@@ -201,9 +200,9 @@ class DonationPage(AbstractPage, SafeDeleteModel):
         ]
         page = cleanup_keys(self.__dict__, unwanted_keys)
         template = cleanup_keys(template_data, unwanted_keys)
-        data = {**page, **template}
-        data["revenue_program"] = RevenueProgram.objects.get(pk=data.pop("revenue_program_id"))
-        return Template.objects.create(**data)
+        merged = {**page, **template}
+        merged["revenue_program"] = RevenueProgram.objects.get(pk=merged.pop("revenue_program_id"))
+        return Template.objects.create(**merged)
 
 
 class Style(IndexedTimeStampedModel, SafeDeleteModel):

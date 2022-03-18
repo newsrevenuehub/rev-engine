@@ -20,7 +20,7 @@ logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
 class OrganizationViewSet(viewsets.ReadOnlyModelViewSet):
     model = Organization
     queryset = Organization.objects.all()
-    permission_classes = [ReadOnly]
+    permission_classes = [IsAuthenticated, IsSuperUser | HasRoleAssignment, ReadOnly]
     serializer_class = serializers.OrganizationSerializer
     pagination_class = None
 

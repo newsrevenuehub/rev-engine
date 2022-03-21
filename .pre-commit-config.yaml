@@ -22,6 +22,7 @@ repos:
       - id: check-merge-conflict
       - id: check-json
         exclude: docs/dev
+      - id: check-toml
       - id: check-yaml
         exclude: (deploy/host_vars|deploy/stack|deploy)
       - id: check-xml

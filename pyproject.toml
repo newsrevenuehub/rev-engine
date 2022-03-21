@@ -10,21 +10,12 @@ authors = ["Caktus Group, LLC <teams@caktusgroup.com>"]
 
 [tool.black]
 line-length = 140
-target-version = ["py39"]
-include = "\.pyi?$"
-exclude = """
+target-version = ["py39", ]
+extend_exclude = """
 /(
-    \.eggs
-  | \.git
-  | \.hg
-  | \.mypy_cache
-  | \.tox
-  | \.venv
-  | _build
-  | build
-  | dist
-  | env
+    env
   | htmlcov
+  | migrations
   | node_modules
   | public
   | venv

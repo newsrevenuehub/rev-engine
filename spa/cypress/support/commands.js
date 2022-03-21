@@ -110,3 +110,12 @@ Cypress.Commands.add('editElement', (elementType) => {
       cy.getByTestId('pencil-button').click({ force: true });
     });
 });
+
+Cypress.Commands.add('getStripeCardElement', (elementName) => {
+  return cy
+    .get('iframe')
+    .its('0.contentDocument.body')
+    .should('not.be.empty')
+    .then(cy.wrap)
+    .find(`input[data-elements-stable-field-name="${elementName}"]`);
+});

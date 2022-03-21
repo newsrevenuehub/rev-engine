@@ -267,7 +267,14 @@ STRIPE_WEBHOOK_EVENTS = [
 ]
 
 
+# SITE_URL must include scheme and optionally port, https://example.com.
 SITE_URL = os.getenv("SITE_URL", "")
+# Application subdomains (that are NOT revenue program slugs)
+# TODO: shouldn't NON_D... include DenyListWords?
+NON_DONATION_PAGE_SUBDOMAINS = os.getenv("NON_DONATION_PAGE_SUBDOMAINS", "support:www").split(":")
+ORG_PORTAL_SUBDOMAINS = os.getenv("ORG_PORTAL_SUBDOMAINS", "support:").split(":")
+# TODO: Isn't DOMAIN_APEX just be SITE_URL without any subdomain?
+DOMAIN_APEX = os.getenv("DOMAIN_APEX")
 
 # BadActor API
 BAD_ACTOR_API_URL = os.getenv("BAD_ACTOR_API_URL", "https://bad-actor-test.fundjournalism.org/v1/bad_actor/")
@@ -314,11 +321,6 @@ COUNTRIES = ["US", "CA"]
 # Map currency-code to symbol
 CURRENCIES = {"USD": "$", "CAD": "$"}
 
-
-# Application subdomains (that are NOT revenue program slugs)
-NON_DONATION_PAGE_SUBDOMAINS = os.getenv("NON_DONATION_PAGE_SUBDOMAINS", "support:www").split(":")
-ORG_PORTAL_SUBDOMAINS = os.getenv("ORG_PORTAL_SUBDOMAINS", "support:").split(":")
-DOMAIN_APEX = os.getenv("DOMAIN_APEX")
 
 CSP_REPORTING_ENABLE = os.environ.get("CSP_REPORTING_ENABLE", "false").lower() == "true"
 # Django-CSP configuration

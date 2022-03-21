@@ -67,10 +67,6 @@ def _is_contributor(user):
     return isinstance(user, Contributor)
 
 
-def _user_is_anonymous(user):
-    return all([not hasattr(user, "get_role_assignment"), not _is_contributor(user)])
-
-
 def _model_relates_via_organization(model):
     return hasattr(model, "organization") and type(model.organization) != property
 
@@ -122,10 +118,6 @@ def filter_from_permissions(request, queryset, model):
     # filtered by the object permissions logic in `ContributorOwnsContribution``
     if _is_contributor(request.user):
         return _handle_contributor_user(request, queryset, model)
-
-    # Just for thoroughness, prevent AnonymousUser from viewing resources
-    if _user_is_anonymous(request.user):
-        return queryset.none()
 
     if request.user.is_superuser:
         return _handle_superuser_user(request, queryset, model)

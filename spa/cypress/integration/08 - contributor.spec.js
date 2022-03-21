@@ -141,3 +141,80 @@ describe('Contributor portal', () => {
     });
   });
 });
+
+describe('Update recurring contribution modal', () => {
+  beforeEach(() => {
+    // "Log in" to contributor dash
+    cy.intercept({ method: 'POST', url: getEndpoint(VERIFY_TOKEN) }, { fixture: 'user/valid-contributor-1.json' }).as(
+      'login'
+    );
+    cy.interceptPaginatedDonations();
+    cy.visit(CONTRIBUTOR_VERIFY);
+    cy.wait(['@login', '@getDonations']);
+    cy.get('td[data-testcolumnaccessor="interval"]')
+      .contains('Monthly')
+      .closest('tr')
+      .find('[data-testid="payment-method"]')
+      .first()
+      .click();
+  });
+
+  it('should not enable update payment method when card number is not fully entered', () => {
+    cy.getStripeCardElement('cardExpiry').type('0199');
+    cy.getStripeCardElement('cardCvc').type('123');
+    cy.getByTestId('contrib-update-payment-method-btn').should('be.disabled');
+    cy.getStripeCardElement('cardNumber').type('4242');
+    cy.getByTestId('contrib-update-payment-method-btn').should('be.disabled');
+  });
+
+  it('should not enable update payment method when card number is invalid', () => {
+    debugger;
+
+    cy.getStripeCardElement('cardNumber').type('1234123412341234');
+    cy.getStripeCardElement('cardExpiry').type('0199');
+    cy.getStripeCardElement('cardCvc').type('123');
+    cy.getByTestId('contrib-update-payment-method-btn').should('be.disabled');
+  });
+
+  it('should not enable update payment method when card expiry is not fully entered', () => {
+    cy.getStripeCardElement('cardNumber').type('4242424242424242');
+    cy.getStripeCardElement('cardExpiry').type('0199');
+    cy.getStripeCardElement('cardCvc').type('123');
+    cy.getStripeCardElement('postalCode').type('12345');
+    cy.getByTestId('contrib-update-payment-method-btn').should('be.disabled');
+  });
+
+  it('should not enable update payment method when card expiry is invalid', () => {
+    cy.getStripeCardElement('cardNumber').type('4242424242424242');
+    cy.getStripeCardElement('cardCvc').type('123');
+    cy.getStripeCardElement('postalCode').type('12345');
+    cy.getByTestId('contrib-update-payment-method-btn').should('be.disabled');
+  });
+
+  it('should not enable update payment method when card cvc is not fully entered', () => {
+    cy.getStripeCardElement('cardNumber').type('4242424242424242');
+    cy.getStripeCardElement('cardExpiry').type('0199');
+    cy.getStripeCardElement('postalCode').type('12345');
+    cy.getByTestId('contrib-update-payment-method-btn').should('be.disabled');
+    cy.getStripeCardElement('cardCvc').type('12');
+    cy.getByTestId('contrib-update-payment-method-btn').should('be.disabled');
+  });
+
+  it('should not enable update payment method when postal code is not fully entered', () => {
+    cy.getStripeCardElement('cardNumber').type('4242424242424242');
+    cy.getStripeCardElement('cardExpiry').type('0199');
+    cy.getStripeCardElement('cardCvc').type('123');
+    cy.getByTestId('contrib-update-payment-method-btn').should('be.disabled');
+    cy.getStripeCardElement('postalCode').type('1234');
+    cy.getByTestId('contrib-update-payment-method-btn').should('be.disabled');
+  });
+
+  it('should enable update payment method when card details are entered correctly', () => {
+    let today = new Date();
+    cy.getStripeCardElement('cardNumber').type('4242424242424242');
+    cy.getStripeCardElement('cardExpiry').type(`${today.getMonth() + 1}${today.getFullYear() % 100}`);
+    cy.getStripeCardElement('cardCvc').type('123');
+    cy.getStripeCardElement('postalCode').type('12345');
+    cy.getByTestId('contrib-update-payment-method-btn').should('not.be.disabled');
+  });
+});

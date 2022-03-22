@@ -17,7 +17,7 @@ function DashboardSidebar({ shouldAllowDashboard }) {
           Content
         </S.NavItem>
         <S.NavItem to={DONATIONS_SLUG} onClick={handleClick} disabled={!shouldAllowDashboard}>
-          Donations
+          Contributions
         </S.NavItem>
       </S.NavList>
       <S.OtherContent>

@@ -56,6 +56,11 @@ class HasRoleAssignment(permissions.BasePermission):
 
 
 def _handle_contributor_user(request, queryset, model):
+    """NB: for contributor users we don't apply any filtering within the calling
+
+    context for this function. At the time of this comment, the contributor's queryset is
+    filtered in apps/contributions/views.py::ContributionsViewSet.get_queryset
+    """
     return queryset
 
 
@@ -110,6 +115,11 @@ def filter_from_permissions(request, queryset, model):
     - The user's role_assignment.role_type
     - The user's role_assignment's permitted organization and revenue programs
     - Optional org_slug and rp_slug query parameters
+
+    add notes about the assumptions about how has_permission has been applied upstream
+
+    # Prevent users who have not been assigned a Role from viewing resources
+
     """
     org_slug = request.GET.get(settings.ORG_SLUG_PARAM)
     rp_slug = request.GET.get(settings.RP_SLUG_PARAM)
@@ -122,16 +132,12 @@ def filter_from_permissions(request, queryset, model):
     if request.user.is_superuser:
         return _handle_superuser_user(request, queryset, model)
 
-    # Prevent users who have not been assigned a Role from viewing resources
     role_assignment = request.user.get_role_assignment()
-    if not role_assignment:
-        return queryset.none()
+    user_role = role_assignment.role_type
 
-    user_role = role_assignment.role_type if role_assignment else None
     model_name = model.__name__
 
     # Now based on the type of modeling we're dealing with
-
     if model_name == "Organization":
         return _get_organization_queryset(role_assignment, queryset)
     if model_name == "RevenueProgram":

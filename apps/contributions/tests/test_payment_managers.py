@@ -6,10 +6,10 @@ from django.test import override_settings
 import responses
 from faker import Faker
 from rest_framework.exceptions import ValidationError
-from rest_framework.test import APITestCase
 from stripe import error as stripe_errors
 from stripe.stripe_object import StripeObject
 
+from apps.common.tests.test_resources import AbstractTestCase
 from apps.contributions.bad_actor import BadActorAPIError, make_bad_actor_request
 from apps.contributions.models import Contribution, ContributionInterval, ContributionStatus
 from apps.contributions.payment_managers import (
@@ -52,15 +52,14 @@ class MockStripeCustomer(StripeObject):
 fake_api_key = "TEST_stripe_secret_key"
 
 
-class StripePaymentManagerAbstractTestCase(APITestCase):
+class StripePaymentManagerAbstractTestCase(AbstractTestCase):
     def setUp(self):
-        self.organization = OrganizationFactory()
-        self.revenue_program = RevenueProgramFactory(organization=self.organization)
-        self.page = DonationPageFactory(revenue_program=self.revenue_program)
-        self.contributor = ContributorFactory()
+        super().setUp()
+        self.set_up_domain_model()
         self.amount = "10.99"
+        page = self.org1_rp1.donationpage_set.first()
         self.data = {
-            "email": self.contributor.email,
+            "email": self.contributor_user.email,
             "first_name": "Test",
             "last_name": "Tester",
             "phone": "123-456-7890",
@@ -72,19 +71,17 @@ class StripePaymentManagerAbstractTestCase(APITestCase):
             "amount": self.amount,
             "donor_selected_amount": self.amount,
             "reason": "Testing",
-            "revenue_program_slug": self.revenue_program.slug,
+            "revenue_program_slug": self.org1_rp1.slug,
             "statement_descriptor_suffix": None,
             "payment_method_id": "test_payment_method_id",
-            "donation_page_slug": self.page.slug,
+            "donation_page_slug": page.slug,
             "currency": "usd",
             "organization_country": "us",
             "ip": faker.ipv4(),
             "referer": faker.url(),
-            "page_id": self.page.pk,
+            "page_id": page.pk,
         }
-        self.contribution = ContributionFactory(
-            donation_page=self.page, contributor=self.contributor, organization=self.organization
-        )
+        self.contribution = self.contributions[0]
 
     def _create_mock_ba_response(self, target_score=None, status_code=200):
         json_body = {"overall_judgment": target_score} if target_score else {"error": "Test error message"}
@@ -97,6 +94,9 @@ class StripePaymentManagerAbstractTestCase(APITestCase):
         spm = StripePaymentManager(contribution=contribution if contribution else self.contribution)
         spm.data = self.data
         return spm
+
+    class Meta:
+        abstract = True
 
 
 @override_settings(STRIPE_TEST_SECRET_KEY=fake_api_key)
@@ -215,10 +215,10 @@ class StripeOneTimePaymentManagerTest(StripePaymentManagerAbstractTestCase):
             currency="usd",
             customer=MockStripeCustomer.id,
             payment_method_types=["card"],
-            stripe_account=self.organization.stripe_account_id,
+            stripe_account=self.org1.stripe_account_id,
             capture_method="manual",
             receipt_email=data["email"],
-            statement_descriptor_suffix=self.revenue_program.stripe_statement_descriptor_suffix,
+            statement_descriptor_suffix=self.org1_rp1.stripe_statement_descriptor_suffix,
             metadata=pm.bundle_metadata("PAYMENT"),
         )
         # New contribution is created...
@@ -251,10 +251,10 @@ class StripeOneTimePaymentManagerTest(StripePaymentManagerAbstractTestCase):
             currency="usd",
             customer=MockStripeCustomer.id,
             payment_method_types=["card"],
-            stripe_account=self.organization.stripe_account_id,
+            stripe_account=self.org1.stripe_account_id,
             capture_method="automatic",
             receipt_email=data["email"],
-            statement_descriptor_suffix=self.revenue_program.stripe_statement_descriptor_suffix,
+            statement_descriptor_suffix=self.org1_rp1.stripe_statement_descriptor_suffix,
             metadata=pm.bundle_metadata("PAYMENT"),
         )
         # New contribution is created...
@@ -271,7 +271,7 @@ class StripeOneTimePaymentManagerTest(StripePaymentManagerAbstractTestCase):
         mock_pi_capture.assert_not_called()
         mock_pi_cancel.assert_called_once_with(
             None,
-            stripe_account=self.organization.stripe_account_id,
+            stripe_account=self.org1.stripe_account_id,
             cancellation_reason="fraudulent",
         )
 
@@ -283,7 +283,7 @@ class StripeOneTimePaymentManagerTest(StripePaymentManagerAbstractTestCase):
         mock_pi_cancel.assert_not_called()
         mock_pi_capture.assert_called_once_with(
             None,
-            stripe_account=self.organization.stripe_account_id,
+            stripe_account=self.org1.stripe_account_id,
         )
 
     @patch("stripe.PaymentIntent.capture", side_effect=MockInvalidRequestError)
@@ -326,7 +326,7 @@ class StripeOneTimePaymentManagerTest(StripePaymentManagerAbstractTestCase):
 
         with self.assertRaises(PaymentBadParamsError) as e2:
             data = self.data
-            data["revenue_program_slug"] = self.revenue_program.slug
+            data["revenue_program_slug"] = self.org1_rp1.slug
             data["donation_page_slug"] = "doesnt-exist"
             pm = StripePaymentManager(data=data)
             pm.validate()
@@ -359,8 +359,8 @@ class StripeRecurringPaymentManagerTest(StripePaymentManagerAbstractTestCase):
         self.contribution.save()
 
         test_stripe_product_id = "test_stripe_product_id"
-        self.organization.stripe_product_id = test_stripe_product_id
-        self.organization.save()
+        self.org1.stripe_product_id = test_stripe_product_id
+        self.org1.save()
 
         self.payment_method_id = "test_payment_method_id"
         self.data.update({"payment_method_id": self.payment_method_id, "interval": ContributionInterval.MONTHLY})
@@ -396,7 +396,7 @@ class StripeRecurringPaymentManagerTest(StripePaymentManagerAbstractTestCase):
         pm.create_subscription()
         mock_customer_create.assert_called_once_with(
             email=self.contributor.email,
-            stripe_account=self.organization.stripe_account_id,
+            stripe_account=self.org1.stripe_account_id,
             metadata=pm.bundle_metadata("CUSTOMER"),
         )
 
@@ -409,7 +409,7 @@ class StripeRecurringPaymentManagerTest(StripePaymentManagerAbstractTestCase):
         mock_payment_method_attach.assert_called_once_with(
             self.payment_method_id,
             customer=test_stripe_customer_id,
-            stripe_account=self.organization.stripe_account_id,
+            stripe_account=self.org1.stripe_account_id,
         )
 
     @patch("stripe.Customer.create", side_effect=MockStripeCustomer)
@@ -426,12 +426,12 @@ class StripeRecurringPaymentManagerTest(StripePaymentManagerAbstractTestCase):
                     "price_data": {
                         "unit_amount": 1099,
                         "currency": self.contribution.currency,
-                        "product": self.organization.stripe_product_id,
+                        "product": self.org1.stripe_product_id,
                         "recurring": {"interval": self.data["interval"]},
                     }
                 }
             ],
-            stripe_account=self.organization.stripe_account_id,
+            stripe_account=self.org1.stripe_account_id,
             metadata=pm.bundle_metadata("PAYMENT"),
         )
 
@@ -458,20 +458,21 @@ class StripeRecurringPaymentManagerTest(StripePaymentManagerAbstractTestCase):
     def test_accept(self, mock_sub_create, *args):
         pm = self._instantiate_payment_manager_with_instance()
         pm.complete_payment(reject=False)
+        contribution = self.contributions[0]
         mock_sub_create.assert_called_once_with(
             customer=None,
             default_payment_method=None,
             items=[
                 {
                     "price_data": {
-                        "unit_amount": self.contribution.amount,
-                        "currency": self.contribution.currency,
-                        "product": self.organization.stripe_product_id,
-                        "recurring": {"interval": self.contribution.interval},
+                        "unit_amount": contribution.amount,
+                        "currency": contribution.currency,
+                        "product": self.org1.stripe_product_id,
+                        "recurring": {"interval": contribution.interval},
                     }
                 }
             ],
-            stripe_account=self.organization.stripe_account_id,
+            stripe_account=self.org1.stripe_account_id,
             metadata=None,
         )
         self.assertEqual(self.contribution.status, ContributionStatus.PROCESSING)

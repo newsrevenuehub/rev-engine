@@ -1,5 +1,4 @@
 from unittest.mock import patch
-from venv import create
 
 from django.conf import settings
 from django.contrib.auth import get_user_model
@@ -13,12 +12,14 @@ from stripe.error import StripeError
 from stripe.oauth_error import InvalidGrantError as StripeInvalidGrantError
 from stripe.stripe_object import StripeObject
 
-from apps import organizations
+from apps.api.tests import HasRoleAssignmentAbstractTestCase
 from apps.api.tokens import ContributorRefreshToken
+from apps.common.tests.test_resources import AbstractTestCase
 from apps.contributions.models import Contribution, ContributionInterval, Contributor
 from apps.contributions.payment_managers import PaymentBadParamsError, PaymentProviderError
 from apps.contributions.tests.factories import ContributionFactory, ContributorFactory
 from apps.contributions.views import stripe_payment
+from apps.organizations.models import RevenueProgram
 from apps.organizations.tests.factories import OrganizationFactory, RevenueProgramFactory
 from apps.pages.models import DonationPage
 from apps.pages.tests.factories import DonationPageFactory
@@ -37,22 +38,18 @@ class MockPaymentIntent(StripeObject):
         self.client_secret = test_client_secret
 
 
-class StripePaymentViewTestAbstract(APITestCase):
-    def setUp(self):
-        self.organization = OrganizationFactory()
-        self.revenue_program = RevenueProgramFactory(organization=self.organization)
-        self.page = DonationPageFactory(revenue_program=self.revenue_program)
-        self.contributor = ContributorFactory()
+class StripePaymentViewTestAbstract(AbstractTestCase):
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        cls.set_up_domain_model()
+        cls.url = reverse("stripe-payment")
+        cls.payment_amount = "10.00"
+        cls.ip = faker.ipv4()
+        cls.referer = faker.url()
+        cls.page = cls.donation_pages[0]
 
-        self.url = reverse("stripe-payment")
-        self.payment_amount = "10.00"
-
-        self.ip = faker.ipv4()
-        self.referer = faker.url()
-
-    def _create_request(
-        self, email="tester@testing.com", rev_slug=None, page_slug=None, interval=None, payment_method_id=None
-    ):
+    def _create_request(self, donation_page, email="tester@testing.com", interval=None, payment_method_id=None):
         factory = APIRequestFactory()
         request = factory.post(
             self.url,
@@ -70,29 +67,27 @@ class StripePaymentViewTestAbstract(APITestCase):
                 "organization_country": "US",
                 "currency": "cad",
                 "phone": "123-456-7890",
-                "revenue_program_slug": rev_slug if rev_slug else self.revenue_program.slug,
-                "donation_page_slug": page_slug if page_slug else self.page.slug,
+                "revenue_program_slug": donation_page.revenue_program.slug,
+                "donation_page_slug": donation_page.slug,
                 "interval": interval if interval else ContributionInterval.ONE_TIME,
                 "payment_method_id": payment_method_id,
-                "page_id": self.page.pk,
+                "page_id": donation_page.pk,
             },
             format="json",
         )
-
         request.META["HTTP_REFERER"] = self.referer
         request.META["HTTP_X_FORWARDED_FOR"] = self.ip
 
         return request
 
-    def _post_valid_one_time_payment(self, **kwargs):
-        return stripe_payment(self._create_request(**kwargs))
+    def _post_valid_one_time_payment(self, donation_page, **kwargs):
+        return stripe_payment(self._create_request(donation_page, **kwargs))
 
 
 class StripeOneTimePaymentViewTest(StripePaymentViewTestAbstract):
     @patch("apps.contributions.views.StripePaymentManager.create_one_time_payment", side_effect=MockPaymentIntent)
-    def test_one_time_payment_serializer_validates(self, *args):
-        # Email is required
-        response = self._post_valid_one_time_payment(email=None)
+    def test_one_time_payment_serializer_validates_email(self, *args):
+        response = self._post_valid_one_time_payment(self.page, email=None)
         self.assertEqual(response.status_code, 400)
         self.assertIn("email", response.data)
         self.assertEqual(str(response.data["email"][0]), "This field may not be null.")
@@ -100,29 +95,29 @@ class StripeOneTimePaymentViewTest(StripePaymentViewTestAbstract):
     @patch("apps.contributions.views.StripePaymentManager.create_one_time_payment", side_effect=MockPaymentIntent)
     @patch("apps.contributions.views.PageEmailTemplate.get_template")
     def test_one_time_payment_method_called(self, mock_email, mock_one_time_payment):
-        response = self._post_valid_one_time_payment()
+        response = self._post_valid_one_time_payment(self.page)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data["clientSecret"], test_client_secret)
         mock_one_time_payment.assert_called_once()
         mock_email.assert_not_called()
 
         with self.subTest("with email templates enabled get_template is called"):
-            self.organization.uses_email_templates = True
-            self.organization.save()
-            response = self._post_valid_one_time_payment()
+            self.org1.uses_email_templates = True
+            self.org1.save()
+            response = self._post_valid_one_time_payment(self.page)
             self.assertEqual(response.status_code, 200)
             mock_email.assert_called()
 
     @patch("apps.contributions.views.StripePaymentManager.create_one_time_payment", side_effect=PaymentBadParamsError)
     def test_response_when_bad_params_error(self, mock_one_time_payment):
-        response = self._post_valid_one_time_payment()
+        response = self._post_valid_one_time_payment(self.page)
         mock_one_time_payment.assert_called_once()
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.data["detail"], "There was an error processing your payment.")
 
     @patch("apps.contributions.views.StripePaymentManager.create_one_time_payment", side_effect=PaymentProviderError)
     def test_response_when_payment_provider_error(self, mock_one_time_payment):
-        response = self._post_valid_one_time_payment()
+        response = self._post_valid_one_time_payment(self.page)
         mock_one_time_payment.assert_called_once()
         self.assertEqual(response.status_code, 400)
 
@@ -131,7 +126,10 @@ class StripeOneTimePaymentViewTest(StripePaymentViewTestAbstract):
 class CreateStripeRecurringPaymentViewTest(StripePaymentViewTestAbstract):
     def test_recurring_payment_serializer_validates(self, *args):
         # StripeRecurringPaymentSerializer requires payment_method_id
-        response = self._post_valid_one_time_payment(interval=ContributionInterval.MONTHLY)
+        response = self._post_valid_one_time_payment(
+            self.donation_pages[0],
+            interval=ContributionInterval.MONTHLY,
+        )
         # This also verifies that the view is using the correct serializer.
         # Test failures here may indicate that the wrong serializer is being used.
         self.assertEqual(response.status_code, 400)
@@ -143,7 +141,9 @@ class CreateStripeRecurringPaymentViewTest(StripePaymentViewTestAbstract):
         Verify that we're getting the response we expect from a valid contribition
         """
         response = self._post_valid_one_time_payment(
-            interval=ContributionInterval.MONTHLY, payment_method_id="test_payment_method_id"
+            self.donation_pages[0],
+            interval=ContributionInterval.MONTHLY,
+            payment_method_id="test_payment_method_id",
         )
         self.assertEqual(response.status_code, 200)
         mock_subscription_create.assert_called_once()
@@ -170,16 +170,16 @@ expected_oauth_scope = "my_test_scope"
 
 
 @override_settings(STRIPE_OAUTH_SCOPE=expected_oauth_scope)
-class StripeOAuthTest(APITestCase):
-    def setUp(self):
-        self.user = create_test_user(role_assignment_data={"role_type": Roles.ORG_ADMIN})
-        self.organization = OrganizationFactory(name="My Organization")
-        self.organization.user_set.through.objects.create(organization=self.organization, user=self.user, is_owner=True)
+class StripeOAuthTest(AbstractTestCase):
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        cls.set_up_domain_model()
 
     def _make_request(self, code=None, scope=None):
-        self.client.force_authenticate(user=self.user)
+        self.client.force_authenticate(user=self.org_user)
         url = reverse("stripe-oauth")
-        complete_url = f"{url}?{settings.ORG_SLUG_PARAM}={self.organization.slug}"
+        complete_url = f"{url}?{settings.ORG_SLUG_PARAM}={self.org1.slug}"
         body = {}
         if code:
             body["code"] = code
@@ -237,9 +237,9 @@ class StripeOAuthTest(APITestCase):
         self.assertEqual(response.data["detail"], "success")
         stripe_oauth_token.assert_called_with(code="1234", grant_type="authorization_code")
         # Org should have new values based on OAuth response
-        self.organization.refresh_from_db()
-        self.assertEqual(self.organization.stripe_account_id, expected_stripe_account_id)
-        self.assertEqual(self.organization.stripe_oauth_refresh_token, expected_refresh_token)
+        self.org1.refresh_from_db()
+        self.assertEqual(self.org1.stripe_account_id, expected_stripe_account_id)
+        self.assertEqual(self.org1.stripe_oauth_refresh_token, expected_refresh_token)
 
 
 class MockStripeAccountEnabled(MockStripeAccount):
@@ -261,22 +261,19 @@ class MockStripeProduct(StripeObject):
 
 
 @patch("stripe.Product.create", side_effect=MockStripeProduct)
-class StripeConfirmTest(APITestCase):
+class StripeConfirmTest(AbstractTestCase):
     def setUp(self):
-        self.organization = OrganizationFactory(name="My Organization")
-        self.user = create_test_user(
-            role_assignment_data={"role_type": Roles.ORG_ADMIN, "organization": self.organization}
-        )
-        self.url = f'{reverse("stripe-confirmation")}?{settings.ORG_SLUG_PARAM}={self.organization.slug}'
+        super().setUp()
+        self.set_up_domain_model()
+        self.url = f'{reverse("stripe-confirmation")}?{settings.ORG_SLUG_PARAM}={self.org1.slug}'
 
     def post_to_confirmation(self, stripe_account_id="", stripe_verified=None, stripe_product_id=""):
-        self.organization.stripe_account_id = stripe_account_id
-        self.organization.stripe_verified = True if stripe_verified else False
-        self.organization.stripe_product_id = stripe_product_id
-        self.organization.save()
-        self.organization.refresh_from_db()
-
-        self.client.force_authenticate(user=self.user)
+        self.org1.stripe_account_id = stripe_account_id
+        self.org1.stripe_verified = True if stripe_verified else False
+        self.org1.stripe_product_id = stripe_product_id
+        self.org1.save()
+        self.org1.refresh_from_db()
+        self.client.force_authenticate(user=self.org_user)
         return self.client.post(self.url)
 
     @patch("stripe.Account.retrieve", side_effect=MockStripeAccountEnabled)
@@ -298,11 +295,11 @@ class StripeConfirmTest(APITestCase):
         """
         stripe_confirmation should set stripe_verified to True after confirming with Stripe.
         """
-        self.organization.stripe_verified = False
-        self.organization.save()
+        self.org1.stripe_verified = False
+        self.org1.save()
         response = self.post_to_confirmation(stripe_account_id="testing")
-        self.organization.refresh_from_db()
-        self.assertTrue(self.organization.stripe_verified)
+        self.org1.refresh_from_db()
+        self.assertTrue(self.org1.stripe_verified)
         mock_account_retrieve.assert_called_once()
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data["status"], "connected")
@@ -320,8 +317,8 @@ class StripeConfirmTest(APITestCase):
         mock_account_retrieve.assert_called_once()
         # Newly confirmed accounts should go ahead and create a default product on for that org.
         mock_product_create.assert_called_once()
-        self.organization.refresh_from_db()
-        self.assertEqual(self.organization.stripe_product_id, TEST_STRIPE_PRODUCT_ID)
+        self.org1.refresh_from_db()
+        self.assertEqual(self.org1.stripe_product_id, TEST_STRIPE_PRODUCT_ID)
 
     @patch("stripe.Account.retrieve", side_effect=MockStripeAccountNotEnabled)
     def test_confirm_connected_not_verified(self, mock_account_retrieve, *args):
@@ -329,14 +326,14 @@ class StripeConfirmTest(APITestCase):
         If an organization has connected its account with Hub (has a stripe_account_id), but
         their Stripe account is not ready to recieve payments, they're in a special state.
         """
-        self.organization.stripe_verified = False
-        self.organization.save()
+        self.org1.stripe_verified = False
+        self.org1.save()
         response = self.post_to_confirmation(stripe_account_id="testing")
         mock_account_retrieve.assert_called_once()
         self.assertEqual(response.status_code, 202)
         self.assertEqual(response.data["status"], "restricted")
         # stripe_verified should still be false
-        self.assertFalse(self.organization.stripe_verified)
+        self.assertFalse(self.org1.stripe_verified)
 
     @patch("stripe.Account.retrieve", side_effect=MockStripeAccountEnabled)
     def test_not_connected(self, mock_account_retrieve, *args):
@@ -362,104 +359,148 @@ class StripeConfirmTest(APITestCase):
         self.assertEqual(response.data["status"], "failed")
 
 
-class TestContributionsViewSet(APITestCase):
+class TestContributionsViewSet(HasRoleAssignmentAbstractTestCase):
     def setUp(self):
-        self.org1 = OrganizationFactory(name="Organization 1")
-        self.org1_rp_1 = RevenueProgramFactory(name="Org 1 RP 1", organization=self.org1)
-        self.org1_rp_2 = RevenueProgramFactory(name="Org 1 RP 2", organization=self.org1)
-        self.org1_rp_1_dp = DonationPageFactory(
-            name="Org 1 RP 1 DP 1",
-            revenue_program=self.org1_rp_1,
-        )
-        self.org1_rp_2_dp = DonationPageFactory(
-            name="Org 1 RP 2 DP 1",
-            revenue_program=self.org1_rp_2,
-        )
+        super().setUp()
+        self.set_up_domain_model()
+        self.list_url = reverse("contributions-list")
+        self.detail_url_name = "contribution-detail"
+        self.contribution_for_org = Contribution.objects.filter(organization=self.org1).first()
 
-        self.org2 = OrganizationFactory(name="Organization 2")
-        self.org2_rp = RevenueProgramFactory(
-            name="Org 2 RP 1",
-            organization=self.org2,
-        )
-        self.org2_rp_dp = DonationPageFactory(name="Org 2 RP 1 DP 1", revenue_program=self.org2_rp)
+    def contribution_detail_url(self, pk=None):
+        # This is here because for some unknown reason, `reverse('contribution-detail', kwargs={'pk': 'something'})`
+        # is not working as expected for detail view\
+        pk = pk if pk else self.contribution_for_org.pk
+        return f"/api/v1/contributions/{pk}/"
 
-        self.superuser = get_user_model().objects.create_superuser(email="user@test.com", password="testing")
-        self.org1_user = create_test_user(
-            role_assignment_data={"role_type": Roles.ORG_ADMIN, "organization": self.org1}
-        )
-        self.or1_rp_user = create_test_user(
-            role_assignment_data={"role_type": Roles.RP_ADMIN, "revenue_programs": [self.org1_rp_1]}
-        )
+    # tests for anonymous user
+    def test_anonymous_user_not_have_get_permission(self):
+        self.assert_anonymous_does_not_have_get_permission(self.list_url)
+        self.assert_anonymous_does_not_have_get_permission(self.contribution_detail_url())
 
-        self.contributor = Contributor.objects.create(email="contributor@contributor.com")
-        self.contributor2 = Contributor.objects.create(email="contributor2@contributor.com")
-        self.contributions_per_donation_page_count = 50
+    # tests for super user
+    def test_superuser_has_get_permission(self):
+        self.assert_superuser_has_get_permission(self.list_url)
+        self.assert_superuser_has_get_permission(self.contribution_detail_url())
 
-        for dp in [self.org1_rp_1_dp, self.org1_rp_2_dp, self.org2_rp_dp]:
-            for i in range(self.contributions_per_donation_page_count):
-                Contribution.objects.create(
-                    amount=1000,
-                    interval=ContributionInterval.ONE_TIME[0],
-                    contributor=self.contributor,
-                    organization=dp.revenue_program.organization,
-                    donation_page=dp,
-                )
-                Contribution.objects.create(
-                    amount=500,
-                    interval=ContributionInterval.ONE_TIME[0],
-                    contributor=self.contributor2,
-                    organization=dp.revenue_program.organization,
-                )
+    def test_super_user_can_get_contribution_detail(self):
+        self.assert_superuser_can_get(self.contribution_detail_url())
 
-        self.url = reverse("contributions-list")
+    def test_super_user_can_list_all_contributions(self):
+        self.assert_superuser_can_list(self.list_url, Contribution.objects.count())
 
-    def test_org_admin_gets_only_their_contributions(self):
+    # tests for hub admin
+    def test_hub_admin_has_get_permission(self):
+        self.assert_hub_admin_has_get_permission(self.list_url)
+        self.assert_hub_admin_has_get_permission(self.contribution_detail_url())
+
+    def test_hub_admin_can_get_contribution_detail(self):
+        self.assert_hub_admin_can_get(self.contribution_detail_url())
+
+    def test_hub_admin_can_list_all_contributions(self):
+        self.assert_hub_admin_can_list(self.list_url, Contribution.objects.count())
+
+    # tets for org admin
+    def test_org_admin_has_get_permission(self):
+        self.assert_org_admin_has_get_permission(self.list_url)
+        self.assert_org_admin_has_get_permission(self.contribution_detail_url())
+
+    def test_org_admin_can_get_contribution_owned_by_org(self):
+        self.assert_org_admin_can_get(self.contribution_detail_url())
+
+    def test_org_admin_cannot_get_contribution_owned_by_other_org(self):
+        not_orgs_contribution = Contribution.objects.exclude(organization=self.org1).first()
+        self.assertIsNotNone(not_orgs_contribution)
+        self.assert_org_admin_cannot_get(self.contribution_detail_url(not_orgs_contribution.pk))
+
+    def test_org_admin_can_list_orgs_contributions(self):
         """Should get back only contributions belonging to my org"""
-        self.client.force_authenticate(user=self.org1_user)
-        response = self.client.get(self.url)
-        # ensure there are inaccessible contributions, so test not trivial
         self.assertGreater(Contribution.objects.exclude(organization=self.org1).count(), 0)
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.json()["count"], Contribution.objects.filter(organization=self.org1).count())
-        results = response.json()["results"]
-        self.assertTrue(all([contrib["organization_id"] == self.org1.pk for contrib in results]))
-
-    def test_superuser_gets_all_contributions(self):
-        self.client.force_authenticate(user=self.superuser)
-        response = self.client.get(self.url)
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.json()["count"], Contribution.objects.count())
-
-    def test_rp_admin_gets_only_their_contributions(self):
-        self.client.force_authenticate(user=self.or1_rp_user)
-        response = self.client.get(self.url)
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(
-            response.json()["count"], Contribution.objects.filter(donation_page__revenue_program=self.org1_rp_1).count()
+        ensure_owned_by_org = lambda contribution: contribution["organization_id"] == self.org1.pk
+        self.assert_org_admin_can_list(
+            self.list_url, Contribution.objects.filter(organization=self.org1).count(), assert_item=ensure_owned_by_org
         )
-        results = response.json()["results"]
-        self.assertTrue(all([contrib["organization_id"] == self.org1.pk for contrib in results]))
-        donation_page_ids = [contrib["donation_page_id"] for contrib in results]
-        referenced_rps = (
-            DonationPage.objects.filter(pk__in=donation_page_ids)
-            .order_by("revenue_program")
-            .values_list("revenue_program", flat=True)
-            .distinct()
-        )
-        self.assertEqual(set(referenced_rps), set([self.org1_rp_1.pk]))
 
-    def test_contributor_gets_only_their_contributions(self):
-        refresh_token = ContributorRefreshToken.for_contributor(self.contributor.uuid)
+    # RP Admin tests
+    def test_rp_user_has_get_permission(self):
+        self.assert_rp_user_has_get_permission(self.list_url)
+        self.assert_rp_user_has_get_permission(self.contribution_detail_url())
+
+    def test_rp_user_can_get_contributions_from_their_rp(self):
+        contrib_in_users_rp_pk = (
+            Contribution.objects.filter(
+                donation_page__revenue_program=self.rp_user.roleassignment.revenue_programs.first()
+            )
+            .first()
+            .pk
+        )
+        self.assert_rp_user_can_get(self.contribution_detail_url(contrib_in_users_rp_pk))
+
+    def test_rp_user_cannot_get_contributions_from_another_rp_in_org(self):
+        contrib_not_in_users_rp_pk = (
+            Contribution.objects.exclude(
+                donation_page__revenue_program__in=self.rp_user.roleassignment.revenue_programs.all()
+            )
+            .first()
+            .pk
+        )
+        self.assert_rp_user_cannot_get(self.contribution_detail_url(contrib_not_in_users_rp_pk))
+
+    def test_rp_user_cannot_get_contributions_from_another_org(self):
+        contrib_not_in_users_org_pk = (
+            Contribution.objects.exclude(organization=self.rp_user.roleassignment.revenue_programs.first().organization)
+            .first()
+            .pk
+        )
+        self.assert_rp_user_cannot_get(self.contribution_detail_url(contrib_not_in_users_org_pk))
+
+    def test_rp_user_can_list_their_rps_contributions(self):
+        def _ensure_all_contribs_belong_to_users_rps(results):
+            page_ids = list(set([contrib["donation_page_id"] for contrib in results]))
+            referenced_rps = RevenueProgram.objects.filter(donationpage__in=page_ids).values_list("pk", flat=True)
+            self.assertTrue(
+                set(referenced_rps).issubset(
+                    set(self.rp_user.roleassignment.revenue_programs.values_list("pk", flat=True))
+                )
+            )
+
+        expected_count = Contribution.objects.filter(
+            donation_page__revenue_program_id__in=self.rp_user.roleassignment.revenue_programs.all()
+        ).count()
+        self.assert_rp_user_can_list(self.list_url, expected_count, assert_all=_ensure_all_contribs_belong_to_users_rps)
+
+    def test_contributor_has_get_permission(self):
+        self.assert_contributor_user_has_get_permission(self.list_url)
+        self.assert_contributor_user_has_get_permission(self.contribution_detail_url())
+
+    def test_contributor_can_get_their_contribution(self):
+        refresh_token = ContributorRefreshToken.for_contributor(self.contributor_user.uuid)
         self.client.cookies["Authorization"] = refresh_token.long_lived_access_token
         self.client.cookies["csrftoken"] = csrf._get_new_csrf_token()
-        response = self.client.get(self.url)
-        # ensure subsequent assertions won't be trivial
-        self.assertGreater(Contribution.objects.exclude(contributor=self.contributor).count(), 0)
-        self.assertEqual(Contribution.objects.filter(contributor=self.contributor).count(), response.json()["count"])
-        self.assertTrue(
-            set([contrib["id"] for contrib in response.json()["results"]]).issubset(
-                set(Contribution.objects.filter(contributor=self.contributor).values_list("pk", flat=True))
+        my_contribution = self.contributor_user.contribution_set.first()
+        self.assert_contributor_can_get(self.contribution_detail_url(my_contribution.pk))
+
+    def test_contributor_cannot_get_others_contribution(self):
+        refresh_token = ContributorRefreshToken.for_contributor(self.contributor_user.uuid)
+        self.client.cookies["Authorization"] = refresh_token.long_lived_access_token
+        self.client.cookies["csrftoken"] = csrf._get_new_csrf_token()
+        not_my_contribution = Contribution.objects.exclude(contributor=self.contributor_user).first()
+        self.assert_contributor_cannot_get(self.contribution_detail_url(not_my_contribution.pk))
+
+    def test_contributor_can_list_their_contributions(self):
+        refresh_token = ContributorRefreshToken.for_contributor(self.contributor_user.uuid)
+        self.client.cookies["Authorization"] = refresh_token.long_lived_access_token
+        self.client.cookies["csrftoken"] = csrf._get_new_csrf_token()
+
+        def _ensure_all_contributions_belong_to_contributor(results):
+            contribution_ids = [result["id"] for result in results]
+            self.assertTrue(
+                set(contribution_ids).issubset(set(self.contributor_user.contribution_set.values_list("id", flat=True)))
             )
+
+        expected_count = Contribution.objects.filter(contributor=self.contributor_user).count()
+        self.assert_contributor_user_can_list(
+            self.list_url, expected_count, assert_all=_ensure_all_contributions_belong_to_contributor
         )
 
 

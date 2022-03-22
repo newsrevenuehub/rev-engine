@@ -3,7 +3,7 @@ from django.contrib.auth import get_user_model
 from faker import Faker
 
 from apps.users.models import RoleAssignment
-from apps.users.tests.factories import RoleAssignmentFactory
+from apps.users.tests.factories import RoleAssignmentFactory, UserFactory
 
 
 fake = Faker()
@@ -12,11 +12,11 @@ Faker.seed(0)
 
 def create_test_user(user=None, role_assignment_data=None):
     if not user:
-        user = get_user_model().objects.create_user(email=fake.email(), password="testing")
+        user = UserFactory()
     if role_assignment_data:
         rps = role_assignment_data.pop("revenue_programs", None)
         org = role_assignment_data.pop("organization", None)
-        ra = RoleAssignment.objects.create(user=user, **role_assignment_data)
+        ra = RoleAssignmentFactory(user=user, **role_assignment_data)
         do_save = False
         if rps:
             ra.revenue_programs.set(rps)

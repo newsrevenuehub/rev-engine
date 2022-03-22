@@ -8,8 +8,10 @@ from apps.pages import models
 class DonationPageFactory(DjangoModelFactory):
     class Meta:
         model = models.DonationPage
+        django_get_or_create = ("slug",)
 
-    heading = factory.Sequence(lambda n: "Test Page %d" % n)
+    name = factory.Sequence(lambda n: f"Test page {n} name")
+    heading = factory.Sequence(lambda n: "Test Page %d heading" % n)
     slug = factory.Sequence(lambda n: "test-page-%d" % n)
     revenue_program = factory.SubFactory(RevenueProgramFactory)
 

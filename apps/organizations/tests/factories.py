@@ -47,6 +47,7 @@ class OrganizationFactory(DjangoModelFactory):
 class RevenueProgramFactory(DjangoModelFactory):
     class Meta:
         model = models.RevenueProgram
+        django_get_or_create = ("name",)
 
     name = factory.Sequence(lambda n: f"{' '.join(fake.words(nb=4))}-{str(n)}")
     slug = factory.lazy_attribute(lambda o: normalize_slug(name=o.name))

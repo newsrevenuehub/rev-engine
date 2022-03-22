@@ -1,9 +1,15 @@
+import logging
+
+from django.conf import settings
 from django.contrib.auth import get_user_model
 
 from rest_framework.test import APITestCase
 
+from apps.contributions.models import Contributor
+from apps.contributions.tests.factories import ContributionFactory, ContributorFactory
 from apps.organizations.models import Organization, RevenueProgram
 from apps.organizations.tests.factories import OrganizationFactory, RevenueProgramFactory
+from apps.pages.models import DonationPage
 from apps.pages.tests.factories import DonationPageFactory
 from apps.users.models import Roles
 from apps.users.tests.utils import create_test_user
@@ -11,25 +17,83 @@ from apps.users.tests.utils import create_test_user
 
 user_model = get_user_model()
 
+logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
+
 
 class AbstractTestCase(APITestCase):
+    """ """
+
     model = None
     model_factory = None
     resource_count = 5
     org_count = 2
     rp_count = 2
     donation_pages = []
+    contributors_count = 2
+    donation_pages_per_rp_count = 2
+    contributions = []
 
-    def setUp(self):
-        orgs = []
-        for i in range(self.org_count):
-            orgs.append(OrganizationFactory())
-        for i in range(self.rp_count):
-            org_num = 0 if i % 2 == 0 else 1
-            RevenueProgramFactory(organization=orgs[org_num])
-        self.create_user()
+    @classmethod
+    def _set_up_contributions(cls):
+        """ """
+        # because we want to be able to provide scaffolding
+        # to have contributors contributing to some but not
+        # other pages
+        if DonationPage.objects.count() < 2:
+            logger.warn("Tests relying on this mixin may be trivial when there " "are less than 2 donation pages")
+        for x in range(cls.contributors_count):
+            contributor = ContributorFactory()
+            for idx, page in enumerate(DonationPage.objects.all()):
+                if any(
+                    [
+                        x % 2 == 0,
+                        idx % 2 == 0,
+                    ]
+                ):
+                    cls.contributions.append(
+                        ContributionFactory(
+                            donation_page=page, organization=page.revenue_program.organization, contributor=contributor
+                        )
+                    )
+        cls.contributor_user = Contributor.objects.first()
 
-    def _resource_has_org_fk(self, resource):
+    @classmethod
+    def _set_up_donation_pages(cls):
+        for i in range(cls.donation_pages_per_rp_count):
+            cls.donation_pages.extend(
+                [
+                    DonationPageFactory(revenue_program=cls.org1_rp1),
+                    DonationPageFactory(revenue_program=cls.org1_rp2),
+                    DonationPageFactory(revenue_program=cls.org2_rp),
+                ]
+            )
+
+    @classmethod
+    def set_up_domain_model(cls):
+        cls.org1 = OrganizationFactory()
+        cls.org2 = OrganizationFactory()
+        cls.org1_rp1 = RevenueProgramFactory(organization=cls.org1)
+        cls.org1_rp2 = RevenueProgramFactory(organization=cls.org1)
+        cls.org2_rp = RevenueProgramFactory(organization=cls.org2)
+        cls.orgs = Organization.objects.all()
+        cls.rev_programs = RevenueProgram.objects.all()
+        cls.org_user = create_test_user(role_assignment_data={"role_type": Roles.ORG_ADMIN, "organization": cls.org1})
+        cls.rp_user = create_test_user(
+            role_assignment_data={
+                "role_type": Roles.RP_ADMIN,
+                "revenue_programs": [
+                    cls.org1_rp1,
+                ],
+            }
+        )
+        cls.hub_user = create_test_user(role_assignment_data={"role_type": Roles.HUB_ADMIN})
+        cls.superuser = user_model.objects.create_superuser(email="test@test.com", password="testing")
+        # this must be called before _set_up_contributions
+        cls._set_up_donation_pages()
+        cls._set_up_contributions()
+
+    @staticmethod
+    def _resource_has_org_fk(resource):
         """
         Returns True if the provided resource has a ForeignKey to Organization.
         "organization" may still be a derived property on the model, so just
@@ -37,33 +101,37 @@ class AbstractTestCase(APITestCase):
         """
         return hasattr(resource, "organization") and type(resource.organization) is not property
 
-    def _resource_has_rp_fk(self, resource, related_name="revenueprogram_set"):
+    @staticmethod
+    def _resource_has_rp_fk(resource, related_name="revenueprogram_set"):
         return hasattr(resource, related_name)
 
-    def create_resources(self):
-        self.orgs = Organization.objects.all()
-        self.rev_programs = RevenueProgram.objects.all()
+    def _create_org_related_resources(self):
+        if self._resource_has_org_fk(self.model):
+            for i in range(self.resource_count):
+                if i + 1 <= len(self.orgs):
+                    org_index = i
+                else:
+                    org_index = (i % len(self.orgs)) + 1
+                self.model_factory.create(organization=self.orgs[org_index])
+
+    def _create_rp_related_resources(self):
         for i in range(self.resource_count):
-            num = 0 if i % 2 == 0 else 1
-            if self._resource_has_org_fk(self.model):
-                self.model_factory.create(organization=self.orgs[num])
-            elif self._resource_has_rp_fk(self.model):
-                self.model_factory.create(revenue_program=self.rev_programs[num])
+            if i + 1 <= len(self.rev_programs):
+                rp_index = i
             else:
-                self.model_factory.create()
-        self.resources = self.model.objects.all()
+                rp_index = (i % len(self.rev_programs)) + 1
+            self.model_factory.create(revnue_program=self.revenue_programs[rp_index])
 
-    def create_donation_page(self, revenue_program=None):
-        return DonationPageFactory(revenue_program=revenue_program if revenue_program else RevenueProgramFactory())
-
-    def create_user(self, role_assignment_data=None):
-        role_assignment_data = role_assignment_data if role_assignment_data else {}
-        self.email = "test@test.gov"
-        self.password = "testpassy"
-        self.user = create_test_user(role_assignment_data=role_assignment_data)
-
-    def login(self):
-        self.client.force_authenticate(user=self.user)
+    @classmethod
+    def create_resources(cls):
+        """ """
+        if AbstractTestCase._resource_has_org_fk(cls.model):
+            cls._create_org_related_resources()
+        elif AbstractTestCase._resource_has_rp_fk(cls.model):
+            cls._create_rp_related_resources()
+        else:
+            cls.model_factory.create()
+        cls.resources = cls.model.objects.all()
 
     class Meta:
         abstract = True

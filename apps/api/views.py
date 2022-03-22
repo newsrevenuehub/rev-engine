@@ -115,7 +115,7 @@ class RequestContributorTokenEmailView(APIView):
         send_donor_email(
             identifier=settings.EMAIL_TEMPLATE_IDENTIFIER_MAGIC_LINK_DONOR,
             to=email,
-            subject="Manage your donations",
+            subject="Manage your contributions",
             template_data={"magic_link": magic_link},
         )
 

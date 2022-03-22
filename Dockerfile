@@ -98,4 +98,4 @@ USER ${APP_USER}:${APP_USER}
 ENTRYPOINT ["/code/docker-entrypoint.sh"]
 
 # Start uWSGI
-CMD ["uwsgi", "--http=0.0.0.0:$PORT", "--show-config"]
+#CMD ["uwsgi", "--http=0.0.0.0:$PORT", "--show-config"]

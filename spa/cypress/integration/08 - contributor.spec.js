@@ -156,7 +156,12 @@ describe('Update recurring contribution modal', () => {
       .closest('tr')
       .find('[data-testid="payment-method"]')
       .first()
-      .click();
+      .click()
+      .wait(1000);
+  });
+
+  afterEach(() => {
+    cy.getByTestId('close-modal').click();
   });
 
   it('should not enable update payment method when card number is not fully entered', () => {

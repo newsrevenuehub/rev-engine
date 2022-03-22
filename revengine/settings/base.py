@@ -286,7 +286,7 @@ HEALTHCHECK_URL_AUTO_ACCEPT_FLAGGED_PAYMENTS = os.environ.get("HEALTHCHECK_URL_A
 EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
 EMAIL_SUBJECT_PREFIX = "[RevEngine] "
 
-ADMINS = [("nrh-team", "nrh-team@caktusgroup.com")]
+ADMINS = [("dc", "daniel@fundjournalism.org")]
 
 # Revengine template identifiers
 EMAIL_TEMPLATE_IDENTIFIER_MAGIC_LINK_DONOR = os.environ.get(
@@ -419,6 +419,7 @@ SPA_ENV_VARS = {
     "STRIPE_CLIENT_ID": os.getenv("SPA_ENV_STRIPE_CLIENT_ID"),
     "HUB_GOOGLE_MAPS_API_KEY": os.getenv("SPA_ENV_HUB_GOOGLE_MAPS_API_KEY"),
     "HUB_V3_GOOGLE_ANALYTICS_ID": os.getenv("SPA_ENV_HUB_V3_GOOGLE_ANALYTICS_ID"),
+    "ENVIRONMENT": ENVIRONMENT,
 }
 
 # Meta data static values

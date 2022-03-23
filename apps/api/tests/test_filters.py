@@ -56,7 +56,7 @@ class RoleAssignmentFilterBackendTest(AbstractTestCase):
         self.assertEqual(distinct_orgs[0], org.pk)
 
     def assert_correct_rp(self, filtered, rp):
-        distinct_rps = filtered.values_list("revenue_program", flat=True).distinct()
+        distinct_rps = filtered.order_by("revenue_program").values_list("revenue_program", flat=True).distinct()
         self.assertEqual(len(distinct_rps), 1)
         self.assertEqual(distinct_rps[0], rp.pk)
 

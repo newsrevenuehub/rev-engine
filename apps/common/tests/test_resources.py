@@ -91,46 +91,5 @@ class AbstractTestCase(APITestCase):
         cls._set_up_donation_pages()
         cls._set_up_contributions()
 
-    @staticmethod
-    def _resource_has_org_fk(resource):
-        """
-        Returns True if the provided resource has a ForeignKey to Organization.
-        "organization" may still be a derived property on the model, so just
-        checking `hasattr` is insufficient.
-        """
-        return hasattr(resource, "organization") and type(resource.organization) is not property
-
-    @staticmethod
-    def _resource_has_rp_fk(resource, related_name="revenueprogram_set"):
-        return hasattr(resource, related_name)
-
-    def _create_org_related_resources(self):
-        if self._resource_has_org_fk(self.model):
-            for i in range(self.resource_count):
-                if i + 1 <= len(self.orgs):
-                    org_index = i
-                else:
-                    org_index = (i % len(self.orgs)) + 1
-                self.model_factory.create(organization=self.orgs[org_index])
-
-    def _create_rp_related_resources(self):
-        for i in range(self.resource_count):
-            if i + 1 <= len(self.rev_programs):
-                rp_index = i
-            else:
-                rp_index = (i % len(self.rev_programs)) + 1
-            self.model_factory.create(revnue_program=self.revenue_programs[rp_index])
-
-    @classmethod
-    def create_resources(cls):
-        """ """
-        if AbstractTestCase._resource_has_org_fk(cls.model):
-            cls._create_org_related_resources()
-        elif AbstractTestCase._resource_has_rp_fk(cls.model):
-            cls._create_rp_related_resources()
-        else:
-            cls.model_factory.create()
-        cls.resources = cls.model.objects.all()
-
     class Meta:
         abstract = True

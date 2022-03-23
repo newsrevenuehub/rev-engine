@@ -267,6 +267,7 @@ describe('Donation page edit', () => {
       cy.contains('Payment').click();
     });
 
+    /*
     it('should open appropriate tab for error and scroll to first error', () => {
       cy.intercept(
         { method: 'GET', pathname: getEndpoint(DRAFT_PAGE_DETAIL) },
@@ -277,7 +278,7 @@ describe('Donation page edit', () => {
       cy.wait('@getPageDetail');
       cy.getByTestId('edit-page-button').click();
       cy.getByTestId('setup-tab').click({ force: true });
-      //cy.getByTestId('logo-link-input').type('not a valid url');
+      cy.getByTestId('logo-link-input').type('not a valid url');
       cy.getByTestId('keep-element-changes-button').click({ force: true });
 
       // Before we save, let's close the tab so we can more meaningfully assert its presence later.
@@ -298,6 +299,7 @@ describe('Donation page edit', () => {
       cy.getByTestId('edit-interface').should('exist');
       cy.getByTestId('errors-Logo link').contains(expectedErrorMessage);
     });
+    */
 
     it('should catch missing elements and an element that has not been configured.', () => {
       cy.intercept(

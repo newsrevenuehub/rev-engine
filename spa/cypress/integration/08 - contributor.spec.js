@@ -165,59 +165,59 @@ describe('Update recurring contribution modal', () => {
   });
 
   it('should not enable update payment method when card number is not fully entered', () => {
-    cy.getStripeCardElement('cardExpiry').type('0199');
-    cy.getStripeCardElement('cardCvc').type('123');
+    cy.setStripeCardElementText('cardExpiry', '0199');
+    cy.setStripeCardElementText('cardCvc', '123');
     cy.getByTestId('contrib-update-payment-method-btn').should('be.disabled');
-    cy.getStripeCardElement('cardNumber').type('4242');
+    cy.setStripeCardElementText('cardNumber', '4242');
     cy.getByTestId('contrib-update-payment-method-btn').should('be.disabled');
   });
 
   it('should not enable update payment method when card number is invalid', () => {
-    cy.getStripeCardElement('cardNumber').type('1234123412341234');
-    cy.getStripeCardElement('cardExpiry').type('0199');
-    cy.getStripeCardElement('cardCvc').type('123');
+    cy.setStripeCardElementText('cardNumber', '1234123412341234');
+    cy.setStripeCardElementText('cardExpiry', '0199');
+    cy.setStripeCardElementText('cardCvc', '123');
     cy.getByTestId('contrib-update-payment-method-btn').should('be.disabled');
   });
 
   it('should not enable update payment method when card expiry is not fully entered', () => {
-    cy.getStripeCardElement('cardNumber').type('4242424242424242');
-    cy.getStripeCardElement('cardExpiry').type('0199');
-    cy.getStripeCardElement('cardCvc').type('123');
-    cy.getStripeCardElement('postalCode').type('12345');
+    cy.setStripeCardElementText('cardNumber', '4242424242424242');
+    cy.setStripeCardElementText('cardExpiry', '0199');
+    cy.setStripeCardElementText('cardCvc', '123');
+    cy.setStripeCardElementText('postalCode', '12345');
     cy.getByTestId('contrib-update-payment-method-btn').should('be.disabled');
   });
 
   it('should not enable update payment method when card expiry is invalid', () => {
-    cy.getStripeCardElement('cardNumber').type('4242424242424242');
-    cy.getStripeCardElement('cardCvc').type('123');
-    cy.getStripeCardElement('postalCode').type('12345');
+    cy.setStripeCardElementText('cardNumber', '4242424242424242');
+    cy.setStripeCardElementText('cardCvc', '123');
+    cy.setStripeCardElementText('postalCode', '12345');
     cy.getByTestId('contrib-update-payment-method-btn').should('be.disabled');
   });
 
   it('should not enable update payment method when card cvc is not fully entered', () => {
-    cy.getStripeCardElement('cardNumber').type('4242424242424242');
-    cy.getStripeCardElement('cardExpiry').type('0199');
-    cy.getStripeCardElement('postalCode').type('12345');
+    cy.setStripeCardElementText('cardNumber', '4242424242424242');
+    cy.setStripeCardElementText('cardExpiry', '0199');
+    cy.setStripeCardElementText('postalCode', '12345');
     cy.getByTestId('contrib-update-payment-method-btn').should('be.disabled');
-    cy.getStripeCardElement('cardCvc').type('12');
+    cy.setStripeCardElementText('cardCvc', '12');
     cy.getByTestId('contrib-update-payment-method-btn').should('be.disabled');
   });
 
   it('should not enable update payment method when postal code is not fully entered', () => {
-    cy.getStripeCardElement('cardNumber').type('4242424242424242');
-    cy.getStripeCardElement('cardExpiry').type('0199');
-    cy.getStripeCardElement('cardCvc').type('123');
+    cy.setStripeCardElementText('cardNumber', '4242424242424242');
+    cy.setStripeCardElementText('cardExpiry', '0199');
+    cy.setStripeCardElementText('cardCvc', '123');
     cy.getByTestId('contrib-update-payment-method-btn').should('be.disabled');
-    cy.getStripeCardElement('postalCode').type('1234');
+    cy.setStripeCardElementText('postalCode', '1234');
     cy.getByTestId('contrib-update-payment-method-btn').should('be.disabled');
   });
 
   it('should enable update payment method when card details are entered correctly', () => {
     let today = new Date();
-    cy.getStripeCardElement('cardNumber').type('4242424242424242');
-    cy.getStripeCardElement('cardExpiry').type(`${today.getMonth() + 1}${today.getFullYear() % 100}`);
-    cy.getStripeCardElement('cardCvc').type('123');
-    cy.getStripeCardElement('postalCode').type('12345');
+    cy.setStripeCardElementText('cardNumber', '4242424242424242');
+    cy.setStripeCardElementText('cardExpiry', `${today.getMonth() + 1}${today.getFullYear() % 100}`);
+    cy.setStripeCardElementText('cardCvc', '123');
+    cy.setStripeCardElementText('postalCode', '12345');
     cy.getByTestId('contrib-update-payment-method-btn').should('not.be.disabled');
   });
 });

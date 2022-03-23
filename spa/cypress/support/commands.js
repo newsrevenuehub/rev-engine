@@ -122,14 +122,16 @@ Cypress.Commands.add('getStripeCardElement', (elementName) => {
 });
 
 Cypress.Commands.add('setStripeCardElementText', (elementName, value) => {
-  return cy
-    .get('.StripeElement')
-    .get('iframe')
-    .should(
-      (iframe) => expect(iframe.contents().find(`input[data-elements-stable-field-name="${elementName}"]`)).to.exist
-    )
-    .then((iframe) => cy.wrap(iframe.contents().find(`input[data-elements-stable-field-name="${elementName}"]`)))
-    .within((input) => {
-      cy.wrap(input).should('not.be.disabled').clear().type(value);
+  return cy.getByTestId('edit-recurring-payment-modal').within(() => {
+    cy.get('.StripeElement').within(() => {
+      cy.get('iframe')
+        .should(
+          (iframe) => expect(iframe.contents().find(`input[data-elements-stable-field-name="${elementName}"]`)).to.exist
+        )
+        .then((iframe) => cy.wrap(iframe.contents().find(`input[data-elements-stable-field-name="${elementName}"]`)))
+        .within((input) => {
+          cy.wrap(input).should('not.be.disabled').clear().type(value);
+        });
     });
+  });
 });

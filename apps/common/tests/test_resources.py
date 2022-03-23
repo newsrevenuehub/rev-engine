@@ -28,10 +28,8 @@ class AbstractTestCase(APITestCase):
     resource_count = 5
     org_count = 2
     rp_count = 2
-    donation_pages = []
     contributors_count = 2
     donation_pages_per_rp_count = 2
-    contributions = []
 
     @classmethod
     def _set_up_contributions(cls):
@@ -50,23 +48,19 @@ class AbstractTestCase(APITestCase):
                         idx % 2 == 0,
                     ]
                 ):
-                    cls.contributions.append(
-                        ContributionFactory(
-                            donation_page=page, organization=page.revenue_program.organization, contributor=contributor
-                        )
+                    ContributionFactory(
+                        donation_page=page,
+                        organization=page.revenue_program.organization,
+                        contributor=contributor,
                     )
         cls.contributor_user = Contributor.objects.first()
 
     @classmethod
     def _set_up_donation_pages(cls):
         for i in range(cls.donation_pages_per_rp_count):
-            cls.donation_pages.extend(
-                [
-                    DonationPageFactory(revenue_program=cls.org1_rp1),
-                    DonationPageFactory(revenue_program=cls.org1_rp2),
-                    DonationPageFactory(revenue_program=cls.org2_rp),
-                ]
-            )
+            DonationPageFactory(revenue_program=cls.org1_rp1)
+            DonationPageFactory(revenue_program=cls.org1_rp2)
+            DonationPageFactory(revenue_program=cls.org2_rp)
 
     @classmethod
     def set_up_domain_model(cls):

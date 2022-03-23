@@ -78,7 +78,7 @@ class StripePaymentManagerAbstractTestCase(AbstractTestCase):
             "referer": faker.url(),
             "page_id": page.pk,
         }
-        self.contribution = self.contributions[0]
+        self.contribution = Contribution.objects.filter(donation_page__revenue_program=self.org1_rp1).first()
 
     def _create_mock_ba_response(self, target_score=None, status_code=200):
         json_body = {"overall_judgment": target_score} if target_score else {"error": "Test error message"}
@@ -391,7 +391,7 @@ class StripeRecurringPaymentManagerTest(StripePaymentManagerAbstractTestCase):
         pm = self._prepare_valid_subscription(flagged=False)
         pm.create_subscription()
         mock_customer_create.assert_called_once_with(
-            email=self.contributor.email,
+            email=self.contributor_user.email,
             stripe_account=self.org1.stripe_account_id,
             metadata=pm.bundle_metadata("CUSTOMER"),
         )
@@ -454,17 +454,16 @@ class StripeRecurringPaymentManagerTest(StripePaymentManagerAbstractTestCase):
     def test_accept(self, mock_sub_create, *args):
         pm = self._instantiate_payment_manager_with_instance()
         pm.complete_payment(reject=False)
-        contribution = self.contributions[0]
         mock_sub_create.assert_called_once_with(
             customer=None,
             default_payment_method=None,
             items=[
                 {
                     "price_data": {
-                        "unit_amount": contribution.amount,
-                        "currency": contribution.currency,
+                        "unit_amount": self.contribution.amount,
+                        "currency": self.contribution.currency,
                         "product": self.org1.stripe_product_id,
-                        "recurring": {"interval": contribution.interval},
+                        "recurring": {"interval": self.contribution.interval},
                     }
                 }
             ],

@@ -157,7 +157,7 @@ describe('Update recurring contribution modal', () => {
       .find('[data-testid="payment-method"]')
       .first()
       .click()
-      .wait(1000);
+      .wait(8000);
   });
 
   it('should not enable update payment method when card number is not fully entered', () => {

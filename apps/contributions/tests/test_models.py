@@ -75,8 +75,8 @@ class ContributionTest(TestCase):
     @patch("apps.contributions.models.SlackManager")
     def test_save_with_slack_arg_sends_slack_notifications(self, mock_send_slack):
         self.contribution.amount = 10
-        # self.contribution.save(slack_notification=SlackNotificationTypes.SUCCESS)
-        # mock_send_slack.assert_any_call()
+        self.contribution.save(slack_notification=SlackNotificationTypes.SUCCESS)
+        mock_send_slack.assert_any_call()
 
     @patch("stripe.PaymentMethod.retrieve", side_effect="{}")
     def test_request_stripe_payment_method_details_when_new(self, mock_retrieve_pm):

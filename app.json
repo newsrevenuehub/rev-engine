@@ -37,7 +37,7 @@
     }
   },
   "name": "rev-engine",
-  "stack": "heroku-20",
+  "stack": "container",
   "scripts": {
       "postdeploy": "echo hello"
   }

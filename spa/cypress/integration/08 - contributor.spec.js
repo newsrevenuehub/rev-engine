@@ -160,10 +160,6 @@ describe('Update recurring contribution modal', () => {
       .wait(1000);
   });
 
-  afterEach(() => {
-    cy.getByTestId('close-modal').click();
-  });
-
   it('should not enable update payment method when card number is not fully entered', () => {
     cy.setStripeCardElementText('cardExpiry', '0199');
     cy.setStripeCardElementText('cardCvc', '123');

@@ -82,7 +82,7 @@ class StripeWebhookProcessor:
         # Grab payment_method_id
         contribution.provider_payment_method_id = self.obj_data.get("payment_method")
 
-        # contribution.save(slack_notification=SlackNotificationTypes.SUCCESS)
+        contribution.save()
         logger.info(f"Contribution {contribution} succeeded.")
 
     def _cancellation_was_rejection(self):

@@ -53,8 +53,8 @@ class StripePaymentManagerAbstractTestCase(AbstractTestCase):
     def setUp(self):
         super().setUp()
         self.set_up_domain_model()
+        self.page = self.org1_rp1.donationpage_set.first()
         self.amount = "10.99"
-        page = self.org1_rp1.donationpage_set.first()
         self.data = {
             "email": self.contributor_user.email,
             "first_name": "Test",
@@ -71,12 +71,12 @@ class StripePaymentManagerAbstractTestCase(AbstractTestCase):
             "revenue_program_slug": self.org1_rp1.slug,
             "statement_descriptor_suffix": None,
             "payment_method_id": "test_payment_method_id",
-            "donation_page_slug": page.slug,
+            "donation_page_slug": self.page.slug,
             "currency": "usd",
             "organization_country": "us",
             "ip": faker.ipv4(),
             "referer": faker.url(),
-            "page_id": page.pk,
+            "page_id": self.page.pk,
         }
         self.contribution = Contribution.objects.filter(donation_page__revenue_program=self.org1_rp1).first()
 
@@ -487,8 +487,8 @@ class StripeRecurringPaymentManagerTest(StripePaymentManagerAbstractTestCase):
         Further strengthen the get_donation_page method by ensuring that it can be called without a page slug.
         """
         # Set default page on rev program
-        self.revenue_program.default_donation_page = self.page
-        self.revenue_program.save()
+        self.org1_rp1.default_donation_page = self.page
+        self.org1_rp1.save()
 
         # Remove page_slug from params
         data = self.data

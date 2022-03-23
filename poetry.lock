@@ -790,7 +790,7 @@ grpc = ["grpcio (>=1.0.0)"]
 name = "heroku3"
 version = "5.1.4"
 description = "Heroku API Wrapper."
-category = "dev"
+category = "main"
 optional = false
 python-versions = "*"
 
@@ -1612,8 +1612,8 @@ testing = ["pytest (>=6)", "pytest-checkdocs (>=2.4)", "pytest-flake8", "pytest-
 
 [metadata]
 lock-version = "1.1"
-python-versions = "3.9.11"
-content-hash = "27dd25fce4d74262dcad4985e54f77f4fb462b1c59b8488251c6f5826fa1fe93"
+python-versions = "^3.9"
+content-hash = "ae81093109e5deca75ddf0bec70cb40e12cb0bc91148db7553de276fbac3ae08"
 
 [metadata.files]
 amqp = [

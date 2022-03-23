@@ -17,9 +17,6 @@ from apps.contributions.payment_managers import (
     PaymentProviderError,
     StripePaymentManager,
 )
-from apps.contributions.tests.factories import ContributionFactory, ContributorFactory
-from apps.organizations.tests.factories import OrganizationFactory, RevenueProgramFactory
-from apps.pages.tests.factories import DonationPageFactory
 
 
 faker = Faker()
@@ -105,7 +102,6 @@ class StripeOneTimePaymentManagerTest(StripePaymentManagerAbstractTestCase):
         super().setUp()
         self.contribution.interval = ContributionInterval.ONE_TIME
         self.contribution.save()
-
         self.data.update({"interval": ContributionInterval.ONE_TIME})
 
     def test_validate_pass(self):

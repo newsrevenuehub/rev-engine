@@ -158,7 +158,7 @@ def filter_from_permissions(request, queryset, model):
             queryset,
         )
     else:
-        RoleUnexpectedModelType(
+        raise RoleUnexpectedModelType(
             f"Only `Organization`, `RevenueProgram` or models with a relationship to these "
             f'can be used in `filter_from_permissions`. You provided "{model_name}"'
         )

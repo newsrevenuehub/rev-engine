@@ -70,6 +70,11 @@ class AbstractTestCase(APITestCase):
 
     @classmethod
     def set_up_domain_model(cls):
+        """Set up most commonly needed data models in a predictable way for use across tests
+
+        NB: The names and relations here matter. There is test code that expects that there are
+        two orgs, with the given RevenueProgram, DonationPage, and RoleAssignment/User structures
+        """
         cls.org1 = OrganizationFactory()
         cls.org2 = OrganizationFactory()
         cls.org1_rp1 = RevenueProgramFactory(organization=cls.org1)

@@ -8,10 +8,12 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
 from apps.api.filters import RoleAssignmentFilterBackend
+from apps.api.permissions import HasRoleAssignment
 from apps.element_media.models import MediaImage
 from apps.pages import serializers
 from apps.pages.helpers import PageDetailError, PageFullDetailHelper
 from apps.pages.models import DonationPage, Font, Style, Template
+from apps.public.permissions import IsSuperUser
 
 
 logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
@@ -21,6 +23,10 @@ class PageViewSet(viewsets.ModelViewSet):
     model = DonationPage
     queryset = DonationPage.objects.all()
     filter_backends = [RoleAssignmentFilterBackend, filters.OrderingFilter]
+    permission_classes = [
+        IsAuthenticated,
+        IsSuperUser | HasRoleAssignment,
+    ]
     ordering_fields = ["username", "email"]
     ordering = ["published_date", "name"]
     # We don't expect orgs to have a huge number of pages here.

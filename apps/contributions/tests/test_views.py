@@ -42,12 +42,10 @@ class StripePaymentViewTestAbstract(AbstractTestCase):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
-        cls.set_up_domain_model()
-        cls.url = reverse("stripe-payment")
         cls.payment_amount = "10.00"
         cls.ip = faker.ipv4()
         cls.referer = faker.url()
-        cls.page = cls.donation_pages[0]
+        cls.url = reverse("stripe-payment")
 
     def _create_request(self, donation_page, email="tester@testing.com", interval=None, payment_method_id=None):
         factory = APIRequestFactory()
@@ -85,6 +83,12 @@ class StripePaymentViewTestAbstract(AbstractTestCase):
 
 
 class StripeOneTimePaymentViewTest(StripePaymentViewTestAbstract):
+    def setUp(self):
+        super().setUp()
+        self.set_up_domain_model()
+        self.page = DonationPage.objects.filter(revenue_program=self.org1_rp1).first()
+        self.assertIsNotNone(self.page)
+
     @patch("apps.contributions.views.StripePaymentManager.create_one_time_payment", side_effect=MockPaymentIntent)
     def test_one_time_payment_serializer_validates_email(self, *args):
         response = self._post_valid_one_time_payment(self.page, email=None)
@@ -124,10 +128,16 @@ class StripeOneTimePaymentViewTest(StripePaymentViewTestAbstract):
 
 @patch("apps.contributions.views.StripePaymentManager.create_subscription")
 class CreateStripeRecurringPaymentViewTest(StripePaymentViewTestAbstract):
+    def setUp(self):
+        super().setUp()
+        self.set_up_domain_model()
+        self.page = DonationPage.objects.filter(revenue_program=self.org1_rp1).first()
+        self.assertIsNotNone(self.page)
+
     def test_recurring_payment_serializer_validates(self, *args):
         # StripeRecurringPaymentSerializer requires payment_method_id
         response = self._post_valid_one_time_payment(
-            self.donation_pages[0],
+            self.page,
             interval=ContributionInterval.MONTHLY,
         )
         # This also verifies that the view is using the correct serializer.
@@ -141,7 +151,7 @@ class CreateStripeRecurringPaymentViewTest(StripePaymentViewTestAbstract):
         Verify that we're getting the response we expect from a valid contribition
         """
         response = self._post_valid_one_time_payment(
-            self.donation_pages[0],
+            self.page,
             interval=ContributionInterval.MONTHLY,
             payment_method_id="test_payment_method_id",
         )

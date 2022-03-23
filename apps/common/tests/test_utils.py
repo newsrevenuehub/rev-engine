@@ -15,6 +15,7 @@ import pytest
 from faker import Faker
 
 from apps.common.utils import (
+    extract_ticket_id_from_branch_name,
     get_changes_from_prev_history_obj,
     get_subdomain_from_request,
     normalize_slug,
@@ -230,3 +231,9 @@ class TestMigrations(TestCase):
 
     def setUpBeforeMigration(self, apps):
         pass
+
+
+def test_extract_ticket_id_from_branch_name():
+    branch_name = "DEV-1420_db_review_apps"
+    ticket_id = extract_ticket_id_from_branch_name(branch_name)
+    assert ticket_id == "DEV-1420"

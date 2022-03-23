@@ -55,7 +55,7 @@ export default function fbPixel(fbId) {
     methods: {
       trackConversion: (amount) => {
         const { fbq } = window;
-        fbq('track', 'Donate');
+        fbq('track', 'Contribute');
         fbq('track', 'Purchase', { currency: 'USD', value: amount });
       }
     }

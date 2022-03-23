@@ -132,7 +132,7 @@ function AddPageModal({ isOpen, closeModal }) {
   return (
     <Modal isOpen={isOpen} closeModal={closeModal}>
       <S.AddPageModal data-testid="page-create-modal">
-        <S.ModalTitle>Create a new donation page</S.ModalTitle>
+        <S.ModalTitle>Create a new contribution page</S.ModalTitle>
         <S.PageForm onSubmit={handleSave}>
           <S.FormFields>
             <S.InputWrapper>

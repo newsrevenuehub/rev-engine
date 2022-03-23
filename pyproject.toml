@@ -72,6 +72,7 @@ pycountry = "^20.7.3"
 django-csp = "^3.7"
 django-simple-history = "^3.0.0"
 cloudflare = "^2.8.15"
+heroku3 = "^5.1.4"
 
 [tool.poetry.dev-dependencies]
 appnope = "0.1.2"
@@ -92,7 +93,6 @@ pytest-cov = "2.11.1"
 pytest-django = "4.2.0"
 pyyaml = "5.4.1"
 Pillow = "^8.3.1"
-heroku3 = "^5.1.4"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]

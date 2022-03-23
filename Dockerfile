@@ -95,7 +95,7 @@ RUN mkdir google-sa && chown ${APP_USER}:${APP_USER} google-sa
 USER ${APP_USER}:${APP_USER}
 
 # Uncomment after creating your docker-entrypoint.sh
-ENTRYPOINT ["/code/docker-entrypoint.sh"]
+#ENTRYPOINT ["/code/docker-entrypoint.sh"]
 
 # Start uWSGI
 #CMD ["uwsgi", "--http=0.0.0.0:$PORT", "--show-config"]

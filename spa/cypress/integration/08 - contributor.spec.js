@@ -173,8 +173,6 @@ describe('Update recurring contribution modal', () => {
   });
 
   it('should not enable update payment method when card number is invalid', () => {
-    debugger;
-
     cy.getStripeCardElement('cardNumber').type('1234123412341234');
     cy.getStripeCardElement('cardExpiry').type('0199');
     cy.getStripeCardElement('cardCvc').type('123');

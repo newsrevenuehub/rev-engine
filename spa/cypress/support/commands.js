@@ -113,6 +113,7 @@ Cypress.Commands.add('editElement', (elementType) => {
 
 Cypress.Commands.add('getStripeCardElement', (elementName) => {
   return cy
+    .wait(1000)
     .get('iframe')
     .its('0.contentDocument.body')
     .should('not.be.empty')

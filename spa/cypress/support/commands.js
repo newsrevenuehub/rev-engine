@@ -122,11 +122,13 @@ Cypress.Commands.add('getStripeCardElement', (elementName) => {
 });
 
 Cypress.Commands.add('setStripeCardElementText', (elementName, value) => {
-  let selector = `input[data-elements-stable-field-name="${elementName}"]`;
   return cy
+    .get('.StripeElement')
     .get('iframe')
-    .should((iframe) => expect(iframe.contents().find(selector)).to.exist)
-    .then((iframe) => cy.wrap(iframe.contents().find(selector)))
+    .should(
+      (iframe) => expect(iframe.contents().find(`input[data-elements-stable-field-name="${elementName}"]`)).to.exist
+    )
+    .then((iframe) => cy.wrap(iframe.contents().find(`input[data-elements-stable-field-name="${elementName}"]`)))
     .within((input) => {
       cy.wrap(input).should('not.be.disabled').clear().type(value);
     });

@@ -40,7 +40,7 @@ class Command(BaseCommand):  # pragma: no cover
             else:
                 revenue_program.slug = f"{revenue_program.slug}-{ticket_id}".lower()
             fqdn = f"{revenue_program.slug}.{zone_name}"
-            content = (f"{heroku_app_name}.herokuapp.com",)
+            content = f"{heroku_app_name}.herokuapp.com"
             dns_record = {
                 "name": f"{revenue_program.slug}",
                 "type": "CNAME",

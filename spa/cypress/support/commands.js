@@ -121,17 +121,28 @@ Cypress.Commands.add('getStripeCardElement', (elementName) => {
     .find(`input[data-elements-stable-field-name="${elementName}"]`);
 });
 
+Cypress.Commands.add('iframeLoaded', { prevSubject: 'element' }, ($iframe) => {
+  const contentWindow = $iframe.prop('contentWindow');
+  return new Promise((resolve) => {
+    if (contentWindow && contentWindow.document.readyState === 'complete') {
+      resolve(contentWindow.document.body);
+    } else {
+      $iframe.on('load', () => {
+        resolve(contentWindow.document.body);
+      });
+    }
+  });
+});
+
 Cypress.Commands.add('setStripeCardElementText', (elementName, value) => {
-  return cy.getByTestId('edit-recurring-payment-modal').within(() => {
-    cy.get('.StripeElement').within(() => {
-      cy.get('iframe')
-        .should(
-          (iframe) => expect(iframe.contents().find(`input[data-elements-stable-field-name="${elementName}"]`)).to.exist
-        )
-        .then((iframe) => cy.wrap(iframe.contents().find(`input[data-elements-stable-field-name="${elementName}"]`)))
-        .within((input) => {
-          cy.wrap(input).should('not.be.disabled').clear().type(value);
-        });
-    });
+  var selector = `input[data-elements-stable-field-name="${elementName}"]`;
+  cy.getByTestId('edit-recurring-payment-modal').within(($paymentModal) => {
+    cy.wrap($paymentModal)
+      .get('iframe', { timeout: 10000 })
+      .should('be.visible')
+      .iframeLoaded()
+      .find(selector, { timeout: 10000 })
+      .should('exist')
+      .type(value);
   });
 });

@@ -25,11 +25,14 @@ class Command(BaseCommand):  # pragma: no cover
                 self.stdout.write(self.style.WARNING("slug already ticketed: %s" % revenue_program.slug))
                 continue
             slug = f"{revenue_program.slug}-{ticket_id}".lower()
+            self.stdout.write(self.style.SUCCESS("Removing DNS entry for %s" % slug))
+
             zone_id = cloudflare_conn.zones.get(params={"name": zone_name})[0]["id"]
             fqdn = f"{slug}.{zone_name}"
             dns_records = cloudflare_conn.zones.dns_records.get(zone_id, params={"name": fqdn})
             for dns_record in dns_records:
                 dns_record_id = dns_record["id"]
                 cloudflare_conn.zones.dns_records.delete(zone_id, dns_record_id)
+                self.stdout.write(self.style.SUCCESS("Removed DNS entry for %s" % fqdn))
 
         self.stdout.write(self.style.SUCCESS("Tore down DNS for %s" % heroku_app_name))

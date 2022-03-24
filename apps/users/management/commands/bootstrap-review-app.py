@@ -17,7 +17,7 @@ class Command(BaseCommand):  # pragma: no cover
         zone_name = os.environ.get("CF_ZONE_NAME")
         heroku_app_name = os.environ.get("HEROKU_APP_NAME")
         heroku_api_key = os.environ.get("HEROKU_API_KEY")
-        ticket_id = extract_ticket_id_from_branch_name(branch_name)
+        ticket_id = extract_ticket_id_from_branch_name(branch_name).lower()
 
         heroku_conn = heroku3.from_key(heroku_api_key)
         heroku_app = heroku_conn.apps()[heroku_app_name]

@@ -38,7 +38,11 @@ class Command(BaseCommand):  # pragma: no cover
                 "content": f"{heroku_app_name}.herokuapp.com",
                 "proxied": True,
             }
-            cloudflare_conn.zones.dns_records.post(zone_id, data=dns_record)
+            try:
+                cloudflare_conn.zones.dns_records.post(zone_id, data=dns_record)
+            except CloudFlare.exceptions.CloudFlareAPIError as error:
+                self.stdout.write(self.style.WARNING(error))
+                continue
             heroku_app.add_domain(fqdn, None)
             revenue_program.save()
             self.stdout.write(self.style.SUCCESS("Added DNS for entry for %s" % slug))

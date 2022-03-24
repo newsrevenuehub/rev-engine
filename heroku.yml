@@ -14,7 +14,7 @@ release:
     - ./deployment-tasks.sh
   image: web
 run:
-  web: uwsgi --http=0.0.0.0:$PORT --show-config
+  web: ./docker-entrypoint.sh
   worker:
     command:
       - celery --app=revengine worker --beat -l info

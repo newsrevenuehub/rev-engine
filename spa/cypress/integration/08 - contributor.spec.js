@@ -159,60 +159,80 @@ describe('Update recurring contribution modal', () => {
       .click();
   });
 
-  it('should not enable update payment method when card number is not fully entered', () => {
-    cy.setStripeCardElementText('cardExpiry', '0199');
-    cy.setStripeCardElementText('cardCvc', '123');
-    cy.getByTestId('contrib-update-payment-method-btn').should('be.disabled');
-    cy.setStripeCardElementText('cardNumber', '4242');
+  it(
+    'should not enable update payment method when card number is not fully entered',
+    { defaultCommandTimeout: 10000 },
+    () => {
+      cy.setStripeCardElement('cardExpiry', '0199');
+      cy.setStripeCardElement('cardCvc', '123');
+      cy.getByTestId('contrib-update-payment-method-btn').should('be.disabled');
+      cy.setStripeCardElement('cardNumber', '4242');
+      cy.getByTestId('contrib-update-payment-method-btn').should('be.disabled');
+    }
+  );
+
+  it('should not enable update payment method when card number is invalid', { defaultCommandTimeout: 15000 }, () => {
+    cy.setStripeCardElement('cardNumber', '1234123412341234');
+    cy.setStripeCardElement('cardExpiry', '0199');
+    cy.setStripeCardElement('cardCvc', '123');
     cy.getByTestId('contrib-update-payment-method-btn').should('be.disabled');
   });
 
-  it('should not enable update payment method when card number is invalid', () => {
-    cy.setStripeCardElementText('cardNumber', '1234123412341234');
-    cy.setStripeCardElementText('cardExpiry', '0199');
-    cy.setStripeCardElementText('cardCvc', '123');
+  it(
+    'should not enable update payment method when card expiry is not fully entered',
+    { defaultCommandTimeout: 10000 },
+    () => {
+      cy.setStripeCardElement('cardNumber', '4242424242424242');
+      cy.setStripeCardElement('cardExpiry', '0199');
+      cy.setStripeCardElement('cardCvc', '123');
+      cy.setStripeCardElement('postalCode', '12345');
+      cy.getByTestId('contrib-update-payment-method-btn').should('be.disabled');
+    }
+  );
+
+  it('should not enable update payment method when card expiry is invalid', { defaultCommandTimeout: 15000 }, () => {
+    cy.setStripeCardElement('cardNumber', '4242424242424242');
+    cy.setStripeCardElement('cardCvc', '123');
+    cy.setStripeCardElement('postalCode', '12345');
     cy.getByTestId('contrib-update-payment-method-btn').should('be.disabled');
   });
 
-  it('should not enable update payment method when card expiry is not fully entered', () => {
-    cy.setStripeCardElementText('cardNumber', '4242424242424242');
-    cy.setStripeCardElementText('cardExpiry', '0199');
-    cy.setStripeCardElementText('cardCvc', '123');
-    cy.setStripeCardElementText('postalCode', '12345');
-    cy.getByTestId('contrib-update-payment-method-btn').should('be.disabled');
-  });
+  it(
+    'should not enable update payment method when card cvc is not fully entered',
+    { defaultCommandTimeout: 10000 },
+    () => {
+      cy.setStripeCardElement('cardNumber', '4242424242424242');
+      cy.setStripeCardElement('cardExpiry', '0199');
+      cy.setStripeCardElement('postalCode', '12345');
+      cy.getByTestId('contrib-update-payment-method-btn').should('be.disabled');
+      cy.setStripeCardElement('cardCvc', '12');
+      cy.getByTestId('contrib-update-payment-method-btn').should('be.disabled');
+    }
+  );
 
-  it('should not enable update payment method when card expiry is invalid', () => {
-    cy.setStripeCardElementText('cardNumber', '4242424242424242');
-    cy.setStripeCardElementText('cardCvc', '123');
-    cy.setStripeCardElementText('postalCode', '12345');
-    cy.getByTestId('contrib-update-payment-method-btn').should('be.disabled');
-  });
+  it(
+    'should not enable update payment method when postal code is not fully entered',
+    { defaultCommandTimeout: 10000 },
+    () => {
+      cy.setStripeCardElement('cardNumber', '4242424242424242');
+      cy.setStripeCardElement('cardExpiry', '0199');
+      cy.setStripeCardElement('cardCvc', '123');
+      cy.getByTestId('contrib-update-payment-method-btn').should('be.disabled');
+      cy.setStripeCardElement('postalCode', '1234');
+      cy.getByTestId('contrib-update-payment-method-btn').should('be.disabled');
+    }
+  );
 
-  it('should not enable update payment method when card cvc is not fully entered', () => {
-    cy.setStripeCardElementText('cardNumber', '4242424242424242');
-    cy.setStripeCardElementText('cardExpiry', '0199');
-    cy.setStripeCardElementText('postalCode', '12345');
-    cy.getByTestId('contrib-update-payment-method-btn').should('be.disabled');
-    cy.setStripeCardElementText('cardCvc', '12');
-    cy.getByTestId('contrib-update-payment-method-btn').should('be.disabled');
-  });
-
-  it('should not enable update payment method when postal code is not fully entered', () => {
-    cy.setStripeCardElementText('cardNumber', '4242424242424242');
-    cy.setStripeCardElementText('cardExpiry', '0199');
-    cy.setStripeCardElementText('cardCvc', '123');
-    cy.getByTestId('contrib-update-payment-method-btn').should('be.disabled');
-    cy.setStripeCardElementText('postalCode', '1234');
-    cy.getByTestId('contrib-update-payment-method-btn').should('be.disabled');
-  });
-
-  it('should enable update payment method when card details are entered correctly', () => {
-    let today = new Date();
-    cy.setStripeCardElementText('cardNumber', '4242424242424242');
-    cy.setStripeCardElementText('cardExpiry', `${today.getMonth() + 1}${today.getFullYear() % 100}`);
-    cy.setStripeCardElementText('cardCvc', '123');
-    cy.setStripeCardElementText('postalCode', '12345');
-    cy.getByTestId('contrib-update-payment-method-btn').should('not.be.disabled');
-  });
+  it(
+    'should enable update payment method when card details are entered correctly',
+    { defaultCommandTimeout: 10000 },
+    () => {
+      let today = new Date();
+      cy.setStripeCardElement('cardNumber', '4242424242424242');
+      cy.setStripeCardElement('cardExpiry', `${today.getMonth() + 1}${today.getFullYear() % 100}`);
+      cy.setStripeCardElement('cardCvc', '123');
+      cy.setStripeCardElement('postalCode', '12345');
+      cy.getByTestId('contrib-update-payment-method-btn').should('not.be.disabled');
+    }
+  );
 });

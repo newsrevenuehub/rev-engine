@@ -111,38 +111,14 @@ Cypress.Commands.add('editElement', (elementType) => {
     });
 });
 
-Cypress.Commands.add('getStripeCardElement', (elementName) => {
-  return cy
-    .wait(1000)
-    .get('iframe')
-    .its('0.contentDocument.body')
-    .should('not.be.empty')
-    .then(cy.wrap)
-    .find(`input[data-elements-stable-field-name="${elementName}"]`);
-});
-
-Cypress.Commands.add('iframeLoaded', { prevSubject: 'element' }, ($iframe) => {
-  const contentWindow = $iframe.prop('contentWindow');
-  return new Promise((resolve) => {
-    if (contentWindow && contentWindow.document.readyState === 'complete') {
-      resolve(contentWindow.document.body);
-    } else {
-      $iframe.on('load', () => {
-        resolve(contentWindow.document.body);
-      });
-    }
-  });
-});
-
-Cypress.Commands.add('setStripeCardElementText', (elementName, value) => {
-  var selector = `input[data-elements-stable-field-name="${elementName}"]`;
-  cy.getByTestId('edit-recurring-payment-modal').within(($paymentModal) => {
-    cy.wrap($paymentModal)
-      .get('iframe', { timeout: 10000 })
-      .should('be.visible')
-      .iframeLoaded()
-      .find(selector, { timeout: 10000 })
-      .should('exist')
+Cypress.Commands.add('setStripeCardElement', (elementName, value) => {
+  return cy.getByTestId('edit-recurring-payment-modal').within(($modal) => {
+    cy.wrap($modal)
+      .get('iframe')
+      .its('0.contentDocument.body')
+      .should('not.be.empty')
+      .then(cy.wrap)
+      .find(`input[data-elements-stable-field-name="${elementName}"]`)
       .type(value);
   });
 });

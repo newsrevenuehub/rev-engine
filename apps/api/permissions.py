@@ -33,7 +33,7 @@ class ContributorOwnsContribution(permissions.BasePermission):
         return all([isinstance(request.user, Contributor), obj.contributor.pk == request.user.pk])
 
 
-class RoleUnexpectedModelType(Exception):
+class UnexpectedRoleType(Exception):
     pass
 
 
@@ -42,17 +42,8 @@ class HasRoleAssignment(permissions.BasePermission):
         """
         Determine if the request user has a role assignment. Contributors will not.
         """
+        # if request url contains refs to role assignment related objects ....
         return getattr(request.user, "get_role_assignment", False) and bool(request.user.get_role_assignment())
-
-    def has_object_permission(self, request, view, obj):
-        """
-        A slightly odd pattern here where we take an instance of a model and turn it in to a queryset of itself.
-        This is so that we can reuse `filter_from_permissions` both here and in the filter_queryset method of a FilterBackend.
-        In this case, we treat queryset.none() as not granting permission for the object.
-        """
-        obj_qs = obj.__class__.objects.filter(pk=obj.pk)
-        filtered_qs = filter_from_permissions(request, obj_qs, obj.__class__)
-        return filtered_qs.exists()
 
 
 def _handle_contributor_user(request, queryset, model):
@@ -116,16 +107,11 @@ def filter_from_permissions(request, queryset, model):
     - The user's role_assignment's permitted organization and revenue programs
     - Optional org_slug and rp_slug query parameters
 
-    add notes about the assumptions about how has_permission has been applied upstream
-
-    # Prevent users who have not been assigned a Role from viewing resources
-
     """
     org_slug = request.GET.get(settings.ORG_SLUG_PARAM)
     rp_slug = request.GET.get(settings.RP_SLUG_PARAM)
-
     # If it's a contributor, pass through. The assumption is that Contributors have results
-    # filtered by the object permissions logic in `ContributorOwnsContribution``
+    # filtered by the object permissions logic in `ContributorOwnsContribution`
     if _is_contributor(request.user):
         return _handle_contributor_user(request, queryset, model)
 
@@ -158,7 +144,7 @@ def filter_from_permissions(request, queryset, model):
             queryset,
         )
     else:
-        raise RoleUnexpectedModelType(
+        raise UnexpectedRoleType(
             f"Only `Organization`, `RevenueProgram` or models with a relationship to these "
             f'can be used in `filter_from_permissions`. You provided "{model_name}"'
         )
@@ -203,3 +189,9 @@ def _get_contributions_queryset(role_assignment, queryset, org_slug, rp_slugs):
     if rp_slugs:
         filters.append(Q(donation_page__revenue_program__slug__in=rp_slugs))
     return reduce_queryset_with_filters(queryset, filters)
+
+
+class RoleAssignmentResourceModelMixin:
+    @classmethod
+    def filter_queryset_by_role_assignment(cls, role_assignment):
+        raise NotImplementedError

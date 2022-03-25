@@ -13,6 +13,7 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
+from apps.users import UnexpectedUserConfiguration
 from apps.users.serializers import UserSerializer
 
 
@@ -62,3 +63,15 @@ def retrieve_user(request):
         user = user_model.objects.get(pk=request.user.pk)
         user_serializer = UserSerializer(user)
         return Response(data=user_serializer.data, status=status.HTTP_200_OK)
+
+
+class ViewSetUserQueryRouterMixin:
+    def get_queryset(self, *args, **kwargs):
+        queryset = super().get_queryset(*args, **kwargs)
+        current_user = self.request.user
+        if current_user.is_superuser:
+            return queryset.objects.all()
+        elif role_assignment := getattr(current_user, "roleassignment"):
+            return queryset.filter_queryset_by_role_assignment(role_assignment)
+        else:
+            raise UnexpectedUserConfiguration(current_user)

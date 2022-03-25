@@ -8,19 +8,21 @@ from solo.models import SingletonModel
 from sorl.thumbnail import ImageField as SorlImageField
 
 from apps.api.error_messages import UNIQUE_PAGE_SLUG
+from apps.api.permissions import RoleAssignmentResourceModelMixin, UnexpectedRoleType
 from apps.common.models import IndexedTimeStampedModel
 from apps.common.utils import cleanup_keys, normalize_slug
 from apps.config.validators import validate_slug_against_denylist
 from apps.organizations.models import Feature, RevenueProgram
 from apps.pages import defaults
 from apps.pages.validators import style_validator
+from apps.users.models import Roles
 
 
 def _get_screenshot_upload_path(instance, filename):
     return f"{instance.organization.name}/page_screenshots/{instance.name}_latest.png"
 
 
-class AbstractPage(IndexedTimeStampedModel):
+class AbstractPage(IndexedTimeStampedModel, RoleAssignmentResourceModelMixin):
     name = models.CharField(max_length=255)
     heading = models.CharField(max_length=255, blank=True)
 
@@ -57,6 +59,17 @@ class AbstractPage(IndexedTimeStampedModel):
     @classmethod
     def field_names(cls):
         return [f.name for f in cls._meta.fields]
+
+    @classmethod
+    def filter_queryset_by_role_assignment(cls, role_assignment):
+        if role_assignment.role_type == Roles.HUB_ADMIN:
+            return cls.objects.all()
+        elif role_assignment.role_type == Roles.ORG_ADMIN:
+            return cls.objects.filter(revenue__program__in=role_assignment.organization.revenueprogram_set.all())
+        elif role_assignment.role_type == Roles.RP_ADMIN:
+            return cls.objects.filter(revenue_program__in=role_assignment.revenue_programs.all())
+        else:
+            raise UnexpectedRoleType(f"{role_assignment.role_type} is not a valid value")
 
     class Meta:
         abstract = True

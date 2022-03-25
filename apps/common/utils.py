@@ -20,7 +20,8 @@ def create_stripe_webhook(webhook_url, api_key):
         api_key=api_key,
         api_version=settings.STRIPE_API_VERSION,
     )
-    return response.secret
+    if response:
+        return response["secret"]
 
 
 def upsert_cloudflare_cnames(slugs: list = None):

@@ -144,7 +144,7 @@ class DonationPageFullDetailSerializer(serializers.ModelSerializer):
     def _check_against_soft_deleted_slugs(self, validated_data):
         new_slug = validated_data.get("slug", None)
         if new_slug and DonationPage.objects.deleted_only().filter(slug=new_slug).exists():
-            raise serializers.ValidationError({"slug": [UNIQUE_PAGE_SLUG]})
+            raise serializers.ValidationError({settings.RP_SLUG_PARAM: [UNIQUE_PAGE_SLUG]})
 
     def _create_from_template(self, validated_data):
         """
@@ -167,7 +167,7 @@ class DonationPageFullDetailSerializer(serializers.ModelSerializer):
             rev_program = RevenueProgram.objects.get(slug=rp_slug)
             validated_data["revenue_program"] = rev_program
         except RevenueProgram.DoesNotExist:
-            raise serializers.ValidationError({"revenue_program_pk": "Could not find revenue program with provided pk"})
+            raise serializers.ValidationError({"rp_slug": "Could not find revenue program with provided slug"})
 
         self._check_against_soft_deleted_slugs(validated_data)
         if "template_pk" in validated_data:
@@ -177,7 +177,7 @@ class DonationPageFullDetailSerializer(serializers.ModelSerializer):
             return super().create(validated_data)
         except IntegrityError as integrity_error:
             if "violates unique constraint" in str(integrity_error):
-                raise serializers.ValidationError({"slug": UNIQUE_PAGE_SLUG})
+                raise serializers.ValidationError({settings.RP_SLUG_PARAM: UNIQUE_PAGE_SLUG})
 
     def update(self, instance, validated_data):
         self._update_related("styles", Style, validated_data, instance)

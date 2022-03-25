@@ -4,15 +4,15 @@ from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.middleware import csrf
 from django.test import override_settings
-from django.urls import reverse
 
 from faker import Faker
+from rest_framework.reverse import reverse
 from rest_framework.test import APIRequestFactory, APITestCase
 from stripe.error import StripeError
 from stripe.oauth_error import InvalidGrantError as StripeInvalidGrantError
 from stripe.stripe_object import StripeObject
 
-from apps.api.tests import HasRoleAssignmentAbstractTestCase
+from apps.api.tests import DomainModelBootstrappedTestCase
 from apps.api.tokens import ContributorRefreshToken
 from apps.common.tests.test_resources import AbstractTestCase
 from apps.contributions.models import Contribution, ContributionInterval, Contributor
@@ -20,9 +20,8 @@ from apps.contributions.payment_managers import PaymentBadParamsError, PaymentPr
 from apps.contributions.tests.factories import ContributionFactory, ContributorFactory
 from apps.contributions.views import stripe_payment
 from apps.organizations.models import RevenueProgram
-from apps.organizations.tests.factories import OrganizationFactory, RevenueProgramFactory
+from apps.organizations.tests.factories import OrganizationFactory
 from apps.pages.models import DonationPage
-from apps.pages.tests.factories import DonationPageFactory
 from apps.users.models import Roles
 from apps.users.tests.utils import create_test_user
 
@@ -369,7 +368,7 @@ class StripeConfirmTest(AbstractTestCase):
         self.assertEqual(response.data["status"], "failed")
 
 
-class TestContributionsViewSet(HasRoleAssignmentAbstractTestCase):
+class TestContributionsViewSet(DomainModelBootstrappedTestCase):
     def setUp(self):
         super().setUp()
         self.set_up_domain_model()
@@ -378,42 +377,18 @@ class TestContributionsViewSet(HasRoleAssignmentAbstractTestCase):
         self.contribution_for_org = Contribution.objects.filter(organization=self.org1).first()
 
     def contribution_detail_url(self, pk=None):
-        # This is here because for some unknown reason, `reverse('contribution-detail', kwargs={'pk': 'something'})`
-        # is not working as expected for detail view\
+        # This is here because for some unknown reason, `reverse('contribution-detail')` is not finding a match in tests
+        # is not working as expected for detail view
         pk = pk if pk else self.contribution_for_org.pk
         return f"/api/v1/contributions/{pk}/"
 
-    # tests for anonymous user
-    def test_anonymous_user_not_have_get_permission(self):
-        self.assert_anonymous_does_not_have_get_permission(self.list_url)
-        self.assert_anonymous_does_not_have_get_permission(self.contribution_detail_url())
-
-    # tests for super user
-    def test_superuser_has_get_permission(self):
-        self.assert_superuser_has_get_permission(self.list_url)
-        self.assert_superuser_has_get_permission(self.contribution_detail_url())
-
-    def test_super_user_can_get_contribution_detail(self):
+    ##########
+    # Retrieve
+    def test_super_user_can_get_contribution(self):
         self.assert_superuser_can_get(self.contribution_detail_url())
 
-    def test_super_user_can_list_all_contributions(self):
-        self.assert_superuser_can_list(self.list_url, Contribution.objects.count())
-
-    # tests for hub admin
-    def test_hub_admin_has_get_permission(self):
-        self.assert_hub_admin_has_get_permission(self.list_url)
-        self.assert_hub_admin_has_get_permission(self.contribution_detail_url())
-
-    def test_hub_admin_can_get_contribution_detail(self):
+    def test_hub_admin_can_get_contribution(self):
         self.assert_hub_admin_can_get(self.contribution_detail_url())
-
-    def test_hub_admin_can_list_all_contributions(self):
-        self.assert_hub_admin_can_list(self.list_url, Contribution.objects.count())
-
-    # tets for org admin
-    def test_org_admin_has_get_permission(self):
-        self.assert_org_admin_has_get_permission(self.list_url)
-        self.assert_org_admin_has_get_permission(self.contribution_detail_url())
 
     def test_org_admin_can_get_contribution_owned_by_org(self):
         self.assert_org_admin_can_get(self.contribution_detail_url())
@@ -423,20 +398,7 @@ class TestContributionsViewSet(HasRoleAssignmentAbstractTestCase):
         self.assertIsNotNone(not_orgs_contribution)
         self.assert_org_admin_cannot_get(self.contribution_detail_url(not_orgs_contribution.pk))
 
-    def test_org_admin_can_list_orgs_contributions(self):
-        """Should get back only contributions belonging to my org"""
-        self.assertGreater(Contribution.objects.exclude(organization=self.org1).count(), 0)
-        ensure_owned_by_org = lambda contribution: contribution["organization_id"] == self.org1.pk
-        self.assert_org_admin_can_list(
-            self.list_url, Contribution.objects.filter(organization=self.org1).count(), assert_item=ensure_owned_by_org
-        )
-
-    # RP Admin tests
-    def test_rp_user_has_get_permission(self):
-        self.assert_rp_user_has_get_permission(self.list_url)
-        self.assert_rp_user_has_get_permission(self.contribution_detail_url())
-
-    def test_rp_user_can_get_contributions_from_their_rp(self):
+    def test_rp_user_can_get_contribution_from_their_rp(self):
         contrib_in_users_rp_pk = (
             Contribution.objects.filter(
                 donation_page__revenue_program=self.rp_user.roleassignment.revenue_programs.first()
@@ -446,7 +408,7 @@ class TestContributionsViewSet(HasRoleAssignmentAbstractTestCase):
         )
         self.assert_rp_user_can_get(self.contribution_detail_url(contrib_in_users_rp_pk))
 
-    def test_rp_user_cannot_get_contributions_from_another_rp_in_org(self):
+    def test_rp_user_cannot_get_contribution_from_another_rp_in_org(self):
         contrib_not_in_users_rp_pk = (
             Contribution.objects.exclude(
                 donation_page__revenue_program__in=self.rp_user.roleassignment.revenue_programs.all()
@@ -456,13 +418,43 @@ class TestContributionsViewSet(HasRoleAssignmentAbstractTestCase):
         )
         self.assert_rp_user_cannot_get(self.contribution_detail_url(contrib_not_in_users_rp_pk))
 
-    def test_rp_user_cannot_get_contributions_from_another_org(self):
+    def test_rp_user_cannot_get_contribution_from_another_org(self):
         contrib_not_in_users_org_pk = (
             Contribution.objects.exclude(organization=self.rp_user.roleassignment.revenue_programs.first().organization)
             .first()
             .pk
         )
         self.assert_rp_user_cannot_get(self.contribution_detail_url(contrib_not_in_users_org_pk))
+
+    def test_contributor_can_get_their_contribution(self):
+        refresh_token = ContributorRefreshToken.for_contributor(self.contributor_user.uuid)
+        self.client.cookies["Authorization"] = refresh_token.long_lived_access_token
+        self.client.cookies["csrftoken"] = csrf._get_new_csrf_token()
+        my_contribution = self.contributor_user.contribution_set.first()
+        self.assert_contributor_can_get(self.contribution_detail_url(my_contribution.pk))
+
+    def test_contributor_cannot_get_others_contribution(self):
+        refresh_token = ContributorRefreshToken.for_contributor(self.contributor_user.uuid)
+        self.client.cookies["Authorization"] = refresh_token.long_lived_access_token
+        self.client.cookies["csrftoken"] = csrf._get_new_csrf_token()
+        not_my_contribution = Contribution.objects.exclude(contributor=self.contributor_user).first()
+        self.assert_contributor_cannot_get(self.contribution_detail_url(not_my_contribution.pk))
+
+    ######
+    # List
+    def test_super_user_can_list_all_contributions(self):
+        self.assert_superuser_can_list(self.list_url, Contribution.objects.count())
+
+    def test_hub_admin_can_list_all_contributions(self):
+        self.assert_hub_admin_can_list(self.list_url, Contribution.objects.count())
+
+    def test_org_admin_can_list_orgs_contributions(self):
+        """Should get back only contributions belonging to my org"""
+        self.assertGreater(Contribution.objects.exclude(organization=self.org1).count(), 0)
+        ensure_owned_by_org = lambda contribution: contribution["organization_id"] == self.org1.pk
+        self.assert_org_admin_can_list(
+            self.list_url, Contribution.objects.filter(organization=self.org1).count(), assert_item=ensure_owned_by_org
+        )
 
     def test_rp_user_can_list_their_rps_contributions(self):
         def _ensure_all_contribs_belong_to_users_rps(results):
@@ -479,24 +471,6 @@ class TestContributionsViewSet(HasRoleAssignmentAbstractTestCase):
         ).count()
         self.assert_rp_user_can_list(self.list_url, expected_count, assert_all=_ensure_all_contribs_belong_to_users_rps)
 
-    def test_contributor_has_get_permission(self):
-        self.assert_contributor_user_has_get_permission(self.list_url)
-        self.assert_contributor_user_has_get_permission(self.contribution_detail_url())
-
-    def test_contributor_can_get_their_contribution(self):
-        refresh_token = ContributorRefreshToken.for_contributor(self.contributor_user.uuid)
-        self.client.cookies["Authorization"] = refresh_token.long_lived_access_token
-        self.client.cookies["csrftoken"] = csrf._get_new_csrf_token()
-        my_contribution = self.contributor_user.contribution_set.first()
-        self.assert_contributor_can_get(self.contribution_detail_url(my_contribution.pk))
-
-    def test_contributor_cannot_get_others_contribution(self):
-        refresh_token = ContributorRefreshToken.for_contributor(self.contributor_user.uuid)
-        self.client.cookies["Authorization"] = refresh_token.long_lived_access_token
-        self.client.cookies["csrftoken"] = csrf._get_new_csrf_token()
-        not_my_contribution = Contribution.objects.exclude(contributor=self.contributor_user).first()
-        self.assert_contributor_cannot_get(self.contribution_detail_url(not_my_contribution.pk))
-
     def test_contributor_can_list_their_contributions(self):
         refresh_token = ContributorRefreshToken.for_contributor(self.contributor_user.uuid)
         self.client.cookies["Authorization"] = refresh_token.long_lived_access_token
@@ -512,6 +486,15 @@ class TestContributionsViewSet(HasRoleAssignmentAbstractTestCase):
         self.assert_contributor_user_can_list(
             self.list_url, expected_count, assert_all=_ensure_all_contributions_belong_to_contributor
         )
+
+    ########
+    # Delete
+
+    ########
+    # Update
+
+    ########
+    # Create
 
 
 TEST_STRIPE_API_KEY = "test_stripe_api_key"

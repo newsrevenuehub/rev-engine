@@ -63,5 +63,6 @@ class Command(BaseCommand):  # pragma: no cover
         heroku_config = heroku_app.config()
         heroku_config["SITE_URL"] = f"{ticket_id}.{zone_name}"
         heroku_config["STRIPE_WEBHOOK_SECRET"] = wh_sec
+        heroku_config["NON_DONATION_PAGE_SUBDOMAINS"] = ticket_id
 
         self.stdout.write(self.style.SUCCESS("Configured DNS for %s" % heroku_app_name))

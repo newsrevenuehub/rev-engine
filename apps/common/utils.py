@@ -12,6 +12,14 @@ import stripe
 logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
 
 
+def delete_stripe_webhook(webhook_url, api_key):
+    webhooks = stripe.WebhookEndpoint.list()
+    urls = {x["url"]: x["id"] for x in webhooks["data"]}
+    if webhook_url in urls:
+        webhook_id = urls[webhook_url]
+        stripe.WebhookEndpoint.delete(webhook_id, api_key=api_key)
+
+
 def create_stripe_webhook(webhook_url, api_key):
     webhooks = stripe.WebhookEndpoint.list()
     urls = [x["url"] for x in webhooks["data"]]
@@ -28,6 +36,23 @@ def create_stripe_webhook(webhook_url, api_key):
     )
     if response:
         return response["secret"]
+
+
+def delete_cloudflare_cnames(ticket_id):
+    zone_name = os.environ.get("CF_ZONE_NAME")
+    cloudflare_conn = CloudFlare.CloudFlare()
+    zone_id = cloudflare_conn.zones.get(params={"name": zone_name})[0]["id"]
+    zone_dns_records = cloudflare_conn.zones.dns_records.get(zone_id, params={"per_page": 300})
+    cloudflare_domains = {x["name"]: x["content"] for x in zone_dns_records}
+    cloudflare_record_ids = {x["name"]: x["id"] for x in zone_dns_records}
+    for domain in cloudflare_domains:
+        record_id = cloudflare_record_ids[domain]
+        try:
+            if ticket_id.lower() in domain.lower():
+                logger.info("Deleting DNS entry for: %s", domain)
+                cloudflare_conn.zones.dns_records.delete(zone_id, record_id)
+        except CloudFlare.exceptions.CloudFlareAPIError as error:
+            logger.warning(error)
 
 
 def upsert_cloudflare_cnames(slugs: list = None):

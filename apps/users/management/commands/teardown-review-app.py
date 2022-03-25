@@ -1,38 +1,33 @@
 import os
 
 from django.core.management.base import BaseCommand  # pragma: no cover
+from django.urls import reverse
 
-import CloudFlare
-
-from apps.common.utils import extract_ticket_id_from_branch_name
-from apps.organizations.models import RevenueProgram
+from apps.common.utils import (
+    delete_cloudflare_cnames,
+    delete_stripe_webhook,
+    extract_ticket_id_from_branch_name,
+)
+from apps.contributions.utils import get_hub_stripe_api_key
 
 
 class Command(BaseCommand):  # pragma: no cover
-    help = "Bootstrap Heroku review app"
+    def add_arguments(self, parser):
+        parser.add_argument("--ticket", nargs="?", type=str)
+
+    help = "Tear down Heroku review app"
 
     def handle(self, *args, **options):
-        branch_name = os.environ.get("HEROKU_BRANCH")
+        if not options["ticket"]:
+            branch_name = os.environ.get("HEROKU_BRANCH")
+            ticket_id = extract_ticket_id_from_branch_name(branch_name)
+        else:
+            ticket_id = options["ticket"].lower()
+
+        delete_cloudflare_cnames(ticket_id)
+
         zone_name = os.environ.get("CF_ZONE_NAME")
-        heroku_app_name = os.environ.get("HEROKU_APP_NAME")
-        ticket_id = extract_ticket_id_from_branch_name(branch_name)
-
-        # TODO: remove this limit after testing:
-        revenue_programs = RevenueProgram.objects.all()
-        cloudflare_conn = CloudFlare.CloudFlare()
-        for revenue_program in revenue_programs:
-            if ticket_id in revenue_program.slug:
-                self.stdout.write(self.style.WARNING("slug already ticketed: %s" % revenue_program.slug))
-                continue
-            slug = f"{revenue_program.slug}-{ticket_id}".lower()
-            self.stdout.write(self.style.SUCCESS("Removing DNS entry for %s" % slug))
-
-            zone_id = cloudflare_conn.zones.get(params={"name": zone_name})[0]["id"]
-            fqdn = f"{slug}.{zone_name}"
-            dns_records = cloudflare_conn.zones.dns_records.get(zone_id, params={"name": fqdn})
-            for dns_record in dns_records:
-                dns_record_id = dns_record["id"]
-                cloudflare_conn.zones.dns_records.delete(zone_id, dns_record_id)
-                self.stdout.write(self.style.SUCCESS("Removed DNS entry for %s" % fqdn))
-
-        self.stdout.write(self.style.SUCCESS("Tore down DNS for %s" % heroku_app_name))
+        site_url = f"https://{ticket_id}.{zone_name}"
+        webhook_url = site_url + reverse("stripe-webhooks")
+        api_key = get_hub_stripe_api_key()
+        delete_stripe_webhook(webhook_url=webhook_url, api_key=api_key)

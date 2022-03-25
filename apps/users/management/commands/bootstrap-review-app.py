@@ -1,6 +1,5 @@
 import os
 
-from django.conf import settings
 from django.core.management.base import BaseCommand  # pragma: no cover
 from django.urls import reverse
 
@@ -55,14 +54,19 @@ class Command(BaseCommand):  # pragma: no cover
             self.stdout.write(self.style.SUCCESS(f"Creating Heroku domain entry entry for {fqdn}"))
             heroku_app.add_domain(fqdn, None)
 
-        webhook_url = settings.SITE_URL + reverse("stripe-webhooks")
+        site_url = f"https://{ticket_id}.{zone_name}"
+        webhook_url = site_url + reverse("stripe-webhooks")
         api_key = get_hub_stripe_api_key()
+        # TODO: make this idempontent too, as it is it'll just keep creating webhooks
+
         wh_sec = create_stripe_webhook(webhook_url=webhook_url, api_key=api_key)
 
         # insert config vars:
         heroku_config = heroku_app.config()
-        heroku_config["SITE_URL"] = f"{ticket_id}.{zone_name}"
-        heroku_config["STRIPE_WEBHOOK_SECRET"] = wh_sec
+        heroku_config["SITE_URL"] = site_url
         heroku_config["NON_DONATION_PAGE_SUBDOMAINS"] = ticket_id
 
-        self.stdout.write(self.style.SUCCESS("Configured DNS for %s" % heroku_app_name))
+        if wh_sec:
+            heroku_config["STRIPE_WEBHOOK_SECRET"] = wh_sec
+
+        self.stdout.write(self.style.SUCCESS("Postdeployment completed for %s" % heroku_app_name))

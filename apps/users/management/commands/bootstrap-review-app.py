@@ -1,10 +1,17 @@
 import os
 
+from django.conf import settings
 from django.core.management.base import BaseCommand  # pragma: no cover
+from django.urls import reverse
 
 import heroku3
 
-from apps.common.utils import extract_ticket_id_from_branch_name, upsert_cloudflare_cnames
+from apps.common.utils import (
+    create_stripe_webhook,
+    extract_ticket_id_from_branch_name,
+    upsert_cloudflare_cnames,
+)
+from apps.contributions.utils import get_hub_stripe_api_key
 from apps.organizations.models import RevenueProgram
 
 
@@ -20,9 +27,6 @@ class Command(BaseCommand):  # pragma: no cover
 
         heroku_conn = heroku3.from_key(heroku_api_key)
         heroku_app = heroku_conn.apps()[heroku_app_name]
-        # insert config vars:
-        heroku_config = heroku_app.config()
-        heroku_config["SITE_URL"] = f"{ticket_id}.{zone_name}"
 
         revenue_programs = RevenueProgram.objects.all()
         heroku_domains = [x.hostname for x in heroku_app.domains()]
@@ -50,5 +54,14 @@ class Command(BaseCommand):  # pragma: no cover
         if fqdn not in heroku_domains:
             self.stdout.write(self.style.SUCCESS(f"Creating Heroku domain entry entry for {fqdn}"))
             heroku_app.add_domain(fqdn, None)
+
+        webhook_url = settings.SITE_URL + reverse("stripe-webhooks")
+        api_key = get_hub_stripe_api_key()
+        wh_sec = create_stripe_webhook(webhook_url=webhook_url, api_key=api_key)
+
+        # insert config vars:
+        heroku_config = heroku_app.config()
+        heroku_config["SITE_URL"] = f"{ticket_id}.{zone_name}"
+        heroku_config["STRIPE_WEBHOOK_SECRET"] = wh_sec
 
         self.stdout.write(self.style.SUCCESS("Configured DNS for %s" % heroku_app_name))

@@ -6,9 +6,21 @@ from django.conf import settings
 from django.utils.text import slugify
 
 import CloudFlare
+import stripe
 
 
 logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
+
+
+def create_stripe_webhook(webhook_url, api_key):
+    response = stripe.WebhookEndpoint.create(
+        url=webhook_url,
+        enabled_events=settings.STRIPE_WEBHOOK_EVENTS,
+        connect=True,
+        api_key=api_key,
+        api_version=settings.STRIPE_API_VERSION,
+    )
+    return response.secret
 
 
 def upsert_cloudflare_cnames(slugs: list = None):

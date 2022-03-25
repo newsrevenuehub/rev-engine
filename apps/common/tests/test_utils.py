@@ -1,6 +1,8 @@
+import os
 import random
 from datetime import timedelta
 from io import BytesIO
+from unittest import mock
 
 from django.apps import apps
 from django.contrib.messages.middleware import MessageMiddleware
@@ -19,6 +21,7 @@ from apps.common.utils import (
     get_changes_from_prev_history_obj,
     get_subdomain_from_request,
     normalize_slug,
+    upsert_cloudflare_cnames,
 )
 from apps.organizations.tests.factories import OrganizationFactory
 from apps.pages.tests.factories import DonationPageFactory
@@ -237,3 +240,43 @@ def test_extract_ticket_id_from_branch_name():
     branch_name = "DEV-1420_db_review_apps"
     ticket_id = extract_ticket_id_from_branch_name(branch_name)
     assert ticket_id == "DEV-1420"
+
+
+@mock.patch.dict(os.environ, {"HEROKU_APP_NAME": "foo"})
+@mock.patch.dict(os.environ, {"CF_ZONE_NAME": "bar"})
+@mock.patch("CloudFlare.CloudFlare")
+def test_upsert_cloudflare_cnames(cloudflare_class_mock):
+    mock_cloudflare = mock.MagicMock()
+    cloudflare_class_mock.return_value = mock_cloudflare
+
+    mock_cloudflare.zones.get.return_value = [{"id": "foo"}]
+    # domains {'abc': 'xyz'}
+
+    # cloudflare_record_ids {'abc': '123'}
+    # DNS recors is already there; shouldn't do anything:
+    mock_cloudflare.zones.dns_records.get.return_value = [
+        {"name": "quux.bar", "id": "123", "content": "foo.herokuapp.com"}
+    ]
+    upsert_cloudflare_cnames(["quux"])
+    assert not mock_cloudflare.zones.dns_records.post.called
+    assert not mock_cloudflare.zones.dns_records.patch.called
+
+    # DNS records aren't there; should create it:
+    mock_cloudflare.zones.dns_records.get.return_value = [{"name": "abc", "id": "123", "content": "xyz"}]
+    upsert_cloudflare_cnames(["quux", "frob"])
+    assert mock_cloudflare.zones.get.called_once_with(params={"name": "bar"})
+    assert mock_cloudflare.zones.dns_records.get.called_once_with("foo", params={"per_page": 300})
+    assert mock_cloudflare.zones.dns_records.post.called_once_with(
+        "foo", data={"type": "CNAME", "name": "quux", "content": "quux.herokuapp.com", "proxied": True}
+    )
+    assert mock_cloudflare.zones.dns_records.post.called_once_with(
+        "foo", data={"type": "CNAME", "name": "frob", "content": "frob.herokuapp.com", "proxied": True}
+    )
+    assert not mock_cloudflare.zones.dns_records.patch.called
+
+    # DNS records is there, but content is wrong; should update it:
+    mock_cloudflare.zones.dns_records.get.return_value = [{"name": "quux.bar", "id": "123", "content": "foo.x.com"}]
+    upsert_cloudflare_cnames(["quux"])
+    assert mock_cloudflare.zones.dns_records.patch.called_once_with(
+        "foo", data={"type": "CNAME", "name": "quux", "content": "quux.herokuapp.com", "proxied": True}
+    )

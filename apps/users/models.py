@@ -71,9 +71,9 @@ class UnexpectedRoleType(Exception):
 
 class RoleAssignmentResourceModelMixin:
     @classmethod
-    def filter_queryset_by_role_assignment(cls, role_assignment):
+    def filter_queryset_by_role_assignment(cls, role_assignment, queryset):
         raise NotImplementedError
 
     @classmethod
-    def filter_queryset_for_contributor(cls, contributor):
+    def filter_queryset_for_contributor(cls, contributor, queryset):
         raise NotImplementedError

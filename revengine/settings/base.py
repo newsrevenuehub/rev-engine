@@ -107,7 +107,6 @@ REST_FRAMEWORK = {
         "apps.api.permissions.HasRoleAssignment",
     ],
     "DEFAULT_PAGINATION_CLASS": "apps.api.pagination.ApiStandardPagination",
-    "DEFAULT_FILTER_BACKENDS": ["apps.api.filters.RoleAssignmentFilterBackend"],
     "PAGE_SIZE": 10,
 }
 

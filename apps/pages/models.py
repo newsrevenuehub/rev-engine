@@ -61,13 +61,13 @@ class AbstractPage(IndexedTimeStampedModel, RoleAssignmentResourceModelMixin):
         return [f.name for f in cls._meta.fields]
 
     @classmethod
-    def filter_queryset_by_role_assignment(cls, role_assignment):
+    def filter_queryset_by_role_assignment(cls, role_assignment, queryset):
         if role_assignment.role_type == Roles.HUB_ADMIN:
-            return cls.objects.all()
+            return queryset.all()
         elif role_assignment.role_type == Roles.ORG_ADMIN:
-            return cls.objects.filter(revenue__program__in=role_assignment.organization.revenueprogram_set.all())
+            return queryset.filter(revenue_program__organization=role_assignment.organization).all()
         elif role_assignment.role_type == Roles.RP_ADMIN:
-            return cls.objects.filter(revenue_program__in=role_assignment.revenue_programs.all())
+            return queryset.filter(revenue_program__in=role_assignment.revenue_programs.all()).all()
         else:
             raise UnexpectedRoleType(f"{role_assignment.role_type} is not a valid value")
 

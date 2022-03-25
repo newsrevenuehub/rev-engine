@@ -7,7 +7,6 @@ from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
-from apps.api.filters import RoleAssignmentFilterBackend
 from apps.api.permissions import HasRoleAssignment
 from apps.element_media.models import MediaImage
 from apps.pages import serializers
@@ -20,10 +19,12 @@ from apps.users.views import ViewSetUserQueryRouterMixin
 logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
 
 
-class PageViewSet(viewsets.ModelViewSet, ViewSetUserQueryRouterMixin):
+class PageViewSet(ViewSetUserQueryRouterMixin, viewsets.ModelViewSet):
     model = DonationPage
     queryset = DonationPage.objects.all()
-    filter_backends = [RoleAssignmentFilterBackend, filters.OrderingFilter]
+    filter_backends = [
+        filters.OrderingFilter,
+    ]
     permission_classes = [
         IsAuthenticated,
         IsSuperUser | HasRoleAssignment,

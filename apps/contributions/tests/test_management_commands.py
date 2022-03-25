@@ -18,7 +18,7 @@ test_stripe_api_version = "01-01-2022"
 
 
 def mock_create_stripe_endpoint(*args, **kwargs):
-    return kwargs
+    return kwargs.update({"secret": "bogus"})
 
 
 @override_settings(STRIPE_WEBHOOK_EVENTS=test_events)

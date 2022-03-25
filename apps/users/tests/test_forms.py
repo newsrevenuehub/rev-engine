@@ -4,8 +4,8 @@ from django.urls import reverse
 
 from apps.organizations.models import RevenueProgram
 from apps.organizations.tests.factories import OrganizationFactory, RevenueProgramFactory
+from apps.users.choices import Roles
 from apps.users.forms import RoleAssignmentAdminForm
-from apps.users.models import Roles
 
 
 class RoleAssignmentAdminFormTest(TestCase):

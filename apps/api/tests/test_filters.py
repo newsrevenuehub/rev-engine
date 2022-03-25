@@ -12,7 +12,7 @@ from apps.common.utils import reduce_queryset_with_filters
 from apps.organizations.models import RevenueProgram
 from apps.pages.models import DonationPage
 from apps.pages.views import PageViewSet
-from apps.users.models import Roles
+from apps.users.choices import Roles
 from apps.users.tests.utils import create_test_user
 
 

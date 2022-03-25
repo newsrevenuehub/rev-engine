@@ -5,7 +5,8 @@ from rest_framework import permissions
 
 from apps.common.utils import reduce_queryset_with_filters
 from apps.contributions.models import Contributor
-from apps.users.models import Roles
+from apps.users.choices import Roles
+from apps.users.models import UnexpectedRoleType
 
 
 ALL_ACCESSOR = "all"
@@ -30,11 +31,7 @@ class ContributorOwnsContribution(permissions.BasePermission):
         If request is coming from a contributor, verify that the requested contribution
         belongs to them.
         """
-        return all([isinstance(request.user, Contributor), obj.contributor.pk == request.user.pk])
-
-
-class UnexpectedRoleType(Exception):
-    pass
+        return all([is_a_contributor(request.user), obj.contributor.pk == request.user.pk])
 
 
 class HasRoleAssignment(permissions.BasePermission):
@@ -59,7 +56,7 @@ def _handle_superuser_user(request, queryset, model):
     return queryset
 
 
-def _is_contributor(user):
+def is_a_contributor(user):
     return isinstance(user, Contributor)
 
 
@@ -112,7 +109,7 @@ def filter_from_permissions(request, queryset, model):
     rp_slug = request.GET.get(settings.RP_SLUG_PARAM)
     # If it's a contributor, pass through. The assumption is that Contributors have results
     # filtered by the object permissions logic in `ContributorOwnsContribution`
-    if _is_contributor(request.user):
+    if is_a_contributor(request.user):
         return _handle_contributor_user(request, queryset, model)
 
     if request.user.is_superuser:
@@ -189,9 +186,3 @@ def _get_contributions_queryset(role_assignment, queryset, org_slug, rp_slugs):
     if rp_slugs:
         filters.append(Q(donation_page__revenue_program__slug__in=rp_slugs))
     return reduce_queryset_with_filters(queryset, filters)
-
-
-class RoleAssignmentResourceModelMixin:
-    @classmethod
-    def filter_queryset_by_role_assignment(cls, role_assignment):
-        raise NotImplementedError

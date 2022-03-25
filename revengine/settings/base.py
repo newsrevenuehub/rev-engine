@@ -316,9 +316,8 @@ CURRENCIES = {"USD": "$", "CAD": "$"}
 
 
 # Application subdomains (that are NOT revenue program slugs)
-NON_DONATION_PAGE_SUBDOMAINS = os.getenv("NON_DONATION_PAGE_SUBDOMAINS", ["support", "www"]).split(":")
+NON_DONATION_PAGE_SUBDOMAINS = os.getenv("NON_DONATION_PAGE_SUBDOMAINS", "support:www").split(":")
 DOMAIN_APEX = os.getenv("DOMAIN_APEX")
-
 
 CSP_REPORTING_ENABLE = os.environ.get("CSP_REPORTING_ENABLE", "false").lower() == "true"
 # Django-CSP configuration

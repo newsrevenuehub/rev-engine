@@ -7,7 +7,7 @@ from apps.organizations.serializers import (
     OrganizationInlineSerializer,
     RevenueProgramInlineSerializer,
 )
-from apps.users.models import Roles
+from apps.users.choices import Roles
 
 
 class UserSerializer(serializers.ModelSerializer):

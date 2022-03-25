@@ -8,14 +8,14 @@ from solo.models import SingletonModel
 from sorl.thumbnail import ImageField as SorlImageField
 
 from apps.api.error_messages import UNIQUE_PAGE_SLUG
-from apps.api.permissions import RoleAssignmentResourceModelMixin, UnexpectedRoleType
 from apps.common.models import IndexedTimeStampedModel
 from apps.common.utils import cleanup_keys, normalize_slug
 from apps.config.validators import validate_slug_against_denylist
 from apps.organizations.models import Feature, RevenueProgram
 from apps.pages import defaults
 from apps.pages.validators import style_validator
-from apps.users.models import Roles
+from apps.users.choices import Roles
+from apps.users.models import RoleAssignmentResourceModelMixin, UnexpectedRoleType
 
 
 def _get_screenshot_upload_path(instance, filename):

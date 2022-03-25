@@ -5,7 +5,7 @@ from rest_framework.test import APITestCase
 from apps.organizations.models import Organization, RevenueProgram
 from apps.organizations.tests.factories import OrganizationFactory, RevenueProgramFactory
 from apps.users import serializers
-from apps.users.models import Roles
+from apps.users.choices import Roles
 from apps.users.tests.utils import create_test_user
 
 

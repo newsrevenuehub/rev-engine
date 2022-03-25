@@ -5,6 +5,8 @@ from django.utils.translation import ugettext_lazy as _
 from apps.common.models import IndexedTimeStampedModel
 from apps.users.managers import UserManager
 
+from .choices import Roles
+
 
 class User(AbstractBaseUser, PermissionsMixin, IndexedTimeStampedModel):
     email = models.EmailField(max_length=255, unique=True)
@@ -15,7 +17,7 @@ class User(AbstractBaseUser, PermissionsMixin, IndexedTimeStampedModel):
     is_active = models.BooleanField(
         default=True,
         help_text=_(
-            "Designates whether this user should be treated as " "active. Unselect this instead of deleting accounts."
+            "Designates whether this user should be treated as active. Unselect this instead of deleting accounts."
         ),
     )
 
@@ -47,12 +49,6 @@ class OrganizationUser(models.Model):
     is_owner = models.BooleanField(default=False)
 
 
-class Roles(models.TextChoices):
-    HUB_ADMIN = "hub_admin", "Hub Admin"
-    ORG_ADMIN = "org_admin", "Org Admin"
-    RP_ADMIN = "rp_admin", "RP Admin"
-
-
 class RoleAssignment(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE)
     role_type = models.CharField(max_length=50, choices=Roles.choices)
@@ -67,3 +63,17 @@ class RoleAssignment(models.Model):
         if self.role_type == Roles.RP_ADMIN:
             return f"{Roles.RP_ADMIN.label} for {self.organization.name}"
         return f"Unspecified RoleAssignment ({self.pk})"
+
+
+class UnexpectedRoleType(Exception):
+    pass
+
+
+class RoleAssignmentResourceModelMixin:
+    @classmethod
+    def filter_queryset_by_role_assignment(cls, role_assignment):
+        raise NotImplementedError
+
+    @classmethod
+    def filter_queryset_for_contributor(cls, contributor):
+        raise NotImplementedError

@@ -13,6 +13,7 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
+from apps.api.permissions import is_a_contributor
 from apps.users import UnexpectedUserConfiguration
 from apps.users.serializers import UserSerializer
 
@@ -69,6 +70,10 @@ class ViewSetUserQueryRouterMixin:
     def get_queryset(self, *args, **kwargs):
         queryset = super().get_queryset(*args, **kwargs)
         current_user = self.request.user
+        if current_user.is_anonymous:
+            return queryset.none()
+        if is_a_contributor(current_user):
+            return queryset.filter_queryset_for_contributor(current_user)
         if current_user.is_superuser:
             return queryset.objects.all()
         elif role_assignment := getattr(current_user, "roleassignment"):

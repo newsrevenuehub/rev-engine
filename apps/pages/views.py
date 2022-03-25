@@ -14,12 +14,13 @@ from apps.pages import serializers
 from apps.pages.helpers import PageDetailError, PageFullDetailHelper
 from apps.pages.models import DonationPage, Font, Style, Template
 from apps.public.permissions import IsSuperUser
+from apps.users.views import ViewSetUserQueryRouterMixin
 
 
 logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
 
 
-class PageViewSet(viewsets.ModelViewSet):
+class PageViewSet(viewsets.ModelViewSet, ViewSetUserQueryRouterMixin):
     model = DonationPage
     queryset = DonationPage.objects.all()
     filter_backends = [RoleAssignmentFilterBackend, filters.OrderingFilter]
@@ -34,7 +35,11 @@ class PageViewSet(viewsets.ModelViewSet):
     # pages are ever accessed via api and not restricted by org.
     pagination_class = None
 
+    __gate_create_by_rp = True
+    __gate_create_by_org = True
+
     def get_serializer_class(self):
+
         if self.action in ("partial_update", "create"):
             return serializers.DonationPageFullDetailSerializer
         elif self.action == "retrieve":

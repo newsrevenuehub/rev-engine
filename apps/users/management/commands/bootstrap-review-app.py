@@ -67,7 +67,7 @@ class Command(BaseCommand):  # pragma: no cover
         heroku_config["SITE_URL"] = site_url
         heroku_config["NON_DONATION_PAGE_SUBDOMAINS"] = ticket_id
         heroku_config["ENVIRONMENT"] = ticket_id
-        heroku_config["ORG_PORTAL_SUBDOMAINS"] = f"support-{ticket_id}"
+        heroku_config["ORG_PORTAL_SUBDOMAINS"] = f"support-{ticket_id}".lower()
 
         if wh_sec:
             heroku_config["STRIPE_WEBHOOK_SECRET"] = wh_sec

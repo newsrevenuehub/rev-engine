@@ -62,7 +62,7 @@ class Command(BaseCommand):  # pragma: no cover
 
         wh_sec = create_stripe_webhook(webhook_url=webhook_url, api_key=api_key)
 
-        # insert config vars:
+        # insert config vars:-
         heroku_config = heroku_app.config()
         heroku_config["SITE_URL"] = site_url
         heroku_config["NON_DONATION_PAGE_SUBDOMAINS"] = ticket_id

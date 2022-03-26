@@ -55,6 +55,7 @@ export const STRIPE_OAUTH_SCOPE = resolveConstantFromEnv('STRIPE_OAUTH_SCOPE', '
 // Environment {production, staging, test, dev, demo}
 export const ENVIRONMENT = resolveConstantFromEnv('ENVIRONMENT');
 
+console.log(window.ENV);
 function resolveConstantFromEnv(constantName, defaultValue) {
   /*
     If we're in development, use webpack's process.env string replace.
@@ -62,6 +63,7 @@ function resolveConstantFromEnv(constantName, defaultValue) {
     Oddly enough, this dynamically read process.env[ENV_VAR_NAME] seems to work here, despite the fact that
     webpack seems to do a relatively simple string replace on "process.env.ENV_VAR" at build time.
   */
+
   if (process.env.NODE_ENV === 'development') return process.env[`REACT_APP_${constantName}`] || defaultValue;
   else if (window.ENV) return window.ENV[constantName] || defaultValue;
   else return defaultValue;

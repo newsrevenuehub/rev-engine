@@ -25,7 +25,7 @@ ANYMAIL = {
 }
 
 EMAIL_SUBJECT_PREFIX = "[revengine %s] " % ENVIRONMENT.title()
-DEFAULT_FROM_EMAIL = f"noreply@{os.getenv('DOMAIN', os.environ)}"
+DEFAULT_FROM_EMAIL = f"noreply@{os.getenv('DOMAIN', 'example.com')}"
 SERVER_EMAIL = DEFAULT_FROM_EMAIL
 
 

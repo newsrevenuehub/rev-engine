@@ -17,6 +17,7 @@ def delete_stripe_webhook(webhook_url, api_key):
     urls = {x["url"]: x["id"] for x in webhooks["data"]}
     if webhook_url in urls:
         webhook_id = urls[webhook_url]
+        logger.info("Deleting Webhook : %s", webhook_url)
         stripe.WebhookEndpoint.delete(webhook_id, api_key=api_key)
 
 

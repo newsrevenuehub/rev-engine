@@ -1,4 +1,4 @@
-# Revenue Engine
+# Revenue Engine.
 
 ## ✏️ **Develop**
 

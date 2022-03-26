@@ -49,6 +49,8 @@ function MainLayout() {
     setReauthModalOpen(false);
   };
 
+  console.log('ORG_PORTAL_SUBDOMAINS', ORG_PORTAL_SUBDOMAINS);
+
   return (
     <GlobalContext.Provider value={{ getUserConfirmation, getReauth }}>
       <AnalyticsContextWrapper>

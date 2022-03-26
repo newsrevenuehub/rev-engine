@@ -242,7 +242,7 @@ class TestMigrations(TestCase):
 def test_extract_ticket_id_from_branch_name():
     branch_name = "DEV-1420_db_review_apps"
     ticket_id = extract_ticket_id_from_branch_name(branch_name)
-    assert ticket_id == "DEV-1420"
+    assert ticket_id == "dev-1420"
 
 
 @mock.patch.dict(os.environ, {"HEROKU_APP_NAME": "foo"})

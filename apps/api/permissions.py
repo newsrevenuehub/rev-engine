@@ -1,6 +1,9 @@
+from django.conf import settings
+
 from rest_framework import permissions
 
 from apps.contributions.models import Contributor
+from apps.users.choices import Roles
 
 
 ALL_ACCESSOR = "all"
@@ -19,6 +22,16 @@ class IsContributor(permissions.BasePermission):
         return isinstance(request.user, Contributor)
 
 
+class IsHubAdmin(permissions.BasePermission):
+    def has_permission(self, request, view):
+        return all(
+            [
+                role_assignment := getattr(request.user, "roleassignment", False),
+                role_assignment.role_type == Roles.HUB_ADMIN,
+            ]
+        )
+
+
 class ContributorOwnsContribution(permissions.BasePermission):
     def has_object_permission(self, request, view, obj):
         """
@@ -33,8 +46,30 @@ class HasRoleAssignment(permissions.BasePermission):
         """
         Determine if the request user has a role assignment. Contributors will not.
         """
-        # if request url contains refs to role assignment related objects ....
         return getattr(request.user, "get_role_assignment", False) and bool(request.user.get_role_assignment())
+
+    def has_object_permission(self, request, view, obj):
+        return view.model.user_has_permission_for_instance(request.user, obj)
+
+
+class HasCreatePrivilegesForSlugs(permissions.BasePermission):
+    def has_permission(self, request, view):
+        """ """
+        org_slug = request.query_params.get(settings.ORG_SLUG_PARAM)
+        rp_slug = request.query_params.get(settings.RP_SLUG_PARAM)
+        return view.model.user_has_create_permission_by_virtue_of_role(
+            request.user,
+            org_slug,
+            rp_slug,
+        )
+
+
+class HasDeletePrivilegesViaRole(permissions.BasePermission):
+    def has_permission(self, request, view):
+        """ """
+        pk = view.kwargs.get("pk")
+        instance = view.model.objects.get(pk=pk)
+        return pk is not None and view.model.user_has_delete_permission_by_virtue_of_role(request.user, instance)
 
 
 def is_a_contributor(user):

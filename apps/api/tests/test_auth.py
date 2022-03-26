@@ -131,7 +131,7 @@ class ContributorOwnsContributionTest(APITestCase):
         self.wrong_contributor = ContributorFactory(email="wrong@test.com")
 
         self.contribution = ContributionFactory(contributor=self.right_contributor)
-        self.url = reverse("contributions-cancel-recurring", kwargs={"pk": self.contribution.pk})
+        self.url = reverse("contribution-cancel-recurring-payment", kwargs={"pk": self.contribution.pk})
 
     def _create_request(self, user):
         request = self.factory.post(self.url)

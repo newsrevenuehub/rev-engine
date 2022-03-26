@@ -71,6 +71,32 @@ class AbstractPage(IndexedTimeStampedModel, RoleAssignmentResourceModelMixin):
         else:
             raise UnexpectedRoleType(f"{role_assignment.role_type} is not a valid value")
 
+    @classmethod
+    def user_has_create_permission_by_virtue_of_role(cls, user, org_slug, rp_slug):
+        role_type = user.roleassignment.role_type
+        user_org = user.roleassignment.organization
+        if role_type == Roles.HUB_ADMIN:
+            return True
+        elif role_type == Roles.ORG_ADMIN:
+            return user_org.slug == org_slug
+        elif role_type == Roles.RP_ADMIN:
+            return all(
+                [
+                    user_org.slug == org_slug,
+                    rp_slug in list(user.roleassignment.revenue_programs.all().values_list("slug", flat=True)),
+                ]
+            )
+
+    @classmethod
+    def user_has_delete_permission_by_virtue_of_role(cls, user, instance):
+        ra = user.roleassignment
+        if ra.role_type == Roles.HUB_ADMIN:
+            return True
+        elif ra.role_type == Roles.ORG_ADMIN:
+            return ra.organization == instance.organization
+        elif ra.role_type == Roles.RP_ADMIN:
+            return instance.revenue_program in user.roleassignment.revenue_programs.all()
+
     class Meta:
         abstract = True
 

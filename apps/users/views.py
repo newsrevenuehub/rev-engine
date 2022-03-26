@@ -12,9 +12,15 @@ from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
-from rest_framework.viewsets import ViewSet
+from rest_framework.viewsets import GenericViewSet
 
-from apps.api.permissions import is_a_contributor
+from apps.api.permissions import (
+    HasCreatePrivilegesForSlugs,
+    HasDeletePrivilegesViaRole,
+    HasRoleAssignment,
+    is_a_contributor,
+)
+from apps.public.permissions import IsSuperUser
 from apps.users import UnexpectedUserConfiguration
 from apps.users.serializers import UserSerializer
 
@@ -67,18 +73,25 @@ def retrieve_user(request):
         return Response(data=user_serializer.data, status=status.HTTP_200_OK)
 
 
-class ViewSetUserQueryRouterMixin(ViewSet):
-    def get_queryset(self, *args, **kwargs):
-
-        queryset = super().get_queryset(*args, **kwargs)
-        current_user = self.request.user
-        if current_user.is_anonymous:
+class ViewSetUserQueryRouterMixin(GenericViewSet):
+    def filter_queryset_for_user(self, user, queryset):
+        if is_a_contributor(user):
+            return queryset.model.filter_queryset_for_contributor(user, queryset)
+        if user.is_anonymous:
             return queryset.none()
-        if is_a_contributor(current_user):
-            return queryset.filter_queryset_for_contributor(current_user)
-        if current_user.is_superuser:
+        if user.is_superuser:
             return queryset.all()
-        elif role_assignment := getattr(current_user, "roleassignment"):
+        elif role_assignment := getattr(user, "roleassignment"):
             return queryset.model.filter_queryset_by_role_assignment(role_assignment, queryset)
         else:
-            raise UnexpectedUserConfiguration(current_user)
+            raise UnexpectedUserConfiguration(user)
+
+    def get_permissions(self):
+        if self.action == "create":
+            composed_perm = IsSuperUser | (IsAuthenticated & HasRoleAssignment & HasCreatePrivilegesForSlugs)
+            return [composed_perm()]
+        if self.action == "destroy":
+            composed_perm = IsSuperUser | (IsAuthenticated & HasRoleAssignment & HasDeletePrivilegesViaRole)
+            return [composed_perm()]
+
+        return super().get_permissions()

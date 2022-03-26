@@ -22,4 +22,3 @@ Please fill out each section even if it's just with "N/A"
 #### Do any changes need to be made before deployment to production (adding environment variables, for example)?
 
 #### Are there next steps? If so, what? Have tickets been opened for them?
-**(Note: Please use syntax [JIRA-123] to link any relevant tickets)**

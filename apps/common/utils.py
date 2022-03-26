@@ -87,7 +87,7 @@ def extract_ticket_id_from_branch_name(branch_name):
     """
     Extracts the ticket id from the branch name.
     """
-    return re.match(r"^[a-zA-Z]*-[0-9]*", branch_name).group()
+    return re.match(r"^[a-zA-Z]*-[0-9]*", branch_name).group().lower()
 
 
 def normalize_slug(name="", slug="", max_length=50):

@@ -28,6 +28,6 @@ class Command(BaseCommand):  # pragma: no cover
 
         zone_name = os.environ.get("CF_ZONE_NAME")
         site_url = f"https://{ticket_id}.{zone_name}"
-        webhook_url = site_url + reverse("stripe-webhooks")
+        webhook_url = f"{site_url}{reverse('stripe-webhooks')}".lower()
         api_key = get_hub_stripe_api_key()
         delete_stripe_webhook(webhook_url=webhook_url, api_key=api_key)

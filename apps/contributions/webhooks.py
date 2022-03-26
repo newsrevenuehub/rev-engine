@@ -8,9 +8,6 @@ import pytz
 from apps.contributions.models import Contribution, ContributionStatus
 
 
-# from apps.slack.models import SlackNotificationTypes
-
-
 logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
 
 

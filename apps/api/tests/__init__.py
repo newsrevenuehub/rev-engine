@@ -113,7 +113,7 @@ class DomainModelBootstrappedTestCase(AbstractTestCase):
     def assert_org_admin_cannot_post(self, url, data):
         self.client.force_authenticate(user=self.org_user)
         response = self.client.post(url, data)
-        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
 
     def assert_org_admin_can_patch(self, url, data):
         self.client.force_authenticate(user=self.org_user)
@@ -136,7 +136,7 @@ class DomainModelBootstrappedTestCase(AbstractTestCase):
     def assert_org_admin_cannot_delete(self, url):
         self.client.force_authenticate(user=self.org_user)
         response = self.client.delete(url)
-        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
         return response
 
     def assert_rp_user_can_get(self, url):
@@ -172,7 +172,7 @@ class DomainModelBootstrappedTestCase(AbstractTestCase):
     def assert_rp_user_cannot_post(self, url, data):
         self.client.force_authenticate(user=self.rp_user)
         response = self.client.post(url, data)
-        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
         return response
 
     def assert_rp_user_can_patch(self, url, data):
@@ -196,7 +196,7 @@ class DomainModelBootstrappedTestCase(AbstractTestCase):
     def assert_rp_user_cannot_delete(self, url):
         self.client.force_authenticate(user=self.rp_user)
         response = self.client.delete(url)
-        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
         return response
 
     def assert_contributor_can_get(self, url):

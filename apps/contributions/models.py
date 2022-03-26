@@ -8,6 +8,8 @@ from simple_history.models import HistoricalRecords
 from apps.common.models import IndexedTimeStampedModel
 from apps.slack.models import SlackNotificationTypes
 from apps.slack.slack_manager import SlackManager
+from apps.users.choices import Roles
+from apps.users.models import RoleAssignmentResourceModelMixin, UnexpectedRoleType
 
 
 class Contributor(IndexedTimeStampedModel):
@@ -62,7 +64,7 @@ class ContributionStatus(models.TextChoices):
     REJECTED = "rejected", "rejected"
 
 
-class Contribution(IndexedTimeStampedModel):
+class Contribution(IndexedTimeStampedModel, RoleAssignmentResourceModelMixin):
     amount = models.IntegerField(help_text="Stored in cents")
     currency = models.CharField(max_length=3, default="usd")
     reason = models.CharField(max_length=255, blank=True)
@@ -179,3 +181,22 @@ class Contribution(IndexedTimeStampedModel):
             # ...get details on payment method
             self.provider_payment_method_details = self.fetch_stripe_payment_method()
         super().save(*args, **kwargs)
+
+    @classmethod
+    def filter_queryset_for_contributor(cls, contributor, queryset):
+        return queryset.filter(contributor=contributor).all()
+
+    @classmethod
+    def filter_queryset_by_role_assignment(cls, role_assignment, queryset):
+        if role_assignment.role_type == Roles.HUB_ADMIN:
+            return queryset.all()
+        elif role_assignment.role_type == Roles.ORG_ADMIN:
+            return queryset.filter(donation_page__revenue_program__organization=role_assignment.organization)
+        elif role_assignment.role_type == Roles.RP_ADMIN:
+            return queryset.filter(donation_page__revenue_program__in=role_assignment.revenue_programs.all())
+        else:
+            raise UnexpectedRoleType(f"{role_assignment.role_type} is not a valid value")
+
+    # @classmethod
+    # def user_has_create_permission_by_virtue_of_role(cls, user, org_slug, rp_slug):
+    #     if role_type := user.roleassignment.role_type == Roles.HUB_ADMIN

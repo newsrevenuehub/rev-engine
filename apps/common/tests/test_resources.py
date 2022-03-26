@@ -83,6 +83,7 @@ class AbstractTestCase(APITestCase):
                 "revenue_programs": [
                     cls.org1_rp1,
                 ],
+                "organization": cls.org1,
             }
         )
         cls.hub_user = create_test_user(role_assignment_data={"role_type": Roles.HUB_ADMIN})

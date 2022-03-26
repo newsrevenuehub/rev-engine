@@ -21,7 +21,6 @@ logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
 
 class PageViewSet(ViewSetUserQueryRouterMixin, viewsets.ModelViewSet):
     model = DonationPage
-    queryset = DonationPage.objects.all()
     filter_backends = [
         filters.OrderingFilter,
     ]
@@ -36,8 +35,8 @@ class PageViewSet(ViewSetUserQueryRouterMixin, viewsets.ModelViewSet):
     # pages are ever accessed via api and not restricted by org.
     pagination_class = None
 
-    __gate_create_by_rp = True
-    __gate_create_by_org = True
+    def get_queryset(self):
+        return self.filter_queryset_for_user(self.request.user, self.model.objects.all())
 
     def get_serializer_class(self):
 

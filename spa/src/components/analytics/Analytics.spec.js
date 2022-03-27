@@ -35,7 +35,7 @@ describe('trackConversion', () => {
       pathname: FB_TRACK_URL.pathname,
       query: {
         id: FB_PIXEL_ID,
-        ev: 'Donate'
+        ev: 'Contribute'
       }
     }).as('fbTrackDonation');
     cy.intercept({

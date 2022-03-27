@@ -92,7 +92,7 @@ function DonationDetail() {
   };
 
   const handleReject = () => {
-    getUserConfirmation('Are you sure you want to reject this donation?', doReject);
+    getUserConfirmation('Are you sure you want to reject this contribution?', doReject);
   };
 
   const {
@@ -117,7 +117,7 @@ function DonationDetail() {
       ) : (
         <>
           <S.DL layout>
-            <DataGroup heading="Donation details">
+            <DataGroup heading="Contribution details">
               <dt>Status</dt>
               <dd data-testid="status">
                 <StatusCellIcon status={status || ''} showText />

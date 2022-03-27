@@ -287,7 +287,7 @@ describe('Donation page edit', () => {
       const expectedErrorMessage = 'Enter a valid URL.';
       cy.intercept(
         { method: 'PATCH', pathname: `${getEndpoint(PATCH_PAGE)}${unpublishedPage.id}/` },
-        { body: { header_link: [expectedErrorMessage] }, statusCode: 400 }
+        { body: { thank_you_redirect: [expectedErrorMessage] }, statusCode: 400 }
       ).as('patchPage');
 
       // Save

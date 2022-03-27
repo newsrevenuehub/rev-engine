@@ -17,6 +17,6 @@ function SPageHeading() {
 
 SPageHeading.type = 'SPageHeading';
 SPageHeading.displayName = 'Page Heading';
-SPageHeading.description = 'This is a static element at the top of the donation section of your page';
+SPageHeading.description = 'This is a static element at the top of the contribution section of your page';
 
 export default SPageHeading;

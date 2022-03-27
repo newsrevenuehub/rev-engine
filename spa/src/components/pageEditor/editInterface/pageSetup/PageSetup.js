@@ -149,6 +149,7 @@ function PageSetup({ backToProperties }) {
           value={thank_you_redirect}
           onChange={(e) => setThankYouRedirect(e.target.value)}
           errors={errors.thank_you_redirect}
+          testid="thank-you-redirect-link-input"
         />
       </S.InputWrapper>
       <S.InputWrapper border>

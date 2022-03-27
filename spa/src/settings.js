@@ -9,7 +9,7 @@
 */
 
 // These subdomain labels will redirect to the org portal.
-export const ORG_PORTAL_SUBDOMAINS = resolveConstantFromEnv('ORG_PORTAL_SUBDOMAINS', 'support:').split(':');
+export const ORG_PORTAL_SUBDOMAINS = resolveConstantFromEnv('ORG_PORTAL_SUBDOMAINS', ['support']);
 
 //Rev Engine - General
 export const REVENGINE_API_VERSION = resolveConstantFromEnv('REVENGINE_API_VERSION', 'v1');

@@ -42,6 +42,7 @@ class OrganizationFactory(DjangoModelFactory):
     address = factory.SubFactory(AddressFactory)
     stripe_verified = True
     slug = factory.lazy_attribute(lambda o: normalize_slug(name=o.name))
+    plan = factory.SubFactory("apps.organizations.tests.factories.PlanFactory")
 
 
 class RevenueProgramFactory(DjangoModelFactory):

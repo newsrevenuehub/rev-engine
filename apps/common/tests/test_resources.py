@@ -7,8 +7,13 @@ from rest_framework.test import APITestCase
 
 from apps.contributions.models import Contributor
 from apps.contributions.tests.factories import ContributionFactory, ContributorFactory
-from apps.organizations.models import Organization, RevenueProgram
-from apps.organizations.tests.factories import OrganizationFactory, RevenueProgramFactory
+from apps.organizations.models import Organization, Plan, RevenueProgram
+from apps.organizations.tests.factories import (
+    FeatureFactory,
+    OrganizationFactory,
+    PlanFactory,
+    RevenueProgramFactory,
+)
 from apps.pages.models import DonationPage
 from apps.pages.tests.factories import DonationPageFactory
 from apps.users.choices import Roles
@@ -30,6 +35,8 @@ class AbstractTestCase(APITestCase):
     rp_count = 2
     contributors_count = 2
     donation_pages_per_rp_count = 2
+    plans_per_org = 2
+    features_per_plan = 2
 
     @classmethod
     def _set_up_contributions(cls):
@@ -63,6 +70,13 @@ class AbstractTestCase(APITestCase):
             DonationPageFactory(revenue_program=cls.org2_rp)
 
     @classmethod
+    def _set_up_feature_sets(cls):
+        for plan in Plan.objects.all():
+            features = [FeatureFactory() for x in range(cls.features_per_plan)]
+            plan.features.add(*features)
+            plan.save()
+
+    @classmethod
     def set_up_domain_model(cls):
         """Set up most commonly needed data models in a predictable way for use across tests
 
@@ -91,6 +105,7 @@ class AbstractTestCase(APITestCase):
         # this must be called before _set_up_contributions
         cls._set_up_donation_pages()
         cls._set_up_contributions()
+        cls._set_up_feature_sets()
 
     class Meta:
         abstract = True

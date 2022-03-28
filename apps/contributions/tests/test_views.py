@@ -6,6 +6,7 @@ from django.middleware import csrf
 from django.test import override_settings
 
 from faker import Faker
+from rest_framework import status
 from rest_framework.reverse import reverse
 from rest_framework.test import APIRequestFactory, APITestCase
 from stripe.error import StripeError
@@ -435,7 +436,9 @@ class TestContributionsViewSet(DomainModelBootstrappedTestCase):
         self.client.cookies["Authorization"] = refresh_token.long_lived_access_token
         self.client.cookies["csrftoken"] = csrf._get_new_csrf_token()
         not_my_contribution = Contribution.objects.exclude(contributor=self.contributor_user).first()
-        self.assert_contributor_cannot_get(self.contribution_detail_url(not_my_contribution.pk))
+        self.assert_contributor_cannot_get(
+            self.contribution_detail_url(not_my_contribution.pk), expected_status_code=status.HTTP_404_NOT_FOUND
+        )
 
     ######
     # List
@@ -484,14 +487,21 @@ class TestContributionsViewSet(DomainModelBootstrappedTestCase):
             self.list_url, expected_count, assert_all=_ensure_all_contributions_belong_to_contributor
         )
 
-    ########
-    # Delete
-
-    ########
-    # Update
-
-    ########
-    # Create
+    def test_contributions_are_read_only_for_expected_users(self):
+        detail_url = reverse("contribution-detail", args=(Contribution.objects.first().pk,))
+        expected_users = (
+            self.superuser,
+            self.hub_user,
+            self.org_user,
+            self.rp_user,
+            self.contributor_user,
+            self.generic_user,
+        )
+        for user in expected_users:
+            self.assert_user_cannot_delete_because_not_implemented(detail_url, user)
+            self.assert_user_cannot_post_because_not_implemented(self.list_url, user)
+            self.assert_user_cannot_patch_because_not_implemented(detail_url, user)
+            self.assert_user_cannot_put_because_not_implemented(detail_url, user)
 
 
 TEST_STRIPE_API_KEY = "test_stripe_api_key"

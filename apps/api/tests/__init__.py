@@ -85,6 +85,12 @@ class DomainModelBootstrappedTestCase(AbstractTestCase):
         self.assertEqual(response.status_code, expected_status_code)
         return response
 
+    def assert_user_cannot_put(self, url, user, data=None, expected_status_code=status.HTTP_403_FORBIDDEN):
+        self.client.force_authenticate(user=user)
+        response = self.client.put(url, data)
+        self.assertEqual(response.status_code, expected_status_code)
+        return response
+
     def assert_user_can_delete(self, url, user):
         self.client.force_authenticate(user=user)
         response = self.client.delete(url)

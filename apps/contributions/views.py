@@ -27,7 +27,7 @@ from apps.contributions.webhooks import StripeWebhookProcessor
 from apps.emails.models import EmailTemplateError, PageEmailTemplate
 from apps.organizations.models import Organization
 from apps.public.permissions import IsSuperUser
-from apps.users.views import ViewSetUserQueryRouterMixin
+from apps.users.views import FilterQuerySetByUserMixin, PerUserCreateDeletePermissionsMixin
 
 
 logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
@@ -200,7 +200,9 @@ def process_stripe_webhook_view(request):
     return Response(status=status.HTTP_200_OK)
 
 
-class ContributionsViewSet(viewsets.ReadOnlyModelViewSet, ViewSetUserQueryRouterMixin):
+class ContributionsViewSet(
+    viewsets.ReadOnlyModelViewSet, FilterQuerySetByUserMixin, PerUserCreateDeletePermissionsMixin
+):
     permission_classes = [
         IsAuthenticated,
         IsSuperUser | HasRoleAssignment | (IsContributor & ContributorOwnsContribution),

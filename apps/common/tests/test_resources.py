@@ -102,6 +102,7 @@ class AbstractTestCase(APITestCase):
         )
         cls.hub_user = create_test_user(role_assignment_data={"role_type": Roles.HUB_ADMIN})
         cls.superuser = user_model.objects.create_superuser(email="test@test.com", password="testing")
+        cls.generic_user = create_test_user()
         # this must be called before _set_up_contributions
         cls._set_up_donation_pages()
         cls._set_up_contributions()

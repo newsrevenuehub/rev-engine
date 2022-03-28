@@ -12,7 +12,6 @@ from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
-from rest_framework.viewsets import GenericViewSet
 
 from apps.api.permissions import (
     HasCreatePrivilegesForSlugs,
@@ -73,8 +72,9 @@ def retrieve_user(request):
         return Response(data=user_serializer.data, status=status.HTTP_200_OK)
 
 
-class ViewSetUserQueryRouterMixin(GenericViewSet):
-    def filter_queryset_for_user(self, user, queryset):
+class FilterQuerySetByUserMixin:
+    @classmethod
+    def filter_queryset_for_user(cls, user, queryset):
         if is_a_contributor(user):
             return queryset.model.filter_queryset_for_contributor(user, queryset)
         if user.is_anonymous:
@@ -86,6 +86,8 @@ class ViewSetUserQueryRouterMixin(GenericViewSet):
         else:
             raise UnexpectedUserConfiguration(user)
 
+
+class PerUserCreateDeletePermissionsMixin:
     def get_permissions(self):
         if self.action == "create":
             composed_perm = IsSuperUser | (IsAuthenticated & HasRoleAssignment & HasCreatePrivilegesForSlugs)

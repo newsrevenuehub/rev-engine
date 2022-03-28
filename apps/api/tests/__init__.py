@@ -76,12 +76,12 @@ class DomainModelBootstrappedTestCase(AbstractTestCase):
         data = data if data is not None else {}
         self.client.force_authenticate(user=user)
         response = self.client.patch(url, data)
-        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
         return response
 
     def assert_user_cannot_patch(self, url, user, data=None, expected_status_code=status.HTTP_403_FORBIDDEN):
         self.client.force_authenticate(user=user)
-        response = self.client.post(url, data)
+        response = self.client.patch(url, data)
         self.assertEqual(response.status_code, expected_status_code)
         return response
 
@@ -145,19 +145,19 @@ class DomainModelBootstrappedTestCase(AbstractTestCase):
         )
 
     def assert_hub_admin_can_post(self, url, data):
-        return self.user_can_post(url, self.hub_user, data)
+        return self.assert_user_can_post(url, self.hub_user, data)
 
     def assert_hub_admin_cannot_post(self, url, data=None, expected_status_code=status.HTTP_404_NOT_FOUND):
         return self.assert_user_cannot_post(url, self.hub_user, data, expected_status_code)
 
     def assert_hub_admin_can_patch(self, url, data):
-        return self.user_can_patch(url, data, self.hub_user)
+        return self.assert_user_can_patch(url, self.hub_user, data)
 
     def assert_hub_admin_cannot_patch(self, url, data=None, expected_status_code=status.HTTP_404_NOT_FOUND):
         return self.assert_user_cannot_patch(url, self.hub_user, data, expected_status_code)
 
     def assert_hub_admin_can_delete(self, url):
-        return self.user_can_delete(url, self.hub_user)
+        return self.assert_user_can_delete(url, self.hub_user)
 
     def assert_hub_admin_cannot_delete(self, url, expected_status_code=status.HTTP_404_NOT_FOUND):
         return self.assert_user_cannot_delete(url, self.hub_user, expected_status_code)
@@ -175,7 +175,7 @@ class DomainModelBootstrappedTestCase(AbstractTestCase):
         return self.assert_user_can_list(url, self.org_user, expected_count, assert_item, assert_all, results_are_flat)
 
     def assert_org_admin_can_post(self, url, data):
-        return self.user_can_post(url, self.org_user, data)
+        return self.assert_user_can_post(url, self.org_user, data)
 
     def assert_org_admin_cannot_post(self, url, data, expected_status_code=status.HTTP_404_NOT_FOUND):
         return self.assert_user_cannot_post(url, self.org_user, data, expected_status_code)
@@ -187,7 +187,7 @@ class DomainModelBootstrappedTestCase(AbstractTestCase):
         return self.assert_user_cannot_patch(url, self.org_user, data, expected_status_code)
 
     def assert_org_admin_can_delete(self, url):
-        return self.assert_user_can_delete(self.org_user, url)
+        return self.assert_user_can_delete(url, self.org_user)
 
     def assert_org_admin_cannot_delete(self, url, expected_status_code=status.HTTP_404_NOT_FOUND):
         return self.assert_user_cannot_delete(url, self.org_user, expected_status_code)
@@ -209,10 +209,10 @@ class DomainModelBootstrappedTestCase(AbstractTestCase):
         )
 
     def assert_rp_user_can_post(self, url, data):
-        return self.assert_user_can_post(self.rp_user, url, data)
+        return self.assert_user_can_post(url, self.rp_user, data)
 
     def assert_rp_user_cannot_post(self, url, data, expected_status_code=status.HTTP_404_NOT_FOUND):
-        return self.assert_user_cannot_get(url, self.rp_user, data, expected_status_code)
+        return self.assert_user_cannot_post(url, self.rp_user, data, expected_status_code)
 
     def assert_rp_user_can_patch(self, url, data):
         return self.assert_user_can_patch(url, self.rp_user, data)

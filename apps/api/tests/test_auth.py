@@ -99,7 +99,7 @@ class JWTCookieAuthenticationTest(APITestCase):
 class IsContributorTest(APITestCase):
     def setUp(self):
         self.factory = RequestFactory()
-        self.url = reverse("contributions-list")
+        self.url = reverse("contribution-list")
         self.regular_user = user_model.objects.create_user(email="test@test.com", password="testing")
         self.contributor = ContributorFactory()
         self.permission = IsContributor()

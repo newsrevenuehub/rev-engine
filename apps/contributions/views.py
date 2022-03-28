@@ -4,17 +4,20 @@ from django.conf import settings
 from django.contrib.auth import get_user_model
 
 import stripe
-from django_filters.rest_framework import DjangoFilterBackend
-from rest_framework import filters, status, viewsets
-from rest_framework.decorators import api_view, authentication_classes, permission_classes
+from rest_framework import status, viewsets
+from rest_framework.decorators import action, api_view, authentication_classes, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
-from apps.api.filters import RoleAssignmentFilterBackend
-from apps.api.permissions import ContributorOwnsContribution, HasRoleAssignment, IsContributor
+from apps.api.permissions import (
+    ContributorOwnsContribution,
+    HasRoleAssignment,
+    IsContributor,
+    IsHubAdmin,
+)
 from apps.contributions import serializers
 from apps.contributions.filters import ContributionFilter
-from apps.contributions.models import Contribution, ContributionInterval, Contributor
+from apps.contributions.models import Contribution, ContributionInterval
 from apps.contributions.payment_managers import (
     PaymentBadParamsError,
     PaymentProviderError,
@@ -24,6 +27,7 @@ from apps.contributions.webhooks import StripeWebhookProcessor
 from apps.emails.models import EmailTemplateError, PageEmailTemplate
 from apps.organizations.models import Organization
 from apps.public.permissions import IsSuperUser
+from apps.users.views import ViewSetUserQueryRouterMixin
 
 
 logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
@@ -196,93 +200,84 @@ def process_stripe_webhook_view(request):
     return Response(status=status.HTTP_200_OK)
 
 
-class ContributionsViewSet(viewsets.ReadOnlyModelViewSet):
+class ContributionsViewSet(viewsets.ReadOnlyModelViewSet, ViewSetUserQueryRouterMixin):
     permission_classes = [
         IsAuthenticated,
         IsSuperUser | HasRoleAssignment | (IsContributor & ContributorOwnsContribution),
     ]
     model = Contribution
-    filter_backends = [DjangoFilterBackend, filters.OrderingFilter, RoleAssignmentFilterBackend]
     filterset_class = ContributionFilter
 
     def get_queryset(self):
-        """
-        We should limit by organization if the requesting user is a User (OrgAdmin).
-        If they're a Contributor, we should show them all the contributions under their name.
-        """
-        if isinstance(self.request.user, Contributor):
-            return self.model.objects.filter(contributor=self.request.user)
-
-        return self.model.objects.all()
+        return self.filter_queryset_for_user(self.request.user, self.model.objects.all())
 
     def get_serializer_class(self):
         if isinstance(self.request.user, UserModel):
             return serializers.ContributionSerializer
         return serializers.ContributorContributionSerializer
 
+    @action(
+        methods=["post"],
+        detail=True,
+        permission_classes=[IsAuthenticated, IsSuperUser | IsHubAdmin],
+    )
+    def process_flagged(self, request, pk=None):
+        reject = request.data.get("reject", None)
+        if reject is None:
+            return Response(data={"detail": "Missing required data"}, status=status.HTTP_400_BAD_REQUEST)
 
-@api_view(["POST"])
-def process_flagged(request, pk=None):
-    reject = request.data.get("reject", None)
-    if reject is None:
-        return Response(data={"detail": "Missing required data"}, status=status.HTTP_400_BAD_REQUEST)
+        try:
+            contribution = Contribution.objects.get(pk=pk)
+            contribution.process_flagged_payment(reject=reject)
+        except Contribution.DoesNotExist:
+            return Response({"detail": "Could not find contribution"}, status=status.HTTP_404_NOT_FOUND)
+        except PaymentProviderError as pp_error:
+            return Response({"detail": str(pp_error)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-    try:
-        contribution = Contribution.objects.get(pk=pk)
-        contribution.process_flagged_payment(reject=reject)
-    except Contribution.DoesNotExist:
-        return Response({"detail": "Could not find contribution"}, status=status.HTTP_404_NOT_FOUND)
-    except PaymentProviderError as pp_error:
-        return Response({"detail": str(pp_error)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        return Response(data={"detail": "rejected" if reject else "accepted"}, status=status.HTTP_200_OK)
 
-    return Response(data={"detail": "rejected" if reject else "accepted"}, status=status.HTTP_200_OK)
+    @action(methods=["patch"], detail=True, permission_classes=[IsAuthenticated, IsContributor])
+    def update_payment_method(self, request, pk):
+        if request.data.keys() != {"payment_method_id"}:
+            return Response({"detail": "Request contains unsupported fields"}, status=status.HTTP_400_BAD_REQUEST)
 
+        try:
+            contribution = request.user.contribution_set.get(pk=pk)
+        except Contribution.DoesNotExist:
+            return Response(
+                {"detail": "Could not find contribution for requesting contributor"}, status=status.HTTP_404_NOT_FOUND
+            )
 
-@api_view(["PATCH"])
-@permission_classes([IsAuthenticated, IsContributor])
-def update_payment_method(request, pk):
-    if request.data.keys() != {"payment_method_id"}:
-        return Response({"detail": "Request contains unsupported fields"}, status=status.HTTP_400_BAD_REQUEST)
+        payment_manager = StripePaymentManager(contribution=contribution)
 
-    try:
-        contribution = request.user.contribution_set.get(pk=pk)
-    except Contribution.DoesNotExist:
-        return Response(
-            {"detail": "Could not find contribution for requesting contributor"}, status=status.HTTP_404_NOT_FOUND
-        )
+        try:
+            payment_manager.update_payment_method(request.data["payment_method_id"])
+        except PaymentProviderError as pp_error:
+            error_message = str(pp_error)
+            logger.error(error_message)
+            return Response({"detail": error_message}, status=status.HTTP_400_BAD_REQUEST)
 
-    payment_manager = StripePaymentManager(contribution=contribution)
+        return Response({"detail": "Success"}, status=status.HTTP_200_OK)
 
-    try:
-        payment_manager.update_payment_method(request.data["payment_method_id"])
-    except PaymentProviderError as pp_error:
-        error_message = str(pp_error)
-        logger.error(error_message)
-        return Response({"detail": error_message}, status=status.HTTP_400_BAD_REQUEST)
+    @action(methods=["post"], detail=True, permission_classes=[IsAuthenticated, IsContributor])
+    def cancel_recurring_payment(self, request, pk):
+        try:
+            contribution = request.user.contribution_set.get(pk=pk)
+        except Contribution.DoesNotExist:
+            logger.error(
+                "Could not find contribution for requesting contributor. This could be due to the requesting user not having permission to act on this resource."
+            )
+            return Response(
+                {"detail": "Could not find contribution for requesting contributor"}, status=status.HTTP_404_NOT_FOUND
+            )
 
-    return Response({"detail": "Success"}, status=status.HTTP_200_OK)
+        payment_manager = StripePaymentManager(contribution=contribution)
 
+        try:
+            payment_manager.cancel_recurring_payment()
+        except PaymentProviderError as pp_error:
+            error_message = str(pp_error)
+            logger.error(error_message)
+            return Response({"detail": error_message}, status=status.HTTP_400_BAD_REQUEST)
 
-@api_view(["POST"])
-@permission_classes([IsAuthenticated, IsContributor])
-def cancel_recurring_payment(request, pk):
-    try:
-        contribution = request.user.contribution_set.get(pk=pk)
-    except Contribution.DoesNotExist:
-        logger.error(
-            "Could not find contribution for requesting contributor. This could be due to the requesting user not having permission to act on this resource."
-        )
-        return Response(
-            {"detail": "Could not find contribution for requesting contributor"}, status=status.HTTP_404_NOT_FOUND
-        )
-
-    payment_manager = StripePaymentManager(contribution=contribution)
-
-    try:
-        payment_manager.cancel_recurring_payment()
-    except PaymentProviderError as pp_error:
-        error_message = str(pp_error)
-        logger.error(error_message)
-        return Response({"detail": error_message}, status=status.HTTP_400_BAD_REQUEST)
-
-    return Response({"detail": "Success"}, status=status.HTTP_200_OK)
+        return Response({"detail": "Success"}, status=status.HTTP_200_OK)

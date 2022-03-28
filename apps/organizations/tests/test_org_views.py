@@ -1,11 +1,12 @@
 import django.db.utils
 from django.contrib.auth import get_user_model
 
+from rest_framework import status
 from rest_framework.exceptions import ValidationError
 from rest_framework.reverse import reverse
 from rest_framework.test import APITestCase
 
-from apps.common.tests.test_resources import AbstractTestCase
+from apps.api.tests import DomainModelBootstrappedTestCase
 from apps.organizations.models import Feature, Organization, Plan, RevenueProgram
 from apps.organizations.tests.factories import (
     FeatureFactory,
@@ -14,47 +15,71 @@ from apps.organizations.tests.factories import (
     RevenueProgramFactory,
 )
 from apps.pages.tests.factories import DonationPageFactory
-from apps.users.choices import Roles
 from apps.users.tests.utils import create_test_user
 
 
 user_model = get_user_model()
 
 
-class OrganizationViewSetTest(AbstractTestCase):
+class OrganizationViewSetTest(DomainModelBootstrappedTestCase):
     model_factory = OrganizationFactory
     model = Organization
 
     def setUp(self):
         super().setUp()
-        self.list_url = reverse("organization-list")
         self.set_up_domain_model()
+        self.is_authed_user = create_test_user()
+        self.post_data = {}
+        self.expected_user_types = (
+            self.superuser,
+            self.hub_user,
+            self.org_user,
+            self.rp_user,
+        )
+        self.detail_url = reverse("organization-detail", args=(self.org1.pk,))
+        self.list_url = reverse("organization-list")
 
-    def test_list_of_orgs(self):
-        response = self.client.get(self.list_url)
-        self.assertEqual(response.status_code, 200)
-        orgs = Organization.objects.all()
-        self.assertEqual(len(response.json()), len(orgs))
-        org_names = [o["name"] for o in response.json()]
-        expected_org_names = [o.name for o in orgs]
-        self.assertEqual(org_names, expected_org_names)
+    def assert_user_can_list_orgs(self, user):
+        org_count = Organization.objects.count()
+        self.assert_user_can_list(self.list_url, user, org_count, results_are_flat=True)
 
-    def test_org_readonly(self):
-        self.login()
-        response = self.client.post(self.list_url, {"name": "API Org"})
-        self.assertEqual(response.status_code, 405)
-        self.assertEqual(Organization.objects.count(), self.org_count)
+    def assert_user_can_retrieve_an_org(self, user):
+        response = self.assert_user_can_get(self.detail_url, user)
+        self.assertEqual(response.json()["id"], self.org1.pk)
 
-    def test_cannot_delete_organization(self):
-        self.login()
-        org = Organization.objects.first()
-        old_pk = org.pk
-        detail_url = f"/api/v1/organizations/{old_pk}/"
-        self.client.delete(detail_url)
-        self.assertEqual(Organization.objects.count(), self.org_count)
+    def assert_user_cannot_udpate_an_org(self, user):
+        last_modified = self.org1.modified
+        self.assert_user_cannot_patch_because_not_implemented(self.detail_url, user)
+        self.org1.refresh_from_db()
+        self.assertEqual(last_modified, self.org1.modified)
+
+    def assert_user_cannot_create_an_org(self, user):
+        before_count = Organization.objects.count()
+        self.assert_user_cannot_post_because_not_implemented(self.list_url, user)
+        self.assertEqual(before_count, Organization.objects.count())
+
+    def assert_user_cannot_delete_an_org(self, user):
+        self.assertGreaterEqual(before_count := Organization.objects.count(), 1)
+        self.assert_user_cannot_delete_because_not_implemented(self.detail_url, user)
+        self.assertEqual(before_count, Organization.objects.count())
+
+    def test_unauthed_cannot_access(self):
+        self.assert_unuauthed_cannot_get(self.detail_url)
+        self.assert_unuauthed_cannot_get(self.list_url)
+        self.assert_unauthed_cannot_delete(self.detail_url)
+        self.assert_unauthed_cannot_patch(self.detail_url)
+        self.assert_unauthed_cannot_put(self.detail_url)
+
+    def test_expected_user_types_can_only_read(self):
+        for user in self.expected_user_types:
+            self.assert_user_can_retrieve_an_org(user)
+            self.assert_user_can_list_orgs(user)
+            self.assert_user_cannot_create_an_org(user)
+            self.assert_user_cannot_udpate_an_org(user)
+            self.assert_user_cannot_delete_an_org(user)
 
 
-class RevenueProgramViewSetTest(AbstractTestCase):
+class RevenueProgramViewSetTest(DomainModelBootstrappedTestCase):
     model = RevenueProgram
     model_factory = RevenueProgramFactory
 

@@ -15,14 +15,14 @@ from stripe.stripe_object import StripeObject
 from apps.api.tests import DomainModelBootstrappedTestCase
 from apps.api.tokens import ContributorRefreshToken
 from apps.common.tests.test_resources import AbstractTestCase
-from apps.contributions.models import Contribution, ContributionInterval, Contributor
+from apps.contributions.models import Contribution, ContributionInterval
 from apps.contributions.payment_managers import PaymentBadParamsError, PaymentProviderError
 from apps.contributions.tests.factories import ContributionFactory, ContributorFactory
 from apps.contributions.views import stripe_payment
 from apps.organizations.models import RevenueProgram
 from apps.organizations.tests.factories import OrganizationFactory
 from apps.pages.models import DonationPage
-from apps.users.models import Roles
+from apps.users.choices import Roles
 from apps.users.tests.utils import create_test_user
 
 
@@ -372,15 +372,12 @@ class TestContributionsViewSet(DomainModelBootstrappedTestCase):
     def setUp(self):
         super().setUp()
         self.set_up_domain_model()
-        self.list_url = reverse("contributions-list")
-        self.detail_url_name = "contribution-detail"
+        self.list_url = reverse("contribution-list")
         self.contribution_for_org = Contribution.objects.filter(organization=self.org1).first()
 
     def contribution_detail_url(self, pk=None):
-        # This is here because for some unknown reason, `reverse('contribution-detail')` is not finding a match in tests
-        # is not working as expected for detail view
-        pk = pk if pk else self.contribution_for_org.pk
-        return f"/api/v1/contributions/{pk}/"
+        pk = pk if pk is not None else self.contribution_for_org.pk
+        return reverse("contribution-detail", args=(pk,))
 
     ##########
     # Retrieve
@@ -519,7 +516,7 @@ class UpdatePaymentMethodTest(APITestCase):
 
     def _make_request(self, contribution, data={}):
         self.client.force_authenticate(user=self.contributor)
-        return self.client.patch(reverse("contributions-update", kwargs={"pk": contribution.pk}), data)
+        return self.client.patch(reverse("contribution-update-payment-method", kwargs={"pk": contribution.pk}), data)
 
     @patch("stripe.PaymentMethod.attach")
     @patch("stripe.Subscription.modify")
@@ -619,7 +616,7 @@ class CancelRecurringPaymentTest(APITestCase):
 
     def _make_request(self, contribution):
         self.client.force_authenticate(user=self.contributor)
-        return self.client.post(reverse("contributions-cancel-recurring", kwargs={"pk": contribution.pk}))
+        return self.client.post(reverse("contribution-cancel-recurring-payment", kwargs={"pk": contribution.pk}))
 
     @patch("stripe.Subscription.delete")
     def test_failure_when_contribution_and_contributor_dont_match(self, mock_delete):
@@ -662,7 +659,7 @@ class ProcessFlaggedContributionTest(APITestCase):
         self.other_contribution = ContributionFactory()
 
     def _make_request(self, contribution_pk=None, request_args={}):
-        url = reverse("process-flagged", args=[contribution_pk])
+        url = reverse("contribution-process-flagged", args=[contribution_pk])
         self.client.force_authenticate(user=self.user)
         return self.client.post(url, request_args)
 

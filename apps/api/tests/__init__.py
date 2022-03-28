@@ -113,18 +113,20 @@ class DomainModelBootstrappedTestCase(AbstractTestCase):
         return self.assert_user_can_get(url, self.superuser)
 
     def assert_superuser_can_list(self, url, expected_count, assert_item=None, assert_all=None, results_are_flat=False):
-        return self.assert_user_can_list(
-            self, url, self.superuser, expected_count, assert_item, assert_all, results_are_flat
-        )
+        return self.assert_user_can_list(url, self.superuser, expected_count, assert_item, assert_all, results_are_flat)
 
     def assert_superuser_can_post(self, url, data=None):
         data = data if data is not None else {}
         return self.assert_user_can_post(url, self.superuser, data)
 
-    def assert_super_user_cannot_post(self, url, data=None, expected_status_code=status.HTTP_404_NOT_FOUND):
+    def assert_superuser_cannot_post(self, url, data=None, expected_status_code=status.HTTP_404_NOT_FOUND):
         return self.assert_user_cannot_post(url, self.superuser, data, expected_status_code)
 
     def assert_superuser_can_patch(self, url, data):
+        data = data if data is not None else {}
+        return self.assert_user_can_patch(url, self.superuser, data)
+
+    def assert_superuser_cannot_patch(self, url, data, expected_status_code=status.HTTP_404_NOT_FOUND):
         data = data if data is not None else {}
         return self.assert_user_can_patch(url, self.superuser, data)
 
@@ -138,8 +140,8 @@ class DomainModelBootstrappedTestCase(AbstractTestCase):
         return self.assert_user_can_get(url, self.hub_user)
 
     def assert_hub_admin_can_list(self, url, expected_count, assert_item=None, assert_all=None, results_are_flat=False):
-        return self.user_can_list(
-            url, self.hub_user, expected_count, assert_item=None, assert_all=None, results_are_flat=False
+        return self.assert_user_can_list(
+            url, self.hub_user, expected_count, assert_item=None, assert_all=None, results_are_flat=results_are_flat
         )
 
     def assert_hub_admin_can_post(self, url, data):
@@ -162,14 +164,15 @@ class DomainModelBootstrappedTestCase(AbstractTestCase):
 
     def assert_org_admin_can_get(self, url):
         return self.assert_user_can_get(
-            url.self.org_user,
+            url,
+            self.org_user,
         )
 
     def assert_org_admin_cannot_get(self, url, expected_status_code=status.HTTP_404_NOT_FOUND):
         return self.assert_user_cannot_get(url, self.org_user, expected_status_code)
 
     def assert_org_admin_can_list(self, url, expected_count, assert_item=None, assert_all=None, results_are_flat=False):
-        return self.user_can_list(url, self.org_user, expected_count, assert_item, assert_all, results_are_flat)
+        return self.assert_user_can_list(url, self.org_user, expected_count, assert_item, assert_all, results_are_flat)
 
     def assert_org_admin_can_post(self, url, data):
         return self.user_can_post(url, self.org_user, data)
@@ -197,7 +200,12 @@ class DomainModelBootstrappedTestCase(AbstractTestCase):
 
     def assert_rp_user_can_list(self, url, expected_count, assert_item=None, assert_all=None, results_are_flat=False):
         return self.assert_user_can_list(
+            url,
             self.rp_user,
+            expected_count,
+            assert_item,
+            assert_all,
+            results_are_flat,
         )
 
     def assert_rp_user_can_post(self, url, data):

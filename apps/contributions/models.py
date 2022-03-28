@@ -197,6 +197,16 @@ class Contribution(IndexedTimeStampedModel, RoleAssignmentResourceModelMixin):
         else:
             raise UnexpectedRoleType(f"{role_assignment.role_type} is not a valid value")
 
-    # @classmethod
-    # def user_has_create_permission_by_virtue_of_role(cls, user, org_slug, rp_slug):
-    #     if role_type := user.roleassignment.role_type == Roles.HUB_ADMIN
+    @classmethod
+    def user_has_create_permission_by_virtue_of_role(cls, user, org_slug, rp_slug):
+        if role_type := user.roleassignment.role_type == Roles.HUB_ADMIN:
+            return True
+        elif role_type == Roles.ORG_ADMIN:
+            return user.roleassignment.organization.slug == org_slug
+        elif role_type == Roles.RP_ADMIN:
+            return all(
+                [
+                    user.roleassignment.organization.slug == org_slug,
+                    rp_slug in user.roleassignment.revenue_programs.values_list("slug", flat=True),
+                ]
+            )

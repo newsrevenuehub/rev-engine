@@ -10,6 +10,7 @@ from django.urls import reverse_lazy
 
 from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
+from rest_framework.generics import GenericAPIView
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
@@ -87,7 +88,7 @@ class FilterQuerySetByUserMixin:
             raise UnexpectedUserConfiguration(user)
 
 
-class PerUserCreateDeletePermissionsMixin:
+class PerUserCreateDeletePermissionsMixin(GenericAPIView):
     def get_permissions(self):
         if self.action == "create":
             composed_perm = IsSuperUser | (IsAuthenticated & HasRoleAssignment & HasCreatePrivilegesForSlugs)

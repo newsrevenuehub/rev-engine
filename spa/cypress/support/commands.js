@@ -110,3 +110,15 @@ Cypress.Commands.add('editElement', (elementType) => {
       cy.getByTestId('pencil-button').click({ force: true });
     });
 });
+
+Cypress.Commands.add('setStripeCardElement', (elementName, value) => {
+  return cy.getByTestId('edit-recurring-payment-modal').within(($modal) => {
+    cy.wrap($modal)
+      .get('iframe')
+      .its('0.contentDocument.body')
+      .should('not.be.empty')
+      .then(cy.wrap)
+      .find(`input[data-elements-stable-field-name="${elementName}"]`)
+      .type(value);
+  });
+});

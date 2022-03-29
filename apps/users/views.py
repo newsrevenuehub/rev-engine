@@ -73,7 +73,7 @@ def retrieve_user(request):
         return Response(data=user_serializer.data, status=status.HTTP_200_OK)
 
 
-class FilterQuerySetByUserMixin:
+class FilterQuerySetByUserMixin(GenericAPIView):
     @classmethod
     def filter_queryset_for_user(cls, user, queryset):
         if is_a_contributor(user):

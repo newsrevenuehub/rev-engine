@@ -10,6 +10,7 @@ from apps.api.permissions import HasRoleAssignment, ReadOnly
 from apps.organizations import serializers
 from apps.organizations.models import Feature, Organization, Plan, RevenueProgram
 from apps.public.permissions import IsSuperUser
+from apps.users.views import FilterQuerySetByUserMixin
 
 
 user_model = get_user_model()
@@ -17,7 +18,7 @@ user_model = get_user_model()
 logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
 
 
-class OrganizationViewSet(viewsets.ReadOnlyModelViewSet):
+class OrganizationViewSet(viewsets.ReadOnlyModelViewSet, FilterQuerySetByUserMixin):
     model = Organization
     queryset = Organization.objects.all()
     permission_classes = [IsAuthenticated, IsSuperUser | HasRoleAssignment, ReadOnly]

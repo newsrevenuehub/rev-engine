@@ -32,8 +32,12 @@ class UserSerializer(serializers.ModelSerializer):
         role_assignment = obj.get_role_assignment()
         if not role_assignment and not obj.is_superuser:
             qs = qs.none()
-        elif not obj.is_superuser and role_assignment.role_type != Roles.HUB_ADMIN:
-            qs = qs.filter(pk=role_assignment.organization.pk)
+        elif role_assignment and role_assignment.role_type != Roles.HUB_ADMIN:
+            org = getattr(role_assignment, "organization", None)
+            if org is None:
+                qs = qs.none()
+            else:
+                qs = qs.filter(pk=org.pk)
         serializer = OrganizationInlineSerializer(qs, many=True)
         return serializer.data
 

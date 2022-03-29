@@ -55,7 +55,7 @@ class Feature(IndexedTimeStampedModel):
         super().save(*args, **kwargs)
 
 
-class Plan(IndexedTimeStampedModel):
+class Plan(IndexedTimeStampedModel, RoleAssignmentResourceModelMixin):
     name = models.CharField(max_length=255)
     features = models.ManyToManyField("organizations.Feature", related_name="plans", blank=True)
 
@@ -64,6 +64,19 @@ class Plan(IndexedTimeStampedModel):
 
     def __str__(self):  # pragma: no cover
         return self.name
+
+    @classmethod
+    def filter_queryset_by_role_assignment(cls, role_assignment, queryset):
+        if role_assignment.role_type == Roles.HUB_ADMIN:
+            return queryset.all()
+        elif role_assignment.role_type in (Roles.ORG_ADMIN, Roles.RP_ADMIN):
+            return queryset.filter(organization=role_assignment.organization)
+        else:
+            raise UnexpectedRoleType(f"{role_assignment.role_type} is not a valid value")
+
+    @classmethod
+    def filter_queryset_for_contributor(cls, contributor, queryset):
+        return queryset.none()
 
 
 CURRENCY_CHOICES = [(k, k) for k, _ in settings.CURRENCIES.items()]
@@ -164,7 +177,6 @@ class Organization(IndexedTimeStampedModel, RoleAssignmentResourceModelMixin):
         else:
             raise UnexpectedRoleType(f"{role_assignment.role_type} is not a valid value")
 
-    @classmethod
     def filter_queryset_for_contributor(cls, contributor, queryset):
         return queryset.none()
 

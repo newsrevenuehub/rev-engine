@@ -1,3 +1,5 @@
+import logging
+
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.contrib.auth.views import (
@@ -10,6 +12,7 @@ from django.urls import reverse_lazy
 
 from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
+from rest_framework.exceptions import APIException
 from rest_framework.generics import GenericAPIView
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
@@ -21,9 +24,11 @@ from apps.api.permissions import (
     is_a_contributor,
 )
 from apps.public.permissions import IsSuperUser
-from apps.users import UnexpectedUserConfiguration
+from apps.users.models import UnexpectedRoleType
 from apps.users.serializers import UserSerializer
 
+
+logger = logging.getLogger(__name__)
 
 user_model = get_user_model()
 
@@ -76,16 +81,18 @@ def retrieve_user(request):
 class FilterQuerySetByUserMixin(GenericAPIView):
     @classmethod
     def filter_queryset_for_user(cls, user, queryset):
-        if is_a_contributor(user):
-            return queryset.model.filter_queryset_for_contributor(user, queryset)
-        if user.is_anonymous:
-            return queryset.none()
-        if user.is_superuser:
-            return queryset.all()
-        elif role_assignment := getattr(user, "roleassignment"):
-            return queryset.model.filter_queryset_by_role_assignment(role_assignment, queryset)
-        else:
-            raise UnexpectedUserConfiguration(user)
+        try:
+            if is_a_contributor(user):
+                return queryset.model.filter_queryset_for_contributor(user, queryset)
+            if user.is_anonymous:
+                return queryset.none()
+            if user.is_superuser:
+                return queryset.all()
+            elif role_assignment := getattr(user, "roleassignment"):
+                return queryset.model.filter_queryset_by_role_assignment(role_assignment, queryset)
+        except UnexpectedRoleType as exc:
+            logger.error(f"Encountered unexpected role type: {exc}")
+            raise APIException(detail=str(exc))
 
 
 class PerUserCreateDeletePermissionsMixin(GenericAPIView):

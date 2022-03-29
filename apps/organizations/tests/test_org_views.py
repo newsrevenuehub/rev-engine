@@ -71,6 +71,14 @@ class OrganizationViewSetTest(DomainModelBootstrappedTestCase):
         ]:
             self.assert_user_can_list(self.list_url, user, count, results_are_flat=True)
 
+    def test_unexpected_role_type(self):
+        novel = create_test_user(role_assignment_data={"role_type": "this-is-new"})
+        self.assert_user_cannot_get(
+            reverse("organization-list"),
+            novel,
+            expected_status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        )
+
 
 class RevenueProgramViewSetTest(DomainModelBootstrappedTestCase):
     def setUp(self):
@@ -298,30 +306,3 @@ class FeatureViewSetTest(DomainModelBootstrappedTestCase):
                 user,
                 expected_status_code=status_code,
             )
-
-    ############
-    # Additional
-
-    # def test_unique_value(self):
-    #     with self.assertRaises(django.db.utils.IntegrityError):
-    #         FeatureFactory(feature_value=self.limit_feature.feature_value)
-
-    # def test_feature_limits_page_creation(self):
-    #     self.limit_feature.feature_value = "3"
-    #     self.limit_feature.save()
-    #     plan = PlanFactory()
-    #     plan.features.add(self.limit_feature)
-    #     plan.save()
-    #     org = OrganizationFactory(plan=plan)
-    #     rev_program = RevenueProgramFactory(organization=org)
-    #     for i in range(3):
-    #         try:
-    #             DonationPageFactory(revenue_program=rev_program)
-    #         except ValidationError as e:
-    #             self.fail(f"Save raised a validation error on expected valid inputs: {e.message}")
-    #     with self.assertRaises(ValidationError) as cm:
-    #         DonationPageFactory(revenue_program=rev_program)
-    #     self.assertEquals(
-    #         str(cm.exception.detail["non_field_errors"][0]),
-    #         f"Your organization has reached its limit of {self.limit_feature.feature_value} pages",
-    #     )

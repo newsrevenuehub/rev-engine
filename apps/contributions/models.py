@@ -195,7 +195,7 @@ class Contribution(IndexedTimeStampedModel, RoleAssignmentResourceModelMixin):
         elif role_assignment.role_type == Roles.RP_ADMIN:
             return queryset.filter(donation_page__revenue_program__in=role_assignment.revenue_programs.all())
         else:
-            raise UnexpectedRoleType(f"{role_assignment.role_type} is not a valid value")
+            raise UnexpectedRoleType(f"`{role_assignment.role_type}` is not a valid role type")
 
     @classmethod
     def user_has_create_permission_by_virtue_of_role(cls, user, org_slug, rp_slug):

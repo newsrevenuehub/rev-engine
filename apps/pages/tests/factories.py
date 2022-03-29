@@ -35,3 +35,12 @@ class StyleFactory(DjangoModelFactory):
     name = factory.Sequence(lambda n: "Test Style %d" % n)
     styles = {"colors": {"primary": "testing-pink"}}
     revenue_program = factory.SubFactory(RevenueProgramFactory)
+
+
+class FontFactory(DjangoModelFactory):
+    class Meta:
+        model = models.Font
+
+    name = factory.Sequence(lambda n: "Test Font %d" % n)
+    source = models.Font.FontSourceChoices.GOOGLE_FONTS[0]
+    font_name = factory.Sequence(lambda n: "Test Font Name %d" % n)

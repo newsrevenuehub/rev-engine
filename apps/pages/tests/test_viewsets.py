@@ -2,9 +2,6 @@ import datetime
 import json
 
 from django.conf import settings
-from django.contrib.auth import get_user_model
-from django.core.files.uploadedfile import SimpleUploadedFile
-from django.test import override_settings
 from django.utils import timezone
 
 from rest_framework import status
@@ -12,17 +9,11 @@ from rest_framework.reverse import reverse
 from rest_framework.test import APITestCase
 
 from apps.api.tests import DomainModelBootstrappedTestCase
-from apps.common.tests.test_resources import AbstractTestCase
-from apps.common.tests.test_utils import get_test_image_file_jpeg
-from apps.element_media.tests import setup_sidebar_fixture
 from apps.organizations.models import RevenueProgram
 from apps.organizations.tests.factories import RevenueProgramFactory
-from apps.pages.models import DonationPage, Style, Template
-from apps.pages.tests.factories import DonationPageFactory, StyleFactory, TemplateFactory
-from apps.pages.validators import required_style_keys
-
-
-user_model = get_user_model()
+from apps.pages.models import DonationPage, Font, Style, Template
+from apps.pages.tests.factories import DonationPageFactory, FontFactory, TemplateFactory
+from apps.pages.validators import UNOWNED_TEMPLATE_FROM_PAGE_PAGE_PK_MESSAGE
 
 
 class PageViewSetTest(DomainModelBootstrappedTestCase):
@@ -103,7 +94,6 @@ class PageViewSetTest(DomainModelBootstrappedTestCase):
         created_page = DonationPage.objects.get(id=response.json()["id"])
         self.assert_created_page_looks_right(created_page, rp.organization, rp)
 
-    # this fails right now: our permissions approach does not handle gating creation for this case
     def test_rp_admin_cannot_create_a_page_for_unowned_rp(self):
         criterion = {
             "revenue_program__in": self.rp_user.roleassignment.revenue_programs.all(),
@@ -519,7 +509,8 @@ class TemplateViewSetTest(DomainModelBootstrappedTestCase):
     def setUp(self):
         super().setUp()
         self.set_up_domain_model()
-        self.list_url = f'{reverse("template-list")}?{settings.RP_SLUG_PARAM}={self.org1_rp1}&{settings.ORG_SLUG_PARAM}={self.org1.slug}'
+        self.list_url = f'{reverse("template-list")}?{settings.RP_SLUG_PARAM}={self.org1_rp1.slug}&{settings.ORG_SLUG_PARAM}={self.org1.slug}'
+        self.my_orgs_page = DonationPage.objects.filter(revenue_program__organization=self.org1).first()
         self.template = Template.objects.filter(revenue_program=self.org1_rp1).first()
         self.other_orgs_template = Template.objects.exclude(revenue_program__organization=self.org1).first()
         self.other_rps_template = Template.objects.exclude(revenue_program=self.org1_rp1).first()
@@ -530,6 +521,7 @@ class TemplateViewSetTest(DomainModelBootstrappedTestCase):
             .first()
         )
         for item in (
+            self.my_orgs_page,
             self.template,
             self.other_orgs_template,
             self.other_rps_template,
@@ -545,7 +537,7 @@ class TemplateViewSetTest(DomainModelBootstrappedTestCase):
 
     @property
     def create_template_data_valid(self):
-        return {**self._base_new_template_data, "page_pk": self.template.pk}
+        return {**self._base_new_template_data, "page_pk": self.my_orgs_page.pk}
 
     @property
     def create_template_data_invalid_for_other_org(self):
@@ -556,9 +548,8 @@ class TemplateViewSetTest(DomainModelBootstrappedTestCase):
         return {**self._base_new_template_data, "page_pk": self.other_rps_page.pk}
 
     def assert_created_page_response_data_looks_right(self, request_data, created_instance):
-        # page_pk is not returned in response
-        for key, value in request_data.items():
-            self.assertEqual(value, getattr(created_instance, key))
+        self.assertEqual(request_data["name"], "New Template")
+        self.assertEqual(request_data["heading"], created_instance.heading)
 
     ########
     # Create
@@ -566,7 +557,7 @@ class TemplateViewSetTest(DomainModelBootstrappedTestCase):
         old_count = Template.objects.count()
         response = self.assert_superuser_can_post(self.list_url, self.create_template_data_valid)
         self.assert_created_page_response_data_looks_right(
-            self.create_template_data_valid, Template.objects.get(pk=response["id"])
+            self.create_template_data_valid, Template.objects.get(pk=response.json()["id"])
         )
         self.assertEqual(Template.objects.count(), old_count + 1)
 
@@ -574,7 +565,7 @@ class TemplateViewSetTest(DomainModelBootstrappedTestCase):
         old_count = Template.objects.count()
         response = self.assert_hub_admin_can_post(self.list_url, self.create_template_data_valid)
         self.assert_created_page_response_data_looks_right(
-            self.create_template_data_valid, Template.objects.get(pk=response["id"])
+            self.create_template_data_valid, Template.objects.get(pk=response.json()["id"])
         )
         self.assertEqual(Template.objects.count(), old_count + 1)
 
@@ -582,26 +573,45 @@ class TemplateViewSetTest(DomainModelBootstrappedTestCase):
         old_count = Template.objects.count()
         response = self.assert_org_admin_can_post(self.list_url, self.create_template_data_valid)
         self.assert_created_page_response_data_looks_right(
-            self.create_template_data_valid, Template.objects.get(pk=response["id"])
+            self.create_template_data_valid, Template.objects.get(pk=response.json()["id"])
         )
         self.assertEqual(Template.objects.count(), old_count + 1)
 
-    def test_org_user_cannot_create_a_template_for_an_unowned_page(self):
+    def test_org_user_cannot_create_a_template_from_an_unowned_page(self):
         old_count = Template.objects.count()
-        self.assert_org_admin_cannot_post(self.list_url, self.create_template_data_invalid_for_other_org)
+        response = self.assert_org_admin_cannot_post(
+            self.list_url,
+            self.create_template_data_invalid_for_other_org,
+            expected_status_code=status.HTTP_400_BAD_REQUEST,
+        )
+        self.assertEqual(response.json()["non_field_errors"][0], UNOWNED_TEMPLATE_FROM_PAGE_PAGE_PK_MESSAGE)
         self.assertEqual(Template.objects.count(), old_count)
 
     def test_rp_user_can_create_a_template_for_their_rps_page(self):
         old_count = Template.objects.count()
         response = self.assert_rp_user_can_post(self.list_url, self.create_template_data_valid)
         self.assert_created_page_response_data_looks_right(
-            self.create_template_data_valid, Template.objects.get(pk=response["id"])
+            self.create_template_data_valid, Template.objects.get(pk=response.json()["id"])
         )
         self.assertEqual(Template.objects.count(), old_count + 1)
 
     def test_rp_user_cannot_create_a_template_for_another_rps_page(self):
         old_count = Template.objects.count()
-        self.assert_org_admin_cannot_post(self.list_url, self.create_template_data_invalid_for_another_rp)
+        self.assert_rp_user_cannot_post(
+            self.list_url,
+            self.create_template_data_invalid_for_another_rp,
+            expected_status_code=status.HTTP_400_BAD_REQUEST,
+        )
+        self.assertEqual(Template.objects.count(), old_count)
+
+    def test_rp_user_cannot_create_a_template_from_an_unowned_page(self):
+        old_count = Template.objects.count()
+        response = self.assert_rp_user_cannot_post(
+            self.list_url,
+            self.create_template_data_invalid_for_other_org,
+            expected_status_code=status.HTTP_400_BAD_REQUEST,
+        )
+        self.assertEqual(response.json()["non_field_errors"][0], UNOWNED_TEMPLATE_FROM_PAGE_PAGE_PK_MESSAGE)
         self.assertEqual(Template.objects.count(), old_count)
 
     ###############
@@ -642,16 +652,17 @@ class TemplateViewSetTest(DomainModelBootstrappedTestCase):
         self.assertNotIn("styles", response.json())
 
     def test_superuser_can_list_templates(self):
-        self.assert_superuser_can_list(self.list_url, Template.objects.count())
+        self.assert_superuser_can_list(self.list_url, Template.objects.count(), results_are_flat=True)
 
     def test_hub_user_can_list_templates(self):
-        self.assert_hub_admin_can_list(self.list_url, Template.objects.count())
+        self.assert_hub_admin_can_list(self.list_url, Template.objects.count(), results_are_flat=True)
 
     def test_org_user_can_list_templates(self):
         self.assert_org_admin_can_list(
             self.list_url,
-            Template.objects.filter(revenue_program__organization=self.org1),
-            assert_item=lambda x: x["revenue_program"] in self.org1.revenueprogram_set.all(),
+            Template.objects.filter(revenue_program__organization=self.org1).count(),
+            assert_item=lambda x: x["revenue_program"] in self.org1.revenueprogram_set.values_list("pk", flat=True),
+            results_are_flat=True,
         )
 
     def test_rp_user_can_list_templates(self):
@@ -659,7 +670,10 @@ class TemplateViewSetTest(DomainModelBootstrappedTestCase):
             revenue_program__in=self.rp_user.roleassignment.revenue_programs.all()
         )
         self.assert_rp_user_can_list(
-            self.list_url, eligible_templates.count(), assert_item=lambda x: x["revenue_program"] in eligible_templates
+            self.list_url,
+            eligible_templates.count(),
+            assert_item=lambda x: x["revenue_program"] in eligible_templates,
+            results_are_flat=True,
         )
 
     ########
@@ -671,7 +685,7 @@ class TemplateViewSetTest(DomainModelBootstrappedTestCase):
         self.assertEqual(Template.objects.filter(name=new_name).count(), 0)
         update_data = {"name": new_name}
         response = self.assert_superuser_can_patch(url, update_data)
-        self.assertEqual(response["name"], new_name)
+        self.assertEqual(response.json()["name"], new_name)
         self.template.refresh_from_db()
         self.assertEqual(self.template.name, new_name)
 
@@ -681,7 +695,7 @@ class TemplateViewSetTest(DomainModelBootstrappedTestCase):
         self.assertEqual(Template.objects.filter(name=new_name).count(), 0)
         update_data = {"name": new_name}
         response = self.assert_hub_admin_can_patch(url, update_data)
-        self.assertEqual(response["name"], new_name)
+        self.assertEqual(response.json()["name"], new_name)
         self.template.refresh_from_db()
         self.assertEqual(self.template.name, new_name)
 
@@ -691,7 +705,7 @@ class TemplateViewSetTest(DomainModelBootstrappedTestCase):
         self.assertEqual(Template.objects.filter(name=new_name).count(), 0)
         update_data = {"name": new_name}
         response = self.assert_org_admin_can_patch(url, update_data)
-        self.assertEqual(response["name"], new_name)
+        self.assertEqual(response.json()["name"], new_name)
         self.template.refresh_from_db()
         self.assertEqual(self.template.name, new_name)
 
@@ -703,20 +717,13 @@ class TemplateViewSetTest(DomainModelBootstrappedTestCase):
         self.assert_org_admin_cannot_patch(url, update_data)
         self.assertEqual(Template.objects.filter(name=new_name).count(), 0)
 
-    def test_org_user_cannot_update_a_templates_rp_to_an_unowned_one(self):
-        url = reverse("template-detail", args=(self.template.pk,))
-        last_modified = self.template.modified
-        self.assert_org_admin_cannot_patch(url, self.create_template_data_invalid_for_other_org)
-        self.template.refresh_from_db()
-        self.assertEqual(last_modified, self.template.modified)
-
     def test_rp_user_can_update_a_template_for_an_owned_page(self):
         url = reverse("template-detail", args=(self.template.pk,))
         new_name = "updated name"
         self.assertEqual(Template.objects.filter(name=new_name).count(), 0)
         update_data = {"name": new_name}
         response = self.assert_rp_user_can_patch(url, update_data)
-        self.assertEqual(response["name"], new_name)
+        self.assertEqual(response.json()["name"], new_name)
         self.template.refresh_from_db()
         self.assertEqual(self.template.name, new_name)
 
@@ -725,15 +732,8 @@ class TemplateViewSetTest(DomainModelBootstrappedTestCase):
         new_name = "updated name"
         self.assertEqual(Template.objects.filter(name=new_name).count(), 0)
         update_data = {"name": new_name}
-        self.assert_rp_user_cannot_patch(url, update_data)
+        self.assert_rp_user_cannot_patch(url, update_data, expected_status_code=status.HTTP_404_NOT_FOUND)
         self.assertEqual(Template.objects.filter(name=new_name).count(), 0)
-
-    def test_rp_user_cannot_update_a_templates_rp_to_an_unowned_one(self):
-        url = reverse("template-detail", args=(self.template.pk,))
-        last_modified = self.template.modified
-        self.assert_org_admin_cannot_patch(url, self.create_template_data_invalid_for_other_org)
-        self.template.refresh_from_db()
-        self.assertEqual(last_modified, self.template.modified)
 
     ########
     # Delete
@@ -761,11 +761,11 @@ class TemplateViewSetTest(DomainModelBootstrappedTestCase):
         self.assertEqual(Template.objects.count(), old_count - 1)
         self.assertFalse(Template.objects.filter(pk=pk).exists())
 
-    def test_org_user_cannot_an_unowned_template(self):
+    def test_org_user_cannot_delete_an_unowned_template(self):
         old_count = Template.objects.count()
-        pk = self.template.pk
+        pk = self.other_orgs_template.pk
         url = reverse("template-detail", args=(pk,))
-        self.assert_org_admin_cannot_delete(url)
+        self.assert_org_admin_cannot_delete(url, expected_status_code=status.HTTP_403_FORBIDDEN)
         self.assertEqual(Template.objects.count(), old_count)
         self.assertTrue(Template.objects.filter(pk=pk).exists())
 
@@ -778,13 +778,12 @@ class TemplateViewSetTest(DomainModelBootstrappedTestCase):
         self.assertEqual(Template.objects.count(), old_count - 1)
         self.assertFalse(Template.objects.filter(pk=pk).exists())
 
-    def test_rp_user_cannot_udpate_a_template_for_an_unowned_page(self):
-        url = reverse("template-detail", args=(self.other_rps_page.pk,))
-        new_name = "updated name"
-        self.assertEqual(Template.objects.filter(name=new_name).count(), 0)
-        update_data = {"name": new_name}
-        self.assert_rp_user_cannot_patch(url, update_data)
-        self.assertEqual(Template.objects.filter(name=new_name).count(), 0)
+    def test_rp_user_cannot_delete_an_unowned_template(self):
+        url = reverse("template-detail", args=(self.other_rps_template.pk,))
+        self.assertGreater(before_count := Template.objects.count(), 0)
+        self.assert_rp_user_cannot_delete(url, expected_status_code=status.HTTP_403_FORBIDDEN)
+        self.assertEqual(Template.objects.count(), before_count)
+        self.assertTrue(Template.objects.filter(pk=self.other_rps_template.pk).exists())
 
     ##################
     # Other user types
@@ -792,33 +791,397 @@ class TemplateViewSetTest(DomainModelBootstrappedTestCase):
         pass
 
 
-class StylesViewsetTest(AbstractTestCase):
-    model = Style
-    model_factory = StyleFactory
-
+class StylesViewsetTest(DomainModelBootstrappedTestCase):
     def setUp(self):
         super().setUp()
-        self.create_resources()
-        self.rev_program = RevenueProgramFactory()
-        valid_styles_json = {}
-        for k, v in required_style_keys.items():
-            valid_styles_json[k] = v()
-        self.styles_data = {
-            "name": "New Test Styles",
-            "revenue_program": {"name": self.rev_program.name, "slug": self.org1_rp1},
-            "random_property": "test",
-            "colors": {"primary": "testing pink"},
-            **valid_styles_json,
+        self.set_up_domain_model()
+        with open("apps/pages/tests/fixtures/create-style-payload.json") as fl:
+            self.styles_create_data_fixture = json.load(fl)
+
+    @property
+    def create_style_payload(self):
+        return {
+            **self.styles_create_data_fixture,
+            "revenue_program": {
+                "id": self.org1_rp1.pk,
+                "name": self.org1_rp1.name,
+                "slug": self.org1_rp1.slug,
+            },
         }
-        self.list_url = f'{reverse("style-list")}?{settings.RP_SLUG_PARAM}={self.org1_rp1}&{settings.ORG_SLUG_PARAM}={self.org1.slug}'
 
-    def test_flattened_to_internal_value(self):
-        self.client.force_authenticate(user=self.user)
-        response = self.client.post(self.list_url, data=json.dumps(self.styles_data), content_type="application/json")
+    @property
+    def create_style_payload_different_org(self):
+        return {
+            **self.styles_create_data_fixture,
+            "revenue_program": {
+                "id": self.org2_rp.pk,
+                "name": self.org2_rp.name,
+                "slug": self.org2_rp.slug,
+            },
+        }
 
-        self.assertEqual(response.status_code, 201)
-        self.assertIn("id", response.data)
-        new_styles_id = response.data["id"]
-        new_styles = Style.objects.get(pk=new_styles_id)
-        self.assertEqual(self.styles_data["random_property"], response.data["random_property"])
-        self.assertEqual(new_styles.styles["colors"]["primary"], self.styles_data["colors"]["primary"])
+    @property
+    def create_style_payload_different_rp(self):
+        return {
+            **self.styles_create_data_fixture,
+            "revenue_program": {
+                "id": self.org1_rp2.pk,
+                "name": self.org1_rp2.name,
+                "slug": self.org1_rp2.slug,
+            },
+        }
+
+    @property
+    def create_style_url(self):
+        return (
+            f'{reverse("style-list")}?'
+            f"{settings.ORG_SLUG_PARAM}={self.org1.slug}&"
+            f"{settings.RP_SLUG_PARAM}={self.org1_rp1.slug}"
+        )
+
+    @property
+    def create_style_url_diff_org(self):
+        return (
+            f'{reverse("style-list")}?'
+            f"{settings.ORG_SLUG_PARAM}={self.org2.slug}&"
+            f"{settings.RP_SLUG_PARAM}={self.org2_rp.slug}"
+        )
+
+    @property
+    def create_style_url_diff_rp(self):
+        return (
+            f'{reverse("style-list")}?'
+            f"{settings.ORG_SLUG_PARAM}={self.org1.slug}&"
+            f"{settings.RP_SLUG_PARAM}={self.org1_rp2.slug}"
+        )
+
+    ########
+    # Create
+
+    def assert_created_style_is_correct(self, create_payload, created_instance):
+        self.assertEqual(create_payload["name"], created_instance.name)
+        self.assertEqual(create_payload["revenue_program"]["id"], created_instance.revenue_program.pk)
+        skip_keys = ["name", "revenue_program"]
+        for key, val in [(key, val) for key, val in create_payload.items() if key not in skip_keys]:
+            self.assertEqual(val, created_instance.styles[key])
+
+    def test_superuser_can_create_a_style(self):
+        before_count = Style.objects.count()
+        payload = self.create_style_payload
+        response = self.assert_superuser_can_post(self.create_style_url, payload)
+        new_style = Style.objects.get(pk=response.data["id"])
+        self.assert_created_style_is_correct(payload, new_style)
+        self.assertEqual(Style.objects.count(), before_count + 1)
+
+    def test_hub_admin_can_create_a_style(self):
+        before_count = Style.objects.count()
+        payload = self.create_style_payload
+        response = self.assert_hub_admin_can_post(self.create_style_url, payload)
+        new_style = Style.objects.get(pk=response.data["id"])
+        self.assert_created_style_is_correct(payload, new_style)
+        self.assertEqual(Style.objects.count(), before_count + 1)
+
+    def test_org_admin_can_create_a_style_for_their_org(self):
+        before_count = Style.objects.count()
+        payload = self.create_style_payload
+        response = self.assert_org_admin_can_post(self.create_style_url, payload)
+        new_style = Style.objects.get(pk=response.data["id"])
+        self.assert_created_style_is_correct(payload, new_style)
+        self.assertEqual(Style.objects.count(), before_count + 1)
+
+    def test_org_admin_cannot_create_a_style_for_another_org(self):
+        before_count = Style.objects.count()
+        self.assert_org_admin_cannot_post(
+            self.create_style_url_diff_org,
+            self.create_style_payload_different_org,
+            expected_status_code=status.HTTP_403_FORBIDDEN,
+        )
+        self.assertEqual(Style.objects.count(), before_count)
+
+    def test_rp_user_can_create_a_style(self):
+        before_count = Style.objects.count()
+        payload = self.create_style_payload
+        response = self.assert_rp_user_can_post(self.create_style_url, payload)
+        new_style = Style.objects.get(pk=response.data["id"])
+        self.assert_created_style_is_correct(payload, new_style)
+        self.assertEqual(Style.objects.count(), before_count + 1)
+
+    def test_rp_user_cannot_create_a_style_for_an_unowned_rp(self):
+        before_count = Style.objects.count()
+        self.assert_rp_user_cannot_post(
+            self.create_style_url_diff_rp,
+            self.create_style_payload_different_rp,
+            expected_status_code=status.HTTP_403_FORBIDDEN,
+        )
+        self.assertEqual(Style.objects.count(), before_count)
+
+    #################
+    # Read - Retrieve
+
+    def test_superuser_can_retrieve_a_style(self):
+        url = reverse("style-detail", args=(Style.objects.first().pk,))
+        self.assert_superuser_can_get(url)
+
+    def test_hub_user_can_retrieve_a_style(self):
+        url = reverse("style-detail", args=(Style.objects.first().pk,))
+        self.assert_hub_admin_can_get(url)
+
+    def test_org_admin_can_retrieve_a_style_they_own(self):
+        self.assertIsNotNone(style := Style.objects.filter(revenue_program=self.org1_rp1).first())
+        url = reverse("style-detail", args=(style.pk,))
+        self.assert_org_admin_can_get(url)
+
+    def test_org_admin_cannot_retrieve_a_style_they_do_not_own(self):
+        self.assertIsNotNone(style := Style.objects.exclude(revenue_program__organization=self.org1).first())
+        url = reverse("style-detail", args=(style.pk,))
+        self.assert_org_admin_cannot_get(url)
+
+    def test_rp_user_can_retrieve_a_style_they_own(self):
+        self.assertIsNotNone(style := Style.objects.filter(revenue_program=self.org1_rp1).first())
+        url = reverse("style-detail", args=(style.pk,))
+        self.assert_rp_user_can_get(url)
+
+    def test_rp_user_cannot_retrieve_a_style_they_do_not_own(self):
+        self.assertIsNotNone(
+            style := (
+                Style.objects.filter(revenue_program__organization=self.org1)
+                .exclude(revenue_program=self.org1_rp1)
+                .first()
+            )
+        )
+        url = reverse("style-detail", args=(style.pk,))
+        self.assert_rp_user_cannot_get(url)
+
+    #############
+    # Read - List
+
+    def test_superuser_can_list_styles(self):
+        url = reverse("style-list")
+        self.assertGreater(expected_count := Style.objects.count(), 1)
+        self.assert_superuser_can_list(url, expected_count, results_are_flat=True)
+
+    def test_hub_admin_can_list_styles(self):
+        url = reverse("style-list")
+        self.assertGreater(expected_count := Style.objects.count(), 1)
+        self.assert_hub_admin_can_list(url, expected_count, results_are_flat=True)
+
+    def test_org_admin_can_list_styles(self):
+        url = reverse("style-list")
+        self.assertGreater(expected_count := Style.objects.filter(revenue_program__organization=self.org1).count(), 1)
+        self.assert_org_admin_can_list(
+            url,
+            expected_count,
+            assert_item=lambda x: x["revenue_program"]["id"]
+            in self.org1.revenueprogram_set.values_list("id", flat=True),
+            results_are_flat=True,
+        )
+
+    def test_rp_user_can_list_styles(self):
+        url = reverse("style-list")
+        self.assertGreater(
+            expected_count := (
+                Style.objects.filter(revenue_program__in=self.rp_user.roleassignment.revenue_programs.all()).count()
+            ),
+            0,
+        )
+        self.assert_rp_user_can_list(
+            url,
+            expected_count,
+            assert_item=lambda x: x["revenue_program"]["id"]
+            in self.org1.revenueprogram_set.values_list("id", flat=True),
+            results_are_flat=True,
+        )
+
+    ########
+    # Update
+
+    def test_superuser_can_update_a_style(self):
+        self.assertIsNotNone(style := Style.objects.first())
+        before_last_modified = style.modified
+        pk = style.pk
+        url = reverse("style-detail", args=(pk,))
+        new_color = "new-color"
+        data = self.create_style_payload
+        data["colors"]["primary"] = new_color
+        self.assertNotEqual(style.styles["colors"]["primary"], new_color)
+        self.assert_superuser_can_patch(url, data)
+        style.refresh_from_db()
+        self.assertGreater(style.modified, before_last_modified)
+        self.assertEqual(style.styles["colors"]["primary"], new_color)
+
+    def test_hub_user_can_update_a_style(self):
+        self.assertIsNotNone(style := Style.objects.first())
+        before_last_modified = style.modified
+        pk = style.pk
+        url = reverse("style-detail", args=(pk,))
+        new_color = "new-color"
+        data = self.create_style_payload
+        data["colors"]["primary"] = new_color
+        self.assertNotEqual(style.styles["colors"]["primary"], new_color)
+        self.assert_hub_admin_can_patch(url, data)
+        style.refresh_from_db()
+        self.assertGreater(style.modified, before_last_modified)
+        self.assertEqual(style.styles["colors"]["primary"], new_color)
+
+    def test_org_admin_can_update_a_style_they_own(self):
+        self.assertIsNotNone(style := Style.objects.filter(revenue_program__organization=self.org1).first())
+        before_last_modified = style.modified
+        pk = style.pk
+        url = reverse("style-detail", args=(pk,))
+        new_color = "new-color"
+        data = self.create_style_payload
+        data["colors"]["primary"] = new_color
+        self.assertNotEqual(style.styles["colors"]["primary"], new_color)
+        self.assert_org_admin_can_patch(url, data)
+        style.refresh_from_db()
+        self.assertGreater(style.modified, before_last_modified)
+        self.assertEqual(style.styles["colors"]["primary"], new_color)
+
+    def test_org_admin_cannot_update_a_style_they_do_not_own(self):
+        self.assertIsNotNone(style := Style.objects.exclude(revenue_program__organization=self.org1).first())
+        before_last_modified = style.modified
+        pk = style.pk
+        url = reverse("style-detail", args=(pk,))
+        new_color = "new-color"
+        data = self.create_style_payload
+        data["colors"]["primary"] = new_color
+        self.assert_org_admin_cannot_patch(url, data)
+        style.refresh_from_db()
+        self.assertEqual(style.modified, before_last_modified)
+
+    def test_rp_user_can_update_a_style_they_own(self):
+        self.assertIsNotNone(
+            style := Style.objects.filter(
+                revenue_program__in=self.rp_user.roleassignment.revenue_programs.all()
+            ).first()
+        )
+        url = reverse("style-detail", args=(style.pk,))
+        before_last_modified = style.modified
+        pk = style.pk
+        url = reverse("style-detail", args=(pk,))
+        new_color = "new-color"
+        data = self.create_style_payload
+        data["colors"]["primary"] = new_color
+        self.assertNotEqual(style.styles["colors"]["primary"], new_color)
+        self.assert_rp_user_can_patch(url, data)
+        style.refresh_from_db()
+        self.assertGreater(style.modified, before_last_modified)
+        self.assertEqual(style.styles["colors"]["primary"], new_color)
+
+    def test_rp_user_cannot_update_a_style_they_do_not_own(self):
+        self.assertIsNotNone(
+            style := (
+                Style.objects.filter(revenue_program__organization=self.org1)
+                .exclude(revenue_program=self.org1_rp1)
+                .first()
+            )
+        )
+        before_last_modified = style.modified
+        pk = style.pk
+        url = reverse("style-detail", args=(pk,))
+        new_color = "new-color"
+        data = self.create_style_payload
+        data["colors"]["primary"] = new_color
+        self.assert_rp_user_cannot_patch(url, data, expected_status_code=status.HTTP_404_NOT_FOUND)
+        style.refresh_from_db()
+        self.assertEqual(style.modified, before_last_modified)
+        url = reverse("style-detail", args=(style.pk,))
+
+    ########
+    # Delete
+
+    def test_superuser_can_delete_a_style(self):
+        self.assertIsNotNone(style := Style.objects.first())
+        before_count = Style.objects.count()
+        pk = style.pk
+        url = reverse("style-detail", args=(pk,))
+        self.assert_superuser_can_delete(url)
+        self.assertEqual(Style.objects.count(), before_count - 1)
+        self.assertFalse(Style.objects.filter(pk=pk).exists())
+
+    def test_hub_user_can_update_a_style(self):
+        self.assertIsNotNone(style := Style.objects.first())
+        before_count = Style.objects.count()
+        pk = style.pk
+        url = reverse("style-detail", args=(pk,))
+        self.assert_hub_admin_can_delete(url)
+        self.assertEqual(Style.objects.count(), before_count - 1)
+        self.assertFalse(Style.objects.filter(pk=pk).exists())
+
+    def test_org_admin_can_update_a_style_they_own(self):
+        self.assertIsNotNone(style := Style.objects.filter(revenue_program__organization=self.org1).first())
+        before_count = Style.objects.count()
+        pk = style.pk
+        url = reverse("style-detail", args=(pk,))
+        self.assert_org_admin_can_delete(url)
+        self.assertEqual(Style.objects.count(), before_count - 1)
+        self.assertFalse(Style.objects.filter(pk=pk).exists())
+
+    def test_org_admin_cannot_delete_a_style_they_do_not_own(self):
+        self.assertIsNotNone(style := Style.objects.exclude(revenue_program__organization=self.org1).first())
+        before_count = Style.objects.count()
+        pk = style.pk
+        url = reverse("style-detail", args=(pk,))
+        self.assert_org_admin_cannot_delete(url, expected_status_code=status.HTTP_403_FORBIDDEN)
+        self.assertEqual(Style.objects.count(), before_count)
+        self.assertTrue(Style.objects.filter(pk=pk).exists())
+
+    def test_rp_user_can_update_a_style_they_own(self):
+        self.assertIsNotNone(
+            style := Style.objects.filter(
+                revenue_program__in=self.rp_user.roleassignment.revenue_programs.all()
+            ).first()
+        )
+        before_count = Style.objects.count()
+        pk = style.pk
+        url = reverse("style-detail", args=(pk,))
+        self.assert_rp_user_can_delete(url)
+        self.assertEqual(Style.objects.count(), before_count - 1)
+        self.assertFalse(Style.objects.filter(pk=pk).exists())
+
+    def test_rp_user_cannot_delete_a_style_they_do_not_own(self):
+        self.assertIsNotNone(
+            style := (
+                Style.objects.filter(revenue_program__organization=self.org1)
+                .exclude(revenue_program=self.org1_rp1)
+                .first()
+            )
+        )
+        before_count = Style.objects.count()
+        pk = style.pk
+        url = reverse("style-detail", args=(pk,))
+        self.assert_rp_user_cannot_delete(url, expected_status_code=status.HTTP_403_FORBIDDEN)
+        self.assertEqual(Style.objects.count(), before_count)
+        self.assertTrue(Style.objects.filter(pk=pk).exists())
+
+
+class FontViewSetTest(DomainModelBootstrappedTestCase):
+    def setUp(self):
+        super().setUp()
+        self.set_up_domain_model()
+        for x in range(3):
+            FontFactory()
+
+    def test_authed_user_can_retrieve(self):
+        self.assert_user_can_get(reverse("font-detail", args=(Font.objects.first().pk,)), self.generic_user)
+
+    def test_authed_user_can_list(self):
+        self.assert_user_can_list(reverse("font-list"), self.generic_user, Font.objects.count(), results_are_flat=True)
+
+    def test_authed_cannot_create(self):
+        self.assert_user_cannot_post(reverse("font-list"), self.generic_user, {}, status.HTTP_405_METHOD_NOT_ALLOWED)
+
+    def test_authed_cannot_update(self):
+        self.assert_user_cannot_patch(
+            reverse("font-detail", args=(Font.objects.first().pk,)),
+            self.generic_user,
+            {},
+            status.HTTP_405_METHOD_NOT_ALLOWED,
+        )
+
+    def test_authed_cannot_delete(self):
+        self.assert_user_cannot_delete(
+            reverse("font-detail", args=(Font.objects.first().pk,)),
+            self.generic_user,
+            status.HTTP_405_METHOD_NOT_ALLOWED,
+        )

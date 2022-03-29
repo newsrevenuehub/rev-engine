@@ -113,7 +113,7 @@ class PageViewSet(viewsets.ModelViewSet, FilterQuerySetByUserMixin, PerUserCreat
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 
-class TemplateViewSet(viewsets.ModelViewSet):
+class TemplateViewSet(viewsets.ModelViewSet, FilterQuerySetByUserMixin, PerUserCreateDeletePermissionsMixin):
     model = Template
     queryset = Template.objects.all()
     pagination_class = None
@@ -122,6 +122,9 @@ class TemplateViewSet(viewsets.ModelViewSet):
         IsAuthenticated,
         IsSuperUser | HasRoleAssignment,
     ]
+
+    def get_queryset(self):
+        return self.filter_queryset_for_user(self.request.user, self.model.objects.all())
 
     def get_serializer_class(self):
         return (
@@ -135,11 +138,15 @@ class TemplateViewSet(viewsets.ModelViewSet):
         )
 
 
-class StyleViewSet(viewsets.ModelViewSet):
+class StyleViewSet(viewsets.ModelViewSet, FilterQuerySetByUserMixin, PerUserCreateDeletePermissionsMixin):
     model = Style
     queryset = Style.objects.all()
     serializer_class = serializers.StyleListSerializer
     pagination_class = None
+    permission_classes = [IsAuthenticated, IsSuperUser | HasRoleAssignment]
+
+    def get_queryset(self):
+        return self.filter_queryset_for_user(self.request.user, self.model.objects.all())
 
 
 class FontViewSet(viewsets.ReadOnlyModelViewSet):

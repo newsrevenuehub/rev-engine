@@ -503,6 +503,12 @@ class TestContributionsViewSet(DomainModelBootstrappedTestCase):
             self.assert_user_cannot_patch_because_not_implemented(detail_url, user)
             self.assert_user_cannot_put_because_not_implemented(detail_url, user)
 
+    def test_unexpected_role_type(self):
+        novel = create_test_user(role_assignment_data={"role_type": "never-before-seen"})
+        self.assert_user_cannot_get(
+            reverse("contribution-list"), novel, expected_status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+
 
 TEST_STRIPE_API_KEY = "test_stripe_api_key"
 

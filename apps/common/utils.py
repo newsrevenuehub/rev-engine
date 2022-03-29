@@ -54,7 +54,3 @@ def get_changes_from_prev_history_obj(obj):
             else:
                 changes_list.append(f"'{field_verbose_name}' changed from '{change.old}' to '{change.new}'")
     return changes_list
-
-
-def get_org_and_rp_from_request(request):
-    return (request.GET.get(settings.ORG_SLUG_PARAM), request.GET.get(settings.RP_SLUG_PARAM))

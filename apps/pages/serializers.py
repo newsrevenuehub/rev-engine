@@ -15,6 +15,7 @@ from apps.organizations.serializers import (
     RevenueProgramSerializer,
 )
 from apps.pages.models import DonationPage, Font, Style, Template
+from apps.pages.validators import PagePkIsForOwnedPage
 
 
 class StyleInlineSerializer(serializers.ModelSerializer):
@@ -230,6 +231,7 @@ class TemplateDetailSerializer(serializers.ModelSerializer):
     class Meta:
         model = Template
         fields = [
+            "id",
             "page_pk",
             "name",
             "heading",
@@ -245,21 +247,19 @@ class TemplateDetailSerializer(serializers.ModelSerializer):
             "post_thank_you_redirect",
         ]
         validators = [
+            PagePkIsForOwnedPage(page_model=DonationPage),
             UniqueTogetherValidator(
                 queryset=Template.objects.all(),
                 fields=["name", "revenue_program"],
                 message="Template name already in use",
-            )
+            ),
         ]
 
 
 class TemplateListSerializer(serializers.ModelSerializer):
     class Meta:
         model = Template
-        fields = [
-            "id",
-            "name",
-        ]
+        fields = ["id", "name", "revenue_program"]
 
 
 class FontSerializer(serializers.ModelSerializer):

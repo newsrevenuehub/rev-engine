@@ -14,7 +14,7 @@ from apps.organizations.tests.factories import (
     RevenueProgramFactory,
 )
 from apps.pages.models import DonationPage
-from apps.pages.tests.factories import DonationPageFactory
+from apps.pages.tests.factories import DonationPageFactory, StyleFactory
 from apps.users.choices import Roles
 from apps.users.tests.utils import create_test_user
 
@@ -79,6 +79,11 @@ class AbstractTestCase(APITestCase):
             plan.save()
 
     @classmethod
+    def _set_up_styles(cls):
+        for rp in RevenueProgram.objects.all():
+            StyleFactory(revenue_program=rp)
+
+    @classmethod
     def set_up_domain_model(cls):
         """Set up most commonly needed data models in a predictable way for use across tests
 
@@ -109,6 +114,7 @@ class AbstractTestCase(APITestCase):
         cls._set_up_donation_pages_and_templates()
         cls._set_up_contributions()
         cls._set_up_feature_sets()
+        cls._set_up_styles()
 
     class Meta:
         abstract = True

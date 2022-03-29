@@ -33,7 +33,7 @@ class RevenueProgramViewsetTest(APITestCase):
         for _ in range(self.rp_count):
             revenue_program = RevenueProgramFactory(organization=organization)
             for i in range(self.bl_count):
-                benefit_level = BenefitLevelFactory(organization=organization)
+                benefit_level = BenefitLevelFactory(organization=organization, lower_limit=7, upper_limit=13)
                 RevenueProgramBenefitLevel.objects.create(
                     benefit_level=benefit_level, revenue_program=revenue_program, level=i
                 )
@@ -70,3 +70,17 @@ class RevenueProgramViewsetTest(APITestCase):
         benefit_level = benefit_levels[0]
         self.assertIn("benefits", benefit_level)
         self.assertEqual(len(benefit_level["benefits"]), self.b_per_bl_count)
+
+    def test_benefits_contains_lower_upper_and_range(self):
+        # donation_range is older, kept for backwards compatibility.
+        # lower_limit, upper_limit are same data as separate fields.
+        revenue_program = RevenueProgram.objects.first()
+        detail_url = self._get_detail_url_for_pk(revenue_program.pk)
+        response = self._make_request_to(detail_url)
+        self.assertEqual(response.status_code, 200)
+        benefit_levels = response.data["benefit_levels"]
+        benefit_level = benefit_levels[0]
+        self.assertIn("benefits", benefit_level)
+        self.assertEqual(benefit_level["donation_range"], "$7-13")
+        self.assertEqual(benefit_level["lower_limit"], 7)
+        self.assertEqual(benefit_level["upper_limit"], 13)

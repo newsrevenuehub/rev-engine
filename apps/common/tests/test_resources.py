@@ -11,7 +11,6 @@ from apps.organizations.models import Organization, Plan, RevenueProgram
 from apps.organizations.tests.factories import (
     FeatureFactory,
     OrganizationFactory,
-    PlanFactory,
     RevenueProgramFactory,
 )
 from apps.pages.models import DonationPage
@@ -63,11 +62,14 @@ class AbstractTestCase(APITestCase):
         cls.contributor_user = Contributor.objects.first()
 
     @classmethod
-    def _set_up_donation_pages(cls):
+    def _set_up_donation_pages_and_templates(cls):
         for i in range(cls.donation_pages_per_rp_count):
-            DonationPageFactory(revenue_program=cls.org1_rp1)
-            DonationPageFactory(revenue_program=cls.org1_rp2)
-            DonationPageFactory(revenue_program=cls.org2_rp)
+            for page in [
+                DonationPageFactory(revenue_program=cls.org1_rp1),
+                DonationPageFactory(revenue_program=cls.org1_rp2),
+                DonationPageFactory(revenue_program=cls.org2_rp),
+            ]:
+                page.make_template_from_page()
 
     @classmethod
     def _set_up_feature_sets(cls):
@@ -104,7 +106,7 @@ class AbstractTestCase(APITestCase):
         cls.superuser = user_model.objects.create_superuser(email="test@test.com", password="testing")
         cls.generic_user = create_test_user()
         # this must be called before _set_up_contributions
-        cls._set_up_donation_pages()
+        cls._set_up_donation_pages_and_templates()
         cls._set_up_contributions()
         cls._set_up_feature_sets()
 

@@ -13,13 +13,13 @@ from apps.pages import serializers
 from apps.pages.helpers import PageDetailError, PageFullDetailHelper
 from apps.pages.models import DonationPage, Font, Style, Template
 from apps.public.permissions import IsSuperUser
-from apps.users.views import ViewSetUserQueryRouterMixin
+from apps.users.views import FilterQuerySetByUserMixin, PerUserCreateDeletePermissionsMixin
 
 
 logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
 
 
-class PageViewSet(ViewSetUserQueryRouterMixin, viewsets.ModelViewSet):
+class PageViewSet(viewsets.ModelViewSet, FilterQuerySetByUserMixin, PerUserCreateDeletePermissionsMixin):
     model = DonationPage
     filter_backends = [
         filters.OrderingFilter,
@@ -117,6 +117,11 @@ class TemplateViewSet(viewsets.ModelViewSet):
     model = Template
     queryset = Template.objects.all()
     pagination_class = None
+
+    permission_classes = [
+        IsAuthenticated,
+        IsSuperUser | HasRoleAssignment,
+    ]
 
     def get_serializer_class(self):
         return (

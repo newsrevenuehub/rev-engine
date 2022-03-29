@@ -7,6 +7,7 @@ from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import override_settings
 from django.utils import timezone
 
+from rest_framework import status
 from rest_framework.reverse import reverse
 from rest_framework.test import APITestCase
 
@@ -85,7 +86,7 @@ class PageViewSetTest(DomainModelBootstrappedTestCase):
             "slug": "new-page",
         }
         url = f"{reverse('donationpage-list')}?{settings.RP_SLUG_PARAM}={self.org2_rp.slug}&{settings.ORG_SLUG_PARAM}={self.org2.slug}"
-        self.assert_org_admin_cannot_post(url, data)
+        self.assert_org_admin_cannot_post(url, data, expected_status_code=status.HTTP_403_FORBIDDEN)
         self.assertEqual(my_org_pages_query.count(), before_my_org_pages_count)
         self.assertEqual(other_org_pages_query.count(), before_other_org_count)
 
@@ -120,7 +121,9 @@ class PageViewSetTest(DomainModelBootstrappedTestCase):
         before_my_pages_count = my_pages_query.count()
         before_others_count = others_pages_query.count()
         url = f"{reverse('donationpage-list')}?{settings.RP_SLUG_PARAM}={target_rp.slug}&{settings.ORG_SLUG_PARAM}={self.org1.slug}"
-        self.assert_rp_user_cannot_post(url, self.default_page_creation_data)
+        self.assert_rp_user_cannot_post(
+            url, self.default_page_creation_data, expected_status_code=status.HTTP_403_FORBIDDEN
+        )
         self.assertEqual(my_pages_query.count(), before_my_pages_count)
         self.assertEqual(others_pages_query.count(), before_others_count)
 
@@ -211,10 +214,10 @@ class PageViewSetTest(DomainModelBootstrappedTestCase):
         self.assertIsNotNone(page)
         old_page_heading = page.heading
         old_page_pk = page.pk
-        detail_url = f"/api/v1/pages/{old_page_pk}/"
+        detail_url = reverse("donationpage-detail", args=(page.pk,))
         new_heading = old_page_heading[::-1]
         patch_data = {"heading": new_heading}
-        self.assert_org_admin_cannot_patch(detail_url, patch_data)
+        self.assert_org_admin_cannot_patch(detail_url, patch_data, expected_status_code=status.HTTP_404_NOT_FOUND)
         page.refresh_from_db()
         self.assertEqual(page.pk, old_page_pk)
         self.assertEqual(page.heading, old_page_heading)
@@ -292,8 +295,8 @@ class PageViewSetTest(DomainModelBootstrappedTestCase):
         page = DonationPage.objects.filter(revenue_program__organization=self.org1).first()
         self.assertIsNotNone(page)
         pk = page.pk
-        detail_url = f"/api/v1/pages/{pk}/"
-        self.assert_org_admin_can_delete(detail_url)
+        url = reverse("donationpage-detail", args=(pk,))
+        self.assert_org_admin_can_delete(url)
         self.assertEqual(DonationPage.objects.count(), before_count - 1)
         self.assertFalse(DonationPage.objects.filter(pk=pk).exists())
 
@@ -302,10 +305,22 @@ class PageViewSetTest(DomainModelBootstrappedTestCase):
         page = DonationPage.objects.exclude(revenue_program__organization=self.org1).first()
         self.assertIsNotNone(page)
         pk = page.pk
-        detail_url = f"/api/v1/pages/{pk}/"
-        self.assert_org_admin_cannot_delete(detail_url)
+        detail_url = reverse("donationpage-detail", args=(pk,))
+        self.assert_org_admin_cannot_delete(detail_url, expected_status_code=status.HTTP_403_FORBIDDEN)
         self.assertEqual(DonationPage.objects.count(), before_count)
         self.assertTrue(DonationPage.objects.filter(pk=pk).exists())
+
+    def test_rp_admin_can_delete_their_rps_page(self):
+        my_rp = RevenueProgram.objects.filter(roleassignment__user=self.rp_user).first()
+        self.assertIsNotNone(my_rp)
+        before_count = DonationPage.objects.count()
+        page = DonationPage.objects.filter(revenue_program=my_rp).first()
+        self.assertIsNotNone(page)
+        pk = page.pk
+        detail_url = f"/api/v1/pages/{pk}/"
+        self.assert_rp_user_can_delete(detail_url)
+        self.assertEqual(DonationPage.objects.count(), before_count - 1)
+        self.assertIsNone(DonationPage.objects.filter(pk=pk).first())
 
     def test_rp_admin_can_delete_their_rps_page(self):
         my_rp = RevenueProgram.objects.filter(roleassignment__user=self.rp_user).first()
@@ -326,42 +341,8 @@ class PageViewSetTest(DomainModelBootstrappedTestCase):
         page = DonationPage.objects.filter(revenue_program=not_my_rp).first()
         self.assertIsNotNone(page)
         pk = page.pk
-        detail_url = f"/api/v1/pages/{pk}/"
-        self.assert_rp_user_cannot_delete(detail_url)
-        self.assertEqual(DonationPage.objects.count(), before_count)
-        self.assertTrue(DonationPage.objects.filter(pk=pk).exists())
-
-    def test_org_admin_cannot_delete_another_orgs_page(self):
-        before_count = DonationPage.objects.count()
-        page = DonationPage.objects.exclude(revenue_program__organization=self.org1).first()
-        self.assertIsNotNone(page)
-        pk = page.pk
-        detail_url = f"/api/v1/pages/{pk}/"
-        self.assert_org_admin_cannot_delete(detail_url)
-        self.assertEqual(DonationPage.objects.count(), before_count)
-        self.assertTrue(DonationPage.objects.filter(pk=pk).exists())
-
-    def test_rp_admin_can_delete_their_rps_page(self):
-        my_rp = RevenueProgram.objects.filter(roleassignment__user=self.rp_user).first()
-        self.assertIsNotNone(my_rp)
-        before_count = DonationPage.objects.count()
-        page = DonationPage.objects.filter(revenue_program=my_rp).first()
-        self.assertIsNotNone(page)
-        pk = page.pk
-        detail_url = f"/api/v1/pages/{pk}/"
-        self.assert_rp_user_can_delete(detail_url)
-        self.assertEqual(DonationPage.objects.count(), before_count - 1)
-        self.assertIsNone(DonationPage.objects.filter(pk=pk).first())
-
-    def test_rp_admin_cannot_delete_another_rps_page(self):
-        not_my_rp = RevenueProgram.objects.exclude(roleassignment__user=self.rp_user).first()
-        self.assertIsNotNone(not_my_rp)
-        before_count = DonationPage.objects.count()
-        page = DonationPage.objects.filter(revenue_program=not_my_rp).first()
-        self.assertIsNotNone(page)
-        pk = page.pk
-        detail_url = f"/api/v1/pages/{pk}/"
-        self.assert_rp_user_cannot_delete(detail_url)
+        detail_url = reverse("donationpage-detail", args=(pk,))
+        self.assert_rp_user_cannot_delete(detail_url, expected_status_code=status.HTTP_403_FORBIDDEN)
         self.assertEqual(DonationPage.objects.count(), before_count)
         self.assertTrue(DonationPage.objects.filter(pk=pk).exists())
 
@@ -531,73 +512,284 @@ class DonationPageFullDetailTest(APITestCase):
         self.assertEqual(response.data["detail"], "You do not have permission to edit this page")
 
 
-class TemplateViewSetTest(AbstractTestCase):
+class TemplateViewSetTest(DomainModelBootstrappedTestCase):
     model = Template
     model_factory = TemplateFactory
 
     def setUp(self):
         super().setUp()
-        self.create_resources()
-        self.rev_program = self.rev_programs[0]
-        self.page = DonationPageFactory(revenue_program=self.rev_program)
+        self.set_up_domain_model()
         self.list_url = f'{reverse("template-list")}?{settings.RP_SLUG_PARAM}={self.org1_rp1}&{settings.ORG_SLUG_PARAM}={self.org1.slug}'
+        self.template = Template.objects.filter(revenue_program=self.org1_rp1).first()
+        self.other_orgs_template = Template.objects.exclude(revenue_program__organization=self.org1).first()
+        self.other_rps_template = Template.objects.exclude(revenue_program=self.org1_rp1).first()
+        self.other_orgs_page = DonationPage.objects.exclude(revenue_program__organization=self.org1).first()
+        self.other_rps_page = (
+            DonationPage.objects.filter(revenue_program__organization=self.org1)
+            .exclude(revenue_program__in=self.rp_user.roleassignment.revenue_programs.all())
+            .first()
+        )
+        for item in (
+            self.template,
+            self.other_orgs_template,
+            self.other_rps_template,
+            self.other_orgs_page,
+            self.other_rps_page,
+        ):
+            self.assertIsNotNone(item)
 
-    def test_template_create_adds_template(self):
-        self.assertEqual(len(self.resources), self.resource_count)
-        self.login()
-
-        template_data = {
+        self._base_new_template_data = {
             "name": "New Template",
-            "heading": "New Template",
-            "page_pk": self.page.pk,
+            "heading": "mY heading",
         }
-        # format="json" here in order to prevent serializer from treating self.data as immutable.
-        # https://stackoverflow.com/questions/52367379/why-is-django-rest-frameworks-request-data-sometimes-immutable
-        response = self.client.post(self.list_url, template_data, format="json")
-        self.assertEqual(response.status_code, 201)
-        self.assertEqual(Template.objects.count(), self.resource_count + 1)
 
-        data = response.json()
-        for k, v in template_data.items():
-            # page_pk doesn't come back from the serializer.
-            if k != "page_pk":
-                self.assertEqual(v, data[k])
+    @property
+    def create_template_data_valid(self):
+        return {**self._base_new_template_data, "page_pk": self.template.pk}
 
-    def test_template_update_updates_template(self):
-        template = self.resources[0]
-        self.login()
-        old_template_name = template.name
-        old_template_pk = template.pk
-        detail_url = f"/api/v1/templates/{old_template_pk}/"
-        new_name = "Old Template With New Name"
-        self.client.patch(detail_url, {"name": new_name})
-        template = Template.objects.filter(pk=old_template_pk).first()
-        self.assertEqual(template.pk, old_template_pk)
-        self.assertNotEqual(template.name, old_template_name)
-        self.assertEqual(template.name, new_name)
+    @property
+    def create_template_data_invalid_for_other_org(self):
+        return {**self._base_new_template_data, "page_pk": self.other_orgs_page.pk}
 
-    def test_template_delete_deletes_template(self):
-        template = self.resources[0]
-        self.login()
-        old_template_pk = template.pk
-        detail_url = f"/api/v1/templates/{old_template_pk}/"
-        self.client.delete(detail_url)
-        self.assertRaises(Template.DoesNotExist, Template.objects.get, pk=old_template_pk)
+    @property
+    def create_template_data_invalid_for_another_rp(self):
+        return {**self._base_new_template_data, "page_pk": self.other_rps_page.pk}
+
+    def assert_created_page_response_data_looks_right(self, request_data, created_instance):
+        # page_pk is not returned in response
+        for key, value in request_data.items():
+            self.assertEqual(value, getattr(created_instance, key))
+
+    ########
+    # Create
+    def test_superuser_can_create_a_new_template(self):
+        old_count = Template.objects.count()
+        response = self.assert_superuser_can_post(self.list_url, self.create_template_data_valid)
+        self.assert_created_page_response_data_looks_right(
+            self.create_template_data_valid, Template.objects.get(pk=response["id"])
+        )
+        self.assertEqual(Template.objects.count(), old_count + 1)
+
+    def test_hub_user_can_create_a_new_template(self):
+        old_count = Template.objects.count()
+        response = self.assert_hub_admin_can_post(self.list_url, self.create_template_data_valid)
+        self.assert_created_page_response_data_looks_right(
+            self.create_template_data_valid, Template.objects.get(pk=response["id"])
+        )
+        self.assertEqual(Template.objects.count(), old_count + 1)
+
+    def test_org_user_can_create_a_template(self):
+        old_count = Template.objects.count()
+        response = self.assert_org_admin_can_post(self.list_url, self.create_template_data_valid)
+        self.assert_created_page_response_data_looks_right(
+            self.create_template_data_valid, Template.objects.get(pk=response["id"])
+        )
+        self.assertEqual(Template.objects.count(), old_count + 1)
+
+    def test_org_user_cannot_create_a_template_for_an_unowned_page(self):
+        old_count = Template.objects.count()
+        self.assert_org_admin_cannot_post(self.list_url, self.create_template_data_invalid_for_other_org)
+        self.assertEqual(Template.objects.count(), old_count)
+
+    def test_rp_user_can_create_a_template_for_their_rps_page(self):
+        old_count = Template.objects.count()
+        response = self.assert_rp_user_can_post(self.list_url, self.create_template_data_valid)
+        self.assert_created_page_response_data_looks_right(
+            self.create_template_data_valid, Template.objects.get(pk=response["id"])
+        )
+        self.assertEqual(Template.objects.count(), old_count + 1)
+
+    def test_rp_user_cannot_create_a_template_for_another_rps_page(self):
+        old_count = Template.objects.count()
+        self.assert_org_admin_cannot_post(self.list_url, self.create_template_data_invalid_for_another_rp)
+        self.assertEqual(Template.objects.count(), old_count)
+
+    ###############
+    # Read (Detail)
+    def test_template_detail_uses_detail_serializer(self):
+        """A distinct serializer is used for detail viwe, so we test for that"""
+        template = Template.objects.first()
+        response = self.assert_superuser_can_get(reverse("template-detail", args=(template.pk,)))
+        # detail serializer should have 'styles' field
+        self.assertIn("styles", response.json())
+        response = self.client.get(self.list_url)
+
+    def test_superuser_can_retrieve_a_template(self):
+        self.assert_superuser_can_get(reverse("template-detail", args=(self.template.pk,)))
+
+    def test_hub_user_can_retrieve_a_template(self):
+        self.assert_hub_admin_can_get(reverse("template-detail", args=(self.template.pk,)))
+
+    def test_org_user_can_retrieve_a_template(self):
+        self.assert_org_admin_can_get(reverse("template-detail", args=(self.template.pk,)))
+
+    def test_org_user_can_retrieve_an_unowned_template(self):
+        self.assert_org_admin_cannot_get(reverse("template-detail", args=(self.other_orgs_page.pk,)))
+
+    def test_rp_user_can_retrieve_a_template(self):
+        self.assert_rp_user_can_get(reverse("template-detail", args=(self.template.pk,)))
+
+    def test_rp_user_can_retrieve_an_unowned_template(self):
+        self.assert_rp_user_cannot_get(reverse("template-detail", args=(self.other_rps_page.pk,)))
+
+    #############
+    # Read (List)
 
     def test_template_list_uses_list_serializer(self):
-        self.login()
-        response = self.client.get(self.list_url)
+        """A distinct serializer is used to list templates, so we test for that"""
+        response = self.assert_superuser_can_get(self.list_url)
         # list serializer does not have 'styles' field
         self.assertNotIn("styles", response.json())
 
-    def test_template_detail_uses_detail_serializer(self):
-        template = self.resources[0]
-        self.login()
-        response = self.client.get(f"/api/v1/templates/{template.pk}/")
-        # detail serializer should have 'styles' field
-        self.assertIn("styles", response.json())
+    def test_superuser_can_list_templates(self):
+        self.assert_superuser_can_list(self.list_url, Template.objects.count())
 
-        response = self.client.get(self.list_url)
+    def test_hub_user_can_list_templates(self):
+        self.assert_hub_admin_can_list(self.list_url, Template.objects.count())
+
+    def test_org_user_can_list_templates(self):
+        self.assert_org_admin_can_list(
+            self.list_url,
+            Template.objects.filter(revenue_program__organization=self.org1),
+            assert_item=lambda x: x["revenue_program"] in self.org1.revenueprogram_set.all(),
+        )
+
+    def test_rp_user_can_list_templates(self):
+        eligible_templates = Template.objects.filter(
+            revenue_program__in=self.rp_user.roleassignment.revenue_programs.all()
+        )
+        self.assert_rp_user_can_list(
+            self.list_url, eligible_templates.count(), assert_item=lambda x: x["revenue_program"] in eligible_templates
+        )
+
+    ########
+    # Update
+
+    def test_superuser_can_update_a_template(self):
+        url = reverse("template-detail", args=(self.template.pk,))
+        new_name = "updated name"
+        self.assertEqual(Template.objects.filter(name=new_name).count(), 0)
+        update_data = {"name": new_name}
+        response = self.assert_superuser_can_patch(url, update_data)
+        self.assertEqual(response["name"], new_name)
+        self.template.refresh_from_db()
+        self.assertEqual(self.template.name, new_name)
+
+    def test_hub_user_can_update_a_template(self):
+        url = reverse("template-detail", args=(self.template.pk,))
+        new_name = "updated name"
+        self.assertEqual(Template.objects.filter(name=new_name).count(), 0)
+        update_data = {"name": new_name}
+        response = self.assert_hub_admin_can_patch(url, update_data)
+        self.assertEqual(response["name"], new_name)
+        self.template.refresh_from_db()
+        self.assertEqual(self.template.name, new_name)
+
+    def test_org_user_can_update_a_template_for_an_owned_page(self):
+        url = reverse("template-detail", args=(self.template.pk,))
+        new_name = "updated name"
+        self.assertEqual(Template.objects.filter(name=new_name).count(), 0)
+        update_data = {"name": new_name}
+        response = self.assert_org_admin_can_patch(url, update_data)
+        self.assertEqual(response["name"], new_name)
+        self.template.refresh_from_db()
+        self.assertEqual(self.template.name, new_name)
+
+    def test_org_user_cannot_update_a_template_for_an_unowned_page(self):
+        url = reverse("template-detail", args=(self.other_orgs_page.pk,))
+        new_name = "updated name"
+        self.assertEqual(Template.objects.filter(name=new_name).count(), 0)
+        update_data = {"name": new_name}
+        self.assert_org_admin_cannot_patch(url, update_data)
+        self.assertEqual(Template.objects.filter(name=new_name).count(), 0)
+
+    def test_org_user_cannot_update_a_templates_rp_to_an_unowned_one(self):
+        url = reverse("template-detail", args=(self.template.pk,))
+        last_modified = self.template.modified
+        self.assert_org_admin_cannot_patch(url, self.create_template_data_invalid_for_other_org)
+        self.template.refresh_from_db()
+        self.assertEqual(last_modified, self.template.modified)
+
+    def test_rp_user_can_update_a_template_for_an_owned_page(self):
+        url = reverse("template-detail", args=(self.template.pk,))
+        new_name = "updated name"
+        self.assertEqual(Template.objects.filter(name=new_name).count(), 0)
+        update_data = {"name": new_name}
+        response = self.assert_rp_user_can_patch(url, update_data)
+        self.assertEqual(response["name"], new_name)
+        self.template.refresh_from_db()
+        self.assertEqual(self.template.name, new_name)
+
+    def test_rp_user_cannot_udpate_a_template_for_an_unowned_page(self):
+        url = reverse("template-detail", args=(self.other_rps_page.pk,))
+        new_name = "updated name"
+        self.assertEqual(Template.objects.filter(name=new_name).count(), 0)
+        update_data = {"name": new_name}
+        self.assert_rp_user_cannot_patch(url, update_data)
+        self.assertEqual(Template.objects.filter(name=new_name).count(), 0)
+
+    def test_rp_user_cannot_update_a_templates_rp_to_an_unowned_one(self):
+        url = reverse("template-detail", args=(self.template.pk,))
+        last_modified = self.template.modified
+        self.assert_org_admin_cannot_patch(url, self.create_template_data_invalid_for_other_org)
+        self.template.refresh_from_db()
+        self.assertEqual(last_modified, self.template.modified)
+
+    ########
+    # Delete
+    def test_superuser_can_delete_a_template(self):
+        old_count = Template.objects.count()
+        pk = self.template.pk
+        url = reverse("template-detail", args=(pk,))
+        self.assert_superuser_can_delete(url)
+        self.assertEqual(Template.objects.count(), old_count - 1)
+        self.assertFalse(Template.objects.filter(pk=pk).exists())
+
+    def test_hub_user_can_delete_a_template(self):
+        old_count = Template.objects.count()
+        pk = self.template.pk
+        url = reverse("template-detail", args=(pk,))
+        self.assert_hub_admin_can_delete(url)
+        self.assertEqual(Template.objects.count(), old_count - 1)
+        self.assertFalse(Template.objects.filter(pk=pk).exists())
+
+    def test_org_user_can_delete_an_owned_template(self):
+        old_count = Template.objects.count()
+        pk = self.template.pk
+        url = reverse("template-detail", args=(pk,))
+        self.assert_org_admin_can_delete(url)
+        self.assertEqual(Template.objects.count(), old_count - 1)
+        self.assertFalse(Template.objects.filter(pk=pk).exists())
+
+    def test_org_user_cannot_an_unowned_template(self):
+        old_count = Template.objects.count()
+        pk = self.template.pk
+        url = reverse("template-detail", args=(pk,))
+        self.assert_org_admin_cannot_delete(url)
+        self.assertEqual(Template.objects.count(), old_count)
+        self.assertTrue(Template.objects.filter(pk=pk).exists())
+
+    def test_rp_user_can_delete_an_owned_template(self):
+        url = reverse("template-detail", args=(self.template.pk,))
+        old_count = Template.objects.count()
+        pk = self.template.pk
+        url = reverse("template-detail", args=(pk,))
+        self.assert_org_admin_can_delete(url)
+        self.assertEqual(Template.objects.count(), old_count - 1)
+        self.assertFalse(Template.objects.filter(pk=pk).exists())
+
+    def test_rp_user_cannot_udpate_a_template_for_an_unowned_page(self):
+        url = reverse("template-detail", args=(self.other_rps_page.pk,))
+        new_name = "updated name"
+        self.assertEqual(Template.objects.filter(name=new_name).count(), 0)
+        update_data = {"name": new_name}
+        self.assert_rp_user_cannot_patch(url, update_data)
+        self.assertEqual(Template.objects.filter(name=new_name).count(), 0)
+
+    ##################
+    # Other user types
+    def test_other_users_cannot_access_resource(self):
+        pass
 
 
 class StylesViewsetTest(AbstractTestCase):

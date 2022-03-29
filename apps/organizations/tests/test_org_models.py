@@ -9,7 +9,7 @@ from stripe.error import StripeError
 
 from apps.config.tests.factories import DenyListWordFactory
 from apps.config.validators import GENERIC_SLUG_DENIED_MSG, SLUG_DENIED_CODE
-from apps.organizations.models import Organization, RevenueProgram
+from apps.organizations.models import Organization
 from apps.organizations.tests import factories
 
 

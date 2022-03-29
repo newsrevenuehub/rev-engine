@@ -40,6 +40,9 @@ class UserModelTest(TestCase):
         rp_role_assignment = self.rp_admin_user.get_role_assignment()
         self.assertEqual(rp_role_assignment, self.rp_admin_user_role_assignment)
 
+    def test_get_full_name(self):
+        self.assertIsNotNone(self.hub_admin_user.get_full_name())
+
 
 class RoleAssignmentModelTest(TestCase):
     def setUp(self):

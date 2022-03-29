@@ -80,77 +80,98 @@ class OrganizationViewSetTest(DomainModelBootstrappedTestCase):
 
 
 class RevenueProgramViewSetTest(DomainModelBootstrappedTestCase):
-    model = RevenueProgram
-    model_factory = RevenueProgramFactory
-
     def setUp(self):
         super().setUp()
-        self.user = user_model.objects.create_superuser(email="superuser@example.com", password="password")
+        self.set_up_domain_model()
         self.list_url = reverse("revenue-program-list")
-        self.detail_url = "/api/v1/revenue-programs"
-        self.create_resources()
+        self.detail_url = reverse("revenue-program-detail", args=(RevenueProgram.objects.first().pk,))
 
-    def test_reverse_works(self):
-        self.login()
-        response = self.client.get(self.list_url)
-        self.assertEqual(response.status_code, 200)
+    def test_superuser_can_retrieve_an_rp(self):
+        return self.assert_superuser_can_get(self.detail_url)
 
-    def test_list_returns_expected_count(self):
-        self.login()
-        response = self.client.get(self.list_url)
-        self.assertEqual(response.status_code, 200)
+    def test_superuser_can_list_rps(self):
         expected_count = RevenueProgram.objects.count()
-        self.assertEqual(len(response.json()), expected_count)
+        return self.assert_superuser_can_list(self.list_url, expected_count, results_are_flat=True)
 
-    def test_created_and_list_are_equivalent(self):
-        self.login()
-        response = self.client.get(self.list_url)
-        self.assertEqual([x["id"] for x in response.json()], list(RevenueProgram.objects.values_list("pk", flat=True)))
+    def test_other_cannot_access_resource(self):
+        non_superusers = [self.hub_user, self.org_user, self.rp_user, self.contributor_user]
+        for user in non_superusers:
+            self.assert_user_cannot_get(self.detail_url, user)
+            self.assert_user_cannot_get(self.list_url, user)
+            self.assert_user_cannot_post(self.list_url, user)
+            self.assert_user_cannot_patch(self.detail_url, user)
+            self.assert_user_cannot_delete(self.detail_url, user)
 
-    def test_viewset_is_readonly(self):
-        """
-        For now, revprogram viewset is readonly. Test to make sure we don't accidentally change that.
-        """
-        rp = RevenueProgram.objects.all().first()
-        self.login()
-        new_name = "A New RevenueProgram Name"
-
-        # Method PATCH Not Allowed
-        response = self.client.patch(f"{self.detail_url}/{rp.pk}/", {"name": new_name})
-        self.assertEqual(response.status_code, 405)
-
-        # Method POST Not Allowed
-        response = self.client.post(self.list_url, {"name": "New RevenueProgram", "organization": self.orgs[0].pk})
-        self.assertEqual(response.status_code, 405)
+    def test_unauthed_cannot_access(self):
+        self.assert_unuauthed_cannot_get(self.detail_url)
+        self.assert_unuauthed_cannot_get(self.list_url)
+        self.assert_unauthed_cannot_delete(self.detail_url)
+        self.assert_unauthed_cannot_patch(self.detail_url)
+        self.assert_unauthed_cannot_put(self.detail_url)
 
     def test_pagination_disabled(self):
-        self.login()
-        response = self.client.get(self.list_url)
-        self.assertEqual(response.status_code, 200)
-        # 'count' and 'results' keys are only present in paginated responses
+        response = self.assert_superuser_can_get(self.list_url)
         self.assertNotIn("count", response.json())
         self.assertNotIn("results", response.json())
 
 
-class PlanViewSetTest(APITestCase):
+class PlanViewSetTest(DomainModelBootstrappedTestCase):
     def setUp(self):
-        self.obj_count = 5
-        for i in range(self.obj_count):
-            PlanFactory()
         self.list_url = reverse("plan-list")
-        self.detail_url = "/api/v1/plans"
-        self.user = user_model.objects.create_superuser(email="superuser@test.com", password="password")
-        self.client.force_authenticate(user=self.user)
+        self.set_up_domain_model()
 
-    def test_reverse_works(self):
-        response = self.client.get(self.list_url)
-        self.assertEqual(response.status_code, 200)
+    def test_superuser_can_read(self):
+        self.assert_superuser_can_get(reverse("plan-detail", args=(Plan.objects.first().pk,)))
+        self.assertGreater(expected_count := Plan.objects.count())
+        self.assert_superuser_can_list(self.list_url, expected_count)
 
-    def test_list_returns_expected_count(self):
-        response = self.client.get(self.list_url)
-        self.assertEqual(response.status_code, 200)
-        self.assertNotEqual(len(response.json()), 0)
-        self.assertEqual(len(response.json()), Plan.objects.count())
+    def test_hub_user_can_read(self):
+        self.assert_hub_admin_can_get(reverse("plan-detail", args=(Plan.objects.first().pk,)))
+        self.assertGreater(expected_count := Plan.objects.count(), 1)
+        self.assert_hub_admin_can_list(self.list_url, expected_count, results_are_flat=True)
+
+    def assert_user_cannot_modify_or_create(self, user, detail_url, list_url, expected_status_code):
+        self.assert_user_cannot_delete(detail_url, user, expected_status_code=expected_status_code)
+        self.assert_user_cannot_patch(detail_url, user, expected_status_code=expected_status_code)
+        self.assert_user_cannot_post(list_url, user, expected_status_code=expected_status_code)
+
+    def test_org_user_can_retrieve_their_plan(self):
+        detail_url = reverse("plan-detail", args=(self.org1.plan,))
+        self.assert_org_admin_can_get(detail_url)
+
+    def test_org_user_cannot_retrieve_a_plan_they_do_not_own(self):
+        detail_url = reverse("plan-detail", args=(self.org2.plan,))
+        self.assert_org_admin_cannot_get(detail_url)
+
+    def test_org_user_can_list_their_plans(self):
+        return self.assert_org_admin_can_list(
+            self.list_url, 1, assert_item=lambda x: x["id"] == self.org1.pk, results_are_flat=True
+        )
+
+    def test_rp_user_can_retrieve_their_orgs_plan(self):
+        detail_url = reverse("plan-detail", args=(self.org1.plan,))
+        self.assert_rp_user_can_get(detail_url)
+
+    def test_rp_user_cannot_retrieve_another_orgs_plan(self):
+        detail_url = reverse("plan-detail", args=(self.org2.plan,))
+        self.assert_rp_user_cannot_get(detail_url)
+
+    def test_rp_user_can_list_their_orgs_plans(self):
+        return self.assert_rp_user_can_list(
+            self.list_url, 1, assert_item=lambda x: x["id"] == self.org1.pk, results_are_flat=True
+        )
+
+    def test_no_users_can_modify_or_create(self):
+        detail_url = reverse("plan-detail", args=(Plan.objects.first().pk,))
+        for pairing in (
+            (self.superuser, status.HTTP_405_METHOD_NOT_ALLOWED),
+            (self.hub_user, status.HTTP_405_METHOD_NOT_ALLOWED),
+            (self.org_user, status.HTTP_405_METHOD_NOT_ALLOWED),
+            (self.rp_user, status.HTTP_405_METHOD_NOT_ALLOWED),
+            (self.contributor_user, status.HTTP_403_FORBIDDEN),
+        ):
+            user, code = pairing
+            self.assert_user_cannot_modify_or_create(user, detail_url, self.list_url, code)
 
 
 class FeatureViewSetTest(APITestCase):

@@ -22,13 +22,13 @@ class DomainModelBootstrappedTestCase(AbstractTestCase):
 
     def assert_unauthed_cannot_patch(self, url, data=None):
         data = data if data is not None else {}
-        response = self.client.patch(url, data=data)
+        response = self.client.patch(url, data=data, format="json")
         self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
         return response
 
     def assert_unauthed_cannot_put(self, url, data=None):
         data = data if data is not None else {}
-        response = self.client.put(url, data=data)
+        response = self.client.put(url, data=data, format="json")
         self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
         return response
 
@@ -62,32 +62,32 @@ class DomainModelBootstrappedTestCase(AbstractTestCase):
     def assert_user_can_post(self, url, user, data=None):
         data = data if data is not None else {}
         self.client.force_authenticate(user=user)
-        response = self.client.post(url, data)
+        response = self.client.post(url, data, format="json")
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         return response
 
     def assert_user_cannot_post(self, url, user, data=None, expected_status_code=status.HTTP_403_FORBIDDEN):
         self.client.force_authenticate(user)
-        response = self.client.post(url, data=data)
+        response = self.client.post(url, data=data, format="json")
         self.assertEqual(response.status_code, expected_status_code)
         return response
 
     def assert_user_can_patch(self, url, user, data=None):
         data = data if data is not None else {}
         self.client.force_authenticate(user=user)
-        response = self.client.patch(url, data)
+        response = self.client.patch(url, data, format="json")
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         return response
 
     def assert_user_cannot_patch(self, url, user, data=None, expected_status_code=status.HTTP_403_FORBIDDEN):
         self.client.force_authenticate(user=user)
-        response = self.client.patch(url, data)
+        response = self.client.patch(url, data, format="json")
         self.assertEqual(response.status_code, expected_status_code)
         return response
 
     def assert_user_cannot_put(self, url, user, data=None, expected_status_code=status.HTTP_403_FORBIDDEN):
         self.client.force_authenticate(user=user)
-        response = self.client.put(url, data)
+        response = self.client.put(url, data, format="json")
         self.assertEqual(response.status_code, expected_status_code)
         return response
 

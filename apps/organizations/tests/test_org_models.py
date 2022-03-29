@@ -9,17 +9,8 @@ from stripe.error import StripeError
 
 from apps.config.tests.factories import DenyListWordFactory
 from apps.config.validators import GENERIC_SLUG_DENIED_MSG, SLUG_DENIED_CODE
-from apps.organizations import models
+from apps.organizations.models import Organization, RevenueProgram
 from apps.organizations.tests import factories
-
-
-class OrganizationTest(TestCase):
-    def setUp(self):
-        self.model_class = models.Organization
-        self.instance = factories.OrganizationFactory()
-
-    def test_default_no_plan(self):
-        assert not self.instance.plan
 
 
 TEST_STRIPE_LIVE_KEY = "my_test_live_key"
@@ -73,16 +64,21 @@ class RevenueProgramTest(TestCase):
     @override_settings(STRIPE_LIVE_MODE=True)
     @override_settings(STRIPE_LIVE_SECRET_KEY=TEST_STRIPE_LIVE_KEY)
     @override_settings(DOMAIN_APEX=TEST_DOMAIN_APEX)
-    @patch("stripe.ApplePayDomain.create")
+    @patch("apps.organizations.models.stripe.ApplePayDomain.create")
     def test_apple_pay_domain_verification_called_when_created_and_live(self, apple_pay_domain_create):
-        expected_domain = f"{self.revenue_program.slug}.{TEST_DOMAIN_APEX}"
+        my_slug = "sluggy-the-slug"
+        expected_domain = f"{my_slug}.{TEST_DOMAIN_APEX}"
+        self.assertIsNotNone(org := Organization.objects.first())
+        org.stripe_account_id = TEST_STRIPE_LIVE_KEY
+        org.save()
+        rp = factories.RevenueProgramFactory(slug=my_slug, org=org)
         apple_pay_domain_create.assert_called_once_with(
             api_key=TEST_STRIPE_LIVE_KEY,
             domain_name=expected_domain,
-            stripe_account=self.organization.stripe_account_id,
+            stripe_account=rp.organization.stripe_account_id,
         )
         # revenue_program should have a non-null domain_apple_verified_date
-        self.assertIsNotNone(self.revenue_program.domain_apple_verified_date)
+        self.assertIsNotNone(rp.domain_apple_verified_date)
 
     @override_settings(STRIPE_LIVE_MODE=False)
     @patch("stripe.ApplePayDomain.create")

@@ -9,7 +9,7 @@ updates:
       interval: "daily"
 
   # Enable version updates for Docker
-  - package-ecosystem: "python"
+  - package-ecosystem: "pip"
     directory: "/"
     # Check for updates once a week
     schedule:

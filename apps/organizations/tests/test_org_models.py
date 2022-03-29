@@ -17,6 +17,14 @@ TEST_STRIPE_LIVE_KEY = "my_test_live_key"
 TEST_DOMAIN_APEX = "testapexdomain.com"
 
 
+class TestOrganizationModel(TestCase):
+    def setUp(self):
+        self.organization = factories.OrganizationFactory()
+
+    def test_admin_benefit_options(self):
+        self.assertTrue(isinstance(self.organization.admin_benefit_options, list))
+
+
 class RevenueProgramTest(TestCase):
     def setUp(self):
         self.stripe_account_id = "my_stripe_account_id"

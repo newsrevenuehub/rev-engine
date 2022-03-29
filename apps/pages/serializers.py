@@ -7,7 +7,6 @@ from rest_framework.validators import UniqueTogetherValidator
 from sorl_thumbnail_serializer.fields import HyperlinkedSorlImageField
 
 from apps.api.error_messages import UNIQUE_PAGE_SLUG
-from apps.common.utils import get_org_and_rp_from_request
 from apps.organizations.models import RevenueProgram
 from apps.organizations.serializers import (
     BenefitLevelDetailSerializer,
@@ -60,7 +59,7 @@ class StyleListSerializer(StyleInlineSerializer):
         return super().create(validated_data)
 
     def set_revenue_program(self, validated_data):
-        _, rp_slug = get_org_and_rp_from_request(self.context["request"])
+        rp_slug = self.context["request"].GET.get(settings.RP_SLUG_PARAM)
         if not rp_slug:
             raise serializers.ValidationError(
                 {settings.RP_SLUG_PARAM: "RevenueProgram.slug is required when creating a new page"}
@@ -161,7 +160,7 @@ class DonationPageFullDetailSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError({"template": ["This template no longer exists"]})
 
     def create(self, validated_data):
-        _, rp_slug = get_org_and_rp_from_request(self.context["request"])
+        rp_slug = self.context["request"].GET.get(settings.RP_SLUG_PARAM)
         if not rp_slug:
             raise serializers.ValidationError({"rp_slug": "RevenueProgram.slug is required when creating a new page"})
         try:

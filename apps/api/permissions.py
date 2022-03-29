@@ -48,9 +48,6 @@ class HasRoleAssignment(permissions.BasePermission):
         """
         return getattr(request.user, "get_role_assignment", False) and bool(request.user.get_role_assignment())
 
-    def has_object_permission(self, request, view, obj):
-        return view.model.user_has_permission_for_instance(request.user, obj)
-
 
 class HasCreatePrivilegesForSlugs(permissions.BasePermission):
     def has_permission(self, request, view):

@@ -74,10 +74,6 @@ class Plan(IndexedTimeStampedModel, RoleAssignmentResourceModelMixin):
         else:
             raise UnexpectedRoleType(f"{role_assignment.role_type} is not a valid value")
 
-    @classmethod
-    def filter_queryset_for_contributor(cls, contributor, queryset):
-        return queryset.none()
-
 
 CURRENCY_CHOICES = [(k, k) for k, _ in settings.CURRENCIES.items()]
 
@@ -176,9 +172,6 @@ class Organization(IndexedTimeStampedModel, RoleAssignmentResourceModelMixin):
             return queryset.filter(pk=role_assignment.organization.pk)
         else:
             raise UnexpectedRoleType(f"{role_assignment.role_type} is not a valid value")
-
-    def filter_queryset_for_contributor(cls, contributor, queryset):
-        return queryset.none()
 
 
 class BenefitLevel(IndexedTimeStampedModel):

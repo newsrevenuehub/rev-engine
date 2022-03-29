@@ -242,24 +242,6 @@ class PageViewSetTest(DomainModelBootstrappedTestCase):
         self.assertEqual(page.pk, old_page_pk)
         self.assertEqual(page.heading, old_page_heading)
 
-    # update
-    # def test_patch_page_with_styles(self):
-    #     request = self._create_patch_request(data=page_data)
-    #     response = self.page_patch_view(request, pk=self.donation_page.pk)
-    #     self.assertEqual(response.data["styles"]["id"], self.styles.pk)
-
-    # @override_settings(MEDIA_ROOT="/tmp/media")
-    # @override_settings(MEDIA_URL="/media/")
-    # def test_patch_page_with_sidebar_elements(self):
-    #     sidebar, files = setup_sidebar_fixture()
-    #     for k, v in files.items():
-    #         sidebar[k] = SimpleUploadedFile(
-    #             name=f"{v.name}", content=get_test_image_file_jpeg().open("rb").read(), content_type="image/jpeg"
-    #         )
-    #     # do as hub_admin
-    #     # dp = DonationPage.objects.get(pk=self.donation_page.pk)
-    #     # assert dp.sidebar_elements == response.data.get("sidebar_elements")
-
     ########
     # Delete
     def test_superuser_can_delete_a_page(self):
@@ -784,11 +766,6 @@ class TemplateViewSetTest(DomainModelBootstrappedTestCase):
         self.assert_rp_user_cannot_delete(url, expected_status_code=status.HTTP_403_FORBIDDEN)
         self.assertEqual(Template.objects.count(), before_count)
         self.assertTrue(Template.objects.filter(pk=self.other_rps_template.pk).exists())
-
-    ##################
-    # Other user types
-    def test_other_users_cannot_access_resource(self):
-        pass
 
 
 class StylesViewsetTest(DomainModelBootstrappedTestCase):

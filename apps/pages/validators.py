@@ -28,7 +28,7 @@ class PagePkIsForOwnedPage:
 
     def __call__(self, value, serializer):
         target_page = self.page_model.objects.get(pk=value["page_pk"])
-        if request := serializer.context.get("request", None) is not None:
+        if (request := serializer.context.get("request", None)) is not None:
             user = request.user
             ra = getattr(user, "roleassignment", None)
             if user.is_superuser or (ra is not None and ra.role_type == Roles.HUB_ADMIN):

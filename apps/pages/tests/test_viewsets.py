@@ -14,6 +14,7 @@ from apps.organizations.tests.factories import RevenueProgramFactory
 from apps.pages.models import DonationPage, Font, Style, Template
 from apps.pages.tests.factories import DonationPageFactory, FontFactory, TemplateFactory
 from apps.pages.validators import UNOWNED_TEMPLATE_FROM_PAGE_PAGE_PK_MESSAGE
+from apps.users.tests.utils import create_test_user
 
 
 class PageViewSetTest(DomainModelBootstrappedTestCase):
@@ -767,6 +768,17 @@ class TemplateViewSetTest(DomainModelBootstrappedTestCase):
         self.assertEqual(Template.objects.count(), before_count)
         self.assertTrue(Template.objects.filter(pk=self.other_rps_template.pk).exists())
 
+    ######
+    # Misc
+
+    def test_unexpected_role_type(self):
+        novel = create_test_user(role_assignment_data={"role_type": "holy-moley"})
+        self.assert_user_cannot_get(
+            reverse("template-list"),
+            novel,
+            expected_status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        )
+
 
 class StylesViewsetTest(DomainModelBootstrappedTestCase):
     def setUp(self):
@@ -1130,6 +1142,15 @@ class StylesViewsetTest(DomainModelBootstrappedTestCase):
         self.assert_rp_user_cannot_delete(url, expected_status_code=status.HTTP_403_FORBIDDEN)
         self.assertEqual(Style.objects.count(), before_count)
         self.assertTrue(Style.objects.filter(pk=pk).exists())
+
+    ######
+    # Misc
+
+    def test_unexpected_role_type(self):
+        novel = create_test_user(role_assignment_data={"role_type": "holy-moley"})
+        self.assert_user_cannot_get(
+            reverse("style-list"), novel, expected_status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
 
 
 class FontViewSetTest(DomainModelBootstrappedTestCase):

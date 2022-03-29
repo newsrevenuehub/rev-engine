@@ -12,6 +12,8 @@ from apps.common.models import IndexedTimeStampedModel
 from apps.common.utils import normalize_slug
 from apps.config.validators import validate_slug_against_denylist
 from apps.organizations.validators import validate_statement_descriptor_suffix
+from apps.users.choices import Roles
+from apps.users.models import RoleAssignmentResourceModelMixin, UnexpectedRoleType
 
 
 logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
@@ -67,7 +69,7 @@ class Plan(IndexedTimeStampedModel):
 CURRENCY_CHOICES = [(k, k) for k, _ in settings.CURRENCIES.items()]
 
 
-class Organization(IndexedTimeStampedModel):
+class Organization(IndexedTimeStampedModel, RoleAssignmentResourceModelMixin):
     name = models.CharField(max_length=255, unique=True)
     plan = models.ForeignKey("organizations.Plan", null=True, on_delete=models.CASCADE)
     currency = models.CharField(max_length=3, choices=CURRENCY_CHOICES, default="USD")
@@ -152,6 +154,19 @@ class Organization(IndexedTimeStampedModel):
             logger.error(
                 f'Currency settings for organization "{self.name}" misconfigured. Tried to access "{self.currency}", but valid options are: {settings.CURRENCIES}'
             )
+
+    @classmethod
+    def filter_queryset_by_role_assignment(cls, role_assignment, queryset):
+        if role_assignment.role_type == Roles.HUB_ADMIN:
+            return queryset.all()
+        elif role_assignment.role_type in (Roles.ORG_ADMIN, Roles.RP_ADMIN):
+            return queryset.filter(pk=role_assignment.organization.pk)
+        else:
+            raise UnexpectedRoleType(f"{role_assignment.role_type} is not a valid value")
+
+    @classmethod
+    def filter_queryset_for_contributor(cls, contributor, queryset):
+        return queryset.none()
 
 
 class BenefitLevel(IndexedTimeStampedModel):

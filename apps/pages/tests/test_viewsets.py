@@ -4,6 +4,7 @@ import json
 from django.conf import settings
 from django.utils import timezone
 
+import pytest
 from rest_framework import status
 from rest_framework.reverse import reverse
 from rest_framework.test import APITestCase
@@ -1183,3 +1184,11 @@ class FontViewSetTest(DomainModelBootstrappedTestCase):
             self.generic_user,
             status.HTTP_405_METHOD_NOT_ALLOWED,
         )
+
+
+class TestRetrieveUserEndpoint(APITestCase):
+    def test_happy_path(self):
+        user = create_test_user()
+        self.client.force_authenticate(user)
+        response = self.client.get(reverse("user-retrieve"))
+        self.assertEqual(response.status_code, status.HTTP_200_OK)

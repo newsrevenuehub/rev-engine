@@ -188,7 +188,7 @@ class TemplateDetailSerializerTest(APITestCase):
         self.assertTrue(serializer.is_valid())
         self.page.delete()
         with self.assertRaises(serializers.ValidationError) as v_error:
-            new_template = serializer.save()
+            serializer.save()
         self.assertIn("page", v_error.exception.detail)
         self.assertEqual(str(v_error.exception.detail["page"][0]), "This page no longer exists")
 

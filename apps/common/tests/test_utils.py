@@ -1,6 +1,8 @@
+import os
 import random
 from datetime import timedelta
 from io import BytesIO
+from unittest import mock
 
 from django.apps import apps
 from django.contrib.messages.middleware import MessageMiddleware
@@ -15,9 +17,14 @@ import pytest
 from faker import Faker
 
 from apps.common.utils import (
+    create_stripe_webhook,
+    delete_cloudflare_cnames,
+    delete_stripe_webhook,
+    extract_ticket_id_from_branch_name,
     get_changes_from_prev_history_obj,
     get_subdomain_from_request,
     normalize_slug,
+    upsert_cloudflare_cnames,
 )
 from apps.organizations.tests.factories import OrganizationFactory
 from apps.pages.tests.factories import DonationPageFactory
@@ -230,3 +237,94 @@ class TestMigrations(TestCase):
 
     def setUpBeforeMigration(self, apps):
         pass
+
+
+def test_extract_ticket_id_from_branch_name():
+    branch_name = "DEV-1420_db_review_apps"
+    ticket_id = extract_ticket_id_from_branch_name(branch_name)
+    assert ticket_id == "dev-1420"
+
+
+@mock.patch.dict(os.environ, {"HEROKU_APP_NAME": "foo"})
+@mock.patch.dict(os.environ, {"CF_ZONE_NAME": "bar"})
+@mock.patch("CloudFlare.CloudFlare")
+def test_upsert_cloudflare_cnames(cloudflare_class_mock):
+    mock_cloudflare = mock.MagicMock()
+    cloudflare_class_mock.return_value = mock_cloudflare
+
+    mock_cloudflare.zones.get.return_value = [{"id": "foo"}]
+
+    # DNS record is already there; shouldn't do anything:
+    mock_cloudflare.zones.dns_records.get.return_value = [
+        {"name": "quux.bar", "id": "123", "content": "foo.herokuapp.com"}
+    ]
+    upsert_cloudflare_cnames(["quux"])
+    assert not mock_cloudflare.zones.dns_records.post.called
+    assert not mock_cloudflare.zones.dns_records.patch.called
+
+    # DNS records aren't there; should create it:
+    mock_cloudflare.zones.dns_records.get.return_value = [{"name": "abc", "id": "123", "content": "xyz"}]
+    upsert_cloudflare_cnames(["quux", "frob"])
+    assert mock_cloudflare.zones.get.called_once_with(params={"name": "bar"})
+    assert mock_cloudflare.zones.dns_records.get.called_once_with("foo", params={"per_page": 300})
+    assert mock_cloudflare.zones.dns_records.post.called_once_with(
+        "foo", data={"type": "CNAME", "name": "quux", "content": "quux.herokuapp.com", "proxied": True}
+    )
+    assert mock_cloudflare.zones.dns_records.post.called_once_with(
+        "foo", data={"type": "CNAME", "name": "frob", "content": "frob.herokuapp.com", "proxied": True}
+    )
+    assert not mock_cloudflare.zones.dns_records.patch.called
+
+    # DNS records is there, but content is wrong; should update it:
+    mock_cloudflare.zones.dns_records.get.return_value = [{"name": "quux.bar", "id": "123", "content": "foo.x.com"}]
+    upsert_cloudflare_cnames(["quux"])
+    assert mock_cloudflare.zones.dns_records.patch.called_once_with(
+        "foo", data={"type": "CNAME", "name": "quux", "content": "quux.herokuapp.com", "proxied": True}
+    )
+
+
+@mock.patch("stripe.WebhookEndpoint.list")
+@mock.patch("stripe.WebhookEndpoint.delete")
+def test_delete_stripe_webhook(delete_mock, list_mock):
+
+    list_mock.return_value = {"data": [{"url": "https://notthere.com/webhook", "id": "123"}]}
+    delete_stripe_webhook("https://example.com/webhook", api_key="bogus")
+    assert not delete_mock.called
+
+    list_mock.return_value = {"data": [{"url": "https://example.com/webhook", "id": "123"}]}
+    delete_stripe_webhook("https://example.com/webhook", api_key="bogus")
+    assert delete_mock.called_with("123", api_key="bogus")
+
+
+@mock.patch("stripe.WebhookEndpoint.list")
+@mock.patch("stripe.WebhookEndpoint.create")
+def test_create_stripe_webhook(create_mock, list_mock):
+
+    list_mock.return_value = {"data": [{"url": "https://example.com/webhook", "id": "123"}]}
+    create_stripe_webhook("https://example.com/webhook", api_key="bogus")
+    assert not create_mock.called
+
+    list_mock.return_value = {"data": [{"url": "https://example.com/webhook", "id": "123"}]}
+    create_stripe_webhook("https://notthere.com/webhook", api_key="bogus")
+    assert create_mock.called_with("https://notthere.com/webhook", api_key="bogus")
+
+
+@mock.patch.dict(os.environ, {"HEROKU_APP_NAME": "foo"})
+@mock.patch.dict(os.environ, {"CF_ZONE_NAME": "bar"})
+@mock.patch("CloudFlare.CloudFlare")
+def test_delete_cloudflare_cnames(cloudflare_class_mock):
+    mock_cloudflare = mock.MagicMock()
+    cloudflare_class_mock.return_value = mock_cloudflare
+    mock_cloudflare.zones.get.return_value = [{"id": "foo"}]
+    mock_cloudflare.zones.dns_records.get.return_value = [
+        {"name": "quux.bar", "id": "123", "content": "foo.herokuapp.com"}
+    ]
+    # no record there: shouldn't do anything
+    delete_cloudflare_cnames("baz")
+    assert not mock_cloudflare.zones.dns_records.delete.called
+
+    mock_cloudflare.zones.dns_records.get.return_value = [{"name": "abc", "id": "123", "content": "xyz"}]
+    delete_cloudflare_cnames("abc")
+    assert mock_cloudflare.zones.get.called_once_with(params={"name": "bar"})
+    assert mock_cloudflare.zones.dns_records.get.called_once_with("foo", params={"per_page": 300})
+    assert mock_cloudflare.zones.dns_records.delet.called_once_with("foo", "123")

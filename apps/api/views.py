@@ -47,10 +47,13 @@ def set_token_cookie(response, token, expires):
 class TokenObtainPairCookieView(simplejwt_views.TokenObtainPairView):
     """
     Subclasses simplejwt's TokenObtainPairView to handle tokens in cookies
+
+    NB: sets permission_classes to an empty list, in case permissions are
+    set as defaults in parent context. The JWT resource inherently eneds to be
+    accessible.
     """
 
     permission_classes = []
-    filter_backends = []
     serializer_class = TokenObtainPairCookieSerializer
 
     def post(self, request, *args, **kwargs):

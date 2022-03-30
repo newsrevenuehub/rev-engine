@@ -131,12 +131,12 @@ function Donations() {
     <DashboardSectionGroup data-testid="donations">
       <Switch>
         <Route path={`${path}/:contributionId`}>
-          <DashboardSection heading="Donation Info">
+          <DashboardSection heading="Contribution Info">
             <DonationDetail />
           </DashboardSection>
         </Route>
         <Route>
-          <DashboardSection heading="Donations">
+          <DashboardSection heading="Contributions">
             <Filters filters={filters} handleFilterChange={handleFilterChange} donationsCount={donationsCount} />
             <GenericErrorBoundary>
               <DonationsTable

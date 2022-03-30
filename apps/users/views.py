@@ -79,6 +79,12 @@ def retrieve_user(request):
 
 
 class FilterQuerySetByUserMixin(GenericAPIView):
+    """Mixin for filtering querysets by the user's role (and if they're contributor or superuser...
+
+    ...in which case they will not have a role). This mixin assumes that the model for the view
+    using the mixin has implemented `filter_queryset_by_role_assignment` and `filter_queryset_for_contributor`.
+    """
+
     @classmethod
     def filter_queryset_for_user(cls, user, queryset):
         try:
@@ -96,6 +102,13 @@ class FilterQuerySetByUserMixin(GenericAPIView):
 
 
 class PerUserCreateDeletePermissionsMixin(GenericAPIView):
+    """Limit who can create or delete a resource, by overriding default `.get_permissions`.
+
+    ... allow super users to create and delete
+    ... allow users with roles if `HasCreatePrivilegesForSlugs` is true.
+
+    """
+
     def get_permissions(self):
         if self.action == "create":
             composed_perm = IsSuperUser | (IsAuthenticated & HasRoleAssignment & HasCreatePrivilegesForSlugs)

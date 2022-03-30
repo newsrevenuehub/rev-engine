@@ -50,6 +50,13 @@ class OrganizationUser(models.Model):
 
 
 class RoleAssignment(models.Model):
+    """The central entity used for determining view and object-level permissions accross the API layer
+
+
+    API resources use role assignnments to do things like limit queryset results to only objects owned by
+    a user's organization (for instance).
+    """
+
     user = models.OneToOneField(User, on_delete=models.CASCADE)
     role_type = models.CharField(max_length=50, choices=Roles.choices)
     organization = models.ForeignKey("organizations.Organization", null=True, blank=True, on_delete=models.SET_NULL)
@@ -66,10 +73,20 @@ class RoleAssignment(models.Model):
 
 
 class UnexpectedRoleType(Exception):
+    """For signalling an unexpected value for `role_assignment.role_type`"""
+
     pass
 
 
 class RoleAssignmentResourceModelMixin:  # pragma: no cover
+    """For use in models exposed via rest api, inheriting from FilterQuerySetByUserMixin and/or
+    FilterQuerySetByUserMixin.
+
+    If inheriting models are used in a view that expects these methods, but the inheriting model
+    has not itself implemented these values this mixin ensures the methods will be callable, but will
+    raise not implemented errors.
+    """
+
     @classmethod
     def filter_queryset_by_role_assignment(cls, role_assignment, queryset):
         raise NotImplementedError

@@ -118,20 +118,24 @@ class PageViewSetTest(RevEngineApiAbstractTestCase):
         self.assertEqual(my_pages_query.count(), before_my_pages_count)
         self.assertEqual(others_pages_query.count(), before_others_count)
 
-    def test_page_create_returns_valdiation_error_when_missing_rp_slug_param(self):
+    def test_page_create_returns_validation_error_when_missing_rp_slug_param(self):
         self.client.force_authenticate(user=self.hub_user)
         url = f"{reverse('donationpage-list')}?{settings.ORG_SLUG_PARAM}={self.org1.slug}"
         response = self.client.post(url, self.default_page_creation_data)
         self.assertEqual(response.status_code, 400)
-        self.assertEqual(str(response.data["rp_slug"]), "RevenueProgram.slug is required when creating a new page")
+        self.assertEqual(
+            str(response.data[settings.RP_SLUG_PARAM]), "RevenueProgram.slug is required when creating a new page"
+        )
 
-    def test_page_create_returns_valdiation_error_when_bad_rev_slug(self):
+    def test_page_create_returns_validation_error_when_bad_rev_slug(self):
         not_real_slug = "not-real"
         url = f"{reverse('donationpage-list')}?{settings.RP_SLUG_PARAM}={not_real_slug}&{settings.ORG_SLUG_PARAM}={self.org1.slug}"
         self.client.force_authenticate(user=self.hub_user)
         response = self.client.post(url, self.default_page_creation_data)
         self.assertEqual(response.status_code, 400)
-        self.assertEqual(str(response.data["rp_slug"]), "Could not find revenue program with provided slug")
+        self.assertEqual(
+            str(response.data[settings.RP_SLUG_PARAM]), "Could not find revenue program with provided slug"
+        )
 
     def test_page_create_returns_revenue_program_slug(self):
         """

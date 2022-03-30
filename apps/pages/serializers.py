@@ -162,12 +162,16 @@ class DonationPageFullDetailSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         rp_slug = self.context["request"].GET.get(settings.RP_SLUG_PARAM)
         if not rp_slug:
-            raise serializers.ValidationError({"rp_slug": "RevenueProgram.slug is required when creating a new page"})
+            raise serializers.ValidationError(
+                {settings.RP_SLUG_PARAM: "RevenueProgram.slug is required when creating a new page"}
+            )
         try:
             rev_program = RevenueProgram.objects.get(slug=rp_slug)
             validated_data["revenue_program"] = rev_program
         except RevenueProgram.DoesNotExist:
-            raise serializers.ValidationError({"rp_slug": "Could not find revenue program with provided slug"})
+            raise serializers.ValidationError(
+                {settings.RP_SLUG_PARAM: "Could not find revenue program with provided slug"}
+            )
 
         self._check_against_soft_deleted_slugs(validated_data)
         if "template_pk" in validated_data:

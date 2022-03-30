@@ -20,6 +20,12 @@ logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
 
 
 class PageViewSet(viewsets.ModelViewSet, FilterQuerySetByUserMixin, PerUserCreateDeletePermissionsMixin):
+    """Donation pages exposed through API
+
+    Only superusers and users with role assignments are meant to have access. Results of lists are filtered
+    on per user basis.
+    """
+
     model = DonationPage
     filter_backends = [
         filters.OrderingFilter,
@@ -36,6 +42,7 @@ class PageViewSet(viewsets.ModelViewSet, FilterQuerySetByUserMixin, PerUserCreat
     pagination_class = None
 
     def get_queryset(self):
+        # supplied by FilterQuerySetByUserMixin
         return self.filter_queryset_for_user(self.request.user, self.model.objects.all())
 
     def get_serializer_class(self):
@@ -51,6 +58,8 @@ class PageViewSet(viewsets.ModelViewSet, FilterQuerySetByUserMixin, PerUserCreat
     def live_detail(self, request):
         """
         This is the action requested when a page needs to be viewed.
+
+        Permission and authentication classes are reset because meant to be open access.
         """
         error = None
         try:
@@ -114,6 +123,12 @@ class PageViewSet(viewsets.ModelViewSet, FilterQuerySetByUserMixin, PerUserCreat
 
 
 class TemplateViewSet(viewsets.ModelViewSet, FilterQuerySetByUserMixin, PerUserCreateDeletePermissionsMixin):
+    """Page templates as exposed through API
+
+    Only superusers and users with role assignments are meant to have access. Results of lists are filtered
+    on per user basis.
+    """
+
     model = Template
     queryset = Template.objects.all()
     pagination_class = None
@@ -139,6 +154,12 @@ class TemplateViewSet(viewsets.ModelViewSet, FilterQuerySetByUserMixin, PerUserC
 
 
 class StyleViewSet(viewsets.ModelViewSet, FilterQuerySetByUserMixin, PerUserCreateDeletePermissionsMixin):
+    """Donation pages exposed through API
+
+    Only superusers and users with role assignments are meant to have access. Results of lists are filtered
+    on per user basis.
+    """
+
     model = Style
     queryset = Style.objects.all()
     serializer_class = serializers.StyleListSerializer
@@ -152,7 +173,7 @@ class StyleViewSet(viewsets.ModelViewSet, FilterQuerySetByUserMixin, PerUserCrea
 class FontViewSet(viewsets.ReadOnlyModelViewSet):
     model = Font
     queryset = Font.objects.all()
-    # Don't require a RoleAssignment for this endpoint.
+    # anyone who is authenticated read
     permission_classes = [IsAuthenticated]
     serializer_class = serializers.FontSerializer
     pagination_class = None

@@ -59,6 +59,14 @@ class HasRoleAssignment(permissions.BasePermission):
 
 
 class HasCreatePrivilegesForSlugs(permissions.BasePermission):
+    """Determine user has create permission for a given combo of organization
+    and revenue program slugs.
+
+    Note that this permission assumes that the view is using the FilterQuerySetByUserMixin
+    and that the model is using RoleAssignmentResourceModelMixin (implementing
+    `user_has_create_permission_by_virtue_of_role` in the model).
+    """
+
     def has_permission(self, request, view):
         """ """
         org_slug = request.query_params.get(settings.ORG_SLUG_PARAM)
@@ -71,6 +79,14 @@ class HasCreatePrivilegesForSlugs(permissions.BasePermission):
 
 
 class HasDeletePrivilegesViaRole(permissions.BasePermission):
+    """Determine if the user has delete permission for a given combo of organization
+    and revenue program slugs.
+
+    Note that this permission assumes that the view is using the FilterQuerySetByUserMixin
+    and that the model is using RoleAssignmentResourceModelMixin (implementing
+    `user_has_create_permission_by_virtue_of_role` in the model).
+    """
+
     def has_permission(self, request, view):
         """ """
         pk = view.kwargs.get("pk")

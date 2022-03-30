@@ -86,7 +86,7 @@ function StripeProvider() {
 function StripeRestricted() {
   return (
     <S.StripeRestricted data-testid="stripe-restricted">
-      Stripe needs more information before you can accept donations. Visit your{' '}
+      Stripe needs more information before you can accept contributions. Visit your{' '}
       <a href="https://dashboard.stripe.com/dashboard" target="_blank" rel="noopener noreferrer">
         Stripe dashboard
       </a>{' '}

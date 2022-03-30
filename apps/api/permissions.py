@@ -9,20 +9,24 @@ from apps.users.choices import Roles
 ALL_ACCESSOR = "all"
 
 
-class ReadOnly(permissions.BasePermission):
-    def has_object_permission(self, request, *args):
-        # Read permissions are allowed to any request,
-        # so we'll always allow GET, HEAD or OPTIONS requests.
-        if request.method in permissions.SAFE_METHODS:
-            return True
-
-
 class IsContributor(permissions.BasePermission):
+    """Contributor permission
+
+    If the user making the request is a contributor, grant permission. Object-level
+    permissions for contributors are handled elsewhwere
+    """
+
     def has_permission(self, request, view):
         return isinstance(request.user, Contributor)
 
 
 class IsHubAdmin(permissions.BasePermission):
+    """Hub admin permission
+
+    This is only used for gating access to the resource altogether. Object-level
+    permissions are not handled here.
+    """
+
     def has_permission(self, request, view):
         return all(
             [
@@ -33,6 +37,8 @@ class IsHubAdmin(permissions.BasePermission):
 
 
 class ContributorOwnsContribution(permissions.BasePermission):
+    """G"""
+
     def has_object_permission(self, request, view, obj):
         """
         If request is coming from a contributor, verify that the requested contribution

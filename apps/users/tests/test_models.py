@@ -43,6 +43,12 @@ class UserModelTest(TestCase):
     def test_get_full_name(self):
         self.assertIsNotNone(self.hub_admin_user.get_full_name())
 
+    def test_str_method_with_different_user_types(self):
+        str(self.hub_admin_user)
+        str(self.org_admin_user)
+        str(self.rp_admin_user)
+        str(create_test_user())
+
 
 class RoleAssignmentModelTest(TestCase):
     def setUp(self):

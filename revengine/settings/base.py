@@ -104,7 +104,6 @@ REST_FRAMEWORK = {
     ],
     "DEFAULT_PERMISSION_CLASSES": [
         "rest_framework.permissions.IsAuthenticated",
-        "apps.api.permissions.HasRoleAssignment",
     ],
     "DEFAULT_PAGINATION_CLASS": "apps.api.pagination.ApiStandardPagination",
     "PAGE_SIZE": 10,
@@ -131,8 +130,6 @@ AUTH_COOKIE_KEY = "Authorization"
 # across origins. Once this API supports public access, this needs to be loosened.
 AUTH_COOKIE_SAMESITE = "Strict"  # or 'Lax' or None
 
-ORG_SLUG_PARAM = "orgSlug"
-RP_SLUG_PARAM = "revProgramSlug"
 
 WSGI_APPLICATION = "revengine.wsgi.application"
 
@@ -227,42 +224,10 @@ LOGGING = {
     "filters": {"require_debug_false": {"()": "django.utils.log.RequireDebugFalse"}},
     "formatters": {"basic": {"format": "%(asctime)s %(name)-20s %(levelname)-8s %(message)s"}},
     "handlers": {
-        "mail_admins": {
-            "level": "ERROR",
-            "filters": ["require_debug_false"],
-            "class": "django.utils.log.AdminEmailHandler",
-        },
-        "warn_admins": {
-            "level": "WARNING",
-            "filters": ["require_debug_false"],
-            "class": "django.utils.log.AdminEmailHandler",
-        },
         "console": {
             "level": "INFO",
             "class": "logging.StreamHandler",
             "formatter": "basic",
-        },
-    },
-    "loggers": {
-        "django.request": {
-            "handlers": ["mail_admins"],
-            "level": "ERROR",
-            "propagate": True,
-        },
-        "django.security": {
-            "handlers": ["mail_admins"],
-            "level": "ERROR",
-            "propagate": True,
-        },
-        "apps": {
-            "level": "DEBUG",
-            "handlers": ["console"],
-            "propagate": False,
-        },
-        "warn": {
-            "handlers": ["warn_admins"],
-            "level": "WARNING",
-            "propagate": True,
         },
     },
     "root": {
@@ -321,7 +286,7 @@ HEALTHCHECK_URL_AUTO_ACCEPT_FLAGGED_PAYMENTS = os.environ.get("HEALTHCHECK_URL_A
 EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
 EMAIL_SUBJECT_PREFIX = "[RevEngine] "
 
-ADMINS = [("nrh-team", "nrh-team@caktusgroup.com")]
+ADMINS = [("dc", "daniel@fundjournalism.org")]
 
 # Revengine template identifiers
 EMAIL_TEMPLATE_IDENTIFIER_MAGIC_LINK_DONOR = os.environ.get(
@@ -351,9 +316,9 @@ CURRENCIES = {"USD": "$", "CAD": "$"}
 
 
 # Application subdomains (that are NOT revenue program slugs)
-NON_DONATION_PAGE_SUBDOMAINS = os.getenv("NON_DONATION_PAGE_SUBDOMAINS", "support:www").split(":")
-ORG_PORTAL_SUBDOMAINS = os.getenv("ORG_PORTAL_SUBDOMAINS", "support:").split(":")
+NON_DONATION_PAGE_SUBDOMAINS = os.getenv("NON_DONATION_PAGE_SUBDOMAINS", ["support", "www"])
 DOMAIN_APEX = os.getenv("DOMAIN_APEX")
+
 
 CSP_REPORTING_ENABLE = os.environ.get("CSP_REPORTING_ENABLE", "false").lower() == "true"
 # Django-CSP configuration
@@ -455,7 +420,6 @@ SPA_ENV_VARS = {
     "HUB_GOOGLE_MAPS_API_KEY": os.getenv("SPA_ENV_HUB_GOOGLE_MAPS_API_KEY"),
     "HUB_V3_GOOGLE_ANALYTICS_ID": os.getenv("SPA_ENV_HUB_V3_GOOGLE_ANALYTICS_ID"),
     "ENVIRONMENT": ENVIRONMENT,
-    "ORG_PORTAL_SUBDOMAINS": ORG_PORTAL_SUBDOMAINS,
 }
 
 # Meta data static values

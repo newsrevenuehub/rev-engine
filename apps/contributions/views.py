@@ -9,12 +9,7 @@ from rest_framework.decorators import action, api_view, authentication_classes, 
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
-from apps.api.permissions import (
-    ContributorOwnsContribution,
-    HasRoleAssignment,
-    IsContributor,
-    IsHubAdmin,
-)
+from apps.api.permissions import HasRoleAssignment, IsContributorOwningContribution, IsHubAdmin
 from apps.contributions import serializers
 from apps.contributions.filters import ContributionFilter
 from apps.contributions.models import Contribution, ContributionInterval
@@ -205,7 +200,7 @@ class ContributionsViewSet(
 ):
     permission_classes = [
         IsAuthenticated,
-        IsSuperUser | HasRoleAssignment | (IsContributor & ContributorOwnsContribution),
+        IsSuperUser | HasRoleAssignment | IsContributorOwningContribution,
     ]
     model = Contribution
     filterset_class = ContributionFilter
@@ -238,7 +233,7 @@ class ContributionsViewSet(
 
         return Response(data={"detail": "rejected" if reject else "accepted"}, status=status.HTTP_200_OK)
 
-    @action(methods=["patch"], detail=True, permission_classes=[IsAuthenticated, IsContributor])
+    @action(methods=["patch"], detail=True, permission_classes=[IsAuthenticated, IsContributorOwningContribution])
     def update_payment_method(self, request, pk):
         if request.data.keys() != {"payment_method_id"}:
             return Response({"detail": "Request contains unsupported fields"}, status=status.HTTP_400_BAD_REQUEST)
@@ -261,7 +256,7 @@ class ContributionsViewSet(
 
         return Response({"detail": "Success"}, status=status.HTTP_200_OK)
 
-    @action(methods=["post"], detail=True, permission_classes=[IsAuthenticated, IsContributor])
+    @action(methods=["post"], detail=True, permission_classes=[IsAuthenticated, IsContributorOwningContribution])
     def cancel_recurring_payment(self, request, pk):
         try:
             contribution = request.user.contribution_set.get(pk=pk)

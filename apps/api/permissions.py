@@ -37,7 +37,7 @@ class IsHubAdmin(permissions.BasePermission):
 
 
 class ContributorOwnsContribution(permissions.BasePermission):
-    """G"""
+    """Handle object-level permissions for contributors vis-a-vis contributions"""
 
     def has_object_permission(self, request, view, obj):
         """
@@ -45,6 +45,9 @@ class ContributorOwnsContribution(permissions.BasePermission):
         belongs to them.
         """
         return all([is_a_contributor(request.user), obj.contributor.pk == request.user.pk])
+
+
+IsContributorOwningContribution = IsContributor & ContributorOwnsContribution
 
 
 class HasRoleAssignment(permissions.BasePermission):

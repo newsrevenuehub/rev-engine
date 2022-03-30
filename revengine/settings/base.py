@@ -351,9 +351,9 @@ CURRENCIES = {"USD": "$", "CAD": "$"}
 
 
 # Application subdomains (that are NOT revenue program slugs)
-NON_DONATION_PAGE_SUBDOMAINS = os.getenv("NON_DONATION_PAGE_SUBDOMAINS", ["support", "www"])
+NON_DONATION_PAGE_SUBDOMAINS = os.getenv("NON_DONATION_PAGE_SUBDOMAINS", "support:www").split(":")
+ORG_PORTAL_SUBDOMAINS = os.getenv("ORG_PORTAL_SUBDOMAINS", "support:").split(":")
 DOMAIN_APEX = os.getenv("DOMAIN_APEX")
-
 
 CSP_REPORTING_ENABLE = os.environ.get("CSP_REPORTING_ENABLE", "false").lower() == "true"
 # Django-CSP configuration
@@ -454,6 +454,8 @@ SPA_ENV_VARS = {
     "STRIPE_CLIENT_ID": os.getenv("SPA_ENV_STRIPE_CLIENT_ID"),
     "HUB_GOOGLE_MAPS_API_KEY": os.getenv("SPA_ENV_HUB_GOOGLE_MAPS_API_KEY"),
     "HUB_V3_GOOGLE_ANALYTICS_ID": os.getenv("SPA_ENV_HUB_V3_GOOGLE_ANALYTICS_ID"),
+    "ENVIRONMENT": ENVIRONMENT,
+    "ORG_PORTAL_SUBDOMAINS": ORG_PORTAL_SUBDOMAINS,
 }
 
 # Meta data static values

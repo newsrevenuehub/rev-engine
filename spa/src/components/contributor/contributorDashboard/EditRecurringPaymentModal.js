@@ -107,7 +107,7 @@ function CardForm({ onPaymentMethod, closeModal }) {
    * Listen for changes in the CardElement and display any errors as the customer types their card details
    */
   const handleChange = async (event) => {
-    setDisabled(event.empty);
+    setDisabled(event.error || !event.complete);
     setErrors({ stripe: event.error ? event.error.message : '' });
   };
 
@@ -150,6 +150,7 @@ function CardForm({ onPaymentMethod, closeModal }) {
           type="positive"
           loading={loading}
           disabled={loading || disabled || succeeded}
+          data-testid="contrib-update-payment-method-btn"
         >
           Update payment method
         </Button>

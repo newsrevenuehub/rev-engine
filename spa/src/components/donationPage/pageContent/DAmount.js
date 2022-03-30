@@ -115,8 +115,8 @@ DAmount.propTypes = {
 };
 
 DAmount.type = 'DAmount';
-DAmount.displayName = 'Donation amount';
-DAmount.description = 'Allows a donor to select an amount to donate';
+DAmount.displayName = 'Contribution amount';
+DAmount.description = 'Allows a donor to select an amount to contribute';
 DAmount.required = true;
 DAmount.unique = true;
 

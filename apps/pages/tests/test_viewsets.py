@@ -9,7 +9,7 @@ from rest_framework import status
 from rest_framework.reverse import reverse
 from rest_framework.test import APITestCase
 
-from apps.api.tests import DomainModelBootstrappedTestCase
+from apps.api.tests import RevEngineApiAbstractTestCase
 from apps.organizations.models import RevenueProgram
 from apps.organizations.tests.factories import RevenueProgramFactory
 from apps.pages.models import DonationPage, Font, Style, Template
@@ -18,10 +18,9 @@ from apps.pages.validators import UNOWNED_TEMPLATE_FROM_PAGE_PAGE_PK_MESSAGE
 from apps.users.tests.utils import create_test_user
 
 
-class PageViewSetTest(DomainModelBootstrappedTestCase):
+class PageViewSetTest(RevEngineApiAbstractTestCase):
     def setUp(self):
         super().setUp()
-        self.set_up_domain_model()
         self.default_page_creation_data = {
             "name": "My new page, tho",
             "heading": "New DonationPage",
@@ -486,13 +485,12 @@ class DonationPageFullDetailTest(APITestCase):
         self.assertEqual(response.data["detail"], "You do not have permission to edit this page")
 
 
-class TemplateViewSetTest(DomainModelBootstrappedTestCase):
+class TemplateViewSetTest(RevEngineApiAbstractTestCase):
     model = Template
     model_factory = TemplateFactory
 
     def setUp(self):
         super().setUp()
-        self.set_up_domain_model()
         self.list_url = f'{reverse("template-list")}?{settings.RP_SLUG_PARAM}={self.org1_rp1.slug}&{settings.ORG_SLUG_PARAM}={self.org1.slug}'
         self.my_orgs_page = DonationPage.objects.filter(revenue_program__organization=self.org1).first()
         self.template = Template.objects.filter(revenue_program=self.org1_rp1).first()
@@ -781,10 +779,9 @@ class TemplateViewSetTest(DomainModelBootstrappedTestCase):
         )
 
 
-class StylesViewsetTest(DomainModelBootstrappedTestCase):
+class StylesViewsetTest(RevEngineApiAbstractTestCase):
     def setUp(self):
         super().setUp()
-        self.set_up_domain_model()
         with open("apps/pages/tests/fixtures/create-style-payload.json") as fl:
             self.styles_create_data_fixture = json.load(fl)
 
@@ -1154,10 +1151,9 @@ class StylesViewsetTest(DomainModelBootstrappedTestCase):
         )
 
 
-class FontViewSetTest(DomainModelBootstrappedTestCase):
+class FontViewSetTest(RevEngineApiAbstractTestCase):
     def setUp(self):
         super().setUp()
-        self.set_up_domain_model()
         for x in range(3):
             FontFactory()
 

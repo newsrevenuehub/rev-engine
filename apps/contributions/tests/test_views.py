@@ -13,7 +13,7 @@ from stripe.error import StripeError
 from stripe.oauth_error import InvalidGrantError as StripeInvalidGrantError
 from stripe.stripe_object import StripeObject
 
-from apps.api.tests import DomainModelBootstrappedTestCase
+from apps.api.tests import RevEngineApiAbstractTestCase
 from apps.api.tokens import ContributorRefreshToken
 from apps.common.tests.test_resources import AbstractTestCase
 from apps.contributions.models import Contribution, ContributionInterval
@@ -39,6 +39,10 @@ class MockPaymentIntent(StripeObject):
 
 
 class StripePaymentViewTestAbstract(AbstractTestCase):
+    def setUp(self):
+        super().setUp()
+        self.set_up_domain_model()
+
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
@@ -85,7 +89,6 @@ class StripePaymentViewTestAbstract(AbstractTestCase):
 class StripeOneTimePaymentViewTest(StripePaymentViewTestAbstract):
     def setUp(self):
         super().setUp()
-        self.set_up_domain_model()
         self.page = DonationPage.objects.filter(revenue_program=self.org1_rp1).first()
         self.assertIsNotNone(self.page)
 
@@ -130,7 +133,6 @@ class StripeOneTimePaymentViewTest(StripePaymentViewTestAbstract):
 class CreateStripeRecurringPaymentViewTest(StripePaymentViewTestAbstract):
     def setUp(self):
         super().setUp()
-        self.set_up_domain_model()
         self.page = DonationPage.objects.filter(revenue_program=self.org1_rp1).first()
         self.assertIsNotNone(self.page)
 
@@ -369,10 +371,9 @@ class StripeConfirmTest(AbstractTestCase):
         self.assertEqual(response.data["status"], "failed")
 
 
-class TestContributionsViewSet(DomainModelBootstrappedTestCase):
+class TestContributionsViewSet(RevEngineApiAbstractTestCase):
     def setUp(self):
         super().setUp()
-        self.set_up_domain_model()
         self.list_url = reverse("contribution-list")
         self.contribution_for_org = Contribution.objects.filter(organization=self.org1).first()
 

@@ -3,7 +3,7 @@ from django.contrib.auth import get_user_model
 from rest_framework import status
 from rest_framework.reverse import reverse
 
-from apps.api.tests import DomainModelBootstrappedTestCase
+from apps.api.tests import RevEngineApiAbstractTestCase
 from apps.organizations.models import Feature, Organization, Plan, RevenueProgram
 from apps.organizations.tests.factories import FeatureFactory, OrganizationFactory
 from apps.users.tests.utils import create_test_user
@@ -12,13 +12,12 @@ from apps.users.tests.utils import create_test_user
 user_model = get_user_model()
 
 
-class OrganizationViewSetTest(DomainModelBootstrappedTestCase):
+class OrganizationViewSetTest(RevEngineApiAbstractTestCase):
     model_factory = OrganizationFactory
     model = Organization
 
     def setUp(self):
         super().setUp()
-        self.set_up_domain_model()
         self.is_authed_user = create_test_user()
         self.post_data = {}
         self.expected_user_types = (
@@ -80,10 +79,9 @@ class OrganizationViewSetTest(DomainModelBootstrappedTestCase):
         )
 
 
-class RevenueProgramViewSetTest(DomainModelBootstrappedTestCase):
+class RevenueProgramViewSetTest(RevEngineApiAbstractTestCase):
     def setUp(self):
         super().setUp()
-        self.set_up_domain_model()
         self.list_url = reverse("revenue-program-list")
         self.detail_url = reverse("revenue-program-detail", args=(RevenueProgram.objects.first().pk,))
 
@@ -116,10 +114,10 @@ class RevenueProgramViewSetTest(DomainModelBootstrappedTestCase):
         self.assertNotIn("results", response.json())
 
 
-class PlanViewSetTest(DomainModelBootstrappedTestCase):
+class PlanViewSetTest(RevEngineApiAbstractTestCase):
     def setUp(self):
+        super().setUp()
         self.list_url = reverse("plan-list")
-        self.set_up_domain_model()
         self.detail_url = reverse("plan-detail", args=(Plan.objects.first(),))
 
     ########
@@ -215,10 +213,9 @@ class PlanViewSetTest(DomainModelBootstrappedTestCase):
             self.assert_user_cannot_delete(self.detail_url, user, expected_status_code=status_code)
 
 
-class FeatureViewSetTest(DomainModelBootstrappedTestCase):
+class FeatureViewSetTest(RevEngineApiAbstractTestCase):
     def setUp(self):
         super().setUp()
-        self.set_up_domain_model()
         self.org1.plan.features.add(FeatureFactory())
         self.org2.plan.features.add(FeatureFactory())
 

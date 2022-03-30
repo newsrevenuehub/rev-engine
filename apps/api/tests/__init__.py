@@ -3,12 +3,21 @@ from rest_framework import status
 from apps.common.tests.test_resources import AbstractTestCase
 
 
-class DomainModelBootstrappedTestCase(AbstractTestCase):
+class RevEngineApiAbstractTestCase(AbstractTestCase):
+    """A set custom test assertions for testing the API, with a view of distinct user types
+    and role assignments.
 
-    # NB: The assertion methods in here all assume that AbstractTestCase's
-    # .set_up_domain_model() gets called in the calling context before these
-    # assertions can run. A nice to do would be to track that state in initialization
-    # and provide a warning or raise an exception if it hasn't run.
+    Note that it's the responsibility of any sub-classing test case to call `super().setUp()` if
+    it overrides `.setUp`.
+
+    NB: The test assertions in this class will not work if `set_up_domain_model` has not been run.
+
+    """
+
+    def setUp(self):
+        """Set up the domain models"""
+        super().setUp()
+        self.set_up_domain_model()
 
     def assert_unuauthed_cannot_get(self, url):
         response = self.client.get(url)

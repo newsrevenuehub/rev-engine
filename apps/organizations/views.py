@@ -19,6 +19,11 @@ logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
 
 
 class OrganizationViewSet(viewsets.ReadOnlyModelViewSet, FilterQuerySetByUserMixin):
+    """Organizations exposed through API
+
+    Only superusers and users with roles can access. Queryset is filtered by user.
+    """
+
     model = Organization
     queryset = Organization.objects.all()
     permission_classes = [IsAuthenticated, IsSuperUser | HasRoleAssignment]
@@ -26,11 +31,13 @@ class OrganizationViewSet(viewsets.ReadOnlyModelViewSet, FilterQuerySetByUserMix
     pagination_class = None
 
     def get_queryset(self):
+        # this is supplied by FilterQuerySetByUserMixin
         return self.filter_queryset_for_user(self.request.user, self.model.objects.all())
 
 
 class FeatureViewSet(viewsets.ReadOnlyModelViewSet):
     model = Feature
+    # only superusers, and can only read
     permission_classes = [IsAuthenticated, IsSuperUser]
     queryset = Feature.objects.all()
     serializer_class = serializers.FeatureSerializer
@@ -38,6 +45,11 @@ class FeatureViewSet(viewsets.ReadOnlyModelViewSet):
 
 
 class PlanViewSet(viewsets.ReadOnlyModelViewSet, FilterQuerySetByUserMixin):
+    """Organizations exposed through API
+
+    Only superusers and users with roles can access. Queryset is filtered by user.
+    """
+
     model = Plan
     queryset = Plan.objects.all()
     permission_classes = [IsAuthenticated, IsSuperUser | HasRoleAssignment]
@@ -51,6 +63,7 @@ class PlanViewSet(viewsets.ReadOnlyModelViewSet, FilterQuerySetByUserMixin):
 class RevenueProgramViewSet(viewsets.ReadOnlyModelViewSet):
     model = RevenueProgram
     queryset = RevenueProgram.objects.all()
+    # only superusers can access
     permission_classes = [IsAuthenticated, IsSuperUser]
     serializer_class = serializers.RevenueProgramSerializer
     pagination_class = None

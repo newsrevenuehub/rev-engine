@@ -69,7 +69,7 @@ class UnexpectedRoleType(Exception):
     pass
 
 
-class RoleAssignmentResourceModelMixin:
+class RoleAssignmentResourceModelMixin:  # pragma: no cover
     @classmethod
     def filter_queryset_by_role_assignment(cls, role_assignment, queryset):
         raise NotImplementedError

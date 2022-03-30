@@ -21,12 +21,20 @@ def style_validator(value):
 
 
 class PagePkIsForOwnedPage:
+    """Used in serializer to ensure that the id supplied for `page_pk` is for a permitted resource"""
+
     requires_context = True
 
     def __init__(self, page_model):
         self.page_model = page_model
 
     def __call__(self, value, serializer):
+        """Get the instance referred to by `page_pk`...
+
+        ...if user is superuser or hub admin, valid
+        ...if user is an org admin, valid if referenced page belongs to org
+        ...if user is rp admin, valid if referenced page belongs to their rp
+        """
         target_page = self.page_model.objects.get(pk=value["page_pk"])
         if (request := serializer.context.get("request", None)) is not None:
             user = request.user

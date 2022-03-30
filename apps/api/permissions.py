@@ -51,10 +51,11 @@ IsContributorOwningContribution = IsContributor & ContributorOwnsContribution
 
 
 class HasRoleAssignment(permissions.BasePermission):
+    """
+    Determine if the request user has a role assignment. Contributors will not.
+    """
+
     def has_permission(self, request, view):
-        """
-        Determine if the request user has a role assignment. Contributors will not.
-        """
         return getattr(request.user, "get_role_assignment", False) and bool(request.user.get_role_assignment())
 
 
@@ -68,7 +69,6 @@ class HasCreatePrivilegesForSlugs(permissions.BasePermission):
     """
 
     def has_permission(self, request, view):
-        """ """
         org_slug = request.query_params.get(settings.ORG_SLUG_PARAM)
         rp_slug = request.query_params.get(settings.RP_SLUG_PARAM)
         return view.model.user_has_create_permission_by_virtue_of_role(
@@ -88,7 +88,6 @@ class HasDeletePrivilegesViaRole(permissions.BasePermission):
     """
 
     def has_permission(self, request, view):
-        """ """
         pk = view.kwargs.get("pk")
         instance = view.model.objects.get(pk=pk)
         return pk is not None and view.model.user_has_delete_permission_by_virtue_of_role(request.user, instance)

@@ -198,6 +198,13 @@ def process_stripe_webhook_view(request):
 class ContributionsViewSet(
     viewsets.ReadOnlyModelViewSet, FilterQuerySetByUserMixin, PerUserCreateDeletePermissionsMixin
 ):
+    """Contributions API resource
+
+    NB: There are bespoke actions on this viewset that override the default permission classes set here.
+    """
+
+    # only superusers, users with roles, and contributors owning contributions
+    # are permitted
     permission_classes = [
         IsAuthenticated,
         IsSuperUser | HasRoleAssignment | IsContributorOwningContribution,
@@ -206,6 +213,7 @@ class ContributionsViewSet(
     filterset_class = ContributionFilter
 
     def get_queryset(self):
+        # this is supplied by FilterQuerySetByUserMixin
         return self.filter_queryset_for_user(self.request.user, self.model.objects.all())
 
     def get_serializer_class(self):
@@ -213,11 +221,8 @@ class ContributionsViewSet(
             return serializers.ContributionSerializer
         return serializers.ContributorContributionSerializer
 
-    @action(
-        methods=["post"],
-        detail=True,
-        permission_classes=[IsAuthenticated, IsSuperUser | IsHubAdmin],
-    )
+    # only superusers and hub admins have permission
+    @action(methods=["post"], detail=True, permission_classes=[IsAuthenticated, IsSuperUser | IsHubAdmin])
     def process_flagged(self, request, pk=None):
         reject = request.data.get("reject", None)
         if reject is None:
@@ -233,6 +238,7 @@ class ContributionsViewSet(
 
         return Response(data={"detail": "rejected" if reject else "accepted"}, status=status.HTTP_200_OK)
 
+    # only contributors owning a contribution can update payment method
     @action(methods=["patch"], detail=True, permission_classes=[IsAuthenticated, IsContributorOwningContribution])
     def update_payment_method(self, request, pk):
         if request.data.keys() != {"payment_method_id"}:
@@ -256,6 +262,7 @@ class ContributionsViewSet(
 
         return Response({"detail": "Success"}, status=status.HTTP_200_OK)
 
+    # only contributors owning a contribution can update payment
     @action(methods=["post"], detail=True, permission_classes=[IsAuthenticated, IsContributorOwningContribution])
     def cancel_recurring_payment(self, request, pk):
         try:

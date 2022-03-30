@@ -9,7 +9,7 @@ from stripe.error import StripeError
 
 from apps.config.tests.factories import DenyListWordFactory
 from apps.config.validators import GENERIC_SLUG_DENIED_MSG, SLUG_DENIED_CODE
-from apps.organizations.models import Organization
+from apps.organizations.models import Organization, RevenueProgram
 from apps.organizations.tests import factories
 
 
@@ -49,19 +49,13 @@ class RevenueProgramTest(TestCase):
         long_slug_rp = factories.RevenueProgramFactory(name=f"{' '.join(fake.words(nb=30))}")
         self.assertLessEqual(len(long_slug_rp.slug), 100)
 
-    def test_delete_organization_cleans_up(self):
-        pass
-        # assert len(self.model_class.objects.all()) == 1
-        # org = self.instance.organization
-        # org.delete()
-        # assert len(self.model_class.objects.all()) == 0
-        # assert models.RevenueProgram.objects.filter(
-        #     self.
-        # )
-        # assert len(self.model_class.objects.all()) == 1
-        # org = self.revenue_program.organization
-        # org.delete()
-        # assert
+    def test_delete_organization_deletes_revenue_program(self):
+        self.assertIsNotNone(self.organization)
+        self.assertIsNotNone(self.revenue_program)
+        self.assertEqual(self.revenue_program.organization, self.organization)
+        rp_pk = self.revenue_program.id
+        self.organization.delete()
+        self.assertFalse(RevenueProgram.objects.filter(pk=rp_pk).exists())
 
     def test_format_twitter_handle(self):
         target_handle = "testing"

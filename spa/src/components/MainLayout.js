@@ -5,7 +5,7 @@ import * as S from './MainLayout.styled';
 import useSubdomain from 'hooks/useSubdomain';
 
 // Constants
-import { ORG_PORTAL_SUBDOMAINS } from 'settings';
+import { ORG_PORTAL_SUBDOMAINS, NON_DONATION_PAGE_SUBDOMAINS } from 'settings';
 
 // Analytics
 import { AnalyticsContextWrapper } from './analytics/AnalyticsContext';
@@ -49,12 +49,17 @@ function MainLayout() {
     setReauthModalOpen(false);
   };
 
+  console.log(NON_DONATION_PAGE_SUBDOMAINS);
   return (
     <GlobalContext.Provider value={{ getUserConfirmation, getReauth }}>
       <AnalyticsContextWrapper>
         {/* Route to donation page if subdomain exists */}
         <S.MainLayout>
-          {!ORG_PORTAL_SUBDOMAINS.includes(subdomain) ? <DonationPageRouter /> : <DashboardRouter />}
+          {!ORG_PORTAL_SUBDOMAINS.includes(subdomain) && !NON_DONATION_PAGE_SUBDOMAINS.includes(subdomain) ? (
+            <DonationPageRouter />
+          ) : (
+            <DashboardRouter />
+          )}
         </S.MainLayout>
         {/* Modals */}
         <GlobalConfirmationModal

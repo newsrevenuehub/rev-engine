@@ -30,13 +30,16 @@ function Pages({ setShowAddPageModal }) {
 
   const formatPagesList = useCallback((pgs) => {
     const pagesByRevProgram = [];
-    const revPrograms = new Set(pgs.map((p) => p.revenue_program.id));
+    const revPrograms = new Set(pgs.map((p) => (p.revenue_program ? p.revenue_program.id : null)));
+
     revPrograms.forEach((rpId) => {
-      const pagesForRp = pgs.filter((p) => p.revenue_program.id === rpId);
-      pagesByRevProgram.push({
-        name: pagesForRp[0].revenue_program.name,
-        pages: pagesForRp
-      });
+      if (rpId) {
+        const pagesForRp = pgs.filter((p) => p.revenue_program && p.revenue_program.id === rpId);
+        pagesByRevProgram.push({
+          name: pagesForRp[0].revenue_program.name,
+          pages: pagesForRp
+        });
+      }
     });
     return pagesByRevProgram.sort(revProgramKeysSort);
   }, []);

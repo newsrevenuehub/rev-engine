@@ -49,7 +49,6 @@ function MainLayout() {
     setReauthModalOpen(false);
   };
 
-  console.log(NON_DONATION_PAGE_SUBDOMAINS);
   return (
     <GlobalContext.Provider value={{ getUserConfirmation, getReauth }}>
       <AnalyticsContextWrapper>

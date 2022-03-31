@@ -147,11 +147,11 @@ class BenefitLevel(IndexedTimeStampedModel):
     lower_limit = models.PositiveIntegerField()
     upper_limit = models.PositiveIntegerField(null=True, blank=True)
     currency = models.CharField(max_length=3, default="usd")
+    level = models.PositiveSmallIntegerField(help_text="Is this a first-level benefit, second-level, etc?", default=0)
 
     benefits = models.ManyToManyField("organizations.Benefit", through="organizations.BenefitLevelBenefit")
 
-    organization = models.ForeignKey(Organization, on_delete=models.CASCADE)
-
+    revenue_program = models.ForeignKey("organizations.RevenueProgram", null=True, on_delete=models.CASCADE)
     # A history of changes to this model, using django-simple-history.
     history = HistoricalRecords()
 
@@ -161,10 +161,10 @@ class BenefitLevel(IndexedTimeStampedModel):
     class Meta:
         unique_together = (
             "name",
-            "organization",
+            "revenue_program",
         )
-
-        ordering = ["revenueprogrambenefitlevel__level"]
+        ordering = ("level",)
+        # ordering = ["revenueprogrambenefitlevel__level"]
 
     @property
     def donation_range(self):
@@ -196,7 +196,7 @@ class RevenueProgramBenefitLevel(models.Model):
 class Benefit(IndexedTimeStampedModel):
     name = models.CharField(max_length=128, help_text="A way to uniquely identify this Benefit")
     description = models.TextField(help_text="The text that appears on the donation page")
-    organization = models.ForeignKey("organizations.Organization", on_delete=models.CASCADE)
+    revenue_program = models.ForeignKey("organizations.RevenueProgram", null=True, on_delete=models.CASCADE)
 
     # A history of changes to this model, using django-simple-history.
     history = HistoricalRecords()
@@ -207,7 +207,7 @@ class Benefit(IndexedTimeStampedModel):
     class Meta:
         unique_together = (
             "name",
-            "organization",
+            "revenue_program",
         )
 
         ordering = ["benefitlevelbenefit__order"]

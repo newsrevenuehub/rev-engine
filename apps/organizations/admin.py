@@ -136,24 +136,24 @@ class OrganizationAdmin(RevEngineSimpleHistoryAdmin, ReverseModelAdmin):  # prag
 
 @admin.register(Benefit)
 class BenefitAdmin(RevEngineSimpleHistoryAdmin):
-    list_display = ["name", "description", "organization"]
+    list_display = ["name", "description", "revenue_program"]
 
-    list_filter = ["organization"]
+    list_filter = ["revenue_program"]
 
-    fieldsets = ((None, {"fields": ("name", "description", "organization")}),)
+    fieldsets = ((None, {"fields": ("name", "description", "revenue_program")}),)
 
 
 @admin.register(BenefitLevel)
 class BenefitLevelAdmin(RevEngineSimpleHistoryAdmin):
-    list_display = ["name", "donation_range", "organization"]
+    list_display = ["name", "donation_range", "revenue_program"]
 
-    list_filter = ["organization"]
+    list_filter = ["revenue_program"]
 
     fieldsets = (
         (
             None,
             {
-                "fields": ("name", "currency", "lower_limit", "upper_limit", "organization"),
+                "fields": ("name", "currency", "lower_limit", "upper_limit", "revenue_program"),
             },
         ),
     )

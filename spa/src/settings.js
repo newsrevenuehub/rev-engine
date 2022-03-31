@@ -10,7 +10,7 @@
 
 // These subdomain labels will redirect to the org portal.
 export const ORG_PORTAL_SUBDOMAINS = ['', 'support'];
-export const NON_DONATION_PAGE_SUBDOMAINS = resolveConstantFromEnv('NON_DONATION_PAGE_SUBDOMAINS', '').split(':');
+export const NON_DONATION_PAGE_SUBDOMAINS = resolveConstantFromEnv('NON_DONATION_PAGE_SUBDOMAINS', []);
 
 //Rev Engine - General
 export const REVENGINE_API_VERSION = resolveConstantFromEnv('REVENGINE_API_VERSION', 'v1');

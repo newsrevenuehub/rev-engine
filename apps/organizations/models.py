@@ -259,8 +259,6 @@ class RevenueProgram(IndexedTimeStampedModel):
     google_analytics_v4_id = models.CharField(max_length=50, null=True, blank=True)
     facebook_pixel_id = models.CharField(max_length=100, null=True, blank=True)
 
-    benefit_levels = models.ManyToManyField(BenefitLevel, through=RevenueProgramBenefitLevel)
-
     # Social links
     twitter_handle = models.CharField(
         max_length=15, blank=True, help_text="How can your donors mention you on Twitter? Don't include '@' symbol"

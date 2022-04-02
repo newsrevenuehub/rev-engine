@@ -4,7 +4,7 @@ import pagesList from '../fixtures/pages/list-pages-1.json';
 import { CONTENT_SLUG } from 'routes';
 
 const expectedRevPrograms = new Set(pagesList.map((p) => p.revenue_program.name));
-/*
+
 describe('Donation pages list', () => {
   beforeEach(() => {
     cy.login('user/stripe-verified.json');
@@ -66,7 +66,7 @@ describe('Donation pages list', () => {
     });
   });
 });
-*/
+
 describe('Donation pages lists having a page without an RP', () => {
   beforeEach(() => {
     cy.login('user/stripe-verified.json');

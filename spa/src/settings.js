@@ -52,6 +52,9 @@ export const STRIPE_API_VERSION = resolveConstantFromEnv('STRIPE_API_VERSION', '
 export const STRIPE_CLIENT_ID = resolveConstantFromEnv('STRIPE_CLIENT_ID', 'test_1234');
 export const STRIPE_OAUTH_SCOPE = resolveConstantFromEnv('STRIPE_OAUTH_SCOPE', 'read_write');
 
+// Environment {production, staging, test, dev, demo}
+export const ENVIRONMENT = resolveConstantFromEnv('ENVIRONMENT');
+
 function resolveConstantFromEnv(constantName, defaultValue) {
   /*
     If we're in development, use webpack's process.env string replace.

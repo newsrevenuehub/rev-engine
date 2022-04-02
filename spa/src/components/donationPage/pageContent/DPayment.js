@@ -54,7 +54,7 @@ export default DPayment;
 function NotLivePlaceholder() {
   return (
     <S.NotLivePlaceholder>
-      [Placeholder] Donations <S.NotLiveIcon icon={ICONS.STRIPE_POWERED} />
+      [Placeholder] Contributions <S.NotLiveIcon icon={ICONS.STRIPE_POWERED} />
     </S.NotLivePlaceholder>
   );
 }

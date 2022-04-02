@@ -63,7 +63,7 @@ describe('Donation page edit', () => {
       it('should render the frequency editor when edit item is clicked', () => {
         cy.editElement('DFrequency');
         cy.getByTestId('frequency-editor');
-        cy.contains('Donation frequency');
+        cy.contains('Contribution frequency');
       });
 
       it('should validate frequency', () => {
@@ -318,8 +318,8 @@ describe('Donation page edit', () => {
       cy.getByTestId('save-page-button').click();
       cy.getByTestId('missing-elements-alert').should('exist').contains('Payment');
       cy.getByTestId('missing-elements-alert').contains('Payment');
-      cy.getByTestId('missing-elements-alert').contains('Donation frequency');
-      cy.getByTestId('missing-elements-alert').contains('Donation amount');
+      cy.getByTestId('missing-elements-alert').contains('Contribution frequency');
+      cy.getByTestId('missing-elements-alert').contains('Contribution amount');
     });
   });
 

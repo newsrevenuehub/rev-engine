@@ -77,7 +77,7 @@ function DSwag({ element, ...props }) {
                 checked={optOut}
                 inputProps={{ 'aria-label': 'controlled' }}
                 onChange={() => setOptOut(!optOut)}
-                label="Maximize my donation – I'd rather not receive member merchandise."
+                label="Maximize my contribution – I'd rather not receive member merchandise."
               />
             </motion.div>
             <AnimatePresence>

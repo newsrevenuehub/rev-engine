@@ -2,8 +2,7 @@ from django.conf import settings
 from django.core.management.base import BaseCommand
 from django.urls import reverse
 
-import stripe
-
+from apps.common.utils import create_stripe_webhook
 from apps.contributions.utils import get_hub_stripe_api_key
 
 
@@ -15,11 +14,5 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         webhook_url = options["url"] if options.get("url") else settings.SITE_URL + reverse("stripe-webhooks")
         api_key = get_hub_stripe_api_key(options["live"])
-
-        stripe.WebhookEndpoint.create(
-            url=webhook_url,
-            enabled_events=settings.STRIPE_WEBHOOK_EVENTS,
-            connect=True,
-            api_key=api_key,
-            api_version=settings.STRIPE_API_VERSION,
-        )
+        secret = create_stripe_webhook(webhook_url=webhook_url, api_key=api_key)
+        self.stdout.write(self.style.WARNING("wh_sec = %s" % secret))

@@ -972,14 +972,14 @@ python-versions = "*"
 
 [[package]]
 name = "newrelic"
-version = "6.2.0.156"
+version = "7.8.0.174"
 description = "New Relic Python Agent"
 category = "main"
 optional = false
-python-versions = ">=2.7,!=3.0.*,!=3.1.*,!=3.2.*,!=3.3.*,!=3.4.*"
+python-versions = ">=2.7,!=3.0.*,!=3.1.*,!=3.2.*,!=3.3.*,!=3.4.*,!=3.5.*"
 
 [package.extras]
-infinite-tracing = ["grpcio (<2)", "protobuf (<4)"]
+infinite-tracing = ["grpcio", "protobuf (<4)"]
 
 [[package]]
 name = "nodeenv"
@@ -1623,7 +1623,7 @@ testing = ["pytest (>=6)", "pytest-checkdocs (>=2.4)", "pytest-flake8", "pytest-
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.9"
-content-hash = "f55837b88150b06f0804a192350f9a788cf4f1bec77472adb42cefd0336098a2"
+content-hash = "c94ab8297df56e766cf333508ffcddec218a0e6735a4994c27d5c3bf8b857121"
 
 [metadata.files]
 amqp = [
@@ -2017,17 +2017,21 @@ mypy-extensions = [
     {file = "mypy_extensions-0.4.3.tar.gz", hash = "sha256:2d82818f5bb3e369420cb3c4060a7970edba416647068eb4c5343488a6c604a8"},
 ]
 newrelic = [
-    {file = "newrelic-6.2.0.156-cp27-cp27m-manylinux1_x86_64.whl", hash = "sha256:6a87cd6102aba7c9619a6e4b9e1aa6322ef81367b1a8f24ad996a07333313c8c"},
-    {file = "newrelic-6.2.0.156-cp27-cp27m-manylinux2010_x86_64.whl", hash = "sha256:489e5a450aae1a5ecf7ca488739bd274296b19049bb7927c7ef71953ad5ad437"},
-    {file = "newrelic-6.2.0.156-cp36-cp36m-manylinux1_x86_64.whl", hash = "sha256:e767af29572a9457a5e5f13481fe735c1a9ae2d1683b7b35c8757f9df275a538"},
-    {file = "newrelic-6.2.0.156-cp36-cp36m-manylinux2010_x86_64.whl", hash = "sha256:242a5e901d684f7ffdd621bc58da8fe9a85d5545b4b63e1070589f5ab45c9e1e"},
-    {file = "newrelic-6.2.0.156-cp37-cp37m-manylinux1_x86_64.whl", hash = "sha256:503e5dfcbf215fe68e4349ea452b5b00234010122ca72d80b64c73270654916c"},
-    {file = "newrelic-6.2.0.156-cp37-cp37m-manylinux2010_x86_64.whl", hash = "sha256:adc748f633bd64e295b403448daa8416961b0f99af6787b857009d737c5e8af3"},
-    {file = "newrelic-6.2.0.156-cp38-cp38-manylinux1_x86_64.whl", hash = "sha256:5b0a04f7acf4dafe8d3935ac8688143bc0a0c61e15e2a779b152afcc3c88ee45"},
-    {file = "newrelic-6.2.0.156-cp38-cp38-manylinux2010_x86_64.whl", hash = "sha256:fede816248d0a1e5e11487ecc122f24c9d33e08a6ac1f882044ac6f3b2c90ae0"},
-    {file = "newrelic-6.2.0.156-cp39-cp39-manylinux1_x86_64.whl", hash = "sha256:90d2bab0a08001d84499bf11c62c49d1fc6f2835c05d12994b5a931cad48f120"},
-    {file = "newrelic-6.2.0.156-cp39-cp39-manylinux2010_x86_64.whl", hash = "sha256:a3b928a052be318cb0cdb56977c630f1ded1d8e391c876ed5ae4442aa7ad499a"},
-    {file = "newrelic-6.2.0.156.tar.gz", hash = "sha256:3dec4647de67609570c4e305f2b6432a00e0a0940a7ac69660ee92268b49d6e7"},
+    {file = "newrelic-7.8.0.174-cp27-cp27m-manylinux1_x86_64.whl", hash = "sha256:00dfb03dcd0ebc1e7f43253efa6749ce2ae2ee2e5d23a77e20da787cf8f424ac"},
+    {file = "newrelic-7.8.0.174-cp27-cp27m-manylinux2010_x86_64.whl", hash = "sha256:e7de0a6efcdeca50f76b7a7f4979bb745b92f950211f9203b9959ff7137dbc25"},
+    {file = "newrelic-7.8.0.174-cp27-cp27mu-manylinux1_x86_64.whl", hash = "sha256:70af627ae677840d2b21b8b082c759a39e95c47e83fb0332f38cfefb3b55449e"},
+    {file = "newrelic-7.8.0.174-cp27-cp27mu-manylinux2010_x86_64.whl", hash = "sha256:f3aa90de5bb2ac098b4bf80123fca8989fb48efee8530a9f1231fac1709ecf02"},
+    {file = "newrelic-7.8.0.174-cp310-cp310-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:575040846f2ae564d6814bdd904bf0e5421532935e968c8cf2679a08485cc75d"},
+    {file = "newrelic-7.8.0.174-cp310-cp310-manylinux_2_5_x86_64.manylinux1_x86_64.manylinux_2_12_x86_64.manylinux2010_x86_64.whl", hash = "sha256:fee7ff8b33e8d60687015ae35edf88e8cf4b895a3a7c5d6415f20fda366d5cf3"},
+    {file = "newrelic-7.8.0.174-cp36-cp36m-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:6b58b4e8512b25f73fa68123addd63df6e83484495136ab5193bb71f3eea47a3"},
+    {file = "newrelic-7.8.0.174-cp36-cp36m-manylinux_2_5_x86_64.manylinux1_x86_64.manylinux_2_12_x86_64.manylinux2010_x86_64.whl", hash = "sha256:01dfa796fc13a8d80c8a55bb4874ce8d3e5ee8dbe667394b4aac46765516575d"},
+    {file = "newrelic-7.8.0.174-cp37-cp37m-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:cba73fe320040fd39ac3d2ca3cfc2ee9dbcf69aa447dbf6afa3f514f63f5d99d"},
+    {file = "newrelic-7.8.0.174-cp37-cp37m-manylinux_2_5_x86_64.manylinux1_x86_64.manylinux_2_12_x86_64.manylinux2010_x86_64.whl", hash = "sha256:7f666292f66067d33408f2c44f4dea53a0f31c2059632df2c21b8ecd6b24c691"},
+    {file = "newrelic-7.8.0.174-cp38-cp38-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:4e68f45856116cd7f44df81580bf78d1627284be1567637d389bd54d97fffaab"},
+    {file = "newrelic-7.8.0.174-cp38-cp38-manylinux_2_5_x86_64.manylinux1_x86_64.manylinux_2_12_x86_64.manylinux2010_x86_64.whl", hash = "sha256:1442da7d8937900b98ffc88a9b2161ffa97536d38ec5ce5b0bbdb9723c96e188"},
+    {file = "newrelic-7.8.0.174-cp39-cp39-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:01402c6c3b8a6fe270b62c18809844237c3bd8a05e1b982988d724507813e2ad"},
+    {file = "newrelic-7.8.0.174-cp39-cp39-manylinux_2_5_x86_64.manylinux1_x86_64.manylinux_2_12_x86_64.manylinux2010_x86_64.whl", hash = "sha256:fcd1c510acb0fe2f79c8e6fcd4422972b79308bd0f41ed6609dc89abab741aea"},
+    {file = "newrelic-7.8.0.174.tar.gz", hash = "sha256:435635c7e7f712e09911ce7e1562a66412b6adda82635ac7b24daae9aa7c1b4b"},
 ]
 nodeenv = [
     {file = "nodeenv-1.6.0-py2.py3-none-any.whl", hash = "sha256:621e6b7076565ddcacd2db0294c0381e01fd28945ab36bcf00f41c5daf63bef7"},

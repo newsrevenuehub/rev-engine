@@ -94,8 +94,9 @@ RUN mkdir google-sa && chown ${APP_USER}:${APP_USER} google-sa
 # Change to a non-root user
 USER ${APP_USER}:${APP_USER}
 
-# Uncomment after creating your docker-entrypoint.sh
-ENTRYPOINT ["/code/docker-entrypoint.sh"]
+# This is specified in heroku.yml for now
+# ENTRYPOINT ["/code/docker-entrypoint.sh"]
 
+# this is specified in the docker-entrypoint.sh file for now
 # Start uWSGI
-CMD ["uwsgi", "--http=0.0.0.0:$PORT", "--show-config"]
+# CMD ["uwsgi", "--http=0.0.0.0:$PORT", "--show-config"]

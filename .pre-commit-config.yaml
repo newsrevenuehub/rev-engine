@@ -11,7 +11,7 @@ repos:
         args: ["--profile", "black", "--filter-files"]
         exclude: ^.*\b(migrations)\b.*$
   - repo: https://github.com/PyCQA/flake8
-    rev: 3.8.4
+    rev: 4.0.1
     hooks:
       - id: flake8
         exclude: settings|migrations|tests

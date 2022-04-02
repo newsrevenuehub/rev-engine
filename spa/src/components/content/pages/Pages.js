@@ -30,11 +30,12 @@ function Pages({ setShowAddPageModal }) {
 
   const formatPagesList = useCallback((pgs) => {
     const pagesByRevProgram = [];
-    const revPrograms = new Set(pgs.map((p) => (p.revenue_program ? p.revenue_program.id : null)));
+    const revPrograms = new Set(pgs.map((p) => p?.revenue_program?.id));
 
+    console.log(revPrograms);
     revPrograms.forEach((rpId) => {
       if (rpId) {
-        const pagesForRp = pgs.filter((p) => p.revenue_program && p.revenue_program.id === rpId);
+        const pagesForRp = pgs.filter((p) => p?.revenue_program?.id === rpId);
         pagesByRevProgram.push({
           name: pagesForRp[0].revenue_program.name,
           pages: pagesForRp

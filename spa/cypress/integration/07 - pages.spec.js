@@ -4,7 +4,7 @@ import pagesList from '../fixtures/pages/list-pages-1.json';
 import { CONTENT_SLUG } from 'routes';
 
 const expectedRevPrograms = new Set(pagesList.map((p) => p.revenue_program.name));
-
+/*
 describe('Donation pages list', () => {
   beforeEach(() => {
     cy.login('user/stripe-verified.json');
@@ -64,5 +64,19 @@ describe('Donation pages list', () => {
         cy.getByTestId('page-card-img');
       });
     });
+  });
+});
+*/
+describe('Donation pages lists having a page without an RP', () => {
+  beforeEach(() => {
+    cy.login('user/stripe-verified.json');
+    cy.intercept(getEndpoint(LIST_PAGES), { fixture: 'pages/list-pages-2' }).as('listPages');
+    cy.visit(CONTENT_SLUG);
+    cy.url().should('include', CONTENT_SLUG);
+    cy.wait('@listPages');
+  });
+
+  it('should render the pages list component', () => {
+    cy.getByTestId('pages-list').should('exist');
   });
 });

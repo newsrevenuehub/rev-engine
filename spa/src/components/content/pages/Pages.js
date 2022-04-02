@@ -32,7 +32,6 @@ function Pages({ setShowAddPageModal }) {
     const pagesByRevProgram = [];
     const revPrograms = new Set(pgs.map((p) => p?.revenue_program?.id));
 
-    console.log(revPrograms);
     revPrograms.forEach((rpId) => {
       if (rpId) {
         const pagesForRp = pgs.filter((p) => p?.revenue_program?.id === rpId);

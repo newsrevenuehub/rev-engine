@@ -16,24 +16,22 @@ import { STRIPE_PAYMENT_PROVIDER_NAME } from 'constants/paymentProviderConstants
  * If these conditions are met, user "has payment provider"
  */
 function getGlobalPaymentProviderStatus(user) {
-  const organization = user?.roleassignment?.organization;
+  const organizations = user?.roleassignment?.organizations;
+  const organization = Boolean(organizations) ? organizations[0] : null;
 
   const dontNeedProviderTypes = [USER_ROLE_HUB_ADMIN_TYPE, USER_SUPERUSER_TYPE];
-  const doNeedProviderTypes = [USER_ROLE_ORG_ADMIN_TYPE, USER_ROLE_RP_ADMIN_TYPE];
   const [roleType, _] = user.role_type;
 
   if (!organization && dontNeedProviderTypes.includes(roleType)) {
     // superusers and hub admins have pan-org access, and don't need to set payment providers
     return PP_STATES.CONNECTED;
-  } else if (!organization && doNeedProviderTypes.includes(roleType)) {
-    // throw some kind of error
-    debugger;
   } else if (organization?.default_payment_provider === STRIPE_PAYMENT_PROVIDER_NAME) {
     const accountIdPresent = !!organization?.stripe_account_id;
     const accountVerified = !!organization?.stripe_verified;
     return getStripePaymentManagerProviderStatus(accountIdPresent, accountVerified);
+  } else {
+    return undefined;
   }
-  return undefined;
 }
 
 function getStripePaymentManagerProviderStatus(accountIdPresent, accountVerified) {

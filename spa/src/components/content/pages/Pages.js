@@ -21,40 +21,40 @@ import CircleButton from 'elements/buttons/CircleButton';
 import PageCard from 'components/content/pages/PageCard';
 import GenericErrorBoundary from 'components/errors/GenericErrorBoundary';
 
+export const pagesbyRP = (pgs) => {
+  const pagesByRevProgram = [];
+  let revPrograms = new Set(pgs.map((p) => p?.revenue_program?.id));
+
+  revPrograms.forEach((rpId) => {
+    if (rpId) {
+      const pagesForRp = pgs.filter((p) => p?.revenue_program?.id === rpId);
+      pagesByRevProgram.push({
+        name: pagesForRp[0].revenue_program.name,
+        pages: pagesForRp
+      });
+    }
+  });
+  return pagesByRevProgram.sort(revProgramKeysSort);
+};
+
 function Pages({ setShowAddPageModal }) {
   const alert = useAlert();
   const history = useHistory();
   const requestGetPages = useRequest();
-  const [pagesByRevenueProgram, setPagesByRevenueProgram] = useState([]);
   const [closedAccordions, setClosedAccordions] = useState([]);
-
-  const formatPagesList = useCallback((pgs) => {
-    const pagesByRevProgram = [];
-    const revPrograms = new Set(pgs.map((p) => p?.revenue_program?.id));
-
-    revPrograms.forEach((rpId) => {
-      if (rpId) {
-        const pagesForRp = pgs.filter((p) => p?.revenue_program?.id === rpId);
-        pagesByRevProgram.push({
-          name: pagesForRp[0].revenue_program.name,
-          pages: pagesForRp
-        });
-      }
-    });
-    return pagesByRevProgram.sort(revProgramKeysSort);
-  }, []);
+  const [pages, setPages] = useState([]);
 
   useEffect(() => {
     requestGetPages(
       { method: 'GET', url: LIST_PAGES },
       {
         onSuccess: ({ data }) => {
-          setPagesByRevenueProgram(formatPagesList(data));
+          setPages(data);
         },
         onFailure: () => alert.error(GENERIC_ERROR)
       }
     );
-  }, [alert, formatPagesList]);
+  }, [alert]);
 
   const handleEditPage = (pageSlug) => {
     history.push(`${EDITOR_ROUTE}/${pageSlug}`);
@@ -71,6 +71,8 @@ function Pages({ setShowAddPageModal }) {
       setClosedAccordions(newClosed);
     }
   };
+
+  const pagesByRevenueProgram = pagesbyRP(pages);
 
   return (
     <GenericErrorBoundary>

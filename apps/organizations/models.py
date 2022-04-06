@@ -151,7 +151,7 @@ class BenefitLevel(IndexedTimeStampedModel):
 
     benefits = models.ManyToManyField("organizations.Benefit", through="organizations.BenefitLevelBenefit")
 
-    revenue_program = models.ForeignKey("organizations.RevenueProgram", null=True, on_delete=models.CASCADE)
+    revenue_program = models.ForeignKey("organizations.RevenueProgram", on_delete=models.CASCADE)
     # A history of changes to this model, using django-simple-history.
     history = HistoricalRecords()
 
@@ -196,7 +196,7 @@ class RevenueProgramBenefitLevel(models.Model):
 class Benefit(IndexedTimeStampedModel):
     name = models.CharField(max_length=128, help_text="A way to uniquely identify this Benefit")
     description = models.TextField(help_text="The text that appears on the donation page")
-    revenue_program = models.ForeignKey("organizations.RevenueProgram", null=True, on_delete=models.CASCADE)
+    revenue_program = models.ForeignKey("organizations.RevenueProgram", on_delete=models.CASCADE)
 
     # A history of changes to this model, using django-simple-history.
     history = HistoricalRecords()

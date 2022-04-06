@@ -4,36 +4,38 @@ from django.db import migrations, models
 import django.db.models.deletion
 
 
-def update_benefits():
-    pass
+def update_benefits_with_revenue_program(apps, org_with_rp):
+    data = []
+    benefit_model = apps.get_model("organizations", "Benefit")
+    for benefit in benefit_model.objects.all():
+        benefit.revenue_program_id = org_with_rp[benefit.organization.id]
+        data.append(benefit)
+    benefit_model.objects.bulk_update(data, ["revenue_program_id"])
 
 
-def update_benefit_level():
-    pass
-
-
-def update_benefit_level_with_revenue_program(apps, rp_with_org):
+def update_benefit_level_with_revenue_program(apps, org_with_rp, benefit_level_with_level):
+    data = []
     benefit_level_model = apps.get_model("organizations", "BenefitLevel")
     for benefit_level in benefit_level_model.objects.all():
-        benefit_level.revenue_program_id = rp_with_org[benefit_level.organization.id]
-        benefit_level.save()
+        benefit_level.revenue_program_id = org_with_rp[benefit_level.organization.id]
+        benefit_level.level = benefit_level_with_level[benefit_level.id]
+        data.append(benefit_level)
+    benefit_level_model.objects.bulk_update(data, ["revenue_program_id", "level"])
 
 
-def forwards(apps, *args):
+def update_data(apps, *args):
     rp_model = apps.get_model("organizations", "RevenueProgram")
+    rp_benefit_level_model = apps.get_model("organizations", "RevenueProgramBenefitLevel")
+
     org_with_rp = {
         i["organization_id"]: i["id"]
         for i in rp_model.objects.distinct("organization_id")
         .order_by("organization_id", "created")
         .values("id", "organization_id", "revenueprogrambenefitlevel")
     }
-    update_benefit_level_with_revenue_program(apps, org_with_rp)
-    # rp_benefit_level_model = apps.get_model("organizations", "RevenueProgramBenefitLevel")
-    # benefit_model = apps.get_model("organizations", "Benefit")
-    # benefit_level_model = apps.get_model("organizations", "BenefitLevel")
-
-    # for benefit in benefit_model.objects.all():
-    #     benefit.revenue_program_id = org_to_rp_map_values[benefit.organization_id]
+    benefit_level_with_level = {i.id: i.level for i in rp_benefit_level_model.objects.all()}
+    update_benefit_level_with_revenue_program(apps, org_with_rp, benefit_level_with_level)
+    update_benefits_with_revenue_program(apps, org_with_rp)
 
 
 class Migration(migrations.Migration):
@@ -68,7 +70,7 @@ class Migration(migrations.Migration):
                 null=True, on_delete=django.db.models.deletion.CASCADE, to="organizations.revenueprogram"
             ),
         ),
-        migrations.RunPython(forwards),
+        migrations.RunPython(update_data),
         migrations.AddField(
             model_name="historicalbenefit",
             name="revenue_program",
@@ -99,5 +101,47 @@ class Migration(migrations.Migration):
                 related_name="+",
                 to="organizations.revenueprogram",
             ),
+        ),
+        migrations.AlterField(
+            model_name="benefit",
+            name="revenue_program",
+            field=models.ForeignKey(
+                null=False, on_delete=django.db.models.deletion.CASCADE, to="organizations.revenueprogram"
+            ),
+        ),
+        migrations.AlterField(
+            model_name="benefitlevel",
+            name="revenue_program",
+            field=models.ForeignKey(
+                null=False, on_delete=django.db.models.deletion.CASCADE, to="organizations.revenueprogram"
+            ),
+        ),
+        migrations.AlterUniqueTogether(
+            name="benefit",
+            unique_together={("name", "revenue_program")},
+        ),
+        migrations.AlterUniqueTogether(
+            name="benefitlevel",
+            unique_together={("name", "revenue_program")},
+        ),
+        migrations.RemoveField(
+            model_name="benefit",
+            name="organization",
+        ),
+        migrations.RemoveField(
+            model_name="benefitlevel",
+            name="organization",
+        ),
+        migrations.RemoveField(
+            model_name="historicalbenefit",
+            name="organization",
+        ),
+        migrations.RemoveField(
+            model_name="historicalbenefitlevel",
+            name="organization",
+        ),
+        migrations.RemoveField(
+            model_name="revenueprogram",
+            name="benefit_levels",
         ),
     ]

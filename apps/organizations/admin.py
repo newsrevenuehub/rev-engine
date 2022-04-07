@@ -151,7 +151,7 @@ class BenefitLevelAdmin(RevEngineSimpleHistoryAdmin):
         (
             None,
             {
-                "fields": ("name", "currency", "lower_limit", "upper_limit", "revenue_program"),
+                "fields": ("name", "currency", "lower_limit", "upper_limit", "level", "revenue_program"),
             },
         ),
     )

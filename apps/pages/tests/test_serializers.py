@@ -21,19 +21,6 @@ from apps.pages.tests.factories import DonationPageFactory, StyleFactory, Templa
 class DonationPageFullDetailSerializerTest(APITestCase):
     def setUp(self):
         self.organization = OrganizationFactory()
-
-        self.benefit_1 = BenefitFactory(organization=self.organization)
-        self.benefit_2 = BenefitFactory(organization=self.organization)
-
-        self.benefit_level_1 = BenefitLevelFactory(organization=self.organization)
-
-        BenefitLevelBenefit.objects.create(benefit_level=self.benefit_level_1, benefit=self.benefit_1, order=1)
-        BenefitLevelBenefit.objects.create(benefit_level=self.benefit_level_1, benefit=self.benefit_2, order=2)
-
-        self.benefit_level_2 = BenefitLevelFactory(organization=self.organization)
-
-        BenefitLevelBenefit.objects.create(benefit_level=self.benefit_level_2, benefit=self.benefit_1, order=1)
-
         self.revenue_program = RevenueProgramFactory(
             organization=self.organization,
             google_analytics_v3_domain="somedomain.com",
@@ -41,6 +28,19 @@ class DonationPageFullDetailSerializerTest(APITestCase):
             google_analytics_v4_id="thisIsAV4Id",
             facebook_pixel_id="thiIsAFbPixelId",
         )
+
+        self.benefit_1 = BenefitFactory(revenue_program=self.revenue_program)
+        self.benefit_2 = BenefitFactory(revenue_program=self.revenue_program)
+
+        self.benefit_level_1 = BenefitLevelFactory(revenue_program=self.revenue_program)
+
+        BenefitLevelBenefit.objects.create(benefit_level=self.benefit_level_1, benefit=self.benefit_1, order=1)
+        BenefitLevelBenefit.objects.create(benefit_level=self.benefit_level_1, benefit=self.benefit_2, order=2)
+
+        self.benefit_level_2 = BenefitLevelFactory(revenue_program=self.revenue_program)
+
+        BenefitLevelBenefit.objects.create(benefit_level=self.benefit_level_2, benefit=self.benefit_1, order=1)
+
         RevenueProgramBenefitLevel.objects.create(
             revenue_program=self.revenue_program, benefit_level=self.benefit_level_1, level=1
         )

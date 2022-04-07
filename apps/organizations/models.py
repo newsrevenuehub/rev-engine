@@ -164,7 +164,6 @@ class BenefitLevel(IndexedTimeStampedModel):
             "revenue_program",
         )
         ordering = ("level",)
-        # ordering = ["revenueprogrambenefitlevel__level"]
 
     @property
     def donation_range(self):

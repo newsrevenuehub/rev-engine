@@ -120,7 +120,7 @@ class DonationPageFullDetailSerializer(serializers.ModelSerializer):
 
     def get_benefit_levels(self, obj):
         if obj.revenue_program:
-            benefit_levels = obj.revenue_program.benefit_levels.all()
+            benefit_levels = obj.revenue_program.benefitlevel_set.all()
             serializer = BenefitLevelDetailSerializer(benefit_levels, many=True)
             return serializer.data
 

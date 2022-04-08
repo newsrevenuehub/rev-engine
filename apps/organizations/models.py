@@ -175,23 +175,6 @@ class BenefitLevel(IndexedTimeStampedModel):
             raise ValidationError("Upper limit must be greater than lower limit")
 
 
-class RevenueProgramBenefitLevel(models.Model):
-    """
-    Through table for the relationship between Organization and Benefit Level.
-    Determines the order in which Benefit Levels appear
-    """
-
-    revenue_program = models.ForeignKey("organizations.RevenueProgram", on_delete=models.CASCADE)
-    benefit_level = models.ForeignKey("organizations.BenefitLevel", on_delete=models.CASCADE)
-    level = models.PositiveSmallIntegerField(help_text="Is this a first-level benefit, second-level, etc?")
-
-    class Meta:
-        ordering = ("level",)
-
-    def __str__(self):  # pragma: no cover
-        return f"Benefit Level {self.level} for {self.revenue_program}"
-
-
 class Benefit(IndexedTimeStampedModel):
     name = models.CharField(max_length=128, help_text="A way to uniquely identify this Benefit")
     description = models.TextField(help_text="The text that appears on the donation page")

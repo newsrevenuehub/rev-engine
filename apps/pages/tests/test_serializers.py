@@ -3,7 +3,7 @@ from django.utils import timezone
 from rest_framework import serializers
 from rest_framework.test import APITestCase
 
-from apps.organizations.models import BenefitLevelBenefit, RevenueProgramBenefitLevel
+from apps.organizations.models import BenefitLevelBenefit
 from apps.organizations.tests.factories import (
     BenefitFactory,
     BenefitLevelFactory,
@@ -40,13 +40,6 @@ class DonationPageFullDetailSerializerTest(APITestCase):
         self.benefit_level_2 = BenefitLevelFactory(revenue_program=self.revenue_program)
 
         BenefitLevelBenefit.objects.create(benefit_level=self.benefit_level_2, benefit=self.benefit_1, order=1)
-
-        RevenueProgramBenefitLevel.objects.create(
-            revenue_program=self.revenue_program, benefit_level=self.benefit_level_1, level=1
-        )
-        RevenueProgramBenefitLevel.objects.create(
-            revenue_program=self.revenue_program, benefit_level=self.benefit_level_2, level=2
-        )
 
         self.page = DonationPageFactory(revenue_program=self.revenue_program)
         self.serializer = DonationPageFullDetailSerializer

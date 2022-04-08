@@ -144,4 +144,7 @@ class Migration(migrations.Migration):
             model_name="revenueprogram",
             name="benefit_levels",
         ),
+        migrations.DeleteModel(
+            name="RevenueProgramBenefitLevel",
+        ),
     ]

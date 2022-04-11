@@ -70,3 +70,4 @@ class BenefitLevelFactory(DjangoModelFactory):
     revenue_program = factory.SubFactory(RevenueProgramFactory)
 
     lower_limit = 1
+    level = 1

@@ -120,8 +120,7 @@
   },
   "browserslist": [
     ">0.2%",
-    "not dead",
-    "not op_mini all"
+    "not dead"
   ],
   "devDependencies": {
     "@cypress/react": "^5.9.4",

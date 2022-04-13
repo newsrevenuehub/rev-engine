@@ -119,9 +119,9 @@
     ]
   },
   "browserslist": [
-    "last 1 version",
-    "> 1%",
-    "IE 10"
+    ">0.2%",
+    "not dead",
+    "not op_mini all"
   ],
   "devDependencies": {
     "@cypress/react": "^5.9.4",

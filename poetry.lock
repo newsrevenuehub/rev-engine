@@ -1494,7 +1494,7 @@ python-versions = ">=3.5"
 
 [[package]]
 name = "stripe"
-version = "2.68.0"
+version = "2.73.0"
 description = "Python bindings for the Stripe API"
 category = "main"
 optional = false
@@ -1627,7 +1627,7 @@ testing = ["pytest (>=6)", "pytest-checkdocs (>=2.4)", "pytest-flake8", "pytest-
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.9"
-content-hash = "7261bb88967c32305174ab052402b615c9def4da1b1a6d734bcda8173bfafcb6"
+content-hash = "05b08687f02af4bd9f92df78a8c6b126a026fb8d82fc8814bfb2798a11f86fac"
 
 [metadata.files]
 amqp = [
@@ -2460,8 +2460,8 @@ sqlparse = [
     {file = "sqlparse-0.4.2.tar.gz", hash = "sha256:0c00730c74263a94e5a9919ade150dfc3b19c574389985446148402998287dae"},
 ]
 stripe = [
-    {file = "stripe-2.68.0-py2.py3-none-any.whl", hash = "sha256:33e936fa62f7a02b7b7bc2f7b6af76d21b5211e3abddcfd819eae0f2680f9e25"},
-    {file = "stripe-2.68.0.tar.gz", hash = "sha256:5f795803133f2a50b8363049aeaff81b37b7ef0a5c54a4c0d7555a411a40b7af"},
+    {file = "stripe-2.73.0-py2.py3-none-any.whl", hash = "sha256:6abdaddcd7a9d8b9f43e419e57147248ff2e8f87fb7ba91571417147e0f4f2a8"},
+    {file = "stripe-2.73.0.tar.gz", hash = "sha256:679246d663da5fb38494be3c3a82258d476abb84caae67f0ae1f3967cd62d33a"},
 ]
 toml = [
     {file = "toml-0.10.2-py2.py3-none-any.whl", hash = "sha256:806143ae5bfb6a3c6e736a764057db0e6a0e05e338b5630894a5f779cabb4f9b"},

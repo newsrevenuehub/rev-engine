@@ -70,8 +70,6 @@ CURRENCY_CHOICES = [(k, k) for k, _ in settings.CURRENCIES.items()]
 class Organization(IndexedTimeStampedModel):
     name = models.CharField(max_length=255, unique=True)
     plan = models.ForeignKey("organizations.Plan", null=True, on_delete=models.CASCADE)
-    currency = models.CharField(max_length=3, choices=CURRENCY_CHOICES, default="USD")
-    non_profit = models.BooleanField(default=True, verbose_name="Non-profit?")
     address = models.OneToOneField("common.Address", on_delete=models.CASCADE)
     salesforce_id = models.CharField(max_length=255, blank=True, verbose_name="Salesforce ID")
 
@@ -82,18 +80,6 @@ class Organization(IndexedTimeStampedModel):
     )
 
     users = models.ManyToManyField("users.User", through="users.OrganizationUser")
-
-    STRIPE = ("stripe", "Stripe")
-    SUPPORTED_PROVIDERS = (STRIPE,)
-    default_payment_provider = models.CharField(max_length=100, choices=SUPPORTED_PROVIDERS, default=STRIPE[0])
-    stripe_account_id = models.CharField(max_length=255, blank=True)
-    stripe_oauth_refresh_token = models.CharField(max_length=255, blank=True)
-    stripe_verified = models.BooleanField(
-        default=False,
-        help_text='A fully verified Stripe Connected account should have "charges_enabled: true" in Stripe',
-    )
-    stripe_product_id = models.CharField(max_length=255, blank=True)
-    domain_apple_verified_date = models.DateTimeField(blank=True, null=True)
     uses_email_templates = models.BooleanField(default=False)
 
     # A history of changes to this model, using django-simple-history.
@@ -117,29 +103,6 @@ class Organization(IndexedTimeStampedModel):
 
     def user_is_owner(self, user):
         return user in [through.user for through in self.user_set.through.objects.filter(is_owner=True)]
-
-    def is_verified_with_default_provider(self):
-        payment_provider = self.default_payment_provider
-        payment_provider_account_id = getattr(self, f"{payment_provider}_account_id", None)
-        payment_provider_verified = getattr(self, f"{payment_provider}_verified", None)
-        return payment_provider and payment_provider_account_id and payment_provider_verified
-
-    def stripe_create_default_product(self):
-        if not self.stripe_product_id:
-            product = stripe.Product.create(
-                name=settings.GENERIC_STRIPE_PRODUCT_NAME,
-                stripe_account=self.stripe_account_id,
-            )
-            self.stripe_product_id = product.id
-            self.save()
-
-    def get_currency_dict(self):
-        try:
-            return {"code": self.currency, "symbol": settings.CURRENCIES[self.currency]}
-        except KeyError:
-            logger.error(
-                f'Currency settings for organization "{self.name}" misconfigured. Tried to access "{self.currency}", but valid options are: {settings.CURRENCIES}'
-            )
 
 
 class BenefitLevel(IndexedTimeStampedModel):
@@ -252,6 +215,8 @@ class RevenueProgram(IndexedTimeStampedModel):
         on_delete=models.SET_NULL,
         help_text="Choose an optional default donation page once you've saved your initial revenue program",
     )
+    non_profit = models.BooleanField(default=True, verbose_name="Non-profit?")
+    payment_provider = models.ForeignKey("organizations.PaymentProvider", null=True, on_delete=models.SET_NULL)
 
     # Analytics
     google_analytics_v3_domain = models.CharField(max_length=300, null=True, blank=True)
@@ -323,6 +288,24 @@ class RevenueProgram(IndexedTimeStampedModel):
         domain_apex = settings.DOMAIN_APEX
         return f"{self.slug}.{domain_apex}"
 
+
+class PaymentProvider(IndexedTimeStampedModel):
+    stripe_account_id = models.CharField(max_length=255, unique=True, null=False)
+    stripe_product_id = models.CharField(max_length=255, blank=True)
+
+    currency = models.CharField(max_length=3, choices=CURRENCY_CHOICES, default="USD")
+    STRIPE = ("stripe", "Stripe")
+    SUPPORTED_PROVIDERS = (STRIPE,)
+    default_payment_provider = models.CharField(max_length=100, choices=SUPPORTED_PROVIDERS, default=STRIPE[0])
+
+    stripe_oauth_refresh_token = models.CharField(max_length=255, blank=True)
+    stripe_verified = models.BooleanField(
+        default=False,
+        help_text='A fully verified Stripe Connected account should have "charges_enabled: true" in Stripe',
+    )
+
+    domain_apple_verified_date = models.DateTimeField(blank=True, null=True)
+
     def stripe_create_apple_pay_domain(self):
         """
         Register an ApplePay domain with Apple (by proxy) for this RevenueProgram.
@@ -345,3 +328,26 @@ class RevenueProgram(IndexedTimeStampedModel):
                 logger.warning(
                     f"Failed to register ApplePayDomain for RevenueProgram {self.name}. StripeError: {str(stripe_error)}"
                 )
+
+    def is_verified_with_default_provider(self):
+        payment_provider = self.default_payment_provider
+        payment_provider_account_id = getattr(self, f"{payment_provider}_account_id", None)
+        payment_provider_verified = getattr(self, f"{payment_provider}_verified", None)
+        return payment_provider and payment_provider_account_id and payment_provider_verified
+
+    def stripe_create_default_product(self):
+        if not self.stripe_product_id:
+            product = stripe.Product.create(
+                name=settings.GENERIC_STRIPE_PRODUCT_NAME,
+                stripe_account=self.stripe_account_id,
+            )
+            self.stripe_product_id = product.id
+            self.save()
+
+    def get_currency_dict(self):
+        try:
+            return {"code": self.currency, "symbol": settings.CURRENCIES[self.currency]}
+        except KeyError:
+            logger.error(
+                f'Currency settings for organization "{self.name}" misconfigured. Tried to access "{self.currency}", but valid options are: {settings.CURRENCIES}'
+            )

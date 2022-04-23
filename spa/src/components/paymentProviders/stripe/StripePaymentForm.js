@@ -80,6 +80,14 @@ function StripePaymentForm({ loading, setLoading, offerPayFees }) {
     return emailInput.value;
   };
 
+  const getFrequencyText = (frequency) => {
+    if (frequency === 'month') return 'monthly';
+    if (frequency === 'year') return 'annual';
+    if (frequency === 'one_time') return 'one-time';
+
+    return '';
+  };
+
   /****************************\
    * Handle Error and Success *
   \****************************/
@@ -98,7 +106,7 @@ function StripePaymentForm({ loading, setLoading, offerPayFees }) {
       const donationPageUrl = window.location.href;
       history.push({
         pathname: url === '/' ? THANK_YOU_SLUG : url + THANK_YOU_SLUG,
-        state: { page, amount: totalAmount, email, donationPageUrl }
+        state: { page, amount: totalAmount, email, donationPageUrl, frequencyText: getFrequencyText(frequency) }
       });
     }
   };

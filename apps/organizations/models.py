@@ -306,6 +306,9 @@ class PaymentProvider(IndexedTimeStampedModel):
 
     domain_apple_verified_date = models.DateTimeField(blank=True, null=True)
 
+    def __str__(self):
+        return self.stripe_account_id
+
     def stripe_create_apple_pay_domain(self):
         """
         Register an ApplePay domain with Apple (by proxy) for this RevenueProgram.

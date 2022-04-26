@@ -277,17 +277,17 @@ describe('Donation page edit', () => {
       cy.wait('@getPageDetail');
       cy.getByTestId('edit-page-button').click();
       cy.getByTestId('setup-tab').click({ force: true });
-      cy.getByTestId('logo-link-input').type('not a valid url');
+      cy.getByTestId('thank-you-redirect-link-input').type('not a valid url');
       cy.getByTestId('keep-element-changes-button').click({ force: true });
 
       // Before we save, let's close the tab so we can more meaningfully assert its presence later.
       cy.getByTestId('preview-page-button').click({ force: true });
       cy.getByTestId('edit-interface').should('not.exist');
 
-      const expectedErrorMessage = 'Not a valid url';
+      const expectedErrorMessage = 'Enter a valid URL.';
       cy.intercept(
         { method: 'PATCH', pathname: `${getEndpoint(PATCH_PAGE)}${unpublishedPage.id}/` },
-        { body: { header_link: [expectedErrorMessage] }, statusCode: 400 }
+        { body: { thank_you_redirect: [expectedErrorMessage] }, statusCode: 400 }
       ).as('patchPage');
 
       // Save
@@ -296,7 +296,7 @@ describe('Donation page edit', () => {
 
       // Now we should see the Setup tab and our error message
       cy.getByTestId('edit-interface').should('exist');
-      cy.getByTestId('errors-Logo link').contains(expectedErrorMessage);
+      cy.getByTestId('errors-Thank You page link').contains(expectedErrorMessage);
     });
 
     it('should catch missing elements and an element that has not been configured.', () => {

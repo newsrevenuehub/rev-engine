@@ -1,4 +1,5 @@
 from datetime import datetime
+from urllib.parse import urlparse
 
 from django.conf import settings
 from django.middleware import csrf
@@ -22,6 +23,34 @@ from apps.emails.tasks import send_donor_email
 
 
 COOKIE_PATH = "/"
+
+
+def _construct_pr_domain(subdomain, referer):
+    """Find Revenue Program specific subdomain and use it to construct magic link host.
+
+    Return RP specific domain or None if not found.
+    """
+    if ":" in subdomain:  # Assume full url.
+        subdomain = urlparse(subdomain).hostname.split(".")[0]
+    if not subdomain and referer:
+        bits = urlparse(referer).hostname.split(".")
+        if len(bits) > 2:
+            subdomain = bits[0]
+    if not subdomain:
+        return None
+    parsed = urlparse(settings.SITE_URL)
+    domain_bits = parsed.hostname.split(".")
+    if len(domain_bits) > 2:
+        domain_bits = domain_bits[1:]  # All but leaf subdomain.
+    domain = ".".join(
+        [
+            subdomain,
+        ]
+        + domain_bits
+    )
+    if parsed.port:
+        domain += f":{parsed.port}"
+    return domain
 
 
 def set_token_cookie(response, token, expires):
@@ -95,7 +124,13 @@ class TokenObtainPairCookieView(simplejwt_views.TokenObtainPairView):
 
 class RequestContributorTokenEmailView(APIView):
     """
-    Contributors enter their email addres in to a form and request a magic link. Here we validate that email address, check if they exist. If they don't, we send the same response as if they did. We don't want to expose contributors here. We also rate-limit this endpoint by email requested to prevent reverse brute-forcing tokens (though that's nearly impossible without this protection).
+    Contributors enter their email address in to a form and request a magic link.
+
+    Here we validate that email address, check if they exist. If they don't,
+    we send the same response as if they did. We don't want to expose
+    contributors here. We also rate-limit this endpoint by email requested to
+    prevent reverse brute-forcing tokens (though that's nearly impossible
+    without this protection).
     """
 
     authentication_classes = []
@@ -108,24 +143,25 @@ class RequestContributorTokenEmailView(APIView):
 
         try:
             serializer.is_valid(raise_exception=True)
+            data = serializer.data
+            email = data["email"]
+            token = data["access"]
+            domain = _construct_pr_domain(data.get("subdomain", ""), request.headers.get("Referer", ""))
+            if not domain:
+                return Response({"detail": "Missing Revenue Program subdomain"}, status=status.HTTP_404_NOT_FOUND)
+            magic_link = f"{domain}/{settings.CONTRIBUTOR_VERIFY_URL}?token={token}&email={email}"
+
+            send_donor_email(
+                identifier=settings.EMAIL_TEMPLATE_IDENTIFIER_MAGIC_LINK_DONOR,
+                to=email,
+                subject="Manage your contributions",
+                template_data={"magic_link": magic_link},
+            )
         except NoSuchContributorError:
-            # Don't send special response here. We don't want to indicate whether or not a given address is in our system.
-            return Response({"detail": "success"}, status=status.HTTP_200_OK)
+            # Send same response as "success". We don't want to indicate whether or not a given address is in our system.
+            pass
 
-        data = serializer.data
-        email = data["email"]
-        token = data["access"]
-
-        magic_link = f"{settings.SITE_URL}/{settings.CONTRIBUTOR_VERIFY_URL}?token={token}&email={email}"
-
-        send_donor_email(
-            identifier=settings.EMAIL_TEMPLATE_IDENTIFIER_MAGIC_LINK_DONOR,
-            to=email,
-            subject="Manage your contributions",
-            template_data={"magic_link": magic_link},
-        )
-
-        # This is sent in an async task. We won't know so send OK anyway.
+        # Email is async task. We won't know if it succeeds or not so optimistically send OK.
         return Response({"detail": "success"}, status=status.HTTP_200_OK)
 
 

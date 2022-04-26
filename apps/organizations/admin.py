@@ -14,6 +14,7 @@ from apps.organizations.models import (
     BenefitLevel,
     Feature,
     Organization,
+    PaymentProvider,
     Plan,
     RevenueProgram,
 )
@@ -90,29 +91,11 @@ class OrganizationAdmin(RevEngineSimpleHistoryAdmin, ReverseModelAdmin):  # prag
         (None, {"fields": ("salesforce_id",)}),
         (
             "Plan",
-            {
-                "fields": (
-                    "non_profit",
-                    "plan",
-                )
-            },
+            {"fields": ("plan",)},
         ),
         (
             "Email Templates",
             {"fields": ("uses_email_templates",)},
-        ),
-        (
-            "Payment Provider",
-            {
-                "fields": (
-                    "currency",
-                    "default_payment_provider",
-                    "stripe_account_id",
-                    "stripe_verified",
-                    "stripe_product_id",
-                    "domain_apple_verified_date",
-                )
-            },
         ),
     )
 
@@ -126,7 +109,7 @@ class OrganizationAdmin(RevEngineSimpleHistoryAdmin, ReverseModelAdmin):  # prag
     inline_reverse = [("address", {"fields": ["address1", "address2", "city", "state", "postal_code", "country"]})]
     inlines = [UserOrganizationInline]
 
-    readonly_fields = ["name", "stripe_verified"]
+    readonly_fields = ["name"]
 
     def get_readonly_fields(self, request, obj=None):
         if Path(request.path).parts[-1] == "add":
@@ -187,13 +170,14 @@ class RevenueProgramAdmin(RevEngineSimpleHistoryAdmin, ReverseModelAdmin, AdminI
                     "contact_email",
                     "organization",
                     "default_donation_page",
+                    "non_profit",
                 )
             },
         ),
         (
             "Stripe",
             {
-                "fields": ("stripe_statement_descriptor_suffix",),
+                "fields": ("stripe_statement_descriptor_suffix", "payment_provider"),
             },
         ),
         (
@@ -294,3 +278,23 @@ class FeatureAdmin(RevEngineSimpleHistoryAdmin):  # pragma: no cover
     list_display = ["name", "feature_type", "feature_value"]
 
     list_filter = ["name", "feature_type"]
+
+
+@admin.register(PaymentProvider)
+class PaymentProviderAdmin(RevEngineSimpleHistoryAdmin):
+    fieldsets = (
+        (
+            None,
+            {
+                "fields": (
+                    "stripe_account_id",
+                    "stripe_product_id",
+                    "currency",
+                    "default_payment_provider",
+                    "stripe_oauth_refresh_token",
+                    "stripe_verified",
+                    "domain_apple_verified_date",
+                ),
+            },
+        ),
+    )

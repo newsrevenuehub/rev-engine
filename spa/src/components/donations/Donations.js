@@ -103,7 +103,7 @@ function Donations() {
         Cell: (props) => (props.value ? <DateAndTimeCell dateTime={props.value} /> : NO_VALUE)
       },
       {
-        Header: 'Donor',
+        Header: 'Contributor',
         accessor: 'contributor_email',
         Cell: (props) => props.value || NO_VALUE
       },

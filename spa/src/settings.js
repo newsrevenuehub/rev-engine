@@ -9,7 +9,7 @@
 */
 
 // These subdomain labels will redirect to the org portal.
-export const DASHBOARD_SUBDOMAINS = resolveConstantFromEnv('DASHBOARD_SUBDOMAINS', ['','www','support']);
+export const DASHBOARD_SUBDOMAINS = resolveConstantFromEnv('DASHBOARD_SUBDOMAINS', ['', 'www', 'support']);
 
 //Rev Engine - General
 export const REVENGINE_API_VERSION = resolveConstantFromEnv('REVENGINE_API_VERSION', 'v1');

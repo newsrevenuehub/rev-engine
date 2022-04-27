@@ -40,7 +40,7 @@ class OrganizationInlineSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Organization
-        fields = ["id", "name", "slug", "needs_payment_provider"]
+        fields = ["id", "name", "slug", "needs_payment_provider", "default_payment_provider", "stripe_account_id"]
 
 
 class RevenueProgramListInlineSerializer(serializers.ModelSerializer):

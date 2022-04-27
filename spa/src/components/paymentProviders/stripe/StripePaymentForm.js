@@ -82,7 +82,7 @@ function StripePaymentForm({ loading, setLoading, offerPayFees }) {
 
   const getFrequencyText = (frequency) => {
     if (frequency === 'month') return 'monthly';
-    if (frequency === 'year') return 'annual';
+    if (frequency === 'year') return 'yearly';
     if (frequency === 'one_time') return 'one-time';
     return frequency;
   };

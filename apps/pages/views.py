@@ -47,10 +47,8 @@ class PageViewSet(viewsets.ModelViewSet, FilterQuerySetByUserMixin, PerUserCreat
 
     def get_serializer_class(self):
 
-        if self.action in ("partial_update", "create"):
+        if self.action in ("partial_update", "create", "retrieve"):
             return serializers.DonationPageFullDetailSerializer
-        elif self.action == "retrieve":
-            return serializers.DonationPageDetailSerializer
         else:
             return serializers.DonationPageListSerializer
 
@@ -64,30 +62,6 @@ class PageViewSet(viewsets.ModelViewSet, FilterQuerySetByUserMixin, PerUserCreat
         error = None
         try:
             page_detail_helper = PageFullDetailHelper(request, live=True)
-            page_detail_helper.set_revenue_program()
-            page_detail_helper.set_donation_page()
-            page_detail_helper.validate_page_request()
-            page_data = page_detail_helper.get_donation_page_data()
-        except PageDetailError as page_detail_error:
-            error = (page_detail_error.message, page_detail_error.status)
-
-        if error:
-            return Response({"detail": error[0]}, status=error[1])
-        return Response(page_data, status=status.HTTP_200_OK)
-
-    @action(detail=False, methods=["get"], permission_classes=[], url_path="draft-detail")
-    def draft_detail(self, request):
-        """
-        This is the action requested when a page needs to be edited. Crucially, note the absence of the empty
-        authentication_classes list here as compared to the live_detail version. This way, not only can we ensure
-        users are authenticated before they view the page in edit mode, but the `validate_page_request` method
-        can access request.user to verify an org-level relationship with the page requested.
-
-        The actual edit actions are protected against unauthorized access in their own views.
-        """
-        error = None
-        try:
-            page_detail_helper = PageFullDetailHelper(request, live=False)
             page_detail_helper.set_revenue_program()
             page_detail_helper.set_donation_page()
             page_detail_helper.validate_page_request()

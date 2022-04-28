@@ -45,3 +45,33 @@ class PagePkIsForOwnedPage:
                 raise serializers.ValidationError(UNOWNED_TEMPLATE_FROM_PAGE_PAGE_PK_MESSAGE)
             elif ra.role_type == Roles.RP_ADMIN and target_page.revenue_program not in ra.revenue_programs.all():
                 raise serializers.ValidationError(UNOWNED_TEMPLATE_FROM_PAGE_PAGE_PK_MESSAGE)
+
+
+UNOWNED_REVENUE_PROGRAM_PK_MESSAGE = "You aren't permitted to reference this revenue program"
+
+
+class RpPkIsForOwnedRp:
+    """Used in serializer to ensure that the id supplied for `revenue_program_pk` is for a permitted resource"""
+
+    requires_context = True
+
+    def __init__(self, rp_model):
+        self.rp_model = rp_model
+
+    def __call__(self, value, serializer):
+        """Get the instance referred to by `revenue_program_pk`...
+
+        ...if user is superuser or hub admin, valid
+        ...if user is an org admin, valid if referenced rp belongs to org
+        ...if user is rp admin, valid if referenced page belongs is one of their rps
+        """
+        target_rp = self.rp_model.objects.get(pk=value["revenue_program_pk"])
+        if (request := serializer.context.get("request", None)) is not None:
+            user = request.user
+            ra = getattr(user, "roleassignment", None)
+            if user.is_superuser or (ra is not None and ra.role_type == Roles.HUB_ADMIN):
+                return
+            elif ra.role_type == Roles.ORG_ADMIN and target_rp.organization != ra.organization:
+                raise serializers.ValidationError(UNOWNED_REVENUE_PROGRAM_PK_MESSAGE)
+            elif ra.role_type == Roles.RP_ADMIN and target_rp not in ra.revenue_programs.all():
+                raise serializers.ValidationError(UNOWNED_REVENUE_PROGRAM_PK_MESSAGE)

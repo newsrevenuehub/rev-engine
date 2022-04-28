@@ -14,7 +14,7 @@ from apps.organizations.serializers import (
     RevenueProgramSerializer,
 )
 from apps.pages.models import DonationPage, Font, Style, Template
-from apps.pages.validators import PagePkIsForOwnedPage
+from apps.pages.validators import PagePkIsForOwnedPage, RpPkIsForOwnedRp
 
 
 class StyleInlineSerializer(serializers.ModelSerializer):
@@ -59,6 +59,7 @@ class StyleListSerializer(StyleInlineSerializer):
         return super().create(validated_data)
 
     def set_revenue_program(self, validated_data):
+
         rp_slug = self.context["request"].GET.get(settings.RP_SLUG_PARAM)
         if not rp_slug:
             raise serializers.ValidationError(
@@ -83,8 +84,8 @@ class DonationPageFullDetailSerializer(serializers.ModelSerializer):
     styles = StyleInlineSerializer(required=False)
     styles_pk = serializers.IntegerField(allow_null=True, required=False)
 
-    revenue_program = RevenueProgramListInlineSerializer(read_only=True)
-    revenue_program_pk = serializers.IntegerField(allow_null=True, required=False, read_only=True)
+    revenue_program = RevenueProgramListInlineSerializer(read_only=True, required=False)
+    revenue_program_pk = serializers.IntegerField(allow_null=True, required=True)
     template_pk = serializers.IntegerField(allow_null=True, required=False)
 
     graphic = serializers.ImageField(allow_empty_file=True, allow_null=True, required=False)
@@ -129,6 +130,9 @@ class DonationPageFullDetailSerializer(serializers.ModelSerializer):
     class Meta:
         model = DonationPage
         fields = "__all__"
+        validators = [
+            RpPkIsForOwnedRp(rp_model=RevenueProgram),
+        ]
 
     def _update_related(self, related_field, related_model, validated_data, instance):
         pk_field = f"{related_field}_pk"
@@ -160,13 +164,8 @@ class DonationPageFullDetailSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError({"template": ["This template no longer exists"]})
 
     def create(self, validated_data):
-        rp_slug = self.context["request"].GET.get(settings.RP_SLUG_PARAM)
-        if not rp_slug:
-            raise serializers.ValidationError(
-                {settings.RP_SLUG_PARAM: "RevenueProgram.slug is required when creating a new page"}
-            )
         try:
-            rev_program = RevenueProgram.objects.get(slug=rp_slug)
+            rev_program = RevenueProgram.objects.get(pk=validated_data.pop("revenue_program_pk"))
             validated_data["revenue_program"] = rev_program
         except RevenueProgram.DoesNotExist:
             raise serializers.ValidationError(

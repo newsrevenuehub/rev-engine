@@ -17,12 +17,7 @@ from rest_framework.generics import GenericAPIView
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
-from apps.api.permissions import (
-    HasCreatePrivilegesForSlugs,
-    HasDeletePrivilegesViaRole,
-    HasRoleAssignment,
-    is_a_contributor,
-)
+from apps.api.permissions import HasDeletePrivilegesViaRole, HasRoleAssignment, is_a_contributor
 from apps.public.permissions import IsSuperUser
 from apps.users.models import UnexpectedRoleType
 from apps.users.serializers import UserSerializer
@@ -111,7 +106,7 @@ class PerUserCreateDeletePermissionsMixin(GenericAPIView):
 
     def get_permissions(self):
         if self.action == "create":
-            composed_perm = IsSuperUser | (IsAuthenticated & HasRoleAssignment & HasCreatePrivilegesForSlugs)
+            composed_perm = IsSuperUser | (IsAuthenticated & HasRoleAssignment)
             return [composed_perm()]
         if self.action == "destroy":
             composed_perm = IsSuperUser | (IsAuthenticated & HasRoleAssignment & HasDeletePrivilegesViaRole)

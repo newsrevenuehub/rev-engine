@@ -90,7 +90,7 @@
     ],
     "transformIgnorePatterns": [
       "node_modules/(?!(cypress)/)",
-      "\\.pnp\\.[^\\\/]+$"
+      "\\.pnp\\.[^\\/]+$"
     ]
   },
   "eslintConfig": {
@@ -135,6 +135,7 @@
     "@cypress/react": "^5.9.4",
     "@cypress/webpack-dev-server": "^1.4.0",
     "cypress": "^8.5.0",
+    "cypress-localstorage-commands": "^1.7.0",
     "eslint-plugin-chai-friendly": "^0.7.1"
   }
 }

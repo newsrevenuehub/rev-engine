@@ -1,19 +1,31 @@
-import { STRIPE_CONFIRMATION, STRIPE_OAUTH } from 'ajax/endpoints';
+import { STRIPE_CONFIRMATION, STRIPE_OAUTH, LIST_PAGES } from 'ajax/endpoints';
 import { getEndpoint } from '../support/util';
 // Constants
 import { STRIPE_CLIENT_ID, STRIPE_OAUTH_SCOPE } from 'settings';
 
+import { CONTENT_SLUG } from 'routes';
+import orgAdminUser from '../fixtures/user/org-admin';
+
 const redirectPath = '/dashboard/content';
 describe('Payment provider connect', () => {
   it('should not show ProviderConnect if default provider', () => {
-    cy.login('user/stripe-verified.json');
+    cy.forceLogin(orgAdminUser);
+    cy.intercept(
+      { method: 'GET', pathname: getEndpoint(LIST_PAGES) },
+      { fixture: 'pages/list-pages-1', statusCode: 200 }
+    );
+    cy.visit(CONTENT_SLUG);
     cy.getByTestId('provider-connect').should('not.exist');
     cy.getByTestId('content').should('exist');
   });
 
-  it('should direct user to ProviderConnect if no default provider', () => {
+  it.only('should direct user to ProviderConnect if no default provider', () => {
+    const notConnectedOrg = { ...orgAdminUser.user.organizations[0], stripe_verified: false, stripe_account_id: '' };
+    const user = { ...orgAdminUser };
+    user.user.organizations = [notConnectedOrg];
     cy.intercept('POST', getEndpoint(STRIPE_CONFIRMATION), { fixture: 'stripe/confirm-connected' });
-    cy.login('user/not-connected.json');
+    cy.forceLogin(user);
+    cy.visit(CONTENT_SLUG);
     cy.getByTestId('provider-connect').should('exist');
   });
 

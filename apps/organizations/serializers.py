@@ -33,14 +33,9 @@ class OrganizationSerializer(serializers.ModelSerializer):
 
 
 class OrganizationInlineSerializer(serializers.ModelSerializer):
-    needs_payment_provider = serializers.SerializerMethodField(method_name="get_needs_payment_provider")
-
-    def get_needs_payment_provider(self, obj):
-        return obj.needs_payment_provider
-
     class Meta:
         model = Organization
-        fields = ["id", "name", "slug", "needs_payment_provider", "default_payment_provider", "stripe_account_id"]
+        fields = ["id", "name", "slug", "stripe_verified", "default_payment_provider", "stripe_account_id"]
 
 
 class RevenueProgramListInlineSerializer(serializers.ModelSerializer):

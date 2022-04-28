@@ -2,9 +2,6 @@ import { STRIPE_PAYMENT, LIVE_PAGE_DETAIL } from 'ajax/endpoints';
 import { getEndpoint, getPageElementByType, getTestingDonationPageUrl, EXPECTED_RP_SLUG } from '../support/util';
 import livePageOne from '../fixtures/pages/live-page-1.json';
 
-// Deps
-import { format } from 'date-fns';
-
 // Constants
 import { CLEARBIT_SCRIPT_SRC } from '../../src/hooks/useClearbit';
 import { FUNDJOURNALISM_404_REDIRECT } from 'components/donationPage/live/LivePage404';
@@ -51,12 +48,13 @@ describe('Routing', () => {
 describe('DonationPage elements', () => {
   it('should render expected rich text content', () => {
     cy.visitDonationPage();
-
     cy.getByTestId('d-rich-text').should('exist');
     cy.contains('Your support keeps us going!');
   });
 
   it('should render expected expected frequencies', () => {
+    cy.visitDonationPage();
+
     const frequency = getPageElementByType(livePageOne, 'DFrequency');
     cy.getByTestId('d-frequency');
 
@@ -65,6 +63,8 @@ describe('DonationPage elements', () => {
     });
   });
   it('should render expected amounts', () => {
+    cy.visitDonationPage();
+
     const frequency = getPageElementByType(livePageOne, 'DFrequency');
     const amounts = getPageElementByType(livePageOne, 'DAmount');
     cy.getByTestId('d-amount');
@@ -75,6 +75,8 @@ describe('DonationPage elements', () => {
     });
   });
   it('should render text indicating expected frequencies', () => {
+    cy.visitDonationPage();
+
     const frequency = getPageElementByType(livePageOne, 'DFrequency');
     cy.getByTestId('d-amount');
 
@@ -95,6 +97,8 @@ describe('DonationPage elements', () => {
   });
 
   it('should render the correct fee base on frequency and amount', () => {
+    cy.visitDonationPage();
+
     const frequency = getPageElementByType(livePageOne, 'DFrequency');
     const amounts = getPageElementByType(livePageOne, 'DAmount');
 
@@ -138,6 +142,14 @@ describe('DonationPage elements', () => {
   });
 
   it('should render swag options if swagThreshold is met', () => {
+    cy.intercept(
+      { method: 'GET', pathname: getEndpoint(LIVE_PAGE_DETAIL) },
+      { fixture: 'pages/live-page-1.json', statusCode: 200 }
+    ).as('getPage');
+    cy.visit(getTestingDonationPageUrl(expectedPageSlug));
+    cy.url().should('include', EXPECTED_RP_SLUG);
+    cy.url().should('include', expectedPageSlug);
+    cy.wait('@getPage');
     const swagElement = livePageOne.elements.find((el) => el.type === 'DSwag');
     const swagThreshold = swagElement.content.swagThreshold;
     cy.contains(`Give a total of ${livePageOne.currency.symbol}${swagThreshold} /year or more to be eligible`);
@@ -146,7 +158,8 @@ describe('DonationPage elements', () => {
     cy.getByTestId('swag-content').should('exist');
   });
 
-  it('should render a dropdown of swagOptions for each swag in the list', () => {
+  it.only('should render a dropdown of swagOptions for each swag in the list', () => {
+    cy.visitDonationPage();
     const swagElement = livePageOne.elements.find((el) => el.type === 'DSwag');
     const swagName = swagElement.content.swags[0].swagName;
     const optionsNum = swagElement.content.swags[0].swagOptions.length;

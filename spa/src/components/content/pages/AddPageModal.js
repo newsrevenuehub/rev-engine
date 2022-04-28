@@ -16,6 +16,8 @@ import slugify from 'utilities/slugify';
 import useRequest from 'hooks/useRequest';
 import { REVENUE_PROGRAMS, LIST_PAGES, TEMPLATES } from 'ajax/endpoints';
 
+import useUser from 'hooks/useUser';
+
 // Children
 import Modal from 'elements/modal/Modal';
 import Input from 'elements/inputs/Input';
@@ -23,12 +25,13 @@ import Select from 'elements/inputs/Select';
 import CircleButton from 'elements/buttons/CircleButton';
 import { GENERIC_ERROR } from 'constants/textConstants';
 import FormErrors from 'elements/inputs/FormErrors';
+
 function AddPageModal({ isOpen, closeModal }) {
   const alert = useAlert();
   const theme = useTheme();
   const history = useHistory();
+  const { revenue_programs: revenuePrograms } = useUser();
 
-  const fetchRevPrograms = useRequest();
   const fetchTemplates = useRequest();
   const createPage = useRequest();
 
@@ -37,7 +40,6 @@ function AddPageModal({ isOpen, closeModal }) {
   const [name, setName] = useState('');
   const [slug, setSlug] = useState('');
 
-  const [revenuePrograms, setRevenuePrograms] = useState([]);
   const [revenueProgram, setRevenueProgram] = useState();
   const [templates, setTemplates] = useState([]);
   const [template, setTemplate] = useState();
@@ -48,21 +50,6 @@ function AddPageModal({ isOpen, closeModal }) {
     },
     [alert]
   );
-
-  useEffect(() => {
-    async function getRevProgams() {
-      setLoading(true);
-      fetchRevPrograms(
-        {
-          method: 'GET',
-          url: REVENUE_PROGRAMS
-        },
-        { onSuccess: ({ data }) => setRevenuePrograms(data), onFailure: handleRequestFailure }
-      );
-    }
-    getRevProgams();
-    setLoading(false);
-  }, [handleRequestFailure]);
 
   useEffect(() => {
     async function getTemplates() {
@@ -118,7 +105,11 @@ function AddPageModal({ isOpen, closeModal }) {
         data: formData
       },
       {
-        onSuccess: ({ data }) => history.push(`${EDITOR_ROUTE}/${data.revenue_program.slug}/${data.slug}`),
+        onSuccess: ({ data }) =>
+          history.push({
+            pathname: `${EDITOR_ROUTE}/${revenueProgram.slug}/${slug}`,
+            state: { pageId: data.id }
+          }),
         onFailure: handleSaveFailure
       }
     );

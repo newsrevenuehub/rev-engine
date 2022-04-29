@@ -22,7 +22,7 @@ from apps.contributions.webhooks import StripeWebhookProcessor
 from apps.emails.models import EmailTemplateError, PageEmailTemplate
 from apps.organizations.models import Organization
 from apps.public.permissions import IsSuperUser
-from apps.users.views import FilterQuerySetByUserMixin, PerUserCreateDeletePermissionsMixin
+from apps.users.views import FilterQuerySetByUserMixin
 
 
 logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
@@ -195,9 +195,7 @@ def process_stripe_webhook_view(request):
     return Response(status=status.HTTP_200_OK)
 
 
-class ContributionsViewSet(
-    viewsets.ReadOnlyModelViewSet, FilterQuerySetByUserMixin, PerUserCreateDeletePermissionsMixin
-):
+class ContributionsViewSet(viewsets.ReadOnlyModelViewSet, FilterQuerySetByUserMixin):
     """Contributions API resource
 
     NB: There are bespoke actions on this viewset that override the default permission classes set here.

@@ -48,6 +48,7 @@ class PagePkIsForOwnedPage:
 
 
 UNOWNED_REVENUE_PROGRAM_PK_MESSAGE = "You aren't permitted to reference this revenue program"
+MISSING_REFRENCE_TO_REV_PROGRAM_MESSAGE = "Can't determine relationship with revenue program"
 
 
 class RpPkIsForOwnedRp:
@@ -65,13 +66,25 @@ class RpPkIsForOwnedRp:
         ...if user is an org admin, valid if referenced rp belongs to org
         ...if user is rp admin, valid if referenced page belongs is one of their rps
         """
-        target_rp = self.rp_model.objects.get(pk=value["revenue_program_pk"])
-        if (request := serializer.context.get("request", None)) is not None:
-            user = request.user
-            ra = getattr(user, "roleassignment", None)
-            if user.is_superuser or (ra is not None and ra.role_type == Roles.HUB_ADMIN):
-                return
-            elif ra.role_type == Roles.ORG_ADMIN and target_rp.organization != ra.organization:
-                raise serializers.ValidationError(UNOWNED_REVENUE_PROGRAM_PK_MESSAGE)
-            elif ra.role_type == Roles.RP_ADMIN and target_rp not in ra.revenue_programs.all():
-                raise serializers.ValidationError(UNOWNED_REVENUE_PROGRAM_PK_MESSAGE)
+        method = serializer.context["request"].method
+        if method in ["POST", "PATCH"]:
+            target_rp_pk = None
+            if method == "POST":
+                target_rp_pk = value.get("revenue_program_pk")
+
+            if method == "PATCH":
+                # rp_pk can be updated via patch, but default to existing otherwise
+                target_rp_pk = value.get("revenue_program_pk", serializer.instance.revenue_program.pk)
+            if not target_rp_pk:
+                raise serializers.ValidationError(MISSING_REFRENCE_TO_REV_PROGRAM_MESSAGE)
+            target_rp = self.rp_model.objects.get(pk=target_rp_pk)
+            if (request := serializer.context.get("request", None)) is not None:
+                user = request.user
+                ra = getattr(user, "roleassignment", None)
+                if user.is_superuser or (ra is not None and ra.role_type == Roles.HUB_ADMIN):
+                    return
+                elif ra.role_type == Roles.ORG_ADMIN and target_rp.organization != ra.organization:
+                    raise serializers.ValidationError(UNOWNED_REVENUE_PROGRAM_PK_MESSAGE)
+                elif ra.role_type == Roles.RP_ADMIN and target_rp not in ra.revenue_programs.all():
+                    raise serializers.ValidationError(UNOWNED_REVENUE_PROGRAM_PK_MESSAGE)
+        return

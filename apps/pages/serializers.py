@@ -11,13 +11,17 @@ from apps.organizations.models import RevenueProgram
 from apps.organizations.serializers import (
     BenefitLevelDetailSerializer,
     RevenueProgramListInlineSerializer,
-    RevenueProgramSerializer,
 )
 from apps.pages.models import DonationPage, Font, Style, Template
 from apps.pages.validators import PagePkIsForOwnedPage, RpPkIsForOwnedRp
 
 
 class StyleInlineSerializer(serializers.ModelSerializer):
+
+    revenue_program = serializers.PrimaryKeyRelatedField(
+        required=False, allow_null=False, queryset=RevenueProgram.objects.all()
+    )
+
     def to_representation(self, instance):
         styles = instance.styles if instance.styles else {}
         representation = super().to_representation(instance)
@@ -41,34 +45,7 @@ class StyleInlineSerializer(serializers.ModelSerializer):
 
 
 class StyleListSerializer(StyleInlineSerializer):
-    revenue_program = RevenueProgramSerializer()
     used_live = serializers.SerializerMethodField()
-
-    def __init__(self, *args, **kwargs):
-        """
-        Remove the RevenueProgramSerializer on PATCH but not on PUT. PATCH here is
-        only updating the style and cares naught about the revenue program.
-        """
-        kwargs.pop("fields", {})
-        super().__init__(*args, **kwargs)
-        if self.context.get("request") and self.context.get("request").method == "PATCH":
-            self.fields.pop("revenue_program")
-
-    def create(self, validated_data):
-        self.set_revenue_program(validated_data)
-        return super().create(validated_data)
-
-    def set_revenue_program(self, validated_data):
-
-        rp_slug = self.context["request"].GET.get(settings.RP_SLUG_PARAM)
-        if not rp_slug:
-            raise serializers.ValidationError(
-                {settings.RP_SLUG_PARAM: "RevenueProgram.slug is required when creating a new page"}
-            )
-        try:
-            validated_data["revenue_program"] = RevenueProgram.objects.get(slug=rp_slug)
-        except RevenueProgram.DoesNotExist:
-            raise serializers.ValidationError({settings.RP_SLUG_PARAM: "no such revenue_program"})
 
     def get_used_live(self, obj):
         return DonationPage.objects.filter(styles=obj, published_date__lte=timezone.now()).exists()

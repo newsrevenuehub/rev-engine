@@ -279,18 +279,22 @@ class Style(IndexedTimeStampedModel, SafeDeleteModel, RoleAssignmentResourceMode
             raise UnexpectedRoleType(f"{role_assignment.role_type} is not a valid value")
 
     @classmethod
-    def user_has_create_permission_by_virtue_of_role(cls, user, org_slug, rp_slug):
+    def user_has_create_permission_by_virtue_of_role(cls, user, view):
         role_type = user.roleassignment.role_type
         user_org = user.roleassignment.organization
+        revenue_program_pk = view.request.data["revenue_program"]
         if role_type == Roles.HUB_ADMIN:
             return True
         elif role_type == Roles.ORG_ADMIN:
-            return user_org.slug == org_slug
+            revenue_program = RevenueProgram.objects.get(pk=revenue_program_pk)
+            return user_org.id == revenue_program.organization.pk
         elif role_type == Roles.RP_ADMIN:
+            revenue_program = RevenueProgram.objects.get(pk=revenue_program_pk)
+
             return all(
                 [
-                    user_org.slug == org_slug,
-                    rp_slug in list(user.roleassignment.revenue_programs.all().values_list("slug", flat=True)),
+                    user_org.pk == revenue_program.organization.pk,
+                    revenue_program in user.roleassignment.revenue_programs.all(),
                 ]
             )
 

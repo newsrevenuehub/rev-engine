@@ -7,8 +7,10 @@ from rest_framework.test import APITestCase
 
 from apps.contributions.models import Contributor
 from apps.contributions.tests.factories import ContributionFactory, ContributorFactory
-from apps.organizations.models import Organization, Plan, RevenueProgram
+from apps.organizations.models import Feature, Organization, Plan, RevenueProgram
 from apps.organizations.tests.factories import (
+    BenefitFactory,
+    BenefitLevelFactory,
     FeatureFactory,
     OrganizationFactory,
     RevenueProgramFactory,
@@ -73,9 +75,10 @@ class AbstractTestCase(APITestCase):
 
     @classmethod
     def _set_up_feature_sets(cls):
+        page_limit_feature = FeatureFactory(feature_value=100, feature_type=Feature.FeatureType.PAGE_LIMIT)
+        boolean_feature = FeatureFactory(feature_value=True, feature_type=Feature.FeatureType.BOOLEAN)
         for plan in Plan.objects.all():
-            features = [FeatureFactory() for x in range(cls.features_per_plan)]
-            plan.features.add(*features)
+            plan.features.add(page_limit_feature, boolean_feature)
             plan.save()
 
     @classmethod

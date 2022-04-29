@@ -24,6 +24,7 @@ class PageViewSetTest(RevEngineApiAbstractTestCase):
             "name": "My new page, tho",
             "heading": "New DonationPage",
             "slug": "new-page",
+            "revenue_program_pk": self.org1_rp1.pk,
         }
 
     def assert_created_page_looks_right(
@@ -36,8 +37,9 @@ class PageViewSetTest(RevEngineApiAbstractTestCase):
         creation_data = creation_data if creation_data is not None else {**self.default_page_creation_data}
         self.assertEqual(created_page.revenue_program.organization, expected_org)
         self.assertEqual(created_page.revenue_program, expected_rp)
-        for attr in creation_data.keys():
+        for attr in [key for key in creation_data.keys() if key != "revenue_program_pk"]:
             self.assertEqual(getattr(created_page, attr), creation_data[attr])
+        self.assertEqual(creation_data["revenue_program_pk"], expected_rp.pk)
 
     ########
     # CREATE
@@ -75,9 +77,10 @@ class PageViewSetTest(RevEngineApiAbstractTestCase):
             "name": "My new page, tho",
             "heading": "New DonationPage",
             "slug": "new-page",
+            "revenue_program_pk": self.org2_rp.pk,
         }
         url = f"{reverse('donationpage-list')}?{settings.RP_SLUG_PARAM}={self.org2_rp.slug}&{settings.ORG_SLUG_PARAM}={self.org2.slug}"
-        self.assert_org_admin_cannot_post(url, data, expected_status_code=status.HTTP_403_FORBIDDEN)
+        self.assert_org_admin_cannot_post(url, data, expected_status_code=status.HTTP_400_BAD_REQUEST)
         self.assertEqual(my_org_pages_query.count(), before_my_org_pages_count)
         self.assertEqual(other_org_pages_query.count(), before_other_org_count)
 
@@ -110,31 +113,22 @@ class PageViewSetTest(RevEngineApiAbstractTestCase):
         self.assertTrue(others_pages_query.exists())
         before_my_pages_count = my_pages_query.count()
         before_others_count = others_pages_query.count()
-        url = f"{reverse('donationpage-list')}?{settings.RP_SLUG_PARAM}={target_rp.slug}&{settings.ORG_SLUG_PARAM}={self.org1.slug}"
+        data = {**self.default_page_creation_data}
+        data["revenue_program_pk"] = self.org2_rp.pk
+
         self.assert_rp_user_cannot_post(
-            url, self.default_page_creation_data, expected_status_code=status.HTTP_403_FORBIDDEN
+            reverse("donationpage-list"), data, expected_status_code=status.HTTP_400_BAD_REQUEST
         )
         self.assertEqual(my_pages_query.count(), before_my_pages_count)
         self.assertEqual(others_pages_query.count(), before_others_count)
 
-    def test_page_create_returns_validation_error_when_missing_rp_slug_param(self):
+    def test_page_create_returns_validation_error_when_missing_revenue_program_pk(self):
         self.client.force_authenticate(user=self.hub_user)
-        url = f"{reverse('donationpage-list')}?{settings.ORG_SLUG_PARAM}={self.org1.slug}"
-        response = self.client.post(url, self.default_page_creation_data)
+        data = {**self.default_page_creation_data}
+        data.pop("revenue_program_pk")
+        response = self.client.post(reverse("donationpage-list"), data)
         self.assertEqual(response.status_code, 400)
-        self.assertEqual(
-            str(response.data[settings.RP_SLUG_PARAM]), "RevenueProgram.slug is required when creating a new page"
-        )
-
-    def test_page_create_returns_validation_error_when_bad_rev_slug(self):
-        not_real_slug = "not-real"
-        url = f"{reverse('donationpage-list')}?{settings.RP_SLUG_PARAM}={not_real_slug}&{settings.ORG_SLUG_PARAM}={self.org1.slug}"
-        self.client.force_authenticate(user=self.hub_user)
-        response = self.client.post(url, self.default_page_creation_data)
-        self.assertEqual(response.status_code, 400)
-        self.assertEqual(
-            str(response.data[settings.RP_SLUG_PARAM]), "Could not find revenue program with provided slug"
-        )
+        self.assertEqual(response.json()["revenue_program_pk"][0], "This field is required.")
 
     def test_page_create_returns_revenue_program_slug(self):
         """
@@ -147,13 +141,11 @@ class PageViewSetTest(RevEngineApiAbstractTestCase):
         self.assertIn("slug", response.data["revenue_program"])
 
     def test_page_create_returns_validation_error_when_violates_unique_constraint(self):
-        url = f"{reverse('donationpage-list')}?{settings.RP_SLUG_PARAM}={self.org1_rp1.slug}&{settings.ORG_SLUG_PARAM}={self.org1.slug}"
-        response = self.assert_hub_admin_can_post(url, self.default_page_creation_data)
+        response = self.assert_hub_admin_can_post(reverse("donationpage-list"), self.default_page_creation_data)
         # make sure first page was created successfully
         self.assertEqual(response.status_code, 201)
-
         # Then make it again and expect a validation error
-        error_response = self.client.post(url, self.default_page_creation_data)
+        error_response = self.client.post(reverse("donationpage-list"), self.default_page_creation_data)
         self.assertEqual(error_response.status_code, 400)
         self.assertIn(settings.RP_SLUG_PARAM, error_response.data)
         self.assertEqual(
@@ -413,79 +405,6 @@ class PageViewSetTest(RevEngineApiAbstractTestCase):
         self.assertIsNotNone(page)
         url = reverse("donationpage-detail", args=(page.pk,))
         self.assert_rp_user_cannot_get(url)
-
-
-class DonationPageFullDetailTest(APITestCase):
-    def setUp(self):
-        now = timezone.now()
-        hour = datetime.timedelta(hours=1)
-        self.revenue_program_1 = RevenueProgramFactory(slug="revenue_program_1")
-        self.revenue_program_2 = RevenueProgramFactory(slug="revenue_program_2")
-        self.page_1 = DonationPageFactory(
-            published_date=now - hour, revenue_program=self.revenue_program_1, slug="page_1"
-        )
-        self.page_2 = DonationPageFactory(
-            published_date=now - hour, revenue_program=self.revenue_program_1, slug="page_2"
-        )
-        self.page_3 = DonationPageFactory(
-            published_date=now + hour, revenue_program=self.revenue_program_2, slug="page_3"
-        )
-        self.revenue_program_1.default_donation_page = self.page_2
-        self.revenue_program_1.save()
-
-    def _make_full_detail_request_with_params(self, rev_program=None, page=None, live=None):
-        url = reverse("donationpage-live-detail") if live else reverse("donationpage-draft-detail")
-        url += "?"
-        if rev_program:
-            url += f"revenue_program={rev_program}&"
-        if page:
-            url += f"page={page}&"
-        if live:
-            url += f"live={1 if live else 0}&"
-
-        return self.client.get(url)
-
-    def test_full_detail_rev_program_param_required(self):
-        response = self._make_full_detail_request_with_params(page="testing")
-        self.assertEqual(response.status_code, 400)
-        self.assertEqual(response.data["detail"], "Missing required parameter")
-
-    def test_full_detail_page_with_live_param_searches_live(self):
-        bad_response = self._make_full_detail_request_with_params(
-            rev_program=self.revenue_program_2.slug, page=self.page_3.slug, live=True
-        )
-        # Returns 404 if no live page exists
-        self.assertEqual(bad_response.status_code, 404)
-        self.assertEqual(bad_response.data["detail"], "This page has not been published")
-
-        good_response = self._make_full_detail_request_with_params(
-            rev_program=self.revenue_program_1.slug, page=self.page_1.slug, live=True
-        )
-        self.assertEqual(good_response.status_code, 200)
-        self.assertEqual(good_response.data["heading"], self.page_1.heading)
-
-    def test_full_detail_returns_default_rev_page(self):
-        response = self._make_full_detail_request_with_params(rev_program=self.revenue_program_1.slug, live=True)
-
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.data["id"], self.page_2.pk)
-
-    def test_full_detail_no_such_rev_program(self):
-        response = self._make_full_detail_request_with_params(rev_program="made-up-slug")
-        self.assertEqual(response.status_code, 404)
-        self.assertEqual(response.data["detail"], "Could not find revenue program matching those parameters")
-
-    def test_full_detail_no_such_page(self):
-        response = self._make_full_detail_request_with_params(
-            rev_program=self.revenue_program_1.slug, page="made-up-page"
-        )
-        self.assertEqual(response.status_code, 404)
-        self.assertEqual(response.data["detail"], "Could not find page matching those parameters")
-
-    def test_full_detail_edit_insufficient_permissions(self):
-        response = self._make_full_detail_request_with_params(rev_program=self.revenue_program_1.slug, live=False)
-        self.assertEqual(response.status_code, 403)
-        self.assertEqual(response.data["detail"], "You do not have permission to edit this page")
 
 
 class TemplateViewSetTest(RevEngineApiAbstractTestCase):
@@ -750,7 +669,7 @@ class TemplateViewSetTest(RevEngineApiAbstractTestCase):
         old_count = Template.objects.count()
         pk = self.other_orgs_template.pk
         url = reverse("template-detail", args=(pk,))
-        self.assert_org_admin_cannot_delete(url, expected_status_code=status.HTTP_403_FORBIDDEN)
+        self.assert_org_admin_cannot_delete(url, expected_status_code=status.HTTP_404_NOT_FOUND)
         self.assertEqual(Template.objects.count(), old_count)
         self.assertTrue(Template.objects.filter(pk=pk).exists())
 
@@ -766,7 +685,7 @@ class TemplateViewSetTest(RevEngineApiAbstractTestCase):
     def test_rp_user_cannot_delete_an_unowned_template(self):
         url = reverse("template-detail", args=(self.other_rps_template.pk,))
         self.assertGreater(before_count := Template.objects.count(), 0)
-        self.assert_rp_user_cannot_delete(url, expected_status_code=status.HTTP_403_FORBIDDEN)
+        self.assert_rp_user_cannot_delete(url, expected_status_code=status.HTTP_404_NOT_FOUND)
         self.assertEqual(Template.objects.count(), before_count)
         self.assertTrue(Template.objects.filter(pk=self.other_rps_template.pk).exists())
 
@@ -792,65 +711,29 @@ class StylesViewsetTest(RevEngineApiAbstractTestCase):
     def create_style_payload(self):
         return {
             **self.styles_create_data_fixture,
-            "revenue_program": {
-                "id": self.org1_rp1.pk,
-                "name": self.org1_rp1.name,
-                "slug": self.org1_rp1.slug,
-            },
+            "revenue_program": self.org1_rp1.pk,
         }
 
     @property
     def create_style_payload_different_org(self):
         return {
             **self.styles_create_data_fixture,
-            "revenue_program": {
-                "id": self.org2_rp.pk,
-                "name": self.org2_rp.name,
-                "slug": self.org2_rp.slug,
-            },
+            "revenue_program": self.org2_rp.pk,
         }
 
     @property
     def create_style_payload_different_rp(self):
         return {
             **self.styles_create_data_fixture,
-            "revenue_program": {
-                "id": self.org1_rp2.pk,
-                "name": self.org1_rp2.name,
-                "slug": self.org1_rp2.slug,
-            },
+            "revenue_program": self.org1_rp2.pk,
         }
-
-    @property
-    def create_style_url(self):
-        return (
-            f'{reverse("style-list")}?'
-            f"{settings.ORG_SLUG_PARAM}={self.org1.slug}&"
-            f"{settings.RP_SLUG_PARAM}={self.org1_rp1.slug}"
-        )
-
-    @property
-    def create_style_url_diff_org(self):
-        return (
-            f'{reverse("style-list")}?'
-            f"{settings.ORG_SLUG_PARAM}={self.org2.slug}&"
-            f"{settings.RP_SLUG_PARAM}={self.org2_rp.slug}"
-        )
-
-    @property
-    def create_style_url_diff_rp(self):
-        return (
-            f'{reverse("style-list")}?'
-            f"{settings.ORG_SLUG_PARAM}={self.org1.slug}&"
-            f"{settings.RP_SLUG_PARAM}={self.org1_rp2.slug}"
-        )
 
     ########
     # Create
 
     def assert_created_style_is_correct(self, create_payload, created_instance):
         self.assertEqual(create_payload["name"], created_instance.name)
-        self.assertEqual(create_payload["revenue_program"]["id"], created_instance.revenue_program.pk)
+        self.assertEqual(create_payload["revenue_program"], created_instance.revenue_program.pk)
         skip_keys = ["name", "revenue_program"]
         for key, val in [(key, val) for key, val in create_payload.items() if key not in skip_keys]:
             self.assertEqual(val, created_instance.styles[key])
@@ -858,7 +741,7 @@ class StylesViewsetTest(RevEngineApiAbstractTestCase):
     def test_superuser_can_create_a_style(self):
         before_count = Style.objects.count()
         payload = self.create_style_payload
-        response = self.assert_superuser_can_post(self.create_style_url, payload)
+        response = self.assert_superuser_can_post(reverse("style-list"), payload)
         new_style = Style.objects.get(pk=response.data["id"])
         self.assert_created_style_is_correct(payload, new_style)
         self.assertEqual(Style.objects.count(), before_count + 1)
@@ -866,7 +749,7 @@ class StylesViewsetTest(RevEngineApiAbstractTestCase):
     def test_hub_admin_can_create_a_style(self):
         before_count = Style.objects.count()
         payload = self.create_style_payload
-        response = self.assert_hub_admin_can_post(self.create_style_url, payload)
+        response = self.assert_hub_admin_can_post(reverse("style-list"), payload)
         new_style = Style.objects.get(pk=response.data["id"])
         self.assert_created_style_is_correct(payload, new_style)
         self.assertEqual(Style.objects.count(), before_count + 1)
@@ -874,7 +757,7 @@ class StylesViewsetTest(RevEngineApiAbstractTestCase):
     def test_org_admin_can_create_a_style_for_their_org(self):
         before_count = Style.objects.count()
         payload = self.create_style_payload
-        response = self.assert_org_admin_can_post(self.create_style_url, payload)
+        response = self.assert_org_admin_can_post(reverse("style-list"), payload)
         new_style = Style.objects.get(pk=response.data["id"])
         self.assert_created_style_is_correct(payload, new_style)
         self.assertEqual(Style.objects.count(), before_count + 1)
@@ -882,7 +765,7 @@ class StylesViewsetTest(RevEngineApiAbstractTestCase):
     def test_org_admin_cannot_create_a_style_for_another_org(self):
         before_count = Style.objects.count()
         self.assert_org_admin_cannot_post(
-            self.create_style_url_diff_org,
+            reverse("style-list"),
             self.create_style_payload_different_org,
             expected_status_code=status.HTTP_403_FORBIDDEN,
         )
@@ -891,7 +774,7 @@ class StylesViewsetTest(RevEngineApiAbstractTestCase):
     def test_rp_user_can_create_a_style(self):
         before_count = Style.objects.count()
         payload = self.create_style_payload
-        response = self.assert_rp_user_can_post(self.create_style_url, payload)
+        response = self.assert_rp_user_can_post(reverse("style-list"), payload)
         new_style = Style.objects.get(pk=response.data["id"])
         self.assert_created_style_is_correct(payload, new_style)
         self.assertEqual(Style.objects.count(), before_count + 1)
@@ -899,7 +782,7 @@ class StylesViewsetTest(RevEngineApiAbstractTestCase):
     def test_rp_user_cannot_create_a_style_for_an_unowned_rp(self):
         before_count = Style.objects.count()
         self.assert_rp_user_cannot_post(
-            self.create_style_url_diff_rp,
+            reverse("style-list"),
             self.create_style_payload_different_rp,
             expected_status_code=status.HTTP_403_FORBIDDEN,
         )
@@ -961,8 +844,7 @@ class StylesViewsetTest(RevEngineApiAbstractTestCase):
         self.assert_org_admin_can_list(
             url,
             expected_count,
-            assert_item=lambda x: x["revenue_program"]["id"]
-            in self.org1.revenueprogram_set.values_list("id", flat=True),
+            assert_item=lambda x: x["revenue_program"] in self.org1.revenueprogram_set.values_list("id", flat=True),
             results_are_flat=True,
         )
 
@@ -977,8 +859,7 @@ class StylesViewsetTest(RevEngineApiAbstractTestCase):
         self.assert_rp_user_can_list(
             url,
             expected_count,
-            assert_item=lambda x: x["revenue_program"]["id"]
-            in self.org1.revenueprogram_set.values_list("id", flat=True),
+            assert_item=lambda x: x["revenue_program"] in self.org1.revenueprogram_set.values_list("id", flat=True),
             results_are_flat=True,
         )
 

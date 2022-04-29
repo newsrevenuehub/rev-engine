@@ -1,5 +1,3 @@
-from django.conf import settings
-
 from rest_framework import permissions
 
 from apps.contributions.models import Contributor
@@ -59,7 +57,7 @@ class HasRoleAssignment(permissions.BasePermission):
         return getattr(request.user, "get_role_assignment", False) and bool(request.user.get_role_assignment())
 
 
-class HasCreatePrivilegesForSlugs(permissions.BasePermission):
+class HasCreatePrivilegesViaRole(permissions.BasePermission):
     """Determine user has create permission for a given combo of organization
     and revenue program slugs.
 
@@ -69,13 +67,7 @@ class HasCreatePrivilegesForSlugs(permissions.BasePermission):
     """
 
     def has_permission(self, request, view):
-        org_slug = request.query_params.get(settings.ORG_SLUG_PARAM)
-        rp_slug = request.query_params.get(settings.RP_SLUG_PARAM)
-        return view.model.user_has_create_permission_by_virtue_of_role(
-            request.user,
-            org_slug,
-            rp_slug,
-        )
+        return view.model.user_has_create_permission_by_virtue_of_role(request.user, view)
 
 
 class HasDeletePrivilegesViaRole(permissions.BasePermission):

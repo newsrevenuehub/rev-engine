@@ -2,8 +2,9 @@ from django.conf import settings
 from django.utils import timezone
 
 from rest_framework import serializers
-from rest_framework.test import APIRequestFactory, APITestCase
+from rest_framework.test import APIRequestFactory, APITestCase, force_authenticate
 
+from apps.api.tests import RevEngineApiAbstractTestCase
 from apps.organizations.models import BenefitLevelBenefit, RevenueProgramBenefitLevel
 from apps.organizations.tests.factories import (
     BenefitFactory,
@@ -20,44 +21,28 @@ from apps.pages.tests.factories import DonationPageFactory, StyleFactory, Templa
 from apps.pages.validators import required_style_keys
 
 
-class DonationPageFullDetailSerializerTest(APITestCase):
+class DonationPageFullDetailSerializerTest(RevEngineApiAbstractTestCase):
     def setUp(self):
-        self.organization = OrganizationFactory()
+        self.set_up_domain_model()
+        self.page = self.org1_rp1.donationpage_set.first()
 
-        self.benefit_1 = BenefitFactory(organization=self.organization)
-        self.benefit_2 = BenefitFactory(organization=self.organization)
-
-        self.benefit_level_1 = BenefitLevelFactory(organization=self.organization)
-
+        # set up benefits
+        self.benefit_1 = BenefitFactory(organization=self.org1)
+        self.benefit_2 = BenefitFactory(organization=self.org1)
+        self.benefit_level_1 = BenefitLevelFactory(organization=self.org1)
         BenefitLevelBenefit.objects.create(benefit_level=self.benefit_level_1, benefit=self.benefit_1, order=1)
         BenefitLevelBenefit.objects.create(benefit_level=self.benefit_level_1, benefit=self.benefit_2, order=2)
-
-        self.benefit_level_2 = BenefitLevelFactory(organization=self.organization)
-
+        self.benefit_level_2 = BenefitLevelFactory(organization=self.org1)
         BenefitLevelBenefit.objects.create(benefit_level=self.benefit_level_2, benefit=self.benefit_1, order=1)
-
-        self.revenue_program = RevenueProgramFactory(
-            organization=self.organization,
-            google_analytics_v3_domain="somedomain.com",
-            google_analytics_v3_id="thisIsAV3Id",
-            google_analytics_v4_id="thisIsAV4Id",
-            facebook_pixel_id="thiIsAFbPixelId",
+        RevenueProgramBenefitLevel.objects.create(
+            revenue_program=self.page.revenue_program, benefit_level=self.benefit_level_1, level=1
         )
         RevenueProgramBenefitLevel.objects.create(
-            revenue_program=self.revenue_program, benefit_level=self.benefit_level_1, level=1
-        )
-        RevenueProgramBenefitLevel.objects.create(
-            revenue_program=self.revenue_program, benefit_level=self.benefit_level_2, level=2
+            revenue_program=self.page.revenue_program, benefit_level=self.benefit_level_2, level=2
         )
 
-        self.page = DonationPageFactory(revenue_program=self.revenue_program)
         self.serializer = DonationPageFullDetailSerializer
         self.request_factory = APIRequestFactory()
-
-    def _create_request_for_serializer(self, data=None):
-        if not data:
-            data = {settings.ORG_SLUG_PARAM: self.organization.slug, settings.RP_SLUG_PARAM: self.revenue_program.slug}
-        return self.request_factory.get("/", data=data)
 
     def test_has_analytics_data(self):
         serializer = self.serializer(self.page)
@@ -68,13 +53,13 @@ class DonationPageFullDetailSerializerTest(APITestCase):
             "google_analytics_v4_id",
             "facebook_pixel_id",
         ):
-            self.assertEqual(data["revenue_program"][key], getattr(self.revenue_program, key))
+            self.assertEqual(data["revenue_program"][key], getattr(self.page.revenue_program, key))
 
     def test_get_benefit_levels(self):
         serializer = self.serializer(self.page)
         data = serializer.data
 
-        # Should have the righ amount of benefit levels...
+        # Should have the right amount of benefit levels...
         self.assertEqual(len(data["benefit_levels"]), 2)
         # ...and they should be in the right order.
         self.assertEqual(data["benefit_levels"][0]["name"], self.benefit_level_1.name)
@@ -86,17 +71,17 @@ class DonationPageFullDetailSerializerTest(APITestCase):
 
     def test_get_organization_is_nonprofit(self):
         # Set it true, expect it in page serializer
-        self.organization.non_profit = True
-        self.organization.save()
-        self.organization.refresh_from_db()
+        self.org1.non_profit = True
+        self.org1.save()
+        self.org1.refresh_from_db()
         serializer = self.serializer(self.page)
         data = serializer.data
         self.assertEqual(data["organization_is_nonprofit"], True)
 
         # Set it false, expect it in page serializer
-        self.organization.non_profit = False
-        self.organization.save()
-        self.organization.refresh_from_db()
+        self.org1.non_profit = False
+        self.org1.save()
+        self.org1.refresh_from_db()
         serializer = self.serializer(self.page)
         data = serializer.data
         self.assertEqual(data["organization_is_nonprofit"], False)
@@ -119,29 +104,15 @@ class DonationPageFullDetailSerializerTest(APITestCase):
             "template_pk": template.pk,
             "name": "My New Page From a Template",
             "slug": "my-new-page-from-a-template",
+            "revenue_program_pk": self.page.revenue_program.pk,
         }
         serializer = self.serializer(data=new_page_data)
-        request = self._create_request_for_serializer()
+        request = self.request_factory.get("/")
+        request.user = self.org_user
         serializer.context["request"] = request
         self.assertTrue(serializer.is_valid())
         new_page = serializer.save()
         self.assertEqual(new_page.heading, template.heading)
-
-    def test_create_with_template_pk_throws_error_if_template_missing(self):
-        new_page_data = {
-            "template_pk": 99999,
-            "name": "My New Page From a Template",
-            "slug": "my-new-page-from-a-template",
-        }
-        serializer = self.serializer(data=new_page_data)
-        request = self._create_request_for_serializer()
-        serializer.context["request"] = request
-        self.assertTrue(serializer.is_valid())
-        # Should raise validation error if invalid pk
-        with self.assertRaises(serializers.ValidationError) as v_error:
-            serializer.save()
-        self.assertIn("template", v_error.exception.detail)
-        self.assertEqual(str(v_error.exception.detail["template"][0]), "This template no longer exists")
 
     def test_live_context_adds_org_stripe_account_id(self):
         serializer = self.serializer(self.page, context={"live": False})

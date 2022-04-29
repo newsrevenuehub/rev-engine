@@ -3,11 +3,11 @@ import { LIST_STYLES } from 'ajax/endpoints';
 import { CONTENT_SLUG } from 'routes';
 import stylesList from '../fixtures/styles/list-styles-1.json';
 
-import hubAdminUser from '../fixtures/user/hub-admin';
+import orgAdminUser from '../fixtures/user/org-admin';
 
 describe('Styles list', () => {
-  before(() => {
-    cy.forceLogin(hubAdminUser);
+  beforeEach(() => {
+    cy.forceLogin(orgAdminUser);
     cy.intercept(getEndpoint(LIST_STYLES), { fixture: 'styles/list-styles-1' }).as('listStyles');
     cy.visit(CONTENT_SLUG);
     cy.url().should('include', CONTENT_SLUG);

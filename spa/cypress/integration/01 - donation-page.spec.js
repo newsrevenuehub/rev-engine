@@ -154,12 +154,18 @@ describe('DonationPage elements', () => {
     const swagThreshold = swagElement.content.swagThreshold;
     cy.contains(`Give a total of ${livePageOne.currency.symbol}${swagThreshold} /year or more to be eligible`);
     cy.getByTestId('swag-content').should('not.exist');
-    cy.setUpDonation('One time', '365');
+    cy.setUpDonation('Yearly', '365');
     cy.getByTestId('swag-content').should('exist');
   });
 
-  it.only('should render a dropdown of swagOptions for each swag in the list', () => {
+  it('should render a dropdown of swagOptions for each swag in the list', () => {
+    cy.intercept(
+      { method: 'GET', pathname: getEndpoint(LIVE_PAGE_DETAIL) },
+      { fixture: 'pages/live-page-1.json', statusCode: 200 }
+    ).as('getPage');
     cy.visitDonationPage();
+    cy.setUpDonation('Yearly', '365');
+
     const swagElement = livePageOne.elements.find((el) => el.type === 'DSwag');
     const swagName = swagElement.content.swags[0].swagName;
     const optionsNum = swagElement.content.swags[0].swagOptions.length;

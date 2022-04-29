@@ -52,7 +52,7 @@ describe('Donation page list', () => {
     cy.getByTestId('template-picker').should('exist');
   });
 
-  it('should contain rev_program_pk and template_pk in outoing request', () => {
+  it('should contain rev_program and template in outoing request', () => {
     cy.intercept(
       { method: 'GET', pathname: getEndpoint(TEMPLATES) },
       { fixture: 'pages/templates.json', statusCode: 200 }
@@ -69,7 +69,7 @@ describe('Donation page list', () => {
     cy.intercept({ method: 'POST', pathname: getEndpoint(LIST_PAGES) }).as('createNewPage');
     cy.getByTestId('save-new-page-button').click({ force: true });
     cy.wait('@createNewPage').then(({ request }) => {
-      expect(request.body).to.have.property('revenue_program_pk');
+      expect(request.body).to.have.property('revenue_program');
       expect(request.body).to.have.property('template_pk');
     });
   });

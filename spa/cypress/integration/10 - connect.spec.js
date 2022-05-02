@@ -19,10 +19,20 @@ describe('Payment provider connect', () => {
     cy.getByTestId('content').should('exist');
   });
 
-  it.only('should direct user to ProviderConnect if no default provider', () => {
-    const notConnectedOrg = { ...orgAdminUser.user.organizations[0], stripe_verified: false, stripe_account_id: '' };
-    const user = { ...orgAdminUser };
-    user.user.organizations = [notConnectedOrg];
+  it('should direct user to ProviderConnect if no default provider', () => {
+    const user = {
+      ...orgAdminUser,
+      user: {
+        ...orgAdminUser.user,
+        organizations: [
+          {
+            ...orgAdminUser.user.organizations[0],
+            stripe_account_id: '',
+            stripe_verified: false
+          }
+        ]
+      }
+    };
     cy.intercept('POST', getEndpoint(STRIPE_CONFIRMATION), { fixture: 'stripe/confirm-connected' });
     cy.forceLogin(user);
     cy.visit(CONTENT_SLUG);
@@ -30,29 +40,65 @@ describe('Payment provider connect', () => {
   });
 
   describe('Stripe', () => {
-    it('should redirect user to dashboard if connection is successful', () => {
-      cy.intercept('POST', getEndpoint(STRIPE_CONFIRMATION), { fixture: 'stripe/confirm-connected' });
-      cy.login('user/stripe-verified.json');
-      cy.getByTestId('content').should('exist');
-    });
-
     it('should show a helpful message and "times-circle" if org is restricted', () => {
       cy.intercept('POST', getEndpoint(STRIPE_CONFIRMATION), { fixture: 'stripe/confirm-restricted' });
-      cy.login('user/not-connected.json');
+      const user = {
+        ...orgAdminUser,
+        user: {
+          ...orgAdminUser.user,
+          organizations: [
+            {
+              ...orgAdminUser.user.organizations[0],
+              stripe_account_id: '',
+              stripe_verified: false
+            }
+          ]
+        }
+      };
+      cy.forceLogin(user);
+      cy.visit(CONTENT_SLUG);
       cy.contains('Stripe needs more information before you can accept contributions.').should('exist');
       cy.getByTestId('svg-icon_times-circle').should('exist');
     });
 
     it('should show Stripe connect button and "times-circle" if connection failed', () => {
       cy.intercept('POST', getEndpoint(STRIPE_CONFIRMATION), { fixture: 'stripe/confirm-failed', statusCode: 500 });
-      cy.login('user/not-connected.json');
+      const user = {
+        ...orgAdminUser,
+        user: {
+          ...orgAdminUser.user,
+          organizations: [
+            {
+              ...orgAdminUser.user.organizations[0],
+              stripe_account_id: '',
+              stripe_verified: false
+            }
+          ]
+        }
+      };
+      cy.forceLogin(user);
+      cy.visit(CONTENT_SLUG);
       cy.getByTestId('stripe-connect-link').should('exist');
       cy.getByTestId('svg-icon_times-circle').should('exist');
     });
 
     it('should show Stripe Connect and no icon if org is not connected', () => {
       cy.intercept('POST', getEndpoint(STRIPE_CONFIRMATION), { fixture: 'stripe/confirm-not-connected' });
-      cy.login('user/not-connected.json');
+      const user = {
+        ...orgAdminUser,
+        user: {
+          ...orgAdminUser.user,
+          organizations: [
+            {
+              ...orgAdminUser.user.organizations[0],
+              stripe_account_id: '',
+              stripe_verified: false
+            }
+          ]
+        }
+      };
+      cy.forceLogin(user);
+      cy.visit(CONTENT_SLUG);
       cy.getByTestId('stripe-connect-link').should('exist');
       cy.getByTestId('svg-icon_check-circle').should('not.exist');
       cy.getByTestId('svg-icon_times-circle').should('not.exist');
@@ -69,7 +115,20 @@ describe('Payment provider connect', () => {
       const scope = 'read_write';
       cy.intercept('POST', getEndpoint(STRIPE_CONFIRMATION), { fixture: 'stripe/confirm-not-connected' });
       cy.intercept('POST', getEndpoint(STRIPE_OAUTH)).as('oauthConfirm');
-      cy.login('user/not-connected.json');
+      const user = {
+        ...orgAdminUser,
+        user: {
+          ...orgAdminUser.user,
+          organizations: [
+            {
+              ...orgAdminUser.user.organizations[0],
+              stripe_account_id: '',
+              stripe_verified: false
+            }
+          ]
+        }
+      };
+      cy.forceLogin(user);
       cy.visit(redirectPath + `?code=${code}&scope=${scope}`);
       cy.wait('@oauthConfirm').then((interception) => {
         expect(interception.request.body).to.have.property('code', code);

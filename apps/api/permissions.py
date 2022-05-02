@@ -58,8 +58,7 @@ class HasRoleAssignment(permissions.BasePermission):
 
 
 class HasCreatePrivilegesViaRole(permissions.BasePermission):
-    """Determine user has create permission for a given combo of organization
-    and revenue program slugs.
+    """Call a view's model's `user_has_create_permission_by_virtue_of_role` method to determine permissions
 
     Note that this permission assumes that the view is using the FilterQuerySetByUserMixin
     and that the model is using RoleAssignmentResourceModelMixin (implementing
@@ -71,12 +70,11 @@ class HasCreatePrivilegesViaRole(permissions.BasePermission):
 
 
 class HasDeletePrivilegesViaRole(permissions.BasePermission):
-    """Determine if the user has delete permission for a given combo of organization
-    and revenue program slugs.
+    """Call a view's model's `user_has_delete_permission_by_virtue_of_role` method to determine permissions
 
     Note that this permission assumes that the view is using the FilterQuerySetByUserMixin
     and that the model is using RoleAssignmentResourceModelMixin (implementing
-    `user_has_create_permission_by_virtue_of_role` in the model).
+    `user_has_delete_permission_by_virtue_of_role` in the model).
     """
 
     def has_permission(self, request, view):

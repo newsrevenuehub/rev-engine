@@ -5,7 +5,7 @@ import * as S from './MainLayout.styled';
 import useSubdomain from 'hooks/useSubdomain';
 
 // Constants
-import { ORG_PORTAL_SUBDOMAINS } from 'settings';
+import { DASHBOARD_SUBDOMAINS } from 'settings';
 
 // Analytics
 import { AnalyticsContextWrapper } from './analytics/AnalyticsContext';
@@ -54,7 +54,7 @@ function MainLayout() {
       <AnalyticsContextWrapper>
         {/* Route to donation page if subdomain exists */}
         <S.MainLayout>
-          {!ORG_PORTAL_SUBDOMAINS.includes(subdomain) ? <DonationPageRouter /> : <DashboardRouter />}
+          {!DASHBOARD_SUBDOMAINS.includes(subdomain) ? <DonationPageRouter /> : <DashboardRouter />}
         </S.MainLayout>
         {/* Modals */}
         <GlobalConfirmationModal

@@ -16,7 +16,6 @@ import { LS_USER } from 'settings';
 import { GENERIC_ERROR } from 'constants/textConstants';
 
 // Children
-import ConnectProcessing from 'components/connect/ConnectProcessing';
 import StripeProvider from 'components/connect/stripe/StripeProvider';
 
 const ProviderFetchContext = createContext();

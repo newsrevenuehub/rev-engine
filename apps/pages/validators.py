@@ -68,16 +68,15 @@ class RpPkIsForOwnedRp:
         """
         method = serializer.context["request"].method
         if method in ["POST", "PATCH"]:
-            target_rp_pk = None
+            target_rp = None
             if method == "POST":
-                target_rp_pk = value.get("revenue_program_pk")
+                target_rp = value.get("revenue_program")
 
             if method == "PATCH":
                 # rp_pk can be updated via patch, but default to existing otherwise
-                target_rp_pk = value.get("revenue_program_pk", serializer.instance.revenue_program.pk)
-            if not target_rp_pk:
+                target_rp = value.get("revenue_program", serializer.instance.revenue_program)
+            if not target_rp:
                 raise serializers.ValidationError(MISSING_REFRENCE_TO_REV_PROGRAM_MESSAGE)
-            target_rp = self.rp_model.objects.get(pk=target_rp_pk)
             if (request := serializer.context.get("request", None)) is not None:
                 user = request.user
                 ra = getattr(user, "roleassignment", None)

@@ -1,5 +1,4 @@
 from django.conf import settings
-from django.db.utils import IntegrityError
 from django.utils import timezone
 
 from rest_framework import serializers
@@ -7,6 +6,7 @@ from rest_framework.validators import UniqueTogetherValidator
 from sorl_thumbnail_serializer.fields import HyperlinkedSorlImageField
 
 from apps.api.error_messages import UNIQUE_PAGE_SLUG
+from apps.common.fields import SerializedOnReadElsePk
 from apps.organizations.models import RevenueProgram
 from apps.organizations.serializers import (
     BenefitLevelDetailSerializer,
@@ -17,11 +17,6 @@ from apps.pages.validators import PagePkIsForOwnedPage, RpPkIsForOwnedRp
 
 
 class StyleInlineSerializer(serializers.ModelSerializer):
-
-    revenue_program = serializers.PrimaryKeyRelatedField(
-        required=False, allow_null=False, queryset=RevenueProgram.objects.all()
-    )
-
     def to_representation(self, instance):
         styles = instance.styles if instance.styles else {}
         representation = super().to_representation(instance)
@@ -44,11 +39,29 @@ class StyleInlineSerializer(serializers.ModelSerializer):
         fields = "__all__"
 
 
-class StyleListSerializer(StyleInlineSerializer):
+class StyleListSerializer(serializers.ModelSerializer):
+    revenue_program = serializers.PrimaryKeyRelatedField(
+        required=False, allow_null=False, queryset=RevenueProgram.objects.all()
+    )
     used_live = serializers.SerializerMethodField()
 
     def get_used_live(self, obj):
         return DonationPage.objects.filter(styles=obj, published_date__lte=timezone.now()).exists()
+
+    def to_internal_value(self, data):
+        """
+        data comes in as a dict with name and styles flattened. We need
+        to stick styles in its own value and pull out name.
+        """
+        name = data.pop("name", None)
+        revenue_program = data.pop("revenue_program", None)
+        data = {"name": name, "revenue_program": revenue_program, "styles": data}
+
+        return super().to_internal_value(data)
+
+    class Meta:
+        model = Style
+        fields = "__all__"
 
 
 class DonationPageDetailSerializer(serializers.ModelSerializer):
@@ -58,11 +71,17 @@ class DonationPageDetailSerializer(serializers.ModelSerializer):
 
 
 class DonationPageFullDetailSerializer(serializers.ModelSerializer):
+
     styles = StyleInlineSerializer(required=False)
     styles_pk = serializers.IntegerField(allow_null=True, required=False)
 
-    revenue_program = RevenueProgramListInlineSerializer(read_only=True, required=False)
-    revenue_program_pk = serializers.IntegerField(allow_null=True, required=True)
+    revenue_program = SerializedOnReadElsePk(
+        required=True,
+        allow_null=False,
+        queryset=RevenueProgram.objects.all(),
+        serializer=RevenueProgramListInlineSerializer,
+    )
+
     template_pk = serializers.IntegerField(allow_null=True, required=False)
 
     graphic = serializers.ImageField(allow_empty_file=True, allow_null=True, required=False)
@@ -108,6 +127,7 @@ class DonationPageFullDetailSerializer(serializers.ModelSerializer):
         model = DonationPage
         fields = "__all__"
         validators = [
+            UniqueTogetherValidator(queryset=DonationPage.objects.all(), fields=["revenue_program", "slug"]),
             RpPkIsForOwnedRp(rp_model=RevenueProgram),
         ]
 
@@ -123,6 +143,9 @@ class DonationPageFullDetailSerializer(serializers.ModelSerializer):
                 raise serializers.ValidationError({related_field: "Could not find instance with provided pk."})
 
     def _check_against_soft_deleted_slugs(self, validated_data):
+
+        # verify this still works and add test
+
         new_slug = validated_data.get("slug", None)
         if new_slug and DonationPage.objects.deleted_only().filter(slug=new_slug).exists():
             raise serializers.ValidationError({settings.RP_SLUG_PARAM: [UNIQUE_PAGE_SLUG]})
@@ -141,23 +164,10 @@ class DonationPageFullDetailSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError({"template": ["This template no longer exists"]})
 
     def create(self, validated_data):
-        try:
-            rev_program = RevenueProgram.objects.get(pk=validated_data.pop("revenue_program_pk"))
-            validated_data["revenue_program"] = rev_program
-        except RevenueProgram.DoesNotExist:
-            raise serializers.ValidationError(
-                {settings.RP_SLUG_PARAM: "Could not find revenue program with provided slug"}
-            )
-
         self._check_against_soft_deleted_slugs(validated_data)
         if "template_pk" in validated_data:
             return self._create_from_template(validated_data)
-
-        try:
-            return super().create(validated_data)
-        except IntegrityError as integrity_error:
-            if "violates unique constraint" in str(integrity_error):
-                raise serializers.ValidationError({settings.RP_SLUG_PARAM: UNIQUE_PAGE_SLUG})
+        return super().create(validated_data)
 
     def update(self, instance, validated_data):
         self._update_related("styles", Style, validated_data, instance)

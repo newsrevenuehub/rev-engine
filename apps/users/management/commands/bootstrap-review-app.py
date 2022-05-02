@@ -64,7 +64,7 @@ class Command(BaseCommand):  # pragma: no cover
         # insert config vars:
         heroku_config = heroku_app.config()
         heroku_config["SITE_URL"] = site_url
-        heroku_config["NON_DONATION_PAGE_SUBDOMAINS"] = ticket_id
+        heroku_config["DASHBOARD_SUBDOMAINS"] = ticket_id
         heroku_config["ENVIRONMENT"] = ticket_id
 
         if wh_sec:

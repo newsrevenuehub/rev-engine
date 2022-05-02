@@ -275,6 +275,8 @@ NON_DONATION_PAGE_SUBDOMAINS = os.getenv("NON_DONATION_PAGE_SUBDOMAINS", "suppor
 ORG_PORTAL_SUBDOMAINS = os.getenv("ORG_PORTAL_SUBDOMAINS", "support:").split(":")
 # TODO: Isn't DOMAIN_APEX just be SITE_URL without any subdomain?
 DOMAIN_APEX = os.getenv("DOMAIN_APEX")
+# Application subdomains (that are NOT revenue program slugs)
+DASHBOARD_SUBDOMAINS = os.getenv("DASHBOARD_SUBDOMAINS", "support:www:dashboard:").split(":")
 
 # BadActor API
 BAD_ACTOR_API_URL = os.getenv("BAD_ACTOR_API_URL", "https://bad-actor-test.fundjournalism.org/v1/bad_actor/")

@@ -2,7 +2,11 @@ from rest_framework import serializers
 
 
 class SerializedOnReadElsePk(serializers.PrimaryKeyRelatedField):
-    # hat-tip: https://stackoverflow.com/a/52246232
+    """Custom field for using pk for creation and serializer for representing
+
+    Hat-tip: https://stackoverflow.com/a/52246232
+    """
+
     def __init__(self, **kwargs):
         self.serializer = kwargs.pop("serializer", None)
         if all([self.serializer is not None, not issubclass(self.serializer, serializers.Serializer)]):

@@ -96,7 +96,7 @@ class PageViewSet(viewsets.ModelViewSet, FilterQuerySetByUserMixin, PerUserCreat
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 
-class TemplateViewSet(viewsets.ModelViewSet, FilterQuerySetByUserMixin, PerUserCreateDeletePermissionsMixin):
+class TemplateViewSet(viewsets.ModelViewSet, FilterQuerySetByUserMixin):
     """Page templates as exposed through API
 
     Only superusers and users with role assignments are meant to have access. Results of lists are filtered

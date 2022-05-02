@@ -2,10 +2,7 @@ import * as ROUTES from 'routes';
 
 function isContributorAppPath() {
   const pathname = window.location.pathname;
-  if (pathname === ROUTES.CONTRIBUTOR_ENTRY) return true;
-  if (pathname === ROUTES.CONTRIBUTOR_VERIFY) return true;
-  if (pathname === ROUTES.CONTRIBUTOR_DASHBOARD) return true;
-  return false;
+  return [ROUTES.CONTRIBUTOR_ENTRY, ROUTES.CONTRIBUTOR_VERIFY, ROUTES.CONTRIBUTOR_DASHBOARD].includes(pathname);
 }
 
 export default isContributorAppPath;

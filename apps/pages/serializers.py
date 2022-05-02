@@ -143,9 +143,6 @@ class DonationPageFullDetailSerializer(serializers.ModelSerializer):
                 raise serializers.ValidationError({related_field: "Could not find instance with provided pk."})
 
     def _check_against_soft_deleted_slugs(self, validated_data):
-
-        # verify this still works and add test
-
         new_slug = validated_data.get("slug", None)
         if new_slug and DonationPage.objects.deleted_only().filter(slug=new_slug).exists():
             raise serializers.ValidationError({settings.RP_SLUG_PARAM: [UNIQUE_PAGE_SLUG]})

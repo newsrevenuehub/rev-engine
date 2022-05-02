@@ -104,7 +104,7 @@ class DonationPageFullDetailSerializerTest(RevEngineApiAbstractTestCase):
             "template_pk": template.pk,
             "name": "My New Page From a Template",
             "slug": "my-new-page-from-a-template",
-            "revenue_program_pk": self.page.revenue_program.pk,
+            "revenue_program": self.page.revenue_program.pk,
         }
         serializer = self.serializer(data=new_page_data)
         request = self.request_factory.get("/")

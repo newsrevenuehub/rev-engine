@@ -24,7 +24,7 @@ class PageViewSetTest(RevEngineApiAbstractTestCase):
             "name": "My new page, tho",
             "heading": "New DonationPage",
             "slug": "new-page",
-            "revenue_program_pk": self.org1_rp1.pk,
+            "revenue_program": self.org1_rp1.pk,
         }
 
     def assert_created_page_looks_right(
@@ -37,15 +37,15 @@ class PageViewSetTest(RevEngineApiAbstractTestCase):
         creation_data = creation_data if creation_data is not None else {**self.default_page_creation_data}
         self.assertEqual(created_page.revenue_program.organization, expected_org)
         self.assertEqual(created_page.revenue_program, expected_rp)
-        for attr in [key for key in creation_data.keys() if key != "revenue_program_pk"]:
+        for attr in [key for key in creation_data.keys() if key != "revenue_program"]:
             self.assertEqual(getattr(created_page, attr), creation_data[attr])
-        self.assertEqual(creation_data["revenue_program_pk"], expected_rp.pk)
+        self.assertEqual(creation_data["revenue_program"], expected_rp.pk)
 
     ########
     # CREATE
     def test_superuser_can_create_a_page(self):
         before_count = DonationPage.objects.count()
-        url = f"{reverse('donationpage-list')}?{settings.RP_SLUG_PARAM}={self.org1_rp1.slug}&{settings.ORG_SLUG_PARAM}={self.org1.slug}"
+        url = reverse("donationpage-list")
         self.assert_superuser_can_post(url, self.default_page_creation_data)
         self.assertEqual(DonationPage.objects.count(), before_count + 1)
         created_page = DonationPage.objects.get(name=self.default_page_creation_data["name"])
@@ -53,7 +53,7 @@ class PageViewSetTest(RevEngineApiAbstractTestCase):
 
     def test_hub_user_can_create_a_page(self):
         before_count = DonationPage.objects.count()
-        url = f"{reverse('donationpage-list')}?{settings.RP_SLUG_PARAM}={self.org1_rp1.slug}&{settings.ORG_SLUG_PARAM}={self.org1.slug}"
+        url = reverse("donationpage-list")
         self.assert_hub_admin_can_post(url, self.default_page_creation_data)
         self.assertEqual(DonationPage.objects.count(), before_count + 1)
         created_page = DonationPage.objects.get(name=self.default_page_creation_data["name"])
@@ -62,7 +62,7 @@ class PageViewSetTest(RevEngineApiAbstractTestCase):
     def test_org_admin_can_create_a_page_for_their_org(self):
         org_pages_query = DonationPage.objects.filter(revenue_program__organization=self.org1)
         before_count = org_pages_query.count()
-        url = f"{reverse('donationpage-list')}?{settings.RP_SLUG_PARAM}={self.org1_rp1.slug}&{settings.ORG_SLUG_PARAM}={self.org1.slug}"
+        url = reverse("donationpage-list")
         self.assert_org_admin_can_post(url, self.default_page_creation_data)
         self.assertEqual(org_pages_query.count(), before_count + 1)
         created_page = DonationPage.objects.get(name=self.default_page_creation_data["name"])
@@ -77,17 +77,17 @@ class PageViewSetTest(RevEngineApiAbstractTestCase):
             "name": "My new page, tho",
             "heading": "New DonationPage",
             "slug": "new-page",
-            "revenue_program_pk": self.org2_rp.pk,
+            "revenue_program": self.org2_rp.pk,
         }
-        url = f"{reverse('donationpage-list')}?{settings.RP_SLUG_PARAM}={self.org2_rp.slug}&{settings.ORG_SLUG_PARAM}={self.org2.slug}"
-        self.assert_org_admin_cannot_post(url, data, expected_status_code=status.HTTP_400_BAD_REQUEST)
+        url = reverse("donationpage-list")
+        self.assert_org_admin_cannot_post(url, data, expected_status_code=status.HTTP_403_FORBIDDEN)
         self.assertEqual(my_org_pages_query.count(), before_my_org_pages_count)
         self.assertEqual(other_org_pages_query.count(), before_other_org_count)
 
     def test_rp_admin_can_create_a_page_for_their_rp(self):
         rp = self.rp_user.roleassignment.revenue_programs.first()
         self.assertIsNotNone(rp)
-        url = f"{reverse('donationpage-list')}?{settings.RP_SLUG_PARAM}={rp.slug}&{settings.ORG_SLUG_PARAM}={rp.organization.slug}"
+        url = reverse("donationpage-list")
         my_rp_pages_query = DonationPage.objects.filter(
             revenue_program__in=self.rp_user.roleassignment.revenue_programs.all()
         )
@@ -114,28 +114,27 @@ class PageViewSetTest(RevEngineApiAbstractTestCase):
         before_my_pages_count = my_pages_query.count()
         before_others_count = others_pages_query.count()
         data = {**self.default_page_creation_data}
-        data["revenue_program_pk"] = self.org2_rp.pk
+        data["revenue_program"] = self.org2_rp.pk
 
         self.assert_rp_user_cannot_post(
-            reverse("donationpage-list"), data, expected_status_code=status.HTTP_400_BAD_REQUEST
+            reverse("donationpage-list"), data, expected_status_code=status.HTTP_403_FORBIDDEN
         )
         self.assertEqual(my_pages_query.count(), before_my_pages_count)
         self.assertEqual(others_pages_query.count(), before_others_count)
 
-    def test_page_create_returns_validation_error_when_missing_revenue_program_pk(self):
+    def test_page_create_returns_validation_error_when_missing_revenue_program(self):
         self.client.force_authenticate(user=self.hub_user)
         data = {**self.default_page_creation_data}
-        data.pop("revenue_program_pk")
+        data.pop("revenue_program")
         response = self.client.post(reverse("donationpage-list"), data)
-        self.assertEqual(response.status_code, 400)
-        self.assertEqual(response.json()["revenue_program_pk"][0], "This field is required.")
+        self.assertEqual(response.status_code, 403)
 
     def test_page_create_returns_revenue_program_slug(self):
         """
         Page create must return revenue_program in order to navigate the user to the
         correct url for page edit, after creating a page.
         """
-        url = f"{reverse('donationpage-list')}?{settings.RP_SLUG_PARAM}={self.org1_rp1.slug}&{settings.ORG_SLUG_PARAM}={self.org1.slug}"
+        url = reverse("donationpage-list")
         response = self.assert_hub_admin_can_post(url, self.default_page_creation_data)
         self.assertIn("revenue_program", response.data)
         self.assertIn("slug", response.data["revenue_program"])
@@ -147,9 +146,9 @@ class PageViewSetTest(RevEngineApiAbstractTestCase):
         # Then make it again and expect a validation error
         error_response = self.client.post(reverse("donationpage-list"), self.default_page_creation_data)
         self.assertEqual(error_response.status_code, 400)
-        self.assertIn(settings.RP_SLUG_PARAM, error_response.data)
+        self.assertIn("non_field_errors", error_response.data)
         self.assertEqual(
-            str(error_response.data[settings.RP_SLUG_PARAM]), "This slug is already in use on this Revenue Program"
+            str(error_response.data["non_field_errors"][0]), "The fields revenue_program, slug must make a unique set."
         )
 
     ########
@@ -317,7 +316,7 @@ class PageViewSetTest(RevEngineApiAbstractTestCase):
     ######
     # List
     def test_page_list_uses_list_serializer(self):
-        url = f"{reverse('donationpage-list')}?{settings.RP_SLUG_PARAM}={self.org1_rp1}&{settings.ORG_SLUG_PARAM}={self.org1.slug}"
+        url = reverse("donationpage-list")
         self.client.force_authenticate(user=self.hub_user)
         response = self.client.get(url)
         # list serializer does not have 'styles' field

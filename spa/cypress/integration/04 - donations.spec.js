@@ -50,7 +50,7 @@ describe('Donations list', () => {
           transform: (rawVal) => (rawVal ? formatDatetimeForDisplay(rawVal) : NO_VALUE)
         },
         {
-          renderedName: 'Donor',
+          renderedName: 'Contributor',
           rawName: 'contributor_email',
           transform: (rawVal) => rawVal || NO_VALUE
         },

@@ -25,6 +25,17 @@ module.exports = (on, config) => {
     }
   ];
 
+  const publicPath = ' ';
+  let outputOptions;
+  Object.defineProperty(webpackOptions, 'output', {
+    get: () => {
+      return { ...outputOptions, publicPath };
+    },
+    set: function (x) {
+      outputOptions = x;
+    }
+  });
+
   const options = {
     webpackOptions,
     watchOptions: {}

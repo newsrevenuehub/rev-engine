@@ -14,7 +14,7 @@ function getGlobalPaymentProviderStatus(user) {
   const organizations = user?.organizations;
   const organization = Boolean(organizations) ? organizations[0] : null;
   const dontNeedProviderTypes = [USER_ROLE_HUB_ADMIN_TYPE, USER_SUPERUSER_TYPE];
-  const [roleType, _] = user.role_type;
+  const roleType = user.role_type[0];
   if (dontNeedProviderTypes.includes(roleType)) {
     // superusers and hub admins have pan-org access, and don't need to set payment providers
     return PP_STATES.CONNECTED;

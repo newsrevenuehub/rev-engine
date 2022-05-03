@@ -18,7 +18,7 @@ test_stripe_api_version = "01-01-2022"
 
 
 def mock_create_stripe_endpoint(*args, **kwargs):
-    return kwargs
+    return kwargs.update({"secret": "bogus"})
 
 
 @override_settings(STRIPE_WEBHOOK_EVENTS=test_events)
@@ -27,6 +27,7 @@ def mock_create_stripe_endpoint(*args, **kwargs):
 @override_settings(STRIPE_TEST_SECRET_KEY=test_key)
 @override_settings(STRIPE_API_VERSION=test_stripe_api_version)
 @patch("stripe.WebhookEndpoint.create", side_effect=mock_create_stripe_endpoint)
+@patch("stripe.WebhookEndpoint.list")
 class CreateStripeWebhooksTest(TestCase):
     def setUp(self):
         def run_command(live=None, url=None):
@@ -36,7 +37,7 @@ class CreateStripeWebhooksTest(TestCase):
 
         self.run_command = run_command
 
-    def test_proper_args_with_live_flag(self, mock_endpoint_create):
+    def test_proper_args_with_live_flag(self, mock_endpoint_list, mock_endpoint_create):
         self.run_command(live=True)
         stripe.WebhookEndpoint.create.assert_called_with(
             url=test_site_url + reverse("stripe-webhooks"),
@@ -46,7 +47,7 @@ class CreateStripeWebhooksTest(TestCase):
             api_version=test_stripe_api_version,
         )
 
-    def test_proper_args_without_live_flag(self, mock_endpoint_create):
+    def test_proper_args_without_live_flag(self, mock_endpoint_list, mock_endpoint_create):
         self.run_command(live=False)
         stripe.WebhookEndpoint.create.assert_called_with(
             url=test_site_url + reverse("stripe-webhooks"),
@@ -56,7 +57,7 @@ class CreateStripeWebhooksTest(TestCase):
             api_version=test_stripe_api_version,
         )
 
-    def test_proper_args_with_custom_url(self, mock_endpoint_create):
+    def test_proper_args_with_custom_url(self, mock_endpoint_list, mock_endpoint_create):
         url = "http://google.com"
         self.run_command(url=url)
         stripe.WebhookEndpoint.create.assert_called_with(

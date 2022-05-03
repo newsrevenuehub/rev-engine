@@ -4,6 +4,9 @@ import React, { lazy } from 'react';
 import { Route, BrowserRouter, Switch, Redirect } from 'react-router-dom';
 import ProtectedRoute from 'components/authentication/ProtectedRoute';
 
+import isContributorAppPath from 'utilities/isContributorAppPath';
+import ContributorRouter from 'components/ContributorRouter';
+
 // Slugs
 import * as ROUTES from 'routes';
 
@@ -26,6 +29,11 @@ const ContributorDashboard = lazy(() =>
 const PageEditor = lazy(() => componentLoader(() => import('components/pageEditor/PageEditor')));
 
 function DashboardRouter() {
+  const isContributorApp = isContributorAppPath();
+  console.log(isContributorApp);
+
+  if (isContributorApp) return <ContributorRouter />;
+
   return (
     <BrowserRouter>
       <ChunkErrorBoundary>

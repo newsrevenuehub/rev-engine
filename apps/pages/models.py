@@ -198,6 +198,7 @@ class DonationPage(AbstractPage, SafeDeleteModel):
             "page_screenshot",
             "deleted",
             "published_date",
+            "deleted_by_cascade",  # Added by safedelete
         ]
         page = cleanup_keys(self.__dict__, unwanted_keys)
         template = cleanup_keys(template_data, unwanted_keys)

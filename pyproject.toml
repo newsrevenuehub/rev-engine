@@ -72,6 +72,7 @@ django-csp = "^3.7"
 django-simple-history = "^3.0.0"
 cloudflare = "^2.8.15"
 heroku3 = "^5.1.4"
+django-waffle = "^2.4.1"
 
 [tool.poetry.dev-dependencies]
 appnope = "*"

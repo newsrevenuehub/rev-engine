@@ -59,6 +59,7 @@ INSTALLED_APPS = [
     "health_check.cache",
     "health_check.contrib.migrations",
     "health_check.contrib.redis",
+    "waffle",
 ]
 
 
@@ -74,6 +75,7 @@ MIDDLEWARE = [
     "apps.common.middleware.LogFourHundredsMiddleware",
     "csp.middleware.CSPMiddleware",
     "simple_history.middleware.HistoryRequestMiddleware",
+    "waffle.middleware.WaffleMiddleware",
 ]
 
 ROOT_URLCONF = "revengine.urls"
@@ -435,3 +437,6 @@ SPA_ENV_VARS = {
 # Meta data static values
 METADATA_SOURCE = os.getenv("METADATA_SOURCE", "rev-engine")
 METADATA_SCHEMA_VERSION = os.getenv("METADATA_SCHEMA_VERSION", "1.0")
+
+# # Django waffle
+# WAFFLE_FLAG_MODEL = 'flags.Flag'

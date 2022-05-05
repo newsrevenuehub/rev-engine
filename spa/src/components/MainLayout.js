@@ -3,9 +3,10 @@ import * as S from './MainLayout.styled';
 
 // Hooks
 import useSubdomain from 'hooks/useSubdomain';
+import isContributorAppPath from 'utilities/isContributorAppPath';
 
 // Constants
-import { ORG_PORTAL_SUBDOMAINS } from 'settings';
+import { DASHBOARD_SUBDOMAINS } from 'settings';
 
 // Analytics
 import { AnalyticsContextWrapper } from './analytics/AnalyticsContext';
@@ -49,12 +50,18 @@ function MainLayout() {
     setReauthModalOpen(false);
   };
 
+  const isContributorApp = isContributorAppPath();
+
   return (
     <GlobalContext.Provider value={{ getUserConfirmation, getReauth }}>
       <AnalyticsContextWrapper>
         {/* Route to donation page if subdomain exists */}
         <S.MainLayout>
-          {!ORG_PORTAL_SUBDOMAINS.includes(subdomain) ? <DonationPageRouter /> : <DashboardRouter />}
+          {!DASHBOARD_SUBDOMAINS.includes(subdomain) && !isContributorApp ? (
+            <DonationPageRouter />
+          ) : (
+            <DashboardRouter />
+          )}
         </S.MainLayout>
         {/* Modals */}
         <GlobalConfirmationModal

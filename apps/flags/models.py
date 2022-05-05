@@ -1,21 +1,26 @@
-# models.py
+from django.db import models
+
 from waffle.models import CACHE_EMPTY, AbstractUserFlag
 from waffle.utils import get_cache, get_setting, keyfmt
 
 
 class Flag(AbstractUserFlag):
-    FLAG_COMPANIES_CACHE_KEY = "FLAG_COMPANIES_CACHE_KEY"
-    FLAG_COMPANIES_CACHE_KEY_DEFAULT = "flag:%s:companies"
+    FLAG_ROLE_ASSIGNMENTS_CACHE_KEY = "FLAG_ROLE_ASSIGNMENTS_CACHE_KEY"
+    FLAG_ROLE_ASSIGNMENTS_CACHE_KEY_DEFAULT = "flag:%s:role_assignments"
 
-    # companies = models.ManyToManyField(
-    #     Company,
-    #     blank=True,
-    #     help_text=_('Activate this flag for these companies.'),
-    # )
+    revenue_programs = models.ManyToManyField(
+        "organizations.RevenueProgram",
+        blank=True,
+        null=True,
+    )
+
+    flag_type = None
 
     def get_flush_keys(self, flush_keys=None):
         flush_keys = super(Flag, self).get_flush_keys(flush_keys)
-        companies_cache_key = get_setting(Flag.FLAG_COMPANIES_CACHE_KEY, Flag.FLAG_COMPANIES_CACHE_KEY_DEFAULT)
+        companies_cache_key = get_setting(
+            Flag.FLAG_ROLE_ASSIGNMENTS_CACHE_KEY, Flag.FLAG_ROLE_ASSIGNMENTS_CACHE_KEY_DEFAULT
+        )
         flush_keys.append(keyfmt(companies_cache_key, self.name))
         return flush_keys
 

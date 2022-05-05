@@ -38,6 +38,7 @@ INSTALLED_APPS = [
     "apps.element_media",
     "apps.public",
     "apps.config",
+    "apps.flags",
     "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
@@ -438,5 +439,5 @@ SPA_ENV_VARS = {
 METADATA_SOURCE = os.getenv("METADATA_SOURCE", "rev-engine")
 METADATA_SCHEMA_VERSION = os.getenv("METADATA_SCHEMA_VERSION", "1.0")
 
-# # Django waffle
-# WAFFLE_FLAG_MODEL = 'flags.Flag'
+# Django waffle
+WAFFLE_FLAG_MODEL = "flags.Flag"

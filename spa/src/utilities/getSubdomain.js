@@ -1,6 +1,6 @@
 /**
  * getSubdomain will extract a subdomain, or return false if there
- * is none (or if it's www) reliably, given:
+ * is none reliably, given:
  *    The host is not nested (my.company.example.com)
  *    It doesn't contain a country-coded top-level domain (example.co.uk)
  * @param {string} host - window.location.host
@@ -9,7 +9,6 @@
 function getSubdomain(host) {
   const splitHost = host.split('.');
   if (splitHost.length < 3) return '';
-  if (splitHost[0] === 'www') return '';
   return splitHost[0];
 }
 

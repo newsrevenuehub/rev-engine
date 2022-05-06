@@ -113,7 +113,9 @@ class DonationPageAdmin(DonationPageAdminAbstract, SafeDeleteAdmin):
         "revenue_program__name",
     )
 
-    readonly_fields = ["email_templates", "page_screenshot"]
+    readonly_fields = [
+        "page_screenshot",
+    ]
 
     actions = ("make_template", "undelete_selected")
 

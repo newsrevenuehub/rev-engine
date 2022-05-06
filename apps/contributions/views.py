@@ -69,15 +69,18 @@ def stripe_payment(request):
         contributor_email = stripe_payment.validated_data["email"]
         donation_amount_display = f"${(stripe_payment.validated_data['amount'] / 100):.2f}"
         contribution_date = timezone.now()
+        interval_to_display = {ContributionInterval.MONTHLY.value: "month", ContributionInterval.YEARLY.value: "year"}
+
         template_data = {
             "contribution_date": contribution_date.strftime("%m-%d-%y"),
             "contributor_email": contributor_email,
             "contribution_amount": donation_amount_display,
-            "contribution_interval": stripe_payment.validated_data["amount"],
+            "contribution_interval": stripe_payment.validated_data["interval"],
+            "contribution_interval_display_value": interval_to_display.get(stripe_payment.validated_data["interval"]),
             "copyright_year": contribution_date.year,
             "org_name": rp.organization.name,
         }
-        send_contribution_confirmation_email(contributor_email, **template_data)
+        send_contribution_confirmation_email.delay(contributor_email, **template_data)
 
     except RevenueProgram.DoesNotExist:
         logger.warning(

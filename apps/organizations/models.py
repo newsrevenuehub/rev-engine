@@ -217,6 +217,7 @@ class RevenueProgram(IndexedTimeStampedModel):
     )
     non_profit = models.BooleanField(default=True, verbose_name="Non-profit?")
     payment_provider = models.ForeignKey("organizations.PaymentProvider", null=True, on_delete=models.SET_NULL)
+    domain_apple_verified_date = models.DateTimeField(blank=True, null=True)
 
     # Analytics
     google_analytics_v3_domain = models.CharField(max_length=300, null=True, blank=True)
@@ -265,6 +266,29 @@ class RevenueProgram(IndexedTimeStampedModel):
         self._ensure_owner_of_default_page()
         self._format_twitter_handle()
 
+    def stripe_create_apple_pay_domain(self):
+        """
+        Register an ApplePay domain with Apple (by proxy) for this RevenueProgram.
+
+        NOTE: Cannot create ApplePay Domains using test key.
+
+        "If you're hoping to test this locally, pretty much too bad"
+            -- Steve Jobs
+        """
+        if settings.STRIPE_LIVE_MODE:
+            try:
+                stripe.ApplePayDomain.create(
+                    api_key=settings.STRIPE_LIVE_SECRET_KEY,
+                    domain_name=self._get_host(),
+                    stripe_account=self.payment_provider.stripe_account_id,
+                )
+                self.domain_apple_verified_date = timezone.now()
+                self.save()
+            except stripe.error.StripeError as stripe_error:
+                logger.warning(
+                    f"Failed to register ApplePayDomain for RevenueProgram {self.name}. StripeError: {str(stripe_error)}"
+                )
+
     def _ensure_owner_of_default_page(self):
         """
         Avoid state of a rev program's default page not being one of "its pages"
@@ -304,33 +328,8 @@ class PaymentProvider(IndexedTimeStampedModel):
         help_text='A fully verified Stripe Connected account should have "charges_enabled: true" in Stripe',
     )
 
-    domain_apple_verified_date = models.DateTimeField(blank=True, null=True)
-
     def __str__(self):
         return self.stripe_account_id
-
-    def stripe_create_apple_pay_domain(self):
-        """
-        Register an ApplePay domain with Apple (by proxy) for this RevenueProgram.
-
-        NOTE: Cannot create ApplePay Domains using test key.
-
-        "If you're hoping to test this locally, pretty much too bad"
-            -- Steve Jobs
-        """
-        if settings.STRIPE_LIVE_MODE:
-            try:
-                stripe.ApplePayDomain.create(
-                    api_key=settings.STRIPE_LIVE_SECRET_KEY,
-                    domain_name=self._get_host(),
-                    stripe_account=self.organization.stripe_account_id,
-                )
-                self.domain_apple_verified_date = timezone.now()
-                self.save()
-            except stripe.error.StripeError as stripe_error:
-                logger.warning(
-                    f"Failed to register ApplePayDomain for RevenueProgram {self.name}. StripeError: {str(stripe_error)}"
-                )
 
     def is_verified_with_default_provider(self):
         payment_provider = self.default_payment_provider

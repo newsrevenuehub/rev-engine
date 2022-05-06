@@ -73,7 +73,7 @@ class Contribution(IndexedTimeStampedModel):
 
     contributor = models.ForeignKey("contributions.Contributor", on_delete=models.SET_NULL, null=True)
     donation_page = models.ForeignKey("pages.DonationPage", on_delete=models.SET_NULL, null=True)
-    organization = models.ForeignKey("organizations.Organization", on_delete=models.SET_NULL, null=True)
+    revenue_program = models.ForeignKey("organizations.RevenueProgram", on_delete=models.SET_NULL, null=True)
 
     bad_actor_score = models.IntegerField(null=True)
     bad_actor_response = models.JSONField(null=True)
@@ -143,7 +143,7 @@ class Contribution(IndexedTimeStampedModel):
             raise ValueError("Cannot fetch PaymentMethod without provider_payment_method_id")
         return stripe.PaymentMethod.retrieve(
             self.provider_payment_method_id,
-            stripe_account=self.organization.stripe_account_id,
+            stripe_account=self.revenue_program.payment_provider.stripe_account_id,
         )
 
     def send_slack_notifications(self, event_type):

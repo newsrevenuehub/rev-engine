@@ -160,6 +160,8 @@ class BenefitLevelAdmin(RevEngineSimpleHistoryAdmin):
 
 @admin.register(RevenueProgram)
 class RevenueProgramAdmin(RevEngineSimpleHistoryAdmin, ReverseModelAdmin, AdminImageMixin):  # pragma: no cover
+    raw_id_fields = ("payment_provider",)
+
     fieldsets = (
         (
             "RevenueProgram",
@@ -281,7 +283,18 @@ class FeatureAdmin(RevEngineSimpleHistoryAdmin):  # pragma: no cover
 
 
 @admin.register(PaymentProvider)
-class PaymentProviderAdmin(RevEngineSimpleHistoryAdmin):
+class PaymentProviderAdmin(RevEngineSimpleHistoryAdmin):  # pragma: no cover
+    search_fields = ("stripe_account_id",)
+    list_display = [
+        "stripe_account_id",
+        "stripe_product_id",
+        "currency",
+        "default_payment_provider",
+        "stripe_oauth_refresh_token",
+        "stripe_verified",
+        "domain_apple_verified_date",
+    ]
+    list_per_page = 20
     fieldsets = (
         (
             None,

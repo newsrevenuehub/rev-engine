@@ -21,6 +21,7 @@ from apps.contributions.payment_managers import (
 )
 from apps.contributions.webhooks import StripeWebhookProcessor
 from apps.emails.models import EmailTemplateError, PageEmailTemplate
+from apps.organizations.models import PaymentProvider, RevenueProgram
 
 
 logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
@@ -79,6 +80,12 @@ def stripe_payment(request):
 def stripe_oauth(request):
     scope = request.data.get("scope")
     code = request.data.get("code")
+    revenue_program_id = request.data.get("revenue_program_id")
+    if not revenue_program_id:
+        return Response(
+            {"missing_params": "revenue_program_id missing required params"}, status=status.HTTP_400_BAD_REQUEST
+        )
+
     if not scope or not code:
         return Response({"missing_params": "stripe_oauth missing required params"}, status=status.HTTP_400_BAD_REQUEST)
 
@@ -86,15 +93,33 @@ def stripe_oauth(request):
         return Response(
             {"scope_mismatch": "stripe_oauth received unexpected scope"}, status=status.HTTP_400_BAD_REQUEST
         )
+
+    revenue_program = RevenueProgram.objects.filter(id=revenue_program_id).first()
+
+    if not revenue_program:
+        return Response(
+            {"rp_not_found": f"RevenueProgram with ID = {revenue_program_id} is not found"},
+            status=status.HTTP_404_NOT_FOUND,
+        )
+
     try:
         oauth_response = stripe.OAuth.token(
             grant_type="authorization_code",
             code=code,
         )
-        organization = request.user.get_organization()
-        organization.stripe_account_id = oauth_response["stripe_user_id"]
-        organization.stripe_oauth_refresh_token = oauth_response["refresh_token"]
-        organization.save()
+        payment_provider = revenue_program.payment_provider
+        if not payment_provider:
+            payment_provider = PaymentProvider.objects.create(
+                stripe_account_id=oauth_response["stripe_user_id"],
+                stripe_oauth_refresh_token=oauth_response["refresh_token"],
+            )
+            revenue_program.payment_provider = payment_provider
+            revenue_program.save()
+        else:
+            payment_provider.stripe_account_id = oauth_response["stripe_user_id"]
+            payment_provider.stripe_oauth_refresh_token = oauth_response["refresh_token"]
+            payment_provider.save()
+
     except stripe.oauth_error.InvalidGrantError:
         logger.error("stripe.OAuth.token failed due to an invalid code")
         return Response({"invalid_code": "stripe_oauth received an invalid code"}, status=status.HTTP_400_BAD_REQUEST)
@@ -104,19 +129,32 @@ def stripe_oauth(request):
 
 @api_view(["POST"])
 def stripe_confirmation(request):
+    revenue_program_id = request.data.get("revenue_program_id")
+    if not revenue_program_id:
+        return Response(
+            {"missing_params": "revenue_program_id missing required params"}, status=status.HTTP_400_BAD_REQUEST
+        )
+    revenue_program = RevenueProgram.objects.filter(id=revenue_program_id).first()
+    if not revenue_program:
+        return Response(
+            {"rp_not_found": f"RevenueProgram with ID = {revenue_program_id} is not found"},
+            status=status.HTTP_404_NOT_FOUND,
+        )
+    payment_provider = revenue_program.payment_provider
+
     try:
-        organization = request.user.get_organization()
+
         # An org that doesn't have a stripe_account_id hasn't gone through onboarding
-        if not organization.stripe_account_id:
+        if not payment_provider or not payment_provider.stripe_account_id:
             return Response({"status": "not_connected"}, status=status.HTTP_202_ACCEPTED)
         # A previously confirmed account can spare the stripe API call
-        if organization.stripe_verified:
+        if payment_provider.stripe_verified:
             # NOTE: It's important to bail early here. At the end of this view, we create a few stripe models
             # that should only be created once. We should only ever get there if it's the FIRST time we verify.
             return Response({"status": "connected"}, status=status.HTTP_200_OK)
 
         # A "Confirmed" stripe account has "charges_enabled": true on return from stripe.Account.retrieve
-        stripe_account = stripe.Account.retrieve(organization.stripe_account_id)
+        stripe_account = stripe.Account.retrieve(payment_provider.stripe_account_id)
 
     except stripe.error.StripeError:
         logger.error("stripe.Account.retrieve failed with a StripeError")
@@ -129,11 +167,11 @@ def stripe_confirmation(request):
         return Response({"status": "restricted"}, status=status.HTTP_202_ACCEPTED)
 
     # If we got through all that, we're verified.
-    organization.stripe_verified = True
+    payment_provider.stripe_verified = True
 
     try:
         # Now that we're verified, create and associate default product
-        organization.stripe_create_default_product()
+        payment_provider.stripe_create_default_product()
     except stripe.error.StripeError as stripe_error:
         logger.error(f"stripe_create_default_product failed with a StripeError: {stripe_error}")
         return Response(
@@ -141,7 +179,7 @@ def stripe_confirmation(request):
             status=status.HTTP_500_INTERNAL_SERVER_ERROR,
         )
 
-    organization.save()
+    payment_provider.save()
 
     return Response({"status": "connected"}, status=status.HTTP_200_OK)
 

@@ -179,7 +179,7 @@ class RevenueProgramAdmin(RevEngineSimpleHistoryAdmin, ReverseModelAdmin, AdminI
         (
             "Stripe",
             {
-                "fields": ("stripe_statement_descriptor_suffix", "payment_provider"),
+                "fields": ("stripe_statement_descriptor_suffix", "domain_apple_verified_date", "payment_provider"),
             },
         ),
         (
@@ -292,7 +292,6 @@ class PaymentProviderAdmin(RevEngineSimpleHistoryAdmin):  # pragma: no cover
         "default_payment_provider",
         "stripe_oauth_refresh_token",
         "stripe_verified",
-        "domain_apple_verified_date",
     ]
     list_per_page = 20
     fieldsets = (

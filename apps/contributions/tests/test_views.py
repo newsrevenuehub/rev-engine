@@ -28,6 +28,7 @@ EXPECTED_CONTRIBUTION_CONFIRMATION_TEMPLATE_KEYS = (
     "contributor_email",
     "contribution_amount",
     "contribution_interval",
+    "contribution_interval_display_value",
     "copyright_year",
     "org_name",
 )

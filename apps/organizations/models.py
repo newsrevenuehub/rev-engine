@@ -94,7 +94,6 @@ class Organization(IndexedTimeStampedModel):
     )
     stripe_product_id = models.CharField(max_length=255, blank=True)
     domain_apple_verified_date = models.DateTimeField(blank=True, null=True)
-    uses_email_templates = models.BooleanField(default=False)
 
     # A history of changes to this model, using django-simple-history.
     history = HistoricalRecords()

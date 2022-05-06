@@ -99,7 +99,7 @@ class Template(AbstractPage):
         unwanted_keys = ["_state", "id", "modified", "created", "published_date", "_history_user"]
         template = cleanup_keys(template_data, unwanted_keys)
         page = cleanup_keys(page_data, unwanted_keys)
-        merged_page = template | page
+        merged_page = {**template, **page}
         return DonationPage.objects.create(**merged_page)
 
 
@@ -122,8 +122,6 @@ class DonationPage(AbstractPage, SafeDeleteModel):
     published_date = models.DateTimeField(null=True, blank=True)
     page_screenshot = SorlImageField(null=True, blank=True, upload_to=_get_screenshot_upload_path)
 
-    email_templates = models.ManyToManyField("emails.PageEmailTemplate", blank=True)
-
     # A history of changes to this model, using django-simple-history.
     history = HistoricalRecords()
 
@@ -140,20 +138,6 @@ class DonationPage(AbstractPage, SafeDeleteModel):
         return Feature.objects.filter(
             feature_type=Feature.FeatureType.PAGE_LIMIT, plans__organization=self.organization.id
         ).first()
-
-    def update_email_template(self, template):
-        """
-        Replaces the template on the DonationPage instance with a new template with the same.
-        template type.
-
-        :param template: PageEmailTemplate instance
-        :return: None
-        """
-        if temp := self.email_templates.filter(template_type=template.template_type).first():
-            self.email_templates.remove(temp)
-            self.email_templates.add(template)
-        else:
-            self.email_templates.add(template)
 
     def get_total_org_pages(self):
         org = self.revenue_program.organization
@@ -202,7 +186,7 @@ class DonationPage(AbstractPage, SafeDeleteModel):
         ]
         page = cleanup_keys(self.__dict__, unwanted_keys)
         template = cleanup_keys(template_data, unwanted_keys)
-        merged_template = page | template
+        merged_template = {**page, **template}
         merged_template["revenue_program"] = RevenueProgram.objects.get(pk=merged_template.pop("revenue_program_id"))
         return Template.objects.create(**merged_template)
 

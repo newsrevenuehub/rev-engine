@@ -76,22 +76,22 @@ class DonationPageFullDetailSerializerTest(APITestCase):
         # ...and they should be in the right order.
         self.assertEqual(data["benefit_levels"][0]["benefits"][0]["name"], self.benefit_1.name)
 
-    def test_get_organization_is_nonprofit(self):
+    def test_get_revenue_program_is_nonprofit(self):
         # Set it true, expect it in page serializer
-        self.organization.non_profit = True
-        self.organization.save()
-        self.organization.refresh_from_db()
+        self.revenue_program.non_profit = True
+        self.revenue_program.save()
+        self.revenue_program.refresh_from_db()
         serializer = self.serializer(self.page)
         data = serializer.data
-        self.assertEqual(data["organization_is_nonprofit"], True)
+        self.assertEqual(data["revenue_program_is_nonprofit"], True)
 
         # Set it false, expect it in page serializer
-        self.organization.non_profit = False
-        self.organization.save()
-        self.organization.refresh_from_db()
+        self.revenue_program.non_profit = False
+        self.revenue_program.save()
+        self.revenue_program.refresh_from_db()
         serializer = self.serializer(self.page)
         data = serializer.data
-        self.assertEqual(data["organization_is_nonprofit"], False)
+        self.assertEqual(data["revenue_program_is_nonprofit"], False)
 
     def test_check_against_soft_deleted_slugs(self):
         validated_data = {"slug": self.page.slug}
@@ -139,7 +139,9 @@ class DonationPageFullDetailSerializerTest(APITestCase):
 
         serializer = self.serializer(self.page, context={"live": True})
         self.assertIsNotNone(serializer.data["stripe_account_id"])
-        self.assertEqual(serializer.data["stripe_account_id"], self.page.organization.stripe_account_id)
+        self.assertEqual(
+            serializer.data["stripe_account_id"], self.page.revenue_program.payment_provider.stripe_account_id
+        )
 
     def test_not_live_context_adds_allow_offer_nyt_comp(self):
         serializer = self.serializer(self.page, context={"live": True})

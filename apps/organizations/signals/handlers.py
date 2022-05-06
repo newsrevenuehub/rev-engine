@@ -7,4 +7,4 @@ def handle_revenue_program_post_save(sender, **kwargs):
     revenue_program = kwargs.get("instance")
     created = kwargs.get("created")
     if created:
-        revenue_program.stripe_create_apple_pay_domain()
+        revenue_program.payment_provider.stripe_create_apple_pay_domain()

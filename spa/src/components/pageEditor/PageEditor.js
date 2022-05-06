@@ -447,7 +447,7 @@ function getSuccessMessage(page, newPage) {
   if (wasPublished && isNowNotPublished) {
     return 'Your page has been updated and is no longer live';
   }
-  return 'Your page has been udpated';
+  return 'Your page has been updated';
 }
 
 function cleanData(data) {

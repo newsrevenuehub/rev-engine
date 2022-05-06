@@ -292,6 +292,8 @@ HEALTHCHECK_URL_AUTO_ACCEPT_FLAGGED_PAYMENTS = os.environ.get("HEALTHCHECK_URL_A
 # Transactional Email
 EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
 EMAIL_SUBJECT_PREFIX = "[RevEngine] "
+ESP_TEMPLATE_ID_FOR_CONTRIBUTION_CONFIRMATION = os.environ.get("ESP_TEMPLATE_ID_FOR_CONTRIBUTION_CONFIRMATION")
+
 
 ADMINS = [("dc", "daniel@fundjournalism.org")]
 

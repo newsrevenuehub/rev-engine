@@ -14,11 +14,12 @@ import Input from 'elements/inputs/Input';
 // Analytics
 import { useConfigureAnalytics } from 'components/analytics';
 
-function ContributorEntry() {
+function ContributorEntry(props) {
   const alert = useAlert();
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState('');
   const [errors, setErrors] = useState({});
+  const { page } = props;
 
   const [showConfirmation, setShowConfirmation] = useState(false);
 
@@ -43,10 +44,15 @@ function ContributorEntry() {
     }
   };
 
+  let portalName = `RevEngine`;
+  if (page?.revenue_program) {
+    portalName = page?.revenue_program.name;
+  }
+
   return (
     <S.ContributorEntry>
       <S.ContentWrapper>
-        <S.Title>Welcome to the RevEngine contributor portal</S.Title>
+        <S.Title>Welcome to the {portalName} contributor portal</S.Title>
         {showConfirmation ? (
           <S.Confirmation>
             <p>If you're in our system, an email has been sent to you containing your magic link</p>
@@ -67,9 +73,6 @@ function ContributorEntry() {
             </S.InputWrapper>
             <S.MagicLinkButton onClick={handleSendMagicLink} disabled={loading} data-testid="magic-link-email-button">
               Send Magic Link
-              <span role="img" aria-label="magic wand">
-                🪄
-              </span>
             </S.MagicLinkButton>
           </S.EmailForm>
         )}

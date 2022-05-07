@@ -72,7 +72,7 @@ export const PaginatedTable = styled.table`
 
 export const TH = styled.th`
   padding: 1rem;
-  background: ${(props) => props.theme.colors.primary};
+  background: ${(props) => props.theme.colors.cstm_CTAs};
   color: ${(props) => props.theme.colors.white};
 
   div {
@@ -115,7 +115,7 @@ export const ResultsSummary = styled.p`
 
   span {
     font-weight: bold;
-    color: ${(props) => props.theme.colors.primary};
+    color: ${(props) => props.theme.colors.cstm_CTAs};
   }
 `;
 
@@ -129,7 +129,7 @@ export const Pages = styled.p`
 `;
 
 export const Current = styled.span`
-  color: ${(props) => props.theme.colors.primary};
+  color: ${(props) => props.theme.colors.cstm_CTAs};
   font-weight: bold;
 `;
 

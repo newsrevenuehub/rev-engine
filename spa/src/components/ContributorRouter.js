@@ -38,6 +38,7 @@ const ContributorDashboard = lazy(() =>
 
 function ContributorRouter() {
   const [pageData, setPageData] = useState(null);
+  const [fetchedpageData, setFetchedPageData] = useState(null);
 
   const subdomain = useSubdomain();
   const requestFullPage = useRequest();
@@ -55,8 +56,11 @@ function ContributorRouter() {
       {
         onSuccess: ({ data }) => {
           setPageData(data);
+          setFetchedPageData(true);
         },
-        onFailure: (e) => {}
+        onFailure: (e) => {
+          setFetchedPageData(true);
+        }
       }
     );
   }, [subdomain]);
@@ -65,7 +69,8 @@ function ContributorRouter() {
     if (!DASHBOARD_SUBDOMAINS.includes(subdomain)) fetchRPLiveContent();
   }, [fetchRPLiveContent]);
 
-  if (!DASHBOARD_SUBDOMAINS.includes(subdomain) && !pageData) return null;
+  // If rp has no default page, normal contributor page is shown
+  if (!DASHBOARD_SUBDOMAINS.includes(subdomain) && !pageData && !fetchedpageData) return null;
 
   return (
     <SegregatedStyles page={pageData}>
@@ -79,7 +84,10 @@ function ContributorRouter() {
                 render={() => <TrackPageView component={ContributorDashboard} />}
                 contributor
               />
-              <Route path={ROUTES.CONTRIBUTOR_ENTRY} render={() => <TrackPageView component={ContributorEntry} />} />
+              <Route
+                path={ROUTES.CONTRIBUTOR_ENTRY}
+                render={() => <TrackPageView component={ContributorEntry} page={pageData} />}
+              />
               <Route path={ROUTES.CONTRIBUTOR_VERIFY} render={() => <TrackPageView component={ContributorVerify} />} />
             </Switch>
           </React.Suspense>

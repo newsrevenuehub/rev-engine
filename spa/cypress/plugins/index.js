@@ -25,6 +25,8 @@ module.exports = (on, config) => {
     }
   ];
 
+  // fix for 'webpack v5 error when module contains dynamic import'
+  // Ref: https://github.com/cypress-io/cypress/issues/18435
   const publicPath = ' ';
   let outputOptions;
   Object.defineProperty(webpackOptions, 'output', {

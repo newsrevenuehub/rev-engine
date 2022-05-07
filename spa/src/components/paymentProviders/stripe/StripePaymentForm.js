@@ -6,7 +6,7 @@ import { useTheme } from 'styled-components';
 import { useAlert } from 'react-alert';
 
 // Utils
-import { getFrequencyAdverb } from 'utilities/parseFrequency';
+import { getFrequencyAdverb, getFrequencyThankYouText } from 'utilities/parseFrequency';
 
 // Hooks
 import useSubdomain from 'hooks/useSubdomain';
@@ -80,13 +80,6 @@ function StripePaymentForm({ loading, setLoading, offerPayFees }) {
     return emailInput.value;
   };
 
-  const getFrequencyText = (frequency) => {
-    if (frequency === 'month') return 'monthly';
-    if (frequency === 'year') return 'yearly';
-    if (frequency === 'one_time') return 'one-time';
-    return frequency;
-  };
-
   /****************************\
    * Handle Error and Success *
   \****************************/
@@ -105,7 +98,7 @@ function StripePaymentForm({ loading, setLoading, offerPayFees }) {
       const donationPageUrl = window.location.href;
       history.push({
         pathname: url === '/' ? THANK_YOU_SLUG : url + THANK_YOU_SLUG,
-        state: { page, amount: totalAmount, email, donationPageUrl, frequencyText: getFrequencyText(frequency) }
+        state: { page, amount: totalAmount, email, donationPageUrl, frequencyText: getFrequencyThankYouText(frequency) }
       });
     }
   };

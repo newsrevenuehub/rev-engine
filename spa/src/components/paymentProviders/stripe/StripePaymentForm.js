@@ -7,6 +7,7 @@ import { useAlert } from 'react-alert';
 
 // Utils
 import { getFrequencyAdverb, getFrequencyThankYouText } from 'utilities/parseFrequency';
+import { getSHA256Hash } from 'utilities/getSHA256Hash';
 
 // Hooks
 import useSubdomain from 'hooks/useSubdomain';
@@ -51,6 +52,7 @@ function StripePaymentForm({ loading, setLoading, offerPayFees }) {
   const [paymentRequest, setPaymentRequest] = useState(null);
   const [forceManualCard, setForceManualCard] = useState(false);
   const [stripeError, setStripeError] = useState();
+  const [emailHash, setEmailHash] = useState('');
 
   const theme = useTheme();
   const history = useHistory();
@@ -91,13 +93,21 @@ function StripePaymentForm({ loading, setLoading, offerPayFees }) {
     setLoading(false);
     setSucceeded(true);
     trackConversion(totalAmount);
+    const qstr = `uid=${emailHash}&frequency=${encodeURIComponent(
+      getFrequencyThankYouText(frequency)
+    )}&amount=${encodeURIComponent(totalAmount)}`;
+
     if (page.thank_you_redirect) {
-      window.location = page.thank_you_redirect;
+      let redirectURL = page.thank_you_redirect;
+      redirectURL = redirectURL.includes('?') ? `${redirectURL}&${qstr}` : `${redirectURL}?${qstr}`;
+      window.location = redirectURL;
     } else {
       const email = extractEmailFromFormRef(formRef.current);
+
       const donationPageUrl = window.location.href;
       history.push({
         pathname: url === '/' ? THANK_YOU_SLUG : url + THANK_YOU_SLUG,
+        search: `?${qstr}`,
         state: { page, amount: totalAmount, email, donationPageUrl, frequencyText: getFrequencyThankYouText(frequency) }
       });
     }
@@ -172,8 +182,16 @@ function StripePaymentForm({ loading, setLoading, offerPayFees }) {
 
   const handleCardSubmit = async (e) => {
     e.preventDefault();
+    const email = extractEmailFromFormRef(formRef.current);
+    getSHA256Hash(email)
+      .then((res) => {
+        setEmailHash(res);
+      })
+      .catch((err) => console.log(err));
+
     const data = await getData();
     setLoading(true);
+
     await submitPayment(
       stripe,
       data,
@@ -188,6 +206,13 @@ function StripePaymentForm({ loading, setLoading, offerPayFees }) {
   \*********************************/
   const handlePaymentRequestSubmit = async (state, paymentRequest) => {
     const data = await getData(state);
+    const email = extractEmailFromFormRef(formRef.current);
+    getSHA256Hash(email)
+      .then((res) => {
+        setEmailHash(res);
+      })
+      .catch((err) => console.log(err));
+
     setLoading(true);
     await submitPayment(
       stripe,
@@ -271,9 +296,11 @@ function StripePaymentForm({ loading, setLoading, offerPayFees }) {
    */
   const getButtonText = () => {
     const totalAmount = getTotalAmount(amount, payFee, frequency, page.organization_is_nonprofit);
+
     if (isNaN(totalAmount)) {
       return 'Enter a valid amount';
     }
+
     return `Give ${currencySymbol}${formatStringAmountForDisplay(totalAmount)} ${getFrequencyAdverb(frequency)}`;
   };
 

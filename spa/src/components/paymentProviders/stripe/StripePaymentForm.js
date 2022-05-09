@@ -183,11 +183,9 @@ function StripePaymentForm({ loading, setLoading, offerPayFees }) {
   const handleCardSubmit = async (e) => {
     e.preventDefault();
     const email = extractEmailFromFormRef(formRef.current);
-    getSHA256Hash(email)
-      .then((res) => {
-        setEmailHash(res);
-      })
-      .catch((err) => console.log(err));
+    getSHA256Hash(email).then((res) => {
+      setEmailHash(res);
+    });
 
     const data = await getData();
     setLoading(true);

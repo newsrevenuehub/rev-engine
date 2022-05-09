@@ -144,7 +144,7 @@ def stripe_confirmation(request):
 
     try:
 
-        # An org that doesn't have a stripe_account_id hasn't gone through onboarding
+        # A revenue program that doesn't have a stripe_account_id hasn't gone through onboarding
         if not payment_provider or not payment_provider.stripe_account_id:
             return Response({"status": "not_connected"}, status=status.HTTP_202_ACCEPTED)
         # A previously confirmed account can spare the stripe API call

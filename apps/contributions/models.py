@@ -73,7 +73,6 @@ class Contribution(IndexedTimeStampedModel):
 
     contributor = models.ForeignKey("contributions.Contributor", on_delete=models.SET_NULL, null=True)
     donation_page = models.ForeignKey("pages.DonationPage", on_delete=models.SET_NULL, null=True)
-    revenue_program = models.ForeignKey("organizations.RevenueProgram", on_delete=models.SET_NULL, null=True)
 
     bad_actor_score = models.IntegerField(null=True)
     bad_actor_response = models.JSONField(null=True)
@@ -95,6 +94,10 @@ class Contribution(IndexedTimeStampedModel):
     @property
     def formatted_amount(self):
         return f"{'{:.2f}'.format(self.amount / 100)} {self.currency.upper()}"
+
+    @property
+    def revenue_program(self):
+        return self.donation_page.revenue_program
 
     BAD_ACTOR_SCORES = (
         (

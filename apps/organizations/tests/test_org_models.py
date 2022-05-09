@@ -30,11 +30,14 @@ class RevenueProgramTest(TestCase):
     def setUp(self):
         self.model_class = models.RevenueProgram
         self.stripe_account_id = "my_stripe_account_id"
-        self.organization = factories.OrganizationFactory(stripe_account_id=self.stripe_account_id)
-        self.instance = factories.RevenueProgramFactory()
+        self.organization = factories.OrganizationFactory()
+        self.payment_provider = factories.PaymentProviderFactory(stripe_account_id=self.stripe_account_id)
+        self.instance = factories.RevenueProgramFactory(payment_provider=self.payment_provider)
 
     def _create_revenue_program(self):
-        return models.RevenueProgram.objects.create(name="Testing", slug="testing", organization=self.organization)
+        return models.RevenueProgram.objects.create(
+            name="Testing", slug="testing", organization=self.organization, payment_provider=self.payment_provider
+        )
 
     def test_slug_created(self):
         assert self.instance.slug
@@ -76,8 +79,9 @@ class RevenueProgramTest(TestCase):
         apple_pay_domain_create.assert_called_once_with(
             api_key=TEST_STRIPE_LIVE_KEY,
             domain_name=expected_domain,
-            stripe_account=self.organization.stripe_account_id,
+            stripe_account=self.instance.payment_provider.stripe_account_id,
         )
+
         # revenue_program should have a non-null domain_apple_verified_date
         self.assertIsNotNone(revenue_program.domain_apple_verified_date)
 
@@ -110,7 +114,7 @@ class RevenueProgramTest(TestCase):
 
     def test_slug_validated_against_denylist(self):
         denied_word = DenyListWordFactory()
-        rp = models.RevenueProgram(name="My rp", organization=self.organization)
+        rp = models.RevenueProgram(name="My rp", organization=self.organization, payment_provider=self.payment_provider)
         rp.slug = denied_word.word
         with self.assertRaises(ValidationError) as validation_error:
             rp.clean_fields()

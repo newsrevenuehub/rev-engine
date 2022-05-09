@@ -14,7 +14,11 @@ from apps.contributions.models import Contribution, ContributionInterval, Contri
 from apps.contributions.payment_managers import PaymentBadParamsError, PaymentProviderError
 from apps.contributions.tests.factories import ContributionFactory, ContributorFactory
 from apps.contributions.views import stripe_payment
-from apps.organizations.tests.factories import OrganizationFactory, RevenueProgramFactory
+from apps.organizations.tests.factories import (
+    OrganizationFactory,
+    PaymentProviderFactory,
+    RevenueProgramFactory,
+)
 from apps.pages.tests.factories import DonationPageFactory
 
 
@@ -166,13 +170,19 @@ class StripeOAuthTest(APITestCase):
     def setUp(self):
         self.user = get_user_model().objects.create(email="user@test.com", password="testing")
         self.organization = OrganizationFactory(name="My Organization")
+        self.payment_provider = PaymentProviderFactory()
+        self.revenue_program = RevenueProgramFactory(
+            organization=self.organization, payment_provider=self.payment_provider
+        )
         self.organization.user_set.through.objects.create(organization=self.organization, user=self.user, is_owner=True)
 
         self.url = reverse("stripe-oauth")
 
-    def _make_request(self, code=None, scope=None):
+    def _make_request(self, code=None, scope=None, revenue_program_id=None):
         self.client.force_authenticate(user=self.user)
         body = {}
+        if revenue_program_id:
+            body["revenue_program_id"] = revenue_program_id
         if code:
             body["code"] = code
         if scope:
@@ -182,19 +192,25 @@ class StripeOAuthTest(APITestCase):
     @patch("stripe.OAuth.token")
     def test_response_when_missing_params(self, stripe_oauth_token):
         # Missing code
-        response = self._make_request(code=None, scope=expected_oauth_scope)
+        response = self._make_request(code=None, scope=expected_oauth_scope, revenue_program_id=self.revenue_program.id)
         self.assertEqual(response.status_code, 400)
         self.assertIn("missing_params", response.data)
         stripe_oauth_token.assert_not_called()
 
         # Missing scope
-        response = self._make_request(code="12345", scope=None)
+        response = self._make_request(code="12345", scope=None, revenue_program_id=self.revenue_program.id)
         self.assertEqual(response.status_code, 400)
         self.assertIn("missing_params", response.data)
         stripe_oauth_token.assert_not_called()
 
-        # Missing both
-        response = self._make_request(code=None, scope=None)
+        # Missing revenue_program_id
+        response = self._make_request(code="12345", scope=expected_oauth_scope, revenue_program_id=None)
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("missing_params", response.data)
+        stripe_oauth_token.assert_not_called()
+
+        # Missing code, scope and revenue_program_id
+        response = self._make_request(code=None, scope=None, revenue_program_id=None)
         self.assertEqual(response.status_code, 400)
         self.assertIn("missing_params", response.data)
         stripe_oauth_token.assert_not_called()
@@ -204,7 +220,9 @@ class StripeOAuthTest(APITestCase):
         """
         We verify that the "scope" parameter provided by the frontend matches the scope we expect
         """
-        response = self._make_request(code="1234", scope="not_expected_scope")
+        response = self._make_request(
+            code="1234", scope="not_expected_scope", revenue_program_id=self.revenue_program.id
+        )
         self.assertEqual(response.status_code, 400)
         self.assertIn("scope_mismatch", response.data)
         stripe_oauth_token.assert_not_called()
@@ -212,7 +230,9 @@ class StripeOAuthTest(APITestCase):
     @patch("stripe.OAuth.token")
     def test_response_when_invalid_code(self, stripe_oauth_token):
         stripe_oauth_token.side_effect = StripeInvalidGrantError(code="error_code", description="error_description")
-        response = self._make_request(code="1234", scope=expected_oauth_scope)
+        response = self._make_request(
+            code="1234", scope=expected_oauth_scope, revenue_program_id=self.revenue_program.id
+        )
         self.assertEqual(response.status_code, 400)
         self.assertIn("invalid_code", response.data)
         stripe_oauth_token.assert_called_with(code="1234", grant_type="authorization_code")
@@ -224,14 +244,16 @@ class StripeOAuthTest(APITestCase):
         stripe_oauth_token.return_value = MockOAuthResponse(
             stripe_user_id=expected_stripe_account_id, refresh_token=expected_refresh_token
         )
-        response = self._make_request(code="1234", scope=expected_oauth_scope)
+        response = self._make_request(
+            code="1234", scope=expected_oauth_scope, revenue_program_id=self.revenue_program.id
+        )
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data["detail"], "success")
         stripe_oauth_token.assert_called_with(code="1234", grant_type="authorization_code")
         # Org should have new values based on OAuth response
-        self.organization.refresh_from_db()
-        self.assertEqual(self.organization.stripe_account_id, expected_stripe_account_id)
-        self.assertEqual(self.organization.stripe_oauth_refresh_token, expected_refresh_token)
+        self.payment_provider.refresh_from_db()
+        self.assertEqual(self.payment_provider.stripe_account_id, expected_stripe_account_id)
+        self.assertEqual(self.payment_provider.stripe_oauth_refresh_token, expected_refresh_token)
 
 
 class MockStripeAccountEnabled(MockStripeAccount):
@@ -258,17 +280,21 @@ class StripeConfirmTest(APITestCase):
         self.user = get_user_model().objects.create(email="user@test.com", password="testing")
         self.organization = OrganizationFactory(name="My Organization")
         self.organization.user_set.add(self.user)
+        self.payment_provider = PaymentProviderFactory()
+        self.revenue_program = RevenueProgramFactory(
+            organization=self.organization, payment_provider=self.payment_provider
+        )
         self.url = reverse("stripe-confirmation")
 
     def post_to_confirmation(self, stripe_account_id="", stripe_verified=None, stripe_product_id=""):
-        self.organization.stripe_account_id = stripe_account_id
-        self.organization.stripe_verified = True if stripe_verified else False
-        self.organization.stripe_product_id = stripe_product_id
-        self.organization.save()
-        self.organization.refresh_from_db()
-
+        self.payment_provider.stripe_account_id = stripe_account_id
+        self.payment_provider.stripe_verified = True if stripe_verified else False
+        self.payment_provider.stripe_product_id = stripe_product_id
+        self.payment_provider.save()
+        self.payment_provider.refresh_from_db()
         self.client.force_authenticate(user=self.user)
-        return self.client.post(self.url)
+
+        return self.client.post(self.url, {"revenue_program_id": self.revenue_program.id})
 
     @patch("stripe.Account.retrieve", side_effect=MockStripeAccountEnabled)
     def test_confirm_already_verified(self, mock_account_retrieve, *args):
@@ -288,11 +314,11 @@ class StripeConfirmTest(APITestCase):
         """
         stripe_confirmation should set stripe_verified to True after confirming with Stripe.
         """
-        self.organization.stripe_verified = False
-        self.organization.save()
+        self.payment_provider.stripe_verified = False
+        self.payment_provider.save()
         response = self.post_to_confirmation(stripe_account_id="testing")
-        self.organization.refresh_from_db()
-        self.assertTrue(self.organization.stripe_verified)
+        self.payment_provider.refresh_from_db()
+        self.assertTrue(self.payment_provider.stripe_verified)
         mock_account_retrieve.assert_called_once()
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data["status"], "connected")
@@ -310,8 +336,8 @@ class StripeConfirmTest(APITestCase):
         mock_account_retrieve.assert_called_once()
         # Newly confirmed accounts should go ahead and create a default product on for that org.
         mock_product_create.assert_called_once()
-        self.organization.refresh_from_db()
-        self.assertEqual(self.organization.stripe_product_id, TEST_STRIPE_PRODUCT_ID)
+        self.payment_provider.refresh_from_db()
+        self.assertEqual(self.payment_provider.stripe_product_id, TEST_STRIPE_PRODUCT_ID)
 
     @patch("stripe.Account.retrieve", side_effect=MockStripeAccountNotEnabled)
     def test_confirm_connected_not_verified(self, mock_account_retrieve, *args):
@@ -319,14 +345,14 @@ class StripeConfirmTest(APITestCase):
         If an organization has connected its account with Hub (has a stripe_account_id), but
         their Stripe account is not ready to recieve payments, they're in a special state.
         """
-        self.organization.stripe_verified = False
-        self.organization.save()
+        self.payment_provider.stripe_verified = False
+        self.payment_provider.save()
         response = self.post_to_confirmation(stripe_account_id="testing")
         mock_account_retrieve.assert_called_once()
         self.assertEqual(response.status_code, 202)
         self.assertEqual(response.data["status"], "restricted")
         # stripe_verified should still be false
-        self.assertFalse(self.organization.stripe_verified)
+        self.assertFalse(self.payment_provider.stripe_verified)
 
     @patch("stripe.Account.retrieve", side_effect=MockStripeAccountEnabled)
     def test_not_connected(self, mock_account_retrieve, *args):
@@ -357,21 +383,23 @@ class TestContributionsViewSet(APITestCase):
         self.user = get_user_model().objects.create(email="user@org1.com", password="testing")
         self.organization1 = OrganizationFactory(name="Organization 1")
         self.organization1.user_set.add(self.user)
+        self.revenue_program1 = RevenueProgramFactory(name="Revenue Program 1", organization=self.organization1)
         self.organization2 = OrganizationFactory(name="Organization 2")
+        self.revenue_program2 = RevenueProgramFactory(name="Revenue Program 2", organization=self.organization2)
         self.contributor = Contributor.objects.create(email="contributor@contributor.com")
-        self.contributions_per_org_count = 50
-        for i in range(self.contributions_per_org_count):
+        self.contributions_per_revenue_program = 50
+        for i in range(self.contributions_per_revenue_program):
             Contribution.objects.create(
                 amount=1000,
                 interval=ContributionInterval.ONE_TIME[0],
                 contributor=self.contributor,
-                organization=self.organization1,
+                donation_page=DonationPageFactory(revenue_program=self.revenue_program1),
             )
             Contribution.objects.create(
                 amount=2000,
                 interval=ContributionInterval.ONE_TIME[0],
                 contributor=self.contributor,
-                organization=self.organization2,
+                donation_page=DonationPageFactory(revenue_program=self.revenue_program2),
             )
 
         self.url = reverse("contributions-list")
@@ -381,7 +409,7 @@ class TestContributionsViewSet(APITestCase):
         self.client.force_authenticate(user=self.user)
         response = self.client.get(self.url)
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.json()["count"], self.contributions_per_org_count)
+        self.assertEqual(response.json()["count"], self.contributions_per_revenue_program)
 
 
 TEST_STRIPE_API_KEY = "test_stripe_api_key"
@@ -393,15 +421,19 @@ class UpdatePaymentMethodTest(APITestCase):
         self.subscription_id = "test-subscription-id"
         self.stripe_account_id = "testing-stripe-account-id"
         self.customer_id = "testing-customer-id"
-        self.org = OrganizationFactory(stripe_account_id=self.stripe_account_id)
+        self.org = OrganizationFactory()
         self.contributor = ContributorFactory()
+
+        payment_provider = PaymentProviderFactory(stripe_account_id=self.stripe_account_id)
+        revenue_program = RevenueProgramFactory(organization=self.org, payment_provider=payment_provider)
+        donation_page = DonationPageFactory(revenue_program=revenue_program)
         self.contribution = ContributionFactory(
             contributor=self.contributor,
-            organization=self.org,
+            donation_page=donation_page,
             provider_customer_id=self.customer_id,
             provider_subscription_id=self.subscription_id,
         )
-        self.other_contribution = ContributionFactory(organization=self.org)
+        self.other_contribution = ContributionFactory(donation_page=donation_page)
         self.payment_method_id = "testing-payment-method-id"
 
     def _make_request(self, contribution, data={}):
@@ -494,14 +526,17 @@ class CancelRecurringPaymentTest(APITestCase):
     def setUp(self):
         self.subscription_id = "test-subscription-id"
         self.stripe_account_id = "testing-stripe-account-id"
-        self.org = OrganizationFactory(stripe_account_id=self.stripe_account_id)
+        self.org = OrganizationFactory()
+        payment_provider = PaymentProviderFactory(stripe_account_id=self.stripe_account_id)
+        revenue_program = RevenueProgramFactory(organization=self.org, payment_provider=payment_provider)
+        donation_page = DonationPageFactory(revenue_program=revenue_program)
         self.contributor = ContributorFactory()
         self.contribution = ContributionFactory(
             contributor=self.contributor,
-            organization=self.org,
+            donation_page=donation_page,
             provider_subscription_id=self.subscription_id,
         )
-        self.other_contribution = ContributionFactory(organization=self.org)
+        self.other_contribution = ContributionFactory(donation_page=donation_page)
         self.payment_method_id = "testing-payment-method-id"
 
     def _make_request(self, contribution):
@@ -539,11 +574,15 @@ class ProcessFlaggedContributionTest(APITestCase):
         self.user = get_user_model().objects.create(email="user@test.com", password="testing")
         self.subscription_id = "test-subscription-id"
         self.stripe_account_id = "testing-stripe-account-id"
-        self.org = OrganizationFactory(stripe_account_id=self.stripe_account_id)
+        self.org = OrganizationFactory()
+
         self.contributor = ContributorFactory()
+
+        payment_provider = PaymentProviderFactory(stripe_account_id=self.stripe_account_id)
+        revenue_program = RevenueProgramFactory(organization=self.org, payment_provider=payment_provider)
         self.contribution = ContributionFactory(
             contributor=self.contributor,
-            organization=self.org,
+            donation_page=DonationPageFactory(revenue_program=revenue_program),
             provider_subscription_id=self.subscription_id,
         )
         self.other_contribution = ContributionFactory()

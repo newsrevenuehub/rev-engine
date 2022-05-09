@@ -21,7 +21,7 @@ from apps.organizations.models import (
 from apps.users.admin import UserOrganizationInline
 
 
-class NoRelatedInlineAddEditAdminMixin:
+class NoRelatedInlineAddEditAdminMixin:  # pragma: no cover
     related_fieldname = None
 
     def get_formset(self, request, obj=None, **kwargs):
@@ -38,7 +38,7 @@ class NoRelatedInlineAddEditAdminMixin:
         return formset
 
 
-class ReadOnlyOrgLimitedTabularInlineMixin(admin.TabularInline):
+class ReadOnlyOrgLimitedTabularInlineMixin(admin.TabularInline):  # pragma: no cover
     related_fieldname = None
     org_limited_fieldname = None
 
@@ -127,7 +127,7 @@ class BenefitAdmin(RevEngineSimpleHistoryAdmin):
 
 
 @admin.register(BenefitLevel)
-class BenefitLevelAdmin(RevEngineSimpleHistoryAdmin):
+class BenefitLevelAdmin(RevEngineSimpleHistoryAdmin):  # pragma: no cover
     list_display = ["name", "donation_range", "organization"]
 
     list_filter = ["organization"]

@@ -7,6 +7,5 @@ export async function getSHA256Hash(message) {
     return hashHex;
   } catch (err) {
     console.log(err.message);
-    return '---';
   }
 }

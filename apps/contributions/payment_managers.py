@@ -195,9 +195,7 @@ class PaymentManager:
         self.data["contributor_id"] = contributor.pk
         return contributor
 
-    def create_contribution(
-        self, revenue_program, contributor, provider_reference_instance=None, provider_customer_id="", metadata={}
-    ):
+    def create_contribution(self, contributor, provider_reference_instance=None, provider_customer_id="", metadata={}):
         if not self.payment_provider_name:
             raise ValueError("Subclass of PaymentManager must set payment_provider_name property")
 
@@ -211,7 +209,6 @@ class PaymentManager:
             currency=self.validated_data["currency"],
             status=status,
             donation_page=donation_page,
-            revenue_program=revenue_program,
             contributor=contributor,
             payment_provider_used=self.payment_provider_name,
             payment_provider_data=provider_reference_instance,
@@ -273,7 +270,6 @@ class StripePaymentManager(PaymentManager):
             metadata=metadata,
         )
         self.create_contribution(
-            revenue_program,
             contributor,
             provider_reference_instance=stripe_payment_intent,
             provider_customer_id=stripe_customer.id,
@@ -297,14 +293,12 @@ class StripePaymentManager(PaymentManager):
         # ...attach paymentMethod to that customer.
         self.attach_payment_method_to_customer(stripe_customer.id, revenue_program.payment_provider.stripe_account_id)
         metadata = self.bundle_metadata(ContributionMetadataSerializer.PAYMENT)
-        contribution = self.create_contribution(
-            revenue_program, contributor, provider_customer_id=stripe_customer.id, metadata=metadata
-        )
+        contribution = self.create_contribution(contributor, provider_customer_id=stripe_customer.id, metadata=metadata)
         if not self.flagged:
             self.contribution = contribution
             self.complete_payment(reject=False)
 
-    def create_stripe_customer(self, revenue_program: RevenueProgram):
+    def create_stripe_customer(self, revenue_program):
         meta = self.bundle_metadata(ContributionMetadataSerializer.CUSTOMER)
         return stripe.Customer.create(
             email=self.validated_data["email"],

@@ -229,8 +229,10 @@ class ContributionsViewSet(viewsets.ReadOnlyModelViewSet):
         if isinstance(self.request.user, Contributor):
             return self.model.objects.filter(contributor=self.request.user)
 
-        if self.action == "list" and hasattr(self.model, "revenue_program"):
-            return self.model.objects.filter(revenue_program__in=self.request.user.get_revenue_programs())
+        if self.action == "list":
+            return self.model.objects.filter(
+                donation_page__revenue_program__in=self.request.user.get_revenue_programs()
+            )
         return self.model.objects.all()
 
     def get_serializer_class(self):

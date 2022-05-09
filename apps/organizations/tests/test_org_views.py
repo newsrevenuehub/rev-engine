@@ -79,14 +79,16 @@ class RevenueProgramViewSetTest(AbstractTestCase):
         self.login()
         response = self.client.get(self.list_url)
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(
-            [x["id"] for x in response.json()],
-            [
-                x
-                for x in RevenueProgram.objects.filter(organization=self.user.get_organization()).values_list(
-                    "pk", flat=True
-                )
-            ],
+        self.assertListEqual(
+            sorted([x["id"] for x in response.json()]),
+            sorted(
+                [
+                    x
+                    for x in RevenueProgram.objects.filter(organization=self.user.get_organization()).values_list(
+                        "pk", flat=True
+                    )
+                ]
+            ),
         )
 
     def test_viewset_is_readonly(self):

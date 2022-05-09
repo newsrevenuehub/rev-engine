@@ -112,7 +112,7 @@ class ContributorContributionSerializer(serializers.ModelSerializer):
     status = serializers.SerializerMethodField()
     card_brand = serializers.SerializerMethodField()
     last4 = serializers.SerializerMethodField()
-    org_stripe_id = serializers.SerializerMethodField()
+    stripe_id = serializers.SerializerMethodField()
 
     def get_status(self, obj):
         if obj.status and obj.status in (
@@ -135,7 +135,7 @@ class ContributorContributionSerializer(serializers.ModelSerializer):
         if card := self._get_card_details(obj):
             return card["last4"]
 
-    def get_org_stripe_id(self, obj):
+    def get_stripe_id(self, obj):
         return obj.revenue_program.payment_provider.stripe_account_id
 
     class Meta:
@@ -148,7 +148,7 @@ class ContributorContributionSerializer(serializers.ModelSerializer):
             "card_brand",
             "last4",
             "provider_customer_id",
-            "org_stripe_id",
+            "stripe_id",
             "amount",
             "last_payment_date",
         ]

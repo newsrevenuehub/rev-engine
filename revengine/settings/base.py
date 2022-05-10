@@ -270,9 +270,6 @@ STRIPE_WEBHOOK_EVENTS = [
 # SITE_URL must include scheme and optionally port, https://example.com.
 SITE_URL = os.getenv("SITE_URL", "")
 # Application subdomains (that are NOT revenue program slugs)
-# TODO: shouldn't NON_D... include DenyListWords?
-NON_DONATION_PAGE_SUBDOMAINS = os.getenv("NON_DONATION_PAGE_SUBDOMAINS", "support:www").split(":")
-ORG_PORTAL_SUBDOMAINS = os.getenv("ORG_PORTAL_SUBDOMAINS", "support:").split(":")
 # TODO: Isn't DOMAIN_APEX just be SITE_URL without any subdomain?
 DOMAIN_APEX = os.getenv("DOMAIN_APEX")
 # Application subdomains (that are NOT revenue program slugs)

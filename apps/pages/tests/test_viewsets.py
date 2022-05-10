@@ -11,7 +11,7 @@ from rest_framework.test import APITestCase
 from apps.api.tests import RevEngineApiAbstractTestCase
 from apps.organizations.models import RevenueProgram
 from apps.pages.models import DonationPage, Font, Style, Template
-from apps.pages.tests.factories import FontFactory, TemplateFactory
+from apps.pages.tests.factories import FontFactory, StyleFactory, TemplateFactory
 from apps.pages.validators import UNOWNED_TEMPLATE_FROM_PAGE_PAGE_PK_MESSAGE
 from apps.users.tests.utils import create_test_user
 
@@ -442,6 +442,20 @@ class PageViewSetTest(RevEngineApiAbstractTestCase):
         url = f'{reverse("donationpage-live-detail")}?revenue_program={page.revenue_program.slug}&page={page.slug}'
         response = self.assert_unuauthed_cannot_get(url, status=status.HTTP_404_NOT_FOUND)
         self.assertEqual(response.json(), {"detail": "Organization does not have a fully verified payment provider"})
+
+    def test_live_detail_page_when_styles(self):
+        page = DonationPage.objects.first()
+        custom_style = {
+            "foo": "bar",
+        }
+        style = StyleFactory(org=self.org1, revenue_program=self.org1_rp1, styles=custom_style)
+        page.styles = style
+        page.published_date = timezone.now() - datetime.timedelta(days=1)
+        page.save()
+        self.assertTrue(page.is_live)
+        url = f'{reverse("donationpage-live-detail")}?revenue_program={page.revenue_program.slug}&page={page.slug}'
+        response = self.assert_unauthed_can_get(url)
+        self.assertEqual(response.json()["styles"]["styles"], custom_style)
 
 
 class TemplateViewSetTest(RevEngineApiAbstractTestCase):

@@ -14,13 +14,15 @@ from apps.config.validators import validate_slug_against_denylist
 from apps.organizations.models import Feature, RevenueProgram
 from apps.pages import defaults
 from apps.pages.validators import style_validator
+from apps.users.choices import Roles
+from apps.users.models import RoleAssignmentResourceModelMixin, UnexpectedRoleType
 
 
 def _get_screenshot_upload_path(instance, filename):
     return f"{instance.organization.name}/page_screenshots/{instance.name}_latest.png"
 
 
-class AbstractPage(IndexedTimeStampedModel):
+class AbstractPage(IndexedTimeStampedModel, RoleAssignmentResourceModelMixin):
     name = models.CharField(max_length=255)
     heading = models.CharField(max_length=255, blank=True)
 
@@ -57,6 +59,49 @@ class AbstractPage(IndexedTimeStampedModel):
     @classmethod
     def field_names(cls):
         return [f.name for f in cls._meta.fields]
+
+    @classmethod
+    def filter_queryset_by_role_assignment(cls, role_assignment, queryset):
+        if role_assignment.role_type == Roles.HUB_ADMIN:
+            return queryset.all()
+        elif role_assignment.role_type == Roles.ORG_ADMIN:
+            return queryset.filter(revenue_program__organization=role_assignment.organization).all()
+        elif role_assignment.role_type == Roles.RP_ADMIN:
+            return queryset.filter(revenue_program__in=role_assignment.revenue_programs.all()).all()
+        else:
+            raise UnexpectedRoleType(f"{role_assignment.role_type} is not a valid value")
+
+    @classmethod
+    def user_has_create_permission_by_virtue_of_role(cls, user, view):
+        role_type = user.roleassignment.role_type
+        user_org = user.roleassignment.organization
+        revenue_program_pk = view.request.data.get("revenue_program", None)
+        if not revenue_program_pk:
+            return False
+        if role_type == Roles.HUB_ADMIN:
+            return True
+        elif role_type == Roles.ORG_ADMIN:
+            revenue_program = RevenueProgram.objects.get(pk=revenue_program_pk)
+            return user_org.id == revenue_program.organization.pk
+        elif role_type == Roles.RP_ADMIN:
+            revenue_program = RevenueProgram.objects.get(pk=revenue_program_pk)
+
+            return all(
+                [
+                    user_org.pk == revenue_program.organization.pk,
+                    revenue_program in user.roleassignment.revenue_programs.all(),
+                ]
+            )
+
+    @classmethod
+    def user_has_delete_permission_by_virtue_of_role(cls, user, instance):
+        ra = user.roleassignment
+        if ra.role_type == Roles.HUB_ADMIN:
+            return True
+        elif ra.role_type == Roles.ORG_ADMIN:
+            return ra.organization == instance.organization
+        elif ra.role_type == Roles.RP_ADMIN:
+            return instance.revenue_program in user.roleassignment.revenue_programs.all()
 
     class Meta:
         abstract = True
@@ -191,7 +236,7 @@ class DonationPage(AbstractPage, SafeDeleteModel):
         return Template.objects.create(**merged_template)
 
 
-class Style(IndexedTimeStampedModel, SafeDeleteModel):
+class Style(IndexedTimeStampedModel, SafeDeleteModel, RoleAssignmentResourceModelMixin):
     """
     Ties a set of styles to a page. Discoverable by name, belonging to a RevenueProgram.
     """
@@ -213,6 +258,49 @@ class Style(IndexedTimeStampedModel, SafeDeleteModel):
         )
 
         ordering = ["-created", "name"]
+
+    @classmethod
+    def filter_queryset_by_role_assignment(cls, role_assignment, queryset):
+        if role_assignment.role_type == Roles.HUB_ADMIN:
+            return queryset.all()
+        elif role_assignment.role_type == Roles.ORG_ADMIN:
+            return queryset.filter(revenue_program__organization=role_assignment.organization).all()
+        elif role_assignment.role_type == Roles.RP_ADMIN:
+            return queryset.filter(revenue_program__in=role_assignment.revenue_programs.all()).all()
+        else:
+            raise UnexpectedRoleType(f"{role_assignment.role_type} is not a valid value")
+
+    @classmethod
+    def user_has_create_permission_by_virtue_of_role(cls, user, view):
+        role_type = user.roleassignment.role_type
+        user_org = user.roleassignment.organization
+        revenue_program_pk = view.request.data.get("revenue_program", None)
+        if not revenue_program_pk:
+            return False
+        if role_type == Roles.HUB_ADMIN:
+            return True
+        elif role_type == Roles.ORG_ADMIN:
+            revenue_program = RevenueProgram.objects.get(pk=revenue_program_pk)
+            return user_org.id == revenue_program.organization.pk
+        elif role_type == Roles.RP_ADMIN:
+            revenue_program = RevenueProgram.objects.get(pk=revenue_program_pk)
+
+            return all(
+                [
+                    user_org.pk == revenue_program.organization.pk,
+                    revenue_program in user.roleassignment.revenue_programs.all(),
+                ]
+            )
+
+    @classmethod
+    def user_has_delete_permission_by_virtue_of_role(cls, user, instance):
+        ra = user.roleassignment
+        if ra.role_type == Roles.HUB_ADMIN:
+            return True
+        elif ra.role_type == Roles.ORG_ADMIN:
+            return ra.organization == instance.revenue_program.organization
+        elif ra.role_type == Roles.RP_ADMIN:
+            return instance.revenue_program in user.roleassignment.revenue_programs.all()
 
 
 class Font(models.Model):

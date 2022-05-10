@@ -1,5 +1,5 @@
 import { useState, useEffect, createContext, useContext, useCallback } from 'react';
-import { useHistory } from 'react-router-dom';
+import { useHistory, useLocation } from 'react-router-dom';
 import * as S from './PageEditor.styled';
 import { useTheme } from 'styled-components';
 import { AnimatePresence } from 'framer-motion';
@@ -21,7 +21,7 @@ import { useParams } from 'react-router-dom';
 
 // AJAX
 import useRequest from 'hooks/useRequest';
-import { DELETE_PAGE, DRAFT_PAGE_DETAIL, PATCH_PAGE, LIST_STYLES } from 'ajax/endpoints';
+import { DELETE_PAGE, DRAFT_PAGE_DETAIL, PATCH_PAGE, LIST_PAGES, LIST_STYLES } from 'ajax/endpoints';
 
 // Routes
 import { CONTENT_SLUG } from 'routes';
@@ -81,6 +81,9 @@ function PageEditor() {
   // Context
   const { getUserConfirmation } = useGlobalContext();
 
+  const location = useLocation();
+  const pageId = location?.state?.pageId;
+
   // State
   const [loading, setLoading] = useState(false);
   const [page, setPage] = useState();
@@ -115,24 +118,27 @@ function PageEditor() {
 
   useEffect(() => {
     setLoading(true);
-
-    const params = {
-      revenue_program: parameters.revProgramSlug,
-      page: parameters.pageSlug,
-      live: 0
+    const config = {
+      method: 'GET',
+      url: pageId ? `${LIST_PAGES}${pageId}/` : DRAFT_PAGE_DETAIL,
+      params: pageId
+        ? null
+        : {
+            revenue_program: parameters.revProgramSlug,
+            page: parameters.pageSlug,
+            live: 0
+          }
     };
-    requestGetPage(
-      { method: 'GET', url: DRAFT_PAGE_DETAIL, params },
-      {
-        onSuccess: ({ data }) => {
-          setPage(data);
-          setLoading(false);
-        },
-        onFailure: handleGetPageFailure //() => setLoading(false)
-      }
-    );
+
+    requestGetPage(config, {
+      onSuccess: ({ data }) => {
+        setPage(data);
+        setLoading(false);
+      },
+      onFailure: handleGetPageFailure //() => setLoading(false)
+    });
     // Don't include requestGetPage for now.
-  }, [parameters.revProgramSlug, parameters.pageSlug, handleGetPageFailure]);
+  }, [pageId, parameters.revProgramSlug, parameters.pageSlug, handleGetPageFailure]);
 
   useEffect(() => {
     setLoading(true);

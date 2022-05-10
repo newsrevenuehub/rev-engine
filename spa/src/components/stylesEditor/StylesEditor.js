@@ -72,7 +72,7 @@ function StylesEditor({ styles, setStyles, handleKeepChanges, handleDiscardChang
     setStyles({ ...styles, fontSizes });
   };
 
-  /*************\ 
+  /*************\
    * AJAX BITS *
   \*************/
   useEffect(() => {

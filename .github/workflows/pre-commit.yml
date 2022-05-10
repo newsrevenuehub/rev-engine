@@ -17,4 +17,5 @@ jobs:
         with:
           python-version: '3.9'
           cache: 'poetry'
+      - run: poetry install
       - uses: pre-commit/action@v2.0.3

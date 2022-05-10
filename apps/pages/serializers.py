@@ -23,17 +23,6 @@ class StyleInlineSerializer(serializers.ModelSerializer):
         representation.update(**styles)
         return representation
 
-    def to_internal_value(self, data):
-        """
-        data comes in as a dict with name and styles flattened. We need
-        to stick styles in its own value and pull out name.
-        """
-        name = data.pop("name", None)
-        revenue_program = data.pop("revenue_program", None)
-        data = {"name": name, "revenue_program": revenue_program, "styles": data}
-
-        return super().to_internal_value(data)
-
     class Meta:
         model = Style
         fields = "__all__"
@@ -72,7 +61,7 @@ class DonationPageDetailSerializer(serializers.ModelSerializer):
 
 class DonationPageFullDetailSerializer(serializers.ModelSerializer):
 
-    styles = StyleInlineSerializer(required=False)
+    styles = StyleInlineSerializer(required=False, read_only=True)
     styles_pk = serializers.IntegerField(allow_null=True, required=False)
 
     revenue_program = SerializedOnReadElsePk(
@@ -143,9 +132,9 @@ class DonationPageFullDetailSerializer(serializers.ModelSerializer):
                 raise serializers.ValidationError({related_field: "Could not find instance with provided pk."})
 
     def _check_against_soft_deleted_slugs(self, validated_data):
-        new_slug = validated_data.get("slug", None)
+        new_slug = validated_data.get(settings.PAGE_SLUG_PARAM, None)
         if new_slug and DonationPage.objects.deleted_only().filter(slug=new_slug).exists():
-            raise serializers.ValidationError({settings.RP_SLUG_PARAM: [UNIQUE_PAGE_SLUG]})
+            raise serializers.ValidationError({settings.PAGE_SLUG_PARAM: [UNIQUE_PAGE_SLUG]})
 
     def _create_from_template(self, validated_data):
         """

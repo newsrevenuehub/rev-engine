@@ -1,8 +1,14 @@
+import logging
+
+from django.conf import settings
 from django.core.exceptions import ValidationError
 
 from rest_framework import serializers
 
 from apps.users.choices import Roles
+
+
+logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
 
 
 required_style_keys = {"radii": list, "font": dict, "fontSizes": list}
@@ -86,4 +92,6 @@ class RpPkIsForOwnedRp:
                     raise serializers.ValidationError(UNOWNED_REVENUE_PROGRAM_PK_MESSAGE)
                 elif ra.role_type == Roles.RP_ADMIN and target_rp not in ra.revenue_programs.all():
                     raise serializers.ValidationError(UNOWNED_REVENUE_PROGRAM_PK_MESSAGE)
-        return
+        else:
+            logger.warn("`RpPkIsForOwnedRp` used in unexpected request context")
+            raise serializers.ValidationError(MISSING_REFRENCE_TO_REV_PROGRAM_MESSAGE)

@@ -247,7 +247,7 @@ PHONENUMBER_DEFAULT_REGION = "US"
 STRIPE_LIVE_SECRET_KEY = os.getenv("LIVE_HUB_STRIPE_API_SECRET_KEY", "")
 STRIPE_TEST_SECRET_KEY = os.getenv("TEST_HUB_STRIPE_API_SECRET_KEY", "")
 STRIPE_OAUTH_SCOPE = "read_write"
-STRIPE_LIVE_MODE = os.environ.get("STRIPE_LIVE_MODE", "false").lower() == "true"
+STRIPE_LIVE_MODE = os.getenv("STRIPE_LIVE_MODE", "false").lower() == "true"
 
 GENERIC_STRIPE_PRODUCT_NAME = "Donation via RevEngine"
 
@@ -280,7 +280,7 @@ BAD_ACTOR_FAIL_ABOVE = 3
 # NOTE: Stripe automatically REJECTS flagged payments every 7 days. Make sure this delta is less than 6.5 days to be safe.
 FLAGGED_PAYMENT_AUTO_ACCEPT_DELTA = timedelta(days=3)
 
-HEALTHCHECK_URL_AUTO_ACCEPT_FLAGGED_PAYMENTS = os.environ.get("HEALTHCHECK_URL_AUTO_ACCEPT_FLAGGED_PAYMENTS")
+HEALTHCHECK_URL_AUTO_ACCEPT_FLAGGED_PAYMENTS = os.getenv("HEALTHCHECK_URL_AUTO_ACCEPT_FLAGGED_PAYMENTS")
 
 # Transactional Email
 EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
@@ -289,7 +289,7 @@ EMAIL_SUBJECT_PREFIX = "[RevEngine] "
 ADMINS = [("dc", "daniel@fundjournalism.org")]
 
 # Revengine template identifiers
-EMAIL_TEMPLATE_IDENTIFIER_MAGIC_LINK_DONOR = os.environ.get(
+EMAIL_TEMPLATE_IDENTIFIER_MAGIC_LINK_DONOR = os.getenv(
     "EMAIL_TEMPLATE_IDENTIFIER_MAGIC_LINK_DONOR", "nrh-manage-donations-magic-link"
 )
 
@@ -319,7 +319,7 @@ CURRENCIES = {"USD": "$", "CAD": "$"}
 DASHBOARD_SUBDOMAINS = os.getenv("DASHBOARD_SUBDOMAINS", "support:www:dashboard:").split(":")
 DOMAIN_APEX = os.getenv("DOMAIN_APEX")
 
-CSP_REPORTING_ENABLE = os.environ.get("CSP_REPORTING_ENABLE", "false").lower() == "true"
+CSP_REPORTING_ENABLE = os.getenv("CSP_REPORTING_ENABLE", "false").lower() == "true"
 # Django-CSP configuration
 # For now, report only.
 
@@ -396,11 +396,11 @@ HUB_GTM_ID = os.getenv("HUB_GTM_ID")
 
 
 # Sentry Configuration
-SENTRY_ENABLE_FRONTEND = os.environ.get("SENTRY_ENABLE_FRONTEND", "false").lower() == "true"
-SENTRY_DSN_FRONTEND = os.environ.get("SENTRY_DSN_FRONTEND")
+SENTRY_ENABLE_FRONTEND = os.getenv("SENTRY_ENABLE_FRONTEND", "false").lower() == "true"
+SENTRY_DSN_FRONTEND = os.getenv("SENTRY_DSN_FRONTEND")
 
-SENTRY_ENABLE_BACKEND = os.environ.get("SENTRY_ENABLE_BACKEND", "false").lower() == "true"
-SENTRY_DSN_BACKEND = os.environ.get("SENTRY_DSN_BACKEND")
+SENTRY_ENABLE_BACKEND = os.getenv("SENTRY_ENABLE_BACKEND", "false").lower() == "true"
+SENTRY_DSN_BACKEND = os.getenv("SENTRY_DSN_BACKEND")
 
 
 # Front End Environment Variables - Config Vars Heroku

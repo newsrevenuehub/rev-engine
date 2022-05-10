@@ -10,7 +10,7 @@ from revengine.settings.base import *  # noqa: F403
 
 #### Critical settings
 
-SECRET_KEY = os.environ["DJANGO_SECRET_KEY"]
+SECRET_KEY = os.getenv("DJANGO_SECRET_KEY")
 
 ### Environment-specific settings
 ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS", "localhost").split(":")

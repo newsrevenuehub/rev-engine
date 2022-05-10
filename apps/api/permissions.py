@@ -7,6 +7,8 @@ from rest_framework import permissions
 from apps.contributions.models import Contributor
 from apps.users.choices import Roles
 
+from .exceptions import ApiConfigurationError
+
 
 logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
 
@@ -64,25 +66,37 @@ class HasRoleAssignment(permissions.BasePermission):
         return getattr(request.user, "get_role_assignment", False) and bool(request.user.get_role_assignment())
 
 
-class HasCreatePrivilegesViaRole(permissions.BasePermission):
-    """Call a view's model's `user_has_create_permission_by_virtue_of_role` method to determine permissions
+class _BaseAssumedViewAndModelMixin:
+    """Ensure view and model use mixins as expected by HasCreatePrivielgesViaRole and HasDeletePrivilegesViaRole"""
 
-    Note that this permission assumes that the view is using the FilterQuerySetByUserMixin
-    and that the model is using RoleAssignmentResourceModelMixin (implementing
-    `user_has_create_permission_by_virtue_of_role` in the model).
-    """
+    def __init__(self, view, *args, **kwargs):
+        if not self._assumed_mixins_configured(view):
+            raise ApiConfigurationError()
+        return super().__init__(*args, **kwargs)
+
+    def __call__(self):
+        # https://stackoverflow.com/a/67154035
+        return self
+
+    def _assumed_mixins_configured(self, view):
+        # vs circular imports
+        from apps.users.models import RoleAssignmentResourceModelMixin
+        from apps.users.views import FilterQuerySetByUserMixin
+
+        return all(
+            [isinstance(view, FilterQuerySetByUserMixin), issubclass(view.model, RoleAssignmentResourceModelMixin)]
+        )
+
+
+class HasCreatePrivilegesViaRole(_BaseAssumedViewAndModelMixin):
+    """Call a view's model's `user_has_create_permission_by_virtue_of_role` method to determine permissions"""
 
     def has_permission(self, request, view):
         return view.model.user_has_create_permission_by_virtue_of_role(request.user, view)
 
 
-class HasDeletePrivilegesViaRole(permissions.BasePermission):
-    """Call a view's model's `user_has_delete_permission_by_virtue_of_role` method to determine permissions
-
-    Note that this permission assumes that the view is using the FilterQuerySetByUserMixin
-    and that the model is using RoleAssignmentResourceModelMixin (implementing
-    `user_has_delete_permission_by_virtue_of_role` in the model).
-    """
+class HasDeletePrivilegesViaRole(_BaseAssumedViewAndModelMixin):
+    """Call a view's model's `user_has_delete_permission_by_virtue_of_role` method to determine permissions"""
 
     def has_permission(self, request, view):
         pk = view.kwargs.get("pk")

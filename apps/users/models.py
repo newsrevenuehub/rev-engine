@@ -69,7 +69,7 @@ class RoleAssignment(models.Model):
             return f"{Roles.ORG_ADMIN.label} for {self.organization.name}"
         if self.role_type == Roles.RP_ADMIN:
             owned_rps_as_strings = [f"`#{rp.pk}: {rp.name}`" for rp in self.revenue_programs.all()]
-            return f"{Roles.RP_ADMIN.label} for {', '.join(owned_rps_as_strings)}"
+            return f"{Roles.RP_ADMIN.label} for these revenue programs: {', '.join(owned_rps_as_strings)}"
         return f"Unspecified RoleAssignment ({self.pk})"
 
 

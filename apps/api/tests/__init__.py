@@ -19,9 +19,14 @@ class RevEngineApiAbstractTestCase(AbstractTestCase):
         super().setUp()
         self.set_up_domain_model()
 
-    def assert_unuauthed_cannot_get(self, url):
+    def assert_unauthed_can_get(self, url):
         response = self.client.get(url)
-        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        return response
+
+    def assert_unuauthed_cannot_get(self, url, status=status.HTTP_401_UNAUTHORIZED):
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, status)
         return response
 
     def assert_unauthed_cannot_delete(self, url):

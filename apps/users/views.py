@@ -111,10 +111,10 @@ class PerUserCreateDeletePermissionsMixin(GenericAPIView):
 
     def get_permissions(self):
         if self.action == "create":
-            composed_perm = IsActiveSuperUser | (IsAuthenticated & HasRoleAssignment & HasCreatePrivilegesViaRole)
+            composed_perm = IsActiveSuperUser | (IsAuthenticated & HasRoleAssignment & HasCreatePrivilegesViaRole(self))
             return [composed_perm()]
         if self.action == "destroy":
-            composed_perm = IsActiveSuperUser | (IsAuthenticated & HasRoleAssignment & HasDeletePrivilegesViaRole)
+            composed_perm = IsActiveSuperUser | (IsAuthenticated & HasRoleAssignment & HasDeletePrivilegesViaRole(self))
             return [composed_perm()]
 
         return super().get_permissions()

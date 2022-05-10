@@ -133,6 +133,7 @@ AUTH_COOKIE_SAMESITE = "Strict"  # or 'Lax' or None
 
 ORG_SLUG_PARAM = "orgSlug"
 RP_SLUG_PARAM = "revProgramSlug"
+PAGE_SLUG_PARAM = "slug"
 
 WSGI_APPLICATION = "revengine.wsgi.application"
 

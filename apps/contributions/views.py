@@ -22,7 +22,7 @@ from apps.contributions.payment_managers import (
 from apps.contributions.webhooks import StripeWebhookProcessor
 from apps.emails.tasks import send_contribution_confirmation_email
 from apps.organizations.models import Organization, RevenueProgram
-from apps.public.permissions import IsSuperUser
+from apps.public.permissions import IsActiveSuperUser
 from apps.users.views import FilterQuerySetByUserMixin
 
 
@@ -101,7 +101,7 @@ def stripe_payment(request):
 
 
 @api_view(["POST"])
-@permission_classes([IsAuthenticated, HasRoleAssignment | IsSuperUser])
+@permission_classes([IsAuthenticated, HasRoleAssignment | IsActiveSuperUser])
 def stripe_oauth(request):
     scope = request.data.get("scope")
     code = request.data.get("code")
@@ -138,7 +138,7 @@ def stripe_oauth(request):
 
 
 @api_view(["POST"])
-@permission_classes([IsAuthenticated, HasRoleAssignment | IsSuperUser])
+@permission_classes([IsAuthenticated, HasRoleAssignment | IsActiveSuperUser])
 def stripe_confirmation(request):
     organization_slug = request.GET.get(settings.ORG_SLUG_PARAM, None)
     try:
@@ -228,7 +228,7 @@ class ContributionsViewSet(viewsets.ReadOnlyModelViewSet, FilterQuerySetByUserMi
     # are permitted
     permission_classes = [
         IsAuthenticated,
-        IsSuperUser | HasRoleAssignment | IsContributorOwningContribution,
+        IsActiveSuperUser | HasRoleAssignment | IsContributorOwningContribution,
     ]
     model = Contribution
     filterset_class = ContributionFilter
@@ -243,7 +243,7 @@ class ContributionsViewSet(viewsets.ReadOnlyModelViewSet, FilterQuerySetByUserMi
         return serializers.ContributorContributionSerializer
 
     # only superusers and hub admins have permission
-    @action(methods=["post"], detail=True, permission_classes=[IsAuthenticated, IsSuperUser | IsHubAdmin])
+    @action(methods=["post"], detail=True, permission_classes=[IsAuthenticated, IsActiveSuperUser | IsHubAdmin])
     def process_flagged(self, request, pk=None):
         reject = request.data.get("reject", None)
         if reject is None:

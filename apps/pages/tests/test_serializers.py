@@ -107,9 +107,10 @@ class DonationPageFullDetailSerializerTest(RevEngineApiAbstractTestCase):
             "revenue_program": self.page.revenue_program.pk,
         }
         serializer = self.serializer(data=new_page_data)
-        request = self.request_factory.get("/")
+        request = self.request_factory.post("/")
         request.user = self.org_user
         serializer.context["request"] = request
+        serializer.is_valid()
         self.assertTrue(serializer.is_valid())
         new_page = serializer.save()
         self.assertEqual(new_page.heading, template.heading)

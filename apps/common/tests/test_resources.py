@@ -27,8 +27,6 @@ logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
 
 
 class AbstractTestCase(APITestCase):
-    """ """
-
     model = None
     model_factory = None
     resource_count = 5

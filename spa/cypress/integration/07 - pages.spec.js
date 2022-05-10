@@ -3,11 +3,13 @@ import { LIST_PAGES } from 'ajax/endpoints';
 import pagesList from '../fixtures/pages/list-pages-1.json';
 import { CONTENT_SLUG } from 'routes';
 
+import hubAdminUser from '../fixtures/user/hub-admin';
+
 const expectedRevPrograms = new Set(pagesList.map((p) => p.revenue_program.name));
 
 describe('Donation pages list', () => {
   beforeEach(() => {
-    cy.login('user/stripe-verified.json');
+    cy.forceLogin(hubAdminUser);
     cy.intercept(getEndpoint(LIST_PAGES), { fixture: 'pages/list-pages-1' }).as('listPages');
     cy.visit(CONTENT_SLUG);
     cy.url().should('include', CONTENT_SLUG);

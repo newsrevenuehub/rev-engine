@@ -220,7 +220,7 @@ class VerifyContributorTokenViewTest(APITestCase):
 class AuthorizedContributorRequestsTest(APITestCase):
     def setUp(self):
         self.contributor = ContributorFactory()
-        self.contributions_url = reverse("contributions-list")
+        self.contributions_url = reverse("contribution-list")
 
     def _get_token(self, valid=True):
         refresh = ContributorRefreshToken.for_contributor(self.contributor.uuid)

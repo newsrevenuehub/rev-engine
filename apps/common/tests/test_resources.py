@@ -44,7 +44,7 @@ class AbstractTestCase(APITestCase):
         # to have contributors contributing to some but not
         # other pages
         if DonationPage.objects.count() < 2:
-            logger.warn("Tests relying on this mixin may be trivial when there " "are less than 2 donation pages")
+            logger.warn("Tests relying on this mixin may be trivial when there are less than 2 donation pages")
         for x in range(cls.contributors_count):
             contributor = ContributorFactory()
             for idx, page in enumerate(DonationPage.objects.all()):

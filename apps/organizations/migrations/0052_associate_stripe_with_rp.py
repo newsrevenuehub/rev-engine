@@ -29,8 +29,8 @@ class Migration(migrations.Migration):
                         db_index=True, default=django.utils.timezone.now, editable=False, verbose_name="modified"
                     ),
                 ),
-                ("stripe_account_id", models.CharField(max_length=255, unique=True)),
-                ("stripe_product_id", models.CharField(blank=True, max_length=255)),
+                ("stripe_account_id", models.CharField(max_length=255, unique=True, null=True, blank=True)),
+                ("stripe_product_id", models.CharField(blank=True, max_length=255, null=True)),
                 ("currency", models.CharField(choices=[("USD", "USD"), ("CAD", "CAD")], default="USD", max_length=3)),
                 (
                     "default_payment_provider",

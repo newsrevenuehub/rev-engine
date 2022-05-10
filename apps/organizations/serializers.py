@@ -5,6 +5,7 @@ from apps.organizations.models import (
     BenefitLevel,
     Feature,
     Organization,
+    PaymentProvider,
     Plan,
     RevenueProgram,
 )
@@ -30,6 +31,16 @@ class OrganizationSerializer(serializers.ModelSerializer):
     class Meta:
         model = Organization
         fields = "__all__"
+
+    def to_representation(self, instance):
+        representation = super().to_representation(instance)
+        revenue_program = instance.revenueprogram_set.first()
+        if revenue_program:
+            payment_provider = revenue_program.payment_provider
+            representation.update(**PaymentProviderSerializer(payment_provider).data)
+            representation["non_profit"] = revenue_program.non_profit
+            representation["domain_apple_verified_date"] = revenue_program.domain_apple_verified_date
+        return representation
 
 
 class RevenueProgramListInlineSerializer(serializers.ModelSerializer):
@@ -97,3 +108,9 @@ class BenefitLevelDetailSerializer(serializers.ModelSerializer):
             "donation_range",
             "benefits",
         ]
+
+
+class PaymentProviderSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = PaymentProvider
+        fields = "__all__"

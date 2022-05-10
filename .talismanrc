@@ -1,9 +1,0 @@
-fileignoreconfig:
-- filename: apps/common/templates/spa_env.html
-  checksum: 90b5d0a81d5cd9718912dc3ebb7f5391f1ad1d951a33935a0a9b987c98d03c41
-- filename: apps/users/templates/orgadmin_password_reset_confirm.html
-  checksum: 074b3bf7813d9b64edb746e607bc0963967734864613eaac0b1c2b9ef1ff0102
-- filename: apps/users/templates/orgadmin_password_reset_subject.txt
-  checksum: 167da60cf29d67a3a21756ea619f5f09fd7e2c7851b6d320348f6c2194260d6b
-- filename: apps/common/setup_files/contribution_metadata-2021-refs-NRH-250.json
-  checksum: 1592fa1b15b17bb316dde6c55361b203dc22911dee8c34992d953e509af4d4e5

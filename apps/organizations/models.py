@@ -314,8 +314,8 @@ class RevenueProgram(IndexedTimeStampedModel):
 
 
 class PaymentProvider(IndexedTimeStampedModel):
-    stripe_account_id = models.CharField(max_length=255, unique=True, null=False)
-    stripe_product_id = models.CharField(max_length=255, blank=True)
+    stripe_account_id = models.CharField(max_length=255, unique=True, null=True, blank=True)
+    stripe_product_id = models.CharField(max_length=255, blank=True, null=True)
 
     currency = models.CharField(max_length=3, choices=CURRENCY_CHOICES, default="USD")
     STRIPE = ("stripe", "Stripe")

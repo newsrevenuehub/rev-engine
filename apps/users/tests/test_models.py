@@ -53,8 +53,9 @@ class UserModelTest(TestCase):
 class RoleAssignmentModelTest(TestCase):
     def setUp(self):
         self.organization = OrganizationFactory()
+        self.revenue_program = RevenueProgramFactory(organization=self.organization)
 
-    def test_role_assigment_str(self):
+    def test_role_assignment_str(self):
         for role_val, role_label in models.Roles.choices:
             user = user_model.objects.create_user(email=f"{role_val}@test.com", password="testing")
             role_assignment = models.RoleAssignment.objects.create(
@@ -65,4 +66,6 @@ class RoleAssignmentModelTest(TestCase):
             if role_assignment.role_type == models.Roles.ORG_ADMIN:
                 self.assertEqual(str(role_assignment), f"{role_label} for {self.organization.name}")
             if role_assignment.role_type == models.Roles.RP_ADMIN:
-                self.assertEqual(str(role_assignment), f"{role_label} for {self.organization.name}")
+                role_assignment.revenue_programs.add(self.revenue_program)
+                role_assignment.save()
+                self.assertTrue(f"{role_label} for these revenue programs: " in str(role_assignment))

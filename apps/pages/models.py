@@ -102,6 +102,8 @@ class AbstractPage(IndexedTimeStampedModel, RoleAssignmentResourceModelMixin):
             return ra.organization == instance.organization
         elif ra.role_type == Roles.RP_ADMIN:
             return instance.revenue_program in user.roleassignment.revenue_programs.all()
+        else:
+            return False
 
     class Meta:
         abstract = True
@@ -291,6 +293,8 @@ class Style(IndexedTimeStampedModel, SafeDeleteModel, RoleAssignmentResourceMode
                     revenue_program in user.roleassignment.revenue_programs.all(),
                 ]
             )
+        else:
+            return False
 
     @classmethod
     def user_has_delete_permission_by_virtue_of_role(cls, user, instance):
@@ -301,6 +305,8 @@ class Style(IndexedTimeStampedModel, SafeDeleteModel, RoleAssignmentResourceMode
             return ra.organization == instance.revenue_program.organization
         elif ra.role_type == Roles.RP_ADMIN:
             return instance.revenue_program in user.roleassignment.revenue_programs.all()
+        else:
+            return False
 
 
 class Font(models.Model):

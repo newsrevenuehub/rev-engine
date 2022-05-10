@@ -23,7 +23,7 @@ from apps.api.permissions import (
     HasRoleAssignment,
     is_a_contributor,
 )
-from apps.public.permissions import IsSuperUser
+from apps.public.permissions import IsActiveSuperUser
 from apps.users.models import UnexpectedRoleType
 from apps.users.serializers import UserSerializer
 
@@ -111,10 +111,10 @@ class PerUserCreateDeletePermissionsMixin(GenericAPIView):
 
     def get_permissions(self):
         if self.action == "create":
-            composed_perm = IsSuperUser | (IsAuthenticated & HasRoleAssignment & HasCreatePrivilegesViaRole)
+            composed_perm = IsActiveSuperUser | (IsAuthenticated & HasRoleAssignment & HasCreatePrivilegesViaRole(self))
             return [composed_perm()]
         if self.action == "destroy":
-            composed_perm = IsSuperUser | (IsAuthenticated & HasRoleAssignment & HasDeletePrivilegesViaRole)
+            composed_perm = IsActiveSuperUser | (IsAuthenticated & HasRoleAssignment & HasDeletePrivilegesViaRole(self))
             return [composed_perm()]
 
         return super().get_permissions()

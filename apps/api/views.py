@@ -29,7 +29,7 @@ logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
 COOKIE_PATH = "/"
 
 
-def _construct_pr_domain(subdomain, referer):
+def _construct_rp_domain(subdomain, referer):
     """Find Revenue Program specific subdomain and use it to construct magic link host.
 
     Return RP specific domain or None if not found.
@@ -82,7 +82,7 @@ class TokenObtainPairCookieView(simplejwt_views.TokenObtainPairView):
     Subclasses simplejwt's TokenObtainPairView to handle tokens in cookies
 
     NB: sets permission_classes to an empty list, in case permissions are
-    set as defaults in parent context. The JWT resource inherently eneds to be
+    set as defaults in parent context. The JWT resource inherently needs to be
     accessible.
     """
 
@@ -150,7 +150,7 @@ class RequestContributorTokenEmailView(APIView):
             data = serializer.data
             email = data["email"]
             token = data["access"]
-            domain = _construct_pr_domain(data.get("subdomain", ""), request.headers.get("Referer", ""))
+            domain = _construct_rp_domain(data.get("subdomain", ""), request.headers.get("Referer", ""))
             if not domain:
                 return Response({"detail": "Missing Revenue Program subdomain"}, status=status.HTTP_404_NOT_FOUND)
             magic_link = f"{domain}/{settings.CONTRIBUTOR_VERIFY_URL}?token={token}&email={email}"

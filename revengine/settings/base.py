@@ -324,7 +324,6 @@ CURRENCIES = {"USD": "$", "CAD": "$"}
 
 # Application subdomains (that are NOT revenue program slugs)
 DASHBOARD_SUBDOMAINS = os.getenv("DASHBOARD_SUBDOMAINS", "support:www:dashboard:").split(":")
-DOMAIN_APEX = os.getenv("DOMAIN_APEX")
 
 CSP_REPORTING_ENABLE = os.environ.get("CSP_REPORTING_ENABLE", "false").lower() == "true"
 # Django-CSP configuration

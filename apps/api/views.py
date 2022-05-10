@@ -78,7 +78,7 @@ class TokenObtainPairCookieView(simplejwt_views.TokenObtainPairView):
     Subclasses simplejwt's TokenObtainPairView to handle tokens in cookies
 
     NB: sets permission_classes to an empty list, in case permissions are
-    set as defaults in parent context. The JWT resource inherently eneds to be
+    set as defaults in parent context. The JWT resource inherently needs to be
     accessible.
     """
 

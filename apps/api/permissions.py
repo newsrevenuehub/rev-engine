@@ -1,7 +1,14 @@
+import logging
+
+from django.conf import settings
+
 from rest_framework import permissions
 
 from apps.contributions.models import Contributor
 from apps.users.choices import Roles
+
+
+logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
 
 
 ALL_ACCESSOR = "all"
@@ -79,8 +86,14 @@ class HasDeletePrivilegesViaRole(permissions.BasePermission):
 
     def has_permission(self, request, view):
         pk = view.kwargs.get("pk")
-        instance = view.model.objects.get(pk=pk)
-        return pk is not None and view.model.user_has_delete_permission_by_virtue_of_role(request.user, instance)
+        try:
+            instance = view.model.objects.get(pk=pk)
+            return pk is not None and view.model.user_has_delete_permission_by_virtue_of_role(request.user, instance)
+        except view.model.DoesNotExist:
+            logger.warning(
+                f"`HasDeletePrivilegesViaRole.has_permission` cannot find the requested instance with pk {pk}"
+            )
+            return False
 
 
 def is_a_contributor(user):

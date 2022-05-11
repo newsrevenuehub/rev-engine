@@ -30,7 +30,6 @@ const PageEditor = lazy(() => componentLoader(() => import('components/pageEdito
 
 function DashboardRouter() {
   const isContributorApp = isContributorAppPath();
-  console.log(isContributorApp);
 
   if (isContributorApp) return <ContributorRouter />;
 
@@ -51,15 +50,6 @@ function DashboardRouter() {
             <ProtectedRoute path={ROUTES.DASHBOARD_SLUG} render={() => <TrackPageView component={Main} />} />
             <ProtectedRoute path={ROUTES.EDITOR_ROUTE_PAGE} render={() => <TrackPageView component={PageEditor} />} />
             <ProtectedRoute path={ROUTES.EDITOR_ROUTE_REV} render={() => <TrackPageView component={PageEditor} />} />
-
-            {/* Contributor Dashboard */}
-            <ProtectedRoute
-              path={ROUTES.CONTRIBUTOR_DASHBOARD}
-              render={() => <TrackPageView component={ContributorDashboard} />}
-              contributor
-            />
-            <Route path={ROUTES.CONTRIBUTOR_ENTRY} render={() => <TrackPageView component={ContributorEntry} />} />
-            <Route path={ROUTES.CONTRIBUTOR_VERIFY} render={() => <TrackPageView component={ContributorVerify} />} />
           </Switch>
         </React.Suspense>
       </ChunkErrorBoundary>

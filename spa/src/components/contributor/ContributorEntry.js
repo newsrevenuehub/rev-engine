@@ -45,7 +45,7 @@ function ContributorEntry({ page }) {
 
   let portalName = `RevEngine`;
   if (page?.revenue_program) {
-    portalName = page?.revenue_program.name;
+    portalName = page.revenue_program.name;
   }
 
   return (

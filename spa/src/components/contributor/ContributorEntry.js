@@ -4,6 +4,8 @@ import * as S from './ContributorEntry.styled';
 import { GENERIC_ERROR } from 'constants/textConstants';
 import { useAlert } from 'react-alert';
 
+import useSubdomain from 'hooks/useSubdomain';
+
 // AJAX
 import axios from 'ajax/axios';
 import { GET_MAGIC_LINK } from 'ajax/endpoints';
@@ -21,6 +23,7 @@ function ContributorEntry({ page }) {
   const [errors, setErrors] = useState({});
 
   const [showConfirmation, setShowConfirmation] = useState(false);
+  const subdomain = useSubdomain();
 
   useConfigureAnalytics();
 
@@ -28,7 +31,7 @@ function ContributorEntry({ page }) {
     e.preventDefault();
     setLoading(true);
     try {
-      const response = await axios.post(GET_MAGIC_LINK, { email });
+      const response = await axios.post(GET_MAGIC_LINK, { email, subdomain });
       if (response.status === 200) setShowConfirmation(true);
     } catch (e) {
       if (e.response?.status === 429) {

@@ -154,7 +154,7 @@ class RequestContributorTokenEmailView(APIView):
             if not domain:
                 return Response({"detail": "Missing Revenue Program subdomain"}, status=status.HTTP_404_NOT_FOUND)
             magic_link = f"{domain}/{settings.CONTRIBUTOR_VERIFY_URL}?token={token}&email={email}"
-            logger.info(f"Sending magic link email to {email}")
+            logger.info(f"Sending magic link email to {email} | {magic_link}")
             send_email(
                 identifier=settings.EMAIL_TEMPLATE_IDENTIFIER_MAGIC_LINK_DONOR,
                 to=email,

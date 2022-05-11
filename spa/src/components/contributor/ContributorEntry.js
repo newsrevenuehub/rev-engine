@@ -14,12 +14,11 @@ import Input from 'elements/inputs/Input';
 // Analytics
 import { useConfigureAnalytics } from 'components/analytics';
 
-function ContributorEntry(props) {
+function ContributorEntry({ page }) {
   const alert = useAlert();
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState('');
   const [errors, setErrors] = useState({});
-  const { page } = props;
 
   const [showConfirmation, setShowConfirmation] = useState(false);
 

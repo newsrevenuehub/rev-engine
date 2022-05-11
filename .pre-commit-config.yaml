@@ -93,9 +93,11 @@ repos:
           - eslint-plugin-cypress@^2.11.3
           - eslint-config-prettier@8.3.0
           - eslint-plugin-chai-friendly@^0.7.1
-  # Docker file formatter/checker.
-  - repo: https://github.com/pryorda/dockerfilelint-precommit-hooks
-    rev: v0.1.0
-    hooks:
-      - id: dockerfilelint
-        stages: [commit]
+  # Disabled as it complains that `FROM base AS depploy needs to specific tag, but opinions vary.
+  # DEV-1763
+  # # Docker file formatter/checker.
+  # - repo: https://github.com/pryorda/dockerfilelint-precommit-hooks
+  #   rev: v0.1.0
+  #   hooks:
+  #     - id: dockerfilelint
+  #       stages: [commit]

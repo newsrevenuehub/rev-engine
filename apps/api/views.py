@@ -1,3 +1,4 @@
+import logging
 from datetime import datetime
 
 from django.conf import settings
@@ -20,6 +21,8 @@ from apps.api.tokens import ContributorRefreshToken
 from apps.contributions.serializers import ContributorSerializer
 from apps.emails.tasks import send_donor_email
 
+
+logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
 
 COOKIE_PATH = "/"
 
@@ -57,6 +60,7 @@ class TokenObtainPairCookieView(simplejwt_views.TokenObtainPairView):
         try:
             serializer.is_valid(raise_exception=True)
         except exceptions.TokenError as e:
+            logging.info("TokenObtainPairPairCookie fail", exc_info=True)
             raise exceptions.InvalidToken(e.args[0])
 
         response = Response(serializer.validated_data, status=status.HTTP_200_OK)
@@ -73,6 +77,9 @@ class TokenObtainPairCookieView(simplejwt_views.TokenObtainPairView):
             "csrftoken": csrf_token,
         }
 
+        logging.info(
+            f"TokenObtainPairPairCookie good; user {serializer.validated_data['user']} csrf_token {csrf_token}"
+        )
         return response
 
     def delete(self, request, *args, **kwargs):
@@ -85,6 +92,7 @@ class TokenObtainPairCookieView(simplejwt_views.TokenObtainPairView):
 
         response.data = {"detail": "success"}
 
+        logging.info("TokenObtainPairPairCookie cookie deleted")
         return response
 
 
@@ -103,6 +111,9 @@ class RequestContributorTokenEmailView(APIView):
         try:
             serializer.is_valid(raise_exception=True)
         except NoSuchContributorError:
+            logging.info(
+                f"Request MagicLink fail; NoSuchContributor deserialize request.data {request.data}", exc_info=True
+            )
             # Don't send special response here. We don't want to indicate whether or not a given address is in our system.
             return Response({"detail": "success"}, status=status.HTTP_200_OK)
 
@@ -118,8 +129,9 @@ class RequestContributorTokenEmailView(APIView):
             subject="Manage your contributions",
             template_data={"magic_link": magic_link},
         )
+        logging.info(f"Request MagicLink email sent; email {email} token {token} url {magic_link}")
 
-        # This is sent in an async task. We won't know so send OK anyway.
+        # Email is sent in an async task. We won't know success so send OK anyway.
         return Response({"detail": "success"}, status=status.HTTP_200_OK)
 
 
@@ -160,4 +172,7 @@ class VerifyContributorTokenView(APIView):
             "csrftoken": csrf_token,
         }
 
+        logging.info(
+            f"VerifyContributorTokenView good; user {request.user} long_token {long_lived_token} csrf_token {csrf_token}"
+        )
         return response

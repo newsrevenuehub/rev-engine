@@ -97,6 +97,10 @@ class OrganizationAdmin(RevEngineSimpleHistoryAdmin, ReverseModelAdmin):  # prag
             },
         ),
         (
+            "Email Templates",
+            {"fields": ("uses_email_templates",)},
+        ),
+        (
             "Payment Provider",
             {
                 "fields": (

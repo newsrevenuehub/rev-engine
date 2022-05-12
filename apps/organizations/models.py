@@ -84,7 +84,10 @@ class Organization(IndexedTimeStampedModel, RoleAssignmentResourceModelMixin):
     )
 
     users = models.ManyToManyField("users.User", through="users.OrganizationUser")
-    uses_email_templates = models.BooleanField(default=False)
+    send_receipt_email_via_nre = models.BooleanField(
+        default=True,
+        help_text="""If false, assumed to be sent via SF. Other emails, e.g. magic_link, always sent via NRE""",
+    )
 
     @property
     def admin_revenueprogram_options(self):

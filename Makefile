@@ -2,10 +2,10 @@
 test: run-tests
 
 debug_test:
-	pytest --pdb --pdbcls=IPython.terminal.debugger:Pdb 
+	pytest --pdb --pdbcls=IPython.terminal.debugger:Pdb
 
 continuous_test:
-	git ls-files | entr pytest -x -s -vv --log-cli-level=INFO 
+	git ls-files | entr pytest -x -s -vv --log-cli-level=INFO
 
 clean:
 	@find . -name "*.pyc" -exec rm -rf {} \;

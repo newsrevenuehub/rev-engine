@@ -20,34 +20,34 @@ jobs:
           npm ci
           npm run test:ci
 
-  cypress-test:
-    runs-on: ubuntu-latest
-    env:
-      REACT_APP_HUB_STRIPE_API_PUB_KEY: pk_test_djfoi12312414
-      REACT_APP_STRIPE_ACCOUNT_ID: acc_3kjfo23jj
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v2
-      - name: Setup custom hosts for subdomain testing
-        run: |
-          echo "127.0.0.1 revengine-testabc123.com" | sudo tee -a /etc/hosts
-          echo "127.0.0.1 revenueprogram.revengine-testabc123.com" | sudo tee -a /etc/hosts
-      - name: Debug hosts
-        run: cat /etc/hosts
-      - name: Cypress tests
-        uses: cypress-io/github-action@v2
-        with:
-          working-directory: spa
-          build: npx cypress info
-          start: npm run start:subdomains
-          wait-on: http://localhost:3000
-      - uses: actions/upload-artifact@v2
-        if: failure()
-        with:
-          name: cypress-screenshots
-          path: spa/cypress/screenshots
-      - uses: actions/upload-artifact@v2
-        if: failure()
-        with:
-          name: cypress-videos
-          path: spa/cypress/videos
+  # cypress-test:
+  #   runs-on: ubuntu-latest
+  #   env:
+  #     REACT_APP_HUB_STRIPE_API_PUB_KEY: pk_test_djfoi12312414
+  #     REACT_APP_STRIPE_ACCOUNT_ID: acc_3kjfo23jj
+  #   steps:
+  #     - name: Checkout
+  #       uses: actions/checkout@v2
+  #     - name: Setup custom hosts for subdomain testing
+  #       run: |
+  #         echo "127.0.0.1 revengine-testabc123.com" | sudo tee -a /etc/hosts
+  #         echo "127.0.0.1 revenueprogram.revengine-testabc123.com" | sudo tee -a /etc/hosts
+  #     - name: Debug hosts
+  #       run: cat /etc/hosts
+  #     - name: Cypress tests
+  #       uses: cypress-io/github-action@v2
+  #       with:
+  #         working-directory: spa
+  #         build: npx cypress info
+  #         start: npm run start:subdomains
+  #         wait-on: http://localhost:3000
+  #     - uses: actions/upload-artifact@v2
+  #       if: failure()
+  #       with:
+  #         name: cypress-screenshots
+  #         path: spa/cypress/screenshots
+  #     - uses: actions/upload-artifact@v2
+  #       if: failure()
+  #       with:
+  #         name: cypress-videos
+  #         path: spa/cypress/videos

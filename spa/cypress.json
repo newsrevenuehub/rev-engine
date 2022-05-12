@@ -1,4 +1,5 @@
 {
+  "projectId": "68ek4u",
   "baseUrl": "http://localhost:3000",
   "videoUploadOnPasses": false,
   "chromeWebSecurity": false,

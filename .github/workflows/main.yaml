@@ -1,0 +1,72 @@
+name: Cypress Tests with installation job
+
+on: [push]
+
+jobs:
+  install:
+    runs-on: ubuntu-latest
+    container: cypress/browsers:node12.18.3-chrome87-ff82
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Save build folder
+        uses: actions/upload-artifact@v2
+        with:
+          name: build
+          if-no-files-found: error
+          path: build
+
+      - name: Cypress install
+        uses: cypress-io/github-action@v2
+        with:
+          # Disable running of tests within install job
+          runTests: false
+          build: yarn build
+
+  ui-chrome-tests:
+    runs-on: ubuntu-latest
+    env:
+      REACT_APP_HUB_STRIPE_API_PUB_KEY: pk_test_djfoi12312414
+      REACT_APP_STRIPE_ACCOUNT_ID: acc_3kjfo23jj
+    container: cypress/browsers:node12.18.3-chrome87-ff82
+    needs: install
+    strategy:
+      fail-fast: false
+      matrix:
+        # run copies of the current job in parallel
+        containers: [1, 2, 3, 4, 5]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Setup custom hosts for subdomain testing
+        run: |
+          echo "127.0.0.1 revengine-testabc123.com" | sudo tee -a /etc/hosts
+          echo "127.0.0.1 revenueprogram.revengine-testabc123.com" | sudo tee -a /etc/hosts
+      - name: Debug hosts
+        run: cat /etc/hosts
+      - name: Download the build folders
+        uses: actions/download-artifact@v2
+        with:
+          name: build
+          path: build
+
+      - name: 'UI Tests - Chrome'
+        uses: cypress-io/github-action@v2
+        with:
+          # we have already installed all dependencies above
+          working-directory: spa
+          install: false
+          start: npm run start:subdomains
+          wait-on: 'http://localhost:3000'
+          wait-on-timeout: 120
+          browser: chrome
+          record: true
+          parallel: true
+          group: 'UI - Chrome'
+#          spec: cypress/tests/ui/*
+        env:
+          CYPRESS_RECORD_KEY: ${{ secrets.CYPRESS_RECORD_KEY }}
+          # Recommended: pass the GitHub token lets this action correctly
+          # determine the unique run id necessary to re-run the checks
+          # GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

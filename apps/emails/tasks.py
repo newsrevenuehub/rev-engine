@@ -17,10 +17,10 @@ logger = get_task_logger(f"{settings.DEFAULT_LOGGER}.{__name__}")
     autoretry_for=(AnymailAPIError,),
 )
 def send_donor_email(identifier, to, subject, template_data):  # pragma: no cover
-    logger.info("Sending a donation email")
+    logger.info("Sending receipt email id:%s to:%s subject:%s", identifier, to, subject)
     message = AnymailMessage()
     message.template_id = identifier
-    message.to = [to]
+    message.to = [to, ]
     message.subject = subject
     message.merge_global_data = template_data
     message.send()

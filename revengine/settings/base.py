@@ -253,7 +253,7 @@ STRIPE_TEST_SECRET_KEY = os.getenv("TEST_HUB_STRIPE_API_SECRET_KEY", "")
 STRIPE_OAUTH_SCOPE = "read_write"
 STRIPE_LIVE_MODE = os.environ.get("STRIPE_LIVE_MODE", "false").lower() == "true"
 
-GENERIC_STRIPE_PRODUCT_NAME = "Donation via RevEngine"
+GENERIC_STRIPE_PRODUCT_NAME = "Contribution via RevEngine"
 
 # Get it from the section in the Stripe dashboard where you added the webhook endpoint
 STRIPE_WEBHOOK_SECRET = os.getenv("STRIPE_WEBHOOK_SECRET", "")

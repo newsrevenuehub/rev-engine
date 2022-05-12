@@ -6,6 +6,45 @@ import django.utils.timezone
 import model_utils.fields
 
 
+def fill_payment_provider_table(apps, org_data):
+    cols = (
+        "stripe_account_id",
+        "stripe_product_id",
+        "currency",
+        "default_payment_provider",
+        "stripe_oauth_refresh_token",
+        "stripe_verified",
+    )
+    payment_provider_model = apps.get_model("organizations", "PaymentProvider")
+    latest_stripe_details = (
+        org_data.distinct("stripe_account_id").order_by("stripe_account_id", "-modified").values(*cols)
+    )
+    payment_provider_model.objects.bulk_create([payment_provider_model(**i) for i in latest_stripe_details])
+
+
+def update_revenue_program(apps, org_map_with_pk):
+    payment_provider_data = apps.get_model("organizations", "PaymentProvider").objects.all()
+    stripe_id_with_pp_map = {i.stripe_account_id: i.id for i in payment_provider_data}
+    revenue_program_model = apps.get_model("organizations", "RevenueProgram")
+
+    data = []
+    for revenue_program in revenue_program_model.objects.all():
+        org = org_map_with_pk[revenue_program.organization_id]
+        payment_provider_id = stripe_id_with_pp_map[org.stripe_account_id]
+        revenue_program.payment_provider_id = payment_provider_id
+        revenue_program.non_profit = org.non_profit
+        revenue_program.domain_apple_verified_date = org.domain_apple_verified_date
+        data.append(revenue_program)
+    revenue_program_model.objects.bulk_update(data, ["payment_provider_id", "non_profit", "domain_apple_verified_date"])
+
+
+def migrate_data(apps, *args):
+    org_data = apps.get_model("organizations", "Organization").objects.all()
+    org_map_with_pk = {i.id: i for i in org_data}
+    fill_payment_provider_table(apps, org_data)
+    update_revenue_program(apps, org_map_with_pk)
+
+
 class Migration(migrations.Migration):
 
     dependencies = [
@@ -49,70 +88,6 @@ class Migration(migrations.Migration):
                 "abstract": False,
             },
         ),
-        migrations.RemoveField(
-            model_name="historicalorganization",
-            name="currency",
-        ),
-        migrations.RemoveField(
-            model_name="historicalorganization",
-            name="default_payment_provider",
-        ),
-        migrations.RemoveField(
-            model_name="historicalorganization",
-            name="domain_apple_verified_date",
-        ),
-        migrations.RemoveField(
-            model_name="historicalorganization",
-            name="non_profit",
-        ),
-        migrations.RemoveField(
-            model_name="historicalorganization",
-            name="stripe_account_id",
-        ),
-        migrations.RemoveField(
-            model_name="historicalorganization",
-            name="stripe_oauth_refresh_token",
-        ),
-        migrations.RemoveField(
-            model_name="historicalorganization",
-            name="stripe_product_id",
-        ),
-        migrations.RemoveField(
-            model_name="historicalorganization",
-            name="stripe_verified",
-        ),
-        migrations.RemoveField(
-            model_name="organization",
-            name="currency",
-        ),
-        migrations.RemoveField(
-            model_name="organization",
-            name="default_payment_provider",
-        ),
-        migrations.RemoveField(
-            model_name="organization",
-            name="domain_apple_verified_date",
-        ),
-        migrations.RemoveField(
-            model_name="organization",
-            name="non_profit",
-        ),
-        migrations.RemoveField(
-            model_name="organization",
-            name="stripe_account_id",
-        ),
-        migrations.RemoveField(
-            model_name="organization",
-            name="stripe_oauth_refresh_token",
-        ),
-        migrations.RemoveField(
-            model_name="organization",
-            name="stripe_product_id",
-        ),
-        migrations.RemoveField(
-            model_name="organization",
-            name="stripe_verified",
-        ),
         migrations.AddField(
             model_name="historicalrevenueprogram",
             name="domain_apple_verified_date",
@@ -151,5 +126,70 @@ class Migration(migrations.Migration):
             field=models.ForeignKey(
                 null=True, on_delete=django.db.models.deletion.SET_NULL, to="organizations.paymentprovider"
             ),
+        ),
+        migrations.RunPython(migrate_data),
+        migrations.RemoveField(
+            model_name="historicalorganization",
+            name="currency",
+        ),
+        migrations.RemoveField(
+            model_name="historicalorganization",
+            name="default_payment_provider",
+        ),
+        migrations.RemoveField(
+            model_name="historicalorganization",
+            name="domain_apple_verified_date",
+        ),
+        migrations.RemoveField(
+            model_name="historicalorganization",
+            name="non_profit",
+        ),
+        migrations.RemoveField(
+            model_name="historicalorganization",
+            name="stripe_account_id",
+        ),
+        migrations.RemoveField(
+            model_name="historicalorganization",
+            name="stripe_oauth_refresh_token",
+        ),
+        migrations.RemoveField(
+            model_name="historicalorganization",
+            name="stripe_product_id",
+        ),
+        migrations.RemoveField(
+            model_name="historicalorganization",
+            name="stripe_verified",
+        ),
+        migrations.RemoveField(
+            model_name="organization",
+            name="currency",
+        ),
+        migrations.RemoveField(
+            model_name="organization",
+            name="default_payment_provider",
+        ),
+        migrations.RemoveField(
+            model_name="organization",
+            name="domain_apple_verified_date",
+        ),
+        migrations.RemoveField(
+            model_name="organization",
+            name="non_profit",
+        ),
+        migrations.RemoveField(
+            model_name="organization",
+            name="stripe_account_id",
+        ),
+        migrations.RemoveField(
+            model_name="organization",
+            name="stripe_oauth_refresh_token",
+        ),
+        migrations.RemoveField(
+            model_name="organization",
+            name="stripe_product_id",
+        ),
+        migrations.RemoveField(
+            model_name="organization",
+            name="stripe_verified",
         ),
     ]

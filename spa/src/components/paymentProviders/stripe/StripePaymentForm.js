@@ -319,6 +319,7 @@ function StripePaymentForm({ loading, setLoading, offerPayFees }) {
           </S.PaymentSubmitButton>
         </S.StripePaymentForm>
       )}
+
       <S.IconWrapper>
         <S.Icon icon={ICONS.STRIPE_POWERED} />
       </S.IconWrapper>

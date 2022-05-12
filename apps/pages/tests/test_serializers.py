@@ -53,6 +53,7 @@ class DonationPageFullDetailSerializerTest(RevEngineApiAbstractTestCase):
             "google_analytics_v4_id",
             "facebook_pixel_id",
         ):
+
             self.assertEqual(data["revenue_program"][key], getattr(self.page.revenue_program, key))
 
     def test_get_benefit_levels(self):
@@ -104,13 +105,13 @@ class DonationPageFullDetailSerializerTest(RevEngineApiAbstractTestCase):
             "template_pk": template.pk,
             "name": "My New Page From a Template",
             "slug": "my-new-page-from-a-template",
-            "revenue_program": self.page.revenue_program.pk,
+            "revenue_program_pk": self.page.revenue_program.pk,
         }
         serializer = self.serializer(data=new_page_data)
         request = self.request_factory.post("/")
         request.user = self.org_user
         serializer.context["request"] = request
-        serializer.is_valid()
+
         self.assertTrue(serializer.is_valid())
         new_page = serializer.save()
         self.assertEqual(new_page.heading, template.heading)

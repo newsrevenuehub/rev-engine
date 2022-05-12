@@ -57,5 +57,5 @@
   },
   "maxWidths": { "sm": "500px", "md": "890px", "lg": "1100px", "xl": "1300px" },
   "name": "my styles",
-  "revenue_program": { "id": 41, "name": "test one", "slug": "test-one" }
+  "revenue_program_pk": 41
 }

@@ -18,7 +18,7 @@ def update_benefit_level_with_revenue_program(apps, org_with_rp, benefit_level_w
     benefit_level_model = apps.get_model("organizations", "BenefitLevel")
     for benefit_level in benefit_level_model.objects.all():
         benefit_level.revenue_program_id = org_with_rp[benefit_level.organization.id]
-        benefit_level.level = benefit_level_with_level[benefit_level.id]
+        benefit_level.level = benefit_level_with_level.get(benefit_level.id, 0)
         data.append(benefit_level)
     benefit_level_model.objects.bulk_update(data, ["revenue_program_id", "level"])
 

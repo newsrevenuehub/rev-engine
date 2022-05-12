@@ -1,4 +1,12 @@
 
+test: run-tests
+
+debug_test:
+	pytest --pdb --pdbcls=IPython.terminal.debugger:Pdb 
+
+continuous_test:
+	git ls-files | entr pytest -x -s -vv --log-cli-level=INFO 
+
 clean:
 	@find . -name "*.pyc" -exec rm -rf {} \;
 	@find . -name "__pycache__" -delete
@@ -39,3 +47,23 @@ check-dc:
 start-celery:
 	@echo 'Bring up test worker'
 	celery -A revengine worker -l INFO
+
+nuclear:
+	-docker rm -vf $$(docker ps -a -q)
+	-docker rmi -f $$(docker images -a -q)
+	-docker system prune -af --volumes
+
+deploy-to-dev:
+	git push heroku-rev-engine-dev develop:main
+
+deploy-to-test:
+	git push heroku-rev-engine-test test:main
+
+deploy-to-staging:
+	git push heroku-rev-engine-staging staging:main
+
+deploy-to-demo:
+	git push heroku-rev-engine-demo demo:main
+
+deploy-to-prod:
+	git push heroku-rev-engine-prod main:main

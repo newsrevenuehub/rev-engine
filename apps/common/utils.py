@@ -1,5 +1,93 @@
+import logging
+import os
+import re
+
 from django.conf import settings
 from django.utils.text import slugify
+
+import CloudFlare
+import stripe
+
+
+logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
+
+
+def delete_stripe_webhook(webhook_url, api_key):
+    webhooks = stripe.WebhookEndpoint.list()
+    urls = {x["url"]: x["id"] for x in webhooks["data"]}
+    if webhook_url in urls:
+        webhook_id = urls[webhook_url]
+        stripe.WebhookEndpoint.delete(webhook_id, api_key=api_key)
+
+
+def create_stripe_webhook(webhook_url, api_key):
+    webhooks = stripe.WebhookEndpoint.list()
+    urls = [x["url"] for x in webhooks["data"]]
+    if webhook_url in urls:
+        logger.info("Webhook already exists: %s", webhook_url)
+        return None
+
+    response = stripe.WebhookEndpoint.create(
+        url=webhook_url,
+        enabled_events=settings.STRIPE_WEBHOOK_EVENTS,
+        connect=True,
+        api_key=api_key,
+        api_version=settings.STRIPE_API_VERSION,
+    )
+    if response:
+        return response["secret"]
+
+
+def delete_cloudflare_cnames(ticket_id):
+    zone_name = os.environ.get("CF_ZONE_NAME")
+    cloudflare_conn = CloudFlare.CloudFlare()
+    zone_id = cloudflare_conn.zones.get(params={"name": zone_name})[0]["id"]
+    zone_dns_records = cloudflare_conn.zones.dns_records.get(zone_id, params={"per_page": 300})
+    cloudflare_domains = {x["name"]: x["content"] for x in zone_dns_records}
+    cloudflare_record_ids = {x["name"]: x["id"] for x in zone_dns_records}
+    for domain in cloudflare_domains:
+        record_id = cloudflare_record_ids[domain]
+        try:
+            if ticket_id.lower() in domain.lower():
+                logger.info("Deleting DNS entry for: %s", domain)
+                cloudflare_conn.zones.dns_records.delete(zone_id, record_id)
+        except CloudFlare.exceptions.CloudFlareAPIError as error:
+            logger.warning(error)
+
+
+def upsert_cloudflare_cnames(slugs: list = None):
+    # takes a list instead of a single entry so it can do one call to fetch them all
+    heroku_app_name = os.environ.get("HEROKU_APP_NAME")
+    zone_name = os.environ.get("CF_ZONE_NAME")
+    cloudflare_conn = CloudFlare.CloudFlare()
+    zone_id = cloudflare_conn.zones.get(params={"name": zone_name})[0]["id"]
+    # fetch this so we don't try adding entries that are already there
+    # TODO: if this reaches over 300 we'll need to paginate
+    zone_dns_records = cloudflare_conn.zones.dns_records.get(zone_id, params={"per_page": 300})
+    cloudflare_domains = {x["name"]: x["content"] for x in zone_dns_records}
+    cloudflare_record_ids = {x["name"]: x["id"] for x in zone_dns_records}
+
+    for slug in slugs:
+        fqdn = f"{slug}.{zone_name}"
+        content = f"{heroku_app_name}.herokuapp.com"
+        dns_record = {"name": f"{slug}", "type": "CNAME", "content": content, "proxied": True}
+        try:
+            if fqdn not in cloudflare_domains:
+                logger.info("Creating DNS entry for %s → %s", fqdn, content)
+                cloudflare_conn.zones.dns_records.post(zone_id, data=dns_record)
+            elif cloudflare_domains[fqdn] != content:
+                logger.info("Updating DNS entry for %s → %s", fqdn, content)
+                record_id = cloudflare_record_ids[fqdn]
+                cloudflare_conn.zones.dns_records.patch(zone_id, record_id, data=dns_record)
+        except CloudFlare.exceptions.CloudFlareAPIError as error:
+            logger.warning(error)
+
+
+def extract_ticket_id_from_branch_name(branch_name):
+    """
+    Extracts the ticket id from the branch name.
+    """
+    return re.match(r"^[a-zA-Z]*-[0-9]*", branch_name).group().lower()
 
 
 def normalize_slug(name="", slug="", max_length=50):
@@ -26,7 +114,7 @@ def get_subdomain_from_request(request):
     subdomain = None
     host = request.get_host()
     split_host = host.split(".")
-    if len(split_host) > 2 and not split_host[0] in settings.NON_DONATION_PAGE_SUBDOMAINS:
+    if len(split_host) > 2 and not split_host[0] in settings.DASHBOARD_SUBDOMAINS:
         subdomain = split_host[0]
     return subdomain
 

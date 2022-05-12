@@ -13,13 +13,13 @@ from apps.pages import serializers
 from apps.pages.helpers import PageDetailError, PageFullDetailHelper
 from apps.pages.models import DonationPage, Font, Style, Template
 from apps.public.permissions import IsActiveSuperUser
-from apps.users.views import FilterQuerySetByUserMixin, PerUserCreateDeletePermissionsMixin
+from apps.users.views import FilterQuerySetByUserMixin, PerUserDeletePermissionsMixin
 
 
 logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
 
 
-class PageViewSet(viewsets.ModelViewSet, FilterQuerySetByUserMixin, PerUserCreateDeletePermissionsMixin):
+class PageViewSet(viewsets.ModelViewSet, FilterQuerySetByUserMixin, PerUserDeletePermissionsMixin):
     """Donation pages exposed through API
 
     Only superusers and users with role assignments are meant to have access. Results of lists are filtered
@@ -127,7 +127,7 @@ class TemplateViewSet(viewsets.ModelViewSet, FilterQuerySetByUserMixin):
         )
 
 
-class StyleViewSet(viewsets.ModelViewSet, FilterQuerySetByUserMixin, PerUserCreateDeletePermissionsMixin):
+class StyleViewSet(viewsets.ModelViewSet, FilterQuerySetByUserMixin, PerUserDeletePermissionsMixin):
     """Donation pages exposed through API
 
     Only superusers and users with role assignments are meant to have access. Results of lists are filtered

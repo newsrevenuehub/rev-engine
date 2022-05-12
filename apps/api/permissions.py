@@ -67,7 +67,7 @@ class HasRoleAssignment(permissions.BasePermission):
 
 
 class _BaseAssumedViewAndModelMixin:
-    """Ensure view and model use mixins as expected by HasCreatePrivielgesViaRole and HasDeletePrivilegesViaRole"""
+    """Ensure view and model use mixins as expected by HasDeletePrivilegesViaRole"""
 
     def __init__(self, view, *args, **kwargs):
         if not self._assumed_mixins_configured(view):
@@ -86,13 +86,6 @@ class _BaseAssumedViewAndModelMixin:
         return all(
             [isinstance(view, FilterQuerySetByUserMixin), issubclass(view.model, RoleAssignmentResourceModelMixin)]
         )
-
-
-class HasCreatePrivilegesViaRole(_BaseAssumedViewAndModelMixin):
-    """Call a view's model's `user_has_create_permission_by_virtue_of_role` method to determine permissions"""
-
-    def has_permission(self, request, view):
-        return view.model.user_has_create_permission_by_virtue_of_role(request.user, view)
 
 
 class HasDeletePrivilegesViaRole(_BaseAssumedViewAndModelMixin):

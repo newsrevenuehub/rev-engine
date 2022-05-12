@@ -67,3 +67,5 @@ deploy-to-demo:
 
 deploy-to-prod:
 	git push heroku-rev-engine-prod main:main
+
+deploy-all: deploy-to-dev deploy-to-test deploy-to-staging deploy-to-demo deploy-to-prod

@@ -2,10 +2,10 @@ import * as S from './Dashboard.styled';
 
 // Routing
 import { Route, Switch } from 'react-router-dom';
-import { DONATIONS_SLUG, CONTENT_SLUG, ORGANIZATION_SLUG } from 'routes';
+import { DONATIONS_SLUG, CONTENT_SLUG } from 'routes';
 
 // State
-import { useOrganizationContext } from 'components/Main';
+import { usePaymentProviderContext } from 'components/Main';
 import { PP_STATES } from 'components/connect/BaseProviderInfo';
 
 // Children
@@ -14,10 +14,9 @@ import Donations from 'components/donations/Donations';
 import Content from 'components/content/Content';
 import GlobalLoading from 'elements/GlobalLoading';
 import ProviderConnect from 'components/connect/ProviderConnect';
-import Organization from 'components/organization/Organization';
 
 function Dashboard() {
-  const { checkingProvider, paymentProviderConnectState } = useOrganizationContext();
+  const { checkingProvider, paymentProviderConnectState } = usePaymentProviderContext();
 
   const getShouldAllowDashboard = () => {
     const isConnected =
@@ -39,9 +38,6 @@ function Dashboard() {
         <S.DashboardContent>
           {getShouldAllowDashboard() && (
             <Switch>
-              <Route path={ORGANIZATION_SLUG}>
-                <Organization />
-              </Route>
               <Route path={DONATIONS_SLUG}>
                 <Donations />
               </Route>

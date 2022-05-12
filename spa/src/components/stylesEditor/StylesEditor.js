@@ -4,7 +4,7 @@ import * as S from './StylesEditor.styled';
 
 // AJAX
 import useRequest from 'hooks/useRequest';
-import { LIST_STYLES, LIST_FONTS, REVENUE_PROGRAMS } from 'ajax/endpoints';
+import { LIST_STYLES, LIST_FONTS } from 'ajax/endpoints';
 
 // Assets
 import { faSave, faTimes, faTrash } from '@fortawesome/free-solid-svg-icons';
@@ -16,6 +16,7 @@ import { ChromePicker } from 'react-color';
 
 // Hooks
 import useWebFonts from 'hooks/useWebFonts';
+import useUser from 'hooks/useUser';
 
 // Context
 import { useGlobalContext } from 'components/MainLayout';
@@ -34,10 +35,10 @@ function StylesEditor({ styles, setStyles, handleKeepChanges, handleDiscardChang
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
   const [availableFonts, setAvailableFonts] = useState([]);
-  const [availableRevenuePrograms, setAvailableRevenuePrograms] = useState([]);
+
+  const { revenue_programs: availableRevenuePrograms } = useUser();
 
   const requestGetFonts = useRequest();
-  const requestGetRevenuePrograms = useRequest();
 
   const requestCreateStyles = useRequest();
   const requestUpdateStyles = useRequest();
@@ -83,23 +84,6 @@ function StylesEditor({ styles, setStyles, handleKeepChanges, handleDiscardChang
         onSuccess: ({ data }) => {
           setLoading(false);
           setAvailableFonts(data);
-        },
-        onFailure: () => {
-          setLoading(false);
-          alert.error(GENERIC_ERROR);
-        }
-      }
-    );
-  }, [alert]);
-
-  useEffect(() => {
-    setLoading(true);
-    requestGetRevenuePrograms(
-      { method: 'GET', url: REVENUE_PROGRAMS },
-      {
-        onSuccess: ({ data }) => {
-          setLoading(false);
-          setAvailableRevenuePrograms(data);
         },
         onFailure: () => {
           setLoading(false);
@@ -201,7 +185,7 @@ function StylesEditor({ styles, setStyles, handleKeepChanges, handleDiscardChang
             label="Select a revenue program"
             items={availableRevenuePrograms}
             selectedItem={styles.revenue_program}
-            onSelectedItemChange={({ selectedItem }) => setStyles({ ...styles, revenue_program: selectedItem })}
+            onSelectedItemChange={({ selectedItem }) => setStyles({ ...styles, revenue_program: selectedItem.id })}
             testId="heading-font-select"
             name="revenue_program"
             placeholder="Select a revenue program"

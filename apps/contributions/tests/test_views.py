@@ -316,7 +316,7 @@ class StripeConfirmTest(APITestCase):
     @patch("stripe.Account.retrieve", side_effect=MockStripeAccountNotEnabled)
     def test_confirm_connected_not_verified(self, mock_account_retrieve, *args):
         """
-        If an organization has connected its account with Hub (has a stripe_account_id), but
+        If an organization has connected its account with NRE (has a stripe_account_id), but
         their Stripe account is not ready to recieve payments, they're in a special state.
         """
         self.organization.stripe_verified = False

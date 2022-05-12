@@ -23,7 +23,7 @@ class PageViewSetTest(RevEngineApiAbstractTestCase):
             "name": "My new page, tho",
             "heading": "New DonationPage",
             "slug": "new-page",
-            "revenue_program": self.org1_rp1.pk,
+            "revenue_program_pk": self.org1_rp1.pk,
         }
 
     def assert_created_page_looks_right(
@@ -36,9 +36,9 @@ class PageViewSetTest(RevEngineApiAbstractTestCase):
         creation_data = creation_data if creation_data is not None else {**self.default_page_creation_data}
         self.assertEqual(created_page.revenue_program.organization, expected_org)
         self.assertEqual(created_page.revenue_program, expected_rp)
-        for attr in [key for key in creation_data.keys() if key != "revenue_program"]:
+        for attr in [key for key in creation_data.keys() if key != "revenue_program_pk"]:
             self.assertEqual(getattr(created_page, attr), creation_data[attr])
-        self.assertEqual(creation_data["revenue_program"], expected_rp.pk)
+        self.assertEqual(creation_data["revenue_program_pk"], expected_rp.pk)
 
     ########
     # CREATE
@@ -76,10 +76,10 @@ class PageViewSetTest(RevEngineApiAbstractTestCase):
             "name": "My new page, tho",
             "heading": "New DonationPage",
             "slug": "new-page",
-            "revenue_program": self.org2_rp.pk,
+            "revenue_program_pk": self.org2_rp.pk,
         }
         url = reverse("donationpage-list")
-        self.assert_org_admin_cannot_post(url, data, expected_status_code=status.HTTP_403_FORBIDDEN)
+        self.assert_org_admin_cannot_post(url, data, expected_status_code=status.HTTP_400_BAD_REQUEST)
         self.assertEqual(my_org_pages_query.count(), before_my_org_pages_count)
         self.assertEqual(other_org_pages_query.count(), before_other_org_count)
 
@@ -113,10 +113,10 @@ class PageViewSetTest(RevEngineApiAbstractTestCase):
         before_my_pages_count = my_pages_query.count()
         before_others_count = others_pages_query.count()
         data = {**self.default_page_creation_data}
-        data["revenue_program"] = self.org2_rp.pk
+        data["revenue_program_pk"] = self.org2_rp.pk
 
         self.assert_rp_user_cannot_post(
-            reverse("donationpage-list"), data, expected_status_code=status.HTTP_403_FORBIDDEN
+            reverse("donationpage-list"), data, expected_status_code=status.HTTP_400_BAD_REQUEST
         )
         self.assertEqual(my_pages_query.count(), before_my_pages_count)
         self.assertEqual(others_pages_query.count(), before_others_count)
@@ -124,9 +124,9 @@ class PageViewSetTest(RevEngineApiAbstractTestCase):
     def test_page_create_returns_validation_error_when_missing_revenue_program(self):
         self.client.force_authenticate(user=self.hub_user)
         data = {**self.default_page_creation_data}
-        data.pop("revenue_program")
+        data.pop("revenue_program_pk")
         response = self.client.post(reverse("donationpage-list"), data)
-        self.assertEqual(response.status_code, 403)
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
     def test_page_create_returns_revenue_program_slug(self):
         """
@@ -762,21 +762,21 @@ class StylesViewsetTest(RevEngineApiAbstractTestCase):
     def create_style_payload(self):
         return {
             **self.styles_create_data_fixture,
-            "revenue_program": self.org1_rp1.pk,
+            "revenue_program_pk": self.org1_rp1.pk,
         }
 
     @property
     def create_style_payload_different_org(self):
         return {
             **self.styles_create_data_fixture,
-            "revenue_program": self.org2_rp.pk,
+            "revenue_program_pk": self.org2_rp.pk,
         }
 
     @property
     def create_style_payload_different_rp(self):
         return {
             **self.styles_create_data_fixture,
-            "revenue_program": self.org1_rp2.pk,
+            "revenue_program_pk": self.org1_rp2.pk,
         }
 
     ########
@@ -784,8 +784,8 @@ class StylesViewsetTest(RevEngineApiAbstractTestCase):
 
     def assert_created_style_is_correct(self, create_payload, created_instance):
         self.assertEqual(create_payload["name"], created_instance.name)
-        self.assertEqual(create_payload["revenue_program"], created_instance.revenue_program.pk)
-        skip_keys = ["name", "revenue_program"]
+        self.assertEqual(create_payload["revenue_program_pk"], created_instance.revenue_program.pk)
+        skip_keys = ["name", "revenue_program_pk"]
         for key, val in [(key, val) for key, val in create_payload.items() if key not in skip_keys]:
             self.assertEqual(val, created_instance.styles[key])
 
@@ -818,7 +818,7 @@ class StylesViewsetTest(RevEngineApiAbstractTestCase):
         self.assert_org_admin_cannot_post(
             reverse("style-list"),
             self.create_style_payload_different_org,
-            expected_status_code=status.HTTP_403_FORBIDDEN,
+            expected_status_code=status.HTTP_400_BAD_REQUEST,
         )
         self.assertEqual(Style.objects.count(), before_count)
 
@@ -835,7 +835,7 @@ class StylesViewsetTest(RevEngineApiAbstractTestCase):
         self.assert_rp_user_cannot_post(
             reverse("style-list"),
             self.create_style_payload_different_rp,
-            expected_status_code=status.HTTP_403_FORBIDDEN,
+            expected_status_code=status.HTTP_400_BAD_REQUEST,
         )
         self.assertEqual(Style.objects.count(), before_count)
 

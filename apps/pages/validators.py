@@ -56,42 +56,62 @@ class PagePkIsForOwnedPage:
 UNOWNED_REVENUE_PROGRAM_PK_MESSAGE = "You aren't permitted to reference this revenue program"
 MISSING_REFRENCE_TO_REV_PROGRAM_MESSAGE = "Can't determine relationship with revenue program"
 
+MISSING_USER_IN_CONTEXT_MESSAGE = "Can't determine relationship of requesting user to request {} instance"
 
-class RpPkIsForOwnedRp:
-    """Used in serializer to ensure that the id supplied for `revenue_program_pk` is for a permitted resource"""
+
+def _has_ensured_user_ownership_by_default(user, role_assignment):
+    return any(
+        [
+            user.is_superuser,
+            getattr(role_assignment, "role_type", None) == Roles.HUB_ADMIN,
+        ]
+    )
+
+
+class ValidateFkReferenceOwnership:
+    """ """
 
     requires_context = True
 
-    def __init__(self, rp_model):
-        self.rp_model = rp_model
+    def _validate_passed_fn(self, fn, expected_params):
+        if not set(expected_params).issubset(set(fn.__code__.co_varnames)):
+            logger.warn("unexpected params")
+            raise serializers.ValidationError("unexpected params")
+
+    def __init__(self, fk_attribute, has_default_access_fn=_has_ensured_user_ownership_by_default):
+        """
+        Notes on expectations around determine_ownership and has_default_access_fn
+
+        """
+        EXPECTED_ACCESS_FN_PARAMS = (
+            "user",
+            "role_assignment",
+        )
+
+        self._validate_passed_fn(has_default_access_fn, EXPECTED_ACCESS_FN_PARAMS)
+
+        self.has_default_access = has_default_access_fn
+        self.fk_attribute = fk_attribute
 
     def __call__(self, value, serializer):
-        """Get the instance referred to by `revenue_program_pk`...
+        """ """
+        user = serializer.context.get("request").user
+        if not user:
+            logger.error("`ValidateFkReferenceOwnership` expected user in request context but there wasn't one")
+            raise serializers.ValidationError(MISSING_USER_IN_CONTEXT_MESSAGE.format(serializer.model.__name__))
+        ra = getattr(user, "roleassignment", None)
 
-        ...if user is superuser or hub admin, valid
-        ...if user is an org admin, valid if referenced rp belongs to org
-        ...if user is rp admin, valid if referenced page belongs is one of their rps
-        """
-        method = serializer.context["request"].method
-        if method in ["POST", "PATCH"]:
-            target_rp = None
-            if method == "POST":
-                target_rp = value.get("revenue_program")
-
-            if method == "PATCH":
-                # rp_pk can be updated via patch, but default to existing otherwise
-                target_rp = value.get("revenue_program", serializer.instance.revenue_program)
-            if not target_rp:
-                raise serializers.ValidationError(MISSING_REFRENCE_TO_REV_PROGRAM_MESSAGE)
-            if (request := serializer.context.get("request", None)) is not None:
-                user = request.user
-                ra = getattr(user, "roleassignment", None)
-                if user.is_superuser or (ra is not None and ra.role_type == Roles.HUB_ADMIN):
-                    return
-                elif ra.role_type == Roles.ORG_ADMIN and target_rp.organization != ra.organization:
-                    raise serializers.ValidationError(UNOWNED_REVENUE_PROGRAM_PK_MESSAGE)
-                elif ra.role_type == Roles.RP_ADMIN and target_rp not in ra.revenue_programs.all():
-                    raise serializers.ValidationError(UNOWNED_REVENUE_PROGRAM_PK_MESSAGE)
+        if self.has_default_access(user, ra):
+            return
+        elif not ra:
+            logger.error(
+                "`ValidateFkReferenceOwnership` expected role assignmment in request context but there wasn't one"
+            )
+            raise serializers.ValidationError(MISSING_USER_IN_CONTEXT_MESSAGE.format(serializer.model.__name__))
         else:
-            logger.warn("`RpPkIsForOwnedRp` used in unexpected request context")
-            raise serializers.ValidationError(MISSING_REFRENCE_TO_REV_PROGRAM_MESSAGE)
+            instance = value.get(self.fk_attribute, None)
+            if instance is None:
+                return
+            if not instance.user_has_ownership_via_role(ra):
+                logger.warn("accessing unowned")
+                raise serializers.ValidationError("unowned")

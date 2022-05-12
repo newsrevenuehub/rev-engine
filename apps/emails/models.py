@@ -35,9 +35,9 @@ class BaseEmailTemplate(models.Model):
         @staticmethod
         def default_schema():
             return {
-                "donation_date": "test_donation_date",
+                "contribution_date": "test_contribution_date",
                 "donor_email": "test_donor_email",
-                "donation_amount": "test_donation_amount",
+                "contribution_amount": "test_contribution_amount",
                 "copyright_year": "test_copyright_year",
                 "org_name": "test_org_name",
             }
@@ -108,10 +108,10 @@ class PageEmailTemplate(BaseEmailTemplate):
     def one_time_donation(self, payment_manager):
         merge_data = {
             "org_name": payment_manager.get_organization().name,
-            "donation_date": timezone.now().strftime("%m-%d-%y"),
+            "contribution_date": timezone.now().strftime("%m-%d-%y"),
             "donor_email": payment_manager.data["email"],
-            "donation_amount": f"${(payment_manager.data['amount'] / 100):.2f}",
+            "contribution_amount": f"${(payment_manager.data['amount'] / 100):.2f}",
             "copyright_year": timezone.now().strftime("%Y"),
         }
         self.update_default_fields(merge_data)
-        self.send_email(to=payment_manager.data["email"], subject="Thank you for your donation!")
+        self.send_email(to=payment_manager.data["email"], subject="Thank you for your contribution!")

@@ -147,6 +147,7 @@ class RequestContributorTokenEmailView(APIView):
             email = data["email"]
             token = data["access"]
             domain = _construct_rp_domain(data.get("subdomain", ""), request.headers.get("Referer", ""))
+
             if not domain:
                 return Response({"detail": "Missing Revenue Program subdomain"}, status=status.HTTP_404_NOT_FOUND)
             magic_link = f"{domain}/{settings.CONTRIBUTOR_VERIFY_URL}?token={token}&email={email}"

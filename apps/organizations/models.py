@@ -12,6 +12,8 @@ from apps.common.models import IndexedTimeStampedModel
 from apps.common.utils import normalize_slug
 from apps.config.validators import validate_slug_against_denylist
 from apps.organizations.validators import validate_statement_descriptor_suffix
+from apps.users.choices import Roles
+from apps.users.models import RoleAssignmentResourceModelMixin, UnexpectedRoleType
 
 
 logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
@@ -53,7 +55,7 @@ class Feature(IndexedTimeStampedModel):
         super().save(*args, **kwargs)
 
 
-class Plan(IndexedTimeStampedModel):
+class Plan(IndexedTimeStampedModel, RoleAssignmentResourceModelMixin):
     name = models.CharField(max_length=255)
     features = models.ManyToManyField("organizations.Feature", related_name="plans", blank=True)
 
@@ -63,11 +65,20 @@ class Plan(IndexedTimeStampedModel):
     def __str__(self):  # pragma: no cover
         return self.name
 
+    @classmethod
+    def filter_queryset_by_role_assignment(cls, role_assignment, queryset):
+        if role_assignment.role_type == Roles.HUB_ADMIN:
+            return queryset.all()
+        elif role_assignment.role_type in (Roles.ORG_ADMIN, Roles.RP_ADMIN):
+            return queryset.filter(organization=role_assignment.organization)
+        else:
+            raise UnexpectedRoleType(f"{role_assignment.role_type} is not a valid value")
+
 
 CURRENCY_CHOICES = [(k, k) for k, _ in settings.CURRENCIES.items()]
 
 
-class Organization(IndexedTimeStampedModel):
+class Organization(IndexedTimeStampedModel, RoleAssignmentResourceModelMixin):
     name = models.CharField(max_length=255, unique=True)
     plan = models.ForeignKey("organizations.Plan", null=True, on_delete=models.CASCADE)
     currency = models.CharField(max_length=3, choices=CURRENCY_CHOICES, default="USD")
@@ -100,6 +111,11 @@ class Organization(IndexedTimeStampedModel):
     history = HistoricalRecords()
 
     @property
+    def admin_revenueprogram_options(self):
+        rps = self.revenueprogram_set.all()
+        return [(rp.name, rp.pk) for rp in rps]
+
+    @property
     def admin_benefit_options(self):
         benefits = self.benefit_set.all()
         return [(c.name, c.pk) for c in benefits]
@@ -108,6 +124,13 @@ class Organization(IndexedTimeStampedModel):
     def admin_benefitlevel_options(self):
         benefit_levels = self.benefitlevel_set.all()
         return [(c.name, c.pk) for c in benefit_levels]
+
+    @property
+    def needs_payment_provider(self):
+        """
+        Right now this is simple. If the org is not "stripe_verified", then they "need a provider"
+        """
+        return not self.stripe_verified
 
     def __str__(self):
         return self.name
@@ -140,6 +163,15 @@ class Organization(IndexedTimeStampedModel):
             logger.error(
                 f'Currency settings for organization "{self.name}" misconfigured. Tried to access "{self.currency}", but valid options are: {settings.CURRENCIES}'
             )
+
+    @classmethod
+    def filter_queryset_by_role_assignment(cls, role_assignment, queryset):
+        if role_assignment.role_type == Roles.HUB_ADMIN:
+            return queryset.all()
+        elif role_assignment.role_type in (Roles.ORG_ADMIN, Roles.RP_ADMIN):
+            return queryset.filter(pk=role_assignment.organization.pk)
+        else:
+            raise UnexpectedRoleType(f"{role_assignment.role_type} is not a valid value")
 
 
 class BenefitLevel(IndexedTimeStampedModel):
@@ -233,7 +265,6 @@ class BenefitLevelBenefit(models.Model):
 
 class RevenueProgram(IndexedTimeStampedModel):
     name = models.CharField(max_length=255)
-
     slug = models.SlugField(
         max_length=SLUG_MAX_LENGTH,
         blank=True,

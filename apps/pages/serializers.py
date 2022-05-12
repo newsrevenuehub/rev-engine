@@ -1,3 +1,5 @@
+import logging
+
 from django.conf import settings
 from django.utils import timezone
 
@@ -6,14 +8,17 @@ from rest_framework.validators import UniqueTogetherValidator
 from sorl_thumbnail_serializer.fields import HyperlinkedSorlImageField
 
 from apps.api.error_messages import UNIQUE_PAGE_SLUG
-from apps.common.fields import SerializedOnReadElsePk
 from apps.organizations.models import RevenueProgram
 from apps.organizations.serializers import (
     BenefitLevelDetailSerializer,
+    RevenueProgramInlineSerializer,
     RevenueProgramListInlineSerializer,
 )
 from apps.pages.models import DonationPage, Font, Style, Template
-from apps.pages.validators import PagePkIsForOwnedPage, RpPkIsForOwnedRp
+from apps.pages.validators import PagePkIsForOwnedPage, ValidateFkReferenceOwnership
+
+
+logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
 
 
 class StyleInlineSerializer(serializers.ModelSerializer):
@@ -29,9 +34,16 @@ class StyleInlineSerializer(serializers.ModelSerializer):
 
 
 class StyleListSerializer(serializers.ModelSerializer):
-    revenue_program = serializers.PrimaryKeyRelatedField(
-        required=False, allow_null=False, queryset=RevenueProgram.objects.all()
+
+    revenue_program = RevenueProgramInlineSerializer(read_only=True)
+    revenue_program_pk = serializers.PrimaryKeyRelatedField(
+        source="revenue_program",
+        allow_null=False,
+        required=True,
+        write_only=True,
+        queryset=RevenueProgram.objects.all(),
     )
+
     used_live = serializers.SerializerMethodField()
 
     def get_used_live(self, obj):
@@ -42,33 +54,39 @@ class StyleListSerializer(serializers.ModelSerializer):
         data comes in as a dict with name and styles flattened. We need
         to stick styles in its own value and pull out name.
         """
-        name = data.pop("name", None)
-        revenue_program = data.pop("revenue_program", None)
-        data = {"name": name, "revenue_program": revenue_program, "styles": data}
-
+        data = {
+            "name": data.pop("name", None),
+            "revenue_program_pk": data.pop("revenue_program_pk", None),
+            "styles": data,
+        }
         return super().to_internal_value(data)
 
     class Meta:
         model = Style
         fields = "__all__"
-
-
-class DonationPageDetailSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = DonationPage
-        fields = "__all__"
+        validators = [
+            ValidateFkReferenceOwnership(fk_attribute="revenue_program"),
+            UniqueTogetherValidator(queryset=Style.objects.all(), fields=["revenue_program", "name"]),
+        ]
 
 
 class DonationPageFullDetailSerializer(serializers.ModelSerializer):
 
     styles = StyleInlineSerializer(required=False, read_only=True)
-    styles_pk = serializers.IntegerField(allow_null=True, required=False)
+    styles_pk = serializers.PrimaryKeyRelatedField(
+        source="styles",
+        queryset=Style.objects.all(),
+        allow_null=True,
+        required=False,
+        write_only=True,
+    )
 
-    revenue_program = SerializedOnReadElsePk(
-        required=True,
-        allow_null=False,
+    revenue_program = RevenueProgramListInlineSerializer(read_only=True)
+    revenue_program_pk = serializers.PrimaryKeyRelatedField(
+        source="revenue_program",
         queryset=RevenueProgram.objects.all(),
-        serializer=RevenueProgramListInlineSerializer,
+        write_only=True,
+        allow_null=False,
     )
 
     template_pk = serializers.IntegerField(allow_null=True, required=False)
@@ -116,8 +134,9 @@ class DonationPageFullDetailSerializer(serializers.ModelSerializer):
         model = DonationPage
         fields = "__all__"
         validators = [
+            ValidateFkReferenceOwnership(fk_attribute="styles"),
+            ValidateFkReferenceOwnership(fk_attribute="revenue_program"),
             UniqueTogetherValidator(queryset=DonationPage.objects.all(), fields=["revenue_program", "slug"]),
-            RpPkIsForOwnedRp(rp_model=RevenueProgram),
         ]
 
     def _update_related(self, related_field, related_model, validated_data, instance):

@@ -3,6 +3,7 @@ import logging
 from django.conf import settings
 from django.utils import timezone
 
+from drf_extra_fields.relations import PresentablePrimaryKeyRelatedField
 from rest_framework import serializers
 from rest_framework.validators import UniqueTogetherValidator
 from sorl_thumbnail_serializer.fields import HyperlinkedSorlImageField
@@ -15,7 +16,7 @@ from apps.organizations.serializers import (
     RevenueProgramListInlineSerializer,
 )
 from apps.pages.models import DonationPage, Font, Style, Template
-from apps.pages.validators import PagePkIsForOwnedPage, ValidateFkReferenceOwnership
+from apps.pages.validators import ValidateFkReferenceOwnership
 
 
 logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
@@ -30,20 +31,22 @@ class StyleInlineSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Style
-        fields = "__all__"
+        fields = (
+            "id",
+            "created",
+            "modified",
+            "name",
+            "styles",
+        )
 
 
-class StyleListSerializer(serializers.ModelSerializer):
+class StyleListSerializer(StyleInlineSerializer):
 
-    revenue_program = RevenueProgramInlineSerializer(read_only=True)
-    revenue_program_pk = serializers.PrimaryKeyRelatedField(
-        source="revenue_program",
-        allow_null=False,
-        required=True,
-        write_only=True,
+    revenue_program = PresentablePrimaryKeyRelatedField(
         queryset=RevenueProgram.objects.all(),
+        presentation_serializer=RevenueProgramInlineSerializer,
+        read_source=None,
     )
-
     used_live = serializers.SerializerMethodField()
 
     def get_used_live(self, obj):
@@ -51,19 +54,29 @@ class StyleListSerializer(serializers.ModelSerializer):
 
     def to_internal_value(self, data):
         """
-        data comes in as a dict with name and styles flattened. We need
+        Data comes in as a dict with name and styles flattened. We need
         to stick styles in its own value and pull out name.
         """
+        name = data.pop("name", None)
+        revenue_program = data.pop("revenue_program", None)
         data = {
-            "name": data.pop("name", None),
-            "revenue_program_pk": data.pop("revenue_program_pk", None),
+            "name": name,
+            "revenue_program": revenue_program,
             "styles": data,
         }
         return super().to_internal_value(data)
 
     class Meta:
         model = Style
-        fields = "__all__"
+        fields = (
+            "id",
+            "created",
+            "modified",
+            "name",
+            "styles",
+            "revenue_program",
+            "used_live",
+        )
         validators = [
             ValidateFkReferenceOwnership(fk_attribute="revenue_program"),
             UniqueTogetherValidator(queryset=Style.objects.all(), fields=["revenue_program", "name"]),
@@ -72,23 +85,20 @@ class StyleListSerializer(serializers.ModelSerializer):
 
 class DonationPageFullDetailSerializer(serializers.ModelSerializer):
 
-    styles = StyleInlineSerializer(required=False, read_only=True)
-    styles_pk = serializers.PrimaryKeyRelatedField(
-        source="styles",
+    styles = PresentablePrimaryKeyRelatedField(
         queryset=Style.objects.all(),
+        presentation_serializer=StyleInlineSerializer,
+        read_source=None,
         allow_null=True,
         required=False,
-        write_only=True,
     )
-
-    revenue_program = RevenueProgramListInlineSerializer(read_only=True)
-    revenue_program_pk = serializers.PrimaryKeyRelatedField(
-        source="revenue_program",
+    revenue_program = PresentablePrimaryKeyRelatedField(
         queryset=RevenueProgram.objects.all(),
-        write_only=True,
+        presentation_serializer=RevenueProgramListInlineSerializer,
+        read_source=None,
         allow_null=False,
+        required=True,
     )
-
     template_pk = serializers.IntegerField(allow_null=True, required=False)
 
     graphic = serializers.ImageField(allow_empty_file=True, allow_null=True, required=False)
@@ -196,37 +206,39 @@ class DonationPageListSerializer(serializers.ModelSerializer):
 
 
 class TemplateDetailSerializer(serializers.ModelSerializer):
-    page_pk = serializers.IntegerField(allow_null=True, required=False)
-
-    def _create_from_page(self, validated_data):
-        """
-        Given a page pk, find page and run model method make_template_from_page.
-        Returns Template instance
-        Throws ValidationError if donation page is somehow missing.
-        """
-        try:
-            page_pk = validated_data.pop("page_pk")
-            page = DonationPage.objects.get(pk=page_pk)
-            return page.make_template_from_page(validated_data)
-        except DonationPage.DoesNotExist:
-            raise serializers.ValidationError({"page": ["This page no longer exists"]})
-
-    def is_valid(self, **kwargs):
-        page_pk = self.initial_data["page_pk"]
-        page = DonationPage.objects.get(pk=page_pk)
-        self.initial_data["revenue_program"] = page.revenue_program.pk
-        return super().is_valid(**kwargs)
+    revenue_program = PresentablePrimaryKeyRelatedField(
+        queryset=RevenueProgram.objects.all(),
+        presentation_serializer=RevenueProgramInlineSerializer,
+        read_source=None,
+        default=None,
+        allow_null=True,
+        required=False,
+    )
+    page = PresentablePrimaryKeyRelatedField(
+        queryset=DonationPage.objects.all(),
+        presentation_serializer=DonationPageFullDetailSerializer,
+        read_source=None,
+        required=False,
+        allow_null=True,
+    )
 
     def create(self, validated_data):
-        if "page_pk" in validated_data:
-            return self._create_from_page(validated_data)
+        page = validated_data.pop("page", None)
+        if page:
+            return page.make_template_from_page(validated_data)
         return super().create(validated_data)
+
+    def validate_page(self, page):
+        """Note on why"""
+        if page and self.initial_data.get("revenue_program") is None:
+            self.initial_data["revenue_program"] = page.revenue_program.pk
+        return page
 
     class Meta:
         model = Template
         fields = [
             "id",
-            "page_pk",
+            "page",
             "name",
             "heading",
             "revenue_program",
@@ -241,7 +253,7 @@ class TemplateDetailSerializer(serializers.ModelSerializer):
             "post_thank_you_redirect",
         ]
         validators = [
-            PagePkIsForOwnedPage(page_model=DonationPage),
+            ValidateFkReferenceOwnership(fk_attribute="page"),
             UniqueTogetherValidator(
                 queryset=Template.objects.all(),
                 fields=["name", "revenue_program"],

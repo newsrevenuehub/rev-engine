@@ -637,6 +637,21 @@ python-jose = ["python-jose (==3.0.0)"]
 test = ["cryptography", "pytest-cov", "pytest-django", "pytest-xdist", "pytest", "tox"]
 
 [[package]]
+name = "drf-extra-fields"
+version = "3.4.0"
+description = "Additional fields for Django Rest Framework."
+category = "dev"
+optional = false
+python-versions = ">=3.7"
+
+[package.dependencies]
+Django = ">=2.2"
+djangorestframework = ">=3.9.2"
+
+[package.extras]
+base64imagefield = ["Pillow (>=6.2.1)"]
+
+[[package]]
 name = "executing"
 version = "0.8.3"
 description = "Get the currently executing AST node of a frame, and other information"
@@ -1681,7 +1696,7 @@ testing = ["pytest (>=6)", "pytest-checkdocs (>=2.4)", "pytest-flake8", "pytest-
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.9"
-content-hash = "eccac11b2b9388c53521bb0f12a98600468193854c0dd9f7c8c9887bad3a12c6"
+content-hash = "549d4231e0b8c40fd41ed94a7446ca233b114026533347affb30132ae5199bbf"
 
 [metadata.files]
 amqp = [
@@ -1944,6 +1959,10 @@ djangorestframework = [
 djangorestframework-simplejwt = [
     {file = "djangorestframework_simplejwt-4.8.0-py3-none-any.whl", hash = "sha256:6f09f97cb015265e85d1d02dc6bfc299c72c231eecbe261c5bee5c6b2867f2b4"},
     {file = "djangorestframework_simplejwt-4.8.0.tar.gz", hash = "sha256:153c973c5c154baf566be431de8527c2bd62557fde7373ebcb0f02b73b28e07a"},
+]
+drf-extra-fields = [
+    {file = "drf-extra-fields-3.4.0.tar.gz", hash = "sha256:6224ae29ddfe80f38e36a1a5f7f1837cec1a4ec90e8960b473d43167f6d427d0"},
+    {file = "drf_extra_fields-3.4.0-py3-none-any.whl", hash = "sha256:cc4e35e8b0fbef92a4295dfa5adac1436c0d51402ecc4facadb406e45e24f3bb"},
 ]
 executing = [
     {file = "executing-0.8.3-py2.py3-none-any.whl", hash = "sha256:d1eef132db1b83649a3905ca6dd8897f71ac6f8cac79a7e58a1a09cf137546c9"},

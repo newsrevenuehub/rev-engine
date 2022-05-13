@@ -90,6 +90,7 @@ pytest = "*"
 pytest-cov = "*"
 pytest-django = "*"
 pyyaml = "*"
+drf-extra-fields = "^3.4.0"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]

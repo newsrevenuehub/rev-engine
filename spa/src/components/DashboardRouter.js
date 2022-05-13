@@ -53,7 +53,6 @@ function DashboardRouter() {
             <Route path={ROUTES.CONTRIBUTOR_VERIFY} render={() => <TrackPageView component={ContributorVerify} />} />
 
             <ProtectedRoute render={() => <TrackPageView component={Main} />} />
-            
           </Switch>
         </React.Suspense>
       </ChunkErrorBoundary>

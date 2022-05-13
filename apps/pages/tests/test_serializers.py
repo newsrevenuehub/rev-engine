@@ -1,7 +1,10 @@
+from re import A, M, template
+
 from django.conf import settings
 from django.utils import timezone
 
 from rest_framework import serializers
+from rest_framework.exceptions import ErrorDetail
 from rest_framework.test import APIRequestFactory, APITestCase
 
 from apps.api.tests import RevEngineApiAbstractTestCase
@@ -105,7 +108,7 @@ class DonationPageFullDetailSerializerTest(RevEngineApiAbstractTestCase):
             "template_pk": template.pk,
             "name": "My New Page From a Template",
             "slug": "my-new-page-from-a-template",
-            "revenue_program_pk": self.page.revenue_program.pk,
+            "revenue_program": self.page.revenue_program.pk,
         }
         serializer = self.serializer(data=new_page_data)
         request = self.request_factory.post("/")
@@ -133,49 +136,74 @@ class DonationPageFullDetailSerializerTest(RevEngineApiAbstractTestCase):
         self.assertEqual(serializer.data["allow_offer_nyt_comp"], self.page.revenue_program.allow_offer_nyt_comp)
 
 
-class TemplateDetailSerializerTest(APITestCase):
+class TemplateDetailSerializerTest(RevEngineApiAbstractTestCase):
     def setUp(self):
-        self.organization = OrganizationFactory()
-        self.template = TemplateFactory()
-        self.page = DonationPageFactory()
+        self.set_up_domain_model()
+        self.page = self.org1_rp1.donationpage_set.first()
+        self.template = TemplateFactory(revenue_program=self.org1_rp1)
         self.serializer = TemplateDetailSerializer
+        request = APIRequestFactory()
+        request.user = self.org_user
+        self.request = request
 
     def test_create_with_page_pk_uses_page_as_template(self):
         template_data = {
-            "page_pk": self.page.pk,
+            "page": self.page.pk,
             "name": "My New Template",
-            "organization": self.organization.pk,
         }
-        serializer = self.serializer(data=template_data)
+        serializer = self.serializer(data=template_data, context={"request": self.request})
         self.assertTrue(serializer.is_valid())
         new_template = serializer.save()
         self.assertEqual(new_template.heading, self.page.heading)
 
-    def test_create_with_page_pk_raises_error_when_page_missing(self):
+    def test_when_no_reference_to_page(self):
         template_data = {
-            "page_pk": self.page.pk,
             "name": "My New Template",
-            "organization": self.organization.pk,
+            "heading": "My heading",
         }
-        serializer = self.serializer(data=template_data)
+        serializer = self.serializer(data=template_data, context={"request": self.request})
         self.assertTrue(serializer.is_valid())
-        self.page.delete()
-        with self.assertRaises(serializers.ValidationError) as v_error:
-            serializer.save()
-        self.assertIn("page", v_error.exception.detail)
-        self.assertEqual(str(v_error.exception.detail["page"][0]), "This page no longer exists")
+        new_template = serializer.save()
+        for key, val in template_data.items():
+            self.assertEqual(getattr(new_template, key), val)
 
-    def test_serializer_does_not_require_org(self):
-        """
-        The organization associated with newly created templates is derived from the originating page.
-        Adding it to the serializer here would require it as a request parameter.
-        """
+    def test_when_reference_revenue_program_in_and_no_page(self):
+        template_data = {"name": "my template name", "revenue_program": self.org1_rp1.pk}
+        serializer = self.serializer(data=template_data, context={"request": self.request})
+        self.assertTrue(serializer.is_valid())
+        new_template = serializer.save()
+        self.assertEqual(new_template.revenue_program.pk, template_data["revenue_program"])
+
+    def test_when_reference_revenue_program_and_page_where_rp_is_not_pages_rp(self):
+        self.assertNotEqual(self.page.revenue_program, self.org1_rp2)
         template_data = {
-            "page_pk": self.page.pk,
+            "name": "my template name",
+            "revenue_program": self.org1_rp2.pk,
+            "page": self.page.pk,
+        }
+        serializer = self.serializer(data=template_data, context={"request": self.request})
+        self.assertTrue(serializer.is_valid())
+        new_template = serializer.save()
+        self.assertEqual(new_template.revenue_program.pk, template_data["revenue_program"])
+        self.assertEqual(new_template.name, template_data["name"])
+        self.assertEqual(new_template.heading, self.page.heading)
+
+    def test_serializer_is_invalid_when_referenced_page_not_found(self):
+        template_data = {
+            "page": self.page.pk,
             "name": "My New Template",
         }
-        serializer = self.serializer(data=template_data)
+        serializer = self.serializer(data=template_data, context={"request": self.request})
         self.assertTrue(serializer.is_valid())
+        page_pk = self.page.pk
+        self.page.delete()
+        # NB, serializer must be reinitialized after deleting page, otherwise `is_valid` will
+        # not cause validation to be run anew
+        serializer = self.serializer(data=template_data, context={"request": self.request})
+        self.assertFalse(serializer.is_valid())
+        self.assertIn("page", serializer.errors)
+        self.assertIsInstance(serializer.errors["page"][0], ErrorDetail)
+        self.assertEqual(str(serializer.errors["page"][0]), f'Invalid pk "{page_pk}" - object does not exist.')
 
 
 class StyleListSerializerTest(APITestCase):

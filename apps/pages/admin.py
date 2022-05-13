@@ -60,6 +60,7 @@ class TemplateAdmin(DonationPageAdminAbstract):
     def response_change(self, request, obj):
         if "_page-from-template" in request.POST:
             try:
+
                 new_page = obj.make_page_from_template()
             except IntegrityError as integrity_error:
                 if "violates unique constraint" in str(integrity_error):
@@ -85,10 +86,7 @@ class DonationPageAdmin(DonationPageAdminAbstract, SafeDeleteAdmin):
             ),
         )
         + DonationPageAdminAbstract.fieldsets
-        + (
-            ("Latest screenshot", {"fields": ("page_screenshot",)}),
-            ("Email Templates", {"fields": ("email_templates",)}),
-        )
+        + (("Latest screenshot", {"fields": ("page_screenshot",)}),)
     )
 
     list_display = (
@@ -127,7 +125,7 @@ class DonationPageAdmin(DonationPageAdminAbstract, SafeDeleteAdmin):
         created_template_count = 0
         for page in queryset:
             try:
-                page.make_template_from_page()
+                page.make_template_from_page(from_admin=True)
                 created_template_count += 1
             except IntegrityError as integrity_error:
                 if "violates unique constraint" in str(integrity_error):

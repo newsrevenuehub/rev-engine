@@ -29,6 +29,7 @@ class TokenObtainPairCookieSerializer(TokenObtainPairSerializer):
 class ContributorObtainTokenSerializer(serializers.Serializer):
     """
     Used when a contributor has entered their email and is requesting a "Magic Link".
+
     Flow wise, this is analogous to Email+Password authentication, but we're relying on
     ownership of email address instead. We only need to verify that a contributor exists
     with that email address. We'll send a token to that email address and its owner can
@@ -36,7 +37,11 @@ class ContributorObtainTokenSerializer(serializers.Serializer):
     """
 
     email = serializers.EmailField()
-    access = serializers.CharField(required=False)
+    access = serializers.CharField(required=False)  # Token used in magic-link url/email.
+    # Domains are limited to 63 characters max. No underscore allowed, unlike slugs.
+    subdomain = serializers.RegexField(
+        r"^[-0-9a-zA-Z]+$", max_length=20, required=False, allow_blank=True
+    )  # rp_slug / subdomain used in magic-link url/email.
 
     @classmethod
     def get_token(cls, contributor):
@@ -47,17 +52,12 @@ class ContributorObtainTokenSerializer(serializers.Serializer):
 
     def validate(self, attrs):
         """
-        If it's a valid email, we provide a token and a Contributor instance
+        If email is valid and matches that of a known contributor, we provide a access token.
         """
         data = super().validate(attrs)
         try:
-            contributor_email = attrs["email"]
-            contributor = Contributor.objects.get(email=contributor_email)
+            contributor = Contributor.objects.get(email=data.get("email"))
         except Contributor.DoesNotExist:
             raise NoSuchContributorError("Could not find contributor", code="no_contributor_email")
-
-        refresh = self.get_token(contributor)
-        data["access"] = str(refresh.short_lived_access_token)
-        data["email"] = contributor.email
-
+        data["access"] = str(self.get_token(contributor).short_lived_access_token)
         return data

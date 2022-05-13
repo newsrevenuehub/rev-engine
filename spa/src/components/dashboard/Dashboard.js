@@ -8,12 +8,20 @@ import { DONATIONS_SLUG, CONTENT_SLUG } from 'routes';
 import { usePaymentProviderContext } from 'components/Main';
 import { PP_STATES } from 'components/connect/BaseProviderInfo';
 
+import LivePage404 from 'components/donationPage/live/LivePage404';
+
 // Children
 import DashboardSidebar from 'components/dashboard/sidebar/DashboardSidebar';
 import Donations from 'components/donations/Donations';
 import Content from 'components/content/Content';
 import GlobalLoading from 'elements/GlobalLoading';
 import ProviderConnect from 'components/connect/ProviderConnect';
+
+const NotFound = () => (
+  <div>
+    <h1>404 - Not Found!</h1>
+  </div>
+);
 
 function Dashboard() {
   const { checkingProvider, paymentProviderConnectState } = usePaymentProviderContext();
@@ -43,6 +51,9 @@ function Dashboard() {
               </Route>
               <Route path={CONTENT_SLUG}>
                 <Content />
+              </Route>
+              <Route>
+                <LivePage404 dashboard/>
               </Route>
             </Switch>
           )}

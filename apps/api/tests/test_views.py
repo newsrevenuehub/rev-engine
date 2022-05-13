@@ -7,19 +7,40 @@ from django.middleware import csrf
 from django.test import RequestFactory, override_settings
 from django.utils.timezone import timedelta
 
+import pytest
 from rest_framework.reverse import reverse
 from rest_framework.test import APITestCase
 from rest_framework_simplejwt.tokens import AccessToken
 
 from apps.api.error_messages import GENERIC_BLANK
 from apps.api.tokens import ContributorRefreshToken
-from apps.api.views import TokenObtainPairCookieView
+from apps.api.views import TokenObtainPairCookieView, _construct_rp_domain
+
 from apps.contributions.models import Contributor
 from apps.contributions.tests.factories import ContributorFactory
 
 
 user_model = get_user_model()
 
+
+@pytest.mark.parametrize(
+    "expected, site_url, post, header",
+    [
+        (None, "https://example.com", "", ""),  # Not found.
+        ("foo.example.com", "https://example.com", "foo", ""),
+        ("foo.example.com", "https://example.com", "http://foo.example.com:80", ""),  # Post full scheme://host works.
+        ("foo.example.com", "https://subdomain.example.com", "foo", ""),  # site_url subdomain is stripped.
+        ("foo.b.example.com", "https://subdomain.b.example.com", "foo", ""),  # Only leaf subdomain is stripped.
+        ("foo.example.com:80", "https://example.com:80", "foo", ""),  # site_url port is preserved.
+        ("foo.example.com", "https://example.com", "foo", "https://bar.example.com"),  # Post first, header is fallback.
+        ("foo.example.com", "https://example.com", "", "https://foo.bar.example.com:80"),  # From header.
+        (None, "https://example.com", "", "https://example.com"),  # Header has no subdomain.
+    ],
+)
+
+def test__construct_rp_domain(expected, site_url, post, header):
+    with override_settings(SITE_URL=site_url):
+        assert expected == _construct_rp_domain(post, header)
 
 class TokenObtainPairCookieViewTest(APITestCase):
     def setUp(self):
@@ -88,7 +109,7 @@ class RequestContributorTokenEmailViewTest(APITestCase):
 
     def test_token_appears_in_outbound_email(self):
         target_email = self.contributor.email
-        response = self.client.post(self.url, {"email": target_email})
+        response = self.client.post(self.url, {"email": target_email, "subdomain": "rp"})
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(self.outbox), 1)
         magic_link = self.outbox[0].merge_global_data["magic_link"]
@@ -101,7 +122,7 @@ class RequestContributorTokenEmailViewTest(APITestCase):
 
     def test_outbound_email_send_to_requested_address(self):
         target_email = self.contributor.email
-        response = self.client.post(self.url, {"email": target_email})
+        response = self.client.post(self.url, {"email": target_email, "subdomain": "rp"})
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(self.outbox[0].to), 1)
         self.assertEqual(self.outbox[0].to[0], target_email)
@@ -116,7 +137,9 @@ class VerifyContributorTokenViewTest(APITestCase):
         self.valid_token = self._get_valid_token()
 
     def _get_valid_token(self):
-        response = self.client.post(reverse("contributor-token-request"), {"email": self.contributor.email})
+        response = self.client.post(
+            reverse("contributor-token-request"), {"email": self.contributor.email, "subdomain": "rp"}
+        )
         self.assertEqual(response.status_code, 200)
 
         magic_link = self.outbox[0].merge_global_data["magic_link"]
@@ -198,7 +221,7 @@ class VerifyContributorTokenViewTest(APITestCase):
 class AuthorizedContributorRequestsTest(APITestCase):
     def setUp(self):
         self.contributor = ContributorFactory()
-        self.contributions_url = reverse("contributions-list")
+        self.contributions_url = reverse("contribution-list")
 
     def _get_token(self, valid=True):
         refresh = ContributorRefreshToken.for_contributor(self.contributor.uuid)

@@ -1,0 +1,61 @@
+{
+  "colors": {
+    "primary": "#20bfdd",
+    "primaryLight": "#c7eff7",
+    "secondary": "#99D17B",
+    "fieldBackground": "#f7f7f7",
+    "paneBackground": "#fff",
+    "inputBackground": "#fff",
+    "inputBorder": "#c3c3c3",
+    "black": "#080708",
+    "white": "#ffffff",
+    "grey": ["#eee", "#ccc", "#999", "#666", "#333"],
+    "caution": "#ff476c",
+    "info": "#20bfdd",
+    "success": "#99D17B",
+    "warning": "#ffd400",
+    "disabled": "#ebebeb",
+    "link": "#4183c4",
+    "hover": "#eee",
+    "tableRowHover": "#bcd3f5",
+    "tableRowActive": "#dce8fa",
+    "cstm_mainHeader": "#ffffff",
+    "cstm_mainBackground": "#faf8f8",
+    "cstm_formPanelBackground": "#ffffff",
+    "cstm_CTAs": "#20bfdd",
+    "cstm_ornaments": "#2b2869",
+    "cstm_inputBackground": "#ffffff",
+    "cstm_inputBorder": "#080708"
+  },
+  "systemFont": "'Montserrat', sans-serif",
+  "font": {
+    "body": {
+      "id": 33,
+      "name": "Ballinger",
+      "font_name": "Ballinger",
+      "source": "typekit",
+      "accessor": "cxw7ynn"
+    },
+    "heading": {
+      "id": 30,
+      "name": "Arvo",
+      "font_name": "arvo",
+      "source": "google",
+      "accessor": "Arvo"
+    }
+  },
+  "fontSizes": ["13.5px", "18px", "27px", "36px", "54px", "90px", "108px"],
+  "radii": ["7px", "14px", "28px"],
+  "shadows": [
+    "0 1px 2px 0 rgb(0 0 0 / 15%)",
+    "0 10px 25px 0 rgb(0 0 0 / 6%)",
+    "0 12px 25px 0 rgb(0 0 0 / 10%)"
+  ],
+  "breakpoints": {
+    "phoneOnly": "max-width: 599px",
+    "tabletLandscapeDown": "max-width: 900px"
+  },
+  "maxWidths": { "sm": "500px", "md": "890px", "lg": "1100px", "xl": "1300px" },
+  "name": "my styles",
+  "revenue_program": { "id": 41, "name": "test one", "slug": "test-one" }
+}

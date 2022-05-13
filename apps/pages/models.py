@@ -11,7 +11,7 @@ from apps.api.error_messages import UNIQUE_PAGE_SLUG
 from apps.common.models import IndexedTimeStampedModel
 from apps.common.utils import cleanup_keys, normalize_slug
 from apps.config.validators import validate_slug_against_denylist
-from apps.organizations.models import Feature, RevenueProgram
+from apps.organizations.models import Feature
 from apps.pages import defaults
 from apps.pages.validators import style_validator
 from apps.users.choices import Roles
@@ -82,6 +82,28 @@ class AbstractPage(IndexedTimeStampedModel, RoleAssignmentResourceModelMixin):
             return instance.revenue_program in user.roleassignment.revenue_programs.all()
         else:
             return False
+
+    def user_has_ownership_via_role(self, role_assignment):
+        """
+
+        (distinct from access)
+        """
+        return any(
+            [
+                all(
+                    [
+                        role_assignment.role_type == Roles.ORG_ADMIN.value,
+                        self.revenue_program.organization == role_assignment.organization,
+                    ]
+                ),
+                all(
+                    [
+                        role_assignment.role_type == Roles.RP_ADMIN.value,
+                        self.revenue_program in role_assignment.revenue_programs.all(),
+                    ]
+                ),
+            ]
+        )
 
     class Meta:
         abstract = True
@@ -197,7 +219,8 @@ class DonationPage(AbstractPage, SafeDeleteModel):
 
         super().save(*args, **kwargs)
 
-    def make_template_from_page(self, template_data={}):
+    def make_template_from_page(self, template_data={}, from_admin=False):
+        """ """
         unwanted_keys = [
             "_state",
             "id",
@@ -209,10 +232,12 @@ class DonationPage(AbstractPage, SafeDeleteModel):
             "published_date",
             "deleted_by_cascade",  # Added by safedelete
         ]
+        if not from_admin:
+            unwanted_keys.append("revenue_program_id")
+
         page = cleanup_keys(self.__dict__, unwanted_keys)
         template = cleanup_keys(template_data, unwanted_keys)
         merged_template = {**page, **template}
-        merged_template["revenue_program"] = RevenueProgram.objects.get(pk=merged_template.pop("revenue_program_id"))
         return Template.objects.create(**merged_template)
 
 
@@ -267,14 +292,14 @@ class Style(IndexedTimeStampedModel, SafeDeleteModel, RoleAssignmentResourceMode
             [
                 all(
                     [
-                        role_assignment.role_type == Roles.ORG_ADMIN,
+                        role_assignment.role_type == Roles.ORG_ADMIN.value,
                         self.revenue_program.organization == role_assignment.organization,
                     ]
                 ),
                 all(
                     [
-                        role_assignment.role_type == Roles.RP_ADMIN,
-                        self.revenue_program not in role_assignment.revenue_programs.all(),
+                        role_assignment.role_type == Roles.RP_ADMIN.value,
+                        self.revenue_program in role_assignment.revenue_programs.all(),
                     ]
                 ),
             ]

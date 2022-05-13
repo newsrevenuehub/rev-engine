@@ -7,7 +7,7 @@ import { HUB_GA_V3_ID } from 'settings';
 
 export const FUNDJOURNALISM_404_REDIRECT = 'https://fundjournalism.org/?utm_campaign=404#donate';
 
-function LivePage404( {dashboard} ) {
+function LivePage404({ dashboard }) {
   const { setAnalyticsConfig } = useAnalyticsContext();
 
   useEffect(() => {
@@ -20,10 +20,11 @@ function LivePage404( {dashboard} ) {
         <S.FourOhFour>404</S.FourOhFour>
         <S.Description>
           <p>The page you requested can’t be found.</p>
-          {dashboard ? null :<p>
-            If you’re trying to make a contribution please visit <a href={FUNDJOURNALISM_404_REDIRECT}>this page</a>.{' '}
-          </p>
-        }
+          {dashboard ? null : (
+            <p>
+              If you’re trying to make a contribution please visit <a href={FUNDJOURNALISM_404_REDIRECT}>this page</a>.{' '}
+            </p>
+          )}
         </S.Description>
       </S.Wrapper>
     </S.LivePage404>

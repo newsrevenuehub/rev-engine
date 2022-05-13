@@ -17,12 +17,6 @@ import Content from 'components/content/Content';
 import GlobalLoading from 'elements/GlobalLoading';
 import ProviderConnect from 'components/connect/ProviderConnect';
 
-const NotFound = () => (
-  <div>
-    <h1>404 - Not Found!</h1>
-  </div>
-);
-
 function Dashboard() {
   const { checkingProvider, paymentProviderConnectState } = usePaymentProviderContext();
 
@@ -53,7 +47,7 @@ function Dashboard() {
                 <Content />
               </Route>
               <Route>
-                <LivePage404 dashboard/>
+                <LivePage404 dashboard />
               </Route>
             </Switch>
           )}

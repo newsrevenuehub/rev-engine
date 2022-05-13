@@ -9,8 +9,6 @@ from apps.contributions.models import Contributor
 from apps.contributions.tests.factories import ContributionFactory, ContributorFactory
 from apps.organizations.models import Feature, Organization, Plan, RevenueProgram
 from apps.organizations.tests.factories import (
-    BenefitFactory,
-    BenefitLevelFactory,
     FeatureFactory,
     OrganizationFactory,
     RevenueProgramFactory,

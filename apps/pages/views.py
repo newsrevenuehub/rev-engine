@@ -73,6 +73,32 @@ class PageViewSet(viewsets.ModelViewSet, FilterQuerySetByUserMixin, PerUserDelet
             return Response({"detail": error[0]}, status=error[1])
         return Response(page_data, status=status.HTTP_200_OK)
 
+    @action(detail=False, methods=["get"], url_path="draft-detail")
+    def draft_detail(self, request):
+        """Get a page by revenue program slug + page slug.
+
+        NB: This endpoint use to serve a different purpose which informed the method name and url path.
+        This endpoint gets used by the SPA in contexts where the RP and page slugs are available and known,
+        but not the page ID.
+
+        Access control is ensured by implementation of `get_queryset` above. In short, you can't retrieve
+        a page by this method that you don't own (it's owned by diff org or rp)
+        or have access to (via being superuser or hub admin).
+        """
+        error = None
+        try:
+            page_detail_helper = PageFullDetailHelper(request)
+            page_detail_helper.set_revenue_program()
+            page_detail_helper.set_donation_page()
+            page_detail_helper.validate_page_request()
+            page_data = page_detail_helper.get_donation_page_data()
+        except PageDetailError as page_detail_error:
+            error = (page_detail_error.message, page_detail_error.status)
+
+        if error:
+            return Response({"detail": error[0]}, status=error[1])
+        return Response(page_data, status=status.HTTP_200_OK)
+
     def partial_update(self, request, *args, **kwargs):
         response = super().partial_update(request, *args, **kwargs)
         if request.FILES and request.data.get("sidebar_elements", None):

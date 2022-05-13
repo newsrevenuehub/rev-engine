@@ -7,6 +7,7 @@ from django.urls import reverse
 from rest_framework.test import APITestCase
 
 from apps.organizations.tests.factories import OrganizationFactory
+from apps.users.tests.utils import create_test_user
 from apps.users.views import INVALID_TOKEN
 
 
@@ -18,14 +19,9 @@ class TestCustomPasswordResetView(TestCase):
     def setUp(self):
         self.client = Client()
         self.mailbox = mail.outbox
-        secure_password = "sEcUrEpA55w0rD"
-        self.staff_user = user_model.objects.create_user(
-            email="staff@test.com", password=secure_password, is_staff=True
-        )
+        self.staff_user = user_model.objects.create_superuser(email="test_superuser@test.com", password="testing")
         organization = OrganizationFactory()
-        self.org_admin_user = user_model.objects.create_user(
-            email="orgadmin@test.com", password=secure_password, is_staff=False
-        )
+        self.org_admin_user = create_test_user()
         self.org_admin_user.organizations.add(organization)
 
     def test_password_reset_email_when_org_admin_user(self):
@@ -59,7 +55,7 @@ class TestCustomPasswordResetConfirm(TestCase):
         self.mailbox = mail.outbox
         self.old_password = "tHiSiSaNoLdPw1337"
         self.new_password = "tHiSiSaNnEwPw1337"
-        self.user = user_model.objects.create_user(email="test@test.com", password=self.old_password)
+        self.user = create_test_user()
         self.assertNotEqual(self.old_password, self.new_password)
         organization = OrganizationFactory()
         self.user.organizations.add(organization)

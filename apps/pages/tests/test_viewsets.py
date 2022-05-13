@@ -12,7 +12,6 @@ from apps.api.tests import RevEngineApiAbstractTestCase
 from apps.organizations.models import RevenueProgram
 from apps.pages.models import DonationPage, Font, Style, Template
 from apps.pages.tests.factories import FontFactory, StyleFactory, TemplateFactory
-from apps.pages.validators import UNOWNED_TEMPLATE_FROM_PAGE_PAGE_PK_MESSAGE
 from apps.users.tests.utils import create_test_user
 
 
@@ -23,7 +22,7 @@ class PageViewSetTest(RevEngineApiAbstractTestCase):
             "name": "My new page, tho",
             "heading": "New DonationPage",
             "slug": "new-page",
-            "revenue_program_pk": self.org1_rp1.pk,
+            "revenue_program": self.org1_rp1.pk,
         }
 
     def assert_created_page_looks_right(
@@ -36,9 +35,9 @@ class PageViewSetTest(RevEngineApiAbstractTestCase):
         creation_data = creation_data if creation_data is not None else {**self.default_page_creation_data}
         self.assertEqual(created_page.revenue_program.organization, expected_org)
         self.assertEqual(created_page.revenue_program, expected_rp)
-        for attr in [key for key in creation_data.keys() if key != "revenue_program_pk"]:
+        for attr in [key for key in creation_data.keys() if key != "revenue_program"]:
             self.assertEqual(getattr(created_page, attr), creation_data[attr])
-        self.assertEqual(creation_data["revenue_program_pk"], expected_rp.pk)
+        self.assertEqual(creation_data["revenue_program"], expected_rp.pk)
 
     ########
     # CREATE
@@ -76,7 +75,7 @@ class PageViewSetTest(RevEngineApiAbstractTestCase):
             "name": "My new page, tho",
             "heading": "New DonationPage",
             "slug": "new-page",
-            "revenue_program_pk": self.org2_rp.pk,
+            "revenue_program": self.org2_rp.pk,
         }
         url = reverse("donationpage-list")
         self.assert_org_admin_cannot_post(url, data, expected_status_code=status.HTTP_400_BAD_REQUEST)
@@ -113,7 +112,7 @@ class PageViewSetTest(RevEngineApiAbstractTestCase):
         before_my_pages_count = my_pages_query.count()
         before_others_count = others_pages_query.count()
         data = {**self.default_page_creation_data}
-        data["revenue_program_pk"] = self.org2_rp.pk
+        data["revenue_program"] = self.org2_rp.pk
 
         self.assert_rp_user_cannot_post(
             reverse("donationpage-list"), data, expected_status_code=status.HTTP_400_BAD_REQUEST
@@ -124,7 +123,7 @@ class PageViewSetTest(RevEngineApiAbstractTestCase):
     def test_page_create_returns_validation_error_when_missing_revenue_program(self):
         self.client.force_authenticate(user=self.hub_user)
         data = {**self.default_page_creation_data}
-        data.pop("revenue_program_pk")
+        data.pop("revenue_program")
         response = self.client.post(reverse("donationpage-list"), data)
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
@@ -457,6 +456,14 @@ class PageViewSetTest(RevEngineApiAbstractTestCase):
         response = self.assert_unauthed_can_get(url)
         self.assertEqual(response.json()["styles"]["styles"], custom_style)
 
+    def test_draft_detail_page_happy_path(self):
+        page = DonationPage.objects.first()
+        page.published_date = timezone.now() - datetime.timedelta(days=1)
+        page.save()
+        self.assertTrue(page.is_live)
+        url = f'{reverse("donationpage-draft-detail")}?revenue_program={page.revenue_program.slug}&page={page.slug}'
+        self.assert_rp_user_can_get(url)
+
 
 class TemplateViewSetTest(RevEngineApiAbstractTestCase):
     model = Template
@@ -466,15 +473,11 @@ class TemplateViewSetTest(RevEngineApiAbstractTestCase):
         super().setUp()
         self.list_url = f'{reverse("template-list")}?{settings.RP_SLUG_PARAM}={self.org1_rp1.slug}&{settings.ORG_SLUG_PARAM}={self.org1.slug}'
         self.my_orgs_page = DonationPage.objects.filter(revenue_program__organization=self.org1).first()
-        self.template = Template.objects.filter(revenue_program=self.org1_rp1).first()
-        self.other_orgs_template = Template.objects.exclude(revenue_program__organization=self.org1).first()
-        self.other_rps_template = Template.objects.exclude(revenue_program=self.org1_rp1).first()
+        self.template = TemplateFactory(revenue_program=self.org1_rp1)
+        self.other_orgs_template = TemplateFactory(revenue_program=self.org2_rp)
+        self.other_rps_template = TemplateFactory(revenue_program=self.org1_rp2)
         self.other_orgs_page = DonationPage.objects.exclude(revenue_program__organization=self.org1).first()
-        self.other_rps_page = (
-            DonationPage.objects.filter(revenue_program__organization=self.org1)
-            .exclude(revenue_program__in=self.rp_user.roleassignment.revenue_programs.all())
-            .first()
-        )
+        self.other_rps_page = self.org1_rp2.donationpage_set.first()
         for item in (
             self.my_orgs_page,
             self.template,
@@ -492,15 +495,15 @@ class TemplateViewSetTest(RevEngineApiAbstractTestCase):
 
     @property
     def create_template_data_valid(self):
-        return {**self._base_new_template_data, "page_pk": self.my_orgs_page.pk}
+        return {**self._base_new_template_data, "page": self.my_orgs_page.pk}
 
     @property
     def create_template_data_invalid_for_other_org(self):
-        return {**self._base_new_template_data, "page_pk": self.other_orgs_page.pk}
+        return {**self._base_new_template_data, "page": self.other_orgs_page.pk}
 
     @property
     def create_template_data_invalid_for_another_rp(self):
-        return {**self._base_new_template_data, "page_pk": self.other_rps_page.pk}
+        return {**self._base_new_template_data, "page": self.other_rps_page.pk}
 
     def assert_created_page_response_data_looks_right(self, request_data, created_instance):
         self.assertEqual(request_data["name"], "New Template")
@@ -539,7 +542,7 @@ class TemplateViewSetTest(RevEngineApiAbstractTestCase):
             self.create_template_data_invalid_for_other_org,
             expected_status_code=status.HTTP_400_BAD_REQUEST,
         )
-        self.assertEqual(response.json()["non_field_errors"][0], UNOWNED_TEMPLATE_FROM_PAGE_PAGE_PK_MESSAGE)
+        self.assertEqual(response.json()["page"][0], "Not found")
         self.assertEqual(Template.objects.count(), old_count)
 
     def test_rp_user_can_create_a_template_for_their_rps_page(self):
@@ -566,7 +569,7 @@ class TemplateViewSetTest(RevEngineApiAbstractTestCase):
             self.create_template_data_invalid_for_other_org,
             expected_status_code=status.HTTP_400_BAD_REQUEST,
         )
-        self.assertEqual(response.json()["non_field_errors"][0], UNOWNED_TEMPLATE_FROM_PAGE_PAGE_PK_MESSAGE)
+        self.assertEqual(response.json()["page"][0], "Not found")
         self.assertEqual(Template.objects.count(), old_count)
 
     ###############
@@ -762,21 +765,21 @@ class StylesViewsetTest(RevEngineApiAbstractTestCase):
     def create_style_payload(self):
         return {
             **self.styles_create_data_fixture,
-            "revenue_program_pk": self.org1_rp1.pk,
+            "revenue_program": self.org1_rp1.pk,
         }
 
     @property
     def create_style_payload_different_org(self):
         return {
             **self.styles_create_data_fixture,
-            "revenue_program_pk": self.org2_rp.pk,
+            "revenue_program": self.org2_rp.pk,
         }
 
     @property
     def create_style_payload_different_rp(self):
         return {
             **self.styles_create_data_fixture,
-            "revenue_program_pk": self.org1_rp2.pk,
+            "revenue_program": self.org1_rp2.pk,
         }
 
     ########
@@ -784,8 +787,8 @@ class StylesViewsetTest(RevEngineApiAbstractTestCase):
 
     def assert_created_style_is_correct(self, create_payload, created_instance):
         self.assertEqual(create_payload["name"], created_instance.name)
-        self.assertEqual(create_payload["revenue_program_pk"], created_instance.revenue_program.pk)
-        skip_keys = ["name", "revenue_program_pk"]
+        self.assertEqual(create_payload["revenue_program"], created_instance.revenue_program.pk)
+        skip_keys = ["name", "revenue_program"]
         for key, val in [(key, val) for key, val in create_payload.items() if key not in skip_keys]:
             self.assertEqual(val, created_instance.styles[key])
 

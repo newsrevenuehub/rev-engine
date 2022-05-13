@@ -383,13 +383,13 @@ class RevenueProgram(IndexedTimeStampedModel):
             [
                 all(
                     [
-                        role_assignment.role_type == Roles.ORG_ADMIN,
+                        role_assignment.role_type == Roles.ORG_ADMIN.value,
                         role_assignment.organization == self.organization,
                     ]
                 ),
                 all(
                     [
-                        role_assignment.role_type == Roles.RP_ADMIN,
+                        role_assignment.role_type == Roles.RP_ADMIN.value,
                         self in role_assignment.revenue_programs.all(),
                     ]
                 ),

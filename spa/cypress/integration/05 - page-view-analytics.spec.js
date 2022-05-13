@@ -5,7 +5,6 @@ import {
   DONATIONS_SLUG,
   EDITOR_ROUTE,
   LOGIN,
-  ORGANIZATION_SLUG,
   CONTENT_SLUG
 } from 'routes';
 
@@ -16,21 +15,16 @@ import { LIVE_PAGE_DETAIL } from 'ajax/endpoints';
 import { getEndpoint, getTestingDonationPageUrl, EXPECTED_RP_SLUG } from '../support/util';
 import { HUB_GA_V3_ID } from 'settings';
 
+import hubAdminUser from '../fixtures/user/hub-admin';
+
 const REVENUE_PROGRAM = EXPECTED_RP_SLUG;
 const PAGE_NAME = 'mypage';
 
-const EDITOR_ROUTE_REV = `${EDITOR_ROUTE}/${REVENUE_PROGRAM}`;
 const EDITOR_ROUTE_PAGE = `${EDITOR_ROUTE}/${REVENUE_PROGRAM}/${PAGE_NAME}`;
 
 const HUB_TRACKED_PAGES_REQURING_NO_LOGIN = [LOGIN, CONTRIBUTOR_ENTRY, CONTRIBUTOR_VERIFY];
 
-const HUB_TRACKED_PAGES_REQUIRING_HUB_LOGIN = [
-  ORGANIZATION_SLUG,
-  DONATIONS_SLUG,
-  CONTENT_SLUG,
-  EDITOR_ROUTE_REV,
-  EDITOR_ROUTE_PAGE
-];
+const HUB_TRACKED_PAGES_REQUIRING_HUB_LOGIN = [DONATIONS_SLUG, CONTENT_SLUG, EDITOR_ROUTE_PAGE];
 
 // NB: The THANK_YOU_SLUG page is also tracked by both hub and org
 // but at the moment there is not a convenient way to test thank you page
@@ -67,10 +61,7 @@ describe('Pages that are only tracked by Hub', () => {
 
   HUB_TRACKED_PAGES_REQUIRING_HUB_LOGIN.forEach((page) => {
     it(`should track a page view for ${page}`, () => {
-      cy.login('user/stripe-verified.json');
-      // logging in will create an initial page view, and we wait for same intercept below per page,
-      // so wait on login triggered page view now.
-      cy.wait('@trackPageViewOnHubGaV3');
+      cy.forceLogin(hubAdminUser);
       cy.visit(page);
       cy.wait('@trackPageViewOnHubGaV3').then((interception) => {
         const queryParams = new URLSearchParams(interception.request.url.split('?')[1]);

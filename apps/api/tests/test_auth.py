@@ -11,7 +11,7 @@ from rest_framework_simplejwt.exceptions import InvalidToken
 from rest_framework_simplejwt.tokens import AccessToken
 
 from apps.api.authentication import JWTHttpOnlyCookieAuthentication
-from apps.api.permissions import ContributorOwnsContribution, IsContributor, UserBelongsToOrg
+from apps.api.permissions import ContributorOwnsContribution, IsContributor
 from apps.contributions.tests.factories import ContributionFactory, ContributorFactory
 from apps.organizations.tests.factories import OrganizationFactory, RevenueProgramFactory
 
@@ -96,34 +96,10 @@ class JWTCookieAuthenticationTest(APITestCase):
             JWTHttpOnlyCookieAuthentication().authenticate(self.request)
 
 
-class UserBelongsToOrgPermissionTest(APITestCase):
-    class UnrelatedObject:
-        pass
-
-    def setUp(self):
-        factory = RequestFactory()
-        self.request = factory.get(reverse("donationpage-list"))
-        self.user = user_model.objects.create_user(email="test@test.com", password="testing")
-        self.request.user = self.user
-        self.org = OrganizationFactory()
-        self.revenue_program = RevenueProgramFactory(organization=self.org)
-
-    def test_object_with_wrong_org_forbidden(self):
-        self.assertFalse(UserBelongsToOrg().has_object_permission(self.request, {}, self.revenue_program))
-
-    def test_object_with_correct_org_allowed(self):
-        self.user.organizations.add(self.org)
-        self.assertTrue(UserBelongsToOrg().has_object_permission(self.request, {}, self.revenue_program))
-
-    def test_object_with_no_org_allowed(self):
-        unrelated_object = self.UnrelatedObject()
-        self.assertTrue(UserBelongsToOrg().has_object_permission(self.request, {}, unrelated_object))
-
-
 class IsContributorTest(APITestCase):
     def setUp(self):
         self.factory = RequestFactory()
-        self.url = reverse("contributions-list")
+        self.url = reverse("contribution-list")
         self.regular_user = user_model.objects.create_user(email="test@test.com", password="testing")
         self.contributor = ContributorFactory()
         self.permission = IsContributor()
@@ -155,7 +131,7 @@ class ContributorOwnsContributionTest(APITestCase):
         self.wrong_contributor = ContributorFactory(email="wrong@test.com")
 
         self.contribution = ContributionFactory(contributor=self.right_contributor)
-        self.url = reverse("contributions-cancel-recurring", kwargs={"pk": self.contribution.pk})
+        self.url = reverse("contribution-cancel-recurring-payment", kwargs={"pk": self.contribution.pk})
 
     def _create_request(self, user):
         request = self.factory.post(self.url)
@@ -172,11 +148,3 @@ class ContributorOwnsContributionTest(APITestCase):
         request = self._create_request(self.wrong_contributor)
         has_permission = self.permission.has_object_permission(request, {}, self.contribution)
         self.assertFalse(has_permission)
-
-    def test_success_when_not_a_contributor(self):
-        """
-        This permission does not prevent non-contributors from accessing resources.
-        """
-        request = self._create_request(self.regular_user)
-        has_permission = self.permission.has_object_permission(request, {}, self.contribution)
-        self.assertTrue(has_permission)

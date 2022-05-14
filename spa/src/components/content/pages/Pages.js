@@ -56,8 +56,9 @@ function Pages({ setShowAddPageModal }) {
     );
   }, [alert]);
 
-  const handleEditPage = (pageSlug) => {
-    history.push(`${EDITOR_ROUTE}/${pageSlug}`);
+  const handleEditPage = (page) => {
+    const path = `${EDITOR_ROUTE}/${page.revenue_program.slug}/${page.slug}`;
+    history.push({ pathname: path, state: { pageId: page.id } });
   };
 
   const handleAccordionClick = (i) => {

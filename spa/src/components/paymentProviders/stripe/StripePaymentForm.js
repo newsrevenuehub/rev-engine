@@ -6,7 +6,7 @@ import { useTheme } from 'styled-components';
 import { useAlert } from 'react-alert';
 
 // Utils
-import { getFrequencyAdverb } from 'utilities/parseFrequency';
+import { getFrequencyAdverb, getFrequencyThankYouText } from 'utilities/parseFrequency';
 
 // Hooks
 import useSubdomain from 'hooks/useSubdomain';
@@ -98,7 +98,7 @@ function StripePaymentForm({ loading, setLoading, offerPayFees }) {
       const donationPageUrl = window.location.href;
       history.push({
         pathname: url === '/' ? THANK_YOU_SLUG : url + THANK_YOU_SLUG,
-        state: { page, amount: totalAmount, email, donationPageUrl }
+        state: { page, amount: totalAmount, email, donationPageUrl, frequencyText: getFrequencyThankYouText(frequency) }
       });
     }
   };

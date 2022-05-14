@@ -1,7 +1,9 @@
 from django.test import TestCase
 
 from apps.common.models import Address, SocialMeta
-from apps.organizations.tests.factories import RevenueProgramFactory
+from apps.common.tests.factories import RevEngineHistoricalChangeFactory
+from apps.organizations.models import Organization
+from apps.organizations.tests.factories import OrganizationFactory, RevenueProgramFactory
 
 
 class AddressTest(TestCase):
@@ -41,3 +43,30 @@ class SocialMetaTest(TestCase):
 
         expected_related_string = f'Social media Metatags for Revenue Program "{self.revenue_program.name}"'
         self.assertEqual(expected_related_string, str(self.social_meta))
+
+
+class RevEngineHistoricalChangeTest(TestCase):
+    def setUp(self):
+        self.organization = OrganizationFactory()
+        self.model = Organization
+        self.app_label = "organizations"
+        self.model_name = "organization"
+        self.change = RevEngineHistoricalChangeFactory(
+            app_label=self.app_label,
+            model=self.model_name,
+            object_id=self.organization.pk,
+        )
+
+    def test_get_object_history_admin_url(self):
+        output = self.change.get_object_history_admin_url()
+        self.assertTrue(
+            all(
+                [
+                    isinstance(output, str),
+                    str(self.change.object_id) in output,
+                    self.app_label in output,
+                    self.model_name in output,
+                    str(self.organization.id) in output,
+                ]
+            )
+        )

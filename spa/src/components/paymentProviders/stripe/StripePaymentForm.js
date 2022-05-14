@@ -180,10 +180,8 @@ function StripePaymentForm({ loading, setLoading, offerPayFees }) {
 
   const handleCardSubmit = async (e) => {
     e.preventDefault();
-
     const data = await getData();
     setLoading(true);
-
     await submitPayment(
       stripe,
       data,
@@ -198,7 +196,6 @@ function StripePaymentForm({ loading, setLoading, offerPayFees }) {
   \*********************************/
   const handlePaymentRequestSubmit = async (state, paymentRequest) => {
     const data = await getData(state);
-
     setLoading(true);
     await submitPayment(
       stripe,
@@ -282,11 +279,9 @@ function StripePaymentForm({ loading, setLoading, offerPayFees }) {
    */
   const getButtonText = () => {
     const totalAmount = getTotalAmount(amount, payFee, frequency, page.organization_is_nonprofit);
-
     if (isNaN(totalAmount)) {
       return 'Enter a valid amount';
     }
-
     return `Give ${currencySymbol}${formatStringAmountForDisplay(totalAmount)} ${getFrequencyAdverb(frequency)}`;
   };
 

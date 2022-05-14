@@ -7,7 +7,6 @@ import { useAlert } from 'react-alert';
 
 // Utils
 import { getFrequencyAdverb, getFrequencyThankYouText } from 'utilities/parseFrequency';
-import { getSHA256Hash } from 'utilities/getSHA256Hash';
 
 // Hooks
 import useSubdomain from 'hooks/useSubdomain';
@@ -52,7 +51,6 @@ function StripePaymentForm({ loading, setLoading, offerPayFees }) {
   const [paymentRequest, setPaymentRequest] = useState(null);
   const [forceManualCard, setForceManualCard] = useState(false);
   const [stripeError, setStripeError] = useState();
-  const [emailHash, setEmailHash] = useState('');
 
   const theme = useTheme();
   const history = useHistory();
@@ -93,9 +91,9 @@ function StripePaymentForm({ loading, setLoading, offerPayFees }) {
     setLoading(false);
     setSucceeded(true);
     trackConversion(totalAmount);
-    const qstr = `uid=${emailHash}&frequency=${encodeURIComponent(
-      getFrequencyThankYouText(frequency)
-    )}&amount=${encodeURIComponent(totalAmount)}`;
+    const qstr = `frequency=${encodeURIComponent(getFrequencyThankYouText(frequency))}&amount=${encodeURIComponent(
+      totalAmount
+    )}`;
 
     if (page.thank_you_redirect) {
       let redirectURL = page.thank_you_redirect;
@@ -182,10 +180,6 @@ function StripePaymentForm({ loading, setLoading, offerPayFees }) {
 
   const handleCardSubmit = async (e) => {
     e.preventDefault();
-    const email = extractEmailFromFormRef(formRef.current);
-    getSHA256Hash(email).then((res) => {
-      setEmailHash(res);
-    });
 
     const data = await getData();
     setLoading(true);
@@ -204,12 +198,6 @@ function StripePaymentForm({ loading, setLoading, offerPayFees }) {
   \*********************************/
   const handlePaymentRequestSubmit = async (state, paymentRequest) => {
     const data = await getData(state);
-    const email = extractEmailFromFormRef(formRef.current);
-    getSHA256Hash(email)
-      .then((res) => {
-        setEmailHash(res);
-      })
-      .catch((err) => console.log(err));
 
     setLoading(true);
     await submitPayment(

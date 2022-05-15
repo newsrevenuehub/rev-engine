@@ -112,7 +112,7 @@ class TokenObtainPairCookieView(simplejwt_views.TokenObtainPairView):
         }
 
         logging.info(
-            f"TokenObtainPairPairCookie good; user {serializer.validated_data['user']} csrf_token {csrf_token}"
+            "TokenObtainPairPairCookie good; user '%s' csrf_token '%s'", serializer.validated_data["user"], csrf_token
         )
         return response
 
@@ -166,10 +166,10 @@ class RequestContributorTokenEmailView(APIView):
                 subject="Manage your contributions",
                 template_data={"magic_link": magic_link},
             )
-            logging.info(f"Request MagicLink email sent; email {email} token {token} url {magic_link}")
+            logging.info("Request MagicLink email sent; email '%s' token '%s' url '%s'", email, token, magic_link)
         except NoSuchContributorError:
             logging.info(
-                f"Request MagicLink fail; NoSuchContributor deserialize request.data {request.data}", exc_info=True
+                "Request MagicLink fail; NoSuchContributor deserialize request.data '%s'", request.data, exc_info=True
             )
             # Send same response as "success". We don't want to indicate whether or not a given address is in our system.
             pass
@@ -216,6 +216,9 @@ class VerifyContributorTokenView(APIView):
         }
 
         logging.info(
-            f"VerifyContributorTokenView good; user {request.user} long_token {long_lived_token} csrf_token {csrf_token}"
+            "VerifyContributorTokenView good; user '%s' long_token '%s' csrf_token '%s'",
+            request.user,
+            long_lived_token,
+            csrf_token,
         )
         return response

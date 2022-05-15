@@ -45,11 +45,14 @@ class JWTHttpOnlyCookieAuthentication(JWTAuthentication):
             return None, None
         if isinstance(user, Contributor) and token.get("ctx", None) != LONG_TOKEN:
             logging.info(
-                f"JWTCookieAuth fail; '{user}' is contributor but '{token}' lacks 'ctx' key or it is != {LONG_TOKEN}"
+                "JWTCookieAuth fail; '%s' is contributor but '%s' lacks 'ctx' key or key != '%s'",
+                user,
+                token,
+                LONG_TOKEN,
             )
             return None, None
         if hasattr(user, "is_active") and not user.is_active:
-            logging.info(f"JWTCookieAuth fail; '{user}' is not active")
+            logging.info("JWTCookieAuth fail; '%s' is not active", user)
             return None, None
         return user, token
 
@@ -61,7 +64,7 @@ class JWTHttpOnlyCookieAuthentication(JWTAuthentication):
         """
         raw_token = request.COOKIES.get(settings.AUTH_COOKIE_KEY)
         if raw_token is None:
-            logging.info(f"JWTCookieAuth fail; no {settings.AUTH_COOKIE_KEY} cookie present in request")
+            logging.info("JWTCookieAuth fail; no '%s' cookie present in request", settings.AUTH_COOKIE_KEY)
             # TODO: Why return one value here but two at end of method?
             # TODO: Why None instead of raise like in get_user?
             # TODO: Why does return None result in 401, but return None, None in 403?
@@ -76,7 +79,7 @@ class JWTHttpOnlyCookieAuthentication(JWTAuthentication):
 
         self.enforce_csrf(request)
 
-        logging.info(f"JWTCookieAuth good; {validated_user} {validated_token}")
+        logging.info("JWTCookieAuth good; '%s' '%s'", validated_user, validated_token)
         return validated_user, validated_token
 
     def get_user(self, validated_token):
@@ -84,11 +87,19 @@ class JWTHttpOnlyCookieAuthentication(JWTAuthentication):
             contributor_uuid = validated_token[settings.CONTRIBUTOR_ID_CLAIM]
             return Contributor.objects.get(uuid=contributor_uuid)
         except Contributor.DoesNotExist:
-            logging.info(f"JWTCookieAuth fail; Contributor {contributor_uuid} DoesNotExist from {validated_token}")
+            logging.info(
+                "JWTCookieAuth fail; Contributor '%s' DoesNotExist from '%s'",
+                contributor_uuid,
+                validated_token,
+                exc_info=True,
+            )
             raise MagicLinkAuthenticationFailed("Contributor not found", code="contributor_not_found")
         except KeyError:
             logging.info(
-                f"JWTCookieAuth fallback to normal user; KeyError {settings.CONTRIBUTOR_ID_CLAIM} not in {validated_token}"
+                "JWTCookieAuth fallback to normal user; KeyError '%s' not in '%s'",
+                settings.CONTRIBUTOR_ID_CLAIM,
+                validated_token,
+                exc_info=True,
             )
             # If there's no validated_token[settings.CONTRIBUTOR_ID_CLAIM], get normal user
             return super().get_user(validated_token)
@@ -100,34 +111,46 @@ class MagicLinkTokenAuthenticationBase(JWTHttpOnlyCookieAuthentication):
             contributor_uuid = validated_token[settings.CONTRIBUTOR_ID_CLAIM]
             return Contributor.objects.get(uuid=contributor_uuid)
         except Contributor.DoesNotExist:
-            logging.info(f"MagicLinkAuth fail; Contributor {contributor_uuid} DoesNotExist from {validated_token}")
+            logging.info(
+                "MagicLinkAuth fail; Contributor '%s' DoesNotExist from '%s'",
+                contributor_uuid,
+                validated_token,
+                exc_info=True,
+            )
             raise MagicLinkAuthenticationFailed("Contributor not found", code="contributor_not_found")
         except KeyError:
-            logging.info(f"MagicLinkAuth fail; KeyError {settings.CONTRIBUTOR_ID_CLAIM} not in {validated_token}")
+            logging.info(
+                "MagicLinkAuth fail; KeyError '%s' not in '%s'",
+                settings.CONTRIBUTOR_ID_CLAIM,
+                validated_token,
+                exc_info=True,
+            )
             raise MagicLinkAuthenticationFailed("Invalid token", code="missing_claim")
 
     def validate_token(self, token, email):
         try:
             validated_token = self.get_validated_token(token)
         except InvalidToken:
-            logging.info(f"MagicLinkAuth fail; invalid token {token}")
+            logging.info("MagicLinkAuth fail; invalid token '%s'", token, exc_info=True)
             raise MagicLinkAuthenticationFailed("Invalid token", code="invalid_token")
         contributor = self.get_user(validated_token)
         self.ensure_contrib_token_type(validated_token)  # This doesn't exist in base class
         if email != contributor.email:
-            logging.info(f"MagicLinkAuth fail; email {email} does not match contributor.email {email}")
+            logging.info(
+                "MagicLinkAuth fail; email '%s' does not match contributor.email '%s'", email, contributor.email
+            )
             raise MagicLinkAuthenticationFailed("Invalid token", code="invalid_token")
-        logging.info(f"MagicLinkAuth good; {contributor} {validated_token}")
+        logging.info("MagicLinkAuth good; '%s' '%s'", contributor, validated_token)
         return contributor, validated_token
 
 
 class ShortLivedTokenAuthentication(MagicLinkTokenAuthenticationBase):
     def ensure_contrib_token_type(self, token):
         if "ctx" not in token:
-            logging.info(f"MagicLinkAuth fail; 'ctx' not in token {token}")
+            logging.info("MagicLinkAuth fail; 'ctx' not in token '%s'", token)
             raise MagicLinkAuthenticationFailed("Invalid token", code="missing_claim")
         if token["ctx"] != SHORT_TOKEN:
-            logging.info(f"MagicLinkAuth fail; token['ctx'] != {SHORT_TOKEN}")
+            logging.info("MagicLinkAuth fail; token['ctx'] != '%s'", SHORT_TOKEN)
             raise MagicLinkAuthenticationFailed("Invalid token type", code="invalid_type")
 
     def authenticate(self, request):
@@ -137,12 +160,13 @@ class ShortLivedTokenAuthentication(MagicLinkTokenAuthenticationBase):
         raw_token = request.data.get("token", None)
         email = request.data.get("email", None)
 
-        # TODO: these checks just "if not raw_token", so to catch empty string too, eh?
+        # TODO: This check just "if not raw_token", catch empty string too, eh?
         if raw_token is None:
-            logging.info(f"MagicLinkAuth fail; token {email} is None")
+            logging.info("MagicLinkAuth fail; request.token is None")
             raise MagicLinkAuthenticationFailed("Invalid parameters", code="invalid_params")
-        if email is None:  # TODO: this check should probably be just if not email, so as to catch empty string too, eh?
-            logging.info(f"MagicLinkAuth fail; email {email} is None")
+        # TODO: This check just "if not email", to catch empty string too, eh?
+        if email is None:
+            logging.info("MagicLinkAuth fail; request.email is None")
             raise MagicLinkAuthenticationFailed("Invalid parameters", code="invalid_params")
 
         validated_user, validated_token = self.validate_token(raw_token, email)
@@ -153,9 +177,9 @@ class ShortLivedTokenAuthentication(MagicLinkTokenAuthenticationBase):
         # And why is there an unused base class?
         # So, much indirection/abstraction and chaos for so little functionality.
         if not validated_user:
-            logging.info(f"MagicLinkAuth fail; bad validated_user {validated_user}")
+            logging.info("MagicLinkAuth fail; bad validated_user '%s'", validated_user)
             raise MagicLinkAuthenticationFailed("Invalid token")
         if not validated_token:
-            logging.info(f"MagicLinkAuth fail; bad validated_token {validated_token}")
+            logging.info("MagicLinkAuth fail; bad validated_token '%s'", validated_token)
             raise MagicLinkAuthenticationFailed("Invalid token")
         return validated_user, validated_token

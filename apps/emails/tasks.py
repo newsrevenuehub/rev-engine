@@ -20,7 +20,9 @@ def send_donor_email(identifier, to, subject, template_data):  # pragma: no cove
     logger.info("Sending receipt email id:%s to:%s subject:%s", identifier, to, subject)
     message = AnymailMessage()
     message.template_id = identifier
-    message.to = [to, ]
+    message.to = [
+        to,
+    ]
     message.subject = subject
     message.merge_global_data = template_data
     message.send()

@@ -39,3 +39,17 @@ export function getFrequencyRate(frequency) {
       return '';
   }
 }
+
+export function getFrequencyThankYouText(frequency) {
+  switch (frequency) {
+    case 'one_time':
+      return 'one-time';
+    case 'month':
+      return 'monthly';
+    case 'year':
+      return 'yearly';
+
+    default:
+      return '';
+  }
+}

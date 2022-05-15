@@ -13,9 +13,11 @@ import { DELETE_CONFIRM_MESSAGE } from 'components/pageEditor/PageEditor';
 import { CONTENT_SLUG } from 'routes';
 import { CLEARBIT_SCRIPT_SRC } from 'hooks/useClearbit';
 
+import hubAdminUser from '../fixtures/user/hub-admin.json';
+
 describe('Donation page edit', () => {
   before(() => {
-    cy.login('user/stripe-verified.json');
+    cy.forceLogin(hubAdminUser);
     cy.intercept(
       { method: 'GET', pathname: `${getEndpoint(DRAFT_PAGE_DETAIL)}**` },
       { fixture: 'pages/live-page-1', statusCode: 200 }

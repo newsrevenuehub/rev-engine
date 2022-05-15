@@ -3,9 +3,11 @@ import { LIST_STYLES } from 'ajax/endpoints';
 import { CONTENT_SLUG } from 'routes';
 import stylesList from '../fixtures/styles/list-styles-1.json';
 
-describe('Donation pages list', () => {
-  before(() => {
-    cy.login('user/stripe-verified.json');
+import orgAdminUser from '../fixtures/user/org-admin';
+
+describe('Styles list', () => {
+  beforeEach(() => {
+    cy.forceLogin(orgAdminUser);
     cy.intercept(getEndpoint(LIST_STYLES), { fixture: 'styles/list-styles-1' }).as('listStyles');
     cy.visit(CONTENT_SLUG);
     cy.url().should('include', CONTENT_SLUG);

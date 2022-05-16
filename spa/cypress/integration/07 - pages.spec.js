@@ -1,5 +1,5 @@
 import { getEndpoint } from '../support/util';
-import { LIST_PAGES } from 'ajax/endpoints';
+import { LIST_PAGES, LIST_STYLES } from 'ajax/endpoints';
 import pagesList from '../fixtures/pages/list-pages-1.json';
 import { CONTENT_SLUG } from 'routes';
 
@@ -11,9 +11,11 @@ describe('Donation pages list', () => {
   beforeEach(() => {
     cy.forceLogin(hubAdminUser);
     cy.intercept(getEndpoint(LIST_PAGES), { fixture: 'pages/list-pages-1' }).as('listPages');
+    cy.intercept(getEndpoint(LIST_STYLES), { fixture: 'styles/list-styles-1.json' }).as('listStyles');
     cy.visit(CONTENT_SLUG);
     cy.url().should('include', CONTENT_SLUG);
     cy.wait('@listPages');
+    cy.wait('@listStyles');
   });
 
   it('should render the pages list component', () => {

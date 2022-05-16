@@ -11,9 +11,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout branch
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
       - name: Setup Node.js
-        uses: actions/setup-node@v2
+        uses: actions/setup-node@v3
       - name: Install node dependencies, build and test
         run: |
           cd spa
@@ -27,7 +27,7 @@ jobs:
       REACT_APP_STRIPE_ACCOUNT_ID: acc_3kjfo23jj
     steps:
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
       - name: Setup custom hosts for subdomain testing
         run: |
           echo "127.0.0.1 revengine-testabc123.com" | sudo tee -a /etc/hosts
@@ -41,12 +41,12 @@ jobs:
           build: npx cypress info
           start: npm run start:subdomains
           wait-on: http://localhost:3000
-      - uses: actions/upload-artifact@v2
+      - uses: actions/upload-artifact@v3
         if: failure()
         with:
           name: cypress-screenshots
           path: spa/cypress/screenshots
-      - uses: actions/upload-artifact@v2
+      - uses: actions/upload-artifact@v3
         if: failure()
         with:
           name: cypress-videos

@@ -378,7 +378,7 @@ class RevenueProgram(IndexedTimeStampedModel):
                 )
 
     def user_has_ownership_via_role(self, role_assignment):
-        """Note on distinct ownership vs. access"""
+        """Determine if a user owns an instance based on role_assignment"""
         return any(
             [
                 all(

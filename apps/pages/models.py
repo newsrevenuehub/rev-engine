@@ -84,10 +84,7 @@ class AbstractPage(IndexedTimeStampedModel, RoleAssignmentResourceModelMixin):
             return False
 
     def user_has_ownership_via_role(self, role_assignment):
-        """
-
-        (distinct from access)
-        """
+        """Determine if a user (based on roleassignment) owns an instance"""
         return any(
             [
                 all(
@@ -288,6 +285,7 @@ class Style(IndexedTimeStampedModel, SafeDeleteModel, RoleAssignmentResourceMode
             return False
 
     def user_has_ownership_via_role(self, role_assignment):
+        """Determine if a user (based on roleassignment) owns an instance"""
         return any(
             [
                 all(

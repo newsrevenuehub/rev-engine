@@ -5,6 +5,8 @@ import stylesList from '../fixtures/styles/list-styles-1.json';
 
 import orgAdminUser from '../fixtures/user/org-admin';
 
+const [styleA] = stylesList;
+
 describe('Styles list', () => {
   beforeEach(() => {
     cy.forceLogin(orgAdminUser);
@@ -23,7 +25,7 @@ describe('Styles list', () => {
   });
 
   it('should open edit modal when style is clicked', () => {
-    cy.getByTestId('style-card-1').click();
+    cy.getByTestId(`style-card-${styleA.id}`).click();
     cy.getByTestId('edit-styles-modal-update').should('exist');
     cy.getByTestId('close-modal').click();
   });

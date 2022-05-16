@@ -1,41 +1,42 @@
 [
   {
-    "id": 1,
-    "name": "My Test Styles 01",
-    "used_live": true,
+    "id": 134,
+    "created": "2021-11-15T17:07:18.986679Z",
+    "modified": "2022-02-23T20:18:25.591552Z",
+    "name": "Style A",
+    "styles": null,
+    "revenue_program": 10,
+    "used_live": false,
+    "font": {
+      "body": { "id": 30, "name": "Arvo", "source": "google", "accessor": "Arvo", "font_name": "arvo" },
+      "heading": { "id": 30, "name": "Arvo", "source": "google", "accessor": "Arvo", "font_name": "arvo" }
+    },
     "colors": {
-      "primary": "pink",
+      "primary": "green",
       "secondary": "blue",
       "fieldBackground": "yellow",
       "paneBackground": "green"
     },
-    "font": "Monospace",
-    "fontSizes": []
+    "fontSizes": ["12px", "16px", "24px", "32px", "48px", "84px", "96px"]
   },
   {
-    "id": 2,
-    "name": "My Test Styles 02",
-    "used_live": false,
-    "colors": {
-      "primary": "purple",
-      "secondary": "orange",
-      "fieldBackground": "brown",
-      "paneBackground": "grey"
+    "id": 135,
+    "created": "2021-11-15T17:07:18.986679Z",
+    "modified": "2022-02-23T20:18:25.591552Z",
+    "name": "Style B",
+    "styles": null,
+    "revenue_program": 10,
+    "used_live": true,
+    "font": {
+      "body": { "id": 30, "name": "Arvo", "source": "google", "accessor": "Arvo", "font_name": "arvo" },
+      "heading": { "id": 30, "name": "Arvo", "source": "google", "accessor": "Arvo", "font_name": "arvo" }
     },
-    "font": "Monospace",
-    "fontSizes": []
-  },
-  {
-    "id": 3,
-    "name": "My Test Styles 03",
-    "used_live": false,
     "colors": {
-      "primary": "papayawhip",
-      "secondary": "blanchedalmond",
-      "fieldBackground": "gainsboro",
-      "paneBackground": "thistle"
+      "primary": "red",
+      "secondary": "blue",
+      "fieldBackground": "yellow",
+      "paneBackground": "green"
     },
-    "font": "Monospace",
-    "fontSizes": []
+    "fontSizes": ["12px", "16px", "24px", "32px", "48px", "84px", "96px"]
   }
 ]

@@ -1,7 +1,7 @@
 /*
   These constants may be static values, or read from the "environment".
-  Constants read from the "environment" locally are analyzed by webpack and 
-  converted to static values at build time using the built-in 
+  Constants read from the "environment" locally are analyzed by webpack and
+  converted to static values at build time using the built-in
   .env -> "REACT_APP_ENV_VAR" -> string
   Constants read from the "environment" in a deployed environment are actually added
   to the window object when the initial index.html is requested and are available as properties

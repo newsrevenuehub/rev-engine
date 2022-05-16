@@ -39,15 +39,8 @@ const EditInterfaceContext = createContext();
  * EditInterface is direct child of PageEditor
  */
 function EditInterface() {
-  const {
-    page,
-    setPage,
-    updatedPage,
-    setUpdatedPage,
-    errors,
-    showEditInterface,
-    setSelectedButton
-  } = usePageEditorContext();
+  const { page, setPage, updatedPage, setUpdatedPage, errors, showEditInterface, setSelectedButton } =
+    usePageEditorContext();
   const [tab, setTab] = useState(0);
   const [elementDestination, setElementDestination] = useState();
   const [addElementModalOpen, setAddElementModalOpen] = useState(false);

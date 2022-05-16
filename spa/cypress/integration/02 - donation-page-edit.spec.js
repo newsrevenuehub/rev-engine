@@ -211,7 +211,7 @@ describe('Donation page edit', () => {
     });
 
     it('should not show option to enable NYT sub if RP has not enabled it', () => {
-      expect(livePage.allow_offer_nyt_comp).to.be.false;
+      expect(livePage.allow_offer_nyt_comp).to.be.null;
       cy.getByTestId('offer-nyt-comp').should('not.exist');
     });
 
@@ -335,8 +335,8 @@ describe('Donation page edit', () => {
       cy.visit('edit/my/page');
       cy.url().should('include', 'edit/my/page');
       cy.wait('@getPageDetail');
-      cy.getByTestId('edit-page-button').click({ force: true });
-      cy.getByTestId('setup-tab').click({ force: true });
+      cy.getByTestId('edit-page-button').click();
+      cy.getByTestId('setup-tab').click();
     });
     it('should render the setup tab when setup tab clicked', () => {
       cy.getByTestId('page-setup');

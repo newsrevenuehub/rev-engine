@@ -9,6 +9,7 @@ from rest_framework.validators import UniqueTogetherValidator
 from sorl_thumbnail_serializer.fields import HyperlinkedSorlImageField
 
 from apps.api.error_messages import UNIQUE_PAGE_SLUG
+from apps.common.validators import ValidateFkReferenceOwnership
 from apps.organizations.models import RevenueProgram
 from apps.organizations.serializers import (
     BenefitLevelDetailSerializer,
@@ -16,7 +17,6 @@ from apps.organizations.serializers import (
     RevenueProgramListInlineSerializer,
 )
 from apps.pages.models import DonationPage, Font, Style, Template
-from apps.pages.validators import ValidateFkReferenceOwnership
 
 
 logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")

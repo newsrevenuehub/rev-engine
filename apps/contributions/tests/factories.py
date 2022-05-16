@@ -67,3 +67,4 @@ class ContributionFactory(DjangoModelFactory):
     status = factory.LazyAttribute(lambda o: _get_status(o.bad_actor_score))
     payment_provider_used = "Stripe"
     donation_page = factory.SubFactory(DonationPageFactory)
+    contributor = factory.SubFactory(ContributorFactory)

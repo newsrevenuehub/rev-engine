@@ -63,8 +63,6 @@ class PageFullDetailHelper:
         self._ensure_donation_page()
         if self.live:
             self._validate_live_page_request()
-        else:
-            self._validate_draft_page_request()
 
     def _validate_live_page_request(self):
         """
@@ -81,17 +79,8 @@ class PageFullDetailHelper:
                 f'Request made for live page "{self.donation_page}", but "{self.donation_page.organization.name}" does is not verified with its default payment provider'
             )
             raise PageDetailError(
-                message="Organization does not have a fully verified payment provider", status=status.HTTP_404_NOT_FOUND
-            )
-
-    def _validate_draft_page_request(self):
-        """
-        Once we have a donation page, we must ensure that if page is not requested live (edit mode), the requesting user has permission to view that page
-        (Actual edit action protections are enforced in the views that manage them)
-        """
-        if not self.donation_page.organization.user_is_member(self.request.user) and not self.request.user.is_superuser:
-            raise PageDetailError(
-                message="You do not have permission to edit this page", status=status.HTTP_403_FORBIDDEN
+                message="RevenueProgram does not have a fully verified payment provider",
+                status=status.HTTP_404_NOT_FOUND,
             )
 
     def get_donation_page_data(

@@ -37,10 +37,18 @@ class OrganizationSerializer(serializers.ModelSerializer):
         revenue_program = instance.revenueprogram_set.first()
         if revenue_program:
             payment_provider = revenue_program.payment_provider
-            representation.update(**PaymentProviderSerializer(payment_provider).data)
+            data = PaymentProviderSerializer(payment_provider).data
+            data.pop("id")
+            representation.update(**data)
             representation["non_profit"] = revenue_program.non_profit
             representation["domain_apple_verified_date"] = revenue_program.domain_apple_verified_date
         return representation
+
+
+class OrganizationInlineSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Organization
+        fields = ["id", "name", "slug"]
 
 
 class RevenueProgramListInlineSerializer(serializers.ModelSerializer):
@@ -70,6 +78,21 @@ class RevenueProgramListInlineSerializer(serializers.ModelSerializer):
             "google_analytics_v3_id",
             "google_analytics_v4_id",
             "facebook_pixel_id",
+        ]
+
+
+class RevenueProgramInlineSerializer(serializers.ModelSerializer):
+    """
+    Used by the UserSerializer when users log in.
+    """
+
+    class Meta:
+        model = RevenueProgram
+        fields = [
+            "id",
+            "name",
+            "slug",
+            "organization",
         ]
 
 

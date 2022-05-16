@@ -39,6 +39,9 @@ class ContributorTest(TestCase):
     def test__str(self):
         self.assertEqual(str(self.contributor), self.contributor.email)
 
+    def test_is_superuser(self):
+        self.assertFalse(self.contributor.is_superuser)
+
 
 test_key = "test_key"
 

@@ -79,7 +79,7 @@ function serializeForm(form) {
   /*
     Rather than trying to hoist all form state up to a common parent,
     we've wrapped the page in a <form> element. Here, we grab a ref
-    to that form and turn it in to FormData, then we serialize that 
+    to that form and turn it in to FormData, then we serialize that
     form data in to a javascript object.
 
     This really is easier than managing all the form state in a common

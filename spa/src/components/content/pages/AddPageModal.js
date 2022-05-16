@@ -95,7 +95,7 @@ function AddPageModal({ isOpen, closeModal }) {
     const formData = {
       name,
       slug,
-      revenue_program_pk: revenueProgram.id
+      revenue_program: revenueProgram.id
     };
     if (template) formData.template_pk = template.id;
     createPage(

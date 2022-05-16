@@ -32,6 +32,12 @@ class OrganizationSerializer(serializers.ModelSerializer):
         fields = "__all__"
 
 
+class OrganizationInlineSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Organization
+        fields = ["id", "name", "slug", "stripe_verified", "default_payment_provider", "stripe_account_id"]
+
+
 class RevenueProgramListInlineSerializer(serializers.ModelSerializer):
     """
     I am needed for Page creation. In particular, if "slug" is not provided,
@@ -59,6 +65,21 @@ class RevenueProgramListInlineSerializer(serializers.ModelSerializer):
             "google_analytics_v3_id",
             "google_analytics_v4_id",
             "facebook_pixel_id",
+        ]
+
+
+class RevenueProgramInlineSerializer(serializers.ModelSerializer):
+    """
+    Used by the UserSerializer when users log in.
+    """
+
+    class Meta:
+        model = RevenueProgram
+        fields = [
+            "id",
+            "name",
+            "slug",
+            "organization",
         ]
 
 

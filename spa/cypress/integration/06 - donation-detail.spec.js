@@ -7,12 +7,14 @@ import { CONTRIBUTIONS, PROCESS_FLAGGED } from 'ajax/endpoints';
 import { getEndpoint } from '../support/util';
 import { GENERIC_ERROR } from 'constants/textConstants';
 
+import hubAdminUser from '../fixtures/user/hub-admin';
+
 const CONTRIBUTION_PK = 123;
 
 describe('Donation detail', () => {
   describe('Unflagged donation', () => {
     beforeEach(() => {
-      cy.login('user/stripe-verified.json');
+      cy.forceLogin(hubAdminUser);
       cy.intercept('GET', getEndpoint(`${CONTRIBUTIONS}/${CONTRIBUTION_PK}/`), {
         body: unflaggedContributionDetailData
       }).as('getUnflaggedDonation');
@@ -37,7 +39,7 @@ describe('Donation detail', () => {
   });
   describe('Previously but no-longer-flagged donation', () => {
     beforeEach(() => {
-      cy.login('user/stripe-verified.json');
+      cy.forceLogin(hubAdminUser);
       cy.intercept('GET', getEndpoint(`${CONTRIBUTIONS}/${CONTRIBUTION_PK}/`), {
         body: prevFlaggedContributionDetailData
       }).as('getNoLongerFlaggedDonation');
@@ -67,7 +69,7 @@ describe('Donation detail', () => {
 
   describe('Flagged donation', () => {
     before(() => {
-      cy.login('user/stripe-verified.json');
+      cy.forceLogin(hubAdminUser);
       cy.intercept('GET', getEndpoint(`${CONTRIBUTIONS}${CONTRIBUTION_PK}/`), {
         body: flaggedContributionDetailData
       }).as('getFlaggedDonation');
@@ -95,7 +97,7 @@ describe('Donation detail', () => {
       // There's a frustrating issue with cypress and the way we're utilizing React.createPortal for the confirmation modal.
       // For whatever reason, cypress returns to the login screen here.
       const contributionId = flaggedContributionDetailData.id;
-      cy.login('user/stripe-verified.json');
+      cy.forceLogin(hubAdminUser);
       cy.intercept('GET', getEndpoint(`${CONTRIBUTIONS}${contributionId}/`), {
         body: flaggedContributionDetailData
       }).as('getFlaggedDonation');
@@ -127,7 +129,7 @@ describe('Donation detail', () => {
       // There's a frustrating issue with cypress and the way we're utilizing React.createPortal for the confirmation modal.
       // For whatever reason, cypress returns to the login screen here.
       const contributionId = flaggedContributionDetailData.id;
-      cy.login('user/stripe-verified.json');
+      cy.forceLogin(hubAdminUser);
       cy.intercept('GET', getEndpoint(`${CONTRIBUTIONS}${contributionId}/`), {
         body: flaggedContributionDetailData
       }).as('getFlaggedDonation');
@@ -146,7 +148,7 @@ describe('Donation detail', () => {
       // There's a frustrating issue with cypress and the way we're utilizing React.createPortal for the confirmation modal.
       // For whatever reason, cypress returns to the login screen here.
       const contributionId = flaggedContributionDetailData.id;
-      cy.login('user/stripe-verified.json');
+      cy.forceLogin(hubAdminUser);
       cy.intercept('GET', getEndpoint(`${CONTRIBUTIONS}${contributionId}/`), {
         body: flaggedContributionDetailData
       }).as('getFlaggedDonation');

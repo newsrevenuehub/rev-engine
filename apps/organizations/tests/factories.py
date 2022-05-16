@@ -42,16 +42,26 @@ class OrganizationFactory(DjangoModelFactory):
     address = factory.SubFactory(AddressFactory)
     stripe_verified = True
     slug = factory.lazy_attribute(lambda o: normalize_slug(name=o.name))
+    plan = factory.SubFactory("apps.organizations.tests.factories.PlanFactory")
 
 
 class RevenueProgramFactory(DjangoModelFactory):
     class Meta:
         model = models.RevenueProgram
+        django_get_or_create = ("name",)
 
     name = factory.Sequence(lambda n: f"{' '.join(fake.words(nb=4))}-{str(n)}")
     slug = factory.lazy_attribute(lambda o: normalize_slug(name=o.name))
-    organization = factory.SubFactory(OrganizationFactory)
     contact_email = fake.email()
+
+    class Params:
+        org = None
+
+    @factory.lazy_attribute
+    def organization(self):
+        if self.org:
+            return self.org
+        return OrganizationFactory()
 
 
 class BenefitFactory(DjangoModelFactory):

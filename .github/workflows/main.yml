@@ -4,7 +4,7 @@ on:
   push:
     branches:
       - staging
-#      - main
+      - main
       - test
       - develop
       - demo
@@ -25,14 +25,14 @@ jobs:
           heroku_email: "daniel.craigmile@fundjournalism.org"
           usedocker: true
 
-      # - name: Heroku deploy to production
-      # - uses: akhileshns/heroku-deploy@v3.12.12
-      #   if: github.ref == 'refs/heads/main'
-      #   with:
-      #     heroku_api_key: ${{secrets.HEROKU_API_KEY}}
-      #     heroku_app_name: "rev-engine-prod"
-      #     heroku_email: "daniel.craigmile@fundjournalism.org"
-      #     usedocker: true
+      - name: Heroku deploy to production
+        uses: akhileshns/heroku-deploy@v3.12.12
+        if: github.ref == 'refs/heads/main'
+        with:
+          heroku_api_key: ${{secrets.HEROKU_API_KEY}}
+          heroku_app_name: "rev-engine-prod"
+          heroku_email: "daniel.craigmile@fundjournalism.org"
+          usedocker: true
 
       - name: Heroku deploy to test
         uses: akhileshns/heroku-deploy@v3.12.12

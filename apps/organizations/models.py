@@ -116,16 +116,6 @@ class Organization(IndexedTimeStampedModel, RoleAssignmentResourceModelMixin):
         return [(rp.name, rp.pk) for rp in rps]
 
     @property
-    def admin_benefit_options(self):
-        benefits = self.benefit_set.all()
-        return [(c.name, c.pk) for c in benefits]
-
-    @property
-    def admin_benefitlevel_options(self):
-        benefit_levels = self.benefitlevel_set.all()
-        return [(c.name, c.pk) for c in benefit_levels]
-
-    @property
     def needs_payment_provider(self):
         """
         Right now this is simple. If the org is not "stripe_verified", then they "need a provider"
@@ -297,6 +287,16 @@ class RevenueProgram(IndexedTimeStampedModel):
     def admin_style_options(self):
         styles = self.style_set.all()
         return [(c.name, c.pk) for c in styles]
+
+    @property
+    def admin_benefit_options(self):
+        benefits = self.benefit_set.all()
+        return [(c.name, c.pk) for c in benefits]
+
+    @property
+    def admin_benefitlevel_options(self):
+        benefit_levels = self.benefitlevel_set.all()
+        return [(c.name, c.pk) for c in benefit_levels]
 
     def __str__(self):
         return self.name

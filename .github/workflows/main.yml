@@ -4,15 +4,59 @@ on:
   push:
     branches:
       - staging
+#      - main
+      - test
+      - develop
+      - demo
 
 jobs:
-  build:
+  build-and-deploy:
     runs-on: ubuntu-latest
+
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
+
+      - name: Heroku deploy to staging
       - uses: akhileshns/heroku-deploy@v3.12.12
+        if: ${{ github.refs == 'refs/heads/staging' }}
         with:
           heroku_api_key: ${{secrets.HEROKU_API_KEY}}
           heroku_app_name: "rev-engine-staging"
+          heroku_email: "daniel.craigmile@fundjournalism.org"
+          usedocker: true
+
+      # - name: Heroku deploy to production
+      # - uses: akhileshns/heroku-deploy@v3.12.12
+      #   if: github.refs == 'refs/heads/main'
+      #   with:
+      #     heroku_api_key: ${{secrets.HEROKU_API_KEY}}
+      #     heroku_app_name: "rev-engine-prod"
+      #     heroku_email: "daniel.craigmile@fundjournalism.org"
+      #     usedocker: true
+
+      - name: Heroku deploy to test
+      - uses: akhileshns/heroku-deploy@v3.12.12
+        if: github.refs == 'refs/heads/test'
+        with:
+          heroku_api_key: ${{secrets.HEROKU_API_KEY}}
+          heroku_app_name: "rev-engine-test"
+          heroku_email: "daniel.craigmile@fundjournalism.org"
+          usedocker: true
+
+      - name: Heroku deploy to develop
+      - uses: akhileshns/heroku-deploy@v3.12.12
+        if: github.refs == 'refs/heads/develop'
+        with:
+          heroku_api_key: ${{secrets.HEROKU_API_KEY}}
+          heroku_app_name: "rev-engine-dev"
+          heroku_email: "daniel.craigmile@fundjournalism.org"
+          usedocker: true
+
+      - name: Heroku deploy to demo
+      - uses: akhileshns/heroku-deploy@v3.12.12
+        if: github.refs == 'refs/heads/demo'
+        with:
+          heroku_api_key: ${{secrets.HEROKU_API_KEY}}
+          heroku_app_name: "rev-engine-demo"
           heroku_email: "daniel.craigmile@fundjournalism.org"
           usedocker: true

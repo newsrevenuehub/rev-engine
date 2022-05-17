@@ -479,7 +479,7 @@ class TestContributionsViewSet(RevEngineApiAbstractTestCase):
         donation_pages_of_org = DonationPage.objects.filter(
             revenue_program__in=RevenueProgram.objects.filter(organization=self.org1)
         )
-        donation_pages = set(i.id for i in donation_pages)
+        donation_pages = set(i.id for i in donation_pages_of_org)
         self.assertGreater(
             Contribution.objects.exclude(donation_page__in=donation_pages_of_org).count(),
             0,

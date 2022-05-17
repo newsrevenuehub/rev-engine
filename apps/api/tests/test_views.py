@@ -14,7 +14,7 @@ from rest_framework_simplejwt.tokens import AccessToken
 
 from apps.api.error_messages import GENERIC_BLANK
 from apps.api.tokens import ContributorRefreshToken
-from apps.api.views import TokenObtainPairCookieView, _construct_pr_domain
+from apps.api.views import TokenObtainPairCookieView, _construct_rp_domain
 from apps.contributions.models import Contributor
 from apps.contributions.tests.factories import ContributorFactory
 
@@ -36,9 +36,9 @@ user_model = get_user_model()
         (None, "https://example.com", "", "https://example.com"),  # Header has no subdomain.
     ],
 )
-def test__construct_pr_domain(expected, site_url, post, header):
+def test__construct_rp_domain(expected, site_url, post, header):
     with override_settings(SITE_URL=site_url):
-        assert expected == _construct_pr_domain(post, header)
+        assert expected == _construct_rp_domain(post, header)
 
 
 class TokenObtainPairCookieViewTest(APITestCase):

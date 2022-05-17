@@ -5,7 +5,6 @@ import * as S from './App.styled';
 import { ThemeProvider } from 'styled-components';
 import { ThemeProvider as MuiThemeProvider } from '@material-ui/core';
 import { revEngineTheme, muiThemeOverrides } from 'styles/themes';
-import 'semantic-ui-css/semantic.min.css';
 import SvgIcons from 'assets/icons/SvgIcons';
 import hubFavicon from 'assets/icons/favicon.ico';
 

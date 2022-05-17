@@ -10,9 +10,8 @@ from rest_framework.test import APITestCase
 
 from apps.api.tests import RevEngineApiAbstractTestCase
 from apps.organizations.models import RevenueProgram
-from apps.organizations.tests.factories import RevenueProgramFactory
 from apps.pages.models import DonationPage, Font, Style, Template
-from apps.pages.tests.factories import DonationPageFactory, FontFactory, TemplateFactory
+from apps.pages.tests.factories import FontFactory, TemplateFactory
 from apps.pages.validators import UNOWNED_TEMPLATE_FROM_PAGE_PAGE_PK_MESSAGE
 from apps.users.tests.utils import create_test_user
 
@@ -403,7 +402,46 @@ class PageViewSetTest(RevEngineApiAbstractTestCase):
         ).first()
         self.assertIsNotNone(page)
         url = reverse("donationpage-detail", args=(page.pk,))
-        self.assert_rp_user_cannot_get(url)
+
+    def test_live_detail_page_happy_path(self):
+        page = DonationPage.objects.first()
+        # ensure it's considered "live"
+        page.published_date = timezone.now() - datetime.timedelta(days=1)
+        page.save()
+        self.assertTrue(page.is_live)
+        url = f'{reverse("donationpage-live-detail")}?revenue_program={page.revenue_program.slug}&page={page.slug}'
+        self.assert_unauthed_can_get(url)
+
+    def test_live_detail_page_missing_query_parms(self):
+        page = DonationPage.objects.first()
+        # ensure it's considered "live"
+        page.published_date = timezone.now() - datetime.timedelta(days=1)
+        page.save()
+        self.assertTrue(page.is_live)
+        url = f'{reverse("donationpage-live-detail")}'
+        response = self.assert_unuauthed_cannot_get(url, status=status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(response.json(), {"detail": "Missing required parameter"})
+
+    def test_live_detail_page_when_not_published(self):
+        page = DonationPage.objects.first()
+        page.published_date = None
+        page.save()
+        self.assertFalse(page.is_live)
+        url = f'{reverse("donationpage-live-detail")}?revenue_program={page.revenue_program.slug}&page={page.slug}'
+        response = self.assert_unuauthed_cannot_get(url, status=status.HTTP_404_NOT_FOUND)
+        self.assertEqual(response.json(), {"detail": "This page has not been published"})
+
+    def test_live_detail_page_when_payment_provider_unverified(self):
+        page = DonationPage.objects.first()
+        page.published_date = timezone.now() - datetime.timedelta(days=1)
+        page.save()
+        self.assertTrue(page.is_live)
+        page.organization.stripe_verified = False
+        page.organization.save()
+        self.assertFalse(page.organization.is_verified_with_default_provider())
+        url = f'{reverse("donationpage-live-detail")}?revenue_program={page.revenue_program.slug}&page={page.slug}'
+        response = self.assert_unuauthed_cannot_get(url, status=status.HTTP_404_NOT_FOUND)
+        self.assertEqual(response.json(), {"detail": "Organization does not have a fully verified payment provider"})
 
 
 class TemplateViewSetTest(RevEngineApiAbstractTestCase):

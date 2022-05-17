@@ -102,6 +102,8 @@ class AbstractPage(IndexedTimeStampedModel, RoleAssignmentResourceModelMixin):
             return ra.organization == instance.organization
         elif ra.role_type == Roles.RP_ADMIN:
             return instance.revenue_program in user.roleassignment.revenue_programs.all()
+        else:
+            return False
 
     class Meta:
         abstract = True
@@ -185,20 +187,6 @@ class DonationPage(AbstractPage, SafeDeleteModel):
             feature_type=Feature.FeatureType.PAGE_LIMIT, plans__organization=self.organization.id
         ).first()
 
-    def update_email_template(self, template):
-        """
-        Replaces the template on the DonationPage instance with a new template with the same.
-        template type.
-
-        :param template: PageEmailTemplate instance
-        :return: None
-        """
-        if temp := self.email_templates.filter(template_type=template.template_type).first():
-            self.email_templates.remove(temp)
-            self.email_templates.add(template)
-        else:
-            self.email_templates.add(template)
-
     def get_total_org_pages(self):
         org = self.revenue_program.organization
         return DonationPage.objects.filter(revenue_program__in=org.revenueprogram_set.all()).count()
@@ -242,6 +230,7 @@ class DonationPage(AbstractPage, SafeDeleteModel):
             "page_screenshot",
             "deleted",
             "published_date",
+            "deleted_by_cascade",  # Added by safedelete
         ]
         page = cleanup_keys(self.__dict__, unwanted_keys)
         template = cleanup_keys(template_data, unwanted_keys)
@@ -305,6 +294,8 @@ class Style(IndexedTimeStampedModel, SafeDeleteModel, RoleAssignmentResourceMode
                     revenue_program in user.roleassignment.revenue_programs.all(),
                 ]
             )
+        else:
+            return False
 
     @classmethod
     def user_has_delete_permission_by_virtue_of_role(cls, user, instance):
@@ -315,6 +306,8 @@ class Style(IndexedTimeStampedModel, SafeDeleteModel, RoleAssignmentResourceMode
             return ra.organization == instance.revenue_program.organization
         elif ra.role_type == Roles.RP_ADMIN:
             return instance.revenue_program in user.roleassignment.revenue_programs.all()
+        else:
+            return False
 
 
 class Font(models.Model):

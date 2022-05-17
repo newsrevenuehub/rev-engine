@@ -2,7 +2,7 @@ from django.conf import settings
 from django.utils import timezone
 
 from rest_framework import serializers
-from rest_framework.test import APIRequestFactory, APITestCase, force_authenticate
+from rest_framework.test import APIRequestFactory, APITestCase
 
 from apps.api.tests import RevEngineApiAbstractTestCase
 from apps.organizations.models import BenefitLevelBenefit, RevenueProgramBenefitLevel
@@ -87,7 +87,7 @@ class DonationPageFullDetailSerializerTest(RevEngineApiAbstractTestCase):
         self.assertEqual(data["organization_is_nonprofit"], False)
 
     def test_check_against_soft_deleted_slugs(self):
-        validated_data = {"slug": self.page.slug}
+        validated_data = {settings.PAGE_SLUG_PARAM: self.page.slug}
         serializer = self.serializer(self.page)
         # It should return none if slug isn't a deleted slug
         self.assertIsNone(serializer._check_against_soft_deleted_slugs(validated_data))
@@ -107,9 +107,10 @@ class DonationPageFullDetailSerializerTest(RevEngineApiAbstractTestCase):
             "revenue_program": self.page.revenue_program.pk,
         }
         serializer = self.serializer(data=new_page_data)
-        request = self.request_factory.get("/")
+        request = self.request_factory.post("/")
         request.user = self.org_user
         serializer.context["request"] = request
+        serializer.is_valid()
         self.assertTrue(serializer.is_valid())
         new_page = serializer.save()
         self.assertEqual(new_page.heading, template.heading)

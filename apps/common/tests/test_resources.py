@@ -1,3 +1,4 @@
+import copy
 import logging
 
 from django.conf import settings
@@ -97,7 +98,8 @@ class AbstractTestCase(APITestCase):
     def _set_up_default_feature_flags(cls):
         """ """
         Flag = get_waffle_flag_model()
-        for config in DEFAULT_FLAGS_CONFIG_MAPPING.values():
+        default_mapping = copy.deepcopy(DEFAULT_FLAGS_CONFIG_MAPPING)
+        for config in default_mapping.values():
             name = config.pop("name")
             Flag.objects.get_or_create(name=name, defaults=config)
 

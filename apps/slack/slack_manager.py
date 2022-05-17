@@ -32,7 +32,7 @@ class SlackManager:
             return HubSlackIntegration.objects.get()
         except HubSlackIntegration.DoesNotExist:
             logger.info(
-                "Tried to send slack notification, but News Revenue Hub does not have a SlackIntegration configured"
+                "Tried to send slack notification, but News Revenue Engine does not have a SlackIntegration configured"
             )
 
     def get_hub_client(self):

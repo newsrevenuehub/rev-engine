@@ -1,0 +1,30 @@
+{
+    "detail": "success",
+    "user": {
+        "id": 1,
+        "email": "rp-admin@some-org.com",
+        "role_type": [
+            "rp_admin",
+            "RP Admin"
+        ],
+        "organizations": [
+            {
+                "id": 1,
+                "name": "Some Org",
+                "slug": "some-org",
+                "stripe_account_id": "some-id",
+                "stripe_verified": true,
+                "default_payment_provider": "stripe"
+            }
+        ],
+        "revenue_programs": [
+            {
+                "id": 1,
+                "name": "Some Rev Program",
+                "slug": "some-rev-program",
+                "organization": 1
+            }
+        ]
+    },
+    "csrftoken": "ZgynND503GQ3Dkyy3xMBHoExWftlTIjDe5znbDLACDH55g49FYrbFKuOJFBA9W6Y"
+}

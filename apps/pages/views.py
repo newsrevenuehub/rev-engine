@@ -12,7 +12,7 @@ from apps.element_media.models import MediaImage
 from apps.pages import serializers
 from apps.pages.helpers import PageDetailError, PageFullDetailHelper
 from apps.pages.models import DonationPage, Font, Style, Template
-from apps.public.permissions import IsSuperUser
+from apps.public.permissions import IsActiveSuperUser
 from apps.users.views import FilterQuerySetByUserMixin, PerUserCreateDeletePermissionsMixin
 
 
@@ -32,7 +32,7 @@ class PageViewSet(viewsets.ModelViewSet, FilterQuerySetByUserMixin, PerUserCreat
     ]
     permission_classes = [
         IsAuthenticated,
-        IsSuperUser | HasRoleAssignment,
+        IsActiveSuperUser | HasRoleAssignment,
     ]
     ordering_fields = ["username", "email"]
     ordering = ["published_date", "name"]
@@ -109,7 +109,7 @@ class TemplateViewSet(viewsets.ModelViewSet, FilterQuerySetByUserMixin):
 
     permission_classes = [
         IsAuthenticated,
-        IsSuperUser | HasRoleAssignment,
+        IsActiveSuperUser | HasRoleAssignment,
     ]
 
     def get_queryset(self):
@@ -138,7 +138,7 @@ class StyleViewSet(viewsets.ModelViewSet, FilterQuerySetByUserMixin, PerUserCrea
     queryset = Style.objects.all()
     serializer_class = serializers.StyleListSerializer
     pagination_class = None
-    permission_classes = [IsAuthenticated, IsSuperUser | HasRoleAssignment]
+    permission_classes = [IsAuthenticated, IsActiveSuperUser | HasRoleAssignment]
 
     def get_queryset(self):
         return self.filter_queryset_for_user(self.request.user, self.model.objects.all())

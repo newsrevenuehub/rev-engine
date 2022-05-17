@@ -24,6 +24,11 @@ class TestOrganizationModel(TestCase):
     def test_admin_benefit_options(self):
         self.assertTrue(isinstance(self.organization.admin_benefit_options, list))
 
+    def test_admin_revenueprogram_options(self):
+        rp = factories.RevenueProgramFactory(organization=self.organization)
+        self.organization.refresh_from_db()
+        self.assertEqual(self.organization.admin_revenueprogram_options, [(rp.name, rp.pk)])
+
 
 class RevenueProgramTest(TestCase):
     def setUp(self):

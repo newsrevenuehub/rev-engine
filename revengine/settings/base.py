@@ -119,7 +119,7 @@ SIMPLE_JWT = {  # https://django-rest-framework-simplejwt.readthedocs.io/en/late
 }
 
 CONTRIBUTOR_ID_CLAIM = "contrib_id"
-CONTRIBUTOR_SHORT_TOKEN_LIFETIME = timedelta(minutes=5)
+CONTRIBUTOR_SHORT_TOKEN_LIFETIME = timedelta(minutes=15)
 CONTRIBUTOR_LONG_TOKEN_LIFETIME = timedelta(hours=3)
 CONTRIBUTOR_VERIFY_URL = "contributor-verify"
 # In format num/[second, minute, hour, day]
@@ -136,6 +136,7 @@ AUTH_COOKIE_SAMESITE = "Strict"  # or 'Lax' or None
 
 ORG_SLUG_PARAM = "orgSlug"
 RP_SLUG_PARAM = "revProgramSlug"
+PAGE_SLUG_PARAM = "slug"
 
 WSGI_APPLICATION = "revengine.wsgi.application"
 
@@ -275,12 +276,11 @@ STRIPE_WEBHOOK_EVENTS = [
 
 # SITE_URL must include scheme and optionally port, https://example.com.
 SITE_URL = os.getenv("SITE_URL", "")
-# Application subdomains (that are NOT revenue program slugs)
-# TODO: shouldn't NON_D... include DenyListWords?
-NON_DONATION_PAGE_SUBDOMAINS = os.getenv("NON_DONATION_PAGE_SUBDOMAINS", "support:www").split(":")
-ORG_PORTAL_SUBDOMAINS = os.getenv("ORG_PORTAL_SUBDOMAINS", "support:").split(":")
+
 # TODO: Isn't DOMAIN_APEX just be SITE_URL without any subdomain?
 DOMAIN_APEX = os.getenv("DOMAIN_APEX")
+# Application subdomains (that are NOT revenue program slugs)
+DASHBOARD_SUBDOMAINS = os.getenv("DASHBOARD_SUBDOMAINS", "support:www:dashboard:").split(":")
 
 # BadActor API
 BAD_ACTOR_API_URL = os.getenv("BAD_ACTOR_API_URL", "https://bad-actor-test.fundjournalism.org/v1/bad_actor/")
@@ -326,11 +326,6 @@ MIDDLEWARE_LOGGING_CODES = [400, 404, 403]
 COUNTRIES = ["US", "CA"]
 # Map currency-code to symbol
 CURRENCIES = {"USD": "$", "CAD": "$"}
-
-
-# Application subdomains (that are NOT revenue program slugs)
-DASHBOARD_SUBDOMAINS = os.getenv("DASHBOARD_SUBDOMAINS", "support:www:dashboard:").split(":")
-DOMAIN_APEX = os.getenv("DOMAIN_APEX")
 
 CSP_REPORTING_ENABLE = os.environ.get("CSP_REPORTING_ENABLE", "false").lower() == "true"
 # Django-CSP configuration

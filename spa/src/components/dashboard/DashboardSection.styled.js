@@ -5,7 +5,7 @@ import { motion } from 'framer-motion';
 export const DashboardSection = styled(motion.section)`
   border-radius: ${(props) => props.theme.radii[0]};
   box-shadow: ${(props) => props.theme.shadows[0]};
-  background: ${(props) => props.theme.colors.paneBackground};
+  background: ${(props) => props.theme.colors.cstm_formPanelBackground};
 `;
 
 export const SectionHeading = styled(motion.div)`

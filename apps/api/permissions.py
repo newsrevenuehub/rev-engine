@@ -3,6 +3,7 @@ import logging
 from django.conf import settings
 
 from rest_framework import permissions
+from waffle import get_waffle_flag_model
 
 from apps.contributions.models import Contributor
 from apps.users.choices import Roles
@@ -112,3 +113,31 @@ class HasDeletePrivilegesViaRole(_BaseAssumedViewAndModelMixin):
 
 def is_a_contributor(user):
     return isinstance(user, Contributor)
+
+
+def create_flagged_access_permission(flag_name):
+    """Used to dynamically generate a permission related to flag with `flag_name`
+
+    This is necessary because it's not straightforward to pass the `flag_name` param
+    to `HasFlaggedAccess` when referencing in a view's `permission_classes` (i.e., you can't
+    do `permission_classes = (HasFlaggedAccess("some_flag_name"),)` )
+    """
+
+    class HasFlaggedAccess(permissions.BasePermission):
+        """Determine permission based on a named Flag"""
+
+        def __init__(self, *args, **kwargs):
+            super().__init__(*args, **kwargs)
+            Flag = get_waffle_flag_model()
+            self.flag = Flag.objects.filter(name=flag_name).first()
+
+        def __str__(self):
+            return f"`HasFlaggedAccess` via {self.flag_name}"
+
+        def has_permission(self, request, view):
+            """Has permission if flag is active for user"""
+            if not self.flag:
+                return False
+            return self.flag.is_active_for_user(request.user)
+
+    return HasFlaggedAccess

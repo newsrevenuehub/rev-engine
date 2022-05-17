@@ -64,7 +64,6 @@ class StripePaymentManagerAbstractTestCase(AbstractTestCase):
         self.revenue_program = RevenueProgramFactory(
             organization=self.organization, payment_provider=self.payment_provider
         )
-        # self.page = DonationPageFactory(revenue_program=self.revenue_program)
         self.contributor = ContributorFactory()
         self.set_up_domain_model()
         self.page = self.org1_rp1.donationpage_set.first()
@@ -406,10 +405,8 @@ class StripeRecurringPaymentManagerTest(StripePaymentManagerAbstractTestCase):
         pm = self._prepare_valid_subscription(flagged=False)
         pm.create_subscription()
         mock_customer_create.assert_called_once_with(
-            # email=self.contributor.email,
             stripe_account=self.contribution.donation_page.revenue_program.payment_provider.stripe_account_id,
             email=self.contributor_user.email,
-            # stripe_account=self.org1.stripe_account_id,
             metadata=pm.bundle_metadata("CUSTOMER"),
         )
 

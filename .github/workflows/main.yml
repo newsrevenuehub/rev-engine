@@ -18,7 +18,7 @@ jobs:
 
       - name: Heroku deploy to staging
         uses: akhileshns/heroku-deploy@v3.12.12
-        if:  github.refs == 'refs/heads/staging'
+        if:  github.ref == 'refs/heads/staging'
         with:
           heroku_api_key: ${{secrets.HEROKU_API_KEY}}
           heroku_app_name: "rev-engine-staging"
@@ -27,7 +27,7 @@ jobs:
 
       # - name: Heroku deploy to production
       # - uses: akhileshns/heroku-deploy@v3.12.12
-      #   if: github.refs == 'refs/heads/main'
+      #   if: github.ref == 'refs/heads/main'
       #   with:
       #     heroku_api_key: ${{secrets.HEROKU_API_KEY}}
       #     heroku_app_name: "rev-engine-prod"
@@ -36,7 +36,7 @@ jobs:
 
       - name: Heroku deploy to test
         uses: akhileshns/heroku-deploy@v3.12.12
-        if:  github.refs == 'refs/heads/test'
+        if:  github.ref == 'refs/heads/test'
         with:
           heroku_api_key: ${{secrets.HEROKU_API_KEY}}
           heroku_app_name: "rev-engine-test"
@@ -45,7 +45,7 @@ jobs:
 
       - name: Heroku deploy to develop
         uses: akhileshns/heroku-deploy@v3.12.12
-        if: github.refs == 'refs/heads/develop'
+        if: github.ref == 'refs/heads/develop'
         with:
           heroku_api_key: ${{secrets.HEROKU_API_KEY}}
           heroku_app_name: "rev-engine-dev"
@@ -54,7 +54,7 @@ jobs:
 
       - name: Heroku deploy to demo
         uses: akhileshns/heroku-deploy@v3.12.12
-        if:  github.refs == 'refs/heads/demo'
+        if:  github.ref == 'refs/heads/demo'
         with:
           heroku_api_key: ${{secrets.HEROKU_API_KEY}}
           heroku_app_name: "rev-engine-demo"

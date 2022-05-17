@@ -7,12 +7,16 @@ function StyleCard({ style, onSelect }) {
     <ItemCard onMouseUp={() => onSelect(style)} tabindex="0" data-testid={`style-card-${style.id}`}>
       {style.used_live && <LiveIcon icon={faBroadcastTower} data-testid={`style-${style.id}-live`} />}
       <PreviewWrapper>
-        <S.StylePreview style={style}>
-          {style.colors?.cstm_mainBackground && <S.ColorSwatch color={style.colors.cstm_mainBackground} />}
-          {style.colors?.cstm_formPanelBackground && <S.ColorSwatch color={style.colors.cstm_formPanelBackground} />}
-          {style.colors?.cstm_mainHeader && <S.ColorSwatch color={style.colors.cstm_mainHeader} />}
-          {style.colors?.cstm_CTAs && <S.ColorSwatch color={style.colors.cstm_CTAs} />}
-          {style.colors?.cstm_ornaments && <S.ColorSwatch color={style.colors.cstm_ornaments} />}
+        <S.StylePreview style={style.styles}>
+          {style.styles?.colors?.cstm_mainBackground && (
+            <S.ColorSwatch color={style.styles?.colors.cstm_mainBackground} />
+          )}
+          {style.styles?.colors?.cstm_formPanelBackground && (
+            <S.ColorSwatch color={style.styles?.colors.cstm_formPanelBackground} />
+          )}
+          {style.styles?.colors?.cstm_mainHeader && <S.ColorSwatch color={style.styles?.colors.cstm_mainHeader} />}
+          {style.styles?.colors?.cstm_CTAs && <S.ColorSwatch color={style.styles?.colors.cstm_CTAs} />}
+          {style.styles?.colors?.cstm_ornaments && <S.ColorSwatch color={style.styles?.colors.cstm_ornaments} />}
         </S.StylePreview>
       </PreviewWrapper>
       <ItemData>

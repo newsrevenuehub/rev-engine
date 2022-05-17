@@ -12,6 +12,7 @@ from rest_framework.test import APIRequestFactory, APITestCase
 from stripe.error import StripeError
 from stripe.oauth_error import InvalidGrantError as StripeInvalidGrantError
 from stripe.stripe_object import StripeObject
+from waffle import get_waffle_flag_model
 
 from apps.api.tests import RevEngineApiAbstractTestCase
 from apps.api.tokens import ContributorRefreshToken
@@ -20,6 +21,7 @@ from apps.contributions.models import Contribution, ContributionInterval
 from apps.contributions.payment_managers import PaymentBadParamsError, PaymentProviderError
 from apps.contributions.tests.factories import ContributionFactory, ContributorFactory
 from apps.contributions.views import stripe_payment
+from apps.flags.constants import CONTRIBUTOR_API_ENDPOINT_ACCESS_FLAG_NAME
 from apps.organizations.models import RevenueProgram
 from apps.organizations.tests.factories import OrganizationFactory
 from apps.pages.models import DonationPage
@@ -376,6 +378,9 @@ class TestContributionsViewSet(RevEngineApiAbstractTestCase):
         super().setUp()
         self.list_url = reverse("contribution-list")
         self.contribution_for_org = Contribution.objects.filter(organization=self.org1).first()
+        self.flag_model = get_waffle_flag_model()
+        self.contributions_access_flag = self.flag_model.objects.get(name=CONTRIBUTOR_API_ENDPOINT_ACCESS_FLAG_NAME)
+        self.assertIsNone(self.contributions_access_flag.everyone)
 
     def contribution_detail_url(self, pk=None):
         pk = pk if pk is not None else self.contribution_for_org.pk
@@ -386,7 +391,7 @@ class TestContributionsViewSet(RevEngineApiAbstractTestCase):
     def test_super_user_can_get_contribution(self):
         self.assert_superuser_can_get(self.contribution_detail_url())
 
-    def test_hub_admin_can_get_contribution(self):
+    def test_hub_admin_can_get_contribution_if_have_right_access_flag(self):
         self.assert_hub_admin_can_get(self.contribution_detail_url())
 
     def test_org_admin_can_get_contribution_owned_by_org(self):
@@ -509,6 +514,29 @@ class TestContributionsViewSet(RevEngineApiAbstractTestCase):
         self.assert_user_cannot_get(
             reverse("contribution-list"), novel, expected_status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
         )
+
+    #######################
+    # Test feature flagging
+    def test_feature_flagging(self):
+        """Show feature users are gated by feature flag for this resource"""
+        self.contributions_access_flag.everyone = False
+        self.contributions_access_flag.superusers = True
+        self.contributions_access_flag.users.add(self.hub_user)
+        self.contributions_access_flag.save()
+        expected_users_having_access = (
+            self.superuser,
+            self.contributor_user,
+            self.hub_user,
+        )
+        expected_users_not_having_access = (
+            self.org_user,
+            self.rp_user,
+            self.generic_user,
+        )
+        for user in expected_users_not_having_access:
+            self.assert_user_cannot_get(self.list_url, user)
+        for user in expected_users_having_access:
+            self.assert_user_can_get(self.list_url, user)
 
 
 TEST_STRIPE_API_KEY = "test_stripe_api_key"

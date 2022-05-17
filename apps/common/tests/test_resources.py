@@ -4,13 +4,13 @@ from django.conf import settings
 from django.contrib.auth import get_user_model
 
 from rest_framework.test import APITestCase
+from waffle import get_waffle_flag_model
 
 from apps.contributions.models import Contributor
 from apps.contributions.tests.factories import ContributionFactory, ContributorFactory
+from apps.flags.constants import CONTRIBUTOR_API_ENDPOINT_ACCESS_FLAG_NAME
 from apps.organizations.models import Feature, Organization, Plan, RevenueProgram
 from apps.organizations.tests.factories import (
-    BenefitFactory,
-    BenefitLevelFactory,
     FeatureFactory,
     OrganizationFactory,
     RevenueProgramFactory,
@@ -24,6 +24,15 @@ from apps.users.tests.utils import create_test_user
 user_model = get_user_model()
 
 logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
+
+
+DEFAULT_FLAGS_CONFIG_MAPPING = {
+    CONTRIBUTOR_API_ENDPOINT_ACCESS_FLAG_NAME: {
+        "name": CONTRIBUTOR_API_ENDPOINT_ACCESS_FLAG_NAME,
+        "superusers": True,
+        "everyone": None,
+    }
+}
 
 
 class AbstractTestCase(APITestCase):
@@ -85,6 +94,14 @@ class AbstractTestCase(APITestCase):
             StyleFactory(revenue_program=rp)
 
     @classmethod
+    def _set_up_default_feature_flags(cls):
+        """ """
+        Flag = get_waffle_flag_model()
+        for config in DEFAULT_FLAGS_CONFIG_MAPPING.values():
+            name = config.pop("name")
+            Flag.objects.get_or_create(name=name, defaults=config)
+
+    @classmethod
     def set_up_domain_model(cls):
         """Set up most commonly needed data models in a predictable way for use across tests
 
@@ -116,6 +133,7 @@ class AbstractTestCase(APITestCase):
         cls._set_up_contributions()
         cls._set_up_feature_sets()
         cls._set_up_styles()
+        cls._set_up_default_feature_flags()
 
     class Meta:
         abstract = True

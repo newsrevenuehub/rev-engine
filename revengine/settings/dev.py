@@ -10,6 +10,9 @@ DEBUG = True
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = "m-u!e0jum^(+nt1+6@31+jl_zwc6yltugtv7%!2k(6l!c@=0n@"
 
+
+SITE_URL = "https://example.com"
+
 # Disable Django's own staticfiles handling in favour of WhiteNoise, for
 # greater consistency between gunicorn and `./manage.py runserver`. See:
 # http://whitenoise.evans.io/en/stable/django.html#using-whitenoise-in-development

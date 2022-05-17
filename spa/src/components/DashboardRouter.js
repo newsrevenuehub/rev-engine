@@ -4,6 +4,9 @@ import React, { lazy } from 'react';
 import { Route, BrowserRouter, Switch, Redirect } from 'react-router-dom';
 import ProtectedRoute from 'components/authentication/ProtectedRoute';
 
+import isContributorAppPath from 'utilities/isContributorAppPath';
+import ContributorRouter from 'components/ContributorRouter';
+
 // Slugs
 import * as ROUTES from 'routes';
 
@@ -26,6 +29,10 @@ const ContributorDashboard = lazy(() =>
 const PageEditor = lazy(() => componentLoader(() => import('components/pageEditor/PageEditor')));
 
 function DashboardRouter() {
+  const isContributorApp = isContributorAppPath();
+
+  if (isContributorApp) return <ContributorRouter />;
+
   return (
     <BrowserRouter>
       <ChunkErrorBoundary>
@@ -42,16 +49,6 @@ function DashboardRouter() {
             {/* Organization Dashboard */}
             <ProtectedRoute path={ROUTES.DASHBOARD_SLUG} render={() => <TrackPageView component={Main} />} />
             <ProtectedRoute path={ROUTES.EDITOR_ROUTE_PAGE} render={() => <TrackPageView component={PageEditor} />} />
-            <ProtectedRoute path={ROUTES.EDITOR_ROUTE_REV} render={() => <TrackPageView component={PageEditor} />} />
-
-            {/* Contributor Dashboard */}
-            <ProtectedRoute
-              path={ROUTES.CONTRIBUTOR_DASHBOARD}
-              render={() => <TrackPageView component={ContributorDashboard} />}
-              contributor
-            />
-            <Route path={ROUTES.CONTRIBUTOR_ENTRY} render={() => <TrackPageView component={ContributorEntry} />} />
-            <Route path={ROUTES.CONTRIBUTOR_VERIFY} render={() => <TrackPageView component={ContributorVerify} />} />
           </Switch>
         </React.Suspense>
       </ChunkErrorBoundary>

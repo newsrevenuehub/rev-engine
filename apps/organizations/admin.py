@@ -17,7 +17,6 @@ from apps.organizations.models import (
     Plan,
     RevenueProgram,
 )
-from apps.users.admin import UserOrganizationInline
 
 
 class NoRelatedInlineAddEditAdminMixin:
@@ -122,7 +121,6 @@ class OrganizationAdmin(RevEngineSimpleHistoryAdmin, ReverseModelAdmin):  # prag
 
     inline_type = "stacked"
     inline_reverse = [("address", {"fields": ["address1", "address2", "city", "state", "postal_code", "country"]})]
-    inlines = [UserOrganizationInline]
 
     readonly_fields = ["name", "stripe_verified"]
 
@@ -214,7 +212,7 @@ class RevenueProgramAdmin(RevEngineSimpleHistoryAdmin, ReverseModelAdmin, AdminI
         ),
     )
 
-    list_display = ["name", "slug"]
+    list_display = ["name", "organization", "slug"]
 
     list_filter = ["name"]
 

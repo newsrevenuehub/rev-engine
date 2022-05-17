@@ -1,5 +1,4 @@
 import logging
-import os
 import re
 
 from django.conf import settings
@@ -39,9 +38,8 @@ def create_stripe_webhook(webhook_url, api_key):
 
 
 def delete_cloudflare_cnames(ticket_id):
-    zone_name = os.getenv("CF_ZONE_NAME")
     cloudflare_conn = CloudFlare.CloudFlare()
-    zone_id = cloudflare_conn.zones.get(params={"name": zone_name})[0]["id"]
+    zone_id = cloudflare_conn.zones.get(params={"name": settings.CF_ZONE_NAME})[0]["id"]
     zone_dns_records = cloudflare_conn.zones.dns_records.get(zone_id, params={"per_page": 300})
     cloudflare_domains = {x["name"]: x["content"] for x in zone_dns_records}
     cloudflare_record_ids = {x["name"]: x["id"] for x in zone_dns_records}
@@ -57,10 +55,8 @@ def delete_cloudflare_cnames(ticket_id):
 
 def upsert_cloudflare_cnames(slugs: list = None):
     # takes a list instead of a single entry so it can do one call to fetch them all
-    heroku_app_name = os.getenv("HEROKU_APP_NAME")
-    zone_name = os.getenv("CF_ZONE_NAME")
     cloudflare_conn = CloudFlare.CloudFlare()
-    zone_id = cloudflare_conn.zones.get(params={"name": zone_name})[0]["id"]
+    zone_id = cloudflare_conn.zones.get(params={"name": settings.CF_ZONE_NAME})[0]["id"]
     # fetch this so we don't try adding entries that are already there
     # TODO: if this reaches over 300 we'll need to paginate
     zone_dns_records = cloudflare_conn.zones.dns_records.get(zone_id, params={"per_page": 300})
@@ -68,8 +64,8 @@ def upsert_cloudflare_cnames(slugs: list = None):
     cloudflare_record_ids = {x["name"]: x["id"] for x in zone_dns_records}
 
     for slug in slugs:
-        fqdn = f"{slug}.{zone_name}"
-        content = f"{heroku_app_name}.herokuapp.com"
+        fqdn = f"{slug}.{settings.CF_ZONE_NAME}"
+        content = f"{settings.HEROKU_APP_NAME}.herokuapp.com"
         dns_record = {"name": f"{slug}", "type": "CNAME", "content": content, "proxied": True}
         try:
             if fqdn not in cloudflare_domains:

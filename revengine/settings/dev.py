@@ -4,14 +4,11 @@ from pathlib import Path
 from .base import *  # noqa
 
 
-# SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
-
-# SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = "m-u!e0jum^(+nt1+6@31+jl_zwc6yltugtv7%!2k(6l!c@=0n@"
-
-
 SITE_URL = "https://example.com"
+ALLOWED_HOSTS = ["*"]
+INTERNAL_IPS = ("127.0.0.1",)
 
 # Disable Django's own staticfiles handling in favour of WhiteNoise, for
 # greater consistency between gunicorn and `./manage.py runserver`. See:
@@ -27,16 +24,13 @@ INSTALLED_APPS.extend(
 # Set for testing
 CONTRIBUTOR_MAGIC_LINK_REQUEST_THROTTLE_RATE = "1000/minute"
 
-# SECURITY WARNING: define the correct hosts in production!
-ALLOWED_HOSTS = ["*"]
-INTERNAL_IPS = ("127.0.0.1",)
-
 if os.getenv("DEBUG_TOOLBAR", "True") == "True":
     INSTALLED_APPS += [
         "debug_toolbar",
     ]
     MIDDLEWARE += ["debug_toolbar.middleware.DebugToolbarMiddleware"]
 
+# To test production email settings `export TEST_EMAIL=True`, otherwise emails will use the console backend.
 if os.getenv("TEST_EMAIL", "False") == "True":
     EMAIL_BACKEND = "anymail.backends.mailgun.EmailBackend"
     ANYMAIL = {

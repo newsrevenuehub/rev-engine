@@ -388,10 +388,10 @@ class TestContributionsViewSet(RevEngineApiAbstractTestCase):
 
     ##########
     # Retrieve
-    def test_super_user_can_get_contribution(self):
+    def test_superuser_can_get_contribution(self):
         self.assert_superuser_can_get(self.contribution_detail_url())
 
-    def test_hub_admin_can_get_contribution_if_have_right_access_flag(self):
+    def test_hub_admin_can_get_contribution(self):
         self.assert_hub_admin_can_get(self.contribution_detail_url())
 
     def test_org_admin_can_get_contribution_owned_by_org(self):

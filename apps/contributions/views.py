@@ -10,10 +10,10 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
 from apps.api.permissions import (
+    HasFlaggedAccessToContributionsApiResource,
     HasRoleAssignment,
     IsContributorOwningContribution,
     IsHubAdmin,
-    create_flagged_access_permission,
 )
 from apps.contributions import serializers
 from apps.contributions.filters import ContributionFilter
@@ -25,7 +25,6 @@ from apps.contributions.payment_managers import (
 )
 from apps.contributions.webhooks import StripeWebhookProcessor
 from apps.emails.models import EmailTemplateError, PageEmailTemplate
-from apps.flags.constants import CONTRIBUTOR_API_ENDPOINT_ACCESS_FLAG_NAME
 from apps.organizations.models import Organization
 from apps.public.permissions import IsActiveSuperUser
 from apps.users.views import FilterQuerySetByUserMixin
@@ -207,8 +206,6 @@ class ContributionsViewSet(viewsets.ReadOnlyModelViewSet, FilterQuerySetByUserMi
     NB: There are bespoke actions on this viewset that override the default permission classes set here.
     """
 
-    PermissionViaFlag = create_flagged_access_permission(CONTRIBUTOR_API_ENDPOINT_ACCESS_FLAG_NAME)
-
     # only superusers, users with roles, and contributors owning contributions
     # are permitted
     permission_classes = [
@@ -217,8 +214,8 @@ class ContributionsViewSet(viewsets.ReadOnlyModelViewSet, FilterQuerySetByUserMi
             # `IsContributorOwningContribution` roleassignment based permissions because contributors
             # will not be granted permission by those.
             IsContributorOwningContribution
-            | (HasRoleAssignment & PermissionViaFlag)
-            | (IsActiveSuperUser & PermissionViaFlag)
+            | (HasRoleAssignment & HasFlaggedAccessToContributionsApiResource)
+            | (IsActiveSuperUser & HasFlaggedAccessToContributionsApiResource)
         ),
     ]
     model = Contribution

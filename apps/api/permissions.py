@@ -6,6 +6,7 @@ from rest_framework import permissions
 from waffle import get_waffle_flag_model
 
 from apps.contributions.models import Contributor
+from apps.flags.constants import CONTRIBUTOR_API_ENDPOINT_ACCESS_FLAG_NAME
 from apps.users.choices import Roles
 
 from .exceptions import ApiConfigurationError
@@ -115,29 +116,28 @@ def is_a_contributor(user):
     return isinstance(user, Contributor)
 
 
-def create_flagged_access_permission(flag_name):
-    """Used to dynamically generate a permission related to flag with `flag_name`
+class HasFlaggedAccessToContributionsApiResource(permissions.BasePermission):
+    """Use named flag to determine access to contributions api resource...
 
-    This is necessary because it's not straightforward to pass the `flag_name` param
-    to `HasFlaggedAccess` when referencing in a view's `permission_classes` (i.e., you can't
-    do `permission_classes = (HasFlaggedAccess("some_flag_name"),)` )
+    ...insofar as this permission is applied to the contributions endpoint as intended
     """
 
-    class HasFlaggedAccess(permissions.BasePermission):
-        """Determine permission based on a named Flag"""
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        Flag = get_waffle_flag_model()
+        self.flag = Flag.objects.filter(name=CONTRIBUTOR_API_ENDPOINT_ACCESS_FLAG_NAME).first()
+        if not self.flag:
+            raise ApiConfigurationError()
 
-        def __init__(self, *args, **kwargs):
-            super().__init__(*args, **kwargs)
-            Flag = get_waffle_flag_model()
-            self.flag = Flag.objects.filter(name=flag_name).first()
+    def __str__(self):
+        return f"`HasFlaggedAccess` via {self.flag_name}"
 
-        def __str__(self):
-            return f"`HasFlaggedAccess` via {self.flag_name}"
+    def has_permission(self, request, view):
+        """Has permission if flag is active for user
 
-        def has_permission(self, request, view):
-            """Has permission if flag is active for user"""
-            if not self.flag:
-                return False
-            return self.flag.is_active_for_user(request.user)
-
-    return HasFlaggedAccess
+        NB: We need to do `self.flag.is_active_for_user` and also self.flag.everyone
+        because django-waffle's `is_active_for_user` doesn't reference .everyone in its
+        criteria. This is a known issue with Django Waffle
+        (https://github.com/django-waffle/django-waffle/issues/401).
+        """
+        return self.flag.is_active_for_user(request.user) or self.flag.everyone

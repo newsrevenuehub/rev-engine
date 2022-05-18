@@ -76,6 +76,9 @@ class ValidateFkReferenceOwnership:
                 return
             if not instance.user_has_ownership_via_role(ra):
                 logger.warn(
-                    f"User with role assignment ${ra} attempted to access unowned resource: {instance.pk}: {instance}"
+                    "User with role assignment [%s] attempted to access unowned resource: [%s]: [%s]",
+                    ra,
+                    instance.pk,
+                    instance,
                 )
                 raise serializers.ValidationError({self.fk_attribute: "Not found"})

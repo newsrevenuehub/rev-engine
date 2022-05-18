@@ -511,8 +511,6 @@ class TestContributionsViewSet(RevEngineApiAbstractTestCase):
             reverse("contribution-list"), novel, expected_status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
         )
 
-    #######################
-    # Test feature flagging
     def test_feature_flagging(self):
         """Show feature users are gated by feature flag for this resource"""
         flag_model = get_waffle_flag_model()

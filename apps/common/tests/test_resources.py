@@ -31,7 +31,8 @@ DEFAULT_FLAGS_CONFIG_MAPPING = {
     CONTRIBUTOR_API_ENDPOINT_ACCESS_FLAG_NAME: {
         "name": CONTRIBUTOR_API_ENDPOINT_ACCESS_FLAG_NAME,
         "superusers": True,
-        "everyone": None,
+        "everyone": True,  # this is so adding flag won't block users by default in existing tests.
+        # Tests focused on feature flagging can alter the flag's properties as required
     }
 }
 

@@ -216,8 +216,7 @@ class ContributionsViewSet(viewsets.ReadOnlyModelViewSet, FilterQuerySetByUserMi
             # their permission validated (in case of valid permission) upstream -- the role assignment
             # based permissions will not give permission to a contributor user.
             IsContributorOwningContribution
-            | (HasRoleAssignment & HasFlaggedAccessToContributionsApiResource)
-            | (IsActiveSuperUser & HasFlaggedAccessToContributionsApiResource)
+            | (HasFlaggedAccessToContributionsApiResource & (HasRoleAssignment | IsActiveSuperUser))
         ),
     ]
     model = Contribution

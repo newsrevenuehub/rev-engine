@@ -9,7 +9,7 @@ from waffle import get_waffle_flag_model
 
 from apps.contributions.models import Contributor
 from apps.contributions.tests.factories import ContributionFactory, ContributorFactory
-from apps.flags.constants import CONTRIBUTOR_API_ENDPOINT_ACCESS_FLAG_NAME
+from apps.flags.constants import CONTRIBUTIONS_API_ENDPOINT_ACCESS_FLAG_NAME
 from apps.organizations.models import Feature, Organization, Plan, RevenueProgram
 from apps.organizations.tests.factories import (
     FeatureFactory,
@@ -28,8 +28,8 @@ logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
 
 
 DEFAULT_FLAGS_CONFIG_MAPPING = {
-    CONTRIBUTOR_API_ENDPOINT_ACCESS_FLAG_NAME: {
-        "name": CONTRIBUTOR_API_ENDPOINT_ACCESS_FLAG_NAME,
+    CONTRIBUTIONS_API_ENDPOINT_ACCESS_FLAG_NAME: {
+        "name": CONTRIBUTIONS_API_ENDPOINT_ACCESS_FLAG_NAME,
         "superusers": True,
         "everyone": True,  # this is so adding flag won't block users by default in existing tests.
         # Tests focused on feature flagging can alter the flag's properties as required

@@ -1,7 +1,6 @@
 from unittest.mock import patch
 
 from django.conf import settings
-from django.contrib.auth import get_user_model
 from django.middleware import csrf
 from django.test import override_settings
 
@@ -21,7 +20,7 @@ from apps.contributions.models import Contribution, ContributionInterval
 from apps.contributions.payment_managers import PaymentBadParamsError, PaymentProviderError
 from apps.contributions.tests.factories import ContributionFactory, ContributorFactory
 from apps.contributions.views import stripe_payment
-from apps.flags.constants import CONTRIBUTOR_API_ENDPOINT_ACCESS_FLAG_NAME
+from apps.flags.constants import CONTRIBUTIONS_API_ENDPOINT_ACCESS_FLAG_NAME
 from apps.organizations.models import RevenueProgram
 from apps.organizations.tests.factories import OrganizationFactory
 from apps.pages.models import DonationPage
@@ -378,9 +377,6 @@ class TestContributionsViewSet(RevEngineApiAbstractTestCase):
         super().setUp()
         self.list_url = reverse("contribution-list")
         self.contribution_for_org = Contribution.objects.filter(organization=self.org1).first()
-        self.flag_model = get_waffle_flag_model()
-        self.contributions_access_flag = self.flag_model.objects.get(name=CONTRIBUTOR_API_ENDPOINT_ACCESS_FLAG_NAME)
-        self.assertIsNone(self.contributions_access_flag.everyone)
 
     def contribution_detail_url(self, pk=None):
         pk = pk if pk is not None else self.contribution_for_org.pk
@@ -519,14 +515,16 @@ class TestContributionsViewSet(RevEngineApiAbstractTestCase):
     # Test feature flagging
     def test_feature_flagging(self):
         """Show feature users are gated by feature flag for this resource"""
-        self.contributions_access_flag.everyone = False
-        self.contributions_access_flag.superusers = True
-        self.contributions_access_flag.users.add(self.hub_user)
-        self.contributions_access_flag.save()
+        flag_model = get_waffle_flag_model()
+        contributions_access_flag = flag_model.objects.get(name=CONTRIBUTIONS_API_ENDPOINT_ACCESS_FLAG_NAME)
+        contributions_access_flag.everyone = False
+        contributions_access_flag.superusers = True
+        contributions_access_flag.users.add(self.hub_user)
+        contributions_access_flag.save()
         expected_users_having_access = (
             self.superuser,
             self.contributor_user,
-            self.hub_user,
+            self.hub_user,  # has access because we gave individual access above
         )
         expected_users_not_having_access = (
             self.org_user,
@@ -537,6 +535,17 @@ class TestContributionsViewSet(RevEngineApiAbstractTestCase):
             self.assert_user_cannot_get(self.list_url, user)
         for user in expected_users_having_access:
             self.assert_user_can_get(self.list_url, user)
+
+    def test_feature_flagging_when_flag_not_found(self):
+        """Should raise ApiConfigurationError if view is accessed and flag can't be found"""
+        flag_model = get_waffle_flag_model()
+        contributions_access_flag = flag_model.objects.get(name=CONTRIBUTIONS_API_ENDPOINT_ACCESS_FLAG_NAME)
+        contributions_access_flag.delete()
+
+        response = self.assert_user_cannot_get(
+            self.list_url, self.superuser, expected_status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+        self.assertEqual(response.json().get("detail", None), "There was a problem with the API")
 
 
 TEST_STRIPE_API_KEY = "test_stripe_api_key"

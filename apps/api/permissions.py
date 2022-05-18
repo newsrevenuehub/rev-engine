@@ -6,7 +6,7 @@ from rest_framework import permissions
 from waffle import get_waffle_flag_model
 
 from apps.contributions.models import Contributor
-from apps.flags.constants import CONTRIBUTOR_API_ENDPOINT_ACCESS_FLAG_NAME
+from apps.flags.constants import CONTRIBUTIONS_API_ENDPOINT_ACCESS_FLAG_NAME
 from apps.users.choices import Roles
 
 from .exceptions import ApiConfigurationError
@@ -125,7 +125,7 @@ class HasFlaggedAccessToContributionsApiResource(permissions.BasePermission):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         Flag = get_waffle_flag_model()
-        self.flag = Flag.objects.filter(name=CONTRIBUTOR_API_ENDPOINT_ACCESS_FLAG_NAME).first()
+        self.flag = Flag.objects.filter(name=CONTRIBUTIONS_API_ENDPOINT_ACCESS_FLAG_NAME).first()
         if not self.flag:
             raise ApiConfigurationError()
 

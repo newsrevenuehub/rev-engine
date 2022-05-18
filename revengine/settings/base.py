@@ -228,6 +228,12 @@ REST_FRAMEWORK = {
 
 
 ### Django-CSP Settings
+
+# Note from Ben: As best I can tell, these CSP settings are related to using Google
+# Tag Manager with a content security policy (see:
+# https://developers.google.com/tag-platform/tag-manager/web/csp ). I don't have context
+# for business logic requiring CSP in GTM.
+
 # For now, report only.
 # For now, we're drastically relaxing the CSP by allowing 'unsafe-eval' and 'unsafe-inline'. Adding those rules precludes the use of a nonce.
 # Restore this nonce setup when we successfully disallow 'unsafe-eval' and 'unsafe-inline'
@@ -321,14 +327,21 @@ STRIPE_WEBHOOK_EVENTS = [
 ]
 
 ### django-healthcheck Settings
+
+# this URL will get pinged when in the `auto_accept_flagged_contributions`` task
 HEALTHCHECK_URL_AUTO_ACCEPT_FLAGGED_PAYMENTS = os.getenv("HEALTHCHECK_URL_AUTO_ACCEPT_FLAGGED_PAYMENTS")
 
 
 ### Google Tag Manager ID - Config Vars Heroku
+
+# When deploying, the SPA gets served via `revengine.views.ReactAppView` which sets this as the value
+# for the `gtm_id` context key in `revengine.views.ReactAppView`. In turn, spa.public.index.html
+# references `gtm_id`. If this value is defined, a Google Tag Manager script is added to head and GTM
+# iframe added to body.
 HUB_GTM_ID = os.getenv("HUB_GTM_ID")
 
 
-### Heruku Settings
+### Heroku Settings
 HEROKU_APP_NAME = os.getenv("HEROKU_APP_NAME")
 HEROKU_BRANCH = os.getenv("HEROKU_BRANCH")
 CF_ZONE_NAME = os.getenv("CF_ZONE_NAME")
@@ -341,7 +354,10 @@ DOMAIN_APEX = os.getenv("DOMAIN_APEX")
 # Application subdomains (that are NOT revenue program slugs)
 DASHBOARD_SUBDOMAINS = os.getenv("DASHBOARD_SUBDOMAINS", "support:www:dashboard:").split(":")
 
-# Stripe? Meta data static values
+# These values are used in `ContributionMetadataSerializer`, which in turn
+# gets used in the abstract PaymentManager base class. They appear
+# to be related to how payment provider meta data gets serialized in PaymentManager and
+# its subclasses.
 METADATA_SOURCE = os.getenv("METADATA_SOURCE", "rev-engine")
 METADATA_SCHEMA_VERSION = os.getenv("METADATA_SCHEMA_VERSION", "1.0")
 

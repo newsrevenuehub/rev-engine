@@ -433,6 +433,3 @@ SPA_ENV_VARS = {
 # Meta data static values
 METADATA_SOURCE = os.getenv("METADATA_SOURCE", "rev-engine")
 METADATA_SCHEMA_VERSION = os.getenv("METADATA_SCHEMA_VERSION", "1.0")
-
-# Django waffle
-WAFFLE_CREATE_MISSING_FLAGS = True

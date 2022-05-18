@@ -65,7 +65,7 @@ def stripe_payment(request):
         ):
             stripe_payment.create_subscription()
         else:
-            logger.warning(f"stripe_payment view recieved unexpetected interval value: {interval}")
+            logger.warning("stripe_payment view recieved unexpetected interval value: [%s]", interval)
             raise PaymentBadParamsError()
 
         if stripe_payment.get_organization().uses_email_templates:
@@ -92,7 +92,7 @@ def stripe_payment(request):
 
     except RevenueProgram.DoesNotExist:
         logger.warning(
-            f"stripe_payment view called with unexpected revenue program id ${request.data['revenue_program_id']}"
+            "stripe_payment view called with unexpected revenue program id [%s]", request.data["revenue_program_id"]
         )
         return Response({"detail": "There was an error processing your payment"}, status=status.HTTP_400_BAD_REQUEST)
 

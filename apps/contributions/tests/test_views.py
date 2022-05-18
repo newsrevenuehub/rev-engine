@@ -521,6 +521,8 @@ class TestContributionsViewSet(RevEngineApiAbstractTestCase):
         contributions_access_flag.save()
         expected_users_having_access = (
             self.superuser,
+            # has access because permissions in apps.contributions.views.ContributionsViewSet do not gate
+            # contributions endpoint for contributors.
             self.contributor_user,
             self.hub_user,  # has access because we gave individual access above
         )

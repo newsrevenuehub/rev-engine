@@ -1,13 +1,15 @@
+from cgi import test
 from unittest.mock import patch
 
 from django.conf import settings
 from django.middleware import csrf
 from django.test import override_settings
 
+import pytest
 from faker import Faker
 from rest_framework import status
 from rest_framework.reverse import reverse
-from rest_framework.test import APIRequestFactory, APITestCase
+from rest_framework.test import APIClient, APIRequestFactory, APITestCase
 from stripe.error import StripeError
 from stripe.oauth_error import InvalidGrantError as StripeInvalidGrantError
 from stripe.stripe_object import StripeObject
@@ -511,41 +513,71 @@ class TestContributionsViewSet(RevEngineApiAbstractTestCase):
             reverse("contribution-list"), novel, expected_status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
         )
 
-    def test_feature_flagging(self):
-        """Show feature users are gated by feature flag for this resource"""
-        flag_model = get_waffle_flag_model()
-        contributions_access_flag = flag_model.objects.get(name=CONTRIBUTIONS_API_ENDPOINT_ACCESS_FLAG_NAME)
-        contributions_access_flag.everyone = False
-        contributions_access_flag.superusers = True
-        contributions_access_flag.users.add(self.hub_user)
-        contributions_access_flag.save()
-        expected_users_having_access = (
-            self.superuser,
-            # has access because permissions in apps.contributions.views.ContributionsViewSet do not gate
-            # contributions endpoint for contributors.
-            self.contributor_user,
-            self.hub_user,  # has access because we gave individual access above
-        )
-        expected_users_not_having_access = (
-            self.org_user,
-            self.rp_user,
-            self.generic_user,
-        )
-        for user in expected_users_not_having_access:
-            self.assert_user_cannot_get(self.list_url, user)
-        for user in expected_users_having_access:
-            self.assert_user_can_get(self.list_url, user)
 
-    def test_feature_flagging_when_flag_not_found(self):
-        """Should raise ApiConfigurationError if view is accessed and flag can't be found"""
-        flag_model = get_waffle_flag_model()
-        contributions_access_flag = flag_model.objects.get(name=CONTRIBUTIONS_API_ENDPOINT_ACCESS_FLAG_NAME)
-        contributions_access_flag.delete()
+@pytest.mark.parametrize(
+    ",".join(
+        [
+            "is_active_for_everyone",
+            "is_active_for_superusers",
+            "manually_added_user",
+            "user_under_test",
+            "expect_to_have_access",
+        ]
+    ),
+    [
+        (True, False, None, "contributor_user", True),
+        (True, False, None, "superuser", True),
+        (True, False, None, "hub_user", True),
+        (True, False, None, "org_user", True),
+        (True, False, None, "rp_user", True),
+        (False, True, None, "superuser", True),
+        (False, True, None, "hub_user", False),
+        (False, True, None, "org_user", False),
+        (False, True, None, "rp_user", False),
+        (False, False, "hub_user", "hub_user", True),
+        (False, False, "hub_user", "org_user", False),
+        (False, False, "hub_user", "superuser", False),
+    ],
+)
+@pytest.mark.django_db
+def test_contributions_api_resource_feature_flagging(
+    is_active_for_everyone, is_active_for_superusers, manually_added_user, user_under_test, expect_to_have_access
+):
+    """Show feature users are gated by feature flag for this resource
 
-        response = self.assert_user_cannot_get(
-            self.list_url, self.superuser, expected_status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
-        )
-        self.assertEqual(response.json().get("detail", None), "There was a problem with the API")
+    Note on needing to do this in context where there is not a test class inheriting
+    from unit test.
+    """
+    # note on why
+    test_helper = AbstractTestCase()
+    test_helper.set_up_domain_model()
+    flag_model = get_waffle_flag_model()
+    contributions_access_flag = flag_model.objects.get(name=CONTRIBUTIONS_API_ENDPOINT_ACCESS_FLAG_NAME)
+    contributions_access_flag.everyone = is_active_for_everyone
+    contributions_access_flag.superusers = is_active_for_superusers
+    if manually_added_user:
+        contributions_access_flag.users.add(getattr(test_helper, manually_added_user))
+    contributions_access_flag.save()
+    client = APIClient()
+    client.force_authenticate(getattr(test_helper, user_under_test))
+    response = client.get(reverse("contribution-list"))
+    expected_status = status.HTTP_200_OK if expect_to_have_access else status.HTTP_403_FORBIDDEN
+    assert response.status_code == expected_status
+
+
+@pytest.mark.django_db
+def test_feature_flagging_when_flag_not_found():
+    """Should raise ApiConfigurationError if view is accessed and flag can't be found"""
+    test_helper = AbstractTestCase()
+    test_helper.set_up_domain_model()
+    flag_model = get_waffle_flag_model()
+    contributions_access_flag = flag_model.objects.get(name=CONTRIBUTIONS_API_ENDPOINT_ACCESS_FLAG_NAME)
+    contributions_access_flag.delete()
+    client = APIClient()
+    client.force_authenticate(getattr(test_helper, "superuser"))
+    response = client.get(reverse("contribution-list"))
+    assert response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
+    assert response.json().get("detail", None) == "There was a problem with the API"
 
 
 TEST_STRIPE_API_KEY = "test_stripe_api_key"

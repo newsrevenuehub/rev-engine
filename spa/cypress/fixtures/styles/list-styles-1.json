@@ -3,6 +3,7 @@
     "id": 1,
     "name": "My Test Styles 01",
     "used_live": true,
+    "styles":{
     "colors": {
       "primary": "pink",
       "secondary": "blue",
@@ -11,11 +12,13 @@
     },
     "font": "Monospace",
     "fontSizes": []
+  }
   },
   {
     "id": 2,
     "name": "My Test Styles 02",
     "used_live": false,
+    "styles":{
     "colors": {
       "primary": "purple",
       "secondary": "orange",
@@ -24,11 +27,13 @@
     },
     "font": "Monospace",
     "fontSizes": []
+    }
   },
   {
     "id": 3,
     "name": "My Test Styles 03",
     "used_live": false,
+    "styles":{
     "colors": {
       "primary": "papayawhip",
       "secondary": "blanchedalmond",
@@ -37,5 +42,6 @@
     },
     "font": "Monospace",
     "fontSizes": []
+  }
   }
 ]

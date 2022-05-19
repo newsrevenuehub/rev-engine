@@ -17,12 +17,12 @@ from waffle import get_waffle_flag_model
 
 from apps.api.tests import RevEngineApiAbstractTestCase
 from apps.api.tokens import ContributorRefreshToken
+from apps.common.constants import CONTRIBUTIONS_API_ENDPOINT_ACCESS_FLAG_NAME
 from apps.common.tests.test_resources import AbstractTestCase
 from apps.contributions.models import Contribution, ContributionInterval
 from apps.contributions.payment_managers import PaymentBadParamsError, PaymentProviderError
 from apps.contributions.tests.factories import ContributionFactory, ContributorFactory
 from apps.contributions.views import stripe_payment
-from apps.flags.constants import CONTRIBUTIONS_API_ENDPOINT_ACCESS_FLAG_NAME
 from apps.organizations.models import RevenueProgram
 from apps.organizations.tests.factories import OrganizationFactory
 from apps.pages.models import DonationPage

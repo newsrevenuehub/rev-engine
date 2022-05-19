@@ -33,12 +33,24 @@ function Content() {
     requestGetStyles(
       { method: 'GET', url: LIST_STYLES },
       {
-        onSuccess: ({ data }) => setStyles(data),
+        onSuccess: ({ data }) => {
+          let allStyles = [];
+          for (let d in data) {
+            let styleReformat = data[d].styles;
+            styleReformat['id'] = data[d].id;
+            styleReformat['revenue_program'] = data[d].revenue_program;
+            styleReformat['name'] = data[d].name;
+            allStyles.push(styleReformat);
+          }
+          setStyles(allStyles);
+          console.log(allStyles);
+        },
         onFailure: () => alert.error(GENERIC_ERROR)
       }
     );
   }, [alert]);
 
+  console.log(setStyleToEdit);
   return (
     <>
       <DashboardSectionGroup data-testid="content">

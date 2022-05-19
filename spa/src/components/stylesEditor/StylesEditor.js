@@ -239,7 +239,7 @@ function StylesEditor({ styles, setStyles, handleKeepChanges, handleDiscardChang
         </StylesFieldset>
         <StylesFieldset label="Font">
           <S.TextExample>
-            <S.PangramText newStyles={styles.styles}>
+            <S.PangramText newStyles={styles}>
               <em>Heading</em>
               <h2>{PANGRAM}</h2>
               <em>Heading</em>

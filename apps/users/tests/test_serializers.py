@@ -1,7 +1,10 @@
 from django.contrib.auth import get_user_model
 
-from rest_framework.test import APITestCase
+import pytest
+from rest_framework.test import APIRequestFactory, APITestCase
+from waffle import get_waffle_flag_model
 
+from apps.contributions.tests.factories import ContributorFactory
 from apps.organizations.models import Organization, RevenueProgram
 from apps.organizations.tests.factories import OrganizationFactory, RevenueProgramFactory
 from apps.users import serializers
@@ -127,3 +130,66 @@ class UserSerializerTest(APITestCase):
         org_ids = [rp["organization"] for rp in rps]
         expected_org_ids = [rp.organization.pk for rp in self.included_rps]
         self.assertEqual(org_ids, expected_org_ids)
+
+
+@pytest.mark.parametrize(
+    (
+        "flag1_everyone",
+        "flag1_superusers",
+        "flag1_add_user",
+        "flag2_everyone",
+        "flag2_superusers",
+        "flag2_add_user",
+        "user_under_test",
+        "expect_flag1",
+        "expect_flag2",
+    ),
+    [
+        (True, False, False, False, False, False, "superuser", True, False),
+        (True, False, False, False, False, False, "hub_admin", True, False),
+        (False, True, False, False, False, False, "superuser", True, False),
+        (False, True, False, False, False, False, "hub_admin", False, False),
+        (False, False, True, False, False, False, "hub_admin", True, False),
+    ],
+)
+@pytest.mark.django_db
+def test_user_serializer_flags(
+    flag1_everyone,
+    flag1_superusers,
+    flag1_add_user,
+    flag2_everyone,
+    flag2_superusers,
+    flag2_add_user,
+    user_under_test,
+    expect_flag1,
+    expect_flag2,
+):
+    user = {
+        "superuser": user_model.objects.create_superuser(email="test@test.com", password="testing"),
+        "hub_admin": create_test_user(role_assignment_data={"role_type": Roles.HUB_ADMIN}),
+    }[user_under_test]
+    Flag = get_waffle_flag_model()
+
+    flag1 = Flag.objects.create(name="flag1", everyone=flag1_everyone, superusers=flag1_superusers)
+    if flag1_add_user:
+        flag1.users.add(user)
+        flag1.save()
+
+    flag2 = Flag.objects.create(name="flag2", everyone=flag2_everyone, superusers=flag2_superusers)
+    if flag2_add_user:
+        flag2.users.add(user)
+        flag2.save()
+
+    request = APIRequestFactory().get("/")
+    request.user = user
+    data = serializers.UserSerializer(user, context={"request": request}).data
+    expected_flag_count = len([x for x in [expect_flag1, expect_flag2] if x])
+    assert len(data["flags"]) == expected_flag_count
+    if expect_flag1:
+        assert any([flag["name"] == flag1.name and flag["id"] == flag1.id for flag in data["flags"]])
+    if not expect_flag1:
+        assert not any([flag["name"] == flag1.name and flag["id"] == flag1.id for flag in data["flags"]])
+    if expect_flag2:
+        assert any([flag["name"] == flag2.name and flag["id"] == flag2.id for flag in data["flags"]])
+    if not expect_flag2:
+        assert not any([flag["name"] == flag2.name and flag["id"] == flag2.id for flag in data["flags"]])

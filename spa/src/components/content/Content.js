@@ -43,7 +43,6 @@ function Content() {
             allStyles.push(styleReformat);
           }
           setStyles(allStyles);
-          console.log(allStyles);
         },
         onFailure: () => alert.error(GENERIC_ERROR)
       }

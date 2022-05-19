@@ -50,7 +50,6 @@ function Content() {
     );
   }, [alert]);
 
-  console.log(setStyleToEdit);
   return (
     <>
       <DashboardSectionGroup data-testid="content">

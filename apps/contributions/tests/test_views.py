@@ -543,12 +543,25 @@ class TestContributionsViewSet(RevEngineApiAbstractTestCase):
 def test_contributions_api_resource_feature_flagging(
     is_active_for_everyone, is_active_for_superusers, manually_added_user, user_under_test, expect_to_have_access
 ):
-    """Show feature users are gated by feature flag for this resource
+    """Demonstrate behavior of applying the `Flag` with name `CONTRIBUTIONS_API_ENDPOINT_ACCESS_FLAG_NAME`...
 
-    Note on needing to do this in context where there is not a test class inheriting
-    from unit test.
+    This test focuses on the following user types: contributors, superusers, hub admins, org admins, and rp admins.
+
+    Setting the flag's `everyone` to `True` should each of these user types through.
+
+    Setting's the flag's `everyone` to `False` and `superusers` to `True` should allow only superusers through.
+
+    We test this flag within the broader context of a view instead of narrowly unit testing the flag itself.
+    This is because we want assurances about how the flag interacts with up and downstream permissioning in order to
+    gate access at the API layer.
+
+    We are testing this flag in a module-level function rather than in a test class method. This is because
+    `pytest.parametrize` does not play nicely when applied to tests defined in classes subclassing from unittest
+    (specifically, the parametrized function arguments do not make it to the function call).
+
+    Since this test does not inherit from `RevEngineApiAbstractTestCase` or `AbstractTestCase`, in order to
+    use the `set_up_domain_model` method, we instantiate an `AbstractTestCase` to call the method from, below.
     """
-    # note on why
     test_helper = AbstractTestCase()
     test_helper.set_up_domain_model()
     flag_model = get_waffle_flag_model()
@@ -567,7 +580,11 @@ def test_contributions_api_resource_feature_flagging(
 
 @pytest.mark.django_db
 def test_feature_flagging_when_flag_not_found():
-    """Should raise ApiConfigurationError if view is accessed and flag can't be found"""
+    """Should raise ApiConfigurationError if view is accessed and flag can't be found
+
+    See docstring in `test_contributions_api_resource_feature_flagging` above for more context on the
+    design of this test.
+    """
     test_helper = AbstractTestCase()
     test_helper.set_up_domain_model()
     flag_model = get_waffle_flag_model()

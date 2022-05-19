@@ -84,7 +84,7 @@ class SlackManager:
             "type": "section",
             "text": {
                 "type": "mrkdwn",
-                "text": f"<{settings.SITE_URL}/dashboard/donations?id={contribution.pk}|View on RevEngine>",
+                "text": f"<{settings.SITE_URL}/dashboard/contributions?id={contribution.pk}|View on RevEngine>",
             },
         }
 

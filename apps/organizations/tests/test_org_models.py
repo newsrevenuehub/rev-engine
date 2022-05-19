@@ -21,9 +21,6 @@ class TestOrganizationModel(TestCase):
     def setUp(self):
         self.organization = factories.OrganizationFactory()
 
-    def test_admin_benefit_options(self):
-        self.assertTrue(isinstance(self.organization.admin_benefit_options, list))
-
     def test_admin_revenueprogram_options(self):
         rp = factories.RevenueProgramFactory(organization=self.organization)
         self.organization.refresh_from_db()
@@ -121,6 +118,12 @@ class RevenueProgramTest(TestCase):
         self.assertIn("slug", validation_error.exception.error_dict)
         self.assertEqual(SLUG_DENIED_CODE, validation_error.exception.error_dict["slug"][0].code)
         self.assertEqual(GENERIC_SLUG_DENIED_MSG, validation_error.exception.error_dict["slug"][0].message)
+
+    def test_admin_benefit_options(self):
+        self.assertTrue(isinstance(self.revenue_program.admin_benefit_options, list))
+
+    def test_admin_benefitlevel_options(self):
+        self.assertTrue(isinstance(self.revenue_program.admin_benefitlevel_options, list))
 
 
 class BenefitLevelTest(TestCase):

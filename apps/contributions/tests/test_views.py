@@ -520,26 +520,30 @@ class TestContributionsViewSet(RevEngineApiAbstractTestCase):
         "is_active_for_superusers",
         "manually_added_user",
         "user_under_test",
-        "expect_to_have_access",
+        "expected_status_code",
     ),
     [
-        (True, False, None, "contributor_user", True),
-        (True, False, None, "superuser", True),
-        (True, False, None, "hub_user", True),
-        (True, False, None, "org_user", True),
-        (True, False, None, "rp_user", True),
-        (False, True, None, "superuser", True),
-        (False, True, None, "hub_user", False),
-        (False, True, None, "org_user", False),
-        (False, True, None, "rp_user", False),
-        (False, False, "hub_user", "hub_user", True),
-        (False, False, "hub_user", "org_user", False),
-        (False, False, "hub_user", "superuser", False),
+        (True, False, None, "contributor_user", status.HTTP_200_OK),
+        (True, False, None, "superuser", status.HTTP_200_OK),
+        (True, False, None, "hub_user", status.HTTP_200_OK),
+        (True, False, None, "org_user", status.HTTP_200_OK),
+        (True, False, None, "rp_user", status.HTTP_200_OK),
+        (False, True, None, "superuser", status.HTTP_200_OK),
+        (False, True, None, "hub_user", status.HTTP_403_FORBIDDEN),
+        (False, True, None, "org_user", status.HTTP_403_FORBIDDEN),
+        (False, True, None, "rp_user", status.HTTP_403_FORBIDDEN),
+        (False, False, "hub_user", "hub_user", status.HTTP_200_OK),
+        (False, False, "hub_user", "org_user", status.HTTP_403_FORBIDDEN),
+        (False, False, "hub_user", "superuser", status.HTTP_403_FORBIDDEN),
     ],
 )
 @pytest.mark.django_db
 def test_contributions_api_resource_feature_flagging(
-    is_active_for_everyone, is_active_for_superusers, manually_added_user, user_under_test, expect_to_have_access
+    is_active_for_everyone,
+    is_active_for_superusers,
+    manually_added_user,
+    user_under_test,
+    expected_status_code,
 ):
     """Demonstrate behavior of applying the `Flag` with name `CONTRIBUTIONS_API_ENDPOINT_ACCESS_FLAG_NAME`...
 
@@ -572,8 +576,7 @@ def test_contributions_api_resource_feature_flagging(
     client = APIClient()
     client.force_authenticate(getattr(test_helper, user_under_test))
     response = client.get(reverse("contribution-list"))
-    expected_status = status.HTTP_200_OK if expect_to_have_access else status.HTTP_403_FORBIDDEN
-    assert response.status_code == expected_status
+    assert response.status_code == expected_status_code
 
 
 @pytest.mark.django_db

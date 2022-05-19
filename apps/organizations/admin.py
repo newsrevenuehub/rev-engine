@@ -52,17 +52,15 @@ class ReadOnlyOrgLimitedTabularInlineMixin(admin.TabularInline):
                 parent_id = None
             if db_field.name == self.related_fieldname and parent_id:
                 parent_instance = self.parent_model.objects.filter(pk=parent_id).first()
-                formfield.limit_choices_to = Q(organization=parent_instance.organization)
+                formfield.limit_choices_to = Q(revenue_program=parent_instance.revenue_program)
         return formfield
 
 
 class RevenueProgramBenefitLevelInline(NoRelatedInlineAddEditAdminMixin, ReadOnlyOrgLimitedTabularInlineMixin):
-    model = RevenueProgram.benefit_levels.through
+    model = BenefitLevel
     verbose_name = "Benefit level"
     verbose_name_plural = "Benefit levels"
     extra = 0
-
-    related_fieldname = "benefit_level"
 
 
 class BenefitLevelBenefit(NoRelatedInlineAddEditAdminMixin, ReadOnlyOrgLimitedTabularInlineMixin):
@@ -134,24 +132,24 @@ class OrganizationAdmin(RevEngineSimpleHistoryAdmin, ReverseModelAdmin):  # prag
 
 @admin.register(Benefit)
 class BenefitAdmin(RevEngineSimpleHistoryAdmin):
-    list_display = ["name", "description", "organization"]
+    list_display = ["name", "description", "revenue_program"]
 
-    list_filter = ["organization"]
+    list_filter = ["revenue_program"]
 
-    fieldsets = ((None, {"fields": ("name", "description", "organization")}),)
+    fieldsets = ((None, {"fields": ("name", "description", "revenue_program")}),)
 
 
 @admin.register(BenefitLevel)
 class BenefitLevelAdmin(RevEngineSimpleHistoryAdmin):
-    list_display = ["name", "donation_range", "organization"]
+    list_display = ["name", "donation_range", "revenue_program"]
 
-    list_filter = ["organization"]
+    list_filter = ["revenue_program"]
 
     fieldsets = (
         (
             None,
             {
-                "fields": ("name", "currency", "lower_limit", "upper_limit", "organization"),
+                "fields": ("name", "currency", "lower_limit", "upper_limit", "level", "revenue_program"),
             },
         ),
     )
@@ -169,7 +167,7 @@ class BenefitLevelAdmin(RevEngineSimpleHistoryAdmin):
         Organization becomes readonly after initial creation.
         """
         if obj:
-            return self.readonly_fields + ["organization"]
+            return self.readonly_fields + ["revenue_program"]
         return self.readonly_fields
 
 
@@ -178,15 +176,7 @@ class RevenueProgramAdmin(RevEngineSimpleHistoryAdmin, ReverseModelAdmin, AdminI
     fieldsets = (
         (
             "RevenueProgram",
-            {
-                "fields": (
-                    "name",
-                    "slug",
-                    "contact_email",
-                    "organization",
-                    "default_donation_page",
-                )
-            },
+            {"fields": ("name", "slug", "contact_email", "organization", "default_donation_page")},
         ),
         (
             "Stripe",

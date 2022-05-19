@@ -211,7 +211,7 @@ class ContributionsViewSet(viewsets.ReadOnlyModelViewSet, FilterQuerySetByUserMi
     permission_classes = [
         IsAuthenticated,
         (
-            # `IsContributorOwningContribution` roleassignment based permissions need to come before
+            # `IsContributorOwningContribution` needs to come before
             # any role-assignment based permission, as those assume that contributor users have had
             # their permission validated (in case of valid permission) upstream -- the role assignment
             # based permissions will not give permission to a contributor user.

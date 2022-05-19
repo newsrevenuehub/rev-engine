@@ -547,6 +547,8 @@ def test_contributions_api_resource_feature_flagging(
 ):
     """Demonstrate behavior of applying the `Flag` with name `CONTRIBUTIONS_API_ENDPOINT_ACCESS_FLAG_NAME`...
 
+    ...as defined in `apps.flags.constants`.
+
     This test focuses on the following user types: contributors, superusers, hub admins, org admins, and rp admins.
 
     Setting the flag's `everyone` to `True` should each of these user types through.

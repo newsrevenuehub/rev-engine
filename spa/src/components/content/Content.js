@@ -35,7 +35,7 @@ function Content() {
       {
         onSuccess: ({ data }) => {
           let allStyles = [];
-          for (let d in data) {
+          for (let d = 0; d < data.length; d++) {
             let styleReformat = data[d].styles;
             styleReformat['id'] = data[d].id;
             styleReformat['revenue_program'] = data[d].revenue_program;

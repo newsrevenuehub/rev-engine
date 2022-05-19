@@ -515,14 +515,12 @@ class TestContributionsViewSet(RevEngineApiAbstractTestCase):
 
 
 @pytest.mark.parametrize(
-    ",".join(
-        [
-            "is_active_for_everyone",
-            "is_active_for_superusers",
-            "manually_added_user",
-            "user_under_test",
-            "expect_to_have_access",
-        ]
+    (
+        "is_active_for_everyone",
+        "is_active_for_superusers",
+        "manually_added_user",
+        "user_under_test",
+        "expect_to_have_access",
     ),
     [
         (True, False, None, "contributor_user", True),

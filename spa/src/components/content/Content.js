@@ -40,6 +40,7 @@ function Content() {
             styleReformat['id'] = data[d].id;
             styleReformat['revenue_program'] = data[d].revenue_program;
             styleReformat['name'] = data[d].name;
+            styleReformat['used_live'] = data[d].used_live;
             allStyles.push(styleReformat);
           }
           setStyles(allStyles);

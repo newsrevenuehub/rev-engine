@@ -38,7 +38,6 @@ INSTALLED_APPS = [
     "apps.element_media",
     "apps.public",
     "apps.config",
-    "apps.flags",
     "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",

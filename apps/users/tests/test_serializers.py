@@ -183,13 +183,13 @@ def test_user_serializer_flags(
     request = APIRequestFactory().get("/")
     request.user = user
     data = serializers.UserSerializer(user, context={"request": request}).data
-    expected_flag_count = len([x for x in [expect_flag1, expect_flag2] if x])
+    expected_flag_count = sum([x for x in [expect_flag1, expect_flag2] if x])
     assert len(data["flags"]) == expected_flag_count
     if expect_flag1:
-        assert any([flag["name"] == flag1.name and flag["id"] == flag1.id for flag in data["flags"]])
+        assert any(flag["name"] == flag1.name and flag["id"] == flag1.id for flag in data["flags"])
     if not expect_flag1:
-        assert not any([flag["name"] == flag1.name and flag["id"] == flag1.id for flag in data["flags"]])
+        assert not any(flag["name"] == flag1.name and flag["id"] == flag1.id for flag in data["flags"])
     if expect_flag2:
-        assert any([flag["name"] == flag2.name and flag["id"] == flag2.id for flag in data["flags"]])
+        assert any(flag["name"] == flag2.name and flag["id"] == flag2.id for flag in data["flags"])
     if not expect_flag2:
-        assert not any([flag["name"] == flag2.name and flag["id"] == flag2.id for flag in data["flags"]])
+        assert not any(flag["name"] == flag2.name and flag["id"] == flag2.id for flag in data["flags"])

@@ -15,8 +15,7 @@ function useFeatureFlags() {
       {
         onSuccess: ({ data }) => setFlags(data.flags),
         onFailure: (e) => {
-          // need to do something better here.
-          console.error(e);
+          throw new Error('Something unexpected happened in `useFeatureFlags`');
         }
       }
     );

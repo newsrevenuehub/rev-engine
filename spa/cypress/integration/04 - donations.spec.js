@@ -43,6 +43,7 @@ describe('Donations list', () => {
       cy.intercept({ method: 'GET', pathname: getEndpoint(USER) }, { body: hubAdminWithoutFlags });
       cy.interceptPaginatedDonations();
       cy.visit(DONATIONS_SLUG);
+      cy.url().should('include', DONATIONS_SLUG);
       cy.getByTestId('donations-table').should('not.exist');
     });
   });

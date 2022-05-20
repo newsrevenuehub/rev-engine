@@ -5,7 +5,7 @@ from rest_framework import serializers
 from rest_framework.test import APIRequestFactory, APITestCase
 
 from apps.api.tests import RevEngineApiAbstractTestCase
-from apps.organizations.models import BenefitLevelBenefit, RevenueProgramBenefitLevel
+from apps.organizations.models import BenefitLevelBenefit
 from apps.organizations.tests.factories import (
     BenefitFactory,
     BenefitLevelFactory,
@@ -27,19 +27,16 @@ class DonationPageFullDetailSerializerTest(RevEngineApiAbstractTestCase):
         self.page = self.org1_rp1.donationpage_set.first()
 
         # set up benefits
-        self.benefit_1 = BenefitFactory(organization=self.org1)
-        self.benefit_2 = BenefitFactory(organization=self.org1)
-        self.benefit_level_1 = BenefitLevelFactory(organization=self.org1)
+        self.benefit_1 = BenefitFactory(revenue_program=self.org1_rp1)
+        self.benefit_2 = BenefitFactory(revenue_program=self.org1_rp1)
+        self.benefit_level_1 = BenefitLevelFactory(revenue_program=self.org1_rp1)
+
         BenefitLevelBenefit.objects.create(benefit_level=self.benefit_level_1, benefit=self.benefit_1, order=1)
         BenefitLevelBenefit.objects.create(benefit_level=self.benefit_level_1, benefit=self.benefit_2, order=2)
-        self.benefit_level_2 = BenefitLevelFactory(organization=self.org1)
+
+        self.benefit_level_2 = BenefitLevelFactory(revenue_program=self.org1_rp1)
+
         BenefitLevelBenefit.objects.create(benefit_level=self.benefit_level_2, benefit=self.benefit_1, order=1)
-        RevenueProgramBenefitLevel.objects.create(
-            revenue_program=self.page.revenue_program, benefit_level=self.benefit_level_1, level=1
-        )
-        RevenueProgramBenefitLevel.objects.create(
-            revenue_program=self.page.revenue_program, benefit_level=self.benefit_level_2, level=2
-        )
 
         self.serializer = DonationPageFullDetailSerializer
         self.request_factory = APIRequestFactory()

@@ -134,8 +134,8 @@ class Template(AbstractPage):
         )
 
     def make_page_from_template(self, page_data={}):
-        """
-        Create a page from from template.
+        """Create DonationPage() instance from self.
+
         Expects template_data as dict, and optional page_data (eg. for creating a template page via org admin).
         We also clean up template and page data here, so that we only copy the fields we want.
         """
@@ -221,6 +221,10 @@ class DonationPage(AbstractPage, SafeDeleteModel):
         super().save(*args, **kwargs)
 
     def make_template_from_page(self, template_data={}):
+        """Create Template() instance from self.
+
+        Clean up template_data and page data here, so that we only copy the fields we want.
+        """
         unwanted_keys = [
             "_state",
             "id",

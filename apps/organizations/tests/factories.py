@@ -86,6 +86,7 @@ class BenefitLevelFactory(DjangoModelFactory):
         model = models.BenefitLevel
 
     name = factory.Sequence(lambda n: f"{fake.sentence(nb_words=2)}-{str(n)}")
-    organization = factory.SubFactory(OrganizationFactory)
+    revenue_program = factory.SubFactory(RevenueProgramFactory)
 
     lower_limit = 1
+    level = 1

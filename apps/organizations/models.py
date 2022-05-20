@@ -102,16 +102,6 @@ class Organization(IndexedTimeStampedModel, RoleAssignmentResourceModelMixin):
         return [(rp.name, rp.pk) for rp in rps]
 
     @property
-    def admin_benefit_options(self):
-        benefits = self.benefit_set.all()
-        return [(c.name, c.pk) for c in benefits]
-
-    @property
-    def admin_benefitlevel_options(self):
-        benefit_levels = self.benefitlevel_set.all()
-        return [(c.name, c.pk) for c in benefit_levels]
-
-    @property
     def needs_payment_provider(self):
         """
         Right now this is simple. If the org is not "stripe_verified", then they "need a provider"
@@ -142,11 +132,11 @@ class BenefitLevel(IndexedTimeStampedModel):
     lower_limit = models.PositiveIntegerField()
     upper_limit = models.PositiveIntegerField(null=True, blank=True)
     currency = models.CharField(max_length=3, default="usd")
+    level = models.PositiveSmallIntegerField(help_text="Is this a first-level benefit, second-level, etc?", default=0)
 
     benefits = models.ManyToManyField("organizations.Benefit", through="organizations.BenefitLevelBenefit")
 
-    organization = models.ForeignKey(Organization, on_delete=models.CASCADE)
-
+    revenue_program = models.ForeignKey("organizations.RevenueProgram", on_delete=models.CASCADE)
     # A history of changes to this model, using django-simple-history.
     history = HistoricalRecords()
 
@@ -156,10 +146,9 @@ class BenefitLevel(IndexedTimeStampedModel):
     class Meta:
         unique_together = (
             "name",
-            "organization",
+            "revenue_program",
         )
-
-        ordering = ["revenueprogrambenefitlevel__level"]
+        ordering = ("level",)
 
     @property
     def donation_range(self):
@@ -171,27 +160,10 @@ class BenefitLevel(IndexedTimeStampedModel):
             raise ValidationError("Upper limit must be greater than lower limit")
 
 
-class RevenueProgramBenefitLevel(models.Model):
-    """
-    Through table for the relationship between Organization and Benefit Level.
-    Determines the order in which Benefit Levels appear
-    """
-
-    revenue_program = models.ForeignKey("organizations.RevenueProgram", on_delete=models.CASCADE)
-    benefit_level = models.ForeignKey("organizations.BenefitLevel", on_delete=models.CASCADE)
-    level = models.PositiveSmallIntegerField(help_text="Is this a first-level benefit, second-level, etc?")
-
-    class Meta:
-        ordering = ("level",)
-
-    def __str__(self):  # pragma: no cover
-        return f"Benefit Level {self.level} for {self.revenue_program}"
-
-
 class Benefit(IndexedTimeStampedModel):
     name = models.CharField(max_length=128, help_text="A way to uniquely identify this Benefit")
     description = models.TextField(help_text="The text that appears on the donation page")
-    organization = models.ForeignKey("organizations.Organization", on_delete=models.CASCADE)
+    revenue_program = models.ForeignKey("organizations.RevenueProgram", on_delete=models.CASCADE)
 
     # A history of changes to this model, using django-simple-history.
     history = HistoricalRecords()
@@ -202,7 +174,7 @@ class Benefit(IndexedTimeStampedModel):
     class Meta:
         unique_together = (
             "name",
-            "organization",
+            "revenue_program",
         )
 
         ordering = ["benefitlevelbenefit__order"]
@@ -256,8 +228,6 @@ class RevenueProgram(IndexedTimeStampedModel):
     google_analytics_v4_id = models.CharField(max_length=50, null=True, blank=True)
     facebook_pixel_id = models.CharField(max_length=100, null=True, blank=True)
 
-    benefit_levels = models.ManyToManyField(BenefitLevel, through=RevenueProgramBenefitLevel)
-
     # Social links
     twitter_handle = models.CharField(
         max_length=15, blank=True, help_text="How can your donors mention you on Twitter? Don't include '@' symbol"
@@ -283,6 +253,16 @@ class RevenueProgram(IndexedTimeStampedModel):
     def admin_style_options(self):
         styles = self.style_set.all()
         return [(c.name, c.pk) for c in styles]
+
+    @property
+    def admin_benefit_options(self):
+        benefits = self.benefit_set.all()
+        return [(c.name, c.pk) for c in benefits]
+
+    @property
+    def admin_benefitlevel_options(self):
+        benefit_levels = self.benefitlevel_set.all()
+        return [(c.name, c.pk) for c in benefit_levels]
 
     def __str__(self):
         return self.name

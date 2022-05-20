@@ -141,20 +141,22 @@ function PageEditor() {
   }, [pageId, parameters.revProgramSlug, parameters.pageSlug, handleGetPageFailure]);
 
   useEffect(() => {
-    setLoading(true);
-    requestGetPageStyles(
-      { method: 'GET', url: LIST_STYLES },
-      {
-        onSuccess: ({ data }) => {
-          setAvailableStyles(data);
-          setLoading(false);
-        },
-        onFailure: () => {
-          setLoading(false);
+    const rpId = page?.revenue_program?.id;
+    if (rpId) {
+      setLoading(true);
+      requestGetPageStyles(
+        { method: 'GET', url: LIST_STYLES, params: { revenue_program: rpId } },
+        {
+          onSuccess: ({ data }) => {
+            setAvailableStyles(data);
+            setLoading(false);
+          },
+          onFailure: () => {
+            setLoading(false);
+          }
         }
-      }
-    );
-    // Don't include requestGetPageStyles for now.
+      );
+    }
   }, []);
 
   const handlePreview = () => {

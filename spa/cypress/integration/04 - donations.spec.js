@@ -12,12 +12,13 @@ import formatDatetimeForDisplay from 'utilities/formatDatetimeForDisplay';
 import formatCurrencyAmount from 'utilities/formatCurrencyAmount';
 import toTitleCase from 'utilities/toTitleCase';
 
-import hubAdminUser from '../fixtures/user/hub-admin';
+import hubAdminWithoutFlags from '../fixtures/user/hub-admin';
+const hubAdminWithFeatureFlags = { ...hubAdminWithFeatureFlags, user: { ...hubAdminWithFeatureFlags.user, flags: [] } };
 
 describe('Donations list', () => {
   describe('Table', () => {
     beforeEach(() => {
-      cy.forceLogin(hubAdminUser);
+      cy.forceLogin(hubAdminWithFeatureFlags);
       cy.interceptPaginatedDonations();
       cy.visit(DONATIONS_SLUG);
     });
@@ -265,7 +266,7 @@ describe('Donations list', () => {
 
   describe('Filtering', () => {
     beforeEach(() => {
-      cy.forceLogin(hubAdminUser);
+      cy.forceLogin(hubAdminWithFeatureFlags);
       cy.interceptPaginatedDonations();
       cy.visit(DONATIONS_SLUG);
     });

@@ -34,16 +34,11 @@ function Content() {
       { method: 'GET', url: LIST_STYLES },
       {
         onSuccess: ({ data }) => {
-          let allStyles = [];
-          for (let d = 0; d < data.length; d++) {
-            let styleReformat = data[d].styles;
-            styleReformat['id'] = data[d].id;
-            styleReformat['revenue_program'] = data[d].revenue_program;
-            styleReformat['name'] = data[d].name;
-            styleReformat['used_live'] = data[d].used_live;
-            allStyles.push(styleReformat);
-          }
-          setStyles(allStyles);
+          setStyles(
+            data.map(({ styles, id, revenue_program, name, used_live }) => {
+              return { ...styles, id, revenue_program, name, used_live };
+            })
+          );
         },
         onFailure: () => alert.error(GENERIC_ERROR)
       }

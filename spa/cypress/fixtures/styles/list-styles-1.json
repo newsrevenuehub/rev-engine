@@ -4,14 +4,14 @@
     "name": "My Test Styles 01",
     "used_live": true,
     "styles":{
-    "colors": {
-      "primary": "pink",
-      "secondary": "blue",
-      "fieldBackground": "yellow",
-      "paneBackground": "green"
-    },
-    "font": "Monospace",
-    "fontSizes": []
+        "colors": {
+          "primary": "pink",
+          "secondary": "blue",
+          "fieldBackground": "yellow",
+          "paneBackground": "green"
+        },
+        "font": "Monospace",
+        "fontSizes": []
   }
   },
   {
@@ -19,29 +19,29 @@
     "name": "My Test Styles 02",
     "used_live": false,
     "styles":{
-    "colors": {
-      "primary": "purple",
-      "secondary": "orange",
-      "fieldBackground": "brown",
-      "paneBackground": "grey"
-    },
-    "font": "Monospace",
-    "fontSizes": []
-    }
+        "colors": {
+          "primary": "purple",
+          "secondary": "orange",
+          "fieldBackground": "brown",
+          "paneBackground": "grey"
+        },
+        "font": "Monospace",
+        "fontSizes": []
+        }
   },
   {
     "id": 3,
     "name": "My Test Styles 03",
     "used_live": false,
     "styles":{
-    "colors": {
-      "primary": "papayawhip",
-      "secondary": "blanchedalmond",
-      "fieldBackground": "gainsboro",
-      "paneBackground": "thistle"
-    },
-    "font": "Monospace",
-    "fontSizes": []
-  }
+        "colors": {
+          "primary": "papayawhip",
+          "secondary": "blanchedalmond",
+          "fieldBackground": "gainsboro",
+          "paneBackground": "thistle"
+        },
+        "font": "Monospace",
+        "fontSizes": []
+      }
   }
 ]

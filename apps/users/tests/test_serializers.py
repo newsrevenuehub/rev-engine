@@ -185,11 +185,12 @@ def test_user_serializer_flags(
     data = serializers.UserSerializer(user, context={"request": request}).data
     expected_flag_count = sum([x for x in [expect_flag1, expect_flag2] if x])
     assert len(data["flags"]) == expected_flag_count
+    flags = [(flag["name"], flag["id"]) for flag in data["flags"]]
     if expect_flag1:
-        assert any(flag["name"] == flag1.name and flag["id"] == flag1.id for flag in data["flags"])
+        assert (flag1.name, flag1.id) in flags
     if not expect_flag1:
-        assert not any(flag["name"] == flag1.name and flag["id"] == flag1.id for flag in data["flags"])
+        assert (flag1.name, flag1.id) not in flags
     if expect_flag2:
-        assert any(flag["name"] == flag2.name and flag["id"] == flag2.id for flag in data["flags"])
+        assert (flag2.name, flag2.id) in flags
     if not expect_flag2:
-        assert not any(flag["name"] == flag2.name and flag["id"] == flag2.id for flag in data["flags"])
+        assert (flag2.name, flag2.id) not in flags

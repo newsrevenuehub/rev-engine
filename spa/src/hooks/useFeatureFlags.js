@@ -20,7 +20,7 @@ function useFeatureFlags() {
         }
       }
     );
-  }, []);
+  }, [requestUser]);
 
   return flags;
 }

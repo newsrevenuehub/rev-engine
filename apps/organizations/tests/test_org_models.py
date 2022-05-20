@@ -130,10 +130,10 @@ class RevenueProgramTest(TestCase):
         self.assertEqual(GENERIC_SLUG_DENIED_MSG, validation_error.exception.error_dict["slug"][0].message)
 
     def test_admin_benefit_options(self):
-        self.assertTrue(isinstance(self.revenue_program.admin_benefit_options, list))
+        self.assertTrue(isinstance(self.instance.admin_benefit_options, list))
 
     def test_admin_benefitlevel_options(self):
-        self.assertTrue(isinstance(self.revenue_program.admin_benefitlevel_options, list))
+        self.assertTrue(isinstance(self.instance.admin_benefitlevel_options, list))
 
 
 class BenefitLevelTest(TestCase):

@@ -142,6 +142,7 @@ function PageEditor() {
 
   useEffect(() => {
     const rpId = page?.revenue_program?.id;
+
     if (rpId) {
       setLoading(true);
       requestGetPageStyles(
@@ -157,7 +158,7 @@ function PageEditor() {
         }
       );
     }
-  }, []);
+  }, [page]);
 
   const handlePreview = () => {
     setSelectedButton(PREVIEW);

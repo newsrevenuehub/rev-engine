@@ -3,7 +3,7 @@ from django.urls import reverse
 import pytest
 from bs4 import BeautifulSoup as bs4
 
-from apps.organizations.tests.factories import RevenueProgramFactory
+from apps.organizations.tests.factories import BenefitLevelFactory, RevenueProgramFactory
 from apps.pages.tests.factories import DonationPageFactory
 
 from ..models import Feature
@@ -77,3 +77,28 @@ def test_revenue_program_default_donation_page_options_limited(admin_client):
     assert str(dp1.pk) in str(select)
     assert str(dp2.pk) in str(select)
     assert str(dp3.pk) not in str(select)
+
+
+def test_revenue_program_change_list_existing_benefit_levels(admin_client):
+    my_revenue_program = RevenueProgramFactory()
+    my_benefit_level = BenefitLevelFactory(revenue_program=my_revenue_program)
+    response = admin_client.get(reverse("admin:organizations_revenueprogram_change", args=[my_revenue_program.pk]))
+    soup = bs4(response.content)
+    benefit_level_id = soup.find("input", {"name": "benefitlevel_set-0-id"}).attrs["value"]
+    assert my_benefit_level.pk == int(benefit_level_id)
+
+
+def test_benefitlevel_change_has_level_attribute_populated(admin_client):
+    my_revenue_program = RevenueProgramFactory()
+    my_benefit_level = BenefitLevelFactory(revenue_program=my_revenue_program)
+    response = admin_client.get(reverse("admin:organizations_benefitlevel_change", args=[my_benefit_level.pk]))
+    soup = bs4(response.content)
+    assert int(soup.find("input", {"name": "level"}).attrs["value"]) == 1
+
+
+def test_benefitlevel_change_where_revenue_program_is_readonly(admin_client):
+    my_revenue_program = RevenueProgramFactory()
+    my_benefit_level = BenefitLevelFactory(revenue_program=my_revenue_program)
+    response = admin_client.get(reverse("admin:organizations_benefitlevel_change", args=[my_benefit_level.pk]))
+    soup = bs4(response.content)
+    assert my_revenue_program.name == soup.select_one(".field-revenue_program .readonly a").text

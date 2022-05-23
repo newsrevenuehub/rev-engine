@@ -253,7 +253,7 @@ STRIPE_TEST_SECRET_KEY = os.getenv("TEST_HUB_STRIPE_API_SECRET_KEY", "")
 STRIPE_OAUTH_SCOPE = "read_write"
 STRIPE_LIVE_MODE = os.environ.get("STRIPE_LIVE_MODE", "false").lower() == "true"
 
-GENERIC_STRIPE_PRODUCT_NAME = "Donation via RevEngine"
+GENERIC_STRIPE_PRODUCT_NAME = "Contribution via RevEngine"
 
 # Get it from the section in the Stripe dashboard where you added the webhook endpoint
 STRIPE_WEBHOOK_SECRET = os.getenv("STRIPE_WEBHOOK_SECRET", "")
@@ -277,7 +277,7 @@ SITE_URL = os.getenv("SITE_URL", "")
 # TODO: Isn't DOMAIN_APEX just be SITE_URL without any subdomain?
 DOMAIN_APEX = os.getenv("DOMAIN_APEX")
 # Application subdomains (that are NOT revenue program slugs)
-DASHBOARD_SUBDOMAINS = os.getenv("DASHBOARD_SUBDOMAINS", "support:www:dashboard:").split(":")
+DASHBOARD_SUBDOMAINS = os.getenv("DASHBOARD_SUBDOMAINS", "www:dashboard:").split(":")
 
 # BadActor API
 BAD_ACTOR_API_URL = os.getenv("BAD_ACTOR_API_URL", "https://bad-actor-test.fundjournalism.org/v1/bad_actor/")

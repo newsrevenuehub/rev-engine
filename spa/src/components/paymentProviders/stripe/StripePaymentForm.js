@@ -279,18 +279,20 @@ function StripePaymentForm({ loading, setLoading, offerPayFees }) {
 
   return (
     <>
-      {!forceManualCard && paymentRequest ? (
+      {offerPayFees && <PayFeesWidget />}
+
+      {paymentRequest ? (
         <>
           <S.PaymentRequestWrapper>
-            {offerPayFees && <PayFeesWidget />}
-
             <PaymentRequestButtonElement options={{ paymentRequest, style: S.PaymentRequestButtonStyle }} />
           </S.PaymentRequestWrapper>
-          <S.PayWithCardOption onClick={() => setForceManualCard(true)}>
+          <S.PayWithCardOption onClick={() => setForceManualCard(forceManualCard ? false : true)}>
             - I prefer to manually enter my credit card -
           </S.PayWithCardOption>
         </>
-      ) : (
+      ) : null}
+
+      {!forceManualCard && paymentRequest ? null : (
         <S.StripePaymentForm>
           <BaseField label="Card details" required>
             <S.PaymentElementWrapper>
@@ -306,7 +308,6 @@ function StripePaymentForm({ loading, setLoading, offerPayFees }) {
               {stripeError}
             </S.PaymentError>
           )}
-          {offerPayFees && <PayFeesWidget />}
 
           <S.PaymentSubmitButton
             onClick={handleCardSubmit}

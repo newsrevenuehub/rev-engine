@@ -15,7 +15,16 @@ import Content from 'components/content/Content';
 import GlobalLoading from 'elements/GlobalLoading';
 import ProviderConnect from 'components/connect/ProviderConnect';
 
+// Feature flag-related
+import { CONTRIBUTIONS_SECTION_ACCESS_FLAG_NAME } from 'constants/featureFlagConstants';
+import flagIsActiveForUser from 'utilities/flagIsActiveForUser';
+import useFeatureFlags from 'hooks/useFeatureFlags';
+
 function Dashboard() {
+  const userFlags = useFeatureFlags();
+  const hasContributionsSectionAccess =
+    userFlags && userFlags.length && flagIsActiveForUser(CONTRIBUTIONS_SECTION_ACCESS_FLAG_NAME, userFlags);
+
   const { checkingProvider, paymentProviderConnectState } = usePaymentProviderContext();
 
   const getShouldAllowDashboard = () => {
@@ -38,9 +47,11 @@ function Dashboard() {
         <S.DashboardContent>
           {getShouldAllowDashboard() && (
             <Switch>
-              <Route path={DONATIONS_SLUG}>
-                <Donations />
-              </Route>
+              {hasContributionsSectionAccess && (
+                <Route path={DONATIONS_SLUG}>
+                  <Donations />
+                </Route>
+              )}
               <Route path={CONTENT_SLUG}>
                 <Content />
               </Route>

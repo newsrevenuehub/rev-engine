@@ -5,8 +5,8 @@ from django.conf import settings
 from rest_framework import permissions
 from waffle import get_waffle_flag_model
 
+from apps.common.constants import CONTRIBUTIONS_API_ENDPOINT_ACCESS_FLAG_NAME
 from apps.contributions.models import Contributor
-from apps.flags.constants import CONTRIBUTIONS_API_ENDPOINT_ACCESS_FLAG_NAME
 from apps.users.choices import Roles
 
 from .exceptions import ApiConfigurationError

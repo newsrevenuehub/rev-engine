@@ -158,6 +158,7 @@ function PageEditor() {
         }
       );
     }
+    // Don't include requestGetPageStyles for now.
   }, [page]);
 
   const handlePreview = () => {

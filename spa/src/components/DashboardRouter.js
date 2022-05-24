@@ -14,6 +14,7 @@ import * as ROUTES from 'routes';
 import GlobalLoading from 'elements/GlobalLoading';
 import TrackPageView from 'components/analytics/TrackPageView';
 import ChunkErrorBoundary from 'components/errors/ChunkErrorBoundary';
+import Internal404 from 'components/common/Internal404';
 
 // Utilities
 import componentLoader from 'utilities/componentLoader';
@@ -41,14 +42,10 @@ function DashboardRouter() {
             {/* Login URL */}
             <Route exact path={ROUTES.LOGIN} render={() => <TrackPageView component={Login} />} />
 
-            {/* Nothing lives at "/" -- redirect to dashboard  */}
-            <Route exact path="/">
-              <Redirect to={ROUTES.CONTENT_SLUG} />
-            </Route>
-
             {/* Organization Dashboard */}
             <ProtectedRoute path={ROUTES.DASHBOARD_SLUG} render={() => <TrackPageView component={Main} />} />
-            <ProtectedRoute path={ROUTES.EDITOR_ROUTE_PAGE} render={() => <TrackPageView component={PageEditor} />} />
+
+            <Route component={Internal404} />
           </Switch>
         </React.Suspense>
       </ChunkErrorBoundary>

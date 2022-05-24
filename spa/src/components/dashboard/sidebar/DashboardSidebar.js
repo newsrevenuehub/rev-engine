@@ -7,16 +7,15 @@ import {
   CONTRIBUTIONS_SECTION_ACCESS_FLAG_NAME,
   CONTENT_SECTION_ACCESS_FLAG_NAME
 } from 'constants/featureFlagConstants';
+
 import flagIsActiveForUser from 'utilities/flagIsActiveForUser';
-import useFeatureFlags from 'hooks/useFeatureFlags';
+import { useFeatureFlagsProviderContext } from 'components/Main';
 
 function DashboardSidebar({ shouldAllowDashboard }) {
-  const userFlags = useFeatureFlags();
-  const hasContributionsSectionAccess =
-    Boolean(userFlags?.length) && flagIsActiveForUser(CONTRIBUTIONS_SECTION_ACCESS_FLAG_NAME, userFlags);
+  const { featureFlags } = useFeatureFlagsProviderContext();
 
-  const hasContentSectionAccess =
-    Boolean(userFlags?.length) && flagIsActiveForUser(CONTENT_SECTION_ACCESS_FLAG_NAME, userFlags);
+  const hasContributionsSectionAccess = flagIsActiveForUser(CONTRIBUTIONS_SECTION_ACCESS_FLAG_NAME, featureFlags);
+  const hasContentSectionAccess = flagIsActiveForUser(CONTENT_SECTION_ACCESS_FLAG_NAME, featureFlags);
 
   const handleClick = (e) => {
     if (!shouldAllowDashboard) e.preventDefault();

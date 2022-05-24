@@ -1,35 +1,35 @@
+import { Route, Switch, Redirect } from 'react-router-dom';
+
 import * as S from './Dashboard.styled';
 
 // Routing
-import { Route, Switch } from 'react-router-dom';
-import { DONATIONS_SLUG, CONTENT_SLUG } from 'routes';
-
-// State
-import { usePaymentProviderContext } from 'components/Main';
-import { PP_STATES } from 'components/connect/BaseProviderInfo';
+import { DONATIONS_SLUG, CONTENT_SLUG, EDITOR_ROUTE_PAGE, DASHBOARD_SLUG } from 'routes';
 
 // Children
+import { usePaymentProviderContext, useFeatureFlagsProviderContext } from 'components/Main';
+import Internal404 from 'components/common/Internal404';
+import { PP_STATES } from 'components/connect/BaseProviderInfo';
 import DashboardSidebar from 'components/dashboard/sidebar/DashboardSidebar';
 import Donations from 'components/donations/Donations';
 import Content from 'components/content/Content';
 import GlobalLoading from 'elements/GlobalLoading';
 import ProviderConnect from 'components/connect/ProviderConnect';
+import PageEditor from 'components/pageEditor/PageEditor';
 
 // Feature flag-related
 import {
   CONTRIBUTIONS_SECTION_ACCESS_FLAG_NAME,
   CONTENT_SECTION_ACCESS_FLAG_NAME
 } from 'constants/featureFlagConstants';
+
 import flagIsActiveForUser from 'utilities/flagIsActiveForUser';
-import useFeatureFlags from 'hooks/useFeatureFlags';
 
 function Dashboard() {
-  const userFlags = useFeatureFlags();
-  const hasContributionsSectionAccess =
-    Boolean(userFlags?.length) && flagIsActiveForUser(CONTRIBUTIONS_SECTION_ACCESS_FLAG_NAME, userFlags);
+  const { featureFlags } = useFeatureFlagsProviderContext();
 
-  const hasContentSectionAccess =
-    Boolean(userFlags?.length) && flagIsActiveForUser(CONTENT_SECTION_ACCESS_FLAG_NAME, userFlags);
+  const hasContributionsSectionAccess = flagIsActiveForUser(CONTRIBUTIONS_SECTION_ACCESS_FLAG_NAME, featureFlags);
+
+  const hasContentSectionAccess = flagIsActiveForUser(CONTENT_SECTION_ACCESS_FLAG_NAME, featureFlags);
 
   const { checkingProvider, paymentProviderConnectState } = usePaymentProviderContext();
 
@@ -53,6 +53,8 @@ function Dashboard() {
         <S.DashboardContent>
           {getShouldAllowDashboard() && (
             <Switch>
+              <Redirect exact from={DASHBOARD_SLUG} to={CONTENT_SLUG} />
+
               {hasContributionsSectionAccess ? (
                 <Route path={DONATIONS_SLUG}>
                   <Donations />
@@ -63,6 +65,12 @@ function Dashboard() {
                   <Content />
                 </Route>
               ) : null}
+              {hasContentSectionAccess ? (
+                <Route path={EDITOR_ROUTE_PAGE}>
+                  <PageEditor />
+                </Route>
+              ) : null}
+              <Route component={Internal404} />
             </Switch>
           )}
           {getShouldRequireConnect() && <ProviderConnect />}

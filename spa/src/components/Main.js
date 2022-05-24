@@ -10,7 +10,6 @@ import { USER } from 'ajax/endpoints';
 import Dashboard from 'components/dashboard/Dashboard';
 import useRequest from 'hooks/useRequest';
 import { useConfigureAnalytics } from './analytics';
-import GlobalLoading from 'elements/GlobalLoading';
 
 const PaymentProviderContext = createContext(null);
 const FeatureFlagsProviderContext = createContext(null);

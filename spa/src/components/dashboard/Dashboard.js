@@ -45,6 +45,12 @@ function Dashboard() {
     return !checkingProvider && notConnected;
   };
 
+  const dashboardSlugRedirect = hasContentSectionAccess
+    ? CONTENT_SLUG
+    : hasContributionsSectionAccess
+    ? DONATIONS_SLUG
+    : 'not-found';
+
   return (
     <S.Dashboard data-testid="dashboard">
       <DashboardSidebar shouldAllowDashboard={getShouldAllowDashboard()} />
@@ -53,7 +59,7 @@ function Dashboard() {
         <S.DashboardContent>
           {getShouldAllowDashboard() && (
             <Switch>
-              <Redirect exact from={DASHBOARD_SLUG} to={CONTENT_SLUG} />
+              <Redirect exact from={DASHBOARD_SLUG} to={dashboardSlugRedirect} />
 
               {hasContributionsSectionAccess ? (
                 <Route path={DONATIONS_SLUG}>

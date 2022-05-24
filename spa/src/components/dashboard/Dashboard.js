@@ -16,14 +16,20 @@ import GlobalLoading from 'elements/GlobalLoading';
 import ProviderConnect from 'components/connect/ProviderConnect';
 
 // Feature flag-related
-import { CONTRIBUTIONS_SECTION_ACCESS_FLAG_NAME } from 'constants/featureFlagConstants';
+import {
+  CONTRIBUTIONS_SECTION_ACCESS_FLAG_NAME,
+  CONTENT_SECTION_ACCESS_FLAG_NAME
+} from 'constants/featureFlagConstants';
 import flagIsActiveForUser from 'utilities/flagIsActiveForUser';
 import useFeatureFlags from 'hooks/useFeatureFlags';
 
 function Dashboard() {
   const userFlags = useFeatureFlags();
   const hasContributionsSectionAccess =
-    userFlags && userFlags.length && flagIsActiveForUser(CONTRIBUTIONS_SECTION_ACCESS_FLAG_NAME, userFlags);
+    Boolean(userFlags?.length) && flagIsActiveForUser(CONTRIBUTIONS_SECTION_ACCESS_FLAG_NAME, userFlags);
+
+  const hasContentSectionAccess =
+    Boolean(userFlags?.length) && flagIsActiveForUser(CONTENT_SECTION_ACCESS_FLAG_NAME, userFlags);
 
   const { checkingProvider, paymentProviderConnectState } = usePaymentProviderContext();
 
@@ -47,14 +53,16 @@ function Dashboard() {
         <S.DashboardContent>
           {getShouldAllowDashboard() && (
             <Switch>
-              {hasContributionsSectionAccess && (
+              {hasContributionsSectionAccess ? (
                 <Route path={DONATIONS_SLUG}>
                   <Donations />
                 </Route>
-              )}
-              <Route path={CONTENT_SLUG}>
-                <Content />
-              </Route>
+              ) : null}
+              {hasContentSectionAccess ? (
+                <Route path={CONTENT_SLUG}>
+                  <Content />
+                </Route>
+              ) : null}
             </Switch>
           )}
           {getShouldRequireConnect() && <ProviderConnect />}

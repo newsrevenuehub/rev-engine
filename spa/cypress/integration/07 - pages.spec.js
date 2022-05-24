@@ -4,7 +4,6 @@ import pagesList from '../fixtures/pages/list-pages-1.json';
 import { CONTENT_SLUG } from 'routes';
 
 import hubAdminUser from '../fixtures/user/hub-admin';
-import hubAdminWithoutFlags from '../fixtures/user/hub-admin';
 import { CONTENT_SECTION_ACCESS_FLAG_NAME } from 'constants/featureFlagConstants';
 
 const contentSectionFlag = {
@@ -12,7 +11,7 @@ const contentSectionFlag = {
   name: CONTENT_SECTION_ACCESS_FLAG_NAME
 };
 const hubAdminWithContentFlag = {
-  ...hubAdminWithoutFlags,
+  ...hubAdminUser,
   flags: [{ ...contentSectionFlag }]
 };
 

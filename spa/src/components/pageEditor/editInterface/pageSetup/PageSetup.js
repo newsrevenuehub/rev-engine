@@ -105,7 +105,7 @@ function PageSetup({ backToProperties }) {
           thumbnail={page.header_logo_thumbnail}
           onChange={(file) => handleImageChange('header_logo', file)}
           label="Main header logo"
-          helpText="Logo to display in header"
+          helpText="Please choose a horizontally-oriented logo with minimal padding. Images will be scaled down to a height of 50 px."
           errors={errors.header_logo_thumbnail}
         />
       </S.ImageSelectorWrapper>

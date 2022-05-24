@@ -47,8 +47,9 @@ describe('Payment provider connect', () => {
         ]
       }
     };
-    cy.intercept('POST', getEndpoint(STRIPE_CONFIRMATION), { fixture: 'stripe/confirm-connected' });
+    cy.intercept('POST', getEndpoint(STRIPE_CONFIRMATION), { fixture: 'stripe/confirm-not-connected' });
     cy.forceLogin(user);
+    cy.intercept({ method: 'GET', pathname: getEndpoint(USER) }, { body: orgAdminWithContentFlag });
     cy.visit(CONTENT_SLUG);
     cy.getByTestId('provider-connect').should('exist');
   });
@@ -70,6 +71,7 @@ describe('Payment provider connect', () => {
         }
       };
       cy.forceLogin(user);
+      cy.intercept({ method: 'GET', pathname: getEndpoint(USER) }, { body: orgAdminWithContentFlag });
       cy.visit(CONTENT_SLUG);
       cy.contains('Stripe needs more information before you can accept contributions.').should('exist');
       cy.getByTestId('svg-icon_times-circle').should('exist');
@@ -91,6 +93,7 @@ describe('Payment provider connect', () => {
         }
       };
       cy.forceLogin(user);
+      cy.intercept({ method: 'GET', pathname: getEndpoint(USER) }, { body: orgAdminWithContentFlag });
       cy.visit(CONTENT_SLUG);
       cy.getByTestId('stripe-connect-link').should('exist');
       cy.getByTestId('svg-icon_times-circle').should('exist');
@@ -112,6 +115,7 @@ describe('Payment provider connect', () => {
         }
       };
       cy.forceLogin(user);
+      cy.intercept({ method: 'GET', pathname: getEndpoint(USER) }, { body: orgAdminWithContentFlag });
       cy.visit(CONTENT_SLUG);
       cy.getByTestId('stripe-connect-link').should('exist');
       cy.getByTestId('svg-icon_check-circle').should('not.exist');
@@ -143,6 +147,7 @@ describe('Payment provider connect', () => {
         }
       };
       cy.forceLogin(user);
+      cy.intercept({ method: 'GET', pathname: getEndpoint(USER) }, { body: orgAdminWithContentFlag });
       cy.visit(redirectPath + `?code=${code}&scope=${scope}`);
       cy.wait('@oauthConfirm').then((interception) => {
         expect(interception.request.body).to.have.property('code', code);

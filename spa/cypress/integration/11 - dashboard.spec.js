@@ -28,6 +28,11 @@ const hubAdminWithContentFlag = {
   flags: [{ ...contentSectionFlag }]
 };
 
+const hubAdminWithAllFlags = {
+  ...hubAdminWithoutFlags,
+  flags: [{ ...contentSectionFlag }, { ...contribSectionsFlag }]
+};
+
 describe('Dashboard', () => {
   beforeEach(() => {
     cy.forceLogin(hubAdminWithoutFlags);
@@ -36,7 +41,7 @@ describe('Dashboard', () => {
   });
   context('User does NOT have contributions section access flag', () => {
     it('should not show `Contributions` section or sidebar element', () => {
-      cy.intercept({ method: 'GET', pathname: getEndpoint(USER) }, { body: hubAdminWithoutFlags });
+      cy.intercept({ method: 'GET', pathname: getEndpoint(USER) }, { body: hubAdminWithContentFlag });
       cy.visit(DASHBOARD_SLUG);
       // parent nav should exist, but shouldn't have contributions item
       cy.getByTestId('nav-list').should('exist');
@@ -48,8 +53,8 @@ describe('Dashboard', () => {
   });
   context('User DOES have contributions section access flag', () => {
     it('should show `Contributions` section and sidebar element', () => {
-      cy.intercept({ method: 'GET', pathname: getEndpoint(USER) }, { body: hubAdminWithContributionsFlag });
-      cy.visit(DASHBOARD_SLUG);
+      cy.intercept({ method: 'GET', pathname: getEndpoint(USER) }, { body: hubAdminWithAllFlags });
+      cy.visit(DONATIONS_SLUG);
       cy.getByTestId('nav-contributions-item').should('exist');
       cy.visit(DONATIONS_SLUG);
       cy.url().should('include', DONATIONS_SLUG);
@@ -58,8 +63,9 @@ describe('Dashboard', () => {
   });
   context('User does NOT have content section access flag', () => {
     it('should not show Content section or sidebar element', () => {
-      cy.intercept({ method: 'GET', pathname: getEndpoint(USER) }, { body: hubAdminWithoutFlags });
-      cy.visit(DASHBOARD_SLUG);
+      cy.intercept({ method: 'GET', pathname: getEndpoint(USER) }, { body: hubAdminWithContributionsFlag });
+      // we visit this so that can confirm sidebar
+      cy.visit(DONATIONS_SLUG);
       cy.getByTestId('nav-list').should('exist');
       cy.getByTestId('nav-content-item').should('not.exist');
       cy.visit(CONTENT_SLUG);
@@ -69,8 +75,8 @@ describe('Dashboard', () => {
   });
   context('User DOES have content section access flag', () => {
     it('should show `Content= section and sidbar element', () => {
-      cy.intercept({ method: 'GET', pathname: getEndpoint(USER) }, { body: hubAdminWithContentFlag });
-      cy.visit(DASHBOARD_SLUG);
+      cy.intercept({ method: 'GET', pathname: getEndpoint(USER) }, { body: hubAdminWithAllFlags });
+      cy.visit(DONATIONS_SLUG);
       cy.getByTestId('nav-content-item').should('exist');
       cy.visit(CONTENT_SLUG);
       cy.url().should('include', CONTENT_SLUG);

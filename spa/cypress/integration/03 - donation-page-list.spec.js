@@ -1,8 +1,21 @@
-import { LIST_PAGES, REVENUE_PROGRAMS, TEMPLATES } from 'ajax/endpoints';
+import { LIST_PAGES, REVENUE_PROGRAMS, TEMPLATES, USER } from 'ajax/endpoints';
 import { CONTENT_SLUG } from 'routes';
 import { getEndpoint } from '../support/util';
 import rpUser from '../fixtures/user/rp-admin.json';
 import { LS_USER } from 'settings';
+
+import hubAdminWithoutFlags from '../fixtures/user/hub-admin';
+import { CONTENT_SECTION_ACCESS_FLAG_NAME } from 'constants/featureFlagConstants';
+
+const contentSectionFlag = {
+  id: '5678',
+  name: CONTENT_SECTION_ACCESS_FLAG_NAME
+};
+
+const hubAdminWithContentFlag = {
+  ...hubAdminWithoutFlags,
+  flags: [{ ...contentSectionFlag }]
+};
 
 describe('Donation page list', () => {
   beforeEach(() => {
@@ -15,6 +28,7 @@ describe('Donation page list', () => {
       { method: 'GET', pathname: getEndpoint(REVENUE_PROGRAMS) },
       { fixture: 'org/revenue-programs-1', statusCode: 200 }
     );
+    cy.intercept({ method: 'GET', pathname: getEndpoint(USER) }, { body: hubAdminWithContentFlag });
     cy.visit(CONTENT_SLUG);
     cy.url().should('include', CONTENT_SLUG);
     cy.wait('@listPages');

@@ -4,7 +4,7 @@ import livePageOne from '../fixtures/pages/live-page-1.json';
 
 // Constants
 import { CLEARBIT_SCRIPT_SRC } from '../../src/hooks/useClearbit';
-import { FUNDJOURNALISM_404_REDIRECT } from 'components/donationPage/live/LivePage404';
+import { FUNDJOURNALISM_404_REDIRECT } from 'components/common/LivePage404';
 
 import * as freqUtils from 'utilities/parseFrequency';
 import calculateStripeFee from 'utilities/calculateStripeFee';

@@ -2,6 +2,7 @@
   "detail": "success",
   "user": {
     "id": 1,
+    "flags": [],
     "organization": {
       "name": "Fully Verified Org",
       "default_payment_provider": "stripe",

@@ -2,6 +2,7 @@ import isEqual from 'lodash.isequal';
 
 import { NO_VALUE } from 'constants/textConstants';
 import { DONATIONS_SLUG } from 'routes';
+import { USER } from 'ajax/endpoints';
 
 // Data
 import donationsData from '../fixtures/donations/18-results.json';
@@ -11,13 +12,46 @@ import { getFrequencyAdjective } from 'utilities/parseFrequency';
 import formatDatetimeForDisplay from 'utilities/formatDatetimeForDisplay';
 import formatCurrencyAmount from 'utilities/formatCurrencyAmount';
 import toTitleCase from 'utilities/toTitleCase';
+import { getEndpoint } from '../support/util';
 
-import hubAdminUser from '../fixtures/user/hub-admin';
+import { CONTRIBUTIONS_SECTION_ACCESS_FLAG_NAME } from 'constants/featureFlagConstants';
+import hubAdminWithoutFlags from '../fixtures/user/hub-admin';
+
+const contribSectionsFlag = {
+  id: '1234',
+  name: CONTRIBUTIONS_SECTION_ACCESS_FLAG_NAME
+};
+
+const hubAdminWithFlags = {
+  ...hubAdminWithoutFlags,
+  flags: [{ ...contribSectionsFlag }]
+};
 
 describe('Donations list', () => {
+  context('User does have contributions section access flag', () => {
+    it('should be accessible', () => {
+      cy.forceLogin(hubAdminWithFlags);
+      cy.intercept({ method: 'GET', pathname: getEndpoint(USER) }, { body: hubAdminWithFlags });
+      cy.interceptPaginatedDonations();
+      cy.visit(DONATIONS_SLUG);
+      cy.getByTestId('donations-table').should('exist');
+    });
+  });
+  context('User does NOT have contributions section access flag', () => {
+    it('should not be accessible', () => {
+      cy.forceLogin(hubAdminWithoutFlags);
+      cy.intercept({ method: 'GET', pathname: getEndpoint(USER) }, { body: hubAdminWithoutFlags });
+      cy.interceptPaginatedDonations();
+      cy.visit(DONATIONS_SLUG);
+      cy.url().should('include', DONATIONS_SLUG);
+      cy.getByTestId('donations-table').should('not.exist');
+    });
+  });
+
   describe('Table', () => {
     beforeEach(() => {
-      cy.forceLogin(hubAdminUser);
+      cy.forceLogin(hubAdminWithFlags);
+      cy.intercept({ method: 'GET', pathname: getEndpoint(USER) }, { body: hubAdminWithFlags });
       cy.interceptPaginatedDonations();
       cy.visit(DONATIONS_SLUG);
     });
@@ -265,7 +299,8 @@ describe('Donations list', () => {
 
   describe('Filtering', () => {
     beforeEach(() => {
-      cy.forceLogin(hubAdminUser);
+      cy.forceLogin(hubAdminWithFlags);
+      cy.intercept({ method: 'GET', pathname: getEndpoint(USER) }, { body: hubAdminWithFlags });
       cy.interceptPaginatedDonations();
       cy.visit(DONATIONS_SLUG);
     });

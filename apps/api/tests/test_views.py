@@ -13,6 +13,7 @@ from rest_framework.test import APITestCase
 from rest_framework_simplejwt.tokens import AccessToken
 
 from apps.api.error_messages import GENERIC_BLANK
+from apps.api.tests import RevEngineApiAbstractTestCase
 from apps.api.tokens import ContributorRefreshToken
 from apps.api.views import TokenObtainPairCookieView, _construct_rp_domain
 from apps.contributions.models import Contributor
@@ -217,13 +218,15 @@ class VerifyContributorTokenViewTest(APITestCase):
         self.assertEqual(response.data["detail"].code, "missing_claim")
 
 
-class AuthorizedContributorRequestsTest(APITestCase):
+class AuthorizedContributorRequestsTest(RevEngineApiAbstractTestCase):
     def setUp(self):
-        self.contributor = ContributorFactory()
+        # NB: among other things, this call ensures that required feature flags are in place for
+        # the endpoint tested
+        self.set_up_domain_model()
         self.contributions_url = reverse("contribution-list")
 
     def _get_token(self, valid=True):
-        refresh = ContributorRefreshToken.for_contributor(self.contributor.uuid)
+        refresh = ContributorRefreshToken.for_contributor(self.contributor_user.uuid)
         if valid:
             return str(refresh.long_lived_access_token)
         return str(refresh.short_lived_access_token)

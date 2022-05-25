@@ -3,7 +3,9 @@ import logging
 from django.conf import settings
 
 from rest_framework import permissions
+from waffle import get_waffle_flag_model
 
+from apps.common.constants import CONTRIBUTIONS_API_ENDPOINT_ACCESS_FLAG_NAME
 from apps.contributions.models import Contributor
 from apps.users.choices import Roles
 
@@ -112,3 +114,30 @@ class HasDeletePrivilegesViaRole(_BaseAssumedViewAndModelMixin):
 
 def is_a_contributor(user):
     return isinstance(user, Contributor)
+
+
+class HasFlaggedAccessToContributionsApiResource(permissions.BasePermission):
+    """Use named flag to determine access to contributions api resource...
+
+    ...insofar as this permission is applied to the contributions endpoint as intended
+    """
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        Flag = get_waffle_flag_model()
+        self.flag = Flag.objects.filter(name=CONTRIBUTIONS_API_ENDPOINT_ACCESS_FLAG_NAME).first()
+        if not self.flag:
+            raise ApiConfigurationError()
+
+    def __str__(self):
+        return f"`HasFlaggedAccess` via {self.flag_name}"
+
+    def has_permission(self, request, view):
+        """Has permission if flag is active for user
+
+        NB: We need to do `self.flag.is_active_for_user` and also self.flag.everyone
+        because django-waffle's `is_active_for_user` doesn't reference .everyone in its
+        criteria. This is a known issue with Django Waffle
+        (https://github.com/django-waffle/django-waffle/issues/401).
+        """
+        return self.flag.is_active_for_user(request.user) or self.flag.everyone

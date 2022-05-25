@@ -59,6 +59,7 @@ INSTALLED_APPS = [
     "health_check.cache",
     "health_check.contrib.migrations",
     "health_check.contrib.redis",
+    "waffle",
 ]
 
 
@@ -74,6 +75,7 @@ MIDDLEWARE = [
     "apps.common.middleware.LogFourHundredsMiddleware",
     "csp.middleware.CSPMiddleware",
     "simple_history.middleware.HistoryRequestMiddleware",
+    "waffle.middleware.WaffleMiddleware",
 ]
 
 ROOT_URLCONF = "revengine.urls"

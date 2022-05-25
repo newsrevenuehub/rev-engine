@@ -605,6 +605,14 @@ pytz = "*"
 rest_framework = ["djangorestframework (>=3.0.0)"]
 
 [[package]]
+name = "django-waffle"
+version = "2.4.1"
+description = "A feature flipper for Django."
+category = "main"
+optional = false
+python-versions = "*"
+
+[[package]]
 name = "djangorestframework"
 version = "3.13.1"
 description = "Web APIs for Django, made easy."
@@ -1681,7 +1689,7 @@ testing = ["pytest (>=6)", "pytest-checkdocs (>=2.4)", "pytest-flake8", "pytest-
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.9"
-content-hash = "eccac11b2b9388c53521bb0f12a98600468193854c0dd9f7c8c9887bad3a12c6"
+content-hash = "eddc8f90695cfa437c763df73359d5ff314e12400b1d9b942b4accb967ba1ead"
 
 [metadata.files]
 amqp = [
@@ -1936,6 +1944,10 @@ django-taggit = [
 django-timezone-field = [
     {file = "django-timezone-field-4.2.3.tar.gz", hash = "sha256:5dd5bd9249382bef8847d3e7e4c32b7be182a4b538f354130d1252ed228892f8"},
     {file = "django_timezone_field-4.2.3-py3-none-any.whl", hash = "sha256:7552d2b0f145684b7de3fb5046101c7efd600cc6ba951b15c630fa1e1b83558e"},
+]
+django-waffle = [
+    {file = "django-waffle-2.4.1.tar.gz", hash = "sha256:f88e3e6c5a6e0d89a763eb1ba039b3bb707b3e63b20359dbb584c8775df286df"},
+    {file = "django_waffle-2.4.1-py3-none-any.whl", hash = "sha256:36f63b15ba1cfb295f53638d043cc17fb40b5796aee075891dc4210779a999fb"},
 ]
 djangorestframework = [
     {file = "djangorestframework-3.13.1-py3-none-any.whl", hash = "sha256:24c4bf58ed7e85d1fe4ba250ab2da926d263cd57d64b03e8dcef0ac683f8b1aa"},

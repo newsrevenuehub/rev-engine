@@ -292,7 +292,6 @@ class PaymentProviderAdmin(RevEngineSimpleHistoryAdmin):  # pragma: no cover
                     "default_payment_provider",
                     "stripe_oauth_refresh_token",
                     "stripe_verified",
-                    "domain_apple_verified_date",
                 ),
             },
         ),

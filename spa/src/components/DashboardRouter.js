@@ -14,10 +14,10 @@ import * as ROUTES from 'routes';
 import GlobalLoading from 'elements/GlobalLoading';
 import TrackPageView from 'components/analytics/TrackPageView';
 import ChunkErrorBoundary from 'components/errors/ChunkErrorBoundary';
-import Internal404 from 'components/common/Internal404';
 
 // Utilities
 import componentLoader from 'utilities/componentLoader';
+import LivePage404 from './common/LivePage404';
 
 // Split bundles
 const Login = lazy(() => componentLoader(() => import('components/authentication/Login')));
@@ -39,7 +39,9 @@ function DashboardRouter() {
             {/* Organization Dashboard */}
             <ProtectedRoute path={ROUTES.DASHBOARD_SLUG} render={() => <TrackPageView component={Main} />} />
 
-            <Route component={Internal404} />
+            <Route>
+              <LivePage404 dashboard />
+            </Route>
           </Switch>
         </React.Suspense>
       </ChunkErrorBoundary>

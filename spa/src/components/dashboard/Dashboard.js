@@ -7,7 +7,7 @@ import { DONATIONS_SLUG, CONTENT_SLUG, EDITOR_ROUTE_PAGE, DASHBOARD_SLUG } from 
 
 // Children
 import { usePaymentProviderContext, useFeatureFlagsProviderContext } from 'components/Main';
-import Internal404 from 'components/common/Internal404';
+import LivePage404 from 'components/common/LivePage404';
 import { PP_STATES } from 'components/connect/BaseProviderInfo';
 import DashboardSidebar from 'components/dashboard/sidebar/DashboardSidebar';
 import Donations from 'components/donations/Donations';
@@ -76,7 +76,9 @@ function Dashboard() {
                   <PageEditor />
                 </Route>
               ) : null}
-              <Route component={Internal404} />
+              <Route>
+                <LivePage404 dashboard />
+              </Route>
             </Switch>
           )}
           {getShouldRequireConnect() && <ProviderConnect />}

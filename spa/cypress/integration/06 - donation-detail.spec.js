@@ -81,17 +81,17 @@ describe('Donation detail', () => {
   });
 
   describe('Flagged donation', () => {
-    before(() => {
+    beforeEach(() => {
       cy.forceLogin(hubAdminWithFlags);
       cy.intercept({ method: 'GET', pathname: getEndpoint(USER) }, { body: hubAdminWithFlags });
       cy.intercept('GET', getEndpoint(`${CONTRIBUTIONS}${CONTRIBUTION_PK}/`), {
         body: flaggedContributionDetailData
       }).as('getFlaggedDonation');
       cy.visit(`${DONATIONS_SLUG}/${CONTRIBUTION_PK}`);
+      cy.wait('@getFlaggedDonation');
     });
 
     it('should show flagged details with accept/reject buttons', () => {
-      cy.wait('@getFlaggedDonation');
       cy.getByTestId('flaggedDate').should('exist');
       cy.getByTestId('accept-flagged-button').should('exist');
       cy.getByTestId('reject-flagged-button').should('exist');
@@ -103,24 +103,14 @@ describe('Donation detail', () => {
     });
 
     it('should do nothing if cancel is clicked', () => {
+      cy.getByTestId('reject-flagged-button').click();
       cy.getByTestId('cancel-button').click();
       // How on earth do we test "does nothing" in cypress?
     });
 
     it('should make request with proper body if continue is clicked', () => {
-      // There's a frustrating issue with cypress and the way we're utilizing React.createPortal for the confirmation modal.
-      // For whatever reason, cypress returns to the login screen here.
-      const contributionId = flaggedContributionDetailData.id;
-      cy.forceLogin(hubAdminWithFlags);
-      cy.intercept({ method: 'GET', pathname: getEndpoint(USER) }, { body: hubAdminWithFlags });
-      cy.intercept('GET', getEndpoint(`${CONTRIBUTIONS}${contributionId}/`), {
-        body: flaggedContributionDetailData
-      }).as('getFlaggedDonation');
-      cy.visit(`${DONATIONS_SLUG}/${contributionId}`);
-
-      // The proper test
       cy.getByTestId('reject-flagged-button').click();
-      cy.intercept('POST', getEndpoint(`${CONTRIBUTIONS}${contributionId}/${PROCESS_FLAGGED}`), {
+      cy.intercept('POST', getEndpoint(`${CONTRIBUTIONS}${CONTRIBUTION_PK}/${PROCESS_FLAGGED}`), {
         body: { detail: 'rejected' }
       }).as('rejectedSuccess');
       cy.getByTestId('continue-button').click();
@@ -130,9 +120,8 @@ describe('Donation detail', () => {
     });
 
     it('should show error message if reject fails', () => {
-      const contributionId = flaggedContributionDetailData.id;
       cy.getByTestId('reject-flagged-button').click();
-      cy.intercept('POST', getEndpoint(`${CONTRIBUTIONS}${contributionId}/${PROCESS_FLAGGED}`), {
+      cy.intercept('POST', getEndpoint(`${CONTRIBUTIONS}${CONTRIBUTION_PK}/${PROCESS_FLAGGED}`), {
         statusCode: 400
       }).as('rejectFailed');
       cy.getByTestId('continue-button').click();
@@ -141,18 +130,8 @@ describe('Donation detail', () => {
     });
 
     it('should show success message if reject succeeds', () => {
-      // There's a frustrating issue with cypress and the way we're utilizing React.createPortal for the confirmation modal.
-      // For whatever reason, cypress returns to the login screen here.
-      const contributionId = flaggedContributionDetailData.id;
-      cy.forceLogin(hubAdminWithFlags);
-      cy.intercept({ method: 'GET', pathname: getEndpoint(USER) }, { body: hubAdminWithFlags });
-      cy.intercept('GET', getEndpoint(`${CONTRIBUTIONS}${contributionId}/`), {
-        body: flaggedContributionDetailData
-      }).as('getFlaggedDonation');
-      cy.visit(`${DONATIONS_SLUG}/${contributionId}`);
-
       cy.getByTestId('reject-flagged-button').click();
-      cy.intercept('POST', getEndpoint(`${CONTRIBUTIONS}${contributionId}/${PROCESS_FLAGGED}`), {
+      cy.intercept('POST', getEndpoint(`${CONTRIBUTIONS}${CONTRIBUTION_PK}/${PROCESS_FLAGGED}`), {
         body: { detail: 'rejected' }
       }).as('rejectedSuccess');
       cy.getByTestId('continue-button').click();
@@ -161,11 +140,7 @@ describe('Donation detail', () => {
     });
 
     it('should make request with proper body if accept is clicked', () => {
-      // There's a frustrating issue with cypress and the way we're utilizing React.createPortal for the confirmation modal.
-      // For whatever reason, cypress returns to the login screen here.
       const contributionId = flaggedContributionDetailData.id;
-      cy.forceLogin(hubAdminWithFlags);
-      cy.intercept({ method: 'GET', pathname: getEndpoint(USER) }, { body: hubAdminWithFlags });
       cy.intercept('GET', getEndpoint(`${CONTRIBUTIONS}${contributionId}/`), {
         body: flaggedContributionDetailData
       }).as('getFlaggedDonation');
@@ -182,8 +157,7 @@ describe('Donation detail', () => {
     });
 
     it('should show error message if accept fails', () => {
-      const contributionId = flaggedContributionDetailData.id;
-      cy.intercept('POST', getEndpoint(`${CONTRIBUTIONS}${contributionId}/${PROCESS_FLAGGED}`), {
+      cy.intercept('POST', getEndpoint(`${CONTRIBUTIONS}${CONTRIBUTION_PK}/${PROCESS_FLAGGED}`), {
         statusCode: 400
       }).as('acceptFailure');
       cy.getByTestId('accept-flagged-button').click();
@@ -192,8 +166,7 @@ describe('Donation detail', () => {
     });
 
     it('should show success message if accept succeeds', () => {
-      const contributionId = flaggedContributionDetailData.id;
-      cy.intercept('POST', getEndpoint(`${CONTRIBUTIONS}${contributionId}/${PROCESS_FLAGGED}`), {
+      cy.intercept('POST', getEndpoint(`${CONTRIBUTIONS}${CONTRIBUTION_PK}/${PROCESS_FLAGGED}`), {
         body: { detail: 'accepted' }
       }).as('acceptSuccess');
       cy.getByTestId('accept-flagged-button').click();

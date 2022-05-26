@@ -23,7 +23,7 @@ function CreatedFilter({ handleFilterChange }) {
     const fromDateVal = fromDate ? formatDatetimeRoundedDay(fromDate, true) : '';
     const toDateVal = toDate ? formatDatetimeRoundedDay(toDate, false) : '';
 
-    // Prevent update of filters and invocation of fetch-contriibutions ajax call while user is typing date
+    // Prevent update of filters and invocation of fetch-contributions ajax call while user is typing date
     // Note : while user manually enters date fromDate/toDate are set as string 'Invalid Date'
     if ((fromDateVal || fromDateVal === '') && (toDateVal || toDateVal === '')) {
       handleFilterChange('created', {

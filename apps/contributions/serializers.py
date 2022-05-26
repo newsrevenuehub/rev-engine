@@ -114,7 +114,6 @@ class ContributorContributionSerializer(serializers.ModelSerializer):
     status = serializers.SerializerMethodField()
     card_brand = serializers.SerializerMethodField()
     last4 = serializers.SerializerMethodField()
-    org_stripe_id = serializers.SerializerMethodField()
 
     def get_status(self, obj):
         if obj.status and obj.status in (
@@ -137,12 +136,6 @@ class ContributorContributionSerializer(serializers.ModelSerializer):
         if card := self._get_card_details(obj):
             return card["last4"]
 
-    def get_org_stripe_id(self, obj):
-        # NB: In testing locally, there were tests where when trying to serialize contributions
-        # there was intermittent failure because obj.organization was None, even though we're explicitly
-        # setting it in setup
-        return obj.organization.stripe_account_id if obj.organization else ""
-
     class Meta:
         model = Contribution
         fields = [
@@ -153,7 +146,6 @@ class ContributorContributionSerializer(serializers.ModelSerializer):
             "card_brand",
             "last4",
             "provider_customer_id",
-            "org_stripe_id",
             "organization_id",
             "amount",
             "last_payment_date",

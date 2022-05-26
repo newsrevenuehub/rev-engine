@@ -34,7 +34,7 @@ import Button from 'elements/buttons/Button';
 import GlobalLoading from 'elements/GlobalLoading';
 
 function EditRecurringPaymentModal({ isOpen, closeModal, contribution, onComplete }) {
-  const stripe = useRef(loadStripe(HUB_STRIPE_API_PUB_KEY, { stripeAccount: contribution.org_stripe_id }));
+  const stripe = useRef(loadStripe(HUB_STRIPE_API_PUB_KEY));
   const [showCompletedMessage, setShowCompletedMessage] = useState(false);
 
   const handleNewPaymentMethod = async (paymentMethod, onCompleteCallback) => {

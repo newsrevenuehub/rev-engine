@@ -1,12 +1,24 @@
-import { LIST_PAGES, REVENUE_PROGRAMS, TEMPLATES } from 'ajax/endpoints';
+import { LIST_PAGES, REVENUE_PROGRAMS, TEMPLATES, USER } from 'ajax/endpoints';
 import { CONTENT_SLUG } from 'routes';
 import { getEndpoint } from '../support/util';
-import rpUser from '../fixtures/user/rp-admin.json';
+import orgAdmin from '../fixtures/user/org-admin.json';
 import { LS_USER } from 'settings';
+
+import { CONTENT_SECTION_ACCESS_FLAG_NAME } from 'constants/featureFlagConstants';
+
+const contentSectionFlag = {
+  id: '5678',
+  name: CONTENT_SECTION_ACCESS_FLAG_NAME
+};
+
+const orgAdminWithContentFlag = {
+  ...orgAdmin,
+  flags: [{ ...contentSectionFlag }]
+};
 
 describe('Donation page list', () => {
   beforeEach(() => {
-    cy.forceLogin(rpUser);
+    cy.forceLogin(orgAdmin);
     cy.intercept(
       { method: 'GET', pathname: getEndpoint(LIST_PAGES) },
       { fixture: 'pages/list-pages-1', statusCode: 200 }
@@ -15,6 +27,7 @@ describe('Donation page list', () => {
       { method: 'GET', pathname: getEndpoint(REVENUE_PROGRAMS) },
       { fixture: 'org/revenue-programs-1', statusCode: 200 }
     );
+    cy.intercept({ method: 'GET', pathname: getEndpoint(USER) }, { body: orgAdminWithContentFlag });
     cy.visit(CONTENT_SLUG);
     cy.url().should('include', CONTENT_SLUG);
     cy.wait('@listPages');

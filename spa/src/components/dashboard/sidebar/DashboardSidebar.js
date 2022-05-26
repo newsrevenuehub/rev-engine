@@ -3,14 +3,19 @@ import { DONATIONS_SLUG, CONTENT_SLUG } from 'routes';
 import { ICONS } from 'assets/icons/SvgIcon';
 
 import logout from 'components/authentication/logout';
-import { CONTRIBUTIONS_SECTION_ACCESS_FLAG_NAME } from 'constants/featureFlagConstants';
+import {
+  CONTRIBUTIONS_SECTION_ACCESS_FLAG_NAME,
+  CONTENT_SECTION_ACCESS_FLAG_NAME
+} from 'constants/featureFlagConstants';
+
 import flagIsActiveForUser from 'utilities/flagIsActiveForUser';
-import useFeatureFlags from 'hooks/useFeatureFlags';
+import { useFeatureFlagsProviderContext } from 'components/Main';
 
 function DashboardSidebar({ shouldAllowDashboard }) {
-  const userFlags = useFeatureFlags();
-  const hasContributionsSectionAccess =
-    userFlags && userFlags.length && flagIsActiveForUser(CONTRIBUTIONS_SECTION_ACCESS_FLAG_NAME, userFlags);
+  const { featureFlags } = useFeatureFlagsProviderContext();
+
+  const hasContributionsSectionAccess = flagIsActiveForUser(CONTRIBUTIONS_SECTION_ACCESS_FLAG_NAME, featureFlags);
+  const hasContentSectionAccess = flagIsActiveForUser(CONTENT_SECTION_ACCESS_FLAG_NAME, featureFlags);
 
   const handleClick = (e) => {
     if (!shouldAllowDashboard) e.preventDefault();
@@ -18,15 +23,17 @@ function DashboardSidebar({ shouldAllowDashboard }) {
 
   return (
     <S.DashboardSidebar>
-      <S.NavList>
-        <S.NavItem
-          data-testid="nav-content-item"
-          to={CONTENT_SLUG}
-          onClick={handleClick}
-          disabled={!shouldAllowDashboard}
-        >
-          Content
-        </S.NavItem>
+      <S.NavList data-testid="nav-list">
+        {hasContentSectionAccess ? (
+          <S.NavItem
+            data-testid="nav-content-item"
+            to={CONTENT_SLUG}
+            onClick={handleClick}
+            disabled={!shouldAllowDashboard}
+          >
+            Content
+          </S.NavItem>
+        ) : null}
         {hasContributionsSectionAccess ? (
           <S.NavItem
             data-testid="nav-contributions-item"

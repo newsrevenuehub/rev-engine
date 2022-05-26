@@ -1,29 +1,35 @@
+import { Route, Switch, Redirect } from 'react-router-dom';
+
 import * as S from './Dashboard.styled';
 
 // Routing
-import { Route, Switch } from 'react-router-dom';
-import { DONATIONS_SLUG, CONTENT_SLUG } from 'routes';
-
-// State
-import { usePaymentProviderContext } from 'components/Main';
-import { PP_STATES } from 'components/connect/BaseProviderInfo';
+import { DONATIONS_SLUG, CONTENT_SLUG, EDITOR_ROUTE_PAGE, DASHBOARD_SLUG } from 'routes';
 
 // Children
+import { usePaymentProviderContext, useFeatureFlagsProviderContext } from 'components/Main';
+import LivePage404 from 'components/common/LivePage404';
+import { PP_STATES } from 'components/connect/BaseProviderInfo';
 import DashboardSidebar from 'components/dashboard/sidebar/DashboardSidebar';
 import Donations from 'components/donations/Donations';
 import Content from 'components/content/Content';
 import GlobalLoading from 'elements/GlobalLoading';
 import ProviderConnect from 'components/connect/ProviderConnect';
+import PageEditor from 'components/pageEditor/PageEditor';
 
 // Feature flag-related
-import { CONTRIBUTIONS_SECTION_ACCESS_FLAG_NAME } from 'constants/featureFlagConstants';
+import {
+  CONTRIBUTIONS_SECTION_ACCESS_FLAG_NAME,
+  CONTENT_SECTION_ACCESS_FLAG_NAME
+} from 'constants/featureFlagConstants';
+
 import flagIsActiveForUser from 'utilities/flagIsActiveForUser';
-import useFeatureFlags from 'hooks/useFeatureFlags';
 
 function Dashboard() {
-  const userFlags = useFeatureFlags();
-  const hasContributionsSectionAccess =
-    userFlags && userFlags.length && flagIsActiveForUser(CONTRIBUTIONS_SECTION_ACCESS_FLAG_NAME, userFlags);
+  const { featureFlags } = useFeatureFlagsProviderContext();
+
+  const hasContributionsSectionAccess = flagIsActiveForUser(CONTRIBUTIONS_SECTION_ACCESS_FLAG_NAME, featureFlags);
+
+  const hasContentSectionAccess = flagIsActiveForUser(CONTENT_SECTION_ACCESS_FLAG_NAME, featureFlags);
 
   const { checkingProvider, paymentProviderConnectState } = usePaymentProviderContext();
 
@@ -39,6 +45,12 @@ function Dashboard() {
     return !checkingProvider && notConnected;
   };
 
+  const dashboardSlugRedirect = hasContentSectionAccess
+    ? CONTENT_SLUG
+    : hasContributionsSectionAccess
+    ? DONATIONS_SLUG
+    : 'not-found';
+
   return (
     <S.Dashboard data-testid="dashboard">
       <DashboardSidebar shouldAllowDashboard={getShouldAllowDashboard()} />
@@ -47,13 +59,25 @@ function Dashboard() {
         <S.DashboardContent>
           {getShouldAllowDashboard() && (
             <Switch>
-              {hasContributionsSectionAccess && (
+              <Redirect exact from={DASHBOARD_SLUG} to={dashboardSlugRedirect} />
+
+              {hasContributionsSectionAccess ? (
                 <Route path={DONATIONS_SLUG}>
                   <Donations />
                 </Route>
-              )}
-              <Route path={CONTENT_SLUG}>
-                <Content />
+              ) : null}
+              {hasContentSectionAccess ? (
+                <Route path={CONTENT_SLUG}>
+                  <Content />
+                </Route>
+              ) : null}
+              {hasContentSectionAccess ? (
+                <Route path={EDITOR_ROUTE_PAGE}>
+                  <PageEditor />
+                </Route>
+              ) : null}
+              <Route>
+                <LivePage404 dashboard />
               </Route>
             </Switch>
           )}

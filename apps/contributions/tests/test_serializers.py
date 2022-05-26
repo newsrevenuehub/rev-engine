@@ -135,11 +135,6 @@ class ContributorContributionSerializerTest(TestCase):
         data = self.serializer(contribution).data
         self.assertEqual(data["last4"], target_last4)
 
-    def test_get_org_stripe_id(self):
-        contribution = self._create_contribution()
-        data = self.serializer(contribution).data
-        self.assertEqual(data["org_stripe_id"], self.test_stripe_account_id)
-
 
 class AbstractPaymentSerializerTest(TestCase):
     def setUp(self):

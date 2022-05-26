@@ -161,7 +161,7 @@ class RevenueProgramAdmin(RevEngineSimpleHistoryAdmin, ReverseModelAdmin, AdminI
     fieldsets = (
         (
             "RevenueProgram",
-            {"fields": ("name", "slug", "contact_email", "organization", "default_donation_page")},
+            {"fields": ("name", "slug", "contact_email", "organization", "default_donation_page", "non_profit")},
         ),
         (
             "Stripe",

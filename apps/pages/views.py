@@ -2,6 +2,7 @@ import logging
 
 from django.conf import settings
 
+import django_filters
 from rest_framework import filters, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
@@ -10,6 +11,7 @@ from rest_framework.response import Response
 from apps.api.permissions import HasRoleAssignment
 from apps.element_media.models import MediaImage
 from apps.pages import serializers
+from apps.pages.filters import StyleFilter
 from apps.pages.helpers import PageDetailError, PageFullDetailHelper
 from apps.pages.models import DonationPage, Font, Style, Template
 from apps.public.permissions import IsActiveSuperUser
@@ -165,6 +167,8 @@ class StyleViewSet(viewsets.ModelViewSet, FilterQuerySetByUserMixin, PerUserDele
     serializer_class = serializers.StyleListSerializer
     pagination_class = None
     permission_classes = [IsAuthenticated, IsActiveSuperUser | HasRoleAssignment]
+    filter_backends = [django_filters.rest_framework.DjangoFilterBackend]
+    filterset_class = StyleFilter
 
     def get_queryset(self):
         return self.filter_queryset_for_user(self.request.user, self.model.objects.all())

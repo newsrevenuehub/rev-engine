@@ -1,20 +1,23 @@
+from cgi import test
 from unittest.mock import patch
 
 from django.conf import settings
-from django.contrib.auth import get_user_model
 from django.middleware import csrf
 from django.test import override_settings
 
+import pytest
 from faker import Faker
 from rest_framework import status
 from rest_framework.reverse import reverse
-from rest_framework.test import APIRequestFactory, APITestCase
+from rest_framework.test import APIClient, APIRequestFactory, APITestCase
 from stripe.error import StripeError
 from stripe.oauth_error import InvalidGrantError as StripeInvalidGrantError
 from stripe.stripe_object import StripeObject
+from waffle import get_waffle_flag_model
 
 from apps.api.tests import RevEngineApiAbstractTestCase
 from apps.api.tokens import ContributorRefreshToken
+from apps.common.constants import CONTRIBUTIONS_API_ENDPOINT_ACCESS_FLAG_NAME
 from apps.common.tests.test_resources import AbstractTestCase
 from apps.contributions.models import Contribution, ContributionInterval
 from apps.contributions.payment_managers import PaymentBadParamsError, PaymentProviderError
@@ -443,7 +446,7 @@ class TestContributionsViewSet(RevEngineApiAbstractTestCase):
 
     ##########
     # Retrieve
-    def test_super_user_can_get_contribution(self):
+    def test_superuser_can_get_contribution(self):
         self.assert_superuser_can_get(self.contribution_detail_url())
 
     def test_hub_admin_can_get_contribution(self):
@@ -569,6 +572,92 @@ class TestContributionsViewSet(RevEngineApiAbstractTestCase):
         self.assert_user_cannot_get(
             reverse("contribution-list"), novel, expected_status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
         )
+
+
+@pytest.mark.parametrize(
+    (
+        "is_active_for_everyone",
+        "is_active_for_superusers",
+        "manually_added_user",
+        "user_under_test",
+        "expected_status_code",
+    ),
+    [
+        (True, False, None, "contributor_user", status.HTTP_200_OK),
+        (True, False, None, "superuser", status.HTTP_200_OK),
+        (True, False, None, "hub_user", status.HTTP_200_OK),
+        (True, False, None, "org_user", status.HTTP_200_OK),
+        (True, False, None, "rp_user", status.HTTP_200_OK),
+        (False, True, None, "superuser", status.HTTP_200_OK),
+        (False, True, None, "hub_user", status.HTTP_403_FORBIDDEN),
+        (False, True, None, "org_user", status.HTTP_403_FORBIDDEN),
+        (False, True, None, "rp_user", status.HTTP_403_FORBIDDEN),
+        (False, False, "hub_user", "hub_user", status.HTTP_200_OK),
+        (False, False, "hub_user", "org_user", status.HTTP_403_FORBIDDEN),
+        (False, False, "hub_user", "superuser", status.HTTP_403_FORBIDDEN),
+    ],
+)
+@pytest.mark.django_db
+def test_contributions_api_resource_feature_flagging(
+    is_active_for_everyone,
+    is_active_for_superusers,
+    manually_added_user,
+    user_under_test,
+    expected_status_code,
+):
+    """Demonstrate behavior of applying the `Flag` with name `CONTRIBUTIONS_API_ENDPOINT_ACCESS_FLAG_NAME`...
+
+    ...as defined in `apps.flags.constants`.
+
+    This test focuses on the following user types: contributors, superusers, hub admins, org admins, and rp admins.
+
+    Setting the flag's `everyone` to `True` should each of these user types through.
+
+    Setting's the flag's `everyone` to `False` and `superusers` to `True` should allow only superusers through.
+
+    We test this flag within the broader context of a view instead of narrowly unit testing the flag itself.
+    This is because we want assurances about how the flag interacts with up and downstream permissioning in order to
+    gate access at the API layer.
+
+    We are testing this flag in a module-level function rather than in a test class method. This is because
+    `pytest.parametrize` does not play nicely when applied to tests defined in classes subclassing from unittest
+    (specifically, the parametrized function arguments do not make it to the function call).
+
+    Since this test does not inherit from `RevEngineApiAbstractTestCase` or `AbstractTestCase`, in order to
+    use the `set_up_domain_model` method, we instantiate an `AbstractTestCase` to call the method from, below.
+    """
+    test_helper = AbstractTestCase()
+    test_helper.set_up_domain_model()
+    flag_model = get_waffle_flag_model()
+    contributions_access_flag = flag_model.objects.get(name=CONTRIBUTIONS_API_ENDPOINT_ACCESS_FLAG_NAME)
+    contributions_access_flag.everyone = is_active_for_everyone
+    contributions_access_flag.superusers = is_active_for_superusers
+    if manually_added_user:
+        contributions_access_flag.users.add(getattr(test_helper, manually_added_user))
+    contributions_access_flag.save()
+    client = APIClient()
+    client.force_authenticate(getattr(test_helper, user_under_test))
+    response = client.get(reverse("contribution-list"))
+    assert response.status_code == expected_status_code
+
+
+@pytest.mark.django_db
+def test_feature_flagging_when_flag_not_found():
+    """Should raise ApiConfigurationError if view is accessed and flag can't be found
+
+    See docstring in `test_contributions_api_resource_feature_flagging` above for more context on the
+    design of this test.
+    """
+    test_helper = AbstractTestCase()
+    test_helper.set_up_domain_model()
+    flag_model = get_waffle_flag_model()
+    contributions_access_flag = flag_model.objects.get(name=CONTRIBUTIONS_API_ENDPOINT_ACCESS_FLAG_NAME)
+    contributions_access_flag.delete()
+    client = APIClient()
+    client.force_authenticate(getattr(test_helper, "superuser"))
+    response = client.get(reverse("contribution-list"))
+    assert response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
+    assert response.json().get("detail", None) == "There was a problem with the API"
 
 
 TEST_STRIPE_API_KEY = "test_stripe_api_key"

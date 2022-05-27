@@ -6,7 +6,8 @@
       "name": "Stripe Connected Org",
       "default_payment_provider": "stripe",
       "stripe_account_id": "stripe_connected_account_id",
-      "stripe_verified": false
+      "stripe_verified": false,
+      "flags": []
     }
   }
 }

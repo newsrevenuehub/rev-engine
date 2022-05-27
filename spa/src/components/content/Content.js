@@ -33,7 +33,13 @@ function Content() {
     requestGetStyles(
       { method: 'GET', url: LIST_STYLES },
       {
-        onSuccess: ({ data }) => setStyles(data),
+        onSuccess: ({ data }) => {
+          setStyles(
+            data.map(({ styles, id, revenue_program, name, used_live }) => {
+              return { ...styles, id, revenue_program, name, used_live };
+            })
+          );
+        },
         onFailure: () => alert.error(GENERIC_ERROR)
       }
     );

@@ -10,7 +10,12 @@ from rest_framework.decorators import action, api_view, authentication_classes, 
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
-from apps.api.permissions import HasRoleAssignment, IsContributorOwningContribution, IsHubAdmin
+from apps.api.permissions import (
+    HasFlaggedAccessToContributionsApiResource,
+    HasRoleAssignment,
+    IsContributorOwningContribution,
+    IsHubAdmin,
+)
 from apps.contributions import serializers
 from apps.contributions.filters import ContributionFilter
 from apps.contributions.models import Contribution, ContributionInterval
@@ -235,7 +240,14 @@ class ContributionsViewSet(viewsets.ReadOnlyModelViewSet, FilterQuerySetByUserMi
     # are permitted
     permission_classes = [
         IsAuthenticated,
-        IsActiveSuperUser | HasRoleAssignment | IsContributorOwningContribution,
+        (
+            # `IsContributorOwningContribution` needs to come before
+            # any role-assignment based permission, as those assume that contributor users have had
+            # their permission validated (in case of valid permission) upstream -- the role assignment
+            # based permissions will not give permission to a contributor user.
+            IsContributorOwningContribution
+            | (HasFlaggedAccessToContributionsApiResource & (HasRoleAssignment | IsActiveSuperUser))
+        ),
     ]
     model = Contribution
     filterset_class = ContributionFilter

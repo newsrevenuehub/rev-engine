@@ -39,6 +39,16 @@ UserModel = get_user_model()
 @authentication_classes([])
 @permission_classes([])
 def stripe_payment(request):
+    def getUIDHashFromEmail(pi_data):
+        try:
+            import hashlib
+
+            result = hashlib.sha256(pi_data["email"].encode())
+            hashStr = result.hexdigest()
+            return hashStr[:10]
+        except Exception as e:
+            return ""
+
     pi_data = request.data
 
     # Grab required data from headers
@@ -79,6 +89,7 @@ def stripe_payment(request):
         msg = f"Email could not be sent to donor: {email_error}"
         logger.warning(msg)
 
+    response_body["uid"] = getUIDHashFromEmail(pi_data)
     return Response(response_body, status=status.HTTP_200_OK)
 
 

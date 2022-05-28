@@ -27,8 +27,8 @@ function CreatedFilter({ handleFilterChange }) {
     // Note : while user manually enters date fromDate/toDate are set as string 'Invalid Date'
     if ((fromDateVal || fromDateVal === '') && (toDateVal || toDateVal === '')) {
       handleFilterChange('created', {
-        created__gte: fromDate ? formatDatetimeRoundedDay(fromDate, true) : '',
-        created__lte: toDate ? formatDatetimeRoundedDay(toDate, false) : ''
+        created__gte: fromDateVal,
+        created__lte: toDateVal
       });
     }
   };

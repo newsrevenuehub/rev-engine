@@ -8,7 +8,7 @@ import GenericErrorBoundary from 'components/errors/GenericErrorBoundary';
 
 function Filters({ filters, handleFilterChange, donationsCount }) {
   // whenever we need to enable this, toggle this switch to true
-  let dateFilterEnabled = true;
+  let dateFilterEnabled = false;
   return (
     <S.Filters layout>
       <GenericErrorBoundary>

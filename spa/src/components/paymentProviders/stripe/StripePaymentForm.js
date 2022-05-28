@@ -92,7 +92,7 @@ function StripePaymentForm({ loading, setLoading, offerPayFees }) {
     setLoading(false);
     setSucceeded(true);
     trackConversion(totalAmount);
-    const qstr = `uid=${rpApiResponse['data']['uid']}&frequency=${encodeURIComponent(
+    const qstr = `uid=${rpApiResponse?.data?.uid}&frequency=${encodeURIComponent(
       getFrequencyThankYouText(frequency)
     )}&amount=${encodeURIComponent(totalAmount)}`;
 

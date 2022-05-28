@@ -306,7 +306,6 @@ describe('Donations list', () => {
     });
 
     it('should render expected filters', () => {
-      //const expectedFilterTestIds = ['status-filter', 'amount-filter', 'created-filter'];
       const expectedFilterTestIds = ['status-filter', 'amount-filter'];
       cy.wait('@getDonations');
       expectedFilterTestIds.forEach((testId) => cy.getByTestId(testId).should('exist'));

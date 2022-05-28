@@ -18,19 +18,17 @@ function CreatedFilter({ handleFilterChange }) {
   const [toDate, setToDate] = useState(null);
 
   const updateFilters = () => {
+    if ((fromDate && isNaN(fromDate)) || (toDate && isNaN(toDate))) return;
+
     // created__gte time should be set to midnight so that it is inclusive of the entire day selected.
     // created__lte should be set to 23:59.999 so that it is inclusive of the entire day selected.
     const fromDateVal = fromDate ? formatDatetimeRoundedDay(fromDate, true) : '';
     const toDateVal = toDate ? formatDatetimeRoundedDay(toDate, false) : '';
 
-    // Prevent update of filters and invocation of fetch-contributions ajax call while user is typing date
-    // Note : while user manually enters date fromDate/toDate are set as string 'Invalid Date'
-    if ((fromDateVal || fromDateVal === '') && (toDateVal || toDateVal === '')) {
-      handleFilterChange('created', {
-        created__gte: fromDateVal,
-        created__lte: toDateVal
-      });
-    }
+    handleFilterChange('created', {
+      created__gte: fromDateVal,
+      created__lte: toDateVal
+    });
   };
 
   useEffect(() => {

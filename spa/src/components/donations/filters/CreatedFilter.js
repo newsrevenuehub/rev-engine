@@ -22,12 +22,9 @@ function CreatedFilter({ handleFilterChange }) {
 
     // created__gte time should be set to midnight so that it is inclusive of the entire day selected.
     // created__lte should be set to 23:59.999 so that it is inclusive of the entire day selected.
-    const fromDateVal = fromDate ? formatDatetimeRoundedDay(fromDate, true) : '';
-    const toDateVal = toDate ? formatDatetimeRoundedDay(toDate, false) : '';
-
     handleFilterChange('created', {
-      created__gte: fromDateVal,
-      created__lte: toDateVal
+      created__gte: fromDate ? formatDatetimeRoundedDay(fromDate, true) : '',
+      created__lte: toDate ? formatDatetimeRoundedDay(toDate, false) : ''
     });
   };
 

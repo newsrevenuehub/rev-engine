@@ -26,11 +26,11 @@ async function submitPayment(stripe, data, { card, paymentRequest }, onSuccess, 
   */
   try {
     if (data.interval === 'one_time') {
-      const response = await trySinglePayment(stripe, data, { card, paymentRequest });
-      onSuccess(paymentRequest, response);
+      const respData = await trySinglePayment(stripe, data, { card, paymentRequest });
+      onSuccess(paymentRequest, respData);
     } else {
-      const response = await tryRecurringPayment(stripe, data, { card, paymentRequest });
-      onSuccess(paymentRequest, response);
+      const respData = await tryRecurringPayment(stripe, data, { card, paymentRequest });
+      onSuccess(paymentRequest, respData);
     }
   } catch (error) {
     onFailure(error);

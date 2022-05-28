@@ -26,11 +26,11 @@ async function submitPayment(stripe, data, { card, paymentRequest }, onSuccess, 
   */
   try {
     if (data.interval === 'one_time') {
-      await trySinglePayment(stripe, data, { card, paymentRequest });
-      onSuccess();
+      const response = await trySinglePayment(stripe, data, { card, paymentRequest });
+      onSuccess(paymentRequest, response);
     } else {
-      await tryRecurringPayment(stripe, data, { card, paymentRequest });
-      onSuccess();
+      const response = await tryRecurringPayment(stripe, data, { card, paymentRequest });
+      onSuccess(paymentRequest, response);
     }
   } catch (error) {
     onFailure(error);
@@ -146,9 +146,11 @@ export function serializeData(formRef, state) {
  *                                 from a Stripe PaymentRequest
  */
 async function trySinglePayment(stripe, formData, { card, paymentRequest }) {
-  const { data: paymentIntent } = await createPaymentIntent(formData);
+  const createPaymentIntentResponse = await createPaymentIntent(formData);
+  const { data: paymentIntent } = createPaymentIntentResponse;
   const paymentMethod = paymentRequest?.paymentMethod?.id || { card };
   await confirmCardPayment(stripe, paymentIntent.clientSecret, paymentMethod, !paymentRequest);
+  return createPaymentIntentResponse;
 }
 
 /**
@@ -200,7 +202,8 @@ async function tryRecurringPayment(stripe, data, { card, paymentRequest }) {
   }
 
   data['payment_method_id'] = paymentMethod;
-  await createPaymentIntent(data);
+  const createPaymentIntentResponse = await createPaymentIntent(data);
+  return createPaymentIntentResponse;
 }
 
 /**

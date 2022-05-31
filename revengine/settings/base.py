@@ -236,6 +236,15 @@ LOGGING = {
             "formatter": "basic",
         },
     },
+    "loggers": {
+        # Redefining the logger for the django module
+        # prevents invoking the AdminEmailHandler
+        "django": {
+            "handlers": ["console"],
+            "level": "INFO",
+            "propagate": False,
+        },
+    },
     "root": {
         "handlers": ["console"],
         "level": "INFO",

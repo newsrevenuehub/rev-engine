@@ -68,9 +68,10 @@ django-reverse-admin = "^2.9.6"
 django-health-check = "^3.16.4"
 pycountry = "^20.7.3"
 django-csp = "^3.7"
-django-simple-history = "^3.0.0"
 cloudflare = "^2.8.15"
 heroku3 = "^5.1.4"
+drf-extra-fields = "^3"
+django-simple-history = "3.0.0"
 django-waffle = "^2.4.1"
 
 [tool.poetry.dev-dependencies]

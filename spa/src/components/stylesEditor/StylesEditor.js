@@ -115,6 +115,7 @@ function StylesEditor({ styles, setStyles, handleKeepChanges, handleDiscardChang
 
   const handleCreateStyles = () => {
     setLoading(true);
+    const postData = { ...styles, revenue_program: styles.revenue_program.id };
     requestCreateStyles(
       { method: 'POST', url: LIST_STYLES, data: { ...styles, revenue_program: styles.revenue_program.id } },
       {
@@ -126,8 +127,9 @@ function StylesEditor({ styles, setStyles, handleKeepChanges, handleDiscardChang
 
   const handleUpdateStyles = () => {
     setLoading(true);
+    const patchData = { ...styles, revenue_program: styles.revenue_program.id };
     requestUpdateStyles(
-      { method: 'PATCH', url: styleDetailUrl, data: styles },
+      { method: 'PATCH', url: styleDetailUrl, data: patchData },
       {
         onSuccess: handleRequestSuccess,
         onFailure: handleRequestError

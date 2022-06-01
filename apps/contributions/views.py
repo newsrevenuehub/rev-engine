@@ -23,6 +23,7 @@ from apps.contributions.payment_managers import (
     PaymentProviderError,
     StripePaymentManager,
 )
+from apps.contributions.utils import get_sha256_hash
 from apps.contributions.webhooks import StripeWebhookProcessor
 from apps.emails.models import EmailTemplateError, PageEmailTemplate
 from apps.organizations.models import Organization
@@ -39,15 +40,6 @@ UserModel = get_user_model()
 @authentication_classes([])
 @permission_classes([])
 def stripe_payment(request):
-    def getUIDHashFromEmail(pi_data):
-        try:
-            import hashlib
-
-            result = hashlib.sha256(pi_data["email"].encode())
-            hashStr = result.hexdigest()
-            return hashStr[:10]
-        except Exception as e:
-            return ""
 
     pi_data = request.data
 
@@ -89,7 +81,14 @@ def stripe_payment(request):
         msg = f"Email could not be sent to donor: {email_error}"
         logger.warning(msg)
 
-    response_body["uid"] = getUIDHashFromEmail(pi_data)
+    # create hash based on email.
+    try:
+        response_body["email_hash"] = get_sha256_hash(pi_data["email"])
+    except Exception as e:
+        response_body["email_hash"] = ""
+        msg = f"Email hash could not be created: {e}"
+        logger.warning(msg)
+
     return Response(response_body, status=status.HTTP_200_OK)
 
 

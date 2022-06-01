@@ -22,6 +22,7 @@ from apps.common.tests.test_resources import AbstractTestCase
 from apps.contributions.models import Contribution, ContributionInterval
 from apps.contributions.payment_managers import PaymentBadParamsError, PaymentProviderError
 from apps.contributions.tests.factories import ContributionFactory, ContributorFactory
+from apps.contributions.utils import get_sha256_hash
 from apps.contributions.views import stripe_payment
 from apps.organizations.models import RevenueProgram
 from apps.organizations.tests.factories import OrganizationFactory
@@ -33,6 +34,7 @@ from apps.users.tests.utils import create_test_user
 faker = Faker()
 
 test_client_secret = "secret123"
+test_stripe_payment_email = "tester@testing.com"
 
 
 class MockPaymentIntent(StripeObject):
@@ -54,7 +56,7 @@ class StripePaymentViewTestAbstract(AbstractTestCase):
         cls.referer = faker.url()
         cls.url = reverse("stripe-payment")
 
-    def _create_request(self, donation_page, email="tester@testing.com", interval=None, payment_method_id=None):
+    def _create_request(self, donation_page, email=test_stripe_payment_email, interval=None, payment_method_id=None):
         factory = APIRequestFactory()
         request = factory.post(
             self.url,
@@ -104,10 +106,12 @@ class StripeOneTimePaymentViewTest(StripePaymentViewTestAbstract):
 
     @patch("apps.contributions.views.StripePaymentManager.create_one_time_payment", side_effect=MockPaymentIntent)
     def test_one_time_payment_serializer_get_uid_as_email_hash(self, *args):
+        print()
         response = self._post_valid_one_time_payment(self.page)
+        print(self.page)
         self.assertEqual(response.status_code, 200)
-        self.assertIn("uid", response.data)
-        self.assertEqual(str(response.data["uid"]), "dc1f77e857")
+        self.assertIn("email_hash", response.data)
+        self.assertEqual(str(response.data["email_hash"]), get_sha256_hash(test_stripe_payment_email))
 
     @patch("apps.contributions.views.StripePaymentManager.create_one_time_payment", side_effect=MockPaymentIntent)
     @patch("apps.contributions.views.PageEmailTemplate.get_template")

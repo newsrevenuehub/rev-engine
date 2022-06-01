@@ -48,15 +48,15 @@ export default submitPayment;
  * @param {number} fee - the fee to include, if shouldPayFee
  * @param {boolean} shouldPayFee - whether or not to include the fee in the total value
  * @param {string} frequency - The donation interval (ie 'one_time', 'monthly', etc). Used to determine stripe fee
- * @param {boolean} orgIsNonProfit - whether or not the org reports as non-profit. Used to determine stripe fee
+ * @param {boolean} rpIsNonProfit - whether or not the revenue program reports as non-profit. Used to determine stripe fee
  * @returns A human readable amount in dollars
  */
-export function getTotalAmount(amount, shouldPayFee, frequency, orgIsNonProfit) {
+export function getTotalAmount(amount, shouldPayFee, frequency, rpIsNonProfit) {
   /*
     If we get 10, we should see 10. If we get 10.3, we should see 10.30.
   */
   let total = parseFloat(amount);
-  if (shouldPayFee) total += parseFloat(calculateStripeFee(amount, frequency, orgIsNonProfit));
+  if (shouldPayFee) total += parseFloat(calculateStripeFee(amount, frequency, rpIsNonProfit));
   total = total.toFixed(2);
   if (total.endsWith('.00')) total = total.substring(0, total.length - 3);
   return total;
@@ -116,7 +116,7 @@ export function serializeData(formRef, state) {
     state.amount,
     state.payFee,
     state.frequency,
-    state.orgIsNonProfit
+    state.rpIsNonProfit
   ).toString();
   serializedData['donor_selected_amount'] = state.amount;
   serializedData['agreed_to_pay_fees'] = state.payFee;

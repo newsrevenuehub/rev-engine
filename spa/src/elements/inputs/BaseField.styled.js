@@ -27,7 +27,7 @@ export const FieldWrapper = styled.div`
 
 export const Label = styled.label`
   display: block;
-  font-family: ${(props) => props.theme.systemFont};
+  font-family: ${(props) => (props.theme.font.body ? props.theme.font.body?.font_name : props.theme.systemFont)};
   font-size: ${(props) => props.theme.fontSizes[1]};
   font-weight: 500;
   color: ${(props) => props.theme.colors.black};

@@ -323,6 +323,25 @@ class RevenueProgram(IndexedTimeStampedModel):
         domain_apex = settings.DOMAIN_APEX
         return f"{self.slug}.{domain_apex}"
 
+    def user_has_ownership_via_role(self, role_assignment):
+        """Determine if a user owns an instance based on role_assignment"""
+        return any(
+            [
+                all(
+                    [
+                        role_assignment.role_type == Roles.ORG_ADMIN.value,
+                        role_assignment.organization == self.organization,
+                    ]
+                ),
+                all(
+                    [
+                        role_assignment.role_type == Roles.RP_ADMIN.value,
+                        self in role_assignment.revenue_programs.all(),
+                    ]
+                ),
+            ]
+        )
+
 
 class PaymentProvider(IndexedTimeStampedModel):
     stripe_account_id = models.CharField(max_length=255, unique=True, null=True, blank=True)

@@ -2,6 +2,7 @@ import logging
 
 from django.conf import settings
 from django.contrib.auth import get_user_model
+from django.utils import timezone
 
 import stripe
 from rest_framework import status, viewsets
@@ -9,7 +10,12 @@ from rest_framework.decorators import action, api_view, authentication_classes, 
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
-from apps.api.permissions import HasRoleAssignment, IsContributorOwningContribution, IsHubAdmin
+from apps.api.permissions import (
+    HasFlaggedAccessToContributionsApiResource,
+    HasRoleAssignment,
+    IsContributorOwningContribution,
+    IsHubAdmin,
+)
 from apps.contributions import serializers
 from apps.contributions.filters import ContributionFilter
 from apps.contributions.models import Contribution, ContributionInterval
@@ -19,7 +25,7 @@ from apps.contributions.payment_managers import (
     StripePaymentManager,
 )
 from apps.contributions.webhooks import StripeWebhookProcessor
-from apps.emails.models import EmailTemplateError, PageEmailTemplate
+from apps.emails.tasks import send_contribution_confirmation_email
 from apps.organizations.models import PaymentProvider, RevenueProgram
 from apps.public.permissions import IsActiveSuperUser
 from apps.users.views import FilterQuerySetByUserMixin
@@ -50,19 +56,51 @@ def stripe_payment(request):
     stripe_payment.get_bad_actor_score()
 
     try:
-        if stripe_payment.validated_data["interval"] == ContributionInterval.ONE_TIME:
-            # Create payment intent with Stripe, associated local models, and send email to donor.
+        rp = RevenueProgram.objects.get(pk=request.data["revenue_program_id"])
+        response_body = {
+            "detail": "success",
+        }
+
+        if (interval := stripe_payment.validated_data["interval"]) == ContributionInterval.ONE_TIME.value:
             stripe_payment_intent = stripe_payment.create_one_time_payment()
-            response_body = {"detail": "Success", "clientSecret": stripe_payment_intent["client_secret"]}
-            if stripe_payment.get_organization().uses_email_templates:
-                template = PageEmailTemplate.get_template(
-                    PageEmailTemplate.ContactType.ONE_TIME_DONATION, stripe_payment.get_donation_page()
-                )
-                template.one_time_donation(stripe_payment)
-        else:
-            # Create subscription with Stripe, associated local models
+            response_body["clientSecret"] = stripe_payment_intent["client_secret"]
+        elif interval in (
+            ContributionInterval.MONTHLY.value,
+            ContributionInterval.YEARLY.value,
+        ):
             stripe_payment.create_subscription()
-            response_body = {"detail": "Success"}
+        else:
+            logger.warning("stripe_payment view recieved unexpetected interval value: [%s]", interval)
+            raise PaymentBadParamsError()
+
+        if stripe_payment.get_organization().uses_email_templates:
+            contributor_email = stripe_payment.validated_data["email"]
+            donation_amount_display = f"${(stripe_payment.validated_data['amount'] / 100):.2f}"
+            contribution_date = timezone.now()
+            interval_to_display = {
+                ContributionInterval.MONTHLY.value: "month",
+                ContributionInterval.YEARLY.value: "year",
+            }
+
+            template_data = {
+                "contribution_date": contribution_date.strftime("%m-%d-%y"),
+                "contributor_email": contributor_email,
+                "contribution_amount": donation_amount_display,
+                "contribution_interval": stripe_payment.validated_data["interval"],
+                "contribution_interval_display_value": interval_to_display.get(
+                    stripe_payment.validated_data["interval"]
+                ),
+                "copyright_year": contribution_date.year,
+                "org_name": rp.organization.name,
+            }
+            send_contribution_confirmation_email.delay(contributor_email, **template_data)
+
+    except RevenueProgram.DoesNotExist:
+        logger.warning(
+            "stripe_payment view called with unexpected revenue program id [%s]", request.data["revenue_program_id"]
+        )
+        return Response({"detail": "There was an error processing your payment"}, status=status.HTTP_400_BAD_REQUEST)
+
     except PaymentBadParamsError:
         logger.warning("stripe_payment view raised a PaymentBadParamsError")
         return Response({"detail": "There was an error processing your payment."}, status=status.HTTP_400_BAD_REQUEST)
@@ -70,9 +108,6 @@ def stripe_payment(request):
         error_message = str(pp_error)
         logger.error(error_message)
         return Response({"detail": error_message}, status=status.HTTP_400_BAD_REQUEST)
-    except EmailTemplateError as email_error:  # pragma: no cover
-        msg = f"Email could not be sent to donor: {email_error}"
-        logger.warning(msg)
 
     return Response(response_body, status=status.HTTP_200_OK)
 
@@ -227,7 +262,14 @@ class ContributionsViewSet(viewsets.ReadOnlyModelViewSet, FilterQuerySetByUserMi
     # are permitted
     permission_classes = [
         IsAuthenticated,
-        IsActiveSuperUser | HasRoleAssignment | IsContributorOwningContribution,
+        (
+            # `IsContributorOwningContribution` needs to come before
+            # any role-assignment based permission, as those assume that contributor users have had
+            # their permission validated (in case of valid permission) upstream -- the role assignment
+            # based permissions will not give permission to a contributor user.
+            IsContributorOwningContribution
+            | (HasFlaggedAccessToContributionsApiResource & (HasRoleAssignment | IsActiveSuperUser))
+        ),
     ]
     model = Contribution
     filterset_class = ContributionFilter

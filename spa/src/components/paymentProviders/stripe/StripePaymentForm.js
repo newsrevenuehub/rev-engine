@@ -91,13 +91,21 @@ function StripePaymentForm({ loading, setLoading, offerPayFees }) {
     setLoading(false);
     setSucceeded(true);
     trackConversion(totalAmount);
+    const qstr = `frequency=${encodeURIComponent(getFrequencyThankYouText(frequency))}&amount=${encodeURIComponent(
+      totalAmount
+    )}`;
+
     if (page.thank_you_redirect) {
-      window.location = page.thank_you_redirect;
+      let redirectURL = page.thank_you_redirect;
+      redirectURL = redirectURL.includes('?') ? `${redirectURL}&${qstr}` : `${redirectURL}?${qstr}`;
+      window.location = redirectURL;
     } else {
       const email = extractEmailFromFormRef(formRef.current);
+
       const donationPageUrl = window.location.href;
       history.push({
         pathname: url === '/' ? THANK_YOU_SLUG : url + THANK_YOU_SLUG,
+        search: `?${qstr}`,
         state: { page, amount: totalAmount, email, donationPageUrl, frequencyText: getFrequencyThankYouText(frequency) }
       });
     }

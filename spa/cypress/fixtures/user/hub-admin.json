@@ -5,7 +5,8 @@
         "email": "hub-admin@fundjournalism.org",
         "role_type": ["hub_admin","Hub Admin"],
         "organizations": [],
-        "revenue_programs": []
+        "revenue_programs": [],
+        "flags": []
     },
     "csrftoken": "ZgynND503GQ3Dkyy3xMBHoExWftlTIjDe5znbDLACDH55g49FYrbFKuOJFBA9W6Y"
 }

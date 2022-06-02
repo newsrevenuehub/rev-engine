@@ -53,3 +53,5 @@ CELERY_IMPORTS = ("apps.emails.tasks",)
 # Serve SPA via django
 FRONTEND_BUILD_DIR = Path(BASE_DIR) / "spa/public"
 TEMPLATES[0]["DIRS"] = [FRONTEND_BUILD_DIR, os.path.join(PROJECT_DIR, "templates")]
+
+ESP_TEMPLATE_ID_FOR_CONTRIBUTION_CONFIRMATION = "someFakeValue"

@@ -2,10 +2,11 @@
     "detail": "success",
     "user": {
         "id": 1,
-        "email": "rp-admin@some-org.com",
+        "email": "org-admin@some-org.com",
+        "flags": [],
         "role_type": [
-            "rp_admin",
-            "RP Admin"
+            "org_admin",
+            "Org Admin"
         ],
         "organizations": [
             {

@@ -59,6 +59,7 @@ INSTALLED_APPS = [
     "health_check.cache",
     "health_check.contrib.migrations",
     "health_check.contrib.redis",
+    "waffle",
 ]
 
 
@@ -74,6 +75,7 @@ MIDDLEWARE = [
     "apps.common.middleware.LogFourHundredsMiddleware",
     "csp.middleware.CSPMiddleware",
     "simple_history.middleware.HistoryRequestMiddleware",
+    "waffle.middleware.WaffleMiddleware",
 ]
 
 ROOT_URLCONF = "revengine.urls"
@@ -234,6 +236,15 @@ LOGGING = {
             "formatter": "basic",
         },
     },
+    "loggers": {
+        # Redefining the logger for the django module
+        # prevents invoking the AdminEmailHandler
+        "django": {
+            "handlers": ["console"],
+            "level": "INFO",
+            "propagate": False,
+        },
+    },
     "root": {
         "handlers": ["console"],
         "level": "INFO",
@@ -295,6 +306,10 @@ HEALTHCHECK_URL_AUTO_ACCEPT_FLAGGED_PAYMENTS = os.environ.get("HEALTHCHECK_URL_A
 # Transactional Email
 EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
 EMAIL_SUBJECT_PREFIX = "[RevEngine] "
+
+# This determines which template is used on the ESP (at present Mailgun) when sending contribution confirmation emails.
+ESP_TEMPLATE_ID_FOR_CONTRIBUTION_CONFIRMATION = os.environ.get("ESP_TEMPLATE_ID_FOR_CONTRIBUTION_CONFIRMATION")
+
 
 ADMINS = [("dc", "daniel@fundjournalism.org")]
 

@@ -15,15 +15,18 @@ export const ContentWrapper = styled.section`
   margin-top: 4rem;
   padding: 2rem;
   max-width: 600px;
+  font-family: ${(props) => props.theme.font.body?.font_name};
 `;
 
 export const Title = styled.h1`
   text-align: center;
+  font-family: ${(props) => props.theme.font.heading?.font_name};
 `;
 
 export const EmailForm = styled.form``;
 
 export const InputWrapper = styled.div`
+  font-family: ${(props) => props.theme.font.body?.font_name};
   margin: 2rem 0;
 `;
 
@@ -45,6 +48,7 @@ export const NoSuchIcon = styled(FontAwesomeIcon)`
 `;
 
 export const MagicLinkButton = styled(Button)`
+  font-family: ${(props) => props.theme.font.body?.font_name};
   span {
     margin-left: 1rem;
     font-size: 32px;
@@ -56,5 +60,6 @@ export const Confirmation = styled.div`
   p {
     max-width: 400px;
     margin: 1rem auto;
+    font-family: ${(props) => props.theme.font.body?.font_name};
   }
 `;

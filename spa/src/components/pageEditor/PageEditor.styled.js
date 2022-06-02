@@ -14,8 +14,10 @@ export const ButtonOverlayOuter = styled.div`
 
   @media (${(props) => props.theme.breakpoints.tabletLandscapeDown}) {
     padding-top: 0;
-    height: 0px;
-    width: 0%;
+    margin-top: 81px;
+    height: 100%x;
+    width: 90px;
+    box-shadow: ${(props) => props.theme.shadows[0]};
   }
 `;
 

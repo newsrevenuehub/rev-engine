@@ -26,6 +26,8 @@ from apps.emails.tasks import send_email
 logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
 
 
+logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
+
 COOKIE_PATH = "/"
 
 
@@ -95,6 +97,7 @@ class TokenObtainPairCookieView(simplejwt_views.TokenObtainPairView):
         try:
             serializer.is_valid(raise_exception=True)
         except exceptions.TokenError as e:
+            logging.info("TokenObtainPairPairCookie fail", exc_info=True)
             raise exceptions.InvalidToken(e.args[0])
 
         response = Response(serializer.validated_data, status=status.HTTP_200_OK)
@@ -111,6 +114,9 @@ class TokenObtainPairCookieView(simplejwt_views.TokenObtainPairView):
             "csrftoken": csrf_token,
         }
 
+        logging.info(
+            "TokenObtainPairPairCookie good; user '%s' csrf_token '%s'", serializer.validated_data["user"], csrf_token
+        )
         return response
 
     def delete(self, request, *args, **kwargs):
@@ -123,6 +129,7 @@ class TokenObtainPairCookieView(simplejwt_views.TokenObtainPairView):
 
         response.data = {"detail": "success"}
 
+        logging.info("TokenObtainPairPairCookie cookie deleted")
         return response
 
 
@@ -162,7 +169,11 @@ class RequestContributorTokenEmailView(APIView):
                 subject="Manage your contributions",
                 template_data={"magic_link": magic_link},
             )
+            logging.info("Request MagicLink email sent; email '%s' token '%s' url '%s'", email, token, magic_link)
         except NoSuchContributorError:
+            logging.info(
+                "Request MagicLink fail; NoSuchContributor deserialize request.data '%s'", request.data, exc_info=True
+            )
             # Send same response as "success". We don't want to indicate whether or not a given address is in our system.
             pass
 
@@ -207,4 +218,10 @@ class VerifyContributorTokenView(APIView):
             "csrftoken": csrf_token,
         }
 
+        logging.info(
+            "VerifyContributorTokenView good; user '%s' long_token '%s' csrf_token '%s'",
+            request.user,
+            long_lived_token,
+            csrf_token,
+        )
         return response

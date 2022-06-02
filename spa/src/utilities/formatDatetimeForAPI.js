@@ -7,14 +7,10 @@ function formatDatetimeForAPI(datetime, withTime = true) {
 export default formatDatetimeForAPI;
 
 export function formatDatetimeRoundedDay(datetime, startOfDay = true) {
-  try {
-    let dt = datetime;
-    if (startOfDay) dt = setTimeToMidnight(dt);
-    else dt = setTimeToJustBeforeMidnight(dt);
-    return format(dt, "y-MM-dd'T'HH:mm:ss.SSSx");
-  } catch (err) {
-    return null;
-  }
+  let dt = datetime;
+  if (startOfDay) dt = setTimeToMidnight(dt);
+  else dt = setTimeToJustBeforeMidnight(dt);
+  return format(dt, "y-MM-dd'T'HH:mm:ss.SSSx");
 }
 
 function setTimeToJustBeforeMidnight(datetime) {

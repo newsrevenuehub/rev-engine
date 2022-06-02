@@ -80,7 +80,6 @@ export const TH = styled.th`
     flex-direction: row;
     justify-content: space-between;
     align-items: center;
-    font-family: ${(props) => (props.theme.font.heading ? props.theme.font.heading.font_name : props.theme.systemFont)};
   }
   &:hover {
     background: ${(props) =>
@@ -100,7 +99,6 @@ export const TR = styled.tr`
 
   min-height: 80px;
   opacity: ${(props) => (props.disabled ? 0.4 : 1)};
-  font-family: ${(props) => (props.theme.font.body ? props.theme.font.body.font_name : props.theme.systemFont)};
 
   &:hover {
     background: ${(props) => (!props.disabled && props.onClick ? props.theme.colors.tableRowHover : '')};
@@ -119,8 +117,9 @@ export const Pagination = styled.div`
 
 export const ResultsSummary = styled.p`
   margin: 2rem 0;
-
+  font-family: ${(props) => props.theme.systemFont};
   span {
+    font-family: ${(props) => props.theme.systemFont};
     font-weight: bold;
     color: ${(props) => (props.theme.colors.cstm_CTAs ? props.theme.colors.cstm_CTAs : props.theme.colors.primary)};
   }
@@ -133,6 +132,7 @@ export const Chevron = styled(FontAwesomeIcon)``;
 export const Pages = styled.p`
   display: inline-block;
   margin: 0 1rem;
+  font-family: ${(props) => props.theme.systemFont};
 `;
 
 export const Current = styled.span`

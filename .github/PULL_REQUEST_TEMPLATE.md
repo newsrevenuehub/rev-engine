@@ -16,8 +16,7 @@ Please fill out each section even if it's just with "N/A"
 
 #### Has this been documented? If so, where?
 
-#### What are the relevant tickets?
-**(Note: Please use syntax [JIRA-123] to link any relevant tickets)**
+#### What are the relevant tickets? Add a link to any relevant ones.
 
 #### Do any changes need to be made before deployment to production (adding environment variables, for example)?
 

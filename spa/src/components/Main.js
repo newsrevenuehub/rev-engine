@@ -1,20 +1,18 @@
-import { useState, useContext, createContext, useCallback } from 'react';
+import { useState, useContext, createContext, useCallback, useEffect } from 'react';
 
 import * as S from './Main.styled';
 
 // Utils
 import getGlobalPaymentProviderStatus from 'utilities/getGlobalPaymentProviderStatus';
 
-// AJAX
 import { LS_USER } from 'settings';
-
-// Children
+import { USER } from 'ajax/endpoints';
 import Dashboard from 'components/dashboard/Dashboard';
-
-// Analytics
+import useRequest from 'hooks/useRequest';
 import { useConfigureAnalytics } from './analytics';
 
 const PaymentProviderContext = createContext(null);
+const FeatureFlagsProviderContext = createContext(null);
 
 function Main() {
   // Organization Context management
@@ -30,6 +28,31 @@ function Main() {
   }, []);
 
   useConfigureAnalytics();
+
+  const [loadingFlags, setLoadingFlags] = useState(true);
+  const [featureFlags, setFeatureFlags] = useState();
+
+  const requestUser = useRequest();
+
+  useEffect(() => {
+    setLoadingFlags(true);
+    requestUser(
+      {
+        method: 'GET',
+        url: USER
+      },
+      {
+        onSuccess: ({ data }) => {
+          setFeatureFlags(data.flags);
+          setLoadingFlags(false);
+        },
+        onFailure: (e) => {
+          throw new Error('Something unexpected happened retrieving flags');
+        }
+      }
+    );
+  }, [requestUser]);
+
   return (
     <PaymentProviderContext.Provider
       value={{
@@ -39,15 +62,20 @@ function Main() {
         setCheckingProvider
       }}
     >
-      <S.Main>
-        <S.MainContent>
-          <Dashboard />
-        </S.MainContent>
-      </S.Main>
+      <FeatureFlagsProviderContext.Provider value={{ featureFlags }}>
+        {!loadingFlags && (
+          <S.Main>
+            <S.MainContent>
+              <Dashboard />
+            </S.MainContent>
+          </S.Main>
+        )}
+      </FeatureFlagsProviderContext.Provider>
     </PaymentProviderContext.Provider>
   );
 }
 
 export const usePaymentProviderContext = () => useContext(PaymentProviderContext);
+export const useFeatureFlagsProviderContext = () => useContext(FeatureFlagsProviderContext);
 
 export default Main;

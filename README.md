@@ -166,6 +166,12 @@ Then add to the file the following line.
     (revengine)$ echo "export DJANGO_SETTINGS_MODULE=revengine.settings.local" >> .envrc
 ```
 
+Next, we need to set up a fake test stripe ID so that stripe functionality will work when running tests locally
+
+```bash
+    (revengine)$ echo "export export REACT_APP_HUB_STRIPE_API_PUB_KEY=pk_test_3737373" >> .envrc
+```
+
 Allow direnv to inject the variable into your environment
 
 ```shell

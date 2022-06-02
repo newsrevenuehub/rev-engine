@@ -1,6 +1,8 @@
 from django.contrib.auth import get_user_model
+from django.db.models import Q
 
 from rest_framework import serializers
+from waffle import get_waffle_flag_model
 
 from apps.organizations.models import Organization, RevenueProgram
 from apps.organizations.serializers import (
@@ -20,6 +22,7 @@ class UserSerializer(serializers.ModelSerializer):
     role_type = serializers.SerializerMethodField(method_name="get_role_type")
     organizations = serializers.SerializerMethodField(method_name="get_permitted_organizations")
     revenue_programs = serializers.SerializerMethodField(method_name="get_permitted_revenue_programs")
+    flags = serializers.SerializerMethodField(method_name="get_active_flags_for_user")
 
     def get_role_type(self, obj):
         if obj.is_superuser:
@@ -54,6 +57,14 @@ class UserSerializer(serializers.ModelSerializer):
         serializer = RevenueProgramInlineSerializer(qs, many=True)
         return serializer.data
 
+    def get_active_flags_for_user(self, obj):
+        Flag = get_waffle_flag_model()
+        if obj.is_superuser:
+            qs = Flag.objects.filter(Q(superusers=True) | Q(everyone=True) | Q(users__in=[obj]))
+        else:
+            qs = Flag.objects.filter(Q(everyone=True) | Q(users__in=[obj]))
+        return list(qs.values("name", "id"))
+
     class Meta:
         model = get_user_model()
-        fields = ["id", "email", "role_type", "organizations", "revenue_programs"]
+        fields = ["id", "email", "role_type", "organizations", "revenue_programs", "flags"]

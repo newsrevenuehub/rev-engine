@@ -1,4 +1,4 @@
-import { STRIPE_CONFIRMATION, STRIPE_OAUTH, LIST_PAGES } from 'ajax/endpoints';
+import { STRIPE_CONFIRMATION, STRIPE_OAUTH, LIST_PAGES, USER } from 'ajax/endpoints';
 import { getEndpoint } from '../support/util';
 // Constants
 import { STRIPE_CLIENT_ID, STRIPE_OAUTH_SCOPE } from 'settings';
@@ -6,7 +6,20 @@ import { STRIPE_CLIENT_ID, STRIPE_OAUTH_SCOPE } from 'settings';
 import { CONTENT_SLUG } from 'routes';
 import orgAdminUser from '../fixtures/user/org-admin';
 
+import { CONTENT_SECTION_ACCESS_FLAG_NAME } from 'constants/featureFlagConstants';
+
+const contentSectionFlag = {
+  id: '5678',
+  name: CONTENT_SECTION_ACCESS_FLAG_NAME
+};
+
+const orgAdminWithContentFlag = {
+  ...orgAdminUser,
+  flags: [{ ...contentSectionFlag }]
+};
+
 const redirectPath = '/dashboard/content';
+
 describe('Payment provider connect', () => {
   it('should not show ProviderConnect if default provider', () => {
     cy.forceLogin(orgAdminUser);
@@ -14,6 +27,7 @@ describe('Payment provider connect', () => {
       { method: 'GET', pathname: getEndpoint(LIST_PAGES) },
       { fixture: 'pages/list-pages-1', statusCode: 200 }
     );
+    cy.intercept({ method: 'GET', pathname: getEndpoint(USER) }, { body: orgAdminWithContentFlag });
     cy.visit(CONTENT_SLUG);
     cy.getByTestId('provider-connect').should('not.exist');
     cy.getByTestId('content').should('exist');
@@ -33,8 +47,9 @@ describe('Payment provider connect', () => {
         ]
       }
     };
-    cy.intercept('POST', getEndpoint(STRIPE_CONFIRMATION), { fixture: 'stripe/confirm-connected' });
+    cy.intercept('POST', getEndpoint(STRIPE_CONFIRMATION), { fixture: 'stripe/confirm-not-connected' });
     cy.forceLogin(user);
+    cy.intercept({ method: 'GET', pathname: getEndpoint(USER) }, { body: orgAdminWithContentFlag });
     cy.visit(CONTENT_SLUG);
     cy.getByTestId('provider-connect').should('exist');
   });
@@ -56,6 +71,7 @@ describe('Payment provider connect', () => {
         }
       };
       cy.forceLogin(user);
+      cy.intercept({ method: 'GET', pathname: getEndpoint(USER) }, { body: orgAdminWithContentFlag });
       cy.visit(CONTENT_SLUG);
       cy.contains('Stripe needs more information before you can accept contributions.').should('exist');
       cy.getByTestId('svg-icon_times-circle').should('exist');
@@ -77,6 +93,7 @@ describe('Payment provider connect', () => {
         }
       };
       cy.forceLogin(user);
+      cy.intercept({ method: 'GET', pathname: getEndpoint(USER) }, { body: orgAdminWithContentFlag });
       cy.visit(CONTENT_SLUG);
       cy.getByTestId('stripe-connect-link').should('exist');
       cy.getByTestId('svg-icon_times-circle').should('exist');
@@ -98,6 +115,7 @@ describe('Payment provider connect', () => {
         }
       };
       cy.forceLogin(user);
+      cy.intercept({ method: 'GET', pathname: getEndpoint(USER) }, { body: orgAdminWithContentFlag });
       cy.visit(CONTENT_SLUG);
       cy.getByTestId('stripe-connect-link').should('exist');
       cy.getByTestId('svg-icon_check-circle').should('not.exist');
@@ -129,6 +147,7 @@ describe('Payment provider connect', () => {
         }
       };
       cy.forceLogin(user);
+      cy.intercept({ method: 'GET', pathname: getEndpoint(USER) }, { body: orgAdminWithContentFlag });
       cy.visit(redirectPath + `?code=${code}&scope=${scope}`);
       cy.wait('@oauthConfirm').then((interception) => {
         expect(interception.request.body).to.have.property('code', code);

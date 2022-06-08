@@ -40,6 +40,7 @@ class OrganizationSerializer(serializers.ModelSerializer):
             data = PaymentProviderSerializer(payment_provider).data
             data.pop("id")
             representation.update(**data)
+            # TODO: [DEV-1886] remove this after the FE no longer relies on it
             representation["non_profit"] = revenue_program.non_profit
             representation["domain_apple_verified_date"] = revenue_program.domain_apple_verified_date
         return representation

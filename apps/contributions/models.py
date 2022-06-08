@@ -107,7 +107,15 @@ class Contribution(IndexedTimeStampedModel, RoleAssignmentResourceModelMixin):
 
     @property
     def revenue_program(self):
-        return self.donation_page.revenue_program
+        if self.donation_page:
+            return self.donation_page.revenue_program
+        return None
+
+    @property
+    def stripe_account_id(self):
+        if self.revenue_program and self.revenue_program.payment_provider:
+            return self.revenue_program.payment_provider.stripe_account_id
+        return None
 
     BAD_ACTOR_SCORES = (
         (

@@ -458,7 +458,7 @@ class TestContributionsViewSet(RevEngineApiAbstractTestCase):
         self.list_url = reverse("contribution-list")
 
         self.contribution_for_org = Contribution.objects.filter(
-            donation_page__in=DonationPage.objects.filter(revenue_program__in=self.org1.revenueprogram_set.all())
+            donation_page__revenue_program__in=self.org1.revenueprogram_set.all()
         ).first()
 
     def contribution_detail_url(self, pk=None):
@@ -477,7 +477,9 @@ class TestContributionsViewSet(RevEngineApiAbstractTestCase):
         self.assert_org_admin_can_get(self.contribution_detail_url())
 
     def test_org_admin_cannot_get_contribution_owned_by_other_org(self):
-        not_orgs_contribution = Contribution.objects.exclude(donation_page__revenue_program__organization=self.org1).first()
+        not_orgs_contribution = Contribution.objects.exclude(
+            donation_page__revenue_program__organization=self.org1
+        ).first()
         self.assertIsNotNone(not_orgs_contribution)
         self.assert_org_admin_cannot_get(self.contribution_detail_url(not_orgs_contribution.pk))
 

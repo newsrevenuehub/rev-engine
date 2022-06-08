@@ -59,12 +59,6 @@ fake_api_key = "TEST_stripe_secret_key"
 class StripePaymentManagerAbstractTestCase(AbstractTestCase):
     def setUp(self):
         super().setUp()
-        self.organization = OrganizationFactory()
-        self.payment_provider = PaymentProviderFactory()
-        self.revenue_program = RevenueProgramFactory(
-            organization=self.organization, payment_provider=self.payment_provider
-        )
-        self.contributor = ContributorFactory()
         self.set_up_domain_model()
         self.page = self.org1_rp1.donationpage_set.first()
         self.amount = "10.99"
@@ -91,7 +85,7 @@ class StripePaymentManagerAbstractTestCase(AbstractTestCase):
             "referer": faker.url(),
             "page_id": self.page.pk,
         }
-        self.contribution = ContributionFactory(donation_page=self.page, contributor=self.contributor)
+        self.contribution = ContributionFactory(donation_page=self.page, contributor=self.contributor_user)
         self.contribution = Contribution.objects.filter(donation_page__revenue_program=self.org1_rp1).first()
 
     def _create_mock_ba_response(self, target_score=None, status_code=200):
@@ -369,8 +363,8 @@ class StripeRecurringPaymentManagerTest(StripePaymentManagerAbstractTestCase):
         self.contribution.save()
 
         test_stripe_product_id = "test_stripe_product_id"
-        self.payment_provider.stripe_product_id = test_stripe_product_id
-        self.payment_provider.save()
+        self.payment_provider1.stripe_product_id = test_stripe_product_id
+        self.payment_provider1.save()
 
         self.payment_method_id = "test_payment_method_id"
         self.data.update({"payment_method_id": self.payment_method_id, "interval": ContributionInterval.MONTHLY})

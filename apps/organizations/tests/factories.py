@@ -38,9 +38,7 @@ class OrganizationFactory(DjangoModelFactory):
         django_get_or_create = ("name",)
 
     name = factory.Sequence(lambda n: f"{fake.company()}-{str(n)}")
-    # stripe_account_id = fake.uuid4()
     address = factory.SubFactory(AddressFactory)
-    # stripe_verified = True
     slug = factory.lazy_attribute(lambda o: normalize_slug(name=o.name))
     plan = factory.SubFactory("apps.organizations.tests.factories.PlanFactory")
 

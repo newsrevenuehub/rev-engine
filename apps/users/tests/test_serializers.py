@@ -106,7 +106,7 @@ class UserSerializerTest(APITestCase):
         rp_rp_ids = self._ids_from_data(rp_admin_data["revenue_programs"])
         self.assertEqual(len(rp_rp_ids), len(self.included_rps))
         self.assertEqual(rp_rp_ids, self._rp_ids_from_role(self.rp_admin_user))
-        self.assertEqual(rp_rp_ids, [rp.id for rp in self.included_rps])
+        self.assertEqual(set(rp_rp_ids), set(rp.id for rp in self.included_rps))
 
     def test_no_role_user(self):
         no_role_data = self._get_serialized_data_for_user(self.no_role_user)

@@ -102,6 +102,11 @@ class ContributorContributionSerializerTest(TestCase):
     def _create_contribution(self, **kwargs):
         return ContributionFactory(donation_page=self.donation_page, **kwargs)
 
+    def _create_contribution_without_donation_page(self, **kwargs):
+        contribution = ContributionFactory(**kwargs)
+        contribution.donation_page = None
+        return contribution
+
     def test_status_resolved_to_public_value(self):
         failed_cont = self._create_contribution(status=ContributionStatus.FAILED)
         flagged_cont = self._create_contribution(status=ContributionStatus.FLAGGED)
@@ -146,6 +151,9 @@ class ContributorContributionSerializerTest(TestCase):
         contribution = self._create_contribution()
         data = self.serializer(contribution).data
         self.assertEqual(data["stripe_id"], self.test_stripe_account_id)
+        contribution = self._create_contribution_without_donation_page()
+        data = self.serializer(contribution).data
+        self.assertEqual(data["stripe_id"], "")
 
 
 class AbstractPaymentSerializerTest(TestCase):

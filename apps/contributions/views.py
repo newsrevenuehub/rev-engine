@@ -131,7 +131,7 @@ def stripe_oauth(request):
             {"scope_mismatch": "stripe_oauth received unexpected scope"}, status=status.HTTP_400_BAD_REQUEST
         )
 
-    revenue_program = RevenueProgram.objects.filter(id=revenue_program_id).first()
+    revenue_program = RevenueProgram.objects.get(id=revenue_program_id)
 
     if not revenue_program:
         return Response(
@@ -172,7 +172,7 @@ def stripe_confirmation(request):
         return Response(
             {"missing_params": "revenue_program_id missing required params"}, status=status.HTTP_400_BAD_REQUEST
         )
-    revenue_program = RevenueProgram.objects.filter(id=revenue_program_id).first()
+    revenue_program = RevenueProgram.objects.get(id=revenue_program_id)
     if not revenue_program:
         return Response(
             {"rp_not_found": f"RevenueProgram with ID = {revenue_program_id} is not found"},

@@ -137,8 +137,7 @@ class ContributorContributionSerializer(serializers.ModelSerializer):
             return card["last4"]
 
     def get_stripe_id(self, obj):
-        payment_provider = obj.revenue_program.payment_provider
-        return payment_provider.stripe_account_id if payment_provider else ""
+        return obj.stripe_account_id or ""
 
     class Meta:
         model = Contribution

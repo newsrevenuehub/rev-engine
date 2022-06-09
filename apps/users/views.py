@@ -17,12 +17,7 @@ from rest_framework.generics import GenericAPIView
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
-from apps.api.permissions import (
-    HasCreatePrivilegesViaRole,
-    HasDeletePrivilegesViaRole,
-    HasRoleAssignment,
-    is_a_contributor,
-)
+from apps.api.permissions import HasDeletePrivilegesViaRole, HasRoleAssignment, is_a_contributor
 from apps.public.permissions import IsActiveSuperUser
 from apps.users.models import UnexpectedRoleType
 from apps.users.serializers import UserSerializer
@@ -101,20 +96,16 @@ class FilterQuerySetByUserMixin(GenericAPIView):
             raise APIException(detail=str(exc))
 
 
-class PerUserCreateDeletePermissionsMixin(GenericAPIView):
-    """Limit who can create or delete a resource, by overriding default `.get_permissions`.
+class PerUserDeletePermissionsMixin(GenericAPIView):
+    """Limit who can delete a resource, by overriding default `.get_permissions`.
 
-    ... allow super users to create and delete
+    ... allow super users to delete
     ... allow users with roles if `HasCreatePrivilegesForSlugs` is true.
 
     """
 
     def get_permissions(self):
-        if self.action == "create":
-            composed_perm = IsActiveSuperUser | (IsAuthenticated & HasRoleAssignment & HasCreatePrivilegesViaRole(self))
-            return [composed_perm()]
         if self.action == "destroy":
             composed_perm = IsActiveSuperUser | (IsAuthenticated & HasRoleAssignment & HasDeletePrivilegesViaRole(self))
             return [composed_perm()]
-
         return super().get_permissions()

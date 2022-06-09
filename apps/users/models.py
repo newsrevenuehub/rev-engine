@@ -97,9 +97,5 @@ class RoleAssignmentResourceModelMixin:  # pragma: no cover
         raise NotImplementedError
 
     @classmethod
-    def user_has_create_permission_by_virtue_of_role(cls, user, view):
-        raise NotImplementedError
-
-    @classmethod
     def user_has_delete_permission_by_virtue_of_role(cls, user, obj):
         raise NotImplementedError

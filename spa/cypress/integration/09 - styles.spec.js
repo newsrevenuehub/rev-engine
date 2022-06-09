@@ -16,6 +16,8 @@ const hubAdminWithContentFlag = {
   flags: [{ ...contentSectionFlag }]
 };
 
+const [styleA] = stylesList;
+
 describe('Styles list', () => {
   beforeEach(() => {
     cy.forceLogin(hubAdminUser);
@@ -35,7 +37,7 @@ describe('Styles list', () => {
   });
 
   it('should open edit modal when style is clicked', () => {
-    cy.getByTestId('style-card-1').click();
+    cy.getByTestId(`style-card-${styleA.id}`).click();
     cy.getByTestId('edit-styles-modal-update').should('exist');
     cy.getByTestId('close-modal').click();
   });

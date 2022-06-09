@@ -225,7 +225,7 @@ describe('Donation page edit', () => {
     });
 
     it('should not show option to enable NYT sub if RP has not enabled it', () => {
-      expect(livePage.allow_offer_nyt_comp).to.be.false;
+      expect(livePage.allow_offer_nyt_comp).to.be.null;
       cy.getByTestId('offer-nyt-comp').should('not.exist');
     });
 

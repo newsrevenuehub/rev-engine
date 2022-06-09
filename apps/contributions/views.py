@@ -133,12 +133,6 @@ def stripe_oauth(request):
 
     revenue_program = RevenueProgram.objects.get(id=revenue_program_id)
 
-    if not revenue_program:
-        return Response(
-            {"rp_not_found": f"RevenueProgram with ID = {revenue_program_id} is not found"},
-            status=status.HTTP_404_NOT_FOUND,
-        )
-
     try:
         oauth_response = stripe.OAuth.token(
             grant_type="authorization_code",

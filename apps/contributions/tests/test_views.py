@@ -120,7 +120,7 @@ class StripeOneTimePaymentViewTest(StripePaymentViewTestAbstract):
     @patch("apps.contributions.views.send_contribution_confirmation_email.delay")
     @patch("apps.contributions.views.StripePaymentManager.create_one_time_payment", side_effect=MockPaymentIntent)
     def test_one_time_payment_serializer_gets_uid_as_email_hash(self, *args):
-        response = self._post_valid_one_time_payment(self.page)
+        response = self._post_valid_payment(email=test_stripe_payment_email)
         self.assertEqual(response.status_code, 200)
         self.assertIn("email_hash", response.data)
         self.assertEqual(str(response.data["email_hash"]), get_sha256_hash(test_stripe_payment_email))

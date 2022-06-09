@@ -35,6 +35,7 @@ class ReactAppView(TemplateView):
             try:
                 return RevenueProgram.objects.get(slug=subdomain)
             except RevenueProgram.DoesNotExist:
+                # TODO: [DEV-1856] this should use %-formatting
                 logger.warning(f'ReactAppView failed to retrieve RevenueProgram by subdomain "{subdomain}"')
 
     def _add_social_media_context(self, revenue_program, context):

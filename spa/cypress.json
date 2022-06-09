@@ -3,5 +3,6 @@
   "videoUploadOnPasses": false,
   "chromeWebSecurity": false,
   "componentFolder": "src/components",
-  "testFiles": "**/*spec.js"
+  "testFiles": "**/*spec.js",
+  "projectId": "68ek4u"
 }

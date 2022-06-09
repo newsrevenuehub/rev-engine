@@ -356,3 +356,22 @@ class RevenueProgram(IndexedTimeStampedModel):
                 logger.warning(
                     f"Failed to register ApplePayDomain for RevenueProgram {self.name}. StripeError: {str(stripe_error)}"
                 )
+
+    def user_has_ownership_via_role(self, role_assignment):
+        """Determine if a user owns an instance based on role_assignment"""
+        return any(
+            [
+                all(
+                    [
+                        role_assignment.role_type == Roles.ORG_ADMIN.value,
+                        role_assignment.organization == self.organization,
+                    ]
+                ),
+                all(
+                    [
+                        role_assignment.role_type == Roles.RP_ADMIN.value,
+                        self in role_assignment.revenue_programs.all(),
+                    ]
+                ),
+            ]
+        )

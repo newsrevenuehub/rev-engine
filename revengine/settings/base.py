@@ -307,6 +307,10 @@ HEALTHCHECK_URL_AUTO_ACCEPT_FLAGGED_PAYMENTS = os.environ.get("HEALTHCHECK_URL_A
 EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
 EMAIL_SUBJECT_PREFIX = "[RevEngine] "
 
+# This determines which template is used on the ESP (at present Mailgun) when sending contribution confirmation emails.
+ESP_TEMPLATE_ID_FOR_CONTRIBUTION_CONFIRMATION = os.environ.get("ESP_TEMPLATE_ID_FOR_CONTRIBUTION_CONFIRMATION")
+
+
 ADMINS = [("dc", "daniel@fundjournalism.org")]
 
 # Revengine template identifiers

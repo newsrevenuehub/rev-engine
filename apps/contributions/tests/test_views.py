@@ -329,6 +329,18 @@ class StripeOAuthTest(AbstractTestCase):
         self.assertEqual(self.org1_rp1.payment_provider.stripe_account_id, expected_stripe_account_id)
         self.assertEqual(self.org1_rp1.payment_provider.stripe_oauth_refresh_token, expected_refresh_token)
 
+    @patch("stripe.OAuth.token")
+    def test_create_payment_provider_if_not_exists(self, stripe_oauth_token):
+        expected_stripe_account_id = "new_stripe_account_id"
+        refresh_token = "my_test_refresh_token"
+        stripe_oauth_token.return_value = MockOAuthResponse(
+            stripe_user_id=expected_stripe_account_id, refresh_token=refresh_token
+        )
+        self.org1_rp2.payment_provider = None
+        self._make_request(code="1234", scope=expected_oauth_scope, revenue_program_id=self.org1_rp2.id)
+        self.org1_rp2.refresh_from_db()
+        self.assertEqual(self.org1_rp2.payment_provider.stripe_account_id, expected_stripe_account_id)
+
 
 class MockStripeAccountEnabled(MockStripeAccount):
     def __init__(self, *args, **kwargs):
@@ -506,9 +518,7 @@ class TestContributionsViewSet(RevEngineApiAbstractTestCase):
     def test_rp_user_cannot_get_contribution_from_another_org(self):
         contrib_not_in_users_org_pk = (
             Contribution.objects.exclude(
-                donation_page__in=DonationPage.objects.filter(
-                    revenue_program__in=self.rp_user.roleassignment.revenue_programs.all()
-                )
+                donation_page__revenue_program__in=self.rp_user.roleassignment.revenue_programs.all()
             )
             .first()
             .pk
@@ -541,9 +551,7 @@ class TestContributionsViewSet(RevEngineApiAbstractTestCase):
 
     def test_org_admin_can_list_orgs_contributions(self):
         """Should get back only contributions belonging to my org"""
-        donation_pages_of_org = DonationPage.objects.filter(
-            revenue_program__in=RevenueProgram.objects.filter(organization=self.org1)
-        )
+        donation_pages_of_org = DonationPage.objects.filter(revenue_program__organization=self.org1)
         donation_pages = set(i.id for i in donation_pages_of_org)
         self.assertGreater(
             Contribution.objects.exclude(donation_page__in=donation_pages_of_org).count(),

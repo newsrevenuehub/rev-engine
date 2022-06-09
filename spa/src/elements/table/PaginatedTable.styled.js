@@ -72,7 +72,7 @@ export const PaginatedTable = styled.table`
 
 export const TH = styled.th`
   padding: 1rem;
-  background: ${(props) => (props.theme.colors.cstm_CTAs ? props.theme.colors.cstm_CTAs : props.theme.colors.primary)};
+  background: ${(props) => props.theme.colors.cstm_CTAs || props.theme.colors.primary};
   color: ${(props) => props.theme.colors.white};
 
   div {
@@ -83,11 +83,7 @@ export const TH = styled.th`
   }
   &:hover {
     background: ${(props) =>
-      props.disableSortBy
-        ? ''
-        : props.theme.colors.cstm_CTAs
-        ? props.theme.colors.cstm_CTAs
-        : props.theme.colors.primaryLight};
+      props.disableSortBy ? '' : props.theme.colors.cstm_CTAs || props.theme.colors.primaryLight};
   }
 `;
 
@@ -121,7 +117,7 @@ export const ResultsSummary = styled.p`
   span {
     font-family: ${(props) => props.theme.systemFont};
     font-weight: bold;
-    color: ${(props) => (props.theme.colors.cstm_CTAs ? props.theme.colors.cstm_CTAs : props.theme.colors.primary)};
+    color: ${(props) => props.theme.colors.cstm_CTAs || props.theme.colors.primary};
   }
 `;
 
@@ -136,7 +132,7 @@ export const Pages = styled.p`
 `;
 
 export const Current = styled.span`
-  color: ${(props) => (props.theme.colors.cstm_CTAs ? props.theme.colors.cstm_CTAs : props.theme.colors.primary)};
+  color: ${(props) => props.theme.colors.cstm_CTAs || props.theme.colors.primary};
   font-weight: bold;
 `;
 

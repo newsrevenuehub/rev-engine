@@ -1,12 +1,4 @@
-import { useState, useCallback } from 'react';
-
-// AJAX
-import useRequest from 'hooks/useRequest';
-import { LIST_STYLES } from 'ajax/endpoints';
-import { GENERIC_ERROR } from 'constants/textConstants';
-
-// Deps
-import { useAlert } from 'react-alert';
+import { useState } from 'react';
 
 // Children
 import DashboardSectionGroup from 'components/dashboard/DashboardSectionGroup';
@@ -15,8 +7,6 @@ import Pages from 'components/content/pages/Pages';
 import AddPageModal from 'components/content/pages/AddPageModal';
 
 function Content() {
-  const alert = useAlert();
-  const requestGetStyles = useRequest();
   const [showAddPageModal, setShowAddPageModal] = useState(false);
 
   return (

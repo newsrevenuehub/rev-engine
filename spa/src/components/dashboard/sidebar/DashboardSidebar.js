@@ -31,7 +31,7 @@ function DashboardSidebar({ shouldAllowDashboard }) {
             onClick={handleClick}
             disabled={!shouldAllowDashboard}
           >
-            Content
+            Pages
           </S.NavItem>
         ) : null}
         {hasContentSectionAccess ? (

@@ -40,7 +40,7 @@ function Customize() {
         onFailure: () => alert.error(GENERIC_ERROR)
       }
     );
-  }, [alert]);
+  }, [alert, requestGetStyles]);
 
   return (
     <>

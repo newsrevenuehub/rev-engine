@@ -445,7 +445,8 @@ describe.skip('Resulting request', () => {
       { fixture: 'pages/live-page-1', statusCode: 200 }
     ).as('getPageDetail');
     cy.visit(getTestingDonationPageUrl(expectedPageSlug));
-    cy.url().should('include', EXPECTED_RP_SLUG);
+    // cy.url().should('include', EXPECTED_RP_SLUG);
+    cy.url().should('include', 'make this test fail to see flow in CI');
     cy.url().should('include', expectedPageSlug);
     cy.wait('@getPageDetail');
 

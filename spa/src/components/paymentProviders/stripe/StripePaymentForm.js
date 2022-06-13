@@ -83,17 +83,18 @@ function StripePaymentForm({ loading, setLoading, offerPayFees }) {
   /****************************\
    * Handle Error and Success *
   \****************************/
-  const handlePaymentSuccess = (pr) => {
+  const handlePaymentSuccess = (pr, rpApiResponse) => {
     if (pr) pr.complete('success');
+
     const totalAmount = getTotalAmount(amount, payFee, frequency, page.organization_is_nonprofit);
     setErrors({});
     setStripeError(null);
     setLoading(false);
     setSucceeded(true);
     trackConversion(totalAmount);
-    const qstr = `frequency=${encodeURIComponent(getFrequencyThankYouText(frequency))}&amount=${encodeURIComponent(
-      totalAmount
-    )}`;
+    const qstr = `uid=${rpApiResponse?.data?.email_hash}&frequency=${encodeURIComponent(
+      getFrequencyThankYouText(frequency)
+    )}&amount=${encodeURIComponent(totalAmount)}`;
 
     if (page.thank_you_redirect) {
       let redirectURL = page.thank_you_redirect;
@@ -201,7 +202,7 @@ function StripePaymentForm({ loading, setLoading, offerPayFees }) {
       stripe,
       data,
       { paymentRequest },
-      () => handlePaymentSuccess(paymentRequest),
+      () => handlePaymentSuccess,
       (error) => handlePaymentFailure(error, paymentRequest)
     );
   };

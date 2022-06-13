@@ -24,6 +24,7 @@ from apps.contributions.payment_managers import (
     PaymentProviderError,
     StripePaymentManager,
 )
+from apps.contributions.utils import get_sha256_hash
 from apps.contributions.webhooks import StripeWebhookProcessor
 from apps.emails.tasks import send_contribution_confirmation_email
 from apps.organizations.models import PaymentProvider, RevenueProgram
@@ -40,6 +41,7 @@ UserModel = get_user_model()
 @authentication_classes([])
 @permission_classes([])
 def stripe_payment(request):
+
     pi_data = request.data
 
     # Grab required data from headers
@@ -108,6 +110,12 @@ def stripe_payment(request):
         error_message = str(pp_error)
         logger.error(error_message)
         return Response({"detail": error_message}, status=status.HTTP_400_BAD_REQUEST)
+
+    # create hash based on email.
+    if "email" in pi_data:
+        response_body["email_hash"] = get_sha256_hash(pi_data["email"])
+    else:
+        response_body["email_hash"] = ""
 
     return Response(response_body, status=status.HTTP_200_OK)
 

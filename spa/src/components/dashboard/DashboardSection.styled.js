@@ -12,7 +12,7 @@ export const SectionHeading = styled(motion.div)`
   display: flex;
   justify-content: center;
   align-items: center;
-  background: ${(props) => props.theme.colors.primary};
+  background: ${(props) => props.theme.colors.cstm_CTAs || props.theme.colors.primary};
   border-top-right-radius: ${(props) => props.theme.radii[0]};
   border-top-left-radius: ${(props) => props.theme.radii[0]};
   height: 50px;
@@ -24,6 +24,7 @@ export const SectionHeading = styled(motion.div)`
     margin: 0;
     font-size: ${(props) => props.theme.fontSizes[1]};
     color: ${(props) => props.theme.colors.white};
+    font-family: ${(props) => (props.theme.font.heading ? props.theme.font.heading.font_name : props.theme.systemFont)};
   }
 `;
 

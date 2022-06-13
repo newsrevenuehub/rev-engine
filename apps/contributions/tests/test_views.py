@@ -22,6 +22,7 @@ from apps.common.tests.test_resources import AbstractTestCase
 from apps.contributions.models import Contribution, ContributionInterval
 from apps.contributions.payment_managers import PaymentBadParamsError, PaymentProviderError
 from apps.contributions.tests.factories import ContributionFactory, ContributorFactory
+from apps.contributions.utils import get_sha256_hash
 from apps.contributions.views import stripe_payment
 from apps.organizations.models import RevenueProgram
 from apps.organizations.tests.factories import (
@@ -38,6 +39,7 @@ from apps.users.tests.utils import create_test_user
 faker = Faker()
 
 test_client_secret = "secret123"
+test_stripe_payment_email = "tester@testing.com"
 
 
 EXPECTED_CONTRIBUTION_CONFIRMATION_TEMPLATE_KEYS = (
@@ -70,7 +72,7 @@ class StripePaymentViewTestAbstract(AbstractTestCase):
         cls.referer = faker.url()
         cls.url = reverse("stripe-payment")
 
-    def _create_request(self, donation_page, email="tester@testing.com", interval=None, payment_method_id=None):
+    def _create_request(self, donation_page, email=test_stripe_payment_email, interval=None, payment_method_id=None):
         factory = APIRequestFactory()
         request = factory.post(
             self.url,
@@ -119,6 +121,14 @@ class StripeOneTimePaymentViewTest(StripePaymentViewTestAbstract):
         self.assertEqual(response.status_code, 400)
         self.assertIn("email", response.data)
         self.assertEqual(str(response.data["email"][0]), "This field may not be null.")
+
+    @patch("apps.contributions.views.send_contribution_confirmation_email.delay")
+    @patch("apps.contributions.views.StripePaymentManager.create_one_time_payment", side_effect=MockPaymentIntent)
+    def test_one_time_payment_serializer_gets_uid_as_email_hash(self, *args):
+        response = self._post_valid_payment(email=test_stripe_payment_email)
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("email_hash", response.data)
+        self.assertEqual(str(response.data["email_hash"]), get_sha256_hash(test_stripe_payment_email))
 
     @patch("apps.contributions.views.send_contribution_confirmation_email.delay")
     @patch("apps.contributions.views.StripePaymentManager.create_one_time_payment", side_effect=MockPaymentIntent)

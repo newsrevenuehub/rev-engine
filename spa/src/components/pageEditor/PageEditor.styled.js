@@ -4,6 +4,23 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 
 export const PageEditor = styled.div``;
 
+export const ButtonOverlayOuter = styled.div`
+  position: fixed;
+  left: 0;
+  top: 0;
+  width: 180px;
+  background-color: #fff;
+  height: 100%;
+
+  @media (${(props) => props.theme.breakpoints.tabletLandscapeDown}) {
+    padding-top: 0;
+    margin-top: 81px;
+    height: 100%;
+    width: 90px;
+    box-shadow: ${(props) => props.theme.shadows[0]};
+  }
+`;
+
 export const ButtonOverlay = styled.div`
   position: fixed;
   left: 0;

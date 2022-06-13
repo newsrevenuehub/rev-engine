@@ -85,8 +85,8 @@ function StripePaymentForm({ loading, setLoading, offerPayFees }) {
   \****************************/
   const handlePaymentSuccess = (pr, rpApiResponse) => {
     if (pr) pr.complete('success');
-    const totalAmount = getTotalAmount(amount, payFee, frequency, page.revenue_program_is_nonprofit);
 
+    const totalAmount = getTotalAmount(amount, payFee, frequency, page.organization_is_nonprofit);
     setErrors({});
     setStripeError(null);
     setLoading(false);
@@ -158,7 +158,7 @@ function StripePaymentForm({ loading, setLoading, offerPayFees }) {
   \********************************/
   const staticParams = {
     ...params,
-    rpIsNonProfit: page.revenue_program_is_nonprofit,
+    orgIsNonProfit: page.organization_is_nonprofit,
     orgCountry: page.organization_country,
     currency: page.currency?.code?.toLowerCase(),
     salesforceCampaignId,
@@ -216,8 +216,8 @@ function StripePaymentForm({ loading, setLoading, offerPayFees }) {
    * amount. For that, we must use the paymentRequest.update method.
    */
   useEffect(() => {
-    const rpIsNonProfit = page.revenue_program_is_nonprofit;
-    const amnt = amountToCents(getTotalAmount(amount, payFee, frequency, rpIsNonProfit));
+    const orgIsNonProfit = page.organization_is_nonprofit;
+    const amnt = amountToCents(getTotalAmount(amount, payFee, frequency, orgIsNonProfit));
     if (stripe && amountIsValid && !paymentRequest) {
       const pr = stripe.paymentRequest({
         country: page?.organization_country,
@@ -259,8 +259,8 @@ function StripePaymentForm({ loading, setLoading, offerPayFees }) {
    * paymentRequest.update method.
    */
   useEffect(() => {
-    const rpIsNonProfit = page.revenue_program_is_nonprofit;
-    const amnt = amountToCents(getTotalAmount(amount, payFee, frequency, rpIsNonProfit));
+    const orgIsNonProfit = page.organization_is_nonprofit;
+    const amnt = amountToCents(getTotalAmount(amount, payFee, frequency, orgIsNonProfit));
     const amntIsValid = !isNaN(amnt) && amnt > 0;
     if (paymentRequest && amntIsValid) {
       paymentRequest.update({
@@ -279,7 +279,7 @@ function StripePaymentForm({ loading, setLoading, offerPayFees }) {
    * @returns {string} - The text to display in the submit button.
    */
   const getButtonText = () => {
-    const totalAmount = getTotalAmount(amount, payFee, frequency, page.revenue_program_is_nonprofit);
+    const totalAmount = getTotalAmount(amount, payFee, frequency, page.organization_is_nonprofit);
     if (isNaN(totalAmount)) {
       return 'Enter a valid amount';
     }

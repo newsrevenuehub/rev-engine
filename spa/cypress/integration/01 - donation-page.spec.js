@@ -32,8 +32,7 @@ describe('Routing', () => {
     ).as('getPageDetail');
     cy.visit(getTestingDonationPageUrl(expectedPageSlug));
     cy.wait('@getPageDetail');
-    // cy.getByTestId('donation-page').should('exist');
-    cy.getByTestId('fake-element').should('exist');
+    cy.getByTestId('donation-page').should('exist');
     cy.get('head').find(`script[src*="${CLEARBIT_SCRIPT_SRC}"]`).should('have.length', 1);
   });
 

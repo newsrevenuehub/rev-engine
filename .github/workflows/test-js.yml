@@ -52,7 +52,8 @@ jobs:
           # these containers will load balance all found tests among themselves
           record: true
           parallel: true
-          group: "Actions example"
+          group: "Cypress integration tests"
+          quiet: true
         env:
           CYPRESS_RECORD_KEY: ${{ secrets.CYPRESS_RECORD_KEY }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

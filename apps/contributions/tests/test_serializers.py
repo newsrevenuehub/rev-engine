@@ -8,7 +8,11 @@ from apps.contributions import serializers
 from apps.contributions.models import ContributionStatus
 from apps.contributions.tests.factories import ContributionFactory, ContributorFactory
 from apps.contributions.utils import format_ambiguous_currency
-from apps.organizations.tests.factories import OrganizationFactory, RevenueProgramFactory
+from apps.organizations.tests.factories import (
+    OrganizationFactory,
+    PaymentProviderFactory,
+    RevenueProgramFactory,
+)
 from apps.pages.tests.factories import DonationPageFactory
 
 
@@ -89,11 +93,19 @@ class ContributorContributionSerializerTest(TestCase):
     def setUp(self):
         self.serializer = serializers.ContributorContributionSerializer
         self.test_stripe_account_id = "testing_123"
-        self.org = OrganizationFactory(stripe_account_id=self.test_stripe_account_id)
+        self.org = OrganizationFactory()
+        payment_provider = PaymentProviderFactory(stripe_account_id=self.test_stripe_account_id)
+        revenue_program = RevenueProgramFactory(organization=self.org, payment_provider=payment_provider)
+        self.donation_page = DonationPageFactory(revenue_program=revenue_program)
         self.contribution = ContributionFactory()
 
     def _create_contribution(self, **kwargs):
-        return ContributionFactory(organization=self.org, **kwargs)
+        return ContributionFactory(donation_page=self.donation_page, **kwargs)
+
+    def _create_contribution_without_donation_page(self, **kwargs):
+        contribution = ContributionFactory(**kwargs)
+        contribution.donation_page = None
+        return contribution
 
     def test_status_resolved_to_public_value(self):
         failed_cont = self._create_contribution(status=ContributionStatus.FAILED)
@@ -135,10 +147,13 @@ class ContributorContributionSerializerTest(TestCase):
         data = self.serializer(contribution).data
         self.assertEqual(data["last4"], target_last4)
 
-    def test_get_org_stripe_id(self):
+    def test_get_stripe_id(self):
         contribution = self._create_contribution()
         data = self.serializer(contribution).data
-        self.assertEqual(data["org_stripe_id"], self.test_stripe_account_id)
+        self.assertEqual(data["stripe_id"], self.test_stripe_account_id)
+        contribution = self._create_contribution_without_donation_page()
+        data = self.serializer(contribution).data
+        self.assertEqual(data["stripe_id"], "")
 
 
 class AbstractPaymentSerializerTest(TestCase):

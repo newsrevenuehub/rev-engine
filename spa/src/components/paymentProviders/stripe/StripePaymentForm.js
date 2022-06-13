@@ -83,18 +83,17 @@ function StripePaymentForm({ loading, setLoading, offerPayFees }) {
   /****************************\
    * Handle Error and Success *
   \****************************/
-  const handlePaymentSuccess = (pr, rpApiResponse) => {
+  const handlePaymentSuccess = (pr) => {
     if (pr) pr.complete('success');
-
-    const totalAmount = getTotalAmount(amount, payFee, frequency, page.organization_is_nonprofit);
+    const totalAmount = getTotalAmount(amount, payFee, frequency, page.revenue_program_is_nonprofit);
     setErrors({});
     setStripeError(null);
     setLoading(false);
     setSucceeded(true);
     trackConversion(totalAmount);
-    const qstr = `uid=${rpApiResponse?.data?.email_hash}&frequency=${encodeURIComponent(
-      getFrequencyThankYouText(frequency)
-    )}&amount=${encodeURIComponent(totalAmount)}`;
+    const qstr = `frequency=${encodeURIComponent(getFrequencyThankYouText(frequency))}&amount=${encodeURIComponent(
+      totalAmount
+    )}`;
 
     if (page.thank_you_redirect) {
       let redirectURL = page.thank_you_redirect;
@@ -158,7 +157,7 @@ function StripePaymentForm({ loading, setLoading, offerPayFees }) {
   \********************************/
   const staticParams = {
     ...params,
-    orgIsNonProfit: page.organization_is_nonprofit,
+    rpIsNonProfit: page.revenue_program_is_nonprofit,
     orgCountry: page.organization_country,
     currency: page.currency?.code?.toLowerCase(),
     salesforceCampaignId,
@@ -202,7 +201,7 @@ function StripePaymentForm({ loading, setLoading, offerPayFees }) {
       stripe,
       data,
       { paymentRequest },
-      () => handlePaymentSuccess,
+      () => handlePaymentSuccess(paymentRequest),
       (error) => handlePaymentFailure(error, paymentRequest)
     );
   };
@@ -216,8 +215,8 @@ function StripePaymentForm({ loading, setLoading, offerPayFees }) {
    * amount. For that, we must use the paymentRequest.update method.
    */
   useEffect(() => {
-    const orgIsNonProfit = page.organization_is_nonprofit;
-    const amnt = amountToCents(getTotalAmount(amount, payFee, frequency, orgIsNonProfit));
+    const rpIsNonProfit = page.revenue_program_is_nonprofit;
+    const amnt = amountToCents(getTotalAmount(amount, payFee, frequency, rpIsNonProfit));
     if (stripe && amountIsValid && !paymentRequest) {
       const pr = stripe.paymentRequest({
         country: page?.organization_country,
@@ -259,8 +258,8 @@ function StripePaymentForm({ loading, setLoading, offerPayFees }) {
    * paymentRequest.update method.
    */
   useEffect(() => {
-    const orgIsNonProfit = page.organization_is_nonprofit;
-    const amnt = amountToCents(getTotalAmount(amount, payFee, frequency, orgIsNonProfit));
+    const rpIsNonProfit = page.revenue_program_is_nonprofit;
+    const amnt = amountToCents(getTotalAmount(amount, payFee, frequency, rpIsNonProfit));
     const amntIsValid = !isNaN(amnt) && amnt > 0;
     if (paymentRequest && amntIsValid) {
       paymentRequest.update({
@@ -279,7 +278,7 @@ function StripePaymentForm({ loading, setLoading, offerPayFees }) {
    * @returns {string} - The text to display in the submit button.
    */
   const getButtonText = () => {
-    const totalAmount = getTotalAmount(amount, payFee, frequency, page.organization_is_nonprofit);
+    const totalAmount = getTotalAmount(amount, payFee, frequency, page.revenue_program_is_nonprofit);
     if (isNaN(totalAmount)) {
       return 'Enter a valid amount';
     }

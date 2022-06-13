@@ -41,7 +41,6 @@ export const NavItem = styled(NavLink)`
 
   margin: 1rem 0;
   padding: 1rem 2rem;
-  font-family: ${(props) => props.theme.systemFont};
 
   cursor: ${(props) => (props.disabled ? 'default' : 'pointer')};
 

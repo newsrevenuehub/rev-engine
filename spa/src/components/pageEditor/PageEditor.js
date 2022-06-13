@@ -362,46 +362,39 @@ function PageEditor() {
           </SegregatedStyles>
         )}
         {page && (
-          <S.ButtonOverlayOuter>
-            <S.ButtonOverlay>
-              <CircleButton
-                onClick={handlePreview}
-                selected={selectedButton === PREVIEW}
-                icon={faEye}
-                buttonType="neutral"
-                color={theme.colors.primary}
-                data-testid="preview-page-button"
-              />
-              <CircleButton
-                onClick={handleEdit}
-                selected={selectedButton === EDIT}
-                icon={faEdit}
-                buttonType="neutral"
-                data-testid="edit-page-button"
-              />
-              <CircleButton
-                onClick={handleSave}
-                icon={faSave}
-                buttonType="neutral"
-                data-testid="save-page-button"
-                disabled={!updatedPage}
-              />
-              <CircleButton
-                onClick={handleMakeTemplate}
-                icon={faClone}
-                buttonType="neutral"
-                data-testid="clone-page-button"
-              />
-              <CircleButton
-                onClick={handleDelete}
-                icon={faTrash}
-                buttonType="caution"
-                data-testid="delete-page-button"
-              />
+          <S.ButtonOverlay>
+            <CircleButton
+              onClick={handlePreview}
+              selected={selectedButton === PREVIEW}
+              icon={faEye}
+              buttonType="neutral"
+              color={theme.colors.primary}
+              data-testid="preview-page-button"
+            />
+            <CircleButton
+              onClick={handleEdit}
+              selected={selectedButton === EDIT}
+              icon={faEdit}
+              buttonType="neutral"
+              data-testid="edit-page-button"
+            />
+            <CircleButton
+              onClick={handleSave}
+              icon={faSave}
+              buttonType="neutral"
+              data-testid="save-page-button"
+              disabled={!updatedPage}
+            />
+            <CircleButton
+              onClick={handleMakeTemplate}
+              icon={faClone}
+              buttonType="neutral"
+              data-testid="clone-page-button"
+            />
+            <CircleButton onClick={handleDelete} icon={faTrash} buttonType="caution" data-testid="delete-page-button" />
 
-              <BackButton to={CONTENT_SLUG} />
-            </S.ButtonOverlay>
-          </S.ButtonOverlayOuter>
+            <BackButton to={CONTENT_SLUG} />
+          </S.ButtonOverlay>
         )}
       </S.PageEditor>
       {showCreateTemplateModal && (

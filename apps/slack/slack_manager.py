@@ -94,13 +94,13 @@ class SlackManager:
         dates = self.construct_common_dates_block(contribution)
         links = self.construct_common_link_block(contribution)
 
-        org_field = {"type": "mrkdwn", "text": f"*Organization:*\n{contribution.organization.name}"}
+        org_field = {"type": "mrkdwn", "text": f"*Organization:*\n{contribution.revenue_program.organization.name}"}
         body["fields"].insert(0, org_field)
 
         return [header, body, dates, links]
 
     def construct_hub_text(self, contribution):
-        return f"{self.common_header_text}: {contribution.formatted_amount} for {contribution.organization.name} from {contribution.contributor.email}"
+        return f"{self.common_header_text}: {contribution.formatted_amount} for {contribution.revenue_program.organization.name} from {contribution.contributor.email}"
 
     def construct_org_blocks(self, contribution):
         header = self.construct_common_header_block()
@@ -149,7 +149,7 @@ class SlackManager:
 
     def send_hub_notifications(self, contribution):
         main_channel = self.hub_integration.channel
-        org_channel = self.get_org_channel(contribution.organization)
+        org_channel = self.get_org_channel(contribution.donation_page.organization)
         main_blocks = self.construct_hub_blocks(contribution)
         main_text = self.construct_hub_text(contribution)
         org_text = self.construct_org_text(contribution)
@@ -161,7 +161,7 @@ class SlackManager:
         main_channel = self.org_integration.channel
         blocks = self.construct_org_blocks(contribution)
         text = self.construct_org_text(contribution)
-        self.send_org_message(main_channel, text, blocks, contribution.organization)
+        self.send_org_message(main_channel, text, blocks, contribution.revenue_program.organization)
 
     def publish_contribution(self, contribution, event_type=None):
         """
@@ -175,6 +175,6 @@ class SlackManager:
         if self.hub_integration:
             self.send_hub_notifications(contribution)
 
-        self.org_integration = self.get_org_integration(contribution.organization)
+        self.org_integration = self.get_org_integration(contribution.revenue_program.organization)
         if self.org_integration:
             self.send_org_notifications(contribution)

@@ -5,6 +5,7 @@ from apps.organizations.models import (
     BenefitLevel,
     Feature,
     Organization,
+    PaymentProvider,
     Plan,
     RevenueProgram,
 )
@@ -31,11 +32,24 @@ class OrganizationSerializer(serializers.ModelSerializer):
         model = Organization
         fields = "__all__"
 
+    def to_representation(self, instance):
+        representation = super().to_representation(instance)
+        revenue_program = instance.revenueprogram_set.first()
+        if revenue_program:
+            payment_provider = revenue_program.payment_provider
+            data = PaymentProviderSerializer(payment_provider).data
+            data.pop("id")
+            representation.update(**data)
+            # TODO: [DEV-1886] remove this after the FE no longer relies on it
+            representation["non_profit"] = revenue_program.non_profit
+            representation["domain_apple_verified_date"] = revenue_program.domain_apple_verified_date
+        return representation
+
 
 class OrganizationInlineSerializer(serializers.ModelSerializer):
     class Meta:
         model = Organization
-        fields = ["id", "name", "slug", "stripe_verified", "default_payment_provider", "stripe_account_id"]
+        fields = ["id", "name", "slug"]
 
 
 class RevenueProgramListInlineSerializer(serializers.ModelSerializer):
@@ -118,3 +132,9 @@ class BenefitLevelDetailSerializer(serializers.ModelSerializer):
             "donation_range",
             "benefits",
         ]
+
+
+class PaymentProviderSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = PaymentProvider
+        fields = "__all__"

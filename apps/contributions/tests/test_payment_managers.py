@@ -17,6 +17,13 @@ from apps.contributions.payment_managers import (
     PaymentProviderError,
     StripePaymentManager,
 )
+from apps.contributions.tests.factories import ContributionFactory, ContributorFactory
+from apps.organizations.tests.factories import (
+    OrganizationFactory,
+    PaymentProviderFactory,
+    RevenueProgramFactory,
+)
+from apps.pages.tests.factories import DonationPageFactory
 
 
 faker = Faker()
@@ -78,6 +85,7 @@ class StripePaymentManagerAbstractTestCase(AbstractTestCase):
             "referer": faker.url(),
             "page_id": self.page.pk,
         }
+        self.contribution = ContributionFactory(donation_page=self.page, contributor=self.contributor_user)
         self.contribution = Contribution.objects.filter(donation_page__revenue_program=self.org1_rp1).first()
 
     def _create_mock_ba_response(self, target_score=None, status_code=200):
@@ -211,7 +219,7 @@ class StripeOneTimePaymentManagerTest(StripePaymentManagerAbstractTestCase):
             currency="usd",
             customer=MockStripeCustomer.id,
             payment_method_types=["card"],
-            stripe_account=self.org1.stripe_account_id,
+            stripe_account=self.contribution.donation_page.revenue_program.payment_provider.stripe_account_id,
             capture_method="manual",
             receipt_email=data["email"],
             statement_descriptor_suffix=self.org1_rp1.stripe_statement_descriptor_suffix,
@@ -247,7 +255,7 @@ class StripeOneTimePaymentManagerTest(StripePaymentManagerAbstractTestCase):
             currency="usd",
             customer=MockStripeCustomer.id,
             payment_method_types=["card"],
-            stripe_account=self.org1.stripe_account_id,
+            stripe_account=self.contribution.donation_page.revenue_program.payment_provider.stripe_account_id,
             capture_method="automatic",
             receipt_email=data["email"],
             statement_descriptor_suffix=self.org1_rp1.stripe_statement_descriptor_suffix,
@@ -267,7 +275,7 @@ class StripeOneTimePaymentManagerTest(StripePaymentManagerAbstractTestCase):
         mock_pi_capture.assert_not_called()
         mock_pi_cancel.assert_called_once_with(
             None,
-            stripe_account=self.org1.stripe_account_id,
+            stripe_account=self.contribution.donation_page.revenue_program.payment_provider.stripe_account_id,
             cancellation_reason="fraudulent",
         )
 
@@ -279,7 +287,7 @@ class StripeOneTimePaymentManagerTest(StripePaymentManagerAbstractTestCase):
         mock_pi_cancel.assert_not_called()
         mock_pi_capture.assert_called_once_with(
             None,
-            stripe_account=self.org1.stripe_account_id,
+            stripe_account=self.contribution.donation_page.revenue_program.payment_provider.stripe_account_id,
         )
 
     @patch("stripe.PaymentIntent.capture", side_effect=MockInvalidRequestError)
@@ -355,8 +363,8 @@ class StripeRecurringPaymentManagerTest(StripePaymentManagerAbstractTestCase):
         self.contribution.save()
 
         test_stripe_product_id = "test_stripe_product_id"
-        self.org1.stripe_product_id = test_stripe_product_id
-        self.org1.save()
+        self.payment_provider1.stripe_product_id = test_stripe_product_id
+        self.payment_provider1.save()
 
         self.payment_method_id = "test_payment_method_id"
         self.data.update({"payment_method_id": self.payment_method_id, "interval": ContributionInterval.MONTHLY})
@@ -391,8 +399,8 @@ class StripeRecurringPaymentManagerTest(StripePaymentManagerAbstractTestCase):
         pm = self._prepare_valid_subscription(flagged=False)
         pm.create_subscription()
         mock_customer_create.assert_called_once_with(
+            stripe_account=self.contribution.donation_page.revenue_program.payment_provider.stripe_account_id,
             email=self.contributor_user.email,
-            stripe_account=self.org1.stripe_account_id,
             metadata=pm.bundle_metadata("CUSTOMER"),
         )
 
@@ -405,7 +413,7 @@ class StripeRecurringPaymentManagerTest(StripePaymentManagerAbstractTestCase):
         mock_payment_method_attach.assert_called_once_with(
             self.payment_method_id,
             customer=test_stripe_customer_id,
-            stripe_account=self.org1.stripe_account_id,
+            stripe_account=self.contribution.donation_page.revenue_program.payment_provider.stripe_account_id,
         )
 
     @patch("stripe.Customer.create", side_effect=MockStripeCustomer)
@@ -422,12 +430,12 @@ class StripeRecurringPaymentManagerTest(StripePaymentManagerAbstractTestCase):
                     "price_data": {
                         "unit_amount": 1099,
                         "currency": self.contribution.currency,
-                        "product": self.org1.stripe_product_id,
+                        "product": self.contribution.donation_page.revenue_program.payment_provider.stripe_product_id,
                         "recurring": {"interval": self.data["interval"]},
                     }
                 }
             ],
-            stripe_account=self.org1.stripe_account_id,
+            stripe_account=self.contribution.donation_page.revenue_program.payment_provider.stripe_account_id,
             metadata=pm.bundle_metadata("PAYMENT"),
         )
 
@@ -462,12 +470,12 @@ class StripeRecurringPaymentManagerTest(StripePaymentManagerAbstractTestCase):
                     "price_data": {
                         "unit_amount": self.contribution.amount,
                         "currency": self.contribution.currency,
-                        "product": self.org1.stripe_product_id,
+                        "product": self.contribution.donation_page.revenue_program.payment_provider.stripe_product_id,
                         "recurring": {"interval": self.contribution.interval},
                     }
                 }
             ],
-            stripe_account=self.org1.stripe_account_id,
+            stripe_account=self.contribution.donation_page.revenue_program.payment_provider.stripe_account_id,
             metadata=None,
         )
         self.assertEqual(self.contribution.status, ContributionStatus.PROCESSING)

@@ -1,5 +1,3 @@
-import hashlib
-
 from django.conf import settings
 
 
@@ -14,9 +12,3 @@ def get_hub_stripe_api_key(livemode=False):
 
 def format_ambiguous_currency(integer):
     return f"{integer / 100:,.2f}"
-
-
-def get_sha256_hash(string):
-    result = hashlib.sha256(string.encode())
-    hash_str = result.hexdigest()
-    return hash_str[:10]

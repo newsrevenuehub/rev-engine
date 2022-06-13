@@ -19,7 +19,6 @@ export const ContentWrapper = styled.section`
 
 export const Title = styled.h1`
   text-align: center;
-  font-family: ${(props) => props.theme.font.heading?.font_name};
 `;
 
 export const EmailForm = styled.form``;
@@ -57,6 +56,5 @@ export const Confirmation = styled.div`
   p {
     max-width: 400px;
     margin: 1rem auto;
-    font-family: ${(props) => props.theme.systemFont};
   }
 `;

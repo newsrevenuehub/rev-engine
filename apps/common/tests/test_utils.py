@@ -149,17 +149,15 @@ def test_get_changes_from_prev_history_obj_change_no_diff(db):
 def test_get_changes_from_prev_history_obj_change_with_diff(db):
     """A historical change to update an object with a change returns a list of changes."""
     # Create an Organization.
-    organization = OrganizationFactory(salesforce_id="", stripe_account_id="1")
+    organization = OrganizationFactory(salesforce_id="")
     historial_change_create = organization.history.first()
     # Save the Organization and change some of the values.
     organization.salesforce_id = "1"
-    organization.stripe_account_id = "2"
     organization.save()
     historical_change_update = organization.history.exclude(history_id=historial_change_create.history_id).first()
     # The changes from the update should equal be the changes that were made.
     assert get_changes_from_prev_history_obj(historical_change_update) == [
         "'Salesforce ID' changed from '' to '1'",
-        "'stripe account id' changed from '1' to '2'",
     ]
 
 
@@ -179,7 +177,7 @@ def test_get_changes_from_prev_history_obj_change_with_diff_jsonfield(db):
 def test_get_changes_from_prev_history_obj_change_delete(db):
     """A historical change to delete an object returns no changes."""
     # Create an Organization.
-    organization = OrganizationFactory(salesforce_id="", stripe_account_id="1")
+    organization = OrganizationFactory(salesforce_id="")
     historial_change_create = organization.history.first()
     # Create a HistoricalOrganization object to delete the organization.
     HistoricalOrganization = historial_change_create.__class__

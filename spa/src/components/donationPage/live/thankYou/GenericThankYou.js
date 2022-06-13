@@ -73,7 +73,7 @@ function GenericThankYou() {
               <S.Text>
                 A receipt will be sent to <strong>{routedState?.email}</strong> shortly.
               </S.Text>
-              {routedState?.page.organization_is_nonprofit && (
+              {routedState?.page.revenue_program_is_nonprofit && (
                 <S.Text>Contributions or gifts to {routedState?.page.revenue_program.name} are tax deductible.</S.Text>
               )}
             </S.TextSection>

@@ -71,7 +71,7 @@ export function PayFeesWidget() {
         label={
           amount
             ? `${currencySymbol}${formatStringAmountForDisplay(
-                calculateStripeFee(amount, frequency, page.revenue_program_is_nonprofit)
+                calculateStripeFee(amount, frequency, page.organization_is_nonprofit)
               )} ${getFrequencyAdverb(frequency)}`
             : ''
         }

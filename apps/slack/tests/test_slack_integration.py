@@ -7,8 +7,7 @@ from slack_sdk.errors import SlackApiError
 
 from apps.contributions.models import ContributionInterval
 from apps.contributions.tests.factories import ContributionFactory, ContributorFactory
-from apps.organizations.tests.factories import OrganizationFactory, RevenueProgramFactory
-from apps.pages.tests.factories import DonationPageFactory
+from apps.organizations.tests.factories import OrganizationFactory
 from apps.slack.models import HubSlackIntegration, OrganizationSlackIntegration, format_channel_name
 from apps.slack.slack_manager import SlackManager
 
@@ -40,11 +39,10 @@ class SlackIntegrationTest(TestCase):
         )
         self.org_channel_name = f"{HUB_ORG_PREFIX}{SlackManager.format_org_name(self.org.name)}"
         self.contributor = ContributorFactory()
-
         self.contribution = ContributionFactory(
+            organization=self.org,
             contributor=self.contributor,
             amount=AMOUNT,
-            donation_page=DonationPageFactory(revenue_program=RevenueProgramFactory(organization=self.org)),
             last_payment_date=PAYMENT_DATE,
             interval=INTERVAL,
         )

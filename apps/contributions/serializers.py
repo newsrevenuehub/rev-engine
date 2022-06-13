@@ -468,3 +468,21 @@ class StripeRecurringPaymentSerializer(AbstractPaymentSerializer):
     """
 
     payment_method_id = serializers.CharField(max_length=255)
+
+
+class PaymentProviderContributionSerializer(serializers.Serializer):
+    """
+    Payments provider serializer, payment provider Eg: Stripe.
+    """
+
+    status = serializers.CharField(max_length=10)
+    card_brand = serializers.CharField(max_length=30)
+    last4 = serializers.IntegerField()
+    credit_card_expiration_date = serializers.DateTimeField()
+    payment_type = serializers.CharField(max_length=30)
+    next_payment_date = serializers.DateTimeField()
+    interval = serializers.CharField(max_length=8)
+    revenue_program = serializers.CharField(max_length=255)
+    amount = serializers.IntegerField()
+    provider_customer_id = serializers.CharField(max_length=255)
+    credit_card_expiration_date = serializers.DateTimeField()

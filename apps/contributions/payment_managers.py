@@ -195,7 +195,9 @@ class PaymentManager:
         self.data["contributor_id"] = contributor.pk
         return contributor
 
-    def create_contribution(self, contributor, provider_reference_instance=None, provider_customer_id="", metadata={}):
+    def create_contribution(
+        self, organization, contributor, provider_reference_instance=None, provider_customer_id="", metadata={}
+    ):
         if not self.payment_provider_name:
             raise ValueError("Subclass of PaymentManager must set payment_provider_name property")
 
@@ -209,6 +211,7 @@ class PaymentManager:
             currency=self.validated_data["currency"],
             status=status,
             donation_page=donation_page,
+            organization=organization,
             contributor=contributor,
             payment_provider_used=self.payment_provider_name,
             payment_provider_data=provider_reference_instance,
@@ -253,23 +256,25 @@ class StripePaymentManager(PaymentManager):
         """
         self.ensure_validated_data()
         self.ensure_bad_actor_score()
-        revenue_program = self.get_revenue_program()
+        organization = self.get_organization()
         contributor = self.get_or_create_contributor()
-        stripe_customer = self.create_stripe_customer(revenue_program)
+        stripe_customer = self.create_organization_customer(organization)
         capture_method = "manual" if self.flagged else "automatic"
+        revenue_program = self.get_revenue_program()
         metadata = self.bundle_metadata(ContributionMetadataSerializer.PAYMENT)
         stripe_payment_intent = stripe.PaymentIntent.create(
             amount=self.validated_data["amount"],
             currency=self.validated_data["currency"],
             customer=stripe_customer.id,
             payment_method_types=["card"],
-            stripe_account=revenue_program.payment_provider.stripe_account_id,
+            stripe_account=organization.stripe_account_id,
             capture_method=capture_method,
             statement_descriptor_suffix=revenue_program.stripe_statement_descriptor_suffix,
             receipt_email=self.validated_data["email"],
             metadata=metadata,
         )
         self.create_contribution(
+            organization,
             contributor,
             provider_reference_instance=stripe_payment_intent,
             provider_customer_id=stripe_customer.id,
@@ -285,24 +290,26 @@ class StripePaymentManager(PaymentManager):
         """
         self.ensure_validated_data()
         self.ensure_bad_actor_score()
-        revenue_program = self.get_revenue_program()
+        organization = self.get_organization()
 
         # Create customer on org...
         contributor = self.get_or_create_contributor()
-        stripe_customer = self.create_stripe_customer(revenue_program)
+        stripe_customer = self.create_organization_customer(organization)
         # ...attach paymentMethod to that customer.
-        self.attach_payment_method_to_customer(stripe_customer.id, revenue_program.payment_provider.stripe_account_id)
+        self.attach_payment_method_to_customer(stripe_customer.id, organization.stripe_account_id)
         metadata = self.bundle_metadata(ContributionMetadataSerializer.PAYMENT)
-        contribution = self.create_contribution(contributor, provider_customer_id=stripe_customer.id, metadata=metadata)
+        contribution = self.create_contribution(
+            organization, contributor, provider_customer_id=stripe_customer.id, metadata=metadata
+        )
         if not self.flagged:
             self.contribution = contribution
             self.complete_payment(reject=False)
 
-    def create_stripe_customer(self, revenue_program):
+    def create_organization_customer(self, organization):
         meta = self.bundle_metadata(ContributionMetadataSerializer.CUSTOMER)
         return stripe.Customer.create(
             email=self.validated_data["email"],
-            stripe_account=revenue_program.payment_provider.stripe_account_id,
+            stripe_account=organization.stripe_account_id,
             metadata=meta,
         )
 
@@ -319,11 +326,11 @@ class StripePaymentManager(PaymentManager):
 
     def cancel_recurring_payment(self):
         self.ensure_contribution()
-        revenue_program = self.contribution.revenue_program
+        organization = self.contribution.organization
         try:
             stripe.Subscription.delete(
                 self.contribution.provider_subscription_id,
-                stripe_account=revenue_program.payment_provider.stripe_account_id,
+                stripe_account=organization.stripe_account_id,
             )
         except stripe.error.StripeError as stripe_error:
             logger.error(f"stripe.Subscription.modify returned a StripeError: {str(stripe_error)}")
@@ -333,15 +340,13 @@ class StripePaymentManager(PaymentManager):
         self.ensure_contribution()
 
         customer_id = self.contribution.provider_customer_id
-        revenue_program = self.contribution.revenue_program
-        self.attach_payment_method_to_customer(
-            customer_id, revenue_program.payment_provider.stripe_account_id, payment_method_id
-        )
+        organization = self.contribution.organization
+        self.attach_payment_method_to_customer(customer_id, organization.stripe_account_id, payment_method_id)
         try:
             stripe.Subscription.modify(
                 self.contribution.provider_subscription_id,
                 default_payment_method=payment_method_id,
-                stripe_account=revenue_program.payment_provider.stripe_account_id,
+                stripe_account=organization.stripe_account_id,
             )
         except stripe.error.StripeError as stripe_error:
             logger.error(f"stripe.Subscription.modify returned a StripeError: {str(stripe_error)}")
@@ -354,7 +359,7 @@ class StripePaymentManager(PaymentManager):
             self.complete_recurring_payment(reject)
 
     def complete_one_time_payment(self, reject=False):
-        revenue_program = self.contribution.revenue_program
+        organization = self.contribution.organization
         previous_status = self.contribution.status
         self.contribution.status = ContributionStatus.PROCESSING
         self.contribution.save()
@@ -363,13 +368,13 @@ class StripePaymentManager(PaymentManager):
             if reject:
                 stripe.PaymentIntent.cancel(
                     self.contribution.provider_payment_id,
-                    stripe_account=revenue_program.payment_provider.stripe_account_id,
+                    stripe_account=organization.stripe_account_id,
                     cancellation_reason="fraudulent",
                 )
             else:
                 stripe.PaymentIntent.capture(
                     self.contribution.provider_payment_id,
-                    stripe_account=revenue_program.payment_provider.stripe_account_id,
+                    stripe_account=organization.stripe_account_id,
                 )
 
         except stripe.error.InvalidRequestError as invalid_request_error:
@@ -390,7 +395,7 @@ class StripePaymentManager(PaymentManager):
             self.contribution.save()
             return
 
-        revenue_program = self.contribution.revenue_program
+        organization = self.contribution.organization
         previous_status = self.contribution.status
         self.contribution.status = ContributionStatus.PROCESSING
         self.contribution.save()
@@ -398,7 +403,7 @@ class StripePaymentManager(PaymentManager):
             price_data = {
                 "unit_amount": self.contribution.amount,
                 "currency": self.contribution.currency,
-                "product": revenue_program.payment_provider.stripe_product_id,
+                "product": organization.stripe_product_id,
                 "recurring": {
                     "interval": self.contribution.interval,
                 },
@@ -407,7 +412,7 @@ class StripePaymentManager(PaymentManager):
                 customer=self.contribution.provider_customer_id,
                 default_payment_method=self.contribution.provider_payment_method_id,
                 items=[{"price_data": price_data}],
-                stripe_account=revenue_program.payment_provider.stripe_account_id,
+                stripe_account=organization.stripe_account_id,
                 metadata=self.contribution.contribution_metadata,
             )
         except stripe.error.StripeError as stripe_error:

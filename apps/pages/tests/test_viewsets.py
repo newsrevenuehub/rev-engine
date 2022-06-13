@@ -435,12 +435,12 @@ class PageViewSetTest(RevEngineApiAbstractTestCase):
         page.published_date = timezone.now() - datetime.timedelta(days=1)
         page.save()
         self.assertTrue(page.is_live)
-        page.revenue_program.payment_provider.stripe_verified = False
-        page.revenue_program.payment_provider.save()
-        self.assertFalse(page.revenue_program.payment_provider.is_verified_with_default_provider())
+        page.organization.stripe_verified = False
+        page.organization.save()
+        self.assertFalse(page.organization.is_verified_with_default_provider())
         url = f'{reverse("donationpage-live-detail")}?revenue_program={page.revenue_program.slug}&page={page.slug}'
         response = self.assert_unuauthed_cannot_get(url, status=status.HTTP_404_NOT_FOUND)
-        self.assertEqual(response.json(), {"detail": "RevenueProgram does not have a fully verified payment provider"})
+        self.assertEqual(response.json(), {"detail": "Organization does not have a fully verified payment provider"})
 
     def test_live_detail_page_when_styles(self):
         page = DonationPage.objects.first()

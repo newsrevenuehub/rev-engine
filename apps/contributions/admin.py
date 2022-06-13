@@ -49,11 +49,10 @@ class ContributionAdmin(RevEngineSimpleHistoryAdmin):
                     "currency",
                     "reason",
                     "interval",
-                    "revenue_program",
                 )
             },
         ),
-        ("Relations", {"fields": ("contributor", "donation_page")}),
+        ("Relations", {"fields": ("contributor", "donation_page", "organization")}),
         ("Bad Actor", {"fields": ("bad_actor_score", "bad_actor_response")}),
         (
             "Provider",
@@ -78,7 +77,7 @@ class ContributionAdmin(RevEngineSimpleHistoryAdmin):
 
     list_display = (
         "formatted_amount",
-        "revenue_program",
+        "organization",
         "contributor",
         "donation_page",
         "interval",
@@ -89,7 +88,7 @@ class ContributionAdmin(RevEngineSimpleHistoryAdmin):
     )
 
     list_filter = (
-        "donation_page__revenue_program",
+        "organization__name",
         "interval",
         "donation_page__name",
         "status",
@@ -104,7 +103,7 @@ class ContributionAdmin(RevEngineSimpleHistoryAdmin):
     )
 
     search_fields = (
-        "revenue_program",
+        "organization__name",
         "contributor__email",
         "donation_page__name",
         "modified",
@@ -118,7 +117,7 @@ class ContributionAdmin(RevEngineSimpleHistoryAdmin):
         "interval",
         "contributor",
         "donation_page",
-        "revenue_program",
+        "organization",
         "bad_actor_score",
         "bad_actor_response",
         "status",

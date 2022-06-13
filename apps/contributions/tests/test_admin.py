@@ -10,13 +10,7 @@ from apps.common.tests.test_utils import setup_request
 from apps.contributions.admin import BadActorScoreFilter, ContributionAdmin
 from apps.contributions.models import Contribution, ContributionStatus
 from apps.contributions.tests.factories import ContributionFactory
-from apps.organizations.models import RevenueProgram
-from apps.organizations.tests.factories import (
-    OrganizationFactory,
-    PaymentProviderFactory,
-    RevenueProgramFactory,
-)
-from apps.pages.tests.factories import DonationPageFactory
+from apps.organizations.tests.factories import OrganizationFactory
 
 
 class ContributionAdminTest(TestCase):
@@ -26,21 +20,18 @@ class ContributionAdminTest(TestCase):
         self.user = user_model.objects.create_superuser(email="test@test.com", password="testing")
         self.contribution_admin = ContributionAdmin(Contribution, AdminSite())
 
-        self.organization = OrganizationFactory()
-        payment_provider = PaymentProviderFactory()
-        revenue_program = RevenueProgramFactory(organization=self.organization, payment_provider=payment_provider)
-        self.donation_page = DonationPageFactory(revenue_program=revenue_program)
+        self.organization = OrganizationFactory(default_payment_provider="stripe")
 
         self.contrib_score_2 = ContributionFactory(
             status=ContributionStatus.FLAGGED,
             bad_actor_score=2,
-            donation_page=self.donation_page,
+            organization=self.organization,
             payment_provider_used="Stripe",
         )
         self.contrib_score_4 = ContributionFactory(
             status=ContributionStatus.FLAGGED,
             bad_actor_score=4,
-            donation_page=self.donation_page,
+            organization=self.organization,
             payment_provider_used="Stripe",
         )
 

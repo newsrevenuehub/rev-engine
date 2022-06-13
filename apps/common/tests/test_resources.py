@@ -10,11 +10,10 @@ from waffle import get_waffle_flag_model
 from apps.common.constants import CONTRIBUTIONS_API_ENDPOINT_ACCESS_FLAG_NAME
 from apps.contributions.models import Contributor
 from apps.contributions.tests.factories import ContributionFactory, ContributorFactory
-from apps.organizations.models import Feature, Organization, PaymentProvider, Plan, RevenueProgram
+from apps.organizations.models import Feature, Organization, Plan, RevenueProgram
 from apps.organizations.tests.factories import (
     FeatureFactory,
     OrganizationFactory,
-    PaymentProviderFactory,
     RevenueProgramFactory,
 )
 from apps.pages.models import DonationPage
@@ -68,6 +67,7 @@ class AbstractTestCase(APITestCase):
                 ):
                     ContributionFactory(
                         donation_page=page,
+                        organization=page.revenue_program.organization,
                         contributor=contributor,
                     )
         cls.contributor_user = Contributor.objects.first()
@@ -113,11 +113,9 @@ class AbstractTestCase(APITestCase):
         """
         cls.org1 = OrganizationFactory()
         cls.org2 = OrganizationFactory()
-        cls.payment_provider1 = PaymentProviderFactory()
-        cls.payment_provider2 = PaymentProviderFactory()
-        cls.org1_rp1 = RevenueProgramFactory(organization=cls.org1, payment_provider=cls.payment_provider1)
-        cls.org1_rp2 = RevenueProgramFactory(organization=cls.org1, payment_provider=cls.payment_provider1)
-        cls.org2_rp = RevenueProgramFactory(organization=cls.org2, payment_provider=cls.payment_provider2)
+        cls.org1_rp1 = RevenueProgramFactory(organization=cls.org1)
+        cls.org1_rp2 = RevenueProgramFactory(organization=cls.org1)
+        cls.org2_rp = RevenueProgramFactory(organization=cls.org2)
         cls.orgs = Organization.objects.all()
         cls.rev_programs = RevenueProgram.objects.all()
         cls.org_user = create_test_user(role_assignment_data={"role_type": Roles.ORG_ADMIN, "organization": cls.org1})

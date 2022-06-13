@@ -74,13 +74,12 @@ class PageFullDetailHelper:
             logger.info(f'Request for un-published page "{self.donation_page}" ')
             raise PageDetailError(message="This page has not been published", status=status.HTTP_404_NOT_FOUND)
 
-        if not self.revenue_program.payment_provider.is_verified_with_default_provider():
+        if not self.donation_page.organization.is_verified_with_default_provider():
             logger.info(
                 f'Request made for live page "{self.donation_page}", but "{self.donation_page.organization.name}" does is not verified with its default payment provider'
             )
             raise PageDetailError(
-                message="RevenueProgram does not have a fully verified payment provider",
-                status=status.HTTP_404_NOT_FOUND,
+                message="Organization does not have a fully verified payment provider", status=status.HTTP_404_NOT_FOUND
             )
 
     def get_donation_page_data(

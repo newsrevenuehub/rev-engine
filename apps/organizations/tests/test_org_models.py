@@ -30,28 +30,20 @@ class TestOrganizationModel(TestCase):
 class RevenueProgramTest(TestCase):
     def setUp(self):
         self.stripe_account_id = "my_stripe_account_id"
-        self.organization = factories.OrganizationFactory()
-        self.payment_provider = factories.PaymentProviderFactory(stripe_account_id=self.stripe_account_id)
-        self.instance = factories.RevenueProgramFactory(
-            organization=self.organization, payment_provider=self.payment_provider
-        )
-
-    def _create_revenue_program(self):
-        return RevenueProgram.objects.create(
-            name="Testing", slug="testing", organization=self.organization, payment_provider=self.payment_provider
-        )
+        self.organization = factories.OrganizationFactory(stripe_account_id=self.stripe_account_id)
+        self.revenue_program = factories.RevenueProgramFactory(organization=self.organization)
 
     def test_slug_created(self):
-        assert self.instance.slug
+        assert self.revenue_program.slug
 
     def test_has_an_org(self):
-        assert self.instance.organization
+        assert self.revenue_program.organization
 
     def test_slug_immutable(self):
-        self.instance.name = "A new Name"
-        self.instance.save()
-        self.instance.refresh_from_db()
-        self.assertNotIn(slugify("A new Name"), self.instance.slug)
+        self.revenue_program.name = "A new Name"
+        self.revenue_program.save()
+        self.revenue_program.refresh_from_db()
+        self.assertNotIn(slugify("A new Name"), self.revenue_program.slug)
 
     def test_slug_larger_than_100(self):
         fake = Faker()
@@ -61,17 +53,17 @@ class RevenueProgramTest(TestCase):
 
     def test_delete_organization_deletes_revenue_program(self):
         self.assertIsNotNone(self.organization)
-        self.assertIsNotNone(self.instance)
-        self.assertEqual(self.instance.organization, self.organization)
-        rp_pk = self.instance.id
+        self.assertIsNotNone(self.revenue_program)
+        self.assertEqual(self.revenue_program.organization, self.organization)
+        rp_pk = self.revenue_program.id
         self.organization.delete()
         self.assertFalse(RevenueProgram.objects.filter(pk=rp_pk).exists())
 
     def test_format_twitter_handle(self):
         target_handle = "testing"
-        self.instance.twitter_handle = "@" + target_handle
-        self.instance.clean()
-        self.assertEqual(self.instance.twitter_handle, target_handle)
+        self.revenue_program.twitter_handle = "@" + target_handle
+        self.revenue_program.clean()
+        self.assertEqual(self.revenue_program.twitter_handle, target_handle)
 
     @override_settings(STRIPE_LIVE_MODE=True)
     @override_settings(STRIPE_LIVE_SECRET_KEY=TEST_STRIPE_LIVE_KEY)
@@ -87,9 +79,8 @@ class RevenueProgramTest(TestCase):
         apple_pay_domain_create.assert_called_once_with(
             api_key=TEST_STRIPE_LIVE_KEY,
             domain_name=expected_domain,
-            stripe_account=rp.payment_provider.stripe_account_id,
+            stripe_account=rp.organization.stripe_account_id,
         )
-
         # revenue_program should have a non-null domain_apple_verified_date
         self.assertIsNotNone(rp.domain_apple_verified_date)
 
@@ -104,8 +95,8 @@ class RevenueProgramTest(TestCase):
     @override_settings(DOMAIN_APEX=TEST_DOMAIN_APEX)
     @patch("stripe.ApplePayDomain.create")
     def test_apple_pay_domain_verification_not_called_when_updated_and_live(self, apple_pay_domain_create):
-        self.instance.slug = "my-new-slug"
-        self.instance.save()
+        self.revenue_program.slug = "my-new-slug"
+        self.revenue_program.save()
         apple_pay_domain_create.assert_not_called()
 
     @override_settings(STRIPE_LIVE_MODE=True)
@@ -121,19 +112,18 @@ class RevenueProgramTest(TestCase):
 
     def test_slug_validated_against_denylist(self):
         denied_word = DenyListWordFactory()
-        rp = RevenueProgram(name="My rp", organization=self.organization, payment_provider=self.payment_provider)
-        rp.slug = denied_word.word
+        self.revenue_program.slug = denied_word.word
         with self.assertRaises(ValidationError) as validation_error:
-            rp.clean_fields()
+            self.revenue_program.clean_fields()
         self.assertIn("slug", validation_error.exception.error_dict)
         self.assertEqual(SLUG_DENIED_CODE, validation_error.exception.error_dict["slug"][0].code)
         self.assertEqual(GENERIC_SLUG_DENIED_MSG, validation_error.exception.error_dict["slug"][0].message)
 
     def test_admin_benefit_options(self):
-        self.assertTrue(isinstance(self.instance.admin_benefit_options, list))
+        self.assertTrue(isinstance(self.revenue_program.admin_benefit_options, list))
 
     def test_admin_benefitlevel_options(self):
-        self.assertTrue(isinstance(self.instance.admin_benefitlevel_options, list))
+        self.assertTrue(isinstance(self.revenue_program.admin_benefitlevel_options, list))
 
 
 class BenefitLevelTest(TestCase):

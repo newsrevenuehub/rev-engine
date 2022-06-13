@@ -18,7 +18,7 @@ import { HUB_GA_V3_ID } from 'settings';
 // Children
 import SegregatedStyles from 'components/donationPage/SegregatedStyles';
 import LiveLoading from 'components/donationPage/live/LiveLoading';
-import LivePage404 from 'components/donationPage/live/LivePage404';
+import LivePage404 from 'components/common/LivePage404';
 import DonationPage from 'components/donationPage/DonationPage';
 
 const STRIPE_IFRAME_SELECTOR = "iframe[title='Secure card payment input frame']";

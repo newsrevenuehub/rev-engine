@@ -4,7 +4,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 
 export const ContributorDashboard = styled.main`
   padding: 4rem 2rem;
-
+  background: ${(props) => props.theme.colors.cstm_mainBackground};
   @media (${(props) => props.theme.breakpoints.phoneOnly}) {
     padding: 0;
   }

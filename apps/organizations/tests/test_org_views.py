@@ -1,181 +1,305 @@
-import django.db.utils
 from django.contrib.auth import get_user_model
 
-from rest_framework.exceptions import ValidationError
+from rest_framework import status
 from rest_framework.reverse import reverse
-from rest_framework.test import APITestCase
 
-from apps.common.tests.test_resources import AbstractTestCase
+from apps.api.tests import RevEngineApiAbstractTestCase
 from apps.organizations.models import Feature, Organization, Plan, RevenueProgram
-from apps.organizations.tests.factories import (
-    FeatureFactory,
-    OrganizationFactory,
-    PlanFactory,
-    RevenueProgramFactory,
-)
-from apps.pages.tests.factories import DonationPageFactory
+from apps.organizations.tests.factories import FeatureFactory, OrganizationFactory
+from apps.users.tests.utils import create_test_user
 
 
 user_model = get_user_model()
 
 
-class OrganizationViewSetTest(AbstractTestCase):
+class OrganizationViewSetTest(RevEngineApiAbstractTestCase):
+    model_factory = OrganizationFactory
+    model = Organization
+
     def setUp(self):
         super().setUp()
+        self.is_authed_user = create_test_user()
+        self.post_data = {}
+        self.expected_user_types = (
+            self.superuser,
+            self.hub_user,
+            self.org_user,
+            self.rp_user,
+        )
+        self.detail_url = reverse("organization-detail", args=(self.org1.pk,))
         self.list_url = reverse("organization-list")
 
-    def test_list_of_orgs(self):
-        self.login()
-        response = self.client.get(self.list_url)
-        self.assertEqual(response.status_code, 200)
-        orgs = Organization.objects.all()
-        self.assertEqual(response.json()["count"], len(orgs))
-        org_names = [o["name"] for o in response.json()["results"]]
-        expected_org_names = [o.name for o in orgs]
-        self.assertEqual(org_names, expected_org_names)
+    def assert_user_can_retrieve_an_org(self, user):
+        response = self.assert_user_can_get(self.detail_url, user)
+        self.assertEqual(response.json()["id"], self.org1.pk)
 
-    def test_org_readonly(self):
-        self.login()
-        response = self.client.post(self.list_url, {"name": "API Org"})
-        self.assertEqual(response.status_code, 405)
-        self.assertEqual(Organization.objects.count(), self.org_count)
+    def assert_user_cannot_udpate_an_org(self, user):
+        last_modified = self.org1.modified
+        self.assert_user_cannot_patch_because_not_implemented(self.detail_url, user)
+        self.org1.refresh_from_db()
+        self.assertEqual(last_modified, self.org1.modified)
 
-    def test_cannot_delete_organization(self):
-        self.login()
-        org = Organization.objects.first()
-        old_pk = org.pk
-        detail_url = f"/api/v1/organizations/{old_pk}/"
-        self.client.delete(detail_url)
-        self.assertEqual(Organization.objects.count(), self.org_count)
+    def assert_user_cannot_create_an_org(self, user):
+        before_count = Organization.objects.count()
+        self.assert_user_cannot_post_because_not_implemented(self.list_url, user)
+        self.assertEqual(before_count, Organization.objects.count())
+
+    def assert_user_cannot_delete_an_org(self, user):
+        self.assertGreaterEqual(before_count := Organization.objects.count(), 1)
+        self.assert_user_cannot_delete_because_not_implemented(self.detail_url, user)
+        self.assertEqual(before_count, Organization.objects.count())
+
+    def test_unauthed_cannot_access(self):
+        self.assert_unuauthed_cannot_get(self.detail_url)
+        self.assert_unuauthed_cannot_get(self.list_url)
+        self.assert_unauthed_cannot_delete(self.detail_url)
+        self.assert_unauthed_cannot_patch(self.detail_url)
+        self.assert_unauthed_cannot_put(self.detail_url)
+
+    def test_expected_user_types_can_only_read(self):
+        for user in self.expected_user_types:
+            self.assert_user_can_retrieve_an_org(user)
+            self.assert_user_cannot_create_an_org(user)
+            self.assert_user_cannot_udpate_an_org(user)
+            self.assert_user_cannot_delete_an_org(user)
+        for user, count in [
+            (self.superuser, Organization.objects.count()),
+            (self.hub_user, Organization.objects.count()),
+            (self.org_user, 1),
+            (self.rp_user, 1),
+        ]:
+            self.assert_user_can_list(self.list_url, user, count, results_are_flat=True)
+
+    def test_unexpected_role_type(self):
+        novel = create_test_user(role_assignment_data={"role_type": "this-is-new"})
+        self.assert_user_cannot_get(
+            reverse("organization-list"),
+            novel,
+            expected_status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        )
 
 
-class RevenueProgramViewSetTest(AbstractTestCase):
-    model = RevenueProgram
-    model_factory = RevenueProgramFactory
-
+class RevenueProgramViewSetTest(RevEngineApiAbstractTestCase):
     def setUp(self):
         super().setUp()
         self.list_url = reverse("revenue-program-list")
-        self.detail_url = "/api/v1/revenue-programs"
-        self.create_resources()
+        self.detail_url = reverse("revenue-program-detail", args=(RevenueProgram.objects.first().pk,))
 
-    def test_reverse_works(self):
-        self.login()
-        response = self.client.get(self.list_url)
-        self.assertEqual(response.status_code, 200)
+    def test_superuser_can_retrieve_an_rp(self):
+        return self.assert_superuser_can_get(self.detail_url)
 
-    def test_list_returns_expected_count(self):
-        revp = self.resources[0]
-        self.authenticate_user_for_resource(revp)
-        self.login()
-        response = self.client.get(self.list_url)
-        self.assertEqual(response.status_code, 200)
-        expected_count = RevenueProgram.objects.filter(organization=self.user.get_organization()).count()
-        self.assertEqual(len(response.json()), expected_count)
+    def test_superuser_can_list_rps(self):
+        expected_count = RevenueProgram.objects.count()
+        return self.assert_superuser_can_list(self.list_url, expected_count, results_are_flat=True)
 
-    def test_created_and_list_are_equivalent(self):
-        revp = self.resources[0]
-        self.authenticate_user_for_resource(revp)
-        self.login()
-        response = self.client.get(self.list_url)
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(
-            [x["id"] for x in response.json()],
-            [
-                x
-                for x in RevenueProgram.objects.filter(organization=self.user.get_organization()).values_list(
-                    "pk", flat=True
-                )
-            ],
-        )
+    def test_other_cannot_access_resource(self):
+        non_superusers = [self.hub_user, self.org_user, self.rp_user, self.contributor_user]
+        for user in non_superusers:
+            self.assert_user_cannot_get(self.detail_url, user)
+            self.assert_user_cannot_get(self.list_url, user)
+            self.assert_user_cannot_post(self.list_url, user)
+            self.assert_user_cannot_patch(self.detail_url, user)
+            self.assert_user_cannot_delete(self.detail_url, user)
 
-    def test_viewset_is_readonly(self):
-        """
-        For now, revprogram viewset is readonly. Test to make sure we don't accidentally change that.
-        """
-        rp = RevenueProgram.objects.all().first()
-        self.authenticate_user_for_resource(rp)
-        self.login()
-        new_name = "A New RevenueProgram Name"
-
-        # Method PATCH Not Allowed
-        response = self.client.patch(f"{self.detail_url}/{rp.pk}/", {"name": new_name})
-        self.assertEqual(response.status_code, 405)
-
-        # Method POST Not Allowed
-        response = self.client.post(self.list_url, {"name": "New RevenueProgram", "organization": self.orgs[0].pk})
-        self.assertEqual(response.status_code, 405)
+    def test_unauthed_cannot_access(self):
+        self.assert_unuauthed_cannot_get(self.detail_url)
+        self.assert_unuauthed_cannot_get(self.list_url)
+        self.assert_unauthed_cannot_delete(self.detail_url)
+        self.assert_unauthed_cannot_patch(self.detail_url)
+        self.assert_unauthed_cannot_put(self.detail_url)
 
     def test_pagination_disabled(self):
-        revp = self.resources[0]
-        self.authenticate_user_for_resource(revp)
-        self.login()
-        response = self.client.get(self.list_url)
-        self.assertEqual(response.status_code, 200)
-        # 'count' and 'results' keys are only present in paginated responses
+        response = self.assert_superuser_can_get(self.list_url)
         self.assertNotIn("count", response.json())
         self.assertNotIn("results", response.json())
 
 
-class PlanViewSetTest(APITestCase):
+class PlanViewSetTest(RevEngineApiAbstractTestCase):
     def setUp(self):
-        self.obj_count = 5
-        for i in range(self.obj_count):
-            PlanFactory()
+        super().setUp()
         self.list_url = reverse("plan-list")
-        self.detail_url = "/api/v1/plans"
-        self.user = user_model.objects.create_user(email="test@test.com", password="testing")
-        self.client.force_authenticate(user=self.user)
+        self.detail_url = reverse("plan-detail", args=(Plan.objects.first(),))
 
-    def test_reverse_works(self):
-        response = self.client.get(self.list_url)
-        self.assertEqual(response.status_code, 200)
+    ########
+    # Create
 
-    def test_list_returns_expected_count(self):
-        response = self.client.get(self.list_url)
-        self.assertEqual(response.status_code, 200)
-        self.assertNotEqual(response.json()["count"], 0)
-        self.assertEqual(response.json()["count"], Plan.objects.count())
+    def test_no_one_can_create(self):
+        for user, status_code in [
+            (self.superuser, status.HTTP_405_METHOD_NOT_ALLOWED),
+            (self.hub_user, status.HTTP_405_METHOD_NOT_ALLOWED),
+            (self.org_user, status.HTTP_405_METHOD_NOT_ALLOWED),
+            (self.rp_user, status.HTTP_405_METHOD_NOT_ALLOWED),
+            (self.contributor_user, status.HTTP_403_FORBIDDEN),
+            (self.generic_user, status.HTTP_405_METHOD_NOT_ALLOWED),
+        ]:
+            self.assert_user_cannot_post(self.list_url, user, {}, status_code)
 
+    #################
+    # Read - Retrieve
 
-class FeatureViewSetTest(APITestCase):
-    def setUp(self):
-        self.limit_feature = FeatureFactory()
-        self.list_url = reverse("feature-list")
-        self.detail_url = "/api/v1/features"
-        self.user = user_model.objects.create_user(email="test@test.com", password="testing")
-        self.client.force_authenticate(user=self.user)
+    def test_superuser_can_retrieve_a_plan(self):
+        self.assert_superuser_can_get(reverse("plan-detail", args=(Plan.objects.first().pk,)))
 
-    def test_reverse_works(self):
-        response = self.client.get(self.list_url)
-        self.assertEqual(response.status_code, 200)
+    def test_hub_user_can_retrieve_a_plan(self):
+        self.assert_hub_admin_can_get(reverse("plan-detail", args=(Plan.objects.first().pk,)))
 
-    def test_list_returns_expected_count(self):
-        response = self.client.get(self.list_url)
-        self.assertEqual(response.status_code, 200)
-        self.assertNotEqual(response.json()["count"], 0)
-        self.assertEqual(response.json()["count"], Feature.objects.count())
+    def test_org_admin_can_retrieve_their_orgs_plan(self):
+        self.assert_hub_admin_can_get(reverse("plan-detail", args=(Plan.objects.first().pk,)))
+        self.assertGreater(expected_count := Plan.objects.count(), 1)
+        self.assert_hub_admin_can_list(self.list_url, expected_count, results_are_flat=True)
 
-    def test_unique_value(self):
-        with self.assertRaises(django.db.utils.IntegrityError):
-            FeatureFactory(feature_value=self.limit_feature.feature_value)
+    def test_org_admin_cannot_retrieve_another_orgs_plan(self):
+        detail_url = reverse("plan-detail", args=(self.org2.plan.pk,))
+        self.assert_rp_user_cannot_get(detail_url)
 
-    def test_feature_limits_page_creation(self):
-        self.limit_feature.feature_value = "3"
-        self.limit_feature.save()
-        plan = PlanFactory()
-        plan.features.add(self.limit_feature)
-        plan.save()
-        org = OrganizationFactory(plan=plan)
-        rev_program = RevenueProgramFactory(organization=org)
-        for i in range(3):
-            try:
-                DonationPageFactory(revenue_program=rev_program)
-            except ValidationError as e:
-                self.fail(f"Save raised a validation error on expected valid inputs: {e.message}")
-        with self.assertRaises(ValidationError) as cm:
-            DonationPageFactory(revenue_program=rev_program)
-        self.assertEquals(
-            str(cm.exception.detail["non_field_errors"][0]),
-            f"Your organization has reached its limit of {self.limit_feature.feature_value} pages",
+    def test_rp_user_can_retrieve_their_orgs_plan(self):
+        detail_url = reverse("plan-detail", args=(self.org1.plan.pk,))
+        self.assert_rp_user_can_get(detail_url)
+
+    def test_rp_user_cannot_retrieve_another_orgs_plan(self):
+        detail_url = reverse("plan-detail", args=(self.org2.plan.pk,))
+        self.assert_rp_user_cannot_get(detail_url)
+
+    #############
+    # Read - List
+
+    def test_superuser_can_list_plans(self):
+        self.assertGreater(expected_count := Plan.objects.count(), 1)
+        self.assert_superuser_can_list(self.list_url, expected_count, results_are_flat=True)
+
+    def test_hub_admin_can_list_plans(self):
+        self.assertGreater(expected_count := Plan.objects.count(), 1)
+        self.assert_hub_admin_can_list(self.list_url, expected_count, results_are_flat=True)
+
+    def test_org_admin_sees_their_plan_in_list(self):
+        self.assert_org_admin_can_list(
+            self.list_url, 1, assert_item=lambda x: x["id"] == self.org1.plan.pk, results_are_flat=True
         )
+
+    def test_rp_user_sees_their_orgs_plan_in_list(self):
+        self.assert_rp_user_can_list(
+            self.list_url,
+            1,
+            assert_item=lambda x: x["id"] == self.rp_user.roleassignment.organization.plan.pk,
+            results_are_flat=True,
+        )
+
+    ########
+    # Update
+
+    def test_no_one_can_update(self):
+        for user, status_code in [
+            (self.superuser, status.HTTP_405_METHOD_NOT_ALLOWED),
+            (self.hub_user, status.HTTP_405_METHOD_NOT_ALLOWED),
+            (self.org_user, status.HTTP_405_METHOD_NOT_ALLOWED),
+            (self.rp_user, status.HTTP_405_METHOD_NOT_ALLOWED),
+            (self.contributor_user, status.HTTP_403_FORBIDDEN),
+            (self.generic_user, status.HTTP_405_METHOD_NOT_ALLOWED),
+        ]:
+            self.assert_user_cannot_patch(self.detail_url, user, {}, expected_status_code=status_code)
+
+    ########
+    # Delete
+
+    def test_no_one_can_delete(self):
+        for user, status_code in [
+            (self.superuser, status.HTTP_405_METHOD_NOT_ALLOWED),
+            (self.hub_user, status.HTTP_405_METHOD_NOT_ALLOWED),
+            (self.org_user, status.HTTP_405_METHOD_NOT_ALLOWED),
+            (self.rp_user, status.HTTP_405_METHOD_NOT_ALLOWED),
+            (self.contributor_user, status.HTTP_403_FORBIDDEN),
+            (self.generic_user, status.HTTP_405_METHOD_NOT_ALLOWED),
+        ]:
+            self.assert_user_cannot_delete(self.detail_url, user, expected_status_code=status_code)
+
+
+class FeatureViewSetTest(RevEngineApiAbstractTestCase):
+    def setUp(self):
+        super().setUp()
+        self.org1.plan.features.add(FeatureFactory())
+        self.org2.plan.features.add(FeatureFactory())
+
+    ########
+    # Create
+
+    def test_no_one_can_create(self):
+        for user, status_code in [
+            (self.superuser, status.HTTP_405_METHOD_NOT_ALLOWED),
+            (self.hub_user, status.HTTP_403_FORBIDDEN),
+            (self.org_user, status.HTTP_403_FORBIDDEN),
+            (self.rp_user, status.HTTP_403_FORBIDDEN),
+            (self.contributor_user, status.HTTP_403_FORBIDDEN),
+            (self.generic_user, status.HTTP_403_FORBIDDEN),
+        ]:
+            self.assert_user_cannot_post(reverse("feature-list"), user, {}, status_code)
+
+    #################
+    # Read - Retrieve
+
+    def test_superuser_can_retrieve_a_feature(self):
+        self.assert_superuser_can_get(reverse("feature-detail", args=(Feature.objects.first().pk,)))
+
+    def test_non_superuser_users_cannot_retrieve_a_feature(self):
+        for user in [
+            self.hub_user,
+            self.org_user,
+            self.rp_user,
+            self.contributor_user,
+            self.generic_user,
+        ]:
+            self.assert_user_cannot_get(
+                reverse("feature-detail", args=(Feature.objects.first().pk,)), user, status.HTTP_403_FORBIDDEN
+            )
+
+    #############
+    # Read - List
+
+    def test_superuser_can_list_features(self):
+        self.assert_superuser_can_list(reverse("feature-list"), Feature.objects.count(), results_are_flat=True)
+
+    def test_non_superuser_users_cannot_list_features(self):
+        for user in [
+            self.hub_user,
+            self.org_user,
+            self.rp_user,
+            self.contributor_user,
+            self.generic_user,
+        ]:
+            self.assert_user_cannot_get(reverse("feature-list"), user, status.HTTP_403_FORBIDDEN)
+
+    ########
+    # Update
+
+    def test_no_one_can_update(self):
+        for user, status_code in [
+            (self.superuser, status.HTTP_405_METHOD_NOT_ALLOWED),
+            (self.hub_user, status.HTTP_403_FORBIDDEN),
+            (self.org_user, status.HTTP_403_FORBIDDEN),
+            (self.rp_user, status.HTTP_403_FORBIDDEN),
+            (self.contributor_user, status.HTTP_403_FORBIDDEN),
+            (self.generic_user, status.HTTP_403_FORBIDDEN),
+        ]:
+            self.assert_user_cannot_patch(
+                reverse("feature-detail", args=(self.org1.plan.features.first().pk,)),
+                user,
+                {},
+                expected_status_code=status_code,
+            )
+
+    ########
+    # Delete
+
+    def test_no_one_can_delete(self):
+        for user, status_code in [
+            (self.superuser, status.HTTP_405_METHOD_NOT_ALLOWED),
+            (self.hub_user, status.HTTP_403_FORBIDDEN),
+            (self.org_user, status.HTTP_403_FORBIDDEN),
+            (self.rp_user, status.HTTP_403_FORBIDDEN),
+            (self.contributor_user, status.HTTP_403_FORBIDDEN),
+            (self.generic_user, status.HTTP_403_FORBIDDEN),
+        ]:
+            self.assert_user_cannot_delete(
+                reverse("feature-detail", args=(self.org1.plan.features.first().pk,)),
+                user,
+                expected_status_code=status_code,
+            )

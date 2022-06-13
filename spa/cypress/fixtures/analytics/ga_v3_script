@@ -1,8 +1,8 @@
 /*
-  this file intentionally leaves off .js suffix in name because of pesky 
-  issues around eslintignore not working, and this file needs to be 
-  es-lint ignored 
-*/ 
+  this file intentionally leaves off .js suffix in name because of pesky
+  issues around eslintignore not working, and this file needs to be
+  es-lint ignored
+*/
 (function () {
   /*
 
@@ -470,7 +470,7 @@
       }
     return b;
   } /*
- 
+
   Copyright The Closure Library Authors.
   SPDX-License-Identifier: Apache-2.0
  */

@@ -64,3 +64,7 @@ STATE_CHOICES = [
     ("SK", "Saskatchewan"),
     ("YT", "Yukon"),
 ]
+
+# HasFlaggedAccessToContributionsApiResource references a flag with this name in order
+# to determine access permission.
+CONTRIBUTIONS_API_ENDPOINT_ACCESS_FLAG_NAME = "contributions-api-endpoint-access"

@@ -5,7 +5,7 @@
   "published_date": "2020-09-17T00:00:00",
   "organization_is_nonprofit": true,
   "elements": [
-    {"type": "DRichText", "uuid": "testRichText1", "content": "<p><strong>Your support keeps us going! Become a member today.</strong></p> <p>Because of your generosity, we have the courage, freedom, and independence to dedicate our entire newsroom to telling stories that spark action, improve lives and protect our democracy. Thank you for your support that keeps us going.</p>"}, 
+    {"type": "DRichText", "uuid": "testRichText1", "content": "<p><strong>Your support keeps us going! Become a member today.</strong></p> <p>Because of your generosity, we have the courage, freedom, and independence to dedicate our entire newsroom to telling stories that spark action, improve lives and protect our democracy. Thank you for your support that keeps us going.</p>"},
 
     {"type": "DDonorInfo", "uuid": "testDonorInfo1"},
     {"type": "DDonorAddress", "uuid": "testDonorAddress1"},

@@ -4,6 +4,7 @@ from django.contrib.messages import get_messages
 from django.test import RequestFactory, TestCase
 from django.urls import reverse
 
+from apps.common.tests.test_resources import AbstractTestCase
 from apps.common.tests.test_utils import setup_request
 from apps.organizations.tests.factories import RevenueProgramFactory
 from apps.pages.admin import DonationPageAdmin, TemplateAdmin
@@ -42,16 +43,18 @@ class DonationPageAdminTestCase(TestCase):
         self.assertEqual(messages, [f'Template name "{self.page.name}" already used in organization'])
 
 
-class TemplateAdminTest(TestCase):
+class TemplateAdminTest(AbstractTestCase):
     def setUp(self):
         self.factory = RequestFactory()
+        self.set_up_domain_model()
         user_model = get_user_model()
-        self.user = user_model.objects.create_superuser(email="test@test.com", password="testing")
+        self.user = user_model.objects.create_superuser(email="superuser@test.com", password="testing")
         self.client.force_login(self.user)
         self.template_admin = TemplateAdmin(Template, AdminSite())
-        self.revenue_program = RevenueProgramFactory()
-        self.original_page = DonationPageFactory(name="My Test Page", revenue_program=self.revenue_program)
-        self.template = self.original_page.make_template_from_page()
+
+        self.revenue_program = self.org1_rp1
+        self.original_page = self.org1_rp1.donationpage_set.first()
+        self.template = self.original_page.make_template_from_page(from_admin=True)
 
     def _get_change_url(self, template_id):
         return reverse("admin:pages_template_change", kwargs={"object_id": template_id})
@@ -67,8 +70,7 @@ class TemplateAdminTest(TestCase):
         request = self.factory.post(change_url, request_body)
         setup_request(self.user, request)
         prev_page_count = DonationPage.objects.count()
-        template = Template.objects.first()
-        self.template_admin.response_change(request, template)
+        self.template_admin.response_change(request, self.template)
 
         new_pages = DonationPage.objects.all()
         self.assertNotEqual(prev_page_count, len(new_pages))
@@ -77,8 +79,7 @@ class TemplateAdminTest(TestCase):
         change_url = self._get_change_url(self.template.id)
         request = self.factory.post(change_url)
         setup_request(self.user, request)
-        template = Template.objects.first()
-        response = self.template_admin.response_change(request, template)
+        response = self.template_admin.response_change(request, self.template)
 
         self.assertEqual(response.status_code, 302)
         self.assertEqual(reverse("admin:pages_template_changelist"), response.url)

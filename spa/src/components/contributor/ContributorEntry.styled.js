@@ -7,6 +7,8 @@ export const ContributorEntry = styled.main`
   display: flex;
   flex-direction: column;
   align-items: center;
+  height: 100%;
+  background: ${(props) => props.theme.colors.cstm_mainBackground};
 `;
 
 export const ContentWrapper = styled.section`

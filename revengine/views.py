@@ -35,6 +35,7 @@ class ReactAppView(TemplateView):
             try:
                 return RevenueProgram.objects.get(slug=subdomain)
             except RevenueProgram.DoesNotExist:
+                # TODO: [DEV-1856] this should use %-formatting
                 logger.warning(f'ReactAppView failed to retrieve RevenueProgram by subdomain "{subdomain}"')
 
     def _add_social_media_context(self, revenue_program, context):
@@ -57,7 +58,12 @@ def read_apple_developer_merchant_id(request):
 # method on every model via the `admin_select_options` view-- like some
 # terrible accidental RPC API.
 SAFE_ADMIN_SELECT_PARENTS = ["organizations.Organization", "organizations.RevenueProgram"]
-SAFE_ADMIN_SELECT_ACCESSOR_METHODS = ["admin_style_options", "admin_benefit_options", "admin_benefitlevel_options"]
+SAFE_ADMIN_SELECT_ACCESSOR_METHODS = [
+    "admin_style_options",
+    "admin_benefit_options",
+    "admin_benefitlevel_options",
+    "admin_revenueprogram_options",
+]
 
 
 @require_GET

@@ -1,3 +1,4 @@
+import logging
 from datetime import datetime
 from urllib.parse import urlparse
 
@@ -19,13 +20,16 @@ from apps.api.serializers import (
 from apps.api.throttling import ContributorRateThrottle
 from apps.api.tokens import ContributorRefreshToken
 from apps.contributions.serializers import ContributorSerializer
-from apps.emails.tasks import send_donor_email
+from apps.emails.tasks import send_email
+
+
+logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
 
 
 COOKIE_PATH = "/"
 
 
-def _construct_pr_domain(subdomain, referer):
+def _construct_rp_domain(subdomain, referer):
     """Find Revenue Program specific subdomain and use it to construct magic link host.
 
     Return RP specific domain or None if not found.
@@ -76,8 +80,13 @@ def set_token_cookie(response, token, expires):
 class TokenObtainPairCookieView(simplejwt_views.TokenObtainPairView):
     """
     Subclasses simplejwt's TokenObtainPairView to handle tokens in cookies
+
+    NB: sets permission_classes to an empty list, in case permissions are
+    set as defaults in parent context. The JWT resource inherently needs to be
+    accessible.
     """
 
+    permission_classes = []
     serializer_class = TokenObtainPairCookieSerializer
 
     def post(self, request, *args, **kwargs):
@@ -130,6 +139,7 @@ class RequestContributorTokenEmailView(APIView):
 
     authentication_classes = []
     permission_classes = []
+    filter_backends = []
     throttle_classes = [ContributorRateThrottle]
 
     def post(self, request, *args, **kwargs):
@@ -140,12 +150,13 @@ class RequestContributorTokenEmailView(APIView):
             data = serializer.data
             email = data["email"]
             token = data["access"]
-            domain = _construct_pr_domain(data.get("subdomain", ""), request.headers.get("Referer", ""))
+            domain = _construct_rp_domain(data.get("subdomain", ""), request.headers.get("Referer", ""))
+
             if not domain:
                 return Response({"detail": "Missing Revenue Program subdomain"}, status=status.HTTP_404_NOT_FOUND)
             magic_link = f"{domain}/{settings.CONTRIBUTOR_VERIFY_URL}?token={token}&email={email}"
-
-            send_donor_email(
+            logger.info("Sending magic link email to [%s] | magic link: [%s]", email, magic_link)
+            send_email(
                 identifier=settings.EMAIL_TEMPLATE_IDENTIFIER_MAGIC_LINK_DONOR,
                 to=email,
                 subject="Manage your contributions",

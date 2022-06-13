@@ -2,8 +2,8 @@
 
 ## Requirements
 * [Heroku command line installed.](https://devcenter.heroku.com/categories/command-line)
-* Docker  
-* Access to the Git repository that will be used for heroku deploys.  
+* Docker
+* Access to the Git repository that will be used for heroku deploys.
 * Inclusion on a team that has billing access rights to the Heroku account.
 * [pwgen](https://github.com/jbernard/pwgen) or something like it.
 * A previously created Heroku app.

@@ -3,11 +3,7 @@ from django.contrib.auth import get_user_model
 from rest_framework.reverse import reverse
 from rest_framework.test import APITestCase
 
-from apps.organizations.models import (
-    BenefitLevelBenefit,
-    RevenueProgram,
-    RevenueProgramBenefitLevel,
-)
+from apps.organizations.models import BenefitLevelBenefit, RevenueProgram
 from apps.organizations.tests.factories import (
     BenefitFactory,
     BenefitLevelFactory,
@@ -33,12 +29,9 @@ class RevenueProgramViewsetTest(APITestCase):
         for _ in range(self.rp_count):
             revenue_program = RevenueProgramFactory(organization=organization)
             for i in range(self.bl_count):
-                benefit_level = BenefitLevelFactory(organization=organization, lower_limit=7, upper_limit=13)
-                RevenueProgramBenefitLevel.objects.create(
-                    benefit_level=benefit_level, revenue_program=revenue_program, level=i
-                )
+                benefit_level = BenefitLevelFactory(revenue_program=revenue_program, lower_limit=7, upper_limit=13)
                 for j in range(self.b_per_bl_count):
-                    benefit = BenefitFactory(organization=organization)
+                    benefit = BenefitFactory(revenue_program=revenue_program)
                     BenefitLevelBenefit.objects.create(benefit=benefit, benefit_level=benefit_level, order=j)
 
     def _make_request_to(self, url):

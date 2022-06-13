@@ -1,8 +1,13 @@
 from django.conf import settings
 from django.urls import path, re_path
 
+from rest_framework import routers
+
 from apps.contributions import views
 
+
+router = routers.DefaultRouter()
+router.register(r"contributions", views.ContributionsViewSet, basename="contribution")
 
 urlpatterns = [
     path("stripe/payment/", views.stripe_payment, name="stripe-payment"),
@@ -13,19 +18,6 @@ urlpatterns = [
         views.process_stripe_webhook_view,
         name="stripe-webhooks",
     ),
-    path(
-        "contributions/<int:pk>/process-flagged/",
-        views.process_flagged,
-        name="process-flagged",
-    ),
-    path(
-        "contributions/<int:pk>/cancel-recurring/",
-        views.cancel_recurring_payment,
-        name="contributions-cancel-recurring",
-    ),
-    path("contributions/<int:pk>/update-payment-method/", views.update_payment_method, name="contributions-update"),
-    path(
-        "contributions/<int:pk>/", views.ContributionsViewSet.as_view({"get": "retrieve"}, name="contribution-detail")
-    ),
-    path("contributions/", views.ContributionsViewSet.as_view({"get": "list"}), name="contributions-list"),
 ]
+
+urlpatterns += router.urls

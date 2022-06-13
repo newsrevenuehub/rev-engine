@@ -166,6 +166,12 @@ Then add to the file the following line.
     (revengine)$ echo "export DJANGO_SETTINGS_MODULE=revengine.settings.local" >> .envrc
 ```
 
+Next, we need to set up a fake test stripe ID so that stripe functionality will work when running tests locally
+
+```bash
+    (revengine)$ echo "export export REACT_APP_HUB_STRIPE_API_PUB_KEY=pk_test_3737373" >> .envrc
+```
+
 Allow direnv to inject the variable into your environment
 
 ```shell
@@ -328,7 +334,7 @@ Instead of the usual `logger = logging.getLogger(__name__)` use `logger = loggin
 
 Lists the apps running on the connected account.
 
-NOTE: On this project, PRs will spawn apps that can be independently tested. 
+NOTE: On this project, PRs will spawn apps that can be independently tested.
 
 ```shell
 (revengine)$> heroku apps
@@ -368,15 +374,15 @@ First:
 (revengine)$> touch ./spa/.env
 ```
 
-To enable Stripe related features (Payments on contribution pages, changing payment methods), set:  
-`REACT_APP_HUB_STRIPE_API_PUB_KEY=pk_test_therealvaluehere`  
+To enable Stripe related features (Payments on contribution pages, changing payment methods), set:
+`REACT_APP_HUB_STRIPE_API_PUB_KEY=pk_test_therealvaluehere`
 You can get this value from the Hub stripe dashboard
 
-To enable Stripe Onboarding, set:  
-`REACT_APP_STRIPE_CLIENT_ID=therealvalue`  
+To enable Stripe Onboarding, set:
+`REACT_APP_STRIPE_CLIENT_ID=therealvalue`
 You can get this value from the Hub stripe dashboard
 
-To enable google address autocomplete in the contribution page form, set:  
+To enable google address autocomplete in the contribution page form, set:
 `REACT_APP_HUB_GOOGLE_MAPS_API_KEY=therealvalueere`
 
 To enable google analytics, set:

@@ -1,9 +1,12 @@
+import 'cypress-localstorage-commands';
+
 import { TOKEN } from 'ajax/endpoints';
 import { getEndpoint, getTestingDonationPageUrl, EXPECTED_RP_SLUG } from './util';
 import { LIVE_PAGE_DETAIL, STRIPE_PAYMENT, CONTRIBUTIONS } from 'ajax/endpoints';
 import { DEFAULT_RESULTS_ORDERING } from 'components/donations/DonationsTable';
 import { ApiResourceList } from '../support/restApi';
 import donationsData from '../fixtures/donations/18-results.json';
+import { LS_CSRF_TOKEN, LS_USER } from 'settings';
 
 Cypress.Commands.add('getByTestId', (testId, options, partialMatch = false) => {
   return cy.get(`[data-testid${partialMatch ? '*' : ''}="${testId}"]`, options);
@@ -17,6 +20,12 @@ Cypress.Commands.add('login', (userFixture) => {
   cy.intercept('POST', getEndpoint(TOKEN), { fixture: userFixture }).as('login');
   cy.getByTestId('login-button').click();
   return cy.wait('@login');
+});
+
+Cypress.Commands.add('forceLogin', (userFixture) => {
+  cy.clearLocalStorage();
+  cy.setLocalStorage(LS_CSRF_TOKEN, userFixture.csrf_token);
+  cy.setLocalStorage(LS_USER, JSON.stringify(userFixture.user));
 });
 
 Cypress.Commands.add('visitDonationPage', () => {

@@ -24,7 +24,7 @@ RUN set -ex \
     curl \
     " \
     && seq 1 8 | xargs -I{} mkdir -p /usr/share/man/man{} \
-    && apt-get update && apt-get -y install wget gnupg2 lsb-release \
+    && apt-get update && apt-get -y install --no-install-recommends wget gnupg2 lsb-release \
     && sh -c 'echo "deb http://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" > /etc/apt/sources.list.d/pgdg.list' \
     && wget --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc | apt-key add - \
     && apt-get update && apt-get install -y --no-install-recommends $RUN_DEPS \
@@ -33,9 +33,6 @@ RUN set -ex \
 # Copy in your requirements file
 ADD poetry.lock /poetry.lock
 ADD pyproject.toml /pyproject.toml
-
-# OR, if you're using a directory for your requirements, copy everything (comment out the above and uncomment this if so):
-# ADD requirements /requirements
 
 # Install build deps, then run `pip install`, then remove unneeded build deps all in a single step.
 # Correct the path to your production requirements file, if needed.
@@ -57,7 +54,7 @@ RUN mkdir /code/
 WORKDIR /code/
 ADD . /code/
 
-FROM base AS deploy
+FROM base  AS deploy
 
 # Copy React SPA build into final image
 COPY --from=static_files /code/spa/build /code/build
@@ -81,7 +78,7 @@ RUN DATABASE_URL='' ENVIRONMENT='' DJANGO_SECRET_KEY='dummy' DOMAIN='' python ma
 ENV UWSGI_WSGI_FILE=revengine/wsgi.py
 
 # Base uWSGI configuration (you shouldn't need to change these):
-ENV UWSGI_MASTER=1 UWSGI_HTTP_AUTO_CHUNKED=1 UWSGI_HTTP_KEEPALIVE=1 UWSGI_LAZY_APPS=1 UWSGI_WSGI_ENV_BEHAVIOR=holy UWSGI_IGNORE_SIGPIPE=true UWSGI_IGNORE_WRITE_ERRORS=true UWSGI_DISABLE_WRITE_EXCEPTION=true
+ENV UWSGI_MASTER=1 UWSGI_HTTP_AUTO_CHUNKED=1 UWSGI_HTTP_KEEPALIVE=1 UWSGI_LAZY_APPS=1 UWSGI_WSGI_ENV_BEHAVIOR=holy UWSGI_IGNORE_SIGPIPE=true UWSGI_IGNORE_WRITE_ERRORS=true UWSGI_DISABLE_WRITE_EXCEPTION=true UWSGI_BUFFER_SIZE=8192
 
 # Number of uWSGI workers and threads per worker (customize as needed):
 ENV UWSGI_WORKERS=2 UWSGI_THREADS=4

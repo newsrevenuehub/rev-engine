@@ -11,6 +11,8 @@ from faker import Faker
 
 from apps.common.tests.test_utils import generate_random_datetime
 from apps.contributions import models
+from apps.organizations.tests.factories import OrganizationFactory
+from apps.pages.tests.factories import DonationPageFactory
 
 
 fake = Faker()
@@ -65,3 +67,6 @@ class ContributionFactory(DjangoModelFactory):
     flagged_date = factory.LazyAttribute(lambda o: _get_flagged_date(o.bad_actor_score, o.created))
     status = factory.LazyAttribute(lambda o: _get_status(o.bad_actor_score))
     payment_provider_used = "Stripe"
+    contributor = factory.SubFactory(ContributorFactory)
+    donation_page = factory.SubFactory(DonationPageFactory)
+    organization = factory.SubFactory(OrganizationFactory)

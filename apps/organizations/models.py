@@ -12,6 +12,8 @@ from apps.common.models import IndexedTimeStampedModel
 from apps.common.utils import normalize_slug
 from apps.config.validators import validate_slug_against_denylist
 from apps.organizations.validators import validate_statement_descriptor_suffix
+from apps.users.choices import Roles
+from apps.users.models import RoleAssignmentResourceModelMixin, UnexpectedRoleType
 
 
 logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
@@ -53,7 +55,7 @@ class Feature(IndexedTimeStampedModel):
         super().save(*args, **kwargs)
 
 
-class Plan(IndexedTimeStampedModel):
+class Plan(IndexedTimeStampedModel, RoleAssignmentResourceModelMixin):
     name = models.CharField(max_length=255)
     features = models.ManyToManyField("organizations.Feature", related_name="plans", blank=True)
 
@@ -63,11 +65,20 @@ class Plan(IndexedTimeStampedModel):
     def __str__(self):  # pragma: no cover
         return self.name
 
+    @classmethod
+    def filter_queryset_by_role_assignment(cls, role_assignment, queryset):
+        if role_assignment.role_type == Roles.HUB_ADMIN:
+            return queryset.all()
+        elif role_assignment.role_type in (Roles.ORG_ADMIN, Roles.RP_ADMIN):
+            return queryset.filter(organization=role_assignment.organization)
+        else:
+            raise UnexpectedRoleType(f"{role_assignment.role_type} is not a valid value")
+
 
 CURRENCY_CHOICES = [(k, k) for k, _ in settings.CURRENCIES.items()]
 
 
-class Organization(IndexedTimeStampedModel):
+class Organization(IndexedTimeStampedModel, RoleAssignmentResourceModelMixin):
     name = models.CharField(max_length=255, unique=True)
     plan = models.ForeignKey("organizations.Plan", null=True, on_delete=models.CASCADE)
     currency = models.CharField(max_length=3, choices=CURRENCY_CHOICES, default="USD")
@@ -100,14 +111,16 @@ class Organization(IndexedTimeStampedModel):
     history = HistoricalRecords()
 
     @property
-    def admin_benefit_options(self):
-        benefits = self.benefit_set.all()
-        return [(c.name, c.pk) for c in benefits]
+    def admin_revenueprogram_options(self):
+        rps = self.revenueprogram_set.all()
+        return [(rp.name, rp.pk) for rp in rps]
 
     @property
-    def admin_benefitlevel_options(self):
-        benefit_levels = self.benefitlevel_set.all()
-        return [(c.name, c.pk) for c in benefit_levels]
+    def needs_payment_provider(self):
+        """
+        Right now this is simple. If the org is not "stripe_verified", then they "need a provider"
+        """
+        return not self.stripe_verified
 
     def __str__(self):
         return self.name
@@ -141,17 +154,26 @@ class Organization(IndexedTimeStampedModel):
                 f'Currency settings for organization "{self.name}" misconfigured. Tried to access "{self.currency}", but valid options are: {settings.CURRENCIES}'
             )
 
+    @classmethod
+    def filter_queryset_by_role_assignment(cls, role_assignment, queryset):
+        if role_assignment.role_type == Roles.HUB_ADMIN:
+            return queryset.all()
+        elif role_assignment.role_type in (Roles.ORG_ADMIN, Roles.RP_ADMIN):
+            return queryset.filter(pk=role_assignment.organization.pk)
+        else:
+            raise UnexpectedRoleType(f"{role_assignment.role_type} is not a valid value")
+
 
 class BenefitLevel(IndexedTimeStampedModel):
     name = models.CharField(max_length=128)
     lower_limit = models.PositiveIntegerField()
     upper_limit = models.PositiveIntegerField(null=True, blank=True)
     currency = models.CharField(max_length=3, default="usd")
+    level = models.PositiveSmallIntegerField(help_text="Is this a first-level benefit, second-level, etc?", default=0)
 
     benefits = models.ManyToManyField("organizations.Benefit", through="organizations.BenefitLevelBenefit")
 
-    organization = models.ForeignKey(Organization, on_delete=models.CASCADE)
-
+    revenue_program = models.ForeignKey("organizations.RevenueProgram", on_delete=models.CASCADE)
     # A history of changes to this model, using django-simple-history.
     history = HistoricalRecords()
 
@@ -161,10 +183,9 @@ class BenefitLevel(IndexedTimeStampedModel):
     class Meta:
         unique_together = (
             "name",
-            "organization",
+            "revenue_program",
         )
-
-        ordering = ["revenueprogrambenefitlevel__level"]
+        ordering = ("level",)
 
     @property
     def donation_range(self):
@@ -176,27 +197,10 @@ class BenefitLevel(IndexedTimeStampedModel):
             raise ValidationError("Upper limit must be greater than lower limit")
 
 
-class RevenueProgramBenefitLevel(models.Model):
-    """
-    Through table for the relationship between Organization and Benefit Level.
-    Determines the order in which Benefit Levels appear
-    """
-
-    revenue_program = models.ForeignKey("organizations.RevenueProgram", on_delete=models.CASCADE)
-    benefit_level = models.ForeignKey("organizations.BenefitLevel", on_delete=models.CASCADE)
-    level = models.PositiveSmallIntegerField(help_text="Is this a first-level benefit, second-level, etc?")
-
-    class Meta:
-        ordering = ("level",)
-
-    def __str__(self):  # pragma: no cover
-        return f"Benefit Level {self.level} for {self.revenue_program}"
-
-
 class Benefit(IndexedTimeStampedModel):
     name = models.CharField(max_length=128, help_text="A way to uniquely identify this Benefit")
     description = models.TextField(help_text="The text that appears on the donation page")
-    organization = models.ForeignKey("organizations.Organization", on_delete=models.CASCADE)
+    revenue_program = models.ForeignKey("organizations.RevenueProgram", on_delete=models.CASCADE)
 
     # A history of changes to this model, using django-simple-history.
     history = HistoricalRecords()
@@ -207,7 +211,7 @@ class Benefit(IndexedTimeStampedModel):
     class Meta:
         unique_together = (
             "name",
-            "organization",
+            "revenue_program",
         )
 
         ordering = ["benefitlevelbenefit__order"]
@@ -233,7 +237,6 @@ class BenefitLevelBenefit(models.Model):
 
 class RevenueProgram(IndexedTimeStampedModel):
     name = models.CharField(max_length=255)
-
     slug = models.SlugField(
         max_length=SLUG_MAX_LENGTH,
         blank=True,
@@ -258,8 +261,6 @@ class RevenueProgram(IndexedTimeStampedModel):
     google_analytics_v3_id = models.CharField(max_length=50, null=True, blank=True)
     google_analytics_v4_id = models.CharField(max_length=50, null=True, blank=True)
     facebook_pixel_id = models.CharField(max_length=100, null=True, blank=True)
-
-    benefit_levels = models.ManyToManyField(BenefitLevel, through=RevenueProgramBenefitLevel)
 
     # Social links
     twitter_handle = models.CharField(
@@ -286,6 +287,16 @@ class RevenueProgram(IndexedTimeStampedModel):
     def admin_style_options(self):
         styles = self.style_set.all()
         return [(c.name, c.pk) for c in styles]
+
+    @property
+    def admin_benefit_options(self):
+        benefits = self.benefit_set.all()
+        return [(c.name, c.pk) for c in benefits]
+
+    @property
+    def admin_benefitlevel_options(self):
+        benefit_levels = self.benefitlevel_set.all()
+        return [(c.name, c.pk) for c in benefit_levels]
 
     def __str__(self):
         return self.name
@@ -345,3 +356,22 @@ class RevenueProgram(IndexedTimeStampedModel):
                 logger.warning(
                     f"Failed to register ApplePayDomain for RevenueProgram {self.name}. StripeError: {str(stripe_error)}"
                 )
+
+    def user_has_ownership_via_role(self, role_assignment):
+        """Determine if a user owns an instance based on role_assignment"""
+        return any(
+            [
+                all(
+                    [
+                        role_assignment.role_type == Roles.ORG_ADMIN.value,
+                        role_assignment.organization == self.organization,
+                    ]
+                ),
+                all(
+                    [
+                        role_assignment.role_type == Roles.RP_ADMIN.value,
+                        self in role_assignment.revenue_programs.all(),
+                    ]
+                ),
+            ]
+        )

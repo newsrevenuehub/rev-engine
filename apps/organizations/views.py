@@ -3,12 +3,14 @@ import logging
 from django.conf import settings
 from django.contrib.auth import get_user_model
 
-from rest_framework import permissions, viewsets
+from rest_framework import viewsets
 from rest_framework.permissions import IsAuthenticated
 
-from apps.api.permissions import UserBelongsToOrg
+from apps.api.permissions import HasRoleAssignment
 from apps.organizations import serializers
 from apps.organizations.models import Feature, Organization, Plan, RevenueProgram
+from apps.public.permissions import IsActiveSuperUser
+from apps.users.views import FilterQuerySetByUserMixin
 
 
 user_model = get_user_model()
@@ -16,65 +18,52 @@ user_model = get_user_model()
 logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
 
 
-class ReadOnly(permissions.BasePermission):
-    def has_object_permission(self, request, *args):
-        # Read permissions are allowed to any request,
-        # so we'll always allow GET, HEAD or OPTIONS requests.
-        if request.method in permissions.SAFE_METHODS:
-            return True
+class OrganizationViewSet(viewsets.ReadOnlyModelViewSet, FilterQuerySetByUserMixin):
+    """Organizations exposed through API
 
+    Only superusers and users with roles can access. Queryset is filtered by user.
+    """
 
-class RevenueProgramLimitedMixin:
-    model = None
-
-    def get_queryset(self):
-        """
-        Filter querysets such that only instances belonging to revenue programs this user has access to are returned.
-        """
-        model_has_rp_rel = hasattr(self.model, "revenue_program")
-        if model_has_rp_rel and not self.request.user.is_superuser:
-            revenue_programs = self.request.user.get_revenue_programs()
-            return self.model.objects.filter(revenue_program__in=revenue_programs)
-        return self.model.objects.all()
-
-
-class OrganizationLimitedListView:
-    model = None
-
-    def get_queryset(self):
-        """
-        Filters querysets such that only instances belonging to the logged in user's organization are returned.
-        """
-        if isinstance(self, Organization):
-            return self.model.objects.filter(pk=self.id)
-
-        # Ensure the model in question has a relationship to Organization
-        model_has_org_rel = hasattr(self.model, "organization")
-        if model_has_org_rel and self.action == "list" and not self.request.user.is_superuser:
-            return self.model.objects.filter(organization__users=self.request.user)
-        return self.model.objects.all()
-
-
-class OrganizationViewSet(OrganizationLimitedListView, viewsets.ReadOnlyModelViewSet):
     model = Organization
-    permission_classes = [IsAuthenticated, UserBelongsToOrg, ReadOnly]
+    queryset = Organization.objects.all()
+    permission_classes = [IsAuthenticated, IsActiveSuperUser | HasRoleAssignment]
     serializer_class = serializers.OrganizationSerializer
+    pagination_class = None
+
+    def get_queryset(self):
+        # this is supplied by FilterQuerySetByUserMixin
+        return self.filter_queryset_for_user(self.request.user, self.model.objects.all())
 
 
-class FeatureViewSet(viewsets.ReadOnlyModelViewSet, ReadOnly):
+class FeatureViewSet(viewsets.ReadOnlyModelViewSet):
     model = Feature
+    # only superusers, and can only read
+    permission_classes = [IsAuthenticated, IsActiveSuperUser]
     queryset = Feature.objects.all()
     serializer_class = serializers.FeatureSerializer
+    pagination_class = None
 
 
-class PlanViewSet(viewsets.ReadOnlyModelViewSet, ReadOnly):
+class PlanViewSet(viewsets.ReadOnlyModelViewSet, FilterQuerySetByUserMixin):
+    """Organizations exposed through API
+
+    Only superusers and users with roles can access. Queryset is filtered by user.
+    """
+
     model = Plan
     queryset = Plan.objects.all()
+    permission_classes = [IsAuthenticated, IsActiveSuperUser | HasRoleAssignment]
     serializer_class = serializers.PlanSerializer
+    pagination_class = None
+
+    def get_queryset(self):
+        return self.filter_queryset_for_user(self.request.user, self.model.objects.all())
 
 
-class RevenueProgramViewSet(OrganizationLimitedListView, viewsets.ReadOnlyModelViewSet, ReadOnly):
+class RevenueProgramViewSet(viewsets.ReadOnlyModelViewSet):
     model = RevenueProgram
     queryset = RevenueProgram.objects.all()
+    # only superusers can access
+    permission_classes = [IsAuthenticated, IsActiveSuperUser]
     serializer_class = serializers.RevenueProgramSerializer
     pagination_class = None

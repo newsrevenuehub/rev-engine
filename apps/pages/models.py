@@ -11,16 +11,18 @@ from apps.api.error_messages import UNIQUE_PAGE_SLUG
 from apps.common.models import IndexedTimeStampedModel
 from apps.common.utils import cleanup_keys, normalize_slug
 from apps.config.validators import validate_slug_against_denylist
-from apps.organizations.models import Feature, RevenueProgram
+from apps.organizations.models import Feature
 from apps.pages import defaults
 from apps.pages.validators import style_validator
+from apps.users.choices import Roles
+from apps.users.models import RoleAssignmentResourceModelMixin, UnexpectedRoleType
 
 
 def _get_screenshot_upload_path(instance, filename):
     return f"{instance.organization.name}/page_screenshots/{instance.name}_latest.png"
 
 
-class AbstractPage(IndexedTimeStampedModel):
+class AbstractPage(IndexedTimeStampedModel, RoleAssignmentResourceModelMixin):
     name = models.CharField(max_length=255)
     heading = models.CharField(max_length=255, blank=True)
 
@@ -58,6 +60,48 @@ class AbstractPage(IndexedTimeStampedModel):
     def field_names(cls):
         return [f.name for f in cls._meta.fields]
 
+    @classmethod
+    def filter_queryset_by_role_assignment(cls, role_assignment, queryset):
+        if role_assignment.role_type == Roles.HUB_ADMIN:
+            return queryset.all()
+        elif role_assignment.role_type == Roles.ORG_ADMIN:
+            return queryset.filter(revenue_program__organization=role_assignment.organization).all()
+        elif role_assignment.role_type == Roles.RP_ADMIN:
+            return queryset.filter(revenue_program__in=role_assignment.revenue_programs.all()).all()
+        else:
+            raise UnexpectedRoleType(f"{role_assignment.role_type} is not a valid value")
+
+    @classmethod
+    def user_has_delete_permission_by_virtue_of_role(cls, user, instance):
+        ra = user.roleassignment
+        if ra.role_type == Roles.HUB_ADMIN:
+            return True
+        elif ra.role_type == Roles.ORG_ADMIN:
+            return ra.organization == instance.organization
+        elif ra.role_type == Roles.RP_ADMIN:
+            return instance.revenue_program in user.roleassignment.revenue_programs.all()
+        else:
+            return False
+
+    def user_has_ownership_via_role(self, role_assignment):
+        """Determine if a user (based on roleassignment) owns an instance"""
+        return any(
+            [
+                all(
+                    [
+                        role_assignment.role_type == Roles.ORG_ADMIN.value,
+                        self.revenue_program.organization == role_assignment.organization,
+                    ]
+                ),
+                all(
+                    [
+                        role_assignment.role_type == Roles.RP_ADMIN.value,
+                        self.revenue_program in role_assignment.revenue_programs.all(),
+                    ]
+                ),
+            ]
+        )
+
     class Meta:
         abstract = True
 
@@ -87,8 +131,8 @@ class Template(AbstractPage):
         )
 
     def make_page_from_template(self, page_data={}):
-        """
-        Create a page from from template.
+        """Create DonationPage() instance from self.
+
         Expects template_data as dict, and optional page_data (eg. for creating a template page via org admin).
         We also clean up template and page data here, so that we only copy the fields we want.
         """
@@ -99,7 +143,7 @@ class Template(AbstractPage):
         unwanted_keys = ["_state", "id", "modified", "created", "published_date", "_history_user"]
         template = cleanup_keys(template_data, unwanted_keys)
         page = cleanup_keys(page_data, unwanted_keys)
-        merged_page = template | page
+        merged_page = {**template, **page}
         return DonationPage.objects.create(**merged_page)
 
 
@@ -122,8 +166,6 @@ class DonationPage(AbstractPage, SafeDeleteModel):
     published_date = models.DateTimeField(null=True, blank=True)
     page_screenshot = SorlImageField(null=True, blank=True, upload_to=_get_screenshot_upload_path)
 
-    email_templates = models.ManyToManyField("emails.PageEmailTemplate", blank=True)
-
     # A history of changes to this model, using django-simple-history.
     history = HistoricalRecords()
 
@@ -140,20 +182,6 @@ class DonationPage(AbstractPage, SafeDeleteModel):
         return Feature.objects.filter(
             feature_type=Feature.FeatureType.PAGE_LIMIT, plans__organization=self.organization.id
         ).first()
-
-    def update_email_template(self, template):
-        """
-        Replaces the template on the DonationPage instance with a new template with the same.
-        template type.
-
-        :param template: PageEmailTemplate instance
-        :return: None
-        """
-        if temp := self.email_templates.filter(template_type=template.template_type).first():
-            self.email_templates.remove(temp)
-            self.email_templates.add(template)
-        else:
-            self.email_templates.add(template)
 
     def get_total_org_pages(self):
         org = self.revenue_program.organization
@@ -188,7 +216,11 @@ class DonationPage(AbstractPage, SafeDeleteModel):
 
         super().save(*args, **kwargs)
 
-    def make_template_from_page(self, template_data={}):
+    def make_template_from_page(self, template_data={}, from_admin=False):
+        """Create Template() instance from self.
+
+        Clean up template_data and page data here, so that we only copy the fields we want.
+        """
         unwanted_keys = [
             "_state",
             "id",
@@ -200,14 +232,16 @@ class DonationPage(AbstractPage, SafeDeleteModel):
             "published_date",
             "deleted_by_cascade",  # Added by safedelete
         ]
+        if not from_admin:
+            unwanted_keys.append("revenue_program_id")
+
         page = cleanup_keys(self.__dict__, unwanted_keys)
         template = cleanup_keys(template_data, unwanted_keys)
-        merged_template = page | template
-        merged_template["revenue_program"] = RevenueProgram.objects.get(pk=merged_template.pop("revenue_program_id"))
+        merged_template = {**page, **template}
         return Template.objects.create(**merged_template)
 
 
-class Style(IndexedTimeStampedModel, SafeDeleteModel):
+class Style(IndexedTimeStampedModel, SafeDeleteModel, RoleAssignmentResourceModelMixin):
     """
     Ties a set of styles to a page. Discoverable by name, belonging to a RevenueProgram.
     """
@@ -229,6 +263,48 @@ class Style(IndexedTimeStampedModel, SafeDeleteModel):
         )
 
         ordering = ["-created", "name"]
+
+    @classmethod
+    def filter_queryset_by_role_assignment(cls, role_assignment, queryset):
+        if role_assignment.role_type == Roles.HUB_ADMIN:
+            return queryset.all()
+        elif role_assignment.role_type == Roles.ORG_ADMIN:
+            return queryset.filter(revenue_program__organization=role_assignment.organization).all()
+        elif role_assignment.role_type == Roles.RP_ADMIN:
+            return queryset.filter(revenue_program__in=role_assignment.revenue_programs.all()).all()
+        else:
+            raise UnexpectedRoleType(f"{role_assignment.role_type} is not a valid value")
+
+    @classmethod
+    def user_has_delete_permission_by_virtue_of_role(cls, user, instance):
+        ra = user.roleassignment
+        if ra.role_type == Roles.HUB_ADMIN:
+            return True
+        elif ra.role_type == Roles.ORG_ADMIN:
+            return ra.organization == instance.revenue_program.organization
+        elif ra.role_type == Roles.RP_ADMIN:
+            return instance.revenue_program in user.roleassignment.revenue_programs.all()
+        else:
+            return False
+
+    def user_has_ownership_via_role(self, role_assignment):
+        """Determine if a user (based on roleassignment) owns an instance"""
+        return any(
+            [
+                all(
+                    [
+                        role_assignment.role_type == Roles.ORG_ADMIN.value,
+                        self.revenue_program.organization == role_assignment.organization,
+                    ]
+                ),
+                all(
+                    [
+                        role_assignment.role_type == Roles.RP_ADMIN.value,
+                        self.revenue_program in role_assignment.revenue_programs.all(),
+                    ]
+                ),
+            ]
+        )
 
 
 class Font(models.Model):

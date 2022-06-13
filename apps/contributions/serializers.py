@@ -101,6 +101,8 @@ class ContributionSerializer(serializers.ModelSerializer):
             "provider_subscription_url",
             "provider_customer_url",
             "status",
+            "donation_page_id",
+            "organization_id",
         ]
 
 
@@ -136,7 +138,10 @@ class ContributorContributionSerializer(serializers.ModelSerializer):
             return card["last4"]
 
     def get_org_stripe_id(self, obj):
-        return obj.organization.stripe_account_id
+        # NB: In testing locally, there were tests where when trying to serialize contributions
+        # there was intermittent failure because obj.organization was None, even though we're explicitly
+        # setting it in setup
+        return obj.organization.stripe_account_id if obj.organization else ""
 
     class Meta:
         model = Contribution
@@ -149,6 +154,7 @@ class ContributorContributionSerializer(serializers.ModelSerializer):
             "last4",
             "provider_customer_id",
             "org_stripe_id",
+            "organization_id",
             "amount",
             "last_payment_date",
         ]

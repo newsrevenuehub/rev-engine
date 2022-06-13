@@ -1,12 +1,28 @@
 import { getEndpoint } from '../support/util';
-import { LIST_STYLES } from 'ajax/endpoints';
+import { LIST_STYLES, USER } from 'ajax/endpoints';
 import { CONTENT_SLUG } from 'routes';
 import stylesList from '../fixtures/styles/list-styles-1.json';
 
-describe('Donation pages list', () => {
-  before(() => {
-    cy.login('user/stripe-verified.json');
+import hubAdminUser from '../fixtures/user/hub-admin';
+import { CONTENT_SECTION_ACCESS_FLAG_NAME } from 'constants/featureFlagConstants';
+
+const contentSectionFlag = {
+  id: '5678',
+  name: CONTENT_SECTION_ACCESS_FLAG_NAME
+};
+
+const hubAdminWithContentFlag = {
+  ...hubAdminUser,
+  flags: [{ ...contentSectionFlag }]
+};
+
+const [styleA] = stylesList;
+
+describe('Styles list', () => {
+  beforeEach(() => {
+    cy.forceLogin(hubAdminUser);
     cy.intercept(getEndpoint(LIST_STYLES), { fixture: 'styles/list-styles-1' }).as('listStyles');
+    cy.intercept({ method: 'GET', pathname: getEndpoint(USER) }, { body: hubAdminWithContentFlag });
     cy.visit(CONTENT_SLUG);
     cy.url().should('include', CONTENT_SLUG);
     cy.wait('@listStyles');
@@ -21,7 +37,7 @@ describe('Donation pages list', () => {
   });
 
   it('should open edit modal when style is clicked', () => {
-    cy.getByTestId('style-card-1').click();
+    cy.getByTestId(`style-card-${styleA.id}`).click();
     cy.getByTestId('edit-styles-modal-update').should('exist');
     cy.getByTestId('close-modal').click();
   });

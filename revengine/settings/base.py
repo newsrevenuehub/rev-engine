@@ -59,6 +59,7 @@ INSTALLED_APPS = [
     "health_check.cache",
     "health_check.contrib.migrations",
     "health_check.contrib.redis",
+    "waffle",
 ]
 
 
@@ -74,6 +75,7 @@ MIDDLEWARE = [
     "apps.common.middleware.LogFourHundredsMiddleware",
     "csp.middleware.CSPMiddleware",
     "simple_history.middleware.HistoryRequestMiddleware",
+    "waffle.middleware.WaffleMiddleware",
 ]
 
 ROOT_URLCONF = "revengine.urls"
@@ -104,6 +106,7 @@ REST_FRAMEWORK = {
     ],
     "DEFAULT_PERMISSION_CLASSES": [
         "rest_framework.permissions.IsAuthenticated",
+        "apps.api.permissions.HasRoleAssignment",
     ],
     "DEFAULT_PAGINATION_CLASS": "apps.api.pagination.ApiStandardPagination",
     "PAGE_SIZE": 10,
@@ -130,6 +133,9 @@ AUTH_COOKIE_KEY = "Authorization"
 # across origins. Once this API supports public access, this needs to be loosened.
 AUTH_COOKIE_SAMESITE = "Strict"  # or 'Lax' or None
 
+ORG_SLUG_PARAM = "orgSlug"
+RP_SLUG_PARAM = "revProgramSlug"
+PAGE_SLUG_PARAM = "slug"
 
 WSGI_APPLICATION = "revengine.wsgi.application"
 
@@ -230,6 +236,15 @@ LOGGING = {
             "formatter": "basic",
         },
     },
+    "loggers": {
+        # Redefining the logger for the django module
+        # prevents invoking the AdminEmailHandler
+        "django": {
+            "handlers": ["console"],
+            "level": "INFO",
+            "propagate": False,
+        },
+    },
     "root": {
         "handlers": ["console"],
         "level": "INFO",
@@ -249,7 +264,7 @@ STRIPE_TEST_SECRET_KEY = os.getenv("TEST_HUB_STRIPE_API_SECRET_KEY", "")
 STRIPE_OAUTH_SCOPE = "read_write"
 STRIPE_LIVE_MODE = os.environ.get("STRIPE_LIVE_MODE", "false").lower() == "true"
 
-GENERIC_STRIPE_PRODUCT_NAME = "Donation via RevEngine"
+GENERIC_STRIPE_PRODUCT_NAME = "Contribution via RevEngine"
 
 # Get it from the section in the Stripe dashboard where you added the webhook endpoint
 STRIPE_WEBHOOK_SECRET = os.getenv("STRIPE_WEBHOOK_SECRET", "")
@@ -269,11 +284,11 @@ STRIPE_WEBHOOK_EVENTS = [
 
 # SITE_URL must include scheme and optionally port, https://example.com.
 SITE_URL = os.getenv("SITE_URL", "")
-# Application subdomains (that are NOT revenue program slugs)
+
 # TODO: Isn't DOMAIN_APEX just be SITE_URL without any subdomain?
 DOMAIN_APEX = os.getenv("DOMAIN_APEX")
 # Application subdomains (that are NOT revenue program slugs)
-DASHBOARD_SUBDOMAINS = os.getenv("DASHBOARD_SUBDOMAINS", "support:www:dashboard:").split(":")
+DASHBOARD_SUBDOMAINS = os.getenv("DASHBOARD_SUBDOMAINS", "www:dashboard:").split(":")
 
 # BadActor API
 BAD_ACTOR_API_URL = os.getenv("BAD_ACTOR_API_URL", "https://bad-actor-test.fundjournalism.org/v1/bad_actor/")
@@ -291,6 +306,10 @@ HEALTHCHECK_URL_AUTO_ACCEPT_FLAGGED_PAYMENTS = os.environ.get("HEALTHCHECK_URL_A
 # Transactional Email
 EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
 EMAIL_SUBJECT_PREFIX = "[RevEngine] "
+
+# This determines which template is used on the ESP (at present Mailgun) when sending contribution confirmation emails.
+ESP_TEMPLATE_ID_FOR_CONTRIBUTION_CONFIRMATION = os.environ.get("ESP_TEMPLATE_ID_FOR_CONTRIBUTION_CONFIRMATION")
+
 
 ADMINS = [("dc", "daniel@fundjournalism.org")]
 
@@ -319,7 +338,6 @@ MIDDLEWARE_LOGGING_CODES = [400, 404, 403]
 COUNTRIES = ["US", "CA"]
 # Map currency-code to symbol
 CURRENCIES = {"USD": "$", "CAD": "$"}
-
 
 CSP_REPORTING_ENABLE = os.environ.get("CSP_REPORTING_ENABLE", "false").lower() == "true"
 # Django-CSP configuration

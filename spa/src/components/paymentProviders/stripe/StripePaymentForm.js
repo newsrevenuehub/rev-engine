@@ -6,7 +6,7 @@ import { useTheme } from 'styled-components';
 import { useAlert } from 'react-alert';
 
 // Utils
-import { getFrequencyAdverb } from 'utilities/parseFrequency';
+import { getFrequencyAdverb, getFrequencyThankYouText } from 'utilities/parseFrequency';
 
 // Hooks
 import useSubdomain from 'hooks/useSubdomain';
@@ -91,14 +91,22 @@ function StripePaymentForm({ loading, setLoading, offerPayFees }) {
     setLoading(false);
     setSucceeded(true);
     trackConversion(totalAmount);
+    const qstr = `frequency=${encodeURIComponent(getFrequencyThankYouText(frequency))}&amount=${encodeURIComponent(
+      totalAmount
+    )}`;
+
     if (page.thank_you_redirect) {
-      window.location = page.thank_you_redirect;
+      let redirectURL = page.thank_you_redirect;
+      redirectURL = redirectURL.includes('?') ? `${redirectURL}&${qstr}` : `${redirectURL}?${qstr}`;
+      window.location = redirectURL;
     } else {
       const email = extractEmailFromFormRef(formRef.current);
+
       const donationPageUrl = window.location.href;
       history.push({
         pathname: url === '/' ? THANK_YOU_SLUG : url + THANK_YOU_SLUG,
-        state: { page, amount: totalAmount, email, donationPageUrl }
+        search: `?${qstr}`,
+        state: { page, amount: totalAmount, email, donationPageUrl, frequencyText: getFrequencyThankYouText(frequency) }
       });
     }
   };
@@ -279,18 +287,20 @@ function StripePaymentForm({ loading, setLoading, offerPayFees }) {
 
   return (
     <>
-      {!forceManualCard && paymentRequest ? (
+      {offerPayFees && <PayFeesWidget />}
+
+      {paymentRequest ? (
         <>
           <S.PaymentRequestWrapper>
-            {offerPayFees && <PayFeesWidget />}
-
             <PaymentRequestButtonElement options={{ paymentRequest, style: S.PaymentRequestButtonStyle }} />
           </S.PaymentRequestWrapper>
-          <S.PayWithCardOption onClick={() => setForceManualCard(true)}>
+          <S.PayWithCardOption onClick={() => setForceManualCard(forceManualCard ? false : true)}>
             - I prefer to manually enter my credit card -
           </S.PayWithCardOption>
         </>
-      ) : (
+      ) : null}
+
+      {!forceManualCard && paymentRequest ? null : (
         <S.StripePaymentForm>
           <BaseField label="Card details" required>
             <S.PaymentElementWrapper>
@@ -306,7 +316,6 @@ function StripePaymentForm({ loading, setLoading, offerPayFees }) {
               {stripeError}
             </S.PaymentError>
           )}
-          {offerPayFees && <PayFeesWidget />}
 
           <S.PaymentSubmitButton
             onClick={handleCardSubmit}

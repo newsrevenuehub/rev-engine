@@ -144,7 +144,7 @@ class SlackIntegrationTest(TestCase):
         # instantiating slack_manager will trigger info log
         self._create_slack_manager()
         mock_info_logger.assert_called_once_with(
-            "Tried to send slack notification, but News Revenue Hub does not have a SlackIntegration configured"
+            "Tried to send slack notification, but News Revenue Engine does not have a SlackIntegration configured"
         )
         mock_postmessage.assert_not_called()
 

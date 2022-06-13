@@ -43,7 +43,7 @@ function handle401Response(error) {
   /*
     If it's a 401, we want to handle two different cases:
     1. It's a 401 on login, in which case error.response contains useful error messages
-    2. It's a 401 on some other call, in which case we want to reject with a special error 
+    2. It's a 401 on some other call, in which case we want to reject with a special error
        that, when caught, will affect the display of the re-auth modal.
   */
   if (error.config.url === TOKEN) return Promise.reject(error);

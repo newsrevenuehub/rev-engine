@@ -48,8 +48,7 @@ describe('Dashboard', () => {
       cy.getByTestId('nav-contributions-item').should('not.exist');
       cy.visit(DONATIONS_SLUG);
       cy.url().should('include', DONATIONS_SLUG);
-      // cy.getByTestId('donations').should('not.exist');
-      cy.getByTestId('donations').should('exist');
+      cy.getByTestId('donations').should('not.exist');
     });
   });
   context('User DOES have contributions section access flag', () => {

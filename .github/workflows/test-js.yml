@@ -44,7 +44,6 @@ jobs:
       - name: Cypress tests
         uses: cypress-io/github-action@v4
         with:
-          browser: chrome
           working-directory: spa
           build: npx cypress info
           start: npm run start:subdomains

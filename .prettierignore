@@ -1,0 +1,3 @@
+# prettier will sometimes split up {{ }} blocks in Django templates
+# which causes those values not to be properly rendered.
+**/templates/*html

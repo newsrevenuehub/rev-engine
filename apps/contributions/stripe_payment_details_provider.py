@@ -32,6 +32,12 @@ class NoInvoiceGeneratedException(StripeIgnorableEventException):
     pass
 
 
+class ChargeDetails:
+    def __init__(self, **kwargs) -> None:
+        for key, val in kwargs.items():
+            setattr(self, key, val)
+
+
 class StripeCharge:
     def __init__(self, charge):
         if not charge.invoice:
@@ -151,3 +157,8 @@ def pull_stripe_data_to_cache(stripe_account_id, email_id):
             logger.info(ex)
 
     put_in_cache(email_id, data)
+
+
+def load_stripe_data_from_cache(email_id):
+    data = json.loads(caches["default"].get(email_id))
+    return [ChargeDetails(**x) for x in data.values()]

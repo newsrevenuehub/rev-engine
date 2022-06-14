@@ -18,12 +18,13 @@ from apps.api.permissions import (
 )
 from apps.contributions import serializers
 from apps.contributions.filters import ContributionFilter
-from apps.contributions.models import Contribution, ContributionInterval
+from apps.contributions.models import Contribution, ContributionInterval, Contributor
 from apps.contributions.payment_managers import (
     PaymentBadParamsError,
     PaymentProviderError,
     StripePaymentManager,
 )
+from apps.contributions.stripe_payment_details_provider import load_stripe_data_from_cache
 from apps.contributions.utils import get_sha256_hash
 from apps.contributions.webhooks import StripeWebhookProcessor
 from apps.emails.tasks import send_contribution_confirmation_email
@@ -261,13 +262,16 @@ class ContributionsViewSet(viewsets.ReadOnlyModelViewSet, FilterQuerySetByUserMi
     filterset_class = ContributionFilter
 
     def get_queryset(self):
+        if isinstance(self.request.user, Contributor):
+            return load_stripe_data_from_cache(self.request.user)
+
         # this is supplied by FilterQuerySetByUserMixin
         return self.filter_queryset_for_user(self.request.user, self.model.objects.all())
 
     def get_serializer_class(self):
         if isinstance(self.request.user, UserModel):
             return serializers.ContributionSerializer
-        return serializers.ContributorContributionSerializer
+        return serializers.PaymentProviderContributionSerializer
 
     # only superusers and hub admins have permission
     @action(methods=["post"], detail=True, permission_classes=[IsAuthenticated, IsActiveSuperUser | IsHubAdmin])

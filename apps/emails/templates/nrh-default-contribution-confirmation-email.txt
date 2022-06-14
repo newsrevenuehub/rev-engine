@@ -9,5 +9,5 @@ Email: {{ contributor_email }}
 {% if contribution_interval == "one_time" %}
 Amount Contributed: {{ contribution_amount }}
 {% else %}
-Amount Contributed: {{ contribution_amount}}/{{contribution_interval_display_value}}
+Amount Contributed: {{ contribution_amount }}/{{ contribution_interval_display_value }}
 {% endif %}

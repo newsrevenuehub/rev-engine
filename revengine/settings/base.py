@@ -60,6 +60,7 @@ INSTALLED_APPS = [
     "health_check.contrib.migrations",
     "health_check.contrib.redis",
     "waffle",
+    "reversion",
 ]
 
 

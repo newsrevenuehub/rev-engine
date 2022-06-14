@@ -72,6 +72,7 @@ heroku3 = "^5"
 drf-extra-fields = "^3"
 django-simple-history = "3.0.0"
 django-waffle = "^2.4.1"
+django-reversion = "^5.0.0"
 
 [tool.poetry.dev-dependencies]
 appnope = "*"

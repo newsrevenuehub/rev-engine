@@ -1,6 +1,6 @@
 import { getEndpoint } from '../support/util';
 import { LIST_STYLES, USER } from 'ajax/endpoints';
-import { STYLES_SLUG } from 'routes';
+import { CUSTOMIZE_SLUG } from 'routes';
 import stylesList from '../fixtures/styles/list-styles-1.json';
 
 import hubAdminUser from '../fixtures/user/hub-admin';
@@ -23,8 +23,8 @@ describe('Styles list', () => {
     cy.forceLogin(hubAdminUser);
     cy.intercept(getEndpoint(LIST_STYLES), { fixture: 'styles/list-styles-1' }).as('listStyles');
     cy.intercept({ method: 'GET', pathname: getEndpoint(USER) }, { body: hubAdminWithContentFlag });
-    cy.visit(STYLES_SLUG);
-    cy.url().should('include', STYLES_SLUG);
+    cy.visit(CUSTOMIZE_SLUG);
+    cy.url().should('include', CUSTOMIZE_SLUG);
     cy.wait('@listStyles');
   });
 

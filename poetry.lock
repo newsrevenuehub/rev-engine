@@ -534,6 +534,17 @@ optional = false
 python-versions = ">=3"
 
 [[package]]
+name = "django-reversion"
+version = "5.0.0"
+description = "An extension to the Django web framework that provides version control for model instances."
+category = "main"
+optional = false
+python-versions = ">=3.7"
+
+[package.dependencies]
+django = ">=2.0"
+
+[[package]]
 name = "django-safedelete"
 version = "1.2.2"
 description = "Mask your objects instead of deleting them from your database."
@@ -1708,7 +1719,7 @@ testing = ["pytest (>=6)", "pytest-checkdocs (>=2.4)", "pytest-flake8", "pytest-
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.9"
-content-hash = "fc2c806b292799b99ec7d5b9963a3cd7fcf6ff5665bbb7299fc5006e8544d047"
+content-hash = "c90853a942fafead3cb4769c876b802d419cae40906505f6ac26ac7ca0eeded6"
 
 [metadata.files]
 amqp = [
@@ -1939,6 +1950,10 @@ django-redis = [
 ]
 django-reverse-admin = [
     {file = "django_reverse_admin-2.9.6.zip", hash = "sha256:3c26d7a93181e8f11b1c81f83251f238c566bc7ebea2873520269c949116f0d9"},
+]
+django-reversion = [
+    {file = "django-reversion-5.0.0.tar.gz", hash = "sha256:0bade3c399387451087f0c67835e0d3d186d767de6a5c5ba53a88eafc3f271c8"},
+    {file = "django_reversion-5.0.0-py3-none-any.whl", hash = "sha256:7bea725de7f56769d89a5a712cf7b7f1b02abc27655432f2eb1a703264986d99"},
 ]
 django-safedelete = [
     {file = "django-safedelete-1.2.2.tar.gz", hash = "sha256:8faab05e3126a27c901638dcb2f6f769cf46bb1b33052714659eb93efe81ffce"},

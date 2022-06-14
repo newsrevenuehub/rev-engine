@@ -24,6 +24,7 @@ class EmailTaskError(Exception):
     autoretry_for=(AnymailAPIError,),
 )
 def send_email(identifier, to, subject, template_data):
+    # temp minimal change to kick tires and enable PR
     logger.info("Sending receipt email id:%s to:%s subject:%s", identifier, to, subject)
     message = AnymailMessage()
     message.template_id = identifier

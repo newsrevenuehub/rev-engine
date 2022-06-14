@@ -1,54 +1,32 @@
 from django.conf import settings
+from django.core.mail import send_mail
+from django.template.loader import render_to_string
 
 from anymail.exceptions import AnymailAPIError
-from anymail.message import AnymailMessage
 from celery import shared_task
 from celery.utils.log import get_task_logger
-
-
-DEFAULT_CONTRIBUTION_CONFIRMATION_EMAIL_SUBJECT = "Thank you for your contribution!"
 
 
 logger = get_task_logger(f"{settings.DEFAULT_LOGGER}.{__name__}")
 
 
-class EmailTaskError(Exception):
-    pass
-
-
 @shared_task(
-    name="send_email",
+    name="send_templated_email",
     max_retries=5,
     retry_backoff=True,
     retry_jitter=False,
     autoretry_for=(AnymailAPIError,),
 )
-def send_email(identifier, to, subject, template_data):
-    # temp minimal change to kick tires and enable PR
-    logger.info("Sending receipt email id:%s to:%s subject:%s", identifier, to, subject)
-    message = AnymailMessage()
-    message.template_id = identifier
-    message.to = [
-        to,
-    ]
-    message.subject = subject
-    message.merge_global_data = template_data
-    message.send()
-
-
-@shared_task(
-    name="send_contribution_confirmation_email",
-    max_retries=5,
-    retry_backoff=True,
-    retry_jitter=False,
-    autoretry_for=(AnymailAPIError,),
-)
-def send_contribution_confirmation_email(
-    to,
-    subject=DEFAULT_CONTRIBUTION_CONFIRMATION_EMAIL_SUBJECT,
-    esp_template_id=settings.ESP_TEMPLATE_ID_FOR_CONTRIBUTION_CONFIRMATION,
-    **template_data,
+def send_templated_email(
+    to, subject, text_template, html_template, template_data, from_email=settings.EMAIL_DEFAULT_TRANSACTIONAL_SENDER
 ):
-    if not esp_template_id:
-        raise EmailTaskError("`esp_template_id` must be set")
-    return send_email(esp_template_id, to, subject, template_data)
+    logger.info("Sending email to recipient `%s` with subject `%s`", to, subject)
+    send_mail(
+        subject,
+        render_to_string(text_template, template_data),
+        from_email,
+        [
+            to,
+        ],
+        html_message=render_to_string(html_template, template_data),
+    )

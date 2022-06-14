@@ -26,7 +26,7 @@ from apps.contributions.payment_managers import (
 )
 from apps.contributions.utils import get_sha256_hash
 from apps.contributions.webhooks import StripeWebhookProcessor
-from apps.emails.tasks import send_contribution_confirmation_email
+from apps.emails.tasks import send_templated_email
 from apps.organizations.models import Organization, RevenueProgram
 from apps.public.permissions import IsActiveSuperUser
 from apps.users.views import FilterQuerySetByUserMixin
@@ -35,6 +35,9 @@ from apps.users.views import FilterQuerySetByUserMixin
 logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
 
 UserModel = get_user_model()
+
+
+DEFAULT_CONTRIBUTION_CONFIRMATION_EMAIL_SUBJECT = "Thank you for your contribution!"
 
 
 @api_view(["POST"])
@@ -95,7 +98,13 @@ def stripe_payment(request):
                 "copyright_year": contribution_date.year,
                 "org_name": rp.organization.name,
             }
-            send_contribution_confirmation_email.delay(contributor_email, **template_data)
+            send_templated_email.delay(
+                contributor_email,
+                DEFAULT_CONTRIBUTION_CONFIRMATION_EMAIL_SUBJECT,
+                "nrh-default-contribution-confirmation-email.txt",
+                "nrh-default-contribution-confirmation-email.html",
+                template_data,
+            )
 
     except RevenueProgram.DoesNotExist:
         logger.warning(

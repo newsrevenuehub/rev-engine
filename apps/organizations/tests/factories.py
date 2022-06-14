@@ -38,11 +38,17 @@ class OrganizationFactory(DjangoModelFactory):
         django_get_or_create = ("name",)
 
     name = factory.Sequence(lambda n: f"{fake.company()}-{str(n)}")
-    stripe_account_id = fake.uuid4()
     address = factory.SubFactory(AddressFactory)
-    stripe_verified = True
     slug = factory.lazy_attribute(lambda o: normalize_slug(name=o.name))
     plan = factory.SubFactory("apps.organizations.tests.factories.PlanFactory")
+
+
+class PaymentProviderFactory(DjangoModelFactory):
+    class Meta:
+        model = models.PaymentProvider
+
+    stripe_account_id = factory.Sequence(lambda n: fake.uuid4())
+    stripe_verified = True
 
 
 class RevenueProgramFactory(DjangoModelFactory):
@@ -53,6 +59,7 @@ class RevenueProgramFactory(DjangoModelFactory):
     name = factory.Sequence(lambda n: f"{' '.join(fake.words(nb=4))}-{str(n)}")
     slug = factory.lazy_attribute(lambda o: normalize_slug(name=o.name))
     contact_email = fake.email()
+    payment_provider = factory.SubFactory(PaymentProviderFactory)
 
     class Params:
         org = None

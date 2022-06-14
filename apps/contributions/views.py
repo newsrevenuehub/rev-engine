@@ -37,9 +37,6 @@ logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
 UserModel = get_user_model()
 
 
-DEFAULT_CONTRIBUTION_CONFIRMATION_EMAIL_SUBJECT = "Thank you for your contribution!"
-
-
 @api_view(["POST"])
 @authentication_classes([])
 @permission_classes([])
@@ -100,7 +97,7 @@ def stripe_payment(request):
             }
             send_templated_email.delay(
                 contributor_email,
-                DEFAULT_CONTRIBUTION_CONFIRMATION_EMAIL_SUBJECT,
+                "Thank you for your contribution!",
                 "nrh-default-contribution-confirmation-email.txt",
                 "nrh-default-contribution-confirmation-email.html",
                 template_data,

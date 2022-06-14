@@ -20,7 +20,7 @@ from apps.api.serializers import (
 from apps.api.throttling import ContributorRateThrottle
 from apps.api.tokens import ContributorRefreshToken
 from apps.contributions.serializers import ContributorSerializer
-from apps.emails.tasks import send_email
+from apps.emails.tasks import send_templated_email
 
 
 logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
@@ -156,11 +156,12 @@ class RequestContributorTokenEmailView(APIView):
                 return Response({"detail": "Missing Revenue Program subdomain"}, status=status.HTTP_404_NOT_FOUND)
             magic_link = f"{domain}/{settings.CONTRIBUTOR_VERIFY_URL}?token={token}&email={email}"
             logger.info("Sending magic link email to [%s] | magic link: [%s]", email, magic_link)
-            send_email(
-                identifier=settings.EMAIL_TEMPLATE_IDENTIFIER_MAGIC_LINK_DONOR,
-                to=email,
-                subject="Manage your contributions",
-                template_data={"magic_link": magic_link},
+            send_templated_email(
+                email,
+                "Manage your contributions",
+                "nrh-manage-donations-magic-link.txt",
+                "nrh-manage-donations-magic-link.html",
+                {"magic_link": magic_link},
             )
         except NoSuchContributorError:
             # Send same response as "success". We don't want to indicate whether or not a given address is in our system.

@@ -21,13 +21,11 @@ describe('Donation pages list', () => {
   beforeEach(() => {
     cy.forceLogin(hubAdminUser);
     cy.intercept(getEndpoint(LIST_PAGES), { fixture: 'pages/list-pages-1' }).as('listPages');
-    //cy.intercept(getEndpoint(LIST_STYLES), { fixture: 'styles/list-styles-1.json' }).as('listStyles');
     cy.intercept({ method: 'GET', pathname: getEndpoint(USER) }, { body: hubAdminWithContentFlag });
 
     cy.visit(CONTENT_SLUG);
     cy.url().should('include', CONTENT_SLUG);
     cy.wait('@listPages');
-    //cy.wait('@listStyles');
   });
 
   it('should render the pages list component', () => {

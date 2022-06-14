@@ -3,7 +3,7 @@ import { Route, Switch, Redirect } from 'react-router-dom';
 import * as S from './Dashboard.styled';
 
 // Routing
-import { DONATIONS_SLUG, CONTENT_SLUG, EDITOR_ROUTE_PAGE, DASHBOARD_SLUG, STYLES_SLUG } from 'routes';
+import { DONATIONS_SLUG, CONTENT_SLUG, EDITOR_ROUTE_PAGE, DASHBOARD_SLUG, CUSTOMIZE_SLUG } from 'routes';
 
 // Children
 import { usePaymentProviderContext, useFeatureFlagsProviderContext } from 'components/Main';
@@ -73,7 +73,7 @@ function Dashboard() {
                 </Route>
               ) : null}
               {hasContentSectionAccess ? (
-                <Route path={STYLES_SLUG}>
+                <Route path={CUSTOMIZE_SLUG}>
                   <Customize />
                 </Route>
               ) : null}

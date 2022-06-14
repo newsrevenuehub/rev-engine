@@ -48,7 +48,7 @@ def migrate_data(apps, *args):
 class Migration(migrations.Migration):
 
     dependencies = [
-        ("organizations", "0051_historicalorganization_slug"),
+        ("organizations", "0052_map_benefits_and_levels_to_rp_not_org"),
     ]
 
     operations = [

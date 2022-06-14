@@ -41,7 +41,7 @@ def update_data(apps, *args):
 class Migration(migrations.Migration):
 
     dependencies = [
-        ("organizations", "0051_historicalorganization_slug"),
+        ("organizations", "0052_associate_stripe_with_rp"),
     ]
 
     operations = [

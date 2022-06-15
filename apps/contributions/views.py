@@ -24,7 +24,7 @@ from apps.contributions.payment_managers import (
     PaymentProviderError,
     StripePaymentManager,
 )
-from apps.contributions.stripe_payment_details_provider import load_stripe_data_from_cache
+from apps.contributions.stripe_contributions_provider import load_stripe_data_from_cache
 from apps.contributions.utils import get_sha256_hash
 from apps.contributions.webhooks import StripeWebhookProcessor
 from apps.emails.tasks import send_contribution_confirmation_email

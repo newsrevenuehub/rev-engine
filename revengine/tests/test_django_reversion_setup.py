@@ -126,60 +126,6 @@ def test_expected_model_admins_are_registered_with_django_reversion():
     assert all(issubclass(ma, reversion.admin.VersionAdmin) for ma in expected_registered_model_admins)
 
 
-@pytest.fixture
-def admin_user():
-    return get_user_model().objects.create_superuser(email="test@test.com", password="testing")
-
-
-class MockRequest(object):
-    def __init__(self, user=None):
-        self.user = user
-
-
-def test_registered_model_changed_through_registered_view_has_revisions():
-
-    pass
-
-
-@pytest.mark.parametrize(
-    ("factory", "update_attr", "update_value"),
-    (
-        # (BenefitFactory, "name", "new-name"),
-        (BenefitLevelFactory, "name", "new-name"),
-        # (ContributionFactory, "reason", "new-reason"),
-        # (ContributorFactory, "email", "new-email@foo.com"),
-        # (DenyListWordFactory, "word", "new swear word"),
-        # (DonationPageFactory, "name", "new name"),
-        # (FeatureFactory, "name", "new name"),
-        # (FontFactory, "name", "new name"),
-        # (OrganizationFactory, "name", "new name"),
-        # (PlanFactory, "name", "new name"),
-        # (RevenueProgramFactory, "name", "new name"),
-        # (StyleFactory, "name", "new name"),
-        # (TemplateFactory, "name", "new name"),
-    ),
-)
-@pytest.mark.django_db
-def test_registered_model_changed_through_registered_admin_has_revisions(
-    factory, update_attr, update_value, admin_user, client
-):
-    instance = factory()
-    model = factory._meta.model
-    assert Version.objects.get_for_object(instance).count() == 0
-    client.force_login(admin_user)
-    update_data = model_to_dict(instance) | {update_attr: update_value}
-    # have to send empty strings for None values from dict in form data.
-    for k, v in update_data.items():
-        if v is None:
-            update_data[k] = ""
-    change_url = reverse(f"admin:{model._meta.app_label}_{model._meta.model_name}_change", args=[instance.pk])
-    client.post(change_url, update_data)
-    assert Version.objects.get_for_object(instance).count() == 1
-    version = Version.objects.first()
-    assert version.revision.user == admin_user
-    assert all(word in version.revision.comment.lower() for word in ["changed", update_attr])
-
-
 @pytest.mark.parametrize(
     ("factory", "update_attr", "update_value"),
     (

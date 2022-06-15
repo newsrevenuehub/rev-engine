@@ -545,25 +545,6 @@ python-versions = ">=3.7"
 django = ">=2.0"
 
 [[package]]
-name = "django-safedelete"
-version = "1.2.2"
-description = "Mask your objects instead of deleting them from your database."
-category = "main"
-optional = false
-python-versions = "*"
-
-[package.dependencies]
-Django = "*"
-
-[[package]]
-name = "django-simple-history"
-version = "3.0.0"
-description = "Store model history and view/revert changes from admin site."
-category = "main"
-optional = false
-python-versions = ">=3.6"
-
-[[package]]
 name = "django-solo"
 version = "1.2.0"
 description = "Django Solo helps working with singletons"
@@ -1719,7 +1700,7 @@ testing = ["pytest (>=6)", "pytest-checkdocs (>=2.4)", "pytest-flake8", "pytest-
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.9"
-content-hash = "c90853a942fafead3cb4769c876b802d419cae40906505f6ac26ac7ca0eeded6"
+content-hash = "ab21eb8802aad0af3fb22b3543f4d1e3d07f2a9e17a54927aeaa31f93d6270ba"
 
 [metadata.files]
 amqp = [
@@ -1954,14 +1935,6 @@ django-reverse-admin = [
 django-reversion = [
     {file = "django-reversion-5.0.0.tar.gz", hash = "sha256:0bade3c399387451087f0c67835e0d3d186d767de6a5c5ba53a88eafc3f271c8"},
     {file = "django_reversion-5.0.0-py3-none-any.whl", hash = "sha256:7bea725de7f56769d89a5a712cf7b7f1b02abc27655432f2eb1a703264986d99"},
-]
-django-safedelete = [
-    {file = "django-safedelete-1.2.2.tar.gz", hash = "sha256:8faab05e3126a27c901638dcb2f6f769cf46bb1b33052714659eb93efe81ffce"},
-    {file = "django_safedelete-1.2.2-py3-none-any.whl", hash = "sha256:2f535b6d72f4517083f6902cd2140c727a9d8d9f9b0feda171318421bbf31704"},
-]
-django-simple-history = [
-    {file = "django-simple-history-3.0.0.tar.gz", hash = "sha256:66fe76c560054be393c52b1799661e104fbe372918d37d151e5d41c676158118"},
-    {file = "django_simple_history-3.0.0-py2.py3-none-any.whl", hash = "sha256:a312adfe8fbec4c450b08e641b11249a8a589a7e7d1ba2404764b8b5bed53552"},
 ]
 django-solo = [
     {file = "django-solo-1.2.0.tar.gz", hash = "sha256:b42487d5b82b24232edc09b54a8cc3919e7a79bd684c1ac6346ecaf9942c4288"},

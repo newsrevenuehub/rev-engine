@@ -481,3 +481,4 @@ class PaymentProviderContributionSerializer(serializers.Serializer):
     provider_customer_id = serializers.CharField(max_length=255)
     credit_card_expiration_date = serializers.CharField(max_length=30)
     created = serializers.DateTimeField()
+    last_payment_date = serializers.DateTimeField()

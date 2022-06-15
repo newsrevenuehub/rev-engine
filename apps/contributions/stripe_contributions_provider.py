@@ -98,6 +98,8 @@ class StripeCharge:
             return ContributionStatus.PAID
         if self.charge.status == "pending":
             return ContributionStatus.PROCESSING
+        if self.charge.refunded:
+            return ContributionStatus.REFUNDED
         return ContributionStatus.FAILED
 
     @property

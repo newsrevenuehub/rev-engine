@@ -62,6 +62,7 @@ class ContributionStatus(models.TextChoices):
     FAILED = "failed", "failed"
     FLAGGED = "flagged", "flagged"
     REJECTED = "rejected", "rejected"
+    REFUNDED = "refunded", "refunded"
 
 
 class Contribution(IndexedTimeStampedModel, RoleAssignmentResourceModelMixin):

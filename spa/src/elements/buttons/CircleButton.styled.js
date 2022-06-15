@@ -45,7 +45,7 @@ export const Icon = styled(FontAwesomeIcon)`
         return props.theme.colors.caution;
 
       default:
-        return props.theme.colors.primary;
+        return props.theme.colors.cstm_CTAs || props.theme.colors.primary;
     }
   }};
 `;

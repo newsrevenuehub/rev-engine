@@ -22,10 +22,10 @@ function DonationPageDisclaimer({ page, amount, payFee, frequency }) {
 
   const totalAmount = useMemo(
     () =>
-      `${page.currency?.symbol}${getTotalAmount(amount, payFee, frequency, page.organization_is_nonprofit)}${
+      `${page.currency?.symbol}${getTotalAmount(amount, payFee, frequency, page.revenue_program_is_nonprofit)}${
         frequency === 'one_time' ? '' : ','
       }`,
-    [amount, payFee, frequency, page.organization_is_nonprofit, page.currency.symbol]
+    [amount, payFee, frequency, page.revenue_program_is_nonprofit, page.currency.symbol]
   );
 
   return (

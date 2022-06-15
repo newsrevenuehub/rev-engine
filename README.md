@@ -1,4 +1,7 @@
+
 # Revenue Engine
+
+[![NRE](https://img.shields.io/endpoint?url=https://dashboard.cypress.io/badge/simple/68ek4u&style=flat&logo=cypress)](https://dashboard.cypress.io/projects/68ek4u/runs)
 
 ## ✏️ **Develop**
 

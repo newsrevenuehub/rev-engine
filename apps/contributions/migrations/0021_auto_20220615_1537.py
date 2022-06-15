@@ -14,10 +14,18 @@ class Migration(migrations.Migration):
             model_name="historicalcontributor",
             name="history_user",
         ),
+        migrations.RemoveField(
+            model_name="historicalcontribution",
+            name="organization",
+        ),
         migrations.DeleteModel(
             name="HistoricalContribution",
         ),
         migrations.DeleteModel(
             name="HistoricalContributor",
+        ),
+        migrations.RemoveField(
+            model_name="contribution",
+            name="organization",
         ),
     ]

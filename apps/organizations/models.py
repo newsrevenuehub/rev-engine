@@ -6,7 +6,6 @@ from django.db import models
 from django.utils import timezone
 
 import stripe
-from simple_history.models import HistoricalRecords
 
 from apps.common.models import IndexedTimeStampedModel
 from apps.common.utils import normalize_slug
@@ -42,9 +41,6 @@ class Feature(IndexedTimeStampedModel):
     )
     description = models.TextField(blank=True)
 
-    # A history of changes to this model, using django-simple-history.
-    history = HistoricalRecords()
-
     class Meta:
         unique_together = ["feature_type", "feature_value"]
 
@@ -58,9 +54,6 @@ class Feature(IndexedTimeStampedModel):
 class Plan(IndexedTimeStampedModel, RoleAssignmentResourceModelMixin):
     name = models.CharField(max_length=255)
     features = models.ManyToManyField("organizations.Feature", related_name="plans", blank=True)
-
-    # A history of changes to this model, using django-simple-history.
-    history = HistoricalRecords()
 
     def __str__(self):  # pragma: no cover
         return self.name
@@ -106,9 +99,6 @@ class Organization(IndexedTimeStampedModel, RoleAssignmentResourceModelMixin):
     stripe_product_id = models.CharField(max_length=255, blank=True)
     domain_apple_verified_date = models.DateTimeField(blank=True, null=True)
     uses_email_templates = models.BooleanField(default=False)
-
-    # A history of changes to this model, using django-simple-history.
-    history = HistoricalRecords()
 
     @property
     def admin_revenueprogram_options(self):
@@ -174,8 +164,6 @@ class BenefitLevel(IndexedTimeStampedModel):
     benefits = models.ManyToManyField("organizations.Benefit", through="organizations.BenefitLevelBenefit")
 
     revenue_program = models.ForeignKey("organizations.RevenueProgram", on_delete=models.CASCADE)
-    # A history of changes to this model, using django-simple-history.
-    history = HistoricalRecords()
 
     def __str__(self):  # pragma: no cover
         return self.name
@@ -201,9 +189,6 @@ class Benefit(IndexedTimeStampedModel):
     name = models.CharField(max_length=128, help_text="A way to uniquely identify this Benefit")
     description = models.TextField(help_text="The text that appears on the donation page")
     revenue_program = models.ForeignKey("organizations.RevenueProgram", on_delete=models.CASCADE)
-
-    # A history of changes to this model, using django-simple-history.
-    history = HistoricalRecords()
 
     def __str__(self):
         return self.name
@@ -279,9 +264,6 @@ class RevenueProgram(IndexedTimeStampedModel):
         help_text="Should page authors for this Revenue Program see the option to offer their donors a comp subscription to the New York Times?",
         verbose_name="Allow page editors to offer an NYT subscription",
     )
-
-    # A history of changes to this model, using django-simple-history.
-    history = HistoricalRecords()
 
     @property
     def admin_style_options(self):

@@ -15,12 +15,13 @@ from apps.organizations.models import (
     BenefitLevel,
     Feature,
     Organization,
+    PaymentProvider,
     Plan,
     RevenueProgram,
 )
 
 
-class NoRelatedInlineAddEditAdminMixin:
+class NoRelatedInlineAddEditAdminMixin:  # pragma: no cover
     related_fieldname = None
 
     def get_formset(self, request, obj=None, **kwargs):
@@ -37,7 +38,7 @@ class NoRelatedInlineAddEditAdminMixin:
         return formset
 
 
-class ReadOnlyOrgLimitedTabularInlineMixin(admin.TabularInline):
+class ReadOnlyOrgLimitedTabularInlineMixin(admin.TabularInline):  # pragma: no cover
     related_fieldname = None
     org_limited_fieldname = None
 
@@ -88,29 +89,11 @@ class OrganizationAdmin(RevEngineBaseAdmin, VersionAdmin, ReverseModelAdmin):  #
         (None, {"fields": ("salesforce_id",)}),
         (
             "Plan",
-            {
-                "fields": (
-                    "non_profit",
-                    "plan",
-                )
-            },
+            {"fields": ("plan",)},
         ),
         (
             "Email Templates",
             {"fields": ("uses_email_templates",)},
-        ),
-        (
-            "Payment Provider",
-            {
-                "fields": (
-                    "currency",
-                    "default_payment_provider",
-                    "stripe_account_id",
-                    "stripe_verified",
-                    "stripe_product_id",
-                    "domain_apple_verified_date",
-                )
-            },
         ),
     )
 
@@ -123,7 +106,7 @@ class OrganizationAdmin(RevEngineBaseAdmin, VersionAdmin, ReverseModelAdmin):  #
     inline_type = "stacked"
     inline_reverse = [("address", {"fields": ["address1", "address2", "city", "state", "postal_code", "country"]})]
 
-    readonly_fields = ["name", "stripe_verified"]
+    readonly_fields = ["name"]
 
     def get_readonly_fields(self, request, obj=None):
         if Path(request.path).parts[-1] == "add":
@@ -177,12 +160,12 @@ class RevenueProgramAdmin(RevEngineBaseAdmin, VersionAdmin, ReverseModelAdmin, A
     fieldsets = (
         (
             "RevenueProgram",
-            {"fields": ("name", "slug", "contact_email", "organization", "default_donation_page")},
+            {"fields": ("name", "slug", "contact_email", "organization", "default_donation_page", "non_profit")},
         ),
         (
             "Stripe",
             {
-                "fields": ("stripe_statement_descriptor_suffix",),
+                "fields": ("stripe_statement_descriptor_suffix", "domain_apple_verified_date", "payment_provider"),
             },
         ),
         (
@@ -283,3 +266,32 @@ class FeatureAdmin(RevEngineBaseAdmin, VersionAdmin):  # pragma: no cover
     list_display = ["name", "feature_type", "feature_value"]
 
     list_filter = ["name", "feature_type"]
+
+
+@admin.register(PaymentProvider)
+class PaymentProviderAdmin(RevEngineBaseAdmin):  # pragma: no cover
+    search_fields = ("stripe_account_id",)
+    list_display = [
+        "stripe_account_id",
+        "stripe_product_id",
+        "currency",
+        "default_payment_provider",
+        "stripe_oauth_refresh_token",
+        "stripe_verified",
+    ]
+    list_per_page = 20
+    fieldsets = (
+        (
+            None,
+            {
+                "fields": (
+                    "stripe_account_id",
+                    "stripe_product_id",
+                    "currency",
+                    "default_payment_provider",
+                    "stripe_oauth_refresh_token",
+                    "stripe_verified",
+                ),
+            },
+        ),
+    )

@@ -13,7 +13,6 @@ from django.db.migrations.executor import MigrationExecutor
 from django.test import RequestFactory, TestCase, override_settings
 
 import PIL.Image
-import pytest
 from faker import Faker
 
 from apps.common.utils import (
@@ -25,8 +24,6 @@ from apps.common.utils import (
     normalize_slug,
     upsert_cloudflare_cnames,
 )
-from apps.organizations.tests.factories import OrganizationFactory
-from apps.pages.tests.factories import DonationPageFactory
 
 
 DEFAULT_MAX_SLUG_LENGTH = 50

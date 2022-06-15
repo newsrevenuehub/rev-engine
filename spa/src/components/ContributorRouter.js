@@ -18,6 +18,7 @@ import useSubdomain from 'hooks/useSubdomain';
 
 // Slugs
 import * as ROUTES from 'routes';
+import useWebFonts from 'hooks/useWebFonts';
 
 // Components/Children
 import GlobalLoading from 'elements/GlobalLoading';
@@ -42,6 +43,8 @@ function ContributorRouter() {
 
   const subdomain = useSubdomain();
   const requestFullPage = useRequest();
+
+  useWebFonts(pageData?.styles?.font);
 
   const fetchRPLiveContent = useCallback(async () => {
     const requestParams = {

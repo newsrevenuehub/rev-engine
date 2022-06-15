@@ -13,7 +13,12 @@ from stripe.stripe_object import StripeObject
 from apps.contributions.models import Contribution, ContributionStatus
 from apps.contributions.views import process_stripe_webhook_view
 from apps.contributions.webhooks import StripeWebhookProcessor
-from apps.organizations.tests.factories import OrganizationFactory
+from apps.organizations.tests.factories import (
+    OrganizationFactory,
+    PaymentProviderFactory,
+    RevenueProgramFactory,
+)
+from apps.pages.tests.factories import DonationPageFactory
 
 
 valid_secret = "myvalidstripesecret"
@@ -185,9 +190,15 @@ class PaymentIntentWebhooksTest(APITestCase):
 
 class CustomerSubscriptionWebhooksTest(APITestCase):
     def _create_contribution(self, ref_id=None, **kwargs):
-        org = OrganizationFactory(stripe_account_id="test")
+        org = OrganizationFactory()
+        payment_provider = PaymentProviderFactory(stripe_account_id="test")
+        revenue_program = RevenueProgramFactory(payment_provider=payment_provider, organization=org)
         return Contribution.objects.create(
-            provider_payment_id=ref_id, amount=1000, status=ContributionStatus.PROCESSING, **kwargs, organization=org
+            provider_payment_id=ref_id,
+            amount=1000,
+            status=ContributionStatus.PROCESSING,
+            donation_page=DonationPageFactory(revenue_program=revenue_program),
+            **kwargs,
         )
 
     @patch("apps.contributions.webhooks.StripeWebhookProcessor.process_subscription")

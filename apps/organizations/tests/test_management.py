@@ -55,5 +55,5 @@ class AppleDomainVerifyCommandTest(TestCase):
         mock_applepay_verify.assert_called_with(
             api_key=TEST_LIVE_KEY,
             domain_name=expected_domain,
-            stripe_account=self.revenue_program.organization.stripe_account_id,
+            stripe_account=self.revenue_program.payment_provider.stripe_account_id,
         )

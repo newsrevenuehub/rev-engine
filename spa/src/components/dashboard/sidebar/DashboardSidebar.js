@@ -1,5 +1,5 @@
 import * as S from './DashboardSidebar.styled';
-import { DONATIONS_SLUG, CONTENT_SLUG } from 'routes';
+import { DONATIONS_SLUG, CONTENT_SLUG, CUSTOMIZE_SLUG } from 'routes';
 import { ICONS } from 'assets/icons/SvgIcon';
 
 import logout from 'components/authentication/logout';
@@ -31,7 +31,17 @@ function DashboardSidebar({ shouldAllowDashboard }) {
             onClick={handleClick}
             disabled={!shouldAllowDashboard}
           >
-            Content
+            Pages
+          </S.NavItem>
+        ) : null}
+        {hasContentSectionAccess ? (
+          <S.NavItem
+            data-testid="nav-content-item"
+            to={CUSTOMIZE_SLUG}
+            onClick={handleClick}
+            disabled={!shouldAllowDashboard}
+          >
+            Customize
           </S.NavItem>
         ) : null}
         {hasContributionsSectionAccess ? (

@@ -142,7 +142,12 @@ def test_expected_model_admins_are_registered_with_django_reversion():
 )
 @pytest.mark.django_db
 def test_registered_model_changed_via_other_not_have_revisions(factory, update_attr, update_value):
-    """ """
+    """Show that models registered with django-reversion don't have history saved when via `.save()` outside of admin or...
+
+    ..registered views.
+
+    """
+    assert factory._meta.model in reversion.get_registered_models()
     instance = factory()
     assert Version.objects.get_for_object(instance).count() == 0
     setattr(instance, update_attr, update_value)

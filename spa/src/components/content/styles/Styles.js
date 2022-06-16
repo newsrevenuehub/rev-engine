@@ -8,7 +8,7 @@ import CircleButton from 'elements/buttons/CircleButton';
 import StyleCard from 'components/content/styles/StyleCard';
 import GenericErrorBoundary from 'components/errors/GenericErrorBoundary';
 
-const STYLE_COUNT_TO_ENABLE_SEARCH = 3;
+const STYLE_COUNT_TO_ENABLE_SEARCH = 5;
 
 export const filterStyles = (stylesRaw, qry) => {
   let styles;

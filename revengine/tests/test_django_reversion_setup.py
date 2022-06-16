@@ -1,7 +1,3 @@
-from django.contrib.auth import get_user_model
-from django.forms.models import model_to_dict
-from django.urls import reverse
-
 import pytest
 import reversion
 from reversion.models import Version

@@ -5,10 +5,12 @@ from rest_framework import serializers
 
 from apps.api.error_messages import GENERIC_BLANK
 from apps.contributions.models import (
+    CardBrand,
     Contribution,
     ContributionInterval,
     ContributionStatus,
     Contributor,
+    PaymentType,
 )
 from apps.contributions.utils import format_ambiguous_currency
 from apps.organizations.models import SLUG_MAX_LENGTH
@@ -470,12 +472,13 @@ class PaymentProviderContributionSerializer(serializers.Serializer):
     Payments provider serializer, payment provider Eg: Stripe.
     """
 
-    status = serializers.CharField(max_length=10)
-    card_brand = serializers.CharField(max_length=30)
+    id = serializers.CharField(max_length=255)
+    status = serializers.ChoiceField(choices=ContributionStatus.choices)
+    card_brand = serializers.ChoiceField(choices=CardBrand.choices, required=False)
     last4 = serializers.IntegerField()
-    payment_type = serializers.CharField(max_length=30)
+    payment_type = serializers.ChoiceField(choices=PaymentType.choices, required=False)
     next_payment_date = serializers.DateTimeField()
-    interval = serializers.CharField(max_length=8)
+    interval = serializers.ChoiceField(choices=ContributionInterval.choices)
     revenue_program = serializers.CharField(max_length=255)
     amount = serializers.IntegerField()
     provider_customer_id = serializers.CharField(max_length=255)

@@ -20,7 +20,9 @@ from apps.api.serializers import (
 from apps.api.throttling import ContributorRateThrottle
 from apps.api.tokens import ContributorRefreshToken
 from apps.contributions.serializers import ContributorSerializer
-from apps.contributions.stripe_contributions_provider import pull_stripe_contributions_to_cache
+from apps.contributions.stripe_contributions_provider import (
+    pull_serialized_stripe_contributions_to_cache,
+)
 from apps.emails.tasks import send_email
 
 
@@ -156,7 +158,9 @@ class RequestContributorTokenEmailView(APIView):
             if not domain:
                 return Response({"detail": "Missing Revenue Program subdomain"}, status=status.HTTP_404_NOT_FOUND)
 
-            pull_stripe_contributions_to_cache(email)
+            # Pull contributions from Stripe and store the serialized data in cache whose TTL is configured with the
+            # magic_link life time
+            pull_serialized_stripe_contributions_to_cache(email)
 
             magic_link = f"{domain}/{settings.CONTRIBUTOR_VERIFY_URL}?token={token}&email={email}"
             logger.info("Sending magic link email to [%s] | magic link: [%s]", email, magic_link)

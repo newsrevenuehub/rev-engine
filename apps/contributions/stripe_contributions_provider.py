@@ -9,29 +9,32 @@ import stripe
 
 from apps.contributions.models import ContributionInterval, ContributionStatus
 from apps.contributions.serializers import PaymentProviderContributionSerializer
+from revengine.settings.base import CONTRIBUTION_CACHE_DB, CONTRIBUTION_CACHE_TTL
 
 
 MAX_STRIPE_RESPONSE_LIMIT = 100
 MAX_STRIPE_CUSTOMERS_LIMIT = 10
-REDIS_TTL = 60 * 60 * 2
-CACHE_DB = "default"
 
 logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
 
 
-class StripeEventIgnoreError(Exception):
+class ContributionIgnorableError(Exception):
+    """
+    Base contribution exception where the type of exception should be ignored.
+    """
+
     pass
 
 
-class InvalidIntervalError(StripeEventIgnoreError):
+class InvalidIntervalError(ContributionIgnorableError):
     pass
 
 
-class InvalidMetadataError(StripeEventIgnoreError):
+class InvalidMetadataError(ContributionIgnorableError):
     pass
 
 
-class NoInvoiceGeneratedError(StripeEventIgnoreError):
+class NoInvoiceGeneratedError(ContributionIgnorableError):
     pass
 
 
@@ -42,6 +45,11 @@ class ChargeDetails:
 
 
 class StripeCharge:
+    """
+    Wrapper on stripe charge object to extract the required details in
+    apps.contributions.serializers.PaymentProviderContributionSerializer and serializable.
+    """
+
     def __init__(self, charge):
         if not charge.invoice:
             raise NoInvoiceGeneratedError(f"No invoice object for charge : {charge.id}")
@@ -55,7 +63,7 @@ class StripeCharge:
             return ContributionInterval.YEARLY
         if interval == "month" and interval_count == 1:
             return ContributionInterval.MONTHLY
-        return ContributionInterval.ONE_TIME
+        raise InvalidIntervalError(f"Invalid interval {interval} for charge : {self.charge.id}")
 
     @property
     def revenue_program(self):
@@ -98,7 +106,7 @@ class StripeCharge:
             return ContributionStatus.PAID
         if self.charge.status == "pending":
             return ContributionStatus.PROCESSING
-        if self.charge.refunded:
+        if self.refunded:
             return ContributionStatus.REFUNDED
         return ContributionStatus.FAILED
 
@@ -129,9 +137,12 @@ class StripeCharge:
 
 class StripeContributionsProvider:
     def __init__(self, email_id):
-        self.email_id = email_id
-        results = stripe.Customer.search(query=f"email:'{self.email_id}'", limit=MAX_STRIPE_RESPONSE_LIMIT)
-        self.customers = [customer.id for customer in results.auto_paging_iter()]
+        self.customers = self.fetch_all_customers(email_id)
+
+    @staticmethod
+    def fetch_all_customers(email_id):
+        results = stripe.Customer.search(query=f"email:'{email_id}'", limit=MAX_STRIPE_RESPONSE_LIMIT)
+        return [customer.id for customer in results.auto_paging_iter()]
 
     def get_charges(self):
         for i in range(0, len(self.customers), MAX_STRIPE_CUSTOMERS_LIMIT):
@@ -148,21 +159,21 @@ class StripeContributionsProvider:
                 yield charge
 
 
-def pull_stripe_contributions_to_cache(email_id):
+def pull_serialized_stripe_contributions_to_cache(email_id):
     stripe_provider = StripeContributionsProvider(email_id)
     data = {}
     for charge in stripe_provider.get_charges():
         try:
             serializer = PaymentProviderContributionSerializer(instance=StripeCharge(charge))
             data[charge.id] = serializer.data
-        except StripeEventIgnoreError as ex:
+        except ContributionIgnorableError as ex:
             logger.info(ex)
 
-    caches[CACHE_DB].set(email_id, json.dumps(data), timeout=REDIS_TTL)
+    caches[CONTRIBUTION_CACHE_DB].set(email_id, json.dumps(data), timeout=CONTRIBUTION_CACHE_TTL.seconds)
 
 
 def load_stripe_data_from_cache(email_id):
-    data = caches[CACHE_DB].get(email_id)
+    data = caches[CONTRIBUTION_CACHE_DB].get(email_id)
     if not data:
         return []
     return [ChargeDetails(**x) for x in json.loads(data).values()]

@@ -127,6 +127,10 @@ CONTRIBUTOR_MAGIC_LINK_REQUEST_THROTTLE_RATE = os.getenv("CONTRIBUTOR_MAGIC_LINK
 
 USER_TTL = timedelta(hours=24)
 
+# Set cache TTL to magic link token lifetime so that the stipe contributions in cache will expire with it
+# and contributions will again pulled from stripe and stored in cache with the magic link request.
+CONTRIBUTION_CACHE_TTL = CONTRIBUTOR_LONG_TOKEN_LIFETIME
+CONTRIBUTION_CACHE_DB = "default"
 
 AUTH_COOKIE_KEY = "Authorization"
 # Set SAMESITE setting below to 'Strict' to ask recieving browsers not to send this cookie

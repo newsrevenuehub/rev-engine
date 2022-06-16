@@ -65,6 +65,38 @@ class ContributionStatus(models.TextChoices):
     REFUNDED = "refunded", "refunded"
 
 
+class CardBrand(models.TextChoices):
+    AMEX = "amex", "amex"
+    DINERS = "diners", "diners"
+    DISCOVER = "discover", "discover"
+    JCB = "jcb", "jcb"
+    MASTERCARD = "mastercard", "mastercard"
+    UNIONPAY = "unionpay", "unionpay"
+    VISA = "visa", "visa"
+    UNKNOWN = "unknown", "unknown"
+
+
+class PaymentType(models.TextChoices):
+    ACH_CREDIT_TRANSFER = "ach_credit_transfer", "ach_credit_transfer"
+    ACH_DEBIT = "ach_debit", "ach_debit"
+    ACSS_DEBIT = "acss_debit", "acss_debit"
+    ALIPAY = "alipay", "alipay"
+    AU_BECS_DEBIT = "au_becs_debit", "au_becs_debit"
+    BANCONTACT = "bancontact", "bancontact"
+    CARD = "card", "card"
+    CARD_PRESETN = "card_present", "card_present"
+    EPS = "eps", "eps"
+    GIROPAY = "giropay", "giropay"
+    IDEAL = "ideal", "ideal"
+    KLARNA = "klarna", "klarna"
+    MULTIBANCO = "multibanco", "multibanco"
+    P24 = "p24", "p24"
+    SEPA_DEBIT = "sepa_debit", "sepa_debit"
+    SOFORT = "sofort", "sofort"
+    STRIPE_ACCOUNT = "stripe_account", "stripe_account"
+    WECHAT = "wechat", "wechat"
+
+
 class Contribution(IndexedTimeStampedModel, RoleAssignmentResourceModelMixin):
     amount = models.IntegerField(help_text="Stored in cents")
     currency = models.CharField(max_length=3, default="usd")

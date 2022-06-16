@@ -1,8 +1,5 @@
-from django.contrib.auth import get_user_model
-
 from faker import Faker
 
-from apps.users.models import RoleAssignment
 from apps.users.tests.factories import RoleAssignmentFactory, UserFactory
 
 

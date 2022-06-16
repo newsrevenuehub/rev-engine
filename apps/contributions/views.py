@@ -280,16 +280,23 @@ class ContributionsViewSet(viewsets.ReadOnlyModelViewSet, FilterQuerySetByUserMi
     filter_backends = [DjangoFilterBackend, filters.OrderingFilter]
 
     def get_queryset(self):
+        # load contributions from cache if the user is a contributor
         if isinstance(self.request.user, Contributor):
-            return load_stripe_data_from_cache(self.request.user)
+            return load_stripe_data_from_cache(self.request.user.email)
 
         # this is supplied by FilterQuerySetByUserMixin
         return self.filter_queryset_for_user(self.request.user, self.model.objects.all())
 
+    def filter_queryset(self, queryset):
+        # filter backend doesnot apply for contributor
+        if isinstance(self.request.user, Contributor):
+            return queryset
+        return super().filter_queryset(queryset)
+
     def get_serializer_class(self):
-        if isinstance(self.request.user, UserModel):
-            return serializers.ContributionSerializer
-        return serializers.PaymentProviderContributionSerializer
+        if isinstance(self.request.user, Contributor):
+            return serializers.PaymentProviderContributionSerializer
+        return serializers.ContributionSerializer
 
     # only superusers and hub admins have permission
     @action(methods=["post"], detail=True, permission_classes=[IsAuthenticated, IsActiveSuperUser | IsHubAdmin])

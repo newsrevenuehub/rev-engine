@@ -3,7 +3,7 @@ import { Route, Switch, Redirect } from 'react-router-dom';
 import * as S from './Dashboard.styled';
 
 // Routing
-import { DONATIONS_SLUG, CONTENT_SLUG, EDITOR_ROUTE_PAGE, DASHBOARD_SLUG } from 'routes';
+import { DONATIONS_SLUG, CONTENT_SLUG, EDITOR_ROUTE_PAGE, DASHBOARD_SLUG, CUSTOMIZE_SLUG } from 'routes';
 
 // Children
 import { usePaymentProviderContext, useFeatureFlagsProviderContext } from 'components/Main';
@@ -12,6 +12,7 @@ import { PP_STATES } from 'components/connect/BaseProviderInfo';
 import DashboardSidebar from 'components/dashboard/sidebar/DashboardSidebar';
 import Donations from 'components/donations/Donations';
 import Content from 'components/content/Content';
+import Customize from 'components/content/Customize';
 import GlobalLoading from 'elements/GlobalLoading';
 import ProviderConnect from 'components/connect/ProviderConnect';
 import PageEditor from 'components/pageEditor/PageEditor';
@@ -69,6 +70,11 @@ function Dashboard() {
               {hasContentSectionAccess ? (
                 <Route path={CONTENT_SLUG}>
                   <Content />
+                </Route>
+              ) : null}
+              {hasContentSectionAccess ? (
+                <Route path={CUSTOMIZE_SLUG}>
+                  <Customize />
                 </Route>
               ) : null}
               {hasContentSectionAccess ? (

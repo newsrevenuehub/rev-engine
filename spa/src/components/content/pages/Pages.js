@@ -21,8 +21,30 @@ import CircleButton from 'elements/buttons/CircleButton';
 import PageCard from 'components/content/pages/PageCard';
 import GenericErrorBoundary from 'components/errors/GenericErrorBoundary';
 
-export const pagesbyRP = (pgs) => {
+const PAGE_COUNT_TO_ENABLE_SEARCH = 3;
+
+export const pagesbyRP = (pgsRaw, qry) => {
   const pagesByRevProgram = [];
+  let pgs;
+  if (qry) {
+    pgs = [];
+    for (let i = 0; i < pgsRaw.length; i++) {
+      let page = pgsRaw[i];
+      if (page.slug.toLowerCase().indexOf(qry) !== -1 || page.name.toLowerCase().indexOf(qry) !== -1) {
+        pgs.push(page);
+      } else if (page.revenue_program) {
+        if (
+          page.revenue_program.slug.toLowerCase().indexOf(qry) !== -1 ||
+          page.revenue_program.name.toLowerCase().indexOf(qry) !== -1
+        ) {
+          pgs.push(page);
+        }
+      }
+    }
+  } else {
+    pgs = pgsRaw;
+  }
+
   let revPrograms = new Set(pgs.map((p) => p?.revenue_program?.id));
 
   revPrograms.forEach((rpId) => {
@@ -43,6 +65,7 @@ function Pages({ setShowAddPageModal }) {
   const requestGetPages = useRequest();
   const [closedAccordions, setClosedAccordions] = useState([]);
   const [pages, setPages] = useState([]);
+  const [pageSearchQuery, setPageSearchQuery] = useState([]);
 
   useEffect(() => {
     requestGetPages(
@@ -73,11 +96,26 @@ function Pages({ setShowAddPageModal }) {
     }
   };
 
-  const pagesByRevenueProgram = pagesbyRP(pages);
+  const pagesQueryChange = async (e) => {
+    e.preventDefault();
+    const timeOutId = setTimeout(() => setPageSearchQuery(e.target.value.toLowerCase()), 500);
+    return () => clearTimeout(timeOutId);
+  };
+
+  const pagesByRevenueProgram = pagesbyRP(pages, pageSearchQuery);
 
   return (
     <GenericErrorBoundary>
       <S.Pages data-testid="pages-list" layout>
+        {pages && pages.length > PAGE_COUNT_TO_ENABLE_SEARCH ? (
+          <S.PagesSearch layout>
+            <input
+              className="filterBy"
+              placeholder="Search Pages by Name, Revenue-program"
+              onChange={pagesQueryChange}
+            />
+          </S.PagesSearch>
+        ) : null}
         <S.RevProgramList layout>
           {pagesByRevenueProgram.map((rp, i) => {
             const isOpen = !closedAccordions.includes(i);

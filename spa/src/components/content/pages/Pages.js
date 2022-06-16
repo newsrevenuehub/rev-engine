@@ -21,29 +21,21 @@ import CircleButton from 'elements/buttons/CircleButton';
 import PageCard from 'components/content/pages/PageCard';
 import GenericErrorBoundary from 'components/errors/GenericErrorBoundary';
 
-const PAGE_COUNT_TO_ENABLE_SEARCH = 4;
+const PAGE_COUNT_TO_ENABLE_SEARCH = 5;
 
 export const pagesbyRP = (pgsRaw, qry) => {
   const pagesByRevProgram = [];
-  let pgs;
-  if (qry) {
-    pgs = [];
-    for (let i = 0; i < pgsRaw.length; i++) {
-      let page = pgsRaw[i];
-      if (page.slug.toLowerCase().indexOf(qry) !== -1 || page.name.toLowerCase().indexOf(qry) !== -1) {
-        pgs.push(page);
-      } else if (page.revenue_program) {
-        if (
-          page.revenue_program.slug.toLowerCase().indexOf(qry) !== -1 ||
-          page.revenue_program.name.toLowerCase().indexOf(qry) !== -1
-        ) {
-          pgs.push(page);
-        }
-      }
-    }
-  } else {
-    pgs = pgsRaw;
-  }
+  const pgs = qry
+    ? pgsRaw.filter((page) => {
+        return (
+          page?.revenue_program &&
+          (page.slug.toLowerCase().indexOf(qry) !== -1 ||
+            page.name.toLowerCase().indexOf(qry) !== -1 ||
+            page.revenue_program.slug.toLowerCase().indexOf(qry) !== -1 ||
+            page.revenue_program.name.toLowerCase().indexOf(qry) !== -1)
+        );
+      })
+    : pgsRaw;
 
   let revPrograms = new Set(pgs.map((p) => p?.revenue_program?.id));
 
@@ -96,12 +88,6 @@ function Pages({ setShowAddPageModal }) {
     }
   };
 
-  const pagesQueryChange = async (e) => {
-    e.preventDefault();
-    const timeOutId = setTimeout(() => setPageSearchQuery(e.target.value.toLowerCase()), 500);
-    return () => clearTimeout(timeOutId);
-  };
-
   const pagesByRevenueProgram = pagesbyRP(pages, pageSearchQuery);
 
   return (
@@ -110,9 +96,8 @@ function Pages({ setShowAddPageModal }) {
         {pages && pages.length > PAGE_COUNT_TO_ENABLE_SEARCH ? (
           <S.PagesSearch layout>
             <input
-              className="filterBy"
               placeholder="Search Pages by Name, Revenue-program"
-              onChange={pagesQueryChange}
+              onChange={(e) => setPageSearchQuery(e.target.value)}
             />
           </S.PagesSearch>
         ) : null}

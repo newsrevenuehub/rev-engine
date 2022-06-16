@@ -8,30 +8,19 @@ import CircleButton from 'elements/buttons/CircleButton';
 import StyleCard from 'components/content/styles/StyleCard';
 import GenericErrorBoundary from 'components/errors/GenericErrorBoundary';
 
-const STYLE_COUNT_TO_ENABLE_SEARCH = 4;
+const STYLE_COUNT_TO_ENABLE_SEARCH = 2;
 
 export const filterStyles = (stylesRaw, qry) => {
-  let styles;
-  if (qry) {
-    styles = [];
-    for (let i = 0; i < stylesRaw.length; i++) {
-      let style = stylesRaw[i];
-      if (style.name.toLowerCase().indexOf(qry) !== -1) {
-        styles.push(style);
-      } else if (style.revenue_program) {
-        if (
-          style.revenue_program.slug.toLowerCase().indexOf(qry) !== -1 ||
-          style.revenue_program.name.toLowerCase().indexOf(qry) !== -1
-        ) {
-          styles.push(style);
-        }
-      }
-    }
-  } else {
-    styles = stylesRaw;
-  }
-
-  return styles;
+  return qry
+    ? stylesRaw.filter((style) => {
+        return (
+          style.name.toLowerCase().indexOf(qry) !== -1 ||
+          (style.revenue_program &&
+            (style.revenue_program.slug.toLowerCase().indexOf(qry) !== -1 ||
+              style.revenue_program.name.toLowerCase().indexOf(qry) !== -1))
+        );
+      })
+    : stylesRaw;
 };
 
 function Styles({ setShowEditStylesModal, setStyleToEdit, fetchStyles, styles }) {
@@ -42,12 +31,6 @@ function Styles({ setShowEditStylesModal, setStyleToEdit, fetchStyles, styles })
     fetchStyles();
   }, [fetchStyles]);
 
-  const stylesQueryChange = async (e) => {
-    e.preventDefault();
-    const timeOutId = setTimeout(() => setStyleSearchQuery(e.target.value.toLowerCase()), 500);
-    return () => clearTimeout(timeOutId);
-  };
-
   const handleStyleSelect = (style) => {
     setStyleToEdit(style);
     setShowEditStylesModal(true);
@@ -55,17 +38,14 @@ function Styles({ setShowEditStylesModal, setStyleToEdit, fetchStyles, styles })
 
   const stylesFiltered = filterStyles(styles, styleSearchQuery);
 
-  console.log(stylesFiltered);
-
   return (
     <GenericErrorBoundary>
       <S.Styles data-testid="styles-list">
         {styles && styles.length > STYLE_COUNT_TO_ENABLE_SEARCH ? (
           <S.StylesSearch layout>
             <input
-              className="filterBy"
               placeholder="Search Styles by Name, Revenue-program"
-              onChange={stylesQueryChange}
+              onChange={(e) => setStyleSearchQuery(e.target.value)}
             />
           </S.StylesSearch>
         ) : null}

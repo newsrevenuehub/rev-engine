@@ -21,7 +21,7 @@ import CircleButton from 'elements/buttons/CircleButton';
 import PageCard from 'components/content/pages/PageCard';
 import GenericErrorBoundary from 'components/errors/GenericErrorBoundary';
 
-const PAGE_COUNT_TO_ENABLE_SEARCH = 5;
+const PAGE_COUNT_TO_ENABLE_SEARCH = 4;
 
 export const pagesbyRP = (pgsRaw, qry) => {
   const pagesByRevProgram = [];

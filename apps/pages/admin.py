@@ -118,6 +118,23 @@ class DonationPageAdmin(DonationPageAdminAbstract):
     # Overriding this template to add the `admin_limited_select` inclusion tag
     change_form_template = "pages/donationpage_changeform.html"
 
+    def reversion_register(self, model, **options):
+        """Set django-reversion options on registered model...
+
+        In this case, we configure django-reversion to follow related contributions and
+        revenue_program fields. By configuring this way, if you restore a deleted donation page,
+        references to that page in contributions and revenue program (via `default_donation_page`)
+        will also be restored. Without this setting, those values would be set to null.
+
+        [todo: run down if rev program has to be here or not -- is it only to get default
+        donation page???]
+        """
+        options["follow"] = (
+            "contribution_set",
+            "revenue_program",
+        )
+        super().reversion_register(model, **options)
+
     @admin.action(description="Make templates from selected pages")
     def make_template(self, request, queryset):
         created_template_count = 0

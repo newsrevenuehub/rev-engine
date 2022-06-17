@@ -1,6 +1,6 @@
 {
   "baseUrl": "http://localhost:3000",
-  "videoUploadOnPasses": false,
+  "video": false,
   "chromeWebSecurity": false,
   "componentFolder": "src/components",
   "testFiles": "**/*spec.js"

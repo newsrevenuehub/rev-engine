@@ -34,6 +34,9 @@
   - [Open a shell on an app](#open-a-shell-on-an-app)
 - [Celery Tasks](#celery-tasks)
 - [Frontend Configuration](#frontend-configuration)
+- [`django-reversion`, audit logs, and restoring deleted model instances](#django-reversion-audit-logs-and-restoring-deleted-model-instances)
+  - [How to register a model](#how-to-register-a-model)
+  - [How to register a view](#how-to-register-a-view)
 
 ## Development environment setup
 
@@ -429,3 +432,41 @@ REACT_APP_HUB_V3_GOOGLE_ANALYTICS_ID=therealvaluehere
 ```
 
 Any value in `settings.js` that uses the `resolveConstantFromEnv` method can be overridden by adding it to .env prepended by `REACT_APP_`
+
+## `django-reversion`, audit logs, and restoring deleted model instances
+
+This project uses [django-reversion](https://django-reversion.readthedocs.io/en/stable/index.html) to record user-generated changes to select models from the admin and via the API layer. This same package allows admin users to recover deleted model instances.
+
+### How to register a model
+
+To register a model with `django-reversion`, include `reversion.admin.VersionAdmin` in the modeladmin class definition.
+
+```python
+@admin.register(models.MyModel)
+class MyModelAdmin(VersionAdmin):
+...
+```
+
+Note that by registering a model's model admin class with `django-reversion`, the underlying model is also registered. When configured this way, any changes made to instances of `MyModel` through the Django admin interface will get per-save revisions recorded.
+
+After registering a model, you will need to run the following management command:
+
+```sh
+python manage.py createinitialrevisions
+```
+
+Afterwards, you'll need to run your migrations:
+
+```sh
+python manage.py migrate
+```
+
+### How to register a view
+
+We use `reversion.views.RevisionMixin` in select API-layer viewsets in order to record changes to the model instances that happen via that view.  To set up a view to record changes, do:
+
+```python
+class MyViewSet(RevisionMixin, ...<other super classes and mixins>):
+```
+
+Note that this assumes the viewset's model has been registered with `django-reversion`.

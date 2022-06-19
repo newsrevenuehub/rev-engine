@@ -11,6 +11,8 @@ export const revEngineTheme = {
     paneBackground: '#fff',
     inputBackground: '#fff',
     inputBorder: '#c3c3c3',
+    sidebarBackground: '#25192B',
+    topbarBackground: '#523A5E',
 
     black: '#080708',
 

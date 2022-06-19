@@ -24,6 +24,19 @@ function DashboardSidebar({ shouldAllowDashboard }) {
   return (
     <S.DashboardSidebar>
       <S.NavList data-testid="nav-list">
+        <S.NavItemLabel
+          data-testid="nav-content-item"
+          to={CONTENT_SLUG}
+          onClick={handleClick}
+          disabled={!shouldAllowDashboard}
+        >
+          <S.NavItemIcon icon={ICONS.DASHBOARD} />
+          <S.SideBarText>Dashboard</S.SideBarText>
+        </S.NavItemLabel>
+
+        <S.Divider />
+        {hasContentSectionAccess ? <S.SectionLabel>Content</S.SectionLabel> : null}
+
         {hasContentSectionAccess ? (
           <S.NavItem
             data-testid="nav-content-item"
@@ -31,7 +44,8 @@ function DashboardSidebar({ shouldAllowDashboard }) {
             onClick={handleClick}
             disabled={!shouldAllowDashboard}
           >
-            Pages
+            <S.NavItemIcon icon={ICONS.PAGES} />
+            <S.SideBarText>Pages</S.SideBarText>
           </S.NavItem>
         ) : null}
         {hasContentSectionAccess ? (
@@ -41,9 +55,14 @@ function DashboardSidebar({ shouldAllowDashboard }) {
             onClick={handleClick}
             disabled={!shouldAllowDashboard}
           >
-            Customize
+            <S.NavItemIcon icon={ICONS.CUSTOMIZE} />
+            <S.SideBarText>Customize</S.SideBarText>
           </S.NavItem>
         ) : null}
+
+        {hasContributionsSectionAccess ? <S.Divider /> : null}
+        {hasContributionsSectionAccess ? <S.SectionLabel>Activity</S.SectionLabel> : null}
+
         {hasContributionsSectionAccess ? (
           <S.NavItem
             data-testid="nav-contributions-item"
@@ -51,7 +70,8 @@ function DashboardSidebar({ shouldAllowDashboard }) {
             onClick={handleClick}
             disabled={!shouldAllowDashboard}
           >
-            Contributions
+            <S.NavItemIcon icon={ICONS.CONTRIBUTIONS} />
+            <S.SideBarText>Contributions</S.SideBarText>
           </S.NavItem>
         ) : null}
       </S.NavList>

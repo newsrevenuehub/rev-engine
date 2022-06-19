@@ -102,6 +102,7 @@ export const NavItem = styled(NavLink)`
     color: #fff;
     background: #3f2c48;
     border-radius: 6px;
+    text-decoration: none;
   }
 
   &.active {

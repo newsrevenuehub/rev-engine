@@ -33,7 +33,7 @@ export const ButtonOverlay = styled.div`
   flex-direction: column;
   justify-content: space-between;
   padding: 1rem 0;
-  padding-left: 2rem;
+  padding-left: 1.1rem;
   height: 400px;
 `;
 

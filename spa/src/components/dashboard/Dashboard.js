@@ -1,4 +1,4 @@
-import { Route, Switch, Redirect } from 'react-router-dom';
+import { Route, Switch, Redirect, useLocation } from 'react-router-dom';
 
 import * as S from './Dashboard.styled';
 
@@ -53,11 +53,13 @@ function Dashboard() {
     ? DONATIONS_SLUG
     : 'not-found';
 
+  const isEditPage = useLocation().pathname.includes('/dashboard/edit');
+
   return (
     <div>
-      <DashboardTopbar shouldAllowDashboard={getShouldAllowDashboard()} />
+      {isEditPage ? null : <DashboardTopbar shouldAllowDashboard={getShouldAllowDashboard()} />}
       <S.Dashboard data-testid="dashboard">
-        <DashboardSidebar shouldAllowDashboard={getShouldAllowDashboard()} />
+        {isEditPage ? null : <DashboardSidebar shouldAllowDashboard={getShouldAllowDashboard()} />}
         <S.DashboardMain>
           {checkingProvider && <GlobalLoading />}
           <S.DashboardContent>

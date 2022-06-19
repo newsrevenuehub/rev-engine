@@ -2,13 +2,15 @@ import styled from 'styled-components';
 import { motion } from 'framer-motion';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 
-export const PageEditor = styled.div``;
+export const PageEditor = styled.div`
+  margin-left: 90px;
+`;
 
 export const ButtonOverlayOuter = styled.div`
   position: fixed;
   left: 0;
   top: 0;
-  width: 180px;
+  width: 90px;
   background-color: #fff;
   height: 100%;
 

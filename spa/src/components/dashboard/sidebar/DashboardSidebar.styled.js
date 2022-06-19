@@ -105,10 +105,11 @@ export const NavItem = styled(NavLink)`
   }
 
   &.active {
-    background: #eaf37a;
-    border-right: 5px solid #eaf37a;
+    background: ${(props) => props.theme.colors.navSelectedBackground};
+    border-right: 5px solid ${(props) => props.theme.colors.navSelectedBackground};
     border-radius: 6px;
-    color: #25192b;
+    color: ${(props) => props.theme.colors.sidebarBackground};
+
     svg {
       filter: brightness(0) saturate(100%) invert(6%) sepia(7%) saturate(6515%) hue-rotate(240deg) brightness(96%)
         contrast(88%);
@@ -136,9 +137,8 @@ export const NavItem = styled(NavLink)`
     }
 
     &.active {
-      border-right: 4px solid #eaf37a;
+      border-right: 4px solid ${(props) => props.theme.colors.navSelectedBackground};
       border-radius: 0px;
-      color: #25192b;
       background: ${(props) => props.theme.colors.sidebarBackground};
       svg {
         filter: brightness(0) saturate(100%) invert(92%) sepia(13%) saturate(1448%) hue-rotate(13deg) brightness(108%)
@@ -193,7 +193,7 @@ export const SectionLabel = styled.div`
   font-size: 14px;
   line-height: 16px;
   margin: 0px 0px 6px 18px;
-  color: #ddcbe7;
+  color: ${(props) => props.theme.colors.navSectionLabelColor};
 
   @media (${(props) => props.theme.breakpoints.tabletLandscapeDown}) {
     display: none;

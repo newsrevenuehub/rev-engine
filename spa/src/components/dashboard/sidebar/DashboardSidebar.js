@@ -34,7 +34,7 @@ function DashboardSidebar({ shouldAllowDashboard }) {
           <S.SideBarText>Dashboard</S.SideBarText>
         </S.NavItemLabel>
 
-        <S.Divider />
+        {hasContentSectionAccess ? <S.Divider /> : null}
         {hasContentSectionAccess ? <S.SectionLabel>Content</S.SectionLabel> : null}
 
         {hasContentSectionAccess ? (

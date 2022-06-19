@@ -24,12 +24,7 @@ function DashboardSidebar({ shouldAllowDashboard }) {
   return (
     <S.DashboardSidebar>
       <S.NavList data-testid="nav-list">
-        <S.NavItemLabel
-          data-testid="nav-content-item"
-          to={CONTENT_SLUG}
-          onClick={handleClick}
-          disabled={!shouldAllowDashboard}
-        >
+        <S.NavItemLabel>
           <S.NavItemIcon icon={ICONS.DASHBOARD} />
           <S.SideBarText>Dashboard</S.SideBarText>
         </S.NavItemLabel>

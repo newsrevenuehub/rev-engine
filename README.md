@@ -37,6 +37,7 @@
 - [`django-reversion`, audit logs, and restoring deleted model instances](#django-reversion-audit-logs-and-restoring-deleted-model-instances)
   - [How to register a model](#how-to-register-a-model)
   - [How to register a view](#how-to-register-a-view)
+  - [How to restore a deleted model instance.](#how-to-restore-a-deleted-model-instance)
 
 ## Development environment setup
 
@@ -470,3 +471,11 @@ class MyViewSet(RevisionMixin, ...<other super classes and mixins>):
 ```
 
 Note that this assumes the viewset's model has been registered with `django-reversion`.
+
+By default, django-reversion will not follow model relationships. For instance if you have ModelA and ModelB, where ModelB.model_a is a nullable foreign key, if you delete ModelA and later restore it, ModelB's reference to a ModelA instance will not be restored unless ModelA has been configured to follow the relationship to ModelB. You can find a concrete example of this in `apps.pages.admin.DonationPageAdmin.reversion_register` where we configure the DonationPage model to follow contribution and revenue program relations.
+
+### How to restore a deleted model instance.
+
+For a model/model admin that is registered with `django-reversion`, you can recover a deleted instance from the Django admin.
+
+After deleting the instance, if you go to its model admin's list view, you can click on the `Recover Deleted <ModelName>s` button.

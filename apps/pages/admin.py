@@ -121,13 +121,13 @@ class DonationPageAdmin(DonationPageAdminAbstract):
     def reversion_register(self, model, **options):
         """Set django-reversion options on registered model...
 
-        In this case, we configure django-reversion to follow related contributions and
-        revenue_program fields. By configuring this way, if you restore a deleted donation page,
-        references to that page in contributions and revenue program (via `default_donation_page`)
-        will also be restored. Without this setting, those values would be set to null.
+        We explicitly follow `contribution_set` in order to enable `contribution.donation_page`
+        to be restored from null to a donation page instance if a contribution's donation page
+        has been deleted, but is subsequently restored.
 
-        [todo: run down if rev program has to be here or not -- is it only to get default
-        donation page???]
+        We explicitly follow `revenue_program` here in order to ensure that a revenue program's
+        `default_donation_page` value is restored from null to a donation page instance, if that
+        donation page has been deleted but is subsequently restored.
         """
         options["follow"] = (
             "contribution_set",

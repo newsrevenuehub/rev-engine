@@ -58,11 +58,12 @@ if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
     urlpatterns = [path("__debug__/", include(debug_toolbar.urls))] + urlpatterns
 
+
 urlpatterns += [
     # We manually point Cloudflare at this URL, which causes it to scan the associated static view template
     # and from then on Cloudflare will display the scanned HTML for some 5xx errors.
     # For more info, see https://support.cloudflare.com/hc/en-us/articles/200172706-Configuring-Custom-Pages-Error-and-Challenge-
-    path(r"cloudflare-500", cloudflare_500_view),
+    path(r"cloudflare-500", cloudflare_500_view, name="cloudflare-500"),
     # React SPA:
     path(r"", index, name="index"),  # for reverse()
     re_path(r"^(?:.*)/?$", index, name="index-others"),

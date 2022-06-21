@@ -1,3 +1,4 @@
+import React from 'react';
 import * as S from './DashboardSidebar.styled';
 import { DONATIONS_SLUG, CONTENT_SLUG, CUSTOMIZE_SLUG } from 'routes';
 import { ICONS } from 'assets/icons/SvgIcon';
@@ -29,53 +30,47 @@ function DashboardSidebar({ shouldAllowDashboard }) {
           <S.SideBarText>Dashboard</S.SideBarText>
         </S.NavItemLabel>
 
-        {hasContentSectionAccess ? <S.Divider /> : null}
-        {hasContentSectionAccess ? <S.SectionLabel>Content</S.SectionLabel> : null}
-
         {hasContentSectionAccess ? (
-          <S.NavItem
-            data-testid="nav-content-item"
-            to={CONTENT_SLUG}
-            onClick={handleClick}
-            disabled={!shouldAllowDashboard}
-          >
-            <S.NavItemIcon icon={ICONS.PAGES} />
-            <S.SideBarText>Pages</S.SideBarText>
-          </S.NavItem>
+          <React.Fragment>
+            <S.Divider />
+            <S.SectionLabel>Content</S.SectionLabel>
+            <S.NavItem
+              data-testid="nav-content-item"
+              to={CONTENT_SLUG}
+              onClick={handleClick}
+              disabled={!shouldAllowDashboard}
+            >
+              <S.NavItemIcon icon={ICONS.PAGES} />
+              <S.SideBarText>Pages</S.SideBarText>
+            </S.NavItem>
+            <S.NavItem
+              data-testid="nav-content-item"
+              to={CUSTOMIZE_SLUG}
+              onClick={handleClick}
+              disabled={!shouldAllowDashboard}
+            >
+              <S.NavItemIcon icon={ICONS.CUSTOMIZE} />
+              <S.SideBarText>Customize</S.SideBarText>
+            </S.NavItem>
+          </React.Fragment>
         ) : null}
-        {hasContentSectionAccess ? (
-          <S.NavItem
-            data-testid="nav-content-item"
-            to={CUSTOMIZE_SLUG}
-            onClick={handleClick}
-            disabled={!shouldAllowDashboard}
-          >
-            <S.NavItemIcon icon={ICONS.CUSTOMIZE} />
-            <S.SideBarText>Customize</S.SideBarText>
-          </S.NavItem>
-        ) : null}
-
-        {hasContributionsSectionAccess ? <S.Divider /> : null}
-        {hasContributionsSectionAccess ? <S.SectionLabel>Activity</S.SectionLabel> : null}
 
         {hasContributionsSectionAccess ? (
-          <S.NavItem
-            data-testid="nav-contributions-item"
-            to={DONATIONS_SLUG}
-            onClick={handleClick}
-            disabled={!shouldAllowDashboard}
-          >
-            <S.NavItemIcon icon={ICONS.CONTRIBUTIONS} />
-            <S.SideBarText>Contributions</S.SideBarText>
-          </S.NavItem>
+          <React.Fragment>
+            <S.Divider />
+            <S.SectionLabel>Activity</S.SectionLabel>
+            <S.NavItem
+              data-testid="nav-contributions-item"
+              to={DONATIONS_SLUG}
+              onClick={handleClick}
+              disabled={!shouldAllowDashboard}
+            >
+              <S.NavItemIcon icon={ICONS.CONTRIBUTIONS} />
+              <S.SideBarText>Contributions</S.SideBarText>
+            </S.NavItem>
+          </React.Fragment>
         ) : null}
       </S.NavList>
-      <S.OtherContent>
-        <S.Logout onClick={logout} whileHover={{ scale: 1.05, x: -3 }} whileTap={{ scale: 1, x: 0 }}>
-          <S.LogoutIcon icon={ICONS.LOGOUT} />
-          Sign out
-        </S.Logout>
-      </S.OtherContent>
     </S.DashboardSidebar>
   );
 }

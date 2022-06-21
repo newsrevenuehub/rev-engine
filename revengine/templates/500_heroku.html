@@ -1,3 +1,10 @@
+<!--
+  Note that this is not directly served by our Django application. As per the Heroku docs
+  on custom errors pages (https://devcenter.heroku.com/articles/error-pages#customize-pages),
+  we are creating a static HTML page that can be uploaded to Google Cloud, and in turn,
+  we will point Heroku to the URL of the uploaded asset, which it will display in the event of
+  a 503 error.
+-->
 <!DOCTYPE html>
 <html lang="en-US">
   <head>

@@ -1,7 +1,7 @@
 import React, { lazy } from 'react';
 
 // Routing
-import { Route, BrowserRouter, Switch } from 'react-router-dom';
+import { Route, BrowserRouter, Switch, Redirect } from 'react-router-dom';
 import ProtectedRoute from 'components/authentication/ProtectedRoute';
 
 import isContributorAppPath from 'utilities/isContributorAppPath';
@@ -39,9 +39,7 @@ function DashboardRouter() {
             {/* Organization Dashboard */}
             <ProtectedRoute path={ROUTES.DASHBOARD_SLUG} render={() => <TrackPageView component={Main} />} />
 
-            <Route>
-              <LivePage404 dashboard />
-            </Route>
+            <Redirect to={ROUTES.CONTENT_SLUG} />
           </Switch>
         </React.Suspense>
       </ChunkErrorBoundary>

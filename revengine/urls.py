@@ -8,7 +8,12 @@ from django.views.generic.base import RedirectView
 from apps.api.urls import urlpatterns as api_urlpatterns
 from apps.users.urls import orgadmin_user_management_urls
 
-from .views import admin_select_options, index, read_apple_developer_merchant_id
+from .views import (
+    admin_select_options,
+    cloudflare_500_view,
+    index,
+    read_apple_developer_merchant_id,
+)
 
 
 urlpatterns = [
@@ -40,6 +45,7 @@ urlpatterns = [
     path(".well-known/apple-developer-merchantid-domain-association", read_apple_developer_merchant_id),
 ]
 
+# handler500 = "revengine.views.custom_500_view"
 
 if settings.DEBUG:
     from django.conf.urls.static import static
@@ -53,6 +59,10 @@ if settings.DEBUG:
     urlpatterns = [path("__debug__/", include(debug_toolbar.urls))] + urlpatterns
 
 urlpatterns += [
+    # We manually point Cloudflare at this URL, which causes it to scan the associated static view template
+    # and from then on Cloudflare will display the scanned HTML for some 5xx errors.
+    # For more info, see https://support.cloudflare.com/hc/en-us/articles/200172706-Configuring-Custom-Pages-Error-and-Challenge-
+    path(r"cloudflare-500", cloudflare_500_view),
     # React SPA:
     path(r"", index, name="index"),  # for reverse()
     re_path(r"^(?:.*)/?$", index, name="index-others"),

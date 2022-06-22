@@ -56,7 +56,7 @@ function Dashboard() {
   const isEditPage = useLocation().pathname.includes('/dashboard/edit');
 
   return (
-    <div>
+    <S.Outer>
       {isEditPage ? null : <DashboardTopbar shouldAllowDashboard={getShouldAllowDashboard()} />}
       <S.Dashboard data-testid="dashboard">
         {isEditPage ? null : <DashboardSidebar shouldAllowDashboard={getShouldAllowDashboard()} />}
@@ -96,7 +96,7 @@ function Dashboard() {
           </S.DashboardContent>
         </S.DashboardMain>
       </S.Dashboard>
-    </div>
+    </S.Outer>
   );
 }
 

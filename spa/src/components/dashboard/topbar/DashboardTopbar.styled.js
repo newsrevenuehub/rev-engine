@@ -15,7 +15,7 @@ export const DashboardTopbar = styled.div`
 export const TopMenu = styled.div`
   flex: 1;
   text-align: right;
-  padding-right: 10px;
+  padding: 0px 20px 0px 25px;
   cursor: pointer;
   color: #fff;
 

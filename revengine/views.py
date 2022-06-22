@@ -101,4 +101,9 @@ def cloudflare_500_view(request, exception=None):
     this page and from then on it will display the scanned HTML for some 5xx errors.
     For more info, see https://support.cloudflare.com/hc/en-us/articles/200172706-Configuring-Custom-Pages-Error-and-Challenge-
     """
-    return render(request, "500_cloudflare.html")
+    return render(request, "500_cloudflare.html", {})
+
+
+def dummy_view_for_raising_500(request):
+    """Used to simulate 500 errors"""
+    raise

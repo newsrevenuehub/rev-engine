@@ -3,7 +3,6 @@ import * as S from './DashboardSidebar.styled';
 import { DONATIONS_SLUG, CONTENT_SLUG, CUSTOMIZE_SLUG } from 'routes';
 import { ICONS } from 'assets/icons/SvgIcon';
 
-import logout from 'components/authentication/logout';
 import {
   CONTRIBUTIONS_SECTION_ACCESS_FLAG_NAME,
   CONTENT_SECTION_ACCESS_FLAG_NAME

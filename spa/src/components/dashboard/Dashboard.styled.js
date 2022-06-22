@@ -1,5 +1,7 @@
 import styled from 'styled-components';
 
+export const Outer = styled.div``;
+
 export const Dashboard = styled.div`
   flex: 1;
   display: flex;

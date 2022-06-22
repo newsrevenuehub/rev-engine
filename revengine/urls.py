@@ -1,3 +1,5 @@
+import os
+
 from django.conf import settings
 from django.conf.urls import include
 from django.contrib import admin
@@ -11,6 +13,7 @@ from apps.users.urls import orgadmin_user_management_urls
 from .views import (
     admin_select_options,
     cloudflare_500_view,
+    dummy_view_for_raising_500,
     index,
     read_apple_developer_merchant_id,
 )
@@ -45,7 +48,6 @@ urlpatterns = [
     path(".well-known/apple-developer-merchantid-domain-association", read_apple_developer_merchant_id),
 ]
 
-# handler500 = "revengine.views.custom_500_view"
 
 if settings.DEBUG:
     from django.conf.urls.static import static
@@ -58,11 +60,11 @@ if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
     urlpatterns = [path("__debug__/", include(debug_toolbar.urls))] + urlpatterns
 
+if os.getenv("DJANGO_SETTINGS_MODULE", None) != "deploy":
+    # This needs to happen before the catch-all for SPA index below
+    urlpatterns.append(path("dummy-500-error", dummy_view_for_raising_500, name="dummy-500"))
 
 urlpatterns += [
-    # We manually point Cloudflare at this URL, which causes it to scan the associated static view template
-    # and from then on Cloudflare will display the scanned HTML for some 5xx errors.
-    # For more info, see https://support.cloudflare.com/hc/en-us/articles/200172706-Configuring-Custom-Pages-Error-and-Challenge-
     path(r"cloudflare-500", cloudflare_500_view, name="cloudflare-500"),
     # React SPA:
     path(r"", index, name="index"),  # for reverse()

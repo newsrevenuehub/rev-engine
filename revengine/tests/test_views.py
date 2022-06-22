@@ -14,17 +14,12 @@ expected_elements_by_kwargs = {
 }
 
 
-def test_heroku_500():
-    """Test that the custom 500 page served by Heroku is as expected
-
-    NB: This is a somewhat odd test in that it's not actually testing a view. As noted
-    in the comment at the top of `500_heroku.html`, we will need to manually upload this
-    static HTML file to GCS, and point Heroku to the resulting URL. Here, we just prove
-    that insofar as this is the file we upload, it will display a message to the user and
-    give them a support email address.
-    """
-    with open("revengine/templates/500_heroku.html") as fl:
-        soup = bs4(fl, "html.parser")
+def test_custom_500(client):
+    """Test that custom 500 page is as expected"""
+    client.raise_request_exception = False
+    response = client.get(reverse("dummy-500"))
+    assert response.status_code == 500
+    soup = bs4(response.content, "html.parser")
     for elem, kwargs in expected_elements_by_kwargs.items():
         assert soup.find(elem, **kwargs)
 

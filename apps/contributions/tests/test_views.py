@@ -122,7 +122,7 @@ class StripeOneTimePaymentViewTest(StripePaymentViewTestAbstract):
         self.assertIn("email", response.data)
         self.assertEqual(str(response.data["email"][0]), "This field may not be null.")
 
-    @patch("apps.contributions.views.send_contribution_confirmation_email.delay")
+    @patch("apps.contributions.views.send_templated_email.delay")
     @patch("apps.contributions.views.StripePaymentManager.create_one_time_payment", side_effect=MockPaymentIntent)
     def test_one_time_payment_serializer_gets_uid_as_email_hash(self, *args):
         response = self._post_valid_payment(email=test_stripe_payment_email)
@@ -130,7 +130,7 @@ class StripeOneTimePaymentViewTest(StripePaymentViewTestAbstract):
         self.assertIn("email_hash", response.data)
         self.assertEqual(str(response.data["email_hash"]), get_sha256_hash(test_stripe_payment_email))
 
-    @patch("apps.contributions.views.send_contribution_confirmation_email.delay")
+    @patch("apps.contributions.views.send_templated_email.delay")
     @patch("apps.contributions.views.StripePaymentManager.create_one_time_payment", side_effect=MockPaymentIntent)
     def test_happy_path_no_confirmation_email(self, mock_one_time_payment, mock_send_confirmation_email):
 
@@ -143,7 +143,7 @@ class StripeOneTimePaymentViewTest(StripePaymentViewTestAbstract):
         mock_one_time_payment.assert_called_once()
         self.assertFalse(mock_send_confirmation_email.called)
 
-    @patch("apps.contributions.views.send_contribution_confirmation_email.delay")
+    @patch("apps.contributions.views.send_templated_email.delay")
     @patch("apps.contributions.views.StripePaymentManager.create_one_time_payment", side_effect=MockPaymentIntent)
     def test_happy_path_with_confirmation_email(self, mock_one_time_payment, mock_send_confirmation_email):
 
@@ -157,12 +157,13 @@ class StripeOneTimePaymentViewTest(StripePaymentViewTestAbstract):
         mock_one_time_payment.assert_called_once()
         mock_send_confirmation_email.assert_called_once()
         self.assertEqual(mock_send_confirmation_email.call_args.args[0], self.contributor_user.email)
-        self.assertEqual(
-            set(EXPECTED_CONTRIBUTION_CONFIRMATION_TEMPLATE_KEYS),
-            set(mock_send_confirmation_email.call_args.kwargs.keys()),
+        template_data = mock_send_confirmation_email.call_args[0][4]
+        self.assertEqual(set(EXPECTED_CONTRIBUTION_CONFIRMATION_TEMPLATE_KEYS), set(template_data.keys()))
+        self.assertIsNone(template_data["contribution_interval_display_value"])
+        # we show that truthy values get passed all other keys
+        self.assertTrue(
+            all(val for (key, val) in template_data.items() if key != "contribution_interval_display_value")
         )
-        # we show that truthy values get passed for all kwargs
-        self.assertFalse(any(not val for val in mock_send_confirmation_email.call_args.kwargs.keys()))
 
     @patch("apps.contributions.views.StripePaymentManager.create_one_time_payment", side_effect=PaymentBadParamsError)
     def test_response_when_bad_params_error(self, mock_one_time_payment):
@@ -171,7 +172,7 @@ class StripeOneTimePaymentViewTest(StripePaymentViewTestAbstract):
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.data["detail"], "There was an error processing your payment.")
 
-    @patch("apps.contributions.views.send_contribution_confirmation_email.delay")
+    @patch("apps.contributions.views.send_templated_email.delay")
     @patch("apps.contributions.views.StripePaymentManager.create_one_time_payment", side_effect=PaymentProviderError)
     def test_response_when_payment_provider_error(self, mock_one_time_payment, mock_send_confirmation_email):
         response = self._post_valid_payment()
@@ -196,7 +197,7 @@ class CreateStripeRecurringPaymentViewTest(StripePaymentViewTestAbstract):
         self.assertIn("payment_method_id", response.data)
         self.assertEqual(str(response.data["payment_method_id"][0]), "This field may not be null.")
 
-    @patch("apps.contributions.views.send_contribution_confirmation_email.delay")
+    @patch("apps.contributions.views.send_templated_email.delay")
     def test_happy_path_when_no_confirmation_email(self, mock_send_confirmation_email, mock_subscription_create):
         """
         Verify that we're getting the response we expect from a valid contribition
@@ -213,7 +214,7 @@ class CreateStripeRecurringPaymentViewTest(StripePaymentViewTestAbstract):
         mock_subscription_create.assert_called_once()
         self.assertFalse(mock_send_confirmation_email.called)
 
-    @patch("apps.contributions.views.send_contribution_confirmation_email.delay")
+    @patch("apps.contributions.views.send_templated_email.delay")
     def test_happy_path_when_confirmation_email(self, mock_send_confirmation_email, mock_subscription_create):
         """
         Verify that we're getting the response we expect from a valid contribition
@@ -231,12 +232,11 @@ class CreateStripeRecurringPaymentViewTest(StripePaymentViewTestAbstract):
         mock_subscription_create.assert_called_once()
         mock_send_confirmation_email.assert_called_once()
         self.assertEqual(mock_send_confirmation_email.call_args.args[0], self.contributor_user.email)
-        self.assertEqual(
-            set(EXPECTED_CONTRIBUTION_CONFIRMATION_TEMPLATE_KEYS),
-            set(mock_send_confirmation_email.call_args.kwargs.keys()),
-        )
+
+        template_data = mock_send_confirmation_email.call_args[0][4]
+        self.assertEqual(set(EXPECTED_CONTRIBUTION_CONFIRMATION_TEMPLATE_KEYS), set(template_data.keys()))
         # we show that truthy values get passed for all kwargs
-        self.assertFalse(any(not val for val in mock_send_confirmation_email.call_args.kwargs.keys()))
+        self.assertTrue(all(template_data.items()))
 
 
 TEST_STRIPE_ACCOUNT_ID = "testing_123"

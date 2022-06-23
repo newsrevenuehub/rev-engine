@@ -97,6 +97,7 @@ pytest-cov = "*"
 pytest-django = "*"
 pyyaml = "*"
 responses = "*"
+pytest-xdist = "*"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]

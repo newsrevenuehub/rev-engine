@@ -39,7 +39,7 @@ run-redis:
 run-tests:
 	@echo 'Checking for migrations'
 	python manage.py makemigrations --dry-run --check
-	pytest
+	pytest --numprocesses auto
 
 check-dc:
 	docker-compose -f docker-compose.yml -f docker-compose-dev.yml ps

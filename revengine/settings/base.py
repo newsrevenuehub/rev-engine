@@ -235,6 +235,9 @@ LOGGING = {
             "class": "logging.StreamHandler",
             "formatter": "basic",
         },
+        "null": {
+            "class": "logging.NullHandler",
+        },
     },
     "loggers": {
         # Redefining the logger for the django module
@@ -242,6 +245,12 @@ LOGGING = {
         "django": {
             "handlers": ["console"],
             "level": "INFO",
+            "propagate": False,
+        },
+        # don't warn about incorrect http_host
+        # see https://docs.djangoproject.com/en/3.2/topics/logging/#django-security
+        "django.security.DisallowedHost": {
+            "handlers": ["null"],
             "propagate": False,
         },
     },
@@ -307,16 +316,11 @@ HEALTHCHECK_URL_AUTO_ACCEPT_FLAGGED_PAYMENTS = os.environ.get("HEALTHCHECK_URL_A
 EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
 EMAIL_SUBJECT_PREFIX = "[RevEngine] "
 
-# This determines which template is used on the ESP (at present Mailgun) when sending contribution confirmation emails.
-ESP_TEMPLATE_ID_FOR_CONTRIBUTION_CONFIRMATION = os.environ.get("ESP_TEMPLATE_ID_FOR_CONTRIBUTION_CONFIRMATION")
-
+EMAIL_DEFAULT_TRANSACTIONAL_SENDER = os.getenv(
+    "EMAIL_DEFAULT_TRANSACTIONAL_SENDER", "News Revenue Engine <no-reply@fundjournalism.org>"
+)
 
 ADMINS = [("dc", "daniel@fundjournalism.org")]
-
-# Revengine template identifiers
-EMAIL_TEMPLATE_IDENTIFIER_MAGIC_LINK_DONOR = os.environ.get(
-    "EMAIL_TEMPLATE_IDENTIFIER_MAGIC_LINK_DONOR", "nrh-manage-donations-magic-link"
-)
 
 # this is only used by HubAdmins, not OrgAdmins, but needs to be named generically as LOGIN_URL
 # so our implementation of password reset flow for HubAdmins works as expected

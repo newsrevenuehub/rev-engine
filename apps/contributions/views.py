@@ -27,7 +27,7 @@ from apps.contributions.payment_managers import (
 )
 from apps.contributions.utils import get_sha256_hash
 from apps.contributions.webhooks import StripeWebhookProcessor
-from apps.emails.tasks import send_contribution_confirmation_email
+from apps.emails.tasks import send_templated_email
 from apps.organizations.models import PaymentProvider, RevenueProgram
 from apps.public.permissions import IsActiveSuperUser
 from apps.users.views import FilterQuerySetByUserMixin
@@ -96,7 +96,13 @@ def stripe_payment(request):
                 "copyright_year": contribution_date.year,
                 "org_name": rp.organization.name,
             }
-            send_contribution_confirmation_email.delay(contributor_email, **template_data)
+            send_templated_email.delay(
+                contributor_email,
+                "Thank you for your contribution!",
+                "nrh-default-contribution-confirmation-email.txt",
+                "nrh-default-contribution-confirmation-email.html",
+                template_data,
+            )
 
     except RevenueProgram.DoesNotExist:
         logger.warning(

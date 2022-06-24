@@ -8,6 +8,7 @@ from django.http import FileResponse, JsonResponse
 from django.shortcuts import render
 from django.views.decorators.cache import never_cache
 from django.views.decorators.http import require_GET
+from django.views.defaults import server_error
 from django.views.generic import TemplateView
 
 from apps.common.serializers import SocialMetaInlineSerializer
@@ -106,4 +107,4 @@ def cloudflare_500_view(request, exception=None):
 
 def dummy_view_for_raising_500(request):
     """Used to simulate 500 errors"""
-    raise
+    return server_error(request)

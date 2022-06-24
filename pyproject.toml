@@ -93,6 +93,7 @@ pytest-django = "*"
 pyyaml = "*"
 responses = "*"
 pytest-xdist = "*"
+flake8-logging-format = "^0.6.0"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]

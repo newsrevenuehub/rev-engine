@@ -554,11 +554,14 @@ python-versions = ">=3.6"
 
 [[package]]
 name = "django-solo"
-version = "1.2.0"
+version = "2.0.0"
 description = "Django Solo helps working with singletons"
 category = "main"
 optional = false
-python-versions = "*"
+python-versions = ">=3.6"
+
+[package.dependencies]
+django = ">=2.2"
 
 [[package]]
 name = "django-storages"
@@ -1750,7 +1753,7 @@ testing = ["pytest (>=6)", "pytest-checkdocs (>=2.4)", "pytest-flake8", "pytest-
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.9"
-content-hash = "6f5e97b97f1e081187889d173cd5991635a3a29e389d9110465930a8e51a3ecb"
+content-hash = "4037eee7001ed328419d293b3b9553f845cfa288518c7f291ff822bd31f9a5be"
 
 [metadata.files]
 amqp = [
@@ -1991,8 +1994,8 @@ django-simple-history = [
     {file = "django_simple_history-3.0.0-py2.py3-none-any.whl", hash = "sha256:a312adfe8fbec4c450b08e641b11249a8a589a7e7d1ba2404764b8b5bed53552"},
 ]
 django-solo = [
-    {file = "django-solo-1.2.0.tar.gz", hash = "sha256:b42487d5b82b24232edc09b54a8cc3919e7a79bd684c1ac6346ecaf9942c4288"},
-    {file = "django_solo-1.2.0-py3-none-any.whl", hash = "sha256:ef63bce7b6d0225821de0b29fa00be17c3996d41ab340ca6c51d004129742c32"},
+    {file = "django-solo-2.0.0.tar.gz", hash = "sha256:7c6dbe04ae858a4645b580ec83a31a960a067ad4525d8227cca50b7fc5983a62"},
+    {file = "django_solo-2.0.0-py3-none-any.whl", hash = "sha256:9046eca738f2ed64dbef38c2107a02af1065a8899b4f9fabf61b06b8325de1b4"},
 ]
 django-storages = [
     {file = "django-storages-1.12.3.tar.gz", hash = "sha256:a475edb2f0f04c4f7e548919a751ecd50117270833956ed5bd585c0575d2a5e7"},

@@ -23,7 +23,7 @@ from apps.organizations.models import RevenueProgram
 from apps.pages.models import DonationPage
 
 
-logger = logging.getLogger("%s.%s", settings.DEFAULT_LOGGER, __name__)
+logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
 
 
 class PaymentProviderError(Exception):
@@ -375,7 +375,7 @@ class StripePaymentManager(PaymentManager):
         except stripe.error.InvalidRequestError as invalid_request_error:
             self.contribution.status = previous_status
             self.contribution.save()
-            logger.info("Contribution error for id (%}", self.contribution.pk, exc_info=invalid_request_error)
+            logger.info("Contribution error for id (%s}", self.contribution.pk, exc_info=invalid_request_error)
             raise PaymentProviderError(invalid_request_error)
         except stripe.error.StripeError as stripe_error:
             self._handle_stripe_error(stripe_error, previous_status=previous_status)

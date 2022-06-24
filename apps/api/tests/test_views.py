@@ -43,7 +43,6 @@ def test__construct_rp_domain(expected, site_url, post, header):
         assert expected == _construct_rp_domain(post, header)
 
 
-@override_settings(SECURE_SSL_REDIRECT=False)
 class TokenObtainPairCookieViewTest(APITestCase):
     def setUp(self):
         self.url = reverse("token-obtain-pair")

@@ -51,7 +51,7 @@ def delete_cloudflare_cnames(ticket_id):
             if ticket_id.lower() in domain.lower():
                 logger.info("Deleting DNS entry for: %s", domain)
                 cloudflare_conn.zones.dns_records.delete(zone_id, record_id)
-        except CloudFlare.exceptions.CloudFlareAPIError as error:
+        except CloudFlare.exceptions.CloudFlareAPIError:
             logger.exception()
 
 

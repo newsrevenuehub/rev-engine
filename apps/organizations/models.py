@@ -295,9 +295,9 @@ class RevenueProgram(IndexedTimeStampedModel):
                 )
                 self.domain_apple_verified_date = timezone.now()
                 self.save()
-            except stripe.error.StripeError as stripe_error:
-                logger.warning(
-                    f"Failed to register ApplePayDomain for RevenueProgram {self.name}. StripeError: {str(stripe_error)}"
+            except stripe.error.StripeError:
+                logger.exception(
+                    "Failed to register ApplePayDomain for RevenueProgram %s because of StripeError", self.name
                 )
 
     def _ensure_owner_of_default_page(self):
@@ -381,5 +381,8 @@ class PaymentProvider(IndexedTimeStampedModel):
             return {"code": self.currency, "symbol": settings.CURRENCIES[self.currency]}
         except KeyError:
             logger.error(
-                f'Currency settings for organization "{self.name}" misconfigured. Tried to access "{self.currency}", but valid options are: {settings.CURRENCIES}'
+                'Currency settings for organization "%s" misconfigured. Tried to access "%s", but valid options are: %s',
+                self.name,
+                self.currency,
+                settings.CURRENCIES,
             )

@@ -6,9 +6,13 @@ max-line-length=100
 max-complexity = 18
 select = B,C,E,F,W,T4,B9
 exclude=migrations,docs,node_modules,revengine/settings
+enable-extensions=G
 ignore =
     E2,    # missing whitespace after ','
     W503,   # line break before binary operator
     E501,
     F841,   # Line too long
     E741,   # Ambiguous variable
+    G002,   # Logging statements should not use % formatting for their first argument
+    G003,   # Logging statements should not use + concatenation for their first argument
+    G100,   # Logging statements should not use extra arguments unless whitelisted

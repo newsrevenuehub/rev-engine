@@ -8,7 +8,7 @@ from apps.pages import models
 class DonationPageFactory(DjangoModelFactory):
     class Meta:
         model = models.DonationPage
-        django_get_or_create = ("slug",)
+        django_get_or_create = ("slug", "revenue_program")
 
     name = factory.Sequence(lambda n: f"Test page {n} name")
     heading = factory.Sequence(lambda n: "Test Page %d heading" % n)
@@ -19,6 +19,7 @@ class DonationPageFactory(DjangoModelFactory):
 class TemplateFactory(DjangoModelFactory):
     class Meta:
         model = models.Template
+        django_get_or_create = ("name", "revenue_program")
 
     name = factory.Sequence(lambda n: "Test Template %d" % n)
     heading = factory.Sequence(lambda n: "Test Template %d" % n)
@@ -28,6 +29,7 @@ class TemplateFactory(DjangoModelFactory):
 class StyleFactory(DjangoModelFactory):
     class Meta:
         model = models.Style
+        django_get_or_create = ("name", "revenue_program")
 
     class Params:
         org = None

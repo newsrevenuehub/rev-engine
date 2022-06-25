@@ -535,7 +535,7 @@ python-versions = ">=3"
 
 [[package]]
 name = "django-reversion"
-version = "5.0.0"
+version = "5.0.1"
 description = "An extension to the Django web framework that provides version control for model instances."
 category = "main"
 optional = false
@@ -1751,7 +1751,7 @@ testing = ["pytest (>=6)", "pytest-checkdocs (>=2.4)", "pytest-flake8", "pytest-
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.9"
-content-hash = "4037eee7001ed328419d293b3b9553f845cfa288518c7f291ff822bd31f9a5be"
+content-hash = "c0d95c56ac8357c221665cef1c8680c1026d911b488af7fa5e81018f0879d8c0"
 
 [metadata.files]
 amqp = [
@@ -1984,8 +1984,8 @@ django-reverse-admin = [
     {file = "django_reverse_admin-2.9.6.zip", hash = "sha256:3c26d7a93181e8f11b1c81f83251f238c566bc7ebea2873520269c949116f0d9"},
 ]
 django-reversion = [
-    {file = "django-reversion-5.0.0.tar.gz", hash = "sha256:0bade3c399387451087f0c67835e0d3d186d767de6a5c5ba53a88eafc3f271c8"},
-    {file = "django_reversion-5.0.0-py3-none-any.whl", hash = "sha256:7bea725de7f56769d89a5a712cf7b7f1b02abc27655432f2eb1a703264986d99"},
+    {file = "django-reversion-5.0.1.tar.gz", hash = "sha256:a2b26a4b84b11338136ca9d6457a4af3070992c7a89623b349009a123f28ea1d"},
+    {file = "django_reversion-5.0.1-py3-none-any.whl", hash = "sha256:45206cc0393fa18b7d5c0332b982736a0f6eb6d2b908ad7cc86e370ce7d4a807"},
 ]
 django-simple-history = [
     {file = "django-simple-history-3.1.1.tar.gz", hash = "sha256:eab6dbddb7da756cc5579f7d6f28a32b2e8bb1697a5c37794d96309793ffec38"},

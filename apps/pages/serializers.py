@@ -8,7 +8,6 @@ from rest_framework import serializers
 from rest_framework.validators import UniqueTogetherValidator
 from sorl_thumbnail_serializer.fields import HyperlinkedSorlImageField
 
-from apps.api.error_messages import UNIQUE_PAGE_SLUG
 from apps.common.validators import ValidateFkReferenceOwnership
 from apps.organizations.models import RevenueProgram
 from apps.organizations.serializers import (
@@ -160,11 +159,6 @@ class DonationPageFullDetailSerializer(serializers.ModelSerializer):
             except related_model.DoesNotExist:
                 raise serializers.ValidationError({related_field: "Could not find instance with provided pk."})
 
-    def _check_against_soft_deleted_slugs(self, validated_data):
-        new_slug = validated_data.get(settings.PAGE_SLUG_PARAM, None)
-        if new_slug and DonationPage.objects.deleted_only().filter(slug=new_slug).exists():
-            raise serializers.ValidationError({settings.PAGE_SLUG_PARAM: [UNIQUE_PAGE_SLUG]})
-
     def _create_from_template(self, validated_data):
         """
         Given a template pk, find template and run model method make_page_from_template.
@@ -179,7 +173,6 @@ class DonationPageFullDetailSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError({"template": ["This template no longer exists"]})
 
     def create(self, validated_data):
-        self._check_against_soft_deleted_slugs(validated_data)
         if "template_pk" in validated_data:
             return self._create_from_template(validated_data)
         return super().create(validated_data)

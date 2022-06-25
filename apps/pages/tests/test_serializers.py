@@ -1,9 +1,5 @@
-from re import A, M, template
-
-from django.conf import settings
 from django.utils import timezone
 
-from rest_framework import serializers
 from rest_framework.exceptions import ErrorDetail
 from rest_framework.test import APIRequestFactory, APITestCase
 
@@ -12,7 +8,6 @@ from apps.organizations.models import BenefitLevelBenefit
 from apps.organizations.tests.factories import (
     BenefitFactory,
     BenefitLevelFactory,
-    OrganizationFactory,
     RevenueProgramFactory,
 )
 from apps.pages.serializers import (
@@ -86,17 +81,6 @@ class DonationPageFullDetailSerializerTest(RevEngineApiAbstractTestCase):
         serializer = self.serializer(self.page)
         data = serializer.data
         self.assertEqual(data["revenue_program_is_nonprofit"], False)
-
-    def test_check_against_soft_deleted_slugs(self):
-        validated_data = {settings.PAGE_SLUG_PARAM: self.page.slug}
-        serializer = self.serializer(self.page)
-        # It should return none if slug isn't a deleted slug
-        self.assertIsNone(serializer._check_against_soft_deleted_slugs(validated_data))
-
-        # Delete w/ soft-delete (default) raises validation error
-        self.page.delete()
-        serializer = self.serializer(self.page)
-        self.assertRaises(serializers.ValidationError, serializer._check_against_soft_deleted_slugs, validated_data)
 
     def test_create_with_template_pk_uses_template_as_data(self):
         template = TemplateFactory()

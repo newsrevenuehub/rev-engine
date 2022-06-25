@@ -5,9 +5,10 @@ from django.contrib import admin
 from django.db.models import Q
 
 from django_reverse_admin import ReverseModelAdmin
+from reversion.admin import VersionAdmin
 from sorl.thumbnail.admin import AdminImageMixin
 
-from apps.common.admin import RevEngineSimpleHistoryAdmin
+from apps.common.admin import RevEngineBaseAdmin
 from apps.organizations.forms import FeatureForm
 from apps.organizations.models import (
     Benefit,
@@ -74,7 +75,7 @@ class BenefitLevelBenefit(NoRelatedInlineAddEditAdminMixin, ReadOnlyOrgLimitedTa
 
 
 @admin.register(Organization)
-class OrganizationAdmin(RevEngineSimpleHistoryAdmin, ReverseModelAdmin):  # pragma: no cover
+class OrganizationAdmin(RevEngineBaseAdmin, VersionAdmin, ReverseModelAdmin):  # pragma: no cover
     organization_fieldset = (
         (
             "Organization",
@@ -114,7 +115,7 @@ class OrganizationAdmin(RevEngineSimpleHistoryAdmin, ReverseModelAdmin):  # prag
 
 
 @admin.register(Benefit)
-class BenefitAdmin(RevEngineSimpleHistoryAdmin):
+class BenefitAdmin(RevEngineBaseAdmin, VersionAdmin):
     list_display = ["name", "description", "revenue_program"]
 
     list_filter = ["revenue_program"]
@@ -123,7 +124,7 @@ class BenefitAdmin(RevEngineSimpleHistoryAdmin):
 
 
 @admin.register(BenefitLevel)
-class BenefitLevelAdmin(RevEngineSimpleHistoryAdmin):
+class BenefitLevelAdmin(RevEngineBaseAdmin, VersionAdmin):
     list_display = ["name", "donation_range", "revenue_program"]
 
     list_filter = ["revenue_program"]
@@ -155,9 +156,7 @@ class BenefitLevelAdmin(RevEngineSimpleHistoryAdmin):
 
 
 @admin.register(RevenueProgram)
-class RevenueProgramAdmin(RevEngineSimpleHistoryAdmin, ReverseModelAdmin, AdminImageMixin):  # pragma: no cover
-    raw_id_fields = ("payment_provider",)
-
+class RevenueProgramAdmin(RevEngineBaseAdmin, VersionAdmin, ReverseModelAdmin, AdminImageMixin):  # pragma: no cover
     fieldsets = (
         (
             "RevenueProgram",
@@ -251,7 +250,7 @@ class RevenueProgramAdmin(RevEngineSimpleHistoryAdmin, ReverseModelAdmin, AdminI
 
 
 @admin.register(Plan)
-class PlanAdmin(RevEngineSimpleHistoryAdmin):  # pragma: no cover
+class PlanAdmin(RevEngineBaseAdmin, VersionAdmin):  # pragma: no cover
     fieldsets = (("Plan", {"fields": ("name", "features")}),)
 
     list_display = ["name"]
@@ -260,7 +259,7 @@ class PlanAdmin(RevEngineSimpleHistoryAdmin):  # pragma: no cover
 
 
 @admin.register(Feature)
-class FeatureAdmin(RevEngineSimpleHistoryAdmin):  # pragma: no cover
+class FeatureAdmin(RevEngineBaseAdmin, VersionAdmin):  # pragma: no cover
     form = FeatureForm
     fieldsets = (("Feature", {"fields": ("name", "feature_type", "feature_value", "description")}),)
 
@@ -270,7 +269,7 @@ class FeatureAdmin(RevEngineSimpleHistoryAdmin):  # pragma: no cover
 
 
 @admin.register(PaymentProvider)
-class PaymentProviderAdmin(RevEngineSimpleHistoryAdmin):  # pragma: no cover
+class PaymentProviderAdmin(RevEngineBaseAdmin):  # pragma: no cover
     search_fields = ("stripe_account_id",)
     list_display = [
         "stripe_account_id",

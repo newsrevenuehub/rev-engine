@@ -18,7 +18,12 @@ function DashboardTopbar({ shouldAllowDashboard }) {
       <S.TopLogoMobile>
         <S.Logo src={mobileLogo} />
       </S.TopLogoMobile>
-      <S.TopMenu onClick={logout} whileHover={{ scale: 1.05, x: -3 }} whileTap={{ scale: 1, x: 0 }}>
+      <S.TopMenu
+        data-testid="topbar-sign-out"
+        onClick={logout}
+        whileHover={{ scale: 1.05, x: -3 }}
+        whileTap={{ scale: 1, x: 0 }}
+      >
         <S.LogoutIcon icon={ICONS.LOGOUT} />
         Sign out
       </S.TopMenu>

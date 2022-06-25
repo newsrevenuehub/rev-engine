@@ -534,23 +534,23 @@ optional = false
 python-versions = ">=3"
 
 [[package]]
-name = "django-safedelete"
-version = "1.2.2"
-description = "Mask your objects instead of deleting them from your database."
+name = "django-reversion"
+version = "5.0.0"
+description = "An extension to the Django web framework that provides version control for model instances."
 category = "main"
 optional = false
-python-versions = "*"
+python-versions = ">=3.7"
 
 [package.dependencies]
-Django = "*"
+django = ">=2.0"
 
 [[package]]
 name = "django-simple-history"
-version = "3.0.0"
+version = "3.1.1"
 description = "Store model history and view/revert changes from admin site."
 category = "main"
 optional = false
-python-versions = ">=3.6"
+python-versions = ">=3.7"
 
 [[package]]
 name = "django-solo"
@@ -1984,13 +1984,12 @@ django-redis = [
 django-reverse-admin = [
     {file = "django_reverse_admin-2.9.6.zip", hash = "sha256:3c26d7a93181e8f11b1c81f83251f238c566bc7ebea2873520269c949116f0d9"},
 ]
-django-safedelete = [
-    {file = "django-safedelete-1.2.2.tar.gz", hash = "sha256:8faab05e3126a27c901638dcb2f6f769cf46bb1b33052714659eb93efe81ffce"},
-    {file = "django_safedelete-1.2.2-py3-none-any.whl", hash = "sha256:2f535b6d72f4517083f6902cd2140c727a9d8d9f9b0feda171318421bbf31704"},
+django-reversion = [
+    {file = "django-reversion-5.0.0.tar.gz", hash = "sha256:0bade3c399387451087f0c67835e0d3d186d767de6a5c5ba53a88eafc3f271c8"},
+    {file = "django_reversion-5.0.0-py3-none-any.whl", hash = "sha256:7bea725de7f56769d89a5a712cf7b7f1b02abc27655432f2eb1a703264986d99"},
 ]
 django-simple-history = [
-    {file = "django-simple-history-3.0.0.tar.gz", hash = "sha256:66fe76c560054be393c52b1799661e104fbe372918d37d151e5d41c676158118"},
-    {file = "django_simple_history-3.0.0-py2.py3-none-any.whl", hash = "sha256:a312adfe8fbec4c450b08e641b11249a8a589a7e7d1ba2404764b8b5bed53552"},
+    {file = "django-simple-history-3.1.1.tar.gz", hash = "sha256:eab6dbddb7da756cc5579f7d6f28a32b2e8bb1697a5c37794d96309793ffec38"},
 ]
 django-solo = [
     {file = "django-solo-2.0.0.tar.gz", hash = "sha256:7c6dbe04ae858a4645b580ec83a31a960a067ad4525d8227cca50b7fc5983a62"},

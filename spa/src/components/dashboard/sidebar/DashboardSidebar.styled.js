@@ -200,3 +200,8 @@ export const SectionLabel = styled.div`
     display: none;
   }
 `;
+
+export const NavSection = styled.nav`
+  display: flex;
+  flex-direction: column;
+`;

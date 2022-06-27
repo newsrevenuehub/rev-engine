@@ -23,51 +23,57 @@ function DashboardSidebar({ shouldAllowDashboard }) {
 
   return (
     <S.DashboardSidebar>
-      <S.NavList data-testid="nav-list">
+      <S.NavList role="list" data-testid="nav-list" aria-labelledby="sidebar-label-id">
         <S.NavItemLabel>
           <S.NavItemIcon icon={ICONS.DASHBOARD} />
-          <S.SideBarText>Dashboard</S.SideBarText>
+          <S.SideBarText id="sidebar-label-id">Dashboard</S.SideBarText>
         </S.NavItemLabel>
 
         {hasContentSectionAccess ? (
-          <React.Fragment>
+          <S.NavSection aria-labelledby="content-section-id">
             <S.Divider />
-            <S.SectionLabel>Content</S.SectionLabel>
+            <S.SectionLabel id="content-section-id">Content</S.SectionLabel>
             <S.NavItem
+              aria-labelledby="pages-nav-item-id"
+              role="listitem"
               data-testid="nav-content-item"
               to={CONTENT_SLUG}
               onClick={handleClick}
               disabled={!shouldAllowDashboard}
             >
               <S.NavItemIcon icon={ICONS.PAGES} />
-              <S.SideBarText>Pages</S.SideBarText>
+              <S.SideBarText id="pages-nav-item-id">Pages</S.SideBarText>
             </S.NavItem>
             <S.NavItem
+              aria-labelledby="customize-nav-item-id"
+              role="listitem"
               data-testid="nav-content-item"
               to={CUSTOMIZE_SLUG}
               onClick={handleClick}
               disabled={!shouldAllowDashboard}
             >
               <S.NavItemIcon icon={ICONS.CUSTOMIZE} />
-              <S.SideBarText>Customize</S.SideBarText>
+              <S.SideBarText id="customize-nav-item-id">Customize</S.SideBarText>
             </S.NavItem>
-          </React.Fragment>
+          </S.NavSection>
         ) : null}
 
         {hasContributionsSectionAccess ? (
-          <React.Fragment>
+          <S.NavSection aria-labelledby="activity-section-id">
             <S.Divider />
-            <S.SectionLabel>Activity</S.SectionLabel>
+            <S.SectionLabel id="activity-section-id">Activity</S.SectionLabel>
             <S.NavItem
+              aria-labelledby="contributions-nav-item-id"
+              role="listitem"
               data-testid="nav-contributions-item"
               to={DONATIONS_SLUG}
               onClick={handleClick}
               disabled={!shouldAllowDashboard}
             >
               <S.NavItemIcon icon={ICONS.CONTRIBUTIONS} />
-              <S.SideBarText>Contributions</S.SideBarText>
+              <S.SideBarText id="contributions-nav-item-id">Contributions</S.SideBarText>
             </S.NavItem>
-          </React.Fragment>
+          </S.NavSection>
         ) : null}
       </S.NavList>
     </S.DashboardSidebar>

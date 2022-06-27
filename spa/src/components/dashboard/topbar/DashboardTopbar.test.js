@@ -1,11 +1,15 @@
-import { render, screen } from 'test-utils';
+import { render, screen, fireEvent } from 'test-utils';
 
 import DashboardTopbar from './DashboardTopbar';
+import logout from 'components/authentication/logout';
 
-const LOGOUT_TEST_ID = 'topbar-sign-out';
+jest.mock('components/authentication/logout', () => ({
+  __esModule: true,
+  default: jest.fn()
+}));
 
 it('should show logout link in topbar', () => {
   render(<DashboardTopbar />);
-  const logoutButton = screen.queryByTestId(LOGOUT_TEST_ID);
-  expect(logoutButton).toBeInTheDocument();
+  fireEvent.click(screen.getByText('Sign out'));
+  expect(logout).toHaveBeenCalled();
 });

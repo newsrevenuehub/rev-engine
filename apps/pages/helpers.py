@@ -54,7 +54,12 @@ class PageFullDetailHelper:
             else self.revenue_program.default_donation_page
         )
         if not self.donation_page:
-            logger.warning('Request for non-existent page by slug "%s"', self.page_slug)
+            if self.page_slug:
+                logger.info('Request for non-existent page by slug "%s"', self.page_slug)
+            else:
+                logger.info(
+                    'Request for default donation page, but not set for revenue program "%s"', self.revenue_program.name
+                )
             raise PageDetailError(
                 message="Could not find page matching those parameters", status=status.HTTP_404_NOT_FOUND
             )

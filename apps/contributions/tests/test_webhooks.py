@@ -127,7 +127,7 @@ class PaymentIntentWebhooksTest(APITestCase):
     def test_webhook_view_invalid_contribution(self, mock_logger, *args):
         self._create_contribution(ref_id="abcd")
         self._run_webhook_view_with_request()
-        self.assertEqual("Could not find contribution matching provider_payment_id", mock_logger.info.call_args[0][0])
+        mock_logger.error.assert_called_once_with("Could not find contribution matching provider_payment_id")
 
     def test_payment_intent_canceled_webhook(self):
         ref_id = "1234"

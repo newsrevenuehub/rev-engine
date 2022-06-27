@@ -233,6 +233,9 @@ LOGGING = {
             "class": "logging.StreamHandler",
             "formatter": "basic",
         },
+        "null": {
+            "class": "logging.NullHandler",
+        },
     },
     "loggers": {
         # Redefining the logger for the django module
@@ -240,6 +243,12 @@ LOGGING = {
         "django": {
             "handlers": ["console"],
             "level": "INFO",
+            "propagate": False,
+        },
+        # don't warn about incorrect http_host
+        # see https://docs.djangoproject.com/en/3.2/topics/logging/#django-security
+        "django.security.DisallowedHost": {
+            "handlers": ["null"],
             "propagate": False,
         },
     },

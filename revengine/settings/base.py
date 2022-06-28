@@ -22,7 +22,7 @@ BASE_DIR = os.path.dirname(PROJECT_DIR)
 # See https://docs.djangoproject.com/en/3.0/howto/deployment/checklist/
 
 DEBUG = os.getenv("DJANGO_DEBUG", "False") == "True"
-ENVIRONMENT = os.getenv("ENVIRONMENT", "dev")
+ENVIRONMENT = os.getenv("ENVIRONMENT", "unknown")
 
 # Application definition
 

@@ -24,3 +24,5 @@ steps:
 #  - --destination=gcr.io/$PROJECT_ID/image
 #  - --cache=true
 #  - --cache-ttl=XXh
+options:
+  logging: CLOUD_LOGGING_ONLY

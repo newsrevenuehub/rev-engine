@@ -1,0 +1,26 @@
+steps:
+
+# This step builds the container image.
+- name: 'gcr.io/cloud-builders/docker'
+  id: Build
+  args:
+  - 'build'
+  - '-t'
+  - 'us-central1-docker.pkg.dev/$PROJECT_ID/nre-repository/nre-cloudbuild:$SHORT_SHA'
+  - '.'
+
+# This step pushes the image to Artifact Registry
+# The PROJECT_ID and SHORT_SHA variables are automatically
+# replaced by Cloud Build.
+- name: 'gcr.io/cloud-builders/docker'
+  id: Push
+  args:
+  - 'push'
+  - 'us-central1-docker.pkg.dev/$PROJECT_ID/nre-repository/nre-cloudbuild:$SHORT_SHA'
+
+# TODO: figure out how to cache
+#- name: 'gcr.io/kaniko-project/executor:latest'
+#  args:
+#  - --destination=gcr.io/$PROJECT_ID/image
+#  - --cache=true
+#  - --cache-ttl=XXh

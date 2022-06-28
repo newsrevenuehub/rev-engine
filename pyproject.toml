@@ -77,6 +77,8 @@ django-reversion = "^5.0.0"
 # TODO: [DEV-1946] remove django-simple-history as a dependency
 django-simple-history = "^3.1.1"
 django-reversion-compare = "^0.15.0"
+django-migration-linter = "^4.1.0"
+django-test-migrations = "^1.2.0"
 
 [tool.poetry.dev-dependencies]
 appnope = "*"

@@ -413,6 +413,7 @@ SECURE_REFERRER_POLICY = "strict-origin-when-cross-origin"
 # Stripe API Target Version
 STRIPE_API_VERSION = "2020-08-27"
 
+SECURE_SSL_REDIRECT = os.environ.get("SECURE_SSL_REDIRECT", "true").lower() == "true"
 
 # Google Tag Manager ID - Config Vars Heroku
 HUB_GTM_ID = os.getenv("HUB_GTM_ID")

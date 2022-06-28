@@ -52,14 +52,14 @@ INSTALLED_APPS = [
     "solo",
     "anymail",
     "django_json_widget",
-    "safedelete",
-    "simple_history",
     "health_check",
     "health_check.db",
     "health_check.cache",
     "health_check.contrib.migrations",
     "health_check.contrib.redis",
     "waffle",
+    "reversion",
+    "reversion_compare",
 ]
 
 
@@ -74,7 +74,6 @@ MIDDLEWARE = [
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "apps.common.middleware.LogFourHundredsMiddleware",
     "csp.middleware.CSPMiddleware",
-    "simple_history.middleware.HistoryRequestMiddleware",
     "waffle.middleware.WaffleMiddleware",
 ]
 
@@ -450,3 +449,7 @@ SPA_ENV_VARS = {
 # Meta data static values
 METADATA_SOURCE = os.getenv("METADATA_SOURCE", "rev-engine")
 METADATA_SCHEMA_VERSION = os.getenv("METADATA_SCHEMA_VERSION", "1.0")
+
+
+# Add reversion models to admin interface
+ADD_REVERSION_ADMIN = True

@@ -24,5 +24,7 @@ steps:
 #  - --destination=gcr.io/$PROJECT_ID/image
 #  - --cache=true
 #  - --cache-ttl=XXh
+
+timeout: 1200s
 options:
   logging: CLOUD_LOGGING_ONLY

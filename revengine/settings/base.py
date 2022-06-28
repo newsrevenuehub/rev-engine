@@ -60,6 +60,8 @@ INSTALLED_APPS = [
     "waffle",
     "reversion",
     "reversion_compare",
+    "django_migration_linter",
+    "django_test_migrations.contrib.django_checks.AutoNames",
 ]
 
 
@@ -452,3 +454,9 @@ METADATA_SCHEMA_VERSION = os.getenv("METADATA_SCHEMA_VERSION", "1.0")
 
 # Add reversion models to admin interface
 ADD_REVERSION_ADMIN = True
+
+#
+DTM_IGNORED_MIGRATIONS = {
+    ("waffle", "*"),
+    ("django_celery_beat", "*"),
+}

@@ -5,8 +5,9 @@
 max-complexity = 18
 select = B,C,E,F,W,T4,B9
 exclude=docs,migrations,node_modules,revengine/settings
+enable-extensions=G
 ignore =
-    E2,     # missing whitespace after ','
-    W503,   # line break before binary operator
+    E2,     # Missing whitespace after ','
+    W503,   # Line break before binary operator
     E501,   # Line too long (handled by black)
     E731,   # Do not assign a lambda expression

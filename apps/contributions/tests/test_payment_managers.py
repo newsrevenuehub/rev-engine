@@ -17,13 +17,7 @@ from apps.contributions.payment_managers import (
     PaymentProviderError,
     StripePaymentManager,
 )
-from apps.contributions.tests.factories import ContributionFactory, ContributorFactory
-from apps.organizations.tests.factories import (
-    OrganizationFactory,
-    PaymentProviderFactory,
-    RevenueProgramFactory,
-)
-from apps.pages.tests.factories import DonationPageFactory
+from apps.contributions.tests.factories import ContributionFactory
 
 
 faker = Faker()
@@ -147,9 +141,9 @@ class StripeOneTimePaymentManagerTest(StripePaymentManagerAbstractTestCase):
         # First, ensure that badactor is still called.
         self.assertEqual(len(responses.calls), 1)
         # Then ensure that logger.warning is called
-        logger_warning.assert_called_once_with(
-            "BadActor serializer raised a ValidationError: {'ip': [ErrorDetail(string='This information is required', code='blank')]}"
-        )
+        self.assertEqual(logger_warning.call_args[0][0], "BadActor serializer raised a ValidationError")
+        self.assertIsInstance(exc := logger_warning.call_args[1]["exc_info"], ValidationError)
+        self.assertIn("ip", exc.args[0])
 
     def test_calling_badactor_before_validate_throws_error(self):
         pm = self._instantiate_payment_manager_with_data()

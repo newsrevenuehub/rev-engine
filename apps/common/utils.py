@@ -51,8 +51,8 @@ def delete_cloudflare_cnames(ticket_id):
             if ticket_id.lower() in domain.lower():
                 logger.info("Deleting DNS entry for: %s", domain)
                 cloudflare_conn.zones.dns_records.delete(zone_id, record_id)
-        except CloudFlare.exceptions.CloudFlareAPIError as error:
-            logger.warning(error)
+        except CloudFlare.exceptions.CloudFlareAPIError:
+            logger.warning('CloudFlare API error when trying to delete the domain "%s"', domain, exc_info=True)
 
 
 def upsert_cloudflare_cnames(slugs: list = None):
@@ -80,7 +80,7 @@ def upsert_cloudflare_cnames(slugs: list = None):
                 record_id = cloudflare_record_ids[fqdn]
                 cloudflare_conn.zones.dns_records.patch(zone_id, record_id, data=dns_record)
         except CloudFlare.exceptions.CloudFlareAPIError as error:
-            logger.warning(error)
+            logger.warning(exc_info=error)
 
 
 def extract_ticket_id_from_branch_name(branch_name):

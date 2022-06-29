@@ -3,7 +3,7 @@
   "name": "Test Page 1",
   "heading": "Test Heading 1",
   "published_date": "2020-09-17T00:00:00",
-  "organization_is_nonprofit": true,
+  "revenue_program_is_nonprofit": true,
   "elements": [
     {
       "type": "DRichText",
@@ -176,6 +176,5 @@
   },
   "stripe_account_id": "testing_stripe_account_id",
   "organization_country": "US",
-  "revenue_program_pk": 1,
-  "allow_offer_nyt_comp": false
+  "allow_offer_nyt_comp": null
 }

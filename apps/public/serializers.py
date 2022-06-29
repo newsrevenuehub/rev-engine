@@ -32,6 +32,7 @@ class BenefitLevelSerializer(serializers.ModelSerializer):
             "lower_limit",
             "upper_limit",
             "benefits",
+            "level",
         ]
 
 
@@ -41,7 +42,7 @@ class RevenueProgramDetailSerializer(serializers.ModelSerializer):
     """
 
     organization = serializers.StringRelatedField()
-    benefit_levels = BenefitLevelSerializer(many=True)
+    benefit_levels = BenefitLevelSerializer(source="benefitlevel_set", many=True)
 
     class Meta:
         model = RevenueProgram

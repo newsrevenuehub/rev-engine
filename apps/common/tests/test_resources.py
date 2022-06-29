@@ -1,18 +1,20 @@
+import copy
 import logging
 
 from django.conf import settings
 from django.contrib.auth import get_user_model
 
 from rest_framework.test import APITestCase
+from waffle import get_waffle_flag_model
 
+from apps.common.constants import CONTRIBUTIONS_API_ENDPOINT_ACCESS_FLAG_NAME
 from apps.contributions.models import Contributor
 from apps.contributions.tests.factories import ContributionFactory, ContributorFactory
-from apps.organizations.models import Feature, Organization, Plan, RevenueProgram
+from apps.organizations.models import Feature, Organization, PaymentProvider, Plan, RevenueProgram
 from apps.organizations.tests.factories import (
-    BenefitFactory,
-    BenefitLevelFactory,
     FeatureFactory,
     OrganizationFactory,
+    PaymentProviderFactory,
     RevenueProgramFactory,
 )
 from apps.pages.models import DonationPage
@@ -24,6 +26,16 @@ from apps.users.tests.utils import create_test_user
 user_model = get_user_model()
 
 logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
+
+
+DEFAULT_FLAGS_CONFIG_MAPPING = {
+    CONTRIBUTIONS_API_ENDPOINT_ACCESS_FLAG_NAME: {
+        "name": CONTRIBUTIONS_API_ENDPOINT_ACCESS_FLAG_NAME,
+        "superusers": True,
+        "everyone": True,  # this is so adding flag won't block users by default in existing tests.
+        # Tests focused on feature flagging can alter the flag's properties as required
+    }
+}
 
 
 class AbstractTestCase(APITestCase):
@@ -56,7 +68,6 @@ class AbstractTestCase(APITestCase):
                 ):
                     ContributionFactory(
                         donation_page=page,
-                        organization=page.revenue_program.organization,
                         contributor=contributor,
                     )
         cls.contributor_user = Contributor.objects.first()
@@ -85,6 +96,15 @@ class AbstractTestCase(APITestCase):
             StyleFactory(revenue_program=rp)
 
     @classmethod
+    def _set_up_default_feature_flags(cls):
+        """ """
+        Flag = get_waffle_flag_model()
+        default_mapping = copy.deepcopy(DEFAULT_FLAGS_CONFIG_MAPPING)
+        for config in default_mapping.values():
+            name = config.pop("name")
+            Flag.objects.get_or_create(name=name, defaults=config)
+
+    @classmethod
     def set_up_domain_model(cls):
         """Set up most commonly needed data models in a predictable way for use across tests
 
@@ -93,9 +113,11 @@ class AbstractTestCase(APITestCase):
         """
         cls.org1 = OrganizationFactory()
         cls.org2 = OrganizationFactory()
-        cls.org1_rp1 = RevenueProgramFactory(organization=cls.org1)
-        cls.org1_rp2 = RevenueProgramFactory(organization=cls.org1)
-        cls.org2_rp = RevenueProgramFactory(organization=cls.org2)
+        cls.payment_provider1 = PaymentProviderFactory()
+        cls.payment_provider2 = PaymentProviderFactory()
+        cls.org1_rp1 = RevenueProgramFactory(organization=cls.org1, payment_provider=cls.payment_provider1)
+        cls.org1_rp2 = RevenueProgramFactory(organization=cls.org1, payment_provider=cls.payment_provider1)
+        cls.org2_rp = RevenueProgramFactory(organization=cls.org2, payment_provider=cls.payment_provider2)
         cls.orgs = Organization.objects.all()
         cls.rev_programs = RevenueProgram.objects.all()
         cls.org_user = create_test_user(role_assignment_data={"role_type": Roles.ORG_ADMIN, "organization": cls.org1})
@@ -116,6 +138,7 @@ class AbstractTestCase(APITestCase):
         cls._set_up_contributions()
         cls._set_up_feature_sets()
         cls._set_up_styles()
+        cls._set_up_default_feature_flags()
 
     class Meta:
         abstract = True

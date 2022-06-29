@@ -38,7 +38,7 @@ class PageFullDetailHelper:
         try:
             self.revenue_program = RevenueProgram.objects.get(slug=self.revenue_program_slug)
         except RevenueProgram.DoesNotExist:
-            logger.warning('Request for page with non-existent RevenueProgram by slug "%s"', self.revenue_program_slug)
+            logger.info('Request for page with non-existent RevenueProgram by slug "%s"', self.revenue_program_slug)
             raise PageDetailError(
                 message="Could not find revenue program matching those parameters", status=status.HTTP_404_NOT_FOUND
             )

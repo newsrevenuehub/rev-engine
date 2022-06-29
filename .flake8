@@ -13,6 +13,3 @@ ignore =
     E501,
     F841,   # Line too long
     E741,   # Ambiguous variable
-    G002,   # Logging statements should not use % formatting for their first argument
-    G003,   # Logging statements should not use + concatenation for their first argument
-    G100,   # Logging statements should not use extra arguments unless whitelisted

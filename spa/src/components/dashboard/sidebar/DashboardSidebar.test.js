@@ -15,7 +15,7 @@ jest.mock('utilities/flagIsActiveForUser', () => ({
 }));
 
 it('should have expected appearance and links', () => {
-  render(<DashboardSidebar shouldAllowDashboard={true} />);
+  render(<DashboardSidebar />);
   const sidebar = screen.getByRole('list', { name: /Dashboard/ });
 
   const contentNavSection = within(sidebar).getByRole('navigation', { name: /Content/ });

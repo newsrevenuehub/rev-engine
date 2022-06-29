@@ -183,7 +183,8 @@ class PaymentIntentWebhooksTest(APITestCase):
         fake_event_object = "criminal_activiy"
         processor = StripeWebhookProcessor(MockPaymentIntentEvent(object_type=fake_event_object, intent_id="1234"))
         processor.process()
-        mock_logger.warning.assert_called_with(f'Recieved un-handled Stripe object of type "{fake_event_object}"')
+        self.assertIn("Recieved un-handled Stripe object of type", mock_logger.warning.call_args[0][0])
+        self.assertEqual(mock_logger.warning.call_args[0][1], fake_event_object)
 
 
 class CustomerSubscriptionWebhooksTest(APITestCase):

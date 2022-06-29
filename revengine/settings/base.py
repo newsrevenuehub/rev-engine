@@ -102,16 +102,15 @@ INSTALLED_APPS = [
     "rest_framework",
     "sorl.thumbnail",
     "sorl_thumbnail_serializer",
-    "solo",  # Single row models, e.g. HubSlackInteration
-    "anymail",  # Email service provider integration
-    "django_json_widget",
-    "health_check",  # Checks for various conditions and provides reports when anomalous behavior is detected
+    "solo",  # Single row models, e.g. HubSlackInteration.
+    "anymail",  # Email service provider integration.
+    "health_check",  # Checks for various conditions and provides reports when anomalous behavior is detected.
     "health_check.db",
     "health_check.cache",
     "health_check.contrib.migrations",
     "health_check.contrib.redis",
-    "waffle",
-    "reversion",
+    "waffle",  # Djanog feature flag support.
+    "reversion",  # Provides undelete and rollback for models' data.
     "reversion_compare",
 ]
 

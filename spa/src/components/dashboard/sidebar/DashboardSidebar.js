@@ -12,7 +12,7 @@ import {
 import flagIsActiveForUser from 'utilities/flagIsActiveForUser';
 import { useFeatureFlagsProviderContext } from 'components/Main';
 
-function DashboardSidebar({ shouldAllowDashboard }) {
+function DashboardSidebar() {
   const { featureFlags } = useFeatureFlagsProviderContext();
 
   const hasContributionsSectionAccess = flagIsActiveForUser(CONTRIBUTIONS_SECTION_ACCESS_FLAG_NAME, featureFlags);
@@ -25,14 +25,8 @@ function DashboardSidebar({ shouldAllowDashboard }) {
           <S.NavItemIcon icon={ICONS.DASHBOARD} />
           <S.SideBarText id="sidebar-label-id">Dashboard</S.SideBarText>
         </S.NavItemLabel>
-
-        <ContentSectionNav
-          hasContentSectionAccess={hasContentSectionAccess}
-          shouldAllowDashboard={shouldAllowDashboard}
-        />
-        <ContributionSectionNav
-          hasContributionsSectionAccess={hasContributionsSectionAccess}
-          shouldAllowDashboard={shouldAllowDashboard}
+        {hasContentSectionAccess ? <ContentSectionNav /> : null}
+        {hasContributionsSectionAccess ? <ContributionSectionNav /> : null}
         />
       </S.NavList>
     </S.DashboardSidebar>

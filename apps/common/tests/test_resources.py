@@ -10,7 +10,7 @@ from waffle import get_waffle_flag_model
 from apps.common.constants import CONTRIBUTIONS_API_ENDPOINT_ACCESS_FLAG_NAME
 from apps.contributions.models import Contributor
 from apps.contributions.tests.factories import ContributionFactory, ContributorFactory
-from apps.organizations.models import Feature, Organization, PaymentProvider, Plan, RevenueProgram
+from apps.organizations.models import Feature, Organization, Plan, RevenueProgram
 from apps.organizations.tests.factories import (
     FeatureFactory,
     OrganizationFactory,

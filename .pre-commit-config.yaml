@@ -38,7 +38,7 @@ repos:
     rev: 4.0.1
     hooks:
       - id: flake8
-        exclude: settings|migrations|tests
+        exclude: docs|migrations|node_modules|revengine/settings
   # # Pylint code checks.
   # # "local" because pylint needs all packages to dynamically import.
   # - repo: local

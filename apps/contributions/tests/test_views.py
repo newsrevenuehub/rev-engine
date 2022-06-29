@@ -1,4 +1,3 @@
-from cgi import test
 from unittest.mock import patch
 
 from django.conf import settings

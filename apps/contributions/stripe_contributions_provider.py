@@ -135,41 +135,57 @@ class StripeCharge:
         return self.charge.id
 
 
-class StripeContributionsProvider:
-    def __init__(self, email_id):
-        self.customers = self.fetch_all_customers(email_id)
-
-    @staticmethod
-    def fetch_all_customers(email_id):
-        results = stripe.Customer.search(query=f"email:'{email_id}'", limit=MAX_STRIPE_RESPONSE_LIMIT)
-        return [customer.id for customer in results.auto_paging_iter()]
-
-    def get_charges(self):
-        for i in range(0, len(self.customers), MAX_STRIPE_CUSTOMERS_LIMIT):
-            customers_query = " OR ".join(
-                [f"customer:'{customer_id}'" for customer_id in self.customers[i : i + MAX_STRIPE_CUSTOMERS_LIMIT]]
-            )
-
-            charge_response = stripe.Charge.search(
-                query=customers_query,
-                expand=["data.invoice", "data.payment_method_details"],
-                limit=MAX_STRIPE_RESPONSE_LIMIT,
-            )
-            for charge in charge_response.auto_paging_iter():
-                yield charge
+def chunk_list(data, size):
+    for i in range(0, len(data), size):
+        yield data[i : i + size]
 
 
-def pull_serialized_stripe_contributions_to_cache(email_id):
-    stripe_provider = StripeContributionsProvider(email_id)
+def prepare_customers_query(customers):
+    for customers_chunk in chunk_list(customers, MAX_STRIPE_CUSTOMERS_LIMIT):
+        yield " OR ".join([f"customer:'{customer_id}'" for customer_id in customers_chunk])
+
+
+def fetch_stripe_customers(email_id):
+    results = stripe.Customer.search(query=f"email:'{email_id}'", limit=MAX_STRIPE_RESPONSE_LIMIT)
+
+    return [customer.id for customer in results.auto_paging_iter()]
+
+
+def fetch_stripe_charges(query=None, page=None):
+    kwargs = {
+        "query": query,
+        "expand": ["data.invoice", "data.payment_method_details"],
+        "limit": MAX_STRIPE_RESPONSE_LIMIT,
+    }
+
+    if page:
+        kwargs["page"] = page
+
+    return stripe.Charge.search(**kwargs)
+
+
+def serialize_stripe_charges(charges):
     data = {}
-    for charge in stripe_provider.get_charges():
+    for charge in charges:
         try:
             serializer = PaymentProviderContributionSerializer(instance=StripeCharge(charge))
             data[charge.id] = serializer.data
         except ContributionIgnorableError as ex:
             logger.info(ex)
+    return data
 
-    caches[CONTRIBUTION_CACHE_DB].set(email_id, json.dumps(data), timeout=CONTRIBUTION_CACHE_TTL.seconds)
+
+def save_stripe_charges_to_cache(email_id, charges):
+    serialized_charges = serialize_stripe_charges(charges)
+    caches[CONTRIBUTION_CACHE_DB].set(email_id, json.dumps(serialized_charges), timeout=CONTRIBUTION_CACHE_TTL.seconds)
+
+
+def append_stripe_charges_to_cache(email_id, charges):
+    serialized_charges = serialize_stripe_charges(charges)
+    cached_data = caches[CONTRIBUTION_CACHE_DB].get(email_id)
+    if cached_data:
+        serialized_charges.update(json.loads(cached_data))
+    caches[CONTRIBUTION_CACHE_DB].set(email_id, json.dumps(serialized_charges), timeout=CONTRIBUTION_CACHE_TTL.seconds)
 
 
 def load_stripe_data_from_cache(email_id):

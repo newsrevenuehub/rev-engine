@@ -26,6 +26,7 @@ from apps.contributions.payment_managers import (
     StripePaymentManager,
 )
 from apps.contributions.stripe_contributions_provider import load_stripe_data_from_cache
+from apps.contributions.tasks import task_pull_serialized_stripe_contributions_to_cache
 from apps.contributions.utils import get_sha256_hash
 from apps.contributions.webhooks import StripeWebhookProcessor
 from apps.emails.tasks import send_contribution_confirmation_email
@@ -279,10 +280,20 @@ class ContributionsViewSet(viewsets.ReadOnlyModelViewSet, FilterQuerySetByUserMi
     filterset_class = ContributionFilter
     filter_backends = [DjangoFilterBackend, filters.OrderingFilter]
 
+    def get_object(self):
+        if isinstance(self.request.user, Contributor):
+            data = load_stripe_data_from_cache(self.request.user.email)
+            return data[self.kwargs.get("pk")]
+
+        return super().get_object()
+
     def get_queryset(self):
         # load contributions from cache if the user is a contributor
         if isinstance(self.request.user, Contributor):
-            return load_stripe_data_from_cache(self.request.user.email)
+            contributions = load_stripe_data_from_cache(self.request.user.email)
+            if not contributions:
+                task_pull_serialized_stripe_contributions_to_cache.delay(self.request.user.email)
+            return contributions
 
         # this is supplied by FilterQuerySetByUserMixin
         return self.filter_queryset_for_user(self.request.user, self.model.objects.all())

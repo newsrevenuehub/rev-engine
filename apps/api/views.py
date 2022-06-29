@@ -20,9 +20,7 @@ from apps.api.serializers import (
 from apps.api.throttling import ContributorRateThrottle
 from apps.api.tokens import ContributorRefreshToken
 from apps.contributions.serializers import ContributorSerializer
-from apps.contributions.stripe_contributions_provider import (
-    pull_serialized_stripe_contributions_to_cache,
-)
+from apps.contributions.tasks import task_pull_serialized_stripe_contributions_to_cache
 from apps.emails.tasks import send_email
 
 
@@ -160,8 +158,7 @@ class RequestContributorTokenEmailView(APIView):
 
             # Pull contributions from Stripe and store the serialized data in cache whose TTL is configured with the
             # magic_link life time
-            pull_serialized_stripe_contributions_to_cache(email)
-
+            task_pull_serialized_stripe_contributions_to_cache.delay(email)
             magic_link = f"{domain}/{settings.CONTRIBUTOR_VERIFY_URL}?token={token}&email={email}"
             logger.info("Sending magic link email to [%s] | magic link: [%s]", email, magic_link)
             send_email(

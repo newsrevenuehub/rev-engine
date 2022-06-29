@@ -1,6 +1,7 @@
 import React from 'react';
 import * as S from './DashboardSidebar.styled';
-import { DONATIONS_SLUG, CONTENT_SLUG, CUSTOMIZE_SLUG } from 'routes';
+import ContentSectionNav from './navs/ContentSectionNav';
+import ContributionSectionNav from './navs/ContributionSectionNav';
 import { ICONS } from 'assets/icons/SvgIcon';
 
 import {
@@ -17,10 +18,6 @@ function DashboardSidebar({ shouldAllowDashboard }) {
   const hasContributionsSectionAccess = flagIsActiveForUser(CONTRIBUTIONS_SECTION_ACCESS_FLAG_NAME, featureFlags);
   const hasContentSectionAccess = flagIsActiveForUser(CONTENT_SECTION_ACCESS_FLAG_NAME, featureFlags);
 
-  const handleClick = (e) => {
-    if (!shouldAllowDashboard) e.preventDefault();
-  };
-
   return (
     <S.DashboardSidebar>
       <S.NavList role="list" data-testid="nav-list" aria-labelledby="sidebar-label-id">
@@ -29,52 +26,14 @@ function DashboardSidebar({ shouldAllowDashboard }) {
           <S.SideBarText id="sidebar-label-id">Dashboard</S.SideBarText>
         </S.NavItemLabel>
 
-        {hasContentSectionAccess ? (
-          <S.NavSection aria-labelledby="content-section-id">
-            <S.Divider />
-            <S.SectionLabel id="content-section-id">Content</S.SectionLabel>
-            <S.NavItem
-              aria-labelledby="pages-nav-item-id"
-              role="listitem"
-              data-testid="nav-content-item"
-              to={CONTENT_SLUG}
-              onClick={handleClick}
-              disabled={!shouldAllowDashboard}
-            >
-              <S.NavItemIcon icon={ICONS.PAGES} />
-              <S.SideBarText id="pages-nav-item-id">Pages</S.SideBarText>
-            </S.NavItem>
-            <S.NavItem
-              aria-labelledby="customize-nav-item-id"
-              role="listitem"
-              data-testid="nav-content-item"
-              to={CUSTOMIZE_SLUG}
-              onClick={handleClick}
-              disabled={!shouldAllowDashboard}
-            >
-              <S.NavItemIcon icon={ICONS.CUSTOMIZE} />
-              <S.SideBarText id="customize-nav-item-id">Customize</S.SideBarText>
-            </S.NavItem>
-          </S.NavSection>
-        ) : null}
-
-        {hasContributionsSectionAccess ? (
-          <S.NavSection aria-labelledby="activity-section-id">
-            <S.Divider />
-            <S.SectionLabel id="activity-section-id">Activity</S.SectionLabel>
-            <S.NavItem
-              aria-labelledby="contributions-nav-item-id"
-              role="listitem"
-              data-testid="nav-contributions-item"
-              to={DONATIONS_SLUG}
-              onClick={handleClick}
-              disabled={!shouldAllowDashboard}
-            >
-              <S.NavItemIcon icon={ICONS.CONTRIBUTIONS} />
-              <S.SideBarText id="contributions-nav-item-id">Contributions</S.SideBarText>
-            </S.NavItem>
-          </S.NavSection>
-        ) : null}
+        <ContentSectionNav
+          hasContentSectionAccess={hasContentSectionAccess}
+          shouldAllowDashboard={shouldAllowDashboard}
+        />
+        <ContributionSectionNav
+          hasContributionsSectionAccess={hasContributionsSectionAccess}
+          shouldAllowDashboard={shouldAllowDashboard}
+        />
       </S.NavList>
     </S.DashboardSidebar>
   );

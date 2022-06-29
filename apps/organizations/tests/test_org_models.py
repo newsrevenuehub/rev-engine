@@ -117,7 +117,7 @@ class RevenueProgramTest(TestCase):
         apple_pay_domain_create.side_effect = StripeError
         factories.RevenueProgramFactory()
         apple_pay_domain_create.assert_called_once()
-        mock_logger.exception.assert_called_once()
+        mock_logger.warning.assert_called_once()
 
     def test_slug_validated_against_denylist(self):
         denied_word = DenyListWordFactory()

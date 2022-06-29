@@ -1,7 +1,5 @@
 import styled from 'styled-components';
-import { NavLink } from 'react-router-dom';
 import SvgIcon from 'assets/icons/SvgIcon';
-import { motion } from 'framer-motion';
 
 export const DashboardTopbar = styled.div`
   width: 100%;

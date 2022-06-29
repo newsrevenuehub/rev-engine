@@ -5,11 +5,7 @@ import logo from 'assets/images/logo-nre.png';
 import mobileLogo from 'assets/images/logo-mobile.png';
 
 import logout from 'components/authentication/logout';
-function DashboardTopbar({ shouldAllowDashboard }) {
-  const handleClick = (e) => {
-    if (!shouldAllowDashboard) e.preventDefault();
-  };
-
+function DashboardTopbar() {
   return (
     <S.DashboardTopbar>
       <S.TopLogo>

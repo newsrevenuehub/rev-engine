@@ -2,7 +2,6 @@ import styled from 'styled-components';
 import { NavLink } from 'react-router-dom';
 import SvgIcon from 'assets/icons/SvgIcon';
 import { motion } from 'framer-motion';
-import { ICONS } from 'assets/icons/SvgIcon';
 
 export const DashboardSidebar = styled.aside`
   width: 260px;

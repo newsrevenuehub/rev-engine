@@ -7,6 +7,7 @@ from django.http import HttpResponseRedirect
 from django.urls import reverse
 
 from reversion.admin import VersionAdmin
+from reversion_compare.admin import CompareVersionAdmin
 from solo.admin import SingletonModelAdmin
 from sorl.thumbnail.admin import AdminImageMixin
 
@@ -17,7 +18,7 @@ from apps.pages import models
 logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
 
 
-class DonationPageAdminAbstract(RevEngineBaseAdmin, VersionAdmin, AdminImageMixin):
+class DonationPageAdminAbstract(RevEngineBaseAdmin, AdminImageMixin):
     fieldsets = (
         (None, {"fields": ("name",)}),
         ("Redirects", {"fields": ("thank_you_redirect", "post_thank_you_redirect")}),
@@ -29,7 +30,7 @@ class DonationPageAdminAbstract(RevEngineBaseAdmin, VersionAdmin, AdminImageMixi
 
 
 @admin.register(models.Template)
-class TemplateAdmin(DonationPageAdminAbstract):
+class TemplateAdmin(VersionAdmin, DonationPageAdminAbstract):
     list_display = (
         "name",
         "heading",
@@ -75,7 +76,7 @@ class TemplateAdmin(DonationPageAdminAbstract):
 
 
 @admin.register(models.DonationPage)
-class DonationPageAdmin(DonationPageAdminAbstract):
+class DonationPageAdmin(CompareVersionAdmin, DonationPageAdminAbstract):
     fieldsets = (
         (
             (None, {"fields": ("revenue_program",)}),

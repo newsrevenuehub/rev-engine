@@ -11,8 +11,7 @@ from rest_framework.test import APITestCase
 from apps.api.tests import RevEngineApiAbstractTestCase
 from apps.organizations.models import RevenueProgram
 from apps.pages.models import DonationPage, Font, Style, Template
-from apps.pages.tests.factories import FontFactory, TemplateFactory
-from apps.pages.validators import UNOWNED_TEMPLATE_FROM_PAGE_PAGE_PK_MESSAGE
+from apps.pages.tests.factories import FontFactory, StyleFactory, TemplateFactory
 from apps.users.tests.utils import create_test_user
 
 
@@ -79,7 +78,7 @@ class PageViewSetTest(RevEngineApiAbstractTestCase):
             "revenue_program": self.org2_rp.pk,
         }
         url = reverse("donationpage-list")
-        self.assert_org_admin_cannot_post(url, data, expected_status_code=status.HTTP_403_FORBIDDEN)
+        self.assert_org_admin_cannot_post(url, data, expected_status_code=status.HTTP_400_BAD_REQUEST)
         self.assertEqual(my_org_pages_query.count(), before_my_org_pages_count)
         self.assertEqual(other_org_pages_query.count(), before_other_org_count)
 
@@ -116,7 +115,7 @@ class PageViewSetTest(RevEngineApiAbstractTestCase):
         data["revenue_program"] = self.org2_rp.pk
 
         self.assert_rp_user_cannot_post(
-            reverse("donationpage-list"), data, expected_status_code=status.HTTP_403_FORBIDDEN
+            reverse("donationpage-list"), data, expected_status_code=status.HTTP_400_BAD_REQUEST
         )
         self.assertEqual(my_pages_query.count(), before_my_pages_count)
         self.assertEqual(others_pages_query.count(), before_others_count)
@@ -126,7 +125,7 @@ class PageViewSetTest(RevEngineApiAbstractTestCase):
         data = {**self.default_page_creation_data}
         data.pop("revenue_program")
         response = self.client.post(reverse("donationpage-list"), data)
-        self.assertEqual(response.status_code, 403)
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
     def test_page_create_returns_revenue_program_slug(self):
         """
@@ -436,12 +435,34 @@ class PageViewSetTest(RevEngineApiAbstractTestCase):
         page.published_date = timezone.now() - datetime.timedelta(days=1)
         page.save()
         self.assertTrue(page.is_live)
-        page.organization.stripe_verified = False
-        page.organization.save()
-        self.assertFalse(page.organization.is_verified_with_default_provider())
+        page.revenue_program.payment_provider.stripe_verified = False
+        page.revenue_program.payment_provider.save()
+        self.assertFalse(page.revenue_program.payment_provider.is_verified_with_default_provider())
         url = f'{reverse("donationpage-live-detail")}?revenue_program={page.revenue_program.slug}&page={page.slug}'
         response = self.assert_unuauthed_cannot_get(url, status=status.HTTP_404_NOT_FOUND)
-        self.assertEqual(response.json(), {"detail": "Organization does not have a fully verified payment provider"})
+        self.assertEqual(response.json(), {"detail": "RevenueProgram does not have a fully verified payment provider"})
+
+    def test_live_detail_page_when_styles(self):
+        page = DonationPage.objects.first()
+        custom_style = {
+            "foo": "bar",
+        }
+        style = StyleFactory(org=self.org1, revenue_program=self.org1_rp1, styles=custom_style)
+        page.styles = style
+        page.published_date = timezone.now() - datetime.timedelta(days=1)
+        page.save()
+        self.assertTrue(page.is_live)
+        url = f'{reverse("donationpage-live-detail")}?revenue_program={page.revenue_program.slug}&page={page.slug}'
+        response = self.assert_unauthed_can_get(url)
+        self.assertEqual(response.json()["styles"]["styles"], custom_style)
+
+    def test_draft_detail_page_happy_path(self):
+        page = DonationPage.objects.first()
+        page.published_date = timezone.now() - datetime.timedelta(days=1)
+        page.save()
+        self.assertTrue(page.is_live)
+        url = f'{reverse("donationpage-draft-detail")}?revenue_program={page.revenue_program.slug}&page={page.slug}'
+        self.assert_rp_user_can_get(url)
 
 
 class TemplateViewSetTest(RevEngineApiAbstractTestCase):
@@ -452,15 +473,11 @@ class TemplateViewSetTest(RevEngineApiAbstractTestCase):
         super().setUp()
         self.list_url = f'{reverse("template-list")}?{settings.RP_SLUG_PARAM}={self.org1_rp1.slug}&{settings.ORG_SLUG_PARAM}={self.org1.slug}'
         self.my_orgs_page = DonationPage.objects.filter(revenue_program__organization=self.org1).first()
-        self.template = Template.objects.filter(revenue_program=self.org1_rp1).first()
-        self.other_orgs_template = Template.objects.exclude(revenue_program__organization=self.org1).first()
-        self.other_rps_template = Template.objects.exclude(revenue_program=self.org1_rp1).first()
+        self.template = TemplateFactory(revenue_program=self.org1_rp1)
+        self.other_orgs_template = TemplateFactory(revenue_program=self.org2_rp)
+        self.other_rps_template = TemplateFactory(revenue_program=self.org1_rp2)
         self.other_orgs_page = DonationPage.objects.exclude(revenue_program__organization=self.org1).first()
-        self.other_rps_page = (
-            DonationPage.objects.filter(revenue_program__organization=self.org1)
-            .exclude(revenue_program__in=self.rp_user.roleassignment.revenue_programs.all())
-            .first()
-        )
+        self.other_rps_page = self.org1_rp2.donationpage_set.first()
         for item in (
             self.my_orgs_page,
             self.template,
@@ -478,15 +495,15 @@ class TemplateViewSetTest(RevEngineApiAbstractTestCase):
 
     @property
     def create_template_data_valid(self):
-        return {**self._base_new_template_data, "page_pk": self.my_orgs_page.pk}
+        return {**self._base_new_template_data, "page": self.my_orgs_page.pk}
 
     @property
     def create_template_data_invalid_for_other_org(self):
-        return {**self._base_new_template_data, "page_pk": self.other_orgs_page.pk}
+        return {**self._base_new_template_data, "page": self.other_orgs_page.pk}
 
     @property
     def create_template_data_invalid_for_another_rp(self):
-        return {**self._base_new_template_data, "page_pk": self.other_rps_page.pk}
+        return {**self._base_new_template_data, "page": self.other_rps_page.pk}
 
     def assert_created_page_response_data_looks_right(self, request_data, created_instance):
         self.assertEqual(request_data["name"], "New Template")
@@ -525,7 +542,7 @@ class TemplateViewSetTest(RevEngineApiAbstractTestCase):
             self.create_template_data_invalid_for_other_org,
             expected_status_code=status.HTTP_400_BAD_REQUEST,
         )
-        self.assertEqual(response.json()["non_field_errors"][0], UNOWNED_TEMPLATE_FROM_PAGE_PAGE_PK_MESSAGE)
+        self.assertEqual(response.json()["page"][0], "Not found")
         self.assertEqual(Template.objects.count(), old_count)
 
     def test_rp_user_can_create_a_template_for_their_rps_page(self):
@@ -552,7 +569,7 @@ class TemplateViewSetTest(RevEngineApiAbstractTestCase):
             self.create_template_data_invalid_for_other_org,
             expected_status_code=status.HTTP_400_BAD_REQUEST,
         )
-        self.assertEqual(response.json()["non_field_errors"][0], UNOWNED_TEMPLATE_FROM_PAGE_PAGE_PK_MESSAGE)
+        self.assertEqual(response.json()["page"][0], "Not found")
         self.assertEqual(Template.objects.count(), old_count)
 
     ###############
@@ -804,7 +821,7 @@ class StylesViewsetTest(RevEngineApiAbstractTestCase):
         self.assert_org_admin_cannot_post(
             reverse("style-list"),
             self.create_style_payload_different_org,
-            expected_status_code=status.HTTP_403_FORBIDDEN,
+            expected_status_code=status.HTTP_400_BAD_REQUEST,
         )
         self.assertEqual(Style.objects.count(), before_count)
 
@@ -821,7 +838,7 @@ class StylesViewsetTest(RevEngineApiAbstractTestCase):
         self.assert_rp_user_cannot_post(
             reverse("style-list"),
             self.create_style_payload_different_rp,
-            expected_status_code=status.HTTP_403_FORBIDDEN,
+            expected_status_code=status.HTTP_400_BAD_REQUEST,
         )
         self.assertEqual(Style.objects.count(), before_count)
 

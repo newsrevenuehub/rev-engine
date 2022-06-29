@@ -115,8 +115,9 @@ function StylesEditor({ styles, setStyles, handleKeepChanges, handleDiscardChang
 
   const handleCreateStyles = () => {
     setLoading(true);
+    const postData = { ...styles, revenue_program: styles.revenue_program.id };
     requestCreateStyles(
-      { method: 'POST', url: LIST_STYLES, data: styles },
+      { method: 'POST', url: LIST_STYLES, data: { ...styles, revenue_program: styles.revenue_program.id } },
       {
         onSuccess: handleRequestSuccess,
         onFailure: handleRequestError
@@ -126,8 +127,9 @@ function StylesEditor({ styles, setStyles, handleKeepChanges, handleDiscardChang
 
   const handleUpdateStyles = () => {
     setLoading(true);
+    const patchData = { ...styles, revenue_program: styles.revenue_program.id };
     requestUpdateStyles(
-      { method: 'PATCH', url: styleDetailUrl, data: styles },
+      { method: 'PATCH', url: styleDetailUrl, data: patchData },
       {
         onSuccess: handleRequestSuccess,
         onFailure: handleRequestError
@@ -184,8 +186,13 @@ function StylesEditor({ styles, setStyles, handleKeepChanges, handleDiscardChang
           <Select
             label="Select a revenue program"
             items={availableRevenuePrograms}
-            selectedItem={styles.revenue_program}
-            onSelectedItemChange={({ selectedItem }) => setStyles({ ...styles, revenue_program: selectedItem.id })}
+            // if no selected item, need to default to object with empty string for name
+            // otherwise initial value will be undefined, and when updated,
+            // will cause a warning re: changing from uncontrolled to controlled.
+            selectedItem={styles.revenue_program || { id: null, name: '' }}
+            onSelectedItemChange={({ selectedItem }) => {
+              setStyles({ ...styles, revenue_program: selectedItem });
+            }}
             testId="heading-font-select"
             name="revenue_program"
             placeholder="Select a revenue program"

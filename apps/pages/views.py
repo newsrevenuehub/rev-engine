@@ -2,24 +2,27 @@ import logging
 
 from django.conf import settings
 
+import django_filters
 from rest_framework import filters, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
+from reversion.views import RevisionMixin
 
 from apps.api.permissions import HasRoleAssignment
 from apps.element_media.models import MediaImage
 from apps.pages import serializers
+from apps.pages.filters import StyleFilter
 from apps.pages.helpers import PageDetailError, PageFullDetailHelper
 from apps.pages.models import DonationPage, Font, Style, Template
 from apps.public.permissions import IsActiveSuperUser
-from apps.users.views import FilterQuerySetByUserMixin, PerUserCreateDeletePermissionsMixin
+from apps.users.views import FilterQuerySetByUserMixin, PerUserDeletePermissionsMixin
 
 
 logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
 
 
-class PageViewSet(viewsets.ModelViewSet, FilterQuerySetByUserMixin, PerUserCreateDeletePermissionsMixin):
+class PageViewSet(RevisionMixin, viewsets.ModelViewSet, FilterQuerySetByUserMixin, PerUserDeletePermissionsMixin):
     """Donation pages exposed through API
 
     Only superusers and users with role assignments are meant to have access. Results of lists are filtered
@@ -73,6 +76,32 @@ class PageViewSet(viewsets.ModelViewSet, FilterQuerySetByUserMixin, PerUserCreat
             return Response({"detail": error[0]}, status=error[1])
         return Response(page_data, status=status.HTTP_200_OK)
 
+    @action(detail=False, methods=["get"], url_path="draft-detail")
+    def draft_detail(self, request):
+        """Get a page by revenue program slug + page slug.
+
+        NB: This endpoint use to serve a different purpose which informed the method name and url path.
+        This endpoint gets used by the SPA in contexts where the RP and page slugs are available and known,
+        but not the page ID.
+
+        Access control is ensured by implementation of `get_queryset` above. In short, you can't retrieve
+        a page by this method that you don't own (it's owned by diff org or rp)
+        or have access to (via being superuser or hub admin).
+        """
+        error = None
+        try:
+            page_detail_helper = PageFullDetailHelper(request)
+            page_detail_helper.set_revenue_program()
+            page_detail_helper.set_donation_page()
+            page_detail_helper.validate_page_request()
+            page_data = page_detail_helper.get_donation_page_data()
+        except PageDetailError as page_detail_error:
+            error = (page_detail_error.message, page_detail_error.status)
+
+        if error:
+            return Response({"detail": error[0]}, status=error[1])
+        return Response(page_data, status=status.HTTP_200_OK)
+
     def partial_update(self, request, *args, **kwargs):
         response = super().partial_update(request, *args, **kwargs)
         if request.FILES and request.data.get("sidebar_elements", None):
@@ -90,13 +119,13 @@ class PageViewSet(viewsets.ModelViewSet, FilterQuerySetByUserMixin, PerUserCreat
         try:
             donation_page = self.model.objects.get(pk=pk)
         except DonationPage.DoesNotExist:
-            logger.error(f'Request for non-existent page with ID "{pk}" ')
+            logger.error('Request for non-existent page with ID "%s"', pk)
             return Response({"detail": "Could not find page with that ID"}, status=status.HTTP_404_NOT_FOUND)
         donation_page.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 
-class TemplateViewSet(viewsets.ModelViewSet, FilterQuerySetByUserMixin):
+class TemplateViewSet(RevisionMixin, viewsets.ModelViewSet, FilterQuerySetByUserMixin):
     """Page templates as exposed through API
 
     Only superusers and users with role assignments are meant to have access. Results of lists are filtered
@@ -127,7 +156,7 @@ class TemplateViewSet(viewsets.ModelViewSet, FilterQuerySetByUserMixin):
         )
 
 
-class StyleViewSet(viewsets.ModelViewSet, FilterQuerySetByUserMixin, PerUserCreateDeletePermissionsMixin):
+class StyleViewSet(RevisionMixin, viewsets.ModelViewSet, FilterQuerySetByUserMixin, PerUserDeletePermissionsMixin):
     """Donation pages exposed through API
 
     Only superusers and users with role assignments are meant to have access. Results of lists are filtered
@@ -139,6 +168,8 @@ class StyleViewSet(viewsets.ModelViewSet, FilterQuerySetByUserMixin, PerUserCrea
     serializer_class = serializers.StyleListSerializer
     pagination_class = None
     permission_classes = [IsAuthenticated, IsActiveSuperUser | HasRoleAssignment]
+    filter_backends = [django_filters.rest_framework.DjangoFilterBackend]
+    filterset_class = StyleFilter
 
     def get_queryset(self):
         return self.filter_queryset_for_user(self.request.user, self.model.objects.all())

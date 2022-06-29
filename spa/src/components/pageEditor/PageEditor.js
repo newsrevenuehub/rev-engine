@@ -21,7 +21,7 @@ import { useParams } from 'react-router-dom';
 
 // AJAX
 import useRequest from 'hooks/useRequest';
-import { DELETE_PAGE, DRAFT_PAGE_DETAIL, PATCH_PAGE, LIST_PAGES, LIST_STYLES } from 'ajax/endpoints';
+import { DELETE_PAGE, PATCH_PAGE, LIST_PAGES, LIST_STYLES, DRAFT_PAGE_DETAIL } from 'ajax/endpoints';
 
 // Routes
 import { CONTENT_SLUG } from 'routes';
@@ -115,20 +115,24 @@ function PageEditor() {
     },
     [alert]
   );
-
   useEffect(() => {
     setLoading(true);
-    const config = {
-      method: 'GET',
-      url: pageId ? `${LIST_PAGES}${pageId}/` : DRAFT_PAGE_DETAIL,
-      params: pageId
-        ? null
-        : {
-            revenue_program: parameters.revProgramSlug,
-            page: parameters.pageSlug,
-            live: 0
-          }
-    };
+
+    // If the user got to this page from `dashboard/content`, location state
+    // will have pageId, so we can cut to chase and grab the page directly.
+    // But if user goes directly to this page ()`edit/<rev-program-name/<page-name`),
+    // pageId will not be in passed location state. In that case, we use the `DRAFT_PAGE_DETAIL`
+    // endpoint on the API, whose name, it should be noted, is no longer in alignment with its
+    // concrete use. The `DRAFT_PAGE_DETAIL` endpoint looks for the RP and page slugs to be passed
+    // in as query parameters.
+    const url = pageId ? `${LIST_PAGES}${pageId}/` : DRAFT_PAGE_DETAIL;
+    const params = pageId
+      ? null
+      : {
+          revenue_program: parameters.revProgramSlug,
+          page: parameters.pageSlug
+        };
+    const config = { method: 'GET', url, params };
 
     requestGetPage(config, {
       onSuccess: ({ data }) => {
@@ -141,21 +145,25 @@ function PageEditor() {
   }, [pageId, parameters.revProgramSlug, parameters.pageSlug, handleGetPageFailure]);
 
   useEffect(() => {
-    setLoading(true);
-    requestGetPageStyles(
-      { method: 'GET', url: LIST_STYLES },
-      {
-        onSuccess: ({ data }) => {
-          setAvailableStyles(data);
-          setLoading(false);
-        },
-        onFailure: () => {
-          setLoading(false);
+    const rpId = page?.revenue_program?.id;
+
+    if (rpId) {
+      setLoading(true);
+      requestGetPageStyles(
+        { method: 'GET', url: LIST_STYLES, params: { revenue_program: rpId } },
+        {
+          onSuccess: ({ data }) => {
+            setAvailableStyles(data);
+            setLoading(false);
+          },
+          onFailure: () => {
+            setLoading(false);
+          }
         }
-      }
-    );
+      );
+    }
     // Don't include requestGetPageStyles for now.
-  }, []);
+  }, [page]);
 
   const handlePreview = () => {
     setSelectedButton(PREVIEW);
@@ -272,9 +280,6 @@ function PageEditor() {
         if (datumKey === 'published_date') {
           if (datum === undefined) datum = '';
         }
-        if (datumKey === 'styles') {
-          datumKey = 'styles_pk';
-        }
         formData.append(datumKey, datum);
       }
     }
@@ -357,39 +362,46 @@ function PageEditor() {
           </SegregatedStyles>
         )}
         {page && (
-          <S.ButtonOverlay>
-            <CircleButton
-              onClick={handlePreview}
-              selected={selectedButton === PREVIEW}
-              icon={faEye}
-              buttonType="neutral"
-              color={theme.colors.primary}
-              data-testid="preview-page-button"
-            />
-            <CircleButton
-              onClick={handleEdit}
-              selected={selectedButton === EDIT}
-              icon={faEdit}
-              buttonType="neutral"
-              data-testid="edit-page-button"
-            />
-            <CircleButton
-              onClick={handleSave}
-              icon={faSave}
-              buttonType="neutral"
-              data-testid="save-page-button"
-              disabled={!updatedPage}
-            />
-            <CircleButton
-              onClick={handleMakeTemplate}
-              icon={faClone}
-              buttonType="neutral"
-              data-testid="clone-page-button"
-            />
-            <CircleButton onClick={handleDelete} icon={faTrash} buttonType="caution" data-testid="delete-page-button" />
+          <S.ButtonOverlayOuter>
+            <S.ButtonOverlay>
+              <CircleButton
+                onClick={handlePreview}
+                selected={selectedButton === PREVIEW}
+                icon={faEye}
+                buttonType="neutral"
+                color={theme.colors.primary}
+                data-testid="preview-page-button"
+              />
+              <CircleButton
+                onClick={handleEdit}
+                selected={selectedButton === EDIT}
+                icon={faEdit}
+                buttonType="neutral"
+                data-testid="edit-page-button"
+              />
+              <CircleButton
+                onClick={handleSave}
+                icon={faSave}
+                buttonType="neutral"
+                data-testid="save-page-button"
+                disabled={!updatedPage}
+              />
+              <CircleButton
+                onClick={handleMakeTemplate}
+                icon={faClone}
+                buttonType="neutral"
+                data-testid="clone-page-button"
+              />
+              <CircleButton
+                onClick={handleDelete}
+                icon={faTrash}
+                buttonType="caution"
+                data-testid="delete-page-button"
+              />
 
-            <BackButton to={CONTENT_SLUG} />
-          </S.ButtonOverlay>
+              <BackButton to={CONTENT_SLUG} />
+            </S.ButtonOverlay>
+          </S.ButtonOverlayOuter>
         )}
       </S.PageEditor>
       {showCreateTemplateModal && (

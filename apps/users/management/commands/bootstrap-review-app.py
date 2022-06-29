@@ -61,13 +61,11 @@ class Command(BaseCommand):  # pragma: no cover
 
         wh_sec = create_stripe_webhook(webhook_url=webhook_url, api_key=api_key)
 
-        # insert config vars:
+        # insert config vars
         heroku_config = heroku_app.config()
-        heroku_config["SITE_URL"] = site_url
-        heroku_config["DASHBOARD_SUBDOMAINS"] = ticket_id
-        heroku_config["ENVIRONMENT"] = ticket_id
-
+        config_updates = {"SITE_URL": site_url, "DASHBOARD_SUBDOMAINS": ticket_id, "ENVIRONMENT": ticket_id}
         if wh_sec:
-            heroku_config["STRIPE_WEBHOOK_SECRET"] = wh_sec
+            config_updates["STRIPE_WEBHOOK_SECRET"] = wh_sec
+        heroku_config.update(config_updates)
 
         self.stdout.write(self.style.SUCCESS("Postdeployment completed for %s" % heroku_app_name))

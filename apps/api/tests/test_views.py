@@ -8,11 +8,13 @@ from django.test import RequestFactory, override_settings
 from django.utils.timezone import timedelta
 
 import pytest
+from bs4 import BeautifulSoup as bs4
 from rest_framework.reverse import reverse
 from rest_framework.test import APITestCase
 from rest_framework_simplejwt.tokens import AccessToken
 
 from apps.api.error_messages import GENERIC_BLANK
+from apps.api.tests import RevEngineApiAbstractTestCase
 from apps.api.tokens import ContributorRefreshToken
 from apps.api.views import TokenObtainPairCookieView, _construct_rp_domain
 from apps.contributions.models import Contributor
@@ -111,7 +113,9 @@ class RequestContributorTokenEmailViewTest(APITestCase):
         response = self.client.post(self.url, {"email": target_email, "subdomain": "rp"})
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(self.outbox), 1)
-        magic_link = self.outbox[0].merge_global_data["magic_link"]
+        magic_link = (
+            bs4(self.outbox[0].alternatives[0][0], "html.parser").find("a", {"data-testid": "magic-link"}).attrs["href"]
+        )
         self.assertIn(settings.CONTRIBUTOR_VERIFY_URL, magic_link)
         self.assertIn("token=", magic_link)
         # Assert that something looking like a valid token appears in token param
@@ -140,9 +144,8 @@ class VerifyContributorTokenViewTest(APITestCase):
             reverse("contributor-token-request"), {"email": self.contributor.email, "subdomain": "rp"}
         )
         self.assertEqual(response.status_code, 200)
-
-        magic_link = self.outbox[0].merge_global_data["magic_link"]
-        return (magic_link.split("token="))[1].split("&email=")[0]
+        link = bs4(self.outbox[0].alternatives[0][0], "html.parser").find("a", {"data-testid": "magic-link"})
+        return (link.attrs["href"].split("token="))[1].split("&email=")[0]
 
     def test_response_missing_params(self):
         response = self.client.post(self.url)
@@ -217,13 +220,15 @@ class VerifyContributorTokenViewTest(APITestCase):
         self.assertEqual(response.data["detail"].code, "missing_claim")
 
 
-class AuthorizedContributorRequestsTest(APITestCase):
+class AuthorizedContributorRequestsTest(RevEngineApiAbstractTestCase):
     def setUp(self):
-        self.contributor = ContributorFactory()
+        # NB: among other things, this call ensures that required feature flags are in place for
+        # the endpoint tested
+        self.set_up_domain_model()
         self.contributions_url = reverse("contribution-list")
 
     def _get_token(self, valid=True):
-        refresh = ContributorRefreshToken.for_contributor(self.contributor.uuid)
+        refresh = ContributorRefreshToken.for_contributor(self.contributor_user.uuid)
         if valid:
             return str(refresh.long_lived_access_token)
         return str(refresh.short_lived_access_token)

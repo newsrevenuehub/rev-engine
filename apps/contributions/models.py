@@ -3,7 +3,6 @@ import uuid
 from django.db import models
 
 import stripe
-from simple_history.models import HistoricalRecords
 
 from apps.common.models import IndexedTimeStampedModel
 from apps.slack.models import SlackNotificationTypes
@@ -15,9 +14,6 @@ from apps.users.models import RoleAssignmentResourceModelMixin, UnexpectedRoleTy
 class Contributor(IndexedTimeStampedModel):
     uuid = models.UUIDField(default=uuid.uuid4, primary_key=False, editable=False)
     email = models.EmailField(unique=True)
-
-    # A history of changes to this model, using django-simple-history.
-    history = HistoricalRecords()
 
     @property
     def contributions_count(self):
@@ -83,7 +79,6 @@ class Contribution(IndexedTimeStampedModel, RoleAssignmentResourceModelMixin):
 
     contributor = models.ForeignKey("contributions.Contributor", on_delete=models.SET_NULL, null=True)
     donation_page = models.ForeignKey("pages.DonationPage", on_delete=models.SET_NULL, null=True)
-    organization = models.ForeignKey("organizations.Organization", on_delete=models.SET_NULL, null=True)
 
     bad_actor_score = models.IntegerField(null=True)
     bad_actor_response = models.JSONField(null=True)
@@ -91,9 +86,6 @@ class Contribution(IndexedTimeStampedModel, RoleAssignmentResourceModelMixin):
     contribution_metadata = models.JSONField(null=True)
 
     status = models.CharField(max_length=10, choices=ContributionStatus.choices, null=True)
-
-    # A history of changes to this model, using django-simple-history.
-    history = HistoricalRecords()
 
     class Meta:
         get_latest_by = "modified"
@@ -105,6 +97,18 @@ class Contribution(IndexedTimeStampedModel, RoleAssignmentResourceModelMixin):
     @property
     def formatted_amount(self):
         return f"{'{:.2f}'.format(self.amount / 100)} {self.currency.upper()}"
+
+    @property
+    def revenue_program(self):
+        if self.donation_page:
+            return self.donation_page.revenue_program
+        return None
+
+    @property
+    def stripe_account_id(self):
+        if self.revenue_program and self.revenue_program.payment_provider:
+            return self.revenue_program.payment_provider.stripe_account_id
+        return None
 
     BAD_ACTOR_SCORES = (
         (
@@ -153,7 +157,7 @@ class Contribution(IndexedTimeStampedModel, RoleAssignmentResourceModelMixin):
             raise ValueError("Cannot fetch PaymentMethod without provider_payment_method_id")
         return stripe.PaymentMethod.retrieve(
             self.provider_payment_method_id,
-            stripe_account=self.organization.stripe_account_id,
+            stripe_account=self.revenue_program.payment_provider.stripe_account_id,
         )
 
     def send_slack_notifications(self, event_type):

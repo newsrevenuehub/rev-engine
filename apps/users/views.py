@@ -92,7 +92,7 @@ class FilterQuerySetByUserMixin(GenericAPIView):
             elif role_assignment := getattr(user, "roleassignment"):
                 return queryset.model.filter_queryset_by_role_assignment(role_assignment, queryset)
         except UnexpectedRoleType as exc:
-            logger.error(f"Encountered unexpected role type: {exc}")
+            logger.exception("Encountered unexpected role type")
             raise APIException(detail=str(exc))
 
 

@@ -119,7 +119,7 @@ class PaymentManager:
             # rather than let it pass through to the user.
             serializer.is_valid(raise_exception=True)
         except drf_serializers.ValidationError as ba_validation_error:
-            logger.warning(f"BadActor serializer raised a ValidationError: {str(ba_validation_error)}")
+            logger.warning("BadActor serializer raised a ValidationError", exc_info=ba_validation_error)
         self.validated_badactor_data = serializer.data
 
     def ensure_validated_data(self):
@@ -314,7 +314,7 @@ class StripePaymentManager(PaymentManager):
                 stripe_account=org_strip_account,
             )
         except stripe.error.StripeError as stripe_error:
-            logger.error(f"stripe.PaymentMethod.attach returned a StripeError: {str(stripe_error)}")
+            logger.exception("stripe.PaymentMethod.attach returned a StripeError")
             self._handle_stripe_error(stripe_error)
 
     def cancel_recurring_payment(self):
@@ -326,7 +326,7 @@ class StripePaymentManager(PaymentManager):
                 stripe_account=revenue_program.payment_provider.stripe_account_id,
             )
         except stripe.error.StripeError as stripe_error:
-            logger.error(f"stripe.Subscription.modify returned a StripeError: {str(stripe_error)}")
+            logger.exception("stripe.Subscription.modify returned a StripeError")
             self._handle_stripe_error(stripe_error)
 
     def update_payment_method(self, payment_method_id):
@@ -344,7 +344,7 @@ class StripePaymentManager(PaymentManager):
                 stripe_account=revenue_program.payment_provider.stripe_account_id,
             )
         except stripe.error.StripeError as stripe_error:
-            logger.error(f"stripe.Subscription.modify returned a StripeError: {str(stripe_error)}")
+            logger.exception("stripe.Subscription.modify returned a StripeError")
             self._handle_stripe_error(stripe_error)
 
     def complete_payment(self, reject=False):
@@ -375,7 +375,7 @@ class StripePaymentManager(PaymentManager):
         except stripe.error.InvalidRequestError as invalid_request_error:
             self.contribution.status = previous_status
             self.contribution.save()
-            logger.info(f"Contribution error for id({self.contribution.pk}): {str(invalid_request_error)}")
+            logger.info("Contribution error for id (%s}", self.contribution.pk, exc_info=invalid_request_error)
             raise PaymentProviderError(invalid_request_error)
         except stripe.error.StripeError as stripe_error:
             self._handle_stripe_error(stripe_error, previous_status=previous_status)

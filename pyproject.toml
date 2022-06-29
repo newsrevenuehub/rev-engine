@@ -86,7 +86,7 @@ coverage = "*"
 django-debug-toolbar = "*"
 factory_boy = "*"
 flake8 = "*"
-importlib-metadata = "4.11.4"
+importlib-metadata = "*"
 invoke = "*"
 ipython = "*"
 isort = "*"
@@ -97,7 +97,7 @@ pytest-django = "*"
 pyyaml = "*"
 responses = "*"
 pytest-xdist = "*"
-flake8-logging-format = "^0.6.0"
+flake8-logging-format = "*"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]

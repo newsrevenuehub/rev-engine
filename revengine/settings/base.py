@@ -59,6 +59,7 @@ INSTALLED_APPS = [
     "health_check.contrib.redis",
     "waffle",
     "reversion",
+    "reversion_compare",
 ]
 
 
@@ -447,3 +448,7 @@ SPA_ENV_VARS = {
 # Meta data static values
 METADATA_SOURCE = os.getenv("METADATA_SOURCE", "rev-engine")
 METADATA_SCHEMA_VERSION = os.getenv("METADATA_SCHEMA_VERSION", "1.0")
+
+
+# Add reversion models to admin interface
+ADD_REVERSION_ADMIN = True

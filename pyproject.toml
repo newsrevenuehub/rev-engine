@@ -28,7 +28,7 @@ description = ""
 authors = ["Caktus Group, LLC <teams@caktusgroup.com>"]
 
 [tool.poetry.dependencies]
-python = "^3.9"
+python = "^3.10"
 django = "^3.2"
 celery = "^5"
 django-celery-beat = "2.3.0"
@@ -56,7 +56,7 @@ requests = "^2"
 sorl-thumbnail = "^12.7.0"
 sorl-thumbnail-serializer-field = "^0.2.1"
 psycopg2-binary = "^2"
-django-filter = "^2.4.0"
+django-filter = "^22.1"
 django-solo = "^2.0.0"
 slack-sdk = "^3"
 django-anymail = "^8.3"
@@ -70,11 +70,6 @@ heroku3 = "^5"
 drf-extra-fields = "^3"
 django-waffle = "^2.4.1"
 django-reversion = "^5.0.0"
-# django-simple-history is no longer used, but we are keeping it around
-# because it is imported and referenced in several migration files, and squashing/resetting/
-# otherwise removing django-simple-history from those migrations was not low level of effort.
-# TODO: [DEV-1946] remove django-simple-history as a dependency
-django-simple-history = "^3.1.1"
 whitenoise = "^6.2.0"
 django-reversion-compare = "^0.15.0"
 

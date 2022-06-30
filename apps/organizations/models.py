@@ -86,7 +86,7 @@ class Organization(IndexedTimeStampedModel, RoleAssignmentResourceModelMixin):
     users = models.ManyToManyField("users.User", through="users.OrganizationUser")
     send_receipt_email_via_nre = models.BooleanField(
         default=True,
-        help_text="""If false, assumed to be sent via SF. Other emails, e.g. magic_link, always sent via NRE""",
+        help_text="If false, receipt email assumed to be sent via Salesforce. Other emails, e.g. magic_link, are always sent via NRE regardless of this setting",
     )
 
     @property

@@ -460,3 +460,10 @@ DTM_IGNORED_MIGRATIONS = {
     ("waffle", "*"),
     ("django_celery_beat", "*"),
 }
+
+MIGRATION_LINTER_OPTIONS = {
+    "no_cache": True,
+    "exclude_apps": ["db", "django_celery_beat", "reversion", "thumbnail", "waffle"],
+    "quiet": ["ignore", "ok"],
+    "exclude_migration_tests": ["CREATE_INDEX"],
+}

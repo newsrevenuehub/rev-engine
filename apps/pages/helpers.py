@@ -38,7 +38,7 @@ class PageFullDetailHelper:
         try:
             self.revenue_program = RevenueProgram.objects.get(slug=self.revenue_program_slug)
         except RevenueProgram.DoesNotExist:
-            logger.warning('Request for page with non-existent RevenueProgram by slug "%s"', self.revenue_program_slug)
+            logger.info('Request for page with non-existent RevenueProgram by slug "%s"', self.revenue_program_slug)
             raise PageDetailError(
                 message="Could not find revenue program matching those parameters", status=status.HTTP_404_NOT_FOUND
             )
@@ -54,7 +54,13 @@ class PageFullDetailHelper:
             else self.revenue_program.default_donation_page
         )
         if not self.donation_page:
-            logger.warning('Request for non-existent page by slug "%s"', self.page_slug)
+            if self.page_slug:
+                logger.info('Request for non-existent page by slug "%s"', self.page_slug)
+            else:
+                logger.info(
+                    'Request for default donation page, but no default page set for revenue program "%s"',
+                    self.revenue_program.name,
+                )
             raise PageDetailError(
                 message="Could not find page matching those parameters", status=status.HTTP_404_NOT_FOUND
             )

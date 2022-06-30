@@ -22,7 +22,7 @@ BASE_DIR = os.path.dirname(PROJECT_DIR)
 # See https://docs.djangoproject.com/en/3.0/howto/deployment/checklist/
 
 DEBUG = os.getenv("DJANGO_DEBUG", "False") == "True"
-ENVIRONMENT = os.getenv("ENVIRONMENT", "dev")
+ENVIRONMENT = os.getenv("ENVIRONMENT", "unknown")
 
 # Application definition
 
@@ -52,14 +52,14 @@ INSTALLED_APPS = [
     "solo",
     "anymail",
     "django_json_widget",
-    "safedelete",
-    "simple_history",
     "health_check",
     "health_check.db",
     "health_check.cache",
     "health_check.contrib.migrations",
     "health_check.contrib.redis",
     "waffle",
+    "reversion",
+    "reversion_compare",
 ]
 
 
@@ -74,7 +74,6 @@ MIDDLEWARE = [
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "apps.common.middleware.LogFourHundredsMiddleware",
     "csp.middleware.CSPMiddleware",
-    "simple_history.middleware.HistoryRequestMiddleware",
     "waffle.middleware.WaffleMiddleware",
 ]
 
@@ -239,6 +238,9 @@ LOGGING = {
             "class": "logging.StreamHandler",
             "formatter": "basic",
         },
+        "null": {
+            "class": "logging.NullHandler",
+        },
     },
     "loggers": {
         # Redefining the logger for the django module
@@ -246,6 +248,12 @@ LOGGING = {
         "django": {
             "handlers": ["console"],
             "level": "INFO",
+            "propagate": False,
+        },
+        # don't warn about incorrect http_host
+        # see https://docs.djangoproject.com/en/3.2/topics/logging/#django-security
+        "django.security.DisallowedHost": {
+            "handlers": ["null"],
             "propagate": False,
         },
     },
@@ -311,16 +319,11 @@ HEALTHCHECK_URL_AUTO_ACCEPT_FLAGGED_PAYMENTS = os.environ.get("HEALTHCHECK_URL_A
 EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
 EMAIL_SUBJECT_PREFIX = "[RevEngine] "
 
-# This determines which template is used on the ESP (at present Mailgun) when sending contribution confirmation emails.
-ESP_TEMPLATE_ID_FOR_CONTRIBUTION_CONFIRMATION = os.environ.get("ESP_TEMPLATE_ID_FOR_CONTRIBUTION_CONFIRMATION")
-
+EMAIL_DEFAULT_TRANSACTIONAL_SENDER = os.getenv(
+    "EMAIL_DEFAULT_TRANSACTIONAL_SENDER", "News Revenue Engine <no-reply@fundjournalism.org>"
+)
 
 ADMINS = [("dc", "daniel@fundjournalism.org")]
-
-# Revengine template identifiers
-EMAIL_TEMPLATE_IDENTIFIER_MAGIC_LINK_DONOR = os.environ.get(
-    "EMAIL_TEMPLATE_IDENTIFIER_MAGIC_LINK_DONOR", "nrh-manage-donations-magic-link"
-)
 
 # this is only used by HubAdmins, not OrgAdmins, but needs to be named generically as LOGIN_URL
 # so our implementation of password reset flow for HubAdmins works as expected
@@ -414,6 +417,7 @@ SECURE_REFERRER_POLICY = "strict-origin-when-cross-origin"
 # Stripe API Target Version
 STRIPE_API_VERSION = "2020-08-27"
 
+SECURE_SSL_REDIRECT = os.environ.get("SECURE_SSL_REDIRECT", "true").lower() == "true"
 
 # Google Tag Manager ID - Config Vars Heroku
 HUB_GTM_ID = os.getenv("HUB_GTM_ID")
@@ -449,3 +453,7 @@ SPA_ENV_VARS = {
 # Meta data static values
 METADATA_SOURCE = os.getenv("METADATA_SOURCE", "rev-engine")
 METADATA_SCHEMA_VERSION = os.getenv("METADATA_SCHEMA_VERSION", "1.0")
+
+
+# Add reversion models to admin interface
+ADD_REVERSION_ADMIN = True

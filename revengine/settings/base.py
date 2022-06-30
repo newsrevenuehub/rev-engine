@@ -101,7 +101,7 @@ INSTALLED_APPS = [
     "rest_framework",
     "sorl.thumbnail",
     "sorl_thumbnail_serializer",
-    "solo",  # Single row models, e.g. HubSlackInteration.
+    "solo",  # Single row models, e.g. HubSlackIntegration.
     "anymail",  # Email service provider integration.
     "health_check",  # Checks for various conditions and provides reports when anomalous behavior is detected.
     "health_check.db",
@@ -325,7 +325,6 @@ SECURE_SSL_REDIRECT = os.getenv("SECURE_SSL_REDIRECT", "true").lower() == "true"
 ### sorl-thumbmail Settings
 THUMBNAIL_COLORSPACE = None
 THUMBNAIL_PRESERVE_FORMAT = True
-THUMBNAIL_PRESERVE_FORMAT = True
 
 
 ### reversion Settings
@@ -334,6 +333,7 @@ ADD_REVERSION_ADMIN = True
 
 
 ### Stripe Settings
+# https://stripe.com/docs/upgrades#api-changelog
 STRIPE_API_VERSION = "2020-08-27"  # Stripe API Target Version
 DEFAULT_CURRENCY = "usd"
 GENERIC_STRIPE_PRODUCT_NAME = "Contribution via RevEngine"
@@ -353,8 +353,8 @@ STRIPE_WEBHOOK_EVENTS = [
 ]
 
 ### django-healthcheck Settings
-
-# This URL will get pinged when in the `auto_accept_flagged_contributions`` task
+# This URL will get pinged when in the `auto_accept_flagged_contributions``
+# task. Which ensures the task completes on a schedule.
 HEALTHCHECK_URL_AUTO_ACCEPT_FLAGGED_PAYMENTS = os.getenv("HEALTHCHECK_URL_AUTO_ACCEPT_FLAGGED_PAYMENTS")
 
 

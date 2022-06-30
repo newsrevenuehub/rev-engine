@@ -70,11 +70,6 @@ heroku3 = "^5"
 drf-extra-fields = "^3"
 django-waffle = "^2.4.1"
 django-reversion = "^5.0.0"
-# django-simple-history is no longer used, but we are keeping it around
-# because it is imported and referenced in several migration files, and squashing/resetting/
-# otherwise removing django-simple-history from those migrations was not low level of effort.
-# TODO: [DEV-1946] remove django-simple-history as a dependency
-django-simple-history = "^3.1.1"
 whitenoise = "^6.2.0"
 django-reversion-compare = "^0.15.0"
 

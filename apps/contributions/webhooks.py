@@ -26,7 +26,7 @@ class StripeWebhookProcessor:
             raise Contribution.DoesNotExist(e)
 
     def process(self):
-        logger.info(f'Processing Stripe Event of type "{self.event.type}"')
+        logger.info('Processing Stripe Event of type "%s"', self.event.type)
         object_type = self.obj_data["object"]
 
         if object_type == "payment_intent":
@@ -34,7 +34,7 @@ class StripeWebhookProcessor:
         elif object_type == "subscription":
             self.process_subscription()
         else:
-            logger.warning(f'Recieved un-handled Stripe object of type "{object_type}"')
+            logger.warning('Recieved un-handled Stripe object of type "%s"', object_type)
 
     # PaymentIntent processing
     def process_payment_intent(self):
@@ -52,21 +52,21 @@ class StripeWebhookProcessor:
         if self._cancellation_was_rejection():
             contribution.status = ContributionStatus.REJECTED
             contribution.payment_provider_data = self.event
-            logger.info(f"Contribution {contribution} rejected.")
+            logger.info("Contribution %s rejected.", contribution)
         else:
             contribution.status = ContributionStatus.CANCELED
             contribution.payment_provider_data = self.event
-            logger.info(f"Contribution {contribution} canceled.")
+            logger.info("Contribution %s canceled.", contribution)
 
         contribution.save()
-        logger.info(f"Contribution {contribution} canceled.")
+        logger.info("Contribution %s canceled.", contribution)
 
     def handle_payment_intent_failed(self):
         contribution = self.get_contribution_from_event()
         contribution.status = ContributionStatus.FAILED
         contribution.payment_provider_data = self.event
         contribution.save()
-        logger.info(f"Contribution {contribution} failed.")
+        logger.info("Contribution %s failed.", contribution)
 
     def handle_payment_intent_succeeded(self):
         contribution = self.get_contribution_from_event()
@@ -80,7 +80,7 @@ class StripeWebhookProcessor:
         contribution.provider_payment_method_id = self.obj_data.get("payment_method")
 
         contribution.save()
-        logger.info(f"Contribution {contribution} succeeded.")
+        logger.info("Contribution %s succeeded.", contribution)
 
     def _cancellation_was_rejection(self):
         return self.obj_data.get("cancellation_reason") == "fraudulent"

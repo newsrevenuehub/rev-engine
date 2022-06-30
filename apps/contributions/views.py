@@ -219,8 +219,8 @@ def stripe_confirmation(request):
     try:
         # Now that we're verified, create and associate default product
         payment_provider.stripe_create_default_product()
-    except stripe.error.StripeError as stripe_error:
-        logger.error(f"stripe_create_default_product failed with a StripeError: {stripe_error}")
+    except stripe.error.StripeError:
+        logger.exception("stripe_create_default_product failed with a StripeError")
         return Response(
             {"status": "failed"},
             status=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -253,10 +253,10 @@ def process_stripe_webhook_view(request):
         logger.info("Processing event.")
         processor = StripeWebhookProcessor(event)
         processor.process()
-    except ValueError as e:
-        logger.error(e)
+    except ValueError:
+        logger.exception()
     except Contribution.DoesNotExist:
-        logger.error("Could not find contribution matching provider_payment_id")
+        logger.info("Could not find contribution matching provider_payment_id", exc_info=True)
 
     return Response(status=status.HTTP_200_OK)
 

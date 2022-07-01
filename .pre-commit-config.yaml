@@ -38,7 +38,7 @@ repos:
     rev: 4.0.1
     hooks:
       - id: flake8
-        exclude: settings|migrations|tests
+        exclude: docs|migrations|node_modules|revengine/settings
         additional_dependencies:
           - "flake8-logging-format"
   # # Pylint code checks.

@@ -64,7 +64,7 @@ steps:
   entrypoint: /bin/sh
   args:
   - '-c'
-  - sed "s/COMMIT_SHA/${SHORT_SHA}/g" gke.yaml.tpl > nre-config/gke.yaml
+  - sed "s/COMMIT_SHA/${SHORT_SHA}/g" nre-config/gke.yaml.tpl > nre-config/gke.yaml
 
 # This step pushes the manifest back to nre-config
 - name: 'gcr.io/cloud-builders/gcloud'

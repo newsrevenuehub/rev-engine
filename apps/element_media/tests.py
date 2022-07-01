@@ -5,11 +5,7 @@ from django.test import override_settings
 
 from sorl.thumbnail import get_thumbnail
 
-from apps.common.tests.test_utils import (
-    get_random_jpg_filename,
-    get_test_image_binary,
-    get_test_image_file_jpeg,
-)
+from apps.common.tests.test_utils import get_random_jpg_filename, get_test_image_file_jpeg
 from apps.pages.tests.factories import DonationPageFactory
 
 from ..common.tests.test_resources import AbstractTestCase

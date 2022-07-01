@@ -38,7 +38,7 @@ repos:
     rev: 4.0.1
     hooks:
       - id: flake8
-        exclude: settings|migrations|tests
+        exclude: docs|migrations|node_modules|revengine/settings
         additional_dependencies:
           - "flake8-logging-format"
   # # Pylint code checks.
@@ -52,12 +52,11 @@ repos:
   #       types: [python]
   #       require_serial: true
   # Check Python dependencies against p0wned package database.
-  # TODO: [DEV-1995] add this back once https://github.com/Lucas-C/pre-commit-hooks-safety/issues/29 has been addressed
-  # - repo: https://github.com/Lucas-C/pre-commit-hooks-safety
-  #   rev: v1.2.4
-  #   hooks:
-  #     - id: python-safety-dependencies-check
-  #       files: pyproject.toml
+  - repo: https://github.com/Lucas-C/pre-commit-hooks-safety
+    rev: v1.3.0
+    hooks:
+      - id: python-safety-dependencies-check
+        files: pyproject.toml
   # Python security checks
   - repo: https://github.com/Lucas-C/pre-commit-hooks-bandit
     rev: v1.0.6

@@ -25,7 +25,7 @@ def make_bad_actor_request(validated_data):
     response = requests.post(url=settings.BAD_ACTOR_API_URL, headers=headers, json=json_data)
     if int(str(response.status_code)[:1]) != 2:
         try:
-            logger.warning(f"Received a BadActor API error: {response.json()}")
+            logger.warning("Received a BadActor API error: %s", response.json())
             raise BadActorAPIError(response.json())
         except JSONDecodeError:
             logger.warning("Received a BadActor API error with malformed JSON")

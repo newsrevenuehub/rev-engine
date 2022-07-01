@@ -8,6 +8,7 @@ from django.test import RequestFactory, override_settings
 from django.utils.timezone import timedelta
 
 import pytest
+from bs4 import BeautifulSoup as bs4
 from rest_framework.reverse import reverse
 from rest_framework.test import APITestCase
 from rest_framework_simplejwt.tokens import AccessToken
@@ -112,7 +113,9 @@ class RequestContributorTokenEmailViewTest(APITestCase):
         response = self.client.post(self.url, {"email": target_email, "subdomain": "rp"})
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(self.outbox), 1)
-        magic_link = self.outbox[0].merge_global_data["magic_link"]
+        magic_link = (
+            bs4(self.outbox[0].alternatives[0][0], "html.parser").find("a", {"data-testid": "magic-link"}).attrs["href"]
+        )
         self.assertIn(settings.CONTRIBUTOR_VERIFY_URL, magic_link)
         self.assertIn("token=", magic_link)
         # Assert that something looking like a valid token appears in token param
@@ -141,9 +144,8 @@ class VerifyContributorTokenViewTest(APITestCase):
             reverse("contributor-token-request"), {"email": self.contributor.email, "subdomain": "rp"}
         )
         self.assertEqual(response.status_code, 200)
-
-        magic_link = self.outbox[0].merge_global_data["magic_link"]
-        return (magic_link.split("token="))[1].split("&email=")[0]
+        link = bs4(self.outbox[0].alternatives[0][0], "html.parser").find("a", {"data-testid": "magic-link"})
+        return (link.attrs["href"].split("token="))[1].split("&email=")[0]
 
     def test_response_missing_params(self):
         response = self.client.post(self.url)

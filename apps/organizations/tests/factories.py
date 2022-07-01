@@ -88,6 +88,7 @@ class BenefitFactory(DjangoModelFactory):
 
     name = factory.Sequence(lambda n: f"{fake.sentence(nb_words=2)}-{str(n)}")
     description = fake.sentence(nb_words=8)
+    revenue_program = factory.SubFactory(RevenueProgramFactory)
 
 
 class BenefitLevelFactory(DjangoModelFactory):

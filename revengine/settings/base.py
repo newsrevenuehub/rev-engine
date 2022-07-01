@@ -271,8 +271,8 @@ CSP_DEFAULT_SRC = (
 )
 CSP_SCRIPT_SRC = (
     "'self'",
-    "'unsafe-inline'",  # this is gross. Fix me ASAP
-    "'unsafe-eval'",  # this is gross. Fix me ASAP
+    "'unsafe-inline'",  # TODO: [DEV-2009] this is gross. Fix me ASAP
+    "'unsafe-eval'",  # TODO: [DEV-2009] this is gross. Fix me ASAP
     "https://js.stripe.com",
     "https://risk.clearbit.com",
     "https://www.google-analytics.com",
@@ -286,8 +286,8 @@ CSP_SCRIPT_SRC = (
 )
 CSP_STYLE_SRC = (
     "'self'",
-    "'unsafe-inline'",
-    "https://fonts.googleapis.com",  # this is gross. Fix me ASAP
+    "'unsafe-inline'",  # TODO: [DEV-2009] this is gross. Fix me ASAP
+    "https://fonts.googleapis.com",
     "https://maps.googleapis.com",
 )
 CSP_IMG_SRC = (
@@ -344,6 +344,7 @@ STRIPE_OAUTH_SCOPE = "read_write"
 STRIPE_LIVE_MODE = os.getenv("STRIPE_LIVE_MODE", "false").lower() == "true"
 # Get it from the section in the Stripe dashboard where you added the webhook endpoint
 STRIPE_WEBHOOK_SECRET = os.getenv("STRIPE_WEBHOOK_SECRET", "")
+# this is the list of events that we want to listen for
 STRIPE_WEBHOOK_EVENTS = [
     "payment_intent.canceled",
     "payment_intent.payment_failed",
@@ -358,7 +359,7 @@ STRIPE_WEBHOOK_EVENTS = [
 HEALTHCHECK_URL_AUTO_ACCEPT_FLAGGED_PAYMENTS = os.getenv("HEALTHCHECK_URL_AUTO_ACCEPT_FLAGGED_PAYMENTS")
 
 
-### Google Tag Manager ID - Config Vars Heroku
+### Google Tag Manager ID
 
 # When deploying, the SPA gets served via `revengine.views.ReactAppView` which sets this as the value
 # for the `gtm_id` context key in `revengine.views.ReactAppView`. In turn, spa.public.index.html
@@ -382,7 +383,7 @@ PHONENUMBER_DEFAULT_REGION = "US"
 
 ### RevEngine (1st Party) Settings
 
-# TODO: Isn't DOMAIN_APEX just be SITE_URL without any subdomain?
+# TODO: [DEV-2010] Isn't DOMAIN_APEX just be SITE_URL without any subdomain?
 DOMAIN_APEX = os.getenv("DOMAIN_APEX")
 # Application subdomains (that are NOT revenue program slugs)
 DASHBOARD_SUBDOMAINS = os.getenv("DASHBOARD_SUBDOMAINS", "www:dashboard:").split(":")
@@ -432,13 +433,14 @@ EMAIL_DEFAULT_TRANSACTIONAL_SENDER = os.getenv(
 )
 
 ## BadActor API
+# TODO: [DEV-2008] the test API shouldn't be here. It shouldn't have a default.
 BAD_ACTOR_API_URL = os.getenv("BAD_ACTOR_API_URL", "https://bad-actor-test.fundjournalism.org/v1/bad_actor/")
 # NOTE: We've been given keys with some characters that might need escaping as environment variables, eg "$"
 BAD_ACTOR_API_KEY = os.getenv("BAD_ACTOR_API_KEY", "testing_123")
 BAD_ACTOR_FAIL_ABOVE = 3
 
 
-### Front End Environment Variables - Config Vars Heroku
+### Front End Environment Variables
 SPA_ENV_VARS = {
     "HUB_STRIPE_API_PUB_KEY": os.getenv("SPA_ENV_HUB_STRIPE_API_PUB_KEY"),
     "CAPTURE_PAGE_SCREENSHOT": os.getenv("SPA_ENV_CAPTURE_PAGE_SCREENSHOT", "false").lower() == "true",

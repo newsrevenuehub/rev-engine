@@ -287,18 +287,6 @@ class PageViewSetTest(RevEngineApiAbstractTestCase):
         self.assertEqual(DonationPage.objects.count(), before_count - 1)
         self.assertIsNone(DonationPage.objects.filter(pk=pk).first())
 
-    def test_rp_admin_can_delete_their_rps_page(self):
-        my_rp = RevenueProgram.objects.filter(roleassignment__user=self.rp_user).first()
-        self.assertIsNotNone(my_rp)
-        before_count = DonationPage.objects.count()
-        page = DonationPage.objects.filter(revenue_program=my_rp).first()
-        self.assertIsNotNone(page)
-        pk = page.pk
-        detail_url = f"/api/v1/pages/{pk}/"
-        self.assert_rp_user_can_delete(detail_url)
-        self.assertEqual(DonationPage.objects.count(), before_count - 1)
-        self.assertIsNone(DonationPage.objects.filter(pk=pk).first())
-
     def test_rp_admin_cannot_delete_another_rps_page(self):
         not_my_rp = RevenueProgram.objects.exclude(roleassignment__user=self.rp_user).first()
         self.assertIsNotNone(not_my_rp)
@@ -400,7 +388,7 @@ class PageViewSetTest(RevEngineApiAbstractTestCase):
             revenue_program__in=self.rp_user.roleassignment.revenue_programs.all()
         ).first()
         self.assertIsNotNone(page)
-        url = reverse("donationpage-detail", args=(page.pk,))
+        reverse("donationpage-detail", args=(page.pk,))
 
     def test_live_detail_page_happy_path(self):
         page = DonationPage.objects.first()
@@ -1024,24 +1012,6 @@ class StylesViewsetTest(RevEngineApiAbstractTestCase):
         self.assertEqual(Style.objects.count(), before_count - 1)
         self.assertFalse(Style.objects.filter(pk=pk).exists())
 
-    def test_hub_user_can_update_a_style(self):
-        self.assertIsNotNone(style := Style.objects.first())
-        before_count = Style.objects.count()
-        pk = style.pk
-        url = reverse("style-detail", args=(pk,))
-        self.assert_hub_admin_can_delete(url)
-        self.assertEqual(Style.objects.count(), before_count - 1)
-        self.assertFalse(Style.objects.filter(pk=pk).exists())
-
-    def test_org_admin_can_update_a_style_they_own(self):
-        self.assertIsNotNone(style := Style.objects.filter(revenue_program__organization=self.org1).first())
-        before_count = Style.objects.count()
-        pk = style.pk
-        url = reverse("style-detail", args=(pk,))
-        self.assert_org_admin_can_delete(url)
-        self.assertEqual(Style.objects.count(), before_count - 1)
-        self.assertFalse(Style.objects.filter(pk=pk).exists())
-
     def test_org_admin_cannot_delete_a_style_they_do_not_own(self):
         self.assertIsNotNone(style := Style.objects.exclude(revenue_program__organization=self.org1).first())
         before_count = Style.objects.count()
@@ -1050,19 +1020,6 @@ class StylesViewsetTest(RevEngineApiAbstractTestCase):
         self.assert_org_admin_cannot_delete(url, expected_status_code=status.HTTP_403_FORBIDDEN)
         self.assertEqual(Style.objects.count(), before_count)
         self.assertTrue(Style.objects.filter(pk=pk).exists())
-
-    def test_rp_user_can_update_a_style_they_own(self):
-        self.assertIsNotNone(
-            style := Style.objects.filter(
-                revenue_program__in=self.rp_user.roleassignment.revenue_programs.all()
-            ).first()
-        )
-        before_count = Style.objects.count()
-        pk = style.pk
-        url = reverse("style-detail", args=(pk,))
-        self.assert_rp_user_can_delete(url)
-        self.assertEqual(Style.objects.count(), before_count - 1)
-        self.assertFalse(Style.objects.filter(pk=pk).exists())
 
     def test_rp_user_cannot_delete_a_style_they_do_not_own(self):
         self.assertIsNotNone(

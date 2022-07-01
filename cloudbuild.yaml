@@ -33,7 +33,7 @@ steps:
   args:
   - '-c'
   - |
-    git clone https://github.com/newsrevenuehub/nre-config # && \
+    git clone git@github.com:newsrevenuehub/nre-config # && \
     #    cd nre-config && \
     #git checkout candidate && \
     #git config user.email $(gcloud auth list --filter=status:ACTIVE --format='value(account)')

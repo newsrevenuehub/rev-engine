@@ -26,6 +26,41 @@ steps:
   - --cache=true
   - --cache-ttl=24h
 
+# This step clones the config repository
+- name: 'gcr.io/cloud-builders/gcloud'
+  id: Clone env repository
+  entrypoint: /bin/sh
+  args:
+  - '-c'
+  - |
+    git clone https://github.com/newsrevenuehub/nre-config && \
+    cd nre-config && \
+    git checkout candidate && \
+    git config user.email $(gcloud auth list --filter=status:ACTIVE --format='value(account)')
+
+# This step generates the new manifest
+- name: 'gcr.io/cloud-builders/gcloud'
+  id: Generate manifest
+  entrypoint: /bin/sh
+  args:
+  - '-c'
+  - sed "s/COMMIT_SHA/${SHORT_SHA}/g" gke.yaml.tpl > nre-config/gke.yaml
+
+# This step pushes the manifest back to nre-config
+- name: 'gcr.io/cloud-builders/gcloud'
+  id: Push manifest
+  entrypoint: /bin/sh
+  args:
+  - '-c'
+  - |
+    set -x && \
+    cd nre-config && \
+    git add gke.yaml && \
+    git commit -m "Deploying image us-central1-docker.pkg.dev/$PROJECT_ID/nre-repository/nre-cloudbuild:${SHORT_SHA}
+    Built from commit ${COMMIT_SHA} of repository nre-config
+    Author: $(git log --format='%an <%ae>' -n 1 HEAD)" && \
+    git push origin candidate
+
 timeout: 1200s
 options:
   logging: CLOUD_LOGGING_ONLY

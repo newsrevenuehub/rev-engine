@@ -10,7 +10,7 @@ from waffle import get_waffle_flag_model
 from apps.common.constants import CONTRIBUTIONS_API_ENDPOINT_ACCESS_FLAG_NAME
 from apps.contributions.models import Contributor
 from apps.contributions.tests.factories import ContributionFactory, ContributorFactory
-from apps.organizations.models import Feature, Organization, PaymentProvider, Plan, RevenueProgram
+from apps.organizations.models import Feature, Organization, Plan, RevenueProgram
 from apps.organizations.tests.factories import (
     FeatureFactory,
     OrganizationFactory,
@@ -56,7 +56,7 @@ class AbstractTestCase(APITestCase):
         # to have contributors contributing to some but not
         # other pages
         if DonationPage.objects.count() < 2:
-            logger.warn("Tests relying on this mixin may be trivial when there are less than 2 donation pages")
+            logger.warning("Tests relying on this mixin may be trivial when there are less than 2 donation pages")
         for x in range(cls.contributors_count):
             contributor = ContributorFactory()
             for idx, page in enumerate(DonationPage.objects.all()):

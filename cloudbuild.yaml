@@ -1,30 +1,92 @@
 steps:
 
 # This step builds the container image.
-- name: 'gcr.io/cloud-builders/docker'
-  id: Build
-  args:
-  - 'build'
-  - '-t'
-  - 'us-central1-docker.pkg.dev/$PROJECT_ID/nre-repository/nre-cloudbuild:$SHORT_SHA'
-  - '.'
+#- name: 'gcr.io/cloud-builders/docker'
+#  id: Build
+#  args:
+#  - 'build'
+#  - '-t'
+#  - 'us-central1-docker.pkg.dev/$PROJECT_ID/nre-repository/nre-cloudbuild:$SHORT_SHA'
+#  - '.'
 
 # This step pushes the image to Artifact Registry
 # The PROJECT_ID and SHORT_SHA variables are automatically
 # replaced by Cloud Build.
-- name: 'gcr.io/cloud-builders/docker'
-  id: Push
-  args:
-  - 'push'
-  - 'us-central1-docker.pkg.dev/$PROJECT_ID/nre-repository/nre-cloudbuild:$SHORT_SHA'
-
-# TODO: figure out how to cache
-#- name: 'gcr.io/kaniko-project/executor:latest'
+#- name: 'gcr.io/cloud-builders/docker'
+#  id: Push
 #  args:
-##  - --destination=gcr.io/$PROJECT_ID/image
-#  - --destination=us-central1-docker.pkg.dev/$PROJECT_ID/nre-repository/nre-cloudbuild:$SHORT_SHA
-#  - --cache=true
-#  - --cache-ttl=24h
+#  - 'push'
+#  - 'us-central1-docker.pkg.dev/$PROJECT_ID/nre-repository/nre-cloudbuild:$SHORT_SHA'
+
+- name: 'gcr.io/kaniko-project/executor:latest'
+  args:
+  - --destination=us-central1-docker.pkg.dev/$PROJECT_ID/nre-repository/nre-cloudbuild:$SHORT_SHA
+  - --cache=true
+  - --cache-ttl=24h
+
+- name: 'gcr.io/cloud-builders/git'
+  secretEnv: ['SSH_KEY']
+  entrypoint: 'bash'
+  args:
+  - -c
+  - |
+    echo "$$SSH_KEY" >> /root/.ssh/id_rsa
+    chmod 400 /root/.ssh/id_rsa
+    cp known_hosts.github /root/.ssh/known_hosts
+  volumes:
+  - name: 'ssh'
+    path: /root/.ssh
+
+# Clone the repository
+- name: 'gcr.io/cloud-builders/git'
+  args:
+  - clone
+  - git@github.com:newsrevenuehub/nre-config
+  volumes:
+  - name: 'ssh'
+    path: /root/.ssh
+
+- name: 'gcr.io/cloud-builders/gcloud'
+  id: checkout candidate branch
+  entrypoint: /bin/sh
+  args:
+  - '-c'
+  - |
+    cd nre-config && \
+    git checkout candidate && \
+    git config user.email $(gcloud auth list --filter=status:ACTIVE --format='value(account)')
+
+
+# This step generates the new manifest
+- name: 'gcr.io/cloud-builders/gcloud'
+  id: Generate manifest
+  entrypoint: /bin/sh
+  args:
+  - '-c'
+  - sed "s/COMMIT_SHA/${SHORT_SHA}/g" nre-config/gke.yaml.tpl > nre-config/gke.yaml
+
+# This step pushes the manifest back to nre-config
+- name: 'gcr.io/cloud-builders/gcloud'
+  id: Push manifest
+  entrypoint: /bin/sh
+  args:
+  - '-c'
+  - |
+    set -x && \
+    cd nre-config && \
+    git add gke.yaml && \
+    git commit -m "Deploying image us-central1-docker.pkg.dev/$PROJECT_ID/nre-repository/nre-cloudbuild:${SHORT_SHA}
+    Built from commit ${COMMIT_SHA} of repository nre-config
+    Author: $(git log --format='%an <%ae>' -n 1 HEAD)" && \
+    git push origin candidate
+  volumes:
+  - name: 'ssh'
+    path: /root/.ssh
+
+availableSecrets:
+  secretManager:
+  - versionName: projects/revenue-engine/secrets/ssh-key-for-github-nre-config/versions/latest
+    env: 'SSH_KEY'
 
 timeout: 1200s
 options:

@@ -374,13 +374,6 @@ HEROKU_BRANCH = os.getenv("HEROKU_BRANCH")
 CF_ZONE_NAME = os.getenv("CF_ZONE_NAME")
 
 
-### Django-phonenumber Settings
-# TODO: These appear to be for django-phonenumber-field which isn't in apps, isn't imported, but is in poetry.
-PHONENUMBER_DB_FORMAT = "NATIONAL"
-PHONENUMBER_DEFAULT_FORMAT = "NATIONAL"
-PHONENUMBER_DEFAULT_REGION = "US"
-
-
 ### RevEngine (1st Party) Settings
 
 # TODO: [DEV-2010] Isn't DOMAIN_APEX just be SITE_URL without any subdomain?

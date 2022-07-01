@@ -6,7 +6,6 @@ from django.db import models
 from django.utils import timezone
 
 import stripe
-from simple_history.models import HistoricalRecords
 
 from apps.common.models import IndexedTimeStampedModel
 from apps.common.utils import normalize_slug
@@ -42,9 +41,6 @@ class Feature(IndexedTimeStampedModel):
     )
     description = models.TextField(blank=True)
 
-    # A history of changes to this model, using django-simple-history.
-    history = HistoricalRecords()
-
     class Meta:
         unique_together = ["feature_type", "feature_value"]
 
@@ -58,9 +54,6 @@ class Feature(IndexedTimeStampedModel):
 class Plan(IndexedTimeStampedModel, RoleAssignmentResourceModelMixin):
     name = models.CharField(max_length=255)
     features = models.ManyToManyField("organizations.Feature", related_name="plans", blank=True)
-
-    # A history of changes to this model, using django-simple-history.
-    history = HistoricalRecords()
 
     def __str__(self):  # pragma: no cover
         return self.name
@@ -92,9 +85,6 @@ class Organization(IndexedTimeStampedModel, RoleAssignmentResourceModelMixin):
 
     users = models.ManyToManyField("users.User", through="users.OrganizationUser")
     uses_email_templates = models.BooleanField(default=False)
-
-    # A history of changes to this model, using django-simple-history.
-    history = HistoricalRecords()
 
     @property
     def admin_revenueprogram_options(self):
@@ -137,8 +127,6 @@ class BenefitLevel(IndexedTimeStampedModel):
     benefits = models.ManyToManyField("organizations.Benefit", through="organizations.BenefitLevelBenefit")
 
     revenue_program = models.ForeignKey("organizations.RevenueProgram", on_delete=models.CASCADE)
-    # A history of changes to this model, using django-simple-history.
-    history = HistoricalRecords()
 
     def __str__(self):  # pragma: no cover
         return self.name
@@ -164,9 +152,6 @@ class Benefit(IndexedTimeStampedModel):
     name = models.CharField(max_length=128, help_text="A way to uniquely identify this Benefit")
     description = models.TextField(help_text="The text that appears on the donation page")
     revenue_program = models.ForeignKey("organizations.RevenueProgram", on_delete=models.CASCADE)
-
-    # A history of changes to this model, using django-simple-history.
-    history = HistoricalRecords()
 
     def __str__(self):
         return self.name
@@ -246,9 +231,6 @@ class RevenueProgram(IndexedTimeStampedModel):
         verbose_name="Allow page editors to offer an NYT subscription",
     )
 
-    # A history of changes to this model, using django-simple-history.
-    history = HistoricalRecords()
-
     @property
     def admin_style_options(self):
         styles = self.style_set.all()
@@ -295,9 +277,11 @@ class RevenueProgram(IndexedTimeStampedModel):
                 )
                 self.domain_apple_verified_date = timezone.now()
                 self.save()
-            except stripe.error.StripeError as stripe_error:
+            except stripe.error.StripeError:
                 logger.warning(
-                    f"Failed to register ApplePayDomain for RevenueProgram {self.name}. StripeError: {str(stripe_error)}"
+                    "Failed to register ApplePayDomain for RevenueProgram %s because of StripeError",
+                    self.name,
+                    exc_info=True,
                 )
 
     def _ensure_owner_of_default_page(self):
@@ -381,5 +365,8 @@ class PaymentProvider(IndexedTimeStampedModel):
             return {"code": self.currency, "symbol": settings.CURRENCIES[self.currency]}
         except KeyError:
             logger.error(
-                f'Currency settings for organization "{self.name}" misconfigured. Tried to access "{self.currency}", but valid options are: {settings.CURRENCIES}'
+                'Currency settings for organization "%s" misconfigured. Tried to access "%s", but valid options are: %s',
+                self.name,
+                self.currency,
+                settings.CURRENCIES,
             )

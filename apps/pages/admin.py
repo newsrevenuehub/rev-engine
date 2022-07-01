@@ -6,18 +6,19 @@ from django.db.utils import IntegrityError
 from django.http import HttpResponseRedirect
 from django.urls import reverse
 
-from safedelete.admin import SafeDeleteAdmin, highlight_deleted
+from reversion.admin import VersionAdmin
+from reversion_compare.admin import CompareVersionAdmin
 from solo.admin import SingletonModelAdmin
 from sorl.thumbnail.admin import AdminImageMixin
 
-from apps.common.admin import RevEngineSimpleHistoryAdmin
+from apps.common.admin import RevEngineBaseAdmin
 from apps.pages import models
 
 
 logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
 
 
-class DonationPageAdminAbstract(AdminImageMixin, RevEngineSimpleHistoryAdmin):
+class DonationPageAdminAbstract(RevEngineBaseAdmin, AdminImageMixin):
     fieldsets = (
         (None, {"fields": ("name",)}),
         ("Redirects", {"fields": ("thank_you_redirect", "post_thank_you_redirect")}),
@@ -29,7 +30,7 @@ class DonationPageAdminAbstract(AdminImageMixin, RevEngineSimpleHistoryAdmin):
 
 
 @admin.register(models.Template)
-class TemplateAdmin(DonationPageAdminAbstract):
+class TemplateAdmin(VersionAdmin, DonationPageAdminAbstract):
     list_display = (
         "name",
         "heading",
@@ -75,7 +76,7 @@ class TemplateAdmin(DonationPageAdminAbstract):
 
 
 @admin.register(models.DonationPage)
-class DonationPageAdmin(DonationPageAdminAbstract, SafeDeleteAdmin):
+class DonationPageAdmin(CompareVersionAdmin, DonationPageAdminAbstract):
     fieldsets = (
         (
             (None, {"fields": ("revenue_program",)}),
@@ -90,15 +91,13 @@ class DonationPageAdmin(DonationPageAdminAbstract, SafeDeleteAdmin):
     )
 
     list_display = (
-        highlight_deleted,
         "organization",
         "revenue_program",
         "slug",
         "is_live",
         "published_date",
-    ) + SafeDeleteAdmin.list_display
-
-    list_filter = ("revenue_program",) + SafeDeleteAdmin.list_filter
+    )
+    list_filter = ("revenue_program",)
 
     order = (
         "created",
@@ -119,6 +118,23 @@ class DonationPageAdmin(DonationPageAdminAbstract, SafeDeleteAdmin):
 
     # Overriding this template to add the `admin_limited_select` inclusion tag
     change_form_template = "pages/donationpage_changeform.html"
+
+    def reversion_register(self, model, **options):
+        """Set django-reversion options on registered model...
+
+        We explicitly follow `contribution_set` in order to enable `contribution.donation_page`
+        to be restored from null to a donation page instance if a contribution's donation page
+        has been deleted, but is subsequently restored.
+
+        We explicitly follow `revenue_program` here in order to ensure that a revenue program's
+        `default_donation_page` value is restored from null to a donation page instance, if that
+        donation page has been deleted but is subsequently restored.
+        """
+        options["follow"] = (
+            "contribution_set",
+            "revenue_program",
+        )
+        super().reversion_register(model, **options)
 
     @admin.action(description="Make templates from selected pages")
     def make_template(self, request, queryset):
@@ -149,7 +165,7 @@ class DonationPageAdmin(DonationPageAdminAbstract, SafeDeleteAdmin):
 
 
 @admin.register(models.Style)
-class StyleAdmin(RevEngineSimpleHistoryAdmin):
+class StyleAdmin(VersionAdmin):
     list_display = (
         "name",
         "revenue_program",
@@ -169,7 +185,7 @@ class StyleAdmin(RevEngineSimpleHistoryAdmin):
 
 
 @admin.register(models.Font)
-class FontAdmin(RevEngineSimpleHistoryAdmin):
+class FontAdmin(VersionAdmin):
     list_display = (
         "name",
         "source",

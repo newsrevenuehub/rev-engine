@@ -18,10 +18,8 @@ steps:
 #  - 'push'
 #  - 'us-central1-docker.pkg.dev/$PROJECT_ID/nre-repository/nre-cloudbuild:$SHORT_SHA'
 
-# TODO: figure out how to cache
 - name: 'gcr.io/kaniko-project/executor:latest'
   args:
-#  - --destination=gcr.io/$PROJECT_ID/image
   - --destination=us-central1-docker.pkg.dev/$PROJECT_ID/nre-repository/nre-cloudbuild:$SHORT_SHA
   - --cache=true
   - --cache-ttl=24h
@@ -57,7 +55,6 @@ steps:
     cd nre-config && \
     git checkout candidate && \
     git config user.email $(gcloud auth list --filter=status:ACTIVE --format='value(account)') && \
-    ls -lR
 
 
 # This step generates the new manifest

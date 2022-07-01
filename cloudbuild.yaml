@@ -33,10 +33,10 @@ steps:
   args:
   - '-c'
   - |
-    git clone https://github.com/newsrevenuehub/nre-config && \
-    cd nre-config && \
-    git checkout candidate && \
-    git config user.email $(gcloud auth list --filter=status:ACTIVE --format='value(account)')
+    git clone https://github.com/newsrevenuehub/nre-config # && \
+    #    cd nre-config && \
+    #git checkout candidate && \
+    #git config user.email $(gcloud auth list --filter=status:ACTIVE --format='value(account)')
 
 # This step generates the new manifest
 - name: 'gcr.io/cloud-builders/gcloud'

@@ -11,12 +11,11 @@ from stripe.error import RateLimitError
 
 from apps.contributions.models import Contribution, ContributionStatus
 from apps.contributions.payment_managers import PaymentProviderError
+from apps.contributions.serializers import PaymentProviderContributionSerializer
 from apps.contributions.stripe_contributions_provider import (
-    append_stripe_charges_to_cache,
-    fetch_stripe_charges,
-    fetch_stripe_customers,
-    prepare_customers_query,
-    save_stripe_charges_to_cache,
+    ContributionsCacheProvider,
+    StripeCharge,
+    StripeContributionsProvider,
 )
 
 
@@ -69,16 +68,25 @@ def auto_accept_flagged_contributions():
 
 
 @shared_task(bind=True, autoretry_for=(RateLimitError,), retry_backoff=True, retry_kwargs={"max_retries": 3})
-def task_pull_serialized_stripe_contributions_to_cache(self, email_id):
-    customers_result = fetch_stripe_customers(email_id)
-    for customer_query in prepare_customers_query(customers_result):
-        task_pull_charges.delay(email_id, customer_query)
+def task_pull_serialized_stripe_contributions_to_cache(self, email_id, stripe_account_id):
+    provider = StripeContributionsProvider(email_id, stripe_account_id)
+    for customer_query in provider.generate_chunked_customers_query():
+        task_pull_charges.delay(email_id, customer_query, stripe_account_id)
 
 
 @shared_task(bind=True, autoretry_for=(RateLimitError,), retry_backoff=True, retry_kwargs={"max_retries": 3})
-def task_pull_charges(self, email_id, customers_query):
-    charge_response = fetch_stripe_charges(query=customers_query)
-    save_stripe_charges_to_cache(email_id, charge_response)
+def task_pull_charges(self, email_id, customers_query, stripe_account_id):
+    provider = StripeContributionsProvider(email_id, stripe_account_id)
+    cache_provider = ContributionsCacheProvider(
+        email_id,
+        stripe_account_id,
+        serializer=PaymentProviderContributionSerializer,
+        converter=StripeCharge,
+    )
+
+    charge_response = provider.fetch_charges(query=customers_query)
+    cache_provider.upsert(charge_response)
+
     while charge_response.has_more:
-        charge_response = fetch_stripe_charges(query=customers_query, page=charge_response.next_page)
-        append_stripe_charges_to_cache(email_id, charge_response)
+        charge_response = provider.fetch_charges(query=customers_query, page=charge_response.next_page)
+        cache_provider.upsert(charge_response)

@@ -1,6 +1,7 @@
 import json
 import logging
 from datetime import datetime
+from functools import cached_property
 
 from django.conf import settings
 from django.core.cache import caches
@@ -38,7 +39,7 @@ class NoInvoiceGeneratedError(ContributionIgnorableError):
     pass
 
 
-class ChargeDetails:
+class AttrDict:
     def __init__(self, **kwargs) -> None:
         for key, val in kwargs.items():
             setattr(self, key, val)
@@ -135,61 +136,76 @@ class StripeCharge:
         return self.charge.id
 
 
-def chunk_list(data, size):
-    for i in range(0, len(data), size):
-        yield data[i : i + size]
+class StripeContributionsProvider:
+    def __init__(self, email_id, stripe_account_id) -> None:
+        self.email_id = email_id
+        self.stripe_account_id = stripe_account_id
+
+    @cached_property
+    def customers(self):
+        customers_responswe = stripe.Customer.search(
+            query=f"email:'{self.email_id}'",
+            limit=MAX_STRIPE_RESPONSE_LIMIT,
+            stripe_account=self.stripe_account_id,
+        )
+        return [customer.id for customer in customers_responswe.auto_paging_iter()]
+
+    @staticmethod
+    def chunk_list(data, size):
+        for i in range(0, len(data), size):
+            yield data[i : i + size]
+
+    def generate_chunked_customers_query(self):
+        for customers_chunk in self.chunk_list(self.customers, MAX_STRIPE_CUSTOMERS_LIMIT):
+            yield " OR ".join([f"customer:'{customer_id}'" for customer_id in customers_chunk])
+
+    def fetch_charges(self, query=None, page=None):
+        kwargs = {
+            "query": query,
+            "expand": ["data.invoice", "data.payment_method_details"],
+            "limit": MAX_STRIPE_RESPONSE_LIMIT,
+            "stripe_account": self.stripe_account_id,
+        }
+
+        if page:
+            kwargs["page"] = page
+
+        return stripe.Charge.search(**kwargs)
 
 
-def prepare_customers_query(customers):
-    for customers_chunk in chunk_list(customers, MAX_STRIPE_CUSTOMERS_LIMIT):
-        yield " OR ".join([f"customer:'{customer_id}'" for customer_id in customers_chunk])
+class ContributionsCacheProvider:
+    def __init__(self, email_id, account_id=None, serializer=None, converter=None) -> None:
+        self.cache = caches[CONTRIBUTION_CACHE_DB]
+        self.serializer = serializer
+        self.converter = converter
 
+        self.key = f"{email_id}"
+        if account_id:
+            self.key = f"{self.key}-{account_id}"
 
-def fetch_stripe_customers(email_id):
-    results = stripe.Customer.search(query=f"email:'{email_id}'", limit=MAX_STRIPE_RESPONSE_LIMIT)
+    def serialize(self, contributions):
+        data = {}
+        for contribution in contributions:
+            try:
+                serialized_obj = PaymentProviderContributionSerializer(instance=StripeCharge(contribution))
+                data[contribution.id] = serialized_obj.data
+            except ContributionIgnorableError as ex:
+                logger.exception("This can be ignored")
+        return data
 
-    return [customer.id for customer in results.auto_paging_iter()]
+    def upsert(self, contributions):
+        data = self.serialize(contributions)
+        cached_data = self.cache.get(self.key)
 
+        if cached_data:
+            cached_data = json.loads(cached_data)
+            data.update(cached_data)
 
-def fetch_stripe_charges(query=None, page=None):
-    kwargs = {
-        "query": query,
-        "expand": ["data.invoice", "data.payment_method_details"],
-        "limit": MAX_STRIPE_RESPONSE_LIMIT,
-    }
+        with self.cache.lock(f"{self.key}-lock"):
+            self.cache.set(self.key, json.dumps(data), timeout=CONTRIBUTION_CACHE_TTL.seconds)
 
-    if page:
-        kwargs["page"] = page
-
-    return stripe.Charge.search(**kwargs)
-
-
-def serialize_stripe_charges(charges):
-    data = {}
-    for charge in charges:
-        try:
-            serializer = PaymentProviderContributionSerializer(instance=StripeCharge(charge))
-            data[charge.id] = serializer.data
-        except ContributionIgnorableError as ex:
-            logger.info(ex)
-    return data
-
-
-def save_stripe_charges_to_cache(email_id, charges):
-    serialized_charges = serialize_stripe_charges(charges)
-    caches[CONTRIBUTION_CACHE_DB].set(email_id, json.dumps(serialized_charges), timeout=CONTRIBUTION_CACHE_TTL.seconds)
-
-
-def append_stripe_charges_to_cache(email_id, charges):
-    serialized_charges = serialize_stripe_charges(charges)
-    cached_data = caches[CONTRIBUTION_CACHE_DB].get(email_id)
-    if cached_data:
-        serialized_charges.update(json.loads(cached_data))
-    caches[CONTRIBUTION_CACHE_DB].set(email_id, json.dumps(serialized_charges), timeout=CONTRIBUTION_CACHE_TTL.seconds)
-
-
-def load_stripe_data_from_cache(email_id):
-    data = caches[CONTRIBUTION_CACHE_DB].get(email_id)
-    if not data:
-        return []
-    return [ChargeDetails(**x) for x in json.loads(data).values()]
+    def load(self):
+        data = self.cache.get(self.key)
+        if not data:
+            return []
+        return [AttrDict(**x) for x in json.loads(data).values()]

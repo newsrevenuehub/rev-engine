@@ -22,6 +22,7 @@ from apps.api.tokens import ContributorRefreshToken
 from apps.contributions.serializers import ContributorSerializer
 from apps.contributions.tasks import task_pull_serialized_stripe_contributions_to_cache
 from apps.emails.tasks import send_templated_email
+from apps.organizations.models import RevenueProgram
 
 
 logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
@@ -145,7 +146,6 @@ class RequestContributorTokenEmailView(APIView):
 
     def post(self, request, *args, **kwargs):
         serializer = ContributorObtainTokenSerializer(data=request.data)
-
         try:
             serializer.is_valid(raise_exception=True)
             data = serializer.data
@@ -158,7 +158,9 @@ class RequestContributorTokenEmailView(APIView):
 
             # Pull contributions from Stripe and store the serialized data in cache whose TTL is configured with the
             # magic_link life time
-            task_pull_serialized_stripe_contributions_to_cache.delay(email)
+            revenue_program = RevenueProgram.objects.get(slug=data.get("subdomain"))
+            task_pull_serialized_stripe_contributions_to_cache.delay(email, revenue_program.stripe_account_id)
+
             magic_link = f"{domain}/{settings.CONTRIBUTOR_VERIFY_URL}?token={token}&email={email}"
             logger.info("Sending magic link email to [%s] | magic link: [%s]", email, magic_link)
             send_templated_email(

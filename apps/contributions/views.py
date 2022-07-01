@@ -25,7 +25,7 @@ from apps.contributions.payment_managers import (
     PaymentProviderError,
     StripePaymentManager,
 )
-from apps.contributions.stripe_contributions_provider import load_stripe_data_from_cache
+from apps.contributions.stripe_contributions_provider import ContributionsCacheProvider
 from apps.contributions.tasks import task_pull_serialized_stripe_contributions_to_cache
 from apps.contributions.utils import get_sha256_hash
 from apps.contributions.webhooks import StripeWebhookProcessor
@@ -288,17 +288,20 @@ class ContributionsViewSet(viewsets.ReadOnlyModelViewSet, FilterQuerySetByUserMi
 
     def get_object(self):
         if isinstance(self.request.user, Contributor):
-            data = load_stripe_data_from_cache(self.request.user.email)
-            return data[self.kwargs.get("pk")]
-
+            return {}
         return super().get_object()
 
     def get_queryset(self):
         # load contributions from cache if the user is a contributor
         if isinstance(self.request.user, Contributor):
-            contributions = load_stripe_data_from_cache(self.request.user.email)
+            revenue_program = RevenueProgram.objects.get(slug=self.request.query_params["rp"])
+            cache_provider = ContributionsCacheProvider(self.request.user.email, revenue_program.stripe_account_id)
+
+            contributions = cache_provider.load()
             if not contributions:
-                task_pull_serialized_stripe_contributions_to_cache.delay(self.request.user.email)
+                task_pull_serialized_stripe_contributions_to_cache.delay(
+                    self.request.user.email, revenue_program.stripe_account_id
+                )
             return contributions
 
         # this is supplied by FilterQuerySetByUserMixin

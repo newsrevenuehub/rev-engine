@@ -246,6 +246,12 @@ class RevenueProgram(IndexedTimeStampedModel):
         benefit_levels = self.benefitlevel_set.all()
         return [(c.name, c.pk) for c in benefit_levels]
 
+    @property
+    def stripe_account_id(self):
+        if not self.payment_provider:
+            return None
+        return self.payment_provider.stripe_account_id
+
     def __str__(self):
         return self.name
 

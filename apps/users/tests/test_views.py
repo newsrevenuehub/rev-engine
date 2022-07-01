@@ -61,7 +61,7 @@ class TestCustomPasswordResetConfirm(TestCase):
         self.user.organizations.add(organization)
 
     def request_password_reset(self):
-        response = self.client.post(reverse("orgadmin_password_reset"), {"email": self.user.email}, follow=True)
+        self.client.post(reverse("orgadmin_password_reset"), {"email": self.user.email}, follow=True)
         self.assertEqual(len(self.mailbox), 1)
         uidb64, token = self.mailbox[0].body.split("reset/")[1].split("/")[0:2]
         return uidb64, token

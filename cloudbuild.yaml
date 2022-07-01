@@ -26,17 +26,37 @@ steps:
   - --cache=true
   - --cache-ttl=24h
 
-# This step clones the config repository
+- name: 'gcr.io/cloud-builders/git'
+  secretEnv: ['SSH_KEY']
+  entrypoint: 'bash'
+  args:
+  - -c
+  - |
+    echo "$$SSH_KEY" >> /root/.ssh/id_rsa
+    chmod 400 /root/.ssh/id_rsa
+    cp known_hosts.github /root/.ssh/known_hosts
+  volumes:
+  - name: 'ssh'
+    path: /root/.ssh
+
+# Clone the repository
+- name: 'gcr.io/cloud-builders/git'
+  args:
+  - clone
+  - git@github.com:newsrevenuehub/nre-config
+  volumes:
+  - name: 'ssh'
+    path: /root/.ssh
+
 - name: 'gcr.io/cloud-builders/gcloud'
-  id: Clone env repository
+  id: checkout candidate branch
   entrypoint: /bin/sh
   args:
   - '-c'
   - |
-    git clone git@github.com:newsrevenuehub/nre-config # && \
-    #    cd nre-config && \
-    #git checkout candidate && \
-    #git config user.email $(gcloud auth list --filter=status:ACTIVE --format='value(account)')
+    cd nre-config && \
+    git checkout candidate && \
+    git config user.email $(gcloud auth list --filter=status:ACTIVE --format='value(account)')
 
 # This step generates the new manifest
 - name: 'gcr.io/cloud-builders/gcloud'
@@ -60,6 +80,14 @@ steps:
     Built from commit ${COMMIT_SHA} of repository nre-config
     Author: $(git log --format='%an <%ae>' -n 1 HEAD)" && \
     git push origin candidate
+  volumes:
+  - name: 'ssh'
+    path: /root/.ssh
+
+availableSecrets:
+  secretManager:
+  - versionName: projects/revenue-engine/secrets/ssh-key-for-github-nre-config/versions/latest
+    env: 'SSH_KEY'
 
 timeout: 1200s
 options:

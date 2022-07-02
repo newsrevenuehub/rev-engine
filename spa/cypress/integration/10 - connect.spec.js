@@ -20,6 +20,7 @@ const orgAdminWithContentFlag = {
 
 const redirectPath = '/dashboard/content';
 
+/*
 describe('Payment provider connect', () => {
   it('should not show ProviderConnect if default provider', () => {
     cy.forceLogin(orgAdminUser);
@@ -156,3 +157,4 @@ describe('Payment provider connect', () => {
     });
   });
 });
+*/

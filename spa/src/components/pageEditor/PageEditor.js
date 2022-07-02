@@ -355,7 +355,7 @@ function PageEditor() {
             <EditInterface />
           </AnimatePresence>
         )}
-        {page && (
+        {!loading && page && (
           <SegregatedStyles page={page}>
             {/* set stringified page as key to guarantee that ALL page changes will re-render the page in edit mode */}
             <DonationPage key={page ? JSON.stringify(page) : ''} live={false} page={page} />

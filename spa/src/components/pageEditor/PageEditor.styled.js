@@ -9,7 +9,7 @@ export const PageEditor = styled.div`
 export const ButtonOverlayOuter = styled.div`
   position: fixed;
   left: 0;
-  top: 0;
+  top: 48px;
   width: 90px;
   background-color: #fff;
   height: 100%;

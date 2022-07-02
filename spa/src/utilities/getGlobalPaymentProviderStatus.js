@@ -15,6 +15,9 @@ function getGlobalPaymentProviderStatus(user) {
   const organization = Boolean(organizations) ? organizations[0] : null;
   const dontNeedProviderTypes = [USER_ROLE_HUB_ADMIN_TYPE, USER_SUPERUSER_TYPE];
   const roleType = user.role_type[0];
+
+  return PP_STATES.CONNECTED;
+  /*
   if (dontNeedProviderTypes.includes(roleType)) {
     // superusers and hub admins have pan-org access, and don't need to set payment providers
     return PP_STATES.CONNECTED;
@@ -24,7 +27,7 @@ function getGlobalPaymentProviderStatus(user) {
     return getStripePaymentManagerProviderStatus(accountIdPresent, accountVerified);
   } else {
     return undefined;
-  }
+  }*/
 }
 
 function getStripePaymentManagerProviderStatus(accountIdPresent, accountVerified) {

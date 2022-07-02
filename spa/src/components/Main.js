@@ -17,6 +17,8 @@ const FeatureFlagsProviderContext = createContext(null);
 function Main() {
   // Organization Context management
   const [checkingProvider, setCheckingProvider] = useState(false);
+
+  // Given we are tying payment_provider at RP level, all this can be cleaned.
   const [paymentProviderConnectState, setPaymentProviderConnectState] = useState(
     getGlobalPaymentProviderStatus(JSON.parse(localStorage.getItem(LS_USER)))
   );

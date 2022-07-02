@@ -361,6 +361,7 @@ function PageEditor() {
             <DonationPage key={page ? JSON.stringify(page) : ''} live={false} page={page} />
           </SegregatedStyles>
         )}
+
         {page && (
           <S.ButtonOverlayOuter>
             <S.ButtonOverlay>

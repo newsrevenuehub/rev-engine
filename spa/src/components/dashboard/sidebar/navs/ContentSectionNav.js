@@ -6,7 +6,7 @@ import { ICONS } from 'assets/icons/SvgIcon';
 function ContentSectionNav() {
   return (
     <S.NavSection aria-labelledby="content-section-id">
-      <S.Divider />
+      <br />
       <S.SectionLabel id="content-section-id">Content</S.SectionLabel>
       <S.NavItem aria-labelledby="pages-nav-item-id" role="listitem" data-testid="nav-pages-item" to={CONTENT_SLUG}>
         <S.NavItemIcon icon={ICONS.PAGES} />

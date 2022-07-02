@@ -12,6 +12,15 @@ import {
 import flagIsActiveForUser from 'utilities/flagIsActiveForUser';
 import { useFeatureFlagsProviderContext } from 'components/Main';
 
+function DashboardMain() {
+  return (
+    <S.NavItemLabel>
+      <S.NavItemIcon icon={ICONS.DASHBOARD} />
+      <S.SideBarText id="sidebar-label-id">Dashboard</S.SideBarText>
+    </S.NavItemLabel>
+  );
+}
+
 function DashboardSidebar() {
   const { featureFlags } = useFeatureFlagsProviderContext();
 
@@ -21,10 +30,6 @@ function DashboardSidebar() {
   return (
     <S.DashboardSidebar>
       <S.NavList role="list" data-testid="nav-list" aria-labelledby="sidebar-label-id">
-        <S.NavItemLabel>
-          <S.NavItemIcon icon={ICONS.DASHBOARD} />
-          <S.SideBarText id="sidebar-label-id">Dashboard</S.SideBarText>
-        </S.NavItemLabel>
         {hasContentSectionAccess ? <ContentSectionNav /> : null}
         {hasContributionsSectionAccess ? <ContributionSectionNav /> : null}
       </S.NavList>

@@ -27,7 +27,6 @@ function DashboardSidebar() {
         </S.NavItemLabel>
         {hasContentSectionAccess ? <ContentSectionNav /> : null}
         {hasContributionsSectionAccess ? <ContributionSectionNav /> : null}
-        />
       </S.NavList>
     </S.DashboardSidebar>
   );

@@ -143,12 +143,12 @@ class StripeContributionsProvider:
 
     @cached_property
     def customers(self):
-        customers_responswe = stripe.Customer.search(
+        customers_response = stripe.Customer.search(
             query=f"email:'{self.email_id}'",
             limit=MAX_STRIPE_RESPONSE_LIMIT,
             stripe_account=self.stripe_account_id,
         )
-        return [customer.id for customer in customers_responswe.auto_paging_iter()]
+        return [customer.id for customer in customers_response.auto_paging_iter()]
 
     @staticmethod
     def chunk_list(data, size):

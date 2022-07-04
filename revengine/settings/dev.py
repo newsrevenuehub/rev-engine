@@ -55,25 +55,3 @@ FRONTEND_BUILD_DIR = Path(BASE_DIR) / "spa/public"
 TEMPLATES[0]["DIRS"] = [FRONTEND_BUILD_DIR, os.path.join(PROJECT_DIR, "templates")]
 
 ESP_TEMPLATE_ID_FOR_CONTRIBUTION_CONFIRMATION = "someFakeValue"
-
-REDIS_URL = os.getenv("REDIS_TLS_URL", os.getenv("REDIS_URL", "redis://redis:6379"))
-CACHE_HOST = REDIS_URL
-CONNECTION_POOL_KWARGS = {}
-if CACHE_HOST.startswith("rediss"):
-    import ssl
-
-    # See: https://github.com/mirumee/saleor/issues/6926
-    CONNECTION_POOL_KWARGS = {
-        "ssl_cert_reqs": ssl.CERT_NONE,
-    }
-
-CACHES = {
-    "default": {
-        "BACKEND": "django_redis.cache.RedisCache",
-        "LOCATION": f"{CACHE_HOST}/0",
-        "OPTIONS": {
-            "CLIENT_CLASS": "django_redis.client.DefaultClient",
-            "CONNECTION_POOL_KWARGS": CONNECTION_POOL_KWARGS,
-        },
-    }
-}

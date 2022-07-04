@@ -298,11 +298,12 @@ class ContributionsViewSet(viewsets.ReadOnlyModelViewSet, FilterQuerySetByUserMi
             cache_provider = ContributionsCacheProvider(self.request.user.email, revenue_program.stripe_account_id)
 
             contributions = cache_provider.load()
+            # trigger celery task to pull contributions and load to cache if the cache is empty
             if not contributions:
                 task_pull_serialized_stripe_contributions_to_cache.delay(
                     self.request.user.email, revenue_program.stripe_account_id
                 )
-            return contributions
+            return [x for x in contributions if x.revenue_program == self.request.query_params["rp"]]
 
         # this is supplied by FilterQuerySetByUserMixin
         return self.filter_queryset_for_user(self.request.user, self.model.objects.all())

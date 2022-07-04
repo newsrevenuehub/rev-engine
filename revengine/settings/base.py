@@ -126,9 +126,8 @@ CONTRIBUTOR_MAGIC_LINK_REQUEST_THROTTLE_RATE = os.getenv("CONTRIBUTOR_MAGIC_LINK
 
 USER_TTL = timedelta(hours=24)
 
-# Set cache TTL to magic link token lifetime so that the stipe contributions in cache will expire with it
-# and contributions will again pulled from stripe and stored in cache with the magic link request.
-CONTRIBUTION_CACHE_TTL = CONTRIBUTOR_LONG_TOKEN_LIFETIME
+# Contributions cache set to 30 minutes < CONTRIBUTOR_LONG_TOKEN_LIFETIME
+CONTRIBUTION_CACHE_TTL = timedelta(minutes=30)
 CONTRIBUTION_CACHE_DB = "default"
 
 AUTH_COOKIE_KEY = "Authorization"
@@ -167,6 +166,29 @@ if os.getenv("DATABASE_URL"):
         ssl_require=os.getenv("DATABASE_SSL", False),
     )
     DATABASES["default"].update(db_from_env)
+
+
+REDIS_URL = os.getenv("REDIS_TLS_URL", os.getenv("REDIS_URL", "redis://redis:6379"))
+CACHE_HOST = REDIS_URL
+CONNECTION_POOL_KWARGS = {}
+if CACHE_HOST.startswith("rediss"):
+    import ssl
+
+    # See: https://github.com/mirumee/saleor/issues/6926
+    CONNECTION_POOL_KWARGS = {
+        "ssl_cert_reqs": ssl.CERT_NONE,
+    }
+
+CACHES = {
+    "default": {
+        "BACKEND": "django_redis.cache.RedisCache",
+        "LOCATION": f"{CACHE_HOST}/0",
+        "OPTIONS": {
+            "CLIENT_CLASS": "django_redis.client.DefaultClient",
+            "CONNECTION_POOL_KWARGS": CONNECTION_POOL_KWARGS,
+        },
+    }
+}
 
 
 # Password validation

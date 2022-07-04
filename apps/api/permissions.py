@@ -100,7 +100,7 @@ class HasDeletePrivilegesViaRole(_BaseAssumedViewAndModelMixin):
             return pk is not None and view.model.user_has_delete_permission_by_virtue_of_role(request.user, instance)
         except view.model.DoesNotExist:
             logger.warning(
-                f"`HasDeletePrivilegesViaRole.has_permission` cannot find the requested instance with pk {pk}"
+                "`HasDeletePrivilegesViaRole.has_permission` cannot find the requested instance with pk %s", pk
             )
             return False
 

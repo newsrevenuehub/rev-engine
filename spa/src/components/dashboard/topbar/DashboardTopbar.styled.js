@@ -45,7 +45,7 @@ export const TopLogoMobile = styled.div`
 export const Logo = styled.img`
   margin-top: 8px;
   height: 29px;
-  padding-left: 10px;
+  padding-left: 26px;
 
   @media (${(props) => props.theme.breakpoints.tabletLandscapeDown}) {
     height: 29px;

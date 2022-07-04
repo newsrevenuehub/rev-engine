@@ -16,16 +16,14 @@ jest.mock('utilities/flagIsActiveForUser', () => ({
 
 it('should have expected appearance and links', () => {
   render(<DashboardSidebar />);
-  const sidebar = screen.getByRole('list', { name: /Dashboard/ });
-
-  const contentNavSection = within(sidebar).getByRole('navigation', { name: /Content/ });
+  const contentNavSection = screen.getByRole('navigation', { name: /Content/ });
   expect(within(contentNavSection).getByRole('listitem', { name: /Pages/ })).toHaveAttribute('href', CONTENT_SLUG);
   expect(within(contentNavSection).getByRole('listitem', { name: /Customize/ })).toHaveAttribute(
     'href',
     CUSTOMIZE_SLUG
   );
 
-  const activityNavSection = within(sidebar).getByRole('navigation', { name: /Activity/ });
+  const activityNavSection = screen.getByRole('navigation', { name: /Activity/ });
   expect(within(activityNavSection).getByRole('listitem', { name: /Contributions/ })).toHaveAttribute(
     'href',
     DONATIONS_SLUG

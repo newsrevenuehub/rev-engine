@@ -10,7 +10,6 @@ from apps.common.tests.test_utils import setup_request
 from apps.contributions.admin import BadActorScoreFilter, ContributionAdmin
 from apps.contributions.models import Contribution, ContributionStatus
 from apps.contributions.tests.factories import ContributionFactory
-from apps.organizations.models import RevenueProgram
 from apps.organizations.tests.factories import (
     OrganizationFactory,
     PaymentProviderFactory,

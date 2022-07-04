@@ -38,7 +38,7 @@ class PageFullDetailHelper:
         try:
             self.revenue_program = RevenueProgram.objects.get(slug=self.revenue_program_slug)
         except RevenueProgram.DoesNotExist:
-            logger.warning(f'Request for page with non-existent RevenueProgram by slug "{self.revenue_program_slug}" ')
+            logger.info('Request for page with non-existent RevenueProgram by slug "%s"', self.revenue_program_slug)
             raise PageDetailError(
                 message="Could not find revenue program matching those parameters", status=status.HTTP_404_NOT_FOUND
             )
@@ -54,7 +54,13 @@ class PageFullDetailHelper:
             else self.revenue_program.default_donation_page
         )
         if not self.donation_page:
-            logger.warning(f'Request for non-existent page by slug "{self.page_slug}" ')
+            if self.page_slug:
+                logger.info('Request for non-existent page by slug "%s"', self.page_slug)
+            else:
+                logger.info(
+                    'Request for default donation page, but no default page set for revenue program "%s"',
+                    self.revenue_program.name,
+                )
             raise PageDetailError(
                 message="Could not find page matching those parameters", status=status.HTTP_404_NOT_FOUND
             )
@@ -71,12 +77,14 @@ class PageFullDetailHelper:
           - If the page is requested live, the Organization has a verified payment provider
         """
         if not self.donation_page.is_live:
-            logger.info(f'Request for un-published page "{self.donation_page}" ')
+            logger.info('Request for un-published page "%s"', self.donation_page)
             raise PageDetailError(message="This page has not been published", status=status.HTTP_404_NOT_FOUND)
 
         if not self.revenue_program.payment_provider.is_verified_with_default_provider():
             logger.info(
-                f'Request made for live page "{self.donation_page}", but "{self.donation_page.organization.name}" does is not verified with its default payment provider'
+                'Request made for live page "%s", but "%s" does is not verified with its default payment provider',
+                self.donation_page,
+                self.donation_page.organization.name,
             )
             raise PageDetailError(
                 message="RevenueProgram does not have a fully verified payment provider",

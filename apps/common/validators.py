@@ -37,8 +37,13 @@ class ValidateFkReferenceOwnership:
         the default one.
         """
         if not set(expected_params).issubset(set(fn.__code__.co_varnames)):
-            logger.warn("`ValidateFkReferenceOwnership` initialized with  ")
-            raise serializers.ValidationError("Somethin")
+            logger.warning(
+                "`ValidateFkReferenceOwnership` initialized with function whose signature is unexpected: %s",
+                fn.__code__.co_varnames,
+            )
+            raise serializers.ValidationError(
+                "`ValidateFkReferenceOwnership` initialized with fucnction with unexpected signature"
+            )
 
     def __init__(self, fk_attribute, has_default_access_fn=_has_ensured_user_ownership_by_default):
         """
@@ -75,7 +80,7 @@ class ValidateFkReferenceOwnership:
             if instance is None:
                 return
             if not instance.user_has_ownership_via_role(ra):
-                logger.warn(
+                logger.warning(
                     "User with role assignment [%s] attempted to access unowned resource: [%s]: [%s]",
                     ra,
                     instance.pk,

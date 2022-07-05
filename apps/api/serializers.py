@@ -6,7 +6,7 @@ from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 import apps.api.error_messages  # noqa
 from apps.api.tokens import ContributorRefreshToken
 from apps.contributions.models import Contributor
-from apps.organizations.models import SLUG_MAX_LENGTH
+from apps.organizations.models import DOMAIN_MAX_LENGTH
 from apps.users.serializers import UserSerializer
 
 
@@ -39,9 +39,9 @@ class ContributorObtainTokenSerializer(serializers.Serializer):
 
     email = serializers.EmailField()
     access = serializers.CharField(required=False)  # Token used in magic-link url/email.
-    # Domains are limited to 63 characters max. No underscore allowed, unlike slugs.
+
     subdomain = serializers.RegexField(
-        r"^[-0-9a-zA-Z]+$", max_length=SLUG_MAX_LENGTH, required=False, allow_blank=True
+        r"^[-0-9a-zA-Z]+$", max_length=DOMAIN_MAX_LENGTH, required=False, allow_blank=True
     )  # rp_slug / subdomain used in magic-link url/email.
 
     @classmethod

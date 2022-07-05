@@ -18,7 +18,7 @@ from apps.users.models import RoleAssignmentResourceModelMixin, UnexpectedRoleTy
 logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
 
 # RFC-1035 limits domain labels to 63 characters
-SLUG_MAX_LENGTH = 63
+DOMAIN_MAX_LENGTH = 63
 
 
 class Feature(IndexedTimeStampedModel):
@@ -78,7 +78,7 @@ class Organization(IndexedTimeStampedModel, RoleAssignmentResourceModelMixin):
     salesforce_id = models.CharField(max_length=255, blank=True, verbose_name="Salesforce ID")
 
     slug = models.SlugField(
-        max_length=SLUG_MAX_LENGTH,
+        max_length=DOMAIN_MAX_LENGTH,
         unique=True,
         validators=[validate_slug_against_denylist],
     )
@@ -186,7 +186,7 @@ class BenefitLevelBenefit(models.Model):
 class RevenueProgram(IndexedTimeStampedModel):
     name = models.CharField(max_length=255)
     slug = models.SlugField(
-        max_length=SLUG_MAX_LENGTH,
+        max_length=DOMAIN_MAX_LENGTH,
         blank=True,
         unique=True,
         help_text="This will be used as the subdomain for donation pages made under this revenue program. If left blank, it will be derived from the Revenue Program name.",
@@ -251,8 +251,8 @@ class RevenueProgram(IndexedTimeStampedModel):
 
     def clean_fields(self, **kwargs):
         if not self.id:
-            self.slug = normalize_slug(self.name, self.slug, max_length=SLUG_MAX_LENGTH)
-            self.slug = normalize_slug(slug=self.slug, max_length=SLUG_MAX_LENGTH)
+            self.slug = normalize_slug(self.name, self.slug, max_length=DOMAIN_MAX_LENGTH)
+            self.slug = normalize_slug(slug=self.slug, max_length=DOMAIN_MAX_LENGTH)
         super().clean_fields(**kwargs)
 
     def clean(self):

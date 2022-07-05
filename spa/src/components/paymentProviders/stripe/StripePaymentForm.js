@@ -218,26 +218,23 @@ function StripePaymentForm({ loading, setLoading, offerPayFees }) {
   useEffect(() => {
     const rpIsNonProfit = page.revenue_program_is_nonprofit;
     const amnt = amountToCents(getTotalAmount(amount, payFee, frequency, rpIsNonProfit));
-
     let disabledWallets = [];
 
-    if (page.elements) {
-      for (let ind in page.elements) {
-        let element = page.elements[ind];
+    (page?.elements || [])
+      .filter((elem) => elem.type === 'DPayment')
+      .forEach((paymentType) => {
+        let stripeDisabled = paymentType.content.stripe;
 
-        if (element.type === 'DPayment') {
-          if (!element.content.stripe.includes('apple')) {
-            disabledWallets.push('applePay');
-          }
-          if (!element.content.stripe.includes('google')) {
-            disabledWallets.push('googlePay');
-          }
-          if (!element.content.stripe.includes('browser')) {
-            disabledWallets.push('browserCard');
-          }
+        if (!stripeDisabled.includes('apple')) {
+          disabledWallets.push('applePay');
         }
-      }
-    }
+        if (!stripeDisabled.includes('google')) {
+          disabledWallets.push('googlePay');
+        }
+        if (!stripeDisabled.includes('browser')) {
+          disabledWallets.push('browserCard');
+        }
+      });
 
     if (stripe && amountIsValid && !paymentRequest) {
       const pr = stripe.paymentRequest({

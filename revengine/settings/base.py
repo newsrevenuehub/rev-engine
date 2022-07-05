@@ -60,7 +60,6 @@ INSTALLED_APPS = [
     "waffle",
     "reversion",
     "reversion_compare",
-    "django_migration_linter",
     "django_test_migrations.contrib.django_checks.AutoNames",
 ]
 
@@ -460,11 +459,4 @@ ADD_REVERSION_ADMIN = True
 DTM_IGNORED_MIGRATIONS = {
     ("waffle", "*"),
     ("django_celery_beat", "*"),
-}
-
-MIGRATION_LINTER_OPTIONS = {
-    "no_cache": True,
-    "exclude_apps": ["db", "django_celery_beat", "reversion", "thumbnail", "waffle"],
-    "quiet": ["ignore", "ok"],
-    "exclude_migration_tests": ["CREATE_INDEX"],
 }

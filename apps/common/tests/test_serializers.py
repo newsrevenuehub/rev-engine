@@ -1,4 +1,3 @@
-from django.templatetags.static import static
 from django.test import RequestFactory, TestCase
 
 from apps.common.models import SocialMeta

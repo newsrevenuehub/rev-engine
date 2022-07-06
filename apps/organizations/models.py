@@ -252,7 +252,6 @@ class RevenueProgram(IndexedTimeStampedModel):
     def clean_fields(self, **kwargs):
         if not self.id:
             self.slug = normalize_slug(self.name, self.slug, max_length=DOMAIN_MAX_LENGTH)
-            self.slug = normalize_slug(slug=self.slug, max_length=DOMAIN_MAX_LENGTH)
         super().clean_fields(**kwargs)
 
     def clean(self):

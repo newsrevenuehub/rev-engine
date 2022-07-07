@@ -14,9 +14,14 @@ export const TopMenu = styled.div`
   flex: 1;
   text-align: right;
   padding: 0px 20px 0px 25px;
+`;
+
+export const LogoutLink = styled.div`
+  padding: 0px 0px 0px 25px;
   cursor: pointer;
   color: #fff;
-
+  max-width: 120px;
+  margin-left: auto;
   a {
     color: #fff;
   }

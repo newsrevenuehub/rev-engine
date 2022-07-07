@@ -223,15 +223,15 @@ function StripePaymentForm({ loading, setLoading, offerPayFees }) {
     (page?.elements || [])
       .filter((elem) => elem.type === 'DPayment')
       .forEach((paymentType) => {
-        let stripeDisabled = paymentType.content.stripe;
+        let enabledWalletsForPage = paymentType.content.stripe;
 
-        if (!stripeDisabled.includes('apple')) {
+        if (!enabledWalletsForPage.includes('apple')) {
           disabledWallets.push('applePay');
         }
-        if (!stripeDisabled.includes('google')) {
+        if (!enabledWalletsForPage.includes('google')) {
           disabledWallets.push('googlePay');
         }
-        if (!stripeDisabled.includes('browser')) {
+        if (!enabledWalletsForPage.includes('browser')) {
           disabledWallets.push('browserCard');
         }
       });

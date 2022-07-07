@@ -50,14 +50,19 @@ class ContributorObtainTokenSerializer(serializers.Serializer):
         """
         return ContributorRefreshToken.for_contributor(contributor.uuid)
 
+    @staticmethod
+    def _create_contributor_if_not_exists(data):
+        try:
+            return Contributor.objects.get(email=data.get("email"))
+        except Contributor.DoesNotExist:
+            return Contributor.objects.create(email=data.get("email"))
+
     def validate(self, attrs):
         """
         If email is valid and matches that of a known contributor, we provide a access token.
+        If email doesn't exist in NRE, we create a contributor and provide access token to that contributor.
         """
         data = super().validate(attrs)
-        try:
-            contributor = Contributor.objects.get(email=data.get("email"))
-        except Contributor.DoesNotExist:
-            raise NoSuchContributorError("Could not find contributor", code="no_contributor_email")
+        contributor = self._create_contributor_if_not_exists(data)
         data["access"] = str(self.get_token(contributor).short_lived_access_token)
         return data

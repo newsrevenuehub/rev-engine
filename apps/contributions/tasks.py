@@ -83,7 +83,6 @@ def task_pull_charges(self, email_id, customers_query, stripe_account_id):
         serializer=PaymentProviderContributionSerializer,
         converter=StripeCharge,
     )
-
     charge_response = provider.fetch_charges(query=customers_query)
     cache_provider.upsert(charge_response)
 

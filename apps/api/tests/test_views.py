@@ -19,6 +19,11 @@ from apps.api.tokens import ContributorRefreshToken
 from apps.api.views import TokenObtainPairCookieView, _construct_rp_domain
 from apps.contributions.models import Contributor
 from apps.contributions.tests.factories import ContributorFactory
+from apps.organizations.tests.factories import (
+    OrganizationFactory,
+    PaymentProviderFactory,
+    RevenueProgramFactory,
+)
 
 
 user_model = get_user_model()
@@ -87,6 +92,9 @@ class TokenObtainPairCookieViewTest(APITestCase):
 class RequestContributorTokenEmailViewTest(APITestCase):
     def setUp(self):
         self.contributor = ContributorFactory()
+        self.org = OrganizationFactory()
+        self.payment_provider = PaymentProviderFactory()
+        self.rp = RevenueProgramFactory(organization=self.org, payment_provider=self.payment_provider, slug="rp")
         self.url = reverse("contributor-token-request")
         self.outbox = mail.outbox
 
@@ -110,7 +118,7 @@ class RequestContributorTokenEmailViewTest(APITestCase):
 
     def test_token_appears_in_outbound_email(self):
         target_email = self.contributor.email
-        response = self.client.post(self.url, {"email": target_email, "subdomain": "rp"})
+        response = self.client.post(self.url, {"email": target_email, "subdomain": self.rp.slug})
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(self.outbox), 1)
         magic_link = (
@@ -125,7 +133,7 @@ class RequestContributorTokenEmailViewTest(APITestCase):
 
     def test_outbound_email_send_to_requested_address(self):
         target_email = self.contributor.email
-        response = self.client.post(self.url, {"email": target_email, "subdomain": "rp"})
+        response = self.client.post(self.url, {"email": target_email, "subdomain": self.rp.slug})
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(self.outbox[0].to), 1)
         self.assertEqual(self.outbox[0].to[0], target_email)
@@ -135,13 +143,17 @@ class RequestContributorTokenEmailViewTest(APITestCase):
 class VerifyContributorTokenViewTest(APITestCase):
     def setUp(self):
         self.contributor = ContributorFactory()
+        self.org = OrganizationFactory()
+        self.payment_provider = PaymentProviderFactory()
+        self.rp = RevenueProgramFactory(organization=self.org, payment_provider=self.payment_provider, slug="rp")
+
         self.url = reverse("contributor-verify-token")
         self.outbox = mail.outbox
         self.valid_token = self._get_valid_token()
 
     def _get_valid_token(self):
         response = self.client.post(
-            reverse("contributor-token-request"), {"email": self.contributor.email, "subdomain": "rp"}
+            reverse("contributor-token-request"), {"email": self.contributor.email, "subdomain": self.rp.slug}
         )
         self.assertEqual(response.status_code, 200)
         link = bs4(self.outbox[0].alternatives[0][0], "html.parser").find("a", {"data-testid": "magic-link"})
@@ -240,7 +252,7 @@ class AuthorizedContributorRequestsTest(RevEngineApiAbstractTestCase):
             )
 
         self.client.cookies["csrftoken"] = csrf._get_new_csrf_token()
-        return self.client.get(self.contributions_url)
+        return self.client.get(self.contributions_url, data={"rp": self.org1_rp1.slug})
 
     def test_contributor_request_when_token_valid(self):
         response = self._make_request()

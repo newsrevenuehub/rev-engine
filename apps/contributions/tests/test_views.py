@@ -20,6 +20,7 @@ from apps.common.constants import CONTRIBUTIONS_API_ENDPOINT_ACCESS_FLAG_NAME
 from apps.common.tests.test_resources import AbstractTestCase
 from apps.contributions.models import Contribution, ContributionInterval
 from apps.contributions.payment_managers import PaymentBadParamsError, PaymentProviderError
+from apps.contributions.serializers import PaymentProviderContributionSerializer
 from apps.contributions.tests.factories import ContributionFactory, ContributorFactory
 from apps.contributions.utils import get_sha256_hash
 from apps.contributions.views import stripe_payment
@@ -28,6 +29,7 @@ from apps.organizations.tests.factories import (
     OrganizationFactory,
     PaymentProviderFactory,
     RevenueProgramFactory,
+    StripeChargeFactory,
 )
 from apps.pages.models import DonationPage
 from apps.pages.tests.factories import DonationPageFactory
@@ -534,22 +536,6 @@ class TestContributionsViewSet(RevEngineApiAbstractTestCase):
         )
         self.assert_rp_user_cannot_get(self.contribution_detail_url(contrib_not_in_users_org_pk))
 
-    def test_contributor_can_get_their_contribution(self):
-        refresh_token = ContributorRefreshToken.for_contributor(self.contributor_user.uuid)
-        self.client.cookies["Authorization"] = refresh_token.long_lived_access_token
-        self.client.cookies["csrftoken"] = csrf._get_new_csrf_token()
-        my_contribution = self.contributor_user.contribution_set.first()
-        self.assert_contributor_can_get(self.contribution_detail_url(my_contribution.pk))
-
-    def test_contributor_cannot_get_others_contribution(self):
-        refresh_token = ContributorRefreshToken.for_contributor(self.contributor_user.uuid)
-        self.client.cookies["Authorization"] = refresh_token.long_lived_access_token
-        self.client.cookies["csrftoken"] = csrf._get_new_csrf_token()
-        not_my_contribution = Contribution.objects.exclude(contributor=self.contributor_user).first()
-        self.assert_contributor_cannot_get(
-            self.contribution_detail_url(not_my_contribution.pk), expected_status_code=status.HTTP_404_NOT_FOUND
-        )
-
     ######
     # List
     def test_super_user_can_list_all_contributions(self):
@@ -589,22 +575,6 @@ class TestContributionsViewSet(RevEngineApiAbstractTestCase):
         ).count()
         self.assert_rp_user_can_list(self.list_url, expected_count, assert_all=_ensure_all_contribs_belong_to_users_rps)
 
-    def test_contributor_can_list_their_contributions(self):
-        refresh_token = ContributorRefreshToken.for_contributor(self.contributor_user.uuid)
-        self.client.cookies["Authorization"] = refresh_token.long_lived_access_token
-        self.client.cookies["csrftoken"] = csrf._get_new_csrf_token()
-
-        def _ensure_all_contributions_belong_to_contributor(results):
-            contribution_ids = [result["id"] for result in results]
-            self.assertTrue(
-                set(contribution_ids).issubset(set(self.contributor_user.contribution_set.values_list("id", flat=True)))
-            )
-
-        expected_count = Contribution.objects.filter(contributor=self.contributor_user).count()
-        self.assert_contributor_user_can_list(
-            self.list_url, expected_count, assert_all=_ensure_all_contributions_belong_to_contributor
-        )
-
     def test_contributions_are_read_only_for_expected_users(self):
         detail_url = reverse("contribution-detail", args=(Contribution.objects.first().pk,))
         expected_users = (
@@ -628,6 +598,54 @@ class TestContributionsViewSet(RevEngineApiAbstractTestCase):
         )
 
 
+class TestContributorContributionsViewSet(RevEngineApiAbstractTestCase):
+    def setUp(self):
+        super().setUp()
+        self.org = OrganizationFactory()
+        self.payment_provider1 = PaymentProviderFactory()
+        self.payment_provider2 = PaymentProviderFactory()
+        self.rp1 = RevenueProgramFactory(organization=self.org, payment_provider=self.payment_provider1)
+        self.rp2 = RevenueProgramFactory(organization=self.org, payment_provider=self.payment_provider2)
+
+        self.contribution_1 = StripeChargeFactory(revenue_program=self.rp1.slug)
+        self.contribution_2 = StripeChargeFactory(revenue_program=self.rp2.slug)
+        self.contribution_3 = StripeChargeFactory(revenue_program=self.rp1.slug)
+
+        self.all_contributions = [self.contribution_1, self.contribution_2, self.contribution_3]
+
+        self.stripe_contributions = [
+            PaymentProviderContributionSerializer(instance=i).data for i in self.all_contributions
+        ]
+
+    def list_contributions(self):
+        self.client.force_authenticate(user=self.contributor_user)
+        return self.client.get(
+            reverse("contribution-list"),
+        )
+
+    @patch("apps.contributions.stripe_contributions_provider.ContributionsCacheProvider.load")
+    @patch("apps.contributions.tasks.task_pull_serialized_stripe_contributions_to_cache.delay")
+    def test_contributor_can_list_their_contributions(self, celery_task_mock, cache_load_mock):
+        cache_load_mock.return_value = self.stripe_contributions
+        refresh_token = ContributorRefreshToken.for_contributor(self.contributor_user.uuid)
+        self.client.cookies["Authorization"] = refresh_token.long_lived_access_token
+        self.client.cookies["csrftoken"] = csrf._get_new_csrf_token()
+        response = self.client.get(reverse("contribution-list"), {"rp": self.rp1.slug})
+        self.assertEqual(celery_task_mock.call_count, 0)
+        self.assertEqual(response.json().get("count"), 2)
+
+    @patch("apps.contributions.stripe_contributions_provider.ContributionsCacheProvider.load")
+    @patch("apps.contributions.tasks.task_pull_serialized_stripe_contributions_to_cache.delay")
+    def test_contributor_call_celery_task_if_no_contribution_in_cache(self, celery_task_mock, cache_load_mock):
+        cache_load_mock.return_value = []
+        refresh_token = ContributorRefreshToken.for_contributor(self.contributor_user.uuid)
+        self.client.cookies["Authorization"] = refresh_token.long_lived_access_token
+        self.client.cookies["csrftoken"] = csrf._get_new_csrf_token()
+        response = self.client.get(reverse("contribution-list"), {"rp": self.rp1.slug})
+        celery_task_mock.assert_called_once()
+        self.assertEqual(response.json().get("count"), 0)
+
+
 @pytest.mark.parametrize(
     (
         "is_active_for_everyone",
@@ -637,7 +655,6 @@ class TestContributionsViewSet(RevEngineApiAbstractTestCase):
         "expected_status_code",
     ),
     [
-        (True, False, None, "contributor_user", status.HTTP_200_OK),
         (True, False, None, "superuser", status.HTTP_200_OK),
         (True, False, None, "hub_user", status.HTTP_200_OK),
         (True, False, None, "org_user", status.HTTP_200_OK),

@@ -1,4 +1,4 @@
-from random import choice, randrange
+from random import choice, randint, randrange, uniform
 
 import factory
 import factory.fuzzy
@@ -7,6 +7,12 @@ from faker import Faker
 
 from apps.common.models import Address
 from apps.common.utils import normalize_slug
+from apps.contributions.models import (
+    CardBrand,
+    ContributionInterval,
+    ContributionStatus,
+    PaymentType,
+)
 from apps.organizations import models
 
 
@@ -100,3 +106,24 @@ class BenefitLevelFactory(DjangoModelFactory):
 
     lower_limit = 1
     level = 1
+
+
+class StripeChargeFactory:
+    interval = choice(list(ContributionInterval.__members__.values()))
+    card_brand = choice(list(CardBrand.__members__.values()))
+    last4 = randint(1111, 9999)
+    amount = uniform(0, 1000)
+    created = fake.date_time_between(start_date="-5d", end_date="now")
+    provider_customer_id = fake.uuid4()
+    last_payment_date = fake.date_time_between(start_date="-5d", end_date="now")
+    status = choice(list(ContributionStatus.__members__.values()))
+    credit_card_expiration_date = f"{randint(1, 12)}/{randint(2022, 2099)}"
+    payment_type = choice(list(PaymentType.__members__.values()))
+    next_payment_date = fake.date_time_between(start_date="now", end_date="+60d")
+    refunded = choice([True, False])
+    id = fake.uuid4()
+
+    def __init__(self, revenue_program=None) -> None:
+        self.revenue_program = revenue_program
+        if not revenue_program:
+            self.revenue_program = normalize_slug(f"{' '.join(fake.words(nb=4))}")

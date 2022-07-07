@@ -9,7 +9,6 @@ from django.core.cache import caches
 import stripe
 
 from apps.contributions.models import ContributionInterval, ContributionStatus
-from apps.contributions.serializers import PaymentProviderContributionSerializer
 from revengine.settings.base import CONTRIBUTION_CACHE_DB, CONTRIBUTION_CACHE_TTL
 
 
@@ -52,7 +51,7 @@ class StripeCharge:
     """
 
     def __init__(self, charge):
-        if not charge.invoice:
+        if not hasattr(charge, "invoice") or not charge.invoice:
             raise NoInvoiceGeneratedError(f"No invoice object for charge : {charge.id}")
         self.charge = charge
 
@@ -68,7 +67,7 @@ class StripeCharge:
 
     @property
     def revenue_program(self):
-        metadata = self.charge.metadata or self.charge.invoice.lines.data[0].metadata or {}
+        metadata = self.charge.get("metadata") or self.charge.invoice.lines.data[0].get("metadata") or {}
         if not metadata or "revenue_program_slug" not in metadata:
             raise InvalidMetadataError(f"Metadata is invalid for charge : {self.id}")
         return metadata["revenue_program_slug"]
@@ -103,12 +102,12 @@ class StripeCharge:
 
     @property
     def status(self):
+        if self.refunded:
+            return ContributionStatus.REFUNDED
         if self.charge.status == "succeeded":
             return ContributionStatus.PAID
         if self.charge.status == "pending":
             return ContributionStatus.PROCESSING
-        if self.refunded:
-            return ContributionStatus.REFUNDED
         return ContributionStatus.FAILED
 
     @property
@@ -129,7 +128,7 @@ class StripeCharge:
 
     @property
     def refunded(self):
-        return self.charge.refunded or self.charge.amount_refunded > 0
+        return self.charge.get("refunded", False) or self.charge.get("amount_refunded", 0) > 0
 
     @property
     def id(self):
@@ -187,9 +186,9 @@ class ContributionsCacheProvider:
         data = {}
         for contribution in contributions:
             try:
-                serialized_obj = PaymentProviderContributionSerializer(instance=StripeCharge(contribution))
+                serialized_obj = self.serializer(instance=self.converter(contribution))
                 data[contribution.id] = serialized_obj.data
-            except ContributionIgnorableError as ex:
+            except ContributionIgnorableError:
                 logger.exception("This can be ignored")
         return data
 

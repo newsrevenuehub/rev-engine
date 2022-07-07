@@ -294,7 +294,7 @@ class ContributionsViewSet(viewsets.ReadOnlyModelViewSet, FilterQuerySetByUserMi
     def get_queryset(self):
         # load contributions from cache if the user is a contributor
         if isinstance(self.request.user, Contributor):
-            revenue_program = RevenueProgram.objects.get(slug=self.request.query_params["rp"])
+            revenue_program = RevenueProgram.objects.get(slug=self.request.query_params.get("rp"))
             cache_provider = ContributionsCacheProvider(self.request.user.email, revenue_program.stripe_account_id)
 
             contributions = cache_provider.load()
@@ -303,7 +303,7 @@ class ContributionsViewSet(viewsets.ReadOnlyModelViewSet, FilterQuerySetByUserMi
                 task_pull_serialized_stripe_contributions_to_cache.delay(
                     self.request.user.email, revenue_program.stripe_account_id
                 )
-            return [x for x in contributions if x.revenue_program == self.request.query_params["rp"]]
+            return [x for x in contributions if x.get("revenue_program") == self.request.query_params["rp"]]
 
         # this is supplied by FilterQuerySetByUserMixin
         return self.filter_queryset_for_user(self.request.user, self.model.objects.all())

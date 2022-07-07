@@ -156,9 +156,9 @@ class RequestContributorTokenEmailView(APIView):
             if not domain:
                 return Response({"detail": "Missing Revenue Program subdomain"}, status=status.HTTP_404_NOT_FOUND)
 
-            # Pull contributions from Stripe and store the serialized data in cache whose TTL is configured with the
-            # magic_link life time
             revenue_program = RevenueProgram.objects.get(slug=data.get("subdomain"))
+            # Celery backend job to pull contributions from Stripe and store the serialized data in cache, user will have
+            # data by the time the user opens contributor portal.
             task_pull_serialized_stripe_contributions_to_cache.delay(email, revenue_program.stripe_account_id)
 
             magic_link = f"{domain}/{settings.CONTRIBUTOR_VERIFY_URL}?token={token}&email={email}"

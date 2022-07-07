@@ -17,40 +17,21 @@ function DashboardSidebar({ shouldAllowDashboard }) {
   const hasContributionsSectionAccess = flagIsActiveForUser(CONTRIBUTIONS_SECTION_ACCESS_FLAG_NAME, featureFlags);
   const hasContentSectionAccess = flagIsActiveForUser(CONTENT_SECTION_ACCESS_FLAG_NAME, featureFlags);
 
-  const handleClick = (e) => {
-    if (!shouldAllowDashboard) e.preventDefault();
-  };
-
   return (
     <S.DashboardSidebar>
       <S.NavList data-testid="nav-list">
         {hasContentSectionAccess ? (
-          <S.NavItem
-            data-testid="nav-content-item"
-            to={CONTENT_SLUG}
-            onClick={handleClick}
-            disabled={!shouldAllowDashboard}
-          >
+          <S.NavItem data-testid="nav-content-item" to={CONTENT_SLUG}>
             Pages
           </S.NavItem>
         ) : null}
         {hasContentSectionAccess ? (
-          <S.NavItem
-            data-testid="nav-content-item"
-            to={CUSTOMIZE_SLUG}
-            onClick={handleClick}
-            disabled={!shouldAllowDashboard}
-          >
+          <S.NavItem data-testid="nav-content-item" to={CUSTOMIZE_SLUG}>
             Customize
           </S.NavItem>
         ) : null}
         {hasContributionsSectionAccess ? (
-          <S.NavItem
-            data-testid="nav-contributions-item"
-            to={DONATIONS_SLUG}
-            onClick={handleClick}
-            disabled={!shouldAllowDashboard}
-          >
+          <S.NavItem data-testid="nav-contributions-item" to={DONATIONS_SLUG}>
             Contributions
           </S.NavItem>
         ) : null}

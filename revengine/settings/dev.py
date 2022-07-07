@@ -46,9 +46,36 @@ if os.getenv("TEST_EMAIL", "False") == "True":
 
 
 # Celery
-BROKER_URL = "redis://localhost:6379"
-CELERY_RESULT_BACKEND = "redis://localhost:6379"
+BROKER_URL = os.getenv("BROKER_URL", "memory://")
+CELERY_RESULT_BACKEND = os.getenv("CELERY_RESULT_BACKEND", "cache")
+CELERY_CACHE_BACKEND = BROKER_URL
 CELERY_IMPORTS = ("apps.emails.tasks",)
+
+
+if BROKER_URL.startswith("rediss"):
+    import ssl
+
+    # See: https://github.com/mirumee/saleor/issues/6926
+    CONNECTION_POOL_KWARGS = {
+        "ssl_cert_reqs": ssl.CERT_NONE,
+    }
+
+    CACHES = {
+        "default": {
+            "BACKEND": "django_redis.cache.RedisCache",
+            "LOCATION": f"{CACHE_HOST}/0",
+            "OPTIONS": {
+                "CLIENT_CLASS": "django_redis.client.DefaultClient",
+                "CONNECTION_POOL_KWARGS": CONNECTION_POOL_KWARGS,
+            },
+        }
+    }
+else:
+    CACHES = {
+        "default": {
+            "BACKEND": "django.core.cache.backends.dummy.DummyCache",
+        }
+    }
 
 # Serve SPA via django
 FRONTEND_BUILD_DIR = Path(BASE_DIR) / "spa/public"

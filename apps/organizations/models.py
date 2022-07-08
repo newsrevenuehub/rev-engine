@@ -74,7 +74,6 @@ CURRENCY_CHOICES = [(k, k) for k, _ in settings.CURRENCIES.items()]
 class Organization(IndexedTimeStampedModel, RoleAssignmentResourceModelMixin):
     name = models.CharField(max_length=255, unique=True)
     plan = models.ForeignKey("organizations.Plan", null=True, on_delete=models.CASCADE)
-    address = models.OneToOneField("common.Address", on_delete=models.CASCADE)
     salesforce_id = models.CharField(max_length=255, blank=True, verbose_name="Salesforce ID")
 
     slug = models.SlugField(
@@ -195,7 +194,6 @@ class RevenueProgram(IndexedTimeStampedModel):
         help_text="This will be used as the subdomain for donation pages made under this revenue program. If left blank, it will be derived from the Revenue Program name.",
         validators=[validate_slug_against_denylist],
     )
-    address = models.OneToOneField("common.Address", on_delete=models.SET_NULL, null=True)
     social_meta = models.OneToOneField("common.SocialMeta", on_delete=models.SET_NULL, null=True)
     organization = models.ForeignKey("organizations.Organization", on_delete=models.CASCADE)
     contact_email = models.EmailField(max_length=255, blank=True)

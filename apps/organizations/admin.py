@@ -75,7 +75,7 @@ class BenefitLevelBenefit(NoRelatedInlineAddEditAdminMixin, ReadOnlyOrgLimitedTa
 
 
 @admin.register(Organization)
-class OrganizationAdmin(RevEngineBaseAdmin, VersionAdmin):  # pragma: no cover
+class OrganizationAdmin(RevEngineBaseAdmin, VersionAdmin, ReverseModelAdmin):  # pragma: no cover
     organization_fieldset = (
         (
             "Organization",
@@ -101,12 +101,10 @@ class OrganizationAdmin(RevEngineBaseAdmin, VersionAdmin):  # pragma: no cover
 
     list_display = ["name", "plan"]
 
-    list_filter = [
-        "name",
-        "plan",
-    ]
+    list_filter = ["name", "plan", "address__state"]
 
     inline_type = "stacked"
+    inline_reverse = [("address", {"fields": ["address1", "address2", "city", "state", "postal_code", "country"]})]
 
     readonly_fields = ["name"]
 
@@ -205,6 +203,7 @@ class RevenueProgramAdmin(RevEngineBaseAdmin, VersionAdmin, ReverseModelAdmin, A
     inline_type = "stacked"
     inline_reverse = [
         ("social_meta", {"fields": ["title", "description", "url", "card"]}),
+        ("address", {"fields": ["address1", "address2", "city", "state", "postal_code"]}),
     ]
     inlines = [RevenueProgramBenefitLevelInline]
 

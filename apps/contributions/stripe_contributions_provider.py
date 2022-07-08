@@ -56,9 +56,16 @@ class StripeCharge:
         self.charge = charge
 
     @property
+    def invoice_line_item(self):
+        line_item = self.charge.invoice.lines.data
+        if not line_item:
+            line_item = [{}]
+        return line_item[0]
+
+    @property
     def interval(self):
-        interval = self.charge.invoice.lines.data[0].plan.interval
-        interval_count = self.charge.invoice.lines.data[0].plan.interval_count
+        interval = self.invoice_line_item.get("plan", {}).get("interval")
+        interval_count = self.invoice_line_item.get("plan", {}).get("interval_count")
         if interval == "year" and interval_count == 1:
             return ContributionInterval.YEARLY
         if interval == "month" and interval_count == 1:
@@ -67,22 +74,24 @@ class StripeCharge:
 
     @property
     def revenue_program(self):
-        metadata = self.charge.get("metadata") or self.charge.invoice.lines.data[0].get("metadata") or {}
+        metadata = self.charge.get("metadata") or self.invoice_line_item.get("metadata") or {}
         if not metadata or "revenue_program_slug" not in metadata:
             raise InvalidMetadataError(f"Metadata is invalid for charge : {self.id}")
         return metadata["revenue_program_slug"]
 
     @property
+    def card(self):
+        return getattr(self.charge.payment_method_details, "card", None) or AttrDict(
+            **{"brand": None, "last4": None, "exp_month": None}
+        )
+
+    @property
     def card_brand(self):
-        card = self.charge.payment_method_details.card
-        if card:
-            return card.brand
+        return self.card.brand
 
     @property
     def last4(self):
-        card = self.charge.payment_method_details.card
-        if card:
-            return card.last4
+        return self.card.last4
 
     @property
     def amount(self):
@@ -112,9 +121,7 @@ class StripeCharge:
 
     @property
     def credit_card_expiration_date(self):
-        card = self.charge.payment_method_details.card
-        if card:
-            return f"{card.exp_month}/{card.exp_year}"
+        return f"{self.card.exp_month}/{self.card.exp_year}" if self.card.exp_month else None
 
     @property
     def payment_type(self):
@@ -128,6 +135,12 @@ class StripeCharge:
 
     @property
     def refunded(self):
+        """For a contribution to consider it as refunded either refunded flag will be set for full refunds
+        or acount_refunded will be > 0 (will be useful in case of partial refund and we still want to set
+        the status as refunded)
+        https://stripe.com/docs/api/charges/object#charge_object-refunded
+        https://stripe.com/docs/api/charges/object#charge_object-amount_refunded
+        """
         return self.charge.get("refunded", False) or self.charge.get("amount_refunded", 0) > 0
 
     @property
@@ -142,6 +155,14 @@ class StripeContributionsProvider:
 
     @cached_property
     def customers(self):
+        """
+        Cached Property.
+        Gets all the customers associated with an email for a given stripe account
+
+        Returns:
+        --------
+        List: List of customer ids starting with cus_.
+        """
         customers_response = stripe.Customer.search(
             query=f"email:'{self.email_id}'",
             limit=MAX_STRIPE_RESPONSE_LIMIT,
@@ -150,12 +171,17 @@ class StripeContributionsProvider:
         return [customer.id for customer in customers_response.auto_paging_iter()]
 
     @staticmethod
-    def chunk_list(data, size):
+    def generate_chunks(data, size):
         for i in range(0, len(data), size):
             yield data[i : i + size]
 
     def generate_chunked_customers_query(self):
-        for customers_chunk in self.chunk_list(self.customers, MAX_STRIPE_CUSTOMERS_LIMIT):
+        """
+        Generates customer query in specified format in accordance with Stripe search API.
+        Maximum number of customers can be provided is 10.
+        https://stripe.com/docs/search.
+        """
+        for customers_chunk in self.generate_chunks(self.customers, MAX_STRIPE_CUSTOMERS_LIMIT):
             yield " OR ".join([f"customer:'{customer_id}'" for customer_id in customers_chunk])
 
     def fetch_charges(self, query=None, page=None):
@@ -183,27 +209,27 @@ class ContributionsCacheProvider:
             self.key = f"{self.key}-{account_id}"
 
     def serialize(self, contributions):
+        """Serializes the stripe.Charge object into json."""
         data = {}
         for contribution in contributions:
             try:
                 serialized_obj = self.serializer(instance=self.converter(contribution))
                 data[contribution.id] = serialized_obj.data
-            except ContributionIgnorableError:
-                logger.exception("This can be ignored")
+            except ContributionIgnorableError as ex:
+                logger.warning("Unable to process Contribution [%s] due to [%s]", contribution.id, type(ex))
         return data
 
     def upsert(self, contributions):
+        """Serialized and Upserts contributions data to cache."""
         data = self.serialize(contributions)
-        cached_data = self.cache.get(self.key)
-
-        if cached_data:
-            cached_data = json.loads(cached_data)
-            data.update(cached_data)
+        cached_data = json.loads(self.cache.get(self.key) or "{}")
+        cached_data.update(data)
 
         with self.cache.lock(f"{self.key}-lock"):
-            self.cache.set(self.key, json.dumps(data), timeout=CONTRIBUTION_CACHE_TTL.seconds)
+            self.cache.set(self.key, json.dumps(cached_data), timeout=CONTRIBUTION_CACHE_TTL.seconds)
 
     def load(self):
+        """Gets the contributions data from cache for a specefic email and stripe account id combo."""
         data = self.cache.get(self.key)
         if not data:
             return []

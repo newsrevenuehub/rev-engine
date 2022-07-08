@@ -2,6 +2,7 @@ import logging
 
 from django.conf import settings
 from django.contrib.auth import get_user_model
+from django.shortcuts import get_object_or_404
 from django.utils import timezone
 
 import stripe
@@ -286,15 +287,15 @@ class ContributionsViewSet(viewsets.ReadOnlyModelViewSet, FilterQuerySetByUserMi
     filterset_class = ContributionFilter
     filter_backends = [DjangoFilterBackend, filters.OrderingFilter]
 
-    def get_object(self):
-        if isinstance(self.request.user, Contributor):
-            return {}
-        return super().get_object()
-
     def get_queryset(self):
         # load contributions from cache if the user is a contributor
         if isinstance(self.request.user, Contributor):
-            revenue_program = RevenueProgram.objects.get(slug=self.request.query_params.get("rp"))
+            rp_slug = self.request.query_params.get("rp")
+            if not rp_slug:
+                return Response(
+                    {"detail": "Missing Revenue Program in query params"}, status=status.HTTP_400_BAD_REQUEST
+                )
+            revenue_program = get_object_or_404(RevenueProgram, slug=rp_slug)
             cache_provider = ContributionsCacheProvider(self.request.user.email, revenue_program.stripe_account_id)
 
             contributions = cache_provider.load()

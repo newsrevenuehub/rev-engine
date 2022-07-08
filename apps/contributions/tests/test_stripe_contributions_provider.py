@@ -20,13 +20,38 @@ from apps.contributions.tests import RedisMock
 
 class AbstractTestStripeContributions(TestCase):
     def _setup_stripe_charges(self):
-        charge = {
+        charge_1 = {
             "id": "charge_1",
             "amount": 2000,
             "customer": "customer_1",
             "status": "succeeded",
             "created": 1656915040,
         }
+
+        charge_1_1 = {
+            "id": "charge_1",
+            "amount": 4000,
+            "customer": "customer_3",
+            "status": "succeeded",
+            "created": 1656915040,
+        }
+
+        charge_2 = {
+            "id": "charge_2",
+            "amount": 2000,
+            "customer": "customer_2",
+            "status": "succeeded",
+            "created": 1656915040,
+        }
+
+        charge_3 = {
+            "id": "charge_3",
+            "amount": 2000,
+            "customer": "customer_3",
+            "status": "succeeded",
+            "created": 1656915040,
+        }
+
         metadata = {"metadata": {"revenue_program_slug": "testrp"}}
         metadata_1 = {"metadata": {}}
         payment_method_details = {
@@ -35,32 +60,59 @@ class AbstractTestStripeContributions(TestCase):
                 "type": "card",
             }
         }
+        payment_method_details_without_card = {"payment_method_details": {}}
+        payment_method_details_with_null_card = {"payment_method_details": {"card": None}}
+        line_item = {"plan": {"interval": "year", "interval_count": 1}}
         invoice = {
             "invoice": {
                 "id": "invoice_1",
                 "status_transitions": {"paid_at": 1656915047},
-                "lines": {"data": [{"plan": {"interval": "year", "interval_count": 1}}]},
+                "lines": {"data": [line_item]},
+                "next_payment_attempt": 1656915047,
+            }
+        }
+        invoice_without_line_item = {
+            "invoice": {
+                "id": "invoice_1",
+                "status_transitions": {"paid_at": 1656915047},
+                "lines": {"data": None},
                 "next_payment_attempt": 1656915047,
             }
         }
         self.charge_without_invoice = stripe.Charge.construct_from(
-            charge | metadata | payment_method_details, "TEST-KEY"
+            charge_1 | metadata | payment_method_details, "TEST-KEY"
         )
         self.charge_without_metadata = stripe.Charge.construct_from(
-            charge | invoice | payment_method_details, "TEST-KEY"
+            charge_1 | invoice | payment_method_details, "TEST-KEY"
         )
         self.charge_without_revenue_program = stripe.Charge.construct_from(
-            charge | invoice | payment_method_details | metadata_1, "TEST-KEY"
+            charge_1 | invoice | payment_method_details | metadata_1, "TEST-KEY"
         )
-        self.charge = stripe.Charge.construct_from(charge | metadata | invoice | payment_method_details, "TEST-KEY")
+        self.charge_without_invoice_line_item = stripe.Charge.construct_from(
+            charge_1 | invoice_without_line_item | payment_method_details | metadata_1, "TEST-KEY"
+        )
+        self.charge_without_card = stripe.Charge.construct_from(
+            charge_1 | invoice_without_line_item | payment_method_details_without_card | metadata_1, "TEST-KEY"
+        )
+        self.charge_with_null_card = stripe.Charge.construct_from(
+            charge_1 | invoice_without_line_item | payment_method_details_with_null_card | metadata_1, "TEST-KEY"
+        )
+        self.charge_1 = stripe.Charge.construct_from(charge_1 | metadata | invoice | payment_method_details, "TEST-KEY")
+        self.charge_1_1 = stripe.Charge.construct_from(
+            charge_1_1 | metadata | invoice | payment_method_details, "TEST-KEY"
+        )
+        self.charge_2 = stripe.Charge.construct_from(charge_2 | metadata | invoice | payment_method_details, "TEST-KEY")
+        self.charge_3 = stripe.Charge.construct_from(charge_3 | metadata | invoice | payment_method_details, "TEST-KEY")
 
     def _setup_stripe_contributions(self):
-        self.contributions = [
-            self.charge,
+        self.contributions_1 = [
+            self.charge_1,
             self.charge_without_invoice,
             self.charge_without_metadata,
             self.charge_without_revenue_program,
         ]
+
+        self.contributions_2 = [self.charge_2, self.charge_3]
 
     def _setup_stripe_customer_ids(self, count):
         self.customer_ids = [f"cust_{i}" for i in range(count)]
@@ -81,8 +133,27 @@ class TestStripeCharge(AbstractTestStripeContributions):
         with self.assertRaises(InvalidMetadataError):
             StripeCharge(self.charge_without_revenue_program).revenue_program
 
+    def test_stripe_charge_without_card(self):
+        charge = StripeCharge(self.charge_without_card)
+        self.assertIsNone(charge.card_brand)
+        self.assertIsNone(charge.last4)
+        self.assertIsNone(charge.credit_card_expiration_date)
+
+    def test_stripe_charge_with_null_card(self):
+        charge = StripeCharge(self.charge_with_null_card)
+        self.assertIsNone(charge.card_brand)
+        self.assertIsNone(charge.last4)
+        self.assertIsNone(charge.credit_card_expiration_date)
+
+    def test_stripe_charge_with_no_line_item_in_invoice(self):
+        charge = StripeCharge(self.charge_without_invoice_line_item)
+        with self.assertRaises(InvalidMetadataError):
+            charge.revenue_program
+        with self.assertRaises(InvalidIntervalError):
+            charge.interval
+
     def test_stripe_charge_with_valid_data(self):
-        stripe_charge = StripeCharge(self.charge)
+        stripe_charge = StripeCharge(self.charge_1)
         self.assertEqual(stripe_charge.interval, ContributionInterval.YEARLY)
         self.assertEqual(stripe_charge.revenue_program, "testrp")
         self.assertEqual(stripe_charge.card_brand, "visa")
@@ -98,25 +169,25 @@ class TestStripeCharge(AbstractTestStripeContributions):
         self.assertEqual(stripe_charge.refunded, False)
         self.assertEqual(stripe_charge.id, "charge_1")
 
-        self.charge["invoice"]["lines"]["data"][0]["plan"]["interval"] = "month"
-        stripe_charge = StripeCharge(self.charge)
+        self.charge_1["invoice"]["lines"]["data"][0]["plan"]["interval"] = "month"
+        stripe_charge = StripeCharge(self.charge_1)
         self.assertEqual(stripe_charge.interval, ContributionInterval.MONTHLY)
 
-        self.charge["invoice"]["lines"]["data"][0]["plan"]["interval"] = "day"
+        self.charge_1["invoice"]["lines"]["data"][0]["plan"]["interval"] = "day"
         with self.assertRaises(InvalidIntervalError):
-            StripeCharge(self.charge).interval
+            StripeCharge(self.charge_1).interval
 
-        self.charge["status"] = "no status"
-        self.assertEqual(StripeCharge(self.charge).status, ContributionStatus.FAILED)
+        self.charge_1["status"] = "no status"
+        self.assertEqual(StripeCharge(self.charge_1).status, ContributionStatus.FAILED)
 
-        self.charge["status"] = "pending"
-        self.assertEqual(StripeCharge(self.charge).status, ContributionStatus.PROCESSING)
+        self.charge_1["status"] = "pending"
+        self.assertEqual(StripeCharge(self.charge_1).status, ContributionStatus.PROCESSING)
 
-        self.charge["amount_refunded"] = 0.5
-        self.assertEqual(StripeCharge(self.charge).status, ContributionStatus.REFUNDED)
+        self.charge_1["amount_refunded"] = 0.5
+        self.assertEqual(StripeCharge(self.charge_1).status, ContributionStatus.REFUNDED)
 
-        self.charge["refunded"] = True
-        self.assertEqual(StripeCharge(self.charge).status, ContributionStatus.REFUNDED)
+        self.charge_1["refunded"] = True
+        self.assertEqual(StripeCharge(self.charge_1).status, ContributionStatus.REFUNDED)
 
 
 class TestStripeContributionsProvider(AbstractTestStripeContributions):
@@ -156,7 +227,7 @@ class TestContributionsCacheProvider(AbstractTestStripeContributions):
         cache_provider = ContributionsCacheProvider(
             "test@email.com", serializer=self.serializer, converter=self.converter
         )
-        data = cache_provider.serialize(self.contributions)
+        data = cache_provider.serialize(self.contributions_1)
         self.assertEqual(len(data), 1)
 
     def test_upsert(self):
@@ -165,15 +236,43 @@ class TestContributionsCacheProvider(AbstractTestStripeContributions):
             cache_provider = ContributionsCacheProvider(
                 "test@email.com", serializer=self.serializer, converter=self.converter
             )
-            cache_provider.upsert(self.contributions)
-            self.assertEqual(len(redis_mock._data), 1)
+            cache_provider.upsert(self.contributions_1)
             self.assertIsNotNone(redis_mock._data.get("test@email.com"))
+            self.assertEqual(len(cache_provider.load()), 1)
 
             cache_provider = ContributionsCacheProvider(
                 "test@email.com", "acc_0000", serializer=self.serializer, converter=self.converter
             )
-            cache_provider.upsert(self.contributions)
+            cache_provider.upsert(self.contributions_1)
             self.assertIsNotNone(redis_mock._data.get("test@email.com-acc_0000"))
+
+    def test_upsert_overwrite(self):
+        redis_mock = RedisMock()
+        with patch.dict("apps.contributions.stripe_contributions_provider.caches", {"default": redis_mock}):
+            cache_provider = ContributionsCacheProvider(
+                "test@email.com", "acc_0000", serializer=self.serializer, converter=self.converter
+            )
+            cache_provider.upsert(self.contributions_2)
+            self.assertIsNotNone(redis_mock._data.get("test@email.com-acc_0000"))
+            self.assertEqual(len(cache_provider.load()), 2)
+
+            cache_provider.upsert(self.contributions_1)
+            self.assertEqual(len(cache_provider.load()), 3)
+
+    def test_upsert_override(self):
+        redis_mock = RedisMock()
+        with patch.dict("apps.contributions.stripe_contributions_provider.caches", {"default": redis_mock}):
+            cache_provider = ContributionsCacheProvider(
+                "test@email.com", "acc_0000", serializer=self.serializer, converter=self.converter
+            )
+
+            cache_provider.upsert(self.contributions_1)
+            data = cache_provider.load()
+            self.assertEqual(data[0].amount, 2000)
+
+            cache_provider.upsert([self.charge_1_1])
+            data = cache_provider.load()
+            self.assertEqual(data[0].amount, 4000)
 
     def test_load(self):
         redis_mock = RedisMock()
@@ -181,7 +280,7 @@ class TestContributionsCacheProvider(AbstractTestStripeContributions):
             cache_provider = ContributionsCacheProvider(
                 "test@email.com", serializer=self.serializer, converter=self.converter
             )
-            cache_provider.upsert(self.contributions)
+            cache_provider.upsert(self.contributions_1)
             data = cache_provider.load()
             self.assertEqual(len(data), 1)
             self.assertEqual(data[0].id, "charge_1")

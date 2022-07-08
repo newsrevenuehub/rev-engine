@@ -598,18 +598,14 @@ class TestContributionsViewSet(RevEngineApiAbstractTestCase):
         )
 
 
-class TestContributorContributionsViewSet(APITestCase):
+class TestContributorContributionsViewSet(AbstractTestCase):
     def setUp(self):
         super().setUp()
-        self.org = OrganizationFactory()
-        self.payment_provider1 = PaymentProviderFactory()
-        self.payment_provider2 = PaymentProviderFactory()
-        self.rp1 = RevenueProgramFactory(organization=self.org, payment_provider=self.payment_provider1)
-        self.rp2 = RevenueProgramFactory(organization=self.org, payment_provider=self.payment_provider2)
+        self.set_up_domain_model()
 
-        self.contribution_1 = StripeChargeFactory(revenue_program=self.rp1.slug)
-        self.contribution_2 = StripeChargeFactory(revenue_program=self.rp2.slug)
-        self.contribution_3 = StripeChargeFactory(revenue_program=self.rp1.slug)
+        self.contribution_1 = StripeChargeFactory(revenue_program=self.org1_rp1.slug)
+        self.contribution_2 = StripeChargeFactory(revenue_program=self.org1_rp2)
+        self.contribution_3 = StripeChargeFactory(revenue_program=self.org1_rp1.slug)
 
         self.all_contributions = [self.contribution_1, self.contribution_2, self.contribution_3]
 
@@ -630,7 +626,7 @@ class TestContributorContributionsViewSet(APITestCase):
         refresh_token = ContributorRefreshToken.for_contributor(self.contributor_user.uuid)
         self.client.cookies["Authorization"] = refresh_token.long_lived_access_token
         self.client.cookies["csrftoken"] = csrf._get_new_csrf_token()
-        response = self.client.get(reverse("contribution-list"), {"rp": self.rp1.slug})
+        response = self.client.get(reverse("contribution-list"), {"rp": self.org1_rp1.slug})
         self.assertEqual(celery_task_mock.call_count, 0)
         self.assertEqual(response.json().get("count"), 2)
 
@@ -641,7 +637,7 @@ class TestContributorContributionsViewSet(APITestCase):
         refresh_token = ContributorRefreshToken.for_contributor(self.contributor_user.uuid)
         self.client.cookies["Authorization"] = refresh_token.long_lived_access_token
         self.client.cookies["csrftoken"] = csrf._get_new_csrf_token()
-        response = self.client.get(reverse("contribution-list"), {"rp": self.rp1.slug})
+        response = self.client.get(reverse("contribution-list"), {"rp": self.org1_rp1.slug})
         celery_task_mock.assert_called_once()
         self.assertEqual(response.json().get("count"), 0)
 

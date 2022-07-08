@@ -38,6 +38,31 @@ import { ICONS } from 'assets/icons/SvgIcon';
 import { PayFeesWidget } from 'components/donationPage/pageContent/DPayment';
 import DonationPageDisclaimer from 'components/donationPage/DonationPageDisclaimer';
 
+/*
+  gets the disabled stripe wallets for a page
+  @param {page}
+  */
+export const getDisabledWallets = (page) => {
+  let disabledWallets = [];
+  (page?.elements || [])
+    .filter((elem) => elem.type === 'DPayment')
+    .forEach((paymentType) => {
+      let enabledWalletsForPage = paymentType.content.stripe;
+
+      if (!enabledWalletsForPage.includes('apple')) {
+        disabledWallets.push('applePay');
+      }
+      if (!enabledWalletsForPage.includes('google')) {
+        disabledWallets.push('googlePay');
+      }
+      if (!enabledWalletsForPage.includes('browser')) {
+        disabledWallets.push('browserCard');
+      }
+    });
+
+  return disabledWallets;
+};
+
 function StripePaymentForm({ loading, setLoading, offerPayFees }) {
   useReCAPTCHAScript();
   const subdomain = useSubdomain();
@@ -218,23 +243,8 @@ function StripePaymentForm({ loading, setLoading, offerPayFees }) {
   useEffect(() => {
     const rpIsNonProfit = page.revenue_program_is_nonprofit;
     const amnt = amountToCents(getTotalAmount(amount, payFee, frequency, rpIsNonProfit));
-    let disabledWallets = [];
 
-    (page?.elements || [])
-      .filter((elem) => elem.type === 'DPayment')
-      .forEach((paymentType) => {
-        let enabledWalletsForPage = paymentType.content.stripe;
-
-        if (!enabledWalletsForPage.includes('apple')) {
-          disabledWallets.push('applePay');
-        }
-        if (!enabledWalletsForPage.includes('google')) {
-          disabledWallets.push('googlePay');
-        }
-        if (!enabledWalletsForPage.includes('browser')) {
-          disabledWallets.push('browserCard');
-        }
-      });
+    let disabledWallets = getDisabledWallets(page);
 
     if (stripe && amountIsValid && !paymentRequest) {
       const pr = stripe.paymentRequest({
@@ -308,7 +318,6 @@ function StripePaymentForm({ loading, setLoading, offerPayFees }) {
   return (
     <>
       {offerPayFees && <PayFeesWidget />}
-
       {paymentRequest ? (
         <>
           <S.PaymentRequestWrapper>

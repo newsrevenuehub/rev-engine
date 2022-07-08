@@ -1,3 +1,5 @@
+import os
+
 from django.conf import settings
 from django.conf.urls import include
 from django.contrib import admin
@@ -8,7 +10,13 @@ from django.views.generic.base import RedirectView
 from apps.api.urls import urlpatterns as api_urlpatterns
 from apps.users.urls import orgadmin_user_management_urls
 
-from .views import admin_select_options, index, read_apple_developer_merchant_id
+from .views import (
+    admin_select_options,
+    cloudflare_500_view,
+    dummy_view_for_raising_500,
+    index,
+    read_apple_developer_merchant_id,
+)
 
 
 urlpatterns = [
@@ -52,7 +60,12 @@ if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
     urlpatterns = [path("__debug__/", include(debug_toolbar.urls))] + urlpatterns
 
+if os.getenv("DJANGO_SETTINGS_MODULE", None) != "deploy":
+    # This needs to happen before the catch-all for SPA index below
+    urlpatterns.append(path("dummy-500-error", dummy_view_for_raising_500, name="dummy-500"))
+
 urlpatterns += [
+    path(r"cloudflare-500", cloudflare_500_view, name="cloudflare-500"),
     # React SPA:
     path(r"", index, name="index"),  # for reverse()
     re_path(r"^(?:.*)/?$", index, name="index-others"),

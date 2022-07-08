@@ -2,8 +2,6 @@ from django.db import models
 from django.utils import timezone
 
 from rest_framework.exceptions import ValidationError
-from safedelete.models import SafeDeleteModel
-from simple_history.models import HistoricalRecords
 from solo.models import SingletonModel
 from sorl.thumbnail import ImageField as SorlImageField
 
@@ -115,9 +113,6 @@ class Template(AbstractPage):
     # but should not have a default as a Template
     elements = models.JSONField(null=True, blank=True, default=list)
 
-    # A history of changes to this model, using django-simple-history.
-    history = HistoricalRecords()
-
     class TemplateError(Exception):
         pass
 
@@ -140,14 +135,14 @@ class Template(AbstractPage):
         template_data["name"] = f"New Page From Template ({template_data['name']})"
         template_data["slug"] = normalize_slug(name=template_data["name"])
 
-        unwanted_keys = ["_state", "id", "modified", "created", "published_date", "_history_user"]
+        unwanted_keys = ["_state", "id", "modified", "created", "published_date"]
         template = cleanup_keys(template_data, unwanted_keys)
         page = cleanup_keys(page_data, unwanted_keys)
         merged_page = {**template, **page}
         return DonationPage.objects.create(**merged_page)
 
 
-class DonationPage(AbstractPage, SafeDeleteModel):
+class DonationPage(AbstractPage):
     """
     A DonationPage represents a single instance of a Donation Page.
     """
@@ -165,9 +160,6 @@ class DonationPage(AbstractPage, SafeDeleteModel):
 
     published_date = models.DateTimeField(null=True, blank=True)
     page_screenshot = SorlImageField(null=True, blank=True, upload_to=_get_screenshot_upload_path)
-
-    # A history of changes to this model, using django-simple-history.
-    history = HistoricalRecords()
 
     class Meta:
         unique_together = (
@@ -230,7 +222,6 @@ class DonationPage(AbstractPage, SafeDeleteModel):
             "page_screenshot",
             "deleted",
             "published_date",
-            "deleted_by_cascade",  # Added by safedelete
         ]
         if not from_admin:
             unwanted_keys.append("revenue_program_id")
@@ -241,7 +232,7 @@ class DonationPage(AbstractPage, SafeDeleteModel):
         return Template.objects.create(**merged_template)
 
 
-class Style(IndexedTimeStampedModel, SafeDeleteModel, RoleAssignmentResourceModelMixin):
+class Style(IndexedTimeStampedModel, RoleAssignmentResourceModelMixin):
     """
     Ties a set of styles to a page. Discoverable by name, belonging to a RevenueProgram.
     """
@@ -249,9 +240,6 @@ class Style(IndexedTimeStampedModel, SafeDeleteModel, RoleAssignmentResourceMode
     name = models.CharField(max_length=50)
     revenue_program = models.ForeignKey("organizations.RevenueProgram", on_delete=models.CASCADE)
     styles = models.JSONField(validators=[style_validator])
-
-    # A history of changes to this model, using django-simple-history.
-    history = HistoricalRecords()
 
     def __str__(self):
         return self.name
@@ -323,9 +311,6 @@ class Font(models.Model):
         max_length=255,
         help_text="For typekit fonts, use the kitId. For google fonts, use the value of the 'family' query param",
     )
-
-    # A history of changes to this model, using django-simple-history.
-    history = HistoricalRecords()
 
     def __str__(self):
         return f"{self.name} ({self.source})"

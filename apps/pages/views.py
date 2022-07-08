@@ -7,6 +7,7 @@ from rest_framework import filters, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
+from reversion.views import RevisionMixin
 
 from apps.api.permissions import HasRoleAssignment
 from apps.element_media.models import MediaImage
@@ -21,7 +22,7 @@ from apps.users.views import FilterQuerySetByUserMixin, PerUserDeletePermissions
 logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
 
 
-class PageViewSet(viewsets.ModelViewSet, FilterQuerySetByUserMixin, PerUserDeletePermissionsMixin):
+class PageViewSet(RevisionMixin, viewsets.ModelViewSet, FilterQuerySetByUserMixin, PerUserDeletePermissionsMixin):
     """Donation pages exposed through API
 
     Only superusers and users with role assignments are meant to have access. Results of lists are filtered
@@ -118,13 +119,13 @@ class PageViewSet(viewsets.ModelViewSet, FilterQuerySetByUserMixin, PerUserDelet
         try:
             donation_page = self.model.objects.get(pk=pk)
         except DonationPage.DoesNotExist:
-            logger.error(f'Request for non-existent page with ID "{pk}" ')
+            logger.error('Request for non-existent page with ID "%s"', pk)
             return Response({"detail": "Could not find page with that ID"}, status=status.HTTP_404_NOT_FOUND)
         donation_page.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 
-class TemplateViewSet(viewsets.ModelViewSet, FilterQuerySetByUserMixin):
+class TemplateViewSet(RevisionMixin, viewsets.ModelViewSet, FilterQuerySetByUserMixin):
     """Page templates as exposed through API
 
     Only superusers and users with role assignments are meant to have access. Results of lists are filtered
@@ -155,7 +156,7 @@ class TemplateViewSet(viewsets.ModelViewSet, FilterQuerySetByUserMixin):
         )
 
 
-class StyleViewSet(viewsets.ModelViewSet, FilterQuerySetByUserMixin, PerUserDeletePermissionsMixin):
+class StyleViewSet(RevisionMixin, viewsets.ModelViewSet, FilterQuerySetByUserMixin, PerUserDeletePermissionsMixin):
     """Donation pages exposed through API
 
     Only superusers and users with role assignments are meant to have access. Results of lists are filtered

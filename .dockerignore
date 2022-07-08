@@ -22,3 +22,9 @@ revengine/settings/local.py
 **/*.pyc
 **/node_modules
 **/media
+.venv
+htmlcov
+latest.dump
+.coverage
+.vscode
+.DS_Store

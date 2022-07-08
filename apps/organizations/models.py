@@ -5,6 +5,7 @@ from django.core.exceptions import ValidationError
 from django.db import models
 from django.utils import timezone
 
+import pycountry
 import stripe
 
 from apps.common.models import IndexedTimeStampedModel
@@ -13,6 +14,17 @@ from apps.config.validators import validate_slug_against_denylist
 from apps.organizations.validators import validate_statement_descriptor_suffix
 from apps.users.choices import Roles
 from apps.users.models import RoleAssignmentResourceModelMixin, UnexpectedRoleType
+
+
+def get_country_choices():
+    """
+    returns a tuple of country choices according to pycountry.countries db
+    """
+    country_choices = []
+    for country_code in settings.COUNTRIES:
+        country = pycountry.countries.lookup(country_code)
+        country_choices.append((country.alpha_2, country.alpha_2))
+    return country_choices
 
 
 logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
@@ -74,7 +86,6 @@ CURRENCY_CHOICES = [(k, k) for k, _ in settings.CURRENCIES.items()]
 class Organization(IndexedTimeStampedModel, RoleAssignmentResourceModelMixin):
     name = models.CharField(max_length=255, unique=True)
     plan = models.ForeignKey("organizations.Plan", null=True, on_delete=models.CASCADE)
-    address = models.OneToOneField("common.Address", on_delete=models.CASCADE)
     salesforce_id = models.CharField(max_length=255, blank=True, verbose_name="Salesforce ID")
 
     slug = models.SlugField(
@@ -87,6 +98,14 @@ class Organization(IndexedTimeStampedModel, RoleAssignmentResourceModelMixin):
     send_receipt_email_via_nre = models.BooleanField(
         default=True,
         help_text="If false, receipt email assumed to be sent via Salesforce. Other emails, e.g. magic_link, are always sent via NRE regardless of this setting",
+    )
+
+    country = models.CharField(
+        max_length=2,
+        blank=True,
+        choices=get_country_choices(),
+        default="US",
+        verbose_name="Country",
     )
 
     @property
@@ -195,7 +214,6 @@ class RevenueProgram(IndexedTimeStampedModel):
         help_text="This will be used as the subdomain for donation pages made under this revenue program. If left blank, it will be derived from the Revenue Program name.",
         validators=[validate_slug_against_denylist],
     )
-    address = models.OneToOneField("common.Address", on_delete=models.SET_NULL, null=True)
     social_meta = models.OneToOneField("common.SocialMeta", on_delete=models.SET_NULL, null=True)
     organization = models.ForeignKey("organizations.Organization", on_delete=models.CASCADE)
     contact_email = models.EmailField(max_length=255, blank=True)

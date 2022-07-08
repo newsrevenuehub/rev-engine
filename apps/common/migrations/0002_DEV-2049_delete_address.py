@@ -6,7 +6,7 @@ from django.db import migrations
 class Migration(migrations.Migration):
 
     dependencies = [
-        ("organizations", "0006_DEV-2049_drop_address_from_rp_and_org"),
+        ("organizations", "0004_DEV-2049_add_org_country_retire_address"),
         ("common", "0001_initial"),
     ]
 

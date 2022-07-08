@@ -16,13 +16,13 @@ class SocialMetaInlineSerializer(serializers.ModelSerializer):
     image_alt = serializers.SerializerMethodField()
 
     def get_title(self, obj):
-        return obj.title if obj.title else f"Join | {obj.revenueprogram.name}"
+        return obj.title if obj.title else f"Join | {obj.revenue_program.name}"
 
     def get_description(self, obj):
         return (
             obj.description
             if obj.description
-            else f"{obj.revenueprogram.name} is supported by people like you. Support {obj.revenueprogram.name} today."
+            else f"{obj.revenue_program.name} is supported by people like you. Support {obj.revenue_program.name} today."
         )
 
     def get_url(self, obj):
@@ -35,13 +35,13 @@ class SocialMetaInlineSerializer(serializers.ModelSerializer):
         return card_uri
 
     def get_twitter_handle(self, obj):
-        return "@" + obj.revenueprogram.twitter_handle if obj.revenueprogram.twitter_handle else "@fundjournalism"
+        return "@" + obj.revenue_program.twitter_handle if obj.revenue_program.twitter_handle else "@fundjournalism"
 
     def get_revenue_program_name(self, obj):
-        return obj.revenueprogram.name
+        return obj.revenue_program.name
 
     def get_image_alt(self, obj):
-        return f"{obj.revenueprogram.name} social media card" if obj.card else "fund journalism social media card"
+        return f"{obj.revenue_program.name} social media card" if obj.card else "fund journalism social media card"
 
     class Meta:
         model = SocialMeta

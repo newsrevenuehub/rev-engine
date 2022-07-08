@@ -13,6 +13,7 @@ https://docs.djangoproject.com/en/3.0/ref/settings/
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 import os
 from datetime import timedelta
+from pathlib import Path
 
 
 PROJECT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -479,3 +480,7 @@ METADATA_SCHEMA_VERSION = os.getenv("METADATA_SCHEMA_VERSION", "1.0")
 
 # Add reversion models to admin interface
 ADD_REVERSION_ADMIN = True
+
+# Serve SPA via django
+FRONTEND_BUILD_DIR = Path(BASE_DIR) / "spa/public"
+TEMPLATES[0]["DIRS"] = [FRONTEND_BUILD_DIR, os.path.join(PROJECT_DIR, "templates")]

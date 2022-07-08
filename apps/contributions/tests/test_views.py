@@ -598,7 +598,7 @@ class TestContributionsViewSet(RevEngineApiAbstractTestCase):
         )
 
 
-class TestContributorContributionsViewSet(RevEngineApiAbstractTestCase):
+class TestContributorContributionsViewSet(APITestCase):
     def setUp(self):
         super().setUp()
         self.org = OrganizationFactory()

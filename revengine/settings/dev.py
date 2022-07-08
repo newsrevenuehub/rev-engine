@@ -1,5 +1,4 @@
 import os
-from pathlib import Path
 
 from .base import *  # noqa
 
@@ -76,9 +75,3 @@ else:
             "BACKEND": "django.core.cache.backends.dummy.DummyCache",
         }
     }
-
-# Serve SPA via django
-FRONTEND_BUILD_DIR = Path(BASE_DIR) / "spa/public"
-TEMPLATES[0]["DIRS"] = [FRONTEND_BUILD_DIR, os.path.join(PROJECT_DIR, "templates")]
-
-ESP_TEMPLATE_ID_FOR_CONTRIBUTION_CONFIRMATION = "someFakeValue"

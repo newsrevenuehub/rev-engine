@@ -80,7 +80,7 @@ class PaymentType(models.TextChoices):
     AU_BECS_DEBIT = "au_becs_debit", "au_becs_debit"
     BANCONTACT = "bancontact", "bancontact"
     CARD = "card", "card"
-    CARD_PRESETN = "card_present", "card_present"
+    CARD_PRESENT = "card_present", "card_present"
     EPS = "eps", "eps"
     GIROPAY = "giropay", "giropay"
     IDEAL = "ideal", "ideal"

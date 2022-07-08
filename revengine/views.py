@@ -40,7 +40,7 @@ class ReactAppView(TemplateView):
                 logger.info('ReactAppView failed to retrieve RevenueProgram by subdomain "%s"', subdomain)
 
     def _add_social_media_context(self, revenue_program, context):
-        serializer = SocialMetaInlineSerializer(revenue_program.social_meta, context={"request": self.request})
+        serializer = SocialMetaInlineSerializer(revenue_program.socialmeta, context={"request": self.request})
         context["social_meta"] = serializer.data
 
     def _add_gtm_id(self, context):

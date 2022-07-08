@@ -18,11 +18,7 @@ class SocialMeta(models.Model):
     description = models.TextField(blank=True)
     url = models.URLField(blank=True)
     card = SorlImageField(null=True, blank=True)
+    revenue_program = models.OneToOneField("organizations.RevenueProgram", on_delete=models.CASCADE, null=True)
 
     def __str__(self):
-        related = ""
-        if hasattr(self, "revenueprogram"):
-            related = ("revenueprogram", "Revenue Program")
-        if related:
-            return f'Social media Metatags for {related[1]} "{getattr(self, related[0])}"'
-        return f"Social media Metatags: {self.title}"
+        return f"Social media Metatags for RevenueProgram: {self.revenue_program.name if self.revenue_program else '<NotSet>'}"

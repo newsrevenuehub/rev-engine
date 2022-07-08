@@ -16,11 +16,13 @@ class SocialMetaInlineSerializerTest(TestCase):
         file.url = "/media/whatever.png"
         self.card = get_test_image_file_jpeg()
         self.twitter_handle = "tweetzor"
+        self.revenue_program = RevenueProgramFactory(name=self.rp_name, twitter_handle=self.twitter_handle)
         self.social_meta = SocialMeta.objects.create(
-            title=self.title, description=self.description, url=self.url, card=self.card
-        )
-        self.revenue_program = RevenueProgramFactory(
-            name=self.rp_name, social_meta=self.social_meta, twitter_handle=self.twitter_handle
+            title=self.title,
+            description=self.description,
+            url=self.url,
+            card=self.card,
+            revenue_program=self.revenue_program,
         )
         self.serializer = SocialMetaInlineSerializer
         factory = RequestFactory()

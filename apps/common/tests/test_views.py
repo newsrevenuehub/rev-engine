@@ -2,6 +2,7 @@ from django.contrib.auth import get_user_model
 from django.test import TestCase, override_settings
 from django.urls import reverse
 
+from apps.common.models import SocialMeta
 from apps.organizations.tests.factories import OrganizationFactory, RevenueProgramFactory
 from apps.pages.tests.factories import StyleFactory
 from revengine.views import SAFE_ADMIN_SELECT_ACCESSOR_METHODS, SAFE_ADMIN_SELECT_PARENTS
@@ -14,6 +15,9 @@ user_model = get_user_model()
 class ReactAppViewTestCase(TestCase):
     def setUp(self):
         self.revenue_program = RevenueProgramFactory(name="My Test", slug="my-test")
+        SocialMeta.objects.create(
+            title="title", description="description", url="https://example.com", revenue_program=self.revenue_program
+        )
 
     def test_page_title_includes_rev_program_name_when_subdomain(self):
         response = self.client.get(reverse("index"), HTTP_HOST=f"{self.revenue_program.slug}.test-domain.com")

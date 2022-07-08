@@ -1,6 +1,7 @@
 from unittest.mock import patch
 
 from django.core.exceptions import ValidationError
+from django.db.models.deletion import ProtectedError
 from django.test import TestCase, override_settings
 from django.utils.text import slugify
 
@@ -9,22 +10,69 @@ from stripe.error import StripeError
 
 from apps.config.tests.factories import DenyListWordFactory
 from apps.config.validators import GENERIC_SLUG_DENIED_MSG, SLUG_DENIED_CODE
+from apps.contributions.tests.factories import ContributionFactory
 from apps.organizations.models import Organization, RevenueProgram
 from apps.organizations.tests import factories
+from apps.pages.models import DonationPage
+from apps.pages.tests.factories import DonationPageFactory
+from apps.users.models import RoleAssignment
+from apps.users.tests.factories import RoleAssignmentFactory
 
 
 TEST_STRIPE_LIVE_KEY = "my_test_live_key"
 TEST_DOMAIN_APEX = "testapexdomain.com"
 
 
+class TestPlanModel(TestCase):
+    def test_cannot_delete_plan_when_referenced_by_org(self):
+        plan = factories.PlanFactory()
+        factories.OrganizationFactory(plan=plan)
+        with self.assertRaises(ProtectedError) as protected_error:
+            plan.delete()
+        error_msg = (
+            "Cannot delete some instances of model 'Plan' because they are referenced through protected "
+            "foreign keys: 'Organization.plan'."
+        )
+        self.assertEqual(error_msg, protected_error.exception.args[0])
+
+
 class TestOrganizationModel(TestCase):
     def setUp(self):
         self.organization = factories.OrganizationFactory()
+        self.rp = factories.RevenueProgramFactory(organization=self.organization)
+        self.dp = DonationPageFactory(revenue_program=self.rp)
+        self.contribution = ContributionFactory(donation_page=self.dp)
+        self.role_assignment = RoleAssignmentFactory(organization=self.organization)
 
     def test_admin_revenueprogram_options(self):
-        rp = factories.RevenueProgramFactory(organization=self.organization)
         self.organization.refresh_from_db()
-        self.assertEqual(self.organization.admin_revenueprogram_options, [(rp.name, rp.pk)])
+        self.assertEqual(self.organization.admin_revenueprogram_options, [(self.rp.name, self.rp.pk)])
+
+    def test_org_cannot_be_deleted_when_contributions_downstream(self):
+        """An org should not be deleteable when downstream contributions exist"""
+        with self.assertRaises(ProtectedError) as protected_error:
+            self.organization.delete()
+        error_msg = (
+            "Cannot delete some instances of model 'Organization' because they are referenced through protected "
+            "foreign keys: 'RevenueProgram.organization'."
+        )
+        self.assertEqual(error_msg, protected_error.exception.args[0])
+        # prove related not deleted
+        self.rp.refresh_from_db()
+        self.dp.refresh_from_db()
+        self.contribution.refresh_from_db()
+        self.role_assignment.refresh_from_db()
+
+    def test_org_deletion_cascades_when_no_contributions_downstream(self):
+        """An org and its cascading relationships should be deleted when no downstream contributions"""
+        rp_id = self.rp.id
+        dp_id = self.dp.id
+        ra_id = self.role_assignment.id
+        self.contribution.delete()
+        self.organization.delete()
+        self.assertFalse(RevenueProgram.objects.filter(id=rp_id).exists())
+        self.assertFalse(DonationPage.objects.filter(id=dp_id).exists())
+        self.assertFalse(RoleAssignment.objects.filter(id=ra_id).exists())
 
 
 class RevenueProgramTest(TestCase):
@@ -58,6 +106,22 @@ class RevenueProgramTest(TestCase):
         Faker.seed(0)
         long_slug_rp = factories.RevenueProgramFactory(name=f"{' '.join(fake.words(nb=30))}")
         self.assertLessEqual(len(long_slug_rp.slug), 100)
+
+    def test_cannot_delete_when_downstream_contributions(self):
+        page = DonationPageFactory(revenue_program=self.instance)
+        ContributionFactory(donation_page=page)
+        with self.assertRaises(ProtectedError) as protected_error:
+            self.instance.delete()
+        error_msg = (
+            "Cannot delete some instances of model 'RevenueProgram' because they are referenced "
+            "through protected foreign keys: 'DonationPage.revenue_program'."
+        )
+        self.assertEqual(error_msg, protected_error.exception.args[0])
+
+    def test_can_delete_when_no_downstream_contributions_and_cascades(self):
+        page_id = DonationPageFactory(revenue_program=self.instance).id
+        self.instance.delete()
+        self.assertFalse(DonationPage.objects.filter(id=page_id).exists())
 
     def test_delete_organization_deletes_revenue_program(self):
         self.assertIsNotNone(self.organization)

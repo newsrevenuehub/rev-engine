@@ -240,6 +240,8 @@ class PageViewSetTest(RevEngineApiAbstractTestCase):
     def test_superuser_can_delete_a_page(self):
         before_count = DonationPage.objects.count()
         page = DonationPage.objects.first()
+        # contributions protect referenced page from being deleted, so need to delete these first
+        page.contribution_set.all().delete()
         pk = page.pk
         detail_url = f"/api/v1/pages/{pk}/"
         self.assert_superuser_can_delete(detail_url)
@@ -249,6 +251,8 @@ class PageViewSetTest(RevEngineApiAbstractTestCase):
     def test_hub_admin_can_delete_a_page(self):
         before_count = DonationPage.objects.count()
         page = DonationPage.objects.first()
+        # contributions protect referenced page from being deleted, so need to delete these first
+        page.contribution_set.all().delete()
         pk = page.pk
         detail_url = f"/api/v1/pages/{pk}/"
         self.assert_hub_admin_can_delete(detail_url)
@@ -258,6 +262,8 @@ class PageViewSetTest(RevEngineApiAbstractTestCase):
     def test_org_admin_can_delete_their_orgs_page(self):
         before_count = DonationPage.objects.count()
         page = DonationPage.objects.filter(revenue_program__organization=self.org1).first()
+        # contributions protect referenced page from being deleted, so need to delete these first
+        page.contribution_set.all().delete()
         self.assertIsNotNone(page)
         pk = page.pk
         url = reverse("donationpage-detail", args=(pk,))
@@ -269,6 +275,8 @@ class PageViewSetTest(RevEngineApiAbstractTestCase):
         before_count = DonationPage.objects.count()
         page = DonationPage.objects.exclude(revenue_program__organization=self.org1).first()
         self.assertIsNotNone(page)
+        # contributions protect referenced page from being deleted, so need to delete these first
+        page.contribution_set.all().delete()
         pk = page.pk
         detail_url = reverse("donationpage-detail", args=(pk,))
         self.assert_org_admin_cannot_delete(detail_url, expected_status_code=status.HTTP_403_FORBIDDEN)
@@ -281,6 +289,8 @@ class PageViewSetTest(RevEngineApiAbstractTestCase):
         before_count = DonationPage.objects.count()
         page = DonationPage.objects.filter(revenue_program=my_rp).first()
         self.assertIsNotNone(page)
+        # contributions protect referenced page from being deleted, so need to delete these first
+        page.contribution_set.all().delete()
         pk = page.pk
         detail_url = f"/api/v1/pages/{pk}/"
         self.assert_rp_user_can_delete(detail_url)
@@ -293,6 +303,8 @@ class PageViewSetTest(RevEngineApiAbstractTestCase):
         before_count = DonationPage.objects.count()
         page = DonationPage.objects.filter(revenue_program=not_my_rp).first()
         self.assertIsNotNone(page)
+        # contributions protect referenced page from being deleted, so need to delete these first
+        page.contribution_set.all().delete()
         pk = page.pk
         detail_url = reverse("donationpage-detail", args=(pk,))
         self.assert_rp_user_cannot_delete(detail_url, expected_status_code=status.HTTP_403_FORBIDDEN)

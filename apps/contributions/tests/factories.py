@@ -6,7 +6,6 @@ from django.conf import settings
 import factory
 import pytz
 from factory.django import DjangoModelFactory
-from factory.helpers import create
 from faker import Faker
 
 from apps.common.tests.test_utils import generate_random_datetime

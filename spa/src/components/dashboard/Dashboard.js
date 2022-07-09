@@ -1,4 +1,4 @@
-import { Route, Switch, Redirect } from 'react-router-dom';
+import { Route, Switch, Redirect, useLocation } from 'react-router-dom';
 
 import * as S from './Dashboard.styled';
 
@@ -9,6 +9,7 @@ import { DONATIONS_SLUG, CONTENT_SLUG, EDITOR_ROUTE_PAGE, DASHBOARD_SLUG, CUSTOM
 import { useFeatureFlagsProviderContext } from 'components/Main';
 import LivePage404 from 'components/common/LivePage404';
 import DashboardSidebar from 'components/dashboard/sidebar/DashboardSidebar';
+import DashboardTopbar from 'components/dashboard/topbar/DashboardTopbar';
 import Donations from 'components/donations/Donations';
 import Content from 'components/content/Content';
 import Customize from 'components/content/Customize';

@@ -37,40 +37,43 @@ function Dashboard() {
     : 'not-found';
 
   return (
-    <S.Dashboard data-testid="dashboard">
-      <DashboardSidebar />
-      <S.DashboardMain>
-        <S.DashboardContent>
-          <Switch>
-            <Redirect exact from={DASHBOARD_SLUG} to={dashboardSlugRedirect} />
+    <S.Outer>
+      <DashboardTopbar />
+      <S.Dashboard data-testid="dashboard">
+        <DashboardSidebar />
+        <S.DashboardMain>
+          <S.DashboardContent>
+            <Switch>
+              <Redirect exact from={DASHBOARD_SLUG} to={dashboardSlugRedirect} />
 
-            {hasContributionsSectionAccess ? (
-              <Route path={DONATIONS_SLUG}>
-                <Donations />
+              {hasContributionsSectionAccess ? (
+                <Route path={DONATIONS_SLUG}>
+                  <Donations />
+                </Route>
+              ) : null}
+              {hasContentSectionAccess ? (
+                <Route path={CONTENT_SLUG}>
+                  <Content />
+                </Route>
+              ) : null}
+              {hasContentSectionAccess ? (
+                <Route path={CUSTOMIZE_SLUG}>
+                  <Customize />
+                </Route>
+              ) : null}
+              {hasContentSectionAccess ? (
+                <Route path={EDITOR_ROUTE_PAGE}>
+                  <PageEditor />
+                </Route>
+              ) : null}
+              <Route>
+                <LivePage404 dashboard />
               </Route>
-            ) : null}
-            {hasContentSectionAccess ? (
-              <Route path={CONTENT_SLUG}>
-                <Content />
-              </Route>
-            ) : null}
-            {hasContentSectionAccess ? (
-              <Route path={CUSTOMIZE_SLUG}>
-                <Customize />
-              </Route>
-            ) : null}
-            {hasContentSectionAccess ? (
-              <Route path={EDITOR_ROUTE_PAGE}>
-                <PageEditor />
-              </Route>
-            ) : null}
-            <Route>
-              <LivePage404 dashboard />
-            </Route>
-          </Switch>
-        </S.DashboardContent>
-      </S.DashboardMain>
-    </S.Dashboard>
+            </Switch>
+          </S.DashboardContent>
+        </S.DashboardMain>
+      </S.Dashboard>
+    </S.Outer>
   );
 }
 

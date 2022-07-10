@@ -93,7 +93,7 @@ class OrganizationAdmin(RevEngineBaseAdmin, VersionAdmin, ReverseModelAdmin):  #
         ),
         (
             "Email Templates",
-            {"fields": ("uses_email_templates",)},
+            {"fields": ("send_receipt_email_via_nre",)},
         ),
     )
 

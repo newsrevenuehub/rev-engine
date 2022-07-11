@@ -1,59 +1,17 @@
-import { render } from 'test-utils';
-
+import isEqual from 'lodash.isequal';
 import { getDisabledWallets } from './StripePaymentForm';
-
-describe('Page does not allow google as stripe-payment-option', () => {
-  let result;
-  beforeEach(async () => {
+describe('getDisabledWallets function', () => {
+  it.each`
+    pagePaymentTypes                  | expectedSet
+    ${['browser', 'apple']}           | ${new Set(['googlePay'])}
+    ${['browser', 'google']}          | ${new Set(['applePay'])}
+    ${['apple', 'google']}            | ${new Set(['browserCard'])}
+    ${[]}                             | ${new Set(['browserCard', 'applePay', 'googlePay'])}
+    ${['browser', 'apple', 'google']} | ${new Set([])}
+  `('returns list equivalent of $expectedSet when given $pagePaymentTypes', ({ pagePaymentTypes, expectedSet }) => {
     const page = {
-      elements: [{ type: 'DPayment', content: { stripe: ['card', 'browser', 'apple'], offerPayFees: true } }]
+      elements: [{ type: 'DPayment', content: { stripe: pagePaymentTypes, offerPayFees: true } }]
     };
-    result = await getDisabledWallets(page);
-  });
-
-  it('should disable googlePay', () => {
-    expect(result[0]).toEqual('googlePay');
-  });
-});
-
-describe('Page does not allow apple as stripe-payment-option', () => {
-  let result;
-  beforeEach(async () => {
-    const page = {
-      elements: [{ type: 'DPayment', content: { stripe: ['card', 'browser', 'google'], offerPayFees: true } }]
-    };
-    result = await getDisabledWallets(page);
-  });
-
-  it('should disable applePay', () => {
-    expect(result[0]).toEqual('applePay');
-  });
-});
-
-describe('Page does not allow google,apple,browser as stripe-payment-options', () => {
-  let result;
-  beforeEach(async () => {
-    const page = { elements: [{ type: 'DPayment', content: { stripe: [], offerPayFees: true } }] };
-    result = await getDisabledWallets(page);
-  });
-
-  it('should disable all of googlePay,applePay,browserCard', () => {
-    expect(result).toContain('googlePay');
-    expect(result).toContain('applePay');
-    expect(result).toContain('browserCard');
-  });
-});
-
-describe('Page allows all of google,apple,browser as stripe-payment-options', () => {
-  let result;
-  beforeEach(async () => {
-    const page = {
-      elements: [{ type: 'DPayment', content: { stripe: ['card', 'browser', 'apple', 'google'], offerPayFees: true } }]
-    };
-    result = await getDisabledWallets(page);
-  });
-
-  it('should return empty array', () => {
-    expect(result.length).toEqual(0);
+    expect(isEqual(new Set(getDisabledWallets(page)), expectedSet)).toBe(true);
   });
 });

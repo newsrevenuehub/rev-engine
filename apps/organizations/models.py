@@ -362,6 +362,12 @@ class PaymentProvider(IndexedTimeStampedModel):
         help_text='A fully verified Stripe Connected account should have "charges_enabled: true" in Stripe',
     )
 
+    def get_dependent_pages_with_publication_date(self):
+        """Retreieve live and future live donation pages that rely on this payment provider"""
+        from apps.pages.models import DonationPage  # vs circular import
+
+        return DonationPage.objects.filter(revenue_program__payment_provider=self, published_date__isnull=False)
+
     def __str__(self):
         return self.stripe_account_id
 

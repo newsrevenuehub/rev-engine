@@ -80,8 +80,11 @@ class PageFullDetailHelper:
             logger.info('Request for un-published page "%s"', self.donation_page)
             raise PageDetailError(message="This page has not been published", status=status.HTTP_404_NOT_FOUND)
 
-        if not self.revenue_program.payment_provider.is_verified_with_default_provider():
-            logger.info(
+        if not (
+            self.revenue_program.payment_provider
+            and self.revenue_program.payment_provider.is_verified_with_default_provider()
+        ):
+            logger.warning(
                 'Request made for live page "%s", but "%s" does is not verified with its default payment provider',
                 self.donation_page,
                 self.donation_page.organization.name,

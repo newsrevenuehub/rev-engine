@@ -3,12 +3,11 @@
 from django.db import migrations, models
 
 
-def populate_org_country_from_old_related_addresses(apps, schema_editor):
-    """ """
-    Organization = apps.get_model("organizations", "Organization")
-    for org in Organization.objects.filter(address__isnull=False).all():
-        org.country = org.address.country
-        org.save()
+def populate_rp_country_from_old_related_addresses(apps, schema_editor):
+    RevenueProgram = apps.get_model("organizations", "RevenueProgram")
+    for rp in RevenueProgram.objects.filter(address__isnull=False).all():
+        rp.country = rp.address.country
+        rp.save()
 
 
 class Migration(migrations.Migration):
@@ -19,14 +18,14 @@ class Migration(migrations.Migration):
 
     operations = [
         migrations.AddField(
-            model_name="organization",
+            model_name="revenueprogram",
             name="country",
             field=models.CharField(
                 blank=True, choices=[("US", "US"), ("CA", "CA")], default="US", max_length=2, verbose_name="Country"
             ),
         ),
         migrations.RunPython(
-            code=populate_org_country_from_old_related_addresses,
+            code=populate_rp_country_from_old_related_addresses,
             reverse_code=migrations.RunPython.noop,
         ),
         migrations.RemoveField(

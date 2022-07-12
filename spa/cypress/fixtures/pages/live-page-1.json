@@ -175,6 +175,6 @@
     "symbol": "🍁"
   },
   "stripe_account_id": "testing_stripe_account_id",
-  "organization_country": "US",
+  "revenue_program_country": "US",
   "allow_offer_nyt_comp": null
 }

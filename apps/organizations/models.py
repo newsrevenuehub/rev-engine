@@ -100,14 +100,6 @@ class Organization(IndexedTimeStampedModel, RoleAssignmentResourceModelMixin):
         help_text="If false, receipt email assumed to be sent via Salesforce. Other emails, e.g. magic_link, are always sent via NRE regardless of this setting",
     )
 
-    country = models.CharField(
-        max_length=2,
-        blank=True,
-        choices=get_country_choices(),
-        default="US",
-        verbose_name="Country",
-    )
-
     @property
     def admin_revenueprogram_options(self):
         rps = self.revenueprogram_set.all()
@@ -250,6 +242,13 @@ class RevenueProgram(IndexedTimeStampedModel):
         default=False,
         help_text="Should page authors for this Revenue Program see the option to offer their donors a comp subscription to the New York Times?",
         verbose_name="Allow page editors to offer an NYT subscription",
+    )
+    country = models.CharField(
+        max_length=2,
+        blank=True,
+        choices=get_country_choices(),
+        default="US",
+        verbose_name="Country",
     )
 
     @property

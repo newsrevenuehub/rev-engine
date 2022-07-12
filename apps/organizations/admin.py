@@ -100,9 +100,15 @@ class OrganizationAdmin(RevEngineBaseAdmin, VersionAdmin):  # pragma: no cover
 
     fieldsets = organization_fieldset
 
-    list_display = ["name", "plan", "country"]
+    list_display = [
+        "name",
+        "plan",
+    ]
 
-    list_filter = ["name", "plan", "country"]
+    list_filter = [
+        "name",
+        "plan",
+    ]
 
     inline_type = "stacked"
 
@@ -196,9 +202,17 @@ class RevenueProgramAdmin(RevEngineBaseAdmin, VersionAdmin, ReverseModelAdmin, A
         ),
     )
 
-    list_display = ["name", "organization", "slug"]
+    list_display = [
+        "name",
+        "organization",
+        "slug",
+        "country",
+    ]
 
-    list_filter = ["name"]
+    list_filter = [
+        "name",
+        "country",
+    ]
 
     inline_type = "stacked"
     inline_reverse = [

@@ -111,7 +111,7 @@ class DonationPageFullDetailSerializer(serializers.ModelSerializer):
     revenue_program_is_nonprofit = serializers.SerializerMethodField(method_name="get_revenue_program_is_nonprofit")
     stripe_account_id = serializers.SerializerMethodField(method_name="get_stripe_account_id")
     currency = serializers.SerializerMethodField(method_name="get_currency")
-    organization_country = serializers.SerializerMethodField(method_name="get_organization_country")
+    revenue_program_country = serializers.SerializerMethodField(method_name="get_revenue_program_country")
     allow_offer_nyt_comp = serializers.SerializerMethodField(method_name="get_allow_offer_nyt_comp")
 
     benefit_levels = serializers.SerializerMethodField(method_name="get_benefit_levels")
@@ -126,8 +126,8 @@ class DonationPageFullDetailSerializer(serializers.ModelSerializer):
     def get_currency(self, obj):
         return obj.revenue_program.payment_provider.get_currency_dict()
 
-    def get_organization_country(self, obj):
-        return obj.organization.country
+    def get_revenue_program_country(self, obj):
+        return obj.revenue_program.country
 
     def get_allow_offer_nyt_comp(self, obj):
         if not self.context.get("live", False):

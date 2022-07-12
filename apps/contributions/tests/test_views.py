@@ -86,7 +86,7 @@ class StripePaymentViewTestAbstract(AbstractTestCase):
                 "mailing_city": "Fakerton",
                 "mailing_state": "FK",
                 "mailing_country": "Fakeland",
-                "organization_country": "US",
+                "revenue_program_country": "US",
                 "currency": "cad",
                 "phone": "123-456-7890",
                 "revenue_program_slug": donation_page.revenue_program.slug,

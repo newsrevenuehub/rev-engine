@@ -122,7 +122,7 @@ export function serializeData(formRef, state) {
   serializedData['agreed_to_pay_fees'] = state.payFee;
   serializedData['revenue_program_slug'] = state.revProgramSlug;
   serializedData['donation_page_slug'] = state.pageSlug;
-  serializedData['organization_country'] = state.orgCountry;
+  serializedData['revenue_program_country'] = state.rpCountry;
   serializedData['currency'] = state.currency;
   serializedData['page_id'] = state.pageId;
   if (state.salesforceCampaignId) serializedData['sf_campaign_id'] = state.salesforceCampaignId;

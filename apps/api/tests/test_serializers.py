@@ -26,7 +26,7 @@ contributor = apps.contributions.models.Contributor(
         {"email": "bob@example.com", "subdomain": "ncn\n"},  # something strips whitespace
     ],
 )
-@mock.patch("apps.api.serializers.Contributor.objects.get", return_value=contributor)
+@mock.patch("apps.api.serializers.Contributor.objects.get_or_create", return_value=(contributor, False))
 def test_good_ContributorObtainTokenSerializer(mock_get, data):
     t = ContributorObtainTokenSerializer(data=data)
     assert t.is_valid(), t.errors
@@ -45,7 +45,7 @@ def test_good_ContributorObtainTokenSerializer(mock_get, data):
         {"email": "bob@example.com", "subdomain": "https://ncn"},  # only a-z, 0-9, -
     ],
 )
-@mock.patch("apps.api.serializers.Contributor.objects.get", return_value=contributor)
+@mock.patch("apps.api.serializers.Contributor.objects.get_or_create", return_value=(contributor, False))
 def test_bad_ContributorObtainTokenSerializer(mock_get, data):
     t = ContributorObtainTokenSerializer(data=data)
     assert not t.is_valid(), t.errors

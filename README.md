@@ -34,6 +34,9 @@
   - [Open a shell on an app](#open-a-shell-on-an-app)
 - [Celery Tasks](#celery-tasks)
 - [Frontend Configuration](#frontend-configuration)
+- [Django migrations](#django-migrations)
+  - [No automatic migration names](#no-automatic-migration-names)
+  - [Squash PR-related migrations](#squash-pr-related-migrations)
 - [`django-reversion`, audit logs, and restoring deleted model instances](#django-reversion-audit-logs-and-restoring-deleted-model-instances)
   - [How to register a model](#how-to-register-a-model)
   - [How to register a view](#how-to-register-a-view)
@@ -433,6 +436,21 @@ REACT_APP_HUB_V3_GOOGLE_ANALYTICS_ID=therealvaluehere
 ```
 
 Any value in `settings.js` that uses the `resolveConstantFromEnv` method can be overridden by adding it to .env prepended by `REACT_APP_`
+
+## Django migrations
+
+When you're working on a new feature, we have some minimal guidelines around Django migrations that you are expected to follow.
+
+### No automatic migration names
+
+First, be sure to give your migrations a meaningful, non-automatic name. By default, Django will often give a name like `0003_auto_20220801_1100.py`. Let's imagine that migration removes a column ('my_column') from a model ('MyModel'). A better name would be `0003_DEV-1234_drop_my_column_from_mymodel.py`, which references the ticket name and describes at a high level what the migration does. This practice helps maintainers have a high level understanding of what a migration does simply by reading its file name. To this end, there is a Make command (`make test_migrations`) that runs as part of the Python tests in CI which prohibits automatic migration names.
+
+### Squash PR-related migrations
+
+We want to limit the number of individual migration files produced. As you're working on a feature branch, oftentimes you'll iteratively create numerous migrations for a given app as you run down feature implementation.
+
+Before submitting a pull request, please [squash all the migrations](https://docs.djangoproject.com/en/4.0/topics/migrations/#migration-squashing) per app for that PR into either one or two migrations depending on whether there are both data and schema migrations. Include the ticket number in the filename for the migration, e.g. 0004_DEV-1234_contribution_flagged_date.py
+
 
 ## `django-reversion`, audit logs, and restoring deleted model instances
 

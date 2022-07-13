@@ -21,7 +21,11 @@ class Migration(migrations.Migration):
             model_name="revenueprogram",
             name="country",
             field=models.CharField(
-                blank=True, choices=[("US", "US"), ("CA", "CA")], default="US", max_length=2, verbose_name="Country"
+                choices=[("US", "United States"), ("CA", "Canada")],
+                default="US",
+                help_text="2-letter country code of RP's company. This gets included in data sent to stripe when creating a payment",
+                max_length=2,
+                verbose_name="Country",
             ),
         ),
         migrations.RunPython(

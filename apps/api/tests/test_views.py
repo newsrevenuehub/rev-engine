@@ -97,6 +97,7 @@ class RequestContributorTokenEmailViewTest(APITestCase):
         response = self.client.post(self.url, {"email": target_email, "subdomain": "rp"})
         # We don't want to indicate in any way whether or not an email is in the system.
         self.assertEqual(response.status_code, 200)
+        # this view creates a contributor if none exists
         self.assertEqual(Contributor.objects.filter(email=target_email).count(), 1)
 
     def test_validation_when_email_is_invalid(self):

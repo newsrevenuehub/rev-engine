@@ -7,6 +7,13 @@ import django.db.models.deletion
 
 class Migration(migrations.Migration):
 
+    # manually added this after renaming this migration file to be semantic, based on
+    # error raised by django-test-migrations, which we're using to prohibit default
+    # migration names
+    replaces = [
+        ("users", "0002_auto_20220624_0235"),
+    ]
+
     dependencies = [
         ("organizations", "0001_initial"),
         ("users", "0001_initial"),

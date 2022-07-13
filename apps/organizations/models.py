@@ -5,7 +5,6 @@ from django.core.exceptions import ValidationError
 from django.db import models
 from django.utils import timezone
 
-import pycountry
 import stripe
 
 from apps.common.models import IndexedTimeStampedModel
@@ -14,17 +13,6 @@ from apps.config.validators import validate_slug_against_denylist
 from apps.organizations.validators import validate_statement_descriptor_suffix
 from apps.users.choices import Roles
 from apps.users.models import RoleAssignmentResourceModelMixin, UnexpectedRoleType
-
-
-def get_country_choices():
-    """
-    returns a tuple of country choices according to pycountry.countries db
-    """
-    country_choices = []
-    for country_code in settings.COUNTRIES:
-        country = pycountry.countries.lookup(country_code)
-        country_choices.append((country.alpha_2, country.alpha_2))
-    return country_choices
 
 
 logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
@@ -197,6 +185,17 @@ class BenefitLevelBenefit(models.Model):
         return f'Benefit {self.order} for "{self.benefit_level}" benefit level'
 
 
+class CountryChoices(models.TextChoices):
+    """Two-letter country codes
+
+    These are used in RevenueProgram for the country value. In turn, they get sent to Stripe
+    in SPA when payment request is made.
+    """
+
+    US = "US", "United States"
+    CANADA = "CA", "Canada"
+
+
 class RevenueProgram(IndexedTimeStampedModel):
     name = models.CharField(max_length=255)
     slug = models.SlugField(
@@ -245,10 +244,10 @@ class RevenueProgram(IndexedTimeStampedModel):
     )
     country = models.CharField(
         max_length=2,
-        blank=True,
-        choices=get_country_choices(),
-        default="US",
+        choices=CountryChoices.choices,
+        default=CountryChoices.US,
         verbose_name="Country",
+        help_text="2-letter country code of RP's company. This gets included in data sent to stripe when creating a payment",
     )
 
     @property

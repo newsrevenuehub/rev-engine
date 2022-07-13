@@ -384,17 +384,6 @@ dev = ["flake8", "sphinx", "sphinx-rtd-theme", "tox", "twine", "wheel"]
 postal = ["cryptography"]
 
 [[package]]
-name = "django-appconf"
-version = "1.0.5"
-description = "A helper class for handling configuration defaults of packaged apps gracefully."
-category = "main"
-optional = false
-python-versions = ">=3.6"
-
-[package.dependencies]
-django = "*"
-
-[[package]]
 name = "django-celery-beat"
 version = "2.3.0"
 description = "Database-backed Periodic Tasks."
@@ -408,20 +397,6 @@ Django = ">=2.2,<4.1"
 django-timezone-field = ">=5.0"
 python-crontab = ">=2.3.4"
 tzdata = "*"
-
-[[package]]
-name = "django-compressor"
-version = "2.4"
-description = "Compresses linked and inline JavaScript or CSS into single cached files."
-category = "main"
-optional = false
-python-versions = "*"
-
-[package.dependencies]
-django-appconf = ">=1.0.3"
-rcssmin = "1.0.6"
-rjsmin = "1.1.0"
-six = ">=1.12.0"
 
 [[package]]
 name = "django-csp"
@@ -1473,14 +1448,6 @@ optional = false
 python-versions = ">=3.6"
 
 [[package]]
-name = "rcssmin"
-version = "1.0.6"
-description = "CSS Minifier"
-category = "main"
-optional = false
-python-versions = "*"
-
-[[package]]
 name = "redis"
 version = "4.3.4"
 description = "Python client for Redis database and key-value store"
@@ -1529,14 +1496,6 @@ urllib3 = ">=1.25.10"
 
 [package.extras]
 tests = ["pytest (>=7.0.0)", "coverage (>=6.0.0)", "pytest-cov", "pytest-asyncio", "pytest-localserver", "flake8", "types-mock", "types-requests", "mypy"]
-
-[[package]]
-name = "rjsmin"
-version = "1.1.0"
-description = "Javascript Minifier"
-category = "main"
-optional = false
-python-versions = "*"
 
 [[package]]
 name = "rsa"
@@ -1795,7 +1754,7 @@ testing = ["pytest (>=6)", "pytest-checkdocs (>=2.4)", "pytest-flake8", "pytest-
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.10"
-content-hash = "42bb3059360dfb21fc8bd62a1fa404560e049920eaa046a712492be274637df4"
+content-hash = "5fbda9b16500850d9d80aca5345639a10f83327d9f4d5227fd4ccb3cfeeca2b9"
 
 [metadata.files]
 amqp = [
@@ -1937,17 +1896,9 @@ django-anymail = [
     {file = "django-anymail-8.6.tar.gz", hash = "sha256:783342d49dd07d68778b81dd12a94c86e1d217463a68a85450a0513fabe31345"},
     {file = "django_anymail-8.6-py3-none-any.whl", hash = "sha256:49d83d7c16316ca86a624097496881d59b7d71b16bf1c5211cffa5b19ef98d0c"},
 ]
-django-appconf = [
-    {file = "django-appconf-1.0.5.tar.gz", hash = "sha256:be3db0be6c81fa84742000b89a81c016d70ae66a7ccb620cdef592b1f1a6aaa4"},
-    {file = "django_appconf-1.0.5-py3-none-any.whl", hash = "sha256:ae9f864ee1958c815a965ed63b3fba4874eec13de10236ba063a788f9a17389d"},
-]
 django-celery-beat = [
     {file = "django-celery-beat-2.3.0.tar.gz", hash = "sha256:ba24f86ed956ba0ee2b43237a49303ebf5aa7e0fb0ccb7e0542b7e31a463dcba"},
     {file = "django_celery_beat-2.3.0-py3-none-any.whl", hash = "sha256:ff694e1d30f84de3d2b78822c90005c6c7c1462768e845ae162af71a6a46f1eb"},
-]
-django-compressor = [
-    {file = "django_compressor-2.4-py2.py3-none-any.whl", hash = "sha256:57ac0a696d061e5fc6fbc55381d2050f353b973fb97eee5593f39247bc0f30af"},
-    {file = "django_compressor-2.4.tar.gz", hash = "sha256:d2ed1c6137ddaac5536233ec0a819e14009553fee0a869bea65d03e5285ba74f"},
 ]
 django-csp = [
     {file = "django_csp-3.7-py2.py3-none-any.whl", hash = "sha256:01443a07723f9a479d498bd7bb63571aaa771e690f64bde515db6cdb76e8041a"},
@@ -2486,9 +2437,6 @@ pyyaml = [
     {file = "PyYAML-6.0-cp39-cp39-win_amd64.whl", hash = "sha256:b3d267842bf12586ba6c734f89d1f5b871df0273157918b0ccefa29deb05c21c"},
     {file = "PyYAML-6.0.tar.gz", hash = "sha256:68fb519c14306fec9720a2a5b45bc9f0c8d1b9c72adf45c37baedfcd949c35a2"},
 ]
-rcssmin = [
-    {file = "rcssmin-1.0.6.tar.gz", hash = "sha256:ca87b695d3d7864157773a61263e5abb96006e9ff0e021eff90cbe0e1ba18270"},
-]
 redis = [
     {file = "redis-4.3.4-py3-none-any.whl", hash = "sha256:a52d5694c9eb4292770084fa8c863f79367ca19884b329ab574d5cb2036b3e54"},
     {file = "redis-4.3.4.tar.gz", hash = "sha256:ddf27071df4adf3821c4f2ca59d67525c3a82e5f268bed97b813cb4fabf87880"},
@@ -2500,21 +2448,6 @@ requests = [
 responses = [
     {file = "responses-0.21.0-py3-none-any.whl", hash = "sha256:2dcc863ba63963c0c3d9ee3fa9507cbe36b7d7b0fccb4f0bdfd9e96c539b1487"},
     {file = "responses-0.21.0.tar.gz", hash = "sha256:b82502eb5f09a0289d8e209e7bad71ef3978334f56d09b444253d5ad67bf5253"},
-]
-rjsmin = [
-    {file = "rjsmin-1.1.0-cp27-cp27m-manylinux1_i686.whl", hash = "sha256:799890bd07a048892d8d3deb9042dbc20b7f5d0eb7da91e9483c561033b23ce2"},
-    {file = "rjsmin-1.1.0-cp27-cp27m-manylinux1_x86_64.whl", hash = "sha256:211c2fe8298951663bbc02acdffbf714f6793df54bfc50e1c6c9e71b3f2559a3"},
-    {file = "rjsmin-1.1.0-cp27-cp27mu-manylinux1_i686.whl", hash = "sha256:585e75a84d9199b68056fd4a083d9a61e2a92dfd10ff6d4ce5bdb04bc3bdbfaf"},
-    {file = "rjsmin-1.1.0-cp27-cp27mu-manylinux1_x86_64.whl", hash = "sha256:e487a7783ac4339e79ec610b98228eb9ac72178973e3dee16eba0e3feef25924"},
-    {file = "rjsmin-1.1.0-cp34-cp34m-manylinux1_i686.whl", hash = "sha256:0ab825839125eaca57cc59581d72e596e58a7a56fbc0839996b7528f0343a0a8"},
-    {file = "rjsmin-1.1.0-cp34-cp34m-manylinux1_x86_64.whl", hash = "sha256:6044ca86e917cd5bb2f95e6679a4192cef812122f28ee08c677513de019629b3"},
-    {file = "rjsmin-1.1.0-cp35-cp35m-manylinux1_i686.whl", hash = "sha256:ecd29f1b3e66a4c0753105baec262b331bcbceefc22fbe6f7e8bcd2067bcb4d7"},
-    {file = "rjsmin-1.1.0-cp35-cp35m-manylinux1_x86_64.whl", hash = "sha256:975b69754d6a76be47c0bead12367a1ca9220d08e5393f80bab0230d4625d1f4"},
-    {file = "rjsmin-1.1.0-cp36-cp36m-manylinux1_i686.whl", hash = "sha256:466fe70cc5647c7c51b3260c7e2e323a98b2b173564247f9c89e977720a0645f"},
-    {file = "rjsmin-1.1.0-cp36-cp36m-manylinux1_x86_64.whl", hash = "sha256:e3908b21ebb584ce74a6ac233bdb5f29485752c9d3be5e50c5484ed74169232c"},
-    {file = "rjsmin-1.1.0-cp37-cp37m-manylinux1_i686.whl", hash = "sha256:714329db774a90947e0e2086cdddb80d5e8c4ac1c70c9f92436378dedb8ae345"},
-    {file = "rjsmin-1.1.0-cp37-cp37m-manylinux1_x86_64.whl", hash = "sha256:dd0f4819df4243ffe4c964995794c79ca43943b5b756de84be92b445a652fb86"},
-    {file = "rjsmin-1.1.0.tar.gz", hash = "sha256:b15dc75c71f65d9493a8c7fa233fdcec823e3f1b88ad84a843ffef49b338ac32"},
 ]
 rsa = [
     {file = "rsa-4.8-py3-none-any.whl", hash = "sha256:95c5d300c4e879ee69708c428ba566c59478fd653cc3a22243eeb8ed846950bb"},

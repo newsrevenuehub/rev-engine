@@ -132,10 +132,10 @@ class StripeOneTimePaymentViewTest(StripePaymentViewTestAbstract):
     @patch("apps.contributions.views.send_templated_email.delay")
     @patch("apps.contributions.views.StripePaymentManager.create_one_time_payment", side_effect=MockPaymentIntent)
     def test_happy_path_no_confirmation_email(self, mock_one_time_payment, mock_send_confirmation_email):
-
         # `self.page` is referenced inside `_post_valid_payment` and determines which org is referenced re: contribution
         # confirmation emails
-        self.assertFalse(self.page.revenue_program.organization.uses_email_templates)
+        self.page.revenue_program.organization.send_receipt_email_via_nre = False
+        self.page.revenue_program.organization.save()
         response = self._post_valid_payment(email=self.contributor_user.email)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data["clientSecret"], test_client_secret)
@@ -145,10 +145,9 @@ class StripeOneTimePaymentViewTest(StripePaymentViewTestAbstract):
     @patch("apps.contributions.views.send_templated_email.delay")
     @patch("apps.contributions.views.StripePaymentManager.create_one_time_payment", side_effect=MockPaymentIntent)
     def test_happy_path_with_confirmation_email(self, mock_one_time_payment, mock_send_confirmation_email):
-
         # `self.page` is referenced inside `_post_valid_payment` and determines which org is referenced re: contribution
         # confirmation emails
-        self.page.revenue_program.organization.uses_email_templates = True
+        self.page.revenue_program.organization.send_receipt_email_via_nre = True
         self.page.revenue_program.organization.save()
         response = self._post_valid_payment(email=self.contributor_user.email)
         self.assertEqual(response.status_code, 200)
@@ -203,7 +202,8 @@ class CreateStripeRecurringPaymentViewTest(StripePaymentViewTestAbstract):
         """
         # `self.page` is referenced inside `_post_valid_payment` and determines which org is referenced re: contribution
         # confirmation emails
-        self.assertFalse(self.page.revenue_program.organization.uses_email_templates)
+        self.page.revenue_program.organization.send_receipt_email_via_nre = False
+        self.page.revenue_program.organization.save()
         response = self._post_valid_payment(
             interval=ContributionInterval.MONTHLY,
             payment_method_id="test_payment_method_id",
@@ -220,7 +220,7 @@ class CreateStripeRecurringPaymentViewTest(StripePaymentViewTestAbstract):
         """
         # `self.page` is referenced inside `_post_valid_payment` and determines which org is referenced re: contribution
         # confirmation emails
-        self.page.revenue_program.organization.uses_email_templates = True
+        self.page.revenue_program.organization.send_receipt_email_via_nre = True
         self.page.revenue_program.organization.save()
         response = self._post_valid_payment(
             interval=ContributionInterval.MONTHLY,

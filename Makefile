@@ -1,6 +1,14 @@
 
 test: run-tests
 
+
+test_migrations:
+	@echo 'Testing migrations'
+	@echo 'Ensuring no pending migrations'
+	python manage.py makemigrations --dry-run --check
+	@echo 'Ensuring migration names are not automatically assigned'
+	python manage.py check --deploy --tag compatibility  --fail-level WARNING
+
 debug_test:
 	pytest --pdb --pdbcls=IPython.terminal.debugger:Pdb
 
@@ -37,8 +45,7 @@ run-redis:
 	python manage.py runserver
 
 run-tests:
-	@echo 'Checking for migrations'
-	python manage.py makemigrations --dry-run --check
+	make test_migrations
 	pytest
 
 check-dc:

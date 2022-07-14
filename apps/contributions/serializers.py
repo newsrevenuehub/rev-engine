@@ -13,7 +13,6 @@ from apps.contributions.models import (
     PaymentType,
 )
 from apps.contributions.utils import format_ambiguous_currency
-from apps.organizations.models import SLUG_MAX_LENGTH
 from apps.pages.models import DonationPage
 
 
@@ -233,7 +232,7 @@ class ContributionMetadataSerializer(ConditionalRequirementsSerializerMixin):
     sf_campaign_id = serializers.CharField(max_length=255, required=False, allow_blank=True)
     referer = serializers.URLField()
     revenue_program_id = serializers.IntegerField()
-    revenue_program_slug = serializers.SlugField(max_length=SLUG_MAX_LENGTH)
+    revenue_program_slug = serializers.SlugField()
 
     PAYMENT = "PAYMENT"
     CUSTOMER = "CUSTOMER"

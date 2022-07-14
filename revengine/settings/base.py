@@ -61,6 +61,7 @@ INSTALLED_APPS = [
     "waffle",
     "reversion",
     "reversion_compare",
+    "django_test_migrations.contrib.django_checks.AutoNames",
 ]
 
 
@@ -484,3 +485,10 @@ ADD_REVERSION_ADMIN = True
 # Serve SPA via django
 FRONTEND_BUILD_DIR = Path(BASE_DIR) / "spa/public"
 TEMPLATES[0]["DIRS"] = [FRONTEND_BUILD_DIR, os.path.join(PROJECT_DIR, "templates")]
+# This is for django-test-migrations
+# we ignore waffle and celery beat's migrations because they are beyond our control,
+# and dtm complains about their migration file names
+DTM_IGNORED_MIGRATIONS = {
+    ("waffle", "*"),
+    ("django_celery_beat", "*"),
+}

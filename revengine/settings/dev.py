@@ -50,26 +50,7 @@ CELERY_RESULT_BACKEND = os.getenv("CELERY_RESULT_BACKEND", "cache")
 CELERY_CACHE_BACKEND = BROKER_URL
 CELERY_IMPORTS = ("apps.emails.tasks",)
 
-
-if BROKER_URL.startswith("rediss"):
-    import ssl
-
-    # See: https://github.com/mirumee/saleor/issues/6926
-    CONNECTION_POOL_KWARGS = {
-        "ssl_cert_reqs": ssl.CERT_NONE,
-    }
-
-    CACHES = {
-        "default": {
-            "BACKEND": "django_redis.cache.RedisCache",
-            "LOCATION": f"{CACHE_HOST}/0",
-            "OPTIONS": {
-                "CLIENT_CLASS": "django_redis.client.DefaultClient",
-                "CONNECTION_POOL_KWARGS": CONNECTION_POOL_KWARGS,
-            },
-        }
-    }
-else:
+if BROKER_URL.startswith("memory"):
     CACHES = {
         "default": {
             "BACKEND": "django.core.cache.backends.dummy.DummyCache",

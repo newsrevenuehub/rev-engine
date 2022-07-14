@@ -130,7 +130,7 @@ USER_TTL = timedelta(hours=24)
 
 # Contributions cache set to 30 minutes < CONTRIBUTOR_LONG_TOKEN_LIFETIME
 CONTRIBUTION_CACHE_TTL = timedelta(minutes=30)
-CONTRIBUTION_CACHE_DB = "default"
+DEFAULT_CACHE = "default"
 
 AUTH_COOKIE_KEY = "Authorization"
 # Set SAMESITE setting below to 'Strict' to ask recieving browsers not to send this cookie
@@ -189,7 +189,7 @@ CACHES = {
             "CLIENT_CLASS": "django_redis.client.DefaultClient",
             "CONNECTION_POOL_KWARGS": CONNECTION_POOL_KWARGS,
         },
-    }
+    },
 }
 
 

@@ -27,7 +27,7 @@ from apps.contributions.payment_managers import (
 )
 from apps.contributions.utils import get_sha256_hash
 from apps.contributions.webhooks import StripeWebhookProcessor
-from apps.emails.tasks import send_contribution_confirmation_email
+from apps.emails.tasks import send_templated_email
 from apps.organizations.models import PaymentProvider, RevenueProgram
 from apps.public.permissions import IsActiveSuperUser
 from apps.users.views import FilterQuerySetByUserMixin
@@ -76,7 +76,7 @@ def stripe_payment(request):
             logger.warning("stripe_payment view recieved unexpetected interval value: [%s]", interval)
             raise PaymentBadParamsError()
 
-        if stripe_payment.get_organization().uses_email_templates:
+        if stripe_payment.get_organization().send_receipt_email_via_nre:
             contributor_email = stripe_payment.validated_data["email"]
             donation_amount_display = f"${(stripe_payment.validated_data['amount'] / 100):.2f}"
             contribution_date = timezone.now()
@@ -96,7 +96,13 @@ def stripe_payment(request):
                 "copyright_year": contribution_date.year,
                 "org_name": rp.organization.name,
             }
-            send_contribution_confirmation_email.delay(contributor_email, **template_data)
+            send_templated_email.delay(
+                contributor_email,
+                "Thank you for your contribution!",
+                "nrh-default-contribution-confirmation-email.txt",
+                "nrh-default-contribution-confirmation-email.html",
+                template_data,
+            )
 
     except RevenueProgram.DoesNotExist:
         logger.warning(
@@ -213,8 +219,8 @@ def stripe_confirmation(request):
     try:
         # Now that we're verified, create and associate default product
         payment_provider.stripe_create_default_product()
-    except stripe.error.StripeError as stripe_error:
-        logger.error(f"stripe_create_default_product failed with a StripeError: {stripe_error}")
+    except stripe.error.StripeError:
+        logger.exception("stripe_create_default_product failed with a StripeError")
         return Response(
             {"status": "failed"},
             status=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -247,10 +253,10 @@ def process_stripe_webhook_view(request):
         logger.info("Processing event.")
         processor = StripeWebhookProcessor(event)
         processor.process()
-    except ValueError as e:
-        logger.error(e)
+    except ValueError:
+        logger.exception()
     except Contribution.DoesNotExist:
-        logger.error("Could not find contribution matching provider_payment_id")
+        logger.info("Could not find contribution matching provider_payment_id", exc_info=True)
 
     return Response(status=status.HTTP_200_OK)
 

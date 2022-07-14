@@ -4,7 +4,6 @@ import pytest
 from rest_framework.test import APIRequestFactory, APITestCase
 from waffle import get_waffle_flag_model
 
-from apps.contributions.tests.factories import ContributorFactory
 from apps.organizations.models import Organization, RevenueProgram
 from apps.organizations.tests.factories import OrganizationFactory, RevenueProgramFactory
 from apps.users import serializers

@@ -1,4 +1,7 @@
+from random import choice, randrange
+
 import factory
+import factory.fuzzy
 from factory.django import DjangoModelFactory
 from faker import Faker
 
@@ -19,10 +22,18 @@ class AddressFactory(DjangoModelFactory):
 class FeatureFactory(DjangoModelFactory):
     class Meta:
         model = models.Feature
+        django_get_or_create = ("feature_type", "feature_value")
 
     name = factory.Sequence(lambda n: f"{' '.join(fake.words(nb=2))}-{str(n)}")
-    feature_value = factory.Sequence(lambda n: f"{n}")
     description = fake.text()
+    feature_type = factory.fuzzy.FuzzyChoice(models.Feature.FeatureType.choices, getter=lambda c: c[0])
+
+    @factory.lazy_attribute
+    def feature_value(self):
+        if self.feature_type == models.Feature.FeatureType.BOOLEAN:
+            return choice(models.Feature.VALID_BOOLEAN_INPUTS)
+        if self.feature_type == models.Feature.FeatureType.PAGE_LIMIT:
+            return randrange(1, 25)
 
 
 class PlanFactory(DjangoModelFactory):
@@ -77,6 +88,7 @@ class BenefitFactory(DjangoModelFactory):
 
     name = factory.Sequence(lambda n: f"{fake.sentence(nb_words=2)}-{str(n)}")
     description = fake.sentence(nb_words=8)
+    revenue_program = factory.SubFactory(RevenueProgramFactory)
 
 
 class BenefitLevelFactory(DjangoModelFactory):

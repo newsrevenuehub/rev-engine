@@ -6,7 +6,6 @@ from django.db import models
 from django.utils import timezone
 
 import stripe
-from simple_history.models import HistoricalRecords
 
 from apps.common.models import IndexedTimeStampedModel
 from apps.common.utils import normalize_slug
@@ -18,8 +17,9 @@ from apps.users.models import RoleAssignmentResourceModelMixin, UnexpectedRoleTy
 
 logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
 
-# RFC-1035 limits domain labels to 63 characters
-SLUG_MAX_LENGTH = 63
+# RFC-1035 limits domain labels to 63 characters, and RP slugs are used for subdomains,
+# so we limit to 63 chars
+RP_SLUG_MAX_LENGTH = 63
 
 
 class Feature(IndexedTimeStampedModel):
@@ -42,9 +42,6 @@ class Feature(IndexedTimeStampedModel):
     )
     description = models.TextField(blank=True)
 
-    # A history of changes to this model, using django-simple-history.
-    history = HistoricalRecords()
-
     class Meta:
         unique_together = ["feature_type", "feature_value"]
 
@@ -58,9 +55,6 @@ class Feature(IndexedTimeStampedModel):
 class Plan(IndexedTimeStampedModel, RoleAssignmentResourceModelMixin):
     name = models.CharField(max_length=255)
     features = models.ManyToManyField("organizations.Feature", related_name="plans", blank=True)
-
-    # A history of changes to this model, using django-simple-history.
-    history = HistoricalRecords()
 
     def __str__(self):  # pragma: no cover
         return self.name
@@ -84,17 +78,24 @@ class Organization(IndexedTimeStampedModel, RoleAssignmentResourceModelMixin):
     address = models.OneToOneField("common.Address", on_delete=models.CASCADE)
     salesforce_id = models.CharField(max_length=255, blank=True, verbose_name="Salesforce ID")
 
+    # TODO: [DEV-2035] Remove Organization.slug field entirely
     slug = models.SlugField(
-        max_length=SLUG_MAX_LENGTH,
+        # 63 here is somewhat arbitrary. This used to be set to `RP_SLUG_MAX_LENGTH` (which used to have a different name),
+        # which is the maximum length a domain can be according to RFC-1035. We're retaining that value
+        # but without a reference to the constant, because using the constant would imply there
+        # are business requirements related to sub-domain length around this field which there are not
+        # (and given TODO above, it would appear that the business requirements that originally
+        # led to org slug being a field are no longer around)
+        max_length=63,
         unique=True,
         validators=[validate_slug_against_denylist],
     )
 
     users = models.ManyToManyField("users.User", through="users.OrganizationUser")
-    uses_email_templates = models.BooleanField(default=False)
-
-    # A history of changes to this model, using django-simple-history.
-    history = HistoricalRecords()
+    send_receipt_email_via_nre = models.BooleanField(
+        default=True,
+        help_text="If false, receipt email assumed to be sent via Salesforce. Other emails, e.g. magic_link, are always sent via NRE regardless of this setting",
+    )
 
     @property
     def admin_revenueprogram_options(self):
@@ -137,8 +138,6 @@ class BenefitLevel(IndexedTimeStampedModel):
     benefits = models.ManyToManyField("organizations.Benefit", through="organizations.BenefitLevelBenefit")
 
     revenue_program = models.ForeignKey("organizations.RevenueProgram", on_delete=models.CASCADE)
-    # A history of changes to this model, using django-simple-history.
-    history = HistoricalRecords()
 
     def __str__(self):  # pragma: no cover
         return self.name
@@ -164,9 +163,6 @@ class Benefit(IndexedTimeStampedModel):
     name = models.CharField(max_length=128, help_text="A way to uniquely identify this Benefit")
     description = models.TextField(help_text="The text that appears on the donation page")
     revenue_program = models.ForeignKey("organizations.RevenueProgram", on_delete=models.CASCADE)
-
-    # A history of changes to this model, using django-simple-history.
-    history = HistoricalRecords()
 
     def __str__(self):
         return self.name
@@ -201,7 +197,7 @@ class BenefitLevelBenefit(models.Model):
 class RevenueProgram(IndexedTimeStampedModel):
     name = models.CharField(max_length=255)
     slug = models.SlugField(
-        max_length=SLUG_MAX_LENGTH,
+        max_length=RP_SLUG_MAX_LENGTH,
         blank=True,
         unique=True,
         help_text="This will be used as the subdomain for donation pages made under this revenue program. If left blank, it will be derived from the Revenue Program name.",
@@ -246,9 +242,6 @@ class RevenueProgram(IndexedTimeStampedModel):
         verbose_name="Allow page editors to offer an NYT subscription",
     )
 
-    # A history of changes to this model, using django-simple-history.
-    history = HistoricalRecords()
-
     @property
     def admin_style_options(self):
         styles = self.style_set.all()
@@ -269,8 +262,7 @@ class RevenueProgram(IndexedTimeStampedModel):
 
     def clean_fields(self, **kwargs):
         if not self.id:
-            self.slug = normalize_slug(self.name, self.slug, max_length=SLUG_MAX_LENGTH)
-            self.slug = normalize_slug(slug=self.slug, max_length=SLUG_MAX_LENGTH)
+            self.slug = normalize_slug(self.name, self.slug, max_length=RP_SLUG_MAX_LENGTH)
         super().clean_fields(**kwargs)
 
     def clean(self):
@@ -295,9 +287,11 @@ class RevenueProgram(IndexedTimeStampedModel):
                 )
                 self.domain_apple_verified_date = timezone.now()
                 self.save()
-            except stripe.error.StripeError as stripe_error:
+            except stripe.error.StripeError:
                 logger.warning(
-                    f"Failed to register ApplePayDomain for RevenueProgram {self.name}. StripeError: {str(stripe_error)}"
+                    "Failed to register ApplePayDomain for RevenueProgram %s because of StripeError",
+                    self.name,
+                    exc_info=True,
                 )
 
     def _ensure_owner_of_default_page(self):
@@ -381,5 +375,8 @@ class PaymentProvider(IndexedTimeStampedModel):
             return {"code": self.currency, "symbol": settings.CURRENCIES[self.currency]}
         except KeyError:
             logger.error(
-                f'Currency settings for organization "{self.name}" misconfigured. Tried to access "{self.currency}", but valid options are: {settings.CURRENCIES}'
+                'Currency settings for organization "%s" misconfigured. Tried to access "%s", but valid options are: %s',
+                self.name,
+                self.currency,
+                settings.CURRENCIES,
             )

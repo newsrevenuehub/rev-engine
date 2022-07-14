@@ -1,4 +1,4 @@
-FROM node:14-slim as static_files
+FROM node:16-slim as static_files
 
 WORKDIR /code
 ENV PATH /code/node_modules/.bin:$PATH
@@ -8,7 +8,7 @@ COPY ./spa /code/spa/
 WORKDIR /code/spa/
 RUN NODE_ENV=production npm run build
 
-FROM python:3.9-slim as base
+FROM python:3.10-slim as base
 
 # Install packages needed to run your application (not build deps):
 #   mime-support -- for mime types when serving static files

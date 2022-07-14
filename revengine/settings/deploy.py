@@ -122,8 +122,10 @@ if SENTRY_ENABLE_BACKEND and SENTRY_DSN_BACKEND:
         dsn=SENTRY_DSN_BACKEND,
         integrations=[sentry_logging, DjangoIntegration()],
         environment=ENVIRONMENT,
+        ignore_errors=[
+            "django.core.exceptions.DisallowedHost",
+        ],
     )
-
 
 # BadActor API
 BAD_ACTOR_API_URL = "https://bad-actor.fundjournalism.org/v1/bad_actor/"

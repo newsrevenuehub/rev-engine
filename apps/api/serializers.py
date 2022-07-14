@@ -37,9 +37,9 @@ class ContributorObtainTokenSerializer(serializers.Serializer):
 
     email = serializers.EmailField()
     access = serializers.CharField(required=False)  # Token used in magic-link url/email.
-    # Domains are limited to 63 characters max. No underscore allowed, unlike slugs.
+
     subdomain = serializers.RegexField(
-        r"^[-0-9a-zA-Z]+$", max_length=20, required=False, allow_blank=True
+        r"^[-0-9a-zA-Z]+$", required=False, allow_blank=True
     )  # rp_slug / subdomain used in magic-link url/email.
 
     @classmethod

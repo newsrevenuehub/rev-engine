@@ -5,7 +5,6 @@ from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 # Import error messages to set defaults for fields
 import apps.api.error_messages  # noqa
 from apps.api.tokens import ContributorRefreshToken
-from apps.contributions.models import Contributor
 from apps.users.serializers import UserSerializer
 
 
@@ -50,14 +49,5 @@ class ContributorObtainTokenSerializer(serializers.Serializer):
         """
         return ContributorRefreshToken.for_contributor(contributor.uuid)
 
-    def validate(self, attrs):
-        """
-        If email is valid and matches that of a known contributor, we provide a access token.
-        """
-        data = super().validate(attrs)
-        try:
-            contributor = Contributor.objects.get(email=data.get("email"))
-        except Contributor.DoesNotExist:
-            raise NoSuchContributorError("Could not find contributor", code="no_contributor_email")
-        data["access"] = str(self.get_token(contributor).short_lived_access_token)
-        return data
+    def update_short_lived_token(self, contributor):
+        self.validated_data["access"] = str(self.get_token(contributor).short_lived_access_token)

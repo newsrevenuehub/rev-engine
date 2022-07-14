@@ -9,7 +9,7 @@ from django.core.cache import caches
 import stripe
 
 from apps.contributions.models import ContributionInterval, ContributionStatus
-from revengine.settings.base import CONTRIBUTION_CACHE_DB, CONTRIBUTION_CACHE_TTL
+from revengine.settings.base import CONTRIBUTION_CACHE_TTL, DEFAULT_CACHE
 
 
 MAX_STRIPE_RESPONSE_LIMIT = 100
@@ -170,19 +170,15 @@ class StripeContributionsProvider:
         )
         return [customer.id for customer in customers_response.auto_paging_iter()]
 
-    @staticmethod
-    def generate_chunks(data, size):
-        for i in range(0, len(data), size):
-            yield data[i : i + size]
-
     def generate_chunked_customers_query(self):
         """
         Generates customer query in specified format in accordance with Stripe search API.
         Maximum number of customers can be provided is 10.
         https://stripe.com/docs/search.
         """
-        for customers_chunk in self.generate_chunks(self.customers, MAX_STRIPE_CUSTOMERS_LIMIT):
-            yield " OR ".join([f"customer:'{customer_id}'" for customer_id in customers_chunk])
+        for i in range(0, len(self.customers), MAX_STRIPE_CUSTOMERS_LIMIT):
+            chunk = self.customers[i : i + MAX_STRIPE_CUSTOMERS_LIMIT]
+            yield " OR ".join([f"customer:'{customer_id}'" for customer_id in chunk])
 
     def fetch_charges(self, query=None, page=None):
         kwargs = {
@@ -200,7 +196,7 @@ class StripeContributionsProvider:
 
 class ContributionsCacheProvider:
     def __init__(self, email_id, account_id=None, serializer=None, converter=None) -> None:
-        self.cache = caches[CONTRIBUTION_CACHE_DB]
+        self.cache = caches[DEFAULT_CACHE]
         self.serializer = serializer
         self.converter = converter
 

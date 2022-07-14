@@ -1,11 +1,19 @@
 
 test: run-tests
 
+
+test_migrations:
+	@echo 'Testing migrations'
+	@echo 'Ensuring no pending migrations'
+	python manage.py makemigrations --dry-run --check
+	@echo 'Ensuring migration names are not automatically assigned'
+	python manage.py check --deploy --tag compatibility  --fail-level WARNING
+
 debug_test:
-	pytest --pdb --pdbcls=IPython.terminal.debugger:Pdb 
+	pytest --pdb --pdbcls=IPython.terminal.debugger:Pdb
 
 continuous_test:
-	git ls-files | entr pytest -x -s -vv --log-cli-level=INFO 
+	git ls-files | entr pytest -x -s -vv --log-cli-level=INFO
 
 clean:
 	@find . -name "*.pyc" -exec rm -rf {} \;
@@ -37,8 +45,7 @@ run-redis:
 	python manage.py runserver
 
 run-tests:
-	@echo 'Checking for migrations'
-	python manage.py makemigrations --dry-run --check
+	make test_migrations
 	pytest
 
 check-dc:
@@ -67,3 +74,5 @@ deploy-to-demo:
 
 deploy-to-prod:
 	git push heroku-rev-engine-prod main:main
+
+deploy-all: deploy-to-dev deploy-to-test deploy-to-staging deploy-to-demo deploy-to-prod

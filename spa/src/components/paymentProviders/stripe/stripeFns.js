@@ -26,11 +26,11 @@ async function submitPayment(stripe, data, { card, paymentRequest }, onSuccess, 
   */
   try {
     if (data.interval === 'one_time') {
-      await trySinglePayment(stripe, data, { card, paymentRequest });
-      onSuccess();
+      const respData = await trySinglePayment(stripe, data, { card, paymentRequest });
+      onSuccess(paymentRequest, respData);
     } else {
-      await tryRecurringPayment(stripe, data, { card, paymentRequest });
-      onSuccess();
+      const respData = await tryRecurringPayment(stripe, data, { card, paymentRequest });
+      onSuccess(paymentRequest, respData);
     }
   } catch (error) {
     onFailure(error);
@@ -48,15 +48,15 @@ export default submitPayment;
  * @param {number} fee - the fee to include, if shouldPayFee
  * @param {boolean} shouldPayFee - whether or not to include the fee in the total value
  * @param {string} frequency - The donation interval (ie 'one_time', 'monthly', etc). Used to determine stripe fee
- * @param {boolean} orgIsNonProfit - whether or not the org reports as non-profit. Used to determine stripe fee
+ * @param {boolean} rpIsNonProfit - whether or not the revenue program reports as non-profit. Used to determine stripe fee
  * @returns A human readable amount in dollars
  */
-export function getTotalAmount(amount, shouldPayFee, frequency, orgIsNonProfit) {
+export function getTotalAmount(amount, shouldPayFee, frequency, rpIsNonProfit) {
   /*
     If we get 10, we should see 10. If we get 10.3, we should see 10.30.
   */
   let total = parseFloat(amount);
-  if (shouldPayFee) total += parseFloat(calculateStripeFee(amount, frequency, orgIsNonProfit));
+  if (shouldPayFee) total += parseFloat(calculateStripeFee(amount, frequency, rpIsNonProfit));
   total = total.toFixed(2);
   if (total.endsWith('.00')) total = total.substring(0, total.length - 3);
   return total;
@@ -79,7 +79,7 @@ function serializeForm(form) {
   /*
     Rather than trying to hoist all form state up to a common parent,
     we've wrapped the page in a <form> element. Here, we grab a ref
-    to that form and turn it in to FormData, then we serialize that 
+    to that form and turn it in to FormData, then we serialize that
     form data in to a javascript object.
 
     This really is easier than managing all the form state in a common
@@ -116,7 +116,7 @@ export function serializeData(formRef, state) {
     state.amount,
     state.payFee,
     state.frequency,
-    state.orgIsNonProfit
+    state.rpIsNonProfit
   ).toString();
   serializedData['donor_selected_amount'] = state.amount;
   serializedData['agreed_to_pay_fees'] = state.payFee;
@@ -146,9 +146,11 @@ export function serializeData(formRef, state) {
  *                                 from a Stripe PaymentRequest
  */
 async function trySinglePayment(stripe, formData, { card, paymentRequest }) {
-  const { data: paymentIntent } = await createPaymentIntent(formData);
+  const createPaymentIntentResponse = await createPaymentIntent(formData);
+  const { data: paymentIntent } = createPaymentIntentResponse;
   const paymentMethod = paymentRequest?.paymentMethod?.id || { card };
   await confirmCardPayment(stripe, paymentIntent.clientSecret, paymentMethod, !paymentRequest);
+  return createPaymentIntentResponse;
 }
 
 /**
@@ -200,7 +202,8 @@ async function tryRecurringPayment(stripe, data, { card, paymentRequest }) {
   }
 
   data['payment_method_id'] = paymentMethod;
-  await createPaymentIntent(data);
+  const createPaymentIntentResponse = await createPaymentIntent(data);
+  return createPaymentIntentResponse;
 }
 
 /**

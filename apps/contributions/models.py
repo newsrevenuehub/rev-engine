@@ -3,19 +3,17 @@ import uuid
 from django.db import models
 
 import stripe
-from simple_history.models import HistoricalRecords
 
 from apps.common.models import IndexedTimeStampedModel
 from apps.slack.models import SlackNotificationTypes
 from apps.slack.slack_manager import SlackManager
+from apps.users.choices import Roles
+from apps.users.models import RoleAssignmentResourceModelMixin, UnexpectedRoleType
 
 
 class Contributor(IndexedTimeStampedModel):
     uuid = models.UUIDField(default=uuid.uuid4, primary_key=False, editable=False)
     email = models.EmailField(unique=True)
-
-    # A history of changes to this model, using django-simple-history.
-    history = HistoricalRecords()
 
     @property
     def contributions_count(self):
@@ -34,6 +32,14 @@ class Contributor(IndexedTimeStampedModel):
         authenticated in templates.
         """
         return True
+
+    @property
+    def is_superuser(self):
+        """
+        Contributors essentially impersonate Users. Ensure that they can never be superusers.
+        Note: It's useful to keep this as a property, since properties defined this way are immutable.
+        """
+        return False
 
     def __str__(self):
         return self.email
@@ -54,7 +60,7 @@ class ContributionStatus(models.TextChoices):
     REJECTED = "rejected", "rejected"
 
 
-class Contribution(IndexedTimeStampedModel):
+class Contribution(IndexedTimeStampedModel, RoleAssignmentResourceModelMixin):
     amount = models.IntegerField(help_text="Stored in cents")
     currency = models.CharField(max_length=3, default="usd")
     reason = models.CharField(max_length=255, blank=True)
@@ -73,7 +79,6 @@ class Contribution(IndexedTimeStampedModel):
 
     contributor = models.ForeignKey("contributions.Contributor", on_delete=models.SET_NULL, null=True)
     donation_page = models.ForeignKey("pages.DonationPage", on_delete=models.SET_NULL, null=True)
-    organization = models.ForeignKey("organizations.Organization", on_delete=models.SET_NULL, null=True)
 
     bad_actor_score = models.IntegerField(null=True)
     bad_actor_response = models.JSONField(null=True)
@@ -81,9 +86,6 @@ class Contribution(IndexedTimeStampedModel):
     contribution_metadata = models.JSONField(null=True)
 
     status = models.CharField(max_length=10, choices=ContributionStatus.choices, null=True)
-
-    # A history of changes to this model, using django-simple-history.
-    history = HistoricalRecords()
 
     class Meta:
         get_latest_by = "modified"
@@ -95,6 +97,18 @@ class Contribution(IndexedTimeStampedModel):
     @property
     def formatted_amount(self):
         return f"{'{:.2f}'.format(self.amount / 100)} {self.currency.upper()}"
+
+    @property
+    def revenue_program(self):
+        if self.donation_page:
+            return self.donation_page.revenue_program
+        return None
+
+    @property
+    def stripe_account_id(self):
+        if self.revenue_program and self.revenue_program.payment_provider:
+            return self.revenue_program.payment_provider.stripe_account_id
+        return None
 
     BAD_ACTOR_SCORES = (
         (
@@ -143,7 +157,7 @@ class Contribution(IndexedTimeStampedModel):
             raise ValueError("Cannot fetch PaymentMethod without provider_payment_method_id")
         return stripe.PaymentMethod.retrieve(
             self.provider_payment_method_id,
-            stripe_account=self.organization.stripe_account_id,
+            stripe_account=self.revenue_program.payment_provider.stripe_account_id,
         )
 
     def send_slack_notifications(self, event_type):
@@ -171,3 +185,18 @@ class Contribution(IndexedTimeStampedModel):
             # ...get details on payment method
             self.provider_payment_method_details = self.fetch_stripe_payment_method()
         super().save(*args, **kwargs)
+
+    @classmethod
+    def filter_queryset_for_contributor(cls, contributor, queryset):
+        return queryset.filter(contributor=contributor).all()
+
+    @classmethod
+    def filter_queryset_by_role_assignment(cls, role_assignment, queryset):
+        if role_assignment.role_type == Roles.HUB_ADMIN:
+            return queryset.all()
+        elif role_assignment.role_type == Roles.ORG_ADMIN:
+            return queryset.filter(donation_page__revenue_program__organization=role_assignment.organization)
+        elif role_assignment.role_type == Roles.RP_ADMIN:
+            return queryset.filter(donation_page__revenue_program__in=role_assignment.revenue_programs.all())
+        else:
+            raise UnexpectedRoleType(f"`{role_assignment.role_type}` is not a valid role type")

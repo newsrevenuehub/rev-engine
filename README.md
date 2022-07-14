@@ -1,6 +1,48 @@
-# Revenue Engine
 
-## ✏️ **Develop**
+# Revenue Engine <!-- omit in toc -->
+
+[![NRE](https://img.shields.io/endpoint?url=https://dashboard.cypress.io/badge/simple/68ek4u&style=flat&logo=cypress)](https://dashboard.cypress.io/projects/68ek4u/runs)
+
+- [Development environment setup](#development-environment-setup)
+  - [1. Get the project](#1-get-the-project)
+  - [2. Set up virtual environment](#2-set-up-virtual-environment)
+  - [3. Install dependencies](#3-install-dependencies)
+    - [Node dependencies](#node-dependencies)
+    - [Python dependencies](#python-dependencies)
+      - [Initial installation](#initial-installation)
+      - [How to add and remove dependencies](#how-to-add-and-remove-dependencies)
+  - [4. Set up pre-commit](#4-set-up-pre-commit)
+  - [5. Set up Stripe locally](#5-set-up-stripe-locally)
+    - [Running Stripe webhooks locally](#running-stripe-webhooks-locally)
+  - [6. Set up subdomains in `/etc/hosts`](#6-set-up-subdomains-in-etchosts)
+  - [7. Set up environment variables](#7-set-up-environment-variables)
+  - [8. Database setup](#8-database-setup)
+  - [9. Run migrations and create a superuser](#9-run-migrations-and-create-a-superuser)
+  - [10. Run the server and start the SPA](#10-run-the-server-and-start-the-spa)
+  - [11. Testing email setup locally](#11-testing-email-setup-locally)
+  - [12. Run Django tests](#12-run-django-tests)
+  - [13. Run Cypress tests](#13-run-cypress-tests)
+    - [Cypress Gotchas](#cypress-gotchas)
+  - [14. Database management](#14-database-management)
+    - [Check to see if databases have been created](#check-to-see-if-databases-have-been-created)
+    - [Download latest backup](#download-latest-backup)
+    - [Download a specific backup](#download-a-specific-backup)
+    - [Restore backup](#restore-backup)
+- [Logging](#logging)
+- [Heroku Cheatsheat](#heroku-cheatsheat)
+  - [List running apps](#list-running-apps)
+  - [Open a shell on an app](#open-a-shell-on-an-app)
+- [Celery Tasks](#celery-tasks)
+- [Frontend Configuration](#frontend-configuration)
+- [Django migrations](#django-migrations)
+  - [No automatic migration names](#no-automatic-migration-names)
+  - [Squash PR-related migrations](#squash-pr-related-migrations)
+- [`django-reversion`, audit logs, and restoring deleted model instances](#django-reversion-audit-logs-and-restoring-deleted-model-instances)
+  - [How to register a model](#how-to-register-a-model)
+  - [How to register a view](#how-to-register-a-view)
+  - [How to restore a deleted model instance.](#how-to-restore-a-deleted-model-instance)
+
+## Development environment setup
 
 To begin you should have the following applications installed on your local development system:
 
@@ -14,258 +56,264 @@ To begin you should have the following applications installed on your local deve
 - [Heroku and Heroku CLI](https://devcenter.heroku.com/categories/command-line)
 - Poetry == 1.1.6
 
-### 💪 **Setup Manually**
-
-**1. Get the project**
+### 1. Get the project
 
 First clone the repository from Github and switch to the new directory:
 
-```linux
-    $ git clone https://github.com/newsrevenuehub/rev-engine
-    $ cd rev-engine
+```sh
+git clone https://github.com/newsrevenuehub/rev-engine
+cd rev-engine
 ```
 
-**2. Set up virtual environment**
+### 2. Set up virtual environment
 
 Next, set up your virtual environment with python3. For example, `revengine`.
 
 You will note the distinct lack of opinion on how you should manage your virtual environment. This is by design.
 
-**3. Install dependencies**
+### 3. Install dependencies
 
-#### Install Node dependencies
+#### Node dependencies
 
 `nvm` is preferred for managing Node versions and `.nvmrc` contains the
 specific Node version for this project. To install the correct (and latest)
 Node version run:
 
 ```sh
-    (revengine)$ nvm install
+nvm install
 ```
 
 Now install the project Node packages with `npm`:
 
 ```sh
-    (revengine)$ cd spa/
-    (revengine/spa)$ npm install
+cd spa/
+npm install
 ```
 
-NOTE: Any javascript components that rely on config vars **CANNOT** be set dynamically from the
-heroku dashboard. A rebuild of the image and deploy is required.
+NOTE: Any javascript components that rely on config vars **CANNOT** be set dynamically from the Heroku dashboard. A rebuild of the image and deploy is required.
 
-#### Install Python dependencies:
+#### Python dependencies
 
 NOTE: This project uses [Poetry](https://python-poetry.org/docs/#installation) for dependency management.
 
-Unfortunately poetry doesn't deal well with dependencies would typically be in the `deployment` category,
+Unfortunately Poetry doesn't deal well with dependencies would typically be in the `deployment` category,
 so the best option in this case is to add them as a base dependency.
 
-```shell
-    (revengine)$ make setup
+##### Initial installation
+
+```sh
+make setup
 ```
+
+##### How to add and remove dependencies
 
 If during development you need to add a dependency run:
 
-```shell
-    (revengine)$ poetry add <NAME_OF_PACKAGE>
+```sh
+poetry add <NAME_OF_PACKAGE>
 ```
 
 If the dependency is a dev dependency, use the following:
 
-```shell
-    (revengine)$ poetry add -D <NAME_OF_PACKAGE>
+```sh
+poetry add -D <NAME_OF_PACKAGE>
 ```
 
 If you need to remove a dependency:
 
-```shell
-    (revengine)$ poetry remove <NAME_OF_PACKAGE>
+```sh
+poetry remove <NAME_OF_PACKAGE>
 ```
 
-This should automatically update the `pyproject.toml` file and the `poetry.lock` file.
+Adding or removing dependencies will automatically update the `pyproject.toml` file and the `poetry.lock` file.
 
-**4. Pre-commit**
+### 4. Set up pre-commit
 
-pre-commit is used to enforce a variety of community standards. CI runs it,
+[pre-commit](https://pre-commit.com/) is used to enforce a variety of community standards. CI runs it,
 so it's useful to setup the pre-commit hook to catch any issues before pushing
 to GitHub and reset your pre-commit cache to make sure that you're starting fresh.
 
-To install, run:
+To initially set up pre-commit for this project in your local environment, run:
 
-```linux
-    (revengine)$ pre-commit clean
-    (revengine)$ pre-commit install
+```sh
+pre-commit clean
+pre-commit install
 ```
 
-**5. Set up Stripe locally**
+### 5. Set up Stripe locally
 
 To test Stripe locally, you'll need to be able to log in to the Hub Stripe account.
 If you want to test Stripe payments locally, add the Hub testing "Secret key", starting with `sk_test_` to the env.
 
-```bash
-  (revengine)$ echo "export TEST_HUB_STRIPE_API_SECRET_KEY=sk_test_???" >> .envrc
-  (revengine)$ echo "export REACT_APP_HUB_STRIPE_API_PUB_KEY=pk_test_???" >> .envrc
-  (revengine)$ echo "export STRIPE_WEBHOOK_SECRET=whsec_???" >> .envrc
+Assuming you're using [direnv](https://direnv.net/) (see [setting up environment variables, below](#7-set-up-environment-variables)), do:
+
+```sh
+echo "export TEST_HUB_STRIPE_API_SECRET_KEY=sk_test_???" >> .envrc
+echo "export REACT_APP_HUB_STRIPE_API_PUB_KEY=pk_test_???" >> .envrc
+echo "export STRIPE_WEBHOOK_SECRET=whsec_???" >> .envrc
 ```
 
-TEST_HUB_STRIPE_API_SECRET_KEY and REACT_APP_HUB_STRIPE_API_PUB_KEY are the Secret Key and Publishable Key for the NRH Stripe Account.
+`TEST_HUB_STRIPE_API_SECRET_KEY` and `REACT_APP_HUB_STRIPE_API_PUB_KEY` are the Secret Key and Publishable Key for the NRH Stripe Account.
 
-Then, in Django-admin, create an Organization for that connected stripe account and add your Stripe Account ID to the stripe_account_id field. Make sure that default_payment_provider is "stripe". The Stripe Account ID can be found in the stripe dashboard, settings --> Business Settings --> Your Business --> Account details, in the top right corner.
+Then, in Django-admin, create an Organization for that connected stripe account and add your Stripe Account ID to the stripe_account_id field. Make sure that `default_payment_provider` is "stripe". The Stripe Account ID can be found in the stripe dashboard, settings --> Business Settings --> Your Business --> Account details, in the top right corner.
+
+#### Running Stripe webhooks locally
 
 To set up Stripe Webhooks locally, it's a bit of fuss.
 First, download NGROK and expose whichever port your running the server on. Something like:
 
-```bash
-  (revengine)$ ./ngrok http 8000
+```sh
+./ngrok http 8000
 ```
 
 Next, copy the url its exposing your port through (example:http://610d1234567.ngrok.io) and add `SITE_URL = "http://610d1234567.ngrok.io"`, as well as adding `610d1234567.ngrok.io` to ALLOWED_HOSTS.
 
-Then, run `./manage.py create_stripe_webhooks`. This will use the Stripe sdk to add WebhookEndpoints to NRH Stripe account.
-For the STRIPE_WEBHOOK_SECRET, you'll then need access to the Hub Stripe Dashboard. Go to Developers --> Webhooks --> [your newly added endpoint] --> "Signing secret"
+Then, run `./manage.py create_stripe_webhooks`. This will use the Stripe SDK to add WebhookEndpoints to the NRH Stripe account.
+For the `STRIPE_WEBHOOK_SECRET`, you'll then need access to the Hub Stripe Dashboard. Go to Developers --> Webhooks --> [your newly added endpoint] --> "Signing secret"
 
-**6. Set up subdomain in /etc/hosts for local development**
+### 6. Set up subdomains in `/etc/hosts`
+
 The front end for this app routes contribution pages based on subdomain.
+
 Requests for a contribution page with the slug `page-slug` for the revenue program with slug `revenueprogram`
 will be made to `revenueprogram.revengine-testabc123.com/page-slug`. (The second-level domain is arbitrary in this case).
-For that reason, to view contribution pages locally, you'll need to make an entry to your /etc/hosts file like so:
+For that reason, to view contribution pages locally, you'll need to make an entry to your `/etc/hosts` file like so:
 
-```shell
+```sh
 127.0.0.1 revengine-testabc123.com
 127.0.0.1 slug-for-the-rev-program-you-want-to-test.revengine-testabc123.com
 ```
 
-To view a contribution page locally, visit `slug-for-the-rev-program-you-want-to-test.revengine-testabc123.com:3000`. Note the port designation suffix.
+To view a contribution page locally, visit `slug-for-the-rev-program-you-want-to-test.revengine-testabc123.com:3000/<page-name>`. Note the port designation suffix.
 
-In order to run the donation-page.spec and the page-view-analytics.spec cypress tests locally, also add exactly the following:
+In order to run the `donation-page.spec` and the `page-view-analytics.spec` Cypress tests locally, you'll need to add the following entry to `/etc/hosts`:
 
-```shell
+```sh
 127.0.0.1 revenueprogram.revengine-testabc123.com
 ```
 
 Then run your frontend separately from your backend, using `npm run start:subdomains`
 
-NOTE: Running tests locally like this also depends on your frontend being served at port 3000. (This is the default configuration for both `npm run start` and `make run-dev`)
+NOTE: Running tests locally like this also depends on your frontend being served at port 3000. This is the default configuration for both `npm run start` and `make run-dev`.
 
-**7. Set up local env variables**
+### 7. Set up environment variables
 
-This project utilizes the [direnv](https://direnv.net/) shell extension to manage project level developer environment
-variables. Direnv is installed system wide so you may already have it. If not, [follow the instructions here](https://direnv.net/docs/installation.html)
-for your system.
+This project utilizes the [direnv](https://direnv.net/) shell extension to manage project level developer environment variables. Direnv is installed system wide so you may already have it. If not, [follow the instructions here](https://direnv.net/docs/installation.html) for your system.
 
 Next copy the `local.example.py` file to `local.py` and create your `.envrc ` in the project root.
 
-```shell
-    (revengine)$ cp revengine/settings/local.example.py revengine/settings/local.py
-    (revengine)$ touch .envrc
+```sh
+cp revengine/settings/local.example.py revengine/settings/local.py
+touch .envrc
 ```
 
 Then add to the file the following line.
 
-```bash
-    (revengine)$ echo "export DJANGO_SETTINGS_MODULE=revengine.settings.local" >> .envrc
+```sh
+echo "export DJANGO_SETTINGS_MODULE=revengine.settings.local" >> .envrc
 ```
 
-Allow direnv to inject the variable into your environment
-
-```shell
-    (revengine)$ direnv allow .
-```
-
-**8. Database**
-
-The setup for local development assumes that you will be working with dockerized
-services.
-
-Assuming you are using `direnv` add the following line to your `.envrc` file:
+Next, we need to set up a fake test Stripe ID so that stripe functionality will work when running tests locally
 
 ```sh
-(revengine)$ echo "export DATABASE_URL=postgres://postgres@127.0.0.1:54000/revengine" >> .envrc
+echo "export export REACT_APP_HUB_STRIPE_API_PUB_KEY=pk_test_3737373" >> .envrc
+```
+
+To allow direnv to inject the variable into your environment, do:
+
+```sh
+direnv allow .
+```
+
+### 8. Database setup
+
+The setup for local development assumes that you will be working with Dockerized
+services.
+
+Assuming you are using `direnv`, add the following line to your `.envrc` file:
+
+```sh
+echo "export DATABASE_URL=postgres://postgres@127.0.0.1:54000/revengine" >> .envrc
 ```
 
 If you want to connect to the database from your host machine, export the
 following shell environment variables or add them to your `.envrc` file:
 
 ```sh
-    export PGHOST=127.0.0.1
-    export PGPORT=54000
-    export PGUSER=postgres
-    export PGDATABASE=revengine
+export PGHOST=127.0.0.1
+export PGPORT=54000
+export PGUSER=postgres
+export PGDATABASE=revengine
 ```
 
-**9. Migrate and create a superuser**
-
-```linux
-    (revengine)$ docker-compose up -d
-    (revengine)$ python manage.py migrate
-    (revengine)$ python manage.py createsuperuser
-```
-
-**10. Run the server and start the SPA**
-
-```linux
-    (revengine)$ docker-compose up -d
-    (revengine)$ make run-dev
-```
-
-The react app will be available at `https://localhost:3000/`, and the django admin will be available at `http://localhost:8000/nrhadmin/`
-
-**11. Access the server**
-
-The Django admin is at `/nrhadmin/`.
-
-**12. Test Email Setup**
-
-To test production email settings `export TEST_EMAIL=True`, otherwise emails will use the console backend.
-
-**13. Run Django tests**
-
-revengine uses pytest as a test runner.
+### 9. Run migrations and create a superuser
 
 ```sh
-    (revengine)$ make run-tests
+docker-compose up -d
+python manage.py migrate
+python manage.py createsuperuser
 ```
 
-**14. Run Cypress Tests**
-Running cypress locally requires 2 terminals
+### 10. Run the server and start the SPA
 
-Term 1:
-
-```shell
-  (revengine)$ cd spa/
-  (revengine)$ npm run start
+```sh
+docker-compose up -d
+make run-dev
 ```
 
-Term 2:
+The React app will be available at `https://localhost:3000/`, and the Django admin will be available at `http://localhost:8000/nrhadmin/`.
 
-```shell
-  (revengine)$ cd spa/
-  (revengine)$ npm run cypress:open
+### 11. Testing email setup locally
+
+To test production email settings, set `export TEST_EMAIL=True`, otherwise emails will use the console backend.
+
+### 12. Run Django tests
+
+revengine uses [pytest](https://docs.pytest.org/en/7.1.x/) as a test runner.
+
+```sh
+make run-tests
 ```
 
-Will open the cypress application
+### 13. Run Cypress tests
 
-OR in `spa/` directory:
+Running Cypress locally requires 2 terminals
 
-```shell
-  (revengine)$ cd spa/
-  (revengine)$ npm run cypress:run
+Terminal 1:
+
+```sh
+cd spa/
+npm run start:subdomains
 ```
 
-Will run the cypress tests headless.
+Terminal 2:
 
-**15. Reset Media and Database**
+```sh
+cd spa/
+npm run cypress:open
+```
 
-**Media Reset**
+This will open the Cypress application.
 
-`TBD`
+Alternatively, to run Cypress tests headlessly (which is how they will run in CI), run:
 
-**Database Management**
+```sh
+cd spa/
+npm run cypress:run
+```
 
-### Check to see if databases have been created.
+#### Cypress Gotchas
 
-```shell
-(revengine)$> heroku pg:backups
+If you run Cypress while the Python dev server is also running, this will cause some Cypress tests to fail. This happens when unintercepted requests from the SPA reach the running Python server. With this in mind, be sure that the server is not running locally when you run Cypress tests.
+
+### 14. Database management
+
+Here is the process for populating your local development database with data from a live Heroku instance.
+
+#### Check to see if databases have been created
+
+```sh
+heroku pg:backups
 
 === Backups
 ID    Created at                 Status                               Size     Database
@@ -277,72 +325,64 @@ No restores found. Use heroku pg:backups:restore to restore a backup
 
 === Copies
 No copies found. Use heroku pg:copy to copy a database to another
-
 ```
 
-### Download latest backup
+#### Download latest backup
 
-```shell
-(revengine)$> heroku pg:backups:download
+```sh
+heroku pg:backups:download
 
 Getting backup from ⬢ rev-engine-test... done, #1
 Downloading latest.dump.1... ████████████████████████▏  100% 00:00 66.75KB
 ```
 
-### Download a specific backup
+#### Download a specific backup
 
-```shell
-(revengine)$> heroku pg:backups:download --app rev-engine-test b001
+```sh
+heroku pg:backups:download --app rev-engine-test b001
 ```
 
-### Restore backup
+#### Restore backup
 
-NOTE: The `pg_restore` command assumes that you can run `$psql` and get a prompt for your
-local database.
+NOTE: The `pg_restore` command assumes that you can run `$psql` and get a prompt for your local database.
 
-```shell
-(revengine)$> heroku pg:backups:download --app rev-engine-test b001
-(revengine)$> pg_restore --verbose --clean --no-acl --no-owner -d revengine latest.dump
+```sh
+heroku pg:backups:download --app rev-engine-test b001
+pg_restore --verbose --clean --no-acl --no-owner -d revengine latest.dump
 ```
 
-##**15. Notes on Development conventions**
-
-#### 1. Logging
+## Logging
 
 This application makes use of the `WARNING` logging level a bit more than other projects.
 
 The three main logging levels are:
 
-- INFO
-  - Logs to console only
-- ERROR
-  - Logs to console, reports to sentry, sends an admin email
-- WARNING
-  - Logs to console, sends an admin email
+- INFO: Logs to console only
+- ERROR: Logs to console, reports to Sentry, sends an admin email
+- WARNING: Logs to console, sends an admin email
 
 Instead of the usual `logger = logging.getLogger(__name__)` use `logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__})`
 
 ## Heroku Cheatsheat
 
-#### List running apps
+### List running apps
 
 Lists the apps running on the connected account.
 
-NOTE: On this project, PRs will spawn apps that can be independently tested. 
+NOTE: On this project, PRs will spawn apps that can be independently tested.
 
-```shell
-(revengine)$> heroku apps
+```sh
+heroku apps
 
 === Collaborated Apps
 rev-engine-nrh-45-infra-dfoxmw  daniel@fundjournalism.org
 rev-engine-test                 daniel@fundjournalism.org
-
 ```
 
-#### Open a shell on an app
+### Open a shell on an app
 
-```shell
-(revengine)$>  inv image.shell -n rev-engine-nrh-45-infra-dfoxmw
+```sh
+inv image.shell -n rev-engine-nrh-45-infra-dfoxmw
 
 Running bash on ⬢ rev-engine-nrh-45-infra-dfoxmw... up, run.2125 (Hobby)
 Running docker-entrypoint.sh
@@ -351,12 +391,11 @@ bash-5.0$
 
 ## Celery Tasks
 
-If you have a need to run or test tasks using a celery worker, there are now some Make commands to help out.
+If you have a need to run or test tasks using a Celery worker, there are some Make commands to help out.
 
 `make run-redis` brings up the dev services, and a redis container that listens on the default port.
 
-`make run-celery` will bring up a celery worker. At this point any task that expects a celery worker should run
-without error.
+`make run-celery` will bring up a Celery worker. At this point any task that expects a celery worker should run without error.
 
 ## Frontend Configuration
 
@@ -364,36 +403,91 @@ See [spa/src/settings.js](./spa/src/settings.js) for more details on how env var
 
 First:
 
-```shell
-(revengine)$> touch ./spa/.env
+```sh
+touch ./spa/.env
 ```
 
-To enable Stripe related features (Payments on contribution pages, changing payment methods), set:  
-`REACT_APP_HUB_STRIPE_API_PUB_KEY=pk_test_therealvaluehere`  
-You can get this value from the Hub stripe dashboard
+To enable Stripe-related features such as payments on contribution pages or changing payment methods, set:
 
-To enable Stripe Onboarding, set:  
-`REACT_APP_STRIPE_CLIENT_ID=therealvalue`  
-You can get this value from the Hub stripe dashboard
-
-To enable google address autocomplete in the contribution page form, set:  
-`REACT_APP_HUB_GOOGLE_MAPS_API_KEY=therealvalueere`
-
-To enable google analytics, set:
-`REACT_APP_HUB_V3_GOOGLE_ANALYTICS_ID=therealvaluehere`
-
-Any value in settings.js that uses the `resolveConstantFromEnv` method can be overridden by adding it to .env prepended by `REACT_APP_`
-
-## Git tags
-
-This project has cypress tests, which are great, but they can take a long time to run. Sometimes they
-are not necessary.
-
-So, if you are working on a branch that does not need cypress tests, you will need to name your branch with the
-following text in it somewhere: `skipcy`
-
-```shell
-(revengine)$> git checkout -b NRH-2837438--new-component-with-tests-skipcy
+```sh
+REACT_APP_HUB_STRIPE_API_PUB_KEY=pk_test_therealvaluehere
 ```
 
-Any branch that does not have the text `skipcy` present will run cypress tests this includes `develop` and `main`.
+You can get this value from the Hub Stripe dashboard.
+
+To enable Stripe onboarding, set:
+
+```sh
+REACT_APP_STRIPE_CLIENT_ID=therealvalue
+```
+
+You can get this value from the Hub stripe dashboard
+
+To enable google address autocomplete in the contribution page form, set:
+
+```sh
+REACT_APP_HUB_GOOGLE_MAPS_API_KEY=therealvalueere
+```
+
+To enable Google Analytics, set:
+
+```sh
+REACT_APP_HUB_V3_GOOGLE_ANALYTICS_ID=therealvaluehere
+```
+
+Any value in `settings.js` that uses the `resolveConstantFromEnv` method can be overridden by adding it to .env prepended by `REACT_APP_`
+
+## Django migrations
+
+When you're working on a new feature, we have some minimal guidelines around Django migrations that you are expected to follow.
+
+### No automatic migration names
+
+First, be sure to give your migrations a meaningful, non-automatic name. By default, Django will often give a name like `0003_auto_20220801_1100.py`. Let's imagine that migration removes a column ('my_column') from a model ('MyModel'). A better name would be `0003_DEV-1234_drop_my_column_from_mymodel.py`, which references the ticket name and describes at a high level what the migration does. This practice helps maintainers have a high level understanding of what a migration does simply by reading its file name. To this end, there is a Make command (`make test_migrations`) that runs as part of the Python tests in CI which prohibits automatic migration names.
+
+### Squash PR-related migrations
+
+We want to limit the number of individual migration files produced. As you're working on a feature branch, oftentimes you'll iteratively create numerous migrations for a given app as you run down feature implementation.
+
+Before submitting a pull request, please [squash all the migrations](https://docs.djangoproject.com/en/4.0/topics/migrations/#migration-squashing) per app for that PR into either one or two migrations depending on whether there are both data and schema migrations. Include the ticket number in the filename for the migration, e.g. 0004_DEV-1234_contribution_flagged_date.py
+
+
+## `django-reversion`, audit logs, and restoring deleted model instances
+
+This project uses [django-reversion](https://django-reversion.readthedocs.io/en/stable/index.html) to record user-generated changes to select models from the admin and via the API layer. This same package allows admin users to recover deleted model instances.
+
+### How to register a model
+
+To register a model with `django-reversion`, include `reversion.admin.VersionAdmin` in the modeladmin class definition.
+
+```python
+@admin.register(models.MyModel)
+class MyModelAdmin(VersionAdmin):
+...
+```
+
+Note that by registering a model's model admin class with `django-reversion`, the underlying model is also registered. When configured this way, any changes made to instances of `MyModel` through the Django admin interface will get per-save revisions recorded.
+
+After registering a model, you will need to run the following management command:
+
+```sh
+python manage.py createinitialrevisions
+```
+
+### How to register a view
+
+We use `reversion.views.RevisionMixin` in select API-layer viewsets in order to record changes to the model instances that happen via that view.  To set up a view to record changes, do:
+
+```python
+class MyViewSet(RevisionMixin, ...<other super classes and mixins>):
+```
+
+Note that this assumes the viewset's model has been registered with `django-reversion`.
+
+By default, django-reversion will not follow model relationships. For instance if you have ModelA and ModelB, where ModelB.model_a is a nullable foreign key, if you delete ModelA and later restore it, ModelB's reference to a ModelA instance will not be restored unless ModelA has been configured to follow the relationship to ModelB. You can find a concrete example of this in `apps.pages.admin.DonationPageAdmin.reversion_register` where we configure the DonationPage model to follow contribution and revenue program relations.
+
+### How to restore a deleted model instance.
+
+For a model/model admin that is registered with `django-reversion`, you can recover a deleted instance from the Django admin.
+
+After deleting the instance, if you go to its model admin's list view, you can click on the `Recover Deleted <ModelName>s` button.

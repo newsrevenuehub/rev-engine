@@ -4,6 +4,8 @@ import * as S from './ContributorEntry.styled';
 import { GENERIC_ERROR } from 'constants/textConstants';
 import { useAlert } from 'react-alert';
 
+import useSubdomain from 'hooks/useSubdomain';
+
 // AJAX
 import axios from 'ajax/axios';
 import { GET_MAGIC_LINK } from 'ajax/endpoints';
@@ -14,13 +16,14 @@ import Input from 'elements/inputs/Input';
 // Analytics
 import { useConfigureAnalytics } from 'components/analytics';
 
-function ContributorEntry() {
+function ContributorEntry({ page }) {
   const alert = useAlert();
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState('');
   const [errors, setErrors] = useState({});
 
   const [showConfirmation, setShowConfirmation] = useState(false);
+  const subdomain = useSubdomain();
 
   useConfigureAnalytics();
 
@@ -28,7 +31,7 @@ function ContributorEntry() {
     e.preventDefault();
     setLoading(true);
     try {
-      const response = await axios.post(GET_MAGIC_LINK, { email });
+      const response = await axios.post(GET_MAGIC_LINK, { email, subdomain });
       if (response.status === 200) setShowConfirmation(true);
     } catch (e) {
       if (e.response?.status === 429) {
@@ -43,10 +46,15 @@ function ContributorEntry() {
     }
   };
 
+  let portalName = `RevEngine`;
+  if (page?.revenue_program) {
+    portalName = page.revenue_program.name;
+  }
+
   return (
     <S.ContributorEntry>
       <S.ContentWrapper>
-        <S.Title>Welcome to the RevEngine contributor portal</S.Title>
+        <S.Title>Welcome to the {portalName} contributor portal</S.Title>
         {showConfirmation ? (
           <S.Confirmation>
             <p>If you're in our system, an email has been sent to you containing your magic link</p>
@@ -67,9 +75,6 @@ function ContributorEntry() {
             </S.InputWrapper>
             <S.MagicLinkButton onClick={handleSendMagicLink} disabled={loading} data-testid="magic-link-email-button">
               Send Magic Link
-              <span role="img" aria-label="magic wand">
-                🪄
-              </span>
             </S.MagicLinkButton>
           </S.EmailForm>
         )}

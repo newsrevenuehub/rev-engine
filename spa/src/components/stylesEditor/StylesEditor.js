@@ -4,7 +4,7 @@ import * as S from './StylesEditor.styled';
 
 // AJAX
 import useRequest from 'hooks/useRequest';
-import { LIST_STYLES, LIST_FONTS, REVENUE_PROGRAMS } from 'ajax/endpoints';
+import { LIST_STYLES, LIST_FONTS } from 'ajax/endpoints';
 
 // Assets
 import { faSave, faTimes, faTrash } from '@fortawesome/free-solid-svg-icons';
@@ -16,6 +16,7 @@ import { ChromePicker } from 'react-color';
 
 // Hooks
 import useWebFonts from 'hooks/useWebFonts';
+import useUser from 'hooks/useUser';
 
 // Context
 import { useGlobalContext } from 'components/MainLayout';
@@ -34,10 +35,10 @@ function StylesEditor({ styles, setStyles, handleKeepChanges, handleDiscardChang
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
   const [availableFonts, setAvailableFonts] = useState([]);
-  const [availableRevenuePrograms, setAvailableRevenuePrograms] = useState([]);
+
+  const { revenue_programs: availableRevenuePrograms } = useUser();
 
   const requestGetFonts = useRequest();
-  const requestGetRevenuePrograms = useRequest();
 
   const requestCreateStyles = useRequest();
   const requestUpdateStyles = useRequest();
@@ -72,7 +73,7 @@ function StylesEditor({ styles, setStyles, handleKeepChanges, handleDiscardChang
     setStyles({ ...styles, fontSizes });
   };
 
-  /*************\ 
+  /*************\
    * AJAX BITS *
   \*************/
   useEffect(() => {
@@ -83,23 +84,6 @@ function StylesEditor({ styles, setStyles, handleKeepChanges, handleDiscardChang
         onSuccess: ({ data }) => {
           setLoading(false);
           setAvailableFonts(data);
-        },
-        onFailure: () => {
-          setLoading(false);
-          alert.error(GENERIC_ERROR);
-        }
-      }
-    );
-  }, [alert]);
-
-  useEffect(() => {
-    setLoading(true);
-    requestGetRevenuePrograms(
-      { method: 'GET', url: REVENUE_PROGRAMS },
-      {
-        onSuccess: ({ data }) => {
-          setLoading(false);
-          setAvailableRevenuePrograms(data);
         },
         onFailure: () => {
           setLoading(false);
@@ -131,8 +115,9 @@ function StylesEditor({ styles, setStyles, handleKeepChanges, handleDiscardChang
 
   const handleCreateStyles = () => {
     setLoading(true);
+    const postData = { ...styles, revenue_program: styles.revenue_program.id };
     requestCreateStyles(
-      { method: 'POST', url: LIST_STYLES, data: styles },
+      { method: 'POST', url: LIST_STYLES, data: { ...styles, revenue_program: styles.revenue_program.id } },
       {
         onSuccess: handleRequestSuccess,
         onFailure: handleRequestError
@@ -142,8 +127,9 @@ function StylesEditor({ styles, setStyles, handleKeepChanges, handleDiscardChang
 
   const handleUpdateStyles = () => {
     setLoading(true);
+    const patchData = { ...styles, revenue_program: styles.revenue_program.id };
     requestUpdateStyles(
-      { method: 'PATCH', url: styleDetailUrl, data: styles },
+      { method: 'PATCH', url: styleDetailUrl, data: patchData },
       {
         onSuccess: handleRequestSuccess,
         onFailure: handleRequestError
@@ -200,8 +186,13 @@ function StylesEditor({ styles, setStyles, handleKeepChanges, handleDiscardChang
           <Select
             label="Select a revenue program"
             items={availableRevenuePrograms}
-            selectedItem={styles.revenue_program}
-            onSelectedItemChange={({ selectedItem }) => setStyles({ ...styles, revenue_program: selectedItem })}
+            // if no selected item, need to default to object with empty string for name
+            // otherwise initial value will be undefined, and when updated,
+            // will cause a warning re: changing from uncontrolled to controlled.
+            selectedItem={styles.revenue_program || { id: null, name: '' }}
+            onSelectedItemChange={({ selectedItem }) => {
+              setStyles({ ...styles, revenue_program: selectedItem });
+            }}
             testId="heading-font-select"
             name="revenue_program"
             placeholder="Select a revenue program"

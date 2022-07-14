@@ -11,7 +11,6 @@ from apps.contributions.models import (
     Contributor,
 )
 from apps.contributions.utils import format_ambiguous_currency
-from apps.organizations.models import SLUG_MAX_LENGTH
 from apps.pages.models import DonationPage
 
 
@@ -101,6 +100,7 @@ class ContributionSerializer(serializers.ModelSerializer):
             "provider_subscription_url",
             "provider_customer_url",
             "status",
+            "donation_page_id",
         ]
 
 
@@ -112,7 +112,7 @@ class ContributorContributionSerializer(serializers.ModelSerializer):
     status = serializers.SerializerMethodField()
     card_brand = serializers.SerializerMethodField()
     last4 = serializers.SerializerMethodField()
-    org_stripe_id = serializers.SerializerMethodField()
+    stripe_id = serializers.SerializerMethodField()
 
     def get_status(self, obj):
         if obj.status and obj.status in (
@@ -135,8 +135,8 @@ class ContributorContributionSerializer(serializers.ModelSerializer):
         if card := self._get_card_details(obj):
             return card["last4"]
 
-    def get_org_stripe_id(self, obj):
-        return obj.organization.stripe_account_id
+    def get_stripe_id(self, obj):
+        return obj.stripe_account_id or ""
 
     class Meta:
         model = Contribution
@@ -148,7 +148,7 @@ class ContributorContributionSerializer(serializers.ModelSerializer):
             "card_brand",
             "last4",
             "provider_customer_id",
-            "org_stripe_id",
+            "stripe_id",
             "amount",
             "last_payment_date",
         ]
@@ -230,7 +230,7 @@ class ContributionMetadataSerializer(ConditionalRequirementsSerializerMixin):
     sf_campaign_id = serializers.CharField(max_length=255, required=False, allow_blank=True)
     referer = serializers.URLField()
     revenue_program_id = serializers.IntegerField()
-    revenue_program_slug = serializers.SlugField(max_length=SLUG_MAX_LENGTH)
+    revenue_program_slug = serializers.SlugField()
 
     PAYMENT = "PAYMENT"
     CUSTOMER = "CUSTOMER"

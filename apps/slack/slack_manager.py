@@ -32,7 +32,7 @@ class SlackManager:
             return HubSlackIntegration.objects.get()
         except HubSlackIntegration.DoesNotExist:
             logger.info(
-                "Tried to send slack notification, but News Revenue Hub does not have a SlackIntegration configured"
+                "Tried to send slack notification, but News Revenue Engine does not have a SlackIntegration configured"
             )
 
     def get_hub_client(self):
@@ -46,7 +46,9 @@ class SlackManager:
         try:
             return org.slack_integration
         except Organization.slack_integration.RelatedObjectDoesNotExist:
-            logger.info(f"Tried to send slack notification, but {org.name} does not have a SlackIntegration configured")
+            logger.info(
+                "Tried to send slack notification, but %s does not have a SlackIntegration configured", org.name
+            )
 
     @classmethod
     def format_org_name(cls, org_name):
@@ -84,7 +86,7 @@ class SlackManager:
             "type": "section",
             "text": {
                 "type": "mrkdwn",
-                "text": f"<{settings.SITE_URL}/dashboard/donations?id={contribution.pk}|View on RevEngine>",
+                "text": f"<{settings.SITE_URL}/dashboard/contributions?id={contribution.pk}|View on RevEngine>",
             },
         }
 
@@ -94,13 +96,13 @@ class SlackManager:
         dates = self.construct_common_dates_block(contribution)
         links = self.construct_common_link_block(contribution)
 
-        org_field = {"type": "mrkdwn", "text": f"*Organization:*\n{contribution.organization.name}"}
+        org_field = {"type": "mrkdwn", "text": f"*Organization:*\n{contribution.revenue_program.organization.name}"}
         body["fields"].insert(0, org_field)
 
         return [header, body, dates, links]
 
     def construct_hub_text(self, contribution):
-        return f"{self.common_header_text}: {contribution.formatted_amount} for {contribution.organization.name} from {contribution.contributor.email}"
+        return f"{self.common_header_text}: {contribution.formatted_amount} for {contribution.revenue_program.organization.name} from {contribution.contributor.email}"
 
     def construct_org_blocks(self, contribution):
         header = self.construct_common_header_block()
@@ -118,15 +120,11 @@ class SlackManager:
         except SlackApiError as slack_error:
             error_type = slack_error.response["error"]
             if error_type == "invalid_auth":
-                logger.error(
-                    f"SlackApiError. HubSlackIntegration has invalid token. SlackError: {slack_error.response}"
-                )
+                logger.exception("SlackApiError. HubSlackIntegration has invalid token")
             elif error_type == "channel_not_found":
-                logger.error(
-                    f'SlackApiError. No such channel "{channel}" for HubSlackIntegration. SlackError: {slack_error.response}'
-                )
+                logger.exception('SlackApiError. No such channel "%s" for HubSlackIntegration', channel)
             else:
-                logger.warning(f"Generic SlackApiError: {slack_error.response}")
+                logger.warning("Generic SlackApiError: %s", slack_error.response)
 
     def send_org_message(self, channel, text, blocks, organization):
         org_client = self.get_org_client()
@@ -136,20 +134,28 @@ class SlackManager:
             error_type = slack_error.response["error"]
             if error_type == "invalid_auth":
                 logger.warning(
-                    f'SlackApiError. Org "{organization.name}" has an invalid token. SlackError: {slack_error.response}'
+                    'SlackApiError. Org "%s" has an invalid token. SlackError: %s',
+                    organization.name,
+                    slack_error.response,
                 )
             elif error_type == "channel_not_found":
                 logger.warning(
-                    f'SlackApiError. No such channel "{channel}" for {organization.name}. SlackError: {slack_error.response}'
+                    'SlackApiError. No such channel "%s" for %s. SlackError: %s',
+                    channel,
+                    organization.name,
+                    slack_error.response,
                 )
             else:
                 logger.warning(
-                    f'Generic SlackApiError for Org "{organization.name}" to channel "{channel}". SlackError: {slack_error.response}'
+                    'Generic SlackApiError for Org "%s" to channel "%s". SlackError: %s',
+                    organization.name,
+                    channel,
+                    slack_error.response,
                 )
 
     def send_hub_notifications(self, contribution):
         main_channel = self.hub_integration.channel
-        org_channel = self.get_org_channel(contribution.organization)
+        org_channel = self.get_org_channel(contribution.donation_page.organization)
         main_blocks = self.construct_hub_blocks(contribution)
         main_text = self.construct_hub_text(contribution)
         org_text = self.construct_org_text(contribution)
@@ -161,7 +167,7 @@ class SlackManager:
         main_channel = self.org_integration.channel
         blocks = self.construct_org_blocks(contribution)
         text = self.construct_org_text(contribution)
-        self.send_org_message(main_channel, text, blocks, contribution.organization)
+        self.send_org_message(main_channel, text, blocks, contribution.revenue_program.organization)
 
     def publish_contribution(self, contribution, event_type=None):
         """
@@ -175,6 +181,6 @@ class SlackManager:
         if self.hub_integration:
             self.send_hub_notifications(contribution)
 
-        self.org_integration = self.get_org_integration(contribution.organization)
+        self.org_integration = self.get_org_integration(contribution.revenue_program.organization)
         if self.org_integration:
             self.send_org_notifications(contribution)

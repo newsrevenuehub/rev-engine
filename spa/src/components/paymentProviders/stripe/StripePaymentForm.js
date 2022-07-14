@@ -6,7 +6,7 @@ import { useTheme } from 'styled-components';
 import { useAlert } from 'react-alert';
 
 // Utils
-import { getFrequencyAdverb } from 'utilities/parseFrequency';
+import { getFrequencyAdverb, getFrequencyThankYouText } from 'utilities/parseFrequency';
 
 // Hooks
 import useSubdomain from 'hooks/useSubdomain';
@@ -37,6 +37,31 @@ import BaseField from 'elements/inputs/BaseField';
 import { ICONS } from 'assets/icons/SvgIcon';
 import { PayFeesWidget } from 'components/donationPage/pageContent/DPayment';
 import DonationPageDisclaimer from 'components/donationPage/DonationPageDisclaimer';
+
+/*
+  gets the disabled stripe wallets for a page
+  @param {page}
+  */
+export const getDisabledWallets = (page) => {
+  let disabledWallets = [];
+  (page?.elements || [])
+    .filter((elem) => elem.type === 'DPayment')
+    .forEach((paymentType) => {
+      let enabledWalletsForPage = paymentType.content.stripe;
+
+      if (!enabledWalletsForPage.includes('apple')) {
+        disabledWallets.push('applePay');
+      }
+      if (!enabledWalletsForPage.includes('google')) {
+        disabledWallets.push('googlePay');
+      }
+      if (!enabledWalletsForPage.includes('browser')) {
+        disabledWallets.push('browserCard');
+      }
+    });
+
+  return disabledWallets;
+};
 
 function StripePaymentForm({ loading, setLoading, offerPayFees }) {
   useReCAPTCHAScript();
@@ -83,22 +108,31 @@ function StripePaymentForm({ loading, setLoading, offerPayFees }) {
   /****************************\
    * Handle Error and Success *
   \****************************/
-  const handlePaymentSuccess = (pr) => {
+  const handlePaymentSuccess = (pr, rpApiResponse) => {
     if (pr) pr.complete('success');
-    const totalAmount = getTotalAmount(amount, payFee, frequency, page.organization_is_nonprofit);
+    const totalAmount = getTotalAmount(amount, payFee, frequency, page.revenue_program_is_nonprofit);
+
     setErrors({});
     setStripeError(null);
     setLoading(false);
     setSucceeded(true);
     trackConversion(totalAmount);
+    const qstr = `uid=${rpApiResponse?.data?.email_hash}&frequency=${encodeURIComponent(
+      getFrequencyThankYouText(frequency)
+    )}&amount=${encodeURIComponent(totalAmount)}`;
+
     if (page.thank_you_redirect) {
-      window.location = page.thank_you_redirect;
+      let redirectURL = page.thank_you_redirect;
+      redirectURL = redirectURL.includes('?') ? `${redirectURL}&${qstr}` : `${redirectURL}?${qstr}`;
+      window.location = redirectURL;
     } else {
       const email = extractEmailFromFormRef(formRef.current);
+
       const donationPageUrl = window.location.href;
       history.push({
         pathname: url === '/' ? THANK_YOU_SLUG : url + THANK_YOU_SLUG,
-        state: { page, amount: totalAmount, email, donationPageUrl }
+        search: `?${qstr}`,
+        state: { page, amount: totalAmount, email, donationPageUrl, frequencyText: getFrequencyThankYouText(frequency) }
       });
     }
   };
@@ -149,7 +183,7 @@ function StripePaymentForm({ loading, setLoading, offerPayFees }) {
   \********************************/
   const staticParams = {
     ...params,
-    orgIsNonProfit: page.organization_is_nonprofit,
+    rpIsNonProfit: page.revenue_program_is_nonprofit,
     orgCountry: page.organization_country,
     currency: page.currency?.code?.toLowerCase(),
     salesforceCampaignId,
@@ -193,7 +227,7 @@ function StripePaymentForm({ loading, setLoading, offerPayFees }) {
       stripe,
       data,
       { paymentRequest },
-      () => handlePaymentSuccess(paymentRequest),
+      () => handlePaymentSuccess,
       (error) => handlePaymentFailure(error, paymentRequest)
     );
   };
@@ -207,8 +241,11 @@ function StripePaymentForm({ loading, setLoading, offerPayFees }) {
    * amount. For that, we must use the paymentRequest.update method.
    */
   useEffect(() => {
-    const orgIsNonProfit = page.organization_is_nonprofit;
-    const amnt = amountToCents(getTotalAmount(amount, payFee, frequency, orgIsNonProfit));
+    const rpIsNonProfit = page.revenue_program_is_nonprofit;
+    const amnt = amountToCents(getTotalAmount(amount, payFee, frequency, rpIsNonProfit));
+
+    let disabledWallets = getDisabledWallets(page);
+
     if (stripe && amountIsValid && !paymentRequest) {
       const pr = stripe.paymentRequest({
         country: page?.organization_country,
@@ -216,7 +253,8 @@ function StripePaymentForm({ loading, setLoading, offerPayFees }) {
         total: {
           label: page.revenue_program.name,
           amount: amnt
-        }
+        },
+        disableWallets: disabledWallets
       });
 
       pr.canMakePayment().then((canMakePayment) => {
@@ -250,8 +288,8 @@ function StripePaymentForm({ loading, setLoading, offerPayFees }) {
    * paymentRequest.update method.
    */
   useEffect(() => {
-    const orgIsNonProfit = page.organization_is_nonprofit;
-    const amnt = amountToCents(getTotalAmount(amount, payFee, frequency, orgIsNonProfit));
+    const rpIsNonProfit = page.revenue_program_is_nonprofit;
+    const amnt = amountToCents(getTotalAmount(amount, payFee, frequency, rpIsNonProfit));
     const amntIsValid = !isNaN(amnt) && amnt > 0;
     if (paymentRequest && amntIsValid) {
       paymentRequest.update({
@@ -270,7 +308,7 @@ function StripePaymentForm({ loading, setLoading, offerPayFees }) {
    * @returns {string} - The text to display in the submit button.
    */
   const getButtonText = () => {
-    const totalAmount = getTotalAmount(amount, payFee, frequency, page.organization_is_nonprofit);
+    const totalAmount = getTotalAmount(amount, payFee, frequency, page.revenue_program_is_nonprofit);
     if (isNaN(totalAmount)) {
       return 'Enter a valid amount';
     }
@@ -279,18 +317,19 @@ function StripePaymentForm({ loading, setLoading, offerPayFees }) {
 
   return (
     <>
-      {!forceManualCard && paymentRequest ? (
+      {offerPayFees && <PayFeesWidget />}
+      {paymentRequest ? (
         <>
           <S.PaymentRequestWrapper>
-            {offerPayFees && <PayFeesWidget />}
-
             <PaymentRequestButtonElement options={{ paymentRequest, style: S.PaymentRequestButtonStyle }} />
           </S.PaymentRequestWrapper>
-          <S.PayWithCardOption onClick={() => setForceManualCard(true)}>
+          <S.PayWithCardOption onClick={() => setForceManualCard(forceManualCard ? false : true)}>
             - I prefer to manually enter my credit card -
           </S.PayWithCardOption>
         </>
-      ) : (
+      ) : null}
+
+      {!forceManualCard && paymentRequest ? null : (
         <S.StripePaymentForm>
           <BaseField label="Card details" required>
             <S.PaymentElementWrapper>
@@ -306,7 +345,6 @@ function StripePaymentForm({ loading, setLoading, offerPayFees }) {
               {stripeError}
             </S.PaymentError>
           )}
-          {offerPayFees && <PayFeesWidget />}
 
           <S.PaymentSubmitButton
             onClick={handleCardSubmit}

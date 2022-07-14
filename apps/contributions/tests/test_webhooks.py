@@ -1,8 +1,6 @@
 from datetime import datetime
 from unittest.mock import patch
 
-from django.conf import settings
-from django.core import mail
 from django.test import override_settings
 from django.urls import reverse
 
@@ -13,7 +11,12 @@ from stripe.stripe_object import StripeObject
 from apps.contributions.models import Contribution, ContributionStatus
 from apps.contributions.views import process_stripe_webhook_view
 from apps.contributions.webhooks import StripeWebhookProcessor
-from apps.organizations.tests.factories import OrganizationFactory
+from apps.organizations.tests.factories import (
+    OrganizationFactory,
+    PaymentProviderFactory,
+    RevenueProgramFactory,
+)
+from apps.pages.tests.factories import DonationPageFactory
 
 
 valid_secret = "myvalidstripesecret"
@@ -122,7 +125,7 @@ class PaymentIntentWebhooksTest(APITestCase):
     def test_webhook_view_invalid_contribution(self, mock_logger, *args):
         self._create_contribution(ref_id="abcd")
         self._run_webhook_view_with_request()
-        mock_logger.error.assert_called_once_with("Could not find contribution matching provider_payment_id")
+        self.assertEqual("Could not find contribution matching provider_payment_id", mock_logger.info.call_args[0][0])
 
     def test_payment_intent_canceled_webhook(self):
         ref_id = "1234"
@@ -180,14 +183,21 @@ class PaymentIntentWebhooksTest(APITestCase):
         fake_event_object = "criminal_activiy"
         processor = StripeWebhookProcessor(MockPaymentIntentEvent(object_type=fake_event_object, intent_id="1234"))
         processor.process()
-        mock_logger.warning.assert_called_with(f'Recieved un-handled Stripe object of type "{fake_event_object}"')
+        self.assertIn("Recieved un-handled Stripe object of type", mock_logger.warning.call_args[0][0])
+        self.assertEqual(mock_logger.warning.call_args[0][1], fake_event_object)
 
 
 class CustomerSubscriptionWebhooksTest(APITestCase):
     def _create_contribution(self, ref_id=None, **kwargs):
-        org = OrganizationFactory(stripe_account_id="test")
+        org = OrganizationFactory()
+        payment_provider = PaymentProviderFactory(stripe_account_id="test")
+        revenue_program = RevenueProgramFactory(payment_provider=payment_provider, organization=org)
         return Contribution.objects.create(
-            provider_payment_id=ref_id, amount=1000, status=ContributionStatus.PROCESSING, **kwargs, organization=org
+            provider_payment_id=ref_id,
+            amount=1000,
+            status=ContributionStatus.PROCESSING,
+            donation_page=DonationPageFactory(revenue_program=revenue_program),
+            **kwargs,
         )
 
     @patch("apps.contributions.webhooks.StripeWebhookProcessor.process_subscription")

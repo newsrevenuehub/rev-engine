@@ -5,8 +5,10 @@ from django.conf import settings
 from django.contrib.admin.views.decorators import staff_member_required
 from django.contrib.auth.decorators import login_required
 from django.http import FileResponse, JsonResponse
+from django.shortcuts import render
 from django.views.decorators.cache import never_cache
 from django.views.decorators.http import require_GET
+from django.views.defaults import server_error
 from django.views.generic import TemplateView
 
 from apps.common.serializers import SocialMetaInlineSerializer
@@ -35,7 +37,7 @@ class ReactAppView(TemplateView):
             try:
                 return RevenueProgram.objects.get(slug=subdomain)
             except RevenueProgram.DoesNotExist:
-                logger.warning(f'ReactAppView failed to retrieve RevenueProgram by subdomain "{subdomain}"')
+                logger.info('ReactAppView failed to retrieve RevenueProgram by subdomain "%s"', subdomain)
 
     def _add_social_media_context(self, revenue_program, context):
         serializer = SocialMetaInlineSerializer(revenue_program.social_meta, context={"request": self.request})
@@ -57,7 +59,12 @@ def read_apple_developer_merchant_id(request):
 # method on every model via the `admin_select_options` view-- like some
 # terrible accidental RPC API.
 SAFE_ADMIN_SELECT_PARENTS = ["organizations.Organization", "organizations.RevenueProgram"]
-SAFE_ADMIN_SELECT_ACCESSOR_METHODS = ["admin_style_options", "admin_benefit_options", "admin_benefitlevel_options"]
+SAFE_ADMIN_SELECT_ACCESSOR_METHODS = [
+    "admin_style_options",
+    "admin_benefit_options",
+    "admin_benefitlevel_options",
+    "admin_revenueprogram_options",
+]
 
 
 @require_GET
@@ -85,3 +92,18 @@ def admin_select_options(request):
     options = getattr(parent_instance, accessor_method)
 
     return JsonResponse({"data": options})
+
+
+def cloudflare_500_view(request, exception=None):
+    """Serves a static template displayed by Cloudflare in case of 521 or 522 errors
+
+    We manually point Cloudflare at the URL for this view, which will cause it to scane
+    this page and from then on it will display the scanned HTML for some 5xx errors.
+    For more info, see https://support.cloudflare.com/hc/en-us/articles/200172706-Configuring-Custom-Pages-Error-and-Challenge-
+    """
+    return render(request, "500_cloudflare.html", {})
+
+
+def dummy_view_for_raising_500(request):
+    """Used to simulate 500 errors"""
+    return server_error(request)

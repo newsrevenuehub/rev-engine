@@ -5,7 +5,12 @@ from django.test import TestCase, override_settings
 from django.utils import timezone
 
 from apps.contributions.models import Contribution, ContributionStatus, Contributor
-from apps.organizations.tests.factories import OrganizationFactory
+from apps.organizations.tests.factories import (
+    OrganizationFactory,
+    PaymentProviderFactory,
+    RevenueProgramFactory,
+)
+from apps.pages.tests.factories import DonationPageFactory
 from apps.slack.models import SlackNotificationTypes
 
 
@@ -16,12 +21,11 @@ class ContributorTest(TestCase):
     def test_contributions_count(self):
         target_count = 5
         for _ in range(target_count):
-            contribution = Contribution.objects.create(amount=1000, contributor=self.contributor)
-
+            Contribution.objects.create(amount=1000, contributor=self.contributor)
         self.assertEqual(self.contributor.contributions_count, target_count)
 
     def test_most_recent_contribution(self):
-        first_contribution = Contribution.objects.create(amount=1000, contributor=self.contributor, status="paid")
+        Contribution.objects.create(amount=1000, contributor=self.contributor, status="paid")
         one_minute = datetime.timedelta(minutes=1)
         second_contribution = Contribution.objects.create(
             amount=1000,
@@ -34,6 +38,9 @@ class ContributorTest(TestCase):
     def test__str(self):
         self.assertEqual(str(self.contributor), self.contributor.email)
 
+    def test_is_superuser(self):
+        self.assertFalse(self.contributor.is_superuser)
+
 
 test_key = "test_key"
 
@@ -42,10 +49,13 @@ test_key = "test_key"
 class ContributionTest(TestCase):
     def setUp(self):
         self.amount = 1000
-        self.org_stripe_account_id = "testing-123-stripe"
-        self.org = OrganizationFactory(stripe_account_id=self.org_stripe_account_id)
-        self.contribution = Contribution.objects.create(amount=self.amount, organization=self.org)
-        self.required_data = {"amount": 1000, "currency": "usd", "organization": self.org}
+        self.stripe_account_id = "testing-123-stripe"
+        self.org = OrganizationFactory()
+        payment_provider = PaymentProviderFactory(stripe_account_id=self.stripe_account_id)
+        revenue_program = RevenueProgramFactory(organization=self.org, payment_provider=payment_provider)
+        self.donation_page = DonationPageFactory(revenue_program=revenue_program)
+        self.contribution = Contribution.objects.create(amount=self.amount, donation_page=self.donation_page)
+        self.required_data = {"amount": 1000, "currency": "usd", "donation_page": self.donation_page}
 
     def test_formatted_amount(self):
         target_format = "10.00 USD"
@@ -87,7 +97,7 @@ class ContributionTest(TestCase):
         contribution = Contribution(**self.required_data)
         contribution.provider_payment_method_id = target_pm_id
         contribution.save()
-        mock_retrieve_pm.assert_called_once_with(target_pm_id, stripe_account=self.org_stripe_account_id)
+        mock_retrieve_pm.assert_called_once_with(target_pm_id, stripe_account=self.stripe_account_id)
 
     @patch("stripe.PaymentMethod.retrieve", side_effect="{}")
     def test_request_stripe_payment_method_details_when_old_updating_payment_method(self, mock_retrieve_pm):
@@ -97,7 +107,7 @@ class ContributionTest(TestCase):
         target_pm_id = "new-pm-id"
         self.contribution.provider_payment_method_id = target_pm_id
         self.contribution.save()
-        mock_retrieve_pm.assert_called_once_with(target_pm_id, stripe_account=self.org_stripe_account_id)
+        mock_retrieve_pm.assert_called_once_with(target_pm_id, stripe_account=self.stripe_account_id)
 
     @patch("stripe.PaymentMethod.retrieve", side_effect="{}")
     def test_do_not_request_stripe_payment_method_details_when_updating_anything_else(self, mock_retrieve_pm):

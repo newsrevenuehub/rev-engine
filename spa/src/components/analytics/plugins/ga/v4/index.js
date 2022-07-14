@@ -1,8 +1,8 @@
 import { isBrowser } from '@analytics/type-utils';
 
-/* 
+/*
 
-From `hashRegex` through `currentUrl` is adapted from 
+From `hashRegex` through `currentUrl` is adapted from
 https://github.com/DavidWells/analytics/blob/
 a7bf790f23febd68d5f45926384c7d64df4336b3/packages/
 analytics-core/src/modules/page.js

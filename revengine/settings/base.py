@@ -22,7 +22,7 @@ BASE_DIR = os.path.dirname(PROJECT_DIR)
 # See https://docs.djangoproject.com/en/3.0/howto/deployment/checklist/
 
 DEBUG = os.getenv("DJANGO_DEBUG", "False") == "True"
-ENVIRONMENT = os.getenv("ENVIRONMENT", "dev")
+ENVIRONMENT = os.getenv("ENVIRONMENT", "unknown")
 
 # Application definition
 
@@ -52,13 +52,15 @@ INSTALLED_APPS = [
     "solo",
     "anymail",
     "django_json_widget",
-    "safedelete",
-    "simple_history",
     "health_check",
     "health_check.db",
     "health_check.cache",
     "health_check.contrib.migrations",
     "health_check.contrib.redis",
+    "waffle",
+    "reversion",
+    "reversion_compare",
+    "django_test_migrations.contrib.django_checks.AutoNames",
 ]
 
 
@@ -73,7 +75,7 @@ MIDDLEWARE = [
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "apps.common.middleware.LogFourHundredsMiddleware",
     "csp.middleware.CSPMiddleware",
-    "simple_history.middleware.HistoryRequestMiddleware",
+    "waffle.middleware.WaffleMiddleware",
 ]
 
 ROOT_URLCONF = "revengine.urls"
@@ -104,6 +106,7 @@ REST_FRAMEWORK = {
     ],
     "DEFAULT_PERMISSION_CLASSES": [
         "rest_framework.permissions.IsAuthenticated",
+        "apps.api.permissions.HasRoleAssignment",
     ],
     "DEFAULT_PAGINATION_CLASS": "apps.api.pagination.ApiStandardPagination",
     "PAGE_SIZE": 10,
@@ -115,7 +118,7 @@ SIMPLE_JWT = {  # https://django-rest-framework-simplejwt.readthedocs.io/en/late
 }
 
 CONTRIBUTOR_ID_CLAIM = "contrib_id"
-CONTRIBUTOR_SHORT_TOKEN_LIFETIME = timedelta(minutes=5)
+CONTRIBUTOR_SHORT_TOKEN_LIFETIME = timedelta(minutes=15)
 CONTRIBUTOR_LONG_TOKEN_LIFETIME = timedelta(hours=3)
 CONTRIBUTOR_VERIFY_URL = "contributor-verify"
 # In format num/[second, minute, hour, day]
@@ -130,6 +133,9 @@ AUTH_COOKIE_KEY = "Authorization"
 # across origins. Once this API supports public access, this needs to be loosened.
 AUTH_COOKIE_SAMESITE = "Strict"  # or 'Lax' or None
 
+ORG_SLUG_PARAM = "orgSlug"
+RP_SLUG_PARAM = "revProgramSlug"
+PAGE_SLUG_PARAM = "slug"
 
 WSGI_APPLICATION = "revengine.wsgi.application"
 
@@ -229,6 +235,24 @@ LOGGING = {
             "class": "logging.StreamHandler",
             "formatter": "basic",
         },
+        "null": {
+            "class": "logging.NullHandler",
+        },
+    },
+    "loggers": {
+        # Redefining the logger for the django module
+        # prevents invoking the AdminEmailHandler
+        "django": {
+            "handlers": ["console"],
+            "level": "INFO",
+            "propagate": False,
+        },
+        # don't warn about incorrect http_host
+        # see https://docs.djangoproject.com/en/3.2/topics/logging/#django-security
+        "django.security.DisallowedHost": {
+            "handlers": ["null"],
+            "propagate": False,
+        },
     },
     "root": {
         "handlers": ["console"],
@@ -249,7 +273,7 @@ STRIPE_TEST_SECRET_KEY = os.getenv("TEST_HUB_STRIPE_API_SECRET_KEY", "")
 STRIPE_OAUTH_SCOPE = "read_write"
 STRIPE_LIVE_MODE = os.environ.get("STRIPE_LIVE_MODE", "false").lower() == "true"
 
-GENERIC_STRIPE_PRODUCT_NAME = "Donation via RevEngine"
+GENERIC_STRIPE_PRODUCT_NAME = "Contribution via RevEngine"
 
 # Get it from the section in the Stripe dashboard where you added the webhook endpoint
 STRIPE_WEBHOOK_SECRET = os.getenv("STRIPE_WEBHOOK_SECRET", "")
@@ -267,7 +291,13 @@ STRIPE_WEBHOOK_EVENTS = [
 ]
 
 
+# SITE_URL must include scheme and optionally port, https://example.com.
 SITE_URL = os.getenv("SITE_URL", "")
+
+# TODO: Isn't DOMAIN_APEX just be SITE_URL without any subdomain?
+DOMAIN_APEX = os.getenv("DOMAIN_APEX")
+# Application subdomains (that are NOT revenue program slugs)
+DASHBOARD_SUBDOMAINS = os.getenv("DASHBOARD_SUBDOMAINS", "www:dashboard:").split(":")
 
 # BadActor API
 BAD_ACTOR_API_URL = os.getenv("BAD_ACTOR_API_URL", "https://bad-actor-test.fundjournalism.org/v1/bad_actor/")
@@ -286,12 +316,11 @@ HEALTHCHECK_URL_AUTO_ACCEPT_FLAGGED_PAYMENTS = os.environ.get("HEALTHCHECK_URL_A
 EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
 EMAIL_SUBJECT_PREFIX = "[RevEngine] "
 
-ADMINS = [("dc", "daniel@fundjournalism.org")]
-
-# Revengine template identifiers
-EMAIL_TEMPLATE_IDENTIFIER_MAGIC_LINK_DONOR = os.environ.get(
-    "EMAIL_TEMPLATE_IDENTIFIER_MAGIC_LINK_DONOR", "nrh-manage-donations-magic-link"
+EMAIL_DEFAULT_TRANSACTIONAL_SENDER = os.getenv(
+    "EMAIL_DEFAULT_TRANSACTIONAL_SENDER", "News Revenue Engine <no-reply@fundjournalism.org>"
 )
+
+ADMINS = [("dc", "daniel@fundjournalism.org")]
 
 # this is only used by HubAdmins, not OrgAdmins, but needs to be named generically as LOGIN_URL
 # so our implementation of password reset flow for HubAdmins works as expected
@@ -313,11 +342,6 @@ MIDDLEWARE_LOGGING_CODES = [400, 404, 403]
 COUNTRIES = ["US", "CA"]
 # Map currency-code to symbol
 CURRENCIES = {"USD": "$", "CAD": "$"}
-
-
-# Application subdomains (that are NOT revenue program slugs)
-DASHBOARD_SUBDOMAINS = os.getenv("DASHBOARD_SUBDOMAINS", "support:www:dashboard:").split(":")
-DOMAIN_APEX = os.getenv("DOMAIN_APEX")
 
 CSP_REPORTING_ENABLE = os.environ.get("CSP_REPORTING_ENABLE", "false").lower() == "true"
 # Django-CSP configuration
@@ -390,6 +414,7 @@ SECURE_REFERRER_POLICY = "strict-origin-when-cross-origin"
 # Stripe API Target Version
 STRIPE_API_VERSION = "2020-08-27"
 
+SECURE_SSL_REDIRECT = os.environ.get("SECURE_SSL_REDIRECT", "true").lower() == "true"
 
 # Google Tag Manager ID - Config Vars Heroku
 HUB_GTM_ID = os.getenv("HUB_GTM_ID")
@@ -425,3 +450,15 @@ SPA_ENV_VARS = {
 # Meta data static values
 METADATA_SOURCE = os.getenv("METADATA_SOURCE", "rev-engine")
 METADATA_SCHEMA_VERSION = os.getenv("METADATA_SCHEMA_VERSION", "1.0")
+
+
+# Add reversion models to admin interface
+ADD_REVERSION_ADMIN = True
+
+# This is for django-test-migrations
+# we ignore waffle and celery beat's migrations because they are beyond our control,
+# and dtm complains about their migration file names
+DTM_IGNORED_MIGRATIONS = {
+    ("waffle", "*"),
+    ("django_celery_beat", "*"),
+}

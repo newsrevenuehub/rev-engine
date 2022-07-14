@@ -5,22 +5,23 @@ from django.contrib import admin
 from django.db.models import Q
 
 from django_reverse_admin import ReverseModelAdmin
+from reversion.admin import VersionAdmin
 from sorl.thumbnail.admin import AdminImageMixin
 
-from apps.common.admin import RevEngineSimpleHistoryAdmin
+from apps.common.admin import RevEngineBaseAdmin
 from apps.organizations.forms import FeatureForm
 from apps.organizations.models import (
     Benefit,
     BenefitLevel,
     Feature,
     Organization,
+    PaymentProvider,
     Plan,
     RevenueProgram,
 )
-from apps.users.admin import UserOrganizationInline
 
 
-class NoRelatedInlineAddEditAdminMixin:
+class NoRelatedInlineAddEditAdminMixin:  # pragma: no cover
     related_fieldname = None
 
     def get_formset(self, request, obj=None, **kwargs):
@@ -37,7 +38,7 @@ class NoRelatedInlineAddEditAdminMixin:
         return formset
 
 
-class ReadOnlyOrgLimitedTabularInlineMixin(admin.TabularInline):
+class ReadOnlyOrgLimitedTabularInlineMixin(admin.TabularInline):  # pragma: no cover
     related_fieldname = None
     org_limited_fieldname = None
 
@@ -53,17 +54,15 @@ class ReadOnlyOrgLimitedTabularInlineMixin(admin.TabularInline):
                 parent_id = None
             if db_field.name == self.related_fieldname and parent_id:
                 parent_instance = self.parent_model.objects.filter(pk=parent_id).first()
-                formfield.limit_choices_to = Q(organization=parent_instance.organization)
+                formfield.limit_choices_to = Q(revenue_program=parent_instance.revenue_program)
         return formfield
 
 
 class RevenueProgramBenefitLevelInline(NoRelatedInlineAddEditAdminMixin, ReadOnlyOrgLimitedTabularInlineMixin):
-    model = RevenueProgram.benefit_levels.through
+    model = BenefitLevel
     verbose_name = "Benefit level"
     verbose_name_plural = "Benefit levels"
     extra = 0
-
-    related_fieldname = "benefit_level"
 
 
 class BenefitLevelBenefit(NoRelatedInlineAddEditAdminMixin, ReadOnlyOrgLimitedTabularInlineMixin):
@@ -76,7 +75,7 @@ class BenefitLevelBenefit(NoRelatedInlineAddEditAdminMixin, ReadOnlyOrgLimitedTa
 
 
 @admin.register(Organization)
-class OrganizationAdmin(RevEngineSimpleHistoryAdmin, ReverseModelAdmin):  # pragma: no cover
+class OrganizationAdmin(RevEngineBaseAdmin, VersionAdmin, ReverseModelAdmin):  # pragma: no cover
     organization_fieldset = (
         (
             "Organization",
@@ -90,29 +89,11 @@ class OrganizationAdmin(RevEngineSimpleHistoryAdmin, ReverseModelAdmin):  # prag
         (None, {"fields": ("salesforce_id",)}),
         (
             "Plan",
-            {
-                "fields": (
-                    "non_profit",
-                    "plan",
-                )
-            },
+            {"fields": ("plan",)},
         ),
         (
             "Email Templates",
-            {"fields": ("uses_email_templates",)},
-        ),
-        (
-            "Payment Provider",
-            {
-                "fields": (
-                    "currency",
-                    "default_payment_provider",
-                    "stripe_account_id",
-                    "stripe_verified",
-                    "stripe_product_id",
-                    "domain_apple_verified_date",
-                )
-            },
+            {"fields": ("send_receipt_email_via_nre",)},
         ),
     )
 
@@ -124,9 +105,8 @@ class OrganizationAdmin(RevEngineSimpleHistoryAdmin, ReverseModelAdmin):  # prag
 
     inline_type = "stacked"
     inline_reverse = [("address", {"fields": ["address1", "address2", "city", "state", "postal_code", "country"]})]
-    inlines = [UserOrganizationInline]
 
-    readonly_fields = ["name", "stripe_verified"]
+    readonly_fields = ["name"]
 
     def get_readonly_fields(self, request, obj=None):
         if Path(request.path).parts[-1] == "add":
@@ -135,25 +115,25 @@ class OrganizationAdmin(RevEngineSimpleHistoryAdmin, ReverseModelAdmin):  # prag
 
 
 @admin.register(Benefit)
-class BenefitAdmin(RevEngineSimpleHistoryAdmin):
-    list_display = ["name", "description", "organization"]
+class BenefitAdmin(RevEngineBaseAdmin, VersionAdmin):
+    list_display = ["name", "description", "revenue_program"]
 
-    list_filter = ["organization"]
+    list_filter = ["revenue_program"]
 
-    fieldsets = ((None, {"fields": ("name", "description", "organization")}),)
+    fieldsets = ((None, {"fields": ("name", "description", "revenue_program")}),)
 
 
 @admin.register(BenefitLevel)
-class BenefitLevelAdmin(RevEngineSimpleHistoryAdmin):
-    list_display = ["name", "donation_range", "organization"]
+class BenefitLevelAdmin(RevEngineBaseAdmin, VersionAdmin):
+    list_display = ["name", "donation_range", "revenue_program"]
 
-    list_filter = ["organization"]
+    list_filter = ["revenue_program"]
 
     fieldsets = (
         (
             None,
             {
-                "fields": ("name", "currency", "lower_limit", "upper_limit", "organization"),
+                "fields": ("name", "currency", "lower_limit", "upper_limit", "level", "revenue_program"),
             },
         ),
     )
@@ -171,29 +151,21 @@ class BenefitLevelAdmin(RevEngineSimpleHistoryAdmin):
         Organization becomes readonly after initial creation.
         """
         if obj:
-            return self.readonly_fields + ["organization"]
+            return self.readonly_fields + ["revenue_program"]
         return self.readonly_fields
 
 
 @admin.register(RevenueProgram)
-class RevenueProgramAdmin(RevEngineSimpleHistoryAdmin, ReverseModelAdmin, AdminImageMixin):  # pragma: no cover
+class RevenueProgramAdmin(RevEngineBaseAdmin, VersionAdmin, ReverseModelAdmin, AdminImageMixin):  # pragma: no cover
     fieldsets = (
         (
             "RevenueProgram",
-            {
-                "fields": (
-                    "name",
-                    "slug",
-                    "contact_email",
-                    "organization",
-                    "default_donation_page",
-                )
-            },
+            {"fields": ("name", "slug", "contact_email", "organization", "default_donation_page", "non_profit")},
         ),
         (
             "Stripe",
             {
-                "fields": ("stripe_statement_descriptor_suffix",),
+                "fields": ("stripe_statement_descriptor_suffix", "domain_apple_verified_date", "payment_provider"),
             },
         ),
         (
@@ -224,7 +196,7 @@ class RevenueProgramAdmin(RevEngineSimpleHistoryAdmin, ReverseModelAdmin, AdminI
         ),
     )
 
-    list_display = ["name", "slug"]
+    list_display = ["name", "organization", "slug"]
 
     list_filter = ["name"]
 
@@ -278,7 +250,7 @@ class RevenueProgramAdmin(RevEngineSimpleHistoryAdmin, ReverseModelAdmin, AdminI
 
 
 @admin.register(Plan)
-class PlanAdmin(RevEngineSimpleHistoryAdmin):  # pragma: no cover
+class PlanAdmin(RevEngineBaseAdmin, VersionAdmin):  # pragma: no cover
     fieldsets = (("Plan", {"fields": ("name", "features")}),)
 
     list_display = ["name"]
@@ -287,10 +259,39 @@ class PlanAdmin(RevEngineSimpleHistoryAdmin):  # pragma: no cover
 
 
 @admin.register(Feature)
-class FeatureAdmin(RevEngineSimpleHistoryAdmin):  # pragma: no cover
+class FeatureAdmin(RevEngineBaseAdmin, VersionAdmin):  # pragma: no cover
     form = FeatureForm
     fieldsets = (("Feature", {"fields": ("name", "feature_type", "feature_value", "description")}),)
 
     list_display = ["name", "feature_type", "feature_value"]
 
     list_filter = ["name", "feature_type"]
+
+
+@admin.register(PaymentProvider)
+class PaymentProviderAdmin(RevEngineBaseAdmin):  # pragma: no cover
+    search_fields = ("stripe_account_id",)
+    list_display = [
+        "stripe_account_id",
+        "stripe_product_id",
+        "currency",
+        "default_payment_provider",
+        "stripe_oauth_refresh_token",
+        "stripe_verified",
+    ]
+    list_per_page = 20
+    fieldsets = (
+        (
+            None,
+            {
+                "fields": (
+                    "stripe_account_id",
+                    "stripe_product_id",
+                    "currency",
+                    "default_payment_provider",
+                    "stripe_oauth_refresh_token",
+                    "stripe_verified",
+                ),
+            },
+        ),
+    )

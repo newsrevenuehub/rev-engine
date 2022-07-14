@@ -21,8 +21,22 @@ import CircleButton from 'elements/buttons/CircleButton';
 import PageCard from 'components/content/pages/PageCard';
 import GenericErrorBoundary from 'components/errors/GenericErrorBoundary';
 
-export const pagesbyRP = (pgs) => {
+const PAGE_COUNT_TO_ENABLE_SEARCH = 4;
+
+export const pagesbyRP = (pgsRaw, qry) => {
   const pagesByRevProgram = [];
+  const pgs = qry
+    ? pgsRaw.filter((page) => {
+        return (
+          page?.revenue_program &&
+          (page.slug.toLowerCase().indexOf(qry) !== -1 ||
+            page.name.toLowerCase().indexOf(qry) !== -1 ||
+            page.revenue_program.slug.toLowerCase().indexOf(qry) !== -1 ||
+            page.revenue_program.name.toLowerCase().indexOf(qry) !== -1)
+        );
+      })
+    : pgsRaw;
+
   let revPrograms = new Set(pgs.map((p) => p?.revenue_program?.id));
 
   revPrograms.forEach((rpId) => {
@@ -43,6 +57,7 @@ function Pages({ setShowAddPageModal }) {
   const requestGetPages = useRequest();
   const [closedAccordions, setClosedAccordions] = useState([]);
   const [pages, setPages] = useState([]);
+  const [pageSearchQuery, setPageSearchQuery] = useState([]);
 
   useEffect(() => {
     requestGetPages(
@@ -56,8 +71,9 @@ function Pages({ setShowAddPageModal }) {
     );
   }, [alert]);
 
-  const handleEditPage = (pageSlug) => {
-    history.push(`${EDITOR_ROUTE}/${pageSlug}`);
+  const handleEditPage = (page) => {
+    const path = `${EDITOR_ROUTE}/${page.revenue_program.slug}/${page.slug}`;
+    history.push({ pathname: path, state: { pageId: page.id } });
   };
 
   const handleAccordionClick = (i) => {
@@ -72,11 +88,19 @@ function Pages({ setShowAddPageModal }) {
     }
   };
 
-  const pagesByRevenueProgram = pagesbyRP(pages);
+  const pagesByRevenueProgram = pagesbyRP(pages, pageSearchQuery);
 
   return (
     <GenericErrorBoundary>
       <S.Pages data-testid="pages-list" layout>
+        {pages && pages.length > PAGE_COUNT_TO_ENABLE_SEARCH ? (
+          <S.PagesSearch layout>
+            <input
+              placeholder="Search Pages by Name, Revenue-program"
+              onChange={(e) => setPageSearchQuery(e.target.value)}
+            />
+          </S.PagesSearch>
+        ) : null}
         <S.RevProgramList layout>
           {pagesByRevenueProgram.map((rp, i) => {
             const isOpen = !closedAccordions.includes(i);

@@ -83,7 +83,6 @@ function StripePaymentForm({ loading, setLoading, offerPayFees }) {
   const stripe = useStripe();
   const elements = useElements();
 
-  // const amountIsValid = !isNaN(amount);
   const amountIsValid = (amount) => amount && !isNaN(amount);
   /**
    * Listen for changes in the CardElement and display any errors as the customer types their card details

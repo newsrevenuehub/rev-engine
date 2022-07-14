@@ -53,3 +53,17 @@ export const accordionAnimation = {
   animate: { y: 0, opacity: 1 },
   exit: { y: -10, opacity: 0 }
 };
+
+export const PagesSearch = styled(motion.div)`
+  padding: 10px 40px;
+  width: 100%;
+  margin-bottom: 20px;
+
+  input {
+    width: 90%;
+    max-width: 420px;
+    margin: auto;
+    display: block;
+    padding: 8px 20px;
+  }
+`;

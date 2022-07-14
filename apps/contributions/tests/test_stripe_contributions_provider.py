@@ -19,6 +19,13 @@ from apps.contributions.tests import RedisMock
 
 
 class AbstractTestStripeContributions(TestCase):
+    def _setup_stripe_customers(self):
+        self.customers = [
+            stripe.Customer.construct_from({"id": "cust_1"}, key="test"),
+            stripe.Customer.construct_from({"id": "cust_2"}, key="test"),
+            stripe.Customer.construct_from({"id": "cust_3"}, key="test"),
+        ]
+
     def _setup_stripe_charges(self):
         charge_1 = {
             "id": "charge_1",
@@ -193,6 +200,7 @@ class TestStripeCharge(AbstractTestStripeContributions):
 class TestStripeContributionsProvider(AbstractTestStripeContributions):
     def setUp(self):
         super().setUp()
+        self._setup_stripe_customers()
         self._setup_stripe_customer_ids(10)
         self.expected_customer_ids = [
             "customer:'cust_0' OR customer:'cust_1'",
@@ -213,6 +221,13 @@ class TestStripeContributionsProvider(AbstractTestStripeContributions):
         actual_customers_query = [i for i in provider.generate_chunked_customers_query()]
         expected_customers_query = self.expected_customer_ids
         self.assertListEqual(actual_customers_query, expected_customers_query)
+
+    @patch("apps.contributions.stripe_contributions_provider.stripe.Customer.search")
+    def test_customers(self, stripe_customer_search_mock):
+        stripe_customer_search_mock.return_value.auto_paging_iter.return_value = iter(self.customers)
+        provider = StripeContributionsProvider("test@email.com", "acc_000000")
+        result = provider.customers
+        self.assertEqual(result, ["cust_1", "cust_2", "cust_3"])
 
 
 class TestContributionsCacheProvider(AbstractTestStripeContributions):

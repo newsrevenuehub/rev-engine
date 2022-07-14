@@ -116,6 +116,16 @@ class RequestContributorTokenEmailViewTest(APITestCase):
         self.assertEqual(response.status_code, 400)
         self.assertEqual(str(response.data["email"][0]), GENERIC_BLANK)
 
+    def test_validation_when_no_subdomain(self):
+        target_email = self.contributor.email
+        response = self.client.post(self.url, {"email": target_email})
+        self.assertEqual(response.data["detail"], "Missing Revenue Program subdomain")
+
+    def test_validation_with_subdomain_when_rp_not_in_db(self):
+        target_email = self.contributor.email
+        response = self.client.post(self.url, {"email": target_email, "subdomain": "norp"})
+        self.assertEqual(response.status_code, 404)
+
     def test_token_appears_in_outbound_email(self):
         target_email = self.contributor.email
         response = self.client.post(self.url, {"email": target_email, "subdomain": self.rp.slug})

@@ -4,6 +4,7 @@ from urllib.parse import urlparse
 
 from django.conf import settings
 from django.middleware import csrf
+from django.shortcuts import get_object_or_404
 
 from rest_framework import status
 from rest_framework.response import Response
@@ -156,7 +157,7 @@ class RequestContributorTokenEmailView(APIView):
             if not domain:
                 return Response({"detail": "Missing Revenue Program subdomain"}, status=status.HTTP_404_NOT_FOUND)
 
-            revenue_program = RevenueProgram.objects.get(slug=data.get("subdomain"))
+            revenue_program = get_object_or_404(RevenueProgram, slug=data.get("subdomain"))
             # Celery backend job to pull contributions from Stripe and store the serialized data in cache, user will have
             # data by the time the user opens contributor portal.
             task_pull_serialized_stripe_contributions_to_cache.delay(email, revenue_program.stripe_account_id)

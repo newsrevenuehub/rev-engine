@@ -1,8 +1,15 @@
+import logging
+
+from django.conf import settings
 from django.contrib.auth import get_user_model
+from django.contrib.auth.password_validation import validate_password
+from django.core.exceptions import ValidationError
 from django.db.models import Q
 
 from rest_framework import serializers
+from rest_framework.validators import UniqueValidator
 from waffle import get_waffle_flag_model
+from apps.contributions.bad_actor import BadActorAPIError, make_bad_actor_request
 
 from apps.organizations.models import Organization, RevenueProgram
 from apps.organizations.serializers import (
@@ -10,6 +17,8 @@ from apps.organizations.serializers import (
     RevenueProgramInlineSerializer,
 )
 from apps.users.choices import Roles
+
+logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -23,6 +32,10 @@ class UserSerializer(serializers.ModelSerializer):
     organizations = serializers.SerializerMethodField(method_name="get_permitted_organizations")
     revenue_programs = serializers.SerializerMethodField(method_name="get_permitted_revenue_programs")
     flags = serializers.SerializerMethodField(method_name="get_active_flags_for_user")
+    # max length here is same as base User class
+    password = serializers.CharField(
+        write_only=True, max_length=128, validators=[UniqueValidator(queryset=get_user_model().objects.all())]
+    )
 
     def get_role_type(self, obj):
         if obj.is_superuser:
@@ -65,6 +78,44 @@ class UserSerializer(serializers.ModelSerializer):
             qs = Flag.objects.filter(Q(everyone=True) | Q(users__in=[obj]))
         return list(qs.values("name", "id"))
 
+    # def password_validate(self, data)
+    #     """nb on name so don't override"""
+    #     class TempUser:
+    #         def __init__(self, email):
+    #             self.email = email
+
+    #     temp_user = TempUser(email=data["email"])
+    #     try:
+    #         validate_password(data["password"], temp_user)
+    #     except ValidationError as exc:
+    #         raise serializers.ValidationError(detail=str(exc))
+
+    # def bad_actor_validate(self, data):
+    #     try:
+    #         response = make_bad_actor_request(data)
+    #     except BadActorAPIError:
+    #         logger.warning()
+    #         return
+    #     if response.json()["overall_judgment"] >= settings.BAD_ACTOR_FAIL_ABOVE_FOR_ORG_USERS:
+    #         logger.warning()
+    #         raise ValidationError("TBD MESSAGE")
+
+    # def validate(self, data):
+    #     """note on why validating password here"""
+    #     self.password_validate(data)
+    #     self.bad_actor_validate(data)
+
+    #     return data
+
+    def create(self, validated_data):
+        password = validated_data.pop("password")
+        User = get_user_model()
+        user = User(**validated_data)
+        user.set_password(password)
+        user.save()
+        #  send email verification email
+        return user
+
     class Meta:
         model = get_user_model()
         fields = [
@@ -73,6 +124,14 @@ class UserSerializer(serializers.ModelSerializer):
             "email_verified",
             "flags",
             "id",
+            "organizations",
+            "revenue_programs",
+            "role_type",
+        ]
+        read_only_fields = [
+            "id",
+            "email_verified",
+            "flags",
             "organizations",
             "revenue_programs",
             "role_type",

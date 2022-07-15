@@ -14,12 +14,13 @@ from rest_framework import mixins, status
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.exceptions import APIException
 from rest_framework.generics import GenericAPIView
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.response import Response
 
 from apps.api.permissions import HasDeletePrivilegesViaRole, HasRoleAssignment, is_a_contributor
 from apps.public.permissions import IsActiveSuperUser
-from apps.users.models import UnexpectedRoleType
+from apps.users.models import UnexpectedRoleType, User
+from apps.users.permissions import UserOwnsUser
 from apps.users.serializers import UserSerializer
 
 
@@ -64,8 +65,85 @@ class CustomPasswordResetCompleteView(PasswordResetCompleteView):
     template_name = "orgadmin_password_reset_complete.html"
 
 
-class UserViewset(mixins.CreateModelMixin, mixins.RetrieveModelMixin, mixins.UpdateModelMixin, GenericAPIView):
-    pass
+class UserViewset(
+    mixins.CreateModelMixin, mixins.RetrieveModelMixin, mixins.ListModelMixin, mixins.UpdateModelMixin, GenericAPIView
+):
+    """"""
+
+    model = User
+    queryset = User.objects.all()
+    serializer_class = UserSerializer
+
+    def get_permissions(self):
+        # NB about these being guaranteed
+        #  https://www.django-rest-framework.org/api-guide/viewsets/#introspecting-viewset-actions
+        if self.action == "create":
+            permission_classes = [
+                AllowAny,
+            ]
+        if self.action == "list":
+            permission_classes = [
+                IsAuthenticated,
+            ]
+        if self.action in ("update", "partial_update"):
+            permission_classes = [
+                UserOwnsUser,
+            ]
+        return [permission() for permission in permission_classes]
+
+
+    def validate_password(self, data)
+        """nb on name so don't override"""
+        class TempUser:
+            def __init__(self, email):
+                self.email = email
+
+        temp_user = TempUser(email=data["email"])
+        try:
+            validate_password(data["password"], temp_user)
+        except ValidationError as exc:
+            raise serializers.ValidationError(detail=str(exc))
+
+
+    def validate_bad_actor(self, data):
+        try:
+            response = make_bad_actor_request(data)
+        except BadActorAPIError:
+            logger.warning()
+            return
+        if response.json()["overall_judgment"] >= settings.BAD_ACTOR_FAIL_ABOVE_FOR_ORG_USERS:
+            logger.warning()
+            raise ValidationError("TBD MESSAGE")
+
+
+    def perform_create(self, serializer):
+        """
+        """
+        self.validate_password(serializer)
+        self.validate_bad_actor(serializer)
+        user = serializer.save()
+        self.send_verification_email(user)
+        return user
+
+    def create(self, request, *args, **kwargs):
+        """NB on what we need to do cause overriding
+
+        https://github.com/encode/django-rest-framework/blob/a251b9379200420062cad9e3c68fde7c0e6b3fdc/rest_framework/mixins.py#L18
+        """
+
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        self.perform_create(serializer)
+        headers = {
+            self.get_success_headers(serializer.data) |
+            dict() # jwt stuff
+        }
+        cookies = dict()
+        return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
+
+    def list(self, request, *args, **kwargs):
+        """note here"""
+        return Response(self.get_serializer(request.user))
 
 
 @api_view(["GET"])

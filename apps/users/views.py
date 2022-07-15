@@ -10,7 +10,7 @@ from django.contrib.auth.views import (
 )
 from django.urls import reverse_lazy
 
-from rest_framework import status
+from rest_framework import mixins, status
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.exceptions import APIException
 from rest_framework.generics import GenericAPIView
@@ -62,6 +62,10 @@ class CustomPasswordResetConfirm(PasswordResetConfirmView):
 
 class CustomPasswordResetCompleteView(PasswordResetCompleteView):
     template_name = "orgadmin_password_reset_complete.html"
+
+
+class UserViewset(mixins.CreateModelMixin, mixins.RetrieveModelMixin, mixins.UpdateModelMixin, GenericAPIView):
+    pass
 
 
 @api_view(["GET"])

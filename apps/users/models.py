@@ -20,8 +20,9 @@ class User(AbstractBaseUser, PermissionsMixin, IndexedTimeStampedModel):
             "Designates whether this user should be treated as active. Unselect this instead of deleting accounts."
         ),
     )
-
     organizations = models.ManyToManyField("organizations.Organization", through="users.OrganizationUser")
+    accepted_terms_of_service = models.BooleanField(default=False)
+    email_verified = models.BooleanField(default=False)
 
     objects = UserManager()
 

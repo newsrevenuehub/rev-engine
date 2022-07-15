@@ -123,7 +123,9 @@ if SENTRY_ENABLE_BACKEND and SENTRY_DSN_BACKEND:
         integrations=[sentry_logging, DjangoIntegration()],
         environment=ENVIRONMENT,
     )
+    # below loggers are ignored because they were causing noise in Sentry
     ignore_logger("django.security.DisallowedHost")
+    ignore_logger("sorl.thumbnail.admin.current")
 
 # BadActor API
 BAD_ACTOR_API_URL = "https://bad-actor.fundjournalism.org/v1/bad_actor/"

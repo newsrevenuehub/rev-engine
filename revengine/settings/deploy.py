@@ -124,7 +124,6 @@ if SENTRY_ENABLE_BACKEND and SENTRY_DSN_BACKEND:
         environment=ENVIRONMENT,
     )
     # below loggers are ignored because they were causing noise in Sentry
-    ignore_logger("django.security.DisallowedHost")
     ignore_logger("sorl.thumbnail.admin.current")
 
 # BadActor API

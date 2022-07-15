@@ -19,6 +19,7 @@ from apps.api.serializers import (
 )
 from apps.api.throttling import ContributorRateThrottle
 from apps.api.tokens import ContributorRefreshToken
+from apps.contributions.models import Contributor
 from apps.contributions.serializers import ContributorSerializer
 from apps.emails.tasks import send_templated_email
 
@@ -147,6 +148,9 @@ class RequestContributorTokenEmailView(APIView):
 
         try:
             serializer.is_valid(raise_exception=True)
+            contributor, _ = Contributor.objects.get_or_create(email=request.data["email"])
+            serializer.update_short_lived_token(contributor)
+
             data = serializer.data
             email = data["email"]
             token = data["access"]

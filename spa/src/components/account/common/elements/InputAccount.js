@@ -1,6 +1,5 @@
 import { forwardRef } from 'react';
 import * as S from './InputAccount.styled';
-import PropTypes from 'prop-types';
 import BaseField from 'elements/inputs/BaseField';
 
 const InputAccount = forwardRef(({ value, onChange, type, name, ...props }, ref) => (

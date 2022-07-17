@@ -96,7 +96,6 @@ export const NavItem = styled(NavLink)`
     position: relative;
     filter: brightness(0) saturate(100%) invert(100%) sepia(3%) saturate(520%) hue-rotate(264deg) brightness(115%)
       contrast(100%);
-    transform: rotate(0deg);
   }
 
   &:hover {

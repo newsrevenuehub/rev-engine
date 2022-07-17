@@ -1,7 +1,7 @@
 export const LOGIN = '/login';
 export const DASHBOARD_SLUG = '/dashboard';
 export const DONATIONS_SLUG = DASHBOARD_SLUG + '/contributions';
-export const CONTENT_SLUG = DASHBOARD_SLUG + '/pages';
+export const CONTENT_SLUG = DASHBOARD_SLUG + '/content';
 export const CUSTOMIZE_SLUG = DASHBOARD_SLUG + '/customize';
 export const CONNECT_SLUG = DASHBOARD_SLUG + '/connect';
 
@@ -14,3 +14,10 @@ export const THANK_YOU_SLUG = '/thank-you';
 export const CONTRIBUTOR_ENTRY = '/contributor';
 export const CONTRIBUTOR_VERIFY = '/contributor-verify';
 export const CONTRIBUTOR_DASHBOARD = CONTRIBUTOR_ENTRY + '/contributions';
+
+// ACCOUNT
+export const SIGN_IN = '/sign-in';
+export const SIGN_UP = '/sign-up';
+export const FORGOT_PASSWORD = '/forgot-password';
+export const RESET_PASSWORD = '/password-reset';
+export const VERIFY_EMAIL_SUCCESS = '/verify-email-success';

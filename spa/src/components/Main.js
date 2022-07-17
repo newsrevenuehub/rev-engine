@@ -7,13 +7,13 @@ import Dashboard from 'components/dashboard/Dashboard';
 import useRequest from 'hooks/useRequest';
 import { useConfigureAnalytics } from './analytics';
 
-const FeatureFlagsProviderContext = createContext(null);
+const UserProviderContext = createContext(null);
 
 function Main() {
   useConfigureAnalytics();
 
   const [loadingFlags, setLoadingFlags] = useState(true);
-  const [featureFlags, setFeatureFlags] = useState();
+  const [user, setUser] = useState();
 
   const requestUser = useRequest();
 
@@ -26,10 +26,11 @@ function Main() {
       },
       {
         onSuccess: ({ data }) => {
-          setFeatureFlags(data.flags);
+          setUser(data);
           setLoadingFlags(false);
         },
         onFailure: (e) => {
+          console.log('an errrooor');
           throw new Error('Something unexpected happened retrieving flags');
         }
       }
@@ -37,7 +38,7 @@ function Main() {
   }, [requestUser]);
 
   return (
-    <FeatureFlagsProviderContext.Provider value={{ featureFlags }}>
+    <UserProviderContext.Provider value={{ user }}>
       {!loadingFlags && (
         <S.Main>
           <S.MainContent>
@@ -45,10 +46,10 @@ function Main() {
           </S.MainContent>
         </S.Main>
       )}
-    </FeatureFlagsProviderContext.Provider>
+    </UserProviderContext.Provider>
   );
 }
 
-export const useFeatureFlagsProviderContext = () => useContext(FeatureFlagsProviderContext);
+export const useUserProviderContext = () => useContext(UserProviderContext);
 
 export default Main;

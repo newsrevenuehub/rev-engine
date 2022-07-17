@@ -2,7 +2,6 @@ import { useState } from 'react';
 
 import * as S from './SignUp.styled';
 import yellowFooterImage from 'assets/images/account/yellow-bottombar.png';
-import purpleFooterImage from 'assets/images/account/purple-bottombar.png';
 
 import Logobar from 'components/account/common/logobar/Logobar';
 import Leftbar from 'components/account/common/leftbar/Leftbar';
@@ -77,6 +76,8 @@ function SignUp() {
     }
   };
 
+  const submitDisabled = email === '' || password === '' || !checked || loading;
+
   return (
     <S.SignUp>
       <S.Outer>
@@ -113,8 +114,8 @@ function SignUp() {
             <br />
             <S.Submit
               type={'neutral'}
-              disabled={email === '' || password === '' || !checked || loading}
-              onClick={loading ? () => {} : onSubmitClick}
+              disabled={submitDisabled}
+              onClick={loading || submitDisabled ? () => {} : onSubmitClick}
             >
               Create Account
             </S.Submit>

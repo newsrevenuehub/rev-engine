@@ -76,7 +76,7 @@ def stripe_payment(request):
             logger.warning("stripe_payment view recieved unexpetected interval value: [%s]", interval)
             raise PaymentBadParamsError()
 
-        if stripe_payment.get_organization().uses_email_templates:
+        if stripe_payment.get_organization().send_receipt_email_via_nre:
             contributor_email = stripe_payment.validated_data["email"]
             donation_amount_display = f"${(stripe_payment.validated_data['amount'] / 100):.2f}"
             contribution_date = timezone.now()

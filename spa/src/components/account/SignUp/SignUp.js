@@ -13,6 +13,7 @@ import InputWrapped from 'components/account/common/elements/InputWrapped';
 import Checkbox from '@material-ui/core/Checkbox';
 
 import { SIGN_IN } from 'routes';
+import Spinner from 'elements/Spinner';
 
 function Header() {
   return (
@@ -36,11 +37,11 @@ function AcceptTerms({ checked, handleTOSChange }) {
         }}
       />
       &nbsp;I agree to News Revenue Hub’s&nbsp;
-      <a href="www.google.com" target="_blank">
+      <a href="https://fundjournalism.org/faq/terms-of-service/" target="_blank">
         Terms & Conditions
       </a>
       &nbsp;and&nbsp;
-      <a href="www.google.com" target="_blank">
+      <a href="https://fundjournalism.org/faq/privacy-policy/   " target="_blank">
         Privacy Policy
       </a>
       .
@@ -52,16 +53,23 @@ function SignUp({ onSuccess, message }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [checked, setChecked] = useState(false);
+  const [loading, setLoading] = useState(false);
 
   const handleTOSChange = (event) => {
     setChecked(event.target.checked);
+  };
+
+  const onSubmitClick = (event) => {
+    setLoading(true);
+    //alert('create account');
+    //setLoading(false);
   };
 
   return (
     <S.SignUp>
       <S.Outer>
         <S.Left>
-          <Leftbar page={'sign-upo'} />
+          <Leftbar page={'sign-up'} />
         </S.Left>
         <S.Right>
           <S.FormElements>
@@ -72,6 +80,7 @@ function SignUp({ onSuccess, message }) {
               onChange={(e) => setEmail(e.target.value)}
               errors={''}
               label="Email"
+              disabled={loading}
               type={Input.types.EMAIL}
               testid="signup-email"
               errorMessage={''}
@@ -80,6 +89,7 @@ function SignUp({ onSuccess, message }) {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               errors={''}
+              disabled={loading}
               label="Password"
               type={Input.types.PASSWORD}
               testid="signup-password"
@@ -89,7 +99,14 @@ function SignUp({ onSuccess, message }) {
 
             <AcceptTerms checked={checked} handleTOSChange={handleTOSChange} />
             <br />
-            <S.Submit>Create Account</S.Submit>
+            <S.Submit
+              disabled={false}
+              type={'neutral'}
+              disabled={email === '' || password === '' || !checked || loading}
+              onClick={loading ? () => {} : onSubmitClick}
+            >
+              Create Account
+            </S.Submit>
 
             <S.Disclaimer>
               By creating an account you agree to adhere to News Revenue Hub’s Code of Ethics.
@@ -102,7 +119,7 @@ function SignUp({ onSuccess, message }) {
           <Logobar />
         </S.Right>
         <S.BottomBar>
-          <S.BottomBarImg src={purpleFooterImage} />
+          <S.BottomBarImg src={yellowFooterImage} />
         </S.BottomBar>
       </S.Outer>
     </S.SignUp>

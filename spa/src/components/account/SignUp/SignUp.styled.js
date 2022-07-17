@@ -1,4 +1,5 @@
 import styled from 'styled-components';
+import { motion } from 'framer-motion';
 
 export const SignUp = styled.div`
   flex: 1;
@@ -20,8 +21,9 @@ export const Outer = styled.div`
 `;
 
 export const Left = styled.div`
-  //background-color:#302436;
-  background: linear-gradient(39.42deg, #f5ff75 47.23%, #f1f3da 105.55%);
+  background-color: #302436;
+
+  //background: linear-gradient(39.42deg, #f5ff75 47.23%, #f1f3da 105.55%);
   flex: 35%;
   margin: 0px;
   display: flex;
@@ -75,11 +77,10 @@ export const Heading = styled.div`
 
   @media (${(props) => props.theme.breakpoints.phoneOnly}) {
     font-size: 24px;
-    margin-top: 72px;
   }
 
   @media (${(props) => props.theme.breakpoints.tabletLandscapeDown}) {
-    margin-top: 84px;
+    margin-top: 72px;
   }
 `;
 
@@ -109,6 +110,11 @@ export const AcceptTerms = styled.div`
     color: #0052CC;
     text-decoration: underline;
   }
+
+   @media (${(props) => props.theme.breakpoints.phoneOnly}) {
+    font-size: 11px;
+  }
+
 `;
 
 export const Disclaimer = styled.div`
@@ -134,13 +140,18 @@ export const SignInToggle = styled.div`
   }
 `;
 
-export const Submit = styled.div`
+export const Submit = styled(motion.button)`
   cursor: pointer;
-  background: #eff4a7;
-  border: 0.5px solid #e6ee84;
-  border-radius: 6px;
   width: 100%;
   text-transform: uppercase;
   text-align: center;
   padding: 9px 0px;
+  background: #f5ff75;
+  border: 0.5px solid #e6ee84;
+  box-shadow: 0px 0.3px 0.5px rgba(0, 0, 0, 0.1), 0px 2px 4px rgba(0, 0, 0, 0.2);
+  border-radius: 6px;
+
+  &:active {
+    transform: translate(1px, 1px);
+  }
 `;

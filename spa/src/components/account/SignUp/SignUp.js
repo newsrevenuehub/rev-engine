@@ -15,6 +15,8 @@ import Checkbox from '@material-ui/core/Checkbox';
 import { SIGN_IN } from 'routes';
 import Spinner from 'elements/Spinner';
 
+import validateEmail from 'utilities/validateEmail';
+
 function Header() {
   return (
     <>
@@ -54,6 +56,8 @@ function SignUp({ onSuccess, message }) {
   const [password, setPassword] = useState('');
   const [checked, setChecked] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [emailError, setEmailError] = useState('');
+  const [passwordError, setPasswordError] = useState('');
 
   const handleTOSChange = (event) => {
     setChecked(event.target.checked);
@@ -61,8 +65,17 @@ function SignUp({ onSuccess, message }) {
 
   const onSubmitClick = (event) => {
     setLoading(true);
-    //alert('create account');
-    //setLoading(false);
+    setEmailError('');
+    setPasswordError('');
+    if (!validateEmail(email)) {
+      setEmailError('Entered email is invalid');
+    }
+    if (password.length < 8) {
+      setPasswordError('Password has to be more than 8 chars long');
+    }
+
+    if (passwordError === '' && emailError === '') {
+    }
   };
 
   return (
@@ -83,7 +96,7 @@ function SignUp({ onSuccess, message }) {
               disabled={loading}
               type={Input.types.EMAIL}
               testid="signup-email"
-              errorMessage={''}
+              errorMessage={emailError}
             />
             <InputWrapped
               value={password}
@@ -94,7 +107,7 @@ function SignUp({ onSuccess, message }) {
               type={Input.types.PASSWORD}
               testid="signup-password"
               instructions="Password must be 8 characters long and alphanumerical."
-              errorMessage={''}
+              errorMessage={passwordError}
             />
 
             <AcceptTerms checked={checked} handleTOSChange={handleTOSChange} />

@@ -6,7 +6,7 @@ import { DONATIONS_SLUG, CUSTOMIZE_SLUG, CONTENT_SLUG } from 'routes';
 
 jest.mock('components/Main', () => ({
   __esModule: true,
-  useFeatureFlagsProviderContext: () => ({ featureFlags: [] })
+  useUserProviderContext: () => ({ user: {flags: [] }})
 }));
 
 jest.mock('utilities/flagIsActiveForUser', () => ({

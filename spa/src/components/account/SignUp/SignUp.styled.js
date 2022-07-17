@@ -105,6 +105,7 @@ export const AcceptTerms = styled.div`
   font-size: 12px;
   line-height: 15px;
   color: #323232;
+  margin-top:6px;
 
   a, a:hover {
     color: #0052CC;

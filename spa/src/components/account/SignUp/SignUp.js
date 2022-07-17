@@ -13,7 +13,6 @@ import InputWrapped from 'components/account/common/elements/InputWrapped';
 import Checkbox from '@material-ui/core/Checkbox';
 
 import { SIGN_IN } from 'routes';
-import Spinner from 'elements/Spinner';
 
 import validateEmail from 'utilities/validateEmail';
 
@@ -39,11 +38,11 @@ function AcceptTerms({ checked, handleTOSChange }) {
         }}
       />
       &nbsp;I agree to News Revenue Hub’s&nbsp;
-      <a href="https://fundjournalism.org/faq/terms-of-service/" target="_blank">
+      <a href="https://fundjournalism.org/faq/terms-of-service/" rel="noreferrer" target="_blank">
         Terms & Conditions
       </a>
       &nbsp;and&nbsp;
-      <a href="https://fundjournalism.org/faq/privacy-policy/   " target="_blank">
+      <a href="https://fundjournalism.org/faq/privacy-policy/" rel="noreferrer" target="_blank">
         Privacy Policy
       </a>
       .
@@ -51,7 +50,7 @@ function AcceptTerms({ checked, handleTOSChange }) {
   );
 }
 
-function SignUp({ onSuccess, message }) {
+function SignUp() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [checked, setChecked] = useState(false);
@@ -113,7 +112,6 @@ function SignUp({ onSuccess, message }) {
             <AcceptTerms checked={checked} handleTOSChange={handleTOSChange} />
             <br />
             <S.Submit
-              disabled={false}
               type={'neutral'}
               disabled={email === '' || password === '' || !checked || loading}
               onClick={loading ? () => {} : onSubmitClick}

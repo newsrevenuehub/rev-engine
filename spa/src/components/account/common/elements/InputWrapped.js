@@ -10,7 +10,6 @@ import visibilityOn from 'assets/images/account/visibility_on.png';
 import visibilityOff from 'assets/images/account/visibility_off.png';
 
 function InputWrapped({ value, onChange, type, label, disabled, instructions, errorMessage }) {
-  const [updated, setUpdated] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
   const togglePasswordDisplay = () => {

@@ -22,6 +22,11 @@ import LivePage404 from './common/LivePage404';
 // Split bundles
 const Login = lazy(() => componentLoader(() => import('components/authentication/Login')));
 const Main = lazy(() => componentLoader(() => import('components/Main')));
+const SignIn = lazy(() => componentLoader(() => import('components/account/SignIn/SignIn')));
+const SignUp = lazy(() => componentLoader(() => import('components/account/SignUp/SignUp')));
+const Verify = lazy(() => componentLoader(() => import('components/account/Verify/Verify')));
+const ForgotPassword = lazy(() => componentLoader(() => import('components/account/ForgotPassword/ForgotPassword')));
+const ResetPassword = lazy(() => componentLoader(() => import('components/account/ResetPassword/ResetPassword')));
 
 function DashboardRouter() {
   const isContributorApp = isContributorAppPath();
@@ -33,8 +38,13 @@ function DashboardRouter() {
       <ChunkErrorBoundary>
         <React.Suspense fallback={<GlobalLoading />}>
           <Switch>
-            {/* Login URL */}
+            {/* Account URLs */}
             <Route exact path={ROUTES.LOGIN} render={() => <TrackPageView component={Login} />} />
+            <Route exact path={ROUTES.SIGN_IN} render={() => <TrackPageView component={SignIn} />} />
+            <Route exact path={ROUTES.SIGN_UP} render={() => <TrackPageView component={SignUp} />} />
+            <Route exact path={ROUTES.VERIFY_EMAIL_SUCCESS} render={() => <TrackPageView component={Verify} />} />
+            <Route exact path={ROUTES.RESET_PASSWORD} render={() => <TrackPageView component={ResetPassword} />} />
+            <Route exact path={ROUTES.FORGOT_PASSWORD} render={() => <TrackPageView component={ForgotPassword} />} />
 
             {/* Organization Dashboard */}
             <ProtectedRoute path={ROUTES.DASHBOARD_SLUG} render={() => <TrackPageView component={Main} />} />

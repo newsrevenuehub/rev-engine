@@ -6,7 +6,7 @@ import * as S from './Dashboard.styled';
 import { DONATIONS_SLUG, CONTENT_SLUG, EDITOR_ROUTE_PAGE, DASHBOARD_SLUG, CUSTOMIZE_SLUG } from 'routes';
 
 // Children
-import { useFeatureFlagsProviderContext } from 'components/Main';
+import { useUserProviderContext } from 'components/Main';
 import LivePage404 from 'components/common/LivePage404';
 import DashboardSidebar from 'components/dashboard/sidebar/DashboardSidebar';
 import DashboardTopbar from 'components/dashboard/topbar/DashboardTopbar';
@@ -24,7 +24,10 @@ import {
 import flagIsActiveForUser from 'utilities/flagIsActiveForUser';
 
 function Dashboard() {
-  const { featureFlags } = useFeatureFlagsProviderContext();
+  const { user } = useUserProviderContext();
+  //console.log(user.flags);
+
+  const featureFlags = user?.flags;
 
   const hasContributionsSectionAccess = flagIsActiveForUser(CONTRIBUTIONS_SECTION_ACCESS_FLAG_NAME, featureFlags);
 

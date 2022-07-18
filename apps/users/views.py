@@ -2,6 +2,7 @@ import logging
 
 from django.conf import settings
 from django.contrib.auth import get_user_model
+from django.contrib.auth.password_validation import validate_password
 from django.contrib.auth.views import (
     PasswordResetCompleteView,
     PasswordResetConfirmView,
@@ -11,13 +12,15 @@ from django.contrib.auth.views import (
 from django.urls import reverse_lazy
 
 from rest_framework import mixins, status
-from rest_framework.decorators import api_view, permission_classes
 from rest_framework.exceptions import APIException
 from rest_framework.generics import GenericAPIView
-from rest_framework.permissions import IsAuthenticated, AllowAny
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
+from rest_framework.serializers import ValidationError
+from rest_framework.viewsets import GenericViewSet
 
 from apps.api.permissions import HasDeletePrivilegesViaRole, HasRoleAssignment, is_a_contributor
+from apps.contributions.bad_actor import BadActorAPIError, make_bad_actor_request
 from apps.public.permissions import IsActiveSuperUser
 from apps.users.models import UnexpectedRoleType, User
 from apps.users.permissions import UserOwnsUser
@@ -66,7 +69,7 @@ class CustomPasswordResetCompleteView(PasswordResetCompleteView):
 
 
 class UserViewset(
-    mixins.CreateModelMixin, mixins.RetrieveModelMixin, mixins.ListModelMixin, mixins.UpdateModelMixin, GenericAPIView
+    mixins.CreateModelMixin, mixins.RetrieveModelMixin, mixins.ListModelMixin, mixins.UpdateModelMixin, GenericViewSet
 ):
     """"""
 
@@ -91,9 +94,7 @@ class UserViewset(
             ]
         return [permission() for permission in permission_classes]
 
-
-    def validate_password(self, data)
-        """nb on name so don't override"""
+    def validate_password(self, data):
         class TempUser:
             def __init__(self, email):
                 self.email = email
@@ -102,23 +103,20 @@ class UserViewset(
         try:
             validate_password(data["password"], temp_user)
         except ValidationError as exc:
-            raise serializers.ValidationError(detail=str(exc))
-
+            raise ValidationError(detail=str(exc))
 
     def validate_bad_actor(self, data):
         try:
             response = make_bad_actor_request(data)
         except BadActorAPIError:
-            logger.warning()
+            logger.warning("Something went wrong with BadActorAPI", exc_info=True)
             return
         if response.json()["overall_judgment"] >= settings.BAD_ACTOR_FAIL_ABOVE_FOR_ORG_USERS:
-            logger.warning()
+            logger.info("Someone determined to be a bad actor tried to create a user: [%]", data)
             raise ValidationError("TBD MESSAGE")
 
-
     def perform_create(self, serializer):
-        """
-        """
+        """ """
         self.validate_password(serializer)
         self.validate_bad_actor(serializer)
         user = serializer.save()
@@ -134,25 +132,13 @@ class UserViewset(
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         self.perform_create(serializer)
-        headers = {
-            self.get_success_headers(serializer.data) |
-            dict() # jwt stuff
-        }
-        cookies = dict()
+        headers = {self.get_success_headers(serializer.data) | dict()}  # jwt stuff
+        # cookies = dict()
         return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
 
     def list(self, request, *args, **kwargs):
         """note here"""
-        return Response(self.get_serializer(request.user))
-
-
-@api_view(["GET"])
-@permission_classes([IsAuthenticated])
-def retrieve_user(request):
-    if request.method == "GET":
-        user = user_model.objects.get(pk=request.user.pk)
-        user_serializer = UserSerializer(user)
-        return Response(data=user_serializer.data, status=status.HTTP_200_OK)
+        return Response(self.get_serializer(request.user).data)
 
 
 class FilterQuerySetByUserMixin(GenericAPIView):

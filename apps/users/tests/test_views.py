@@ -92,7 +92,7 @@ class TestCustomPasswordResetConfirm(TestCase):
 
 class RetrieveUserTest(APITestCase):
     def setUp(self):
-        self.url = reverse("user-retrieve")
+        self.url = reverse("user-list")
 
     def test_unauthenticated_user_denied(self):
         response = self.client.get(self.url)

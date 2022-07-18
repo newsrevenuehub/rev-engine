@@ -192,7 +192,7 @@ function Login({ onSuccess, message }) {
               Sign In
             </S.Submit>
             <S.SignInLink>
-              Not a member?&nbsp;<a href={SIGN_UP}>Create an account.</a>
+              Not a member?&nbsp;<a href={SIGN_UP}>Create an account</a>
             </S.SignInLink>
           </S.FormElements>
 

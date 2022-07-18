@@ -83,8 +83,7 @@ function StripePaymentForm({ loading, setLoading, offerPayFees }) {
   const stripe = useStripe();
   const elements = useElements();
 
-  const amountIsValid = !isNaN(amount);
-
+  const amountIsValid = (amount) => amount && !isNaN(amount);
   /**
    * Listen for changes in the CardElement and display any errors as the customer types their card details
    */
@@ -246,7 +245,7 @@ function StripePaymentForm({ loading, setLoading, offerPayFees }) {
 
     let disabledWallets = getDisabledWallets(page);
 
-    if (stripe && amountIsValid && !paymentRequest) {
+    if (stripe && amountIsValid(amount) && !paymentRequest) {
       const pr = stripe.paymentRequest({
         country: page?.organization_country,
         currency: page?.currency?.code?.toLowerCase(),
@@ -271,7 +270,7 @@ function StripePaymentForm({ loading, setLoading, offerPayFees }) {
    * that is not passed in are setState calls which are already memoized.
    */
   useEffect(() => {
-    if (paymentRequest) {
+    if (paymentRequest && amountIsValid(amount)) {
       function handlePaymentMethodEvent(paymentMethodEvent) {
         handlePaymentRequestSubmit({ amount, payFee, ...params }, paymentMethodEvent);
       }
@@ -348,7 +347,7 @@ function StripePaymentForm({ loading, setLoading, offerPayFees }) {
 
           <S.PaymentSubmitButton
             onClick={handleCardSubmit}
-            disabled={!cardReady || loading || disabled || succeeded || !amountIsValid}
+            disabled={!cardReady || loading || disabled || succeeded || !amountIsValid(amount)}
             loading={loading}
             data-testid="donation-submit"
           >

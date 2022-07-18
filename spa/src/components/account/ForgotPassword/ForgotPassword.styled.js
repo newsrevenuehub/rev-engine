@@ -62,6 +62,7 @@ export const BottomBar = styled.div`
 
 export const BottomBarImg = styled.img`
   width: 100%;
+  margin-bottom: -8px;
   @media (${(props) => props.theme.breakpoints.tabletLandscapeDown}) {
     display: none;
   }
@@ -94,34 +95,6 @@ export const Subheading = styled.div`
     font-size: 16px;
     margin: 5px 0px 20px;
   }
-`;
-
-export const AcceptTerms = styled.div`
-  display:flex;
-  font-size:
-  font-weight: 400;
-  font-size: 12px;
-  line-height: 15px;
-  color: #323232;
-  margin-top:6px;
-
-  a, a:hover {
-    color: #0052CC;
-    text-decoration: underline;
-  }
-
-   @media (${(props) => props.theme.breakpoints.phoneOnly}) {
-    font-size: 11px;
-  }
-
-`;
-
-export const Disclaimer = styled.div`
-  font-weight: 400;
-  font-size: 11px;
-  line-height: 13px;
-  color: #3c3c3c;
-  margin: 15px 0px 12px;
 `;
 
 export const SignUpToggle = styled.div`

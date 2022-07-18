@@ -13,10 +13,6 @@ import { CONTENT_SLUG } from 'routes';
 import fetchReducer, { initialState, FETCH_START, FETCH_SUCCESS, FETCH_FAILURE } from 'state/fetch-reducer';
 
 import { handleLoginSuccess } from 'components/authentication/util';
-import { PASSWORD_RESET_URL } from 'settings';
-
-// Elements
-import FormErrors from 'elements/inputs/FormErrors';
 
 // Analytics
 import { useConfigureAnalytics } from '../../analytics';
@@ -31,83 +27,7 @@ import InputWrapped from 'components/account/common/elements/InputWrapped';
 
 import { SIGN_UP, FORGOT_PASSWORD } from 'routes';
 
-import validateEmail from 'utilities/validateEmail';
-
-function Login2({ onSuccess, message }) {
-  const history = useHistory();
-
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [{ loading, errors }, dispatch] = useReducer(fetchReducer, initialState);
-
-  useConfigureAnalytics();
-
-  const handlePostLogin = () => {
-    if (onSuccess) onSuccess();
-    else history.push(CONTENT_SLUG);
-  };
-
-  const handleForgotPassword = (e) => {
-    e.preventDefault();
-    window.location = PASSWORD_RESET_URL;
-  };
-
-  const handleLogin = async (e) => {
-    e.preventDefault();
-    dispatch({ type: FETCH_START });
-    try {
-      const { data, status } = await axios.post(TOKEN, { email, password });
-      if (status === 200 && data.detail === 'success') {
-        handleLoginSuccess(data);
-        handlePostLogin();
-      }
-      dispatch({ type: FETCH_SUCCESS });
-    } catch (e) {
-      dispatch({ type: FETCH_FAILURE, payload: e?.response?.data });
-    }
-  };
-
-  return (
-    <S.Login>
-      <S.LoginCard>
-        {message && <S.Message>{message}</S.Message>}
-        <S.LoginForm>
-          <S.InputWrapper>
-            <Input
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              errors={errors?.email}
-              disabled={loading}
-              label="email"
-              type={Input.types.EMAIL}
-              testid="login-email"
-            />
-          </S.InputWrapper>
-
-          <S.InputWrapper>
-            <Input
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              errors={errors?.password}
-              disabled={loading}
-              label="password"
-              type={Input.types.PASSWORD}
-              testid="login-password"
-            />
-          </S.InputWrapper>
-
-          <FormErrors errors={errors?.detail} />
-
-          <S.LoginButtons>
-            <S.LoginButton onClick={handleLogin} disabled={loading} type="submit" data-testid="login-button">
-              Sign in.
-            </S.LoginButton>
-          </S.LoginButtons>
-        </S.LoginForm>
-      </S.LoginCard>
-    </S.Login>
-  );
-}
+//import validateEmail from 'utilities/validateEmail';
 
 function Login({ onSuccess, message }) {
   const history = useHistory();
@@ -148,6 +68,7 @@ function Login({ onSuccess, message }) {
   };
 
   const submitDisabled = email === '' || password === '' || loading;
+  const formSubmitErrors = errors?.detail;
 
   return (
     <S.SignIn>
@@ -182,8 +103,7 @@ function Login({ onSuccess, message }) {
               testid="signup-password"
               instructions="Password must be 8 characters long and alphanumerical."
             />
-            {errors?.detail} <br />
-            <br />
+
             <S.Submit
               type={'neutral'}
               disabled={submitDisabled}
@@ -191,6 +111,15 @@ function Login({ onSuccess, message }) {
             >
               Sign In
             </S.Submit>
+
+            <br />
+            <br />
+            {formSubmitErrors && formSubmitErrors !== '' ? (
+              <S.ErrorMessage>{formSubmitErrors} </S.ErrorMessage>
+            ) : (
+              <S.ErrorSpacer />
+            )}
+
             <S.SignInLink>
               Not a member?&nbsp;<a href={SIGN_UP}>Create an account</a>
             </S.SignInLink>

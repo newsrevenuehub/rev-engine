@@ -64,6 +64,7 @@ export const BottomBar = styled.div`
 
 export const BottomBarImg = styled.img`
   width: 100%;
+  margin-bottom: -8px;
   @media (${(props) => props.theme.breakpoints.tabletLandscapeDown}) {
     display: none;
   }

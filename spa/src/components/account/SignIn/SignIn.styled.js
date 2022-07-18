@@ -112,6 +112,7 @@ export const BottomBar = styled.div`
 
 export const BottomBarImg = styled.img`
   width: 100%;
+  margin-bottom: -8px;
   @media (${(props) => props.theme.breakpoints.tabletLandscapeDown}) {
     display: none;
   }
@@ -219,4 +220,19 @@ export const Submit = styled(motion.button)`
   &:active {
     transform: translate(1px, 1px);
   }
+`;
+
+export const ErrorMessage = styled.div`
+  background: rgba(200, 32, 63, 0.16);
+  border-radius: 2px;
+  font-weight: 400;
+  font-size: 11px;
+  line-height: 13px;
+  color: #3c3c3c;
+  padding: 4px 9px;
+`;
+
+export const ErrorSpacer = styled.div`
+  height: 17px;
+  padding: 4px 9px;
 `;

@@ -5,13 +5,14 @@ import yellowFooterImage from 'assets/images/account/yellow-bottombar.png';
 
 import Logobar from 'components/account/common/logobar/Logobar';
 import Leftbar from 'components/account/common/leftbar/Leftbar';
+import { useHistory } from 'react-router-dom';
 
 import Input from 'elements/inputs/Input';
 import InputWrapped from 'components/account/common/elements/InputWrapped';
 
 import Checkbox from '@material-ui/core/Checkbox';
 
-import { SIGN_IN } from 'routes';
+import { SIGN_IN, VERIFY_EMAIL_SUCCESS } from 'routes';
 
 import validateEmail from 'utilities/validateEmail';
 
@@ -57,6 +58,8 @@ function SignUp() {
   const [emailError, setEmailError] = useState('');
   const [passwordError, setPasswordError] = useState('');
 
+  const history = useHistory();
+
   const handleTOSChange = (event) => {
     setChecked(event.target.checked);
   };
@@ -73,6 +76,10 @@ function SignUp() {
     }
 
     if (passwordError === '' && emailError === '') {
+      history.push({
+        pathname: VERIFY_EMAIL_SUCCESS,
+        state: { email }
+      });
     }
   };
 

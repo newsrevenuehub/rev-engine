@@ -22,6 +22,7 @@ from rest_framework.viewsets import GenericViewSet
 
 from apps.api.permissions import HasDeletePrivilegesViaRole, HasRoleAssignment, is_a_contributor
 from apps.contributions.bad_actor import BadActorAPIError, make_bad_actor_request
+from apps.emails.tasks import send_templated_email
 from apps.public.permissions import IsActiveSuperUser
 from apps.users.models import UnexpectedRoleType, User
 from apps.users.permissions import UserEmailIsVerified, UserOwnsUser
@@ -35,6 +36,8 @@ user_model = get_user_model()
 INVALID_TOKEN = "NoTaVaLiDtOkEn"
 BAD_ACTOR_FAKE_AMOUNT = 0.0
 BAD_ACTOR_CLIENT_FACING_VALIDATION_MESSAGE = "Something went wrong"
+
+EMAIL_VERIFICATION_EMAIL_SUBJECT = "Verify your email address to get started"
 
 
 class CustomPasswordResetView(PasswordResetView):
@@ -142,7 +145,14 @@ class UserViewset(
         return serializer.update(self.get_object(), serializer.validated_data)
 
     def send_verification_email(self, user):
-        pass
+        send_templated_email.delay(
+            user.email,
+            EMAIL_VERIFICATION_EMAIL_SUBJECT,
+            "nrh-org-account-creation-verification-email.txt",
+            "nrh-org-account-creation-verification-email.html",
+            # this is placeholder for now
+            {"verification_url": None},
+        )
 
     def create(self, request, *args, **kwargs):
         """NB on what we need to do cause overriding

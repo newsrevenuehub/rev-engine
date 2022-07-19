@@ -140,6 +140,7 @@ class TestUserViewSet(APITestCase):
         self.assertEqual(get_user_model().objects.count(), user_count + 1)
         self.assertEqual((data := response.json())["email"], self.create_data["email"])
         self.assertIsNotNone((user := get_user_model().objects.filter(id=data["id"]).first()))
+        self.assertFalse(user.is_active)
         self.assertFalse(data["email_verified"])
         self.assertFalse(data["flags"])
         self.assertFalse(data["organizations"])
@@ -238,26 +239,32 @@ class TestUserViewSet(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertEqual(response.json(), [BAD_ACTOR_CLIENT_FACING_VALIDATION_MESSAGE])
 
+    @patch.object(UserViewset, "send_verification_email")
     @patch("apps.users.views.logger.warning")
     @override_settings(BAD_ACTOR_API_KEY=None, BAD_ACTOR_API_URL=None)
-    def test_create_when_bad_actor_api_not_configured(self, mock_logger_warning):
+    def test_create_when_bad_actor_api_not_configured(self, mock_logger_warning, mock_send_verification_email):
         user_count = get_user_model().objects.count()
         response = self.client.post(self.url, data=self.create_data)
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         self.assertEqual(get_user_model().objects.count(), user_count + 1)
         mock_logger_warning.assert_called_once_with("Something went wrong with BadActorAPI", exc_info=True)
+        mock_send_verification_email.assert_called_once()
 
+    @patch.object(UserViewset, "send_verification_email")
     @patch(
         "apps.contributions.bad_actor.requests.post",
         return_value=MockResponseObject(json_data={"message": "Something went wrong"}, status_code=500),
     )
     @patch("apps.users.views.logger.warning")
-    def test_create_when_bad_actor_api_not_2xx_code(self, mock_logger_warning, mock_bad_actor_response):
+    def test_create_when_bad_actor_api_not_2xx_code(
+        self, mock_logger_warning, mock_bad_actor_response, mock_send_verification_email
+    ):
         user_count = get_user_model().objects.count()
         response = self.client.post(self.url, data=self.create_data)
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         self.assertEqual(get_user_model().objects.count(), user_count + 1)
         mock_logger_warning.assert_called_once_with("Something went wrong with BadActorAPI", exc_info=True)
+        mock_send_verification_email.assert_called_once()
 
     def test_create_when_email_already_taken(self):
         get_user_model().objects.create(**self.create_data)
@@ -314,6 +321,3 @@ class TestUserViewSet(APITestCase):
         self.client.force_authenticate(user=my_user)
         response = self.client.delete(reverse("user-detail", args=(my_user.pk,)))
         self.assertEqual(response.status_code, status.HTTP_405_METHOD_NOT_ALLOWED)
-
-    def test_send_verification_email(self):
-        pass

@@ -9,6 +9,7 @@ from django.contrib.auth.views import (
     PasswordResetDoneView,
     PasswordResetView,
 )
+from django.core.exceptions import ValidationError as DjangoValidationError
 from django.urls import reverse_lazy
 
 from rest_framework import mixins, status
@@ -32,6 +33,8 @@ logger = logging.getLogger(__name__)
 user_model = get_user_model()
 
 INVALID_TOKEN = "NoTaVaLiDtOkEn"
+BAD_ACTOR_FAKE_AMOUNT = 0.0
+BAD_ACTOR_CLIENT_FACING_VALIDATION_MESSAGE = "Something went wrong"
 
 
 class CustomPasswordResetView(PasswordResetView):
@@ -95,25 +98,34 @@ class UserViewset(
         return [permission() for permission in permission_classes]
 
     def validate_password(self, data):
-        class TempUser:
-            def __init__(self, email):
-                self.email = email
-
-        temp_user = TempUser(email=data["email"])
+        # we temporarily initialize a user object (without saving) so can use Django's built
+        # in password validation, which requires a user object
+        temp_user = get_user_model()(email=data.validated_data["email"])
         try:
-            validate_password(data["password"], temp_user)
-        except ValidationError as exc:
-            raise ValidationError(detail=str(exc))
+            validate_password(data.validated_data["password"], temp_user)
+        except DjangoValidationError as exc:
+            raise ValidationError(detail={"password": exc.messages})
 
     def validate_bad_actor(self, data):
         try:
-            response = make_bad_actor_request(data)
+            response = make_bad_actor_request(
+                {
+                    "email": data.validated_data["email"],
+                    "referer": self.request.META.get("HTTP_REFERER", ""),
+                    "ip": self.request.META["REMOTE_ADDR"],
+                    "first_name": data.validated_data.get("first_name", ""),
+                    "last_name": data.validated_data.get("last_name", ""),
+                    # Bad actor api requires this field because it was created
+                    # with contributors in mind, not org users, so we supply a dummy value
+                    "amount": BAD_ACTOR_FAKE_AMOUNT,
+                }
+            )
         except BadActorAPIError:
             logger.warning("Something went wrong with BadActorAPI", exc_info=True)
             return
         if response.json()["overall_judgment"] >= settings.BAD_ACTOR_FAIL_ABOVE_FOR_ORG_USERS:
             logger.info("Someone determined to be a bad actor tried to create a user: [%]", data)
-            raise ValidationError("TBD MESSAGE")
+            raise ValidationError(BAD_ACTOR_CLIENT_FACING_VALIDATION_MESSAGE)
 
     def perform_create(self, serializer):
         """ """
@@ -122,6 +134,9 @@ class UserViewset(
         user = serializer.save()
         self.send_verification_email(user)
         return user
+
+    def send_verification_email(self, user):
+        pass
 
     def create(self, request, *args, **kwargs):
         """NB on what we need to do cause overriding
@@ -132,7 +147,8 @@ class UserViewset(
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         self.perform_create(serializer)
-        headers = {self.get_success_headers(serializer.data) | dict()}  # jwt stuff
+        # headers = {self.get_success_headers(serializer.data) | dict()}  # jwt stuff
+        headers = {}
         # cookies = dict()
         return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
 

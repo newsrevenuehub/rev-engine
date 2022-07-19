@@ -24,7 +24,7 @@ from apps.api.permissions import HasDeletePrivilegesViaRole, HasRoleAssignment, 
 from apps.contributions.bad_actor import BadActorAPIError, make_bad_actor_request
 from apps.public.permissions import IsActiveSuperUser
 from apps.users.models import UnexpectedRoleType, User
-from apps.users.permissions import UserOwnsUser
+from apps.users.permissions import UserEmailIsVerified, UserOwnsUser
 from apps.users.serializers import UserSerializer
 
 
@@ -95,9 +95,7 @@ class UserViewset(
                 IsAuthenticated,
             ]
         if self.action == "partial_update":
-            permission_classes = [
-                UserOwnsUser,
-            ]
+            permission_classes = [UserOwnsUser, UserEmailIsVerified]
         return [permission() for permission in permission_classes]
 
     def validate_password(self, email, password):

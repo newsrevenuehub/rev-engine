@@ -13,3 +13,10 @@ class UserOwnsUser(permissions.BasePermission):
     def has_object_permission(self, request, view, obj):
         """ """
         return obj == request.user
+
+
+class UserEmailIsVerified(permissions.BasePermission):
+    message = "You must verify your email address to access this resource"
+
+    def has_permission(self, request, view):
+        return request.user and request.user.email_verified

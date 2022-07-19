@@ -13,6 +13,7 @@ from rest_framework import status
 from rest_framework.test import APITestCase
 
 from apps.organizations.tests.factories import OrganizationFactory
+from apps.users.permissions import UserEmailIsVerified, UserOwnsUser
 from apps.users.serializers import PASSWORD_MAX_LENGTH
 from apps.users.tests.utils import create_test_user
 from apps.users.views import BAD_ACTOR_CLIENT_FACING_VALIDATION_MESSAGE, INVALID_TOKEN, UserViewset
@@ -235,7 +236,7 @@ class TestUserViewSet(APITestCase):
         response = self.client.post(self.url, data=self.create_data)
         mock_bad_actor_request.assert_called_once()
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertEqual(response.json, [BAD_ACTOR_CLIENT_FACING_VALIDATION_MESSAGE])
+        self.assertEqual(response.json(), [BAD_ACTOR_CLIENT_FACING_VALIDATION_MESSAGE])
 
     @patch("apps.users.views.logger.warning")
     @override_settings(BAD_ACTOR_API_KEY=None, BAD_ACTOR_API_URL=None)
@@ -267,7 +268,7 @@ class TestUserViewSet(APITestCase):
         self.assertEqual(get_user_model().objects.count(), user_count)
 
     def test_partial_update_happy_path(self):
-        user = get_user_model()(email=self.create_data["email"])
+        user = get_user_model()(email=self.create_data["email"], email_verified=True)
         user.set_password(self.create_data["password"])
         user.save()
         old_hashed_pw = user.password
@@ -284,15 +285,23 @@ class TestUserViewSet(APITestCase):
         self.assertEqual(response.json()["email"], new_email)
 
     def test_partial_update_when_not_my_user(self):
-        my_user = get_user_model().objects.create(email="my_user@example.com")
+        my_user = get_user_model().objects.create(email="my_user@example.com", email_verified=True)
         another_user = get_user_model().objects.create(email="another_user@example.com")
         self.client.force_authenticate(user=my_user)
         update_email = "updated@example.com"
         response = self.client.patch(reverse("user-detail", args=(another_user.pk,)), data={"email": update_email})
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
-        self.assertEqual(response.json(), {"detail": "You don't have permission to access this instance"})
+        self.assertEqual(response.json(), {"detail": UserOwnsUser.message})
         another_user.refresh_from_db()
         self.assertNotEqual(another_user.email, update_email)
+
+    def test_cannot_partial_update_when_email_not_verified(self):
+        user = get_user_model()(email=self.create_data["email"], email_verified=False)
+        update_data = {"email": fake.email()}
+        self.client.force_authenticate(user=user)
+        response = self.client.patch(reverse("user-detail", args=(user.pk,)), data=update_data)
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertEqual(response.json(), {"detail": UserEmailIsVerified.message})
 
     def test_put_not_implemented(self):
         my_user = get_user_model().objects.create_user(**self.create_data)

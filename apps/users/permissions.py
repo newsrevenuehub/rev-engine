@@ -2,7 +2,7 @@ from rest_framework import permissions
 
 
 class UserOwnsUser(permissions.BasePermission):
-    """ """
+    """Determine if user object for which request is made corresponds to requesting user"""
 
     message = "You don't have permission to access this instance"
 
@@ -16,6 +16,8 @@ class UserOwnsUser(permissions.BasePermission):
 
 
 class UserEmailIsVerified(permissions.BasePermission):
+    """Determine if user has verified their email address"""
+
     message = "You must verify your email address to access this resource"
 
     def has_permission(self, request, view):

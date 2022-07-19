@@ -91,6 +91,7 @@ class UserSerializer(serializers.ModelSerializer):
         return list(qs.values("name", "id"))
 
     def create(self, validated_data):
+        """We manually handle create step because password needs to be set with `set_password`"""
         password = validated_data.pop("password")
         User = get_user_model()
         user = User(**validated_data)
@@ -100,6 +101,7 @@ class UserSerializer(serializers.ModelSerializer):
         return user
 
     def update(self, instance, validated_data):
+        """We manually handle update step because password needs to be set with `set_password`, if part of update"""
         password = validated_data.pop("password") if "password" in validated_data else None
         for attr, value in validated_data.items():
             setattr(instance, attr, value)
@@ -109,6 +111,7 @@ class UserSerializer(serializers.ModelSerializer):
         return instance
 
     def get_fields(self, *args, **kwargs):
+        """Some fields that are required for creation are not required for update"""
         fields = super().get_fields(*args, **kwargs)
         request = self.context.get("request", None)
         if request and getattr(request, "method", None) == "PATCH":

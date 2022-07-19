@@ -77,7 +77,7 @@ class CustomPasswordResetCompleteView(PasswordResetCompleteView):
 class UserViewset(
     mixins.CreateModelMixin, mixins.RetrieveModelMixin, mixins.ListModelMixin, mixins.UpdateModelMixin, GenericViewSet
 ):
-    """"""
+    """For creating and updating user instances"""
 
     model = User
     queryset = User.objects.all()
@@ -86,8 +86,6 @@ class UserViewset(
     http_method_names = ["get", "post", "patch"]
 
     def get_permissions(self):
-        # NB about these being guaranteed
-        #  https://www.django-rest-framework.org/api-guide/viewsets/#introspecting-viewset-actions
         permission_classes = []
         if self.action == "create":
             permission_classes = [
@@ -102,6 +100,12 @@ class UserViewset(
         return [permission() for permission in permission_classes]
 
     def validate_password(self, email, password):
+        """Validate the password
+
+        NB: This needs to be done in view layer and not serializer layer becauase Django's password
+        validation functions we're using need access to the user attributes, not just password. This allows
+        us to access all fields that were already validated in serializer layer.
+        """
         # we temporarily initialize a user object (without saving) so can use Django's built
         # in password validation, which requires a user object
         temp_user = get_user_model()(email=email)
@@ -111,6 +115,7 @@ class UserViewset(
             raise ValidationError(detail={"password": exc.messages})
 
     def validate_bad_actor(self, data):
+        """Determine if user is a bad actor or not."""
         try:
             response = make_bad_actor_request(
                 {
@@ -132,7 +137,7 @@ class UserViewset(
             raise ValidationError(BAD_ACTOR_CLIENT_FACING_VALIDATION_MESSAGE)
 
     def perform_create(self, serializer):
-        """ """
+        """Override of `perform_create` to add our custom validations"""
         self.validate_password(serializer.validated_data.get("email"), serializer.validated_data.get("password"))
         self.validate_bad_actor(serializer)
         user = serializer.save()
@@ -140,11 +145,13 @@ class UserViewset(
         return user
 
     def perform_update(self, serializer):
+        """Override of `perform_update` to add our custom validations"""
         if password := serializer.validated_data.get("password"):
             self.validate_password(serializer.validated_data.get("email", self.get_object().email), password)
         return serializer.update(self.get_object(), serializer.validated_data)
 
     def send_verification_email(self, user):
+        """Send an email to user asking them to verify their email address"""
         send_templated_email.delay(
             user.email,
             EMAIL_VERIFICATION_EMAIL_SUBJECT,
@@ -154,22 +161,8 @@ class UserViewset(
             {"verification_url": None},
         )
 
-    def create(self, request, *args, **kwargs):
-        """NB on what we need to do cause overriding
-
-        https://github.com/encode/django-rest-framework/blob/a251b9379200420062cad9e3c68fde7c0e6b3fdc/rest_framework/mixins.py#L18
-        """
-
-        serializer = self.get_serializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        self.perform_create(serializer)
-        # headers = {self.get_success_headers(serializer.data) | dict()}  # jwt stuff
-        headers = {}
-        # cookies = dict()
-        return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
-
     def list(self, request, *args, **kwargs):
-        """note here"""
+        """List returns the requesting user's serialized user instance"""
         return Response(self.get_serializer(request.user).data)
 
     def partial_update(self, request, *args, **kwargs):

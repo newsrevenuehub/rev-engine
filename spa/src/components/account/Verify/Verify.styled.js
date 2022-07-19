@@ -8,10 +8,13 @@ export const Verify = styled.div`
 `;
 
 export const Logo = styled.img`
-  position: absolute;
   width: 80%;
   max-width: 208px;
   margin: 30px 0px 0px 40px;
+
+  @media (${(props) => props.theme.breakpoints.tabletLandscapeUp}) {
+    position: absolute;
+  }
 
   @media (${(props) => props.theme.breakpoints.tabletLandscapeDown}) {
     width: 50%;
@@ -27,9 +30,6 @@ export const Content = styled.div`
   justify-content: center;
   align-items: center;
   flex-direction: column;
-
-  @media (${(props) => props.theme.breakpoints.tabletLandscapeUp}) {
-  }
 `;
 
 export const Box = styled.div`

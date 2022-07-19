@@ -81,6 +81,7 @@ function SignUp() {
         state: { email }
       });
     }
+    setLoading(false);
   };
 
   const submitDisabled = email === '' || password === '' || !checked || loading;

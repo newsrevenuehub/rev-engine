@@ -1,5 +1,6 @@
 from unittest.mock import patch
 
+from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.core import mail
 from django.test import Client, TestCase
@@ -14,7 +15,7 @@ from rest_framework.test import APITestCase
 from apps.organizations.tests.factories import OrganizationFactory
 from apps.users.serializers import PASSWORD_MAX_LENGTH
 from apps.users.tests.utils import create_test_user
-from apps.users.views import INVALID_TOKEN, UserViewset
+from apps.users.views import BAD_ACTOR_CLIENT_FACING_VALIDATION_MESSAGE, INVALID_TOKEN, UserViewset
 
 
 user_model = get_user_model()
@@ -97,6 +98,15 @@ class TestCustomPasswordResetConfirm(TestCase):
         self.assertTrue(self.user.check_password(self.new_password))
 
 
+class MockResponseObject:
+    def __init__(self, json_data, status_code=200):
+        self.status_code = status_code
+        self.json_data = json_data
+
+    def json(self):
+        return self.json_data
+
+
 class TestUserViewSet(APITestCase):
     def setUp(self):
         self.url = reverse("user-list")
@@ -123,9 +133,10 @@ class TestUserViewSet(APITestCase):
     @patch.object(UserViewset, "validate_bad_actor")
     @patch.object(UserViewset, "send_verification_email")
     def test_create_happy_path(self, mock_send_verification_email, mock_validate_bad_actor, mock_validate_password):
-
+        user_count = get_user_model().objects.count()
         response = self.client.post(self.url, data=self.create_data)
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(get_user_model().objects.count(), user_count + 1)
         self.assertEqual((data := response.json())["email"], self.create_data["email"])
         self.assertIsNotNone((user := get_user_model().objects.filter(id=data["id"]).first()))
         self.assertFalse(data["email_verified"])
@@ -216,29 +227,84 @@ class TestUserViewSet(APITestCase):
             {"password": ["This password is too common."]},
         )
 
-    def test_create_when_bad_actor_threshold_met(self):
-        pass
+    @patch(
+        "apps.users.views.make_bad_actor_request",
+        return_value=MockResponseObject(json_data={"overall_judgment": settings.BAD_ACTOR_FAIL_ABOVE_FOR_ORG_USERS}),
+    )
+    def test_create_when_bad_actor_threshold_met(self, mock_bad_actor_request):
+        response = self.client.post(self.url, data=self.create_data)
+        mock_bad_actor_request.assert_called_once()
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(response.json, [BAD_ACTOR_CLIENT_FACING_VALIDATION_MESSAGE])
 
-    def test_create_when_bad_actor_api_not_configured(self):
-        pass
+    @patch("apps.users.views.logger.warning")
+    @override_settings(BAD_ACTOR_API_KEY=None, BAD_ACTOR_API_URL=None)
+    def test_create_when_bad_actor_api_not_configured(self, mock_logger_warning):
+        user_count = get_user_model().objects.count()
+        response = self.client.post(self.url, data=self.create_data)
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(get_user_model().objects.count(), user_count + 1)
+        mock_logger_warning.assert_called_once_with("Something went wrong with BadActorAPI", exc_info=True)
 
-    def test_create_when_bad_actor_api_error(self):
-        pass
+    @patch(
+        "apps.contributions.bad_actor.requests.post",
+        return_value=MockResponseObject(json_data={"message": "Something went wrong"}, status_code=500),
+    )
+    @patch("apps.users.views.logger.warning")
+    def test_create_when_bad_actor_api_not_2xx_code(self, mock_logger_warning, mock_bad_actor_response):
+        user_count = get_user_model().objects.count()
+        response = self.client.post(self.url, data=self.create_data)
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(get_user_model().objects.count(), user_count + 1)
+        mock_logger_warning.assert_called_once_with("Something went wrong with BadActorAPI", exc_info=True)
 
     def test_create_when_email_already_taken(self):
-        pass
+        get_user_model().objects.create(**self.create_data)
+        user_count = get_user_model().objects.count()
+        response = self.client.post(self.url, data=self.create_data)
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(response.json(), {"email": ["This field must be unique."]})
+        self.assertEqual(get_user_model().objects.count(), user_count)
 
     def test_partial_update_happy_path(self):
-        pass
+        user = get_user_model()(email=self.create_data["email"])
+        user.set_password(self.create_data["password"])
+        user.save()
+        old_hashed_pw = user.password
+        new_email = fake.email()
+        self.assertNotEqual(new_email, user.email)
+        raw_updated_password = self.create_data["password"][::-1]
+        update_data = {"password": raw_updated_password, "email": new_email}
+        self.client.force_authenticate(user=user)
+        response = self.client.patch(reverse("user-detail", args=(user.pk,)), data=update_data)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        user.refresh_from_db()
+        self.assertNotEqual(old_hashed_pw, user.password)
+        self.assertNotEqual(user.password, raw_updated_password)
+        self.assertEqual(response.json()["email"], new_email)
 
     def test_partial_update_when_not_my_user(self):
-        pass
+        my_user = get_user_model().objects.create(email="my_user@example.com")
+        another_user = get_user_model().objects.create(email="another_user@example.com")
+        self.client.force_authenticate(user=my_user)
+        update_email = "updated@example.com"
+        response = self.client.patch(reverse("user-detail", args=(another_user.pk,)), data={"email": update_email})
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertEqual(response.json(), {"detail": "You don't have permission to access this instance"})
+        another_user.refresh_from_db()
+        self.assertNotEqual(another_user.email, update_email)
 
-    def test_update_not_implmented(self):
-        pass
+    def test_put_not_implemented(self):
+        my_user = get_user_model().objects.create_user(**self.create_data)
+        self.client.force_authenticate(user=my_user)
+        response = self.client.put(reverse("user-detail", args=(my_user.pk,)), data={})
+        self.assertEqual(response.status_code, status.HTTP_405_METHOD_NOT_ALLOWED)
 
     def test_delete_not_implemented(self):
-        pass
+        my_user = get_user_model().objects.create_user(**self.create_data)
+        self.client.force_authenticate(user=my_user)
+        response = self.client.delete(reverse("user-detail", args=(my_user.pk,)))
+        self.assertEqual(response.status_code, status.HTTP_405_METHOD_NOT_ALLOWED)
 
     def test_send_verification_email(self):
         pass

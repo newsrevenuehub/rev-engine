@@ -79,10 +79,13 @@ class UserViewset(
     model = User
     queryset = User.objects.all()
     serializer_class = UserSerializer
+    # we're explicitly setting these in order to prohibit put updates
+    http_method_names = ["get", "post", "patch"]
 
     def get_permissions(self):
         # NB about these being guaranteed
         #  https://www.django-rest-framework.org/api-guide/viewsets/#introspecting-viewset-actions
+        permission_classes = []
         if self.action == "create":
             permission_classes = [
                 AllowAny,
@@ -91,18 +94,18 @@ class UserViewset(
             permission_classes = [
                 IsAuthenticated,
             ]
-        if self.action in ("update", "partial_update"):
+        if self.action == "partial_update":
             permission_classes = [
                 UserOwnsUser,
             ]
         return [permission() for permission in permission_classes]
 
-    def validate_password(self, data):
+    def validate_password(self, email, password):
         # we temporarily initialize a user object (without saving) so can use Django's built
         # in password validation, which requires a user object
-        temp_user = get_user_model()(email=data.validated_data["email"])
+        temp_user = get_user_model()(email=email)
         try:
-            validate_password(data.validated_data["password"], temp_user)
+            validate_password(password, temp_user)
         except DjangoValidationError as exc:
             raise ValidationError(detail={"password": exc.messages})
 
@@ -124,16 +127,21 @@ class UserViewset(
             logger.warning("Something went wrong with BadActorAPI", exc_info=True)
             return
         if response.json()["overall_judgment"] >= settings.BAD_ACTOR_FAIL_ABOVE_FOR_ORG_USERS:
-            logger.info("Someone determined to be a bad actor tried to create a user: [%]", data)
+            logger.info("Someone determined to be a bad actor tried to create a user: [%s]", data)
             raise ValidationError(BAD_ACTOR_CLIENT_FACING_VALIDATION_MESSAGE)
 
     def perform_create(self, serializer):
         """ """
-        self.validate_password(serializer)
+        self.validate_password(serializer.validated_data.get("email"), serializer.validated_data.get("password"))
         self.validate_bad_actor(serializer)
         user = serializer.save()
         self.send_verification_email(user)
         return user
+
+    def perform_update(self, serializer):
+        if password := serializer.validated_data.get("password"):
+            self.validate_password(serializer.validated_data.get("email", self.get_object().email), password)
+        return serializer.update(self.get_object(), serializer.validated_data)
 
     def send_verification_email(self, user):
         pass
@@ -155,6 +163,12 @@ class UserViewset(
     def list(self, request, *args, **kwargs):
         """note here"""
         return Response(self.get_serializer(request.user).data)
+
+    def partial_update(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        self.perform_update(serializer)
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
 
 class FilterQuerySetByUserMixin(GenericAPIView):

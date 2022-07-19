@@ -98,6 +98,23 @@ class UserSerializer(serializers.ModelSerializer):
         user.save()
         return user
 
+    def update(self, instance, validated_data):
+        password = validated_data.pop("password") if "password" in validated_data else None
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+        if password:
+            instance.set_password(password)
+        instance.save()
+        return instance
+
+    def get_fields(self, *args, **kwargs):
+        fields = super().get_fields(*args, **kwargs)
+        request = self.context.get("request", None)
+        if request and getattr(request, "method", None) == "PATCH":
+            fields["accepted_terms_of_service"].required = False
+            fields["password"].required = False
+        return fields
+
     class Meta:
         model = get_user_model()
         fields = [

@@ -5,7 +5,6 @@ from django.core.exceptions import ValidationError
 from django.db import models
 from django.utils import timezone
 
-import pycountry
 import stripe
 
 from apps.common.models import IndexedTimeStampedModel
@@ -16,21 +15,11 @@ from apps.users.choices import Roles
 from apps.users.models import RoleAssignmentResourceModelMixin, UnexpectedRoleType
 
 
-def get_country_choices():
-    """
-    returns a tuple of country choices according to pycountry.countries db
-    """
-    country_choices = []
-    for country_code in settings.COUNTRIES:
-        country = pycountry.countries.lookup(country_code)
-        country_choices.append((country.alpha_2, country.alpha_2))
-    return country_choices
-
-
 logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
 
-# RFC-1035 limits domain labels to 63 characters
-SLUG_MAX_LENGTH = 63
+# RFC-1035 limits domain labels to 63 characters, and RP slugs are used for subdomains,
+# so we limit to 63 chars
+RP_SLUG_MAX_LENGTH = 63
 
 
 class Feature(IndexedTimeStampedModel):
@@ -88,8 +77,15 @@ class Organization(IndexedTimeStampedModel, RoleAssignmentResourceModelMixin):
     plan = models.ForeignKey("organizations.Plan", null=True, on_delete=models.PROTECT)
     salesforce_id = models.CharField(max_length=255, blank=True, verbose_name="Salesforce ID")
 
+    # TODO: [DEV-2035] Remove Organization.slug field entirely
     slug = models.SlugField(
-        max_length=SLUG_MAX_LENGTH,
+        # 63 here is somewhat arbitrary. This used to be set to `RP_SLUG_MAX_LENGTH` (which used to have a different name),
+        # which is the maximum length a domain can be according to RFC-1035. We're retaining that value
+        # but without a reference to the constant, because using the constant would imply there
+        # are business requirements related to sub-domain length around this field which there are not
+        # (and given TODO above, it would appear that the business requirements that originally
+        # led to org slug being a field are no longer around)
+        max_length=63,
         unique=True,
         validators=[validate_slug_against_denylist],
     )
@@ -197,10 +193,21 @@ class BenefitLevelBenefit(models.Model):
         return f'Benefit {self.order} for "{self.benefit_level}" benefit level'
 
 
+class CountryChoices(models.TextChoices):
+    """Two-letter country codes
+
+    These are used in RevenueProgram for the country value. In turn, they get sent to Stripe
+    in SPA when payment request is made.
+    """
+
+    US = "US", "United States"
+    CANADA = "CA", "Canada"
+
+
 class RevenueProgram(IndexedTimeStampedModel):
     name = models.CharField(max_length=255)
     slug = models.SlugField(
-        max_length=SLUG_MAX_LENGTH,
+        max_length=RP_SLUG_MAX_LENGTH,
         blank=True,
         unique=True,
         help_text="This will be used as the subdomain for donation pages made under this revenue program. If left blank, it will be derived from the Revenue Program name.",
@@ -244,10 +251,10 @@ class RevenueProgram(IndexedTimeStampedModel):
     )
     country = models.CharField(
         max_length=2,
-        blank=True,
-        choices=get_country_choices(),
-        default="US",
+        choices=CountryChoices.choices,
+        default=CountryChoices.US,
         verbose_name="Country",
+        help_text="2-letter country code of RP's company. This gets included in data sent to stripe when creating a payment",
     )
 
     @property
@@ -270,8 +277,7 @@ class RevenueProgram(IndexedTimeStampedModel):
 
     def clean_fields(self, **kwargs):
         if not self.id:
-            self.slug = normalize_slug(self.name, self.slug, max_length=SLUG_MAX_LENGTH)
-            self.slug = normalize_slug(slug=self.slug, max_length=SLUG_MAX_LENGTH)
+            self.slug = normalize_slug(self.name, self.slug, max_length=RP_SLUG_MAX_LENGTH)
         super().clean_fields(**kwargs)
 
     def clean(self):

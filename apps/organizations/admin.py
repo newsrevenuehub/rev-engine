@@ -89,7 +89,6 @@ class OrganizationAdmin(RevEngineBaseAdmin, VersionAdmin):  # pragma: no cover
                 "fields": (
                     "name",
                     "slug",
-                    "country",
                 )
             },
         ),
@@ -172,7 +171,17 @@ class RevenueProgramAdmin(RevEngineBaseAdmin, VersionAdmin, AdminImageMixin):  #
     fieldsets = (
         (
             "RevenueProgram",
-            {"fields": ("name", "slug", "contact_email", "organization", "default_donation_page", "non_profit")},
+            {
+                "fields": (
+                    "name",
+                    "slug",
+                    "contact_email",
+                    "organization",
+                    "default_donation_page",
+                    "non_profit",
+                    "country",
+                )
+            },
         ),
         (
             "Stripe",

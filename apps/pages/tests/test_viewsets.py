@@ -492,7 +492,7 @@ class TemplateViewSetTest(RevEngineApiAbstractTestCase):
 
     def setUp(self):
         super().setUp()
-        self.list_url = f'{reverse("template-list")}?{settings.RP_SLUG_PARAM}={self.org1_rp1.slug}&{settings.ORG_SLUG_PARAM}={self.org1.slug}'
+        self.list_url = f'{reverse("template-list")}?{settings.RP_SLUG_PARAM}={self.org1_rp1.slug}'
         self.my_orgs_page = DonationPage.objects.filter(revenue_program__organization=self.org1).first()
         self.template = TemplateFactory(revenue_program=self.org1_rp1)
         self.other_orgs_template = TemplateFactory(revenue_program=self.org2_rp)

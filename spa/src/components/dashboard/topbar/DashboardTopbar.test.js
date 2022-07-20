@@ -9,7 +9,7 @@ jest.mock('components/authentication/logout', () => ({
 }));
 
 it('should show logout link in topbar', () => {
-  render(<DashboardTopbar />);
+  render(<DashboardTopbar isEditPage={false} />);
   fireEvent.click(screen.getByText('Sign out'));
   expect(logout).toHaveBeenCalled();
 });

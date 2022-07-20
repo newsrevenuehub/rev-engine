@@ -5,15 +5,19 @@ import logo from 'assets/images/logo-nre.png';
 import mobileLogo from 'assets/images/logo-mobile.png';
 
 import logout from 'components/authentication/logout';
-function DashboardTopbar() {
+function DashboardTopbar({ isEditPage }) {
   return (
     <S.DashboardTopbar>
-      <S.TopLogo>
-        <S.Logo src={logo} />
-      </S.TopLogo>
-      <S.TopLogoMobile>
-        <S.Logo src={mobileLogo} />
-      </S.TopLogoMobile>
+      {!isEditPage ? (
+        <>
+          <S.TopLogo>
+            <S.Logo src={logo} />
+          </S.TopLogo>
+          <S.TopLogoMobile>
+            <S.Logo src={mobileLogo} />
+          </S.TopLogoMobile>
+        </>
+      ) : null}
       <S.TopMenu>
         <S.LogoutLink
           data-testid="topbar-sign-out"

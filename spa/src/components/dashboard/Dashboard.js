@@ -38,7 +38,7 @@ function Dashboard() {
 
   return (
     <S.Outer>
-      <DashboardTopbar />
+      <DashboardTopbar isEditPage={isEditPage} />
       <S.Dashboard data-testid="dashboard">
         <DashboardSidebar />
         <S.DashboardMain>

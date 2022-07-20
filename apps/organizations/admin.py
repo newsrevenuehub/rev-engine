@@ -75,7 +75,7 @@ class BenefitLevelBenefit(NoRelatedInlineAddEditAdminMixin, ReadOnlyOrgLimitedTa
 
 
 @admin.register(Organization)
-class OrganizationAdmin(RevEngineBaseAdmin, VersionAdmin, ReverseModelAdmin):  # pragma: no cover
+class OrganizationAdmin(RevEngineBaseAdmin, VersionAdmin):  # pragma: no cover
     organization_fieldset = (
         (
             "Organization",
@@ -99,12 +99,17 @@ class OrganizationAdmin(RevEngineBaseAdmin, VersionAdmin, ReverseModelAdmin):  #
 
     fieldsets = organization_fieldset
 
-    list_display = ["name", "plan"]
+    list_display = [
+        "name",
+        "plan",
+    ]
 
-    list_filter = ["name", "plan", "address__state"]
+    list_filter = [
+        "name",
+        "plan",
+    ]
 
     inline_type = "stacked"
-    inline_reverse = [("address", {"fields": ["address1", "address2", "city", "state", "postal_code", "country"]})]
 
     readonly_fields = ["name"]
 
@@ -160,7 +165,17 @@ class RevenueProgramAdmin(RevEngineBaseAdmin, VersionAdmin, ReverseModelAdmin, A
     fieldsets = (
         (
             "RevenueProgram",
-            {"fields": ("name", "slug", "contact_email", "organization", "default_donation_page", "non_profit")},
+            {
+                "fields": (
+                    "name",
+                    "slug",
+                    "contact_email",
+                    "organization",
+                    "default_donation_page",
+                    "non_profit",
+                    "country",
+                )
+            },
         ),
         (
             "Stripe",
@@ -196,14 +211,21 @@ class RevenueProgramAdmin(RevEngineBaseAdmin, VersionAdmin, ReverseModelAdmin, A
         ),
     )
 
-    list_display = ["name", "organization", "slug"]
+    list_display = [
+        "name",
+        "organization",
+        "slug",
+        "country",
+    ]
 
-    list_filter = ["name"]
+    list_filter = [
+        "name",
+        "country",
+    ]
 
     inline_type = "stacked"
     inline_reverse = [
         ("social_meta", {"fields": ["title", "description", "url", "card"]}),
-        ("address", {"fields": ["address1", "address2", "city", "state", "postal_code"]}),
     ]
     inlines = [RevenueProgramBenefitLevelInline]
 

@@ -2,7 +2,7 @@ import React from 'react';
 import * as S from './DashboardSidebar.styled';
 import ContentSectionNav from './navs/ContentSectionNav';
 import ContributionSectionNav from './navs/ContributionSectionNav';
-import { ICONS } from 'assets/icons/SvgIcon';
+//import { ICONS } from 'assets/icons/SvgIcon';
 
 import {
   CONTRIBUTIONS_SECTION_ACCESS_FLAG_NAME,

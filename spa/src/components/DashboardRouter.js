@@ -17,10 +17,9 @@ import ChunkErrorBoundary from 'components/errors/ChunkErrorBoundary';
 
 // Utilities
 import componentLoader from 'utilities/componentLoader';
-import LivePage404 from './common/LivePage404';
 
 // Split bundles
-const Login = lazy(() => componentLoader(() => import('components/authentication/Login')));
+//const Login = lazy(() => componentLoader(() => import('components/authentication/Login')));
 const Main = lazy(() => componentLoader(() => import('components/Main')));
 const SignIn = lazy(() => componentLoader(() => import('components/account/SignIn/SignIn')));
 const SignUp = lazy(() => componentLoader(() => import('components/account/SignUp/SignUp')));
@@ -39,7 +38,6 @@ function DashboardRouter() {
         <React.Suspense fallback={<GlobalLoading />}>
           <Switch>
             {/* Account URLs */}
-            <Route exact path={ROUTES.LOGIN} render={() => <TrackPageView component={Login} />} />
             <Route exact path={ROUTES.SIGN_IN} render={() => <TrackPageView component={SignIn} />} />
             <Route exact path={ROUTES.SIGN_UP} render={() => <TrackPageView component={SignUp} />} />
             <Route exact path={ROUTES.VERIFY_EMAIL_SUCCESS} render={() => <TrackPageView component={Verify} />} />

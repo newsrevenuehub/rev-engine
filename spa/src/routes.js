@@ -1,4 +1,3 @@
-export const LOGIN = '/login';
 export const DASHBOARD_SLUG = '/dashboard';
 export const DONATIONS_SLUG = '/contributions';
 export const CONTENT_SLUG = '/content';

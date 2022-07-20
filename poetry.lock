@@ -1116,7 +1116,7 @@ ptyprocess = ">=0.5"
 
 [[package]]
 name = "phonenumberslite"
-version = "8.12.51"
+version = "8.12.52"
 description = "Python version of Google's common library for parsing, formatting, storing and validating international phone numbers."
 category = "main"
 optional = false
@@ -1750,7 +1750,7 @@ testing = ["pytest (>=6)", "pytest-checkdocs (>=2.4)", "pytest-flake8", "pytest-
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.10"
-content-hash = "caa42a2b541aab1fe9ae8b652996f824a6a399dff773ce869a7a20d2d0b4ae18"
+content-hash = "ac961e3369a82063c53b3cae7581ed3c38786c7fc09b1a40b9ab7307a999fddc"
 
 [metadata.files]
 amqp = [
@@ -2214,8 +2214,8 @@ pexpect = [
     {file = "pexpect-4.8.0.tar.gz", hash = "sha256:fc65a43959d153d0114afe13997d439c22823a27cefceb5ff35c2178c6784c0c"},
 ]
 phonenumberslite = [
-    {file = "phonenumberslite-8.12.51-py2.py3-none-any.whl", hash = "sha256:3b54b7481047fdf223203a2822e7d781048723600880c11b93c17a2f69319555"},
-    {file = "phonenumberslite-8.12.51.tar.gz", hash = "sha256:6fca372f1742d4930de6954138aa535b448f36d08a39bc0e2b754b15e0364bd4"},
+    {file = "phonenumberslite-8.12.52-py2.py3-none-any.whl", hash = "sha256:8cfee539ebcbe2874e8f0bdfe753e60265c198b33f8bfeb57f0fc59ba55c6d74"},
+    {file = "phonenumberslite-8.12.52.tar.gz", hash = "sha256:ade5346ac9f7ed0289d69ffc9e9f3f84b56b2b7010aa23fecf7bb22140b170d5"},
 ]
 pickleshare = [
     {file = "pickleshare-0.7.5-py2.py3-none-any.whl", hash = "sha256:9649af414d74d4df115d5d718f82acb59c9d418196b7b4290ed47a12ce62df56"},

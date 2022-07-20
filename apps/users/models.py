@@ -59,7 +59,7 @@ class RoleAssignment(models.Model):
 
     user = models.OneToOneField(User, on_delete=models.CASCADE)
     role_type = models.CharField(max_length=50, choices=Roles.choices)
-    organization = models.ForeignKey("organizations.Organization", null=True, blank=True, on_delete=models.SET_NULL)
+    organization = models.ForeignKey("organizations.Organization", null=True, blank=True, on_delete=models.CASCADE)
     revenue_programs = models.ManyToManyField("organizations.RevenueProgram", blank=True)
 
     def __str__(self):

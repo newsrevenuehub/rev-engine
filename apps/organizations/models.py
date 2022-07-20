@@ -74,7 +74,7 @@ CURRENCY_CHOICES = [(k, k) for k, _ in settings.CURRENCIES.items()]
 
 class Organization(IndexedTimeStampedModel, RoleAssignmentResourceModelMixin):
     name = models.CharField(max_length=255, unique=True)
-    plan = models.ForeignKey("organizations.Plan", null=True, on_delete=models.CASCADE)
+    plan = models.ForeignKey("organizations.Plan", null=True, on_delete=models.PROTECT)
     salesforce_id = models.CharField(max_length=255, blank=True, verbose_name="Salesforce ID")
 
     # TODO: [DEV-2035] Remove Organization.slug field entirely

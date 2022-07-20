@@ -78,7 +78,7 @@ class Contribution(IndexedTimeStampedModel, RoleAssignmentResourceModelMixin):
     last_payment_date = models.DateTimeField(null=True)
 
     contributor = models.ForeignKey("contributions.Contributor", on_delete=models.SET_NULL, null=True)
-    donation_page = models.ForeignKey("pages.DonationPage", on_delete=models.SET_NULL, null=True)
+    donation_page = models.ForeignKey("pages.DonationPage", on_delete=models.PROTECT, null=True)
 
     bad_actor_score = models.IntegerField(null=True)
     bad_actor_response = models.JSONField(null=True)

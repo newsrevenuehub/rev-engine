@@ -1,12 +1,14 @@
 import datetime
 
 from django.core.exceptions import ValidationError
+from django.db.models.deletion import ProtectedError
 from django.test import TestCase
 from django.utils import timezone
 
 from apps.common.tests.test_utils import get_test_image_file_jpeg
 from apps.config.tests.factories import DenyListWordFactory
 from apps.config.validators import GENERIC_SLUG_DENIED_MSG, SLUG_DENIED_CODE
+from apps.contributions.tests.factories import ContributionFactory
 from apps.organizations.tests.factories import OrganizationFactory
 from apps.pages import defaults
 from apps.pages.models import DefaultPageLogo, DonationPage
@@ -74,6 +76,17 @@ class DonationPageTest(TestCase):
         self.assertIn("slug", validation_error.exception.error_dict)
         self.assertEqual(SLUG_DENIED_CODE, validation_error.exception.error_dict["slug"][0].code)
         self.assertEqual(GENERIC_SLUG_DENIED_MSG, validation_error.exception.error_dict["slug"][0].message)
+
+    def test_cannot_delete_when_related_contributions(self):
+        page = DonationPageFactory()
+        ContributionFactory(donation_page=page)
+        with self.assertRaises(ProtectedError) as protected_error:
+            page.delete()
+        error_msg = (
+            "Cannot delete some instances of model 'DonationPage' because they are referenced through protected "
+            "foreign keys: 'Contribution.donation_page'."
+        )
+        self.assertEqual(error_msg, protected_error.exception.args[0])
 
 
 class StyleTest(TestCase):

@@ -407,12 +407,12 @@ class AbstractPaymentSerializer(ConditionalRequirementsSerializerMixin):
         },
     )
     interval = serializers.ChoiceField(choices=ContributionInterval.choices, default=ContributionInterval.ONE_TIME)
-    # organization_country tand currency are a different pattern, but important here.
+    # revenue_program_country tand currency are a different pattern, but important here.
     # They could be derived from the organization that this contribution is tied to,
     # but instead we send that info to each donation page load and pass it back as params;
     # that way we are certain that the currency and country used by payment provider in the
     # form is the one we use here.
-    organization_country = serializers.CharField(max_length=2, required=True)
+    revenue_program_country = serializers.CharField(max_length=2, required=True)
     currency = serializers.CharField(max_length=3, required=True)
 
     # DonorInfo

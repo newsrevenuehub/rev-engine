@@ -179,6 +179,8 @@ class TemplateDetailSerializerTest(RevEngineApiAbstractTestCase):
         serializer = self.serializer(data=template_data, context={"request": self.request})
         self.assertTrue(serializer.is_valid())
         page_pk = self.page.pk
+        # contributions protect referenced page from being deleted, so need to delete these first
+        self.page.contribution_set.all().delete()
         self.page.delete()
         # NB, serializer must be reinitialized after deleting page, otherwise `is_valid` will
         # not cause validation to be run anew

@@ -46,7 +46,7 @@ class AbstractPage(IndexedTimeStampedModel, RoleAssignmentResourceModelMixin):
     revenue_program = models.ForeignKey(
         "organizations.RevenueProgram",
         null=True,
-        on_delete=models.SET_NULL,
+        on_delete=models.CASCADE,
     )
 
     @property

@@ -6,9 +6,9 @@ Please fill out each section even if it's just with "N/A"
 
 #### Why are we doing this? How does it help us?
 
-#### How should this be manually tested?
+#### How should this be manually tested? Please include detailed step-by-step instructions.
 
-#### Have automated unit tests been added?
+#### Have automated unit tests been added? If not, why?
 
 #### How should this change be communicated to end users?
 
@@ -20,4 +20,4 @@ Please fill out each section even if it's just with "N/A"
 
 #### Do any changes need to be made before deployment to production (adding environment variables, for example)?
 
-#### Are there next steps? If so, what? Have tickets been opened for them?
+#### Are there next steps? If so, what? Have tickets been opened for them? List next-step tickets here:

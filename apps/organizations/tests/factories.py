@@ -5,7 +5,6 @@ import factory.fuzzy
 from factory.django import DjangoModelFactory
 from faker import Faker
 
-from apps.common.models import Address
 from apps.common.utils import normalize_slug
 from apps.contributions.models import (
     CardBrand,
@@ -18,11 +17,6 @@ from apps.organizations import models
 
 fake = Faker()
 Faker.seed(0)
-
-
-class AddressFactory(DjangoModelFactory):
-    class Meta:
-        model = Address
 
 
 class FeatureFactory(DjangoModelFactory):
@@ -55,7 +49,6 @@ class OrganizationFactory(DjangoModelFactory):
         django_get_or_create = ("name",)
 
     name = factory.Sequence(lambda n: f"{fake.company()}-{str(n)}")
-    address = factory.SubFactory(AddressFactory)
     slug = factory.lazy_attribute(lambda o: normalize_slug(name=o.name))
     plan = factory.SubFactory("apps.organizations.tests.factories.PlanFactory")
 

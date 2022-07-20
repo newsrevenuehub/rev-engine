@@ -57,7 +57,7 @@ function Dashboard() {
 
   return (
     <S.Outer>
-      <DashboardTopbar />
+      <DashboardTopbar isEditPage={isEditPage} />
       <S.Dashboard data-testid="dashboard">
         {isEditPage ? null : getShouldAllowDashboard() && <DashboardSidebar />}
         <S.DashboardMain>

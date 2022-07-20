@@ -16,7 +16,7 @@ export const CONTRIBUTOR_DASHBOARD = CONTRIBUTOR_ENTRY + '/contributions';
 
 // ACCOUNT
 export const SIGN_IN = '/sign-in';
-export const SIGN_UP = '/sign-up';
+export const SIGN_UP = '/create-account';
 export const FORGOT_PASSWORD = '/forgot-password';
 export const RESET_PASSWORD = '/password-reset';
 export const VERIFY_EMAIL_SUCCESS = '/verify-email-success';

@@ -8,6 +8,7 @@ from django.utils.text import slugify
 from faker import Faker
 from stripe.error import StripeError
 
+from apps.common.models import SocialMeta
 from apps.config.tests.factories import DenyListWordFactory
 from apps.config.validators import GENERIC_SLUG_DENIED_MSG, SLUG_DENIED_CODE
 from apps.contributions.tests.factories import ContributionFactory
@@ -130,6 +131,13 @@ class RevenueProgramTest(TestCase):
         rp_pk = self.instance.id
         self.organization.delete()
         self.assertFalse(RevenueProgram.objects.filter(pk=rp_pk).exists())
+
+    def test_deleting_cascades_to_socialmeta(self):
+        sm_id = SocialMeta.objects.create(
+            title="title", description="description", url="https://example.com", revenue_program=self.instance
+        ).id
+        self.instance.delete()
+        self.assertFalse(SocialMeta.objects.filter(id=sm_id).exists())
 
     def test_format_twitter_handle(self):
         target_handle = "testing"

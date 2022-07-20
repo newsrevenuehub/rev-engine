@@ -122,18 +122,11 @@ class DonationPageAdmin(CompareVersionAdmin, DonationPageAdminAbstract):
     def reversion_register(self, model, **options):
         """Set django-reversion options on registered model...
 
-        We explicitly follow `contribution_set` in order to enable `contribution.donation_page`
-        to be restored from null to a donation page instance if a contribution's donation page
-        has been deleted, but is subsequently restored.
-
         We explicitly follow `revenue_program` here in order to ensure that a revenue program's
         `default_donation_page` value is restored from null to a donation page instance, if that
         donation page has been deleted but is subsequently restored.
         """
-        options["follow"] = (
-            "contribution_set",
-            "revenue_program",
-        )
+        options["follow"] = ("revenue_program",)
         super().reversion_register(model, **options)
 
     @admin.action(description="Make templates from selected pages")

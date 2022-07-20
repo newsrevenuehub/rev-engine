@@ -75,7 +75,6 @@ CURRENCY_CHOICES = [(k, k) for k, _ in settings.CURRENCIES.items()]
 class Organization(IndexedTimeStampedModel, RoleAssignmentResourceModelMixin):
     name = models.CharField(max_length=255, unique=True)
     plan = models.ForeignKey("organizations.Plan", null=True, on_delete=models.CASCADE)
-    address = models.OneToOneField("common.Address", on_delete=models.CASCADE)
     salesforce_id = models.CharField(max_length=255, blank=True, verbose_name="Salesforce ID")
 
     # TODO: [DEV-2035] Remove Organization.slug field entirely
@@ -194,6 +193,17 @@ class BenefitLevelBenefit(models.Model):
         return f'Benefit {self.order} for "{self.benefit_level}" benefit level'
 
 
+class CountryChoices(models.TextChoices):
+    """Two-letter country codes
+
+    These are used in RevenueProgram for the country value. In turn, they get sent to Stripe
+    in SPA when payment request is made.
+    """
+
+    US = "US", "United States"
+    CANADA = "CA", "Canada"
+
+
 class RevenueProgram(IndexedTimeStampedModel):
     name = models.CharField(max_length=255)
     slug = models.SlugField(
@@ -203,7 +213,6 @@ class RevenueProgram(IndexedTimeStampedModel):
         help_text="This will be used as the subdomain for donation pages made under this revenue program. If left blank, it will be derived from the Revenue Program name.",
         validators=[validate_slug_against_denylist],
     )
-    address = models.OneToOneField("common.Address", on_delete=models.SET_NULL, null=True)
     social_meta = models.OneToOneField("common.SocialMeta", on_delete=models.SET_NULL, null=True)
     organization = models.ForeignKey("organizations.Organization", on_delete=models.CASCADE)
     contact_email = models.EmailField(max_length=255, blank=True)
@@ -240,6 +249,13 @@ class RevenueProgram(IndexedTimeStampedModel):
         default=False,
         help_text="Should page authors for this Revenue Program see the option to offer their donors a comp subscription to the New York Times?",
         verbose_name="Allow page editors to offer an NYT subscription",
+    )
+    country = models.CharField(
+        max_length=2,
+        choices=CountryChoices.choices,
+        default=CountryChoices.US,
+        verbose_name="Country",
+        help_text="2-letter country code of RP's company. This gets included in data sent to stripe when creating a payment",
     )
 
     @property

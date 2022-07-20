@@ -183,7 +183,7 @@ function StripePaymentForm({ loading, setLoading, offerPayFees }) {
   const staticParams = {
     ...params,
     rpIsNonProfit: page.revenue_program_is_nonprofit,
-    orgCountry: page.organization_country,
+    rpCountry: page.revenue_program_country,
     currency: page.currency?.code?.toLowerCase(),
     salesforceCampaignId,
     revProgramSlug: subdomain,
@@ -247,7 +247,7 @@ function StripePaymentForm({ loading, setLoading, offerPayFees }) {
 
     if (stripe && amountIsValid(amount) && !paymentRequest) {
       const pr = stripe.paymentRequest({
-        country: page?.organization_country,
+        country: page?.revenue_program_country,
         currency: page?.currency?.code?.toLowerCase(),
         total: {
           label: page.revenue_program.name,

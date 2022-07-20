@@ -48,6 +48,12 @@ function DashboardRouter() {
 
             {/* Organization Dashboard */}
             <ProtectedRoute path={ROUTES.DASHBOARD_SLUG} render={() => <TrackPageView component={Main} />} />
+            <ProtectedRoute path={ROUTES.DONATIONS_SLUG} render={() => <TrackPageView component={Main} />} />
+            <ProtectedRoute path={ROUTES.CONTENT_SLUG} render={() => <TrackPageView component={Main} />} />
+            <ProtectedRoute path={ROUTES.CUSTOMIZE_SLUG} render={() => <TrackPageView component={Main} />} />
+            <ProtectedRoute path={ROUTES.CONNECT_SLUG} render={() => <TrackPageView component={Main} />} />
+
+            <ProtectedRoute path={ROUTES.EDITOR_ROUTE} render={() => <TrackPageView component={Main} />} />
 
             <Redirect to={ROUTES.CONTENT_SLUG} />
           </Switch>

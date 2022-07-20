@@ -4,11 +4,11 @@ from pathlib import Path
 from django.contrib import admin
 from django.db.models import Q
 
-from django_reverse_admin import ReverseModelAdmin
 from reversion.admin import VersionAdmin
 from sorl.thumbnail.admin import AdminImageMixin
 
 from apps.common.admin import RevEngineBaseAdmin
+from apps.common.models import SocialMeta
 from apps.organizations.forms import FeatureForm
 from apps.organizations.models import (
     Benefit,
@@ -19,6 +19,10 @@ from apps.organizations.models import (
     Plan,
     RevenueProgram,
 )
+
+
+class SocialMetaInline(admin.StackedInline):
+    model = SocialMeta
 
 
 class NoRelatedInlineAddEditAdminMixin:  # pragma: no cover
@@ -161,7 +165,7 @@ class BenefitLevelAdmin(RevEngineBaseAdmin, VersionAdmin):
 
 
 @admin.register(RevenueProgram)
-class RevenueProgramAdmin(RevEngineBaseAdmin, VersionAdmin, ReverseModelAdmin, AdminImageMixin):  # pragma: no cover
+class RevenueProgramAdmin(RevEngineBaseAdmin, VersionAdmin, AdminImageMixin):  # pragma: no cover
     fieldsets = (
         (
             "RevenueProgram",
@@ -224,10 +228,8 @@ class RevenueProgramAdmin(RevEngineBaseAdmin, VersionAdmin, ReverseModelAdmin, A
     ]
 
     inline_type = "stacked"
-    inline_reverse = [
-        ("social_meta", {"fields": ["title", "description", "url", "card"]}),
-    ]
-    inlines = [RevenueProgramBenefitLevelInline]
+
+    inlines = [RevenueProgramBenefitLevelInline, SocialMetaInline]
 
     # Overriding this template to add the `admin_limited_select` inclusion tag
     change_form_template = "organizations/revenueprogram_changeform.html"

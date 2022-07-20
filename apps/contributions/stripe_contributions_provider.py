@@ -38,8 +38,9 @@ class NoInvoiceGeneratedError(ContributionIgnorableError):
     pass
 
 
-class AttrDict:
+class AttrDict(dict):
     def __init__(self, **kwargs) -> None:
+        super().__init__(**kwargs)
         for key, val in kwargs.items():
             setattr(self, key, val)
 

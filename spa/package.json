@@ -51,7 +51,6 @@
     "react-google-autocomplete": "^2.4.2",
     "react-helmet": "^6.1.0",
     "react-router-dom": "^5.2.0",
-    "react-scripts": "^5.0.0",
     "react-table": "^7.7.0",
     "react-test-renderer": "^17.0.2",
     "scroll-into-view": "^1.16.0",
@@ -128,6 +127,7 @@
     "cypress": "^8.5.0",
     "cypress-localstorage-commands": "^1.7.0",
     "eslint-plugin-chai-friendly": "^0.7.1",
-    "eslint-plugin-cypress": "^2.11.3"
+    "eslint-plugin-cypress": "^2.11.3",
+    "react-scripts": "^5.0.0"
   }
 }

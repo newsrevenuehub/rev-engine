@@ -2,19 +2,21 @@ import styled from 'styled-components';
 import { motion } from 'framer-motion';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 
-export const PageEditor = styled.div``;
+export const PageEditor = styled.div`
+  margin-left: 90px;
+`;
 
 export const ButtonOverlayOuter = styled.div`
   position: fixed;
   left: 0;
-  top: 0;
-  width: 180px;
+  top: 48px;
+  width: 90px;
   background-color: #fff;
   height: 100%;
 
   @media (${(props) => props.theme.breakpoints.tabletLandscapeDown}) {
     padding-top: 0;
-    margin-top: 81px;
+    margin-top: 0px;
     height: 100%;
     width: 90px;
     box-shadow: ${(props) => props.theme.shadows[0]};
@@ -31,7 +33,7 @@ export const ButtonOverlay = styled.div`
   flex-direction: column;
   justify-content: space-between;
   padding: 1rem 0;
-  padding-left: 2rem;
+  padding-left: 1.1rem;
   height: 400px;
 `;
 

@@ -1,8 +1,9 @@
+import React from 'react';
 import * as S from './DashboardSidebar.styled';
-import { DONATIONS_SLUG, CONTENT_SLUG, CUSTOMIZE_SLUG } from 'routes';
+import ContentSectionNav from './navs/ContentSectionNav';
+import ContributionSectionNav from './navs/ContributionSectionNav';
 import { ICONS } from 'assets/icons/SvgIcon';
 
-import logout from 'components/authentication/logout';
 import {
   CONTRIBUTIONS_SECTION_ACCESS_FLAG_NAME,
   CONTENT_SECTION_ACCESS_FLAG_NAME
@@ -11,56 +12,31 @@ import {
 import flagIsActiveForUser from 'utilities/flagIsActiveForUser';
 import { useFeatureFlagsProviderContext } from 'components/Main';
 
-function DashboardSidebar({ shouldAllowDashboard }) {
+/*
+// Commenting out for now as this will needed in future
+
+function DashboardMain() {
+  return (
+    <S.NavItemLabel>
+      <S.NavItemIcon icon={ICONS.DASHBOARD} />
+      <S.SideBarText id="sidebar-label-id">Dashboard</S.SideBarText>
+    </S.NavItemLabel>
+  );
+}
+*/
+
+function DashboardSidebar() {
   const { featureFlags } = useFeatureFlagsProviderContext();
 
   const hasContributionsSectionAccess = flagIsActiveForUser(CONTRIBUTIONS_SECTION_ACCESS_FLAG_NAME, featureFlags);
   const hasContentSectionAccess = flagIsActiveForUser(CONTENT_SECTION_ACCESS_FLAG_NAME, featureFlags);
 
-  const handleClick = (e) => {
-    if (!shouldAllowDashboard) e.preventDefault();
-  };
-
   return (
     <S.DashboardSidebar>
-      <S.NavList data-testid="nav-list">
-        {hasContentSectionAccess ? (
-          <S.NavItem
-            data-testid="nav-content-item"
-            to={CONTENT_SLUG}
-            onClick={handleClick}
-            disabled={!shouldAllowDashboard}
-          >
-            Pages
-          </S.NavItem>
-        ) : null}
-        {hasContentSectionAccess ? (
-          <S.NavItem
-            data-testid="nav-content-item"
-            to={CUSTOMIZE_SLUG}
-            onClick={handleClick}
-            disabled={!shouldAllowDashboard}
-          >
-            Customize
-          </S.NavItem>
-        ) : null}
-        {hasContributionsSectionAccess ? (
-          <S.NavItem
-            data-testid="nav-contributions-item"
-            to={DONATIONS_SLUG}
-            onClick={handleClick}
-            disabled={!shouldAllowDashboard}
-          >
-            Contributions
-          </S.NavItem>
-        ) : null}
+      <S.NavList role="list" data-testid="nav-list" aria-labelledby="sidebar-label-id">
+        {hasContentSectionAccess ? <ContentSectionNav /> : null}
+        {hasContributionsSectionAccess ? <ContributionSectionNav /> : null}
       </S.NavList>
-      <S.OtherContent>
-        <S.Logout onClick={logout} whileHover={{ scale: 1.05, x: -3 }} whileTap={{ scale: 1, x: 0 }}>
-          <S.LogoutIcon icon={ICONS.LOGOUT} />
-          Sign out
-        </S.Logout>
-      </S.OtherContent>
     </S.DashboardSidebar>
   );
 }

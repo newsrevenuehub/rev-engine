@@ -13,10 +13,20 @@ from rest_framework import status
 from rest_framework.test import APITestCase
 
 from apps.organizations.tests.factories import OrganizationFactory
+from apps.users.constants import (
+    BAD_ACTOR_CLIENT_FACING_VALIDATION_MESSAGE,
+    INVALID_TOKEN,
+    PASSWORD_MAX_LENGTH,
+    PASSWORD_MIN_LENGTH,
+    PASSWORD_NUMERIC_VALIDATION_MESSAGE,
+    PASSWORD_TOO_COMMON_VALIDATION_MESSAGE,
+    PASSWORD_TOO_LONG_VALIDATION_MESSAGE,
+    PASSWORD_TOO_SHORT_VALIDATION_MESSAGE,
+    PASSWORD_TOO_SIMILAR_TO_EMAIL_VALIDATION_MESSAGE,
+)
 from apps.users.permissions import UserEmailIsVerified, UserOwnsUser
-from apps.users.serializers import PASSWORD_MAX_LENGTH
 from apps.users.tests.utils import create_test_user
-from apps.users.views import BAD_ACTOR_CLIENT_FACING_VALIDATION_MESSAGE, INVALID_TOKEN, UserViewset
+from apps.users.views import UserViewset
 
 
 user_model = get_user_model()
@@ -111,13 +121,50 @@ class MockResponseObject:
 class TestUserViewSet(APITestCase):
     def setUp(self):
         self.url = reverse("user-list")
-        # this is the default in Django's MinimumLengthValidator
-        self.password_required_min_length = 8
         self.create_data = {
             "email": fake.email(),
-            "password": fake.password(length=self.password_required_min_length),
+            "password": fake.password(length=PASSWORD_MIN_LENGTH),
             "accepted_terms_of_service": timezone.now(),
         }
+
+    def get_too_short_password(self):
+        return fake.password(length=PASSWORD_MIN_LENGTH - 1)
+
+    def get_too_long_password(self):
+        return fake.password(length=PASSWORD_MAX_LENGTH + 1)
+
+    def get_too_common_password(self):
+        return "passWord!"
+
+    def get_too_similar_to_email_password(self, email):
+        return f"{email}!123456"
+
+    def get_numeric_password(self):
+        return "8788838383123898798723982"
+
+    def assert_password_too_short_validation(self, response):
+        return self.assert_password_validation(response, PASSWORD_TOO_SHORT_VALIDATION_MESSAGE)
+
+    def assert_password_too_long_validation(self, response):
+        return self.assert_password_validation(response, PASSWORD_TOO_LONG_VALIDATION_MESSAGE)
+
+    def assert_password_too_similar_to_email_validation(self, response):
+        return self.assert_password_validation(response, PASSWORD_TOO_SIMILAR_TO_EMAIL_VALIDATION_MESSAGE)
+
+    def assert_password_too_common_validation(self, response):
+        return self.assert_password_validation(response, PASSWORD_TOO_COMMON_VALIDATION_MESSAGE)
+
+    def assert_password_numeric_validation(self, response):
+        return self.assert_password_validation(response, PASSWORD_NUMERIC_VALIDATION_MESSAGE)
+
+    def assert_password_validation(
+        self, response, expected_validation_message, expected_status_code=status.HTTP_400_BAD_REQUEST
+    ):
+        self.assertEqual(response.status_code, expected_status_code)
+        self.assertEqual(
+            response.json(),
+            {"password": [expected_validation_message]},
+        )
 
     def test_unauthenticated_user_cannot_list(self):
         response = self.client.get(self.url)
@@ -141,6 +188,9 @@ class TestUserViewSet(APITestCase):
         self.assertEqual((data := response.json())["email"], self.create_data["email"])
         self.assertIsNotNone((user := get_user_model().objects.filter(id=data["id"]).first()))
         self.assertFalse(user.is_active)
+        self.assertFalse(user.email_verified)
+        self.assertEqual(user.email, self.create_data["email"])
+        self.assertTrue(user.check_password(self.create_data["password"]))
         self.assertFalse(data["email_verified"])
         self.assertFalse(data["flags"])
         self.assertFalse(data["organizations"])
@@ -177,57 +227,33 @@ class TestUserViewSet(APITestCase):
 
     def test_create_when_password_not_long_enough(self):
         data = {**self.create_data}
-        data["password"] = fake.password(length=self.password_required_min_length - 1)
+        data["password"] = self.get_too_short_password()
         response = self.client.post(self.url, data=data)
-        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertEqual(
-            response.json(),
-            {
-                "password": [
-                    f"This password is too short. It must contain at least {self.password_required_min_length} characters."
-                ]
-            },
-        )
+        self.assert_password_too_short_validation(response)
 
     def test_create_when_password_too_long(self):
         data = {**self.create_data}
-        data["password"] = fake.password(length=PASSWORD_MAX_LENGTH + 1)
+        data["password"] = self.get_too_long_password()
         response = self.client.post(self.url, data=data)
-        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertEqual(
-            response.json(),
-            {"password": [f"Ensure this field has no more than {PASSWORD_MAX_LENGTH} characters."]},
-        )
+        self.assert_password_too_long_validation(response)
 
     def test_create_when_password_too_similar_to_user_attributes(self):
         data = {**self.create_data}
-        data["password"] = data["email"] + "!123"
+        data["password"] = self.get_too_similar_to_email_password(data["email"])
         response = self.client.post(self.url, data=data)
-        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertEqual(
-            response.json(),
-            {"password": ["The password is too similar to the email."]},
-        )
+        self.assert_password_too_similar_to_email_validation(response)
 
     def test_create_when_password_is_numeric(self):
         data = {**self.create_data}
-        data["password"] = "8788838383123898798723982"
+        data["password"] = self.get_numeric_password()
         response = self.client.post(self.url, data=data)
-        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertEqual(
-            response.json(),
-            {"password": ["This password is entirely numeric."]},
-        )
+        self.assert_password_numeric_validation(response)
 
     def test_create_when_password_is_too_common(self):
         data = {**self.create_data}
-        data["password"] = "passWord!"
+        data["password"] = self.get_too_common_password()
         response = self.client.post(self.url, data=data)
-        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertEqual(
-            response.json(),
-            {"password": ["This password is too common."]},
-        )
+        self.assert_password_too_common_validation(response)
 
     @patch(
         "apps.users.views.make_bad_actor_request",
@@ -278,7 +304,6 @@ class TestUserViewSet(APITestCase):
         user = get_user_model()(email=self.create_data["email"], email_verified=True)
         user.set_password(self.create_data["password"])
         user.save()
-        old_hashed_pw = user.password
         new_email = fake.email()
         self.assertNotEqual(new_email, user.email)
         raw_updated_password = self.create_data["password"][::-1]
@@ -286,10 +311,65 @@ class TestUserViewSet(APITestCase):
         self.client.force_authenticate(user=user)
         response = self.client.patch(reverse("user-detail", args=(user.pk,)), data=update_data)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        user.refresh_from_db()
-        self.assertNotEqual(old_hashed_pw, user.password)
-        self.assertNotEqual(user.password, raw_updated_password)
         self.assertEqual(response.json()["email"], new_email)
+        user.refresh_from_db()
+        self.assertEqual(user.email, new_email)
+        self.assertTrue(user.check_password(raw_updated_password))
+
+    def test_update_email_when_email_already_taken(self):
+        User = get_user_model()
+        my_user = User.objects.create(**(self.create_data | {"email_verified": True}))
+        taken_email = User.objects.create(**(self.create_data | {"email": fake.email()})).email
+        self.client.force_authenticate(user=my_user)
+        response = self.client.patch(reverse("user-detail", args=(my_user.pk,)), data={"email": taken_email})
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(response.json(), {"email": ["This field must be unique."]})
+
+    def test_update_password_when_pw_too_short(self):
+        User = get_user_model()
+        my_user = User.objects.create(**(self.create_data | {"email_verified": True}))
+        self.client.force_authenticate(user=my_user)
+        response = self.client.patch(
+            reverse("user-detail", args=(my_user.pk,)), data={"password": self.get_too_short_password()}
+        )
+        self.assert_password_too_short_validation(response)
+
+    def test_update_password_when_pw_too_long(self):
+        User = get_user_model()
+        my_user = User.objects.create(**(self.create_data | {"email_verified": True}))
+        self.client.force_authenticate(user=my_user)
+        response = self.client.patch(
+            reverse("user-detail", args=(my_user.pk,)), data={"password": self.get_too_long_password()}
+        )
+        self.assert_password_too_long_validation(response)
+
+    def test_update_password_when_pw_too_common(self):
+        User = get_user_model()
+        my_user = User.objects.create(**(self.create_data | {"email_verified": True}))
+        self.client.force_authenticate(user=my_user)
+        response = self.client.patch(
+            reverse("user-detail", args=(my_user.pk,)), data={"password": self.get_too_common_password()}
+        )
+        self.assert_password_too_common_validation(response)
+
+    def test_update_password_when_pw_too_similar_to_email(self):
+        User = get_user_model()
+        my_user = User.objects.create(**(self.create_data | {"email_verified": True}))
+        self.client.force_authenticate(user=my_user)
+        response = self.client.patch(
+            reverse("user-detail", args=(my_user.pk,)),
+            data={"password": self.get_too_similar_to_email_password(my_user.email)},
+        )
+        self.assert_password_too_similar_to_email_validation(response)
+
+    def test_update_password_when_numeric(self):
+        User = get_user_model()
+        my_user = User.objects.create(**(self.create_data | {"email_verified": True}))
+        self.client.force_authenticate(user=my_user)
+        response = self.client.patch(
+            reverse("user-detail", args=(my_user.pk,)), data={"password": self.get_numeric_password()}
+        )
+        self.assert_password_numeric_validation(response)
 
     def test_partial_update_when_not_my_user(self):
         my_user = get_user_model().objects.create(email="my_user@example.com", email_verified=True)

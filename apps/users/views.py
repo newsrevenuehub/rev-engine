@@ -24,6 +24,14 @@ from apps.api.permissions import HasDeletePrivilegesViaRole, HasRoleAssignment, 
 from apps.contributions.bad_actor import BadActorAPIError, make_bad_actor_request
 from apps.emails.tasks import send_templated_email
 from apps.public.permissions import IsActiveSuperUser
+from apps.users.constants import (
+    BAD_ACTOR_CLIENT_FACING_VALIDATION_MESSAGE,
+    BAD_ACTOR_FAKE_AMOUNT,
+    EMAIL_VERIFICATION_EMAIL_SUBJECT,
+    INVALID_TOKEN,
+    PASSWORD_UNEXPECTED_VALIDATION_MESSAGE_SUBSTITUTE,
+    PASSWORD_VALIDATION_EXPECTED_MESSAGES,
+)
 from apps.users.models import UnexpectedRoleType, User
 from apps.users.permissions import UserEmailIsVerified, UserOwnsUser
 from apps.users.serializers import UserSerializer
@@ -32,12 +40,6 @@ from apps.users.serializers import UserSerializer
 logger = logging.getLogger(__name__)
 
 user_model = get_user_model()
-
-INVALID_TOKEN = "NoTaVaLiDtOkEn"
-BAD_ACTOR_FAKE_AMOUNT = 0.0
-BAD_ACTOR_CLIENT_FACING_VALIDATION_MESSAGE = "Something went wrong"
-
-EMAIL_VERIFICATION_EMAIL_SUBJECT = "Verify your email address to get started"
 
 
 class CustomPasswordResetView(PasswordResetView):
@@ -66,7 +68,7 @@ class CustomPasswordResetConfirm(PasswordResetConfirmView):
         if self.request.method == "POST":
             # Invalidate Authorization cookie in client browser by setting its value to gibbersih
             # and its max_age to 0
-            response.set_cookie(settings.AUTH_COOKIE_KEY, "NoTaVaLiDtOkEn", max_age=0)
+            response.set_cookie(settings.AUTH_COOKIE_KEY, INVALID_TOKEN, max_age=0)
         return response
 
 
@@ -112,7 +114,13 @@ class UserViewset(
         try:
             validate_password(password, temp_user)
         except DjangoValidationError as exc:
-            raise ValidationError(detail={"password": exc.messages})
+            safe_messages = [
+                message
+                if message in PASSWORD_VALIDATION_EXPECTED_MESSAGES
+                else PASSWORD_UNEXPECTED_VALIDATION_MESSAGE_SUBSTITUTE
+                for message in exc.messages
+            ]
+            raise ValidationError(detail={"password": safe_messages})
 
     def validate_bad_actor(self, data):
         """Determine if user is a bad actor or not."""

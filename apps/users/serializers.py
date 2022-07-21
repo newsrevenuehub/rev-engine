@@ -14,12 +14,10 @@ from apps.organizations.serializers import (
     RevenueProgramInlineSerializer,
 )
 from apps.users.choices import Roles
+from apps.users.constants import PASSWORD_MAX_LENGTH
 
 
 logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
-
-# max length here is same as base User class
-PASSWORD_MAX_LENGTH = 128
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -66,7 +64,7 @@ class UserSerializer(serializers.ModelSerializer):
     def get_permitted_revenue_programs(self, obj):
         # `obj` will be a dict of data when serializer being used in create view
         if not isinstance(obj, get_user_model()):
-            return None
+            return []
         qs = RevenueProgram.objects.all()
         role_assignment = obj.get_role_assignment()
         if not role_assignment and not obj.is_superuser:
@@ -102,7 +100,7 @@ class UserSerializer(serializers.ModelSerializer):
 
     def update(self, instance, validated_data):
         """We manually handle update step because password needs to be set with `set_password`, if part of update"""
-        password = validated_data.pop("password") if "password" in validated_data else None
+        password = validated_data.pop("password", None)
         for attr, value in validated_data.items():
             setattr(instance, attr, value)
         if password:
@@ -117,6 +115,7 @@ class UserSerializer(serializers.ModelSerializer):
         if request and getattr(request, "method", None) == "PATCH":
             fields["accepted_terms_of_service"].required = False
             fields["password"].required = False
+            fields["email"].required = False
         return fields
 
     class Meta:

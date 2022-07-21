@@ -13,6 +13,7 @@ https://docs.djangoproject.com/en/3.0/ref/settings/
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 import os
 from datetime import timedelta
+from pathlib import Path
 
 
 PROJECT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -127,6 +128,9 @@ CONTRIBUTOR_MAGIC_LINK_REQUEST_THROTTLE_RATE = os.getenv("CONTRIBUTOR_MAGIC_LINK
 
 USER_TTL = timedelta(hours=24)
 
+# Contributions cache set to 30 minutes < CONTRIBUTOR_LONG_TOKEN_LIFETIME
+CONTRIBUTION_CACHE_TTL = timedelta(minutes=30)
+DEFAULT_CACHE = "default"
 
 AUTH_COOKIE_KEY = "Authorization"
 # Set SAMESITE setting below to 'Strict' to ask recieving browsers not to send this cookie
@@ -164,6 +168,29 @@ if os.getenv("DATABASE_URL"):
         ssl_require=os.getenv("DATABASE_SSL", False),
     )
     DATABASES["default"].update(db_from_env)
+
+
+REDIS_URL = os.getenv("REDIS_TLS_URL", os.getenv("REDIS_URL", "redis://redis:6379"))
+CACHE_HOST = REDIS_URL
+CONNECTION_POOL_KWARGS = {}
+if CACHE_HOST.startswith("rediss"):
+    import ssl
+
+    # See: https://github.com/mirumee/saleor/issues/6926
+    CONNECTION_POOL_KWARGS = {
+        "ssl_cert_reqs": ssl.CERT_NONE,
+    }
+
+CACHES = {
+    "default": {
+        "BACKEND": "django_redis.cache.RedisCache",
+        "LOCATION": f"{CACHE_HOST}/0",
+        "OPTIONS": {
+            "CLIENT_CLASS": "django_redis.client.DefaultClient",
+            "CONNECTION_POOL_KWARGS": CONNECTION_POOL_KWARGS,
+        },
+    },
+}
 
 
 # Password validation
@@ -454,6 +481,9 @@ METADATA_SCHEMA_VERSION = os.getenv("METADATA_SCHEMA_VERSION", "1.0")
 # Add reversion models to admin interface
 ADD_REVERSION_ADMIN = True
 
+# Serve SPA via django
+FRONTEND_BUILD_DIR = Path(BASE_DIR) / "spa/public"
+TEMPLATES[0]["DIRS"] = [FRONTEND_BUILD_DIR, os.path.join(PROJECT_DIR, "templates")]
 # This is for django-test-migrations
 # we ignore waffle and celery beat's migrations because they are beyond our control,
 # and dtm complains about their migration file names

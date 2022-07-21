@@ -20,7 +20,7 @@ CREATE SCHEMA public;
 GRANT ALL ON SCHEMA public TO postgres;
 GRANT ALL ON SCHEMA public TO public;"
 
-pg_restore --clean --no-owner --no-acl --format=custom --if-exists -d pre-model-migrations-temp.backup || true
+pg_restore --clean --no-owner --no-acl --format=custom --if-exists -d ${DATABASE_URL} pre-model-migrations-temp.backup || true
 # the feature branch's migrations initially get applied as part of the normal build CI process, but here in review app post deploy step,
 # we drop all the tables before restoring from staging (see reason above), which means that any new migrations get whomped. So we run migrations again here.
 python manage.py migrate --noinput

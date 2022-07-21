@@ -213,7 +213,196 @@ Then add to the file the following line.
 echo "export DJANGO_SETTINGS_MODULE=revengine.settings.local" >> .envrc
 ```
 
-Next, we need to set up a fake test Stripe ID so that stripe functionality will work when running tests locally
+Allow direnv to inject the variable into your environment
+
+```shell
+    (revengine)$ direnv allow .
+```
+
+## Envrionment Variables
+These are found in ./revengine/settings/\*.py except for
+DJANGO_SETTINGS_MODULE which can be found in ./celery.py, ./manage.py, and ./wsgi.py;
+CF_ZONE_NAME, HEROKU_API_KEY, HEROKU_APP_NAME, HEROKU_BRANCH found in apps/common/utils.py and apps/users/management/commands/\*.py
+
+```
+ACCESS_TOKEN_LIFETIME_HOURS
+default 12
+
+BAD_ACTOR_API_KEY
+default "testing_123"
+
+BAD_ACTOR_API_URL
+default "https://bad-actor-test.fundjournalism.org/v1/bad_actor/"
+
+CONTRIBUTOR_MAGIC_LINK_REQUEST_THROTTLE_RATE
+default "6/minute"
+
+CSP_REPORT_ONLY
+default True
+
+CSP_REPORTING_ENABLE
+default "false"
+
+CSP_REPORT_URI
+
+DASHBOARD_SUBDOMAINS
+default "support:www:dashboard:" (split on colon)
+
+DOMAIN_APEX
+
+EMAIL_TEMPLATE_IDENTIFIER_MAGIC_LINK_DONOR
+default "nrh-manage-donations-magic-link"
+
+ENVIRONMENT
+default "dev"
+
+HEALTHCHECK_URL_AUTO_ACCEPT_FLAGGED_PAYMENTS
+
+HUB_GTM_ID
+
+MEDIA_LOCATION
+default ""
+
+MEDIA_STORAGE_BUCKET_NAME
+default ""
+
+METADATA_SCHEMA_VERSION
+default "1.0"
+
+METADATA_SOURCE
+default "rev-engine"
+
+SESSION_COOKIE_SECURE
+default "True"
+
+SPA_ENV_AMOUNT_QUERYPARAM
+default "amount"
+
+SPA_ENV_APP_SALESFORCE_CAMPAIGN_ID_QUERYPARAM
+default "campaign"
+
+SPA_ENV_CAPTURE_PAGE_SCREENSHOT
+default "false").lower() == "true"
+
+SPA_ENV_FREQUENCY_QUERYPARAM
+default "frequency"
+
+SPA_ENV_HUB_GOOGLE_MAPS_API_KEY"
+
+SPA_ENV_HUB_STRIPE_API_PUB_KEY"
+
+SPA_ENV_HUB_V3_GOOGLE_ANALYTICS_ID"
+
+SPA_ENV_REVENGINE_API_VERSION
+default "v1"
+
+SPA_ENV_STRIPE_CLIENT_ID"
+
+TEST_EMAIL
+default "False"
+feature flag
+
+USE_DEBUG_INTERVALS
+default False
+feature flag
+
+```
+
+### Django Settings
+These environment varialbes are used to set standard Django and Django app config settings.
+
+```
+ALLOWED_HOSTS
+default "localhost"
+
+DEBUG_TOOLBAR
+default "True"
+
+DJANGO_DEBUG -> DEBUG
+default "False"
+
+DJANGO_SECRET_KEY -> SECRET_KEY
+
+DJANGO_SETTINGS_MODULE
+default "revengine.settings.deploy"
+
+CSRF_COOKIE_SECURE
+default "True"
+
+DATABASE_SSL -> DATABASES
+default False
+
+DATABASE_URL -> DATABASES
+
+DEFAULT_FILE_STORAGE
+default "django.core.files.storage.FileSystemStorage"
+
+DOMAIN -> DEFAULT_FROM_EMAIL
+default "example.com"
+
+SITE_URL
+default ""
+
+```
+
+### Heruku Settings
+CF_ZONE_NAME, HEROKU_API_KEY, HEROKU_APP_NAME, HEROKU_BRANCH are found in apps/common/utils.py and apps/users/management/commands/\*.py
+
+```
+CF_ZONE_NAME
+
+GS_BUCKET_NAME
+default "rev-engine-media"
+
+GS_PROJECT_ID
+default "revenue-engine"
+
+HEROKU_API_KEY
+
+HEROKU_APP_NAME
+
+HEROKU_BRANCH
+
+```
+
+### 3rd Party Tool integerations
+
+```
+LIVE_HUB_STRIPE_API_SECRET_KEY
+default ""
+
+TEST_HUB_STRIPE_API_SECRET_KEY
+default ""
+
+MAILGUN_API_KEY
+default ""
+
+REDIS_URL
+default "redis://redis:6379"
+
+SENTRY_ENABLE_BACKEND
+default "false"
+
+SENTRY_ENABLE_FRONTEND
+default "false"
+
+SENTRY_DSN_BACKEND
+
+SENTRY_DSN_FRONTEND
+
+STRIPE_LIVE_MODE
+default "false"
+
+STRIPE_WEBHOOK_SECRET
+default ""
+```
+
+**8. Database**
+
+The setup for local development assumes that you will be working with dockerized
+services.
+
+Assuming you are using `direnv` add the following line to your `.envrc` file:
 
 ```sh
 echo "export export REACT_APP_HUB_STRIPE_API_PUB_KEY=pk_test_3737373" >> .envrc
@@ -407,10 +596,32 @@ First:
 touch ./spa/.env
 ```
 
-To enable Stripe-related features such as payments on contribution pages or changing payment methods, set:
+To enable Stripe related features (Payments on contribution pages, changing payment methods), set:
+`REACT_APP_HUB_STRIPE_API_PUB_KEY=pk_test_therealvaluehere`
+You can get this value from the Hub stripe dashboard
 
-```sh
-REACT_APP_HUB_STRIPE_API_PUB_KEY=pk_test_therealvaluehere
+To enable Stripe Onboarding, set:
+`REACT_APP_STRIPE_CLIENT_ID=therealvalue`
+You can get this value from the Hub stripe dashboard
+
+To enable google address autocomplete in the contribution page form, set:
+`REACT_APP_HUB_GOOGLE_MAPS_API_KEY=therealvalueere`
+
+To enable google analytics, set:
+`REACT_APP_HUB_V3_GOOGLE_ANALYTICS_ID=therealvaluehere`
+
+Any value in settings.js that uses the `resolveConstantFromEnv` method can be overridden by adding it to .env prepended by `REACT_APP_`
+
+## Git tags
+
+This project has cypress tests, which are great, but they can take a long time to run. Sometimes they
+are not necessary.
+
+So, if you are working on a branch that does not need cypress tests, you will need to name your branch with the
+following text in it somewhere: `skipcy`
+
+```shell
+(revengine)$> git checkout -b NRH-2837438--new-component-with-tests-skipcy
 ```
 
 You can get this value from the Hub Stripe dashboard.

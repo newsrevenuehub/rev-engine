@@ -18,10 +18,10 @@ class Command(BaseCommand):  # pragma: no cover
     help = "Bootstrap Heroku review app"
 
     def handle(self, *args, **options):
-        branch_name = os.environ.get("HEROKU_BRANCH")
-        zone_name = os.environ.get("CF_ZONE_NAME")
-        heroku_app_name = os.environ.get("HEROKU_APP_NAME")
-        heroku_api_key = os.environ.get("HEROKU_API_KEY")
+        branch_name = os.gevenv("HEROKU_BRANCH")
+        zone_name = os.gevenv("CF_ZONE_NAME")
+        heroku_app_name = os.gevenv("HEROKU_APP_NAME")
+        heroku_api_key = os.gevenv("HEROKU_API_KEY")
         ticket_id = extract_ticket_id_from_branch_name(branch_name).lower()
 
         heroku_conn = heroku3.from_key(heroku_api_key)

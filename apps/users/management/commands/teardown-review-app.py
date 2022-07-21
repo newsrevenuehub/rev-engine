@@ -19,14 +19,14 @@ class Command(BaseCommand):  # pragma: no cover
 
     def handle(self, *args, **options):
         if not options["ticket"]:
-            branch_name = os.environ.get("HEROKU_BRANCH")
+            branch_name = os.getenv("HEROKU_BRANCH")
             ticket_id = extract_ticket_id_from_branch_name(branch_name)
         else:
             ticket_id = options["ticket"].lower()
 
         delete_cloudflare_cnames(ticket_id)
 
-        zone_name = os.environ.get("CF_ZONE_NAME")
+        zone_name = os.getenv("CF_ZONE_NAME")
         site_url = f"https://{ticket_id}.{zone_name}"
         webhook_url = f"{site_url}{reverse('stripe-webhooks')}".lower()
         api_key = get_hub_stripe_api_key()

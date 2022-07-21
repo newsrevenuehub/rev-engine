@@ -75,7 +75,7 @@ You will note the distinct lack of opinion on how you should manage your virtual
 
 #### Node dependencies
 
-`nvm` is preferred for managing Node versions and `.nvmrc` contains the
+`nvm` is preferred for managing Node versions, and `.nvmrc` contains the
 specific Node version for this project. To install the correct (and latest)
 Node version run:
 

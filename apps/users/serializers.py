@@ -1,7 +1,11 @@
+import logging
+
+from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.db.models import Q
 
 from rest_framework import serializers
+from rest_framework.validators import UniqueValidator
 from waffle import get_waffle_flag_model
 
 from apps.organizations.models import Organization, RevenueProgram
@@ -10,6 +14,10 @@ from apps.organizations.serializers import (
     RevenueProgramInlineSerializer,
 )
 from apps.users.choices import Roles
+from apps.users.constants import PASSWORD_MAX_LENGTH
+
+
+logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -23,14 +31,23 @@ class UserSerializer(serializers.ModelSerializer):
     organizations = serializers.SerializerMethodField(method_name="get_permitted_organizations")
     revenue_programs = serializers.SerializerMethodField(method_name="get_permitted_revenue_programs")
     flags = serializers.SerializerMethodField(method_name="get_active_flags_for_user")
+    password = serializers.CharField(write_only=True, max_length=PASSWORD_MAX_LENGTH, required=True)
+    email = serializers.EmailField(validators=[UniqueValidator(queryset=get_user_model().objects.all())], required=True)
+    accepted_terms_of_service = serializers.DateTimeField(required=True)
 
     def get_role_type(self, obj):
+        # `obj` will be a dict of data when serializer being used in create view
+        if not isinstance(obj, get_user_model()):
+            return None
         if obj.is_superuser:
             return ("superuser", "Superuser")
         role_assignment = obj.get_role_assignment()
         return (role_assignment.role_type, role_assignment.get_role_type_display()) if role_assignment else None
 
     def get_permitted_organizations(self, obj):
+        # `obj` will be a dict of data when serializer being used in create view
+        if not isinstance(obj, get_user_model()):
+            return []
         qs = Organization.objects.all()
         role_assignment = obj.get_role_assignment()
         if not role_assignment and not obj.is_superuser:
@@ -45,6 +62,9 @@ class UserSerializer(serializers.ModelSerializer):
         return serializer.data
 
     def get_permitted_revenue_programs(self, obj):
+        # `obj` will be a dict of data when serializer being used in create view
+        if not isinstance(obj, get_user_model()):
+            return []
         qs = RevenueProgram.objects.all()
         role_assignment = obj.get_role_assignment()
         if not role_assignment and not obj.is_superuser:
@@ -58,6 +78,9 @@ class UserSerializer(serializers.ModelSerializer):
         return serializer.data
 
     def get_active_flags_for_user(self, obj):
+        # `obj` will be a dict of data when serializer being used in create view
+        if not isinstance(obj, get_user_model()):
+            return []
         Flag = get_waffle_flag_model()
         if obj.is_superuser:
             qs = Flag.objects.filter(Q(superusers=True) | Q(everyone=True) | Q(users__in=[obj]))
@@ -65,6 +88,54 @@ class UserSerializer(serializers.ModelSerializer):
             qs = Flag.objects.filter(Q(everyone=True) | Q(users__in=[obj]))
         return list(qs.values("name", "id"))
 
+    def create(self, validated_data):
+        """We manually handle create step because password needs to be set with `set_password`"""
+        password = validated_data.pop("password")
+        User = get_user_model()
+        user = User(**validated_data)
+        user.set_password(password)
+        user.is_active = False
+        user.save()
+        return user
+
+    def update(self, instance, validated_data):
+        """We manually handle update step because password needs to be set with `set_password`, if part of update"""
+        password = validated_data.pop("password", None)
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+        if password:
+            instance.set_password(password)
+        instance.save()
+        return instance
+
+    def get_fields(self, *args, **kwargs):
+        """Some fields that are required for creation are not required for update"""
+        fields = super().get_fields(*args, **kwargs)
+        request = self.context.get("request", None)
+        if request and getattr(request, "method", None) == "PATCH":
+            fields["accepted_terms_of_service"].required = False
+            fields["password"].required = False
+            fields["email"].required = False
+        return fields
+
     class Meta:
         model = get_user_model()
-        fields = ["id", "email", "role_type", "organizations", "revenue_programs", "flags"]
+        fields = [
+            "accepted_terms_of_service",
+            "email",
+            "email_verified",
+            "flags",
+            "id",
+            "organizations",
+            "revenue_programs",
+            "role_type",
+            "password",
+        ]
+        read_only_fields = [
+            "id",
+            "email_verified",
+            "flags",
+            "organizations",
+            "revenue_programs",
+            "role_type",
+        ]

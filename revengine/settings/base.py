@@ -306,6 +306,7 @@ BAD_ACTOR_API_URL = os.getenv("BAD_ACTOR_API_URL", "https://bad-actor-test.fundj
 BAD_ACTOR_API_KEY = os.getenv("BAD_ACTOR_API_KEY", "testing_123")
 
 BAD_ACTOR_FAIL_ABOVE = 3
+BAD_ACTOR_FAIL_ABOVE_FOR_ORG_USERS = 4
 
 # This is the interval at which flagged payments will be automatically captured.
 # NOTE: Stripe automatically REJECTS flagged payments every 7 days. Make sure this delta is less than 6.5 days to be safe.

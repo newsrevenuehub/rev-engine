@@ -58,13 +58,6 @@ class RevenueProgramListInlineSerializer(serializers.ModelSerializer):
     the user is redirected to `/edit/undefined/page-slug` after page creation.
     """
 
-    address = serializers.SerializerMethodField()
-
-    def get_address(self, obj):
-        if hasattr(obj, "address"):
-            return str(obj.address)
-        return ""
-
     class Meta:
         model = RevenueProgram
         fields = [
@@ -74,7 +67,6 @@ class RevenueProgramListInlineSerializer(serializers.ModelSerializer):
             "twitter_handle",
             "website_url",
             "contact_email",
-            "address",
             "google_analytics_v3_domain",
             "google_analytics_v3_id",
             "google_analytics_v4_id",

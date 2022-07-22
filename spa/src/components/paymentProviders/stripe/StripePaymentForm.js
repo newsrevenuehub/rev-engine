@@ -38,6 +38,31 @@ import { ICONS } from 'assets/icons/SvgIcon';
 import { PayFeesWidget } from 'components/donationPage/pageContent/DPayment';
 import DonationPageDisclaimer from 'components/donationPage/DonationPageDisclaimer';
 
+/*
+  gets the disabled stripe wallets for a page
+  @param {page}
+  */
+export const getDisabledWallets = (page) => {
+  let disabledWallets = [];
+  (page?.elements || [])
+    .filter((elem) => elem.type === 'DPayment')
+    .forEach((paymentType) => {
+      let enabledWalletsForPage = paymentType.content.stripe;
+
+      if (!enabledWalletsForPage.includes('apple')) {
+        disabledWallets.push('applePay');
+      }
+      if (!enabledWalletsForPage.includes('google')) {
+        disabledWallets.push('googlePay');
+      }
+      if (!enabledWalletsForPage.includes('browser')) {
+        disabledWallets.push('browserCard');
+      }
+    });
+
+  return disabledWallets;
+};
+
 function StripePaymentForm({ loading, setLoading, offerPayFees }) {
   useReCAPTCHAScript();
   const subdomain = useSubdomain();
@@ -58,8 +83,7 @@ function StripePaymentForm({ loading, setLoading, offerPayFees }) {
   const stripe = useStripe();
   const elements = useElements();
 
-  const amountIsValid = !isNaN(amount);
-
+  const amountIsValid = (amount) => amount && !isNaN(amount);
   /**
    * Listen for changes in the CardElement and display any errors as the customer types their card details
    */
@@ -159,7 +183,7 @@ function StripePaymentForm({ loading, setLoading, offerPayFees }) {
   const staticParams = {
     ...params,
     rpIsNonProfit: page.revenue_program_is_nonprofit,
-    orgCountry: page.organization_country,
+    rpCountry: page.revenue_program_country,
     currency: page.currency?.code?.toLowerCase(),
     salesforceCampaignId,
     revProgramSlug: subdomain,
@@ -218,14 +242,18 @@ function StripePaymentForm({ loading, setLoading, offerPayFees }) {
   useEffect(() => {
     const rpIsNonProfit = page.revenue_program_is_nonprofit;
     const amnt = amountToCents(getTotalAmount(amount, payFee, frequency, rpIsNonProfit));
-    if (stripe && amountIsValid && !paymentRequest) {
+
+    let disabledWallets = getDisabledWallets(page);
+
+    if (stripe && amountIsValid(amount) && !paymentRequest) {
       const pr = stripe.paymentRequest({
-        country: page?.organization_country,
+        country: page?.revenue_program_country,
         currency: page?.currency?.code?.toLowerCase(),
         total: {
           label: page.revenue_program.name,
           amount: amnt
-        }
+        },
+        disableWallets: disabledWallets
       });
 
       pr.canMakePayment().then((canMakePayment) => {
@@ -242,7 +270,7 @@ function StripePaymentForm({ loading, setLoading, offerPayFees }) {
    * that is not passed in are setState calls which are already memoized.
    */
   useEffect(() => {
-    if (paymentRequest) {
+    if (paymentRequest && amountIsValid(amount)) {
       function handlePaymentMethodEvent(paymentMethodEvent) {
         handlePaymentRequestSubmit({ amount, payFee, ...params }, paymentMethodEvent);
       }
@@ -289,7 +317,6 @@ function StripePaymentForm({ loading, setLoading, offerPayFees }) {
   return (
     <>
       {offerPayFees && <PayFeesWidget />}
-
       {paymentRequest ? (
         <>
           <S.PaymentRequestWrapper>
@@ -320,7 +347,7 @@ function StripePaymentForm({ loading, setLoading, offerPayFees }) {
 
           <S.PaymentSubmitButton
             onClick={handleCardSubmit}
-            disabled={!cardReady || loading || disabled || succeeded || !amountIsValid}
+            disabled={!cardReady || loading || disabled || succeeded || !amountIsValid(amount)}
             loading={loading}
             data-testid="donation-submit"
           >

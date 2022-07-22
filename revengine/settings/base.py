@@ -111,6 +111,7 @@ INSTALLED_APPS = [
     "waffle",  # Django feature flag support.
     "reversion",  # Provides undelete and rollback for models' data.
     "reversion_compare",
+    "django_test_migrations.contrib.django_checks.AutoNames",
 ]
 
 MIDDLEWARE = [
@@ -246,6 +247,15 @@ REST_FRAMEWORK = {
 }
 
 
+### django-test-migrations
+# we ignore waffle and celery beat's migrations because they are beyond our control,
+# and dtm complains about their migration file names
+DTM_IGNORED_MIGRATIONS = {
+    ("waffle", "*"),
+    ("django_celery_beat", "*"),
+}
+
+
 ### Django-CSP Settings
 
 # Note from Ben: As best I can tell, these CSP settings are related to using Google
@@ -253,7 +263,6 @@ REST_FRAMEWORK = {
 # https://developers.google.com/tag-platform/tag-manager/web/csp ). I don't have context
 # for business logic requiring CSP in GTM.
 
-# For now, report only.
 # For now, we're drastically relaxing the CSP by allowing 'unsafe-eval' and
 # 'unsafe-inline'. Adding those rules precludes the use of a nonce.
 # Restore this once setup when we successfully disallow 'unsafe-eval' and 'unsafe-inline'
@@ -327,7 +336,7 @@ THUMBNAIL_COLORSPACE = None
 THUMBNAIL_PRESERVE_FORMAT = True
 
 
-### reversion Settings
+### Django-reversion Settings
 # Add reversion models to admin interface.
 ADD_REVERSION_ADMIN = True
 
@@ -425,8 +434,15 @@ EMAIL_DEFAULT_TRANSACTIONAL_SENDER = os.getenv(
     "EMAIL_DEFAULT_TRANSACTIONAL_SENDER", "News Revenue Engine <no-reply@fundjournalism.org>"
 )
 
+# Transactional Email
+EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
+
+EMAIL_DEFAULT_TRANSACTIONAL_SENDER = os.getenv(
+    "EMAIL_DEFAULT_TRANSACTIONAL_SENDER", "News Revenue Engine <no-reply@fundjournalism.org>"
+)
+
 ## BadActor API
-# TODO: [DEV-2008] the test API shouldn't be here. It shouldn't have a default.
+# [DEV-2008] the test API shouldn't be here. It shouldn't have a default.
 BAD_ACTOR_API_URL = os.getenv("BAD_ACTOR_API_URL", "https://bad-actor-test.fundjournalism.org/v1/bad_actor/")
 # NOTE: We've been given keys with some characters that might need escaping as environment variables, eg "$"
 BAD_ACTOR_API_KEY = os.getenv("BAD_ACTOR_API_KEY", "testing_123")

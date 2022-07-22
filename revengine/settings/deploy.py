@@ -112,7 +112,7 @@ CELERY_HIJACK_ROOT_LOGGER = False
 if SENTRY_ENABLE_BACKEND and SENTRY_DSN_BACKEND:
     import sentry_sdk
     from sentry_sdk.integrations.django import DjangoIntegration
-    from sentry_sdk.integrations.logging import LoggingIntegration
+    from sentry_sdk.integrations.logging import LoggingIntegration, ignore_logger
 
     sentry_logging = LoggingIntegration(
         level=logging.DEBUG,
@@ -123,7 +123,7 @@ if SENTRY_ENABLE_BACKEND and SENTRY_DSN_BACKEND:
         integrations=[sentry_logging, DjangoIntegration()],
         environment=ENVIRONMENT,
     )
-
+    ignore_logger("django.security.DisallowedHost")
 
 # BadActor API
 BAD_ACTOR_API_URL = "https://bad-actor.fundjournalism.org/v1/bad_actor/"

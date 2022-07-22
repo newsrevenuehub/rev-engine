@@ -17,8 +17,9 @@ from apps.users.models import RoleAssignmentResourceModelMixin, UnexpectedRoleTy
 
 logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
 
-# RFC-1035 limits domain labels to 63 characters
-SLUG_MAX_LENGTH = 63
+# RFC-1035 limits domain labels to 63 characters, and RP slugs are used for subdomains,
+# so we limit to 63 chars
+RP_SLUG_MAX_LENGTH = 63
 
 
 class Feature(IndexedTimeStampedModel):
@@ -73,18 +74,27 @@ CURRENCY_CHOICES = [(k, k) for k, _ in settings.CURRENCIES.items()]
 
 class Organization(IndexedTimeStampedModel, RoleAssignmentResourceModelMixin):
     name = models.CharField(max_length=255, unique=True)
-    plan = models.ForeignKey("organizations.Plan", null=True, on_delete=models.CASCADE)
-    address = models.OneToOneField("common.Address", on_delete=models.CASCADE)
+    plan = models.ForeignKey("organizations.Plan", null=True, on_delete=models.PROTECT)
     salesforce_id = models.CharField(max_length=255, blank=True, verbose_name="Salesforce ID")
 
+    # TODO: [DEV-2035] Remove Organization.slug field entirely
     slug = models.SlugField(
-        max_length=SLUG_MAX_LENGTH,
+        # 63 here is somewhat arbitrary. This used to be set to `RP_SLUG_MAX_LENGTH` (which used to have a different name),
+        # which is the maximum length a domain can be according to RFC-1035. We're retaining that value
+        # but without a reference to the constant, because using the constant would imply there
+        # are business requirements related to sub-domain length around this field which there are not
+        # (and given TODO above, it would appear that the business requirements that originally
+        # led to org slug being a field are no longer around)
+        max_length=63,
         unique=True,
         validators=[validate_slug_against_denylist],
     )
 
     users = models.ManyToManyField("users.User", through="users.OrganizationUser")
-    uses_email_templates = models.BooleanField(default=False)
+    send_receipt_email_via_nre = models.BooleanField(
+        default=True,
+        help_text="If false, receipt email assumed to be sent via Salesforce. Other emails, e.g. magic_link, are always sent via NRE regardless of this setting",
+    )
 
     @property
     def admin_revenueprogram_options(self):
@@ -183,17 +193,26 @@ class BenefitLevelBenefit(models.Model):
         return f'Benefit {self.order} for "{self.benefit_level}" benefit level'
 
 
+class CountryChoices(models.TextChoices):
+    """Two-letter country codes
+
+    These are used in RevenueProgram for the country value. In turn, they get sent to Stripe
+    in SPA when payment request is made.
+    """
+
+    US = "US", "United States"
+    CANADA = "CA", "Canada"
+
+
 class RevenueProgram(IndexedTimeStampedModel):
     name = models.CharField(max_length=255)
     slug = models.SlugField(
-        max_length=SLUG_MAX_LENGTH,
+        max_length=RP_SLUG_MAX_LENGTH,
         blank=True,
         unique=True,
         help_text="This will be used as the subdomain for donation pages made under this revenue program. If left blank, it will be derived from the Revenue Program name.",
         validators=[validate_slug_against_denylist],
     )
-    address = models.OneToOneField("common.Address", on_delete=models.SET_NULL, null=True)
-    social_meta = models.OneToOneField("common.SocialMeta", on_delete=models.SET_NULL, null=True)
     organization = models.ForeignKey("organizations.Organization", on_delete=models.CASCADE)
     contact_email = models.EmailField(max_length=255, blank=True)
     default_donation_page = models.ForeignKey(
@@ -230,6 +249,13 @@ class RevenueProgram(IndexedTimeStampedModel):
         help_text="Should page authors for this Revenue Program see the option to offer their donors a comp subscription to the New York Times?",
         verbose_name="Allow page editors to offer an NYT subscription",
     )
+    country = models.CharField(
+        max_length=2,
+        choices=CountryChoices.choices,
+        default=CountryChoices.US,
+        verbose_name="Country",
+        help_text="2-letter country code of RP's company. This gets included in data sent to stripe when creating a payment",
+    )
 
     @property
     def admin_style_options(self):
@@ -251,8 +277,7 @@ class RevenueProgram(IndexedTimeStampedModel):
 
     def clean_fields(self, **kwargs):
         if not self.id:
-            self.slug = normalize_slug(self.name, self.slug, max_length=SLUG_MAX_LENGTH)
-            self.slug = normalize_slug(slug=self.slug, max_length=SLUG_MAX_LENGTH)
+            self.slug = normalize_slug(self.name, self.slug, max_length=RP_SLUG_MAX_LENGTH)
         super().clean_fields(**kwargs)
 
     def clean(self):

@@ -30,8 +30,8 @@ describe('Donation page edit', () => {
   before(() => {
     cy.forceLogin(orgAdminUser);
     cy.intercept({ method: 'GET', pathname: getEndpoint(USER) }, { body: orgAdminWithContentFlag });
-    cy.intercept({ method: 'GET', pathname: getEndpoint(LIST_STYLES) }, { });
-    
+    cy.intercept({ method: 'GET', pathname: getEndpoint(LIST_STYLES) }, {});
+
     cy.intercept(
       { method: 'GET', pathname: `${getEndpoint(DRAFT_PAGE_DETAIL)}**` },
       { fixture: 'pages/live-page-1', statusCode: 200 }

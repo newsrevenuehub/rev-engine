@@ -93,6 +93,7 @@ describe('Donation page edit', () => {
 
       it('should accept valid input and changes should show on page', () => {
         // Now check one and accept
+        cy.intercept(`**/${LIST_STYLES}**`, {});
         cy.getByTestId('frequency-toggle').contains('One time').click();
         cy.getByTestId('keep-element-changes-button').click({ force: true });
 
@@ -115,6 +116,7 @@ describe('Donation page edit', () => {
     const options = amountElement.content.options;
 
     before(() => {
+      cy.intercept(`**/${LIST_STYLES}**`, {});
       cy.editElement('DFrequency');
       cy.getByTestId('frequency-editor').find('li').first().click();
       cy.getByTestId('frequency-editor').find('li').click({ multiple: true });
@@ -241,6 +243,8 @@ describe('Donation page edit', () => {
         { method: 'GET', pathname: `${getEndpoint(DRAFT_PAGE_DETAIL)}**` },
         { body: page, statusCode: 200 }
       ).as('getPage');
+      cy.intercept(`**/${LIST_STYLES}**`, {});
+
       cy.visit('dashboard/edit/my/page');
       cy.url().should('include', 'dashboard/edit/my/page');
       cy.wait('@getPage');
@@ -261,6 +265,8 @@ describe('Donation page edit', () => {
       cy.intercept({ method: 'GET', pathname: getEndpoint(DRAFT_PAGE_DETAIL) }, { body: page, statusCode: 200 }).as(
         'getPageDetail'
       );
+      cy.intercept(`**/${LIST_STYLES}**`, {});
+
       cy.forceLogin(orgAdminUser);
       cy.intercept({ method: 'GET', pathname: getEndpoint(USER) }, { body: orgAdminWithContentFlag });
       cy.visit('dashboard/edit/my/page');
@@ -293,6 +299,8 @@ describe('Donation page edit', () => {
         { fixture: 'pages/unpublished-page-1.json' }
       ).as('getPageDetail');
       cy.forceLogin(orgAdminUser);
+      cy.intercept(`**/${LIST_STYLES}**`, {});
+
       cy.intercept({ method: 'GET', pathname: getEndpoint(USER) }, { body: orgAdminWithContentFlag });
       cy.visit('dashboard/edit/my/page');
       cy.wait('@getPageDetail');
@@ -326,6 +334,8 @@ describe('Donation page edit', () => {
         { fixture: 'pages/live-page-element-validation.json' }
       ).as('getPageDetailModified');
       cy.forceLogin(orgAdminUser);
+      cy.intercept({ method: 'GET', pathname: getEndpoint(LIST_STYLES) }, {});
+
       cy.intercept({ method: 'GET', pathname: getEndpoint(USER) }, { body: orgAdminWithContentFlag });
       cy.visit('dashboard/edit/my/page');
       cy.wait('@getPageDetailModified');
@@ -353,7 +363,10 @@ describe('Donation page edit', () => {
         { method: 'GET', pathname: getEndpoint(DRAFT_PAGE_DETAIL) },
         { fixture: 'pages/live-page-1', statusCode: 200 }
       ).as('getPageDetail');
+      cy.intercept({ method: 'GET', pathname: getEndpoint(LIST_STYLES) }, {});
+
       cy.visit('dashboard/edit/my/page');
+
       cy.url().should('include', 'dashboard/edit/my/page');
       cy.wait('@getPageDetail');
       cy.getByTestId('edit-page-button').click();
@@ -369,6 +382,9 @@ describe('Donation page edit', () => {
     it('should update donation page view with new content', () => {
       const previousHeading = livePage.heading;
       const newHeading = 'My new test heading';
+      cy.intercept({ method: 'GET', pathname: getEndpoint(LIST_STYLES) }, {});
+      cy.intercept({ method: 'GET', pathname: getEndpoint(TEMPLATES) }, {});
+
       cy.getByTestId('setup-heading-input').clear();
       cy.getByTestId('setup-heading-input').type(newHeading);
       cy.getByTestId('keep-element-changes-button').scrollIntoView().click();
@@ -383,6 +399,7 @@ describe('Donation page edit', () => {
       cy.getByTestId('publish-widget').contains(expectedFormat);
     });
     it('should show a warning when updating a live page', () => {
+      cy.intercept({ method: 'GET', pathname: getEndpoint(LIST_STYLES) }, {});
       cy.getByTestId('publish-widget').click();
       cy.contains('18').click();
       cy.getByTestId('keep-element-changes-button').click({ force: true });
@@ -396,6 +413,8 @@ describe('Donation page edit', () => {
     before(() => {
       cy.forceLogin(orgAdminUser);
       cy.intercept({ method: 'GET', pathname: getEndpoint(USER) }, { body: orgAdminWithContentFlag });
+      cy.intercept({ method: 'GET', pathname: getEndpoint(LIST_STYLES) }, {});
+
       cy.intercept(
         { method: 'GET', pathname: getEndpoint(DRAFT_PAGE_DETAIL) },
         { fixture: 'pages/live-page-1', statusCode: 200 }
@@ -421,6 +440,8 @@ describe('Donation page edit', () => {
     });
 
     it('Can add an element', () => {
+      cy.intercept({ method: 'GET', pathname: getEndpoint(LIST_STYLES) }, {});
+
       cy.getByTestId('add-element-button').click();
       cy.getByTestId('add-page-modal').within(() => {
         cy.getByTestId('page-item-DRichText').click();
@@ -430,6 +451,8 @@ describe('Donation page edit', () => {
     });
 
     it('can be added to the page', () => {
+      cy.intercept({ method: 'GET', pathname: getEndpoint(LIST_STYLES) }, {});
+
       cy.getByTestId('edit-page-button').click({ force: true });
       cy.getByTestId('sidebar-tab').click({ force: true });
       cy.editElement('DRichText');
@@ -456,6 +479,8 @@ describe('Donation page delete', () => {
       { method: 'GET', pathname: getEndpoint(DRAFT_PAGE_DETAIL) },
       { fixture: 'pages/unpublished-page-1', statusCode: 200 }
     ).as('getPage');
+    cy.intercept({ method: 'GET', pathname: getEndpoint(LIST_STYLES) }, {});
+
     cy.visit('dashboard/edit/my/page');
     cy.wait(['@getPage']);
     cy.getByTestId('delete-page-button').click();
@@ -470,6 +495,8 @@ describe('Donation page delete', () => {
       { method: 'GET', pathname: getEndpoint(DRAFT_PAGE_DETAIL) },
       { fixture: 'pages/live-page-1', statusCode: 200 }
     ).as('getPage');
+    cy.intercept(`**/${LIST_STYLES}**`, {});
+
     cy.visit('dashboard/edit/my/page');
     cy.wait(['@getPage']);
     cy.getByTestId('delete-page-button').click();
@@ -491,6 +518,8 @@ describe('Page load side effects', () => {
       { method: 'GET', pathname: getEndpoint(DRAFT_PAGE_DETAIL) },
       { fixture: 'pages/live-page-1', statusCode: 200 }
     ).as('getPageDetail');
+    cy.intercept(`**/${LIST_STYLES}**`, {});
+
     cy.visit('dashboard/edit/my/page');
     cy.url().should('include', 'dashboard/edit/my/page');
     cy.wait('@getPageDetail');
@@ -508,6 +537,8 @@ describe('Template from page', () => {
       { method: 'GET', pathname: getEndpoint(DRAFT_PAGE_DETAIL) },
       { fixture: 'pages/live-page-1', statusCode: 200 }
     ).as('getPageDetail');
+    cy.intercept(`**/${LIST_STYLES}**`, {});
+
     cy.visit('dashboard/edit/my/page');
     cy.url().should('include', 'dashboard/edit/my/page');
     cy.wait('@getPageDetail');
@@ -550,6 +581,8 @@ describe('ReasonEditor', () => {
       { method: 'GET', pathname: getEndpoint(DRAFT_PAGE_DETAIL) },
       { fixture: 'pages/live-page-1', statusCode: 200 }
     ).as('getPageDetail');
+    cy.intercept(`**/${LIST_STYLES}**`, {});
+
     cy.visit('dashboard/edit/my/page');
     cy.url().should('include', 'dashboard/edit/my/page');
     cy.wait('@getPageDetail');

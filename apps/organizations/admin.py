@@ -4,11 +4,11 @@ from pathlib import Path
 from django.contrib import admin
 from django.db.models import Q
 
-from django_reverse_admin import ReverseModelAdmin
 from reversion.admin import VersionAdmin
 from sorl.thumbnail.admin import AdminImageMixin
 
 from apps.common.admin import RevEngineBaseAdmin
+from apps.common.models import SocialMeta
 from apps.organizations.forms import FeatureForm
 from apps.organizations.models import (
     Benefit,
@@ -19,6 +19,10 @@ from apps.organizations.models import (
     Plan,
     RevenueProgram,
 )
+
+
+class SocialMetaInline(admin.StackedInline):
+    model = SocialMeta
 
 
 class NoRelatedInlineAddEditAdminMixin:  # pragma: no cover
@@ -75,7 +79,7 @@ class BenefitLevelBenefit(NoRelatedInlineAddEditAdminMixin, ReadOnlyOrgLimitedTa
 
 
 @admin.register(Organization)
-class OrganizationAdmin(RevEngineBaseAdmin, VersionAdmin, ReverseModelAdmin):  # pragma: no cover
+class OrganizationAdmin(RevEngineBaseAdmin, VersionAdmin):  # pragma: no cover
     organization_fieldset = (
         (
             "Organization",
@@ -99,12 +103,17 @@ class OrganizationAdmin(RevEngineBaseAdmin, VersionAdmin, ReverseModelAdmin):  #
 
     fieldsets = organization_fieldset
 
-    list_display = ["name", "plan"]
+    list_display = [
+        "name",
+        "plan",
+    ]
 
-    list_filter = ["name", "plan", "address__state"]
+    list_filter = [
+        "name",
+        "plan",
+    ]
 
     inline_type = "stacked"
-    inline_reverse = [("address", {"fields": ["address1", "address2", "city", "state", "postal_code", "country"]})]
 
     readonly_fields = ["name"]
 
@@ -156,11 +165,21 @@ class BenefitLevelAdmin(RevEngineBaseAdmin, VersionAdmin):
 
 
 @admin.register(RevenueProgram)
-class RevenueProgramAdmin(RevEngineBaseAdmin, VersionAdmin, ReverseModelAdmin, AdminImageMixin):  # pragma: no cover
+class RevenueProgramAdmin(RevEngineBaseAdmin, VersionAdmin, AdminImageMixin):  # pragma: no cover
     fieldsets = (
         (
             "RevenueProgram",
-            {"fields": ("name", "slug", "contact_email", "organization", "default_donation_page", "non_profit")},
+            {
+                "fields": (
+                    "name",
+                    "slug",
+                    "contact_email",
+                    "organization",
+                    "default_donation_page",
+                    "non_profit",
+                    "country",
+                )
+            },
         ),
         (
             "Stripe",
@@ -196,16 +215,21 @@ class RevenueProgramAdmin(RevEngineBaseAdmin, VersionAdmin, ReverseModelAdmin, A
         ),
     )
 
-    list_display = ["name", "organization", "slug"]
+    list_display = [
+        "name",
+        "organization",
+        "slug",
+        "country",
+    ]
 
-    list_filter = ["name"]
+    list_filter = [
+        "name",
+        "country",
+    ]
 
     inline_type = "stacked"
-    inline_reverse = [
-        ("social_meta", {"fields": ["title", "description", "url", "card"]}),
-        ("address", {"fields": ["address1", "address2", "city", "state", "postal_code"]}),
-    ]
-    inlines = [RevenueProgramBenefitLevelInline]
+
+    inlines = [RevenueProgramBenefitLevelInline, SocialMetaInline]
 
     # Overriding this template to add the `admin_limited_select` inclusion tag
     change_form_template = "organizations/revenueprogram_changeform.html"

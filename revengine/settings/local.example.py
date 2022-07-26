@@ -10,4 +10,4 @@ INSTALLED_APPS += (
 
 ALLOWED_HOSTS = ["localhost", "172.20.1.211"]
 
-SECURE_SSL_REDIRECT = os.environ.get("SECURE_SSL_REDIRECT", "false").lower() == "true"
+SECURE_SSL_REDIRECT = os.getenv("SECURE_SSL_REDIRECT", "false").lower() == "true"

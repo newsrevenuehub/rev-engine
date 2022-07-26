@@ -11,6 +11,7 @@ https://docs.djangoproject.com/en/3.2/ref/settings/
 
 import os
 from datetime import timedelta
+from pathlib import Path
 
 
 DEBUG = os.getenv("DJANGO_DEBUG", "False") == "True"
@@ -128,10 +129,12 @@ MIDDLEWARE = [
     "waffle.middleware.WaffleMiddleware",
 ]
 
+
 TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
         "DIRS": [
+            Path(BASE_DIR) / "spa/public",  # Serve SPA via django.
             os.path.join(PROJECT_DIR, "templates"),
         ],
         "APP_DIRS": True,
@@ -146,9 +149,14 @@ TEMPLATES = [
     },
 ]
 
+
+# Database
+# https://docs.djangoproject.com/en/3.0/ref/settings/#databases
+
 # https://docs.djangoproject.com/en/3.2/ref/settings/#databases
 # Default changed to BigAutoField in 3.2 https://docs.djangoproject.com/en/4.0/releases/3.2/#customizing-type-of-auto-created-primary-keys
 DEFAULT_AUTO_FIELD = "django.db.models.AutoField"
+
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.postgresql_psycopg2",
@@ -168,6 +176,7 @@ if os.getenv("DATABASE_URL"):
     )
     DATABASES["default"].update(db_from_env)
 
+
 # Password validation
 # https://docs.djangoproject.com/en/3.2/ref/settings/#auth-password-validators
 AUTH_PASSWORD_VALIDATORS = [
@@ -184,6 +193,34 @@ AUTH_PASSWORD_VALIDATORS = [
         "NAME": "django.contrib.auth.password_validation.NumericPasswordValidator",
     },
 ]
+
+## Cache Settings
+# Contributions cache set to 30 minutes < CONTRIBUTOR_LONG_TOKEN_LIFETIME
+CONTRIBUTION_CACHE_TTL = timedelta(minutes=30)
+DEFAULT_CACHE = "default"
+
+REDIS_URL = os.getenv("REDIS_TLS_URL", os.getenv("REDIS_URL", "redis://redis:6379"))
+CACHE_HOST = REDIS_URL
+CONNECTION_POOL_KWARGS = {}
+if CACHE_HOST.startswith("rediss"):
+    import ssl
+
+    # See: https://github.com/mirumee/saleor/issues/6926
+    CONNECTION_POOL_KWARGS = {
+        "ssl_cert_reqs": ssl.CERT_NONE,
+    }
+
+CACHES = {
+    "default": {
+        "BACKEND": "django_redis.cache.RedisCache",
+        "LOCATION": f"{CACHE_HOST}/0",
+        "OPTIONS": {
+            "CLIENT_CLASS": "django_redis.client.DefaultClient",
+            "CONNECTION_POOL_KWARGS": CONNECTION_POOL_KWARGS,
+        },
+    },
+}
+
 
 ### Logging Settings
 # MIDDLEWARE_LOGGING_CODES is not Django, used by LogFourHundredsMiddleware.
@@ -245,7 +282,6 @@ REST_FRAMEWORK = {
     "DEFAULT_PAGINATION_CLASS": "apps.api.pagination.ApiStandardPagination",
     "PAGE_SIZE": 10,
 }
-
 
 ### django-test-migrations
 # we ignore waffle and celery beat's migrations because they are beyond our control,

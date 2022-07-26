@@ -1,5 +1,4 @@
 import os
-from pathlib import Path
 
 from .base import *  # noqa
 
@@ -40,10 +39,14 @@ if os.getenv("TEST_EMAIL", "False") == "True":
 
 
 # Celery
-BROKER_URL = "redis://localhost:6379"
-CELERY_RESULT_BACKEND = "redis://localhost:6379"
+BROKER_URL = os.getenv("BROKER_URL", "memory://")
+CELERY_RESULT_BACKEND = os.getenv("CELERY_RESULT_BACKEND", "cache")
+CELERY_CACHE_BACKEND = BROKER_URL
 CELERY_IMPORTS = ("apps.emails.tasks",)
 
-# Serve SPA via django
-FRONTEND_BUILD_DIR = Path(BASE_DIR) / "spa/public"
-TEMPLATES[0]["DIRS"] = [FRONTEND_BUILD_DIR, os.path.join(PROJECT_DIR, "templates")]
+if BROKER_URL.startswith("memory"):
+    CACHES = {
+        "default": {
+            "BACKEND": "django.core.cache.backends.dummy.DummyCache",
+        }
+    }

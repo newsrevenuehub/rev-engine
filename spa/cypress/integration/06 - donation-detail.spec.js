@@ -30,7 +30,7 @@ describe('Donation detail', () => {
       cy.intercept('GET', getEndpoint(`${CONTRIBUTIONS}/${CONTRIBUTION_PK}/`), {
         body: unflaggedContributionDetailData
       }).as('getUnflaggedDonation');
-      cy.visit(`/dashboard/contributions/${CONTRIBUTION_PK}`);
+      cy.visit(`/contributions/${CONTRIBUTION_PK}`);
     });
     it('should display donation details', () => {
       cy.wait('@getUnflaggedDonation');
@@ -56,7 +56,7 @@ describe('Donation detail', () => {
       cy.intercept('GET', getEndpoint(`${CONTRIBUTIONS}/${CONTRIBUTION_PK}/`), {
         body: prevFlaggedContributionDetailData
       }).as('getNoLongerFlaggedDonation');
-      cy.visit(`/dashboard/contributions/${CONTRIBUTION_PK}`);
+      cy.visit(`/contributions/${CONTRIBUTION_PK}`);
     });
 
     it('should display flagged details in addition to donation details', () => {

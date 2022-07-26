@@ -12,6 +12,11 @@ export const revEngineTheme = {
     inputBackground: '#fff',
     inputBorder: '#c3c3c3',
 
+    sidebarBackground: '#25192B',
+    topbarBackground: '#523A5E',
+    navSelectedBackground: '#eaf37a',
+    navSectionLabelColor: '#ddcbe7',
+
     black: '#080708',
 
     white: '#ffffff',
@@ -43,7 +48,8 @@ export const revEngineTheme = {
 
   breakpoints: {
     phoneOnly: 'max-width: 599px',
-    tabletLandscapeDown: 'max-width: 900px'
+    tabletLandscapeDown: 'max-width: 900px',
+    tabletLandscapeUp: 'min-width: 900px'
   },
 
   maxWidths: {

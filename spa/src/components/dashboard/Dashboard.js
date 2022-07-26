@@ -1,4 +1,4 @@
-import { Route, Switch, Redirect } from 'react-router-dom';
+import { Route, Switch, Redirect, useLocation } from 'react-router-dom';
 
 import * as S from './Dashboard.styled';
 
@@ -6,15 +6,13 @@ import * as S from './Dashboard.styled';
 import { DONATIONS_SLUG, CONTENT_SLUG, EDITOR_ROUTE_PAGE, DASHBOARD_SLUG, CUSTOMIZE_SLUG } from 'routes';
 
 // Children
-import { usePaymentProviderContext, useFeatureFlagsProviderContext } from 'components/Main';
+import { useUserProviderContext } from 'components/Main';
 import LivePage404 from 'components/common/LivePage404';
-import { PP_STATES } from 'components/connect/BaseProviderInfo';
 import DashboardSidebar from 'components/dashboard/sidebar/DashboardSidebar';
+import DashboardTopbar from 'components/dashboard/topbar/DashboardTopbar';
 import Donations from 'components/donations/Donations';
 import Content from 'components/content/Content';
 import Customize from 'components/content/Customize';
-import GlobalLoading from 'elements/GlobalLoading';
-import ProviderConnect from 'components/connect/ProviderConnect';
 import PageEditor from 'components/pageEditor/PageEditor';
 
 // Feature flag-related
@@ -26,25 +24,14 @@ import {
 import flagIsActiveForUser from 'utilities/flagIsActiveForUser';
 
 function Dashboard() {
-  const { featureFlags } = useFeatureFlagsProviderContext();
+  const { user } = useUserProviderContext();
+  //console.log(user.flags);
+
+  const featureFlags = user?.flags;
 
   const hasContributionsSectionAccess = flagIsActiveForUser(CONTRIBUTIONS_SECTION_ACCESS_FLAG_NAME, featureFlags);
 
   const hasContentSectionAccess = flagIsActiveForUser(CONTENT_SECTION_ACCESS_FLAG_NAME, featureFlags);
-
-  const { checkingProvider, paymentProviderConnectState } = usePaymentProviderContext();
-
-  const getShouldAllowDashboard = () => {
-    const isConnected =
-      paymentProviderConnectState === PP_STATES.CONNECTED || paymentProviderConnectState === PP_STATES.RESTRICTED;
-    return !checkingProvider && isConnected;
-  };
-
-  const getShouldRequireConnect = () => {
-    const notConnected =
-      paymentProviderConnectState === PP_STATES.NOT_CONNECTED || paymentProviderConnectState === PP_STATES.FAILED;
-    return !checkingProvider && notConnected;
-  };
 
   const dashboardSlugRedirect = hasContentSectionAccess
     ? CONTENT_SLUG
@@ -52,13 +39,15 @@ function Dashboard() {
     ? DONATIONS_SLUG
     : 'not-found';
 
+  const isEditPage = useLocation().pathname.includes('/dashboard/edit');
+
   return (
-    <S.Dashboard data-testid="dashboard">
-      <DashboardSidebar shouldAllowDashboard={getShouldAllowDashboard()} />
-      <S.DashboardMain>
-        {checkingProvider && <GlobalLoading />}
-        <S.DashboardContent>
-          {getShouldAllowDashboard() && (
+    <S.Outer>
+      <DashboardTopbar isEditPage={isEditPage} />
+      <S.Dashboard data-testid="dashboard">
+        <DashboardSidebar />
+        <S.DashboardMain>
+          <S.DashboardContent>
             <Switch>
               <Redirect exact from={DASHBOARD_SLUG} to={dashboardSlugRedirect} />
 
@@ -86,11 +75,10 @@ function Dashboard() {
                 <LivePage404 dashboard />
               </Route>
             </Switch>
-          )}
-          {getShouldRequireConnect() && <ProviderConnect />}
-        </S.DashboardContent>
-      </S.DashboardMain>
-    </S.Dashboard>
+          </S.DashboardContent>
+        </S.DashboardMain>
+      </S.Dashboard>
+    </S.Outer>
   );
 }
 

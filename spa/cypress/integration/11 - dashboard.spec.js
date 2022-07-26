@@ -67,7 +67,7 @@ describe('Dashboard', () => {
       // we visit this so that can confirm sidebar
       cy.visit(DONATIONS_SLUG);
       cy.getByTestId('nav-list').should('exist');
-      cy.getByTestId('nav-content-item').should('not.exist');
+      cy.getByTestId('nav-pages-item').should('not.exist');
       cy.visit(CONTENT_SLUG);
       cy.url().should('include', CONTENT_SLUG);
       cy.getByTestId('content').should('not.exist');
@@ -77,7 +77,7 @@ describe('Dashboard', () => {
     it('should show `Content= section and sidbar element', () => {
       cy.intercept({ method: 'GET', pathname: getEndpoint(USER) }, { body: hubAdminWithAllFlags });
       cy.visit(DONATIONS_SLUG);
-      cy.getByTestId('nav-content-item').should('exist');
+      cy.getByTestId('nav-pages-item').should('exist');
       cy.visit(CONTENT_SLUG);
       cy.url().should('include', CONTENT_SLUG);
       cy.getByTestId('content').should('exist');

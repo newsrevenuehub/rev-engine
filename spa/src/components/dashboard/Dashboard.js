@@ -1,4 +1,4 @@
-import { Route, Switch, Redirect } from 'react-router-dom';
+import { Route, Switch, Redirect, useLocation } from 'react-router-dom';
 
 import * as S from './Dashboard.styled';
 
@@ -10,6 +10,7 @@ import { usePaymentProviderContext, useFeatureFlagsProviderContext } from 'compo
 import LivePage404 from 'components/common/LivePage404';
 import { PP_STATES } from 'components/connect/BaseProviderInfo';
 import DashboardSidebar from 'components/dashboard/sidebar/DashboardSidebar';
+import DashboardTopbar from 'components/dashboard/topbar/DashboardTopbar';
 import Donations from 'components/donations/Donations';
 import Content from 'components/content/Content';
 import Customize from 'components/content/Customize';
@@ -52,45 +53,50 @@ function Dashboard() {
     ? DONATIONS_SLUG
     : 'not-found';
 
-  return (
-    <S.Dashboard data-testid="dashboard">
-      <DashboardSidebar shouldAllowDashboard={getShouldAllowDashboard()} />
-      <S.DashboardMain>
-        {checkingProvider && <GlobalLoading />}
-        <S.DashboardContent>
-          {getShouldAllowDashboard() && (
-            <Switch>
-              <Redirect exact from={DASHBOARD_SLUG} to={dashboardSlugRedirect} />
+  const isEditPage = useLocation().pathname.includes('/dashboard/edit');
 
-              {hasContributionsSectionAccess ? (
-                <Route path={DONATIONS_SLUG}>
-                  <Donations />
+  return (
+    <S.Outer>
+      <DashboardTopbar isEditPage={isEditPage} />
+      <S.Dashboard data-testid="dashboard">
+        {isEditPage ? null : getShouldAllowDashboard() && <DashboardSidebar />}
+        <S.DashboardMain>
+          {checkingProvider && <GlobalLoading />}
+          <S.DashboardContent>
+            {getShouldAllowDashboard() && (
+              <Switch>
+                <Redirect exact from={DASHBOARD_SLUG} to={dashboardSlugRedirect} />
+
+                {hasContributionsSectionAccess ? (
+                  <Route path={DONATIONS_SLUG}>
+                    <Donations />
+                  </Route>
+                ) : null}
+                {hasContentSectionAccess ? (
+                  <Route path={CONTENT_SLUG}>
+                    <Content />
+                  </Route>
+                ) : null}
+                {hasContentSectionAccess ? (
+                  <Route path={CUSTOMIZE_SLUG}>
+                    <Customize />
+                  </Route>
+                ) : null}
+                {hasContentSectionAccess ? (
+                  <Route path={EDITOR_ROUTE_PAGE}>
+                    <PageEditor />
+                  </Route>
+                ) : null}
+                <Route>
+                  <LivePage404 dashboard />
                 </Route>
-              ) : null}
-              {hasContentSectionAccess ? (
-                <Route path={CONTENT_SLUG}>
-                  <Content />
-                </Route>
-              ) : null}
-              {hasContentSectionAccess ? (
-                <Route path={CUSTOMIZE_SLUG}>
-                  <Customize />
-                </Route>
-              ) : null}
-              {hasContentSectionAccess ? (
-                <Route path={EDITOR_ROUTE_PAGE}>
-                  <PageEditor />
-                </Route>
-              ) : null}
-              <Route>
-                <LivePage404 dashboard />
-              </Route>
-            </Switch>
-          )}
-          {getShouldRequireConnect() && <ProviderConnect />}
-        </S.DashboardContent>
-      </S.DashboardMain>
-    </S.Dashboard>
+              </Switch>
+            )}
+            {getShouldRequireConnect() && <ProviderConnect />}
+          </S.DashboardContent>
+        </S.DashboardMain>
+      </S.Dashboard>
+    </S.Outer>
   );
 }
 

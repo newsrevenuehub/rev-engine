@@ -1,5 +1,5 @@
 import { getEndpoint } from '../support/util';
-import { LIST_STYLES, USER } from 'ajax/endpoints';
+import { LIST_PAGES, LIST_FONTS, LIST_STYLES, USER } from 'ajax/endpoints';
 import { CUSTOMIZE_SLUG } from 'routes';
 import stylesList from '../fixtures/styles/list-styles-1.json';
 
@@ -23,6 +23,8 @@ describe('Styles list', () => {
     cy.forceLogin(hubAdminUser);
     cy.intercept(getEndpoint(LIST_STYLES), { fixture: 'styles/list-styles-1' }).as('listStyles');
     cy.intercept({ method: 'GET', pathname: getEndpoint(USER) }, { body: hubAdminWithContentFlag });
+    cy.intercept({ method: 'GET', pathname: getEndpoint(LIST_PAGES) }, {});
+    cy.intercept({ method: 'GET', pathname: getEndpoint(LIST_FONTS) }, {});
     cy.visit(CUSTOMIZE_SLUG);
     cy.url().should('include', CUSTOMIZE_SLUG);
     cy.wait('@listStyles');

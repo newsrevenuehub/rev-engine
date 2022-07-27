@@ -7,7 +7,12 @@ export const ICONS = {
   CHECK_MARK: 'check-mark',
   LOGOUT: 'logout',
   ARROW_LEFT: 'arrow-left',
-  STRIPE_POWERED: 'powered-by-stripe'
+  STRIPE_POWERED: 'powered-by-stripe',
+  NOTIFICATIONS: 'notifications',
+  PAGES: 'pages',
+  CONTRIBUTIONS: 'contributions',
+  CUSTOMIZE: 'customize',
+  DASHBOARD: 'dashboard'
 };
 
 function SvgIcon({ icon, ...props }) {

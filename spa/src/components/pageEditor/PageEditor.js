@@ -34,6 +34,7 @@ import { CAPTURE_PAGE_SCREENSHOT } from 'settings';
 
 // Assets
 import { faEye, faEdit, faSave, faTrash, faClone } from '@fortawesome/free-solid-svg-icons';
+import { ICONS } from 'assets/icons/SvgIcon';
 
 // Context
 import { useGlobalContext } from 'components/MainLayout';
@@ -42,6 +43,7 @@ import validatePage from './validatePage';
 // Hooks
 import useWebFonts from 'hooks/useWebFonts';
 import { useConfigureAnalytics } from 'components/analytics';
+import useModal from 'hooks/useModal';
 
 // Children
 import CircleButton from 'elements/buttons/CircleButton';
@@ -50,7 +52,9 @@ import DonationPage from 'components/donationPage/DonationPage';
 import GlobalLoading from 'elements/GlobalLoading';
 import EditInterface from 'components/pageEditor/editInterface/EditInterface';
 import BackButton from 'elements/BackButton';
+import { BackIcon } from 'elements/BackButton.styled';
 import CreateTemplateModal from 'components/pageEditor/CreateTemplateModal';
+import UnsavedChangesModal from 'components/pageEditor/UnsavedChangesModal';
 
 const PageEditorContext = createContext();
 
@@ -88,7 +92,12 @@ function PageEditor() {
   const [loading, setLoading] = useState(false);
   const [page, setPage] = useState();
   const [availableStyles, setAvailableStyles] = useState([]);
-  const [showCreateTemplateModal, setShowCreateTemplateModal] = useState(false);
+  const {
+    open: showCreateTemplateModal,
+    handleClose: closeCreateTemplateModal,
+    handleOpen: openCreateTemplateModal
+  } = useModal();
+  const { open: showUnsavedModal, handleClose: closeUnsavedModal, handleOpen: openUnsavedModal } = useModal();
 
   const [updatedPage, setUpdatedPage] = useState();
   const [selectedButton, setSelectedButton] = useState(PREVIEW);
@@ -177,11 +186,9 @@ function PageEditor() {
 
   const handleMakeTemplate = () => {
     if (updatedPage) {
-      getUserConfirmation('Page template will not include unsaved changes. Continue?', () =>
-        setShowCreateTemplateModal(true)
-      );
+      getUserConfirmation('Page template will not include unsaved changes. Continue?', () => openCreateTemplateModal());
     } else {
-      setShowCreateTemplateModal(true);
+      openCreateTemplateModal();
     }
   };
 
@@ -399,17 +406,22 @@ function PageEditor() {
                 data-testid="delete-page-button"
               />
 
-              <BackButton to={CONTENT_SLUG} />
+              {updatedPage ? (
+                <CircleButton onClick={openUnsavedModal} buttonType="neutral">
+                  <BackIcon icon={ICONS.ARROW_LEFT} />
+                </CircleButton>
+              ) : (
+                <BackButton to={CONTENT_SLUG} />
+              )}
             </S.ButtonOverlay>
           </S.ButtonOverlayOuter>
         )}
       </S.PageEditor>
       {showCreateTemplateModal && (
-        <CreateTemplateModal
-          page={page}
-          isOpen={showCreateTemplateModal}
-          closeModal={() => setShowCreateTemplateModal(false)}
-        />
+        <CreateTemplateModal page={page} isOpen={showCreateTemplateModal} closeModal={closeCreateTemplateModal} />
+      )}
+      {showUnsavedModal && (
+        <UnsavedChangesModal to={CONTENT_SLUG} isOpen={showUnsavedModal} closeModal={closeUnsavedModal} />
       )}
     </PageEditorContext.Provider>
   );

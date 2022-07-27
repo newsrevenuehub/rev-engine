@@ -5,10 +5,12 @@ from rest_framework import serializers
 
 from apps.api.error_messages import GENERIC_BLANK
 from apps.contributions.models import (
+    CardBrand,
     Contribution,
     ContributionInterval,
     ContributionStatus,
     Contributor,
+    PaymentType,
 )
 from apps.contributions.utils import format_ambiguous_currency
 from apps.pages.models import DonationPage
@@ -462,3 +464,25 @@ class StripeRecurringPaymentSerializer(AbstractPaymentSerializer):
     """
 
     payment_method_id = serializers.CharField(max_length=255)
+
+
+class PaymentProviderContributionSerializer(serializers.Serializer):
+    """
+    Payments provider serializer, payment provider Eg: Stripe.
+    """
+
+    # id will be charge object id in our case, which will start with ch_ and doesn't exceed 255 chars
+    # https://stripe.com/docs/upgrades#what-changes-does-stripe-consider-to-be-backwards-compatible
+    id = serializers.CharField(max_length=255)
+    status = serializers.ChoiceField(choices=ContributionStatus.choices)
+    card_brand = serializers.ChoiceField(choices=CardBrand.choices, required=False, allow_null=True)
+    last4 = serializers.IntegerField()
+    payment_type = serializers.ChoiceField(choices=PaymentType.choices, required=False, allow_null=True)
+    next_payment_date = serializers.DateTimeField()
+    interval = serializers.ChoiceField(choices=ContributionInterval.choices)
+    revenue_program = serializers.CharField(max_length=63)
+    amount = serializers.IntegerField()
+    provider_customer_id = serializers.CharField(max_length=255)
+    credit_card_expiration_date = serializers.CharField(max_length=7)
+    created = serializers.DateTimeField()
+    last_payment_date = serializers.DateTimeField()

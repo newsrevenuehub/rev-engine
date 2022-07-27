@@ -223,11 +223,13 @@ class ContributionsCacheProvider:
         cached_data.update(data)
 
         with self.cache.lock(f"{self.key}-lock"):
+            logger.info("Inserting %s contributions into cache with key %s", len(data), self.key)
             self.cache.set(self.key, json.dumps(cached_data), timeout=CONTRIBUTION_CACHE_TTL.seconds)
 
     def load(self):
         """Gets the contributions data from cache for a specefic email and stripe account id combo."""
         data = self.cache.get(self.key)
+        logger.info("Retrieved %s contributions from cache with key %s", len(data), self.key)
         if not data:
             return []
         return [AttrDict(**x) for x in json.loads(data).values()]

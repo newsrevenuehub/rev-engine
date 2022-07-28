@@ -74,6 +74,7 @@ def task_pull_serialized_stripe_contributions_to_cache(self, email_id, stripe_ac
     # trigger async tasks to pull charges for a given set of customer queries, if there are two queries
     # the task will get triggered two times which are asynchronous
     for customer_query in provider.generate_chunked_customers_query():
+        logger.info("Pulling charges for %s", customer_query)
         task_pull_charges.delay(email_id, customer_query, stripe_account_id)
 
 
@@ -88,6 +89,7 @@ def task_pull_charges(self, email_id, customers_query, stripe_account_id):
         converter=StripeCharge,
     )
     charge_response = provider.fetch_charges(query=customers_query)
+    logger.debug("charge_response: %s", charge_response)
     cache_provider.upsert(charge_response)
 
     # iterate through all pages of stripe charges

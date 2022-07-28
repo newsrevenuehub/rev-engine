@@ -229,7 +229,7 @@ class ContributionsCacheProvider:
     def load(self):
         """Gets the contributions data from cache for a specefic email and stripe account id combo."""
         data = self.cache.get(self.key)
-        logger.info("Retrieved %s contributions from cache with key %s", len(data), self.key)
         if not data:
             return []
+        logger.info("Retrieved %s contributions from cache with key %s", len(data), self.key)
         return [AttrDict(**x) for x in json.loads(data).values()]

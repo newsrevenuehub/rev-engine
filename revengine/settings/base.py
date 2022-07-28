@@ -230,7 +230,7 @@ LOGGING = {
     "version": 1,
     "disable_existing_loggers": False,
     "filters": {"require_debug_false": {"()": "django.utils.log.RequireDebugFalse"}},
-    "formatters": {"basic": {"format": "%(asctime)s %(name)-20s %(levelname)-8s %(message)s"}},
+    "formatters": {"basic": {"format": "%(levelname)s %(name)s:%(lineno)d - %(message)s"}},
     "handlers": {
         "console": {
             "level": "INFO",

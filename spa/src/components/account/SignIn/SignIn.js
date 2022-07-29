@@ -53,8 +53,8 @@ function Login({ onSuccess, message }) {
     let hasError = false;
 
     if (!validateEmail(email)) {
-      //setEmailError('Entered email is invalid');
-      //hasError = true;
+      setEmailError('Entered email is invalid');
+      hasError = true;
     }
 
     if (password.length < 8) {

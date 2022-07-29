@@ -1,5 +1,5 @@
 import { useState, useReducer } from 'react';
-import * as S from './SignIn.styled';
+import * as S from './../Account.styled';
 
 // AJAX
 import axios from 'ajax/axios';
@@ -71,67 +71,70 @@ function Login({ onSuccess, message }) {
   const formSubmitErrors = errors?.detail;
 
   return (
-    <S.SignIn>
-      <S.Outer>
-        <S.Left>
-          <Leftbar />
-        </S.Left>
-        <S.Right>
-          <S.FormElements>
-            <S.Heading>Welcome Back!</S.Heading>
-            <br />
-            <InputWrapped
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              errors={''}
-              label="Email"
-              disabled={loading}
-              type={Input.types.EMAIL}
-              testid="signup-email"
-              errorMessage={emailError}
-            />
-            <S.PasswordLabel>
-              Password
-              <a href={FORGOT_PASSWORD}>Forgot Password?</a>
-            </S.PasswordLabel>
-            <InputWrapped
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              errors={''}
-              disabled={loading}
-              type={Input.types.PASSWORD}
-              testid="signup-password"
-              instructions="Password must be 8 characters long and alphanumerical."
-            />
+    <S.Outer>
+      <S.Left data-testid={'left-yellow'}>
+        <Leftbar />
+      </S.Left>
+      <S.Right>
+        <S.FormElements>
+          <S.Heading>Welcome Back!</S.Heading>
+          <br />
+          <InputWrapped
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            errors={''}
+            label="Email"
+            disabled={loading}
+            type={Input.types.EMAIL}
+            testid="signin-email"
+            errorMessage={emailError}
+          />
+          <S.PasswordLabel>
+            Password
+            <a href={FORGOT_PASSWORD} data-testid={'reset-password'}>
+              Forgot Password?
+            </a>
+          </S.PasswordLabel>
+          <InputWrapped
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            errors={''}
+            disabled={loading}
+            type={Input.types.PASSWORD}
+            testid="signin-password"
+            instructions="Password must be 8 characters long and alphanumerical."
+          />
 
-            <S.Submit
-              type={'neutral'}
-              disabled={submitDisabled}
-              onClick={loading || submitDisabled ? () => {} : onSubmitClick}
-            >
-              Sign In
-            </S.Submit>
+          <S.Submit
+            type={'neutral'}
+            disabled={submitDisabled}
+            onClick={loading || submitDisabled ? () => {} : onSubmitClick}
+          >
+            Sign In
+          </S.Submit>
 
-            <br />
-            <br />
-            {formSubmitErrors && formSubmitErrors !== '' ? (
-              <S.ErrorMessage>{formSubmitErrors} </S.ErrorMessage>
-            ) : (
-              <S.ErrorSpacer />
-            )}
+          <br />
+          <br />
+          {formSubmitErrors && formSubmitErrors !== '' ? (
+            <S.ErrorMessage>{formSubmitErrors} </S.ErrorMessage>
+          ) : (
+            <S.ErrorSpacer />
+          )}
 
-            <S.SignInLink>
-              Not a member?&nbsp;<a href={SIGN_UP}>Create an account</a>
-            </S.SignInLink>
-          </S.FormElements>
+          <S.SignInLink>
+            Not a member?&nbsp;
+            <a href={SIGN_UP} data-testid={'create-account'}>
+              Create an account
+            </a>
+          </S.SignInLink>
+        </S.FormElements>
 
-          <Logobar />
-        </S.Right>
-        <S.BottomBar>
-          <S.BottomBarImg src={purpleFooterImage} />
-        </S.BottomBar>
-      </S.Outer>
-    </S.SignIn>
+        <Logobar />
+      </S.Right>
+      <S.BottomBar>
+        <S.BottomBarImg data-testid={'bottom-purple-bar'} src={purpleFooterImage} />
+      </S.BottomBar>
+    </S.Outer>
   );
 }
 

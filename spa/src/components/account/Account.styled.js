@@ -1,13 +1,6 @@
 import styled from 'styled-components';
 import { motion } from 'framer-motion';
 
-export const ForgotPassword = styled.div`
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-`;
-
 export const Outer = styled.div`
   display: flex;
   flex-wrap: wrap;
@@ -20,6 +13,21 @@ export const Outer = styled.div`
   }
 `;
 
+export const LeftPurple = styled.div`
+  background-color: #302436;
+  flex: 35%;
+  margin: 0px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+
+  @media (${(props) => props.theme.breakpoints.tabletLandscapeDown}) {
+    flex: 100%;
+    max-height: 240px;
+  }
+`;
+
 export const Left = styled.div`
   background: linear-gradient(39.42deg, #f5ff75 47.23%, #f1f3da 105.55%);
   flex: 35%;
@@ -27,9 +35,11 @@ export const Left = styled.div`
   display: flex;
   justify-content: center;
   align-items: center;
+  height: 100vh;
 
   @media (${(props) => props.theme.breakpoints.tabletLandscapeDown}) {
     flex: 100%;
+    max-height: 240px;
   }
 `;
 
@@ -44,6 +54,10 @@ export const Right = styled.div`
 
   @media (${(props) => props.theme.breakpoints.tabletLandscapeDown}) {
     flex: 100%;
+  }
+
+  @media (${(props) => props.theme.breakpoints.tabletLandscapeUp}) {
+    height: 100vh;
   }
 `;
 
@@ -70,12 +84,12 @@ export const BottomBarImg = styled.img`
 
 export const Heading = styled.div`
   font-weight: 700;
-  font-size: 28px;
+  font-size: 34px;
   line-height: 138.19%;
   color: #25192b;
 
   @media (${(props) => props.theme.breakpoints.phoneOnly}) {
-    font-size: 20px;
+    font-size: 24px;
   }
 
   @media (${(props) => props.theme.breakpoints.tabletLandscapeDown}) {
@@ -86,7 +100,7 @@ export const Heading = styled.div`
 export const Subheading = styled.div`
   margin: 5px 0px 25px;
   font-weight: 300;
-  font-size: 14px;
+  font-size: 24px;
   line-height: 138.19%;
   color: #282828;
   font-style: normal;
@@ -97,7 +111,83 @@ export const Subheading = styled.div`
   }
 `;
 
-export const SignUpToggle = styled.div`
+export const AcceptTerms = styled.div`
+  display:flex;
+  font-size:
+  font-weight: 400;
+  font-size: 12px;
+  line-height: 15px;
+  color: #323232;
+  margin-top:6px;
+
+  a, a:hover {
+    color: #0052CC;
+    text-decoration: underline;
+  }
+
+   @media (${(props) => props.theme.breakpoints.phoneOnly}) {
+    font-size: 11px;
+  }
+
+`;
+
+export const Disclaimer = styled.div`
+  font-weight: 400;
+  font-size: 11px;
+  line-height: 13px;
+  color: #3c3c3c;
+  margin: 15px 0px 12px;
+`;
+
+export const SignInToggle = styled.div`
+  margin: 15px 0px 12px;
+  width: 100%;
+  text-align: center;
+  font-weight: 400;
+  font-size: 13px;
+  line-height: 16px;
+  color: #323232;
+
+  a,
+  a:hover {
+    color: #0052cc;
+  }
+`;
+
+export const Submit = styled(motion.button)`
+  cursor: pointer;
+  width: 100%;
+  text-transform: uppercase;
+  text-align: center;
+  padding: 9px 0px;
+  background: #f5ff75;
+  border: 0.5px solid #e6ee84;
+  box-shadow: 0px 0.3px 0.5px rgba(0, 0, 0, 0.1), 0px 2px 4px rgba(0, 0, 0, 0.2);
+  border-radius: 6px;
+
+  &:active {
+    transform: translate(1px, 1px);
+  }
+`;
+
+/* Sign In Styles */
+
+export const ErrorMessage = styled.div`
+  background: rgba(200, 32, 63, 0.16);
+  border-radius: 2px;
+  font-weight: 400;
+  font-size: 11px;
+  line-height: 13px;
+  color: #3c3c3c;
+  padding: 4px 9px;
+`;
+
+export const ErrorSpacer = styled.div`
+  height: 17px;
+  padding: 4px 9px;
+`;
+
+export const SignInLink = styled.div`
   margin: 15px 0px 12px;
   width: 100%;
   text-align: center;
@@ -127,18 +217,20 @@ export const PasswordLabel = styled.div`
   }
 `;
 
-export const Submit = styled(motion.button)`
-  cursor: pointer;
-  width: 100%;
-  text-transform: uppercase;
-  text-align: center;
-  padding: 9px 0px;
-  background: #f5ff75;
-  border: 0.5px solid #e6ee84;
-  box-shadow: 0px 0.3px 0.5px rgba(0, 0, 0, 0.1), 0px 2px 4px rgba(0, 0, 0, 0.2);
-  border-radius: 6px;
+/* Sign In Styles end */
 
-  &:active {
-    transform: translate(1px, 1px);
+export const SignUpToggle = styled.div`
+  margin: 15px 0px 12px;
+  width: 100%;
+  text-align: center;
+  font-weight: 400;
+  font-size: 13px;
+  line-height: 16px;
+  color: #323232;
+
+  a,
+  a:hover {
+    color: #0052cc;
+    text-decoration: underline;
   }
 `;

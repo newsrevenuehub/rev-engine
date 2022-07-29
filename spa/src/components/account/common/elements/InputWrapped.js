@@ -9,7 +9,7 @@ import Input from 'elements/inputs/Input';
 import visibilityOn from 'assets/images/account/visibility_on.png';
 import visibilityOff from 'assets/images/account/visibility_off.png';
 
-function InputWrapped({ value, onChange, type, label, disabled, instructions, errorMessage }) {
+function InputWrapped({ value, onChange, type, label, disabled, instructions, testid, errorMessage }) {
   const [showPassword, setShowPassword] = useState(false);
 
   const togglePasswordDisplay = () => {
@@ -20,15 +20,31 @@ function InputWrapped({ value, onChange, type, label, disabled, instructions, er
 
   return (
     <>
-      {label && label !== '' && <S.Label>{label}</S.Label>}
+      {label && label !== '' && <S.Label data-testid={`label`}>{label}</S.Label>}
       <S.InputWrapped>
-        <InputAccount value={value} onChange={onChange} type={inpType} />
+        <InputAccount
+          testid={testid}
+          data-testid={`inp-${inpType}${testid ? testid : ''}`}
+          value={value}
+          onChange={onChange}
+          type={inpType}
+        />
         {type === Input.types.PASSWORD && (
-          <S.Visibility onClick={togglePasswordDisplay} src={showPassword ? visibilityOn : visibilityOff} />
+          <S.Visibility
+            data-testid="toggle"
+            onClick={togglePasswordDisplay}
+            src={showPassword ? visibilityOn : visibilityOff}
+          />
         )}
       </S.InputWrapped>
-      {instructions && instructions !== '' && <S.Instructions>{instructions}</S.Instructions>}
-      {errorMessage && errorMessage !== '' ? <S.ErrorMessage>{errorMessage}</S.ErrorMessage> : <S.ErrorSpacer />}
+      {instructions && instructions !== '' && (
+        <S.Instructions data-testid={`instructions`}>{instructions}</S.Instructions>
+      )}
+      {errorMessage && errorMessage !== '' ? (
+        <S.ErrorMessage data-testid={`error`}>{errorMessage}</S.ErrorMessage>
+      ) : (
+        <S.ErrorSpacer />
+      )}
     </>
   );
 }

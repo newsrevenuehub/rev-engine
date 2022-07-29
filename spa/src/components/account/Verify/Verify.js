@@ -26,7 +26,7 @@ function Verify({ onSuccess, message }) {
   console.log(routedState);
   return (
     <S.Verify>
-      <S.Logo src={logo} />
+      <S.Logo src={logo} data-testid={'blue-logo'} />
       <S.Content>
         <S.Box>
           <S.Icon src={draftIcon} />

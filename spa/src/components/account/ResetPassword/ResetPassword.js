@@ -1,6 +1,6 @@
 import { useState } from 'react';
 
-import * as S from './ResetPassword.styled';
+import * as S from './../Account.styled';
 import purpleFooterImage from 'assets/images/account/purple-bottombar.png';
 
 import Logobar from 'components/account/common/logobar/Logobar';
@@ -23,55 +23,55 @@ function ResetPassword() {
   const submitDisabled = loading || password === '' || password !== password2;
 
   return (
-    <S.ResetPassword>
-      <S.Outer>
-        <S.Left>
-          <Leftbar />
-        </S.Left>
-        <S.Right>
-          <S.FormElements>
-            <S.Heading>Reset Password</S.Heading>
-            <S.Subheading>Enter you’re new password below.</S.Subheading>
+    <S.Outer>
+      <S.Left data-testid={'left-yellow'}>
+        <Leftbar />
+      </S.Left>
+      <S.Right>
+        <S.FormElements>
+          <S.Heading data-testid={'reset-pwd-title'}>Reset Password!</S.Heading>
+          <S.Subheading>Enter your new password below.</S.Subheading>
 
-            <InputWrapped
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              label="Password"
-              disabled={loading}
-              type={Input.types.PASSWORD}
-              testid="signup-password"
-              instructions="Password must be 8 characters long and alphanumerical."
-            />
-            <InputWrapped
-              value={password2}
-              onChange={(e) => setPassword2(e.target.value)}
-              label="Password"
-              disabled={loading}
-              type={Input.types.PASSWORD}
-              testid="signup-password"
-            />
+          <InputWrapped
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            label="Password"
+            disabled={loading}
+            type={Input.types.PASSWORD}
+            testid="reset-password"
+            instructions="Password must be 8 characters long and alphanumerical."
+          />
+          <InputWrapped
+            value={password2}
+            onChange={(e) => setPassword2(e.target.value)}
+            label="Renter Password"
+            disabled={loading}
+            type={Input.types.PASSWORD}
+            testid="reset-password-1"
+          />
 
-            <br />
-            <S.Submit
-              type={'neutral'}
-              disabled={submitDisabled}
-              onClick={loading || submitDisabled ? () => {} : onSubmitClick}
-            >
-              Reset Password
-            </S.Submit>
+          <br />
+          <S.Submit
+            type={'neutral'}
+            disabled={submitDisabled}
+            onClick={loading || submitDisabled ? () => {} : onSubmitClick}
+          >
+            Reset Password
+          </S.Submit>
 
-            <S.SignUpToggle>
-              <a href={SIGN_IN}>Return to Sign In</a>
-            </S.SignUpToggle>
-          </S.FormElements>
+          <S.SignUpToggle>
+            <a href={SIGN_IN} data-testid={'sign-in'}>
+              Return to Sign In
+            </a>
+          </S.SignUpToggle>
+        </S.FormElements>
 
-          <Logobar />
-        </S.Right>
-        <S.BottomBar>
-          <S.BottomBarImg src={purpleFooterImage} />
-        </S.BottomBar>
-      </S.Outer>
-    </S.ResetPassword>
+        <Logobar />
+      </S.Right>
+      <S.BottomBar>
+        <S.BottomBarImg data-testid={'bottom-purple-bar'} src={purpleFooterImage} />
+      </S.BottomBar>
+    </S.Outer>
   );
 }
 

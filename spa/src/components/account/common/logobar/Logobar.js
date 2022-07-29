@@ -9,7 +9,7 @@ import SalesforceLogo from 'assets/images/account/client-logos/salesforce-logo.p
 
 function Logobar() {
   return (
-    <S.LogoBar>
+    <S.LogoBar data-testid="company-icons">
       <S.Heading>We work with</S.Heading>
       <S.LogoImg src={StripeLogo} />
       <S.LogoImg src={SalesforceLogo} />

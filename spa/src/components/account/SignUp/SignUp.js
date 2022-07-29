@@ -1,6 +1,6 @@
 import { useState } from 'react';
 
-import * as S from './SignUp.styled';
+import * as S from './../Account.styled';
 import yellowFooterImage from 'assets/images/account/yellow-bottombar.png';
 
 import Logobar from 'components/account/common/logobar/Logobar';
@@ -31,6 +31,7 @@ function AcceptTerms({ checked, handleTOSChange }) {
       <Checkbox
         checked={checked}
         onChange={handleTOSChange}
+        data-testid={`acceptTermsCheckbox`}
         size="small"
         style={{
           color: '#302436',
@@ -87,62 +88,61 @@ function SignUp() {
   const submitDisabled = email === '' || password === '' || !checked || loading;
 
   return (
-    <S.SignUp>
-      <S.Outer>
-        <S.Left>
-          <Leftbar page={'sign-up'} />
-        </S.Left>
-        <S.Right>
-          <S.FormElements>
-            <Header />
+    <S.Outer>
+      <S.LeftPurple data-testid={'left-purple'}>
+        <Leftbar page={'create-account'} />
+      </S.LeftPurple>
+      <S.Right>
+        <S.FormElements>
+          <Header />
 
-            <InputWrapped
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              errors={''}
-              label="Email"
-              disabled={loading}
-              type={Input.types.EMAIL}
-              testid="signup-email"
-              errorMessage={emailError}
-            />
-            <InputWrapped
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              errors={''}
-              disabled={loading}
-              label="Password"
-              type={Input.types.PASSWORD}
-              testid="signup-password"
-              instructions="Password must be 8 characters long and alphanumerical."
-              errorMessage={passwordError}
-            />
+          <InputWrapped
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            errors={''}
+            label="Email"
+            disabled={loading}
+            type={Input.types.EMAIL}
+            testid="signup-email"
+            errorMessage={emailError}
+          />
+          <InputWrapped
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            errors={''}
+            disabled={loading}
+            label="Password"
+            type={Input.types.PASSWORD}
+            testid="signup-password"
+            instructions="Password must be 8 characters long and alphanumerical."
+            errorMessage={passwordError}
+          />
 
-            <AcceptTerms checked={checked} handleTOSChange={handleTOSChange} />
-            <br />
-            <S.Submit
-              type={'neutral'}
-              disabled={submitDisabled}
-              onClick={loading || submitDisabled ? () => {} : onSubmitClick}
-            >
-              Create Account
-            </S.Submit>
+          <AcceptTerms checked={checked} handleTOSChange={handleTOSChange} />
+          <br />
+          <S.Submit
+            type={'neutral'}
+            disabled={submitDisabled}
+            onClick={loading || submitDisabled ? () => {} : onSubmitClick}
+          >
+            Create Account
+          </S.Submit>
 
-            <S.Disclaimer>
-              By creating an account you agree to adhere to News Revenue Hub’s Code of Ethics.
-            </S.Disclaimer>
-            <S.SignInToggle>
-              Already have an account? <a href={SIGN_IN}>Sign in</a>
-            </S.SignInToggle>
-          </S.FormElements>
+          <S.Disclaimer>By creating an account you agree to adhere to News Revenue Hub’s Code of Ethics.</S.Disclaimer>
+          <S.SignInToggle>
+            Already have an account?{' '}
+            <a href={SIGN_IN} data-testid={`sign-in`}>
+              Sign in
+            </a>
+          </S.SignInToggle>
+        </S.FormElements>
 
-          <Logobar />
-        </S.Right>
-        <S.BottomBar>
-          <S.BottomBarImg src={yellowFooterImage} />
-        </S.BottomBar>
-      </S.Outer>
-    </S.SignUp>
+        <Logobar />
+      </S.Right>
+      <S.BottomBar data-testid={`bottom-yellow-bar`}>
+        <S.BottomBarImg src={yellowFooterImage} />
+      </S.BottomBar>
+    </S.Outer>
   );
 }
 

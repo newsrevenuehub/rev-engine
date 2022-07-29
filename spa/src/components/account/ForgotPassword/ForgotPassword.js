@@ -1,6 +1,6 @@
 import { useState } from 'react';
 
-import * as S from './ForgotPassword.styled';
+import * as S from './../Account.styled';
 import purpleFooterImage from 'assets/images/account/purple-bottombar.png';
 
 import Logobar from 'components/account/common/logobar/Logobar';
@@ -33,48 +33,48 @@ function ForgotPassword() {
   const submitDisabled = email === '' || loading;
 
   return (
-    <S.ForgotPassword>
-      <S.Outer>
-        <S.Left>
-          <Leftbar />
-        </S.Left>
-        <S.Right>
-          <S.FormElements>
-            <S.Heading>Forgot Password</S.Heading>
-            <S.Subheading>Enter your email address below and we'll send you a reset link.</S.Subheading>
+    <S.Outer>
+      <S.Left data-testid={'left-yellow'}>
+        <Leftbar />
+      </S.Left>
+      <S.Right>
+        <S.FormElements>
+          <S.Heading>Forgot Password</S.Heading>
+          <S.Subheading>Enter your email address below and we'll send you a reset link.</S.Subheading>
 
-            <InputWrapped
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              errors={''}
-              label="Email"
-              disabled={loading}
-              type={Input.types.EMAIL}
-              testid="signup-email"
-              errorMessage={emailError}
-            />
+          <InputWrapped
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            errors={''}
+            label="Email"
+            disabled={loading}
+            type={Input.types.EMAIL}
+            testid="resetpwd-email"
+            errorMessage={emailError}
+          />
 
-            <br />
-            <S.Submit
-              type={'neutral'}
-              disabled={submitDisabled}
-              onClick={loading || submitDisabled ? () => {} : onSubmitClick}
-            >
-              Send Reset Link
-            </S.Submit>
+          <br />
+          <S.Submit
+            type={'neutral'}
+            disabled={submitDisabled}
+            onClick={loading || submitDisabled ? () => {} : onSubmitClick}
+          >
+            Send Reset Link
+          </S.Submit>
 
-            <S.SignUpToggle>
-              <a href={SIGN_IN}>Return to Sign In</a>
-            </S.SignUpToggle>
-          </S.FormElements>
+          <S.SignUpToggle>
+            <a href={SIGN_IN} data-testid={'sign-in'}>
+              Return to Sign In
+            </a>
+          </S.SignUpToggle>
+        </S.FormElements>
 
-          <Logobar />
-        </S.Right>
-        <S.BottomBar>
-          <S.BottomBarImg src={purpleFooterImage} />
-        </S.BottomBar>
-      </S.Outer>
-    </S.ForgotPassword>
+        <Logobar />
+      </S.Right>
+      <S.BottomBar>
+        <S.BottomBarImg data-testid={'bottom-purple-bar'} src={purpleFooterImage} />
+      </S.BottomBar>
+    </S.Outer>
   );
 }
 

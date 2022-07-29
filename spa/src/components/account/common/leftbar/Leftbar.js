@@ -15,11 +15,11 @@ function Heading() {
 
 function Advantages() {
   return (
-    <S.Advantages>
+    <S.Advantages data-testid="advantages">
       {Content.advantages
         ? Content.advantages.map((advantage, key) => {
             return (
-              <S.Advantage>
+              <S.Advantage key={key}>
                 <span>
                   <S.AdvantageIcon icon={ICONS[advantage.svg]} />
                 </span>
@@ -36,10 +36,10 @@ function Advantages() {
 }
 
 function Leftbar({ page }) {
-  if (page === 'sign-up') {
+  if (page === 'create-account') {
     return (
       <S.LeftbarSignUp>
-        <S.Logo src={logo} />
+        <S.Logo data-testid={'blue-logo'} src={logo} />
         <Heading />
         <S.DividerSignUp />
         <Advantages />
@@ -49,7 +49,7 @@ function Leftbar({ page }) {
 
   return (
     <S.Leftbar>
-      <S.Logo src={logoblue} />
+      <S.Logo data-testid={'yellow-logo'} src={logoblue} />
       <Heading />
       <S.Divider />
       <Advantages />

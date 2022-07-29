@@ -69,14 +69,18 @@ function SignUp() {
     setLoading(true);
     setEmailError('');
     setPasswordError('');
+
+    let hasError = false;
     if (!validateEmail(email)) {
       setEmailError('Entered email is invalid');
+      hasError = true;
     }
     if (password.length < 8) {
       setPasswordError('Password has to be more than 8 chars long');
+      hasError = true;
     }
 
-    if (passwordError === '' && emailError === '') {
+    if (!hasError) {
       history.push({
         pathname: VERIFY_EMAIL_SUCCESS,
         state: { email }

@@ -37,14 +37,6 @@ it('should have heading - Forgot Password', () => {
   expect(title).toBeInTheDocument();
 });
 
-it('should have advantages and company icons', () => {
-  render(<ForgotPassword />);
-  const advantages = screen.queryByTestId('advantages');
-  expect(advantages).toBeInTheDocument();
-  const icons = screen.queryByTestId('company-icons');
-  expect(icons).toBeInTheDocument();
-});
-
 it('should have link to take user to sign in page', () => {
   render(<ForgotPassword />);
   const signIn = screen.queryByTestId('sign-in');

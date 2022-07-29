@@ -164,7 +164,7 @@ export const Submit = styled(motion.button)`
   border: 0.5px solid #e6ee84;
   box-shadow: 0px 0.3px 0.5px rgba(0, 0, 0, 0.1), 0px 2px 4px rgba(0, 0, 0, 0.2);
   border-radius: 6px;
-
+  margin-top: 7px;
   &:active {
     transform: translate(1px, 1px);
   }

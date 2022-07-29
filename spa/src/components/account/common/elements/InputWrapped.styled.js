@@ -1,7 +1,8 @@
 import styled from 'styled-components';
 
 export const InputWrapped = styled.div`
-  border: 1.5px solid #c4c4c4;
+  border: 1.5px solid;
+  border-color: ${(props) => props.styling.borderColor};
   border-radius: 4px;
   display: flex;
   margin: 5px 0px;
@@ -26,7 +27,7 @@ export const Label = styled.div`
   font-weight: 600;
   font-size: 13px;
   line-height: 16px;
-  color: #323232;
+  color: ${(props) => props.styling.fontColor};
   margin-top: 5px;
 `;
 

@@ -21,12 +21,14 @@ function ForgotPassword() {
   const onSubmitClick = (event) => {
     setLoading(true);
     setEmailError('');
+    let hasError = false;
 
     if (!validateEmail(email)) {
       setEmailError('Entered email is invalid');
+      hasError = true;
     }
 
-    if (emailError === '') {
+    if (!hasError) {
     }
   };
 

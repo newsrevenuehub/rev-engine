@@ -24,6 +24,7 @@ import Leftbar from 'components/account/common/leftbar/Leftbar';
 
 import Input from 'elements/inputs/Input';
 import InputWrapped from 'components/account/common/elements/InputWrapped';
+import validateEmail from 'utilities/validateEmail';
 
 import { SIGN_UP, FORGOT_PASSWORD } from 'routes';
 
@@ -34,6 +35,7 @@ function Login({ onSuccess, message }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [emailError, setEmailError] = useState('');
+  const [passwordError, setPasswordError] = useState('');
 
   const [{ loading, errors }, dispatch] = useReducer(fetchReducer, initialState);
 
@@ -46,13 +48,21 @@ function Login({ onSuccess, message }) {
 
   const onSubmitClick = async (e) => {
     setEmailError('');
+    setPasswordError('');
 
-    /*
+    let hasError = false;
+
     if (!validateEmail(email)) {
-      setEmailError('Entered email is invalid');
-    }*/
+      //setEmailError('Entered email is invalid');
+      //hasError = true;
+    }
 
-    if (emailError === '' && password !== '') {
+    if (password.length < 8) {
+      setPasswordError('Password has to be more than 8 chars long');
+      hasError = true;
+    }
+
+    if (!hasError) {
       dispatch({ type: FETCH_START });
       try {
         const { data, status } = await axios.post(TOKEN, { email, password });
@@ -103,6 +113,7 @@ function Login({ onSuccess, message }) {
             type={Input.types.PASSWORD}
             testid="signin-password"
             instructions="Password must be 8 characters long and alphanumerical."
+            errorMessage={passwordError}
           />
 
           <S.Submit

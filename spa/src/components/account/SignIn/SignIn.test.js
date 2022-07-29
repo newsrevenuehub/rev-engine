@@ -39,14 +39,6 @@ it('should have heading - Welcome Back!', () => {
   expect(title).toBeInTheDocument();
 });
 
-it('should have advantages and company icons', () => {
-  render(<SignIn />);
-  const advantages = screen.queryByTestId('advantages');
-  expect(advantages).toBeInTheDocument();
-  const icons = screen.queryByTestId('company-icons');
-  expect(icons).toBeInTheDocument();
-});
-
 it('should have link to take user to sign in page and reset password page', () => {
   render(<SignIn />);
   const signUp = screen.queryByTestId('create-account');

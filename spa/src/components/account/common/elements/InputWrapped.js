@@ -20,8 +20,15 @@ function InputWrapped({ value, onChange, type, label, disabled, instructions, te
 
   return (
     <>
-      {label && label !== '' && <S.Label data-testid={`label`}>{label}</S.Label>}
-      <S.InputWrapped>
+      {label && label !== '' && (
+        <S.Label
+          data-testid={`label`}
+          styling={{ fontColor: errorMessage && errorMessage !== '' ? '#C8203F' : '#323232' }}
+        >
+          {label}
+        </S.Label>
+      )}
+      <S.InputWrapped styling={{ borderColor: errorMessage && errorMessage !== '' ? '#C8203F' : '#c4c4c4' }}>
         <InputAccount
           testid={testid}
           data-testid={`inp-${inpType}${testid ? testid : ''}`}

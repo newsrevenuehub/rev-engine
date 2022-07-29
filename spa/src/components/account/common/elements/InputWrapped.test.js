@@ -13,7 +13,7 @@ it('should show toggle button for password input', () => {
 
 it('should not show toggle button for text input', () => {
   render(<InputWrapped value={''} onChange={onChangeMock} type={Input.types.TEXT} />);
-  const toggleIcon = screen.getByTestId('toggle');
+  const toggleIcon = screen.queryByTestId('toggle');
   expect(toggleIcon).not.toBeInTheDocument();
 });
 

@@ -23,7 +23,6 @@ const Mailto = ({ mailto, label }) => {
 function Verify({ onSuccess, message }) {
   const { state: routedState } = useLocation();
 
-  console.log(routedState);
   return (
     <S.Verify>
       <S.Logo src={logo} data-testid={'blue-logo'} />

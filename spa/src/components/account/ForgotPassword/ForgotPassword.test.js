@@ -3,13 +3,13 @@ import ReactTestUtils from 'react-dom/test-utils';
 import ForgotPassword from './ForgotPassword';
 import { SIGN_IN } from 'routes';
 
-it('should should show the yellow revengine logo', () => {
+it('should show the yellow revengine logo', () => {
   render(<ForgotPassword />);
   const bottomYellowBar = screen.queryByTestId('yellow-logo');
   expect(bottomYellowBar).toBeInTheDocument();
 });
 
-it('should should have yellow left bar and purple bottom bar', () => {
+it('should have yellow left bar and purple bottom bar', () => {
   render(<ForgotPassword />);
   const bottomYellowBar = screen.queryByTestId('bottom-purple-bar');
   expect(bottomYellowBar).toBeInTheDocument();
@@ -17,7 +17,7 @@ it('should should have yellow left bar and purple bottom bar', () => {
   expect(leftPurple).toBeInTheDocument();
 });
 
-it('should have reset-password button button disabled by default', () => {
+it('should have reset-password button disabled by default', () => {
   render(<ForgotPassword />);
   const submitButton = screen.getByRole('button', { name: 'Send Reset Link' });
   expect(submitButton).not.toBeEnabled();

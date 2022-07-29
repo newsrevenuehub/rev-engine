@@ -3,13 +3,13 @@ import ReactTestUtils from 'react-dom/test-utils';
 import SignUp from './SignUp';
 import { SIGN_IN } from 'routes';
 
-it('should should show the blue revengine logo', () => {
+it('should show the blue revengine logo', () => {
   render(<SignUp />);
   const bottomYellowBar = screen.queryByTestId('blue-logo');
   expect(bottomYellowBar).toBeInTheDocument();
 });
 
-it('should should have purple left bar and yellow bottom bar', () => {
+it('should have purple left bar and yellow bottom bar', () => {
   render(<SignUp />);
   const bottomYellowBar = screen.queryByTestId('bottom-yellow-bar');
   expect(bottomYellowBar).toBeInTheDocument();
@@ -17,7 +17,7 @@ it('should should have purple left bar and yellow bottom bar', () => {
   expect(leftPurple).toBeInTheDocument();
 });
 
-it('should have create-account button button disabled by default', () => {
+it('should have create-account button disabled by default', () => {
   render(<SignUp />);
   const submitButton = screen.getByRole('button', { name: 'Create Account' });
   expect(submitButton).not.toBeEnabled();

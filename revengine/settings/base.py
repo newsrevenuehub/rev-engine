@@ -337,7 +337,6 @@ THUMBNAIL_PRESERVE_FORMAT = True
 # Middleware Logging Codes
 MIDDLEWARE_LOGGING_CODES = [400, 404, 403]
 
-
 # Map currency-code to symbol
 CURRENCIES = {"USD": "$", "CAD": "$"}
 

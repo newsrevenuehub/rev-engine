@@ -6,7 +6,7 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ("users", "0002_DEV-1710_create_organization_user_and_role_assignment"),
+        ("users", "0003_DEV-2030_alter_roleassignment_organization"),
     ]
 
     operations = [

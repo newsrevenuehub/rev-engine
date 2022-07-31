@@ -17,6 +17,8 @@ import { NO_VALUE } from 'constants/textConstants';
 // Analytics
 import { useConfigureAnalytics } from 'components/analytics';
 
+import useSubdomain from 'hooks/useSubdomain';
+
 // Utils
 import toTitleCase from 'utilities/toTitleCase';
 import { getFrequencyAdjective } from 'utilities/parseFrequency';
@@ -49,6 +51,7 @@ function ContributorDashboard() {
   const [selectedContribution, setSelectedContribution] = useState();
   const [refetch, setRefetch] = useState(false);
   const [pageIndex, setPageIndex] = useState(0);
+  const subdomain = useSubdomain();
 
   // Analytics setup
   useConfigureAnalytics();
@@ -59,7 +62,8 @@ function ContributorDashboard() {
 
   const fetchDonations = useCallback(async (params, { onSuccess, onFailure }) => {
     try {
-      const response = await axios.get(CONTRIBUTIONS, { params });
+      const query_params = { ...params, rp: subdomain };
+      const response = await axios.get(CONTRIBUTIONS, { params: { ...query_params } });
       onSuccess(response);
     } catch (e) {
       if (e instanceof AuthenticationError || e?.response?.status === 403) {

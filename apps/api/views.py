@@ -4,6 +4,7 @@ from urllib.parse import urlparse
 
 from django.conf import settings
 from django.middleware import csrf
+from django.shortcuts import get_object_or_404
 
 from rest_framework import status
 from rest_framework.response import Response
@@ -21,7 +22,9 @@ from apps.api.throttling import ContributorRateThrottle
 from apps.api.tokens import ContributorRefreshToken
 from apps.contributions.models import Contributor
 from apps.contributions.serializers import ContributorSerializer
+from apps.contributions.tasks import task_pull_serialized_stripe_contributions_to_cache
 from apps.emails.tasks import send_templated_email
+from apps.organizations.models import RevenueProgram
 
 
 logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
@@ -145,7 +148,6 @@ class RequestContributorTokenEmailView(APIView):
 
     def post(self, request, *args, **kwargs):
         serializer = ContributorObtainTokenSerializer(data=request.data)
-
         try:
             serializer.is_valid(raise_exception=True)
             contributor, _ = Contributor.objects.get_or_create(email=request.data["email"])
@@ -158,6 +160,12 @@ class RequestContributorTokenEmailView(APIView):
 
             if not domain:
                 return Response({"detail": "Missing Revenue Program subdomain"}, status=status.HTTP_404_NOT_FOUND)
+
+            revenue_program = get_object_or_404(RevenueProgram, slug=data.get("subdomain"))
+            # Celery backend job to pull contributions from Stripe and store the serialized data in cache, user will have
+            # data by the time the user opens contributor portal.
+            task_pull_serialized_stripe_contributions_to_cache.delay(email, revenue_program.stripe_account_id)
+
             magic_link = f"{domain}/{settings.CONTRIBUTOR_VERIFY_URL}?token={token}&email={email}"
             logger.info("Sending magic link email to [%s] | magic link: [%s]", email, magic_link)
             send_templated_email(

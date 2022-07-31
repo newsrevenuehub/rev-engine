@@ -1,17 +1,13 @@
 import os
-from pathlib import Path
 
 from .base import *  # noqa
 
 
-# SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
-
-# SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = "m-u!e0jum^(+nt1+6@31+jl_zwc6yltugtv7%!2k(6l!c@=0n@"
-
-
 SITE_URL = "https://example.com"
+ALLOWED_HOSTS = ["*"]
+INTERNAL_IPS = ("127.0.0.1",)
 
 # Disable Django's own staticfiles handling in favour of WhiteNoise, for
 # greater consistency between gunicorn and `./manage.py runserver`. See:
@@ -27,16 +23,13 @@ INSTALLED_APPS.extend(
 # Set for testing
 CONTRIBUTOR_MAGIC_LINK_REQUEST_THROTTLE_RATE = "1000/minute"
 
-# SECURITY WARNING: define the correct hosts in production!
-ALLOWED_HOSTS = ["*"]
-INTERNAL_IPS = ("127.0.0.1",)
-
 if os.getenv("DEBUG_TOOLBAR", "True") == "True":
     INSTALLED_APPS += [
         "debug_toolbar",
     ]
     MIDDLEWARE += ["debug_toolbar.middleware.DebugToolbarMiddleware"]
 
+# To test production email settings `export TEST_EMAIL=True`, otherwise emails will use the console backend.
 if os.getenv("TEST_EMAIL", "False") == "True":
     EMAIL_BACKEND = "anymail.backends.mailgun.EmailBackend"
     ANYMAIL = {
@@ -46,10 +39,14 @@ if os.getenv("TEST_EMAIL", "False") == "True":
 
 
 # Celery
-BROKER_URL = "redis://localhost:6379"
-CELERY_RESULT_BACKEND = "redis://localhost:6379"
+BROKER_URL = os.getenv("BROKER_URL", "memory://")
+CELERY_RESULT_BACKEND = os.getenv("CELERY_RESULT_BACKEND", "cache")
+CELERY_CACHE_BACKEND = BROKER_URL
 CELERY_IMPORTS = ("apps.emails.tasks",)
 
-# Serve SPA via django
-FRONTEND_BUILD_DIR = Path(BASE_DIR) / "spa/public"
-TEMPLATES[0]["DIRS"] = [FRONTEND_BUILD_DIR, os.path.join(PROJECT_DIR, "templates")]
+if BROKER_URL.startswith("memory"):
+    CACHES = {
+        "default": {
+            "BACKEND": "django.core.cache.backends.dummy.DummyCache",
+        }
+    }

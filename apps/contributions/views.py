@@ -2,6 +2,7 @@ import logging
 
 from django.conf import settings
 from django.contrib.auth import get_user_model
+from django.shortcuts import get_object_or_404
 from django.utils import timezone
 
 import stripe
@@ -19,12 +20,14 @@ from apps.api.permissions import (
 )
 from apps.contributions import serializers
 from apps.contributions.filters import ContributionFilter
-from apps.contributions.models import Contribution, ContributionInterval
+from apps.contributions.models import Contribution, ContributionInterval, Contributor
 from apps.contributions.payment_managers import (
     PaymentBadParamsError,
     PaymentProviderError,
     StripePaymentManager,
 )
+from apps.contributions.stripe_contributions_provider import ContributionsCacheProvider
+from apps.contributions.tasks import task_pull_serialized_stripe_contributions_to_cache
 from apps.contributions.utils import get_sha256_hash
 from apps.contributions.webhooks import StripeWebhookProcessor
 from apps.emails.tasks import send_templated_email
@@ -285,13 +288,37 @@ class ContributionsViewSet(viewsets.ReadOnlyModelViewSet, FilterQuerySetByUserMi
     filter_backends = [DjangoFilterBackend, filters.OrderingFilter]
 
     def get_queryset(self):
+        # load contributions from cache if the user is a contributor
+        if isinstance(self.request.user, Contributor):
+            rp_slug = self.request.query_params.get("rp")
+            if not rp_slug:
+                return Response(
+                    {"detail": "Missing Revenue Program in query params"}, status=status.HTTP_400_BAD_REQUEST
+                )
+            revenue_program = get_object_or_404(RevenueProgram, slug=rp_slug)
+            cache_provider = ContributionsCacheProvider(self.request.user.email, revenue_program.stripe_account_id)
+
+            contributions = cache_provider.load()
+            # trigger celery task to pull contributions and load to cache if the cache is empty
+            if not contributions:
+                task_pull_serialized_stripe_contributions_to_cache.delay(
+                    self.request.user.email, revenue_program.stripe_account_id
+                )
+            return [x for x in contributions if x.get("revenue_program") == self.request.query_params["rp"]]
+
         # this is supplied by FilterQuerySetByUserMixin
         return self.filter_queryset_for_user(self.request.user, self.model.objects.all())
 
+    def filter_queryset(self, queryset):
+        # filter backend doesnot apply for contributor
+        if isinstance(self.request.user, Contributor):
+            return queryset
+        return super().filter_queryset(queryset)
+
     def get_serializer_class(self):
-        if isinstance(self.request.user, UserModel):
-            return serializers.ContributionSerializer
-        return serializers.ContributorContributionSerializer
+        if isinstance(self.request.user, Contributor):
+            return serializers.PaymentProviderContributionSerializer
+        return serializers.ContributionSerializer
 
     # only superusers and hub admins have permission
     @action(methods=["post"], detail=True, permission_classes=[IsAuthenticated, IsActiveSuperUser | IsHubAdmin])

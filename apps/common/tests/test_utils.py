@@ -1,4 +1,3 @@
-import os
 import random
 from datetime import timedelta
 from io import BytesIO
@@ -161,8 +160,8 @@ def test_extract_ticket_id_from_branch_name():
     assert ticket_id == "dev-1420"
 
 
-@mock.patch.dict(os.environ, {"HEROKU_APP_NAME": "foo"})
-@mock.patch.dict(os.environ, {"CF_ZONE_NAME": "bar"})
+@override_settings(HEROKU_APP_NAME="foo")
+@override_settings(CF_ZONE_NAME="bar")
 @mock.patch("CloudFlare.CloudFlare")
 def test_upsert_cloudflare_cnames(cloudflare_class_mock):
     mock_cloudflare = mock.MagicMock()
@@ -225,8 +224,8 @@ def test_create_stripe_webhook(create_mock, list_mock):
     assert create_mock.called_with("https://notthere.com/webhook", api_key="bogus")
 
 
-@mock.patch.dict(os.environ, {"HEROKU_APP_NAME": "foo"})
-@mock.patch.dict(os.environ, {"CF_ZONE_NAME": "bar"})
+@override_settings(HEROKU_APP_NAME="foo")
+@override_settings(CF_ZONE_NAME="bar")
 @mock.patch("CloudFlare.CloudFlare")
 def test_delete_cloudflare_cnames(cloudflare_class_mock):
     mock_cloudflare = mock.MagicMock()

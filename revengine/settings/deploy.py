@@ -10,7 +10,7 @@ from revengine.settings.base import *  # noqa: F403
 
 #### Critical settings
 
-SECRET_KEY = os.environ["DJANGO_SECRET_KEY"]
+SECRET_KEY = os.getenv("DJANGO_SECRET_KEY")
 
 ### Environment-specific settings
 ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS", "localhost").split(":")
@@ -125,7 +125,5 @@ if SENTRY_ENABLE_BACKEND and SENTRY_DSN_BACKEND:
     )
     ignore_logger("django.security.DisallowedHost")
 
-# BadActor API
-BAD_ACTOR_API_URL = "https://bad-actor.fundjournalism.org/v1/bad_actor/"
 
 USE_DEBUG_INTERVALS = os.getenv("USE_DEBUG_INTERVALS", False)

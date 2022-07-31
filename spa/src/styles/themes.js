@@ -12,11 +12,20 @@ export const revEngineTheme = {
     inputBackground: '#fff',
     inputBorder: '#c3c3c3',
 
+    sidebarBackground: '#25192B',
+    topbarBackground: '#523A5E',
+    navSelectedBackground: '#eaf37a',
+    navSectionLabelColor: '#ddcbe7',
+
     black: '#080708',
 
     white: '#ffffff',
 
     grey: ['#eee', '#ccc', '#999', '#666', '#333'],
+
+    error: {
+      primary: '#C8203F'
+    },
 
     caution: '#ff476c',
     info: '#20bfdd',
@@ -36,6 +45,13 @@ export const revEngineTheme = {
   font: { body: "'Roboto', sans-serif", heading: "'Roboto', sans-serif" },
 
   fontSizes: ['12px', '16px', '24px', '32px', '48px', '84px', '96px'],
+
+  fontSizesUpdated: {
+    xs: '12px',
+    sm: '14px',
+    md: '16px',
+    lg: '18px'
+  },
 
   radii: ['3px', '6px', '12px'],
 

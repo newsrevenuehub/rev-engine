@@ -461,7 +461,7 @@ class PageViewSetTest(RevEngineApiAbstractTestCase):
         page.revenue_program.payment_provider.delete()
         url = f'{reverse("donationpage-live-detail")}?revenue_program={page.revenue_program.slug}&page={page.slug}'
         response = self.assert_unuauthed_cannot_get(url, status=status.HTTP_404_NOT_FOUND)
-        self.assertEqual(response.json(), {"detail": "RevenueProgram does not have a fully verified payment provider"})
+        self.assertEqual(response.json(), {"detail": "RevenueProgram does not have a payment provider configured"})
 
     def test_live_detail_page_when_styles(self):
         page = DonationPage.objects.first()

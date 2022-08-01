@@ -1,5 +1,7 @@
 import styled from 'styled-components';
 
+export const Outer = styled.div``;
+
 export const Dashboard = styled.div`
   flex: 1;
   display: flex;
@@ -8,10 +10,6 @@ export const Dashboard = styled.div`
   height: 100vh;
   width: 100vw;
   overflow: hidden;
-
-  @media (${(props) => props.theme.breakpoints.tabletLandscapeDown}) {
-    flex-direction: column;
-  }
 `;
 
 export const DashboardMain = styled.div`

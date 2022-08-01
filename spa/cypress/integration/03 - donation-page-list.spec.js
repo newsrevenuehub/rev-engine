@@ -44,6 +44,8 @@ describe('Donation page list', () => {
   });
 
   it('should add suggested slug on name field blur', () => {
+    cy.intercept({ method: 'GET', pathname: getEndpoint(TEMPLATES) }, {});
+
     cy.getByTestId('page-create-button').click();
     cy.getByTestId('page-name').type('My Testing Page');
     cy.getByTestId('page-name').blur();

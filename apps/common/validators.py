@@ -30,35 +30,23 @@ class ValidateFkReferenceOwnership:
 
     requires_context = True
 
-    def _validate_passed_fn(self, fn, expected_params):
-        """Used to validate that a passed function has expected parameters
-
-        ...since callers can choose to pass a `has_default_access_fn` to replace
-        the default one.
-        """
-        if not set(expected_params).issubset(set(fn.__code__.co_varnames)):
-            logger.warning(
-                "`ValidateFkReferenceOwnership` initialized with function whose signature is unexpected: %s",
-                fn.__code__.co_varnames,
-            )
-            raise serializers.ValidationError(
-                "`ValidateFkReferenceOwnership` initialized with fucnction with unexpected signature"
-            )
-
     def __init__(self, fk_attribute, has_default_access_fn=_has_ensured_user_ownership_by_default):
         """
         Notes on expectations around determine_ownership and has_default_access_fn
-
         """
-        EXPECTED_ACCESS_FN_PARAMS = (
-            "user",
-            "role_assignment",
-        )
-
-        self._validate_passed_fn(has_default_access_fn, EXPECTED_ACCESS_FN_PARAMS)
-
-        self.has_default_access = has_default_access_fn
         self.fk_attribute = fk_attribute
+        self.has_default_access = has_default_access_fn
+        # Validate passed function has at least the parameters that default fn has.
+        if not set(_has_ensured_user_ownership_by_default.__code__.co_varnames).issubset(
+            set(has_default_access_fn.__code__.co_varnames)
+        ):
+            logger.warning(
+                "%s initialized with function whose signature is unexpected: %s(%s)",
+                self.__class__,
+                has_default_access_fn.__name__,
+                has_default_access_fn.__code__.co_varnames,
+            )
+            raise serializers.ValidationError(f"{self.__class__} initialized with function with unexpected signature")
 
     def __call__(self, value, serializer):
         """ """
@@ -66,8 +54,8 @@ class ValidateFkReferenceOwnership:
         if not user:
             logger.error("`ValidateFkReferenceOwnership` expected user in request context but there wasn't one")
             raise serializers.ValidationError(MISSING_USER_IN_CONTEXT_MESSAGE.format(serializer.model.__name__))
-        ra = getattr(user, "roleassignment", None)
 
+        ra = getattr(user, "roleassignment", None)
         if self.has_default_access(user, ra):
             return
         elif not ra:
@@ -75,15 +63,13 @@ class ValidateFkReferenceOwnership:
                 "`ValidateFkReferenceOwnership` expected role assignmment in request context but there wasn't one"
             )
             raise serializers.ValidationError(MISSING_USER_IN_CONTEXT_MESSAGE.format(serializer.model.__name__))
-        else:
-            instance = value.get(self.fk_attribute, None)
-            if instance is None:
-                return
-            if not instance.user_has_ownership_via_role(ra):
-                logger.warning(
-                    "User with role assignment [%s] attempted to access unowned resource: [%s]: [%s]",
-                    ra,
-                    instance.pk,
-                    instance,
-                )
-                raise serializers.ValidationError({self.fk_attribute: "Not found"})
+
+        instance = value.get(self.fk_attribute, None)
+        if instance and not instance.user_has_ownership_via_role(ra):
+            logger.warning(
+                "User with role assignment [%s] attempted to access unowned resource: [%s]: [%s]",
+                ra,
+                instance.pk,
+                instance,
+            )
+            raise serializers.ValidationError({self.fk_attribute: "Not found"})

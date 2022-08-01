@@ -11,7 +11,6 @@ class RevEngineApiAbstractTestCase(AbstractTestCase):
     it overrides `.setUp`.
 
     NB: The test assertions in this class will not work if `set_up_domain_model` has not been run.
-
     """
 
     def setUp(self):
@@ -19,14 +18,23 @@ class RevEngineApiAbstractTestCase(AbstractTestCase):
         super().setUp()
         self.set_up_domain_model()
 
+    def assert_response(self, url, status=status.HTTP_401_UNAUTHORIZED, json=None, user=None):
+        if user is not None:
+            self.client.force_authenticate(user=user)
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, status)
+        if json is not None:
+            self.assertEqual(response.json(), json)
+        return response
+
+    def assert_unauthed_cannot_get(self, url, status=status.HTTP_401_UNAUTHORIZED):
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, status)
+        return response
+
     def assert_unauthed_can_get(self, url):
         response = self.client.get(url)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        return response
-
-    def assert_unuauthed_cannot_get(self, url, status=status.HTTP_401_UNAUTHORIZED):
-        response = self.client.get(url)
-        self.assertEqual(response.status_code, status)
         return response
 
     def assert_unauthed_cannot_delete(self, url):

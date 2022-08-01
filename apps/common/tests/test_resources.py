@@ -49,6 +49,9 @@ class AbstractTestCase(APITestCase):
     plans_per_org = 2
     features_per_plan = 2
 
+    class Meta:
+        abstract = True
+
     @classmethod
     def _set_up_contributions(cls):
         """ """
@@ -139,6 +142,3 @@ class AbstractTestCase(APITestCase):
         cls._set_up_feature_sets()
         cls._set_up_styles()
         cls._set_up_default_feature_flags()
-
-    class Meta:
-        abstract = True

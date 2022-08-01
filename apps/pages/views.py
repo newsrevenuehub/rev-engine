@@ -49,7 +49,6 @@ class PageViewSet(RevisionMixin, viewsets.ModelViewSet, FilterQuerySetByUserMixi
         return self.filter_queryset_for_user(self.request.user, self.model.objects.all())
 
     def get_serializer_class(self):
-
         if self.action in ("partial_update", "create", "retrieve"):
             return serializers.DonationPageFullDetailSerializer
         else:
@@ -62,19 +61,11 @@ class PageViewSet(RevisionMixin, viewsets.ModelViewSet, FilterQuerySetByUserMixi
 
         Permission and authentication classes are reset because meant to be open access.
         """
-        error = None
         try:
-            page_detail_helper = PageFullDetailHelper(request, live=True)
-            page_detail_helper.set_revenue_program()
-            page_detail_helper.set_donation_page()
-            page_detail_helper.validate_page_request()
-            page_data = page_detail_helper.get_donation_page_data()
-        except PageDetailError as page_detail_error:
-            error = (page_detail_error.message, page_detail_error.status)
-
-        if error:
-            return Response({"detail": error[0]}, status=error[1])
-        return Response(page_data, status=status.HTTP_200_OK)
+            helper = PageFullDetailHelper(request, live=True)
+            return Response(helper.get_donation_page_data(), status=status.HTTP_200_OK)
+        except PageDetailError as e:
+            return Response({"detail": e.message}, status=e.status)
 
     @action(detail=False, methods=["get"], url_path="draft-detail")
     def draft_detail(self, request):
@@ -88,19 +79,11 @@ class PageViewSet(RevisionMixin, viewsets.ModelViewSet, FilterQuerySetByUserMixi
         a page by this method that you don't own (it's owned by diff org or rp)
         or have access to (via being superuser or hub admin).
         """
-        error = None
         try:
-            page_detail_helper = PageFullDetailHelper(request)
-            page_detail_helper.set_revenue_program()
-            page_detail_helper.set_donation_page()
-            page_detail_helper.validate_page_request()
-            page_data = page_detail_helper.get_donation_page_data()
-        except PageDetailError as page_detail_error:
-            error = (page_detail_error.message, page_detail_error.status)
-
-        if error:
-            return Response({"detail": error[0]}, status=error[1])
-        return Response(page_data, status=status.HTTP_200_OK)
+            helper = PageFullDetailHelper(request)
+            return Response(helper.get_donation_page_data(), status=status.HTTP_200_OK)
+        except PageDetailError as e:
+            return Response({"detail": e.message}, status=e.status)
 
     def partial_update(self, request, *args, **kwargs):
         response = super().partial_update(request, *args, **kwargs)
@@ -114,14 +97,13 @@ class PageViewSet(RevisionMixin, viewsets.ModelViewSet, FilterQuerySetByUserMixi
         return response
 
     def destroy(self, request, pk):
-        page = self.model.objects.get(pk=pk)
-        self.check_object_permissions(request, page)
         try:
-            donation_page = self.model.objects.get(pk=pk)
+            page = self.model.objects.get(pk=pk)
         except DonationPage.DoesNotExist:
             logger.error('Request for non-existent page with ID "%s"', pk)
             return Response({"detail": "Could not find page with that ID"}, status=status.HTTP_404_NOT_FOUND)
-        donation_page.delete()
+        self.check_object_permissions(request, page)
+        page.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 

@@ -50,8 +50,8 @@ class OrganizationViewSetTest(RevEngineApiAbstractTestCase):
         self.assertEqual(before_count, Organization.objects.count())
 
     def test_unauthed_cannot_access(self):
-        self.assert_unuauthed_cannot_get(self.detail_url)
-        self.assert_unuauthed_cannot_get(self.list_url)
+        self.assert_unauthed_cannot_get(self.detail_url)
+        self.assert_unauthed_cannot_get(self.list_url)
         self.assert_unauthed_cannot_delete(self.detail_url)
         self.assert_unauthed_cannot_patch(self.detail_url)
         self.assert_unauthed_cannot_put(self.detail_url)
@@ -102,8 +102,8 @@ class RevenueProgramViewSetTest(RevEngineApiAbstractTestCase):
             self.assert_user_cannot_delete(self.detail_url, user)
 
     def test_unauthed_cannot_access(self):
-        self.assert_unuauthed_cannot_get(self.detail_url)
-        self.assert_unuauthed_cannot_get(self.list_url)
+        self.assert_unauthed_cannot_get(self.detail_url)
+        self.assert_unauthed_cannot_get(self.list_url)
         self.assert_unauthed_cannot_delete(self.detail_url)
         self.assert_unauthed_cannot_patch(self.detail_url)
         self.assert_unauthed_cannot_put(self.detail_url)

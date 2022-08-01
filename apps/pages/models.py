@@ -69,13 +69,14 @@ class AbstractPage(IndexedTimeStampedModel, RoleAssignmentResourceModelMixin):
         else:
             raise UnexpectedRoleType(f"{role_assignment.role_type} is not a valid value")
 
+    # Note this logic is duplicated below in Style.
     @classmethod
     def user_has_delete_permission_by_virtue_of_role(cls, user, instance):
         ra = user.roleassignment
         if ra.role_type == Roles.HUB_ADMIN:
             return True
-        elif ra.role_type == Roles.ORG_ADMIN:
-            return ra.organization == instance.organization
+        elif (ra.role_type == Roles.ORG_ADMIN) and instance.revenue_program:
+            return ra.organization == instance.revenue_program.organization
         elif ra.role_type == Roles.RP_ADMIN:
             return instance.revenue_program in user.roleassignment.revenue_programs.all()
         else:
@@ -203,9 +204,7 @@ class DonationPage(AbstractPage):
             raise ValidationError(
                 {"non_field_errors": [f"Your organization has reached its limit of {limit.feature_value} pages"]}
             )
-
         self.set_default_logo()
-
         super().save(*args, **kwargs)
 
     def make_template_from_page(self, template_data={}, from_admin=False):
@@ -241,9 +240,6 @@ class Style(IndexedTimeStampedModel, RoleAssignmentResourceModelMixin):
     revenue_program = models.ForeignKey("organizations.RevenueProgram", on_delete=models.CASCADE)
     styles = models.JSONField(validators=[style_validator])
 
-    def __str__(self):
-        return self.name
-
     class Meta:
         unique_together = (
             "name",
@@ -251,6 +247,9 @@ class Style(IndexedTimeStampedModel, RoleAssignmentResourceModelMixin):
         )
 
         ordering = ["-created", "name"]
+
+    def __str__(self):
+        return self.name
 
     @classmethod
     def filter_queryset_by_role_assignment(cls, role_assignment, queryset):
@@ -263,12 +262,13 @@ class Style(IndexedTimeStampedModel, RoleAssignmentResourceModelMixin):
         else:
             raise UnexpectedRoleType(f"{role_assignment.role_type} is not a valid value")
 
+    # Note this logic is duplicated above in AbstractPage.
     @classmethod
     def user_has_delete_permission_by_virtue_of_role(cls, user, instance):
         ra = user.roleassignment
         if ra.role_type == Roles.HUB_ADMIN:
             return True
-        elif ra.role_type == Roles.ORG_ADMIN:
+        elif (ra.role_type == Roles.ORG_ADMIN) and instance.revenue_program:
             return ra.organization == instance.revenue_program.organization
         elif ra.role_type == Roles.RP_ADMIN:
             return instance.revenue_program in user.roleassignment.revenue_programs.all()

@@ -61,7 +61,6 @@ class TemplateAdmin(VersionAdmin, DonationPageAdminAbstract):
     def response_change(self, request, obj):
         if "_page-from-template" in request.POST:
             try:
-
                 new_page = obj.make_page_from_template()
             except IntegrityError as integrity_error:
                 if "violates unique constraint" in str(integrity_error):
@@ -71,6 +70,8 @@ class TemplateAdmin(VersionAdmin, DonationPageAdminAbstract):
                         messages.ERROR,
                     )
                     return HttpResponseRedirect(reverse("admin:pages_template_change", kwargs={"object_id": obj.id}))
+                else:
+                    raise
             return HttpResponseRedirect(reverse("admin:pages_donationpage_change", kwargs={"object_id": new_page.id}))
         return super().response_change(request, obj)
 
@@ -141,7 +142,8 @@ class DonationPageAdmin(CompareVersionAdmin, DonationPageAdminAbstract):
                     self.message_user(
                         request, f'Template name "{page.name}" already used in organization', messages.ERROR
                     )
-
+                else:
+                    raise
         if created_template_count:
             self.message_user(
                 request,

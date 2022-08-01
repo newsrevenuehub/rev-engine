@@ -2,6 +2,7 @@ import pytest
 import reversion
 from reversion.models import Version
 
+from apps.common.models import SocialMeta
 from apps.config.admin import DenyListWordAdmin
 from apps.config.models import DenyListWord
 from apps.config.tests.factories import DenyListWordFactory
@@ -44,26 +45,8 @@ from apps.pages.tests.factories import (
 from apps.pages.views import PageViewSet, StyleViewSet, TemplateViewSet
 
 
-expected_registered_model_admins = [
-    BenefitAdmin,
-    BenefitLevelAdmin,
-    ContributionAdmin,
-    ContributorAdmin,
-    DenyListWordAdmin,
-    DonationPageAdmin,
-    FeatureAdmin,
-    FontAdmin,
-    OrganizationAdmin,
-    PlanAdmin,
-    RevenueProgramAdmin,
-    StyleAdmin,
-    TemplateAdmin,
-]
-
-
 def test_expected_models_are_registered_with_django_reversion():
     """Show that we have auditable history log for expected models
-
 
     NB: We are registering models with reversion via their ModelAdmin instance. This
     causes the underlying model to be registered (without having to touch the model
@@ -82,6 +65,7 @@ def test_expected_models_are_registered_with_django_reversion():
         Organization,
         Plan,
         RevenueProgram,
+        SocialMeta,
         Style,
         Template,
     ]
@@ -104,22 +88,24 @@ def test_expected_model_admins_are_registered_with_django_reversion():
     NB: By having a modeladmin inherit from VersionAdmin, the admin's model counterpart
     will automatically be registered with reversion.
     """
-    expected_registered_model_admins = [
-        BenefitAdmin,
-        BenefitLevelAdmin,
-        ContributionAdmin,
-        ContributorAdmin,
-        DenyListWordAdmin,
-        DonationPageAdmin,
-        FeatureAdmin,
-        FontAdmin,
-        OrganizationAdmin,
-        PlanAdmin,
-        RevenueProgramAdmin,
-        StyleAdmin,
-        TemplateAdmin,
-    ]
-    assert all(issubclass(ma, reversion.admin.VersionAdmin) for ma in expected_registered_model_admins)
+    assert all(
+        issubclass(ma, reversion.admin.VersionAdmin)
+        for ma in [
+            BenefitAdmin,
+            BenefitLevelAdmin,
+            ContributionAdmin,
+            ContributorAdmin,
+            DenyListWordAdmin,
+            DonationPageAdmin,
+            FeatureAdmin,
+            FontAdmin,
+            OrganizationAdmin,
+            PlanAdmin,
+            RevenueProgramAdmin,
+            StyleAdmin,
+            TemplateAdmin,
+        ]
+    )
 
 
 @pytest.mark.parametrize(
@@ -145,7 +131,6 @@ def test_registered_model_changed_via_other_not_have_revisions(factory, update_a
     """Show that models registered with django-reversion don't have history saved when via `.save()` outside of admin or...
 
     ..registered views.
-
     """
     assert factory._meta.model in reversion.get_registered_models()
     instance = factory()

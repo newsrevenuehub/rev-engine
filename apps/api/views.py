@@ -5,6 +5,7 @@ from urllib.parse import urlparse
 from django.conf import settings
 from django.middleware import csrf
 from django.shortcuts import get_object_or_404
+from django.utils.safestring import mark_safe
 
 from rest_framework import status
 from rest_framework.response import Response
@@ -166,7 +167,7 @@ class RequestContributorTokenEmailView(APIView):
             "Manage your contributions",
             "nrh-manage-donations-magic-link.txt",
             "nrh-manage-donations-magic-link.html",
-            {"magic_link": magic_link},
+            {"magic_link": mark_safe(magic_link)},
         )
         # Email is async task. We won't know if it succeeds or not so optimistically send OK.
         return Response({"detail": "success"}, status=status.HTTP_200_OK)

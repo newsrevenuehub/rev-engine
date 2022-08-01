@@ -101,7 +101,7 @@ function Login({ onSuccess, message }) {
           />
           <S.PasswordLabel>
             Password
-            <a href={FORGOT_PASSWORD} data-testid={'reset-password'}>
+            <a href={FORGOT_PASSWORD} data-testid={'reset-password'} tabindex="-1">
               Forgot Password?
             </a>
           </S.PasswordLabel>

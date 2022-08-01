@@ -102,7 +102,7 @@ function PageEditor() {
 
   const pageTitle = useMemo(
     () =>
-      `Editor | ${page?.name ? `${page?.name} | ` : ''}${
+      `Edit | ${page?.name ? `${page?.name} | ` : ''}${
         page?.revenue_program?.name ? `${page?.revenue_program?.name}` : ''
       }`,
     [page?.name, page?.revenue_program?.name]

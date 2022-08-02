@@ -160,7 +160,7 @@ class RequestContributorTokenEmailView(APIView):
         domain = _construct_rp_domain(serializer.data.get("subdomain", ""), request.headers.get("Referer", ""))
 
         if not domain:
-            logger.info("[RequestContributorTokenEmailView] Could not determine domain for request")
+            logger.info("[RequestContributorTokenEmailView][post] Could not determine domain for request")
             return Response({"detail": "Missing Revenue Program subdomain"}, status=status.HTTP_404_NOT_FOUND)
 
         revenue_program = get_object_or_404(RevenueProgram, slug=serializer.data.get("subdomain"))

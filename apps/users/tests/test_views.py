@@ -24,7 +24,7 @@ from apps.users.constants import (
     PASSWORD_TOO_SHORT_VALIDATION_MESSAGE,
     PASSWORD_TOO_SIMILAR_TO_EMAIL_VALIDATION_MESSAGE,
 )
-from apps.users.permissions import UserEmailIsVerified, UserOwnsUser
+from apps.users.permissions import UserIsAllowedToUpdate, UserOwnsUser
 from apps.users.tests.utils import create_test_user
 from apps.users.views import UserViewset
 
@@ -166,6 +166,25 @@ class TestUserViewSet(APITestCase):
             {"password": [expected_validation_message]},
         )
 
+    def assert_serialized_data(self, response, instance):
+        keys_by_instance_lookup = {
+            "email": lambda instance: instance.email,
+            "id": lambda instance: instance.id,
+            "email_verified": lambda instance: instance.email_verified,
+            "accepted_terms_of_service": lambda instance: instance.accepted_terms_of_service.strftime(
+                "%Y-%m-%dT%H:%M:%S.%fZ"
+            )
+            if instance.accepted_terms_of_service
+            else None,
+            "flags": lambda instance: (instance.get_role_assignment() or {}).get("flags", []),
+            "organizations": lambda instance: (instance.get_role_assignment() or {}).get("organizations", []),
+            "revenue_programs": lambda instance: (instance.get_role_assignment() or {}).get("revenue_programs", []),
+            "role_type": lambda instance: instance.get_role_type(),
+        }
+        self.assertEqual(set(keys_by_instance_lookup.keys()), set(response.json().keys()))
+        for key, fn in keys_by_instance_lookup.items():
+            self.assertEqual(fn(instance), response.json()[key])
+
     def test_unauthenticated_user_cannot_list(self):
         response = self.client.get(self.url)
         self.assertEqual(response.status_code, 401)
@@ -175,7 +194,7 @@ class TestUserViewSet(APITestCase):
         self.client.force_authenticate(user=user)
         response = self.client.get(self.url)
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.data["id"], user.id)
+        self.assert_serialized_data(response, user)
 
     @patch.object(UserViewset, "validate_password")
     @patch.object(UserViewset, "validate_bad_actor")
@@ -196,9 +215,7 @@ class TestUserViewSet(APITestCase):
         self.assertFalse(data["organizations"])
         self.assertFalse(data["revenue_programs"])
         self.assertIsNone(data["role_type"])
-        self.assertEqual(
-            data["accepted_terms_of_service"], user.accepted_terms_of_service.strftime("%Y-%m-%dT%H:%M:%S.%fZ")
-        )
+        self.assert_serialized_data(response, user)
         mock_validate_bad_actor.assert_called_once()
         mock_validate_password.assert_called_once()
         mock_send_verification_email.assert_called_once_with(user)
@@ -273,6 +290,7 @@ class TestUserViewSet(APITestCase):
         response = self.client.post(self.url, data=self.create_data)
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         self.assertEqual(get_user_model().objects.count(), user_count + 1)
+        self.assert_serialized_data(response, get_user_model().objects.get(pk=response.json()["id"]))
         mock_logger_warning.assert_called_once_with("Something went wrong with BadActorAPI", exc_info=True)
         mock_send_verification_email.assert_called_once()
 
@@ -289,6 +307,7 @@ class TestUserViewSet(APITestCase):
         response = self.client.post(self.url, data=self.create_data)
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         self.assertEqual(get_user_model().objects.count(), user_count + 1)
+        self.assert_serialized_data(response, get_user_model().objects.get(pk=response.json()["id"]))
         mock_logger_warning.assert_called_once_with("Something went wrong with BadActorAPI", exc_info=True)
         mock_send_verification_email.assert_called_once()
 
@@ -315,6 +334,7 @@ class TestUserViewSet(APITestCase):
         user.refresh_from_db()
         self.assertEqual(user.email, new_email)
         self.assertTrue(user.check_password(raw_updated_password))
+        self.assert_serialized_data(response, user)
 
     def test_update_email_when_email_already_taken(self):
         User = get_user_model()
@@ -383,12 +403,32 @@ class TestUserViewSet(APITestCase):
         self.assertNotEqual(another_user.email, update_email)
 
     def test_cannot_partial_update_when_email_not_verified(self):
-        user = get_user_model()(email=self.create_data["email"], email_verified=False)
+        user = get_user_model().objects.create(email=self.create_data["email"], email_verified=False)
         update_data = {"email": fake.email()}
         self.client.force_authenticate(user=user)
         response = self.client.patch(reverse("user-detail", args=(user.pk,)), data=update_data)
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
-        self.assertEqual(response.json(), {"detail": UserEmailIsVerified.message})
+        self.assertEqual(response.json(), {"detail": UserIsAllowedToUpdate.message})
+
+    def test_can_update_password_when_email_not_verified(self):
+        user = get_user_model().objects.create(email=self.create_data["email"], email_verified=False)
+        update_data = {"password": "thisIstheNewPassword3939393!"}
+        self.client.force_authenticate(user=user)
+        response = self.client.patch(reverse("user-detail", args=(user.pk,)), data=update_data)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        user.refresh_from_db()
+        self.assertTrue(user.check_password(update_data["password"]))
+        self.assert_serialized_data(response, user)
+
+    def test_sets_email_verified_to_false_when_email_updated(self):
+        user = get_user_model().objects.create(email=self.create_data["email"], email_verified=True)
+        update_data = {"email": "new@email.com"}
+        self.client.force_authenticate(user=user)
+        response = self.client.patch(reverse("user-detail", args=(user.pk,)), data=update_data)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        user.refresh_from_db()
+        self.assertFalse(user.email_verified)
+        self.assert_serialized_data(response, user)
 
     def test_put_not_implemented(self):
         my_user = get_user_model().objects.create_user(**self.create_data)

@@ -12,7 +12,7 @@ from django.contrib.auth.views import (
 from django.core.exceptions import ValidationError as DjangoValidationError
 from django.urls import reverse_lazy
 
-from rest_framework import mixins, status
+from rest_framework import mixins
 from rest_framework.exceptions import APIException
 from rest_framework.generics import GenericAPIView
 from rest_framework.permissions import AllowAny, IsAuthenticated
@@ -33,7 +33,7 @@ from apps.users.constants import (
     PASSWORD_VALIDATION_EXPECTED_MESSAGES,
 )
 from apps.users.models import UnexpectedRoleType, User
-from apps.users.permissions import UserEmailIsVerified, UserOwnsUser
+from apps.users.permissions import UserIsAllowedToUpdate, UserOwnsUser
 from apps.users.serializers import UserSerializer
 
 
@@ -98,7 +98,7 @@ class UserViewset(
                 IsAuthenticated,
             ]
         if self.action == "partial_update":
-            permission_classes = [UserOwnsUser, UserEmailIsVerified]
+            permission_classes = [UserOwnsUser, UserIsAllowedToUpdate]
         return [permission() for permission in permission_classes]
 
     def validate_password(self, email, password):
@@ -150,13 +150,12 @@ class UserViewset(
         self.validate_bad_actor(serializer)
         user = serializer.save()
         self.send_verification_email(user)
-        return user
 
     def perform_update(self, serializer):
         """Override of `perform_update` to add our custom validations"""
         if password := serializer.validated_data.get("password"):
             self.validate_password(serializer.validated_data.get("email", self.get_object().email), password)
-        return serializer.update(self.get_object(), serializer.validated_data)
+        serializer.save()
 
     def send_verification_email(self, user):
         """Send an email to user asking them to verify their email address"""
@@ -172,12 +171,6 @@ class UserViewset(
     def list(self, request, *args, **kwargs):
         """List returns the requesting user's serialized user instance"""
         return Response(self.get_serializer(request.user).data)
-
-    def partial_update(self, request, *args, **kwargs):
-        serializer = self.get_serializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        self.perform_update(serializer)
-        return Response(serializer.data, status=status.HTTP_200_OK)
 
 
 class FilterQuerySetByUserMixin(GenericAPIView):

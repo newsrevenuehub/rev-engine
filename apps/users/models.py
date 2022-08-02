@@ -40,6 +40,12 @@ class User(AbstractBaseUser, PermissionsMixin, IndexedTimeStampedModel):
         except self.__class__.roleassignment.RelatedObjectDoesNotExist:
             return None
 
+    def get_role_type(self):
+        if self.is_superuser:
+            return ("superuser", "Superuser")
+        role_assignment = self.get_role_assignment()
+        return (role_assignment.role_type, role_assignment.get_role_type_display()) if role_assignment else None
+
     def __str__(self):
         return self.email
 

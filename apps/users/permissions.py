@@ -15,10 +15,24 @@ class UserOwnsUser(permissions.BasePermission):
         return obj == request.user
 
 
-class UserEmailIsVerified(permissions.BasePermission):
-    """Determine if user has verified their email address"""
+def update_keys_dont_require_email_verification(request):
+    allowed_update_keys = ["password"]
+    return request.method == "PATCH" and set(request.data.keys()).issubset(set(allowed_update_keys))
 
-    message = "You must verify your email address to access this resource"
+
+def user_email_is_verified(request):
+    return request.user and request.user.email_verified
+
+
+class UserIsAllowedToUpdate(permissions.BasePermission):
+    """Determine if update is permissible"""
+
+    message = "You must verify this email address to update your user"
 
     def has_permission(self, request, view):
-        return request.user and request.user.email_verified
+        return any(
+            [
+                update_keys_dont_require_email_verification(request),
+                user_email_is_verified(request),
+            ]
+        )

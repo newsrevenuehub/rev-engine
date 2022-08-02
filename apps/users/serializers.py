@@ -39,10 +39,7 @@ class UserSerializer(serializers.ModelSerializer):
         # `obj` will be a dict of data when serializer being used in create view
         if not isinstance(obj, get_user_model()):
             return None
-        if obj.is_superuser:
-            return ("superuser", "Superuser")
-        role_assignment = obj.get_role_assignment()
-        return (role_assignment.role_type, role_assignment.get_role_type_display()) if role_assignment else None
+        return obj.get_role_type()
 
     def get_permitted_organizations(self, obj):
         # `obj` will be a dict of data when serializer being used in create view
@@ -99,10 +96,16 @@ class UserSerializer(serializers.ModelSerializer):
         return user
 
     def update(self, instance, validated_data):
-        """We manually handle update step because password needs to be set with `set_password`, if part of update"""
+        """We manually handle update step because password needs to be set with `set_password`, if part of update. Additionally,
+
+        if email address is being updated, we need to reset email verification.
+        """
         password = validated_data.pop("password", None)
+        old_email = instance.email
         for attr, value in validated_data.items():
             setattr(instance, attr, value)
+        if "email" in validated_data.keys() and instance.email != old_email:
+            instance.email_verified = False
         if password:
             instance.set_password(password)
         instance.save()

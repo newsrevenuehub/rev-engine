@@ -116,6 +116,7 @@ describe('Donation detail', () => {
     beforeEach(() => {
       cy.forceLogin(hubAdminWithFlags);
       cy.intercept({ method: 'GET', pathname: getEndpoint(USER) }, { body: hubAdminWithFlags });
+      cy.intercept({ method: 'GET', pathname: getEndpoint(LIST_PAGES) }, { body: [], statusCode: 200 });
       cy.intercept('GET', getEndpoint(`${CONTRIBUTIONS}${CONTRIBUTION_PK}/`), {
         body: flaggedContributionDetailData
       }).as('getFlaggedDonation');

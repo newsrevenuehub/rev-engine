@@ -71,7 +71,6 @@ whitenoise = "^6.2.0"
 django-reversion-compare = "^0.15.0"
 django-migration-linter = "^4.1.0"
 django-test-migrations = "^1.2.0"
-Faker = "^13.15.0"
 
 [tool.poetry.dev-dependencies]
 appnope = "*"
@@ -94,6 +93,7 @@ pyyaml = "*"
 responses = "*"
 pytest-xdist = "*"
 flake8-logging-format = "*"
+Faker = "^13.15.0"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]

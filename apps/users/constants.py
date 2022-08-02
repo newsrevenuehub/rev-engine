@@ -1,5 +1,6 @@
 # Used in requests to bad actor api that don't involve actual donations
-BAD_ACTOR_FAKE_AMOUNT = 1000
+# TODO: Remove this when https://news-revenue-hub.atlassian.net/browse/DEV-2034  is done
+BAD_ACTOR_FAKE_AMOUNT = 10
 BAD_ACTOR_CLIENT_FACING_VALIDATION_MESSAGE = "Something went wrong"
 EMAIL_VERIFICATION_EMAIL_SUBJECT = "Please verify your email address"
 INVALID_TOKEN = "NoTaVaLiDtOkEn"

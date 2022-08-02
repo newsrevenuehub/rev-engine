@@ -5,6 +5,7 @@ from urllib.parse import urlparse
 from django.conf import settings
 from django.middleware import csrf
 from django.shortcuts import get_object_or_404
+from django.utils.safestring import mark_safe
 
 from rest_framework import status
 from rest_framework.response import Response
@@ -13,11 +14,7 @@ from rest_framework_simplejwt import exceptions
 from rest_framework_simplejwt import views as simplejwt_views
 
 from apps.api.authentication import ShortLivedTokenAuthentication
-from apps.api.serializers import (
-    ContributorObtainTokenSerializer,
-    NoSuchContributorError,
-    TokenObtainPairCookieSerializer,
-)
+from apps.api.serializers import ContributorObtainTokenSerializer, TokenObtainPairCookieSerializer
 from apps.api.throttling import ContributorRateThrottle
 from apps.api.tokens import ContributorRefreshToken
 from apps.contributions.models import Contributor
@@ -148,37 +145,30 @@ class RequestContributorTokenEmailView(APIView):
 
     def post(self, request, *args, **kwargs):
         serializer = ContributorObtainTokenSerializer(data=request.data)
-        try:
-            serializer.is_valid(raise_exception=True)
-            contributor, _ = Contributor.objects.get_or_create(email=request.data["email"])
-            serializer.update_short_lived_token(contributor)
+        serializer.is_valid(raise_exception=True)
+        contributor, _ = Contributor.objects.get_or_create(email=request.data["email"])
+        serializer.update_short_lived_token(contributor)
 
-            data = serializer.data
-            email = data["email"]
-            token = data["access"]
-            domain = _construct_rp_domain(data.get("subdomain", ""), request.headers.get("Referer", ""))
+        domain = _construct_rp_domain(serializer.data.get("subdomain", ""), request.headers.get("Referer", ""))
 
-            if not domain:
-                return Response({"detail": "Missing Revenue Program subdomain"}, status=status.HTTP_404_NOT_FOUND)
+        if not domain:
+            return Response({"detail": "Missing Revenue Program subdomain"}, status=status.HTTP_404_NOT_FOUND)
 
-            revenue_program = get_object_or_404(RevenueProgram, slug=data.get("subdomain"))
-            # Celery backend job to pull contributions from Stripe and store the serialized data in cache, user will have
-            # data by the time the user opens contributor portal.
-            task_pull_serialized_stripe_contributions_to_cache.delay(email, revenue_program.stripe_account_id)
-
-            magic_link = f"{domain}/{settings.CONTRIBUTOR_VERIFY_URL}?token={token}&email={email}"
-            logger.info("Sending magic link email to [%s] | magic link: [%s]", email, magic_link)
-            send_templated_email(
-                email,
-                "Manage your contributions",
-                "nrh-manage-donations-magic-link.txt",
-                "nrh-manage-donations-magic-link.html",
-                {"magic_link": magic_link},
-            )
-        except NoSuchContributorError:
-            # Send same response as "success". We don't want to indicate whether or not a given address is in our system.
-            pass
-
+        revenue_program = get_object_or_404(RevenueProgram, slug=serializer.data.get("subdomain"))
+        # Celery backend job to pull contributions from Stripe and store the serialized data in cache, user will have
+        # data by the time the user opens contributor portal.
+        task_pull_serialized_stripe_contributions_to_cache.delay(
+            serializer.data["email"], revenue_program.stripe_account_id
+        )
+        magic_link = f"{domain}/{settings.CONTRIBUTOR_VERIFY_URL}?token={serializer.data['access']}&email={serializer.data['email']}"
+        logger.info("Sending magic link email to [%s] | magic link: [%s]", serializer.data["email"], magic_link)
+        send_templated_email(
+            serializer.data["email"],
+            "Manage your contributions",
+            "nrh-manage-donations-magic-link.txt",
+            "nrh-manage-donations-magic-link.html",
+            {"magic_link": mark_safe(magic_link)},
+        )
         # Email is async task. We won't know if it succeeds or not so optimistically send OK.
         return Response({"detail": "success"}, status=status.HTTP_200_OK)
 

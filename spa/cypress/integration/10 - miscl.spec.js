@@ -39,6 +39,7 @@ describe('Generic Error', () => {
 
     cy.visit(CUSTOMIZE_SLUG);
     cy.wait('@listStyles');
+    cy.wait(500);
     cy.getByTestId('error-sign-out').click({ force: true });
     cy.url().should('include', LOGIN);
   });

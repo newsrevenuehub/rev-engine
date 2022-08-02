@@ -1,6 +1,12 @@
+from django.test import RequestFactory
 from django.urls import reverse
 
+import pytest
 from bs4 import BeautifulSoup as bs4
+
+from apps.common.models import SocialMeta
+from apps.organizations.tests.factories import RevenueProgramFactory
+from revengine.views import ReactAppView
 
 
 def assert_500_page(soup):
@@ -28,3 +34,15 @@ def test_cloudflare_500_page(client):
     assert cloudflare_errors_div
     assert cloudflare_errors_div.findChild("div", string="::RAY_ID::")
     assert cloudflare_errors_div.findChild("div", string="::CLIENT_IP::")
+
+
+@pytest.mark.django_db()
+def test_react_app_view_get_context_data_when_no_social_meta(mocker):
+    """Show that react app view works even if no social meta"""
+    rp_sans_socialmeta = RevenueProgramFactory()
+    assert not SocialMeta.objects.filter(revenue_program=rp_sans_socialmeta).exists()
+    factory = RequestFactory()
+    request = factory.get("/")
+    mocker.patch.object(ReactAppView, "_get_revenue_program_from_subdomain", return_value=rp_sans_socialmeta)
+    response = ReactAppView.as_view()(request)
+    assert response.status_code == 200

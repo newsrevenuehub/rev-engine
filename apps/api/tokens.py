@@ -1,7 +1,12 @@
+import logging
+
 from django.conf import settings
 
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.utils import datetime_to_epoch
+
+
+logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
 
 
 SHORT_TOKEN = "short"
@@ -22,7 +27,7 @@ class ContributorRefreshToken(RefreshToken):
         Returns a refresh token that is used to generate an access token, following the pattern set by
         simplejwt, but in this case we're using a contributor instance, and setting the CONTRIBUTOR_ID_CLAIM
         """
-
+        logger.info("[ContributorRefreshToken][for_contributor] called for contributor_uuid (%s)", contributor_uuid)
         token = cls()
         token[settings.CONTRIBUTOR_ID_CLAIM] = str(contributor_uuid)
 
@@ -35,6 +40,7 @@ class ContributorRefreshToken(RefreshToken):
         paramter in a magic link. This token has a short TTL-- it is exchanged with a more secure, slightly
         longer-lived token when it is redeemed.
         """
+        logger.info("[ContributorRefreshToken][short_lived_access_token] called")
         access = self.access_token
         access["exp"] = datetime_to_epoch(self.current_time + settings.CONTRIBUTOR_SHORT_TOKEN_LIFETIME)
         access["ctx"] = SHORT_TOKEN
@@ -47,6 +53,7 @@ class ContributorRefreshToken(RefreshToken):
         completing the contract expected by the front-end and established in the muggle authentication pattern used
         in this app.
         """
+        logger.info("[ContributorRefreshToken][long_lived_access_token] called")
         access = self.access_token
         access["exp"] = datetime_to_epoch(self.current_time + settings.CONTRIBUTOR_LONG_TOKEN_LIFETIME)
         access["ctx"] = LONG_TOKEN

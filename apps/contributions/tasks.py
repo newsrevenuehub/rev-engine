@@ -70,6 +70,12 @@ def auto_accept_flagged_contributions():
 @shared_task(bind=True, autoretry_for=(RateLimitError,), retry_backoff=True, retry_kwargs={"max_retries": 3})
 def task_pull_serialized_stripe_contributions_to_cache(self, email_id, stripe_account_id):
     """Pull all charges for a given email associated with a stripe account."""
+    logger.info(
+        "[task_pull_serialized_stripe_contributions_to_cache] called with email_id (%s) and stripe_account_id (%s)",
+        email_id,
+        stripe_account_id,
+    )
+
     provider = StripeContributionsProvider(email_id, stripe_account_id)
     # trigger async tasks to pull charges for a given set of customer queries, if there are two queries
     # the task will get triggered two times which are asynchronous

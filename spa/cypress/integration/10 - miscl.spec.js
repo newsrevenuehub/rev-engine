@@ -35,9 +35,10 @@ describe('Generic Error', () => {
     cy.forceLogin(hubAdminUser);
     cy.intercept({ method: 'GET', pathname: getEndpoint(USER) }, { body: hubAdminWithContentFlag });
     cy.intercept({ method: 'GET', pathname: getEndpoint(LIST_PAGES) }, {});
-    cy.intercept({ method: 'GET', pathname: getEndpoint(LIST_STYLES) }, InvalidListStyle);
+    cy.intercept({ method: 'GET', pathname: getEndpoint(LIST_STYLES) }, InvalidListStyle).as('listStyles');
 
     cy.visit(CUSTOMIZE_SLUG);
+    cy.wait('@listStyles');
     cy.getByTestId('error-sign-out').click({ force: true });
     cy.url().should('include', LOGIN);
   });

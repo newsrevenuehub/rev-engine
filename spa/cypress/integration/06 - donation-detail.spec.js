@@ -1,9 +1,10 @@
 import unflaggedContributionDetailData from '../fixtures/donations/donation-not-flagged.json';
 import prevFlaggedContributionDetailData from '../fixtures/donations/donation-prev-flagged.json';
 import flaggedContributionDetailData from '../fixtures/donations/donation-flagged.json';
+import donationPageContributionDetailData from '../fixtures/donations/donation-paid-donation-page.json';
 
 import { DONATIONS_SLUG } from 'routes';
-import { CONTRIBUTIONS, PROCESS_FLAGGED, USER } from 'ajax/endpoints';
+import { CONTRIBUTIONS, PROCESS_FLAGGED, USER, LIST_PAGES } from 'ajax/endpoints';
 import { getEndpoint } from '../support/util';
 import { GENERIC_ERROR } from 'constants/textConstants';
 
@@ -20,9 +21,39 @@ const hubAdminWithFlags = {
   flags: [{ ...contribSectionsFlag }]
 };
 
+const pageListBody = [
+  {
+    id: 1,
+    revenue_program: {
+      id: 2,
+      name: 'Test RV'
+    }
+  }
+];
+
 const CONTRIBUTION_PK = 123;
 
 describe('Donation detail', () => {
+  describe('Dynamic page title', () => {
+    before(() => {
+      cy.forceLogin(hubAdminWithFlags);
+      cy.intercept({ method: 'GET', pathname: getEndpoint(LIST_PAGES) }, { body: pageListBody }).as('getPages');
+      cy.intercept({ method: 'GET', pathname: getEndpoint(USER) }, { body: hubAdminWithFlags });
+      cy.intercept('GET', getEndpoint(`${CONTRIBUTIONS}/${CONTRIBUTION_PK}/`), {
+        body: donationPageContributionDetailData
+      }).as('getDonationPageDonation');
+      cy.visit(`/dashboard/contributions/${CONTRIBUTION_PK}`);
+    });
+    it('should display revenue program name in page title', () => {
+      cy.wait('@getPages');
+      cy.wait('@getDonationPageDonation');
+      cy.title().should(
+        'eq',
+        `${CONTRIBUTION_PK} | ${pageListBody[0].revenue_program.name} | Contributions | RevEngine`
+      );
+    });
+  });
+
   describe('Unflagged donation', () => {
     beforeEach(() => {
       cy.forceLogin(hubAdminWithFlags);
@@ -49,6 +80,7 @@ describe('Donation detail', () => {
       expectedAttrs.forEach((attr) => cy.getByTestId(attr).invoke('text').should('have.length.gte', 1));
     });
   });
+
   describe('Previously but no-longer-flagged donation', () => {
     beforeEach(() => {
       cy.forceLogin(hubAdminWithFlags);

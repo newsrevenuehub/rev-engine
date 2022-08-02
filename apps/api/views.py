@@ -146,7 +146,7 @@ class RequestContributorTokenEmailView(APIView):
     throttle_classes = [ContributorRateThrottle]
 
     def post(self, request, *args, **kwargs):
-        logger.info("[RequestContributorTokenEmailView] Request received for magic link %s", request.data)
+        logger.info("[RequestContributorTokenEmailView][post] Request received for magic link %s", request.data)
         serializer = ContributorObtainTokenSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         contributor, created = Contributor.objects.get_or_create(email=request.data["email"])

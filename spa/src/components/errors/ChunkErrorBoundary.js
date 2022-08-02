@@ -22,7 +22,12 @@ const ChunkErrorFallback = () => {
           Refresh
         </S.Button>
 
-        <ErrorS.Logout onClick={logout} whileHover={{ scale: 1.05, x: -3 }} whileTap={{ scale: 1, x: 0 }}>
+        <ErrorS.Logout
+          data-testid={'error-sign-out'}
+          onClick={logout}
+          whileHover={{ scale: 1.05, x: -3 }}
+          whileTap={{ scale: 1, x: 0 }}
+        >
           Sign out
         </ErrorS.Logout>
       </ErrorS.ErrorWrapper>

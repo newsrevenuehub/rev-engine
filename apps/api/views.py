@@ -193,7 +193,7 @@ class VerifyContributorTokenView(APIView):
     permission_classes = []
 
     def post(self, request, *args, **kwargs):
-        logger.info("[VerifyContributorTokenView] Request received for user (%s)", request.user)
+        logger.info("[VerifyContributorTokenView][post] Request received for user (%s)", request.user)
         response = Response(status=status.HTTP_200_OK)
 
         # Serializer contributor for response

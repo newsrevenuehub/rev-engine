@@ -16,7 +16,7 @@ function InputWrapped({ value, onChange, type, label, disabled, instructions, te
     setShowPassword(showPassword ? false : true);
   };
 
-  let inpType = Input.types.PASSWORD && showPassword ? Input.types.TEXT : type;
+  let inpType = type === Input.types.PASSWORD && showPassword ? Input.types.TEXT : type;
 
   return (
     <>
@@ -44,14 +44,8 @@ function InputWrapped({ value, onChange, type, label, disabled, instructions, te
           />
         )}
       </S.InputWrapped>
-      {instructions && instructions !== '' && (
-        <S.Instructions data-testid={`instructions`}>{instructions}</S.Instructions>
-      )}
-      {errorMessage && errorMessage !== '' ? (
-        <S.ErrorMessage data-testid={`error`}>{errorMessage}</S.ErrorMessage>
-      ) : (
-        <S.ErrorSpacer />
-      )}
+      {instructions && <S.Instructions data-testid={`instructions`}>{instructions}</S.Instructions>}
+      {errorMessage ? <S.ErrorMessage data-testid={`error`}>{errorMessage}</S.ErrorMessage> : <S.ErrorSpacer />}
     </>
   );
 }

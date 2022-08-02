@@ -19,7 +19,6 @@ import ChunkErrorBoundary from 'components/errors/ChunkErrorBoundary';
 import componentLoader from 'utilities/componentLoader';
 
 // Split bundles
-//const Login = lazy(() => componentLoader(() => import('components/authentication/Login')));
 const Main = lazy(() => componentLoader(() => import('components/Main')));
 const SignIn = lazy(() => componentLoader(() => import('components/account/SignIn/SignIn')));
 const SignUp = lazy(() => componentLoader(() => import('components/account/SignUp/SignUp')));

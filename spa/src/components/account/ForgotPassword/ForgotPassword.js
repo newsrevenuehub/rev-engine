@@ -1,6 +1,6 @@
 import { useState } from 'react';
 
-import * as S from './../Account.styled';
+import * as S from '../Account.styled';
 import purpleFooterImage from 'assets/images/account/purple-bottombar.png';
 
 import Logobar from 'components/account/common/logobar/Logobar';
@@ -36,7 +36,7 @@ function ForgotPassword() {
 
   return (
     <S.Outer>
-      <S.Left data-testid={'left-yellow'}>
+      <S.Left data-testid="left-yellow">
         <Leftbar />
       </S.Left>
       <S.Right>
@@ -47,7 +47,6 @@ function ForgotPassword() {
           <InputWrapped
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            errors={''}
             label="Email"
             disabled={loading}
             type={Input.types.EMAIL}
@@ -56,16 +55,12 @@ function ForgotPassword() {
           />
 
           <br />
-          <S.Submit
-            type={'neutral'}
-            disabled={submitDisabled}
-            onClick={loading || submitDisabled ? () => {} : onSubmitClick}
-          >
+          <S.Submit type={'neutral'} disabled={submitDisabled} onClick={submitDisabled ? () => {} : onSubmitClick}>
             Send Reset Link
           </S.Submit>
 
           <S.SignUpToggle>
-            <a href={SIGN_IN} data-testid={'sign-in'}>
+            <a href={SIGN_IN} data-testid="sign-in">
               Return to Sign In
             </a>
           </S.SignUpToggle>
@@ -74,7 +69,7 @@ function ForgotPassword() {
         <Logobar />
       </S.Right>
       <S.BottomBar>
-        <S.BottomBarImg data-testid={'bottom-purple-bar'} src={purpleFooterImage} />
+        <S.BottomBarImg data-testid="bottom-purple-bar" src={purpleFooterImage} />
       </S.BottomBar>
     </S.Outer>
   );

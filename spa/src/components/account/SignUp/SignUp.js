@@ -1,6 +1,6 @@
 import { useState } from 'react';
 
-import * as S from './../Account.styled';
+import * as S from '../Account.styled';
 import yellowFooterImage from 'assets/images/account/yellow-bottombar.png';
 
 import Logobar from 'components/account/common/logobar/Logobar';
@@ -103,7 +103,6 @@ function SignUp() {
           <InputWrapped
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            errors={''}
             label="Email"
             disabled={loading}
             type={Input.types.EMAIL}
@@ -113,7 +112,6 @@ function SignUp() {
           <InputWrapped
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            errors={''}
             disabled={loading}
             label="Password"
             type={Input.types.PASSWORD}

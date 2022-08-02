@@ -1,5 +1,5 @@
 import { useState, useReducer } from 'react';
-import * as S from './../Account.styled';
+import * as S from '../Account.styled';
 
 // AJAX
 import axios from 'ajax/axios';
@@ -27,8 +27,6 @@ import InputWrapped from 'components/account/common/elements/InputWrapped';
 import validateEmail from 'utilities/validateEmail';
 
 import { SIGN_UP, FORGOT_PASSWORD } from 'routes';
-
-//import validateEmail from 'utilities/validateEmail';
 
 function Login({ onSuccess, message }) {
   const history = useHistory();
@@ -82,7 +80,7 @@ function Login({ onSuccess, message }) {
 
   return (
     <S.Outer>
-      <S.Left data-testid={'left-yellow'}>
+      <S.Left data-testid="left-yellow">
         <Leftbar />
       </S.Left>
       <S.Right>
@@ -92,7 +90,6 @@ function Login({ onSuccess, message }) {
           <InputWrapped
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            errors={''}
             label="Email"
             disabled={loading}
             type={Input.types.EMAIL}
@@ -101,14 +98,13 @@ function Login({ onSuccess, message }) {
           />
           <S.PasswordLabel>
             Password
-            <a href={FORGOT_PASSWORD} data-testid={'reset-password'} tabindex="-1">
+            <a href={FORGOT_PASSWORD} data-testid="reset-password" tabindex="-1">
               Forgot Password?
             </a>
           </S.PasswordLabel>
           <InputWrapped
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            errors={''}
             disabled={loading}
             type={Input.types.PASSWORD}
             testid="signin-password"
@@ -116,25 +112,17 @@ function Login({ onSuccess, message }) {
             errorMessage={passwordError}
           />
 
-          <S.Submit
-            type={'neutral'}
-            disabled={submitDisabled}
-            onClick={loading || submitDisabled ? () => {} : onSubmitClick}
-          >
+          <S.Submit type={'neutral'} disabled={submitDisabled} onClick={submitDisabled ? () => {} : onSubmitClick}>
             Sign In
           </S.Submit>
 
           <br />
           <br />
-          {formSubmitErrors && formSubmitErrors !== '' ? (
-            <S.ErrorMessage>{formSubmitErrors} </S.ErrorMessage>
-          ) : (
-            <S.ErrorSpacer />
-          )}
+          {formSubmitErrors ? <S.ErrorMessage>{formSubmitErrors} </S.ErrorMessage> : <S.ErrorSpacer />}
 
           <S.SignInLink>
             Not a member?&nbsp;
-            <a href={SIGN_UP} data-testid={'create-account'}>
+            <a href={SIGN_UP} data-testid="create-account">
               Create an account
             </a>
           </S.SignInLink>
@@ -143,7 +131,7 @@ function Login({ onSuccess, message }) {
         <Logobar />
       </S.Right>
       <S.BottomBar>
-        <S.BottomBarImg data-testid={'bottom-purple-bar'} src={purpleFooterImage} />
+        <S.BottomBarImg data-testid="bottom-purple-bar" src={purpleFooterImage} />
       </S.BottomBar>
     </S.Outer>
   );

@@ -21,15 +21,13 @@ const hubAdminWithFlags = {
   flags: [{ ...contribSectionsFlag }]
 };
 
-const pageListBody = [
-  {
-    id: 1,
-    revenue_program: {
-      id: 2,
-      name: 'Test RV'
-    }
+const pageListBody = {
+  id: 1,
+  revenue_program: {
+    id: 2,
+    name: 'Test RV'
   }
-];
+};
 
 const CONTRIBUTION_PK = 123;
 
@@ -37,7 +35,7 @@ describe('Donation detail', () => {
   describe('Dynamic page title', () => {
     before(() => {
       cy.forceLogin(hubAdminWithFlags);
-      cy.intercept({ method: 'GET', pathname: getEndpoint(LIST_PAGES) }, { body: pageListBody }).as('getPages');
+      cy.intercept({ method: 'GET', pathname: getEndpoint(`${LIST_PAGES}**`) }, { body: pageListBody }).as('getPages');
       cy.intercept({ method: 'GET', pathname: getEndpoint(USER) }, { body: hubAdminWithFlags });
       cy.intercept('GET', getEndpoint(`${CONTRIBUTIONS}/${CONTRIBUTION_PK}/`), {
         body: donationPageContributionDetailData
@@ -47,10 +45,7 @@ describe('Donation detail', () => {
     it('should display revenue program name in page title', () => {
       cy.wait('@getPages');
       cy.wait('@getDonationPageDonation');
-      cy.title().should(
-        'eq',
-        `${CONTRIBUTION_PK} | ${pageListBody[0].revenue_program.name} | Contributions | RevEngine`
-      );
+      cy.title().should('eq', `${CONTRIBUTION_PK} | ${pageListBody.revenue_program.name} | Contributions | RevEngine`);
     });
   });
 

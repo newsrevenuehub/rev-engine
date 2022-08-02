@@ -29,7 +29,7 @@ function DonationDetail() {
   const [isLoading, setIsLoading] = useState(false);
   const [processing, setProcessing] = useState(false);
   const [donationData, setDonationData] = useState();
-  const [pages, setPages] = useState([]);
+  const [page, setPage] = useState([]);
 
   const { contributionId } = useParams();
   const alert = useAlert();
@@ -37,22 +37,21 @@ function DonationDetail() {
   const requestProcessFlagged = useRequest();
   const requestGetPages = useRequest();
 
-  const revenueProgram = useMemo(
-    () => pages?.find((page) => page.id === donationData?.donation_page_id)?.revenue_program,
-    [donationData?.donation_page_id, pages]
-  );
+  const revenueProgram = useMemo(() => page?.revenue_program, [page]);
 
   useEffect(() => {
-    requestGetPages(
-      { method: 'GET', url: LIST_PAGES },
-      {
-        onSuccess: ({ data }) => {
-          setPages(data);
-        },
-        onFailure: () => alert.error(GENERIC_ERROR)
-      }
-    );
-  }, [alert]);
+    if (donationData?.donation_page_id) {
+      requestGetPages(
+        { method: 'GET', url: `${LIST_PAGES}${donationData?.donation_page_id}/` },
+        {
+          onSuccess: ({ data }) => {
+            setPage(data);
+          },
+          onFailure: () => alert.error(GENERIC_ERROR)
+        }
+      );
+    }
+  }, [alert, donationData?.donation_page_id, requestGetPages]);
 
   const getDonationDetail = () => {
     setIsLoading(true);

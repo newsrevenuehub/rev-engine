@@ -4,6 +4,8 @@ import * as Sentry from '@sentry/react';
 import * as S from '../../elements/buttons/Button.styled';
 import * as ErrorS from './ChunkErrorFallback.styled';
 
+import logout from 'components/authentication/logout';
+
 const ChunkErrorFallback = () => {
   return (
     <>
@@ -19,6 +21,15 @@ const ChunkErrorFallback = () => {
         >
           Refresh
         </S.Button>
+
+        <ErrorS.Logout
+          data-testid={'error-sign-out'}
+          onClick={logout}
+          whileHover={{ scale: 1.05, x: -3 }}
+          whileTap={{ scale: 1, x: 0 }}
+        >
+          Sign out
+        </ErrorS.Logout>
       </ErrorS.ErrorWrapper>
     </>
   );

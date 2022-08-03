@@ -39,6 +39,11 @@ class DonationPageFullDetailSerializerTest(RevEngineApiAbstractTestCase):
         self.serializer = DonationPageFullDetailSerializer
         self.request_factory = APIRequestFactory()
 
+    def test_serializer_not_broken_by_no_payment_provider(self):
+        self.page.revenue_program.payment_provider.delete()
+        self.page.refresh_from_db()
+        self.serializer(self.page).data
+
     def test_has_analytics_data(self):
         serializer = self.serializer(self.page)
         data = serializer.data

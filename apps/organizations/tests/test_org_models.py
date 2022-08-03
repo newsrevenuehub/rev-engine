@@ -1,8 +1,10 @@
+from datetime import timedelta
 from unittest.mock import patch
 
 from django.core.exceptions import ValidationError
 from django.db.models.deletion import ProtectedError
 from django.test import TestCase, override_settings
+from django.utils import timezone
 from django.utils.text import slugify
 
 from faker import Faker
@@ -233,3 +235,25 @@ class BenefitLevelTest(TestCase):
             self.benefit_level.clean()
 
         self.assertEqual(v_error.exception.message, "Upper limit must be greater than lower limit")
+
+
+class TestPaymentProviderModel(TestCase):
+    def setUp(self):
+        now = timezone.now()
+        self.payment_provider = factories.PaymentProviderFactory()
+        self.revenue_program = factories.RevenueProgramFactory(payment_provider=self.payment_provider)
+        self.live_page = DonationPageFactory(
+            revenue_program=self.revenue_program, published_date=now - timedelta(days=14)
+        )
+        self.future_live_page = DonationPageFactory(
+            revenue_program=self.revenue_program, published_date=now + timedelta(days=14)
+        )
+
+    def test_get_dependent_pages_with_publication_date(self):
+        # add an additional page so test is not trivial
+        DonationPageFactory(revenue_program=self.revenue_program, published_date=None)
+        """Show gets list of donation pages with pub date that indirectly reference the provider"""
+        self.assertEqual(
+            set(list(self.payment_provider.get_dependent_pages_with_publication_date().values_list("id", flat=True))),
+            {self.live_page.pk, self.future_live_page.pk},
+        )

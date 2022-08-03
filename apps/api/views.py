@@ -1,6 +1,6 @@
 import logging
 from datetime import datetime
-from urllib.parse import urlparse
+from urllib.parse import quote_plus, urlparse
 
 from django.conf import settings
 from django.middleware import csrf
@@ -143,27 +143,38 @@ class RequestContributorTokenEmailView(APIView):
     filter_backends = []
     throttle_classes = [ContributorRateThrottle]
 
+    @staticmethod
+    def get_magic_link(domain, token, email):
+        return f"{domain}/{settings.CONTRIBUTOR_VERIFY_URL}?token={token}&email={quote_plus(email)}"
+
     def post(self, request, *args, **kwargs):
         serializer = ContributorObtainTokenSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         contributor, _ = Contributor.objects.get_or_create(email=request.data["email"])
         serializer.update_short_lived_token(contributor)
 
-        domain = _construct_rp_domain(serializer.data.get("subdomain", ""), request.headers.get("Referer", ""))
+        domain = _construct_rp_domain(
+            serializer.validated_data.get("subdomain", ""), request.headers.get("Referer", "")
+        )
 
         if not domain:
             return Response({"detail": "Missing Revenue Program subdomain"}, status=status.HTTP_404_NOT_FOUND)
 
-        revenue_program = get_object_or_404(RevenueProgram, slug=serializer.data.get("subdomain"))
+        revenue_program = get_object_or_404(RevenueProgram, slug=serializer.validated_data.get("subdomain"))
         # Celery backend job to pull contributions from Stripe and store the serialized data in cache, user will have
         # data by the time the user opens contributor portal.
         task_pull_serialized_stripe_contributions_to_cache.delay(
-            serializer.data["email"], revenue_program.stripe_account_id
+            serializer.validated_data["email"], revenue_program.stripe_account_id
         )
-        magic_link = f"{domain}/{settings.CONTRIBUTOR_VERIFY_URL}?token={serializer.data['access']}&email={serializer.data['email']}"
-        logger.info("Sending magic link email to [%s] | magic link: [%s]", serializer.data["email"], magic_link)
+
+        magic_link = self.get_magic_link(
+            domain, serializer.validated_data["access"], serializer.validated_data["email"]
+        )
+        logger.info(
+            "Sending magic link email to [%s] | magic link: [%s]", serializer.validated_data["email"], magic_link
+        )
         send_templated_email(
-            serializer.data["email"],
+            serializer.validated_data["email"],
             "Manage your contributions",
             "nrh-manage-donations-magic-link.txt",
             "nrh-manage-donations-magic-link.html",

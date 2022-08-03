@@ -93,6 +93,7 @@ pyyaml = "*"
 responses = "*"
 pytest-xdist = "*"
 flake8-logging-format = "*"
+pytest-mock = "^3.8.2"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]

@@ -59,7 +59,8 @@ export const revEngineTheme = {
 
   breakpoints: {
     phoneOnly: 'max-width: 599px',
-    tabletLandscapeDown: 'max-width: 900px'
+    tabletLandscapeDown: 'max-width: 900px',
+    tabletLandscapeUp: 'min-width: 900px'
   },
 
   maxWidths: {

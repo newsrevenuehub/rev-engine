@@ -36,8 +36,9 @@ function Styles({ setShowEditStylesModal, setStyleToEdit, fetchStyles, styles })
     setShowEditStylesModal(true);
   };
 
-  const stylesFiltered = filterStyles(styles, styleSearchQuery);
+  //const stylesFiltered = filterStyles(styles, styleSearchQuery);
 
+  const stylesFiltered = { sdf: 'sfsf' };
   return (
     <GenericErrorBoundary>
       <S.Styles data-testid="styles-list">

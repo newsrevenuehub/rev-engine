@@ -79,61 +79,63 @@ function Login({ onSuccess, message }) {
   const formSubmitErrors = errors?.detail;
 
   return (
-    <S.Outer>
-      <S.Left data-testid="left-yellow">
-        <Leftbar />
-      </S.Left>
-      <S.Right>
-        <S.FormElements>
-          <S.Heading>Welcome Back!</S.Heading>
-          <br />
-          <InputWrapped
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            label="Email"
-            disabled={loading}
-            type={Input.types.EMAIL}
-            testid="signin-email"
-            errorMessage={emailError}
-          />
-          <S.PasswordLabel>
-            Password
-            <a href={FORGOT_PASSWORD} data-testid="reset-password" tabindex="-1">
-              Forgot Password?
-            </a>
-          </S.PasswordLabel>
-          <InputWrapped
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            disabled={loading}
-            type={Input.types.PASSWORD}
-            testid="signin-password"
-            instructions="Password must be 8 characters long and alphanumerical."
-            errorMessage={passwordError}
-          />
+    <>
+      <S.Outer>
+        <S.Left data-testid="left-yellow">
+          <Leftbar />
+        </S.Left>
+        <S.Right>
+          <S.FormElements>
+            <S.Heading>Welcome Back!</S.Heading>
+            <br />
+            <InputWrapped
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              label="Email"
+              disabled={loading}
+              type={Input.types.EMAIL}
+              testid="signin-email"
+              errorMessage={emailError}
+            />
+            <S.PasswordLabel>
+              Password
+              <a href={FORGOT_PASSWORD} data-testid="reset-password" tabindex="-1">
+                Forgot Password?
+              </a>
+            </S.PasswordLabel>
+            <InputWrapped
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              disabled={loading}
+              type={Input.types.PASSWORD}
+              testid="signin-password"
+              instructions="Password must be 8 characters long and alphanumerical."
+              errorMessage={passwordError}
+            />
 
-          <S.Submit type={'neutral'} disabled={submitDisabled} onClick={submitDisabled ? () => {} : onSubmitClick}>
-            Sign In
-          </S.Submit>
+            <S.Submit type={'neutral'} disabled={submitDisabled} onClick={submitDisabled ? () => {} : onSubmitClick}>
+              Sign In
+            </S.Submit>
 
-          <br />
-          <br />
-          {formSubmitErrors ? <S.ErrorMessage>{formSubmitErrors} </S.ErrorMessage> : <S.ErrorSpacer />}
+            <br />
+            <br />
+            {formSubmitErrors ? <S.ErrorMessage>{formSubmitErrors} </S.ErrorMessage> : <S.ErrorSpacer />}
 
-          <S.SignInLink>
-            Not a member?&nbsp;
-            <a href={SIGN_UP} data-testid="create-account">
-              Create an account
-            </a>
-          </S.SignInLink>
-        </S.FormElements>
+            <S.SignInLink>
+              Not a member?&nbsp;
+              <a href={SIGN_UP} data-testid="create-account">
+                Create an account
+              </a>
+            </S.SignInLink>
+          </S.FormElements>
 
-        <Logobar />
-      </S.Right>
+          <Logobar />
+        </S.Right>
+      </S.Outer>
       <S.BottomBar>
         <S.BottomBarImg data-testid="bottom-purple-bar" src={purpleFooterImage} />
       </S.BottomBar>
-    </S.Outer>
+    </>
   );
 }
 

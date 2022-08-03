@@ -168,6 +168,7 @@ class RequestContributorTokenEmailView(APIView):
 
             magic_link = f"{domain}/{settings.CONTRIBUTOR_VERIFY_URL}?token={token}&email={email}"
             logger.info("Sending magic link email to [%s] | magic link: [%s]", email, magic_link)
+
             send_templated_email(
                 email,
                 "Manage your contributions",

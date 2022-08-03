@@ -16,6 +16,8 @@ import { SIGN_IN, VERIFY_EMAIL_SUCCESS } from 'routes';
 
 import validateEmail from 'utilities/validateEmail';
 
+import { ICONS } from 'assets/icons/SvgIcon';
+
 function Header() {
   return (
     <>
@@ -142,7 +144,7 @@ function SignUp() {
         <Logobar />
       </S.Right>
       <S.BottomBar data-testid={`bottom-yellow-bar`}>
-        <S.BottomBarImg src={yellowFooterImage} />
+        <S.BottomBarSVG icon={ICONS.YELLOW_TRIANGLE} />
       </S.BottomBar>
     </S.Outer>
   );

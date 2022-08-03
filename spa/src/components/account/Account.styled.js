@@ -1,5 +1,6 @@
 import styled from 'styled-components';
 import { motion } from 'framer-motion';
+import SvgIcon from 'assets/icons/SvgIcon';
 
 export const Outer = styled.div`
   display: flex;
@@ -20,26 +21,32 @@ export const LeftPurple = styled.div`
   display: flex;
   justify-content: center;
   align-items: center;
-  height: 100vh;
 
   @media (${(props) => props.theme.breakpoints.tabletLandscapeDown}) {
     flex: 100%;
     max-height: 240px;
   }
+
+  @media (${(props) => props.theme.breakpoints.tabletLandscapeUp}) {
+    min-height: 100vh;
+  }
 `;
 
 export const Left = styled.div`
-  background: linear-gradient(39.42deg, #f5ff75 47.23%, #f1f3da 105.55%);
+  background: linear-gradient(39.42deg, #6fd1ec 47.23%, #8af7e3 105.55%);
   flex: 35%;
   margin: 0px;
   display: flex;
   justify-content: center;
   align-items: center;
-  height: 100vh;
 
   @media (${(props) => props.theme.breakpoints.tabletLandscapeDown}) {
     flex: 100%;
     max-height: 240px;
+  }
+
+  @media (${(props) => props.theme.breakpoints.tabletLandscapeUp}) {
+    min-height: 100vh;
   }
 `;
 
@@ -57,7 +64,7 @@ export const Right = styled.div`
   }
 
   @media (${(props) => props.theme.breakpoints.tabletLandscapeUp}) {
-    height: 100vh;
+    min-height: 100vh;
   }
 `;
 
@@ -68,6 +75,13 @@ export const FormElements = styled.div`
 `;
 
 export const BottomBar = styled.div`
+  position: absolute;
+  width: 100%;
+  bottom: 0px;
+  right: 0px;
+`;
+
+export const BottomBarSVG = styled(SvgIcon)`
   position: absolute;
   width: 100%;
   bottom: 0px;

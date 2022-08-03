@@ -1,7 +1,6 @@
 import { getEndpoint } from '../support/util';
-import { LIST_PAGES, LIST_FONTS, LIST_STYLES, USER } from 'ajax/endpoints';
+import { LIST_PAGES, LIST_STYLES, USER } from 'ajax/endpoints';
 import { CUSTOMIZE_SLUG, LOGIN } from 'routes';
-import stylesList from '../fixtures/styles/list-styles-1.json';
 
 import hubAdminUser from '../fixtures/user/hub-admin';
 import { CONTENT_SECTION_ACCESS_FLAG_NAME } from 'constants/featureFlagConstants';
@@ -28,8 +27,6 @@ const InvalidListStyles = [
   }
 ];
 
-const [styleA] = stylesList;
-
 describe('Generic Error', () => {
   it('should allow user to logout when App Error page is shown', () => {
     cy.forceLogin(hubAdminUser);
@@ -39,7 +36,7 @@ describe('Generic Error', () => {
     cy.intercept({ method: 'DELETE', pathname: getEndpoint('/token') }, {});
     cy.visit(CUSTOMIZE_SLUG);
     cy.wait('@listStyles');
-    cy.getByTestId('error-sign-out').click({ force: true });
+    cy.getByTestId('error-sign-out').click();
     cy.url().should('include', LOGIN);
   });
 });

@@ -1,0 +1,18 @@
+{
+  "amount": 12000,
+  "auto_accepted_on": null,
+  "bad_actor_score": null,
+  "contributor_email": "danielc@pobox.com",
+  "created": "2022-06-15T03:24:50.930972Z",
+  "currency": "usd",
+  "donation_page_id": 1,
+  "flagged_date": null,
+  "formatted_payment_provider_used": "Stripe",
+  "id": 12,
+  "interval": "one_time",
+  "last_payment_date": "2022-06-15T03:24:50Z",
+  "provider_customer_url": "https://dashboard.stripe.com/customers/cus_LsXwpDJ1EXR99k",
+  "provider_payment_url": "https://dashboard.stripe.com/payments/pi_3LAmqcPbhdfvD1kV08xqIWrR",
+  "provider_subscription_url": "",
+  "status": "paid"
+}

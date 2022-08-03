@@ -27,6 +27,7 @@ import DonationsTable from 'components/donations/DonationsTable';
 import { StatusCellIcon } from 'components/contributor/contributorDashboard/ContributorDashboard';
 import Filters from 'components/donations/filters/Filters';
 import GenericErrorBoundary from 'components/errors/GenericErrorBoundary';
+import PageTitle from 'elements/PageTitle';
 
 const IS_URGENT_THRESHOLD_DAYS = 1;
 const IS_SOON_THRESHOLD_DAYS = 2;
@@ -128,29 +129,32 @@ function Donations() {
   );
 
   return (
-    <DashboardSectionGroup data-testid="donations">
-      <Switch>
-        <Route path={`${path}/:contributionId`}>
-          <DashboardSection heading="Contribution Info">
-            <DonationDetail />
-          </DashboardSection>
-        </Route>
-        <Route>
-          <DashboardSection heading="Contributions">
-            <Filters filters={filters} handleFilterChange={handleFilterChange} donationsCount={donationsCount} />
-            <GenericErrorBoundary>
-              <DonationsTable
-                onRowClick={handleRowClick}
-                columns={columns}
-                fetchDonations={fetchDonations}
-                pageIndex={pageIndex}
-                onPageChange={handlePageChange}
-              />
-            </GenericErrorBoundary>
-          </DashboardSection>
-        </Route>
-      </Switch>
-    </DashboardSectionGroup>
+    <>
+      <PageTitle title="Contributions" />
+      <DashboardSectionGroup data-testid="donations">
+        <Switch>
+          <Route path={`${path}/:contributionId`}>
+            <DashboardSection heading="Contribution Info">
+              <DonationDetail />
+            </DashboardSection>
+          </Route>
+          <Route>
+            <DashboardSection heading="Contributions">
+              <Filters filters={filters} handleFilterChange={handleFilterChange} donationsCount={donationsCount} />
+              <GenericErrorBoundary>
+                <DonationsTable
+                  onRowClick={handleRowClick}
+                  columns={columns}
+                  fetchDonations={fetchDonations}
+                  pageIndex={pageIndex}
+                  onPageChange={handlePageChange}
+                />
+              </GenericErrorBoundary>
+            </DashboardSection>
+          </Route>
+        </Switch>
+      </DashboardSectionGroup>
+    </>
   );
 }
 

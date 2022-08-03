@@ -13,6 +13,7 @@ import DashboardSectionGroup from 'components/dashboard/DashboardSectionGroup';
 import DashboardSection from 'components/dashboard/DashboardSection';
 import Styles from 'components/content/styles/Styles';
 import EditStylesModal from 'components/content/styles/EditStylesModal';
+import PageTitle from 'elements/PageTitle';
 
 function Customize() {
   const alert = useAlert();
@@ -44,6 +45,7 @@ function Customize() {
 
   return (
     <>
+      <PageTitle title="Customize" />
       <DashboardSectionGroup data-testid="content">
         <DashboardSection heading="Styles" collapsible data-testid="styles-section">
           <Styles

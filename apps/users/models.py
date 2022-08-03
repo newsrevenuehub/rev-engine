@@ -20,8 +20,9 @@ class User(AbstractBaseUser, PermissionsMixin, IndexedTimeStampedModel):
             "Designates whether this user should be treated as active. Unselect this instead of deleting accounts."
         ),
     )
-
     organizations = models.ManyToManyField("organizations.Organization", through="users.OrganizationUser")
+    accepted_terms_of_service = models.DateTimeField(null=True)
+    email_verified = models.BooleanField(default=False)
 
     objects = UserManager()
 
@@ -38,6 +39,12 @@ class User(AbstractBaseUser, PermissionsMixin, IndexedTimeStampedModel):
             return self.roleassignment
         except self.__class__.roleassignment.RelatedObjectDoesNotExist:
             return None
+
+    def get_role_type(self):
+        if self.is_superuser:
+            return ("superuser", "Superuser")
+        role_assignment = self.get_role_assignment()
+        return (role_assignment.role_type, role_assignment.get_role_type_display()) if role_assignment else None
 
     def __str__(self):
         return self.email

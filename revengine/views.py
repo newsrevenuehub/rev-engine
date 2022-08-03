@@ -26,11 +26,15 @@ class ReactAppView(TemplateView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         self._add_gtm_id(context)
+        self._add_spa_env(context)
         if revenue_program := self._get_revenue_program_from_subdomain():
             self._add_social_media_context(revenue_program, context)
             context["revenue_program_name"] = revenue_program.name
 
         return context
+
+    def _add_spa_env(self, context):
+        context["spa_env"] = settings.SPA_ENV_VARS
 
     def _get_revenue_program_from_subdomain(self):
         if subdomain := get_subdomain_from_request(self.request):

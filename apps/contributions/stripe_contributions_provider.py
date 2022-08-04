@@ -34,10 +34,6 @@ class InvalidMetadataError(ContributionIgnorableError):
     pass
 
 
-class NoInvoiceGeneratedError(ContributionIgnorableError):
-    pass
-
-
 class AttrDict(dict):
     def __init__(self, **kwargs) -> None:
         super().__init__(**kwargs)
@@ -52,13 +48,28 @@ class StripeCharge:
     """
 
     def __init__(self, charge):
-        if not hasattr(charge, "invoice") or not charge.invoice:
-            raise NoInvoiceGeneratedError(f"No invoice object for charge : {charge.id}")
         self.charge = charge
+
+    def __invoice(self):
+        # one-time payments doesn't have invoice, so creating a dummy invoice for them
+        if not hasattr(self.charge, "invoice") or not self.charge.invoice:
+            self.charge.invoice = self._create_dummy_invoice(self.charge)
+        return self.charge.invoice
+
+    @staticmethod
+    def _create_dummy_invoice(charge):
+        return stripe.Invoice.construct_from(
+            {
+                "lines": {"data": [{"plan": {"interval": "one-time-charge"}}]},
+                "status_transitions": {"paid_at": charge.created},
+                "next_payment_attempt": None,
+            },
+            "dummy-key",
+        )
 
     @property
     def invoice_line_item(self):
-        line_item = self.charge.invoice.lines.data
+        line_item = self.__invoice().lines.data
         if not line_item:
             line_item = [{}]
         return line_item[0]
@@ -71,6 +82,8 @@ class StripeCharge:
             return ContributionInterval.YEARLY
         if interval == "month" and interval_count == 1:
             return ContributionInterval.MONTHLY
+        if interval == "one-time-charge":
+            return ContributionInterval.ONE_TIME
         raise InvalidIntervalError(f"Invalid interval {interval} for charge : {self.charge.id}")
 
     @property
@@ -108,7 +121,7 @@ class StripeCharge:
 
     @property
     def last_payment_date(self):
-        return datetime.utcfromtimestamp(int(self.charge.invoice.status_transitions.paid_at))
+        return datetime.utcfromtimestamp(int(self.__invoice().status_transitions.paid_at))
 
     @property
     def status(self):
@@ -130,7 +143,7 @@ class StripeCharge:
 
     @property
     def next_payment_date(self):
-        next_attempt = self.charge.invoice.next_payment_attempt
+        next_attempt = self.__invoice().next_payment_attempt
         if next_attempt:
             return datetime.utcfromtimestamp(int(next_attempt))
 

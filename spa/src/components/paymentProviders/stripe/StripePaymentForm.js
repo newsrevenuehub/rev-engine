@@ -193,6 +193,7 @@ function StripePaymentForm({ loading, setLoading, offerPayFees }) {
   };
 
   const getData = async (state = {}) => {
+    console.log('getData', state);
     const reCAPTCHAToken = await getReCAPTCHAToken();
     const data = serializeData(formRef.current, {
       amount,

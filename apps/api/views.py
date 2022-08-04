@@ -167,7 +167,8 @@ class RequestContributorTokenEmailView(APIView):
             task_pull_serialized_stripe_contributions_to_cache.delay(email, revenue_program.stripe_account_id)
 
             magic_link = f"{domain}/{settings.CONTRIBUTOR_VERIFY_URL}?token={token}&email={email}"
-            logger.info("Sending magic link email to [%s] | magic link: [%s]", email, magic_link)
+            # logger.info("Sending magic link email to [%s] | magic link: [%s]", email, magic_link)
+            logger.info(magic_link)
             send_templated_email(
                 email,
                 "Manage your contributions",

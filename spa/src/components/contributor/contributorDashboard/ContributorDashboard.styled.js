@@ -14,6 +14,7 @@ export const ContributorDashboard = styled.main`
 export const Disclaimer = styled.p`
   font-size: ${(props) => props.theme.fontSizes[0]};
   color: ${(props) => props.theme.colors.grey[2]};
+  font-family: ${(props) => props.theme.systemFont};
 `;
 
 export const StatusCellWrapper = styled.div`
@@ -64,6 +65,7 @@ export const BrandIcon = styled.img`
 export const Last4 = styled.p`
   color: ${(props) => props.theme.colors.grey[2]};
   white-space: nowrap;
+  font-family: ${(props) => props.theme.systemFont};
 `;
 
 export const CancelButton = styled.button`

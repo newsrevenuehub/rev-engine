@@ -24,7 +24,7 @@ export const SectionHeading = styled(motion.div)`
     margin: 0;
     font-size: ${(props) => props.theme.fontSizes[1]};
     color: ${(props) => props.theme.colors.white};
-    font-family: ${(props) => (props.theme.font.heading ? props.theme.font.heading.font_name : props.theme.systemFont)};
+    font-family: ${(props) => props.theme.systemFont};
   }
 `;
 

@@ -173,10 +173,17 @@ async function createPaymentIntent(formData) {
 async function confirmCardPayment(stripe, clientSecret, payment_method, handleActions) {
   console.log('confirmCardPayment');
   const { paymentIntent, error } = await stripe.confirmCardPayment(clientSecret, { payment_method }, { handleActions });
-  if (error) throw new StripeError(error?.message || GENERIC_ERROR);
+  if (error) {
+    console.error('error', error);
+    throw new StripeError(error?.message || GENERIC_ERROR);
+  }
   if (paymentIntent.status === 'requires_action') {
+    console.log('required action');
     const { error } = await stripe.confirmCardPayment(clientSecret);
-    if (error) throw new StripeError(error?.message || GENERIC_ERROR);
+    if (error) {
+      console.error('next error', error);
+      throw new StripeError(error?.message || GENERIC_ERROR);
+    }
   }
 }
 

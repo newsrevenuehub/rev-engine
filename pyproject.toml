@@ -46,7 +46,7 @@ uwsgi = "^2"
 djangorestframework = "^3.12.4"
 djangorestframework-simplejwt = "^5.2.0"
 Pillow = "^9"
-stripe = "^3"
+stripe = "^4"
 google-cloud-storage = "^2.4.0"
 google-auth = "^2.8"
 requests = "^2"
@@ -93,6 +93,7 @@ pyyaml = "*"
 responses = "*"
 pytest-xdist = "*"
 flake8-logging-format = "*"
+Faker = "^13.15.0"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]

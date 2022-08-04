@@ -1,0 +1,3 @@
+Thanks for signing up.
+
+Please follow this link to verify your email address: {verification_url}

@@ -38,8 +38,6 @@ import { ICONS } from 'assets/icons/SvgIcon';
 import { PayFeesWidget } from 'components/donationPage/pageContent/DPayment';
 import DonationPageDisclaimer from 'components/donationPage/DonationPageDisclaimer';
 
-// this represents 50 cents
-const DEFAULT_PAYMENT_INTENT_AMOUNT = 50;
 /*
   gets the disabled stripe wallets for a page
   @param {page}
@@ -72,10 +70,6 @@ function StripePaymentForm({ loading, setLoading, offerPayFees }) {
   const { page, amount, frequency, payFee, formRef, setErrors, salesforceCampaignId } = usePage();
   const { trackConversion } = useAnalyticsContext();
 
-  const amountIsValid = (amount) => amount && !isNaN(amount);
-
-  const initialPaymentIntentAmount = (amount && amountIsValid(amount)) || DEFAULT_PAYMENT_INTENT_AMOUNT;
-
   const [cardReady, setCardReady] = useState(false);
   const [succeeded, setSucceeded] = useState(false);
   const [disabled, setDisabled] = useState(true);
@@ -89,6 +83,7 @@ function StripePaymentForm({ loading, setLoading, offerPayFees }) {
   const stripe = useStripe();
   const elements = useElements();
 
+  const amountIsValid = (amount) => amount && !isNaN(amount);
   /**
    * Listen for changes in the CardElement and display any errors as the customer types their card details
    */
@@ -245,15 +240,18 @@ function StripePaymentForm({ loading, setLoading, offerPayFees }) {
    * amount. For that, we must use the paymentRequest.update method.
    */
   useEffect(() => {
+    const rpIsNonProfit = page.revenue_program_is_nonprofit;
+    const amnt = amountToCents(getTotalAmount(amount, payFee, frequency, rpIsNonProfit));
+
     let disabledWallets = getDisabledWallets(page);
 
-    if (stripe) {
+    if (stripe && amountIsValid(amount) && !paymentRequest) {
       const pr = stripe.paymentRequest({
         country: page?.revenue_program_country,
         currency: page?.currency?.code?.toLowerCase(),
         total: {
           label: page.revenue_program.name,
-          amount: initialPaymentIntentAmount
+          amount: amnt
         },
         disableWallets: disabledWallets
       });

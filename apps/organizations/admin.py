@@ -1,8 +1,10 @@
 from functools import partial
 from pathlib import Path
 
-from django.contrib import admin
+from django.contrib import admin, messages
 from django.db.models import Q
+from django.urls import reverse
+from django.utils.safestring import mark_safe
 
 from reversion.admin import VersionAdmin
 from sorl.thumbnail.admin import AdminImageMixin
@@ -215,12 +217,9 @@ class RevenueProgramAdmin(RevEngineBaseAdmin, VersionAdmin, AdminImageMixin):  #
         ),
     )
 
-    list_display = [
-        "name",
-        "organization",
-        "slug",
-        "country",
-    ]
+    search_fields = ["payment_provider__stripe_account_id"]
+
+    list_display = ["name", "organization", "slug"]
 
     list_filter = [
         "name",
@@ -319,3 +318,20 @@ class PaymentProviderAdmin(RevEngineBaseAdmin):  # pragma: no cover
             },
         ),
     )
+
+    def has_delete_permission(self, request, obj=None):
+        """Block deletion of PaymentProviders that have dependent live or future live pages"""
+        if obj and (dependents := obj.get_dependent_pages_with_publication_date()).exists():
+            dependents_search_url = (
+                f"{reverse('admin:organizations_revenueprogram_changelist')}?q={obj.stripe_account_id}"
+            )
+            dependent_rps_count = dependents.values("revenue_program").distinct().count()
+            msg = mark_safe(
+                f"Can't delete this payment provider because it's used by "
+                f"{dependents.count()} live or future live donation page{'s' if dependents.count() > 1 else ''} "
+                f"across <a href={dependents_search_url}>{dependent_rps_count} "
+                f"revenue program{'s' if dependent_rps_count > 1 else ''}</a>."
+            )
+            messages.add_message(request, messages.WARNING, msg)
+            return False
+        return True

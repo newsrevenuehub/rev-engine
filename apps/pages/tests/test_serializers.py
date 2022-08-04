@@ -5,6 +5,7 @@ from rest_framework.test import APIRequestFactory, APITestCase
 
 from apps.api.tests import RevEngineApiAbstractTestCase
 from apps.organizations.models import BenefitLevelBenefit
+from apps.organizations.serializers import PaymentProviderSerializer
 from apps.organizations.tests.factories import (
     BenefitFactory,
     BenefitLevelFactory,
@@ -38,6 +39,13 @@ class DonationPageFullDetailSerializerTest(RevEngineApiAbstractTestCase):
 
         self.serializer = DonationPageFullDetailSerializer
         self.request_factory = APIRequestFactory()
+
+    def test_payment_provider(self):
+        serializer = self.serializer(self.page)
+        self.assertEqual(
+            serializer.data["payment_provider"],
+            PaymentProviderSerializer(self.page.revenue_program.payment_provider).data,
+        )
 
     def test_has_analytics_data(self):
         serializer = self.serializer(self.page)

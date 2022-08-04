@@ -100,6 +100,16 @@ class DonationPageFullDetailSerializerTest(RevEngineApiAbstractTestCase):
         new_page = serializer.save()
         self.assertEqual(new_page.heading, template.heading)
 
+    def test_live_context_adds_org_stripe_account_id(self):
+        serializer = self.serializer(self.page, context={"live": False})
+        self.assertIsNone(serializer.data["stripe_account_id"])
+
+        serializer = self.serializer(self.page, context={"live": True})
+        self.assertIsNotNone(serializer.data["stripe_account_id"])
+        self.assertEqual(
+            serializer.data["stripe_account_id"], self.page.revenue_program.payment_provider.stripe_account_id
+        )
+
     def test_not_live_context_adds_allow_offer_nyt_comp(self):
         serializer = self.serializer(self.page, context={"live": True})
         self.assertIsNone(serializer.data["allow_offer_nyt_comp"])

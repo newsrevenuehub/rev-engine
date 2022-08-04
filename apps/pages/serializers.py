@@ -123,6 +123,7 @@ class DonationPageFullDetailSerializer(serializers.ModelSerializer):
     def get_revenue_program_is_nonprofit(self, obj):
         return obj.revenue_program.non_profit
 
+    # TODO: [DEV-2187] Remove stripe_account_id from DonationPageFullDetailSerializer
     def get_stripe_account_id(self, obj):
         if self.context.get("live"):
             return obj.revenue_program.payment_provider.stripe_account_id

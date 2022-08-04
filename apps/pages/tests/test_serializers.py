@@ -100,6 +100,7 @@ class DonationPageFullDetailSerializerTest(RevEngineApiAbstractTestCase):
         new_page = serializer.save()
         self.assertEqual(new_page.heading, template.heading)
 
+    # TODO: [DEV-2187] Remove stripe_account_id from DonationPageFullDetailSerializer
     def test_live_context_adds_org_stripe_account_id(self):
         serializer = self.serializer(self.page, context={"live": False})
         self.assertIsNone(serializer.data["stripe_account_id"])

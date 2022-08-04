@@ -1,15 +1,10 @@
 from rest_framework import serializers
-from rest_framework_simplejwt.exceptions import AuthenticationFailed
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 
 # Import error messages to set defaults for fields
 import apps.api.error_messages  # noqa
 from apps.api.tokens import ContributorRefreshToken
 from apps.users.serializers import UserSerializer
-
-
-class NoSuchContributorError(AuthenticationFailed):
-    pass
 
 
 class TokenObtainPairCookieSerializer(TokenObtainPairSerializer):

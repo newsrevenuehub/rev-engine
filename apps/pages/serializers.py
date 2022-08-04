@@ -12,6 +12,7 @@ from apps.common.validators import ValidateFkReferenceOwnership
 from apps.organizations.models import RevenueProgram
 from apps.organizations.serializers import (
     BenefitLevelDetailSerializer,
+    PaymentProviderSerializer,
     RevenueProgramInlineSerializer,
     RevenueProgramListInlineSerializer,
 )
@@ -98,6 +99,7 @@ class DonationPageFullDetailSerializer(serializers.ModelSerializer):
         allow_null=False,
         required=True,
     )
+    payment_provider = PaymentProviderSerializer(source="revenue_program.payment_provider", read_only=True)
     template_pk = serializers.IntegerField(allow_null=True, required=False)
 
     graphic = serializers.ImageField(allow_empty_file=True, allow_null=True, required=False)

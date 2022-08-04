@@ -118,8 +118,12 @@ def get_subdomain_from_request(request):
 def get_original_ip_from_request(request):
     # prefer CF-Connecting-IP, then X-Forwarded-For, then REMOTE_ADDR
     if cf_connecting_ip := request.headers.get("CF-Connecting-IP"):
+        logger.debug("Using CF-Connecting-IP as request IP: %s", cf_connecting_ip)
         return cf_connecting_ip
     if x_forwarded_for := request.headers.get("X-Forwarded-For"):
+        logger.debug("Using X-Forwarded-For as request IP: %s", x_forwarded_for)
         return x_forwarded_for.split(",")[0]
     else:
-        return request.META.get("REMOTE_ADDR")
+        remote_addr = request.META.get("REMOTE_ADDR")
+        logger.debug("Using REMOTE_ADDR as request IP: %s", remote_addr)
+        return remote_addr

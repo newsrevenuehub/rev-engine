@@ -1,12 +1,21 @@
+from django.contrib import messages
+from django.contrib.admin.sites import AdminSite
+from django.test import RequestFactory, override_settings
 from django.urls import reverse
+from django.utils import timezone
 
 import pytest
 from bs4 import BeautifulSoup as bs4
 
-from apps.organizations.tests.factories import BenefitLevelFactory, RevenueProgramFactory
+from apps.organizations.admin import PaymentProviderAdmin
+from apps.organizations.tests.factories import (
+    BenefitLevelFactory,
+    PaymentProviderFactory,
+    RevenueProgramFactory,
+)
 from apps.pages.tests.factories import DonationPageFactory
 
-from ..models import Feature
+from ..models import Feature, PaymentProvider
 
 
 pytestmark = pytest.mark.django_db
@@ -102,3 +111,25 @@ def test_benefitlevel_change_where_revenue_program_is_readonly(admin_client):
     response = admin_client.get(reverse("admin:organizations_benefitlevel_change", args=[my_benefit_level.pk]))
     soup = bs4(response.content)
     assert my_revenue_program.name == soup.select_one(".field-revenue_program .readonly a").text
+
+
+@override_settings(MESSAGE_STORAGE="django.contrib.messages.storage.cookie.CookieStorage")
+def test_paymentprovider_change_blocks_deletion_when_pages_with_publish_date():
+
+    provider = PaymentProviderFactory()
+    model_admin = PaymentProviderAdmin(model=PaymentProvider, admin_site=AdminSite())
+
+    request = RequestFactory().get("/")
+    request._messages = messages.storage.default_storage(request)
+    assert model_admin.has_delete_permission(request, provider) is True
+
+    DonationPageFactory(revenue_program=RevenueProgramFactory(payment_provider=provider), published_date=timezone.now())
+
+    assert model_admin.has_delete_permission(request, provider) is False
+
+    message = request._messages._queued_messages[0].message
+
+    assert message == (
+        f"Can't delete this payment provider because it's used by 1 live or future live donation page "
+        f"across <a href=/nrhadmin/organizations/revenueprogram/?q={provider.stripe_account_id}>1 revenue program</a>."
+    )

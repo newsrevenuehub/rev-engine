@@ -111,6 +111,8 @@ class DonationPageFullDetailSerializer(serializers.ModelSerializer):
     header_logo_thumbnail = HyperlinkedSorlImageField("300", source="header_logo", read_only=True)
 
     revenue_program_is_nonprofit = serializers.SerializerMethodField(method_name="get_revenue_program_is_nonprofit")
+
+    # TODO: [DEV-2187] Remove stripe_account_id from DonationPageFullDetailSerializer
     stripe_account_id = serializers.SerializerMethodField(method_name="get_stripe_account_id")
     currency = serializers.SerializerMethodField(method_name="get_currency")
     revenue_program_country = serializers.SerializerMethodField(method_name="get_revenue_program_country")

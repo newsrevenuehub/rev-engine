@@ -113,3 +113,13 @@ def get_subdomain_from_request(request):
     if len(split_host) > 2 and not split_host[0] in settings.DASHBOARD_SUBDOMAINS:
         subdomain = split_host[0]
     return subdomain
+
+
+def get_original_ip_from_request(request):
+    # prefer CF-Connecting-IP, then X-Forwarded-For, then REMOTE_ADDR
+    if cf_connecting_ip := request.headers.get("CF-Connecting-IP"):
+        return cf_connecting_ip
+    if x_forwarded_for := request.headers.get("X-Forwarded-For"):
+        return x_forwarded_for.split(",")[0]
+    else:
+        return request.META.get("REMOTE_ADDR")

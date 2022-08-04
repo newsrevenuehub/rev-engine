@@ -108,6 +108,7 @@ function StripePaymentForm({ loading, setLoading, offerPayFees }) {
    * Handle Error and Success *
   \****************************/
   const handlePaymentSuccess = (pr, rpApiResponse) => {
+    console.log(handlePaymentSuccess);
     if (pr) pr.complete('success');
     const totalAmount = getTotalAmount(amount, payFee, frequency, page.revenue_program_is_nonprofit);
 
@@ -137,6 +138,7 @@ function StripePaymentForm({ loading, setLoading, offerPayFees }) {
   };
 
   const handlePaymentFailure = (error, pr) => {
+    console.log('handlePaymentFailure');
     if (error instanceof StripeError) {
       setStripeError(`Payment failed: ${error}`);
       alert.error(`Payment failed: ${error}`);
@@ -204,6 +206,7 @@ function StripePaymentForm({ loading, setLoading, offerPayFees }) {
   };
 
   const handleCardSubmit = async (e) => {
+    console.log('handle card submit');
     e.preventDefault();
     const data = await getData();
     setLoading(true);
@@ -220,6 +223,7 @@ function StripePaymentForm({ loading, setLoading, offerPayFees }) {
    * PaymentRequestButton Payments *
   \*********************************/
   const handlePaymentRequestSubmit = async (state, paymentRequest) => {
+    console.log('handlePaymentRequest submit', state, paymentRequest);
     const data = await getData(state);
     setLoading(true);
     await submitPayment(
@@ -246,6 +250,7 @@ function StripePaymentForm({ loading, setLoading, offerPayFees }) {
     let disabledWallets = getDisabledWallets(page);
 
     if (stripe && amountIsValid(amount) && !paymentRequest) {
+      console.log('making stripe payment request');
       const pr = stripe.paymentRequest({
         country: page?.revenue_program_country,
         currency: page?.currency?.code?.toLowerCase(),
@@ -261,7 +266,7 @@ function StripePaymentForm({ loading, setLoading, offerPayFees }) {
       });
     }
     // vv See note above
-  }, [stripe, paymentRequest]);
+  }, [stripe, paymentRequest, amount, payFee, frequency, page]);
 
   /**
    * Here we assign a callback to the paymentmethod event in which we submit the payment
@@ -280,7 +285,7 @@ function StripePaymentForm({ loading, setLoading, offerPayFees }) {
       paymentRequest.on('paymentmethod', handlePaymentMethodEvent);
     }
     // vv See note above
-  }, [paymentRequest, amount, payFee, params]);
+  }, [paymentRequest, amount, payFee, params, handlePaymentRequestSubmit]);
 
   /**
    * See previous note. Here we update the values of our paymentRequest using the
@@ -298,7 +303,7 @@ function StripePaymentForm({ loading, setLoading, offerPayFees }) {
         }
       });
     }
-  }, [amount, payFee, paymentRequest, frequency]);
+  }, [amount, payFee, paymentRequest, frequency, page.revenue_program_is_nonprofit, page.revenue_program.name]);
 
   const currencySymbol = page?.currency?.symbol;
 

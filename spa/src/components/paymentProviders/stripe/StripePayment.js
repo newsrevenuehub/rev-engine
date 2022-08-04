@@ -21,6 +21,7 @@ function StripePayment({ offerPayFees, stripeAccountId }) {
       setStripe(loadStripe(HUB_STRIPE_API_PUB_KEY, { stripeAccount: stripeAccountId, apiVersion: STRIPE_API_VERSION }));
   }, [stripeAccountId]);
 
+  //  need to add options to the stripe going in here???
   return (
     <S.StripePayment>
       {(loading || !stripe) && <ElementLoading />}

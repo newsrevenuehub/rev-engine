@@ -193,6 +193,7 @@ async function confirmCardPayment(stripe, clientSecret, payment_method, handleAc
  *                                 from a Stripe PaymentRequest
  */
 async function tryRecurringPayment(stripe, data, { card, paymentRequest }) {
+  console.log('tryRecurringPayment');
   let paymentMethod = paymentRequest?.paymentMethod?.id;
 
   if (!paymentMethod) {
@@ -215,6 +216,7 @@ async function tryRecurringPayment(stripe, data, { card, paymentRequest }) {
  * @returns a response from stripe.createPaymentMethod
  */
 export async function createPaymentMethod(stripe, card, data) {
+  console.log('createPaymentMethod');
   const billing_details = {};
   if (data?.first_name || data?.last_name) {
     billing_details.name = `${data.first_name} ${data.last_name}`;

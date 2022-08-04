@@ -24,6 +24,7 @@ async function submitPayment(stripe, data, { card, paymentRequest }, onSuccess, 
     Here we let all errors bubble up and catch them, rather than try to handle them separately
     in every function down the chain.
   */
+  console.log('submitPayment');
   try {
     if (data.interval === 'one_time') {
       const respData = await trySinglePayment(stripe, data, { card, paymentRequest });
@@ -170,6 +171,7 @@ async function createPaymentIntent(formData) {
  * @param {boolean} handleActions - Should be false if using a paymentRequest.
  */
 async function confirmCardPayment(stripe, clientSecret, payment_method, handleActions) {
+  console.log('confirmCardPayment');
   const { paymentIntent, error } = await stripe.confirmCardPayment(clientSecret, { payment_method }, { handleActions });
   if (error) throw new StripeError(error?.message || GENERIC_ERROR);
   if (paymentIntent.status === 'requires_action') {

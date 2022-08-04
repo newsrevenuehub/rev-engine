@@ -1,6 +1,8 @@
+import hashlib
+
 from django.test import TestCase, override_settings
 
-from apps.contributions.utils import get_hub_stripe_api_key
+from apps.contributions.utils import get_hub_stripe_api_key, get_sha256_hash
 
 
 LIVE_KEY = "live-key-test"
@@ -19,3 +21,7 @@ class UtilsTest(TestCase):
     def test_get_hub_stripe_api_key_returns_test_key_otherwise(self):
         key = get_hub_stripe_api_key()
         self.assertEqual(key, TEST_KEY)
+
+
+def test_hash_is_salted():
+    assert get_sha256_hash("test") != hashlib.sha256("test".encode())  # because salt is added

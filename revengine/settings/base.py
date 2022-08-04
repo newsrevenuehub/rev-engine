@@ -456,6 +456,9 @@ AUTH_COOKIE_KEY = "Authorization"
 # across origins. Once this API supports public access, this needs to be loosened.
 AUTH_COOKIE_SAMESITE = "Strict"  # or 'Lax' or None
 
+# this is used as a salt for the UID hash.
+UID_SALT = os.getenv("UID_SALT", "")
+
 ## Various HTTP parameter names.
 ORG_SLUG_PARAM = "orgSlug"
 RP_SLUG_PARAM = "revProgramSlug"

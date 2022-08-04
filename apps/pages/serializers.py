@@ -120,7 +120,7 @@ class DonationPageFullDetailSerializer(serializers.ModelSerializer):
         return obj.revenue_program.non_profit
 
     def get_stripe_account_id(self, obj):
-        if self.context.get("live"):
+        if obj.revenue_program and obj.revenue_program.payment_provider:
             return obj.revenue_program.payment_provider.stripe_account_id
 
     def get_currency(self, obj):

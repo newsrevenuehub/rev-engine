@@ -6,7 +6,7 @@ import { useGlobalContext } from 'components/MainLayout';
 function useRequest() {
   const { getReauth } = useGlobalContext();
   const makeRequest = useCallback(
-    (config, callbacks) => {
+    async (config, callbacks) => {
       const { onSuccess, onFailure } = callbacks;
       axios.request(config).then(onSuccess, (e) => {
         if (e instanceof AuthenticationError) {

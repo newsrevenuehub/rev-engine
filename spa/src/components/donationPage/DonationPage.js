@@ -1,111 +1,36 @@
-import { useRef, useState, useEffect, createContext, useContext } from 'react';
 import * as S from './DonationPage.styled';
-
-// Hooks
-import useClearbit from 'hooks/useClearbit';
-
-// Utils
 import * as getters from 'components/donationPage/pageGetters';
-import { getDefaultAmountForFreq } from 'components/donationPage/pageContent/DAmount';
-import { frequencySort } from 'components/donationPage/pageContent/DFrequency';
+// import useClearbit from 'hooks/useClearbit';
+// import { getDefaultAmountForFreq } from 'components/donationPage/pageContent/DAmount';
+// import { frequencySort } from 'components/donationPage/pageContent/DFrequency';
+// import { SALESFORCE_CAMPAIGN_ID_QUERYPARAM, FREQUENCY_QUERYPARAM, AMOUNT_QUERYPARAM } from 'settings';
 
-import { SALESFORCE_CAMPAIGN_ID_QUERYPARAM, FREQUENCY_QUERYPARAM, AMOUNT_QUERYPARAM } from 'settings';
+import LiveDonationContent from './LivePage';
+import EditorDonationContent from './EditorPage';
 
-// Hooks
-import useQueryString from 'hooks/useQueryString';
-import useErrorFocus from 'hooks/useErrorFocus';
-
-// Children
 import DonationPageSidebar from 'components/donationPage/DonationPageSidebar';
 import DonationPageFooter from 'components/donationPage/DonationPageFooter';
-import GenericErrorBoundary from 'components/errors/GenericErrorBoundary';
 
-const DonationPageContext = createContext({});
-
-function DonationPage({ page, live = false }) {
-  const formRef = useRef();
-
-  const salesForceQS = useQueryString(SALESFORCE_CAMPAIGN_ID_QUERYPARAM);
-  const freqQs = useQueryString(FREQUENCY_QUERYPARAM);
-  const amountQs = useQueryString(AMOUNT_QUERYPARAM);
-  const [frequency, setFrequency] = useState();
-  const [amount, setAmount] = useState();
-  const [payFee, setPayFee] = useState(() => getInitialPayFees(page));
-
-  // overrideAmount causes only the custom amount to show (initially)
-  const [overrideAmount, setOverrideAmount] = useState(false);
-  const [errors, setErrors] = useState({});
-  const [salesforceCampaignId, setSalesforceCampaignId] = useState();
-
-  // Focus the first input on the page that has an error
-  useErrorFocus(formRef, errors);
-
-  // initialize clearbit.js
-  useClearbit(live);
-
-  useEffect(() => {
-    setFrequency(getInitialFrequency(page, freqQs, amountQs));
-  }, [freqQs, amountQs, page]);
-
-  useEffect(() => {
-    const freq = getInitialFrequency(page, freqQs, amountQs);
-    setAmount(getInitialAmount(freq, page, amountQs, setOverrideAmount));
-  }, [amountQs, setOverrideAmount, freqQs, page]);
-
-  // Set sf_campaign_id from queryparams
-  useEffect(() => {
-    if (salesForceQS) setSalesforceCampaignId(salesForceQS);
-  }, [salesForceQS, setSalesforceCampaignId]);
-
+function DonationPage({ page, liveView = false }) {
   return (
-    <DonationPageContext.Provider
-      value={{
-        page,
-        frequency,
-        setFrequency,
-        payFee,
-        setPayFee,
-        formRef,
-        amount,
-        setAmount,
-        overrideAmount,
-        setOverrideAmount,
-        errors,
-        setErrors,
-        salesforceCampaignId
-      }}
-    >
-      <S.DonationPage data-testid="donation-page">
-        {getters.getHeaderBarElement()}
-        <S.PageMain>
-          <S.SideOuter>
-            <S.SideInner>
-              {getters.getPageHeadingElement()}
-              <S.DonationContent>
-                {getters.getGraphicElement()}
-                <form ref={formRef} data-testid="donation-page-form">
-                  <S.PageElements>
-                    {(!live && !page?.elements) ||
-                      (page?.elements?.length === 0 && (
-                        <S.NoElements>Open the edit interface to start adding content</S.NoElements>
-                      ))}
-                    {page?.elements?.map((element) => (
-                      <GenericErrorBoundary>{getters.getDynamicElement(element, live)}</GenericErrorBoundary>
-                    ))}
-                  </S.PageElements>
-                </form>
-              </S.DonationContent>
-            </S.SideInner>
-          </S.SideOuter>
-          <DonationPageSidebar sidebarContent={page?.sidebar_elements} live={live} />
-        </S.PageMain>
-        <DonationPageFooter page={page} />
-      </S.DonationPage>
-    </DonationPageContext.Provider>
+    <S.DonationPage data-testid="donation-page">
+      {getters.getHeaderBarElement()}
+      <S.PageMain>
+        <S.SideOuter>
+          <S.SideInner>
+            {getters.getPageHeadingElement()}
+            <S.DonationContent>
+              {getters.getGraphicElement()}
+              {liveView ? <LiveDonationContent /> : <EditorDonationContent />}
+            </S.DonationContent>
+          </S.SideInner>
+        </S.SideOuter>
+        <DonationPageSidebar sidebarContent={page?.sidebar_elements} live={liveView} />
+      </S.PageMain>
+      <DonationPageFooter page={page} />
+    </S.DonationPage>
   );
 }
-
-export const usePage = () => useContext(DonationPageContext);
 
 export default DonationPage;
 

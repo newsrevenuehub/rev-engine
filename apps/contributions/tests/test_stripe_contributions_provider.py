@@ -11,7 +11,6 @@ from apps.contributions.stripe_contributions_provider import (
     ContributionsCacheProvider,
     InvalidIntervalError,
     InvalidMetadataError,
-    NoInvoiceGeneratedError,
     StripeCharge,
     StripeContributionsProvider,
 )
@@ -131,8 +130,14 @@ class TestStripeCharge(AbstractTestStripeContributions):
         self._setup_stripe_charges()
 
     def test_stripe_charge_without_invoice(self):
-        with self.assertRaises(NoInvoiceGeneratedError):
-            StripeCharge(self.charge_without_invoice)
+        stripe_charge = StripeCharge(self.charge_without_invoice)
+        self.assertEqual(stripe_charge.interval, ContributionInterval.ONE_TIME)
+        assert stripe_charge.invoice_line_item == [{}]
+
+    def test_stripe_charge_without_invoice_line_item(self):
+        stripe_charge = StripeCharge(self.charge_without_invoice_line_item)
+        assert stripe_charge.invoice_line_item == [{}]
+        assert stripe_charge.next_payment_date is None
 
     def test_stripe_charge_with_invalid_metadata(self):
         with self.assertRaises(InvalidMetadataError):
@@ -151,13 +156,6 @@ class TestStripeCharge(AbstractTestStripeContributions):
         self.assertIsNone(charge.card_brand)
         self.assertIsNone(charge.last4)
         self.assertIsNone(charge.credit_card_expiration_date)
-
-    def test_stripe_charge_with_no_line_item_in_invoice(self):
-        charge = StripeCharge(self.charge_without_invoice_line_item)
-        with self.assertRaises(InvalidMetadataError):
-            charge.revenue_program
-        with self.assertRaises(InvalidIntervalError):
-            charge.interval
 
     def test_stripe_charge_with_valid_data(self):
         stripe_charge = StripeCharge(self.charge_1)

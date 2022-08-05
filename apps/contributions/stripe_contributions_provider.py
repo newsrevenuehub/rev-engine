@@ -34,10 +34,6 @@ class InvalidMetadataError(ContributionIgnorableError):
     pass
 
 
-class NoInvoiceGeneratedError(ContributionIgnorableError):
-    pass
-
-
 class AttrDict(dict):
     def __init__(self, **kwargs) -> None:
         super().__init__(**kwargs)
@@ -52,8 +48,6 @@ class StripeCharge:
     """
 
     def __init__(self, charge):
-        if not hasattr(charge, "invoice") or not charge.invoice:
-            raise NoInvoiceGeneratedError(f"No invoice object for charge : {charge.id}")
         self.charge = charge
 
     @property

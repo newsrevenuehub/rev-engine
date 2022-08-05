@@ -1,4 +1,4 @@
-import { useState, useEffect, createContext, useContext, useCallback } from 'react';
+import { useState, useEffect, createContext, useContext, useCallback, useMemo } from 'react';
 import { useHistory, useLocation } from 'react-router-dom';
 import * as S from './PageEditor.styled';
 import { useTheme } from 'styled-components';
@@ -55,6 +55,7 @@ import BackButton from 'elements/BackButton';
 import { BackIcon } from 'elements/BackButton.styled';
 import CreateTemplateModal from 'components/pageEditor/CreateTemplateModal';
 import UnsavedChangesModal from 'components/pageEditor/UnsavedChangesModal';
+import PageTitle from 'elements/PageTitle';
 
 const PageEditorContext = createContext();
 
@@ -98,6 +99,14 @@ function PageEditor() {
     handleOpen: openCreateTemplateModal
   } = useModal();
   const { open: showUnsavedModal, handleClose: closeUnsavedModal, handleOpen: openUnsavedModal } = useModal();
+
+  const pageTitle = useMemo(
+    () =>
+      `Edit | ${page?.name ? `${page?.name} | ` : ''}${
+        page?.revenue_program?.name ? `${page?.revenue_program?.name}` : ''
+      }`,
+    [page?.name, page?.revenue_program?.name]
+  );
 
   const [updatedPage, setUpdatedPage] = useState();
   const [selectedButton, setSelectedButton] = useState(PREVIEW);
@@ -341,90 +350,93 @@ function PageEditor() {
   }, [errors, alert]);
 
   return (
-    <PageEditorContext.Provider
-      value={{
-        page,
-        setPage,
-        availableStyles,
-        setAvailableStyles,
-        updatedPage,
-        setUpdatedPage,
-        showEditInterface,
-        setShowEditInterface,
-        setSelectedButton,
-        errors
-      }}
-    >
-      <S.PageEditor data-testid="page-editor">
-        {loading && <GlobalLoading />}
-        {showEditInterface && (
-          <AnimatePresence>
-            <EditInterface />
-          </AnimatePresence>
-        )}
-        {!loading && page && (
-          <SegregatedStyles page={page}>
-            {/* set stringified page as key to guarantee that ALL page changes will re-render the page in edit mode */}
-            <DonationPage key={page ? JSON.stringify(page) : ''} live={false} page={page} />
-          </SegregatedStyles>
-        )}
+    <>
+      <PageTitle title={pageTitle} />
+      <PageEditorContext.Provider
+        value={{
+          page,
+          setPage,
+          availableStyles,
+          setAvailableStyles,
+          updatedPage,
+          setUpdatedPage,
+          showEditInterface,
+          setShowEditInterface,
+          setSelectedButton,
+          errors
+        }}
+      >
+        <S.PageEditor data-testid="page-editor">
+          {loading && <GlobalLoading />}
+          {showEditInterface && (
+            <AnimatePresence>
+              <EditInterface />
+            </AnimatePresence>
+          )}
+          {!loading && page && (
+            <SegregatedStyles page={page}>
+              {/* set stringified page as key to guarantee that ALL page changes will re-render the page in edit mode */}
+              <DonationPage key={page ? JSON.stringify(page) : ''} live={false} page={page} />
+            </SegregatedStyles>
+          )}
 
-        {page && (
-          <S.ButtonOverlayOuter>
-            <S.ButtonOverlay>
-              <CircleButton
-                onClick={handlePreview}
-                selected={selectedButton === PREVIEW}
-                icon={faEye}
-                buttonType="neutral"
-                color={theme.colors.primary}
-                data-testid="preview-page-button"
-              />
-              <CircleButton
-                onClick={handleEdit}
-                selected={selectedButton === EDIT}
-                icon={faEdit}
-                buttonType="neutral"
-                data-testid="edit-page-button"
-              />
-              <CircleButton
-                onClick={handleSave}
-                icon={faSave}
-                buttonType="neutral"
-                data-testid="save-page-button"
-                disabled={!updatedPage}
-              />
-              <CircleButton
-                onClick={handleMakeTemplate}
-                icon={faClone}
-                buttonType="neutral"
-                data-testid="clone-page-button"
-              />
-              <CircleButton
-                onClick={handleDelete}
-                icon={faTrash}
-                buttonType="caution"
-                data-testid="delete-page-button"
-              />
+          {page && (
+            <S.ButtonOverlayOuter>
+              <S.ButtonOverlay>
+                <CircleButton
+                  onClick={handlePreview}
+                  selected={selectedButton === PREVIEW}
+                  icon={faEye}
+                  buttonType="neutral"
+                  color={theme.colors.primary}
+                  data-testid="preview-page-button"
+                />
+                <CircleButton
+                  onClick={handleEdit}
+                  selected={selectedButton === EDIT}
+                  icon={faEdit}
+                  buttonType="neutral"
+                  data-testid="edit-page-button"
+                />
+                <CircleButton
+                  onClick={handleSave}
+                  icon={faSave}
+                  buttonType="neutral"
+                  data-testid="save-page-button"
+                  disabled={!updatedPage}
+                />
+                <CircleButton
+                  onClick={handleMakeTemplate}
+                  icon={faClone}
+                  buttonType="neutral"
+                  data-testid="clone-page-button"
+                />
+                <CircleButton
+                  onClick={handleDelete}
+                  icon={faTrash}
+                  buttonType="caution"
+                  data-testid="delete-page-button"
+                />
 
-              {updatedPage ? (
-                <CircleButton onClick={openUnsavedModal} buttonType="neutral">
-                  <BackIcon icon={ICONS.ARROW_LEFT} />
-                </CircleButton>
-              ) : (
-                <BackButton to={CONTENT_SLUG} />
-              )}
-            </S.ButtonOverlay>
-          </S.ButtonOverlayOuter>
+                {updatedPage ? (
+                  <CircleButton onClick={openUnsavedModal} buttonType="neutral">
+                    <BackIcon icon={ICONS.ARROW_LEFT} />
+                  </CircleButton>
+                ) : (
+                  <BackButton to={CONTENT_SLUG} />
+                )}
+              </S.ButtonOverlay>
+            </S.ButtonOverlayOuter>
+          )}
+        </S.PageEditor>
+        {showCreateTemplateModal && (
+          <CreateTemplateModal page={page} isOpen={showCreateTemplateModal} closeModal={closeCreateTemplateModal} />
         )}
-      </S.PageEditor>
-      {showCreateTemplateModal && (
-        <CreateTemplateModal page={page} isOpen={showCreateTemplateModal} closeModal={closeCreateTemplateModal} />
-      )}
-      {showUnsavedModal && (
-        <UnsavedChangesModal to={CONTENT_SLUG} isOpen={showUnsavedModal} closeModal={closeUnsavedModal} />
-      )}
-    </PageEditorContext.Provider>
+        {showUnsavedModal && (
+          <UnsavedChangesModal to={CONTENT_SLUG} isOpen={showUnsavedModal} closeModal={closeUnsavedModal} />
+        )}
+      </PageEditorContext.Provider>
+    </>
   );
 }
 

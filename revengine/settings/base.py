@@ -456,6 +456,9 @@ AUTH_COOKIE_KEY = "Authorization"
 # across origins. Once this API supports public access, this needs to be loosened.
 AUTH_COOKIE_SAMESITE = "Strict"  # or 'Lax' or None
 
+# this is used as a salt for the UID hash.
+UID_SALT = os.getenv("UID_SALT", "")
+
 ## Various HTTP parameter names.
 ORG_SLUG_PARAM = "orgSlug"
 RP_SLUG_PARAM = "revProgramSlug"
@@ -483,6 +486,7 @@ BAD_ACTOR_API_URL = os.getenv("BAD_ACTOR_API_URL", "https://bad-actor-test.fundj
 # NOTE: We've been given keys with some characters that might need escaping as environment variables, eg "$"
 BAD_ACTOR_API_KEY = os.getenv("BAD_ACTOR_API_KEY", "testing_123")
 BAD_ACTOR_FAIL_ABOVE = 3
+BAD_ACTOR_FAIL_ABOVE_FOR_ORG_USERS = 4
 
 
 ### Front End Environment Variables

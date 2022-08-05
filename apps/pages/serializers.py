@@ -129,7 +129,9 @@ class DonationPageFullDetailSerializer(serializers.ModelSerializer):
             return obj.revenue_program.payment_provider.stripe_account_id
 
     def get_currency(self, obj):
-        return obj.revenue_program.payment_provider.get_currency_dict()
+        return (
+            obj.revenue_program.payment_provider.get_currency_dict() if obj.revenue_program.payment_provider else None
+        )
 
     def get_revenue_program_country(self, obj):
         return obj.revenue_program.country

@@ -86,7 +86,7 @@ class AbstractTestStripeContributions(TestCase):
             }
         }
         self.charge_without_invoice = stripe.Charge.construct_from(
-            charge_1 | metadata | payment_method_details, "TEST-KEY"
+            charge_1 | metadata | {"invoice": None} | payment_method_details, "TEST-KEY"
         )
         self.charge_without_metadata = stripe.Charge.construct_from(
             charge_1 | invoice | payment_method_details, "TEST-KEY"

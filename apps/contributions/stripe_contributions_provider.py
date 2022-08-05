@@ -52,6 +52,8 @@ class StripeCharge:
 
     @property
     def invoice_line_item(self):
+        if not self.charge.invoice:
+            return [{}]
         line_item = self.charge.invoice.lines.data
         if not line_item:
             line_item = [{}]
@@ -59,6 +61,9 @@ class StripeCharge:
 
     @property
     def interval(self):
+        if not self.charge.invoice:
+            # if there's no invoice then the it's a one-time payment
+            return ContributionInterval.ONE_TIME
         interval = self.invoice_line_item.get("plan", {}).get("interval")
         interval_count = self.invoice_line_item.get("plan", {}).get("interval_count")
         if interval == "year" and interval_count == 1:
@@ -102,6 +107,8 @@ class StripeCharge:
 
     @property
     def last_payment_date(self):
+        if not self.charge.invoice:
+            return datetime.utcfromtimestamp(int(self.charge.created))
         return datetime.utcfromtimestamp(int(self.charge.invoice.status_transitions.paid_at))
 
     @property
@@ -124,9 +131,13 @@ class StripeCharge:
 
     @property
     def next_payment_date(self):
+        # TODO: [DEV-2192] this isn't the next payment date; fix this
+        if not self.charge.invoice:
+            return None
         next_attempt = self.charge.invoice.next_payment_attempt
         if next_attempt:
             return datetime.utcfromtimestamp(int(next_attempt))
+        return None
 
     @property
     def refunded(self):
@@ -185,6 +196,8 @@ class StripeContributionsProvider:
 
         if page:
             kwargs["page"] = page
+
+        # TODO: [DEV-2193] this should probably be refactored to fetch PaymentIntents instead of Charges and expand `invoice.subscription`
 
         return stripe.Charge.search(**kwargs)
 

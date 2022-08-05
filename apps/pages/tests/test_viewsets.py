@@ -9,7 +9,7 @@ from rest_framework.reverse import reverse
 from rest_framework.test import APITestCase
 
 from apps.api.tests import RevEngineApiAbstractTestCase
-from apps.organizations.models import RevenueProgram
+from apps.organizations.models import PaymentProvider, RevenueProgram
 from apps.pages.models import DonationPage, Font, Style, Template
 from apps.pages.tests.factories import FontFactory, StyleFactory, TemplateFactory
 from apps.users.tests.utils import create_test_user
@@ -320,6 +320,11 @@ class PageViewSetTest(RevEngineApiAbstractTestCase):
         # list serializer does not have 'styles' field
         self.assertNotIn("styles", response.json())
 
+    def test_page_list_when_no_provider(self):
+        PaymentProvider.objects.all().delete()
+        url = reverse("donationpage-list")
+        self.assert_superuser_can_list(url, DonationPage.objects.count(), results_are_flat=True)
+
     def test_superuser_can_list_all_pages(self):
         url = reverse("donationpage-list")
         self.assert_superuser_can_list(url, DonationPage.objects.count(), results_are_flat=True)
@@ -365,6 +370,12 @@ class PageViewSetTest(RevEngineApiAbstractTestCase):
         response = self.client.get(f"/api/v1/pages/{page.pk}/")
         # detail serializer should have 'styles' field
         self.assertIn("styles", response.json())
+
+    def test_can_retrieve_when_no_payment_provider(self):
+        page = DonationPage.objects.first()
+        page.revenue_program.payment_provider.delete()
+        url = reverse("donationpage-detail", args=(page.pk,))
+        self.assert_superuser_can_get(url)
 
     def test_superuser_can_retrieve_page(self):
         page = DonationPage.objects.first()
@@ -441,6 +452,16 @@ class PageViewSetTest(RevEngineApiAbstractTestCase):
         url = f'{reverse("donationpage-live-detail")}?revenue_program={page.revenue_program.slug}&page={page.slug}'
         response = self.assert_unuauthed_cannot_get(url, status=status.HTTP_404_NOT_FOUND)
         self.assertEqual(response.json(), {"detail": "RevenueProgram does not have a fully verified payment provider"})
+
+    def test_live_detail_page_when_no_payment_provider(self):
+        page = DonationPage.objects.first()
+        page.published_date = timezone.now() - datetime.timedelta(days=1)
+        page.save()
+        self.assertTrue(page.is_live)
+        page.revenue_program.payment_provider.delete()
+        url = f'{reverse("donationpage-live-detail")}?revenue_program={page.revenue_program.slug}&page={page.slug}'
+        response = self.assert_unuauthed_cannot_get(url, status=status.HTTP_404_NOT_FOUND)
+        self.assertEqual(response.json(), {"detail": "RevenueProgram does not have a payment provider configured"})
 
     def test_live_detail_page_when_styles(self):
         page = DonationPage.objects.first()
@@ -1093,5 +1114,5 @@ class TestRetrieveUserEndpoint(APITestCase):
     def test_happy_path(self):
         user = create_test_user()
         self.client.force_authenticate(user)
-        response = self.client.get(reverse("user-retrieve"))
+        response = self.client.get(reverse("user-list"))
         self.assertEqual(response.status_code, status.HTTP_200_OK)

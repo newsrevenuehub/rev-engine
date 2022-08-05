@@ -2,32 +2,44 @@ import logging
 
 from django.conf import settings
 from django.contrib.auth import get_user_model
+from django.contrib.auth.password_validation import validate_password
 from django.contrib.auth.views import (
     PasswordResetCompleteView,
     PasswordResetConfirmView,
     PasswordResetDoneView,
     PasswordResetView,
 )
+from django.core.exceptions import ValidationError as DjangoValidationError
 from django.urls import reverse_lazy
 
-from rest_framework import status
-from rest_framework.decorators import api_view, permission_classes
+from rest_framework import mixins
 from rest_framework.exceptions import APIException
 from rest_framework.generics import GenericAPIView
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
+from rest_framework.serializers import ValidationError
+from rest_framework.viewsets import GenericViewSet
 
 from apps.api.permissions import HasDeletePrivilegesViaRole, HasRoleAssignment, is_a_contributor
+from apps.contributions.bad_actor import BadActorAPIError, make_bad_actor_request
+from apps.emails.tasks import send_templated_email
 from apps.public.permissions import IsActiveSuperUser
-from apps.users.models import UnexpectedRoleType
+from apps.users.constants import (
+    BAD_ACTOR_CLIENT_FACING_VALIDATION_MESSAGE,
+    BAD_ACTOR_FAKE_AMOUNT,
+    EMAIL_VERIFICATION_EMAIL_SUBJECT,
+    INVALID_TOKEN,
+    PASSWORD_UNEXPECTED_VALIDATION_MESSAGE_SUBSTITUTE,
+    PASSWORD_VALIDATION_EXPECTED_MESSAGES,
+)
+from apps.users.models import UnexpectedRoleType, User
+from apps.users.permissions import UserIsAllowedToUpdate, UserOwnsUser
 from apps.users.serializers import UserSerializer
 
 
 logger = logging.getLogger(__name__)
 
 user_model = get_user_model()
-
-INVALID_TOKEN = "NoTaVaLiDtOkEn"
 
 
 class CustomPasswordResetView(PasswordResetView):
@@ -56,7 +68,7 @@ class CustomPasswordResetConfirm(PasswordResetConfirmView):
         if self.request.method == "POST":
             # Invalidate Authorization cookie in client browser by setting its value to gibbersih
             # and its max_age to 0
-            response.set_cookie(settings.AUTH_COOKIE_KEY, "NoTaVaLiDtOkEn", max_age=0)
+            response.set_cookie(settings.AUTH_COOKIE_KEY, INVALID_TOKEN, max_age=0)
         return response
 
 
@@ -64,13 +76,101 @@ class CustomPasswordResetCompleteView(PasswordResetCompleteView):
     template_name = "orgadmin_password_reset_complete.html"
 
 
-@api_view(["GET"])
-@permission_classes([IsAuthenticated])
-def retrieve_user(request):
-    if request.method == "GET":
-        user = user_model.objects.get(pk=request.user.pk)
-        user_serializer = UserSerializer(user)
-        return Response(data=user_serializer.data, status=status.HTTP_200_OK)
+class UserViewset(
+    mixins.CreateModelMixin, mixins.RetrieveModelMixin, mixins.ListModelMixin, mixins.UpdateModelMixin, GenericViewSet
+):
+    """For creating and updating user instances"""
+
+    model = User
+    queryset = User.objects.all()
+    serializer_class = UserSerializer
+    # we're explicitly setting these in order to prohibit put updates
+    http_method_names = ["get", "post", "patch"]
+
+    def get_permissions(self):
+        permission_classes = []
+        if self.action == "create":
+            permission_classes = [
+                AllowAny,
+            ]
+        if self.action == "list":
+            permission_classes = [
+                IsAuthenticated,
+            ]
+        if self.action == "partial_update":
+            permission_classes = [UserOwnsUser, UserIsAllowedToUpdate]
+        return [permission() for permission in permission_classes]
+
+    def validate_password(self, email, password):
+        """Validate the password
+
+        NB: This needs to be done in view layer and not serializer layer becauase Django's password
+        validation functions we're using need access to the user attributes, not just password. This allows
+        us to access all fields that were already validated in serializer layer.
+        """
+        # we temporarily initialize a user object (without saving) so can use Django's built
+        # in password validation, which requires a user object
+        temp_user = get_user_model()(email=email)
+        try:
+            validate_password(password, temp_user)
+        except DjangoValidationError as exc:
+            safe_messages = [
+                message
+                if message in PASSWORD_VALIDATION_EXPECTED_MESSAGES
+                else PASSWORD_UNEXPECTED_VALIDATION_MESSAGE_SUBSTITUTE
+                for message in exc.messages
+            ]
+            raise ValidationError(detail={"password": safe_messages})
+
+    def validate_bad_actor(self, data):
+        """Determine if user is a bad actor or not."""
+        try:
+            response = make_bad_actor_request(
+                {
+                    "email": data.validated_data["email"],
+                    "referer": self.request.META.get("HTTP_REFERER", ""),
+                    "ip": self.request.META["REMOTE_ADDR"],
+                    "first_name": data.validated_data.get("first_name", ""),
+                    "last_name": data.validated_data.get("last_name", ""),
+                    # Bad actor api requires this field because it was created
+                    # with contributors in mind, not org users, so we supply a dummy value
+                    "amount": BAD_ACTOR_FAKE_AMOUNT,
+                }
+            )
+        except BadActorAPIError:
+            logger.warning("Something went wrong with BadActorAPI", exc_info=True)
+            return
+        if response.json()["overall_judgment"] >= settings.BAD_ACTOR_FAIL_ABOVE_FOR_ORG_USERS:
+            logger.info("Someone determined to be a bad actor tried to create a user: [%s]", data)
+            raise ValidationError(BAD_ACTOR_CLIENT_FACING_VALIDATION_MESSAGE)
+
+    def perform_create(self, serializer):
+        """Override of `perform_create` to add our custom validations"""
+        self.validate_password(serializer.validated_data.get("email"), serializer.validated_data.get("password"))
+        self.validate_bad_actor(serializer)
+        user = serializer.save()
+        self.send_verification_email(user)
+
+    def perform_update(self, serializer):
+        """Override of `perform_update` to add our custom validations"""
+        if password := serializer.validated_data.get("password"):
+            self.validate_password(serializer.validated_data.get("email", self.get_object().email), password)
+        serializer.save()
+
+    def send_verification_email(self, user):
+        """Send an email to user asking them to verify their email address"""
+        send_templated_email.delay(
+            user.email,
+            EMAIL_VERIFICATION_EMAIL_SUBJECT,
+            "nrh-org-account-creation-verification-email.txt",
+            "nrh-org-account-creation-verification-email.html",
+            # this is placeholder for now
+            {"verification_url": None},
+        )
+
+    def list(self, request, *args, **kwargs):
+        """List returns the requesting user's serialized user instance"""
+        return Response(self.get_serializer(request.user).data)
 
 
 class FilterQuerySetByUserMixin(GenericAPIView):

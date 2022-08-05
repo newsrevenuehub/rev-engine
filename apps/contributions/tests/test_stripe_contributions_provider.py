@@ -136,7 +136,7 @@ class TestStripeCharge(AbstractTestStripeContributions):
 
     def test_stripe_charge_without_invoice_line_item(self):
         stripe_charge = StripeCharge(self.charge_without_invoice_line_item)
-        assert stripe_charge.invoice_line_item == [{}]
+        assert stripe_charge.invoice_line_item == {}
         assert stripe_charge.next_payment_date is None
 
     def test_stripe_charge_with_invalid_metadata(self):

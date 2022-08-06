@@ -8,6 +8,12 @@ export const EditRecurringPaymentModal = styled.div`
   margin: 1rem;
   background: ${(props) => props.theme.colors.paneBackground};
   border-radius: ${(props) => props.theme.radii[0]};
+
+  h2,
+  button,
+  p {
+    font-family: ${(props) => props.theme.systemFont};
+  }
 `;
 
 export const CurrentList = styled.ul`
@@ -18,6 +24,7 @@ export const CurrentList = styled.ul`
 
 export const CurrentDatum = styled.li`
   margin: 1rem;
+  font-family: ${(props) => props.theme.systemFont};
   span {
     display: block;
   }

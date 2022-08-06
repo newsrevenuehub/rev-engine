@@ -1,6 +1,7 @@
 import styled from 'styled-components';
 
 export const EditRecurringPaymentModal = styled.div`
+  font-family: ${(props) => props.theme.systemFont};
   overflow-y: auto;
   min-width: 350px;
   padding: 2rem;

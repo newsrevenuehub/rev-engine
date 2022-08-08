@@ -26,6 +26,10 @@ export const EmailForm = styled.form``;
 
 export const InputWrapper = styled.div`
   margin: 2rem 0;
+
+  input {
+    font-family: ${(props) => props.theme.systemFont};
+  }
 `;
 
 export const NoSuchContributor = styled.div`
@@ -50,6 +54,7 @@ export const MagicLinkButton = styled(Button)`
     margin-left: 1rem;
     font-size: 32px;
   }
+  font-family: ${(props) => props.theme.systemFont};
 `;
 
 export const Confirmation = styled.div`

@@ -1,10 +1,15 @@
-from django.urls import path
+from django.urls import include, path
+
+from rest_framework import routers
 
 from apps.users import views
 
 
+router = routers.DefaultRouter()
+router.register(r"users", views.UserViewset, basename="user")
+
 api_urlpatterns = [
-    path("users/", views.retrieve_user, name="user-retrieve"),
+    path("", include(router.urls)),
 ]
 
 orgadmin_user_management_urls = [

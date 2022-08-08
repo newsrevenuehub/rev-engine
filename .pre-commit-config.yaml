@@ -18,6 +18,7 @@ repos:
         args: [--allow-missing-credentials]
       - id: detect-private-key
       - id: end-of-file-fixer
+        exclude: revengine/static/apple-developer-merchantid-domain-association
       #      - id: no-commit-to-branch
       - id: trailing-whitespace
   # Black code formatter.

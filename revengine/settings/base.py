@@ -297,7 +297,6 @@ DTM_IGNORED_MIGRATIONS = {
 
 CSP_INCLUDE_NONCE_IN = ("style-src", "script-src")
 CSP_REPORTING_ENABLE = os.getenv("CSP_REPORTING_ENABLE", "false").lower() == "true"
-CSP_REPORT_ONLY = os.getenv("CSP_REPORT_ONLY", True)
 if CSP_REPORTING_ENABLE:
     CSP_REPORT_URI = os.getenv("CSP_REPORT_URI")
 CSP_DEFAULT_SRC = (

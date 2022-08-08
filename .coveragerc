@@ -1,5 +1,7 @@
 [run]
-source = apps
+source =
+  apps
+  revengine
 omit =
     */tests/*
     */migrations/*

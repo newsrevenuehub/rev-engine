@@ -1,6 +1,6 @@
 import logging
 from datetime import datetime
-from urllib.parse import urlparse
+from urllib.parse import quote_plus, urlparse
 
 from django.conf import settings
 from django.middleware import csrf
@@ -35,7 +35,7 @@ def _construct_rp_domain(subdomain, referer):
 
     Return RP specific domain or None if not found.
     """
-    logger.info("[_construct_rp_domain] constructing rp domain for subdomain (%s)and referer (%s)", subdomain, referer)
+    logger.info("[_construct_rp_domain] constructing rp domain for subdomain (%s) and referer (%s)", subdomain, referer)
     if ":" in subdomain:  # Assume full url.
         subdomain = urlparse(subdomain).hostname.split(".")[0]
     if not subdomain and referer:
@@ -145,6 +145,10 @@ class RequestContributorTokenEmailView(APIView):
     filter_backends = []
     throttle_classes = [ContributorRateThrottle]
 
+    @staticmethod
+    def get_magic_link(domain, token, email):
+        return f"{domain}/{settings.CONTRIBUTOR_VERIFY_URL}?token={token}&email={quote_plus(email)}"
+
     def post(self, request, *args, **kwargs):
         logger.info("[RequestContributorTokenEmailView][post] Request received for magic link %s", request.data)
         serializer = ContributorObtainTokenSerializer(data=request.data)
@@ -157,22 +161,29 @@ class RequestContributorTokenEmailView(APIView):
 
         serializer.update_short_lived_token(contributor)
 
-        domain = _construct_rp_domain(serializer.data.get("subdomain", ""), request.headers.get("Referer", ""))
+        domain = _construct_rp_domain(
+            serializer.validated_data.get("subdomain", ""), request.headers.get("Referer", "")
+        )
 
         if not domain:
             logger.info("[RequestContributorTokenEmailView][post] Could not determine domain for request")
             return Response({"detail": "Missing Revenue Program subdomain"}, status=status.HTTP_404_NOT_FOUND)
 
-        revenue_program = get_object_or_404(RevenueProgram, slug=serializer.data.get("subdomain"))
+        revenue_program = get_object_or_404(RevenueProgram, slug=serializer.validated_data.get("subdomain"))
         # Celery backend job to pull contributions from Stripe and store the serialized data in cache, user will have
         # data by the time the user opens contributor portal.
         task_pull_serialized_stripe_contributions_to_cache.delay(
-            serializer.data["email"], revenue_program.stripe_account_id
+            serializer.validated_data["email"], revenue_program.stripe_account_id
         )
-        magic_link = f"{domain}/{settings.CONTRIBUTOR_VERIFY_URL}?token={serializer.data['access']}&email={serializer.data['email']}"
-        logger.info("Sending magic link email to [%s] | magic link: [%s]", serializer.data["email"], magic_link)
+
+        magic_link = self.get_magic_link(
+            domain, serializer.validated_data["access"], serializer.validated_data["email"]
+        )
+        logger.info(
+            "Sending magic link email to [%s] | magic link: [%s]", serializer.validated_data["email"], magic_link
+        )
         send_templated_email.delay(
-            serializer.data["email"],
+            serializer.validated_data["email"],
             "Manage your contributions",
             "nrh-manage-donations-magic-link.txt",
             "nrh-manage-donations-magic-link.html",

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { useAlert } from 'react-alert';
 import { useParams } from 'react-router-dom';
 
@@ -7,8 +7,9 @@ import Spinner from 'elements/Spinner';
 import formatCurrencyAmount from 'utilities/formatCurrencyAmount';
 import formatDatetimeForDisplay from 'utilities/formatDatetimeForDisplay';
 
+// AJAX
 import useRequest from 'hooks/useRequest';
-import { CONTRIBUTIONS, PROCESS_FLAGGED } from 'ajax/endpoints';
+import { CONTRIBUTIONS, PROCESS_FLAGGED, LIST_PAGES } from 'ajax/endpoints';
 
 // Context
 import { useGlobalContext } from 'components/MainLayout';
@@ -18,6 +19,7 @@ import Button from 'elements/buttons/Button';
 import { faBan, faCheck } from '@fortawesome/free-solid-svg-icons';
 import { getFrequencyAdjective } from 'utilities/parseFrequency';
 import { StatusCellIcon } from 'components/contributor/contributorDashboard/ContributorDashboard';
+import PageTitle from 'elements/PageTitle';
 
 function DonationDetail() {
   // Context
@@ -27,11 +29,29 @@ function DonationDetail() {
   const [isLoading, setIsLoading] = useState(false);
   const [processing, setProcessing] = useState(false);
   const [donationData, setDonationData] = useState();
+  const [page, setPage] = useState([]);
 
   const { contributionId } = useParams();
   const alert = useAlert();
   const requestDonationDetail = useRequest();
   const requestProcessFlagged = useRequest();
+  const requestGetPages = useRequest();
+
+  const revenueProgram = useMemo(() => page?.revenue_program, [page]);
+
+  useEffect(() => {
+    if (donationData?.donation_page_id) {
+      requestGetPages(
+        { method: 'GET', url: `${LIST_PAGES}${donationData?.donation_page_id}/` },
+        {
+          onSuccess: ({ data }) => {
+            setPage(data);
+          },
+          onFailure: () => alert.error(GENERIC_ERROR)
+        }
+      );
+    }
+  }, [alert, donationData?.donation_page_id, requestGetPages]);
 
   const getDonationDetail = () => {
     setIsLoading(true);
@@ -110,6 +130,9 @@ function DonationDetail() {
 
   return (
     <S.DonationDetail data-testid="donation-detail" layout>
+      <PageTitle
+        title={`${contributionId} ${revenueProgram?.name ? `| ${revenueProgram?.name} ` : ''}| Contributions`}
+      />
       {isLoading ? (
         <S.Loading layout>
           <Spinner />

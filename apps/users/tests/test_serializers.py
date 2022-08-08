@@ -54,6 +54,20 @@ class UserSerializerTest(APITestCase):
         role_assignment = user.get_role_assignment()
         return list(role_assignment.revenue_programs.values_list("pk", flat=True))
 
+    def test_has_expected_fields(self):
+        expected_fields = {
+            "accepted_terms_of_service",
+            "email",
+            "email_verified",
+            "flags",
+            "id",
+            "organizations",
+            "revenue_programs",
+            "role_type",
+        }
+        data = self._get_serialized_data_for_user(self.org_admin_user)
+        self.assertEqual(expected_fields, set(data.keys()))
+
     def test_get_role_type(self):
         super_user_role = self._get_serialized_data_for_user(self.superuser_user)["role_type"]
         self.assertEqual(super_user_role, ("superuser", "Superuser"))

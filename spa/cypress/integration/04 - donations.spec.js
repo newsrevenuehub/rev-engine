@@ -130,7 +130,7 @@ describe('Donations list', () => {
 
     it('should display the second page of donations when click on next page', () => {
       cy.wait('@getDonations');
-      cy.getByTestId('next-page').click();
+      cy.get('li > button[aria-label="Go to page 2"]').click();
       cy.wait('@getDonations').then((intercept) => {
         cy.getByTestId('donations-table')
           .find('tbody tr[data-testid="donation-row"]')
@@ -277,23 +277,17 @@ describe('Donations list', () => {
       });
     });
 
-    it('should display the total number of results', () => {
-      cy.wait('@getDonations').then((intercept) => {
-        cy.getByTestId('total-results').contains(intercept.response.body.count);
-      });
-    });
-
     it('should have working page controls', () => {
       cy.wait('@getDonations');
       cy.url().should('include', DONATIONS_SLUG);
       // initial state when 2 pages
-      cy.getByTestId('previous-page').should('be.disabled');
-      cy.getByTestId('next-page').should('not.be.disabled');
+      cy.get('li > button[aria-label="Go to previous page"]').should('be.disabled');
+      cy.get('li > button[aria-label="Go to next page"]').should('not.be.disabled');
 
-      cy.getByTestId('next-page').click();
+      cy.get('li > button[aria-label="Go to next page"]').click();
       cy.wait('@getDonations');
-      cy.getByTestId('previous-page').should('not.be.disabled');
-      cy.getByTestId('next-page').should('be.disabled');
+      cy.get('li > button[aria-label="Go to previous page"]').should('not.be.disabled');
+      cy.get('li > button[aria-label="Go to next page"]').should('be.disabled');
     });
   });
 

@@ -42,8 +42,8 @@ function Donations() {
 
   const handleRowClick = (row) => history.push(`${DONATIONS_SLUG}/${row.id}/`);
 
-  const handlePageChange = (pageIndexChange) => {
-    setPageIndex(pageIndex + pageIndexChange);
+  const handlePageChange = (newPageIndex) => {
+    setPageIndex(newPageIndex);
   };
 
   const fetchDonations = useCallback(

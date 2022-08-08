@@ -100,7 +100,8 @@ class TokenObtainPairCookieViewTest(APITestCase):
     ["vanilla@email.com", "vanilla+spice@email.com"],
 )
 @pytest.mark.django_db()
-def test_request_contributor_token_creates_usable_magic_links(rf, django_user_model, mocker, email, client):
+@override_settings(CELERY_ALWAYS_EAGER=True)
+def test_request_contributor_token_creates_usable_magic_links(rf, mocker, email, client):
     """This test spans two requests, first requesting magic link, then using data in the magic link to verify contributor token
 
     Ultimately, it is the SPA's repsonsiblity to correctly handle the data provided in the magic link, but assuming it

@@ -3,8 +3,9 @@ import * as S from './StatusFilter.styled';
 // Children
 import { FilterWrapper, FilterLabel } from 'components/donations/filters/Filters';
 import { StatusCellIcon } from 'components/contributor/contributorDashboard/ContributorDashboard';
+import { PAYMENT_STATUS } from 'constants';
 
-const STATUS_FILTERS = ['processing', 'paid', 'canceled', 'failed', 'flagged', 'rejected'];
+const STATUS_FILTERS = Object.values(PAYMENT_STATUS);
 
 function StatusFilter({ filter = [], handleFilterChange }) {
   return (

@@ -12,6 +12,7 @@ from apps.common.validators import ValidateFkReferenceOwnership
 from apps.organizations.models import RevenueProgram
 from apps.organizations.serializers import (
     BenefitLevelDetailSerializer,
+    PaymentProviderSerializer,
     RevenueProgramInlineSerializer,
     RevenueProgramListInlineSerializer,
 )
@@ -98,6 +99,7 @@ class DonationPageFullDetailSerializer(serializers.ModelSerializer):
         allow_null=False,
         required=True,
     )
+    payment_provider = PaymentProviderSerializer(source="revenue_program.payment_provider", read_only=True)
     template_pk = serializers.IntegerField(allow_null=True, required=False)
 
     graphic = serializers.ImageField(allow_empty_file=True, allow_null=True, required=False)
@@ -109,6 +111,8 @@ class DonationPageFullDetailSerializer(serializers.ModelSerializer):
     header_logo_thumbnail = HyperlinkedSorlImageField("300", source="header_logo", read_only=True)
 
     revenue_program_is_nonprofit = serializers.SerializerMethodField(method_name="get_revenue_program_is_nonprofit")
+
+    # TODO: [DEV-2187] Remove stripe_account_id from DonationPageFullDetailSerializer
     stripe_account_id = serializers.SerializerMethodField(method_name="get_stripe_account_id")
     currency = serializers.SerializerMethodField(method_name="get_currency")
     revenue_program_country = serializers.SerializerMethodField(method_name="get_revenue_program_country")
@@ -119,12 +123,15 @@ class DonationPageFullDetailSerializer(serializers.ModelSerializer):
     def get_revenue_program_is_nonprofit(self, obj):
         return obj.revenue_program.non_profit
 
+    # TODO: [DEV-2187] Remove stripe_account_id from DonationPageFullDetailSerializer
     def get_stripe_account_id(self, obj):
         if self.context.get("live"):
             return obj.revenue_program.payment_provider.stripe_account_id
 
     def get_currency(self, obj):
-        return obj.revenue_program.payment_provider.get_currency_dict()
+        return (
+            obj.revenue_program.payment_provider.get_currency_dict() if obj.revenue_program.payment_provider else None
+        )
 
     def get_revenue_program_country(self, obj):
         return obj.revenue_program.country

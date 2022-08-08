@@ -42,7 +42,7 @@ function Dashboard() {
     <S.Outer>
       <DashboardTopbar isEditPage={isEditPage} />
       <S.Dashboard data-testid="dashboard">
-        <DashboardSidebar />
+        {isEditPage ? null : <DashboardSidebar />}
         <S.DashboardMain>
           <S.DashboardContent>
             <Switch>

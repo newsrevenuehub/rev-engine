@@ -27,6 +27,7 @@ function App() {
       <MuiThemeProvider theme={muiThemeOverrides}>
         <AlertProvider template={Alert} {...alertOptions}>
           <Helmet>
+            <title>RevEngine</title>
             <link rel="icon" type="image/png" href={hubFavicon} sizes="64x64 32x32 24x24 16x16" />
           </Helmet>
           <AdminGlobalStyles />

@@ -101,11 +101,6 @@ export const Last4 = styled.p`
   white-space: nowrap;
 `;
 
-export const CancelButton = styled.button`
-  background: none;
-  border: none;
-`;
-
 export const CancelButton = styled(Button)`
   && {
     text-transform: unset;

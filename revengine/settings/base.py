@@ -144,6 +144,7 @@ TEMPLATES = [
                 "django.template.context_processors.request",
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
+                "csp.context_processors.nonce",
             ],
         },
     },
@@ -295,20 +296,8 @@ DTM_IGNORED_MIGRATIONS = {
 
 ### Django-CSP Settings
 
-# Note from Ben: As best I can tell, these CSP settings are related to using Google
-# Tag Manager with a content security policy (see:
-# https://developers.google.com/tag-platform/tag-manager/web/csp ). I don't have context
-# for business logic requiring CSP in GTM.
-
-# For now, we're drastically relaxing the CSP by allowing 'unsafe-eval' and
-# 'unsafe-inline'. Adding those rules precludes the use of a nonce.
-# Restore this once setup when we successfully disallow 'unsafe-eval' and 'unsafe-inline'
-# CSP_INCLUDE_NONCE_IN = (
-#     "style-src",
-#     "script-src",
-# )
+CSP_INCLUDE_NONCE_IN = ("style-src", "script-src")
 CSP_REPORTING_ENABLE = os.getenv("CSP_REPORTING_ENABLE", "false").lower() == "true"
-CSP_REPORT_ONLY = os.getenv("CSP_REPORT_ONLY", True)
 if CSP_REPORTING_ENABLE:
     CSP_REPORT_URI = os.getenv("CSP_REPORT_URI")
 CSP_DEFAULT_SRC = (
@@ -317,8 +306,6 @@ CSP_DEFAULT_SRC = (
 )
 CSP_SCRIPT_SRC = (
     "'self'",
-    "'unsafe-inline'",  # TODO: [DEV-2009] this is gross. Fix me ASAP
-    "'unsafe-eval'",  # TODO: [DEV-2009] this is gross. Fix me ASAP
     "https://js.stripe.com",
     "https://risk.clearbit.com",
     "https://www.google-analytics.com",
@@ -332,16 +319,22 @@ CSP_SCRIPT_SRC = (
 )
 CSP_STYLE_SRC = (
     "'self'",
-    "'unsafe-inline'",  # TODO: [DEV-2009] this is gross. Fix me ASAP
     "https://fonts.googleapis.com",
     "https://maps.googleapis.com",
+    "https://cdnjs.cloudflare.com/ajax/libs/semantic-ui/2.4.1/",
 )
 CSP_IMG_SRC = (
     "*",
     "'self'",
     "data:",
 )
-CSP_FONT_SRC = ("'self'", "data:", "https://fonts.gstatic.com", "https://use.typekit.net")
+CSP_FONT_SRC = (
+    "'self'",
+    "data:",
+    "https://fonts.gstatic.com",
+    "https://use.typekit.net",
+    "https://cdnjs.cloudflare.com/ajax/libs/semantic-ui/2.4.1/",
+)
 CSP_FRAME_SRC = (
     "https://js.stripe.com",
     "https://hooks.stripe.com",

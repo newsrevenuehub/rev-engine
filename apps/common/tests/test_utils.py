@@ -9,6 +9,7 @@ from django.contrib.sessions.middleware import SessionMiddleware
 from django.core.files.images import ImageFile
 from django.db import connection
 from django.db.migrations.executor import MigrationExecutor
+from django.http import HttpRequest
 from django.test import RequestFactory, TestCase, override_settings
 
 import PIL.Image
@@ -19,6 +20,7 @@ from apps.common.utils import (
     delete_cloudflare_cnames,
     delete_stripe_webhook,
     extract_ticket_id_from_branch_name,
+    get_original_ip_from_request,
     get_subdomain_from_request,
     normalize_slug,
     upsert_cloudflare_cnames,
@@ -243,3 +245,18 @@ def test_delete_cloudflare_cnames(cloudflare_class_mock):
     assert mock_cloudflare.zones.get.called_once_with(params={"name": "bar"})
     assert mock_cloudflare.zones.dns_records.get.called_once_with("foo", params={"per_page": 300})
     assert mock_cloudflare.zones.dns_records.delet.called_once_with("foo", "123")
+
+
+def test_ip_in_cf_connecting_header():
+    request = HttpRequest()
+    request.META["HTTP_CF_CONNECTING_IP"] = "foo"
+    request.META["HTTP_X_FORWARDED_FOR"] = "bar"
+    request.META["REMOTE_ADDR"] = "baz"
+    assert get_original_ip_from_request(request) == "foo"  # Cf-Connecting-IP is used
+    request = HttpRequest()
+    request.META["HTTP_X_FORWARDED_FOR"] = "bar"
+    request.META["REMOTE_ADDR"] = "baz"
+    assert get_original_ip_from_request(request) == "bar"  # X-Forwarded-For is used
+    request = HttpRequest()
+    request.META["REMOTE_ADDR"] = "baz"
+    assert get_original_ip_from_request(request) == "baz"  # REMOTE_ADDR is used

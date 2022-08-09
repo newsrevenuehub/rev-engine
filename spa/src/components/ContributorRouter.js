@@ -10,7 +10,7 @@ import { LIVE_PAGE_DETAIL } from 'ajax/endpoints';
 import { DASHBOARD_SUBDOMAINS } from 'settings';
 
 // Routing
-import { Route, BrowserRouter, Switch, Redirect } from 'react-router-dom';
+import { Route, BrowserRouter, Switch } from 'react-router-dom';
 import ProtectedRoute from 'components/authentication/ProtectedRoute';
 
 // Hooks
@@ -25,7 +25,7 @@ import GlobalLoading from 'elements/GlobalLoading';
 import TrackPageView from 'components/analytics/TrackPageView';
 import ChunkErrorBoundary from 'components/errors/ChunkErrorBoundary';
 import SegregatedStyles from 'components/donationPage/SegregatedStyles';
-import DonationPageNavbar from 'components/donationPage/DonationPageNavbar';
+import DonationPageNavbar from 'components/donationPage/navbar';
 
 // Utilities
 import componentLoader from 'utilities/componentLoader';

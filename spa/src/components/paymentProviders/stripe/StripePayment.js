@@ -9,7 +9,7 @@ import { Elements } from '@stripe/react-stripe-js';
 import { HUB_STRIPE_API_PUB_KEY, STRIPE_API_VERSION } from 'settings';
 
 // Children
-import ElementLoading from 'components/donationPage/pageContent/ElementLoading';
+import ElementLoading from 'components/donationPage/form/fieldsets/ElementLoading';
 import StripePaymentForm from 'components/paymentProviders/stripe/StripePaymentForm';
 
 function StripePayment({ offerPayFees, stripeAccountId }) {

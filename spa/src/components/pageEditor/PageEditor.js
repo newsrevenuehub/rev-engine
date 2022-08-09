@@ -47,7 +47,7 @@ import useModal from 'hooks/useModal';
 
 // Children
 import CircleButton from 'elements/buttons/CircleButton';
-import SegregatedStyles from 'components/donationPage/SegregatedStyles';
+import SegregatedStyles from 'components/donationPage/elements/SegregatedStyles';
 import DonationPage from 'components/donationPage/DonationPage';
 import GlobalLoading from 'elements/GlobalLoading';
 import EditInterface from 'components/pageEditor/editInterface/EditInterface';

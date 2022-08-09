@@ -1,27 +1,51 @@
 import * as S from './DonationPage.styled';
-import * as getters from 'components/donationPage/pageGetters';
 // import useClearbit from 'hooks/useClearbit';
 // import { getDefaultAmountForFreq } from 'components/donationPage/pageContent/DAmount';
-// import { frequencySort } from 'components/donationPage/pageContent/DFrequency';
+import { frequencySort } from 'components/donationPage/elements/form/frequency';
 // import { SALESFORCE_CAMPAIGN_ID_QUERYPARAM, FREQUENCY_QUERYPARAM, AMOUNT_QUERYPARAM } from 'settings';
 
-import LiveDonationContent from './LivePage';
-import EditorDonationContent from './EditorPage';
+import HeaderBar from './elements/headerBar/HeaderBar';
+import Graphic from './elements/graphic/Graphic';
+import PageHeading from './elements/pageHeading/PageHeading';
 
-import DonationPageSidebar from 'components/donationPage/DonationPageSidebar';
-import DonationPageFooter from 'components/donationPage/DonationPageFooter';
+import ContributionForm from './elements/form/Form';
+
+import DonationPageSidebar from 'components/donationPage/elements/sidebar/DonationPageSidebar';
+import DonationPageFooter from 'components/donationPage/elements/footer/Footer';
+
+// retr
+
+function reducer(state, action) {
+  switch (action.type) {
+    case USER_CHOSE_FREQUENCY:
+      return {
+        ...state
+      };
+    case USER_CHOSE_AMOUNT:
+      return {
+        ...state
+      };
+
+    default:
+      throw new Error();
+  }
+}
+
+const USER_CHOSE_FREQUENCY = 'user-chose-frequency';
+const USER_CHOSE_AMOUNT = 'user-chose-amount';
+const [{ chosenAmount, chosenFrequency, agreePayFees }, dispatch] = useReducer(reducer, initialState);
 
 function DonationPage({ page, liveView = false }) {
   return (
     <S.DonationPage data-testid="donation-page">
-      {getters.getHeaderBarElement()}
+      <HeaderBar page={page} />
       <S.PageMain>
         <S.SideOuter>
           <S.SideInner>
-            {getters.getPageHeadingElement()}
+            <PageHeading heading={page.heading} />
             <S.DonationContent>
-              {getters.getGraphicElement()}
-              {liveView ? <LiveDonationContent /> : <EditorDonationContent />}
+              <Graphic graphic={page.graphic} />
+              <ContributionForm isLive={liveView} page={page} />
             </S.DonationContent>
           </S.SideInner>
         </S.SideOuter>
@@ -88,19 +112,8 @@ export function getInitialAmount(frequency, page, amountQs, setOverrideAmount) {
     }
     return parseFloat(amountQs);
   } else {
-    const defaultAmountForFreq = getDefaultAmountForFreq(frequency, page);
+    const defaultAmountForFreq = null;
+    // const defaultAmountForFreq = getDefaultAmountForFreq(frequency, page);
     return defaultAmountForFreq;
   }
-}
-
-function getInitialPayFees(page) {
-  const paymentElement = page?.elements?.find((el) => el.type === 'DPayment');
-  const payFeesDefault = paymentElement?.content?.payFeesDefault;
-  // If payFeesDefault is true or false...
-  if (payFeesDefault === true || payFeesDefault === false) {
-    // ...initial value should be payFeesDefault...
-    return payFeesDefault;
-  }
-  // ...else, default to false
-  return false;
 }

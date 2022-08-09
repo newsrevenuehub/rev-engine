@@ -1,19 +1,6 @@
-import * as dynamicLayoutElements from 'components/donationPage/pageContent/dynamicElements';
-import * as dynamicSidebarElements from 'components/donationPage/pageContent/dynamicSidebarElements';
-import * as staticElements from 'components/donationPage/pageContent/staticElements';
-import ElementError from 'components/donationPage/pageContent/ElementError';
-
-export const getHeaderBarElement = () => {
-  return <staticElements.SHeaderBar />;
-};
-
-export const getPageHeadingElement = () => {
-  return <staticElements.SPageHeading />;
-};
-
-export const getGraphicElement = () => {
-  return <staticElements.SGraphic />;
-};
+import * as dynamicLayoutElements from 'components/donationPage/dynamicElements';
+import * as dynamicSidebarElements from 'components/donationPage/dynamicSidebarElements';
+import ElementError from 'components/donationPage/form/fieldsets/ElementError';
 
 export const getDynamicElement = (element, live) => {
   return getComponentForElement(element, live);

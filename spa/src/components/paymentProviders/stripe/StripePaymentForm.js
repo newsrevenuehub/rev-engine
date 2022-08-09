@@ -35,8 +35,8 @@ import { useAnalyticsContext } from 'components/analytics/AnalyticsContext';
 // Children
 import BaseField from 'elements/inputs/BaseField';
 import { ICONS } from 'assets/icons/SvgIcon';
-import { PayFeesWidget } from 'components/donationPage/pageContent/DPayment';
-import DonationPageDisclaimer from 'components/donationPage/DonationPageDisclaimer';
+import { PayFeesWidget } from 'components/donationPage/form/fieldsets/payFees/DPayment';
+import DonationPageDisclaimer from 'components/donationPage/elements/disclaimer/Disclaimer';
 
 /*
   gets the disabled stripe wallets for a page

@@ -17,9 +17,7 @@ import componentLoader from 'utilities/componentLoader';
 /**
  * Split Bundles
  */
-const GenericThankYou = lazy(() =>
-  componentLoader(() => import(`components/donationPage/live/thankYou/GenericThankYou`))
-);
+const GenericThankYou = lazy(() => componentLoader(() => import(`components/donationPage/thankYou`)));
 const LiveDonationPageContainer = lazy(() =>
   componentLoader(() => import(`components/donationPage/LiveDonationPageContainer`))
 );

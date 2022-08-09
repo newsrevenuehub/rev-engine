@@ -4,7 +4,7 @@ import { useTheme } from 'styled-components';
 import { AnimatePresence } from 'framer-motion';
 
 // Constants
-import { REASON_OPTION_MAX_LENGTH } from 'components/donationPage/pageContent/DReason';
+import { REASON_OPTION_MAX_LENGTH } from 'components/donationPage/form/fieldsets/DReason';
 
 // Context
 import { useEditInterfaceContext } from 'components/pageEditor/editInterface/EditInterface';

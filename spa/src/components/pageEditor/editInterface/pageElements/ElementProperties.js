@@ -15,8 +15,8 @@ import { useEditInterfaceContext } from 'components/pageEditor/editInterface/Edi
 import CircleButton from 'elements/buttons/CircleButton';
 import { NoComponentError } from 'components/donationPage/pageGetters';
 
-import * as dynamicPageElements from 'components/donationPage/pageContent/dynamicElements';
-import * as dynamicSidebarElements from 'components/donationPage/pageContent/dynamicSidebarElements';
+import * as dynamicPageElements from 'components/donationPage/form/fieldsets/dynamicElements';
+import * as dynamicSidebarElements from 'components/donationPage/form/fieldsets/dynamicSidebarElements';
 
 const dynamicElements = { ...dynamicPageElements, ...dynamicSidebarElements };
 

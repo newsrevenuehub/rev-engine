@@ -16,8 +16,8 @@ import { useAnalyticsContext } from 'components/analytics/AnalyticsContext';
 import { HUB_GA_V3_ID } from 'settings';
 
 // Children
-import SegregatedStyles from 'components/donationPage/SegregatedStyles';
-import LiveLoading from 'components/donationPage/live/LiveLoading';
+import SegregatedStyles from 'components/donationPage/elements/SegregatedStyles';
+import LiveLoading from 'components/donationPage/elements/loading/LiveLoading';
 import LivePage404 from 'components/common/LivePage404';
 import DonationPage from 'components/donationPage/DonationPage';
 

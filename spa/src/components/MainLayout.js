@@ -14,8 +14,8 @@ import { AnalyticsContextWrapper } from './analytics/AnalyticsContext';
 // Children
 import GlobalConfirmationModal from 'elements/modal/GlobalConfirmationModal';
 import ReauthModal from 'components/authentication/ReauthModal';
-import DonationPageRouter from 'components/DonationPageRouter';
-import DashboardRouter from 'components/DashboardRouter';
+import DonationPageRouter from 'components/donationPage/router';
+import DashboardRouter from './DashboardRouter';
 
 const GlobalContext = createContext(null);
 

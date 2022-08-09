@@ -15,8 +15,8 @@ import {
   faHands
 } from '@fortawesome/free-solid-svg-icons';
 
-import * as dynamicPageElements from 'components/donationPage/pageContent/dynamicElements';
-import * as dynamicSidebarElements from 'components/donationPage/pageContent/dynamicSidebarElements';
+import * as dynamicPageElements from 'components/donationPage/form/fieldsets/dynamicElements';
+import * as dynamicSidebarElements from 'components/donationPage/form/fieldsets/dynamicSidebarElements';
 import { NoComponentError } from 'components/donationPage/pageGetters';
 import PencilButton from 'elements/buttons/PencilButton';
 import TrashButton from 'elements/buttons/TrashButton';

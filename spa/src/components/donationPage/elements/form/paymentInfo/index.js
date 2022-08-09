@@ -1,0 +1,52 @@
+import * as S from './PayFees.styled';
+import DElement from '../DElement';
+import { ICONS } from 'assets/icons/SvgIcon';
+
+// Util
+import formatStringAmountForDisplay from 'utilities/formatStringAmountForDisplay';
+import { getFrequencyAdverb } from 'utilities/parseFrequency';
+import calculateStripeFee from 'utilities/calculateStripeFee';
+
+// Context
+import { usePage } from '../../../DonationPage';
+
+// Stripe
+import StripePayment from 'components/paymentProviders/stripe/StripePayment';
+
+function DPayment({ element, live }) {
+  const {
+    page: { stripe_account_id }
+  } = usePage();
+  /*
+    element.content is an object, whose keys are providers.
+    For instance, element.content.stripe is an array of supported payment types:
+    eg ["card", "apple", "google"]
+
+    Eventually we may support multiple providers, each with different supported payment methods.
+    Vaguely, it seems likely we'd want some sort of tabbed-interface where each tab is a provider.
+    For now, we only support stripe, so there's no need for a fancy interface.
+  */
+  return (
+    <DElement>
+      {live ? (
+        <S.DPayment>
+          {element?.content && element.content['stripe'] && (
+            <StripePayment offerPayFees={element.content?.offerPayFees} stripeAccountId={stripe_account_id} />
+          )}
+        </S.DPayment>
+      ) : (
+        <NotLivePlaceholder />
+      )}
+    </DElement>
+  );
+}
+
+DPayment.type = 'DPayment';
+DPayment.displayName = 'Payment';
+DPayment.description = 'Allow donors to contribute';
+DPayment.required = true;
+DPayment.unique = true;
+DPayment.requireContent = true;
+DPayment.contentMissingMsg = `${DPayment.displayName} needs to have at least one payment method configured.`;
+
+export default DPayment;

@@ -227,6 +227,7 @@ CACHES = {
 # MIDDLEWARE_LOGGING_CODES is not Django, used by LogFourHundredsMiddleware.
 MIDDLEWARE_LOGGING_CODES = [400, 404, 403]
 DEFAULT_LOGGER = "warn"
+LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO")
 LOGGING = {
     "version": 1,
     "disable_existing_loggers": False,
@@ -234,7 +235,7 @@ LOGGING = {
     "formatters": {"basic": {"format": "%(levelname)s %(name)s:%(lineno)d - %(message)s"}},
     "handlers": {
         "console": {
-            "level": "INFO",
+            "level": LOG_LEVEL,
             "class": "logging.StreamHandler",
             "formatter": "basic",
         },
@@ -247,7 +248,7 @@ LOGGING = {
         # prevents invoking the AdminEmailHandler
         "django": {
             "handlers": ["console"],
-            "level": "INFO",
+            "level": LOG_LEVEL,
             "propagate": False,
         },
         # don't warn about incorrect http_host
@@ -259,7 +260,7 @@ LOGGING = {
     },
     "root": {
         "handlers": ["console"],
-        "level": "INFO",
+        "level": LOG_LEVEL,
     },
 }
 

@@ -8,6 +8,8 @@ Please fill out each section even if it's just with "N/A"
 
 #### How should this be manually tested? Please include detailed step-by-step instructions.
 
+#### Did this PR make changes to the user interface that may require changes to the user-facing docs?
+
 #### Have automated unit tests been added? If not, why?
 
 #### How should this change be communicated to end users?

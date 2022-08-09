@@ -21,6 +21,7 @@ from rest_framework.serializers import ValidationError
 from rest_framework.viewsets import GenericViewSet
 
 from apps.api.permissions import HasDeletePrivilegesViaRole, HasRoleAssignment, is_a_contributor
+from apps.common.utils import get_original_ip_from_request
 from apps.contributions.bad_actor import BadActorAPIError, make_bad_actor_request
 from apps.emails.tasks import send_templated_email
 from apps.public.permissions import IsActiveSuperUser
@@ -129,7 +130,7 @@ class UserViewset(
                 {
                     "email": data.validated_data["email"],
                     "referer": self.request.META.get("HTTP_REFERER", ""),
-                    "ip": self.request.META["REMOTE_ADDR"],
+                    "ip": get_original_ip_from_request(self.request),
                     "first_name": data.validated_data.get("first_name", ""),
                     "last_name": data.validated_data.get("last_name", ""),
                     # Bad actor api requires this field because it was created

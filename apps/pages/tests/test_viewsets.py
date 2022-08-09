@@ -1,5 +1,6 @@
 import datetime
 import json
+import os
 
 from django.conf import settings
 from django.utils import timezone
@@ -24,6 +25,16 @@ class PageViewSetTest(RevEngineApiAbstractTestCase):
             "slug": "new-page",
             "revenue_program": self.org1_rp1.pk,
         }
+
+    def livepage_factory(self, style=None):
+        """Create DonationPage that is considered live."""
+        page = DonationPage.objects.first()
+        page.published_date = timezone.now() - datetime.timedelta(days=1)
+        if style is not None:
+            page.styles = style
+        page.save()
+        self.assertTrue(page.is_live)
+        return page
 
     def assert_created_page_looks_right(
         self,
@@ -237,6 +248,19 @@ class PageViewSetTest(RevEngineApiAbstractTestCase):
 
     ########
     # Delete
+    def test_delete_missing_page(self):
+        before_count = DonationPage.objects.count()
+        page = DonationPage.objects.first()
+        assert DonationPage.objects.filter(pk=page.pk).exists()
+        # Contributions protect referenced page from being deleted, so need to delete these first.
+        page.contribution_set.all().delete()
+        self.client.force_authenticate(user=self.superuser)
+        response = self.client.delete("/api/v1/pages/123423423/")
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+        # Nothing was deleted
+        assert DonationPage.objects.count() == before_count
+        assert DonationPage.objects.filter(pk=page.pk).exists()
+
     def test_superuser_can_delete_a_page(self):
         before_count = DonationPage.objects.count()
         page = DonationPage.objects.first()
@@ -414,23 +438,48 @@ class PageViewSetTest(RevEngineApiAbstractTestCase):
         reverse("donationpage-detail", args=(page.pk,))
 
     def test_live_detail_page_happy_path(self):
-        page = DonationPage.objects.first()
-        # ensure it's considered "live"
-        page.published_date = timezone.now() - datetime.timedelta(days=1)
-        page.save()
-        self.assertTrue(page.is_live)
+        page = self.livepage_factory()
         url = f'{reverse("donationpage-live-detail")}?revenue_program={page.revenue_program.slug}&page={page.slug}'
         self.assert_unauthed_can_get(url)
 
-    def test_live_detail_page_missing_query_parms(self):
-        page = DonationPage.objects.first()
-        # ensure it's considered "live"
-        page.published_date = timezone.now() - datetime.timedelta(days=1)
-        page.save()
-        self.assertTrue(page.is_live)
+    def test_live_detail_page_with_styles(self):
+        custom_style = {"foo": "bar"}
+        style = StyleFactory(org=self.org1, revenue_program=self.org1_rp1, styles=custom_style)
+        page = self.livepage_factory(style=style)
+        url = f'{reverse("donationpage-live-detail")}?revenue_program={page.revenue_program.slug}&page={page.slug}'
+        response = self.assert_unauthed_can_get(url)
+        self.assertEqual(response.json()["styles"]["styles"], custom_style)
+
+    def test_live_detail_page_missing_query_params(self):
+        # ?revenue_program_slug requried, ?page_slug is not.
         url = f'{reverse("donationpage-live-detail")}'
-        response = self.assert_unuauthed_cannot_get(url, status=status.HTTP_400_BAD_REQUEST)
-        self.assertEqual(response.json(), {"detail": "Missing required parameter"})
+        self.assert_response(url, status=status.HTTP_400_BAD_REQUEST, json={"detail": "Missing required parameter"})
+        url = f'{reverse("donationpage-live-detail")}?page=pageslug'
+        self.assert_response(url, status=status.HTTP_400_BAD_REQUEST, json={"detail": "Missing required parameter"})
+
+    def test_live_detail_page_missing_revenue_program(self):
+        url = f'{reverse("donationpage-live-detail")}?revenue_program=madeupmissingslug'
+        self.assert_response(
+            url,
+            status=status.HTTP_404_NOT_FOUND,
+            json={"detail": "Could not find revenue program matching those parameters"},
+        )
+
+    def test_live_detail_page_missing_donation_page(self):
+        page = self.livepage_factory()
+        url = (
+            f'{reverse("donationpage-live-detail")}?revenue_program={page.revenue_program.slug}&page=madeupmissingslug'
+        )
+        self.assert_response(
+            url, status=status.HTTP_404_NOT_FOUND, json={"detail": "Could not find page matching those parameters"}
+        )
+
+    def test_live_detail_page_missing_default_donation_page(self):
+        page = self.livepage_factory()
+        url = f'{reverse("donationpage-live-detail")}?revenue_program={page.revenue_program.slug}'
+        self.assert_response(
+            url, status=status.HTTP_404_NOT_FOUND, json={"detail": "Could not find page matching those parameters"}
+        )
 
     def test_live_detail_page_when_not_published(self):
         page = DonationPage.objects.first()
@@ -438,20 +487,19 @@ class PageViewSetTest(RevEngineApiAbstractTestCase):
         page.save()
         self.assertFalse(page.is_live)
         url = f'{reverse("donationpage-live-detail")}?revenue_program={page.revenue_program.slug}&page={page.slug}'
-        response = self.assert_unuauthed_cannot_get(url, status=status.HTTP_404_NOT_FOUND)
-        self.assertEqual(response.json(), {"detail": "This page has not been published"})
+        self.assert_response(url, status=status.HTTP_404_NOT_FOUND, json={"detail": "This page has not been published"})
 
     def test_live_detail_page_when_payment_provider_unverified(self):
-        page = DonationPage.objects.first()
-        page.published_date = timezone.now() - datetime.timedelta(days=1)
-        page.save()
-        self.assertTrue(page.is_live)
+        page = self.livepage_factory()
         page.revenue_program.payment_provider.stripe_verified = False
         page.revenue_program.payment_provider.save()
         self.assertFalse(page.revenue_program.payment_provider.is_verified_with_default_provider())
         url = f'{reverse("donationpage-live-detail")}?revenue_program={page.revenue_program.slug}&page={page.slug}'
-        response = self.assert_unuauthed_cannot_get(url, status=status.HTTP_404_NOT_FOUND)
-        self.assertEqual(response.json(), {"detail": "RevenueProgram does not have a fully verified payment provider"})
+        self.assert_response(
+            url,
+            status=status.HTTP_404_NOT_FOUND,
+            json={"detail": "RevenueProgram does not have a fully verified payment provider"},
+        )
 
     def test_live_detail_page_when_no_payment_provider(self):
         page = DonationPage.objects.first()
@@ -460,8 +508,11 @@ class PageViewSetTest(RevEngineApiAbstractTestCase):
         self.assertTrue(page.is_live)
         page.revenue_program.payment_provider.delete()
         url = f'{reverse("donationpage-live-detail")}?revenue_program={page.revenue_program.slug}&page={page.slug}'
-        response = self.assert_unuauthed_cannot_get(url, status=status.HTTP_404_NOT_FOUND)
-        self.assertEqual(response.json(), {"detail": "RevenueProgram does not have a payment provider configured"})
+        self.assert_response(
+            url,
+            status=status.HTTP_404_NOT_FOUND,
+            json={"detail": "RevenueProgram does not have a payment provider configured"},
+        )
 
     def test_live_detail_page_when_styles(self):
         page = DonationPage.objects.first()
@@ -478,12 +529,40 @@ class PageViewSetTest(RevEngineApiAbstractTestCase):
         self.assertEqual(response.json()["styles"]["styles"], custom_style)
 
     def test_draft_detail_page_happy_path(self):
-        page = DonationPage.objects.first()
-        page.published_date = timezone.now() - datetime.timedelta(days=1)
-        page.save()
-        self.assertTrue(page.is_live)
+        page = self.livepage_factory()
         url = f'{reverse("donationpage-draft-detail")}?revenue_program={page.revenue_program.slug}&page={page.slug}'
         self.assert_rp_user_can_get(url)
+
+    def test_draft_detail_page_missing_revenue_program(self):
+        url = f'{reverse("donationpage-draft-detail")}?revenue_program=madeupmissingslug'
+        self.assert_response(
+            url,
+            user=self.rp_user,
+            status=status.HTTP_404_NOT_FOUND,
+            json={"detail": "Could not find revenue program matching those parameters"},
+        )
+
+    def test_draft_detail_page_missing_donation_page(self):
+        page = self.livepage_factory()
+        url = (
+            f'{reverse("donationpage-draft-detail")}?revenue_program={page.revenue_program.slug}&page=madeupmissingslug'
+        )
+        self.assert_response(
+            url,
+            user=self.rp_user,
+            status=status.HTTP_404_NOT_FOUND,
+            json={"detail": "Could not find page matching those parameters"},
+        )
+
+    def test_draft_detail_page_missing_default_donation_page(self):
+        page = self.livepage_factory()
+        url = f'{reverse("donationpage-draft-detail")}?revenue_program={page.revenue_program.slug}'
+        self.assert_response(
+            url,
+            user=self.rp_user,
+            status=status.HTTP_404_NOT_FOUND,
+            json={"detail": "Could not find page matching those parameters"},
+        )
 
 
 class TemplateViewSetTest(RevEngineApiAbstractTestCase):
@@ -777,10 +856,12 @@ class TemplateViewSetTest(RevEngineApiAbstractTestCase):
 
 
 class StylesViewsetTest(RevEngineApiAbstractTestCase):
-    def setUp(self):
-        super().setUp()
-        with open("apps/pages/tests/fixtures/create-style-payload.json") as fl:
-            self.styles_create_data_fixture = json.load(fl)
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        cwd = os.path.dirname(os.path.abspath(__file__))
+        with open(os.path.join(cwd, "fixtures/create-style-payload.json")) as fl:
+            cls.styles_create_data_fixture = json.load(fl)
 
     @property
     def create_style_payload(self):

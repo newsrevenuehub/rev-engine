@@ -8,6 +8,7 @@ export const TableScrollWrapper = styled.div`
 
 export const PaginatedTable = styled.table`
   border-collapse: collapse;
+  font-family: ${(props) => props.theme.systemFont};
   td {
     padding: 1rem;
     min-width: 100px;

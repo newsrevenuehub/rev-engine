@@ -35,6 +35,7 @@ def _construct_rp_domain(subdomain, referer):
 
     Return RP specific domain or None if not found.
     """
+    logger.info("[_construct_rp_domain] constructing rp domain for subdomain (%s) and referer (%s)", subdomain, referer)
     if ":" in subdomain:  # Assume full url.
         subdomain = urlparse(subdomain).hostname.split(".")[0]
     if not subdomain and referer:
@@ -59,6 +60,7 @@ def _construct_rp_domain(subdomain, referer):
 
 
 def set_token_cookie(response, token, expires):
+    logger.info("[set_token_cookie] for token (%s)", token)
     response.set_cookie(
         # get cookie key from settings
         settings.AUTH_COOKIE_KEY,
@@ -148,9 +150,15 @@ class RequestContributorTokenEmailView(APIView):
         return f"{domain}/{settings.CONTRIBUTOR_VERIFY_URL}?token={token}&email={quote_plus(email)}"
 
     def post(self, request, *args, **kwargs):
+        logger.info("[RequestContributorTokenEmailView][post] Request received for magic link %s", request.data)
         serializer = ContributorObtainTokenSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        contributor, _ = Contributor.objects.get_or_create(email=request.data["email"])
+        contributor, created = Contributor.objects.get_or_create(email=request.data["email"])
+        if created:
+            logger.info(
+                "[RequestContributorTokenEmailView] Created new contributor with email %s", request.data["email"]
+            )
+
         serializer.update_short_lived_token(contributor)
 
         domain = _construct_rp_domain(
@@ -158,6 +166,7 @@ class RequestContributorTokenEmailView(APIView):
         )
 
         if not domain:
+            logger.info("[RequestContributorTokenEmailView][post] Could not determine domain for request")
             return Response({"detail": "Missing Revenue Program subdomain"}, status=status.HTTP_404_NOT_FOUND)
 
         revenue_program = get_object_or_404(RevenueProgram, slug=serializer.validated_data.get("subdomain"))
@@ -173,7 +182,7 @@ class RequestContributorTokenEmailView(APIView):
         logger.info(
             "Sending magic link email to [%s] | magic link: [%s]", serializer.validated_data["email"], magic_link
         )
-        send_templated_email(
+        send_templated_email.delay(
             serializer.validated_data["email"],
             "Manage your contributions",
             "nrh-manage-donations-magic-link.txt",
@@ -195,6 +204,7 @@ class VerifyContributorTokenView(APIView):
     permission_classes = []
 
     def post(self, request, *args, **kwargs):
+        logger.info("[VerifyContributorTokenView][post] Request received for user (%s)", request.user)
         response = Response(status=status.HTTP_200_OK)
 
         # Serializer contributor for response

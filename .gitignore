@@ -48,7 +48,7 @@ aws_ec2.yml
 #Testing
 .coverage
 coverage
-htmlcov/
+htmlcov
 spa/cypress/screenshots
 spa/cypress/videos
 

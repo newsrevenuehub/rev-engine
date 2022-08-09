@@ -100,7 +100,8 @@ class TokenObtainPairCookieViewTest(APITestCase):
     ["vanilla@email.com", "vanilla+spice@email.com"],
 )
 @pytest.mark.django_db()
-def test_request_contributor_token_creates_usable_magic_links(rf, django_user_model, mocker, email, client):
+@override_settings(CELERY_ALWAYS_EAGER=True)
+def test_request_contributor_token_creates_usable_magic_links(rf, mocker, email, client):
     """This test spans two requests, first requesting magic link, then using data in the magic link to verify contributor token
 
     Ultimately, it is the SPA's repsonsiblity to correctly handle the data provided in the magic link, but assuming it
@@ -184,6 +185,7 @@ class RequestContributorTokenEmailViewTest(APITestCase):
         response = self.client.post(self.url, {"email": target_email, "subdomain": "norp"})
         self.assertEqual(response.status_code, 404)
 
+    @override_settings(CELERY_ALWAYS_EAGER=True, CELERY_TASK_EAGER_PROPOGATES=True, BROKER_BACKEND="memory")
     def test_token_appears_in_outbound_email(self):
         target_email = self.contributor.email
         response = self.client.post(self.url, {"email": target_email, "subdomain": self.rp.slug})
@@ -199,6 +201,7 @@ class RequestContributorTokenEmailViewTest(APITestCase):
         self.assertEqual(len(token.split(".")), 3)
         self.assertIn(f"{target_email}", self.outbox[0].to[0])
 
+    @override_settings(CELERY_ALWAYS_EAGER=True, CELERY_TASK_EAGER_PROPOGATES=True, BROKER_BACKEND="memory")
     def test_outbound_email_send_to_requested_address(self):
         target_email = self.contributor.email
         response = self.client.post(self.url, {"email": target_email, "subdomain": self.rp.slug})
@@ -219,6 +222,7 @@ class VerifyContributorTokenViewTest(APITestCase):
         self.outbox = mail.outbox
         self.valid_token = self._get_valid_token()
 
+    @override_settings(CELERY_ALWAYS_EAGER=True, CELERY_TASK_EAGER_PROPOGATES=True, BROKER_BACKEND="memory")
     def _get_valid_token(self):
         response = self.client.post(
             reverse("contributor-token-request"), {"email": self.contributor.email, "subdomain": self.rp.slug}

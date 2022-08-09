@@ -1,6 +1,5 @@
-<script id="spa_env" type="application/json" nonce="{{ request.csp_nonce }}">
-    {{ spa_env_json|safe|escape }}
-</script>
-<script nonce="{{ request.csp_nonce }}">
+{{ spa_env | json_script:"spa_env" }}
+
+<script nonce="{{ CSP_NONCE }}" type="application/javascript">
     window.ENV = JSON.parse(document.getElementById('spa_env').textContent);
 </script>

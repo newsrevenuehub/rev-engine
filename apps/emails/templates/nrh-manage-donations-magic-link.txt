@@ -3,7 +3,7 @@ Manage your contributions!
 
 To view your contributions, please go to this link:
 
-{{ magic_link }}
+{% autoescape off %}{{ magic_link }}{% endautoescape %}
 
 
 If you didn't request access to your contributions please ignore this message.

@@ -123,7 +123,7 @@ def get_original_ip_from_request(request):
     if x_forwarded_for := request.headers.get("X-Forwarded-For"):
         logger.debug("Using X-Forwarded-For as request IP: %s", x_forwarded_for)
         return x_forwarded_for.split(",")[0]
-    else:
-        remote_addr = request.META.get("REMOTE_ADDR")
-        logger.debug("Using REMOTE_ADDR as request IP: %s", remote_addr)
-        return remote_addr
+
+    remote_addr = request.META.get("REMOTE_ADDR")
+    logger.debug("Using REMOTE_ADDR as request IP: %s", remote_addr)
+    return remote_addr

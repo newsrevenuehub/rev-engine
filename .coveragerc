@@ -1,7 +1,6 @@
 [run]
 source =
   apps
-  revengine
 omit =
     */tests/*
     */migrations/*

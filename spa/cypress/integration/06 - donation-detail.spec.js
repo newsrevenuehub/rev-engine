@@ -40,7 +40,7 @@ describe('Donation detail', () => {
       cy.intercept('GET', getEndpoint(`${CONTRIBUTIONS}/${CONTRIBUTION_PK}/`), {
         body: donationPageContributionDetailData
       }).as('getDonationPageDonation');
-      cy.visit(`/dashboard/contributions/${CONTRIBUTION_PK}`);
+      cy.visit(`/contributions/${CONTRIBUTION_PK}`);
     });
     it('should display revenue program name in page title', () => {
       cy.wait('@getPages');

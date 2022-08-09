@@ -16,8 +16,7 @@ export const ICONS = {
   ACCOUNT_UNFOLD_MORE: 'account-unfold-more',
   ACCOUNT_ACC_BALANCE: 'account-acc-balance',
   ACCOUNT_NEWSROOM: 'account-newsroom',
-  ACCOUNT_CART: 'account-cart',
-  YELLOW_TRIANGLE: 'yellow-triangle-bar'
+  ACCOUNT_CART: 'account-cart'
 };
 
 function SvgIcon({ icon, ...props }) {

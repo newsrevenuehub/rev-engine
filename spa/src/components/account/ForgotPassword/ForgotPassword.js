@@ -1,7 +1,6 @@
 import { useState } from 'react';
 
 import * as S from '../Account.styled';
-import purpleFooterImage from 'assets/images/account/purple-bottombar.png';
 
 import Logobar from 'components/account/common/logobar/Logobar';
 import Leftbar from 'components/account/common/leftbar/Leftbar';
@@ -12,11 +11,17 @@ import InputWrapped from 'components/account/common/elements/InputWrapped';
 import { SIGN_IN } from 'routes';
 
 import validateEmail from 'utilities/validateEmail';
+import YellowSVG from 'assets/images/account/yellow-bar.svg';
+
+// Analytics
+import { useConfigureAnalytics } from '../../analytics';
 
 function ForgotPassword() {
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
   const [emailError, setEmailError] = useState('');
+
+  useConfigureAnalytics();
 
   const onSubmitClick = (event) => {
     setLoading(true);
@@ -68,8 +73,8 @@ function ForgotPassword() {
 
         <Logobar />
       </S.Right>
-      <S.BottomBar>
-        <S.BottomBarImg data-testid="bottom-purple-bar" src={purpleFooterImage} />
+      <S.BottomBar data-testid={`bottom-yellow-bar`}>
+        <S.BottomBarYellowSVG src={YellowSVG} />
       </S.BottomBar>
     </S.Outer>
   );

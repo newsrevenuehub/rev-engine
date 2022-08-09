@@ -6,6 +6,10 @@ import sendIcon from 'assets/icons/send.png';
 import draftIcon from 'assets/icons/draft.png';
 import readIcon from 'assets/icons/mark_read.png';
 
+// Analytics
+import { useConfigureAnalytics } from '../../analytics';
+
+const HELPEMAIL = `emailaddress@fundjournalism.org`;
 const Mailto = ({ mailto, label }) => {
   return (
     <Link
@@ -22,6 +26,7 @@ const Mailto = ({ mailto, label }) => {
 
 function Verify({ onSuccess, message }) {
   const { state: routedState } = useLocation();
+  useConfigureAnalytics();
 
   return (
     <S.Verify>
@@ -40,8 +45,7 @@ function Verify({ onSuccess, message }) {
           <S.Resendtext>If you haven’t received the email within a few minutes, please resend below.</S.Resendtext>
           <S.Button>Resend Verification</S.Button>
           <S.Help>
-            <span>Questions?</span> Email us at{' '}
-            <Mailto label="emailaddress@fundjournalism.org" mailto="mailto:emailaddress@fundjournalism.org" />
+            <span>Questions?</span> Email us at <Mailto label={HELPEMAIL} mailto={`mailto:${HELPEMAIL}`} />
           </S.Help>
         </S.Box>
       </S.Content>

@@ -1,4 +1,4 @@
-import { render, screen } from 'test-utils';
+import { render, screen, fireEvent } from 'test-utils';
 import ReactTestUtils from 'react-dom/test-utils';
 import ResetPassword from './ResetPassword';
 import { SIGN_IN } from 'routes';
@@ -11,7 +11,7 @@ it('should show the yellow revengine logo', () => {
 
 it('should have yellow left bar and purple bottom bar', () => {
   render(<ResetPassword />);
-  const bottomYellowBar = screen.queryByTestId('bottom-purple-bar');
+  const bottomYellowBar = screen.queryByTestId('bottom-yellow-bar');
   expect(bottomYellowBar).toBeInTheDocument();
   const leftPurple = screen.queryByTestId('left-yellow');
   expect(leftPurple).toBeInTheDocument();
@@ -23,7 +23,7 @@ it('should have reset-password button disabled by default', () => {
   expect(submitButton).not.toBeEnabled();
 });
 
-it('should enable reset-password button when email is entered', () => {
+it('should enable reset-password button when both passwords are entered', () => {
   render(<ResetPassword />);
   const submitButton = screen.getByRole('button', { name: 'Reset Password' });
   const password = screen.queryByTestId('reset-password');
@@ -32,6 +32,20 @@ it('should enable reset-password button when email is entered', () => {
   const password1 = screen.queryByTestId('reset-password-1');
   ReactTestUtils.Simulate.change(password1, { target: { value: 'password' } });
   expect(submitButton).toBeEnabled();
+});
+
+it('should should show error when passwords do not match', () => {
+  render(<ResetPassword />);
+  const submitButton = screen.getByRole('button', { name: 'Reset Password' });
+  const password = screen.queryByTestId('reset-password');
+  ReactTestUtils.Simulate.change(password, { target: { value: 'password' } });
+  expect(submitButton).not.toBeEnabled();
+  const password1 = screen.queryByTestId('reset-password-1');
+  ReactTestUtils.Simulate.change(password1, { target: { value: 'password1' } });
+  expect(submitButton).toBeEnabled();
+  fireEvent.click(submitButton);
+  const eMessage = screen.queryByText('The two Passwords should match');
+  expect(eMessage).toBeInTheDocument();
 });
 
 it('should have heading - Reset Password', () => {

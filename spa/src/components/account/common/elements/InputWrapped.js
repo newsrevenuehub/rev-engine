@@ -9,7 +9,7 @@ import Input from 'elements/inputs/Input';
 import visibilityOn from 'assets/images/account/visibility_on.png';
 import visibilityOff from 'assets/images/account/visibility_off.png';
 
-function InputWrapped({ value, onChange, type, label, disabled, instructions, testid, errorMessage }) {
+function InputWrapped({ value, onChange, type, label, instructions, testid, errorMessage }) {
   const [showPassword, setShowPassword] = useState(false);
 
   const togglePasswordDisplay = () => {
@@ -53,7 +53,11 @@ function InputWrapped({ value, onChange, type, label, disabled, instructions, te
 InputWrapped.propTypes = {
   value: PropTypes.string.isRequired,
   onChange: PropTypes.func,
-  type: PropTypes.oneOf(Object.values(Input.types))
+  type: PropTypes.oneOf(Object.values(Input.types)),
+  label: PropTypes.string,
+  instructions: PropTypes.string,
+  testid: PropTypes.string,
+  errorMessage: PropTypes.string
 };
 
 export default InputWrapped;

@@ -5,8 +5,8 @@ import { SIGN_IN } from 'routes';
 
 it('should show the blue revengine logo', () => {
   render(<SignUp />);
-  const bottomYellowBar = screen.queryByTestId('blue-logo');
-  expect(bottomYellowBar).toBeInTheDocument();
+  const blueLogo = screen.queryByTestId('blue-logo');
+  expect(blueLogo).toBeInTheDocument();
 });
 
 it('should have purple left bar and yellow bottom bar', () => {

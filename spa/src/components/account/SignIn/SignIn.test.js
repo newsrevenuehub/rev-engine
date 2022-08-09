@@ -11,7 +11,7 @@ it('should show the blue revengine logo', () => {
 
 it('should have yellow left bar and purple bottom bar', () => {
   render(<SignIn />);
-  const bottomYellowBar = screen.queryByTestId('bottom-purple-bar');
+  const bottomYellowBar = screen.queryByTestId('bottom-yellow-bar');
   expect(bottomYellowBar).toBeInTheDocument();
   const leftPurple = screen.queryByTestId('left-yellow');
   expect(leftPurple).toBeInTheDocument();

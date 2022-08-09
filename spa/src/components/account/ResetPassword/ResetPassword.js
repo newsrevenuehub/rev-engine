@@ -1,7 +1,6 @@
 import { useState } from 'react';
 
 import * as S from '../Account.styled';
-import purpleFooterImage from 'assets/images/account/purple-bottombar.png';
 
 import Logobar from 'components/account/common/logobar/Logobar';
 import Leftbar from 'components/account/common/leftbar/Leftbar';
@@ -10,6 +9,10 @@ import Input from 'elements/inputs/Input';
 import InputWrapped from 'components/account/common/elements/InputWrapped';
 
 import { SIGN_IN } from 'routes';
+import YellowSVG from 'assets/images/account/yellow-bar.svg';
+
+// Analytics
+import { useConfigureAnalytics } from '../../analytics';
 
 function ResetPassword() {
   const [password, setPassword] = useState('');
@@ -17,6 +20,8 @@ function ResetPassword() {
   const [loading, setLoading] = useState(false);
   const [passwordError, setPasswordError] = useState('');
   const [password2Error, setPassword2Error] = useState('');
+
+  useConfigureAnalytics();
 
   let hasError = false;
 
@@ -37,6 +42,10 @@ function ResetPassword() {
     if (password !== password2) {
       setPassword2Error('The two Passwords should match');
       hasError = true;
+    }
+
+    if (!hasError) {
+      setLoading(true);
     }
   };
 
@@ -87,8 +96,8 @@ function ResetPassword() {
 
         <Logobar />
       </S.Right>
-      <S.BottomBar>
-        <S.BottomBarImg data-testid="bottom-purple-bar" src={purpleFooterImage} />
+      <S.BottomBar data-testid={`bottom-yellow-bar`}>
+        <S.BottomBarYellowSVG src={YellowSVG} />
       </S.BottomBar>
     </S.Outer>
   );

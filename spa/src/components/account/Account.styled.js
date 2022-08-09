@@ -1,6 +1,5 @@
 import styled from 'styled-components';
 import { motion } from 'framer-motion';
-import SvgIcon from 'assets/icons/SvgIcon';
 
 export const Outer = styled.div`
   display: flex;
@@ -81,16 +80,11 @@ export const BottomBar = styled.div`
   right: 0px;
 `;
 
-export const BottomBarSVG = styled(SvgIcon)`
+export const BottomBarYellowSVG = styled.img`
   position: absolute;
   width: 100%;
   bottom: 0px;
   right: 0px;
-`;
-
-export const BottomBarImg = styled.img`
-  width: 100%;
-  margin-bottom: -8px;
   @media (${(props) => props.theme.breakpoints.tabletLandscapeDown}) {
     display: none;
   }

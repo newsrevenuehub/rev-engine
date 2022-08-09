@@ -17,8 +17,6 @@ import { handleLoginSuccess } from 'components/authentication/util';
 // Analytics
 import { useConfigureAnalytics } from '../../analytics';
 
-import purpleFooterImage from 'assets/images/account/purple-bottombar.png';
-
 import Logobar from 'components/account/common/logobar/Logobar';
 import Leftbar from 'components/account/common/leftbar/Leftbar';
 
@@ -27,6 +25,7 @@ import InputWrapped from 'components/account/common/elements/InputWrapped';
 import validateEmail from 'utilities/validateEmail';
 
 import { SIGN_UP, FORGOT_PASSWORD } from 'routes';
+import YellowSVG from 'assets/images/account/yellow-bar.svg';
 
 function Login({ onSuccess, message }) {
   const history = useHistory();
@@ -132,8 +131,8 @@ function Login({ onSuccess, message }) {
           <Logobar />
         </S.Right>
       </S.Outer>
-      <S.BottomBar>
-        <S.BottomBarImg data-testid="bottom-purple-bar" src={purpleFooterImage} />
+      <S.BottomBar data-testid={`bottom-yellow-bar`}>
+        <S.BottomBarYellowSVG src={YellowSVG} />
       </S.BottomBar>
     </>
   );

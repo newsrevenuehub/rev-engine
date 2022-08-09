@@ -1,7 +1,6 @@
 import { useState } from 'react';
 
 import * as S from '../Account.styled';
-import yellowFooterImage from 'assets/images/account/yellow-bottombar.png';
 
 import Logobar from 'components/account/common/logobar/Logobar';
 import Leftbar from 'components/account/common/leftbar/Leftbar';
@@ -16,7 +15,10 @@ import { SIGN_IN, VERIFY_EMAIL_SUCCESS } from 'routes';
 
 import validateEmail from 'utilities/validateEmail';
 
-import { ICONS } from 'assets/icons/SvgIcon';
+import YellowSVG from 'assets/images/account/yellow-bar.svg';
+
+// Analytics
+import { useConfigureAnalytics } from '../../analytics';
 
 function Header() {
   return (
@@ -62,6 +64,7 @@ function SignUp() {
   const [passwordError, setPasswordError] = useState('');
 
   const history = useHistory();
+  useConfigureAnalytics();
 
   const handleTOSChange = (event) => {
     setChecked(event.target.checked);
@@ -144,7 +147,7 @@ function SignUp() {
         <Logobar />
       </S.Right>
       <S.BottomBar data-testid={`bottom-yellow-bar`}>
-        <S.BottomBarSVG icon={ICONS.YELLOW_TRIANGLE} />
+        <S.BottomBarYellowSVG src={YellowSVG} />
       </S.BottomBar>
     </S.Outer>
   );

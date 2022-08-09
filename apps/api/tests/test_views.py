@@ -1,4 +1,6 @@
 import uuid
+from time import time
+from urllib.parse import parse_qs, urlparse
 
 from django.conf import settings
 from django.contrib.auth import get_user_model
@@ -7,6 +9,7 @@ from django.middleware import csrf
 from django.test import RequestFactory, override_settings
 from django.utils.timezone import timedelta
 
+import jwt
 import pytest
 from bs4 import BeautifulSoup as bs4
 from rest_framework.reverse import reverse
@@ -15,8 +18,12 @@ from rest_framework_simplejwt.tokens import AccessToken
 
 from apps.api.error_messages import GENERIC_BLANK
 from apps.api.tests import RevEngineApiAbstractTestCase
-from apps.api.tokens import ContributorRefreshToken
-from apps.api.views import TokenObtainPairCookieView, _construct_rp_domain
+from apps.api.tokens import LONG_TOKEN, ContributorRefreshToken
+from apps.api.views import (
+    RequestContributorTokenEmailView,
+    TokenObtainPairCookieView,
+    _construct_rp_domain,
+)
 from apps.contributions.models import Contributor
 from apps.contributions.tests.factories import ContributorFactory
 from apps.organizations.tests.factories import (
@@ -88,6 +95,56 @@ class TokenObtainPairCookieViewTest(APITestCase):
         self.assertEqual(response.cookies.get("Authorization")._value, "")
 
 
+@pytest.mark.parametrize(
+    "email",
+    ["vanilla@email.com", "vanilla+spice@email.com"],
+)
+@pytest.mark.django_db()
+@override_settings(CELERY_ALWAYS_EAGER=True)
+def test_request_contributor_token_creates_usable_magic_links(rf, mocker, email, client):
+    """This test spans two requests, first requesting magic link, then using data in the magic link to verify contributor token
+
+    Ultimately, it is the SPA's repsonsiblity to correctly handle the data provided in the magic link, but assuming it
+    extracts the values for `email` and `token` that are provided in magic link, and posts them in data sent to
+    the contributor-verify-token endpoint, this test proves that the resulting response will be a success and will contain
+    a JWT with a future expiration for the requesting user.
+    """
+    from apps.emails import tasks as email_tasks
+
+    spy = mocker.spy(email_tasks, "send_mail")
+    rp = RevenueProgramFactory()
+    request = rf.post(
+        "/",
+        data={
+            "email": email,
+            "subdomain": rp.slug,
+        },
+    )
+    response = RequestContributorTokenEmailView.as_view()(request)
+    assert response.status_code == 200
+    assert spy.call_count == 1
+    subject, text_body, _, to_email_list = spy.call_args_list[0][0]
+    html_body = spy.call_args_list[0][1]["html_message"]
+    html_magic_link = bs4(html_body, "html.parser").find("a", {"data-testid": "magic-link"}).attrs["href"]
+    assert html_magic_link in text_body
+    assert subject == "Manage your contributions"
+    assert to_email_list[0] == email
+    assert len(to_email_list) == 1
+    params = parse_qs(urlparse(html_magic_link).query)
+    response = client.post(
+        reverse("contributor-verify-token"), {"email": params["email"][0], "token": params["token"][0]}
+    )
+    assert response.status_code == 200
+    assert response.json()["contributor"]["email"] == email
+    jwt_data = jwt.decode(response.cookies["Authorization"].value, settings.SECRET_KEY, algorithms="HS256")
+    assert jwt_data["token_type"] == "access"
+    assert jwt_data["ctx"] == LONG_TOKEN
+    assert jwt_data["exp"] > jwt_data["iat"]
+    assert jwt_data["exp"] > int(time())
+    contributor = Contributor.objects.get(email=email)
+    assert jwt_data["contrib_id"] == str(contributor.uuid)
+
+
 @override_settings(EMAIL_BACKEND="anymail.backends.test.EmailBackend")
 class RequestContributorTokenEmailViewTest(APITestCase):
     def setUp(self):
@@ -128,6 +185,7 @@ class RequestContributorTokenEmailViewTest(APITestCase):
         response = self.client.post(self.url, {"email": target_email, "subdomain": "norp"})
         self.assertEqual(response.status_code, 404)
 
+    @override_settings(CELERY_ALWAYS_EAGER=True, CELERY_TASK_EAGER_PROPOGATES=True, BROKER_BACKEND="memory")
     def test_token_appears_in_outbound_email(self):
         target_email = self.contributor.email
         response = self.client.post(self.url, {"email": target_email, "subdomain": self.rp.slug})
@@ -143,6 +201,7 @@ class RequestContributorTokenEmailViewTest(APITestCase):
         self.assertEqual(len(token.split(".")), 3)
         self.assertIn(f"{target_email}", self.outbox[0].to[0])
 
+    @override_settings(CELERY_ALWAYS_EAGER=True, CELERY_TASK_EAGER_PROPOGATES=True, BROKER_BACKEND="memory")
     def test_outbound_email_send_to_requested_address(self):
         target_email = self.contributor.email
         response = self.client.post(self.url, {"email": target_email, "subdomain": self.rp.slug})
@@ -163,6 +222,7 @@ class VerifyContributorTokenViewTest(APITestCase):
         self.outbox = mail.outbox
         self.valid_token = self._get_valid_token()
 
+    @override_settings(CELERY_ALWAYS_EAGER=True, CELERY_TASK_EAGER_PROPOGATES=True, BROKER_BACKEND="memory")
     def _get_valid_token(self):
         response = self.client.post(
             reverse("contributor-token-request"), {"email": self.contributor.email, "subdomain": self.rp.slug}

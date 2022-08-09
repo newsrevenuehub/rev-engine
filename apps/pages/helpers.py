@@ -1,6 +1,7 @@
 import logging
 
 from django.conf import settings
+from django.urls import reverse
 
 from rest_framework import status
 
@@ -79,11 +80,30 @@ class PageFullDetailHelper:
 
         if not self.donation_page.is_live:
             logger.info('Request for un-published page "%s"', self.donation_page)
-            raise PageDetailError("This page has not been published")
-        if not self.revenue_program.payment_provider.is_verified_with_default_provider():
-            logger.info(
-                'Request made for live page "%s", but "%s" does is not verified with its default payment provider',
+            raise PageDetailError(message="This page has not been published", status=status.HTTP_404_NOT_FOUND)
+        if not self.revenue_program.payment_provider:
+            logger.error(
+                (
+                    'Request made for live page "%s", but RP "%s" does not have a payment provider configured. '
+                    "The RP can be updated at %s"
+                ),
                 self.donation_page,
-                self.donation_page.organization.name,
+                self.donation_page.revenue_program.name,
+                reverse("admin:organizations_revenueprogram_change", args=(self.revenue_program.id,)),
+            )
+            raise PageDetailError(
+                message="RevenueProgram does not have a payment provider configured",
+                status=status.HTTP_404_NOT_FOUND,
+            )
+        if not self.revenue_program.payment_provider.is_verified_with_default_provider():
+
+            logger.error(
+                (
+                    'Request made for live page "%s", but RP "%s" is not verified with its default payment provider. '
+                    "Payment provider can be updated at %s"
+                ),
+                self.donation_page,
+                self.donation_page.revenue_program.name,
+                reverse("admin:organizations_paymentprovider_change", args=(self.revenue_program.payment_provider.id,)),
             )
             raise PageDetailError("RevenueProgram does not have a fully verified payment provider")

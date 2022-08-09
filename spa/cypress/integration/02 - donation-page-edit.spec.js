@@ -61,6 +61,12 @@ describe('Donation page edit', () => {
     cy.getByTestId('edit-interface').should('not.exist');
   });
 
+  describe('Dynamic page title', () => {
+    it('should display page name and revenue program name in page title', () => {
+      cy.title().should('eq', `Edit | ${livePage.name} | ${livePage.revenue_program.name} | RevEngine`);
+    });
+  });
+
   describe('Edit interface: Elements', () => {
     before(() => {
       cy.getByTestId('edit-page-button').click();

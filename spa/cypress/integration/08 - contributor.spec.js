@@ -22,16 +22,26 @@ describe('Contributor portal', () => {
       });
     });
 
-    it('should display server generated error on email if non-200 status', () => {
+    it('should display "too many attempts" error on email if 429 status', () => {
       const emailError = ['email error'];
       cy.visit(CONTRIBUTOR_ENTRY);
       cy.intercept(
         { method: 'POST', url: getEndpoint(GET_MAGIC_LINK) },
-        { body: { email: emailError }, statusCode: 400 }
+        { body: { email: emailError }, statusCode: 429 }
       ).as('getMagicLink');
       cy.getByTestId('magic-link-email-button').click();
-      cy.contains(emailError[0]);
+      cy.contains('Too many attempts. Try again in one minute.');
     });
+
+    it('should display generic alert error message on email if non-200 status', () => {
+      const GENERIC_ERROR_WITH_SUPPORT_INFO =
+        'We encountered an issue and have been notified. Please try again. If this issue persists, please contact revenginesupport@fundjournalism.org.';
+      cy.visit(CONTRIBUTOR_ENTRY);
+      cy.intercept({ method: 'POST', url: getEndpoint(GET_MAGIC_LINK) }, { statusCode: 500 }).as('getMagicLink');
+      cy.getByTestId('magic-link-email-button').click();
+      cy.getByTestId('alert').contains(GENERIC_ERROR_WITH_SUPPORT_INFO);
+    });
+
     it('should display generic success message if status 200', () => {
       cy.intercept({ method: 'POST', url: getEndpoint(GET_MAGIC_LINK) }, { statusCode: 200 }).as('getMagicLink');
       cy.getByTestId('magic-link-email-button').click();

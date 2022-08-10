@@ -1,11 +1,7 @@
 import { rest } from 'msw';
 import { setupServer } from 'msw/node';
-import { apiBaseUrl } from 'ajax/axios';
+import { handlers, revengineApi } from 'test-handlers';
 
-const server = setupServer();
-
-const revengineApi = (path) => {
-  return `${apiBaseUrl}${path}`;
-};
+const server = setupServer(...handlers);
 
 export { server, rest, revengineApi };

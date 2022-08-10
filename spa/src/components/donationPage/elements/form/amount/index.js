@@ -1,1 +1,1 @@
-export { default, validator } from './Amount.js';
+export { default } from './Amount.js';

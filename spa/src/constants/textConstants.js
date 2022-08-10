@@ -1,5 +1,7 @@
 // Errors
 export const GENERIC_ERROR = 'We encountered an issue and have been notified. Please try again.';
+export const GENERIC_ERROR_WITH_SUPPORT_INFO =
+  'We encountered an issue and have been notified. Please try again. If this issue persists, please contact revenginesupport@fundjournalism.org.';
 
 // Other values
 export const NO_VALUE = '---';

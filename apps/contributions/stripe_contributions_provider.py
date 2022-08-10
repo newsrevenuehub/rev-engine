@@ -62,7 +62,7 @@ class StripeCharge:
     @property
     def interval(self):
         if not self.charge.invoice:
-            # if there's no invoice then the it's a one-time payment
+            # if there's no invoice then it's a one-time payment
             return ContributionInterval.ONE_TIME
         interval = self.invoice_line_item.get("plan", {}).get("interval")
         interval_count = self.invoice_line_item.get("plan", {}).get("interval_count")

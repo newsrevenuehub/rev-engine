@@ -36,12 +36,6 @@ function Amount({
                   return (
                     <label
                       htmlFor={`${name}-preset-${value}`}
-                      onClick={() => {
-                        setUserSetInputFocused(false);
-                        if (allowUserSetValue) {
-                          freeFormInput.current.value = '';
-                        }
-                      }}
                       key={`${name}-preset-${value}`}
                       className={clsx(
                         'text-center max-w-64 p-4 rounded bg-gray-200 border border-gray-300 cursor-pointer',
@@ -49,17 +43,22 @@ function Amount({
                       )}
                     >
                       <input
+                        name={name}
                         ref={(el) => (presetInputs.current[key] = el)}
                         id={`${name}-preset-${value}`}
                         className="opacity-0 w-0"
                         onClick={(e) => {
-                          e.preventDefault();
+                          setUserSetInputFocused(false);
+                          if (allowUserSetValue) {
+                            freeFormInput.current.value = '';
+                          }
                           const roundedValue = Math.round(Number(e.target.value) * 100) / 100;
                           setUserSetInputFocused(false);
                           onChange(roundedValue);
                         }}
                         type="radio"
                         value={value}
+                        defaultChecked={value === chosenValue}
                       />
                       {`${amountCurrencySymbol}${value}`}
                       {amountFrequency && amountFrequencyString}
@@ -96,7 +95,7 @@ function Amount({
                       step="0.01"
                       defaultValue={defaultValue}
                     />
-                    {amountFrequencyString && <div>{amountFrequencyString}</div>}
+                    {amountFrequencyString && <div data-testid="frequency-string">{amountFrequencyString}</div>}
                     <label className="sr-only" htmlFor="user-chosen-value">
                       Choose your own value for amount
                     </label>

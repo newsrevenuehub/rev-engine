@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import * as Yup from 'yup';
 import { yupResolver } from '@hookform/resolvers/yup';
@@ -12,17 +12,18 @@ const args = {
   amountFrequency: 'month',
   amountCurrencySymbol: '$',
   presetAmounts: [100, 200, 300],
-  defaultValue: null,
+  defaultValue: 0,
   allowUserSetValue: true,
   helperText: "Select how much you'd like to contribute",
   name: 'amount',
-  includeDevTools: true
+  includeDevTools: true,
+  submitSuccessMessage: 'successful submit'
 };
 
 const oneTime = {
   ...args,
   labelText: 'Amount',
-  amountFrequency: null,
+  amountFrequency: '',
   // each need a unique name property for storybook to work
   name: 'one-time-amount'
 };
@@ -44,19 +45,22 @@ export default {
   component: Amount
 };
 
-const Template = ({ includeDevTools, ...args }) => {
+const Template = ({ includeDevTools, submitSuccessMessage, ...args }) => {
   const methods = useForm({
     resolver: async (data, context, options) => {
       const schema = Yup.object({ [args.name]: validator }).required();
-      console.log(data, context, options);
       const result = await yupResolver(schema)(data, { mode: 'sync' }, { ...options, mode: 'sync' });
-      console.log('result', result);
       return result;
     },
     defaultArgs: {
       [args.name]: 0
     }
   });
+  // this is used to conditionally display visible text in template when form submission suceeds
+  // which will give us something perceptible to look for in narrow unit test of the amount form component
+  const [submitSuccess, setSubmitSuccess] = useState(false);
+  const [submittedAmount, setSubmittedAmount] = useState(null);
+
   const { handleSubmit, control, reset, unregister } = methods;
 
   return (
@@ -67,7 +71,8 @@ const Template = ({ includeDevTools, ...args }) => {
         }}
         onSubmit={handleSubmit((data) => {
           try {
-            console.log('handleSubmit success', data);
+            setSubmittedAmount(data[args.name]);
+            setSubmitSuccess(true);
             unregister(args.name);
             reset({ [args.name]: args.defaultValue || 0 });
           } catch (e) {
@@ -84,13 +89,14 @@ const Template = ({ includeDevTools, ...args }) => {
           Reset
         </button>
       </form>
+      {submitSuccess && <p>{`${submitSuccessMessage} ${submittedAmount}`}</p>}
       {includeDevTools && <DevTool control={control} />}
     </div>
   );
 };
 
-export const Monthly = Template.bind({});
-Monthly.args = {
+export const Default = Template.bind({});
+Default.args = {
   ...args
 };
 

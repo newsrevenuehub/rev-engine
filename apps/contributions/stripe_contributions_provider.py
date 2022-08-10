@@ -45,6 +45,8 @@ class StripeCharge:
     """
     Wrapper on stripe charge object to extract the required details in
     apps.contributions.serializers.PaymentProviderContributionSerializer and serializable.
+
+    If there's no Invoice associated with a Charge object then it's a one-time payment.
     """
 
     def __init__(self, charge):

@@ -6,38 +6,51 @@ import { DevTool } from '@hookform/devtools';
 
 import Amount from './Amount';
 import validator from './validator';
+import { PaymentFormTemplate } from '/src/../.storybook/templates';
+import { INPUT_NAME as DEFAULT_NAME } from './constants';
+
+const DEFAULT_AMOUNT = 0;
 
 const args = {
+  component: Amount,
   labelText: 'Monthly amount',
   amountFrequency: 'month',
   amountCurrencySymbol: '$',
   presetAmounts: [100, 200, 300],
-  defaultValue: 0,
+  defaultValue: DEFAULT_AMOUNT,
   allowUserSetValue: true,
   helperText: "Select how much you'd like to contribute",
-  name: 'amount',
+  name: DEFAULT_NAME,
   includeDevTools: true,
-  submitSuccessMessage: 'successful submit'
+  submitSuccessMessage: 'successful submit',
+  validator,
+  defaultArgs: { [DEFAULT_NAME]: DEFAULT_AMOUNT }
 };
 
+const ONE_TIME_NAME = 'one-time-amount';
 const oneTime = {
   ...args,
   labelText: 'Amount',
   amountFrequency: '',
   // each need a unique name property for storybook to work
-  name: 'one-time-amount'
+  name: ONE_TIME_NAME,
+  defaultArgs: { [ONE_TIME_NAME]: DEFAULT_AMOUNT }
 };
 
+const DEFAULT_USER_SET_VALUE_NAME = 'default-set-amount';
 const defaultUserSetValue = {
   ...args,
   defaultValue: 12.37,
-  name: 'default-set-amount'
+  name: DEFAULT_USER_SET_VALUE_NAME,
+  defaultArgs: { [DEFAULT_USER_SET_VALUE_NAME]: DEFAULT_AMOUNT }
 };
 
+const FREE_FORM_DISABLED_NAME = 'free-form-disabled-amount';
 const freeFormDisabled = {
   ...args,
   allowUserSetValue: false,
-  name: 'free-form-disabled-amount'
+  name: FREE_FORM_DISABLED_NAME,
+  defaultArgs: { [FREE_FORM_DISABLED_NAME]: DEFAULT_AMOUNT }
 };
 
 export default {
@@ -95,22 +108,22 @@ const Template = ({ includeDevTools, submitSuccessMessage, ...args }) => {
   );
 };
 
-export const Default = Template.bind({});
+export const Default = PaymentFormTemplate.bind({});
 Default.args = {
   ...args
 };
 
-export const OneTime = Template.bind({});
+export const OneTime = PaymentFormTemplate.bind({});
 OneTime.args = {
   ...oneTime
 };
 
-export const WithDefaultFreeForm = Template.bind({});
+export const WithDefaultFreeForm = PaymentFormTemplate.bind({});
 WithDefaultFreeForm.args = {
   ...defaultUserSetValue
 };
 
-export const FreeFormInputDisabled = Template.bind({});
+export const FreeFormInputDisabled = PaymentFormTemplate.bind({});
 FreeFormInputDisabled.args = {
   ...freeFormDisabled
 };

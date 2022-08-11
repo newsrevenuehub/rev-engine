@@ -5,7 +5,7 @@ export default function InputError({ message }) {
   return (
     <div
       className={clsx(
-        'h-14 w-full',
+        'p-3 w-full',
         message && 'mx-auto flex flex-col justify-center bg-red-300 rounded text-center items-middle text-red-900'
       )}
     >

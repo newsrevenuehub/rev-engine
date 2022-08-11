@@ -1,6 +1,6 @@
 import clsx from 'clsx';
 import { useState, useRef } from 'react';
-import { Controller } from 'react-hook-form';
+import { Controller, useFormContext } from 'react-hook-form';
 
 import { INPUT_NAME } from './constants';
 
@@ -12,13 +12,14 @@ function Amount({
   defaultValue,
   allowUserSetValue = true,
   helperText = "Select how much you'd like to contribute",
-  name = INPUT_NAME,
-  control
+  name = INPUT_NAME
 }) {
   const [userSetInputFocused, setUserSetInputFocused] = useState(false);
   const amountFrequencyString = amountFrequency ? ' / ' + amountFrequency : null;
   const freeFormInput = useRef(null);
   const presetInputs = useRef([]);
+  const { control } = useFormContext();
+
   return (
     <Controller
       defaultValue={defaultValue || presetAmounts[0]}
@@ -121,8 +122,8 @@ function Amount({
   );
 }
 
-Amount.type = 'DAmount';
-Amount.displayName = 'Contribution amount';
-Amount.description = 'Allows a donor to select an amount to contribute';
+// Amount.type = 'DAmount';
+// Amount.displayName = 'Contribution amount';
+// Amount.description = 'Allows a donor to select an amount to contribute';
 
 export default Amount;

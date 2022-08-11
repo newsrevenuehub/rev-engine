@@ -170,6 +170,7 @@
     "google_analytics_v4_id": "G-2222222",
     "facebook_pixel_id": "123456789"
   },
+  "payment_provider": { "stripe_verified": true},
   "currency": {
     "code": "CAD",
     "symbol": "🍁"

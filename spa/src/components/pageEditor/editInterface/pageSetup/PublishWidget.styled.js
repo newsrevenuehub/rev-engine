@@ -38,3 +38,17 @@ export const Or = styled.p`
   margin: 0;
   padding: 1rem;
 `;
+
+export const InvalidPaymentProvider = styled.div`
+  width: 100%;
+  color: #ff476c;
+  text-align: center;
+  padding: 12px 0px;
+  border-bottom: 1px solid;
+  border-color: #eee;
+
+  p {
+    color: #080708;
+    font-size: 90%;
+  }
+`;

@@ -10,7 +10,7 @@ import { isAfter } from 'date-fns';
 import Button from 'elements/buttons/Button';
 import FormErrors from 'elements/inputs/FormErrors';
 
-function PublishWidget({ publishDate, onChange, errors }) {
+function PublishWidget({ paymentProvider, publishDate, onChange, errors }) {
   const [showPublishNow, setShowPublishNow] = useState(false);
   // TODO: Handle CLEAR published date
 
@@ -30,6 +30,15 @@ function PublishWidget({ publishDate, onChange, errors }) {
   const handlePublishNow = () => {
     onChange(new Date());
   };
+
+  const hasValidPaymentProvider = paymentProvider && paymentProvider.stripe_verified ? true : false;
+
+  if (!hasValidPaymentProvider)
+    return (
+      <S.InvalidPaymentProvider>
+        Page Cannot be Published<p>Please add a Payment Provider to your Revenue Program.</p>
+      </S.InvalidPaymentProvider>
+    );
 
   return (
     <S.PublishWidget data-testid="publish-widget">

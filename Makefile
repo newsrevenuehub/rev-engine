@@ -10,10 +10,10 @@ test_migrations:
 	python manage.py check --deploy --tag compatibility  --fail-level WARNING
 
 debug_test:
-	pytest --pdb --pdbcls=IPython.terminal.debugger:Pdb
+	pytest -p no:warnings --pdb --pdbcls=IPython.terminal.debugger:Pdb
 
 continuous_test:
-	git ls-files | entr pytest -x -s -vv --log-cli-level=INFO
+	git ls-files | entr pytest -p no:warnings -x -s -vv --log-cli-level=INFO
 
 clean:
 	@find . -name "*.pyc" -exec rm -rf {} \;
@@ -46,7 +46,7 @@ run-redis:
 
 run-tests:
 	make test_migrations
-	pytest
+	pytest --reuse-db -vvv --cov-config=.coveragerc --cov-report=html --cov=apps
 
 check-dc:
 	docker-compose -f docker-compose.yml -f docker-compose-dev.yml ps

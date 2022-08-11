@@ -3,6 +3,7 @@ import styled from 'styled-components';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 
 export const ContributorDashboard = styled.main`
+  font-family: ${(props) => props.theme.systemFont};
   padding: 4rem 2rem;
   background: ${(props) => props.theme.colors.cstm_mainBackground};
   @media (${(props) => props.theme.breakpoints.phoneOnly}) {
@@ -64,6 +65,7 @@ export const BrandIcon = styled.img`
 export const Last4 = styled.p`
   color: ${(props) => props.theme.colors.grey[2]};
   white-space: nowrap;
+  font-family: ${(props) => props.theme.systemFont};
 `;
 
 export const CancelButton = styled.button`

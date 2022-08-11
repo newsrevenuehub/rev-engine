@@ -18,6 +18,7 @@ from apps.api.permissions import (
     IsContributorOwningContribution,
     IsHubAdmin,
 )
+from apps.common.utils import get_original_ip_from_request
 from apps.contributions import serializers
 from apps.contributions.filters import ContributionFilter
 from apps.contributions.models import Contribution, ContributionInterval, Contributor
@@ -50,7 +51,7 @@ def stripe_payment(request):
 
     # Grab required data from headers
     pi_data["referer"] = request.META.get("HTTP_REFERER")
-    pi_data["ip"] = request.META["REMOTE_ADDR"]
+    pi_data["ip"] = get_original_ip_from_request(request)
 
     # StripePaymentManager will grab the right serializer based on "interval"
     stripe_payment = StripePaymentManager(data=pi_data)

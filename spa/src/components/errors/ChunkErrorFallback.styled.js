@@ -29,3 +29,9 @@ export const ErrorWrapper = styled(motion.div)`
   max-width: 700px;
   height: 50%;
 `;
+
+export const Logout = styled(motion.div)`
+  padding: 2rem;
+  color: ${(props) => props.theme.colors.primary};
+  cursor: pointer;
+`;

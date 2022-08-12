@@ -128,7 +128,7 @@
   ],
   "devDependencies": {
     "@cypress/react": "^5.9.4",
-    "@cypress/webpack-dev-server": "1.7.0",
+    "@cypress/webpack-dev-server": "2.1.0",
     "@cypress/webpack-preprocessor": "^5.11.1",
     "cypress": "^8.5.0",
     "cypress-localstorage-commands": "^1.7.0",

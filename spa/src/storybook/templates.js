@@ -1,5 +1,5 @@
 import PropTypes from 'prop-types';
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useForm, FormProvider } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import { DevTool } from '@hookform/devtools';
@@ -8,35 +8,33 @@ export const RHFFormTemplate = ({
   includeDevTools,
   submitSuccessMessage,
   validator,
-  defaultValues,
   component: Component,
   ...args
 }) => {
   const resolver = yupResolver(validator);
   const methods = useForm({
-    resolver,
-    defaultValues
+    resolver
   });
   // this is used to conditionally display visible text in template when form submission suceeds
   // which will give us something perceptible to look for in narrow unit test of the amount form component
   const [submitSuccess, setSubmitSuccess] = useState(false);
   const [submittedData, setSubmittedData] = useState(null);
 
-  const { handleSubmit, control, reset, unregister } = methods;
+  const { handleSubmit, control, reset } = methods;
+
+  // see "Rules" section here and recommendation to do this with useEffect: https://react-hook-form.com/api/useform/reset
+  useEffect(() => {
+    if (submitSuccess) reset(null, { keepDefaultValues: true });
+  }, [submitSuccess, reset]);
 
   return (
     <FormProvider {...methods}>
       <div className="mx-auto md:p-12 container">
         <form
-          onReset={() => {
-            reset(defaultValues);
-          }}
           onSubmit={handleSubmit((data) => {
             try {
               setSubmittedData(data);
               setSubmitSuccess(true);
-              unregister();
-              reset({ ...defaultValues });
             } catch (e) {
               console.error('handleSubmit error', e);
             }

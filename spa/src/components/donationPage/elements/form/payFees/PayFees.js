@@ -1,37 +1,48 @@
-import * as S from './PayFees.styled';
+import PropTypes from 'prop-types';
+import Switch from '@material-ui/core/Switch';
+import FormControlLabel from '@material-ui/core/FormControlLabel';
+import { useFormContext, Controller } from 'react-hook-form';
 
-// Util
-import formatStringAmountForDisplay from 'utilities/formatStringAmountForDisplay';
-import { getFrequencyAdverb } from 'utilities/parseFrequency';
-import calculateStripeFee from 'utilities/calculateStripeFee';
-
-// Context
-import { usePage } from '../../../DonationPage';
-
-export function PayFeesWidget() {
-  const { page, frequency, amount, payFee, setPayFee } = usePage();
-
-  const currencySymbol = page?.currency?.symbol;
+function PayFees({ name, legendHeading, labelText, helperText, defaultChecked }) {
+  const { control } = useFormContext();
 
   return (
-    <S.PayFees data-testid="pay-fees">
-      <S.PayFeesQQ>Agree to pay fees?</S.PayFeesQQ>
-      <S.Checkbox
-        label={
-          amount
-            ? `${currencySymbol}${formatStringAmountForDisplay(
-                calculateStripeFee(amount, frequency, page.revenue_program_is_nonprofit)
-              )} ${getFrequencyAdverb(frequency)}`
-            : ''
-        }
-        toggle
-        checked={payFee}
-        onChange={(_e, { checked }) => setPayFee(checked)}
-        data-testid={`pay-fees-${payFee ? 'checked' : 'not-checked'}`}
-      />
-      <S.PayFeesDescription>
-        Paying the Stripe transaction fee, while not required, directs more money in support of our mission.
-      </S.PayFeesDescription>
-    </S.PayFees>
+    <fieldset>
+      <legend className="mb-5">
+        <h2 className="text-3xl">{legendHeading}</h2>
+        <Controller
+          defaultValue={defaultChecked}
+          name={name}
+          control={control}
+          render={({ field: { onChange, value } }) => {
+            return (
+              <FormControlLabel
+                control={<Switch checked={value} color="primary" />}
+                onChange={onChange}
+                label={labelText}
+              ></FormControlLabel>
+            );
+          }}
+        />
+        <p>{helperText}</p>
+      </legend>
+    </fieldset>
   );
 }
+
+PayFees.propTypes = {
+  name: PropTypes.string.isRequired,
+  legendHeading: PropTypes.string.isRequired,
+  labelText: PropTypes.string.isRequired,
+  helperText: PropTypes.string.isRequired,
+  defaultChecked: PropTypes.bool
+};
+
+PayFees.defaultProps = {
+  name: 'agree-pay-fees',
+  legendHeading: 'Agree to pay fees?',
+  helperText: 'Paying the Stripe transaction fee, while not required, directs more money in support of our mission.',
+  defaultChecked: false
+};
+
+export default PayFees;

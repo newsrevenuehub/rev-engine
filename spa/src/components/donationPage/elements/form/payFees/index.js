@@ -1,1 +1,1 @@
-export { default } from './PayFees';
+export { default } from './_PayFees';

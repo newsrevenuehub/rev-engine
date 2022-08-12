@@ -1,11 +1,12 @@
 import { usePlacesWidget } from 'react-google-autocomplete';
+import { useFormContext } from 'react-hook-form';
 
 import { HUB_GOOGLE_MAPS_API_KEY } from 'settings';
 import LabeledInput from 'elements/inputs/LabeledInput';
 import clsx from 'clsx';
 
 export const defaultArgs = {
-  streetAdressInputName: 'address-street',
+  streetAddressInputName: 'address-street',
   streetAddressLabelText: 'Address',
   streetAddressRequired: true,
   cityInputName: 'address-city',
@@ -23,7 +24,7 @@ export const defaultArgs = {
 };
 
 function Address({
-  streetAdressInputName = defaultArgs.streetAdressInputName,
+  streetAddressInputName = defaultArgs.streetAddressInputName,
   streetAddressLabelText = defaultArgs.streetAddressLabelText,
   streetAddressRequired = defaultArgs.streetAddressRequired,
   cityInputName = defaultArgs.cityInputName,
@@ -39,29 +40,47 @@ function Address({
   countryLabelText = defaultArgs.countryLabelText,
   countryRequired = defaultArgs.countryRequired
 }) {
-  // const { ref } = usePlacesWidget({
-  //   apiKey: HUB_GOOGLE_MAPS_API_KEY,
-  //   options: {
-  //     types: ['address']
-  //   },
-  //   onPlaceSelected: (place) => {
-  //     const addrFields = mapAddressComponentsToAddressFields(place.address_components);
-  //     // do something
-  //     // setAddress(addrFields.address || '');
-  //     // setCity(addrFields.city || '');
-  //     // setState(addrFields.state || '');
-  //     // setZip(addrFields.zip || '');
-  //     // setCountry(addrFields.country || '');
-  //   }
-  // });
+  const { setValue } = useFormContext();
+
+  // Google Maps Widget API integration. This will enable display of an
+  // autcomplete address widget. When the user selects a value, we set our
+  // address fields based on a subset of returned data.
+  const { ref } = usePlacesWidget({
+    apiKey: HUB_GOOGLE_MAPS_API_KEY,
+    options: {
+      types: ['address']
+    },
+    // map Google Maps address components to subset of our address component fields
+    onPlaceSelected: ({ address_components: addressComponents }) => {
+      const streetAddressNumber = addressComponents.find(({ types }) => types.includes('street_number'));
+      const streetName = addressComponents.find(({ types }) => types.includes('route'));
+      const updatedStreetAddress = `${streetAddressNumber ? streetAddressNumber.long_name : ''}${
+        streetAddressNumber && streetName ? ' ' : ''
+      }${streetName ? streetName.long_name : ''}`;
+      const updates = {
+        [streetAddressInputName]: updatedStreetAddress ? { long_name: updatedStreetAddress } : undefined,
+        [cityInputName]: addressComponents.find(({ types }) => types.includes('locality')),
+        [stateInputName]: addressComponents.find(({ types }) => types.includes('administrative_area_level_1')),
+        [countryInputName]: addressComponents.find(({ types }) => types.includes('country')),
+        [zipInputName]: addressComponents.find(({ types }) => types.includes('postal_code'))
+      };
+      Object.entries(updates)
+        .filter((item) => item !== undefined)
+        .forEach(([formInput, { long_name: value }]) => {
+          setValue(formInput, value);
+        });
+    }
+  });
+
   const topInputsCommonClasses = 'w-full';
   return (
     <fieldset className={clsx('w-full flex flex-col items-center')}>
       <LabeledInput
         className={clsx(topInputsCommonClasses)}
-        name={streetAdressInputName}
+        name={streetAddressInputName}
         labelText={streetAddressLabelText}
         required={streetAddressRequired}
+        passedRef={ref}
       />
       <LabeledInput
         className={clsx(topInputsCommonClasses)}
@@ -74,50 +93,6 @@ function Address({
         <LabeledInput name={zipInputName} labelText={zipLabelText} required={zipRequired} />
         <LabeledInput name={countryInputName} labelText={countryLabelText} required={countryRequired} />
       </div>
-
-      {/* <in
-        useAutocomplete={shouldUseAutocomplete}
-        ref={ref}
-        address={address}
-        setAddress={setAddress}
-        errors={errors.mailing_street}
-      />
-      <Input
-        type="text"
-        name="mailing_city"
-        label="City"
-        value={city}
-        onChange={(e) => setCity(e.target.value)}
-        errors={errors.mailing_city}
-        required
-      />
-      <Input
-        type="text"
-        name="mailing_state"
-        label="State"
-        value={state}
-        onChange={(e) => setState(e.target.value)}
-        errors={errors.mailing_state}
-        required
-      />
-      <Input
-        type="text"
-        name="mailing_postal_code"
-        label="Zip/Postal code"
-        value={zip}
-        onChange={(e) => setZip(e.target.value)}
-        errors={errors.mailing_postal_code}
-        required
-      />
-      <Input
-        type="text"
-        name="mailing_country"
-        label="Country"
-        value={country}
-        onChange={(e) => setCountry(e.target.value)}
-        errors={errors.mailing_country}
-        required
-      /> */}
     </fieldset>
   );
 }

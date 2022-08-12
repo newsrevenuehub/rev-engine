@@ -40,3 +40,8 @@ test('default behavior', () => {
     expect(input.value).toBe(inputText);
   });
 });
+
+test('Google Maps autocomplete integration', () => {
+  // TODO: test this, which will require getting an API key for Google Maps in
+  // CI env
+});

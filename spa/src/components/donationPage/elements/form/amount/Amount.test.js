@@ -1,9 +1,11 @@
 import { fireEvent, render, screen } from '@testing-library/react';
 import { composeStories } from '@storybook/testing-react';
+import * as Yup from 'yup';
 
 import * as stories from './Amount.stories';
 import { MIN_CONTRIBUTION_AMOUNT, MAX_CONTRIBUTION_AMOUNT } from './constants';
 import {
+  default as validator,
   MIN_CONTRIBUTION_AMOUNT_VALIDATION_ERROR_MSG,
   MAX_CONTRIBUTION_AMOUNT_VALIDATION_ERROR_MSG
 } from './validator';
@@ -112,7 +114,9 @@ test('has user entered free form input as submission value', async () => {
 });
 
 test('displays message when min amount validation error', async () => {
-  render(<Default />);
+  const name = 'default-min-validator-error';
+  const defaultValidator = Yup.object({ [name]: validator });
+  render(<Default name={name} validator={defaultValidator} />);
   const chosenValue = MIN_CONTRIBUTION_AMOUNT - 0.1;
   const freeFormInput = screen.getByRole('spinbutton');
   fireEvent.change(freeFormInput, { target: { value: chosenValue } });
@@ -122,7 +126,9 @@ test('displays message when min amount validation error', async () => {
 });
 
 test('displays message when max amount validation error', async () => {
-  render(<Default />);
+  const name = 'default-max-validator-error';
+  const defaultValidator = Yup.object({ [name]: validator });
+  render(<Default name={name} validator={defaultValidator} />);
   const chosenValue = MAX_CONTRIBUTION_AMOUNT + 0.1;
   const freeFormInput = screen.getByRole('spinbutton');
   fireEvent.change(freeFormInput, { target: { value: chosenValue } });

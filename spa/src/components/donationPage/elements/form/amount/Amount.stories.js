@@ -1,3 +1,5 @@
+import * as Yup from 'yup';
+
 import Amount from './Amount';
 import validator from './validator';
 import { RHFFormTemplate } from 'storybook/templates';
@@ -17,30 +19,7 @@ const args = {
   name: DEFAULT_NAME,
   includeDevTools: true,
   submitSuccessMessage: 'successful submit',
-  validator
-};
-
-const ONE_TIME_NAME = 'one-time-amount';
-const oneTime = {
-  ...args,
-  labelText: 'Amount',
-  amountFrequency: '',
-  // each need a unique name property for storybook to work
-  name: ONE_TIME_NAME
-};
-
-const DEFAULT_USER_SET_VALUE_NAME = 'default-set-amount';
-const defaultUserSetValue = {
-  ...args,
-  defaultValue: 12.37,
-  name: DEFAULT_USER_SET_VALUE_NAME
-};
-
-const FREE_FORM_DISABLED_NAME = 'free-form-disabled-amount';
-const freeFormDisabled = {
-  ...args,
-  allowUserSetValue: false,
-  name: FREE_FORM_DISABLED_NAME
+  validator: Yup.object({})
 };
 
 export default {
@@ -55,15 +34,22 @@ Default.args = {
 
 export const OneTime = RHFFormTemplate.bind({});
 OneTime.args = {
-  ...oneTime
+  ...args,
+  labelText: 'Amount',
+  amountFrequency: '',
+  name: 'one-time-amount'
 };
 
 export const WithDefaultFreeForm = RHFFormTemplate.bind({});
 WithDefaultFreeForm.args = {
-  ...defaultUserSetValue
+  ...args,
+  defaultValue: 12.37,
+  name: 'default-set-amount'
 };
 
 export const FreeFormInputDisabled = RHFFormTemplate.bind({});
 FreeFormInputDisabled.args = {
-  ...freeFormDisabled
+  ...args,
+  allowUserSetValue: false,
+  name: 'free-form-disabled-amount'
 };

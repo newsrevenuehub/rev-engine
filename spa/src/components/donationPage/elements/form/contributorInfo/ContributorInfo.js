@@ -1,79 +1,49 @@
-import { useState } from 'react';
+import LabeledInput from 'elements/inputs/LabeledInput';
+import clsx from 'clsx';
 
-import Grid from '@material-ui/core/Grid';
+export const defaultArgs = {
+  firstNameInputName: 'first-name',
+  firstNameLabelText: 'First name',
+  firstNameRequired: true,
+  lastNameInputName: 'last-name',
+  lastNameLabelText: 'Last name',
+  lastNameRequired: true,
+  emailInputName: 'email',
+  emailLabelText: 'E-mail',
+  emailRequired: true
+};
 
-// Children
-import Input from 'elements/inputs/Input';
-
-const errors = [];
-
-function ContributorInfo({ element, ...props }) {
-  const [firstName, setFirstName] = useState('');
-  const [lastName, setLastName] = useState('');
-  const [email, setEmail] = useState('');
-  const [phone, setPhone] = useState('');
-
+function ContributorInfo({
+  firstNameInputName = defaultArgs.firstNameInputName,
+  firstNameLabelText = defaultArgs.firstNameLabelText,
+  firstNameRequired = defaultArgs.firstNameRequired,
+  lastNameInputName = defaultArgs.lastNameInputName,
+  lastNameLabelText = defaultArgs.lastNameLabelText,
+  lastNameRequired = defaultArgs.lastNameRequired,
+  emailInputName = defaultArgs.emailInputName,
+  emailLabelText = defaultArgs.emailLabelText,
+  emailRequired = defaultArgs.emailRequired
+}) {
   return (
-    <div data-testid="d-donor-info">
-      <Grid container spacing={3}>
-        <Grid item xs={12} md={6}>
-          <Input
-            type="text"
-            name="first_name"
-            label="First name"
-            value={firstName}
-            onChange={(e) => setFirstName(e.target.value)}
-            errors={errors.first_name}
-            required
-          />
-        </Grid>
-        <Grid item xs={12} md={6}>
-          <Input
-            type="text"
-            name="last_name"
-            label="Last name"
-            value={lastName}
-            onChange={(e) => setLastName(e.target.value)}
-            errors={errors.last_name}
-            required
-          />
-        </Grid>
-        <Grid item xs={12} md={element.content?.askPhone ? 6 : 12}>
-          <Input
-            type="email"
-            name="email"
-            label="Email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            errors={errors.email}
-            required
-          />
-        </Grid>
-        {element.content?.askPhone && (
-          <Grid item xs={12} md={6}>
-            <Input
-              type="tel"
-              name="phone"
-              label="Phone"
-              value={phone}
-              onChange={(e) => setPhone(e.target.value)}
-              maxLength={40}
-              errors={errors.phone}
-              required={element.requiredFields?.includes('phone')}
-            />
-          </Grid>
-        )}
-      </Grid>
-    </div>
+    <fieldset className={clsx('w-full flex flex-col items-center')}>
+      <div className={clsx('flex flex-col w-full max-w-full	items-center md:flex-row gap-2')}>
+        <LabeledInput name={firstNameInputName} labelText={firstNameLabelText} required={firstNameRequired} />
+        <LabeledInput name={lastNameInputName} labelText={lastNameLabelText} required={lastNameRequired} />
+      </div>
+      <LabeledInput
+        className={clsx('w-full')}
+        name={emailInputName}
+        labelText={emailLabelText}
+        required={emailRequired}
+      />
+    </fieldset>
   );
 }
 
-ContributorInfo.type = 'DDonorInfo';
-ContributorInfo.displayName = 'Donor info';
-ContributorInfo.description = 'Collect donor name and email';
-ContributorInfo.required = true;
-ContributorInfo.unique = true;
+// Address.type = 'Address';
+// Address.displayName = 'Donor address';
+// Address.description = 'Collect donor address';
+// Address.required = true;
+// Address.unique = true;
 
 export default ContributorInfo;
-
-export const validator = {};

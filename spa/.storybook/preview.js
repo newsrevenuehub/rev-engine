@@ -7,5 +7,8 @@ export const parameters = {
       color: /(background|color)$/i,
       date: /Date$/
     }
-  }
+  },
+  // this prevents circular reference that breaks storybook on form submission
+  // https://github.com/storybookjs/storybook/issues/12747
+  docs: { source: { type: 'code' } }
 };

@@ -4,14 +4,21 @@ import { useFormContext } from 'react-hook-form';
 
 import InputError from 'elements/inputs/InputError';
 
-export default function LabeledInput({ placeholder, labelText, type, name, prefilledValue, required = false }) {
+export default function LabeledInput({
+  placeholder,
+  labelText,
+  type = 'text',
+  name,
+  prefilledValue,
+  required = false
+}) {
   const {
     register,
     formState: { errors }
   } = useFormContext();
   const error = errors?.[name];
   return (
-    <div className={clsx('flex flex-col w-full max-w-md')}>
+    <div className={clsx('flex flex-col w-full')}>
       <label
         htmlFor={name}
         className={clsx(
@@ -38,7 +45,7 @@ export default function LabeledInput({ placeholder, labelText, type, name, prefi
 LabeledInput.propTypes = {
   placeholder: PropTypes.string,
   labelText: PropTypes.string.isRequired,
-  type: PropTypes.oneOf(['text', 'email']).isRequired,
+  type: PropTypes.oneOf(['text', 'email']),
   name: PropTypes.string.isRequired,
   prefilledValue: PropTypes.string,
   required: PropTypes.bool.isRequired

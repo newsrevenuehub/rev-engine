@@ -1,6 +1,6 @@
+import PropTypes from 'prop-types';
 import React, { useState } from 'react';
 import { useForm, FormProvider } from 'react-hook-form';
-import * as Yup from 'yup';
 import { yupResolver } from '@hookform/resolvers/yup';
 import { DevTool } from '@hookform/devtools';
 
@@ -12,8 +12,7 @@ export const RHFFormTemplate = ({
   component: Component,
   ...args
 }) => {
-  const resolver = yupResolver(Yup.object({ [args.name]: validator }).required());
-
+  const resolver = yupResolver(validator);
   const methods = useForm({
     resolver,
     defaultValues
@@ -57,4 +56,13 @@ export const RHFFormTemplate = ({
       </div>
     </FormProvider>
   );
+};
+
+RHFFormTemplate.propTypes = {
+  includeDevTools: PropTypes.bool,
+  submitSuccessMessage: PropTypes.string,
+  validator: PropTypes.func,
+  defaultValues: PropTypes.object,
+  component: PropTypes.elementType,
+  args: PropTypes.object
 };

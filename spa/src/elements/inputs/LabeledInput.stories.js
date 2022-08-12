@@ -4,19 +4,18 @@ import LabeledInput from './LabeledInput';
 import { RHFFormTemplate } from 'storybook/templates';
 import { ARBITRARY_VALIDATION_ERROR_MESSAGE } from 'storybook/constants';
 
-const textValidator = Yup.string();
-const requiredTextValidator = Yup.string().required('This field is required');
 const arbitraryError = Yup.string().test('none-shall-pass', ARBITRARY_VALIDATION_ERROR_MESSAGE, () => false);
 
+const DEFAULT_NAME = 'default-labelled-input';
 const args = {
   component: LabeledInput,
   labelText: 'Your biographical detail',
   type: 'text',
-  name: 'default-labelled-input',
+  name: DEFAULT_NAME,
   required: true,
   submitSuccessMessage: 'successful submit',
   includeDevTools: true,
-  validator: requiredTextValidator
+  validator: Yup.object({})
 };
 
 export default {
@@ -36,8 +35,7 @@ export const NotRequired = RHFFormTemplate.bind({});
 NotRequired.args = {
   ...args,
   required: false,
-  name: 'not-required-input',
-  validator: textValidator
+  name: 'not-required-input'
 };
 
 export const HasPlaceholder = RHFFormTemplate.bind({});
@@ -63,10 +61,11 @@ HasDefaultValue.args = {
   name: 'pre-filled-value'
 };
 
+const DOESNT_VALIDATE_NAME = 'doesnt-validate-on-submit';
 export const DoesntValidate = RHFFormTemplate.bind({});
 DoesntValidate.args = {
   ...args,
   required: false,
-  name: 'doesnt-validate-on-submit',
-  validator: arbitraryError
+  name: DOESNT_VALIDATE_NAME,
+  validator: Yup.object({ [DOESNT_VALIDATE_NAME]: arbitraryError }).required()
 };

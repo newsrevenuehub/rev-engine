@@ -1,25 +1,18 @@
 import * as Yup from 'yup';
 
 import Amount from './Amount';
-import validator from './validator';
 import { RHFFormTemplate } from 'storybook/templates';
-import { INPUT_NAME as DEFAULT_NAME } from './constants';
-
-const DEFAULT_AMOUNT = 0;
+import validator from './validator';
 
 const args = {
   component: Amount,
-  labelText: 'Monthly amount',
+  ...Amount.defaultProps,
+  labelText: 'Amount',
   amountFrequency: 'month',
-  amountCurrencySymbol: '$',
   presetAmounts: [100, 200, 300],
-  defaultValue: DEFAULT_AMOUNT,
-  allowUserSetValue: true,
-  helperText: "Select how much you'd like to contribute",
-  name: DEFAULT_NAME,
   includeDevTools: true,
   submitSuccessMessage: 'successful submit',
-  validator: Yup.object({})
+  validator: Yup.object({ [Amount.defaultProps.name]: validator }).required()
 };
 
 export default {
@@ -35,21 +28,23 @@ Default.args = {
 export const OneTime = RHFFormTemplate.bind({});
 OneTime.args = {
   ...args,
-  labelText: 'Amount',
   amountFrequency: '',
-  name: 'one-time-amount'
+  name: 'one-time-amount',
+  validator: Yup.object({ 'one-time-amount': validator }).required()
 };
 
 export const WithDefaultFreeForm = RHFFormTemplate.bind({});
 WithDefaultFreeForm.args = {
   ...args,
   defaultValue: 12.37,
-  name: 'default-set-amount'
+  name: 'default-set-amount',
+  validator: Yup.object({ 'default-set-amount': validator }).required()
 };
 
 export const FreeFormInputDisabled = RHFFormTemplate.bind({});
 FreeFormInputDisabled.args = {
   ...args,
   allowUserSetValue: false,
-  name: 'free-form-disabled-amount'
+  name: 'free-form-disabled-amount',
+  validator: Yup.object({ 'free-form-disabled-amount': validator }).required()
 };

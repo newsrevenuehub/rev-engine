@@ -1,8 +1,7 @@
+import PropTypes from 'prop-types';
 import clsx from 'clsx';
 import { useState, useRef } from 'react';
 import { Controller, useFormContext } from 'react-hook-form';
-
-import { INPUT_NAME } from './constants';
 
 function Amount({
   labelText,
@@ -10,9 +9,9 @@ function Amount({
   amountCurrencySymbol,
   presetAmounts,
   defaultValue,
-  allowUserSetValue = true,
-  helperText = "Select how much you'd like to contribute",
-  name = INPUT_NAME
+  allowUserSetValue,
+  helperText,
+  name
 }) {
   const [userSetInputFocused, setUserSetInputFocused] = useState(false);
   const amountFrequencyString = amountFrequency ? ' / ' + amountFrequency : null;
@@ -126,4 +125,23 @@ function Amount({
 // Amount.displayName = 'Contribution amount';
 // Amount.description = 'Allows a donor to select an amount to contribute';
 
+Amount.propTypes = {
+  labelText: PropTypes.string.isRequired,
+  helperText: PropTypes.string.isRequired,
+  name: PropTypes.string.isRequired,
+  amountFrequency: PropTypes.string,
+  amountCurrencySymbol: PropTypes.string.isRequired,
+  presetAmounts: PropTypes.arrayOf(PropTypes.number).isRequired,
+  defaultValue: PropTypes.number,
+  allowUserSetValue: PropTypes.bool.isRequired
+};
+
+Amount.defaultProps = {
+  labelText: 'Amount',
+  amountFrequency: null,
+  amountCurrencySymbol: '$',
+  allowUserSetValue: true,
+  helperText: "Select how much you'd like to contribute",
+  name: 'amount'
+};
 export default Amount;

@@ -10,7 +10,6 @@ from stripe import error as stripe_errors
 from stripe.stripe_object import StripeObject
 
 from apps.common.tests.test_resources import AbstractTestCase
-from apps.contributions.bad_actor import BadActorAPIError, make_bad_actor_request
 from apps.contributions.models import Contribution, ContributionInterval, ContributionStatus
 from apps.contributions.payment_managers import (
     PaymentBadParamsError,
@@ -332,10 +331,6 @@ class StripeOneTimePaymentManagerTest(StripePaymentManagerAbstractTestCase):
 
         self.assertEqual(str(e1.exception), "PaymentManager could not find a revenue program with slug provided")
         self.assertEqual(str(e2.exception), "PaymentManager could not find a donation page with slug provided")
-
-    @override_settings(BAD_ACTOR_API_KEY=None)
-    def test_bad_actor_throws_error_missing_settings(self):
-        self.assertRaises(BadActorAPIError, make_bad_actor_request, {})
 
 
 test_stripe_subscription = "test_stripe_subscription"

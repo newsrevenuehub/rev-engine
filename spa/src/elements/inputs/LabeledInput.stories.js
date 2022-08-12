@@ -9,6 +9,7 @@ const arbitraryError = Yup.string().test('none-shall-pass', ARBITRARY_VALIDATION
 const DEFAULT_NAME = 'default-labelled-input';
 const args = {
   component: LabeledInput,
+  ...LabeledInput.defaultProps,
   labelText: 'Your biographical detail',
   type: 'text',
   name: DEFAULT_NAME,
@@ -20,10 +21,7 @@ const args = {
 
 export default {
   title: 'LabeledInput',
-  component: LabeledInput,
-  // this prevents circular reference that breaks storybook on form submission
-  // https://github.com/storybookjs/storybook/issues/12747
-  parameters: { docs: { source: { type: 'code' } } }
+  component: LabeledInput
 };
 
 export const Default = RHFFormTemplate.bind({});

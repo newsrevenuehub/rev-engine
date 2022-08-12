@@ -11,7 +11,8 @@ export default function LabeledInput({
   name,
   prefilledValue,
   required = false,
-  passedRef
+  passedRef,
+  visuallyHideLabel = false
 }) {
   const {
     register,
@@ -28,7 +29,8 @@ export default function LabeledInput({
         htmlFor={name}
         className={clsx(
           'mb-2',
-          required && 'after:content-["*"] after:text-red-500 after:text-bold after:ml-1 after:align-middle'
+          required && 'after:content-["*"] after:text-red-500 after:text-bold after:ml-1 after:align-middle',
+          visuallyHideLabel && 'sr-only'
         )}
       >
         {labelText}
@@ -60,5 +62,10 @@ LabeledInput.propTypes = {
   name: PropTypes.string.isRequired,
   prefilledValue: PropTypes.string,
   required: PropTypes.bool.isRequired,
-  passedRef: PropTypes.object
+  passedRef: PropTypes.object,
+  visuallyHideLabel: PropTypes.bool.isRequired
+};
+
+LabeledInput.defaultProps = {
+  visuallyHideLabel: false
 };

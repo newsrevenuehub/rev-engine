@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import { composeStories } from '@storybook/testing-react';
 
 import * as stories from './LabeledInput.stories';
@@ -67,4 +67,16 @@ test('when has default value', () => {
   render(<HasDefaultValue />);
   const input = screen.getByLabelText(HasDefaultValue.args.labelText);
   expect(input.value).toBe(HasDefaultValue.args.prefilledValue);
+});
+
+test('label can be visually hidden', () => {
+  // this is as good as we can really test with jest, since we're discouraged from inspecting
+  // actual dom nodes
+  const TAILWIND_SCREEN_READER_ONLY_CLASS_NAME = 'sr-only';
+  render(<Default visuallyHideLabel={true} />);
+  // can be seen as label from a11y standpoint
+  expect(screen.getByLabelText(Default.args.labelText, { exact: false })).toBeInTheDocument();
+  // cannot be seen from a looking at text standpoint
+  const label = screen.getByText(Default.args.labelText);
+  expect(label.className).toContain(TAILWIND_SCREEN_READER_ONLY_CLASS_NAME);
 });

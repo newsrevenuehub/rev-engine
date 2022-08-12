@@ -10,12 +10,17 @@ export default function LabeledInput({
   type = 'text',
   name,
   prefilledValue,
-  required = false
+  required = false,
+  passedRef
 }) {
   const {
     register,
     formState: { errors }
   } = useFormContext();
+
+  // https://react-hook-form.com/faqs#Howtosharerefusage
+  const { ref, ...rest } = register(name);
+
   const error = errors?.[name];
   return (
     <div className={clsx('flex flex-col w-full')}>
@@ -29,7 +34,13 @@ export default function LabeledInput({
         {labelText}
       </label>
       <input
-        {...register(name)}
+        {...rest}
+        ref={(e) => {
+          ref(e);
+          if (passedRef) {
+            passedRef.current = e;
+          }
+        }}
         className={clsx('mb-4 p-2 border-2 border-gray-300 rounded', error && 'border-red-400 border-2')}
         type={type}
         id={name}
@@ -48,5 +59,6 @@ LabeledInput.propTypes = {
   type: PropTypes.oneOf(['text', 'email']),
   name: PropTypes.string.isRequired,
   prefilledValue: PropTypes.string,
-  required: PropTypes.bool.isRequired
+  required: PropTypes.bool.isRequired,
+  passedRef: PropTypes.object
 };

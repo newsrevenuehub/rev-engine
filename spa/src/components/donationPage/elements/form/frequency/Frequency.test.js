@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import { composeStories } from '@storybook/testing-react';
 
 import * as stories from './Frequency.stories';
@@ -16,13 +16,34 @@ test('is required by default', () => {
 
 test('has default checked index', () => {
   render(<Default />);
-  const inputs = screen.getByRole('radio');
+  const inputs = screen.getAllByRole('radio');
   expect(inputs).toHaveLength(Frequency.defaultProps.options.length);
   expect(inputs.filter((input) => input.checked)).toHaveLength(1);
   expect(inputs.findIndex((input) => input.checked)).toBe(Frequency.defaultProps.defaultCheckedIndex);
+  expect(inputs.find((input) => input.checked)).toBeTruthy();
 });
 
-// test('toggles between selected option', () => {
-// 	render(<Default />);
+test('submits its chosen value', async () => {
+  render(<Default />);
+  const button = screen.getByRole('button', { name: 'Submit' });
+  fireEvent.click(button);
+  const successMessage = await screen.findByText(Default.args.submitSuccessMessage, { exact: false });
+  within(successMessage).getByText(
+    JSON.stringify({ [Default.args.name]: Default.args.options[Default.args.defaultCheckedIndex].value }),
+    {
+      exact: false
+    }
+  );
+});
 
-// })
+test('toggles between selected option', () => {
+  render(<Default />);
+  const inputs = screen.getAllByRole('radio');
+  expect(inputs).toHaveLength(Frequency.defaultProps.options.length);
+  inputs.forEach((input) => {
+    fireEvent.click(input);
+    expect(input).toBeChecked();
+    const uncheckedCount = screen.getAllByRole('radio', { checked: false }).length;
+    expect(uncheckedCount + 1).toBe(inputs.length);
+  });
+});

@@ -21,7 +21,7 @@ function Frequency({ labelText, defaultValue, helperText, name, required, option
                   id={id}
                   type="radio"
                   value={value}
-                  defaultChecked={defaultCheckedIndex && key === defaultCheckedIndex}
+                  defaultChecked={key === defaultCheckedIndex}
                   className="mr-3"
                   required={required}
                 />

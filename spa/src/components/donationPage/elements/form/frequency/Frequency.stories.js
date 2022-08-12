@@ -4,8 +4,7 @@ import { RHFFormTemplate } from 'storybook/templates';
 
 const args = {
   component: Frequency,
-  name: Frequency.defaultProps.name,
-  options: Frequency.defaultProps.options,
+  ...Frequency.defaultProps,
   includeDevTools: true,
   submitSuccessMessage: 'successful submit',
   validator: Yup.object({})

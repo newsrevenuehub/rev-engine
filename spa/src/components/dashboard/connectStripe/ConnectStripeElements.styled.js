@@ -27,6 +27,13 @@ export const Modal = styled(MuiModal)`
   ::before {
     outline: none;
   }
+  a,
+  a span,
+  a:hover,
+  a:hover span {
+    color: #0052cc;
+    text-decoration: underline;
+  }
 `;
 
 export const h2 = styled.h2`
@@ -37,7 +44,7 @@ export const h2 = styled.h2`
   color: #25192b;
 `;
 
-export const Description = styled.p`
+export const Description = styled.div`
   font-family: 'Roboto';
   font-style: normal;
   font-weight: 300;
@@ -71,24 +78,28 @@ export const Button = styled(MuiButton)`
   }
 `;
 
+export const StripeFAQ = styled.a`
+  font-size: 16px;
+  line-height: 19px;
+`;
+
 export const Anchor = styled.a`
   cursor: pointer;
   width: 100%;
   text-align: center;
+  span,
+  svg {
+    vertical-align: middle;
+    display: inline-block;
+  }
   span {
     font-weight: 500;
     font-size: 14px;
     line-height: 16px;
     text-align: center;
-    color: #0052cc;
-    text-decoration-line: underline;
   }
   svg {
     font-size: 18px;
-  }
-  :hover {
-    text-decoration-line: underline;
-    color: #0052cc;
   }
 `;
 

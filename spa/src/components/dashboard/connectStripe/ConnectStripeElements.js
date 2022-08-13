@@ -30,11 +30,7 @@ const ConnectStripeModal = () => {
         <S.Description>
           Start receiving payments by creating a Stripe account and connecting in one easy step.
           <S.Bold>Need more help connecting?</S.Bold>
-          Check out our{' '}
-          <S.Anchor>
-            <span>Stripe Connection FAQ</span>
-          </S.Anchor>
-          .
+          Check out our <S.StripeFAQ href="/">Stripe Connection FAQ</S.StripeFAQ>.
         </S.Description>
         <S.Button>Connect to Stripe</S.Button>
         <S.Anchor onClick={handleModelClose}>

@@ -1,13 +1,14 @@
 import userHasSingleRPNotConnectedToStripe from './userHasSingleRPNotConnectedToStripe';
 
-const userHasSingleRP = { revenue_programs: [{ id: 1, slug: 'first' }] };
+const userHasSingleRP = { role_type: ['org_admin', 'Org Admin'], revenue_programs: [{ id: 1, slug: 'first' }] };
 const userHasManyRPs = {
+  role_type: ['org_admin', 'Org Admin'],
   revenue_programs: [
     { id: 1, slug: 'first' },
     { id: 2, slug: 'second' }
   ]
 };
-const userHasNoRPs = { revenue_programs: [] };
+const userHasNoRPs = { role_type: ['org_admin', 'Org Admin'], revenue_programs: [] };
 const userisInvalid = null;
 const userHasNoRPsDefined = {};
 

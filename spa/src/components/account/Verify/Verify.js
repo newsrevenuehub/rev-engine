@@ -9,7 +9,7 @@ import readIcon from 'assets/icons/mark_read.png';
 // Analytics
 import { useConfigureAnalytics } from '../../analytics';
 
-const HELPEMAIL = `emailaddress@fundjournalism.org`;
+const HELPEMAIL = `revenginesupport@fundjournalism.org`;
 const Mailto = ({ mailto, label }) => {
   return (
     <Link

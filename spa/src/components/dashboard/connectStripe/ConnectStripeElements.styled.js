@@ -8,7 +8,6 @@ export const ConnectStripeModal = styled.div`
   flex-direction: column;
   overflow-y: auto;
   font-family: ${(props) => props.theme.systemFont};
-  outline-color: #fff;
   background: #ffffff;
   border: 0.5px solid #c4c4c4;
   box-shadow: 0px 0px 4px rgba(0, 0, 0, 0.2);
@@ -22,6 +21,12 @@ export const Modal = styled(MuiModal)`
   display: flex;
   align-items: center;
   justify-content: center;
+
+  *,
+  ::after,
+  ::before {
+    outline: none;
+  }
 `;
 
 export const h2 = styled.h2`

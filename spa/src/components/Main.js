@@ -14,6 +14,7 @@ function Main() {
 
   const [loadingFlags, setLoadingFlags] = useState(true);
   const [featureFlags, setFeatureFlags] = useState();
+  const [userDetails, setuserDetails] = useState();
 
   const requestUser = useRequest();
 
@@ -28,6 +29,7 @@ function Main() {
         onSuccess: ({ data }) => {
           setFeatureFlags(data.flags);
           setLoadingFlags(false);
+          setuserDetails(data);
         },
         onFailure: (e) => {
           throw new Error('Something unexpected happened retrieving flags');
@@ -37,7 +39,7 @@ function Main() {
   }, [requestUser]);
 
   return (
-    <FeatureFlagsProviderContext.Provider value={{ featureFlags }}>
+    <FeatureFlagsProviderContext.Provider value={{ featureFlags, userDetails }}>
       {!loadingFlags && (
         <S.Main>
           <S.MainContent>

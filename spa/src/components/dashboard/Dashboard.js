@@ -14,6 +14,8 @@ import Donations from 'components/donations/Donations';
 import Content from 'components/content/Content';
 import Customize from 'components/content/Customize';
 import PageEditor from 'components/pageEditor/PageEditor';
+import userHasSingleRPNotConnectedToStripe from 'components/dashboard/connectStripe/userHasSingleRPNotConnectedToStripe';
+import ConnectStripeElements from 'components/dashboard/connectStripe/ConnectStripeElements';
 
 // Feature flag-related
 import {
@@ -24,7 +26,7 @@ import {
 import flagIsActiveForUser from 'utilities/flagIsActiveForUser';
 
 function Dashboard() {
-  const { featureFlags } = useFeatureFlagsProviderContext();
+  const { featureFlags, userDetails } = useFeatureFlagsProviderContext();
 
   const hasContributionsSectionAccess = flagIsActiveForUser(CONTRIBUTIONS_SECTION_ACCESS_FLAG_NAME, featureFlags);
 
@@ -37,9 +39,11 @@ function Dashboard() {
     : 'not-found';
 
   const isEditPage = useLocation().pathname.includes('/edit/');
+  const showConnectToStripeDialogs = userHasSingleRPNotConnectedToStripe(userDetails);
 
   return (
     <S.Outer>
+      {showConnectToStripeDialogs ? <ConnectStripeElements /> : ''}
       <DashboardTopbar isEditPage={isEditPage} />
       <S.Dashboard data-testid="dashboard">
         {isEditPage ? null : <DashboardSidebar />}

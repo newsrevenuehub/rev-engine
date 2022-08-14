@@ -8,8 +8,8 @@ export const ConnectStripeModal = styled.div`
   flex-direction: column;
   overflow-y: auto;
   font-family: ${(props) => props.theme.systemFont};
-  background: #ffffff;
-  border: 0.5px solid #c4c4c4;
+  background: ${(props) => props.theme.colors.white};
+  border: 0.5px solid ${(props) => props.theme.colors.greyDark};
   box-shadow: 0px 0px 4px rgba(0, 0, 0, 0.2);
   border-radius: 10px;
   padding: 30px 65px;
@@ -31,7 +31,7 @@ export const Modal = styled(MuiModal)`
   a span,
   a:hover,
   a:hover span {
-    color: #0052cc;
+    color: ${(props) => props.theme.colors.blueLink};
     text-decoration: underline;
   }
 `;
@@ -41,7 +41,7 @@ export const h2 = styled.h2`
   font-weight: 700;
   font-size: 24px;
   line-height: 28px;
-  color: #25192b;
+  color: ${(props) => props.theme.colors.purple};
 `;
 
 export const Description = styled.div`
@@ -50,7 +50,7 @@ export const Description = styled.div`
   font-weight: 300;
   font-size: 16px;
   line-height: 19px;
-  color: #282828;
+  color: ${(props) => props.theme.colors.greyVeryDark};
   margin-bottom: 0px;
 `;
 
@@ -63,9 +63,9 @@ export const Button = styled(MuiButton)`
   && {
     width: 100%;
     height: 48px;
-    background: #f5ff75;
-    border: 0.5px solid #e6ee84;
-    box-shadow: 0px 0.3px 0.5px rgba(0, 0, 0, 0.1), 0px 2px 4px rgba(0, 0, 0, 0.2);
+    background: ${(props) => props.theme.colors.buttons.yellow.background};
+    border: ${(props) => props.theme.colors.buttons.yellow.border};
+    box-shadow: ${(props) => props.theme.colors.buttons.yellow.boxShadow};
     border-radius: 6px;
     font-weight: 600;
     font-size: 14px;
@@ -73,7 +73,7 @@ export const Button = styled(MuiButton)`
     margin: 25px 0px 28px;
 
     :hover {
-      background-color: #f5ff75;
+      background: ${(props) => props.theme.colors.buttons.yellow.background};
     }
   }
 `;

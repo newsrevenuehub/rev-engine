@@ -7,22 +7,22 @@ export const ConnectStripeToast = styled.div`
   top: 70px;
   right: 10px;
   font-family: ${(props) => props.theme.systemFont};
-  border: 0.5px solid #f1f1f1;
+  border: 0.5px solid ${(props) => props.theme.colors.grey[0]};
   box-shadow: 0px 2px 10px rgba(0, 0, 0, 0.2);
   border-radius: 6px;
   width: 90%;
   max-width: 300px;
   padding: 11px 17px 17px;
   z-index: 100;
-  background-color: #fff;
+  background-color: ${(props) => props.theme.colors.white};
 `;
 
 export const ConnectStripeToastCollapsed = styled.div`
   position: absolute;
   top: 70px;
   right: 10px;
-  background: #ffffff;
-  border: 0.5px solid #f1f1f1;
+  background: ${(props) => props.theme.colors.white};
+  border: 0.5px solid ${(props) => props.theme.colors.grey[0]};
   box-shadow: 0px 0.3px 0.5px rgba(0, 0, 0, 0.1), 0px 2px 4px rgba(0, 0, 0, 0.2);
   border-radius: 6px;
   max-width: 96px;
@@ -66,10 +66,10 @@ export const Minimize = styled.div`
   padding: 0px 2px;
   cursor: pointer;
   svg {
-    color: #8c8c8c;
+    color: ${(props) => props.theme.colors.grey[2]};
   }
   :hover {
-    background-color: #c4c4c4;
+    background-color: ${(props) => props.theme.colors.grey[0]};
   }
 `;
 
@@ -78,14 +78,14 @@ export const Heading = styled.div`
   font-size: 14px;
   line-height: 16px;
   font-weight: 600;
-  color: #25192b;
+  color: ${(props) => props.theme.colors.purple};
   padding-bottom: 9px;
 `;
 
 export const Description = styled.p`
   font-size: 12px;
   line-height: 15px;
-  color: #323232;
+  color: ${(props) => props.theme.colors.greyDark};
   margin-bottom: 0px;
 `;
 
@@ -93,9 +93,9 @@ export const Button = styled(MuiButton)`
   && {
     width: 100%;
     height: 36px;
-    background: #f5ff75;
-    border: 0.5px solid #e6ee84;
-    box-shadow: 0px 0.3px 0.5px rgba(0, 0, 0, 0.1), 0px 2px 4px rgba(0, 0, 0, 0.2);
+    background: ${(props) => props.theme.colors.buttons.yellow.background};
+    border: ${(props) => props.theme.colors.buttons.yellow.border};
+    box-shadow: ${(props) => props.theme.colors.buttons.yellow.boxShadow};
     border-radius: 6px;
     font-weight: 600;
     font-size: 12px;
@@ -103,7 +103,7 @@ export const Button = styled(MuiButton)`
     margin: 18px 0px 0px;
 
     :hover {
-      background-color: #f5ff75;
+      background: ${(props) => props.theme.colors.buttons.yellow.background};
     }
   }
 `;

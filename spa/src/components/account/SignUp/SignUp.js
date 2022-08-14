@@ -98,9 +98,9 @@ function SignUp() {
 
   return (
     <S.Outer>
-      <S.LeftPurple data-testid={'left-purple'}>
-        <Leftbar page={'create-account'} />
-      </S.LeftPurple>
+      <S.Left bgColor="purple" data-testid={'left-purple'}>
+        <Leftbar bgColor="purple" page={'create-account'} />
+      </S.Left>
       <S.Right>
         <S.FormElements>
           <Header />

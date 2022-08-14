@@ -6,26 +6,11 @@ export const Leftbar = styled.div`
   max-width: 506px;
   margin-bottom: 50px;
 
-  color: #25192b;
+  color: ${(props) =>
+    props.bgColor && props.bgColor === 'purple' ? props.theme.colors.white : props.theme.colors.purple};
 
   span {
-    background-color: #523a5e;
-  }
-
-  @media (${(props) => props.theme.breakpoints.tabletLandscapeDown}) {
-    margin: 20px 0px;
-  }
-`;
-
-export const LeftbarSignUp = styled.div`
-  width: 85%;
-  max-width: 506px;
-  margin-bottom: 50px;
-
-  color: #fff;
-
-  span {
-    background-color: #f5ff75;
+    background-color: ${(props) => props.theme.colors.yellowbg};
   }
 
   svg {
@@ -61,10 +46,6 @@ export const Heading = styled.div`
     line-height: 30px;
     padding-bottom: 20px;
   }
-
-  svg {
-    filter: invert(40%) sepia(69%) saturate(2183%) hue-rotate(165deg) brightness(101%) contrast(101%);
-  }
 `;
 
 export const Advantages = styled.div`
@@ -75,16 +56,10 @@ export const Advantages = styled.div`
   }
 `;
 
-export const DividerSignUp = styled.div`
-  border-top: 2px solid #f5ff75;
-
-  @media (${(props) => props.theme.breakpoints.tabletLandscapeDown}) {
-    display: none;
-  }
-`;
-
 export const Divider = styled.div`
-  border-top: 2px solid #523a5e;
+  border-top: 2px solid
+    ${(props) =>
+      props.bgColor && props.bgColor === 'purple' ? props.theme.colors.yellowbg : props.theme.colors.purpleLight};
 
   @media (${(props) => props.theme.breakpoints.tabletLandscapeDown}) {
     display: none;

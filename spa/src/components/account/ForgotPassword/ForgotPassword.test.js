@@ -3,9 +3,9 @@ import ReactTestUtils from 'react-dom/test-utils';
 import ForgotPassword from './ForgotPassword';
 import { SIGN_IN } from 'routes';
 
-it('should show the yellow revengine logo', () => {
+it('should show the right revengine logo', () => {
   render(<ForgotPassword />);
-  const bottomYellowBar = screen.queryByTestId('yellow-logo');
+  const bottomYellowBar = screen.queryByTestId('logo2');
   expect(bottomYellowBar).toBeInTheDocument();
 });
 

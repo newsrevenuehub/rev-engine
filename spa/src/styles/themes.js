@@ -12,12 +12,30 @@ export const revEngineTheme = {
     inputBackground: '#fff',
     inputBorder: '#c3c3c3',
 
-    sidebarBackground: '#25192B',
-    topbarBackground: '#523A5E',
-    navSelectedBackground: '#eaf37a',
-    navSectionLabelColor: '#ddcbe7',
+    purpleDark: '#19111e',
+    purple: '#25192b',
+    purpleLight: '#523a5e',
+    purpleLighter: '#ddcbe7',
+    purple3: '#ddcbe7',
 
+    yellow: '#eaf37a',
+    yellowbg: '#f5ff75',
+
+    greyVeryDark: '#282828',
+    greyDark: '#323232',
+    greyMedium: '#3c3c3c',
+    greyLight: '#c4c4c4',
     black: '#080708',
+
+    blueLink: '#0052cc',
+
+    buttons: {
+      yellow: {
+        background: '#f5ff75',
+        border: '0.5px solid #e6ee84',
+        boxShadow: '0px 0.3px 0.5px rgba(0, 0, 0, 0.1), 0px 2px 4px rgba(0, 0, 0, 0.2)'
+      }
+    },
 
     white: '#ffffff',
 

@@ -1,7 +1,7 @@
 import * as S from './Leftbar.styled';
 
-import logo from 'assets/images/logo-nre.png';
-import logoblue from 'assets/images/logo-nre-blue.png';
+import logo from 'assets/images/nre-logo-blue.svg';
+import logo2 from 'assets/images/nre-logo-yellow.svg';
 import Content from './Content.js';
 import { ICONS } from 'assets/icons/SvgIcon';
 
@@ -33,23 +33,12 @@ function Advantages() {
   );
 }
 
-function Leftbar({ page }) {
-  if (page === 'create-account') {
-    return (
-      <S.LeftbarSignUp>
-        <S.Logo data-testid="blue-logo" src={logo} />
-        <Heading />
-        <S.DividerSignUp />
-        <Advantages />
-      </S.LeftbarSignUp>
-    );
-  }
-
+function Leftbar({ bgColor = '' }) {
   return (
-    <S.Leftbar>
-      <S.Logo data-testid="yellow-logo" src={logoblue} />
+    <S.Leftbar bgColor={bgColor}>
+      <S.Logo data-testid={bgColor === 'purple' ? 'logo' : 'logo2'} src={bgColor === 'purple' ? logo : logo2} />
       <Heading />
-      <S.Divider />
+      <S.Divider bgColor={bgColor} />
       <Advantages />
     </S.Leftbar>
   );

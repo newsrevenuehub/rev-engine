@@ -2,7 +2,7 @@ import styled from 'styled-components';
 
 export const InputWrapped = styled.div`
   border: 1.5px solid;
-  border-color: ${(props) => props.styling.borderColor};
+  border-color: ${(props) => (props.status.hasError ? props.theme.colors.error.primary : props.theme.colors.greyLight)};
   border-radius: 4px;
   display: flex;
   margin: 5px 0px;
@@ -13,7 +13,7 @@ export const InputWrapped = styled.div`
   }
 
   &:focus-within {
-    border: 1.5px solid #00bfdf;
+    border: 1.5px solid ${(props) => props.theme.colors.primary};
   }
 `;
 
@@ -21,13 +21,14 @@ export const Visibility = styled.img`
   height: 11px;
   width: 18px;
   margin-top: 3.6px;
+  cursor: pointer;
 `;
 
 export const Label = styled.div`
   font-weight: 600;
   font-size: 13px;
   line-height: 16px;
-  color: ${(props) => props.styling.fontColor};
+  color: ${(props) => (props.status.hasError ? props.theme.colors.error.primary : props.theme.colors.greyDark)};
   margin-top: 5px;
 `;
 
@@ -37,7 +38,7 @@ export const ErrorMessage = styled.div`
   font-weight: 400;
   font-size: 11px;
   line-height: 13px;
-  color: #3c3c3c;
+  color: ${(props) => props.theme.colors.greyMedium};
   padding: 4px 9px;
 `;
 
@@ -49,6 +50,6 @@ export const ErrorSpacer = styled.div`
 export const Instructions = styled.div`
   font-size: 11px;
   line-height: 13px;
-  color: #3c3c3c;
+  color: ${(props) => props.theme.colors.greyMedium};
   padding: 0px 0px 6px 0px;
 `;

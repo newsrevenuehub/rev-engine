@@ -13,26 +13,11 @@ export const Outer = styled.div`
   }
 `;
 
-export const LeftPurple = styled.div`
-  background-color: #302436;
-  flex: 35%;
-  margin: 0px;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-
-  @media (${(props) => props.theme.breakpoints.tabletLandscapeDown}) {
-    flex: 100%;
-    max-height: 240px;
-  }
-
-  @media (${(props) => props.theme.breakpoints.tabletLandscapeUp}) {
-    min-height: 100vh;
-  }
-`;
-
 export const Left = styled.div`
-  background: linear-gradient(39.42deg, #6fd1ec 47.23%, #8af7e3 105.55%);
+  background: ${(props) =>
+    props.bgColor && props.bgColor === 'purple'
+      ? props.theme.colors.purple
+      : `linear-gradient(39.42deg, #6fd1ec 47.23%, #8af7e3 105.55%);`};
   flex: 35%;
   margin: 0px;
   display: flex;
@@ -56,7 +41,7 @@ export const Right = styled.div`
   justify-content: center;
   align-items: center;
   flex-direction: column;
-  background-color: #fff;
+  background-color: ${(props) => props.theme.colors.white};
 
   @media (${(props) => props.theme.breakpoints.tabletLandscapeDown}) {
     flex: 100%;
@@ -94,7 +79,7 @@ export const Heading = styled.div`
   font-weight: 700;
   font-size: 34px;
   line-height: 138.19%;
-  color: #25192b;
+  color: ${(props) => props.theme.colors.purpleDark};
 
   @media (${(props) => props.theme.breakpoints.phoneOnly}) {
     font-size: 24px;
@@ -110,7 +95,7 @@ export const Subheading = styled.div`
   font-weight: 300;
   font-size: 24px;
   line-height: 138.19%;
-  color: #282828;
+  color: ${(props) => props.theme.colors.greyVeryDark};
   font-style: normal;
 
   @media (${(props) => props.theme.breakpoints.phoneOnly}) {
@@ -125,11 +110,11 @@ export const AcceptTerms = styled.div`
   font-weight: 400;
   font-size: 12px;
   line-height: 15px;
-  color: #323232;
+  color: ${(props) => props.theme.colors.greyDark};
   margin-top:6px;
 
   a, a:hover {
-    color: #0052CC;
+    color: ${(props) => props.theme.colors.blueLink};
     text-decoration: underline;
   }
 
@@ -143,7 +128,7 @@ export const Disclaimer = styled.div`
   font-weight: 400;
   font-size: 11px;
   line-height: 13px;
-  color: #3c3c3c;
+  color: ${(props) => props.theme.colors.greyMedium};
   margin: 15px 0px 12px;
 `;
 
@@ -154,11 +139,11 @@ export const SignInToggle = styled.div`
   font-weight: 400;
   font-size: 13px;
   line-height: 16px;
-  color: #323232;
+  color: ${(props) => props.theme.colors.greyDark};
 
   a,
   a:hover {
-    color: #0052cc;
+    color: ${(props) => props.theme.colors.blueLink};
   }
 `;
 
@@ -168,9 +153,9 @@ export const Submit = styled(motion.button)`
   text-transform: uppercase;
   text-align: center;
   padding: 9px 0px;
-  background: #f5ff75;
-  border: 0.5px solid #e6ee84;
-  box-shadow: 0px 0.3px 0.5px rgba(0, 0, 0, 0.1), 0px 2px 4px rgba(0, 0, 0, 0.2);
+  background: ${(props) => props.theme.colors.buttons.yellow.background};
+  border: ${(props) => props.theme.colors.buttons.yellow.border};
+  box-shadow: ${(props) => props.theme.colors.buttons.yellow.boxShadow};
   border-radius: 6px;
   margin-top: 7px;
   &:active {
@@ -178,15 +163,13 @@ export const Submit = styled(motion.button)`
   }
 `;
 
-/* Sign In Styles */
-
 export const ErrorMessage = styled.div`
   background: rgba(200, 32, 63, 0.16);
   border-radius: 2px;
   font-weight: 400;
   font-size: 11px;
   line-height: 13px;
-  color: #3c3c3c;
+  color: ${(props) => props.theme.colors.greyMedium};
   padding: 4px 9px;
 `;
 
@@ -202,11 +185,11 @@ export const SignInLink = styled.div`
   font-weight: 400;
   font-size: 13px;
   line-height: 16px;
-  color: #323232;
+  color: ${(props) => props.theme.colors.greyDark};
 
   a,
   a:hover {
-    color: #0052cc;
+    color: ${(props) => props.theme.colors.blueLink};
     text-decoration: underline;
   }
 `;
@@ -216,7 +199,7 @@ export const PasswordLabel = styled.div`
   font-weight: 600;
   font-size: 13px;
   line-height: 16px;
-  color: #323232;
+  color: ${(props) => props.theme.colors.greyDark};
   margin-top: 5px;
 
   a {
@@ -225,8 +208,6 @@ export const PasswordLabel = styled.div`
   }
 `;
 
-/* Sign In Styles end */
-
 export const SignUpToggle = styled.div`
   margin: 15px 0px 12px;
   width: 100%;
@@ -234,11 +215,11 @@ export const SignUpToggle = styled.div`
   font-weight: 400;
   font-size: 13px;
   line-height: 16px;
-  color: #323232;
+  color: ${(props) => props.theme.colors.greyDark};
 
   a,
   a:hover {
-    color: #0052cc;
+    color: ${(props) => props.theme.colors.blueLink};
     text-decoration: underline;
   }
 `;

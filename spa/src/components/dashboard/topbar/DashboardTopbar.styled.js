@@ -4,7 +4,7 @@ import SvgIcon from 'assets/icons/SvgIcon';
 export const DashboardTopbar = styled.div`
   width: 100%;
   height: 48px;
-  background: ${(props) => props.theme.colors.topbarBackground};
+  background: ${(props) => props.theme.colors.purpleLight};
   box-shadow: ${(props) => props.theme.shadows[0]};
   display: flex;
   flex-direction: row;
@@ -19,16 +19,16 @@ export const TopMenu = styled.div`
 export const LogoutLink = styled.div`
   padding: 0px 0px 0px 25px;
   cursor: pointer;
-  color: #fff;
+  color: ${(props) => props.theme.colors.white};
   max-width: 120px;
   margin-left: auto;
   a {
-    color: #fff;
+    color: ${(props) => props.theme.colors.white};
   }
 `;
 
 export const TopLogo = styled.div`
-  background: #19111e;
+  background: ${(props) => props.theme.colors.purpleDark};
   flex: 0 0 260px;
   display: block;
 
@@ -38,7 +38,7 @@ export const TopLogo = styled.div`
 `;
 
 export const TopLogoMobile = styled.div`
-  background: #19111e;
+  background: ${(props) => props.theme.colors.purpleDark};
   flex: 0 0 66px;
   display: none;
 

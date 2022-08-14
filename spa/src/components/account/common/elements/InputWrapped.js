@@ -21,14 +21,11 @@ function InputWrapped({ value, onChange, type, label, instructions, testid, erro
   return (
     <>
       {label && label !== '' && (
-        <S.Label
-          data-testid={`label`}
-          styling={{ fontColor: errorMessage && errorMessage !== '' ? '#C8203F' : '#323232' }}
-        >
+        <S.Label data-testid={`label`} status={{ hasError: errorMessage && errorMessage !== '' ? true : false }}>
           {label}
         </S.Label>
       )}
-      <S.InputWrapped styling={{ borderColor: errorMessage && errorMessage !== '' ? '#C8203F' : '#c4c4c4' }}>
+      <S.InputWrapped status={{ hasError: errorMessage && errorMessage !== '' ? true : false }}>
         <InputAccount
           testid={testid}
           data-testid={`inp-${inpType}${testid ? testid : ''}`}

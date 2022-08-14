@@ -7,7 +7,7 @@ export const DashboardSidebar = styled.aside`
   width: 260px;
   height: 100%;
   padding: 2rem 0.5rem 0px;
-  background: ${(props) => props.theme.colors.sidebarBackground};
+  background: ${(props) => props.theme.colors.purple};
   box-shadow: ${(props) => props.theme.shadows[0]};
   display: flex;
   flex-direction: column;
@@ -18,7 +18,7 @@ export const DashboardSidebar = styled.aside`
     width: 66px;
     height: 100%;
     padding: 2rem 0px 2rem;
-    background: ${(props) => props.theme.colors.sidebarBackground};
+    background: ${(props) => props.theme.colors.purple};
     box-shadow: ${(props) => props.theme.shadows[0]};
   }
 `;
@@ -107,10 +107,10 @@ export const NavItem = styled(NavLink)`
   }
 
   &.active {
-    background: ${(props) => props.theme.colors.navSelectedBackground};
-    border-right: 5px solid ${(props) => props.theme.colors.navSelectedBackground};
+    background: ${(props) => props.theme.colors.yellow};
+    border-right: 5px solid ${(props) => props.theme.colors.yellow};
     border-radius: 6px;
-    color: ${(props) => props.theme.colors.sidebarBackground};
+    color: ${(props) => props.theme.colors.purple};
 
     svg {
       filter: brightness(0) saturate(100%) invert(6%) sepia(7%) saturate(6515%) hue-rotate(240deg) brightness(96%)
@@ -139,9 +139,9 @@ export const NavItem = styled(NavLink)`
     }
 
     &.active {
-      border-right: 4px solid ${(props) => props.theme.colors.navSelectedBackground};
+      border-right: 4px solid ${(props) => props.theme.colors.yellow};
       border-radius: 0px;
-      background: ${(props) => props.theme.colors.sidebarBackground};
+      background: ${(props) => props.theme.colors.purple};
       svg {
         filter: brightness(0) saturate(100%) invert(92%) sepia(13%) saturate(1448%) hue-rotate(13deg) brightness(108%)
           contrast(91%);
@@ -195,7 +195,7 @@ export const SectionLabel = styled.div`
   font-size: 14px;
   line-height: 16px;
   margin: 0px 0px 6px 18px;
-  color: ${(props) => props.theme.colors.navSectionLabelColor};
+  color: ${(props) => props.theme.colors.purpleLighter};
 
   @media (${(props) => props.theme.breakpoints.tabletLandscapeDown}) {
     display: none;

@@ -2,8 +2,7 @@ import styled from 'styled-components';
 import { motion } from 'framer-motion';
 
 export const Verify = styled.div`
-  width: 100%;
-  background-color: #302436;
+  background-color: ${(props) => props.theme.colors.purple};
   width: 100%;
 `;
 
@@ -24,7 +23,7 @@ export const Logo = styled.img`
 
 export const Content = styled.div`
   width: 100%;
-  background-color: #302436;
+  background-color: ${(props) => props.theme.colors.purple};
   height: 100vh;
   display: flex;
   justify-content: center;
@@ -33,14 +32,18 @@ export const Content = styled.div`
 `;
 
 export const Box = styled.div`
-  background: #ffffff;
-  border: 0.5px solid #c4c4c4;
+  background: ${(props) => props.theme.colors.white};
+  border: 0.5px solid ${(props) => props.theme.colors.greyLight};
   box-shadow: 0px 0px 4px rgba(0, 0, 0, 0.2);
   border-radius: 10px;
   width: 90%;
   max-width: 600px;
   padding: 30px 36px;
-  margin-bottom: 140px;
+  margin: 140px 0px;
+
+  @media (${(props) => props.theme.breakpoints.tabletLandscapeDown}) {
+    margin: 0px 0px;
+  }
 `;
 
 export const Icon = styled.img`
@@ -55,7 +58,7 @@ export const Heading = styled.div`
   font-weight: 700;
   font-size: 30px;
   line-height: 138.19%;
-  color: #25192b;
+  color: ${(props) => props.theme.colors.purple};
   margin: 20px 0px 10px 0px;
 
   @media (${(props) => props.theme.breakpoints.tabletLandscapeDown}) {
@@ -68,7 +71,7 @@ export const Subheading = styled.div`
   font-weight: 300;
   font-size: 18px;
   line-height: 138.19%;
-  color: #282828;
+  color: ${(props) => props.theme.colors.greyVeryDark};
 
   span {
     font-weight: 800;
@@ -83,7 +86,7 @@ export const Drm = styled.div`
   font-weight: 400;
   font-size: 18px;
   line-height: 138.19%;
-  color: #25192b;
+  color: ${(props) => props.theme.colors.purple};
   margin: 20px 0px 10px 0px;
 
   @media (${(props) => props.theme.breakpoints.tabletLandscapeDown}) {
@@ -95,7 +98,7 @@ export const Resendtext = styled.div`
   font-weight: 300;
   font-size: 13px;
   line-height: 138.19%;
-  color: #282828;
+  color: ${(props) => props.theme.colors.greyVeryDark};
 `;
 
 export const Button = styled(motion.button)`
@@ -106,9 +109,9 @@ export const Button = styled(motion.button)`
   max-width: 260px;
   text-transform: uppercase;
   text-align: center;
-  background: #f5ff75;
-  border: 0.5px solid #e6ee84;
-  box-shadow: 0px 0.3px 0.5px rgba(0, 0, 0, 0.1), 0px 2px 4px rgba(0, 0, 0, 0.2);
+  background: ${(props) => props.theme.colors.buttons.yellow.background};
+  border: ${(props) => props.theme.colors.buttons.yellow.border};
+  box-shadow: ${(props) => props.theme.colors.buttons.yellow.boxShadow};
   border-radius: 6px;
 
   &:active {
@@ -120,7 +123,7 @@ export const Help = styled.div`
   font-weight: 500;
   font-size: 13px;
   line-height: 138.19%;
-  color: #707070;
+  color: ${(props) => props.theme.colors.greyDark};
 
   span {
     font-weight: 800;

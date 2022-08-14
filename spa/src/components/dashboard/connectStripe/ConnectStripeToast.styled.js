@@ -4,7 +4,7 @@ import styled from 'styled-components';
 
 export const ConnectStripeToast = styled.div`
   position: absolute;
-  top: 70px;
+  top: 58px;
   right: 10px;
   font-family: ${(props) => props.theme.systemFont};
   border: 0.5px solid ${(props) => props.theme.colors.grey[0]};
@@ -19,7 +19,7 @@ export const ConnectStripeToast = styled.div`
 
 export const ConnectStripeToastCollapsed = styled.div`
   position: absolute;
-  top: 70px;
+  top: 58px;
   right: 10px;
   background: ${(props) => props.theme.colors.white};
   border: 0.5px solid ${(props) => props.theme.colors.grey[0]};

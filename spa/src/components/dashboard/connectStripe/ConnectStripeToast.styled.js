@@ -51,7 +51,7 @@ export const BottomLeftImage = styled.img`
 `;
 
 export const StripeLogoCollapsed = styled.img`
-  width: 60px;
+  height: 24px;
   margin: 26px 18px;
 `;
 
@@ -64,9 +64,12 @@ export const Header = styled.div`
 export const Minimize = styled.div`
   margin-left: auto;
   padding: 0px 2px;
+  height: 24px;
   cursor: pointer;
   svg {
     color: ${(props) => props.theme.colors.grey[2]};
+    height: 24px;
+    width: 24px;
   }
   :hover {
     background-color: ${(props) => props.theme.colors.grey[0]};

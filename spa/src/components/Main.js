@@ -14,7 +14,7 @@ function Main() {
 
   const [loadingFlags, setLoadingFlags] = useState(true);
   const [featureFlags, setFeatureFlags] = useState();
-  const [userDetails, setuserDetails] = useState();
+  const [userDetails, setUserDetails] = useState();
 
   const requestUser = useRequest();
 

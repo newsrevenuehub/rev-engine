@@ -13,6 +13,8 @@ import { GET_MAGIC_LINK } from 'ajax/endpoints';
 // Children
 import Input from 'elements/inputs/Input';
 
+import LivePage404 from 'components/common/LivePage404';
+
 // Analytics
 import { useConfigureAnalytics } from 'components/analytics';
 
@@ -51,7 +53,7 @@ function ContributorEntry({ page }) {
     portalName = page.revenue_program.name;
   }
 
-  return (
+  return page ? (
     <S.ContributorEntry>
       <S.ContentWrapper>
         <S.Title>Welcome to the {portalName} contributor portal</S.Title>
@@ -80,6 +82,8 @@ function ContributorEntry({ page }) {
         )}
       </S.ContentWrapper>
     </S.ContributorEntry>
+  ) : (
+    <LivePage404 dashboard />
   );
 }
 

@@ -54,11 +54,6 @@ function Login({ onSuccess, message }) {
       hasError = true;
     }
 
-    if (password.length < 8) {
-      setPasswordError('Password has to be more than 8 chars long');
-      hasError = true;
-    }
-
     if (!hasError) {
       dispatch({ type: FETCH_START });
       try {

@@ -31,12 +31,13 @@ function PublishWidget({ paymentProvider, publishDate, onChange, errors }) {
     onChange(new Date());
   };
 
-  const hasValidPaymentProvider = paymentProvider && paymentProvider.stripe_verified ? true : false;
+  const hasValidPaymentProvider = paymentProvider && paymentProvider.stripe_verified;
 
   if (!hasValidPaymentProvider)
     return (
       <S.InvalidPaymentProvider>
-        Page Cannot be Published<p>Please add a Payment Provider to your Revenue Program.</p>
+        Page cannot be published
+        <p>Please add a payment provider to your revenue program.</p>
       </S.InvalidPaymentProvider>
     );
 

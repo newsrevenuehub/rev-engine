@@ -12,18 +12,18 @@ const unverifiedPaymentProvider = {
 
 it('should show publish widget if payment provider is present and is stripe_verified', () => {
   render(<PublishWidget paymentProvider={validPaymentProvider} />);
-  const eMessage = screen.queryByText('Page Cannot be Published');
+  const eMessage = screen.queryByText('Page cannot be published');
   expect(eMessage).not.toBeInTheDocument();
 });
 
 it('should not show publish widget if payment provider is present and is not stripe_verified', () => {
   render(<PublishWidget paymentProvider={unverifiedPaymentProvider} />);
-  const eMessage = screen.queryByText('Page Cannot be Published');
+  const eMessage = screen.queryByText('Page cannot be published');
   expect(eMessage).toBeInTheDocument();
 });
 
 it('should not show publish widget if payment provider is null', () => {
   render(<PublishWidget paymentProvider={null} />);
-  const eMessage = screen.queryByText('Page Cannot be Published');
+  const eMessage = screen.queryByText('Page cannot be published');
   expect(eMessage).toBeInTheDocument();
 });

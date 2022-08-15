@@ -11,7 +11,7 @@ export const ConnectStripeModal = styled.div`
   background: ${(props) => props.theme.colors.white};
   border: 0.5px solid ${(props) => props.theme.colors.greyDark};
   box-shadow: 0px 0px 4px rgba(0, 0, 0, 0.2);
-  border-radius: 10px;
+  border-radius: ${(props) => props.theme.muiBorderRadius.md};
   padding: 30px 65px;
   width: 90%;
   max-width: 610px;
@@ -36,11 +36,11 @@ export const Modal = styled(MuiModal)`
   }
 `;
 
-export const h2 = styled.h2`
+export const h1 = styled.h1`
   margin-top: 0px;
   font-weight: 700;
-  font-size: 24px;
-  line-height: 28px;
+  font-size: ${(props) => props.theme.fontSizesUpdated.xxl};
+  line-height: ${(props) => props.theme.fontSizesUpdated.xxxl};
   color: ${(props) => props.theme.colors.purple};
 `;
 
@@ -48,8 +48,8 @@ export const Description = styled.div`
   font-family: 'Roboto';
   font-style: normal;
   font-weight: 300;
-  font-size: 16px;
-  line-height: 19px;
+  font-size: ${(props) => props.theme.fontSizesUpdated.md};
+  line-height: ${(props) => props.theme.fontSizesUpdated.lg};
   color: ${(props) => props.theme.colors.greyVeryDark};
   margin-bottom: 0px;
 `;
@@ -66,10 +66,10 @@ export const Button = styled(MuiButton)`
     background: ${(props) => props.theme.colors.buttons.yellow.background};
     border: ${(props) => props.theme.colors.buttons.yellow.border};
     box-shadow: ${(props) => props.theme.colors.buttons.yellow.boxShadow};
-    border-radius: 6px;
+    border-radius: ${(props) => props.theme.muiBorderRadius.sm};
     font-weight: 600;
-    font-size: 14px;
-    line-height: 16px;
+    font-size: ${(props) => props.theme.fontSizesUpdated.sm};
+    line-height: ${(props) => props.theme.fontSizesUpdated.md};
     margin: 25px 0px 28px;
 
     :hover {
@@ -79,8 +79,8 @@ export const Button = styled(MuiButton)`
 `;
 
 export const StripeFAQ = styled.a`
-  font-size: 16px;
-  line-height: 19px;
+  font-size: ${(props) => props.theme.fontSizesUpdated.lg};
+  line-height: ${(props) => props.theme.fontSizesUpdated.xl};
 `;
 
 export const Anchor = styled.a`
@@ -94,12 +94,12 @@ export const Anchor = styled.a`
   }
   span {
     font-weight: 500;
-    font-size: 14px;
-    line-height: 16px;
+    font-size: ${(props) => props.theme.fontSizesUpdated.sm};
+    line-height: ${(props) => props.theme.fontSizesUpdated.md};
     text-align: center;
   }
   svg {
-    font-size: 18px;
+    font-size: ${(props) => props.theme.fontSizesUpdated.lg};
   }
 `;
 

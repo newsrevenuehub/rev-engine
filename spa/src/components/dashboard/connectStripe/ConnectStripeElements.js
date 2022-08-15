@@ -11,6 +11,8 @@ import useModal from 'hooks/useModal';
 import Cookies from 'universal-cookie';
 
 const CONNECT_STRIPE_COOKIE_NAME = 'hideConnectStripeModal';
+// TODO: Insert Stripe FAQ Link
+const CONNECT_STRIPE_FAQ_LINK = '';
 
 const ConnectStripeModal = () => {
   const { open, handleClose } = useModal(true);
@@ -26,11 +28,11 @@ const ConnectStripeModal = () => {
     <S.Modal open={open} onClose={handleClose} aria-labelledby="Connect Stripe Modal">
       <S.ConnectStripeModal data-testid="connect-stripe-modal">
         <S.StripeLogo src={StripeLogo} />
-        <S.h2>Connect to Stripe</S.h2>
+        <S.h1>Connect to Stripe</S.h1>
         <S.Description>
           Start receiving payments by creating a Stripe account and connecting in one easy step.
           <S.Bold>Need more help connecting?</S.Bold>
-          Check out our <S.StripeFAQ href="/">Stripe Connection FAQ</S.StripeFAQ>.
+          Check out our <S.StripeFAQ href={CONNECT_STRIPE_FAQ_LINK}>Stripe Connection FAQ</S.StripeFAQ>.
         </S.Description>
         <S.Button>Connect to Stripe</S.Button>
         <S.Anchor onClick={handleModelClose}>

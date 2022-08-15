@@ -29,7 +29,7 @@ function Main() {
         onSuccess: ({ data }) => {
           setFeatureFlags(data.flags);
           setLoadingFlags(false);
-          setuserDetails(data);
+          setUserDetails(data);
         },
         onFailure: (e) => {
           throw new Error('Something unexpected happened retrieving flags');

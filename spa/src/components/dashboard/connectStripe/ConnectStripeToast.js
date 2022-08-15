@@ -34,7 +34,7 @@ const ConnectStripeToast = () => {
   if (collapsed) {
     return (
       <RETooltip title="Connect to Stripe">
-        <S.ConnectStripeToastCollapsed data-testid={'connect-stripe-toast-collapsed'} onClick={handleExpand}>
+        <S.ConnectStripeToastCollapsed data-testid="connect-stripe-toast-collapsed" onClick={handleExpand}>
           <S.StripeLogoCollapsed src={StripeLogo} />
           <span>
             <S.BottomLeftImage src={Triangle6Dots} />
@@ -45,11 +45,11 @@ const ConnectStripeToast = () => {
   }
 
   return (
-    <S.ConnectStripeToast data-testid={'connect-stripe-toast'}>
+    <S.ConnectStripeToast data-testid="connect-stripe-toast">
       <S.Header>
         <S.StripeLogo src={StripeLogo} />
         <RETooltip title="Minimize" placement="bottom-end">
-          <S.Minimize onClick={handleCollapse} data-testid={'minimize-toast'}>
+          <S.Minimize onClick={handleCollapse} data-testid="minimize-toast">
             <RemoveIcon />
           </S.Minimize>
         </RETooltip>

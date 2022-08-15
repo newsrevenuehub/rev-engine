@@ -68,6 +68,16 @@ export const revEngineTheme = {
     xs: '12px',
     sm: '14px',
     md: '16px',
+    lg: '18px',
+    xl: '20px',
+    xxl: '24px',
+    xxxl: '28px'
+  },
+
+  muiBorderRadius: {
+    xs: '2px',
+    sm: '6px',
+    md: '10px',
     lg: '18px'
   },
 

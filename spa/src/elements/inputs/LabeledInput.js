@@ -43,7 +43,7 @@ export default function LabeledInput({
             passedRef.current = e;
           }
         }}
-        className={clsx('mb-4 p-2 border-2 border-gray-300 rounded', error && 'border-red-400 border-2')}
+        className={clsx('mb-4 p-2 border border-gray-300 rounded', error && 'border-red-400 border')}
         type={type}
         id={name}
         defaultValue={prefilledValue}

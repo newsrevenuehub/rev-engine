@@ -9,28 +9,28 @@ function TributeRadio({
   noLabel,
   inHonorOfLabel,
   inHonorOfValue,
-  inHonorOfDisplay,
+  inHonorDisplay,
   inMemoryOfLabel,
   inMemoryOfValue,
-  inMemoryOfDisplay
+  inMemoryDisplay
 }) {
   const { register } = useFormContext();
-  const shouldDisplay = inMemoryOfDisplay || inHonorOfDisplay;
+  const shouldDisplay = inMemoryDisplay || inHonorDisplay;
 
   const options = [
-    { display: true, labelText: noLabel, value: noValue },
-    { display: inHonorOfDisplay, labelText: inHonorOfLabel, value: inHonorOfValue },
-    { display: inMemoryOfDisplay, labelText: inMemoryOfLabel, value: inMemoryOfValue }
+    { display: true, labelText: noLabel, value: noValue, defaultChecked: true },
+    { display: inHonorDisplay, labelText: inHonorOfLabel, value: inHonorOfValue, defaultChecked: false },
+    { display: inMemoryDisplay, labelText: inMemoryOfLabel, value: inMemoryOfValue, defaultChecked: false }
   ]
     .filter((option) => option.display)
-    .map(({ labelText, value }) => ({ labelText, value }));
+    .map(({ labelText, value, defaultChecked }) => ({ labelText, value, defaultChecked }));
 
   return shouldDisplay ? (
     <fieldset className="w-full ">
       <legend className="w-full">
         <h3 className="text-3xl">{helperText}</h3>
         <div className={clsx('flex justify-between max-w-sm')}>
-          {options.map(({ labelText, value }) => {
+          {options.map(({ labelText, value, defaultChecked }) => {
             const id = `${name}-${value}`;
             return (
               <label htmlFor={id} key={id}>
@@ -40,7 +40,7 @@ function TributeRadio({
                   id={id}
                   type="radio"
                   value={value}
-                  defaultChecked={value === noValue}
+                  defaultChecked={defaultChecked}
                   className="mr-3"
                 />
                 {labelText}
@@ -62,10 +62,10 @@ TributeRadio.propTypes = {
   noLabel: PropTypes.string.isRequired,
   inHonorOfLabel: PropTypes.string.isRequired,
   inHonorOfValue: PropTypes.string.isRequired,
-  inHonorOfDisplay: PropTypes.bool.isRequired,
+  inHonorDisplay: PropTypes.bool.isRequired,
   inMemoryOfLabel: PropTypes.string.isRequired,
   inMemoryOfValue: PropTypes.string.isRequired,
-  inMemoryOfDisplay: PropTypes.bool.isRequired
+  inMemoryDisplay: PropTypes.bool.isRequired
 };
 
 TributeRadio.defaultProps = {
@@ -75,10 +75,10 @@ TributeRadio.defaultProps = {
   noLabel: 'No',
   inHonorOfLabel: 'Yes, in honor of...',
   inHonorOfValue: 'in_honor',
-  inHonorOfDisplay: false,
+  inHonorDisplay: false,
   inMemoryOfLabel: 'Yes, in memory of...',
   inMemoryOfValue: 'in_memory',
-  inMemoryOfDisplay: false
+  inMemoryDisplay: false
 };
 
 export default TributeRadio;

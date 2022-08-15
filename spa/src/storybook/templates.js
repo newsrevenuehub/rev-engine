@@ -9,11 +9,13 @@ export const RHFFormTemplate = ({
   submitSuccessMessage,
   validator,
   component: Component,
+  defaultValues,
   ...args
 }) => {
   const resolver = yupResolver(validator);
   const methods = useForm({
-    resolver
+    resolver,
+    defaultValues: defaultValues || {}
   });
   // this is used to conditionally display visible text in template when form submission suceeds
   // which will give us something perceptible to look for in narrow unit test of the amount form component
@@ -24,13 +26,16 @@ export const RHFFormTemplate = ({
 
   // see "Rules" section here and recommendation to do this with useEffect: https://react-hook-form.com/api/useform/reset
   useEffect(() => {
-    if (submitSuccess) reset(null, { keepDefaultValues: true });
-  }, [submitSuccess, reset]);
+    if (submitSuccess) reset(defaultValues, {});
+  }, [defaultValues, submitSuccess, reset]);
 
   return (
     <FormProvider {...methods}>
       <div className="mx-auto md:p-12 container">
         <form
+          onReset={() => {
+            reset(defaultValues, {});
+          }}
           onSubmit={handleSubmit((data) => {
             try {
               setSubmittedData(data);

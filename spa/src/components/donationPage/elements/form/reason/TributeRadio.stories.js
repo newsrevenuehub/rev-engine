@@ -19,5 +19,5 @@ export const Default = RHFFormTemplate.bind({});
 Default.args = {
   ...args,
   inHonorOfDisplay: true,
-  inMemoryOfDisplay: true
+  inMemoryDisplay: true
 };

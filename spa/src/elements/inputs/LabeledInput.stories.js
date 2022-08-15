@@ -16,7 +16,8 @@ const args = {
   required: true,
   submitSuccessMessage: 'successful submit',
   includeDevTools: true,
-  validator: Yup.object({})
+  validator: Yup.object({}),
+  defaultValues: { DEFAULT_NAME: '' }
 };
 
 export default {
@@ -29,34 +30,34 @@ Default.args = {
   ...args
 };
 
+const notRequiredName = 'not-required-input';
 export const NotRequired = RHFFormTemplate.bind({});
 NotRequired.args = {
   ...args,
   required: false,
-  name: 'not-required-input'
+  name: notRequiredName,
+  defaultValues: { [notRequiredName]: '' }
 };
 
+const hasPlaceholderName = 'placeholder-input';
 export const HasPlaceholder = RHFFormTemplate.bind({});
 HasPlaceholder.args = {
   ...args,
   required: false,
   placeholder: 'Type something here',
-  name: 'placeholder-input'
+  name: hasPlaceholderName,
+  defaultValues: { [hasPlaceholderName]: '' }
 };
 
-export const EmailType = RHFFormTemplate.bind({});
-EmailType.args = {
-  ...args,
-  required: false,
-  type: 'email'
-};
-
+const hasDefaultValueName = 'pre-filled-value';
+const hasDefaultValueValue = 'pre filled value';
 export const HasDefaultValue = RHFFormTemplate.bind({});
 HasDefaultValue.args = {
   ...args,
   required: false,
-  prefilledValue: 'pre-filled value',
-  name: 'pre-filled-value'
+  prefilledValue: hasDefaultValueValue,
+  name: hasDefaultValueName,
+  defaultValues: { [hasDefaultValueName]: hasDefaultValueValue }
 };
 
 const DOESNT_VALIDATE_NAME = 'doesnt-validate-on-submit';
@@ -65,5 +66,6 @@ DoesntValidate.args = {
   ...args,
   required: false,
   name: DOESNT_VALIDATE_NAME,
-  validator: Yup.object({ [DOESNT_VALIDATE_NAME]: arbitraryError }).required()
+  validator: Yup.object({ [DOESNT_VALIDATE_NAME]: arbitraryError }).required(),
+  defaultValues: { [DOESNT_VALIDATE_NAME]: '' }
 };

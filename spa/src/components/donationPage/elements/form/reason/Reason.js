@@ -1,226 +1,167 @@
-import { useState } from 'react';
+import { useRef } from 'react';
 import PropTypes from 'prop-types';
-import { motion } from 'framer-motion';
+import { Controller, useFormContext } from 'react-hook-form';
+import { Select, MenuItem } from '@material-ui/core';
 
-// Styles
-import * as S from './Reason.styled';
-import { AnimatePresence } from 'framer-motion';
+import TributeRadio from './TributeRadio';
+import LabeledInput from 'elements/inputs/LabeledInput';
 
-// Context
-import { usePage } from '../DonationPage';
-import DElement, { DynamicElementPropTypes } from 'components/donationPage/pageContent/DElement';
+function Reason({
+  legendHeading,
+  reasonPromptDisplay,
+  reasonPromptName,
+  reasonPromptLabelText,
+  reasonPromptRequired,
+  reasonPromptOptions,
+  reasonPromptOtherOptionLabelText,
+  reasonPromptOtherOptionValue,
+  reasonPromptOtherInputPlaceholder,
+  reasonPromptOtherInputLabelText,
+  reasonPromptOtherInputName,
+  inHonorDisplay,
+  // name of input, not honoree
+  inHonorName,
+  inHonorPlaceholder,
+  inMemoryDisplay,
+  inMemoryPlaceholder,
+  // name of input, not memoree
+  inMemoryName
+}) {
+  const {
+    control,
+    watch,
+    formState: { errors }
+  } = useFormContext();
 
-// Children
-import GroupedLabel from 'elements/inputs/GroupedLabel';
-import { InputGroup, GroupedWrapper } from 'elements/inputs/inputElements.styled';
-import Select from 'elements/inputs/Select';
-
-const defaultTributeState = {
-  isHonoree: false,
-  isInMemoryOf: false
-};
-
-export const REASON_OPTION_MAX_LENGTH = 255;
-const NO_REASON_OPT = '-- Select one --';
-const REASON_OTHER = 'Other';
-
-function Reason({ element, ...props }) {
-  const { errors } = usePage();
-
-  // Form state
-  const [selectedReason, setSelectedReason] = useState('');
-  const [reasonOther, setReasonOther] = useState('');
-  const [tributeState, setTributeState] = useState(defaultTributeState);
-  const [tributeInput, setTributeInput] = useState('');
-
-  // Form control
-  const handleTributeSelection = (selectedOption, value) => {
-    if (!selectedOption) {
-      setTributeState(defaultTributeState);
-    } else {
-      setTributeState({
-        ...defaultTributeState,
-        [selectedOption]: !tributeState[selectedOption]
-      });
-    }
-  };
-
-  const getReasons = () => {
-    const reasons = [...element.content.reasons];
-    if (!element?.requiredFields?.includes('reason_for_giving')) reasons.unshift(NO_REASON_OPT);
-    reasons.push(REASON_OTHER);
-    return reasons;
-  };
-
-  const elementContent = element?.content || {};
-
+  const chosenReasonOption = watch(reasonPromptName);
+  const displayTributeChoiceInput = inMemoryDisplay || inHonorDisplay;
+  const { inHonorOfValue, inMemoryOfValue, name: tributeRadioName } = TributeRadio.defaultProps;
+  const tributeRadioChoice = watch(tributeRadioName);
+  const selectRef = useRef(null);
   return (
-    <DElement label="Reason for giving" {...props} data-testid="d-reason">
-      <S.ReasonGroup>
-        {elementContent.askReason && (
-          <InputGroup>
-            <GroupedLabel required={element?.requiredFields?.includes('reason_for_giving')}>
-              I support your work because...
-            </GroupedLabel>
-            <S.SupportOptions>
-              {elementContent.reasons.length > 0 && (
+    <fieldset className="w-full max-w-md">
+      <legend className="w-full">
+        <h2 className="text-3xl mb-4">{legendHeading}</h2>
+        {reasonPromptDisplay && (
+          <div className="flex flex-col gap-3">
+            {/* https://v4.mui.com/components/selects/#accessibility -- id and labelId => mui doing the a11y thing*/}
+            <label id="reason-reasons-select">{reasonPromptLabelText}</label>
+            <Controller
+              name={reasonPromptName}
+              control={control}
+              render={({ field: { onChange, value } }) => (
                 <Select
-                  testId="excited-to-support-picklist"
-                  name="reason_for_giving"
-                  selectedItem={selectedReason}
-                  onSelectedItemChange={({ selectedItem }) => setSelectedReason(selectedItem)}
-                  items={getReasons()}
-                  errors={errors?.reason_for_giving}
-                />
+                  required={reasonPromptRequired}
+                  variant="outlined"
+                  // onChange={(e) => {
+                  //   // selectRef.current.value
+                  //   console.log(e.target.value);
+                  //   onChange(e);
+                  //   //
+                  // }}
+                  inputRef={selectRef}
+                  value={value}
+                  displayEmpty
+                  labelId="reason-reasons-select"
+                >
+                  {[
+                    { labelText: reasonPromptOtherOptionLabelText, value: reasonPromptOtherOptionValue },
+                    ...reasonPromptOptions
+                  ].map(({ labelText, value }, key) => {
+                    return (
+                      <MenuItem key={`${key}{value}`} value={value}>
+                        {labelText}
+                      </MenuItem>
+                    );
+                  })}
+                </Select>
               )}
-              <AnimatePresence>
-                {(elementContent.reasons?.length === 0 || selectedReason === REASON_OTHER) && (
-                  <motion.div {...S.inputAnimations}>
-                    <S.ReasonOtherInput
-                      placeholder="Tell us why you suport our work"
-                      value={reasonOther}
-                      name="reason_other"
-                      onChange={(e) => setReasonOther(e.target.value)}
-                      maxLength={REASON_OPTION_MAX_LENGTH}
-                      errors={errors.reason_other}
-                    />
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </S.SupportOptions>
-          </InputGroup>
+            />
+            {chosenReasonOption === reasonPromptOtherOptionValue && (
+              <LabeledInput
+                visuallyHideLabel={true}
+                labelText={reasonPromptOtherInputLabelText}
+                name={reasonPromptOtherInputName}
+                placeholder={reasonPromptOtherInputPlaceholder}
+                required={false}
+              />
+            )}
+          </div>
         )}
-      </S.ReasonGroup>
-      {(elementContent.askHonoree || elementContent.askInMemoryOf) && (
-        <TributeSelector
-          elementContent={elementContent}
-          tributeState={tributeState}
-          handleSelection={handleTributeSelection}
-          inputValue={tributeInput}
-          handleInputChange={(e) => setTributeInput(e.target.value)}
-          errors={errors}
-        />
-      )}
-    </DElement>
+        {displayTributeChoiceInput && (
+          <div>
+            <TributeRadio inMemoryDisplay={inMemoryDisplay} inHonorDisplay={inHonorDisplay} />
+            {tributeRadioChoice === inMemoryOfValue && (
+              <LabeledInput
+                name={inMemoryName}
+                placeholder={inMemoryPlaceholder}
+                visuallyHideLabel={true}
+                labelText={inMemoryPlaceholder}
+                required={inMemoryDisplay}
+              />
+            )}
+            {tributeRadioChoice === inHonorOfValue && (
+              <LabeledInput
+                name={inHonorName}
+                placeholder={inHonorPlaceholder}
+                visuallyHideLabel={true}
+                labelText={inHonorPlaceholder}
+                required={inHonorDisplay}
+              />
+            )}
+          </div>
+        )}
+      </legend>
+    </fieldset>
   );
 }
 
 Reason.propTypes = {
-  element: PropTypes.shape({
-    ...DynamicElementPropTypes
-  })
+  reasonPromptName: PropTypes.string.isRequired,
+  reasonPromptDisplay: PropTypes.bool.isRequired,
+  reasonPromptLabelText: PropTypes.string.isRequired,
+  reasonPromptPlaceholder: PropTypes.string.isRequired,
+  reasonPromptOtherOptionValue: PropTypes.string.isRequired,
+  reasonPromptRequired: PropTypes.bool.isRequired,
+  reasonPromptOtherOptionLabelText: PropTypes.string.isRequired,
+  reasonPromptOptions: PropTypes.arrayOf(
+    PropTypes.shape({
+      labelText: PropTypes.string.isRequired,
+      value: PropTypes.string.isRequired
+    })
+  ),
+  reasonPromptOtherInputPlaceholder: PropTypes.string.isRequired,
+  reasonPromptOtherInputName: PropTypes.string.isRequired,
+  reasonPromptOtherInputLabelText: PropTypes.string.isRequired,
+  inHonorDisplay: PropTypes.bool.isRequired,
+  inHonorPlaceholder: PropTypes.string.isRequired,
+  inHonorName: PropTypes.string.isRequired,
+  inMemoryDisplay: PropTypes.bool.isRequired,
+  inMemoryPlaceholder: PropTypes.string.isRequired,
+  inMemoryName: PropTypes.string.isRequired
 };
 
-Reason.type = 'DReason';
-Reason.displayName = 'Reason for Giving';
-Reason.description = 'Collect information about the donors reason for giving';
-Reason.required = false;
-Reason.unique = true;
+Reason.defaultProps = {
+  reasonPromptName: 'contribution-reason',
+  legendHeading: 'Reason for giving',
+  reasonPromptDisplay: false,
+  reasonPromptLabelText: 'I support your work because...',
+  reasonPromptPlaceholder: 'Select a reason',
+  reasonPromptOtherInputPlaceholder: 'Tell us why you support our work',
+  reasonPromptOtherInputName: 'other-reason',
+  reasonPromptOtherInputLabelText: 'Tell us more',
+  reasonPromptOtherOptionValue: 'canonical-other-option-value',
+  reasonPromptRequired: false,
+  reasonPromptOptions: [],
+  reasonPromptOtherOptionLabelText: 'Other',
+  inHonorDisplay: false,
+  inHonorPlaceholder: 'In honor of...',
+  inHonorName: 'in-honor-of',
+  inMemoryDisplay: false,
+  inMemoryName: 'in-memory-of',
+  inMemoryPlaceholder: 'In memory of...',
+  helperText: 'Paying the Stripe transaction fee, while not required, directs more money in support of our mission.',
+  defaultChecked: false
+};
 
 export default Reason;
-
-function TributeSelector({
-  elementContent = {},
-  tributeState,
-  handleSelection,
-  inputValue,
-  handleInputChange,
-  errors
-}) {
-  const showTributeInput = tributeState.isHonoree || tributeState.isInMemoryOf;
-
-  return (
-    <InputGroup>
-      <GroupedLabel>Is this gift a tribute?</GroupedLabel>
-      {elementContent.askHonoree && elementContent.askInMemoryOf && (
-        <GroupedWrapper>
-          <TributeCheckbox
-            asRadio
-            label="No"
-            name="tribute_type"
-            checked={!tributeState.isHonoree && !tributeState.isInMemoryOf}
-            handleChange={(e) => handleSelection('', e.target.value)}
-            value=""
-          />
-          <TributeCheckbox
-            asRadio
-            label="Yes, in honor of..."
-            name="tribute_type"
-            checked={tributeState.isHonoree}
-            handleChange={(e) => handleSelection('isHonoree', e.target.value)}
-            value="type_honoree"
-          />
-          <TributeCheckbox
-            asRadio
-            label="Yes, in memory of..."
-            name="tribute_type"
-            checked={tributeState.isInMemoryOf}
-            handleChange={(e) => handleSelection('isInMemoryOf', e.target.value)}
-            value="type_in_memory_of"
-          />
-        </GroupedWrapper>
-      )}
-      {elementContent.askHonoree && !elementContent.askInMemoryOf && (
-        <S.SingleOption>
-          <TributeCheckbox
-            label="Give in honor of..."
-            name="tribute_type_honoree"
-            checked={tributeState.isHonoree}
-            handleChange={(e) => handleSelection('isHonoree', e.target.value)}
-          />
-        </S.SingleOption>
-      )}
-      {elementContent.askInMemoryOf && !elementContent.askHonoree && (
-        <S.SingleOption>
-          <TributeCheckbox
-            label="Give in memory of..."
-            name="tribute_type_in_memory_of"
-            checked={tributeState.isInMemoryOf}
-            handleChange={(e) => handleSelection('isInMemoryOf', e.target.value)}
-          />
-        </S.SingleOption>
-      )}
-      <AnimatePresence>
-        {showTributeInput && (
-          <motion.div {...S.inputAnimations}>
-            <S.TributeInput
-              testid="tribute-input"
-              name={tributeState.isInMemoryOf ? 'in_memory_of' : 'honoree'}
-              placeholder={tributeState.isInMemoryOf ? 'In memory of...' : 'In honor of...'}
-              value={inputValue}
-              onChange={handleInputChange}
-              errors={errors[tributeState.isInMemoryOf ? 'in_memory_of' : 'honoree']}
-            />
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </InputGroup>
-  );
-}
-
-function TributeCheckbox({ value, label, name, checked, handleChange, asRadio }) {
-  return (
-    <S.CheckBoxField>
-      {asRadio ? (
-        <S.Radio
-          data-testid={`tribute-${value}`}
-          id={value}
-          checked={checked}
-          onChange={handleChange}
-          value={value}
-          name={name}
-        />
-      ) : (
-        <S.Checkbox
-          data-testid={`tribute-${value}`}
-          id={name}
-          type="checkbox"
-          name={name}
-          checked={checked}
-          onChange={handleChange}
-        />
-      )}
-      <S.CheckboxLabel htmlFor={asRadio ? value : name}>{label}</S.CheckboxLabel>
-    </S.CheckBoxField>
-  );
-}

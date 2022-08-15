@@ -7,7 +7,10 @@ const args = {
   ...Frequency.defaultProps,
   includeDevTools: true,
   submitSuccessMessage: 'successful submit',
-  validator: Yup.object({})
+  validator: Yup.object({}),
+  defaultValues: {
+    [Frequency.defaultProps.name]: Frequency.defaultProps.options[Frequency.defaultProps.defaultCheckedIndex].value
+  }
 };
 
 export default {

@@ -2,6 +2,7 @@ import { GET_MAGIC_LINK, VERIFY_TOKEN, CONTRIBUTIONS, CANCEL_RECURRING } from 'a
 import { getEndpoint } from '../support/util';
 import { CONTRIBUTOR_ENTRY, CONTRIBUTOR_VERIFY } from 'routes';
 import donationsData from '../fixtures/donations/18-results.json';
+import { GENERIC_ERROR_WITH_SUPPORT_INFO } from 'constants/textConstants';
 
 // Util
 import isEqual from 'lodash.isequal';
@@ -34,8 +35,6 @@ describe('Contributor portal', () => {
     });
 
     it('should display generic alert error message on email if non-200 status', () => {
-      const GENERIC_ERROR_WITH_SUPPORT_INFO =
-        'We encountered an issue and have been notified. Please try again. If this issue persists, please contact revenginesupport@fundjournalism.org.';
       cy.visit(CONTRIBUTOR_ENTRY);
       cy.intercept({ method: 'POST', url: getEndpoint(GET_MAGIC_LINK) }, { statusCode: 500 }).as('getMagicLink');
       cy.getByTestId('magic-link-email-button').click();

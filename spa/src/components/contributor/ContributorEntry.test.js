@@ -33,6 +33,7 @@ describe('ContributorEntry', () => {
   });
 
   it('should show success message when response is 200', async () => {
+    server.resetHandlers(rest.post(revengineApi(GET_MAGIC_LINK), (req, res, ctx) => res(ctx.status(200))));
     render(<ContributorEntry />);
     const input = screen.getByRole('textbox');
     const email = 'test@gmail.com';

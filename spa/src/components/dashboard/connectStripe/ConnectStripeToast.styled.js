@@ -1,6 +1,5 @@
 import { Button as MuiButton } from '@material-ui/core';
 import styled from 'styled-components';
-//import lighten from 'styles/utils/lighten';
 
 export const ConnectStripeToast = styled.div`
   position: absolute;

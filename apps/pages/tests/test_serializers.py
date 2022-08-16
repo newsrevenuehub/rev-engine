@@ -1,10 +1,15 @@
+from unittest import mock
+
 from django.utils import timezone
 
+import pytest
+from rest_framework import serializers
 from rest_framework.exceptions import ErrorDetail
 from rest_framework.test import APIRequestFactory, APITestCase
 
 from apps.api.tests import RevEngineApiAbstractTestCase
 from apps.organizations.models import BenefitLevelBenefit
+from apps.organizations.serializers import PaymentProviderSerializer
 from apps.organizations.tests.factories import (
     BenefitFactory,
     BenefitLevelFactory,
@@ -39,6 +44,13 @@ class DonationPageFullDetailSerializerTest(RevEngineApiAbstractTestCase):
         self.serializer = DonationPageFullDetailSerializer
         self.request_factory = APIRequestFactory()
 
+    def test_payment_provider(self):
+        serializer = self.serializer(self.page)
+        self.assertEqual(
+            serializer.data["payment_provider"],
+            PaymentProviderSerializer(self.page.revenue_program.payment_provider).data,
+        )
+
     def test_serializer_not_broken_by_no_payment_provider(self):
         self.page.revenue_program.payment_provider.delete()
         self.page.refresh_from_db()
@@ -69,6 +81,9 @@ class DonationPageFullDetailSerializerTest(RevEngineApiAbstractTestCase):
         self.assertEqual(len(data["benefit_levels"][0]["benefits"]), 2)
         # ...and they should be in the right order.
         self.assertEqual(data["benefit_levels"][0]["benefits"][0]["name"], self.benefit_1.name)
+
+        # No obj.revenuep_rogram
+        assert None is serializer.get_benefit_levels(mock.Mock(revenue_program=None))
 
     def test_get_revenue_program_is_nonprofit(self):
         # Set it true, expect it in page serializer
@@ -104,6 +119,24 @@ class DonationPageFullDetailSerializerTest(RevEngineApiAbstractTestCase):
         self.assertTrue(serializer.is_valid())
         new_page = serializer.save()
         self.assertEqual(new_page.heading, template.heading)
+
+    # TODO: [DEV-2187] Remove stripe_account_id from DonationPageFullDetailSerializer
+
+    def test_create_with_template_does_not_exist(self):
+        new_page_data = {
+            "template_pk": None,
+            "name": "My New Page From a Template",
+            "slug": "my-new-page-from-a-template",
+            "revenue_program": self.page.revenue_program.pk,
+        }
+        serializer = self.serializer(data=new_page_data)
+        request = self.request_factory.post("/")
+        request.user = self.org_user
+        serializer.context["request"] = request
+        with pytest.raises(serializers.ValidationError) as e:
+            assert serializer.is_valid()
+            serializer.save()
+            assert "template no longer exists" in str(e)
 
     def test_live_context_adds_org_stripe_account_id(self):
         serializer = self.serializer(self.page, context={"live": False})

@@ -1,5 +1,6 @@
 [run]
-source = apps
+source =
+  apps
 omit =
     */tests/*
     */migrations/*
@@ -16,3 +17,4 @@ skip_empty = True
 exclude_lines =
     pragma: no cover
     <!--no cover-->
+fail_under = 95

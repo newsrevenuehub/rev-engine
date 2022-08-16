@@ -34,10 +34,6 @@ class InvalidMetadataError(ContributionIgnorableError):
     pass
 
 
-class NoInvoiceGeneratedError(ContributionIgnorableError):
-    pass
-
-
 class AttrDict(dict):
     def __init__(self, **kwargs) -> None:
         super().__init__(**kwargs)
@@ -49,15 +45,17 @@ class StripeCharge:
     """
     Wrapper on stripe charge object to extract the required details in
     apps.contributions.serializers.PaymentProviderContributionSerializer and serializable.
+
+    If there's no Invoice associated with a Charge object then it's a one-time payment.
     """
 
     def __init__(self, charge):
-        if not hasattr(charge, "invoice") or not charge.invoice:
-            raise NoInvoiceGeneratedError(f"No invoice object for charge : {charge.id}")
         self.charge = charge
 
     @property
     def invoice_line_item(self):
+        if not self.charge.invoice:
+            return [{}]
         line_item = self.charge.invoice.lines.data
         if not line_item:
             line_item = [{}]
@@ -65,6 +63,9 @@ class StripeCharge:
 
     @property
     def interval(self):
+        if not self.charge.invoice:
+            # if there's no invoice then it's a one-time payment
+            return ContributionInterval.ONE_TIME
         interval = self.invoice_line_item.get("plan", {}).get("interval")
         interval_count = self.invoice_line_item.get("plan", {}).get("interval_count")
         if interval == "year" and interval_count == 1:
@@ -108,6 +109,8 @@ class StripeCharge:
 
     @property
     def last_payment_date(self):
+        if not self.charge.invoice:
+            return datetime.utcfromtimestamp(int(self.charge.created))
         return datetime.utcfromtimestamp(int(self.charge.invoice.status_transitions.paid_at))
 
     @property
@@ -130,9 +133,13 @@ class StripeCharge:
 
     @property
     def next_payment_date(self):
+        # TODO: [DEV-2192] this isn't the next payment date; fix this
+        if not self.charge.invoice:
+            return None
         next_attempt = self.charge.invoice.next_payment_attempt
         if next_attempt:
             return datetime.utcfromtimestamp(int(next_attempt))
+        return None
 
     @property
     def refunded(self):
@@ -191,6 +198,8 @@ class StripeContributionsProvider:
 
         if page:
             kwargs["page"] = page
+
+        # TODO: [DEV-2193] this should probably be refactored to fetch PaymentIntents instead of Charges and expand `invoice.subscription`
 
         return stripe.Charge.search(**kwargs)
 

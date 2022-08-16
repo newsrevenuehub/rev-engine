@@ -49,6 +49,6 @@ export const InvalidPaymentProvider = styled.p`
 
   p {
     color: #080708;
-    font-size: 90%;
+    font-size: 0.9em;
   }
 `;

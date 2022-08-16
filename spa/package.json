@@ -75,7 +75,8 @@
     "test:coverage": "CI=true npm test -- --env=jsdom --coverage",
     "test:ci": "CI=true npm test -- --env=jsdom",
     "storybook": "start-storybook -p 6006 -s public",
-    "build-storybook": "build-storybook -s public"
+    "build-storybook": "build-storybook -s public",
+    "chromatic": "npx chromatic --project-token=244c0bc1a0f3"
   },
   "jest": {
     "testMatch": [
@@ -153,9 +154,10 @@
     "@testing-library/jest-dom": "^5.11.10",
     "@testing-library/react": "^11.2.6",
     "@testing-library/react-hooks": "^7.0.2",
-    "@testing-library/user-event": "^12.8.3",
+    "@testing-library/user-event": "^14.4.3",
     "autoprefixer": "^10.4.8",
     "babel-plugin-named-exports-order": "^0.0.2",
+    "chromatic": "^6.7.4",
     "cypress": "^8.5.0",
     "cypress-localstorage-commands": "^1.7.0",
     "eslint-config-prettier": "^8.3.0",
@@ -165,5 +167,7 @@
     "postcss": "^8.4.16",
     "prettier": "^2.7.1",
     "tailwindcss": "^3.1.8"
-  }
+  },
+  "readme": "ERROR: No README data found!",
+  "_id": "revengine@0.1.0"
 }

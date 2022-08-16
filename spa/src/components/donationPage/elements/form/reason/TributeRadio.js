@@ -12,7 +12,7 @@ function TributeRadio({
   inHonorDisplay,
   inMemoryOfLabel,
   inMemoryOfValue,
-  inMemoryDisplay
+  inMemoryDisplay,
 }) {
   const { register } = useFormContext();
   const shouldDisplay = inMemoryDisplay || inHonorDisplay;
@@ -26,9 +26,9 @@ function TributeRadio({
     .map(({ labelText, value, defaultChecked }) => ({ labelText, value, defaultChecked }));
 
   return shouldDisplay ? (
-    <fieldset className="w-full ">
+    <fieldset className="w-full mb-">
       <legend className="w-full">
-        <h3 className="text-3xl">{helperText}</h3>
+        <h3 className="mb-3">{helperText}</h3>
         <div className={clsx('flex justify-between max-w-sm')}>
           {options.map(({ labelText, value, defaultChecked }) => {
             const id = `${name}-${value}`;
@@ -36,7 +36,6 @@ function TributeRadio({
               <label htmlFor={id} key={id}>
                 <input
                   {...register(name)}
-                  name={name}
                   id={id}
                   type="radio"
                   value={value}

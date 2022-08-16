@@ -33,3 +33,9 @@ export const Default = RHFFormTemplate.bind({});
 Default.args = {
   ...args
 };
+
+export const NoReasonOptions = RHFFormTemplate.bind({});
+NoReasonOptions.args = {
+  ...args,
+  reasonPromptOptions: []
+}

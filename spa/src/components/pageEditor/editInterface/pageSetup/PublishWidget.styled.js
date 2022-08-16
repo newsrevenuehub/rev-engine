@@ -39,7 +39,7 @@ export const Or = styled.p`
   padding: 1rem;
 `;
 
-export const InvalidPaymentProvider = styled.div`
+export const InvalidPaymentProvider = styled.p`
   width: 100%;
   color: #ff476c;
   text-align: center;

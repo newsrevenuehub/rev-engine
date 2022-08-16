@@ -49,7 +49,7 @@ function Donations() {
 
   const fetchDonations = useCallback(
     (parameters, { onSuccess, onFailure }) => {
-      const params = { ...parameters, ...filters };
+      const params = { ...parameters, ...filters, status__not: 'flagged' };
       requestDonations(
         { method: 'GET', url: CONTRIBUTIONS, params, paramsSerializer: (p) => queryString.stringify(p) },
         {
@@ -112,17 +112,6 @@ function Donations() {
         Header: 'Payment status',
         accessor: 'status',
         Cell: (props) => <StatusCellIcon status={props.value} showText />
-      },
-      {
-        Header: 'Date flagged',
-        accessor: 'flagged_date',
-        Cell: (props) => (props.value ? <DateAndTimeCell dateTime={props.value} /> : NO_VALUE)
-      },
-      {
-        Header: 'Auto-resolution date',
-        accessor: 'auto_accepted_on',
-        Cell: (props) => (props.value ? <ResolutionDateCaution date={props.value} /> : NO_VALUE),
-        disableSortBy: true
       }
     ],
     []

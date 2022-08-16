@@ -27,15 +27,9 @@ function Reason({
   // name of input, not memoree
   inMemoryName
 }) {
-  const {
-    control,
-    watch,
-    setValue,
-    getValues,
-    resetField,
-  } = useFormContext();
+  const { control, watch, setValue, getValues, resetField } = useFormContext();
 
-  // this is users answer to the dropdown of prompting for reason for support. this dropdown 
+  // this is users answer to the dropdown of prompting for reason for support. this dropdown
   // may or may not be displayed. The org can enable/disable this question overall, and they can also
   // decide whether or not to provide a set of options -- one of which will be "Other". In the case of "Other"
   // the user is prompted to type in a reason. If the question is enabled, but no pre-set options defined, the dropdown
@@ -60,10 +54,10 @@ function Reason({
   // changes their answer in dropdown to something other than "Other", we reset the value they provided
   // for the text field, as it's no longer required.
   useEffect(() => {
-    if (chosenReasonOption !== reasonPromptOtherOptionValue && getValues(reasonPromptOtherInputName) ) {
+    if (chosenReasonOption !== reasonPromptOtherOptionValue && getValues(reasonPromptOtherInputName)) {
       resetField(reasonPromptOtherInputName);
     }
-  }, [chosenReasonOption, getValues, reasonPromptOtherInputName, reasonPromptOtherOptionValue, resetField])
+  }, [chosenReasonOption, getValues, reasonPromptOtherInputName, reasonPromptOtherOptionValue, resetField]);
 
   // The org can choose to prompt the user to ask if the contribution is a tribute to someone
   // either living (in which case it's "In honor of") or deceased (in which case it's "In memory of").
@@ -73,14 +67,14 @@ function Reason({
   const displayTributeChoiceInput = inMemoryDisplay || inHonorDisplay;
   const { inHonorOfValue, inMemoryOfValue, noValue, name: tributeRadioName } = TributeRadio.defaultProps;
   const tributeRadioChoice = watch(tributeRadioName);
-  
+
   // We display the prompt if the user choses "Other" or if the form is configured to prompt for reason but without
   // preset options.
-  const displayReasonOtherInput = (reasonPromptDisplay && !displayReasonDropdown) || (chosenReasonOption === reasonPromptOtherOptionValue)
+  const displayReasonOtherInput =
+    (reasonPromptDisplay && !displayReasonDropdown) || chosenReasonOption === reasonPromptOtherOptionValue;
 
-  
   // If the user chooses the either "In honor of" or "In memory of" options and enters text in the text input,
-  // then subsequently changes their answer in dropdown to something other than "Other", we reset the value 
+  // then subsequently changes their answer in dropdown to something other than "Other", we reset the value
   // they provided for the text field, as it's no longer required.
   useEffect(() => {
     if (tributeRadioChoice === noValue) {
@@ -91,20 +85,22 @@ function Reason({
         resetField(inHonorName);
       }
     }
-  }, [getValues, inHonorName, inMemoryName, noValue, resetField, tributeRadioChoice])
-  
+  }, [getValues, inHonorName, inMemoryName, noValue, resetField, tributeRadioChoice]);
+
   return (
     <fieldset className="w-full max-w-md">
       <legend className="w-full">
         <h2 className="text-3xl mb-4">{legendHeading}</h2>
         {reasonPromptDisplay && (
           <div className="flex flex-col gap-3 mb-5 ">
-            {/* https://v4.mui.com/components/selects/#accessibility -- id and labelId => mui doing the a11y thing*/}
-            <label htmlFor="reason-reasons-select" className='after:content-["*"] after:text-red-500 after:text-bold after:ml-1 after:align-middle'>
+            <label
+              htmlFor="reason-reasons-select"
+              className='after:content-["*"] after:text-red-500 after:text-bold after:ml-1 after:align-middle'
+            >
               {reasonPromptLabelText}
             </label>
-            {displayReasonDropdown && 
-              (<Controller
+            {displayReasonDropdown && (
+              <Controller
                 name={reasonPromptName}
                 control={control}
                 render={({ field: { onChange } }) => {
@@ -118,7 +114,7 @@ function Reason({
                       id="reason-reasons-select"
                     >
                       {[
-                        { labelText: "", value: ""},
+                        { labelText: '', value: '' },
                         { labelText: reasonPromptOtherOptionLabelText, value: reasonPromptOtherOptionValue },
                         ...reasonPromptOptions
                       ].map(({ labelText, value }, key) => {
@@ -129,11 +125,11 @@ function Reason({
                         );
                       })}
                     </Select>
-                  )
-                }
-              }/>
+                  );
+                }}
+              />
             )}
-            {(displayReasonOtherInput) && (
+            {displayReasonOtherInput && (
               <LabeledInput
                 visuallyHideLabel={true}
                 labelText={reasonPromptOtherInputLabelText}
@@ -218,7 +214,7 @@ Reason.defaultProps = {
   inMemoryDisplay: false,
   inMemoryName: 'in-memory-of',
   inMemoryPlaceholder: 'In memory of...',
-  helperText: 'Paying the Stripe transaction fee, while not required, directs more money in support of our mission.',
+  helperText: 'Paying the Stripe transaction fee, while not required, directs more money in support of our mission.'
 };
 
 export default Reason;

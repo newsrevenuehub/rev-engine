@@ -1,5 +1,7 @@
 import styled, { css } from 'styled-components';
+import { Pagination as MuiPagination } from '@material-ui/lab';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { Typography } from '@material-ui/core';
 
 export const TableScrollWrapper = styled.div`
   width: 100%;
@@ -7,6 +9,7 @@ export const TableScrollWrapper = styled.div`
 `;
 
 export const PaginatedTable = styled.table`
+  width: 100%;
   border-collapse: collapse;
   font-family: ${(props) => props.theme.systemFont};
   td {
@@ -73,8 +76,9 @@ export const PaginatedTable = styled.table`
 
 export const TH = styled.th`
   padding: 1rem;
-  background: ${(props) => props.theme.colors.cstm_CTAs || props.theme.colors.primary};
-  color: ${(props) => props.theme.colors.white};
+  font-size: ${(props) => props.theme.fontSizesUpdated.sm};
+  background: ${(props) => props.theme.colors.muiLightBlue[200]};
+  color: ${(props) => props.theme.colors.muiGrey[900]};
 
   div {
     display: flex;
@@ -91,7 +95,7 @@ export const TH = styled.th`
 export const TR = styled.tr`
   background: ${(props) => {
     if (props.expanded) return props.theme.colors.tableRowHover;
-    else return props.even ? props.theme.colors.grey[0] : props.theme.colors.paneBackground;
+    else return props.even ? props.theme.colors.muiGrey[100] : props.theme.colors.paneBackground;
   }};
 
   min-height: 80px;
@@ -106,10 +110,22 @@ export const SortIcon = styled(FontAwesomeIcon)`
   margin-left: 1rem;
 `;
 
-export const Pagination = styled.div`
+export const EmptyState = styled(Typography)`
+  font-style: italic;
+  font-size: ${(props) => props.theme.fontSizesUpdated.md};
+  text-align: center;
+`;
+
+export const Pagination = styled(MuiPagination)`
+  margin-top: 1rem;
   display: flex;
   flex-direction: column;
   align-items: center;
+
+  && .Mui-selected {
+    font-weight: 700;
+    background-color: ${(props) => props.theme.colors.muiLightBlue[200]};
+  }
 `;
 
 export const ResultsSummary = styled.p`

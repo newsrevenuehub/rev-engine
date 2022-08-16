@@ -1,22 +1,16 @@
-import { useEffect } from 'react';
+import { useEffect, useMemo } from 'react';
 import * as S from './PaginatedTable.styled';
 
 // Deps
-import { faSort, faSortUp, faSortDown, faChevronLeft, faChevronRight } from '@fortawesome/free-solid-svg-icons';
+import { faSort, faSortUp, faSortDown } from '@fortawesome/free-solid-svg-icons';
 import { useTable, usePagination, useSortBy } from 'react-table';
-
-// Children
-import CircleButton from 'elements/buttons/CircleButton';
-import { useMemo } from 'react';
 
 function PaginatedTable({
   columns,
   data = [],
   fetchData,
   refetch,
-  loading,
   pageCount,
-  totalResults,
   onRowClick,
   onPageChange,
   getRowIsDisabled,
@@ -29,8 +23,6 @@ function PaginatedTable({
     headerGroups,
     prepareRow,
     page,
-    canPreviousPage,
-    canNextPage,
     pageOptions,
     // Get the state from the instance
     state: { pageIndex, pageSize, sortBy }
@@ -50,6 +42,7 @@ function PaginatedTable({
           }),
           // ingore warnings that controlledPageIndex shouldn't be in dependencies. without, new page won't
           // be retrieved when pageIndex changes.
+          // eslint-disable-next-line react-hooks/exhaustive-deps
           [state, controlledPageIndex]
         );
       }
@@ -62,17 +55,6 @@ function PaginatedTable({
     fetchData(pageSize, pageIndex + 1, sortBy);
   }, [fetchData, pageIndex, pageSize, sortBy, refetch]);
 
-  const getCurrentPageResultIndices = (pageSize, pageIndex, currentPageSize) => {
-    const startIndex = pageSize * pageIndex + 1;
-    const endIndex = startIndex + currentPageSize - 1;
-    return [startIndex, endIndex];
-  };
-
-  const handleNextPage = () => onPageChange(1);
-
-  const handlePreviousPage = () => onPageChange(-1);
-
-  const [startIndex, endIndex] = getCurrentPageResultIndices(pageSize, pageIndex, data.length);
   return (
     <>
       <S.TableScrollWrapper>
@@ -130,31 +112,15 @@ function PaginatedTable({
           </tbody>
         </S.PaginatedTable>
       </S.TableScrollWrapper>
-      <S.Pagination>
-        <S.PaginationSection>
-          <CircleButton
-            data-testid="previous-page"
-            onClick={() => handlePreviousPage()}
-            disabled={!canPreviousPage}
-            icon={faChevronLeft}
-          />
-          <S.Pages>
-            Page
-            <S.Current data-testid="page-number"> {pageIndex + 1}</S.Current> of
-            <S.Total data-testid="page-total"> {pageOptions.length}</S.Total>
-          </S.Pages>
-          <CircleButton
-            data-testid="next-page"
-            icon={faChevronRight}
-            onClick={() => handleNextPage()}
-            disabled={!canNextPage}
-          />
-        </S.PaginationSection>
-
-        <S.ResultsSummary>
-          {startIndex} - {endIndex} of <span data-testid="total-results">{totalResults} </span>contributions
-        </S.ResultsSummary>
-      </S.Pagination>
+      {!data.length && <S.EmptyState variant="body1">0 contributions to show.</S.EmptyState>}
+      <S.Pagination
+        size="small"
+        count={pageOptions.length}
+        shape="rounded"
+        onChange={(_, page) => {
+          onPageChange(page - 1);
+        }}
+      />
     </>
   );
 }

@@ -4,7 +4,7 @@ import * as S from './StatusFilter.styled';
 import { FilterWrapper, FilterLabel } from 'components/donations/filters/Filters';
 import { StatusCellIcon } from 'components/contributor/contributorDashboard/ContributorDashboard';
 
-const STATUS_FILTERS = ['processing', 'paid', 'canceled', 'failed', 'flagged', 'rejected'];
+const STATUS_FILTERS = ['processing', 'paid', 'canceled', 'failed'];
 
 function StatusFilter({ filter = [], handleFilterChange }) {
   return (

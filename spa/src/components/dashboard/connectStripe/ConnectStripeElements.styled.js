@@ -39,8 +39,8 @@ export const Modal = styled(MuiModal)`
 export const h1 = styled.h1`
   margin-top: 0px;
   font-weight: 700;
-  font-size: ${(props) => props.theme.fontSizesUpdated.xxl};
-  line-height: ${(props) => props.theme.fontSizesUpdated.xxxl};
+  font-size: ${(props) => props.theme.fontSizesUpdated['2x']};
+  line-height: ${(props) => props.theme.fontSizesUpdated['3x']};
   color: ${(props) => props.theme.colors.purple};
 `;
 

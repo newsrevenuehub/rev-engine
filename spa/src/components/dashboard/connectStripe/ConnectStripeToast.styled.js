@@ -63,12 +63,12 @@ export const Header = styled.div`
 export const Minimize = styled.div`
   margin-left: auto;
   padding: 0px 2px;
-  height: ${(props) => props.theme.fontSizesUpdated.xxl};
+  height: ${(props) => props.theme.fontSizesUpdated['2x']};
   cursor: pointer;
   svg {
     color: ${(props) => props.theme.colors.grey[2]};
-    height: ${(props) => props.theme.fontSizesUpdated.xxl};
-    width: ${(props) => props.theme.fontSizesUpdated.xxl};
+    height: ${(props) => props.theme.fontSizesUpdated['2x']};
+    width: ${(props) => props.theme.fontSizesUpdated['2x']};
   }
   :hover {
     background-color: ${(props) => props.theme.colors.grey[0]};

@@ -70,8 +70,8 @@ export const revEngineTheme = {
     md: '16px',
     lg: '18px',
     xl: '20px',
-    xxl: '24px',
-    xxxl: '28px'
+    '2x': '24px',
+    '3x': '28px'
   },
 
   muiBorderRadius: {

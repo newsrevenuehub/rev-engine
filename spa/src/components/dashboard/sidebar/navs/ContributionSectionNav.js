@@ -1,6 +1,6 @@
 import React from 'react';
 import * as S from './../DashboardSidebar.styled';
-import { DONATIONS_SLUG } from 'routes';
+import { DONATIONS_SLUG, QUARANTINES_SLUG } from 'routes';
 import { ICONS } from 'assets/icons/SvgIcon';
 
 function ContributionSectionNav() {
@@ -16,6 +16,16 @@ function ContributionSectionNav() {
       >
         <S.NavItemIcon icon={ICONS.CONTRIBUTIONS} />
         <S.SideBarText id="contributions-nav-item-id">Contributions</S.SideBarText>
+      </S.NavItem>
+
+      <S.NavItem
+        aria-labelledby="quarantine-nav-item-id"
+        role="listitem"
+        data-testid="nav-quarantine-item"
+        to={QUARANTINES_SLUG}
+      >
+        <S.NavItemIcon icon={ICONS.CONTRIBUTIONS} />
+        <S.SideBarText id="quarantine-nav-item-id">Quarantines</S.SideBarText>
       </S.NavItem>
     </S.NavSection>
   );

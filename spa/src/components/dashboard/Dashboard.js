@@ -3,7 +3,14 @@ import { Route, Switch, Redirect, useLocation } from 'react-router-dom';
 import * as S from './Dashboard.styled';
 
 // Routing
-import { DONATIONS_SLUG, CONTENT_SLUG, EDITOR_ROUTE_PAGE, DASHBOARD_SLUG, CUSTOMIZE_SLUG } from 'routes';
+import {
+  DONATIONS_SLUG,
+  CONTENT_SLUG,
+  EDITOR_ROUTE_PAGE,
+  DASHBOARD_SLUG,
+  CUSTOMIZE_SLUG,
+  QUARANTINES_SLUG
+} from 'routes';
 
 // Children
 import { useFeatureFlagsProviderContext } from 'components/Main';
@@ -22,6 +29,7 @@ import {
 } from 'constants/featureFlagConstants';
 
 import flagIsActiveForUser from 'utilities/flagIsActiveForUser';
+import Quarantines from 'components/donations/Quarantines';
 
 function Dashboard() {
   const { featureFlags } = useFeatureFlagsProviderContext();
@@ -53,6 +61,9 @@ function Dashboard() {
                   <Donations />
                 </Route>
               ) : null}
+              <Route path={QUARANTINES_SLUG}>
+                <Quarantines />
+              </Route>
               {hasContentSectionAccess ? (
                 <Route path={CONTENT_SLUG}>
                   <Content />

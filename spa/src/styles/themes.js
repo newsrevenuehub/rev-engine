@@ -23,6 +23,24 @@ export const revEngineTheme = {
 
     grey: ['#eee', '#ccc', '#999', '#666', '#333'],
 
+    muiLightBlue: {
+      200: '#6FD1EC'
+    },
+
+    muiGrey: {
+      100: '#F1F1F1',
+      300: '#D9D9D9',
+      600: '#707070',
+      900: '#282828'
+    },
+
+    status: {
+      processing: '#ACDCF5',
+      done: '#AFEFAD',
+      failed: '#F4B9C8',
+      warning: '#FDD69C'
+    },
+
     error: {
       primary: '#C8203F'
     },
@@ -50,7 +68,12 @@ export const revEngineTheme = {
     xs: '12px',
     sm: '14px',
     md: '16px',
-    lg: '18px'
+    lg: '18px',
+    h1: '34px'
+  },
+
+  muiBorderRadius: {
+    md: '4px'
   },
 
   radii: ['3px', '6px', '12px'],

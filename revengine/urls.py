@@ -53,7 +53,7 @@ urlpatterns = [
 ]
 
 
-if settings.DEBUG:  # prgma: no cover Is covered, but reimport confuses coverage
+if settings.DEBUG:  # pragma: no cover Is covered, but reimport confuses coverage
     from django.conf.urls.static import static
     from django.contrib.staticfiles.urls import staticfiles_urlpatterns
 

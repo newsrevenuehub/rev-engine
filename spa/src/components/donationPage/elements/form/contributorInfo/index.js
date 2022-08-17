@@ -1,1 +1,2 @@
-export { default, validator } from './ContributorInfo';
+export { default } from './ContributorInfo';
+export { default as validator } from './validator';

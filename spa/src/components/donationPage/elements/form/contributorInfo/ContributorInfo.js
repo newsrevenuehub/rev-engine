@@ -1,28 +1,17 @@
+import PropTypes from 'prop-types';
 import LabeledInput from 'elements/inputs/LabeledInput';
 import clsx from 'clsx';
 
-export const defaultArgs = {
-  firstNameInputName: 'first-name',
-  firstNameLabelText: 'First name',
-  firstNameRequired: true,
-  lastNameInputName: 'last-name',
-  lastNameLabelText: 'Last name',
-  lastNameRequired: true,
-  emailInputName: 'email',
-  emailLabelText: 'E-mail',
-  emailRequired: true
-};
-
 function ContributorInfo({
-  firstNameInputName = defaultArgs.firstNameInputName,
-  firstNameLabelText = defaultArgs.firstNameLabelText,
-  firstNameRequired = defaultArgs.firstNameRequired,
-  lastNameInputName = defaultArgs.lastNameInputName,
-  lastNameLabelText = defaultArgs.lastNameLabelText,
-  lastNameRequired = defaultArgs.lastNameRequired,
-  emailInputName = defaultArgs.emailInputName,
-  emailLabelText = defaultArgs.emailLabelText,
-  emailRequired = defaultArgs.emailRequired
+  firstNameInputName,
+  firstNameLabelText,
+  firstNameRequired,
+  lastNameInputName,
+  lastNameLabelText,
+  lastNameRequired,
+  emailInputName,
+  emailLabelText,
+  emailRequired
 }) {
   return (
     <fieldset className={clsx('w-full flex flex-col items-center')}>
@@ -40,10 +29,27 @@ function ContributorInfo({
   );
 }
 
-// Address.type = 'Address';
-// Address.displayName = 'Donor address';
-// Address.description = 'Collect donor address';
-// Address.required = true;
-// Address.unique = true;
+ContributorInfo.propTypes = {
+  firstNameInputName: PropTypes.string.isRequired,
+  firstNameLabelText: PropTypes.string.isRequired,
+  firstNameRequired: PropTypes.bool.isRequired,
+  lastNameInputName: PropTypes.string.isRequired,
+  lastNameLabelText: PropTypes.string.isRequired,
+  lastNameRequired: PropTypes.bool.isRequired,
+  emailInputName: PropTypes.string.isRequired,
+  emailLabelText: PropTypes.string.isRequired,
+  emailRequired: PropTypes.bool.isRequired
+};
 
+ContributorInfo.defaultProps = {
+  firstNameInputName: 'first-name',
+  firstNameLabelText: 'First name',
+  firstNameRequired: true,
+  lastNameInputName: 'last-name',
+  lastNameLabelText: 'Last name',
+  lastNameRequired: true,
+  emailInputName: 'email',
+  emailLabelText: 'E-mail',
+  emailRequired: true
+};
 export default ContributorInfo;

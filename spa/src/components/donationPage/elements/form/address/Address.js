@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types';
 import { usePlacesWidget } from 'react-google-autocomplete';
 import { useFormContext } from 'react-hook-form';
 
@@ -5,40 +6,22 @@ import { HUB_GOOGLE_MAPS_API_KEY } from 'settings';
 import LabeledInput from 'elements/inputs/LabeledInput';
 import clsx from 'clsx';
 
-export const defaultArgs = {
-  streetAddressInputName: 'address-street',
-  streetAddressLabelText: 'Address',
-  streetAddressRequired: true,
-  cityInputName: 'address-city',
-  cityLabelText: 'City',
-  cityRequired: true,
-  stateInputName: 'address-state',
-  stateLabelText: 'State',
-  stateRequired: true,
-  zipInputName: 'address-zip',
-  zipLabelText: 'Zip / Postal code',
-  zipRequired: true,
-  countryInputName: 'address-country',
-  countryLabelText: 'Country',
-  countryRequired: true
-};
-
 function Address({
-  streetAddressInputName = defaultArgs.streetAddressInputName,
-  streetAddressLabelText = defaultArgs.streetAddressLabelText,
-  streetAddressRequired = defaultArgs.streetAddressRequired,
-  cityInputName = defaultArgs.cityInputName,
-  cityLabelText = defaultArgs.cityLabelText,
-  cityRequired = defaultArgs.cityRequired,
-  stateInputName = defaultArgs.stateInputName,
-  stateLabelText = defaultArgs.stateLabelText,
-  stateRequired = defaultArgs.stateRequired,
-  zipInputName = defaultArgs.zipInputName,
-  zipLabelText = defaultArgs.zipLabelText,
-  zipRequired = defaultArgs.zipRequired,
-  countryInputName = defaultArgs.countryInputName,
-  countryLabelText = defaultArgs.countryLabelText,
-  countryRequired = defaultArgs.countryRequired
+  streetAddressInputName,
+  streetAddressLabelText,
+  streetAddressRequired,
+  cityInputName,
+  cityLabelText,
+  cityRequired,
+  stateInputName,
+  stateLabelText,
+  stateRequired,
+  zipInputName,
+  zipLabelText,
+  zipRequired,
+  countryInputName,
+  countryLabelText,
+  countryRequired
 }) {
   const { setValue } = useFormContext();
 
@@ -102,5 +85,41 @@ function Address({
 // Address.description = 'Collect donor address';
 // Address.required = true;
 // Address.unique = true;
+
+Address.propTypes = {
+  streetAddressInputName: PropTypes.string.isRequired,
+  streetAddressLabelText: PropTypes.string.isRequired,
+  streetAddressRequired: PropTypes.bool.isRequired,
+  cityInputName: PropTypes.string.isRequired,
+  cityLabelText: PropTypes.string.isRequired,
+  cityRequired: PropTypes.string.isRequired,
+  stateInputName: PropTypes.string.isRequired,
+  stateLabelText: PropTypes.string.isRequired,
+  stateRequired: PropTypes.bool.isRequired,
+  zipInputName: PropTypes.string.isRequired,
+  zipLabelText: PropTypes.string.isRequired,
+  zipRequired: PropTypes.bool.isRequired,
+  countryInputName: PropTypes.string.isRequired,
+  countryLabelText: PropTypes.string.isRequired,
+  countryRequired: PropTypes.bool.isRequired
+};
+
+Address.defaultProps = {
+  streetAddressInputName: 'address-street',
+  streetAddressLabelText: 'Address',
+  streetAddressRequired: true,
+  cityInputName: 'address-city',
+  cityLabelText: 'City',
+  cityRequired: true,
+  stateInputName: 'address-state',
+  stateLabelText: 'State',
+  stateRequired: true,
+  zipInputName: 'address-zip',
+  zipLabelText: 'Zip / Postal code',
+  zipRequired: true,
+  countryInputName: 'address-country',
+  countryLabelText: 'Country',
+  countryRequired: true
+};
 
 export default Address;

@@ -2,24 +2,24 @@ import { fireEvent, render, screen } from '@testing-library/react';
 import { composeStories } from '@storybook/testing-react';
 
 import * as stories from './ContributorInfo.stories';
-import { defaultArgs } from './ContributorInfo';
 import { MESSAGE } from './validator';
+import ContributorInfo from './ContributorInfo';
 
 const { Default } = composeStories(stories);
 
 test('default required inputs can be located and typed in', () => {
   const expectations = [
     {
-      labelText: defaultArgs.firstNameLabelText,
-      required: defaultArgs.firstNameRequired
+      labelText: ContributorInfo.defaultProps.firstNameLabelText,
+      required: ContributorInfo.defaultProps.firstNameRequired
     },
     {
-      labelText: defaultArgs.lastNameLabelText,
-      required: defaultArgs.lastNameRequired
+      labelText: ContributorInfo.defaultProps.lastNameLabelText,
+      required: ContributorInfo.defaultProps.lastNameRequired
     },
     {
-      labelText: defaultArgs.emailLabelText,
-      required: defaultArgs.emailRequired
+      labelText: ContributorInfo.defaultProps.emailLabelText,
+      required: ContributorInfo.defaultProps.emailRequired
     }
   ];
   render(<Default />);
@@ -37,7 +37,7 @@ test('default required inputs can be located and typed in', () => {
 test('email input validates for email', async () => {
   render(<Default />);
   const invalid = 'user typed something';
-  const input = screen.getByLabelText(defaultArgs.emailLabelText);
+  const input = screen.getByLabelText(ContributorInfo.defaultProps.emailLabelText);
   fireEvent.change(input, { target: { value: invalid } });
   const button = screen.getByRole('button', { name: 'Submit' });
   fireEvent.click(button);

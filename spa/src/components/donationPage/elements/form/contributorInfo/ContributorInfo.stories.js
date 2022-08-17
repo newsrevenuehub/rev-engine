@@ -3,7 +3,6 @@ import * as Yup from 'yup';
 import ContributorInfo from './ContributorInfo';
 import { RHFFormTemplate } from 'storybook/templates';
 import validator from './validator';
-import { defaultArgs } from './ContributorInfo';
 
 const NAME = 'contributor-info';
 const args = {
@@ -11,7 +10,7 @@ const args = {
   name: NAME,
   includeDevTools: true,
   submitSuccessMessage: 'successful submit',
-  validator: Yup.object({ [defaultArgs.emailInputName]: validator }).required()
+  validator: Yup.object({ [ContributorInfo.defaultProps.emailInputName]: validator }).required()
 };
 
 export default {

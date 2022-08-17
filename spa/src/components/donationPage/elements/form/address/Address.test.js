@@ -2,31 +2,31 @@ import { fireEvent, render, screen } from '@testing-library/react';
 import { composeStories } from '@storybook/testing-react';
 
 import * as stories from './Address.stories';
-import { defaultArgs } from './Address';
+import Address from './Address';
 
 const { Default } = composeStories(stories);
 
 test('default behavior', () => {
   const expectations = [
     {
-      labelText: defaultArgs.streetAddressLabelText,
-      required: defaultArgs.streetAddressRequired
+      labelText: Address.defaultProps.streetAddressLabelText,
+      required: Address.defaultProps.streetAddressRequired
     },
     {
-      labelText: defaultArgs.cityLabelText,
-      required: defaultArgs.cityRequired
+      labelText: Address.defaultProps.cityLabelText,
+      required: Address.defaultProps.cityRequired
     },
     {
-      labelText: defaultArgs.stateLabelText,
-      required: defaultArgs.stateRequired
+      labelText: Address.defaultProps.stateLabelText,
+      required: Address.defaultProps.stateRequired
     },
     {
-      labelText: defaultArgs.zipLabelText,
-      required: defaultArgs.zipRequired
+      labelText: Address.defaultProps.zipLabelText,
+      required: Address.defaultProps.zipRequired
     },
     {
-      labelText: defaultArgs.countryLabelText,
-      required: defaultArgs.countryRequired
+      labelText: Address.defaultProps.countryLabelText,
+      required: Address.defaultProps.countryRequired
     }
   ];
   render(<Default />);

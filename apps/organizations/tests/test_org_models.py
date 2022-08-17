@@ -150,7 +150,7 @@ class RevenueProgramTest(TestCase):
     @override_settings(STRIPE_LIVE_MODE=True)
     @override_settings(STRIPE_LIVE_SECRET_KEY=TEST_STRIPE_LIVE_KEY)
     @override_settings(DOMAIN_APEX=TEST_DOMAIN_APEX)
-    @patch("apps.organizations.models.stripe.ApplePayDomain.create")
+    @patch("stripe.ApplePayDomain.create")
     def test_apple_pay_domain_verification_called_when_created_and_live(self, apple_pay_domain_create):
         my_slug = "sluggy-the-slug"
         expected_domain = f"{my_slug}.{TEST_DOMAIN_APEX}"

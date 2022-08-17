@@ -18,5 +18,5 @@ class Command(BaseCommand):
         revenue_program.stripe_create_apple_pay_domain()
 
         self.stdout.write(self.style.SUCCESS("Success"))
-        self.stdout.write(self.style.SUCCESS(f"Domain verified: {revenue_program._get_host()}"))
+        self.stdout.write(self.style.SUCCESS(f"Domain verified: {revenue_program.slug}.{settings.DOMAIN_APEX}"))
         self.stdout.write(self.style.SUCCESS(f"For RevenueProgram: {revenue_program.name}"))

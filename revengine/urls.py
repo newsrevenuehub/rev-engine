@@ -45,11 +45,15 @@ urlpatterns = [
     path("users/", include(orgadmin_user_management_urls)),
     path("admin-select/", admin_select_options, name="admin-select-options"),
     path("api/", include(api_urlpatterns)),
-    path(".well-known/apple-developer-merchantid-domain-association", read_apple_developer_merchant_id),
+    path(
+        ".well-known/apple-developer-merchantid-domain-association",
+        read_apple_developer_merchant_id,
+        name="apple_dev_merchantid_domain",
+    ),
 ]
 
 
-if settings.DEBUG:
+if settings.DEBUG:  # pragma: no cover Is covered, but reimport confuses coverage
     from django.conf.urls.static import static
     from django.contrib.staticfiles.urls import staticfiles_urlpatterns
 

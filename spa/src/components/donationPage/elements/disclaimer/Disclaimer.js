@@ -2,9 +2,7 @@ import { useMemo } from 'react';
 import * as S from './DonationPageDisclaimer.styled';
 import { format } from 'date-fns';
 
-import { getTotalAmount } from 'components/paymentProviders/stripe/stripeFns';
-
-function DonationPageDisclaimer({ page, amount, payFee, frequency }) {
+function DonationPageDisclaimer({ currencySymbol, amount, frequency }) {
   const getFreqText = () =>
     frequency === 'one_time' ? (
       ''
@@ -21,11 +19,8 @@ function DonationPageDisclaimer({ page, amount, payFee, frequency }) {
   };
 
   const totalAmount = useMemo(
-    () =>
-      `${page.currency?.symbol}${getTotalAmount(amount, payFee, frequency, page.revenue_program_is_nonprofit)}${
-        frequency === 'one_time' ? '' : ','
-      }`,
-    [amount, payFee, frequency, page.revenue_program_is_nonprofit, page.currency.symbol]
+    () => `${currencySymbol}${amount}${frequency === 'one_time' ? '' : ','}`,
+    [amount, frequency, currencySymbol]
   );
 
   return (

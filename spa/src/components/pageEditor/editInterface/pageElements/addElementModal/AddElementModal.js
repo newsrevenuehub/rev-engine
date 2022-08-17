@@ -9,8 +9,8 @@ import Modal from 'elements/modal/Modal';
 import { useEditInterfaceContext } from 'components/pageEditor/editInterface/EditInterface';
 
 // Elements
-import * as dynamicLayoutElements from 'components/donationPage/form/fieldsets/dynamicElements';
-import * as dynamicSidebarElements from 'components/donationPage/form/fieldsets/dynamicSidebarElements';
+import * as dynamicLayoutElements from 'components/donationPage/dynamicElements';
+import * as dynamicSidebarElements from 'components/donationPage//dynamicSidebarElements';
 import PageItem from 'components/pageEditor/editInterface/pageElements/PageItem';
 
 function AddElementModal({ addElementModalOpen, setAddElementModalOpen, destination = 'layout' }) {

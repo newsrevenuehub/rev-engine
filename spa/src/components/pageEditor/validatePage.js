@@ -1,5 +1,5 @@
 import isEmpty from 'lodash.isempty';
-import * as dynamicElements from 'components/donationPage/form/fieldsets/dynamicElements';
+import * as dynamicElements from 'components/donationPage/dynamicElements';
 
 const requiredContent = Object.keys(dynamicElements).filter((key) => dynamicElements[key].requireContent);
 const requiredElements = Object.keys(dynamicElements).filter((key) => dynamicElements[key].required);

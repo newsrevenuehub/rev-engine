@@ -3,9 +3,6 @@ import * as S from './ReasonEditor.styled';
 import { useTheme } from 'styled-components';
 import { AnimatePresence } from 'framer-motion';
 
-// Constants
-import { REASON_OPTION_MAX_LENGTH } from 'components/donationPage/form/fieldsets/DReason';
-
 // Context
 import { useEditInterfaceContext } from 'components/pageEditor/editInterface/EditInterface';
 
@@ -141,7 +138,6 @@ function ReasonEditor() {
                   onChange={(e) => setNewReason(e.target.value)}
                   onKeyUp={handleKeyUpNewReason}
                   placeholder="Add a reason for giving"
-                  maxLength={REASON_OPTION_MAX_LENGTH}
                 />
                 <PlusButton onClick={addNewReason} data-testid="add-new-swag-option" />
               </S.ReasonItem>

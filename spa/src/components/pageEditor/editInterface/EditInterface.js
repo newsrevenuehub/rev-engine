@@ -16,8 +16,8 @@ import PageSetup, { PAGE_SETUP_FIELDS } from 'components/pageEditor/editInterfac
 import PageSidebarElements from 'components/pageEditor/editInterface/pageSidebarElements/PageSidebarElements';
 import PageStyles from 'components/pageEditor/editInterface/pageStyles/PageStyles';
 
-import * as dynamicPageElements from 'components/donationPage/pageContent/dynamicElements';
-import * as dynamicSidebarElements from 'components/donationPage/pageContent/dynamicSidebarElements';
+import * as dynamicPageElements from 'components/donationPage/dynamicElements';
+import * as dynamicSidebarElements from 'components/donationPage/dynamicSidebarElements';
 
 const dynamicElements = { ...dynamicPageElements, ...dynamicSidebarElements };
 

@@ -24,8 +24,8 @@ import useWebFonts from 'hooks/useWebFonts';
 import GlobalLoading from 'elements/GlobalLoading';
 import TrackPageView from 'components/analytics/TrackPageView';
 import ChunkErrorBoundary from 'components/errors/ChunkErrorBoundary';
-import SegregatedStyles from 'components/donationPage/SegregatedStyles';
-import DonationPageNavbar from 'components/donationPage/navbar';
+import SegregatedStyles from 'components/donationPage/elements/SegregatedStyles';
+import DonationPageNavbar from 'components/donationPage/elements/navbar';
 
 // Utilities
 import componentLoader from 'utilities/componentLoader';

@@ -1,11 +1,11 @@
-import * as S from './DImage.styled';
+import * as S from './Image.styled';
 import PropTypes from 'prop-types';
 
 // Util
 import getSrcForImg from 'utilities/getSrcForImg';
 
 // Children
-import DElement, { DynamicElementPropTypes } from 'components/donationPage/pageContent/DElement';
+import DElement, { DynamicElementPropTypes } from 'components/donationPage/elements/DElement';
 
 function DImage({ element, ...props }) {
   return (

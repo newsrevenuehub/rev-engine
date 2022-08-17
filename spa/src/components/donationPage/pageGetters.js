@@ -1,6 +1,6 @@
 import * as dynamicLayoutElements from 'components/donationPage/dynamicElements';
 import * as dynamicSidebarElements from 'components/donationPage/dynamicSidebarElements';
-import ElementError from 'components/donationPage/form/fieldsets/ElementError';
+import ElementError from 'components/donationPage/ElementError';
 
 export const getDynamicElement = (element, live) => {
   return getComponentForElement(element, live);

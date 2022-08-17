@@ -5,14 +5,14 @@ import { Select } from '@material-ui/core';
 
 function Swag({
   headerText,
-  thresholdAmount,
+  swagThresholdAmount,
   optOutDefaultChecked,
   optOutLabelText,
   optOutName,
   swagItemName,
   swagItemLabelText,
   swagItemOptions,
-  thresholdMet
+  swagThresholdMet
 }) {
   const { control, register } = useFormContext();
 
@@ -22,9 +22,9 @@ function Swag({
     <fieldset className="w-full max-w-xl">
       <legend>
         <h2 className="text-3xl mb-4">{headerText}</h2>
-        <p className="italic mb-5">Give a total of {thresholdAmount} per year to be eligible</p>
+        <p className="italic mb-5">Give a total of {swagThresholdAmount} per year to be eligible</p>
       </legend>
-      {thresholdMet && (
+      {swagThresholdMet && (
         <>
           <div className="mb-5">
             <input
@@ -78,7 +78,7 @@ function Swag({
 
 Swag.propTypes = {
   headerText: PropTypes.string.isRequired,
-  thresholdAmount: PropTypes.string.isRequired,
+  swagThresholdAmount: PropTypes.string.isRequired,
   optOutDefaultChecked: PropTypes.bool.isRequired,
   optOutLabelText: PropTypes.string.isRequired,
   optOutName: PropTypes.string.isRequired,
@@ -90,7 +90,7 @@ Swag.propTypes = {
       labelText: PropTypes.string.isRequired
     })
   ).isRequired,
-  thresholdMet: PropTypes.bool.isRequired
+  swagThresholdMet: PropTypes.bool.isRequired
 };
 
 Swag.defaultProps = {

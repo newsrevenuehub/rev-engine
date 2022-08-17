@@ -8,7 +8,7 @@ const { Default } = composeStories(stories);
 
 test('is required by default', () => {
   render(<Default />);
-  Frequency.defaultProps.options.forEach(({ labelText }) => {
+  Frequency.defaultProps.frequencyOptions.forEach(({ labelText }) => {
     const input = screen.getByLabelText(labelText);
     expect(input.required).toBe(true);
   });
@@ -17,7 +17,7 @@ test('is required by default', () => {
 test('has default checked index', () => {
   render(<Default />);
   const inputs = screen.getAllByRole('radio');
-  expect(inputs).toHaveLength(Frequency.defaultProps.options.length);
+  expect(inputs).toHaveLength(Frequency.defaultProps.frequencyOptions.length);
   expect(inputs.filter((input) => input.checked)).toHaveLength(1);
   expect(inputs.findIndex((input) => input.checked)).toBe(Frequency.defaultProps.defaultCheckedIndex);
   expect(inputs.find((input) => input.checked)).toBeTruthy();
@@ -29,7 +29,7 @@ test('submits its chosen value', async () => {
   fireEvent.click(button);
   const successMessage = await screen.findByText(Default.args.submitSuccessMessage, { exact: false });
   within(successMessage).getByText(
-    JSON.stringify({ [Default.args.name]: Default.args.options[Default.args.defaultCheckedIndex].value }),
+    JSON.stringify({ [Default.args.name]: Default.args.frequencyOptions[Default.args.defaultCheckedIndex].value }),
     {
       exact: false
     }
@@ -39,7 +39,7 @@ test('submits its chosen value', async () => {
 test('toggles between selected option', () => {
   render(<Default />);
   const inputs = screen.getAllByRole('radio');
-  expect(inputs).toHaveLength(Frequency.defaultProps.options.length);
+  expect(inputs).toHaveLength(Frequency.defaultProps.frequencyOptions.length);
   inputs.forEach((input) => {
     fireEvent.click(input);
     expect(input).toBeChecked();

@@ -6,7 +6,7 @@ import { RHFFormTemplate } from 'storybook/templates';
 const args = {
   component: Swag,
   ...Swag.defaultProps,
-  thresholdAmount: '$250',
+  swagThresholdAmount: '$250',
   optOutDefaultChecked: false,
   swagItemLabelText: 'T-shirt',
   swagItemOptions: [
@@ -15,7 +15,7 @@ const args = {
     { value: 'lg', labelText: 'lg' },
     { value: 'xl', labelText: 'xl' }
   ],
-  thresholdMet: true,
+  swagThresholdMet: true,
   includeDevTools: true,
   submitSuccessMessage: 'successful submit',
   validator: Yup.object({})
@@ -34,7 +34,7 @@ Default.args = {
 export const ThresholdNotMet = RHFFormTemplate.bind({});
 ThresholdNotMet.args = {
   ...Default.args,
-  thresholdMet: false
+  swagThresholdMet: false
 };
 
 export const OptOutDefaultChecked = RHFFormTemplate.bind({});

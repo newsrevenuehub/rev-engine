@@ -13,32 +13,30 @@ import {
 // Every component that is returned maps 1:1 with the stories, but they already contain all decorators from story level, meta level and global level.
 const { Default, OneTime, WithDefaultFreeForm, FreeFormInputDisabled } = composeStories(stories);
 
-test('when no amountFrequency (aka "one-time")', () => {
+test('when no frequency (aka "one-time")', () => {
   render(<OneTime />);
-  const { presetAmounts, amountCurrencySymbol } = OneTime.args;
-  const expectedPresetLabels = presetAmounts.map((amount) => `${amountCurrencySymbol}${amount}`);
+  const { presetAmounts, currencySymbol } = OneTime.args;
+  const expectedPresetLabels = presetAmounts.map((amount) => `${currencySymbol}${amount}`);
   expectedPresetLabels.forEach((label) => {
     expect(screen.getByRole('radio', { name: label })).toBeInTheDocument();
   });
   expect(screen.queryByTestId('frequency-string')).not.toBeInTheDocument();
 });
 
-test('when amountFrequency provided', () => {
+test('when frequency provided', () => {
   render(<Default />);
-  const { presetAmounts, amountCurrencySymbol, amountFrequency } = Default.args;
-  const expectedPresetLabels = presetAmounts.map((amount) => `${amountCurrencySymbol}${amount} / ${amountFrequency}`);
+  const { presetAmounts, currencySymbol, frequency } = Default.args;
+  const expectedPresetLabels = presetAmounts.map((amount) => `${currencySymbol}${amount} / ${frequency}`);
   expectedPresetLabels.forEach((label) => {
     expect(screen.getByRole('radio', { name: label })).toBeInTheDocument();
   });
-  expect(screen.getByTestId('frequency-string')).toHaveTextContent(`/ ${amountFrequency}`);
+  expect(screen.getByTestId('frequency-string')).toHaveTextContent(`/ ${frequency}`);
 });
 
 test('correctly displays preset amounts', () => {
   render(<Default />);
   Default.args.presetAmounts.forEach((amount, idx) => {
-    const radio = screen.getByLabelText(
-      `${Default.args.amountCurrencySymbol}${amount} / ${Default.args.amountFrequency}`
-    );
+    const radio = screen.getByLabelText(`${Default.args.currencySymbol}${amount} / ${Default.args.frequency}`);
     expect(radio).not.toBeNull();
     fireEvent.click(radio);
     expect(radio).toBeChecked();
@@ -48,7 +46,7 @@ test('correctly displays preset amounts', () => {
 test('first preset is checked by default', () => {
   render(<Default />);
   const firstRadio = screen.getByLabelText(
-    `${Default.args.amountCurrencySymbol}${Default.args.presetAmounts[0]} / ${Default.args.amountFrequency}`
+    `${Default.args.currencySymbol}${Default.args.presetAmounts[0]} / ${Default.args.frequency}`
   );
   expect(firstRadio).not.toBeNull();
   expect(firstRadio).toBeChecked();
@@ -77,7 +75,7 @@ test('when default value for free form input', () => {
   // but all should be unchecked
   expect(screen.getAllByRole('radio', { checked: false })).toHaveLength(WithDefaultFreeForm.args.presetAmounts.length);
   const input = screen.getByLabelText('Choose your own value for amount');
-  expect(input).toHaveValue(WithDefaultFreeForm.args.defaultValue);
+  expect(input).toHaveValue(WithDefaultFreeForm.args.defaultAmount);
 });
 
 test('has first preset as default submission value', async () => {

@@ -8,7 +8,7 @@ const args = {
   component: Amount,
   ...Amount.defaultProps,
   labelText: 'Amount',
-  amountFrequency: 'month',
+  frequency: 'month',
   presetAmounts: [100, 200, 300],
   includeDevTools: true,
   submitSuccessMessage: 'successful submit',
@@ -28,7 +28,7 @@ Default.args = {
 export const OneTime = RHFFormTemplate.bind({});
 OneTime.args = {
   ...args,
-  amountFrequency: '',
+  frequency: '',
   name: 'one-time-amount',
   validator: Yup.object({ 'one-time-amount': validator }).required()
 };
@@ -36,7 +36,7 @@ OneTime.args = {
 export const WithDefaultFreeForm = RHFFormTemplate.bind({});
 WithDefaultFreeForm.args = {
   ...args,
-  defaultValue: 12.37,
+  defaultAmount: 12.37,
   name: 'default-set-amount',
   validator: Yup.object({ 'default-set-amount': validator }).required()
 };

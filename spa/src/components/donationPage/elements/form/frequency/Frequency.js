@@ -2,7 +2,7 @@ import clsx from 'clsx';
 import PropTypes from 'prop-types';
 import { useFormContext } from 'react-hook-form';
 
-function Frequency({ labelText, defaultValue, helperText, name, required, options, defaultCheckedIndex }) {
+function Frequency({ labelText, helperText, name, required, frequencyOptions, defaultCheckedIndex }) {
   const { register } = useFormContext();
 
   return (
@@ -11,7 +11,7 @@ function Frequency({ labelText, defaultValue, helperText, name, required, option
         <h2 className="text-3xl">{labelText}</h2>
         <p className="mb-3">{helperText}</p>
         <div className={clsx('flex justify-between max-w-sm')}>
-          {options.map(({ labelText, value }, key) => {
+          {frequencyOptions.map(({ labelText, value }, key) => {
             const id = `${name}-${value}`;
             return (
               <label htmlFor={id} key={id}>
@@ -37,11 +37,10 @@ function Frequency({ labelText, defaultValue, helperText, name, required, option
 
 Frequency.propTypes = {
   labelText: PropTypes.string.isRequired,
-  defaultValue: PropTypes.string,
   helperText: PropTypes.string,
   name: PropTypes.string.isRequired,
   required: PropTypes.bool,
-  options: PropTypes.arrayOf(
+  frequencyOptions: PropTypes.arrayOf(
     PropTypes.shape({ labelText: PropTypes.string.isRequired, value: PropTypes.string.isRequired })
   ),
   defaultCheckedIndex: PropTypes.number
@@ -52,11 +51,6 @@ Frequency.defaultProps = {
   helperText: 'Choose a contribution type',
   name: 'contribution-frequency',
   required: true,
-  options: [
-    { labelText: 'One-time', value: 'one_time' },
-    { labelText: 'Monthly', value: 'monthly' },
-    { labelText: 'Yearly', value: 'yearly' }
-  ],
   defaultCheckedIndex: 0
 };
 

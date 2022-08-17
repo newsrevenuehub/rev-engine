@@ -5,23 +5,23 @@ import { Controller, useFormContext } from 'react-hook-form';
 
 function Amount({
   labelText,
-  amountFrequency,
-  amountCurrencySymbol,
+  frequency,
+  currencySymbol,
   presetAmounts,
-  defaultValue,
+  defaultAmount,
   allowUserSetValue,
   helperText,
   name
 }) {
   const [userSetInputFocused, setUserSetInputFocused] = useState(false);
-  const amountFrequencyString = amountFrequency ? ' / ' + amountFrequency : null;
+  const amountFrequencyString = frequency ? ' / ' + frequency : null;
   const freeFormInput = useRef(null);
   const presetInputs = useRef([]);
   const { control } = useFormContext();
 
   return (
     <Controller
-      defaultValue={defaultValue || presetAmounts[0]}
+      defaultValue={defaultAmount || presetAmounts[0]}
       name={name}
       control={control}
       render={({ field: { value: chosenValue, onChange }, fieldState: { error } }) => (
@@ -60,8 +60,8 @@ function Amount({
                         value={value}
                         defaultChecked={value === chosenValue}
                       />
-                      {`${amountCurrencySymbol}${value}`}
-                      {amountFrequency && amountFrequencyString}
+                      {`${currencySymbol}${value}`}
+                      {frequency && amountFrequencyString}
                     </label>
                   );
                 })}
@@ -73,7 +73,7 @@ function Amount({
                       error && 'border-red-400'
                     )}
                   >
-                    <span className="font-medium">{amountCurrencySymbol}</span>
+                    <span className="font-medium">{currencySymbol}</span>
                     <input
                       onFocus={() => {
                         setUserSetInputFocused(true);
@@ -83,7 +83,7 @@ function Amount({
                       ref={freeFormInput}
                       className={clsx(
                         'bg-transparent focus:outline-none text-center',
-                        amountFrequency && 'max-w-[60%] text-left'
+                        frequency && 'max-w-[60%] text-left'
                       )}
                       id="user-chosen-value"
                       onChange={({ target: { value } }) => {
@@ -93,7 +93,7 @@ function Amount({
                       type="number"
                       placeholder="0.00"
                       step="0.01"
-                      defaultValue={defaultValue}
+                      defaultValue={defaultAmount}
                     />
                     {amountFrequencyString && <div data-testid="frequency-string">{amountFrequencyString}</div>}
                     <label className="sr-only" htmlFor="user-chosen-value">
@@ -129,17 +129,17 @@ Amount.propTypes = {
   labelText: PropTypes.string.isRequired,
   helperText: PropTypes.string.isRequired,
   name: PropTypes.string.isRequired,
-  amountFrequency: PropTypes.string,
-  amountCurrencySymbol: PropTypes.string.isRequired,
+  frequency: PropTypes.string,
+  currencySymbol: PropTypes.string.isRequired,
   presetAmounts: PropTypes.arrayOf(PropTypes.number).isRequired,
-  defaultValue: PropTypes.number,
+  defaultAmount: PropTypes.number,
   allowUserSetValue: PropTypes.bool.isRequired
 };
 
 Amount.defaultProps = {
   labelText: 'Amount',
-  amountFrequency: null,
-  amountCurrencySymbol: '$',
+  frequency: null,
+  currencySymbol: '$',
   allowUserSetValue: true,
   helperText: "Select how much you'd like to contribute",
   name: 'amount'

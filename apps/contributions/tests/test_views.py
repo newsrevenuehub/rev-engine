@@ -1,4 +1,4 @@
-from unittest.mock import patch
+from unittest import mock
 
 from django.conf import settings
 from django.middleware import csrf
@@ -101,11 +101,27 @@ class StripePaymentViewTestAbstract(AbstractTestCase):
         )
         request.META["HTTP_REFERER"] = self.referer
         request.META["HTTP_X_FORWARDED_FOR"] = self.ip
-
         return request
 
     def _post_valid_payment(self, **kwargs):
         return stripe_payment(self._create_request(self.page, **kwargs))
+
+
+class CreateStripePaymentErrorConditionsTest(StripePaymentViewTestAbstract):
+    """Branch coverage for various errors."""
+
+    @override_settings(CELERY_TASK_ALWAYS_EAGER=True)
+    def atest_intervals(self):
+        # Due to serializer validation can't actually set "bad" interval.
+        # Instead we iterate over all the model choices. Which if new one is
+        # added but not handled here we will trigger exception.
+        with mock.patch("apps.contributions.payment_managers.make_bad_actor_request"):
+            page = DonationPage.objects.filter(revenue_program=self.org1_rp1).first()
+            print("b", [x for x in ContributionInterval])
+            for interval in ContributionInterval:
+                print(str(interval), dir(interval))
+                stripe_payment(self._create_request(page, interval=str(interval)))
+            assert False
 
 
 @override_settings(CELERY_TASK_ALWAYS_EAGER=True)
@@ -115,7 +131,7 @@ class StripeOneTimePaymentViewTest(StripePaymentViewTestAbstract):
         self.page = DonationPage.objects.filter(revenue_program=self.org1_rp1).first()
         self.assertIsNotNone(self.page)
 
-    @patch("apps.contributions.views.StripePaymentManager.create_one_time_payment", side_effect=MockPaymentIntent)
+    @mock.patch("apps.contributions.views.StripePaymentManager.create_one_time_payment", side_effect=MockPaymentIntent)
     def test_one_time_payment_serializer_validates(self, *args):
         # Email is required
         response = self._post_valid_payment(email=None)
@@ -123,16 +139,16 @@ class StripeOneTimePaymentViewTest(StripePaymentViewTestAbstract):
         self.assertIn("email", response.data)
         self.assertEqual(str(response.data["email"][0]), "This field may not be null.")
 
-    @patch("apps.contributions.views.send_templated_email.delay")
-    @patch("apps.contributions.views.StripePaymentManager.create_one_time_payment", side_effect=MockPaymentIntent)
+    @mock.patch("apps.contributions.views.send_templated_email.delay")
+    @mock.patch("apps.contributions.views.StripePaymentManager.create_one_time_payment", side_effect=MockPaymentIntent)
     def test_one_time_payment_serializer_gets_uid_as_email_hash(self, *args):
         response = self._post_valid_payment(email=test_stripe_payment_email)
         self.assertEqual(response.status_code, 200)
         self.assertIn("email_hash", response.data)
         self.assertEqual(str(response.data["email_hash"]), get_sha256_hash(test_stripe_payment_email))
 
-    @patch("apps.contributions.views.send_templated_email.delay")
-    @patch("apps.contributions.views.StripePaymentManager.create_one_time_payment", side_effect=MockPaymentIntent)
+    @mock.patch("apps.contributions.views.send_templated_email.delay")
+    @mock.patch("apps.contributions.views.StripePaymentManager.create_one_time_payment", side_effect=MockPaymentIntent)
     def test_happy_path_no_confirmation_email(self, mock_one_time_payment, mock_send_confirmation_email):
         # `self.page` is referenced inside `_post_valid_payment` and determines which org is referenced re: contribution
         # confirmation emails
@@ -144,8 +160,8 @@ class StripeOneTimePaymentViewTest(StripePaymentViewTestAbstract):
         mock_one_time_payment.assert_called_once()
         self.assertFalse(mock_send_confirmation_email.called)
 
-    @patch("apps.contributions.views.send_templated_email.delay")
-    @patch("apps.contributions.views.StripePaymentManager.create_one_time_payment", side_effect=MockPaymentIntent)
+    @mock.patch("apps.contributions.views.send_templated_email.delay")
+    @mock.patch("apps.contributions.views.StripePaymentManager.create_one_time_payment", side_effect=MockPaymentIntent)
     def test_happy_path_with_confirmation_email(self, mock_one_time_payment, mock_send_confirmation_email):
         # `self.page` is referenced inside `_post_valid_payment` and determines which org is referenced re: contribution
         # confirmation emails
@@ -165,15 +181,19 @@ class StripeOneTimePaymentViewTest(StripePaymentViewTestAbstract):
             all(val for (key, val) in template_data.items() if key != "contribution_interval_display_value")
         )
 
-    @patch("apps.contributions.views.StripePaymentManager.create_one_time_payment", side_effect=PaymentBadParamsError)
+    @mock.patch(
+        "apps.contributions.views.StripePaymentManager.create_one_time_payment", side_effect=PaymentBadParamsError
+    )
     def test_response_when_bad_params_error(self, mock_one_time_payment):
         response = self._post_valid_payment()
         mock_one_time_payment.assert_called_once()
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.data["detail"], "There was an error processing your payment.")
 
-    @patch("apps.contributions.views.send_templated_email.delay")
-    @patch("apps.contributions.views.StripePaymentManager.create_one_time_payment", side_effect=PaymentProviderError)
+    @mock.patch("apps.contributions.views.send_templated_email.delay")
+    @mock.patch(
+        "apps.contributions.views.StripePaymentManager.create_one_time_payment", side_effect=PaymentProviderError
+    )
     def test_response_when_payment_provider_error(self, mock_one_time_payment, mock_send_confirmation_email):
         response = self._post_valid_payment()
         mock_one_time_payment.assert_called_once()
@@ -181,7 +201,7 @@ class StripeOneTimePaymentViewTest(StripePaymentViewTestAbstract):
 
 
 @override_settings(CELERY_TASK_ALWAYS_EAGER=True)
-@patch("apps.contributions.views.StripePaymentManager.create_subscription")
+@mock.patch("apps.contributions.views.StripePaymentManager.create_subscription")
 class CreateStripeRecurringPaymentViewTest(StripePaymentViewTestAbstract):
     def setUp(self):
         super().setUp()
@@ -197,7 +217,7 @@ class CreateStripeRecurringPaymentViewTest(StripePaymentViewTestAbstract):
         self.assertIn("payment_method_id", response.data)
         self.assertEqual(str(response.data["payment_method_id"][0]), "This field may not be null.")
 
-    @patch("apps.contributions.views.send_templated_email.delay")
+    @mock.patch("apps.contributions.views.send_templated_email.delay")
     def test_happy_path_when_no_confirmation_email(self, mock_send_confirmation_email, mock_subscription_create):
         """
         Verify that we're getting the response we expect from a valid contribition
@@ -215,7 +235,7 @@ class CreateStripeRecurringPaymentViewTest(StripePaymentViewTestAbstract):
         mock_subscription_create.assert_called_once()
         self.assertFalse(mock_send_confirmation_email.called)
 
-    @patch("apps.contributions.views.send_templated_email.delay")
+    @mock.patch("apps.contributions.views.send_templated_email.delay")
     def test_happy_path_when_confirmation_email(self, mock_send_confirmation_email, mock_subscription_create):
         """
         Verify that we're getting the response we expect from a valid contribition
@@ -280,7 +300,7 @@ class StripeOAuthTest(AbstractTestCase):
             body["scope"] = scope
         return self.client.post(complete_url, body)
 
-    @patch("stripe.OAuth.token")
+    @mock.patch("stripe.OAuth.token")
     def test_response_when_missing_params(self, stripe_oauth_token):
         # Missing code
         response = self._make_request(code=None, scope=expected_oauth_scope, revenue_program_id=self.org1_rp1.id)
@@ -306,7 +326,7 @@ class StripeOAuthTest(AbstractTestCase):
         self.assertIn("missing_params", response.data)
         stripe_oauth_token.assert_not_called()
 
-    @patch("stripe.OAuth.token")
+    @mock.patch("stripe.OAuth.token")
     def test_response_when_scope_param_mismatch(self, stripe_oauth_token):
         """
         We verify that the "scope" parameter provided by the frontend matches the scope we expect
@@ -316,7 +336,7 @@ class StripeOAuthTest(AbstractTestCase):
         self.assertIn("scope_mismatch", response.data)
         stripe_oauth_token.assert_not_called()
 
-    @patch("stripe.OAuth.token")
+    @mock.patch("stripe.OAuth.token")
     def test_response_when_invalid_code(self, stripe_oauth_token):
         stripe_oauth_token.side_effect = StripeInvalidGrantError(code="error_code", description="error_description")
         response = self._make_request(code="1234", scope=expected_oauth_scope, revenue_program_id=self.org1_rp1.id)
@@ -324,7 +344,7 @@ class StripeOAuthTest(AbstractTestCase):
         self.assertIn("invalid_code", response.data)
         stripe_oauth_token.assert_called_with(code="1234", grant_type="authorization_code")
 
-    @patch("stripe.OAuth.token")
+    @mock.patch("stripe.OAuth.token")
     def test_response_success(self, stripe_oauth_token):
         expected_stripe_account_id = "my_test_account_id"
         expected_refresh_token = "my_test_refresh_token"
@@ -340,7 +360,7 @@ class StripeOAuthTest(AbstractTestCase):
         self.assertEqual(self.org1_rp1.payment_provider.stripe_account_id, expected_stripe_account_id)
         self.assertEqual(self.org1_rp1.payment_provider.stripe_oauth_refresh_token, expected_refresh_token)
 
-    @patch("stripe.OAuth.token")
+    @mock.patch("stripe.OAuth.token")
     def test_create_payment_provider_if_not_exists(self, stripe_oauth_token):
         expected_stripe_account_id = "new_stripe_account_id"
         refresh_token = "my_test_refresh_token"
@@ -371,7 +391,7 @@ class MockStripeProduct(StripeObject):
         self.id = TEST_STRIPE_PRODUCT_ID
 
 
-@patch("stripe.Product.create", side_effect=MockStripeProduct)
+@mock.patch("stripe.Product.create", side_effect=MockStripeProduct)
 class StripeConfirmTest(AbstractTestCase):
     def setUp(self):
         super().setUp()
@@ -389,7 +409,7 @@ class StripeConfirmTest(AbstractTestCase):
         self.client.force_authenticate(user=self.org_user)
         return self.client.post(self.url, data={"revenue_program_id": revenue_program_id})
 
-    @patch("stripe.Account.retrieve", side_effect=MockStripeAccountEnabled)
+    @mock.patch("stripe.Account.retrieve", side_effect=MockStripeAccountEnabled)
     def test_confirm_already_verified(self, mock_account_retrieve, *args):
         """
         stripe_confirmation should return early if the org already has stripe_verified=True.
@@ -406,7 +426,7 @@ class StripeConfirmTest(AbstractTestCase):
         # this should bail early, before Account.retrieve is called
         mock_account_retrieve.assert_not_called()
 
-    @patch("stripe.Account.retrieve", side_effect=MockStripeAccountEnabled)
+    @mock.patch("stripe.Account.retrieve", side_effect=MockStripeAccountEnabled)
     def test_confirm_newly_verified(self, mock_account_retrieve, *args):
         """
         stripe_confirmation should set stripe_verified to True after confirming with Stripe.
@@ -420,14 +440,14 @@ class StripeConfirmTest(AbstractTestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data["status"], "connected")
 
-    @patch("stripe.Account.retrieve", side_effect=MockStripeAccountEnabled)
+    @mock.patch("stripe.Account.retrieve", side_effect=MockStripeAccountEnabled)
     def test_confirm_stripe_error_response(self, mock_account_retrieve, mock_product_create):
         mock_product_create.side_effect = StripeError
         response = self.post_to_confirmation(stripe_account_id="testing", revenue_program_id=self.org1_rp1.id)
         self.assertEqual(response.status_code, 500)
         self.assertEqual(response.data["status"], "failed")
 
-    @patch("stripe.Account.retrieve", side_effect=MockStripeAccountEnabled)
+    @mock.patch("stripe.Account.retrieve", side_effect=MockStripeAccountEnabled)
     def test_product_create_called_when_newly_verified(self, mock_account_retrieve, mock_product_create):
         self.post_to_confirmation(stripe_account_id="testing", revenue_program_id=self.org1_rp1.id)
         mock_account_retrieve.assert_called_once()
@@ -436,7 +456,7 @@ class StripeConfirmTest(AbstractTestCase):
         self.payment_provider1.refresh_from_db()
         self.assertEqual(self.payment_provider1.stripe_product_id, TEST_STRIPE_PRODUCT_ID)
 
-    @patch("stripe.Account.retrieve", side_effect=MockStripeAccountNotEnabled)
+    @mock.patch("stripe.Account.retrieve", side_effect=MockStripeAccountNotEnabled)
     def test_confirm_connected_not_verified(self, mock_account_retrieve, *args):
         """
         If an organization has connected its account with NRE (has a stripe_account_id), but
@@ -451,7 +471,7 @@ class StripeConfirmTest(AbstractTestCase):
         # stripe_verified should still be false
         self.assertFalse(self.payment_provider1.stripe_verified)
 
-    @patch("stripe.Account.retrieve", side_effect=MockStripeAccountEnabled)
+    @mock.patch("stripe.Account.retrieve", side_effect=MockStripeAccountEnabled)
     def test_not_connected(self, mock_account_retrieve, *args):
         """
         Organizations that have not been connected to Stripe at all have
@@ -464,7 +484,7 @@ class StripeConfirmTest(AbstractTestCase):
         # this should bail early, before Account.retrieve is called
         mock_account_retrieve.assert_not_called()
 
-    @patch("stripe.Account.retrieve", side_effect=StripeError)
+    @mock.patch("stripe.Account.retrieve", side_effect=StripeError)
     def test_stripe_error_is_caught(self, mock_account_retrieve, *args):
         """
         When stripe.Account.retrieve raises a StripeError, send it in response.
@@ -619,8 +639,8 @@ class TestContributorContributionsViewSet(AbstractTestCase):
             reverse("contribution-list"),
         )
 
-    @patch("apps.contributions.stripe_contributions_provider.ContributionsCacheProvider.load")
-    @patch("apps.contributions.tasks.task_pull_serialized_stripe_contributions_to_cache.delay")
+    @mock.patch("apps.contributions.stripe_contributions_provider.ContributionsCacheProvider.load")
+    @mock.patch("apps.contributions.tasks.task_pull_serialized_stripe_contributions_to_cache.delay")
     def test_contributor_can_list_their_contributions(self, celery_task_mock, cache_load_mock):
         cache_load_mock.return_value = self.stripe_contributions
         refresh_token = ContributorRefreshToken.for_contributor(self.contributor_user.uuid)
@@ -630,8 +650,8 @@ class TestContributorContributionsViewSet(AbstractTestCase):
         self.assertEqual(celery_task_mock.call_count, 0)
         self.assertEqual(response.json().get("count"), 2)
 
-    @patch("apps.contributions.stripe_contributions_provider.ContributionsCacheProvider.load")
-    @patch("apps.contributions.tasks.task_pull_serialized_stripe_contributions_to_cache.delay")
+    @mock.patch("apps.contributions.stripe_contributions_provider.ContributionsCacheProvider.load")
+    @mock.patch("apps.contributions.tasks.task_pull_serialized_stripe_contributions_to_cache.delay")
     def test_contributor_call_celery_task_if_no_contribution_in_cache(self, celery_task_mock, cache_load_mock):
         cache_load_mock.return_value = []
         refresh_token = ContributorRefreshToken.for_contributor(self.contributor_user.uuid)
@@ -755,8 +775,8 @@ class UpdatePaymentMethodTest(APITestCase):
         self.client.force_authenticate(user=self.contributor)
         return self.client.patch(reverse("contribution-update-payment-method", kwargs={"pk": contribution.pk}), data)
 
-    @patch("stripe.PaymentMethod.attach")
-    @patch("stripe.Subscription.modify")
+    @mock.patch("stripe.PaymentMethod.attach")
+    @mock.patch("stripe.Subscription.modify")
     def test_failure_when_missing_payment_method_id(self, mock_modify, mock_attach):
         response = self._make_request(self.contribution)
         self.assertEqual(response.status_code, 400)
@@ -764,8 +784,8 @@ class UpdatePaymentMethodTest(APITestCase):
         mock_modify.assert_not_called()
         mock_attach.assert_not_called()
 
-    @patch("stripe.PaymentMethod.attach")
-    @patch("stripe.Subscription.modify")
+    @mock.patch("stripe.PaymentMethod.attach")
+    @mock.patch("stripe.Subscription.modify")
     def test_failure_when_any_parameter_other_than_pm_id(self, mock_modify, mock_attach):
         response = self._make_request(self.contribution, {"amount": 10})
         self.assertEqual(response.status_code, 400)
@@ -773,8 +793,8 @@ class UpdatePaymentMethodTest(APITestCase):
         mock_modify.assert_not_called()
         mock_attach.assert_not_called()
 
-    @patch("stripe.PaymentMethod.attach")
-    @patch("stripe.Subscription.modify")
+    @mock.patch("stripe.PaymentMethod.attach")
+    @mock.patch("stripe.Subscription.modify")
     def test_failure_when_contribution_and_contributor_dont_match(self, mock_modify, mock_attach):
         self.assertNotEqual(self.other_contribution.contributor, self.contributor)
         response = self._make_request(self.other_contribution, {"payment_method_id": self.payment_method_id})
@@ -783,8 +803,8 @@ class UpdatePaymentMethodTest(APITestCase):
         mock_modify.assert_not_called()
         mock_attach.assert_not_called()
 
-    @patch("stripe.PaymentMethod.attach", side_effect=StripeError)
-    @patch("stripe.Subscription.modify")
+    @mock.patch("stripe.PaymentMethod.attach", side_effect=StripeError)
+    @mock.patch("stripe.Subscription.modify")
     def test_error_when_attach_payment_method(self, mock_modify, mock_attach):
         response = self._make_request(self.contribution, {"payment_method_id": self.payment_method_id})
         self.assertEqual(response.status_code, 400)
@@ -797,8 +817,8 @@ class UpdatePaymentMethodTest(APITestCase):
         )
         mock_modify.assert_not_called()
 
-    @patch("stripe.PaymentMethod.attach")
-    @patch("stripe.Subscription.modify", side_effect=StripeError)
+    @mock.patch("stripe.PaymentMethod.attach")
+    @mock.patch("stripe.Subscription.modify", side_effect=StripeError)
     def test_error_when_update_payment_method(self, mock_modify, mock_attach):
         response = self._make_request(self.contribution, {"payment_method_id": self.payment_method_id})
         self.assertEqual(response.status_code, 400)
@@ -816,8 +836,8 @@ class UpdatePaymentMethodTest(APITestCase):
             stripe_account=self.stripe_account_id,
         )
 
-    @patch("stripe.PaymentMethod.attach")
-    @patch("stripe.Subscription.modify")
+    @mock.patch("stripe.PaymentMethod.attach")
+    @mock.patch("stripe.Subscription.modify")
     def test_update_payment_method_success(self, mock_modify, mock_attach):
         response = self._make_request(self.contribution, {"payment_method_id": self.payment_method_id})
         self.assertEqual(response.status_code, 200)
@@ -858,7 +878,7 @@ class CancelRecurringPaymentTest(APITestCase):
         self.client.force_authenticate(user=self.contributor)
         return self.client.post(reverse("contribution-cancel-recurring-payment", kwargs={"pk": contribution.pk}))
 
-    @patch("stripe.Subscription.delete")
+    @mock.patch("stripe.Subscription.delete")
     def test_failure_when_contribution_and_contributor_dont_match(self, mock_delete):
         self.assertNotEqual(self.other_contribution.contributor, self.contributor)
         response = self._make_request(self.other_contribution)
@@ -866,7 +886,7 @@ class CancelRecurringPaymentTest(APITestCase):
         self.assertEqual(response.data["detail"], "Could not find contribution for requesting contributor")
         mock_delete.assert_not_called()
 
-    @patch("stripe.Subscription.delete", side_effect=StripeError)
+    @mock.patch("stripe.Subscription.delete", side_effect=StripeError)
     def test_error_when_subscription_delete(self, mock_delete):
         response = self._make_request(self.contribution)
         self.assertEqual(response.status_code, 400)
@@ -874,7 +894,7 @@ class CancelRecurringPaymentTest(APITestCase):
 
         mock_delete.assert_called_once_with(self.subscription_id, stripe_account=self.stripe_account_id)
 
-    @patch("stripe.Subscription.delete")
+    @mock.patch("stripe.Subscription.delete")
     def test_delete_recurring_success(self, mock_delete):
         response = self._make_request(self.contribution)
         self.assertEqual(response.status_code, 200)
@@ -883,7 +903,7 @@ class CancelRecurringPaymentTest(APITestCase):
         mock_delete.assert_called_once_with(self.subscription_id, stripe_account=self.stripe_account_id)
 
 
-@patch("apps.contributions.models.Contribution.process_flagged_payment")
+@mock.patch("apps.contributions.models.Contribution.process_flagged_payment")
 class ProcessFlaggedContributionTest(APITestCase):
     def setUp(self):
         self.user = create_test_user(role_assignment_data={"role_type": Roles.HUB_ADMIN})

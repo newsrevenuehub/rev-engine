@@ -123,7 +123,7 @@ class HasFlaggedAccessToContributionsApiResource(permissions.BasePermission):
             raise ApiConfigurationError()
 
     def __str__(self):
-        return f"`HasFlaggedAccess` via {self.flag_name}"
+        return f"`HasFlaggedAccess` via {self.flag.name}"
 
     def has_permission(self, request, view):
         """Has permission if flag is active for user

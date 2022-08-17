@@ -1,3 +1,5 @@
+from unittest import mock
+
 from django.contrib.auth import get_user_model
 
 import pytest
@@ -143,6 +145,13 @@ class UserSerializerTest(APITestCase):
         org_ids = [rp["organization"] for rp in rps]
         expected_org_ids = [rp.organization.pk for rp in self.included_rps]
         self.assertEqual(org_ids, expected_org_ids)
+
+    def test_empty_results(self):
+        not_a_user_instance = mock.Mock()
+        assert None is serializers.UserSerializer({}).get_role_type(not_a_user_instance)
+        assert [] == serializers.UserSerializer({}).get_permitted_organizations(not_a_user_instance)
+        assert [] == serializers.UserSerializer({}).get_permitted_revenue_programs(not_a_user_instance)
+        assert [] == serializers.UserSerializer({}).get_active_flags_for_user(not_a_user_instance)
 
 
 @pytest.mark.parametrize(

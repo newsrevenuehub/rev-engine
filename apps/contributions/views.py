@@ -46,21 +46,16 @@ UserModel = get_user_model()
 @authentication_classes([])
 @permission_classes([])
 def stripe_payment(request):
-
-    pi_data = request.data
-
     # Grab required data from headers
+    pi_data = request.data
     pi_data["referer"] = request.META.get("HTTP_REFERER")
     pi_data["ip"] = get_original_ip_from_request(request)
-
     # StripePaymentManager will grab the right serializer based on "interval"
-    stripe_payment = StripePaymentManager(data=pi_data)
-
+    payment = StripePaymentManager(data=pi_data)
     # Validate data expected by Stripe and BadActor API
-    stripe_payment.validate()
-
+    payment.validate()
     # Performs request to BadActor API
-    stripe_payment.get_bad_actor_score()
+    payment.get_bad_actor_score()
 
     try:
         rp = RevenueProgram.objects.get(pk=request.data["revenue_program_id"])
@@ -68,21 +63,21 @@ def stripe_payment(request):
             "detail": "success",
         }
 
-        if (interval := stripe_payment.validated_data["interval"]) == ContributionInterval.ONE_TIME.value:
-            stripe_payment_intent = stripe_payment.create_one_time_payment()
-            response_body["clientSecret"] = stripe_payment_intent["client_secret"]
+        if (interval := payment.validated_data["interval"]) == ContributionInterval.ONE_TIME.value:
+            payment_intent = payment.create_one_time_payment()
+            response_body["clientSecret"] = payment_intent["client_secret"]
         elif interval in (
             ContributionInterval.MONTHLY.value,
             ContributionInterval.YEARLY.value,
         ):
-            stripe_payment.create_subscription()
+            payment.create_subscription()
         else:
             logger.warning("stripe_payment view recieved unexpetected interval value: [%s]", interval)
             raise PaymentBadParamsError()
 
-        if stripe_payment.get_organization().send_receipt_email_via_nre:
-            contributor_email = stripe_payment.validated_data["email"]
-            donation_amount_display = f"${(stripe_payment.validated_data['amount'] / 100):.2f}"
+        if payment.get_organization().send_receipt_email_via_nre:
+            contributor_email = payment.validated_data["email"]
+            donation_amount_display = f"${(payment.validated_data['amount'] / 100):.2f}"
             contribution_date = timezone.now()
             interval_to_display = {
                 ContributionInterval.MONTHLY.value: "month",
@@ -93,10 +88,8 @@ def stripe_payment(request):
                 "contribution_date": contribution_date.strftime("%m-%d-%y"),
                 "contributor_email": contributor_email,
                 "contribution_amount": donation_amount_display,
-                "contribution_interval": stripe_payment.validated_data["interval"],
-                "contribution_interval_display_value": interval_to_display.get(
-                    stripe_payment.validated_data["interval"]
-                ),
+                "contribution_interval": payment.validated_data["interval"],
+                "contribution_interval_display_value": interval_to_display.get(payment.validated_data["interval"]),
                 "copyright_year": contribution_date.year,
                 "org_name": rp.organization.name,
             }

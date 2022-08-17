@@ -5,16 +5,11 @@ module.exports = {
         rules: [
           {
             type: 'javascript/auto',
-            // test: /\.js$/,
+            test: /\.js$/,
             include: /node_modules/
           }
         ]
       }
-    }
-  },
-  style: {
-    postcss: {
-      plugins: [require('tailwindcss'), require('autoprefixer')]
     }
   }
 };

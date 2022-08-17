@@ -9,7 +9,7 @@ import { usePlacesWidget } from 'react-google-autocomplete';
 import Grid from '@material-ui/core/Grid';
 
 // Children
-import Input from 'elements/inputs/InputOld';
+import Input from 'elements/inputs/Input';
 
 const errors = [];
 

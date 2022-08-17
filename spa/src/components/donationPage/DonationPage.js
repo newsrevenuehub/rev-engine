@@ -1,3 +1,6 @@
+import { FormProvider, useForm } from 'react-hook-form';
+import { useEffect, useCallback, useState } from 'react';
+
 import * as S from './DonationPage.styled';
 // import useClearbit from 'hooks/useClearbit';
 // import { getDefaultAmountForFreq } from 'components/donationPage/pageContent/DAmount';
@@ -7,35 +10,218 @@ import { frequencySort } from 'components/donationPage/elements/form/frequency';
 import HeaderBar from './elements/headerBar/HeaderBar';
 import Graphic from './elements/graphic/Graphic';
 import PageHeading from './elements/pageHeading/PageHeading';
+import Amount from './Amount';
+import Frequency from './Frequency';
+import PayFees from './PayFees';
 
 import ContributionForm from './elements/form/Form';
 
 import DonationPageSidebar from 'components/donationPage/elements/sidebar/DonationPageSidebar';
 import DonationPageFooter from 'components/donationPage/elements/footer/Footer';
 
-// retr
+import validationSchema from './schema';
+import { find } from 'draft-js/lib/DefaultDraftBlockRenderMap';
 
-function reducer(state, action) {
-  switch (action.type) {
-    case USER_CHOSE_FREQUENCY:
-      return {
-        ...state
-      };
-    case USER_CHOSE_AMOUNT:
-      return {
-        ...state
-      };
+const useYupValidationresolver = (validationSchema) =>
+  useCallback(
+    async (data) => {
+      try {
+        const values = await validationSchema.validate(data, { abortEary: false });
+        return {
+          values,
+          errors: {}
+        };
+      } catch (errors) {
+        return {
+          values: {},
+          errors: errors.inner.reduce((allErrors, currentError) => ({
+            ...allErrors,
+            [currentError.path]: {
+              type: currentError.type ?? 'validation',
+              message: currentError.message
+            }
+          }))
+        };
+      }
+    },
+    [validationSchema]
+  );
 
-    default:
-      throw new Error();
-  }
-}
+const getDataFromPage = (page) => {
+  const {
+    revenue_program_is_nonprofit: isNonprofit,
+    styles,
+    allow_offer_nyt_comp: allowOfferNytComp,
+    elements: dynamicElements
+  } = page;
 
-const USER_CHOSE_FREQUENCY = 'user-chose-frequency';
-const USER_CHOSE_AMOUNT = 'user-chose-amount';
-const [{ chosenAmount, chosenFrequency, agreePayFees }, dispatch] = useReducer(reducer, initialState);
+  const currencySymbol = page?.currency?.symbol;
+  const frequencyOptions = page?.elements?.find(({ type }) => type === 'DFrequency')?.content || [];
+  const amountConfig = page?.elements?.find(({ type }) => type === 'DAmount')?.content || {};
+  const { allowOther: allowOtherAmount, options: amountOptions } = amountConfig;
+  const { askPhone } = page?.elements?.find(({ type }) => type === 'DDonorInfo')?.content || {};
+  const reasonConfig = page?.elements?.find(({ type }) => type === 'DReason')?.content || {};
+  const { reasons: reasonOptions, askReason, askHonoree, askInMemoryOf } = reasonConfig;
+  const swagOptions = page?.elements?.find(({ type }) => type === 'DSwag')?.content || {};
+  const { optOutDefault, swagThreshold, swags } = { swagOptions };
+  const paymentConfig = page?.elements?.find(({ type }) => type === 'DPayment')?.content || {};
+  const { offerPayFees, stripe: wallets } = paymentConfig;
+
+  return {
+    currencySymbol,
+    isNonprofit,
+    styles,
+    allowOfferNytComp,
+    frequencyOptions,
+    allowOtherAmount,
+    amountOptions,
+    askPhone,
+    reasonOptions,
+    askReason,
+    askHonoree,
+    askInMemoryOf,
+    optOutDefault,
+    swagThreshold,
+    swags,
+    offerPayFees,
+    wallets,
+    dynamicElements
+  };
+};
 
 function DonationPage({ page, liveView = false }) {
+  const pageData = getDataFromPage(page);
+  const resolver = useYupValidationresolver(validationSchema);
+  const methods = useForm({ resolver });
+
+  const [swagThresholdMet, setswagThresholdMet] = useState(false);
+
+  // totalPaymentAmount is distinct from the amount the user has
+  // chosen in the form. It's that amount plus fees if they agree.
+  // It's this derived value that will get submitted to Stripe.
+  const [totalPaymentAmount, setTotalPaymentAmount] = useState([]);
+
+  // orchestration of these fields happens in the RHF layer, where
+  // different inputs are initiated by a watchable name.
+  // We use RHF's built in watch functionality to update thet "global"
+  // state values for amount, frequency, and agreePayFees, which are required
+  // and set by constituent form parts, each registered with RHF in situ.
+  const watchedAmountFormValue = methods.watch(Amount.defaultProps.name);
+  const watchedFrequencyValue = methods.watch(Frequency.defaultProps.name);
+  const watchedAgreePayFees = methods.watch(PayFees.defaultProps.name);
+
+  // this changes based on current chosen frequency
+  const [availableAmounts, setAvailableAmounts] = useState([]);
+  const [submitButtonText, setSubmitButtonText] = useState('');
+
+  useEffect(() => {
+    setswagThresholdMet(watchedAmountFormValue >= pageData.swagThreshold);
+  }, [watchedAmountFormValue, pageData.swagThreshold]);
+
+  // filter page level dynamic elements. specifically, filtering out
+  // X if Y.
+  useEffect(() => {
+    setDynamicElements(() => {
+      (page?.dynamic_elements || []).filter(({ name: elementName }) => {
+        return (
+          elementName && (elementName !== 'foo' || (elementName === PayFees.defaultProps.name && swagThresholdMet))
+        );
+      });
+    });
+  }, [page.dynamic_elements, swagThresholdMet]);
+
+  useEffect(() => {
+    if (page?.frequency?.content?.length !== null && page?.amounts) {
+      setAvailableAmounts(page.amounts);
+    }
+  }, [page?.amounts, page?.frequency?.content?.length]);
+
+  useEffect(() => {
+    if (page?.amounts !== null && watchedFrequencyValue !== null) {
+      setAvailableAmounts(page?.amounts.find(watchedFrequencyValue));
+    }
+  }, [watchedFrequencyValue, page?.amounts]);
+
+  // for submitButtonText
+  const chosenFreqLabel = null;
+  // e.g., once, per year, etc.
+  useEffect(() => {
+    setSubmitButtonText(
+      `Give ${currencySymbol ? currencySymbol + ' ' : ''}${watchedFormValue ? watchedFormValue + ' ' : ''}${
+        chosenFreqLabel || ''
+      }}`
+    );
+  }, [watchedAmountFormValue, watchedFrequencyValue]);
+
+  // useEffect on stripe secret
+  const onSubmit = () => {
+    // try submitting to stripe
+    // submit to server with rest (or is that all metadata???)
+    // stripe submission may reveal form errors in which case display
+    // same with other fields
+    // errors get fed back into form.
+  };
+
+  const globalFormContext = {
+    currencySymbol, // from page, required by disclaimer, amount
+    amount: watchedAmountFormValue, // from form - required by disclaimer -- number
+    frequency: watchedFrequencyValue, // from form -- needed by Amount, Disclaimer
+    presetAmounts: [], // server (these are per interval and come from page) -- Needed by Amount
+    allowUserSetValue: true, // from server - Amount
+    defaultAmount: undefined, // get from query params if there
+    frequencyOptions: [], // get from page
+    // default checked index for frequency?
+    reasonPromptRequired: true, // from page
+    reasonPromptOptions: [], // from page
+    inHonorDisplay: true, // from page
+    inMemoryDisplay: true, // from page
+    swagThresholdAmount: null, //,  from page
+    optOutDefaultChecked: false,
+    swagItemLabelText: '',
+    swagItemOptions: [],
+    swagThresholdMet: swagThresholdMet,
+    agreePayFees: watchedAgreePayFees,
+    dynamicElements,
+    onSubmit,
+    isLive,
+    submitButtonText,
+    availableWallets
+    // WHERE DOES NEXT PAGE AFTER SUCCESS GET SET UP FOR REACT STRIPE ELEMENT?
+  };
+
+  // Amount -- needs
+  // - chosen frequency (form - amountFrequency)
+  // - amount options (page - presetAmounts)
+  // - allowUserSetValued (page)
+  // - currency symbol (page - amountCurrencySymbol)
+  //
+  //
+  // page editor:
+  // needs to know / set
+  // - page one time amounts
+  // - page monthly amounts
+  // - page yearly amounts
+  // - page include other option
+
+  // Reason for giving
+  // - inHonorDisplay (page)
+  // - inMemoryDisplay (page)
+
+  // Frequency
+  // - *** need to add support for selected by default for the amounts (one timePickerDefaultProps, monthly, yearly)
+  //  - need to add support for each one being enabled or not (not just open ended)
+  //
+
+  // Stripe needs to know interval and amount-
+  // - enable/disable card Payment (page)
+  // - enable apple payFees (page)
+  // - enable google fees (page)
+  // - enable google payment (page)
+  // - browser saved card (page) ???
+  // - payfees option enabled
+
+  // TODO: Turn this all into tailwind. This is bloat and inidrection and all these do is set a couple of simple
+  // css settings, ofteintimes.
   return (
     <S.DonationPage data-testid="donation-page">
       <HeaderBar page={page} />
@@ -45,7 +231,9 @@ function DonationPage({ page, liveView = false }) {
             <PageHeading heading={page.heading} />
             <S.DonationContent>
               <Graphic graphic={page.graphic} />
-              <ContributionForm isLive={liveView} page={page} />
+              <FormProvider {...methods}>
+                <ContributionForm {...globalFormContext} />
+              </FormProvider>
             </S.DonationContent>
           </S.SideInner>
         </S.SideOuter>

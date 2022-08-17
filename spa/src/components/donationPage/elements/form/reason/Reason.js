@@ -217,4 +217,13 @@ Reason.defaultProps = {
   helperText: 'Paying the Stripe transaction fee, while not required, directs more money in support of our mission.'
 };
 
+export const REASON_OPTION_MAX_LENGTH = 255;
+
+// PRE-EXISTING: probably to support editor view
+Reason.type = 'DReason';
+Reason.displayName = 'Reason for Giving';
+Reason.description = 'Collect information about the donors reason for giving';
+Reason.required = false;
+Reason.unique = true;
+
 export default Reason;

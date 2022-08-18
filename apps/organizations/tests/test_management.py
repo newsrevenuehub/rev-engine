@@ -16,7 +16,8 @@ TEST_DOMAIN_APEX = "testing.com"
 @override_settings(STRIPE_LIVE_SECRET_KEY=TEST_LIVE_KEY)
 @override_settings(STRIPE_LIVE_MODE=True)
 class AppleDomainVerifyCommandTest(TestCase):
-    def setUp(self):
+    @patch("stripe.ApplePayDomain.create")
+    def setUp(self, _):
         self.revenue_program = RevenueProgramFactory()
 
     def run_command(self, slug=None):

@@ -1,11 +1,15 @@
-from unittest.mock import patch
+from unittest import mock
 
+import django
 from django.contrib.admin.sites import AdminSite
 from django.contrib.auth import get_user_model
 from django.contrib.messages.api import MessageFailure
 from django.test import RequestFactory, TestCase
 from django.urls import reverse
 
+import pytest
+
+import apps
 from apps.common.tests.test_utils import setup_request
 from apps.contributions.admin import BadActorScoreFilter, ContributionAdmin
 from apps.contributions.models import Contribution, ContributionStatus
@@ -46,29 +50,44 @@ class ContributionAdminTest(TestCase):
     def _make_listview_request(self):
         return self.factory.get(reverse("admin:contributions_contribution_changelist"))
 
-    @patch("apps.contributions.payment_managers.StripePaymentManager.complete_payment")
+    @mock.patch("apps.contributions.payment_managers.StripePaymentManager.complete_payment")
     def test_accept_flagged_contribution(self, mock_complete_payment):
+        self.contribution_admin.message_user = mock.Mock()
         request = self._make_listview_request()
         setup_request(self.user, request)
         queryset = Contribution.objects.all()
         self.contribution_admin.accept_flagged_contribution(request, queryset)
         self.assertEqual(mock_complete_payment.call_count, len(queryset))
         mock_complete_payment.assert_called_with(reject=False)
+        assert django.contrib.messages.SUCCESS == self.contribution_admin.message_user.call_args.args[2]
 
-    @patch("apps.contributions.payment_managers.StripePaymentManager.complete_payment")
+    @mock.patch("apps.contributions.payment_managers.StripePaymentManager.complete_payment")
     def test_reject_flagged_contribution(self, mock_complete_payment):
+        self.contribution_admin.message_user = mock.Mock()
         request = self._make_listview_request()
         setup_request(self.user, request)
         queryset = Contribution.objects.all()
         self.contribution_admin.reject_flagged_contribution(request, queryset)
         self.assertEqual(mock_complete_payment.call_count, len(queryset))
         mock_complete_payment.assert_called_with(reject=True)
+        assert django.contrib.messages.SUCCESS == self.contribution_admin.message_user.call_args.args[2]
+
+    @mock.patch("apps.contributions.payment_managers.StripePaymentManager.complete_payment")
+    def test_failed_reject_flagged_contribution(self, mock_complete_payment):
+        self.contribution_admin.message_user = mock.Mock()
+        mock_complete_payment.side_effect = apps.contributions.payment_managers.PaymentProviderError
+        request = self._make_listview_request()
+        setup_request(self.user, request)
+        queryset = Contribution.objects.all()
+        self.contribution_admin.reject_flagged_contribution(request, queryset)
+        assert django.contrib.messages.ERROR == self.contribution_admin.message_user.call_args.args[2]
 
     def test_reject_non_flagged_fails(self):
         request = self._make_listview_request()
         contribution = ContributionFactory(bad_actor_score=5, status=ContributionStatus.PAID)
         queryset = Contribution.objects.filter(pk=contribution.pk)
-        self.assertRaises(MessageFailure, self.contribution_admin.accept_flagged_contribution, request, queryset)
+        with pytest.raises(MessageFailure):
+            self.contribution_admin.accept_flagged_contribution(request, queryset)
 
     def test_bad_actor_score_filter(self):
         target_score = 2

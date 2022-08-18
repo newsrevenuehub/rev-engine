@@ -62,9 +62,19 @@ describe('Contributor portal', () => {
     it('should display a list of contributions', () => {
       cy.getByTestId('donations-table');
       // DonationsTable is well tested elsewhere...
-      cy.getByTestId('total-results').contains('18');
+      cy.get('td > p > span').should('have.length', 20);
+      cy.get('li > button[aria-label="page 1"]').should('exist');
+      cy.get('li > button[aria-label="Go to page 2"]').should('exist');
       // ... though here we should see different column headers
-      const expectedColumns = ['Amount', 'Date', 'Type', 'Receipt date', 'Payment status', 'Payment method', 'Cancel'];
+      const expectedColumns = [
+        'Date',
+        'Amount',
+        'Frequency',
+        'Receipt date',
+        'Payment method',
+        'Payment status',
+        'Cancel'
+      ];
       cy.getByTestId('donation-header', {}, true).should('have.length', expectedColumns.length);
       cy.getByTestId('donation-header', {}, true).should(($headers) => {
         const headersSet = new Set($headers.toArray().map((header) => header.innerText));
@@ -147,6 +157,21 @@ describe('Contributor portal', () => {
       );
       cy.getByTestId('continue-button').click();
       cy.wait('@cancelRecurring');
+    });
+  });
+
+  describe('Empty contributor dashboard', () => {
+    beforeEach(() => {
+      // "Log in" to contributor dash
+      cy.intercept({ method: 'POST', url: getEndpoint(VERIFY_TOKEN) }, { fixture: 'user/valid-contributor-1.json' }).as(
+        'login'
+      );
+      cy.intercept({ pathname: getEndpoint(CONTRIBUTIONS) }, { body: [] }).as('getEmptyDonations');
+      cy.visit(CONTRIBUTOR_VERIFY);
+      cy.wait(['@login', '@getEmptyDonations']);
+    });
+    it('should display empty list of contributions', () => {
+      cy.contains('0 contributions to show.');
     });
   });
 });

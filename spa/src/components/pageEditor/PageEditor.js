@@ -309,6 +309,8 @@ function PageEditor() {
     data = cleanData(data);
     data = processPageData(data);
     if (CAPTURE_PAGE_SCREENSHOT) data = await addScreenshotToCleanedData(data, page.name);
+
+    console.log({ CAPTURE_PAGE_SCREENSHOT, data, jsondata: JSON.stringify(data) });
     requestPatchPage(
       {
         method: 'PATCH',

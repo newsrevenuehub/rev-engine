@@ -161,7 +161,12 @@ function PageSetup({ backToProperties }) {
           errors={errors.post_thank_you_redirect}
         />
       </S.InputWrapper>
-      <PublishWidget publishDate={published_date} onChange={setPublishedDate} errors={errors.published_date} />
+      <PublishWidget
+        paymentProvider={page.payment_provider}
+        publishDate={published_date}
+        onChange={setPublishedDate}
+        errors={errors.published_date}
+      />
       <S.Buttons>
         <CircleButton
           icon={faCheck}

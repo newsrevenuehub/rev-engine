@@ -1,6 +1,8 @@
 from django.contrib.auth import get_user_model
 from django.test import Client, TestCase
 
+import apps.users
+
 
 user_model = get_user_model()
 
@@ -19,3 +21,9 @@ class TestUsersAdmin(TestCase):
         self.client.get("/nrhadmin/users/user/add/")
         self.client.get("/nrhadmin/users/roleassignment/")
         self.client.get("/nrhadmin/users/roleassignment/add/")
+
+    def test_get_readonly_fields(self):
+        t = apps.users.admin.RoleAssignment(apps.users.models.RoleAssignment, "")
+        assert [
+            "user",
+        ] == t.get_readonly_fields(None, obj=self.user)

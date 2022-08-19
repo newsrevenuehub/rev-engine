@@ -45,7 +45,7 @@ class Feature(IndexedTimeStampedModel):
     class Meta:
         unique_together = ["feature_type", "feature_value"]
 
-    def __str__(self):  # pragma: no cover
+    def __str__(self):
         return self.name
 
     def save(self, *args, **kwargs):
@@ -56,7 +56,7 @@ class Plan(IndexedTimeStampedModel, RoleAssignmentResourceModelMixin):
     name = models.CharField(max_length=255)
     features = models.ManyToManyField("organizations.Feature", related_name="plans", blank=True)
 
-    def __str__(self):  # pragma: no cover
+    def __str__(self):
         return self.name
 
     @classmethod
@@ -96,20 +96,13 @@ class Organization(IndexedTimeStampedModel, RoleAssignmentResourceModelMixin):
         help_text="If false, receipt email assumed to be sent via Salesforce. Other emails, e.g. magic_link, are always sent via NRE regardless of this setting",
     )
 
+    def __str__(self):
+        return self.name
+
     @property
     def admin_revenueprogram_options(self):
         rps = self.revenueprogram_set.all()
         return [(rp.name, rp.pk) for rp in rps]
-
-    @property
-    def needs_payment_provider(self):
-        """
-        Right now this is simple. If the org is not "stripe_verified", then they "need a provider"
-        """
-        return not self.stripe_verified
-
-    def __str__(self):
-        return self.name
 
     def user_is_member(self, user):
         return user in self.users.all()
@@ -127,6 +120,22 @@ class Organization(IndexedTimeStampedModel, RoleAssignmentResourceModelMixin):
             raise UnexpectedRoleType(f"{role_assignment.role_type} is not a valid value")
 
 
+class Benefit(IndexedTimeStampedModel):
+    name = models.CharField(max_length=128, help_text="A way to uniquely identify this Benefit")
+    description = models.TextField(help_text="The text that appears on the donation page")
+    revenue_program = models.ForeignKey("organizations.RevenueProgram", on_delete=models.CASCADE)
+
+    class Meta:
+        unique_together = (
+            "name",
+            "revenue_program",
+        )
+        ordering = ["benefitlevelbenefit__order"]
+
+    def __str__(self):
+        return self.name
+
+
 class BenefitLevel(IndexedTimeStampedModel):
     name = models.CharField(max_length=128)
     lower_limit = models.PositiveIntegerField()
@@ -138,15 +147,15 @@ class BenefitLevel(IndexedTimeStampedModel):
 
     revenue_program = models.ForeignKey("organizations.RevenueProgram", on_delete=models.CASCADE)
 
-    def __str__(self):  # pragma: no cover
-        return self.name
-
     class Meta:
         unique_together = (
             "name",
             "revenue_program",
         )
         ordering = ("level",)
+
+    def __str__(self):
+        return self.name
 
     @property
     def donation_range(self):
@@ -156,23 +165,6 @@ class BenefitLevel(IndexedTimeStampedModel):
     def clean(self):
         if self.upper_limit and self.upper_limit <= self.lower_limit:
             raise ValidationError("Upper limit must be greater than lower limit")
-
-
-class Benefit(IndexedTimeStampedModel):
-    name = models.CharField(max_length=128, help_text="A way to uniquely identify this Benefit")
-    description = models.TextField(help_text="The text that appears on the donation page")
-    revenue_program = models.ForeignKey("organizations.RevenueProgram", on_delete=models.CASCADE)
-
-    def __str__(self):
-        return self.name
-
-    class Meta:
-        unique_together = (
-            "name",
-            "revenue_program",
-        )
-
-        ordering = ["benefitlevelbenefit__order"]
 
 
 class BenefitLevelBenefit(models.Model):
@@ -190,7 +182,7 @@ class BenefitLevelBenefit(models.Model):
         ordering = ("order",)
 
     def __str__(self):
-        return f'Benefit {self.order} for "{self.benefit_level}" benefit level'
+        return f'"{self.benefit}" {self.order} for "{self.benefit_level}" benefit level'
 
 
 class CountryChoices(models.TextChoices):
@@ -257,6 +249,9 @@ class RevenueProgram(IndexedTimeStampedModel):
         help_text="2-letter country code of RP's company. This gets included in data sent to stripe when creating a payment",
     )
 
+    def __str__(self):
+        return self.name
+
     @property
     def admin_style_options(self):
         styles = self.style_set.all()
@@ -278,17 +273,20 @@ class RevenueProgram(IndexedTimeStampedModel):
             return None
         return self.payment_provider.stripe_account_id
 
-    def __str__(self):
-        return self.name
-
     def clean_fields(self, **kwargs):
         if not self.id:
             self.slug = normalize_slug(self.name, self.slug, max_length=RP_SLUG_MAX_LENGTH)
         super().clean_fields(**kwargs)
 
     def clean(self):
-        self._ensure_owner_of_default_page()
-        self._format_twitter_handle()
+        # Avoid state of a rev program's default page not being one of "its pages"
+        if self.default_donation_page and self.default_donation_page.revenue_program != self:
+            raise ValidationError(
+                f'Donation page "{self.default_donation_page}" is already associated with a revenue program, "{self.default_donation_page.revenue_program}"'
+            )
+        # Ensure no @ symbol on twitter_handle-- we'll add those later
+        if self.twitter_handle and self.twitter_handle[0] == "@":
+            self.twitter_handle = self.twitter_handle.replace("@", "")
 
     def stripe_create_apple_pay_domain(self):
         """
@@ -303,7 +301,7 @@ class RevenueProgram(IndexedTimeStampedModel):
             try:
                 stripe.ApplePayDomain.create(
                     api_key=settings.STRIPE_LIVE_SECRET_KEY,
-                    domain_name=self._get_host(),
+                    domain_name=f"{self.slug}.{settings.DOMAIN_APEX}",
                     stripe_account=self.payment_provider.stripe_account_id,
                 )
                 self.domain_apple_verified_date = timezone.now()
@@ -314,29 +312,6 @@ class RevenueProgram(IndexedTimeStampedModel):
                     self.name,
                     exc_info=True,
                 )
-
-    def _ensure_owner_of_default_page(self):
-        """
-        Avoid state of a rev program's default page not being one of "its pages"
-        """
-        if self.default_donation_page and self.default_donation_page.revenue_program != self:
-            raise ValidationError(
-                f'Donation page "{self.default_donation_page}" is already associated with a revenue program, "{self.default_donation_page.revenue_program}"'
-            )
-
-    def _format_twitter_handle(self):
-        """
-        Ensure no @ symbol on twitter_handle-- we'll add those later
-        """
-        if self.twitter_handle and self.twitter_handle[0] == "@":
-            self.twitter_handle = self.twitter_handle.replace("@", "")
-
-    def _get_host(self):
-        """
-        Gets the host derived from RevenueProgram slug and SITE_URL
-        """
-        domain_apex = settings.DOMAIN_APEX
-        return f"{self.slug}.{domain_apex}"
 
     def user_has_ownership_via_role(self, role_assignment):
         """Determine if a user owns an instance based on role_assignment"""
@@ -373,14 +348,14 @@ class PaymentProvider(IndexedTimeStampedModel):
         help_text='A fully verified Stripe Connected account should have "charges_enabled: true" in Stripe',
     )
 
+    def __str__(self):
+        return f"Stripe Payment Provider acct:{self.stripe_account_id} product:{self.stripe_product_id}"
+
     def get_dependent_pages_with_publication_date(self):
         """Retreieve live and future live donation pages that rely on this payment provider"""
         from apps.pages.models import DonationPage  # vs circular import
 
         return DonationPage.objects.filter(revenue_program__payment_provider=self, published_date__isnull=False)
-
-    def __str__(self):
-        return self.stripe_account_id
 
     def is_verified_with_default_provider(self):
         payment_provider = self.default_payment_provider
@@ -402,8 +377,10 @@ class PaymentProvider(IndexedTimeStampedModel):
             return {"code": self.currency, "symbol": settings.CURRENCIES[self.currency]}
         except KeyError:
             logger.error(
-                'Currency settings for organization "%s" misconfigured. Tried to access "%s", but valid options are: %s',
-                self.name,
+                'Currency settings for stripe account/product "%s"/"%s" misconfigured. Tried to access "%s", but valid options are: %s',
+                self.stripe_account_id,
+                self.stripe_product_id,
                 self.currency,
                 settings.CURRENCIES,
             )
+            return {"code": "", "symbol": ""}

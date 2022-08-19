@@ -37,7 +37,7 @@ import { faEye, faEdit, faSave, faTrash, faClone } from '@fortawesome/free-solid
 import { ICONS } from 'assets/icons/SvgIcon';
 
 // Context
-import { useGlobalContext } from 'components/MainLayout';
+import { useConfirmationModalContext } from 'elements/modal/GlobalConfirmationModal';
 import validatePage from './validatePage';
 
 // Hooks
@@ -84,7 +84,7 @@ function PageEditor() {
   const parameters = useParams();
 
   // Context
-  const { getUserConfirmation } = useGlobalContext();
+  const getUserConfirmation = useConfirmationModalContext();
 
   const location = useLocation();
   const pageId = location?.state?.pageId;

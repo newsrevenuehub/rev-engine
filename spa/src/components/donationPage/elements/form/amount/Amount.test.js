@@ -3,7 +3,7 @@ import { composeStories } from '@storybook/testing-react';
 import * as Yup from 'yup';
 
 import * as stories from './Amount.stories';
-import { MIN_CONTRIBUTION_AMOUNT, MAX_CONTRIBUTION_AMOUNT } from './constants';
+import { MIN_CONTRIBUTION_AMOUNT, MAX_CONTRIBUTION_AMOUNT } from 'constants/paymentProviderConstants';
 import {
   default as validator,
   MIN_CONTRIBUTION_AMOUNT_VALIDATION_ERROR_MSG,

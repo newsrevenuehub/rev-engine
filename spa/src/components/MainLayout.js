@@ -51,7 +51,6 @@ function MainLayout() {
   };
 
   const isContributorApp = isContributorAppPath();
-
   return (
     <GlobalContext.Provider value={{ getUserConfirmation, getReauth }}>
       <AnalyticsContextWrapper>

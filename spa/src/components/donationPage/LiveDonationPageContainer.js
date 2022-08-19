@@ -34,6 +34,10 @@ function LiveDonationPageContainer() {
   useWebFonts(pageData?.styles?.font, { context: document.querySelector(STRIPE_IFRAME_SELECTOR) });
   const { setAnalyticsConfig } = useAnalyticsContext();
 
+  // gaurantees a bunch of requirements are in place closer to top of tree
+  // will say loading unless page loaded and initial stripe secret and stripe loaded
+  //
+
   const fetchLivePageContent = useCallback(async () => {
     const { pageSlug } = params;
     const requestParams = {

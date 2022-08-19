@@ -6,3 +6,4 @@ export { default as Address } from './elements/form/address/Address';
 export { default as PayFees } from './elements/form/payFees/PayFees';
 export { default as Swag } from './elements/form/swag/Swag';
 export { default as Reason } from './elements/form/reason/Reason';
+export { default as DPayment } from './elements/form/paymentInfo/PaymentInfo';

@@ -11,20 +11,20 @@ function ContributorInfo({
   lastNameRequired,
   emailInputName,
   emailLabelText,
-  emailRequired
+  emailRequired,
+  askPhone,
+  phoneInputName,
+  phoneLabelText,
+  phoneRequired
 }) {
   return (
     <fieldset className={clsx('w-full flex flex-col items-center')}>
       <div className={clsx('flex flex-col w-full max-w-full	items-center md:flex-row gap-2')}>
         <LabeledInput name={firstNameInputName} labelText={firstNameLabelText} required={firstNameRequired} />
         <LabeledInput name={lastNameInputName} labelText={lastNameLabelText} required={lastNameRequired} />
+        <LabeledInput name={emailInputName} labelText={emailLabelText} required={emailRequired} />
+        {askPhone && <LabeledInput name={phoneInputName} labelText={phoneLabelText} required={phoneRequired} />}
       </div>
-      <LabeledInput
-        className={clsx('w-full')}
-        name={emailInputName}
-        labelText={emailLabelText}
-        required={emailRequired}
-      />
     </fieldset>
   );
 }
@@ -38,7 +38,11 @@ ContributorInfo.propTypes = {
   lastNameRequired: PropTypes.bool.isRequired,
   emailInputName: PropTypes.string.isRequired,
   emailLabelText: PropTypes.string.isRequired,
-  emailRequired: PropTypes.bool.isRequired
+  emailRequired: PropTypes.bool.isRequired,
+  askPhone: PropTypes.bool.isRequired,
+  phoneInputName: PropTypes.string.isRequired,
+  phoneLabelText: PropTypes.string.isRequired,
+  phoneRequired: PropTypes.bool.isRequired
 };
 
 ContributorInfo.defaultProps = {
@@ -50,6 +54,10 @@ ContributorInfo.defaultProps = {
   lastNameRequired: true,
   emailInputName: 'email',
   emailLabelText: 'E-mail',
-  emailRequired: true
+  emailRequired: true,
+  askPhone: false,
+  phoneInputName: 'phone',
+  phoneLabelText: 'Phone',
+  phoneRequired: false
 };
 export default ContributorInfo;

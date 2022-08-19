@@ -27,11 +27,11 @@ function DonationPageRouter() {
         <React.Suspense fallback={<GlobalLoading />}>
           <Switch>
             <Route
-              path={`${ROUTES.DONATION_PAGE_SLUG}${ROUTES.THANK_YOU_SLUG}` | ROUTES.THANK_YOU_SLUG}
+              path={[`${ROUTES.DONATION_PAGE_SLUG}${ROUTES.THANK_YOU_SLUG}`, ROUTES.THANK_YOU_SLUG]}
               render={() => <TrackPageView component={GenericThankYou} />}
             />
             <Route
-              path={ROUTES.DONATION_PAGE_SLUG | '/'}
+              path={[ROUTES.DONATION_PAGE_SLUG, '/']}
               render={() => <TrackPageView component={PublicPageWrapper} />}
             />
           </Switch>

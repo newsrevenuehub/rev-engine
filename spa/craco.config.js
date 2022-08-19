@@ -5,7 +5,7 @@ module.exports = {
         rules: [
           {
             type: 'javascript/auto',
-            test: /\.js$/,
+            test: /\.mjs$/,
             include: /node_modules/
           }
         ]

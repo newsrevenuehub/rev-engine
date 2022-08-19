@@ -52,6 +52,7 @@ def stripe_payment(request):
     pi_data["referer"] = request.META.get("HTTP_REFERER")
     pi_data["ip"] = request.META["REMOTE_ADDR"]
 
+    breakpoint()
     # StripePaymentManager will grab the right serializer based on "interval"
     stripe_payment = StripePaymentManager(data=pi_data)
 

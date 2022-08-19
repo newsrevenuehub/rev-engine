@@ -48,7 +48,7 @@ function Form({
 Form.propTypes = {
   onSubmit: PropTypes.func.isRequired,
   formLevelMessage: PropTypes.string,
-  dynamicElements: PropTypes.arrayOf(PropTypes.object()).isRequired,
+  dynamicElements: PropTypes.arrayOf(PropTypes.shape({})).isRequired,
   submitButtonText: PropTypes.string.isRequired,
   disabled: PropTypes.bool.isRequired,
   loading: PropTypes.bool.isRequired,

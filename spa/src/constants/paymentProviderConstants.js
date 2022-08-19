@@ -1,1 +1,3 @@
 export const STRIPE_PAYMENT_PROVIDER_NAME = 'stripe';
+export const MAX_CONTRIBUTION_AMOUNT = 999999.99;
+export const MIN_CONTRIBUTION_AMOUNT = 1.0;

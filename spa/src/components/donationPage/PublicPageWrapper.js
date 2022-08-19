@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { loadStripe } from '@stripe/stripe-js';
-import { QueryClient, useQuery } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
+import { Elements } from '@stripe/react-stripe-js';
 
-import { HUB_GA_V3_ID } from 'settings';
-import { LIVE_PAGE_DETAIL } from 'ajax/endpoints';
+import { HUB_GA_V3_ID, HUB_STRIPE_API_PUB_KEY } from 'settings';
+import { LIVE_PAGE_DETAIL, STRIPE_PAYMENT } from 'ajax/endpoints';
 
 import axios from 'ajax/axios';
 import useWebFonts from 'hooks/useWebFonts';
@@ -18,8 +19,7 @@ import DonationPage from 'components/donationPage/DonationPage';
 
 const STRIPE_IFRAME_SELECTOR = "iframe[title='Secure card payment input frame']";
 
-const queryClient = new QueryClient();
-const stripePromise = loadStripe('');
+const stripePromise = loadStripe(HUB_STRIPE_API_PUB_KEY);
 
 // this represents 1 USD
 const DEFAULT_PAYMENT_INTENT_AMOUNT = 100;
@@ -29,16 +29,62 @@ async function fetchLivePageData(rpSlug, pageSlug) {
     method: 'get',
     url: LIVE_PAGE_DETAIL,
     params: { revenue_program: rpSlug, page: pageSlug }
-  }).data;
+  }).then((response) => response.data);
 }
-
+// get dummy payment intent
 async function fetchPaymentIntent(amount, currency, defaultCurrency = 'usd') {
   return await axios({
     method: 'post',
-    url: null,
-    data: { amount, currency: currency || defaultCurrency }
-  }).data;
+    url: STRIPE_PAYMENT,
+    data: { amount, currency: currency || defaultCurrency, interval: 'one_time' }
+  }).then((response) => {
+    debugger;
+  });
 }
+
+// convenience function used to extract data from page data from API
+// to configure fields in donation form.
+const getDataFromPage = (page) => {
+  const {
+    revenue_program_is_nonprofit: isNonprofit,
+    styles,
+    allow_offer_nyt_comp: allowOfferNytComp,
+    elements: dynamicElements
+  } = page;
+
+  const currencySymbol = page?.currency?.symbol;
+  const frequencyOptions = page?.elements?.find(({ type }) => type === 'DFrequency')?.content || [];
+  const amountConfig = page?.elements?.find(({ type }) => type === 'DAmount')?.content || {};
+  const { allowOther: allowUserSetValue, options: amountOptions } = amountConfig;
+  const { askPhone } = page?.elements?.find(({ type }) => type === 'DDonorInfo')?.content || {};
+  const reasonConfig = page?.elements?.find(({ type }) => type === 'DReason')?.content || {};
+  const { reasons: reasonOptions, askReason, askHonoree, askInMemoryOf } = reasonConfig;
+  const swagOptions = page?.elements?.find(({ type }) => type === 'DSwag')?.content || {};
+  const { optOutDefault, swagThreshold, swags } = { swagOptions };
+  const paymentConfig = page?.elements?.find(({ type }) => type === 'DPayment')?.content || {};
+  const { offerPayFees, stripe: wallets } = paymentConfig;
+
+  return {
+    allowOfferNytComp,
+    allowUserSetValue,
+    amountOptions,
+    askHonoree,
+    askInMemoryOf,
+    askPhone,
+    askReason,
+    currencySymbol,
+    dynamicElements,
+    frequencyOptions,
+    isNonprofit,
+    offerPayFees,
+    optOutDefault,
+    reasonOptions,
+    styles,
+    swags,
+    swagThreshold,
+    wallets
+  };
+};
 
 export default function LivePage() {
   const { setAnalyticsConfig, analyticsInstance } = useAnalyticsContext();
@@ -47,29 +93,46 @@ export default function LivePage() {
   const { pageSlug } = useParams();
   const [display404, setDisplay404] = useState(false);
 
+  // const {
+  //   isSuccess: pageQuerySuccess,
+  //   data: {
+  //     revenueProgram: { orgGaV3Id, orgGaV3Domain, orgGaV4Id, orgFbPixelId },
+  //     ...page
+  //   },
+  //   isLoading: pageIsLoading
+  // } = useQuery(['page'], () => fetchLivePageData(subdomain, pageSlug).catch((err) => setDisplay404(true)));
+
   const {
     isSuccess: pageQuerySuccess,
-    revenueProgram: { orgGaV3Id, orgGaV3Domain, orgGaV4Id, orgFbPixelId },
-    ...page
-  } = useQuery(['page'], () => fetchLivePageData(subdomain, pageSlug).catch((err) => setDisplay404(true)));
+    data: page,
+    isLoading: pageIsLoading
+  } = useQuery(['page'], () => fetchLivePageData(subdomain, pageSlug));
 
-  const { clientSecret: stripeClientSecret } = useQuery(['paymentIntent'], () =>
-    fetchPaymentIntent().catch((err) => setDisplay404(true))
+  // generate initial payment intent. we need to have a payment intent in order to get a stripe client secret,
+  // which in turn allows us to display the Stripe PaymentElement.
+  //
+  // note that this is an initial "dummy" payment intent for minimimum amount. We update the amount
+  // when confirming payment after user submits form.
+
+  const { clientSecret: stripeClientSecret, isLoading: paymentIntentLoading } = useQuery(['paymentIntent'], () =>
+    fetchPaymentIntent(DEFAULT_PAYMENT_INTENT_AMOUNT).catch((err) => {
+      debugger;
+      setDisplay404(true);
+    })
   );
 
-  useEffect(() => {
-    if (pageQuerySuccess) {
-      setAnalyticsConfig({ hubGaV3Id: HUB_GA_V3_ID, orgGaV3Id, orgGaV3Domain, orgGaV4Id, orgFbPixelId });
-    }
-  }, [orgGaV3Id, orgGaV3Domain, orgGaV4Id, orgFbPixelId, setAnalyticsConfig, pageQuerySuccess]);
+  // load analytics once query for page data has successfully returned
+  // useEffect(() => {
+  //   if (pageQuerySuccess) {
+  //     setAnalyticsConfig({ hubGaV3Id: HUB_GA_V3_ID, orgGaV3Id, orgGaV3Domain, orgGaV4Id, orgFbPixelId });
+  //   }
+  // }, [orgGaV3Id, orgGaV3Domain, orgGaV4Id, orgFbPixelId, setAnalyticsConfig, pageQuerySuccess]);
 
   useWebFonts(page?.styles?.font, { context: document.querySelector(STRIPE_IFRAME_SELECTOR) });
 
-  const isLoading = !stripeClientSecret || !pageQuerySuccess || !analyticsInstance;
+  // const isLoading = paymentIntentLoading || pageIsLoading || !analyticsInstance;
 
-  // const onSubmit = useMutation((formData) => {
-  //   // https://stripe.com/docs/payments/quickstart
-  // });
+  const isLoading = paymentIntentLoading || pageIsLoading;
 
   return (
     <SegregatedStyles page={page}>
@@ -79,8 +142,10 @@ export default function LivePage() {
         <LiveLoading />
       ) : (
         <DonationPage
-          page={page}
-          // other attributes required by live page
+          page={getDataFromPage(page)}
+          liveView={true}
+          // stripeClientSecret={stripeClientSecret}
+          stripePromise={stripePromise}
         />
       )}
     </SegregatedStyles>

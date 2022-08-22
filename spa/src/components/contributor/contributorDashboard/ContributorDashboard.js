@@ -12,7 +12,7 @@ import discover from 'assets/icons/discover_icon.svg';
 import { useAlert } from 'react-alert';
 
 // Context
-import { useGlobalContext } from 'components/MainLayout';
+import { useConfirmationModalContext } from 'elements/modal/GlobalConfirmationModal';
 import { NO_VALUE } from 'constants/textConstants';
 
 // Analytics
@@ -42,7 +42,7 @@ const ContributorDashboardContext = createContext();
 function ContributorDashboard() {
   const alert = useAlert();
   // Context
-  const { getUserConfirmation } = useGlobalContext();
+  const getUserConfirmation = useConfirmationModalContext();
 
   // State
   const [loading, setLoading] = useState(false);

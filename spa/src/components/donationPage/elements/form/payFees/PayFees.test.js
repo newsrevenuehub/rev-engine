@@ -7,7 +7,7 @@ const { Default } = composeStories(stories);
 
 test('defaults to unchecked', async () => {
   render(<Default />);
-  const input = screen.getByLabelText(Default.args.labelText, { checked: false });
+  const input = screen.getByLabelText(Default.args.payFeesLabelText, { checked: false });
   expect(input).toBeInTheDocument();
   expect(input).not.toBeChecked();
   const button = screen.getByRole('button', { name: 'Submit' });
@@ -20,11 +20,11 @@ test('defaults to unchecked', async () => {
 
 test('can go from default unchecked to checked', async () => {
   render(<Default />);
-  const input = screen.getByLabelText(Default.args.labelText, { checked: false });
+  const input = screen.getByLabelText(Default.args.payFeesLabelText, { checked: false });
   expect(input).toBeInTheDocument();
   expect(input).not.toBeChecked();
   fireEvent.click(input);
-  const nowChecked = screen.getByLabelText(Default.args.labelText, { checked: true });
+  const nowChecked = screen.getByLabelText(Default.args.payFeesLabelText, { checked: true });
   expect(nowChecked).toBeChecked();
   const button = screen.getByRole('button', { name: 'Submit' });
   fireEvent.click(button);
@@ -36,7 +36,7 @@ test('can go from default unchecked to checked', async () => {
 
 test('can default to checked', async () => {
   render(<Default defaultChecked={true} />);
-  const input = screen.getByLabelText(Default.args.labelText, { checked: true });
+  const input = screen.getByLabelText(Default.args.payFeesLabelText, { checked: true });
   expect(input).toBeInTheDocument();
   expect(input).toBeChecked();
   const button = screen.getByRole('button', { name: 'Submit' });
@@ -49,9 +49,9 @@ test('can default to checked', async () => {
 
 test('can go from default checked to unchecked', async () => {
   render(<Default defaultChecked={true} />);
-  const input = screen.getByLabelText(Default.args.labelText, { checked: true });
+  const input = screen.getByLabelText(Default.args.payFeesLabelText, { checked: true });
   fireEvent.click(input);
-  const nowUnchecked = screen.getByLabelText(Default.args.labelText, { checked: false });
+  const nowUnchecked = screen.getByLabelText(Default.args.payFeesLabelText, { checked: false });
   expect(nowUnchecked).not.toBeChecked();
   const button = screen.getByRole('button', { name: 'Submit' });
   fireEvent.click(button);

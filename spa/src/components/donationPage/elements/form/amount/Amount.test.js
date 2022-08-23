@@ -3,12 +3,14 @@ import { composeStories } from '@storybook/testing-react';
 import * as Yup from 'yup';
 
 import * as stories from './Amount.stories';
+import Amount from './Amount';
+
 import { MIN_CONTRIBUTION_AMOUNT, MAX_CONTRIBUTION_AMOUNT } from 'constants/paymentProviderConstants';
 import {
-  default as validator,
+  rawValidationSchema,
   MIN_CONTRIBUTION_AMOUNT_VALIDATION_ERROR_MSG,
   MAX_CONTRIBUTION_AMOUNT_VALIDATION_ERROR_MSG
-} from './validator';
+} from '../schema';
 
 // Every component that is returned maps 1:1 with the stories, but they already contain all decorators from story level, meta level and global level.
 const { Default, OneTime, WithDefaultFreeForm, FreeFormInputDisabled } = composeStories(stories);
@@ -25,18 +27,18 @@ test('when no frequency (aka "one-time")', () => {
 
 test('when frequency provided', () => {
   render(<Default />);
-  const { presetAmounts, currencySymbol, frequency } = Default.args;
-  const expectedPresetLabels = presetAmounts.map((amount) => `${currencySymbol}${amount} / ${frequency}`);
+  const { presetAmounts, currencySymbol, frequencyString } = Default.args;
+  const expectedPresetLabels = presetAmounts.map((amount) => `${currencySymbol}${amount} / ${frequencyString}`);
   expectedPresetLabels.forEach((label) => {
     expect(screen.getByRole('radio', { name: label })).toBeInTheDocument();
   });
-  expect(screen.getByTestId('frequency-string')).toHaveTextContent(`/ ${frequency}`);
+  expect(screen.getByTestId('frequency-string')).toHaveTextContent(`/ ${frequencyString}`);
 });
 
 test('correctly displays preset amounts', () => {
   render(<Default />);
   Default.args.presetAmounts.forEach((amount, idx) => {
-    const radio = screen.getByLabelText(`${Default.args.currencySymbol}${amount} / ${Default.args.frequency}`);
+    const radio = screen.getByLabelText(`${Default.args.currencySymbol}${amount} / ${Default.args.frequencyString}`);
     expect(radio).not.toBeNull();
     fireEvent.click(radio);
     expect(radio).toBeChecked();
@@ -46,7 +48,7 @@ test('correctly displays preset amounts', () => {
 test('first preset is checked by default', () => {
   render(<Default />);
   const firstRadio = screen.getByLabelText(
-    `${Default.args.currencySymbol}${Default.args.presetAmounts[0]} / ${Default.args.frequency}`
+    `${Default.args.currencySymbol}${Default.args.presetAmounts[0]} / ${Default.args.frequencyString}`
   );
   expect(firstRadio).not.toBeNull();
   expect(firstRadio).toBeChecked();
@@ -113,7 +115,7 @@ test('has user entered free form input as submission value', async () => {
 
 test('displays message when min amount validation error', async () => {
   const name = 'default-min-validator-error';
-  const defaultValidator = Yup.object({ [name]: validator });
+  const defaultValidator = Yup.object({ [name]: rawValidationSchema[Amount.defaultProps.name] });
   render(<Default name={name} validator={defaultValidator} />);
   const chosenValue = MIN_CONTRIBUTION_AMOUNT - 0.1;
   const freeFormInput = screen.getByRole('spinbutton');
@@ -125,7 +127,7 @@ test('displays message when min amount validation error', async () => {
 
 test('displays message when max amount validation error', async () => {
   const name = 'default-max-validator-error';
-  const defaultValidator = Yup.object({ [name]: validator });
+  const defaultValidator = Yup.object({ [name]: rawValidationSchema[Amount.defaultProps.name] });
   render(<Default name={name} validator={defaultValidator} />);
   const chosenValue = MAX_CONTRIBUTION_AMOUNT + 0.1;
   const freeFormInput = screen.getByRole('spinbutton');

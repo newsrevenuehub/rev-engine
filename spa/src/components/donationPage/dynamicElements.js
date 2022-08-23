@@ -1,9 +1,8 @@
-export { default as RichText } from './elements/richText';
-export { default as Frequency } from './elements/form/frequency/Frequency';
-export { default as Amount } from './elements/form/amount/Amount';
-export { default as ContributorInfo } from './elements/form/contributorInfo/ContributorInfo';
-export { default as Address } from './elements/form/address/Address';
-export { default as PayFees } from './elements/form/payFees/PayFees';
-export { default as Swag } from './elements/form/swag/Swag';
-export { default as Reason } from './elements/form/reason/Reason';
+export { default as DRichText } from './elements/richText';
+export { default as DFrequency } from './elements/form/frequency/Frequency';
+export { default as DAmount } from './elements/form/amount/Amount';
+export { default as DDonorInfo } from './elements/form/contributorInfo/ContributorInfo';
+export { default as DDonorAddress } from './elements/form/address/Address';
+export { default as DSwag } from './elements/form/swag/Swag';
+export { default as DReason } from './elements/form/reason/Reason';
 export { default as DPayment } from './elements/form/paymentInfo/PaymentInfo';

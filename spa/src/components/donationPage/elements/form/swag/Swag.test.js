@@ -11,7 +11,7 @@ test('default behavior', async () => {
   render(<Default />);
 
   screen.getByText(Default.args.headerText);
-  screen.getByText(`Give a total of ${Default.args.swagThresholdAmount} per year to be eligible`);
+  screen.getByText(`Give a total of ${Default.args.swagThreshold} per year to be eligible`);
   screen.getByText('Your contribution comes with member merchandise. Please choose an option');
 
   const optOutCheckbox = screen.getByLabelText(Default.args.optOutLabelText);
@@ -43,7 +43,7 @@ test('opt-out of swag is pre-checked', () => {
 test('giving threshold is not met', () => {
   render(<ThresholdNotMet />);
   screen.getByText(Default.args.headerText);
-  screen.getByText(`Give a total of ${Default.args.swagThresholdAmount} per year to be eligible`);
+  screen.getByText(`Give a total of ${Default.args.swagThreshold} per year to be eligible`);
 
   expect(
     screen.queryByText('Your contribution comes with member merchandise. Please choose an option')

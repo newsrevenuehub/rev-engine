@@ -1,11 +1,11 @@
 import DElement from '../DElement';
 import * as S from './RichText.styled';
 
-function RichText({ element, ...props }) {
+function RichText({ richTextContent }) {
   return (
     <DElement>
-      <S.RichText {...props} data-testid="d-rich-text">
-        <S.RichTextContent dangerouslySetInnerHTML={{ __html: element.content }} />
+      <S.RichText data-testid="d-rich-text">
+        <S.RichTextContent dangerouslySetInnerHTML={{ __html: richTextContent }} />
       </S.RichText>
     </DElement>
   );

@@ -6,7 +6,7 @@ import { RHFFormTemplate } from 'storybook/templates';
 const args = {
   component: Swag,
   ...Swag.defaultProps,
-  swagThresholdAmount: '$250',
+  swagThreshold: '$250',
   optOutDefaultChecked: false,
   swagItemLabelText: 'T-shirt',
   swagItemOptions: [

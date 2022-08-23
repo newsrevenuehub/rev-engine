@@ -3,7 +3,7 @@ import Switch from '@material-ui/core/Switch';
 import FormControlLabel from '@material-ui/core/FormControlLabel';
 import { useFormContext, Controller } from 'react-hook-form';
 
-function PayFees({ name, legendHeading, labelText, helperText, defaultChecked }) {
+function PayFees({ name, legendHeading, payFeesLabelText, helperText, defaultChecked }) {
   const { control } = useFormContext();
 
   return (
@@ -19,7 +19,7 @@ function PayFees({ name, legendHeading, labelText, helperText, defaultChecked })
               <FormControlLabel
                 control={<Switch checked={value} color="primary" />}
                 onChange={onChange}
-                label={labelText}
+                label={payFeesLabelText}
               ></FormControlLabel>
             );
           }}
@@ -33,7 +33,7 @@ function PayFees({ name, legendHeading, labelText, helperText, defaultChecked })
 PayFees.propTypes = {
   name: PropTypes.string.isRequired,
   legendHeading: PropTypes.string.isRequired,
-  labelText: PropTypes.string.isRequired,
+  payFeesLabelText: PropTypes.string.isRequired,
   helperText: PropTypes.string.isRequired,
   defaultChecked: PropTypes.bool
 };

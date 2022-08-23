@@ -18,9 +18,7 @@ import componentLoader from 'utilities/componentLoader';
  * Split Bundles
  */
 const GenericThankYou = lazy(() => componentLoader(() => import(`components/donationPage/thankYou`)));
-const LiveDonationPageContainer = lazy(() =>
-  componentLoader(() => import(`components/donationPage/LiveDonationPageContainer`))
-);
+const PublicPageWrapper = lazy(() => componentLoader(() => import(`components/donationPage/PublicPageWrapper`)));
 
 function DonationPageRouter() {
   return (
@@ -33,11 +31,8 @@ function DonationPageRouter() {
               render={() => <TrackPageView component={GenericThankYou} />}
             />
             <Route path={ROUTES.THANK_YOU_SLUG} render={() => <TrackPageView component={GenericThankYou} />} />
-            <Route
-              path={ROUTES.DONATION_PAGE_SLUG}
-              render={() => <TrackPageView component={LiveDonationPageContainer} />}
-            />
-            <Route path={'/'} render={() => <TrackPageView component={LiveDonationPageContainer} />} />
+            <Route path={ROUTES.DONATION_PAGE_SLUG} render={() => <TrackPageView component={PublicPageWrapper} />} />
+            <Route path={'/'} render={() => <TrackPageView component={PublicPageWrapper} />} />
           </Switch>
         </React.Suspense>
       </ChunkErrorBoundary>

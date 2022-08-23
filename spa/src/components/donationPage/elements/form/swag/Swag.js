@@ -5,7 +5,7 @@ import { Select } from '@material-ui/core';
 
 function Swag({
   headerText,
-  swagThresholdAmount,
+  swagThreshold,
   optOutDefaultChecked,
   optOutLabelText,
   optOutName,
@@ -22,7 +22,7 @@ function Swag({
     <fieldset className="w-full max-w-xl">
       <legend>
         <h2 className="text-3xl mb-4">{headerText}</h2>
-        <p className="italic mb-5">Give a total of {swagThresholdAmount} per year to be eligible</p>
+        <p className="italic mb-5">Give a total of {swagThreshold} per year to be eligible</p>
       </legend>
       {swagThresholdMet && (
         <>
@@ -78,7 +78,7 @@ function Swag({
 
 Swag.propTypes = {
   headerText: PropTypes.string.isRequired,
-  swagThresholdAmount: PropTypes.string.isRequired,
+  swagThreshold: PropTypes.number.isRequired,
   optOutDefaultChecked: PropTypes.bool.isRequired,
   optOutLabelText: PropTypes.string.isRequired,
   optOutName: PropTypes.string.isRequired,
@@ -94,10 +94,17 @@ Swag.propTypes = {
 };
 
 Swag.defaultProps = {
-  headerText: 'Member benefits',
+  headerText: 'Swag',
   optOutDefaultChecked: false,
   optOutLabelText: "Maximize my contribution – I'd rather not receive member merchandise.",
   optOutName: 'swag-opt-out',
   swagItemName: 'swag-choice'
 };
+
+Swag.type = 'DSwag';
+Swag.displayName = 'Swag component';
+Swag.description = 'Allow donors to make choices about optional swag';
+Swag.required = false;
+Swag.unique = true;
+
 export default Swag;

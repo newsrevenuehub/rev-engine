@@ -1,25 +1,26 @@
-import { render } from 'test-utils';
+import { render, screen } from 'test-utils';
 
 // Test Subject
 import DonationPageDisclaimer from './Disclaimer';
 
-// Mock data
-import mockPage from '../../../cypress/fixtures/pages/live-page-1.json';
+const defaultProps = {
+  currencySymbol: '$',
+  amount: 120,
+  frequency: 'month'
+};
 
 it('should render some initial static text', () => {
-  const { getByText } = render(
-    <DonationPageDisclaimer page={mockPage} amount={120} payFee={false} frequency={'month'} />
-  );
+  render(<DonationPageDisclaimer {...defaultProps} />);
 
-  expect(getByText('By proceeding with this transaction, you agree to our', { exact: false })).toBeInTheDocument();
+  expect(
+    screen.getByText('By proceeding with this transaction, you agree to our', { exact: false })
+  ).toBeInTheDocument();
 });
 
 it('should render links pointing to fundjournalism.org\'s "privacy policy" and "terms & conditions"', () => {
-  const { getAllByRole } = render(
-    <DonationPageDisclaimer page={mockPage} amount={120} payFee={false} frequency={'month'} />
-  );
+  render(<DonationPageDisclaimer {...defaultProps} />);
 
-  const links = getAllByRole('link');
+  const links = screen.getAllByRole('link');
 
   expect(links).toHaveLength(2);
   expect(links[0]).toHaveTextContent('privacy policy');
@@ -30,32 +31,24 @@ it('should render links pointing to fundjournalism.org\'s "privacy policy" and "
 });
 
 it('should include the amount provided as a prop in the rendered text', () => {
-  const expCurrencySymbol = mockPage.currency.symbol;
-  const expAmount = 120;
-  const { getByText } = render(
-    <DonationPageDisclaimer page={mockPage} amount={expAmount} payFee={false} frequency={'month'} />
-  );
+  render(<DonationPageDisclaimer {...defaultProps} />);
 
-  expect(getByText(`${expCurrencySymbol}${expAmount}`, { exact: false })).toBeInTheDocument();
+  expect(
+    screen.getByText(`${defaultProps.currencySymbol}${defaultProps.amount}`, { exact: false })
+  ).toBeInTheDocument();
 });
 
 it('should show slightly different text based on the frequency prop', () => {
-  const monthly = 'month';
-  const { rerender, getByText, queryByText } = render(
-    <DonationPageDisclaimer page={mockPage} amount={120} payFee={false} frequency={monthly} />
-  );
+  const { rerender } = render(<DonationPageDisclaimer {...defaultProps} />);
 
-  expect(getByText('along with all future recurring payments', { exact: false })).toBeInTheDocument();
-  expect(getByText('of the month until you cancel', { exact: false })).toBeInTheDocument();
+  expect(screen.getByText('along with all future recurring payments', { exact: false })).toBeInTheDocument();
+  expect(screen.getByText('of the month until you cancel', { exact: false })).toBeInTheDocument();
 
-  const yearly = 'year';
-  rerender(<DonationPageDisclaimer page={mockPage} amount={120} payFee={false} frequency={yearly} />);
+  rerender(<DonationPageDisclaimer {...{ ...defaultProps, frequency: 'year' }} />);
+  expect(screen.getByText('along with all future recurring payments', { exact: false })).toBeInTheDocument();
+  expect(screen.getByText('yearly until you cancel', { exact: false })).toBeInTheDocument();
 
-  expect(getByText('along with all future recurring payments', { exact: false })).toBeInTheDocument();
-  expect(getByText('yearly until you cancel', { exact: false })).toBeInTheDocument();
+  rerender(<DonationPageDisclaimer {...{ ...defaultProps, frequency: 'one_time' }} />);
 
-  const once = 'one_time';
-  rerender(<DonationPageDisclaimer page={mockPage} amount={120} payFee={false} frequency={once} />);
-
-  expect(queryByText('along with all future recurring payments', { exact: false })).toBeNull();
+  expect(screen.queryByText('along with all future recurring payments', { exact: false })).toBeNull();
 });

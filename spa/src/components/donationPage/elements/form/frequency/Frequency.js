@@ -2,16 +2,16 @@ import clsx from 'clsx';
 import PropTypes from 'prop-types';
 import { useFormContext } from 'react-hook-form';
 
-function Frequency({ labelText, helperText, name, required, frequencyOptions, defaultCheckedIndex }) {
+function Frequency({ displayName, helperText, name, required, frequencyOptions, defaultCheckedIndex }) {
   const { register } = useFormContext();
 
   return (
-    <fieldset className="w-full ">
+    <fieldset data-testid="frequency-component" className="w-full ">
       <legend className="w-full">
-        <h2 className="text-3xl">{labelText}</h2>
+        <h2 className="text-3xl">{displayName}</h2>
         <p className="mb-3">{helperText}</p>
         <div className={clsx('flex justify-between max-w-sm')}>
-          {frequencyOptions.map(({ labelText, value }, key) => {
+          {frequencyOptions.map(({ displayName, value }, key) => {
             const id = `${name}-${value}`;
             return (
               <label htmlFor={id} key={id}>
@@ -25,7 +25,7 @@ function Frequency({ labelText, helperText, name, required, frequencyOptions, de
                   className="mr-3"
                   required={required}
                 />
-                {labelText}
+                {displayName}
               </label>
             );
           })}
@@ -36,22 +36,28 @@ function Frequency({ labelText, helperText, name, required, frequencyOptions, de
 }
 
 Frequency.propTypes = {
-  labelText: PropTypes.string.isRequired,
+  displayName: PropTypes.string.isRequired,
   helperText: PropTypes.string,
   name: PropTypes.string.isRequired,
   required: PropTypes.bool,
   frequencyOptions: PropTypes.arrayOf(
-    PropTypes.shape({ labelText: PropTypes.string.isRequired, value: PropTypes.string.isRequired })
+    PropTypes.shape({ displayName: PropTypes.string.isRequired, value: PropTypes.string.isRequired })
   ),
   defaultCheckedIndex: PropTypes.number
 };
 
 Frequency.defaultProps = {
-  labelText: 'Frequency',
+  displayName: 'Frequency',
   helperText: 'Choose a contribution type',
   name: 'contribution-frequency',
   required: true,
   defaultCheckedIndex: 0
 };
+
+Frequency.type = 'DFrequency';
+Frequency.displayName = 'Contribution frequency';
+Frequency.description = 'Allow donors to select a frequency at which to contribute';
+Frequency.required = true;
+Frequency.unique = true;
 
 export default Frequency;

@@ -11,8 +11,9 @@ const args = {
   name: NAME,
   includeDevTools: true,
   submitSuccessMessage: 'successful submit',
-  validator: Yup.object({ 
-    [ContributorInfo.defaultProps.emailInputName]: validator }).required()
+  validator: Yup.object({
+    [ContributorInfo.defaultProps.emailInputName]: validator
+  }).required()
 };
 
 export default {

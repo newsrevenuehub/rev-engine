@@ -48,7 +48,7 @@ import useModal from 'hooks/useModal';
 // Children
 import CircleButton from 'elements/buttons/CircleButton';
 import SegregatedStyles from 'components/donationPage/elements/SegregatedStyles';
-import DonationPage from 'components/donationPage/DonationPage';
+import PublicPageWrapper from 'components/donationPage/PublicPageWrapper';
 import GlobalLoading from 'elements/GlobalLoading';
 import EditInterface from 'components/pageEditor/editInterface/EditInterface';
 import BackButton from 'elements/BackButton';
@@ -120,7 +120,7 @@ function PageEditor() {
 
   const history = useHistory();
 
-  useWebFonts(page?.styles?.font);
+  // useWebFonts(page?.styles?.font);
 
   useConfigureAnalytics();
 
@@ -133,6 +133,7 @@ function PageEditor() {
     },
     [alert]
   );
+
   useEffect(() => {
     setLoading(true);
 
@@ -348,7 +349,6 @@ function PageEditor() {
       }
     }
   }, [errors, alert]);
-
   return (
     <>
       <PageTitle title={pageTitle} />
@@ -376,7 +376,7 @@ function PageEditor() {
           {!loading && page && (
             <SegregatedStyles page={page}>
               {/* set stringified page as key to guarantee that ALL page changes will re-render the page in edit mode */}
-              <DonationPage key={page ? JSON.stringify(page) : ''} live={false} page={page} />
+              <PublicPageWrapper editorView={true} key={page ? JSON.stringify(page) : ''} />
             </SegregatedStyles>
           )}
 

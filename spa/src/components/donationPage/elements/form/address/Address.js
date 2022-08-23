@@ -80,11 +80,11 @@ function Address({
   );
 }
 
-// Address.type = 'Address';
-// Address.displayName = 'Donor address';
-// Address.description = 'Collect donor address';
-// Address.required = true;
-// Address.unique = true;
+Address.type = 'DDonorAddress';
+Address.displayName = 'Donor address';
+Address.description = 'Collect donor address';
+Address.required = true;
+Address.unique = true;
 
 Address.propTypes = {
   streetAddressInputName: PropTypes.string.isRequired,
@@ -92,7 +92,7 @@ Address.propTypes = {
   streetAddressRequired: PropTypes.bool.isRequired,
   cityInputName: PropTypes.string.isRequired,
   cityLabelText: PropTypes.string.isRequired,
-  cityRequired: PropTypes.string.isRequired,
+  cityRequired: PropTypes.bool.isRequired,
   stateInputName: PropTypes.string.isRequired,
   stateLabelText: PropTypes.string.isRequired,
   stateRequired: PropTypes.bool.isRequired,

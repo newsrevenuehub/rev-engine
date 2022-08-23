@@ -36,14 +36,13 @@ function FrequencyEditor() {
     const freqIsEnabled = freqs.find((f) => f.value === frequency);
     if (freqIsEnabled) setElementContent(freqs.map((f) => ({ ...f, isDefault: f.value === frequency })));
   };
-
   return (
     <S.FrequencyEditor data-testid="frequency-editor">
-      {FREQUENCIES.map((frequency) => {
+      {FREQUENCIES.map((frequency, idx) => {
         const thisFreq = elementContent.find((f) => f.value === frequency.value);
         return (
-          <S.FieldSetWrapper>
-            <S.ToggleWrapper key={frequency.value}>
+          <S.FieldSetWrapper key={frequency.value}>
+            <S.ToggleWrapper>
               <S.Toggle
                 label={`${frequency.displayName} payments enabled`}
                 data-testid="frequency-toggle"

@@ -4,7 +4,7 @@ import { RHFFormTemplate } from 'storybook/templates';
 
 const args = {
   ...PayFees.defaultProps,
-  labelText: '$3.99 once',
+  payFeesLabelText: '$3.99 once',
   component: PayFees,
   includeDevTools: true,
   submitSuccessMessage: 'successful submit',

@@ -1,6 +1,6 @@
 import * as S from './Footer.styled';
 
-function Footer({ page }) {
+function Footer({ rpName }) {
   return (
     <S.Footer data-testid="donation-page-footer">
       <S.Content>
@@ -8,7 +8,7 @@ function Footer({ page }) {
           What is fundjournalism.org?
         </a>
         <p>
-          &copy; {new Date().getFullYear()} {page?.revenue_program.name}
+          &copy; {new Date().getFullYear()} {rpName}
         </p>
       </S.Content>
     </S.Footer>

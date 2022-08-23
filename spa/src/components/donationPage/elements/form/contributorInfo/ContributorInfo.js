@@ -19,7 +19,7 @@ function ContributorInfo({
 }) {
   return (
     <fieldset className={clsx('w-full flex flex-col items-center')}>
-      <div className={clsx('flex flex-col w-full max-w-full	items-center md:flex-row gap-2')}>
+      <div className={clsx('flex flex-col w-full max-w-full md:flex-row gap-2')}>
         <LabeledInput name={firstNameInputName} labelText={firstNameLabelText} required={firstNameRequired} />
         <LabeledInput name={lastNameInputName} labelText={lastNameLabelText} required={lastNameRequired} />
         <LabeledInput name={emailInputName} labelText={emailLabelText} required={emailRequired} />
@@ -60,4 +60,11 @@ ContributorInfo.defaultProps = {
   phoneLabelText: 'Phone',
   phoneRequired: false
 };
+
+ContributorInfo.type = 'DDonorInfo';
+ContributorInfo.displayName = 'Donor info';
+ContributorInfo.description = 'Collect donor name and email';
+ContributorInfo.required = true;
+ContributorInfo.unique = true;
+
 export default ContributorInfo;

@@ -1,12 +1,11 @@
 import { FormProvider, useForm } from 'react-hook-form';
-import { useEffect, useCallback, useState } from 'react';
-import useQueryString from 'hooks/useQueryString';
+import { useEffect, useState } from 'react';
 import PropTypes from 'prop-types';
 import { Elements } from '@stripe/react-stripe-js';
+import { yupResolver } from '@hookform/resolvers/yup';
 
 import * as S from './DonationPage.styled';
-// import useClearbit from 'hooks/useClearbit';
-// import { getDefaultAmountForFreq } from 'components/donationPage/pageContent/DAmount';
+import useClearbit from 'hooks/useClearbit';
 
 // import { SALESFORCE_CAMPAIGN_ID_QUERYPARAM, FREQUENCY_QUERYPARAM, AMOUNT_QUERYPARAM } from 'settings';
 import HeaderBar from './elements/headerBar/HeaderBar';
@@ -20,31 +19,7 @@ import DonationPageSidebar from 'components/donationPage/elements/sidebar/Donati
 import DonationPageFooter from 'components/donationPage/elements/footer/Footer';
 import validationSchema from './elements/form/schema';
 import calculateStripeFee from 'utilities/calculateStripeFee';
-
-const useYupValidationresolver = (validationSchema) =>
-  useCallback(
-    async (data) => {
-      try {
-        const values = await validationSchema.validate(data, { abortEary: false });
-        return {
-          values,
-          errors: {}
-        };
-      } catch (errors) {
-        return {
-          values: {},
-          errors: errors.inner.reduce((allErrors, currentError) => ({
-            ...allErrors,
-            [currentError.path]: {
-              type: currentError.type ?? 'validation',
-              message: currentError.message
-            }
-          }))
-        };
-      }
-    },
-    [validationSchema]
-  );
+import DonationPageDisclaimer from 'components/donationPage/elements/disclaimer/Disclaimer';
 
 // used in `DonationPage` in generation of submit button text
 const intervalToAdverbMap = {
@@ -53,35 +28,42 @@ const intervalToAdverbMap = {
   year: 'yearly'
 };
 
+const intervalToNoun = {
+  one_time: 'once',
+  month: 'month',
+  year: 'year'
+};
+
+const AltElementsContainer = ({ children, ...rest }) => {
+  return <div>{children}</div>;
+};
+
 // Summary of what this component is for...
-function DonationPage({ pageData, stripeClientSecret, stripePromise, liveView = false }) {
+function DonationPage({ defaultAmount, pageData, stripeClientSecret, stripePromise, liveView = false }) {
+  useClearbit(liveView);
+
   // RHF configuration
-  debugger;
-  const resolver = useYupValidationresolver(validationSchema);
+  const resolver = yupResolver(validationSchema);
   const methods = useForm({ resolver });
 
   // orchestration of these fields happens in the RHF layer, where
   // different inputs are initiated by a watchable name.
-  // We use RHF's built in watch functionality to update thet "global"
+  // We use RHF's built in watch functionality to update the "global"
   // state values for amount, frequency, and agreePayFees, which are required
   // and set by constituent form parts, each registered with RHF in situ.
-  const watchedAmountFormValue = methods.watch(Amount.defaultProps.name, null);
-  const watchedFrequencyValue = methods.watch(Frequency.defaultProps.name, null);
+  const watchedAmountFormValue = methods.watch(Amount.defaultProps.name, 0);
+
+  const watchedFrequencyValue = methods.watch(Frequency.defaultProps.name, pageData.frequencyOptions[0].value);
   const watchedAgreePayFees = methods.watch(PayFees.defaultProps.name, null);
-
-  // get an `amount` query parameter from the URL, which can prefil the form
-  const amountFormParam = useQueryString('amount');
-
   // totalPaymentAmount is distinct from the amount the user has
   // chosen in the form. It's that amount plus fees if they agree.
   // It's this derived value that will get submitted to Stripe.
   const [totalPaymentAmount, setTotalPaymentAmount] = useState(0);
   const [fees, setFees] = useState(0);
-  const [availableAmounts, setAvailableAmounts] = useState([]);
+  const [availableAmounts, setAvailableAmounts] = useState(pageData.amountOptions[pageData.frequencyOptions[0].value]);
   const [swagThresholdMet, setswagThresholdMet] = useState(false);
   const [submitButtonText, setSubmitButtonText] = useState('');
-  const [defaultAmount, setDefaultAmount] = useState(null);
-  const [filteredDynamicElements, setFilteredDynamicElements] = useState([]);
+  const [payFeesLabelText, setPayFeesLabelText] = useState('');
 
   // set total amount based on amount + fees. this amount will be submitted
   // to payment provider, and also determines what's shown in submit button text.
@@ -101,7 +83,7 @@ function DonationPage({ pageData, stripeClientSecret, stripePromise, liveView = 
   // select the available amounts given chosen frequency
   useEffect(() => {
     if (pageData.amountOptions && watchedFrequencyValue !== null) {
-      setAvailableAmounts(pageData.amountOptions[watchedFrequencyValue].map((amount) => {}));
+      setAvailableAmounts(pageData.amountOptions[watchedFrequencyValue]);
     }
   }, [pageData.amountOptions, watchedFrequencyValue]);
 
@@ -115,32 +97,17 @@ function DonationPage({ pageData, stripeClientSecret, stripePromise, liveView = 
     setSubmitButtonText(
       `Give ${pageData.currencySymbol ? pageData.currencySymbol + ' ' : ''}${
         watchedAmountFormValue ? watchedAmountFormValue + ' ' : ''
-      }${intervalToAdverbMap[watchedFrequencyValue] || ''}}`
+      }${intervalToAdverbMap[watchedFrequencyValue] || ''}`
     );
   }, [pageData.currencySymbol, totalPaymentAmount, watchedAmountFormValue, watchedFrequencyValue]);
 
-  // set defaultAmount based on query param if it's a valid amount
-  // useEffect(() => {
-  //   const raw = query.get('amount');
-  //   if (!isNaN(parseFloat(raw))) {
-  //     setDefaultAmount(parseFloat(amountFormParam));
-  //   }
-  // }, [amountFormParam, query]);
-
-  //
   useEffect(() => {
-    const paymentElementIndex = pageData.dynamicElements.indexOf((elem) => elem.type === 'DPayment');
-    const paymentElement = paymentElementIndex >= 0 ? pageData.dynamicElements.pop(paymentElementIndex) : null;
-    // move these two to bottom:
-    // stripe element
-    // pay fees
-    //
-    // remove
-    setFilteredDynamicElements();
-  });
+    setPayFeesLabelText(`${pageData.currencySymbol}${fees} ${intervalToAdverbMap[watchedFrequencyValue]}`);
+  }, [fees, pageData.currencySymbol, watchedAmountFormValue, watchedFrequencyValue]);
 
   // useEffect on stripe secret
-  const onSubmit = () => {
+  const onSubmit = (data) => {
+    debugger;
     console.log(totalPaymentAmount);
     // try submitting to stripe
     // submit to server with rest (or is that all metadata???)
@@ -149,84 +116,75 @@ function DonationPage({ pageData, stripeClientSecret, stripePromise, liveView = 
     // errors get fed back into form.
   };
 
-  // TODO:
-  // default checked index for frequency?
-
   const globalFormContext = {
     ...pageData,
     amount: watchedAmountFormValue,
+    frequencyString: intervalToNoun[watchedFrequencyValue],
     frequency: watchedFrequencyValue,
     presetAmounts: availableAmounts,
     defaultAmount,
     swagThresholdMet,
     agreePayFees: watchedAgreePayFees,
-
-    // here
-    // here
-    // here
-    // here
-    reasonPromptRequired: true, // from page
-    reasonPromptOptions: [], // from page
-    inHonorDisplay: true, // from page
-    inMemoryDisplay: true, // from page
-    swagThresholdAmount: null, //,  from page
-    optOutDefaultChecked: false, // from page
-    dynamicElements: filteredDynamicElements.map((elem) => {
-      // return the elem given the name
-      debugger;
-    }), // derived from page
-    swagItemLabelText: '', // from page
-    swagItemOptions: [], // from page
-    onSubmit,
-    // isLive,
+    reasonPromptRequired: true,
+    reasonPromptOptions: [],
+    inHonorDisplay: true,
+    inMemoryDisplay: true,
+    swagThresholdAmount: null,
+    optOutDefaultChecked: false,
+    swagItemLabelText: '',
+    swagItemOptions: [],
     submitButtonText,
-    // availableWallets,
     availableAmounts
 
     // WHERE DOES NEXT PAGE AFTER SUCCESS GET SET UP FOR REACT STRIPE ELEMENT?
   };
-  //
-  // page editor:
-  // needs to know / set
-  // - page one time amounts
-  // - page monthly amounts
-  // - page yearly amounts
-  // - page include other option
 
   // Frequency
   // - *** need to add support for selected by default for the amounts (one timePickerDefaultProps, monthly, yearly)
   //  - need to add support for each one being enabled or not (not just open ended)
 
-  // Stripe needs to know interval and amount-
-  // - enable/disable card Payment (page)
-  // - enable apple payFees (page)
-  // - enable google fees (page)
-  // - enable google payment (page)
-  // - browser saved card (page) ???
-  // - payfees option enabled
+  const ElementsContainer = liveView ? Elements : AltElementsContainer;
 
-  // TODO: Turn this all into tailwind. This is bloat and inidrection and all these do is set a couple of simple
-  // css settings, ofteintimes.
   return (
     <S.DonationPage data-testid="donation-page">
-      <HeaderBar page={pageData} />
+      <HeaderBar
+        headerLogo={pageData.headerLogo}
+        headerLink={pageData.headerLink}
+        headerBgImage={pageData.headerBgImage}
+      />
       <S.PageMain>
         <S.SideOuter>
           <S.SideInner>
             <PageHeading heading={pageData.heading} />
             <S.DonationContent>
               <Graphic graphic={pageData.graphic} />
-              <Elements options={{ clientSecret: stripeClientSecret }} stripe={stripePromise}>
+
+              <ElementsContainer options={{ clientSecret: stripeClientSecret }} stripe={stripePromise}>
                 <FormProvider {...methods}>
-                  <ContributionForm {...globalFormContext} />
+                  <ContributionForm
+                    liveView={false}
+                    loading={false}
+                    onSubmit={methods.handleSubmit(onSubmit)}
+                    submitButtonText={submitButtonText}
+                    payFeesLabelText={payFeesLabelText}
+                  >
+                    {pageData.dynamicElements.map((Element, idx) => {
+                      return <Element key={`donation-page-dynamic-form-element-${idx}`} {...globalFormContext} />;
+                    })}
+                  </ContributionForm>
                 </FormProvider>
-              </Elements>
+              </ElementsContainer>
+              <DonationPageDisclaimer
+                amount={totalPaymentAmount}
+                currencySymbol={pageData.currencySymbol}
+                frequency={watchedFrequencyValue}
+              />
             </S.DonationContent>
           </S.SideInner>
         </S.SideOuter>
-        <DonationPageSidebar sidebarContent={pageData?.sidebar_elements} live={liveView} />
+        <DonationPageSidebar sidebarContent={pageData?.sideBarElements} live={liveView} />
       </S.PageMain>
-      <DonationPageFooter page={pageData} />
+      <DonationPageFooter rpName={pageData.rpName} />
     </S.DonationPage>
   );
 }
@@ -236,6 +194,7 @@ DonationPage.defaultProps = {
 };
 
 DonationPage.propTypes = {
+  defaultAmount: PropTypes.number,
   pageData: PropTypes.shape({}).isRequired,
   liveView: PropTypes.bool.isRequired,
   stripePromise: PropTypes.shape({

@@ -13,7 +13,7 @@ function StatusFilter({ filter = [], handleFilterChange, excludeStatusFilters = 
       <S.StatusFilter>
         <FilterLabel>Status:</FilterLabel>
         <S.Statuses>
-          {STATUS_FILTERS.filter((status) => excludeStatusFilters.includes(status)).map((status) => (
+          {STATUS_FILTERS.filter((status) => !excludeStatusFilters.includes(status)).map((status) => (
             <S.StatusBadge
               key={status}
               data-testid={`status-filter-${status}`}

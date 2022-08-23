@@ -1,10 +1,10 @@
-import { fireEvent, render, screen, within } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { composeStories } from '@storybook/testing-react';
 
 import * as stories from './LabeledInput.stories';
 import { ARBITRARY_VALIDATION_ERROR_MESSAGE } from 'storybook/constants';
 
-const { Default, NotRequired, HasPlaceholder, EmailType, HasDefaultValue, DoesntValidate } = composeStories(stories);
+const { Default, NotRequired, HasPlaceholder, HasDefaultValue, DoesntValidate } = composeStories(stories);
 
 test('default', async () => {
   render(<Default required={false} type="text" />);
@@ -41,12 +41,6 @@ test('when not required', () => {
   const input = screen.getByLabelText(NotRequired.args.labelText);
   expect(input).toBeInTheDocument();
   expect(input.required).toBeFalsy();
-});
-
-test('when email type', () => {
-  render(<EmailType />);
-  const input = screen.getByLabelText(Default.args.labelText);
-  expect(input.type).toBe('email');
 });
 
 test('when placeholder', () => {

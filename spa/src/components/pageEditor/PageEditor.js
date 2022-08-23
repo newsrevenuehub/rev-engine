@@ -110,6 +110,7 @@ function PageEditor() {
 
   const [updatedPage, setUpdatedPage] = useState();
   const [selectedButton, setSelectedButton] = useState(PREVIEW);
+  const [updatePageAndSave, setUpdatePageAndSave] = useState(null);
   const [showEditInterface, setShowEditInterface] = useState(false);
   const [errors, setErrors] = useState({});
 
@@ -212,7 +213,7 @@ function PageEditor() {
     } else if (page.published_date && isBefore(new Date(page.published_date), new Date())) {
       getUserConfirmation("You're making changes to a live donation page. Continue?", () => patchPage(pageUpdates));
     } else {
-      patchPage(pageUpdates);
+      setUpdatePageAndSave(pageUpdates);
     }
   };
 
@@ -280,7 +281,7 @@ function PageEditor() {
    * @param {object} patchedPage - Object containing page data
    * @returns {FormData} formData
    */
-  const processPageData = (patchedPage) => {
+  const processPageData = useCallback((patchedPage) => {
     const formData = new FormData();
     for (const pageKey in patchedPage) {
       let datumKey = pageKey;
@@ -300,46 +301,56 @@ function PageEditor() {
       }
     }
     return formData;
-  };
+  }, []);
 
-  const patchPage = async (patchedPage) => {
-    setLoading(true);
+  const patchPage = useCallback(
+    async (patchedPage) => {
+      setLoading(true);
 
-    let data = cleanImageKeys(patchedPage);
-    data = cleanData(data);
-    data = processPageData(data);
-    if (CAPTURE_PAGE_SCREENSHOT) data = await addScreenshotToCleanedData(data, page.name);
-    requestPatchPage(
-      {
-        method: 'PATCH',
-        url: `${PATCH_PAGE}${page.id}/`,
-        data
-      },
-      {
-        onSuccess: ({ data }) => {
-          const successMessage = getSuccessMessage(page, data);
-          alert.success(successMessage);
-          setErrors({});
-          setPage(data);
-          setUpdatedPage(null);
-          setSelectedButton(PREVIEW);
-          setLoading(false);
+      let data = cleanImageKeys(patchedPage);
+      data = cleanData(data);
+      data = processPageData(data);
+      if (CAPTURE_PAGE_SCREENSHOT) data = await addScreenshotToCleanedData(data, page.name);
+      requestPatchPage(
+        {
+          method: 'PATCH',
+          url: `${PATCH_PAGE}${page.id}/`,
+          data
         },
-        onFailure: (e) => {
-          if (e?.response?.data) {
-            setErrors({ ...errors, ...e.response.data });
-            setSelectedButton(EDIT);
-            setShowEditInterface(true);
-            setLoading(false);
-          } else {
-            alert.error(GENERIC_ERROR);
+        {
+          onSuccess: ({ data }) => {
+            const successMessage = getSuccessMessage(page, data);
+            alert.success(successMessage);
+            setErrors({});
+            setPage(data);
+            setUpdatedPage(null);
             setSelectedButton(PREVIEW);
+            setLoading(false);
+          },
+          onFailure: (e) => {
+            if (e?.response?.data) {
+              setErrors({ ...errors, ...e.response.data });
+              setSelectedButton(EDIT);
+              setShowEditInterface(true);
+              setLoading(false);
+            } else {
+              alert.error(GENERIC_ERROR);
+              setSelectedButton(PREVIEW);
+            }
+            setLoading(false);
           }
-          setLoading(false);
         }
-      }
-    );
-  };
+      );
+    },
+    [alert, errors, page, processPageData, requestPatchPage]
+  );
+
+  useEffect(() => {
+    if (selectedButton === PREVIEW && updatePageAndSave) {
+      patchPage(updatePageAndSave);
+      setUpdatePageAndSave(null);
+    }
+  }, [patchPage, selectedButton, updatePageAndSave]);
 
   useEffect(() => {
     if (!isEmpty(errors)) {

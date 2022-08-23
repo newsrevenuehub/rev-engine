@@ -46,7 +46,7 @@
 
 To begin you should have the following applications installed on your local development system:
 
-- Python >= 3.9
+- Python >= 3.10
 - NodeJS == 14.x
 - npm == 6.14.x (comes with node 14)
 - [nvm](https://github.com/nvm-sh/nvm/blob/master/README.md) is not strictly _required_, but will almost certainly be necessary unless you just happen to have Node.js 12.x installed on your machine.
@@ -348,7 +348,7 @@ NOTE: The `pg_restore` command assumes that you can run `$psql` and get a prompt
 
 ```sh
 heroku pg:backups:download --app rev-engine-test b001
-pg_restore --verbose --clean --no-acl --no-owner -d revengine latest.dump
+pg_restore --verbose --clean --no-acl --no-owner -d postgres://postgres@127.0.01:54000/revengine latest.dump
 ```
 
 ## Logging

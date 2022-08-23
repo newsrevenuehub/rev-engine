@@ -28,7 +28,7 @@ import { StatusCellIcon } from 'components/contributor/contributorDashboard/Cont
 import Filters from 'components/donations/filters/Filters';
 import GenericErrorBoundary from 'components/errors/GenericErrorBoundary';
 import PageTitle from 'elements/PageTitle';
-import { PAYMENT_STATUS, PAYMENT_STATUS_EXCLUDE_IN_CONTRIBUTIONS  } from 'constants';
+import { PAYMENT_STATUS, PAYMENT_STATUS_EXCLUDE_IN_CONTRIBUTIONS } from 'constants';
 
 const IS_URGENT_THRESHOLD_DAYS = 1;
 const IS_SOON_THRESHOLD_DAYS = 2;

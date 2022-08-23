@@ -13,18 +13,16 @@ function StatusFilter({ filter = [], handleFilterChange, excludeStatusFilters = 
       <S.StatusFilter>
         <FilterLabel>Status:</FilterLabel>
         <S.Statuses>
-          {STATUS_FILTERS.filter(status => excludeStatusFilters.includes(status)).map(
-            (status) => (
-                <S.StatusBadge
-                  key={status}
-                  data-testid={`status-filter-${status}`}
-                  selected={filter.includes(status)}
-                  onClick={() => handleFilterChange('status', status)}
-                >
-                  <StatusCellIcon status={status} showText size="sm" />
-                </S.StatusBadge>
-              )
-          )}
+          {STATUS_FILTERS.filter((status) => excludeStatusFilters.includes(status)).map((status) => (
+            <S.StatusBadge
+              key={status}
+              data-testid={`status-filter-${status}`}
+              selected={filter.includes(status)}
+              onClick={() => handleFilterChange('status', status)}
+            >
+              <StatusCellIcon status={status} showText size="sm" />
+            </S.StatusBadge>
+          ))}
         </S.Statuses>
       </S.StatusFilter>
     </FilterWrapper>

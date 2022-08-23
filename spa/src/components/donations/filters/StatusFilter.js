@@ -16,12 +16,12 @@ function StatusFilter({ filter = [], handleFilterChange, excludeStatusFilters = 
           {STATUS_FILTERS.filter(status => excludeStatusFilters.includes(status)).map(
             (status) => (
                 <S.StatusBadge
-                  key={f}
-                  data-testid={`status-filter-${f}`}
-                  selected={filter.includes(f)}
-                  onClick={() => handleFilterChange('status', f)}
+                  key={status}
+                  data-testid={`status-filter-${status}`}
+                  selected={filter.includes(status)}
+                  onClick={() => handleFilterChange('status', status)}
                 >
-                  <StatusCellIcon status={f} showText size="sm" />
+                  <StatusCellIcon status={status} showText size="sm" />
                 </S.StatusBadge>
               )
           )}

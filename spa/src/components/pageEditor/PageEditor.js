@@ -409,11 +409,11 @@ function PageEditor() {
                 />
 
                 {updatedPage ? (
-                  <CircleButton onClick={openUnsavedModal} buttonType="neutral" tootTipText="Back">
+                  <CircleButton onClick={openUnsavedModal} buttonType="neutral" tootTipText="Exit">
                     <BackIcon icon={ICONS.ARROW_LEFT} />
                   </CircleButton>
                 ) : (
-                  <Tooltip title="Back" placement="right">
+                  <Tooltip title="Exit" placement="right">
                     <S.PageEditorBackButton>
                       <BackButton to={CONTENT_SLUG} />
                     </S.PageEditorBackButton>

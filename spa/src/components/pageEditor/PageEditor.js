@@ -338,24 +338,6 @@ function PageEditor() {
     }
   }, [errors, alert]);
 
-  let saveButton = (
-    <CircleButton
-      onClick={handleSave}
-      icon={faSave}
-      buttonType="neutral"
-      data-testid="save-page-button"
-      disabled={!updatedPage}
-    />
-  );
-
-  if (updatedPage) {
-    saveButton = (
-      <Tooltip title="Save" placement="right">
-        <S.PageEditorButton>{saveButton}</S.PageEditorButton>
-      </Tooltip>
-    );
-  }
-
   return (
     <>
       <PageTitle title={pageTitle} />
@@ -390,50 +372,46 @@ function PageEditor() {
           {page && (
             <S.ButtonOverlayOuter>
               <S.ButtonOverlay>
-                <Tooltip title="View" placement="right">
-                  <S.PageEditorButton>
-                    <CircleButton
-                      onClick={handlePreview}
-                      selected={selectedButton === PREVIEW}
-                      icon={faEye}
-                      buttonType="neutral"
-                      color={theme.colors.primary}
-                      data-testid="preview-page-button"
-                    />
-                  </S.PageEditorButton>
-                </Tooltip>
-                <Tooltip title="Edit" placement="right">
-                  <S.PageEditorButton>
-                    <CircleButton
-                      onClick={handleEdit}
-                      selected={selectedButton === EDIT}
-                      icon={faEdit}
-                      buttonType="neutral"
-                      data-testid="edit-page-button"
-                    />
-                  </S.PageEditorButton>
-                </Tooltip>
-                {saveButton}
+                <CircleButton
+                  onClick={handlePreview}
+                  selected={selectedButton === PREVIEW}
+                  icon={faEye}
+                  buttonType="neutral"
+                  color={theme.colors.primary}
+                  data-testid="preview-page-button"
+                  tootTipText="View"
+                />
 
-                <Tooltip title="Delete" placement="right">
-                  <S.PageEditorButton>
-                    <CircleButton
-                      onClick={handleDelete}
-                      icon={faTrash}
-                      buttonType="caution"
-                      data-testid="delete-page-button"
-                    />
-                  </S.PageEditorButton>
-                </Tooltip>
+                <CircleButton
+                  onClick={handleEdit}
+                  selected={selectedButton === EDIT}
+                  icon={faEdit}
+                  buttonType="neutral"
+                  data-testid="edit-page-button"
+                  tootTipText="Edit"
+                />
+
+                <CircleButton
+                  onClick={handleSave}
+                  icon={faSave}
+                  buttonType="neutral"
+                  data-testid="save-page-button"
+                  disabled={!updatedPage}
+                  tootTipText={updatedPage ? `Save` : null}
+                />
+
+                <CircleButton
+                  onClick={handleDelete}
+                  icon={faTrash}
+                  buttonType="caution"
+                  data-testid="delete-page-button"
+                  tootTipText="Delete"
+                />
 
                 {updatedPage ? (
-                  <Tooltip title="Back" placement="right">
-                    <S.PageEditorButton>
-                      <CircleButton onClick={openUnsavedModal} buttonType="neutral">
-                        <BackIcon icon={ICONS.ARROW_LEFT} />
-                      </CircleButton>
-                    </S.PageEditorButton>
-                  </Tooltip>
+                  <CircleButton onClick={openUnsavedModal} buttonType="neutral" tootTipText="Back">
+                    <BackIcon icon={ICONS.ARROW_LEFT} />
+                  </CircleButton>
                 ) : (
                   <Tooltip title="Back" placement="right">
                     <S.PageEditorBackButton>

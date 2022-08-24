@@ -6,8 +6,6 @@ export const PageEditor = styled.div`
   margin-left: 90px;
 `;
 
-export const PageEditorButton = styled.div``;
-
 export const PageEditorBackButton = styled.div`
 text-align:center;
 height:50px

@@ -4,6 +4,8 @@ import * as S from './PageEditor.styled';
 import { useTheme } from 'styled-components';
 import { AnimatePresence } from 'framer-motion';
 
+import Tooltip from '@material-ui/core/Tooltip';
+
 // Deps
 import { useAlert } from 'react-alert';
 import isEmpty from 'lodash.isempty';
@@ -383,14 +385,18 @@ function PageEditor() {
           {page && (
             <S.ButtonOverlayOuter>
               <S.ButtonOverlay>
-                <CircleButton
-                  onClick={handlePreview}
-                  selected={selectedButton === PREVIEW}
-                  icon={faEye}
-                  buttonType="neutral"
-                  color={theme.colors.primary}
-                  data-testid="preview-page-button"
-                />
+                <Tooltip title="Preview Donation Page" placement="right">
+                  <S.PageEditorButton>
+                    <CircleButton
+                      onClick={handlePreview}
+                      selected={selectedButton === PREVIEW}
+                      icon={faEye}
+                      buttonType="neutral"
+                      color={theme.colors.primary}
+                      data-testid="preview-page-button"
+                    />
+                  </S.PageEditorButton>
+                </Tooltip>
                 <CircleButton
                   onClick={handleEdit}
                   selected={selectedButton === EDIT}

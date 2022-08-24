@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import PropTypes from 'prop-types';
-import clsx from 'clsx';
+
+import { Input } from './Searchbar.styled';
 
 import SearchIcon from 'assets/icons/search.svg';
 
@@ -13,19 +14,14 @@ const Searchbar = ({ placeholder, onChange, className }) => {
   };
 
   return (
-    <div className={className}>
-      <label htmlFor="searchbar" className="hidden">
-        Search for {placeholder}
-      </label>
-      <input
-        className={clsx('w-full p-2 bg-neutral-200 rounded text-neutral-500 bg-no-repeat bg-scroll bg-left pl-10')}
-        style={{ backgroundImage: `url(${SearchIcon})`, backgroundPositionX: '0.7rem', backgroundSize: '1.1rem' }}
-        id="searchbar"
-        placeholder={`Search ${placeholder}...`}
-        value={search}
-        onChange={handleChange}
-      />
-    </div>
+    <Input
+      className={className}
+      aria-label={`Search for ${placeholder}`}
+      style={{ backgroundImage: `url(${SearchIcon})` }}
+      placeholder={`Search ${placeholder}...`}
+      value={search}
+      onChange={handleChange}
+    />
   );
 };
 

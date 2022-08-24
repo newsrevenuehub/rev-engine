@@ -1,14 +1,11 @@
 import PropTypes from 'prop-types';
-import clsx from 'clsx';
+
+import { H1, Subtitle } from './HeaderSection.styled';
 
 const HeaderSection = ({ title, subtitle, className }) => (
   <div className={className}>
-    <h1 className={clsx('mb-6 text-zinc-800 font-semibold text-4xl')}>{title}</h1>
-    {subtitle && (
-      <p data-testid="subtitle" className="text-zinc-500">
-        {subtitle}
-      </p>
-    )}
+    <H1>{title}</H1>
+    {subtitle && <Subtitle data-testid="subtitle">{subtitle}</Subtitle>}
   </div>
 );
 

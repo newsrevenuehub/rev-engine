@@ -18,7 +18,6 @@ from apps.api.permissions import (
     IsContributorOwningContribution,
     IsHubAdmin,
 )
-from apps.common.utils import get_original_ip_from_request
 from apps.contributions import serializers
 from apps.contributions.filters import ContributionFilter
 from apps.contributions.models import Contribution, ContributionInterval, Contributor
@@ -41,6 +40,70 @@ logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
 
 UserModel = get_user_model()
 
+MIN_PAYMENT_AMOUNT = 100
+
+# @api_view(["POST"])
+# @authentication_classes([])
+# @permission_classes([])
+# def stripe_finalize_payment_intent(request):
+#     # update amount with end amount
+#     # update payment method
+#     # update customer info
+#     # if subscription:
+#         # setup_future_usage="off_session"
+
+#     # payment method
+#     # run bad actor
+#         # if bad actor, do this in order to postpone collection of paymen t
+#             # capture_method="manual"
+#     # interval
+
+
+@api_view(["POST"])
+@authentication_classes([])
+@permission_classes([])
+def stripe_create_initial_payment_intent(request):
+    rp_slug = request.data.get("revenue_program")
+    if rp_slug is None:
+        logger.info("Request to create initial payment intent without a required revenue progrma slug")
+        return Response(
+            {"detail": "Invalid request: must include revenue_program param in request body"},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+    try:
+        rp = RevenueProgram.objects.get(slug=rp_slug)
+    except RevenueProgram.DoesNotExist:
+        logger.info(
+            'Request create initial payment intent references a non-existent revenue program slug "%s"', rp_slug
+        )
+        return Response(
+            {"detail": "Invalid request: can't find referenced revenue program"},
+            message="Could not find revenue program matching those parameters",
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    # TODO: ensure RP is live.
+    # ensure rp payment provider, currency and account id
+    try:
+        intent = stripe.PaymentIntent.create(
+            # https://stripe.com/docs/api/payment_intents/create#create_payment_intent-setup_future_usage
+            setup_future_usage="off_session",
+            amount=MIN_PAYMENT_AMOUNT,
+            currency=rp.payment_provider.currency,
+            # https://stripe.com/docs/api/payment_intents/create#create_payment_intent-automatic_payment_methods
+            automatic_payment_methods={
+                "enabled": True,
+            },
+            # metadata={???},
+            on_behalf_of=rp.payment_provider.stripe_account_id,
+        )
+        return Response({"detail": "success", "clientSecret": intent["client_secret"]}, status=status.HTTP_200_OK)
+    except stripe.error.StripeError:
+        logger.exception(
+            "[stripe_create_initial_payment_intent] encountered a Stripe error creating initial payment intent",
+        )
+        return Response({"detail": "Could not create initial payment intent"}, status=status.HTTP_400_BAD_REQUEST)
+
 
 @api_view(["POST"])
 @authentication_classes([])
@@ -51,16 +114,16 @@ def stripe_payment(request):
 
     # Grab required data from headers
     pi_data["referer"] = request.META.get("HTTP_REFERER")
-    pi_data["ip"] = get_original_ip_from_request(request)
+    pi_data["ip"] = request.META["REMOTE_ADDR"]
 
     # StripePaymentManager will grab the right serializer based on "interval"
     stripe_payment = StripePaymentManager(data=pi_data)
 
     # Validate data expected by Stripe and BadActor API
-    stripe_payment.validate()
+    # stripe_payment.validate()
 
     # Performs request to BadActor API
-    stripe_payment.get_bad_actor_score()
+    # stripe_payment.get_bad_actor_score()
 
     try:
         rp = RevenueProgram.objects.get(pk=request.data["revenue_program_id"])

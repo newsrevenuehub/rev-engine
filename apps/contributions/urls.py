@@ -10,6 +10,11 @@ router = routers.DefaultRouter()
 router.register(r"contributions", views.ContributionsViewSet, basename="contribution")
 
 urlpatterns = [
+    path(
+        "stripe/initial-payment-intent",
+        views.stripe_create_initial_payment_intent,
+        name="stripe-initial-payment-intent",
+    ),
     path("stripe/payment/", views.stripe_payment, name="stripe-payment"),
     path("stripe/oauth/", views.stripe_oauth, name="stripe-oauth"),
     path("stripe/confirmation/", views.stripe_confirmation, name="stripe-confirmation"),

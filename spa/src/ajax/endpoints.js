@@ -4,6 +4,7 @@ export const USER = 'users/';
 export const STRIPE_OAUTH = 'stripe/oauth/';
 export const STRIPE_PAYMENT = 'stripe/payment/';
 export const STRIPE_CONFIRMATION = 'stripe/confirmation/';
+export const STRIPE_INITIAL_PAYMENT_INTENT = 'stripe/initial-payment-intent';
 
 // Pages
 export const LIVE_PAGE_DETAIL = 'pages/live-detail/';

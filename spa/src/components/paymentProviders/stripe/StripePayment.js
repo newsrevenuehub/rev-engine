@@ -8,6 +8,8 @@ import { Elements } from '@stripe/react-stripe-js';
 // Constants
 import { HUB_STRIPE_API_PUB_KEY, STRIPE_API_VERSION } from 'settings';
 
+import { usePage } from 'components/donationPage/DonationPage';
+
 // Children
 import ElementLoading from 'components/donationPage/pageContent/ElementLoading';
 import StripePaymentForm from 'components/paymentProviders/stripe/StripePaymentForm';
@@ -15,17 +17,24 @@ import StripePaymentForm from 'components/paymentProviders/stripe/StripePaymentF
 function StripePayment({ offerPayFees, stripeAccountId }) {
   const [loading, setLoading] = useState(false);
   const [stripe, setStripe] = useState();
+  const { stripeClientSecret } = usePage();
 
   useEffect(() => {
-    if (stripeAccountId)
-      setStripe(loadStripe(HUB_STRIPE_API_PUB_KEY, { stripeAccount: stripeAccountId, apiVersion: STRIPE_API_VERSION }));
+    if (stripeAccountId) setStripe(loadStripe(HUB_STRIPE_API_PUB_KEY, { apiVersion: STRIPE_API_VERSION }));
   }, [stripeAccountId]);
+
+  const options = {
+    clientSecret: stripeClientSecret,
+    fields: {
+      billingDetails: 'never'
+    }
+  };
 
   return (
     <S.StripePayment>
       {(loading || !stripe) && <ElementLoading />}
       {stripe && (
-        <Elements stripe={stripe}>
+        <Elements stripe={stripe} options={options}>
           <StripePaymentForm loading={loading} setLoading={setLoading} offerPayFees={offerPayFees} />
         </Elements>
       )}

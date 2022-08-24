@@ -20,7 +20,7 @@ import { useHistory, useRouteMatch } from 'react-router-dom';
 import { THANK_YOU_SLUG } from 'routes';
 
 // Stripe
-import { CardElement, useStripe, useElements, PaymentRequestButtonElement } from '@stripe/react-stripe-js';
+import { PaymentElement, useStripe, useElements } from '@stripe/react-stripe-js';
 
 // Util
 import formatStringAmountForDisplay from 'utilities/formatStringAmountForDisplay';
@@ -38,31 +38,6 @@ import { ICONS } from 'assets/icons/SvgIcon';
 import { PayFeesWidget } from 'components/donationPage/pageContent/DPayment';
 import DonationPageDisclaimer from 'components/donationPage/DonationPageDisclaimer';
 
-/*
-  gets the disabled stripe wallets for a page
-  @param {page}
-  */
-export const getDisabledWallets = (page) => {
-  let disabledWallets = [];
-  (page?.elements || [])
-    .filter((elem) => elem.type === 'DPayment')
-    .forEach((paymentType) => {
-      let enabledWalletsForPage = paymentType.content.stripe;
-
-      if (!enabledWalletsForPage.includes('apple')) {
-        disabledWallets.push('applePay');
-      }
-      if (!enabledWalletsForPage.includes('google')) {
-        disabledWallets.push('googlePay');
-      }
-      if (!enabledWalletsForPage.includes('browser')) {
-        disabledWallets.push('browserCard');
-      }
-    });
-
-  return disabledWallets;
-};
-
 function StripePaymentForm({ loading, setLoading, offerPayFees }) {
   useReCAPTCHAScript();
   const subdomain = useSubdomain();
@@ -70,12 +45,10 @@ function StripePaymentForm({ loading, setLoading, offerPayFees }) {
   const { page, amount, frequency, payFee, formRef, setErrors, salesforceCampaignId } = usePage();
   const { trackConversion } = useAnalyticsContext();
 
-  const [cardReady, setCardReady] = useState(false);
   const [succeeded, setSucceeded] = useState(false);
   const [disabled, setDisabled] = useState(true);
-  const [paymentRequest, setPaymentRequest] = useState(null);
-  const [forceManualCard, setForceManualCard] = useState(false);
   const [stripeError, setStripeError] = useState();
+  const [paymentElementComplete, setPaymentElementComplete] = useState(false);
 
   const theme = useTheme();
   const history = useHistory();
@@ -87,8 +60,8 @@ function StripePaymentForm({ loading, setLoading, offerPayFees }) {
   /**
    * Listen for changes in the CardElement and display any errors as the customer types their card details
    */
-  const handleCardElementChange = async (event) => {
-    setCardReady(event.complete);
+  const handlePaymentElementChange = async (event) => {
+    setPaymentElementComplete(event.complete);
     setDisabled(event.empty);
     setStripeError(event?.error?.message);
   };
@@ -206,11 +179,12 @@ function StripePaymentForm({ loading, setLoading, offerPayFees }) {
   const handleCardSubmit = async (e) => {
     e.preventDefault();
     const data = await getData();
+    debugger;
     setLoading(true);
     await submitPayment(
       stripe,
       data,
-      { card: elements.getElement(CardElement) },
+      { card: elements.getElement(PaymentElement) },
       handlePaymentSuccess,
       handlePaymentFailure
     );
@@ -231,74 +205,42 @@ function StripePaymentForm({ loading, setLoading, offerPayFees }) {
     );
   };
 
-  /**
-   * Here we initialize and verify a Stripe PaymentRequest, which represents a
-   * third-party payment method such as Apple Pay, Google Pay, or various
-   * Browser-saved card features (Chrome or Edge or Safari have things).
-   *
-   * Note that stripe will not respond to changes in dynamic values like
-   * amount. For that, we must use the paymentRequest.update method.
-   */
-  useEffect(() => {
-    const rpIsNonProfit = page.revenue_program_is_nonprofit;
-    const amnt = amountToCents(getTotalAmount(amount, payFee, frequency, rpIsNonProfit));
-
-    let disabledWallets = getDisabledWallets(page);
-
-    if (stripe && amountIsValid(amount) && !paymentRequest) {
-      const pr = stripe.paymentRequest({
-        country: page?.revenue_program_country,
-        currency: page?.currency?.code?.toLowerCase(),
-        total: {
-          label: page.revenue_program.name,
-          amount: amnt
-        },
-        disableWallets: disabledWallets
-      });
-
-      pr.canMakePayment().then((canMakePayment) => {
-        if (canMakePayment) setPaymentRequest(pr);
-      });
-    }
-    // vv See note above
-  }, [stripe, paymentRequest]);
-
-  /**
-   * Here we assign a callback to the paymentmethod event in which we submit the payment
-   * with a paymentMethod and current non-form values. We should NOT include handlePaymentRequestSubmit
-   * as a dependency here. We're passing in everything it needs as an arg, and the only thing it uses
-   * that is not passed in are setState calls which are already memoized.
-   */
-  useEffect(() => {
-    if (paymentRequest && amountIsValid(amount)) {
-      function handlePaymentMethodEvent(paymentMethodEvent) {
-        handlePaymentRequestSubmit({ amount, payFee, ...params }, paymentMethodEvent);
-      }
-      // Remove any previous listeners (with stale data)
-      paymentRequest.removeAllListeners();
-      // Add updated listener (with updated data)
-      paymentRequest.on('paymentmethod', handlePaymentMethodEvent);
-    }
-    // vv See note above
-  }, [paymentRequest, amount, payFee, params]);
+  // /**
+  //  * Here we assign a callback to the paymentmethod event in which we submit the payment
+  //  * with a paymentMethod and current non-form values. We should NOT include handlePaymentRequestSubmit
+  //  * as a dependency here. We're passing in everything it needs as an arg, and the only thing it uses
+  //  * that is not passed in are setState calls which are already memoized.
+  //  */
+  // useEffect(() => {
+  //   if (paymentRequest && amountIsValid(amount)) {
+  //     function handlePaymentMethodEvent(paymentMethodEvent) {
+  //       handlePaymentRequestSubmit({ amount, payFee, ...params }, paymentMethodEvent);
+  //     }
+  //     // Remove any previous listeners (with stale data)
+  //     paymentRequest.removeAllListeners();
+  //     // Add updated listener (with updated data)
+  //     paymentRequest.on('paymentmethod', handlePaymentMethodEvent);
+  //   }
+  //   // vv See note above
+  // }, [paymentRequest, amount, payFee, params]);
 
   /**
    * See previous note. Here we update the values of our paymentRequest using the
    * paymentRequest.update method.
    */
-  useEffect(() => {
-    const rpIsNonProfit = page.revenue_program_is_nonprofit;
-    const amnt = amountToCents(getTotalAmount(amount, payFee, frequency, rpIsNonProfit));
-    const amntIsValid = !isNaN(amnt) && amnt > 0;
-    if (paymentRequest && amntIsValid) {
-      paymentRequest.update({
-        total: {
-          label: page.revenue_program.name,
-          amount: amnt
-        }
-      });
-    }
-  }, [amount, payFee, paymentRequest, frequency]);
+  // useEffect(() => {
+  //   const rpIsNonProfit = page.revenue_program_is_nonprofit;
+  //   const amnt = amountToCents(getTotalAmount(amount, payFee, frequency, rpIsNonProfit));
+  //   const amntIsValid = !isNaN(amnt) && amnt > 0;
+  //   if (paymentRequest && amntIsValid) {
+  //     paymentRequest.update({
+  //       total: {
+  //         label: page.revenue_program.name,
+  //         amount: amnt
+  //       }
+  //     });
+  //   }
+  // }, [amount, payFee, paymentRequest, frequency]);
 
   const currencySymbol = page?.currency?.symbol;
 
@@ -314,47 +256,48 @@ function StripePaymentForm({ loading, setLoading, offerPayFees }) {
     return `Give ${currencySymbol}${formatStringAmountForDisplay(totalAmount)} ${getFrequencyAdverb(frequency)}`;
   };
 
+  console.log(loading, disabled, succeeded, !amountIsValid(amount), !paymentElementComplete);
   return (
     <>
       {offerPayFees && <PayFeesWidget />}
-      {paymentRequest ? (
-        <>
-          <S.PaymentRequestWrapper>
-            <PaymentRequestButtonElement options={{ paymentRequest, style: S.PaymentRequestButtonStyle }} />
-          </S.PaymentRequestWrapper>
-          <S.PayWithCardOption onClick={() => setForceManualCard(forceManualCard ? false : true)}>
-            - I prefer to manually enter my credit card -
-          </S.PayWithCardOption>
-        </>
-      ) : null}
 
-      {!forceManualCard && paymentRequest ? null : (
-        <S.StripePaymentForm>
-          <BaseField label="Card details" required>
-            <S.PaymentElementWrapper>
-              <CardElement
+      <S.StripePaymentForm>
+        <BaseField label="Card details" required>
+          <S.PaymentElementWrapper>
+            {/* <CardElement
                 id="card-element"
                 options={{ style: S.CardElementStyle(theme), hidePostalCode: true }}
                 onChange={handleCardElementChange}
-              />
-            </S.PaymentElementWrapper>
-          </BaseField>
-          {stripeError && (
-            <S.PaymentError role="alert" data-testid="donation-error">
-              {stripeError}
-            </S.PaymentError>
-          )}
+              /> */}
+            <PaymentElement
+              id="payment-element"
+              options={{
+                fields: {
+                  billingDetails: 'never'
+                },
+                terms: {
+                  card: 'never'
+                }
+              }}
+              onChange={handlePaymentElementChange}
+            />
+          </S.PaymentElementWrapper>
+        </BaseField>
+        {stripeError && (
+          <S.PaymentError role="alert" data-testid="donation-error">
+            {stripeError}
+          </S.PaymentError>
+        )}
 
-          <S.PaymentSubmitButton
-            onClick={handleCardSubmit}
-            disabled={!cardReady || loading || disabled || succeeded || !amountIsValid(amount)}
-            loading={loading}
-            data-testid="donation-submit"
-          >
-            {getButtonText()}
-          </S.PaymentSubmitButton>
-        </S.StripePaymentForm>
-      )}
+        <S.PaymentSubmitButton
+          onClick={handleCardSubmit}
+          disabled={loading || disabled || succeeded || !amountIsValid(amount) || !paymentElementComplete}
+          loading={loading}
+          data-testid="donation-submit"
+        >
+          {getButtonText()}
+        </S.PaymentSubmitButton>
+      </S.StripePaymentForm>
 
       <S.IconWrapper>
         <S.Icon icon={ICONS.STRIPE_POWERED} />

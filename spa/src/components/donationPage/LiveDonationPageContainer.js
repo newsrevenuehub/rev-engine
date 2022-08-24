@@ -1,8 +1,10 @@
 import { useEffect, useCallback, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 
 // AJAX
 import useRequest from 'hooks/useRequest';
-import { LIVE_PAGE_DETAIL } from 'ajax/endpoints';
+import axios from 'ajax/axios';
+import { LIVE_PAGE_DETAIL, STRIPE_INITIAL_PAYMENT_INTENT } from 'ajax/endpoints';
 
 // Router
 import { useParams } from 'react-router-dom';
@@ -23,6 +25,14 @@ import DonationPage from 'components/donationPage/DonationPage';
 
 const STRIPE_IFRAME_SELECTOR = "iframe[title='Secure card payment input frame']";
 
+async function fetchInitialPaymentIntent(rpSlug) {
+  return await axios({
+    method: 'post',
+    url: STRIPE_INITIAL_PAYMENT_INTENT,
+    data: { revenue_program: rpSlug }
+  }).then((response) => response?.data?.clientSecret);
+}
+
 function LiveDonationPageContainer() {
   const [pageData, setPageData] = useState(null);
   const [display404, setDisplay404] = useState(false);
@@ -33,6 +43,13 @@ function LiveDonationPageContainer() {
 
   useWebFonts(pageData?.styles?.font, { context: document.querySelector(STRIPE_IFRAME_SELECTOR) });
   const { setAnalyticsConfig } = useAnalyticsContext();
+
+  // retrieve page data from the API
+  const { isSuccess: paymentIntentSuccess, data: stripeClientSecret } = useQuery(
+    ['create-intial-payment-intent'],
+    () => fetchInitialPaymentIntent(subdomain),
+    { refetchOnWindowFocus: false }
+  );
 
   const fetchLivePageContent = useCallback(async () => {
     const { pageSlug } = params;
@@ -70,7 +87,13 @@ function LiveDonationPageContainer() {
 
   return (
     <SegregatedStyles page={pageData}>
-      {display404 ? <LivePage404 /> : pageData ? <DonationPage live page={pageData} /> : <LiveLoading />}
+      {display404 ? (
+        <LivePage404 />
+      ) : pageData && paymentIntentSuccess ? (
+        <DonationPage stripeClientSecret={stripeClientSecret} live page={pageData} />
+      ) : (
+        <LiveLoading />
+      )}
     </SegregatedStyles>
   );
 }

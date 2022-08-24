@@ -22,7 +22,7 @@ import GenericErrorBoundary from 'components/errors/GenericErrorBoundary';
 
 const DonationPageContext = createContext({});
 
-function DonationPage({ page, live = false }) {
+function DonationPage({ page, live = false, stripeClientSecret }) {
   const formRef = useRef();
 
   const salesForceQS = useQueryString(SALESFORCE_CAMPAIGN_ID_QUERYPARAM);
@@ -61,6 +61,7 @@ function DonationPage({ page, live = false }) {
     <DonationPageContext.Provider
       value={{
         page,
+        stripeClientSecret,
         frequency,
         setFrequency,
         payFee,

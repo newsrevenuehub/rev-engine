@@ -24,10 +24,7 @@ function StripePayment({ offerPayFees, stripeAccountId }) {
   }, [stripeAccountId]);
 
   const options = {
-    clientSecret: stripeClientSecret,
-    fields: {
-      billingDetails: 'never'
-    }
+    clientSecret: stripeClientSecret
   };
 
   return (

@@ -179,7 +179,6 @@ function StripePaymentForm({ loading, setLoading, offerPayFees }) {
   const handleCardSubmit = async (e) => {
     e.preventDefault();
     const data = await getData();
-    debugger;
     setLoading(true);
     await submitPayment(
       stripe,

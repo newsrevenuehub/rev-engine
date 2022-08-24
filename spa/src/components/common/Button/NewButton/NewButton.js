@@ -1,5 +1,6 @@
 import PropTypes from 'prop-types';
-import clsx from 'clsx';
+
+import { Flex, Button, Label } from './NewButton.styled';
 
 import AddIcon from 'assets/icons/add.svg';
 
@@ -14,24 +15,13 @@ const NewButton = ({ type, onClick, className }) => {
     [NEW_BUTTON_TYPE.STYLE]: 'New Style'
   }[type];
 
-  const padding = {
-    [NEW_BUTTON_TYPE.PAGE]: 'py-12',
-    [NEW_BUTTON_TYPE.STYLE]: 'py-5'
-  }[type];
-
   return (
-    <div className={clsx('flex flex-col items-start', className)}>
-      <button
-        id="new-button"
-        onClick={onClick}
-        className={clsx('bg-dark-blue px-18 rounded-md peer hover:bg-dark-blue/[.9] active:bg-light-blue', padding)}
-      >
+    <Flex className={className}>
+      <Button type={type} onClick={onClick}>
         <img src={AddIcon} alt={`add ${type}`} />
-      </button>
-      <label htmlFor="new-button" className="font-semibold mt-3 peer-active:text-light-blue">
-        {buttonLabel}
-      </label>
-    </div>
+      </Button>
+      <Label>{buttonLabel}</Label>
+    </Flex>
   );
 };
 

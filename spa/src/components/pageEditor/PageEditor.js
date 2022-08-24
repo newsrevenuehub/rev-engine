@@ -402,7 +402,7 @@ function PageEditor() {
                   />
                 ) : (
                   <Tooltip title="Save" placement="right">
-                    <S.PageEditorBackButton>
+                    <S.PageEditorBackButton data-testid="save-page-button">
                       <S.DisabledSaveIcon icon={faSave} type="neutral" disabled={!updatedPage || loading} />
                     </S.PageEditorBackButton>
                   </Tooltip>

@@ -78,6 +78,7 @@ def set_token_cookie(response, token, expires):
         httponly=True,
         samesite=settings.AUTH_COOKIE_SAMESITE,
     )
+    logger.info(response)
     return response
 
 

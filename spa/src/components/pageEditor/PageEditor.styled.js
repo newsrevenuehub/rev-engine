@@ -11,7 +11,7 @@ text-align:center;
 height:50px
 width:50px`;
 
-export const DiisabledSaveIcon = styled(FontAwesomeIcon)`
+export const DisabledSaveIcon = styled(FontAwesomeIcon)`
   color: ${(props) => props.theme.colors.grey[0]};
 `;
 

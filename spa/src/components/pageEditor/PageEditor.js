@@ -398,12 +398,12 @@ function PageEditor() {
                     buttonType="neutral"
                     data-testid="save-page-button"
                     disabled={!updatedPage}
-                    tootTipText={updatedPage ? `Save` : null}
+                    tootTipText="Save"
                   />
                 ) : (
                   <Tooltip title="Save" placement="right">
                     <S.PageEditorBackButton>
-                      <S.DiisabledSaveIcon icon={faSave} type="neutral" disabled={!updatedPage || loading} />
+                      <S.DisabledSaveIcon icon={faSave} type="neutral" disabled={!updatedPage || loading} />
                     </S.PageEditorBackButton>
                   </Tooltip>
                 )}

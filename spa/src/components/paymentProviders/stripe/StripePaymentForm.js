@@ -61,7 +61,8 @@ function StripePaymentForm({ loading, setLoading, offerPayFees }) {
    * Listen for changes in the CardElement and display any errors as the customer types their card details
    */
   const handlePaymentElementChange = async (event) => {
-    setPaymentElementComplete(event.complete);
+    console.log(event);
+    setPaymentElementComplete(event.complete || event.value === 'wallet');
     setDisabled(event.empty);
     setStripeError(event?.error?.message);
   };
@@ -263,11 +264,6 @@ function StripePaymentForm({ loading, setLoading, offerPayFees }) {
       <S.StripePaymentForm>
         <BaseField label="Card details" required>
           <S.PaymentElementWrapper>
-            {/* <CardElement
-                id="card-element"
-                options={{ style: S.CardElementStyle(theme), hidePostalCode: true }}
-                onChange={handleCardElementChange}
-              /> */}
             <PaymentElement
               id="payment-element"
               options={{
@@ -278,7 +274,10 @@ function StripePaymentForm({ loading, setLoading, offerPayFees }) {
                   card: 'never'
                 }
               }}
-              onChange={handlePaymentElementChange}
+              onChange={(e) => {
+                //
+                handlePaymentElementChange(e);
+              }}
             />
           </S.PaymentElementWrapper>
         </BaseField>

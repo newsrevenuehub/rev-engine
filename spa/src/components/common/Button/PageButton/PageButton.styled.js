@@ -5,6 +5,7 @@ export const Flex = styled.div`
   display: flex;
   flex-direction: column;
   align-items: start;
+  font-family: ${(props) => props.theme.systemFont};
 `;
 
 export const Tag = styled.p`
@@ -73,7 +74,7 @@ export const Label = styled.label`
   max-width: 168px;
   overflow-wrap: break-word;
   margin-top: 0.75rem;
-  font-size: ${(props) => props.theme.fontSizesUpdated.md};
+  font-size: ${(props) => props.theme.fontSizesUpdated.sm};
   font-weight: 600;
 
   ${Flex}:active & {

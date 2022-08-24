@@ -5,6 +5,7 @@ export const Flex = styled.div`
   display: flex;
   flex-direction: column;
   align-items: start;
+  font-family: ${(props) => props.theme.systemFont};
 `;
 
 export const Button = styled.button`
@@ -25,7 +26,7 @@ export const Button = styled.button`
 
 export const Label = styled.label`
   margin-top: 0.75rem;
-  font-size: ${(props) => props.theme.fontSizesUpdated.md};
+  font-size: ${(props) => props.theme.fontSizesUpdated.sm};
   font-weight: 600;
 
   ${Flex}:active & {

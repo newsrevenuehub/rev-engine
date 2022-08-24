@@ -61,7 +61,7 @@ class PaymentManager:
         It is able to validate and process the data, creating new model instances both
         locally and with the payment provider.
 
-        A PaymentManager instantiated with a `Contribution` is like a ModelSerilizer receiving an update
+        A PaymentManager instantiated with a `Contribution` is like a ModelSerializer receiving an update
         to an existing instance. Here we use this class to perform updates on existing local and payment-provider
         models.
         """

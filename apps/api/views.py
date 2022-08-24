@@ -7,6 +7,7 @@ from django.middleware import csrf
 from django.shortcuts import get_object_or_404
 from django.utils.safestring import mark_safe
 
+from celery import chord
 from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -172,24 +173,27 @@ class RequestContributorTokenEmailView(APIView):
         revenue_program = get_object_or_404(RevenueProgram, slug=serializer.validated_data.get("subdomain"))
         # Celery backend job to pull contributions from Stripe and store the serialized data in cache, user will have
         # data by the time the user opens contributor portal.
-        task_pull_serialized_stripe_contributions_to_cache.delay(
+
+        populate_cache_signature = task_pull_serialized_stripe_contributions_to_cache.s(
             serializer.validated_data["email"], revenue_program.stripe_account_id
         )
-
         magic_link = self.get_magic_link(
             domain, serializer.validated_data["access"], serializer.validated_data["email"]
         )
         logger.info(
             "Sending magic link email to [%s] | magic link: [%s]", serializer.validated_data["email"], magic_link
         )
-        send_templated_email.delay(
+        magic_link_sig = send_templated_email.si(
             serializer.validated_data["email"],
             "Manage your contributions",
             "nrh-manage-donations-magic-link.txt",
             "nrh-manage-donations-magic-link.html",
             {"magic_link": mark_safe(magic_link)},
         )
-        # Email is async task. We won't know if it succeeds or not so optimistically send OK.
+
+        chord(populate_cache_signature, magic_link_sig).apply_async()
+
+        # These are all async tasks. We won't know if it succeeds or not so optimistically send OK.
         return Response({"detail": "success"}, status=status.HTTP_200_OK)
 
 

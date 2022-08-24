@@ -258,7 +258,7 @@ def process_stripe_webhook_view(request):
     return Response(status=status.HTTP_200_OK)
 
 
-class ContributionsViewSet(viewsets.ReadOnlyModelViewSet, FilterQuerySetByUserMixin):
+class ContributionsViewSet(viewsets.ModelViewSet, FilterQuerySetByUserMixin):
     """Contributions API resource
 
     NB: There are bespoke actions on this viewset that override the default permission classes set here.
@@ -355,15 +355,24 @@ class ContributionsViewSet(viewsets.ReadOnlyModelViewSet, FilterQuerySetByUserMi
 
         return Response({"detail": "Success"}, status=status.HTTP_200_OK)
 
-    # only contributors owning a contribution can update payment
-    @action(methods=["post"], detail=True, permission_classes=[IsAuthenticated, IsContributorOwningContribution])
-    def cancel_recurring_payment(self, request, pk):
+
+class SubscriptionsViewSet(viewsets.ViewSet):
+
+    # only superusers, users with roles, and contributors owning contributions
+    # are permitted
+    permission_classes = [
+        IsAuthenticated,
+    ]
+
+    # only contributors owning a contribution can update payment method
+    @action(methods=["patch"], detail=True, permission_classes=[IsAuthenticated])
+    def update_payment_method(self, request, pk):
+        if request.data.keys() != {"payment_method_id"}:
+            return Response({"detail": "Request contains unsupported fields"}, status=status.HTTP_400_BAD_REQUEST)
+
         try:
             contribution = request.user.contribution_set.get(pk=pk)
         except Contribution.DoesNotExist:
-            logger.error(
-                "Could not find contribution for requesting contributor. This could be due to the requesting user not having permission to act on this resource."
-            )
             return Response(
                 {"detail": "Could not find contribution for requesting contributor"}, status=status.HTTP_404_NOT_FOUND
             )
@@ -371,10 +380,30 @@ class ContributionsViewSet(viewsets.ReadOnlyModelViewSet, FilterQuerySetByUserMi
         payment_manager = StripePaymentManager(contribution=contribution)
 
         try:
-            payment_manager.cancel_recurring_payment()
+            payment_manager.update_payment_method(request.data["payment_method_id"])
         except PaymentProviderError as pp_error:
             error_message = str(pp_error)
             logger.error(error_message)
             return Response({"detail": error_message}, status=status.HTTP_400_BAD_REQUEST)
+
+        return Response({"detail": "Success"}, status=status.HTTP_200_OK)
+
+    @action(methods=["patch"], detail=True, permission_classes=[IsAuthenticated])
+    def cancel_recurring_payment(self, request, pk):
+        # revenue_program_id = request.data.get("revenue_program_slug")
+        revenue_program_slug = "billypenn"
+        revenue_program = RevenueProgram.objects.get(slug=revenue_program_slug)
+        # TODO: use methods in StripePaymentManager instead of rolling own here?
+        # TODO: should we look in the cache first for the Subscription (and related) objects?
+        subscription = stripe.Subscription.retrieve(
+            pk, stripe_account=revenue_program.payment_provider.stripe_account_id, expand=["customer"]
+        )
+        if request.user.email.lower() != subscription.customer.email.lower():
+            # TODO: should we find a way to user DRF's permissioning scheme here instead?
+            return Response({"detail": "Forbidden"}, status=status.HTTP_403_FORBIDDEN)
+        subscription.delete()
+        return Response({"detail": "Success"}, status=status.HTTP_204_NO_CONTENT)
+
+        #        stripe.Subscription.delete(pk, stripe_account=revenue_program.payment_provider.stripe_account_id)
 
         return Response({"detail": "Success"}, status=status.HTTP_200_OK)

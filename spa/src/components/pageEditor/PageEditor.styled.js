@@ -8,6 +8,11 @@ export const PageEditor = styled.div`
 
 export const PageEditorButton = styled.div``;
 
+export const PageEditorBackButton = styled.div`
+text-align:center;
+height:50px
+width:50px`;
+
 export const ButtonOverlayOuter = styled.div`
   position: fixed;
   left: 0;

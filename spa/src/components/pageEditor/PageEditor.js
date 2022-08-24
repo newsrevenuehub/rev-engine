@@ -391,14 +391,22 @@ function PageEditor() {
                   tootTipText="Edit"
                 />
 
-                <CircleButton
-                  onClick={handleSave}
-                  icon={faSave}
-                  buttonType="neutral"
-                  data-testid="save-page-button"
-                  disabled={!updatedPage}
-                  tootTipText={updatedPage ? `Save` : null}
-                />
+                {updatedPage ? (
+                  <CircleButton
+                    onClick={handleSave}
+                    icon={faSave}
+                    buttonType="neutral"
+                    data-testid="save-page-button"
+                    disabled={!updatedPage}
+                    tootTipText={updatedPage ? `Save` : null}
+                  />
+                ) : (
+                  <Tooltip title="Save" placement="right">
+                    <S.PageEditorBackButton>
+                      <S.DiisabledSaveIcon icon={faSave} type="neutral" disabled={!updatedPage || loading} />
+                    </S.PageEditorBackButton>
+                  </Tooltip>
+                )}
 
                 <CircleButton
                   onClick={handleDelete}

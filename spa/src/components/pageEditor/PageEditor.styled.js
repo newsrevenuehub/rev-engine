@@ -11,6 +11,10 @@ text-align:center;
 height:50px
 width:50px`;
 
+export const DiisabledSaveIcon = styled(FontAwesomeIcon)`
+  color: ${(props) => props.theme.colors.grey[0]};
+`;
+
 export const ButtonOverlayOuter = styled.div`
   position: fixed;
   left: 0;

@@ -55,7 +55,6 @@ import GlobalLoading from 'elements/GlobalLoading';
 import EditInterface from 'components/pageEditor/editInterface/EditInterface';
 import BackButton from 'elements/BackButton';
 import { BackIcon } from 'elements/BackButton.styled';
-import CreateTemplateModal from 'components/pageEditor/CreateTemplateModal';
 import UnsavedChangesModal from 'components/pageEditor/UnsavedChangesModal';
 import PageTitle from 'elements/PageTitle';
 
@@ -95,11 +94,7 @@ function PageEditor() {
   const [loading, setLoading] = useState(false);
   const [page, setPage] = useState();
   const [availableStyles, setAvailableStyles] = useState([]);
-  const {
-    open: showCreateTemplateModal,
-    handleClose: closeCreateTemplateModal,
-    handleOpen: openCreateTemplateModal
-  } = useModal();
+
   const { open: showUnsavedModal, handleClose: closeUnsavedModal, handleOpen: openUnsavedModal } = useModal();
 
   const pageTitle = useMemo(
@@ -193,14 +188,6 @@ function PageEditor() {
   const handleEdit = () => {
     setSelectedButton(EDIT);
     setShowEditInterface(true);
-  };
-
-  const handleMakeTemplate = () => {
-    if (updatedPage) {
-      getUserConfirmation('Page template will not include unsaved changes. Continue?', () => openCreateTemplateModal());
-    } else {
-      openCreateTemplateModal();
-    }
   };
 
   const handleSave = () => {
@@ -412,12 +399,6 @@ function PageEditor() {
                   disabled={!updatedPage}
                 />
                 <CircleButton
-                  onClick={handleMakeTemplate}
-                  icon={faClone}
-                  buttonType="neutral"
-                  data-testid="clone-page-button"
-                />
-                <CircleButton
                   onClick={handleDelete}
                   icon={faTrash}
                   buttonType="caution"
@@ -435,9 +416,7 @@ function PageEditor() {
             </S.ButtonOverlayOuter>
           )}
         </S.PageEditor>
-        {showCreateTemplateModal && (
-          <CreateTemplateModal page={page} isOpen={showCreateTemplateModal} closeModal={closeCreateTemplateModal} />
-        )}
+
         {showUnsavedModal && (
           <UnsavedChangesModal to={CONTENT_SLUG} isOpen={showUnsavedModal} closeModal={closeUnsavedModal} />
         )}

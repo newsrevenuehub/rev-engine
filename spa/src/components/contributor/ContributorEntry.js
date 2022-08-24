@@ -1,7 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import * as S from './ContributorEntry.styled';
 
-import { GENERIC_ERROR } from 'constants/textConstants';
+import { GENERIC_ERROR_WITH_SUPPORT_INFO } from 'constants/textConstants';
 import { useAlert } from 'react-alert';
 
 import useSubdomain from 'hooks/useSubdomain';
@@ -19,7 +19,7 @@ import { useConfigureAnalytics } from 'components/analytics';
 function ContributorEntry({ page }) {
   const alert = useAlert();
   const [email, setEmail] = useState('');
-  const [loading, setLoading] = useState('');
+  const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState({});
 
   const [showConfirmation, setShowConfirmation] = useState(false);
@@ -30,16 +30,17 @@ function ContributorEntry({ page }) {
   const handleSendMagicLink = async (e) => {
     e.preventDefault();
     setLoading(true);
+    setErrors({});
     try {
       const response = await axios.post(GET_MAGIC_LINK, { email, subdomain });
       if (response.status === 200) setShowConfirmation(true);
     } catch (e) {
       if (e.response?.status === 429) {
-        setErrors({ email: ['Too many attempts. Try again in one minue.'] });
-      } else if (e.response?.data) {
+        setErrors({ email: ['Too many attempts. Try again in one minute.'] });
+      } else if (e.response?.data?.email) {
         setErrors(e.response.data);
       } else {
-        alert.error(GENERIC_ERROR);
+        alert.error(GENERIC_ERROR_WITH_SUPPORT_INFO);
       }
     } finally {
       setLoading(false);

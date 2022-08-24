@@ -32,6 +32,7 @@ export const Description = styled.p`
   font-size: ${(props) => props.theme.fontSizesUpdated.md};
   padding: 1rem 1rem 0;
   margin: 0;
+  font-family: ${(props) => props.theme.systemFont};
 `;
 
 export const Buttons = styled.div`

@@ -183,7 +183,7 @@ class RequestContributorTokenEmailView(APIView):
         logger.info(
             "Sending magic link email to [%s] | magic link: [%s]", serializer.validated_data["email"], magic_link
         )
-        magic_link_sig = send_templated_email.si(
+        magic_link_signature = send_templated_email.si(
             serializer.validated_data["email"],
             "Manage your contributions",
             "nrh-manage-donations-magic-link.txt",
@@ -191,7 +191,7 @@ class RequestContributorTokenEmailView(APIView):
             {"magic_link": mark_safe(magic_link)},
         )
 
-        chord(populate_cache_signature, magic_link_sig).apply_async()
+        chord(populate_cache_signature, magic_link_signature).apply_async()
 
         # These are all async tasks. We won't know if it succeeds or not so optimistically send OK.
         return Response({"detail": "success"}, status=status.HTTP_200_OK)

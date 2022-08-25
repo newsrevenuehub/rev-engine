@@ -13,4 +13,5 @@ export const Input = styled.input`
   background-position: left;
   background-position-x: 0.7rem;
   background-size: 1.1rem;
+  border-color: transparent;
 `;

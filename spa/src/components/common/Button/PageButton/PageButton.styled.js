@@ -31,6 +31,8 @@ export const Button = styled.button`
   border-radius: ${(props) => props.theme.muiBorderRadius.lg};
   background-color: ${(props) => props.theme.colors.white + '20'};
   position: absolute;
+  border-color: transparent;
+  cursor: pointer;
 
   &:hover {
     background-color: ${(props) => props.theme.colors.muiGrey[900] + '90'};

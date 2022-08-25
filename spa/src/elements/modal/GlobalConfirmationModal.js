@@ -10,10 +10,10 @@ import useModal from 'hooks/useModal';
 const ConfirmationModalContext = createContext(null);
 function GlobalConfirmationModal({ children }) {
   const { open, handleOpen, handleClose } = useModal();
-  const [{ onAccept, onCancel, text }, setState] = useState({
+  const [{ onAccept, onCancel, ctaMessage }, setState] = useState({
     onAccept: undefined,
     onCancel: undefined,
-    text: ''
+    ctaMessage: ''
   });
 
   const handleConfirm = () => {
@@ -32,7 +32,7 @@ function GlobalConfirmationModal({ children }) {
       setState({
         onAccept: onConfirm,
         onCancel: onDecline,
-        text: message
+        ctaMessage: message
       });
     },
     [handleOpen, setState]
@@ -47,7 +47,7 @@ function GlobalConfirmationModal({ children }) {
             <S.Warning>
               <S.Icon icon={faExclamationCircle} />
             </S.Warning>
-            <S.Message>{text}</S.Message>
+            <S.Message>{ctaMessage}</S.Message>
             <S.Buttons>
               <Button type="neutral" onClick={handleDecline} data-testid="cancel-button">
                 Cancel

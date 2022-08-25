@@ -100,6 +100,7 @@ INSTALLED_APPS = [
     "django_filters",
     "django_json_widget",
     "rest_framework",
+    "django_rest_passwordreset",  # NB: this needs to come after rest_framework
     "sorl.thumbnail",
     "sorl_thumbnail_serializer",
     "solo",  # Single row models, e.g. HubSlackIntegration.
@@ -473,6 +474,14 @@ EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
 EMAIL_DEFAULT_TRANSACTIONAL_SENDER = os.getenv(
     "EMAIL_DEFAULT_TRANSACTIONAL_SENDER", "News Revenue Engine <no-reply@fundjournalism.org>"
 )
+
+# password-reset related
+#
+# This causes our password reset endpoint to return 200 even if user not in db so we don't
+# leak info about registered accounts. In this case, no reset email gets sent.
+DJANGO_REST_PASSWORDRESET_NO_INFORMATION_LEAKAGE = True
+# this is in hours
+DJANGO_REST_MULTITOKENAUTH_RESET_TOKEN_EXPIRY_TIME = 24
 
 ## BadActor API
 # [DEV-2008] the test API shouldn't be here. It shouldn't have a default.

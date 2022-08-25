@@ -1,4 +1,5 @@
 import logging
+from pathlib import Path
 
 from django.conf import settings
 from django.contrib.auth import get_user_model
@@ -10,8 +11,11 @@ from django.contrib.auth.views import (
     PasswordResetView,
 )
 from django.core.exceptions import ValidationError as DjangoValidationError
-from django.urls import reverse_lazy
+from django.dispatch import receiver
+from django.urls import reverse, reverse_lazy
+from django.utils.safestring import mark_safe
 
+from django_rest_passwordreset.signals import reset_password_token_created
 from rest_framework import mixins
 from rest_framework.exceptions import APIException
 from rest_framework.generics import GenericAPIView
@@ -32,6 +36,7 @@ from apps.users.constants import (
     INVALID_TOKEN,
     PASSWORD_UNEXPECTED_VALIDATION_MESSAGE_SUBSTITUTE,
     PASSWORD_VALIDATION_EXPECTED_MESSAGES,
+    SPA_PASSWORD_RESET_ROUTE,
 )
 from apps.users.models import UnexpectedRoleType, User
 from apps.users.permissions import UserIsAllowedToUpdate, UserOwnsUser
@@ -210,3 +215,34 @@ class PerUserDeletePermissionsMixin(GenericAPIView):
             composed_perm = IsActiveSuperUser | (IsAuthenticated & HasRoleAssignment & HasDeletePrivilegesViaRole(self))
             return [composed_perm()]
         return super().get_permissions()
+
+
+@receiver(reset_password_token_created)
+def password_reset_token_created(sender, instance, reset_password_token, *args, **kwargs):
+    """Send password reset email with token and appropriate link
+
+    This function is not strictly speaking a view, but instead is an action that runs when
+    signal sent by `django-rest-password-reset` that a reset token has been created. The docs for that
+    library recommend putting in model or views file, or else apps.config.
+
+    This causes an email to be sent to user who requested pw reset.
+
+    https://github.com/anexia-it/django-rest-passwordreset#example-for-sending-an-e-mail
+    """
+    email = reset_password_token.user.email
+    spa_reset_url = "{}?token={}".format(
+        Path(instance.request.build_absolute_uri(reverse("index")), SPA_PASSWORD_RESET_ROUTE),
+        reset_password_token.key,
+    )
+    context = {
+        "email": email,
+        "reset_password_url": mark_safe(spa_reset_url),
+    }
+    logger.info("Sending password reset email to %s with the following reset url: %s", email, spa_reset_url)
+    send_templated_email(
+        email,
+        "Reset your password",
+        "nrh-org-portal-password-reset.txt",
+        "nrh-org-portal-password-reset.html",
+        context,
+    )

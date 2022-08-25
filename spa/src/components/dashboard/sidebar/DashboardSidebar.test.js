@@ -14,6 +14,11 @@ jest.mock('utilities/flagIsActiveForUser', () => ({
   default: () => true
 }));
 
+jest.mock('utilities/hasContributionsDashboardAcessToUser', () => ({
+  __esModule: true,
+  default: () => true
+}));
+
 it('should have expected appearance and links', () => {
   render(<DashboardSidebar />);
   const contentNavSection = screen.getByRole('navigation', { name: /Content/ });

@@ -149,7 +149,7 @@ class RequestContributorTokenEmailView(APIView):
 
     @staticmethod
     def get_magic_link(domain, token, email):
-        return f"{domain}/{settings.CONTRIBUTOR_VERIFY_URL}?token={token}&email={quote_plus(email)}"
+        return f"https://{domain}/{settings.CONTRIBUTOR_VERIFY_URL}?token={token}&email={quote_plus(email)}"
 
     def post(self, request, *args, **kwargs):
         logger.info("[RequestContributorTokenEmailView][post] Request received for magic link %s", request.data)

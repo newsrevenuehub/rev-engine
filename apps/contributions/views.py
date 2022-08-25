@@ -259,7 +259,7 @@ def process_stripe_webhook_view(request):
     return Response(status=status.HTTP_200_OK)
 
 
-class ContributionsViewSet(viewsets.ModelViewSet, FilterQuerySetByUserMixin):
+class ContributionsViewSet(viewsets.ReadOnlyModelViewSet, FilterQuerySetByUserMixin):
     """Contributions API resource
 
     NB: There are bespoke actions on this viewset that override the default permission classes set here.
@@ -359,31 +359,25 @@ class ContributionsViewSet(viewsets.ModelViewSet, FilterQuerySetByUserMixin):
 
 class SubscriptionDetail(APIView):
 
-    # only superusers, users with roles, and contributors owning contributions
-    # are permitted
     permission_classes = [
         IsAuthenticated,
     ]
 
-    # only contributors owning a contribution can update payment method
     @action(methods=["patch"], detail=True, permission_classes=[IsAuthenticated])
     def patch(self, request, subscription_id):
         if request.data.keys() != {"payment_method_id", "revenue_program_slug"}:
             return Response({"detail": "Request contains unsupported fields"}, status=status.HTTP_400_BAD_REQUEST)
 
-        # revenue_program_id = request.data.get("revenue_program_slug")
-        revenue_program_slug = "billypenn"
+        revenue_program_slug = request.data.get("revenue_program_slug")
         revenue_program = RevenueProgram.objects.get(slug=revenue_program_slug)
 
-        # TODO: should we look in the cache first for the Subscription (and related) objects to avoid extra API calls?
+        # TODO: [DEV-2286] should we look in the cache first for the Subscription (and related) objects to avoid extra API calls?
         subscription = stripe.Subscription.retrieve(
             subscription_id, stripe_account=revenue_program.payment_provider.stripe_account_id, expand=["customer"]
         )
         if request.user.email.lower() != subscription.customer.email.lower():
-            # TODO: should we find a way to user DRF's permissioning scheme here instead?
+            # TODO: [DEV-2287] should we find a way to user DRF's permissioning scheme here instead?
             return Response({"detail": "Forbidden"}, status=status.HTTP_403_FORBIDDEN)
-        # except stripe.error.StripeError as stripe_error:
-        #    logger.exception("stripe.Subscription.delete returned a StripeError")
         payment_method_id = request.data.get("payment_method_id")
 
         try:
@@ -394,7 +388,7 @@ class SubscriptionDetail(APIView):
             )
         except stripe.error.StripeError as stripe_error:
             logger.exception("stripe.PaymentMethod.attach returned a StripeError")
-            return Response({"detail": stripe_error}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({"detail": stripe_error}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
         try:
             stripe.Subscription.modify(
@@ -404,26 +398,25 @@ class SubscriptionDetail(APIView):
             )
         except stripe.error.StripeError as stripe_error:
             logger.exception("stripe.Subscription.modify returned a StripeError")
-            return Response({"detail": stripe_error}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({"detail": stripe_error}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
         return Response({"detail": "Success"}, status=status.HTTP_204_NO_CONTENT)
 
     @action(methods=["delete"], detail=False, permission_classes=[IsAuthenticated])
     def delete(self, request, subscription_id):
-        # revenue_program_id = request.data.get("revenue_program_slug")
-        revenue_program_slug = "billypenn"
+        revenue_program_slug = request.data.get("revenue_program_slug")
         revenue_program = RevenueProgram.objects.get(slug=revenue_program_slug)
-        # TODO: should we look in the cache first for the Subscription (and related) objects?
+        # TODO: [DEV-2286] should we look in the cache first for the Subscription (and related) objects?
         subscription = stripe.Subscription.retrieve(
             subscription_id, stripe_account=revenue_program.payment_provider.stripe_account_id, expand=["customer"]
         )
         if request.user.email.lower() != subscription.customer.email.lower():
-            # TODO: should we find a way to user DRF's permissioning scheme here instead?
+            # TODO: [DEV-2287] should we find a way to user DRF's permissioning scheme here instead?
             return Response({"detail": "Forbidden"}, status=status.HTTP_403_FORBIDDEN)
         try:
             subscription.delete()
         except stripe.error.StripeError as stripe_error:
             logger.exception("stripe.Subscription.delete returned a StripeError")
-            return Response({"detail": stripe_error}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({"detail": stripe_error}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
         return Response({"detail": "Success"}, status=status.HTTP_204_NO_CONTENT)

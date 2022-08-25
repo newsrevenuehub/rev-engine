@@ -1,5 +1,4 @@
 import logging
-from pathlib import Path
 
 from django.conf import settings
 from django.contrib.auth import get_user_model
@@ -230,8 +229,9 @@ def password_reset_token_created(sender, instance, reset_password_token, *args, 
     https://github.com/anexia-it/django-rest-passwordreset#example-for-sending-an-e-mail
     """
     email = reset_password_token.user.email
-    spa_reset_url = "{}?token={}".format(
-        Path(instance.request.build_absolute_uri(reverse("index")), SPA_PASSWORD_RESET_ROUTE),
+    spa_reset_url = "{}{}?token={}".format(
+        instance.request.build_absolute_uri(reverse("index")),
+        SPA_PASSWORD_RESET_ROUTE,
         reset_password_token.key,
     )
     context = {

@@ -12,8 +12,9 @@ from django.contrib.auth.views import (
 from django.core.exceptions import ValidationError as DjangoValidationError
 from django.urls import reverse_lazy
 
-from rest_framework import mixins
-from rest_framework.exceptions import APIException
+from rest_framework import mixins, status
+from rest_framework.decorators import action
+from rest_framework.exceptions import APIException, PermissionDenied
 from rest_framework.generics import GenericAPIView
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
@@ -24,7 +25,9 @@ from apps.api.permissions import HasDeletePrivilegesViaRole, HasRoleAssignment, 
 from apps.common.utils import get_original_ip_from_request
 from apps.contributions.bad_actor import BadActorAPIError, make_bad_actor_request
 from apps.emails.tasks import send_templated_email
+from apps.organizations.models import Organization, RevenueProgram
 from apps.public.permissions import IsActiveSuperUser
+from apps.users.choices import Roles
 from apps.users.constants import (
     BAD_ACTOR_CLIENT_FACING_VALIDATION_MESSAGE,
     BAD_ACTOR_FAKE_AMOUNT,
@@ -32,8 +35,11 @@ from apps.users.constants import (
     INVALID_TOKEN,
     PASSWORD_UNEXPECTED_VALIDATION_MESSAGE_SUBSTITUTE,
     PASSWORD_VALIDATION_EXPECTED_MESSAGES,
+    USER_CUSTOMIZE_ACCOUNT_MISSING_APARAMS,
+    USER_EMAIL_VERIFICATION_REQUIRED_ERROR_MESSAGE,
+    USER_PLEASE_ACCEPT_TERMS_OF_SERVICE,
 )
-from apps.users.models import UnexpectedRoleType, User
+from apps.users.models import RoleAssignment, UnexpectedRoleType, User
 from apps.users.permissions import UserIsAllowedToUpdate, UserOwnsUser
 from apps.users.serializers import UserSerializer
 
@@ -172,6 +178,50 @@ class UserViewset(
     def list(self, request, *args, **kwargs):
         """List returns the requesting user's serialized user instance"""
         return Response(self.get_serializer(request.user).data)
+
+    @action(detail=True, methods=["post"])
+    def customize_account(self, request, pk=None):
+        user = request.user
+        logger.debug("Received request to customize account for user %s", user)
+        """Allows customizing an account"""
+        required_data = ["first_name", "last_name", "job_title", "organization_name", "organization_tax_status"]
+        first_name, last_name, job_title, organization_name, organization_tax_status = [
+            request.data.get(key) for key in required_data
+        ]
+
+        if not all([first_name, last_name, job_title, organization_name, organization_tax_status]):
+            logger.warning(
+                "Cannot process request for user %s unable to be processed; missing arguments - %s", user, request
+            )
+            raise ValidationError(USER_CUSTOMIZE_ACCOUNT_MISSING_APARAMS)
+        if not user.email_verified:
+            logger.warning("User %s email has not been verified; unable to customize account", user)
+            raise PermissionDenied(USER_EMAIL_VERIFICATION_REQUIRED_ERROR_MESSAGE)
+        if not user.accepted_terms_of_service:
+            logger.warning("User %s has not accepted TOS; unable to customize account", user)
+            raise PermissionDenied(USER_PLEASE_ACCEPT_TERMS_OF_SERVICE)
+        logger.debug(
+            "Request to customize account for user %s has all required params; will create/update all data", user
+        )
+        user.first_name = first_name
+        user.last_name = last_name
+        user.job_title = job_title
+        user.save()
+        if Organization.objects.filter(name=organization_name).exists():
+            counter = 1
+            while Organization.objects.filter(name=f"{organization_name}-{counter}").exists():
+                counter += 1
+            organization_name = f"{organization_name}-{counter}"
+        organization = Organization.objects.create(name=organization_name, slug=organization_name)
+        revenue_program = RevenueProgram.objects.create(name=organization_name, organization=organization)
+        RoleAssignment.objects.create(user=user, role_type=Roles.ORG_ADMIN, organization=organization)
+        logger.info(
+            "Customize account for user %s successful; organization %s and revenue program %s created.",
+            user,
+            organization.pk,
+            revenue_program.pk,
+        )
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 class FilterQuerySetByUserMixin(GenericAPIView):

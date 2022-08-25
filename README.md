@@ -395,7 +395,7 @@ If you have a need to run or test tasks using a Celery worker, there are some Ma
 
 `make run-redis` brings up the dev services, and a redis container that listens on the default port.
 
-`make run-celery` will bring up a Celery worker. At this point any task that expects a celery worker should run without error.
+`make start-celery` will bring up a Celery worker. At this point any task that expects a celery worker should run without error.
 
 ## Frontend Configuration
 

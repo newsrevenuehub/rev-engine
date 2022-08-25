@@ -41,6 +41,7 @@ class JWTHttpOnlyCookieAuthentication(JWTAuthentication):
         if isinstance(user, Contributor) and not self.token_is_contrib_long_token(validated_token):
             return None, None
 
+        # Validate users that don't have is_active, or, that do and it's set True.
         if not user or hasattr(user, "is_active") and not user.is_active:
             return None, None
 

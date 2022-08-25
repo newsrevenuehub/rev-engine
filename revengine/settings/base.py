@@ -450,8 +450,11 @@ AUTH_COOKIE_KEY = "Authorization"
 # across origins. Once this API supports public access, this needs to be loosened.
 AUTH_COOKIE_SAMESITE = "Strict"  # or 'Lax' or None
 
-# this is used as a salt for the UID hash.
+# Used as a salt for the UID hash and account verification links.
 UID_SALT = os.getenv("UID_SALT", "")
+
+# Expire account verification URLs after X seconds.
+ACCOUNT_VERIFICATION_LINK_EXPIRY = 60 * 60 * 4  # Four hours
 
 ## Various HTTP parameter names.
 ORG_SLUG_PARAM = "orgSlug"

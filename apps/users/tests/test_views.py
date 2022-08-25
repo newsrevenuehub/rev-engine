@@ -1,3 +1,5 @@
+import re
+import time
 from unittest.mock import patch
 
 from django.conf import settings
@@ -8,6 +10,7 @@ from django.test.utils import override_settings
 from django.urls import reverse
 from django.utils import timezone
 
+import pytest
 from faker import Faker
 from rest_framework import status
 from rest_framework.test import APITestCase
@@ -25,12 +28,125 @@ from apps.users.constants import (
     PASSWORD_TOO_SIMILAR_TO_EMAIL_VALIDATION_MESSAGE,
 )
 from apps.users.permissions import UserIsAllowedToUpdate, UserOwnsUser
-from apps.users.tests.utils import create_test_user
-from apps.users.views import UserViewset
+from apps.users.tests.factories import create_test_user
+from apps.users.views import AccountVerification, UserViewset
 
 
 user_model = get_user_model()
 fake = Faker()
+
+
+class TestAccountVerificationEndpoint(TestCase):
+    @override_settings(ACCOUNT_VERIFICATION_LINK_EXPIRY=None)
+    def test_happy_path(self):
+        user = create_test_user(is_active=True, email_verified=False)
+        email, token = AccountVerification().generate_token(user.email)
+        response = self.client.get(reverse("account_verification", kwargs={"email": email, "token": token}))
+        self.assertRedirects(response, reverse("spa_account_verification"))
+        assert get_user_model().objects.get(pk=user.id).email_verified
+
+    @override_settings(ACCOUNT_VERIFICATION_LINK_EXPIRY=None)
+    def test_failed(self):
+        email, token = AccountVerification().generate_token("bobjohnny@example.com")
+        response = self.client.get(reverse("account_verification", kwargs={"email": email, "token": token}))
+        self.assertRedirects(response, reverse("spa_account_verification_fail", kwargs={"failure": "unknown"}))
+
+
+class TestAccountVerification:
+    @pytest.mark.django_db
+    def test_validation_happy_path(self):
+        user = create_test_user(is_active=True, email_verified=False)
+        t = AccountVerification()
+        t.max_age = None
+        email, token = t.generate_token(user.email)
+        assert user == t.validate(email, token)
+
+    @pytest.mark.django_db
+    def test_validation_happy_path_with_expiry(self):
+        user = create_test_user(is_active=True, email_verified=False)
+        t = AccountVerification()
+        t.max_age = 100
+        encoded_email, token = t.generate_token(user.email)
+        assert user == t.validate(encoded_email, token)
+
+    @pytest.mark.django_db
+    def test_inactive_validation(self):
+        user = create_test_user(is_active=False)
+        t = AccountVerification()
+        t.max_age = None
+        encoded_email, token = t.generate_token(user.email)
+        assert not t.validate(encoded_email, token)
+        assert "inactive" == t.fail_reason
+
+    @pytest.mark.django_db
+    def test_unknown_validation(self):
+        t = AccountVerification()
+        t.max_age = None
+        encoded_email, token = t.generate_token("somenonexistentemail")
+        assert not t.validate(encoded_email, token)
+        assert "unknown" == t.fail_reason
+
+    @pytest.mark.parametrize(
+        "expected, encoded_email, encoded_token",
+        [
+            ("Malformed", "", ""),
+            ("Malformed", "what", "ever"),
+            ("Malformed", AccountVerification.encode(""), AccountVerification.encode("")),
+            ("Invalid", AccountVerification.encode("what"), AccountVerification.encode("evar")),
+            (
+                "Invalid",
+                AccountVerification().generate_token("miss")[0],
+                AccountVerification().generate_token("match")[1],
+            ),
+        ],
+    )
+    @patch("apps.users.views.logger.info")
+    def test_failed_validation(self, info, expected, encoded_email, encoded_token):
+        t = AccountVerification()
+        t.max_age = None
+        assert not t.validate(encoded_email, encoded_token)
+        assert "failed" == t.fail_reason
+        assert expected in info.call_args.args[0]
+
+    @patch("apps.users.views.logger.warning")
+    def test_expired_link(self, warning):
+        t = AccountVerification()
+        t.max_age = 0.1  # Gotta be quick!
+        encoded_email, token = t.generate_token("bobjohnny@example.com")
+        time.sleep(0.1)  # Lame, but I'll pay .1s to not mock.
+        assert not t.validate(encoded_email, token)
+        assert "expired" == t.fail_reason
+        assert "Expired" in warning.call_args.args[0]
+
+    @patch("apps.users.views.logger.info")
+    def test_signature_fail(self, warning):
+        t = AccountVerification()
+        t.max_age = 100
+        encoded_email, _ = t.generate_token("bobjohnny@example.com")
+        token = t.encode("garbage")
+        assert not t.validate(encoded_email, token)
+        assert "failed" == t.fail_reason
+        assert "Bad Signature" in warning.call_args.args[0]
+
+    @pytest.mark.parametrize(
+        "plaintext",
+        [
+            "oatmeal@example.com",
+            "unsafe@:/=?$#%^",
+            "   ",
+            None,
+            1,
+        ],
+    )
+    def test_encoding_decoding(self, plaintext):
+        t = AccountVerification()
+        encoded = t.encode(plaintext)
+        decoded = t.decode(encoded)
+        assert str(plaintext) != encoded
+        assert str(plaintext) == decoded
+        assert re.match(
+            r"^[=a-zA-Z0-9._~-]*$", encoded
+        )  # RFC-3986 URL Safe, plus "=", equal, cause base64 says URL doesn't include query portion.
 
 
 @override_settings(EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend")
@@ -441,3 +557,42 @@ class TestUserViewSet(APITestCase):
         self.client.force_authenticate(user=my_user)
         response = self.client.delete(reverse("user-detail", args=(my_user.pk,)))
         self.assertEqual(response.status_code, status.HTTP_405_METHOD_NOT_ALLOWED)
+
+    def test_request_account_verification(self):
+        user = create_test_user(email_verified=False)
+        # Happy Path
+        self.client.force_authenticate(user=user)
+        response = self.client.get(reverse("user-request-account-verification"))
+        assert status.HTTP_200_OK == response.status_code
+        assert {"detail": "Success"} == response.json()
+        # Already Verified
+        user.email_verified = True
+        user.save()
+        response = self.client.get(reverse("user-request-account-verification"))
+        assert status.HTTP_200_OK == response.status_code
+        assert {"detail": "Account already verified"} == response.json()
+        # Inactive
+        user.email_verified = False
+        user.is_active = False
+        user.save()
+        response = self.client.get(reverse("user-request-account-verification"))
+        assert status.HTTP_200_OK == response.status_code
+        assert {"detail": "Account inactive"} == response.json()
+
+    def test_request_account_verification_requires_auth(self):
+        # Requires Authenticated User.
+        response = self.client.get(reverse("user-request-account-verification"))
+        self.assertEqual(response.status_code, 401)
+
+    @patch("apps.users.views.send_templated_email")
+    def test_send_verification_email(self, sent):
+        user = create_test_user(is_active=True, email_verified=False)
+        UserViewset.send_verification_email(user)
+        assert sent.delay.called or sent.called
+
+    @patch("apps.users.views.send_templated_email")
+    def test_send_verification_email_no_address(self, sent):
+        # No email address
+        user = create_test_user(is_active=True, email_verified=False, email="")
+        UserViewset.send_verification_email(user)
+        assert not (sent.delay.called or sent.called)

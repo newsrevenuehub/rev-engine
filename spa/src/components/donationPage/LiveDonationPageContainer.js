@@ -1,5 +1,5 @@
 import { useEffect, useCallback, useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useMutation } from '@tanstack/react-query';
 
 // AJAX
 import useRequest from 'hooks/useRequest';
@@ -21,11 +21,12 @@ import { HUB_GA_V3_ID } from 'settings';
 import SegregatedStyles from 'components/donationPage/SegregatedStyles';
 import LiveLoading from 'components/donationPage/live/LiveLoading';
 import LivePage404 from 'components/common/LivePage404';
+import LiveErrorFallback from './live/LiveErrorFallback';
 import DonationPage from 'components/donationPage/DonationPage';
 
 const STRIPE_IFRAME_SELECTOR = "iframe[title='Secure card payment input frame']";
 
-async function fetchInitialPaymentIntent(rpSlug) {
+async function createInitialPaymentIntent(rpSlug) {
   return await axios({
     method: 'post',
     url: STRIPE_INITIAL_PAYMENT_INTENT,
@@ -36,6 +37,8 @@ async function fetchInitialPaymentIntent(rpSlug) {
 function LiveDonationPageContainer() {
   const [pageData, setPageData] = useState(null);
   const [display404, setDisplay404] = useState(false);
+  const [display500, setDisplay500] = useState(false);
+  const [stripeClientSecret, setStripeClientSecret] = useState(null);
 
   const subdomain = useSubdomain();
   const params = useParams();
@@ -44,12 +47,17 @@ function LiveDonationPageContainer() {
   useWebFonts(pageData?.styles?.font, { context: document.querySelector(STRIPE_IFRAME_SELECTOR) });
   const { setAnalyticsConfig } = useAnalyticsContext();
 
-  // retrieve page data from the API
-  const { isSuccess: paymentIntentSuccess, data: stripeClientSecret } = useQuery(
-    ['create-intial-payment-intent'],
-    () => fetchInitialPaymentIntent(subdomain),
-    { refetchOnWindowFocus: false }
-  );
+  // create inititial payment intent, which will allow us to load Stripe PaymentElement
+  // further down the tree.
+  const paymentIntentMutation = useMutation((rpSlug) => createInitialPaymentIntent(rpSlug), {
+    onSuccess: (data) => {
+      setStripeClientSecret(data);
+    },
+    onError: (error) => {
+      console.error(error);
+      setDisplay500(true);
+    }
+  });
 
   const fetchLivePageContent = useCallback(async () => {
     const { pageSlug } = params;
@@ -85,11 +93,20 @@ function LiveDonationPageContainer() {
     fetchLivePageContent();
   }, [params, fetchLivePageContent]);
 
+  // create the Payment Intent if haven't already created or started/failed at creating
+  useEffect(() => {
+    if (!stripeClientSecret && !['loading', 'error', 'success'].includes(paymentIntentMutation.status)) {
+      paymentIntentMutation.mutate(subdomain);
+    }
+  });
+
   return (
     <SegregatedStyles page={pageData}>
       {display404 ? (
         <LivePage404 />
-      ) : pageData && paymentIntentSuccess ? (
+      ) : display500 ? (
+        <LiveErrorFallback />
+      ) : pageData && stripeClientSecret ? (
         <DonationPage stripeClientSecret={stripeClientSecret} live page={pageData} />
       ) : (
         <LiveLoading />

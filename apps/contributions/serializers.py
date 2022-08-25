@@ -26,6 +26,12 @@ STRIPE_MAX_AMOUNT = 99999999
 REVENGINE_MIN_AMOUNT = 100
 
 
+# class StripePaymentSerializer(serializers.Serializer):
+#     """
+#     """
+#     stripe_payment_intent_id = serializers.CharField()
+
+
 class ContributionSerializer(serializers.ModelSerializer):
     """
     Used when organizations are viewing a Contribution
@@ -456,6 +462,8 @@ class StripeOneTimePaymentSerializer(AbstractPaymentSerializer):
     Stripe's PaymentIntent for an ad-hoc contribution.
     """
 
+    stripe_payment_intent_id = serializers.CharField()
+
 
 class StripeRecurringPaymentSerializer(AbstractPaymentSerializer):
     """
@@ -463,7 +471,8 @@ class StripeRecurringPaymentSerializer(AbstractPaymentSerializer):
     PaymentMethod.
     """
 
-    payment_method_id = serializers.CharField(max_length=255)
+    pass
+    # payment_method_id = serializers.CharField(max_length=255)
 
 
 class PaymentProviderContributionSerializer(serializers.Serializer):

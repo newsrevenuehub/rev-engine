@@ -42,21 +42,70 @@ UserModel = get_user_model()
 
 MIN_PAYMENT_AMOUNT = 100
 
-# @api_view(["POST"])
-# @authentication_classes([])
-# @permission_classes([])
-# def stripe_finalize_payment_intent(request):
-#     # update amount with end amount
-#     # update payment method
-#     # update customer info
-#     # if subscription:
-#         # setup_future_usage="off_session"
 
-#     # payment method
-#     # run bad actor
-#         # if bad actor, do this in order to postpone collection of paymen t
-#             # capture_method="manual"
-#     # interval
+@api_view(["POST"])
+@authentication_classes([])
+@permission_classes([])
+def stripe_process_payment(request):
+    """ """
+    breakpoint()
+    data = request.data
+    # Grab data required for Bad Actor API from headers
+    data["referer"] = request.META.get("HTTP_REFERER")
+    data["ip"] = request.META["REMOTE_ADDR"]
+
+    # StripePaymentManager will grab the right serializer based on "interval"
+    stripe_payment = StripePaymentManager(data=data)
+
+    # Validate data expected by Stripe and BadActor API
+    stripe_payment.validate()
+
+    # Performs request to BadActor API
+    stripe_payment.get_bad_actor_score()
+
+    # create a contributor
+    contributor = stripe_payment.get_or_create_contributor()
+    stripe_customer = stripe_payment.create_stripe_customer(stripe_payment.get_revenue_program())
+
+    # create customer
+
+    stripe.PaymentIntent.modify(
+        stripe_payment.validated_data["stripe_payment_intent_id"],
+        amount=stripe_payment.validated_data["amount"],
+        currency=stripe_payment.validated_data["currency"],
+        receipt_email=stripe_payment.validated_data["email"],
+        setup_future_usage="on_session" if stripe_payment.validated_data["interval"] == "one_time" else "off_session",
+        metadata=stripe_payment.bundle_metadata(),
+    )
+
+    # update payment intent
+    # update amount with end amount
+    # if will be for subscription, update that field
+    # get or create contributor
+    # get or create contribution
+    # get or create stripe customer
+    # set receipt email on PI
+    # metadata
+    # bad actor
+    #
+    #  stripe_payment_intent = stripe.PaymentIntent.create(
+    #         amount=self.validated_data["amount"],
+    #         currency=self.validated_data["currency"],
+    #         customer=stripe_customer.id,
+    #         payment_method_types=["card"],
+    #         statement_descriptor_suffix=revenue_program.stripe_statement_descriptor_suffix,
+    #         receipt_email=self.validated_data["email"],
+    #         metadata=metadata,
+    #     )
+    # self.create_contribution(
+    #         contributor,
+    #         provider_reference_instance=stripe_payment_intent,
+    #         provider_customer_id=stripe_customer.id,
+    #         metadata=metadata,
+    #     )
+    # return something to client that knows whether or not to confirm payment
+    # as well as the next page
+    return
 
 
 @api_view(["POST"])
@@ -89,12 +138,12 @@ def stripe_create_initial_payment_intent(request):
             # https://stripe.com/docs/api/payment_intents/create#create_payment_intent-setup_future_usage
             setup_future_usage="off_session",
             amount=MIN_PAYMENT_AMOUNT,
+            statement_descriptor_suffix=rp.stripe_statement_descriptor_suffix,
             currency=rp.payment_provider.currency,
             # https://stripe.com/docs/api/payment_intents/create#create_payment_intent-automatic_payment_methods
             automatic_payment_methods={
                 "enabled": True,
             },
-            # metadata={???},
             on_behalf_of=rp.payment_provider.stripe_account_id,
         )
         return Response({"detail": "success", "clientSecret": intent["client_secret"]}, status=status.HTTP_200_OK)

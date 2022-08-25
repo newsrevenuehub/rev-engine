@@ -244,31 +244,32 @@ class StripePaymentManager(PaymentManager):
             return StripeOneTimePaymentSerializer
         return StripeRecurringPaymentSerializer
 
+    # def preprocess_payment(self):
+    #     """
+    #     """
+    #     # need to have payment intent id  be avaialable here
+    #     self.ensure_validated_data()
+    #     self.ensure_bad_actor_score()
+    #     revenue_program = self.get_revenue_program()
+    #     contributor = self.get_or_create_contributor()
+    #     stripe_customer = self.create_stripe_customer(revenue_program)
+    #     metadata = self.bundle_metadata(ContributionMetadataSerializer.PAYMENT)
+    #     stripe_payment_intent = None
+    #     self.create_contribution(
+    #         contributor,
+    #         provider_reference_instance=stripe_payment_intent,
+    #         provider_customer_id=stripe_customer.id,
+    #         metadata=metadata,
+    #     )
     def create_one_time_payment(self):
-        """
-        A one-time payment creates a simple Stripe PaymentIntent. This PaymentIntent can be
-        executed immediately with `capture_method="automatic"`, or capture can be deferred. If
-        `capture_method` is set to "manual", Stripe will hold the funds in the customer's bank
-        for seven days.
-        """
+        """"""
         self.ensure_validated_data()
         self.ensure_bad_actor_score()
         revenue_program = self.get_revenue_program()
         contributor = self.get_or_create_contributor()
         stripe_customer = self.create_stripe_customer(revenue_program)
-        capture_method = "manual" if self.flagged else "automatic"
         metadata = self.bundle_metadata(ContributionMetadataSerializer.PAYMENT)
-        stripe_payment_intent = stripe.PaymentIntent.create(
-            amount=self.validated_data["amount"],
-            currency=self.validated_data["currency"],
-            customer=stripe_customer.id,
-            payment_method_types=["card"],
-            stripe_account=revenue_program.payment_provider.stripe_account_id,
-            capture_method=capture_method,
-            statement_descriptor_suffix=revenue_program.stripe_statement_descriptor_suffix,
-            receipt_email=self.validated_data["email"],
-            metadata=metadata,
-        )
+        stripe_payment_intent = None
         self.create_contribution(
             contributor,
             provider_reference_instance=stripe_payment_intent,

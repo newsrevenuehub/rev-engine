@@ -1,5 +1,9 @@
-import * as S from './StripePaymentForm.styled';
 import { useState, useEffect } from 'react';
+import { useMutation } from '@tanstack/react-query';
+
+import axios from 'ajax/axios';
+import { STRIPE_PROCESS_PAYMENT } from 'ajax/endpoints';
+import * as S from './StripePaymentForm.styled';
 
 // Deps
 import { useTheme } from 'styled-components';
@@ -38,11 +42,23 @@ import { ICONS } from 'assets/icons/SvgIcon';
 import { PayFeesWidget } from 'components/donationPage/pageContent/DPayment';
 import DonationPageDisclaimer from 'components/donationPage/DonationPageDisclaimer';
 
+// explain
+async function processPayment(intentId, formData) {
+  return axios({
+    method: 'post',
+    url: STRIPE_PROCESS_PAYMENT,
+    data: {
+      stripe_payment_intent_id: intentId,
+      ...formData
+    }
+  }).then(({ data }) => data);
+}
+
 function StripePaymentForm({ loading, setLoading, offerPayFees }) {
   useReCAPTCHAScript();
   const subdomain = useSubdomain();
   const { url, params } = useRouteMatch();
-  const { page, amount, frequency, payFee, formRef, setErrors, salesforceCampaignId } = usePage();
+  const { page, amount, frequency, payFee, formRef, setErrors, salesforceCampaignId, stripeClientSecret } = usePage();
   const { trackConversion } = useAnalyticsContext();
 
   const [succeeded, setSucceeded] = useState(false);
@@ -55,6 +71,18 @@ function StripePaymentForm({ loading, setLoading, offerPayFees }) {
   const alert = useAlert();
   const stripe = useStripe();
   const elements = useElements();
+
+  const processPaymentMutation = useMutation(
+    ({ stripeClientSecret, formData }) => processPayment(stripeClientSecret, formData),
+    {
+      onSuccess: (data) => {
+        debugger;
+      },
+      onError: (error) => {
+        debugger;
+      }
+    }
+  );
 
   const amountIsValid = (amount) => amount && !isNaN(amount);
   /**
@@ -179,15 +207,16 @@ function StripePaymentForm({ loading, setLoading, offerPayFees }) {
 
   const handleCardSubmit = async (e) => {
     e.preventDefault();
-    const data = await getData();
+    const formData = await getData();
     setLoading(true);
-    await submitPayment(
-      stripe,
-      data,
-      { card: elements.getElement(PaymentElement) },
-      handlePaymentSuccess,
-      handlePaymentFailure
-    );
+    processPaymentMutation.mutate({ stripeClientSecret, formData });
+    // await submitPayment(
+    //   stripe,
+    //   data,
+    //   { card: elements.getElement(PaymentElement) },
+    //   handlePaymentSuccess,
+    //   handlePaymentFailure
+    // );
   };
 
   /*********************************\

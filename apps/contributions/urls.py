@@ -15,6 +15,7 @@ urlpatterns = [
         views.stripe_create_initial_payment_intent,
         name="stripe-initial-payment-intent",
     ),
+    path("stripe/process-payment", views.stripe_process_payment, name="stripe-process-payment"),
     path("stripe/payment/", views.stripe_payment, name="stripe-payment"),
     path("stripe/oauth/", views.stripe_oauth, name="stripe-oauth"),
     path("stripe/confirmation/", views.stripe_confirmation, name="stripe-confirmation"),

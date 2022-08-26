@@ -617,6 +617,12 @@ class TestContributionsViewSet(RevEngineApiAbstractTestCase):
             reverse("contribution-list"), novel, expected_status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
         )
 
+    def test_list_contributions_with_status_negation(self):
+        filter_statuses = {"paid", "flagged"}
+        qp = "&".join([f"status__not={i}" for i in filter_statuses])
+        response = self.assert_user_can_get(self.list_url + f"?{qp}", self.superuser)
+        self.assertTrue(all([i["status"] not in filter_statuses for i in response.json()["results"]]))
+
 
 class TestContributorContributionsViewSet(AbstractTestCase):
     def setUp(self):

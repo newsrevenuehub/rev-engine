@@ -332,30 +332,6 @@ class ContributionsViewSet(viewsets.ReadOnlyModelViewSet, FilterQuerySetByUserMi
 
         return Response(data={"detail": "rejected" if reject else "accepted"}, status=status.HTTP_200_OK)
 
-    # only contributors owning a contribution can update payment method
-    @action(methods=["patch"], detail=True, permission_classes=[IsAuthenticated, IsContributorOwningContribution])
-    def update_payment_method(self, request, pk):
-        if request.data.keys() != {"payment_method_id"}:
-            return Response({"detail": "Request contains unsupported fields"}, status=status.HTTP_400_BAD_REQUEST)
-
-        try:
-            contribution = request.user.contribution_set.get(pk=pk)
-        except Contribution.DoesNotExist:
-            return Response(
-                {"detail": "Could not find contribution for requesting contributor"}, status=status.HTTP_404_NOT_FOUND
-            )
-
-        payment_manager = StripePaymentManager(contribution=contribution)
-
-        try:
-            payment_manager.update_payment_method(request.data["payment_method_id"])
-        except PaymentProviderError as pp_error:
-            error_message = str(pp_error)
-            logger.error(error_message)
-            return Response({"detail": error_message}, status=status.HTTP_400_BAD_REQUEST)
-
-        return Response({"detail": "Success"}, status=status.HTTP_200_OK)
-
 
 class SubscriptionDetail(APIView):
 
@@ -363,6 +339,7 @@ class SubscriptionDetail(APIView):
         IsAuthenticated,
     ]
 
+    # This is used to update the payment method for a Subscription
     @action(methods=["patch"], detail=True, permission_classes=[IsAuthenticated])
     def patch(self, request, subscription_id):
         if request.data.keys() != {"payment_method_id", "revenue_program_slug"}:
@@ -386,9 +363,9 @@ class SubscriptionDetail(APIView):
                 customer=subscription.customer.id,
                 stripe_account=revenue_program.payment_provider.stripe_account_id,
             )
-        except stripe.error.StripeError as stripe_error:
+        except stripe.error.StripeError:
             logger.exception("stripe.PaymentMethod.attach returned a StripeError")
-            return Response({"detail": stripe_error}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            return Response({"detail": "Error attaching payment method"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
         try:
             stripe.Subscription.modify(
@@ -396,12 +373,13 @@ class SubscriptionDetail(APIView):
                 default_payment_method=payment_method_id,
                 stripe_account=revenue_program.payment_provider.stripe_account_id,
             )
-        except stripe.error.StripeError as stripe_error:
+        except stripe.error.StripeError:
             logger.exception("stripe.Subscription.modify returned a StripeError")
-            return Response({"detail": stripe_error}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            return Response({"detail": "Error updating Subscription"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
         return Response({"detail": "Success"}, status=status.HTTP_204_NO_CONTENT)
 
+    # This is used to cancel a Subscription
     @action(methods=["delete"], detail=False, permission_classes=[IsAuthenticated])
     def delete(self, request, subscription_id):
         revenue_program_slug = request.data.get("revenue_program_slug")
@@ -414,9 +392,11 @@ class SubscriptionDetail(APIView):
             # TODO: [DEV-2287] should we find a way to user DRF's permissioning scheme here instead?
             return Response({"detail": "Forbidden"}, status=status.HTTP_403_FORBIDDEN)
         try:
-            subscription.delete()
-        except stripe.error.StripeError as stripe_error:
+            stripe.Subscription.delete(
+                subscription_id, stripe_account=revenue_program.payment_provider.stripe_account_id, expand=["customer"]
+            )
+        except stripe.error.StripeError:
             logger.exception("stripe.Subscription.delete returned a StripeError")
-            return Response({"detail": stripe_error}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            return Response({"detail": ""}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
         return Response({"detail": "Success"}, status=status.HTTP_204_NO_CONTENT)

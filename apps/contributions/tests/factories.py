@@ -67,3 +67,16 @@ class ContributionFactory(DjangoModelFactory):
     payment_provider_used = "Stripe"
     donation_page = factory.SubFactory(DonationPageFactory)
     contributor = factory.SubFactory(ContributorFactory)
+
+
+class StripeCustomerFactory:
+    id = fake.uuid4()
+    email = factory.Sequence(lambda n: f"{fake.user_name()}-{n}@{fake.domain_name()}")
+
+
+class StripeSubscriptionFactory:
+    id = fake.uuid4()
+    customer = StripeCustomerFactory()
+
+    def delete(subscription_id):
+        pass

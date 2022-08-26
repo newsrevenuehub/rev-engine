@@ -6,7 +6,6 @@ import {
   faClock,
   faHandHoldingUsd,
   faUser,
-  faPlus,
   faCreditCard,
   faAddressCard,
   faImage,

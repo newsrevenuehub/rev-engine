@@ -68,9 +68,6 @@ function getElementIcon(elementType) {
     case 'DDonorAddress':
       return faAddressCard;
 
-    case 'DAdditionalInfo':
-      return faPlus;
-
     case 'DPayment':
       return faCreditCard;
 

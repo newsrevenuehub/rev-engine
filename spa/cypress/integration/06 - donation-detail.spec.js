@@ -40,7 +40,7 @@ describe('Donation detail', () => {
       cy.intercept('GET', getEndpoint(`${CONTRIBUTIONS}/${CONTRIBUTION_PK}/`), {
         body: donationPageContributionDetailData
       }).as('getDonationPageDonation');
-      cy.visit(`/dashboard/contributions/${CONTRIBUTION_PK}`);
+      cy.visit(`${DONATIONS_SLUG}/${CONTRIBUTION_PK}`);
     });
     it('should display revenue program name in page title', () => {
       cy.wait('@getPages');
@@ -56,7 +56,7 @@ describe('Donation detail', () => {
       cy.intercept('GET', getEndpoint(`${CONTRIBUTIONS}/${CONTRIBUTION_PK}/`), {
         body: unflaggedContributionDetailData
       }).as('getUnflaggedDonation');
-      cy.visit(`/dashboard/contributions/${CONTRIBUTION_PK}`);
+      cy.visit(`${DONATIONS_SLUG}/${CONTRIBUTION_PK}`);
     });
     it('should display donation details', () => {
       cy.wait('@getUnflaggedDonation');
@@ -83,7 +83,7 @@ describe('Donation detail', () => {
       cy.intercept('GET', getEndpoint(`${CONTRIBUTIONS}/${CONTRIBUTION_PK}/`), {
         body: prevFlaggedContributionDetailData
       }).as('getNoLongerFlaggedDonation');
-      cy.visit(`/dashboard/contributions/${CONTRIBUTION_PK}`);
+      cy.visit(`${DONATIONS_SLUG}/${CONTRIBUTION_PK}`);
     });
 
     it('should display flagged details in addition to donation details', () => {

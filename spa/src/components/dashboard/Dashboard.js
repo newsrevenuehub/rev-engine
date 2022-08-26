@@ -36,7 +36,7 @@ function Dashboard() {
     ? DONATIONS_SLUG
     : 'not-found';
 
-  const isEditPage = useLocation().pathname.includes('/dashboard/edit');
+  const isEditPage = useLocation().pathname.includes('/edit');
 
   return (
     <S.Outer>

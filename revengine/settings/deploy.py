@@ -104,7 +104,6 @@ if BROKER_URL.startswith("rediss"):
     CELERY_REDIS_BACKEND_USE_SSL = {
         "ssl_cert_reqs": ssl.CERT_NONE,
     }
-CELERY_RESULT_BACKEND = f"{REDIS_URL}/1"
 
 CELERYBEAT_SCHEDULER = "django_celery_beat.schedulers:DatabaseScheduler"
 CELERY_HIJACK_ROOT_LOGGER = False

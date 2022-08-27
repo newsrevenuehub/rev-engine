@@ -397,6 +397,6 @@ class SubscriptionDetail(APIView):
             )
         except stripe.error.StripeError:
             logger.exception("stripe.Subscription.delete returned a StripeError")
-            return Response({"detail": ""}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            return Response({"detail": "Error"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
         return Response({"detail": "Success"}, status=status.HTTP_204_NO_CONTENT)

@@ -810,8 +810,8 @@ class UpdatePaymentMethodTest(APITestCase):
         )
         assert response.status_code == 403
         assert response.data["detail"] == "Forbidden"
-        mock_modify.assert_not_called()
-        mock_attach.assert_not_called()
+        assert not mock_modify.called
+        assert not mock_attach.called
 
     @mock.patch("stripe.Subscription.retrieve")
     @mock.patch("stripe.PaymentMethod.attach", side_effect=StripeError)
@@ -915,7 +915,7 @@ class CancelRecurringPaymentTest(APITestCase):
         mock_retrieve.return_value = self.subscription
         response = self._make_request(self.subscription_id, self.revenue_program.slug)
         self.assertEqual(response.status_code, 500)
-        self.assertEqual(response.data["detail"], "")
+        self.assertEqual(response.data["detail"], "Error")
 
     @mock.patch("stripe.Subscription.delete")
     @mock.patch("stripe.Subscription.retrieve")

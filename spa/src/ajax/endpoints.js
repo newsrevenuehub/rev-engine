@@ -5,6 +5,9 @@ export const STRIPE_OAUTH = 'stripe/oauth/';
 export const STRIPE_PAYMENT = 'stripe/payment/';
 export const STRIPE_CONFIRMATION = 'stripe/confirmation/';
 
+export const AUTHORIZE_ONE_TIME_STRIPE_PAYMENT_ROUTE = 'contributions/authorize-one-time-payment';
+export const AUTHORIZE_STRIPE_SUBSCRIPTION_ROUTE = 'contributions/authorize-subscription';
+
 // Pages
 export const LIVE_PAGE_DETAIL = 'pages/live-detail/';
 export const DRAFT_PAGE_DETAIL = 'pages/draft-detail/';

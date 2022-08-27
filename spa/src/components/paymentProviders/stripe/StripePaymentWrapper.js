@@ -12,7 +12,7 @@ import GlobalLoading from 'elements/GlobalLoading';
 // account for this page. Note that the `stripeClientSecret` value from `usePage` gets created
 // only after user has submitted initial checkout form, which causes a Stripe PaymentIntent to
 // be created on the backend.
-function StripePaymentWrapper() {
+function StripePaymentWrapper({ offerPayFees }) {
   const {
     page: {
       payment_provider: { stripe_account_id: stripeAccount }

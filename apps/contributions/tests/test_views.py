@@ -787,7 +787,7 @@ class UpdatePaymentMethodTest(APITestCase):
         response = self._make_request(
             subscription_id=self.subscription_id,
             data={
-                "fiddle": self.payment_method_id,
+                "test_unknown_parameter": self.payment_method_id,
                 "revenue_program_slug": self.revenue_program.slug,
             },
         )

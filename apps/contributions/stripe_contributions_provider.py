@@ -235,7 +235,6 @@ class ContributionsCacheProvider:
         """Serialized and Upserts contributions data to cache."""
         data = self.serialize(contributions)
         cached_data = json.loads(self.cache.get(self.key) or "{}")
-
         cached_data.update(data)
 
         with self.cache.lock(f"{self.key}-lock"):

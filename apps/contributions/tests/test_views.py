@@ -111,7 +111,7 @@ class CreateStripePaymentErrorConditionsTest(StripePaymentViewTestAbstract):
     """Branch coverage for various errors."""
 
     @override_settings(CELERY_TASK_ALWAYS_EAGER=True)
-    def atest_intervals(self):  # TODO: njharman forgot to reenable/fix this test
+    def atest_intervals(self):  # TODO: DEV-2295 njharman forgot to reenable/fix this test
         # Due to serializer validation can't actually set "bad" interval.
         # Instead we iterate over all the model choices. Which if new one is
         # added but not handled here we will trigger exception.

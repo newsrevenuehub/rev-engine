@@ -18,7 +18,7 @@ set -o xtrace
 psql -d ${DATABASE_URL} -c "DROP SCHEMA public CASCADE;
 CREATE SCHEMA public;
 CREATE EXTENSION citext;
-CREATE TABLE "public"."config_denylistword" (id" integer NOT NULL, "word" "heroku_ext"."citext" NOT NULL);
+CREATE TABLE config_denylistword (id integer not null, word heroku_ext.citext not null);
 GRANT ALL ON SCHEMA public TO postgres;
 GRANT ALL ON SCHEMA public TO public;"
 

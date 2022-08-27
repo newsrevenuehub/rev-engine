@@ -474,7 +474,9 @@ class PaymentProviderContributionSerializer(serializers.Serializer):
     # id will be charge object id in our case, which will start with ch_ and doesn't exceed 255 chars
     # https://stripe.com/docs/upgrades#what-changes-does-stripe-consider-to-be-backwards-compatible
     id = serializers.CharField(max_length=255)
-    subscription_id = serializers.CharField(max_length=255, required=False, allow_blank=True)
+    subscription_id = serializers.CharField(
+        max_length=255, required=False, allow_blank=True, help_text="Stripe Subscription ID"
+    )
     status = serializers.ChoiceField(choices=ContributionStatus.choices)
     card_brand = serializers.ChoiceField(choices=CardBrand.choices, required=False, allow_null=True)
     last4 = serializers.IntegerField()

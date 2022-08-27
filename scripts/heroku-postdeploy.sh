@@ -17,8 +17,6 @@ set -o xtrace
 # Django tries to create the already existing new model/table.
 psql -d ${DATABASE_URL} -c "DROP SCHEMA public CASCADE;
 CREATE SCHEMA public;
-CREATE EXTENSION citext;
-CREATE TABLE config_denylistword (id integer not null, word heroku_ext.citext not null);
 GRANT ALL ON SCHEMA public TO postgres;
 GRANT ALL ON SCHEMA public TO public;"
 

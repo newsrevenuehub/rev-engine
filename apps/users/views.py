@@ -14,7 +14,7 @@ from django.urls import reverse_lazy
 
 from rest_framework import mixins, status
 from rest_framework.decorators import action
-from rest_framework.exceptions import APIException, PermissionDenied
+from rest_framework.exceptions import APIException
 from rest_framework.generics import GenericAPIView
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
@@ -35,13 +35,14 @@ from apps.users.constants import (
     INVALID_TOKEN,
     PASSWORD_UNEXPECTED_VALIDATION_MESSAGE_SUBSTITUTE,
     PASSWORD_VALIDATION_EXPECTED_MESSAGES,
-    USER_CUSTOMIZE_ACCOUNT_MISSING_APARAMS,
-    USER_EMAIL_VERIFICATION_REQUIRED_ERROR_MESSAGE,
-    USER_PLEASE_ACCEPT_TERMS_OF_SERVICE,
 )
 from apps.users.models import RoleAssignment, UnexpectedRoleType, User
-from apps.users.permissions import UserIsAllowedToUpdate, UserOwnsUser
-from apps.users.serializers import UserSerializer
+from apps.users.permissions import (
+    UserHasAcceptedTermsOfService,
+    UserIsAllowedToUpdate,
+    UserOwnsUser,
+)
+from apps.users.serializers import CustomizeAccountSerializer, UserSerializer
 
 
 logger = logging.getLogger(__name__)
@@ -106,12 +107,14 @@ class UserViewset(
             ]
         if self.action == "partial_update":
             permission_classes = [UserOwnsUser, UserIsAllowedToUpdate]
+        if self.action == "customize_account":
+            permission_classes = [UserOwnsUser, IsAuthenticated, UserIsAllowedToUpdate, UserHasAcceptedTermsOfService]
         return [permission() for permission in permission_classes]
 
     def validate_password(self, email, password):
         """Validate the password
 
-        NB: This needs to be done in view layer and not serializer layer becauase Django's password
+        NB: This needs to be done in view layer and not serializer layer because Django's password
         validation functions we're using need access to the user attributes, not just password. This allows
         us to access all fields that were already validated in serializer layer.
         """
@@ -179,30 +182,21 @@ class UserViewset(
         """List returns the requesting user's serialized user instance"""
         return Response(self.get_serializer(request.user).data)
 
-    @action(detail=True, methods=["post"])
+    @action(detail=True, methods=["patch"])
     def customize_account(self, request, pk=None):
-        user = request.user
-        logger.debug("Received request to customize account for user %s", user)
         """Allows customizing an account"""
-        required_data = ["first_name", "last_name", "job_title", "organization_name", "organization_tax_status"]
-        first_name, last_name, job_title, organization_name, organization_tax_status = [
-            request.data.get(key) for key in required_data
-        ]
-
-        if not all([first_name, last_name, job_title, organization_name, organization_tax_status]):
-            logger.warning(
-                "Cannot process request for user %s unable to be processed; missing arguments - %s", user, request
-            )
-            raise ValidationError(USER_CUSTOMIZE_ACCOUNT_MISSING_APARAMS)
-        if not user.email_verified:
-            logger.warning("User %s email has not been verified; unable to customize account", user)
-            raise PermissionDenied(USER_EMAIL_VERIFICATION_REQUIRED_ERROR_MESSAGE)
-        if not user.accepted_terms_of_service:
-            logger.warning("User %s has not accepted TOS; unable to customize account", user)
-            raise PermissionDenied(USER_PLEASE_ACCEPT_TERMS_OF_SERVICE)
-        logger.debug(
-            "Request to customize account for user %s has all required params; will create/update all data", user
-        )
+        customize_account_serializer = CustomizeAccountSerializer(data=request.data)
+        customize_account_serializer.is_valid()
+        if customize_account_serializer.errors:
+            errors = {**customize_account_serializer.errors, **customize_account_serializer.errors}
+            logger.warning("Request %s is invalid; errors: %s", request.data, errors)
+            raise ValidationError(errors)
+        first_name = customize_account_serializer.validated_data["first_name"]
+        last_name = customize_account_serializer.validated_data["last_name"]
+        job_title = customize_account_serializer.validated_data["job_title"]
+        organization_name = customize_account_serializer.validated_data["organization_name"]
+        user = request.user
+        logger.debug("Received request to customize account for user %s; request: %s", user, request.data)
         user.first_name = first_name
         user.last_name = last_name
         user.job_title = job_title

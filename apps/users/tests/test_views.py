@@ -25,12 +25,13 @@ from apps.users.constants import (
     PASSWORD_TOO_LONG_VALIDATION_MESSAGE,
     PASSWORD_TOO_SHORT_VALIDATION_MESSAGE,
     PASSWORD_TOO_SIMILAR_TO_EMAIL_VALIDATION_MESSAGE,
-    USER_CUSTOMIZE_ACCOUNT_MISSING_APARAMS,
-    USER_EMAIL_VERIFICATION_REQUIRED_ERROR_MESSAGE,
-    USER_PLEASE_ACCEPT_TERMS_OF_SERVICE,
 )
 from apps.users.models import RoleAssignment, User
-from apps.users.permissions import UserIsAllowedToUpdate, UserOwnsUser
+from apps.users.permissions import (
+    UserHasAcceptedTermsOfService,
+    UserIsAllowedToUpdate,
+    UserOwnsUser,
+)
 from apps.users.tests.utils import create_test_user
 from apps.users.views import UserViewset
 
@@ -131,6 +132,7 @@ class TestUserViewSet(APITestCase):
             "email": fake.email(),
             "password": fake.password(length=PASSWORD_MIN_LENGTH),
             "accepted_terms_of_service": timezone.now(),
+            "email_verified": True,
         }
         self.customize_account_request = {
             "first_name": "Test",
@@ -456,78 +458,68 @@ class TestUserViewSet(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_405_METHOD_NOT_ALLOWED)
 
     def test_cannot_update_user_account_missing_first_name(self):
-        user = get_user_model().objects.create_user(**self.create_data)
-        self.client.force_authenticate(user=user)
-        response = self.client.post(
+        user = self._create_authenticated_user()
+        response = self.client.patch(
             reverse("user-customize-account", args=(user.pk,)),
             data={**self.customize_account_request, "first_name": ""},
         )
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertEqual(response.json(), [USER_CUSTOMIZE_ACCOUNT_MISSING_APARAMS])
+        self.assertEqual(response.json(), {"first_name": ["This information is required"]})
 
     def test_cannot_update_user_account_missing_last_name(self):
-        user = get_user_model().objects.create_user(**self.create_data)
-        self.client.force_authenticate(user=user)
-        response = self.client.post(
+        user = self._create_authenticated_user()
+        response = self.client.patch(
             reverse("user-customize-account", args=(user.pk,)), data={**self.customize_account_request, "last_name": ""}
         )
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertEqual(response.json(), [USER_CUSTOMIZE_ACCOUNT_MISSING_APARAMS])
+        self.assertEqual(response.json(), {"last_name": ["This information is required"]})
 
     def test_cannot_update_user_account_missing_job_title(self):
-        user = get_user_model().objects.create_user(**self.create_data)
-        self.client.force_authenticate(user=user)
-        response = self.client.post(
+        user = self._create_authenticated_user()
+        response = self.client.patch(
             reverse("user-customize-account", args=(user.pk,)), data={**self.customize_account_request, "job_title": ""}
         )
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertEqual(response.json(), [USER_CUSTOMIZE_ACCOUNT_MISSING_APARAMS])
+        self.assertEqual(response.json(), {"job_title": ["This information is required"]})
 
     def test_cannot_update_user_account_missing_organization_name(self):
-        user = get_user_model().objects.create_user(**self.create_data)
-        self.client.force_authenticate(user=user)
-        response = self.client.post(
+        user = self._create_authenticated_user()
+        response = self.client.patch(
             reverse("user-customize-account", args=(user.pk,)),
             data={**self.customize_account_request, "organization_name": ""},
         )
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertEqual(response.json(), [USER_CUSTOMIZE_ACCOUNT_MISSING_APARAMS])
+        self.assertEqual(response.json(), {"organization_name": ["This information is required"]})
 
     def test_cannot_update_user_account_missing_organization_tax_status(self):
-        user = get_user_model().objects.create_user(**self.create_data)
-        self.client.force_authenticate(user=user)
-        response = self.client.post(
+        user = self._create_authenticated_user()
+        response = self.client.patch(
             reverse("user-customize-account", args=(user.pk,)),
             data={**self.customize_account_request, "organization_tax_status": ""},
         )
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertEqual(response.json(), [USER_CUSTOMIZE_ACCOUNT_MISSING_APARAMS])
+        self.assertEqual(response.json(), {"organization_tax_status": ["This information is required"]})
 
     def test_cannot_update_user_account_tos_not_accepted(self):
-        user = get_user_model().objects.create(
-            email=self.create_data["email"], email_verified=True, accepted_terms_of_service=None
-        )
+        user = self._create_authenticated_user(email_verified=True, accepted_terms_of_service=None)
         self.client.force_authenticate(user=user)
-        response = self.client.post(
+        response = self.client.patch(
             reverse("user-customize-account", args=(user.pk,)), data=self.customize_account_request
         )
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
-        self.assertEqual(response.json(), {"detail": USER_PLEASE_ACCEPT_TERMS_OF_SERVICE})
+        self.assertEqual(response.json(), {"detail": UserHasAcceptedTermsOfService.message})
 
     def test_cannot_update_user_account_unverified(self):
-        user = get_user_model().objects.create(
-            email=self.create_data["email"], email_verified=False, accepted_terms_of_service=timezone.now()
-        )
-        self.client.force_authenticate(user=user)
-        response = self.client.post(
+        user = self._create_authenticated_user(email_verified=False)
+        response = self.client.patch(
             reverse("user-customize-account", args=(user.pk,)), data=self.customize_account_request
         )
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
-        self.assertEqual(response.json(), {"detail": USER_EMAIL_VERIFICATION_REQUIRED_ERROR_MESSAGE})
+        self.assertEqual(response.json(), {"detail": UserIsAllowedToUpdate.message})
 
     def test_can_customize_account(self):
         user = self._create_authenticated_user()
-        response = self.client.post(
+        response = self.client.patch(
             reverse("user-customize-account", args=(user.pk,)), data=self.customize_account_request
         )
         self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
@@ -552,7 +544,7 @@ class TestUserViewSet(APITestCase):
         Organization.objects.create(name=taken_name, slug=taken_name)
         Organization.objects.create(name=f"{taken_name}-1", slug=f"{taken_name}-1")
         user = self._create_authenticated_user()
-        response = self.client.post(
+        response = self.client.patch(
             reverse("user-customize-account", args=(user.pk,)),
             data={**self.customize_account_request, "organization_name": taken_name},
         )
@@ -561,9 +553,11 @@ class TestUserViewSet(APITestCase):
         self.assertTrue(Organization.objects.filter(name=expected_organization_name).exists())
         self.assertTrue(RevenueProgram.objects.filter(name=expected_organization_name).exists())
 
-    def _create_authenticated_user(self) -> User:
+    def _create_authenticated_user(self, email_verified=True, accepted_terms_of_service=timezone.now()) -> User:
         user = get_user_model().objects.create(
-            email=self.create_data["email"], email_verified=True, accepted_terms_of_service=timezone.now()
+            email=self.create_data["email"],
+            email_verified=email_verified,
+            accepted_terms_of_service=accepted_terms_of_service,
         )
 
         self.client.force_authenticate(user=user)

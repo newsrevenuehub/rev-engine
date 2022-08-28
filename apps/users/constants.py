@@ -26,5 +26,3 @@ PASSWORD_VALIDATION_EXPECTED_MESSAGES = [
 USER_EMAIL_VERIFICATION_REQUIRED_ERROR_MESSAGE = (
     "Please verify your email address before attempting to customize your user account."
 )
-USER_PLEASE_ACCEPT_TERMS_OF_SERVICE = "Please accept terms of service before attempting to customize your user account."
-USER_CUSTOMIZE_ACCOUNT_MISSING_APARAMS = "Please provide values for 'first_name', 'last_name', 'job_title', 'organization_name' and 'organization_tax_status'."

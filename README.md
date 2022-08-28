@@ -348,7 +348,7 @@ NOTE: The `pg_restore` command assumes that you can run `$psql` and get a prompt
 
 ```sh
 heroku pg:backups:download --app rev-engine-test b001
-pg_restore --verbose --clean --no-acl --no-owner -d postgres://postgres@127.0.01:54000/revengine latest.dump
+pg_restore --verbose --clean --no-acl --no-owner -d postgres://postgres@127.0.0.1:54000/revengine latest.dump
 ```
 
 ## Logging

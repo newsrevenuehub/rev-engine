@@ -142,3 +142,23 @@ class UserSerializer(serializers.ModelSerializer):
             "revenue_programs",
             "role_type",
         ]
+
+
+class CustomizeAccountSerializer(UserSerializer):
+    """Special custom serializer to validate data received from customize_account method"""
+
+    first_name = serializers.CharField(write_only=True, required=True)
+    last_name = serializers.CharField(write_only=True, required=True)
+    job_title = serializers.CharField(write_only=True, required=True)
+    organization_name = serializers.CharField(write_only=True, required=True)
+    organization_tax_status = serializers.CharField(write_only=True, required=True)
+
+    class Meta:
+        model = get_user_model()
+        fields = [
+            "first_name",
+            "last_name",
+            "job_title",
+            "organization_name",
+            "organization_tax_status",
+        ]

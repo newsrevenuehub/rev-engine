@@ -95,6 +95,7 @@ pytest-xdist = "*"
 flake8-logging-format = "*"
 pytest-mock = "^3.8.2"
 Faker = "^13.15.0"
+drf-yasg = "^1.21.3"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]

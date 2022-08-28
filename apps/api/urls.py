@@ -1,4 +1,5 @@
-from django.urls import include, path
+from django.conf import settings
+from django.urls import include, path, re_path
 from django.views.decorators.csrf import csrf_exempt
 
 from apps.api.views import (
@@ -24,3 +25,25 @@ urlpatterns = [
     path("v1/contrib-email/", RequestContributorTokenEmailView.as_view(), name="contributor-token-request"),
     path("v1/contrib-verify/", csrf_exempt(VerifyContributorTokenView.as_view()), name="contributor-verify-token"),
 ]
+
+if settings.ENABLE_API_BROWSER:
+    from csp.decorators import csp_exempt
+    from drf_yasg import openapi
+    from drf_yasg.views import get_schema_view
+    from rest_framework import permissions  # for drf_yasg
+
+    schema_view = get_schema_view(
+        openapi.Info(
+            title="News Revenue Engine API",
+            default_version="v1",
+            description="News Revenue Engine API",
+        ),
+        public=True,
+        permission_classes=[permissions.AllowAny],
+    )
+
+    urlpatterns += [
+        re_path(r"^swagger(?P<format>\.json|\.yaml)$", schema_view.without_ui(cache_timeout=0), name="schema-json"),
+        re_path(r"^swagger/$", schema_view.with_ui("swagger", cache_timeout=0), name="schema-swagger-ui"),
+        re_path(r"^redoc/$", csp_exempt(schema_view.with_ui("redoc", cache_timeout=0)), name="schema-redoc"),
+    ]

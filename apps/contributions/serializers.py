@@ -477,6 +477,40 @@ class PaymentProviderContributionSerializer(serializers.Serializer):
     subscription_id = serializers.CharField(
         max_length=255, required=False, allow_blank=True, help_text="Stripe Subscription ID"
     )
+    is_modifiable = serializers.BooleanField(
+        required=True, help_text="if recurring then can the payment method be modified"
+    )
+    is_cancelable = serializers.BooleanField(
+        required=True, help_text="if recurring then can the payment method be canceled"
+    )
+    status = serializers.ChoiceField(choices=ContributionStatus.choices)
+    card_brand = serializers.ChoiceField(choices=CardBrand.choices, required=False, allow_null=True)
+    last4 = serializers.IntegerField()
+    payment_type = serializers.ChoiceField(choices=PaymentType.choices, required=False, allow_null=True)
+    next_payment_date = serializers.DateTimeField()
+    interval = serializers.ChoiceField(choices=ContributionInterval.choices)
+    revenue_program = serializers.CharField(max_length=63)
+    amount = serializers.IntegerField()
+    provider_customer_id = serializers.CharField(max_length=255)
+    credit_card_expiration_date = serializers.CharField(max_length=7)
+    created = serializers.DateTimeField()
+    last_payment_date = serializers.DateTimeField()
+
+
+class PaymentProviderSubscriptionSerializer(serializers.Serializer):
+    """
+    Payments provider serializer for Stripe Subscriptions
+    """
+
+    subscription_id = serializers.CharField(
+        max_length=255, required=False, allow_blank=True, help_text="Stripe Subscription ID"
+    )
+    is_modifiable = serializers.BooleanField(
+        required=True, help_text="if recurring then can the payment method be modified"
+    )
+    is_cancelable = serializers.BooleanField(
+        required=True, help_text="if recurring then can the payment method be canceled"
+    )
     status = serializers.ChoiceField(choices=ContributionStatus.choices)
     card_brand = serializers.ChoiceField(choices=CardBrand.choices, required=False, allow_null=True)
     last4 = serializers.IntegerField()

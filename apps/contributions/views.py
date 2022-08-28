@@ -11,7 +11,6 @@ from rest_framework import filters, status, viewsets
 from rest_framework.decorators import action, api_view, authentication_classes, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
-from rest_framework.views import APIView
 
 from apps.api.permissions import (
     HasFlaggedAccessToContributionsApiResource,
@@ -28,7 +27,7 @@ from apps.contributions.payment_managers import (
     PaymentProviderError,
     StripePaymentManager,
 )
-from apps.contributions.stripe_contributions_provider import ContributionsCacheProvider
+from apps.contributions.stripe_contributions_provider import PaymentIntentsCacheProvider
 from apps.contributions.tasks import task_pull_serialized_stripe_contributions_to_cache
 from apps.contributions.utils import get_sha256_hash
 from apps.contributions.webhooks import StripeWebhookProcessor
@@ -291,7 +290,7 @@ class ContributionsViewSet(viewsets.ReadOnlyModelViewSet, FilterQuerySetByUserMi
                     {"detail": "Missing Revenue Program in query params"}, status=status.HTTP_400_BAD_REQUEST
                 )
             revenue_program = get_object_or_404(RevenueProgram, slug=rp_slug)
-            cache_provider = ContributionsCacheProvider(self.request.user.email, revenue_program.stripe_account_id)
+            cache_provider = PaymentIntentsCacheProvider(self.request.user.email, revenue_program.stripe_account_id)
 
             contributions = cache_provider.load()
             # trigger celery task to pull contributions and load to cache if the cache is empty
@@ -333,70 +332,84 @@ class ContributionsViewSet(viewsets.ReadOnlyModelViewSet, FilterQuerySetByUserMi
         return Response(data={"detail": "rejected" if reject else "accepted"}, status=status.HTTP_200_OK)
 
 
-class SubscriptionDetail(APIView):
+# class SubscriptionsViewSet(viewsets.ViewSet):
 
-    permission_classes = [
-        IsAuthenticated,
-    ]
+#     def list(self, request):
+#         pass
 
-    # This is used to update the payment method for a Subscription
-    @action(methods=["patch"], detail=True, permission_classes=[IsAuthenticated])
-    def patch(self, request, subscription_id):
-        if request.data.keys() != {"payment_method_id", "revenue_program_slug"}:
-            return Response({"detail": "Request contains unsupported fields"}, status=status.HTTP_400_BAD_REQUEST)
+# def retrieve(self, request, pk=None):
+#     pass
 
-        revenue_program_slug = request.data.get("revenue_program_slug")
-        revenue_program = RevenueProgram.objects.get(slug=revenue_program_slug)
+# def update(self, request, pk=None):
+#     pass
 
-        # TODO: [DEV-2286] should we look in the cache first for the Subscription (and related) objects to avoid extra API calls?
-        subscription = stripe.Subscription.retrieve(
-            subscription_id, stripe_account=revenue_program.payment_provider.stripe_account_id, expand=["customer"]
-        )
-        if request.user.email.lower() != subscription.customer.email.lower():
-            # TODO: [DEV-2287] should we find a way to user DRF's permissioning scheme here instead?
-            return Response({"detail": "Forbidden"}, status=status.HTTP_403_FORBIDDEN)
-        payment_method_id = request.data.get("payment_method_id")
+# def delete(self, request, pk=None):
+#     pass
 
-        try:
-            stripe.PaymentMethod.attach(
-                payment_method_id,
-                customer=subscription.customer.id,
-                stripe_account=revenue_program.payment_provider.stripe_account_id,
-            )
-        except stripe.error.StripeError:
-            logger.exception("stripe.PaymentMethod.attach returned a StripeError")
-            return Response({"detail": "Error attaching payment method"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+# class SubscriptionDetail(APIView):
 
-        try:
-            stripe.Subscription.modify(
-                subscription_id,
-                default_payment_method=payment_method_id,
-                stripe_account=revenue_program.payment_provider.stripe_account_id,
-            )
-        except stripe.error.StripeError:
-            logger.exception("stripe.Subscription.modify returned a StripeError")
-            return Response({"detail": "Error updating Subscription"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+#     permission_classes = [
+#         IsAuthenticated,
+#     ]
 
-        return Response({"detail": "Success"}, status=status.HTTP_204_NO_CONTENT)
+#     # This is used to update the payment method for a Subscription
+#     @action(methods=["patch"], detail=True, permission_classes=[IsAuthenticated])
+#     def patch(self, request, subscription_id):
+#         if request.data.keys() != {"payment_method_id", "revenue_program_slug"}:
+#             return Response({"detail": "Request contains unsupported fields"}, status=status.HTTP_400_BAD_REQUEST)
 
-    # This is used to cancel a Subscription
-    @action(methods=["delete"], detail=False, permission_classes=[IsAuthenticated])
-    def delete(self, request, subscription_id):
-        revenue_program_slug = request.data.get("revenue_program_slug")
-        revenue_program = RevenueProgram.objects.get(slug=revenue_program_slug)
-        # TODO: [DEV-2286] should we look in the cache first for the Subscription (and related) objects?
-        subscription = stripe.Subscription.retrieve(
-            subscription_id, stripe_account=revenue_program.payment_provider.stripe_account_id, expand=["customer"]
-        )
-        if request.user.email.lower() != subscription.customer.email.lower():
-            # TODO: [DEV-2287] should we find a way to user DRF's permissioning scheme here instead?
-            return Response({"detail": "Forbidden"}, status=status.HTTP_403_FORBIDDEN)
-        try:
-            stripe.Subscription.delete(
-                subscription_id, stripe_account=revenue_program.payment_provider.stripe_account_id, expand=["customer"]
-            )
-        except stripe.error.StripeError:
-            logger.exception("stripe.Subscription.delete returned a StripeError")
-            return Response({"detail": "Error"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+#         revenue_program_slug = request.data.get("revenue_program_slug")
+#         revenue_program = RevenueProgram.objects.get(slug=revenue_program_slug)
 
-        return Response({"detail": "Success"}, status=status.HTTP_204_NO_CONTENT)
+#         # TODO: [DEV-2286] should we look in the cache first for the Subscription (and related) objects to avoid extra API calls?
+#         subscription = stripe.Subscription.retrieve(
+#             subscription_id, stripe_account=revenue_program.payment_provider.stripe_account_id, expand=["customer"]
+#         )
+#         if request.user.email.lower() != subscription.customer.email.lower():
+#             # TODO: [DEV-2287] should we find a way to user DRF's permissioning scheme here instead?
+#             return Response({"detail": "Forbidden"}, status=status.HTTP_403_FORBIDDEN)
+#         payment_method_id = request.data.get("payment_method_id")
+
+#         try:
+#             stripe.PaymentMethod.attach(
+#                 payment_method_id,
+#                 customer=subscription.customer.id,
+#                 stripe_account=revenue_program.payment_provider.stripe_account_id,
+#             )
+#         except stripe.error.StripeError:
+#             logger.exception("stripe.PaymentMethod.attach returned a StripeError")
+#             return Response({"detail": "Error attaching payment method"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+#         try:
+#             stripe.Subscription.modify(
+#                 subscription_id,
+#                 default_payment_method=payment_method_id,
+#                 stripe_account=revenue_program.payment_provider.stripe_account_id,
+#             )
+#         except stripe.error.StripeError:
+#             logger.exception("stripe.Subscription.modify returned a StripeError")
+#             return Response({"detail": "Error updating Subscription"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+#         return Response({"detail": "Success"}, status=status.HTTP_204_NO_CONTENT)
+
+#     # This is used to cancel a Subscription
+#     @action(methods=["delete"], detail=False, permission_classes=[IsAuthenticated])
+#     def delete(self, request, subscription_id):
+#         revenue_program_slug = request.data.get("revenue_program_slug")
+#         revenue_program = RevenueProgram.objects.get(slug=revenue_program_slug)
+#         # TODO: [DEV-2286] should we look in the cache first for the Subscription (and related) objects?
+#         subscription = stripe.Subscription.retrieve(
+#             subscription_id, stripe_account=revenue_program.payment_provider.stripe_account_id, expand=["customer"]
+#         )
+#         if request.user.email.lower() != subscription.customer.email.lower():
+#             # TODO: [DEV-2287] should we find a way to user DRF's permissioning scheme here instead?
+#             return Response({"detail": "Forbidden"}, status=status.HTTP_403_FORBIDDEN)
+#         try:
+#             stripe.Subscription.delete(
+#                 subscription_id, stripe_account=revenue_program.payment_provider.stripe_account_id
+#             )
+#         except stripe.error.StripeError:
+#             logger.exception("stripe.Subscription.delete returned a StripeError")
+#             return Response({"detail": "Error"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+#         return Response({"detail": "Success"}, status=status.HTTP_204_NO_CONTENT)

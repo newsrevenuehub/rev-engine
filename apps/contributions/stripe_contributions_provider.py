@@ -62,6 +62,24 @@ class StripeCharge:
         return line_item[0]
 
     @property
+    def is_cancelable(self):
+        if not self.charge.invoice:  # one-time payment
+            return False
+        if self.charge.invoice.subscription.status in ["incomplete", "incomplete_expired", "canceled", "unpaid"]:
+            return False
+        # statuses "trialing", "active", and "past_due" are cancelable
+        return True
+
+    @property
+    def is_modifiable(self):
+        if not self.charge.invoice:  # one-time payment
+            return False
+        if self.charge.invoice.subscription.status in ["incomplete_expired", "canceled", "unpaid"]:
+            return False
+        # statuses "incomplete", "trialing", "active", and "past_due" are modifiable
+        return True
+
+    @property
     def interval(self):
         if not self.charge.invoice:
             # if there's no invoice then it's a one-time payment
@@ -83,13 +101,13 @@ class StripeCharge:
 
     @property
     def subscription_id(self):
-        if not self.charge.invoice:
+        if not self.charge.invoice:  # this isn't a subscription
             return None
         return self.charge.invoice.subscription.id
 
     @property
     def card(self):
-        return getattr(self.charge.payment_method_details, "card", None) or AttrDict(
+        return getattr(self.charge.payment_method, "card", None) or AttrDict(
             **{"brand": None, "last4": None, "exp_month": None}
         )
 
@@ -162,6 +180,93 @@ class StripeCharge:
         return self.charge.id
 
 
+class StripeSubscription:
+    """
+    Wrapper on stripe Subscription object to extract the required details in
+    """
+
+    def __init__(self, subscription):
+        self.subscription = subscription
+        self.id = subscription.id
+
+    @property
+    def is_cancelable(self):
+        if self.subscription.status in ["incomplete", "incomplete_expired", "canceled", "unpaid"]:
+            return False
+        # statuses "trialing", "active", and "past_due" are cancelable
+        return True
+
+    @property
+    def is_modifiable(self):
+        if self.subscription.status in ["incomplete_expired", "canceled", "unpaid"]:
+            return False
+        # statuses "incomplete", "trialing", "active", and "past_due" are modifiable
+        return True
+
+    @property
+    def interval(self):
+        interval = self.subscription.plan.get("interval")
+        interval_count = self.subscription.plan.get("interval_count")
+        if interval == "year" and interval_count == 1:
+            return ContributionInterval.YEARLY
+        if interval == "month" and interval_count == 1:
+            return ContributionInterval.MONTHLY
+        raise InvalidIntervalError(f"Invalid interval {interval} for subscription : {self.subscription.id}")
+
+    @property
+    def revenue_program(self):
+        metadata = self.subscription.get("metadata") or {}
+        if not metadata or "revenue_program_slug" not in metadata:
+            raise InvalidMetadataError(f"Metadata is invalid for subscription : {self.subscription.id}")
+        return metadata["revenue_program_slug"]
+
+    @property
+    def card(self):
+        return getattr(self.subscription.default_payment_method, "card", None) or AttrDict(
+            **{"brand": None, "last4": None, "exp_month": None}
+        )
+
+    @property
+    def card_brand(self):
+        return self.card.brand
+
+    @property
+    def last4(self):
+        return self.card.last4
+
+    @property
+    def credit_card_expiration_date(self):
+        return f"{self.card.exp_month}/{self.card.exp_year}" if self.card.exp_month else None
+
+    @property
+    def amount(self):
+        return self.subscription.plan.amount
+
+    @property
+    def created(self):
+        return datetime.utcfromtimestamp(int(self.subscription.created))
+
+    @property
+    def provider_customer_id(self):
+        return self.subscription.customer
+
+    @property
+    def last_payment_date(self):
+        return datetime.utcfromtimestamp(int(self.subscription.current_period_start))
+
+    @property
+    def next_payment_date(self):
+        return datetime.utcfromtimestamp(int(self.subscription.current_period_end))
+
+    @property
+    def status(self):
+        return self.subscription.status
+
+    @property
+    def payment_type(self):
+        return self.subscription.payment_method.type
+
+
 class StripeContributionsProvider:
     def __init__(self, email_id, stripe_account_id) -> None:
         self.email_id = email_id
@@ -197,7 +302,7 @@ class StripeContributionsProvider:
     def fetch_charges(self, query=None, page=None):
         kwargs = {
             "query": query,
-            "expand": ["data.invoice.subscription", "data.payment_method_details"],
+            "expand": ["data.invoice.subscription", "data.payment_method"],
             "limit": MAX_STRIPE_RESPONSE_LIMIT,
             "stripe_account": self.stripe_account_id,
         }
@@ -207,10 +312,10 @@ class StripeContributionsProvider:
 
         # TODO: [DEV-2193] this should probably be refactored to fetch PaymentIntents instead of Charges and expand `invoice.subscription`
 
-        return stripe.Charge.search(**kwargs)
+        return stripe.PaymentIntent.search(**kwargs)
 
 
-class ContributionsCacheProvider:
+class PaymentIntentsCacheProvider:
     def __init__(self, email_id, account_id=None, serializer=None, converter=None) -> None:
         self.cache = caches[DEFAULT_CACHE]
         self.serializer = serializer
@@ -243,6 +348,46 @@ class ContributionsCacheProvider:
 
     def load(self):
         """Gets the contributions data from cache for a specefic email and stripe account id combo."""
+        data = self.cache.get(self.key)
+        if not data:
+            return []
+        logger.info("Retrieved %s contributions from cache with key %s", len(data), self.key)
+        return [AttrDict(**x) for x in json.loads(data).values()]
+
+
+class SubscriptionsCacheProvider:
+    def __init__(self, email_id, account_id=None, serializer=None, converter=None) -> None:
+        self.cache = caches[DEFAULT_CACHE]
+        self.serializer = serializer
+        self.converter = converter
+
+        self.key = f"{email_id}-subscriptions"
+        if account_id:
+            self.key = f"{self.key}-{account_id}"
+
+    def serialize(self, subscriptions):
+        """Serializes the stripe.Subscription object into json."""
+        data = {}
+        for subscription in subscriptions:
+            try:
+                serialized_obj = self.serializer(instance=self.converter(subscription))
+                data[subscription.id] = serialized_obj.data
+            except ContributionIgnorableError as ex:
+                logger.warning("Unable to process Subscription [%s] due to [%s]", subscription.id, type(ex))
+        return data
+
+    def upsert(self, subscriptions):
+        """Serialized and Upserts subscriptions data to cache."""
+        data = self.serialize(subscriptions)
+        cached_data = json.loads(self.cache.get(self.key) or "{}")
+        cached_data.update(data)
+
+        with self.cache.lock(f"{self.key}-lock"):
+            logger.info("Inserting %s subscriptions into cache with key %s", len(data), self.key)
+            self.cache.set(self.key, json.dumps(cached_data), timeout=CONTRIBUTION_CACHE_TTL.seconds)
+
+    def load(self):
+        """Gets the subscription data from cache for a specefic email and stripe account id combo."""
         data = self.cache.get(self.key)
         if not data:
             return []

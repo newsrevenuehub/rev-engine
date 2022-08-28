@@ -104,6 +104,8 @@ class BenefitLevelFactory(DjangoModelFactory):
 class StripeChargeFactory:
     interval = choice(list(ContributionInterval.__members__.values()))
     card_brand = choice(list(CardBrand.__members__.values()))
+    is_modifiable = choice([True, False])
+    is_cancelable = choice([True, False])
     last4 = randint(1111, 9999)
     amount = uniform(0, 1000)
     created = fake.date_time_between(start_date="-5d", end_date="now")

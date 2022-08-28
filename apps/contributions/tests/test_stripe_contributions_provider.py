@@ -75,6 +75,10 @@ class AbstractTestStripeContributions(TestCase):
                 "status_transitions": {"paid_at": 1656915047},
                 "lines": {"data": [line_item]},
                 "next_payment_attempt": 1656915047,
+                "subscription": {
+                    "id": "subscription_1",
+                    "status": "active",
+                },
             }
         }
         invoice_without_line_item = {
@@ -83,10 +87,46 @@ class AbstractTestStripeContributions(TestCase):
                 "status_transitions": {"paid_at": 1656915047},
                 "lines": {"data": None},
                 "next_payment_attempt": 1656915047,
+                "subscription": {
+                    "id": "subscription_1",
+                    "status": "active",
+                },
             }
         }
+        invoice_with_canceled_subscription = {
+            "invoice": {
+                "id": "invoice_1",
+                "status_transitions": {"paid_at": 1656915047},
+                "lines": {"data": [line_item]},
+                "next_payment_attempt": 1656915047,
+                "subscription": {
+                    "id": "subscription_1",
+                    "status": "canceled",
+                },
+            }
+        }
+
+        invoice_with_active_subscription = {
+            "invoice": {
+                "id": "invoice_1",
+                "status_transitions": {"paid_at": 1656915047},
+                "lines": {"data": [line_item]},
+                "next_payment_attempt": 1656915047,
+                "subscription": {
+                    "id": "subscription_1",
+                    "status": "active",
+                },
+            }
+        }
+
         self.charge_without_invoice = stripe.Charge.construct_from(
             charge_1 | metadata | {"invoice": None} | payment_method_details, "TEST-KEY"
+        )
+        self.charge_with_canceled_subscription = stripe.Charge.construct_from(
+            charge_1 | metadata | invoice_with_canceled_subscription | payment_method_details, "TEST-KEY"
+        )
+        self.charge_with_active_subscription = stripe.Charge.construct_from(
+            charge_1 | metadata | invoice_with_active_subscription | payment_method_details, "TEST-KEY"
         )
         self.charge_without_metadata = stripe.Charge.construct_from(
             charge_1 | invoice | payment_method_details, "TEST-KEY"
@@ -128,6 +168,18 @@ class TestStripeCharge(AbstractTestStripeContributions):
     def setUp(self):
         super().setUp()
         self._setup_stripe_charges()
+
+    def test_charge_with_canceled_subscription(self):
+        charge = StripeCharge(self.charge_with_canceled_subscription)
+        assert charge.subscription_id == "subscription_1"
+        assert charge.is_modifiable is False
+        assert charge.is_cancelable is False
+
+    def test_charge_with_active_subscription(self):
+        charge = StripeCharge(self.charge_with_active_subscription)
+        assert charge.subscription_id == "subscription_1"
+        assert charge.is_modifiable is True
+        assert charge.is_cancelable is True
 
     def test_stripe_charge_without_invoice(self):
         stripe_charge = StripeCharge(self.charge_without_invoice)

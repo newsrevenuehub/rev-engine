@@ -11,11 +11,16 @@ from stripe.error import RateLimitError
 
 from apps.contributions.models import Contribution, ContributionStatus
 from apps.contributions.payment_managers import PaymentProviderError
-from apps.contributions.serializers import PaymentProviderContributionSerializer
+from apps.contributions.serializers import (
+    PaymentProviderContributionSerializer,
+    PaymentProviderSubscriptionSerializer,
+)
 from apps.contributions.stripe_contributions_provider import (
-    ContributionsCacheProvider,
+    PaymentIntentsCacheProvider,
     StripeCharge,
     StripeContributionsProvider,
+    StripeSubscription,
+    SubscriptionsCacheProvider,
 )
 
 
@@ -88,17 +93,29 @@ def task_pull_serialized_stripe_contributions_to_cache(self, email_id, stripe_ac
 def task_pull_charges(self, email_id, customers_query, stripe_account_id):
     """Pull all charges from stripe for a given set of customers."""
     provider = StripeContributionsProvider(email_id, stripe_account_id)
-    cache_provider = ContributionsCacheProvider(
+    pi_cache_provider = PaymentIntentsCacheProvider(
         email_id,
         stripe_account_id,
         serializer=PaymentProviderContributionSerializer,
         converter=StripeCharge,
     )
+    sub_cache_provider = SubscriptionsCacheProvider(
+        email_id,
+        stripe_account_id,
+        serializer=PaymentProviderSubscriptionSerializer,
+        converter=StripeSubscription,
+    )
     charge_response = provider.fetch_charges(query=customers_query)
+    # from celery.contrib import rdb; rdb.set_trace()
+    # grab subscriptions
     logger.debug("charge_response: %s", charge_response)
-    cache_provider.upsert(charge_response)
+    pi_cache_provider.upsert(charge_response)
+    subscriptions = [x.invoice.subscription for x in charge_response if x.invoice]
+    sub_cache_provider.upsert(subscriptions)
 
     # iterate through all pages of stripe charges
     while charge_response.has_more:
         charge_response = provider.fetch_charges(query=customers_query, page=charge_response.next_page)
-        cache_provider.upsert(charge_response)
+        pi_cache_provider.upsert(charge_response)
+        subscriptions = [x.invoice.subscription for x in charge_response if x.invoice]
+        sub_cache_provider.upsert(subscriptions)

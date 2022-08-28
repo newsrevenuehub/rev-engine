@@ -219,7 +219,7 @@ Next, we need to set up a fake test Stripe ID so that stripe functionality will 
 echo "export REACT_APP_HUB_STRIPE_API_PUB_KEY=pk_test_3737373" >> .envrc
 ```
 
-To use a local Web browsable version of the API add `export ENABLE_BROWSABLE_API=True` to your `.envrc`.  (Then visit /api/swagger/ or /api/redoc/.)
+To use a local Web browsable version of the API add `export ENABLE_API_BROWSER=True` to your `.envrc`.  (Then visit /api/swagger/ or /api/redoc/.)
 
 
 To allow direnv to inject the variable into your environment, do:

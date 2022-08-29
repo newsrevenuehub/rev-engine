@@ -1,4 +1,4 @@
-import { render, screen } from 'test-utils';
+import { render, screen, fireEvent } from 'test-utils';
 import userEvent from '@testing-library/user-event';
 import ContributorEntry from './ContributorEntry';
 import { revengineApi, server, rest } from 'test-server';
@@ -37,7 +37,7 @@ describe('ContributorEntry', () => {
     render(<ContributorEntry />);
     const input = screen.getByRole('textbox');
     const email = 'test@gmail.com';
-    userEvent.type(input, email);
+    fireEvent.change(input, { target: { value: email } });
     expect(input).toHaveAttribute('value', email);
 
     const magicLinkButton = screen.getByRole('button', { name: 'Send Magic Link' });

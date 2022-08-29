@@ -1,6 +1,7 @@
 import isEqual from 'lodash.isequal';
 
 import { NO_VALUE } from 'constants/textConstants';
+import { PAYMENT_STATUS_EXCLUDE_IN_CONTRIBUTIONS } from 'constants';
 import { DONATIONS_SLUG } from 'routes';
 import { USER } from 'ajax/endpoints';
 
@@ -94,16 +95,6 @@ describe('Donations list', () => {
           renderedName: 'Payment status',
           rawName: 'status',
           transform: (rawVal) => toTitleCase(rawVal) || NO_VALUE
-        },
-        {
-          renderedName: 'Date flagged',
-          rawName: 'flagged_date',
-          transform: (rawVal) => (rawVal ? formatDatetimeForDisplay(rawVal) : NO_VALUE)
-        },
-        {
-          renderedName: 'Auto-resolution date',
-          rawName: 'auto_accepted_on',
-          transform: (rawVal) => rawVal || NO_VALUE
         }
       ];
       cy.getByTestId('donation-header', {}, true).should('have.length', columnExpectations.length);
@@ -249,30 +240,15 @@ describe('Donations list', () => {
       });
     });
 
-    it('should make donations sortable by flagged date', () => {
-      cy.wait('@getDonations');
-      // will be in ascending order
-      cy.getByTestId('donation-header-flagged_date').click();
+    it('should display only expected status', () => {
       cy.wait('@getDonations');
       cy.getByTestId('donation-row').should(($rows) => {
         const rows = $rows.toArray();
         rows
           .filter((row, index) => index > 0)
           .forEach((row, index) => {
-            // index will be the previous row, because we filter out the first item.
-            expect(row.dataset.flaggeddate >= rows[index].dataset.flaggeddate).to.be.true;
-          });
-      });
-      // will be in descending order
-      cy.getByTestId('donation-header-flagged_date').click();
-      cy.wait('@getDonations');
-      cy.getByTestId('donation-row').should(($rows) => {
-        const rows = $rows.toArray();
-        rows
-          .filter((row, index) => index > 0)
-          .forEach((row, index) => {
-            // index will be the previous row, because we filter out the first item.
-            expect(row.dataset.flaggeddate <= rows[index].dataset.flaggeddate).to.be.true;
+            // displayed statuses not in the payment statuses which are excluded in contributions
+            expect(PAYMENT_STATUS_EXCLUDE_IN_CONTRIBUTIONS.indexOf(row.dataset.status) == -1).to.be.true;
           });
       });
     });

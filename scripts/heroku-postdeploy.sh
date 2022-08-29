@@ -16,7 +16,6 @@ set -o xtrace
 # created in `django_migrations`. Subsequent runs of the migrations will fail when
 # Django tries to create the already existing new model/table.
 psql -d ${DATABASE_URL} -c "DROP SCHEMA public CASCADE;
-CREATE EXTENSION citext;
 CREATE SCHEMA public;
 GRANT ALL ON SCHEMA public TO postgres;
 GRANT ALL ON SCHEMA public TO public;"

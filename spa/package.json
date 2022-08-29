@@ -75,7 +75,9 @@
     "cypress:run:component": "cypress run-ct",
     "test": "react-scripts test",
     "test:coverage": "CI=true npm test -- --env=jsdom --coverage",
-    "test:ci": "CI=true npm test -- --env=jsdom"
+    "test:ci": "CI=true npm test -- --env=jsdom",
+    "storybook": "start-storybook -p 6006 -s public",
+    "build-storybook": "build-storybook -s public"
   },
   "jest": {
     "testMatch": [
@@ -119,6 +121,14 @@
           "jest/valid-expect": 0,
           "jest/valid-expect-in-promise": 0
         }
+      },
+      {
+        "files": [
+          "**/*.stories.*"
+        ],
+        "rules": {
+          "import/no-anonymous-default-export": "off"
+        }
       }
     ]
   },
@@ -131,9 +141,22 @@
     "@cypress/react": "^5.9.4",
     "@cypress/webpack-dev-server": "1.7.0",
     "@cypress/webpack-preprocessor": "^5.11.1",
+    "@react-theming/storybook-addon": "^1.1.7",
+    "@storybook/addon-actions": "^6.5.10",
+    "@storybook/addon-essentials": "^6.5.10",
+    "@storybook/addon-interactions": "^6.5.10",
+    "@storybook/addon-links": "^6.5.10",
+    "@storybook/builder-webpack5": "^6.5.10",
+    "@storybook/manager-webpack5": "^6.5.10",
+    "@storybook/node-logger": "^6.5.10",
+    "@storybook/preset-create-react-app": "^4.1.2",
+    "@storybook/react": "^6.5.10",
+    "@storybook/testing-library": "^0.0.13",
+    "babel-plugin-named-exports-order": "^0.0.2",
     "cypress": "^8.5.0",
     "cypress-localstorage-commands": "^1.7.0",
     "eslint-plugin-chai-friendly": "^0.7.1",
-    "eslint-plugin-cypress": "^2.11.3"
+    "eslint-plugin-cypress": "^2.11.3",
+    "webpack": "^5.74.0"
   }
 }

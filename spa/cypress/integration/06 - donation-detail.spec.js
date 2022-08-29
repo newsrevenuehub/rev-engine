@@ -30,6 +30,7 @@ const pageListBody = {
 };
 
 const CONTRIBUTION_PK = 123;
+const testDonationPageUrl = `${DONATIONS_SLUG}/${CONTRIBUTION_PK}`;
 
 describe('Donation detail', () => {
   describe('Dynamic page title', () => {
@@ -40,7 +41,7 @@ describe('Donation detail', () => {
       cy.intercept('GET', getEndpoint(`${CONTRIBUTIONS}/${CONTRIBUTION_PK}/`), {
         body: donationPageContributionDetailData
       }).as('getDonationPageDonation');
-      cy.visit(`${DONATIONS_SLUG}/${CONTRIBUTION_PK}`);
+      cy.visit(testDonationPageUrl);
     });
     it('should display revenue program name in page title', () => {
       cy.wait('@getPages');
@@ -56,7 +57,7 @@ describe('Donation detail', () => {
       cy.intercept('GET', getEndpoint(`${CONTRIBUTIONS}/${CONTRIBUTION_PK}/`), {
         body: unflaggedContributionDetailData
       }).as('getUnflaggedDonation');
-      cy.visit(`${DONATIONS_SLUG}/${CONTRIBUTION_PK}`);
+      cy.visit(testDonationPageUrl);
     });
     it('should display donation details', () => {
       cy.wait('@getUnflaggedDonation');
@@ -83,7 +84,7 @@ describe('Donation detail', () => {
       cy.intercept('GET', getEndpoint(`${CONTRIBUTIONS}/${CONTRIBUTION_PK}/`), {
         body: prevFlaggedContributionDetailData
       }).as('getNoLongerFlaggedDonation');
-      cy.visit(`${DONATIONS_SLUG}/${CONTRIBUTION_PK}`);
+      cy.visit(testDonationPageUrl);
     });
 
     it('should display flagged details in addition to donation details', () => {
@@ -115,7 +116,7 @@ describe('Donation detail', () => {
       cy.intercept('GET', getEndpoint(`${CONTRIBUTIONS}${CONTRIBUTION_PK}/`), {
         body: flaggedContributionDetailData
       }).as('getFlaggedDonation');
-      cy.visit(`${DONATIONS_SLUG}/${CONTRIBUTION_PK}`);
+      cy.visit(testDonationPageUrl);
       cy.wait('@getFlaggedDonation');
     });
 

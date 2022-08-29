@@ -3,7 +3,7 @@ import { Route, Switch, Redirect, useLocation } from 'react-router-dom';
 import * as S from './Dashboard.styled';
 
 // Routing
-import { DONATIONS_SLUG, CONTENT_SLUG, EDITOR_ROUTE_PAGE, DASHBOARD_SLUG, CUSTOMIZE_SLUG } from 'routes';
+import { DONATIONS_SLUG, CONTENT_SLUG, EDITOR_ROUTE, EDITOR_ROUTE_PAGE, DASHBOARD_SLUG, CUSTOMIZE_SLUG } from 'routes';
 
 // Children
 import { useFeatureFlagsProviderContext } from 'components/Main';
@@ -36,7 +36,7 @@ function Dashboard() {
     ? DONATIONS_SLUG
     : 'not-found';
 
-  const isEditPage = useLocation().pathname.includes('/edit');
+  const isEditPage = useLocation().pathname.includes(EDITOR_ROUTE);
 
   return (
     <S.Outer>

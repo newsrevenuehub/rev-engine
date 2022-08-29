@@ -10,6 +10,7 @@ router = routers.DefaultRouter()
 router.register(r"contributions", views.ContributionsViewSet, basename="contribution")
 
 urlpatterns = [
+    path("subscriptions/<str:subscription_id>/", views.SubscriptionDetail.as_view(), name="subscription"),
     path("stripe/payment/", views.stripe_payment, name="stripe-payment"),
     path("stripe/oauth/", views.stripe_oauth, name="stripe-oauth"),
     path("stripe/confirmation/", views.stripe_confirmation, name="stripe-confirmation"),

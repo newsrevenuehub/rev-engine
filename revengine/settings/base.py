@@ -19,6 +19,8 @@ DEBUG = os.getenv("DJANGO_DEBUG", "False") == "True"
 # be truncated for testing (as much as possible, currently).
 USE_DEBUG_INTERVALS = os.getenv("USE_DEBUG_INTERVALS", False)
 
+ENABLE_API_BROWSER = os.getenv("ENABLE_API_BROWSER", "false").lower() == "true"
+
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 PROJECT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 BASE_DIR = os.path.dirname(PROJECT_DIR)
@@ -115,6 +117,11 @@ INSTALLED_APPS = [
     "reversion_compare",
     "django_test_migrations.contrib.django_checks.AutoNames",
 ]
+
+if ENABLE_API_BROWSER:
+    INSTALLED_APPS += [
+        "drf_yasg",
+    ]
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",

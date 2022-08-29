@@ -35,7 +35,6 @@ from apps.users.constants import (
     INVALID_TOKEN,
     PASSWORD_UNEXPECTED_VALIDATION_MESSAGE_SUBSTITUTE,
     PASSWORD_VALIDATION_EXPECTED_MESSAGES,
-    SPA_PASSWORD_RESET_ROUTE,
 )
 from apps.users.models import UnexpectedRoleType, User
 from apps.users.permissions import UserIsAllowedToUpdate, UserOwnsUser
@@ -231,17 +230,22 @@ def password_reset_token_created(sender, instance, reset_password_token, *args, 
     email = reset_password_token.user.email
     spa_reset_url = "{}{}?token={}".format(
         instance.request.build_absolute_uri(reverse("index")),
-        SPA_PASSWORD_RESET_ROUTE,
+        "password_reset",
         reset_password_token.key,
     )
     context = {
         "email": email,
         "reset_password_url": mark_safe(spa_reset_url),
     }
-    logger.info("Sending password reset email to %s with the following reset url: %s", email, spa_reset_url)
+    logger.info(
+        "Sending password reset email to %s (with ID: %s) with the following reset url: %s",
+        email,
+        reset_password_token.user.id,
+        spa_reset_url,
+    )
     send_templated_email(
         email,
-        "Reset your password",
+        "Reset your password for News Revenue Engine",
         "nrh-org-portal-password-reset.txt",
         "nrh-org-portal-password-reset.html",
         context,

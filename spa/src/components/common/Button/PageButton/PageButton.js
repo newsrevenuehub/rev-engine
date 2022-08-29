@@ -7,7 +7,7 @@ import EditIcon from 'assets/icons/edit.svg';
 const PageButton = ({ className, name, page_screenshot, published_date, onClick }) => (
   <Flex className={className}>
     {published_date && <Tag>LIVE</Tag>}
-    <Button onClick={onClick}>
+    <Button onClick={onClick} aria-label={name}>
       <Icon src={EditIcon} alt="edit page" />
     </Button>
     <Background

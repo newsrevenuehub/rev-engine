@@ -86,7 +86,7 @@ function Pages({ setShowAddPageModal }) {
         />
         <Searchbar placeholder="Pages" className={classes.searchbar} onChange={setPageSearchQuery} />
       </Hero>
-      <Content>
+      <Content data-testid="pages-list">
         <NewButton onClick={() => setShowAddPageModal(true)} />
         {pagesByRevenueProgram.length &&
           pagesByRevenueProgram.map((revenueProgram) => (

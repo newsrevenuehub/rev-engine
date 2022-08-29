@@ -17,7 +17,7 @@ const NewButton = ({ type, onClick, className }) => {
 
   return (
     <Flex className={className}>
-      <Button type={type} onClick={onClick}>
+      <Button type={type} onClick={onClick} aria-label={buttonLabel}>
         <img src={AddIcon} alt={`add ${type}`} />
       </Button>
       <Label>{buttonLabel}</Label>

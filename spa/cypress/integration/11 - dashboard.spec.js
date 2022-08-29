@@ -26,22 +26,22 @@ const contentSectionFlag = {
 
 const hubAdminWithContributionsAccessFlag = {
   ...hubAdminWithoutFlags,
-  flags: [{ ...contribSectionsAccessFlag }]
+  flags: [contribSectionsAccessFlag]
 };
 
 const hubAdminWithContributionsDenyFlag = {
   ...hubAdminWithoutFlags,
-  flags: [{ ...contribSectionsDenyFlag }, { ...contribSectionsAccessFlag }]
+  flags: [contribSectionsDenyFlag, contribSectionsAccessFlag]
 };
 
 const hubAdminWithContentFlag = {
   ...hubAdminWithoutFlags,
-  flags: [{ ...contentSectionFlag }]
+  flags: [contentSectionFlag]
 };
 
 const hubAdminWithAllAccessFlags = {
   ...hubAdminWithoutFlags,
-  flags: [{ ...contentSectionFlag }, { ...contribSectionsAccessFlag }]
+  flags: [contentSectionFlag, contribSectionsAccessFlag]
 };
 
 describe('Dashboard', () => {

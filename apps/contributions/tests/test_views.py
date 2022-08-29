@@ -21,7 +21,11 @@ from apps.common.tests.test_resources import AbstractTestCase
 from apps.contributions.models import Contribution, ContributionInterval
 from apps.contributions.payment_managers import PaymentBadParamsError, PaymentProviderError
 from apps.contributions.serializers import PaymentProviderContributionSerializer
-from apps.contributions.tests.factories import ContributionFactory, ContributorFactory
+from apps.contributions.tests.factories import (
+    ContributionFactory,
+    ContributorFactory,
+    StripeSubscriptionFactory,
+)
 from apps.contributions.utils import get_sha256_hash
 from apps.contributions.views import stripe_payment
 from apps.organizations.models import RevenueProgram
@@ -602,8 +606,6 @@ class TestContributionsViewSet(RevEngineApiAbstractTestCase):
             self.hub_user,
             self.org_user,
             self.rp_user,
-            self.contributor_user,
-            self.generic_user,
         )
         for user in expected_users:
             self.assert_user_cannot_delete_because_not_implemented(detail_url, user)
@@ -616,6 +618,12 @@ class TestContributionsViewSet(RevEngineApiAbstractTestCase):
         self.assert_user_cannot_get(
             reverse("contribution-list"), novel, expected_status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
         )
+
+    def test_list_contributions_with_status_negation(self):
+        filter_statuses = {"paid", "flagged"}
+        qp = "&".join([f"status__not={i}" for i in filter_statuses])
+        response = self.assert_user_can_get(self.list_url + f"?{qp}", self.superuser)
+        self.assertTrue(all([i["status"] not in filter_statuses for i in response.json()["results"]]))
 
 
 class TestContributorContributionsViewSet(AbstractTestCase):
@@ -758,75 +766,99 @@ class UpdatePaymentMethodTest(APITestCase):
         self.customer_id = "testing-customer-id"
         self.org = OrganizationFactory()
         self.contributor = ContributorFactory()
+        self.subscription = StripeSubscriptionFactory()
 
         payment_provider = PaymentProviderFactory(stripe_account_id=self.stripe_account_id)
-        revenue_program = RevenueProgramFactory(organization=self.org, payment_provider=payment_provider)
-        donation_page = DonationPageFactory(revenue_program=revenue_program)
-        self.contribution = ContributionFactory(
-            contributor=self.contributor,
-            donation_page=donation_page,
-            provider_customer_id=self.customer_id,
-            provider_subscription_id=self.subscription_id,
-        )
-        self.other_contribution = ContributionFactory(donation_page=donation_page)
+        self.revenue_program = RevenueProgramFactory(organization=self.org, payment_provider=payment_provider)
         self.payment_method_id = "testing-payment-method-id"
+        self.contributor.email = self.subscription.customer.email = "foo@bar.baz"
 
-    def _make_request(self, contribution, data={}):
+    def _make_request(self, subscription_id, data):
         self.client.force_authenticate(user=self.contributor)
-        return self.client.patch(reverse("contribution-update-payment-method", kwargs={"pk": contribution.pk}), data)
+        return self.client.patch(reverse("subscription", kwargs={"subscription_id": subscription_id}), data=data)
 
     @mock.patch("stripe.PaymentMethod.attach")
     @mock.patch("stripe.Subscription.modify")
     def test_failure_when_missing_payment_method_id(self, mock_modify, mock_attach):
-        response = self._make_request(self.contribution)
+        response = self._make_request(self.subscription_id, data={"foo": "bar"})
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.data["detail"], "Request contains unsupported fields")
         mock_modify.assert_not_called()
         mock_attach.assert_not_called()
 
+    @mock.patch("stripe.Subscription.retrieve")
     @mock.patch("stripe.PaymentMethod.attach")
     @mock.patch("stripe.Subscription.modify")
-    def test_failure_when_any_parameter_other_than_pm_id(self, mock_modify, mock_attach):
-        response = self._make_request(self.contribution, {"amount": 10})
+    def test_failure_when_any_parameter_other_than_pm_id(self, mock_modify, mock_attach, mock_retrieve):
+        response = self._make_request(
+            subscription_id=self.subscription_id,
+            data={
+                "test_unknown_parameter": self.payment_method_id,
+                "revenue_program_slug": self.revenue_program.slug,
+            },
+        )
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.data["detail"], "Request contains unsupported fields")
         mock_modify.assert_not_called()
         mock_attach.assert_not_called()
 
+    @mock.patch("stripe.Subscription.retrieve")
     @mock.patch("stripe.PaymentMethod.attach")
     @mock.patch("stripe.Subscription.modify")
-    def test_failure_when_contribution_and_contributor_dont_match(self, mock_modify, mock_attach):
-        self.assertNotEqual(self.other_contribution.contributor, self.contributor)
-        response = self._make_request(self.other_contribution, {"payment_method_id": self.payment_method_id})
-        self.assertEqual(response.status_code, 404)
-        self.assertEqual(response.data["detail"], "Could not find contribution for requesting contributor")
-        mock_modify.assert_not_called()
-        mock_attach.assert_not_called()
+    def test_failure_when_emails_dont_match(self, mock_modify, mock_attach, mock_retrieve):
+        self.contributor.email = "quux@baz.foo"
+        response = self._make_request(
+            subscription_id=self.subscription_id,
+            data={
+                "payment_method_id": self.payment_method_id,
+                "revenue_program_slug": self.revenue_program.slug,
+            },
+        )
+        assert response.status_code == 403
+        assert response.data["detail"] == "Forbidden"
+        assert not mock_modify.called
+        assert not mock_attach.called
 
+    @mock.patch("stripe.Subscription.retrieve")
     @mock.patch("stripe.PaymentMethod.attach", side_effect=StripeError)
     @mock.patch("stripe.Subscription.modify")
-    def test_error_when_attach_payment_method(self, mock_modify, mock_attach):
-        response = self._make_request(self.contribution, {"payment_method_id": self.payment_method_id})
-        self.assertEqual(response.status_code, 400)
-        self.assertEqual(response.data["detail"], "Could not complete payment")
+    def test_error_when_attach_payment_method(self, mock_modify, mock_attach, mock_retrieve):
+        mock_retrieve.return_value = self.subscription
+        response = self._make_request(
+            subscription_id=self.subscription_id,
+            data={
+                "payment_method_id": self.payment_method_id,
+                "revenue_program_slug": self.revenue_program.slug,
+            },
+        )
+        self.assertEqual(response.status_code, 500)
+        self.assertEqual(response.data["detail"], "Error attaching payment method")
 
         mock_attach.assert_called_once_with(
             self.payment_method_id,
-            customer=self.customer_id,
+            customer=self.subscription.customer.id,
             stripe_account=self.stripe_account_id,
         )
         mock_modify.assert_not_called()
 
+    @mock.patch("stripe.Subscription.retrieve")
     @mock.patch("stripe.PaymentMethod.attach")
     @mock.patch("stripe.Subscription.modify", side_effect=StripeError)
-    def test_error_when_update_payment_method(self, mock_modify, mock_attach):
-        response = self._make_request(self.contribution, {"payment_method_id": self.payment_method_id})
-        self.assertEqual(response.status_code, 400)
-        self.assertEqual(response.data["detail"], "Could not complete payment")
+    def test_error_when_update_payment_method(self, mock_modify, mock_attach, mock_retrieve):
+        mock_retrieve.return_value = self.subscription
+        response = self._make_request(
+            subscription_id=self.subscription_id,
+            data={
+                "payment_method_id": self.payment_method_id,
+                "revenue_program_slug": self.revenue_program.slug,
+            },
+        )
+        self.assertEqual(response.status_code, 500)
+        self.assertEqual(response.data["detail"], "Error updating Subscription")
 
         mock_attach.assert_called_once_with(
             self.payment_method_id,
-            customer=self.customer_id,
+            customer=self.subscription.customer.id,
             stripe_account=self.stripe_account_id,
         )
 
@@ -836,16 +868,24 @@ class UpdatePaymentMethodTest(APITestCase):
             stripe_account=self.stripe_account_id,
         )
 
+    @mock.patch("stripe.Subscription.retrieve")
     @mock.patch("stripe.PaymentMethod.attach")
     @mock.patch("stripe.Subscription.modify")
-    def test_update_payment_method_success(self, mock_modify, mock_attach):
-        response = self._make_request(self.contribution, {"payment_method_id": self.payment_method_id})
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.data["detail"], "Success")
+    def test_update_payment_method_success(self, mock_modify, mock_attach, mock_retrieve):
+        mock_retrieve.return_value = self.subscription
+        response = self._make_request(
+            subscription_id=self.subscription_id,
+            data={
+                "payment_method_id": self.payment_method_id,
+                "revenue_program_slug": self.revenue_program.slug,
+            },
+        )
+        assert response.status_code == 204
+        assert response.data["detail"] == "Success"
 
         mock_attach.assert_called_once_with(
             self.payment_method_id,
-            customer=self.customer_id,
+            customer=self.subscription.customer.id,
             stripe_account=self.stripe_account_id,
         )
 
@@ -862,45 +902,42 @@ class CancelRecurringPaymentTest(APITestCase):
         self.subscription_id = "test-subscription-id"
         self.stripe_account_id = "testing-stripe-account-id"
         self.org = OrganizationFactory()
-        payment_provider = PaymentProviderFactory(stripe_account_id=self.stripe_account_id)
-        revenue_program = RevenueProgramFactory(organization=self.org, payment_provider=payment_provider)
-        donation_page = DonationPageFactory(revenue_program=revenue_program)
-        self.contributor = ContributorFactory()
-        self.contribution = ContributionFactory(
-            contributor=self.contributor,
-            donation_page=donation_page,
-            provider_subscription_id=self.subscription_id,
-        )
-        self.other_contribution = ContributionFactory(donation_page=donation_page)
+        self.revenue_program = RevenueProgramFactory(organization=self.org)
         self.payment_method_id = "testing-payment-method-id"
+        self.subscription = StripeSubscriptionFactory()
+        self.contributor = ContributorFactory()
+        self.contributor.email = self.subscription.customer.email = "foo@bar.baz"
 
-    def _make_request(self, contribution):
+    def _make_request(self, subscription_id, revenue_program_slug):
         self.client.force_authenticate(user=self.contributor)
-        return self.client.post(reverse("contribution-cancel-recurring-payment", kwargs={"pk": contribution.pk}))
-
-    @mock.patch("stripe.Subscription.delete")
-    def test_failure_when_contribution_and_contributor_dont_match(self, mock_delete):
-        self.assertNotEqual(self.other_contribution.contributor, self.contributor)
-        response = self._make_request(self.other_contribution)
-        self.assertEqual(response.status_code, 404)
-        self.assertEqual(response.data["detail"], "Could not find contribution for requesting contributor")
-        mock_delete.assert_not_called()
+        return self.client.delete(
+            reverse("subscription", kwargs={"subscription_id": subscription_id}),
+            data={"revenue_program_slug": revenue_program_slug},
+        )
 
     @mock.patch("stripe.Subscription.delete", side_effect=StripeError)
-    def test_error_when_subscription_delete(self, mock_delete):
-        response = self._make_request(self.contribution)
-        self.assertEqual(response.status_code, 400)
-        self.assertEqual(response.data["detail"], "Could not complete payment")
-
-        mock_delete.assert_called_once_with(self.subscription_id, stripe_account=self.stripe_account_id)
+    @mock.patch("stripe.Subscription.retrieve")
+    def test_error_when_subscription_delete(self, mock_retrieve, mock_delete):
+        mock_retrieve.return_value = self.subscription
+        response = self._make_request(self.subscription_id, self.revenue_program.slug)
+        self.assertEqual(response.status_code, 500)
+        self.assertEqual(response.data["detail"], "Error")
 
     @mock.patch("stripe.Subscription.delete")
-    def test_delete_recurring_success(self, mock_delete):
-        response = self._make_request(self.contribution)
-        self.assertEqual(response.status_code, 200)
+    @mock.patch("stripe.Subscription.retrieve")
+    def test_delete_recurring_success(self, mock_retrieve, mock_delete):
+        mock_retrieve.return_value = self.subscription
+        response = self._make_request(self.subscription.id, self.revenue_program.slug)
+        self.assertEqual(response.status_code, 204)
         self.assertEqual(response.data["detail"], "Success")
 
-        mock_delete.assert_called_once_with(self.subscription_id, stripe_account=self.stripe_account_id)
+    @mock.patch("stripe.Subscription.retrieve")
+    def test_delete_recurring_wrong_email(self, mock_retrieve):
+        self.contributor.email = "wrong@email.com"
+        response = self._make_request(self.subscription.id, self.revenue_program.slug)
+        self.assertEqual(response.status_code, 403)
+        self.assertEqual(response.data["detail"], "Forbidden")
+        mock_retrieve.assert_called_once()
 
 
 @mock.patch("apps.contributions.models.Contribution.process_flagged_payment")

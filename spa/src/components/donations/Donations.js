@@ -28,6 +28,7 @@ import { StatusCellIcon } from 'components/contributor/contributorDashboard/Cont
 import Filters from 'components/donations/filters/Filters';
 import GenericErrorBoundary from 'components/errors/GenericErrorBoundary';
 import PageTitle from 'elements/PageTitle';
+import { PAYMENT_STATUS, PAYMENT_STATUS_EXCLUDE_IN_CONTRIBUTIONS } from 'constants';
 
 const IS_URGENT_THRESHOLD_DAYS = 1;
 const IS_SOON_THRESHOLD_DAYS = 2;
@@ -49,7 +50,7 @@ function Donations() {
 
   const fetchDonations = useCallback(
     (parameters, { onSuccess, onFailure }) => {
-      const params = { ...parameters, ...filters };
+      const params = { ...parameters, ...filters, status__not: PAYMENT_STATUS_EXCLUDE_IN_CONTRIBUTIONS };
       requestDonations(
         { method: 'GET', url: CONTRIBUTIONS, params, paramsSerializer: (p) => queryString.stringify(p) },
         {
@@ -112,17 +113,6 @@ function Donations() {
         Header: 'Payment status',
         accessor: 'status',
         Cell: (props) => <StatusCellIcon status={props.value} showText />
-      },
-      {
-        Header: 'Date flagged',
-        accessor: 'flagged_date',
-        Cell: (props) => (props.value ? <DateAndTimeCell dateTime={props.value} /> : NO_VALUE)
-      },
-      {
-        Header: 'Auto-resolution date',
-        accessor: 'auto_accepted_on',
-        Cell: (props) => (props.value ? <ResolutionDateCaution date={props.value} /> : NO_VALUE),
-        disableSortBy: true
       }
     ],
     []
@@ -140,7 +130,12 @@ function Donations() {
           </Route>
           <Route>
             <DashboardSection heading="Contributions">
-              <Filters filters={filters} handleFilterChange={handleFilterChange} donationsCount={donationsCount} />
+              <Filters
+                filters={filters}
+                handleFilterChange={handleFilterChange}
+                donationsCount={donationsCount}
+                excludeStatusFilters={PAYMENT_STATUS_EXCLUDE_IN_CONTRIBUTIONS}
+              />
               <GenericErrorBoundary>
                 <DonationsTable
                   onRowClick={handleRowClick}

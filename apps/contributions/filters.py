@@ -6,6 +6,9 @@ from apps.contributions.models import Contribution, ContributionStatus
 class ContributionFilter(django_filters.FilterSet):
     contributor_email = django_filters.CharFilter(field_name="contributor__email", lookup_expr="icontains")
     status = django_filters.MultipleChoiceFilter(choices=ContributionStatus.choices)
+    status__not = django_filters.MultipleChoiceFilter(
+        choices=ContributionStatus.choices, field_name="status", exclude=True, lookup_expr="iexact"
+    )
     amount = django_filters.RangeFilter()
     created = django_filters.DateTimeFromToRangeFilter()
 
@@ -23,6 +26,7 @@ class ContributionFilter(django_filters.FilterSet):
             ("flagged_date", "flagged_date"),
             ("contributor__email", "contributor_email"),
             ("status", "status"),
+            ("status__not", "status__not"),
             ("interval", "interval"),
             ("auto_accept_on", "auto_accept_on"),
         )

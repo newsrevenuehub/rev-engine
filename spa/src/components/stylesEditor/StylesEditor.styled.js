@@ -30,6 +30,13 @@ export const StylesEditor = styled.div`
   h5 {
     font-family: ${(props) => props.theme.systemFont};
   }
+
+  *,
+  *::after,
+  *::before {
+    box-sizing: inherit;
+    outline-color: ${(props) => props.theme.colors.primary};
+  }
 `;
 
 export const StylesForm = styled.div`

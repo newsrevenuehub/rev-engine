@@ -18,7 +18,7 @@ def format_ambiguous_currency(integer):
 
 def get_sha256_hash(string):
     """Return salted hash of string."""
-    string = string + settings.UID_SALT  # add a salt
+    string = string + settings.ENCRYPTION_SALT  # add a salt
     result = hashlib.sha256(string.encode())
     hash_str = result.hexdigest()
     return hash_str[:15]

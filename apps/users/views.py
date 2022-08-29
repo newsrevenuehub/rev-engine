@@ -66,18 +66,20 @@ def account_verification(request, email, token):
 class AccountVerification(signing.TimestampSigner):
     def __init__(self):
         self.fail_reason = "failed"  # Single word [inactive, expired, unknown], other failures are empty string.
-        self.max_age = settings.ACCOUNT_VERIFICATION_LINK_EXPIRY
-        super().__init__(salt=settings.UID_SALT)
+        self.max_age = (
+            60 * 60 * (settings.ACCOUNT_VERIFICATION_LINK_EXPIRY or 0)
+        )  # Convert setting hours (or None) to seconds.
+        super().__init__(salt=settings.ENCRYPTION_SALT)
 
     def _hash(self, plaintext):
         return get_sha256_hash(plaintext)
 
     def generate_token(self, email):
         encoded_email = self.encode(email)
-        if self.max_age is None:
-            token = self.encode(self._hash(email))
-        else:
+        if self.max_age:
             token = self.encode(self.sign(self._hash(email)))
+        else:
+            token = self.encode(self._hash(email))
         return encoded_email, token
 
     def validate(self, encoded_email, encoded_token):

@@ -38,6 +38,7 @@ fake = Faker()
 
 class TestAccountVerificationEndpoint(TestCase):
     @override_settings(ACCOUNT_VERIFICATION_LINK_EXPIRY=None)
+    @override_settings(ENCRYPTION_SALT="garlic")
     def test_happy_path(self):
         user = create_test_user(is_active=True, email_verified=False)
         email, token = AccountVerification().generate_token(user.email)
@@ -46,6 +47,7 @@ class TestAccountVerificationEndpoint(TestCase):
         assert get_user_model().objects.get(pk=user.id).email_verified
 
     @override_settings(ACCOUNT_VERIFICATION_LINK_EXPIRY=None)
+    @override_settings(ENCRYPTION_SALT="garlic")
     def test_failed(self):
         email, token = AccountVerification().generate_token("bobjohnny@example.com")
         response = self.client.get(reverse("account_verification", kwargs={"email": email, "token": token}))

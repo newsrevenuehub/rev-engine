@@ -11,6 +11,7 @@ from django.urls import reverse
 from django.utils import timezone
 
 import pytest
+from bs4 import BeautifulSoup
 from faker import Faker
 from rest_framework import status
 from rest_framework.test import APITestCase
@@ -38,17 +39,38 @@ fake = Faker()
 
 class TestAccountVerificationEndpoint(TestCase):
     @override_settings(ACCOUNT_VERIFICATION_LINK_EXPIRY=None)
-    @override_settings(ENCRYPTION_SALT="garlic")
-    def test_happy_path(self):
+    def test_happy_path_no_expiry(self):
         user = create_test_user(is_active=True, email_verified=False)
         email, token = AccountVerification().generate_token(user.email)
         response = self.client.get(reverse("account_verification", kwargs={"email": email, "token": token}))
         self.assertRedirects(response, reverse("spa_account_verification"))
         assert get_user_model().objects.get(pk=user.id).email_verified
 
-    @override_settings(ACCOUNT_VERIFICATION_LINK_EXPIRY=None)
-    @override_settings(ENCRYPTION_SALT="garlic")
-    def test_failed(self):
+    @override_settings(ACCOUNT_VERIFICATION_LINK_EXPIRY=1)
+    def test_happy_path_with_expiry(self):
+        user = create_test_user(is_active=True, email_verified=False)
+        email, token = AccountVerification().generate_token(user.email)
+        response = self.client.get(reverse("account_verification", kwargs={"email": email, "token": token}))
+        self.assertRedirects(response, reverse("spa_account_verification"))
+        assert get_user_model().objects.get(pk=user.id).email_verified
+
+    # Expiry is tested below in TestAccountVerification, is hard to replicate here, and adds no coverage.
+    # def test_expired_token(self):
+
+    def test_failed_bad_token(self):
+        user = create_test_user(is_active=False, email_verified=False)
+        email, _ = AccountVerification().generate_token(user.email)
+        _, token = AccountVerification().generate_token("thewrongtoken@example.com")
+        response = self.client.get(reverse("account_verification", kwargs={"email": email, "token": token}))
+        self.assertRedirects(response, reverse("spa_account_verification_fail", kwargs={"failure": "failed"}))
+
+    def test_inactive_user(self):
+        user = create_test_user(is_active=False, email_verified=False)
+        email, token = AccountVerification().generate_token(user.email)
+        response = self.client.get(reverse("account_verification", kwargs={"email": email, "token": token}))
+        self.assertRedirects(response, reverse("spa_account_verification_fail", kwargs={"failure": "inactive"}))
+
+    def test_unknown_user(self):
         email, token = AccountVerification().generate_token("bobjohnny@example.com")
         response = self.client.get(reverse("account_verification", kwargs={"email": email, "token": token}))
         self.assertRedirects(response, reverse("spa_account_verification_fail", kwargs={"failure": "unknown"}))
@@ -148,7 +170,7 @@ class TestAccountVerification:
         assert str(plaintext) == decoded
         assert re.match(
             r"^[=a-zA-Z0-9._~-]*$", encoded
-        )  # RFC-3986 URL Safe, plus "=", equal, cause base64 says URL doesn't include query portion.
+        )  # Ensure encoded string contains only RFC-3986 URL Safe characters plus equalsign, "=". Because base64 lib uses equalsigns inviolation of RFC.
 
 
 @override_settings(EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend")
@@ -236,6 +258,7 @@ class MockResponseObject:
         return self.json_data
 
 
+@override_settings(EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend")
 class TestUserViewSet(APITestCase):
     def setUp(self):
         self.url = reverse("user-list")
@@ -560,41 +583,45 @@ class TestUserViewSet(APITestCase):
         response = self.client.delete(reverse("user-detail", args=(my_user.pk,)))
         self.assertEqual(response.status_code, status.HTTP_405_METHOD_NOT_ALLOWED)
 
-    def test_request_account_verification(self):
+    def test_request_account_verification_happy_path(self):
         user = create_test_user(email_verified=False)
-        # Happy Path
         self.client.force_authenticate(user=user)
         response = self.client.get(reverse("user-request-account-verification"))
         assert status.HTTP_200_OK == response.status_code
         assert {"detail": "Success"} == response.json()
-        # Already Verified
-        user.email_verified = True
-        user.save()
+
+    def test_request_account_verification_already_verified(self):
+        user = create_test_user(email_verified=True)
+        self.client.force_authenticate(user=user)
         response = self.client.get(reverse("user-request-account-verification"))
         assert status.HTTP_404_NOT_FOUND == response.status_code
         assert {"detail": "Account already verified"} == response.json()
-        # Inactive
-        user.email_verified = False
-        user.is_active = False
-        user.save()
+
+    def test_request_account_verification_inactive(self):
+        user = create_test_user(email_verified=False, is_active=False)
+        self.client.force_authenticate(user=user)
         response = self.client.get(reverse("user-request-account-verification"))
         assert status.HTTP_404_NOT_FOUND == response.status_code
         assert {"detail": "Account inactive"} == response.json()
 
     def test_request_account_verification_requires_auth(self):
-        # Requires Authenticated User.
         response = self.client.get(reverse("user-request-account-verification"))
         self.assertEqual(response.status_code, 401)
 
-    @patch("apps.users.views.send_templated_email")
-    def test_send_verification_email(self, sent):
+    @override_settings(CELERY_ALWAYS_EAGER=True, CELERY_TASK_EAGER_PROPOGATES=True, BROKER_BACKEND="memory")
+    def test_send_verification_email_happy_path(self):
         user = create_test_user(is_active=True, email_verified=False)
         UserViewset.send_verification_email(user)
-        assert sent.delay.called or sent.called
+        self.assertEqual(len(mail.outbox), 1)
+        email = mail.outbox[0]
+        assert user.email in email.to
+        assert not any(x in email.body for x in "{}")
+        assert not any(x in email.alternatives[0][0] for x in "{}")
+        link = BeautifulSoup(email.alternatives[0][0], "html.parser").a
+        encoded_email, token = AccountVerification().generate_token(user.email)
+        assert reverse("account_verification", kwargs={"email": encoded_email, "token": token}) in link.attrs["href"]
 
-    @patch("apps.users.views.send_templated_email")
-    def test_send_verification_email_no_address(self, sent):
-        # No email address
+    def test_send_verification_email_no_address(self):
         user = create_test_user(is_active=True, email_verified=False, email="")
         UserViewset.send_verification_email(user)
-        assert not (sent.delay.called or sent.called)
+        self.assertEqual(len(mail.outbox), 0)

@@ -2,6 +2,7 @@ import binascii
 import logging
 from base64 import urlsafe_b64decode, urlsafe_b64encode
 
+import django
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.contrib.auth.password_validation import validate_password
@@ -59,15 +60,13 @@ def account_verification(request, email, token):
         user.save()
         return HttpResponseRedirect(reverse("spa_account_verification"))
     else:
-        # Having fail in url is non-optimal
+        # Having failure reason in URL is non-optimal.
         return HttpResponseRedirect(reverse("spa_account_verification_fail", kwargs={"failure": checker.fail_reason}))
 
 
 class AccountVerification(signing.TimestampSigner):
     def __init__(self):
-        self.fail_reason = (
-            "failed"  # Single word [failed, expired, inactive, unknown], other failures are empty string.
-        )
+        self.fail_reason = ""  # fail_reason is set after validate() called and will be one of the following [failed, expired, inactive, unknown]. See validate() for meanings.
         self.max_age = (
             60 * 60 * (settings.ACCOUNT_VERIFICATION_LINK_EXPIRY or 0)
         )  # Convert setting hours (or None) to seconds.
@@ -89,31 +88,35 @@ class AccountVerification(signing.TimestampSigner):
         email = self.decode(encoded_email)
         token = self.decode(encoded_token)
         if not (email and token):
-            logger.info("Account Verification: Malformed or missing email/token for email:%s", email)
+            logger.info("Account Verification: Malformed or missing email/token for email: %s", email)
+            self.fail_reason = "failed"
             return False
         if self.max_age:
             try:
                 token = self.unsign(token, self.max_age)
             except signing.SignatureExpired:
-                logger.warning("Account Verification: URL Expired for email:%s", email)
+                logger.warning("Account Verification: URL Expired for email: %s", email)
                 self.fail_reason = "expired"
                 return False
             except signing.BadSignature:
-                logger.info("Account Verification: Bad Signature for email:%s", email)
+                logger.info("Account Verification: Bad Signature for email: %s", email)
+                self.fail_reason = "failed"
                 return False
         if token != self._hash(email):
-            logger.info("Account Verification: Invalid token for email:%s", email)
+            logger.info("Account Verification: Invalid token for email: %s", email)
+            self.fail_reason = "failed"
             return False
-        for user in get_user_model().objects.filter(email=email):
-            if not user.is_active:
-                logger.warning("Account Verification: Inactive user for email:%s", email)
-                self.fail_reason = "inactive"
-                return False
-            return user
-        else:  # No matching user.
-            logger.info("Account Verification: No user for email:%s", email)
+        if not (
+            user := get_user_model().objects.filter(email=email).first()
+        ):  # Get the (only) matching User or None instead of raising exception.
+            logger.info("Account Verification: No user for email: %s", email)
             self.fail_reason = "unknown"
             return False
+        if not user.is_active:
+            logger.warning("Account Verification: Inactive user for email: %s", email)
+            self.fail_reason = "inactive"
+            return False
+        return user
 
     @staticmethod
     def encode(plain_entity):
@@ -191,15 +194,16 @@ class UserViewset(
     def send_verification_email(user):
         """Send email to user asking them to click verify their email address link."""
         if not user.email:
-            logger.warning("Account Verification: No email for user:%s", user.id)
+            logger.warning("Account Verification: No email for user: %s", user.id)
             return
         encoded_email, token = AccountVerification().generate_token(user.email)
+        url = reverse("account_verification", kwargs={"email": encoded_email, "token": token})
         send_templated_email.delay(
             user.email,
             EMAIL_VERIFICATION_EMAIL_SUBJECT,
             "nrh-org-account-creation-verification-email.txt",
             "nrh-org-account-creation-verification-email.html",
-            {"verification_url": reverse("account_verification", kwargs={"email": encoded_email, "token": token})},
+            {"verification_url": django.utils.safestring.mark_safe(url)},
         )
 
     def validate_password(self, email, password):

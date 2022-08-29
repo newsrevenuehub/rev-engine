@@ -461,7 +461,7 @@ AUTH_COOKIE_SAMESITE = "Strict"  # or 'Lax' or None
 ENCRYPTION_SALT = os.getenv("ENCRYPTION_SALT", "")
 
 # Expire account verification URLs after X hours.
-ACCOUNT_VERIFICATION_LINK_EXPIRY = 4
+ACCOUNT_VERIFICATION_LINK_EXPIRY = 24
 
 ## Various HTTP parameter names.
 ORG_SLUG_PARAM = "orgSlug"

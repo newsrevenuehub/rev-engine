@@ -1,4 +1,3 @@
-import '!style-loader!css-loader!postcss-loader!tailwindcss/tailwind.css';
 import { withThemes } from '@react-theming/storybook-addon';
 import { ThemeProvider as MuiThemeProvider } from '@material-ui/core';
 import { ThemeProvider } from 'styled-components';

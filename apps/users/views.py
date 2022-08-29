@@ -17,7 +17,7 @@ from django.http import HttpResponseRedirect
 from django.urls import reverse, reverse_lazy
 from django.views.decorators.http import require_GET
 
-from rest_framework import mixins
+from rest_framework import mixins, status
 from rest_framework.decorators import action
 from rest_framework.exceptions import APIException
 from rest_framework.generics import GenericAPIView
@@ -65,7 +65,9 @@ def account_verification(request, email, token):
 
 class AccountVerification(signing.TimestampSigner):
     def __init__(self):
-        self.fail_reason = "failed"  # Single word [inactive, expired, unknown], other failures are empty string.
+        self.fail_reason = (
+            "failed"  # Single word [failed, expired, inactive, unknown], other failures are empty string.
+        )
         self.max_age = (
             60 * 60 * (settings.ACCOUNT_VERIFICATION_LINK_EXPIRY or 0)
         )  # Convert setting hours (or None) to seconds.
@@ -266,9 +268,9 @@ class UserViewset(
         """(Re)Send account verification email."""
         # Note self.get_permissions() verifies authenticated user.
         if request.user.email_verified:
-            return Response({"detail": "Account already verified"})
+            return Response({"detail": "Account already verified"}, status=status.HTTP_404_NOT_FOUND)
         elif not request.user.is_active:
-            return Response({"detail": "Account inactive"})
+            return Response({"detail": "Account inactive"}, status=status.HTTP_404_NOT_FOUND)
         else:
             self.send_verification_email(request.user)
             return Response({"detail": "Success"})

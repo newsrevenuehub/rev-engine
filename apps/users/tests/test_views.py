@@ -571,14 +571,14 @@ class TestUserViewSet(APITestCase):
         user.email_verified = True
         user.save()
         response = self.client.get(reverse("user-request-account-verification"))
-        assert status.HTTP_200_OK == response.status_code
+        assert status.HTTP_404_NOT_FOUND == response.status_code
         assert {"detail": "Account already verified"} == response.json()
         # Inactive
         user.email_verified = False
         user.is_active = False
         user.save()
         response = self.client.get(reverse("user-request-account-verification"))
-        assert status.HTTP_200_OK == response.status_code
+        assert status.HTTP_404_NOT_FOUND == response.status_code
         assert {"detail": "Account inactive"} == response.json()
 
     def test_request_account_verification_requires_auth(self):

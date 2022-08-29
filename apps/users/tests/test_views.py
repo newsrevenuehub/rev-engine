@@ -139,7 +139,7 @@ class TestUserViewSet(APITestCase):
             "last_name": "Test",
             "job_title": "Test",
             "organization_name": "Test",
-            "organization_tax_status": "Test",
+            "organization_tax_status": "non-profit",
         }
 
     def get_too_short_password(self):
@@ -498,7 +498,7 @@ class TestUserViewSet(APITestCase):
             data={**self.customize_account_request, "organization_tax_status": ""},
         )
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertEqual(response.json(), {"organization_tax_status": ["This information is required"]})
+        self.assertEqual(response.json(), {"organization_tax_status": ['"" is not a valid choice.']})
 
     def test_cannot_update_user_account_tos_not_accepted(self):
         user = self._create_authenticated_user(email_verified=True, accepted_terms_of_service=None)
@@ -552,6 +552,26 @@ class TestUserViewSet(APITestCase):
         expected_organization_name = f"{taken_name}-2"
         self.assertTrue(Organization.objects.filter(name=expected_organization_name).exists())
         self.assertTrue(RevenueProgram.objects.filter(name=expected_organization_name).exists())
+
+    def test_customize_account_sets_revenue_program_status_for_profit(self):
+        user = self._create_authenticated_user()
+        response = self.client.patch(
+            reverse("user-customize-account", args=(user.pk,)),
+            data={**self.customize_account_request, "organization_tax_status": "for-profit"},
+        )
+        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
+        revenue_program = RevenueProgram.objects.get(name=self.customize_account_request["organization_name"])
+        assert not revenue_program.non_profit
+
+    def test_customize_account_sets_revenue_program_status_non_profit(self):
+        user = self._create_authenticated_user()
+        response = self.client.patch(
+            reverse("user-customize-account", args=(user.pk,)),
+            data={**self.customize_account_request, "organization_tax_status": "non-profit"},
+        )
+        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
+        revenue_program = RevenueProgram.objects.get(name=self.customize_account_request["organization_name"])
+        assert revenue_program.non_profit
 
     def _create_authenticated_user(self, email_verified=True, accepted_terms_of_service=timezone.now()) -> User:
         user = get_user_model().objects.create(

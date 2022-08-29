@@ -195,6 +195,7 @@ class UserViewset(
         last_name = customize_account_serializer.validated_data["last_name"]
         job_title = customize_account_serializer.validated_data["job_title"]
         organization_name = customize_account_serializer.validated_data["organization_name"]
+        organization_tax_status = customize_account_serializer.validated_data["organization_tax_status"]
         user = request.user
         logger.debug("Received request to customize account for user %s; request: %s", user, request.data)
         user.first_name = first_name
@@ -207,7 +208,11 @@ class UserViewset(
                 counter += 1
             organization_name = f"{organization_name}-{counter}"
         organization = Organization.objects.create(name=organization_name, slug=organization_name)
-        revenue_program = RevenueProgram.objects.create(name=organization_name, organization=organization)
+        revenue_program = RevenueProgram.objects.create(
+            name=organization_name,
+            organization=organization,
+            non_profit=True if organization_tax_status == "non-profit" else False,
+        )
         RoleAssignment.objects.create(user=user, role_type=Roles.ORG_ADMIN, organization=organization)
         logger.info(
             "Customize account for user %s successful; organization %s and revenue program %s created.",

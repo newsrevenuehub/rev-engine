@@ -1,3 +1,5 @@
+import logging
+
 from django.conf import settings
 from django.db.models import TextChoices
 
@@ -14,6 +16,9 @@ from apps.contributions.models import (
 )
 from apps.contributions.utils import format_ambiguous_currency
 from apps.pages.models import DonationPage
+
+
+logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
 
 
 # See https://stripe.com/docs/api/payment_intents/object#payment_intent_object-amount
@@ -173,7 +178,16 @@ class ConditionalRequirementsSerializerMixin(serializers.Serializer):
         self._update_field_properties_from_page_elements()
 
     def _update_field_properties_from_page_elements(self):
-        page = DonationPage.objects.get(pk=self.initial_data["page_id"])
+        if not (page_id := self.initial_data.get("page_id", None)):
+            raise serializers.ValidationError({"page_id": "This field is required"})
+        try:
+            page = DonationPage.objects.get(pk=page_id)
+        except DonationPage.DoesNotExist:
+            logger.warning(
+                "ConditionalRequirementsSerializerMixin encountered a request for a nonexistent page with ID %s",
+                page_id,
+            )
+            raise serializers.ValidationError({"page_id": f"No page found with page_id of {page_id}"})
         self._set_conditionally_required_fields(page.elements)
 
     def _set_conditionally_required_fields(self, page_elements):
@@ -456,6 +470,9 @@ class StripeOneTimePaymentSerializer(AbstractPaymentSerializer):
     Stripe's PaymentIntent for an ad-hoc contribution.
     """
 
+    def create(self, validated_data):
+        breakpoint()
+
 
 class StripeRecurringPaymentSerializer(AbstractPaymentSerializer):
     """
@@ -463,7 +480,7 @@ class StripeRecurringPaymentSerializer(AbstractPaymentSerializer):
     PaymentMethod.
     """
 
-    payment_method_id = serializers.CharField(max_length=255)
+    pass
 
 
 class PaymentProviderContributionSerializer(serializers.Serializer):

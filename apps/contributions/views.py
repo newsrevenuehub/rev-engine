@@ -4,10 +4,12 @@ from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
+from django.utils.decorators import method_decorator
+from django.views.decorators.csrf import csrf_protect
 
 import stripe
 from django_filters.rest_framework import DjangoFilterBackend
-from rest_framework import filters, status, viewsets
+from rest_framework import filters, mixins, status, viewsets
 from rest_framework.decorators import action, api_view, authentication_classes, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
@@ -256,6 +258,41 @@ def process_stripe_webhook_view(request):
         logger.info("Could not find contribution matching provider_payment_id", exc_info=True)
 
     return Response(status=status.HTTP_200_OK)
+
+
+@method_decorator(csrf_protect, name="dispatch")
+class OneTimePaymentViewSet(
+    mixins.CreateModelMixin,
+    mixins.RetrieveModelMixin,
+    mixins.UpdateModelMixin,
+    viewsets.GenericViewSet,
+):
+    serializer_class = serializers.StripeOneTimePaymentSerializer
+    permission_classes = []
+
+    # def create(self, validated_data):
+    #     # set status to pre-processing
+    #     #
+    #     breakpoint()
+    #     pass
+
+    # def partial_update(self, request, *args, **kwargs):
+    #     pass
+
+    # def retrieve(self, request, *args, **kwargs):
+    #     pass
+
+
+# class SubscriptionPaymentViewSet(viewsets.ViewSet):
+#     # make this conditional on which view.
+#     serializer_class = serializers.SubscriptionPaymentSerializer
+#     permission_classes = []
+
+#     def create(self, validated_data):
+#         pass
+
+#     def partial_update(self, request, *args, **kwargs):
+#         pass
 
 
 class ContributionsViewSet(viewsets.ReadOnlyModelViewSet, FilterQuerySetByUserMixin):

@@ -52,6 +52,7 @@ class ContributionInterval(models.TextChoices):
 
 
 class ContributionStatus(models.TextChoices):
+    PRE_PROCESSING = "pre-processing", "pre-processing"
     PROCESSING = "processing", "processing"
     PAID = "paid", "paid"
     CANCELED = "canceled", "canceled"
@@ -94,6 +95,7 @@ class PaymentType(models.TextChoices):
 
 
 class Contribution(IndexedTimeStampedModel, RoleAssignmentResourceModelMixin):
+    uuid = models.UUIDField(default=uuid.uuid4, primary_key=False, editable=False)
     amount = models.IntegerField(help_text="Stored in cents")
     currency = models.CharField(max_length=3, default="usd")
     reason = models.CharField(max_length=255, blank=True)
@@ -118,7 +120,7 @@ class Contribution(IndexedTimeStampedModel, RoleAssignmentResourceModelMixin):
     flagged_date = models.DateTimeField(null=True)
     contribution_metadata = models.JSONField(null=True)
 
-    status = models.CharField(max_length=10, choices=ContributionStatus.choices, null=True)
+    status = models.CharField(max_length=14, choices=ContributionStatus.choices, null=True)
 
     class Meta:
         get_latest_by = "modified"

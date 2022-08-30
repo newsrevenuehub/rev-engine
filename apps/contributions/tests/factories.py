@@ -80,30 +80,3 @@ class StripeSubscriptionFactory:
 
     def delete(subscription_id):
         pass
-
-
-# class StripeSubscriptionFactory:
-#     customer = StripeCustomerFactory()
-#     interval = random.choice(list(models.ContributionInterval.__members__.values()))
-#     card_brand = random.choice(list(models.CardBrand.__members__.values()))
-#     is_modifiable = random.choice([True, False])
-#     is_cancelable = random.choice([True, False])
-#     last4 = random.randint(1111, 9999)
-#     amount = random.uniform(0, 1000)
-#     created = fake.date_time_between(start_date="-5d", end_date="now")
-#     customer_id = fake.uuid4()
-#     last_payment_date = fake.date_time_between(start_date="-5d", end_date="now")
-#     status = random.choice(list(models.ContributionStatus.__members__.values()))
-#     credit_card_expiration_date = f"{random.randint(1, 12)}/{random.randint(2022, 2099)}"
-#     payment_type = random.choice(list(models.PaymentType.__members__.values()))
-#     next_payment_date = fake.date_time_between(start_date="now", end_date="+60d")
-#     default_payment_method =
-#     id = fake.uuid4()
-
-#     def __init__(self, revenue_program=None) -> None:
-#         self.revenue_program = revenue_program
-#         if not revenue_program:
-#             self.revenue_program = normalize_slug(f"{' '.join(fake.words(nb=4))}")
-
-#     def delete(subscription_id):
-#        pass

@@ -114,7 +114,6 @@ class StripePaymentIntentFactory:
     status = choice(list(ContributionStatus.__members__.values()))
     credit_card_expiration_date = f"{randint(1, 12)}/{randint(2022, 2099)}"
     payment_type = choice(list(PaymentType.__members__.values()))
-    next_payment_date = fake.date_time_between(start_date="now", end_date="+60d")
     refunded = choice([True, False])
     id = fake.uuid4()
 

@@ -489,7 +489,6 @@ class PaymentProviderContributionSerializer(serializers.Serializer):
     card_brand = serializers.ChoiceField(choices=CardBrand.choices, required=False, allow_null=True)
     last4 = serializers.IntegerField()
     payment_type = serializers.ChoiceField(choices=PaymentType.choices, required=False, allow_null=True)
-    next_payment_date = serializers.DateTimeField()
     interval = serializers.ChoiceField(choices=ContributionInterval.choices)
     revenue_program = serializers.CharField(max_length=63)
     amount = serializers.IntegerField()

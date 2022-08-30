@@ -192,7 +192,6 @@ class TestStripePaymentIntent(AbstractTestStripeContributions):
         stripe_payment_intent = StripePaymentIntent(self.payment_intent_without_invoice)
         self.assertEqual(stripe_payment_intent.interval, ContributionInterval.ONE_TIME)
         assert stripe_payment_intent.invoice_line_item == [{}]
-        assert stripe_payment_intent.next_payment_date is None
 
     def test_stripe_payment_intent_without_invoice_line_item(self):
         stripe_payment_intent = StripePaymentIntent(self.payment_intent_without_invoice_line_item)
@@ -229,7 +228,6 @@ class TestStripePaymentIntent(AbstractTestStripeContributions):
         self.assertEqual(stripe_payment_intent.status, ContributionStatus.PAID)
         self.assertEqual(stripe_payment_intent.credit_card_expiration_date, "1/2023")
         self.assertEqual(stripe_payment_intent.payment_type, "card")
-        self.assertEqual(stripe_payment_intent.next_payment_date, datetime(2022, 7, 4, 6, 10, 47))
         self.assertEqual(stripe_payment_intent.refunded, False)
         self.assertEqual(stripe_payment_intent.id, "payment_intent_1")
 

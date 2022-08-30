@@ -156,16 +156,6 @@ class StripePaymentIntent:
         return self.payment_intent.payment_method.type
 
     @property
-    def next_payment_date(self):
-        # TODO: [DEV-2192] this isn't the next payment date; fix this
-        if not self.payment_intent.invoice:
-            return None
-        next_attempt = self.payment_intent.invoice.next_payment_attempt
-        if next_attempt:
-            return datetime.utcfromtimestamp(int(next_attempt))
-        return None
-
-    @property
     def refunded(self):
         """For a contribution to consider it as refunded either refunded flag will be set for full refunds
         or acount_refunded will be > 0 (will be useful in case of partial refund and we still want to set

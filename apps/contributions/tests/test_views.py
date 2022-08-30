@@ -714,33 +714,60 @@ class TestSubscriptionViewSet(AbstractTestCase):
 
         self.stripe_subscriptions = [SubscriptionsSerializer(instance=i).data for i in self.all_subscriptions]
 
-    def list_subscriptions(self):
-        self.client.force_authenticate(user=self.contributor_user)
-        return self.client.get(
-            reverse("subscription-list"),
-        )
-
-    @mock.patch("apps.contributions.stripe_contributions_provider.ContributionsCacheProvider.load")
-    @mock.patch("apps.contributions.tasks.task_pull_serialized_stripe_contributions_to_cache.delay")
-    def test_contributor_can_list_their_subscriptions(self, celery_task_mock, cache_load_mock):
+    @mock.patch("apps.contributions.stripe_contributions_provider.SubscriptionsCacheProvider.load")
+    @mock.patch("apps.contributions.views.task_pull_serialized_stripe_contributions_to_cache")
+    def test_contributor_can_list_their_subscriptions(self, cache_refresh_mock, cache_load_mock):
         cache_load_mock.return_value = self.stripe_subscriptions
         refresh_token = ContributorRefreshToken.for_contributor(self.contributor_user.uuid)
         self.client.cookies["Authorization"] = refresh_token.long_lived_access_token
         self.client.cookies["csrftoken"] = csrf._get_new_csrf_token()
-        response = self.client.get(reverse("subscription-list"), {"rp": self.org1_rp1.slug})
-        self.assertEqual(celery_task_mock.call_count, 0)
-        self.assertEqual(response.json().get("count"), 2)
+        response = self.client.get(reverse("subscription-list"), {"revenue_program_slug": "foo"})
+        assert cache_refresh_mock.call_count == 0
+        assert len(response.json()) == 1
 
-    @mock.patch("apps.contributions.stripe_contributions_provider.ContributionsCacheProvider.load")
-    @mock.patch("apps.contributions.tasks.task_pull_serialized_stripe_contributions_to_cache.delay")
-    def test_contributor_call_celery_task_if_no_contribution_in_cache(self, celery_task_mock, cache_load_mock):
+    @mock.patch("apps.contributions.stripe_contributions_provider.SubscriptionsCacheProvider.load")
+    @mock.patch("apps.contributions.views.task_pull_serialized_stripe_contributions_to_cache")
+    def test_contributor_list_subscriptions_not_in_cache(self, cache_refresh_mock, cache_load_mock):
         cache_load_mock.return_value = []
         refresh_token = ContributorRefreshToken.for_contributor(self.contributor_user.uuid)
         self.client.cookies["Authorization"] = refresh_token.long_lived_access_token
         self.client.cookies["csrftoken"] = csrf._get_new_csrf_token()
         response = self.client.get(reverse("subscription-list"), data={"revenue_program_slug": "foo"}, format="json")
-        celery_task_mock.assert_called_once()
-        self.assertEqual(response.json().get("count"), 0)
+        cache_refresh_mock.assert_called_once()
+        assert len(response.json()) == 0
+
+    @mock.patch("apps.contributions.stripe_contributions_provider.SubscriptionsCacheProvider.load")
+    @mock.patch("apps.contributions.views.task_pull_serialized_stripe_contributions_to_cache")
+    def test_retrieve_subscription_not_there(self, cache_refresh_mock, cache_load_mock):
+        cache_load_mock.return_value = []
+        refresh_token = ContributorRefreshToken.for_contributor(self.contributor_user.uuid)
+        self.client.cookies["Authorization"] = refresh_token.long_lived_access_token
+        self.client.cookies["csrftoken"] = csrf._get_new_csrf_token()
+        response = self.client.get(
+            reverse("subscription-detail", kwargs={"pk": "sub_1234"}),
+            data={"revenue_program_slug": "foo"},
+            format="json",
+        )
+        assert cache_refresh_mock.call_count == 1
+        assert response.status_code == status.HTTP_404_NOT_FOUND
+
+    @mock.patch("apps.contributions.stripe_contributions_provider.SubscriptionsCacheProvider.load")
+    @mock.patch("apps.contributions.views.task_pull_serialized_stripe_contributions_to_cache")
+    def test_retrieve_subscription_present(self, cache_refresh_mock, cache_load_mock):
+        cache_load_mock.return_value = self.stripe_subscriptions
+        refresh_token = ContributorRefreshToken.for_contributor(self.contributor_user.uuid)
+        self.client.cookies["Authorization"] = refresh_token.long_lived_access_token
+        self.client.cookies["csrftoken"] = csrf._get_new_csrf_token()
+        response = self.client.get(
+            reverse("subscription-detail", kwargs={"pk": "sub_1234"}),
+            data={"revenue_program_slug": "foo"},
+            format="json",
+        )
+        assert cache_refresh_mock.call_count == 0
+        assert cache_load_mock.call_count == 1
+        assert response.status_code == status.HTTP_200_OK
+        assert response.json()["id"] == "sub_1234"
+        assert response.json()["revenue_program_slug"] == "foo"
 
 
 @pytest.mark.parametrize(
@@ -1026,13 +1053,16 @@ class DeleteSubscriptionsTest(APITestCase):
 
     def _make_request(self, subscription_id, revenue_program_slug):
         self.client.force_authenticate(user=self.contributor)
-        return self.client.get(reverse("subscription-list", data={"revenue_program_slug": revenue_program_slug}))
+        return self.client.delete(
+            reverse("subscription-detail", kwargs={"pk": subscription_id}),
+            data={"revenue_program_slug": revenue_program_slug},
+        )
 
     @mock.patch("stripe.Subscription.delete", side_effect=StripeError)
     @mock.patch("stripe.Subscription.retrieve")
     def test_error_when_subscription_delete(self, mock_retrieve, mock_delete):
-        mock_retrieve.return_value = self.subscription
-        response = self._make_request(self.subscription_id, self.revenue_program.slug)
+        mock_retrieve.return_value = self.subscription_1
+        response = self._make_request(self.subscription_1.id, self.revenue_program.slug)
         self.assertEqual(response.status_code, 500)
         self.assertEqual(response.data["detail"], "Error")
 
@@ -1047,7 +1077,7 @@ class DeleteSubscriptionsTest(APITestCase):
     @mock.patch("stripe.Subscription.retrieve")
     def test_delete_recurring_wrong_email(self, mock_retrieve):
         self.contributor.email = "wrong@email.com"
-        response = self._make_request(self.subscription.id, self.revenue_program.slug)
+        response = self._make_request(self.subscription_1.id, self.revenue_program.slug)
         self.assertEqual(response.status_code, 403)
         self.assertEqual(response.data["detail"], "Forbidden")
         mock_retrieve.assert_called_once()

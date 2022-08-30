@@ -60,14 +60,14 @@ class AbstractTestStripeContributions(TestCase):
 
         metadata = {"metadata": {"revenue_program_slug": "testrp"}}
         metadata_1 = {"metadata": {}}
-        payment_method_details = {
-            "payment_method_details": {
+        payment_method = {
+            "payment_method": {
                 "card": {"brand": "visa", "last4": "1234", "exp_month": 1, "exp_year": 2023},
                 "type": "card",
             }
         }
-        payment_method_details_without_card = {"payment_method_details": {}}
-        payment_method_details_with_null_card = {"payment_method_details": {"card": None}}
+        payment_method_details_without_card = {"payment_method": {}}
+        payment_method_details_with_null_card = {"payment_method": {"card": None}}
         line_item = {"plan": {"interval": "year", "interval_count": 1}}
         invoice = {
             "invoice": {
@@ -120,22 +120,22 @@ class AbstractTestStripeContributions(TestCase):
         }
 
         self.payment_intent_without_invoice = stripe.PaymentIntent.construct_from(
-            payment_intent_1 | metadata | {"invoice": None} | payment_method_details, "TEST-KEY"
+            payment_intent_1 | metadata | {"invoice": None} | payment_method, "TEST-KEY"
         )
         self.payment_intent_with_canceled_subscription = stripe.PaymentIntent.construct_from(
-            payment_intent_1 | metadata | invoice_with_canceled_subscription | payment_method_details, "TEST-KEY"
+            payment_intent_1 | metadata | invoice_with_canceled_subscription | payment_method, "TEST-KEY"
         )
         self.payment_intent_with_active_subscription = stripe.PaymentIntent.construct_from(
-            payment_intent_1 | metadata | invoice_with_active_subscription | payment_method_details, "TEST-KEY"
+            payment_intent_1 | metadata | invoice_with_active_subscription | payment_method, "TEST-KEY"
         )
         self.payment_intent_without_metadata = stripe.PaymentIntent.construct_from(
-            payment_intent_1 | invoice | payment_method_details, "TEST-KEY"
+            payment_intent_1 | invoice | payment_method, "TEST-KEY"
         )
         self.payment_intent_without_revenue_program = stripe.PaymentIntent.construct_from(
-            payment_intent_1 | invoice | payment_method_details | metadata_1, "TEST-KEY"
+            payment_intent_1 | invoice | payment_method | metadata_1, "TEST-KEY"
         )
         self.payment_intent_without_invoice_line_item = stripe.PaymentIntent.construct_from(
-            payment_intent_1 | invoice_without_line_item | payment_method_details | metadata_1, "TEST-KEY"
+            payment_intent_1 | invoice_without_line_item | payment_method | metadata_1, "TEST-KEY"
         )
         self.payment_intent_without_card = stripe.PaymentIntent.construct_from(
             payment_intent_1 | invoice_without_line_item | payment_method_details_without_card | metadata_1, "TEST-KEY"
@@ -145,16 +145,16 @@ class AbstractTestStripeContributions(TestCase):
             "TEST-KEY",
         )
         self.payment_intent_1 = stripe.PaymentIntent.construct_from(
-            payment_intent_1 | metadata | invoice | payment_method_details, "TEST-KEY"
+            payment_intent_1 | metadata | invoice | payment_method, "TEST-KEY"
         )
         self.payment_intent_1_1 = stripe.PaymentIntent.construct_from(
-            payment_intent_1_1 | metadata | invoice | payment_method_details, "TEST-KEY"
+            payment_intent_1_1 | metadata | invoice | payment_method, "TEST-KEY"
         )
         self.payment_intent_2 = stripe.PaymentIntent.construct_from(
-            payment_intent_2 | metadata | invoice | payment_method_details, "TEST-KEY"
+            payment_intent_2 | metadata | invoice | payment_method, "TEST-KEY"
         )
         self.payment_intent_3 = stripe.PaymentIntent.construct_from(
-            payment_intent_3 | metadata | invoice | payment_method_details, "TEST-KEY"
+            payment_intent_3 | metadata | invoice | payment_method, "TEST-KEY"
         )
 
     def _setup_stripe_contributions(self):

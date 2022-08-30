@@ -344,21 +344,37 @@ class SubscriptionsViewSet(viewsets.ViewSet):
     def retrieve(self, request, pk):
         revenue_program_slug = request.query_params.get("revenue_program_slug")
         revenue_program = RevenueProgram.objects.get(slug=revenue_program_slug)
-        subscription = stripe.Subscription.retrieve(
-            pk,
-            stripe_account=revenue_program.payment_provider.stripe_account_id,
-            expand=["default_payment_method"],
-        )
-        serializer = serializers.SubscriptionsSerializer(subscription)
-        return Response(serializer.data)
+        cache_provider = SubscriptionsCacheProvider(self.request.user.email, revenue_program.stripe_account_id)
+        subscriptions = cache_provider.load()
+        if not subscriptions:
+            task_pull_serialized_stripe_contributions_to_cache(
+                self.request.user.email, revenue_program.stripe_account_id
+            )
+        try:
+            subscription = [
+                x
+                for x in subscriptions
+                if x.get("revenue_program_slug") == self.request.query_params["revenue_program_slug"]
+                and x.get("id") == pk
+            ][0]
+        except IndexError:
+            return Response({"detail": "Not Found"}, status=status.HTTP_404_NOT_FOUND)
+        return Response(subscription)
 
     def list(self, request):
         revenue_program_slug = request.query_params.get("revenue_program_slug")
         revenue_program = RevenueProgram.objects.get(slug=revenue_program_slug)
         cache_provider = SubscriptionsCacheProvider(self.request.user.email, revenue_program.stripe_account_id)
-        # TODO: filter by revenue program
         subscriptions = cache_provider.load()
-        # TODO: if cache is empty fetch from Stripe
+        if not subscriptions:
+            task_pull_serialized_stripe_contributions_to_cache(
+                self.request.user.email, revenue_program.stripe_account_id
+            )
+        subscriptions = [
+            x
+            for x in subscriptions
+            if x.get("revenue_program_slug") == self.request.query_params["revenue_program_slug"]
+        ]
         return Response(subscriptions)
 
     def partial_update(self, request, pk):

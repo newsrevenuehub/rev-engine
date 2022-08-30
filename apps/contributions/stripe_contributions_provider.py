@@ -107,7 +107,7 @@ class StripePaymentIntent:
 
     @property
     def card(self):
-        return getattr(self.payment_intent.payment_method_details, "card", None) or AttrDict(
+        return getattr(self.payment_intent.payment_method, "card", None) or AttrDict(
             **{"brand": None, "last4": None, "exp_month": None}
         )
 
@@ -153,7 +153,7 @@ class StripePaymentIntent:
 
     @property
     def payment_type(self):
-        return self.payment_intent.payment_method_details.type
+        return self.payment_intent.payment_method.type
 
     @property
     def next_payment_date(self):

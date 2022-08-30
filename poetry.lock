@@ -639,7 +639,7 @@ pytz = "*"
 
 [[package]]
 name = "django-waffle"
-version = "2.6.0"
+version = "2.7.0"
 description = "A feature flipper for Django."
 category = "main"
 optional = false
@@ -1894,7 +1894,7 @@ testing = ["func-timeout", "jaraco.itertools", "pytest (>=6)", "pytest-black (>=
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.10"
-content-hash = "1791edfe3213d989d3c727fcd0f109ce28279782c1d5df222d5fa56d1f478c5a"
+content-hash = "ee5e51bc6b4560cf3eb4b451383a67add583f7d7bff4249a178e4086747a4037"
 
 [metadata.files]
 amqp = [
@@ -2167,8 +2167,8 @@ django-timezone-field = [
     {file = "django_timezone_field-5.0-py3-none-any.whl", hash = "sha256:199f211082eeac7e83563929b8ce41399c1c0f00dfc2f36bc00bea381027eaaa"},
 ]
 django-waffle = [
-    {file = "django-waffle-2.6.0.tar.gz", hash = "sha256:150c0867d0f30c650a5c1e59a56b164780b62ab3bd48c4c65b6ae3481cf9dcfa"},
-    {file = "django_waffle-2.6.0-py3-none-any.whl", hash = "sha256:b0fef2cab15e739cadaffaf5b71206e813604bad093dc547959f1e3ee76c556d"},
+    {file = "django-waffle-2.7.0.tar.gz", hash = "sha256:da1b76d4ca42b5c59c798ffec022a6209eb3dd2eb8fe0ce30da6dd9d9a5a5e24"},
+    {file = "django_waffle-2.7.0-py3-none-any.whl", hash = "sha256:3f4bd5e265c27ff3346b8379f5165a43e0791c515c8c08e7a94faf6281c758db"},
 ]
 djangorestframework = [
     {file = "djangorestframework-3.13.1-py3-none-any.whl", hash = "sha256:24c4bf58ed7e85d1fe4ba250ab2da926d263cd57d64b03e8dcef0ac683f8b1aa"},

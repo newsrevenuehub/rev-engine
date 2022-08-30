@@ -18,9 +18,13 @@ from apps.api.tests import RevEngineApiAbstractTestCase
 from apps.api.tokens import ContributorRefreshToken
 from apps.common.constants import CONTRIBUTIONS_API_ENDPOINT_ACCESS_FLAG_NAME
 from apps.common.tests.test_resources import AbstractTestCase
+from apps.common.utils import AttrDict
 from apps.contributions.models import Contribution, ContributionInterval
 from apps.contributions.payment_managers import PaymentBadParamsError, PaymentProviderError
-from apps.contributions.serializers import PaymentProviderContributionSerializer
+from apps.contributions.serializers import (
+    PaymentProviderContributionSerializer,
+    SubscriptionsSerializer,
+)
 from apps.contributions.tests.factories import (
     ContributionFactory,
     ContributorFactory,
@@ -33,7 +37,7 @@ from apps.organizations.tests.factories import (
     OrganizationFactory,
     PaymentProviderFactory,
     RevenueProgramFactory,
-    StripeChargeFactory,
+    StripePaymentIntentFactory,
 )
 from apps.pages.models import DonationPage
 from apps.pages.tests.factories import DonationPageFactory
@@ -631,9 +635,9 @@ class TestContributorContributionsViewSet(AbstractTestCase):
         super().setUp()
         self.set_up_domain_model()
 
-        self.contribution_1 = StripeChargeFactory(revenue_program=self.org1_rp1.slug)
-        self.contribution_2 = StripeChargeFactory(revenue_program=self.org1_rp2)
-        self.contribution_3 = StripeChargeFactory(revenue_program=self.org1_rp1.slug)
+        self.contribution_1 = StripePaymentIntentFactory(revenue_program=self.org1_rp1.slug)
+        self.contribution_2 = StripePaymentIntentFactory(revenue_program=self.org1_rp2)
+        self.contribution_3 = StripePaymentIntentFactory(revenue_program=self.org1_rp1.slug)
 
         self.all_contributions = [self.contribution_1, self.contribution_2, self.contribution_3]
 
@@ -666,6 +670,75 @@ class TestContributorContributionsViewSet(AbstractTestCase):
         self.client.cookies["Authorization"] = refresh_token.long_lived_access_token
         self.client.cookies["csrftoken"] = csrf._get_new_csrf_token()
         response = self.client.get(reverse("contribution-list"), {"rp": self.org1_rp1.slug})
+        celery_task_mock.assert_called_once()
+        self.assertEqual(response.json().get("count"), 0)
+
+
+class TestSubscriptionViewSet(AbstractTestCase):
+    def setUp(self):
+        super().setUp()
+        self.org = OrganizationFactory()
+        self.stripe_account_id = "testing-stripe-account-id"
+        self.payment_provider = PaymentProviderFactory(stripe_account_id=self.stripe_account_id)
+        self.set_up_domain_model()
+        self.rp_foo = RevenueProgramFactory(organization=self.org, payment_provider=self.payment_provider, slug="foo")
+        self.rp_bar = RevenueProgramFactory(organization=self.org, payment_provider=self.payment_provider, slug="bar")
+        self.subscription = {
+            "id": "sub_1234",
+            "status": "incomplete",
+            "card_brand": "Visa",
+            "last4": "4242",
+            "plan": {
+                "interval": "month",
+                "interval_count": 1,
+                "amount": 1234,
+            },
+            "metadata": {
+                "revenue_program_slug": "foo",
+            },
+            "amount": "100",
+            "customer": "cus_1234",
+            "current_period_end": 1654892502,
+            "current_period_start": 1686428502,
+            "created": 1654892502,
+            "default_payment_method": {
+                "id": "pm_1234",
+                "type": "card",
+                "card": {"brand": "discover", "last4": "7834", "exp_month": "12", "exp_year": "2022"},
+            },
+        }
+        self.sub_1 = AttrDict.construct_from_dict(self.subscription)
+        self.sub_2 = AttrDict.construct_from_dict(self.subscription)
+        self.sub_2.metadata.revenue_program_slug = "bar"
+        self.all_subscriptions = [self.sub_1, self.sub_2]
+
+        self.stripe_subscriptions = [SubscriptionsSerializer(instance=i).data for i in self.all_subscriptions]
+
+    def list_subscriptions(self):
+        self.client.force_authenticate(user=self.contributor_user)
+        return self.client.get(
+            reverse("subscription-list"),
+        )
+
+    @mock.patch("apps.contributions.stripe_contributions_provider.ContributionsCacheProvider.load")
+    @mock.patch("apps.contributions.tasks.task_pull_serialized_stripe_contributions_to_cache.delay")
+    def test_contributor_can_list_their_subscriptions(self, celery_task_mock, cache_load_mock):
+        cache_load_mock.return_value = self.stripe_subscriptions
+        refresh_token = ContributorRefreshToken.for_contributor(self.contributor_user.uuid)
+        self.client.cookies["Authorization"] = refresh_token.long_lived_access_token
+        self.client.cookies["csrftoken"] = csrf._get_new_csrf_token()
+        response = self.client.get(reverse("subscription-list"), {"rp": self.org1_rp1.slug})
+        self.assertEqual(celery_task_mock.call_count, 0)
+        self.assertEqual(response.json().get("count"), 2)
+
+    @mock.patch("apps.contributions.stripe_contributions_provider.ContributionsCacheProvider.load")
+    @mock.patch("apps.contributions.tasks.task_pull_serialized_stripe_contributions_to_cache.delay")
+    def test_contributor_call_celery_task_if_no_contribution_in_cache(self, celery_task_mock, cache_load_mock):
+        cache_load_mock.return_value = []
+        refresh_token = ContributorRefreshToken.for_contributor(self.contributor_user.uuid)
+        self.client.cookies["Authorization"] = refresh_token.long_lived_access_token
+        self.client.cookies["csrftoken"] = csrf._get_new_csrf_token()
+        response = self.client.get(reverse("subscription-list"), data={"revenue_program_slug": "foo"}, format="json")
         celery_task_mock.assert_called_once()
         self.assertEqual(response.json().get("count"), 0)
 
@@ -775,7 +848,7 @@ class UpdatePaymentMethodTest(APITestCase):
 
     def _make_request(self, subscription_id, data):
         self.client.force_authenticate(user=self.contributor)
-        return self.client.patch(reverse("subscription", kwargs={"subscription_id": subscription_id}), data=data)
+        return self.client.patch(reverse("subscription-detail", kwargs={"pk": subscription_id}), data=data)
 
     @mock.patch("stripe.PaymentMethod.attach")
     @mock.patch("stripe.Subscription.modify")
@@ -911,7 +984,7 @@ class CancelRecurringPaymentTest(APITestCase):
     def _make_request(self, subscription_id, revenue_program_slug):
         self.client.force_authenticate(user=self.contributor)
         return self.client.delete(
-            reverse("subscription", kwargs={"subscription_id": subscription_id}),
+            reverse("subscription-detail", kwargs={"pk": subscription_id}),
             data={"revenue_program_slug": revenue_program_slug},
         )
 
@@ -928,6 +1001,46 @@ class CancelRecurringPaymentTest(APITestCase):
     def test_delete_recurring_success(self, mock_retrieve, mock_delete):
         mock_retrieve.return_value = self.subscription
         response = self._make_request(self.subscription.id, self.revenue_program.slug)
+        self.assertEqual(response.status_code, 204)
+        self.assertEqual(response.data["detail"], "Success")
+
+    @mock.patch("stripe.Subscription.retrieve")
+    def test_delete_recurring_wrong_email(self, mock_retrieve):
+        self.contributor.email = "wrong@email.com"
+        response = self._make_request(self.subscription.id, self.revenue_program.slug)
+        self.assertEqual(response.status_code, 403)
+        self.assertEqual(response.data["detail"], "Forbidden")
+        mock_retrieve.assert_called_once()
+
+
+@override_settings(STRIPE_TEST_SECRET_KEY=TEST_STRIPE_API_KEY)
+class DeleteSubscriptionsTest(APITestCase):
+    def setUp(self):
+        self.stripe_account_id = "testing-stripe-account-id"
+        self.org = OrganizationFactory()
+        self.revenue_program = RevenueProgramFactory(organization=self.org)
+        self.subscription_1 = StripeSubscriptionFactory()
+        self.subscription_2 = StripeSubscriptionFactory()
+        self.contributor = ContributorFactory()
+        self.contributor.email = self.subscription_1.customer.email = "foo@bar.baz"
+
+    def _make_request(self, subscription_id, revenue_program_slug):
+        self.client.force_authenticate(user=self.contributor)
+        return self.client.get(reverse("subscription-list", data={"revenue_program_slug": revenue_program_slug}))
+
+    @mock.patch("stripe.Subscription.delete", side_effect=StripeError)
+    @mock.patch("stripe.Subscription.retrieve")
+    def test_error_when_subscription_delete(self, mock_retrieve, mock_delete):
+        mock_retrieve.return_value = self.subscription
+        response = self._make_request(self.subscription_id, self.revenue_program.slug)
+        self.assertEqual(response.status_code, 500)
+        self.assertEqual(response.data["detail"], "Error")
+
+    @mock.patch("stripe.Subscription.delete")
+    @mock.patch("stripe.Subscription.retrieve")
+    def test_delete_recurring_success(self, mock_retrieve, mock_delete):
+        mock_retrieve.return_value = self.subscription_1
+        response = self._make_request(self.subscription_1.id, self.revenue_program.slug)
         self.assertEqual(response.status_code, 204)
         self.assertEqual(response.data["detail"], "Success")
 

@@ -127,3 +127,17 @@ def get_original_ip_from_request(request):
     remote_addr = request.META.get("REMOTE_ADDR")
     logger.debug("Using REMOTE_ADDR as request IP: %s", remote_addr)
     return remote_addr
+
+
+class AttrDict(dict):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.__dict__ = self
+
+    @classmethod
+    def construct_from_dict(cls, data):
+        if isinstance(data, dict):
+            return cls({key: cls.construct_from_dict(data[key]) for key in data})
+        if isinstance(data, list):
+            return [cls.construct_from_dict(i) for i in data]
+        return data

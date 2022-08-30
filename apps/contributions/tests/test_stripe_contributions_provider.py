@@ -11,8 +11,8 @@ from apps.contributions.stripe_contributions_provider import (
     ContributionsCacheProvider,
     InvalidIntervalError,
     InvalidMetadataError,
-    StripeCharge,
     StripeContributionsProvider,
+    StripePaymentIntent,
 )
 from apps.contributions.tests import RedisMock
 
@@ -25,33 +25,33 @@ class AbstractTestStripeContributions(TestCase):
             stripe.Customer.construct_from({"id": "cust_3"}, key="test"),
         ]
 
-    def _setup_stripe_charges(self):
-        charge_1 = {
-            "id": "charge_1",
+    def _setup_stripe_payment_intents(self):
+        payment_intent_1 = {
+            "id": "payment_intent_1",
             "amount": 2000,
             "customer": "customer_1",
             "status": "succeeded",
             "created": 1656915040,
         }
 
-        charge_1_1 = {
-            "id": "charge_1",
+        payment_intent_1_1 = {
+            "id": "payment_intent_1",
             "amount": 4000,
             "customer": "customer_3",
             "status": "succeeded",
             "created": 1656915040,
         }
 
-        charge_2 = {
-            "id": "charge_2",
+        payment_intent_2 = {
+            "id": "payment_intent_2",
             "amount": 2000,
             "customer": "customer_2",
             "status": "succeeded",
             "created": 1656915040,
         }
 
-        charge_3 = {
-            "id": "charge_3",
+        payment_intent_3 = {
+            "id": "payment_intent_3",
             "amount": 2000,
             "customer": "customer_3",
             "status": "succeeded",
@@ -119,132 +119,139 @@ class AbstractTestStripeContributions(TestCase):
             }
         }
 
-        self.charge_without_invoice = stripe.Charge.construct_from(
-            charge_1 | metadata | {"invoice": None} | payment_method_details, "TEST-KEY"
+        self.payment_intent_without_invoice = stripe.PaymentIntent.construct_from(
+            payment_intent_1 | metadata | {"invoice": None} | payment_method_details, "TEST-KEY"
         )
-        self.charge_with_canceled_subscription = stripe.Charge.construct_from(
-            charge_1 | metadata | invoice_with_canceled_subscription | payment_method_details, "TEST-KEY"
+        self.payment_intent_with_canceled_subscription = stripe.PaymentIntent.construct_from(
+            payment_intent_1 | metadata | invoice_with_canceled_subscription | payment_method_details, "TEST-KEY"
         )
-        self.charge_with_active_subscription = stripe.Charge.construct_from(
-            charge_1 | metadata | invoice_with_active_subscription | payment_method_details, "TEST-KEY"
+        self.payment_intent_with_active_subscription = stripe.PaymentIntent.construct_from(
+            payment_intent_1 | metadata | invoice_with_active_subscription | payment_method_details, "TEST-KEY"
         )
-        self.charge_without_metadata = stripe.Charge.construct_from(
-            charge_1 | invoice | payment_method_details, "TEST-KEY"
+        self.payment_intent_without_metadata = stripe.PaymentIntent.construct_from(
+            payment_intent_1 | invoice | payment_method_details, "TEST-KEY"
         )
-        self.charge_without_revenue_program = stripe.Charge.construct_from(
-            charge_1 | invoice | payment_method_details | metadata_1, "TEST-KEY"
+        self.payment_intent_without_revenue_program = stripe.PaymentIntent.construct_from(
+            payment_intent_1 | invoice | payment_method_details | metadata_1, "TEST-KEY"
         )
-        self.charge_without_invoice_line_item = stripe.Charge.construct_from(
-            charge_1 | invoice_without_line_item | payment_method_details | metadata_1, "TEST-KEY"
+        self.payment_intent_without_invoice_line_item = stripe.PaymentIntent.construct_from(
+            payment_intent_1 | invoice_without_line_item | payment_method_details | metadata_1, "TEST-KEY"
         )
-        self.charge_without_card = stripe.Charge.construct_from(
-            charge_1 | invoice_without_line_item | payment_method_details_without_card | metadata_1, "TEST-KEY"
+        self.payment_intent_without_card = stripe.PaymentIntent.construct_from(
+            payment_intent_1 | invoice_without_line_item | payment_method_details_without_card | metadata_1, "TEST-KEY"
         )
-        self.charge_with_null_card = stripe.Charge.construct_from(
-            charge_1 | invoice_without_line_item | payment_method_details_with_null_card | metadata_1, "TEST-KEY"
+        self.payment_intent_with_null_card = stripe.PaymentIntent.construct_from(
+            payment_intent_1 | invoice_without_line_item | payment_method_details_with_null_card | metadata_1,
+            "TEST-KEY",
         )
-        self.charge_1 = stripe.Charge.construct_from(charge_1 | metadata | invoice | payment_method_details, "TEST-KEY")
-        self.charge_1_1 = stripe.Charge.construct_from(
-            charge_1_1 | metadata | invoice | payment_method_details, "TEST-KEY"
+        self.payment_intent_1 = stripe.PaymentIntent.construct_from(
+            payment_intent_1 | metadata | invoice | payment_method_details, "TEST-KEY"
         )
-        self.charge_2 = stripe.Charge.construct_from(charge_2 | metadata | invoice | payment_method_details, "TEST-KEY")
-        self.charge_3 = stripe.Charge.construct_from(charge_3 | metadata | invoice | payment_method_details, "TEST-KEY")
+        self.payment_intent_1_1 = stripe.PaymentIntent.construct_from(
+            payment_intent_1_1 | metadata | invoice | payment_method_details, "TEST-KEY"
+        )
+        self.payment_intent_2 = stripe.PaymentIntent.construct_from(
+            payment_intent_2 | metadata | invoice | payment_method_details, "TEST-KEY"
+        )
+        self.payment_intent_3 = stripe.PaymentIntent.construct_from(
+            payment_intent_3 | metadata | invoice | payment_method_details, "TEST-KEY"
+        )
 
     def _setup_stripe_contributions(self):
         self.contributions_1 = [
-            self.charge_1,
-            self.charge_without_invoice,
-            self.charge_without_metadata,
-            self.charge_without_revenue_program,
+            self.payment_intent_1,
+            self.payment_intent_without_invoice,
+            self.payment_intent_without_metadata,
+            self.payment_intent_without_revenue_program,
         ]
 
-        self.contributions_2 = [self.charge_2, self.charge_3]
+        self.contributions_2 = [self.payment_intent_2, self.payment_intent_3]
 
     def _setup_stripe_customer_ids(self, count):
         self.customer_ids = [f"cust_{i}" for i in range(count)]
 
 
-class TestStripeCharge(AbstractTestStripeContributions):
+class TestStripePaymentIntent(AbstractTestStripeContributions):
     def setUp(self):
         super().setUp()
-        self._setup_stripe_charges()
+        self._setup_stripe_payment_intents()
 
-    def test_charge_with_canceled_subscription(self):
-        charge = StripeCharge(self.charge_with_canceled_subscription)
-        assert charge.subscription_id == "subscription_1"
-        assert charge.is_modifiable is False
-        assert charge.is_cancelable is False
+    def test_payment_intent_with_canceled_subscription(self):
+        payment_intent = StripePaymentIntent(self.payment_intent_with_canceled_subscription)
+        assert payment_intent.subscription_id == "subscription_1"
+        assert payment_intent.is_modifiable is False
+        assert payment_intent.is_cancelable is False
 
-    def test_charge_with_active_subscription(self):
-        charge = StripeCharge(self.charge_with_active_subscription)
-        assert charge.subscription_id == "subscription_1"
-        assert charge.is_modifiable is True
-        assert charge.is_cancelable is True
+    def test_payment_intent_with_active_subscription(self):
+        payment_intent = StripePaymentIntent(self.payment_intent_with_active_subscription)
+        assert payment_intent.subscription_id == "subscription_1"
+        assert payment_intent.is_modifiable is True
+        assert payment_intent.is_cancelable is True
 
-    def test_stripe_charge_without_invoice(self):
-        stripe_charge = StripeCharge(self.charge_without_invoice)
-        self.assertEqual(stripe_charge.interval, ContributionInterval.ONE_TIME)
-        assert stripe_charge.invoice_line_item == [{}]
-        assert stripe_charge.next_payment_date is None
+    def test_stripe_payment_intent_without_invoice(self):
+        stripe_payment_intent = StripePaymentIntent(self.payment_intent_without_invoice)
+        self.assertEqual(stripe_payment_intent.interval, ContributionInterval.ONE_TIME)
+        assert stripe_payment_intent.invoice_line_item == [{}]
+        assert stripe_payment_intent.next_payment_date is None
 
-    def test_stripe_charge_without_invoice_line_item(self):
-        stripe_charge = StripeCharge(self.charge_without_invoice_line_item)
-        assert stripe_charge.invoice_line_item == {}
+    def test_stripe_payment_intent_without_invoice_line_item(self):
+        stripe_payment_intent = StripePaymentIntent(self.payment_intent_without_invoice_line_item)
+        assert stripe_payment_intent.invoice_line_item == {}
 
-    def test_stripe_charge_with_invalid_metadata(self):
+    def test_stripe_payment_intent_with_invalid_metadata(self):
         with self.assertRaises(InvalidMetadataError):
-            StripeCharge(self.charge_without_metadata).revenue_program
+            StripePaymentIntent(self.payment_intent_without_metadata).revenue_program
         with self.assertRaises(InvalidMetadataError):
-            StripeCharge(self.charge_without_revenue_program).revenue_program
+            StripePaymentIntent(self.payment_intent_without_revenue_program).revenue_program
 
-    def test_stripe_charge_without_card(self):
-        charge = StripeCharge(self.charge_without_card)
-        self.assertIsNone(charge.card_brand)
-        self.assertIsNone(charge.last4)
-        self.assertIsNone(charge.credit_card_expiration_date)
+    def test_stripe_payment_intent_without_card(self):
+        payment_intent = StripePaymentIntent(self.payment_intent_without_card)
+        self.assertIsNone(payment_intent.card_brand)
+        self.assertIsNone(payment_intent.last4)
+        self.assertIsNone(payment_intent.credit_card_expiration_date)
 
-    def test_stripe_charge_with_null_card(self):
-        charge = StripeCharge(self.charge_with_null_card)
-        self.assertIsNone(charge.card_brand)
-        self.assertIsNone(charge.last4)
-        self.assertIsNone(charge.credit_card_expiration_date)
+    def test_stripe_payment_intent_with_null_card(self):
+        payment_intent = StripePaymentIntent(self.payment_intent_with_null_card)
+        self.assertIsNone(payment_intent.card_brand)
+        self.assertIsNone(payment_intent.last4)
+        self.assertIsNone(payment_intent.credit_card_expiration_date)
 
-    def test_stripe_charge_with_valid_data(self):
-        stripe_charge = StripeCharge(self.charge_1)
-        self.assertEqual(stripe_charge.interval, ContributionInterval.YEARLY)
-        self.assertEqual(stripe_charge.revenue_program, "testrp")
-        self.assertEqual(stripe_charge.card_brand, "visa")
-        self.assertEqual(stripe_charge.last4, "1234")
-        self.assertEqual(stripe_charge.amount, 2000)
-        self.assertEqual(stripe_charge.created, datetime(2022, 7, 4, 6, 10, 40))
-        self.assertEqual(stripe_charge.provider_customer_id, "customer_1")
-        self.assertEqual(stripe_charge.last_payment_date, datetime(2022, 7, 4, 6, 10, 47))
-        self.assertEqual(stripe_charge.status, ContributionStatus.PAID)
-        self.assertEqual(stripe_charge.credit_card_expiration_date, "1/2023")
-        self.assertEqual(stripe_charge.payment_type, "card")
-        self.assertEqual(stripe_charge.next_payment_date, datetime(2022, 7, 4, 6, 10, 47))
-        self.assertEqual(stripe_charge.refunded, False)
-        self.assertEqual(stripe_charge.id, "charge_1")
+    def test_stripe_payment_intent_with_valid_data(self):
+        stripe_payment_intent = StripePaymentIntent(self.payment_intent_1)
+        self.assertEqual(stripe_payment_intent.interval, ContributionInterval.YEARLY)
+        self.assertEqual(stripe_payment_intent.revenue_program, "testrp")
+        self.assertEqual(stripe_payment_intent.card_brand, "visa")
+        self.assertEqual(stripe_payment_intent.last4, "1234")
+        self.assertEqual(stripe_payment_intent.amount, 2000)
+        self.assertEqual(stripe_payment_intent.created, datetime(2022, 7, 4, 6, 10, 40))
+        self.assertEqual(stripe_payment_intent.provider_customer_id, "customer_1")
+        self.assertEqual(stripe_payment_intent.last_payment_date, datetime(2022, 7, 4, 6, 10, 47))
+        self.assertEqual(stripe_payment_intent.status, ContributionStatus.PAID)
+        self.assertEqual(stripe_payment_intent.credit_card_expiration_date, "1/2023")
+        self.assertEqual(stripe_payment_intent.payment_type, "card")
+        self.assertEqual(stripe_payment_intent.next_payment_date, datetime(2022, 7, 4, 6, 10, 47))
+        self.assertEqual(stripe_payment_intent.refunded, False)
+        self.assertEqual(stripe_payment_intent.id, "payment_intent_1")
 
-        self.charge_1["invoice"]["lines"]["data"][0]["plan"]["interval"] = "month"
-        stripe_charge = StripeCharge(self.charge_1)
-        self.assertEqual(stripe_charge.interval, ContributionInterval.MONTHLY)
+        self.payment_intent_1["invoice"]["lines"]["data"][0]["plan"]["interval"] = "month"
+        stripe_payment_intent = StripePaymentIntent(self.payment_intent_1)
+        self.assertEqual(stripe_payment_intent.interval, ContributionInterval.MONTHLY)
 
-        self.charge_1["invoice"]["lines"]["data"][0]["plan"]["interval"] = "day"
+        self.payment_intent_1["invoice"]["lines"]["data"][0]["plan"]["interval"] = "day"
         with self.assertRaises(InvalidIntervalError):
-            StripeCharge(self.charge_1).interval
+            StripePaymentIntent(self.payment_intent_1).interval
 
-        self.charge_1["status"] = "no status"
-        self.assertEqual(StripeCharge(self.charge_1).status, ContributionStatus.FAILED)
+        self.payment_intent_1["status"] = "no status"
+        self.assertEqual(StripePaymentIntent(self.payment_intent_1).status, ContributionStatus.FAILED)
 
-        self.charge_1["status"] = "pending"
-        self.assertEqual(StripeCharge(self.charge_1).status, ContributionStatus.PROCESSING)
+        self.payment_intent_1["status"] = "pending"
+        self.assertEqual(StripePaymentIntent(self.payment_intent_1).status, ContributionStatus.PROCESSING)
 
-        self.charge_1["amount_refunded"] = 0.5
-        self.assertEqual(StripeCharge(self.charge_1).status, ContributionStatus.REFUNDED)
+        self.payment_intent_1["amount_refunded"] = 0.5
+        self.assertEqual(StripePaymentIntent(self.payment_intent_1).status, ContributionStatus.REFUNDED)
 
-        self.charge_1["refunded"] = True
-        self.assertEqual(StripeCharge(self.charge_1).status, ContributionStatus.REFUNDED)
+        self.payment_intent_1["refunded"] = True
+        self.assertEqual(StripePaymentIntent(self.payment_intent_1).status, ContributionStatus.REFUNDED)
 
 
 class TestStripeContributionsProvider(AbstractTestStripeContributions):
@@ -283,10 +290,10 @@ class TestStripeContributionsProvider(AbstractTestStripeContributions):
 class TestContributionsCacheProvider(AbstractTestStripeContributions):
     def setUp(self):
         super().setUp()
-        self._setup_stripe_charges()
+        self._setup_stripe_payment_intents()
         self._setup_stripe_contributions()
         self.serializer = PaymentProviderContributionSerializer
-        self.converter = StripeCharge
+        self.converter = StripePaymentIntent
 
     def test_serialize(self):
         cache_provider = ContributionsCacheProvider(
@@ -299,17 +306,10 @@ class TestContributionsCacheProvider(AbstractTestStripeContributions):
         redis_mock = RedisMock()
         with patch.dict("apps.contributions.stripe_contributions_provider.caches", {"default": redis_mock}):
             cache_provider = ContributionsCacheProvider(
-                "test@email.com", serializer=self.serializer, converter=self.converter
-            )
-            cache_provider.upsert(self.contributions_1)
-            self.assertIsNotNone(redis_mock._data.get("test@email.com"))
-            self.assertEqual(len(cache_provider.load()), 1)
-
-            cache_provider = ContributionsCacheProvider(
                 "test@email.com", "acc_0000", serializer=self.serializer, converter=self.converter
             )
             cache_provider.upsert(self.contributions_1)
-            self.assertIsNotNone(redis_mock._data.get("test@email.com-acc_0000"))
+            self.assertIsNotNone(redis_mock._data.get("test@email.com-payment-intents-acc_0000"))
 
     def test_upsert_overwrite(self):
         redis_mock = RedisMock()
@@ -318,7 +318,7 @@ class TestContributionsCacheProvider(AbstractTestStripeContributions):
                 "test@email.com", "acc_0000", serializer=self.serializer, converter=self.converter
             )
             cache_provider.upsert(self.contributions_2)
-            self.assertIsNotNone(redis_mock._data.get("test@email.com-acc_0000"))
+            self.assertIsNotNone(redis_mock._data.get("test@email.com-payment-intents-acc_0000"))
             self.assertEqual(len(cache_provider.load()), 2)
 
             cache_provider.upsert(self.contributions_1)
@@ -335,7 +335,7 @@ class TestContributionsCacheProvider(AbstractTestStripeContributions):
             data = cache_provider.load()
             self.assertEqual(data[0].amount, 2000)
 
-            cache_provider.upsert([self.charge_1_1])
+            cache_provider.upsert([self.payment_intent_1_1])
             data = cache_provider.load()
             self.assertEqual(data[0].amount, 4000)
 
@@ -348,5 +348,5 @@ class TestContributionsCacheProvider(AbstractTestStripeContributions):
             cache_provider.upsert(self.contributions_1)
             data = cache_provider.load()
             self.assertEqual(len(data), 1)
-            self.assertEqual(data[0].id, "charge_1")
+            self.assertEqual(data[0].id, "payment_intent_1")
             self.assertEqual(data[0].provider_customer_id, "customer_1")

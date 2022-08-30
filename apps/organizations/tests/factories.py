@@ -101,7 +101,7 @@ class BenefitLevelFactory(DjangoModelFactory):
     level = 1
 
 
-class StripeChargeFactory:
+class StripePaymentIntentFactory:
     interval = choice(list(ContributionInterval.__members__.values()))
     card_brand = choice(list(CardBrand.__members__.values()))
     is_modifiable = choice([True, False])

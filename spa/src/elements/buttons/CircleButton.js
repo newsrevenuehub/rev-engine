@@ -1,12 +1,11 @@
 import Spinner from 'elements/Spinner';
 import * as S from './CircleButton.styled';
 
-import Tooltip from '@material-ui/core/Tooltip';
+import RETooltip from 'elements/RETooltip';
 
 function CircleButton({ icon, type, color, onClick, disabled, loading, children, ...props }) {
   const { tootTipText } = props;
 
-  console.log(tootTipText);
   const cButton = (
     <S.CircleButton {...props} type={type} disabled={disabled} onClick={disabled || loading ? () => {} : onClick}>
       {loading ? (
@@ -20,9 +19,9 @@ function CircleButton({ icon, type, color, onClick, disabled, loading, children,
   if (tootTipText) {
     return (
       <S.CircleButtonDiv>
-        <Tooltip title={tootTipText} placement="right">
+        <RETooltip title={tootTipText} placement="right">
           {cButton}
-        </Tooltip>
+        </RETooltip>
       </S.CircleButtonDiv>
     );
   }

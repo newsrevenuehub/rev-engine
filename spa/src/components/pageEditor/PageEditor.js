@@ -4,8 +4,6 @@ import * as S from './PageEditor.styled';
 import { useTheme } from 'styled-components';
 import { AnimatePresence } from 'framer-motion';
 
-import Tooltip from '@material-ui/core/Tooltip';
-
 // Deps
 import { useAlert } from 'react-alert';
 import isEmpty from 'lodash.isempty';
@@ -57,6 +55,7 @@ import BackButton from 'elements/BackButton';
 import { BackIcon } from 'elements/BackButton.styled';
 import UnsavedChangesModal from 'components/pageEditor/UnsavedChangesModal';
 import PageTitle from 'elements/PageTitle';
+import RETooltip from 'elements/RETooltip';
 
 const PageEditorContext = createContext();
 
@@ -401,11 +400,11 @@ function PageEditor() {
                     tootTipText="Save"
                   />
                 ) : (
-                  <Tooltip title="Save" placement="right">
+                  <RETooltip title="Save" placement="right">
                     <S.PageEditorBackButton data-testid="save-page-button">
                       <S.DisabledSaveIcon icon={faSave} type="neutral" disabled={!updatedPage || loading} />
                     </S.PageEditorBackButton>
-                  </Tooltip>
+                  </RETooltip>
                 )}
 
                 <CircleButton
@@ -421,11 +420,11 @@ function PageEditor() {
                     <BackIcon icon={ICONS.ARROW_LEFT} />
                   </CircleButton>
                 ) : (
-                  <Tooltip title="Exit" placement="right">
+                  <RETooltip title="Exit" placement="right">
                     <S.PageEditorBackButton>
                       <BackButton to={CONTENT_SLUG} />
                     </S.PageEditorBackButton>
-                  </Tooltip>
+                  </RETooltip>
                 )}
               </S.ButtonOverlay>
             </S.ButtonOverlayOuter>

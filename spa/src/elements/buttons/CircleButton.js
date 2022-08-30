@@ -3,9 +3,7 @@ import * as S from './CircleButton.styled';
 
 import RETooltip from 'elements/RETooltip';
 
-function CircleButton({ icon, type, color, onClick, disabled, loading, children, ...props }) {
-  const { tootTipText } = props;
-
+function CircleButton({ icon, type, color, onClick, disabled, loading, children, toolTipText, ...props }) {
   const cButton = (
     <S.CircleButton {...props} type={type} disabled={disabled} onClick={disabled || loading ? () => {} : onClick}>
       {loading ? (
@@ -16,13 +14,13 @@ function CircleButton({ icon, type, color, onClick, disabled, loading, children,
     </S.CircleButton>
   );
 
-  if (tootTipText) {
+  if (toolTipText) {
     return (
-      <S.CircleButtonDiv>
-        <RETooltip title={tootTipText} placement="right">
+      <div>
+        <RETooltip title={toolTipText} placement="right">
           {cButton}
         </RETooltip>
-      </S.CircleButtonDiv>
+      </div>
     );
   }
 

@@ -7,9 +7,9 @@ export const PageEditor = styled.div`
 `;
 
 export const PageEditorBackButton = styled.div`
-text-align:center;
-height:50px
-width:50px`;
+  text-align: center;
+  height: 50px
+  width: 50px`;
 
 export const DisabledSaveIcon = styled(FontAwesomeIcon)`
   color: ${(props) => props.theme.colors.grey[0]};

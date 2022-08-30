@@ -2,8 +2,6 @@ import styled, { css } from 'styled-components';
 import { motion } from 'framer-motion';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 
-export const CircleButtonDiv = styled.div``;
-
 export const CircleButton = styled(motion.button)`
   border-radius: 50%;
   padding: 1rem;

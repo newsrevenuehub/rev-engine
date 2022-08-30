@@ -1,6 +1,7 @@
 import { render, screen, fireEvent } from 'test-utils';
+import { BUTTON_TYPE } from 'constants/buttonConstants';
 
-import NewButton, { NEW_BUTTON_TYPE } from './NewButton';
+import NewButton from './NewButton';
 
 const onClick = jest.fn();
 
@@ -16,7 +17,7 @@ describe('NewButton', () => {
   });
 
   it('should render new style button and label', () => {
-    render(<NewButton type={NEW_BUTTON_TYPE.STYLE} onClick={onClick} />);
+    render(<NewButton type={BUTTON_TYPE.STYLE} onClick={onClick} />);
 
     const buttonLabel = screen.getByText(/new style/i);
     expect(buttonLabel).toBeVisible();
@@ -26,7 +27,7 @@ describe('NewButton', () => {
   });
 
   it('should call onClick when button is clicked', () => {
-    render(<NewButton type={NEW_BUTTON_TYPE.STYLE} onClick={onClick} />);
+    render(<NewButton type={BUTTON_TYPE.STYLE} onClick={onClick} />);
 
     const button = screen.getByRole('button');
     expect(button).toBeEnabled();

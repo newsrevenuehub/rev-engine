@@ -1,16 +1,22 @@
-import NewButton, { NEW_BUTTON_TYPE } from './NewButton';
+import { BUTTON_TYPE } from 'constants/buttonConstants';
+import NewButton from './NewButton';
 
 export default {
-  title: 'Common/NewButton',
-  component: NewButton
+  title: 'Common/Button/NewButton',
+  component: NewButton,
+  argTypes: {
+    type: {
+      options: Object.values(BUTTON_TYPE)
+    }
+  }
 };
 
 export const Default = NewButton.bind({});
 Default.args = {
-  type: NEW_BUTTON_TYPE.PAGE
+  type: BUTTON_TYPE.PAGE
 };
 
 export const Style = NewButton.bind({});
 Style.args = {
-  type: NEW_BUTTON_TYPE.STYLE
+  type: BUTTON_TYPE.STYLE
 };

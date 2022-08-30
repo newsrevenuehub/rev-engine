@@ -19,8 +19,9 @@ import { LIST_PAGES } from 'ajax/endpoints';
 import GenericErrorBoundary from 'components/errors/GenericErrorBoundary';
 import HeaderSection from 'components/common/HeaderSection';
 import Searchbar from 'components/common/Searchbar';
-import PageButton from 'components/common/Button/PageButton';
+import EditButton from 'components/common/Button/EditButton';
 import NewButton from 'components/common/Button/NewButton';
+import { BUTTON_TYPE } from 'constants/buttonConstants';
 
 export const pagesbyRP = (pgsRaw, qry) => {
   const pagesByRevProgram = [];
@@ -92,7 +93,12 @@ function Pages({ setShowAddPageModal }) {
           pagesByRevenueProgram.map((revenueProgram) => (
             <Fragment key={revenueProgram.name}>
               {revenueProgram.pages.map((donationPage) => (
-                <PageButton key={donationPage.id} {...donationPage} onClick={() => handleEditPage(donationPage)} />
+                <EditButton
+                  key={donationPage.id}
+                  {...donationPage}
+                  onClick={() => handleEditPage(donationPage)}
+                  type={BUTTON_TYPE.PAGE}
+                />
               ))}
             </Fragment>
           ))}

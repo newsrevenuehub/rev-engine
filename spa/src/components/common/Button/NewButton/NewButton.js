@@ -3,16 +3,12 @@ import PropTypes from 'prop-types';
 import { Flex, Button, Label } from './NewButton.styled';
 
 import AddIcon from 'assets/icons/add.svg';
-
-export const NEW_BUTTON_TYPE = {
-  PAGE: 'page',
-  STYLE: 'style'
-};
+import { BUTTON_TYPE } from 'constants/buttonConstants';
 
 const NewButton = ({ type, onClick, className }) => {
   const buttonLabel = {
-    [NEW_BUTTON_TYPE.PAGE]: 'New Page',
-    [NEW_BUTTON_TYPE.STYLE]: 'New Style'
+    [BUTTON_TYPE.PAGE]: 'New Page',
+    [BUTTON_TYPE.STYLE]: 'New Style'
   }[type];
 
   return (
@@ -26,13 +22,13 @@ const NewButton = ({ type, onClick, className }) => {
 };
 
 NewButton.propTypes = {
-  type: PropTypes.oneOf(Object.values(NEW_BUTTON_TYPE)),
+  type: PropTypes.oneOf(Object.values(BUTTON_TYPE)),
   onClick: PropTypes.func.isRequired,
   className: PropTypes.string
 };
 
 NewButton.defaultProps = {
-  type: NEW_BUTTON_TYPE.PAGE,
+  type: BUTTON_TYPE.PAGE,
   className: ''
 };
 

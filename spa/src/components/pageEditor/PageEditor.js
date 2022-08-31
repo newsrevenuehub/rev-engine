@@ -378,7 +378,7 @@ function PageEditor() {
                   buttonType="neutral"
                   color={theme.colors.primary}
                   data-testid="preview-page-button"
-                  toolTiptext="View"
+                  tooltipText="View"
                 />
 
                 <CircleButton
@@ -387,7 +387,7 @@ function PageEditor() {
                   icon={faEdit}
                   buttonType="neutral"
                   data-testid="edit-page-button"
-                  toolTiptext="Edit"
+                  tooltipText="Edit"
                 />
 
                 {updatedPage ? (
@@ -397,7 +397,7 @@ function PageEditor() {
                     buttonType="neutral"
                     data-testid="save-page-button"
                     disabled={!updatedPage}
-                    toolTiptext="Save"
+                    tooltipText="Save"
                   />
                 ) : (
                   <RETooltip title="Save" placement="right">
@@ -412,11 +412,11 @@ function PageEditor() {
                   icon={faTrash}
                   buttonType="caution"
                   data-testid="delete-page-button"
-                  toolTiptext="Delete"
+                  tooltipText="Delete"
                 />
 
                 {updatedPage ? (
-                  <CircleButton onClick={openUnsavedModal} buttonType="neutral" toolTiptext="Exit">
+                  <CircleButton onClick={openUnsavedModal} buttonType="neutral" tooltipText="Exit">
                     <BackIcon icon={ICONS.ARROW_LEFT} />
                   </CircleButton>
                 ) : (

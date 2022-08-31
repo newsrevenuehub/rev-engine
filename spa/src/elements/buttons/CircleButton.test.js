@@ -3,7 +3,7 @@ import { render, screen, fireEvent, act } from 'test-utils';
 import CircleButton from './CircleButton';
 import { faEdit } from '@fortawesome/free-solid-svg-icons';
 
-describe('Tooltips on CrcleButton', () => {
+describe('Tooltips on CircleButton', () => {
   test('tooltip should show up on focus', async () => {
     render(
       <div>
@@ -11,7 +11,7 @@ describe('Tooltips on CrcleButton', () => {
           icon={faEdit}
           buttonType="neutral"
           data-testid="edit-page-button"
-          toolTiptext="Test Tooltip Text"
+          tooltipText="Test Tooltip Text"
         />
       </div>
     );

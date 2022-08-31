@@ -21,11 +21,29 @@ import DonationPageFooter from 'components/donationPage/DonationPageFooter';
 import GenericErrorBoundary from 'components/errors/GenericErrorBoundary';
 import { AUTHORIZE_ONE_TIME_STRIPE_PAYMENT_ROUTE, AUTHORIZE_STRIPE_SUBSCRIPTION_ROUTE } from 'ajax/endpoints';
 import { serializeData } from 'components/paymentProviders/stripe/stripeFns';
+import { CSRF_HEADER } from 'settings';
+
+// https://stackoverflow.com/a/49224652
+function getCookie(name) {
+  let cookie = {};
+  document.cookie.split(';').forEach(function (el) {
+    let [k, v] = el.split('=');
+    cookie[k.trim()] = v;
+  });
+  return cookie[name];
+}
 
 function authorizePayment(paymentData, paymentType) {
   const apiEndpoint =
     paymentType === 'one_time' ? AUTHORIZE_ONE_TIME_STRIPE_PAYMENT_ROUTE : AUTHORIZE_STRIPE_SUBSCRIPTION_ROUTE;
-  return axios.post(apiEndpoint, { ...paymentData });
+  // we manually set the XCSRFToken value in header here. This is an unauthed endpoint
+  // that on the backend requires csrf header, which will be in cookie returned by request
+  // for page data (that happens in parent context)
+  return axios
+    .post(apiEndpoint, { ...paymentData }, { headers: { [CSRF_HEADER]: getCookie('csrftoken') } })
+    .then((data) => {
+      debugger;
+    });
 }
 
 const DonationPageContext = createContext({});
@@ -41,8 +59,18 @@ function DonationPage({ page, live = false }) {
   const [payFee, setPayFee] = useState(() => getInitialPayFees(page));
 
   // we use these on form submission to authorize a one-time payment or subscription
-  const authorizeOneTimePayment = useMutation((paymentData) => authorizePayment(paymentData, 'one_time'));
-  const authorizeSubscription = useMutation((paymentData) => authorizePayment(paymentData, 'subscription'));
+  const createPayment = useMutation((paymentData) => {
+    switch (paymentData.interval) {
+      case 'one_time':
+        return authorizePayment(paymentData, 'one_time');
+      case 'month':
+      case 'year':
+        return authorizePayment(paymentData, paymentData.interval);
+      default:
+        // is this okay?
+        throw new Error('Unexpected payment interval in paymentData');
+    }
+  });
 
   // **
   //  * If window.grecaptcha is defined-- which should be done in useReCAPTCHAScript hook--
@@ -97,34 +125,29 @@ function DonationPage({ page, live = false }) {
     return serializeData(formRef.current, {
       amount,
       frequency,
-      reCAPTCHAToken
+      reCAPTCHAToken,
+      pageId: page.id
     });
   };
-
-  // UPNEXT: THis is what value was on submission.
-
-  //   {
-  //     "first_name": "adf",
-  //     "last_name": "af",
-  //     "email": "ben@foo.com",
-  //     "phone": "adfklj",
-  //     "amount": "123",
-  //     "interval": "one_time",
-  //     "mailing_street": "123 Melrose Street",
-  //     "mailing_city": "Nadsjf",
-  //     "mailing_state": "New York",
-  //     "mailing_postal_code": "11206",
-  //     "mailing_country": "United States",
-  //     "reason_other": "adf",
-  //     "tribute_type": "",
-  //     "donor_selected_amount": "123",
-  //     "captcha_token": "HFamlveRBLOig4NFlaRENLRQhkHXopaiASBSoiE28SOD8OKGMDGkt-LW5TdjNPKS4uKmN5DhocQ1xfIwlqXw8lZxUvVEQ3T2d4Qnw5TQV8O2o_VmcwSGo3bWkkS0lMSBkcHX5JM3AJIWMFKCEQfhJLYF5xM1RILm5cOVJ0L1FWcXtnNxkdb2pLRQhkGTN6WmV7XXp6QH0VTFBfcyVDDTptejFcajMGP1h-aj8UXEBHX00OYRltLkxiT1R3fVMsTWptW2o6DUR8OTloDnAxSWF_PD8TXhkcGBtcC2IcPXBDZ0xCPSJkahI-IQMpO05Zbi9sPlcjb2FkcHR-OhkcHUVPQkE_QThEWmVWVn5jAGtiTFRxP2Nkemc6e3kPNTJCZXB1YTZlWFxcTk1fdh8dWnlRBAJfQEk_Ry4zBHQ2SkdnMHsFW2ktXyopXVg_UEdaQ11FWzRDeS8af0NfdHhOPH9-cFBrNwUeTwl7MlJqeRdLUXtuJxkcHUVPQkE_QThEWX5XR3p7ejtJbGISKRUQGjBrL24YMWlObXVwZj9ddEtBXkZfIVV8LW5eT1R0cwNsFXlkU2o4TXRhKnQ_SiVqYj4oPD5hS1pHSV1aSw9eJW1JNxFyPSMSfhJOIQMtYXR3bAdTMFwrCVZoWV58YQ1YaBxiEn8JCm0pDCRg"
-  // }
 
   const handleCheckoutSubmit = async (e) => {
     e.preventDefault();
     const data = await getData();
-    debugger;
+    createPayment.mutate(data, {
+      onSuccess: (piData) => {
+        debugger;
+      },
+      onError: ({ response }) => {
+        if (response?.status === 400 && response?.data) {
+          // need to also be able to handle edge case where data contains additional
+          // fields not part of form (page id being one)
+          setErrors(response.data);
+        } else {
+          debugger;
+          // somethign went wrong
+        }
+      }
+    });
   };
 
   const handleProcessPaymentSubmit = (e) => {

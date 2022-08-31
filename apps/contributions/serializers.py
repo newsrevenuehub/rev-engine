@@ -2,6 +2,7 @@ import logging
 
 from django.conf import settings
 from django.db.models import TextChoices
+from django.utils import timezone
 
 from rest_framework import serializers
 
@@ -16,6 +17,9 @@ from apps.contributions.models import (
 )
 from apps.contributions.utils import format_ambiguous_currency
 from apps.pages.models import DonationPage
+
+from .bad_actor import BadActorAPIError, make_bad_actor_request
+from .fields import StripeAmountField
 
 
 logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
@@ -241,6 +245,7 @@ class ContributionMetadataSerializer(ConditionalRequirementsSerializerMixin):
     # Swag
     swag_opt_out = serializers.BooleanField(default=False)
     comp_subscription = serializers.ChoiceField(choices=CompSubscriptions.choices, required=False, allow_blank=True)
+    # TODO: Figure out why we use t_shirt_size as stand in
     t_shirt_size = serializers.CharField(max_length=500, required=False, allow_blank=True)
 
     sf_campaign_id = serializers.CharField(max_length=255, required=False, allow_blank=True)
@@ -464,14 +469,127 @@ class AbstractPaymentSerializer(ConditionalRequirementsSerializerMixin):
         self.fields["amount"].error_messages["invalid"] = "Enter a valid amount"
 
 
+class BasePaymentSerializer(ConditionalRequirementsSerializerMixin):
+
+    amount = StripeAmountField(
+        min_value=REVENGINE_MIN_AMOUNT,
+        max_value=STRIPE_MAX_AMOUNT,
+        error_messages={
+            "max_value": f"We can only accept contributions less than or equal to {format_ambiguous_currency(STRIPE_MAX_AMOUNT)}",
+            "min_value": f"We can only accept contributions greater than or equal to {format_ambiguous_currency(REVENGINE_MIN_AMOUNT)}",
+        },
+        required=True,
+    )
+    email = serializers.EmailField(max_length=80)
+    page_id = serializers.IntegerField()
+    first_name = serializers.CharField(max_length=40)
+    last_name = serializers.CharField(max_length=80)
+    mailing_postal_code = serializers.CharField(max_length=20)
+    mailing_street = serializers.CharField(max_length=255)
+    mailing_city = serializers.CharField(max_length=40)
+    mailing_state = serializers.CharField(max_length=80)
+    mailing_country = serializers.CharField(max_length=80)
+    # Org admins decide whether or not to make this a required value, so at serializer
+    # level, we make it default not required. If this field is required by org, that will
+    # be enforced by virtue of subclassing from ConditionalRequirementsSerializerMixin.
+    phone = serializers.CharField(max_length=40, required=False, allow_blank=True)
+    agreed_to_pay_fees = serializers.BooleanField(default=False)
+
+    # Reason for Giving -- these fields are all optional. They are required only if configured
+    # as such on per page basis, in which case enforced via parent ConditionalRequirementsSerializerMixin
+    reason_for_giving = serializers.CharField(max_length=255, required=False, allow_blank=True)
+    reason_other = serializers.CharField(max_length=255, required=False, allow_blank=True)
+    tribute_type = serializers.CharField(max_length=255, required=False, allow_blank=True)
+    honoree = serializers.CharField(max_length=255, required=False, allow_blank=True)
+    in_memory_of = serializers.CharField(max_length=255, required=False, allow_blank=True)
+
+    # Swag
+    swag_opt_out = serializers.BooleanField(required=False, default=False)
+    comp_subscription = serializers.ChoiceField(choices=CompSubscriptions.choices, required=False, allow_blank=True)
+    # TODO: figure out logic around `t_shirt_size` as generic field for all swag
+    t_shirt_size = serializers.CharField(max_length=500, required=False, allow_blank=True)
+    sf_campaign_id = serializers.CharField(max_length=255, required=False, allow_blank=True)
+    captcha_token = serializers.CharField(max_length=2550, required=False, allow_blank=True)
+
+    def get_bad_actor_score(self, data):
+        """ """
+        serializer = BadActorSerializer(
+            data={
+                data
+                | {
+                    "referer": self.context["request"].META.get("HTTP_REFERER"),
+                    "ip": self.context["request"].META.get("REMOTE_ADDR"),
+                }
+            }
+        )
+        try:
+            serializer.is_valid(raise_exception=True)
+        except serializers.ValidationError as exc:
+            logger.warning("BadActor serializer raised a ValidationError", exc_info=exc)
+            return None
+        try:
+            return make_bad_actor_request(data).json()
+        except BadActorAPIError:
+            return None
+
+    def should_flag(self, bad_actor_score):
+        """ """
+        return self.bad_actor_score >= settings.BAD_ACTOR_FAIL_ABOVE
+
+
+class OneTimePaymentSerializer(BasePaymentSerializer):
+    """ """
+
+    def create_payment_intent(self, data):
+        pass
+
+    def create(self, validated_data):
+        try:
+            page = DonationPage.objects.get(id=validated_data["page_id"])
+        except DonationPage.DoesNotExist:
+            logger.warning(
+                "A request was made to OneTimePaymentSerializer.create containing a page_id value (%s) for a nonexistent page",
+                validated_data["page_id"],
+            )
+            raise serializers.ValidationError({"page_id": "This page could not be found"})
+        contributor, _ = Contributor.objects.get_or_create(email=validated_data["email"])
+        bad_actor_response = self.get_bad_actor_score(validated_data)
+        contribution_data = {
+            "amount": validated_data["amount"],
+            "interval": "one_time",
+            "currency": page.payment_provider.currency,
+            "status": ContributionStatus.PRE_PROCESSING,
+            "donation_page": page,
+            "contributor": contributor,
+            "payment_provider_used": page.payment_provider.name,
+            # "metadata": None
+        }
+        if bad_actor_response:
+            contribution_data["bad_actor_score"] = bad_actor_response["overall_judgment"]
+            contribution_data["bad_actor_response"] = bad_actor_response
+            if self.should_flag(contribution_data["bad_actor_score"]):
+                contribution_data["status"] = ContributionStatus.FLAGGED
+                contribution_data["flagged_date"] = timezone.now()
+        contribution = Contribution.objects.create(**contribution_data)
+        if contribution.status == ContributionStatus.FLAGGED:
+            # we're done...
+            return None
+        payment_intent = self.create_payment_intent()
+        # update contribution
+        return {"uuid": str(contribution.uuid), "stripe_client_secret": payment_intent.stripe_client_secret}
+
+
+class RecurringPaymentSerializer(BasePaymentSerializer):
+    """ """
+
+    interval = serializers.ChoiceField(choices=ContributionInterval.choices, default=ContributionInterval.ONE_TIME)
+
+
 class StripeOneTimePaymentSerializer(AbstractPaymentSerializer):
     """
     A Stripe one-time payment is a light-weight, low-state payment. It utilizes
     Stripe's PaymentIntent for an ad-hoc contribution.
     """
-
-    def create(self, validated_data):
-        breakpoint()
 
 
 class StripeRecurringPaymentSerializer(AbstractPaymentSerializer):

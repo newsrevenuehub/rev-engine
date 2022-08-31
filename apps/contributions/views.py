@@ -267,7 +267,7 @@ class OneTimePaymentViewSet(
     mixins.UpdateModelMixin,
     viewsets.GenericViewSet,
 ):
-    serializer_class = serializers.StripeOneTimePaymentSerializer
+    serializer_class = serializers.OneTimePaymentSerializer
     permission_classes = []
 
     # def create(self, validated_data):

@@ -33,7 +33,7 @@ import { GENERIC_ERROR } from 'constants/textConstants';
 import { CAPTURE_PAGE_SCREENSHOT } from 'settings';
 
 // Assets
-import { faEye, faEdit, faSave, faTrash, faClone } from '@fortawesome/free-solid-svg-icons';
+import { faEye, faEdit, faSave, faTrash } from '@fortawesome/free-solid-svg-icons';
 import { ICONS } from 'assets/icons/SvgIcon';
 
 // Context
@@ -378,7 +378,7 @@ function PageEditor() {
                   buttonType="neutral"
                   color={theme.colors.primary}
                   data-testid="preview-page-button"
-                  toolTipText="View"
+                  toolTiptext="View"
                 />
 
                 <CircleButton
@@ -387,7 +387,7 @@ function PageEditor() {
                   icon={faEdit}
                   buttonType="neutral"
                   data-testid="edit-page-button"
-                  toolTipText="Edit"
+                  toolTiptext="Edit"
                 />
 
                 {updatedPage ? (
@@ -397,7 +397,7 @@ function PageEditor() {
                     buttonType="neutral"
                     data-testid="save-page-button"
                     disabled={!updatedPage}
-                    toolTipText="Save"
+                    toolTiptext="Save"
                   />
                 ) : (
                   <RETooltip title="Save" placement="right">
@@ -412,11 +412,11 @@ function PageEditor() {
                   icon={faTrash}
                   buttonType="caution"
                   data-testid="delete-page-button"
-                  toolTipText="Delete"
+                  toolTiptext="Delete"
                 />
 
                 {updatedPage ? (
-                  <CircleButton onClick={openUnsavedModal} buttonType="neutral" toolTipText="Exit">
+                  <CircleButton onClick={openUnsavedModal} buttonType="neutral" toolTiptext="Exit">
                     <BackIcon icon={ICONS.ARROW_LEFT} />
                   </CircleButton>
                 ) : (

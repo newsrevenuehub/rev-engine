@@ -8,6 +8,7 @@ from django.core.cache import caches
 from django.core.serializers.json import DjangoJSONEncoder
 
 import stripe
+from rest_framework import exceptions
 
 from apps.common.utils import AttrDict
 from apps.contributions.models import ContributionInterval, ContributionStatus
@@ -248,7 +249,7 @@ class ContributionsCacheProvider:
             self.cache.set(self.key, json.dumps(cached_data), timeout=CONTRIBUTION_CACHE_TTL.seconds)
 
     def load(self):
-        """Gets the contributions data from cache for a specefic email and stripe account id combo."""
+
         data = self.cache.get(self.key)
         if not data:
             return []
@@ -271,7 +272,7 @@ class SubscriptionsCacheProvider:
             try:
                 serialized_obj = self.serializer(instance=subscription)
                 data[subscription.id] = serialized_obj.data
-            except ContributionIgnorableError as ex:
+            except exceptions.ValidationError as ex:
                 logger.warning("Unable to process Subscription [%s] due to [%s]", subscription.id, type(ex))
         return data
 

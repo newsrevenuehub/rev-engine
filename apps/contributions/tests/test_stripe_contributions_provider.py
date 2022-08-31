@@ -5,14 +5,20 @@ from django.test import TestCase
 
 import stripe
 
+from apps.common.tests.test_resources import AbstractTestCase
+from apps.common.utils import AttrDict
 from apps.contributions.models import ContributionInterval, ContributionStatus
-from apps.contributions.serializers import PaymentProviderContributionSerializer
+from apps.contributions.serializers import (
+    PaymentProviderContributionSerializer,
+    SubscriptionsSerializer,
+)
 from apps.contributions.stripe_contributions_provider import (
     ContributionsCacheProvider,
     InvalidIntervalError,
     InvalidMetadataError,
     StripeContributionsProvider,
     StripePaymentIntent,
+    SubscriptionsCacheProvider,
 )
 from apps.contributions.tests import RedisMock
 
@@ -284,6 +290,29 @@ class TestStripeContributionsProvider(AbstractTestStripeContributions):
         result = provider.customers
         self.assertEqual(result, ["cust_1", "cust_2", "cust_3"])
 
+    @patch("apps.contributions.stripe_contributions_provider.stripe.PaymentIntent.search")
+    def test_fetch_payment_intents(self, mock_payment_intent_search):
+        provider = StripeContributionsProvider("test@email.com", "acc_000000")
+        provider.fetch_payment_intents()
+        assert mock_payment_intent_search.called_with(
+            {
+                "query": None,
+                "expand": ["data.invoice.subscription.default_payment_method", "data.payment_method"],
+                "limit": 100,
+                "stripe_account": "acc_000000",
+            }
+        )
+        provider.fetch_payment_intents(query="foo", page="bar")
+        assert mock_payment_intent_search.called_with(
+            {
+                "query": "foo",
+                "expand": ["data.invoice.subscription.default_payment_method", "data.payment_method"],
+                "limit": 100,
+                "stripe_account": "acc_000000",
+                "page": "bar",
+            }
+        )
+
 
 class TestContributionsCacheProvider(AbstractTestStripeContributions):
     def setUp(self):
@@ -348,3 +377,71 @@ class TestContributionsCacheProvider(AbstractTestStripeContributions):
             self.assertEqual(len(data), 1)
             self.assertEqual(data[0].id, "payment_intent_1")
             self.assertEqual(data[0].provider_customer_id, "customer_1")
+
+
+class TestSubscriptionsCacheProvider(AbstractTestCase):
+    def setUp(self):
+        super().setUp()
+        self.serializer = SubscriptionsSerializer
+
+        self.subscription = {
+            "id": "sub_1234",
+            "status": "incomplete",
+            "card_brand": "Visa",
+            "last4": "4242",
+            "plan": {
+                "interval": "month",
+                "interval_count": 1,
+                "amount": 1234,
+            },
+            "metadata": {
+                "revenue_program_slug": "foo",
+            },
+            "amount": "100",
+            "customer": "cus_1234",
+            "current_period_end": 1654892502,
+            "current_period_start": 1686428502,
+            "created": 1654892502,
+            "default_payment_method": {
+                "id": "pm_1234",
+                "type": "card",
+                "card": {"brand": "discover", "last4": "7834", "exp_month": "12", "exp_year": "2022"},
+            },
+        }
+        self.sub_1 = AttrDict.construct_from_dict(self.subscription)
+        self.sub_2 = AttrDict.construct_from_dict(self.subscription)
+        self.sub_3 = AttrDict.construct_from_dict(self.subscription)
+        self.sub_2.metadata.revenue_program_slug = "bar"
+        self.sub_2.id = "sub_5678"
+        del self.sub_3.metadata
+
+    def test_serialize(self):
+        cache_provider = SubscriptionsCacheProvider("test@email.com", serializer=self.serializer)
+        data = cache_provider.serialize([self.sub_1, self.sub_2, self.sub_3])
+        assert len(data) == 2  # because the third one is missing metadata
+
+    def test_upsert(self):
+        redis_mock = RedisMock()
+        with patch.dict("apps.contributions.stripe_contributions_provider.caches", {"default": redis_mock}):
+            cache_provider = SubscriptionsCacheProvider(
+                "test@email.com",
+                "acc_0000",
+                serializer=self.serializer,
+            )
+            cache_provider.upsert([self.sub_1, self.sub_2, self.sub_3])
+            assert redis_mock._data.get("test@email.com-subscriptions-acc_0000") is not None
+
+    def test_load(self):
+        redis_mock = RedisMock()
+        with patch.dict("apps.contributions.stripe_contributions_provider.caches", {"default": redis_mock}):
+            cache_provider = SubscriptionsCacheProvider(
+                "test@email.com",
+                serializer=self.serializer,
+            )
+            data = cache_provider.load()
+            assert data == []
+            cache_provider.upsert([self.sub_1, self.sub_2])
+            data = cache_provider.load()
+            assert len(data) == 2
+            assert data[0].id == "sub_1234"
+            assert data[1].id == "sub_5678"

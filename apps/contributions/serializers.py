@@ -479,6 +479,7 @@ class PaymentProviderContributionSerializer(serializers.Serializer):
     subscription_id = serializers.CharField(
         max_length=255, required=False, allow_blank=True, help_text="Stripe Subscription ID"
     )
+    # TODO: [DEV-2320] remove these two booleans after the frontend is fully using the Subscriptions API
     is_modifiable = serializers.BooleanField(
         required=True, help_text="if recurring then can the payment method be modified"
     )

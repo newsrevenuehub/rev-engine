@@ -16,7 +16,7 @@ export const Page = EditButton.bind({});
 Page.args = pageLive;
 
 export const PageSampler = ({ pages }) => (
-  <div style={{ display: 'flex', flex: 'wrap', gap: '16px' }}>
+  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '16px' }}>
     {pages.map((page, index) => (
       <EditButton key={index} {...page} onClick={() => {}} />
     ))}
@@ -30,7 +30,7 @@ export const Style = EditButton.bind({});
 Style.args = styleLive;
 
 export const StyleSampler = ({ styles }) => (
-  <div style={{ display: 'flex', flex: 'wrap', gap: '16px' }}>
+  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '16px' }}>
     {styles.map((style, index) => (
       <EditButton key={index} {...style} onClick={() => {}} />
     ))}

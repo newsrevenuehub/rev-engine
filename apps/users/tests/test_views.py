@@ -567,7 +567,7 @@ class TestUserViewSet(APITestCase):
         user = self._create_authenticated_user()
         response = self.client.patch(
             reverse("user-customize-account", args=(user.pk,)),
-            data={**self.customize_account_request, "organization_tax_status": "non-profit"},
+            data={**self.customize_account_request, "organization_tax_status": "nonprofit"},
         )
         self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
         revenue_program = RevenueProgram.objects.get(name=self.customize_account_request["organization_name"])

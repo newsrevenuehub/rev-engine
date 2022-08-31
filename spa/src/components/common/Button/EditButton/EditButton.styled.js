@@ -80,6 +80,7 @@ export const Background = styled.div`
   width: 168px;
   background-color: ${(props) => props.theme.colors.muiGrey[100]};
   border-radius: ${(props) => props.theme.muiBorderRadius.lg};
+  border: 0.5px solid ${(props) => props.theme.colors.muiGrey[100]};
   overflow: hidden;
   ${(props) =>
     props.hasImage &&

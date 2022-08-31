@@ -8,14 +8,14 @@ import EditIcon from 'assets/icons/edit.svg';
 const EditButton = ({ type, className, name, page_screenshot, published_date, onClick, style }) => {
   const liveTag = useMemo(() => {
     if (type === BUTTON_TYPE.STYLE && style?.used_live) {
-      return <BookmarkIcon data-testid="live-style" />;
+      return <BookmarkIcon data-testid={`style-${style?.id}-live`} />;
     }
 
     if (type === BUTTON_TYPE.PAGE && published_date) {
       return <Tag>LIVE</Tag>;
     }
     return null;
-  }, [published_date, style?.used_live, type]);
+  }, [published_date, style?.id, style?.used_live, type]);
 
   const backgroundContent = useMemo(() => {
     if (type === BUTTON_TYPE.STYLE) {
@@ -55,6 +55,7 @@ EditButton.propTypes = {
   onClick: PropTypes.func.isRequired,
   type: PropTypes.oneOf(Object.values(BUTTON_TYPE)),
   style: PropTypes.shape({
+    id: PropTypes.number,
     used_live: PropTypes.bool,
     colors: PropTypes.shape({
       cstm_mainBackground: PropTypes.string,

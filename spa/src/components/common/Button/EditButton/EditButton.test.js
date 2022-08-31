@@ -99,14 +99,14 @@ describe('EditButton', () => {
     it('should render "live" tag', () => {
       render(<EditButton {...styleLive} onClick={onClick} type={BUTTON_TYPE.STYLE} />);
 
-      const live = screen.getByTestId('live-style');
+      const live = screen.getByTestId(`style-${styleLive.style.id}-live`);
       expect(live).toBeVisible();
     });
 
     it('should not render "live" tag', () => {
       render(<EditButton {...styleNotLive} onClick={onClick} type={BUTTON_TYPE.STYLE} />);
 
-      const live = screen.queryByTestId('live-style');
+      const live = screen.queryByTestId(`style-${styleNotLive.style.id}-live`);
       expect(live).toBeNull();
     });
   });

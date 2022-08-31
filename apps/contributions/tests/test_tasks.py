@@ -70,7 +70,8 @@ class TestTaskStripeContributions(TestCase):
 
     @patch("apps.contributions.stripe_contributions_provider.StripeContributionsProvider.fetch_payment_intents")
     @patch("apps.contributions.tasks.ContributionsCacheProvider")
-    def test_task_pull_payment_intents(self, cache_provider_mock, fetch_payment_intents_mock):
+    @patch("apps.contributions.tasks.SubscriptionsCacheProvider")
+    def test_task_pull_payment_intents(self, sub_cache_mock, contrib_cache_mock, fetch_payment_intents_mock):
         mock_1 = MagicMock()
         mock_1.has_more = True
         mock_1.__iter__.return_value = [AttrDict(**{"id": "ch_000000", "invoice": None})]

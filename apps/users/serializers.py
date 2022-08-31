@@ -151,7 +151,7 @@ class CustomizeAccountSerializer(UserSerializer):
     last_name = serializers.CharField(write_only=True, required=True)
     job_title = serializers.CharField(write_only=True, required=True)
     organization_name = serializers.CharField(write_only=True, required=True)
-    organization_tax_status = serializers.ChoiceField(choices=["for-profit", "non-profit"], required=True)
+    organization_tax_status = serializers.ChoiceField(choices=["for-profit", "nonprofit"], required=True)
 
     class Meta:
         model = get_user_model()

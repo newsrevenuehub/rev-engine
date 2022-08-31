@@ -139,7 +139,7 @@ class TestUserViewSet(APITestCase):
             "last_name": "Test",
             "job_title": "Test",
             "organization_name": "Test",
-            "organization_tax_status": "non-profit",
+            "organization_tax_status": "nonprofit",
         }
 
     def get_too_short_password(self):

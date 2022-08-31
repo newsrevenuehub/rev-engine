@@ -211,7 +211,7 @@ class UserViewset(
         revenue_program = RevenueProgram.objects.create(
             name=organization_name,
             organization=organization,
-            non_profit=True if organization_tax_status == "non-profit" else False,
+            non_profit=True if organization_tax_status == "nonprofit" else False,
         )
         RoleAssignment.objects.create(user=user, role_type=Roles.ORG_ADMIN, organization=organization)
         logger.info(

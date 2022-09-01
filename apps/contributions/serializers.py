@@ -520,6 +520,9 @@ class SubscriptionsSerializer(serializers.Serializer):
     created = serializers.SerializerMethodField()
     last_payment_date = serializers.SerializerMethodField()
 
+    def _card(self, instance):
+        return instance.default_payment_method.card
+
     def get_id(self, instance):
         return instance.id
 
@@ -538,9 +541,6 @@ class SubscriptionsSerializer(serializers.Serializer):
     def get_last4(self, instance):
         return instance.default_payment_method.card.last4
 
-    def _card(self, instance):
-        return instance.default_payment_method.card
-
     def get_credit_card_expiration_date(self, instance):
         return (
             f"{self._card(instance).exp_month}/{self._card(instance).exp_year}"
@@ -549,14 +549,10 @@ class SubscriptionsSerializer(serializers.Serializer):
         )
 
     def get_is_modifiable(self, instance):
-        if instance.status in ["incomplete_expired", "canceled", "unpaid"]:
-            return False
-        return True
+        return instance.status not in ["incomplete_expired", "canceled", "unpaid"]
 
     def get_is_cancelable(self, instance):
-        if instance.status in ["incomplete", "incomplete_expired", "canceled", "unpaid"]:
-            return False
-        return True
+        return instance.status not in ["incomplete", "incomplete_expired", "canceled", "unpaid"]
 
     def get_interval(self, instance):
         interval = instance.get("plan", {}).get("interval")

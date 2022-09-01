@@ -764,7 +764,7 @@ class TestSubscriptionViewSet(AbstractTestCase):
             format="json",
         )
         assert cache_refresh_mock.call_count == 0
-        assert cache_load_mock.call_count == 1
+        assert cache_load_mock.call_count == 2
         assert response.status_code == status.HTTP_200_OK
         assert response.json()["id"] == "sub_1234"
         assert response.json()["revenue_program_slug"] == "foo"

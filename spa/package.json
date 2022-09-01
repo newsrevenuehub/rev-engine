@@ -139,7 +139,7 @@
   ],
   "devDependencies": {
     "@cypress/react": "^5.9.4",
-    "@cypress/webpack-dev-server": "1.7.0",
+    "@cypress/webpack-dev-server": "2.3.0",
     "@cypress/webpack-preprocessor": "^5.11.1",
     "@react-theming/storybook-addon": "^1.1.7",
     "@storybook/addon-actions": "^6.5.10",

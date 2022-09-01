@@ -22,10 +22,10 @@ describe('Searchbar', () => {
 
     const searchbar = screen.getByRole('textbox', { name: `Search for ${placeholderText}` });
     expect(searchbar).toBeInTheDocument();
-    expect(searchbar).toHaveAttribute('value', '');
+    expect(searchbar).toHaveValue('');
 
     fireEvent.change(searchbar, { target: { value: searchText } });
-    expect(searchbar).toHaveAttribute('value', searchText);
+    expect(searchbar).toHaveValue(searchText);
     expect(onChange).toHaveBeenCalledTimes(1);
   });
 });

@@ -24,7 +24,13 @@ export const revEngineTheme = {
     grey: ['#eee', '#ccc', '#999', '#666', '#333'],
 
     muiLightBlue: {
-      200: '#6FD1EC'
+      200: '#6FD1EC',
+      500: '#3cade8',
+      800: '#157CB2'
+    },
+
+    muiTeal: {
+      700: '#008070'
     },
 
     muiGrey: {
@@ -73,7 +79,9 @@ export const revEngineTheme = {
   },
 
   muiBorderRadius: {
-    md: '4px'
+    sm: '2px',
+    md: '4px',
+    lg: '6px'
   },
 
   radii: ['3px', '6px', '12px'],

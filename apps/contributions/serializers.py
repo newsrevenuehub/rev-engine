@@ -555,13 +555,14 @@ class SubscriptionsSerializer(serializers.Serializer):
         return instance.status not in ["incomplete", "incomplete_expired", "canceled", "unpaid"]
 
     def get_interval(self, instance):
-        interval = instance.get("plan", {}).get("interval")
-        interval_count = instance.get("plan", {}).get("interval_count")
+        plan = instance.get("plan")
+        interval = plan.get("interval")
+        interval_count = plan.get("interval_count")
         if interval == "year" and interval_count == 1:
             return ContributionInterval.YEARLY
         if interval == "month" and interval_count == 1:
             return ContributionInterval.MONTHLY
-        raise serializers.ValidationError(f"Invalid interval: {interval}/{interval_count}")
+        raise serializers.ValidationError(f"Invalid interval: {plan.id}{interval}/{interval_count}")
 
     def get_revenue_program_slug(self, instance):
         metadata = instance.get("metadata")

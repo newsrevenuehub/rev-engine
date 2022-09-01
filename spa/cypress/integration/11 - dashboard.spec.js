@@ -74,13 +74,14 @@ describe('Dashboard', () => {
     });
   });
   context('User DOES have content section access flag', () => {
-    it('should show `Content= section and sidbar element', () => {
+    it('should show `Content= section and sidebar element', () => {
       cy.intercept({ method: 'GET', pathname: getEndpoint(USER) }, { body: hubAdminWithAllFlags });
       cy.visit(DONATIONS_SLUG);
       cy.getByTestId('nav-pages-item').should('exist');
       cy.visit(CONTENT_SLUG);
       cy.url().should('include', CONTENT_SLUG);
-      cy.getByTestId('content').should('exist');
+      // pages-list refers to the content of the Page screen
+      cy.getByTestId('pages-list').should('exist');
     });
   });
 });

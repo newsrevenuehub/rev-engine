@@ -8,9 +8,9 @@ from django.core.cache import caches
 from django.core.serializers.json import DjangoJSONEncoder
 
 import stripe
+from addict import Dict as AttrDict
 from rest_framework import exceptions
 
-from apps.common.utils import AttrDict
 from apps.contributions.models import ContributionInterval, ContributionStatus
 from revengine.settings.base import CONTRIBUTION_CACHE_TTL, DEFAULT_CACHE
 

@@ -5,7 +5,8 @@ from django.conf import settings
 from django.test import TestCase
 from django.utils import timezone
 
-from apps.common.utils import AttrDict
+from addict import Dict as AttrDict
+
 from apps.contributions.models import ContributionStatus
 from apps.contributions.payment_managers import PaymentProviderError
 from apps.contributions.tasks import (

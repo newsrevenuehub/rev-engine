@@ -4,9 +4,9 @@ from unittest.mock import PropertyMock, patch
 from django.test import TestCase
 
 import stripe
+from addict import Dict as AttrDict
 
 from apps.common.tests.test_resources import AbstractTestCase
-from apps.common.utils import AttrDict
 from apps.contributions.models import ContributionInterval, ContributionStatus
 from apps.contributions.serializers import (
     PaymentProviderContributionSerializer,
@@ -408,9 +408,9 @@ class TestSubscriptionsCacheProvider(AbstractTestCase):
                 "card": {"brand": "discover", "last4": "7834", "exp_month": "12", "exp_year": "2022"},
             },
         }
-        self.sub_1 = AttrDict.construct_from_dict(self.subscription)
-        self.sub_2 = AttrDict.construct_from_dict(self.subscription)
-        self.sub_3 = AttrDict.construct_from_dict(self.subscription)
+        self.sub_1 = AttrDict(self.subscription)
+        self.sub_2 = AttrDict(self.subscription)
+        self.sub_3 = AttrDict(self.subscription)
         self.sub_2.metadata.revenue_program_slug = "bar"
         self.sub_2.id = "sub_5678"
         del self.sub_3.metadata

@@ -4,10 +4,10 @@ from django.conf import settings
 from django.test import TestCase
 from django.utils import timezone
 
+from addict import Dict as AttrDict
 from pytest import raises
 from rest_framework.serializers import ValidationError
 
-from apps.common.utils import AttrDict
 from apps.contributions import serializers
 from apps.contributions.models import ContributionInterval, ContributionStatus
 from apps.contributions.tests.factories import ContributionFactory, ContributorFactory
@@ -398,7 +398,7 @@ class SubscriptionsSerializer(TestCase):
 
     def setUp(self):
         self.serializer = serializers.SubscriptionsSerializer
-        self.subscription = AttrDict.construct_from_dict(
+        self.subscription = AttrDict(
             {
                 "id": "sub_1234",
                 "status": "incomplete",

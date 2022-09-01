@@ -5,6 +5,7 @@ from django.middleware import csrf
 from django.test import override_settings
 
 import pytest
+from addict import Dict as AttrDict
 from faker import Faker
 from rest_framework import status
 from rest_framework.reverse import reverse
@@ -18,7 +19,6 @@ from apps.api.tests import RevEngineApiAbstractTestCase
 from apps.api.tokens import ContributorRefreshToken
 from apps.common.constants import CONTRIBUTIONS_API_ENDPOINT_ACCESS_FLAG_NAME
 from apps.common.tests.test_resources import AbstractTestCase
-from apps.common.utils import AttrDict
 from apps.contributions.models import Contribution, ContributionInterval
 from apps.contributions.payment_managers import PaymentBadParamsError, PaymentProviderError
 from apps.contributions.serializers import (
@@ -707,8 +707,8 @@ class TestSubscriptionViewSet(AbstractTestCase):
                 "card": {"brand": "discover", "last4": "7834", "exp_month": "12", "exp_year": "2022"},
             },
         }
-        self.sub_1 = AttrDict.construct_from_dict(self.subscription)
-        self.sub_2 = AttrDict.construct_from_dict(self.subscription)
+        self.sub_1 = AttrDict(self.subscription)
+        self.sub_2 = AttrDict(self.subscription)
         self.sub_2.metadata.revenue_program_slug = "bar"
         self.all_subscriptions = [self.sub_1, self.sub_2]
 

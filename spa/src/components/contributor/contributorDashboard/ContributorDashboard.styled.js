@@ -1,4 +1,4 @@
-import { Button, Typography, IconButton } from '@material-ui/core';
+import { Button, IconButton } from '@material-ui/core';
 import styled from 'styled-components';
 
 import { PAYMENT_STATUS } from 'constants';
@@ -9,6 +9,7 @@ export const ContributorDashboard = styled.main`
   flex-direction: column;
   font-family: ${(props) => props.theme.systemFont};
   padding: 3rem 4.5rem;
+  gap: 3rem;
   background: ${(props) => props.theme.colors.cstm_mainBackground};
   @media (${(props) => props.theme.breakpoints.phoneOnly}) {
     padding: 1.5rem 1rem;
@@ -47,22 +48,6 @@ export const StatusText = styled.p`
       [PAYMENT_STATUS.FLAGGED]: '',
       [PAYMENT_STATUS.REJECTED]: ''
     }[props.status])}
-`;
-
-export const Title = styled(Typography)`
-  && {
-    font-size: ${(props) => props.theme.fontSizesUpdated.h1};
-    font-weight: 600;
-    margin-bottom: 1rem;
-  }
-`;
-
-export const Disclaimer = styled(Typography)`
-  && {
-    font-size: ${(props) => props.theme.fontSizesUpdated.md};
-    color: ${(props) => props.theme.colors.muiGrey[600]};
-    margin-bottom: 3rem;
-  }
 `;
 
 export const EditButton = styled(IconButton)`

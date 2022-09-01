@@ -282,11 +282,8 @@ class SubscriptionsCacheProvider:
         cached_data = json.loads(self.cache.get(self.key) or "{}")
         cached_data.update(data)
 
-        with self.cache.lock(f"{self.key}-lock"):
-            logger.info("Inserting %s subscriptions into cache with key %s", len(data), self.key)
-            self.cache.set(
-                self.key, json.dumps(cached_data, cls=DjangoJSONEncoder), timeout=CONTRIBUTION_CACHE_TTL.seconds
-            )
+        logger.info("Inserting %s subscriptions into cache with key %s", len(data), self.key)
+        self.cache.set(self.key, json.dumps(cached_data, cls=DjangoJSONEncoder), timeout=CONTRIBUTION_CACHE_TTL.seconds)
 
     def load(self):
         """Gets the subscription data from cache for a specefic email and stripe account id combo."""

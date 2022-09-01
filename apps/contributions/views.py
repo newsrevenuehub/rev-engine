@@ -341,41 +341,35 @@ class SubscriptionsViewSet(viewsets.ViewSet):
     ]
     serializer_class = serializers.SubscriptionsSerializer
 
-    def retrieve(self, request, pk):
+    def _fetch_subscriptions(self, request):
         revenue_program_slug = request.query_params.get("revenue_program_slug")
-        revenue_program = RevenueProgram.objects.get(slug=revenue_program_slug)
+        try:
+            revenue_program = RevenueProgram.objects.get(slug=revenue_program_slug)
+        except RevenueProgram.DoesNotExist:
+            return Response({"detail": "Revenue Program not found"}, status=status.HTTP_404_NOT_FOUND)
         cache_provider = SubscriptionsCacheProvider(self.request.user.email, revenue_program.stripe_account_id)
         subscriptions = cache_provider.load()
         if not subscriptions:
             task_pull_serialized_stripe_contributions_to_cache(
                 self.request.user.email, revenue_program.stripe_account_id
             )
-        try:
-            subscription = [
-                x
-                for x in subscriptions
-                if x.get("revenue_program_slug") == self.request.query_params["revenue_program_slug"]
-                and x.get("id") == pk
-            ][0]
-        except IndexError:
-            return Response({"detail": "Not Found"}, status=status.HTTP_404_NOT_FOUND)
-        return Response(subscription)
+
+        subscriptions = cache_provider.load()
+        return [x for x in subscriptions if x.get("revenue_program_slug") == revenue_program_slug]
+
+    def retrieve(self, request, pk):
+        subscriptions = self._fetch_subscriptions(request)
+        for subscription in subscriptions:
+            if (
+                subscription.get("revenue_program_slug") == self.request.query_params["revenue_program_slug"]
+                and subscription.get("id") == pk
+            ):
+                return Response(subscription, status=status.HTTP_200_OK)
+        return Response({"detail": "Not Found"}, status=status.HTTP_404_NOT_FOUND)
 
     def list(self, request):
-        revenue_program_slug = request.query_params.get("revenue_program_slug")
-        revenue_program = RevenueProgram.objects.get(slug=revenue_program_slug)
-        cache_provider = SubscriptionsCacheProvider(self.request.user.email, revenue_program.stripe_account_id)
-        subscriptions = cache_provider.load()
-        if not subscriptions:
-            task_pull_serialized_stripe_contributions_to_cache(
-                self.request.user.email, revenue_program.stripe_account_id
-            )
-        subscriptions = [
-            x
-            for x in subscriptions
-            if x.get("revenue_program_slug") == self.request.query_params["revenue_program_slug"]
-        ]
-        return Response(subscriptions)
+        subscriptions = self._fetch_subscriptions(request)
+        return Response(subscriptions, status=status.HTTP_200_OK)
 
     def partial_update(self, request, pk):
         """

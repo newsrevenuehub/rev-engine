@@ -1,10 +1,12 @@
 import datetime
+import io
 import json
 import os
 
 from django.conf import settings
 from django.utils import timezone
 
+import PIL as pillow
 from rest_framework import status
 from rest_framework.reverse import reverse
 from rest_framework.test import APITestCase
@@ -89,7 +91,7 @@ class PageViewSetTest(RevEngineApiAbstractTestCase):
             "revenue_program": self.org2_rp.pk,
         }
         url = reverse("donationpage-list")
-        self.assert_org_admin_cannot_post(url, data, expected_status_code=status.HTTP_400_BAD_REQUEST)
+        self.assert_org_admin_cannot_post(url, data, status=status.HTTP_400_BAD_REQUEST)
         self.assertEqual(my_org_pages_query.count(), before_my_org_pages_count)
         self.assertEqual(other_org_pages_query.count(), before_other_org_count)
 
@@ -125,9 +127,7 @@ class PageViewSetTest(RevEngineApiAbstractTestCase):
         data = {**self.default_page_creation_data}
         data["revenue_program"] = self.org2_rp.pk
 
-        self.assert_rp_user_cannot_post(
-            reverse("donationpage-list"), data, expected_status_code=status.HTTP_400_BAD_REQUEST
-        )
+        self.assert_rp_user_cannot_post(reverse("donationpage-list"), data, status=status.HTTP_400_BAD_REQUEST)
         self.assertEqual(my_pages_query.count(), before_my_pages_count)
         self.assertEqual(others_pages_query.count(), before_others_count)
 
@@ -211,7 +211,7 @@ class PageViewSetTest(RevEngineApiAbstractTestCase):
         detail_url = reverse("donationpage-detail", args=(page.pk,))
         new_heading = old_page_heading[::-1]
         patch_data = {"heading": new_heading}
-        self.assert_org_admin_cannot_patch(detail_url, patch_data, expected_status_code=status.HTTP_404_NOT_FOUND)
+        self.assert_org_admin_cannot_patch(detail_url, patch_data, status=status.HTTP_404_NOT_FOUND)
         page.refresh_from_db()
         self.assertEqual(page.pk, old_page_pk)
         self.assertEqual(page.heading, old_page_heading)
@@ -245,6 +245,22 @@ class PageViewSetTest(RevEngineApiAbstractTestCase):
         page.refresh_from_db()
         self.assertEqual(page.pk, old_page_pk)
         self.assertEqual(page.heading, old_page_heading)
+
+    def test_page_screenshot_filename_is_honored(self):  # DEV-2322
+        page = DonationPage.objects.filter().first()
+        filename = f"{page.name}_234234232.png"
+        file = io.BytesIO()
+        image = pillow.Image.new("RGBA", size=(100, 100), color=(100, 100, 0))
+        image.save(file, "png")
+        file.name = filename
+        file.seek(0)
+        self.assert_user_can_patch(
+            self.superuser, f"/api/v1/pages/{page.pk}/", {"page_screenshot": file}, format="multipart"
+        )
+        page.refresh_from_db()
+        expected = filename.replace(" ", "_")  # There's other replacements that happen.
+        assert page.page_screenshot.name.endswith(expected)
+        assert page.page_screenshot.url.endswith(expected)
 
     ########
     # Delete
@@ -303,7 +319,7 @@ class PageViewSetTest(RevEngineApiAbstractTestCase):
         page.contribution_set.all().delete()
         pk = page.pk
         detail_url = reverse("donationpage-detail", args=(pk,))
-        self.assert_org_admin_cannot_delete(detail_url, expected_status_code=status.HTTP_403_FORBIDDEN)
+        self.assert_org_admin_cannot_delete(detail_url, status=status.HTTP_403_FORBIDDEN)
         self.assertEqual(DonationPage.objects.count(), before_count)
         self.assertTrue(DonationPage.objects.filter(pk=pk).exists())
 
@@ -331,7 +347,7 @@ class PageViewSetTest(RevEngineApiAbstractTestCase):
         page.contribution_set.all().delete()
         pk = page.pk
         detail_url = reverse("donationpage-detail", args=(pk,))
-        self.assert_rp_user_cannot_delete(detail_url, expected_status_code=status.HTTP_403_FORBIDDEN)
+        self.assert_rp_user_cannot_delete(detail_url, status=status.HTTP_403_FORBIDDEN)
         self.assertEqual(DonationPage.objects.count(), before_count)
         self.assertTrue(DonationPage.objects.filter(pk=pk).exists())
 
@@ -640,7 +656,7 @@ class TemplateViewSetTest(RevEngineApiAbstractTestCase):
         response = self.assert_org_admin_cannot_post(
             self.list_url,
             self.create_template_data_invalid_for_other_org,
-            expected_status_code=status.HTTP_400_BAD_REQUEST,
+            status=status.HTTP_400_BAD_REQUEST,
         )
         self.assertEqual(response.json()["page"][0], "Not found")
         self.assertEqual(Template.objects.count(), old_count)
@@ -658,7 +674,7 @@ class TemplateViewSetTest(RevEngineApiAbstractTestCase):
         self.assert_rp_user_cannot_post(
             self.list_url,
             self.create_template_data_invalid_for_another_rp,
-            expected_status_code=status.HTTP_400_BAD_REQUEST,
+            status=status.HTTP_400_BAD_REQUEST,
         )
         self.assertEqual(Template.objects.count(), old_count)
 
@@ -667,7 +683,7 @@ class TemplateViewSetTest(RevEngineApiAbstractTestCase):
         response = self.assert_rp_user_cannot_post(
             self.list_url,
             self.create_template_data_invalid_for_other_org,
-            expected_status_code=status.HTTP_400_BAD_REQUEST,
+            status=status.HTTP_400_BAD_REQUEST,
         )
         self.assertEqual(response.json()["page"][0], "Not found")
         self.assertEqual(Template.objects.count(), old_count)
@@ -790,7 +806,7 @@ class TemplateViewSetTest(RevEngineApiAbstractTestCase):
         new_name = "updated name"
         self.assertEqual(Template.objects.filter(name=new_name).count(), 0)
         update_data = {"name": new_name}
-        self.assert_rp_user_cannot_patch(url, update_data, expected_status_code=status.HTTP_404_NOT_FOUND)
+        self.assert_rp_user_cannot_patch(url, update_data, status=status.HTTP_404_NOT_FOUND)
         self.assertEqual(Template.objects.filter(name=new_name).count(), 0)
 
     ########
@@ -823,7 +839,7 @@ class TemplateViewSetTest(RevEngineApiAbstractTestCase):
         old_count = Template.objects.count()
         pk = self.other_orgs_template.pk
         url = reverse("template-detail", args=(pk,))
-        self.assert_org_admin_cannot_delete(url, expected_status_code=status.HTTP_404_NOT_FOUND)
+        self.assert_org_admin_cannot_delete(url, status=status.HTTP_404_NOT_FOUND)
         self.assertEqual(Template.objects.count(), old_count)
         self.assertTrue(Template.objects.filter(pk=pk).exists())
 
@@ -839,7 +855,7 @@ class TemplateViewSetTest(RevEngineApiAbstractTestCase):
     def test_rp_user_cannot_delete_an_unowned_template(self):
         url = reverse("template-detail", args=(self.other_rps_template.pk,))
         self.assertGreater(before_count := Template.objects.count(), 0)
-        self.assert_rp_user_cannot_delete(url, expected_status_code=status.HTTP_404_NOT_FOUND)
+        self.assert_rp_user_cannot_delete(url, status=status.HTTP_404_NOT_FOUND)
         self.assertEqual(Template.objects.count(), before_count)
         self.assertTrue(Template.objects.filter(pk=self.other_rps_template.pk).exists())
 
@@ -849,9 +865,9 @@ class TemplateViewSetTest(RevEngineApiAbstractTestCase):
     def test_unexpected_role_type(self):
         novel = create_test_user(role_assignment_data={"role_type": "holy-moley"})
         self.assert_user_cannot_get(
-            reverse("template-list"),
             novel,
-            expected_status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            reverse("template-list"),
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR,
         )
 
 
@@ -923,7 +939,7 @@ class StylesViewsetTest(RevEngineApiAbstractTestCase):
         self.assert_org_admin_cannot_post(
             reverse("style-list"),
             self.create_style_payload_different_org,
-            expected_status_code=status.HTTP_400_BAD_REQUEST,
+            status=status.HTTP_400_BAD_REQUEST,
         )
         self.assertEqual(Style.objects.count(), before_count)
 
@@ -940,7 +956,7 @@ class StylesViewsetTest(RevEngineApiAbstractTestCase):
         self.assert_rp_user_cannot_post(
             reverse("style-list"),
             self.create_style_payload_different_rp,
-            expected_status_code=status.HTTP_400_BAD_REQUEST,
+            status=status.HTTP_400_BAD_REQUEST,
         )
         self.assertEqual(Style.objects.count(), before_count)
 
@@ -1109,7 +1125,7 @@ class StylesViewsetTest(RevEngineApiAbstractTestCase):
         new_color = "new-color"
         data = self.create_style_payload
         data["colors"]["primary"] = new_color
-        self.assert_rp_user_cannot_patch(url, data, expected_status_code=status.HTTP_404_NOT_FOUND)
+        self.assert_rp_user_cannot_patch(url, data, status=status.HTTP_404_NOT_FOUND)
         style.refresh_from_db()
         self.assertEqual(style.modified, before_last_modified)
         url = reverse("style-detail", args=(style.pk,))
@@ -1131,7 +1147,7 @@ class StylesViewsetTest(RevEngineApiAbstractTestCase):
         before_count = Style.objects.count()
         pk = style.pk
         url = reverse("style-detail", args=(pk,))
-        self.assert_org_admin_cannot_delete(url, expected_status_code=status.HTTP_403_FORBIDDEN)
+        self.assert_org_admin_cannot_delete(url, status=status.HTTP_403_FORBIDDEN)
         self.assertEqual(Style.objects.count(), before_count)
         self.assertTrue(Style.objects.filter(pk=pk).exists())
 
@@ -1146,7 +1162,7 @@ class StylesViewsetTest(RevEngineApiAbstractTestCase):
         before_count = Style.objects.count()
         pk = style.pk
         url = reverse("style-detail", args=(pk,))
-        self.assert_rp_user_cannot_delete(url, expected_status_code=status.HTTP_403_FORBIDDEN)
+        self.assert_rp_user_cannot_delete(url, status=status.HTTP_403_FORBIDDEN)
         self.assertEqual(Style.objects.count(), before_count)
         self.assertTrue(Style.objects.filter(pk=pk).exists())
 
@@ -1155,9 +1171,7 @@ class StylesViewsetTest(RevEngineApiAbstractTestCase):
 
     def test_unexpected_role_type(self):
         novel = create_test_user(role_assignment_data={"role_type": "holy-moley"})
-        self.assert_user_cannot_get(
-            reverse("style-list"), novel, expected_status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
-        )
+        self.assert_user_cannot_get(novel, reverse("style-list"), status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 class FontViewSetTest(RevEngineApiAbstractTestCase):
@@ -1167,26 +1181,26 @@ class FontViewSetTest(RevEngineApiAbstractTestCase):
             FontFactory()
 
     def test_authed_user_can_retrieve(self):
-        self.assert_user_can_get(reverse("font-detail", args=(Font.objects.first().pk,)), self.generic_user)
+        self.assert_user_can_get(self.generic_user, reverse("font-detail", args=(Font.objects.first().pk,)))
 
     def test_authed_user_can_list(self):
-        self.assert_user_can_list(reverse("font-list"), self.generic_user, Font.objects.count(), results_are_flat=True)
+        self.assert_user_can_list(self.generic_user, reverse("font-list"), Font.objects.count(), results_are_flat=True)
 
     def test_authed_cannot_create(self):
-        self.assert_user_cannot_post(reverse("font-list"), self.generic_user, {}, status.HTTP_405_METHOD_NOT_ALLOWED)
+        self.assert_user_cannot_post(self.generic_user, reverse("font-list"), {}, status.HTTP_405_METHOD_NOT_ALLOWED)
 
     def test_authed_cannot_update(self):
         self.assert_user_cannot_patch(
-            reverse("font-detail", args=(Font.objects.first().pk,)),
             self.generic_user,
+            reverse("font-detail", args=(Font.objects.first().pk,)),
             {},
             status.HTTP_405_METHOD_NOT_ALLOWED,
         )
 
     def test_authed_cannot_delete(self):
         self.assert_user_cannot_delete(
-            reverse("font-detail", args=(Font.objects.first().pk,)),
             self.generic_user,
+            reverse("font-detail", args=(Font.objects.first().pk,)),
             status.HTTP_405_METHOD_NOT_ALLOWED,
         )
 

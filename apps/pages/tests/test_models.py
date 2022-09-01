@@ -28,9 +28,13 @@ from apps.users.choices import Roles
 
 
 def test__get_screenshot_upload_path():
-    instance = mock.Mock(name="landing", organization=mock.Mock(name="justiceleague"))
-    filename = mock.Mock()
-    assert isinstance(_get_screenshot_upload_path(instance, filename), str)
+    org = mock.Mock()
+    org.name = "justiceleague"
+    instance = mock.Mock(organization=org)
+    instance.name = "superhero"
+    assert "justiceleague/page_screenshots/superhero_landing.png" == _get_screenshot_upload_path(
+        instance, "landing.png"
+    )
 
 
 @pytest.mark.parametrize(

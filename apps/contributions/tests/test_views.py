@@ -615,14 +615,12 @@ class TestContributionsViewSet(RevEngineApiAbstractTestCase):
 
     def test_unexpected_role_type(self):
         novel = create_test_user(role_assignment_data={"role_type": "never-before-seen"})
-        self.assert_user_cannot_get(
-            reverse("contribution-list"), novel, expected_status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
-        )
+        self.assert_user_cannot_get(novel, reverse("contribution-list"), status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     def test_list_contributions_with_status_negation(self):
         filter_statuses = {"paid", "flagged"}
         qp = "&".join([f"status__not={i}" for i in filter_statuses])
-        response = self.assert_user_can_get(self.list_url + f"?{qp}", self.superuser)
+        response = self.assert_user_can_get(self.superuser, self.list_url + f"?{qp}")
         self.assertTrue(all([i["status"] not in filter_statuses for i in response.json()["results"]]))
 
 

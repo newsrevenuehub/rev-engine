@@ -9,6 +9,7 @@ import { CONTENT_SECTION_ACCESS_FLAG_NAME } from 'constants/featureFlagConstants
 import flagIsActiveForUser from 'utilities/flagIsActiveForUser';
 import { useFeatureFlagsProviderContext } from 'components/Main';
 import hasContributionsDashboardAcessToUser from 'utilities/hasContributionsDashboardAcessToUser';
+import DashboardSidebarFooter from './DashboardSidebarFooter';
 
 /*
 // Commenting out for now as this will needed in future
@@ -35,6 +36,7 @@ function DashboardSidebar() {
         {hasContentSectionAccess ? <ContentSectionNav /> : null}
         {hasContributionsSectionAccess ? <ContributionSectionNav /> : null}
       </S.NavList>
+      <DashboardSidebarFooter />
     </S.DashboardSidebar>
   );
 }

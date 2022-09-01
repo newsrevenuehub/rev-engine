@@ -66,7 +66,6 @@ class StyleListSerializer(StyleInlineSerializer):
             UniqueTogetherValidator(queryset=Style.objects.all(), fields=["revenue_program", "name"]),
         ]
 
-    # TODO: this is used nowhere except test
     def get_used_live(self, obj):
         return DonationPage.objects.filter(styles=obj, published_date__lte=timezone.now()).exists()
 

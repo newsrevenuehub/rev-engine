@@ -173,8 +173,8 @@ class PageViewSetTest(RevEngineApiAbstractTestCase):
     ########
     # Update
     @pytest.mark.xfail
-    def test_update_with_sidevar_elements(self):
-        # TODO: How to test partial_update with request.FILES
+    def test_update_with_sidebar_elements(self):
+        # TODO: DEV-2327 How to test partial_update with request.FILES
         page = DonationPage.objects.filter().first()
         sidebar_elements = {}
         self.assert_superuser_can_patch(

@@ -1,0 +1,11 @@
+export TEST_HUB_STRIPE_API_SECRET_KEY=sk_test_???
+export REACT_APP_HUB_STRIPE_API_PUB_KEY=pk_test_???
+export REACT_APP_CAPTURE_PAGE_SCREENSHOT=true
+export STRIPE_WEBHOOK_SECRET=whsec_???
+export DJANGO_SETTINGS_MODULE=revengine.settings.local
+export DATABASE_URL=postgres://postgres@127.0.0.1:54000/revengine
+export PGHOST=127.0.0.1
+export PGPORT=54000
+export PGUSER=postgres
+export PGDATABASE=revengine
+export REDIS_URL=redis://localhost:6379

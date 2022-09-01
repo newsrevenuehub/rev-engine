@@ -19,7 +19,7 @@ import useWebFonts from 'hooks/useWebFonts';
 import useUser from 'hooks/useUser';
 
 // Context
-import { useGlobalContext } from 'components/MainLayout';
+import { useConfirmationModalContext } from 'elements/modal/GlobalConfirmationModal';
 
 // Children
 import CircleButton from 'elements/buttons/CircleButton';
@@ -31,7 +31,7 @@ const PANGRAM = 'The quick brown fox jumps over the lazy dog.';
 
 function StylesEditor({ styles, setStyles, handleKeepChanges, handleDiscardChanges, isUpdate }) {
   const alert = useAlert();
-  const { getUserConfirmation } = useGlobalContext();
+  const getUserConfirmation = useConfirmationModalContext();
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
   const [availableFonts, setAvailableFonts] = useState([]);

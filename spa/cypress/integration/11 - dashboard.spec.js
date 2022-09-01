@@ -3,6 +3,8 @@ import { LIST_STYLES, LIST_PAGES, USER } from 'ajax/endpoints';
 import { DASHBOARD_SLUG, DONATIONS_SLUG, CONTENT_SLUG } from 'routes';
 
 import hubAdminWithoutFlags from '../fixtures/user/hub-admin';
+import orgAdmin from '../fixtures/user/org-admin.json';
+
 import {
   CONTRIBUTIONS_SECTION_ACCESS_FLAG_NAME,
   CONTRIBUTIONS_SECTION_DENY_FLAG_NAME,
@@ -42,6 +44,11 @@ const hubAdminWithContentFlag = {
 const hubAdminWithAllAccessFlags = {
   ...hubAdminWithoutFlags,
   flags: [contentSectionFlag, contribSectionsAccessFlag]
+};
+
+const orgAdminWithContentFlag = {
+  ...orgAdmin,
+  flags: [{ ...contentSectionFlag }]
 };
 
 describe('Dashboard', () => {
@@ -106,5 +113,35 @@ describe('Dashboard', () => {
       cy.url().should('include', DONATIONS_SLUG);
       cy.getByTestId('donations').should('not.exist');
     });
+  });
+
+  describe('Footer', () => {
+    for (const { body, label } of [
+      { label: 'Hub admins', body: hubAdminWithContentFlag },
+      { label: 'org admins', body: orgAdminWithContentFlag }
+    ]) {
+      it(`shows a help link to ${label}`, () => {
+        cy.intercept({ method: 'GET', pathname: getEndpoint(USER) }, { body });
+        cy.visit(DASHBOARD_SLUG);
+        cy.getByTestId('nav-help-item')
+          .should('exist')
+          .should('have.text', 'Help')
+          .should('have.attr', 'href', 'mailto:revengine-support@fundjournalism.org');
+      });
+
+      it(`shows a FAQ link to ${label}`, () => {
+        cy.intercept({ method: 'GET', pathname: getEndpoint(USER) }, { body });
+        cy.visit(DASHBOARD_SLUG);
+        cy.getByTestId('nav-faq-item')
+          .should('exist')
+          .should('have.text', 'FAQ')
+          .should(
+            'have.attr',
+            'href',
+            'https://news-revenue-hub.atlassian.net/servicedesk/customer/portal/11/article/2195423496'
+          )
+          .should('have.attr', 'target', '_blank');
+      });
+    }
   });
 });

@@ -555,6 +555,14 @@ redis = ">=3,<4.0.0 || >4.0.0,<4.0.1 || >4.0.1"
 hiredis = ["redis[hiredis] (>=3,!=4.0.0,!=4.0.1)"]
 
 [[package]]
+name = "django-rest-passwordreset"
+version = "1.2.1"
+description = "An extension of django rest framework, providing a configurable password reset strategy"
+category = "main"
+optional = false
+python-versions = "*"
+
+[[package]]
 name = "django-reverse-admin"
 version = "2.9.6"
 description = ""
@@ -2138,6 +2146,10 @@ django-phonenumber-field = [
 django-redis = [
     {file = "django-redis-5.2.0.tar.gz", hash = "sha256:8a99e5582c79f894168f5865c52bd921213253b7fd64d16733ae4591564465de"},
     {file = "django_redis-5.2.0-py3-none-any.whl", hash = "sha256:1d037dc02b11ad7aa11f655d26dac3fb1af32630f61ef4428860a2e29ff92026"},
+]
+django-rest-passwordreset = [
+    {file = "django-rest-passwordreset-1.2.1.tar.gz", hash = "sha256:9762f337983b33f66b9ec95d4f19b3da8daba2b7d22ac005ba114ddda98aae38"},
+    {file = "django_rest_passwordreset-1.2.1-py3-none-any.whl", hash = "sha256:6be5d34b334cae4e381336fa32987e48276eec976aa454bb0ef428438eba3d44"},
 ]
 django-reverse-admin = [
     {file = "django_reverse_admin-2.9.6.zip", hash = "sha256:3c26d7a93181e8f11b1c81f83251f238c566bc7ebea2873520269c949116f0d9"},

@@ -82,6 +82,12 @@ class StripeCharge:
         return metadata["revenue_program_slug"]
 
     @property
+    def subscription_id(self):
+        if not self.charge.invoice:
+            return None
+        return self.charge.invoice.subscription.id
+
+    @property
     def card(self):
         return getattr(self.charge.payment_method_details, "card", None) or AttrDict(
             **{"brand": None, "last4": None, "exp_month": None}
@@ -191,7 +197,7 @@ class StripeContributionsProvider:
     def fetch_charges(self, query=None, page=None):
         kwargs = {
             "query": query,
-            "expand": ["data.invoice", "data.payment_method_details"],
+            "expand": ["data.invoice.subscription", "data.payment_method_details"],
             "limit": MAX_STRIPE_RESPONSE_LIMIT,
             "stripe_account": self.stripe_account_id,
         }

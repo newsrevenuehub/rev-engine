@@ -11,8 +11,8 @@ from rest_framework_simplejwt.exceptions import InvalidToken
 from rest_framework_simplejwt.tokens import AccessToken
 
 from apps.api.authentication import JWTHttpOnlyCookieAuthentication
-from apps.api.permissions import ContributorOwnsContribution, IsContributor
-from apps.contributions.tests.factories import ContributionFactory, ContributorFactory
+from apps.api.permissions import IsContributor
+from apps.contributions.tests.factories import ContributorFactory
 
 
 user_model = get_user_model()
@@ -117,33 +117,4 @@ class IsContributorTest(APITestCase):
     def test_failure_when_not_contributor(self):
         request = self._create_request(self.regular_user)
         has_permission = self.permission.has_permission(request, {})
-        self.assertFalse(has_permission)
-
-
-class ContributorOwnsContributionTest(APITestCase):
-    def setUp(self):
-        self.factory = RequestFactory()
-        self.permission = ContributorOwnsContribution()
-
-        self.regular_user = user_model.objects.create_user(email="test@test.com", password="testing")
-        self.right_contributor = ContributorFactory(email="right@test.com")
-        self.wrong_contributor = ContributorFactory(email="wrong@test.com")
-
-        self.contribution = ContributionFactory(contributor=self.right_contributor)
-        self.url = reverse("contribution-cancel-recurring-payment", kwargs={"pk": self.contribution.pk})
-
-    def _create_request(self, user):
-        request = self.factory.post(self.url)
-        request.user = user
-        force_authenticate(request, user=user)
-        return request
-
-    def test_success_when_contributor_owns_contribution(self):
-        request = self._create_request(self.right_contributor)
-        has_permission = self.permission.has_object_permission(request, {}, self.contribution)
-        self.assertTrue(has_permission)
-
-    def test_failure_when_contributor_does_not_own_contriubtion(self):
-        request = self._create_request(self.wrong_contributor)
-        has_permission = self.permission.has_object_permission(request, {}, self.contribution)
         self.assertFalse(has_permission)

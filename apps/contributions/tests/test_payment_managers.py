@@ -118,16 +118,6 @@ class StripeOneTimePaymentManagerTest(StripePaymentManagerAbstractTestCase):
         self.assertIn("referer", v_error.exception.detail)
         self.assertEqual(str(v_error.exception.detail["referer"][0]), "This field is required.")
 
-    @patch("stripe.Subscription.delete")
-    def test_ensure_contribution(self, mock_delete_sub):
-        pm = StripePaymentManager(data={"interval": "test"})
-        with self.assertRaises(ValueError) as error:
-            pm.cancel_recurring_payment()
-        self.assertEqual(
-            str(error.exception), "Method requires PaymentManager to be instantiated with contribution instance"
-        )
-        mock_delete_sub.assert_not_called()
-
     @patch("apps.contributions.payment_managers.logger.warning")
     @responses.activate
     def test_badactor_validation_error_logs_warning(self, logger_warning):

@@ -42,8 +42,39 @@ class ContributorTest(TestCase):
     def test_is_superuser(self):
         self.assertFalse(self.contributor.is_superuser)
 
-    def test_create_stripe_customer(self):
-        pass
+    @patch("stripe.Customer.create")
+    def test_create_stripe_customer(self, mock_create_customer):
+        """Show Contributor.create_stripe_customer calls Stripe with right params and returns the customer object"""
+        return_value = {}
+        mock_create_customer.return_value = return_value
+
+        call_args = {
+            "rp_stripe_account_id": "fake_rp_stripe_id",
+            "customer_name": "Jane Doe",
+            "phone": "555-555-5555",
+            "street": "123 Street Lane",
+            "city": "Small Town",
+            "state": "OK",
+            "postal_code": "12345",
+            "country": "US",
+            "metadata": {"meta": "data"},
+        }
+        customer = self.contributor.create_stripe_customer(**call_args)
+        mock_create_customer.assert_called_once_with(
+            email=self.contributor.email,
+            address={
+                "line1": call_args["street"],
+                "city": call_args["city"],
+                "state": call_args["state"],
+                "postal_code": call_args["postal_code"],
+                "country": call_args["country"],
+            },
+            name=call_args["customer_name"],
+            phone=call_args["phone"],
+            stripe_account=call_args["rp_stripe_account_id"],
+            metadata=call_args["metadata"],
+        )
+        self.assertEqual(customer, return_value)
 
 
 test_key = "test_key"

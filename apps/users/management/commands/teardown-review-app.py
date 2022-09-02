@@ -1,5 +1,5 @@
 from django.conf import settings
-from django.core.management.base import BaseCommand  # pragma: no cover
+from django.core.management.base import BaseCommand
 from django.urls import reverse
 
 from apps.common.utils import (
@@ -10,7 +10,7 @@ from apps.common.utils import (
 from apps.contributions.utils import get_hub_stripe_api_key
 
 
-class Command(BaseCommand):  # pragma: no cover
+class Command(BaseCommand):  # pragma: no cover Guess we're too lazy to test
     def add_arguments(self, parser):
         parser.add_argument("--ticket", nargs="?", type=str)
 

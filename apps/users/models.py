@@ -86,7 +86,7 @@ class UnexpectedRoleType(Exception):
     pass
 
 
-class RoleAssignmentResourceModelMixin:  # pragma: no cover
+class RoleAssignmentResourceModelMixin:
     """For use in models exposed via rest api, inheriting from FilterQuerySetByUserMixin and/or
     FilterQuerySetByUserMixin.
 

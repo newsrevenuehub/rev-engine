@@ -146,39 +146,6 @@ class CompSubscriptions(TextChoices):
     NYT = "nyt", "nyt"
 
 
-class ConditionalRequirementsSerializerMixin(serializers.Serializer):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self._update_field_properties_from_page_elements()
-
-    def _update_field_properties_from_page_elements(self):
-        if not (page_id := self.initial_data.get("page_id", None)):
-            raise serializers.ValidationError({"page_id": "This field is required"})
-        try:
-            page = DonationPage.objects.get(pk=page_id)
-        except DonationPage.DoesNotExist:
-            logger.warning(
-                "ConditionalRequirementsSerializerMixin encountered a request for a nonexistent page with ID %s",
-                page_id,
-            )
-            raise serializers.ValidationError({"page_id": f"No page found with page_id of {page_id}"})
-        self._set_conditionally_required_fields(page.elements)
-
-    def _set_conditionally_required_fields(self, page_elements):
-        """
-        Elements may define a "requiredFields" key, which is a list of field names that may not be blank or absent when submitting a donation.
-        """
-        # Get list of lists of required fields
-        required_fields = [element.get("requiredFields", []) for element in page_elements]
-        # Flatten to single list of required fields
-        required_fields = [item for fieldsList in required_fields for item in fieldsList]
-        # For every required field, update the field definition
-        for required_field in required_fields:
-            if required_field in self.fields:
-                self.fields[required_field].required = True
-                self.fields[required_field].allow_blank = False
-
-
 class BadActorSerializer(serializers.Serializer):
     # Donation info
     amount = serializers.CharField(max_length=12)
@@ -213,7 +180,7 @@ class BadActorSerializer(serializers.Serializer):
         return super().to_internal_value(data)
 
 
-class AbstractPaymentSerializer(ConditionalRequirementsSerializerMixin):
+class AbstractPaymentSerializer(serializers.Serializer):
     # Payment details
     amount = serializers.IntegerField(
         min_value=REVENGINE_MIN_AMOUNT,
@@ -298,8 +265,6 @@ class BaseCreatePaymentSerializer(serializers.Serializer):
     comp_subscription = serializers.ChoiceField(
         choices=CompSubscriptions.choices, required=False, allow_blank=True, write_only=True
     )
-    # # TODO: figure out logic around `t_shirt_size` as generic field for all swag
-    # t_shirt_size = serializers.CharField(max_length=500, required=False, allow_blank=True)
     sf_campaign_id = serializers.CharField(max_length=255, required=False, allow_blank=True, write_only=True)
     captcha_token = serializers.CharField(max_length=2550, required=False, allow_blank=True, write_only=True)
     provider_client_secret_id = serializers.CharField(read_only=True)
@@ -378,10 +343,11 @@ class BaseCreatePaymentSerializer(serializers.Serializer):
             return None
 
     def should_flag(self, bad_actor_score):
-        """ """
+        """Determine if bad actor score should lead to contribution being flagged"""
         return self.bad_actor_score >= settings.BAD_ACTOR_FAIL_ABOVE
 
     def get_stripe_payment_metadata(self, contributor, validated_data):
+        """Generate dict of metadata to be sent to Stripe when creating a PaymentIntent or Subscription"""
         return {
             # TODO: confirm business requirements around these first two keys/vals
             "source": settings.METADATA_SOURCE,
@@ -401,6 +367,7 @@ class BaseCreatePaymentSerializer(serializers.Serializer):
         }
 
     def create_stripe_customer(self, contributor, validated_data):
+        """Create a Stripe customer using validated data"""
         return contributor.create_stripe_customer(
             validated_data["page"].revenue_program.stripe_account_id,
             customer_name=f"{validated_data.get('first_name', '')} {validated_data.get('last_name', '')}".strip(),
@@ -418,6 +385,7 @@ class BaseCreatePaymentSerializer(serializers.Serializer):
         )
 
     def create_contribution(self, contributor, validated_data, bad_actor_response=None):
+        """Create an NRE contribution using validated data"""
         contribution_data = {
             "amount": validated_data["amount"],
             "interval": validated_data["interval"],
@@ -438,16 +406,23 @@ class BaseCreatePaymentSerializer(serializers.Serializer):
 
 
 class CreateOneTimePaymentSerializer(BaseCreatePaymentSerializer):
-    """
-
-    Note on tight coupling with two page, stripe based form
-    """
+    """Serializer to enable creating a contribution + one time payment"""
 
     def create(self, validated_data):
-        """
+        """Create a one-time contribution...
 
+        Plus:
+        - Contributor (if not already exist)
+        - Get bad actor score based on submitted data
+        - Stripe Customer
+        - Stripe PaymentIntent
 
-        Note on tight coupling with two page, stripe based form
+        In success case, this method returns a the client_secret from the Stripe PaymentIntent,
+        which is used to initialize the StripeElement in the SPA.
+
+        If the contribution gets flagged after making bad actor API request,
+        we raise a PermissionDenied exception, which will signal to the SPA
+        that the PaymentElement should not be loaded.
 
         """
         contributor, _ = Contributor.objects.get_or_create(email=validated_data["email"])
@@ -469,21 +444,29 @@ class CreateOneTimePaymentSerializer(BaseCreatePaymentSerializer):
                 contribution.id,
             )
             raise GenericPaymentError()
-        # We provide the provider_client_secret_id because the frontend needs it in order to display the Stripe PaymentElement.
         return {"provider_client_secret_id": payment_intent["client_secret"]}
 
 
 class CreateRecurringPaymentSerializer(BaseCreatePaymentSerializer):
-    """
-    Note on tight coupling with two page, stripe based form
-    """
+    """Serializer to enable creating a contribution + recurring payment"""
 
     interval = serializers.ChoiceField(choices=[ContributionInterval.MONTHLY, ContributionInterval.YEARLY])
 
     def create(self, validated_data):
-        """
-        Note on tight coupling with two page, stripe based form
+        """Create a recurring contribution...
 
+        Plus:
+        - Contributor (if not already exist)
+        - Get bad actor score based on submitted data
+        - Stripe Customer
+        - Stripe Subscription
+
+        In success case, this method returns a the client_secret from the Stripe Subcription,
+        which is used to initialize the StripeElement in the SPA.
+
+        If the contribution gets flagged after making bad actor API request,
+        we raise a PermissionDenied exception, which will signal to the SPA
+        that the PaymentElement should not be loaded.
         """
         contributor, _ = Contributor.objects.get_or_create(email=validated_data["email"])
         bad_actor_response = self.get_bad_actor_score(validated_data)
@@ -504,7 +487,6 @@ class CreateRecurringPaymentSerializer(BaseCreatePaymentSerializer):
                 contribution.id,
             )
             raise GenericPaymentError()
-        # We provide the provider_client_secret_id because the frontend needs it in order to display the Stripe PaymentElement.
         return {"provider_client_secret_id": subscription.latest_invoice.payment_intent.client_secret}
 
 
@@ -520,8 +502,6 @@ class StripeRecurringPaymentSerializer(AbstractPaymentSerializer):
     A Stripe recurring payment tracks payment information using a Stripe
     PaymentMethod.
     """
-
-    pass
 
 
 class PaymentProviderContributionSerializer(serializers.Serializer):

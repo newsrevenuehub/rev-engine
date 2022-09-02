@@ -111,25 +111,6 @@ class AbstractPaymentSerializerTest(TestCase):
         self.page.elements = [element]
         self.page.save()
 
-    def test_validates_page_element_if_conditionally_required(self):
-        """
-        Any input within any element of page.elements might be required to submit a payment. AbstractPaymentSerializer is responsible for enforcing this requirement and does so by updating the serializer field definition in __init__ based on page.elements content.
-        """
-        req_field = "phone"
-        self.element["requiredFields"].append(req_field)
-        self._add_element_to_page(self.element)
-        serializer = self.serializer(data=self.payment_data)
-        self.assertFalse(serializer.is_valid())
-        self.assertIn("phone", serializer.errors)
-        self.assertEqual(serializer.errors["phone"][0].code, "required")
-
-    def test_validates_page_element_if_conditionally_not_required(self):
-        self.element["requiredFields"] = []
-        self._add_element_to_page(self.element)
-        self.assertNotIn("phone", self.element["requiredFields"])
-        serializer = self.serializer(data=self.payment_data)
-        self.assertTrue(serializer.is_valid())
-
     def test_amount_validation_min(self):
         self.payment_data["amount"] = serializers.REVENGINE_MIN_AMOUNT - 1
         serializer = self.serializer(data=self.payment_data)
@@ -145,3 +126,112 @@ class AbstractPaymentSerializerTest(TestCase):
         self.assertIn("amount", serializer.errors)
         expected_msg = f"We can only accept contributions less than or equal to {format_ambiguous_currency(serializers.STRIPE_MAX_AMOUNT)}"
         self.assertEqual(str(serializer.errors["amount"][0]), expected_msg)
+
+
+class TestBaseCreatePaymentSerializer:
+    def setUp(self):
+        pass
+
+    def test_validate_reason_for_giving(self):
+        # parametrize with:
+        # reason is other, reason_other is none
+        # reason is other, reason_other is empty string
+        # reason is other, reason_other non empty
+        # reason is not other, reason other is none
+        pass
+
+    def test_validate_honoree(self):
+        # parametrize with:
+        # tribute_type is "type_honoree", honoree is None
+        # tribute_type is "type_honoree", honoree is empty
+        # tribute_type is "type_honoree", honoree is non empty
+        # tribute_type is not "type_honoree"
+        pass
+
+    def test_validate_in_memory_of(self):
+        # parametrize with:
+        # tribute_type is "type_in_memory_of", in_meory_of is None
+        # tribute_type is "type_in_memory_of", in_meory_of is empty
+        # tribute_type is "type_in_memory_of", in_meory_of is non empty
+        # tribute_type is not "type_in_memory_of"
+        pass
+
+    def test_validate_handles_conditionally_required_elements(self):
+        # TBD parametrization
+        pass
+
+    def test_validate_resolves_reason_for_giving(self):
+        # parametrize with
+        # reason_for_giving is Other and reason_other
+        # reason_for_giving is not other
+        pass
+
+    def test_get_bad_actor_score_happy_path(self):
+        pass
+
+    def test_get_bad_actor_when_data_invalid(self):
+        pass
+
+    def test_get_bad_actor_when_bad_actor_api_error(self):
+        pass
+
+    def test_should_flag(self):
+        # parametrize with
+        # bad_actor score below threshold
+        # bad actor score at threshold
+        # bad actor score above threshold
+        pass
+
+    def test_get_stripe_payment_metadata_happy_path(self):
+        pass
+
+    def test_create_stripe_customer(self):
+        # just prove it calls Contributor.create_stripe_customer with expected vals
+        # as this is tested elsewhere in depth
+        pass
+
+    def test_create_contribution_happy_path(self):
+        pass
+
+    def test_create_contribution_when_should_flag(self):
+        pass
+
+    def test_create_contribution_when_no_bad_actor_response(self):
+        pass
+
+
+class TestCreateOneTimePaymentSerializer:
+    def setUp(self):
+        pass
+
+    def test_happy_path(self):
+        pass
+
+    def test_when_stripe_errors_creating_payment_intent(self):
+        pass
+
+    def test_when_stripe_errors_creating_customer(self):
+        # NOTE: need to wrap that block in try/except
+        pass
+
+    def test_when_contribution_is_flagged(self):
+        pass
+
+
+class TestCreateRecurringPaymentSerializer:
+    def setUp(self):
+        pass
+
+    def test_happy_path(self):
+        # parametrize month vs. year?
+        pass
+
+    def test_when_stripe_errors_creating_payment_intent(self):
+        pass
+
+    def test_when_stripe_errors_creating_customer(self):
+        # NOTE: need to wrap that block in try/except
+        pass
+
+    def test_when_contribution_is_flagged(self):
+        pass

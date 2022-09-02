@@ -5,10 +5,9 @@ from django.middleware import csrf
 from django.test import override_settings
 
 import pytest
-from faker import Faker
 from rest_framework import status
 from rest_framework.reverse import reverse
-from rest_framework.test import APIClient, APIRequestFactory, APITestCase
+from rest_framework.test import APIClient, APITestCase
 from stripe.error import StripeError
 from stripe.oauth_error import InvalidGrantError as StripeInvalidGrantError
 from stripe.stripe_object import StripeObject
@@ -18,12 +17,10 @@ from apps.api.tests import RevEngineApiAbstractTestCase
 from apps.api.tokens import ContributorRefreshToken
 from apps.common.constants import CONTRIBUTIONS_API_ENDPOINT_ACCESS_FLAG_NAME
 from apps.common.tests.test_resources import AbstractTestCase
-from apps.contributions.models import Contribution, ContributionInterval
-from apps.contributions.payment_managers import PaymentBadParamsError, PaymentProviderError
+from apps.contributions.models import Contribution
+from apps.contributions.payment_managers import PaymentProviderError
 from apps.contributions.serializers import PaymentProviderContributionSerializer
 from apps.contributions.tests.factories import ContributionFactory, ContributorFactory
-from apps.contributions.utils import get_sha256_hash
-from apps.contributions.views import stripe_payment
 from apps.organizations.models import RevenueProgram
 from apps.organizations.tests.factories import (
     OrganizationFactory,
@@ -35,229 +32,6 @@ from apps.pages.models import DonationPage
 from apps.pages.tests.factories import DonationPageFactory
 from apps.users.choices import Roles
 from apps.users.tests.utils import create_test_user
-
-
-faker = Faker()
-
-test_client_secret = "secret123"
-test_stripe_payment_email = "tester@testing.com"
-
-
-EXPECTED_CONTRIBUTION_CONFIRMATION_TEMPLATE_KEYS = (
-    "contribution_date",
-    "contributor_email",
-    "contribution_amount",
-    "contribution_interval",
-    "contribution_interval_display_value",
-    "copyright_year",
-    "org_name",
-)
-
-
-class MockPaymentIntent(StripeObject):
-    def __init__(self, *args, **kwargs):
-        self.id = "test"
-        self.client_secret = test_client_secret
-
-
-class StripePaymentViewTestAbstract(AbstractTestCase):
-    def setUp(self):
-        super().setUp()
-        self.set_up_domain_model()
-
-    @classmethod
-    def setUpClass(cls):
-        super().setUpClass()
-        cls.payment_amount = "10.00"
-        cls.ip = faker.ipv4()
-        cls.referer = faker.url()
-        cls.url = reverse("stripe-payment")
-
-    def _create_request(self, donation_page, email=test_stripe_payment_email, interval=None, payment_method_id=None):
-        factory = APIRequestFactory()
-        request = factory.post(
-            self.url,
-            {
-                "email": email,
-                "first_name": "Test",
-                "last_name": "Tester",
-                "amount": self.payment_amount,
-                "donor_selected_amount": self.payment_amount,
-                "mailing_postal_code": 12345,
-                "mailing_street": "123 Fake Street",
-                "mailing_city": "Fakerton",
-                "mailing_state": "FK",
-                "mailing_country": "Fakeland",
-                "revenue_program_country": "US",
-                "currency": "cad",
-                "phone": "123-456-7890",
-                "revenue_program_slug": donation_page.revenue_program.slug,
-                "donation_page_slug": donation_page.slug,
-                "interval": interval if interval else ContributionInterval.ONE_TIME,
-                "payment_method_id": payment_method_id,
-                "page_id": donation_page.pk,
-            },
-            format="json",
-        )
-        request.META["HTTP_REFERER"] = self.referer
-        request.META["HTTP_X_FORWARDED_FOR"] = self.ip
-        return request
-
-    def _post_valid_payment(self, **kwargs):
-        return stripe_payment(self._create_request(self.page, **kwargs))
-
-
-class CreateStripePaymentErrorConditionsTest(StripePaymentViewTestAbstract):
-    """Branch coverage for various errors."""
-
-    @override_settings(CELERY_TASK_ALWAYS_EAGER=True)
-    def atest_intervals(self):
-        # Due to serializer validation can't actually set "bad" interval.
-        # Instead we iterate over all the model choices. Which if new one is
-        # added but not handled here we will trigger exception.
-        with mock.patch("apps.contributions.payment_managers.make_bad_actor_request"):
-            page = DonationPage.objects.filter(revenue_program=self.org1_rp1).first()
-            print("b", [x for x in ContributionInterval])
-            for interval in ContributionInterval:
-                print(str(interval), dir(interval))
-                stripe_payment(self._create_request(page, interval=str(interval)))
-            assert False
-
-
-@override_settings(CELERY_TASK_ALWAYS_EAGER=True)
-class StripeOneTimePaymentViewTest(StripePaymentViewTestAbstract):
-    def setUp(self):
-        super().setUp()
-        self.page = DonationPage.objects.filter(revenue_program=self.org1_rp1).first()
-        self.assertIsNotNone(self.page)
-
-    @mock.patch("apps.contributions.views.StripePaymentManager.create_one_time_payment", side_effect=MockPaymentIntent)
-    def test_one_time_payment_serializer_validates(self, *args):
-        # Email is required
-        response = self._post_valid_payment(email=None)
-        self.assertEqual(response.status_code, 400)
-        self.assertIn("email", response.data)
-        self.assertEqual(str(response.data["email"][0]), "This field may not be null.")
-
-    @mock.patch("apps.contributions.views.send_templated_email.delay")
-    @mock.patch("apps.contributions.views.StripePaymentManager.create_one_time_payment", side_effect=MockPaymentIntent)
-    def test_one_time_payment_serializer_gets_uid_as_email_hash(self, *args):
-        response = self._post_valid_payment(email=test_stripe_payment_email)
-        self.assertEqual(response.status_code, 200)
-        self.assertIn("email_hash", response.data)
-        self.assertEqual(str(response.data["email_hash"]), get_sha256_hash(test_stripe_payment_email))
-
-    @mock.patch("apps.contributions.views.send_templated_email.delay")
-    @mock.patch("apps.contributions.views.StripePaymentManager.create_one_time_payment", side_effect=MockPaymentIntent)
-    def test_happy_path_no_confirmation_email(self, mock_one_time_payment, mock_send_confirmation_email):
-        # `self.page` is referenced inside `_post_valid_payment` and determines which org is referenced re: contribution
-        # confirmation emails
-        self.page.revenue_program.organization.send_receipt_email_via_nre = False
-        self.page.revenue_program.organization.save()
-        response = self._post_valid_payment(email=self.contributor_user.email)
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.data["clientSecret"], test_client_secret)
-        mock_one_time_payment.assert_called_once()
-        self.assertFalse(mock_send_confirmation_email.called)
-
-    @mock.patch("apps.contributions.views.send_templated_email.delay")
-    @mock.patch("apps.contributions.views.StripePaymentManager.create_one_time_payment", side_effect=MockPaymentIntent)
-    def test_happy_path_with_confirmation_email(self, mock_one_time_payment, mock_send_confirmation_email):
-        # `self.page` is referenced inside `_post_valid_payment` and determines which org is referenced re: contribution
-        # confirmation emails
-        self.page.revenue_program.organization.send_receipt_email_via_nre = True
-        self.page.revenue_program.organization.save()
-        response = self._post_valid_payment(email=self.contributor_user.email)
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.data["clientSecret"], test_client_secret)
-        mock_one_time_payment.assert_called_once()
-        mock_send_confirmation_email.assert_called_once()
-        self.assertEqual(mock_send_confirmation_email.call_args.args[0], self.contributor_user.email)
-        template_data = mock_send_confirmation_email.call_args[0][4]
-        self.assertEqual(set(EXPECTED_CONTRIBUTION_CONFIRMATION_TEMPLATE_KEYS), set(template_data.keys()))
-        self.assertIsNone(template_data["contribution_interval_display_value"])
-        # we show that truthy values get passed all other keys
-        self.assertTrue(
-            all(val for (key, val) in template_data.items() if key != "contribution_interval_display_value")
-        )
-
-    @mock.patch(
-        "apps.contributions.views.StripePaymentManager.create_one_time_payment", side_effect=PaymentBadParamsError
-    )
-    def test_response_when_bad_params_error(self, mock_one_time_payment):
-        response = self._post_valid_payment()
-        mock_one_time_payment.assert_called_once()
-        self.assertEqual(response.status_code, 400)
-        self.assertEqual(response.data["detail"], "There was an error processing your payment.")
-
-    @mock.patch("apps.contributions.views.send_templated_email.delay")
-    @mock.patch(
-        "apps.contributions.views.StripePaymentManager.create_one_time_payment", side_effect=PaymentProviderError
-    )
-    def test_response_when_payment_provider_error(self, mock_one_time_payment, mock_send_confirmation_email):
-        response = self._post_valid_payment()
-        mock_one_time_payment.assert_called_once()
-        self.assertEqual(response.status_code, 400)
-
-
-@override_settings(CELERY_TASK_ALWAYS_EAGER=True)
-@mock.patch("apps.contributions.views.StripePaymentManager.create_subscription")
-class CreateStripeRecurringPaymentViewTest(StripePaymentViewTestAbstract):
-    def setUp(self):
-        super().setUp()
-        self.page = DonationPage.objects.filter(revenue_program=self.org1_rp1).first()
-        self.assertIsNotNone(self.page)
-
-    def test_recurring_payment_serializer_validates(self, *args):
-        # StripeRecurringPaymentSerializer requires payment_method_id
-        response = self._post_valid_payment(interval=ContributionInterval.MONTHLY)
-        # This also verifies that the view is using the correct serializer.
-        # Test failures here may indicate that the wrong serializer is being used.
-        self.assertEqual(response.status_code, 400)
-        self.assertIn("payment_method_id", response.data)
-        self.assertEqual(str(response.data["payment_method_id"][0]), "This field may not be null.")
-
-    @mock.patch("apps.contributions.views.send_templated_email.delay")
-    def test_happy_path_when_no_confirmation_email(self, mock_send_confirmation_email, mock_subscription_create):
-        """
-        Verify that we're getting the response we expect from a valid contribition
-        """
-        # `self.page` is referenced inside `_post_valid_payment` and determines which org is referenced re: contribution
-        # confirmation emails
-        self.page.revenue_program.organization.send_receipt_email_via_nre = False
-        self.page.revenue_program.organization.save()
-        response = self._post_valid_payment(
-            interval=ContributionInterval.MONTHLY,
-            payment_method_id="test_payment_method_id",
-            email=self.contributor_user.email,
-        )
-        self.assertEqual(response.status_code, 200)
-        mock_subscription_create.assert_called_once()
-        self.assertFalse(mock_send_confirmation_email.called)
-
-    @mock.patch("apps.contributions.views.send_templated_email.delay")
-    def test_happy_path_when_confirmation_email(self, mock_send_confirmation_email, mock_subscription_create):
-        """
-        Verify that we're getting the response we expect from a valid contribition
-        """
-        # `self.page` is referenced inside `_post_valid_payment` and determines which org is referenced re: contribution
-        # confirmation emails
-        self.page.revenue_program.organization.send_receipt_email_via_nre = True
-        self.page.revenue_program.organization.save()
-        response = self._post_valid_payment(
-            interval=ContributionInterval.MONTHLY,
-            payment_method_id="test_payment_method_id",
-            email=self.contributor_user.email,
-        )
-        self.assertEqual(response.status_code, 200)
-        mock_subscription_create.assert_called_once()
-        mock_send_confirmation_email.assert_called_once()
-        self.assertEqual(mock_send_confirmation_email.call_args.args[0], self.contributor_user.email)
-
-        template_data = mock_send_confirmation_email.call_args[0][4]
-        self.assertEqual(set(EXPECTED_CONTRIBUTION_CONFIRMATION_TEMPLATE_KEYS), set(template_data.keys()))
-        # we show that truthy values get passed for all kwargs
-        self.assertTrue(all(template_data.items()))
 
 
 TEST_STRIPE_ACCOUNT_ID = "testing_123"

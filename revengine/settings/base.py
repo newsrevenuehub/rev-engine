@@ -420,10 +420,7 @@ DOMAIN_APEX = os.getenv("DOMAIN_APEX")
 # Application subdomains (that are NOT revenue program slugs)
 DASHBOARD_SUBDOMAINS = os.getenv("DASHBOARD_SUBDOMAINS", "www:dashboard:").split(":")
 
-# These values are used in `ContributionMetadataSerializer`, which in turn
-# gets used in the abstract PaymentManager base class. They appear
-# to be related to how payment provider meta data gets serialized in PaymentManager and
-# its subclasses.
+# These values are part of metadata sent to Stripe.
 METADATA_SOURCE = os.getenv("METADATA_SOURCE", "rev-engine")
 METADATA_SCHEMA_VERSION = os.getenv("METADATA_SCHEMA_VERSION", "1.0")
 

@@ -5,12 +5,14 @@ from django.test import TestCase
 from django.utils import timezone
 
 import pytest
+import stripe
+from rest_framework.exceptions import PermissionDenied
 from rest_framework.test import APIRequestFactory
 
 from apps.api.error_messages import GENERIC_BLANK
 from apps.contributions import serializers
 from apps.contributions.bad_actor import BadActorAPIError
-from apps.contributions.models import Contribution, ContributionStatus
+from apps.contributions.models import Contribution, ContributionStatus, Contributor
 from apps.contributions.tests.factories import ContributionFactory, ContributorFactory
 from apps.contributions.utils import format_ambiguous_currency
 from apps.organizations.tests.factories import RevenueProgramFactory
@@ -192,28 +194,47 @@ def valid_data(donation_page):
     }
 
 
-mock_ba_response_json = {"score": "real bad"}
-
-
-class MockBadActorResponseObject:
+class MockBadActorResponseObjectNotBad:
     """Used in tests below to simulate response returned by make_bad_actor_request
 
     See https://docs.pytest.org/en/7.1.x/how-to/monkeypatch.html for more info on how/why
     """
 
-    mock_ba_response_json = {"score": "real bad"}
+    mock_bad_actor_response_json = {"overall_judgment": settings.BAD_ACTOR_FAILURE_THRESHOLD - 1}
 
     @classmethod
     def json(cls):
-        return {"score": "real bad"}
+        return cls.mock_bad_actor_response_json
+
+
+class MockBadActorResponseObjectBad:
+    """Used in tests below to simulate response returned by make_bad_actor_request
+
+    See https://docs.pytest.org/en/7.1.x/how-to/monkeypatch.html for more info on how/why
+    """
+
+    mock_bad_actor_response_json = {"overall_judgment": settings.BAD_ACTOR_FAILURE_THRESHOLD}
+
+    @classmethod
+    def json(cls):
+        return cls.mock_bad_actor_response_json
 
 
 def mock_get_bad_actor(*args, **kwargs):
-    return MockBadActorResponseObject()
+    response = kwargs.get("response", MockBadActorResponseObjectNotBad)
+    return response
 
 
 def mock_get_bad_actor_raise_exception(*args, **kwargs):
     raise BadActorAPIError("Something bad happend")
+
+
+def mock_stripe_call_with_error(*args, **kwargs):
+    raise stripe.error.APIError("Something horrible has happened")
+
+
+def mock_create_stripe_customer_with_exception(*args, **kwargs):
+    raise stripe.error.APIError("Something horrible has happened")
 
 
 @pytest.mark.django_db
@@ -327,7 +348,7 @@ class TestBaseCreatePaymentSerializer:
         serializer = self.serializer_class(data=valid_data, context={"request": request})
         assert serializer.is_valid() is True
         bad_actor_data = serializer.get_bad_actor_score(serializer.validated_data)
-        assert bad_actor_data == MockBadActorResponseObject.mock_ba_response_json
+        assert bad_actor_data == MockBadActorResponseObjectNotBad.mock_bad_actor_response_json
 
     def test_get_bad_actor_score_when_data_invalid(self, valid_data, monkeypatch):
         """Show if the bad actor serialier data is invalid no exception is raise, but method returns None
@@ -489,26 +510,165 @@ class TestBaseCreatePaymentSerializer:
             assert getattr(contribution, key) == val
 
 
+@pytest.mark.django_db
 class TestCreateOneTimePaymentSerializer:
 
-    # is subclass of base
-    def test_happy_path(self):
-        pass
+    serializer_class = serializers.CreateOneTimePaymentSerializer
 
-    def test_when_stripe_errors_creating_payment_intent(self):
-        pass
+    def test_is_subclass_of_BaseCreatePaymentSerializer(self):
+        """Prove that CreateOneTimePaymentSerializer is a subclass of BaseCreatePaymentSerializer
 
-    def test_when_stripe_errors_creating_customer(self):
-        # NOTE: need to wrap that block in try/except
-        pass
+        This is so the testing of the parent class' behavior accrues to the child.
+        """
+        assert issubclass(self.serializer_class, serializers.BaseCreatePaymentSerializer)
 
-    def test_when_contribution_is_flagged(self):
-        pass
+    def test_happy_path(self, monkeypatch, valid_data):
+        """Demonstrate happy path when of `.create`
+
+        Namely, it should:
+
+        - create a contributor
+        - create a contribution
+        - add bad actor score to contribution
+        - not flag the contribution
+        - return a dict with `provider_client_secret_id`
+        """
+        contribution_count = Contribution.objects.count()
+        contributor_count = Contributor.objects.count()
+
+        monkeypatch.setattr("apps.contributions.serializers.make_bad_actor_request", mock_get_bad_actor)
+        mock_create_stripe_customer = Mock()
+        mock_create_stripe_customer.return_value = {"id": "some id"}
+        monkeypatch.setattr("apps.contributions.models.Contributor.create_stripe_customer", mock_create_stripe_customer)
+        mock_create_stripe_one_time_payment_intent = Mock()
+        client_secret = "shhhhhhh!"
+        mock_create_stripe_one_time_payment_intent.return_value = {
+            "id": "some payment intent id",
+            "client_secret": client_secret,
+        }
+        monkeypatch.setattr(
+            "apps.contributions.models.stripe.PaymentIntent.create", mock_create_stripe_one_time_payment_intent
+        )
+        request = APIRequestFactory(HTTP_REFERER="https://www.google.com").post("", {}, format="json")
+        serializer = self.serializer_class(data=valid_data, context={"request": request})
+        assert serializer.is_valid()
+        result = serializer.create(serializer.validated_data)
+        assert Contribution.objects.count() == contribution_count + 1
+        assert Contributor.objects.count() == contributor_count + 1
+        assert set(result.keys()) == set(["provider_client_secret_id"])
+        assert result["provider_client_secret_id"] == client_secret
+        assert Contributor.objects.filter(email=valid_data["email"]).exists()
+        contribution = Contribution.objects.get(provider_client_secret_id=client_secret)
+        assert contribution.status == ContributionStatus.PROCESSING
+        assert contribution.flagged_date is None
+        assert contribution.bad_actor_response == MockBadActorResponseObjectNotBad.mock_bad_actor_response_json
+
+    def test_when_stripe_errors_creating_payment_intent(self, valid_data, monkeypatch):
+        """Demonstrate `.create` when there's a Stripe error when creating payment intent
+
+        A contributor and contribution should still be created as in happy path, but a GenericPaymentError should
+        be raised.
+
+        """
+        contribution_count = Contribution.objects.count()
+        contributor_count = Contributor.objects.count()
+
+        monkeypatch.setattr("apps.contributions.serializers.make_bad_actor_request", mock_get_bad_actor)
+        mock_create_stripe_customer = Mock()
+        mock_create_stripe_customer.return_value = {"id": "some id"}
+        monkeypatch.setattr("apps.contributions.models.Contributor.create_stripe_customer", mock_create_stripe_customer)
+        monkeypatch.setattr("apps.contributions.models.stripe.PaymentIntent.create", mock_stripe_call_with_error)
+        request = APIRequestFactory(HTTP_REFERER="https://www.google.com").post("", {}, format="json")
+
+        serializer = self.serializer_class(data=valid_data, context={"request": request})
+
+        assert serializer.is_valid()
+        with pytest.raises(serializers.GenericPaymentError):
+            serializer.create(serializer.validated_data)
+
+        assert Contribution.objects.count() == contribution_count + 1
+        assert Contributor.objects.count() == contributor_count + 1
+        assert Contributor.objects.filter(email=valid_data["email"]).exists()
+        contributor = Contributor.objects.get(email=valid_data["email"])
+        assert contributor.contribution_set.count() == 1
+        contribution = contributor.contribution_set.first()
+        assert contribution.status == ContributionStatus.PROCESSING
+
+    def test_when_stripe_errors_creating_customer(self, valid_data, monkeypatch):
+        """Demonstrate `.create` when there's a Stripe error when creating customer
+
+        A contributor and contribution should still be created as in happy path, but a GenericPaymentError should
+        be raised.
+        """
+        contribution_count = Contribution.objects.count()
+        contributor_count = Contributor.objects.count()
+
+        monkeypatch.setattr("apps.contributions.serializers.make_bad_actor_request", mock_get_bad_actor)
+        monkeypatch.setattr("apps.contributions.models.Contributor.create_stripe_customer", mock_stripe_call_with_error)
+
+        request = APIRequestFactory(HTTP_REFERER="https://www.google.com").post("", {}, format="json")
+
+        serializer = self.serializer_class(data=valid_data, context={"request": request})
+
+        assert serializer.is_valid()
+
+        with pytest.raises(serializers.GenericPaymentError):
+            serializer.create(serializer.validated_data)
+
+        assert Contribution.objects.count() == contribution_count + 1
+        assert Contributor.objects.count() == contributor_count + 1
+        assert Contributor.objects.filter(email=valid_data["email"]).exists()
+        contributor = Contributor.objects.get(email=valid_data["email"])
+        assert contributor.contribution_set.count() == 1
+        contribution = contributor.contribution_set.first()
+        assert contribution.status == ContributionStatus.PROCESSING
+
+    def test_when_contribution_is_flagged(self, valid_data, monkeypatch):
+        """Demonstrate `.create` when there's contribution gets flagged
+
+        A contributor and contribution should still be created as in happy path, but a PermissionDenied error should occur, and
+        a Stripe payment intent should not be created.
+        """
+
+        contribution_count = Contribution.objects.count()
+        contributor_count = Contributor.objects.count()
+        monkeypatch.setattr(
+            "apps.contributions.serializers.make_bad_actor_request",
+            lambda x: mock_get_bad_actor(response=MockBadActorResponseObjectBad),
+        )
+
+        request = APIRequestFactory(HTTP_REFERER="https://www.google.com").post("", {}, format="json")
+        serializer = self.serializer_class(data=valid_data, context={"request": request})
+
+        assert serializer.is_valid()
+
+        with pytest.raises(PermissionDenied):
+            serializer.create(serializer.validated_data)
+
+        assert Contribution.objects.count() == contribution_count + 1
+        assert Contributor.objects.count() == contributor_count + 1
+        assert Contributor.objects.filter(email=valid_data["email"]).exists()
+        contributor = Contributor.objects.get(email=valid_data["email"])
+        assert contributor.contribution_set.count() == 1
+        contribution = contributor.contribution_set.first()
+        assert contribution.status == ContributionStatus.FLAGGED
+        assert contribution.flagged_date is not None
+        # we take the next two assertions as evidence that Stripe PaymentIntent not created
+        assert contribution.provider_client_secret_id is None
+        assert contribution.provider_payment_id is None
 
 
+@pytest.mark.django_db
 class TestCreateRecurringPaymentSerializer:
-    def setUp(self):
-        pass
+
+    serializer_class = serializers.CreateRecurringPaymentSerializer
+
+    def test_is_subclass_of_BaseCreatePaymentSerializer(self):
+        """Prove that CreateRecurringPaymentSerializer is a subclass of BaseCreatePaymentSerializer
+
+        This is so the testing of the parent class' behavior accrues to the child.
+        """
+        assert issubclass(self.serializer_class, serializers.BaseCreatePaymentSerializer)
 
     def test_happy_path(self):
         # parametrize month vs. year?

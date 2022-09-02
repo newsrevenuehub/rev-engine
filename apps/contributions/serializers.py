@@ -432,7 +432,14 @@ class CreateOneTimePaymentSerializer(BaseCreatePaymentSerializer):
             # In the case of a flagged contribution, we don't create a Stripe customer or
             # Stripe payment intent, so we raise exception, and leave to SPA to handle accordingly
             raise PermissionDenied("Cannot authorize contribution")
-        customer = self.create_stripe_customer(contributor, validated_data)
+        try:
+            customer = self.create_stripe_customer(contributor, validated_data)
+        except stripe_errors:
+            logger.exception(
+                "CreateOneTimePaymentSerializer.create encountered a Stripe error while attempting to create a Stripe customer for contributor with id %s",
+                contributor.id,
+            )
+            raise GenericPaymentError()
         try:
             payment_intent = contribution.create_stripe_one_time_payment_intent(
                 stripe_customer_id=customer["id"],

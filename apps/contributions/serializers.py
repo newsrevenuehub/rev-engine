@@ -496,6 +496,8 @@ class StripeOneTimePaymentSerializer(AbstractPaymentSerializer):
     Stripe's PaymentIntent for an ad-hoc contribution.
     """
 
+    payment_method_id = serializers.CharField(max_length=255)
+
 
 class StripeRecurringPaymentSerializer(AbstractPaymentSerializer):
     """

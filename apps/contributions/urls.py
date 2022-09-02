@@ -9,13 +9,9 @@ from apps.contributions import views
 router = routers.DefaultRouter()
 router.register(r"contributions", views.ContributionsViewSet, basename="contribution")
 router.register(r"payments/one-time", views.OneTimePaymentViewSet, basename="payment-one-time")
-
-# router.register(r"payments", views.PaymentsViewSet, basename="payment")
+router.register(r"payments/subscription", views.SubscriptionPaymentViewSet, basename="payment-subscription")
 
 urlpatterns = [
-    # path("payment/one-time", views.OneTimePaymentViewSet, name="payment-one-time"),
-    # path("payment/subscription/", views.SubscriptionPaymentViewSet, name="payment-subscription"),
-    # path("stripe/payment/", views.stripe_payment, name="stripe-payment"),
     path("stripe/oauth/", views.stripe_oauth, name="stripe-oauth"),
     path("stripe/confirmation/", views.stripe_confirmation, name="stripe-confirmation"),
     re_path(

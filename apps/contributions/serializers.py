@@ -4,7 +4,9 @@ from django.conf import settings
 from django.db.models import TextChoices
 from django.utils import timezone
 
+import stripe
 from rest_framework import serializers
+from rest_framework.exceptions import APIException, PermissionDenied
 
 from apps.api.error_messages import GENERIC_BLANK
 from apps.contributions.models import (
@@ -20,6 +22,25 @@ from apps.pages.models import DonationPage
 
 from .bad_actor import BadActorAPIError, make_bad_actor_request
 from .fields import StripeAmountField
+
+
+# this is an non-exhaustive list of Stripe errors that might
+# occur when creating/updating payment intent or subscription.
+# we use this below to avoid using a bare except
+stripe_errors = (
+    stripe.error.stripe.error.InvalidRequestError,
+    stripe.error.stripe.error.APIConnectionError,
+    stripe.error.APIError,
+    stripe.error.AuthenticationError,
+    stripe.error.PermissionError,
+    stripe.error.RateLimitError,
+)
+
+
+class GenericPaymentError(APIException):
+    status_code = 500
+    default_detail = "Something unexpected happened"
+    default_code = "unexpected_error"
 
 
 logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
@@ -113,57 +134,6 @@ class ContributionSerializer(serializers.ModelSerializer):
             "status",
             "donation_page_id",
         ]
-
-
-class ContributorContributionSerializer(serializers.ModelSerializer):
-    """
-    A paired-down, read-only version of a Contribution serializer
-    """
-
-    status = serializers.SerializerMethodField()
-    card_brand = serializers.SerializerMethodField()
-    last4 = serializers.SerializerMethodField()
-    stripe_id = serializers.SerializerMethodField()
-
-    def get_status(self, obj):
-        if obj.status and obj.status in (
-            ContributionStatus.FAILED,
-            ContributionStatus.FLAGGED,
-            ContributionStatus.REJECTED,
-        ):
-            return ContributionStatus.FAILED
-        return obj.status
-
-    def _get_card_details(self, obj):
-        if obj.provider_payment_method_details:
-            return obj.provider_payment_method_details.get("card", None)
-
-    def get_card_brand(self, obj):
-        if card := self._get_card_details(obj):
-            return card["brand"]
-
-    def get_last4(self, obj):
-        if card := self._get_card_details(obj):
-            return card["last4"]
-
-    def get_stripe_id(self, obj):
-        return obj.stripe_account_id or ""
-
-    class Meta:
-        model = Contribution
-        fields = [
-            "id",
-            "created",
-            "interval",
-            "status",
-            "card_brand",
-            "last4",
-            "provider_customer_id",
-            "stripe_id",
-            "amount",
-            "last_payment_date",
-        ]
-        read_only_fields = fields
 
 
 class ContributorSerializer(serializers.ModelSerializer):
@@ -469,8 +439,7 @@ class AbstractPaymentSerializer(ConditionalRequirementsSerializerMixin):
         self.fields["amount"].error_messages["invalid"] = "Enter a valid amount"
 
 
-class BasePaymentSerializer(ConditionalRequirementsSerializerMixin):
-
+class BaseCreatePaymentSerializer(serializers.Serializer):
     amount = StripeAmountField(
         min_value=REVENGINE_MIN_AMOUNT,
         max_value=STRIPE_MAX_AMOUNT,
@@ -479,48 +448,96 @@ class BasePaymentSerializer(ConditionalRequirementsSerializerMixin):
             "min_value": f"We can only accept contributions greater than or equal to {format_ambiguous_currency(REVENGINE_MIN_AMOUNT)}",
         },
         required=True,
+        write_only=True,
     )
-    email = serializers.EmailField(max_length=80)
-    page_id = serializers.IntegerField()
-    first_name = serializers.CharField(max_length=40)
-    last_name = serializers.CharField(max_length=80)
-    mailing_postal_code = serializers.CharField(max_length=20)
-    mailing_street = serializers.CharField(max_length=255)
-    mailing_city = serializers.CharField(max_length=40)
-    mailing_state = serializers.CharField(max_length=80)
-    mailing_country = serializers.CharField(max_length=80)
-    # Org admins decide whether or not to make this a required value, so at serializer
-    # level, we make it default not required. If this field is required by org, that will
-    # be enforced by virtue of subclassing from ConditionalRequirementsSerializerMixin.
-    phone = serializers.CharField(max_length=40, required=False, allow_blank=True)
-    agreed_to_pay_fees = serializers.BooleanField(default=False)
+    email = serializers.EmailField(max_length=80, write_only=True)
+    page = serializers.PrimaryKeyRelatedField(many=False, queryset=DonationPage.objects.all(), write_only=True)
+    first_name = serializers.CharField(max_length=40, write_only=True)
+    last_name = serializers.CharField(max_length=80, write_only=True)
+    mailing_postal_code = serializers.CharField(max_length=20, write_only=True)
+    mailing_street = serializers.CharField(max_length=255, write_only=True)
+    mailing_city = serializers.CharField(max_length=40, write_only=True)
+    mailing_state = serializers.CharField(max_length=80, write_only=True)
+    mailing_country = serializers.CharField(max_length=80, write_only=True)
+    phone = serializers.CharField(max_length=40, required=False, allow_blank=True, write_only=True)
+    agreed_to_pay_fees = serializers.BooleanField(default=False, write_only=True)
+    reason_for_giving = serializers.CharField(max_length=255, required=False, allow_blank=True, write_only=True)
+    reason_other = serializers.CharField(max_length=255, required=False, allow_blank=True, write_only=True)
+    tribute_type = serializers.CharField(max_length=255, required=False, allow_blank=True, write_only=True)
+    honoree = serializers.CharField(max_length=255, required=False, allow_blank=True, write_only=True)
+    in_memory_of = serializers.CharField(max_length=255, required=False, allow_blank=True, write_only=True)
+    swag_opt_out = serializers.BooleanField(required=False, default=False, write_only=True)
+    comp_subscription = serializers.ChoiceField(
+        choices=CompSubscriptions.choices, required=False, allow_blank=True, write_only=True
+    )
+    # # TODO: figure out logic around `t_shirt_size` as generic field for all swag
+    # t_shirt_size = serializers.CharField(max_length=500, required=False, allow_blank=True)
+    sf_campaign_id = serializers.CharField(max_length=255, required=False, allow_blank=True, write_only=True)
+    captcha_token = serializers.CharField(max_length=2550, required=False, allow_blank=True, write_only=True)
+    provider_client_secret_id = serializers.CharField(read_only=True)
 
-    # Reason for Giving -- these fields are all optional. They are required only if configured
-    # as such on per page basis, in which case enforced via parent ConditionalRequirementsSerializerMixin
-    reason_for_giving = serializers.CharField(max_length=255, required=False, allow_blank=True)
-    reason_other = serializers.CharField(max_length=255, required=False, allow_blank=True)
-    tribute_type = serializers.CharField(max_length=255, required=False, allow_blank=True)
-    honoree = serializers.CharField(max_length=255, required=False, allow_blank=True)
-    in_memory_of = serializers.CharField(max_length=255, required=False, allow_blank=True)
+    def validate_reason_for_giving(self, value):
+        if value == "Other" and not self.initial_data.get("reason_other", None):
+            raise serializers.ValidationError({"reason_other": GENERIC_BLANK})
+        return value
 
-    # Swag
-    swag_opt_out = serializers.BooleanField(required=False, default=False)
-    comp_subscription = serializers.ChoiceField(choices=CompSubscriptions.choices, required=False, allow_blank=True)
-    # TODO: figure out logic around `t_shirt_size` as generic field for all swag
-    t_shirt_size = serializers.CharField(max_length=500, required=False, allow_blank=True)
-    sf_campaign_id = serializers.CharField(max_length=255, required=False, allow_blank=True)
-    captcha_token = serializers.CharField(max_length=2550, required=False, allow_blank=True)
+    def validate_honoree(self, value):
+        if self.initial_data.get("tribute_type", None) == "type_honoree" and not value:
+            raise serializers.ValidationError({"honoree": GENERIC_BLANK})
+        return value
+
+    def validate_in_memory_of(self, value):
+        if self.initial_data.get("tribute_type", None) == "type_in_memory_of" and not value:
+            raise serializers.ValidationError({"in_memory_of": GENERIC_BLANK})
+        return value
+
+    def resolve_reason_for_giving(self, reason_for_giving, reason_other):
+        """If `reason_for_giving` value is "Other", then we update it to the value for `reason_other`...
+
+        ...from the form data. We assume this gets run in `.validate()` after field-level validations
+        have run, which will guarantee that "reason_other" has a value if "reason_for_giving" is "Other".
+        """
+        return reason_other if reason_for_giving == "Other" else reason_other
+
+    def validate(self, data):
+        """Validate any fields whose "is_required" behavior is determined dynamically by the org
+
+        Some fields are statically (aka, always) required and we can specify that by setting `required=True` on the field definition
+        (or by not setting at all, because required is True by default).
+
+        However, RevEngine allows users to configure a subset of fields as required or not required, and that
+        can only be known by retrieving the associated donation page data.
+
+        So in this `validate` method, we find any donation page elements that are dynamically requirable and ensure that the submitted
+        data contains non blank values.
+
+        Additionally, we update `data["reason_for_giving"]`'s value in case it is "Other". This is not strictly speaking
+        validation, but it can only happen after field level validations have run, so this is place in DRF serializer flow
+        it should happen.
+        """
+        additional_errors = {}
+        for element in [elem for elem in data["page"].elements if len(elem["requiredFields"])]:
+            for field in element["requiredFields"]:
+                # if it's blank or none or no key for it in data
+                if data.get(field, None) in (None, ""):
+                    additional_errors[field] = GENERIC_BLANK
+        if additional_errors:
+            raise serializers.ValidationError(additional_errors)
+        data["reason_for_giving"] = self.resolve_reason_for_giving(
+            data.get("reason_for_giving"), data.get("reason_other")
+        )
+        return data
 
     def get_bad_actor_score(self, data):
         """ """
         serializer = BadActorSerializer(
-            data={
+            data=(
                 data
                 | {
                     "referer": self.context["request"].META.get("HTTP_REFERER"),
                     "ip": self.context["request"].META.get("REMOTE_ADDR"),
                 }
-            }
+            )
         )
         try:
             serializer.is_valid(raise_exception=True)
@@ -536,33 +553,52 @@ class BasePaymentSerializer(ConditionalRequirementsSerializerMixin):
         """ """
         return self.bad_actor_score >= settings.BAD_ACTOR_FAIL_ABOVE
 
+    def get_stripe_payment_metadata(self, contributor, validated_data):
+        return {
+            # TODO: confirm business requirements around these first two keys/vals
+            "source": settings.METADATA_SOURCE,
+            "schema_version": settings.METADATA_SCHEMA_VERSION,
+            "contributor_id": contributor.id,
+            "agreed_to_pay_fees": validated_data["agreed_to_pay_fees"],
+            "donor_selected_amount": validated_data["amount"],
+            "reason_for_giving": validated_data["reason_for_giving"],
+            "honoree": validated_data.get("honoree"),
+            "in_memory_of": validated_data.get("in_memory_of"),
+            "comp_subscription": validated_data.get("comp_subscription"),
+            "swag_opt_out": validated_data.get("swag_opt_out"),
+            "swag_choice": validated_data.get("swag_choice"),
+            "referer": self.context["request"].META.get("HTTP_REFERER"),
+            "revenue_program_id": validated_data["page"].revenue_program.id,
+            "sf_campaign_id": None,  # do this next
+        }
 
-class OneTimePaymentSerializer(BasePaymentSerializer):
-    """ """
+    def create_stripe_customer(self, contributor, validated_data):
+        return contributor.create_stripe_customer(
+            validated_data["page"].revenue_program.stripe_account_id,
+            customer_name=f"{validated_data.get('first_name', '')} {validated_data.get('last_name', '')}".strip(),
+            phone=validated_data["phone"],
+            street=validated_data["mailing_street"],
+            city=validated_data["mailing_city"],
+            state=validated_data["mailing_state"],
+            postal_code=validated_data["mailing_postal_code"],
+            country=validated_data["mailing_country"],
+            metadata={
+                "source": settings.METADATA_SOURCE,
+                "schema_version": settings.METADATA_SCHEMA_VERSION,
+                "contributor_id": contributor.id,
+            },
+        )
 
-    def create_payment_intent(self, data):
-        pass
-
-    def create(self, validated_data):
-        try:
-            page = DonationPage.objects.get(id=validated_data["page_id"])
-        except DonationPage.DoesNotExist:
-            logger.warning(
-                "A request was made to OneTimePaymentSerializer.create containing a page_id value (%s) for a nonexistent page",
-                validated_data["page_id"],
-            )
-            raise serializers.ValidationError({"page_id": "This page could not be found"})
-        contributor, _ = Contributor.objects.get_or_create(email=validated_data["email"])
-        bad_actor_response = self.get_bad_actor_score(validated_data)
+    def create_contribution(self, contributor, validated_data, bad_actor_response=None):
         contribution_data = {
             "amount": validated_data["amount"],
-            "interval": "one_time",
-            "currency": page.payment_provider.currency,
-            "status": ContributionStatus.PRE_PROCESSING,
-            "donation_page": page,
+            "interval": validated_data["interval"],
+            "currency": validated_data["page"].revenue_program.payment_provider.currency,
+            # TODO: Determine if this requires a different, new 'pre-processing' status
+            "status": ContributionStatus.PROCESSING,
+            "donation_page": validated_data["page"],
             "contributor": contributor,
-            "payment_provider_used": page.payment_provider.name,
-            # "metadata": None
+            "payment_provider_used": "Stripe",
         }
         if bad_actor_response:
             contribution_data["bad_actor_score"] = bad_actor_response["overall_judgment"]
@@ -570,19 +606,78 @@ class OneTimePaymentSerializer(BasePaymentSerializer):
             if self.should_flag(contribution_data["bad_actor_score"]):
                 contribution_data["status"] = ContributionStatus.FLAGGED
                 contribution_data["flagged_date"] = timezone.now()
-        contribution = Contribution.objects.create(**contribution_data)
+        return Contribution.objects.create(**contribution_data)
+
+
+class CreateOneTimePaymentSerializer(BaseCreatePaymentSerializer):
+    """
+
+    Note on tight coupling with two page, stripe based form
+    """
+
+    def create(self, validated_data):
+        """
+
+
+        Note on tight coupling with two page, stripe based form
+
+        """
+        contributor, _ = Contributor.objects.get_or_create(email=validated_data["email"])
+        bad_actor_response = self.get_bad_actor_score(validated_data)
+        contribution = self.create_contribution(contributor, validated_data, bad_actor_response)
         if contribution.status == ContributionStatus.FLAGGED:
-            # we're done...
-            return None
-        payment_intent = self.create_payment_intent()
-        # update contribution
-        return {"uuid": str(contribution.uuid), "stripe_client_secret": payment_intent.stripe_client_secret}
+            # In the case of a flagged contribution, we don't create a Stripe customer or
+            # Stripe payment intent, so we raise exception, and leave to SPA to handle accordingly
+            raise PermissionDenied("Cannot authorize contribution")
+        customer = self.create_stripe_customer(contributor, validated_data)
+        try:
+            payment_intent = contribution.create_stripe_one_time_payment_intent(
+                stripe_customer_id=customer["id"],
+                metadata=self.get_stripe_payment_metadata(contributor, validated_data),
+            )
+        except stripe_errors:
+            logger.exception(
+                "CreateOneTimePaymentSerializer.create encountered a Stripe error while attempting to create a payment intent for contribution with id %s",
+                contribution.id,
+            )
+            raise GenericPaymentError()
+        # We provide the provider_client_secret_id because the frontend needs it in order to display the Stripe PaymentElement.
+        return {"provider_client_secret_id": payment_intent["client_secret"]}
 
 
-class RecurringPaymentSerializer(BasePaymentSerializer):
-    """ """
+class CreateRecurringPaymentSerializer(BaseCreatePaymentSerializer):
+    """
+    Note on tight coupling with two page, stripe based form
+    """
 
-    interval = serializers.ChoiceField(choices=ContributionInterval.choices, default=ContributionInterval.ONE_TIME)
+    interval = serializers.ChoiceField(choices=[ContributionInterval.MONTHLY, ContributionInterval.YEARLY])
+
+    def create(self, validated_data):
+        """
+        Note on tight coupling with two page, stripe based form
+
+        """
+        contributor, _ = Contributor.objects.get_or_create(email=validated_data["email"])
+        bad_actor_response = self.get_bad_actor_score(validated_data)
+        contribution = self.create_contribution(contributor, validated_data, bad_actor_response)
+        if contribution.status == ContributionStatus.FLAGGED:
+            # In the case of a flagged contribution, we don't create a Stripe customer or
+            # Stripe payment intent, so we raise exception, and leave to SPA to handle accordingly
+            raise PermissionDenied("Cannot authorize contribution")
+        customer = self.create_stripe_customer(contributor, validated_data)
+        try:
+            subscription = contribution.create_stripe_subscription(
+                stripe_customer_id=customer["id"],
+                metadata=self.get_stripe_payment_metadata(contributor, validated_data),
+            )
+        except stripe_errors:
+            logger.exception(
+                "RecurringPaymentSerializer.create encountered a Stripe error while attempting to create a subscription for contribution with id %s",
+                contribution.id,
+            )
+            raise GenericPaymentError()
+        # We provide the provider_client_secret_id because the frontend needs it in order to display the Stripe PaymentElement.
+        return {"provider_client_secret_id": subscription.latest_invoice.payment_intent.client_secret}
 
 
 class StripeOneTimePaymentSerializer(AbstractPaymentSerializer):

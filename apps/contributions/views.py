@@ -3,7 +3,6 @@ import logging
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.shortcuts import get_object_or_404
-from django.utils import timezone
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_protect
 
@@ -20,20 +19,13 @@ from apps.api.permissions import (
     IsContributorOwningContribution,
     IsHubAdmin,
 )
-from apps.common.utils import get_original_ip_from_request
 from apps.contributions import serializers
 from apps.contributions.filters import ContributionFilter
-from apps.contributions.models import Contribution, ContributionInterval, Contributor
-from apps.contributions.payment_managers import (
-    PaymentBadParamsError,
-    PaymentProviderError,
-    StripePaymentManager,
-)
+from apps.contributions.models import Contribution, Contributor
+from apps.contributions.payment_managers import PaymentProviderError, StripePaymentManager
 from apps.contributions.stripe_contributions_provider import ContributionsCacheProvider
 from apps.contributions.tasks import task_pull_serialized_stripe_contributions_to_cache
-from apps.contributions.utils import get_sha256_hash
 from apps.contributions.webhooks import StripeWebhookProcessor
-from apps.emails.tasks import send_templated_email
 from apps.organizations.models import PaymentProvider, RevenueProgram
 from apps.public.permissions import IsActiveSuperUser
 from apps.users.views import FilterQuerySetByUserMixin
@@ -42,88 +34,6 @@ from apps.users.views import FilterQuerySetByUserMixin
 logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
 
 UserModel = get_user_model()
-
-
-@api_view(["POST"])
-@authentication_classes([])
-@permission_classes([])
-def stripe_payment(request):
-    # Grab required data from headers
-    pi_data = request.data
-    pi_data["referer"] = request.META.get("HTTP_REFERER")
-    pi_data["ip"] = get_original_ip_from_request(request)
-    # StripePaymentManager will grab the right serializer based on "interval"
-    payment = StripePaymentManager(data=pi_data)
-    # Validate data expected by Stripe and BadActor API
-    payment.validate()
-    # Performs request to BadActor API
-    payment.get_bad_actor_score()
-
-    try:
-        rp = RevenueProgram.objects.get(pk=request.data["revenue_program_id"])
-        response_body = {
-            "detail": "success",
-        }
-
-        if (interval := payment.validated_data["interval"]) == ContributionInterval.ONE_TIME.value:
-            payment_intent = payment.create_one_time_payment()
-            response_body["clientSecret"] = payment_intent["client_secret"]
-        elif interval in (
-            ContributionInterval.MONTHLY.value,
-            ContributionInterval.YEARLY.value,
-        ):
-            payment.create_subscription()
-        else:
-            logger.warning("stripe_payment view recieved unexpetected interval value: [%s]", interval)
-            raise PaymentBadParamsError()
-
-        if payment.get_organization().send_receipt_email_via_nre:
-            contributor_email = payment.validated_data["email"]
-            donation_amount_display = f"${(payment.validated_data['amount'] / 100):.2f}"
-            contribution_date = timezone.now()
-            interval_to_display = {
-                ContributionInterval.MONTHLY.value: "month",
-                ContributionInterval.YEARLY.value: "year",
-            }
-
-            template_data = {
-                "contribution_date": contribution_date.strftime("%m-%d-%y"),
-                "contributor_email": contributor_email,
-                "contribution_amount": donation_amount_display,
-                "contribution_interval": payment.validated_data["interval"],
-                "contribution_interval_display_value": interval_to_display.get(payment.validated_data["interval"]),
-                "copyright_year": contribution_date.year,
-                "org_name": rp.organization.name,
-            }
-            send_templated_email.delay(
-                contributor_email,
-                "Thank you for your contribution!",
-                "nrh-default-contribution-confirmation-email.txt",
-                "nrh-default-contribution-confirmation-email.html",
-                template_data,
-            )
-
-    except RevenueProgram.DoesNotExist:
-        logger.warning(
-            "stripe_payment view called with unexpected revenue program id [%s]", request.data["revenue_program_id"]
-        )
-        return Response({"detail": "There was an error processing your payment"}, status=status.HTTP_400_BAD_REQUEST)
-
-    except PaymentBadParamsError:
-        logger.warning("stripe_payment view raised a PaymentBadParamsError")
-        return Response({"detail": "There was an error processing your payment."}, status=status.HTTP_400_BAD_REQUEST)
-    except PaymentProviderError as pp_error:  # pragma: no cover
-        error_message = str(pp_error)
-        logger.error(error_message)
-        return Response({"detail": error_message}, status=status.HTTP_400_BAD_REQUEST)
-
-    # create hash based on email.
-    if "email" in pi_data:
-        response_body["email_hash"] = get_sha256_hash(pi_data["email"])
-    else:
-        response_body["email_hash"] = ""
-
-    return Response(response_body, status=status.HTTP_200_OK)
 
 
 @api_view(["POST"])
@@ -261,38 +171,47 @@ def process_stripe_webhook_view(request):
 
 
 @method_decorator(csrf_protect, name="dispatch")
-class OneTimePaymentViewSet(
-    mixins.CreateModelMixin,
-    mixins.RetrieveModelMixin,
-    mixins.UpdateModelMixin,
-    viewsets.GenericViewSet,
-):
-    serializer_class = serializers.OneTimePaymentSerializer
+class OneTimePaymentViewSet(mixins.CreateModelMixin, mixins.UpdateModelMixin, viewsets.GenericViewSet):
     permission_classes = []
+    serializer_class = serializers.CreateOneTimePaymentSerializer
 
-    # def create(self, validated_data):
-    #     # set status to pre-processing
-    #     #
-    #     breakpoint()
-    #     pass
+    def get_serializer_context(self):
+        # we need request in context for create in order to supply
+        # metadata to request to bad actor api, in serializer
+        context = super().get_serializer_context()
+        context.update({"request": self.request})
+        return context
 
-    # def partial_update(self, request, *args, **kwargs):
-    #     pass
+    @action(
+        methods=["PATCH"],
+        detail=True,
+        queryset=Contribution.objects.all(),
+    )
+    def success(self):
+        self.get_object().handle_thank_you_email()
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
-    # def retrieve(self, request, *args, **kwargs):
-    #     pass
 
+@method_decorator(csrf_protect, name="dispatch")
+class SubscriptionPaymentViewSet(mixins.CreateModelMixin, mixins.UpdateModelMixin, viewsets.GenericViewSet):
+    permission_classes = []
+    serializer_class = serializers.CreateRecurringPaymentSerializer
 
-# class SubscriptionPaymentViewSet(viewsets.ViewSet):
-#     # make this conditional on which view.
-#     serializer_class = serializers.SubscriptionPaymentSerializer
-#     permission_classes = []
+    def get_serializer_context(self):
+        # we need request in context for create in order to supply
+        # metadata to request to bad actor api, in serializer
+        context = super().get_serializer_context()
+        context.update({"request": self.request})
+        return context
 
-#     def create(self, validated_data):
-#         pass
-
-#     def partial_update(self, request, *args, **kwargs):
-#         pass
+    @action(
+        methods=["PATCH"],
+        detail=True,
+        queryset=Contribution.objects.all(),
+    )
+    def success(self):
+        self.get_object().handle_thank_you_email()
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 class ContributionsViewSet(viewsets.ReadOnlyModelViewSet, FilterQuerySetByUserMixin):

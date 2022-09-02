@@ -482,7 +482,14 @@ class CreateRecurringPaymentSerializer(BaseCreatePaymentSerializer):
             # In the case of a flagged contribution, we don't create a Stripe customer or
             # Stripe payment intent, so we raise exception, and leave to SPA to handle accordingly
             raise PermissionDenied("Cannot authorize contribution")
-        customer = self.create_stripe_customer(contributor, validated_data)
+        try:
+            customer = self.create_stripe_customer(contributor, validated_data)
+        except stripe_errors:
+            logger.exception(
+                "RecurringPaymentSerializer.create encountered a Stripe error while attempting to create a stripe customer for contributor with id %s",
+                contributor.id,
+            )
+            raise GenericPaymentError()
         try:
             subscription = contribution.create_stripe_subscription(
                 stripe_customer_id=customer["id"],
@@ -494,7 +501,7 @@ class CreateRecurringPaymentSerializer(BaseCreatePaymentSerializer):
                 contribution.id,
             )
             raise GenericPaymentError()
-        return {"provider_client_secret_id": subscription.latest_invoice.payment_intent.client_secret}
+        return {"provider_client_secret_id": subscription["latest_invoice"]["payment_intent"]["client_secret"]}
 
 
 class StripeOneTimePaymentSerializer(AbstractPaymentSerializer):

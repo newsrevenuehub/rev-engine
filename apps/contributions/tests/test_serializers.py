@@ -531,6 +531,8 @@ class TestCreateOneTimePaymentSerializer:
         - create a contribution
         - add bad actor score to contribution
         - not flag the contribution
+        - Create a Stripe Customer
+        - Create a Stripe PaymentIntent
         - return a dict with `provider_client_secret_id`
         """
         contribution_count = Contribution.objects.count()
@@ -624,7 +626,7 @@ class TestCreateOneTimePaymentSerializer:
         assert contribution.status == ContributionStatus.PROCESSING
 
     def test_when_contribution_is_flagged(self, valid_data, monkeypatch):
-        """Demonstrate `.create` when there's contribution gets flagged
+        """Demonstrate `.create` when the contribution gets flagged
 
         A contributor and contribution should still be created as in happy path, but a PermissionDenied error should occur, and
         a Stripe payment intent should not be created.
@@ -670,16 +672,149 @@ class TestCreateRecurringPaymentSerializer:
         """
         assert issubclass(self.serializer_class, serializers.BaseCreatePaymentSerializer)
 
-    def test_happy_path(self):
-        # parametrize month vs. year?
-        pass
+    @pytest.mark.parametrize("interval", ["month", "year"])
+    def test_happy_path(self, monkeypatch, valid_data, interval):
+        """Demonstrate happy path when of `.create`
 
-    def test_when_stripe_errors_creating_payment_intent(self):
-        pass
+        Namely, it should:
 
-    def test_when_stripe_errors_creating_customer(self):
-        # NOTE: need to wrap that block in try/except
-        pass
+        - create a contributor
+        - create a contribution
+        - add bad actor score to contribution
+        - not flag the contribution
+        - create a Stripe Customer
+        - create a Stripe Subscription
+        - return a dict with `provider_client_secret_id`
+        """
+        data = valid_data | {"interval": interval}
+        contribution_count = Contribution.objects.count()
+        contributor_count = Contributor.objects.count()
 
-    def test_when_contribution_is_flagged(self):
-        pass
+        monkeypatch.setattr("apps.contributions.serializers.make_bad_actor_request", mock_get_bad_actor)
+        mock_create_stripe_customer = Mock()
+        mock_create_stripe_customer.return_value = {"id": "some id"}
+        monkeypatch.setattr("apps.contributions.models.Contributor.create_stripe_customer", mock_create_stripe_customer)
+        mock_create_stripe_subscription = Mock()
+        client_secret = "shhhhhhh!"
+        mock_create_stripe_subscription.return_value = {
+            "id": "some payment intent id",
+            "latest_invoice": {"payment_intent": {"client_secret": client_secret}},
+        }
+        monkeypatch.setattr("apps.contributions.models.stripe.Subscription.create", mock_create_stripe_subscription)
+        request = APIRequestFactory(HTTP_REFERER="https://www.google.com").post("", {}, format="json")
+        serializer = self.serializer_class(data=data, context={"request": request})
+
+        assert serializer.is_valid()
+        result = serializer.create(serializer.validated_data)
+        assert Contribution.objects.count() == contribution_count + 1
+        assert Contributor.objects.count() == contributor_count + 1
+        assert set(result.keys()) == set(["provider_client_secret_id"])
+        assert result["provider_client_secret_id"] == client_secret
+        assert Contributor.objects.filter(email=valid_data["email"]).exists()
+        contribution = Contribution.objects.get(provider_client_secret_id=client_secret)
+        assert contribution.status == ContributionStatus.PROCESSING
+        assert contribution.flagged_date is None
+        assert contribution.bad_actor_response == MockBadActorResponseObjectNotBad.mock_bad_actor_response_json
+        assert contribution.payment_provider_data == mock_create_stripe_subscription.return_value
+        assert contribution.provider_subscription_id == mock_create_stripe_subscription.return_value["id"]
+
+    def test_when_stripe_errors_creating_subscription(self, valid_data, monkeypatch):
+        """Demonstrate `.create` when there's a Stripe error when creating subscription
+
+        A contributor and contribution should still be created as in happy path, but a GenericPaymentError should
+        be raised, and no Stripe subscription created.
+        """
+        data = valid_data | {"interval": "month"}
+        contribution_count = Contribution.objects.count()
+        contributor_count = Contributor.objects.count()
+
+        monkeypatch.setattr("apps.contributions.serializers.make_bad_actor_request", mock_get_bad_actor)
+        mock_create_stripe_customer = Mock()
+        mock_create_stripe_customer.return_value = {"id": "some id"}
+        monkeypatch.setattr("apps.contributions.models.Contributor.create_stripe_customer", mock_create_stripe_customer)
+        monkeypatch.setattr("apps.contributions.models.stripe.Subscription.create", mock_stripe_call_with_error)
+        request = APIRequestFactory(HTTP_REFERER="https://www.google.com").post("", {}, format="json")
+
+        serializer = self.serializer_class(data=data, context={"request": request})
+
+        assert serializer.is_valid()
+        with pytest.raises(serializers.GenericPaymentError):
+            serializer.create(serializer.validated_data)
+
+        assert Contribution.objects.count() == contribution_count + 1
+        assert Contributor.objects.count() == contributor_count + 1
+        assert Contributor.objects.filter(email=valid_data["email"]).exists()
+        contributor = Contributor.objects.get(email=valid_data["email"])
+        assert contributor.contribution_set.count() == 1
+        contribution = contributor.contribution_set.first()
+        assert contribution.status == ContributionStatus.PROCESSING
+        assert contribution.provider_subscription_id is None
+        assert contribution.provider_client_secret_id is None
+        assert contribution.payment_provider_data is None
+
+    def test_when_stripe_errors_creating_customer(self, monkeypatch, valid_data):
+        """Demonstrate `.create` when there's a Stripe error when creating customer
+
+        A contributor and contribution should still be created as in happy path, but a GenericPaymentError should
+        be raised.
+        """
+        data = valid_data | {"interval": "month"}
+        contribution_count = Contribution.objects.count()
+        contributor_count = Contributor.objects.count()
+
+        monkeypatch.setattr("apps.contributions.serializers.make_bad_actor_request", mock_get_bad_actor)
+        monkeypatch.setattr("apps.contributions.models.Contributor.create_stripe_customer", mock_stripe_call_with_error)
+
+        request = APIRequestFactory(HTTP_REFERER="https://www.google.com").post("", {}, format="json")
+
+        serializer = self.serializer_class(data=data, context={"request": request})
+
+        assert serializer.is_valid()
+
+        with pytest.raises(serializers.GenericPaymentError):
+            serializer.create(serializer.validated_data)
+
+        assert Contribution.objects.count() == contribution_count + 1
+        assert Contributor.objects.count() == contributor_count + 1
+        assert Contributor.objects.filter(email=valid_data["email"]).exists()
+        contributor = Contributor.objects.get(email=valid_data["email"])
+        assert contributor.contribution_set.count() == 1
+        contribution = contributor.contribution_set.first()
+        assert contribution.status == ContributionStatus.PROCESSING
+        assert contribution.provider_subscription_id is None
+        assert contribution.provider_client_secret_id is None
+        assert contribution.payment_provider_data is None
+
+    def test_when_contribution_is_flagged(self, valid_data, monkeypatch):
+        """Demonstrate `.create` when the contribution gets flagged.
+
+        A contributor and contribution should still be created as in happy path, but a PermissionDenied error should occur, and
+        a Stripe subscription should not be created.
+        """
+        data = valid_data | {"interval": "month"}
+        contribution_count = Contribution.objects.count()
+        contributor_count = Contributor.objects.count()
+        monkeypatch.setattr(
+            "apps.contributions.serializers.make_bad_actor_request",
+            lambda x: mock_get_bad_actor(response=MockBadActorResponseObjectBad),
+        )
+
+        request = APIRequestFactory(HTTP_REFERER="https://www.google.com").post("", {}, format="json")
+        serializer = self.serializer_class(data=data, context={"request": request})
+
+        assert serializer.is_valid()
+
+        with pytest.raises(PermissionDenied):
+            serializer.create(serializer.validated_data)
+
+        assert Contribution.objects.count() == contribution_count + 1
+        assert Contributor.objects.count() == contributor_count + 1
+        assert Contributor.objects.filter(email=valid_data["email"]).exists()
+        contributor = Contributor.objects.get(email=valid_data["email"])
+        assert contributor.contribution_set.count() == 1
+        contribution = contributor.contribution_set.first()
+        assert contribution.status == ContributionStatus.FLAGGED
+        assert contribution.flagged_date is not None
+        assert contribution.provider_subscription_id is None
+        assert contribution.provider_client_secret_id is None
+        assert contribution.payment_provider_data is None

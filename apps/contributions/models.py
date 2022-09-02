@@ -311,14 +311,13 @@ class Contribution(IndexedTimeStampedModel, RoleAssignmentResourceModelMixin):
             expand=["latest_invoice.payment_intent"],
         )
         self.payment_provider_data = subscription
-        self.provider_subscription_id = subscription.id
-        self.provider_client_secret_id = subscription.latest_invoice.payment_intent.client_secret
+        self.provider_subscription_id = subscription["id"]
+        self.provider_client_secret_id = subscription["latest_invoice"]["payment_intent"]["client_secret"]
         self.save()
         return subscription
 
-    def handle_thank_you_email(self):
+    def handle_thank_you_email(self, contribution_received_at=timezone.now()):
         """Send a thank you email to contribution's contributor if org is configured to have NRE send thank you email"""
-        contribution_received_at = timezone.now()
         if self.revenue_program.organization.send_receipt_email_via_nre:
             send_templated_email.delay(
                 self.contributor.email,

@@ -91,7 +91,8 @@ describe('Dashboard', () => {
       cy.getByTestId('nav-pages-item').should('exist');
       cy.visit(CONTENT_SLUG);
       cy.url().should('include', CONTENT_SLUG);
-      cy.getByTestId('content').should('exist');
+      // pages-list refers to the content of the Page screen
+      cy.getByTestId('pages-list').should('exist');
     });
   });
   context('User DOES have contributions section deny flag', () => {

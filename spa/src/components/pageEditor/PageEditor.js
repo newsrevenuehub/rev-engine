@@ -37,7 +37,7 @@ import { faEye, faEdit, faSave, faTrash, faClone } from '@fortawesome/free-solid
 import { ICONS } from 'assets/icons/SvgIcon';
 
 // Context
-import { useGlobalContext } from 'components/MainLayout';
+import { useConfirmationModalContext } from 'elements/modal/GlobalConfirmationModal';
 import validatePage from './validatePage';
 
 // Hooks
@@ -53,7 +53,6 @@ import GlobalLoading from 'elements/GlobalLoading';
 import EditInterface from 'components/pageEditor/editInterface/EditInterface';
 import BackButton from 'elements/BackButton';
 import { BackIcon } from 'elements/BackButton.styled';
-import CreateTemplateModal from 'components/pageEditor/CreateTemplateModal';
 import UnsavedChangesModal from 'components/pageEditor/UnsavedChangesModal';
 import PageTitle from 'elements/PageTitle';
 
@@ -84,7 +83,7 @@ function PageEditor() {
   const parameters = useParams();
 
   // Context
-  const { getUserConfirmation } = useGlobalContext();
+  const getUserConfirmation = useConfirmationModalContext();
 
   const location = useLocation();
   const pageId = location?.state?.pageId;
@@ -93,11 +92,7 @@ function PageEditor() {
   const [loading, setLoading] = useState(false);
   const [page, setPage] = useState();
   const [availableStyles, setAvailableStyles] = useState([]);
-  const {
-    open: showCreateTemplateModal,
-    handleClose: closeCreateTemplateModal,
-    handleOpen: openCreateTemplateModal
-  } = useModal();
+
   const { open: showUnsavedModal, handleClose: closeUnsavedModal, handleOpen: openUnsavedModal } = useModal();
 
   const pageTitle = useMemo(
@@ -110,6 +105,7 @@ function PageEditor() {
 
   const [updatedPage, setUpdatedPage] = useState();
   const [selectedButton, setSelectedButton] = useState(PREVIEW);
+  const [updatePageAndSave, setUpdatePageAndSave] = useState(null);
   const [showEditInterface, setShowEditInterface] = useState(false);
   const [errors, setErrors] = useState({});
 
@@ -193,14 +189,6 @@ function PageEditor() {
     setShowEditInterface(true);
   };
 
-  const handleMakeTemplate = () => {
-    if (updatedPage) {
-      getUserConfirmation('Page template will not include unsaved changes. Continue?', () => openCreateTemplateModal());
-    } else {
-      openCreateTemplateModal();
-    }
-  };
-
   const handleSave = () => {
     setSelectedButton(PREVIEW);
     setShowEditInterface(false);
@@ -212,7 +200,7 @@ function PageEditor() {
     } else if (page.published_date && isBefore(new Date(page.published_date), new Date())) {
       getUserConfirmation("You're making changes to a live donation page. Continue?", () => patchPage(pageUpdates));
     } else {
-      patchPage(pageUpdates);
+      setUpdatePageAndSave(pageUpdates);
     }
   };
 
@@ -280,7 +268,7 @@ function PageEditor() {
    * @param {object} patchedPage - Object containing page data
    * @returns {FormData} formData
    */
-  const processPageData = (patchedPage) => {
+  const processPageData = useCallback((patchedPage) => {
     const formData = new FormData();
     for (const pageKey in patchedPage) {
       let datumKey = pageKey;
@@ -300,46 +288,56 @@ function PageEditor() {
       }
     }
     return formData;
-  };
+  }, []);
 
-  const patchPage = async (patchedPage) => {
-    setLoading(true);
+  const patchPage = useCallback(
+    async (patchedPage) => {
+      setLoading(true);
 
-    let data = cleanImageKeys(patchedPage);
-    data = cleanData(data);
-    data = processPageData(data);
-    if (CAPTURE_PAGE_SCREENSHOT) data = await addScreenshotToCleanedData(data, page.name);
-    requestPatchPage(
-      {
-        method: 'PATCH',
-        url: `${PATCH_PAGE}${page.id}/`,
-        data
-      },
-      {
-        onSuccess: ({ data }) => {
-          const successMessage = getSuccessMessage(page, data);
-          alert.success(successMessage);
-          setErrors({});
-          setPage(data);
-          setUpdatedPage(null);
-          setSelectedButton(PREVIEW);
-          setLoading(false);
+      let data = cleanImageKeys(patchedPage);
+      data = cleanData(data);
+      data = processPageData(data);
+      if (CAPTURE_PAGE_SCREENSHOT) data = await addScreenshotToCleanedData(data, page.name);
+      requestPatchPage(
+        {
+          method: 'PATCH',
+          url: `${PATCH_PAGE}${page.id}/`,
+          data
         },
-        onFailure: (e) => {
-          if (e?.response?.data) {
-            setErrors({ ...errors, ...e.response.data });
-            setSelectedButton(EDIT);
-            setShowEditInterface(true);
-            setLoading(false);
-          } else {
-            alert.error(GENERIC_ERROR);
+        {
+          onSuccess: ({ data }) => {
+            const successMessage = getSuccessMessage(page, data);
+            alert.success(successMessage);
+            setErrors({});
+            setPage(data);
+            setUpdatedPage(null);
             setSelectedButton(PREVIEW);
+            setLoading(false);
+          },
+          onFailure: (e) => {
+            if (e?.response?.data) {
+              setErrors({ ...errors, ...e.response.data });
+              setSelectedButton(EDIT);
+              setShowEditInterface(true);
+              setLoading(false);
+            } else {
+              alert.error(GENERIC_ERROR);
+              setSelectedButton(PREVIEW);
+            }
+            setLoading(false);
           }
-          setLoading(false);
         }
-      }
-    );
-  };
+      );
+    },
+    [alert, errors, page, processPageData, requestPatchPage]
+  );
+
+  useEffect(() => {
+    if (selectedButton === PREVIEW && updatePageAndSave) {
+      patchPage(updatePageAndSave);
+      setUpdatePageAndSave(null);
+    }
+  }, [patchPage, selectedButton, updatePageAndSave]);
 
   useEffect(() => {
     if (!isEmpty(errors)) {
@@ -406,12 +404,6 @@ function PageEditor() {
                   disabled={!updatedPage}
                 />
                 <CircleButton
-                  onClick={handleMakeTemplate}
-                  icon={faClone}
-                  buttonType="neutral"
-                  data-testid="clone-page-button"
-                />
-                <CircleButton
                   onClick={handleDelete}
                   icon={faTrash}
                   buttonType="caution"
@@ -429,9 +421,7 @@ function PageEditor() {
             </S.ButtonOverlayOuter>
           )}
         </S.PageEditor>
-        {showCreateTemplateModal && (
-          <CreateTemplateModal page={page} isOpen={showCreateTemplateModal} closeModal={closeCreateTemplateModal} />
-        )}
+
         {showUnsavedModal && (
           <UnsavedChangesModal to={CONTENT_SLUG} isOpen={showUnsavedModal} closeModal={closeUnsavedModal} />
         )}

@@ -16,17 +16,15 @@ import Customize from 'components/content/Customize';
 import PageEditor from 'components/pageEditor/PageEditor';
 
 // Feature flag-related
-import {
-  CONTRIBUTIONS_SECTION_ACCESS_FLAG_NAME,
-  CONTENT_SECTION_ACCESS_FLAG_NAME
-} from 'constants/featureFlagConstants';
+import { CONTENT_SECTION_ACCESS_FLAG_NAME } from 'constants/featureFlagConstants';
 
 import flagIsActiveForUser from 'utilities/flagIsActiveForUser';
+import hasContributionsDashboardAcessToUser from 'utilities/hasContributionsDashboardAcessToUser';
 
 function Dashboard() {
   const { featureFlags } = useFeatureFlagsProviderContext();
 
-  const hasContributionsSectionAccess = flagIsActiveForUser(CONTRIBUTIONS_SECTION_ACCESS_FLAG_NAME, featureFlags);
+  const hasContributionsSectionAccess = hasContributionsDashboardAcessToUser(featureFlags);
 
   const hasContentSectionAccess = flagIsActiveForUser(CONTENT_SECTION_ACCESS_FLAG_NAME, featureFlags);
 

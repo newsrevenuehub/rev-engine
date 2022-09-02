@@ -168,7 +168,7 @@ class BadActorSerializer(serializers.Serializer):
     referer = serializers.URLField()
 
     # Donation additional
-    reason_for_giving = serializers.CharField(max_length=255, required=False, allow_blank=True)
+    reason_for_giving = serializers.CharField(max_length=255, required=False, allow_blank=True, allow_null=True)
 
     def to_internal_value(self, data):
         data["street"] = data.get("mailing_street")
@@ -242,9 +242,9 @@ class BaseCreatePaymentSerializer(serializers.Serializer):
             "max_value": f"We can only accept contributions less than or equal to {format_ambiguous_currency(STRIPE_MAX_AMOUNT)}",
             "min_value": f"We can only accept contributions greater than or equal to {format_ambiguous_currency(REVENGINE_MIN_AMOUNT)}",
         },
-        required=True,
         write_only=True,
     )
+    interval = serializers.ChoiceField(choices=ContributionInterval.choices, default=ContributionInterval.ONE_TIME)
     email = serializers.EmailField(max_length=80, write_only=True)
     page = serializers.PrimaryKeyRelatedField(many=False, queryset=DonationPage.objects.all(), write_only=True)
     first_name = serializers.CharField(max_length=40, write_only=True)
@@ -266,7 +266,7 @@ class BaseCreatePaymentSerializer(serializers.Serializer):
         choices=CompSubscriptions.choices, required=False, allow_blank=True, write_only=True
     )
     sf_campaign_id = serializers.CharField(max_length=255, required=False, allow_blank=True, write_only=True)
-    captcha_token = serializers.CharField(max_length=2550, required=False, allow_blank=True, write_only=True)
+    captcha_token = serializers.CharField(max_length=2550, allow_blank=True, write_only=True)
     provider_client_secret_id = serializers.CharField(read_only=True)
 
     def validate_reason_for_giving(self, value):
@@ -290,7 +290,7 @@ class BaseCreatePaymentSerializer(serializers.Serializer):
         ...from the form data. We assume this gets run in `.validate()` after field-level validations
         have run, which will guarantee that "reason_other" has a value if "reason_for_giving" is "Other".
         """
-        return reason_other if reason_for_giving == "Other" else reason_other
+        return reason_other if reason_for_giving == "Other" else reason_for_giving
 
     def validate(self, data):
         """Validate any fields whose "is_required" behavior is determined dynamically by the org
@@ -322,7 +322,7 @@ class BaseCreatePaymentSerializer(serializers.Serializer):
         return data
 
     def get_bad_actor_score(self, data):
-        """ """
+        """Based on validated data, make a request to bad actor API and return its response"""
         serializer = BadActorSerializer(
             data=(
                 data
@@ -344,7 +344,7 @@ class BaseCreatePaymentSerializer(serializers.Serializer):
 
     def should_flag(self, bad_actor_score):
         """Determine if bad actor score should lead to contribution being flagged"""
-        return self.bad_actor_score >= settings.BAD_ACTOR_FAIL_ABOVE
+        return bad_actor_score >= settings.BAD_ACTOR_FAILURE_THRESHOLD
 
     def get_stripe_payment_metadata(self, contributor, validated_data):
         """Generate dict of metadata to be sent to Stripe when creating a PaymentIntent or Subscription"""
@@ -363,7 +363,7 @@ class BaseCreatePaymentSerializer(serializers.Serializer):
             "swag_choice": validated_data.get("swag_choice"),
             "referer": self.context["request"].META.get("HTTP_REFERER"),
             "revenue_program_id": validated_data["page"].revenue_program.id,
-            "sf_campaign_id": None,  # do this next
+            "sf_campaign_id": validated_data.get("sf_campaign_id"),
         }
 
     def create_stripe_customer(self, contributor, validated_data):

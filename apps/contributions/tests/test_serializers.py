@@ -1,8 +1,16 @@
+from unittest.mock import Mock
+
 from django.conf import settings
 from django.test import TestCase
 from django.utils import timezone
 
+import pytest
+from rest_framework.test import APIRequestFactory
+
+from apps.api.error_messages import GENERIC_BLANK
 from apps.contributions import serializers
+from apps.contributions.bad_actor import BadActorAPIError
+from apps.contributions.models import Contribution, ContributionStatus
 from apps.contributions.tests.factories import ContributionFactory, ContributorFactory
 from apps.contributions.utils import format_ambiguous_currency
 from apps.organizations.tests.factories import RevenueProgramFactory
@@ -128,82 +136,362 @@ class AbstractPaymentSerializerTest(TestCase):
         self.assertEqual(str(serializer.errors["amount"][0]), expected_msg)
 
 
+@pytest.mark.django_db()
+@pytest.fixture
+def donation_page():
+    return DonationPageFactory()
+
+
+@pytest.mark.django_db()
+@pytest.fixture
+def donation_page_with_conditionally_required_elements():
+    page = DonationPageFactory()
+    conditionally_required_elements = [
+        {
+            "type": "DDonorInfo",
+            "uuid": "3b5662c6-901b-45dc-952d-1209f3d53859",
+            "content": {"askPhone": True},
+            "requiredFields": ["phone"],
+        },
+        {
+            "type": "DReason",
+            "uuid": "31f35bc5-2c4e-45e3-9309-62eaac60a621",
+            "content": {"reasons": [], "askReason": True, "askHonoree": True, "askInMemoryOf": True},
+            "requiredFields": ["reason_for_giving"],
+        },
+    ]
+    page.elements = conditionally_required_elements
+    page.save()
+    return page
+
+
+@pytest.fixture
+def valid_data(donation_page):
+    return {
+        "amount": 120.1,
+        "email": "foo@bar.com",
+        "page": donation_page.id,
+        "interval": "one_time",
+        "first_name": "Foo",
+        "last_name": "Bar",
+        "mailing_postal_code": "12345",
+        "mailing_street": "123 Street St",
+        "mailing_city": "Small Town",
+        "mailing_state": "OH",
+        "mailing_country": "US",
+        "phone": "555-555-5555",
+        "agreed_to_pay_fees": True,
+        "reason_other": "",
+        "tribute_type": "",
+        "honoree": "",
+        "in_memory_of": "",
+        "swag_opt_out": True,
+        "comp_subscription": "",
+        "sf_campaign_id": "",
+        "captcha_token": "12345",
+    }
+
+
+mock_ba_response_json = {"score": "real bad"}
+
+
+class MockBadActorResponseObject:
+    """Used in tests below to simulate response returned by make_bad_actor_request
+
+    See https://docs.pytest.org/en/7.1.x/how-to/monkeypatch.html for more info on how/why
+    """
+
+    mock_ba_response_json = {"score": "real bad"}
+
+    @classmethod
+    def json(cls):
+        return {"score": "real bad"}
+
+
+def mock_get_bad_actor(*args, **kwargs):
+    return MockBadActorResponseObject()
+
+
+def mock_get_bad_actor_raise_exception(*args, **kwargs):
+    raise BadActorAPIError("Something bad happend")
+
+
+@pytest.mark.django_db
 class TestBaseCreatePaymentSerializer:
-    def setUp(self):
-        pass
+    serializer_class = serializers.BaseCreatePaymentSerializer
 
-    def test_validate_reason_for_giving(self):
-        # parametrize with:
-        # reason is other, reason_other is none
-        # reason is other, reason_other is empty string
-        # reason is other, reason_other non empty
-        # reason is not other, reason other is none
-        pass
+    @pytest.mark.parametrize(
+        "input_data,expect_valid",
+        [
+            ({}, True),
+            ({"reason_for_giving": "Other", "reason_other": ""}, False),
+            ({"reason_for_giving": "Other"}, False),
+            ({"reason_for_giving": "Other", "reason_other": "Reason"}, True),
+            ({"reason_for_giving": "My reason"}, True),
+            ({"reason_for_giving": "My reason", "reason_other": ""}, True),
+        ],
+    )
+    def test_validate_reason_for_giving(self, input_data, expect_valid, valid_data):
+        """Show `reason_other` cannot be blank when `reason_for_giving` is "Other"""
+        data = valid_data | input_data
+        serializer = self.serializer_class(data=data)
+        assert serializer.is_valid() is expect_valid
+        if expect_valid is False:
+            assert set(serializer.errors.keys()) == set(["reason_for_giving"])
+            # it looks like this because the validation of reason_for_giving is setting an error
+            # on "reason_other"
+            assert serializer.errors["reason_for_giving"]["reason_other"] == GENERIC_BLANK
 
-    def test_validate_honoree(self):
-        # parametrize with:
-        # tribute_type is "type_honoree", honoree is None
-        # tribute_type is "type_honoree", honoree is empty
-        # tribute_type is "type_honoree", honoree is non empty
-        # tribute_type is not "type_honoree"
-        pass
+    @pytest.mark.parametrize(
+        "input_data,expect_valid",
+        [
+            ({}, True),
+            ({"tribute_type": "type_honoree", "honoree": ""}, False),
+            ({"tribute_type": "type_honoree"}, False),
+            ({"tribute_type": "type_honoree", "honoree": "Paul"}, True),
+        ],
+    )
+    def test_validate_honoree(self, input_data, expect_valid, valid_data):
+        """Show `honoree` cannot be blank when `tribute_type` is `type_honoree`"""
+        error_key = "honoree"
+        data = valid_data | input_data
+        serializer = self.serializer_class(data=data)
+        assert serializer.is_valid() is expect_valid
+        if expect_valid is False:
+            assert set(serializer.errors.keys()) == set([error_key])
+            assert serializer.errors[error_key][error_key] == GENERIC_BLANK
 
-    def test_validate_in_memory_of(self):
-        # parametrize with:
-        # tribute_type is "type_in_memory_of", in_meory_of is None
-        # tribute_type is "type_in_memory_of", in_meory_of is empty
-        # tribute_type is "type_in_memory_of", in_meory_of is non empty
-        # tribute_type is not "type_in_memory_of"
-        pass
+    @pytest.mark.parametrize(
+        "input_data,expect_valid",
+        [
+            ({}, True),
+            ({"tribute_type": "type_in_memory_of", "in_memory_of": ""}, False),
+            ({"tribute_type": "type_in_memory_of"}, False),
+            ({"tribute_type": "type_in_memory_of", "in_memory_of": "Paul"}, True),
+        ],
+    )
+    def test_validate_in_memory_of(self, input_data, expect_valid, valid_data):
+        """Show `in_memory_of` cannot be blank when `tribute_type` is `type_in_memory_of`"""
+        error_key = "in_memory_of"
+        data = valid_data | input_data
+        serializer = self.serializer_class(data=data)
+        assert serializer.is_valid() is expect_valid
+        if expect_valid is False:
+            assert set(serializer.errors.keys()) == set([error_key])
+            assert serializer.errors[error_key][error_key] == GENERIC_BLANK
 
-    def test_validate_handles_conditionally_required_elements(self):
-        # TBD parametrization
-        pass
+    def test_validate_handles_conditionally_required_elements(
+        self, valid_data, donation_page_with_conditionally_required_elements
+    ):
+        """Show that our custom `validate` method handles conditionally required elements — namely, `phone` and `reason_for_giving`"""
+        error_keys = ["phone", "reason_for_giving"]
+        data = valid_data | {
+            "phone": "",
+            "reason_for_giving": "",
+            "page": donation_page_with_conditionally_required_elements.id,
+        }
+        serializer = self.serializer_class(data=data)
+        assert serializer.is_valid() is False
+        assert set(serializer.errors.keys()) == set(error_keys)
+        for key in error_keys:
+            assert serializer.errors[key][0] == GENERIC_BLANK
 
-    def test_validate_resolves_reason_for_giving(self):
-        # parametrize with
-        # reason_for_giving is Other and reason_other
-        # reason_for_giving is not other
-        pass
+    @pytest.mark.parametrize(
+        "input_data,expected_resolved_value",
+        [
+            ({"reason_for_giving": "Other", "reason_other": "My reason"}, "My reason"),
+            ({"reason_for_giving": "Reason A"}, "Reason A"),
+        ],
+    )
+    def test_validate_resolves_reason_for_giving(self, input_data, expected_resolved_value, valid_data):
+        """Show validation sets value of `reason_for_giving` to value of `reason_other` when initial value...
 
-    def test_get_bad_actor_score_happy_path(self):
-        pass
+        ...for former is 'Other'.
 
-    def test_get_bad_actor_when_data_invalid(self):
-        pass
+        See note in BaseCreatePaymentSerializer.validate for explanation of why this happens in
+        `validate`.
+        """
+        data = valid_data | input_data
+        serializer = self.serializer_class(data=data)
+        assert serializer.is_valid() is True
+        assert serializer.validated_data["reason_for_giving"] == expected_resolved_value
 
-    def test_get_bad_actor_when_bad_actor_api_error(self):
-        pass
+    def test_get_bad_actor_score_happy_path(self, valid_data, monkeypatch):
+        """Show that calling `get_bad_actor_score` returns response data
 
-    def test_should_flag(self):
-        # parametrize with
-        # bad_actor score below threshold
-        # bad actor score at threshold
-        # bad actor score above threshold
-        pass
+        Note: `get_bad_actor` uses `BadActorSerializer` internally, which requires there to be an
+        HTTP referer in the request, so that's why we set in request factory below.
+        """
+        monkeypatch.setattr("apps.contributions.serializers.make_bad_actor_request", mock_get_bad_actor)
+        request = APIRequestFactory(HTTP_REFERER="https://www.google.com").post("", {}, format="json")
+        serializer = self.serializer_class(data=valid_data, context={"request": request})
+        assert serializer.is_valid() is True
+        bad_actor_data = serializer.get_bad_actor_score(serializer.validated_data)
+        assert bad_actor_data == MockBadActorResponseObject.mock_ba_response_json
 
-    def test_get_stripe_payment_metadata_happy_path(self):
-        pass
+    def test_get_bad_actor_score_when_data_invalid(self, valid_data, monkeypatch):
+        """Show if the bad actor serialier data is invalid no exception is raise, but method returns None
 
-    def test_create_stripe_customer(self):
-        # just prove it calls Contributor.create_stripe_customer with expected vals
-        # as this is tested elsewhere in depth
-        pass
+        We achieve an invalid state by omitting http referer from the request context
+        """
+        monkeypatch.setattr("apps.contributions.serializers.make_bad_actor_request", mock_get_bad_actor)
+        request = APIRequestFactory().post("", {}, format="json")
+        serializer = self.serializer_class(data=valid_data, context={"request": request})
+        assert serializer.is_valid() is True
+        bad_actor_data = serializer.get_bad_actor_score(serializer.validated_data)
+        assert bad_actor_data is None
 
-    def test_create_contribution_happy_path(self):
-        pass
+    def test_get_bad_actor_score_when_bad_actor_api_error(self, valid_data, monkeypatch):
+        """Show if call to `make_bad_actor_request` in `get_bad_actor_score` results in BadActorAPIError, the
 
-    def test_create_contribution_when_should_flag(self):
-        pass
+        method call still succeeds, returning None.
+        """
+        monkeypatch.setattr("apps.contributions.serializers.make_bad_actor_request", mock_get_bad_actor_raise_exception)
+        request = APIRequestFactory(HTTP_REFERER="https://www.google.com").post("", {}, format="json")
+        serializer = self.serializer_class(data=valid_data, context={"request": request})
+        assert serializer.is_valid() is True
+        bad_actor_data = serializer.get_bad_actor_score(serializer.validated_data)
+        assert bad_actor_data is None
 
-    def test_create_contribution_when_no_bad_actor_response(self):
-        pass
+    @pytest.mark.parametrize(
+        "score,should_fail",
+        [
+            (settings.BAD_ACTOR_FAILURE_THRESHOLD - 1, False),
+            (settings.BAD_ACTOR_FAILURE_THRESHOLD, True),
+            (settings.BAD_ACTOR_FAILURE_THRESHOLD + 1, True),
+        ],
+    )
+    def test_should_flag(self, score, should_fail, valid_data):
+        serializer = self.serializer_class(data=valid_data)
+        assert serializer.should_flag(score) is should_fail
+
+    def test_get_stripe_payment_metadata_happy_path(self, valid_data):
+        contributor = ContributorFactory()
+        referer = "https://www.google.com"
+        request = APIRequestFactory(HTTP_REFERER=referer).post("", {}, format="json")
+        serializer = self.serializer_class(data=valid_data, context={"request": request})
+        assert serializer.is_valid() is True
+        metadata = serializer.get_stripe_payment_metadata(contributor, serializer.validated_data)
+        assert metadata == {
+            "source": settings.METADATA_SOURCE,
+            "schema_version": settings.METADATA_SCHEMA_VERSION,
+            "contributor_id": contributor.id,
+            "agreed_to_pay_fees": serializer.validated_data["agreed_to_pay_fees"],
+            "donor_selected_amount": serializer.validated_data["amount"],
+            "reason_for_giving": serializer.validated_data["reason_for_giving"],
+            "honoree": serializer.validated_data.get("honoree"),
+            "in_memory_of": serializer.validated_data.get("in_memory_of"),
+            "comp_subscription": serializer.validated_data.get("comp_subscription"),
+            "swag_opt_out": serializer.validated_data.get("swag_opt_out"),
+            "swag_choice": serializer.validated_data.get("swag_choice"),
+            "referer": referer,
+            "revenue_program_id": serializer.validated_data["page"].revenue_program.id,
+            "sf_campaign_id": serializer.validated_data.get("sf_campaign_id"),
+        }
+
+    def test_create_stripe_customer(self, valid_data, monkeypatch):
+        """Show that the `.create_stripe_customer` method calls `Contributor.create_stripe_customer` with
+
+        expected values. We don't test beyond this because `Contributor.create_stripe_customer` is itself unit tested
+        elsewhere
+        """
+        mock_create_stripe_customer = Mock()
+        monkeypatch.setattr(
+            "apps.contributions.tests.factories.models.Contributor.create_stripe_customer", mock_create_stripe_customer
+        )
+        contributor = ContributorFactory()
+        serializer = self.serializer_class(data=valid_data)
+        assert serializer.is_valid() is True
+        serializer.create_stripe_customer(contributor, serializer.validated_data)
+        assert mock_create_stripe_customer.called_once_with(
+            serializer.validated_data["page"].revenue_program.stripe_account_id,
+            customer_name=f"{serializer.validated_data.get('first_name')} {serializer.validated_data.get('last_name')}",
+            phone=serializer.validated_data["phone"],
+            street=serializer.validated_data["mailing_street"],
+            city=serializer.validated_data["mailing_city"],
+            state=serializer.validated_data["mailing_state"],
+            postal_code=serializer.validated_data["mailing_postal_code"],
+            country=serializer.validated_data["mailing_country"],
+            metadata={
+                "source": settings.METADATA_SOURCE,
+                "schema_version": settings.METADATA_SCHEMA_VERSION,
+                "contributor_id": contributor.id,
+            },
+        )
+
+    def test_create_contribution_happy_path(self, valid_data):
+        contribution_count = Contribution.objects.count()
+        bad_actor_data = {"overall_judgment": settings.BAD_ACTOR_FAILURE_THRESHOLD - 1}
+        contributor = ContributorFactory()
+        serializer = self.serializer_class(data=valid_data)
+        assert serializer.is_valid() is True
+        contribution = serializer.create_contribution(contributor, serializer.validated_data, bad_actor_data)
+        assert Contribution.objects.count() == contribution_count + 1
+        expectations = {
+            "amount": serializer.validated_data["amount"],
+            "interval": serializer.validated_data["interval"],
+            "currency": serializer.validated_data["page"].revenue_program.payment_provider.currency,
+            "status": ContributionStatus.PROCESSING,
+            "donation_page": serializer.validated_data["page"],
+            "contributor": contributor,
+            "payment_provider_used": "Stripe",
+            "bad_actor_score": bad_actor_data["overall_judgment"],
+            "bad_actor_response": bad_actor_data,
+            "flagged_date": None,
+        }
+        for key, val in expectations.items():
+            assert getattr(contribution, key) == val
+
+    def test_create_contribution_when_should_flag(self, valid_data):
+        contribution_count = Contribution.objects.count()
+        bad_actor_data = {"overall_judgment": settings.BAD_ACTOR_FAILURE_THRESHOLD}
+        contributor = ContributorFactory()
+        serializer = self.serializer_class(data=valid_data)
+        assert serializer.is_valid() is True
+        contribution = serializer.create_contribution(contributor, serializer.validated_data, bad_actor_data)
+        assert Contribution.objects.count() == contribution_count + 1
+        expectations = {
+            "amount": serializer.validated_data["amount"],
+            "interval": serializer.validated_data["interval"],
+            "currency": serializer.validated_data["page"].revenue_program.payment_provider.currency,
+            "status": ContributionStatus.FLAGGED,
+            "donation_page": serializer.validated_data["page"],
+            "contributor": contributor,
+            "payment_provider_used": "Stripe",
+            "bad_actor_score": bad_actor_data["overall_judgment"],
+            "bad_actor_response": bad_actor_data,
+        }
+        for key, val in expectations.items():
+            assert getattr(contribution, key) == val
+        assert contribution.flagged_date is not None
+
+    def test_create_contribution_when_no_bad_actor_response(self, valid_data):
+        contribution_count = Contribution.objects.count()
+        bad_actor_data = None
+        contributor = ContributorFactory()
+        serializer = self.serializer_class(data=valid_data)
+        assert serializer.is_valid() is True
+        contribution = serializer.create_contribution(contributor, serializer.validated_data, bad_actor_data)
+        assert Contribution.objects.count() == contribution_count + 1
+        expectations = {
+            "amount": serializer.validated_data["amount"],
+            "interval": serializer.validated_data["interval"],
+            "currency": serializer.validated_data["page"].revenue_program.payment_provider.currency,
+            "status": ContributionStatus.PROCESSING,
+            "donation_page": serializer.validated_data["page"],
+            "contributor": contributor,
+            "payment_provider_used": "Stripe",
+            "bad_actor_score": None,
+            "bad_actor_response": None,
+            "flagged_date": None,
+        }
+        for key, val in expectations.items():
+            assert getattr(contribution, key) == val
 
 
 class TestCreateOneTimePaymentSerializer:
-    def setUp(self):
-        pass
 
+    # is subclass of base
     def test_happy_path(self):
         pass
 

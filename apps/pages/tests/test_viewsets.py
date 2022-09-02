@@ -15,7 +15,7 @@ from apps.api.tests import RevEngineApiAbstractTestCase
 from apps.organizations.models import PaymentProvider, RevenueProgram
 from apps.pages.models import DonationPage, Font, Style, Template
 from apps.pages.tests.factories import FontFactory, StyleFactory, TemplateFactory
-from apps.users.tests.utils import create_test_user
+from apps.users.tests.factories import create_test_user
 
 
 class PageViewSetTest(RevEngineApiAbstractTestCase):

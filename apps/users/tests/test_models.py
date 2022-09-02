@@ -4,7 +4,7 @@ from django.test import TestCase
 from apps.organizations.models import RevenueProgram
 from apps.organizations.tests.factories import OrganizationFactory, RevenueProgramFactory
 from apps.users import models
-from apps.users.tests.utils import create_test_user
+from apps.users.tests.factories import create_test_user
 
 
 user_model = get_user_model()

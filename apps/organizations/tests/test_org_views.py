@@ -6,7 +6,7 @@ from rest_framework.reverse import reverse
 from apps.api.tests import RevEngineApiAbstractTestCase
 from apps.organizations.models import Feature, Organization, Plan, RevenueProgram
 from apps.organizations.tests.factories import FeatureFactory, OrganizationFactory
-from apps.users.tests.utils import create_test_user
+from apps.users.tests.factories import create_test_user
 
 
 user_model = get_user_model()

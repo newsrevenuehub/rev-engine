@@ -3,6 +3,7 @@ from datetime import datetime
 from django.conf import settings
 from django.db.models import TextChoices
 
+import pytz
 from rest_framework import serializers
 
 from apps.api.error_messages import GENERIC_BLANK
@@ -530,13 +531,13 @@ class SubscriptionsSerializer(serializers.Serializer):
         return self._card(instance).brand
 
     def get_next_payment_date(self, instance):
-        return datetime.utcfromtimestamp(int(instance.current_period_end))
+        return datetime.fromtimestamp(int(instance.current_period_end), tz=pytz.utc)
 
     def get_last_payment_date(self, instance):
-        return datetime.utcfromtimestamp(int(instance.current_period_start))
+        return datetime.fromtimestamp(int(instance.current_period_start), tz=pytz.utc)
 
     def get_created(self, instance):
-        return datetime.utcfromtimestamp(int(instance.created))
+        return datetime.fromtimestamp(int(instance.created), tz=pytz.utc)
 
     def get_last4(self, instance):
         return instance.default_payment_method.card.last4

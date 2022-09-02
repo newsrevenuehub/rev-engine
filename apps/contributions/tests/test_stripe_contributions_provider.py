@@ -3,6 +3,7 @@ from unittest.mock import PropertyMock, patch
 
 from django.test import TestCase
 
+import pytz
 import stripe
 from addict import Dict as AttrDict
 
@@ -228,9 +229,9 @@ class TestStripePaymentIntent(AbstractTestStripeContributions):
         self.assertEqual(stripe_payment_intent.card_brand, "visa")
         self.assertEqual(stripe_payment_intent.last4, "1234")
         self.assertEqual(stripe_payment_intent.amount, 2000)
-        self.assertEqual(stripe_payment_intent.created, datetime(2022, 7, 4, 6, 10, 40))
+        self.assertEqual(stripe_payment_intent.created, datetime(2022, 7, 4, 6, 10, 40, tzinfo=pytz.utc))
         self.assertEqual(stripe_payment_intent.provider_customer_id, "customer_1")
-        self.assertEqual(stripe_payment_intent.last_payment_date, datetime(2022, 7, 4, 6, 10, 47))
+        self.assertEqual(stripe_payment_intent.last_payment_date, datetime(2022, 7, 4, 6, 10, 47, tzinfo=pytz.utc))
         self.assertEqual(stripe_payment_intent.status, ContributionStatus.PAID)
         self.assertEqual(stripe_payment_intent.credit_card_expiration_date, "1/2023")
         self.assertEqual(stripe_payment_intent.payment_type, "card")

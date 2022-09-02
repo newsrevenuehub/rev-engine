@@ -71,7 +71,7 @@ class StripeWebhookProcessor:
     def handle_payment_intent_succeeded(self):
         contribution = self.get_contribution_from_event()
         contribution.payment_provider_data = self.event
-        contribution.last_payment_date = datetime.fromtimestamp(self.obj_data["created"]).replace(tzinfo=pytz.UTC)
+        contribution.last_payment_date = datetime.fromtimestamp(self.obj_data["created"], tz=pytz.UTC)
         contribution.status = ContributionStatus.PAID
 
         # Grab the payment_intent id from the event and store it as provider_payment_id

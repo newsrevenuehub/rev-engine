@@ -4,13 +4,11 @@ import ContentSectionNav from './navs/ContentSectionNav';
 import ContributionSectionNav from './navs/ContributionSectionNav';
 import { ICONS } from 'assets/icons/SvgIcon';
 
-import {
-  CONTRIBUTIONS_SECTION_ACCESS_FLAG_NAME,
-  CONTENT_SECTION_ACCESS_FLAG_NAME
-} from 'constants/featureFlagConstants';
+import { CONTENT_SECTION_ACCESS_FLAG_NAME } from 'constants/featureFlagConstants';
 
 import flagIsActiveForUser from 'utilities/flagIsActiveForUser';
 import { useFeatureFlagsProviderContext } from 'components/Main';
+import hasContributionsDashboardAcessToUser from 'utilities/hasContributionsDashboardAcessToUser';
 
 /*
 // Commenting out for now as this will needed in future
@@ -28,7 +26,7 @@ function DashboardMain() {
 function DashboardSidebar() {
   const { featureFlags } = useFeatureFlagsProviderContext();
 
-  const hasContributionsSectionAccess = flagIsActiveForUser(CONTRIBUTIONS_SECTION_ACCESS_FLAG_NAME, featureFlags);
+  const hasContributionsSectionAccess = hasContributionsDashboardAcessToUser(featureFlags);
   const hasContentSectionAccess = flagIsActiveForUser(CONTENT_SECTION_ACCESS_FLAG_NAME, featureFlags);
 
   return (

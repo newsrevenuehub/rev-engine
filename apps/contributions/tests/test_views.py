@@ -732,3 +732,37 @@ class ProcessFlaggedContributionTest(APITestCase):
         response = self._make_request(contribution_pk=self.contribution.pk, request_args={"reject": False})
         self.assertEqual(response.status_code, 200)
         mock_process_flagged.assert_called_with(reject="False")
+
+
+class TestOneTimePaymentViewSet(APITestCase):
+    def setUp(self):
+        pass
+
+    def test_happy_path(self):
+        pass
+
+    def test_when_no_csrf(self):
+        pass
+
+    def test_success_action(self):
+        pass
+
+    def test_passes_request_in_context(self):
+        pass
+
+
+class TestSubscriptionPaymentViewSet(APITestCase):
+    def setUp(self):
+        pass
+
+    def test_happy_path(self):
+        pass
+
+    def test_when_no_csrf(self):
+        pass
+
+    def test_success_action(self):
+        pass
+
+    def test_passes_request_in_context(self):
+        pass

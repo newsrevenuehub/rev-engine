@@ -1,4 +1,3 @@
-
 # Revenue Engine <!-- omit in toc -->
 
 [![NRE](https://img.shields.io/endpoint?url=https://dashboard.cypress.io/badge/simple/68ek4u&style=flat&logo=cypress)](https://dashboard.cypress.io/projects/68ek4u/runs)
@@ -402,6 +401,8 @@ If you have a need to run or test tasks using a Celery worker, there are some Ma
 
 ## Frontend Configuration
 
+Check `.envrc.example` for all environment variables that are needed to run locally. Note: some of them you will have to get the value from the respective resource (example: Stripe -> get secret key from stripe dashboard)
+
 See [spa/src/settings.js](./spa/src/settings.js) for more details on how env vars are configured on the front end. For setup, certain features of the app will require certain env vars define.
 
 First:
@@ -454,7 +455,6 @@ We want to limit the number of individual migration files produced. As you're wo
 
 Before submitting a pull request, please [squash all the migrations](https://docs.djangoproject.com/en/4.0/topics/migrations/#migration-squashing) per app for that PR into either one or two migrations depending on whether there are both data and schema migrations. Include the ticket number in the filename for the migration, e.g. 0004_DEV-1234_contribution_flagged_date.py
 
-
 ## `django-reversion`, audit logs, and restoring deleted model instances
 
 This project uses [django-reversion](https://django-reversion.readthedocs.io/en/stable/index.html) to record user-generated changes to select models from the admin and via the API layer. This same package allows admin users to recover deleted model instances.
@@ -479,7 +479,7 @@ python manage.py createinitialrevisions
 
 ### How to register a view
 
-We use `reversion.views.RevisionMixin` in select API-layer viewsets in order to record changes to the model instances that happen via that view.  To set up a view to record changes, do:
+We use `reversion.views.RevisionMixin` in select API-layer viewsets in order to record changes to the model instances that happen via that view. To set up a view to record changes, do:
 
 ```python
 class MyViewSet(RevisionMixin, ...<other super classes and mixins>):

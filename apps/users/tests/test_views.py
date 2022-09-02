@@ -12,6 +12,7 @@ from django.utils import timezone
 
 import pytest
 from bs4 import BeautifulSoup
+from django_rest_passwordreset.models import ResetPasswordToken
 from faker import Faker
 from rest_framework import status
 from rest_framework.test import APITestCase
@@ -28,6 +29,7 @@ from apps.users.constants import (
     PASSWORD_TOO_SHORT_VALIDATION_MESSAGE,
     PASSWORD_TOO_SIMILAR_TO_EMAIL_VALIDATION_MESSAGE,
 )
+from apps.users.models import User
 from apps.users.permissions import UserIsAllowedToUpdate, UserOwnsUser
 from apps.users.tests.factories import create_test_user
 from apps.users.views import AccountVerification, UserViewset
@@ -247,6 +249,40 @@ class TestCustomPasswordResetConfirm(TestCase):
         self.assertEqual(reverse("orgadmin_password_reset_complete"), response.request["PATH_INFO"])
         self.user.refresh_from_db()
         self.assertTrue(self.user.check_password(self.new_password))
+
+
+@override_settings(EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend")
+class TestAPIRequestPasswordResetEmail(APITestCase):
+    """Minimally test our API-based password reset flow
+
+    We rely on a third-party library for implementing our password reset flow, so we only
+    minimally test. We show that the initial password reset request causes an email to be sent,
+    but we don't test the flow beyond that, since that's already tested in django-rest-passwordreset
+    """
+
+    def setUp(self):
+        self.mailbox = mail.outbox
+        self.url = reverse("password_reset:reset-password-request")
+
+    def test_happy_path(self):
+        """Show that we get a 200, and that email containing link with reset token gets sent"""
+        user = create_test_user()
+        response = self.client.post(self.url, {"email": user.email})
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(self.mailbox), 1)
+        token = ResetPasswordToken.objects.get(user=user)
+        # we get the html version of the email
+        link = BeautifulSoup(self.mailbox[0].alternatives[0][0], "html.parser").a
+        self.assertIsNotNone(link)
+        self.assertIn(token.key, link.attrs["href"])
+
+    def test_when_user_not_exist(self):
+        """Show that when no user with email, still get 200, but no email sent"""
+        non_existent_user_email = "foo@bar.com"
+        self.assertFalse(User.objects.filter(email=non_existent_user_email).exists())
+        response = self.client.post(self.url, {"email": non_existent_user_email})
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(self.mailbox), 0)
 
 
 class MockResponseObject:

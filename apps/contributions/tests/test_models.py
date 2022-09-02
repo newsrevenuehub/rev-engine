@@ -41,6 +41,9 @@ class ContributorTest(TestCase):
     def test_is_superuser(self):
         self.assertFalse(self.contributor.is_superuser)
 
+    def test_create_stripe_customer(self):
+        pass
+
 
 test_key = "test_key"
 
@@ -117,3 +120,15 @@ class ContributionTest(TestCase):
         self.contribution.status = ContributionStatus.PAID
         self.contribution.save()
         mock_retrieve_pm.assert_not_called()
+
+    def test_create_stripe_one_time_payment_intent(self):
+        pass
+
+    def test_create_stripe_subscription(self):
+        pass
+
+    def test_handle_thank_you_email_when_nre_sends(self):
+        pass
+
+    def test_handle_thank_you_email_when_nre_not_send(self):
+        pass

@@ -384,17 +384,27 @@ describe('Donation page edit', () => {
       const expectedHeading = livePage.heading;
       cy.getByTestId('setup-heading-input').should('have.value', expectedHeading);
     });
-    it('should update donation page view with new content', () => {
+    it('should update donation page view with new content and display it in preview mode', () => {
       const previousHeading = livePage.heading;
       const newHeading = 'My new test heading';
       cy.intercept({ method: 'GET', pathname: getEndpoint(LIST_STYLES) }, {});
       cy.intercept({ method: 'GET', pathname: getEndpoint(TEMPLATES) }, {});
 
+      cy.getByTestId('s-page-heading').contains(previousHeading);
       cy.getByTestId('setup-heading-input').clear();
       cy.getByTestId('setup-heading-input').type(newHeading);
       cy.getByTestId('keep-element-changes-button').scrollIntoView().click();
       cy.getByTestId('s-page-heading').contains(previousHeading).should('not.exist');
       cy.getByTestId('s-page-heading').contains(newHeading);
+
+      // Make sure update is reflected in preview:
+      cy.getByTestId('save-page-button').click();
+      cy.getByTestId('s-page-heading').contains(newHeading);
+      cy.getByTestId('cancel-button').click();
+      cy.getByTestId('s-page-heading').contains(newHeading);
+
+      // Go back to edit mode
+      cy.getByTestId('edit-page-button').click();
     });
     it('should show expected, formatted publication date', () => {
       const rawDate = livePage.published_date;

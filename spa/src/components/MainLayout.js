@@ -21,7 +21,6 @@ const GlobalContext = createContext(null);
 
 function MainLayout() {
   // Global Context management
-  const [confirmationState, setConfirmationState] = useState({});
   const [reauthModalOpen, setReauthModalOpen] = useState(false);
 
   // Get subdomain for donation-page-routing
@@ -29,10 +28,6 @@ function MainLayout() {
 
   // Store reauth callbacks in ref to persist between renders
   const reauthCallbacks = useRef([]);
-
-  const getUserConfirmation = (message, onConfirm, onDecline) => {
-    setConfirmationState({ message, onConfirm, onDecline, isOpen: true });
-  };
 
   const getReauth = (cb) => {
     /*
@@ -53,21 +48,18 @@ function MainLayout() {
   const isContributorApp = isContributorAppPath();
 
   return (
-    <GlobalContext.Provider value={{ getUserConfirmation, getReauth }}>
+    <GlobalContext.Provider value={{ getReauth }}>
       <AnalyticsContextWrapper>
-        {/* Route to donation page if subdomain exists */}
-        <S.MainLayout>
-          {!DASHBOARD_SUBDOMAINS.includes(subdomain) && !isContributorApp ? (
-            <DonationPageRouter />
-          ) : (
-            <DashboardRouter />
-          )}
-        </S.MainLayout>
-        {/* Modals */}
-        <GlobalConfirmationModal
-          {...confirmationState}
-          closeModal={() => setConfirmationState({ ...confirmationState, isOpen: false })}
-        />
+        <GlobalConfirmationModal>
+          {/* Route to donation page if subdomain exists */}
+          <S.MainLayout>
+            {!DASHBOARD_SUBDOMAINS.includes(subdomain) && !isContributorApp ? (
+              <DonationPageRouter />
+            ) : (
+              <DashboardRouter />
+            )}
+          </S.MainLayout>
+        </GlobalConfirmationModal>
         <ReauthModal isOpen={reauthModalOpen} callbacks={reauthCallbacks.current} closeModal={closeReauthModal} />
       </AnalyticsContextWrapper>
     </GlobalContext.Provider>

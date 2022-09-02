@@ -56,7 +56,7 @@ export const Button = styled.button`
   cursor: pointer;
 
   &:hover {
-    background-color: ${(props) => props.theme.colors.muiGrey[900] + '90'};
+    background-color: ${(props) => props.theme.colors.muiGrey[900] + '70'};
   }
 
   &:active {

@@ -6,13 +6,17 @@ import AmountFilter from 'components/donations/filters/AmountFilter';
 import CreatedFilter from 'components/donations/filters/CreatedFilter';
 import GenericErrorBoundary from 'components/errors/GenericErrorBoundary';
 
-function Filters({ filters, handleFilterChange, donationsCount }) {
+function Filters({ filters, handleFilterChange, donationsCount, excludeStatusFilters = [] }) {
   // whenever we need to enable this, toggle this switch to true
   let dateFilterEnabled = false;
   return (
     <S.Filters layout>
       <GenericErrorBoundary>
-        <StatusFilter filter={filters.status} handleFilterChange={handleFilterChange} />
+        <StatusFilter
+          filter={filters.status}
+          handleFilterChange={handleFilterChange}
+          excludeStatusFilters={excludeStatusFilters}
+        />
       </GenericErrorBoundary>
       <GenericErrorBoundary>
         <AmountFilter filter={filters.amount} handleFilterChange={handleFilterChange} />

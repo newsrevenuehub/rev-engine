@@ -47,7 +47,6 @@ describe('Donation page edit', () => {
     cy.getByTestId('preview-page-button');
     cy.getByTestId('edit-page-button');
     cy.getByTestId('save-page-button');
-    cy.getByTestId('clone-page-button');
     cy.getByTestId('delete-page-button');
   });
 
@@ -385,17 +384,27 @@ describe('Donation page edit', () => {
       const expectedHeading = livePage.heading;
       cy.getByTestId('setup-heading-input').should('have.value', expectedHeading);
     });
-    it('should update donation page view with new content', () => {
+    it('should update donation page view with new content and display it in preview mode', () => {
       const previousHeading = livePage.heading;
       const newHeading = 'My new test heading';
       cy.intercept({ method: 'GET', pathname: getEndpoint(LIST_STYLES) }, {});
       cy.intercept({ method: 'GET', pathname: getEndpoint(TEMPLATES) }, {});
 
+      cy.getByTestId('s-page-heading').contains(previousHeading);
       cy.getByTestId('setup-heading-input').clear();
       cy.getByTestId('setup-heading-input').type(newHeading);
       cy.getByTestId('keep-element-changes-button').scrollIntoView().click();
       cy.getByTestId('s-page-heading').contains(previousHeading).should('not.exist');
       cy.getByTestId('s-page-heading').contains(newHeading);
+
+      // Make sure update is reflected in preview:
+      cy.getByTestId('save-page-button').click();
+      cy.getByTestId('s-page-heading').contains(newHeading);
+      cy.getByTestId('cancel-button').click();
+      cy.getByTestId('s-page-heading').contains(newHeading);
+
+      // Go back to edit mode
+      cy.getByTestId('edit-page-button').click();
     });
     it('should show expected, formatted publication date', () => {
       const rawDate = livePage.published_date;
@@ -532,50 +541,6 @@ describe('Page load side effects', () => {
   });
   it('should NOT contain clearbit.js script in body', () => {
     cy.get('head').find(`script[src*="${CLEARBIT_SCRIPT_SRC}"]`).should('have.length', 0);
-  });
-});
-
-describe('Template from page', () => {
-  beforeEach(() => {
-    cy.forceLogin(orgAdminUser);
-    cy.intercept({ method: 'GET', pathname: getEndpoint(USER) }, { body: orgAdminWithContentFlag });
-    cy.intercept(
-      { method: 'GET', pathname: getEndpoint(DRAFT_PAGE_DETAIL) },
-      { fixture: 'pages/live-page-1', statusCode: 200 }
-    ).as('getPageDetail');
-    cy.intercept(`**/${LIST_STYLES}**`, {});
-
-    cy.visit('dashboard/edit/my/page');
-    cy.url().should('include', 'dashboard/edit/my/page');
-    cy.wait('@getPageDetail');
-  });
-
-  it('should show warning if page edits are unsaved', () => {
-    cy.getByTestId('edit-page-button').click();
-    cy.editElement('DRichText');
-    cy.getByTestId('keep-element-changes-button').click({ force: true });
-    cy.getByTestId('clone-page-button').click({ force: true });
-    cy.getByTestId('confirmation-modal').should('exist');
-  });
-
-  it('should show template creation modal if continue is clicked', () => {
-    cy.getByTestId('clone-page-button').click({ force: true });
-    cy.getByTestId('template-create-modal').should('exist');
-  });
-  it('should show make request with page pk in body when template saved', () => {
-    cy.getByTestId('clone-page-button').click({ force: true });
-    cy.getByTestId('template-create-modal').should('exist');
-    cy.intercept({
-      method: 'POST',
-      pathname: getEndpoint(TEMPLATES)
-    }).as('createTemplate');
-    cy.getByTestId('save-template-button').click();
-    cy.wait('@createTemplate').then(({ request }) => {
-      expect(request.body).to.have.property('page_pk');
-      expect(request.body.page_pk).to.equal(livePage.id);
-      expect(request.body).to.have.property('name');
-      expect(request.body.name).to.equal(livePage.name);
-    });
   });
 });
 

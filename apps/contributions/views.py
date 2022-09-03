@@ -174,6 +174,7 @@ def process_stripe_webhook_view(request):
 class OneTimePaymentViewSet(mixins.CreateModelMixin, mixins.UpdateModelMixin, viewsets.GenericViewSet):
     permission_classes = []
     serializer_class = serializers.CreateOneTimePaymentSerializer
+    lookup_field = "provider_client_secret_id"
 
     def get_serializer_context(self):
         # we need request in context for create in order to supply
@@ -187,7 +188,7 @@ class OneTimePaymentViewSet(mixins.CreateModelMixin, mixins.UpdateModelMixin, vi
         detail=True,
         queryset=Contribution.objects.all(),
     )
-    def success(self):
+    def success(self, *args, **kwargs):
         self.get_object().handle_thank_you_email()
         return Response(status=status.HTTP_204_NO_CONTENT)
 
@@ -196,6 +197,7 @@ class OneTimePaymentViewSet(mixins.CreateModelMixin, mixins.UpdateModelMixin, vi
 class SubscriptionPaymentViewSet(mixins.CreateModelMixin, mixins.UpdateModelMixin, viewsets.GenericViewSet):
     permission_classes = []
     serializer_class = serializers.CreateRecurringPaymentSerializer
+    lookup_field = "provider_client_secret_id"
 
     def get_serializer_context(self):
         # we need request in context for create in order to supply
@@ -209,7 +211,7 @@ class SubscriptionPaymentViewSet(mixins.CreateModelMixin, mixins.UpdateModelMixi
         detail=True,
         queryset=Contribution.objects.all(),
     )
-    def success(self):
+    def success(self, *args, **kwargs):
         self.get_object().handle_thank_you_email()
         return Response(status=status.HTTP_204_NO_CONTENT)
 

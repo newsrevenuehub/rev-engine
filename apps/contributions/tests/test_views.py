@@ -17,10 +17,11 @@ from apps.api.tests import RevEngineApiAbstractTestCase
 from apps.api.tokens import ContributorRefreshToken
 from apps.common.constants import CONTRIBUTIONS_API_ENDPOINT_ACCESS_FLAG_NAME
 from apps.common.tests.test_resources import AbstractTestCase
-from apps.contributions.models import Contribution
+from apps.contributions.models import Contribution, Contributor
 from apps.contributions.payment_managers import PaymentProviderError
 from apps.contributions.serializers import PaymentProviderContributionSerializer
 from apps.contributions.tests.factories import ContributionFactory, ContributorFactory
+from apps.contributions.tests.test_serializers import mock_get_bad_actor
 from apps.organizations.models import RevenueProgram
 from apps.organizations.tests.factories import (
     OrganizationFactory,
@@ -734,35 +735,141 @@ class ProcessFlaggedContributionTest(APITestCase):
         mock_process_flagged.assert_called_with(reject="False")
 
 
-class TestOneTimePaymentViewSet(APITestCase):
-    def setUp(self):
-        pass
+@pytest.mark.django_db()
+@pytest.fixture
+def donation_page():
+    return DonationPageFactory()
 
-    def test_happy_path(self):
-        pass
+
+@pytest.fixture
+def valid_data(donation_page):
+    return {
+        "amount": "120",
+        "interval": "one_time",
+        "first_name": "Bill",
+        "last_name": "Smith",
+        "email": "bill@smith.com",
+        "phone": "123",
+        "mailing_street": "123 Glenwood Avenue",
+        "mailing_city": "Raleigh",
+        "mailing_state": "North Carolina",
+        "mailing_postal_code": "27603",
+        "mailing_country": "United States",
+        "reason_for_giving": "Other",
+        "reason_other": "None of ya...",
+        "tribute_type": "",
+        "page": donation_page.id,
+        "captcha_token": "HFbTRmfk1CPXUxMwRTQx5CQlV",
+    }
+
+
+@pytest.fixture
+def stripe_create_customer_response():
+    return {"id": "customer-id"}
+
+
+@pytest.fixture
+def stripe_create_payment_intent_response():
+    return {"id": "some-id", "client_secret": "Shhhhhh!!!"}
+
+
+@pytest.fixture
+def stripe_create_subscription_response():
+    return {"id": "some-id", "latest_invoice": {"payment_intent": {"client_secret": "Shhhhhh!!!"}}}
+
+
+@pytest.mark.django_db
+class TestOneTimePaymentViewSet:
+
+    client = APIClient()
+    client.credentials(HTTP_REFERER="https://www.foo.com")
+
+    def test_happy_path(
+        self,
+        valid_data,
+        monkeypatch,
+        stripe_create_payment_intent_response,
+        stripe_create_customer_response,
+    ):
+        mock_create_customer = mock.Mock()
+        mock_create_customer.return_value = stripe_create_customer_response
+        monkeypatch.setattr("stripe.Customer.create", mock_create_customer)
+        mock_create_pi = mock.Mock()
+        mock_create_pi.return_value = stripe_create_payment_intent_response
+        monkeypatch.setattr("stripe.PaymentIntent.create", mock_create_pi)
+        monkeypatch.setattr("apps.contributions.serializers.make_bad_actor_request", mock_get_bad_actor)
+
+        contributor_count = Contributor.objects.count()
+        contribution_count = Contribution.objects.count()
+
+        url = reverse("payment-one-time-list")
+        response = self.client.post(url, valid_data, format="json")
+
+        assert response.status_code == status.HTTP_201_CREATED
+        assert Contributor.objects.count() == contributor_count + 1
+        assert Contribution.objects.count() == contribution_count + 1
 
     def test_when_no_csrf(self):
-        pass
+        client = APIClient(enforce_csrf_checks=True)
+        url = reverse("payment-one-time-list")
+        response = client.post(url, {})
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+        # TODO - figure out how to do csrf protection but return JSON when no token
 
     def test_success_action(self):
-        pass
+        contribution = ContributionFactory(interval="one_time")
+        contribution.provider_client_secret_id = "Shhhhhh"
+        contribution.save()
 
-    def test_passes_request_in_context(self):
-        pass
+        url = reverse("payment-one-time-success", args=(contribution.provider_client_secret_id,))
+        response = self.client.patch(url, {})
+        assert response.status_code == status.HTTP_204_NO_CONTENT
 
 
-class TestSubscriptionPaymentViewSet(APITestCase):
-    def setUp(self):
-        pass
+@pytest.mark.django_db
+class TestSubscriptionPaymentViewSet:
 
-    def test_happy_path(self):
-        pass
+    client = APIClient()
+    client.credentials(HTTP_REFERER="https://www.foo.com")
+
+    def test_happy_path(
+        self,
+        valid_data,
+        monkeypatch,
+        stripe_create_subscription_response,
+        stripe_create_customer_response,
+    ):
+        mock_create_customer = mock.Mock()
+        mock_create_customer.return_value = stripe_create_customer_response
+        monkeypatch.setattr("stripe.Customer.create", mock_create_customer)
+        mock_create_subscription = mock.Mock()
+        mock_create_subscription.return_value = stripe_create_subscription_response
+        monkeypatch.setattr("stripe.Subscription.create", mock_create_subscription)
+        monkeypatch.setattr("apps.contributions.serializers.make_bad_actor_request", mock_get_bad_actor)
+
+        contributor_count = Contributor.objects.count()
+        contribution_count = Contribution.objects.count()
+
+        data = valid_data | {"interval": "month"}
+        url = reverse("payment-subscription-list")
+        response = self.client.post(url, data, format="json")
+        assert response.status_code == status.HTTP_201_CREATED
+
+        assert Contributor.objects.count() == contributor_count + 1
+        assert Contribution.objects.count() == contribution_count + 1
 
     def test_when_no_csrf(self):
-        pass
+        client = APIClient(enforce_csrf_checks=True)
+        url = reverse("payment-subscription-list")
+        response = client.post(url, {})
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+        # TODO: Figure out how to return JSON instead of HTML response when CSRF token missing
 
     def test_success_action(self):
-        pass
+        contribution = ContributionFactory(interval="month")
+        contribution.provider_client_secret_id = "Shhhhhh"
+        contribution.save()
 
-    def test_passes_request_in_context(self):
-        pass
+        url = reverse("payment-subscription-success", args=(contribution.provider_client_secret_id,))
+        response = self.client.patch(url, {})
+        assert response.status_code == status.HTTP_204_NO_CONTENT

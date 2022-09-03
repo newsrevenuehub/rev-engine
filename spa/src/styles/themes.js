@@ -19,17 +19,7 @@ export const revEngineTheme = {
 
     purpleDark: '#19111e',
     purple: '#25192b',
-    purpleLight: '#523a5e',
-    purpleLighter: '#ddcbe7',
-    purple3: '#ddcbe7',
 
-    yellow: '#eaf37a',
-    yellowbg: '#f5ff75',
-
-    greyVeryDark: '#282828',
-    greyDark: '#323232',
-    greyMedium: '#3c3c3c',
-    greyLight: '#c4c4c4',
     black: '#080708',
 
     blueLink: '#0052cc',

@@ -782,6 +782,7 @@ def stripe_create_subscription_response():
 class TestOneTimePaymentViewSet:
 
     client = APIClient()
+    # this is added because bad actor serializer needs referer
     client.credentials(HTTP_REFERER="https://www.foo.com")
 
     def test_happy_path(
@@ -791,6 +792,11 @@ class TestOneTimePaymentViewSet:
         stripe_create_payment_intent_response,
         stripe_create_customer_response,
     ):
+        """Minimal test of the happy path
+
+        Note that this test is kept intentionally thin because the the serializer used for this view
+        is extensively tested.
+        """
         mock_create_customer = mock.Mock()
         mock_create_customer.return_value = stripe_create_customer_response
         monkeypatch.setattr("stripe.Customer.create", mock_create_customer)
@@ -810,6 +816,11 @@ class TestOneTimePaymentViewSet:
         assert Contribution.objects.count() == contribution_count + 1
 
     def test_when_no_csrf(self):
+        """Show that view is inaccessible if no CSRF token is included in request.
+
+        NB: DRF's APIClient disables CSRF protection by default, so here we have to explicitly
+        configure the client to enforce CSRF checks.
+        """
         client = APIClient(enforce_csrf_checks=True)
         url = reverse("payment-one-time-list")
         response = client.post(url, {})
@@ -817,6 +828,8 @@ class TestOneTimePaymentViewSet:
         # TODO - figure out how to do csrf protection but return JSON when no token
 
     def test_success_action(self):
+        """Minimal test of success action.  This view calls a model method which is more deeply tested elsewhere."""
+
         contribution = ContributionFactory(interval="one_time")
         contribution.provider_client_secret_id = "Shhhhhh"
         contribution.save()
@@ -830,6 +843,7 @@ class TestOneTimePaymentViewSet:
 class TestSubscriptionPaymentViewSet:
 
     client = APIClient()
+    # this is added because bad actor serializer needs referer
     client.credentials(HTTP_REFERER="https://www.foo.com")
 
     def test_happy_path(
@@ -839,6 +853,11 @@ class TestSubscriptionPaymentViewSet:
         stripe_create_subscription_response,
         stripe_create_customer_response,
     ):
+        """Minimal test of the happy path
+
+        Note that this test is kept intentionally thin because the the serializer used for this view
+        is extensively tested.
+        """
         mock_create_customer = mock.Mock()
         mock_create_customer.return_value = stripe_create_customer_response
         monkeypatch.setattr("stripe.Customer.create", mock_create_customer)
@@ -859,13 +878,19 @@ class TestSubscriptionPaymentViewSet:
         assert Contribution.objects.count() == contribution_count + 1
 
     def test_when_no_csrf(self):
+        """Show that view is inaccessible if no CSRF token is included in request.
+
+        NB: DRF's APIClient disables CSRF protection by default, so here we have to explicitly
+        configure the client to enforce CSRF checks.
+        """
         client = APIClient(enforce_csrf_checks=True)
         url = reverse("payment-subscription-list")
         response = client.post(url, {})
         assert response.status_code == status.HTTP_403_FORBIDDEN
-        # TODO: Figure out how to return JSON instead of HTML response when CSRF token missing
+        # TODO: [DEV-2335] Figure out how to return JSON instead of HTML response when CSRF token missing
 
     def test_success_action(self):
+        """Minimal test of success action.  This view calls a model method which is more deeply tested elsewhere."""
         contribution = ContributionFactory(interval="month")
         contribution.provider_client_secret_id = "Shhhhhh"
         contribution.save()

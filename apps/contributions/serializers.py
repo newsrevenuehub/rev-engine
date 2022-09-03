@@ -244,7 +244,9 @@ class BaseCreatePaymentSerializer(serializers.Serializer):
         },
         write_only=True,
     )
-    interval = serializers.ChoiceField(choices=ContributionInterval.choices, default=ContributionInterval.ONE_TIME)
+    interval = serializers.ChoiceField(
+        choices=ContributionInterval.choices, default=ContributionInterval.ONE_TIME, write_only=True
+    )
     email = serializers.EmailField(max_length=80, write_only=True)
     page = serializers.PrimaryKeyRelatedField(many=False, queryset=DonationPage.objects.all(), write_only=True)
     first_name = serializers.CharField(max_length=40, write_only=True)
@@ -323,15 +325,14 @@ class BaseCreatePaymentSerializer(serializers.Serializer):
 
     def get_bad_actor_score(self, data):
         """Based on validated data, make a request to bad actor API and return its response"""
-        serializer = BadActorSerializer(
-            data=(
-                data
-                | {
-                    "referer": self.context["request"].META.get("HTTP_REFERER"),
-                    "ip": self.context["request"].META.get("REMOTE_ADDR"),
-                }
-            )
-        )
+        data = data | {
+            # we use a PrimaryKeyRelated serializer field for page in BaseCreatePaymentSerializer
+            # but BadActorSerializer wants to pk, so we reformat here.
+            "page": data["page"].id,
+            "referer": self.context["request"].META.get("HTTP_REFERER"),
+            "ip": self.context["request"].META.get("REMOTE_ADDR"),
+        }
+        serializer = BadActorSerializer(data=data)
         try:
             serializer.is_valid(raise_exception=True)
         except serializers.ValidationError as exc:
@@ -457,7 +458,9 @@ class CreateOneTimePaymentSerializer(BaseCreatePaymentSerializer):
 class CreateRecurringPaymentSerializer(BaseCreatePaymentSerializer):
     """Serializer to enable creating a contribution + recurring payment"""
 
-    interval = serializers.ChoiceField(choices=[ContributionInterval.MONTHLY, ContributionInterval.YEARLY])
+    interval = serializers.ChoiceField(
+        choices=[ContributionInterval.MONTHLY, ContributionInterval.YEARLY], write_only=True
+    )
 
     def create(self, validated_data):
         """Create a recurring contribution...

@@ -1,6 +1,8 @@
 import logging
 
 from django.conf import settings
+from django.utils.decorators import method_decorator
+from django.views.decorators.csrf import ensure_csrf_cookie
 
 import django_filters
 from rest_framework import filters, status, viewsets
@@ -54,6 +56,7 @@ class PageViewSet(RevisionMixin, viewsets.ModelViewSet, FilterQuerySetByUserMixi
         else:
             return serializers.DonationPageListSerializer
 
+    @method_decorator(ensure_csrf_cookie)
     @action(detail=False, methods=["get"], permission_classes=[], authentication_classes=[], url_path="live-detail")
     def live_detail(self, request):
         """

@@ -12,7 +12,11 @@ export const ICONS = {
   PAGES: 'pages',
   CONTRIBUTIONS: 'contributions',
   CUSTOMIZE: 'customize',
-  DASHBOARD: 'dashboard'
+  DASHBOARD: 'dashboard',
+  ACCOUNT_UNFOLD_MORE: 'account-unfold-more',
+  ACCOUNT_ACC_BALANCE: 'account-acc-balance',
+  ACCOUNT_NEWSROOM: 'account-newsroom',
+  ACCOUNT_CART: 'account-cart'
 };
 
 function SvgIcon({ icon, ...props }) {

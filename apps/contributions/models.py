@@ -195,6 +195,10 @@ class Contribution(IndexedTimeStampedModel, RoleAssignmentResourceModelMixin):
             4,
             "4 - Bad",
         ),
+        (
+            5,
+            "5 - Very Bad",
+        ),
     )
 
     @property

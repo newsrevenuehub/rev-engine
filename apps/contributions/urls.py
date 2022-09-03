@@ -12,6 +12,8 @@ router.register(r"payments/one-time", views.OneTimePaymentViewSet, basename="pay
 router.register(r"payments/subscription", views.SubscriptionPaymentViewSet, basename="payment-subscription")
 
 urlpatterns = [
+    path("subscriptions/<str:subscription_id>/", views.SubscriptionDetail.as_view(), name="subscription"),
+    # path("stripe/payment/", views.stripe_payment, name="stripe-payment"),
     path("stripe/oauth/", views.stripe_oauth, name="stripe-oauth"),
     path("stripe/confirmation/", views.stripe_confirmation, name="stripe-confirmation"),
     re_path(

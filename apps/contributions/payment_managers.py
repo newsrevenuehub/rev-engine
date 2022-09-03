@@ -41,7 +41,7 @@ class PaymentManager:
         It is able to validate and process the data, creating new model instances both
         locally and with the payment provider.
 
-        A PaymentManager instantiated with a `Contribution` is like a ModelSerilizer receiving an update
+        A PaymentManager instantiated with a `Contribution` is like a ModelSerializer receiving an update
         to an existing instance. Here we use this class to perform updates on existing local and payment-provider
         models.
         """
@@ -90,36 +90,6 @@ class StripePaymentManager(PaymentManager):
             )
         except stripe.error.StripeError as stripe_error:
             logger.exception("stripe.PaymentMethod.attach returned a StripeError")
-            self._handle_stripe_error(stripe_error)
-
-    def cancel_recurring_payment(self):
-        self.ensure_contribution()
-        revenue_program = self.contribution.revenue_program
-        try:
-            stripe.Subscription.delete(
-                self.contribution.provider_subscription_id,
-                stripe_account=revenue_program.payment_provider.stripe_account_id,
-            )
-        except stripe.error.StripeError as stripe_error:
-            logger.exception("stripe.Subscription.modify returned a StripeError")
-            self._handle_stripe_error(stripe_error)
-
-    def update_payment_method(self, payment_method_id):
-        self.ensure_contribution()
-
-        customer_id = self.contribution.provider_customer_id
-        revenue_program = self.contribution.revenue_program
-        self.attach_payment_method_to_customer(
-            customer_id, revenue_program.payment_provider.stripe_account_id, payment_method_id
-        )
-        try:
-            stripe.Subscription.modify(
-                self.contribution.provider_subscription_id,
-                default_payment_method=payment_method_id,
-                stripe_account=revenue_program.payment_provider.stripe_account_id,
-            )
-        except stripe.error.StripeError as stripe_error:
-            logger.exception("stripe.Subscription.modify returned a StripeError")
             self._handle_stripe_error(stripe_error)
 
     def complete_payment(self, reject=False):

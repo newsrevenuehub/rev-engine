@@ -64,7 +64,6 @@ function SignIn({ onSuccess, message }) {
     } catch (e) {
       dispatch({ type: FETCH_FAILURE, payload: e?.response?.data });
     }
-    reset();
   };
 
   return (

@@ -24,6 +24,8 @@ const Main = lazy(() => componentLoader(() => import('components/Main')));
 
 // Account Screens
 const SignIn = lazy(() => componentLoader(() => import('components/account/SignIn/SignIn')));
+const ForgotPassword = lazy(() => componentLoader(() => import('components/account/ForgotPassword/ForgotPassword')));
+const ResetPassword = lazy(() => componentLoader(() => import('components/account/ResetPassword/ResetPassword')));
 
 function DashboardRouter() {
   const isContributorApp = isContributorAppPath();
@@ -39,6 +41,8 @@ function DashboardRouter() {
             <Route exact path={ROUTES.LOGIN} render={() => <TrackPageView component={Login} />} />
 
             <Route exact path={ROUTES.SIGN_IN} render={() => <TrackPageView component={SignIn} />} />
+            <Route exact path={ROUTES.FORGOT_PASSWORD} render={() => <TrackPageView component={ForgotPassword} />} />
+            <Route exact path={ROUTES.RESET_PASSWORD} render={() => <TrackPageView component={ResetPassword} />} />
 
             {/* Organization Dashboard */}
             <ProtectedRoute path={ROUTES.DASHBOARD_SLUG} render={() => <TrackPageView component={Main} />} />

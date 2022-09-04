@@ -90,6 +90,19 @@ export const Heading = styled.div`
   }
 `;
 
+export const Subheading = styled.div`
+  margin: 5px 0px 25px;
+  font-weight: 300;
+  font-size: 24px;
+  line-height: 138.19%;
+  color: ${(props) => props.theme.colors.greyVeryDark};
+  font-style: normal;
+  @media (${(props) => props.theme.breakpoints.phoneOnly}) {
+    font-size: 16px;
+    margin: 5px 0px 20px;
+  }
+`;
+
 export const Submit = styled(motion.button)`
   cursor: pointer;
   width: 100%;
@@ -202,4 +215,19 @@ export const Instructions = styled.div`
   line-height: 13px;
   color: ${(props) => props.theme.colors.greyMedium};
   padding: 0px 0px 6px 0px;
+`;
+
+export const NavLink = styled.div`
+  margin: 15px 0px 12px;
+  width: 100%;
+  text-align: center;
+  font-weight: 400;
+  font-size: 13px;
+  line-height: 16px;
+  color: ${(props) => props.theme.colors.greyDark};
+  a,
+  a:hover {
+    color: ${(props) => props.theme.colors.blueLink};
+    text-decoration: underline;
+  }
 `;

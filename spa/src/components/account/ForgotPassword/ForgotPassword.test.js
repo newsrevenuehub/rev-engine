@@ -17,20 +17,6 @@ it('should have yellow left bar and purple bottom bar', () => {
   expect(leftPurple).toBeInTheDocument();
 });
 
-it('should have reset-password button disabled by default', () => {
-  render(<ForgotPassword />);
-  const submitButton = screen.getByRole('button', { name: 'Send Reset Link' });
-  expect(submitButton).not.toBeEnabled();
-});
-
-it('should enable reset-password button when email is entered', () => {
-  render(<ForgotPassword />);
-  const submitButton = screen.getByRole('button', { name: 'Send Reset Link' });
-  const email = screen.queryByTestId('resetpwd-email');
-  ReactTestUtils.Simulate.change(email, { target: { value: 'test@test.com' } });
-  expect(submitButton).toBeEnabled();
-});
-
 it('should have heading - Forgot Password', () => {
   render(<ForgotPassword />);
   const title = screen.queryByText('Forgot Password');

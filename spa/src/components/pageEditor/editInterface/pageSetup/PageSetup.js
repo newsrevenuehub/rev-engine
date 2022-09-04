@@ -7,7 +7,7 @@ import { faCheck, faTimes } from '@fortawesome/free-solid-svg-icons';
 // Context
 import { usePageEditorContext } from 'components/pageEditor/PageEditor';
 import { useEditInterfaceContext } from 'components/pageEditor/editInterface/EditInterface';
-import { useGlobalContext } from 'components/MainLayout';
+import { useConfirmationModalContext } from 'elements/modal/GlobalConfirmationModal';
 
 // Deps
 import { isBefore, isAfter } from 'date-fns';
@@ -26,7 +26,7 @@ import CircleButton from 'elements/buttons/CircleButton';
  * PageSetup is the direct child of EditInterface.
  */
 function PageSetup({ backToProperties }) {
-  const { getUserConfirmation } = useGlobalContext();
+  const getUserConfirmation = useConfirmationModalContext();
   const { page, errors } = usePageEditorContext();
   const { setPageContent } = useEditInterfaceContext();
 

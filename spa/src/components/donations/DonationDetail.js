@@ -12,7 +12,7 @@ import useRequest from 'hooks/useRequest';
 import { CONTRIBUTIONS, PROCESS_FLAGGED, LIST_PAGES } from 'ajax/endpoints';
 
 // Context
-import { useGlobalContext } from 'components/MainLayout';
+import { useConfirmationModalContext } from 'elements/modal/GlobalConfirmationModal';
 
 import { GENERIC_ERROR, NO_VALUE } from 'constants/textConstants';
 import Button from 'elements/buttons/Button';
@@ -23,7 +23,7 @@ import PageTitle from 'elements/PageTitle';
 
 function DonationDetail() {
   // Context
-  const { getUserConfirmation } = useGlobalContext();
+  const getUserConfirmation = useConfirmationModalContext();
 
   // State
   const [isLoading, setIsLoading] = useState(false);

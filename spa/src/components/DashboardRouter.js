@@ -19,7 +19,6 @@ import ChunkErrorBoundary from 'components/errors/ChunkErrorBoundary';
 import componentLoader from 'utilities/componentLoader';
 
 // Split bundles
-const Login = lazy(() => componentLoader(() => import('components/authentication/Login')));
 const Main = lazy(() => componentLoader(() => import('components/Main')));
 
 // Account Screens
@@ -38,7 +37,6 @@ function DashboardRouter() {
         <React.Suspense fallback={<GlobalLoading />}>
           <Switch>
             {/* Login URL */}
-            <Route exact path={ROUTES.LOGIN} render={() => <TrackPageView component={Login} />} />
 
             <Route exact path={ROUTES.SIGN_IN} render={() => <TrackPageView component={SignIn} />} />
             <Route exact path={ROUTES.FORGOT_PASSWORD} render={() => <TrackPageView component={ForgotPassword} />} />

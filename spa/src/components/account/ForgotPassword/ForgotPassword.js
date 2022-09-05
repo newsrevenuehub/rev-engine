@@ -21,7 +21,6 @@ import { useConfigureAnalytics } from '../../analytics';
 
 function ForgotPassword() {
   useConfigureAnalytics();
-
   const [forgotPasswordState, dispatch] = useReducer(fetchReducer, initialState);
   const formSubmitErrors = forgotPasswordState?.errors?.detail;
 

@@ -27,7 +27,7 @@ import visibilityOff from 'assets/images/account/visibility_off.png';
 import { SIGN_UP, FORGOT_PASSWORD } from 'routes';
 import YellowSVG from 'assets/images/account/yellow-bar.svg';
 
-function SignIn({ onSuccess, message }) {
+function SignIn({ onSuccess }) {
   const history = useHistory();
 
   const [signInState, dispatch] = useReducer(fetchReducer, initialState);

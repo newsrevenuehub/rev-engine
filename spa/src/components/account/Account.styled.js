@@ -95,7 +95,7 @@ export const Subheading = styled.div`
   font-weight: 300;
   font-size: 24px;
   line-height: 138.19%;
-  color: ${(props) => props.theme.colors.greyVeryDark};
+  color: ${(props) => props.theme.colors.grey[5]};
   font-style: normal;
   @media (${(props) => props.theme.breakpoints.phoneOnly}) {
     font-size: 16px;
@@ -125,7 +125,7 @@ export const Message = styled.div`
   font-weight: 400;
   font-size: 11px;
   line-height: 19px;
-  color: ${(props) => props.theme.colors.greyMedium};
+  color: ${(props) => props.theme.colors.grey[3]};
   padding: 0px 9px;
 `;
 
@@ -140,7 +140,7 @@ export const SignInLink = styled.div`
   font-weight: 400;
   font-size: 13px;
   line-height: 16px;
-  color: ${(props) => props.theme.colors.greyDark};
+  color: ${(props) => props.theme.colors.grey[4]};
 
   a,
   a:hover {
@@ -154,7 +154,7 @@ export const PasswordLabel = styled.div`
   font-weight: 600;
   font-size: 13px;
   line-height: 16px;
-  color: ${(props) => props.theme.colors.greyDark};
+  color: ${(props) => props.theme.colors.grey[4]};
   margin-top: 5px;
 
   a {
@@ -195,14 +195,14 @@ export const InputLabel = styled.div`
   font-weight: 600;
   font-size: 13px;
   line-height: 16px;
-  color: ${(props) => (props.hasError ? props.theme.colors.error.primary : props.theme.colors.greyDark)};
+  color: ${(props) => (props.hasError ? props.theme.colors.error.primary : props.theme.colors.grey[4])};
   margin-top: 5px;
 `;
 
 export const Instructions = styled.div`
   font-size: 11px;
   line-height: 13px;
-  color: ${(props) => props.theme.colors.greyMedium};
+  color: ${(props) => props.theme.colors.grey[3]};
   padding: 0px 0px 6px 0px;
 `;
 
@@ -213,10 +213,35 @@ export const NavLink = styled.div`
   font-weight: 400;
   font-size: 13px;
   line-height: 16px;
-  color: ${(props) => props.theme.colors.greyDark};
+  color: ${(props) => props.theme.colors.grey[4]};
   a,
   a:hover {
-    color: ${(props) => props.theme.colors.blueLink};
+    color: ${(props) => props.theme.colors.account.blueLink};
     text-decoration: underline;
+  }
+`;
+
+export const Disclaimer = styled.div`
+  font-weight: 400;
+  font-size: 11px;
+  line-height: 13px;
+  color: ${(props) => props.theme.colors.grey[3]};
+  margin: 10px 0px 12px;
+`;
+
+export const AcceptTerms = styled.div`
+  display:flex;
+  font-size:
+  font-weight: 400;
+  font-size: 12px;
+  line-height: 15px;
+  color: ${(props) => props.theme.colors.grey[4]};
+  margin-top:6px;
+  a, a:hover {
+    color: ${(props) => props.theme.colors.account.blueLink};
+    text-decoration: underline;
+  }
+   @media (${(props) => props.theme.breakpoints.phoneOnly}) {
+    font-size: 11px;
   }
 `;

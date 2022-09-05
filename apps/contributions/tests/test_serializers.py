@@ -9,7 +9,7 @@ import stripe
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.test import APIRequestFactory
 
-from apps.api.error_messages import GENERIC_BLANK
+from apps.api.error_messages import GENERIC_BLANK, GENERIC_UNEXPECTED_VALUE
 from apps.contributions import serializers
 from apps.contributions.bad_actor import BadActorAPIError
 from apps.contributions.models import Contribution, ContributionStatus, Contributor
@@ -146,7 +146,7 @@ def donation_page():
 
 @pytest.mark.django_db()
 @pytest.fixture
-def donation_page_with_conditionally_required_elements():
+def donation_page_with_conditionally_required_phone_element():
     page = DonationPageFactory()
     conditionally_required_elements = [
         {
@@ -154,11 +154,22 @@ def donation_page_with_conditionally_required_elements():
             "uuid": "3b5662c6-901b-45dc-952d-1209f3d53859",
             "content": {"askPhone": True},
             "requiredFields": ["phone"],
-        },
+        }
+    ]
+    page.elements = conditionally_required_elements
+    page.save()
+    return page
+
+
+@pytest.mark.django_db()
+@pytest.fixture
+def donation_page_with_conditionally_required_reason_for_giving_element_no_presets():
+    page = DonationPageFactory()
+    conditionally_required_elements = [
         {
             "type": "DReason",
             "uuid": "31f35bc5-2c4e-45e3-9309-62eaac60a621",
-            "content": {"reasons": [], "askReason": True, "askHonoree": True, "askInMemoryOf": True},
+            "content": {"reasons": [], "askReason": True, "askHonoree": False, "askInMemoryOf": False},
             "requiredFields": ["reason_for_giving"],
         },
     ]
@@ -167,8 +178,132 @@ def donation_page_with_conditionally_required_elements():
     return page
 
 
+PRESET_REASONS = ["one", "two", "three"]
+
+
+@pytest.mark.django_db()
 @pytest.fixture
-def valid_data(donation_page):
+def donation_page_with_conditionally_required_reason_for_giving_element_and_presets():
+    page = DonationPageFactory()
+    conditionally_required_elements = [
+        {
+            "type": "DReason",
+            "uuid": "31f35bc5-2c4e-45e3-9309-62eaac60a621",
+            "content": {
+                "reasons": PRESET_REASONS,
+                "askReason": True,
+                "askHonoree": False,
+                "askInMemoryOf": False,
+            },
+            "requiredFields": ["reason_for_giving"],
+        },
+    ]
+    page.elements = conditionally_required_elements
+    page.save()
+    return page
+
+
+@pytest.mark.django_db()
+@pytest.fixture
+def donation_page_with_unrequired_reason_for_giving_element_and_presets():
+    page = DonationPageFactory()
+    conditionally_required_elements = [
+        {
+            "type": "DReason",
+            "uuid": "31f35bc5-2c4e-45e3-9309-62eaac60a621",
+            "content": {
+                "reasons": PRESET_REASONS,
+                "askReason": True,
+                "askHonoree": False,
+                "askInMemoryOf": False,
+            },
+            "requiredFields": [],
+        },
+    ]
+    page.elements = conditionally_required_elements
+    page.save()
+    return page
+
+
+@pytest.mark.django_db()
+@pytest.fixture
+def donation_page_with_ask_honoree():
+    page = DonationPageFactory()
+    conditionally_included_elements = [
+        {
+            "type": "DReason",
+            "uuid": "31f35bc5-2c4e-45e3-9309-62eaac60a621",
+            "content": {
+                "reasons": [],
+                "askReason": [],
+                "askHonoree": True,
+                "askInMemoryOf": False,
+            },
+            "requiredFields": [],
+        },
+    ]
+    page.elements = conditionally_included_elements
+    page.save()
+    return page
+
+
+@pytest.mark.django_db()
+@pytest.fixture
+def donation_page_with_ask_in_memory():
+    page = DonationPageFactory()
+    conditionally_included_elements = [
+        {
+            "type": "DReason",
+            "uuid": "31f35bc5-2c4e-45e3-9309-62eaac60a621",
+            "content": {
+                "reasons": [],
+                "askReason": [],
+                "askHonoree": False,
+                "askInMemoryOf": True,
+            },
+            "requiredFields": [],
+        },
+    ]
+    page.elements = conditionally_included_elements
+    page.save()
+    return page
+
+
+def get_donation_page_fixture(
+    requested_fixture,
+    donation_page=None,
+    donation_page_with_conditionally_required_phone_element=None,
+    donation_page_with_conditionally_required_reason_for_giving_element_no_presets=None,
+    donation_page_with_conditionally_required_reason_for_giving_element_and_presets=None,
+    donation_page_with_unrequired_reason_for_giving_element_and_presets=None,
+    donation_page_with_ask_honoree=None,
+    donation_page_with_ask_in_memory=None,
+):
+    """Convenience function to accomplish choosing donation page fixture via pytest.mark.parametrize
+
+    Fixtures cannot be directly passed to pytest.mark.parametrize, but in some of our tests,
+    it's quite convenient to be able to make page fixture choice parametrizable. Pytest fixtures have to be passed
+    as params to a test in order to be in a usuable state at run time.
+
+    This function gets passed a string value referring to a requested fixture, as well as a reference to fixtures passed as test
+    call args, allowing us to yield the appropriate test fixture via parametrization.
+    """
+    return {
+        "donation_page": donation_page,
+        "donation_page_with_conditionally_required_phone_element": donation_page_with_conditionally_required_phone_element,
+        "donation_page_with_conditionally_required_reason_for_giving_element_no_presets": donation_page_with_conditionally_required_reason_for_giving_element_no_presets,
+        "donation_page_with_conditionally_required_reason_for_giving_element_and_presets": donation_page_with_conditionally_required_reason_for_giving_element_and_presets,
+        "donation_page_with_unrequired_reason_for_giving_element_and_presets": donation_page_with_unrequired_reason_for_giving_element_and_presets,
+        "donation_page_with_ask_honoree": donation_page_with_ask_honoree,
+        "donation_page_with_ask_in_memory": donation_page_with_ask_in_memory,
+    }[requested_fixture]
+
+
+@pytest.fixture
+def minimally_valid_data(donation_page):
+    """This fixture represents the fields that must always appear in request data for creating
+    a payment. If a page has configured to include elements like phone number, reason for giving, etc.,
+    then the request data will contain additional fields."""
     return {
         "amount": 120.1,
         "email": "foo@bar.com",
@@ -181,15 +316,7 @@ def valid_data(donation_page):
         "mailing_city": "Small Town",
         "mailing_state": "OH",
         "mailing_country": "US",
-        "phone": "555-555-5555",
         "agreed_to_pay_fees": True,
-        "reason_other": "",
-        "tribute_type": "",
-        "honoree": "",
-        "in_memory_of": "",
-        "swag_opt_out": True,
-        "comp_subscription": "",
-        "sf_campaign_id": "",
         "captcha_token": "12345",
     }
 
@@ -242,40 +369,218 @@ class TestBaseCreatePaymentSerializer:
     serializer_class = serializers.BaseCreatePaymentSerializer
 
     @pytest.mark.parametrize(
-        "input_data,expect_valid",
+        "input_data,requested_page,expect_valid,error_key,error_msg",
         [
-            ({}, True),
-            ({"reason_for_giving": "Other", "reason_other": ""}, False),
-            ({"reason_for_giving": "Other"}, False),
-            ({"reason_for_giving": "Other", "reason_other": "Reason"}, True),
-            ({"reason_for_giving": "My reason"}, True),
-            ({"reason_for_giving": "My reason", "reason_other": ""}, True),
+            ({}, "donation_page", True, None, None),
+            (
+                {},
+                "donation_page_with_conditionally_required_reason_for_giving_element_no_presets",
+                False,
+                "reason_for_giving",
+                GENERIC_BLANK,
+            ),
+            (
+                {},
+                "donation_page_with_conditionally_required_reason_for_giving_element_and_presets",
+                False,
+                "reason_for_giving",
+                GENERIC_BLANK,
+            ),
+            ({}, "donation_page_with_unrequired_reason_for_giving_element_and_presets", True, None, None),
+            ({"reason_for_giving": "Other", "reason_other": ""}, "donation_page", False, "reason_other", GENERIC_BLANK),
+            (
+                {"reason_for_giving": "Other", "reason_other": ""},
+                "donation_page_with_conditionally_required_reason_for_giving_element_no_presets",
+                False,
+                "reason_other",
+                GENERIC_BLANK,
+            ),
+            (
+                {"reason_for_giving": "Other", "reason_other": ""},
+                "donation_page_with_conditionally_required_reason_for_giving_element_and_presets",
+                False,
+                "reason_other",
+                GENERIC_BLANK,
+            ),
+            (
+                {"reason_for_giving": "Other", "reason_other": ""},
+                "donation_page_with_unrequired_reason_for_giving_element_and_presets",
+                False,
+                "reason_other",
+                GENERIC_BLANK,
+            ),
+            ({"reason_for_giving": "Other"}, "donation_page", False, "reason_other", GENERIC_BLANK),
+            (
+                {"reason_for_giving": "Other"},
+                "donation_page_with_conditionally_required_reason_for_giving_element_no_presets",
+                False,
+                "reason_other",
+                GENERIC_BLANK,
+            ),
+            (
+                {"reason_for_giving": "Other"},
+                "donation_page_with_conditionally_required_reason_for_giving_element_and_presets",
+                False,
+                "reason_other",
+                GENERIC_BLANK,
+            ),
+            (
+                {"reason_for_giving": "Other"},
+                "donation_page_with_unrequired_reason_for_giving_element_and_presets",
+                False,
+                "reason_other",
+                GENERIC_BLANK,
+            ),
+            ({"reason_for_giving": "Other", "reason_other": "Reason"}, "donation_page", True, None, None),
+            (
+                {"reason_for_giving": "Other", "reason_other": "Reason"},
+                "donation_page_with_conditionally_required_reason_for_giving_element_no_presets",
+                True,
+                None,
+                None,
+            ),
+            (
+                {"reason_for_giving": "Other", "reason_other": "Reason"},
+                "donation_page_with_conditionally_required_reason_for_giving_element_and_presets",
+                True,
+                None,
+                None,
+            ),
+            (
+                {"reason_for_giving": "Other", "reason_other": "Reason"},
+                "donation_page_with_unrequired_reason_for_giving_element_and_presets",
+                True,
+                None,
+                None,
+            ),
+            ({"reason_other": "Reason"}, "donation_page", True, None, None),
+            (
+                {"reason_other": "Reason"},
+                "donation_page_with_conditionally_required_reason_for_giving_element_no_presets",
+                True,
+                None,
+                None,
+            ),
+            (
+                {"reason_other": "Reason"},
+                "donation_page_with_conditionally_required_reason_for_giving_element_and_presets",
+                True,
+                None,
+                None,
+            ),
+            (
+                {"reason_other": "Reason"},
+                "donation_page_with_unrequired_reason_for_giving_element_and_presets",
+                True,
+                None,
+                None,
+            ),
+            ({"reason_for_giving": "My reason"}, "donation_page", False, "reason_for_giving", GENERIC_UNEXPECTED_VALUE),
+            (
+                {"reason_for_giving": "My reason"},
+                "donation_page_with_conditionally_required_reason_for_giving_element_no_presets",
+                False,
+                "reason_for_giving",
+                GENERIC_UNEXPECTED_VALUE,
+            ),
+            (
+                {"reason_for_giving": "My reason"},
+                "donation_page_with_conditionally_required_reason_for_giving_element_and_presets",
+                False,
+                "reason_for_giving",
+                GENERIC_UNEXPECTED_VALUE,
+            ),
+            (
+                {"reason_for_giving": "My reason"},
+                "donation_page_with_unrequired_reason_for_giving_element_and_presets",
+                False,
+                "reason_for_giving",
+                GENERIC_UNEXPECTED_VALUE,
+            ),
+            (
+                {"reason_for_giving": PRESET_REASONS[0]},
+                "donation_page_with_conditionally_required_reason_for_giving_element_and_presets",
+                True,
+                None,
+                None,
+            ),
+            (
+                {"reason_for_giving": PRESET_REASONS[0]},
+                "donation_page_with_unrequired_reason_for_giving_element_and_presets",
+                True,
+                None,
+                None,
+            ),
         ],
     )
-    def test_validate_reason_for_giving(self, input_data, expect_valid, valid_data):
-        """Show `reason_other` cannot be blank when `reason_for_giving` is "Other"""
-        data = valid_data | input_data
+    def test_validate_reason_for_giving(
+        self,
+        input_data,
+        expect_valid,
+        minimally_valid_data,
+        requested_page,
+        error_key,
+        error_msg,
+        donation_page,
+        donation_page_with_conditionally_required_reason_for_giving_element_no_presets,
+        donation_page_with_conditionally_required_reason_for_giving_element_and_presets,
+        donation_page_with_unrequired_reason_for_giving_element_and_presets,
+    ):
+        """Test logic around reason_for_giving validation.
+
+        NB: For some of the parametrized scenarios, this test expects to find a validation error for
+        "reason_other" instead of "reason_for_giving". We test that behavior as part of this test rather than
+        elsewhere because "reason_for_giving" gets rewritten to be the value of "reason_other" via the
+        `BaseCreatePaymentSerializer.resolve_reason_for_giving`, so the two fields are inter-related.
+        """
+        data = minimally_valid_data | input_data
+        data["page"] = get_donation_page_fixture(
+            requested_page,
+            donation_page=donation_page,
+            donation_page_with_conditionally_required_reason_for_giving_element_no_presets=(
+                donation_page_with_conditionally_required_reason_for_giving_element_no_presets
+            ),
+            donation_page_with_conditionally_required_reason_for_giving_element_and_presets=(
+                donation_page_with_conditionally_required_reason_for_giving_element_and_presets
+            ),
+            donation_page_with_unrequired_reason_for_giving_element_and_presets=(
+                donation_page_with_unrequired_reason_for_giving_element_and_presets
+            ),
+        ).id
         serializer = self.serializer_class(data=data)
         assert serializer.is_valid() is expect_valid
         if expect_valid is False:
-            assert set(serializer.errors.keys()) == set(["reason_for_giving"])
-            # it looks like this because the validation of reason_for_giving is setting an error
-            # on "reason_other"
-            assert serializer.errors["reason_for_giving"]["reason_other"] == GENERIC_BLANK
+            assert set(serializer.errors.keys()) == set([error_key])
+            assert serializer.errors[error_key][0] == error_msg
+
+    # @pytest.mark.parametrize(
+    #     "input_data,expect_valid",
+    #     [
+    #         ({}, True),
+    #         ({"reason_for_giving": "Other", "reason_other": ""}, False),
+    #         ({"reason_for_giving": "Other"}, False),
+    #         ({"reason_for_giving": "Other", "reason_other": "Reason"}, True),
+    #         ({"reason_for_giving": "My reason"}, True),
+    #         ({"reason_for_giving": "My reason", "reason_other": ""}, True),
+    #         ({"reason_other": "Reason"}, True),
+    #     ],
+    # )
+    # def test_validate_tribute_type(self, input_data, ):
+    #     pass
 
     @pytest.mark.parametrize(
         "input_data,expect_valid",
         [
-            ({}, True),
-            ({"tribute_type": "type_honoree", "honoree": ""}, False),
+            # ({}, True),
+            # ({"tribute_type": "type_honoree", "honoree": ""}, False),
             ({"tribute_type": "type_honoree"}, False),
-            ({"tribute_type": "type_honoree", "honoree": "Paul"}, True),
+            # ({"tribute_type": "type_honoree", "honoree": "Paul"}, True),
         ],
     )
-    def test_validate_honoree(self, input_data, expect_valid, valid_data):
+    def test_validate_honoree(self, input_data, expect_valid, minimally_valid_data):
         """Show `honoree` cannot be blank when `tribute_type` is `type_honoree`"""
         error_key = "honoree"
-        data = valid_data | input_data
+        data = minimally_valid_data | input_data
         serializer = self.serializer_class(data=data)
         assert serializer.is_valid() is expect_valid
         if expect_valid is False:
@@ -291,31 +596,63 @@ class TestBaseCreatePaymentSerializer:
             ({"tribute_type": "type_in_memory_of", "in_memory_of": "Paul"}, True),
         ],
     )
-    def test_validate_in_memory_of(self, input_data, expect_valid, valid_data):
+    def test_validate_in_memory_of(self, input_data, expect_valid, minimally_valid_data):
         """Show `in_memory_of` cannot be blank when `tribute_type` is `type_in_memory_of`"""
         error_key = "in_memory_of"
-        data = valid_data | input_data
+        data = minimally_valid_data | input_data
         serializer = self.serializer_class(data=data)
         assert serializer.is_valid() is expect_valid
         if expect_valid is False:
             assert set(serializer.errors.keys()) == set([error_key])
             assert serializer.errors[error_key][error_key] == GENERIC_BLANK
 
-    def test_validate_handles_conditionally_required_elements(
-        self, valid_data, donation_page_with_conditionally_required_elements
+    @pytest.mark.parametrize(
+        "ad_hoc_data,expect_valid",
+        [
+            ({"reason_for_giving": ""}, False),
+            ({"reason_for_giving": "Preset Reason 1"}, True),
+            ({"reason_for_giving": "Other", "reason_other": "My special reason"}, True),
+            ({"reason_for_giving": "Other", "reason_other": ""}, False),
+            ({"reason_for_giving": "Other"}, False),
+            ({"reason_other": "My special reason"}, True),
+        ],
+    )
+    def test_conditional_reason_for_giving_validation(
+        self,
+        minimally_valid_data,
+        donation_page_with_conditionally_required_reason_for_giving_element,
+        ad_hoc_data,
+        expect_valid,
     ):
         """Show that our custom `validate` method handles conditionally required elements — namely, `phone` and `reason_for_giving`"""
-        error_keys = ["phone", "reason_for_giving"]
-        data = valid_data | {
-            "phone": "",
-            "reason_for_giving": "",
-            "page": donation_page_with_conditionally_required_elements.id,
-        }
+        data = (
+            minimally_valid_data
+            | ad_hoc_data
+            | {"page": donation_page_with_conditionally_required_reason_for_giving_element.id}
+        )
         serializer = self.serializer_class(data=data)
-        assert serializer.is_valid() is False
-        assert set(serializer.errors.keys()) == set(error_keys)
-        for key in error_keys:
-            assert serializer.errors[key][0] == GENERIC_BLANK
+        assert serializer.is_valid() is expect_valid
+        if not expect_valid:
+            assert set(serializer.errors.keys()) == set(["reason_for_giving"])
+            assert serializer.errors["reason_for_giving"][0] == GENERIC_BLANK
+
+    @pytest.mark.parametrize(
+        "ad_hoc_data,expect_valid",
+        [
+            ({"phone": ""}, False),
+            ({"phone": "555-555-5555"}, True),
+        ],
+    )
+    def test_conditional_phone_element_validation(
+        self, minimally_valid_data, donation_page_with_conditionally_required_phone_element, ad_hoc_data, expect_valid
+    ):
+        """Show that our custom `validate` method handles conditionally required elements — namely, `phone` and `reason_for_giving`"""
+        data = minimally_valid_data | ad_hoc_data | {"page": donation_page_with_conditionally_required_phone_element.id}
+        serializer = self.serializer_class(data=data)
+        assert serializer.is_valid() is expect_valid
+        if not expect_valid:
+            assert set(serializer.errors.keys()) == set(["phone"])
+            assert serializer.errors["phone"][0] == GENERIC_BLANK
 
     @pytest.mark.parametrize(
         "input_data,expected_resolved_value",
@@ -324,7 +661,7 @@ class TestBaseCreatePaymentSerializer:
             ({"reason_for_giving": "Reason A"}, "Reason A"),
         ],
     )
-    def test_validate_resolves_reason_for_giving(self, input_data, expected_resolved_value, valid_data):
+    def test_validate_resolves_reason_for_giving(self, input_data, expected_resolved_value, minimally_valid_data):
         """Show validation sets value of `reason_for_giving` to value of `reason_other` when initial value...
 
         ...for former is 'Other'.
@@ -332,12 +669,12 @@ class TestBaseCreatePaymentSerializer:
         See note in BaseCreatePaymentSerializer.validate for explanation of why this happens in
         `validate`.
         """
-        data = valid_data | input_data
+        data = minimally_valid_data | input_data
         serializer = self.serializer_class(data=data)
         assert serializer.is_valid() is True
         assert serializer.validated_data["reason_for_giving"] == expected_resolved_value
 
-    def test_get_bad_actor_score_happy_path(self, valid_data, monkeypatch):
+    def test_get_bad_actor_score_happy_path(self, minimally_valid_data, monkeypatch):
         """Show that calling `get_bad_actor_score` returns response data
 
         Note: `get_bad_actor` uses `BadActorSerializer` internally, which requires there to be an
@@ -345,31 +682,31 @@ class TestBaseCreatePaymentSerializer:
         """
         monkeypatch.setattr("apps.contributions.serializers.make_bad_actor_request", mock_get_bad_actor)
         request = APIRequestFactory(HTTP_REFERER="https://www.google.com").post("", {}, format="json")
-        serializer = self.serializer_class(data=valid_data, context={"request": request})
+        serializer = self.serializer_class(data=minimally_valid_data, context={"request": request})
         assert serializer.is_valid() is True
         bad_actor_data = serializer.get_bad_actor_score(serializer.validated_data)
         assert bad_actor_data == MockBadActorResponseObjectNotBad.mock_bad_actor_response_json
 
-    def test_get_bad_actor_score_when_data_invalid(self, valid_data, monkeypatch):
+    def test_get_bad_actor_score_when_data_invalid(self, minimally_valid_data, monkeypatch):
         """Show if the bad actor serialier data is invalid no exception is raise, but method returns None
 
         We achieve an invalid state by omitting http referer from the request context
         """
         monkeypatch.setattr("apps.contributions.serializers.make_bad_actor_request", mock_get_bad_actor)
         request = APIRequestFactory().post("", {}, format="json")
-        serializer = self.serializer_class(data=valid_data, context={"request": request})
+        serializer = self.serializer_class(data=minimally_valid_data, context={"request": request})
         assert serializer.is_valid() is True
         bad_actor_data = serializer.get_bad_actor_score(serializer.validated_data)
         assert bad_actor_data is None
 
-    def test_get_bad_actor_score_when_bad_actor_api_error(self, valid_data, monkeypatch):
+    def test_get_bad_actor_score_when_bad_actor_api_error(self, minimally_valid_data, monkeypatch):
         """Show if call to `make_bad_actor_request` in `get_bad_actor_score` results in BadActorAPIError, the
 
         method call still succeeds, returning None.
         """
         monkeypatch.setattr("apps.contributions.serializers.make_bad_actor_request", mock_get_bad_actor_raise_exception)
         request = APIRequestFactory(HTTP_REFERER="https://www.google.com").post("", {}, format="json")
-        serializer = self.serializer_class(data=valid_data, context={"request": request})
+        serializer = self.serializer_class(data=minimally_valid_data, context={"request": request})
         assert serializer.is_valid() is True
         bad_actor_data = serializer.get_bad_actor_score(serializer.validated_data)
         assert bad_actor_data is None
@@ -382,15 +719,15 @@ class TestBaseCreatePaymentSerializer:
             (settings.BAD_ACTOR_FAILURE_THRESHOLD + 1, True),
         ],
     )
-    def test_should_flag(self, score, should_fail, valid_data):
-        serializer = self.serializer_class(data=valid_data)
+    def test_should_flag(self, score, should_fail, minimally_valid_data):
+        serializer = self.serializer_class(data=minimally_valid_data)
         assert serializer.should_flag(score) is should_fail
 
-    def test_get_stripe_payment_metadata_happy_path(self, valid_data):
+    def test_get_stripe_payment_metadata_happy_path(self, minimally_valid_data):
         contributor = ContributorFactory()
         referer = "https://www.google.com"
         request = APIRequestFactory(HTTP_REFERER=referer).post("", {}, format="json")
-        serializer = self.serializer_class(data=valid_data, context={"request": request})
+        serializer = self.serializer_class(data=minimally_valid_data, context={"request": request})
         assert serializer.is_valid() is True
         metadata = serializer.get_stripe_payment_metadata(contributor, serializer.validated_data)
         assert metadata == {
@@ -410,7 +747,7 @@ class TestBaseCreatePaymentSerializer:
             "sf_campaign_id": serializer.validated_data.get("sf_campaign_id"),
         }
 
-    def test_create_stripe_customer(self, valid_data, monkeypatch):
+    def test_create_stripe_customer(self, minimally_valid_data, monkeypatch):
         """Show that the `.create_stripe_customer` method calls `Contributor.create_stripe_customer` with
 
         expected values. We don't test beyond this because `Contributor.create_stripe_customer` is itself unit tested
@@ -421,7 +758,7 @@ class TestBaseCreatePaymentSerializer:
             "apps.contributions.tests.factories.models.Contributor.create_stripe_customer", mock_create_stripe_customer
         )
         contributor = ContributorFactory()
-        serializer = self.serializer_class(data=valid_data)
+        serializer = self.serializer_class(data=minimally_valid_data)
         assert serializer.is_valid() is True
         serializer.create_stripe_customer(contributor, serializer.validated_data)
         assert mock_create_stripe_customer.called_once_with(
@@ -440,11 +777,11 @@ class TestBaseCreatePaymentSerializer:
             },
         )
 
-    def test_create_contribution_happy_path(self, valid_data):
+    def test_create_contribution_happy_path(self, minimally_valid_data):
         contribution_count = Contribution.objects.count()
         bad_actor_data = {"overall_judgment": settings.BAD_ACTOR_FAILURE_THRESHOLD - 1}
         contributor = ContributorFactory()
-        serializer = self.serializer_class(data=valid_data)
+        serializer = self.serializer_class(data=minimally_valid_data)
         assert serializer.is_valid() is True
         contribution = serializer.create_contribution(contributor, serializer.validated_data, bad_actor_data)
         assert Contribution.objects.count() == contribution_count + 1
@@ -463,11 +800,11 @@ class TestBaseCreatePaymentSerializer:
         for key, val in expectations.items():
             assert getattr(contribution, key) == val
 
-    def test_create_contribution_when_should_flag(self, valid_data):
+    def test_create_contribution_when_should_flag(self, minimally_valid_data):
         contribution_count = Contribution.objects.count()
         bad_actor_data = {"overall_judgment": settings.BAD_ACTOR_FAILURE_THRESHOLD}
         contributor = ContributorFactory()
-        serializer = self.serializer_class(data=valid_data)
+        serializer = self.serializer_class(data=minimally_valid_data)
         assert serializer.is_valid() is True
         contribution = serializer.create_contribution(contributor, serializer.validated_data, bad_actor_data)
         assert Contribution.objects.count() == contribution_count + 1
@@ -486,11 +823,11 @@ class TestBaseCreatePaymentSerializer:
             assert getattr(contribution, key) == val
         assert contribution.flagged_date is not None
 
-    def test_create_contribution_when_no_bad_actor_response(self, valid_data):
+    def test_create_contribution_when_no_bad_actor_response(self, minimally_valid_data):
         contribution_count = Contribution.objects.count()
         bad_actor_data = None
         contributor = ContributorFactory()
-        serializer = self.serializer_class(data=valid_data)
+        serializer = self.serializer_class(data=minimally_valid_data)
         assert serializer.is_valid() is True
         contribution = serializer.create_contribution(contributor, serializer.validated_data, bad_actor_data)
         assert Contribution.objects.count() == contribution_count + 1
@@ -522,7 +859,7 @@ class TestCreateOneTimePaymentSerializer:
         """
         assert issubclass(self.serializer_class, serializers.BaseCreatePaymentSerializer)
 
-    def test_happy_path(self, monkeypatch, valid_data):
+    def test_happy_path(self, monkeypatch, minimally_valid_data):
         """Demonstrate happy path when of `.create`
 
         Namely, it should:
@@ -552,20 +889,20 @@ class TestCreateOneTimePaymentSerializer:
             "apps.contributions.models.stripe.PaymentIntent.create", mock_create_stripe_one_time_payment_intent
         )
         request = APIRequestFactory(HTTP_REFERER="https://www.google.com").post("", {}, format="json")
-        serializer = self.serializer_class(data=valid_data, context={"request": request})
+        serializer = self.serializer_class(data=minimally_valid_data, context={"request": request})
         assert serializer.is_valid()
         result = serializer.create(serializer.validated_data)
         assert Contribution.objects.count() == contribution_count + 1
         assert Contributor.objects.count() == contributor_count + 1
         assert set(result.keys()) == set(["provider_client_secret_id"])
         assert result["provider_client_secret_id"] == client_secret
-        assert Contributor.objects.filter(email=valid_data["email"]).exists()
+        assert Contributor.objects.filter(email=minimally_valid_data["email"]).exists()
         contribution = Contribution.objects.get(provider_client_secret_id=client_secret)
         assert contribution.status == ContributionStatus.PROCESSING
         assert contribution.flagged_date is None
         assert contribution.bad_actor_response == MockBadActorResponseObjectNotBad.mock_bad_actor_response_json
 
-    def test_when_stripe_errors_creating_payment_intent(self, valid_data, monkeypatch):
+    def test_when_stripe_errors_creating_payment_intent(self, minimally_valid_data, monkeypatch):
         """Demonstrate `.create` when there's a Stripe error when creating payment intent
 
         A contributor and contribution should still be created as in happy path, but a GenericPaymentError should
@@ -582,7 +919,7 @@ class TestCreateOneTimePaymentSerializer:
         monkeypatch.setattr("apps.contributions.models.stripe.PaymentIntent.create", mock_stripe_call_with_error)
         request = APIRequestFactory(HTTP_REFERER="https://www.google.com").post("", {}, format="json")
 
-        serializer = self.serializer_class(data=valid_data, context={"request": request})
+        serializer = self.serializer_class(data=minimally_valid_data, context={"request": request})
 
         assert serializer.is_valid()
         with pytest.raises(serializers.GenericPaymentError):
@@ -590,13 +927,13 @@ class TestCreateOneTimePaymentSerializer:
 
         assert Contribution.objects.count() == contribution_count + 1
         assert Contributor.objects.count() == contributor_count + 1
-        assert Contributor.objects.filter(email=valid_data["email"]).exists()
-        contributor = Contributor.objects.get(email=valid_data["email"])
+        assert Contributor.objects.filter(email=minimally_valid_data["email"]).exists()
+        contributor = Contributor.objects.get(email=minimally_valid_data["email"])
         assert contributor.contribution_set.count() == 1
         contribution = contributor.contribution_set.first()
         assert contribution.status == ContributionStatus.PROCESSING
 
-    def test_when_stripe_errors_creating_customer(self, valid_data, monkeypatch):
+    def test_when_stripe_errors_creating_customer(self, minimally_valid_data, monkeypatch):
         """Demonstrate `.create` when there's a Stripe error when creating customer
 
         A contributor and contribution should still be created as in happy path, but a GenericPaymentError should
@@ -610,7 +947,7 @@ class TestCreateOneTimePaymentSerializer:
 
         request = APIRequestFactory(HTTP_REFERER="https://www.google.com").post("", {}, format="json")
 
-        serializer = self.serializer_class(data=valid_data, context={"request": request})
+        serializer = self.serializer_class(data=minimally_valid_data, context={"request": request})
 
         assert serializer.is_valid()
 
@@ -619,13 +956,13 @@ class TestCreateOneTimePaymentSerializer:
 
         assert Contribution.objects.count() == contribution_count + 1
         assert Contributor.objects.count() == contributor_count + 1
-        assert Contributor.objects.filter(email=valid_data["email"]).exists()
-        contributor = Contributor.objects.get(email=valid_data["email"])
+        assert Contributor.objects.filter(email=minimally_valid_data["email"]).exists()
+        contributor = Contributor.objects.get(email=minimally_valid_data["email"])
         assert contributor.contribution_set.count() == 1
         contribution = contributor.contribution_set.first()
         assert contribution.status == ContributionStatus.PROCESSING
 
-    def test_when_contribution_is_flagged(self, valid_data, monkeypatch):
+    def test_when_contribution_is_flagged(self, minimally_valid_data, monkeypatch):
         """Demonstrate `.create` when the contribution gets flagged
 
         A contributor and contribution should still be created as in happy path, but a PermissionDenied error should occur, and
@@ -640,7 +977,7 @@ class TestCreateOneTimePaymentSerializer:
         )
 
         request = APIRequestFactory(HTTP_REFERER="https://www.google.com").post("", {}, format="json")
-        serializer = self.serializer_class(data=valid_data, context={"request": request})
+        serializer = self.serializer_class(data=minimally_valid_data, context={"request": request})
 
         assert serializer.is_valid()
 
@@ -649,8 +986,8 @@ class TestCreateOneTimePaymentSerializer:
 
         assert Contribution.objects.count() == contribution_count + 1
         assert Contributor.objects.count() == contributor_count + 1
-        assert Contributor.objects.filter(email=valid_data["email"]).exists()
-        contributor = Contributor.objects.get(email=valid_data["email"])
+        assert Contributor.objects.filter(email=minimally_valid_data["email"]).exists()
+        contributor = Contributor.objects.get(email=minimally_valid_data["email"])
         assert contributor.contribution_set.count() == 1
         contribution = contributor.contribution_set.first()
         assert contribution.status == ContributionStatus.FLAGGED
@@ -673,7 +1010,7 @@ class TestCreateRecurringPaymentSerializer:
         assert issubclass(self.serializer_class, serializers.BaseCreatePaymentSerializer)
 
     @pytest.mark.parametrize("interval", ["month", "year"])
-    def test_happy_path(self, monkeypatch, valid_data, interval):
+    def test_happy_path(self, monkeypatch, minimally_valid_data, interval):
         """Demonstrate happy path when of `.create`
 
         Namely, it should:
@@ -686,7 +1023,7 @@ class TestCreateRecurringPaymentSerializer:
         - create a Stripe Subscription
         - return a dict with `provider_client_secret_id`
         """
-        data = valid_data | {"interval": interval}
+        data = minimally_valid_data | {"interval": interval}
         contribution_count = Contribution.objects.count()
         contributor_count = Contributor.objects.count()
 
@@ -710,7 +1047,7 @@ class TestCreateRecurringPaymentSerializer:
         assert Contributor.objects.count() == contributor_count + 1
         assert set(result.keys()) == set(["provider_client_secret_id"])
         assert result["provider_client_secret_id"] == client_secret
-        assert Contributor.objects.filter(email=valid_data["email"]).exists()
+        assert Contributor.objects.filter(email=minimally_valid_data["email"]).exists()
         contribution = Contribution.objects.get(provider_client_secret_id=client_secret)
         assert contribution.status == ContributionStatus.PROCESSING
         assert contribution.flagged_date is None
@@ -718,13 +1055,13 @@ class TestCreateRecurringPaymentSerializer:
         assert contribution.payment_provider_data == mock_create_stripe_subscription.return_value
         assert contribution.provider_subscription_id == mock_create_stripe_subscription.return_value["id"]
 
-    def test_when_stripe_errors_creating_subscription(self, valid_data, monkeypatch):
+    def test_when_stripe_errors_creating_subscription(self, minimally_valid_data, monkeypatch):
         """Demonstrate `.create` when there's a Stripe error when creating subscription
 
         A contributor and contribution should still be created as in happy path, but a GenericPaymentError should
         be raised, and no Stripe subscription created.
         """
-        data = valid_data | {"interval": "month"}
+        data = minimally_valid_data | {"interval": "month"}
         contribution_count = Contribution.objects.count()
         contributor_count = Contributor.objects.count()
 
@@ -743,8 +1080,8 @@ class TestCreateRecurringPaymentSerializer:
 
         assert Contribution.objects.count() == contribution_count + 1
         assert Contributor.objects.count() == contributor_count + 1
-        assert Contributor.objects.filter(email=valid_data["email"]).exists()
-        contributor = Contributor.objects.get(email=valid_data["email"])
+        assert Contributor.objects.filter(email=minimally_valid_data["email"]).exists()
+        contributor = Contributor.objects.get(email=minimally_valid_data["email"])
         assert contributor.contribution_set.count() == 1
         contribution = contributor.contribution_set.first()
         assert contribution.status == ContributionStatus.PROCESSING
@@ -752,13 +1089,13 @@ class TestCreateRecurringPaymentSerializer:
         assert contribution.provider_client_secret_id is None
         assert contribution.payment_provider_data is None
 
-    def test_when_stripe_errors_creating_customer(self, monkeypatch, valid_data):
+    def test_when_stripe_errors_creating_customer(self, monkeypatch, minimally_valid_data):
         """Demonstrate `.create` when there's a Stripe error when creating customer
 
         A contributor and contribution should still be created as in happy path, but a GenericPaymentError should
         be raised.
         """
-        data = valid_data | {"interval": "month"}
+        data = minimally_valid_data | {"interval": "month"}
         contribution_count = Contribution.objects.count()
         contributor_count = Contributor.objects.count()
 
@@ -776,8 +1113,8 @@ class TestCreateRecurringPaymentSerializer:
 
         assert Contribution.objects.count() == contribution_count + 1
         assert Contributor.objects.count() == contributor_count + 1
-        assert Contributor.objects.filter(email=valid_data["email"]).exists()
-        contributor = Contributor.objects.get(email=valid_data["email"])
+        assert Contributor.objects.filter(email=minimally_valid_data["email"]).exists()
+        contributor = Contributor.objects.get(email=minimally_valid_data["email"])
         assert contributor.contribution_set.count() == 1
         contribution = contributor.contribution_set.first()
         assert contribution.status == ContributionStatus.PROCESSING
@@ -785,13 +1122,13 @@ class TestCreateRecurringPaymentSerializer:
         assert contribution.provider_client_secret_id is None
         assert contribution.payment_provider_data is None
 
-    def test_when_contribution_is_flagged(self, valid_data, monkeypatch):
+    def test_when_contribution_is_flagged(self, minimally_valid_data, monkeypatch):
         """Demonstrate `.create` when the contribution gets flagged.
 
         A contributor and contribution should still be created as in happy path, but a PermissionDenied error should occur, and
         a Stripe subscription should not be created.
         """
-        data = valid_data | {"interval": "month"}
+        data = minimally_valid_data | {"interval": "month"}
         contribution_count = Contribution.objects.count()
         contributor_count = Contributor.objects.count()
         monkeypatch.setattr(
@@ -809,8 +1146,8 @@ class TestCreateRecurringPaymentSerializer:
 
         assert Contribution.objects.count() == contribution_count + 1
         assert Contributor.objects.count() == contributor_count + 1
-        assert Contributor.objects.filter(email=valid_data["email"]).exists()
-        contributor = Contributor.objects.get(email=valid_data["email"])
+        assert Contributor.objects.filter(email=minimally_valid_data["email"]).exists()
+        contributor = Contributor.objects.get(email=minimally_valid_data["email"])
         assert contributor.contribution_set.count() == 1
         contribution = contributor.contribution_set.first()
         assert contribution.status == ContributionStatus.FLAGGED

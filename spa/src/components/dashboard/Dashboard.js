@@ -20,9 +20,11 @@ import { CONTENT_SECTION_ACCESS_FLAG_NAME } from 'constants/featureFlagConstants
 
 import flagIsActiveForUser from 'utilities/flagIsActiveForUser';
 import hasContributionsDashboardAcessToUser from 'utilities/hasContributionsDashboardAcessToUser';
+import { usePageContext } from './PageContext';
 
 function Dashboard() {
   const { featureFlags } = useFeatureFlagsProviderContext();
+  const { page } = usePageContext();
 
   const hasContributionsSectionAccess = hasContributionsDashboardAcessToUser(featureFlags);
 
@@ -38,7 +40,7 @@ function Dashboard() {
 
   return (
     <S.Outer>
-      <DashboardTopbar isEditPage={isEditPage} />
+      <DashboardTopbar isEditPage={isEditPage} page={page} />
       <S.Dashboard data-testid="dashboard">
         {isEditPage ? null : <DashboardSidebar />}
         <S.DashboardMain>

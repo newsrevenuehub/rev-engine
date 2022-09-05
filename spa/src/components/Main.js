@@ -6,6 +6,7 @@ import { USER } from 'ajax/endpoints';
 import Dashboard from 'components/dashboard/Dashboard';
 import useRequest from 'hooks/useRequest';
 import { useConfigureAnalytics } from './analytics';
+import PageContextProvider from './dashboard/PageContext';
 
 const FeatureFlagsProviderContext = createContext(null);
 
@@ -38,13 +39,15 @@ function Main() {
 
   return (
     <FeatureFlagsProviderContext.Provider value={{ featureFlags }}>
-      {!loadingFlags && (
-        <S.Main>
-          <S.MainContent>
-            <Dashboard />
-          </S.MainContent>
-        </S.Main>
-      )}
+      <PageContextProvider>
+        {!loadingFlags && (
+          <S.Main>
+            <S.MainContent>
+              <Dashboard />
+            </S.MainContent>
+          </S.Main>
+        )}
+      </PageContextProvider>
     </FeatureFlagsProviderContext.Provider>
   );
 }

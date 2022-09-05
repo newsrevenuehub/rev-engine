@@ -56,6 +56,7 @@ import { BackIcon } from 'elements/BackButton.styled';
 import UnsavedChangesModal from 'components/pageEditor/UnsavedChangesModal';
 import PageTitle from 'elements/PageTitle';
 import RETooltip from 'elements/RETooltip';
+import { usePageContext } from 'components/dashboard/PageContext';
 
 const PageEditorContext = createContext();
 
@@ -85,6 +86,7 @@ function PageEditor() {
 
   // Context
   const getUserConfirmation = useConfirmationModalContext();
+  const { setPage: setPageContext } = usePageContext();
 
   const location = useLocation();
   const pageId = location?.state?.pageId;
@@ -152,6 +154,7 @@ function PageEditor() {
     requestGetPage(config, {
       onSuccess: ({ data }) => {
         setPage(data);
+        setPageContext(data);
         setLoading(false);
       },
       onFailure: handleGetPageFailure //() => setLoading(false)
@@ -311,6 +314,7 @@ function PageEditor() {
             alert.success(successMessage);
             setErrors({});
             setPage(data);
+            setPageContext(data);
             setUpdatedPage(null);
             setSelectedButton(PREVIEW);
             setLoading(false);

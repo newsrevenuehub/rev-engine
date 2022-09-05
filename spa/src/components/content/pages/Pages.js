@@ -89,7 +89,7 @@ function Pages({ setShowAddPageModal }) {
       </Hero>
       <Content data-testid="pages-list">
         <NewButton onClick={() => setShowAddPageModal(true)} />
-        {pagesByRevenueProgram.length &&
+        {!!pagesByRevenueProgram.length &&
           pagesByRevenueProgram.map((revenueProgram) => (
             <Fragment key={revenueProgram.name}>
               {revenueProgram.pages.map((donationPage) => (

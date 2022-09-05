@@ -45,11 +45,11 @@ function ForgotPassword() {
     }
   };
 
-  let formSubmissionMessage = <S.ErrorSpacer />;
+  let formSubmissionMessage = <S.MessageSpacer />;
   if (infoMessage) {
-    formSubmissionMessage = <S.ErrorMessage>{infoMessage} </S.ErrorMessage>;
+    formSubmissionMessage = <S.Message>{infoMessage} </S.Message>;
   } else if (formSubmitErrors) {
-    formSubmissionMessage = <S.ErrorMessage>{formSubmitErrors} </S.ErrorMessage>;
+    formSubmissionMessage = <S.Message>{formSubmitErrors} </S.Message>;
   }
 
   return (
@@ -81,11 +81,7 @@ function ForgotPassword() {
                 status={errors.email}
               />
             </S.InputOuter>
-            {errors.email ? (
-              <S.ErrorMessage data-testid={`error`}>{errors.email.message}</S.ErrorMessage>
-            ) : (
-              <S.ErrorSpacer />
-            )}
+            {errors.email ? <S.Message data-testid={`error`}>{errors.email.message}</S.Message> : <S.MessageSpacer />}
 
             <S.Submit type="submit">Send Reset Link</S.Submit>
           </form>

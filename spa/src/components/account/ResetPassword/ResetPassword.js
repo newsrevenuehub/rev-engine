@@ -115,9 +115,9 @@ function ResetPassword() {
             </S.InputOuter>
             <S.Instructions>Password must be 8 characters long and alphanumerical.</S.Instructions>
             {errors.password ? (
-              <S.ErrorMessage data-testid={`error`}>{errors.password.message}</S.ErrorMessage>
+              <S.Message data-testid={`error`}>{errors.password.message}</S.Message>
             ) : (
-              <S.ErrorSpacer />
+              <S.MessageSpacer />
             )}
 
             <S.InputLabel data-testid={`password1-label`} hasError={errors.email}>
@@ -145,14 +145,14 @@ function ResetPassword() {
             </S.InputOuter>
             <S.Instructions>Password must be 8 characters long and alphanumerical.</S.Instructions>
             {errors.password1 ? (
-              <S.ErrorMessage data-testid={`error`}>{errors.password1.message}</S.ErrorMessage>
+              <S.Message data-testid={`error`}>{errors.password1.message}</S.Message>
             ) : (
-              <S.ErrorSpacer />
+              <S.MessageSpacer />
             )}
 
             <S.Submit type="submit"> Reset Password</S.Submit>
           </form>
-          {formSubmitErrors ? <S.ErrorMessage>{formSubmitErrors} </S.ErrorMessage> : <S.ErrorSpacer />}
+          {formSubmitErrors ? <S.Message>{formSubmitErrors} </S.Message> : <S.MessageSpacer />}
 
           <S.NavLink>
             <a href={SIGN_IN} data-testid="sign-in">

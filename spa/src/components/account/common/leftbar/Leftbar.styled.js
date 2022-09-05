@@ -18,7 +18,7 @@ export const Leftbar = styled.div`
       contrast(91%);
   }
 
-  @media (${(props) => props.theme.breakpoints.tabletLandscapeDown}) {
+  @media (${(props) => props.theme.breakpoints.mdDown}) {
     margin: 20px 0px;
   }
 `;
@@ -27,7 +27,7 @@ export const Logo = styled.img`
   width: 80%;
   max-width: 208px;
 
-  @media (${(props) => props.theme.breakpoints.tabletLandscapeDown}) {
+  @media (${(props) => props.theme.breakpoints.mdDown}) {
     width: 50%;
     max-width: 140px;
   }
@@ -51,7 +51,7 @@ export const Heading = styled.div`
 export const Advantages = styled.div`
   padding-top: 40px;
 
-  @media (${(props) => props.theme.breakpoints.tabletLandscapeDown}) {
+  @media (${(props) => props.theme.breakpoints.mdDown}) {
     display: none;
   }
 `;
@@ -63,7 +63,7 @@ export const Divider = styled.div`
         ? props.theme.colors.account.yellow[0]
         : props.theme.colors.account.purple[0]};
 
-  @media (${(props) => props.theme.breakpoints.tabletLandscapeDown}) {
+  @media (${(props) => props.theme.breakpoints.mdDown}) {
     display: none;
   }
 `;
@@ -114,7 +114,7 @@ export const AdvantageIcon = styled(SvgIcon)`
   height: 16px;
   margin-right: 0.5rem;
 
-  @media (${(props) => props.theme.breakpoints.tabletLandscapeDown}) {
+  @media (${(props) => props.theme.breakpoints.mdDown}) {
     width: 14px;
     height: 14px;
   }

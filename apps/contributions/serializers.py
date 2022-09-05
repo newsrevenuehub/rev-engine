@@ -246,6 +246,9 @@ class BaseCreatePaymentSerializer(serializers.Serializer):
     there will always be keys for `reason_other`, `reason_for_giving`, and `phone` in the instantiated serializer's initial data, even if those fields
     were not sent in the request data. This allows us to avoid writing code to deal with the case of, say, `phone` is conditionally required, but no key/value
     pair is provided in the request data.
+
+    Additionally, we have default values for "honoree" and "in_memory_of" to guarantee there are keys for those parameters to assist in validating
+    `tribute_type`.
     """
 
     amount = StripeAmountField(
@@ -280,8 +283,10 @@ class BaseCreatePaymentSerializer(serializers.Serializer):
     # See class-level doc string for info on why `default=''` here
     reason_other = serializers.CharField(max_length=255, required=False, allow_blank=True, write_only=True, default="")
     tribute_type = serializers.CharField(max_length=255, required=False, allow_blank=True, write_only=True)
-    honoree = serializers.CharField(max_length=255, required=False, allow_blank=True, write_only=True)
-    in_memory_of = serializers.CharField(max_length=255, required=False, allow_blank=True, write_only=True)
+    # See class-level doc string for info on why `default=''` here
+    honoree = serializers.CharField(max_length=255, required=False, allow_blank=True, write_only=True, default="")
+    # See class-level doc string for info on why `default=''` here
+    in_memory_of = serializers.CharField(max_length=255, required=False, allow_blank=True, write_only=True, default="")
     swag_opt_out = serializers.BooleanField(required=False, default=False, write_only=True)
     comp_subscription = serializers.ChoiceField(
         choices=CompSubscriptions.choices, required=False, allow_blank=True, write_only=True
@@ -291,43 +296,41 @@ class BaseCreatePaymentSerializer(serializers.Serializer):
     provider_client_secret_id = serializers.CharField(read_only=True)
 
     def validate_tribute_type(self, value):
-        """If tribute_type is set not empty or None, then either `in_memory_of` or `honoree` must be in request data.
-
-        This validation does not check if `in_memory_of` or `honoree` are themselves valid, as that will be triggered by their
-        respective field level validation if they are included in the request data
-        """
-        if value and not any(["in_memory_of" in self.initial_data.keys(), "honoree" in self.initial_data.keys()]):
-            raise serializers.ValidationError(
-                {
-                    "tribute_type": "A value must be provided for `in_memory_of` or `honoree` must appear when there is a `tribute_type`"
-                }
-            )
+        """Ensure there are no unexpected values for tribute_type"""
+        if value and value not in ("type_in_memory_of", "type_honoree"):
+            raise serializers.ValidationError(GENERIC_UNEXPECTED_VALUE)
         return value
 
     def validate_honoree(self, value):
         """If tribute_type is `type_honoree` but no value has been provided for `honoree`, it's invalid"""
         if self.initial_data.get("tribute_type", None) == "type_honoree" and not value:
-            raise serializers.ValidationError({"honoree": GENERIC_BLANK})
+            raise serializers.ValidationError(GENERIC_BLANK)
         return value
 
     def validate_in_memory_of(self, value):
         """If tribute_type is `type_in_memory_of` but no value has been provided for `honoree`, it's invalid"""
         if self.initial_data.get("tribute_type", None) == "type_in_memory_of" and not value:
-            raise serializers.ValidationError({"in_memory_of": GENERIC_BLANK})
+            raise serializers.ValidationError(GENERIC_BLANK)
+        return value
+
+    def validate_reason_other(self, value):
+        """Guarantee there's a value if `reason_for_giving` is 'Other'"""
+        if self.initial_data.get("reason_for_giving") == "Other" and not value:
+            raise serializers.ValidationError(GENERIC_BLANK)
         return value
 
     def resolve_reason_for_giving(self, reason_for_giving, reason_other, preset_reasons):
         """If `reason_for_giving` value is "Other", then we update it to the value for `reason_other` from the form data. Plus...
 
-        We validate that if `reason_for_giving` is not "Other" that it is one of the preset options (if any) on the page.
+        We validate that if `reason_for_giving` is not "Other" that it is one of the preset options (if any) on the page. This can't happen
+        in the initial field level validation for `reason_for_giving` because we need the value for `data["page]` to be resolved, and that
+        will only happen after all field-level validations have run.s
 
         Additionally, if the request data contains `reason_other`, but no value for `reason_for_giving`, we also
         update `reason_for_giving` to the `reason_other` value. This can happen when an org has configured a page
         to ask contributors their reason for giving, but without providing a dropdown of pre-set options. In this case,
         the SPA only sends a value for `reason_other` and `reason_for_giving` will not be a field in the request body.
         """
-        if reason_for_giving == "Other" and not reason_other:
-            raise serializers.ValidationError({"reason_other": GENERIC_BLANK})
         if all([reason_for_giving, reason_for_giving != "Other", reason_for_giving not in preset_reasons]):
             raise serializers.ValidationError({"reason_for_giving": GENERIC_UNEXPECTED_VALUE})
         if any(

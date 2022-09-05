@@ -35,7 +35,9 @@ from apps.common.utils import get_original_ip_from_request
 from apps.contributions.bad_actor import BadActorAPIError, make_bad_actor_request
 from apps.contributions.utils import get_sha256_hash
 from apps.emails.tasks import send_templated_email
+from apps.organizations.models import Organization, RevenueProgram
 from apps.public.permissions import IsActiveSuperUser
+from apps.users.choices import Roles
 from apps.users.constants import (
     BAD_ACTOR_CLIENT_FACING_VALIDATION_MESSAGE,
     BAD_ACTOR_FAKE_AMOUNT,
@@ -44,9 +46,13 @@ from apps.users.constants import (
     PASSWORD_UNEXPECTED_VALIDATION_MESSAGE_SUBSTITUTE,
     PASSWORD_VALIDATION_EXPECTED_MESSAGES,
 )
-from apps.users.models import UnexpectedRoleType, User
-from apps.users.permissions import UserIsAllowedToUpdate, UserOwnsUser
-from apps.users.serializers import UserSerializer
+from apps.users.models import RoleAssignment, UnexpectedRoleType, User
+from apps.users.permissions import (
+    UserHasAcceptedTermsOfService,
+    UserIsAllowedToUpdate,
+    UserOwnsUser,
+)
+from apps.users.serializers import CustomizeAccountSerializer, UserSerializer
 
 
 logger = logging.getLogger(__name__)
@@ -191,6 +197,11 @@ class UserViewset(
                 IsAuthenticated,
             ],
         }.get(self.action, [])
+        if self.action == "partial_update":
+            permission_classes = [UserOwnsUser, UserIsAllowedToUpdate]
+        if self.action == "customize_account":
+            permission_classes = [UserOwnsUser, IsAuthenticated, UserIsAllowedToUpdate, UserHasAcceptedTermsOfService]
+
         return [permission() for permission in permission_classes]
 
     @staticmethod
@@ -212,7 +223,7 @@ class UserViewset(
     def validate_password(self, email, password):
         """Validate the password
 
-        NB: This needs to be done in view layer and not serializer layer becauase Django's password
+        NB: This needs to be done in view layer and not serializer layer because Django's password
         validation functions we're using need access to the user attributes, not just password. This allows
         us to access all fields that were already validated in serializer layer.
         """
@@ -269,6 +280,46 @@ class UserViewset(
     def list(self, request, *args, **kwargs):
         """Returns the requesting user's serialized user instance, not a list."""
         return Response(self.get_serializer(request.user).data)
+
+    @action(detail=True, methods=["patch"])
+    def customize_account(self, request, pk=None):
+        """Allows customizing an account"""
+        customize_account_serializer = CustomizeAccountSerializer(data=request.data)
+        customize_account_serializer.is_valid()
+        if customize_account_serializer.errors:
+            errors = {**customize_account_serializer.errors, **customize_account_serializer.errors}
+            logger.warning("Request %s is invalid; errors: %s", request.data, errors)
+            raise ValidationError(errors)
+        first_name = customize_account_serializer.validated_data["first_name"]
+        last_name = customize_account_serializer.validated_data["last_name"]
+        job_title = customize_account_serializer.validated_data["job_title"]
+        organization_name = customize_account_serializer.validated_data["organization_name"]
+        organization_tax_status = customize_account_serializer.validated_data["organization_tax_status"]
+        user = request.user
+        logger.debug("Received request to customize account for user %s; request: %s", user, request.data)
+        user.first_name = first_name
+        user.last_name = last_name
+        user.job_title = job_title
+        user.save()
+        if Organization.objects.filter(name=organization_name).exists():
+            counter = 1
+            while Organization.objects.filter(name=f"{organization_name}-{counter}").exists():
+                counter += 1
+            organization_name = f"{organization_name}-{counter}"
+        organization = Organization.objects.create(name=organization_name, slug=organization_name)
+        revenue_program = RevenueProgram.objects.create(
+            name=organization_name,
+            organization=organization,
+            non_profit=True if organization_tax_status == "nonprofit" else False,
+        )
+        RoleAssignment.objects.create(user=user, role_type=Roles.ORG_ADMIN, organization=organization)
+        logger.info(
+            "Customize account for user %s successful; organization %s and revenue program %s created.",
+            user,
+            organization.pk,
+            revenue_program.pk,
+        )
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
     @action(detail=False, methods=["get"])
     def request_account_verification(self, request, *args, **kwargs):

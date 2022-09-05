@@ -75,6 +75,21 @@ export const amountToCents = (amount) => {
   return Math.round(cents);
 };
 
+// This function is a short term fix to technical debt in donation form, whereby
+// the name of the form field name for swag choice ends up being of form `swag_choice_Hat` or
+// `swag_choice_Cup` instead of just `swag_choice. A better fix would be to refactor the
+// underlying `DSwag` element, but the level of effort to do that is too much in short term.
+function normalizeSwagField(data) {
+  const swagKey = Object.keys(data).find((key) => key.includes('swag_choice_'));
+  if (!swagKey) {
+    return data;
+  }
+  const swagType = swagKey.split('swag_choice_')[1];
+  data['swag_choice'] = `${swagType}: ${data[swagKey]}`;
+  delete data[swagKey];
+  return data;
+}
+
 function serializeForm(form) {
   /*
     Rather than trying to hoist all form state up to a common parent,
@@ -101,7 +116,8 @@ function serializeForm(form) {
     // If it's a checkbox, we need to convert the "true" value to the expected value
     if (tributesToConvert[key]) obj.tribute_type = tributesToConvert[key];
   }
-  return obj;
+  // see comment above this function declaration about why we do this
+  return normalizeSwagField(obj);
 }
 
 /**
@@ -124,7 +140,7 @@ export function serializeData(formRef, state) {
   serializedData['donation_page_slug'] = state.pageSlug;
   serializedData['revenue_program_country'] = state.rpCountry;
   serializedData['currency'] = state.currency;
-  serializedData['page_id'] = state.pageId;
+  serializedData['page'] = state.pageId;
   if (state.salesforceCampaignId) serializedData['sf_campaign_id'] = state.salesforceCampaignId;
   if (state.reCAPTCHAToken) serializedData['captcha_token'] = state.reCAPTCHAToken;
 

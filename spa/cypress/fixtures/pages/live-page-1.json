@@ -72,12 +72,6 @@
       "uuid": "testDonorAddress1"
     },
     {
-      "type": "DAdditionalInfo",
-      "uuid": "testAdditionalInfo",
-      "requiredFields": [],
-      "content": []
-    },
-    {
       "type": "DReason",
       "uuid": "testReason",
       "requiredFields": [],

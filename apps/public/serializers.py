@@ -53,7 +53,7 @@ class RevenueProgramDetailSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = RevenueProgram
-        fields = ["id", "name", "slug", "organization", "benefit_levels", "payment_provider"]
+        fields = ["id", "name", "slug", "organization", "benefit_levels", "payment_provider", "non_profit"]
 
 
 class RevenueProgramListSerializer(serializers.HyperlinkedModelSerializer):

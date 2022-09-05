@@ -17,7 +17,7 @@ from apps.contributions.models import (
     Contributor,
     PaymentType,
 )
-from apps.contributions.utils import format_ambiguous_currency
+from apps.contributions.utils import format_ambiguous_currency, get_sha256_hash
 from apps.pages.models import DonationPage
 
 from .bad_actor import BadActorAPIError, make_bad_actor_request
@@ -513,7 +513,10 @@ class CreateOneTimePaymentSerializer(BaseCreatePaymentSerializer):
                 contribution.id,
             )
             raise GenericPaymentError()
-        return {"provider_client_secret_id": payment_intent["client_secret"]}
+        return {
+            "provider_client_secret_id": payment_intent["client_secret"],
+            "email_hash": get_sha256_hash(contributor.email),
+        }
 
 
 class CreateRecurringPaymentSerializer(BaseCreatePaymentSerializer):
@@ -565,7 +568,10 @@ class CreateRecurringPaymentSerializer(BaseCreatePaymentSerializer):
                 contribution.id,
             )
             raise GenericPaymentError()
-        return {"provider_client_secret_id": subscription["latest_invoice"]["payment_intent"]["client_secret"]}
+        return {
+            "provider_client_secret_id": subscription["latest_invoice"]["payment_intent"]["client_secret"],
+            "email_hash": get_sha256_hash(contributor.email),
+        }
 
 
 class StripeOneTimePaymentSerializer(AbstractPaymentSerializer):

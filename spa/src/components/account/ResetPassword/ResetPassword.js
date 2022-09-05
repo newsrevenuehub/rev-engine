@@ -45,7 +45,7 @@ function ResetPassword() {
     setShowPassword1(showPassword1 ? false : true);
   };
 
-  const [successMessage, setSuccessMessage] = useState(null);
+  const [infoMessage, setInfoMessage] = useState(null);
 
   const [forgotPasswordState, dispatch] = useReducer(fetchReducer, initialState);
   const formSubmitErrors = forgotPasswordState?.errors?.detail;
@@ -67,16 +67,22 @@ function ResetPassword() {
         password1: fdata.password1
       });
       if (status === 200) {
-        console.log(data);
-        setSuccessMessage('Your password has been successfully changed.');
+        setInfoMessage('Your password has been successfully changed.');
       } else {
-        setSuccessMessage('An error occured. Please try again.');
+        setInfoMessage('An error occured. Please try again.');
       }
       dispatch({ type: FETCH_SUCCESS });
     } catch (e) {
       dispatch({ type: FETCH_FAILURE, payload: e?.response?.data });
     }
   };
+
+  let formSubmissionMessage = <S.MessageSpacer />;
+  if (infoMessage) {
+    formSubmissionMessage = <S.Message isMessage={true}>{infoMessage} </S.Message>;
+  } else if (formSubmitErrors) {
+    formSubmissionMessage = <S.Message>{formSubmitErrors} </S.Message>;
+  }
 
   return (
     <S.Outer>
@@ -87,7 +93,6 @@ function ResetPassword() {
         <S.FormElements>
           <S.Heading data-testid="reset-pwd-title">Reset Password!</S.Heading>
           <S.Subheading>Enter your new password below.</S.Subheading>
-          {token}
 
           <form onSubmit={handleSubmit(onSubmitResetPassword)}>
             <S.InputLabel data-testid={`password-label`} hasError={errors.email}>
@@ -152,7 +157,7 @@ function ResetPassword() {
 
             <S.Submit type="submit"> Reset Password</S.Submit>
           </form>
-          {formSubmitErrors ? <S.Message>{formSubmitErrors} </S.Message> : <S.MessageSpacer />}
+          {formSubmissionMessage}
 
           <S.NavLink>
             <a href={SIGN_IN} data-testid="sign-in">

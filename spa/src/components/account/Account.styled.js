@@ -120,7 +120,7 @@ export const Submit = styled(motion.button)`
 `;
 
 export const Message = styled.div`
-  background: ${(props) => (props.isSuccess ? props.theme.colors.status.done : props.theme.colors.error.bg)};
+  background: ${(props) => (props.isMessage ? props.theme.colors.status.done : props.theme.colors.error.bg)};
   border-radius: 2px;
   font-weight: 400;
   font-size: 11px;

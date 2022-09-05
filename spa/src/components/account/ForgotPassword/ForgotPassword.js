@@ -38,8 +38,9 @@ function ForgotPassword() {
     dispatch({ type: FETCH_START });
     try {
       const { data, status } = await axios.post(FORGOT_PASSWORD_ENDPOINT, { email: fdata.email });
-      setInfoMessage('Success. If your email is registered, an email with instructions has been sent. ');
+      setInfoMessage('Success. If your email is registered, an email with a reset-link will be sent. ');
       dispatch({ type: FETCH_SUCCESS });
+      reset();
     } catch (e) {
       dispatch({ type: FETCH_FAILURE, payload: e?.response?.data });
     }
@@ -47,7 +48,7 @@ function ForgotPassword() {
 
   let formSubmissionMessage = <S.MessageSpacer />;
   if (infoMessage) {
-    formSubmissionMessage = <S.Message>{infoMessage} </S.Message>;
+    formSubmissionMessage = <S.Message isMessage={true}>{infoMessage} </S.Message>;
   } else if (formSubmitErrors) {
     formSubmissionMessage = <S.Message>{formSubmitErrors} </S.Message>;
   }

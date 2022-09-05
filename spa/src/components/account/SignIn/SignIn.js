@@ -49,8 +49,7 @@ function SignIn({ onSuccess, message }) {
   const {
     register,
     handleSubmit,
-    formState: { errors },
-    reset
+    formState: { errors }
   } = useForm();
   const onSubmitSignIn = async (fdata) => {
     dispatch({ type: FETCH_START });
@@ -132,7 +131,7 @@ function SignIn({ onSuccess, message }) {
                 Sign In
               </S.Submit>
             </form>
-            {formSubmitErrors ? <S.Message isSuccess={false}>{formSubmitErrors} </S.Message> : <S.MessageSpacer />}
+            {formSubmitErrors ? <S.Message>{formSubmitErrors} </S.Message> : <S.MessageSpacer />}
 
             <S.SignInLink>
               Not a member?&nbsp;

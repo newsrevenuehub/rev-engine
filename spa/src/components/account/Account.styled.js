@@ -114,6 +114,7 @@ export const Submit = styled(motion.button)`
   box-shadow: ${(props) => props.theme.colors.buttons.yellow.boxShadow};
   border-radius: 6px;
   margin-top: 7px;
+
   &:active {
     transform: translate(1px, 1px);
   }

@@ -61,13 +61,14 @@ function ResetPassword() {
   const onSubmitResetPassword = async (fdata) => {
     dispatch({ type: FETCH_START });
     try {
-      const { data, status } = await axios.post(RESET_PASSWORD_ENDPOINT, {
+      const { status } = await axios.post(RESET_PASSWORD_ENDPOINT, {
         token,
         password: fdata.password,
         password1: fdata.password1
       });
       if (status === 200) {
         setInfoMessage('Your password has been successfully changed.');
+        reset();
       } else {
         setInfoMessage('An error occured. Please try again.');
       }
@@ -133,7 +134,7 @@ function ResetPassword() {
                 {...register('password1', {
                   required: 'Please enter your password',
                   validate: (val: string) => {
-                    if (watch('password') != val) {
+                    if (watch('password') !== val) {
                       return 'Your passwords do no match';
                     }
                   }

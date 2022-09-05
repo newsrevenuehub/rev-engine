@@ -36,7 +36,7 @@ function ForgotPassword() {
   const onSubmitForgotPassword = async (fdata) => {
     dispatch({ type: FETCH_START });
     try {
-      const { data, status } = await axios.post(FORGOT_PASSWORD_ENDPOINT, { email: fdata.email });
+      await axios.post(FORGOT_PASSWORD_ENDPOINT, { email: fdata.email });
       setInfoMessage('Success. If your email is registered, an email with a reset-link will be sent. ');
       dispatch({ type: FETCH_SUCCESS });
       reset();

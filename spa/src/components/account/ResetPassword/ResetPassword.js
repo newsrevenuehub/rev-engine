@@ -93,7 +93,6 @@ function ResetPassword() {
         <S.FormElements>
           <S.Heading data-testid="reset-pwd-title">Reset Password!</S.Heading>
           <S.Subheading>Enter your new password below.</S.Subheading>
-
           <form onSubmit={handleSubmit(onSubmitResetPassword)}>
             <S.InputLabel data-testid={`password-label`} hasError={errors.email}>
               Password

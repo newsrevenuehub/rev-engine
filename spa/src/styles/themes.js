@@ -17,12 +17,13 @@ export const revEngineTheme = {
     navSelectedBackground: '#eaf37a',
     navSectionLabelColor: '#ddcbe7',
 
-    purpleDark: '#19111e',
-    purple: '#25192b',
-
     black: '#080708',
 
-    blueLink: '#0052cc',
+    account: {
+      purple: ['#523a5e', '#25192b', '#19111e'],
+      yellow: ['#f5ff75'],
+      blueLink: '#0052cc'
+    },
 
     buttons: {
       yellow: {
@@ -61,7 +62,8 @@ export const revEngineTheme = {
     },
 
     error: {
-      primary: '#C8203F'
+      primary: '#C8203F',
+      bg: '#f6dbe0'
     },
 
     caution: '#ff476c',
@@ -103,8 +105,8 @@ export const revEngineTheme = {
 
   breakpoints: {
     phoneOnly: 'max-width: 599px',
-    tabletLandscapeDown: 'max-width: 900px',
-    tabletLandscapeUp: 'min-width: 900px'
+    mdDown: 'max-width: 890px',
+    mdUp: 'min-width: 890px'
   },
 
   maxWidths: {

@@ -8,7 +8,7 @@ export const Outer = styled.div`
   display: flex;
   width: 100%;
 
-  @media (${(props) => props.theme.breakpoints.tabletLandscapeUp}) {
+  @media (${(props) => props.theme.breakpoints.mdUp}) {
     height: 100vh;
   }
 `;
@@ -16,7 +16,7 @@ export const Outer = styled.div`
 export const Left = styled.div`
   background: ${(props) =>
     props.bgColor && props.bgColor === 'purple'
-      ? props.theme.colors.purple
+      ? props.theme.colors.account.purple[1]
       : `linear-gradient(39.42deg, #6fd1ec 47.23%, #8af7e3 105.55%);`};
   flex: 35%;
   margin: 0px;
@@ -24,12 +24,12 @@ export const Left = styled.div`
   justify-content: center;
   align-items: center;
 
-  @media (${(props) => props.theme.breakpoints.tabletLandscapeDown}) {
+  @media (${(props) => props.theme.breakpoints.mdDown}) {
     flex: 100%;
     max-height: 240px;
   }
 
-  @media (${(props) => props.theme.breakpoints.tabletLandscapeUp}) {
+  @media (${(props) => props.theme.breakpoints.mdUp}) {
     min-height: 100vh;
   }
 `;
@@ -43,11 +43,11 @@ export const Right = styled.div`
   flex-direction: column;
   background-color: ${(props) => props.theme.colors.white};
 
-  @media (${(props) => props.theme.breakpoints.tabletLandscapeDown}) {
+  @media (${(props) => props.theme.breakpoints.mdDown}) {
     flex: 100%;
   }
 
-  @media (${(props) => props.theme.breakpoints.tabletLandscapeUp}) {
+  @media (${(props) => props.theme.breakpoints.mdUp}) {
     min-height: 100vh;
   }
 `;
@@ -70,7 +70,7 @@ export const BottomBarYellowSVG = styled.img`
   width: 100%;
   bottom: 0px;
   right: 0px;
-  @media (${(props) => props.theme.breakpoints.tabletLandscapeDown}) {
+  @media (${(props) => props.theme.breakpoints.mdDown}) {
     display: none;
   }
 `;
@@ -79,13 +79,13 @@ export const Heading = styled.div`
   font-weight: 700;
   font-size: 34px;
   line-height: 138.19%;
-  color: ${(props) => props.theme.colors.purpleDark};
+  color: ${(props) => props.theme.colors.account.purple[2]};
 
   @media (${(props) => props.theme.breakpoints.phoneOnly}) {
     font-size: 24px;
   }
 
-  @media (${(props) => props.theme.breakpoints.tabletLandscapeDown}) {
+  @media (${(props) => props.theme.breakpoints.mdDown}) {
     margin-top: 72px;
   }
 `;
@@ -119,19 +119,18 @@ export const Submit = styled(motion.button)`
   }
 `;
 
-export const ErrorMessage = styled.div`
-  background: rgba(200, 32, 63, 0.16);
+export const Message = styled.div`
+  background: ${(props) => (props.isSuccess ? props.theme.colors.status.done : props.theme.colors.error.bg)};
   border-radius: 2px;
   font-weight: 400;
   font-size: 11px;
-  line-height: 13px;
+  line-height: 19px;
   color: ${(props) => props.theme.colors.greyMedium};
-  padding: 4px 9px;
+  padding: 0px 9px;
 `;
 
-export const ErrorSpacer = styled.div`
-  height: 17px;
-  padding: 4px 9px;
+export const MessageSpacer = styled.div`
+  height: 19px;
 `;
 
 export const SignInLink = styled.div`
@@ -145,7 +144,7 @@ export const SignInLink = styled.div`
 
   a,
   a:hover {
-    color: ${(props) => props.theme.colors.blueLink};
+    color: ${(props) => props.theme.colors.account.blueLink};
     text-decoration: underline;
   }
 `;
@@ -198,16 +197,6 @@ export const InputLabel = styled.div`
   line-height: 16px;
   color: ${(props) => (props.hasError ? props.theme.colors.error.primary : props.theme.colors.greyDark)};
   margin-top: 5px;
-`;
-
-export const InputErrorMessage = styled.div`
-  background: rgba(200, 32, 63, 0.16);
-  border-radius: 2px;
-  font-weight: 400;
-  font-size: 11px;
-  line-height: 13px;
-  color: ${(props) => props.theme.colors.greyMedium};
-  padding: 4px 9px;
 `;
 
 export const Instructions = styled.div`

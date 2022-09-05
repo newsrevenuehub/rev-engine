@@ -85,7 +85,7 @@ function SignUp({ onSuccess }) {
   };
 
   const formSubmitErrors = signUpState?.errors?.email;
-  console.log(signUpState);
+
   const {
     register,
     handleSubmit,
@@ -123,11 +123,9 @@ function SignUp({ onSuccess }) {
       if (status === 201) {
         handleLogin(fdata);
       } else {
-        console.log(data);
         dispatch({ type: FETCH_FAILURE, payload: data });
       }
     } catch (e) {
-      console.log(e?.response?.data);
       dispatch({ type: FETCH_FAILURE, payload: e?.response?.data });
     }
   };

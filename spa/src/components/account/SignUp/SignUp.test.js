@@ -17,49 +17,6 @@ it('should have purple left bar and yellow bottom bar', () => {
   expect(leftPurple).toBeInTheDocument();
 });
 
-it('should have create-account button disabled by default', () => {
-  render(<SignUp />);
-  const submitButton = screen.getByRole('button', { name: 'Create Account' });
-  expect(submitButton).not.toBeEnabled();
-});
-
-it('should enable create-account button when email,password are entered and terms checkbox is selected', () => {
-  render(<SignUp />);
-  const submitButton = screen.getByRole('button', { name: 'Create Account' });
-
-  const email = screen.queryByTestId('signup-email');
-  ReactTestUtils.Simulate.change(email, { target: { value: 'test@test.com' } });
-
-  const password = screen.queryByTestId('signup-password');
-  ReactTestUtils.Simulate.change(password, { target: { value: 'password' } });
-  expect(submitButton).not.toBeEnabled();
-
-  const acceptTermsCheckbox = screen.queryByTestId('acceptTermsCheckbox');
-  const inp = acceptTermsCheckbox.querySelector('input[type="checkbox"]');
-  ReactTestUtils.Simulate.change(inp, { target: { checked: true } });
-  expect(submitButton).toBeEnabled();
-});
-
-it('should show invalid email error message when invalid email is entered', () => {
-  render(<SignUp />);
-  const submitButton = screen.getByRole('button', { name: 'Create Account' });
-
-  const email = screen.queryByTestId('signup-email');
-  ReactTestUtils.Simulate.change(email, { target: { value: 'test.com' } });
-
-  const password = screen.queryByTestId('signup-password');
-  ReactTestUtils.Simulate.change(password, { target: { value: 'password' } });
-  expect(submitButton).not.toBeEnabled();
-
-  const acceptTermsCheckbox = screen.queryByTestId('acceptTermsCheckbox');
-  const inp = acceptTermsCheckbox.querySelector('input[type="checkbox"]');
-  ReactTestUtils.Simulate.change(inp, { target: { checked: true } });
-
-  fireEvent.click(submitButton);
-  const eMessage = screen.queryByText('Entered email is invalid');
-  expect(eMessage).toBeInTheDocument();
-});
-
 it('should have heading - Create Your Free Account', () => {
   render(<SignUp />);
   const title = screen.queryByText('Create Your Free Account');

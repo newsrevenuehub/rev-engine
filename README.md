@@ -45,7 +45,7 @@
 
 To begin you should have the following applications installed on your local development system:
 
-- Python >= 3.9
+- Python >= 3.10
 - NodeJS == 14.x
 - npm == 6.14.x (comes with node 14)
 - [nvm](https://github.com/nvm-sh/nvm/blob/master/README.md) is not strictly _required_, but will almost certainly be necessary unless you just happen to have Node.js 12.x installed on your machine.

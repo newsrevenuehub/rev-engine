@@ -14,7 +14,7 @@ from apps.contributions import serializers
 from apps.contributions.bad_actor import BadActorAPIError
 from apps.contributions.models import Contribution, ContributionStatus, Contributor
 from apps.contributions.tests.factories import ContributionFactory, ContributorFactory
-from apps.contributions.utils import format_ambiguous_currency
+from apps.contributions.utils import format_ambiguous_currency, get_sha256_hash
 from apps.organizations.tests.factories import RevenueProgramFactory
 from apps.pages.tests.factories import DonationPageFactory
 
@@ -894,10 +894,11 @@ class TestCreateOneTimePaymentSerializer:
         result = serializer.create(serializer.validated_data)
         assert Contribution.objects.count() == contribution_count + 1
         assert Contributor.objects.count() == contributor_count + 1
-        assert set(result.keys()) == set(["provider_client_secret_id"])
+        assert set(result.keys()) == set(["provider_client_secret_id", "email_hash"])
         assert result["provider_client_secret_id"] == client_secret
         assert Contributor.objects.filter(email=minimally_valid_data["email"]).exists()
         contribution = Contribution.objects.get(provider_client_secret_id=client_secret)
+        assert result["email_hash"] == get_sha256_hash(contribution.contributor.email)
         assert contribution.status == ContributionStatus.PROCESSING
         assert contribution.flagged_date is None
         assert contribution.bad_actor_response == MockBadActorResponseObjectNotBad.mock_bad_actor_response_json
@@ -1045,10 +1046,11 @@ class TestCreateRecurringPaymentSerializer:
         result = serializer.create(serializer.validated_data)
         assert Contribution.objects.count() == contribution_count + 1
         assert Contributor.objects.count() == contributor_count + 1
-        assert set(result.keys()) == set(["provider_client_secret_id"])
+        assert set(result.keys()) == set(["provider_client_secret_id", "email_hash"])
         assert result["provider_client_secret_id"] == client_secret
         assert Contributor.objects.filter(email=minimally_valid_data["email"]).exists()
         contribution = Contribution.objects.get(provider_client_secret_id=client_secret)
+        assert result["email_hash"] == get_sha256_hash(contribution.contributor.email)
         assert contribution.status == ContributionStatus.PROCESSING
         assert contribution.flagged_date is None
         assert contribution.bad_actor_response == MockBadActorResponseObjectNotBad.mock_bad_actor_response_json

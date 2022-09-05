@@ -4,7 +4,7 @@ export const LogoBar = styled.div`
   width: 80%;
   max-width: 830px;
   margin-bottom: 50px;
-  @media (${(props) => props.theme.breakpoints.tabletLandscapeDown}) {
+  @media (${(props) => props.theme.breakpoints.mdDown}) {
     margin: 20px 0px;
   }
 `;

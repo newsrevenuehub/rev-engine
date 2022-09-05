@@ -26,6 +26,8 @@ const orgAdminWithContentFlag = {
   flags: [{ ...contentSectionFlag }]
 };
 
+const testEditPageUrl = 'edit/my/page';
+
 describe('Donation page edit', () => {
   before(() => {
     cy.forceLogin(orgAdminUser);
@@ -37,7 +39,7 @@ describe('Donation page edit', () => {
       { fixture: 'pages/live-page-1', statusCode: 200 }
     ).as('getPage');
 
-    const route = 'dashboard/edit/my/page';
+    const route = testEditPageUrl;
     cy.visit(route);
     cy.url().should('include', route);
     return cy.wait('@getPage');
@@ -250,8 +252,8 @@ describe('Donation page edit', () => {
       ).as('getPage');
       cy.intercept(`**/${LIST_STYLES}**`, {});
 
-      cy.visit('dashboard/edit/my/page');
-      cy.url().should('include', 'dashboard/edit/my/page');
+      cy.visit(testEditPageUrl);
+      cy.url().should('include', testEditPageUrl);
       cy.wait('@getPage');
 
       cy.getByTestId('edit-page-button').click();
@@ -274,7 +276,7 @@ describe('Donation page edit', () => {
 
       cy.forceLogin(orgAdminUser);
       cy.intercept({ method: 'GET', pathname: getEndpoint(USER) }, { body: orgAdminWithContentFlag });
-      cy.visit('dashboard/edit/my/page');
+      cy.visit(testEditPageUrl);
       cy.wait('@getPageDetail');
 
       // Need to fake an update to the page to enable save
@@ -307,7 +309,7 @@ describe('Donation page edit', () => {
       cy.intercept(`**/${LIST_STYLES}**`, {});
 
       cy.intercept({ method: 'GET', pathname: getEndpoint(USER) }, { body: orgAdminWithContentFlag });
-      cy.visit('dashboard/edit/my/page');
+      cy.visit(testEditPageUrl);
       cy.wait('@getPageDetail');
       cy.getByTestId('edit-page-button').click();
       cy.getByTestId('setup-tab').click({ force: true });
@@ -342,7 +344,7 @@ describe('Donation page edit', () => {
       cy.intercept({ method: 'GET', pathname: getEndpoint(LIST_STYLES) }, {});
 
       cy.intercept({ method: 'GET', pathname: getEndpoint(USER) }, { body: orgAdminWithContentFlag });
-      cy.visit('dashboard/edit/my/page');
+      cy.visit(testEditPageUrl);
       cy.wait('@getPageDetailModified');
       // Need to fake an update to the page to enable save
       cy.getByTestId('edit-page-button').click();
@@ -370,9 +372,9 @@ describe('Donation page edit', () => {
       ).as('getPageDetail');
       cy.intercept({ method: 'GET', pathname: getEndpoint(LIST_STYLES) }, {});
 
-      cy.visit('dashboard/edit/my/page');
+      cy.visit(testEditPageUrl);
 
-      cy.url().should('include', 'dashboard/edit/my/page');
+      cy.url().should('include', testEditPageUrl);
       cy.wait('@getPageDetail');
       cy.getByTestId('edit-page-button').click();
       cy.getByTestId('setup-tab').click();
@@ -434,7 +436,7 @@ describe('Donation page edit', () => {
         { method: 'GET', pathname: getEndpoint(DRAFT_PAGE_DETAIL) },
         { fixture: 'pages/live-page-1', statusCode: 200 }
       ).as('getPageDetail');
-      cy.visit('dashboard/edit/my/page');
+      cy.visit(testEditPageUrl);
       cy.wait('@getPageDetail');
     });
 
@@ -496,7 +498,7 @@ describe('Donation page delete', () => {
     ).as('getPage');
     cy.intercept({ method: 'GET', pathname: getEndpoint(LIST_STYLES) }, {});
 
-    cy.visit('dashboard/edit/my/page');
+    cy.visit(testEditPageUrl);
     cy.wait(['@getPage']);
     cy.getByTestId('delete-page-button').click();
     cy.wait('@deletePage').then((interception) => {
@@ -512,7 +514,7 @@ describe('Donation page delete', () => {
     ).as('getPage');
     cy.intercept(`**/${LIST_STYLES}**`, {});
 
-    cy.visit('dashboard/edit/my/page');
+    cy.visit(testEditPageUrl);
     cy.wait(['@getPage']);
     cy.getByTestId('delete-page-button').click();
 
@@ -535,8 +537,8 @@ describe('Page load side effects', () => {
     ).as('getPageDetail');
     cy.intercept(`**/${LIST_STYLES}**`, {});
 
-    cy.visit('dashboard/edit/my/page');
-    cy.url().should('include', 'dashboard/edit/my/page');
+    cy.visit(testEditPageUrl);
+    cy.url().should('include', testEditPageUrl);
     cy.wait('@getPageDetail');
   });
   it('should NOT contain clearbit.js script in body', () => {
@@ -554,8 +556,8 @@ describe('ReasonEditor', () => {
     ).as('getPageDetail');
     cy.intercept(`**/${LIST_STYLES}**`, {});
 
-    cy.visit('dashboard/edit/my/page');
-    cy.url().should('include', 'dashboard/edit/my/page');
+    cy.visit(testEditPageUrl);
+    cy.url().should('include', testEditPageUrl);
     cy.wait('@getPageDetail');
     cy.getByTestId('edit-page-button').click();
     cy.editElement('DReason');

@@ -7,10 +7,10 @@ export const Leftbar = styled.div`
   margin-bottom: 50px;
 
   color: ${(props) =>
-    props.bgColor && props.bgColor === 'purple' ? props.theme.colors.white : props.theme.colors.purple};
+    props.bgColor && props.bgColor === 'purple' ? props.theme.colors.white : props.theme.colors.account.purple[1]};
 
   span {
-    background-color: ${(props) => props.theme.colors.yellowbg};
+    background-color: ${(props) => props.theme.colors.account.yellow[0]};
   }
 
   svg {
@@ -59,7 +59,9 @@ export const Advantages = styled.div`
 export const Divider = styled.div`
   border-top: 2px solid
     ${(props) =>
-      props.bgColor && props.bgColor === 'purple' ? props.theme.colors.yellowbg : props.theme.colors.purpleLight};
+      props.bgColor && props.bgColor === 'purple'
+        ? props.theme.colors.account.yellow[0]
+        : props.theme.colors.account.purple[0]};
 
   @media (${(props) => props.theme.breakpoints.tabletLandscapeDown}) {
     display: none;

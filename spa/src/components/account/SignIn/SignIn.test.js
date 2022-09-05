@@ -1,4 +1,4 @@
-import { render, screen } from 'test-utils';
+import { render, screen, fireEvent } from 'test-utils';
 import ReactTestUtils from 'react-dom/test-utils';
 import SignIn from './SignIn';
 import { SIGN_UP, FORGOT_PASSWORD } from 'routes';
@@ -21,6 +21,14 @@ it('should have heading - Welcome Back!', () => {
   render(<SignIn />);
   const title = screen.queryByText('Welcome Back!');
   expect(title).toBeInTheDocument();
+});
+
+it('should have link to take user to sign-in page and reset password page', () => {
+  render(<SignIn />);
+  const signUp = screen.queryByTestId('create-account');
+  expect(signUp).toHaveAttribute('href', SIGN_UP);
+  const resetPassword = screen.queryByTestId('reset-password');
+  expect(resetPassword).toHaveAttribute('href', FORGOT_PASSWORD);
 });
 
 it('should have link to take user to sign in page and reset password page', () => {

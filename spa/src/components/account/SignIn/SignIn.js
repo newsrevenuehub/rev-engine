@@ -85,20 +85,23 @@ function SignIn({ onSuccess, message }) {
                 <input
                   id="email"
                   {...register('email', {
-                    required: 'Please enter a valid email id',
+                    required: 'Please enter a valid email',
                     pattern: {
                       value: /\S+@\S+\.\S+/,
-                      message: 'Please enter a valid email id'
+                      message: 'Please enter a valid email'
                     }
                   })}
                   type="text"
                   status={errors.email}
+                  data-testid="signin-email"
                 />
               </S.InputOuter>
               {errors.email ? (
-                <S.ErrorMessage data-testid={`error`}>{errors.email.message}</S.ErrorMessage>
+                <S.Message role="error" data-testid="email-error">
+                  {errors.email.message}
+                </S.Message>
               ) : (
-                <S.ErrorSpacer />
+                <S.MessageSpacer />
               )}
 
               <S.PasswordLabel>
@@ -115,6 +118,7 @@ function SignIn({ onSuccess, message }) {
                   })}
                   type={showPassword ? 'text' : 'password'}
                   status={errors.password}
+                  data-testid="signin-password"
                 />
                 <S.Visibility
                   data-testid="toggle-password"
@@ -122,15 +126,13 @@ function SignIn({ onSuccess, message }) {
                   src={showPassword ? visibilityOn : visibilityOff}
                 />
               </S.InputOuter>
-              {errors.password ? (
-                <S.ErrorMessage data-testid={`error`}>{errors.password.message}</S.ErrorMessage>
-              ) : (
-                <S.ErrorSpacer />
-              )}
+              {errors.password ? <S.Message role="error">{errors.password.message}</S.Message> : <S.MessageSpacer />}
 
-              <S.Submit type="submit">Sign In</S.Submit>
+              <S.Submit type="submit" role="button">
+                Sign In
+              </S.Submit>
             </form>
-            {formSubmitErrors ? <S.ErrorMessage>{formSubmitErrors} </S.ErrorMessage> : <S.ErrorSpacer />}
+            {formSubmitErrors ? <S.Message isSuccess={false}>{formSubmitErrors} </S.Message> : <S.MessageSpacer />}
 
             <S.SignInLink>
               Not a member?&nbsp;

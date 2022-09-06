@@ -1,3 +1,4 @@
+import itertools
 import logging
 
 from django.conf import settings
@@ -49,6 +50,22 @@ class StyleListSerializer(StyleInlineSerializer):
     )
     used_live = serializers.SerializerMethodField()
 
+    class Meta:
+        model = Style
+        fields = (
+            "id",
+            "created",
+            "modified",
+            "name",
+            "styles",
+            "revenue_program",
+            "used_live",
+        )
+        validators = [
+            ValidateFkReferenceOwnership(fk_attribute="revenue_program"),
+            UniqueTogetherValidator(queryset=Style.objects.all(), fields=["revenue_program", "name"]),
+        ]
+
     def get_used_live(self, obj):
         return DonationPage.objects.filter(styles=obj, published_date__lte=timezone.now()).exists()
 
@@ -66,25 +83,9 @@ class StyleListSerializer(StyleInlineSerializer):
         }
         return super().to_internal_value(data)
 
-    class Meta:
-        model = Style
-        fields = (
-            "id",
-            "created",
-            "modified",
-            "name",
-            "styles",
-            "revenue_program",
-            "used_live",
-        )
-        validators = [
-            ValidateFkReferenceOwnership(fk_attribute="revenue_program"),
-            UniqueTogetherValidator(queryset=Style.objects.all(), fields=["revenue_program", "name"]),
-        ]
-
 
 class DonationPageFullDetailSerializer(serializers.ModelSerializer):
-
+    name = serializers.CharField(max_length=255, required=False)  # Optional to allow autogeneration.
     styles = PresentablePrimaryKeyRelatedField(
         queryset=Style.objects.all(),
         presentation_serializer=StyleInlineSerializer,
@@ -120,6 +121,50 @@ class DonationPageFullDetailSerializer(serializers.ModelSerializer):
 
     benefit_levels = serializers.SerializerMethodField(method_name="get_benefit_levels")
 
+    class Meta:
+        model = DonationPage
+        fields = "__all__"
+        validators = [
+            ValidateFkReferenceOwnership(fk_attribute="styles"),
+            ValidateFkReferenceOwnership(fk_attribute="revenue_program"),
+            UniqueTogetherValidator(queryset=DonationPage.objects.all(), fields=["revenue_program", "slug"]),
+        ]
+
+    def create(self, validated_data):
+        """If given template pk, return template.make_page_from_template().
+
+        Else return super.create().
+
+        Missing page name will be set to template.name or RevenueProgram.name+<serial int>.
+
+        Throws ValidationError if template matching pk not found.
+        """
+        if "template_pk" in validated_data:
+            try:
+                template = Template.objects.get(pk=validated_data.pop("template_pk"))
+                return template.make_page_from_template(validated_data)
+            except Template.DoesNotExist:
+                raise serializers.ValidationError({"template": ["This template no longer exists"]})
+        if not validated_data.get("name"):
+            rp = validated_data.get("revenue_program")
+            for i in itertools.count(start=1):  # pragma: no branch (loop will never "complete" by design)
+                validated_data["name"] = f"{rp.name}{i}"
+                if not DonationPage.objects.filter(name=validated_data["name"]).exists():
+                    break
+        return super().create(validated_data)
+
+    def update(self, instance, validated_data):
+        if "styles_pk" in validated_data:
+            pk = validated_data["styles_pk"]
+            if pk is None:
+                setattr(instance, "styles", None)
+            else:
+                try:
+                    setattr(instance, "styles", Style.objects.get(pk=pk))
+                except Style.DoesNotExist:
+                    raise serializers.ValidationError({"styles_pk": "Could not find Style with provided pk."})
+        return super().update(instance, validated_data)
+
     def get_revenue_program_is_nonprofit(self, obj):
         return obj.revenue_program.non_profit
 
@@ -145,48 +190,6 @@ class DonationPageFullDetailSerializer(serializers.ModelSerializer):
             benefit_levels = obj.revenue_program.benefitlevel_set.all()
             serializer = BenefitLevelDetailSerializer(benefit_levels, many=True)
             return serializer.data
-
-    class Meta:
-        model = DonationPage
-        fields = "__all__"
-        validators = [
-            ValidateFkReferenceOwnership(fk_attribute="styles"),
-            ValidateFkReferenceOwnership(fk_attribute="revenue_program"),
-            UniqueTogetherValidator(queryset=DonationPage.objects.all(), fields=["revenue_program", "slug"]),
-        ]
-
-    def _update_related(self, related_field, related_model, validated_data, instance):
-        pk_field = f"{related_field}_pk"
-        if pk_field in validated_data and validated_data[pk_field] is None:
-            setattr(instance, related_field, None)
-        elif pk_field in validated_data:
-            try:
-                related_instance = related_model.objects.get(pk=validated_data[pk_field])
-                setattr(instance, related_field, related_instance)
-            except related_model.DoesNotExist:
-                raise serializers.ValidationError({related_field: "Could not find instance with provided pk."})
-
-    def _create_from_template(self, validated_data):
-        """
-        Given a template pk, find template and run model method make_page_from_template.
-        Returns DonationPage instance
-        Throws ValidationError if template is somehow missing.
-        """
-        try:
-            template_pk = validated_data.pop("template_pk")
-            template = Template.objects.get(pk=template_pk)
-            return template.make_page_from_template(validated_data)
-        except Template.DoesNotExist:
-            raise serializers.ValidationError({"template": ["This template no longer exists"]})
-
-    def create(self, validated_data):
-        if "template_pk" in validated_data:
-            return self._create_from_template(validated_data)
-        return super().create(validated_data)
-
-    def update(self, instance, validated_data):
-        self._update_related("styles", Style, validated_data, instance)
-        return super().update(instance, validated_data)
 
 
 class DonationPageListSerializer(serializers.ModelSerializer):
@@ -222,18 +225,6 @@ class TemplateDetailSerializer(serializers.ModelSerializer):
         allow_null=True,
     )
 
-    def create(self, validated_data):
-        page = validated_data.pop("page", None)
-        if page:
-            return page.make_template_from_page(validated_data)
-        return super().create(validated_data)
-
-    def validate_page(self, page):
-        """Note on why"""
-        if page and self.initial_data.get("revenue_program") is None:
-            self.initial_data["revenue_program"] = page.revenue_program.pk
-        return page
-
     class Meta:
         model = Template
         fields = [
@@ -260,6 +251,18 @@ class TemplateDetailSerializer(serializers.ModelSerializer):
                 message="Template name already in use",
             ),
         ]
+
+    def create(self, validated_data):
+        page = validated_data.pop("page", None)
+        if page:
+            return page.make_template_from_page(validated_data)
+        return super().create(validated_data)
+
+    def validate_page(self, page):
+        """Note on why"""
+        if page and self.initial_data.get("revenue_program") is None:
+            self.initial_data["revenue_program"] = page.revenue_program.pk
+        return page
 
 
 class TemplateListSerializer(serializers.ModelSerializer):

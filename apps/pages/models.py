@@ -49,6 +49,9 @@ class AbstractPage(IndexedTimeStampedModel, RoleAssignmentResourceModelMixin):
         on_delete=models.CASCADE,
     )
 
+    class Meta:
+        abstract = True
+
     @property
     def organization(self):
         if self.revenue_program:
@@ -101,14 +104,9 @@ class AbstractPage(IndexedTimeStampedModel, RoleAssignmentResourceModelMixin):
             ]
         )
 
-    class Meta:
-        abstract = True
-
 
 class Template(AbstractPage):
-    """
-    A "Snapshot" of a Page at a particular state.
-    """
+    """Snapshot of a Page at a particular state."""
 
     # 'elements' is special. It has a default value when on a DonationPage
     # but should not have a default as a Template
@@ -132,15 +130,12 @@ class Template(AbstractPage):
         Expects template_data as dict, and optional page_data (eg. for creating a template page via org admin).
         We also clean up template and page data here, so that we only copy the fields we want.
         """
-        template_data = self.__dict__
+        unwanted_keys = ["_state", "id", "modified", "created", "published_date"]
+        template_data = self.__dict__.copy()
         template_data["name"] = f"New Page From Template ({template_data['name']})"
         template_data["slug"] = normalize_slug(name=template_data["name"])
-
-        unwanted_keys = ["_state", "id", "modified", "created", "published_date"]
-        template = cleanup_keys(template_data, unwanted_keys)
-        page = cleanup_keys(page_data, unwanted_keys)
-        merged_page = {**template, **page}
-        return DonationPage.objects.create(**merged_page)
+        merged_data = {**template_data, **page_data}
+        return DonationPage.objects.create(**cleanup_keys(merged_data, unwanted_keys))
 
 
 class DonationPage(AbstractPage):
@@ -171,6 +166,10 @@ class DonationPage(AbstractPage):
     def __str__(self):
         return self.name
 
+    @property
+    def is_live(self):
+        return bool(self.published_date and self.published_date <= timezone.now())
+
     def has_page_limit(self):
         return Feature.objects.filter(
             feature_type=Feature.FeatureType.PAGE_LIMIT, plans__organization=self.organization.id
@@ -179,10 +178,6 @@ class DonationPage(AbstractPage):
     def get_total_org_pages(self):
         org = self.revenue_program.organization
         return DonationPage.objects.filter(revenue_program__in=org.revenueprogram_set.all()).count()
-
-    @property
-    def is_live(self):
-        return bool(self.published_date and self.published_date <= timezone.now())
 
     def set_default_logo(self):
         """
@@ -312,11 +307,11 @@ class Font(models.Model):
         help_text="For typekit fonts, use the kitId. For google fonts, use the value of the 'family' query param",
     )
 
-    def __str__(self):
-        return f"{self.name} ({self.source})"
-
     class Meta:
         ordering = [models.functions.Lower("name")]
+
+    def __str__(self):
+        return f"{self.name} ({self.source})"
 
 
 class DefaultPageLogo(SingletonModel):

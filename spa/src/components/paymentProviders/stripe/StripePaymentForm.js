@@ -1,122 +1,366 @@
-import { useState } from 'react';
-import { useStripe, useElements, PaymentElement } from '@stripe/react-stripe-js';
-import { useLocation } from 'react-router-dom';
-
 import * as S from './StripePaymentForm.styled';
+import { useState, useEffect } from 'react';
+
+// Deps
+import { useTheme } from 'styled-components';
+import { useAlert } from 'react-alert';
+
+// Utils
+import { getFrequencyAdverb, getFrequencyThankYouText } from 'utilities/parseFrequency';
+
+// Hooks
+import useSubdomain from 'hooks/useSubdomain';
+import useReCAPTCHAScript from 'hooks/useReCAPTCHAScript';
+
+// Constants
+import { GRECAPTCHA_SITE_KEY } from 'settings';
+
+// Routing
+import { useHistory, useRouteMatch } from 'react-router-dom';
+import { THANK_YOU_SLUG } from 'routes';
+
+// Stripe
+import { CardElement, useStripe, useElements, PaymentRequestButtonElement } from '@stripe/react-stripe-js';
+
+// Util
+import formatStringAmountForDisplay from 'utilities/formatStringAmountForDisplay';
+import submitPayment, { serializeData, getTotalAmount, amountToCents, StripeError } from './stripeFns';
+
+// Context
 import { usePage } from 'components/donationPage/DonationPage';
+
+// Analytics
+import { useAnalyticsContext } from 'components/analytics/AnalyticsContext';
+
+// Children
+import BaseField from 'elements/inputs/BaseField';
 import { ICONS } from 'assets/icons/SvgIcon';
 import { PayFeesWidget } from 'components/donationPage/pageContent/DPayment';
 import DonationPageDisclaimer from 'components/donationPage/DonationPageDisclaimer';
-import { PAYMENT_SUCCESS } from 'routes';
 
-function StripePaymentForm({
-  offerPayFees,
-  contributorEmail,
-  contributorName,
-  hashedContributorEmail,
-  // need to use getFrequencyThankYouText
-  frequencyDisplayValue
-}) {
-  const { page, amount } = usePage();
-  const { pathname } = useLocation();
-  const stripe = useStripe();
-  const elements = useElements();
+/*
+  gets the disabled stripe wallets for a page
+  @param {page}
+  */
+export const getDisabledWallets = (page) => {
+  let disabledWallets = [];
+  (page?.elements || [])
+    .filter((elem) => elem.type === 'DPayment')
+    .forEach((paymentType) => {
+      let enabledWalletsForPage = paymentType.content.stripe;
 
-  const [message, setMessage] = useState(null);
-  const [isLoading, setIsLoading] = useState(false);
-
-  // NEXT - start here and run down where these vals will come from.
-  const payFee = 'TBD';
-  const frequency = 'TBD';
-
-  const handleSubmit = (e) => {
-    e.preventDefault();
-
-    // parent handle submit
-    // then fetchupdates on payment element
-    // then call stripe confirm payment
-
-    // This is the URL that Stripe will send the user to if payment is successfully
-    // processed. We send users to an interstitial payment success page where we can
-    // track successful conversion in analytics, before forwarding them on to the default
-    // thank you page.
-    const paymentSuccessUrl = new URL(PAYMENT_SUCCESS, window.location.origin);
-    paymentSuccessUrl.searchParams.append('amount', amount);
-    paymentSuccessUrl.searchParams.append('next', page?.thank_you_redirect || '');
-    paymentSuccessUrl.searchParams.append('frequency', frequencyDisplayValue);
-    // When a donation page has a custom thank you page that is off-site, we
-    // eventually next the user to that page, appending several query parameters, one
-    // of which is a `uid` parameter that org's can use to anonymously track contributors
-    // in their analytics layer without exposing raw contributor email to ad tech providers.
-    paymentSuccessUrl.searchParams.append('uid', hashedContributorEmail);
-    // On other hand, our internal thank you page needs the raw value of the contributor
-    // email to display message on the page. There's no privacy concerns around sharing the
-    // email address with Stripe (they already have it) or within our site.
-    paymentSuccessUrl.searchParams.append('email', contributorEmail);
-    // The thank you page that eventually loads needs to data that is on the
-    // page model from API. Instead of passing a monstrous number of query
-    // params to payment success, to have that component in turn pass those params
-    // to thank you page, we just pass the pageId which thank you page will eventually
-    // use to retrieve the page data.
-    paymentSuccessUrl.searchParams.append('pageId', page.id);
-    // We pass this along because the thank you page we eventually need to show
-    // will appear at rev-program-slug.revengine.com/page-name/thank-you if the page was served
-    // from specific page name. On other hand, if a revenue program has a default donation page
-    // set up, that page can appear at rev-program-slug.revengine.com/ (with no page), in which
-    // case, the thank-you page URL can be rev-program-slug.revengine.com/thank-you.
-    paymentSuccessUrl.searchParams.append('fromPath', pathname);
-
-    const { error } = stripe.confirmPayment({
-      elements,
-      confirmParams: {
-        return_url: paymentSuccessUrl,
-        payment_method_data: {
-          billing_details: {
-            name: contributorName,
-            email: contributorEmail
-          }
-        }
+      if (!enabledWalletsForPage.includes('apple')) {
+        disabledWallets.push('applePay');
+      }
+      if (!enabledWalletsForPage.includes('google')) {
+        disabledWallets.push('googlePay');
+      }
+      if (!enabledWalletsForPage.includes('browser')) {
+        disabledWallets.push('browserCard');
       }
     });
 
-    // The Stripe docs note that this point will only be reached if there is an
-    // immediate error when confirming the payment. Otherwise, contributor gets redirected
-    // to `return_url` before the promise above ever resolves.
-    if (error.type === 'card_error' || error.type === 'validation_error') {
-      setMessage(error.message);
-    } else {
-      setMessage('An unexpected error occurred.');
-    }
-    setIsLoading(false);
+  return disabledWallets;
+};
+
+function StripePaymentForm({ loading, setLoading, offerPayFees }) {
+  useReCAPTCHAScript();
+  const subdomain = useSubdomain();
+  const { url, params } = useRouteMatch();
+  const { page, amount, frequency, payFee, formRef, setErrors, salesforceCampaignId } = usePage();
+  const { trackConversion } = useAnalyticsContext();
+
+  const [cardReady, setCardReady] = useState(false);
+  const [succeeded, setSucceeded] = useState(false);
+  const [disabled, setDisabled] = useState(true);
+  const [paymentRequest, setPaymentRequest] = useState(null);
+  const [forceManualCard, setForceManualCard] = useState(false);
+  const [stripeError, setStripeError] = useState();
+
+  const theme = useTheme();
+  const history = useHistory();
+  const alert = useAlert();
+  const stripe = useStripe();
+  const elements = useElements();
+
+  const amountIsValid = (amount) => amount && !isNaN(amount);
+  /**
+   * Listen for changes in the CardElement and display any errors as the customer types their card details
+   */
+  const handleCardElementChange = async (event) => {
+    setCardReady(event.complete);
+    setDisabled(event.empty);
+    setStripeError(event?.error?.message);
   };
 
-  // for full options, see: https://stripe.com/docs/js/elements_object/create_payment_element
-  // notably, can control fonts
-  const paymentElementOptions = {
-    fields: {
-      // we collected name, email, etc. in previous form, so we don't need to display these
-      // inputs in Stripe's payment element which defaults to including them. This means
-      // we need to add that data when we call stripe.confirmPayment.
-      billingDetails: 'never'
-    },
-    // This removes legal agreements that Stripe may display
-    terms: {
-      card: 'never'
+  /**
+   * extractEmailFromFormRef
+   * Provided a ref to the form element containing the email address, will return that email address
+   * @param {Element} form - a ref to the Form element containing the email addreess
+   * @returns {string} email address
+   */
+  const extractEmailFromFormRef = (form) => {
+    const emailInput = form.elements['email'];
+    return emailInput.value;
+  };
+
+  /****************************\
+   * Handle Error and Success *
+  \****************************/
+  const handlePaymentSuccess = (pr, rpApiResponse) => {
+    if (pr) pr.complete('success');
+    const totalAmount = getTotalAmount(amount, payFee, frequency, page.revenue_program_is_nonprofit);
+
+    setErrors({});
+    setStripeError(null);
+    setLoading(false);
+    setSucceeded(true);
+    trackConversion(totalAmount);
+    const qstr = `uid=${rpApiResponse?.data?.email_hash}&frequency=${encodeURIComponent(
+      getFrequencyThankYouText(frequency)
+    )}&amount=${encodeURIComponent(totalAmount)}`;
+
+    if (page.thank_you_redirect) {
+      let redirectURL = page.thank_you_redirect;
+      redirectURL = redirectURL.includes('?') ? `${redirectURL}&${qstr}` : `${redirectURL}?${qstr}`;
+      window.location = redirectURL;
+    } else {
+      const email = extractEmailFromFormRef(formRef.current);
+
+      const donationPageUrl = window.location.href;
+      history.push({
+        pathname: url === '/' ? THANK_YOU_SLUG : url + THANK_YOU_SLUG,
+        search: `?${qstr}`,
+        state: { page, amount: totalAmount, email, donationPageUrl, frequencyText: getFrequencyThankYouText(frequency) }
+      });
     }
+  };
+
+  const handlePaymentFailure = (error, pr) => {
+    if (error instanceof StripeError) {
+      setStripeError(`Payment failed: ${error}`);
+      alert.error(`Payment failed: ${error}`);
+    } else {
+      const internalErrors = error?.response?.data;
+      if (internalErrors) {
+        setErrors({ ...internalErrors });
+        if (internalErrors.detail) alert.error(internalErrors.detail);
+      } else {
+        alert.error('There was an error processing your payment.');
+      }
+    }
+    // "Success" here to the Stripe PaymentRequest API only means "we're done with the pop-up".
+    // We fire it here to close the popup and show the user any errors.
+    if (pr) pr.complete('success');
+    setSucceeded(false);
+    setLoading(false);
+  };
+
+  /**
+   * If window.grecaptcha is defined-- which should be done in useReCAPTCHAScript hook--
+   * listen for readiness and resolve promise with resulting reCAPTCHA token.
+   * @returns {Promise} - resolves to token or error
+   */
+  const getReCAPTCHAToken = () =>
+    new Promise((resolve, reject) => {
+      if (window.grecaptcha) {
+        window.grecaptcha.ready(async function () {
+          try {
+            const token = window.grecaptcha.execute(GRECAPTCHA_SITE_KEY, { action: 'submit' });
+            resolve(token);
+          } catch (error) {
+            reject(error);
+          }
+        });
+      } else {
+        reject(new Error('window.grecaptcha not defined at getReCAPTCHAToken call time'));
+      }
+    });
+
+  /********************************\
+   * Inline Card Element Payments *
+  \********************************/
+  const staticParams = {
+    ...params,
+    rpIsNonProfit: page.revenue_program_is_nonprofit,
+    rpCountry: page.revenue_program_country,
+    currency: page.currency?.code?.toLowerCase(),
+    salesforceCampaignId,
+    revProgramSlug: subdomain,
+    pageId: page.id
+  };
+
+  const getData = async (state = {}) => {
+    const reCAPTCHAToken = await getReCAPTCHAToken();
+    const data = serializeData(formRef.current, {
+      amount,
+      payFee,
+      frequency,
+      reCAPTCHAToken,
+      ...staticParams,
+      ...state
+    });
+    return data;
+  };
+
+  const handleCardSubmit = async (e) => {
+    e.preventDefault();
+    const data = await getData();
+    setLoading(true);
+    await submitPayment(
+      stripe,
+      data,
+      { card: elements.getElement(CardElement) },
+      handlePaymentSuccess,
+      handlePaymentFailure
+    );
+  };
+
+  /*********************************\
+   * PaymentRequestButton Payments *
+  \*********************************/
+  const handlePaymentRequestSubmit = async (state, paymentRequest) => {
+    const data = await getData(state);
+    setLoading(true);
+    await submitPayment(
+      stripe,
+      data,
+      { paymentRequest },
+      () => handlePaymentSuccess,
+      (error) => handlePaymentFailure(error, paymentRequest)
+    );
+  };
+
+  /**
+   * Here we initialize and verify a Stripe PaymentRequest, which represents a
+   * third-party payment method such as Apple Pay, Google Pay, or various
+   * Browser-saved card features (Chrome or Edge or Safari have things).
+   *
+   * Note that stripe will not respond to changes in dynamic values like
+   * amount. For that, we must use the paymentRequest.update method.
+   */
+  useEffect(() => {
+    const rpIsNonProfit = page.revenue_program_is_nonprofit;
+    const amnt = amountToCents(getTotalAmount(amount, payFee, frequency, rpIsNonProfit));
+
+    let disabledWallets = getDisabledWallets(page);
+
+    if (stripe && amountIsValid(amount) && !paymentRequest) {
+      const pr = stripe.paymentRequest({
+        country: page?.revenue_program_country,
+        currency: page?.currency?.code?.toLowerCase(),
+        total: {
+          label: page.revenue_program.name,
+          amount: amnt
+        },
+        disableWallets: disabledWallets
+      });
+
+      pr.canMakePayment().then((canMakePayment) => {
+        if (canMakePayment) setPaymentRequest(pr);
+      });
+    }
+    // vv See note above
+  }, [stripe, paymentRequest]);
+
+  /**
+   * Here we assign a callback to the paymentmethod event in which we submit the payment
+   * with a paymentMethod and current non-form values. We should NOT include handlePaymentRequestSubmit
+   * as a dependency here. We're passing in everything it needs as an arg, and the only thing it uses
+   * that is not passed in are setState calls which are already memoized.
+   */
+  useEffect(() => {
+    if (paymentRequest && amountIsValid(amount)) {
+      function handlePaymentMethodEvent(paymentMethodEvent) {
+        handlePaymentRequestSubmit({ amount, payFee, ...params }, paymentMethodEvent);
+      }
+      // Remove any previous listeners (with stale data)
+      paymentRequest.removeAllListeners();
+      // Add updated listener (with updated data)
+      paymentRequest.on('paymentmethod', handlePaymentMethodEvent);
+    }
+    // vv See note above
+  }, [paymentRequest, amount, payFee, params]);
+
+  /**
+   * See previous note. Here we update the values of our paymentRequest using the
+   * paymentRequest.update method.
+   */
+  useEffect(() => {
+    const rpIsNonProfit = page.revenue_program_is_nonprofit;
+    const amnt = amountToCents(getTotalAmount(amount, payFee, frequency, rpIsNonProfit));
+    const amntIsValid = !isNaN(amnt) && amnt > 0;
+    if (paymentRequest && amntIsValid) {
+      paymentRequest.update({
+        total: {
+          label: page.revenue_program.name,
+          amount: amnt
+        }
+      });
+    }
+  }, [amount, payFee, paymentRequest, frequency]);
+
+  const currencySymbol = page?.currency?.symbol;
+
+  /**
+   * getButtonText
+   * @returns {string} - The text to display in the submit button.
+   */
+  const getButtonText = () => {
+    const totalAmount = getTotalAmount(amount, payFee, frequency, page.revenue_program_is_nonprofit);
+    if (isNaN(totalAmount)) {
+      return 'Enter a valid amount';
+    }
+    return `Give ${currencySymbol}${formatStringAmountForDisplay(totalAmount)} ${getFrequencyAdverb(frequency)}`;
   };
 
   return (
-    <form onSubmit={handleSubmit}>
+    <>
       {offerPayFees && <PayFeesWidget />}
-      <PaymentElement options={paymentElementOptions} id="stripe-payment-element" />
-      <S.PaymentSubmitButton type="submit" loading={isLoading} data-testid="donation-submit">
-        {/* {getButtonText()} */}
-      </S.PaymentSubmitButton>
+      {paymentRequest ? (
+        <>
+          <S.PaymentRequestWrapper>
+            <PaymentRequestButtonElement options={{ paymentRequest, style: S.PaymentRequestButtonStyle }} />
+          </S.PaymentRequestWrapper>
+          <S.PayWithCardOption onClick={() => setForceManualCard(forceManualCard ? false : true)}>
+            - I prefer to manually enter my credit card -
+          </S.PayWithCardOption>
+        </>
+      ) : null}
+
+      {!forceManualCard && paymentRequest ? null : (
+        <S.StripePaymentForm>
+          <BaseField label="Card details" required>
+            <S.PaymentElementWrapper>
+              <CardElement
+                id="card-element"
+                options={{ style: S.CardElementStyle(theme), hidePostalCode: true }}
+                onChange={handleCardElementChange}
+              />
+            </S.PaymentElementWrapper>
+          </BaseField>
+          {stripeError && (
+            <S.PaymentError role="alert" data-testid="donation-error">
+              {stripeError}
+            </S.PaymentError>
+          )}
+
+          <S.PaymentSubmitButton
+            onClick={handleCardSubmit}
+            disabled={!cardReady || loading || disabled || succeeded || !amountIsValid(amount)}
+            loading={loading}
+            data-testid="donation-submit"
+          >
+            {getButtonText()}
+          </S.PaymentSubmitButton>
+        </S.StripePaymentForm>
+      )}
+
       <S.IconWrapper>
         <S.Icon icon={ICONS.STRIPE_POWERED} />
       </S.IconWrapper>
       <DonationPageDisclaimer page={page} amount={amount} payFee={payFee} frequency={frequency} />
-    </form>
+    </>
   );
 }
 

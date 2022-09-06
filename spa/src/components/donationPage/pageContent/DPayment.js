@@ -1,5 +1,3 @@
-import { useState } from 'react';
-import PropTypes from 'prop-types';
 import * as S from './DPayment.styled';
 import DElement from './DElement';
 import { ICONS } from 'assets/icons/SvgIcon';
@@ -13,28 +11,35 @@ import calculateStripeFee from 'utilities/calculateStripeFee';
 import { usePage } from '../DonationPage';
 
 // Stripe
-import StripePaymentWrapper from 'components/paymentProviders/stripe/StripePaymentWrapper';
+import StripePayment from 'components/paymentProviders/stripe/StripePayment';
 
-function DPayment({ live: liveMode, payFeesDefaultChecked }) {
-  const [totalAmount, setTotalAmount] = useState();
+function DPayment({ element, live }) {
+  const {
+    page: { stripe_account_id }
+  } = usePage();
+  /*
+    element.content is an object, whose keys are providers.
+    For instance, element.content.stripe is an array of supported payment types:
+    eg ["card", "apple", "google"]
 
-  // used to be in element.content?.offerPayFees
-  const displayOfferPayFees = true;
+    Eventually we may support multiple providers, each with different supported payment methods.
+    Vaguely, it seems likely we'd want some sort of tabbed-interface where each tab is a provider.
+    For now, we only support stripe, so there's no need for a fancy interface.
+  */
   return (
     <DElement>
-      {liveMode ? <StripePaymentWrapper offerPayFees={displayOfferPayFees} /> : <NotLivePlaceholder />}
+      {live ? (
+        <S.DPayment>
+          {element?.content && element.content['stripe'] && (
+            <StripePayment offerPayFees={element.content?.offerPayFees} stripeAccountId={stripe_account_id} />
+          )}
+        </S.DPayment>
+      ) : (
+        <NotLivePlaceholder />
+      )}
     </DElement>
   );
 }
-
-DPayment.propTypes = {
-  liveMode: PropTypes.bool.isRequired,
-  paymentIntentSecret: PropTypes.string
-};
-
-DPayment.defaultProps = {
-  liveMode: false
-};
 
 DPayment.type = 'DPayment';
 DPayment.displayName = 'Payment';

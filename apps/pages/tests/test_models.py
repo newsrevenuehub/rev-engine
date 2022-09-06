@@ -32,7 +32,7 @@ def test__get_screenshot_upload_path():
     org.name = "justiceleague"
     instance = mock.Mock(organization=org)
     instance.name = "superhero"
-    assert "justiceleague/page_screenshots/superhero_landing.png" == _get_screenshot_upload_path(
+    assert "justiceleague/page_screenshots/superhero/landing.png" == _get_screenshot_upload_path(
         instance, "landing.png"
     )
 

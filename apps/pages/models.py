@@ -17,7 +17,7 @@ from apps.users.models import RoleAssignmentResourceModelMixin, UnexpectedRoleTy
 
 
 def _get_screenshot_upload_path(instance, filename):
-    return f"{instance.organization.name}/page_screenshots/{instance.name}_{filename}"
+    return f"{instance.organization.name}/page_screenshots/{instance.name.replace(' ', '-')}/{filename}"
 
 
 class AbstractPage(IndexedTimeStampedModel, RoleAssignmentResourceModelMixin):

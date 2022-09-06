@@ -132,6 +132,12 @@ function PageEditor() {
     },
     [alert]
   );
+
+  useEffect(() => {
+    // Empty page on first load
+    setPageContext(null);
+  }, [setPageContext]);
+
   useEffect(() => {
     setLoading(true);
 

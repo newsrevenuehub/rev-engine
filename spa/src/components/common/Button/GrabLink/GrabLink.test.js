@@ -7,7 +7,8 @@ const page = {
   revenue_program: {
     slug: 'news-revenue-hub'
   },
-  slug: 'donate'
+  slug: 'donate',
+  published_date: '2021-11-18T21:51:53Z'
 };
 
 const mockClipboard = {
@@ -18,7 +19,13 @@ global.navigator.clipboard = mockClipboard;
 const domain = getDomain(window.location.host);
 
 describe('GrabLink', () => {
-  it('should render grab link button', () => {
+  it('should not render grab link if page is not published', () => {
+    render(<GrabLink page={{ ...page, published_date: null }} />);
+    const button = screen.queryByRole('button', { name: /grab link/i });
+    expect(button).not.toBeInTheDocument();
+  });
+
+  it('should render grab link button if page is published', () => {
     render(<GrabLink page={page} />);
     const button = screen.getByRole('button', { name: /grab link/i });
     expect(button).toBeEnabled();

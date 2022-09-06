@@ -12,7 +12,8 @@ const page = {
   revenue_program: {
     slug: 'rev-prog-slug'
   },
-  slug: 'page-slug'
+  slug: 'page-slug',
+  published_date: '2021-11-18T21:51:53Z'
 };
 
 describe('Dashboard TopBar', () => {
@@ -25,7 +26,7 @@ describe('Dashboard TopBar', () => {
     expect(grabLink).not.toBeInTheDocument();
   });
 
-  it('should show grab link if isEditPage = true', () => {
+  it('should show grab link if isEditPage = true and page is published', () => {
     render(<DashboardTopbar isEditPage={true} page={page} />);
 
     const signOut = screen.queryByText('Sign out');

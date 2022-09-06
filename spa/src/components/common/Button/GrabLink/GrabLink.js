@@ -24,6 +24,8 @@ const GrabLink = ({ page, className }) => {
     setAnchorEl(null);
   };
 
+  if (!page?.published_date) return null;
+
   const renderCopyButton = (title, link) => {
     const showCopied = copied === link;
     return (
@@ -88,7 +90,8 @@ GrabLink.propTypes = {
     revenue_program: PropTypes.shape({
       slug: PropTypes.string
     }).isRequired,
-    slug: PropTypes.string.isRequired
+    slug: PropTypes.string.isRequired,
+    published_date: PropTypes.string
   }).isRequired
 };
 

@@ -2,16 +2,16 @@ import React from 'react';
 import * as S from './DashboardSidebar.styled';
 import ContentSectionNav from './navs/ContentSectionNav';
 import ContributionSectionNav from './navs/ContributionSectionNav';
-import { ICONS } from 'assets/icons/SvgIcon';
 
 import { CONTENT_SECTION_ACCESS_FLAG_NAME } from 'constants/featureFlagConstants';
 
 import flagIsActiveForUser from 'utilities/flagIsActiveForUser';
 import { useFeatureFlagsProviderContext } from 'components/Main';
-import hasContributionsDashboardAcessToUser from 'utilities/hasContributionsDashboardAcessToUser';
+import hasContributionsDashboardAcessToUser from 'utilities/hasContributionsDashboardAccessToUser';
 
 /*
 // Commenting out for now as this will needed in future
+// import { ICONS } from 'assets/icons/SvgIcon';
 
 function DashboardMain() {
   return (

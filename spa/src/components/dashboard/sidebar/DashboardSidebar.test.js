@@ -15,7 +15,7 @@ jest.mock('utilities/flagIsActiveForUser', () => ({
 }));
 
 var mock = jest.fn().mockReturnValue(true);
-jest.mock('utilities/hasContributionsDashboardAcessToUser', () => {
+jest.mock('utilities/hasContributionsDashboardAccessToUser', () => {
   return () => mock();
 });
 

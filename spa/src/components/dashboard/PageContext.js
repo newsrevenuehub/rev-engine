@@ -1,6 +1,11 @@
 import { createContext, useState, useContext } from 'react';
 
-const PageContext = createContext(null);
+const PageContext = createContext({
+  page: null,
+  setPage: () => {
+    throw new Error('PageContext must be used inside a PageContextProvider');
+  }
+});
 
 const PageContextProvider = ({ children }) => {
   const [page, setPage] = useState();

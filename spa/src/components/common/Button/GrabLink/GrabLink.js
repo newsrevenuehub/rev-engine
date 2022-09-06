@@ -4,16 +4,17 @@ import PropTypes from 'prop-types';
 import { Flex, Button, Popover, Text, Title, Input, CopyButton } from './GrabLink.styled';
 import CheckIcon from '@material-ui/icons/Check';
 import LinkIcon from '@material-ui/icons/Link';
+import getDomain from 'utilities/getDomain';
 
 const GrabLink = ({ page, className }) => {
   const [copied, setCopied] = useState(null);
   const [anchorEl, setAnchorEl] = useState(null);
   const open = Boolean(anchorEl);
   const id = open ? 'grab link popover' : undefined;
-  const { host } = window.location;
+  const domain = getDomain(window.location.host);
 
-  const pageLink = `${page?.revenue_program?.slug}.${host}/${page?.slug}`;
-  const portalLink = `${page?.revenue_program?.slug}.${host}/contributor`;
+  const pageLink = `${page?.revenue_program?.slug}.${domain}/${page?.slug}`;
+  const portalLink = `${page?.revenue_program?.slug}.${domain}/contributor`;
 
   const handleClick = (event) => {
     setAnchorEl(event.currentTarget);

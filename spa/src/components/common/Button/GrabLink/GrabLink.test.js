@@ -1,4 +1,5 @@
 import { render, screen, fireEvent } from 'test-utils';
+import getDomain from 'utilities/getDomain';
 
 import GrabLink from './GrabLink';
 
@@ -14,6 +15,7 @@ const mockClipboard = {
 };
 
 global.navigator.clipboard = mockClipboard;
+const domain = getDomain(window.location.host);
 
 describe('GrabLink', () => {
   it('should render grab link button', () => {
@@ -38,11 +40,10 @@ describe('GrabLink', () => {
     const copyButtons = screen.queryAllByRole('button', { name: /copy/i });
     expect(copyButtons).toHaveLength(2);
 
-    const host = window.location.host;
-    const pageLink = screen.getByRole('textbox', { name: `${page.revenue_program.slug}.${host}/${page.slug}` });
+    const pageLink = screen.getByRole('textbox', { name: `${page.revenue_program.slug}.${domain}/${page.slug}` });
     expect(pageLink).toBeInTheDocument();
 
-    const portalLink = screen.getByRole('textbox', { name: `${page.revenue_program.slug}.${host}/contributor` });
+    const portalLink = screen.getByRole('textbox', { name: `${page.revenue_program.slug}.${domain}/contributor` });
     expect(portalLink).toBeInTheDocument();
   });
 
@@ -56,5 +57,6 @@ describe('GrabLink', () => {
     fireEvent.click(screen.getByRole('button', { name: /copy contribution page link/i }));
     expect(screen.getByRole('button', { name: /copied contribution page link/i })).toBeEnabled();
     expect(screen.queryByRole('button', { name: /copy contribution page link/i })).toBeNull();
+    expect(mockClipboard.writeText.mock.calls).toEqual([[`${page.revenue_program.slug}.${domain}/${page.slug}`]]);
   });
 });

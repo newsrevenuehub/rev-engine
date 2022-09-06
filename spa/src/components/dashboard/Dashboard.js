@@ -19,14 +19,14 @@ import PageEditor from 'components/pageEditor/PageEditor';
 import { CONTENT_SECTION_ACCESS_FLAG_NAME } from 'constants/featureFlagConstants';
 
 import flagIsActiveForUser from 'utilities/flagIsActiveForUser';
-import hasContributionsDashboardAcessToUser from 'utilities/hasContributionsDashboardAcessToUser';
+import hasContributionsDashboardAccessToUser from 'utilities/hasContributionsDashboardAccessToUser';
 import { usePageContext } from './PageContext';
 
 function Dashboard() {
   const { featureFlags } = useFeatureFlagsProviderContext();
   const { page } = usePageContext();
 
-  const hasContributionsSectionAccess = hasContributionsDashboardAcessToUser(featureFlags);
+  const hasContributionsSectionAccess = hasContributionsDashboardAccessToUser(featureFlags);
 
   const hasContentSectionAccess = flagIsActiveForUser(CONTENT_SECTION_ACCESS_FLAG_NAME, featureFlags);
 

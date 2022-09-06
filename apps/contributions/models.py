@@ -320,8 +320,9 @@ class Contribution(IndexedTimeStampedModel, RoleAssignmentResourceModelMixin):
         self.save()
         return subscription
 
-    def handle_thank_you_email(self, contribution_received_at=timezone.now()):
+    def handle_thank_you_email(self, contribution_received_at=None):
         """Send a thank you email to contribution's contributor if org is configured to have NRE send thank you email"""
+        contribution_received_at = contribution_received_at if contribution_received_at else timezone.now()
         if self.revenue_program.organization.send_receipt_email_via_nre:
             send_templated_email.delay(
                 self.contributor.email,

@@ -1,6 +1,7 @@
 import re
 import time
 from unittest.mock import patch
+from urllib.parse import urlparse
 
 from django.conf import settings
 from django.contrib.auth import get_user_model
@@ -755,16 +756,32 @@ class TestUserViewSet(APITestCase):
             email_verified=email_verified,
             accepted_terms_of_service=accepted_terms_of_service,
         )
-
         self.client.force_authenticate(user=user)
         return user
 
+    @override_settings(CELERY_ALWAYS_EAGER=True, CELERY_TASK_EAGER_PROPOGATES=True, BROKER_BACKEND="memory")
     def test_request_account_verification_happy_path(self):
         user = create_test_user(email_verified=False)
         self.client.force_authenticate(user=user)
         response = self.client.get(reverse("user-request-account-verification"))
         assert status.HTTP_200_OK == response.status_code
         assert {"detail": "Success"} == response.json()
+        # Good email is sent.
+        assert 1 == len(mail.outbox)
+        email = mail.outbox[0]
+        assert user.email in email.to
+        assert not any(x in email.body for x in "{}")
+        assert not any(x in email.alternatives[0][0] for x in "{}")
+        # Email includes valid link, Bug DEV-2340.
+        verification_link = BeautifulSoup(email.alternatives[0][0], "html.parser").a.attrs["href"]
+        parsed = urlparse(verification_link)
+        email, token = parsed.path.rstrip("/").split("/")[-2:]  # Are last two elements of path.
+        response = self.client.get(reverse("account_verification", kwargs={"email": email, "token": token}))
+        self.assertRedirects(response, reverse("spa_account_verification"))
+        # self.client is always from https://testserver, in production this
+        # should match URL that request is made to, i.e. SITE_URL.
+        assert "testserver" == parsed.netloc
+        assert "http" == parsed.scheme
 
     def test_request_account_verification_already_verified(self):
         user = create_test_user(email_verified=True)
@@ -784,20 +801,7 @@ class TestUserViewSet(APITestCase):
         response = self.client.get(reverse("user-request-account-verification"))
         self.assertEqual(response.status_code, 401)
 
-    @override_settings(CELERY_ALWAYS_EAGER=True, CELERY_TASK_EAGER_PROPOGATES=True, BROKER_BACKEND="memory")
-    def test_send_verification_email_happy_path(self):
-        user = create_test_user(is_active=True, email_verified=False)
-        UserViewset.send_verification_email(user)
-        self.assertEqual(len(mail.outbox), 1)
-        email = mail.outbox[0]
-        assert user.email in email.to
-        assert not any(x in email.body for x in "{}")
-        assert not any(x in email.alternatives[0][0] for x in "{}")
-        link = BeautifulSoup(email.alternatives[0][0], "html.parser").a
-        encoded_email, token = AccountVerification().generate_token(user.email)
-        assert reverse("account_verification", kwargs={"email": encoded_email, "token": token}) in link.attrs["href"]
-
     def test_send_verification_email_no_address(self):
         user = create_test_user(is_active=True, email_verified=False, email="")
-        UserViewset.send_verification_email(user)
-        self.assertEqual(len(mail.outbox), 0)
+        UserViewset().send_verification_email(user)
+        assert 0 == len(mail.outbox)

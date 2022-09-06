@@ -269,6 +269,7 @@ class PageViewSetTest(RevEngineApiAbstractTestCase):
 
     def test_page_screenshot_filename_is_honored(self):  # DEV-2322
         page = DonationPage.objects.filter().first()
+        print("page", page.page_screenshot)
         filename = "myfilewithtimestamp_1662525350.png"
         file = io.BytesIO()
         image = pillow.Image.new("RGBA", size=(100, 100), color=(100, 100, 0))
@@ -283,6 +284,9 @@ class PageViewSetTest(RevEngineApiAbstractTestCase):
         # It appends characters like "_21Rrj2M" to filename.
         # So, just verifying that submitted filename is part of name stored in db.
         expected = filename.replace(" ", "_").strip(".png")  # There are other potential replacements that happen.
+        print("expected", expected)
+        print("name", page.page_screenshot.name)
+        print("url", page.page_screenshot.url)
         assert expected in page.page_screenshot.name
         assert expected in page.page_screenshot.url
 

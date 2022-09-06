@@ -2,6 +2,6 @@
   "detail": "success",
   "contributor": {
     "id": 1,
-    "email_verified": false
+    "email_verified": true
   }
 }

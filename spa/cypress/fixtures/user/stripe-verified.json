@@ -2,7 +2,7 @@
   "detail": "success",
   "user": {
     "id": 1,
-    "email_verified": false,
+    "email_verified": true,
     "flags": [],
     "organization": {
       "name": "Fully Verified Org",

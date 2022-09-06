@@ -46,7 +46,7 @@ function Main() {
     );
   }, [requestUser]);
 
-  if (userData && !userData.email_verified && !userData.role_type && !isVerifyEmail && !isAPIPath) {
+  if (userData && !userData.email_verified && !isVerifyEmail && !isAPIPath) {
     return <Redirect to={ROUTES.VERIFY_EMAIL_SUCCESS} />;
   }
 

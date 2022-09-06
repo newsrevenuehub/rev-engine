@@ -312,7 +312,7 @@ class BaseCreatePaymentSerializer(serializers.Serializer):
 
         We validate that if `reason_for_giving` is not "Other" that it is one of the preset options (if any) on the page. This can't happen
         in the initial field level validation for `reason_for_giving` because we need the value for `data["page]` to be resolved, and that
-        will only happen after all field-level validations have run.s
+        will only happen after all field-level validations have run.
 
         Additionally, if the request data contains `reason_other`, but no value for `reason_for_giving`, we also
         update `reason_for_giving` to the `reason_other` value. This can happen when an org has configured a page

@@ -20,10 +20,14 @@ export const Popover = styled(MuiPopover)`
   .MuiPaper-rounded {
     border-radius: ${(props) => props.theme.muiBorderRadius.xl};
     padding: 20px 25px;
-    display: grid;
+    display: flex;
+    flex-direction: column;
     gap: 20px;
-    grid-direction: row;
     max-width: 400px;
+
+    @media (${(props) => props.theme.breakpoints.phoneOnly}) {
+      max-width: calc(100% - 32px);
+    }
   }
 `;
 
@@ -54,7 +58,7 @@ export const CopyButton = styled(MuiButton)`
 
 export const Input = styled.input`
   padding: 12px 0 12px 12px;
-  flex-grow: 1;
+  width: 100%;
   border-top-left-radius: ${(props) => props.theme.muiBorderRadius.md};
   border-bottom-left-radius: ${(props) => props.theme.muiBorderRadius.md};
   border: 1px solid ${(props) => props.theme.colors.muiGrey[400]};

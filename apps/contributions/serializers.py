@@ -294,6 +294,7 @@ class BaseCreatePaymentSerializer(serializers.Serializer):
     sf_campaign_id = serializers.CharField(max_length=255, required=False, allow_blank=True, write_only=True)
     captcha_token = serializers.CharField(max_length=2550, allow_blank=True, write_only=True)
     provider_client_secret_id = serializers.CharField(read_only=True)
+    email_hash = serializers.CharField(read_only=True)
 
     def validate_tribute_type(self, value):
         """Ensure there are no unexpected values for tribute_type"""

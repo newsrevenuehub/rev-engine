@@ -847,8 +847,8 @@ class TestOneTimePaymentViewSet:
 
         url = reverse("payment-one-time-list")
         response = self.client.post(url, valid_data, format="json")
-
         assert response.status_code == status.HTTP_201_CREATED
+        assert set(["email_hash", "provider_client_secret_id"]) == set(response.json().keys())
         assert Contributor.objects.count() == contributor_count + 1
         assert Contribution.objects.count() == contribution_count + 1
 
@@ -910,7 +910,7 @@ class TestSubscriptionPaymentViewSet:
         url = reverse("payment-subscription-list")
         response = self.client.post(url, data, format="json")
         assert response.status_code == status.HTTP_201_CREATED
-
+        assert set(["email_hash", "provider_client_secret_id"]) == set(response.json().keys())
         assert Contributor.objects.count() == contributor_count + 1
         assert Contribution.objects.count() == contribution_count + 1
 

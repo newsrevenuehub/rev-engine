@@ -24,6 +24,7 @@ function Main() {
   const requestUser = useRequest();
 
   const isVerifyEmail = useLocation().pathname.includes(ROUTES.VERIFY_EMAIL_SUCCESS);
+  const isAPIPath = useLocation().pathname.includes('/api/');
 
   useEffect(() => {
     setLoadingFlags(true);
@@ -45,7 +46,7 @@ function Main() {
     );
   }, [requestUser]);
 
-  if (userData && !userData.email_verified && !userData.role_type && !isVerifyEmail) {
+  if (userData && !userData.email_verified && !userData.role_type && !isVerifyEmail && !isAPIPath) {
     return <Redirect to={ROUTES.VERIFY_EMAIL_SUCCESS} />;
   }
 

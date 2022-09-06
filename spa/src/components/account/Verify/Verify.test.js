@@ -1,6 +1,11 @@
 import { render, screen } from 'test-utils';
 import Verify from './Verify';
 
+jest.mock('components/Main', () => ({
+  __esModule: true,
+  useUserDataProviderContext: () => ({ userData: { email: 'test@test.com' } })
+}));
+
 it('should show the blue revengine logo', () => {
   render(<Verify />);
   const blueLogo = screen.queryByTestId('blue-logo');

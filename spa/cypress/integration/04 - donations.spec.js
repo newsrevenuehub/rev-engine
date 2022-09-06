@@ -24,7 +24,7 @@ const contribSectionsFlag = {
 };
 
 const hubAdminWithFlags = {
-  ...hubAdminWithoutFlags,
+  ...hubAdminWithoutFlags['user'],
   flags: [{ ...contribSectionsFlag }]
 };
 

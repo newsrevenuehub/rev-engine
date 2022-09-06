@@ -25,22 +25,22 @@ const contentSectionFlag = {
 };
 
 const hubAdminWithContributionsAccessFlag = {
-  ...hubAdminWithoutFlags,
+  ...hubAdminWithoutFlags['user'],
   flags: [contribSectionsAccessFlag]
 };
 
 const hubAdminWithContributionsDenyFlag = {
-  ...hubAdminWithoutFlags,
+  ...hubAdminWithoutFlags['user'],
   flags: [contribSectionsDenyFlag, contribSectionsAccessFlag]
 };
 
 const hubAdminWithContentFlag = {
-  ...hubAdminWithoutFlags,
+  ...hubAdminWithoutFlags['user'],
   flags: [contentSectionFlag]
 };
 
 const hubAdminWithAllAccessFlags = {
-  ...hubAdminWithoutFlags,
+  ...hubAdminWithoutFlags['user'],
   flags: [contentSectionFlag, contribSectionsAccessFlag]
 };
 

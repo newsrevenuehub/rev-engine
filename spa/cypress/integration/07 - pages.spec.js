@@ -11,7 +11,7 @@ const contentSectionFlag = {
   name: CONTENT_SECTION_ACCESS_FLAG_NAME
 };
 const hubAdminWithContentFlag = {
-  ...hubAdminUser,
+  ...hubAdminUser['user'],
   flags: [{ ...contentSectionFlag }]
 };
 

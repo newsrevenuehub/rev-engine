@@ -1,4 +1,4 @@
-import { render, screen, fireEvent } from 'test-utils';
+import { render, screen, fireEvent, waitFor } from 'test-utils';
 import getDomain from 'utilities/getDomain';
 
 import GrabLink from './GrabLink';
@@ -54,7 +54,8 @@ describe('GrabLink', () => {
     expect(portalLink).toBeInTheDocument();
   });
 
-  it('should open popup and copy link', () => {
+  it('should open popup and copy link', async () => {
+    mockClipboard.writeText.mockResolvedValue();
     render(<GrabLink page={page} />);
 
     const button = screen.getByRole('button', { name: /grab link/i });
@@ -62,7 +63,9 @@ describe('GrabLink', () => {
     fireEvent.click(button);
 
     fireEvent.click(screen.getByRole('button', { name: /copy contribution page link/i }));
-    expect(screen.getByRole('button', { name: /copied contribution page link/i })).toBeEnabled();
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: /copied contribution page link/i })).toBeEnabled();
+    });
     expect(screen.queryByRole('button', { name: /copy contribution page link/i })).toBeNull();
     expect(mockClipboard.writeText.mock.calls).toEqual([[`${page.revenue_program.slug}.${domain}/${page.slug}`]]);
   });

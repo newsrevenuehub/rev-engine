@@ -21,6 +21,10 @@ describe('Dashboard TopBar', () => {
     render(<DashboardTopbar isEditPage={false} />);
     fireEvent.click(screen.getByText('Sign out'));
     expect(logout).toHaveBeenCalled();
+  });
+
+  it('should hide grab link button if isEditPage = false', () => {
+    render(<DashboardTopbar isEditPage={false} />);
 
     const grabLink = screen.queryByRole('button', { name: /grab link/i });
     expect(grabLink).not.toBeInTheDocument();

@@ -10,6 +10,6 @@ class StripeAmountField(serializers.IntegerField):
 
     def to_representation(self, value):
         """
-        Convert decimal amount to "cent" amount as required by Stripe
+        Convert "cent" amount as required by Stripe to decimal amount
         """
         return str(float(value / 100))

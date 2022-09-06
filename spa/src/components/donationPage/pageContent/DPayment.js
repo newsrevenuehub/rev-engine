@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import PropTypes from 'prop-types';
 import * as S from './DPayment.styled';
 import DElement from './DElement';
@@ -7,7 +6,6 @@ import { ICONS } from 'assets/icons/SvgIcon';
 // Util
 import formatStringAmountForDisplay from 'utilities/formatStringAmountForDisplay';
 import { getFrequencyAdverb } from 'utilities/parseFrequency';
-import calculateStripeFee from 'utilities/calculateStripeFee';
 
 // Context
 import { usePage } from '../DonationPage';
@@ -15,16 +13,8 @@ import { usePage } from '../DonationPage';
 // Stripe
 import StripePaymentWrapper from 'components/paymentProviders/stripe/StripePaymentWrapper';
 
-function DPayment({ live: liveMode, payFeesDefaultChecked }) {
-  const [totalAmount, setTotalAmount] = useState();
-
-  // used to be in element.content?.offerPayFees
-  const displayOfferPayFees = true;
-  return (
-    <DElement>
-      {liveMode ? <StripePaymentWrapper offerPayFees={displayOfferPayFees} /> : <NotLivePlaceholder />}
-    </DElement>
-  );
+function DPayment({ live: liveMode }) {
+  return <DElement>{liveMode ? <StripePaymentWrapper /> : <NotLivePlaceholder />}</DElement>;
 }
 
 DPayment.propTypes = {
@@ -55,8 +45,7 @@ function NotLivePlaceholder() {
 }
 
 export function PayFeesWidget() {
-  const { page, frequency, amount, payFee, setPayFee } = usePage();
-
+  const { page, frequency, userAgreesToPayFees, setUserAgreesToPayFees, feeAmount } = usePage();
   const currencySymbol = page?.currency?.symbol;
 
   return (
@@ -64,16 +53,14 @@ export function PayFeesWidget() {
       <S.PayFeesQQ>Agree to pay fees?</S.PayFeesQQ>
       <S.Checkbox
         label={
-          amount
-            ? `${currencySymbol}${formatStringAmountForDisplay(
-                calculateStripeFee(amount, frequency, page.revenue_program_is_nonprofit)
-              )} ${getFrequencyAdverb(frequency)}`
+          feeAmount
+            ? `${currencySymbol}${formatStringAmountForDisplay(feeAmount)} ${getFrequencyAdverb(frequency)}`
             : ''
         }
         toggle
-        checked={payFee}
-        onChange={(_e, { checked }) => setPayFee(checked)}
-        data-testid={`pay-fees-${payFee ? 'checked' : 'not-checked'}`}
+        checked={userAgreesToPayFees}
+        onChange={(_e, { checked }) => setUserAgreesToPayFees(checked)}
+        data-testid={`pay-fees-${userAgreesToPayFees ? 'checked' : 'not-checked'}`}
       />
       <S.PayFeesDescription>
         Paying the Stripe transaction fee, while not required, directs more money in support of our mission.

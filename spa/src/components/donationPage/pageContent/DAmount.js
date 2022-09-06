@@ -10,6 +10,7 @@ import { getFrequencyAdjective, getFrequencyRate } from 'utilities/parseFrequenc
 import { usePage } from '../DonationPage';
 
 // Children
+import { PayFeesWidget } from 'components/donationPage/pageContent/DPayment';
 import DElement, { DynamicElementPropTypes } from 'components/donationPage/pageContent/DElement';
 import SelectableButton from 'elements/buttons/SelectableButton';
 import FormErrors from 'elements/inputs/FormErrors';
@@ -17,6 +18,10 @@ import FormErrors from 'elements/inputs/FormErrors';
 function DAmount({ element, ...props }) {
   const { page, frequency, amount, setAmount, overrideAmount, errors } = usePage();
   const [otherFocused, setOtherFocused] = useState(false);
+
+  const displayPayFeesWidget = useMemo(() => {
+    return (page.elements.find((elem) => elem.type === 'DPayment') || {})?.content?.offerPayFees;
+  }, [page.elements]);
 
   const handleOtherSelected = () => {
     setAmount('');
@@ -94,6 +99,7 @@ function DAmount({ element, ...props }) {
             <S.FreqSubtext data-testid="custom-amount-rate">{getFrequencyRate(frequency)}</S.FreqSubtext>
           </S.OtherAmount>
         )}
+        {displayPayFeesWidget && <PayFeesWidget />}
       </S.DAmount>
       <FormErrors errors={errors.amount} />
     </DElement>
@@ -101,7 +107,6 @@ function DAmount({ element, ...props }) {
 }
 
 const paymentPropTypes = {
-  offerPayFees: PropTypes.bool,
   allowOther: PropTypes.bool,
   options: PropTypes.objectOf(PropTypes.arrayOf(PropTypes.oneOfType([PropTypes.number, PropTypes.string]))).isRequired,
   defaults: PropTypes.objectOf(PropTypes.oneOfType([PropTypes.number, PropTypes.string]))

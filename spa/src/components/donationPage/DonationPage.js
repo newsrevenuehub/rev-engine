@@ -21,6 +21,8 @@ import DonationPageFooter from 'components/donationPage/DonationPageFooter';
 import GenericErrorBoundary from 'components/errors/GenericErrorBoundary';
 import { AUTHORIZE_ONE_TIME_STRIPE_PAYMENT_ROUTE, AUTHORIZE_STRIPE_SUBSCRIPTION_ROUTE } from 'ajax/endpoints';
 import { serializeData } from 'components/paymentProviders/stripe/stripeFns';
+import calculateStripeFee from 'utilities/calculateStripeFee';
+
 import { CSRF_HEADER } from 'settings';
 
 // https://stackoverflow.com/a/49224652
@@ -50,13 +52,16 @@ const DonationPageContext = createContext({});
 
 function DonationPage({ page, live = false }) {
   const formRef = useRef();
-
-  const salesForceQS = useQueryString(SALESFORCE_CAMPAIGN_ID_QUERYPARAM);
+  const salesforceCampaignId = useQueryString(SALESFORCE_CAMPAIGN_ID_QUERYPARAM);
   const freqQs = useQueryString(FREQUENCY_QUERYPARAM);
   const amountQs = useQueryString(AMOUNT_QUERYPARAM);
   const [frequency, setFrequency] = useState();
-  const [amount, setAmount] = useState();
-  const [payFee, setPayFee] = useState(() => getInitialPayFees(page));
+  const [amount, setAmount] = useState(0);
+  const [feeAmount, setFeeAmount] = useState(0);
+  const [userAgreesToPayFees, setUserAgreesToPayFees] = useState(() => {
+    return (page?.elements?.find((el) => el.type === 'DPayment') || {})?.content?.offerPayFees === true;
+  });
+  const [totalAmount, setTotalAmount] = useState(0);
 
   // we use these on form submission to authorize a one-time payment or subscription
   const createPayment = useMutation((paymentData) => {
@@ -98,7 +103,6 @@ function DonationPage({ page, live = false }) {
   // overrideAmount causes only the custom amount to show (initially)
   const [overrideAmount, setOverrideAmount] = useState(false);
   const [errors, setErrors] = useState({});
-  const [salesforceCampaignId, setSalesforceCampaignId] = useState();
 
   // Focus the first input on the page that has an error
   useErrorFocus(formRef, errors);
@@ -115,24 +119,32 @@ function DonationPage({ page, live = false }) {
     setAmount(getInitialAmount(freq, page, amountQs, setOverrideAmount));
   }, [amountQs, setOverrideAmount, freqQs, page]);
 
-  // Set sf_campaign_id from queryparams
+  // update the fee amount as amount and frequency change
   useEffect(() => {
-    if (salesForceQS) setSalesforceCampaignId(salesForceQS);
-  }, [salesForceQS, setSalesforceCampaignId]);
+    if (typeof amount === 'number' && frequency && page?.revenue_program_is_nonprofit !== null) {
+      setFeeAmount(calculateStripeFee(amount, frequency, page.revenue_program_is_nonprofit));
+    }
+  }, [amount, frequency, page.revenue_program_is_nonprofit]);
 
-  const getData = async () => {
+  // update total amount based on amount, fee amount, and if user agrees to pay fees
+  useEffect(() => {
+    setTotalAmount(userAgreesToPayFees ? amount + feeAmount : amount);
+  }, [amount, feeAmount, userAgreesToPayFees]);
+
+  const getCheckoutData = async () => {
     const reCAPTCHAToken = await getReCAPTCHAToken();
     return serializeData(formRef.current, {
-      amount,
+      amount: totalAmount,
       frequency,
       reCAPTCHAToken,
-      pageId: page.id
+      pageId: page.id,
+      salesforceCampaignId
     });
   };
 
   const handleCheckoutSubmit = async (e) => {
     e.preventDefault();
-    const data = await getData();
+    const data = await getCheckoutData();
     createPayment.mutate(data, {
       onSuccess: (piData) => {
         debugger;
@@ -189,8 +201,8 @@ function DonationPage({ page, live = false }) {
         page,
         frequency,
         setFrequency,
-        payFee,
-        setPayFee,
+        userAgreesToPayFees,
+        setUserAgreesToPayFees,
         formRef,
         amount,
         setAmount,
@@ -198,7 +210,7 @@ function DonationPage({ page, live = false }) {
         setOverrideAmount,
         errors,
         setErrors,
-        salesforceCampaignId
+        feeAmount
         // stripeClientSecret
       }}
     >
@@ -220,8 +232,10 @@ function DonationPage({ page, live = false }) {
                       // The DPayment element in page data has some data we need to configure subsequent form
                       // user encounters after this form is submitted, so we filter out here.
                       ?.filter((element) => element.type !== 'DPayment')
-                      .map((element) => (
-                        <GenericErrorBoundary>{getters.getDynamicElement(element, live)}</GenericErrorBoundary>
+                      .map((element, idx) => (
+                        <GenericErrorBoundary key={idx}>
+                          {getters.getDynamicElement(element, live)}
+                        </GenericErrorBoundary>
                       ))}
                   </S.PageElements>
                   {/* this is temporary */}
@@ -300,16 +314,4 @@ export function getInitialAmount(frequency, page, amountQs, setOverrideAmount) {
     const defaultAmountForFreq = getDefaultAmountForFreq(frequency, page);
     return defaultAmountForFreq;
   }
-}
-
-function getInitialPayFees(page) {
-  const paymentElement = page?.elements?.find((el) => el.type === 'DPayment');
-  const payFeesDefault = paymentElement?.content?.payFeesDefault;
-  // If payFeesDefault is true or false...
-  if (payFeesDefault === true || payFeesDefault === false) {
-    // ...initial value should be payFeesDefault...
-    return payFeesDefault;
-  }
-  // ...else, default to false
-  return false;
 }

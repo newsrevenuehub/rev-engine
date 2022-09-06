@@ -1,42 +1,4 @@
-import axios from 'ajax/axios';
-import { STRIPE_PAYMENT } from 'ajax/endpoints';
-import { GENERIC_ERROR } from 'constants/textConstants';
 import calculateStripeFee from 'utilities/calculateStripeFee';
-
-const STRIPE_PAYMENT_TIMEOUT = 12 * 1000;
-
-/****************************\
- *  Handle Donation Submit  *
-\****************************/
-/**
- * submitPayment handle one-time and recurring payments
- * @param {object} stripe - the organization-tied stripe SDK instance
- * @param {object} data - JSON-serialized form data
- * @param {object} paymentMethod - An object of shape { card, paymentRequest } where card is
- *                                 an optional object with key 'card' whose value is a stripe
- *                                 card element, or paymentRequest, an event object returned
- *                                 from a Stripe PaymentRequest
- * @param {function} onSuccess - Fired when payment is successful.
- * @param {function} onFailure - Fired when payment is unsuccessful. Recieves error as argument.
- */
-async function submitPayment(stripe, data, { card, paymentRequest }, onSuccess, onFailure) {
-  /*
-    Here we let all errors bubble up and catch them, rather than try to handle them separately
-    in every function down the chain.
-  */
-  try {
-    if (data.interval === 'one_time') {
-      const respData = await trySinglePayment(stripe, data, { card, paymentRequest });
-      onSuccess(paymentRequest, respData);
-    } else {
-      const respData = await tryRecurringPayment(stripe, data, { card, paymentRequest });
-      onSuccess(paymentRequest, respData);
-    }
-  } catch (error) {
-    onFailure(error);
-  }
-}
-export default submitPayment;
 
 /******************\
  *  Process Data  *
@@ -62,19 +24,6 @@ export function getTotalAmount(amount, shouldPayFee, frequency, rpIsNonProfit) {
   return total;
 }
 
-/**
- * amountToCents takes your human-readable amount in dollars and coverts it to cents
- * @param {number} amount - float or integer, human-readable amount to be donated
- * @returns null if amount is NaN, else dollar amount in cents.
- */
-export const amountToCents = (amount) => {
-  if (isNaN(amount)) return null;
-  const cents = amount * 100;
-  // amount * 100 above can results in something like 26616.000000000004.
-  // We just round to an integer here.
-  return Math.round(cents);
-};
-
 // This function is a short term fix to technical debt in donation form, whereby
 // the name of the form field name for swag choice ends up being of form `swag_choice_Hat` or
 // `swag_choice_Cup` instead of just `swag_choice. A better fix would be to refactor the
@@ -91,15 +40,6 @@ function normalizeSwagField(data) {
 }
 
 function serializeForm(form) {
-  /*
-    Rather than trying to hoist all form state up to a common parent,
-    we've wrapped the page in a <form> element. Here, we grab a ref
-    to that form and turn it in to FormData, then we serialize that
-    form data in to a javascript object.
-
-    This really is easier than managing all the form state in a common
-    parent. Trust me.
-  */
   const booleans = ['swag_opt_out', 'comp_subscription', 'tribute_type_honoree', 'tribute_type_in_memory_of'];
   const tributesToConvert = { tribute_type_honoree: 'type_honoree', tribute_type_in_memory_of: 'type_in_memory_of' };
   const obj = {};
@@ -147,81 +87,6 @@ export function serializeData(formRef, state) {
   return serializedData;
 }
 
-/***********************\
- *  One-time Payments  *
-\***********************/
-
-/**
- * trySinglePayment creates a payment intent via RevEngine backend then finishes
- * the payment with stripe using the returned paymentIntent object.
- * @param {object} stripe - the organization-tied stripe SDK instance
- * @param {object} formData - JSON-serialized form data
- * @param {object} paymentMethod - An object of shape { card, paymentRequest } where card is
- *                                 an optional object with key 'card' whose value is a stripe
- *                                 card element, or paymentRequest, an event object returned
- *                                 from a Stripe PaymentRequest
- */
-async function trySinglePayment(stripe, formData, { card, paymentRequest }) {
-  const createPaymentIntentResponse = await createPaymentIntent(formData);
-  const { data: paymentIntent } = createPaymentIntentResponse;
-  const paymentMethod = paymentRequest?.paymentMethod?.id || { card };
-  await confirmCardPayment(stripe, paymentIntent.clientSecret, paymentMethod, !paymentRequest);
-  return createPaymentIntentResponse;
-}
-
-/**
- * createPaymentIntent creates a payment intent via RevEngine backend
- * @param {object} formData - JSON-serialized form data
- * @returns {object} A RevEngine response in which response.data is the successfully created paymentIntent
- */
-async function createPaymentIntent(formData) {
-  return await axios.post(STRIPE_PAYMENT, formData, { timeout: STRIPE_PAYMENT_TIMEOUT });
-}
-
-/**
- * confirmCardPayment completes the process with stripe
- * @param {object} stripe - the organization-tied stripe SDK instance
- * @param {string} clientSecret
- * @param {*} paymentMethod - either a paymentMethod id from a paymentRequest, or an object with key 'card' whose value is the card element on the page.
- * @param {boolean} handleActions - Should be false if using a paymentRequest.
- */
-async function confirmCardPayment(stripe, clientSecret, payment_method, handleActions) {
-  const { paymentIntent, error } = await stripe.confirmCardPayment(clientSecret, { payment_method }, { handleActions });
-  if (error) throw new StripeError(error?.message || GENERIC_ERROR);
-  if (paymentIntent.status === 'requires_action') {
-    const { error } = await stripe.confirmCardPayment(clientSecret);
-    if (error) throw new StripeError(error?.message || GENERIC_ERROR);
-  }
-}
-
-/************************\
- *  Recurring Payments  *
-\************************/
-
-/**
- * tryRecurringPayment creates a PaymentMethod via Stripe and a PaymentIntent via RevEngine backend
- * the payment with stripe using the returned paymentIntent object.
- * @param {object} stripe - the organization-tied stripe SDK instance
- * @param {object} formData - JSON-serialized form data
- * @param {object} paymentMethod - An object of shape { card, paymentRequest } where card is
- *                                 an optional object with key 'card' whose value is a stripe
- *                                 card element, or paymentRequest, an event object returned
- *                                 from a Stripe PaymentRequest
- */
-async function tryRecurringPayment(stripe, data, { card, paymentRequest }) {
-  let paymentMethod = paymentRequest?.paymentMethod?.id;
-
-  if (!paymentMethod) {
-    const { paymentMethod: pm, error } = await createPaymentMethod(stripe, card, data);
-    if (error) throw new StripeError(error?.message || GENERIC_ERROR);
-    paymentMethod = pm.id;
-  }
-
-  data['payment_method_id'] = paymentMethod;
-  const createPaymentIntentResponse = await createPaymentIntent(data);
-  return createPaymentIntentResponse;
-}
-
 /**
  * createPaymentMethod is used when we cannot simply pass a Stripe Element-- that is, we're collecting
  * a payment method for deferred payment. This occurs only on recurring donations made via card.
@@ -240,15 +105,4 @@ export async function createPaymentMethod(stripe, card, data) {
     card: card,
     billing_details
   });
-}
-
-/*******************\
- *  Custom Errors  *
-\*******************/
-export class StripeError extends Error {
-  constructor(message, cause) {
-    super(message);
-    this.cause = cause;
-    this.name = 'StripeError';
-  }
 }

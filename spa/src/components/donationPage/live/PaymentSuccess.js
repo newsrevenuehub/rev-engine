@@ -24,7 +24,7 @@ function fetchPage(pageId) {
 export default function PaymentSuccess() {
   const history = useHistory();
   const { search } = useLocation();
-  const { amount, next, frequency, uid, email, pageId, fromPath } = queryString.parse(search);
+  const { amount, next, frequency, uid, email, pageId, fromPath, email_hash } = queryString.parse(search);
 
   const { data: page, isSuccess: pageFetchSuccess } = useQuery(['getPage'], () => fetchPage(pageId));
 
@@ -65,6 +65,7 @@ export default function PaymentSuccess() {
         nextUrl.searchParams.append('uid', uid);
         nextUrl.searchParams.append('frequency', frequency);
         nextUrl.searchParams.append('amount', amount);
+        nextUrl.searchParams.append('email_hash', email_hash);
         window.location = nextUrl;
         // ... otherwise if we're going to on-site generic thank you page
       } else {

@@ -6,7 +6,7 @@ export const STRIPE_PAYMENT = 'stripe/payment/';
 export const STRIPE_CONFIRMATION = 'stripe/confirmation/';
 
 export const AUTHORIZE_ONE_TIME_STRIPE_PAYMENT_ROUTE = 'payments/one-time/';
-export const AUTHORIZE_STRIPE_SUBSCRIPTION_ROUTE = '';
+export const AUTHORIZE_STRIPE_SUBSCRIPTION_ROUTE = 'payments/subscription/';
 
 // Pages
 export const LIVE_PAGE_DETAIL = 'pages/live-detail/';

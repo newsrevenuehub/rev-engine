@@ -440,7 +440,6 @@ class BaseCreatePaymentSerializer(serializers.Serializer):
             "amount": validated_data["amount"],
             "interval": validated_data["interval"],
             "currency": validated_data["page"].revenue_program.payment_provider.currency,
-            # TODO: Determine if this requires a different, new 'pre-processing' status
             "status": ContributionStatus.PROCESSING,
             "donation_page": validated_data["page"],
             "contributor": contributor,

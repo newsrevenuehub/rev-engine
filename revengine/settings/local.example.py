@@ -3,7 +3,6 @@ from revengine.settings.dev import *  # noqa
 
 # Override settings here
 INSTALLED_APPS += (
-    # 'debug_toolbar',
     # show the styleguide in /cms/styleguide:
     "django_extensions",
 )

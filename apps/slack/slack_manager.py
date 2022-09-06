@@ -6,8 +6,6 @@ from slack_sdk import WebClient
 from slack_sdk.errors import SlackApiError
 
 from apps.organizations.models import Organization
-
-# from slack_sdk.errors import SlackApiError
 from apps.slack.models import HubSlackIntegration
 
 

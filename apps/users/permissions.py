@@ -36,3 +36,12 @@ class UserIsAllowedToUpdate(permissions.BasePermission):
                 user_email_is_verified(request),
             ]
         )
+
+
+class UserHasAcceptedTermsOfService(permissions.BasePermission):
+    """Determine if user has accepted terms of service"""
+
+    message = "Please accept terms of service."
+
+    def has_permission(self, request, view):
+        return request.user and request.user.accepted_terms_of_service is not None

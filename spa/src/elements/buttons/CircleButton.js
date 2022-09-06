@@ -1,8 +1,10 @@
 import Spinner from 'elements/Spinner';
 import * as S from './CircleButton.styled';
 
-function CircleButton({ icon, type, color, onClick, disabled, loading, children, ...props }) {
-  return (
+import RETooltip from 'elements/RETooltip';
+
+function CircleButton({ icon, type, color, onClick, disabled, loading, children, tooltipText, ...props }) {
+  const cButton = (
     <S.CircleButton {...props} type={type} disabled={disabled} onClick={disabled || loading ? () => {} : onClick}>
       {loading ? (
         <Spinner />
@@ -11,6 +13,18 @@ function CircleButton({ icon, type, color, onClick, disabled, loading, children,
       )}
     </S.CircleButton>
   );
+
+  if (tooltipText) {
+    return (
+      <div>
+        <RETooltip title={tooltipText} placement="right">
+          {cButton}
+        </RETooltip>
+      </div>
+    );
+  }
+
+  return cButton;
 }
 
 export default CircleButton;

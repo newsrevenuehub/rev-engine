@@ -1,6 +1,6 @@
 import { axe } from 'jest-axe';
 import { render, screen } from 'test-utils';
-import { default as DashboardSidebarFooter, footerHrefs } from './DashboardSidebarFooter';
+import DashboardSidebarFooter, { footerHrefs } from './DashboardSidebarFooter';
 
 describe('DashboardSidebarFooter', () => {
   function tree(props) {

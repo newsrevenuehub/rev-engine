@@ -48,7 +48,7 @@ const hubAdminWithAllAccessFlags = {
 
 const orgAdminWithContentFlag = {
   ...orgAdmin,
-  flags: [{ ...contentSectionFlag }]
+  flags: [contentSectionFlag]
 };
 
 describe('Dashboard', () => {

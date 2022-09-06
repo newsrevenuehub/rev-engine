@@ -3,7 +3,6 @@ import { ICONS } from 'assets/icons/SvgIcon';
 import HelpOutlined from '@material-ui/icons/HelpOutline';
 
 // Exported mainly to help with unit tests.
-
 export const footerHrefs = {
   faq: 'https://news-revenue-hub.atlassian.net/servicedesk/customer/portal/11/article/2195423496',
   help: 'mailto:revengine-support@fundjournalism.org'

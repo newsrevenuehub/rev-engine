@@ -54,7 +54,7 @@ function Main() {
     <UserDataProviderContext.Provider value={{ userData }}>
       <FeatureFlagsProviderContext.Provider value={{ featureFlags }}>
         {isVerifyEmail && <Verify />}
-        {!loadingFlags && userData.email_verified && !isVerifyEmail && (
+        {!loadingFlags && !isVerifyEmail && (
           <S.Main>
             <S.MainContent>
               <Dashboard />

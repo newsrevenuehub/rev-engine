@@ -397,7 +397,7 @@ class TestUserViewSet(APITestCase):
         self.assertEqual(get_user_model().objects.count(), user_count + 1)
         self.assertEqual((data := response.json())["email"], self.create_data["email"])
         self.assertIsNotNone((user := get_user_model().objects.filter(id=data["id"]).first()))
-        self.assertFalse(user.is_active)
+        self.assertTrue(user.is_active)
         self.assertFalse(user.email_verified)
         self.assertEqual(user.email, self.create_data["email"])
         self.assertTrue(user.check_password(self.create_data["password"]))

@@ -4,9 +4,9 @@ from django.conf import settings
 from django.db.models import TextChoices
 from django.utils import timezone
 
-import stripe
 from rest_framework import serializers
 from rest_framework.exceptions import APIException, PermissionDenied
+from stripe.error import StripeError
 
 from apps.api.error_messages import GENERIC_BLANK, GENERIC_UNEXPECTED_VALUE
 from apps.contributions.models import (
@@ -22,19 +22,6 @@ from apps.pages.models import DonationPage
 
 from .bad_actor import BadActorAPIError, make_bad_actor_request
 from .fields import StripeAmountField
-
-
-# this is an non-exhaustive list of Stripe errors that might
-# occur when creating/updating payment intent or subscription.
-# we use this below to avoid using a bare except
-stripe_errors = (
-    stripe.error.stripe.error.InvalidRequestError,
-    stripe.error.stripe.error.APIConnectionError,
-    stripe.error.APIError,
-    stripe.error.AuthenticationError,
-    stripe.error.PermissionError,
-    stripe.error.RateLimitError,
-)
 
 
 class GenericPaymentError(APIException):
@@ -412,7 +399,6 @@ class BaseCreatePaymentSerializer(serializers.Serializer):
     def get_stripe_payment_metadata(self, contributor, validated_data):
         """Generate dict of metadata to be sent to Stripe when creating a PaymentIntent or Subscription"""
         return {
-            # TODO: confirm business requirements around these first two keys/vals
             "source": settings.METADATA_SOURCE,
             "schema_version": settings.METADATA_SCHEMA_VERSION,
             "contributor_id": contributor.id,
@@ -497,7 +483,7 @@ class CreateOneTimePaymentSerializer(BaseCreatePaymentSerializer):
             raise PermissionDenied("Cannot authorize contribution")
         try:
             customer = self.create_stripe_customer(contributor, validated_data)
-        except stripe_errors:
+        except StripeError:
             logger.exception(
                 "CreateOneTimePaymentSerializer.create encountered a Stripe error while attempting to create a Stripe customer for contributor with id %s",
                 contributor.id,
@@ -508,7 +494,7 @@ class CreateOneTimePaymentSerializer(BaseCreatePaymentSerializer):
                 stripe_customer_id=customer["id"],
                 metadata=self.get_stripe_payment_metadata(contributor, validated_data),
             )
-        except stripe_errors:
+        except StripeError:
             logger.exception(
                 "CreateOneTimePaymentSerializer.create encountered a Stripe error while attempting to create a payment intent for contribution with id %s",
                 contribution.id,
@@ -552,7 +538,7 @@ class CreateRecurringPaymentSerializer(BaseCreatePaymentSerializer):
             raise PermissionDenied("Cannot authorize contribution")
         try:
             customer = self.create_stripe_customer(contributor, validated_data)
-        except stripe_errors:
+        except StripeError:
             logger.exception(
                 "RecurringPaymentSerializer.create encountered a Stripe error while attempting to create a stripe customer for contributor with id %s",
                 contributor.id,
@@ -563,7 +549,7 @@ class CreateRecurringPaymentSerializer(BaseCreatePaymentSerializer):
                 stripe_customer_id=customer["id"],
                 metadata=self.get_stripe_payment_metadata(contributor, validated_data),
             )
-        except stripe_errors:
+        except StripeError:
             logger.exception(
                 "RecurringPaymentSerializer.create encountered a Stripe error while attempting to create a subscription for contribution with id %s",
                 contribution.id,

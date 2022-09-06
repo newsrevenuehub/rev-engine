@@ -9,6 +9,7 @@ router = routers.DefaultRouter()
 router.register(r"users", views.UserViewset, basename="user")
 
 api_urlpatterns = [
+    path("verify-account/<email>/<token>/", views.account_verification, name="account_verification"),
     path("users/password_reset/", include("django_rest_passwordreset.urls", namespace="password_reset")),
     path("", include(router.urls)),
 ]

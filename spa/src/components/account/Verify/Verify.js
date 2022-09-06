@@ -4,7 +4,7 @@ import { useLocation, Link } from 'react-router-dom';
 
 // AJAX
 import axios from 'ajax/axios';
-import { FORGOT_PASSWORD_ENDPOINT } from 'ajax/endpoints';
+import { VERIFY_EMAIL_REQUEST_ENDPOINT } from 'ajax/endpoints';
 
 import logo from 'assets/images/logo-nre.png';
 import sendIcon from 'assets/icons/send.png';
@@ -45,7 +45,7 @@ function Verify() {
   const onSubmitVerify = async () => {
     dispatch({ type: FETCH_START });
     try {
-      const { data, status } = await axios.post(FORGOT_PASSWORD_ENDPOINT, { email: userData.email });
+      const { data, status } = await axios.get(VERIFY_EMAIL_REQUEST_ENDPOINT);
       if (status === 200 && data.detail === 'success') {
       }
       dispatch({ type: FETCH_SUCCESS });

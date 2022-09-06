@@ -4,7 +4,6 @@ from django.conf import settings
 from django.test import TestCase
 from django.utils import timezone
 
-import pytz
 from addict import Dict as AttrDict
 from pytest import raises
 from rest_framework.serializers import ValidationError
@@ -437,15 +436,15 @@ class SubscriptionsSerializer(TestCase):
 
     def test_next_payment_date(self):
         data = self.serializer(self.subscription).data
-        assert data["next_payment_date"] == datetime.datetime(2022, 6, 10, 20, 21, 42, tzinfo=pytz.utc)
+        assert data["next_payment_date"] == datetime.datetime(2022, 6, 10, 20, 21, 42, tzinfo=datetime.timezone.utc)
 
     def test_last_payment_date(self):
         data = self.serializer(self.subscription).data
-        assert data["last_payment_date"] == datetime.datetime(2023, 6, 10, 20, 21, 42, tzinfo=pytz.utc)
+        assert data["last_payment_date"] == datetime.datetime(2023, 6, 10, 20, 21, 42, tzinfo=datetime.timezone.utc)
 
     def test_created(self):
         data = self.serializer(self.subscription).data
-        assert data["created"] == datetime.datetime(2022, 6, 10, 20, 21, 42, tzinfo=pytz.utc)
+        assert data["created"] == datetime.datetime(2022, 6, 10, 20, 21, 42, tzinfo=datetime.timezone.utc)
 
     def test_last4(self):
         data = self.serializer(self.subscription).data

@@ -1,13 +1,12 @@
+import datetime
 import json
 import logging
-from datetime import datetime
 from functools import cached_property
 
 from django.conf import settings
 from django.core.cache import caches
 from django.core.serializers.json import DjangoJSONEncoder
 
-import pytz
 import stripe
 from addict import Dict as AttrDict
 from rest_framework import exceptions
@@ -127,7 +126,7 @@ class StripePaymentIntent:
 
     @property
     def created(self):
-        return datetime.fromtimestamp(int(self.payment_intent.created), tz=pytz.utc)
+        return datetime.datetime.fromtimestamp(int(self.payment_intent.created), tz=datetime.timezone.utc)
 
     @property
     def provider_customer_id(self):
@@ -136,8 +135,10 @@ class StripePaymentIntent:
     @property
     def last_payment_date(self):
         if not self.payment_intent.invoice:
-            return datetime.fromtimestamp(int(self.payment_intent.created), tz=pytz.utc)
-        return datetime.fromtimestamp(int(self.payment_intent.invoice.status_transitions.paid_at), tz=pytz.utc)
+            return datetime.datetime.fromtimestamp(int(self.payment_intent.created), tz=datetime.timezone.utc)
+        return datetime.datetime.fromtimestamp(
+            int(self.payment_intent.invoice.status_transitions.paid_at), tz=datetime.timezone.utc
+        )
 
     @property
     def status(self):

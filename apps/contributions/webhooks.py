@@ -1,9 +1,7 @@
+import datetime
 import logging
-from datetime import datetime
 
 from django.conf import settings
-
-import pytz
 
 from apps.contributions.models import Contribution, ContributionStatus
 
@@ -71,7 +69,9 @@ class StripeWebhookProcessor:
     def handle_payment_intent_succeeded(self):
         contribution = self.get_contribution_from_event()
         contribution.payment_provider_data = self.event
-        contribution.last_payment_date = datetime.fromtimestamp(self.obj_data["created"], tz=pytz.UTC)
+        contribution.last_payment_date = datetime.datetime.fromtimestamp(
+            self.obj_data["created"], tz=datetime.timezone.utc
+        )
         contribution.status = ContributionStatus.PAID
 
         # Grab the payment_intent id from the event and store it as provider_payment_id

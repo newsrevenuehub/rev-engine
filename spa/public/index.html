@@ -30,7 +30,7 @@
     {% if request.csp_nonce %}
     <script type="text/javascript" nonce="{{ request.csp_nonce }}">
       window.csp_nonce = '{{ request.csp_nonce }}';
-      {% comment %} the webpack nonce causes client libraries like styled-components to add a nonce and therefore not violate CSP{% endcomment %}
+      // the webpack nonce causes client libraries like styled-components to add a nonce and therefore not violate CSP
       window.__webpack_nonce__ = '{{ request.csp_nonce }}';
     </script>
     {% endif %} {% include "spa_env.html" %}

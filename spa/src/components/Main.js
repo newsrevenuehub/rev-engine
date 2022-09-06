@@ -36,8 +36,8 @@ function Main() {
       {
         onSuccess: ({ data }) => {
           setFeatureFlags(data.flags);
-          setLoadingFlags(false);
           setUserData(data);
+          setLoadingFlags(false);
         },
         onFailure: (e) => {
           throw new Error('Something unexpected happened retrieving flags');

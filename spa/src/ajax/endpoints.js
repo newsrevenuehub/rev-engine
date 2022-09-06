@@ -37,4 +37,4 @@ export const CANCEL_RECURRING = 'cancel-recurring/';
 export const FORGOT_PASSWORD_ENDPOINT = 'users/password_reset/';
 export const RESET_PASSWORD_ENDPOINT = 'users/password_reset/confirm/';
 export const CREATE_ACCOUNT_ENDPONT = 'users/';
-export const VERIFY_EMAIL_REQUEST_ENDPOINT = 'users/request_account_verification';
+export const VERIFY_EMAIL_REQUEST_ENDPOINT = 'users/request_account_verification/';

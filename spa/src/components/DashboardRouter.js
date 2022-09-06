@@ -26,7 +26,6 @@ const SignIn = lazy(() => componentLoader(() => import('components/account/SignI
 const SignUp = lazy(() => componentLoader(() => import('components/account/SignUp/SignUp')));
 const ForgotPassword = lazy(() => componentLoader(() => import('components/account/ForgotPassword/ForgotPassword')));
 const ResetPassword = lazy(() => componentLoader(() => import('components/account/ResetPassword/ResetPassword')));
-const Verify = lazy(() => componentLoader(() => import('components/account/Verify/Verify')));
 
 function DashboardRouter() {
   const isContributorApp = isContributorAppPath();
@@ -42,7 +41,6 @@ function DashboardRouter() {
 
             <Route exact path={ROUTES.SIGN_IN} render={() => <TrackPageView component={SignIn} />} />
             <Route exact path={ROUTES.SIGN_UP} render={() => <TrackPageView component={SignUp} />} />
-            <Route exact path={ROUTES.VERIFY_EMAIL_SUCCESS} render={() => <TrackPageView component={Verify} />} />
             <Route exact path={ROUTES.FORGOT_PASSWORD} render={() => <TrackPageView component={ForgotPassword} />} />
             <Route exact path={ROUTES.RESET_PASSWORD} render={() => <TrackPageView component={ResetPassword} />} />
 
@@ -53,7 +51,8 @@ function DashboardRouter() {
                 ROUTES.DONATIONS_SLUG,
                 ROUTES.CONTENT_SLUG,
                 ROUTES.CUSTOMIZE_SLUG,
-                ROUTES.EDITOR_ROUTE
+                ROUTES.EDITOR_ROUTE,
+                ROUTES.VERIFY_EMAIL_SUCCESS
               ]}
               render={() => <TrackPageView component={Main} />}
             />

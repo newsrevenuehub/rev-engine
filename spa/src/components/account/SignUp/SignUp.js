@@ -3,7 +3,7 @@ import { useForm } from 'react-hook-form';
 
 // AJAX
 import axios from 'ajax/axios';
-import { TOKEN, CREATE_ACCOUNT } from 'ajax/endpoints';
+import { TOKEN, CREATE_ACCOUNT_ENDPONT } from 'ajax/endpoints';
 
 // State management
 import fetchReducer, { initialState, FETCH_START, FETCH_SUCCESS, FETCH_FAILURE } from 'state/fetch-reducer';
@@ -115,7 +115,7 @@ function SignUp({ onSuccess }) {
 
     dispatch({ type: FETCH_START });
     try {
-      const { data, status } = await axios.post(CREATE_ACCOUNT, {
+      const { data, status } = await axios.post(CREATE_ACCOUNT_ENDPONT, {
         email: fdata.email,
         password: fdata.password,
         accepted_terms_of_service

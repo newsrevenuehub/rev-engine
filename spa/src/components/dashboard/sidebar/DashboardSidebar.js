@@ -10,6 +10,7 @@ import flagIsActiveForUser from 'utilities/flagIsActiveForUser';
 import { useFeatureFlagsProviderContext } from 'components/Main';
 import hasContributionsDashboardAcessToUser from 'utilities/hasContributionsDashboardAcessToUser';
 
+import { useUserDataProviderContext } from 'components/Main';
 /*
 // Commenting out for now as this will needed in future
 
@@ -25,7 +26,9 @@ function DashboardMain() {
 
 function DashboardSidebar() {
   const { featureFlags } = useFeatureFlagsProviderContext();
+  const { userData } = useUserDataProviderContext();
 
+  console.log(userData);
   const hasContributionsSectionAccess = hasContributionsDashboardAcessToUser(featureFlags);
   const hasContentSectionAccess = flagIsActiveForUser(CONTENT_SECTION_ACCESS_FLAG_NAME, featureFlags);
 

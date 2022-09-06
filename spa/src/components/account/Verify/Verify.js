@@ -1,5 +1,10 @@
+import { useState, useReducer } from 'react';
 import * as S from './Verify.styled';
 import { useLocation, Link } from 'react-router-dom';
+
+// AJAX
+import axios from 'ajax/axios';
+import { FORGOT_PASSWORD_ENDPOINT } from 'ajax/endpoints';
 
 import logo from 'assets/images/logo-nre.png';
 import sendIcon from 'assets/icons/send.png';
@@ -8,6 +13,10 @@ import readIcon from 'assets/icons/mark_read.png';
 
 // Analytics
 import { useConfigureAnalytics } from '../../analytics';
+import { useUserDataProviderContext } from 'components/Main';
+
+// State management
+import fetchReducer, { initialState, FETCH_START, FETCH_SUCCESS, FETCH_FAILURE } from 'state/fetch-reducer';
 
 const HELPEMAIL = `revenginesupport@fundjournalism.org`;
 const Mailto = ({ mailto, label }) => {
@@ -24,9 +33,26 @@ const Mailto = ({ mailto, label }) => {
   );
 };
 
-function Verify({ onSuccess, message }) {
+function Verify() {
   const { state: routedState } = useLocation();
   useConfigureAnalytics();
+
+  const { userData } = useUserDataProviderContext();
+
+  const [verifyState, dispatch] = useReducer(fetchReducer, initialState);
+
+  //console.log(user);
+  const onSubmitVerify = async () => {
+    dispatch({ type: FETCH_START });
+    try {
+      const { data, status } = await axios.post(FORGOT_PASSWORD_ENDPOINT, { email: userData.email });
+      if (status === 200 && data.detail === 'success') {
+      }
+      dispatch({ type: FETCH_SUCCESS });
+    } catch (e) {
+      dispatch({ type: FETCH_FAILURE, payload: e?.response?.data });
+    }
+  };
 
   return (
     <S.Verify>
@@ -43,7 +69,7 @@ function Verify({ onSuccess, message }) {
           </S.Subheading>
           <S.Drm>Didn’t Receive an Email?</S.Drm>
           <S.Resendtext>If you haven’t received the email within a few minutes, please resend below.</S.Resendtext>
-          <S.Button>Resend Verification</S.Button>
+          <S.Button onClick={onSubmitVerify}>Resend Verification</S.Button>
           <S.Help>
             <span>Questions?</span> Email us at <Mailto label={HELPEMAIL} mailto={`mailto:${HELPEMAIL}`} />
           </S.Help>

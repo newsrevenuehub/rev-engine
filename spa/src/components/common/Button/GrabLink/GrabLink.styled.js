@@ -40,7 +40,7 @@ export const Title = styled.p`
 
 export const CopyButton = styled(MuiButton)`
   && {
-    width: 95px;
+    min-width: 95px;
     margin-left: -4px;
     font-weight: 600;
     color: ${(props) => props.theme.colors.white};

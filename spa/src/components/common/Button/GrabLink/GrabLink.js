@@ -35,8 +35,14 @@ const GrabLink = ({ page, className }) => {
           <Input aria-label={link} value={link} onChange={() => {}} />
           <CopyButton
             onClick={() => {
-              navigator.clipboard.writeText(link);
-              setCopied(link);
+              navigator.clipboard.writeText(link).then(
+                // If copy succeeds: show "copied" button
+                () => setCopied(link),
+                // If copy fails: show alert with reason and alternate solution
+                (error) =>
+                  alert(`Failed to copy link automatically. Please try selecting the text directly from the input.
+                Error reason: ${error}`)
+              );
             }}
             aria-label={`${showCopied ? 'Copied' : 'Copy'} ${title}`}
             copied={showCopied ? 'true' : undefined}

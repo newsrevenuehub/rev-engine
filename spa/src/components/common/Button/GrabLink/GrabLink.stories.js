@@ -26,6 +26,7 @@ Default.args = {
     revenue_program: {
       slug: 'news-revenue-hub'
     },
-    slug: 'donate'
+    slug: 'donate',
+    published_date: '2021-11-18T21:51:53Z'
   }
 };

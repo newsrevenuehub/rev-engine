@@ -127,14 +127,3 @@ if SENTRY_ENABLE_BACKEND and SENTRY_DSN_BACKEND:
 
 
 USE_DEBUG_INTERVALS = os.getenv("USE_DEBUG_INTERVALS", False)
-
-REST_FRAMEWORK = {
-    "DEFAULT_THROTTLE_CLASSES": [
-        # More info at django-rest-framework.org/api-guide/throttling/#scopedratethrottle
-        "rest_framework.throttling.ScopedRateThrottle",
-    ],
-    # stripe_payment_integration` is a scoped throttle. it limits requests
-    # to combined viewsets specifying `throttle_scope = "stripe_payment_integration"`.
-    # See usage in apps/contributions/views.py and see DRF
-    "DEFAULT_THROTTLE_RATES": {"stripe_payment_integration": "20/day"},
-}

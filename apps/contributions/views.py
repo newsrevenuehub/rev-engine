@@ -178,7 +178,6 @@ class OneTimePaymentViewSet(mixins.CreateModelMixin, mixins.UpdateModelMixin, vi
     permission_classes = []
     serializer_class = serializers.CreateOneTimePaymentSerializer
     lookup_field = "provider_client_secret_id"
-    throttle_scope = "stripe_payment_integration"
 
     def get_serializer_context(self):
         # we need request in context for create in order to supply
@@ -193,7 +192,6 @@ class SubscriptionPaymentViewSet(mixins.CreateModelMixin, mixins.UpdateModelMixi
     permission_classes = []
     serializer_class = serializers.CreateRecurringPaymentSerializer
     lookup_field = "provider_client_secret_id"
-    throttle_scope = "stripe_payment_integration"
 
     def get_serializer_context(self):
         # we need request in context for create in order to supply

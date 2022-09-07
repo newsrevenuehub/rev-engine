@@ -76,8 +76,8 @@ export const BottomBarYellowSVG = styled.img`
 `;
 
 export const Heading = styled.div`
-  font-weight: 700;
-  font-size: 34px;
+  font-weight: 400;
+  font-size: 30px;
   line-height: 138.19%;
   color: ${(props) => props.theme.colors.account.purple[2]};
 
@@ -154,7 +154,7 @@ export const PasswordLabel = styled.div`
   font-weight: 600;
   font-size: 13px;
   line-height: 16px;
-  color: ${(props) => props.theme.colors.grey[4]};
+  color: ${(props) => (props.hasError ? props.theme.colors.error.primary : props.theme.colors.grey[4])};
   margin-top: 5px;
 
   a {

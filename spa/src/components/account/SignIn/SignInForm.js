@@ -31,9 +31,7 @@ function SignInForm({ onSubmitSignIn, loading }) {
 
   return (
     <form onSubmit={handleSubmit(onSubmit)}>
-      <S.InputLabel data-testid={`email-label`} hasError={errors.email}>
-        Email
-      </S.InputLabel>
+      <S.InputLabel hasError={errors.email}>Email</S.InputLabel>
       <S.InputOuter hasError={errors.email}>
         <input
           id="email"
@@ -50,15 +48,9 @@ function SignInForm({ onSubmitSignIn, loading }) {
           data-testid="signin-email"
         />
       </S.InputOuter>
-      {errors.email ? (
-        <S.Message role="error" data-testid="email-error">
-          {errors.email.message}
-        </S.Message>
-      ) : (
-        <S.MessageSpacer />
-      )}
+      {errors.email ? <S.Message role="error">{errors.email.message}</S.Message> : <S.MessageSpacer />}
 
-      <S.PasswordLabel>
+      <S.PasswordLabel hasError={errors.password}>
         Password
         <a href={FORGOT_PASSWORD} data-testid="reset-password" tabindex="-1">
           Forgot Password?
@@ -76,14 +68,14 @@ function SignInForm({ onSubmitSignIn, loading }) {
           data-testid={`signin-pwd-${showPassword ? 'text' : 'password'}`}
         />
         <S.Visibility
-          data-testid={`toggle-password-${showPassword ? 'visble' : 'invisible'}`}
+          data-testid="toggle-password"
           onClick={togglePasswordVisiblity}
           src={showPassword ? visibilityOn : visibilityOff}
         />
       </S.InputOuter>
       {errors.password ? <S.Message role="error">{errors.password.message}</S.Message> : <S.MessageSpacer />}
 
-      <S.Submit type="submit" role="button" disabled={disabled}>
+      <S.Submit type="submit" role="button" disabled={disabled} data-testid="signin-submit">
         Sign In
       </S.Submit>
     </form>

@@ -21,13 +21,14 @@ describe('DashboardSidebarFooter', () => {
     expect(faqLink).toHaveAttribute('target', '_blank');
   });
 
-  it('renders a help link', () => {
+  it('renders a help link that opens in a new tab', () => {
     tree();
 
     const helpLink = screen.getByRole('listitem', { name: 'Help' });
 
     expect(helpLink).toBeVisible();
     expect(helpLink).toHaveAttribute('href', footerHrefs.help);
+    expect(helpLink).toHaveAttribute('target', '_blank');
   });
 
   it('is accessible', async () => {

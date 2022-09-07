@@ -5,7 +5,7 @@ import HelpOutlined from '@material-ui/icons/HelpOutline';
 // Exported mainly to help with unit tests.
 export const footerHrefs = {
   faq: 'https://news-revenue-hub.atlassian.net/servicedesk/customer/portal/11/article/2195423496',
-  help: 'mailto:revengine-support@fundjournalism.org'
+  help: 'https://fundjournalism.org/news-revenue-engine-help/'
 };
 
 const DashboardSidebarFooter = () => (
@@ -16,6 +16,7 @@ const DashboardSidebarFooter = () => (
       href={footerHrefs.help}
       role="listitem"
       data-testid="nav-help-item"
+      target="_blank"
     >
       <S.NavItemIcon icon={ICONS.RING_BUOY} />
       <S.SideBarText id="help-nav-item-id">Help</S.SideBarText>

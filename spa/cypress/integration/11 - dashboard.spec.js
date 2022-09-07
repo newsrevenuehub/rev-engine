@@ -126,7 +126,8 @@ describe('Dashboard', () => {
         cy.getByTestId('nav-help-item')
           .should('exist')
           .should('have.text', 'Help')
-          .should('have.attr', 'href', 'mailto:revengine-support@fundjournalism.org');
+          .should('have.attr', 'href', 'https://fundjournalism.org/news-revenue-engine-help/')
+          .should('have.attr', 'target', '_blank');
       });
 
       it(`shows a FAQ link to ${label}`, () => {

@@ -38,7 +38,7 @@ describe('SignIn Component Tests', () => {
     render(<SignIn />);
     const password = screen.queryByTestId(`signin-pwd-${Input.types.PASSWORD}`);
     ReactTestUtils.Simulate.change(password, { target: { value: 'password' } });
-    const toggleIcon = screen.getByTestId('toggle-password-invisible');
+    const toggleIcon = screen.getByTestId('toggle-password');
     fireEvent.click(toggleIcon);
     expect(screen.getByTestId(`signin-pwd-${Input.types.TEXT}`)).toBeInTheDocument();
     fireEvent.click(toggleIcon);

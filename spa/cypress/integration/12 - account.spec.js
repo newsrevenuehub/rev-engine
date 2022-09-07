@@ -1,6 +1,6 @@
 import { getEndpoint } from '../support/util';
-import { TOKEN, USER } from 'ajax/endpoints';
-import { SIGN_IN, CONTENT_SLUG } from 'routes';
+import { TOKEN, USER, FORGOT_PASSWORD_ENDPOINT, RESET_PASSWORD_ENDPOINT } from 'ajax/endpoints';
+import { SIGN_IN, CONTENT_SLUG, FORGOT_PASSWORD, RESET_PASSWORD } from 'routes';
 import orgAdminUser from '../fixtures/user/org-admin.json';
 import { CONTENT_SECTION_ACCESS_FLAG_NAME } from 'constants/featureFlagConstants';
 
@@ -10,6 +10,9 @@ const TOKEN_API_200 = {
   user: { email: 'test-valid@test.com' },
   csrftoken: 'XZcDLAbuZoerfejgknrekwjgl8ttcHGTcoEpjAHQ70'
 };
+const FORGOT_PASSWORD_API_200 = { status: 'OK' };
+const RESET_PASSWORD_ENDPOINT_200 = { status: 'OK' };
+const RESET_PASSWORD_ENDPOINT_404 = { detail: 'Not found. Or anything returned by api' };
 
 const contentSectionFlag = {
   id: '5678',
@@ -45,6 +48,48 @@ describe('Account', () => {
       cy.intercept({ method: 'GET', pathname: getEndpoint(USER) }, { body: orgAdminWithContentFlag });
       cy.getByTestId('signin-submit').click();
       cy.url().should('include', CONTENT_SLUG);
+    });
+  });
+
+  context('Forgot Password', () => {
+    it('should show a success message on submit of a valid email', () => {
+      cy.visit(FORGOT_PASSWORD);
+      cy.url().should('include', FORGOT_PASSWORD);
+      cy.getByTestId('forgotpwd-email').type('test@test.com');
+      cy.intercept('POST', getEndpoint(FORGOT_PASSWORD_ENDPOINT), {
+        statusCode: 200,
+        body: FORGOT_PASSWORD_API_200
+      });
+      cy.getByTestId('forgotpwd-submit').click();
+      cy.contains('Success. If your email is registered, an email with a reset-link will be sent.');
+    });
+  });
+
+  context('Password Reset', () => {
+    it('should show api-response error if password-reset unsuccessfull', () => {
+      cy.visit(`${RESET_PASSWORD}?token=sometoken`);
+      cy.url().should('include', RESET_PASSWORD);
+      cy.getByTestId('reset-pwd-password').type('P1#password');
+      cy.getByTestId('reset-pwd1-password').type('P1#password');
+      cy.intercept('POST', getEndpoint(RESET_PASSWORD_ENDPOINT), {
+        statusCode: 404,
+        body: RESET_PASSWORD_ENDPOINT_404
+      });
+      cy.getByTestId('reset-pwd-submit').click();
+      cy.contains('Not found. Or anything returned by api');
+    });
+
+    it('should show a success message if password-reset successfull', () => {
+      cy.visit(`${RESET_PASSWORD}?token=sometoken`);
+      cy.url().should('include', RESET_PASSWORD);
+      cy.getByTestId('reset-pwd-password').type('P1#password');
+      cy.getByTestId('reset-pwd1-password').type('P1#password');
+      cy.intercept('POST', getEndpoint(RESET_PASSWORD_ENDPOINT), {
+        statusCode: 200,
+        body: RESET_PASSWORD_ENDPOINT_200
+      });
+      cy.getByTestId('reset-pwd-submit').click();
+      cy.contains('Your password has been successfuly reset.');
     });
   });
 });

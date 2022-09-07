@@ -25,7 +25,7 @@ describe('ForgotPasswordForm Tests', () => {
         <ForgotPasswordForm onForgotPasswordSubmit={mockSubmit} loading={false} />
       </div>
     );
-    fireEvent.input(screen.queryByTestId(`resetpwd-email`), {
+    fireEvent.input(screen.queryByTestId(`forgotpwd-email`), {
       target: {
         value: 'test'
       }
@@ -42,7 +42,7 @@ describe('ForgotPasswordForm Tests', () => {
       </div>
     );
 
-    fireEvent.input(screen.queryByTestId(`resetpwd-email`), {
+    fireEvent.input(screen.queryByTestId(`forgotpwd-email`), {
       target: {
         value: 'test@test.com'
       }

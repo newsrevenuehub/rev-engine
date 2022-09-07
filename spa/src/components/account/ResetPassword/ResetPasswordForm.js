@@ -88,7 +88,7 @@ function ResetPasswordForm({ onResetPasswordSubmit, loading }) {
       <S.Instructions>Password must be 8 characters long and alphanumerical.</S.Instructions>
       {errors.password1 ? <S.Message role="error">{errors.password1.message}</S.Message> : <S.MessageSpacer />}
 
-      <S.Submit type="submit" disabled={disabled}>
+      <S.Submit type="submit" disabled={disabled} data-testid="reset-pwd-submit">
         {' '}
         Reset Password
       </S.Submit>

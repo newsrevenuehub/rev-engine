@@ -54,7 +54,7 @@ export const Right = styled.div`
 
 export const FormElements = styled.div`
   width: 80%;
-  max-width: 420px;
+  max-width: ${(props) => (props.type && props.type === 'PasswordUpdateSuccess' ? '310px' : '420px')};
   text-align: left;
 `;
 
@@ -91,7 +91,8 @@ export const Heading = styled.div`
 `;
 
 export const Subheading = styled.div`
-  margin: 5px 0px 25px;
+  margin: ${(props) => (props.type && props.type === 'PasswordUpdateSuccess' ? '5px 0px 5px' : '5px 0px 25px')};
+
   font-weight: 300;
   font-size: ${(props) => props.theme.fontSizes[1]};
   line-height: 138.19%;
@@ -212,14 +213,15 @@ export const Instructions = styled.div`
 export const NavLink = styled.div`
   margin: 15px 0px 12px;
   width: 100%;
-  text-align: center;
+  text-align: ${(props) => (props.type && props.type === 'PasswordUpdateSuccess' ? 'left' : 'center')};
   font-weight: 400;
   font-size: 13px;
   line-height: 16px;
-  color: ${(props) => props.theme.colors.greyDark};
+  color: ${(props) => props.theme.colors.grey[4]};
+
   a,
   a:hover {
-    color: ${(props) => props.theme.colors.blueLink};
+    color: ${(props) => props.theme.colors.account.blueLink};
     text-decoration: underline;
   }
 `;

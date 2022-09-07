@@ -32,12 +32,12 @@ function ForgotPasswordForm({ onForgotPasswordSubmit, loading }) {
           })}
           type="text"
           status={errors.email}
-          data-testid="resetpwd-email"
+          data-testid="forgotpwd-email"
         />
       </S.InputOuter>
       {errors.email ? <S.Message role="error">{errors.email.message}</S.Message> : <S.MessageSpacer />}
 
-      <S.Submit type="submit" disabled={disabled}>
+      <S.Submit type="submit" disabled={disabled} data-testid="forgotpwd-submit">
         Send Reset Link
       </S.Submit>
     </form>

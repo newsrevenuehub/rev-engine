@@ -38,7 +38,7 @@ function ResetPassword() {
 
   const [loading, setLoading] = useState(false);
 
-  const [infoMessage, setInfoMessage] = useState(null);
+  const [PasswordUpdateSuccess, setPasswordUpdateSuccess] = useState(false);
 
   const [forgotPasswordState, dispatch] = useReducer(fetchReducer, initialState);
   const formSubmitErrors = forgotPasswordState?.errors?.detail;
@@ -53,9 +53,7 @@ function ResetPassword() {
         password1: fdata.password1
       });
       if (status === 200) {
-        setInfoMessage('Your password has been successfully changed.');
-      } else {
-        setInfoMessage('An error occured. Please try again.');
+        setPasswordUpdateSuccess(true);
       }
       dispatch({ type: FETCH_SUCCESS });
     } catch (e) {
@@ -65,10 +63,8 @@ function ResetPassword() {
   };
 
   let formSubmissionMessage = <S.MessageSpacer />;
-  if (infoMessage) {
-    formSubmissionMessage = <S.Message isMessage={true}>{infoMessage} </S.Message>;
-  } else if (formSubmitErrors) {
-    formSubmissionMessage = <S.Message>{formSubmitErrors} </S.Message>;
+  if (formSubmitErrors) {
+    formSubmissionMessage = <S.Message>{formSubmitErrors}</S.Message>;
   }
 
   return (
@@ -77,14 +73,20 @@ function ResetPassword() {
         <Leftbar />
       </S.Left>
       <S.Right>
-        <S.FormElements>
-          <S.Heading data-testid="reset-pwd-title">Reset Password!</S.Heading>
-          <S.Subheading>Enter your new password below.</S.Subheading>
+        <S.FormElements type={PasswordUpdateSuccess ? 'PasswordUpdateSuccess' : ''}>
+          <S.Heading data-testid="reset-pwd-title">{PasswordUpdateSuccess ? 'Success!' : 'Reset Password!'}</S.Heading>
+          <S.Subheading type={PasswordUpdateSuccess ? 'PasswordUpdateSuccess' : ''}>
+            {PasswordUpdateSuccess ? 'Your password has been successfuly reset.' : 'Enter your new password below.'}
+          </S.Subheading>
 
-          <ResetPasswordForm loading={loading} onResetPasswordSubmit={onResetPasswordSubmit} />
-          {formSubmissionMessage}
+          {!PasswordUpdateSuccess ? (
+            <>
+              <ResetPasswordForm loading={loading} onResetPasswordSubmit={onResetPasswordSubmit} />
+              {formSubmissionMessage}
+            </>
+          ) : null}
 
-          <S.NavLink>
+          <S.NavLink type={PasswordUpdateSuccess ? 'PasswordUpdateSuccess' : ''}>
             <a href={SIGN_IN} data-testid="sign-in">
               Return to Sign In
             </a>

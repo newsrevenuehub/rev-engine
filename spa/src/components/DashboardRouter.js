@@ -22,7 +22,7 @@ import componentLoader from 'utilities/componentLoader';
 const Main = lazy(() => componentLoader(() => import('components/Main')));
 
 // Account Screens
-const SignIn = lazy(() => componentLoader(() => import('components/account/SignIn/SignIn')));
+const SignIn = lazy(() => componentLoader(() => import('components/account/SignIn')));
 
 function DashboardRouter() {
   const isContributorApp = isContributorAppPath();

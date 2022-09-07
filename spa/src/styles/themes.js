@@ -85,7 +85,7 @@ export const revEngineTheme = {
 
   font: { body: "'Roboto', sans-serif", heading: "'Roboto', sans-serif" },
 
-  fontSizes: ['12px', '16px', '24px', '32px', '48px', '84px', '96px'],
+  fontSizes: ['12px', '16px', '24px', '32px', '48px', '84px', '96px', '72px'],
 
   fontSizesUpdated: {
     xs: '12px',

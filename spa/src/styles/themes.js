@@ -35,7 +35,7 @@ export const revEngineTheme = {
 
     white: '#ffffff',
 
-    grey: ['#eee', '#ccc', '#999', '#666', '#333'],
+    grey: ['#eee', '#ccc', '#999', '#666', '#333', '#282828'],
 
     muiLightBlue: {
       200: '#6FD1EC',

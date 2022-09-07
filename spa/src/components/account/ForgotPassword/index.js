@@ -19,7 +19,7 @@ import YellowSVG from 'assets/images/account/yellow-bar.svg';
 import fetchReducer, { initialState, FETCH_START, FETCH_SUCCESS, FETCH_FAILURE } from 'state/fetch-reducer';
 
 // Analytics
-import { useConfigureAnalytics } from '../../analytics';
+import { useConfigureAnalytics } from 'components/analytics';
 
 function ForgotPassword() {
   useConfigureAnalytics();

@@ -11,7 +11,7 @@ function ForgotPasswordForm({ onForgotPasswordSubmit, loading }) {
   } = useForm();
 
   const onSubmit = async (fdata) => {
-    await onForgotPasswordSubmit(fdata);
+    onForgotPasswordSubmit(fdata);
   };
 
   const watchEmail = watch('email', '');
@@ -24,7 +24,6 @@ function ForgotPasswordForm({ onForgotPasswordSubmit, loading }) {
         <input
           id="email"
           {...register('email', {
-            required: 'Please enter a valid email id',
             pattern: {
               value: /\S+@\S+\.\S+/,
               message: 'Please enter a valid email id'

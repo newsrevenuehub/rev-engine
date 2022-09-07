@@ -76,7 +76,7 @@ describe('Account', () => {
         body: RESET_PASSWORD_ENDPOINT_404
       });
       cy.getByTestId('reset-pwd-submit').click();
-      cy.contains('Not found. Or anything returned by api');
+      cy.contains(RESET_PASSWORD_ENDPOINT_404.detail);
     });
 
     it('should show a success message if password-reset successfull', () => {
@@ -89,7 +89,7 @@ describe('Account', () => {
         body: RESET_PASSWORD_ENDPOINT_200
       });
       cy.getByTestId('reset-pwd-submit').click();
-      cy.contains(RESET_PASSWORD_ENDPOINT_404.detail);
+      cy.contains('Your password has been successfuly reset.');
     });
   });
 });

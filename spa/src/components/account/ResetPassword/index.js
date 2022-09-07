@@ -23,7 +23,7 @@ import visibilityOn from 'assets/images/account/visibility_on.png';
 import visibilityOff from 'assets/images/account/visibility_off.png';
 
 // Analytics
-import { useConfigureAnalytics } from '../../analytics';
+import { useConfigureAnalytics } from 'components/analytics';
 
 function FetchQueryParams() {
   const { search } = useLocation();

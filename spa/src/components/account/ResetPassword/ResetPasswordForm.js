@@ -21,7 +21,7 @@ function ResetPasswordForm({ onResetPasswordSubmit, loading }) {
   } = useForm();
 
   const onSubmit = async (fdata) => {
-    await onResetPasswordSubmit(fdata);
+    onResetPasswordSubmit(fdata);
   };
 
   const password = watch('password', '');

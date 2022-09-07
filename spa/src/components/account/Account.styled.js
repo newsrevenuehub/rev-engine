@@ -100,7 +100,7 @@ export const Subheading = styled.div`
   color: ${(props) => props.theme.colors.greyVeryDark};
   font-style: normal;
   @media (${(props) => props.theme.breakpoints.phoneOnly}) {
-    font-size: 16px;
+    font-size: ${(props) => props.theme.fontSizesUpdated.lg};
     margin: 5px 0px 20px;
   }
 `;

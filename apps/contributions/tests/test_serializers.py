@@ -744,6 +744,7 @@ class TestBaseCreatePaymentSerializer:
             "swag_choice": serializer.validated_data.get("swag_choice"),
             "referer": referer,
             "revenue_program_id": serializer.validated_data["page"].revenue_program.id,
+            "revenue_program_slug": serializer.validated_data["page"].revenue_program.slug,
             "sf_campaign_id": serializer.validated_data.get("sf_campaign_id"),
         }
 

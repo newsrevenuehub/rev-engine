@@ -414,6 +414,7 @@ class BaseCreatePaymentSerializer(serializers.Serializer):
             "swag_choice": validated_data.get("swag_choice"),
             "referer": self.context["request"].META.get("HTTP_REFERER"),
             "revenue_program_id": validated_data["page"].revenue_program.id,
+            "revenue_program_slug": validated_data["page"].revenue_program.slug,
             "sf_campaign_id": validated_data.get("sf_campaign_id"),
         }
 

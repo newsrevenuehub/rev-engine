@@ -93,7 +93,7 @@ export const Heading = styled.div`
 export const Subheading = styled.div`
   margin: 5px 0px 25px;
   font-weight: 300;
-  font-size: 24px;
+  font-size: ${(props) => props.theme.fontSizes[1]};
   line-height: 138.19%;
   color: ${(props) => props.theme.colors.greyVeryDark};
   font-style: normal;

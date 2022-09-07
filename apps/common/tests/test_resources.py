@@ -20,7 +20,7 @@ from apps.organizations.tests.factories import (
 from apps.pages.models import DonationPage
 from apps.pages.tests.factories import DonationPageFactory, StyleFactory
 from apps.users.choices import Roles
-from apps.users.tests.utils import create_test_user
+from apps.users.tests.factories import create_test_user
 
 
 user_model = get_user_model()

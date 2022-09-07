@@ -1,3 +1,4 @@
+import datetime
 from unittest.mock import Mock
 
 from django.conf import settings
@@ -6,13 +7,21 @@ from django.utils import timezone
 
 import pytest
 import stripe
+from addict import Dict as AttrDict
+from pytest import raises
 from rest_framework.exceptions import PermissionDenied
+from rest_framework.serializers import ValidationError
 from rest_framework.test import APIRequestFactory
 
 from apps.api.error_messages import GENERIC_BLANK, GENERIC_UNEXPECTED_VALUE
 from apps.contributions import serializers
 from apps.contributions.bad_actor import BadActorAPIError
-from apps.contributions.models import Contribution, ContributionStatus, Contributor
+from apps.contributions.models import (
+    Contribution,
+    ContributionInterval,
+    ContributionStatus,
+    Contributor,
+)
 from apps.contributions.tests.factories import ContributionFactory, ContributorFactory
 from apps.contributions.utils import format_ambiguous_currency, get_sha256_hash
 from apps.organizations.tests.factories import RevenueProgramFactory
@@ -1158,3 +1167,125 @@ class TestCreateRecurringPaymentSerializer:
         assert contribution.provider_subscription_id is None
         assert contribution.provider_client_secret_id is None
         assert contribution.payment_provider_data is None
+
+
+class SubscriptionsSerializer(TestCase):
+    expected_fields = [
+        "id",
+        "is_modifiable",
+        "is_cancelable",
+        "status",
+        "card_brand",
+        "last4",
+        "payment_type",
+        "next_payment_date",
+        "interval",
+        "revenue_program_slug",
+        "amount",
+        "customer_id",
+        "credit_card_expiration_date",
+        "created",
+        "last_payment_date",
+    ]
+
+    def setUp(self):
+        self.serializer = serializers.SubscriptionsSerializer
+        self.subscription = AttrDict(
+            {
+                "id": "sub_1234",
+                "status": "incomplete",
+                "card_brand": "Visa",
+                "last4": "4242",
+                "plan": {
+                    "interval": "month",
+                    "interval_count": 1,
+                    "amount": 1234,
+                },
+                "metadata": {
+                    "revenue_program_slug": "foo",
+                },
+                "amount": "100",
+                "customer": "cus_1234",
+                "current_period_end": 1654892502,
+                "current_period_start": 1686428502,
+                "created": 1654892502,
+                "default_payment_method": {
+                    "id": "pm_1234",
+                    "type": "card",
+                    "card": {"brand": "discover", "last4": "7834", "exp_month": "12", "exp_year": "2022"},
+                },
+            }
+        )
+
+    def test_returned_fields(self):
+        data = self.serializer(self.subscription).data
+        for field in self.expected_fields:
+            self.assertIn(field, data)
+
+    def test_card_brand(self):
+        data = self.serializer(self.subscription).data
+        assert data["card_brand"] == "discover"
+
+    def test_next_payment_date(self):
+        data = self.serializer(self.subscription).data
+        assert data["next_payment_date"] == datetime.datetime(2022, 6, 10, 20, 21, 42)
+
+    def test_last_payment_date(self):
+        data = self.serializer(self.subscription).data
+        assert data["last_payment_date"] == datetime.datetime(2023, 6, 10, 20, 21, 42)
+
+    def test_created(self):
+        data = self.serializer(self.subscription).data
+        assert data["created"] == datetime.datetime(2022, 6, 10, 20, 21, 42)
+
+    def test_last4(self):
+        data = self.serializer(self.subscription).data
+        assert data["last4"] == "7834"
+
+    def test_card_expiration_date(self):
+        data = self.serializer(self.subscription).data
+        assert data["credit_card_expiration_date"] == "12/2022"
+
+    def test_is_modifiable(self):
+        data = self.serializer(self.subscription).data
+        assert data["is_modifiable"] is True
+        self.subscription.status = "unpaid"
+        data = self.serializer(self.subscription).data
+        assert data["is_modifiable"] is False
+
+    def test_is_cancelable(self):
+        data = self.serializer(self.subscription).data
+        assert data["is_cancelable"] is False
+        self.subscription.status = "active"
+        data = self.serializer(self.subscription).data
+        assert data["is_cancelable"] is True
+
+    def test_interval(self):
+        data = self.serializer(self.subscription).data
+        assert data["interval"] == ContributionInterval.MONTHLY
+        self.subscription.plan.interval = "year"
+        self.subscription.plan.interval_count = 1
+        data = self.serializer(self.subscription).data
+        assert data["interval"] == ContributionInterval.YEARLY
+        with raises(ValidationError):
+            self.subscription.plan.interval_count = 2
+            data = self.serializer(self.subscription).data
+
+    def test_revenue_program_slug(self):
+        data = self.serializer(self.subscription).data
+        assert data["revenue_program_slug"] == "foo"
+        with raises(ValidationError):
+            del self.subscription.metadata
+            data = self.serializer(self.subscription).data
+
+    def test_amount(self):
+        data = self.serializer(self.subscription).data
+        assert data["amount"] == 1234
+
+    def test_customer_id(self):
+        data = self.serializer(self.subscription).data
+        assert data["customer_id"] == "cus_1234"
+
+    def test_payment_type(self):
+        data = self.serializer(self.subscription).data
+        assert data["payment_type"] == "card"

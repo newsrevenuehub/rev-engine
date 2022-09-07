@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from apps.organizations.models import Benefit, BenefitLevel, RevenueProgram
+from apps.organizations.models import Benefit, BenefitLevel, PaymentProvider, RevenueProgram
 
 
 class BenefitSerializer(serializers.ModelSerializer):
@@ -36,6 +36,12 @@ class BenefitLevelSerializer(serializers.ModelSerializer):
         ]
 
 
+class PaymentProviderSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = PaymentProvider
+        fields = ["stripe_account_id"]
+
+
 class RevenueProgramDetailSerializer(serializers.ModelSerializer):
     """
     NOTE: PUBLIC API
@@ -43,10 +49,11 @@ class RevenueProgramDetailSerializer(serializers.ModelSerializer):
 
     organization = serializers.StringRelatedField()
     benefit_levels = BenefitLevelSerializer(source="benefitlevel_set", many=True)
+    payment_provider = PaymentProviderSerializer()
 
     class Meta:
         model = RevenueProgram
-        fields = ["id", "name", "slug", "organization", "benefit_levels"]
+        fields = ["id", "name", "slug", "organization", "benefit_levels", "payment_provider", "non_profit"]
 
 
 class RevenueProgramListSerializer(serializers.HyperlinkedModelSerializer):

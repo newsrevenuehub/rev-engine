@@ -1,4 +1,3 @@
-
 # Revenue Engine <!-- omit in toc -->
 
 [![NRE](https://img.shields.io/endpoint?url=https://dashboard.cypress.io/badge/simple/68ek4u&style=flat&logo=cypress)](https://dashboard.cypress.io/projects/68ek4u/runs)
@@ -46,7 +45,7 @@
 
 To begin you should have the following applications installed on your local development system:
 
-- Python >= 3.9
+- Python >= 3.10
 - NodeJS == 14.x
 - npm == 6.14.x (comes with node 14)
 - [nvm](https://github.com/nvm-sh/nvm/blob/master/README.md) is not strictly _required_, but will almost certainly be necessary unless you just happen to have Node.js 12.x installed on your machine.
@@ -75,7 +74,7 @@ You will note the distinct lack of opinion on how you should manage your virtual
 
 #### Node dependencies
 
-`nvm` is preferred for managing Node versions and `.nvmrc` contains the
+`nvm` is preferred for managing Node versions, and `.nvmrc` contains the
 specific Node version for this project. To install the correct (and latest)
 Node version run:
 
@@ -398,9 +397,11 @@ If you have a need to run or test tasks using a Celery worker, there are some Ma
 
 `make run-redis` brings up the dev services, and a redis container that listens on the default port.
 
-`make run-celery` will bring up a Celery worker. At this point any task that expects a celery worker should run without error.
+`make start-celery` will bring up a Celery worker. At this point any task that expects a celery worker should run without error.
 
 ## Frontend Configuration
+
+Check `.envrc.example` for all environment variables that are needed to run locally. Note: some of them you will have to get the value from the respective resource (example: Stripe -> get secret key from stripe dashboard)
 
 See [spa/src/settings.js](./spa/src/settings.js) for more details on how env vars are configured on the front end. For setup, certain features of the app will require certain env vars define.
 
@@ -454,7 +455,6 @@ We want to limit the number of individual migration files produced. As you're wo
 
 Before submitting a pull request, please [squash all the migrations](https://docs.djangoproject.com/en/4.0/topics/migrations/#migration-squashing) per app for that PR into either one or two migrations depending on whether there are both data and schema migrations. Include the ticket number in the filename for the migration, e.g. 0004_DEV-1234_contribution_flagged_date.py
 
-
 ## `django-reversion`, audit logs, and restoring deleted model instances
 
 This project uses [django-reversion](https://django-reversion.readthedocs.io/en/stable/index.html) to record user-generated changes to select models from the admin and via the API layer. This same package allows admin users to recover deleted model instances.
@@ -479,7 +479,7 @@ python manage.py createinitialrevisions
 
 ### How to register a view
 
-We use `reversion.views.RevisionMixin` in select API-layer viewsets in order to record changes to the model instances that happen via that view.  To set up a view to record changes, do:
+We use `reversion.views.RevisionMixin` in select API-layer viewsets in order to record changes to the model instances that happen via that view. To set up a view to record changes, do:
 
 ```python
 class MyViewSet(RevisionMixin, ...<other super classes and mixins>):

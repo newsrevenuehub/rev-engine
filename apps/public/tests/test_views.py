@@ -8,6 +8,7 @@ from apps.organizations.tests.factories import (
     BenefitFactory,
     BenefitLevelFactory,
     OrganizationFactory,
+    PaymentProviderFactory,
     RevenueProgramFactory,
 )
 
@@ -27,7 +28,8 @@ class RevenueProgramViewsetTest(APITestCase):
         organization = OrganizationFactory()
 
         for _ in range(self.rp_count):
-            revenue_program = RevenueProgramFactory(organization=organization)
+            payment_provider = PaymentProviderFactory()
+            revenue_program = RevenueProgramFactory(organization=organization, payment_provider=payment_provider)
             for i in range(self.bl_count):
                 benefit_level = BenefitLevelFactory(revenue_program=revenue_program, lower_limit=7, upper_limit=13)
                 for j in range(self.b_per_bl_count):
@@ -77,3 +79,19 @@ class RevenueProgramViewsetTest(APITestCase):
         self.assertEqual(benefit_level["donation_range"], "$7-13")
         self.assertEqual(benefit_level["lower_limit"], 7)
         self.assertEqual(benefit_level["upper_limit"], 13)
+
+    def test_view_with_stripe_account_id_filter(self):
+        revenue_program = RevenueProgram.objects.first()
+        url = f"{self.list_url}?stripe_account_id={revenue_program.payment_provider.stripe_account_id}"
+        response = self._make_request_to(url)
+        assert response.status_code == 200
+        assert len(response.data["results"]) == 1
+        assert response.data["results"][0]["id"] == revenue_program.id
+
+    def test_detail_view_has_stripe_account_id(self):
+        revenue_program = RevenueProgram.objects.first()
+        detail_url = self._get_detail_url_for_pk(revenue_program.pk)
+        response = self._make_request_to(detail_url)
+        assert (
+            response.data["payment_provider"]["stripe_account_id"] == revenue_program.payment_provider.stripe_account_id
+        )

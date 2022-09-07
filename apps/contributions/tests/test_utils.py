@@ -23,7 +23,7 @@ class UtilsTest(TestCase):
         self.assertEqual(key, TEST_KEY)
 
 
-@override_settings(UID_SALT="salt")
+@override_settings(ENCRYPTION_SALT="salt")
 def test_hash_is_salted():
     result = hashlib.sha256("test".encode())
     hash_str = result.hexdigest()

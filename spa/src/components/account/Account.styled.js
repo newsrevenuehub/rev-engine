@@ -117,7 +117,7 @@ export const Submit = styled(motion.button)`
 
 export const Message = styled.div`
   background: ${(props) => (props.isSuccess ? props.theme.colors.status.done : props.theme.colors.error.bg)};
-  border-radius: 2px;
+  border-radius: ${(props) => props.theme.muiBorderRadius.sm};
   font-weight: 400;
   font-size: ${(props) => props.theme.fontSizes[0]};
   line-height: ${(props) => props.theme.fontSizesUpdated.lg};
@@ -146,7 +146,7 @@ export const PasswordLabel = styled.div`
 export const InputOuter = styled.div`
   border: 1.5px solid;
   border-color: ${(props) => (props.hasError ? props.theme.colors.error.primary : props.theme.colors.grey[1])};
-  border-radius: 4px;
+  border-radius: ${(props) => props.theme.muiBorderRadius.md};
   display: flex;
   margin: 5px 0px;
   padding: 8px 6px 8px 12px;

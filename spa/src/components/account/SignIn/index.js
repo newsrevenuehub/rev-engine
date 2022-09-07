@@ -1,4 +1,4 @@
-import { useState, useReducer } from 'react';
+import { useReducer } from 'react';
 import * as S from '../Account.styled';
 
 // AJAX
@@ -15,7 +15,7 @@ import fetchReducer, { initialState, FETCH_START, FETCH_SUCCESS, FETCH_FAILURE }
 import { handleLoginSuccess } from 'components/authentication/util';
 
 // Analytics
-import { useConfigureAnalytics } from '../../analytics';
+import { useConfigureAnalytics } from 'components/analytics';
 
 import SignInForm from './SignInForm';
 import Logobar from 'components/account/common/logobar/Logobar';

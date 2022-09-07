@@ -1,5 +1,4 @@
 import { render, screen, fireEvent } from 'test-utils';
-import ReactTestUtils from 'react-dom/test-utils';
 import SignIn from '.';
 import { SIGN_UP, FORGOT_PASSWORD } from 'routes';
 
@@ -22,7 +21,7 @@ describe('SignIn Component Tests', () => {
 
   it('should have heading - Welcome Back!', () => {
     render(<SignIn />);
-    const title = screen.queryByText('Welcome Back!');
+    const title = screen.getByText('Welcome Back!');
     expect(title).toBeInTheDocument();
   });
 

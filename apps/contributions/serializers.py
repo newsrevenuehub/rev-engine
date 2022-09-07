@@ -9,6 +9,7 @@ from rest_framework import serializers
 from rest_framework.exceptions import APIException, PermissionDenied
 
 from apps.api.error_messages import GENERIC_BLANK, GENERIC_UNEXPECTED_VALUE
+from apps.common.utils import get_original_ip_from_request
 from apps.contributions.models import (
     CardBrand,
     Contribution,
@@ -392,7 +393,7 @@ class BaseCreatePaymentSerializer(serializers.Serializer):
             # but BadActorSerializer wants to pk, so we reformat here.
             "page": data["page"].id,
             "referer": self.context["request"].META.get("HTTP_REFERER"),
-            "ip": self.context["request"].META.get("REMOTE_ADDR"),
+            "ip": get_original_ip_from_request(self.context["request"]),
         }
         serializer = BadActorSerializer(data=data)
         try:

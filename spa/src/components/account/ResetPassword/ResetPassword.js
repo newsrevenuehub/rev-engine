@@ -12,6 +12,7 @@ import fetchReducer, { initialState, FETCH_START, FETCH_SUCCESS, FETCH_FAILURE }
 
 import * as S from '../Account.styled';
 
+import ResetPasswordForm from './ResetPasswordForm';
 import Logobar from 'components/account/common/logobar/Logobar';
 import Leftbar from 'components/account/common/leftbar/Leftbar';
 
@@ -35,30 +36,15 @@ function ResetPassword() {
   let qParams = FetchQueryParams();
   const token = qParams.get('token');
 
-  const [showPassword, setShowPassword] = useState(false);
-  const togglePasswordVisiblity = () => {
-    setShowPassword(showPassword ? false : true);
-  };
-
-  const [showPassword1, setShowPassword1] = useState(false);
-  const togglePassword1Visiblity = () => {
-    setShowPassword1(showPassword1 ? false : true);
-  };
+  const [loading, setLoading] = useState(false);
 
   const [infoMessage, setInfoMessage] = useState(null);
 
   const [forgotPasswordState, dispatch] = useReducer(fetchReducer, initialState);
   const formSubmitErrors = forgotPasswordState?.errors?.detail;
 
-  const {
-    register,
-    handleSubmit,
-    formState: { errors },
-    reset,
-    watch
-  } = useForm();
-
-  const onSubmitResetPassword = async (fdata) => {
+  const onResetPasswordSubmit = async (fdata) => {
+    setLoading(true);
     dispatch({ type: FETCH_START });
     try {
       const { status } = await axios.post(RESET_PASSWORD_ENDPOINT, {
@@ -68,7 +54,6 @@ function ResetPassword() {
       });
       if (status === 200) {
         setInfoMessage('Your password has been successfully changed.');
-        reset();
       } else {
         setInfoMessage('An error occured. Please try again.');
       }
@@ -76,6 +61,7 @@ function ResetPassword() {
     } catch (e) {
       dispatch({ type: FETCH_FAILURE, payload: e?.response?.data });
     }
+    setLoading(false);
   };
 
   let formSubmissionMessage = <S.MessageSpacer />;
@@ -87,76 +73,15 @@ function ResetPassword() {
 
   return (
     <S.Outer>
-      <S.Left data-testid="left-yellow">
+      <S.Left data-testid="left">
         <Leftbar />
       </S.Left>
       <S.Right>
         <S.FormElements>
           <S.Heading data-testid="reset-pwd-title">Reset Password!</S.Heading>
           <S.Subheading>Enter your new password below.</S.Subheading>
-          <form onSubmit={handleSubmit(onSubmitResetPassword)}>
-            <S.InputLabel data-testid={`password-label`} hasError={errors.email}>
-              Password
-            </S.InputLabel>
-            <S.InputOuter hasError={errors.password}>
-              <input
-                id="password"
-                {...register('password', {
-                  required: 'Please enter your password',
-                  validate: (val: string) => {
-                    if (val.length < 8 || !/[a-zA-Z]/.test(val)) {
-                      return 'Password should be alphanumeric and at least 8 characters long';
-                    }
-                  }
-                })}
-                type={showPassword ? 'text' : 'password'}
-                status={errors.password}
-              />
-              <S.Visibility
-                data-testid="toggle-password"
-                onClick={togglePasswordVisiblity}
-                src={showPassword ? visibilityOn : visibilityOff}
-              />
-            </S.InputOuter>
-            <S.Instructions>Password must be 8 characters long and alphanumerical.</S.Instructions>
-            {errors.password ? (
-              <S.Message data-testid={`error`}>{errors.password.message}</S.Message>
-            ) : (
-              <S.MessageSpacer />
-            )}
 
-            <S.InputLabel data-testid={`password1-label`} hasError={errors.email}>
-              Renter-Password
-            </S.InputLabel>
-            <S.InputOuter hasError={errors.password}>
-              <input
-                id="password1"
-                {...register('password1', {
-                  required: 'Please enter your password',
-                  validate: (val: string) => {
-                    if (watch('password') !== val) {
-                      return 'Your passwords do no match';
-                    }
-                  }
-                })}
-                type={showPassword1 ? 'text' : 'password'}
-                status={errors.password}
-              />
-              <S.Visibility
-                data-testid="toggle-password1"
-                onClick={togglePassword1Visiblity}
-                src={showPassword1 ? visibilityOn : visibilityOff}
-              />
-            </S.InputOuter>
-            <S.Instructions>Password must be 8 characters long and alphanumerical.</S.Instructions>
-            {errors.password1 ? (
-              <S.Message data-testid={`error`}>{errors.password1.message}</S.Message>
-            ) : (
-              <S.MessageSpacer />
-            )}
-
-            <S.Submit type="submit"> Reset Password</S.Submit>
-          </form>
+          <ResetPasswordForm loading={loading} onResetPasswordSubmit={onResetPasswordSubmit} />
           {formSubmissionMessage}
 
           <S.NavLink>
@@ -168,8 +93,8 @@ function ResetPassword() {
 
         <Logobar />
       </S.Right>
-      <S.BottomBar data-testid={`bottom-yellow-bar`}>
-        <S.BottomBarYellowSVG src={YellowSVG} />
+      <S.BottomBar>
+        <S.BottomBarYellowSVG src={YellowSVG} data-testid="bottom-yellow-png" />
       </S.BottomBar>
     </S.Outer>
   );

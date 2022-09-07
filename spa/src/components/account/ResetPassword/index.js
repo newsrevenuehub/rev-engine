@@ -36,15 +36,12 @@ function ResetPassword() {
   let qParams = FetchQueryParams();
   const token = qParams.get('token');
 
-  const [loading, setLoading] = useState(false);
-
   const [PasswordUpdateSuccess, setPasswordUpdateSuccess] = useState(false);
 
-  const [forgotPasswordState, dispatch] = useReducer(fetchReducer, initialState);
-  const formSubmitErrors = forgotPasswordState?.errors?.detail;
+  const [resetPasswordState, dispatch] = useReducer(fetchReducer, initialState);
+  const formSubmitErrors = resetPasswordState?.errors?.detail;
 
   const onResetPasswordSubmit = async (fdata) => {
-    setLoading(true);
     dispatch({ type: FETCH_START });
     try {
       const { status } = await axios.post(RESET_PASSWORD_ENDPOINT, {
@@ -59,7 +56,6 @@ function ResetPassword() {
     } catch (e) {
       dispatch({ type: FETCH_FAILURE, payload: e?.response?.data });
     }
-    setLoading(false);
   };
 
   let formSubmissionMessage = <S.MessageSpacer />;
@@ -81,7 +77,7 @@ function ResetPassword() {
 
           {!PasswordUpdateSuccess ? (
             <>
-              <ResetPasswordForm loading={loading} onResetPasswordSubmit={onResetPasswordSubmit} />
+              <ResetPasswordForm loading={resetPasswordState.loading} onResetPasswordSubmit={onResetPasswordSubmit} />
               {formSubmissionMessage}
             </>
           ) : null}

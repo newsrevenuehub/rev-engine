@@ -1,6 +1,7 @@
 import React from 'react';
 import { useForm } from 'react-hook-form';
 import { useState } from 'react';
+import useModal from 'hooks/useModal';
 
 import * as S from '../Account.styled';
 
@@ -8,15 +9,8 @@ import visibilityOn from 'assets/images/account/visibility_on.png';
 import visibilityOff from 'assets/images/account/visibility_off.png';
 
 function ResetPasswordForm({ onResetPasswordSubmit, loading }) {
-  const [showPassword, setShowPassword] = useState(false);
-  const togglePasswordVisiblity = () => {
-    setShowPassword(showPassword ? false : true);
-  };
-
-  const [showPassword1, setShowPassword1] = useState(false);
-  const togglePassword1Visiblity = () => {
-    setShowPassword1(showPassword1 ? false : true);
-  };
+  const { open: showPassword, handleToggle: togglePasswordVisiblity } = useModal();
+  const { open: showPassword1, handleToggle: togglePassword1Visiblity } = useModal();
 
   const {
     register,

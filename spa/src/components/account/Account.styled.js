@@ -77,16 +77,17 @@ export const BottomBarYellowSVG = styled.img`
 
 export const Heading = styled.div`
   font-weight: 400;
-  font-size: 30px;
+  font-size: ${(props) => props.theme.fontSizes[3]};
+
   line-height: 138.19%;
   color: ${(props) => props.theme.colors.account.purple[2]};
 
   @media (${(props) => props.theme.breakpoints.phoneOnly}) {
-    font-size: 24px;
+    font-size: ${(props) => props.theme.fontSizes[2]};
   }
 
   @media (${(props) => props.theme.breakpoints.mdDown}) {
-    margin-top: 72px;
+    margin-top: ${(props) => props.theme.fontSizes[7]};
   }
 `;
 
@@ -132,21 +133,21 @@ export const Message = styled.div`
   background: ${(props) => (props.isMessage ? props.theme.colors.status.done : props.theme.colors.error.bg)};
   border-radius: 2px;
   font-weight: 400;
-  font-size: 11px;
-  line-height: 19px;
+  font-size: ${(props) => props.theme.fontSizes[0]};
+  line-height: ${(props) => props.theme.fontSizesUpdated.lg};
   color: ${(props) => props.theme.colors.grey[3]};
   padding: 0px 9px;
 `;
 
 export const MessageSpacer = styled.div`
-  height: 19px;
+  height: ${(props) => props.theme.fontSizesUpdated.lg};
 `;
 
 export const PasswordLabel = styled.div`
   display: flex;
   font-weight: 600;
-  font-size: 13px;
-  line-height: 16px;
+  font-size: ${(props) => props.theme.fontSizesUpdated.xs};
+  line-height: ${(props) => props.theme.fontSizesUpdated.md};
   color: ${(props) => (props.hasError ? props.theme.colors.error.primary : props.theme.colors.grey[4])};
   margin-top: 5px;
 
@@ -179,22 +180,22 @@ export const InputOuter = styled.div`
 
 export const Visibility = styled.img`
   height: 11px;
-  width: 18px;
+  width: ${(props) => props.theme.fontSizesUpdated.lg};
   margin-top: 3.6px;
   cursor: pointer;
 `;
 
 export const InputLabel = styled.div`
   font-weight: 600;
-  font-size: 13px;
-  line-height: 16px;
+  font-size: ${(props) => props.theme.fontSizesUpdated.xs};
+  line-height: ${(props) => props.theme.fontSizesUpdated.md};
   color: ${(props) => (props.hasError ? props.theme.colors.error.primary : props.theme.colors.grey[4])};
   margin-top: 5px;
 `;
 
 export const Instructions = styled.div`
-  font-size: 11px;
-  line-height: 13px;
+  font-size: ${(props) => props.theme.fontSizesUpdated.xs};
+  line-height: ${(props) => props.theme.fontSizesUpdated.md};
   color: ${(props) => props.theme.colors.grey[3]};
   padding: 0px 0px 6px 0px;
 `;
@@ -204,8 +205,8 @@ export const NavLink = styled.div`
   width: 100%;
   text-align: ${(props) => (props.type && props.type === 'PasswordUpdateSuccess' ? 'left' : 'center')};
   font-weight: 400;
-  font-size: 13px;
-  line-height: 16px;
+  font-size: ${(props) => props.theme.fontSizesUpdated.xs};
+  line-height: ${(props) => props.theme.fontSizesUpdated.md};
   color: ${(props) => props.theme.colors.grey[4]};
 
   a,

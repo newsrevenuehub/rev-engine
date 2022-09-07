@@ -28,7 +28,6 @@ function SignIn({ onSuccess }) {
   const history = useHistory();
 
   const [signInState, dispatch] = useReducer(fetchReducer, initialState);
-  const [loading, setLoading] = useState(false);
 
   useConfigureAnalytics();
 
@@ -40,7 +39,6 @@ function SignIn({ onSuccess }) {
   const formSubmitErrors = signInState?.errors?.detail;
 
   const onSubmitSignIn = async (fdata) => {
-    setLoading(true);
     dispatch({ type: FETCH_START });
     try {
       const { data, status } = await axios.post(TOKEN, { email: fdata.email, password: fdata.password });
@@ -52,7 +50,6 @@ function SignIn({ onSuccess }) {
     } catch (e) {
       dispatch({ type: FETCH_FAILURE, payload: e?.response?.data });
     }
-    setLoading(false);
   };
 
   return (
@@ -66,7 +63,7 @@ function SignIn({ onSuccess }) {
             <S.Heading>Welcome Back!</S.Heading>
             <br />
 
-            <SignInForm onSubmitSignIn={onSubmitSignIn} loading={loading} />
+            <SignInForm onSubmitSignIn={onSubmitSignIn} loading={signInState.loading} />
             {formSubmitErrors ? <S.Message>{formSubmitErrors} </S.Message> : <S.MessageSpacer />}
 
             <S.NavLink>

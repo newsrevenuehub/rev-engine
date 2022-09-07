@@ -21,7 +21,7 @@ const contentSectionFlag = {
 
 const orgAdminWithContentFlag = {
   ...orgAdminUser,
-  flags: [{ ...contentSectionFlag }]
+  flags: [contentSectionFlag]
 };
 
 describe('Account', () => {
@@ -36,7 +36,7 @@ describe('Account', () => {
         body: TOKEN_API_401
       });
       cy.getByTestId('signin-submit').click();
-      cy.contains('No active account found with the given credentials');
+      cy.contains(TOKEN_API_401.detail);
     });
 
     it('should show allow sign-in for valid credentials', () => {
@@ -89,7 +89,7 @@ describe('Account', () => {
         body: RESET_PASSWORD_ENDPOINT_200
       });
       cy.getByTestId('reset-pwd-submit').click();
-      cy.contains('Your password has been successfuly reset.');
+      cy.contains(RESET_PASSWORD_ENDPOINT_404.detail);
     });
   });
 });

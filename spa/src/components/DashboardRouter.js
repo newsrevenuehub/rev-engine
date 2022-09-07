@@ -22,9 +22,9 @@ import componentLoader from 'utilities/componentLoader';
 const Main = lazy(() => componentLoader(() => import('components/Main')));
 
 // Account Screens
-const SignIn = lazy(() => componentLoader(() => import('components/account/SignIn/SignIn')));
-const ForgotPassword = lazy(() => componentLoader(() => import('components/account/ForgotPassword/ForgotPassword')));
-const ResetPassword = lazy(() => componentLoader(() => import('components/account/ResetPassword/ResetPassword')));
+const SignIn = lazy(() => componentLoader(() => import('components/account/SignIn')));
+const ForgotPassword = lazy(() => componentLoader(() => import('components/account/ForgotPassword')));
+const ResetPassword = lazy(() => componentLoader(() => import('components/account/ResetPassword')));
 
 function DashboardRouter() {
   const isContributorApp = isContributorAppPath();

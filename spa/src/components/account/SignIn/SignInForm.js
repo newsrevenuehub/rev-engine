@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import * as S from '../Account.styled';
 import { useForm } from 'react-hook-form';
+import useModal from 'hooks/useModal';
 
 import visibilityOn from 'assets/images/account/visibility_on.png';
 import visibilityOff from 'assets/images/account/visibility_off.png';
@@ -8,10 +9,8 @@ import visibilityOff from 'assets/images/account/visibility_off.png';
 import { FORGOT_PASSWORD } from 'routes';
 
 function SignInForm({ onSubmitSignIn, loading }) {
-  const [showPassword, setShowPassword] = useState(false);
-  const togglePasswordVisiblity = () => {
-    setShowPassword(showPassword ? false : true);
-  };
+  //const [showPassword, setShowPassword] = useState(false);
+  const { open: showPassword, handleToggle: togglePasswordVisiblity } = useModal();
 
   const {
     register,
@@ -26,7 +25,7 @@ function SignInForm({ onSubmitSignIn, loading }) {
   const disabled = watchEmail === '' || watchPassword === '' || loading;
 
   const onSubmit = async (fdata) => {
-    await onSubmitSignIn(fdata);
+    onSubmitSignIn(fdata);
   };
 
   return (
@@ -37,7 +36,6 @@ function SignInForm({ onSubmitSignIn, loading }) {
           id="email"
           name="email"
           {...register('email', {
-            required: 'Please enter a valid email',
             pattern: {
               value: /\S+@\S+\.\S+/,
               message: 'Please enter a valid email'
@@ -75,7 +73,7 @@ function SignInForm({ onSubmitSignIn, loading }) {
       </S.InputOuter>
       {errors.password ? <S.Message role="error">{errors.password.message}</S.Message> : <S.MessageSpacer />}
 
-      <S.Submit type="submit" role="button" disabled={disabled} data-testid="signin-submit">
+      <S.Submit type="submit" disabled={disabled} data-testid="signin-submit">
         Sign In
       </S.Submit>
     </form>

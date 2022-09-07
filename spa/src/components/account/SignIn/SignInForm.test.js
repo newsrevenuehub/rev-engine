@@ -8,39 +8,50 @@ const mockSubmit = jest.fn((email, password) => {
 });
 
 describe('SignInForm Tests', () => {
-  it('should not submit if email and password are blank', async () => {
-    render(
+  function getScreen() {
+    return render(
       <div>
         <SignInForm onSubmitSignIn={mockSubmit} loading={false} />
       </div>
     );
-    fireEvent.submit(screen.getByRole('button'));
+  }
+
+  it('should have password toggle icon to show/hide value of password if visibility icon is clicked', () => {
+    getScreen();
+    const password = screen.getByTestId(`signin-pwd-${Input.types.PASSWORD}`);
+    fireEvent.input(password, {
+      target: {
+        value: 'test@test.com'
+      }
+    });
+    const toggleIcon = screen.getByTestId('toggle-password');
+    fireEvent.click(toggleIcon);
+    expect(password.getAttribute('type')).toEqual(Input.types.TEXT);
+    fireEvent.click(toggleIcon);
+    expect(password.getAttribute('type')).toEqual(Input.types.PASSWORD);
+  });
+
+  it('should not submit if email and password are blank', async () => {
+    getScreen();
+    fireEvent.submit(screen.getByRole('button', { type: 'submit' }));
     await waitFor(() => expect(screen.queryAllByRole('alert')).toHaveLength(0));
     expect(mockSubmit).not.toBeCalled();
   });
 
   it('should not submit if email is valid and password is blank', async () => {
-    render(
-      <div>
-        <SignInForm onSubmitSignIn={mockSubmit} loading={false} />
-      </div>
-    );
+    getScreen();
     fireEvent.input(screen.queryByTestId(`signin-email`), {
       target: {
         value: 'test@test.com'
       }
     });
-    fireEvent.submit(screen.getByRole('button'));
+    fireEvent.submit(screen.getByRole('button', { type: 'submit' }));
     expect(await screen.findAllByRole('error')).toHaveLength(1);
     expect(mockSubmit).not.toBeCalled();
   });
 
   it('should not submit if email is invalid and password is valid', async () => {
-    render(
-      <div>
-        <SignInForm onSubmitSignIn={mockSubmit} loading={false} />
-      </div>
-    );
+    getScreen();
     fireEvent.input(screen.queryByTestId(`signin-pwd-${Input.types.PASSWORD}`), {
       target: {
         value: 'password'
@@ -51,17 +62,13 @@ describe('SignInForm Tests', () => {
         value: 'test'
       }
     });
-    fireEvent.submit(screen.getByRole('button'));
+    fireEvent.submit(screen.getByRole('button', { type: 'submit' }));
     expect(await screen.findAllByRole('error')).toHaveLength(1);
     expect(mockSubmit).not.toBeCalled();
   });
 
   it('should submit if email and password are valid', async () => {
-    render(
-      <div>
-        <SignInForm onSubmitSignIn={mockSubmit} loading={false} />
-      </div>
-    );
+    getScreen();
     fireEvent.input(screen.queryByTestId(`signin-pwd-${Input.types.PASSWORD}`), {
       target: {
         value: 'password'
@@ -73,7 +80,7 @@ describe('SignInForm Tests', () => {
       }
     });
 
-    fireEvent.click(screen.getByRole('button', { name: 'Sign In' }));
+    fireEvent.submit(screen.getByRole('button', { type: 'submit' }));
     await waitFor(() => expect(screen.queryAllByRole('alert')).toHaveLength(0));
     expect(mockSubmit).toBeCalled();
   });

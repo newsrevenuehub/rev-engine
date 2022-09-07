@@ -19,7 +19,9 @@ import YellowSVG from 'assets/images/account/yellow-bar.svg';
 import fetchReducer, { initialState, FETCH_START, FETCH_SUCCESS, FETCH_FAILURE } from 'state/fetch-reducer';
 
 // Analytics
-import { useConfigureAnalytics } from '../../analytics';
+import { useConfigureAnalytics } from 'components/analytics';
+
+const FORGOT_PASSWORD_SUCCESS = 'Success. If your email is registered, an email with a reset link will be sent to it.';
 
 function ForgotPassword() {
   useConfigureAnalytics();
@@ -30,21 +32,19 @@ function ForgotPassword() {
   const [loading, setLoading] = useState(false);
 
   const onForgotPasswordSubmit = async (fdata) => {
-    setLoading(true);
     dispatch({ type: FETCH_START });
     try {
       await axios.post(FORGOT_PASSWORD_ENDPOINT, { email: fdata.email });
-      setInfoMessage('Success. If your email is registered, an email with a reset-link will be sent. ');
+      setInfoMessage(FORGOT_PASSWORD_SUCCESS);
       dispatch({ type: FETCH_SUCCESS });
     } catch (e) {
       dispatch({ type: FETCH_FAILURE, payload: e?.response?.data });
     }
-    setLoading(false);
   };
 
   let formSubmissionMessage = <S.MessageSpacer />;
   if (infoMessage) {
-    formSubmissionMessage = <S.Message isMessage={true}>{infoMessage} </S.Message>;
+    formSubmissionMessage = <S.Message isSuccess={true}>{infoMessage} </S.Message>;
   } else if (formSubmitErrors) {
     formSubmissionMessage = <S.Message>{formSubmitErrors} </S.Message>;
   }
@@ -56,11 +56,11 @@ function ForgotPassword() {
       </S.Left>
       <S.Right>
         <S.FormElements>
-          <S.Heading>Forgot Password</S.Heading>
+          <S.Heading data-testid="forgot-pwd-title">Forgot Password</S.Heading>
           <S.Subheading>Enter your email address below and we'll send you a reset link.</S.Subheading>
 
           <br />
-          <ForgotPasswordForm onForgotPasswordSubmit={onForgotPasswordSubmit} loading={loading} />
+          <ForgotPasswordForm onForgotPasswordSubmit={onForgotPasswordSubmit} loading={forgotPasswordState.loading} />
           {formSubmissionMessage}
 
           <S.NavLink>

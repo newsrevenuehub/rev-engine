@@ -18,7 +18,7 @@ export const Leftbar = styled.div`
       contrast(91%);
   }
 
-  @media (${(props) => props.theme.breakpoints.mdDown}) {
+  @media (${(props) => props.theme.breakpoints.tabletLandscapeDown}) {
     margin: 20px 0px;
   }
 `;
@@ -27,7 +27,7 @@ export const Logo = styled.img`
   width: 80%;
   max-width: 208px;
 
-  @media (${(props) => props.theme.breakpoints.mdDown}) {
+  @media (${(props) => props.theme.breakpoints.tabletLandscapeDown}) {
     width: 50%;
     max-width: 140px;
   }
@@ -36,13 +36,13 @@ export const Logo = styled.img`
 export const Heading = styled.div`
   font-style: normal;
   font-weight: 400;
-  font-size: 36px;
+  font-size: ${(props) => props.theme.fontSizesUpdated.h1};
   line-height: 42px;
   text-transform: capitalize;
   margin: 32px 0px;
 
   @media (${(props) => props.theme.breakpoints.phoneOnly}) {
-    font-size: 26px;
+    font-size: ${(props) => props.theme.fontSizes[2]};
     line-height: 30px;
     padding-bottom: 20px;
   }
@@ -51,19 +51,19 @@ export const Heading = styled.div`
 export const Advantages = styled.div`
   padding-top: 40px;
 
-  @media (${(props) => props.theme.breakpoints.mdDown}) {
+  @media (${(props) => props.theme.breakpoints.tabletLandscapeDown}) {
     display: none;
   }
 `;
 
 export const Divider = styled.div`
-  border-top: 2px solid
+  border-top: ${(props) => props.theme.muiBorderRadius.sm} solid
     ${(props) =>
       props.bgColor && props.bgColor === 'purple'
         ? props.theme.colors.account.yellow[0]
         : props.theme.colors.account.purple[0]};
 
-  @media (${(props) => props.theme.breakpoints.mdDown}) {
+  @media (${(props) => props.theme.breakpoints.tabletLandscapeDown}) {
     display: none;
   }
 `;
@@ -97,7 +97,7 @@ export const AdvContent = styled.div`
 export const AdvHeading = styled.div`
   font-style: normal;
   font-weight: 400;
-  font-size: 18px;
+  font-size: ${(props) => props.theme.fontSizesUpdated.lg};
   margin-bottom: 4px;
   line-height: 138.19%;
 `;
@@ -105,7 +105,7 @@ export const AdvHeading = styled.div`
 export const AdvSubHeading = styled.div`
   font-style: normal;
   font-weight: 400;
-  font-size: 12px;
+  font-size: ${(props) => props.theme.fontSizesUpdated.xs};
   line-height: 138.19%;
 `;
 
@@ -114,7 +114,7 @@ export const AdvantageIcon = styled(SvgIcon)`
   height: 16px;
   margin-right: 0.5rem;
 
-  @media (${(props) => props.theme.breakpoints.mdDown}) {
+  @media (${(props) => props.theme.breakpoints.tabletLandscapeDown}) {
     width: 14px;
     height: 14px;
   }

@@ -23,7 +23,7 @@ import visibilityOn from 'assets/images/account/visibility_on.png';
 import visibilityOff from 'assets/images/account/visibility_off.png';
 
 // Analytics
-import { useConfigureAnalytics } from '../../analytics';
+import { useConfigureAnalytics } from 'components/analytics';
 
 function FetchQueryParams() {
   const { search } = useLocation();
@@ -36,30 +36,28 @@ function ResetPassword() {
   let qParams = FetchQueryParams();
   const token = qParams.get('token');
 
-  const [loading, setLoading] = useState(false);
+  const [passwordUpdateSuccess, setPasswordUpdateSuccess] = useState(false);
 
-  const [PasswordUpdateSuccess, setPasswordUpdateSuccess] = useState(false);
-
-  const [forgotPasswordState, dispatch] = useReducer(fetchReducer, initialState);
-  const formSubmitErrors = forgotPasswordState?.errors?.detail;
+  const [resetPasswordState, dispatch] = useReducer(fetchReducer, initialState);
+  const formSubmitErrors = resetPasswordState?.errors?.detail;
 
   const onResetPasswordSubmit = async (fdata) => {
-    setLoading(true);
     dispatch({ type: FETCH_START });
     try {
-      const { status } = await axios.post(RESET_PASSWORD_ENDPOINT, {
+      const { data, status } = await axios.post(RESET_PASSWORD_ENDPOINT, {
         token,
-        password: fdata.password,
-        password1: fdata.password1
+        password: fdata.password
       });
       if (status === 200) {
         setPasswordUpdateSuccess(true);
+      } else {
+        dispatch({ type: FETCH_FAILURE, payload: data });
       }
+
       dispatch({ type: FETCH_SUCCESS });
     } catch (e) {
       dispatch({ type: FETCH_FAILURE, payload: e?.response?.data });
     }
-    setLoading(false);
   };
 
   let formSubmissionMessage = <S.MessageSpacer />;
@@ -73,20 +71,20 @@ function ResetPassword() {
         <Leftbar />
       </S.Left>
       <S.Right>
-        <S.FormElements type={PasswordUpdateSuccess ? 'PasswordUpdateSuccess' : ''}>
-          <S.Heading data-testid="reset-pwd-title">{PasswordUpdateSuccess ? 'Success!' : 'Reset Password!'}</S.Heading>
-          <S.Subheading type={PasswordUpdateSuccess ? 'PasswordUpdateSuccess' : ''}>
-            {PasswordUpdateSuccess ? 'Your password has been successfuly reset.' : 'Enter your new password below.'}
+        <S.FormElements shorten={passwordUpdateSuccess}>
+          <S.Heading data-testid="reset-pwd-title">{passwordUpdateSuccess ? 'Success!' : 'Reset Password!'}</S.Heading>
+          <S.Subheading shorten={passwordUpdateSuccess}>
+            {passwordUpdateSuccess ? 'Your password has been successfully reset.' : 'Enter your new password below.'}
           </S.Subheading>
 
-          {!PasswordUpdateSuccess ? (
+          {!passwordUpdateSuccess ? (
             <>
-              <ResetPasswordForm loading={loading} onResetPasswordSubmit={onResetPasswordSubmit} />
+              <ResetPasswordForm loading={resetPasswordState.loading} onResetPasswordSubmit={onResetPasswordSubmit} />
               {formSubmissionMessage}
             </>
           ) : null}
 
-          <S.NavLink type={PasswordUpdateSuccess ? 'PasswordUpdateSuccess' : ''}>
+          <S.NavLink alignLeft={passwordUpdateSuccess}>
             <a href={SIGN_IN} data-testid="sign-in">
               Return to Sign In
             </a>

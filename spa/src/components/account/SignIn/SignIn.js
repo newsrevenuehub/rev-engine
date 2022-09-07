@@ -1,4 +1,4 @@
-import { useState, useReducer } from 'react';
+import { useReducer } from 'react';
 import * as S from '../Account.styled';
 
 // AJAX
@@ -15,7 +15,7 @@ import fetchReducer, { initialState, FETCH_START, FETCH_SUCCESS, FETCH_FAILURE }
 import { handleLoginSuccess } from 'components/authentication/util';
 
 // Analytics
-import { useConfigureAnalytics } from '../../analytics';
+import { useConfigureAnalytics } from 'components/analytics';
 
 import SignInForm from './SignInForm';
 import Logobar from 'components/account/common/logobar/Logobar';
@@ -28,7 +28,6 @@ function SignIn({ onSuccess }) {
   const history = useHistory();
 
   const [signInState, dispatch] = useReducer(fetchReducer, initialState);
-  const [loading, setLoading] = useState(false);
 
   useConfigureAnalytics();
 
@@ -40,7 +39,6 @@ function SignIn({ onSuccess }) {
   const formSubmitErrors = signInState?.errors?.detail;
 
   const onSubmitSignIn = async (fdata) => {
-    setLoading(true);
     dispatch({ type: FETCH_START });
     try {
       const { data, status } = await axios.post(TOKEN, { email: fdata.email, password: fdata.password });
@@ -52,7 +50,6 @@ function SignIn({ onSuccess }) {
     } catch (e) {
       dispatch({ type: FETCH_FAILURE, payload: e?.response?.data });
     }
-    setLoading(false);
   };
 
   return (
@@ -64,10 +61,9 @@ function SignIn({ onSuccess }) {
         <S.Right>
           <S.FormElements>
             <S.Heading>Welcome Back!</S.Heading>
-            <br />
 
-            <SignInForm onSubmitSignIn={onSubmitSignIn} loading={loading} />
-            {formSubmitErrors ? <S.Message>{formSubmitErrors} </S.Message> : <S.MessageSpacer />}
+            <SignInForm onSubmitSignIn={onSubmitSignIn} loading={signInState.loading} />
+            {formSubmitErrors ? <S.Message>{formSubmitErrors}</S.Message> : <S.MessageSpacer />}
 
             <S.NavLink>
               Not a member?&nbsp;

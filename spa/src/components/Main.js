@@ -5,7 +5,7 @@ import * as S from './Main.styled';
 
 import { USER } from 'ajax/endpoints';
 import Dashboard from 'components/dashboard/Dashboard';
-import Verify from 'components/account/Verify/Verify';
+import Verify from 'components/account/Verify';
 
 import useRequest from 'hooks/useRequest';
 import { useConfigureAnalytics } from './analytics';

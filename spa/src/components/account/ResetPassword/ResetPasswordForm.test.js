@@ -8,23 +8,53 @@ const mockSubmit = jest.fn((email, password) => {
 });
 
 describe('ResetPasswordForm Tests', () => {
-  it('should not submit if both passwords are blank', async () => {
-    render(
+  function getScreen() {
+    return render(
       <div>
         <ResetPasswordForm onResetPasswordSubmit={mockSubmit} loading={false} />
       </div>
     );
+  }
+
+  it('should have password toggle icon to show/hide value of password if its visibility icon is clicked', () => {
+    getScreen();
+    const password = screen.getByTestId(`reset-pwd-${Input.types.PASSWORD}`);
+    fireEvent.input(password, {
+      target: {
+        value: 'password'
+      }
+    });
+    const toggleIcon = screen.getByTestId('toggle-password');
+    fireEvent.click(toggleIcon);
+    expect(password.getAttribute('type')).toEqual(Input.types.TEXT);
+    fireEvent.click(toggleIcon);
+    expect(password.getAttribute('type')).toEqual(Input.types.PASSWORD);
+  });
+
+  it('should have password toggle icon to show/hide value of password1 if its visibility icon is clicked', () => {
+    getScreen();
+    const password = screen.getByTestId(`reset-pwd1-${Input.types.PASSWORD}`);
+    fireEvent.input(password, {
+      target: {
+        value: 'password'
+      }
+    });
+    const toggleIcon = screen.getByTestId('toggle-password1');
+    fireEvent.click(toggleIcon);
+    expect(password.getAttribute('type')).toEqual(Input.types.TEXT);
+    fireEvent.click(toggleIcon);
+    expect(password.getAttribute('type')).toEqual(Input.types.PASSWORD);
+  });
+
+  it('should not submit if both passwords are blank', async () => {
+    getScreen();
     fireEvent.submit(screen.getByRole('button'));
     await waitFor(() => expect(screen.queryAllByRole('error')).toHaveLength(0));
     expect(mockSubmit).not.toBeCalled();
   });
 
   it('should not submit if one password in blank and other is not blank', async () => {
-    render(
-      <div>
-        <ResetPasswordForm onResetPasswordSubmit={mockSubmit} loading={false} />
-      </div>
-    );
+    getScreen();
     fireEvent.input(screen.queryByTestId(`reset-pwd-password`), {
       target: {
         value: 'password'
@@ -36,12 +66,7 @@ describe('ResetPasswordForm Tests', () => {
   });
 
   it('should not submit if both passwords are valid and do not match', async () => {
-    render(
-      <div>
-        <ResetPasswordForm onResetPasswordSubmit={mockSubmit} loading={false} />
-      </div>
-    );
-
+    getScreen();
     fireEvent.input(screen.queryByTestId(`reset-pwd-password`), {
       target: {
         value: 'password12#4'
@@ -60,12 +85,7 @@ describe('ResetPasswordForm Tests', () => {
   });
 
   it('should not submit if both passwords are invalid and do match', async () => {
-    render(
-      <div>
-        <ResetPasswordForm onResetPasswordSubmit={mockSubmit} loading={false} />
-      </div>
-    );
-
+    getScreen();
     fireEvent.input(screen.queryByTestId(`reset-pwd-password`), {
       target: {
         value: 'password'
@@ -84,12 +104,7 @@ describe('ResetPasswordForm Tests', () => {
   });
 
   it('should submit if both passwords are valid and match', async () => {
-    render(
-      <div>
-        <ResetPasswordForm onResetPasswordSubmit={mockSubmit} loading={false} />
-      </div>
-    );
-
+    getScreen();
     fireEvent.input(screen.queryByTestId(`reset-pwd-password`), {
       target: {
         value: 'password12#4'

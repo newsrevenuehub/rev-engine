@@ -6,11 +6,7 @@ import Content from './Content.js';
 import { ICONS } from 'assets/icons/SvgIcon';
 
 function Heading() {
-  return (
-    <>
-      <S.Heading>{Content.heading}</S.Heading>
-    </>
-  );
+  return <S.Heading>{Content.heading}</S.Heading>;
 }
 
 function Advantages() {

@@ -112,7 +112,7 @@ export const Message = styled.div`
   font-weight: 400;
   font-size: 11px;
   line-height: 19px;
-  color: ${(props) => props.theme.colors.greyMedium};
+  color: ${(props) => props.theme.colors.grey[3]};
   padding: 0px 9px;
 `;
 
@@ -127,7 +127,7 @@ export const SignInLink = styled.div`
   font-weight: 400;
   font-size: 13px;
   line-height: 16px;
-  color: ${(props) => props.theme.colors.greyDark};
+  color: ${(props) => props.theme.colors.grey[4]};
 
   a,
   a:hover {
@@ -141,7 +141,7 @@ export const PasswordLabel = styled.div`
   font-weight: 600;
   font-size: 13px;
   line-height: 16px;
-  color: ${(props) => props.theme.colors.greyDark};
+  color: ${(props) => props.theme.colors.grey[4]};
   margin-top: 5px;
 
   a {
@@ -182,13 +182,13 @@ export const InputLabel = styled.div`
   font-weight: 600;
   font-size: 13px;
   line-height: 16px;
-  color: ${(props) => (props.hasError ? props.theme.colors.error.primary : props.theme.colors.greyDark)};
+  color: ${(props) => (props.hasError ? props.theme.colors.error.primary : props.theme.colors.grey[4])};
   margin-top: 5px;
 `;
 
 export const Instructions = styled.div`
   font-size: 11px;
   line-height: 13px;
-  color: ${(props) => props.theme.colors.greyMedium};
+  color: ${(props) => props.theme.colors.grey[3]};
   padding: 0px 0px 6px 0px;
 `;

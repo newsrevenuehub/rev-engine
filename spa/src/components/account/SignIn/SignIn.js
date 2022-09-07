@@ -69,12 +69,12 @@ function SignIn({ onSuccess }) {
             <SignInForm onSubmitSignIn={onSubmitSignIn} loading={loading} />
             {formSubmitErrors ? <S.Message>{formSubmitErrors} </S.Message> : <S.MessageSpacer />}
 
-            <S.SignInLink>
+            <S.NavLink>
               Not a member?&nbsp;
               <a href={SIGN_UP} data-testid="create-account">
                 Create an account
               </a>
-            </S.SignInLink>
+            </S.NavLink>
           </S.FormElements>
 
           <Logobar />

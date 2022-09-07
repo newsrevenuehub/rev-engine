@@ -76,7 +76,8 @@ export const revEngineTheme = {
       background: '#F5FF75',
       border: '0.5px solid #E6EE84',
       boxShadow: '0px 0.3px 0.5px rgba(0, 0, 0, 0.1), 0px 2px 4px rgba(0, 0, 0, 0.2)',
-      borderRadius: '4px'
+      borderRadius: '4px',
+      color: '#302436'
     }
   },
 

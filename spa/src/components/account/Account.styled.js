@@ -100,12 +100,17 @@ export const Submit = styled(motion.button)`
   font-size: ${(props) => props.theme.fontSizesUpdated.xs};
   line-height: ${(props) => props.theme.fontSizesUpdated.md};
   background: ${(props) => props.theme.buttons.yellow.background};
+  color: ${(props) => props.theme.buttons.yellow.color};
   border: ${(props) => props.theme.buttons.yellow.border};
   box-shadow: ${(props) => props.theme.buttons.yellow.boxShadow};
   border-radius: ${(props) => props.theme.buttons.yellow.borderRadius};
   margin: 7px 0px 10px;
   &:active {
     transform: translate(1px, 1px);
+    color: ${(props) => props.theme.buttons.yellow.color};
+  }
+  &:disabled {
+    color: ${(props) => props.theme.colors.grey[3]};
   }
 `;
 
@@ -121,22 +126,6 @@ export const Message = styled.div`
 
 export const MessageSpacer = styled.div`
   height: 19px;
-`;
-
-export const SignInLink = styled.div`
-  margin: 15px 0px 12px;
-  width: 100%;
-  text-align: center;
-  font-weight: 400;
-  font-size: 13px;
-  line-height: 16px;
-  color: ${(props) => props.theme.colors.grey[4]};
-
-  a,
-  a:hover {
-    color: ${(props) => props.theme.colors.account.blueLink};
-    text-decoration: underline;
-  }
 `;
 
 export const PasswordLabel = styled.div`
@@ -194,4 +183,20 @@ export const Instructions = styled.div`
   line-height: 13px;
   color: ${(props) => props.theme.colors.grey[3]};
   padding: 0px 0px 6px 0px;
+`;
+
+export const NavLink = styled.div`
+  margin: 15px 0px 12px;
+  width: 100%;
+  text-align: ${(props) => (props.type && props.type === 'PasswordUpdateSuccess' ? 'left' : 'center')};
+  font-weight: 400;
+  font-size: 13px;
+  line-height: 16px;
+  color: ${(props) => props.theme.colors.grey[4]};
+
+  a,
+  a:hover {
+    color: ${(props) => props.theme.colors.account.blueLink};
+    text-decoration: underline;
+  }
 `;

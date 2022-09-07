@@ -339,7 +339,7 @@ class BaseCreatePaymentSerializer(serializers.Serializer):
     def do_conditional_validation(self, data):
         """Handle validation of conditionally requirable fields"""
         errors = {}
-        for element in [elem for elem in data["page"].elements if len(elem["requiredFields"])]:
+        for element in [x for x in data["page"].elements if len(x["requiredFields"])]:
             for field in element["requiredFields"]:
                 # if it's blank or none or no key for it in data
                 if data.get(field, None) in (None, ""):

@@ -25,6 +25,7 @@ export const REVENUE_PROGRAMS = 'revenue-programs/';
 // Contributions
 export const CONTRIBUTIONS = 'contributions/';
 export const PROCESS_FLAGGED = 'process-flagged/';
+export const SUBSCRIPTIONS = 'subscriptions/';
 
 // Contributor Portal
 export const GET_MAGIC_LINK = 'contrib-email/';

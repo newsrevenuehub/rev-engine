@@ -28,7 +28,7 @@ import formatCurrencyAmount from 'utilities/formatCurrencyAmount';
 
 // AJAX
 import axios, { AuthenticationError } from 'ajax/axios';
-import { CANCEL_RECURRING, CONTRIBUTIONS } from 'ajax/endpoints';
+import { CONTRIBUTIONS, SUBSCRIPTIONS } from 'ajax/endpoints';
 
 // Children
 import ContributorTokenExpiredModal from 'components/contributor/contributorDashboard/ContributorTokenExpiredModal';
@@ -83,7 +83,9 @@ function ContributorDashboard() {
     async (contribution) => {
       setLoading(true);
       try {
-        await axios.post(`${CONTRIBUTIONS}${contribution.id}/${CANCEL_RECURRING}`);
+        await axios.delete(`${SUBSCRIPTIONS}${contribution.subscription_id}/`, {
+          data: { revenue_program_slug: contribution.revenue_program }
+        });
         alert.info(
           'Recurring contribution has been canceled. No more payments will be made. Changes may not appear here immediately.',
           { timeout: 8000 }

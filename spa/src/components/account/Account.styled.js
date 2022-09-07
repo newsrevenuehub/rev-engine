@@ -24,7 +24,7 @@ export const Left = styled.div`
   justify-content: center;
   align-items: center;
 
-  @media (${(props) => props.theme.breakpoints.mdDown}) {
+  @media (${(props) => props.theme.breakpoints.tabletLandscapeDown}) {
     flex: 100%;
     max-height: 240px;
   }
@@ -43,7 +43,7 @@ export const Right = styled.div`
   flex-direction: column;
   background-color: ${(props) => props.theme.colors.white};
 
-  @media (${(props) => props.theme.breakpoints.mdDown}) {
+  @media (${(props) => props.theme.breakpoints.tabletLandscapeDown}) {
     flex: 100%;
   }
 
@@ -70,7 +70,7 @@ export const BottomBarYellowSVG = styled.img`
   width: 100%;
   bottom: 0px;
   right: 0px;
-  @media (${(props) => props.theme.breakpoints.mdDown}) {
+  @media (${(props) => props.theme.breakpoints.tabletLandscapeDown}) {
     display: none;
   }
 `;
@@ -78,6 +78,7 @@ export const BottomBarYellowSVG = styled.img`
 export const Heading = styled.div`
   font-weight: 400;
   font-size: ${(props) => props.theme.fontSizes[3]};
+  margin-bottom: 20px;
 
   line-height: 138.19%;
   color: ${(props) => props.theme.colors.account.purple[2]};
@@ -86,8 +87,8 @@ export const Heading = styled.div`
     font-size: ${(props) => props.theme.fontSizes[2]};
   }
 
-  @media (${(props) => props.theme.breakpoints.mdDown}) {
-    margin-top: ${(props) => props.theme.fontSizes[7]};
+  @media (${(props) => props.theme.breakpoints.tabletLandscapeDown}) {
+    margin-top: ${(props) => props.theme.fontSizesUpdated.xl};
   }
 `;
 

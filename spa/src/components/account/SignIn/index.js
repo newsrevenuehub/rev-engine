@@ -61,10 +61,9 @@ function SignIn({ onSuccess }) {
         <S.Right>
           <S.FormElements>
             <S.Heading>Welcome Back!</S.Heading>
-            <br />
 
             <SignInForm onSubmitSignIn={onSubmitSignIn} loading={signInState.loading} />
-            {formSubmitErrors ? <S.Message>{formSubmitErrors} </S.Message> : <S.MessageSpacer />}
+            {formSubmitErrors ? <S.Message>{formSubmitErrors}</S.Message> : <S.MessageSpacer />}
 
             <S.NavLink>
               Not a member?&nbsp;

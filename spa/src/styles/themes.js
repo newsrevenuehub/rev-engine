@@ -27,7 +27,7 @@ export const revEngineTheme = {
 
     white: '#ffffff',
 
-    grey: ['#eee', '#ccc', '#999', '#666', '#333', '#282828'],
+    grey: ['#eee', '#ccc', '#999', '#666', '#333'],
 
     muiLightBlue: {
       200: '#6FD1EC',
@@ -85,14 +85,15 @@ export const revEngineTheme = {
 
   font: { body: "'Roboto', sans-serif", heading: "'Roboto', sans-serif" },
 
-  fontSizes: ['12px', '16px', '24px', '32px', '48px', '84px', '96px', '72px'],
+  fontSizes: ['12px', '16px', '24px', '32px', '48px', '84px', '96px'],
 
   fontSizesUpdated: {
     xs: '12px',
     sm: '14px',
     md: '16px',
     lg: '18px',
-    h1: '34px'
+    h1: '34px',
+    xl: '72px'
   },
 
   muiBorderRadius: {
@@ -107,7 +108,7 @@ export const revEngineTheme = {
 
   breakpoints: {
     phoneOnly: 'max-width: 599px',
-    mdDown: 'max-width: 890px',
+    tabletLandscapeDown: 'max-width: 890px',
     mdUp: 'min-width: 890px'
   },
 

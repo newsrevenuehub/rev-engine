@@ -9,7 +9,6 @@ import visibilityOff from 'assets/images/account/visibility_off.png';
 import { FORGOT_PASSWORD } from 'routes';
 
 function SignInForm({ onSubmitSignIn, loading }) {
-  //const [showPassword, setShowPassword] = useState(false);
   const { open: showPassword, handleToggle: togglePasswordVisiblity } = useModal();
 
   const {
@@ -22,7 +21,7 @@ function SignInForm({ onSubmitSignIn, loading }) {
   const watchEmail = watch('email', '');
   const watchPassword = watch('password', '');
 
-  const disabled = watchEmail === '' || watchPassword === '' || loading;
+  const disabled = !watchEmail || !watchPassword || loading;
 
   const onSubmit = async (fdata) => {
     onSubmitSignIn(fdata);

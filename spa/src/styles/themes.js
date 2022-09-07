@@ -25,14 +25,6 @@ export const revEngineTheme = {
       blueLink: '#0052cc'
     },
 
-    buttons: {
-      yellow: {
-        background: '#f5ff75',
-        border: '0.5px solid #e6ee84',
-        boxShadow: '0px 0.3px 0.5px rgba(0, 0, 0, 0.1), 0px 2px 4px rgba(0, 0, 0, 0.2)'
-      }
-    },
-
     white: '#ffffff',
 
     grey: ['#eee', '#ccc', '#999', '#666', '#333', '#282828'],
@@ -77,6 +69,15 @@ export const revEngineTheme = {
 
     tableRowHover: '#bcd3f5',
     tableRowActive: '#dce8fa'
+  },
+
+  buttons: {
+    yellow: {
+      background: '#F5FF75',
+      border: '0.5px solid #E6EE84',
+      boxShadow: '0px 0.3px 0.5px rgba(0, 0, 0, 0.1), 0px 2px 4px rgba(0, 0, 0, 0.2)',
+      borderRadius: '4px'
+    }
   },
 
   systemFont: "'Roboto', sans-serif",

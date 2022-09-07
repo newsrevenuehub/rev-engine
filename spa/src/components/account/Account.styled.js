@@ -109,10 +109,13 @@ export const Submit = styled(motion.button)`
   text-transform: uppercase;
   text-align: center;
   padding: 9px 0px;
-  background: ${(props) => props.theme.colors.buttons.yellow.background};
-  border: ${(props) => props.theme.colors.buttons.yellow.border};
-  box-shadow: ${(props) => props.theme.colors.buttons.yellow.boxShadow};
-  border-radius: 6px;
+  font-weight: 600;
+  font-size: ${(props) => props.theme.fontSizesUpdated.xs};
+  line-height: ${(props) => props.theme.fontSizesUpdated.md};
+  background: ${(props) => props.theme.buttons.yellow.background};
+  border: ${(props) => props.theme.buttons.yellow.border};
+  box-shadow: ${(props) => props.theme.buttons.yellow.boxShadow};
+  border-radius: ${(props) => props.theme.buttons.yellow.borderRadius};
   margin: 7px 0px 10px;
   &:active {
     transform: translate(1px, 1px);

@@ -3,7 +3,7 @@ import { Route, Switch, Redirect, useLocation } from 'react-router-dom';
 import * as S from './Dashboard.styled';
 
 // Routing
-import { DONATIONS_SLUG, CONTENT_SLUG, EDITOR_ROUTE_PAGE, DASHBOARD_SLUG, CUSTOMIZE_SLUG } from 'routes';
+import { DONATIONS_SLUG, CONTENT_SLUG, EDITOR_ROUTE, EDITOR_ROUTE_PAGE, DASHBOARD_SLUG, CUSTOMIZE_SLUG } from 'routes';
 
 // Children
 import { useFeatureFlagsProviderContext } from 'components/Main';
@@ -16,17 +16,15 @@ import Customize from 'components/content/Customize';
 import PageEditor from 'components/pageEditor/PageEditor';
 
 // Feature flag-related
-import {
-  CONTRIBUTIONS_SECTION_ACCESS_FLAG_NAME,
-  CONTENT_SECTION_ACCESS_FLAG_NAME
-} from 'constants/featureFlagConstants';
+import { CONTENT_SECTION_ACCESS_FLAG_NAME } from 'constants/featureFlagConstants';
 
 import flagIsActiveForUser from 'utilities/flagIsActiveForUser';
+import hasContributionsDashboardAcessToUser from 'utilities/hasContributionsDashboardAcessToUser';
 
 function Dashboard() {
   const { featureFlags } = useFeatureFlagsProviderContext();
 
-  const hasContributionsSectionAccess = flagIsActiveForUser(CONTRIBUTIONS_SECTION_ACCESS_FLAG_NAME, featureFlags);
+  const hasContributionsSectionAccess = hasContributionsDashboardAcessToUser(featureFlags);
 
   const hasContentSectionAccess = flagIsActiveForUser(CONTENT_SECTION_ACCESS_FLAG_NAME, featureFlags);
 
@@ -36,7 +34,7 @@ function Dashboard() {
     ? DONATIONS_SLUG
     : 'not-found';
 
-  const isEditPage = useLocation().pathname.includes('/dashboard/edit');
+  const isEditPage = useLocation().pathname.includes(EDITOR_ROUTE);
 
   return (
     <S.Outer>

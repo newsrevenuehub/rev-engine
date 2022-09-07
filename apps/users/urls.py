@@ -14,6 +14,7 @@ api_urlpatterns = [
 ]
 
 orgadmin_user_management_urls = [
+    path("verify-account/<email>/<token>/", views.account_verification, name="account_verification"),
     path("password-reset/password-reset", views.CustomPasswordResetView.as_view(), name="orgadmin_password_reset"),
     path("password-reset-done/", views.CustomPasswordResetDoneView.as_view(), name="orgadmin_password_reset_done"),
     path(

@@ -1,5 +1,8 @@
+import binascii
 import logging
+from base64 import urlsafe_b64decode, urlsafe_b64encode
 
+import django
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.contrib.auth.password_validation import validate_password
@@ -9,13 +12,17 @@ from django.contrib.auth.views import (
     PasswordResetDoneView,
     PasswordResetView,
 )
+from django.core import signing
 from django.core.exceptions import ValidationError as DjangoValidationError
 from django.dispatch import receiver
+from django.http import HttpResponseRedirect
 from django.urls import reverse, reverse_lazy
 from django.utils.safestring import mark_safe
+from django.views.decorators.http import require_GET
 
 from django_rest_passwordreset.signals import reset_password_token_created
-from rest_framework import mixins
+from rest_framework import mixins, status
+from rest_framework.decorators import action
 from rest_framework.exceptions import APIException
 from rest_framework.generics import GenericAPIView
 from rest_framework.permissions import AllowAny, IsAuthenticated
@@ -26,8 +33,11 @@ from rest_framework.viewsets import GenericViewSet
 from apps.api.permissions import HasDeletePrivilegesViaRole, HasRoleAssignment, is_a_contributor
 from apps.common.utils import get_original_ip_from_request
 from apps.contributions.bad_actor import BadActorAPIError, make_bad_actor_request
+from apps.contributions.utils import get_sha256_hash
 from apps.emails.tasks import send_templated_email
+from apps.organizations.models import Organization, RevenueProgram
 from apps.public.permissions import IsActiveSuperUser
+from apps.users.choices import Roles
 from apps.users.constants import (
     BAD_ACTOR_CLIENT_FACING_VALIDATION_MESSAGE,
     BAD_ACTOR_FAKE_AMOUNT,
@@ -36,14 +46,97 @@ from apps.users.constants import (
     PASSWORD_UNEXPECTED_VALIDATION_MESSAGE_SUBSTITUTE,
     PASSWORD_VALIDATION_EXPECTED_MESSAGES,
 )
-from apps.users.models import UnexpectedRoleType, User
-from apps.users.permissions import UserIsAllowedToUpdate, UserOwnsUser
-from apps.users.serializers import UserSerializer
+from apps.users.models import RoleAssignment, UnexpectedRoleType, User
+from apps.users.permissions import (
+    UserHasAcceptedTermsOfService,
+    UserIsAllowedToUpdate,
+    UserOwnsUser,
+)
+from apps.users.serializers import CustomizeAccountSerializer, UserSerializer
 
 
 logger = logging.getLogger(__name__)
 
 user_model = get_user_model()
+
+
+@require_GET
+def account_verification(request, email, token):
+    """Endpoint for verification link in "verify your email address" emails."""
+    checker = AccountVerification()
+    if user := checker.validate(email, token):
+        user.email_verified = True
+        user.save()
+        return HttpResponseRedirect(reverse("spa_account_verification"))
+    else:
+        # Having failure reason in URL is non-optimal.
+        return HttpResponseRedirect(reverse("spa_account_verification_fail", kwargs={"failure": checker.fail_reason}))
+
+
+class AccountVerification(signing.TimestampSigner):
+    def __init__(self):
+        self.fail_reason = ""  # fail_reason is set after validate() called and will be one of the following [failed, expired, inactive, unknown]. See validate() for meanings.
+        self.max_age = (
+            60 * 60 * (settings.ACCOUNT_VERIFICATION_LINK_EXPIRY or 0)
+        )  # Convert setting hours (or None) to seconds.
+        super().__init__(salt=settings.ENCRYPTION_SALT)
+
+    def _hash(self, plaintext):
+        return get_sha256_hash(plaintext)
+
+    def generate_token(self, email):
+        encoded_email = self.encode(email)
+        if self.max_age:
+            token = self.encode(self.sign(self._hash(email)))
+        else:
+            token = self.encode(self._hash(email))
+        return encoded_email, token
+
+    def validate(self, encoded_email, encoded_token):
+        # Note: Not a failure if user alreay has email_verified=True
+        email = self.decode(encoded_email)
+        token = self.decode(encoded_token)
+        if not (email and token):
+            logger.info("Account Verification: Malformed or missing email/token for email: %s", email)
+            self.fail_reason = "failed"
+            return False
+        if self.max_age:
+            try:
+                token = self.unsign(token, self.max_age)
+            except signing.SignatureExpired:
+                logger.warning("Account Verification: URL Expired for email: %s", email)
+                self.fail_reason = "expired"
+                return False
+            except signing.BadSignature:
+                logger.info("Account Verification: Bad Signature for email: %s", email)
+                self.fail_reason = "failed"
+                return False
+        if token != self._hash(email):
+            logger.info("Account Verification: Invalid token for email: %s", email)
+            self.fail_reason = "failed"
+            return False
+        if not (
+            user := get_user_model().objects.filter(email=email).first()
+        ):  # Get the (only) matching User or None instead of raising exception.
+            logger.info("Account Verification: No user for email: %s", email)
+            self.fail_reason = "unknown"
+            return False
+        if not user.is_active:
+            logger.warning("Account Verification: Inactive user for email: %s", email)
+            self.fail_reason = "inactive"
+            return False
+        return user
+
+    @staticmethod
+    def encode(plain_entity):
+        return urlsafe_b64encode(str(plain_entity).encode("UTF-8")).decode("UTF-8")
+
+    @staticmethod
+    def decode(encoded_entity):
+        try:
+            return urlsafe_b64decode(encoded_entity).decode("UTF-8")
+        except (UnicodeDecodeError, binascii.Error):
+            return False
 
 
 class CustomPasswordResetView(PasswordResetView):
@@ -92,23 +185,45 @@ class UserViewset(
     http_method_names = ["get", "post", "patch"]
 
     def get_permissions(self):
-        permission_classes = []
-        if self.action == "create":
-            permission_classes = [
+        permission_classes = {
+            "create": [
                 AllowAny,
-            ]
-        if self.action == "list":
-            permission_classes = [
+            ],
+            "list": [
                 IsAuthenticated,
-            ]
+            ],
+            "partial_update": [UserOwnsUser, UserIsAllowedToUpdate],
+            "request_account_verification": [
+                IsAuthenticated,
+            ],
+        }.get(self.action, [])
         if self.action == "partial_update":
             permission_classes = [UserOwnsUser, UserIsAllowedToUpdate]
+        if self.action == "customize_account":
+            permission_classes = [UserOwnsUser, IsAuthenticated, UserIsAllowedToUpdate, UserHasAcceptedTermsOfService]
+
         return [permission() for permission in permission_classes]
+
+    @staticmethod
+    def send_verification_email(user):
+        """Send email to user asking them to click verify their email address link."""
+        if not user.email:
+            logger.warning("Account Verification: No email for user: %s", user.id)
+            return
+        encoded_email, token = AccountVerification().generate_token(user.email)
+        url = reverse("account_verification", kwargs={"email": encoded_email, "token": token})
+        send_templated_email.delay(
+            user.email,
+            EMAIL_VERIFICATION_EMAIL_SUBJECT,
+            "nrh-org-account-creation-verification-email.txt",
+            "nrh-org-account-creation-verification-email.html",
+            {"verification_url": django.utils.safestring.mark_safe(url)},
+        )
 
     def validate_password(self, email, password):
         """Validate the password
 
-        NB: This needs to be done in view layer and not serializer layer becauase Django's password
+        NB: This needs to be done in view layer and not serializer layer because Django's password
         validation functions we're using need access to the user attributes, not just password. This allows
         us to access all fields that were already validated in serializer layer.
         """
@@ -160,21 +275,63 @@ class UserViewset(
         if password := serializer.validated_data.get("password"):
             self.validate_password(serializer.validated_data.get("email", self.get_object().email), password)
         serializer.save()
-
-    def send_verification_email(self, user):
-        """Send an email to user asking them to verify their email address"""
-        send_templated_email.delay(
-            user.email,
-            EMAIL_VERIFICATION_EMAIL_SUBJECT,
-            "nrh-org-account-creation-verification-email.txt",
-            "nrh-org-account-creation-verification-email.html",
-            # this is placeholder for now
-            {"verification_url": None},
-        )
+        # TODO: If email changed, unset email_verified and resend verification email.
 
     def list(self, request, *args, **kwargs):
-        """List returns the requesting user's serialized user instance"""
+        """Returns the requesting user's serialized user instance, not a list."""
         return Response(self.get_serializer(request.user).data)
+
+    @action(detail=True, methods=["patch"])
+    def customize_account(self, request, pk=None):
+        """Allows customizing an account"""
+        customize_account_serializer = CustomizeAccountSerializer(data=request.data)
+        customize_account_serializer.is_valid()
+        if customize_account_serializer.errors:
+            errors = {**customize_account_serializer.errors, **customize_account_serializer.errors}
+            logger.warning("Request %s is invalid; errors: %s", request.data, errors)
+            raise ValidationError(errors)
+        first_name = customize_account_serializer.validated_data["first_name"]
+        last_name = customize_account_serializer.validated_data["last_name"]
+        job_title = customize_account_serializer.validated_data["job_title"]
+        organization_name = customize_account_serializer.validated_data["organization_name"]
+        organization_tax_status = customize_account_serializer.validated_data["organization_tax_status"]
+        user = request.user
+        logger.debug("Received request to customize account for user %s; request: %s", user, request.data)
+        user.first_name = first_name
+        user.last_name = last_name
+        user.job_title = job_title
+        user.save()
+        if Organization.objects.filter(name=organization_name).exists():
+            counter = 1
+            while Organization.objects.filter(name=f"{organization_name}-{counter}").exists():
+                counter += 1
+            organization_name = f"{organization_name}-{counter}"
+        organization = Organization.objects.create(name=organization_name, slug=organization_name)
+        revenue_program = RevenueProgram.objects.create(
+            name=organization_name,
+            organization=organization,
+            non_profit=True if organization_tax_status == "nonprofit" else False,
+        )
+        RoleAssignment.objects.create(user=user, role_type=Roles.ORG_ADMIN, organization=organization)
+        logger.info(
+            "Customize account for user %s successful; organization %s and revenue program %s created.",
+            user,
+            organization.pk,
+            revenue_program.pk,
+        )
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+    @action(detail=False, methods=["get"])
+    def request_account_verification(self, request, *args, **kwargs):
+        """(Re)Send account verification email."""
+        # Note self.get_permissions() verifies authenticated user.
+        if request.user.email_verified:
+            return Response({"detail": "Account already verified"}, status=status.HTTP_404_NOT_FOUND)
+        elif not request.user.is_active:
+            return Response({"detail": "Account inactive"}, status=status.HTTP_404_NOT_FOUND)
+        else:
+            self.send_verification_email(request.user)
+            return Response({"detail": "Success"})
 
 
 class FilterQuerySetByUserMixin(GenericAPIView):

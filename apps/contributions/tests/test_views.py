@@ -864,17 +864,6 @@ class TestOneTimePaymentViewSet:
         assert response.status_code == status.HTTP_403_FORBIDDEN
         # TODO - figure out how to do csrf protection but return JSON when no token
 
-    def test_success_action(self):
-        """Minimal test of success action.  This view calls a model method which is more deeply tested elsewhere."""
-
-        contribution = ContributionFactory(interval="one_time")
-        contribution.provider_client_secret_id = "Shhhhhh"
-        contribution.save()
-
-        url = reverse("payment-one-time-success", args=(contribution.provider_client_secret_id,))
-        response = self.client.patch(url, {})
-        assert response.status_code == status.HTTP_204_NO_CONTENT
-
 
 @pytest.mark.django_db
 class TestSubscriptionPaymentViewSet:
@@ -926,12 +915,14 @@ class TestSubscriptionPaymentViewSet:
         assert response.status_code == status.HTTP_403_FORBIDDEN
         # TODO: [DEV-2335] Figure out how to return JSON instead of HTML response when CSRF token missing
 
-    def test_success_action(self):
-        """Minimal test of success action.  This view calls a model method which is more deeply tested elsewhere."""
-        contribution = ContributionFactory(interval="month")
-        contribution.provider_client_secret_id = "Shhhhhh"
-        contribution.save()
 
-        url = reverse("payment-subscription-success", args=(contribution.provider_client_secret_id,))
-        response = self.client.patch(url, {})
-        assert response.status_code == status.HTTP_204_NO_CONTENT
+@pytest.mark.django_db
+def test_payment_success_view():
+    """Minimal test of payment success view. This view calls a model method which is more deeply tested elsewhere."""
+    client = APIClient()
+    contribution = ContributionFactory(interval="month")
+    contribution.provider_client_secret_id = "Shhhhhh"
+    contribution.save()
+    url = reverse("payment-success", args=(contribution.provider_client_secret_id,))
+    response = client.patch(url, {})
+    assert response.status_code == status.HTTP_204_NO_CONTENT

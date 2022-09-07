@@ -62,14 +62,12 @@ class ContributorTest(TestCase):
         customer = self.contributor.create_stripe_customer(**call_args)
         mock_create_customer.assert_called_once_with(
             email=self.contributor.email,
-            shipping={
-                "address": {
-                    "line1": call_args["street"],
-                    "city": call_args["city"],
-                    "state": call_args["state"],
-                    "postal_code": call_args["postal_code"],
-                    "country": call_args["country"],
-                }
+            address={
+                "line1": call_args["street"],
+                "city": call_args["city"],
+                "state": call_args["state"],
+                "postal_code": call_args["postal_code"],
+                "country": call_args["country"],
             },
             name=call_args["customer_name"],
             phone=call_args["phone"],

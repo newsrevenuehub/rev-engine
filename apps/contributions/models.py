@@ -61,14 +61,12 @@ class Contributor(IndexedTimeStampedModel):
         """Create a Stripe customer using contributor email"""
         return stripe.Customer.create(
             email=self.email,
-            shipping={
-                "address": {
-                    "line1": street,
-                    "city": city,
-                    "state": state,
-                    "postal_code": postal_code,
-                    "country": country,
-                }
+            address={
+                "line1": street,
+                "city": city,
+                "state": state,
+                "postal_code": postal_code,
+                "country": country,
             },
             name=customer_name,
             phone=phone,
@@ -135,6 +133,9 @@ class Contribution(IndexedTimeStampedModel, RoleAssignmentResourceModelMixin):
     payment_provider_used = models.CharField(max_length=64)
     payment_provider_data = models.JSONField(null=True)
     provider_payment_id = models.CharField(max_length=255, blank=True, null=True)
+    # This is the `client_id` value in the response from StripeAPI after creating a
+    # Stripe PaymentElement or Subscription
+    # TODO: Consider not saving `provider_client_secret_id` as plain text
     provider_client_secret_id = models.CharField(max_length=255, blank=True, null=True)
     provider_subscription_id = models.CharField(max_length=255, blank=True, null=True)
     provider_customer_id = models.CharField(max_length=255, blank=True, null=True)
@@ -322,8 +323,9 @@ class Contribution(IndexedTimeStampedModel, RoleAssignmentResourceModelMixin):
         self.save()
         return subscription
 
-    def handle_thank_you_email(self, contribution_received_at=timezone.now()):
+    def handle_thank_you_email(self, contribution_received_at=None):
         """Send a thank you email to contribution's contributor if org is configured to have NRE send thank you email"""
+        contribution_received_at = contribution_received_at if contribution_received_at else timezone.now()
         if self.revenue_program.organization.send_receipt_email_via_nre:
             send_templated_email.delay(
                 self.contributor.email,

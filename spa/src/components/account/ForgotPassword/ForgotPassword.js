@@ -7,6 +7,8 @@ import { FORGOT_PASSWORD_ENDPOINT } from 'ajax/endpoints';
 
 import * as S from '../Account.styled';
 
+import ForgotPasswordForm from './ForgotPasswordForm';
+
 import Logobar from 'components/account/common/logobar/Logobar';
 import Leftbar from 'components/account/common/leftbar/Leftbar';
 
@@ -25,24 +27,19 @@ function ForgotPassword() {
   const formSubmitErrors = forgotPasswordState?.errors?.detail;
 
   const [infoMessage, setInfoMessage] = useState(null);
+  const [loading, setLoading] = useState(false);
 
-  const {
-    register,
-    handleSubmit,
-    formState: { errors },
-    reset
-  } = useForm();
-
-  const onSubmitForgotPassword = async (fdata) => {
+  const onForgotPasswordSubmit = async (fdata) => {
+    setLoading(true);
     dispatch({ type: FETCH_START });
     try {
       await axios.post(FORGOT_PASSWORD_ENDPOINT, { email: fdata.email });
       setInfoMessage('Success. If your email is registered, an email with a reset-link will be sent. ');
       dispatch({ type: FETCH_SUCCESS });
-      reset();
     } catch (e) {
       dispatch({ type: FETCH_FAILURE, payload: e?.response?.data });
     }
+    setLoading(false);
   };
 
   let formSubmissionMessage = <S.MessageSpacer />;
@@ -54,7 +51,7 @@ function ForgotPassword() {
 
   return (
     <S.Outer>
-      <S.Left data-testid="left-yellow">
+      <S.Left data-testid="left-panel">
         <Leftbar />
       </S.Left>
       <S.Right>
@@ -63,28 +60,7 @@ function ForgotPassword() {
           <S.Subheading>Enter your email address below and we'll send you a reset link.</S.Subheading>
 
           <br />
-          <form onSubmit={handleSubmit(onSubmitForgotPassword)}>
-            <S.InputLabel data-testid={`email-label`} hasError={errors.email}>
-              Email
-            </S.InputLabel>
-            <S.InputOuter hasError={errors.email}>
-              <input
-                id="email"
-                {...register('email', {
-                  required: 'Please enter a valid email id',
-                  pattern: {
-                    value: /\S+@\S+\.\S+/,
-                    message: 'Please enter a valid email id'
-                  }
-                })}
-                type="text"
-                status={errors.email}
-              />
-            </S.InputOuter>
-            {errors.email ? <S.Message data-testid={`error`}>{errors.email.message}</S.Message> : <S.MessageSpacer />}
-
-            <S.Submit type="submit">Send Reset Link</S.Submit>
-          </form>
+          <ForgotPasswordForm onForgotPasswordSubmit={onForgotPasswordSubmit} loading={loading} />
           {formSubmissionMessage}
 
           <S.NavLink>
@@ -96,8 +72,8 @@ function ForgotPassword() {
 
         <Logobar />
       </S.Right>
-      <S.BottomBar data-testid={`bottom-yellow-bar`}>
-        <S.BottomBarYellowSVG src={YellowSVG} />
+      <S.BottomBar>
+        <S.BottomBarYellowSVG src={YellowSVG} data-testid="bottom-yellow-svg" />
       </S.BottomBar>
     </S.Outer>
   );

@@ -24,7 +24,7 @@ function Advantages() {
             </span>
             <S.AdvContent>
               <S.AdvHeading>{advantage.heading}</S.AdvHeading>
-              <S.AdvSubHeading>{advantage.subheading}</S.AdvSubHeading>
+              <S.AdvSubHeading dangerouslySetInnerHTML={{ __html: advantage.subheading }} />
             </S.AdvContent>
           </S.Advantage>
         );

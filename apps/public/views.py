@@ -9,7 +9,13 @@ from apps.public.serializers import RevenueProgramDetailSerializer, RevenueProgr
 class RevenueProgramViewset(ReadOnlyModelViewSet):
     model = RevenueProgram
     permission_classes = [IsAuthenticated, IsActiveSuperUser]
-    queryset = RevenueProgram.objects.all()
+
+    def get_queryset(self):
+        queryset = RevenueProgram.objects.all()
+        stripe_account_id = self.request.query_params.get("stripe_account_id", None)
+        if stripe_account_id is not None:
+            queryset = queryset.filter(payment_provider__stripe_account_id=stripe_account_id)
+        return queryset
 
     def get_serializer_class(self, **kwargs):
         if self.action == "list":

@@ -47,7 +47,6 @@ class ContributorTest(TestCase):
         """Show Contributor.create_stripe_customer calls Stripe with right params and returns the customer object"""
         return_value = {}
         mock_create_customer.return_value = return_value
-
         call_args = {
             "rp_stripe_account_id": "fake_rp_stripe_id",
             "customer_name": "Jane Doe",
@@ -60,15 +59,17 @@ class ContributorTest(TestCase):
             "metadata": {"meta": "data"},
         }
         customer = self.contributor.create_stripe_customer(**call_args)
+        address = {
+            "line1": call_args["street"],
+            "city": call_args["city"],
+            "state": call_args["state"],
+            "postal_code": call_args["postal_code"],
+            "country": call_args["country"],
+        }
         mock_create_customer.assert_called_once_with(
             email=self.contributor.email,
-            address={
-                "line1": call_args["street"],
-                "city": call_args["city"],
-                "state": call_args["state"],
-                "postal_code": call_args["postal_code"],
-                "country": call_args["country"],
-            },
+            address=address,
+            shipping={"address": address},
             name=call_args["customer_name"],
             phone=call_args["phone"],
             stripe_account=call_args["rp_stripe_account_id"],

@@ -10,7 +10,7 @@ from apps.common.utils import (
 from apps.contributions.utils import get_hub_stripe_api_key
 
 
-class Command(BaseCommand):  # pragma: no cover Guess we're too lazy to test
+class Command(BaseCommand):  # pragma: no cover low ROI for test of command line tool with all cloudfare mocked out.
     def add_arguments(self, parser):
         parser.add_argument("--ticket", nargs="?", type=str)
 

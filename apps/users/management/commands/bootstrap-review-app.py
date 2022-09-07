@@ -14,7 +14,7 @@ from apps.contributions.utils import get_hub_stripe_api_key
 from apps.organizations.models import RevenueProgram
 
 
-class Command(BaseCommand):  # pragma: no cover Guess we're too lazy to test.
+class Command(BaseCommand):  # pragma: no cover low ROI for test of command line tool with all heroku mocked out.
     help = "Bootstrap Heroku review app"
 
     def handle(self, *args, **options):

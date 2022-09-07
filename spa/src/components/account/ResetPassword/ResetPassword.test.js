@@ -33,6 +33,11 @@ describe('ForgotPassword Tests', () => {
     expect(icons).toBeInTheDocument();
   });
 
+  it('should have ResetPassword Form', () => {
+    render(<ResetPassword />);
+    expect(screen.getByRole('button', { type: 'submit' })).toBeInTheDocument();
+  });
+
   it('should have password toggle icon to show/hide value of password if its visibility icon is clicked', () => {
     render(<ResetPassword />);
     const password = screen.getByTestId(`reset-pwd-${Input.types.PASSWORD}`);
@@ -65,7 +70,6 @@ describe('ForgotPassword Tests', () => {
 
   it('should have link to take user to sign in page', () => {
     render(<ResetPassword />);
-    const signIn = screen.getByTestId('sign-in');
-    expect(signIn).toHaveAttribute('href', SIGN_IN);
+    expect(screen.getByRole('link', { href: SIGN_IN })).toBeInTheDocument();
   });
 });

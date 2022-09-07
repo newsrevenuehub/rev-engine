@@ -1,5 +1,4 @@
 import { render, screen, fireEvent } from 'test-utils';
-import ReactTestUtils from 'react-dom/test-utils';
 import SignIn from '.';
 import { SIGN_UP, FORGOT_PASSWORD } from 'routes';
 
@@ -22,7 +21,7 @@ describe('SignIn Component Tests', () => {
 
   it('should have heading - Welcome Back!', () => {
     render(<SignIn />);
-    const title = screen.queryByText('Welcome Back!');
+    const title = screen.getByText('Welcome Back!');
     expect(title).toBeInTheDocument();
   });
 
@@ -32,20 +31,5 @@ describe('SignIn Component Tests', () => {
     expect(signUp).toHaveAttribute('href', SIGN_UP);
     const resetPassword = screen.getByTestId('reset-password');
     expect(resetPassword).toHaveAttribute('href', FORGOT_PASSWORD);
-  });
-
-  it('should have password toggle icon to show/hide value of password if visibility icon is clicked', () => {
-    render(<SignIn />);
-    const password = screen.getByTestId(`signin-pwd-${Input.types.PASSWORD}`);
-    fireEvent.input(password, {
-      target: {
-        value: 'test@test.com'
-      }
-    });
-    const toggleIcon = screen.getByTestId('toggle-password');
-    fireEvent.click(toggleIcon);
-    expect(screen.getByTestId(`signin-pwd-${Input.types.TEXT}`)).toBeInTheDocument();
-    fireEvent.click(toggleIcon);
-    expect(screen.getByTestId(`signin-pwd-${Input.types.PASSWORD}`)).toBeInTheDocument();
   });
 });

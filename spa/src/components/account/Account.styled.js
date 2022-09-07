@@ -24,7 +24,7 @@ export const Left = styled.div`
   justify-content: center;
   align-items: center;
 
-  @media (${(props) => props.theme.breakpoints.mdDown}) {
+  @media (${(props) => props.theme.breakpoints.tabletLandscapeDown}) {
     flex: 100%;
     max-height: 240px;
   }
@@ -43,7 +43,7 @@ export const Right = styled.div`
   flex-direction: column;
   background-color: ${(props) => props.theme.colors.white};
 
-  @media (${(props) => props.theme.breakpoints.mdDown}) {
+  @media (${(props) => props.theme.breakpoints.tabletLandscapeDown}) {
     flex: 100%;
   }
 
@@ -54,7 +54,7 @@ export const Right = styled.div`
 
 export const FormElements = styled.div`
   width: 80%;
-  max-width: ${(props) => (props.type && props.type === 'PasswordUpdateSuccess' ? '310px' : '420px')};
+  max-width: ${(props) => (props.shorten ? '310px' : '420px')};
   text-align: left;
 `;
 
@@ -70,7 +70,7 @@ export const BottomBarYellowSVG = styled.img`
   width: 100%;
   bottom: 0px;
   right: 0px;
-  @media (${(props) => props.theme.breakpoints.mdDown}) {
+  @media (${(props) => props.theme.breakpoints.tabletLandscapeDown}) {
     display: none;
   }
 `;
@@ -78,6 +78,7 @@ export const BottomBarYellowSVG = styled.img`
 export const Heading = styled.div`
   font-weight: 400;
   font-size: ${(props) => props.theme.fontSizes[3]};
+  margin-bottom: 20px;
 
   line-height: 138.19%;
   color: ${(props) => props.theme.colors.account.purple[2]};
@@ -86,13 +87,13 @@ export const Heading = styled.div`
     font-size: ${(props) => props.theme.fontSizes[2]};
   }
 
-  @media (${(props) => props.theme.breakpoints.mdDown}) {
-    margin-top: ${(props) => props.theme.fontSizes[7]};
+  @media (${(props) => props.theme.breakpoints.tabletLandscapeDown}) {
+    margin-top: ${(props) => props.theme.fontSizesUpdated.xl};
   }
 `;
 
 export const Subheading = styled.div`
-  margin: ${(props) => (props.type && props.type === 'PasswordUpdateSuccess' ? '5px 0px 5px' : '5px 0px 25px')};
+  margin: ${(props) => (props.shorten ? '5px 0px 5px' : '5px 0px 25px')};
 
   font-weight: 300;
   font-size: ${(props) => props.theme.fontSizes[1]};
@@ -130,8 +131,8 @@ export const Submit = styled(motion.button)`
 `;
 
 export const Message = styled.div`
-  background: ${(props) => (props.isMessage ? props.theme.colors.status.done : props.theme.colors.error.bg)};
-  border-radius: 2px;
+  background: ${(props) => (props.isSuccess ? props.theme.colors.status.done : props.theme.colors.error.bg)};
+  border-radius: ${(props) => props.theme.muiBorderRadius.sm};
   font-weight: 400;
   font-size: ${(props) => props.theme.fontSizes[0]};
   line-height: ${(props) => props.theme.fontSizesUpdated.lg};
@@ -160,7 +161,7 @@ export const PasswordLabel = styled.div`
 export const InputOuter = styled.div`
   border: 1.5px solid;
   border-color: ${(props) => (props.hasError ? props.theme.colors.error.primary : props.theme.colors.grey[1])};
-  border-radius: 4px;
+  border-radius: ${(props) => props.theme.muiBorderRadius.md};
   display: flex;
   margin: 5px 0px;
   padding: 8px 6px 8px 12px;
@@ -185,7 +186,7 @@ export const Visibility = styled.img`
   cursor: pointer;
 `;
 
-export const InputLabel = styled.div`
+export const InputLabel = styled.label`
   font-weight: 600;
   font-size: ${(props) => props.theme.fontSizesUpdated.xs};
   line-height: ${(props) => props.theme.fontSizesUpdated.md};
@@ -203,7 +204,7 @@ export const Instructions = styled.div`
 export const NavLink = styled.div`
   margin: 15px 0px 12px;
   width: 100%;
-  text-align: ${(props) => (props.type && props.type === 'PasswordUpdateSuccess' ? 'left' : 'center')};
+  text-align: ${(props) => (props.alignLeft ? 'left' : 'center')};
   font-weight: 400;
   font-size: ${(props) => props.theme.fontSizesUpdated.xs};
   line-height: ${(props) => props.theme.fontSizesUpdated.md};

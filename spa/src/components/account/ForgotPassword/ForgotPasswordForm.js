@@ -15,7 +15,7 @@ function ForgotPasswordForm({ onForgotPasswordSubmit, loading }) {
   };
 
   const watchEmail = watch('email', '');
-  const disabled = loading || watchEmail === '';
+  const disabled = loading || !watchEmail;
 
   return (
     <form onSubmit={handleSubmit(onSubmit)}>
@@ -24,9 +24,10 @@ function ForgotPasswordForm({ onForgotPasswordSubmit, loading }) {
         <input
           id="email"
           {...register('email', {
+            required: 'Please enter a valid email address',
             pattern: {
               value: /\S+@\S+\.\S+/,
-              message: 'Please enter a valid email id'
+              message: 'Please enter a valid email address'
             }
           })}
           type="text"

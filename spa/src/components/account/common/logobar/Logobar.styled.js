@@ -4,15 +4,15 @@ export const LogoBar = styled.div`
   width: 80%;
   max-width: 830px;
   margin-bottom: 50px;
-  @media (${(props) => props.theme.breakpoints.mdDown}) {
+  @media (${(props) => props.theme.breakpoints.tabletLandscapeDown}) {
     margin: 20px 0px;
   }
 `;
 
 export const Heading = styled.div`
-  color: #323232;
+  color: ${(props) => props.theme.colors.grey[4]};
   font-weight: 600;
-  font-size: 16px;
+  font-size: ${(props) => props.theme.fontSizes[1]};
   line-height: 22px;
   width: 100%;
   text-align: left;
@@ -21,7 +21,7 @@ export const Heading = styled.div`
   margin-top: 60px;
 
   @media (${(props) => props.theme.breakpoints.phoneOnly}) {
-    font-size: 12px;
+    font-size: ${(props) => props.theme.fontSizes[0]};
     line-height: 17px;
     padding-left: 14px;
   }

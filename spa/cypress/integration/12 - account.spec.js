@@ -14,6 +14,9 @@ const FORGOT_PASSWORD_API_200 = { status: 'OK' };
 const RESET_PASSWORD_ENDPOINT_200 = { status: 'OK' };
 const RESET_PASSWORD_ENDPOINT_404 = { detail: 'Not found. Or anything returned by api' };
 
+const FORGOT_PASSWORD_SUCCESS = 'Success. If your email is registered, an email with a reset link will be sent to it.';
+const RESET_PASSWORD_SUCCESS_TEXT = 'Your password has been successfully reset.';
+
 const contentSectionFlag = {
   id: '5678',
   name: CONTENT_SECTION_ACCESS_FLAG_NAME
@@ -61,7 +64,7 @@ describe('Account', () => {
         body: FORGOT_PASSWORD_API_200
       });
       cy.getByTestId('forgotpwd-submit').click();
-      cy.contains('Success. If your email is registered, an email with a reset-link will be sent.');
+      cy.contains(FORGOT_PASSWORD_SUCCESS);
     });
   });
 
@@ -89,7 +92,7 @@ describe('Account', () => {
         body: RESET_PASSWORD_ENDPOINT_200
       });
       cy.getByTestId('reset-pwd-submit').click();
-      cy.contains('Your password has been successfuly reset.');
+      cy.contains(RESET_PASSWORD_SUCCESS_TEXT);
     });
   });
 });

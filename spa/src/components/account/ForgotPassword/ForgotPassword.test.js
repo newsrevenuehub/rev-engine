@@ -24,9 +24,13 @@ describe('ForgotPassword Tests', () => {
     expect(title).toBeInTheDocument();
   });
 
+  it('should have ForgotPassword Form', () => {
+    render(<ForgotPassword />);
+    expect(screen.getByRole('button', { type: 'submit' })).toBeInTheDocument();
+  });
+
   it('should have link to take user to sign-in page', () => {
     render(<ForgotPassword />);
-    const signIn = screen.getByTestId('sign-in');
-    expect(signIn).toHaveAttribute('href', SIGN_IN);
+    expect(screen.getByRole('link', { href: SIGN_IN })).toBeInTheDocument();
   });
 });

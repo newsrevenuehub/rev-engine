@@ -10,7 +10,7 @@ import visibilityOff from 'assets/images/account/visibility_off.png';
 
 function ResetPasswordForm({ onResetPasswordSubmit, loading }) {
   const { open: showPassword, handleToggle: togglePasswordVisiblity } = useModal();
-  const { open: showPassword1, handleToggle: togglePassword1Visiblity } = useModal();
+  const { open: showConfirmPassword, handleToggle: toggleConfirmPasswordVisiblity } = useModal();
 
   const {
     register,
@@ -25,12 +25,12 @@ function ResetPasswordForm({ onResetPasswordSubmit, loading }) {
   };
 
   const password = watch('password', '');
-  const password1 = watch('password1', '');
-  const disabled = password1 === '' || password === '' || loading;
+  const confirmPassword = watch('confirmPassword', '');
+  const disabled = !confirmPassword || !password || loading;
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)}>
-      <S.InputLabel hasError={errors.password}>Password</S.InputLabel>
+    <form onSubmit={disabled ? () => {} : handleSubmit(onSubmit)}>
+      <S.InputLabel hasError={errors.password}>New Password</S.InputLabel>
       <S.InputOuter hasError={errors.password}>
         <input
           id="password"
@@ -55,35 +55,38 @@ function ResetPasswordForm({ onResetPasswordSubmit, loading }) {
       <S.Instructions>Password must be 8 characters long and alphanumerical.</S.Instructions>
       {errors.password ? <S.Message role="error">{errors.password.message}</S.Message> : <S.MessageSpacer />}
 
-      <S.InputLabel hasError={errors.password1}>Renter-Password</S.InputLabel>
-      <S.InputOuter hasError={errors.password1}>
+      <S.InputLabel hasError={errors.confirmPassword}>Confirm Password</S.InputLabel>
+      <S.InputOuter hasError={errors.confirmPassword}>
         <input
-          id="password1"
-          {...register('password1', {
+          id="confirmPassword"
+          {...register('confirmPassword', {
             required: 'Please enter your password',
             validate: (val: string) => {
-              if (val.length < 8 || !/[a-zA-Z]/.test(val) || !/[0-9]/.test(val)) {
+              if (watch('password') !== val) {
+                return 'The passwords you entered do not match';
+              } else if (val.length < 8 || !/[a-zA-Z]/.test(val) || !/[0-9]/.test(val)) {
                 return 'Password should be alphanumeric and at least 8 characters long';
-              } else if (watch('password') !== val) {
-                return 'Your passwords do no match';
               }
             }
           })}
-          type={showPassword1 ? 'text' : 'password'}
-          data-testid={`reset-pwd1-${showPassword1 ? 'text' : 'password'}`}
-          status={errors.password1}
+          type={showConfirmPassword ? 'text' : 'password'}
+          data-testid={`reset-pwd1-${showConfirmPassword ? 'text' : 'password'}`}
+          status={errors.confirmPassword}
         />
         <S.Visibility
           data-testid="toggle-password1"
-          onClick={togglePassword1Visiblity}
-          src={showPassword1 ? visibilityOn : visibilityOff}
+          onClick={toggleConfirmPasswordVisiblity}
+          src={showConfirmPassword ? visibilityOn : visibilityOff}
         />
       </S.InputOuter>
       <S.Instructions>Password must be 8 characters long and alphanumerical.</S.Instructions>
-      {errors.password1 ? <S.Message role="error">{errors.password1.message}</S.Message> : <S.MessageSpacer />}
+      {errors.confirmPassword ? (
+        <S.Message role="error">{errors.confirmPassword.message}</S.Message>
+      ) : (
+        <S.MessageSpacer />
+      )}
 
       <S.Submit type="submit" disabled={disabled} data-testid="reset-pwd-submit">
-        {' '}
         Reset Password
       </S.Submit>
     </form>

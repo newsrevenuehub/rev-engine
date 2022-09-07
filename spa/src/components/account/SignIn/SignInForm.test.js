@@ -45,7 +45,7 @@ describe('SignInForm Tests', () => {
         value: 'test@test.com'
       }
     });
-    fireEvent.submit(screen.getByRole('button'));
+    fireEvent.submit(screen.getByRole('button', { type: 'submit' }));
     expect(await screen.findAllByRole('error')).toHaveLength(1);
     expect(mockSubmit).not.toBeCalled();
   });
@@ -62,7 +62,7 @@ describe('SignInForm Tests', () => {
         value: 'test'
       }
     });
-    fireEvent.submit(screen.getByRole('button'));
+    fireEvent.submit(screen.getByRole('button', { type: 'submit' }));
     expect(await screen.findAllByRole('error')).toHaveLength(1);
     expect(mockSubmit).not.toBeCalled();
   });
@@ -80,7 +80,7 @@ describe('SignInForm Tests', () => {
       }
     });
 
-    fireEvent.click(screen.getByRole('button', { name: 'Sign In' }));
+    fireEvent.submit(screen.getByRole('button', { type: 'submit' }));
     await waitFor(() => expect(screen.queryAllByRole('alert')).toHaveLength(0));
     expect(mockSubmit).toBeCalled();
   });

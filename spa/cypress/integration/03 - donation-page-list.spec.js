@@ -38,7 +38,7 @@ describe('Donation page list', () => {
   });
 
   it('should render page creation modal when click page create button', () => {
-    cy.getByTestId('page-create-button').click();
+    cy.get('button[aria-label="New Page"]').click();
     cy.getByTestId('page-create-modal');
     cy.contains('Choose a revenue program');
   });
@@ -46,7 +46,7 @@ describe('Donation page list', () => {
   it('should add suggested slug on name field blur', () => {
     cy.intercept({ method: 'GET', pathname: getEndpoint(TEMPLATES) }, {});
 
-    cy.getByTestId('page-create-button').click();
+    cy.get('button[aria-label="New Page"]').click();
     cy.getByTestId('page-name').type('My Testing Page');
     cy.getByTestId('page-name').blur();
     cy.getByTestId('page-slug').should('have.value', 'my-testing-page');
@@ -54,7 +54,7 @@ describe('Donation page list', () => {
 
   it('should show message if there are no revenue programs and user tries to create', () => {
     cy.setLocalStorage(LS_USER, JSON.stringify({ ...LS_USER, revenue_programs: [] }));
-    cy.getByTestId('page-create-button').click();
+    cy.get('button[aria-label="New Page"]').click();
     cy.contains('You need to set up a revenue program to create a page.');
   });
 
@@ -63,7 +63,7 @@ describe('Donation page list', () => {
       { method: 'GET', pathname: getEndpoint(TEMPLATES) },
       { fixture: 'pages/templates.json', statusCode: 200 }
     );
-    cy.getByTestId('page-create-button').click();
+    cy.get('button[aria-label="New Page"]').click();
     cy.getByTestId('template-picker').should('exist');
   });
 
@@ -72,7 +72,7 @@ describe('Donation page list', () => {
       { method: 'GET', pathname: getEndpoint(TEMPLATES) },
       { fixture: 'pages/templates.json', statusCode: 200 }
     ).as('getTemplates');
-    cy.getByTestId('page-create-button').click();
+    cy.get('button[aria-label="New Page"]').click();
     cy.wait('@getTemplates');
     cy.getByTestId('page-name').type('My Testing Page');
     cy.getByTestId('page-name').blur();

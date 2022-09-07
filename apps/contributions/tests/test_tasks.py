@@ -5,11 +5,13 @@ from django.conf import settings
 from django.test import TestCase
 from django.utils import timezone
 
+from addict import Dict as AttrDict
+
 from apps.contributions.models import ContributionStatus
 from apps.contributions.payment_managers import PaymentProviderError
 from apps.contributions.tasks import (
     auto_accept_flagged_contributions,
-    task_pull_charges,
+    task_pull_payment_intents,
     task_pull_serialized_stripe_contributions_to_cache,
 )
 from apps.contributions.tests.factories import ContributionFactory
@@ -54,30 +56,31 @@ class AutoAcceptFlaggedContributionsTaskTest(TestCase):
 
 
 class TestTaskStripeContributions(TestCase):
-    @patch("apps.contributions.tasks.task_pull_charges.delay")
+    @patch("apps.contributions.tasks.task_pull_payment_intents.delay")
     @patch(
         "apps.contributions.stripe_contributions_provider.StripeContributionsProvider.generate_chunked_customers_query"
     )
-    def test_task_pull_serialized_stripe_contributions_to_cache(self, customers_query_mock, pull_charges_mock):
+    def test_task_pull_serialized_stripe_contributions_to_cache(self, customers_query_mock, pull_payment_intents_mock):
         customers_query_mock.return_value = [
             "customer:'cust_0' OR customer:'cust_1'",
             "customer:'cust_2' OR customer:'cust_3'",
             "customer:'cust_4' OR customer:'cust_5'",
         ]
         task_pull_serialized_stripe_contributions_to_cache("test@email.com", "acc_00000")
-        self.assertEqual(pull_charges_mock.call_count, 3)
+        self.assertEqual(pull_payment_intents_mock.call_count, 3)
 
-    @patch("apps.contributions.stripe_contributions_provider.StripeContributionsProvider.fetch_charges")
+    @patch("apps.contributions.stripe_contributions_provider.StripeContributionsProvider.fetch_payment_intents")
     @patch("apps.contributions.tasks.ContributionsCacheProvider")
-    def test_task_pull_charges(self, cache_provider_mock, fetch_charges_mock):
+    @patch("apps.contributions.tasks.SubscriptionsCacheProvider")
+    def test_task_pull_payment_intents(self, sub_cache_mock, contrib_cache_mock, fetch_payment_intents_mock):
         mock_1 = MagicMock()
         mock_1.has_more = True
-        mock_1.__iter__.return_value = [{"id": "ch_000000"}]
+        mock_1.__iter__.return_value = [AttrDict(**{"id": "ch_000000", "invoice": None})]
 
         mock_2 = MagicMock()
         mock_2.has_more = False
-        mock_2.__iter__.return_value = [{"id": "ch_000001"}]
+        mock_2.__iter__.return_value = [AttrDict(**{"id": "ch_000001", "invoice": None})]
 
-        fetch_charges_mock.side_effect = [mock_1, mock_2]
-        task_pull_charges("test@email.com", "customer:'cust_0' OR customer:'cust_1'", "acc_0000")
-        self.assertEqual(fetch_charges_mock.call_count, 2)
+        fetch_payment_intents_mock.side_effect = [mock_1, mock_2]
+        task_pull_payment_intents("test@email.com", "customer:'cust_0' OR customer:'cust_1'", "acc_0000")
+        self.assertEqual(fetch_payment_intents_mock.call_count, 2)

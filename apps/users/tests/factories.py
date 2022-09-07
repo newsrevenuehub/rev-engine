@@ -12,6 +12,27 @@ Faker.seed(0)
 DEFAULT_PASSWORD = "s3cur3pa55w0rd"
 
 
+def create_test_user(user=None, role_assignment_data=None, **kwargs):
+    if not user:
+        user = UserFactory(**kwargs)
+    if role_assignment_data:
+        rps = role_assignment_data.pop("revenue_programs", None)
+        org = role_assignment_data.pop("organization", None)
+        ra = RoleAssignmentFactory(user=user, **role_assignment_data)
+        do_save = False
+        if rps:
+            ra.revenue_programs.set(rps)
+            do_save = True
+        if org:
+            do_save = True
+            ra.organization = org
+        if do_save:
+            ra.save()
+    else:
+        RoleAssignmentFactory(user=user)
+    return user
+
+
 class RoleAssignmentFactory(DjangoModelFactory):
     class Meta:
         model = models.RoleAssignment

@@ -40,7 +40,7 @@ describe('SignInForm Tests', () => {
 
   it('should not submit if email is valid and password is blank', async () => {
     getScreen();
-    fireEvent.input(screen.queryByTestId(`signin-email`), {
+    fireEvent.input(screen.getByTestId(`signin-email`), {
       target: {
         value: 'test@test.com'
       }
@@ -52,12 +52,12 @@ describe('SignInForm Tests', () => {
 
   it('should not submit if email is invalid and password is valid', async () => {
     getScreen();
-    fireEvent.input(screen.queryByTestId(`signin-pwd-${Input.types.PASSWORD}`), {
+    fireEvent.input(screen.getByTestId(`signin-pwd-${Input.types.PASSWORD}`), {
       target: {
         value: 'password'
       }
     });
-    fireEvent.input(screen.queryByTestId(`signin-email`), {
+    fireEvent.input(screen.getByTestId(`signin-email`), {
       target: {
         value: 'test'
       }
@@ -69,12 +69,12 @@ describe('SignInForm Tests', () => {
 
   it('should submit if email and password are valid', async () => {
     getScreen();
-    fireEvent.input(screen.queryByTestId(`signin-pwd-${Input.types.PASSWORD}`), {
+    fireEvent.input(screen.getByTestId(`signin-pwd-${Input.types.PASSWORD}`), {
       target: {
         value: 'password'
       }
     });
-    fireEvent.input(screen.queryByTestId(`signin-email`), {
+    fireEvent.input(screen.getByTestId(`signin-email`), {
       target: {
         value: 'test@test.com'
       }

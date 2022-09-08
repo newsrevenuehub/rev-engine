@@ -6,8 +6,7 @@ export const Leftbar = styled.div`
   max-width: 506px;
   margin-bottom: 50px;
 
-  color: ${(props) =>
-    props.bgColor && props.bgColor === 'purple' ? props.theme.colors.white : props.theme.colors.account.purple[1]};
+  color: ${(props) => (props.isCreateAccountPage ? props.theme.colors.white : props.theme.colors.account.purple[1])};
 
   span {
     background-color: ${(props) => props.theme.colors.account.yellow[0]};
@@ -59,9 +58,7 @@ export const Advantages = styled.div`
 export const Divider = styled.div`
   border-top: ${(props) => props.theme.muiBorderRadius.sm} solid
     ${(props) =>
-      props.bgColor && props.bgColor === 'purple'
-        ? props.theme.colors.account.yellow[0]
-        : props.theme.colors.account.purple[0]};
+      props.isCreateAccountPage ? props.theme.colors.account.yellow[0] : props.theme.colors.account.purple[0]};
 
   @media (${(props) => props.theme.breakpoints.tabletLandscapeDown}) {
     display: none;

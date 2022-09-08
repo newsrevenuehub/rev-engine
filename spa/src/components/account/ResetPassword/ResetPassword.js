@@ -21,16 +21,10 @@ import YellowSVG from 'assets/images/account/yellow-bar.svg';
 // Analytics
 import { useConfigureAnalytics } from 'components/analytics';
 
-function FetchQueryParams() {
-  const { search } = useLocation();
-  return useMemo(() => new URLSearchParams(search), [search]);
-}
-
 function ResetPassword() {
   useConfigureAnalytics();
-
-  let qParams = FetchQueryParams();
-  const token = qParams.get('token');
+  const { search } = useLocation();
+  const token = useMemo(() => new URLSearchParams(search), [search]).get('token');
 
   const [passwordUpdateSuccess, setPasswordUpdateSuccess] = useState(false);
 

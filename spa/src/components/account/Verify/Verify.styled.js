@@ -109,13 +109,17 @@ export const Button = styled(motion.button)`
   max-width: 260px;
   text-transform: uppercase;
   text-align: center;
-  background: ${(props) => props.theme.colors.buttons.yellow.background};
-  border: ${(props) => props.theme.colors.buttons.yellow.border};
-  box-shadow: ${(props) => props.theme.colors.buttons.yellow.boxShadow};
+  background: ${(props) => props.theme.buttons.yellow.background};
+  border: ${(props) => props.theme.buttons.yellow.border};
+  box-shadow: ${(props) => props.theme.buttons.yellow.boxShadow};
   border-radius: 6px;
 
   &:active {
     transform: translate(1px, 1px);
+    color: ${(props) => props.theme.buttons.yellow.color};
+  }
+  &:disabled {
+    color: ${(props) => props.theme.colors.grey[3]};
   }
 `;
 

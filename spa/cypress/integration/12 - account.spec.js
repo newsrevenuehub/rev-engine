@@ -95,4 +95,18 @@ describe('Account', () => {
       cy.contains(RESET_PASSWORD_SUCCESS_TEXT);
     });
   });
+
+  context('Create Account', () => {
+    it('should show an error message if email already exists', () => {
+      cy.visit(FORGOT_PASSWORD);
+      cy.url().should('include', FORGOT_PASSWORD);
+      cy.getByTestId('forgotpwd-email').type('test@test.com');
+      cy.intercept('POST', getEndpoint(FORGOT_PASSWORD_ENDPOINT), {
+        statusCode: 200,
+        body: FORGOT_PASSWORD_API_200
+      });
+      cy.getByTestId('forgotpwd-submit').click();
+      cy.contains(FORGOT_PASSWORD_SUCCESS);
+    });
+  });
 });

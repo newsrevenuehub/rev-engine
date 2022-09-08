@@ -15,7 +15,7 @@ export const Outer = styled.div`
 
 export const Left = styled.div`
   background: ${(props) =>
-    props.bgColor && props.bgColor === 'purple'
+    props.isCreateAccountPage
       ? props.theme.colors.account.purple[1]
       : `linear-gradient(39.42deg, #6fd1ec 47.23%, #8af7e3 105.55%);`};
   flex: 35%;

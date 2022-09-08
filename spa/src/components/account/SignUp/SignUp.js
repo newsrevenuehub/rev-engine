@@ -83,8 +83,8 @@ function SignUp({ onSuccess }) {
 
   return (
     <S.Outer>
-      <S.Left bgColor="purple" data-testid="left-purple">
-        <Leftbar bgColor="purple" page="create-account" />
+      <S.Left isCreateAccountPage={true} data-testid="left-purple">
+        <Leftbar isCreateAccountPage={true} />
       </S.Left>
       <S.Right>
         <S.FormElements>

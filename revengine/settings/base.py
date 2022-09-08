@@ -430,7 +430,7 @@ DASHBOARD_SUBDOMAINS = os.getenv("DASHBOARD_SUBDOMAINS", "www:dashboard:").split
 
 # These values are part of metadata sent to Stripe.
 METADATA_SOURCE = os.getenv("METADATA_SOURCE", "rev-engine")
-METADATA_SCHEMA_VERSION = os.getenv("METADATA_SCHEMA_VERSION", "1.0")
+METADATA_SCHEMA_VERSION = os.getenv("METADATA_SCHEMA_VERSION", "1.1")
 
 
 # This is the interval at which flagged payments will be automatically captured.

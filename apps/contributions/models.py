@@ -137,7 +137,6 @@ class Contribution(IndexedTimeStampedModel, RoleAssignmentResourceModelMixin):
     provider_payment_id = models.CharField(max_length=255, blank=True, null=True)
     # This is the `client_id` value in the response from StripeAPI after creating a
     # Stripe PaymentElement or Subscription
-    # TODO: Consider not saving `provider_client_secret_id` as plain text
     provider_client_secret_id = models.CharField(max_length=255, blank=True, null=True)
     provider_subscription_id = models.CharField(max_length=255, blank=True, null=True)
     provider_customer_id = models.CharField(max_length=255, blank=True, null=True)

@@ -1,7 +1,5 @@
-import React from 'react';
 import { useLocation } from 'react-router-dom';
-import { useState, useReducer } from 'react';
-import { useForm } from 'react-hook-form';
+import { useState, useReducer, useMemo } from 'react';
 
 // AJAX
 import axios from 'ajax/axios';
@@ -19,15 +17,12 @@ import Leftbar from 'components/account/common/leftbar/Leftbar';
 import { SIGN_IN } from 'routes';
 import YellowSVG from 'assets/images/account/yellow-bar.svg';
 
-import visibilityOn from 'assets/images/account/visibility_on.png';
-import visibilityOff from 'assets/images/account/visibility_off.png';
-
 // Analytics
 import { useConfigureAnalytics } from 'components/analytics';
 
 function FetchQueryParams() {
   const { search } = useLocation();
-  return React.useMemo(() => new URLSearchParams(search), [search]);
+  return useMemo(() => new URLSearchParams(search), [search]);
 }
 
 function ResetPassword() {
@@ -60,10 +55,12 @@ function ResetPassword() {
     }
   };
 
-  let formSubmissionMessage = <S.MessageSpacer />;
-  if (formSubmitErrors) {
-    formSubmissionMessage = <S.Message>{formSubmitErrors}</S.Message>;
-  }
+  const formSubmissionMessage = useMemo(() => {
+    if (formSubmitErrors) {
+      return <S.Message>{formSubmitErrors}</S.Message>;
+    }
+    return <S.MessageSpacer />;
+  }, [formSubmitErrors]);
 
   return (
     <S.Outer>

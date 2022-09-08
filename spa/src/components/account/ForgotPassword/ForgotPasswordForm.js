@@ -1,4 +1,5 @@
 import { useForm } from 'react-hook-form';
+import PropTypes from 'prop-types';
 
 import * as S from '../Account.styled';
 
@@ -37,11 +38,14 @@ function ForgotPasswordForm({ onForgotPasswordSubmit, loading }) {
       </S.InputOuter>
       {errors.email ? <S.Message role="error">{errors.email.message}</S.Message> : <S.MessageSpacer />}
 
-      <S.Submit type="submit" disabled={disabled} data-testid="forgotpwd-submit">
-        Send Reset Link
-      </S.Submit>
+      <S.Submit type="submit" disabled={disabled} name="Send Reset Link" />
     </form>
   );
 }
+
+ForgotPasswordForm.propTypes = {
+  onForgotPasswordSubmit: PropTypes.func,
+  loading: PropTypes.bool
+};
 
 export default ForgotPasswordForm;

@@ -38,7 +38,7 @@ describe('Account', () => {
         statusCode: 401,
         body: TOKEN_API_401
       });
-      cy.getByTestId('signin-submit').click();
+      cy.get('button[name="Sign In"]').click();
       cy.contains(TOKEN_API_401.detail);
     });
 
@@ -49,7 +49,7 @@ describe('Account', () => {
       cy.getByTestId('signin-pwd-password').type('password');
       cy.intercept(getEndpoint(TOKEN), TOKEN_API_200);
       cy.intercept({ method: 'GET', pathname: getEndpoint(USER) }, { body: orgAdminWithContentFlag });
-      cy.getByTestId('signin-submit').click();
+      cy.get('button[name="Sign In"]').click();
       cy.url().should('include', CONTENT_SLUG);
     });
   });
@@ -63,7 +63,7 @@ describe('Account', () => {
         statusCode: 200,
         body: FORGOT_PASSWORD_API_200
       });
-      cy.getByTestId('forgotpwd-submit').click();
+      cy.get('button[name="Send Reset Link"]').click();
       cy.contains(FORGOT_PASSWORD_SUCCESS);
     });
   });
@@ -78,7 +78,7 @@ describe('Account', () => {
         statusCode: 404,
         body: RESET_PASSWORD_ENDPOINT_404
       });
-      cy.getByTestId('reset-pwd-submit').click();
+      cy.get('button[name="Reset Password"]').click();
       cy.contains(RESET_PASSWORD_ENDPOINT_404.detail);
     });
 
@@ -91,7 +91,7 @@ describe('Account', () => {
         statusCode: 200,
         body: RESET_PASSWORD_ENDPOINT_200
       });
-      cy.getByTestId('reset-pwd-submit').click();
+      cy.get('button[name="Reset Password"]').click();
       cy.contains(RESET_PASSWORD_SUCCESS_TEXT);
     });
   });

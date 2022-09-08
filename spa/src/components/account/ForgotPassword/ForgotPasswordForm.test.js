@@ -9,11 +9,7 @@ const mockSubmit = jest.fn((email, password) => {
 
 describe('ForgotPasswordForm Tests', () => {
   function getScreen() {
-    return render(
-      <div>
-        <ForgotPasswordForm onForgotPasswordSubmit={mockSubmit} loading={false} />
-      </div>
-    );
+    return render(<ForgotPasswordForm onForgotPasswordSubmit={mockSubmit} loading={false} />);
   }
 
   it('should not submit if email is blank', async () => {
@@ -25,7 +21,7 @@ describe('ForgotPasswordForm Tests', () => {
 
   it('should not submit if email is invalid', async () => {
     getScreen();
-    fireEvent.input(screen.queryByTestId(`forgotpwd-email`), {
+    fireEvent.input(screen.getByTestId(`forgotpwd-email`), {
       target: {
         value: 'test'
       }
@@ -37,7 +33,7 @@ describe('ForgotPasswordForm Tests', () => {
 
   it('should submit if email is valid', async () => {
     getScreen();
-    fireEvent.input(screen.queryByTestId(`forgotpwd-email`), {
+    fireEvent.input(screen.getByTestId(`forgotpwd-email`), {
       target: {
         value: 'test@test.com'
       }

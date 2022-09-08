@@ -96,7 +96,7 @@ export const Subheading = styled.div`
   margin: ${(props) => (props.shorten ? '5px 0px 5px' : '5px 0px 25px')};
 
   font-weight: 300;
-  font-size: ${(props) => props.theme.fontSizes[1]};
+  font-size: ${(props) => props.theme.fontSizesUpdated.md};
   line-height: 138.19%;
   color: ${(props) => props.theme.colors.grey[5]};
   font-style: normal;

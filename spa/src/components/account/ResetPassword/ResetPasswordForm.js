@@ -1,5 +1,4 @@
 import { useForm } from 'react-hook-form';
-import { useState } from 'react';
 import useModal from 'hooks/useModal';
 import PropTypes from 'prop-types';
 
@@ -16,7 +15,6 @@ function ResetPasswordForm({ onResetPasswordSubmit, loading }) {
     register,
     handleSubmit,
     formState: { errors },
-    reset,
     watch
   } = useForm();
 
@@ -86,7 +84,9 @@ function ResetPasswordForm({ onResetPasswordSubmit, loading }) {
         <S.MessageSpacer />
       )}
 
-      <S.Submit type="submit" disabled={disabled} name="Reset Password" />
+      <S.Submit type="submit" disabled={disabled} name="Reset Password">
+        Reset Password
+      </S.Submit>
     </form>
   );
 }

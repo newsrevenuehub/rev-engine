@@ -18,12 +18,20 @@ import {
 } from 'settings';
 import DonationPageSidebar from 'components/donationPage/DonationPageSidebar';
 import DonationPageFooter from 'components/donationPage/DonationPageFooter';
+import StripePaymentWrapper from 'components/paymentProviders/stripe/StripePaymentWrapper';
+import Spinner from 'elements/Spinner';
+import Modal from 'elements/modal/Modal';
+import LiveErrorFallback from './live/LiveErrorFallback';
+import { SubmitButton } from './DonationPage.styled';
 import GenericErrorBoundary from 'components/errors/GenericErrorBoundary';
 import { AUTHORIZE_ONE_TIME_STRIPE_PAYMENT_ROUTE, AUTHORIZE_STRIPE_SUBSCRIPTION_ROUTE } from 'ajax/endpoints';
 import { serializeData } from 'components/paymentProviders/stripe/stripeFns';
 import calculateStripeFee from 'utilities/calculateStripeFee';
+import formatStringAmountForDisplay from 'utilities/formatStringAmountForDisplay';
+import { getFrequencyAdverb } from 'utilities/parseFrequency';
 
 import { CSRF_HEADER } from 'settings';
+import GlobalLoading from 'elements/GlobalLoading';
 
 // https://stackoverflow.com/a/49224652
 function getCookie(name) {
@@ -43,12 +51,17 @@ function authorizePayment(paymentData, paymentType) {
   // for page data (that happens in parent context)
   return axios
     .post(apiEndpoint, { ...paymentData }, { headers: { [CSRF_HEADER]: getCookie('csrftoken') } })
-    .then((data) => {
-      debugger;
-    });
+    .then(({ data }) => data);
 }
 
 const DonationPageContext = createContext({});
+
+class DonationPageUnrecoverableError extends Error {
+  constructor(message) {
+    super(message);
+    this.name = 'DonationPageUnrecoverableError';
+  }
+}
 
 function DonationPage({ page, live = false }) {
   const formRef = useRef();
@@ -62,9 +75,18 @@ function DonationPage({ page, live = false }) {
     return (page?.elements?.find((el) => el.type === 'DPayment') || {})?.content?.offerPayFees === true;
   });
   const [totalAmount, setTotalAmount] = useState(0);
+  const [displayErrorFallback, setDisplayErrorFallback] = useState(false);
+  const [stripeClientSecret, setStripeClientSecret] = useState();
+  const [emailHash, setEmailHash] = useState();
+  const [displayStripePaymentForm, setDisplayStripePaymentForm] = useState(false);
+  const [contributorEmail, setContributorEmail] = useState();
+  const [mailingCountry, setMailingCountry] = useState();
 
-  // we use these on form submission to authorize a one-time payment or subscription
-  const createPayment = useMutation((paymentData) => {
+  const [stripeBillingDetails, setStripeBillingDetails] = useState();
+
+  // we use this on form submission to authorize a one-time payment or subscription. Note that the function
+  // passed to `useMutation` must return a promise.
+  const { mutate: createPayment, isLoading: createPaymentIsLoading } = useMutation((paymentData) => {
     switch (paymentData.interval) {
       case 'one_time':
         return authorizePayment(paymentData, 'one_time');
@@ -72,8 +94,7 @@ function DonationPage({ page, live = false }) {
       case 'year':
         return authorizePayment(paymentData, paymentData.interval);
       default:
-        // is this okay?
-        throw new Error('Unexpected payment interval in paymentData');
+        return Promise.reject(new DonationPageUnrecoverableError('Unexpected payment interval in paymentData'));
     }
   });
 
@@ -134,6 +155,7 @@ function DonationPage({ page, live = false }) {
   const getCheckoutData = async () => {
     const reCAPTCHAToken = await getReCAPTCHAToken();
     return serializeData(formRef.current, {
+      mailing_country: mailingCountry,
       amount: totalAmount,
       frequency,
       reCAPTCHAToken,
@@ -145,55 +167,60 @@ function DonationPage({ page, live = false }) {
   const handleCheckoutSubmit = async (e) => {
     e.preventDefault();
     const data = await getCheckoutData();
-    createPayment.mutate(data, {
-      onSuccess: (piData) => {
-        debugger;
+    // we grab form data and set it different state objects, some of which in turn gets
+    // passed in donation page context, so will be available in usePage, when `StripePaymentForm` loads.
+    // ideally, we'd use a library like React Hook Form for and we could watch the relevant form fields
+    // and pass along to context that way, but that was not feasible in short term.
+    setContributorEmail(data.email);
+    setStripeBillingDetails({
+      name: `${data.first_name}${data.first_name ? ' ' : ''}${data.last_name}`,
+      email: data.email,
+      phone: data.phone || '', // stripe will complain if its null or undefined, and it's an optional field
+      address: {
+        city: data.mailing_city,
+        country: data.mailing_country,
+        line1: data.mailing_street,
+        line2: '', // stripe complains if this is missing
+        postal_code: data.mailing_postal_code,
+        state: data.mailing_state
+      }
+    });
+    createPayment(data, {
+      onSuccess: ({ provider_client_secret_id, email_hash }) => {
+        setStripeClientSecret(provider_client_secret_id);
+        setEmailHash(email_hash);
+        setDisplayStripePaymentForm(true);
       },
-      onError: ({ response }) => {
-        if (response?.status === 400 && response?.data) {
-          // need to also be able to handle edge case where data contains additional
-          // fields not part of form (page id being one)
+      onError: ({ name, message, response }) => {
+        // this would happen on client side if request couldn't be made. See above.
+        if (name === DonationPageUnrecoverableError.name) {
+          console.error(message);
+          setDisplayErrorFallback(true);
+          // This would happen if the server returned validation errors on the form
+        } else if (response?.status === 400 && response?.data) {
           setErrors(response.data);
         } else {
-          debugger;
-          // somethign went wrong
+          console.error('Something unexpected happened', name, message);
+          setDisplayErrorFallback(true);
         }
       }
     });
   };
 
-  const handleProcessPaymentSubmit = (e) => {
-    debugger;
-
-    // 1. if total amount has changed because agree pay fees, need to update this on server
-    //  for subscription: https://stripe.com/docs/api/subscriptions/update
-    //  for one-time: https://stripe.com/docs/api/payment_intents/update
-    // 2. call stripe.confirmPayment
-    // 3. If errrors, show
-
-    // const { error } = await stripe.confirmPayment({
-    //   elements,
-    //   confirmParams: {
-    //     // Make sure to change this to your payment completion page
-    //     return_url: "http://localhost:3000",
-    //   },
-    // });
-
-    // // This point will only be reached if there is an immediate error when
-    // // confirming the payment. Otherwise, your customer will be redirected to
-    // // your `return_url`. For some payment methods like iDEAL, your customer will
-    // // be redirected to an intermediate site first to authorize the payment, then
-    // // redirected to the `return_url`.
-    // if (error.type === "card_error" || error.type === "validation_error") {
-    //   setMessage(error.message);
-    // } else {
-    //   setMessage("An unexpected error occurred.");
-    // }
+  const getCheckoutSubmitButtonText = (currencySymbol, totalAmount, frequency) => {
+    if (isNaN(totalAmount)) return 'Enter a valid amount';
+    return `Give ${currencySymbol}${formatStringAmountForDisplay(totalAmount)} ${getFrequencyAdverb(frequency)}`;
   };
 
-  const handleProcessPaymentSubmitBack = () => {
-    //  need to handle if they go back to first page
-  };
+  const [paymentSubmitButtonText, setPaymentSubmitButtonText] = useState();
+
+  useEffect(() => {
+    if (page?.currency?.symbol && !isNaN(totalAmount) && frequency) {
+      setPaymentSubmitButtonText(
+        `Give ${page.currency.symbol}${formatStringAmountForDisplay(totalAmount)} ${getFrequencyAdverb(frequency)}`
+      );
+    }
+  }, [frequency, page.currency?.symbol, totalAmount]);
 
   return (
     <DonationPageContext.Provider
@@ -210,8 +237,14 @@ function DonationPage({ page, live = false }) {
         setOverrideAmount,
         errors,
         setErrors,
-        feeAmount
-        // stripeClientSecret
+        feeAmount,
+        totalAmount,
+        emailHash,
+        stripeBillingDetails,
+        contributorEmail,
+        stripeClientSecret,
+        setMailingCountry,
+        paymentSubmitButtonText
       }}
     >
       <S.DonationPage data-testid="donation-page">
@@ -222,26 +255,38 @@ function DonationPage({ page, live = false }) {
               {getters.getPageHeadingElement()}
               <S.DonationContent>
                 {getters.getGraphicElement()}
-                <form onSubmit={(e) => handleCheckoutSubmit(e)} ref={formRef} data-testid="donation-page-form">
-                  <S.PageElements>
-                    {(!live && !page?.elements) ||
-                      (page?.elements?.length === 0 && (
-                        <S.NoElements>Open the edit interface to start adding content</S.NoElements>
-                      ))}
-                    {page?.elements
-                      // The DPayment element in page data has some data we need to configure subsequent form
-                      // user encounters after this form is submitted, so we filter out here.
-                      ?.filter((element) => element.type !== 'DPayment')
-                      .map((element, idx) => (
-                        <GenericErrorBoundary key={idx}>
-                          {getters.getDynamicElement(element, live)}
-                        </GenericErrorBoundary>
-                      ))}
-                  </S.PageElements>
-                  {/* this is temporary */}
-                  <button type="submit">Submit it</button>
-                </form>
-                {/* DPayment modal goes here */}
+                {displayErrorFallback ? (
+                  <LiveErrorFallback />
+                ) : createPaymentIsLoading ? (
+                  <Spinner />
+                ) : (
+                  <form onSubmit={(e) => handleCheckoutSubmit(e)} ref={formRef} data-testid="donation-page-form">
+                    <S.PageElements>
+                      {(!live && !page?.elements) ||
+                        (page?.elements?.length === 0 && (
+                          <S.NoElements>Open the edit interface to start adding content</S.NoElements>
+                        ))}
+                      {page?.elements
+                        // The DPayment element in page data has some data we need to configure subsequent form
+                        // user encounters after this form is submitted, so we filter out here.
+                        ?.filter((element) => element.type !== 'DPayment')
+                        .map((element, idx) => (
+                          <GenericErrorBoundary key={idx}>
+                            {getters.getDynamicElement(element, live)}
+                          </GenericErrorBoundary>
+                        ))}
+                    </S.PageElements>
+                    <SubmitButton disabled={createPaymentIsLoading} type="submit">
+                      {getCheckoutSubmitButtonText(page?.currency?.symbol, totalAmount, frequency)}
+                    </SubmitButton>
+                  </form>
+                )}
+
+                {displayStripePaymentForm && (
+                  <Modal isOpen={displayStripePaymentForm}>
+                    <StripePaymentWrapper />
+                  </Modal>
+                )}
               </S.DonationContent>
             </S.SideInner>
           </S.SideOuter>

@@ -9,10 +9,8 @@ import GlobalLoading from 'elements/GlobalLoading';
 
 // This element loads the Stripe `Elements` component, which the Stripe `PaymentElement` needs
 // in order to have expected context. This is where we configure and load Stripe with the connected
-// account for this page. Note that the `stripeClientSecret` value from `usePage` gets created
-// only after user has submitted initial checkout form, which causes a Stripe PaymentIntent to
-// be created on the backend.
-function StripePaymentWrapper({ offerPayFees }) {
+// account for this page.
+function StripePaymentWrapper() {
   const {
     page: {
       payment_provider: { stripe_account_id: stripeAccount }
@@ -32,7 +30,7 @@ function StripePaymentWrapper({ offerPayFees }) {
   };
 
   return stripeClientSecret ? (
-    <Elements stripe={stripePromise} options={options}>
+    <Elements stripe={stripePromise.current} options={options}>
       <StripePaymentForm />
     </Elements>
   ) : (

@@ -5,13 +5,13 @@ import urlJoin from 'url-join';
 import { useQuery } from '@tanstack/react-query';
 
 import axios from 'ajax/axios';
-import { LIST_PAGES } from 'ajax/endpoints';
+import { LIVE_PAGE_DETAIL } from 'ajax/endpoints';
 import { useAnalyticsContext } from 'components/analytics/AnalyticsContext';
 import { THANK_YOU_SLUG } from 'routes';
 import { HUB_GA_V3_ID } from 'settings';
 
-function fetchPage(pageId) {
-  return axios.get(`${LIST_PAGES}${pageId}`).then(({ data }) => data);
+function fetchPage(rpSlug, pageSlug) {
+  return axios.get(LIVE_PAGE_DETAIL, { params: { revenue_program: rpSlug, page: pageSlug } }).then(({ data }) => data);
 }
 
 // This is an interstitial page we use solely to call `trackConversion` from
@@ -24,18 +24,18 @@ function fetchPage(pageId) {
 export default function PaymentSuccess() {
   const history = useHistory();
   const { search } = useLocation();
-  const { amount, next, frequency, uid, email, pageId, fromPath, email_hash } = queryString.parse(search);
+  const { amount, next, frequency, uid, email, pageSlug, rpSlug, fromPath } = queryString.parse(search);
 
-  const { data: page, isSuccess: pageFetchSuccess } = useQuery(['getPage'], () => fetchPage(pageId));
+  const { data: page, isSuccess: pageFetchSuccess } = useQuery(['getPage'], () => fetchPage(rpSlug, pageSlug));
 
   // we'll need to actually setAnalytics instance because won't already
-  const { trackConversion, analyticsInstance, setAnalyticsInstance } = useAnalyticsContext();
+  const { trackConversion, analyticsInstance, setAnalyticsConfig } = useAnalyticsContext();
 
   // after page is retrieved, we can load analytics instance, which has side effect of
   // tracking a page view
   useEffect(() => {
     if (pageFetchSuccess && !analyticsInstance) {
-      setAnalyticsInstance({
+      setAnalyticsConfig({
         hubGaV3Id: HUB_GA_V3_ID,
         orgGaV3Id: page?.revenue_program?.google_analytics_v3_id,
         orgGaV3Domain: page?.revenue_program?.google_analytics_v3_domain,
@@ -45,7 +45,7 @@ export default function PaymentSuccess() {
     }
   }, [
     pageFetchSuccess,
-    setAnalyticsInstance,
+    setAnalyticsConfig,
     analyticsInstance,
     page?.revenue_program?.google_analytics_v3_id,
     page?.revenue_program?.google_analytics_v3_domain,
@@ -65,8 +65,8 @@ export default function PaymentSuccess() {
         nextUrl.searchParams.append('uid', uid);
         nextUrl.searchParams.append('frequency', frequency);
         nextUrl.searchParams.append('amount', amount);
-        nextUrl.searchParams.append('email_hash', email_hash);
         window.location = nextUrl;
+        history.push(nextUrl);
         // ... otherwise if we're going to on-site generic thank you page
       } else {
         const donationPageUrl = window.location.href;
@@ -74,7 +74,6 @@ export default function PaymentSuccess() {
           pathname: urlJoin(fromPath, THANK_YOU_SLUG),
           state: { frequency, amount, email, donationPageUrl, page }
         });
-        history.push(next);
       }
     }
   });

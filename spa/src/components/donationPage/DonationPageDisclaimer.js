@@ -1,10 +1,7 @@
-import { useMemo } from 'react';
 import * as S from './DonationPageDisclaimer.styled';
 import { format } from 'date-fns';
 
-import { getTotalAmount } from 'components/paymentProviders/stripe/stripeFns';
-
-function DonationPageDisclaimer({ page, amount, payFee, frequency }) {
+function DonationPageDisclaimer({ page, amount, frequency }) {
   const getFreqText = () =>
     frequency === 'one_time' ? (
       ''
@@ -20,13 +17,7 @@ function DonationPageDisclaimer({ page, amount, payFee, frequency }) {
     if (frequency === 'year') return `${format(new Date(), 'L/d')} yearly until you cancel`;
   };
 
-  const totalAmount = useMemo(
-    () =>
-      `${page.currency?.symbol}${getTotalAmount(amount, payFee, frequency, page.revenue_program_is_nonprofit)}${
-        frequency === 'one_time' ? '' : ','
-      }`,
-    [amount, payFee, frequency, page.revenue_program_is_nonprofit, page.currency.symbol]
-  );
+  const amountString = `${page.currency?.symbol}${amount}${frequency === 'one_time' ? '' : ','}`;
 
   return (
     <S.DonationPageDisclaimer data-testid="donation-page-static-text">
@@ -45,7 +36,7 @@ function DonationPageDisclaimer({ page, amount, payFee, frequency }) {
         </strong>
         . Additionally, by proceeding with this transaction, you're authorizing today's payment{getFreqText()} of{' '}
         <strong>
-          {totalAmount} to be processed on or adjacent to {getAmountText()}.
+          {amountString} to be processed on or adjacent to {getAmountText()}.
         </strong>
       </p>
     </S.DonationPageDisclaimer>

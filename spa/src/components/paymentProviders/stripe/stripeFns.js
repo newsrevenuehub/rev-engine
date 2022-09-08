@@ -41,6 +41,7 @@ function normalizeSwagField(data) {
 
 function serializeForm(form) {
   const booleans = ['swag_opt_out', 'comp_subscription', 'tribute_type_honoree', 'tribute_type_in_memory_of'];
+
   const tributesToConvert = { tribute_type_honoree: 'type_honoree', tribute_type_in_memory_of: 'type_in_memory_of' };
   const obj = {};
   const formData = new FormData(form);
@@ -81,6 +82,7 @@ export function serializeData(formRef, state) {
   serializedData['revenue_program_country'] = state.rpCountry;
   serializedData['currency'] = state.currency;
   serializedData['page'] = state.pageId;
+  serializedData['mailing_country'] = state.mailing_country;
   if (state.salesforceCampaignId) serializedData['sf_campaign_id'] = state.salesforceCampaignId;
   if (state.reCAPTCHAToken) serializedData['captcha_token'] = state.reCAPTCHAToken;
 

@@ -1,6 +1,7 @@
 import { useState, forwardRef } from 'react';
-import * as S from './DDonorAddress.styled';
+import countryCodes from 'country-code-lookup';
 
+import * as S from './DDonorAddress.styled';
 // Context
 import { usePage } from 'components/donationPage/DonationPage';
 
@@ -14,6 +15,7 @@ import Grid from '@material-ui/core/Grid';
 // Children
 import DElement from 'components/donationPage/pageContent/DElement';
 import Input from 'elements/inputs/Input';
+import Select from 'elements/inputs/Select';
 
 function DDonorAddress() {
   const { errors } = usePage();
@@ -21,7 +23,9 @@ function DDonorAddress() {
   const [city, setCity] = useState('');
   const [state, setState] = useState('');
   const [zip, setZip] = useState('');
-  const [country, setCountry] = useState('');
+  const [country, setCountry] = useState(null);
+
+  const { setMailingCountry } = usePage();
 
   const { ref } = usePlacesWidget({
     apiKey: HUB_GOOGLE_MAPS_API_KEY,
@@ -29,12 +33,15 @@ function DDonorAddress() {
       types: ['address']
     },
     onPlaceSelected: (place) => {
+      const fips = place.address_components.find(({ types }) => types.includes('country')).short_name;
+      const chosenCountry = countryCodes.byFips(fips);
       const addrFields = mapAddressComponentsToAddressFields(place.address_components);
       setAddress(addrFields.address || '');
       setCity(addrFields.city || '');
       setState(addrFields.state || '');
       setZip(addrFields.zip || '');
-      setCountry(addrFields.country || '');
+      setCountry({ value: chosenCountry.value, label: chosenCountry.country });
+      setMailingCountry(fips);
     }
   });
 
@@ -90,14 +97,20 @@ function DDonorAddress() {
           />
         </Grid>
         <Grid item xs={12} md={4}>
-          <Input
-            type="text"
-            name="mailing_country"
+          <Select
             label="Country"
-            value={country}
-            onChange={(e) => setCountry(e.target.value)}
-            errors={errors.mailing_country}
+            onSelectedItemChange={({ selectedItem }) => {
+              setCountry(selectedItem);
+              setMailingCountry(selectedItem.value);
+            }}
+            selectedItem={country || ''}
+            items={countryCodes.countries
+              .map(({ country: label, fips: value }) => ({ label, value }))
+              .sort(({ value }) => value)}
+            name="mailing_country"
+            displayAccessor={'label'}
             required
+            errors={errors.mailing_country}
           />
         </Grid>
       </Grid>

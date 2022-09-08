@@ -330,7 +330,9 @@ class BaseCreatePaymentSerializer(serializers.Serializer):
                 # reason_for_giving because that field was not in the request data. If that happens and the SPA has included
                 # `reason_other` as an entry in the request data, that means that the page has configured to require a reason_for_giving,
                 # but a dropdown of preset choices has not been configured.
-                reason_for_giving is None and "reason_other" in self.initial_data.keys(),
+                "reason_for_giving" not in self.initial_data.keys()
+                and "reason_other" in self.initial_data.keys()
+                and reason_other,
             ]
         ):
             return reason_other

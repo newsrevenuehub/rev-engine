@@ -33,6 +33,7 @@ const styleLive = {
   type: BUTTON_TYPE.STYLE,
   name: 'Live style',
   style: {
+    id: 123,
     used_live: true,
     colors: {
       [COLOR_LIST[0]]: '#6FD1EC',
@@ -47,6 +48,7 @@ const styleNotLive = {
   type: BUTTON_TYPE.STYLE,
   name: 'Not live style',
   style: {
+    id: 321,
     used_live: false,
     colors: {
       [COLOR_LIST[0]]: 'blue',

@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
+import PropTypes from 'prop-types';
 
 import useModal from 'hooks/useModal';
 
@@ -109,11 +110,16 @@ function SignUpForm({ onSubmitSignUp, loading }) {
       {errors.password ? <S.Message role="error">{errors.password.message}</S.Message> : <S.MessageSpacer />}
       <AcceptTerms checked={checked} handleTOSChange={handleTOSChange} />
       <br />
-      <S.Submit type="submit" disabled={disabled}>
+      <S.Submit type="submit" disabled={disabled} name="Create Account">
         Create Account
       </S.Submit>
     </form>
   );
 }
+
+SignUpForm.propTypes = {
+  onSubmitSignUp: PropTypes.func,
+  loading: PropTypes.bool
+};
 
 export default SignUpForm;

@@ -46,7 +46,7 @@ function Main() {
   }, [requestUser]);
 
   if (userData && !userData.email_verified && !isVerifyEmailPath) {
-    //return <Redirect to={ROUTES.VERIFY_EMAIL_SUCCESS} />;
+    return <Redirect to={ROUTES.VERIFY_EMAIL_SUCCESS} />;
   }
 
   return (

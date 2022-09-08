@@ -1,6 +1,6 @@
 import { useState, useReducer } from 'react';
 import * as S from './Verify.styled';
-import { useLocation, Link } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 
 // AJAX
 import axios from 'ajax/axios';
@@ -34,21 +34,22 @@ const Mailto = ({ mailto, label }) => {
 };
 
 function Verify() {
-  const { state: routedState } = useLocation();
   useConfigureAnalytics();
 
   const { userData } = useUserDataProviderContext();
 
   const [verifyState, dispatch] = useReducer(fetchReducer, initialState);
 
-  //console.log(user);
+  console.log(userData);
   const onSubmitVerify = async () => {
     dispatch({ type: FETCH_START });
     try {
       const { data, status } = await axios.get(VERIFY_EMAIL_REQUEST_ENDPOINT);
-      if (status === 200 && data.detail === 'success') {
+      if (status === 200) {
+        dispatch({ type: FETCH_SUCCESS, payload: data });
+      } else {
+        dispatch({ type: FETCH_FAILURE, payload: data });
       }
-      dispatch({ type: FETCH_SUCCESS });
     } catch (e) {
       dispatch({ type: FETCH_FAILURE, payload: e?.response?.data });
     }
@@ -65,7 +66,7 @@ function Verify() {
           <S.Heading>Verify Your Email Address</S.Heading>
           <S.Subheading>
             To start using News Revenue Engine, please verify  your email. We’ve sent a verification email to{' '}
-            <span>{routedState?.email}.</span>
+            <span>{userData?.email}.</span>
           </S.Subheading>
           <S.Drm>Didn’t Receive an Email?</S.Drm>
           <S.Resendtext>If you haven’t received the email within a few minutes, please resend below.</S.Resendtext>

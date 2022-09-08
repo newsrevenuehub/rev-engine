@@ -8,13 +8,13 @@ jest.mock('components/Main', () => ({
 
 it('should show the blue revengine logo', () => {
   render(<Verify />);
-  const blueLogo = screen.queryByTestId('blue-logo');
+  const blueLogo = screen.getByTestId('blue-logo');
   expect(blueLogo).toBeInTheDocument();
 });
 
 it('should have heading - Create Your Free Account', () => {
   render(<Verify />);
-  const title = screen.queryByText('Verify Your Email Address');
+  const title = screen.getByText('Verify Your Email Address');
   expect(title).toBeInTheDocument();
 });
 

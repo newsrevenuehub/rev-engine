@@ -15,7 +15,7 @@ export const Logo = styled.img`
     position: absolute;
   }
 
-  @media (${(props) => props.theme.breakpoints.mdDown}) {
+  @media (${(props) => props.theme.breakpoints.tabletLandscapeDown}) {
     width: 50%;
     max-width: 140px;
   }
@@ -41,7 +41,7 @@ export const Box = styled.div`
   padding: 30px 36px;
   margin: 140px 0px;
 
-  @media (${(props) => props.theme.breakpoints.mdDown}) {
+  @media (${(props) => props.theme.breakpoints.tabletLandscapeDown}) {
     margin: 0px 0px;
   }
 `;
@@ -49,27 +49,27 @@ export const Box = styled.div`
 export const Icon = styled.img`
   width: 48px;
   margin-right: 10px;
-  @media (${(props) => props.theme.breakpoints.mdDown}) {
+  @media (${(props) => props.theme.breakpoints.tabletLandscapeDown}) {
     width: 36px;
   }
 `;
 
 export const Heading = styled.div`
   font-weight: 700;
-  font-size: 30px;
+  font-size: ${(props) => props.theme.fontSizes[3]};
   line-height: 138.19%;
   color: ${(props) => props.theme.colors.account.purple[1]};
   margin: 20px 0px 10px 0px;
 
-  @media (${(props) => props.theme.breakpoints.mdDown}) {
-    font-size: 24px;
+  @media (${(props) => props.theme.breakpoints.tabletLandscapeDown}) {
+    font-size: ${(props) => props.theme.fontSizes[2]};
   }
 `;
 
 export const Subheading = styled.div`
   font-style: normal;
   font-weight: 300;
-  font-size: 18px;
+  font-size: ${(props) => props.theme.fontSizesUpdated.lg};
   line-height: 138.19%;
   color: ${(props) => props.theme.colors.grey[5]};
 
@@ -77,26 +77,26 @@ export const Subheading = styled.div`
     font-weight: 800;
   }
 
-  @media (${(props) => props.theme.breakpoints.mdDown}) {
-    font-size: 16px;
+  @media (${(props) => props.theme.breakpoints.tabletLandscapeDown}) {
+    font-size: ${(props) => props.theme.fontSizesUpdated.md};
   }
 `;
 
 export const Drm = styled.div`
   font-weight: 400;
-  font-size: 18px;
+  font-size: ${(props) => props.theme.fontSizesUpdated.lg};
   line-height: 138.19%;
   color: ${(props) => props.theme.colors.account.purple[1]};
   margin: 20px 0px 10px 0px;
 
-  @media (${(props) => props.theme.breakpoints.mdDown}) {
-    font-size: 16px;
+  @media (${(props) => props.theme.breakpoints.tabletLandscapeDown}) {
+    font-size: ${(props) => props.theme.fontSizesUpdated.md};
   }
 `;
 
 export const Resendtext = styled.div`
   font-weight: 300;
-  font-size: 13px;
+  font-size: ${(props) => props.theme.fontSizesUpdated.xs};
   line-height: 138.19%;
   color: ${(props) => props.theme.colors.grey[5]};
 `;
@@ -125,7 +125,7 @@ export const Button = styled(motion.button)`
 
 export const Help = styled.div`
   font-weight: 500;
-  font-size: 13px;
+  font-size: ${(props) => props.theme.fontSizesUpdated.xs};
   line-height: 138.19%;
   color: ${(props) => props.theme.colors.grey[4]};
 

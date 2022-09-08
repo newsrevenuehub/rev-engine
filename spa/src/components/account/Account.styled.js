@@ -77,14 +77,14 @@ export const BottomBarYellowSVG = styled.img`
 
 export const Heading = styled.div`
   font-weight: 400;
-  font-size: ${(props) => props.theme.fontSizes[3]};
+  font-size: ${(props) => props.theme.fontSizesUpdated.h1};
   margin-bottom: 20px;
 
   line-height: 138.19%;
   color: ${(props) => props.theme.colors.account.purple[2]};
 
   @media (${(props) => props.theme.breakpoints.phoneOnly}) {
-    font-size: ${(props) => props.theme.fontSizes[2]};
+    font-size: ${(props) => props.theme.fontSizesUpdated.lgx};
   }
 
   @media (${(props) => props.theme.breakpoints.tabletLandscapeDown}) {
@@ -120,7 +120,7 @@ export const Message = styled.div`
   background: ${(props) => (props.isSuccess ? props.theme.colors.status.done : props.theme.colors.error.bg)};
   border-radius: ${(props) => props.theme.muiBorderRadius.sm};
   font-weight: 400;
-  font-size: ${(props) => props.theme.fontSizes[0]};
+  font-size: ${(props) => props.theme.fontSizesUpdated.xs};
   line-height: ${(props) => props.theme.fontSizesUpdated.lg};
   color: ${(props) => props.theme.colors.grey[3]};
   padding: 0px 9px;

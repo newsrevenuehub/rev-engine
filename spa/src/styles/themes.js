@@ -92,6 +92,7 @@ export const revEngineTheme = {
     sm: '14px',
     md: '16px',
     lg: '18px',
+    lgx: '24px',
     h1: '34px',
     xl: '72px'
   },

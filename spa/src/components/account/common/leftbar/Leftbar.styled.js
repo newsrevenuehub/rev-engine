@@ -41,7 +41,7 @@ export const Heading = styled.div`
   margin: 32px 0px;
 
   @media (${(props) => props.theme.breakpoints.phoneOnly}) {
-    font-size: ${(props) => props.theme.fontSizes[2]};
+    font-size: ${(props) => props.theme.fontSizesUpdated.lgx};
     line-height: 30px;
     padding-bottom: 20px;
   }

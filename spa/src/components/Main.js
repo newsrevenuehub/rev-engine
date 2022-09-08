@@ -23,8 +23,7 @@ function Main() {
 
   const requestUser = useRequest();
 
-  const isVerifyEmail = useLocation().pathname.includes(ROUTES.VERIFY_EMAIL_SUCCESS);
-  const isAPIPath = useLocation().pathname.includes('/api/');
+  const isVerifyEmailPath = useLocation().pathname.includes(ROUTES.VERIFY_EMAIL_SUCCESS);
 
   useEffect(() => {
     setLoadingFlags(true);
@@ -46,15 +45,15 @@ function Main() {
     );
   }, [requestUser]);
 
-  if (userData && !userData.email_verified && !isVerifyEmail && !isAPIPath) {
-    return <Redirect to={ROUTES.VERIFY_EMAIL_SUCCESS} />;
+  if (userData && !userData.email_verified && !isVerifyEmailPath) {
+    //return <Redirect to={ROUTES.VERIFY_EMAIL_SUCCESS} />;
   }
 
   return (
     <UserDataProviderContext.Provider value={{ userData }}>
       <FeatureFlagsProviderContext.Provider value={{ featureFlags }}>
-        {isVerifyEmail && <Verify />}
-        {!loadingFlags && !isVerifyEmail && (
+        {isVerifyEmailPath && <Verify />}
+        {!loadingFlags && !isVerifyEmailPath && (
           <S.Main>
             <S.MainContent>
               <Dashboard />

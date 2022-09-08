@@ -28,6 +28,11 @@ const hubAdminWithFlags = {
   flags: [{ ...contribSectionsFlag }]
 };
 
+const hubAdminWithoutAnyFlag = {
+  ...hubAdminWithoutFlags['user'],
+  flags: []
+};
+
 describe('Donations list', () => {
   context('User does have contributions section access flag', () => {
     it('should be accessible', () => {
@@ -41,7 +46,7 @@ describe('Donations list', () => {
   context('User does NOT have contributions section access flag', () => {
     it('should not be accessible', () => {
       cy.forceLogin(hubAdminWithoutFlags);
-      cy.intercept({ method: 'GET', pathname: getEndpoint(USER) }, { body: hubAdminWithoutFlags });
+      cy.intercept({ method: 'GET', pathname: getEndpoint(USER) }, { body: hubAdminWithoutAnyFlag });
       cy.interceptPaginatedDonations();
       cy.visit(DONATIONS_SLUG);
       cy.url().should('include', DONATIONS_SLUG);

@@ -1,5 +1,4 @@
-import { useState, useReducer } from 'react';
-import { useForm } from 'react-hook-form';
+import { useState, useReducer, useMemo } from 'react';
 
 // AJAX
 import axios from 'ajax/axios';
@@ -29,8 +28,6 @@ function ForgotPassword() {
   const formSubmitErrors = forgotPasswordState?.errors?.detail;
 
   const [infoMessage, setInfoMessage] = useState(null);
-  const [loading, setLoading] = useState(false);
-
   const onForgotPasswordSubmit = async (fdata) => {
     dispatch({ type: FETCH_START });
     try {
@@ -42,12 +39,14 @@ function ForgotPassword() {
     }
   };
 
-  let formSubmissionMessage = <S.MessageSpacer />;
-  if (infoMessage) {
-    formSubmissionMessage = <S.Message isSuccess={true}>{infoMessage} </S.Message>;
-  } else if (formSubmitErrors) {
-    formSubmissionMessage = <S.Message>{formSubmitErrors} </S.Message>;
-  }
+  const formSubmissionMessage = useMemo(() => {
+    if (infoMessage) {
+      return <S.Message isMessage={true}>{infoMessage} </S.Message>;
+    } else if (formSubmitErrors) {
+      return <S.Message>{formSubmitErrors} </S.Message>;
+    }
+    return <S.MessageSpacer />;
+  }, [infoMessage, formSubmitErrors]);
 
   return (
     <S.Outer>

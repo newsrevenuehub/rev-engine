@@ -9,11 +9,7 @@ const mockSubmit = jest.fn((email, password) => {
 
 describe('ResetPasswordForm Tests', () => {
   function getScreen() {
-    return render(
-      <div>
-        <ResetPasswordForm onResetPasswordSubmit={mockSubmit} loading={false} />
-      </div>
-    );
+    return render(<ResetPasswordForm onResetPasswordSubmit={mockSubmit} loading={false} />);
   }
 
   it('should have password toggle icon to show/hide value of password if its visibility icon is clicked', () => {
@@ -55,7 +51,7 @@ describe('ResetPasswordForm Tests', () => {
 
   it('should not submit if one password in blank and other is not blank', async () => {
     getScreen();
-    fireEvent.input(screen.queryByTestId(`reset-pwd-password`), {
+    fireEvent.input(screen.getByTestId(`reset-pwd-password`), {
       target: {
         value: 'password'
       }
@@ -67,13 +63,13 @@ describe('ResetPasswordForm Tests', () => {
 
   it('should not submit if both passwords are valid and do not match', async () => {
     getScreen();
-    fireEvent.input(screen.queryByTestId(`reset-pwd-password`), {
+    fireEvent.input(screen.getByTestId(`reset-pwd-password`), {
       target: {
         value: 'password12#4'
       }
     });
 
-    fireEvent.input(screen.queryByTestId(`reset-pwd1-password`), {
+    fireEvent.input(screen.getByTestId(`reset-pwd1-password`), {
       target: {
         value: 'password23235'
       }
@@ -86,13 +82,13 @@ describe('ResetPasswordForm Tests', () => {
 
   it('should not submit if both passwords are invalid and do match', async () => {
     getScreen();
-    fireEvent.input(screen.queryByTestId(`reset-pwd-password`), {
+    fireEvent.input(screen.getByTestId(`reset-pwd-password`), {
       target: {
         value: 'password'
       }
     });
 
-    fireEvent.input(screen.queryByTestId(`reset-pwd1-password`), {
+    fireEvent.input(screen.getByTestId(`reset-pwd1-password`), {
       target: {
         value: 'password'
       }
@@ -105,13 +101,13 @@ describe('ResetPasswordForm Tests', () => {
 
   it('should submit if both passwords are valid and match', async () => {
     getScreen();
-    fireEvent.input(screen.queryByTestId(`reset-pwd-password`), {
+    fireEvent.input(screen.getByTestId(`reset-pwd-password`), {
       target: {
         value: 'password12#4'
       }
     });
 
-    fireEvent.input(screen.queryByTestId(`reset-pwd1-password`), {
+    fireEvent.input(screen.getByTestId(`reset-pwd1-password`), {
       target: {
         value: 'password12#4'
       }

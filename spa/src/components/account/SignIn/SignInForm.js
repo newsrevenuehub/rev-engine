@@ -2,6 +2,7 @@ import { useState } from 'react';
 import * as S from '../Account.styled';
 import { useForm } from 'react-hook-form';
 import useModal from 'hooks/useModal';
+import PropTypes from 'prop-types';
 
 import visibilityOn from 'assets/images/account/visibility_on.png';
 import visibilityOff from 'assets/images/account/visibility_off.png';
@@ -49,7 +50,7 @@ function SignInForm({ onSubmitSignIn, loading }) {
 
       <S.PasswordLabel hasError={errors.password}>
         Password
-        <a href={FORGOT_PASSWORD} data-testid="reset-password" tabindex="-1">
+        <a href={FORGOT_PASSWORD} data-testid="reset-password" tabIndex="-1">
           Forgot Password?
         </a>
       </S.PasswordLabel>
@@ -78,5 +79,10 @@ function SignInForm({ onSubmitSignIn, loading }) {
     </form>
   );
 }
+
+SignInForm.propTypes = {
+  onSubmitSignIn: PropTypes.func,
+  loading: PropTypes.bool
+};
 
 export default SignInForm;

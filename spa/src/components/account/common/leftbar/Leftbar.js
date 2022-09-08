@@ -5,6 +5,8 @@ import logo2 from 'assets/images/nre-logo-yellow.svg';
 import Content from './Content.js';
 import { ICONS } from 'assets/icons/SvgIcon';
 
+import PropTypes from 'prop-types';
+
 function Heading() {
   return <S.Heading>{Content.heading}</S.Heading>;
 }
@@ -29,15 +31,19 @@ function Advantages() {
   );
 }
 
-function Leftbar({ bgColor = '' }) {
+function Leftbar({ isCreateAccountPage }) {
   return (
-    <S.Leftbar bgColor={bgColor}>
-      <S.Logo data-testid={bgColor === 'purple' ? 'logo' : 'logo2'} src={bgColor === 'purple' ? logo : logo2} />
+    <S.Leftbar isCreateAccountPage={isCreateAccountPage}>
+      <S.Logo data-testid={isCreateAccountPage ? 'logo' : 'logo2'} src={isCreateAccountPage ? logo : logo2} />
       <Heading />
-      <S.Divider bgColor={bgColor} />
+      <S.Divider isCreateAccountPage={isCreateAccountPage} />
       <Advantages />
     </S.Leftbar>
   );
 }
+
+Leftbar.propTypes = {
+  isCreateAccountPage: PropTypes.bool
+};
 
 export default Leftbar;

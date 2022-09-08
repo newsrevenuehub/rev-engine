@@ -73,9 +73,7 @@ function SignInForm({ onSubmitSignIn, loading }) {
       </S.InputOuter>
       {errors.password ? <S.Message role="error">{errors.password.message}</S.Message> : <S.MessageSpacer />}
 
-      <S.Submit type="submit" disabled={disabled} data-testid="signin-submit">
-        Sign In
-      </S.Submit>
+      <S.Submit type="submit" disabled={disabled} name="Sign In" />
     </form>
   );
 }

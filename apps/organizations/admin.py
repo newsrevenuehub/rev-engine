@@ -27,7 +27,7 @@ class SocialMetaInline(admin.StackedInline):
     model = SocialMeta
 
 
-class NoRelatedInlineAddEditAdminMixin:  # pragma: no cover
+class NoRelatedInlineAddEditAdminMixin:
     related_fieldname = None
 
     def get_formset(self, request, obj=None, **kwargs):
@@ -44,7 +44,7 @@ class NoRelatedInlineAddEditAdminMixin:  # pragma: no cover
         return formset
 
 
-class ReadOnlyOrgLimitedTabularInlineMixin(admin.TabularInline):  # pragma: no cover
+class ReadOnlyOrgLimitedTabularInlineMixin(admin.TabularInline):
     related_fieldname = None
     org_limited_fieldname = None
 
@@ -81,7 +81,7 @@ class BenefitLevelBenefit(NoRelatedInlineAddEditAdminMixin, ReadOnlyOrgLimitedTa
 
 
 @admin.register(Organization)
-class OrganizationAdmin(RevEngineBaseAdmin, VersionAdmin):  # pragma: no cover
+class OrganizationAdmin(RevEngineBaseAdmin, VersionAdmin):
     organization_fieldset = (
         (
             "Organization",
@@ -167,7 +167,7 @@ class BenefitLevelAdmin(RevEngineBaseAdmin, VersionAdmin):
 
 
 @admin.register(RevenueProgram)
-class RevenueProgramAdmin(RevEngineBaseAdmin, VersionAdmin, AdminImageMixin):  # pragma: no cover
+class RevenueProgramAdmin(RevEngineBaseAdmin, VersionAdmin, AdminImageMixin):
     fieldsets = (
         (
             "RevenueProgram",
@@ -273,7 +273,7 @@ class RevenueProgramAdmin(RevEngineBaseAdmin, VersionAdmin, AdminImageMixin):  #
 
 
 @admin.register(Plan)
-class PlanAdmin(RevEngineBaseAdmin, VersionAdmin):  # pragma: no cover
+class PlanAdmin(RevEngineBaseAdmin, VersionAdmin):
     fieldsets = (("Plan", {"fields": ("name", "features")}),)
 
     list_display = ["name"]
@@ -282,7 +282,7 @@ class PlanAdmin(RevEngineBaseAdmin, VersionAdmin):  # pragma: no cover
 
 
 @admin.register(Feature)
-class FeatureAdmin(RevEngineBaseAdmin, VersionAdmin):  # pragma: no cover
+class FeatureAdmin(RevEngineBaseAdmin, VersionAdmin):
     form = FeatureForm
     fieldsets = (("Feature", {"fields": ("name", "feature_type", "feature_value", "description")}),)
 
@@ -292,7 +292,7 @@ class FeatureAdmin(RevEngineBaseAdmin, VersionAdmin):  # pragma: no cover
 
 
 @admin.register(PaymentProvider)
-class PaymentProviderAdmin(RevEngineBaseAdmin):  # pragma: no cover
+class PaymentProviderAdmin(RevEngineBaseAdmin):
     search_fields = ("stripe_account_id",)
     list_display = [
         "stripe_account_id",

@@ -9,8 +9,6 @@ import { GENERIC_ERROR } from 'constants/textConstants';
 import { useAlert } from 'react-alert';
 
 // Children
-import DashboardSectionGroup from 'components/dashboard/DashboardSectionGroup';
-import DashboardSection from 'components/dashboard/DashboardSection';
 import Styles from 'components/content/styles/Styles';
 import EditStylesModal from 'components/content/styles/EditStylesModal';
 import PageTitle from 'elements/PageTitle';
@@ -46,16 +44,12 @@ function Customize() {
   return (
     <>
       <PageTitle title="Customize" />
-      <DashboardSectionGroup data-testid="content">
-        <DashboardSection heading="Styles" collapsible data-testid="styles-section">
-          <Styles
-            setShowEditStylesModal={setShowEditStylesModal}
-            setStyleToEdit={setStyleToEdit}
-            fetchStyles={fetchStyles}
-            styles={styles}
-          />
-        </DashboardSection>
-      </DashboardSectionGroup>
+      <Styles
+        setShowEditStylesModal={setShowEditStylesModal}
+        setStyleToEdit={setStyleToEdit}
+        fetchStyles={fetchStyles}
+        styles={styles}
+      />
       {showEditStylesModal && (
         <EditStylesModal
           styleToEdit={styleToEdit}

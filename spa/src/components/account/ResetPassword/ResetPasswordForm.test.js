@@ -27,7 +27,7 @@ describe('ResetPasswordForm Tests', () => {
     expect(password.getAttribute('type')).toEqual(Input.types.PASSWORD);
   });
 
-  it('should have password toggle icon to show/hide value of password1 if its visibility icon is clicked', () => {
+  it('should have password toggle icon to show/hide value of confirmPassword if its visibility icon is clicked', () => {
     getScreen();
     const password = screen.getByTestId(`reset-pwd1-${Input.types.PASSWORD}`);
     fireEvent.input(password, {
@@ -35,7 +35,7 @@ describe('ResetPasswordForm Tests', () => {
         value: 'password'
       }
     });
-    const toggleIcon = screen.getByTestId('toggle-password1');
+    const toggleIcon = screen.getByTestId('toggle-confirmPassword');
     fireEvent.click(toggleIcon);
     expect(password.getAttribute('type')).toEqual(Input.types.TEXT);
     fireEvent.click(toggleIcon);

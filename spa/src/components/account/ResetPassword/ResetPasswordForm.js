@@ -72,7 +72,7 @@ function ResetPasswordForm({ onResetPasswordSubmit, loading }) {
           status={errors.confirmPassword}
         />
         <S.Visibility
-          data-testid="toggle-password1"
+          data-testid="toggle-confirmPassword"
           onClick={toggleConfirmPasswordVisiblity}
           src={showConfirmPassword ? visibilityOn : visibilityOff}
         />

@@ -38,7 +38,7 @@ describe('Account', () => {
         statusCode: 401,
         body: TOKEN_API_401
       });
-      cy.getByTestId('signin-submit').click();
+      cy.get('button[name="Sign In"]').click();
       cy.contains(TOKEN_API_401.detail);
     });
 
@@ -49,7 +49,7 @@ describe('Account', () => {
       cy.getByTestId('signin-pwd-password').type('password');
       cy.intercept(getEndpoint(TOKEN), TOKEN_API_200);
       cy.intercept({ method: 'GET', pathname: getEndpoint(USER) }, { body: orgAdminWithContentFlag });
-      cy.getByTestId('signin-submit').click();
+      cy.get('button[name="Sign In"]').click();
       cy.url().should('include', CONTENT_SLUG);
     });
   });

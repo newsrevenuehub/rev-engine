@@ -30,22 +30,18 @@ describe('Styles list', () => {
     cy.wait('@listStyles');
   });
 
-  it('should render the styles tab', () => {
-    cy.getByTestId('styles-section').should('exist');
-  });
-
   it('should render the styles list', () => {
     cy.getByTestId('styles-list').should('exist');
   });
 
   it('should open edit modal when style is clicked', () => {
-    cy.getByTestId(`style-card-${styleA.id}`).click();
+    cy.get(`button[aria-label="${styleA.name}"]`).click();
     cy.getByTestId('edit-styles-modal-update').should('exist');
     cy.getByTestId('close-modal').click();
   });
 
   it('should open edit modal when plus button is clicked', () => {
-    cy.getByTestId('style-create-button').click();
+    cy.get('button[aria-label="New Style"]').click();
     cy.getByTestId('edit-styles-modal-create').should('exist');
     cy.getByTestId('close-modal').click();
   });

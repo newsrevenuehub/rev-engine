@@ -12,8 +12,11 @@ export const DashboardTopbar = styled.div`
 
 export const TopMenu = styled.div`
   flex: 1;
-  text-align: right;
   padding: 0px 20px 0px 25px;
+  margin-right: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: end;
 `;
 
 export const LogoutLink = styled.div`
@@ -21,7 +24,8 @@ export const LogoutLink = styled.div`
   cursor: pointer;
   color: #fff;
   max-width: 120px;
-  margin-left: auto;
+  display: flex;
+  align-items: center;
   a {
     color: #fff;
   }
@@ -61,7 +65,6 @@ export const Logo = styled.img`
 export const LogoutIcon = styled(SvgIcon)`
   width: 12px;
   height: 12px;
-  margin-top: 17px;
   margin-right: 0.5rem;
   transform: rotate(180deg);
   filter: invert(100%) sepia(0%) saturate(7486%) hue-rotate(74deg) brightness(102%) contrast(99%);

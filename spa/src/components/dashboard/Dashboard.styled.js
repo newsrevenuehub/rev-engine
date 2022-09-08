@@ -7,7 +7,8 @@ export const Dashboard = styled.div`
   display: flex;
   flex-direction: row;
 
-  height: 100vh;
+  /* 48px is the height of <DashboardTopbar>. */
+  height: calc(100vh - 48px);
   width: 100vw;
   overflow: hidden;
 `;

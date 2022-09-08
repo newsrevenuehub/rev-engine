@@ -35,6 +35,7 @@ describe('ResetPasswordForm Tests', () => {
         value: 'password'
       }
     });
+    expect(password.getAttribute('type')).toEqual(Input.types.PASSWORD);
     const toggleIcon = screen.getByTestId('toggle-confirmPassword');
     fireEvent.click(toggleIcon);
     expect(password.getAttribute('type')).toEqual(Input.types.TEXT);

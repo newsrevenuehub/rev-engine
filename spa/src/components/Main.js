@@ -9,7 +9,8 @@ import Verify from 'components/account/Verify';
 
 import useRequest from 'hooks/useRequest';
 import { useConfigureAnalytics } from './analytics';
-import * as ROUTES from 'routes';
+import { VERIFY_EMAIL_SUCCESS } from 'routes';
+import PageContextProvider from './dashboard/PageContext';
 
 const FeatureFlagsProviderContext = createContext(null);
 const UserDataProviderContext = createContext(null);
@@ -23,7 +24,7 @@ function Main() {
 
   const requestUser = useRequest();
 
-  const isVerifyEmailPath = useLocation().pathname.includes(ROUTES.VERIFY_EMAIL_SUCCESS);
+  const isVerifyEmailPath = useLocation().pathname.includes(VERIFY_EMAIL_SUCCESS);
 
   useEffect(() => {
     setLoadingFlags(true);
@@ -46,20 +47,22 @@ function Main() {
   }, [requestUser]);
 
   if (userData && !userData.email_verified && !isVerifyEmailPath) {
-    return <Redirect to={ROUTES.VERIFY_EMAIL_SUCCESS} />;
+    return <Redirect to={VERIFY_EMAIL_SUCCESS} />;
   }
 
   return (
     <UserDataProviderContext.Provider value={{ userData }}>
       <FeatureFlagsProviderContext.Provider value={{ featureFlags }}>
-        {isVerifyEmailPath && <Verify />}
-        {!loadingFlags && !isVerifyEmailPath && (
-          <S.Main>
-            <S.MainContent>
-              <Dashboard />
-            </S.MainContent>
-          </S.Main>
-        )}
+        <PageContextProvider>
+          {isVerifyEmailPath && <Verify />}
+          {!loadingFlags && !isVerifyEmailPath && (
+            <S.Main>
+              <S.MainContent>
+                <Dashboard />
+              </S.MainContent>
+            </S.Main>
+          )}
+        </PageContextProvider>
       </FeatureFlagsProviderContext.Provider>
     </UserDataProviderContext.Provider>
   );

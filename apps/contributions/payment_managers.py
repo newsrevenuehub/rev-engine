@@ -74,7 +74,7 @@ class PaymentManager:
         self.data = data
         self.serializer_class = self.get_serializer_class(data=data, contribution=contribution)
 
-    def get_serializer_class(self, **kwargs):  # pragma: no cover
+    def get_serializer_class(self, **kwargs):  # pragma: no cover Abstract method
         raise NotImplementedError("Subclasses of PaymentManager must implement get_serializer_class")
 
     def bundle_metadata(self, processor_obj: str):
@@ -128,7 +128,6 @@ class PaymentManager:
 
     def get_bad_actor_score(self):
         self.validate_badactor_data()
-
         try:
             response = make_bad_actor_request(self.validated_badactor_data)
             self.bad_actor_score = response.json()["overall_judgment"]
@@ -227,7 +226,7 @@ class PaymentManager:
         if payment_provider_used == "Stripe":
             return StripePaymentManager
 
-    def complete_payment(self, **kwargs):  # pragma: no cover
+    def complete_payment(self, **kwargs):  # pragma: no cover Abstract method
         raise NotImplementedError("Subclass of PaymentManager must implement complete_payment.")
 
 
@@ -393,19 +392,3 @@ class StripePaymentManager(PaymentManager):
             self.contribution.save()
         message = stripe_error.error.message if stripe_error.error else "Could not complete payment"
         raise PaymentProviderError(message)
-
-    def _get_interval(self):  # pragma: no cover
-        """
-        Utility to permit toggled debug intervals for testing.
-        Unfortunately, Stripe has a narrow range of supported intervals here.
-        Switching 'monthly' to 'daily' and 'yearly' to 'weekly' is ok, but not great.
-        It would be really swell if there was a way to set it to minutes/hours.
-        """
-        if not settings.USE_DEBUG_INTERVALS == "True":
-            return self.contribution.interval
-        logger.warning("Using debug intervals for Stripe Subscriptions")
-        if self.contribution.interval == Contribution.INTERVAL_MONTHLY:
-            return "daily"
-
-        if self.contribution.interval == Contribution.INTERVAL_YEARLY:
-            return "weekly"

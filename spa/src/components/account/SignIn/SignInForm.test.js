@@ -24,6 +24,7 @@ describe('SignInForm Tests', () => {
         value: 'test@test.com'
       }
     });
+    expect(password.getAttribute('type')).toEqual(Input.types.PASSWORD);
     const toggleIcon = screen.getByTestId('toggle-password');
     fireEvent.click(toggleIcon);
     expect(password.getAttribute('type')).toEqual(Input.types.TEXT);

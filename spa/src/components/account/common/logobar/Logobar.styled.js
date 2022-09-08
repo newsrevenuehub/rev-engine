@@ -12,7 +12,7 @@ export const LogoBar = styled.div`
 export const Heading = styled.div`
   color: ${(props) => props.theme.colors.grey[4]};
   font-weight: 600;
-  font-size: ${(props) => props.theme.fontSizes[1]};
+  font-size: ${(props) => props.theme.fontSizesUpdated.md};
   line-height: 22px;
   width: 100%;
   text-align: left;
@@ -21,7 +21,7 @@ export const Heading = styled.div`
   margin-top: 60px;
 
   @media (${(props) => props.theme.breakpoints.phoneOnly}) {
-    font-size: ${(props) => props.theme.fontSizes[0]};
+    font-size: ${(props) => props.theme.fontSizesUpdated.xs};
     line-height: 17px;
     padding-left: 14px;
   }

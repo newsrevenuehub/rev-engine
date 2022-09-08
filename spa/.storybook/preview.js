@@ -18,6 +18,12 @@ export const decorators = [withThemes(null, [revEngineTheme], { providerFn })];
 
 export const parameters = {
   actions: { argTypesRegex: '^on[A-Z].*' },
+  backgrounds: {
+    values: [
+      { name: 'White', value: '#FFFFFF' },
+      { name: 'Header color', value: '#523A5E' }
+    ]
+  },
   controls: {
     matchers: {
       color: /(background|color)$/i,

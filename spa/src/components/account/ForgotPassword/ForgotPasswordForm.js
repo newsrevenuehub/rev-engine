@@ -25,7 +25,6 @@ function ForgotPasswordForm({ onForgotPasswordSubmit, loading }) {
         <input
           id="email"
           {...register('email', {
-            required: 'Please enter a valid email address',
             pattern: {
               value: /\S+@\S+\.\S+/,
               message: 'Please enter a valid email address'

@@ -13,6 +13,7 @@ export const ICONS = {
   CONTRIBUTIONS: 'contributions',
   CUSTOMIZE: 'customize',
   DASHBOARD: 'dashboard',
+  RING_BUOY: 'ring-buoy',
   ACCOUNT_UNFOLD_MORE: 'account-unfold-more',
   ACCOUNT_ACC_BALANCE: 'account-acc-balance',
   ACCOUNT_NEWSROOM: 'account-newsroom',

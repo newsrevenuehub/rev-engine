@@ -35,16 +35,17 @@ const Mailto = ({ mailto, label }) => {
 
 function Verify() {
   useConfigureAnalytics();
-
   const { userData } = useUserDataProviderContext();
+  const [emailResent, setEmailResent] = useState(false);
 
   const [verifyState, dispatch] = useReducer(fetchReducer, initialState);
 
-  const onSubmitVerify = async () => {
+  const onSubmit = async () => {
     dispatch({ type: FETCH_START });
     try {
       const { data, status } = await axios.get(VERIFY_EMAIL_REQUEST_ENDPOINT);
       if (status === 200) {
+        setEmailResent(true);
         dispatch({ type: FETCH_SUCCESS, payload: data });
       } else {
         dispatch({ type: FETCH_FAILURE, payload: data });
@@ -53,6 +54,8 @@ function Verify() {
       dispatch({ type: FETCH_FAILURE, payload: e?.response?.data });
     }
   };
+
+  const errorMessage = 'EFREGREG'; //verifyState?.errors?.detail;
 
   return (
     <S.Verify>
@@ -69,12 +72,13 @@ function Verify() {
           </S.Subheading>
           <S.Drm>Didn’t Receive an Email?</S.Drm>
           <S.Resendtext>If you haven’t received the email within a few minutes, please resend below.</S.Resendtext>
-          <S.Button onClick={onSubmitVerify} name="Resend Verification">
+          <S.Button onClick={onSubmit} name="Resend Verification" disabled={emailResent}>
             Resend Verification
           </S.Button>
           <S.Help>
             <span>Questions?</span> Email us at <Mailto label={HELPEMAIL} mailto={`mailto:${HELPEMAIL}`} />
           </S.Help>
+          {errorMessage ? <S.Message>{errorMessage}</S.Message> : null}
         </S.Box>
       </S.Content>
     </S.Verify>

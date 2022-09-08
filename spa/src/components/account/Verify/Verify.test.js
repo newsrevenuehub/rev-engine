@@ -1,4 +1,4 @@
-import { render, screen } from 'test-utils';
+import { render, screen, waitFor } from 'test-utils';
 import Verify from './Verify';
 
 jest.mock('components/Main', () => ({
@@ -8,18 +8,15 @@ jest.mock('components/Main', () => ({
 
 it('should show the blue revengine logo', () => {
   render(<Verify />);
-  const blueLogo = screen.getByTestId('blue-logo');
-  expect(blueLogo).toBeInTheDocument();
+  expect(screen.getByTestId('blue-logo')).toBeInTheDocument();
 });
 
 it('should have heading - Create Your Free Account', () => {
   render(<Verify />);
-  const title = screen.getByText('Verify Your Email Address');
-  expect(title).toBeInTheDocument();
+  expect(screen.getByText('Verify Your Email Address')).toBeInTheDocument();
 });
 
 it('should contain Resend Verification Button', () => {
   render(<Verify />);
-  const resendButton = screen.getByRole('button', { name: 'Resend Verification' });
-  expect(resendButton).toBeInTheDocument();
+  expect(screen.getByRole('button', { name: 'Resend Verification' })).toBeInTheDocument();
 });

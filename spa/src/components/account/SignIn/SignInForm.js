@@ -49,7 +49,7 @@ function SignInForm({ onSubmitSignIn, loading }) {
 
       <S.PasswordLabel hasError={errors.password}>
         Password
-        <a href={FORGOT_PASSWORD} data-testid="reset-password" tabIndex="-1">
+        <a href={FORGOT_PASSWORD} data-testid="reset-password">
           Forgot Password?
         </a>
       </S.PasswordLabel>

@@ -133,3 +133,14 @@ export const Help = styled.div`
     font-weight: 800;
   }
 `;
+
+export const Message = styled.div`
+  margin-top: 10px;
+  background: ${(props) => props.theme.colors.error.bg};
+  border-radius: ${(props) => props.theme.muiBorderRadius.sm};
+  font-weight: 400;
+  font-size: ${(props) => props.theme.fontSizes[0]};
+  line-height: ${(props) => props.theme.fontSizesUpdated.lg};
+  color: ${(props) => props.theme.colors.grey[3]};
+  padding: 0px 9px;
+`;

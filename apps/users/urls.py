@@ -9,11 +9,13 @@ router = routers.DefaultRouter()
 router.register(r"users", views.UserViewset, basename="user")
 
 api_urlpatterns = [
+    path("users/password_reset/", include("django_rest_passwordreset.urls", namespace="password_reset")),
     path("", include(router.urls)),
 ]
 
 orgadmin_user_management_urls = [
-    path("password-reset/", views.CustomPasswordResetView.as_view(), name="orgadmin_password_reset"),
+    path("verify-account/<email>/<token>/", views.account_verification, name="account_verification"),
+    path("password-reset/password-reset", views.CustomPasswordResetView.as_view(), name="orgadmin_password_reset"),
     path("password-reset-done/", views.CustomPasswordResetDoneView.as_view(), name="orgadmin_password_reset_done"),
     path(
         "password-reset/<uidb64>/<token>/",

@@ -1,6 +1,7 @@
 import logging
 
 from django.conf import settings
+from django.urls import reverse
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import ensure_csrf_cookie
 
@@ -13,15 +14,98 @@ from reversion.views import RevisionMixin
 
 from apps.api.permissions import HasRoleAssignment
 from apps.element_media.models import MediaImage
+from apps.organizations.models import RevenueProgram
 from apps.pages import serializers
 from apps.pages.filters import StyleFilter
-from apps.pages.helpers import PageDetailError, PageFullDetailHelper
 from apps.pages.models import DonationPage, Font, Style, Template
 from apps.public.permissions import IsActiveSuperUser
 from apps.users.views import FilterQuerySetByUserMixin, PerUserDeletePermissionsMixin
 
 
 logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
+
+
+class PageDetailError(Exception):
+    def __init__(self, message, *args, status=status.HTTP_404_NOT_FOUND, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.message = message
+        self.status = status
+
+
+class PageFullDetailHelper:
+    def __init__(self, request, live=False):
+        self.request = request
+        self.live = live
+        try:
+            self.revenue_program_slug = request.GET["revenue_program"]
+            self.page_slug = request.GET.get("page")
+        except KeyError:
+            raise PageDetailError("Missing required parameter", status=status.HTTP_400_BAD_REQUEST)
+        try:
+            self.revenue_program = RevenueProgram.objects.get(slug=self.revenue_program_slug)
+        except RevenueProgram.DoesNotExist:
+            logger.info('Request for page with non-existent RevenueProgram by slug "%s"', self.revenue_program_slug)
+            raise PageDetailError("Could not find revenue program matching those parameters")
+        self.donation_page = (
+            self.revenue_program.donationpage_set.filter(slug=self.page_slug).first()
+            if self.page_slug
+            else self.revenue_program.default_donation_page
+        )
+        if not self.donation_page:
+            if self.page_slug:
+                logger.info('Request for non-existent page by slug "%s"', self.page_slug)
+            else:
+                logger.info(
+                    'Request for default donation page, but no default page set for revenue program "%s"',
+                    self.revenue_program.name,
+                )
+            raise PageDetailError("Could not find page matching those parameters")
+        self._validate_page_request()
+
+    def get_data(self):
+        """Serialize Donation Page and return JSON."""
+        page_serializer = serializers.DonationPageFullDetailSerializer(
+            instance=self.donation_page, context={"live": self.live}
+        )
+        return page_serializer.data
+
+    def _validate_page_request(self):
+        """Ensure valid request
+
+        - If page is not requested live, check nothing.
+        - If page is requested live, the donation page IS live aka "published".
+        - If page is requested live, the Organization has a verified payment provider.
+        """
+        if not self.live:
+            return
+        if not self.donation_page.is_live:
+            logger.info('Request for un-published page "%s"', self.donation_page)
+            raise PageDetailError(message="This page has not been published", status=status.HTTP_404_NOT_FOUND)
+        if not self.revenue_program.payment_provider:
+            logger.error(
+                (
+                    'Request made for live page "%s", but RP "%s" does not have a payment provider configured. '
+                    "The RP can be updated at %s"
+                ),
+                self.donation_page,
+                self.donation_page.revenue_program.name,
+                reverse("admin:organizations_revenueprogram_change", args=(self.revenue_program.id,)),
+            )
+            raise PageDetailError(
+                message="RevenueProgram does not have a payment provider configured",
+                status=status.HTTP_404_NOT_FOUND,
+            )
+        if not self.revenue_program.payment_provider.is_verified_with_default_provider():
+            logger.error(
+                (
+                    'Request made for live page "%s", but RP "%s" is not verified with its default payment provider. '
+                    "Payment provider can be updated at %s"
+                ),
+                self.donation_page,
+                self.donation_page.revenue_program.name,
+                reverse("admin:organizations_paymentprovider_change", args=(self.revenue_program.payment_provider.id,)),
+            )
+            raise PageDetailError("RevenueProgram does not have a fully verified payment provider")
 
 
 class PageViewSet(RevisionMixin, viewsets.ModelViewSet, FilterQuerySetByUserMixin, PerUserDeletePermissionsMixin):
@@ -59,14 +143,13 @@ class PageViewSet(RevisionMixin, viewsets.ModelViewSet, FilterQuerySetByUserMixi
     @method_decorator(ensure_csrf_cookie)
     @action(detail=False, methods=["get"], permission_classes=[], authentication_classes=[], url_path="live-detail")
     def live_detail(self, request):
-        """
-        This is the action requested when a page needs to be viewed.
+        """This is the action requested when a published page needs to be viewed.
 
         Permission and authentication classes are reset because meant to be open access.
         """
         try:
-            helper = PageFullDetailHelper(request, live=True)
-            return Response(helper.get_donation_page_data(), status=status.HTTP_200_OK)
+            donation_page = PageFullDetailHelper(request, live=True)
+            return Response(donation_page.get_data(), status=status.HTTP_200_OK)
         except PageDetailError as e:
             return Response({"detail": e.message}, status=e.status)
 
@@ -83,8 +166,8 @@ class PageViewSet(RevisionMixin, viewsets.ModelViewSet, FilterQuerySetByUserMixi
         or have access to (via being superuser or hub admin).
         """
         try:
-            helper = PageFullDetailHelper(request)
-            return Response(helper.get_donation_page_data(), status=status.HTTP_200_OK)
+            donation_page = PageFullDetailHelper(request, live=False)
+            return Response(donation_page.get_data(), status=status.HTTP_200_OK)
         except PageDetailError as e:
             return Response({"detail": e.message}, status=e.status)
 
@@ -111,7 +194,7 @@ class PageViewSet(RevisionMixin, viewsets.ModelViewSet, FilterQuerySetByUserMixi
 
 
 class TemplateViewSet(RevisionMixin, viewsets.ModelViewSet, FilterQuerySetByUserMixin):
-    """Page templates as exposed through API
+    """Donation Page templates as exposed through API
 
     Only superusers and users with role assignments are meant to have access. Results of lists are filtered
     on per user basis.
@@ -142,7 +225,7 @@ class TemplateViewSet(RevisionMixin, viewsets.ModelViewSet, FilterQuerySetByUser
 
 
 class StyleViewSet(RevisionMixin, viewsets.ModelViewSet, FilterQuerySetByUserMixin, PerUserDeletePermissionsMixin):
-    """Donation pages exposed through API
+    """Donation Page Template styles exposed through API
 
     Only superusers and users with role assignments are meant to have access. Results of lists are filtered
     on per user basis.
@@ -163,7 +246,6 @@ class StyleViewSet(RevisionMixin, viewsets.ModelViewSet, FilterQuerySetByUserMix
 class FontViewSet(viewsets.ReadOnlyModelViewSet):
     model = Font
     queryset = Font.objects.all()
-    # anyone who is authenticated read
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated]  # anyone who is authenticated read
     serializer_class = serializers.FontSerializer
     pagination_class = None

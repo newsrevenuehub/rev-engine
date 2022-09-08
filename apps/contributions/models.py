@@ -59,17 +59,17 @@ class Contributor(IndexedTimeStampedModel):
         metadata=None,
     ):
         """Create a Stripe customer using contributor email"""
-
-        address = {"line1": street, "city": city, "state": state, "postal_code": postal_code, "country": country}
-
+        address = {
+            "line1": street,
+            "city": city,
+            "state": state,
+            "postal_code": postal_code,
+            "country": country,
+        }
         return stripe.Customer.create(
             email=self.email,
             address=address,
-            shipping={
-                "address": address,
-                "name": customer_name,
-                "phone": phone,
-            },
+            shipping={"address": address, "name": customer_name},
             name=customer_name,
             phone=phone,
             stripe_account=rp_stripe_account_id,

@@ -1,14 +1,16 @@
 import logging
+from datetime import datetime
 
 from django.conf import settings
 from django.db.models import TextChoices
 from django.utils import timezone
 
-import stripe
 from rest_framework import serializers
 from rest_framework.exceptions import APIException, PermissionDenied
+from stripe.error import StripeError
 
 from apps.api.error_messages import GENERIC_BLANK, GENERIC_UNEXPECTED_VALUE
+from apps.common.utils import get_original_ip_from_request
 from apps.contributions.models import (
     CardBrand,
     Contribution,
@@ -22,19 +24,6 @@ from apps.pages.models import DonationPage
 
 from .bad_actor import BadActorAPIError, make_bad_actor_request
 from .fields import StripeAmountField
-
-
-# this is an non-exhaustive list of Stripe errors that might
-# occur when creating/updating payment intent or subscription.
-# we use this below to avoid using a bare except
-stripe_errors = (
-    stripe.error.stripe.error.InvalidRequestError,
-    stripe.error.stripe.error.APIConnectionError,
-    stripe.error.APIError,
-    stripe.error.AuthenticationError,
-    stripe.error.PermissionError,
-    stripe.error.RateLimitError,
-)
 
 
 class GenericPaymentError(APIException):
@@ -278,7 +267,10 @@ class BaseCreatePaymentSerializer(serializers.Serializer):
     phone = serializers.CharField(max_length=40, required=False, allow_blank=True, write_only=True, default="")
     # See class-level doc string for info on why `default=''` here
     reason_for_giving = serializers.CharField(
-        max_length=255, required=False, allow_blank=True, write_only=True, default=""
+        max_length=255,
+        required=False,
+        allow_blank=True,
+        write_only=True,
     )
     # See class-level doc string for info on why `default=''` here
     reason_other = serializers.CharField(max_length=255, required=False, allow_blank=True, write_only=True, default="")
@@ -341,7 +333,7 @@ class BaseCreatePaymentSerializer(serializers.Serializer):
                 # reason_for_giving because that field was not in the request data. If that happens and the SPA has included
                 # `reason_other` as an entry in the request data, that means that the page has configured to require a reason_for_giving,
                 # but a dropdown of preset choices has not been configured.
-                reason_for_giving == "" and "reason_other" in self.initial_data.keys(),
+                reason_for_giving is None and "reason_other" in self.initial_data.keys(),
             ]
         ):
             return reason_other
@@ -351,7 +343,7 @@ class BaseCreatePaymentSerializer(serializers.Serializer):
     def do_conditional_validation(self, data):
         """Handle validation of conditionally requirable fields"""
         errors = {}
-        for element in [elem for elem in data["page"].elements if len(elem["requiredFields"])]:
+        for element in [x for x in data["page"].elements if len(x["requiredFields"])]:
             for field in element["requiredFields"]:
                 # if it's blank or none or no key for it in data
                 if data.get(field, None) in (None, ""):
@@ -392,7 +384,7 @@ class BaseCreatePaymentSerializer(serializers.Serializer):
             # but BadActorSerializer wants to pk, so we reformat here.
             "page": data["page"].id,
             "referer": self.context["request"].META.get("HTTP_REFERER"),
-            "ip": self.context["request"].META.get("REMOTE_ADDR"),
+            "ip": get_original_ip_from_request(self.context["request"]),
         }
         serializer = BadActorSerializer(data=data)
         try:
@@ -426,6 +418,7 @@ class BaseCreatePaymentSerializer(serializers.Serializer):
             "swag_choice": validated_data.get("swag_choice"),
             "referer": self.context["request"].META.get("HTTP_REFERER"),
             "revenue_program_id": validated_data["page"].revenue_program.id,
+            "revenue_program_slug": validated_data["page"].revenue_program.slug,
             "sf_campaign_id": validated_data.get("sf_campaign_id"),
         }
 
@@ -497,7 +490,7 @@ class CreateOneTimePaymentSerializer(BaseCreatePaymentSerializer):
             raise PermissionDenied("Cannot authorize contribution")
         try:
             customer = self.create_stripe_customer(contributor, validated_data)
-        except stripe_errors:
+        except StripeError:
             logger.exception(
                 "CreateOneTimePaymentSerializer.create encountered a Stripe error while attempting to create a Stripe customer for contributor with id %s",
                 contributor.id,
@@ -508,7 +501,7 @@ class CreateOneTimePaymentSerializer(BaseCreatePaymentSerializer):
                 stripe_customer_id=customer["id"],
                 metadata=self.get_stripe_payment_metadata(contributor, validated_data),
             )
-        except stripe_errors:
+        except StripeError:
             logger.exception(
                 "CreateOneTimePaymentSerializer.create encountered a Stripe error while attempting to create a payment intent for contribution with id %s",
                 contribution.id,
@@ -552,7 +545,7 @@ class CreateRecurringPaymentSerializer(BaseCreatePaymentSerializer):
             raise PermissionDenied("Cannot authorize contribution")
         try:
             customer = self.create_stripe_customer(contributor, validated_data)
-        except stripe_errors:
+        except StripeError:
             logger.exception(
                 "RecurringPaymentSerializer.create encountered a Stripe error while attempting to create a stripe customer for contributor with id %s",
                 contributor.id,
@@ -563,7 +556,7 @@ class CreateRecurringPaymentSerializer(BaseCreatePaymentSerializer):
                 stripe_customer_id=customer["id"],
                 metadata=self.get_stripe_payment_metadata(contributor, validated_data),
             )
-        except stripe_errors:
+        except StripeError:
             logger.exception(
                 "RecurringPaymentSerializer.create encountered a Stripe error while attempting to create a subscription for contribution with id %s",
                 contribution.id,
@@ -596,17 +589,23 @@ class PaymentProviderContributionSerializer(serializers.Serializer):
     Payments provider serializer, payment provider Eg: Stripe.
     """
 
-    # id will be charge object id in our case, which will start with ch_ and doesn't exceed 255 chars
+    # id will be payment intent object id in our case, which will start with ch_ and doesn't exceed 255 chars
     # https://stripe.com/docs/upgrades#what-changes-does-stripe-consider-to-be-backwards-compatible
     id = serializers.CharField(max_length=255)
     subscription_id = serializers.CharField(
         max_length=255, required=False, allow_blank=True, help_text="Stripe Subscription ID"
     )
+    # TODO: [DEV-2320] remove these two booleans after the frontend is fully using the Subscriptions API
+    is_modifiable = serializers.BooleanField(
+        required=True, help_text="if recurring then can the payment method be modified"
+    )
+    is_cancelable = serializers.BooleanField(
+        required=True, help_text="if recurring then can the payment method be canceled"
+    )
     status = serializers.ChoiceField(choices=ContributionStatus.choices)
     card_brand = serializers.ChoiceField(choices=CardBrand.choices, required=False, allow_null=True)
     last4 = serializers.IntegerField()
     payment_type = serializers.ChoiceField(choices=PaymentType.choices, required=False, allow_null=True)
-    next_payment_date = serializers.DateTimeField()
     interval = serializers.ChoiceField(choices=ContributionInterval.choices)
     revenue_program = serializers.CharField(max_length=63)
     amount = serializers.IntegerField()
@@ -614,3 +613,84 @@ class PaymentProviderContributionSerializer(serializers.Serializer):
     credit_card_expiration_date = serializers.CharField(max_length=7)
     created = serializers.DateTimeField()
     last_payment_date = serializers.DateTimeField()
+
+
+class SubscriptionsSerializer(serializers.Serializer):
+    """
+    Serializer for Stripe Subscriptions
+    """
+
+    id = serializers.SerializerMethodField()
+    is_modifiable = serializers.SerializerMethodField()
+    is_cancelable = serializers.SerializerMethodField()
+    status = serializers.ChoiceField(choices=ContributionStatus.choices)
+    card_brand = serializers.SerializerMethodField()
+    last4 = serializers.SerializerMethodField()
+    payment_type = serializers.SerializerMethodField()
+    next_payment_date = serializers.SerializerMethodField()
+    interval = serializers.SerializerMethodField()
+    revenue_program_slug = serializers.SerializerMethodField()
+    amount = serializers.SerializerMethodField()
+    customer_id = serializers.SerializerMethodField()
+    credit_card_expiration_date = serializers.SerializerMethodField()
+    created = serializers.SerializerMethodField()
+    last_payment_date = serializers.SerializerMethodField()
+
+    def _card(self, instance):
+        return instance.default_payment_method.card
+
+    def get_id(self, instance):
+        return instance.id
+
+    def get_card_brand(self, instance):
+        return self._card(instance).brand
+
+    def get_next_payment_date(self, instance):
+        return datetime.utcfromtimestamp(int(instance.current_period_end))
+
+    def get_last_payment_date(self, instance):
+        return datetime.utcfromtimestamp(int(instance.current_period_start))
+
+    def get_created(self, instance):
+        return datetime.utcfromtimestamp(int(instance.created))
+
+    def get_last4(self, instance):
+        return instance.default_payment_method.card.last4
+
+    def get_credit_card_expiration_date(self, instance):
+        return (
+            f"{self._card(instance).exp_month}/{self._card(instance).exp_year}"
+            if self._card(instance).exp_month
+            else None
+        )
+
+    def get_is_modifiable(self, instance):
+        return instance.status not in ["incomplete_expired", "canceled", "unpaid"]
+
+    def get_is_cancelable(self, instance):
+        return instance.status not in ["incomplete", "incomplete_expired", "canceled", "unpaid"]
+
+    def get_interval(self, instance):
+        plan = instance.get("plan")
+        interval = plan.get("interval")
+        interval_count = plan.get("interval_count")
+        if interval == "year" and interval_count == 1:
+            return ContributionInterval.YEARLY
+        if interval == "month" and interval_count == 1:
+            return ContributionInterval.MONTHLY
+        raise serializers.ValidationError(f"Invalid interval: {plan.id}{interval}/{interval_count}")
+
+    def get_revenue_program_slug(self, instance):
+        metadata = instance.get("metadata")
+        if not metadata or "revenue_program_slug" not in metadata:
+            raise serializers.ValidationError(f"Metadata is invalid for subscription: {instance.id}")
+        return metadata["revenue_program_slug"]
+
+    def get_amount(self, instance):
+        return instance.plan.amount
+
+    def get_customer_id(self, instance):
+        return instance.get("customer")
+
+    def get_payment_type(self, instance):
+        return instance.default_payment_method.type

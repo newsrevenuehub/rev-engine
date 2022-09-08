@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import * as S from '../Account.styled';
 import { useForm } from 'react-hook-form';
 import useModal from 'hooks/useModal';
@@ -73,7 +72,9 @@ function SignInForm({ onSubmitSignIn, loading }) {
       </S.InputOuter>
       {errors.password ? <S.Message role="error">{errors.password.message}</S.Message> : <S.MessageSpacer />}
 
-      <S.Submit type="submit" disabled={disabled} name="Sign In" />
+      <S.Submit type="submit" disabled={disabled} name="Sign In">
+        Sign In
+      </S.Submit>
     </form>
   );
 }

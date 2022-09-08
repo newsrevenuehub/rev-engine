@@ -38,36 +38,6 @@ describe('ForgotPassword Tests', () => {
     expect(screen.getByRole('button', { type: 'submit' })).toBeInTheDocument();
   });
 
-  it('should have password toggle icon to show/hide value of password if its visibility icon is clicked', () => {
-    render(<ResetPassword />);
-    const password = screen.getByTestId(`reset-pwd-${Input.types.PASSWORD}`);
-    fireEvent.input(password, {
-      target: {
-        value: 'password'
-      }
-    });
-    const toggleIcon = screen.getByTestId('toggle-password');
-    fireEvent.click(toggleIcon);
-    expect(screen.getByTestId(`reset-pwd-${Input.types.TEXT}`)).toBeInTheDocument();
-    fireEvent.click(toggleIcon);
-    expect(screen.getByTestId(`reset-pwd-${Input.types.PASSWORD}`)).toBeInTheDocument();
-  });
-
-  it('should have password toggle icon to show/hide value of password1 if its visibility icon is clicked', () => {
-    render(<ResetPassword />);
-    const password = screen.getByTestId(`reset-pwd1-${Input.types.PASSWORD}`);
-    fireEvent.input(password, {
-      target: {
-        value: 'password'
-      }
-    });
-    const toggleIcon = screen.getByTestId('toggle-password1');
-    fireEvent.click(toggleIcon);
-    expect(screen.getByTestId(`reset-pwd1-${Input.types.TEXT}`)).toBeInTheDocument();
-    fireEvent.click(toggleIcon);
-    expect(screen.getByTestId(`reset-pwd1-${Input.types.PASSWORD}`)).toBeInTheDocument();
-  });
-
   it('should have link to take user to sign in page', () => {
     render(<ResetPassword />);
     expect(screen.getByRole('link', { href: SIGN_IN })).toBeInTheDocument();

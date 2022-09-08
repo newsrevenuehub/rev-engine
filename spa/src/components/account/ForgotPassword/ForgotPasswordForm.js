@@ -19,7 +19,7 @@ function ForgotPasswordForm({ onForgotPasswordSubmit, loading }) {
   const disabled = loading || !watchEmail;
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)}>
+    <form onSubmit={disabled ? () => {} : handleSubmit(onSubmit)}>
       <S.InputLabel hasError={errors.email}>Email</S.InputLabel>
       <S.InputOuter hasError={errors.email}>
         <input
@@ -38,7 +38,9 @@ function ForgotPasswordForm({ onForgotPasswordSubmit, loading }) {
       </S.InputOuter>
       {errors.email ? <S.Message role="error">{errors.email.message}</S.Message> : <S.MessageSpacer />}
 
-      <S.Submit type="submit" disabled={disabled} name="Send Reset Link" />
+      <S.Submit type="submit" disabled={disabled} name="Send Reset Link">
+        Send Reset Link
+      </S.Submit>
     </form>
   );
 }

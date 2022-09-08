@@ -26,7 +26,7 @@ urlpatterns = [
     path("v1/contrib-verify/", csrf_exempt(VerifyContributorTokenView.as_view()), name="contributor-verify-token"),
 ]
 
-if settings.ENABLE_API_BROWSER:
+if settings.ENABLE_API_BROWSER:  # pragma: no cover It is covered but the reimport confuses coverage.py
     from csp.decorators import csp_exempt
     from drf_yasg import openapi
     from drf_yasg.views import get_schema_view

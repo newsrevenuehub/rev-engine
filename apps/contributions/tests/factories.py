@@ -4,7 +4,6 @@ import random
 from django.conf import settings
 
 import factory
-import pytz
 from factory.django import DjangoModelFactory
 from faker import Faker
 
@@ -48,7 +47,7 @@ def _get_last_payment_date(created_date, bad_actor_score):
     return created_date + datetime.timedelta(hours=1)
 
 
-NOW = datetime.datetime.now(tz=pytz.UTC) - datetime.timedelta(days=1)
+NOW = datetime.datetime.now(tz=datetime.timezone.utc) - datetime.timedelta(days=1)
 THEN = NOW - datetime.timedelta(weeks=52)
 
 

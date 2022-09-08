@@ -6,7 +6,7 @@ import { motion } from 'framer-motion';
 export const DashboardSidebar = styled.aside`
   width: 260px;
   height: 100%;
-  padding: 2rem 0.5rem 0px;
+  padding: 2rem 0.5rem;
   background: ${(props) => props.theme.colors.sidebarBackground};
   box-shadow: ${(props) => props.theme.shadows[0]};
   display: flex;
@@ -175,6 +175,25 @@ export const NavItemIcon = styled(SvgIcon)`
   height: 12px;
   margin-right: 0.5rem;
   transform: rotate(180deg);
+
+  @media (${(props) => props.theme.breakpoints.tabletLandscapeDown}) {
+    width: 20px;
+    height: 20px;
+    margin-left: 22px;
+  }
+`;
+
+// Material icons have padding in their SVG that makes them look smaller in navs
+// compared to icons from <SvgIcon>. This transforms their inner SVG to make
+// them line up properly.
+
+export const NavItemMaterialIcon = styled('span')`
+  display: inline-flex;
+  margin-right: 0.5em;
+
+  svg {
+    transform: scale(1.25);
+  }
 
   @media (${(props) => props.theme.breakpoints.tabletLandscapeDown}) {
     width: 20px;

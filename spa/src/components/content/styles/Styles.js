@@ -1,26 +1,28 @@
 import { useEffect, useState } from 'react';
-import * as S from './Styles.styled';
-import { ButtonSection, PlusButton } from 'components/content/pages/Pages.styled';
-import { faPlus } from '@fortawesome/free-solid-svg-icons';
+import orderBy from 'lodash.orderby';
 
 // Children
-import CircleButton from 'elements/buttons/CircleButton';
-import StyleCard from 'components/content/styles/StyleCard';
+import { Content } from 'components/content/pages/Pages.styled';
 import GenericErrorBoundary from 'components/errors/GenericErrorBoundary';
-
-const STYLE_COUNT_TO_ENABLE_SEARCH = 4;
+import Hero from 'components/common/Hero';
+import NewButton from 'components/common/Button/NewButton';
+import { BUTTON_TYPE } from 'constants/buttonConstants';
+import EditButton from 'components/common/Button/EditButton';
 
 export const filterStyles = (stylesRaw, qry) => {
   return qry
-    ? stylesRaw.filter((style) => {
-        return (
-          style.name.toLowerCase().indexOf(qry) !== -1 ||
-          (style.revenue_program &&
-            (style.revenue_program.slug.toLowerCase().indexOf(qry) !== -1 ||
-              style.revenue_program.name.toLowerCase().indexOf(qry) !== -1))
-        );
-      })
-    : stylesRaw;
+    ? orderBy(
+        stylesRaw.filter((style) => {
+          return (
+            style.name.toLowerCase().indexOf(qry) !== -1 ||
+            (style.revenue_program &&
+              (style.revenue_program.slug.toLowerCase().indexOf(qry) !== -1 ||
+                style.revenue_program.name.toLowerCase().indexOf(qry) !== -1))
+          );
+        }),
+        'name'
+      )
+    : orderBy(stylesRaw, 'name');
 };
 
 function Styles({ setShowEditStylesModal, setStyleToEdit, fetchStyles, styles }) {
@@ -40,26 +42,25 @@ function Styles({ setShowEditStylesModal, setStyleToEdit, fetchStyles, styles })
 
   return (
     <GenericErrorBoundary>
-      <S.Styles data-testid="styles-list">
-        {styles && styles.length > STYLE_COUNT_TO_ENABLE_SEARCH ? (
-          <S.StylesSearch layout>
-            <input
-              placeholder="Search Styles by Name, Revenue-program"
-              onChange={(e) => setStyleSearchQuery(e.target.value)}
+      <Hero
+        title="Customize"
+        subtitle="Create custom styles and branding elements to help streamline the creation of new contribution pages. Create a new style by selecting the ‘New Style’ button below."
+        placeholder="Styles"
+        onChange={setStyleSearchQuery}
+      />
+      <Content data-testid="styles-list">
+        <NewButton type={BUTTON_TYPE.STYLE} onClick={() => setShowEditStylesModal(true)} />
+        {!!styles.length &&
+          stylesFiltered.map((style) => (
+            <EditButton
+              key={style.id}
+              name={style.name}
+              style={style}
+              type={BUTTON_TYPE.STYLE}
+              onClick={() => handleStyleSelect(style)}
             />
-          </S.StylesSearch>
-        ) : null}
-        <S.StylesList>
-          {stylesFiltered.map((style) => (
-            <StyleCard style={style} key={style.id} onSelect={handleStyleSelect} />
           ))}
-        </S.StylesList>
-        <ButtonSection>
-          <PlusButton onClick={() => setShowEditStylesModal(true)} data-testid="style-create-button">
-            <CircleButton icon={faPlus} />
-          </PlusButton>
-        </ButtonSection>
-      </S.Styles>
+      </Content>
     </GenericErrorBoundary>
   );
 }

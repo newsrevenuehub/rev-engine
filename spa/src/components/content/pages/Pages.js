@@ -1,5 +1,6 @@
 import { useEffect, useState, Fragment } from 'react';
-import useStyles, { Hero, Content } from './Pages.styled';
+import orderBy from 'lodash.orderby';
+import { Content } from './Pages.styled';
 
 // Router
 import { useHistory } from 'react-router-dom';
@@ -17,11 +18,9 @@ import { LIST_PAGES } from 'ajax/endpoints';
 
 // Children
 import GenericErrorBoundary from 'components/errors/GenericErrorBoundary';
-import HeaderSection from 'components/common/HeaderSection';
-import Searchbar from 'components/common/Searchbar';
 import EditButton from 'components/common/Button/EditButton';
 import NewButton from 'components/common/Button/NewButton';
-import { BUTTON_TYPE } from 'constants/buttonConstants';
+import Hero from 'components/common/Hero';
 
 export const pagesbyRP = (pgsRaw, qry) => {
   const pagesByRevProgram = [];
@@ -48,11 +47,10 @@ export const pagesbyRP = (pgsRaw, qry) => {
       });
     }
   });
-  return pagesByRevProgram.sort(revProgramKeysSort);
+  return orderBy(pagesByRevProgram, 'name');
 };
 
 function Pages({ setShowAddPageModal }) {
-  const classes = useStyles();
   const alert = useAlert();
   const history = useHistory();
   const requestGetPages = useRequest();
@@ -80,25 +78,19 @@ function Pages({ setShowAddPageModal }) {
 
   return (
     <GenericErrorBoundary>
-      <Hero>
-        <HeaderSection
-          title="Pages"
-          subtitle="Welcome to Pages. Here you can create, manage, and publish contribution pages. Create a new page by selecting the ‘New Page’ button below."
-        />
-        <Searchbar placeholder="Pages" className={classes.searchbar} onChange={setPageSearchQuery} />
-      </Hero>
+      <Hero
+        title="Pages"
+        subtitle="Welcome to Pages. Here you can create, manage, and publish contribution pages. Create a new page by selecting the ‘New Page’ button below."
+        placeholder="Pages"
+        onChange={setPageSearchQuery}
+      />
       <Content data-testid="pages-list">
         <NewButton onClick={() => setShowAddPageModal(true)} />
         {!!pagesByRevenueProgram.length &&
           pagesByRevenueProgram.map((revenueProgram) => (
             <Fragment key={revenueProgram.name}>
               {revenueProgram.pages.map((donationPage) => (
-                <EditButton
-                  key={donationPage.id}
-                  {...donationPage}
-                  onClick={() => handleEditPage(donationPage)}
-                  type={BUTTON_TYPE.PAGE}
-                />
+                <EditButton key={donationPage.id} {...donationPage} onClick={() => handleEditPage(donationPage)} />
               ))}
             </Fragment>
           ))}
@@ -108,9 +100,3 @@ function Pages({ setShowAddPageModal }) {
 }
 
 export default Pages;
-
-function revProgramKeysSort(a, b) {
-  const nameA = a.name.toLowerCase();
-  const nameB = b.name.toLowerCase();
-  return nameA < nameB ? -1 : nameA > nameB ? 1 : 0;
-}

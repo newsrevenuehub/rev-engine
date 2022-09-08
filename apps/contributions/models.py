@@ -274,7 +274,7 @@ class Contribution(IndexedTimeStampedModel, RoleAssignmentResourceModelMixin):
         else:
             raise UnexpectedRoleType(f"`{role_assignment.role_type}` is not a valid role type")
 
-    def create_stripe_one_time_payment_intent(self, stripe_customer_id=None, metadata=None):
+    def create_stripe_one_time_payment_intent(self, stripe_customer_id, metadata):
         """Create a Stripe PaymentIntent and attach its id and client_secret to the contribution
 
         See https://stripe.com/docs/api/payment_intents/create for more info
@@ -293,7 +293,7 @@ class Contribution(IndexedTimeStampedModel, RoleAssignmentResourceModelMixin):
         self.save()
         return intent
 
-    def create_stripe_subscription(self, stripe_customer_id=None, metadata=None):
+    def create_stripe_subscription(self, stripe_customer_id, metadata):
         """Create a Stripe Subscription and attach its data to the contribution
 
         See https://stripe.com/docs/api/subscriptions/create for more info

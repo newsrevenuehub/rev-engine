@@ -3,6 +3,7 @@ import { TOKEN, USER, FORGOT_PASSWORD_ENDPOINT, RESET_PASSWORD_ENDPOINT } from '
 import { SIGN_IN, CONTENT_SLUG, FORGOT_PASSWORD, RESET_PASSWORD } from 'routes';
 import orgAdminUser from '../fixtures/user/org-admin.json';
 import { CONTENT_SECTION_ACCESS_FLAG_NAME } from 'constants/featureFlagConstants';
+import { FORGOT_PASSWORD_SUCCESS_TEXT, RESET_PASSWORD_SUCCESS_TEXT } from 'constants/textConstants';
 
 const TOKEN_API_401 = { detail: 'No active account found with the given credentials' };
 const TOKEN_API_200 = {
@@ -13,9 +14,6 @@ const TOKEN_API_200 = {
 const FORGOT_PASSWORD_API_200 = { status: 'OK' };
 const RESET_PASSWORD_ENDPOINT_200 = { status: 'OK' };
 const RESET_PASSWORD_ENDPOINT_404 = { detail: 'Not found. Or anything returned by api' };
-
-const FORGOT_PASSWORD_SUCCESS = 'Success. If your email is registered, an email with a reset link will be sent to it.';
-const RESET_PASSWORD_SUCCESS_TEXT = 'Your password has been successfully reset.';
 
 const contentSectionFlag = {
   id: '5678',
@@ -64,7 +62,7 @@ describe('Account', () => {
         body: FORGOT_PASSWORD_API_200
       });
       cy.get('button[name="Send Reset Link"]').click();
-      cy.contains(FORGOT_PASSWORD_SUCCESS);
+      cy.contains(FORGOT_PASSWORD_SUCCESS_TEXT);
     });
   });
 

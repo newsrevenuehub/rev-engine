@@ -127,6 +127,7 @@ export const Submit = styled(motion.button)`
   }
   &:disabled {
     color: ${(props) => props.theme.colors.grey[3]};
+    transform: translate(1px, 1px);
   }
 `;
 

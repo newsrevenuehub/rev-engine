@@ -4,6 +4,7 @@ import { useState, useReducer, useMemo } from 'react';
 // AJAX
 import axios from 'ajax/axios';
 import { RESET_PASSWORD_ENDPOINT } from 'ajax/endpoints';
+import { RESET_PASSWORD_SUCCESS_TEXT } from 'constants/textConstants';
 
 // State management
 import fetchReducer, { initialState, FETCH_START, FETCH_SUCCESS, FETCH_FAILURE } from 'state/fetch-reducer';
@@ -45,11 +46,10 @@ function ResetPassword() {
       });
       if (status === 200) {
         setPasswordUpdateSuccess(true);
+        dispatch({ type: FETCH_SUCCESS });
       } else {
         dispatch({ type: FETCH_FAILURE, payload: data });
       }
-
-      dispatch({ type: FETCH_SUCCESS });
     } catch (e) {
       dispatch({ type: FETCH_FAILURE, payload: e?.response?.data });
     }
@@ -71,7 +71,7 @@ function ResetPassword() {
         <S.FormElements shorten={passwordUpdateSuccess}>
           <S.Heading data-testid="reset-pwd-title">{passwordUpdateSuccess ? 'Success!' : 'Reset Password!'}</S.Heading>
           <S.Subheading shorten={passwordUpdateSuccess}>
-            {passwordUpdateSuccess ? 'Your password has been successfully reset.' : 'Enter your new password below.'}
+            {passwordUpdateSuccess ? RESET_PASSWORD_SUCCESS_TEXT : 'Enter your new password below.'}
           </S.Subheading>
 
           {!passwordUpdateSuccess ? (

@@ -3,6 +3,7 @@ import { useState, useReducer, useMemo } from 'react';
 // AJAX
 import axios from 'ajax/axios';
 import { FORGOT_PASSWORD_ENDPOINT } from 'ajax/endpoints';
+import { FORGOT_PASSWORD_SUCCESS_TEXT } from 'constants/textConstants';
 
 import * as S from '../Account.styled';
 
@@ -20,8 +21,6 @@ import fetchReducer, { initialState, FETCH_START, FETCH_SUCCESS, FETCH_FAILURE }
 // Analytics
 import { useConfigureAnalytics } from 'components/analytics';
 
-const FORGOT_PASSWORD_SUCCESS = 'Success. If your email is registered, an email with a reset link will be sent to it.';
-
 function ForgotPassword() {
   useConfigureAnalytics();
   const [forgotPasswordState, dispatch] = useReducer(fetchReducer, initialState);
@@ -33,11 +32,11 @@ function ForgotPassword() {
     try {
       const { data, status } = await axios.post(FORGOT_PASSWORD_ENDPOINT, { email: fdata.email });
       if (status === 200) {
-        setInfoMessage(FORGOT_PASSWORD_SUCCESS);
+        setInfoMessage(FORGOT_PASSWORD_SUCCESS_TEXT);
+        dispatch({ type: FETCH_SUCCESS });
       } else {
         dispatch({ type: FETCH_FAILURE, payload: data });
       }
-      dispatch({ type: FETCH_SUCCESS });
     } catch (e) {
       dispatch({ type: FETCH_FAILURE, payload: e?.response?.data });
     }

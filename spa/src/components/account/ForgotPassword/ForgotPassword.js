@@ -31,8 +31,12 @@ function ForgotPassword() {
   const onForgotPasswordSubmit = async (fdata) => {
     dispatch({ type: FETCH_START });
     try {
-      await axios.post(FORGOT_PASSWORD_ENDPOINT, { email: fdata.email });
-      setInfoMessage(FORGOT_PASSWORD_SUCCESS);
+      const { data, status } = await axios.post(FORGOT_PASSWORD_ENDPOINT, { email: fdata.email });
+      if (status === 200) {
+        setInfoMessage(FORGOT_PASSWORD_SUCCESS);
+      } else {
+        dispatch({ type: FETCH_FAILURE, payload: data });
+      }
       dispatch({ type: FETCH_SUCCESS });
     } catch (e) {
       dispatch({ type: FETCH_FAILURE, payload: e?.response?.data });
@@ -41,7 +45,7 @@ function ForgotPassword() {
 
   const formSubmissionMessage = useMemo(() => {
     if (infoMessage) {
-      return <S.Message isMessage={true}>{infoMessage} </S.Message>;
+      return <S.Message isSuccess={true}>{infoMessage} </S.Message>;
     } else if (formSubmitErrors) {
       return <S.Message>{formSubmitErrors} </S.Message>;
     }

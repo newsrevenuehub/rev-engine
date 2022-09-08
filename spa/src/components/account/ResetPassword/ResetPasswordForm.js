@@ -1,7 +1,7 @@
-import React from 'react';
 import { useForm } from 'react-hook-form';
 import { useState } from 'react';
 import useModal from 'hooks/useModal';
+import PropTypes from 'prop-types';
 
 import * as S from '../Account.styled';
 
@@ -86,11 +86,14 @@ function ResetPasswordForm({ onResetPasswordSubmit, loading }) {
         <S.MessageSpacer />
       )}
 
-      <S.Submit type="submit" disabled={disabled} data-testid="reset-pwd-submit">
-        Reset Password
-      </S.Submit>
+      <S.Submit type="submit" disabled={disabled} name="Reset Password" />
     </form>
   );
 }
+
+ResetPasswordForm.propTypes = {
+  onResetPasswordSubmit: PropTypes.func,
+  loading: PropTypes.bool
+};
 
 export default ResetPasswordForm;

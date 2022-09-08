@@ -40,7 +40,6 @@ function Verify() {
 
   const [verifyState, dispatch] = useReducer(fetchReducer, initialState);
 
-  console.log(userData);
   const onSubmitVerify = async () => {
     dispatch({ type: FETCH_START });
     try {
@@ -65,12 +64,14 @@ function Verify() {
           <S.Icon src={readIcon} />
           <S.Heading>Verify Your Email Address</S.Heading>
           <S.Subheading>
-            To start using News Revenue Engine, please verify  your email. We’ve sent a verification email to{' '}
+            To start using News Revenue Engine, please verify your email. We’ve sent a verification email to{' '}
             <span>{userData?.email}.</span>
           </S.Subheading>
           <S.Drm>Didn’t Receive an Email?</S.Drm>
           <S.Resendtext>If you haven’t received the email within a few minutes, please resend below.</S.Resendtext>
-          <S.Button onClick={onSubmitVerify}>Resend Verification</S.Button>
+          <S.Button onClick={onSubmitVerify} name="Resend Verification">
+            Resend Verification
+          </S.Button>
           <S.Help>
             <span>Questions?</span> Email us at <Mailto label={HELPEMAIL} mailto={`mailto:${HELPEMAIL}`} />
           </S.Help>

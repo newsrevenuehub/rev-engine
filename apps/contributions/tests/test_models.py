@@ -69,7 +69,7 @@ class ContributorTest(TestCase):
         mock_create_customer.assert_called_once_with(
             email=self.contributor.email,
             address=address,
-            shipping={"address": address},
+            shipping={"address": address, "name": call_args["customer_name"]},
             name=call_args["customer_name"],
             phone=call_args["phone"],
             stripe_account=call_args["rp_stripe_account_id"],

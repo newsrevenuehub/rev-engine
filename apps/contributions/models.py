@@ -69,7 +69,7 @@ class Contributor(IndexedTimeStampedModel):
         return stripe.Customer.create(
             email=self.email,
             address=address,
-            shipping={"address": address},
+            shipping={"address": address, "name": customer_name},
             name=customer_name,
             phone=phone,
             stripe_account=rp_stripe_account_id,

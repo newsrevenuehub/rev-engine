@@ -2,16 +2,17 @@ import React from 'react';
 import * as S from './DashboardSidebar.styled';
 import ContentSectionNav from './navs/ContentSectionNav';
 import ContributionSectionNav from './navs/ContributionSectionNav';
-import { ICONS } from 'assets/icons/SvgIcon';
 
 import { CONTENT_SECTION_ACCESS_FLAG_NAME } from 'constants/featureFlagConstants';
 
 import flagIsActiveForUser from 'utilities/flagIsActiveForUser';
 import { useFeatureFlagsProviderContext } from 'components/Main';
-import hasContributionsDashboardAcessToUser from 'utilities/hasContributionsDashboardAcessToUser';
+import hasContributionsDashboardAccessToUser from 'utilities/hasContributionsDashboardAccessToUser';
+import DashboardSidebarFooter from './DashboardSidebarFooter';
 
 /*
 // Commenting out for now as this will needed in future
+// import { ICONS } from 'assets/icons/SvgIcon';
 
 function DashboardMain() {
   return (
@@ -26,7 +27,7 @@ function DashboardMain() {
 function DashboardSidebar() {
   const { featureFlags } = useFeatureFlagsProviderContext();
 
-  const hasContributionsSectionAccess = hasContributionsDashboardAcessToUser(featureFlags);
+  const hasContributionsSectionAccess = hasContributionsDashboardAccessToUser(featureFlags);
   const hasContentSectionAccess = flagIsActiveForUser(CONTENT_SECTION_ACCESS_FLAG_NAME, featureFlags);
 
   return (
@@ -35,6 +36,7 @@ function DashboardSidebar() {
         {hasContentSectionAccess ? <ContentSectionNav /> : null}
         {hasContributionsSectionAccess ? <ContributionSectionNav /> : null}
       </S.NavList>
+      <DashboardSidebarFooter />
     </S.DashboardSidebar>
   );
 }

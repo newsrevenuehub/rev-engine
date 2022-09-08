@@ -4,11 +4,11 @@ import {
 } from 'constants/featureFlagConstants';
 import flagIsActiveForUser from './flagIsActiveForUser';
 
-function hasContributionsDashboardAcessToUser(featureFlags) {
+function hasContributionsDashboardAccessToUser(featureFlags) {
   const disableContributionAccessFlag = flagIsActiveForUser(CONTRIBUTIONS_SECTION_DENY_FLAG_NAME, featureFlags);
   const enableContributionAccessFlag = flagIsActiveForUser(CONTRIBUTIONS_SECTION_ACCESS_FLAG_NAME, featureFlags);
 
   return !disableContributionAccessFlag && enableContributionAccessFlag;
 }
 
-export default hasContributionsDashboardAcessToUser;
+export default hasContributionsDashboardAccessToUser;

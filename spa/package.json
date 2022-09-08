@@ -158,6 +158,7 @@
     "cypress-localstorage-commands": "^1.7.0",
     "eslint-plugin-chai-friendly": "^0.7.1",
     "eslint-plugin-cypress": "^2.11.3",
-    "webpack": "^5.74.0"
+    "webpack": "^5.74.0",
+    "jest-axe": "^6.0.0"
   }
 }

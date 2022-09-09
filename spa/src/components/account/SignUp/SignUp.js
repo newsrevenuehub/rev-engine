@@ -44,8 +44,6 @@ function SignUp({ onSuccess }) {
     else history.push(CONTENT_SLUG);
   };
 
-  const formSubmitErrors = signUpState?.errors?.email;
-
   const handleLogin = async (fdata) => {
     dispatch({ type: FETCH_START });
     try {
@@ -78,19 +76,12 @@ function SignUp({ onSuccess }) {
     }
   };
 
-  /*
-  let formSubmissionMessage = <S.MessageSpacer />;
-  if (formSubmitErrors) {
-    formSubmissionMessage = <S.Message>{formSubmitErrors.}</S.Message>;
-  }*/
-
   const formSubmissionMessage = useMemo(() => {
     if (signUpState?.errors?.email) {
       return <S.Message>Email:{signUpState?.errors?.email}</S.Message>;
     } else if (signUpState?.errors && signUpState?.errors.length !== 0) {
       return <S.Message>{SIGN_UP_GENERIC_ERROR_TEXT}</S.Message>;
     }
-
     return <S.MessageSpacer />;
   }, [signUpState]);
 

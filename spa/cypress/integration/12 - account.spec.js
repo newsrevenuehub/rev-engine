@@ -54,12 +54,12 @@ const contentSectionFlag = {
 };
 
 const orgAdminWithContentFlag = {
-  ...orgAdminUser,
+  ...orgAdminUser['user'],
   flags: [contentSectionFlag]
 };
 
 const rpAdminUnverifiedNewUser = {
-  ...rpAdminUnverified,
+  ...rpAdminUnverified['user'],
   flags: []
 };
 
@@ -163,14 +163,23 @@ describe('Account', () => {
   });
 
   context('Verify Email', () => {
-    it('it should show verify screen if user is not verified', () => {
+    it('it should show `verify-email screen` if user is not verified', () => {
       cy.forceLogin(rpAdminUnverified);
       cy.intercept({ method: 'GET', pathname: getEndpoint(USER) }, { body: rpAdminUnverifiedNewUser });
       cy.visit(DASHBOARD_SLUG);
       cy.url().should('include', VERIFY_EMAIL_SUCCESS);
     });
 
-    it('it should send an email if an unverified user user clicks `Resend Verification`', () => {
+    it('it should not show `verify-email screen` if user is verified', () => {
+      cy.forceLogin(orgAdminUser);
+      cy.intercept({ method: 'GET', pathname: getEndpoint(USER) }, { body: orgAdminWithContentFlag });
+      cy.intercept({ method: 'GET', pathname: getEndpoint(LIST_PAGES) }, { fixture: 'pages/list-pages-1' });
+      cy.intercept({ method: 'GET', pathname: getEndpoint(LIST_STYLES) }, { fixture: 'styles/list-styles-1' });
+      cy.visit(DASHBOARD_SLUG);
+      cy.url().should('include', CONTENT_SLUG);
+    });
+
+    it('it should send email when user user clicks `Resend Verification` on `verify-email screen`', () => {
       cy.forceLogin(rpAdminUnverified);
       cy.intercept({ method: 'GET', pathname: getEndpoint(USER) }, { body: rpAdminUnverifiedNewUser });
       cy.intercept('GET', getEndpoint(VERIFY_EMAIL_REQUEST_ENDPOINT), {
@@ -183,7 +192,7 @@ describe('Account', () => {
       cy.contains(RESEND_VERIFICATION_SUCCESS_TEXT);
     });
 
-    it('should redirect an unverfied-user from /redirect/{result} to VERIFY_EMAIL_SUCCESS success screen', () => {
+    it('should redirect an unverfied-user from /redirect/{result} to `verify-email screen`', () => {
       cy.forceLogin(rpAdminUnverified);
       cy.intercept({ method: 'GET', pathname: getEndpoint(USER) }, { body: rpAdminUnverifiedNewUser });
       cy.visit(DASHBOARD_SLUG);

@@ -121,7 +121,7 @@ describe('Dashboard', () => {
       { label: 'org admins', body: orgAdminWithContentFlag }
     ]) {
       it(`shows a help link to ${label}`, () => {
-        cy.intercept({ method: 'GET', pathname: getEndpoint(USER) }, { body });
+        cy.intercept({ method: 'GET', pathname: getEndpoint(USER) }, { body: hubAdminWithAllAccessFlags });
         cy.visit(DASHBOARD_SLUG);
         cy.getByTestId('nav-help-item')
           .should('exist')
@@ -131,7 +131,7 @@ describe('Dashboard', () => {
       });
 
       it(`shows a FAQ link to ${label}`, () => {
-        cy.intercept({ method: 'GET', pathname: getEndpoint(USER) }, { body });
+        cy.intercept({ method: 'GET', pathname: getEndpoint(USER) }, { body: hubAdminWithAllAccessFlags });
         cy.visit(DASHBOARD_SLUG);
         cy.getByTestId('nav-faq-item')
           .should('exist')

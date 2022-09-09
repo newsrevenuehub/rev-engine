@@ -55,7 +55,7 @@ function Verify() {
     }
   };
 
-  const errorMessage = 'EFREGREG'; //verifyState?.errors?.detail;
+  const errorMessage = verifyState?.errors?.detail;
 
   return (
     <S.Verify>

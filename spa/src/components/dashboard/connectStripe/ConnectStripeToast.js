@@ -8,17 +8,7 @@ import Tooltip from '@material-ui/core/Tooltip';
 import StripeLogo from 'assets/icons/stripeLogo.svg';
 import Triangle6Dots from 'assets/icons/triangle6Dots.svg';
 import RemoveIcon from '@material-ui/icons/Remove';
-
-const RETooltip = withStyles({
-  tooltip: {
-    color: '#fff',
-    backgroundColor: '#323232',
-    marginTop: '4px',
-    padding: '4px 6px',
-    fontSize: '10px',
-    borderRadius: '0.5px'
-  }
-})(Tooltip);
+import RETooltip from 'elements/RETooltip';
 
 const ConnectStripeToast = () => {
   const [collapsed, setCollapsed] = useState(false);

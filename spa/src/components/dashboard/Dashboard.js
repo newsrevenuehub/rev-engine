@@ -3,7 +3,7 @@ import { Route, Switch, Redirect, useLocation } from 'react-router-dom';
 import * as S from './Dashboard.styled';
 
 // Routing
-import { DONATIONS_SLUG, CONTENT_SLUG, EDITOR_ROUTE_PAGE, DASHBOARD_SLUG, CUSTOMIZE_SLUG } from 'routes';
+import { DONATIONS_SLUG, CONTENT_SLUG, EDITOR_ROUTE, EDITOR_ROUTE_PAGE, DASHBOARD_SLUG, CUSTOMIZE_SLUG } from 'routes';
 
 // Children
 import { useFeatureFlagsProviderContext } from 'components/Main';
@@ -16,17 +16,17 @@ import Customize from 'components/content/Customize';
 import PageEditor from 'components/pageEditor/PageEditor';
 
 // Feature flag-related
-import {
-  CONTRIBUTIONS_SECTION_ACCESS_FLAG_NAME,
-  CONTENT_SECTION_ACCESS_FLAG_NAME
-} from 'constants/featureFlagConstants';
+import { CONTENT_SECTION_ACCESS_FLAG_NAME } from 'constants/featureFlagConstants';
 
 import flagIsActiveForUser from 'utilities/flagIsActiveForUser';
+import hasContributionsDashboardAccessToUser from 'utilities/hasContributionsDashboardAccessToUser';
+import { usePageContext } from './PageContext';
 
 function Dashboard() {
   const { featureFlags } = useFeatureFlagsProviderContext();
+  const { page } = usePageContext();
 
-  const hasContributionsSectionAccess = flagIsActiveForUser(CONTRIBUTIONS_SECTION_ACCESS_FLAG_NAME, featureFlags);
+  const hasContributionsSectionAccess = hasContributionsDashboardAccessToUser(featureFlags);
 
   const hasContentSectionAccess = flagIsActiveForUser(CONTENT_SECTION_ACCESS_FLAG_NAME, featureFlags);
 
@@ -36,11 +36,11 @@ function Dashboard() {
     ? DONATIONS_SLUG
     : 'not-found';
 
-  const isEditPage = useLocation().pathname.includes('/dashboard/edit');
+  const isEditPage = useLocation().pathname.includes(EDITOR_ROUTE);
 
   return (
     <S.Outer>
-      <DashboardTopbar isEditPage={isEditPage} />
+      <DashboardTopbar isEditPage={isEditPage} page={page} />
       <S.Dashboard data-testid="dashboard">
         {isEditPage ? null : <DashboardSidebar />}
         <S.DashboardMain>

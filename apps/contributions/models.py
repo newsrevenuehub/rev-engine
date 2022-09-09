@@ -137,7 +137,6 @@ class Contribution(IndexedTimeStampedModel, RoleAssignmentResourceModelMixin):
     provider_payment_id = models.CharField(max_length=255, blank=True, null=True)
     # This is the `client_id` value in the response from StripeAPI after creating a
     # Stripe PaymentElement or Subscription
-    # TODO: Consider not saving `provider_client_secret_id` as plain text
     provider_client_secret_id = models.CharField(max_length=255, blank=True, null=True)
     provider_subscription_id = models.CharField(max_length=255, blank=True, null=True)
     provider_customer_id = models.CharField(max_length=255, blank=True, null=True)
@@ -274,7 +273,7 @@ class Contribution(IndexedTimeStampedModel, RoleAssignmentResourceModelMixin):
         else:
             raise UnexpectedRoleType(f"`{role_assignment.role_type}` is not a valid role type")
 
-    def create_stripe_one_time_payment_intent(self, stripe_customer_id=None, metadata=None):
+    def create_stripe_one_time_payment_intent(self, stripe_customer_id, metadata):
         """Create a Stripe PaymentIntent and attach its id and client_secret to the contribution
 
         See https://stripe.com/docs/api/payment_intents/create for more info
@@ -293,7 +292,7 @@ class Contribution(IndexedTimeStampedModel, RoleAssignmentResourceModelMixin):
         self.save()
         return intent
 
-    def create_stripe_subscription(self, stripe_customer_id=None, metadata=None):
+    def create_stripe_subscription(self, stripe_customer_id, metadata):
         """Create a Stripe Subscription and attach its data to the contribution
 
         See https://stripe.com/docs/api/subscriptions/create for more info

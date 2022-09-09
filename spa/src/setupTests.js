@@ -1,5 +1,8 @@
 import '@testing-library/jest-dom';
+import { toHaveNoViolations } from 'jest-axe';
 import { server } from 'test-server';
+
+expect.extend(toHaveNoViolations);
 
 beforeAll(() => {
   // establish API mocking

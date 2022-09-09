@@ -12,7 +12,7 @@ import discover from 'assets/icons/discover_icon.svg';
 import { useAlert } from 'react-alert';
 
 // Context
-import { useGlobalContext } from 'components/MainLayout';
+import { useConfirmationModalContext } from 'elements/modal/GlobalConfirmationModal';
 import { NO_VALUE } from 'constants/textConstants';
 
 // Analytics
@@ -36,13 +36,14 @@ import DonationsTable from 'components/donations/DonationsTable';
 import EditRecurringPaymentModal from 'components/contributor/contributorDashboard/EditRecurringPaymentModal';
 import GlobalLoading from 'elements/GlobalLoading';
 import { PAYMENT_STATUS } from 'constants';
+import HeaderSection from 'components/common/HeaderSection';
 
 const ContributorDashboardContext = createContext();
 
 function ContributorDashboard() {
   const alert = useAlert();
   // Context
-  const { getUserConfirmation } = useGlobalContext();
+  const getUserConfirmation = useConfirmationModalContext();
 
   // State
   const [loading, setLoading] = useState(false);
@@ -168,8 +169,7 @@ function ContributorDashboard() {
     <ContributorDashboardContext.Provider value={{ setTokenExpired, contriubtions, setContributions }}>
       <>
         <S.ContributorDashboard>
-          <S.Title variant="h1">Your Contributions</S.Title>
-          <S.Disclaimer variant="body1">Changes made may not be reflected immediately.</S.Disclaimer>
+          <HeaderSection title="Your Contributions" subtitle="Changes made may not be reflected immediately." />
           <DonationsTable
             grow
             fetchDonations={fetchDonations}

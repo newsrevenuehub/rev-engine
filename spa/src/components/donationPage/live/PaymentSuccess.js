@@ -2,13 +2,14 @@ import { useEffect } from 'react';
 import { useLocation, useHistory } from 'react-router-dom';
 import queryString from 'query-string';
 import urlJoin from 'url-join';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery } from 'react-query';
 
 import axios from 'ajax/axios';
 import { LIVE_PAGE_DETAIL } from 'ajax/endpoints';
 import { useAnalyticsContext } from 'components/analytics/AnalyticsContext';
 import { THANK_YOU_SLUG } from 'routes';
 import { HUB_GA_V3_ID } from 'settings';
+import GlobalLoading from 'elements/GlobalLoading';
 
 function fetchPage(rpSlug, pageSlug) {
   return axios.get(LIVE_PAGE_DETAIL, { params: { revenue_program: rpSlug, page: pageSlug } }).then(({ data }) => data);
@@ -27,7 +28,6 @@ export default function PaymentSuccess() {
   const { amount, next, frequency, uid, email, pageSlug, rpSlug, fromPath } = queryString.parse(search);
 
   const { data: page, isSuccess: pageFetchSuccess } = useQuery(['getPage'], () => fetchPage(rpSlug, pageSlug));
-
   // we'll need to actually setAnalytics instance because won't already
   const { trackConversion, analyticsInstance, setAnalyticsConfig } = useAnalyticsContext();
 
@@ -66,7 +66,6 @@ export default function PaymentSuccess() {
         nextUrl.searchParams.append('frequency', frequency);
         nextUrl.searchParams.append('amount', amount);
         window.location = nextUrl;
-        history.push(nextUrl);
         // ... otherwise if we're going to on-site generic thank you page
       } else {
         const donationPageUrl = window.location.href;
@@ -77,5 +76,5 @@ export default function PaymentSuccess() {
       }
     }
   });
-  return <></>;
+  return <GlobalLoading />;
 }

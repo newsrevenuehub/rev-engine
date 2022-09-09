@@ -54,7 +54,7 @@ class PaymentManager:
         self.data = data
         self.serializer_class = self.get_serializer_class(data=data, contribution=contribution)
 
-    def get_serializer_class(self, **kwargs):  # pragma: no cover
+    def get_serializer_class(self, **kwargs):  # pragma: no cover Abstract method
         raise NotImplementedError("Subclasses of PaymentManager must implement get_serializer_class")
 
     def ensure_contribution(self):

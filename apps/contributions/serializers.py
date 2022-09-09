@@ -157,7 +157,7 @@ class BadActorSerializer(serializers.Serializer):
     referer = serializers.URLField()
 
     # Donation additional
-    reason_for_giving = serializers.CharField(max_length=255, required=False, allow_blank=True, allow_null=True)
+    reason_for_giving = serializers.CharField(max_length=255, required=False, allow_blank=True, default="")
 
     def to_internal_value(self, data):
         data["street"] = data.get("mailing_street")
@@ -267,10 +267,7 @@ class BaseCreatePaymentSerializer(serializers.Serializer):
     phone = serializers.CharField(max_length=40, required=False, allow_blank=True, write_only=True, default="")
     # See class-level doc string for info on why `default=''` here
     reason_for_giving = serializers.CharField(
-        max_length=255,
-        required=False,
-        allow_blank=True,
-        write_only=True,
+        max_length=255, required=False, allow_blank=True, write_only=True, default=""
     )
     # See class-level doc string for info on why `default=''` here
     reason_other = serializers.CharField(max_length=255, required=False, allow_blank=True, write_only=True, default="")
@@ -317,7 +314,7 @@ class BaseCreatePaymentSerializer(serializers.Serializer):
 
         We validate that if `reason_for_giving` is not "Other" that it is one of the preset options (if any) on the page. This can't happen
         in the initial field level validation for `reason_for_giving` because we need the value for `data["page]` to be resolved, and that
-        will only happen after all field-level validations have run.s
+        will only happen after all field-level validations have run.
 
         Additionally, if the request data contains `reason_other`, but no value for `reason_for_giving`, we also
         update `reason_for_giving` to the `reason_other` value. This can happen when an org has configured a page
@@ -333,7 +330,9 @@ class BaseCreatePaymentSerializer(serializers.Serializer):
                 # reason_for_giving because that field was not in the request data. If that happens and the SPA has included
                 # `reason_other` as an entry in the request data, that means that the page has configured to require a reason_for_giving,
                 # but a dropdown of preset choices has not been configured.
-                reason_for_giving is None and "reason_other" in self.initial_data.keys(),
+                "reason_for_giving" not in self.initial_data.keys()
+                and "reason_other" in self.initial_data.keys()
+                and reason_other,
             ]
         ):
             return reason_other
@@ -404,7 +403,6 @@ class BaseCreatePaymentSerializer(serializers.Serializer):
     def get_stripe_payment_metadata(self, contributor, validated_data):
         """Generate dict of metadata to be sent to Stripe when creating a PaymentIntent or Subscription"""
         return {
-            # TODO: confirm business requirements around these first two keys/vals
             "source": settings.METADATA_SOURCE,
             "schema_version": settings.METADATA_SCHEMA_VERSION,
             "contributor_id": contributor.id,
@@ -446,7 +444,6 @@ class BaseCreatePaymentSerializer(serializers.Serializer):
             "amount": validated_data["amount"],
             "interval": validated_data["interval"],
             "currency": validated_data["page"].revenue_program.payment_provider.currency,
-            # TODO: Determine if this requires a different, new 'pre-processing' status
             "status": ContributionStatus.PROCESSING,
             "donation_page": validated_data["page"],
             "contributor": contributor,
@@ -646,13 +643,13 @@ class SubscriptionsSerializer(serializers.Serializer):
         return self._card(instance).brand
 
     def get_next_payment_date(self, instance):
-        return datetime.utcfromtimestamp(int(instance.current_period_end))
+        return datetime.fromtimestamp(int(instance.current_period_end), tz=timezone.utc)
 
     def get_last_payment_date(self, instance):
-        return datetime.utcfromtimestamp(int(instance.current_period_start))
+        return datetime.fromtimestamp(int(instance.current_period_start), tz=timezone.utc)
 
     def get_created(self, instance):
-        return datetime.utcfromtimestamp(int(instance.created))
+        return datetime.fromtimestamp(int(instance.created), tz=timezone.utc)
 
     def get_last4(self, instance):
         return instance.default_payment_method.card.last4

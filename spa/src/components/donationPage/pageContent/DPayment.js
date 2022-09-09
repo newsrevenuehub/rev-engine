@@ -1,4 +1,3 @@
-import PropTypes from 'prop-types';
 import * as S from './DPayment.styled';
 import DElement from './DElement';
 import { ICONS } from 'assets/icons/SvgIcon';
@@ -16,15 +15,6 @@ import StripePaymentWrapper from 'components/paymentProviders/stripe/StripePayme
 function DPayment({ live: liveMode }) {
   return <DElement>{liveMode ? <StripePaymentWrapper /> : <NotLivePlaceholder />}</DElement>;
 }
-
-DPayment.propTypes = {
-  liveMode: PropTypes.bool.isRequired,
-  paymentIntentSecret: PropTypes.string
-};
-
-DPayment.defaultProps = {
-  liveMode: false
-};
 
 DPayment.type = 'DPayment';
 DPayment.displayName = 'Payment';

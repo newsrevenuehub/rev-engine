@@ -4,7 +4,7 @@ import calculateStripeFee from 'utilities/calculateStripeFee';
  *  Process Data  *
 \******************/
 
-/**
+/**s
  * getTotalAmount takes an amount in dollars and an optional fee in dollars and adds them up.
  * @param {number} amount - float or integer, human-readable amount to be donated
  * @param {number} fee - the fee to include, if shouldPayFee
@@ -57,8 +57,7 @@ function serializeForm(form) {
     // If it's a checkbox, we need to convert the "true" value to the expected value
     if (tributesToConvert[key]) obj.tribute_type = tributesToConvert[key];
   }
-  // see comment above this function declaration about why we do this
-  return normalizeSwagField(obj);
+  return obj;
 }
 
 /**

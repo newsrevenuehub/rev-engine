@@ -12,7 +12,8 @@ export const ICONS = {
   PAGES: 'pages',
   CONTRIBUTIONS: 'contributions',
   CUSTOMIZE: 'customize',
-  DASHBOARD: 'dashboard'
+  DASHBOARD: 'dashboard',
+  RING_BUOY: 'ring-buoy'
 };
 
 function SvgIcon({ icon, ...props }) {

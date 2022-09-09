@@ -1,6 +1,6 @@
+import datetime
 import json
 import logging
-from datetime import datetime
 from functools import cached_property
 
 from django.conf import settings
@@ -126,7 +126,7 @@ class StripePaymentIntent:
 
     @property
     def created(self):
-        return datetime.utcfromtimestamp(int(self.payment_intent.created))
+        return datetime.datetime.fromtimestamp(int(self.payment_intent.created), tz=datetime.timezone.utc)
 
     @property
     def provider_customer_id(self):
@@ -135,8 +135,10 @@ class StripePaymentIntent:
     @property
     def last_payment_date(self):
         if not self.payment_intent.invoice:
-            return datetime.utcfromtimestamp(int(self.payment_intent.created))
-        return datetime.utcfromtimestamp(int(self.payment_intent.invoice.status_transitions.paid_at))
+            return datetime.datetime.fromtimestamp(int(self.payment_intent.created), tz=datetime.timezone.utc)
+        return datetime.datetime.fromtimestamp(
+            int(self.payment_intent.invoice.status_transitions.paid_at), tz=datetime.timezone.utc
+        )
 
     @property
     def status(self):
@@ -249,7 +251,6 @@ class ContributionsCacheProvider:
             self.cache.set(self.key, json.dumps(cached_data), timeout=CONTRIBUTION_CACHE_TTL.seconds)
 
     def load(self):
-
         data = self.cache.get(self.key)
         if not data:
             return []

@@ -33,11 +33,11 @@ import { GENERIC_ERROR } from 'constants/textConstants';
 import { CAPTURE_PAGE_SCREENSHOT } from 'settings';
 
 // Assets
-import { faEye, faEdit, faSave, faTrash, faClone } from '@fortawesome/free-solid-svg-icons';
+import { faEye, faEdit, faSave, faTrash } from '@fortawesome/free-solid-svg-icons';
 import { ICONS } from 'assets/icons/SvgIcon';
 
 // Context
-import { useGlobalContext } from 'components/MainLayout';
+import { useConfirmationModalContext } from 'elements/modal/GlobalConfirmationModal';
 import validatePage from './validatePage';
 
 // Hooks
@@ -55,6 +55,8 @@ import BackButton from 'elements/BackButton';
 import { BackIcon } from 'elements/BackButton.styled';
 import UnsavedChangesModal from 'components/pageEditor/UnsavedChangesModal';
 import PageTitle from 'elements/PageTitle';
+import RETooltip from 'elements/RETooltip';
+import { usePageContext } from 'components/dashboard/PageContext';
 
 const PageEditorContext = createContext();
 
@@ -83,7 +85,8 @@ function PageEditor() {
   const parameters = useParams();
 
   // Context
-  const { getUserConfirmation } = useGlobalContext();
+  const getUserConfirmation = useConfirmationModalContext();
+  const { setPage: setPageContext } = usePageContext();
 
   const location = useLocation();
   const pageId = location?.state?.pageId;
@@ -105,6 +108,7 @@ function PageEditor() {
 
   const [updatedPage, setUpdatedPage] = useState();
   const [selectedButton, setSelectedButton] = useState(PREVIEW);
+  const [updatePageAndSave, setUpdatePageAndSave] = useState(null);
   const [showEditInterface, setShowEditInterface] = useState(false);
   const [errors, setErrors] = useState({});
 
@@ -128,6 +132,12 @@ function PageEditor() {
     },
     [alert]
   );
+
+  useEffect(() => {
+    // Empty page on first load
+    setPageContext(null);
+  }, [setPageContext]);
+
   useEffect(() => {
     setLoading(true);
 
@@ -150,6 +160,7 @@ function PageEditor() {
     requestGetPage(config, {
       onSuccess: ({ data }) => {
         setPage(data);
+        setPageContext(data);
         setLoading(false);
       },
       onFailure: handleGetPageFailure //() => setLoading(false)
@@ -199,7 +210,7 @@ function PageEditor() {
     } else if (page.published_date && isBefore(new Date(page.published_date), new Date())) {
       getUserConfirmation("You're making changes to a live donation page. Continue?", () => patchPage(pageUpdates));
     } else {
-      patchPage(pageUpdates);
+      setUpdatePageAndSave(pageUpdates);
     }
   };
 
@@ -267,7 +278,7 @@ function PageEditor() {
    * @param {object} patchedPage - Object containing page data
    * @returns {FormData} formData
    */
-  const processPageData = (patchedPage) => {
+  const processPageData = useCallback((patchedPage) => {
     const formData = new FormData();
     for (const pageKey in patchedPage) {
       let datumKey = pageKey;
@@ -287,46 +298,57 @@ function PageEditor() {
       }
     }
     return formData;
-  };
+  }, []);
 
-  const patchPage = async (patchedPage) => {
-    setLoading(true);
+  const patchPage = useCallback(
+    async (patchedPage) => {
+      setLoading(true);
 
-    let data = cleanImageKeys(patchedPage);
-    data = cleanData(data);
-    data = processPageData(data);
-    if (CAPTURE_PAGE_SCREENSHOT) data = await addScreenshotToCleanedData(data, page.name);
-    requestPatchPage(
-      {
-        method: 'PATCH',
-        url: `${PATCH_PAGE}${page.id}/`,
-        data
-      },
-      {
-        onSuccess: ({ data }) => {
-          const successMessage = getSuccessMessage(page, data);
-          alert.success(successMessage);
-          setErrors({});
-          setPage(data);
-          setUpdatedPage(null);
-          setSelectedButton(PREVIEW);
-          setLoading(false);
+      let data = cleanImageKeys(patchedPage);
+      data = cleanData(data);
+      data = processPageData(data);
+      if (CAPTURE_PAGE_SCREENSHOT) data = await addScreenshotToCleanedData(data, page.name);
+      requestPatchPage(
+        {
+          method: 'PATCH',
+          url: `${PATCH_PAGE}${page.id}/`,
+          data
         },
-        onFailure: (e) => {
-          if (e?.response?.data) {
-            setErrors({ ...errors, ...e.response.data });
-            setSelectedButton(EDIT);
-            setShowEditInterface(true);
-            setLoading(false);
-          } else {
-            alert.error(GENERIC_ERROR);
+        {
+          onSuccess: ({ data }) => {
+            const successMessage = getSuccessMessage(page, data);
+            alert.success(successMessage);
+            setErrors({});
+            setPage(data);
+            setPageContext(data);
+            setUpdatedPage(null);
             setSelectedButton(PREVIEW);
+            setLoading(false);
+          },
+          onFailure: (e) => {
+            if (e?.response?.data) {
+              setErrors({ ...errors, ...e.response.data });
+              setSelectedButton(EDIT);
+              setShowEditInterface(true);
+              setLoading(false);
+            } else {
+              alert.error(GENERIC_ERROR);
+              setSelectedButton(PREVIEW);
+            }
+            setLoading(false);
           }
-          setLoading(false);
         }
-      }
-    );
-  };
+      );
+    },
+    [alert, errors, page, processPageData, requestPatchPage]
+  );
+
+  useEffect(() => {
+    if (selectedButton === PREVIEW && updatePageAndSave) {
+      patchPage(updatePageAndSave);
+      setUpdatePageAndSave(null);
+    }
+  }, [patchPage, selectedButton, updatePageAndSave]);
 
   useEffect(() => {
     if (!isEmpty(errors)) {
@@ -377,34 +399,53 @@ function PageEditor() {
                   buttonType="neutral"
                   color={theme.colors.primary}
                   data-testid="preview-page-button"
+                  tooltipText="View"
                 />
+
                 <CircleButton
                   onClick={handleEdit}
                   selected={selectedButton === EDIT}
                   icon={faEdit}
                   buttonType="neutral"
                   data-testid="edit-page-button"
+                  tooltipText="Edit"
                 />
-                <CircleButton
-                  onClick={handleSave}
-                  icon={faSave}
-                  buttonType="neutral"
-                  data-testid="save-page-button"
-                  disabled={!updatedPage}
-                />
+
+                {updatedPage ? (
+                  <CircleButton
+                    onClick={handleSave}
+                    icon={faSave}
+                    buttonType="neutral"
+                    data-testid="save-page-button"
+                    disabled={!updatedPage}
+                    tooltipText="Save"
+                  />
+                ) : (
+                  <RETooltip title="Save" placement="right">
+                    <S.PageEditorBackButton data-testid="save-page-button">
+                      <S.DisabledSaveIcon icon={faSave} type="neutral" disabled={!updatedPage || loading} />
+                    </S.PageEditorBackButton>
+                  </RETooltip>
+                )}
+
                 <CircleButton
                   onClick={handleDelete}
                   icon={faTrash}
                   buttonType="caution"
                   data-testid="delete-page-button"
+                  tooltipText="Delete"
                 />
 
                 {updatedPage ? (
-                  <CircleButton onClick={openUnsavedModal} buttonType="neutral">
+                  <CircleButton onClick={openUnsavedModal} buttonType="neutral" tooltipText="Exit">
                     <BackIcon icon={ICONS.ARROW_LEFT} />
                   </CircleButton>
                 ) : (
-                  <BackButton to={CONTENT_SLUG} />
+                  <RETooltip title="Exit" placement="right">
+                    <S.PageEditorBackButton>
+                      <BackButton to={CONTENT_SLUG} />
+                    </S.PageEditorBackButton>
+                  </RETooltip>
                 )}
               </S.ButtonOverlay>
             </S.ButtonOverlayOuter>

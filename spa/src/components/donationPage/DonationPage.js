@@ -1,5 +1,5 @@
 import { useRef, useState, useEffect, createContext, useContext } from 'react';
-import { useMutation } from '@tanstack/react-query';
+import { useMutation } from 'react-query';
 
 import * as S from './DonationPage.styled';
 import axios from 'ajax/axios';
@@ -31,7 +31,6 @@ import formatStringAmountForDisplay from 'utilities/formatStringAmountForDisplay
 import { getFrequencyAdverb } from 'utilities/parseFrequency';
 
 import { CSRF_HEADER } from 'settings';
-import GlobalLoading from 'elements/GlobalLoading';
 
 // https://stackoverflow.com/a/49224652
 function getCookie(name) {

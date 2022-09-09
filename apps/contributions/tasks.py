@@ -26,7 +26,7 @@ from apps.contributions.stripe_contributions_provider import (
 logger = get_task_logger(f"{settings.DEFAULT_LOGGER}.{__name__}")
 
 
-def ping_healthchecks(check_name, healthcheck_url):  # pragma: no cover
+def ping_healthchecks(check_name, healthcheck_url):
     """Attempt to ping a healthchecks.io to enable monitoring of tasks"""
     if not healthcheck_url:
         logger.warning("URL for %s not available in this environment", check_name)

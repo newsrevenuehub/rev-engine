@@ -204,14 +204,15 @@ class UserViewset(
 
         return [permission() for permission in permission_classes]
 
-    @staticmethod
-    def send_verification_email(user):
+    def send_verification_email(self, user):
         """Send email to user asking them to click verify their email address link."""
         if not user.email:
             logger.warning("Account Verification: No email for user: %s", user.id)
             return
         encoded_email, token = AccountVerification().generate_token(user.email)
-        url = reverse("account_verification", kwargs={"email": encoded_email, "token": token})
+        url = self.request.build_absolute_uri(
+            reverse("account_verification", kwargs={"email": encoded_email, "token": token})
+        )
         send_templated_email.delay(
             user.email,
             EMAIL_VERIFICATION_EMAIL_SUBJECT,

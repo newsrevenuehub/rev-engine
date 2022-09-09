@@ -153,6 +153,8 @@ describe('Account', () => {
       cy.get('input[name="email"]').type('test@test.com');
       cy.get('input[name="password"]').type('P1#password');
       cy.get('[type="checkbox"]').check();
+      cy.intercept(getEndpoint(TOKEN), TOKEN_API_200);
+      cy.intercept({ method: 'GET', pathname: getEndpoint(USER) }, { body: rpAdminUnverifiedNewUser });
       cy.intercept('POST', getEndpoint(USER), {
         statusCode: 201,
         body: CREATE_USER_ENDPOINT_201

@@ -14,6 +14,7 @@ import * as S from '../Account.styled';
 import ResetPasswordForm from './ResetPasswordForm';
 import Logobar from 'components/account/common/logobar/Logobar';
 import Leftbar from 'components/account/common/leftbar/Leftbar';
+import PageTitle from 'elements/PageTitle';
 
 import { SIGN_IN } from 'routes';
 import YellowSVG from 'assets/images/account/yellow-bar.svg';
@@ -58,6 +59,7 @@ function ResetPassword() {
 
   return (
     <S.Outer>
+      <PageTitle title="Reset Password" />
       <S.Left data-testid="left">
         <Leftbar />
       </S.Left>

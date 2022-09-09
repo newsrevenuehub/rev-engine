@@ -9,6 +9,7 @@ import * as S from '../Account.styled';
 
 import ForgotPasswordForm from './ForgotPasswordForm';
 
+import PageTitle from 'elements/PageTitle';
 import Logobar from 'components/account/common/logobar/Logobar';
 import Leftbar from 'components/account/common/leftbar/Leftbar';
 
@@ -53,6 +54,7 @@ function ForgotPassword() {
 
   return (
     <S.Outer>
+      <PageTitle title="Forgot Password" />
       <S.Left data-testid="left-panel">
         <Leftbar />
       </S.Left>

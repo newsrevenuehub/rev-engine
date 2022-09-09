@@ -2,9 +2,10 @@ import {
   CONTRIBUTIONS_SECTION_ACCESS_FLAG_NAME,
   CONTRIBUTIONS_SECTION_DENY_FLAG_NAME
 } from 'constants/featureFlagConstants';
-import getDomain from './getDomain';
 
 import hasContributionsDashboardAccessToUser from './hasContributionsDashboardAccessToUser';
+import getDomain from './getDomain';
+import slugify from './slugify';
 
 describe('Test hasContributionsDashboardAccessToUser utility function', () => {
   const contributionsSectionAccessFlag = {
@@ -42,6 +43,23 @@ describe('Test getDomain', () => {
     it(`test: ${url.host}`, () => {
       const domain = getDomain(url.host);
       expect(domain).toEqual(url.domain);
+    })
+  );
+});
+
+const nameList = [
+  { text: 'Page 1', slug: 'page-1' },
+  { text: 'Hello World', slug: 'hello-world' },
+  { text: 'Hi.There', slug: 'hithere' },
+  { text: 'TestPage', slug: 'testpage' },
+  { text: 'My_New_page', slug: 'mynewpage' }
+];
+
+describe('Test slugify', () => {
+  nameList.map((name) =>
+    it(`test: ${name.text}`, () => {
+      const slug = slugify(name.text);
+      expect(slug).toEqual(name.slug);
     })
   );
 });

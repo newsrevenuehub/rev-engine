@@ -35,8 +35,7 @@ function DAmount({ element, ...props }) {
   const getAmounts = (frequency) => {
     const options = element?.content?.options;
     if (typeof options !== 'undefined') {
-      const amounts = options[frequency] || [];
-      return overrideAmount ? [] : amounts;
+      return options[frequency] || [];
     }
     return [];
   };

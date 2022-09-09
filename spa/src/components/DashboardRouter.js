@@ -10,6 +10,8 @@ import ContributorRouter from 'components/ContributorRouter';
 // Slugs
 import * as ROUTES from 'routes';
 
+import UserContextProvider from './UserContext';
+
 // Components/Children
 import GlobalLoading from 'elements/GlobalLoading';
 import TrackPageView from 'components/analytics/TrackPageView';
@@ -58,7 +60,11 @@ function DashboardRouter() {
                 ROUTES.EDITOR_ROUTE,
                 ROUTES.VERIFY_EMAIL_SUCCESS
               ]}
-              render={() => <TrackPageView component={Main} />}
+              render={() => (
+                <UserContextProvider>
+                  <TrackPageView component={Main} />
+                </UserContextProvider>
+              )}
             />
 
             <Redirect to={ROUTES.CONTENT_SLUG} />

@@ -12,15 +12,16 @@ import { useConfigureAnalytics } from './analytics';
 import { CONTENT_SLUG, VERIFY_EMAIL_SUCCESS } from 'routes';
 import PageContextProvider from './dashboard/PageContext';
 
+import { useUserContext } from './UserContext';
+
 const FeatureFlagsProviderContext = createContext(null);
-const UserDataProviderContext = createContext(null);
 
 function Main() {
   useConfigureAnalytics();
-
   const [loadingFlags, setLoadingFlags] = useState(true);
   const [featureFlags, setFeatureFlags] = useState();
-  const [userData, setUserData] = useState();
+  const [user, setUser] = useState();
+  const { setUser: setUserContext } = useUserContext();
 
   const requestUser = useRequest();
 
@@ -34,7 +35,8 @@ function Main() {
       {
         onSuccess: ({ data }) => {
           setFeatureFlags(data.flags);
-          setUserData(data);
+          setUser(data);
+          setUserContext(data);
           setLoadingFlags(false);
         },
         onFailure: (e) => {
@@ -46,12 +48,12 @@ function Main() {
 
   const isVerifyEmailPath = useLocation().pathname.includes(VERIFY_EMAIL_SUCCESS);
 
-  if (userData) {
-    if (!userData.email_verified && !isVerifyEmailPath) {
+  if (user) {
+    if (!user.email_verified && !isVerifyEmailPath) {
       return <Redirect to={VERIFY_EMAIL_SUCCESS} />;
     }
 
-    if (userData.email_verified && isVerifyEmailPath) {
+    if (user.email_verified && isVerifyEmailPath) {
       return <Redirect to={CONTENT_SLUG} />;
     }
   }
@@ -59,27 +61,24 @@ function Main() {
   const showVerifyScreen = !loadingFlags && isVerifyEmailPath;
 
   return (
-    <UserDataProviderContext.Provider value={{ userData }}>
-      <FeatureFlagsProviderContext.Provider value={{ featureFlags }}>
-        <PageContextProvider>
-          {showVerifyScreen ? (
-            <Verify />
-          ) : (
-            !loadingFlags && (
-              <S.Main>
-                <S.MainContent>
-                  <Dashboard />
-                </S.MainContent>
-              </S.Main>
-            )
-          )}
-        </PageContextProvider>
-      </FeatureFlagsProviderContext.Provider>
-    </UserDataProviderContext.Provider>
+    <FeatureFlagsProviderContext.Provider value={{ featureFlags }}>
+      <PageContextProvider>
+        {showVerifyScreen ? (
+          <Verify />
+        ) : (
+          !loadingFlags && (
+            <S.Main>
+              <S.MainContent>
+                <Dashboard />
+              </S.MainContent>
+            </S.Main>
+          )
+        )}
+      </PageContextProvider>
+    </FeatureFlagsProviderContext.Provider>
   );
 }
 
 export const useFeatureFlagsProviderContext = () => useContext(FeatureFlagsProviderContext);
-export const useUserDataProviderContext = () => useContext(UserDataProviderContext);
 
 export default Main;

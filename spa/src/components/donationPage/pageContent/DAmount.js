@@ -51,7 +51,7 @@ function DAmount({ element, ...props }) {
 
   const handleOtherAmountChange = (e) => {
     if (validateInputPositiveFloat(e.target.value)) {
-      handleAmountChange(e.target.value);
+      handleAmountChange(parseFloat(e.target.value));
     }
   };
 

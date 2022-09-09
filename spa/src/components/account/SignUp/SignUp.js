@@ -1,8 +1,8 @@
-import { useReducer } from 'react';
+import { useReducer, useMemo } from 'react';
 
 // AJAX
 import axios from 'ajax/axios';
-import { TOKEN, CREATE_ACCOUNT_ENDPONT } from 'ajax/endpoints';
+import { TOKEN, USER } from 'ajax/endpoints';
 
 // State management
 import fetchReducer, { initialState, FETCH_START, FETCH_SUCCESS, FETCH_FAILURE } from 'state/fetch-reducer';
@@ -18,6 +18,7 @@ import { handleLoginSuccess } from 'components/authentication/util';
 import { CONTENT_SLUG, SIGN_IN } from 'routes';
 import PageTitle from 'elements/PageTitle';
 
+import { SIGN_UP_GENERIC_ERROR_TEXT } from 'constants/textConstants';
 import YellowSVG from 'assets/images/account/yellow-bar.svg';
 
 // Analytics
@@ -62,7 +63,7 @@ function SignUp({ onSuccess }) {
   const onSubmitSignUp = async (fdata) => {
     dispatch({ type: FETCH_START });
     try {
-      const { data, status } = await axios.post(CREATE_ACCOUNT_ENDPONT, {
+      const { data, status } = await axios.post(USER, {
         email: fdata.email,
         password: fdata.password,
         accepted_terms_of_service: new Date().toISOString()
@@ -77,10 +78,21 @@ function SignUp({ onSuccess }) {
     }
   };
 
+  /*
   let formSubmissionMessage = <S.MessageSpacer />;
   if (formSubmitErrors) {
-    formSubmissionMessage = <S.Message>{'Email has to be valid and unique.'}</S.Message>;
-  }
+    formSubmissionMessage = <S.Message>{formSubmitErrors.}</S.Message>;
+  }*/
+
+  const formSubmissionMessage = useMemo(() => {
+    if (signUpState?.errors?.email) {
+      return <S.Message>Email:{signUpState?.errors?.email}</S.Message>;
+    } else if (signUpState?.errors && signUpState?.errors.length !== 0) {
+      return <S.Message>{SIGN_UP_GENERIC_ERROR_TEXT}</S.Message>;
+    }
+
+    return <S.MessageSpacer />;
+  }, [signUpState]);
 
   return (
     <S.Outer>

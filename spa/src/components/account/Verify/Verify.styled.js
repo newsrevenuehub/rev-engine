@@ -35,7 +35,7 @@ export const Box = styled.div`
   background: ${(props) => props.theme.colors.white};
   border: 0.5px solid ${(props) => props.theme.colors.grey[1]};
   box-shadow: 0px 0px 4px rgba(0, 0, 0, 0.2);
-  border-radius: 10px;
+  border-radius: ${(props) => props.theme.muiBorderRadius.xl};
   width: 90%;
   max-width: 600px;
   padding: 30px 36px;
@@ -56,13 +56,13 @@ export const Icon = styled.img`
 
 export const Heading = styled.div`
   font-weight: 700;
-  font-size: ${(props) => props.theme.fontSizes[3]};
+  font-size: ${(props) => props.theme.fontSizesUpdated.h1};
   line-height: 138.19%;
   color: ${(props) => props.theme.colors.account.purple[1]};
   margin: 20px 0px 10px 0px;
 
   @media (${(props) => props.theme.breakpoints.tabletLandscapeDown}) {
-    font-size: ${(props) => props.theme.fontSizes[2]};
+    font-size: ${(props) => props.theme.fontSizesUpdated.lgx};
   }
 `;
 
@@ -112,7 +112,7 @@ export const Button = styled(motion.button)`
   background: ${(props) => props.theme.buttons.yellow.background};
   border: ${(props) => props.theme.buttons.yellow.border};
   box-shadow: ${(props) => props.theme.buttons.yellow.boxShadow};
-  border-radius: 6px;
+  border-radius: ${(props) => props.theme.muiBorderRadius.lg};
 
   &:active {
     transform: translate(1px, 1px);
@@ -139,7 +139,7 @@ export const Message = styled.div`
   background: ${(props) => (props.isSuccess ? props.theme.colors.status.done : props.theme.colors.error.bg)};
   border-radius: ${(props) => props.theme.muiBorderRadius.sm};
   font-weight: 400;
-  font-size: ${(props) => props.theme.fontSizes[0]};
+  font-size: ${(props) => props.theme.fontSizesUpdated.xs};
   line-height: ${(props) => props.theme.fontSizesUpdated.lg};
   color: ${(props) => props.theme.colors.grey[3]};
   padding: 0px 9px;

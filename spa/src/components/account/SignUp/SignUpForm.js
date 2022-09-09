@@ -65,6 +65,7 @@ function SignUpForm({ onSubmitSignUp, loading }) {
       <S.InputOuter hasError={errors.email}>
         <input
           id="email"
+          name="email"
           {...register('email', {
             required: 'Please enter a valid email',
             pattern: {
@@ -89,6 +90,7 @@ function SignUpForm({ onSubmitSignUp, loading }) {
       <S.InputOuter hasError={errors.password}>
         <input
           id="password"
+          name="password"
           {...register('password', {
             required: 'Please enter your password',
             validate: (val: string) => {

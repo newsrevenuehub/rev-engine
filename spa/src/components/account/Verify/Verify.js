@@ -21,9 +21,12 @@ import PageTitle from 'elements/PageTitle';
 // State management
 import fetchReducer, { initialState, FETCH_START, FETCH_SUCCESS, FETCH_FAILURE } from 'state/fetch-reducer';
 
-// Ref: https://github.com/newsrevenuehub/rev-engine/pull/621
-const ALLOWED_REDIRECT_RESULTS = ['failed', 'expired', 'inactive', 'unknown'];
-const HELPEMAIL = `revenginesupport@fundjournalism.org`;
+import {
+  VERIFIED_RESULTS_ACCEPTED_VALUES,
+  VERIFIED_HELP_EMAIL,
+  RESEND_VERIFICATION_SUCCESS_TEXT
+} from 'constants/textConstants';
+
 const Mailto = ({ mailto, label }) => {
   return (
     <Link
@@ -65,12 +68,12 @@ function Verify() {
 
   const verifyMessage = useMemo(() => {
     if (emailResent) {
-      return <S.Message isSuccess={true}>Verification email has been successfully sent.</S.Message>;
+      return <S.Message isSuccess={true}>{RESEND_VERIFICATION_SUCCESS_TEXT}</S.Message>;
     }
     if (verifyState?.errors?.detail) {
       return <S.Message>{verifyState?.errors?.detail}</S.Message>;
     }
-    if (result && ALLOWED_REDIRECT_RESULTS.includes(result)) {
+    if (result && VERIFIED_RESULTS_ACCEPTED_VALUES.includes(result)) {
       return <S.Message>{result}</S.Message>;
     }
     return null;
@@ -97,7 +100,8 @@ function Verify() {
             Resend Verification
           </S.Button>
           <S.Help>
-            <span>Questions?</span> Email us at <Mailto label={HELPEMAIL} mailto={`mailto:${HELPEMAIL}`} />
+            <span>Questions?</span> Email us at{' '}
+            <Mailto label={VERIFIED_HELP_EMAIL} mailto={`mailto:${VERIFIED_HELP_EMAIL}`} />
           </S.Help>
           {verifyMessage}
         </S.Box>

@@ -24,8 +24,6 @@ function Main() {
 
   const requestUser = useRequest();
 
-  const isVerifyEmailPath = useLocation().pathname.includes(VERIFY_EMAIL_SUCCESS);
-
   useEffect(() => {
     setLoadingFlags(true);
     requestUser(
@@ -46,6 +44,8 @@ function Main() {
     );
   }, [requestUser]);
 
+  const isVerifyEmailPath = useLocation().pathname.includes(VERIFY_EMAIL_SUCCESS);
+
   if (userData) {
     if (!userData.email_verified && !isVerifyEmailPath) {
       return <Redirect to={VERIFY_EMAIL_SUCCESS} />;
@@ -56,17 +56,22 @@ function Main() {
     }
   }
 
+  const showVerifyScreen = !loadingFlags && isVerifyEmailPath;
+
   return (
     <UserDataProviderContext.Provider value={{ userData }}>
       <FeatureFlagsProviderContext.Provider value={{ featureFlags }}>
         <PageContextProvider>
-          {isVerifyEmailPath && <Verify />}
-          {!loadingFlags && !isVerifyEmailPath && (
-            <S.Main>
-              <S.MainContent>
-                <Dashboard />
-              </S.MainContent>
-            </S.Main>
+          {showVerifyScreen ? (
+            <Verify />
+          ) : (
+            !loadingFlags && (
+              <S.Main>
+                <S.MainContent>
+                  <Dashboard />
+                </S.MainContent>
+              </S.Main>
+            )
           )}
         </PageContextProvider>
       </FeatureFlagsProviderContext.Provider>

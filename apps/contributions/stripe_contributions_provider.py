@@ -251,6 +251,7 @@ class ContributionsCacheProvider:
             self.cache.set(self.key, json.dumps(cached_data), timeout=CONTRIBUTION_CACHE_TTL.seconds)
 
     def load(self):
+
         data = self.cache.get(self.key)
         if not data:
             return []

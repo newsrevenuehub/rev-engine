@@ -63,6 +63,7 @@
     "styled-normalize": "^8.0.7",
     "styled-system": "^5.1.5",
     "tinycolor2": "^1.4.2",
+    "universal-cookie": "^4.0.4",
     "uuid": "^8.3.2",
     "web-vitals": "^1.1.1"
   },
@@ -158,7 +159,7 @@
     "cypress-localstorage-commands": "^1.7.0",
     "eslint-plugin-chai-friendly": "^0.7.1",
     "eslint-plugin-cypress": "^2.11.3",
-    "webpack": "^5.74.0",
-    "jest-axe": "^6.0.0"
+    "jest-axe": "^6.0.0",
+    "webpack": "^5.74.0"
   }
 }

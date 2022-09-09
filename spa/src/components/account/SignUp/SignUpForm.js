@@ -60,14 +60,14 @@ function SignUpForm({ onSubmitSignUp, loading }) {
   const disabled = !watchEmail || !watchPassword || loading || !checked;
 
   return (
-    <form onSubmit={disabled ? () => {} : handleSubmit(onSubmit)}>
+    <form onSubmit={disabled ? () => {} : handleSubmit(onSubmitSignUp)}>
       <S.InputLabel hasError={errors.email}>Email</S.InputLabel>
       <S.InputOuter hasError={errors.email}>
         <input
           id="email"
           name="email"
           {...register('email', {
-            required: 'Please enter a valid email',
+            required: '',
             pattern: {
               value: /\S+@\S+\.\S+/,
               message: 'Please enter a valid email'

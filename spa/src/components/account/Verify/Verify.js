@@ -27,16 +27,16 @@ import {
   RESEND_VERIFICATION_SUCCESS_TEXT
 } from 'constants/textConstants';
 
-const Mailto = ({ mailto, label }) => {
+const Mailto = ({ mailto }) => {
   return (
     <Link
       to="#"
       onClick={(e) => {
-        window.location.href = mailto;
+        window.location.href = `mailto:${mailto}`;
         e.preventDefault();
       }}
     >
-      {label}
+      {mailto}
     </Link>
   );
 };
@@ -100,8 +100,7 @@ function Verify() {
             Resend Verification
           </S.Button>
           <S.Help>
-            <span>Questions?</span> Email us at{' '}
-            <Mailto label={VERIFIED_HELP_EMAIL} mailto={`mailto:${VERIFIED_HELP_EMAIL}`} />
+            <span>Questions?</span> Email us at <Mailto label={VERIFIED_HELP_EMAIL} />
           </S.Help>
           {verifyMessage}
         </S.Box>

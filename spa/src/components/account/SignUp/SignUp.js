@@ -24,15 +24,6 @@ import YellowSVG from 'assets/images/account/yellow-bar.svg';
 // Analytics
 import { useConfigureAnalytics } from 'components/analytics';
 
-function Header() {
-  return (
-    <>
-      <S.Heading>Create Your Free Account</S.Heading>
-      <S.Subheading>Start receiving contributions today!</S.Subheading>
-    </>
-  );
-}
-
 function SignUp({ onSuccess }) {
   const [signUpState, dispatch] = useReducer(fetchReducer, initialState);
 
@@ -51,8 +42,10 @@ function SignUp({ onSuccess }) {
       if (status === 200 && data.detail === 'success') {
         handleLoginSuccess(data);
         handlePostLogin();
+        dispatch({ type: FETCH_SUCCESS });
+      } else {
+        dispatch({ type: FETCH_FAILURE, payload: data });
       }
-      dispatch({ type: FETCH_SUCCESS });
     } catch (e) {
       dispatch({ type: FETCH_FAILURE, payload: e?.response?.data });
     }
@@ -68,6 +61,7 @@ function SignUp({ onSuccess }) {
       });
       if (status === 201) {
         handleLogin(fdata);
+        dispatch({ type: FETCH_SUCCESS, payload: data });
       } else {
         dispatch({ type: FETCH_FAILURE, payload: data });
       }
@@ -93,7 +87,8 @@ function SignUp({ onSuccess }) {
       </S.Left>
       <S.Right>
         <S.FormElements>
-          <Header />
+          <S.Heading>Create Your Free Account</S.Heading>
+          <S.Subheading>Start receiving contributions today!</S.Subheading>
 
           <SignUpForm onSubmitSignUp={onSubmitSignUp} loading={signUpState.loading} />
           {formSubmissionMessage}

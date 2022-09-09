@@ -8,6 +8,7 @@ import { ICONS } from 'assets/icons/SvgIcon';
 import DonationPageDisclaimer from 'components/donationPage/DonationPageDisclaimer';
 import { PAYMENT_SUCCESS } from 'routes';
 import { getFrequencyThankYouText } from 'utilities/parseFrequency';
+import { useAlert } from 'react-alert';
 
 function getPaymentSuccessUrl(
   thankYouRedirectUrl,
@@ -71,11 +72,13 @@ function StripePaymentForm() {
   const stripe = useStripe();
   const elements = useElements();
 
-  const [message, setMessage] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
+
+  const alert = useAlert();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setIsLoading(true);
     // This is the URL that Stripe will send the user to if payment is successfully
     // processed. We send users to an interstitial payment success page where we can
     // track successful conversion in analytics, before forwarding them on to the default
@@ -100,10 +103,8 @@ function StripePaymentForm() {
     // The Stripe docs note that this point will only be reached if there is an
     // immediate error when confirming the payment. Otherwise, contributor gets redirected
     // to `return_url` before the promise above ever resolves.
-    if (error?.type === 'card_error' || error?.type === 'validation_error') {
-      setMessage(error.message);
-    } else {
-      setMessage('An unexpected error occurred.');
+    if (!['card_error', 'validation_error'].includes(error?.type)) {
+      alert.error('An unexpected error occurred');
     }
     setIsLoading(false);
   };
@@ -127,13 +128,12 @@ function StripePaymentForm() {
     <S.StripePaymentForm>
       <form onSubmit={handleSubmit}>
         <PaymentElement options={paymentElementOptions} id="stripe-payment-element" />
-        <S.PaymentSubmitButton type="submit" loading={isLoading} data-testid="donation-submit">
+        <S.PaymentSubmitButton type="submit" disabled={isLoading} loading={isLoading} data-testid="donation-submit">
           {paymentSubmitButtonText}
         </S.PaymentSubmitButton>
         <S.IconWrapper>
           <S.Icon icon={ICONS.STRIPE_POWERED} />
         </S.IconWrapper>
-
         <DonationPageDisclaimer page={page} amount={amount} frequency={frequency} />
       </form>
     </S.StripePaymentForm>

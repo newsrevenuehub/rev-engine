@@ -19,7 +19,6 @@ import {
 import DonationPageSidebar from 'components/donationPage/DonationPageSidebar';
 import DonationPageFooter from 'components/donationPage/DonationPageFooter';
 import StripePaymentWrapper from 'components/paymentProviders/stripe/StripePaymentWrapper';
-import Spinner from 'elements/Spinner';
 import Modal from 'elements/modal/Modal';
 import LiveErrorFallback from './live/LiveErrorFallback';
 import { SubmitButton } from './DonationPage.styled';
@@ -141,8 +140,14 @@ function DonationPage({ page, live = false }) {
 
   // update the fee amount as amount and frequency change
   useEffect(() => {
-    if (typeof amount === 'number' && frequency && page?.revenue_program_is_nonprofit !== null) {
-      setFeeAmount(calculateStripeFee(amount, frequency, page.revenue_program_is_nonprofit));
+    // when a user focuses on the custom amount field in the DAmount component,
+    // the amount value is set to empty string initially. This is the only time
+    // it should be able to have a non-numeric value. If there's already a feeAmount,
+    // and amount changes to '', we want to update the fee amount, so we resolve to
+    // 0. When the user enters a new numeric amount, fee still gets updated.
+    const resolvedAmount = amount === '' ? 0 : amount;
+    if (typeof resolvedAmount === 'number' && frequency && page?.revenue_program_is_nonprofit !== null) {
+      setFeeAmount(calculateStripeFee(resolvedAmount, frequency, page.revenue_program_is_nonprofit));
     }
   }, [amount, frequency, page.revenue_program_is_nonprofit]);
 
@@ -154,7 +159,6 @@ function DonationPage({ page, live = false }) {
   const getCheckoutData = async () => {
     const reCAPTCHAToken = await getReCAPTCHAToken();
     return serializeData(formRef.current, {
-      mailing_country: mailingCountry,
       amount: totalAmount,
       frequency,
       reCAPTCHAToken,
@@ -242,6 +246,7 @@ function DonationPage({ page, live = false }) {
         stripeBillingDetails,
         contributorEmail,
         stripeClientSecret,
+        mailingCountry,
         setMailingCountry,
         paymentSubmitButtonText
       }}
@@ -256,8 +261,6 @@ function DonationPage({ page, live = false }) {
                 {getters.getGraphicElement()}
                 {displayErrorFallback ? (
                   <LiveErrorFallback />
-                ) : createPaymentIsLoading ? (
-                  <Spinner />
                 ) : (
                   <form onSubmit={(e) => handleCheckoutSubmit(e)} ref={formRef} data-testid="donation-page-form">
                     <S.PageElements>
@@ -275,7 +278,7 @@ function DonationPage({ page, live = false }) {
                           </GenericErrorBoundary>
                         ))}
                     </S.PageElements>
-                    <SubmitButton disabled={createPaymentIsLoading} type="submit">
+                    <SubmitButton disabled={createPaymentIsLoading} loading={createPaymentIsLoading} type="submit">
                       {getCheckoutSubmitButtonText(page?.currency?.symbol, totalAmount, frequency)}
                     </SubmitButton>
                   </form>

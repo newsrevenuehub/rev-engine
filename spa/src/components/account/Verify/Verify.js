@@ -1,4 +1,5 @@
-import { useState, useReducer } from 'react';
+import { useState, useReducer, useMemo } from 'react';
+import { useLocation } from 'react-router-dom';
 import * as S from './Verify.styled';
 import { Link } from 'react-router-dom';
 
@@ -12,12 +13,16 @@ import draftIcon from 'assets/icons/draft.png';
 import readIcon from 'assets/icons/mark_read.png';
 
 // Analytics
-import { useConfigureAnalytics } from '../../analytics';
+import { useConfigureAnalytics } from 'components/analytics';
+
 import { useUserDataProviderContext } from 'components/Main';
+import PageTitle from 'elements/PageTitle';
 
 // State management
 import fetchReducer, { initialState, FETCH_START, FETCH_SUCCESS, FETCH_FAILURE } from 'state/fetch-reducer';
 
+// Ref: https://github.com/newsrevenuehub/rev-engine/pull/621
+const ALLOWED_REDIRECT_RESULTS = ['failed', 'expired', 'inactive', 'unknown'];
 const HELPEMAIL = `revenginesupport@fundjournalism.org`;
 const Mailto = ({ mailto, label }) => {
   return (
@@ -40,6 +45,9 @@ function Verify() {
 
   const [verifyState, dispatch] = useReducer(fetchReducer, initialState);
 
+  const { search } = useLocation();
+  const result = useMemo(() => new URLSearchParams(search), [search]).get('result');
+
   const onSubmit = async () => {
     dispatch({ type: FETCH_START });
     try {
@@ -55,16 +63,29 @@ function Verify() {
     }
   };
 
-  const errorMessage = verifyState?.errors?.detail;
+  const verifyMessage = useMemo(() => {
+    if (emailResent) {
+      return <S.Message isSuccess={true}>Verification email has been successfully sent.</S.Message>;
+    }
+    if (verifyState?.errors?.detail) {
+      return <S.Message>{verifyState?.errors?.detail}</S.Message>;
+    }
+    if (result && ALLOWED_REDIRECT_RESULTS.includes(result)) {
+      return <S.Message>{result}</S.Message>;
+    }
+    return null;
+  }, [verifyState, result, emailResent]);
 
   return (
     <S.Verify>
+      <PageTitle title="Verify Your Email Address" />
       <S.Logo src={logo} data-testid={'blue-logo'} />
       <S.Content>
         <S.Box>
           <S.Icon src={draftIcon} />
           <S.Icon src={sendIcon} />
           <S.Icon src={readIcon} />
+
           <S.Heading>Verify Your Email Address</S.Heading>
           <S.Subheading>
             To start using News Revenue Engine, please verify your email. We’ve sent a verification email to{' '}
@@ -78,7 +99,7 @@ function Verify() {
           <S.Help>
             <span>Questions?</span> Email us at <Mailto label={HELPEMAIL} mailto={`mailto:${HELPEMAIL}`} />
           </S.Help>
-          {errorMessage ? <S.Message>{errorMessage}</S.Message> : null}
+          {verifyMessage}
         </S.Box>
       </S.Content>
     </S.Verify>

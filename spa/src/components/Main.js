@@ -9,7 +9,7 @@ import Verify from 'components/account/Verify';
 
 import useRequest from 'hooks/useRequest';
 import { useConfigureAnalytics } from './analytics';
-import { VERIFY_EMAIL_SUCCESS } from 'routes';
+import { CONTENT_SLUG, VERIFY_EMAIL_SUCCESS } from 'routes';
 import PageContextProvider from './dashboard/PageContext';
 
 const FeatureFlagsProviderContext = createContext(null);
@@ -46,8 +46,14 @@ function Main() {
     );
   }, [requestUser]);
 
-  if (userData && !userData.email_verified && !isVerifyEmailPath) {
-    return <Redirect to={VERIFY_EMAIL_SUCCESS} />;
+  if (userData) {
+    if (!userData.email_verified && !isVerifyEmailPath) {
+      return <Redirect to={VERIFY_EMAIL_SUCCESS} />;
+    }
+
+    if (userData.email_verified && isVerifyEmailPath) {
+      return <Redirect to={CONTENT_SLUG} />;
+    }
   }
 
   return (

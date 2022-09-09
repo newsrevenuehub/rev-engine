@@ -136,7 +136,7 @@ export const Help = styled.div`
 
 export const Message = styled.div`
   margin-top: 10px;
-  background: ${(props) => props.theme.colors.error.bg};
+  background: ${(props) => (props.isSuccess ? props.theme.colors.status.done : props.theme.colors.error.bg)};
   border-radius: ${(props) => props.theme.muiBorderRadius.sm};
   font-weight: 400;
   font-size: ${(props) => props.theme.fontSizes[0]};

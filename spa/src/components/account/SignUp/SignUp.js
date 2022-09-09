@@ -16,11 +16,12 @@ import { useHistory } from 'react-router-dom';
 
 import { handleLoginSuccess } from 'components/authentication/util';
 import { CONTENT_SLUG, SIGN_IN } from 'routes';
+import PageTitle from 'elements/PageTitle';
 
 import YellowSVG from 'assets/images/account/yellow-bar.svg';
 
 // Analytics
-import { useConfigureAnalytics } from '../../analytics';
+import { useConfigureAnalytics } from 'components/analytics';
 
 function Header() {
   return (
@@ -83,6 +84,7 @@ function SignUp({ onSuccess }) {
 
   return (
     <S.Outer>
+      <PageTitle title="Create Your Free Account" />
       <S.Left isCreateAccountPage={true} data-testid="left-purple">
         <Leftbar isCreateAccountPage={true} />
       </S.Left>

@@ -428,12 +428,9 @@ DOMAIN_APEX = os.getenv("DOMAIN_APEX")
 # Application subdomains (that are NOT revenue program slugs)
 DASHBOARD_SUBDOMAINS = os.getenv("DASHBOARD_SUBDOMAINS", "www:dashboard:").split(":")
 
-# These values are used in `ContributionMetadataSerializer`, which in turn
-# gets used in the abstract PaymentManager base class. They appear
-# to be related to how payment provider meta data gets serialized in PaymentManager and
-# its subclasses.
+# These values are part of metadata sent to Stripe.
 METADATA_SOURCE = os.getenv("METADATA_SOURCE", "rev-engine")
-METADATA_SCHEMA_VERSION = os.getenv("METADATA_SCHEMA_VERSION", "1.0")
+METADATA_SCHEMA_VERSION = os.getenv("METADATA_SCHEMA_VERSION", "1.1")
 
 
 # This is the interval at which flagged payments will be automatically captured.
@@ -498,8 +495,8 @@ DJANGO_REST_MULTITOKENAUTH_RESET_TOKEN_EXPIRY_TIME = 24
 BAD_ACTOR_API_URL = os.getenv("BAD_ACTOR_API_URL", "https://bad-actor-test.fundjournalism.org/v1/bad_actor/")
 # NOTE: We've been given keys with some characters that might need escaping as environment variables, eg "$"
 BAD_ACTOR_API_KEY = os.getenv("BAD_ACTOR_API_KEY", "testing_123")
-BAD_ACTOR_FAIL_ABOVE = 3
-BAD_ACTOR_FAIL_ABOVE_FOR_ORG_USERS = 4
+BAD_ACTOR_FAILURE_THRESHOLD = 5
+BAD_ACTOR_FAILURE_THRESHOLD_FOR_ORG_USERS = 4
 
 
 ### Front End Environment Variables

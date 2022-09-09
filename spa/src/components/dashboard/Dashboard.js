@@ -21,14 +21,15 @@ import { CONTENT_SECTION_ACCESS_FLAG_NAME } from 'constants/featureFlagConstants
 import flagIsActiveForUser from 'utilities/flagIsActiveForUser';
 import hasContributionsDashboardAccessToUser from 'utilities/hasContributionsDashboardAccessToUser';
 import { usePageContext } from './PageContext';
+import { useUserContext } from 'components/UserContext';
 
 function Dashboard() {
   const { featureFlags } = useFeatureFlagsProviderContext();
   const { page } = usePageContext();
+  const { user } = useUserContext();
 
-  const hasContributionsSectionAccess = hasContributionsDashboardAccessToUser(featureFlags);
-
-  const hasContentSectionAccess = flagIsActiveForUser(CONTENT_SECTION_ACCESS_FLAG_NAME, featureFlags);
+  const hasContributionsSectionAccess = user.role_type && hasContributionsDashboardAccessToUser(featureFlags);
+  const hasContentSectionAccess = user.role_type && flagIsActiveForUser(CONTENT_SECTION_ACCESS_FLAG_NAME, featureFlags);
 
   const dashboardSlugRedirect = hasContentSectionAccess
     ? CONTENT_SLUG

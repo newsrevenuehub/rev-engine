@@ -8,15 +8,15 @@ import axios from 'ajax/axios';
 import { VERIFY_EMAIL_REQUEST_ENDPOINT } from 'ajax/endpoints';
 
 import logo from 'assets/images/logo-nre.png';
-import sendIcon from 'assets/icons/send.png';
-import draftIcon from 'assets/icons/draft.png';
-import readIcon from 'assets/icons/mark_read.png';
+import sendIcon from 'assets/icons/verify_send.svg';
+import draftIcon from 'assets/icons/verify_draft.svg';
+import readIcon from 'assets/icons/verify_mark_read.svg';
 
 // Analytics
 import { useConfigureAnalytics } from 'components/analytics';
 
-import { useUserDataProviderContext } from 'components/Main';
 import PageTitle from 'elements/PageTitle';
+import { useUserContext } from 'components/UserContext';
 
 // State management
 import fetchReducer, { initialState, FETCH_START, FETCH_SUCCESS, FETCH_FAILURE } from 'state/fetch-reducer';
@@ -43,7 +43,7 @@ const Mailto = ({ mailto }) => {
 
 function Verify() {
   useConfigureAnalytics();
-  const { userData } = useUserDataProviderContext();
+  const { user } = useUserContext();
   const [emailResent, setEmailResent] = useState(false);
 
   const [verifyState, dispatch] = useReducer(fetchReducer, initialState);
@@ -92,7 +92,7 @@ function Verify() {
           <S.Heading>Verify Your Email Address</S.Heading>
           <S.Subheading>
             To start using News Revenue Engine, please verify your email. We’ve sent a verification email to{' '}
-            <span>{userData?.email}.</span>
+            <span>{user?.email}.</span>
           </S.Subheading>
           <S.Drm>Didn’t Receive an Email?</S.Drm>
           <S.Resendtext>If you haven’t received the email within a few minutes, please resend below.</S.Resendtext>

@@ -56,6 +56,10 @@ function Main() {
     if (user.email_verified && isVerifyEmailPath) {
       return <Redirect to={CONTENT_SLUG} />;
     }
+
+    if (user.role_type === null || user.role_type === undefined) {
+      //return <Redirect to="/profile" />;
+    }
   }
 
   const showVerifyScreen = !loadingFlags && isVerifyEmailPath;

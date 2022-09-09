@@ -44,7 +44,6 @@ function Dashboard() {
   const isEditPage = useLocation().pathname.includes(EDITOR_ROUTE);
 
   const showConnectToStripeDialogs = userHasSingleRPNotConnectedToStripe(user);
-  console.log(showConnectToStripeDialogs);
 
   return (
     <S.Outer>

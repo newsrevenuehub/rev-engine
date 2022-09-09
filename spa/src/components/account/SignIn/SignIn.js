@@ -20,6 +20,7 @@ import { useConfigureAnalytics } from 'components/analytics';
 import SignInForm from './SignInForm';
 import Logobar from 'components/account/common/logobar/Logobar';
 import Leftbar from 'components/account/common/leftbar/Leftbar';
+import PageTitle from 'elements/PageTitle';
 
 import { SIGN_UP } from 'routes';
 import YellowSVG from 'assets/images/account/yellow-bar.svg';
@@ -55,6 +56,7 @@ function SignIn({ onSuccess }) {
   return (
     <>
       <S.Outer>
+        <PageTitle title="Sign In" />
         <S.Left data-testid="left-section">
           <Leftbar />
         </S.Left>

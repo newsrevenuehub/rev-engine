@@ -6,7 +6,7 @@ export const ConnectStripeToast = styled.div`
   top: 58px;
   right: 10px;
   font-family: ${(props) => props.theme.systemFont};
-  border: 0.5px solid ${(props) => props.theme.colors.grey[0]};
+  border: 0.5px solid ${(props) => props.theme.colors.muiGrey[100]};
   box-shadow: 0px 2px 10px rgba(0, 0, 0, 0.2);
   border-radius: ${(props) => props.theme.muiBorderRadius.sm};
   width: 90%;
@@ -21,7 +21,7 @@ export const ConnectStripeToastCollapsed = styled.div`
   top: 58px;
   right: 10px;
   background: ${(props) => props.theme.colors.white};
-  border: 0.5px solid ${(props) => props.theme.colors.grey[0]};
+  border: 0.5px solid ${(props) => props.theme.colors.muiGrey[100]};
   box-shadow: 0px 0.3px 0.5px rgba(0, 0, 0, 0.1), 0px 2px 4px rgba(0, 0, 0, 0.2);
   border-radius: ${(props) => props.theme.muiBorderRadius.sm};
   max-width: 96px;
@@ -63,15 +63,15 @@ export const Header = styled.div`
 export const Minimize = styled.div`
   margin-left: auto;
   padding: 0px 2px;
-  height: ${(props) => props.theme.fontSizesUpdated['2x']};
+  height: ${(props) => props.theme.fontSizesUpdated['lgx']};
   cursor: pointer;
   svg {
-    color: ${(props) => props.theme.colors.grey[2]};
-    height: ${(props) => props.theme.fontSizesUpdated['2x']};
-    width: ${(props) => props.theme.fontSizesUpdated['2x']};
+    color: ${(props) => props.theme.colors.muiGrey[600]};
+    height: ${(props) => props.theme.fontSizesUpdated['lgx']};
+    width: ${(props) => props.theme.fontSizesUpdated['lgx']};
   }
   :hover {
-    background-color: ${(props) => props.theme.colors.grey[0]};
+    background-color: ${(props) => props.theme.colors.muiGrey[100]};
   }
 `;
 
@@ -87,7 +87,7 @@ export const Heading = styled.div`
 export const Description = styled.p`
   font-size: ${(props) => props.theme.fontSizesUpdated.xs};
   line-height: ${(props) => props.theme.fontSizesUpdated.sm};
-  color: ${(props) => props.theme.colors.greyDark};
+  color: ${(props) => props.theme.colors.muiGrey[400]};
   margin-bottom: 0px;
 `;
 
@@ -95,9 +95,9 @@ export const Button = styled(MuiButton)`
   && {
     width: 100%;
     height: 36px;
-    background: ${(props) => props.theme.colors.buttons.yellow.background};
-    border: ${(props) => props.theme.colors.buttons.yellow.border};
-    box-shadow: ${(props) => props.theme.colors.buttons.yellow.boxShadow};
+    background: ${(props) => props.theme.buttons.yellow.background};
+    border: ${(props) => props.theme.buttons.yellow.border};
+    box-shadow: ${(props) => props.theme.buttons.yellow.boxShadow};
     border-radius: ${(props) => props.theme.muiBorderRadius.sm};
     font-weight: 600;
     font-size: ${(props) => props.theme.fontSizesUpdated.xs};
@@ -105,7 +105,7 @@ export const Button = styled(MuiButton)`
     margin: 18px 0px 0px;
 
     :hover {
-      background: ${(props) => props.theme.colors.buttons.yellow.background};
+      background: ${(props) => props.theme.buttons.yellow.background};
     }
   }
 `;

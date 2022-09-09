@@ -9,7 +9,7 @@ export const ConnectStripeModal = styled.div`
   overflow-y: auto;
   font-family: ${(props) => props.theme.systemFont};
   background: ${(props) => props.theme.colors.white};
-  border: 0.5px solid ${(props) => props.theme.colors.greyDark};
+  border: 0.5px solid ${(props) => props.theme.colors.muiGrey[400]};
   box-shadow: 0px 0px 4px rgba(0, 0, 0, 0.2);
   border-radius: ${(props) => props.theme.muiBorderRadius.md};
   padding: 30px 65px;
@@ -39,8 +39,8 @@ export const Modal = styled(MuiModal)`
 export const h1 = styled.h1`
   margin-top: 0px;
   font-weight: 700;
-  font-size: ${(props) => props.theme.fontSizesUpdated['2x']};
-  line-height: ${(props) => props.theme.fontSizesUpdated['3x']};
+  font-size: ${(props) => props.theme.fontSizesUpdated['lgx']};
+  line-height: ${(props) => props.theme.fontSizesUpdated['lg2x']};
   color: ${(props) => props.theme.colors.purple};
 `;
 
@@ -50,7 +50,7 @@ export const Description = styled.div`
   font-weight: 300;
   font-size: ${(props) => props.theme.fontSizesUpdated.md};
   line-height: ${(props) => props.theme.fontSizesUpdated.lg};
-  color: ${(props) => props.theme.colors.greyVeryDark};
+  color: ${(props) => props.theme.colors.muiGrey[600]};
   margin-bottom: 0px;
 `;
 
@@ -63,9 +63,9 @@ export const Button = styled(MuiButton)`
   && {
     width: 100%;
     height: 48px;
-    background: ${(props) => props.theme.colors.buttons.yellow.background};
-    border: ${(props) => props.theme.colors.buttons.yellow.border};
-    box-shadow: ${(props) => props.theme.colors.buttons.yellow.boxShadow};
+    background: ${(props) => props.theme.buttons.yellow.background};
+    border: ${(props) => props.theme.buttons.yellow.border};
+    box-shadow: ${(props) => props.theme.buttons.yellow.boxShadow};
     border-radius: ${(props) => props.theme.muiBorderRadius.sm};
     font-weight: 600;
     font-size: ${(props) => props.theme.fontSizesUpdated.sm};
@@ -73,7 +73,7 @@ export const Button = styled(MuiButton)`
     margin: 25px 0px 28px;
 
     :hover {
-      background: ${(props) => props.theme.colors.buttons.yellow.background};
+      background: ${(props) => props.theme.buttons.yellow.background};
     }
   }
 `;

@@ -37,7 +37,8 @@ function PublishWidget({ paymentProvider, publishDate, onChange, errors }) {
     return (
       <S.InvalidPaymentProvider>
         Page cannot be published
-        <p>Please add a payment provider to your revenue program.</p>
+        <br />
+        Please add a payment provider to your revenue program.
       </S.InvalidPaymentProvider>
     );
 

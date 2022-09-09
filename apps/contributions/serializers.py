@@ -643,13 +643,13 @@ class SubscriptionsSerializer(serializers.Serializer):
         return self._card(instance).brand
 
     def get_next_payment_date(self, instance):
-        return datetime.utcfromtimestamp(int(instance.current_period_end))
+        return datetime.fromtimestamp(int(instance.current_period_end), tz=timezone.utc)
 
     def get_last_payment_date(self, instance):
-        return datetime.utcfromtimestamp(int(instance.current_period_start))
+        return datetime.fromtimestamp(int(instance.current_period_start), tz=timezone.utc)
 
     def get_created(self, instance):
-        return datetime.utcfromtimestamp(int(instance.created))
+        return datetime.fromtimestamp(int(instance.created), tz=timezone.utc)
 
     def get_last4(self, instance):
         return instance.default_payment_method.card.last4

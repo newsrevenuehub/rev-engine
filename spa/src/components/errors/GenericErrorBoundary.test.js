@@ -1,4 +1,4 @@
-import { render } from 'test-utils';
+import { render, screen } from 'test-utils';
 
 // Test Subject
 import GenericErrorBoundary from './GenericErrorBoundary';
@@ -20,28 +20,28 @@ function CustomFallbackComponent() {
 }
 
 it('should render children by default', () => {
-  const { getByTestId } = render(
+  render(
     <GenericErrorBoundary>
       <ChildComponent />
     </GenericErrorBoundary>
   );
-  expect(getByTestId(CHILD_ID)).toBeInTheDocument();
+  expect(screen.getByTestId(CHILD_ID)).toBeInTheDocument();
 });
 
 it('should render default fallback component on error if fallback prop not provided', () => {
-  const { getByText } = render(
+  render(
     <GenericErrorBoundary>
       <BrokenChildComponent />
     </GenericErrorBoundary>
   );
-  expect(getByText('Something went wrong loading this part of the page.')).toBeInTheDocument();
+  expect(screen.getByText('Something went wrong loading this part of the page.')).toBeInTheDocument();
 });
 
 it('should render provided fallback component on error if fallback prop not provided', () => {
-  const { getByTestId } = render(
+  render(
     <GenericErrorBoundary fallback={CustomFallbackComponent}>
       <BrokenChildComponent />
     </GenericErrorBoundary>
   );
-  expect(getByTestId(CUSTOM_FALLBACK_ID)).toBeInTheDocument();
+  expect(screen.getByTestId(CUSTOM_FALLBACK_ID)).toBeInTheDocument();
 });

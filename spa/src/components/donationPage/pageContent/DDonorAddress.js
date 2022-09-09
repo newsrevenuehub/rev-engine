@@ -1,6 +1,8 @@
 import { useState, forwardRef } from 'react';
 import countryCodes from 'country-code-lookup';
 
+import { donationPageBase as theme } from 'styles/themes';
+
 import * as S from './DDonorAddress.styled';
 // Context
 import { usePage } from 'components/donationPage/DonationPage';
@@ -15,7 +17,52 @@ import Grid from '@material-ui/core/Grid';
 // Children
 import DElement from 'components/donationPage/pageContent/DElement';
 import Input from 'elements/inputs/Input';
-import Select from 'elements/inputs/Select';
+import BaseField from 'elements/inputs/BaseField';
+
+import Select from 'react-select';
+
+function CountrySelect({ name }) {
+  const { errors, setMailingCountry, mailingCountry } = usePage();
+  const options = countryCodes.countries
+    .map(({ country: label, fips: value }) => ({ label, value }))
+    .sort(({ value }) => value);
+
+  // we reproduce styles that are shared by other Inputs in the form. Other inputs
+  // use styled-components, but that's not straightforward to integrate with react-select,
+  // so here we manually override its styles.
+  const fontStyles = {
+    fontFamily: theme.font.body,
+    fontSize: theme.fontSizes[1],
+    fontWeight: 400
+  };
+  const styles = {
+    control: (provided, state) => ({
+      ...provided,
+      height: '45px',
+      borderRadius: theme.radii[0],
+      borderColor: state.isFocused
+        ? theme.colors.primary
+        : theme.colors.cstm_inputBorder || theme.theme.colors.inputBorder,
+      '&:hover': { borderColor: 'inherit' }
+    }),
+    valueContainer: (provided) => ({ ...provided, ...fontStyles }),
+    option: (provided) => ({ ...provided, ...fontStyles })
+  };
+  return (
+    <BaseField errors={errors.mailing_country} label="Country" required={true}>
+      <Select
+        value={options.find(({ value }) => value === mailingCountry)}
+        name={name}
+        closeMenuOnSelect={true}
+        escapeClearsValue={true}
+        isSearchable={true}
+        onChange={({ value }) => setMailingCountry(value)}
+        options={options}
+        styles={styles}
+      />
+    </BaseField>
+  );
+}
 
 function DDonorAddress() {
   const { errors } = usePage();
@@ -23,8 +70,6 @@ function DDonorAddress() {
   const [city, setCity] = useState('');
   const [state, setState] = useState('');
   const [zip, setZip] = useState('');
-  const [country, setCountry] = useState(null);
-
   const { setMailingCountry } = usePage();
 
   const { ref } = usePlacesWidget({
@@ -34,13 +79,11 @@ function DDonorAddress() {
     },
     onPlaceSelected: (place) => {
       const fips = place.address_components.find(({ types }) => types.includes('country')).short_name;
-      const chosenCountry = countryCodes.byFips(fips);
       const addrFields = mapAddressComponentsToAddressFields(place.address_components);
       setAddress(addrFields.address || '');
       setCity(addrFields.city || '');
       setState(addrFields.state || '');
       setZip(addrFields.zip || '');
-      setCountry({ value: chosenCountry.value, label: chosenCountry.country });
       setMailingCountry(fips);
     }
   });
@@ -97,21 +140,7 @@ function DDonorAddress() {
           />
         </Grid>
         <Grid item xs={12} md={4}>
-          <Select
-            label="Country"
-            onSelectedItemChange={({ selectedItem }) => {
-              setCountry(selectedItem);
-              setMailingCountry(selectedItem.value);
-            }}
-            selectedItem={country || ''}
-            items={countryCodes.countries
-              .map(({ country: label, fips: value }) => ({ label, value }))
-              .sort(({ value }) => value)}
-            name="mailing_country"
-            displayAccessor={'label'}
-            required
-            errors={errors.mailing_country}
-          />
+          <CountrySelect name="mailing_country" required />
         </Grid>
       </Grid>
     </DElement>

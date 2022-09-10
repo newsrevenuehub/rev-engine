@@ -31,9 +31,8 @@ function Dashboard() {
   const { page } = usePageContext();
   const { user } = useUserContext();
 
-  const hasContributionsSectionAccess = hasContributionsDashboardAccessToUser(featureFlags);
-
-  const hasContentSectionAccess = flagIsActiveForUser(CONTENT_SECTION_ACCESS_FLAG_NAME, featureFlags);
+  const hasContributionsSectionAccess = user.role_type && hasContributionsDashboardAccessToUser(featureFlags);
+  const hasContentSectionAccess = user.role_type && flagIsActiveForUser(CONTENT_SECTION_ACCESS_FLAG_NAME, featureFlags);
 
   const dashboardSlugRedirect = hasContentSectionAccess
     ? CONTENT_SLUG

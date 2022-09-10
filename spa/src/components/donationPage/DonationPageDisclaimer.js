@@ -20,7 +20,7 @@ function DonationPageDisclaimer({ page, amount, frequency }) {
   const amountString = `${page.currency?.symbol}${amount}${frequency === 'one_time' ? '' : ','}`;
 
   return (
-    <S.DonationPageDisclaimer data-testid="donation-page-static-text">
+    <S.DonationPageDisclaimer data-testid="donation-page-disclaimer">
       <p>
         By proceeding with this transaction, you agree to our{' '}
         <strong>

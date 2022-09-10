@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useStripe, useElements, PaymentElement } from '@stripe/react-stripe-js';
+
 import { useLocation } from 'react-router-dom';
 
 import * as S from './StripePaymentForm.styled';
@@ -69,8 +70,14 @@ function StripePaymentForm() {
     paymentSubmitButtonText
   } = usePage();
   const { pathname } = useLocation();
-  const stripe = useStripe();
   const elements = useElements();
+  const stripe = useStripe();
+
+  // we do this to allow Cypress to spy on calls made to Stripe JS entities in testing
+  if (window.Cypress) {
+    // only when testing
+    window.stripe = stripe;
+  }
 
   const [isLoading, setIsLoading] = useState(false);
 
@@ -126,7 +133,7 @@ function StripePaymentForm() {
 
   return (
     <S.StripePaymentForm>
-      <form onSubmit={handleSubmit}>
+      <form onSubmit={handleSubmit} name="stripe-payment-form">
         <PaymentElement options={paymentElementOptions} id="stripe-payment-element" />
         <S.PaymentSubmitButton type="submit" disabled={isLoading} loading={isLoading} data-testid="donation-submit">
           {paymentSubmitButtonText}

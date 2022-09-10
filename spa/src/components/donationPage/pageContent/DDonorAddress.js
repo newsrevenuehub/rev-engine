@@ -21,7 +21,7 @@ import BaseField from 'elements/inputs/BaseField';
 
 import Select from 'react-select';
 
-function CountrySelect({ name }) {
+function CountrySelect({ name, testid }) {
   const { errors, setMailingCountry, mailingCountry } = usePage();
   const options = countryCodes.countries
     .map(({ country: label, fips: value }) => ({ label, value }))
@@ -51,6 +51,7 @@ function CountrySelect({ name }) {
   return (
     <BaseField errors={errors.mailing_country} label="Country" required={true}>
       <Select
+        className="country-select"
         value={options.find(({ value }) => value === mailingCountry)}
         name={name}
         closeMenuOnSelect={true}
@@ -59,6 +60,7 @@ function CountrySelect({ name }) {
         onChange={({ value }) => setMailingCountry(value)}
         options={options}
         styles={styles}
+        classNamePrefix="react-select-country"
       />
     </BaseField>
   );
@@ -115,6 +117,7 @@ function DDonorAddress() {
             onChange={(e) => setCity(e.target.value)}
             errors={errors.mailing_city}
             required
+            testid="mailing_city"
           />
         </Grid>
         <Grid item xs={12} md={4}>
@@ -126,6 +129,7 @@ function DDonorAddress() {
             onChange={(e) => setState(e.target.value)}
             errors={errors.mailing_state}
             required
+            testid="mailing_state"
           />
         </Grid>
         <Grid item xs={12} md={4}>
@@ -137,10 +141,11 @@ function DDonorAddress() {
             onChange={(e) => setZip(e.target.value)}
             errors={errors.mailing_postal_code}
             required
+            testid="mailing_postal_code"
           />
         </Grid>
         <Grid item xs={12} md={4}>
-          <CountrySelect name="mailing_country" required />
+          <CountrySelect testid="mailing_country" name="mailing_country" required />
         </Grid>
       </Grid>
     </DElement>
@@ -167,6 +172,7 @@ const ConditionalAddressAutocomplete = forwardRef(({ useAutocomplete, address, s
         onChange={(e) => setAddress(e.target.value)}
         errors={errors}
         required
+        data-testid={useAutocomplete ? '' : 'mailing_street'}
       />
       <S.ConditionallyHiddenInput
         show={useAutocomplete}
@@ -178,6 +184,7 @@ const ConditionalAddressAutocomplete = forwardRef(({ useAutocomplete, address, s
         onChange={(e) => setAddress(e.target.value)}
         errors={errors}
         required
+        data-testid={useAutocomplete ? 'mailing_street' : ''}
       />
     </>
   );

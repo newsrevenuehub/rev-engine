@@ -47,6 +47,8 @@ function authorizePayment(paymentData, paymentType) {
   // we manually set the XCSRFToken value in header here. This is an unauthed endpoint
   // that on the backend requires csrf header, which will be in cookie returned by request
   // for page data (that happens in parent context)
+
+  // TODO: time limit CSRF that's returned by server
   return axios
     .post(apiEndpoint, { ...paymentData }, { headers: { [CSRF_HEADER]: getCookie('csrftoken') } })
     .then(({ data }) => data);
@@ -203,6 +205,7 @@ function DonationPage({ page, live = false }) {
         } else if (response?.status === 400 && response?.data) {
           setErrors(response.data);
         } else {
+          // This happens if something really unexpected happens, or if there was a 403
           console.error('Something unexpected happened', name, message);
           setDisplayErrorFallback(true);
         }
@@ -211,7 +214,7 @@ function DonationPage({ page, live = false }) {
   };
 
   const getCheckoutSubmitButtonText = (currencySymbol, totalAmount, frequency) => {
-    if (isNaN(totalAmount)) return 'Enter a valid amount';
+    if (isNaN(totalAmount) || totalAmount === 'NaN') return 'Enter a valid amount';
     return `Give ${currencySymbol}${formatStringAmountForDisplay(totalAmount)} ${getFrequencyAdverb(frequency)}`;
   };
 
@@ -262,7 +265,12 @@ function DonationPage({ page, live = false }) {
                 {displayErrorFallback ? (
                   <LiveErrorFallback />
                 ) : (
-                  <form onSubmit={(e) => handleCheckoutSubmit(e)} ref={formRef} data-testid="donation-page-form">
+                  <form
+                    name="contribution-checkout"
+                    onSubmit={(e) => handleCheckoutSubmit(e)}
+                    ref={formRef}
+                    data-testid="donation-page-form"
+                  >
                     <S.PageElements>
                       {(!live && !page?.elements) ||
                         (page?.elements?.length === 0 && (

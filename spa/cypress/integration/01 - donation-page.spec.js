@@ -1,4 +1,8 @@
-import { LIVE_PAGE_DETAIL } from 'ajax/endpoints';
+import {
+  LIVE_PAGE_DETAIL,
+  AUTHORIZE_ONE_TIME_STRIPE_PAYMENT_ROUTE,
+  AUTHORIZE_STRIPE_SUBSCRIPTION_ROUTE
+} from 'ajax/endpoints';
 import { getEndpoint, getPageElementByType, getTestingDonationPageUrl, EXPECTED_RP_SLUG } from '../support/util';
 import livePageOne from '../fixtures/pages/live-page-1.json';
 
@@ -23,9 +27,7 @@ describe('Clearbit', () => {
 });
 
 describe('Donation page displays dynamic page elements', () => {
-  beforeEach(() => {
-    cy.visitDonationPage();
-  });
+  beforeEach(() => cy.visitDonationPage());
 
   it('should render expected rich text content', () => {
     cy.getByTestId('d-rich-text').should('exist');
@@ -63,6 +65,7 @@ describe('Donation page displays dynamic page elements', () => {
       }
     });
   });
+
   it('should render the correct fee base on frequency and amount', () => {
     const frequency = getPageElementByType(livePageOne, 'DFrequency');
     const amounts = getPageElementByType(livePageOne, 'DAmount');
@@ -135,7 +138,7 @@ describe('Donation page displays dynamic page elements', () => {
     cy.getByTestId('nyt-comp-sub').should('not.exist');
   });
 
-  it('should nyt comp subscription option if enabled', () => {
+  it('should display nyt comp subscription option if enabled', () => {
     const page = { ...livePageOne };
     const swagIndex = page.elements.findIndex((el) => el.type === 'DSwag');
     page.elements[swagIndex].content.offerNytComp = true;
@@ -319,19 +322,145 @@ describe('Footer-like content', () => {
   });
 });
 
+function fillOutAddressSection() {
+  cy.get('[data-testid*="mailing_street"]').type('123 Main St');
+  cy.get('[data-testid*="mailing_city"]').type('Big City');
+  cy.get('[data-testid*="mailing_state"]').type('NY');
+  cy.get('[data-testid*="mailing_postal_code"]').type('100738');
+  cy.get('.country-select').click().find('.react-select-country__option').first().click();
+}
+
+function fillOutDonorInfoSection() {
+  cy.get('[data-testid*="first_name"]').type('Fred');
+  cy.get('[data-testid*="last_name"]').type('Person');
+  cy.get('[data-testid*="email"]').type('foo@bar.com');
+}
+
+function fillOutReasonForGiving() {
+  cy.get('[data-testid="excited-to-support-picklist"]').click();
+  cy.get('[data-testid="select-item-1').click();
+}
+
 describe('User flow: happy path', () => {
   beforeEach(() => cy.visitDonationPage());
-  specify('one-time contribution', () => {});
-  specify('recurring contribution', () => {});
-  specify('default NRE thank you page', () => {});
-  specify('org-configured thank you page', () => {});
+
+  specify('one-time contribution', () => {
+    cy.intercept(
+      { method: 'POST', url: getEndpoint(AUTHORIZE_ONE_TIME_STRIPE_PAYMENT_ROUTE) },
+      {
+        body: { provider_client_secret_id: 'pi_3LgkV1pOaLul7_secret_QcpIANR9d6', email_hash: 'b4170aca0fd3e60' },
+        statusCode: 201
+      }
+    ).as('create-one-time-payment');
+    cy.intercept({ method: 'POST', url: 'https://r.stripe.com/0' }, { statusCode: 201 });
+    cy.intercept({ method: 'POST', url: 'https://m.stripe.com/0' }, { statusCode: 201 });
+    cy.intercept({ method: 'GET', url: 'https://api.stripe.com/**' }, { statusCode: 200 });
+
+    cy.get('[data-testid*="amount-120"]').click();
+    cy.get('[data-testid*="frequency-one_time"]').click();
+    fillOutDonorInfoSection();
+    fillOutAddressSection();
+    fillOutReasonForGiving();
+    cy.get('form[name="contribution-checkout"]').submit();
+    cy.wait('@create-one-time-payment');
+    // assert re: what's sent to server
+    cy.window()
+      .its('stripe')
+      .then((stripe) => {
+        cy.spy(stripe, 'confirmPayment').as('stripe-confirm-payment');
+      });
+    // this is all we test here because otherwise, we need real Stripe client secret
+    // which would require live server providing
+    cy.get('form #stripe-payment-element');
+    cy.get('[data-testid="donation-page-disclaimer"]');
+    cy.get('form[name="stripe-payment-form"]').submit();
+    cy.get('@stripe-confirm-payment').should('be.calledOnce');
+  });
+  specify('recurring contribution', () => {
+    cy.intercept(
+      { method: 'POST', url: getEndpoint(AUTHORIZE_STRIPE_SUBSCRIPTION_ROUTE) },
+      {
+        body: { provider_client_secret_id: 'pi_3LgkV1pOaLul7_secret_QcpIANR9d6', email_hash: 'b4170aca0fd3e60' },
+        statusCode: 201
+      }
+    ).as('create-subscription-payment');
+    cy.intercept({ method: 'POST', url: 'https://r.stripe.com/0' }, { statusCode: 201 });
+    cy.intercept({ method: 'POST', url: 'https://m.stripe.com/0' }, { statusCode: 201 });
+    cy.intercept({ method: 'GET', url: 'https://api.stripe.com/**' }, { statusCode: 200 });
+
+    cy.get('[data-testid*="amount-120"]').click();
+    cy.get('[data-testid*="frequency-month"]').click();
+    fillOutDonorInfoSection();
+    fillOutAddressSection();
+    fillOutReasonForGiving();
+    cy.get('form[name="contribution-checkout"]').submit();
+    cy.wait('@create-subscription-payment');
+    // assert re: what's sent to server
+    cy.window()
+      .its('stripe')
+      .then((stripe) => {
+        cy.spy(stripe, 'confirmPayment').as('stripe-confirm-payment');
+      });
+    // this is all we test here because otherwise, we need real Stripe client secret
+    // which would require live server providing
+    // spy on stripe and see that expected next url is provided
+    cy.get('form #stripe-payment-element');
+    cy.get('[data-testid="donation-page-disclaimer"]');
+    cy.get('form[name="stripe-payment-form"]').submit();
+    cy.get('@stripe-confirm-payment').should('be.calledOnce');
+  });
 });
 
 describe('User flow: unhappy paths', () => {
   beforeEach(() => cy.visitDonationPage());
-  specify('Checkout form does not validate on server', () => {});
-  specify('Server does not authorize further action after checkout', () => {});
-  specify('The NRE DonationPage instance specified by URL cannot be found on server', () => {
-    // 404
+  specify("Contribution doesn't validate on server", () => {
+    const validationError = 'This field is required';
+    cy.intercept(
+      { method: 'POST', url: getEndpoint(AUTHORIZE_ONE_TIME_STRIPE_PAYMENT_ROUTE) },
+      {
+        body: {
+          first_name: validationError,
+          last_name: validationError,
+          email: validationError,
+          mailing_street: validationError,
+          mailing_postal_code: validationError,
+          mailing_state: validationError,
+          mailing_city: validationError,
+          mailing_country: validationError,
+          phone: validationError,
+          amount: validationError
+        },
+        statusCode: 400
+      }
+    ).as('create-one-time-payment__invalid');
+    cy.get('form[name="contribution-checkout"]').submit();
+    cy.wait('@create-one-time-payment__invalid');
+    cy.get('[data-testid="d-amount"]').contains(validationError);
+    cy.get('[data-testid="errors-First name"]').contains(validationError);
+    cy.get('[data-testid="errors-Last name"]').contains(validationError);
+    cy.get('[data-testid="errors-Email"]').contains(validationError);
+    cy.get('[data-testid="errors-Phone"]').contains(validationError);
+    cy.get('[data-testid="errors-Address"]').contains(validationError);
+    cy.get('[data-testid="errors-City"]').contains(validationError);
+    cy.get('[data-testid="errors-State"]').contains(validationError);
+    cy.get('[data-testid="errors-Zip/Postal code"]').contains(validationError);
+    cy.get('[data-testid="errors-Country"]').contains(validationError);
   });
+  specify('Checkout form submission response is a 403', () => {
+    cy.intercept({ method: 'POST', url: getEndpoint(AUTHORIZE_ONE_TIME_STRIPE_PAYMENT_ROUTE) }, { statusCode: 403 }).as(
+      'create-one-time-payment__unauthorized'
+    );
+    cy.get('form[name="contribution-checkout"]').submit();
+    cy.wait('@create-one-time-payment__unauthorized');
+    cy.get('[data-testid="500-something-wrong"]');
+  });
+});
+
+describe('Payment success page', () => {
+  // spy on analytics track conversion
+  // spy on api call success
+  // confirm next url is as expected (params)
+  beforeEach(() => {});
+  specify('Using default thank you page', () => {});
+  specify('Using off-site thank you page', () => {});
 });

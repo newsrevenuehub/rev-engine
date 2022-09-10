@@ -239,7 +239,6 @@ describe('Donation page amount and frequency query parameters', () => {
   specify('&amount but no &frequency defaults to that amount with the frequency=once', () => {
     // intercept page, return particular elements
     const targetAmount = 99;
-    const amounts = livePageOne.elements.find((el) => el.type === 'DAmount');
 
     // visit url + querystring
     cy.visit(getTestingDonationPageUrl(expectedPageSlug, `?amount=${targetAmount}`));
@@ -252,9 +251,6 @@ describe('Donation page amount and frequency query parameters', () => {
     cy.getByTestId('frequency-one_time-selected').should('exist');
     cy.getByTestId(`amount-other-selected`).within(() => {
       cy.get('input').should('have.value', targetAmount);
-    });
-    amounts.content.options.one_time.forEach((amount) => {
-      cy.getByTestId(`amount-${amount}`).should('not.exist');
     });
   });
 

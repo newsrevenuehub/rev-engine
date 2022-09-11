@@ -20,7 +20,8 @@ function getPaymentSuccessUrl(
   pageSlug,
   rpSlug,
   origin,
-  pathname
+  pathname,
+  stripeClientSecret
 ) {
   // This is the URL that Stripe will send the user to if payment is successfully
   // processed. We send users to an interstitial payment success page where we can
@@ -51,6 +52,7 @@ function getPaymentSuccessUrl(
   // set up, that page can appear at rev-program-slug.revengine.com/ (with no page), in which
   // case, the thank-you page URL can be rev-program-slug.revengine.com/thank-you.
   paymentSuccessUrl.searchParams.append('fromPath', pathname);
+  paymentSuccessUrl.searchParams.append('stripeClientSecret', stripeClientSecret);
   return paymentSuccessUrl.href;
 }
 
@@ -67,7 +69,8 @@ function StripePaymentForm() {
     contributorEmail,
     emailHash,
     stripeBillingDetails,
-    paymentSubmitButtonText
+    paymentSubmitButtonText,
+    stripeClientSecret
   } = usePage();
   const { pathname } = useLocation();
   const elements = useElements();
@@ -99,7 +102,8 @@ function StripePaymentForm() {
       pageSlug,
       rpSlug,
       window.location.origin,
-      pathname
+      pathname,
+      stripeClientSecret
     );
 
     const { error } = await stripe.confirmPayment({

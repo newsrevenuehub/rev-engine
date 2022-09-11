@@ -1,11 +1,11 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useLocation, useHistory } from 'react-router-dom';
 import queryString from 'query-string';
 import urlJoin from 'url-join';
-import { useQuery } from 'react-query';
+import { useQuery, useMutation } from 'react-query';
 
 import axios from 'ajax/axios';
-import { LIVE_PAGE_DETAIL } from 'ajax/endpoints';
+import { LIVE_PAGE_DETAIL, getPaymentSuccessEndpoint } from 'ajax/endpoints';
 import { useAnalyticsContext } from 'components/analytics/AnalyticsContext';
 import { THANK_YOU_SLUG } from 'routes';
 import { HUB_GA_V3_ID } from 'settings';
@@ -13,6 +13,10 @@ import GlobalLoading from 'elements/GlobalLoading';
 
 function fetchPage(rpSlug, pageSlug) {
   return axios.get(LIVE_PAGE_DETAIL, { params: { revenue_program: rpSlug, page: pageSlug } }).then(({ data }) => data);
+}
+
+function patchPaymentSuccess(providerClientSecretId) {
+  return axios.patch(getPaymentSuccessEndpoint(providerClientSecretId));
 }
 
 // This is an interstitial page we use solely to call `trackConversion` from
@@ -25,11 +29,33 @@ function fetchPage(rpSlug, pageSlug) {
 export default function PaymentSuccess() {
   const history = useHistory();
   const { search } = useLocation();
-  const { amount, next, frequency, uid, email, pageSlug, rpSlug, fromPath } = queryString.parse(search);
+  const {
+    amount,
+    next,
+    frequency,
+    uid,
+    email,
+    pageSlug,
+    rpSlug,
+    fromPath,
+    payment_intent_client_secret: stripeClientSecret
+  } = queryString.parse(search);
 
   const { data: page, isSuccess: pageFetchSuccess } = useQuery(['getPage'], () => fetchPage(rpSlug, pageSlug));
   // we'll need to actually setAnalytics instance because won't already
   const { trackConversion, analyticsInstance, setAnalyticsConfig } = useAnalyticsContext();
+
+  const { mutate: signalPaymentSuccess, isLoading: signalPaymentSuccessIsLoading } = useMutation(
+    (stripeClientSecret) => {
+      return patchPaymentSuccess(stripeClientSecret);
+    }
+  );
+
+  const [conversionTracked, setConversionTracked] = useState(false);
+
+  useEffect(() => {
+    if (stripeClientSecret) signalPaymentSuccess(stripeClientSecret);
+  }, [signalPaymentSuccess, stripeClientSecret]);
 
   // after page is retrieved, we can load analytics instance, which has side effect of
   // tracking a page view
@@ -59,7 +85,13 @@ export default function PaymentSuccess() {
   useEffect(() => {
     if (analyticsInstance) {
       trackConversion(amount);
-      // if we're directing off-site to org-supplied thank you page...
+      setConversionTracked(true);
+    }
+  }, [amount, analyticsInstance, trackConversion]);
+
+  useEffect(() => {
+    // if we're directing off-site to org-supplied thank you page...
+    if (conversionTracked && !signalPaymentSuccessIsLoading) {
       if (next) {
         const nextUrl = new URL(next);
         nextUrl.searchParams.append('uid', uid);
@@ -75,6 +107,21 @@ export default function PaymentSuccess() {
         });
       }
     }
-  });
+  }, [
+    amount,
+    analyticsInstance,
+    conversionTracked,
+    email,
+    frequency,
+    fromPath,
+    history,
+    next,
+    page,
+    setConversionTracked,
+    signalPaymentSuccessIsLoading,
+    trackConversion,
+    uid
+  ]);
+
   return <GlobalLoading />;
 }

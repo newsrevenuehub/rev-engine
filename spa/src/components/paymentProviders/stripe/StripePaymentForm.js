@@ -11,7 +11,8 @@ import { PAYMENT_SUCCESS } from 'routes';
 import { getFrequencyThankYouText } from 'utilities/parseFrequency';
 import { useAlert } from 'react-alert';
 
-function getPaymentSuccessUrl(
+export function getPaymentSuccessUrl(
+  baseUrl,
   thankYouRedirectUrl,
   amount,
   emailHash,
@@ -19,7 +20,6 @@ function getPaymentSuccessUrl(
   contributorEmail,
   pageSlug,
   rpSlug,
-  origin,
   pathname,
   stripeClientSecret
 ) {
@@ -27,7 +27,7 @@ function getPaymentSuccessUrl(
   // processed. We send users to an interstitial payment success page where we can
   // track successful conversion in analytics, before forwarding them on to the default
   // thank you page.
-  const paymentSuccessUrl = new URL(PAYMENT_SUCCESS, origin);
+  const paymentSuccessUrl = new URL(PAYMENT_SUCCESS, baseUrl);
   paymentSuccessUrl.searchParams.append('next', thankYouRedirectUrl);
   paymentSuccessUrl.searchParams.append('amount', amount);
   paymentSuccessUrl.searchParams.append('frequency', frequencyDisplayValue);
@@ -75,7 +75,6 @@ function StripePaymentForm() {
   const { pathname } = useLocation();
   const elements = useElements();
   const stripe = useStripe();
-
   // we do this to allow Cypress to spy on calls made to Stripe JS entities in testing
   if (window.Cypress) {
     // only when testing
@@ -94,6 +93,7 @@ function StripePaymentForm() {
     // track successful conversion in analytics, before forwarding them on to the default
     // thank you page.
     const return_url = getPaymentSuccessUrl(
+      window.location.origin,
       thank_you_redirect || '',
       amount,
       emailHash,
@@ -101,7 +101,6 @@ function StripePaymentForm() {
       contributorEmail,
       pageSlug,
       rpSlug,
-      window.location.origin,
       pathname,
       stripeClientSecret
     );

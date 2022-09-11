@@ -3,6 +3,7 @@ import {
   AUTHORIZE_ONE_TIME_STRIPE_PAYMENT_ROUTE,
   AUTHORIZE_STRIPE_SUBSCRIPTION_ROUTE
 } from 'ajax/endpoints';
+import { getPaymentSuccessUrl } from 'components/paymentProviders/stripe/StripePaymentForm';
 import { getEndpoint, getPageElementByType, getTestingDonationPageUrl, EXPECTED_RP_SLUG } from '../support/util';
 import livePageOne from '../fixtures/pages/live-page-1.json';
 
@@ -337,6 +338,9 @@ function fillOutReasonForGiving() {
   cy.get('[data-testid="select-item-1').click();
 }
 
+const fakeEmailHash = 'b4170aca0fd3e60';
+const fakeStripeSecret = 'pi_3LgkV1pOaLul7_secret_QcpIANR9d6';
+
 describe('User flow: happy path', () => {
   beforeEach(() => cy.visitDonationPage());
 
@@ -344,7 +348,7 @@ describe('User flow: happy path', () => {
     cy.intercept(
       { method: 'POST', url: getEndpoint(AUTHORIZE_ONE_TIME_STRIPE_PAYMENT_ROUTE) },
       {
-        body: { provider_client_secret_id: 'pi_3LgkV1pOaLul7_secret_QcpIANR9d6', email_hash: 'b4170aca0fd3e60' },
+        body: { provider_client_secret_id: fakeStripeSecret, email_hash: fakeEmailHash },
         statusCode: 201
       }
     ).as('create-one-time-payment');
@@ -358,8 +362,31 @@ describe('User flow: happy path', () => {
     fillOutAddressSection();
     fillOutReasonForGiving();
     cy.get('form[name="contribution-checkout"]').submit();
-    cy.wait('@create-one-time-payment');
-    // assert re: what's sent to server
+    cy.wait('@create-one-time-payment').then((interception) => {
+      expect(Object.keys(interception.request.body).includes('captcha_token')).to.be.true;
+      // captcha_token is different each request, so instead of stubbing it, we just assert there's an
+      // object entry for it.
+      const allButCaptcha = { ...interception.request.body };
+      delete allButCaptcha['captcha_token'];
+      expect(allButCaptcha).to.deep.equal({
+        interval: 'one_time',
+        amount: '123.01', // this is amount plus fee
+        first_name: 'Fred',
+        last_name: 'Person',
+        email: 'foo@bar.com',
+        phone: '',
+        mailing_street: '123 Main St',
+        mailing_city: 'Big City',
+        mailing_state: 'NY',
+        mailing_postal_code: '100738',
+        mailing_country: 'AF',
+        reason_for_giving: 'test1',
+        tribute_type: '',
+        donor_selected_amount: 123.01,
+        page: 99
+      });
+      expect(interception.response.statusCode).to.equal(201);
+    });
     cy.window()
       .its('stripe')
       .then((stripe) => {
@@ -370,7 +397,26 @@ describe('User flow: happy path', () => {
     cy.get('form #stripe-payment-element');
     cy.get('[data-testid="donation-page-disclaimer"]');
     cy.get('form[name="stripe-payment-form"]').submit();
-    cy.get('@stripe-confirm-payment').should('be.calledOnce');
+    cy.get('@stripe-confirm-payment').should((x) => {
+      expect(x).to.be.calledOnce;
+      const {
+        confirmParams: { return_url }
+      } = x.getCalls()[0].args[0];
+      expect(return_url).to.equal(
+        getPaymentSuccessUrl(
+          'http://revenueprogram.revengine-testabc123.com:3000/',
+          '',
+          '123.01',
+          fakeEmailHash,
+          'one-time',
+          'foo@bar.com',
+          livePageOne.slug,
+          livePageOne.revenue_program.slug,
+          `/${livePageOne.slug}`,
+          fakeStripeSecret
+        )
+      );
+    });
   });
   specify('recurring contribution', () => {
     cy.intercept(
@@ -384,13 +430,36 @@ describe('User flow: happy path', () => {
     cy.intercept({ method: 'POST', url: 'https://m.stripe.com/0' }, { statusCode: 201 });
     cy.intercept({ method: 'GET', url: 'https://api.stripe.com/**' }, { statusCode: 200 });
 
-    cy.get('[data-testid*="amount-120"]').click();
     cy.get('[data-testid*="frequency-month"]').click();
     fillOutDonorInfoSection();
     fillOutAddressSection();
     fillOutReasonForGiving();
     cy.get('form[name="contribution-checkout"]').submit();
-    cy.wait('@create-subscription-payment');
+    cy.wait('@create-subscription-payment').then((interception) => {
+      expect(Object.keys(interception.request.body).includes('captcha_token')).to.be.true;
+      // captcha_token is different each request, so instead of stubbing it, we just assert there's an
+      // object entry for it.
+      const allButCaptcha = { ...interception.request.body };
+      delete allButCaptcha['captcha_token'];
+      expect(allButCaptcha).to.deep.equal({
+        interval: 'month',
+        amount: '10.53', // this default selected amount + fee
+        first_name: 'Fred',
+        last_name: 'Person',
+        email: 'foo@bar.com',
+        phone: '',
+        mailing_street: '123 Main St',
+        mailing_city: 'Big City',
+        mailing_state: 'NY',
+        mailing_postal_code: '100738',
+        mailing_country: 'AF',
+        reason_for_giving: 'test1',
+        tribute_type: '',
+        donor_selected_amount: 10.53,
+        page: 99
+      });
+      expect(interception.response.statusCode).to.equal(201);
+    });
     // assert re: what's sent to server
     cy.window()
       .its('stripe')
@@ -403,7 +472,26 @@ describe('User flow: happy path', () => {
     cy.get('form #stripe-payment-element');
     cy.get('[data-testid="donation-page-disclaimer"]');
     cy.get('form[name="stripe-payment-form"]').submit();
-    cy.get('@stripe-confirm-payment').should('be.calledOnce');
+    cy.get('@stripe-confirm-payment').should((x) => {
+      expect(x).to.be.calledOnce;
+      const {
+        confirmParams: { return_url }
+      } = x.getCalls()[0].args[0];
+      expect(return_url).to.equal(
+        getPaymentSuccessUrl(
+          'http://revenueprogram.revengine-testabc123.com:3000/',
+          '',
+          '10.53',
+          fakeEmailHash,
+          'monthly',
+          'foo@bar.com',
+          livePageOne.slug,
+          livePageOne.revenue_program.slug,
+          `/${livePageOne.slug}`,
+          fakeStripeSecret
+        )
+      );
+    });
   });
 });
 

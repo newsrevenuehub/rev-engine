@@ -442,6 +442,7 @@ describe('User flow: unhappy paths', () => {
     cy.get('[data-testid="errors-Zip/Postal code"]').contains(validationError);
     cy.get('[data-testid="errors-Country"]').contains(validationError);
   });
+
   specify('Checkout form submission response is a 403', () => {
     cy.intercept({ method: 'POST', url: getEndpoint(AUTHORIZE_ONE_TIME_STRIPE_PAYMENT_ROUTE) }, { statusCode: 403 }).as(
       'create-one-time-payment__unauthorized'
@@ -456,7 +457,13 @@ describe('Payment success page', () => {
   // spy on analytics track conversion
   // spy on api call success
   // confirm next url is as expected (params)
-  beforeEach(() => {});
-  specify('Using default thank you page', () => {});
-  specify('Using off-site thank you page', () => {});
+  beforeEach(() => {
+    cy.intercept({ method: 'patch', url: getEndpoint() }).as('signalSuccess');
+  });
+  specify('Using default thank you page', () => {
+    cy.intercept({ method: 'get', url: LIVE_PAGE_DETAIL }).as('getPageData');
+  });
+  specify('Using off-site thank you page', () => {
+    cy.intercept({ method: 'get', url: LIVE_PAGE_DETAIL }).as('getPageData');
+  });
 });

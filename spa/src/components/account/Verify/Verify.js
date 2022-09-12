@@ -100,7 +100,7 @@ function Verify() {
             Resend Verification
           </S.Button>
           <S.Help>
-            <span>Questions?</span> Email us at <Mailto label={VERIFIED_HELP_EMAIL} />
+            <span>Questions?</span> Email us at <Mailto mailto={VERIFIED_HELP_EMAIL} />
           </S.Help>
           {verifyMessage}
         </S.Box>

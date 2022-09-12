@@ -69,8 +69,11 @@ if os.getenv("DJANGO_SETTINGS_MODULE", None) != "deploy":
     urlpatterns.append(path("dummy-500-error", dummy_view_for_raising_500, name="dummy-500"))
 
 urlpatterns += [
-    path(r"cloudflare-500", cloudflare_500_view, name="cloudflare-500"),
+    path("cloudflare-500", cloudflare_500_view, name="cloudflare-500"),
     # React SPA:
-    path(r"", index, name="index"),  # for reverse()
+    # Routing handled by SPA. Urlpatterns defined here only to allow use of revsers() with symbolic name rather than hardcoded URLs.
+    path("", index, name="index"),
+    path("verified/", index, name="spa_account_verification"),
+    path("verified/<failure>/", index, name="spa_account_verification_fail"),
     re_path(r"^(?:.*)/?$", index, name="index-others"),
 ]

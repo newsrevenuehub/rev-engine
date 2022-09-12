@@ -15,6 +15,7 @@ from stripe.oauth_error import InvalidGrantError as StripeInvalidGrantError
 from stripe.stripe_object import StripeObject
 from waffle import get_waffle_flag_model
 
+import apps
 from apps.api.tests import RevEngineApiAbstractTestCase
 from apps.api.tokens import ContributorRefreshToken
 from apps.common.constants import CONTRIBUTIONS_API_ENDPOINT_ACCESS_FLAG_NAME
@@ -42,7 +43,7 @@ from apps.organizations.tests.factories import (
 from apps.pages.models import DonationPage
 from apps.pages.tests.factories import DonationPageFactory
 from apps.users.choices import Roles
-from apps.users.tests.utils import create_test_user
+from apps.users.tests.factories import create_test_user
 
 
 faker = Faker()
@@ -119,17 +120,23 @@ class CreateStripePaymentErrorConditionsTest(StripePaymentViewTestAbstract):
     """Branch coverage for various errors."""
 
     @override_settings(CELERY_TASK_ALWAYS_EAGER=True)
-    def atest_intervals(self):
+    def test_intervals(self):
         # Due to serializer validation can't actually set "bad" interval.
         # Instead we iterate over all the model choices. Which if new one is
-        # added but not handled here we will trigger exception.
-        with mock.patch("apps.contributions.payment_managers.make_bad_actor_request"):
+        # added but not handled we will trigger exception here.
+        with (
+            mock.patch(
+                "apps.contributions.payment_managers.make_bad_actor_request",
+                side_effect=apps.contributions.bad_actor.BadActorAPIError,
+            ),
+            mock.patch("apps.contributions.views.send_templated_email.delay"),
+            mock.patch(
+                "apps.contributions.views.StripePaymentManager.create_one_time_payment", side_effect=MockPaymentIntent
+            ),
+        ):
             page = DonationPage.objects.filter(revenue_program=self.org1_rp1).first()
-            print("b", [x for x in ContributionInterval])
             for interval in ContributionInterval:
-                print(str(interval), dir(interval))
                 stripe_payment(self._create_request(page, interval=str(interval)))
-            assert False
 
 
 @override_settings(CELERY_TASK_ALWAYS_EAGER=True)

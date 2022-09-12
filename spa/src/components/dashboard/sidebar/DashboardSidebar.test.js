@@ -14,7 +14,13 @@ jest.mock('utilities/flagIsActiveForUser', () => ({
   default: () => true
 }));
 
+var mock = jest.fn().mockReturnValue(true);
+jest.mock('utilities/hasContributionsDashboardAccessToUser', () => {
+  return () => mock();
+});
+
 it('should have expected appearance and links', () => {
+  mock.mockReturnValue(true);
   render(<DashboardSidebar />);
   const contentNavSection = screen.getByRole('navigation', { name: /Content/ });
   expect(within(contentNavSection).getByRole('listitem', { name: /Pages/ })).toHaveAttribute('href', CONTENT_SLUG);
@@ -28,4 +34,10 @@ it('should have expected appearance and links', () => {
     'href',
     DONATIONS_SLUG
   );
+});
+
+it('should disable Contributions dashboard', () => {
+  mock.mockReturnValue(false);
+  render(<DashboardSidebar />);
+  expect(screen.queryByTestId(/Contributions/i)).toBeNull();
 });

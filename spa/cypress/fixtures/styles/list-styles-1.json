@@ -5,10 +5,10 @@
     "used_live": true,
     "styles": {
       "colors": {
-        "primary": "pink",
-        "secondary": "blue",
-        "fieldBackground": "yellow",
-        "paneBackground": "green"
+        "cstm_mainBackground": "pink",
+        "cstm_formPanelBackground": "blue",
+        "cstm_mainHeader": "yellow",
+        "cstm_CTAs": "green"
       },
       "font": "Monospace",
       "fontSizes": []
@@ -20,10 +20,10 @@
     "used_live": false,
     "styles": {
       "colors": {
-        "primary": "purple",
-        "secondary": "orange",
-        "fieldBackground": "brown",
-        "paneBackground": "grey"
+        "cstm_mainBackground": "purple",
+        "cstm_formPanelBackground": "orange",
+        "cstm_mainHeader": "brown",
+        "cstm_CTAs": "grey"
       },
       "font": "Monospace",
       "fontSizes": []
@@ -35,10 +35,10 @@
     "used_live": false,
     "styles": {
       "colors": {
-        "primary": "papayawhip",
-        "secondary": "blanchedalmond",
-        "fieldBackground": "gainsboro",
-        "paneBackground": "thistle"
+        "cstm_mainBackground": "papayawhip",
+        "cstm_formPanelBackground": "blanchedalmond",
+        "cstm_mainHeader": "gainsboro",
+        "cstm_CTAs": "thistle"
       },
       "font": "Monospace",
       "fontSizes": []

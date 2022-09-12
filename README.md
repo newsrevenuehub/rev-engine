@@ -45,7 +45,7 @@
 
 To begin you should have the following applications installed on your local development system:
 
-- Python >= 3.9
+- Python >= 3.10
 - NodeJS == 14.x
 - npm == 6.14.x (comes with node 14)
 - [nvm](https://github.com/nvm-sh/nvm/blob/master/README.md) is not strictly _required_, but will almost certainly be necessary unless you just happen to have Node.js 12.x installed on your machine.
@@ -74,7 +74,7 @@ You will note the distinct lack of opinion on how you should manage your virtual
 
 #### Node dependencies
 
-`nvm` is preferred for managing Node versions and `.nvmrc` contains the
+`nvm` is preferred for managing Node versions, and `.nvmrc` contains the
 specific Node version for this project. To install the correct (and latest)
 Node version run:
 
@@ -397,7 +397,7 @@ If you have a need to run or test tasks using a Celery worker, there are some Ma
 
 `make run-redis` brings up the dev services, and a redis container that listens on the default port.
 
-`make run-celery` will bring up a Celery worker. At this point any task that expects a celery worker should run without error.
+`make start-celery` will bring up a Celery worker. At this point any task that expects a celery worker should run without error.
 
 ## Frontend Configuration
 

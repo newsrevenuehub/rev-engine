@@ -1,9 +1,6 @@
 import { useState, useCallback } from 'react';
 import * as S from './ConnectStripeToast.styled';
 
-import { withStyles } from '@material-ui/core/styles';
-import Tooltip from '@material-ui/core/Tooltip';
-
 // Assets
 import StripeLogo from 'assets/icons/stripeLogo.svg';
 import Triangle6Dots from 'assets/icons/triangle6Dots.svg';

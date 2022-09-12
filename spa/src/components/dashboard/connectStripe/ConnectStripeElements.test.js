@@ -2,7 +2,7 @@ import { render, screen } from 'test-utils';
 
 import ConnectStripeElements from './ConnectStripeElements';
 
-const CONNECT_STRIPE_COOKIE_NAME = 'hideConnectStripeModal';
+import { CONNECT_STRIPE_COOKIE_NAME, CONNECT_STRIPE_FAQ_LINK } from 'constants/textConstants';
 
 describe('ConnectStripeElements', () => {
   test('should have enabled button for connectToStripe', () => {
@@ -17,6 +17,14 @@ describe('ConnectStripeElements', () => {
     expect(stripeModal).toBeInTheDocument();
     const stripeToast = screen.queryByTestId('connect-stripe-toast');
     expect(stripeToast).not.toBeInTheDocument();
+  });
+
+  test('renders a Stripe-FAQ-link that opens in a new tab', () => {
+    render(<ConnectStripeElements />);
+    const faqLink = screen.getByText('Stripe Connection FAQ');
+    expect(faqLink).toBeVisible();
+    expect(faqLink).toHaveAttribute('href', CONNECT_STRIPE_FAQ_LINK);
+    expect(faqLink).toHaveAttribute('target', '_blank');
   });
 });
 

@@ -8,5 +8,5 @@ jest.mock('components/Main', () => ({
 
 it('should show profile', () => {
   render(<Profile />);
-  //expect(screen.getByTestId('blue-logo')).toBeInTheDocument();
+  expect(screen.getByText("Let's Customize Your Account")).toBeInTheDocument();
 });

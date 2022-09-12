@@ -15,3 +15,8 @@ export const RESEND_VERIFICATION_SUCCESS_TEXT = 'Verification email has been suc
 export const VERIFIED_RESULTS_ACCEPTED_VALUES = ['failed', 'expired', 'inactive', 'unknown'];
 export const VERIFIED_HELP_EMAIL = `revenginesupport@fundjournalism.org`;
 export const SIGN_UP_GENERIC_ERROR_TEXT = 'Account not created. Please try again!;';
+
+//Stripe Connect
+export const CONNECT_STRIPE_COOKIE_NAME = 'hideConnectStripeModal';
+export const CONNECT_STRIPE_FAQ_LINK =
+  'https://news-revenue-hub.atlassian.net/servicedesk/customer/portal/11/article/2217443333';

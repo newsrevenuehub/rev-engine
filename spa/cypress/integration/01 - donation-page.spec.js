@@ -18,7 +18,7 @@ import calculateStripeFee from 'utilities/calculateStripeFee';
 const expectedPageSlug = 'page-slug';
 
 describe('Clearbit', () => {
-  it('load clearbit', () => {
+  it('loads clearbit', () => {
     cy.intercept(
       { method: 'GET', pathname: getEndpoint(LIVE_PAGE_DETAIL) },
       { fixture: 'pages/live-page-1', statusCode: 200 }
@@ -588,9 +588,7 @@ describe.only('Payment success page', () => {
   });
   specify('Using default thank you page', () => {
     cy.visit(paymentSuccessRoute, { qs: successPageQueryParams });
-    cy.wait('@signal-success').then(({ response: { statusCode } }) => {
-      expect(statusCode).to.equal(204);
-    });
+    cy.wait('@signal-success');
     cy.wait('@fbTrackContribute');
     cy.wait('@fbTrackPurchase');
     // get forwarded to right destination
@@ -602,11 +600,8 @@ describe.only('Payment success page', () => {
       { method: 'GET', pathname: getEndpoint(LIVE_PAGE_DETAIL) },
       { fixture: 'pages/live-page-1', statusCode: 200 }
     ).as('getPageDetail');
-
     cy.visit(paymentSuccessRoute, { qs: { ...successPageQueryParams, next: externalThankYouPage } });
-    cy.wait('@signal-success').then(({ response: { statusCode } }) => {
-      expect(statusCode).to.equal(204);
-    });
+    cy.wait('@signal-success');
     cy.wait('@fbTrackContribute');
     cy.wait('@fbTrackPurchase');
     // get forwarded to right destination

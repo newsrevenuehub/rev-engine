@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import * as S from './AddPageModal.styled';
 import { useTheme } from 'styled-components';
 
@@ -14,7 +14,7 @@ import slugify from 'utilities/slugify';
 
 // AJAX
 import useRequest from 'hooks/useRequest';
-import { REVENUE_PROGRAMS, LIST_PAGES, TEMPLATES } from 'ajax/endpoints';
+import { LIST_PAGES } from 'ajax/endpoints';
 
 import useUser from 'hooks/useUser';
 
@@ -23,7 +23,10 @@ import Modal from 'elements/modal/Modal';
 import Input from 'elements/inputs/Input';
 import Select from 'elements/inputs/Select';
 import CircleButton from 'elements/buttons/CircleButton';
-import { GENERIC_ERROR } from 'constants/textConstants';
+// Intentionally commented out, see DEV-1493
+// import { GENERIC_ERROR } from 'constants/textConstants';
+// import { REVENUE_PROGRAMS, LIST_PAGES, TEMPLATES } from 'ajax/endpoints';
+
 import FormErrors from 'elements/inputs/FormErrors';
 
 function AddPageModal({ isOpen, closeModal }) {
@@ -31,40 +34,38 @@ function AddPageModal({ isOpen, closeModal }) {
   const theme = useTheme();
   const history = useHistory();
   const { revenue_programs: revenuePrograms } = useUser();
-
-  const fetchTemplates = useRequest();
   const createPage = useRequest();
-
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState({});
   const [name, setName] = useState('');
   const [slug, setSlug] = useState('');
 
   const [revenueProgram, setRevenueProgram] = useState();
-  const [templates, setTemplates] = useState([]);
-  const [template, setTemplate] = useState();
 
-  const handleRequestFailure = useCallback(
-    (e) => {
-      alert.error(GENERIC_ERROR);
-    },
-    [alert]
-  );
-
-  useEffect(() => {
-    async function getTemplates() {
-      setLoading(true);
-      fetchTemplates(
-        {
-          method: 'GET',
-          url: TEMPLATES
-        },
-        { onSuccess: ({ data }) => setTemplates(data), onFailure: handleRequestFailure }
-      );
-    }
-    getTemplates();
-    setLoading(false);
-  }, [handleRequestFailure]);
+  // Intentionally commented out, see DEV-1493
+  // const fetchTemplates = useRequest();
+  // const [templates, setTemplates] = useState([]);
+  // const [template, setTemplate] = useState();
+  // const handleRequestFailure = useCallback(
+  //   (e) => {
+  //     alert.error(GENERIC_ERROR);
+  //   },
+  //   [alert]
+  // );
+  // useEffect(() => {
+  //   async function getTemplates() {
+  //     setLoading(true);
+  //     fetchTemplates(
+  //       {
+  //         method: 'GET',
+  //         url: TEMPLATES
+  //       },
+  //       { onSuccess: ({ data }) => setTemplates(data), onFailure: handleRequestFailure }
+  //     );
+  //   }
+  //   getTemplates();
+  //   setLoading(false);
+  // }, [handleRequestFailure]);
 
   const handleNameBlur = () => {
     if (!slug) setSlug(slugify(name));
@@ -97,7 +98,8 @@ function AddPageModal({ isOpen, closeModal }) {
       slug,
       revenue_program: revenueProgram.id
     };
-    if (template) formData.template_pk = template.id;
+    // Intentionally commented-out, see DEV-1493
+    // if (template) formData.template_pk = template.id;
     createPage(
       {
         method: 'POST',
@@ -166,7 +168,9 @@ function AddPageModal({ isOpen, closeModal }) {
             {!loading && revenuePrograms.length === 0 && (
               <S.NoRevPrograms>You need to set up a revenue program to create a page.</S.NoRevPrograms>
             )}
-            {templates.length > 0 && (
+            {/*
+             // Intentionally commented out, see DEV-1493
+             templates.length > 0 && (
               <S.InputWrapper>
                 <Select
                   label="[Optional] Choose a page template"
@@ -180,7 +184,8 @@ function AddPageModal({ isOpen, closeModal }) {
                   testId="template-picker"
                 />
               </S.InputWrapper>
-            )}
+            )
+             */}
             <FormErrors errors={errors?.non_field_errors} />
           </S.FormFields>
           <S.Buttons>

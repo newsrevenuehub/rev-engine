@@ -58,7 +58,8 @@ function DashboardRouter() {
                 ROUTES.CONTENT_SLUG,
                 ROUTES.CUSTOMIZE_SLUG,
                 ROUTES.EDITOR_ROUTE,
-                ROUTES.VERIFY_EMAIL_SUCCESS
+                ROUTES.VERIFY_EMAIL_SUCCESS,
+                ROUTES.PROFILE
               ]}
               render={() => (
                 <UserContextProvider>

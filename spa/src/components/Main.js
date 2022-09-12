@@ -20,8 +20,7 @@ function Main() {
   useConfigureAnalytics();
   const [loadingFlags, setLoadingFlags] = useState(true);
   const [featureFlags, setFeatureFlags] = useState();
-  const [user, setUser] = useState();
-  const { setUser: setUserContext } = useUserContext();
+  const { setUser: setUserContext, user } = useUserContext();
 
   const requestUser = useRequest();
 
@@ -35,7 +34,6 @@ function Main() {
       {
         onSuccess: ({ data }) => {
           setFeatureFlags(data.flags);
-          setUser(data);
           setUserContext(data);
           setLoadingFlags(false);
         },

@@ -213,6 +213,7 @@ class UserViewset(
         url = self.request.build_absolute_uri(
             reverse("account_verification", kwargs={"email": encoded_email, "token": token})
         )
+        print(url)
         send_templated_email.delay(
             user.email,
             EMAIL_VERIFICATION_EMAIL_SUBJECT,

@@ -7,6 +7,7 @@ import { useQuery, useMutation } from 'react-query';
 import axios from 'ajax/axios';
 import { LIVE_PAGE_DETAIL, getPaymentSuccessEndpoint } from 'ajax/endpoints';
 import { useAnalyticsContext } from 'components/analytics/AnalyticsContext';
+import { FB_PIXEL_PLUGIN_NAME } from 'components/analytics/plugins/facebookPixel';
 import { THANK_YOU_SLUG } from 'routes';
 import { HUB_GA_V3_ID } from 'settings';
 import GlobalLoading from 'elements/GlobalLoading';
@@ -42,8 +43,21 @@ export default function PaymentSuccess() {
   } = queryString.parse(search);
 
   const { data: page, isSuccess: pageFetchSuccess } = useQuery(['getPage'], () => fetchPage(rpSlug, pageSlug));
-  // we'll need to actually setAnalytics instance because won't already
+
+  // we'll need to actually setAnalytics instance because won't already be loaded, since user gets here
+  // via supra SPA-level redirection from stripe.confirmPayment
   const { trackConversion, analyticsInstance, setAnalyticsConfig } = useAnalyticsContext();
+
+  // we need to gaurantee that analytics has loaded before trying to fire the trackConversion event.
+  // If we don't do this, it's possible that page redirection will already have happened before analytics gets
+  // a chance to fire.
+  const [analyticsReady, setAnalyticsReady] = useState(false);
+
+  useEffect(() => {
+    if (analyticsInstance) {
+      analyticsInstance.on('ready', () => setAnalyticsReady(true));
+    }
+  }, [analyticsInstance]);
 
   const { mutate: signalPaymentSuccess, isLoading: signalPaymentSuccessIsLoading } = useMutation(
     (stripeClientSecret) => {
@@ -79,15 +93,12 @@ export default function PaymentSuccess() {
     page?.revenue_program?.facebook_pixel_id
   ]);
 
-  // if there's an analytics instance, we call trackConversion.
-  // then either way, we push to the `next` URL from query param if there
-  // is one, otherwise, we go to the default thank you page.
   useEffect(() => {
-    if (analyticsInstance) {
+    if (analyticsReady) {
       trackConversion(amount);
       setConversionTracked(true);
     }
-  }, [amount, analyticsInstance, trackConversion]);
+  }, [amount, analyticsInstance, analyticsReady, page, trackConversion]);
 
   useEffect(() => {
     // if we're directing off-site to org-supplied thank you page...
@@ -102,7 +113,7 @@ export default function PaymentSuccess() {
       } else {
         const donationPageUrl = window.location.href;
         history.push({
-          pathname: '/' + urlJoin(fromPath, THANK_YOU_SLUG),
+          pathname: urlJoin('/', fromPath, THANK_YOU_SLUG),
           state: { frequency, amount, email, donationPageUrl, page }
         });
       }
@@ -117,7 +128,6 @@ export default function PaymentSuccess() {
     history,
     next,
     page,
-    setConversionTracked,
     signalPaymentSuccessIsLoading,
     trackConversion,
     uid

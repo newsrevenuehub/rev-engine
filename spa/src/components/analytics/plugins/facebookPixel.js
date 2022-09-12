@@ -36,7 +36,7 @@ function makeInitializeFn(fbId) {
 }
 
 function isLoaded(fbId) {
-  return document.querySelectorAll(`script[src='${FB_PIXEL_SCRIPT_SRC_URL}']`).length > 0;
+  return document.querySelectorAll(`script[src='${FB_PIXEL_SCRIPT_SRC_URL}']`).length > 0 && window.fbq;
 }
 
 function page() {

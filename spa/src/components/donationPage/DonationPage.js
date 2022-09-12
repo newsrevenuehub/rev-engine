@@ -115,6 +115,7 @@ function DonationPage({ page, live = false }) {
           }
         });
       } else {
+        // TODO: [DEV-2372] Make Google Recaptcha integration less brittle
         reject(new Error('window.grecaptcha not defined at getReCAPTCHAToken call time'));
       }
     });
@@ -159,7 +160,16 @@ function DonationPage({ page, live = false }) {
   }, [amount, feeAmount, userAgreesToPayFees]);
 
   const getCheckoutData = async () => {
-    const reCAPTCHAToken = await getReCAPTCHAToken();
+    let reCAPTCHAToken = '';
+    // getReCAPTCHAToken returns rejected promise if window.grecaptcha is not defined when function runs.
+    // In tests, and quite possibly in deployed environments, this causes form submission to fail if grecaptcha
+    // hasn't loaded. We don't want tests to fail or users to be blocked from making a contribution just because
+    // this script hasn't loaded, so if error occurs, we just go with default empty string value for token, and log.
+    try {
+      reCAPTCHAToken = await getReCAPTCHAToken();
+    } catch (error) {
+      console.error('No recaptcha token, defaulting to empty string');
+    }
     return serializeData(formRef.current, {
       amount: totalAmount,
       frequency,

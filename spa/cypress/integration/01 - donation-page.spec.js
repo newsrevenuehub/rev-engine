@@ -344,7 +344,12 @@ const fakeEmailHash = 'b4170aca0fd3e60';
 const fakeStripeSecret = 'pi_3LgkV1pOaLul7_secret_QcpIANR9d6';
 
 describe('User flow: happy path', () => {
-  beforeEach(() => cy.visitDonationPage());
+  beforeEach(() => {
+    // We intercept requests for Google Recaptcha because in test env, sometimes the live recaptcha returns an error
+    // (possibly because we load it too many times successively???), which was causing test failure else where.
+    cy.intercept({ method: 'GET', url: 'https://www.google.com/recaptcha/*' }, { statusCode: 200 });
+    cy.visitDonationPage();
+  });
 
   specify('one-time contribution', () => {
     cy.intercept(
@@ -498,7 +503,11 @@ describe('User flow: happy path', () => {
 });
 
 describe('User flow: unhappy paths', () => {
-  beforeEach(() => cy.visitDonationPage());
+  beforeEach(() => {
+    // We intercept requests for Google Recaptcha because in test env, sometimes the live recaptcha returns an error
+    // (possibly because we load it too many times successively???), which was causing test failure else where.
+    cy.intercept({ method: 'GET', url: 'https://www.google.com/recaptcha/*' }, { statusCode: 200 });
+  });
   specify("Contribution doesn't validate on server", () => {
     const validationError = 'This field is required';
     cy.intercept(
@@ -519,6 +528,7 @@ describe('User flow: unhappy paths', () => {
         statusCode: 400
       }
     ).as('create-one-time-payment__invalid');
+    cy.visitDonationPage();
     cy.get('form[name="contribution-checkout"]').submit();
     cy.wait('@create-one-time-payment__invalid');
     cy.get('[data-testid="d-amount"]').contains(validationError);
@@ -537,6 +547,7 @@ describe('User flow: unhappy paths', () => {
     cy.intercept({ method: 'POST', url: getEndpoint(AUTHORIZE_ONE_TIME_STRIPE_PAYMENT_ROUTE) }, { statusCode: 403 }).as(
       'create-one-time-payment__unauthorized'
     );
+    cy.visitDonationPage();
     cy.get('form[name="contribution-checkout"]').submit();
     cy.wait('@create-one-time-payment__unauthorized');
     cy.get('[data-testid="500-something-wrong"]');
@@ -557,10 +568,7 @@ const successPageQueryParams = {
   payment_intent_client_secret: fakeStripeSecret
 };
 
-describe.only('Payment success page', () => {
-  // spy on analytics track conversion
-  // spy on api call success
-  // confirm next url is as expected (params)
+describe('Payment success page', () => {
   beforeEach(() => {
     cy.intercept(
       {
@@ -573,37 +581,36 @@ describe.only('Payment success page', () => {
       { method: 'GET', pathname: getEndpoint(LIVE_PAGE_DETAIL) },
       { fixture: 'pages/live-page-1', statusCode: 200 }
     ).as('getPageDetail');
-    cy.intercept(
-      { method: 'GET', url: 'https://www.facebook.com/tr/*', query: { ev: 'Contribute' } },
-      { statusCode: 200 }
-    ).as('fbTrackContribute');
-    cy.intercept(
-      {
-        method: 'GET',
-        url: 'https://www.facebook.com/tr/*',
-        query: { ev: 'Purchase', 'cd[currency]': 'USD', 'cd[value]': 120.0 }
-      },
-      { statusCode: 200 }
-    ).as('fbTrackPurchase');
+    // this appears to be a request that gets triggered by the facebook pixel instance. Sometimes unintercepted response was successful,
+    // and other times it was not, which would cause test to intermittently break. Now, we intercept and pretend like FB sends 200 to ensure
+    // tests will behave.
+    cy.intercept({ method: 'GET', url: 'https://connect.facebook.net/*' }, { statusCode: 200 });
+    cy.intercept({ method: 'GET', url: '*ev=Contribute*' }, { statusCode: 200 }).as('fbTrackContribution');
+    cy.intercept({ method: 'GET', url: '*ev=Purchase*' }, { statusCode: 200 }).as('fbTrackPurchase');
   });
   specify('Using default thank you page', () => {
     cy.visit(paymentSuccessRoute, { qs: successPageQueryParams });
     cy.wait('@signal-success');
-    cy.wait('@fbTrackContribute');
-    cy.wait('@fbTrackPurchase');
+    cy.wait('@fbTrackContribution');
+    cy.wait('@fbTrackPurchase').then((intercept) => {
+      const params = new URLSearchParams(intercept.request.url);
+      expect(params.get('cd[currency]')).to.equal('USD');
+      expect(params.get('cd[value]')).to.equal('120.00');
+    });
     // get forwarded to right destination
     cy.url().should('equal', `http://revenueprogram.revengine-testabc123.com:3000/${livePageOne.slug}/thank-you`);
   });
+
   specify('Using off-site thank you page', () => {
     const externalThankYouPage = 'https://www.google.com';
-    cy.intercept(
-      { method: 'GET', pathname: getEndpoint(LIVE_PAGE_DETAIL) },
-      { fixture: 'pages/live-page-1', statusCode: 200 }
-    ).as('getPageDetail');
     cy.visit(paymentSuccessRoute, { qs: { ...successPageQueryParams, next: externalThankYouPage } });
     cy.wait('@signal-success');
-    cy.wait('@fbTrackContribute');
-    cy.wait('@fbTrackPurchase');
+    cy.wait('@fbTrackContribution');
+    cy.wait('@fbTrackPurchase').then((intercept) => {
+      const params = new URLSearchParams(intercept.request.url);
+      expect(params.get('cd[currency]')).to.equal('USD');
+      expect(params.get('cd[value]')).to.equal('120.00');
+    });
     // get forwarded to right destination
     cy.location().should((loc) => {
       expect(loc.origin).to.equal(externalThankYouPage);

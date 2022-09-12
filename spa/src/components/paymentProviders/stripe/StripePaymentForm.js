@@ -52,7 +52,7 @@ export function getPaymentSuccessUrl(
   // set up, that page can appear at rev-program-slug.revengine.com/ (with no page), in which
   // case, the thank-you page URL can be rev-program-slug.revengine.com/thank-you.
   paymentSuccessUrl.searchParams.append('fromPath', pathname);
-  paymentSuccessUrl.searchParams.append('stripeClientSecret', stripeClientSecret);
+  paymentSuccessUrl.searchParams.append('payment_intent_client_secret', stripeClientSecret);
   return paymentSuccessUrl.href;
 }
 

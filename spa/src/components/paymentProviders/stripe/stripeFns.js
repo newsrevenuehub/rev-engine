@@ -80,8 +80,8 @@ export function serializeData(formRef, state) {
   serializedData['revenue_program_country'] = state.rpCountry;
   serializedData['currency'] = state.currency;
   serializedData['page'] = state.pageId;
+  serializedData['captcha_token'] = state.reCAPTCHAToken;
   if (state.salesforceCampaignId) serializedData['sf_campaign_id'] = state.salesforceCampaignId;
-  if (state.reCAPTCHAToken) serializedData['captcha_token'] = state.reCAPTCHAToken;
 
   return serializedData;
 }

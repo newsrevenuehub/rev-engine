@@ -57,7 +57,7 @@ To begin you should have the following applications installed on your local deve
 
 ### 1. Get the project
 
-First, clone the repository from Github and switch to the new directory:
+First clone the repository from Github and switch to the new directory:
 
 ```sh
 git clone https://github.com/newsrevenuehub/rev-engine

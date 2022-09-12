@@ -3,7 +3,7 @@ import { getEndpoint } from '../support/util';
 import { CONTRIBUTOR_ENTRY, CONTRIBUTOR_VERIFY } from 'routes';
 import donationsData from '../fixtures/donations/18-results.json';
 import { GENERIC_ERROR_WITH_SUPPORT_INFO } from 'constants/textConstants';
-import { CONTRIBUTION_INTERVALS } from 'constants';
+import { CONTRIBUTION_INTERVALS } from '../../src/constants';
 
 // Util
 import isEqual from 'lodash.isequal';

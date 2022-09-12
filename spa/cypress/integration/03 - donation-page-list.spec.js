@@ -58,7 +58,7 @@ describe('Donation page list', () => {
     cy.contains('You need to set up a revenue program to create a page.');
   });
 
-  it('should show template list dropdown, if templates exist', () => {
+  it.skip('should show template list dropdown, if templates exist', () => {
     cy.intercept(
       { method: 'GET', pathname: getEndpoint(TEMPLATES) },
       { fixture: 'pages/templates.json', statusCode: 200 }
@@ -67,7 +67,7 @@ describe('Donation page list', () => {
     cy.getByTestId('template-picker').should('exist');
   });
 
-  it('should contain rev_program and template in outoing request', () => {
+  it.skip('should contain rev_program and template in outgoing request', () => {
     cy.intercept(
       { method: 'GET', pathname: getEndpoint(TEMPLATES) },
       { fixture: 'pages/templates.json', statusCode: 200 }
@@ -87,5 +87,16 @@ describe('Donation page list', () => {
       expect(request.body).to.have.property('revenue_program');
       expect(request.body).to.have.property('template_pk');
     });
+  });
+
+  it('should contain rev_program in outgoing request', () => {
+    cy.get('button[aria-label="New Page"]').click();
+    cy.getByTestId('page-name').type('My Testing Page');
+    cy.getByTestId('page-name').blur();
+    cy.getByTestId('revenue-program-picker').click();
+    cy.getByTestId('select-item-0').click();
+    cy.intercept({ method: 'POST', pathname: getEndpoint(LIST_PAGES) }).as('createNewPage');
+    cy.getByTestId('save-new-page-button').click({ force: true });
+    cy.wait('@createNewPage').then(({ request }) => expect(request.body).to.have.property('revenue_program'));
   });
 });

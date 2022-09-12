@@ -34,10 +34,9 @@ function AddPageModal({ isOpen, closeModal }) {
   const alert = useAlert();
   const theme = useTheme();
   const history = useHistory();
-  const { revenue_programs: revenuePrograms } = useUser();
 
   const { user } = useUserContext();
-  const revenue_programs = user?.revenuePrograms;
+  const revenuePrograms = user?.revenue_programs;
 
   const fetchTemplates = useRequest();
   const createPage = useRequest();

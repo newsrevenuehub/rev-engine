@@ -24,9 +24,9 @@ it('should have heading - Create Your Free Account', () => {
 
 it('should have advantages and company icons', () => {
   render(<SignUp />);
-  const advantages = screen.queryByTestId('advantages');
+  const advantages = screen.getByTestId('advantages');
   expect(advantages).toBeInTheDocument();
-  const icons = screen.queryByTestId('company-icons');
+  const icons = screen.getByTestId('company-icons');
   expect(icons).toBeInTheDocument();
 });
 

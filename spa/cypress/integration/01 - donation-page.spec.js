@@ -1,8 +1,7 @@
 import {
   LIVE_PAGE_DETAIL,
   AUTHORIZE_ONE_TIME_STRIPE_PAYMENT_ROUTE,
-  AUTHORIZE_STRIPE_SUBSCRIPTION_ROUTE,
-  getPaymentSuccessEndpoint
+  AUTHORIZE_STRIPE_SUBSCRIPTION_ROUTE
 } from 'ajax/endpoints';
 import { PAYMENT_SUCCESS } from 'routes';
 import { getPaymentSuccessUrl } from 'components/paymentProviders/stripe/StripePaymentForm';
@@ -99,7 +98,6 @@ describe('Donation page displays dynamic page elements', () => {
   });
 
   it('should render DSwag', () => {
-    cy.visitDonationPage();
     cy.getByTestId('d-swag').should('exist');
   });
 

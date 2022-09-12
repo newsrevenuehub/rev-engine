@@ -9,8 +9,9 @@ import Verify from 'components/account/Verify';
 
 import useRequest from 'hooks/useRequest';
 import { useConfigureAnalytics } from './analytics';
-import { CONTENT_SLUG, VERIFY_EMAIL_SUCCESS } from 'routes';
+import { CONTENT_SLUG, PROFILE, VERIFY_EMAIL_SUCCESS } from 'routes';
 import PageContextProvider from './dashboard/PageContext';
+import showProfileScreen from 'components/account/Profile/showProfileScreen';
 
 import { useUserContext } from './UserContext';
 
@@ -45,14 +46,19 @@ function Main() {
   }, [requestUser]);
 
   const isVerifyEmailPath = useLocation().pathname.includes(VERIFY_EMAIL_SUCCESS);
+  const isProfilePath = useLocation().pathname.includes(PROFILE);
 
   if (user) {
-    if (!user.email_verified && !isVerifyEmailPath) {
-      return <Redirect to={VERIFY_EMAIL_SUCCESS} />;
+    if (user.email_verified) {
+      if (showProfileScreen(user) && !isProfilePath) {
+        return <Redirect to={PROFILE} />;
+      } else if (isVerifyEmailPath || (isProfilePath && !showProfileScreen(user))) {
+        return <Redirect to={CONTENT_SLUG} />;
+      }
     }
 
-    if (user.email_verified && isVerifyEmailPath) {
-      return <Redirect to={CONTENT_SLUG} />;
+    if (!user.email_verified && !isVerifyEmailPath) {
+      return <Redirect to={VERIFY_EMAIL_SUCCESS} />;
     }
   }
 

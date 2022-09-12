@@ -368,11 +368,10 @@ describe('User flow: happy path', () => {
     fillOutReasonForGiving();
     cy.get('form[name="contribution-checkout"]').submit();
     cy.wait('@create-one-time-payment').then((interception) => {
-      expect(Object.keys(interception.request.body).includes('captcha_token')).to.be.true;
       // captcha_token is different each request, so instead of stubbing it, we just assert there's an
       // object entry for it.
-      const allButCaptcha = { ...interception.request.body };
-      delete allButCaptcha['captcha_token'];
+      expect(Object.keys(interception.request.body).includes('captcha_token')).to.be.true;
+      const { captcha_token, ...allButCaptcha } = interception.request.body;
       expect(allButCaptcha).to.deep.equal({
         interval: 'one_time',
         amount: '123.01', // this is amount plus fee
@@ -427,7 +426,7 @@ describe('User flow: happy path', () => {
     cy.intercept(
       { method: 'POST', url: getEndpoint(AUTHORIZE_STRIPE_SUBSCRIPTION_ROUTE) },
       {
-        body: { provider_client_secret_id: 'pi_3LgkV1pOaLul7_secret_QcpIANR9d6', email_hash: 'b4170aca0fd3e60' },
+        body: { provider_client_secret_id: 'pi_3LgkV1pOaLul7_secret_QcpIANR9d6', email_hash: fakeEmailHash },
         statusCode: 201
       }
     ).as('create-subscription-payment');
@@ -441,11 +440,10 @@ describe('User flow: happy path', () => {
     fillOutReasonForGiving();
     cy.get('form[name="contribution-checkout"]').submit();
     cy.wait('@create-subscription-payment').then((interception) => {
-      expect(Object.keys(interception.request.body).includes('captcha_token')).to.be.true;
       // captcha_token is different each request, so instead of stubbing it, we just assert there's an
       // object entry for it.
-      const allButCaptcha = { ...interception.request.body };
-      delete allButCaptcha['captcha_token'];
+      expect(Object.keys(interception.request.body).includes('captcha_token')).to.be.true;
+      const { captcha_token, ...allButCaptcha } = interception.request.body;
       expect(allButCaptcha).to.deep.equal({
         interval: 'month',
         amount: '10.53', // this default selected amount + fee

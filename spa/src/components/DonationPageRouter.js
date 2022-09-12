@@ -24,7 +24,7 @@ const LiveDonationPageContainer = lazy(() =>
   componentLoader(() => import(`components/donationPage/LiveDonationPageContainer`))
 );
 
-// TODO: Figure WTH THIS `componentLoader` is doing and if nec.
+// TODO: [DEV-2374] Determine if this `componentLoader` function can be removed
 const PaymentSuccess = lazy(() => componentLoader(() => import('components/donationPage/live/PaymentSuccess')));
 
 function DonationPageRouter() {

@@ -13,6 +13,8 @@ import GroupedLabel from 'elements/inputs/GroupedLabel';
 import { InputGroup, GroupedWrapper } from 'elements/inputs/inputElements.styled';
 import FormErrors from 'elements/inputs/FormErrors';
 
+import { CONTRIBUTION_INTERVALS } from 'constants';
+
 function DFrequency({ element, ...props }) {
   const { page, frequency, setFrequency, setAmount, errors, setOverrideAmount } = usePage();
 
@@ -68,7 +70,7 @@ DFrequency.unique = true;
 export default DFrequency;
 
 export function frequencySort(a, b) {
-  const sortOrder = ['one_time', 'month', 'year'];
+  const sortOrder = [CONTRIBUTION_INTERVALS.ONE_TIME, CONTRIBUTION_INTERVALS.MONTHLY, CONTRIBUTION_INTERVALS.ANNUAL];
   const aVal = a.value;
   const bVal = b.value;
 

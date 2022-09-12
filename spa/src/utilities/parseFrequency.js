@@ -1,10 +1,12 @@
+import { CONTRIBUTION_INTERVALS } from 'constants';
+
 export function getFrequencyAdjective(frequency) {
   switch (frequency) {
-    case 'one_time':
+    case CONTRIBUTION_INTERVALS.ONE_TIME:
       return 'One time';
-    case 'month':
+    case CONTRIBUTION_INTERVALS.MONTHLY:
       return 'Monthly';
-    case 'year':
+    case CONTRIBUTION_INTERVALS.ANNUAL:
       return 'Yearly';
 
     default:
@@ -14,11 +16,11 @@ export function getFrequencyAdjective(frequency) {
 
 export function getFrequencyAdverb(frequency) {
   switch (frequency) {
-    case 'one_time':
+    case CONTRIBUTION_INTERVALS.ONE_TIME:
       return 'once';
-    case 'month':
+    case CONTRIBUTION_INTERVALS.MONTHLY:
       return 'monthly';
-    case 'year':
+    case CONTRIBUTION_INTERVALS.ANNUAL:
       return 'yearly';
 
     default:
@@ -28,11 +30,11 @@ export function getFrequencyAdverb(frequency) {
 
 export function getFrequencyRate(frequency) {
   switch (frequency) {
-    case 'one_time':
+    case CONTRIBUTION_INTERVALS.ONE_TIME:
       return '';
-    case 'month':
+    case CONTRIBUTION_INTERVALS.MONTHLY:
       return '/month';
-    case 'year':
+    case CONTRIBUTION_INTERVALS.ANNUAL:
       return '/year';
 
     default:
@@ -42,11 +44,11 @@ export function getFrequencyRate(frequency) {
 
 export function getFrequencyThankYouText(frequency) {
   switch (frequency) {
-    case 'one_time':
+    case CONTRIBUTION_INTERVALS.ONE_TIME:
       return 'one-time';
-    case 'month':
+    case CONTRIBUTION_INTERVALS.MONTHLY:
       return 'monthly';
-    case 'year':
+    case CONTRIBUTION_INTERVALS.ANNUAL:
       return 'yearly';
 
     default:

@@ -28,6 +28,7 @@ import { serializeData } from 'components/paymentProviders/stripe/stripeFns';
 import calculateStripeFee from 'utilities/calculateStripeFee';
 import formatStringAmountForDisplay from 'utilities/formatStringAmountForDisplay';
 import { getFrequencyAdverb } from 'utilities/parseFrequency';
+import { CONTRIBUTION_INTERVALS } from 'constants';
 
 import { CSRF_HEADER } from 'settings';
 
@@ -43,7 +44,9 @@ function getCookie(name) {
 
 function authorizePayment(paymentData, paymentType) {
   const apiEndpoint =
-    paymentType === 'one_time' ? AUTHORIZE_ONE_TIME_STRIPE_PAYMENT_ROUTE : AUTHORIZE_STRIPE_SUBSCRIPTION_ROUTE;
+    paymentType === CONTRIBUTION_INTERVALS.ONE_TIME
+      ? AUTHORIZE_ONE_TIME_STRIPE_PAYMENT_ROUTE
+      : AUTHORIZE_STRIPE_SUBSCRIPTION_ROUTE;
   // we manually set the XCSRFToken value in header here. This is an unauthed endpoint
   // that on the backend requires csrf header, which will be in cookie returned by request
   // for page data (that happens in parent context)
@@ -81,6 +84,7 @@ function DonationPage({ page, live = false }) {
   const [displayStripePaymentForm, setDisplayStripePaymentForm] = useState(false);
   const [contributorEmail, setContributorEmail] = useState();
   const [mailingCountry, setMailingCountry] = useState();
+  const [paymentSubmitButtonText, setPaymentSubmitButtonText] = useState();
 
   const [stripeBillingDetails, setStripeBillingDetails] = useState();
 
@@ -88,10 +92,10 @@ function DonationPage({ page, live = false }) {
   // passed to `useMutation` must return a promise.
   const { mutate: createPayment, isLoading: createPaymentIsLoading } = useMutation((paymentData) => {
     switch (paymentData.interval) {
-      case 'one_time':
-        return authorizePayment(paymentData, 'one_time');
-      case 'month':
-      case 'year':
+      case CONTRIBUTION_INTERVALS.ONE_TIME:
+        return authorizePayment(paymentData, CONTRIBUTION_INTERVALS.ONE_TIME);
+      case CONTRIBUTION_INTERVALS.MONTHLY:
+      case CONTRIBUTION_INTERVALS.ANNUAL:
         return authorizePayment(paymentData, paymentData.interval);
       default:
         return Promise.reject(new DonationPageUnrecoverableError('Unexpected payment interval in paymentData'));
@@ -148,7 +152,7 @@ function DonationPage({ page, live = false }) {
     // it should be able to have a non-numeric value. If there's already a feeAmount,
     // and amount changes to '', we want to update the fee amount, so we resolve to
     // 0. When the user enters a new numeric amount, fee still gets updated.
-    const resolvedAmount = amount === '' ? 0 : amount;
+    const resolvedAmount = amount ?? 0;
     if (typeof resolvedAmount === 'number' && frequency && page?.revenue_program_is_nonprofit !== null) {
       setFeeAmount(calculateStripeFee(resolvedAmount, frequency, page.revenue_program_is_nonprofit));
     }
@@ -228,8 +232,6 @@ function DonationPage({ page, live = false }) {
     return `Give ${currencySymbol}${formatStringAmountForDisplay(totalAmount)} ${getFrequencyAdverb(frequency)}`;
   };
 
-  const [paymentSubmitButtonText, setPaymentSubmitButtonText] = useState();
-
   useEffect(() => {
     if (page?.currency?.symbol && !isNaN(totalAmount) && frequency) {
       setPaymentSubmitButtonText(
@@ -277,7 +279,7 @@ function DonationPage({ page, live = false }) {
                 ) : (
                   <form
                     name="contribution-checkout"
-                    onSubmit={(e) => handleCheckoutSubmit(e)}
+                    onSubmit={handleCheckoutSubmit}
                     ref={formRef}
                     data-testid="donation-page-form"
                   >
@@ -324,9 +326,9 @@ export default DonationPage;
 
 // Keys are the strings expected as querys params, values are our version.
 const mapQSFreqToProperFreq = {
-  once: 'one_time',
-  monthly: 'month',
-  yearly: 'year'
+  once: CONTRIBUTION_INTERVALS.ONE_TIME,
+  monthly: CONTRIBUTION_INTERVALS.MONTHLY,
+  yearly: CONTRIBUTION_INTERVALS.ANNUAL
 };
 
 /**
@@ -341,7 +343,7 @@ export function getInitialFrequency(page, freqQs, amountQs) {
   const freqFromQs = mapQSFreqToProperFreq[freqQs];
   if (freqFromQs) return freqFromQs;
   // If there's an amountQs, but no freqQs, we want to show that amount as "one-time"
-  if (!freqFromQs && amountQs) return 'one_time';
+  if (!freqFromQs && amountQs) return CONTRIBUTION_INTERVALS.ONE_TIME;
   // Otherwise, if there's no freq or amount QS, set default normally, which means...
   const frequencyElement = page?.elements?.find((el) => el.type === 'DFrequency');
   if (frequencyElement?.content) {
@@ -355,7 +357,7 @@ export function getInitialFrequency(page, freqQs, amountQs) {
     return sortedOptions[0]?.value || '';
   }
   // Or, if for some reason non of these conditions are met, just return one_time
-  return 'one_time';
+  return CONTRIBUTION_INTERVALS.ONE_TIME;
 }
 
 /**

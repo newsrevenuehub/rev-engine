@@ -12,8 +12,8 @@ import { usePage } from '../DonationPage';
 // Stripe
 import StripePaymentWrapper from 'components/paymentProviders/stripe/StripePaymentWrapper';
 
-function DPayment({ live: liveMode }) {
-  return <DElement>{liveMode ? <StripePaymentWrapper /> : <NotLivePlaceholder />}</DElement>;
+function DPayment({ live }) {
+  return <DElement>{live ? <StripePaymentWrapper /> : <NotLivePlaceholder />}</DElement>;
 }
 
 DPayment.type = 'DPayment';
@@ -49,7 +49,7 @@ export function PayFeesWidget() {
         }
         toggle
         checked={userAgreesToPayFees}
-        onChange={(_e, { checked }) => setUserAgreesToPayFees(checked)}
+        onChange={(_, { checked }) => setUserAgreesToPayFees(checked)}
         data-testid={`pay-fees-${userAgreesToPayFees ? 'checked' : 'not-checked'}`}
       />
       <S.PayFeesDescription>

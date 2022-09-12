@@ -3,6 +3,7 @@ import { getEndpoint } from '../support/util';
 import { CONTRIBUTOR_ENTRY, CONTRIBUTOR_VERIFY } from 'routes';
 import donationsData from '../fixtures/donations/18-results.json';
 import { GENERIC_ERROR_WITH_SUPPORT_INFO } from 'constants/textConstants';
+import { CONTRIBUTION_INTERVALS } from 'constants';
 
 // Util
 import isEqual from 'lodash.isequal';
@@ -124,12 +125,12 @@ describe('Contributor portal', () => {
     });
 
     it('should only show cancel button for recurring payments', () => {
-      const oneTimeCont = donationsData.find((d) => d.interval === 'one_time');
+      const oneTimeCont = donationsData.find((d) => d.interval === CONTRIBUTION_INTERVALS.ONE_TIME);
       const oneTimeId = oneTimeCont.id;
       cy.get(`[data-donationid="${oneTimeId}"]`).within(() => {
         cy.getByTestId('cancel-recurring-button').should('not.exist');
       });
-      const recurringCont = donationsData.find((d) => d.interval !== 'one_time');
+      const recurringCont = donationsData.find((d) => d.interval !== CONTRIBUTION_INTERVALS.ONE_TIME);
       const recurringId = recurringCont.id;
       cy.get(`[data-donationid="${recurringId}"]`).within(() => {
         cy.getByTestId('cancel-recurring-button').should('exist');
@@ -148,7 +149,7 @@ describe('Contributor portal', () => {
     });
 
     it('should do send cancel request if continue is clicked', () => {
-      const targetContId = donationsData.find((d) => d.interval !== 'one_time').id;
+      const targetContId = donationsData.find((d) => d.interval !== CONTRIBUTION_INTERVALS.ONE_TIME).id;
       cy.get(`[data-donationid="${targetContId}"]`).within(() => {
         cy.getByTestId('cancel-recurring-button').click();
       });

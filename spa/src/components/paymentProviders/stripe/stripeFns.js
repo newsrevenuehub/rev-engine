@@ -4,7 +4,7 @@ import calculateStripeFee from 'utilities/calculateStripeFee';
  *  Process Data  *
 \******************/
 
-/**s
+/**
  * getTotalAmount takes an amount in dollars and an optional fee in dollars and adds them up.
  * @param {number} amount - float or integer, human-readable amount to be donated
  * @param {number} fee - the fee to include, if shouldPayFee

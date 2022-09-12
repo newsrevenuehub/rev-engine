@@ -1,9 +1,10 @@
 import * as S from './DonationPageDisclaimer.styled';
 import { format } from 'date-fns';
+import { CONTRIBUTION_INTERVALS } from 'constants';
 
 function DonationPageDisclaimer({ page, amount, frequency }) {
   const getFreqText = () =>
-    frequency === 'one_time' ? (
+    frequency === CONTRIBUTION_INTERVALS.ONE_TIME ? (
       ''
     ) : (
       <span>
@@ -12,12 +13,13 @@ function DonationPageDisclaimer({ page, amount, frequency }) {
     );
 
   const getAmountText = () => {
-    if (frequency === 'one_time') return format(new Date(), 'MMM do, y');
-    if (frequency === 'month') return `the ${format(new Date(), 'do')} of the month until you cancel`;
-    if (frequency === 'year') return `${format(new Date(), 'L/d')} yearly until you cancel`;
+    if (frequency === CONTRIBUTION_INTERVALS.ONE_TIME) return format(new Date(), 'MMM do, y');
+    if (frequency === CONTRIBUTION_INTERVALS.MONTHLY)
+      return `the ${format(new Date(), 'do')} of the month until you cancel`;
+    if (frequency === CONTRIBUTION_INTERVALS.ANNUAL) return `${format(new Date(), 'L/d')} yearly until you cancel`;
   };
 
-  const amountString = `${page.currency?.symbol}${amount}${frequency === 'one_time' ? '' : ','}`;
+  const amountString = `${page.currency?.symbol}${amount}${frequency === CONTRIBUTION_INTERVALS.ONE_TIME ? '' : ','}`;
 
   return (
     <S.DonationPageDisclaimer data-testid="donation-page-disclaimer">

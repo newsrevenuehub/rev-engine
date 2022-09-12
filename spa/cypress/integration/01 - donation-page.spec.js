@@ -10,6 +10,7 @@ import livePageOne from '../fixtures/pages/live-page-1.json';
 
 // Constants
 import { CLEARBIT_SCRIPT_SRC } from '../../src/hooks/useClearbit';
+import { CONTRIBUTION_INTERVALS } from 'constants';
 
 import * as freqUtils from 'utilities/parseFrequency';
 import calculateStripeFee from 'utilities/calculateStripeFee';
@@ -373,7 +374,7 @@ describe('User flow: happy path', () => {
       expect(Object.keys(interception.request.body).includes('captcha_token')).to.be.true;
       const { captcha_token, ...allButCaptcha } = interception.request.body;
       expect(allButCaptcha).to.deep.equal({
-        interval: 'one_time',
+        interval: CONTRIBUTION_INTERVALS.ONE_TIME,
         amount: '123.01', // this is amount plus fee
         first_name: 'Fred',
         last_name: 'Person',
@@ -445,7 +446,7 @@ describe('User flow: happy path', () => {
       expect(Object.keys(interception.request.body).includes('captcha_token')).to.be.true;
       const { captcha_token, ...allButCaptcha } = interception.request.body;
       expect(allButCaptcha).to.deep.equal({
-        interval: 'month',
+        interval: CONTRIBUTION_INTERVALS.MONTHLY,
         amount: '10.53', // this default selected amount + fee
         first_name: 'Fred',
         last_name: 'Person',

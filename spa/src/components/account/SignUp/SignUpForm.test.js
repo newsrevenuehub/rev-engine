@@ -61,7 +61,6 @@ describe('SignUpForm Tests', () => {
     });
     const inp = screen.getByTestId('acceptTermsCheckbox').querySelector('input[type="checkbox"]');
     ReactTestUtils.Simulate.change(inp, { target: { checked: true } });
-
     fireEvent.submit(screen.getByRole('button', { type: 'submit' }));
     expect(await screen.findAllByRole('error')).toHaveLength(1);
     expect(mockSubmit).not.toBeCalled();

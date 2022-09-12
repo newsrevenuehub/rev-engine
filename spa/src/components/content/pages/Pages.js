@@ -21,6 +21,7 @@ import GenericErrorBoundary from 'components/errors/GenericErrorBoundary';
 import EditButton from 'components/common/Button/EditButton';
 import NewButton from 'components/common/Button/NewButton';
 import Hero from 'components/common/Hero';
+import urlJoin from 'url-join';
 
 export const pagesbyRP = (pgsRaw, qry) => {
   const pagesByRevProgram = [];
@@ -70,7 +71,7 @@ function Pages({ setShowAddPageModal }) {
   }, [alert]);
 
   const handleEditPage = (page) => {
-    const path = `${EDITOR_ROUTE}/${page.revenue_program.slug}/${page.slug}`;
+    const path = urlJoin(EDITOR_ROUTE, page.revenue_program.slug, page.slug, '/');
     history.push({ pathname: path, state: { pageId: page.id } });
   };
 

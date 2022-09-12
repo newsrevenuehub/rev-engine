@@ -28,6 +28,7 @@ import CircleButton from 'elements/buttons/CircleButton';
 // import { REVENUE_PROGRAMS, LIST_PAGES, TEMPLATES } from 'ajax/endpoints';
 
 import FormErrors from 'elements/inputs/FormErrors';
+import urlJoin from 'url-join';
 
 function AddPageModal({ isOpen, closeModal }) {
   const alert = useAlert();
@@ -109,7 +110,7 @@ function AddPageModal({ isOpen, closeModal }) {
       {
         onSuccess: ({ data }) =>
           history.push({
-            pathname: `${EDITOR_ROUTE}/${revenueProgram.slug}/${slug}`,
+            pathname: urlJoin(EDITOR_ROUTE, revenueProgram.slug, slug, '/'),
             state: { pageId: data.id }
           }),
         onFailure: handleSaveFailure

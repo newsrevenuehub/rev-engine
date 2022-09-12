@@ -18,6 +18,7 @@ import DonationPageRouter from 'components/DonationPageRouter';
 import DashboardRouter from 'components/DashboardRouter';
 import { BrowserRouter, Route, Switch, useHistory, withRouter } from 'react-router-dom';
 import RedirectWithReload from './common/RedirectWithReload';
+import urlJoin from 'url-join';
 
 const GlobalContext = createContext(null);
 
@@ -58,7 +59,7 @@ function MainLayout() {
           {!isURLEndingWithSlash && (
             <BrowserRouter>
               <Switch>
-                <RedirectWithReload from="*" to={pathname + '/'} />
+                <RedirectWithReload from="*" to={urlJoin(pathname, '/')} />
               </Switch>
             </BrowserRouter>
           )}

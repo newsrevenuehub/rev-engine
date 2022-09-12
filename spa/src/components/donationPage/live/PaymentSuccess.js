@@ -102,7 +102,7 @@ export default function PaymentSuccess() {
       } else {
         const donationPageUrl = window.location.href;
         history.push({
-          pathname: urlJoin(fromPath, THANK_YOU_SLUG),
+          pathname: '/' + urlJoin(fromPath, THANK_YOU_SLUG),
           state: { frequency, amount, email, donationPageUrl, page }
         });
       }

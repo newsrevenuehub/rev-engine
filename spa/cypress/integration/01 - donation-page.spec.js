@@ -1,8 +1,10 @@
 import {
   LIVE_PAGE_DETAIL,
   AUTHORIZE_ONE_TIME_STRIPE_PAYMENT_ROUTE,
-  AUTHORIZE_STRIPE_SUBSCRIPTION_ROUTE
+  AUTHORIZE_STRIPE_SUBSCRIPTION_ROUTE,
+  getPaymentSuccessEndpoint
 } from 'ajax/endpoints';
+import { PAYMENT_SUCCESS } from 'routes';
 import { getPaymentSuccessUrl } from 'components/paymentProviders/stripe/StripePaymentForm';
 import { getEndpoint, getPageElementByType, getTestingDonationPageUrl, EXPECTED_RP_SLUG } from '../support/util';
 import livePageOne from '../fixtures/pages/live-page-1.json';
@@ -541,17 +543,66 @@ describe('User flow: unhappy paths', () => {
   });
 });
 
-describe('Payment success page', () => {
+const paymentSuccessRoute = `http://revenueprogram.revengine-testabc123.com:3000${PAYMENT_SUCCESS}`;
+
+const successPageQueryParams = {
+  amount: '120.00',
+  next: '',
+  frequency: 'one-time',
+  uid: fakeEmailHash,
+  email: 'foo@bar.com',
+  pageSlug: livePageOne.slug,
+  rpSlug: livePageOne.revenue_program.slug,
+  fromPath: livePageOne.slug,
+  payment_intent_client_secret: fakeStripeSecret
+};
+
+describe.only('Payment success page', () => {
   // spy on analytics track conversion
   // spy on api call success
   // confirm next url is as expected (params)
   beforeEach(() => {
-    cy.intercept({ method: 'patch', url: getEndpoint() }).as('signalSuccess');
+    cy.intercept(
+      {
+        method: 'patch',
+        url: `http://revenueprogram.revengine-testabc123.com:3000/api/v1/payments/${fakeStripeSecret}/success/`
+      },
+      { statusCode: 204 }
+    ).as('signal-success');
   });
   specify('Using default thank you page', () => {
-    cy.intercept({ method: 'get', url: LIVE_PAGE_DETAIL }).as('getPageData');
+    cy.intercept(
+      { method: 'GET', pathname: getEndpoint(LIVE_PAGE_DETAIL) },
+      { fixture: 'pages/live-page-1', statusCode: 200 }
+    ).as('getPageDetail');
+
+    cy.visit(paymentSuccessRoute, { qs: successPageQueryParams });
+    // TODO: Figure out how to stub/spy on analytics conversion tracking
+    cy.wait('@signal-success').then(({ response: { statusCode } }) => {
+      expect(statusCode).to.equal(204);
+    });
+    // get forwarded to right destination
+    cy.url().should('equal', `http://revenueprogram.revengine-testabc123.com:3000/${livePageOne.slug}/thank-you`);
   });
   specify('Using off-site thank you page', () => {
-    cy.intercept({ method: 'get', url: LIVE_PAGE_DETAIL }).as('getPageData');
+    const externalThankYouPage = 'https://www.google.com';
+    cy.intercept(
+      { method: 'GET', pathname: getEndpoint(LIVE_PAGE_DETAIL) },
+      { fixture: 'pages/live-page-1', statusCode: 200 }
+    ).as('getPageDetail');
+
+    cy.visit(paymentSuccessRoute, { qs: { ...successPageQueryParams, next: externalThankYouPage } });
+    // TODO: Figure out how to stub/spy on analytics conversion tracking
+    cy.wait('@signal-success').then(({ response: { statusCode } }) => {
+      expect(statusCode).to.equal(204);
+    });
+    // get forwarded to right destination
+    cy.location().should((loc) => {
+      expect(loc.origin).to.equal(externalThankYouPage);
+      const searchParams = new URLSearchParams(loc.search);
+      expect(searchParams.get('uid')).to.equal(successPageQueryParams.uid);
+      expect(searchParams.get('frequency')).to.equal(successPageQueryParams.frequency);
+      expect(searchParams.get('amount')).to.equal(successPageQueryParams.amount);
+    });
   });
 });

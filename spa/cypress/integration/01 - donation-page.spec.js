@@ -569,18 +569,30 @@ describe.only('Payment success page', () => {
       },
       { statusCode: 204 }
     ).as('signal-success');
-  });
-  specify('Using default thank you page', () => {
     cy.intercept(
       { method: 'GET', pathname: getEndpoint(LIVE_PAGE_DETAIL) },
       { fixture: 'pages/live-page-1', statusCode: 200 }
     ).as('getPageDetail');
-
+    cy.intercept(
+      { method: 'GET', url: 'https://www.facebook.com/tr/*', query: { ev: 'Contribute' } },
+      { statusCode: 200 }
+    ).as('fbTrackContribute');
+    cy.intercept(
+      {
+        method: 'GET',
+        url: 'https://www.facebook.com/tr/*',
+        query: { ev: 'Purchase', 'cd[currency]': 'USD', 'cd[value]': 120.0 }
+      },
+      { statusCode: 200 }
+    ).as('fbTrackPurchase');
+  });
+  specify('Using default thank you page', () => {
     cy.visit(paymentSuccessRoute, { qs: successPageQueryParams });
-    // TODO: Figure out how to stub/spy on analytics conversion tracking
     cy.wait('@signal-success').then(({ response: { statusCode } }) => {
       expect(statusCode).to.equal(204);
     });
+    cy.wait('@fbTrackContribute');
+    cy.wait('@fbTrackPurchase');
     // get forwarded to right destination
     cy.url().should('equal', `http://revenueprogram.revengine-testabc123.com:3000/${livePageOne.slug}/thank-you`);
   });
@@ -592,10 +604,11 @@ describe.only('Payment success page', () => {
     ).as('getPageDetail');
 
     cy.visit(paymentSuccessRoute, { qs: { ...successPageQueryParams, next: externalThankYouPage } });
-    // TODO: Figure out how to stub/spy on analytics conversion tracking
     cy.wait('@signal-success').then(({ response: { statusCode } }) => {
       expect(statusCode).to.equal(204);
     });
+    cy.wait('@fbTrackContribute');
+    cy.wait('@fbTrackPurchase');
     // get forwarded to right destination
     cy.location().should((loc) => {
       expect(loc.origin).to.equal(externalThankYouPage);

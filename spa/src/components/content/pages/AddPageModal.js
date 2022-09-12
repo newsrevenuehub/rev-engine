@@ -11,6 +11,7 @@ import { EDITOR_ROUTE } from 'routes';
 
 // Util
 import slugify from 'utilities/slugify';
+import { useUserContext } from 'components/UserContext';
 
 // AJAX
 import useRequest from 'hooks/useRequest';
@@ -34,6 +35,10 @@ function AddPageModal({ isOpen, closeModal, pagesByRevenueProgram }) {
   const theme = useTheme();
   const history = useHistory();
   const { revenue_programs: revenuePrograms } = useUser();
+  const { user } = useUserContext();
+  const revenue_programs = user?.revenuePrograms;
+
+  const fetchTemplates = useRequest();
   const createPage = useRequest();
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState({});

@@ -157,7 +157,7 @@ class BadActorSerializer(serializers.Serializer):
     referer = serializers.URLField()
 
     # Donation additional
-    reason_for_giving = serializers.CharField(max_length=255, required=False, allow_blank=True, default="")
+    reason_for_giving = serializers.CharField(max_length=255, required=False, allow_blank=True)
 
     def to_internal_value(self, data):
         data["street"] = data.get("mailing_street")

@@ -8,7 +8,8 @@ const page = {
   revenue_program: {
     slug: 'news-revenue-hub'
   },
-  published_date: '2021-11-18T21:51:53Z',
+  slug: 'random-page-slug',
+  published_date: '',
   payment_provider: {}
 };
 
@@ -47,8 +48,15 @@ describe('PublishModal', () => {
   });
 
   it('should render pre-existing page slug if page was already once published', () => {
-    const slug = 'previous-publish';
-    render(<PublishModal open={true} onClose={onClose} onPublish={onPublish} page={{ ...page, slug }} />);
+    const slug = 'previous-published';
+    render(
+      <PublishModal
+        open={true}
+        onClose={onClose}
+        onPublish={onPublish}
+        page={{ ...page, slug, published_date: '2031-11-18T21:51:53Z' }}
+      />
+    );
 
     const publishButton = screen.getByRole('button', { name: 'Publish' });
     expect(publishButton).toBeEnabled();

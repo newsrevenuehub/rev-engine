@@ -8,6 +8,6 @@ export const PagePropTypes = {
   payment_provider: PropTypes.shape({
     stripe_verified: PropTypes.bool
   }).isRequired,
-  slug: PropTypes.string.isRequired,
+  slug: PropTypes.string,
   published_date: PropTypes.string
 };

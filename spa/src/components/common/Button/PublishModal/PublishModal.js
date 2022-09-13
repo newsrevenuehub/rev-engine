@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import PropTypes from 'prop-types';
-import { Divider, Grid } from '@material-ui/core';
+import { CircularProgress, Divider, Grid } from '@material-ui/core';
 import CloseIcon from '@material-ui/icons/Close';
 import PublicIcon from '@material-ui/icons/Public';
 
@@ -23,14 +23,18 @@ import getDomain from 'utilities/getDomain';
 import { PagePropTypes } from 'constants/proptypes';
 import slugify from 'utilities/slugify';
 
-const PublishModal = ({ open, onClose, onPublish, page }) => {
-  const [slug, setSlug] = useState('');
+const PublishModal = ({ open, onClose, onPublish, page, loading }) => {
+  const [slug, setSlug] = useState(page?.slug ?? '');
   const domain = getDomain(window.location.host);
 
   const domainUrl = `.${domain}/`;
 
   const handleChangeSlug = (event) => {
     setSlug(slugify(event.target.value ?? ''));
+  };
+
+  const handlePublish = () => {
+    onPublish({ slug });
   };
 
   return (
@@ -86,8 +90,8 @@ const PublishModal = ({ open, onClose, onPublish, page }) => {
             <CancelButton variant="contained" onClick={onClose} disableElevation>
               Cancel
             </CancelButton>
-            <PublishButton variant="contained" onClick={onPublish} disableElevation disabled={!slug}>
-              Publish
+            <PublishButton variant="contained" onClick={handlePublish} disableElevation disabled={!slug || loading}>
+              {loading ? <CircularProgress size={16} style={{ color: 'white' }} /> : 'Publish'}
             </PublishButton>
           </Actions>
         </Content>
@@ -100,12 +104,14 @@ PublishModal.propTypes = {
   className: PropTypes.string,
   page: PropTypes.shape(PagePropTypes).isRequired,
   open: PropTypes.bool,
+  loading: PropTypes.bool,
   onClose: PropTypes.func.isRequired,
   onPublish: PropTypes.func.isRequired
 };
 
 PublishModal.defaultProps = {
   className: '',
+  loading: false,
   open: false
 };
 

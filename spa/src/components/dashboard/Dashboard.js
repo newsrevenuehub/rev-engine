@@ -24,7 +24,7 @@ import { usePageContext } from './PageContext';
 
 function Dashboard() {
   const { featureFlags } = useFeatureFlagsProviderContext();
-  const { page } = usePageContext();
+  const { page, setPage } = usePageContext();
 
   const hasContributionsSectionAccess = hasContributionsDashboardAccessToUser(featureFlags);
 
@@ -40,7 +40,7 @@ function Dashboard() {
 
   return (
     <S.Outer>
-      <DashboardTopbar isEditPage={isEditPage} page={page} />
+      <DashboardTopbar isEditPage={isEditPage} page={page} setPage={setPage} />
       <S.Dashboard data-testid="dashboard">
         {isEditPage ? null : <DashboardSidebar />}
         <S.DashboardMain>

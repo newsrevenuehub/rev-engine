@@ -8,7 +8,6 @@ const page = {
   revenue_program: {
     slug: 'news-revenue-hub'
   },
-  slug: 'donate',
   published_date: '2021-11-18T21:51:53Z',
   payment_provider: {}
 };
@@ -45,6 +44,17 @@ describe('PublishModal', () => {
 
     const publishButton = screen.getByRole('button', { name: 'Publish' });
     expect(publishButton).toBeDisabled();
+  });
+
+  it('should render pre-existing page slug if page was already once published', () => {
+    const slug = 'previous-publish';
+    render(<PublishModal open={true} onClose={onClose} onPublish={onPublish} page={{ ...page, slug }} />);
+
+    const publishButton = screen.getByRole('button', { name: 'Publish' });
+    expect(publishButton).toBeEnabled();
+
+    const slugInput = screen.getByRole('textbox', { name: /page name/i });
+    expect(slugInput).toHaveValue(slug);
   });
 
   it('should call onClose', () => {

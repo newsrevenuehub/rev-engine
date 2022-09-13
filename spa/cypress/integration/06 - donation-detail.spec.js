@@ -30,7 +30,7 @@ const pageListBody = {
 };
 
 const CONTRIBUTION_PK = 123;
-const testDonationPageUrl = `${DONATIONS_SLUG}/${CONTRIBUTION_PK}`;
+const testDonationPageUrl = `${DONATIONS_SLUG}/${CONTRIBUTION_PK}/`;
 
 describe('Donation detail', () => {
   describe('Dynamic page title', () => {
@@ -173,7 +173,7 @@ describe('Donation detail', () => {
       cy.intercept('GET', getEndpoint(`${CONTRIBUTIONS}${contributionId}/`), {
         body: flaggedContributionDetailData
       }).as('getFlaggedDonation');
-      cy.visit(`${DONATIONS_SLUG}/${contributionId}`);
+      cy.visit(`${DONATIONS_SLUG}/${contributionId}/`);
 
       cy.intercept('POST', getEndpoint(`${CONTRIBUTIONS}${contributionId}/${PROCESS_FLAGGED}`), {
         body: { detail: 'accepted' }

@@ -33,7 +33,7 @@ Cypress.Commands.add('visitDonationPage', () => {
     { method: 'GET', pathname: getEndpoint(LIVE_PAGE_DETAIL) },
     { fixture: 'pages/live-page-1', statusCode: 200 }
   ).as('getPageDetail');
-  cy.visit(getTestingDonationPageUrl('my-page'));
+  cy.visit(getTestingDonationPageUrl('my-page/'));
   cy.url().should('include', EXPECTED_RP_SLUG);
   cy.url().should('include', 'my-page');
   cy.wait('@getPageDetail');

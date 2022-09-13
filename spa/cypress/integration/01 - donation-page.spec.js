@@ -9,7 +9,7 @@ import { FUNDJOURNALISM_404_REDIRECT } from 'components/common/LivePage404';
 import * as freqUtils from 'utilities/parseFrequency';
 import calculateStripeFee from 'utilities/calculateStripeFee';
 
-const expectedPageSlug = 'page-slug';
+const expectedPageSlug = 'page-slug/';
 
 // this is an absurdly long wait time, but BW has watched tests run with cypress open and has seen
 // the stripe API calls take this long to return.

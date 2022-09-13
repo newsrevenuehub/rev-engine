@@ -26,7 +26,7 @@ const orgAdminWithContentFlag = {
   flags: [{ ...contentSectionFlag }]
 };
 
-const testEditPageUrl = 'edit/my/page';
+const testEditPageUrl = 'edit/my/page/';
 
 describe('Donation page edit', () => {
   before(() => {

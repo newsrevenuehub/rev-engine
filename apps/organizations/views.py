@@ -10,6 +10,7 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
+from rest_framework.reverse import reverse
 from stripe.error import StripeError
 
 from apps.api.permissions import HasRoleAssignment
@@ -188,13 +189,11 @@ def create_stripe_account_link(request, rp_pk=None):
             account=payment_provider.stripe_account_id,
             # The URL the user will be redirected to if the account link is expired, has been
             # previously-visited, or is otherwise invalid.
-            # TBD in spa side
-            # refresh_url=request.build_absolute_uri(reverse("create-stripe-account-link", args=(rp_pk,))),
+            # NB: this may get updated when second PR focused on SPA-side changes is done
+            refresh_url=request.build_absolute_uri(reverse("index")),
             # The URL that the user will be redirected to upon leaving or completing the linked flow.
-            # TBD in spa side
-            # return_url=request.build_absolute_uri(reverse("create-stripe-account-link-complete", args=(rp_pk,))),
-            refresh_url="",
-            return_url="",
+            # NB: this may get updated when second PR focused on SPA-side changes is done
+            return_url=request.build_absolute_uri(reverse("index")),
             type="account_onboarding",
         )
     except StripeError:

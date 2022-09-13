@@ -438,7 +438,10 @@ class TestCreateStripeAccountLink:
         assert response.status_code == status.HTTP_202_ACCEPTED
         assert response.json() == return_value
         mock_fn.assert_called_once_with(
-            account=rp.payment_provider.stripe_account_id, refresh_url="", return_url="", type="account_onboarding"
+            account=rp.payment_provider.stripe_account_id,
+            refresh_url="http://testserver/",
+            return_url="http://testserver/",
+            type="account_onboarding",
         )
 
     def test_when_unauthenticated(self, rp):

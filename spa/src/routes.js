@@ -1,4 +1,4 @@
-import urlJoin from 'url-join';
+import joinPath from 'utilities/joinPath';
 
 export const LOGIN = '/sign-in/';
 export const DASHBOARD_SLUG = '/dashboard/';
@@ -8,11 +8,11 @@ export const CUSTOMIZE_SLUG = '/customize/';
 export const CONNECT_SLUG = '/connect/';
 
 export const EDITOR_ROUTE = '/edit/';
-export const EDITOR_ROUTE_PAGE = urlJoin(EDITOR_ROUTE, '/:revProgramSlug/:pageSlug/');
+export const EDITOR_ROUTE_PAGE = joinPath([EDITOR_ROUTE, '/:revProgramSlug/:pageSlug/']);
 export const DONATION_PAGE_SLUG = '/:pageSlug/';
 export const THANK_YOU_SLUG = '/thank-you/';
 
 // Contributor
 export const CONTRIBUTOR_ENTRY = '/contributor/';
 export const CONTRIBUTOR_VERIFY = '/contributor-verify/';
-export const CONTRIBUTOR_DASHBOARD = urlJoin(CONTRIBUTOR_ENTRY, 'contributions/');
+export const CONTRIBUTOR_DASHBOARD = joinPath([CONTRIBUTOR_ENTRY, 'contributions/']);

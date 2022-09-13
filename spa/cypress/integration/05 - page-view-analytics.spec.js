@@ -14,14 +14,14 @@ import livePageFixture from '../fixtures/pages/live-page-1.json';
 import { LIVE_PAGE_DETAIL } from 'ajax/endpoints';
 import { getEndpoint, getTestingDonationPageUrl, EXPECTED_RP_SLUG } from '../support/util';
 import { HUB_GA_V3_ID } from 'settings';
-import urlJoin from 'url-join';
+import joinPath from 'utilities/joinPath';
 
 import hubAdminUser from '../fixtures/user/hub-admin';
 
 const REVENUE_PROGRAM = EXPECTED_RP_SLUG;
 const PAGE_NAME = 'mypage/';
 
-const EDITOR_ROUTE_PAGE = urlJoin(EDITOR_ROUTE, REVENUE_PROGRAM, PAGE_NAME, '/');
+const EDITOR_ROUTE_PAGE = joinPath([EDITOR_ROUTE, REVENUE_PROGRAM, PAGE_NAME, '/']);
 
 const HUB_TRACKED_PAGES_REQURING_NO_LOGIN = [LOGIN, CONTRIBUTOR_ENTRY, CONTRIBUTOR_VERIFY];
 

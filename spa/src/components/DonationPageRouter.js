@@ -13,7 +13,7 @@ import ChunkErrorBoundary from 'components/errors/ChunkErrorBoundary';
 
 // Utilities
 import componentLoader from 'utilities/componentLoader';
-import urlJoin from 'url-join';
+import joinPath from 'utilities/joinPath';
 
 /**
  * Split Bundles
@@ -32,7 +32,7 @@ function DonationPageRouter() {
         <React.Suspense fallback={<GlobalLoading />}>
           <Switch>
             <Route
-              path={urlJoin(ROUTES.DONATION_PAGE_SLUG, ROUTES.THANK_YOU_SLUG)}
+              path={joinPath([ROUTES.DONATION_PAGE_SLUG, ROUTES.THANK_YOU_SLUG])}
               render={() => <TrackPageView component={GenericThankYou} />}
             />
             <Route path={ROUTES.THANK_YOU_SLUG} render={() => <TrackPageView component={GenericThankYou} />} />

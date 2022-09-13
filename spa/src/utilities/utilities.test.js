@@ -5,6 +5,7 @@ import {
 import getDomain from './getDomain';
 
 import hasContributionsDashboardAccessToUser from './hasContributionsDashboardAccessToUser';
+import joinPath from './joinPath';
 
 describe('Test hasContributionsDashboardAccessToUser utility function', () => {
   const contributionsSectionAccessFlag = {
@@ -44,4 +45,10 @@ describe('Test getDomain', () => {
       expect(domain).toEqual(url.domain);
     })
   );
+});
+
+describe('Test joinPath', () => {
+  it('should join multiple paths and remove duplicate separator', () => {
+    expect(joinPath(['a', 'b/', '/c', 'd/'])).toEqual('a/b/c/d/');
+  });
 });

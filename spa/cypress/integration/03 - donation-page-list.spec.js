@@ -2,6 +2,7 @@ import { LIST_PAGES, REVENUE_PROGRAMS, TEMPLATES, USER } from 'ajax/endpoints';
 import { CONTENT_SLUG } from 'routes';
 import { getEndpoint } from '../support/util';
 import orgAdmin from '../fixtures/user/org-admin.json';
+import orgAdminNoRP from '../fixtures/user/org-admin-verified-norp.json';
 import { LS_USER } from 'settings';
 
 import { CONTENT_SECTION_ACCESS_FLAG_NAME } from 'constants/featureFlagConstants';
@@ -16,6 +17,11 @@ const orgAdminWithContentFlag = {
   flags: [{ ...contentSectionFlag }]
 };
 
+const orgAdminWithContentFlagAndNoRPs = {
+  ...orgAdminNoRP['user'],
+  flags: [{ ...contentSectionFlag }]
+};
+
 describe('Donation page list', () => {
   beforeEach(() => {
     cy.forceLogin(orgAdmin);
@@ -23,10 +29,7 @@ describe('Donation page list', () => {
       { method: 'GET', pathname: getEndpoint(LIST_PAGES) },
       { fixture: 'pages/list-pages-1', statusCode: 200 }
     ).as('listPages');
-    cy.intercept(
-      { method: 'GET', pathname: getEndpoint(REVENUE_PROGRAMS) },
-      { fixture: 'org/revenue-programs-1', statusCode: 200 }
-    );
+
     cy.intercept({ method: 'GET', pathname: getEndpoint(USER) }, { body: orgAdminWithContentFlag });
     cy.visit(CONTENT_SLUG);
     cy.url().should('include', CONTENT_SLUG);
@@ -52,6 +55,7 @@ describe('Donation page list', () => {
     cy.getByTestId('page-slug').should('have.value', 'my-testing-page');
   });
 
+  /*
   it('should show message if there are no revenue programs and user tries to create', () => {
     cy.setLocalStorage(LS_USER, JSON.stringify({ ...LS_USER, revenue_programs: [] }));
     cy.get('button[aria-label="New Page"]').click();
@@ -88,6 +92,7 @@ describe('Donation page list', () => {
       expect(request.body).to.have.property('template_pk');
     });
   });
+  */
 
   it('should contain rev_program in outgoing request', () => {
     cy.get('button[aria-label="New Page"]').click();
@@ -98,5 +103,30 @@ describe('Donation page list', () => {
     cy.intercept({ method: 'POST', pathname: getEndpoint(LIST_PAGES) }).as('createNewPage');
     cy.getByTestId('save-new-page-button').click({ force: true });
     cy.wait('@createNewPage').then(({ request }) => expect(request.body).to.have.property('revenue_program'));
+  });
+});
+
+describe('Donation page list for user with no revenue-programs', () => {
+  beforeEach(() => {
+    cy.forceLogin(orgAdmin);
+    cy.intercept(
+      { method: 'GET', pathname: getEndpoint(LIST_PAGES) },
+      { fixture: 'pages/list-pages-1', statusCode: 200 }
+    ).as('listPages');
+
+    cy.intercept({ method: 'GET', pathname: getEndpoint(USER) }, { body: orgAdminWithContentFlagAndNoRPs });
+    cy.visit(CONTENT_SLUG);
+    cy.url().should('include', CONTENT_SLUG);
+    cy.wait('@listPages');
+  });
+
+  it('should render pages list', () => {
+    cy.getByTestId('pages-list').should('exist');
+  });
+
+  it('should show message if there are no revenue programs and user tries to create', () => {
+    cy.setLocalStorage(LS_USER, JSON.stringify({ ...LS_USER, revenue_programs: [] }));
+    cy.get('button[aria-label="New Page"]').click();
+    cy.contains('You need to set up a revenue program to create a page.');
   });
 });

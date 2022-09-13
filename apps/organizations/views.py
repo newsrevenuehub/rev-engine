@@ -78,63 +78,6 @@ class RevenueProgramViewSet(viewsets.ReadOnlyModelViewSet):
 
 @api_view(["POST"])
 @permission_classes([IsAuthenticated, HasRoleAssignment])
-def create_stripe_account(request, rp_pk=None):
-    """This view allows a requesting user to create a Stripe Account and save its ID to a given revenue program"""
-    revenue_program = get_object_or_404(RevenueProgram, pk=rp_pk)
-    if not request.user.roleassignment.can_access_rp(revenue_program):
-        logger.warning(
-            (
-                "[create_stripe_account] was asked to create an account for RP with ID %s by user with id %s who does "
-                "not have access."
-            ),
-            rp_pk,
-            request.user.id,
-        )
-        raise PermissionDenied(f"You do not have permission to access revenue program with the PK {rp_pk}")
-    if not (payment_provider := revenue_program.payment_provider):
-        logger.info(
-            (
-                "[create_stripe_account] was asked to create a Stripe an account for revenue program "
-                "with ID: %s, but that RP doesn't have a payment provider"
-            ),
-            rp_pk,
-        )
-        return Response(
-            {"detail": "This revenue program is missing a payment provider"},
-            status=status.HTTP_500_INTERNAL_SERVER_ERROR,
-        )
-    if payment_provider.stripe_account_id:
-        logger.info(
-            (
-                "[create_stripe_account] was asked to create a Stripe account for revenue program "
-                "with ID: %s, payment provider with ID %s, but that payment provider already has a stripe "
-                "account id"
-            ),
-            rp_pk,
-            payment_provider.stripe_account_id,
-        )
-        return Response(
-            {"detail": "This revenue program's payment provider already has a stripe account"},
-            status=status.HTTP_409_CONFLICT,
-        )
-    try:
-        stripe_response = stripe.Account.create(
-            type="standard",
-            country=revenue_program.country,
-        )
-    except StripeError:
-        logger.exception("[create_stripe_account] A stripe error occurred")
-        return Response(
-            {"detail": "Something went wrong creating Stripe account. Try again later."},
-            status=status.HTTP_500_INTERNAL_SERVER_ERROR,
-        )
-    payment_provider.stripe_account_id = stripe_response["id"]
-    payment_provider.save()
-    return Response({"detail": "Success"}, status=status.HTTP_201_CREATED)
-
-
-@api_view(["POST"])
-@permission_classes([IsAuthenticated, HasRoleAssignment])
 def create_stripe_account_link(request, rp_pk=None):
     """This endpoint is for the SPA to initiate the Stripe account linking process.
 
@@ -172,18 +115,19 @@ def create_stripe_account_link(request, rp_pk=None):
             status=status.HTTP_500_INTERNAL_SERVER_ERROR,
         )
     if not payment_provider.stripe_account_id:
-        logger.warning(
-            (
-                "[create_stripe_account_link] was asked to create an account link for RP with ID %s , "
-                "but that RP's payment provider (with ID of %s) does not have a stripe_account_id"
-            ),
-            rp_pk,
-            payment_provider.id,
-        )
-        return Response(
-            {"detail": ("The revenue program you're trying to link has a payment provider, but no stripe account id.")},
-            status=status.HTTP_500_INTERNAL_SERVER_ERROR,
-        )
+        try:
+            stripe_response = stripe.Account.create(
+                type="standard",
+                country=revenue_program.country,
+            )
+        except StripeError:
+            logger.exception("[create_stripe_account_link] A stripe error occurred")
+            return Response(
+                {"detail": "Something went wrong creating Stripe account. Try again later."},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+        payment_provider.stripe_account_id = stripe_response["id"]
+        payment_provider.save()
     try:
         stripe_response = stripe.AccountLink.create(
             account=payment_provider.stripe_account_id,

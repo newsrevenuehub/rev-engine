@@ -156,14 +156,13 @@ def create_stripe_account_link_complete(request, rp_pk=None):
     setup (after visiting the Stripe-controlled URL furnished in the call to `stripe.AccountLink.create` in
     `create_stripe_account_link`)
 
-    After retrieving the target RP and related payment provier, it sets the payment provider's `stripe_verified`
-    value to `True` and saves if Stripe reports that the account has "charges_enabled".
+    After retrieving the target RP and related payment provider, if the Stripe account's `charges_enabled`
+    property is True, it sets the NRE payment provider instance's `stripe_verified`
+    value to `True` and saves.
 
     Assuming the happy path, the response data will contain a `stripe_verified` boolean which the SPA can
     use to decide what to do next in onboarding flow, without having to make an additional request to
     retrieve the revenue program anew.
-
-    TODO: Make the app in background regrab RP via react query
     """
     revenue_program = get_object_or_404(RevenueProgram, pk=rp_pk)
     if not request.user.roleassignment.can_access_rp(revenue_program):

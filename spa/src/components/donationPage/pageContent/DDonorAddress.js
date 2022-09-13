@@ -52,6 +52,7 @@ function CountrySelect({ name, testid }) {
     <BaseField errors={errors.mailing_country} label="Country" required={true}>
       <Select
         className="country-select"
+        inputId="Country"
         value={options.find(({ value }) => value === mailingCountry)}
         name={name}
         closeMenuOnSelect={true}

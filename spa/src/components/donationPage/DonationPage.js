@@ -1,5 +1,6 @@
 import { useRef, useState, useEffect, createContext, useContext } from 'react';
 import { useMutation } from 'react-query';
+import { useCookies } from 'react-cookie';
 
 import * as S from './DonationPage.styled';
 import axios from 'ajax/axios';
@@ -32,17 +33,7 @@ import { CONTRIBUTION_INTERVALS } from 'constants';
 
 import { CSRF_HEADER } from 'settings';
 
-// https://stackoverflow.com/a/49224652
-function getCookie(name) {
-  let cookie = {};
-  document.cookie.split(';').forEach(function (el) {
-    let [k, v] = el.split('=');
-    cookie[k.trim()] = v;
-  });
-  return cookie[name];
-}
-
-function authorizePayment(paymentData, paymentType) {
+function authorizePayment(paymentData, paymentType, csrftoken) {
   const apiEndpoint =
     paymentType === CONTRIBUTION_INTERVALS.ONE_TIME
       ? AUTHORIZE_ONE_TIME_STRIPE_PAYMENT_ROUTE
@@ -50,11 +41,7 @@ function authorizePayment(paymentData, paymentType) {
   // we manually set the XCSRFToken value in header here. This is an unauthed endpoint
   // that on the backend requires csrf header, which will be in cookie returned by request
   // for page data (that happens in parent context)
-
-  // TODO: time limit CSRF that's returned by server
-  return axios
-    .post(apiEndpoint, { ...paymentData }, { headers: { [CSRF_HEADER]: getCookie('csrftoken') } })
-    .then(({ data }) => data);
+  return axios.post(apiEndpoint, paymentData, { headers: { [CSRF_HEADER]: csrftoken } }).then(({ data }) => data);
 }
 
 const DonationPageContext = createContext({});
@@ -88,25 +75,27 @@ function DonationPage({ page, live = false }) {
 
   const [stripeBillingDetails, setStripeBillingDetails] = useState();
 
+  const [cookies] = useCookies(['csrftoken']);
+
   // we use this on form submission to authorize a one-time payment or subscription. Note that the function
   // passed to `useMutation` must return a promise.
   const { mutate: createPayment, isLoading: createPaymentIsLoading } = useMutation((paymentData) => {
     switch (paymentData.interval) {
       case CONTRIBUTION_INTERVALS.ONE_TIME:
-        return authorizePayment(paymentData, CONTRIBUTION_INTERVALS.ONE_TIME);
+        return authorizePayment(paymentData, CONTRIBUTION_INTERVALS.ONE_TIME, cookies.csrftoken);
       case CONTRIBUTION_INTERVALS.MONTHLY:
       case CONTRIBUTION_INTERVALS.ANNUAL:
-        return authorizePayment(paymentData, paymentData.interval);
+        return authorizePayment(paymentData, paymentData.interval, cookies.csrftoken);
       default:
         return Promise.reject(new DonationPageUnrecoverableError('Unexpected payment interval in paymentData'));
     }
   });
 
-  // **
-  //  * If window.grecaptcha is defined-- which should be done in useReCAPTCHAScript hook--
-  //  * listen for readiness and resolve promise with resulting reCAPTCHA token.
-  //  * @returns {Promise} - resolves to token or error
-  //  */
+  /*
+  If window.grecaptcha is defined-- which should be done in useReCAPTCHAScript hook--
+  listen for readiness and resolve promise with resulting reCAPTCHA token.
+  @returns {Promise} - resolves to token or error
+  */
   const getReCAPTCHAToken = () =>
     new Promise((resolve, reject) => {
       if (window.grecaptcha) {

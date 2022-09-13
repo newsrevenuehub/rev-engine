@@ -1,7 +1,8 @@
 import { Route, Switch, Redirect, useLocation } from 'react-router-dom';
+import { useQuery } from 'react-query';
 
 import * as S from './Dashboard.styled';
-
+import axios from 'ajax/axios';
 // Routing
 import { DONATIONS_SLUG, CONTENT_SLUG, EDITOR_ROUTE, EDITOR_ROUTE_PAGE, DASHBOARD_SLUG, CUSTOMIZE_SLUG } from 'routes';
 
@@ -15,7 +16,6 @@ import Content from 'components/content/Content';
 import Customize from 'components/content/Customize';
 import PageEditor from 'components/pageEditor/PageEditor';
 
-import userHasSingleRPNotConnectedToStripe from 'components/dashboard/connectStripe/userHasSingleRPNotConnectedToStripe';
 import ConnectStripeElements from 'components/dashboard/connectStripe/ConnectStripeElements';
 
 // Feature flag-related
@@ -25,6 +25,20 @@ import flagIsActiveForUser from 'utilities/flagIsActiveForUser';
 import hasContributionsDashboardAccessToUser from 'utilities/hasContributionsDashboardAccessToUser';
 import { usePageContext } from './PageContext';
 import { useUserContext } from 'components/UserContext';
+import * as authConstants from 'constants/authConstants';
+import { REVENUE_PROGRAMS } from 'ajax/endpoints';
+
+// function dashboardShouldDisplayStripeConnectCta(user) {
+//   let shouldDisplay = false;
+//   if (user?.role_type?.[0] === authConstants.USER_ROLE_RP_ADMIN_TYPE) {
+
+//   }
+//   return shouldDisplay;
+// }
+
+function fetchRp(rpId) {
+  return axios.get(`${REVENUE_PROGRAMS}${rpId}/`).then(({ data }) => data);
+}
 
 function Dashboard() {
   const { featureFlags } = useFeatureFlagsProviderContext();
@@ -42,7 +56,7 @@ function Dashboard() {
 
   const isEditPage = useLocation().pathname.includes(EDITOR_ROUTE);
 
-  const showConnectToStripeDialogs = userHasSingleRPNotConnectedToStripe(user);
+  const showConnectToStripeDialogs = true;
 
   return (
     <S.Outer>

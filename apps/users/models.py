@@ -91,6 +91,8 @@ class RoleAssignment(models.Model):
         """
         return any(
             [
+                self.user.is_superuser,
+                self.role_type == Roles.HUB_ADMIN,
                 self.role_type == Roles.ORG_ADMIN and self.organization == revenue_program.organization,
                 self.role_type == Roles.RP_ADMIN and revenue_program in self.revenue_programs.all(),
             ]

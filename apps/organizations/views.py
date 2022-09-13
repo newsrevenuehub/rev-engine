@@ -10,7 +10,6 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
-from rest_framework.reverse import reverse
 from stripe.error import StripeError
 
 from apps.api.permissions import HasRoleAssignment
@@ -168,14 +167,8 @@ def create_stripe_account_link(request, rp_pk=None):
             rp_pk,
         )
         return Response(
-            {
-                "detail": (
-                    f"The revenue program you're trying to link doesn't have a payment provider. You may need "
-                    f"to make a request to {reverse('stripe-create-account', args={rp_pk,})} in order to create a "
-                    f"Stripe Account and PaymentProvider first."
-                )
-            },
-            status=status.HTTP_400_BAD_REQUEST,
+            {"detail": "The revenue program you're trying to link doesn't have a payment provider."},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR,
         )
     if not payment_provider.stripe_account_id:
         logger.warning(
@@ -196,10 +189,12 @@ def create_stripe_account_link(request, rp_pk=None):
             # The URL the user will be redirected to if the account link is expired, has been
             # previously-visited, or is otherwise invalid.
             # TBD in spa side
-            refresh_url=request.build_absolute_uri(reverse("create-stripe-account-link", args=(rp_pk,))),
+            # refresh_url=request.build_absolute_uri(reverse("create-stripe-account-link", args=(rp_pk,))),
             # The URL that the user will be redirected to upon leaving or completing the linked flow.
             # TBD in spa side
-            return_url=request.build_absolute_uri(reverse("create-stripe-account-link-complete", args=(rp_pk,))),
+            # return_url=request.build_absolute_uri(reverse("create-stripe-account-link-complete", args=(rp_pk,))),
+            refresh_url="",
+            return_url="",
             type="account_onboarding",
         )
     except StripeError:
@@ -226,7 +221,6 @@ def create_stripe_account_link_complete(request, rp_pk=None):
     retrieve the revenue program anew.
 
     TODO: Make the app in background regrab RP via react query
-
     """
     revenue_program = get_object_or_404(RevenueProgram, pk=rp_pk)
     if not request.user.roleassignment.can_access_rp(revenue_program):
@@ -239,8 +233,21 @@ def create_stripe_account_link_complete(request, rp_pk=None):
             request.user.id,
         )
         raise PermissionDenied(f"You do not have permission to access revenue program with the PK {rp_pk}")
-    # https://stripe.com/docs/connect/standard-accounts#return-user
-    if (payment_provider := revenue_program.payment_provider) and payment_provider.stripe_verified:
+
+    if not (payment_provider := revenue_program.payment_provider):
+        logger.warning(
+            (
+                "[create_stripe_account_link_complete] was asked to complete account link for RP with ID %s , "
+                "but that RP does not have a payment provider."
+            ),
+            rp_pk,
+        )
+        return Response(
+            {"detail": "The revenue program you're trying to update doesn't have a payment provider."},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        )
+
+    if payment_provider.stripe_verified:
         logger.info(
             (
                 "[create_stripe_account_link_complete] was to do post-account-link side effects for revenue program (ID: %s), "

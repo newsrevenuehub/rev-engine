@@ -81,7 +81,11 @@ class RevenueProgramViewSet(viewsets.ReadOnlyModelViewSet):
 def create_stripe_account_link(request, rp_pk=None):
     """This endpoint is for the SPA to initiate the Stripe account linking process.
 
-    It does so by calling `stripe.accountLink.create`, including a parameter for a `return_url`, which
+    If the rp's payment provider doesn't have a Stripe Account, this endpoint calls
+    `stripe.Account.create` to create a Stripe Account, and saves the account id to the
+    NRE payment provider instance.
+
+    Next, it calls `stripe.accountLink.create`, including a parameter for a `return_url`, which
     should be a user-facing view in the SPA. Stripe creates an AccountLink entity (with an expiry) and provides
     an off-site URL that the user should be redirected to in the SPA in order to complete the account setup process.
 

@@ -54,7 +54,7 @@ export const Right = styled.div`
 
 export const FormElements = styled.div`
   width: 80%;
-  max-width: 420px;
+  max-width: ${(props) => (props.shorten ? '310px' : '420px')};
   text-align: left;
 `;
 
@@ -92,6 +92,20 @@ export const Heading = styled.div`
   }
 `;
 
+export const Subheading = styled.div`
+  margin: ${(props) => (props.shorten ? '5px 0px 5px' : '5px 0px 25px')};
+
+  font-weight: 300;
+  font-size: ${(props) => props.theme.fontSizesUpdated.md};
+  line-height: 138.19%;
+  color: ${(props) => props.theme.colors.greyVeryDark};
+  font-style: normal;
+  @media (${(props) => props.theme.breakpoints.phoneOnly}) {
+    font-size: ${(props) => props.theme.fontSizesUpdated.lg};
+    margin: 5px 0px 20px;
+  }
+`;
+
 export const Submit = styled(motion.button)`
   cursor: pointer;
   width: 100%;
@@ -113,6 +127,7 @@ export const Submit = styled(motion.button)`
   }
   &:disabled {
     color: ${(props) => props.theme.colors.grey[3]};
+    transform: translate(1px, 1px);
   }
 `;
 
@@ -172,7 +187,7 @@ export const Visibility = styled.img`
   cursor: pointer;
 `;
 
-export const InputLabel = styled.div`
+export const InputLabel = styled.label`
   font-weight: 600;
   font-size: ${(props) => props.theme.fontSizesUpdated.xs};
   line-height: ${(props) => props.theme.fontSizesUpdated.md};
@@ -190,7 +205,7 @@ export const Instructions = styled.div`
 export const NavLink = styled.div`
   margin: 15px 0px 12px;
   width: 100%;
-  text-align: ${(props) => (props.type && props.type === 'PasswordUpdateSuccess' ? 'left' : 'center')};
+  text-align: ${(props) => (props.alignLeft ? 'left' : 'center')};
   font-weight: 400;
   font-size: ${(props) => props.theme.fontSizesUpdated.xs};
   line-height: ${(props) => props.theme.fontSizesUpdated.md};

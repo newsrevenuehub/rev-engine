@@ -9,7 +9,8 @@ import { FUNDJOURNALISM_404_REDIRECT } from 'components/common/LivePage404';
 import * as freqUtils from 'utilities/parseFrequency';
 import calculateStripeFee from 'utilities/calculateStripeFee';
 
-const expectedPageSlug = 'page-slug/';
+const pageSlug = 'page-slug';
+const expectedPageSlug = `${pageSlug}/`;
 
 // this is an absurdly long wait time, but BW has watched tests run with cypress open and has seen
 // the stripe API calls take this long to return.
@@ -19,7 +20,7 @@ describe('Routing', () => {
   it('should send a request containing the correct query params', () => {
     cy.intercept({ method: 'GET', pathname: getEndpoint(LIVE_PAGE_DETAIL) }, (req) => {
       expect(req.url).contains(`revenue_program=${EXPECTED_RP_SLUG}`);
-      expect(req.url).contains(`page=${expectedPageSlug}`);
+      expect(req.url).contains(`page=${pageSlug}`);
     });
     cy.visit(getTestingDonationPageUrl(expectedPageSlug));
   });

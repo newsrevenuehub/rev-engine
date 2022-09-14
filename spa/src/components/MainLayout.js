@@ -16,7 +16,7 @@ import GlobalConfirmationModal from 'elements/modal/GlobalConfirmationModal';
 import ReauthModal from 'components/authentication/ReauthModal';
 import DonationPageRouter from 'components/DonationPageRouter';
 import DashboardRouter from 'components/DashboardRouter';
-import { BrowserRouter, Route, Switch, useHistory, withRouter } from 'react-router-dom';
+import { BrowserRouter, Switch } from 'react-router-dom';
 import RedirectWithReload from './common/RedirectWithReload';
 import joinPath from 'utilities/joinPath';
 

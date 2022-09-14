@@ -1,8 +1,7 @@
+import PropTypes from 'prop-types';
 import { useState, useCallback } from 'react';
-import * as S from './ConnectStripeToast.styled';
 
-import { withStyles } from '@material-ui/core/styles';
-import Tooltip from '@material-ui/core/Tooltip';
+import * as S from './ConnectStripeToast.styled';
 
 // Assets
 import StripeLogo from 'assets/icons/stripeLogo.svg';
@@ -10,7 +9,7 @@ import Triangle6Dots from 'assets/icons/triangle6Dots.svg';
 import RemoveIcon from '@material-ui/icons/Remove';
 import RETooltip from 'elements/RETooltip';
 
-const ConnectStripeToast = () => {
+const ConnectStripeToast = ({ revenueProgramId, createStripeAccountLinkMutation }) => {
   const [collapsed, setCollapsed] = useState(false);
 
   const handleCollapse = useCallback(() => {
@@ -48,9 +47,19 @@ const ConnectStripeToast = () => {
       <S.Description>
         Ready to publish your first donation page? Publish by creating and connect to Stripe in one easy step.
       </S.Description>
-      <S.Button>Connect Now</S.Button>
+      <S.Button
+        disabled={createStripeAccountLinkMutation.isLoading}
+        onClick={() => createStripeAccountLinkMutation.mutate(revenueProgramId)}
+      >
+        Connect Now
+      </S.Button>
     </S.ConnectStripeToast>
   );
+};
+
+ConnectStripeToast.propTypes = {
+  createStripeAccountLinkMutation: PropTypes.object.isRequired,
+  revenueProgramId: PropTypes.number.isRequired
 };
 
 export default ConnectStripeToast;

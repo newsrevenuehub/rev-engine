@@ -1,9 +1,16 @@
-import { useHistory, withRouter } from 'react-router-dom';
+import { PropTypes } from 'prop-types';
+import { withRouter } from 'react-router-dom';
 
-const RedirectWithReload = (props) => {
-  let history = useHistory();
-  history.push({ pathname: props.to, search: props.location.search });
+const RedirectWithReload = ({ history, to, location }) => {
+  history.replace({ pathname: to, search: location.search });
   window.location.reload();
-  return <></>;
+  return null;
 };
+
+RedirectWithReload.propTypes = {
+  to: PropTypes.string.isRequired,
+  location: PropTypes.any,
+  history: PropTypes.any
+};
+
 export default withRouter(RedirectWithReload);

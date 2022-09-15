@@ -30,7 +30,7 @@ class OrganizationViewSetTest(RevEngineApiAbstractTestCase):
         self.list_url = reverse("organization-list")
 
     def assert_user_can_retrieve_an_org(self, user):
-        response = self.assert_user_can_get(self.detail_url, user)
+        response = self.assert_user_can_get(user, self.detail_url)
         self.assertEqual(response.json()["id"], self.org1.pk)
 
     def assert_user_cannot_udpate_an_org(self, user):
@@ -68,14 +68,14 @@ class OrganizationViewSetTest(RevEngineApiAbstractTestCase):
             (self.org_user, 1),
             (self.rp_user, 1),
         ]:
-            self.assert_user_can_list(self.list_url, user, count, results_are_flat=True)
+            self.assert_user_can_list(user, self.list_url, count, results_are_flat=True)
 
     def test_unexpected_role_type(self):
         novel = create_test_user(role_assignment_data={"role_type": "this-is-new"})
         self.assert_user_cannot_get(
-            reverse("organization-list"),
             novel,
-            expected_status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            reverse("organization-list"),
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR,
         )
 
 
@@ -95,11 +95,11 @@ class RevenueProgramViewSetTest(RevEngineApiAbstractTestCase):
     def test_other_cannot_access_resource(self):
         non_superusers = [self.hub_user, self.org_user, self.rp_user, self.contributor_user]
         for user in non_superusers:
-            self.assert_user_cannot_get(self.detail_url, user)
-            self.assert_user_cannot_get(self.list_url, user)
-            self.assert_user_cannot_post(self.list_url, user)
-            self.assert_user_cannot_patch(self.detail_url, user)
-            self.assert_user_cannot_delete(self.detail_url, user)
+            self.assert_user_cannot_get(user, self.detail_url)
+            self.assert_user_cannot_get(user, self.list_url)
+            self.assert_user_cannot_post(user, self.list_url)
+            self.assert_user_cannot_patch(user, self.detail_url)
+            self.assert_user_cannot_delete(user, self.detail_url)
 
     def test_unauthed_cannot_access(self):
         self.assert_unauthed_cannot_get(self.detail_url)
@@ -132,7 +132,7 @@ class PlanViewSetTest(RevEngineApiAbstractTestCase):
             (self.contributor_user, status.HTTP_403_FORBIDDEN),
             (self.generic_user, status.HTTP_405_METHOD_NOT_ALLOWED),
         ]:
-            self.assert_user_cannot_post(self.list_url, user, {}, status_code)
+            self.assert_user_cannot_post(user, self.list_url, {}, status_code)
 
     #################
     # Read - Retrieve
@@ -196,7 +196,7 @@ class PlanViewSetTest(RevEngineApiAbstractTestCase):
             (self.contributor_user, status.HTTP_403_FORBIDDEN),
             (self.generic_user, status.HTTP_405_METHOD_NOT_ALLOWED),
         ]:
-            self.assert_user_cannot_patch(self.detail_url, user, {}, expected_status_code=status_code)
+            self.assert_user_cannot_patch(user, self.detail_url, {}, status=status_code)
 
     ########
     # Delete
@@ -210,7 +210,7 @@ class PlanViewSetTest(RevEngineApiAbstractTestCase):
             (self.contributor_user, status.HTTP_403_FORBIDDEN),
             (self.generic_user, status.HTTP_405_METHOD_NOT_ALLOWED),
         ]:
-            self.assert_user_cannot_delete(self.detail_url, user, expected_status_code=status_code)
+            self.assert_user_cannot_delete(user, self.detail_url, status=status_code)
 
 
 class FeatureViewSetTest(RevEngineApiAbstractTestCase):
@@ -231,7 +231,7 @@ class FeatureViewSetTest(RevEngineApiAbstractTestCase):
             (self.contributor_user, status.HTTP_403_FORBIDDEN),
             (self.generic_user, status.HTTP_403_FORBIDDEN),
         ]:
-            self.assert_user_cannot_post(reverse("feature-list"), user, {}, status_code)
+            self.assert_user_cannot_post(user, reverse("feature-list"), {}, status_code)
 
     #################
     # Read - Retrieve
@@ -248,7 +248,7 @@ class FeatureViewSetTest(RevEngineApiAbstractTestCase):
             self.generic_user,
         ]:
             self.assert_user_cannot_get(
-                reverse("feature-detail", args=(Feature.objects.first().pk,)), user, status.HTTP_403_FORBIDDEN
+                user, reverse("feature-detail", args=(Feature.objects.first().pk,)), status.HTTP_403_FORBIDDEN
             )
 
     #############
@@ -265,7 +265,7 @@ class FeatureViewSetTest(RevEngineApiAbstractTestCase):
             self.contributor_user,
             self.generic_user,
         ]:
-            self.assert_user_cannot_get(reverse("feature-list"), user, status.HTTP_403_FORBIDDEN)
+            self.assert_user_cannot_get(user, reverse("feature-list"), status.HTTP_403_FORBIDDEN)
 
     ########
     # Update
@@ -280,10 +280,10 @@ class FeatureViewSetTest(RevEngineApiAbstractTestCase):
             (self.generic_user, status.HTTP_403_FORBIDDEN),
         ]:
             self.assert_user_cannot_patch(
-                reverse("feature-detail", args=(self.org1.plan.features.first().pk,)),
                 user,
+                reverse("feature-detail", args=(self.org1.plan.features.first().pk,)),
                 {},
-                expected_status_code=status_code,
+                status=status_code,
             )
 
     ########
@@ -299,7 +299,7 @@ class FeatureViewSetTest(RevEngineApiAbstractTestCase):
             (self.generic_user, status.HTTP_403_FORBIDDEN),
         ]:
             self.assert_user_cannot_delete(
-                reverse("feature-detail", args=(self.org1.plan.features.first().pk,)),
                 user,
-                expected_status_code=status_code,
+                reverse("feature-detail", args=(self.org1.plan.features.first().pk,)),
+                status=status_code,
             )

@@ -13,7 +13,8 @@ import { DELETE_CONFIRM_MESSAGE } from 'components/pageEditor/PageEditor';
 import { CONTENT_SLUG } from 'routes';
 import { CLEARBIT_SCRIPT_SRC } from 'hooks/useClearbit';
 
-import orgAdminUser from '../fixtures/user/org-admin.json';
+import orgAdminUser from '../fixtures/user/login-success-org-admin.json';
+
 import { CONTENT_SECTION_ACCESS_FLAG_NAME } from 'constants/featureFlagConstants';
 
 const contentSectionFlag = {

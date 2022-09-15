@@ -2,8 +2,8 @@ import { getEndpoint } from '../support/util';
 import { LIST_STYLES, LIST_PAGES, USER } from 'ajax/endpoints';
 import { DASHBOARD_SLUG, DONATIONS_SLUG, CONTENT_SLUG } from 'routes';
 
-import hubAdminWithoutFlags from '../fixtures/user/hub-admin';
-import orgAdmin from '../fixtures/user/org-admin.json';
+import hubAdminWithoutFlags from '../fixtures/user/login-success-hub-admin';
+import orgAdmin from '../fixtures/user/login-success-org-admin.json';
 
 import {
   CONTRIBUTIONS_SECTION_ACCESS_FLAG_NAME,

@@ -1,7 +1,7 @@
 import { LIST_PAGES, REVENUE_PROGRAMS, TEMPLATES, USER } from 'ajax/endpoints';
 import { CONTENT_SLUG } from 'routes';
 import { getEndpoint } from '../support/util';
-import orgAdmin from '../fixtures/user/org-admin.json';
+import orgAdmin from '../fixtures/user/login-success-org-admin.json';
 import { LS_USER } from 'settings';
 
 import { CONTENT_SECTION_ACCESS_FLAG_NAME } from 'constants/featureFlagConstants';

@@ -1,4 +1,4 @@
-import { LIST_PAGES, REVENUE_PROGRAMS, TEMPLATES, USER } from 'ajax/endpoints';
+import { LIST_PAGES, TEMPLATES, USER } from 'ajax/endpoints';
 import { CONTENT_SLUG } from 'routes';
 import { getEndpoint } from '../support/util';
 import orgAdmin from '../fixtures/user/org-admin.json';
@@ -55,13 +55,6 @@ describe('Donation page list', () => {
     cy.getByTestId('page-slug').should('have.value', 'my-testing-page');
   });
 
-  /*
-  it('should show message if there are no revenue programs and user tries to create', () => {
-    cy.setLocalStorage(LS_USER, JSON.stringify({ ...LS_USER, revenue_programs: [] }));
-    cy.get('button[aria-label="New Page"]').click();
-    cy.contains('You need to set up a revenue program to create a page.');
-  });
-
   it.skip('should show template list dropdown, if templates exist', () => {
     cy.intercept(
       { method: 'GET', pathname: getEndpoint(TEMPLATES) },
@@ -92,7 +85,6 @@ describe('Donation page list', () => {
       expect(request.body).to.have.property('template_pk');
     });
   });
-  */
 
   it('should contain rev_program in outgoing request', () => {
     cy.get('button[aria-label="New Page"]').click();
@@ -106,7 +98,7 @@ describe('Donation page list', () => {
   });
 });
 
-describe('Donation page list for user with no revenue-programs', () => {
+describe('Donation page list for user with no revenue programs', () => {
   beforeEach(() => {
     cy.forceLogin(orgAdmin);
     cy.intercept(

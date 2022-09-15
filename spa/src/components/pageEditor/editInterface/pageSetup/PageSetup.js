@@ -41,9 +41,8 @@ function PageSetup({ backToProperties }) {
   const [donor_benefits, setDonorBenefits] = useState(page.donor_benefits);
   const [published_date, setPublishedDate] = useState(page.published_date ? new Date(page.published_date) : undefined);
 
-  const isStripeVerified = user?.revenue_programs.find(
-    (x) => x.id === page?.revenue_program?.id
-  )?.payment_provider_stripe_verified;
+  const isStripeVerified =
+    user?.revenue_programs.find((x) => x.id === page?.revenue_program?.id)?.payment_provider_stripe_verified ?? false;
 
   const handleKeepChanges = () => {
     verifyUnpublish(updatePage);

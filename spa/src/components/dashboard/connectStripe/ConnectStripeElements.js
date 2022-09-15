@@ -1,7 +1,6 @@
 import { useCallback } from 'react';
 import PropTypes from 'prop-types';
 
-import { useMutation } from '@tanstack/react-query';
 import * as S from './ConnectStripeElements.styled';
 import ConnectStripeToast from './ConnectStripeToast';
 
@@ -66,6 +65,7 @@ ConnectStripeModal.propTypes = {
   createStripeAccountLinkMutation: PropTypes.object.isRequired
 };
 
+// TODO: [DEV-2401] Handle partially complete Stripe Account Link states
 const ConnectStripeElements = ({ revenueProgramId, createStripeAccountLinkMutation }) => {
   const cookies = new Cookies();
 

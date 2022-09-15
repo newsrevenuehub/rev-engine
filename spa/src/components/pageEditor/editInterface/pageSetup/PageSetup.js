@@ -8,6 +8,7 @@ import { faCheck, faTimes } from '@fortawesome/free-solid-svg-icons';
 import { usePageEditorContext } from 'components/pageEditor/PageEditor';
 import { useEditInterfaceContext } from 'components/pageEditor/editInterface/EditInterface';
 import { useConfirmationModalContext } from 'elements/modal/GlobalConfirmationModal';
+import useUser from 'hooks/useUser';
 
 // Deps
 import { isBefore, isAfter } from 'date-fns';
@@ -29,6 +30,7 @@ function PageSetup({ backToProperties }) {
   const getUserConfirmation = useConfirmationModalContext();
   const { page, errors } = usePageEditorContext();
   const { setPageContent } = useEditInterfaceContext();
+  const { user } = useUser();
 
   // Form state
   const [heading, setPageHeading] = useState(page.heading);
@@ -38,6 +40,10 @@ function PageSetup({ backToProperties }) {
   const [post_thank_you_redirect, setPostThankYouRedirect] = useState(page.post_thank_you_redirect);
   const [donor_benefits, setDonorBenefits] = useState(page.donor_benefits);
   const [published_date, setPublishedDate] = useState(page.published_date ? new Date(page.published_date) : undefined);
+
+  const isStripeVerified = user?.revenue_programs.find(
+    (x) => x.id === page?.revenue_program?.id
+  )?.payment_provider_stripe_verified;
 
   const handleKeepChanges = () => {
     verifyUnpublish(updatePage);
@@ -162,7 +168,7 @@ function PageSetup({ backToProperties }) {
         />
       </S.InputWrapper>
       <PublishWidget
-        paymentProvider={page.payment_provider}
+        isStripeVerified={isStripeVerified}
         publishDate={published_date}
         onChange={setPublishedDate}
         errors={errors.published_date}

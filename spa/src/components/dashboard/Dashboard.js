@@ -127,7 +127,7 @@ function Dashboard() {
 
   return (
     <S.Outer>
-      {revenueProgramIdForVerification && !signalStripeAccountLinkSuccess.isLoading ? (
+      {revenueProgramIdForVerification ? (
         <ConnectStripeElements
           revenueProgramId={revenueProgramIdForVerification}
           createStripeAccountLinkMutation={createStripeAccountLinkMutation}

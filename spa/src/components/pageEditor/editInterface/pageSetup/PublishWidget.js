@@ -10,8 +10,9 @@ import { isAfter } from 'date-fns';
 import Button from 'elements/buttons/Button';
 import FormErrors from 'elements/inputs/FormErrors';
 
-function PublishWidget({ paymentProvider, publishDate, onChange, errors }) {
+function PublishWidget({ publishDate, onChange, errors, isStripeVerified }) {
   const [showPublishNow, setShowPublishNow] = useState(false);
+
   // TODO: Handle CLEAR published date
 
   useEffect(() => {
@@ -31,9 +32,7 @@ function PublishWidget({ paymentProvider, publishDate, onChange, errors }) {
     onChange(new Date());
   };
 
-  const hasValidPaymentProvider = paymentProvider && paymentProvider.stripe_verified;
-
-  if (!hasValidPaymentProvider)
+  if (!isStripeVerified)
     return (
       <S.InvalidPaymentProvider>
         Page cannot be published
@@ -58,7 +57,12 @@ function PublishWidget({ paymentProvider, publishDate, onChange, errors }) {
       {showPublishNow && (
         <S.PublishNow>
           <S.Or>- or -</S.Or>
-          <Button type="positive" onClick={handlePublishNow} data-testid="publish-now-button">
+          <Button
+            disabled={!isStripeVerified}
+            type="positive"
+            onClick={handlePublishNow}
+            data-testid="publish-now-button"
+          >
             Publish now
           </Button>
         </S.PublishNow>

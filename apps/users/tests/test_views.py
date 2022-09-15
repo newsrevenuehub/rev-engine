@@ -1,3 +1,4 @@
+import datetime
 import re
 import time
 from unittest.mock import patch
@@ -527,6 +528,27 @@ class TestUserViewSet(APITestCase):
         self.assertEqual(user.email, new_email)
         self.assertTrue(user.check_password(raw_updated_password))
         self.assert_serialized_data(response, user)
+
+    def test_partial_update_accepted_terms_of_service_is_readonly(self):
+        now = datetime.datetime.now(datetime.timezone.utc)
+        user = get_user_model()(email=self.create_data["email"], email_verified=True, accepted_terms_of_service=now)
+        user.set_password(self.create_data["password"])
+        user.save()
+        self.client.force_authenticate(user=user)
+        # DRF APITest and pytest.paramtize do not work together...
+        for date in [
+            (now),  # Submitting, but not actually attempting to change, works.
+            (now - datetime.timedelta(days=1),),
+            (now + datetime.timedelta(days=1),),
+        ]:
+            response = self.client.patch(
+                reverse("user-detail", args=(user.pk,)),
+                data={"accepted_terms_of_service": date, "email_verified": False, "flags": "[1,2]"},
+            )
+            # DRF ignores read_only fields instead of failing validatation.
+            assert status.HTTP_200_OK == response.status_code, response.json()
+            user.refresh_from_db()
+            assert now == user.accepted_terms_of_service
 
     def test_update_email_when_email_already_taken(self):
         User = get_user_model()

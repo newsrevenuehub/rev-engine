@@ -440,7 +440,7 @@ describe('Donation page edit', () => {
   });
 });
 
-describe.only('Edit interface: Setup', () => {
+describe('Edit interface: Setup', () => {
   beforeEach(() => {
     const pageDetailBody = {
       ...pageDetail,
@@ -493,14 +493,14 @@ describe.only('Edit interface: Setup', () => {
     // Go back to edit mode
     cy.getByTestId('edit-page-button').click();
   });
-  it.only('should show expected, formatted publication date', () => {
+  it('should show expected, formatted publication date', () => {
     const rawDate = livePage.published_date;
     const expectedFormat = format(new Date(rawDate), "LLL do, yyyy 'at' hh:mm a");
     cy.getByTestId('setup-tab').click();
     cy.getByTestId('publish-widget').scrollIntoView();
     cy.getByTestId('publish-widget').contains(expectedFormat);
   });
-  it.only('should show a warning when updating a live page', () => {
+  it('should show a warning when updating a live page', () => {
     cy.intercept({ method: 'GET', pathname: getEndpoint(LIST_STYLES) }, {});
     cy.getByTestId('publish-widget').click();
     cy.contains('18').click();

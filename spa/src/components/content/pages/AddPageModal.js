@@ -17,8 +17,6 @@ import { useUserContext } from 'components/UserContext';
 import useRequest from 'hooks/useRequest';
 import { LIST_PAGES } from 'ajax/endpoints';
 
-import useUser from 'hooks/useUser';
-
 // Children
 import Modal from 'elements/modal/Modal';
 import Input from 'elements/inputs/Input';
@@ -34,8 +32,6 @@ function AddPageModal({ isOpen, closeModal, pagesByRevenueProgram }) {
   const alert = useAlert();
   const theme = useTheme();
   const history = useHistory();
-  const { revenue_programs: revenuePrograms } = useUser();
-
   const { user } = useUserContext();
   const revenuePrograms = user?.revenue_programs;
 

@@ -14,13 +14,6 @@ export const Profile = styled.div`
   padding: 30px 65px;
   width: 90%;
   max-width: 610px;
-
-  select {
-    -webkit-appearance: none;
-    -moz-appearance: none;
-    appearance: none; /* Remove default arrow */
-    background-image: url(...); /* Add custom arrow */
-  }
 `;
 
 export const Modal = styled(MuiModal)`
@@ -51,13 +44,13 @@ export const h1 = styled.h1`
 `;
 
 export const Description = styled.div`
-  font-family: 'Roboto';
+  font-family: Roboto, sans-serif;
   font-style: normal;
   font-weight: 300;
   font-size: ${(props) => props.theme.fontSizesUpdated.md};
   line-height: ${(props) => props.theme.fontSizesUpdated.lg};
   color: ${(props) => props.theme.colors.muiGrey[600]};
-  margin-bottom: 0px;
+  margin-bottom: 30px;
 `;
 
 export const Button = styled(MuiButton)`
@@ -117,4 +110,27 @@ export const Column = styled.div`
   flex-basis: 100%;
   flex: 1;
   margin-right: 20px;
+
+  &:last-child {
+    margin-right: 0;
+  }
+`;
+
+export const Select = styled.select`
+  appearance: none;
+  background: none;
+  border: none;
+  /* Undo normal padding around the element, match height of other fields. */
+  margin: -8px -6px -8px -12px;
+  height: 37px;
+  padding: 10px 6px 10px 12px;
+  /* Extra width due to negative margins. */
+  width: calc(100% + 18px);
+`;
+
+export const SelectIcon = styled.div`
+  color: #d9d9d9;
+  pointer-events: none;
+  position: absolute;
+  right: 8px;
 `;

@@ -1,4 +1,5 @@
 import { useReducer } from 'react';
+import { useHistory } from 'react-router-dom';
 import * as S from './Profile.styled';
 import * as A from 'components/account/Account.styled';
 
@@ -12,33 +13,32 @@ import { useUserContext } from 'components/UserContext';
 
 import useModal from 'hooks/useModal';
 
-import BottomNav from 'assets/icons/bottomNav.svg';
-
 // Analytics
 import { useConfigureAnalytics } from 'components/analytics';
 
 import ProfileForm from './ProfileForm';
 
 function Profile() {
+  const { open, handleClose } = useModal(true);
+  const history = useHistory();
+  const [profileState, dispatch] = useReducer(fetchReducer, initialState);
+  const { user } = useUserContext();
   useConfigureAnalytics();
 
-  const { open, handleClose } = useModal(true);
-  const [profileState, dispatch] = useReducer(fetchReducer, initialState);
-
-  const { user } = useUserContext();
-
-  const onProfileSubmit = async (fdata) => {
+  const onProfileSubmit = async (formData) => {
     dispatch({ type: FETCH_START });
+
     try {
       const { data, status } = await axios.patch(`users/${user.id}/${CUSTOMIZE_ACCOUNT_ENDPOINT}`, {
-        first_name: fdata.firstName,
-        last_name: fdata.lastName,
-        job_title: fdata.jobTitle,
-        organization_name: fdata.companyName,
-        organization_tax_status: fdata.companyTaxStatus
+        first_name: formData.firstName,
+        last_name: formData.lastName,
+        job_title: formData.jobTitle,
+        organization_name: formData.companyName,
+        organization_tax_status: formData.companyTaxStatus
       });
+
       if (status === 204) {
-        window.location.href = '/';
+        history.push('/');
       } else {
         dispatch({ type: FETCH_FAILURE, payload: data });
       }
@@ -48,17 +48,24 @@ function Profile() {
   };
 
   const formSubmitErrors =
-    Array.isArray(profileState?.errors) && profileState?.errors.length === 0 ? null : 'An Error Occured';
+    Array.isArray(profileState?.errors) && profileState?.errors.length === 0 ? null : 'An Error Occurred';
 
   return (
-    <S.Modal open={open} onClose={handleClose} aria-labelledby="Profile Modal">
+    <S.Modal
+      open={open}
+      onClose={handleClose}
+      aria-labelledby="profile-modal-title"
+      data-testid="finalize-profile-modal"
+    >
       <S.Profile>
-        <S.h1>Let's Customize Your Account</S.h1>
+        <S.h1 id="profile-modal-title">Let's Customize Your Account</S.h1>
         <S.Description>Help us create your personalized experience!</S.Description>
-        <ProfileForm onProfileSubmit={onProfileSubmit} loading={profileState.loading} />
-        {formSubmitErrors ? <A.Message>{formSubmitErrors}</A.Message> : <A.MessageSpacer />}
-
-        <S.BottomNav src={BottomNav} />
+        <ProfileForm onProfileSubmit={onProfileSubmit} disabled={profileState.loading} />
+        {formSubmitErrors ? (
+          <A.Message data-testid="profile-modal-error">{formSubmitErrors}</A.Message>
+        ) : (
+          <A.MessageSpacer />
+        )}
       </S.Profile>
     </S.Modal>
   );

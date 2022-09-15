@@ -4,7 +4,6 @@ import ConnectStripeToast from './ConnectStripeToast';
 
 // Assets
 import ChevronRightIcon from '@material-ui/icons/ChevronRight';
-import BottomNav from 'assets/icons/bottomNav.svg';
 import StripeLogo from 'assets/icons/stripeLogo.svg';
 
 import useModal from 'hooks/useModal';
@@ -41,7 +40,6 @@ const ConnectStripeModal = () => {
           <span>I’ll connect to Stripe later</span>
           <ChevronRightIcon />
         </S.Anchor>
-        <S.BottomNav src={BottomNav} />
       </S.ConnectStripeModal>
     </S.Modal>
   );

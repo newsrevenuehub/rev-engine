@@ -74,6 +74,7 @@ export const UnpublishButton = styled(MuiButton)`
     align-self: end;
     font-weight: 600;
     padding: 10px 23px;
+    font-size: ${(props) => props.theme.fontSizesUpdated.sm};
     border-radius: ${(props) => props.theme.muiBorderRadius.lg};
     background-color: ${(props) => props.theme.colors.error.primary};
 

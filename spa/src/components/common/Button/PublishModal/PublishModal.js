@@ -38,7 +38,7 @@ const PublishModal = ({ open, onClose, onPublish, page, loading }) => {
   };
 
   return (
-    <Modal open={open} onClose={onClose} aria-labelledby={`Publish page ${page?.name}`}>
+    <Modal open={open} onClose={onClose} aria-label={`Publish page ${page?.name}`}>
       <Paper>
         <IconButton onClick={onClose}>
           <Icon type="grey">
@@ -67,7 +67,7 @@ const PublishModal = ({ open, onClose, onPublish, page, loading }) => {
               <Input value={page?.revenue_program?.slug} start="true" onChange={() => {}} />
             </Grid>
             <Grid item xs={3}>
-              <Input disabled defaultValue={domainUrl} center="true" aria-label={`Domain url: ${domainUrl}`} />
+              <Input disabled defaultValue={domainUrl} center="true" aria-label="Domain URL" />
             </Grid>
             <Grid item xs={5}>
               <Input

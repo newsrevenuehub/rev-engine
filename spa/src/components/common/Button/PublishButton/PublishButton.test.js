@@ -1,8 +1,8 @@
 import { render, screen, fireEvent, waitFor } from 'test-utils';
 import userEvent from '@testing-library/user-event';
+import { axe } from 'jest-axe';
 
 import PublishButton from './PublishButton';
-import formatDatetimeForDisplay from 'utilities/formatDatetimeForDisplay';
 
 const unpublishedPage = {
   name: 'Donation page',
@@ -66,31 +66,39 @@ describe('PublishButton', () => {
     });
   });
 
-  it('should show published if published_date', () => {
+  it('should show disabled published button if published_date', () => {
     render(<PublishButton page={publishedPage} setPage={setPage} requestPatchPage={requestPatchPage} />);
 
     const button = screen.getByRole('button', { name: /Published/i });
-    expect(button).toBeEnabled();
+    expect(button).toBeDisabled();
   });
 
-  it('should open popover if published and clicked', async () => {
-    render(<PublishButton page={publishedPage} setPage={setPage} requestPatchPage={requestPatchPage} />);
+  // TODO: update tests when implementation of "Unpublish" functionality is decided
+  // it('should open popover if published and clicked', async () => {
+  //   render(<PublishButton page={publishedPage} setPage={setPage} requestPatchPage={requestPatchPage} />);
 
-    const button = screen.getByRole('button', { name: /Published/i });
-    expect(button).toBeEnabled();
-    fireEvent.click(button);
+  //   const button = screen.getByRole('button', { name: /Published/i });
+  //   expect(button).toBeEnabled();
+  //   fireEvent.click(button);
 
-    await waitFor(() => {
-      expect(screen.getByText(/live/i)).toBeVisible();
-    });
+  //   await waitFor(() => {
+  //     expect(screen.getByText(/live/i)).toBeVisible();
+  //   });
 
-    const liveSince = `${formatDatetimeForDisplay(publishedPage.published_date)} at ${formatDatetimeForDisplay(
-      publishedPage.published_date,
-      true
-    )}`;
-    expect(screen.getByText(liveSince)).toBeVisible();
+  //   const liveSince = `${formatDatetimeForDisplay(publishedPage.published_date)} at ${formatDatetimeForDisplay(
+  //     publishedPage.published_date,
+  //     true
+  //   )}`;
+  //   expect(screen.getByText(liveSince)).toBeVisible();
 
-    const unpublish = screen.getByRole('button', { name: /unpublish/i });
-    expect(unpublish).toBeEnabled();
+  //   const unpublish = screen.getByRole('button', { name: /unpublish/i });
+  //   expect(unpublish).toBeEnabled();
+  // });
+
+  it('should be accessible', async () => {
+    const { container } = render(
+      <PublishButton page={publishedPage} setPage={setPage} requestPatchPage={requestPatchPage} />
+    );
+    expect(await axe(container)).toHaveNoViolations();
   });
 });

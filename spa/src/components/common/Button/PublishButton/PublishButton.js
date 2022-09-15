@@ -3,7 +3,6 @@ import PropTypes from 'prop-types';
 import { CircularProgress, Divider } from '@material-ui/core';
 import CheckCircleOutlineIcon from '@material-ui/icons/CheckCircleOutline';
 import FiberManualRecordIcon from '@material-ui/icons/FiberManualRecord';
-import { addYears } from 'date-fns';
 
 import useModal from 'hooks/useModal';
 import formatDatetimeForDisplay from 'utilities/formatDatetimeForDisplay';
@@ -27,7 +26,8 @@ const PublishButton = ({ page, setPage, className, alert, requestPatchPage }) =>
   const isPublished = pageHasBeenPublished(page);
 
   const handleOpenPopover = (event) => {
-    setAnchorEl(event.currentTarget);
+    // TODO: uncomment the next line after implementation of "Unpublish" functionality is decided
+    // setAnchorEl(event.currentTarget);
   };
 
   const handleClosePopover = () => {
@@ -63,12 +63,15 @@ const PublishButton = ({ page, setPage, className, alert, requestPatchPage }) =>
   );
 
   const handleUnpublish = () => {
-    patchPage({ published_date: addYears(new Date(), 10) });
+    // TODO: update handleUnpublish when implementation of "Unpublish" functionality is decided
+    // patchPage({ published_date: TDB });
   };
 
   const handlePublish = (data) => {
     patchPage({ ...data, published_date: new Date() });
   };
+
+  if (!page) return null;
 
   return (
     <Flex className={className}>
@@ -91,7 +94,8 @@ const PublishButton = ({ page, setPage, className, alert, requestPatchPage }) =>
             onClick={isPublished ? handleOpenPopover : handleOpen}
             active={showPopover ? 'true' : ''}
             aria-label={`${isPublished ? 'Published' : 'Publish'} page ${page?.name}`}
-            disabled={disabled}
+            // TODO: remove isPublished from disabled when implementation of "Unpublish" functionality is decided
+            disabled={disabled || isPublished}
             {...(isPublished && {
               startIcon: <CheckCircleOutlineIcon />,
               published: 'true',
@@ -128,7 +132,7 @@ const PublishButton = ({ page, setPage, className, alert, requestPatchPage }) =>
             {formatDatetimeForDisplay(page?.published_date)} at {formatDatetimeForDisplay(page?.published_date, true)}
           </Text>
           <Divider />
-          <UnpublishButton onClick={handleUnpublish} disabled={loading}>
+          <UnpublishButton onClick={handleUnpublish} disabled={loading} aria-label={`Unpublish page ${page?.name}`}>
             {loading ? <CircularProgress size={16} style={{ color: 'white' }} /> : 'Unpublish'}
           </UnpublishButton>
         </Popover>

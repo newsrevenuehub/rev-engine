@@ -1,3 +1,4 @@
+import { axe } from 'jest-axe';
 import { render, screen, fireEvent } from 'test-utils';
 import getDomain from 'utilities/getDomain';
 
@@ -18,14 +19,13 @@ const onPublish = jest.fn();
 const domain = getDomain(window.location.host);
 
 describe('PublishModal', () => {
-  const renderComponent = () => {
+  const renderComponent = () =>
     render(<PublishModal open={true} onClose={onClose} onPublish={onPublish} page={page} />);
-  };
 
   it('should render modal', () => {
     renderComponent();
 
-    const modal = screen.getByRole('presentation');
+    const modal = screen.getByRole('presentation', { name: `Publish page ${page.name}` });
     expect(modal).toBeVisible();
 
     const title = screen.getByText(/Publish Page/i);
@@ -37,8 +37,9 @@ describe('PublishModal', () => {
     const warning = screen.getByText('*Site name can’t be changed upon publish.');
     expect(warning).toBeVisible();
 
-    const domainUrl = screen.getByRole('textbox', { name: `Domain url: .${domain}/` });
+    const domainUrl = screen.getByRole('textbox', { name: 'Domain URL' });
     expect(domainUrl).toBeVisible();
+    expect(domainUrl).toHaveValue(`.${domain}/`);
 
     const cancelButton = screen.getByRole('button', { name: 'Cancel' });
     expect(cancelButton).toBeEnabled();
@@ -90,5 +91,10 @@ describe('PublishModal', () => {
 
     fireEvent.click(publishButton);
     expect(onPublish).toHaveBeenCalled();
+  });
+
+  it('should be accessible', async () => {
+    const { container } = renderComponent();
+    expect(await axe(container)).toHaveNoViolations();
   });
 });

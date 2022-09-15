@@ -64,7 +64,7 @@ const PublishModal = ({ open, onClose, onPublish, page, loading }) => {
               <Label>Page Name</Label>
             </Grid>
             <Grid item xs={4}>
-              <Input value={page?.revenue_program?.slug} start="true" onChange={() => {}} />
+              <Input value={page?.revenue_program?.slug} start="true" readOnly />
             </Grid>
             <Grid item xs={3}>
               <Input disabled defaultValue={domainUrl} center="true" aria-label="Domain URL" />

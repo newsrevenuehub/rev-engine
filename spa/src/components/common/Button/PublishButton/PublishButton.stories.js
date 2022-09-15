@@ -53,6 +53,7 @@ Published.args = {
   requestPatchPage: () => {},
   page: {
     name: 'Donation page',
+    slug: 'published-page',
     revenue_program: {
       slug: 'news-revenue-hub'
     },

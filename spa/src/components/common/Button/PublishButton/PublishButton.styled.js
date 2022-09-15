@@ -1,5 +1,5 @@
 import styled from 'styled-components';
-import { Button as MuiButton, Popover as MuiPopover } from '@material-ui/core';
+import { Button as MuiButton, Popover as MuiPopover, IconButton as MuiIconButton } from '@material-ui/core';
 
 export const Flex = styled.div`
   display: flex;
@@ -81,6 +81,18 @@ export const UnpublishButton = styled(MuiButton)`
     :hover {
       background-color: ${(props) => `${props.theme.colors.error.primary}cc`};
     }
+
+    :disabled {
+      background-color: ${(props) => `${props.theme.colors.error.primary}50`};
+    }
+  }
+`;
+
+export const IconButton = styled(MuiIconButton)`
+  && {
+    position: absolute;
+    top: 8px;
+    right: 8px;
   }
 `;
 

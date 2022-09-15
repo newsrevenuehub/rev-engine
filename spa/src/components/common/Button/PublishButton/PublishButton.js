@@ -1,6 +1,7 @@
 import { useState, useCallback } from 'react';
 import PropTypes from 'prop-types';
-import { CircularProgress, Divider } from '@material-ui/core';
+// import { CircularProgress, Divider } from '@material-ui/core';
+import LaunchIcon from '@material-ui/icons/Launch';
 import CheckCircleOutlineIcon from '@material-ui/icons/CheckCircleOutline';
 import FiberManualRecordIcon from '@material-ui/icons/FiberManualRecord';
 
@@ -11,8 +12,9 @@ import { GENERIC_ERROR } from 'constants/textConstants';
 import { PagePropTypes } from 'constants/proptypes';
 import RETooltip from 'elements/RETooltip';
 import { PATCH_PAGE } from 'ajax/endpoints';
+import getDomain from 'utilities/getDomain';
 
-import { Flex, Button, Popover, LiveText, UnpublishButton, Text } from './PublishButton.styled';
+import { Flex, Button, Popover, LiveText, /*UnpublishButton, */ Text, IconButton } from './PublishButton.styled';
 import PublishModal from '../PublishModal';
 
 const PublishButton = ({ page, setPage, className, alert, requestPatchPage }) => {
@@ -20,14 +22,15 @@ const PublishButton = ({ page, setPage, className, alert, requestPatchPage }) =>
   const { open, handleClose, handleOpen } = useModal();
   const [loading, setLoading] = useState(false);
   const [anchorEl, setAnchorEl] = useState(null);
+  const domain = getDomain(window.location.host);
 
   const showPopover = Boolean(anchorEl);
   const disabled = !page?.payment_provider?.stripe_verified;
   const isPublished = pageHasBeenPublished(page);
+  const pageLink = `${page?.revenue_program?.slug}.${domain}/${page?.slug}`;
 
   const handleOpenPopover = (event) => {
-    // TODO: uncomment the next line after implementation of "Unpublish" functionality is decided
-    // setAnchorEl(event.currentTarget);
+    setAnchorEl(event.currentTarget);
   };
 
   const handleClosePopover = () => {
@@ -62,10 +65,10 @@ const PublishButton = ({ page, setPage, className, alert, requestPatchPage }) =>
     [alert, handleClose, page, requestPatchPage, setPage]
   );
 
-  const handleUnpublish = () => {
-    // TODO: update handleUnpublish when implementation of "Unpublish" functionality is decided
-    // patchPage({ published_date: TDB });
-  };
+  // TODO: update handleUnpublish when implementation of "Unpublish" functionality is decided
+  // const handleUnpublish = () => {
+  //   patchPage({ published_date: 'TDB' });
+  // };
 
   const handlePublish = (data) => {
     patchPage({ ...data, published_date: new Date() });
@@ -94,8 +97,7 @@ const PublishButton = ({ page, setPage, className, alert, requestPatchPage }) =>
             onClick={isPublished ? handleOpenPopover : handleOpen}
             active={showPopover ? 'true' : ''}
             aria-label={`${isPublished ? 'Published' : 'Publish'} page ${page?.name}`}
-            // TODO: remove isPublished from disabled when implementation of "Unpublish" functionality is decided
-            disabled={disabled || isPublished}
+            disabled={disabled}
             {...(isPublished && {
               startIcon: <CheckCircleOutlineIcon />,
               published: 'true',
@@ -127,14 +129,24 @@ const PublishButton = ({ page, setPage, className, alert, requestPatchPage }) =>
             <FiberManualRecordIcon />
             Live
           </LiveText>
+          <RETooltip title="Go to Page" placement="bottom-end">
+            <IconButton component="a" href={pageLink} target="_blank" rel="noopener noreferrer" aria-label="Page link">
+              <LaunchIcon />
+            </IconButton>
+          </RETooltip>
           <Text>
             {/* TODO: add author of change */}
             {formatDatetimeForDisplay(page?.published_date)} at {formatDatetimeForDisplay(page?.published_date, true)}
           </Text>
-          <Divider />
-          <UnpublishButton onClick={handleUnpublish} disabled={loading} aria-label={`Unpublish page ${page?.name}`}>
+          {/* TODO: update UnpublishButton when implementation of "Unpublish" functionality is decided */}
+          {/* <Divider />
+          <UnpublishButton
+            onClick={handleUnpublish}
+            disabled={loading || isPublished}
+            aria-label={`Unpublish page ${page?.name}`}
+          >
             {loading ? <CircularProgress size={16} style={{ color: 'white' }} /> : 'Unpublish'}
-          </UnpublishButton>
+          </UnpublishButton> */}
         </Popover>
       )}
     </Flex>

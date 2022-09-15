@@ -16,7 +16,6 @@ import readIcon from 'assets/icons/verify_mark_read.svg';
 import { useConfigureAnalytics } from 'components/analytics';
 
 import PageTitle from 'elements/PageTitle';
-import { useUserContext } from 'components/UserContext';
 
 // State management
 import fetchReducer, { initialState, FETCH_START, FETCH_SUCCESS, FETCH_FAILURE } from 'state/fetch-reducer';
@@ -26,6 +25,8 @@ import {
   VERIFIED_HELP_EMAIL,
   RESEND_VERIFICATION_SUCCESS_TEXT
 } from 'constants/textConstants';
+
+import useUser from 'hooks/useUser';
 
 const Mailto = ({ mailto }) => {
   return (
@@ -43,7 +44,7 @@ const Mailto = ({ mailto }) => {
 
 function Verify() {
   useConfigureAnalytics();
-  const { user } = useUserContext();
+  const { user } = useUser();
   const [emailResent, setEmailResent] = useState(false);
 
   const [verifyState, dispatch] = useReducer(fetchReducer, initialState);

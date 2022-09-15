@@ -5,14 +5,14 @@ import ConnectStripeElements from './ConnectStripeElements';
 const CONNECT_STRIPE_COOKIE_NAME = 'hideConnectStripeModal';
 
 describe('ConnectStripeElements', () => {
-  test('should have enabled button for connectToStripe', () => {
-    render(<ConnectStripeElements />);
+  it('should have enabled button for connectToStripe', () => {
+    render(<ConnectStripeElements createStripeAccountLinkMutation={{ isLoading: false }} />);
     const connectToStripeButton = screen.getByRole('button', { name: 'Connect to Stripe' });
     expect(connectToStripeButton).toBeEnabled();
   });
 
-  test('should show stripe-modal and stripe-toast should be hidden', () => {
-    render(<ConnectStripeElements />);
+  it('should show stripe-modal and stripe-toast should be hidden', () => {
+    render(<ConnectStripeElements createStripeAccountLinkMutation={{ isLoading: false }} />);
     const stripeModal = screen.queryByTestId('connect-stripe-modal');
     expect(stripeModal).toBeInTheDocument();
     const stripeToast = screen.queryByTestId('connect-stripe-toast');
@@ -29,7 +29,7 @@ describe('Show Toast if cookie is set', () => {
   });
 
   it('should show stripe-toast and stripe-modal should be hidden', () => {
-    render(<ConnectStripeElements />);
+    render(<ConnectStripeElements createStripeAccountLinkMutation={{ isLoading: false }} />);
     const connectNow = screen.getByRole('button', { name: 'Connect Now' });
     expect(connectNow).toBeEnabled();
 

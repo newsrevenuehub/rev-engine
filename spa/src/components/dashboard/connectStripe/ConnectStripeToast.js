@@ -48,6 +48,7 @@ const ConnectStripeToast = ({ revenueProgramId, createStripeAccountLinkMutation 
         Ready to publish your first donation page? Publish by creating and connect to Stripe in one easy step.
       </S.Description>
       <S.Button
+        data-testid="connect-stripe-toast-button"
         disabled={createStripeAccountLinkMutation.isLoading}
         onClick={() => createStripeAccountLinkMutation.mutate(revenueProgramId)}
       >

@@ -10,8 +10,6 @@ import ContributorRouter from 'components/ContributorRouter';
 // Slugs
 import * as ROUTES from 'routes';
 
-import UserContextProvider from './UserContext';
-
 // Components/Children
 import GlobalLoading from 'elements/GlobalLoading';
 import TrackPageView from 'components/analytics/TrackPageView';
@@ -49,7 +47,7 @@ function DashboardRouter() {
 
             <Redirect from="/verified/:slug" to="/verify-email-success?result=:slug" />
             <Redirect from={ROUTES.VERIFIED} to={ROUTES.VERIFY_EMAIL_SUCCESS} />
-            <Redirect from="/stripe-account-link-complete" to={`${ROUTES.CONTENT_SLUG}?stripeAccountLinkSuccess`} />
+            <Redirect from={ROUTES.STRIPE_ACCOUNT_LINK_RETURN} to={`${ROUTES.CONTENT_SLUG}?stripeAccountLinkSuccess`} />
 
             {/* Organization Dashboard */}
             <ProtectedRoute
@@ -61,11 +59,7 @@ function DashboardRouter() {
                 ROUTES.EDITOR_ROUTE,
                 ROUTES.VERIFY_EMAIL_SUCCESS
               ]}
-              render={() => (
-                <UserContextProvider>
-                  <TrackPageView component={Main} />
-                </UserContextProvider>
-              )}
+              render={() => <TrackPageView component={Main} />}
             />
 
             <Redirect to={ROUTES.CONTENT_SLUG} />

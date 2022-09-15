@@ -33,7 +33,9 @@ function AddPageModal({ isOpen, closeModal }) {
   const alert = useAlert();
   const theme = useTheme();
   const history = useHistory();
-  const { revenue_programs: revenuePrograms } = useUser();
+  const {
+    user: { revenue_programs: revenuePrograms }
+  } = useUser();
   const createPage = useRequest();
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState({});

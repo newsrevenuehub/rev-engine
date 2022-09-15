@@ -13,7 +13,7 @@ import StripeLogo from 'assets/icons/stripeLogo.svg';
 import useModal from 'hooks/useModal';
 import Cookies from 'universal-cookie';
 
-const CONNECT_STRIPE_COOKIE_NAME = 'hideConnectStripeModal';
+export const CONNECT_STRIPE_COOKIE_NAME = 'hideConnectStripeModal';
 
 // TODO: Insert Stripe FAQ Link
 const CONNECT_STRIPE_FAQ_LINK = '';
@@ -45,6 +45,7 @@ const ConnectStripeModal = ({ revenueProgramId, createStripeAccountLinkMutation 
           Check out our <S.StripeFAQ href={CONNECT_STRIPE_FAQ_LINK}>Stripe Connection FAQ</S.StripeFAQ>.
         </S.Description>
         <S.Button
+          data-testid="connect-stripe-modal-button"
           disabled={createStripeAccountLinkMutation.isLoading}
           onClick={() => createStripeAccountLinkMutation.mutate(revenueProgramId)}
         >

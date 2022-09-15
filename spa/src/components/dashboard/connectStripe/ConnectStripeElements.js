@@ -15,7 +15,7 @@ import Cookies from 'universal-cookie';
 
 export const CONNECT_STRIPE_COOKIE_NAME = 'hideConnectStripeModal';
 
-// TODO: Insert Stripe FAQ Link
+// TODO: [DEV-2399] Insert Stripe FAQ Link
 const CONNECT_STRIPE_FAQ_LINK = '';
 
 const ConnectStripeModal = ({ revenueProgramId, createStripeAccountLinkMutation }) => {

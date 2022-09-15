@@ -350,6 +350,9 @@ class TestCreateStripeAccountLink:
         account_id = "someID"
         mock_account_create = mock.MagicMock(return_value={"id": account_id})
         monkeypatch.setattr("stripe.Account.create", mock_account_create)
+        mock_return_url = "https://foo.bar"
+        mock_get_return_url = mock.MagicMock(return_value=mock_return_url)
+        monkeypatch.setattr("apps.organizations.views.get_stripe_account_link_return_url", mock_get_return_url)
         rp = rp_role_assignment.revenue_programs.first()
         rp.payment_provider.stripe_verified = False
         rp.payment_provider.stripe_account_id = None
@@ -365,8 +368,8 @@ class TestCreateStripeAccountLink:
         mock_account_create.assert_called_once_with(type="standard", country=rp.country)
         mock_account_link_create.assert_called_once_with(
             account=rp.payment_provider.stripe_account_id,
-            refresh_url="http://testserver/",
-            return_url="http://testserver/",
+            refresh_url=mock_return_url,
+            return_url=mock_return_url,
             type="account_onboarding",
         )
 

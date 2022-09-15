@@ -15,6 +15,9 @@ import Content from 'components/content/Content';
 import Customize from 'components/content/Customize';
 import PageEditor from 'components/pageEditor/PageEditor';
 
+import userHasSingleRPNotConnectedToStripe from 'components/dashboard/connectStripe/userHasSingleRPNotConnectedToStripe';
+import ConnectStripeElements from 'components/dashboard/connectStripe/ConnectStripeElements';
+
 // Feature flag-related
 import { CONTENT_SECTION_ACCESS_FLAG_NAME } from 'constants/featureFlagConstants';
 
@@ -39,8 +42,11 @@ function Dashboard() {
 
   const isEditPage = useLocation().pathname.includes(EDITOR_ROUTE);
 
+  const showConnectToStripeDialogs = userHasSingleRPNotConnectedToStripe(user);
+
   return (
     <S.Outer>
+      {showConnectToStripeDialogs ? <ConnectStripeElements /> : ''}
       <DashboardTopbar isEditPage={isEditPage} page={page} />
       <S.Dashboard data-testid="dashboard">
         {isEditPage ? null : <DashboardSidebar />}

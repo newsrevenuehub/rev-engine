@@ -36,7 +36,7 @@ class BenefitLevelSerializer(serializers.ModelSerializer):
         ]
 
 
-class PaymentProviderSerializer(serializers.ModelSerializer):
+class PublicPaymentProviderSerializer(serializers.ModelSerializer):
     class Meta:
         model = PaymentProvider
         fields = ["stripe_account_id"]
@@ -49,7 +49,7 @@ class RevenueProgramDetailSerializer(serializers.ModelSerializer):
 
     organization = serializers.StringRelatedField()
     benefit_levels = BenefitLevelSerializer(source="benefitlevel_set", many=True)
-    payment_provider = PaymentProviderSerializer()
+    payment_provider = PublicPaymentProviderSerializer()
 
     class Meta:
         model = RevenueProgram

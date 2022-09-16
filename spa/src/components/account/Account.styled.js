@@ -15,7 +15,7 @@ export const Outer = styled.div`
 
 export const Left = styled.div`
   background: ${(props) =>
-    props.bgColor && props.bgColor === 'purple'
+    props.isCreateAccountPage
       ? props.theme.colors.account.purple[1]
       : `linear-gradient(39.42deg, #6fd1ec 47.23%, #8af7e3 105.55%);`};
   flex: 35%;
@@ -98,7 +98,7 @@ export const Subheading = styled.div`
   font-weight: 300;
   font-size: ${(props) => props.theme.fontSizesUpdated.md};
   line-height: 138.19%;
-  color: ${(props) => props.theme.colors.greyVeryDark};
+  color: ${(props) => props.theme.colors.muiGrey[900]};
   font-style: normal;
   @media (${(props) => props.theme.breakpoints.phoneOnly}) {
     font-size: ${(props) => props.theme.fontSizesUpdated.lg};
@@ -126,7 +126,7 @@ export const Submit = styled(motion.button)`
     color: ${(props) => props.theme.buttons.yellow.color};
   }
   &:disabled {
-    color: ${(props) => props.theme.colors.grey[3]};
+    color: ${(props) => props.theme.colors.muiGrey[600]};
     transform: translate(1px, 1px);
   }
 `;
@@ -137,7 +137,7 @@ export const Message = styled.div`
   font-weight: 400;
   font-size: ${(props) => props.theme.fontSizesUpdated.xs};
   line-height: ${(props) => props.theme.fontSizesUpdated.lg};
-  color: ${(props) => props.theme.colors.grey[3]};
+  color: ${(props) => props.theme.colors.muiGrey[600]};
   padding: 0px 9px;
 `;
 
@@ -150,7 +150,7 @@ export const PasswordLabel = styled.div`
   font-weight: 600;
   font-size: ${(props) => props.theme.fontSizesUpdated.xs};
   line-height: ${(props) => props.theme.fontSizesUpdated.md};
-  color: ${(props) => (props.hasError ? props.theme.colors.error.primary : props.theme.colors.grey[4])};
+  color: ${(props) => (props.hasError ? props.theme.colors.error.primary : props.theme.colors.muiGrey[900])};
   margin-top: 5px;
 
   a {
@@ -161,7 +161,7 @@ export const PasswordLabel = styled.div`
 
 export const InputOuter = styled.div`
   border: 1.5px solid;
-  border-color: ${(props) => (props.hasError ? props.theme.colors.error.primary : props.theme.colors.grey[1])};
+  border-color: ${(props) => (props.hasError ? props.theme.colors.error.primary : props.theme.colors.muiGrey[300])};
   border-radius: ${(props) => props.theme.muiBorderRadius.md};
   display: flex;
   margin: 5px 0px;
@@ -191,14 +191,14 @@ export const InputLabel = styled.label`
   font-weight: 600;
   font-size: ${(props) => props.theme.fontSizesUpdated.xs};
   line-height: ${(props) => props.theme.fontSizesUpdated.md};
-  color: ${(props) => (props.hasError ? props.theme.colors.error.primary : props.theme.colors.grey[4])};
+  color: ${(props) => (props.hasError ? props.theme.colors.error.primary : props.theme.colors.muiGrey[900])};
   margin-top: 5px;
 `;
 
 export const Instructions = styled.div`
   font-size: ${(props) => props.theme.fontSizesUpdated.xs};
   line-height: ${(props) => props.theme.fontSizesUpdated.md};
-  color: ${(props) => props.theme.colors.grey[3]};
+  color: ${(props) => props.theme.colors.muiGrey[600]};
   padding: 0px 0px 6px 0px;
 `;
 
@@ -209,8 +209,30 @@ export const NavLink = styled.div`
   font-weight: 400;
   font-size: ${(props) => props.theme.fontSizesUpdated.xs};
   line-height: ${(props) => props.theme.fontSizesUpdated.md};
-  color: ${(props) => props.theme.colors.grey[4]};
+  color: ${(props) => props.theme.colors.muiGrey[900]};
 
+  a,
+  a:hover {
+    color: ${(props) => props.theme.colors.account.blueLink};
+    text-decoration: underline;
+  }
+`;
+
+export const Disclaimer = styled.div`
+  font-weight: 400;
+  font-size: ${(props) => props.theme.fontSizesUpdated.xs};
+  line-height: 13px;
+  color: ${(props) => props.theme.colors.muiGrey[600]};
+  margin: 10px 0px 12px;
+`;
+
+export const AcceptTerms = styled.div`
+  display: flex;
+  font-weight: 400;
+  font-size: ${(props) => props.theme.fontSizesUpdated.xs};
+  line-height: 15px;
+  color: ${(props) => props.theme.colors.muiGrey[900]};
+  margin-top: 6px;
   a,
   a:hover {
     color: ${(props) => props.theme.colors.account.blueLink};

@@ -19,6 +19,12 @@ export const revEngineTheme = {
 
     black: '#080708',
 
+    account: {
+      purple: ['#523a5e', '#25192b', '#19111e'],
+      yellow: ['#f5ff75'],
+      blueLink: '#0052cc'
+    },
+
     white: '#ffffff',
 
     grey: ['#eee', '#ccc', '#999', '#666', '#333'],
@@ -56,7 +62,8 @@ export const revEngineTheme = {
     },
 
     error: {
-      primary: '#C8203F'
+      primary: '#C8203F',
+      bg: '#f6dbe0'
     },
 
     caution: '#ff476c',
@@ -72,6 +79,16 @@ export const revEngineTheme = {
     tableRowActive: '#dce8fa'
   },
 
+  buttons: {
+    yellow: {
+      background: '#F5FF75',
+      border: '0.5px solid #E6EE84',
+      boxShadow: '0px 0.3px 0.5px rgba(0, 0, 0, 0.1), 0px 2px 4px rgba(0, 0, 0, 0.2)',
+      borderRadius: '4px',
+      color: '#302436'
+    }
+  },
+
   systemFont: "'Roboto', sans-serif",
 
   font: { body: "'Roboto', sans-serif", heading: "'Roboto', sans-serif" },
@@ -83,7 +100,9 @@ export const revEngineTheme = {
     sm: '14px',
     md: '16px',
     lg: '18px',
-    h1: '34px'
+    lgx: '24px',
+    h1: '34px',
+    xl: '72px'
   },
 
   muiBorderRadius: {
@@ -99,7 +118,8 @@ export const revEngineTheme = {
 
   breakpoints: {
     phoneOnly: 'max-width: 599px',
-    tabletLandscapeDown: 'max-width: 900px'
+    tabletLandscapeDown: 'max-width: 890px',
+    mdUp: 'min-width: 890px'
   },
 
   maxWidths: {

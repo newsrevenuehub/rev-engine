@@ -1,6 +1,6 @@
 import { getEndpoint } from '../support/util';
 import { LIST_PAGES, LIST_STYLES, USER } from 'ajax/endpoints';
-import { CUSTOMIZE_SLUG, LOGIN } from 'routes';
+import { CUSTOMIZE_SLUG, SIGN_IN } from 'routes';
 
 import hubAdminUser from '../fixtures/user/hub-admin';
 import { CONTENT_SECTION_ACCESS_FLAG_NAME } from 'constants/featureFlagConstants';
@@ -37,17 +37,17 @@ describe('Generic Error', () => {
     cy.visit(CUSTOMIZE_SLUG);
     cy.wait('@listStyles');
     cy.getByTestId('error-sign-out').click();
-    cy.url().should('include', LOGIN);
+    cy.url().should('include', SIGN_IN);
   });
 });
 
 describe('Append trailing slash to the URL', () => {
   it('should append slash to the url with if NOT given', () => {
     cy.visit('sign-in');
-    cy.url().should('include', LOGIN);
+    cy.url().should('include', SIGN_IN);
   });
   it('should maintain query params after appending slash', () => {
     cy.visit('sign-in?qs=test');
-    cy.url().should('include', LOGIN + '?qs=test');
+    cy.url().should('include', SIGN_IN + '?qs=test');
   });
 });

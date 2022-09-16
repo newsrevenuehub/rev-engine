@@ -1,8 +1,7 @@
-import PropTypes from 'prop-types';
 import { useState, useCallback } from 'react';
 
 import * as S from './ConnectStripeToast.styled';
-import useCreateStripeAccountLink from 'hooks/useCreateStripeAccountLink';
+import useConnectStripeAccount from 'hooks/useConnectStripeAccount';
 
 // Assets
 import StripeLogo from 'assets/icons/stripeLogo.svg';
@@ -11,7 +10,9 @@ import RemoveIcon from '@material-ui/icons/Remove';
 import RETooltip from 'elements/RETooltip';
 
 const ConnectStripeToast = ({ revenueProgramId }) => {
-  const { mutate, isLoading } = useCreateStripeAccountLink(revenueProgramId);
+  const {
+    createStripeAccountLink: { mutate, isLoading }
+  } = useConnectStripeAccount();
 
   const [collapsed, setCollapsed] = useState(false);
 
@@ -55,10 +56,6 @@ const ConnectStripeToast = ({ revenueProgramId }) => {
       </S.Button>
     </S.ConnectStripeToast>
   );
-};
-
-ConnectStripeToast.propTypes = {
-  revenueProgramId: PropTypes.number.isRequired
 };
 
 export default ConnectStripeToast;

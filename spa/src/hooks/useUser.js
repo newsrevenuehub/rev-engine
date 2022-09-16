@@ -23,7 +23,12 @@ function useUser() {
     // When user logs in, the authentication endpoint returns user data and it gets
     // stored in localstorage. We should update the localstorage data each time user
     // is refetched so it isn't stale.
-    onSuccess: (data) => localStorage.setItem(LS_USER, JSON.stringify(data))
+    onSuccess: (data) => localStorage.setItem(LS_USER, JSON.stringify(data)),
+    // this is the minimal side effect we want in this hook if error retrieving user.
+    // calling console.error will create a Sentry error. It's up to the calling context
+    // to decide what else to do in case of error, which it can do via the returned `isError`
+    // boolean.
+    onError: (err) => console.error(err)
   });
   return { user, isLoading, isError };
 }

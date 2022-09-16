@@ -269,7 +269,7 @@ describe('Account', () => {
         While confusing, it is necessary to define the second occuring intercept of the same path first.
         See comment here: https://stackoverflow.com/questions/71485161/cypress-use-same-endpoint-with-different-response-testing-http-race-condition
       */
-      cy.intercept({ method: 'GET', pathname: getEndpoint(USER), times: 1 }, { body: selfServicUserStripeVerified }).as(
+      cy.intercept({ method: 'GET', pathname: getEndpoint(USER) }, { body: selfServicUserStripeVerified }).as(
         'getUserSecondTime'
       );
       cy.intercept(
@@ -278,13 +278,18 @@ describe('Account', () => {
       ).as('getUserFirstTime');
       cy.intercept(
         { method: 'POST', pathname: getEndpoint(getStripeAccountLinkCreateCompletePath(rp.id)) },
-        { statusCode: 202 }
+        // We delay this request by 500 milliseconds because otherwise the updating of the search
+        // params happens so fast that we can't assert the initial presence of `?stripeAccountLinkSuccess`
+        { statusCode: 202, delay: 500 }
       ).as('signalStripeAccountLinkComplete');
-      cy.visit(STRIPE_ACCOUNT_LINK_RETURN);
+      cy.intercept({ method: 'GET', pathname: getEndpoint(LIST_PAGES) });
+      cy.visit(STRIPE_ACCOUNT_LINK_RETURN).should(() => {});
+      cy.location('search').should('include', 'stripeAccountLinkSuccess');
       cy.wait('@getUserFirstTime');
       cy.wait('@signalStripeAccountLinkComplete');
       cy.wait('@getUserSecondTime');
       cy.location('pathname').should('eq', CONTENT_SLUG);
+      cy.location('search').should('not.include', 'stripeAccountLinkSuccess');
       cy.getByTestId('connect-stripe-modal').should('not.exist');
       cy.getByTestId('connect-stripe-toast').should('not.exist');
     });

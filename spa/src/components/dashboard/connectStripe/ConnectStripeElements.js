@@ -1,5 +1,4 @@
 import { useCallback } from 'react';
-import PropTypes from 'prop-types';
 
 import * as S from './ConnectStripeElements.styled';
 import ConnectStripeToast from './ConnectStripeToast';
@@ -10,7 +9,8 @@ import BottomNav from 'assets/icons/bottomNav.svg';
 import StripeLogo from 'assets/icons/stripeLogo.svg';
 
 import useModal from 'hooks/useModal';
-import useCreateStripeAccountLink from 'hooks/useCreateStripeAccountLink';
+import useConnectStripeAccount from 'hooks/useConnectStripeAccount';
+
 import Cookies from 'universal-cookie';
 
 export const CONNECT_STRIPE_COOKIE_NAME = 'hideConnectStripeModal';
@@ -18,9 +18,11 @@ export const CONNECT_STRIPE_COOKIE_NAME = 'hideConnectStripeModal';
 // TODO: [DEV-2399] Insert Stripe FAQ Link
 const CONNECT_STRIPE_FAQ_LINK = '';
 
-const ConnectStripeModal = ({ revenueProgramId }) => {
+const ConnectStripeModal = () => {
   const { open, handleClose } = useModal(true);
-  const { mutate, isLoading } = useCreateStripeAccountLink(revenueProgramId);
+  const {
+    createStripeAccountLink: { mutate, isLoading }
+  } = useConnectStripeAccount();
 
   const handleClickConnectLater = useCallback(() => {
     const cookies = new Cookies();
@@ -28,7 +30,7 @@ const ConnectStripeModal = ({ revenueProgramId }) => {
     cookies.set(CONNECT_STRIPE_COOKIE_NAME, true, { path: '/' });
   }, [handleClose]);
 
-  if (!open) return <ConnectStripeToast revenueProgramId={revenueProgramId} />;
+  if (!open) return <ConnectStripeToast />;
   return (
     <S.Modal open={open} aria-labelledby="Connect Stripe Modal">
       <S.ConnectStripeModal data-testid="connect-stripe-modal">
@@ -52,22 +54,14 @@ const ConnectStripeModal = ({ revenueProgramId }) => {
   );
 };
 
-ConnectStripeModal.propTypes = {
-  revenueProgramId: PropTypes.number.isRequired
-};
-
 // TODO: [DEV-2401] Handle partially complete Stripe Account Link states
-const ConnectStripeElements = ({ revenueProgramId }) => {
+const ConnectStripeElements = () => {
   const cookies = new Cookies();
   if (cookies.get(CONNECT_STRIPE_COOKIE_NAME)) {
-    return <ConnectStripeToast revenueProgramId={revenueProgramId} />;
+    return <ConnectStripeToast />;
   }
 
-  return <ConnectStripeModal revenueProgramId={revenueProgramId} />;
-};
-
-ConnectStripeElements.propTypes = {
-  revenueProgramId: PropTypes.number.isRequired
+  return <ConnectStripeModal />;
 };
 
 export default ConnectStripeElements;

@@ -18,6 +18,7 @@ import ImageWithPreview from 'elements/inputs/ImageWithPreview';
 import Input from 'elements/inputs/Input';
 import PublishWidget from './PublishWidget';
 import CircleButton from 'elements/buttons/CircleButton';
+import useConnectStripeAccount from 'hooks/useConnectStripeAccount';
 
 /**
  * PageSetup
@@ -40,9 +41,7 @@ function PageSetup({ backToProperties }) {
   const [post_thank_you_redirect, setPostThankYouRedirect] = useState(page.post_thank_you_redirect);
   const [donor_benefits, setDonorBenefits] = useState(page.donor_benefits);
   const [published_date, setPublishedDate] = useState(page.published_date ? new Date(page.published_date) : undefined);
-
-  const isStripeVerified =
-    user?.revenue_programs.find((x) => x.id === page?.revenue_program?.id)?.payment_provider_stripe_verified ?? false;
+  const { requiresStripeVerification } = useConnectStripeAccount();
 
   const handleKeepChanges = () => {
     verifyUnpublish(updatePage);
@@ -167,7 +166,7 @@ function PageSetup({ backToProperties }) {
         />
       </S.InputWrapper>
       <PublishWidget
-        isStripeVerified={isStripeVerified}
+        isStripeVerified={!requiresStripeVerification}
         publishDate={published_date}
         onChange={setPublishedDate}
         errors={errors.published_date}

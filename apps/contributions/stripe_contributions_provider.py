@@ -217,17 +217,17 @@ class StripeContributionsProvider:
             kwargs["page"] = page
 
         # TODO: [DEV-2193] this should probably be refactored to fetch PaymentIntents instead of Charges and expand `invoice.subscription`
-
         return stripe.PaymentIntent.search(**kwargs)
 
 
 class ContributionsCacheProvider:
-    def __init__(self, email_id, account_id=None, serializer=None, converter=None) -> None:
+    def __init__(self, email_id, stripe_account_id, serializer=None, converter=None) -> None:
         self.cache = caches[DEFAULT_CACHE]
         self.serializer = serializer
         self.converter = converter
+        self.stripe_account_id = stripe_account_id
 
-        self.key = f"{email_id}-payment-intents-{account_id}"
+        self.key = f"{email_id}-payment-intents-{self.stripe_account_id}"
 
     def serialize(self, contributions):
         """Serializes the stripe.PaymentIntent object into json."""
@@ -243,6 +243,10 @@ class ContributionsCacheProvider:
     def upsert(self, contributions):
         """Serialized and Upserts contributions data to cache."""
         data = self.serialize(contributions)
+        # add the stripe account ID
+        for k in data:
+            data[k]["stripe_account_id"] = self.stripe_account_id
+
         cached_data = json.loads(self.cache.get(self.key) or "{}")
         cached_data.update(data)
 
@@ -251,7 +255,6 @@ class ContributionsCacheProvider:
             self.cache.set(self.key, json.dumps(cached_data), timeout=CONTRIBUTION_CACHE_TTL.seconds)
 
     def load(self):
-
         data = self.cache.get(self.key)
         if not data:
             return []
@@ -261,11 +264,12 @@ class ContributionsCacheProvider:
 
 
 class SubscriptionsCacheProvider:
-    def __init__(self, email_id, account_id=None, serializer=None) -> None:
+    def __init__(self, email_id, stripe_account_id, serializer=None) -> None:
         self.cache = caches[DEFAULT_CACHE]
         self.serializer = serializer
+        self.stripe_account_id = stripe_account_id
 
-        self.key = f"{email_id}-subscriptions-{account_id}"
+        self.key = f"{email_id}-subscriptions-{self.stripe_account_id}"
 
     def serialize(self, subscriptions):
         """Serializes the stripe.Subscription object into json."""
@@ -281,6 +285,9 @@ class SubscriptionsCacheProvider:
     def upsert(self, subscriptions):
         """Serialized and Upserts subscriptions data to cache."""
         data = self.serialize(subscriptions)
+        # add the stripe account ID
+        for k in data:
+            data[k]["stripe_account_id"] = self.stripe_account_id
         cached_data = json.loads(self.cache.get(self.key) or "{}")
         cached_data.update(data)
 

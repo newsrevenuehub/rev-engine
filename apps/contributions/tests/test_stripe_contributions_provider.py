@@ -329,7 +329,7 @@ class TestContributionsCacheProvider(AbstractTestStripeContributions):
 
     def test_serialize(self):
         cache_provider = ContributionsCacheProvider(
-            "test@email.com", serializer=self.serializer, converter=self.converter
+            stripe_account_id="bogus", email_id="test@email.com", serializer=self.serializer, converter=self.converter
         )
         data = cache_provider.serialize(self.contributions_1)
         self.assertEqual(len(data), 1)
@@ -375,7 +375,10 @@ class TestContributionsCacheProvider(AbstractTestStripeContributions):
         redis_mock = RedisMock()
         with patch.dict("apps.contributions.stripe_contributions_provider.caches", {"default": redis_mock}):
             cache_provider = ContributionsCacheProvider(
-                "test@email.com", serializer=self.serializer, converter=self.converter
+                email_id="test@email.com",
+                stripe_account_id="bogus",
+                serializer=self.serializer,
+                converter=self.converter,
             )
             cache_provider.upsert(self.contributions_1)
             data = cache_provider.load()
@@ -421,7 +424,9 @@ class TestSubscriptionsCacheProvider(AbstractTestCase):
         del self.sub_3.metadata
 
     def test_serialize(self):
-        cache_provider = SubscriptionsCacheProvider("test@email.com", serializer=self.serializer)
+        cache_provider = SubscriptionsCacheProvider(
+            email_id="test@email.com", stripe_account_id="bogus", serializer=self.serializer
+        )
         data = cache_provider.serialize([self.sub_1, self.sub_2, self.sub_3])
         assert len(data) == 2  # because the third one is missing metadata
 
@@ -440,7 +445,8 @@ class TestSubscriptionsCacheProvider(AbstractTestCase):
         redis_mock = RedisMock()
         with patch.dict("apps.contributions.stripe_contributions_provider.caches", {"default": redis_mock}):
             cache_provider = SubscriptionsCacheProvider(
-                "test@email.com",
+                email_id="test@email.com",
+                stripe_account_id="bogus",
                 serializer=self.serializer,
             )
             data = cache_provider.load()

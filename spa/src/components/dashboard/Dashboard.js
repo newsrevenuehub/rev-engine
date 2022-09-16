@@ -27,7 +27,7 @@ import hasContributionsDashboardAccessToUser from 'utilities/hasContributionsDas
 import { usePageContext } from './PageContext';
 import { USER_ROLE_ORG_ADMIN_TYPE } from 'constants/authConstants';
 import axios from 'ajax/axios';
-import { getStripeAccountLinkCreatePath, getStripeAccountLinkCreateCompletePath } from 'ajax/endpoints';
+import { getStripeAccountLinkCreateCompletePath } from 'ajax/endpoints';
 import useUser from 'hooks/useUser';
 
 const postAccountLinkSuccess = (rpId) => {
@@ -42,18 +42,6 @@ function Dashboard() {
   const history = useHistory();
   const [revenueProgramIdForVerification, setRevenueProgramIdForVerification] = useState();
 
-  const createStripeAccountLinkMutation = useMutation(
-    (revenueProgramId) => axios.post(getStripeAccountLinkCreatePath(revenueProgramId), {}).then(({ data }) => data),
-    {
-      onError: (err) => {
-        // TODO: [DEV-2395] Display something in Dashboard UI if server can't create Stripe Account link
-        console.error(err);
-      },
-      onSuccess: ({ url }) => {
-        window.location = url;
-      }
-    }
-  );
   const hasContributionsSectionAccess = user?.role_type && hasContributionsDashboardAccessToUser(flags);
   const hasContentSectionAccess = user?.role_type && flagIsActiveForUser(CONTENT_SECTION_ACCESS_FLAG_NAME, flags);
 
@@ -128,10 +116,7 @@ function Dashboard() {
   return (
     <S.Outer>
       {revenueProgramIdForVerification ? (
-        <ConnectStripeElements
-          revenueProgramId={revenueProgramIdForVerification}
-          createStripeAccountLinkMutation={createStripeAccountLinkMutation}
-        />
+        <ConnectStripeElements revenueProgramId={revenueProgramIdForVerification} />
       ) : (
         ''
       )}

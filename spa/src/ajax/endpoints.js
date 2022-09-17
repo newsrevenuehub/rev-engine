@@ -5,6 +5,13 @@ export const STRIPE_OAUTH = 'stripe/oauth/';
 export const STRIPE_PAYMENT = 'stripe/payment/';
 export const STRIPE_CONFIRMATION = 'stripe/confirmation/';
 
+export const AUTHORIZE_ONE_TIME_STRIPE_PAYMENT_ROUTE = 'payments/one-time/';
+export const AUTHORIZE_STRIPE_SUBSCRIPTION_ROUTE = 'payments/subscription/';
+
+export function getPaymentSuccessEndpoint(clientProviderSecretId) {
+  return `payments/${clientProviderSecretId}/success/`;
+}
+
 // Pages
 export const LIVE_PAGE_DETAIL = 'pages/live-detail/';
 export const DRAFT_PAGE_DETAIL = 'pages/draft-detail/';

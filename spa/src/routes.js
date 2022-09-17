@@ -9,6 +9,7 @@ export const EDITOR_ROUTE = '/edit';
 export const EDITOR_ROUTE_PAGE = EDITOR_ROUTE + '/:revProgramSlug/:pageSlug';
 export const DONATION_PAGE_SLUG = '/:pageSlug';
 export const THANK_YOU_SLUG = '/thank-you';
+export const PAYMENT_SUCCESS = '/payment/success';
 
 // Contributor
 export const CONTRIBUTOR_ENTRY = '/contributor';

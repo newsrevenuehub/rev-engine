@@ -303,7 +303,8 @@ DTM_IGNORED_MIGRATIONS = {
 
 
 ### Django-CSP Settings
-
+# TODO: [DEV-2359] Fix CSP violation caused by react-select emotion
+CSP_REPORT_ONLY = True
 CSP_INCLUDE_NONCE_IN = ("style-src", "script-src")
 CSP_REPORTING_ENABLE = os.getenv("CSP_REPORTING_ENABLE", "false").lower() == "true"
 if CSP_REPORTING_ENABLE:

@@ -80,20 +80,20 @@ function SvgIcons() {
 
       <symbol id="pages" viewBox="0 0 19 16">
         <path
-          fill-rule="evenodd"
-          clip-rule="evenodd"
+          fillRule="evenodd"
+          clipRule="evenodd"
           d="M17.1 2H1.9V14H17.1V2ZM1.9 0C0.850659 0 0 0.895431 0 2V14C0 15.1046 0.850659 16 1.9 16H17.1C18.1493 16 19 15.1046 19 14V2C19 0.895431 18.1493 0 17.1 0H1.9Z"
           fill="white"
         />
         <path
-          fill-rule="evenodd"
-          clip-rule="evenodd"
+          fillRule="evenodd"
+          clipRule="evenodd"
           d="M17.1 2H1.9V14H17.1V2ZM1.9 0C0.850659 0 0 0.895431 0 2V14C0 15.1046 0.850659 16 1.9 16H17.1C18.1493 16 19 15.1046 19 14V2C19 0.895431 18.1493 0 17.1 0H1.9Z"
           fill="white"
         />
         <path
-          fill-rule="evenodd"
-          clip-rule="evenodd"
+          fillRule="evenodd"
+          clipRule="evenodd"
           d="M17.1 2H1.9V14H17.1V2ZM1.9 0C0.850659 0 0 0.895431 0 2V14C0 15.1046 0.850659 16 1.9 16H17.1C18.1493 16 19 15.1046 19 14V2C19 0.895431 18.1493 0 17.1 0H1.9Z"
           fill="#25192B"
         />

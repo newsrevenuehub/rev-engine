@@ -1,6 +1,9 @@
 import { useState, forwardRef } from 'react';
-import * as S from './DDonorAddress.styled';
+import countryCodes from 'country-code-lookup';
 
+import { donationPageBase as theme } from 'styles/themes';
+
+import * as S from './DDonorAddress.styled';
 // Context
 import { usePage } from 'components/donationPage/DonationPage';
 
@@ -14,6 +17,55 @@ import Grid from '@material-ui/core/Grid';
 // Children
 import DElement from 'components/donationPage/pageContent/DElement';
 import Input from 'elements/inputs/Input';
+import BaseField from 'elements/inputs/BaseField';
+
+import Select from 'react-select';
+
+function CountrySelect({ name, testid }) {
+  const { errors, setMailingCountry, mailingCountry } = usePage();
+  const options = countryCodes.countries
+    .map(({ country: label, fips: value }) => ({ label, value }))
+    .sort(({ value }) => value);
+
+  // we reproduce styles that are shared by other Inputs in the form. Other inputs
+  // use styled-components, but that's not straightforward to integrate with react-select,
+  // so here we manually override its styles.
+  const fontStyles = {
+    fontFamily: theme.font.body,
+    fontSize: theme.fontSizes[1],
+    fontWeight: 400
+  };
+  const styles = {
+    control: (provided, state) => ({
+      ...provided,
+      height: '45px',
+      borderRadius: theme.radii[0],
+      borderColor: state.isFocused
+        ? theme.colors.primary
+        : theme.colors.cstm_inputBorder || theme.theme.colors.inputBorder,
+      '&:hover': { borderColor: 'inherit' }
+    }),
+    valueContainer: (provided) => ({ ...provided, ...fontStyles }),
+    option: (provided) => ({ ...provided, ...fontStyles })
+  };
+  return (
+    <BaseField errors={errors.mailing_country} label="Country" required={true}>
+      <Select
+        className="country-select"
+        inputId="Country"
+        value={options.find(({ value }) => value === mailingCountry)}
+        name={name}
+        closeMenuOnSelect={true}
+        escapeClearsValue={true}
+        isSearchable={true}
+        onChange={({ value }) => setMailingCountry(value)}
+        options={options}
+        styles={styles}
+        classNamePrefix="react-select-country"
+      />
+    </BaseField>
+  );
+}
 
 function DDonorAddress() {
   const { errors } = usePage();
@@ -21,7 +73,7 @@ function DDonorAddress() {
   const [city, setCity] = useState('');
   const [state, setState] = useState('');
   const [zip, setZip] = useState('');
-  const [country, setCountry] = useState('');
+  const { setMailingCountry } = usePage();
 
   const { ref } = usePlacesWidget({
     apiKey: HUB_GOOGLE_MAPS_API_KEY,
@@ -29,12 +81,13 @@ function DDonorAddress() {
       types: ['address']
     },
     onPlaceSelected: (place) => {
+      const fips = place.address_components.find(({ types }) => types.includes('country')).short_name;
       const addrFields = mapAddressComponentsToAddressFields(place.address_components);
       setAddress(addrFields.address || '');
       setCity(addrFields.city || '');
       setState(addrFields.state || '');
       setZip(addrFields.zip || '');
-      setCountry(addrFields.country || '');
+      setMailingCountry(fips);
     }
   });
 
@@ -65,6 +118,7 @@ function DDonorAddress() {
             onChange={(e) => setCity(e.target.value)}
             errors={errors.mailing_city}
             required
+            testid="mailing_city"
           />
         </Grid>
         <Grid item xs={12} md={4}>
@@ -76,6 +130,7 @@ function DDonorAddress() {
             onChange={(e) => setState(e.target.value)}
             errors={errors.mailing_state}
             required
+            testid="mailing_state"
           />
         </Grid>
         <Grid item xs={12} md={4}>
@@ -87,18 +142,11 @@ function DDonorAddress() {
             onChange={(e) => setZip(e.target.value)}
             errors={errors.mailing_postal_code}
             required
+            testid="mailing_postal_code"
           />
         </Grid>
         <Grid item xs={12} md={4}>
-          <Input
-            type="text"
-            name="mailing_country"
-            label="Country"
-            value={country}
-            onChange={(e) => setCountry(e.target.value)}
-            errors={errors.mailing_country}
-            required
-          />
+          <CountrySelect testid="mailing_country" name="mailing_country" required />
         </Grid>
       </Grid>
     </DElement>
@@ -125,6 +173,7 @@ const ConditionalAddressAutocomplete = forwardRef(({ useAutocomplete, address, s
         onChange={(e) => setAddress(e.target.value)}
         errors={errors}
         required
+        data-testid={useAutocomplete ? '' : 'mailing_street'}
       />
       <S.ConditionallyHiddenInput
         show={useAutocomplete}
@@ -136,6 +185,7 @@ const ConditionalAddressAutocomplete = forwardRef(({ useAutocomplete, address, s
         onChange={(e) => setAddress(e.target.value)}
         errors={errors}
         required
+        data-testid={useAutocomplete ? 'mailing_street' : ''}
       />
     </>
   );

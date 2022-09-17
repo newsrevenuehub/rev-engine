@@ -1,41 +1,123 @@
 import { useRef, useState, useEffect, createContext, useContext } from 'react';
+import { useMutation } from 'react-query';
+import { useCookies } from 'react-cookie';
+
 import * as S from './DonationPage.styled';
-
-// Hooks
+import axios from 'ajax/axios';
+import useReCAPTCHAScript from 'hooks/useReCAPTCHAScript';
+import useQueryString from 'hooks/useQueryString';
+import useErrorFocus from 'hooks/useErrorFocus';
 import useClearbit from 'hooks/useClearbit';
-
-// Utils
 import * as getters from 'components/donationPage/pageGetters';
 import { getDefaultAmountForFreq } from 'components/donationPage/pageContent/DAmount';
 import { frequencySort } from 'components/donationPage/pageContent/DFrequency';
-
-import { SALESFORCE_CAMPAIGN_ID_QUERYPARAM, FREQUENCY_QUERYPARAM, AMOUNT_QUERYPARAM } from 'settings';
-
-// Hooks
-import useQueryString from 'hooks/useQueryString';
-import useErrorFocus from 'hooks/useErrorFocus';
-
-// Children
+import {
+  GRECAPTCHA_SITE_KEY,
+  SALESFORCE_CAMPAIGN_ID_QUERYPARAM,
+  FREQUENCY_QUERYPARAM,
+  AMOUNT_QUERYPARAM
+} from 'settings';
 import DonationPageSidebar from 'components/donationPage/DonationPageSidebar';
 import DonationPageFooter from 'components/donationPage/DonationPageFooter';
+import StripePaymentWrapper from 'components/paymentProviders/stripe/StripePaymentWrapper';
+import Modal from 'elements/modal/Modal';
+import LiveErrorFallback from './live/LiveErrorFallback';
+import { SubmitButton } from './DonationPage.styled';
 import GenericErrorBoundary from 'components/errors/GenericErrorBoundary';
+import { AUTHORIZE_ONE_TIME_STRIPE_PAYMENT_ROUTE, AUTHORIZE_STRIPE_SUBSCRIPTION_ROUTE } from 'ajax/endpoints';
+import { serializeData } from 'components/paymentProviders/stripe/stripeFns';
+import calculateStripeFee from 'utilities/calculateStripeFee';
+import formatStringAmountForDisplay from 'utilities/formatStringAmountForDisplay';
+import { getFrequencyAdverb } from 'utilities/parseFrequency';
+import { CONTRIBUTION_INTERVALS } from 'constants';
+
+import { CSRF_HEADER } from 'settings';
+
+function authorizePayment(paymentData, paymentType, csrftoken) {
+  const apiEndpoint =
+    paymentType === CONTRIBUTION_INTERVALS.ONE_TIME
+      ? AUTHORIZE_ONE_TIME_STRIPE_PAYMENT_ROUTE
+      : AUTHORIZE_STRIPE_SUBSCRIPTION_ROUTE;
+  // we manually set the XCSRFToken value in header here. This is an unauthed endpoint
+  // that on the backend requires csrf header, which will be in cookie returned by request
+  // for page data (that happens in parent context)
+  return axios.post(apiEndpoint, paymentData, { headers: { [CSRF_HEADER]: csrftoken } }).then(({ data }) => data);
+}
 
 const DonationPageContext = createContext({});
 
+class DonationPageUnrecoverableError extends Error {
+  constructor(message) {
+    super(message);
+    this.name = 'DonationPageUnrecoverableError';
+  }
+}
+
 function DonationPage({ page, live = false }) {
   const formRef = useRef();
-
-  const salesForceQS = useQueryString(SALESFORCE_CAMPAIGN_ID_QUERYPARAM);
+  const salesforceCampaignId = useQueryString(SALESFORCE_CAMPAIGN_ID_QUERYPARAM);
   const freqQs = useQueryString(FREQUENCY_QUERYPARAM);
   const amountQs = useQueryString(AMOUNT_QUERYPARAM);
   const [frequency, setFrequency] = useState();
-  const [amount, setAmount] = useState();
-  const [payFee, setPayFee] = useState(() => getInitialPayFees(page));
+  const [amount, setAmount] = useState(0);
+  const [feeAmount, setFeeAmount] = useState(0);
+  const [userAgreesToPayFees, setUserAgreesToPayFees] = useState(() => {
+    return (page?.elements?.find((el) => el.type === 'DPayment') || {})?.content?.offerPayFees === true;
+  });
+  const [totalAmount, setTotalAmount] = useState(0);
+  const [displayErrorFallback, setDisplayErrorFallback] = useState(false);
+  const [stripeClientSecret, setStripeClientSecret] = useState();
+  const [emailHash, setEmailHash] = useState();
+  const [displayStripePaymentForm, setDisplayStripePaymentForm] = useState(false);
+  const [contributorEmail, setContributorEmail] = useState();
+  const [mailingCountry, setMailingCountry] = useState();
+  const [paymentSubmitButtonText, setPaymentSubmitButtonText] = useState();
+
+  const [stripeBillingDetails, setStripeBillingDetails] = useState();
+
+  const [cookies] = useCookies(['csrftoken']);
+
+  // we use this on form submission to authorize a one-time payment or subscription. Note that the function
+  // passed to `useMutation` must return a promise.
+  const { mutate: createPayment, isLoading: createPaymentIsLoading } = useMutation((paymentData) => {
+    switch (paymentData.interval) {
+      case CONTRIBUTION_INTERVALS.ONE_TIME:
+        return authorizePayment(paymentData, CONTRIBUTION_INTERVALS.ONE_TIME, cookies.csrftoken);
+      case CONTRIBUTION_INTERVALS.MONTHLY:
+      case CONTRIBUTION_INTERVALS.ANNUAL:
+        return authorizePayment(paymentData, paymentData.interval, cookies.csrftoken);
+      default:
+        return Promise.reject(new DonationPageUnrecoverableError('Unexpected payment interval in paymentData'));
+    }
+  });
+
+  /*
+  If window.grecaptcha is defined-- which should be done in useReCAPTCHAScript hook--
+  listen for readiness and resolve promise with resulting reCAPTCHA token.
+  @returns {Promise} - resolves to token or error
+  */
+  const getReCAPTCHAToken = () =>
+    new Promise((resolve, reject) => {
+      if (window.grecaptcha) {
+        window.grecaptcha.ready(async function () {
+          try {
+            const token = window.grecaptcha.execute(GRECAPTCHA_SITE_KEY, { action: 'submit' });
+            resolve(token);
+          } catch (error) {
+            reject(error);
+          }
+        });
+      } else {
+        // TODO: [DEV-2372] Make Google Recaptcha integration less brittle
+        reject(new Error('window.grecaptcha not defined at getReCAPTCHAToken call time'));
+      }
+    });
+
+  useReCAPTCHAScript();
 
   // overrideAmount causes only the custom amount to show (initially)
   const [overrideAmount, setOverrideAmount] = useState(false);
   const [errors, setErrors] = useState({});
-  const [salesforceCampaignId, setSalesforceCampaignId] = useState();
 
   // Focus the first input on the page that has an error
   useErrorFocus(formRef, errors);
@@ -52,10 +134,100 @@ function DonationPage({ page, live = false }) {
     setAmount(getInitialAmount(freq, page, amountQs, setOverrideAmount));
   }, [amountQs, setOverrideAmount, freqQs, page]);
 
-  // Set sf_campaign_id from queryparams
+  // update the fee amount as amount and frequency change
   useEffect(() => {
-    if (salesForceQS) setSalesforceCampaignId(salesForceQS);
-  }, [salesForceQS, setSalesforceCampaignId]);
+    // when a user focuses on the custom amount field in the DAmount component,
+    // the amount value is set to empty string initially. This is the only time
+    // it should be able to have a non-numeric value. If there's already a feeAmount,
+    // and amount changes to '', we want to update the fee amount, so we resolve to
+    // 0. When the user enters a new numeric amount, fee still gets updated.
+    const resolvedAmount = amount ?? 0;
+    if (typeof resolvedAmount === 'number' && frequency && page?.revenue_program_is_nonprofit !== null) {
+      setFeeAmount(calculateStripeFee(resolvedAmount, frequency, page.revenue_program_is_nonprofit));
+    }
+  }, [amount, frequency, page.revenue_program_is_nonprofit]);
+
+  // update total amount based on amount, fee amount, and if user agrees to pay fees
+  useEffect(() => {
+    setTotalAmount(userAgreesToPayFees ? amount + feeAmount : amount);
+  }, [amount, feeAmount, userAgreesToPayFees]);
+
+  const getCheckoutData = async () => {
+    let reCAPTCHAToken = '';
+    // getReCAPTCHAToken returns rejected promise if window.grecaptcha is not defined when function runs.
+    // In tests, and quite possibly in deployed environments, this causes form submission to fail if grecaptcha
+    // hasn't loaded. We don't want tests to fail or users to be blocked from making a contribution just because
+    // this script hasn't loaded, so if error occurs, we just go with default empty string value for token, and log.
+    try {
+      reCAPTCHAToken = await getReCAPTCHAToken();
+    } catch (error) {
+      console.error('No recaptcha token, defaulting to empty string');
+    }
+    return serializeData(formRef.current, {
+      amount: totalAmount,
+      frequency,
+      reCAPTCHAToken,
+      pageId: page.id,
+      salesforceCampaignId
+    });
+  };
+
+  const handleCheckoutSubmit = async (e) => {
+    e.preventDefault();
+    const data = await getCheckoutData();
+    // we grab form data and set it different state objects, some of which in turn gets
+    // passed in donation page context, so will be available in usePage, when `StripePaymentForm` loads.
+    // ideally, we'd use a library like React Hook Form for and we could watch the relevant form fields
+    // and pass along to context that way, but that was not feasible in short term.
+    setContributorEmail(data.email);
+    setStripeBillingDetails({
+      name: `${data.first_name}${data.first_name ? ' ' : ''}${data.last_name}`,
+      email: data.email,
+      phone: data.phone || '', // stripe will complain if its null or undefined, and it's an optional field
+      address: {
+        city: data.mailing_city,
+        country: data.mailing_country,
+        line1: data.mailing_street,
+        line2: '', // stripe complains if this is missing
+        postal_code: data.mailing_postal_code,
+        state: data.mailing_state
+      }
+    });
+    createPayment(data, {
+      onSuccess: ({ provider_client_secret_id, email_hash }) => {
+        setStripeClientSecret(provider_client_secret_id);
+        setEmailHash(email_hash);
+        setDisplayStripePaymentForm(true);
+      },
+      onError: ({ name, message, response }) => {
+        // this would happen on client side if request couldn't be made. See above.
+        if (name === DonationPageUnrecoverableError.name) {
+          console.error(message);
+          setDisplayErrorFallback(true);
+          // This would happen if the server returned validation errors on the form
+        } else if (response?.status === 400 && response?.data) {
+          setErrors(response.data);
+        } else {
+          // This happens if something really unexpected happens, or if there was a 403
+          console.error('Something unexpected happened', name, message);
+          setDisplayErrorFallback(true);
+        }
+      }
+    });
+  };
+
+  const getCheckoutSubmitButtonText = (currencySymbol, totalAmount, frequency) => {
+    if (isNaN(totalAmount) || totalAmount === 'NaN') return 'Enter a valid amount';
+    return `Give ${currencySymbol}${formatStringAmountForDisplay(totalAmount)} ${getFrequencyAdverb(frequency)}`;
+  };
+
+  useEffect(() => {
+    if (page?.currency?.symbol && !isNaN(totalAmount) && frequency) {
+      setPaymentSubmitButtonText(
+        `Give ${page.currency.symbol}${formatStringAmountForDisplay(totalAmount)} ${getFrequencyAdverb(frequency)}`
+      );
+    }
+  }, [frequency, page.currency?.symbol, totalAmount]);
 
   return (
     <DonationPageContext.Provider
@@ -63,8 +235,8 @@ function DonationPage({ page, live = false }) {
         page,
         frequency,
         setFrequency,
-        payFee,
-        setPayFee,
+        userAgreesToPayFees,
+        setUserAgreesToPayFees,
         formRef,
         amount,
         setAmount,
@@ -72,7 +244,15 @@ function DonationPage({ page, live = false }) {
         setOverrideAmount,
         errors,
         setErrors,
-        salesforceCampaignId
+        feeAmount,
+        totalAmount,
+        emailHash,
+        stripeBillingDetails,
+        contributorEmail,
+        stripeClientSecret,
+        mailingCountry,
+        setMailingCountry,
+        paymentSubmitButtonText
       }}
     >
       <S.DonationPage data-testid="donation-page">
@@ -83,17 +263,41 @@ function DonationPage({ page, live = false }) {
               {getters.getPageHeadingElement()}
               <S.DonationContent>
                 {getters.getGraphicElement()}
-                <form ref={formRef} data-testid="donation-page-form">
-                  <S.PageElements>
-                    {(!live && !page?.elements) ||
-                      (page?.elements?.length === 0 && (
-                        <S.NoElements>Open the edit interface to start adding content</S.NoElements>
-                      ))}
-                    {page?.elements?.map((element) => (
-                      <GenericErrorBoundary>{getters.getDynamicElement(element, live)}</GenericErrorBoundary>
-                    ))}
-                  </S.PageElements>
-                </form>
+                {displayErrorFallback ? (
+                  <LiveErrorFallback />
+                ) : (
+                  <form
+                    name="contribution-checkout"
+                    onSubmit={handleCheckoutSubmit}
+                    ref={formRef}
+                    data-testid="donation-page-form"
+                  >
+                    <S.PageElements>
+                      {(!live && !page?.elements) ||
+                        (page?.elements?.length === 0 && (
+                          <S.NoElements>Open the edit interface to start adding content</S.NoElements>
+                        ))}
+                      {page?.elements
+                        // The DPayment element in page data has some data we need to configure subsequent form
+                        // user encounters after this form is submitted, so we filter out here.
+                        ?.filter((element) => element.type !== 'DPayment')
+                        .map((element, idx) => (
+                          <GenericErrorBoundary key={idx}>
+                            {getters.getDynamicElement(element, live)}
+                          </GenericErrorBoundary>
+                        ))}
+                    </S.PageElements>
+                    <SubmitButton disabled={createPaymentIsLoading} loading={createPaymentIsLoading} type="submit">
+                      {getCheckoutSubmitButtonText(page?.currency?.symbol, totalAmount, frequency)}
+                    </SubmitButton>
+                  </form>
+                )}
+
+                {displayStripePaymentForm && (
+                  <Modal isOpen={displayStripePaymentForm}>
+                    <StripePaymentWrapper />
+                  </Modal>
+                )}
               </S.DonationContent>
             </S.SideInner>
           </S.SideOuter>
@@ -111,9 +315,9 @@ export default DonationPage;
 
 // Keys are the strings expected as querys params, values are our version.
 const mapQSFreqToProperFreq = {
-  once: 'one_time',
-  monthly: 'month',
-  yearly: 'year'
+  once: CONTRIBUTION_INTERVALS.ONE_TIME,
+  monthly: CONTRIBUTION_INTERVALS.MONTHLY,
+  yearly: CONTRIBUTION_INTERVALS.ANNUAL
 };
 
 /**
@@ -128,7 +332,7 @@ export function getInitialFrequency(page, freqQs, amountQs) {
   const freqFromQs = mapQSFreqToProperFreq[freqQs];
   if (freqFromQs) return freqFromQs;
   // If there's an amountQs, but no freqQs, we want to show that amount as "one-time"
-  if (!freqFromQs && amountQs) return 'one_time';
+  if (!freqFromQs && amountQs) return CONTRIBUTION_INTERVALS.ONE_TIME;
   // Otherwise, if there's no freq or amount QS, set default normally, which means...
   const frequencyElement = page?.elements?.find((el) => el.type === 'DFrequency');
   if (frequencyElement?.content) {
@@ -142,7 +346,7 @@ export function getInitialFrequency(page, freqQs, amountQs) {
     return sortedOptions[0]?.value || '';
   }
   // Or, if for some reason non of these conditions are met, just return one_time
-  return 'one_time';
+  return CONTRIBUTION_INTERVALS.ONE_TIME;
 }
 
 /**
@@ -166,16 +370,4 @@ export function getInitialAmount(frequency, page, amountQs, setOverrideAmount) {
     const defaultAmountForFreq = getDefaultAmountForFreq(frequency, page);
     return defaultAmountForFreq;
   }
-}
-
-function getInitialPayFees(page) {
-  const paymentElement = page?.elements?.find((el) => el.type === 'DPayment');
-  const payFeesDefault = paymentElement?.content?.payFeesDefault;
-  // If payFeesDefault is true or false...
-  if (payFeesDefault === true || payFeesDefault === false) {
-    // ...initial value should be payFeesDefault...
-    return payFeesDefault;
-  }
-  // ...else, default to false
-  return false;
 }

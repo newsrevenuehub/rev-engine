@@ -34,8 +34,6 @@ function AddPageModal({ isOpen, closeModal, pagesByRevenueProgram }) {
   const history = useHistory();
   const { user } = useUserContext();
   const revenuePrograms = user?.revenue_programs;
-
-  const fetchTemplates = useRequest();
   const createPage = useRequest();
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState({});

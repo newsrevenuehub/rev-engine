@@ -3,7 +3,6 @@ import { CONTENT_SLUG } from 'routes';
 import { getEndpoint } from '../support/util';
 import orgAdmin from '../fixtures/user/login-success-org-admin.json';
 import stripeVerifiedOrgAdmin from '../fixtures/user/self-service-user-stripe-verified.json';
-import { USER_ROLE_ORG_ADMIN_TYPE } from 'constants/authConstants';
 import { CONTENT_SECTION_ACCESS_FLAG_NAME } from 'constants/featureFlagConstants';
 
 const contentSectionFlag = {

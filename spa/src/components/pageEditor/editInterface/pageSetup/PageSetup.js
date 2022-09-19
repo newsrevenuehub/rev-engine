@@ -31,7 +31,6 @@ function PageSetup({ backToProperties }) {
   const getUserConfirmation = useConfirmationModalContext();
   const { page, errors } = usePageEditorContext();
   const { setPageContent } = useEditInterfaceContext();
-  const { user } = useUser();
 
   // Form state
   const [heading, setPageHeading] = useState(page.heading);

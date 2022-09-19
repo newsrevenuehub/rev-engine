@@ -8,7 +8,7 @@ import axios from 'ajax/axios';
 import { CUSTOMIZE_ACCOUNT_ENDPOINT } from 'ajax/endpoints';
 
 // State management
-import fetchReducer, { initialState, FETCH_START, FETCH_FAILURE } from 'state/fetch-reducer';
+import fetchReducer, { initialState, FETCH_START, FETCH_FAILURE, FETCH_SUCCESS } from 'state/fetch-reducer';
 import { useUserContext } from 'components/UserContext';
 
 import useModal from 'hooks/useModal';
@@ -38,6 +38,7 @@ function Profile() {
       });
 
       if (status === 204) {
+        dispatch({ type: FETCH_SUCCESS });
         history.push('/');
       } else {
         dispatch({ type: FETCH_FAILURE, payload: data });

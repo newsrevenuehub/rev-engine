@@ -856,6 +856,13 @@ class TestBaseCreatePaymentSerializer:
         for key, val in expectations.items():
             assert getattr(contribution, key) == val
 
+    def test_donation_page_when_element_not_have_required_fields(self, donation_page, minimally_valid_data):
+        del donation_page.elements[0]["requiredFields"]
+        donation_page.save()
+        request = APIRequestFactory().post("", {}, format="json")
+        serializer = self.serializer_class(data=minimally_valid_data, context={"request": request})
+        assert serializer.is_valid()
+
 
 @pytest.mark.django_db
 class TestCreateOneTimePaymentSerializer:

@@ -1,6 +1,6 @@
 const mockFormData = {
   firstName: 'mock-first-name',
-  lastName: 'mock-first-name',
+  lastName: 'mock-last-name',
   jobTitle: 'mock-job-title',
   companyName: 'mock-company-name',
   companyTaxStatus: 'mock-tax-status'

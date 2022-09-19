@@ -14,12 +14,12 @@ const contentSectionFlag = {
 
 const orgAdminWithContentFlag = {
   ...orgAdmin['user'],
-  flags: [{ ...contentSectionFlag }]
+  flags: [contentSectionFlag]
 };
 
 const orgAdminWithContentFlagAndNoRPs = {
   ...orgAdminNoRP['user'],
-  flags: [{ ...contentSectionFlag }]
+  flags: [contentSectionFlag]
 };
 
 describe('Donation page list', () => {

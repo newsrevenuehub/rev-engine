@@ -95,7 +95,7 @@ function useConnectStripeAccount() {
     const params = new URLSearchParams(search);
     if (
       revenueProgramIdForVerification &&
-      [...params.keys()].includes('stripeAccountLinkSuccess') &&
+      params.has('stripeAccountLinkSuccess') &&
       !signalStripeAccountLinkSuccess.isLoading &&
       !signalStripeAccountLinkSuccess.isSuccess &&
       !signalStripeAccountLinkSuccess.isError

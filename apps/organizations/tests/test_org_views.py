@@ -411,10 +411,27 @@ class TestCreateStripeAccountLink:
         response = client.post(url)
         assert response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
 
-    def test_when_stripe_error(self, rp_role_assignment, monkeypatch):
+    def test_when_stripe_error_on_account_creation(self, rp_role_assignment, monkeypatch):
         mock_fn = mock.MagicMock()
         mock_fn.side_effect = StripeError("Stripe blew up")
         monkeypatch.setattr("stripe.Account.create", mock_fn)
+        rp = rp_role_assignment.revenue_programs.first()
+        rp.payment_provider.stripe_account_id = None
+        rp.payment_provider.stripe_verified = False
+        rp.payment_provider.save()
+        url = reverse("create-stripe-account-link", args=(rp.pk,))
+        client = APIClient()
+        client.force_authenticate(user=rp_role_assignment.user)
+        response = client.post(url)
+        assert response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
+
+    def test_when_stripe_error_on_account_link_creation(self, rp_role_assignment, monkeypatch):
+        account_id = "someID"
+        mock_account_create = mock.MagicMock(return_value={"id": account_id})
+        monkeypatch.setattr("stripe.Account.create", mock_account_create)
+        mock_account_create_link = mock.MagicMock()
+        mock_account_create_link.side_effect = StripeError("Stripe blew up")
+        monkeypatch.setattr("stripe.AccountLink.create", mock_account_create_link)
         rp = rp_role_assignment.revenue_programs.first()
         rp.payment_provider.stripe_account_id = None
         rp.payment_provider.stripe_verified = False

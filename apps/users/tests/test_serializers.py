@@ -69,10 +69,10 @@ class UserSerializerTest(APITestCase):
         }
         expect_rp_fields = {"id", "name", "slug", "organization", "payment_provider_stripe_verified"}
         data = self._get_serialized_data_for_user(self.org_admin_user)
-        self.assertEqual(expected_fields, set(data.keys()))
-        self.assertGreaterEqual(len(data["revenue_programs"]), 1)
+        assert expected_fields == set(data.keys())
+        assert len(data["revenue_programs"]) >= 1
         for rp in data["revenue_programs"]:
-            self.assertEqual(set(rp.keys()), expect_rp_fields)
+            assert set(rp.keys()) == expect_rp_fields
 
     def test_get_role_type(self):
         super_user_role = self._get_serialized_data_for_user(self.superuser_user)["role_type"]

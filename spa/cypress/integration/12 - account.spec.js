@@ -25,7 +25,6 @@ import orgAdminUser from '../fixtures/user/login-success-org-admin.json';
 import rpAdminUnverified from '../fixtures/user/login-success-rp-admin-unverified.json';
 import selfServiceUserNotStripeVerified from '../fixtures/user/self-service-user-not-stripe-verified.json';
 import selfServicUserStripeVerified from '../fixtures/user/self-service-user-stripe-verified.json';
-
 import { CONTENT_SECTION_ACCESS_FLAG_NAME } from 'constants/featureFlagConstants';
 import {
   FORGOT_PASSWORD_SUCCESS_TEXT,
@@ -213,6 +212,9 @@ describe('Account', () => {
   });
 
   context('Connect Stripe Account flow for self-service users', () => {
+    beforeEach(() => {
+      cy.intercept({ method: 'GET', pathname: getEndpoint(LIST_PAGES) }, { fixture: 'pages/list-pages-1' });
+    });
     it('should direct user to Stripe-provided Account Link URL -- via modal', () => {
       const rp = selfServiceUserNotStripeVerified.revenue_programs[0];
       const stripeAccountLinkResponse = {
@@ -282,7 +284,6 @@ describe('Account', () => {
         // params happens so fast that we can't assert the initial presence of `?stripeAccountLinkSuccess`
         { statusCode: 202, delay: 500 }
       ).as('signalStripeAccountLinkComplete');
-      cy.intercept({ method: 'GET', pathname: getEndpoint(LIST_PAGES) });
       cy.visit(STRIPE_ACCOUNT_LINK_RETURN).should(() => {});
       cy.location('search').should('include', 'stripeAccountLinkSuccess');
       cy.wait('@getUserFirstTime');

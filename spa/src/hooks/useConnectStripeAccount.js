@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useAlert } from 'react-alert';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 
 import axios from 'ajax/axios';
@@ -6,12 +7,14 @@ import { getStripeAccountLinkCreateCompletePath, getStripeAccountLinkCreatePath 
 import useUser from './useUser';
 import { USER_ROLE_ORG_ADMIN_TYPE } from 'constants/authConstants';
 import { useHistory, useLocation } from 'react-router-dom';
+import { GENERIC_ERROR } from 'constants/textConstants';
 
 const postAccountLinkSuccess = (rpId) => {
   return axios.post(getStripeAccountLinkCreateCompletePath(rpId));
 };
 
 function useConnectStripeAccount() {
+  const alert = useAlert();
   const { user } = useUser();
   const { pathname, search } = useLocation();
   const history = useHistory();
@@ -51,12 +54,16 @@ function useConnectStripeAccount() {
       // in turn hide the Stripe Account Link CTAs.
       queryClient.invalidateQueries(['user']);
       setRevenueProgramIdForVerification(null);
-
       // this removes the `stripeAccountLinkSuccess` query param from route that
       // tells app to ping stripe account link success endpoint on server.
       const params = new URLSearchParams(search);
       params.delete('stripeAccountLinkSuccess');
       history.replace({ pathname, search: params.toString() });
+    },
+    onError: (err) => {
+      // calling console.error will create a Sentry error.
+      console.error(err);
+      alert.error(GENERIC_ERROR);
     }
   });
 
@@ -69,11 +76,11 @@ function useConnectStripeAccount() {
           window.location = url;
         }
       },
-      // this is the minimal side effect we want in this hook if error making request.
-      // calling console.error will create a Sentry error. It's up to the calling context
-      // to decide what else to do in case of error, which it can do via the returned `isError`
-      // boolean.
-      onError: (err) => console.error(err)
+      onError: (err) => {
+        // calling console.error will create a Sentry error.
+        console.error(err);
+        alert.error(GENERIC_ERROR);
+      }
     }
   );
 

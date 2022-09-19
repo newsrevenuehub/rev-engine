@@ -1,14 +1,22 @@
 import { useQuery } from '@tanstack/react-query';
+import { useAlert } from 'react-alert';
+import { useHistory } from 'react-router-dom';
 
 import { USER } from 'ajax/endpoints';
 import axios from 'ajax/axios';
 import { LS_USER } from 'settings';
+import { GENERIC_ERROR } from 'constants/textConstants';
+import { SIGN_IN } from 'routes';
 
 const fetchUser = () => {
   return axios.get(USER).then(({ data }) => data);
 };
 
 function useUser() {
+  const alert = useAlert();
+
+  const history = useHistory();
+
   const {
     data: user,
     isLoading,
@@ -20,15 +28,23 @@ function useUser() {
     // could refetch before or after the two minutes if it is manually invalidated
     // in the SPA.
     staleTime: 120000,
+    // if it's an authentication error, we don't want to retry. if it's some other
+    // error we'll retry up to 1 time.
+    retry: (failureCount, error) => {
+      return error.name !== 'AuthenticationError' && failureCount < 1;
+    },
     // When user logs in, the authentication endpoint returns user data and it gets
     // stored in localstorage. We should update the localstorage data each time user
     // is refetched so it isn't stale.
     onSuccess: (data) => localStorage.setItem(LS_USER, JSON.stringify(data)),
-    // this is the minimal side effect we want in this hook if error retrieving user.
-    // calling console.error will create a Sentry error. It's up to the calling context
-    // to decide what else to do in case of error, which it can do via the returned `isError`
-    // boolean.
-    onError: (err) => console.error(err)
+    onError: (err) => {
+      if (err?.name === 'AuthenticationError') {
+        history.push(SIGN_IN);
+      } else {
+        console.error(err);
+        alert.error(GENERIC_ERROR);
+      }
+    }
   });
   return { user, isLoading, isError };
 }

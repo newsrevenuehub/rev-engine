@@ -12,7 +12,7 @@ const contentSectionFlag = {
 };
 
 const orgAdminWithContentFlag = {
-  ...orgAdmin,
+  ...orgAdmin['user'],
   flags: [{ ...contentSectionFlag }]
 };
 

@@ -22,7 +22,7 @@ const contentSectionFlag = {
 };
 
 const orgAdminWithContentFlag = {
-  ...orgAdminUser,
+  ...orgAdminUser['user'],
   flags: [{ ...contentSectionFlag }]
 };
 

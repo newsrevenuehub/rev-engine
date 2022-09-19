@@ -5,7 +5,7 @@ from django.contrib.auth import get_user_model
 import pytest
 from rest_framework import status
 from rest_framework.reverse import reverse
-from rest_framework.test import APIClient
+from rest_framework.test import APIClient, APIRequestFactory
 from stripe.error import StripeError
 
 from apps.api.tests import RevEngineApiAbstractTestCase
@@ -15,6 +15,7 @@ from apps.organizations.tests.factories import (
     OrganizationFactory,
     RevenueProgramFactory,
 )
+from apps.organizations.views import get_stripe_account_link_return_url
 from apps.users.tests.factories import RoleAssignmentFactory, UserFactory, create_test_user
 
 
@@ -350,9 +351,6 @@ class TestCreateStripeAccountLink:
         account_id = "someID"
         mock_account_create = mock.MagicMock(return_value={"id": account_id})
         monkeypatch.setattr("stripe.Account.create", mock_account_create)
-        mock_return_url = "https://foo.bar"
-        mock_get_return_url = mock.MagicMock(return_value=mock_return_url)
-        monkeypatch.setattr("apps.organizations.views.get_stripe_account_link_return_url", mock_get_return_url)
         rp = rp_role_assignment.revenue_programs.first()
         rp.payment_provider.stripe_verified = False
         rp.payment_provider.stripe_account_id = None
@@ -366,12 +364,13 @@ class TestCreateStripeAccountLink:
         rp.payment_provider.refresh_from_db()
         assert rp.payment_provider.stripe_account_id == account_id
         mock_account_create.assert_called_once_with(type="standard", country=rp.country)
-        mock_account_link_create.assert_called_once_with(
-            account=rp.payment_provider.stripe_account_id,
-            refresh_url=mock_return_url,
-            return_url=mock_return_url,
-            type="account_onboarding",
-        )
+        mock_account_link_create.assert_called_once()
+        # even though it's only called once, for some reason the call args are at index 1...
+        call_args = mock_account_link_create.call_args[1]
+        assert call_args.get("account") == rp.payment_provider.stripe_account_id
+        assert call_args.get("type") == "account_onboarding"
+        assert reverse("spa_stripe_account_link_complete") in call_args.get("refresh_url")
+        assert reverse("spa_stripe_account_link_complete") in call_args.get("return_url")
 
     def test_when_unauthenticated(self, rp):
         url = reverse("create-stripe-account-link", args=(rp.pk,))
@@ -425,6 +424,32 @@ class TestCreateStripeAccountLink:
         client.force_authenticate(user=rp_role_assignment.user)
         response = client.post(url)
         assert response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
+
+
+@pytest.fixture
+def local_environment(settings):
+    settings.ENVIRONMENT = "local"
+
+
+@pytest.fixture
+def non_local_environment(settings):
+    settings.ENVIRONMENT = "elsewhere"
+
+
+def test_get_stripe_account_link_return_url_when_local(local_environment):
+    factory = APIRequestFactory()
+    assert (
+        get_stripe_account_link_return_url(factory.get(""))
+        == f"http://localhost:3000{reverse('spa_stripe_account_link_complete')}"
+    )
+
+
+def test_get_stripe_account_link_return_url_when_nonlocal(non_local_environment):
+    factory = APIRequestFactory()
+    assert (
+        get_stripe_account_link_return_url(factory.get(""))
+        == f"http://testserver{reverse('spa_stripe_account_link_complete')}"
+    )
 
 
 @pytest.mark.django_db

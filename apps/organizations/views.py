@@ -77,10 +77,13 @@ class RevenueProgramViewSet(viewsets.ReadOnlyModelViewSet):
 
 
 def get_stripe_account_link_return_url(request):
+    """This function exists purely to create a distinct return url when running locally to enable the full...
+
+    flow spanning SPA and backend and off-site Stripe form completion to be traversed.
+    """
+    reversed = reverse("spa_stripe_account_link_complete")
     return (
-        "http://localhost:3000/stripe-account-link-complete"
-        if settings.ENVIRONMENT == "local"
-        else request.build_absolute_uri(reverse("index") + "stripe-account-link-complete")
+        f"http://localhost:3000{reversed}" if settings.ENVIRONMENT == "local" else request.build_absolute_uri(reversed)
     )
 
 

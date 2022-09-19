@@ -117,11 +117,7 @@ class UserSerializer(serializers.ModelSerializer):
         request = self.context.get("request", None)
         if request and getattr(request, "method", None) == "PATCH":
             fields["accepted_terms_of_service"].required = False
-            fields[
-                # Adding field to META.read_only_fields (below) does not work (for unknown reason/bug).
-                # Forcing it here as work around.
-                "accepted_terms_of_service"
-            ].read_only = True
+            fields["accepted_terms_of_service"].read_only = True  # Is only read_only for PATCH, not POST.
             fields["password"].required = False
             fields["email"].required = False
         return fields
@@ -141,7 +137,6 @@ class UserSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = [
             "id",
-            "accepted_terms_of_service",  # See get_fields(), adding field here does not actually make it read_only. Set anyway for completion/documentation.
             "email_verified",
             "flags",
             "organizations",

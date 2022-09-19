@@ -395,19 +395,22 @@ class TestUserViewSet(APITestCase):
     def test_create_happy_path(self, mock_send_verification_email, mock_validate_bad_actor, mock_validate_password):
         user_count = get_user_model().objects.count()
         response = self.client.post(self.url, data=self.create_data)
-        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
-        self.assertEqual(get_user_model().objects.count(), user_count + 1)
-        self.assertEqual((data := response.json())["email"], self.create_data["email"])
-        self.assertIsNotNone((user := get_user_model().objects.filter(id=data["id"]).first()))
-        self.assertTrue(user.is_active)
-        self.assertFalse(user.email_verified)
-        self.assertEqual(user.email, self.create_data["email"])
-        self.assertTrue(user.check_password(self.create_data["password"]))
-        self.assertFalse(data["email_verified"])
-        self.assertFalse(data["flags"])
-        self.assertFalse(data["organizations"])
-        self.assertFalse(data["revenue_programs"])
-        self.assertIsNone(data["role_type"])
+        assert user_count + 1 == get_user_model().objects.count()
+        assert status.HTTP_201_CREATED == response.status_code
+        result = response.json()
+        user = get_user_model().objects.filter(id=result["id"]).first()
+        assert user
+        assert user.is_active
+        assert not user.email_verified
+        assert user.email == self.create_data["email"]
+        assert user.check_password(self.create_data["password"])
+        assert user.accepted_terms_of_service == self.create_data["accepted_terms_of_service"]
+        assert user.accepted_terms_of_service
+        assert not result["email_verified"]
+        assert not result["flags"]
+        assert not result["organizations"]
+        assert not result["revenue_programs"]
+        assert result["role_type"] is None
         self.assert_serialized_data(response, user)
         mock_validate_bad_actor.assert_called_once()
         mock_validate_password.assert_called_once()

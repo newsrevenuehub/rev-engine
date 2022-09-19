@@ -4,6 +4,7 @@ from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.db import models
 from django.utils import timezone
+from django.utils.translation import gettext_lazy as _
 
 import stripe
 
@@ -25,15 +26,22 @@ RP_SLUG_MAX_LENGTH = 63
 class Feature(IndexedTimeStampedModel):
     VALID_BOOLEAN_INPUTS = ["t", "f", "0", "1"]
 
+    class FeatureNameChoices(models.TextChoices):
+        FEATURE_SINGLE_PAGE_LIMIT_NAME = "PL1", _("Page limit: One page")
+        FEATURE_SYNC_PAYMENT_INFO_TO_MAILCHIMP = (
+            "MCSyncPayment",
+            _("Sync payment info with Mailchimp: enabled"),
+        )
+
     class FeatureType(models.TextChoices):
-        PAGE_LIMIT = "PL", ("Page Limit")
-        BOOLEAN = "BL", ("Boolean")
+        LIMIT = "L", _("Limit")
+        BOOLEAN = "BL", _("Boolean")
 
     name = models.CharField(max_length=255)
     feature_type = models.CharField(
         max_length=2,
         choices=FeatureType.choices,
-        default=FeatureType.PAGE_LIMIT,
+        default=FeatureType.LIMIT,
     )
     feature_value = models.CharField(
         max_length=32,

@@ -193,12 +193,22 @@ class DonationPage(AbstractPage):
         self.slug = normalize_slug(self.name, self.slug)
         super().clean_fields(**kwargs)
 
-    def save(self, *args, **kwargs):
+    def validate_page_limit(self):
         limit = self.has_page_limit()
-        if limit and not self.id and self.get_total_org_pages() + 1 > int(limit.feature_value):
+        if all(
+            [
+                limit,
+                # -1 signifies unlimited
+                int(limit.feature_value) != -1,
+                not self.id and self.get_total_org_pages() + 1 > int(limit.feature_value),
+            ]
+        ):
             raise ValidationError(
                 {"non_field_errors": [f"Your organization has reached its limit of {limit.feature_value} pages"]}
             )
+
+    def save(self, *args, **kwargs):
+        self.validate_page_limit()
         self.set_default_logo()
         super().save(*args, **kwargs)
 

@@ -112,21 +112,10 @@ describe('ProfileForm', () => {
     ]);
   });
 
-  describe('when the disabled prop is true', () => {
-    it('disables the submit button', () => {
-      tree({ disabled: true });
-      fillInAllFields();
-      expect(screen.getByRole('button', { name: 'Finalize Account' })).toBeDisabled();
-    });
-
-    it('does not call onProfileSubmit if the form is directly submitted', async () => {
-      const onProfileSubmit = jest.fn();
-
-      tree({ onProfileSubmit, disabled: true });
-      fireEvent.submit(screen.getByTestId('finalize-profile-form'));
-      await act(() => Promise.resolve()); // Let analytics fire
-      expect(onProfileSubmit).not.toHaveBeenCalled();
-    });
+  it('disables the submit button when the disabled prop is true', () => {
+    tree({ disabled: true });
+    fillInAllFields();
+    expect(screen.getByRole('button', { name: 'Finalize Account' })).toBeDisabled();
   });
 
   it('is accessible', async () => {

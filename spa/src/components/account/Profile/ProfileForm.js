@@ -20,9 +20,7 @@ function ProfileForm({ disabled: disabledProp, onProfileSubmit }) {
   const disabled = disabledProp || !firstName || !lastName || !companyName || !companyTaxStatus;
 
   const onSubmit = (formData) => {
-    if (!disabled) {
-      onProfileSubmit(formData);
-    }
+    onProfileSubmit(formData);
   };
 
   return (

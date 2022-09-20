@@ -1,9 +1,9 @@
 import userEvent from '@testing-library/user-event';
 import { axe } from 'jest-axe';
 import { render, screen, waitFor, within } from 'test-utils';
-import ProfileForm from './ProfileForm';
+import ProfileForm, { ProfileFormProps } from './ProfileForm';
 
-function tree(props) {
+function tree(props?: ProfileFormProps) {
   return render(<ProfileForm onProfileSubmit={jest.fn()} {...props} />);
 }
 

@@ -57,7 +57,7 @@ describe('Profile', () => {
             last_name: 'mock-first-name',
             job_title: 'mock-job-title',
             organization_name: 'mock-company-name',
-            organization_tax_status: 'mock-tax-status'
+            organization_tax_status: 'nonprofit'
           }),
           url: `users/mock-user-id/${CUSTOMIZE_ACCOUNT_ENDPOINT}`
         })

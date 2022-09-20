@@ -63,7 +63,18 @@ function ProfileForm({ disabled: disabledProp, onProfileSubmit }: ProfileFormPro
           name="jobTitle"
           control={control}
           defaultValue=""
-          render={({ field }) => <TextField id="profile-job-title" fullWidth label="Job Title" {...field} />}
+          render={({ field }) => (
+            <TextField
+              id="profile-job-title"
+              fullWidth
+              label={
+                <>
+                  Job Title <S.FieldLabelOptional>Optional</S.FieldLabelOptional>
+                </>
+              }
+              {...field}
+            />
+          )}
         />
       </S.FillRow>
       <S.FillRow>
@@ -74,13 +85,13 @@ function ProfileForm({ disabled: disabledProp, onProfileSubmit }: ProfileFormPro
           render={({ field }) => <TextField fullWidth id="profile-company-name" label="Company Name" {...field} />}
         />
       </S.FillRow>
-      <S.FillRow>
+      <S.TaxStatusContainer>
         <Controller
           name="companyTaxStatus"
           control={control}
           defaultValue=""
           render={({ field }) => (
-            <TextField id="profile-company-tax-status" label="Company Tax Status" {...field} fullWidth select>
+            <TextField fullWidth id="profile-company-tax-status" label="Company Tax Status" {...field} select>
               <option disabled={companyTaxStatus !== ''} value="">
                 Select your status
               </option>
@@ -89,7 +100,8 @@ function ProfileForm({ disabled: disabledProp, onProfileSubmit }: ProfileFormPro
             </TextField>
           )}
         />
-      </S.FillRow>
+        <S.TaxStatusInfoTooltip title="Your tax status determines the contribution fees charged through Stripe." />
+      </S.TaxStatusContainer>
       <S.FillRow>
         <Button disabled={disabled} fullWidth type="submit">
           Finalize Account

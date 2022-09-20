@@ -1,5 +1,5 @@
 import { Button as MuiButton, ButtonProps as MuiButtonProps } from '@material-ui/core';
-import { ForwardedRef, forwardRef } from 'react';
+import { forwardRef } from 'react';
 import styled from 'styled-components';
 
 export type ButtonProps = MuiButtonProps;
@@ -30,7 +30,10 @@ const StyledMuiButton = styled(MuiButton)`
   }
 `;
 
-export const Button = forwardRef((props: ButtonProps, ref: ForwardedRef<HTMLButtonElement>) => (
+/**
+ * @see https://v4.mui.com/api/button/
+ */
+export const Button = forwardRef<HTMLButtonElement, ButtonProps>((props, ref) => (
   <StyledMuiButton disableFocusRipple disableRipple ref={ref} variant="contained" {...props} />
 ));
 

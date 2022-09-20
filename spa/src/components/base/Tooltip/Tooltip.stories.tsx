@@ -28,8 +28,8 @@ const ClickTooltipDemo = () => {
             }}
             title="Hello World"
           >
-            <ButtonBase disableRipple disableTouchRipple onClick={() => setOpen(true)}>
-              <InfoOutlined aria-label="Help" />
+            <ButtonBase aria-label="Help" disableRipple disableTouchRipple onClick={() => setOpen(true)}>
+              <InfoOutlined />
             </ButtonBase>
           </Tooltip>
         </span>

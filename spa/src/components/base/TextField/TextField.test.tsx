@@ -1,5 +1,5 @@
-import { act, render, screen } from 'test-utils';
 import { axe } from 'jest-axe';
+import { render, screen } from 'test-utils';
 import TextField, { TextFieldProps } from './TextField';
 
 function tree(props?: TextFieldProps) {
@@ -7,9 +7,7 @@ function tree(props?: TextFieldProps) {
 }
 
 describe('TextField', () => {
-  afterEach(async () => await act(() => Promise.resolve()));
-
-  it('displays a text input', async () => {
+  it('displays a text input', () => {
     tree();
     expect(screen.getByRole('textbox')).toBeVisible();
   });

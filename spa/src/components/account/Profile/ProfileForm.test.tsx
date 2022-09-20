@@ -3,7 +3,7 @@ import { axe } from 'jest-axe';
 import { render, screen, waitFor, within } from 'test-utils';
 import ProfileForm, { ProfileFormProps } from './ProfileForm';
 
-function tree(props?: ProfileFormProps) {
+function tree(props?: Partial<ProfileFormProps>) {
   return render(<ProfileForm onProfileSubmit={jest.fn()} {...props} />);
 }
 
@@ -12,7 +12,7 @@ function fillInAllFields() {
     ['First Name', 'mock-first-name'],
     ['Last Name', 'mock-first-name'],
     ['Company Name', 'mock-company-name'],
-    ['Job Title', 'mock-job-title']
+    ['Job Title Optional', 'mock-job-title']
   ];
 
   for (const [name, value] of fieldEntries) {
@@ -44,7 +44,7 @@ describe('ProfileForm', () => {
   it('displays a job title field with empty default', () => {
     tree();
 
-    const jobTitle = screen.getByLabelText('Job Title');
+    const jobTitle = screen.getByLabelText('Job Title Optional');
 
     expect(jobTitle).toBeVisible();
     expect(jobTitle).toHaveValue('');

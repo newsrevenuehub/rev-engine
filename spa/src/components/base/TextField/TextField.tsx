@@ -1,6 +1,6 @@
 import { TextField as MuiTextField, TextFieldProps as MuiTextFieldProps } from '@material-ui/core';
 import { KeyboardArrowDown } from '@material-ui/icons';
-import { ForwardedRef, forwardRef } from 'react';
+import { forwardRef } from 'react';
 import styled from 'styled-components';
 
 export type TextFieldProps = MuiTextFieldProps;
@@ -70,7 +70,10 @@ const StyledMuiTextField = styled(MuiTextField)`
   }
 `;
 
-export const TextField = forwardRef((props: TextFieldProps, ref: ForwardedRef<HTMLDivElement>) => (
+/**
+ * @see https://v4.mui.com/api/text-field/
+ */
+export const TextField = forwardRef<HTMLDivElement, TextFieldProps>((props, ref) => (
   <StyledMuiTextField
     InputLabelProps={{ shrink: true }}
     SelectProps={{

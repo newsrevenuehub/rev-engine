@@ -38,7 +38,6 @@
     "prop-types": "^15.7.2",
     "query-string": "^7.0.1",
     "react": "^17.0.2",
-    "react-alert": "^7.0.3",
     "react-color": "^2.19.3",
     "react-datepicker": "^4.1.1",
     "react-dom": "^17.0.2",
@@ -154,6 +153,14 @@
     "prettier": "^2.7.1",
     "axios-mock-adapter": "^1.21.2",
     "axios-mock-adapter": "^1.21.2",
+    "@types/jest": "^29.0.3",
+    "@types/jest-axe": "^3.5.4",
+    "@types/node": "^18.7.18",
+    "@types/react": "^17.0.50",
+    "@types/react-alert": "^7.0.2",
+    "@types/react-dom": "^18.0.6",
+    "@types/react-router-dom": "^5.3.3",
+    "@types/styled-components": "^5.1.26",
     "babel-plugin-named-exports-order": "^0.0.2",
     "cypress": "^8.5.0",
     "cypress-localstorage-commands": "^1.7.0",
@@ -162,6 +169,8 @@
     "eslint-plugin-chai-friendly": "^0.7.1",
     "eslint-plugin-cypress": "^2.11.3",
     "jest-axe": "^6.0.0",
+    "react-alert": "^7.0.3",
+    "typescript": "^4.8.3",
     "webpack": "^5.74.0"
   }
 }

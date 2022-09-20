@@ -1,5 +1,4 @@
 import * as rtl from '@testing-library/react';
-import user from '@testing-library/user-event';
 
 // Theme/Styles
 import { revEngineTheme } from 'styles/themes';
@@ -16,7 +15,10 @@ import { AnalyticsContextWrapper } from './components/analytics/AnalyticsContext
 // Routing
 import { BrowserRouter } from 'react-router-dom';
 
-function TestProviders({ children }) {
+export * from '@testing-library/react';
+export * as user from '@testing-library/user-event';
+
+function TestProviders({ children }: { children?: React.ReactNode }) {
   return (
     <ThemeProvider theme={revEngineTheme}>
       <AlertProvider template={Alert} {...alertOptions}>
@@ -29,15 +31,8 @@ function TestProviders({ children }) {
   );
 }
 
-const customRender = (ui, options) => {
+export const render = (ui: React.ReactElement, options?: Omit<rtl.RenderOptions, 'wrapper'>) => {
   return rtl.render(ui, {
-    wrapper: (props) => <TestProviders {...props} {...options?.TestProviderProps} />,
-    ...options?.testingLibraryOptions
+    wrapper: (props) => <TestProviders {...props} {...options} />
   });
-};
-
-module.exports = {
-  ...rtl,
-  render: customRender,
-  user
 };

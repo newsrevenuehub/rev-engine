@@ -14,6 +14,7 @@ from django.contrib.auth.views import (
 )
 from django.core import signing
 from django.core.exceptions import ValidationError as DjangoValidationError
+from django.db.utils import IntegrityError
 from django.dispatch import receiver
 from django.http import HttpResponseRedirect
 from django.urls import reverse, reverse_lazy
@@ -308,14 +309,27 @@ class UserViewset(
             while Organization.objects.filter(name=f"{organization_name}-{counter}").exists():
                 counter += 1
             organization_name = f"{organization_name}-{counter}"
-
         organization = Organization.objects.create(name=organization_name, slug=slugify(organization_name))
-        revenue_program = RevenueProgram.objects.create(
-            name=organization_name,
-            organization=organization,
-            slug=slugify(organization_name),
-            non_profit=True if organization_tax_status == "nonprofit" else False,
-        )
+
+        try:
+            revenue_program = RevenueProgram.objects.create(
+                name=organization_name,
+                organization=organization,
+                slug=slugify(organization_name),
+                non_profit=True if organization_tax_status == "nonprofit" else False,
+            )
+        except IntegrityError:
+            logger.exception(
+                "[UserViewSet.customize_account] found unexpected already extant RP "
+                "with slug %s after creating organization (ID: %s) with slug %s",
+                organization_name,
+                organization.id,
+                organization.slug,
+            )
+            raise ValidationError(
+                "Something unexpected happened customizing the account",
+            )
+
         RoleAssignment.objects.create(user=user, role_type=Roles.ORG_ADMIN, organization=organization)
         logger.info(
             "Customize account for user %s successful; organization %s and revenue program %s created.",

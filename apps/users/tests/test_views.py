@@ -6,6 +6,7 @@ from urllib.parse import urlparse
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.core import mail
+from django.db import IntegrityError
 from django.test import Client, TestCase
 from django.test.utils import override_settings
 from django.urls import reverse
@@ -749,6 +750,17 @@ class TestUserViewSet(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
         revenue_program = RevenueProgram.objects.get(name=self.customize_account_request["organization_name"])
         assert revenue_program.non_profit
+
+    @patch.object(RevenueProgram.objects, "create")
+    def test_customize_account_when_edge_case_with_unexpect_taken_rp_slug(self, mock_rp_create):
+        mock_rp_create.side_effect = IntegrityError("")
+        user = self._create_authenticated_user()
+        response = self.client.patch(
+            reverse("user-customize-account", args=(user.pk,)),
+            data={**self.customize_account_request, "organization_tax_status": "nonprofit"},
+        )
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert response.json()[0] == "Something unexpected happened customizing the account"
 
     def _create_authenticated_user(self, email_verified=True, accepted_terms_of_service=timezone.now()) -> User:
         user = get_user_model().objects.create(

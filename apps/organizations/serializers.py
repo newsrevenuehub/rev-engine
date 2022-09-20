@@ -1,36 +1,25 @@
+from dataclasses import asdict
+
 from rest_framework import serializers
 
 from apps.organizations.models import (
     Benefit,
     BenefitLevel,
-    Feature,
     Organization,
     PaymentProvider,
-    Plan,
     RevenueProgram,
 )
 
 
-class FeatureSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Feature
-        fields = "__all__"
-
-
-class PlanSerializer(serializers.ModelSerializer):
-    features = FeatureSerializer(many=True, read_only=True)
-
-    class Meta:
-        model = Plan
-        fields = "__all__"
-
-
 class OrganizationSerializer(serializers.ModelSerializer):
-    plan = PlanSerializer(many=False, read_only=True)
+    plan = serializers.SerializerMethodField()
 
     class Meta:
         model = Organization
         fields = "__all__"
+
+    def get_plan(self, obj):
+        return asdict(obj.plan)
 
     def to_representation(self, instance):
         representation = super().to_representation(instance)

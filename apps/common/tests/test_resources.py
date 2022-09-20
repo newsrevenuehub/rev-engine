@@ -10,9 +10,8 @@ from waffle import get_waffle_flag_model
 from apps.common.constants import CONTRIBUTIONS_API_ENDPOINT_ACCESS_FLAG_NAME
 from apps.contributions.models import Contributor
 from apps.contributions.tests.factories import ContributionFactory, ContributorFactory
-from apps.organizations.models import Feature, Organization, Plan, RevenueProgram
+from apps.organizations.models import Organization, RevenueProgram
 from apps.organizations.tests.factories import (
-    FeatureFactory,
     OrganizationFactory,
     PaymentProviderFactory,
     RevenueProgramFactory,
@@ -86,14 +85,6 @@ class AbstractTestCase(APITestCase):
                 page.make_template_from_page()
 
     @classmethod
-    def _set_up_feature_sets(cls):
-        page_limit_feature = FeatureFactory(feature_value=100, feature_type=Feature.FeatureType.PAGE_LIMIT)
-        boolean_feature = FeatureFactory(feature_value=True, feature_type=Feature.FeatureType.BOOLEAN)
-        for plan in Plan.objects.all():
-            plan.features.add(page_limit_feature, boolean_feature)
-            plan.save()
-
-    @classmethod
     def _set_up_styles(cls):
         for rp in RevenueProgram.objects.all():
             StyleFactory(revenue_program=rp)
@@ -139,6 +130,5 @@ class AbstractTestCase(APITestCase):
         # this must be called before _set_up_contributions
         cls._set_up_donation_pages_and_templates()
         cls._set_up_contributions()
-        cls._set_up_feature_sets()
         cls._set_up_styles()
         cls._set_up_default_feature_flags()

@@ -1,7 +1,6 @@
 from django.db import models
 from django.utils import timezone
 
-from rest_framework.exceptions import ValidationError
 from solo.models import SingletonModel
 from sorl.thumbnail import ImageField as SorlImageField
 
@@ -9,7 +8,6 @@ from apps.api.error_messages import UNIQUE_PAGE_SLUG
 from apps.common.models import IndexedTimeStampedModel
 from apps.common.utils import cleanup_keys, normalize_slug
 from apps.config.validators import validate_slug_against_denylist
-from apps.organizations.models import Feature
 from apps.pages import defaults
 from apps.pages.validators import style_validator
 from apps.users.choices import Roles
@@ -170,15 +168,6 @@ class DonationPage(AbstractPage):
     def is_live(self):
         return bool(self.published_date and self.published_date <= timezone.now())
 
-    def has_page_limit(self):
-        return Feature.objects.filter(
-            feature_type=Feature.FeatureType.PAGE_LIMIT, plans__organization=self.organization.id
-        ).first()
-
-    def get_total_org_pages(self):
-        org = self.revenue_program.organization
-        return DonationPage.objects.filter(revenue_program__in=org.revenueprogram_set.all()).count()
-
     def set_default_logo(self):
         """
         If this is the first time this model is being created (not self.pk),
@@ -193,22 +182,7 @@ class DonationPage(AbstractPage):
         self.slug = normalize_slug(self.name, self.slug)
         super().clean_fields(**kwargs)
 
-    def validate_page_limit(self):
-        limit = self.has_page_limit()
-        if all(
-            [
-                limit,
-                # -1 signifies unlimited
-                int(limit.feature_value) != -1,
-                not self.id and self.get_total_org_pages() + 1 > int(limit.feature_value),
-            ]
-        ):
-            raise ValidationError(
-                {"non_field_errors": [f"Your organization has reached its limit of {limit.feature_value} pages"]}
-            )
-
     def save(self, *args, **kwargs):
-        self.validate_page_limit()
         self.set_default_logo()
         super().save(*args, **kwargs)
 

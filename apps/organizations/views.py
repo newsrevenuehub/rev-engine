@@ -8,7 +8,7 @@ from rest_framework.permissions import IsAuthenticated
 
 from apps.api.permissions import HasRoleAssignment
 from apps.organizations import serializers
-from apps.organizations.models import Feature, Organization, Plan, RevenueProgram
+from apps.organizations.models import Organization, RevenueProgram
 from apps.public.permissions import IsActiveSuperUser
 from apps.users.views import FilterQuerySetByUserMixin
 
@@ -32,31 +32,6 @@ class OrganizationViewSet(viewsets.ReadOnlyModelViewSet, FilterQuerySetByUserMix
 
     def get_queryset(self):
         # this is supplied by FilterQuerySetByUserMixin
-        return self.filter_queryset_for_user(self.request.user, self.model.objects.all())
-
-
-class FeatureViewSet(viewsets.ReadOnlyModelViewSet):
-    model = Feature
-    # only superusers, and can only read
-    permission_classes = [IsAuthenticated, IsActiveSuperUser]
-    queryset = Feature.objects.all()
-    serializer_class = serializers.FeatureSerializer
-    pagination_class = None
-
-
-class PlanViewSet(viewsets.ReadOnlyModelViewSet, FilterQuerySetByUserMixin):
-    """Organizations exposed through API
-
-    Only superusers and users with roles can access. Queryset is filtered by user.
-    """
-
-    model = Plan
-    queryset = Plan.objects.all()
-    permission_classes = [IsAuthenticated, IsActiveSuperUser | HasRoleAssignment]
-    serializer_class = serializers.PlanSerializer
-    pagination_class = None
-
-    def get_queryset(self):
         return self.filter_queryset_for_user(self.request.user, self.model.objects.all())
 
 

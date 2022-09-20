@@ -11,14 +11,11 @@ from sorl.thumbnail.admin import AdminImageMixin
 
 from apps.common.admin import RevEngineBaseAdmin
 from apps.common.models import SocialMeta
-from apps.organizations.forms import FeatureForm
 from apps.organizations.models import (
     Benefit,
     BenefitLevel,
-    Feature,
     Organization,
     PaymentProvider,
-    Plan,
     RevenueProgram,
 )
 
@@ -94,10 +91,6 @@ class OrganizationAdmin(RevEngineBaseAdmin, VersionAdmin):
         ),
         (None, {"fields": ("salesforce_id",)}),
         (
-            "Plan",
-            {"fields": ("plan",)},
-        ),
-        (
             "Email Templates",
             {"fields": ("send_receipt_email_via_nre",)},
         ),
@@ -112,7 +105,6 @@ class OrganizationAdmin(RevEngineBaseAdmin, VersionAdmin):
 
     list_filter = [
         "name",
-        "plan",
     ]
 
     inline_type = "stacked"
@@ -270,25 +262,6 @@ class RevenueProgramAdmin(RevEngineBaseAdmin, VersionAdmin, AdminImageMixin):
             # Here we limit the default_donation_page options using the subquery `revenue_program`="this instance"
             formfield.limit_choices_to = Q(revenue_program=revenue_program)
         return formfield
-
-
-@admin.register(Plan)
-class PlanAdmin(RevEngineBaseAdmin, VersionAdmin):
-    fieldsets = (("Plan", {"fields": ("name", "features")}),)
-
-    list_display = ["name"]
-
-    list_filter = ["name"]
-
-
-@admin.register(Feature)
-class FeatureAdmin(RevEngineBaseAdmin, VersionAdmin):
-    form = FeatureForm
-    fieldsets = (("Feature", {"fields": ("name", "feature_type", "feature_value", "description")}),)
-
-    list_display = ["name", "feature_type", "feature_value"]
-
-    list_filter = ["name", "feature_type"]
 
 
 @admin.register(PaymentProvider)

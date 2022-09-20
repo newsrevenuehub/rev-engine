@@ -1,4 +1,5 @@
 import logging
+from dataclasses import dataclass
 
 from django.conf import settings
 from django.core.exceptions import ValidationError
@@ -16,6 +17,8 @@ from apps.users.choices import Roles
 from apps.users.models import RoleAssignmentResourceModelMixin, UnexpectedRoleType
 
 
+FAKE_INFINITY = 200
+
 logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
 
 # RFC-1035 limits domain labels to 63 characters, and RP slugs are used for subdomains,
@@ -23,66 +26,57 @@ logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
 RP_SLUG_MAX_LENGTH = 63
 
 
-class Feature(IndexedTimeStampedModel):
-    VALID_BOOLEAN_INPUTS = ["t", "f", "0", "1"]
-
-    class FeatureNameChoices(models.TextChoices):
-        FEATURE_SINGLE_PAGE_LIMIT_NAME = "PL1", _("Page limit: One page")
-        FEATURE_SYNC_PAYMENT_INFO_TO_MAILCHIMP = (
-            "MCSyncPayment",
-            _("Sync payment info with Mailchimp: enabled"),
-        )
-
-    class FeatureType(models.TextChoices):
-        LIMIT = "L", _("Limit")
-        BOOLEAN = "BL", _("Boolean")
-
-    name = models.CharField(max_length=255)
-    feature_type = models.CharField(
-        max_length=2,
-        choices=FeatureType.choices,
-        default=FeatureType.LIMIT,
-    )
-    feature_value = models.CharField(
-        max_length=32,
-        blank=False,
-        help_text="Limit feature types must be a positive integer. Valid Boolean Type values are ('t', 'f', '1', '0')",
-    )
-    description = models.TextField(blank=True)
-
-    class Meta:
-        unique_together = ["feature_type", "feature_value"]
-
-    def __str__(self):
-        return self.name
-
-    def save(self, *args, **kwargs):
-        super().save(*args, **kwargs)
+CURRENCY_CHOICES = [(k, k) for k, _ in settings.CURRENCIES.items()]
 
 
-class Plan(IndexedTimeStampedModel, RoleAssignmentResourceModelMixin):
-    name = models.CharField(max_length=255)
-    features = models.ManyToManyField("organizations.Feature", related_name="plans", blank=True)
+@dataclass
+class Plan:
+    """Used for modeling Organization plans"""
 
-    def __str__(self):
-        return self.name
+    name: str
+    label: str
+    analytics_enabled: bool = False
+    custom_fonts_enabled: bool = False
+    custom_reports_enabled: bool = False
+    custom_thank_you_pages_enabled: bool = False
+    mailchimp_segmentation_enabled: bool = False
+    mailchimp_payment_info_enabled: bool = False
+    payment_method_update_enabled: bool = False
+    membership_levels_and_benefits_enabled: bool = False
+    page_limit: int = 1
+    revenue_program_limit: int = 1
+    seats: int = 1
+
+
+free_plan = Plan(
+    name="FREE",
+    label="Free",
+)
+
+plus_plan = Plan(
+    name="PLUS",
+    label="Plus",
+    # we market these as "unlimited", but for domain modeling, we enforce a finite limit/
+    # If this limit gets hit, it can be dealt with as a customer service issue.
+    page_limit=FAKE_INFINITY,
+    revenue_program_limit=FAKE_INFINITY,
+    seats=FAKE_INFINITY,
+)
+
+
+class Plans(models.TextChoices):
+
+    FREE = free_plan.name, _(free_plan.label)
+    PLUS = plus_plan.name, _(plus_plan.label)
 
     @classmethod
-    def filter_queryset_by_role_assignment(cls, role_assignment, queryset):
-        if role_assignment.role_type == Roles.HUB_ADMIN:
-            return queryset.all()
-        elif role_assignment.role_type in (Roles.ORG_ADMIN, Roles.RP_ADMIN):
-            return queryset.filter(organization=role_assignment.organization)
-        else:
-            raise UnexpectedRoleType(f"{role_assignment.role_type} is not a valid value")
-
-
-CURRENCY_CHOICES = [(k, k) for k, _ in settings.CURRENCIES.items()]
+    def get_plan(cls, name):
+        return ({Plans.FREE.value: free_plan, Plans.PLUS.value: plus_plan}).get(name, None)
 
 
 class Organization(IndexedTimeStampedModel, RoleAssignmentResourceModelMixin):
     name = models.CharField(max_length=255, unique=True)
-    plan = models.ForeignKey("organizations.Plan", null=True, on_delete=models.PROTECT)
+    plan_name = models.CharField(choices=Plans.choices, max_length=10, default=Plans.FREE)
     salesforce_id = models.CharField(max_length=255, blank=True, verbose_name="Salesforce ID")
 
     # TODO: [DEV-2035] Remove Organization.slug field entirely
@@ -106,6 +100,10 @@ class Organization(IndexedTimeStampedModel, RoleAssignmentResourceModelMixin):
 
     def __str__(self):
         return self.name
+
+    @property
+    def plan(self):
+        return Plans.get_plan(self.plan_name)
 
     @property
     def admin_revenueprogram_options(self):

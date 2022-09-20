@@ -423,14 +423,22 @@ class SubscriptionsViewSet(viewsets.ViewSet):
         subscription = stripe.Subscription.retrieve(
             pk, stripe_account=revenue_program.payment_provider.stripe_account_id, expand=["customer"]
         )
-
         if request.user.email.lower() != subscription.customer.email.lower():
             # TODO: [DEV-2287] should we find a way to user DRF's permissioning scheme here instead?
             return Response({"detail": "Forbidden"}, status=status.HTTP_403_FORBIDDEN)
+        cache_provider = SubscriptionsCacheProvider(
+            stripe_account_id=revenue_program.payment_provider.stripe_account_id,
+            email=request.user.email,
+            serializer=serializers.SubscriptionsSerializer,
+        )
+
         try:
-            stripe.Subscription.delete(pk, stripe_account=revenue_program.payment_provider.stripe_account_id)
+            subscription = stripe.Subscription.delete(
+                pk, stripe_account=revenue_program.payment_provider.stripe_account_id
+            )
         except stripe.error.StripeError:
             logger.exception("stripe.Subscription.delete returned a StripeError")
             return Response({"detail": "Error"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        cache_provider.upsert([subscription])
 
         return Response({"detail": "Success"}, status=status.HTTP_204_NO_CONTENT)

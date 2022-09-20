@@ -4,7 +4,7 @@ import {
   AUTHORIZE_STRIPE_SUBSCRIPTION_ROUTE
 } from 'ajax/endpoints';
 import { PAYMENT_SUCCESS } from 'routes';
-import { getPaymentSuccessUrl } from 'components/paymentProviders/stripe/StripePaymentForm';
+import { getPaymentSuccessUrl } from 'components/paymentProviders/stripe/stripeFns';
 import { getEndpoint, getPageElementByType, getTestingDonationPageUrl, EXPECTED_RP_SLUG } from '../support/util';
 import livePageOne from '../fixtures/pages/live-page-1.json';
 
@@ -497,6 +497,58 @@ describe('User flow: happy path', () => {
       );
     });
   });
+  specify('Via default donation page', () => {
+    cy.intercept(
+      { method: 'POST', url: getEndpoint(AUTHORIZE_STRIPE_SUBSCRIPTION_ROUTE) },
+      {
+        body: { provider_client_secret_id: 'pi_3LgkV1pOaLul7_secret_QcpIANR9d6', email_hash: fakeEmailHash },
+        statusCode: 201
+      }
+    ).as('create-subscription-payment');
+    cy.intercept({ method: 'POST', url: 'https://r.stripe.com/0' }, { statusCode: 201 });
+    cy.intercept({ method: 'POST', url: 'https://m.stripe.com/0' }, { statusCode: 201 });
+    cy.intercept({ method: 'GET', url: 'https://api.stripe.com/**' }, { statusCode: 200 });
+
+    cy.visitDefaultDonationPage();
+    cy.get('[data-testid*="frequency-month"]').click();
+    fillOutDonorInfoSection();
+    fillOutAddressSection();
+    fillOutReasonForGiving();
+    cy.get('form[name="contribution-checkout"]').submit();
+
+    // assert re: what's sent to server
+    cy.window()
+      .its('stripe')
+      .then((stripe) => {
+        cy.spy(stripe, 'confirmPayment').as('stripe-confirm-payment');
+      });
+    // this is all we test here because otherwise, we need real Stripe client secret
+    // which would require live server providing
+    // spy on stripe and see that expected next url is provided
+    cy.get('form #stripe-payment-element');
+    cy.get('[data-testid="donation-page-disclaimer"]');
+    cy.get('form[name="stripe-payment-form"]').submit();
+    cy.get('@stripe-confirm-payment').should((x) => {
+      expect(x).to.be.calledOnce;
+      const {
+        confirmParams: { return_url }
+      } = x.getCalls()[0].args[0];
+      expect(return_url).to.equal(
+        getPaymentSuccessUrl(
+          'http://revenueprogram.revengine-testabc123.com:3000/',
+          '',
+          '10.53',
+          fakeEmailHash,
+          'monthly',
+          'foo@bar.com',
+          livePageOne.slug,
+          livePageOne.revenue_program.slug,
+          '',
+          fakeStripeSecret
+        )
+      );
+    });
+  });
 });
 
 describe('User flow: unhappy paths', () => {
@@ -565,7 +617,7 @@ const successPageQueryParams = {
   payment_intent_client_secret: fakeStripeSecret
 };
 
-describe('Payment success page', () => {
+describe.only('Payment success page', () => {
   beforeEach(() => {
     cy.intercept(
       {
@@ -616,5 +668,16 @@ describe('Payment success page', () => {
       expect(searchParams.get('frequency')).to.equal(successPageQueryParams.frequency);
       expect(searchParams.get('amount')).to.equal(successPageQueryParams.amount);
     });
+  });
+
+  specify('When coming from default donation page', () => {
+    // In this case, the `fromPage` param will be empty, so we prove that redirection still works.
+    // Adding this test because we had a bug whereby fromPage was `/` instead of no value. Elsewhere, we
+    // unit test the function for creating the next URL that gets sent to Stripe, proving that if coming from
+    // default donation page path (which will just be `/`), it sets `fromPath` to empty.
+    cy.visit(paymentSuccessRoute, { qs: { ...successPageQueryParams, fromPath: '' } });
+    cy.wait('@signal-success');
+    // get forwarded to right destination
+    cy.url().should('equal', `http://revenueprogram.revengine-testabc123.com:3000/thank-you`);
   });
 });

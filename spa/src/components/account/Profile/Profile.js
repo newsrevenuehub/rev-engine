@@ -48,8 +48,7 @@ function Profile() {
     }
   };
 
-  const formSubmitErrors =
-    Array.isArray(profileState?.errors) && profileState?.errors.length === 0 ? null : 'An Error Occurred';
+  const formSubmitErrors = profileState?.errors?.length && 'An Error Occurred';
 
   return (
     <S.Modal

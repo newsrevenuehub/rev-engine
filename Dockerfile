@@ -1,12 +1,14 @@
-FROM node:16-slim as static_files
+FROM node:16.17.0-bullseye-slim as static_files
 
 WORKDIR /code
 ENV PATH /code/node_modules/.bin:$PATH
 COPY ./spa/package.json ./spa/package-lock.json /code/
-RUN npm install --silent
+RUN apt-get update && apt-get install curl unzip -y
+RUN curl https://bun.sh/install | bash
+RUN $HOME/.bun/bin/bun install
 COPY ./spa /code/spa/
 WORKDIR /code/spa/
-RUN NODE_ENV=production npm run build
+RUN NODE_ENV=production $HOME/.bun/bin/bun run build
 
 FROM python:3.10-slim as base
 

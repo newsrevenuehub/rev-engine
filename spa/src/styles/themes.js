@@ -101,6 +101,7 @@ export const revEngineTheme = {
     md: '16px',
     lg: '18px',
     lgx: '24px',
+    lg2x: '28px',
     h1: '34px',
     xl: '72px'
   },

@@ -410,19 +410,12 @@ describe('Donation page edit', () => {
     });
     it('should show expected, formatted publication date', () => {
       const rawDate = livePage.published_date;
-      const expectedFormat = format(new Date(rawDate), "LLL do, yyyy 'at' hh:mm a");
-      cy.getByTestId('setup-tab').click();
-      cy.getByTestId('publish-widget').scrollIntoView();
-      cy.getByTestId('publish-widget').contains(expectedFormat);
-    });
-    it('should show a warning when updating a live page', () => {
-      cy.intercept({ method: 'GET', pathname: getEndpoint(LIST_STYLES) }, {});
-      cy.getByTestId('publish-widget').click();
-      cy.contains('18').click();
-      cy.getByTestId('keep-element-changes-button').click({ force: true });
-      cy.getByTestId('save-page-button').click();
-      cy.getByTestId('confirmation-modal').contains("You're making changes to a live donation page. Continue?");
-      cy.getByTestId('cancel-button').click();
+      const expectedFormat = format(new Date(rawDate), "MM/dd/yyyy 'at' hh:mm a");
+      cy.getByTestId('preview-page-button').click();
+      cy.get(`button[aria-label="Published page ${livePage.name}"]`).click();
+      cy.contains(expectedFormat);
+      cy.get('body').click(0, 0);
+      cy.getByTestId('edit-page-button').click();
     });
   });
 

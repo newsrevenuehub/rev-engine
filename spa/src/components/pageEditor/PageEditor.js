@@ -7,7 +7,6 @@ import { AnimatePresence } from 'framer-motion';
 // Deps
 import { useAlert } from 'react-alert';
 import isEmpty from 'lodash.isempty';
-import { isBefore, isAfter } from 'date-fns';
 import html2canvas from 'html2canvas';
 
 // Utils
@@ -57,6 +56,7 @@ import UnsavedChangesModal from 'components/pageEditor/UnsavedChangesModal';
 import PageTitle from 'elements/PageTitle';
 import RETooltip from 'elements/RETooltip';
 import { usePageContext } from 'components/dashboard/PageContext';
+import getSuccessMessage, { pageHasBeenPublished } from 'utilities/editPageGetSuccessMessage';
 
 const PageEditorContext = createContext();
 
@@ -207,7 +207,7 @@ function PageEditor() {
     const pageUpdates = { ...updatedPage };
     if (validationErrors) {
       setErrors(validationErrors);
-    } else if (page.published_date && isBefore(new Date(page.published_date), new Date())) {
+    } else if (pageHasBeenPublished(page)) {
       getUserConfirmation("You're making changes to a live donation page. Continue?", () => patchPage(pageUpdates));
     } else {
       setUpdatePageAndSave(pageUpdates);
@@ -475,42 +475,6 @@ function ElementErrors({ elementErrors = [] }) {
       </ul>
     </>
   );
-}
-
-function pageHasBeenPublished(page, now = new Date()) {
-  return page.published_date && isBefore(new Date(page.published_date), now);
-}
-
-function pageHasNotBeenPublished(page, now = new Date()) {
-  return !page.published_date || isAfter(new Date(page.published_date), now);
-}
-
-function newPageIsCurrentlyPublished(newPage, now = new Date()) {
-  isBefore(new Date(newPage.published_date), now);
-}
-
-function newPageIsNotCurrentlyPublished(newPage, now = new Date()) {
-  isAfter(new Date(newPage.published_date), now);
-}
-
-function getSuccessMessage(page, newPage) {
-  const now = new Date();
-  const isNowPublished = newPageIsCurrentlyPublished(newPage, now);
-  const isNowNotPublished = newPageIsNotCurrentlyPublished(newPage, now);
-  const wasPublished = pageHasBeenPublished(page, now);
-  const wasNotPublished = pageHasNotBeenPublished(page, now);
-
-  if (isNowPublished) {
-    if (wasNotPublished) {
-      return 'Your page has been updated and is now LIVE';
-    }
-    return 'Your LIVE page has been updated';
-  }
-
-  if (wasPublished && isNowNotPublished) {
-    return 'Your page has been updated and is no longer live';
-  }
-  return 'Your page has been updated';
 }
 
 function cleanData(data) {

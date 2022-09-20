@@ -15,7 +15,6 @@ import { isBefore, isAfter } from 'date-fns';
 // Children
 import ImageWithPreview from 'elements/inputs/ImageWithPreview';
 import Input from 'elements/inputs/Input';
-import PublishWidget from './PublishWidget';
 import CircleButton from 'elements/buttons/CircleButton';
 
 /**
@@ -161,12 +160,6 @@ function PageSetup({ backToProperties }) {
           errors={errors.post_thank_you_redirect}
         />
       </S.InputWrapper>
-      <PublishWidget
-        paymentProvider={page.payment_provider}
-        publishDate={published_date}
-        onChange={setPublishedDate}
-        errors={errors.published_date}
-      />
       <S.Buttons>
         <CircleButton
           icon={faCheck}

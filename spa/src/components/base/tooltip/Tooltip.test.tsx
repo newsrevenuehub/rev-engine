@@ -1,4 +1,4 @@
-import { act, render, screen, waitFor } from 'test-utils';
+import { act, render, screen } from 'test-utils';
 import { axe } from 'jest-axe';
 import Tooltip from './Tooltip';
 

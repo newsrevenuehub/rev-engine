@@ -53,7 +53,6 @@ def migrate_legacy_clients_to_plus_plan(apps, schema_editor):
     """
     # RevenueProgram = apps.get_model("organizations", "RevenueProgram")
     Organization = apps.get_model("organizations", "Organization")
-    # orgs = RevenueProgram.objects.filter(slug__in=rp_slugs_for_legacy_clients).values_list("organization").distinct()
     Organization.objects.filter(revenueprogram__slug__in=rp_slugs_for_legacy_clients).update(plan_name="PLUS")
 
 

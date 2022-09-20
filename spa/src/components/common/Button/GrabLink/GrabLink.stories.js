@@ -1,4 +1,3 @@
-import { BUTTON_TYPE } from 'constants/buttonConstants';
 import GrabLink from './GrabLink';
 
 export default {
@@ -7,11 +6,6 @@ export default {
   parameters: {
     backgrounds: {
       default: 'Header color'
-    }
-  },
-  argTypes: {
-    type: {
-      options: Object.values(BUTTON_TYPE)
     }
   }
 };

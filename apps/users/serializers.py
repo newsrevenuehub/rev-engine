@@ -117,6 +117,7 @@ class UserSerializer(serializers.ModelSerializer):
         request = self.context.get("request", None)
         if request and getattr(request, "method", None) == "PATCH":
             fields["accepted_terms_of_service"].required = False
+            fields["accepted_terms_of_service"].read_only = True  # Is only read_only for PATCH, not POST.
             fields["password"].required = False
             fields["email"].required = False
         return fields
@@ -124,11 +125,11 @@ class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = get_user_model()
         fields = [
+            "id",
             "accepted_terms_of_service",
             "email",
             "email_verified",
             "flags",
-            "id",
             "organizations",
             "revenue_programs",
             "role_type",

@@ -1,13 +1,19 @@
 import PropTypes from 'prop-types';
 import * as S from './DashboardTopbar.styled';
 import { ICONS } from 'assets/icons/SvgIcon';
+import { useAlert } from 'react-alert';
 
+import useRequest from 'hooks/useRequest';
 import logo from 'assets/images/logo-nre.png';
 import mobileLogo from 'assets/images/logo-mobile.png';
 import logout from 'components/authentication/logout';
 import GrabLink from 'components/common/Button/GrabLink';
+import PublishButton from 'components/common/Button/PublishButton';
 
-function DashboardTopbar({ isEditPage, page }) {
+function DashboardTopbar({ isEditPage, page, setPage }) {
+  const alert = useAlert();
+  const requestPatchPage = useRequest();
+
   return (
     <S.DashboardTopbar>
       {!isEditPage ? (
@@ -22,7 +28,10 @@ function DashboardTopbar({ isEditPage, page }) {
       ) : null}
       <S.TopMenu>
         {isEditPage ? (
-          <GrabLink page={page} />
+          <>
+            <GrabLink page={page} />
+            <PublishButton page={page} setPage={setPage} alert={alert} requestPatchPage={requestPatchPage} />
+          </>
         ) : (
           <S.LogoutLink
             data-testid="topbar-sign-out"
@@ -41,6 +50,7 @@ function DashboardTopbar({ isEditPage, page }) {
 
 DashboardTopbar.propTypes = {
   isEditPage: PropTypes.bool,
+  setPage: PropTypes.func,
   page: PropTypes.shape({
     revenue_program: PropTypes.shape({
       slug: PropTypes.string

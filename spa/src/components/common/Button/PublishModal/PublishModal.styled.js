@@ -54,6 +54,11 @@ export const Modal = styled(MuiModal)`
     display: flex;
     align-items: center;
     justify-content: center;
+
+    p,
+    span {
+      font-family: ${(props) => props.theme.systemFont};
+    }
   }
 `;
 

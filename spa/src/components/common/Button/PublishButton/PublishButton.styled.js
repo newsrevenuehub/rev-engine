@@ -64,6 +64,11 @@ export const Popover = styled(MuiPopover)`
       max-width: calc(100% - 32px);
     }
   }
+
+  p,
+  span {
+    font-family: ${(props) => props.theme.systemFont};
+  }
 `;
 
 export const UnpublishButton = styled(MuiButton)`

@@ -16,13 +16,14 @@ from apps.users.choices import Roles
 from apps.users.models import RoleAssignmentResourceModelMixin, UnexpectedRoleType
 
 
+logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
+
 # This is for limiting creation of pages, revenue programs, and role assignments
 # in cases where our marketing materials use language about "unlimited". We don't
 # want a malactor to be able to create an unbounded number of these entities. If a
 # legitimate actor hits these limits, it can be handled via customer service.
 UNLIMITED_CEILING = 200
 
-logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
 
 # RFC-1035 limits domain labels to 63 characters, and RP slugs are used for subdomains,
 # so we limit to 63 chars

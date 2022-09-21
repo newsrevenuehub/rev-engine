@@ -30,9 +30,6 @@ logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
 RP_SLUG_MAX_LENGTH = 63
 
 
-CURRENCY_CHOICES = [(k, k) for k, _ in settings.CURRENCIES.items()]
-
-
 @dataclass
 class Plan:
     """Used for modeling Organization plans"""
@@ -346,7 +343,7 @@ class PaymentProvider(IndexedTimeStampedModel):
     stripe_account_id = models.CharField(max_length=255, unique=True, null=True, blank=True)
     stripe_product_id = models.CharField(max_length=255, blank=True, null=True)
 
-    currency = models.CharField(max_length=3, choices=CURRENCY_CHOICES, default="USD")
+    currency = models.CharField(max_length=3, choices=settings.CURRENCIES.keys(), default="USD")
     STRIPE = ("stripe", "Stripe")
     SUPPORTED_PROVIDERS = (STRIPE,)
     default_payment_provider = models.CharField(max_length=100, choices=SUPPORTED_PROVIDERS, default=STRIPE[0])

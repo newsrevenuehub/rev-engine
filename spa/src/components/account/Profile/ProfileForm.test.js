@@ -1,6 +1,6 @@
 import userEvent from '@testing-library/user-event';
 import { axe } from 'jest-axe';
-import { act, fireEvent, render, screen, waitFor, within } from 'test-utils';
+import { render, screen, waitFor, within } from 'test-utils';
 import ProfileForm from './ProfileForm';
 
 function tree(props) {

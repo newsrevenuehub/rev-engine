@@ -44,7 +44,10 @@ function Profile() {
         dispatch({ type: FETCH_FAILURE, payload: data });
       }
     } catch (e) {
-      dispatch({ type: FETCH_FAILURE, payload: e?.response?.data });
+      // If we didn't get a specific error message from the API, default to
+      // something generic.
+
+      dispatch({ type: FETCH_FAILURE, payload: e?.response?.data ?? [new Error('Request failed')] });
     }
   };
 

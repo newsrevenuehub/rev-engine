@@ -11,16 +11,21 @@ logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
 
 class StripeWebhookProcessor:
     def __init__(self, event):
-        logger.info("StripeWebhookProcessor called with %s", event)
         self.event = event
         self.obj_data = self.event.data["object"]
 
     def get_contribution_from_event(self):
-        logger.info(self.obj_data)
-        if self.obj_data["object"] == "subscription":
+        if (event_type := self.obj_data["object"]) == "subscription":
             return Contribution.objects.get(provider_subscription_id=self.obj_data["id"])
-        else:
-            return Contribution.objects.get(provider_payment_id=self.obj_data["id"])
+        elif event_type == "payment_intent":
+            try:
+                return Contribution.objects.get(provider_payment_id=self.obj_data["id"])
+            except Contribution.DoesNotExist as e:
+                if customer_id := self.obj_data.get("customer"):
+                    # This is fine as long as we continue to generate a unique customer per charge.
+                    return Contribution.objects.get(provider_customer_id=customer_id)
+                else:
+                    raise e
 
     def process(self):
         logger.info('Processing Stripe Event of type "%s"', self.event.type)

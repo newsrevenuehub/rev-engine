@@ -520,6 +520,7 @@ class SubscriptionsSerializer(serializers.Serializer):
     credit_card_expiration_date = serializers.SerializerMethodField()
     created = serializers.SerializerMethodField()
     last_payment_date = serializers.SerializerMethodField()
+    stripe_account_id = serializers.CharField(max_length=255, required=False, allow_blank=True)
 
     def _card(self, instance):
         return instance.default_payment_method.card

@@ -11,6 +11,7 @@ logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
 
 class StripeWebhookProcessor:
     def __init__(self, event):
+        logger.info("StripeWebhookProcessor initialized with event data: %s", event)
         self.event = event
         self.obj_data = self.event.data["object"]
 

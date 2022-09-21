@@ -82,9 +82,10 @@ def get_stripe_account_link_return_url(request):
     flow spanning SPA and backend and off-site Stripe form completion to be traversed.
     """
     reversed = reverse("spa_stripe_account_link_complete")
-    return (
-        f"http://localhost:3000{reversed}" if settings.ENVIRONMENT == "local" else request.build_absolute_uri(reversed)
-    )
+    if settings.STRIPE_ACCOUNT_LINK_RETURN_BASE_URL:
+        return f"{settings.STRIPE_ACCOUNT_LINK_RETURN_BASE_URL}{reversed}"
+    else:
+        return request.build_absolute_uri(reversed)
 
 
 @api_view(["POST"])

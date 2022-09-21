@@ -443,17 +443,12 @@ class TestCreateStripeAccountLink:
         assert response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
 
 
-@pytest.fixture
-def local_environment(settings):
-    settings.ENVIRONMENT = "local"
+@pytest.fixture()
+def settings_stripe_acccount_link_env_var_set(settings):
+    settings.STRIPE_ACCOUNT_LINK_RETURN_BASE_URL = "http://localhost:3000"
 
 
-@pytest.fixture
-def non_local_environment(settings):
-    settings.ENVIRONMENT = "elsewhere"
-
-
-def test_get_stripe_account_link_return_url_when_local(local_environment):
+def test_get_stripe_account_link_return_url_when_env_var_set(settings_stripe_acccount_link_env_var_set):
     factory = APIRequestFactory()
     assert (
         get_stripe_account_link_return_url(factory.get(""))
@@ -461,7 +456,7 @@ def test_get_stripe_account_link_return_url_when_local(local_environment):
     )
 
 
-def test_get_stripe_account_link_return_url_when_nonlocal(non_local_environment):
+def test_get_stripe_account_link_return_url_when_env_var_not_set():
     factory = APIRequestFactory()
     assert (
         get_stripe_account_link_return_url(factory.get(""))

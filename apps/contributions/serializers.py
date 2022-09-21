@@ -571,7 +571,7 @@ class SubscriptionsSerializer(serializers.Serializer):
         return metadata["revenue_program_slug"]
 
     def get_amount(self, instance):
-        return instance.plan.amount
+        return instance.get_plan().amount
 
     def get_customer_id(self, instance):
         return instance.get("customer")

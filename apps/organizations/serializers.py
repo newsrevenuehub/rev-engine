@@ -19,7 +19,7 @@ class OrganizationSerializer(serializers.ModelSerializer):
         fields = "__all__"
 
     def get_plan(self, obj):
-        return asdict(obj.plan)
+        return asdict(obj.get_plan_data())
 
     def to_representation(self, instance):
         representation = super().to_representation(instance)

@@ -28,6 +28,8 @@ logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
 # so we limit to 63 chars
 RP_SLUG_MAX_LENGTH = 63
 
+CURRENCY_CHOICES = [(k, k) for k in settings.CURRENCIES.keys()]
+
 
 @dataclass
 class Plan:
@@ -70,12 +72,12 @@ class Plans(models.TextChoices):
 
     @classmethod
     def get_plan(cls, name):
-        return ({Plans.FREE.value: FreePlan, Plans.PLUS.value: PlusPlan}).get(name, None)
+        return {Plans.FREE.value: FreePlan, Plans.PLUS.value: PlusPlan}.get(name, None)
 
 
 class Organization(IndexedTimeStampedModel, RoleAssignmentResourceModelMixin):
     name = models.CharField(max_length=255, unique=True)
-    plan_name = models.CharField(choices=Plans.choices, max_length=10, default=Plans.FREE)
+    plan = models.CharField(choices=Plans.choices, max_length=10, default=Plans.FREE)
     salesforce_id = models.CharField(max_length=255, blank=True, verbose_name="Salesforce ID")
 
     # TODO: [DEV-2035] Remove Organization.slug field entirely
@@ -101,8 +103,8 @@ class Organization(IndexedTimeStampedModel, RoleAssignmentResourceModelMixin):
         return self.name
 
     @property
-    def plan(self):
-        return Plans.get_plan(self.plan_name)
+    def get_plan_data(self):
+        return Plans.get_plan(self.plan)
 
     @property
     def admin_revenueprogram_options(self):
@@ -342,7 +344,7 @@ class PaymentProvider(IndexedTimeStampedModel):
     stripe_account_id = models.CharField(max_length=255, unique=True, null=True, blank=True)
     stripe_product_id = models.CharField(max_length=255, blank=True, null=True)
 
-    currency = models.CharField(max_length=3, choices=settings.CURRENCIES.keys(), default="USD")
+    currency = models.CharField(max_length=3, choices=CURRENCY_CHOICES, default="USD")
     STRIPE = ("stripe", "Stripe")
     SUPPORTED_PROVIDERS = (STRIPE,)
     default_payment_provider = models.CharField(max_length=100, choices=SUPPORTED_PROVIDERS, default=STRIPE[0])

@@ -86,4 +86,9 @@ class Migration(migrations.Migration):
         migrations.DeleteModel(
             name="Plan",
         ),
+        migrations.RenameField(
+            model_name="organization",
+            old_name="plan_name",
+            new_name="plan",
+        ),
     ]

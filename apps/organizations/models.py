@@ -5,7 +5,6 @@ from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.db import models
 from django.utils import timezone
-from django.utils.translation import gettext_lazy as _
 
 import stripe
 
@@ -49,12 +48,12 @@ class Plan:
     seats: int = 1
 
 
-free_plan = Plan(
+FreePlan = Plan(
     name="FREE",
     label="Free",
 )
 
-plus_plan = Plan(
+PlusPlan = Plan(
     name="PLUS",
     label="Plus",
     # If this limit gets hit, it can be dealt with as a customer service issue.
@@ -66,12 +65,12 @@ plus_plan = Plan(
 
 class Plans(models.TextChoices):
 
-    FREE = free_plan.name, _(free_plan.label)
-    PLUS = plus_plan.name, _(plus_plan.label)
+    FREE = FreePlan.name, FreePlan.label
+    PLUS = PlusPlan.name, PlusPlan.label
 
     @classmethod
     def get_plan(cls, name):
-        return ({Plans.FREE.value: free_plan, Plans.PLUS.value: plus_plan}).get(name, None)
+        return ({Plans.FREE.value: FreePlan, Plans.PLUS.value: PlusPlan}).get(name, None)
 
 
 class Organization(IndexedTimeStampedModel, RoleAssignmentResourceModelMixin):

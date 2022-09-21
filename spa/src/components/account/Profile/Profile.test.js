@@ -67,6 +67,24 @@ describe('Profile', () => {
       );
     });
 
+    it.only('does not send a job title property if the user did not specify it', async () => {
+      tree();
+      userEvent.click(screen.getByText('mock-profile-form-submit-without-job-title'));
+      await waitFor(() => expect(axiosMock.history.patch).toHaveLength(1));
+      expect(axiosMock.history.patch[0]).toEqual(
+        expect.objectContaining({
+          data: JSON.stringify({
+            first_name: 'mock-first-name',
+            last_name: 'mock-last-name',
+            // No job_title
+            organization_name: 'mock-company-name',
+            organization_tax_status: 'mock-tax-status'
+          }),
+          url: `users/mock-user-id/${CUSTOMIZE_ACCOUNT_ENDPOINT}`
+        })
+      );
+    });
+
     it('redirects to / after a successful PATCH', async () => {
       tree();
       userEvent.click(screen.getByText('mock-profile-form-submit'));

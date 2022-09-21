@@ -29,7 +29,7 @@ class DonationPageFullDetailSerializerTest(RevEngineApiAbstractTestCase):
     def setUp(self):
         self.set_up_domain_model()
         # we do this so not limited to single page
-        self.org1.plan_name = Plans.PLUS
+        self.org1.plan = Plans.PLUS
         self.org1.save()
         self.page = self.org1_rp1.donationpage_set.first()
         self.serializer = DonationPageFullDetailSerializer
@@ -246,9 +246,9 @@ class DonationPageFullDetailSerializerTest(RevEngineApiAbstractTestCase):
         self.assertEqual(serializer.data["allow_offer_nyt_comp"], self.page.revenue_program.allow_offer_nyt_comp)
 
     def test_plan_page_limits_are_respected(self):
-        self.org1.plan_name = Plans.FREE
+        self.org1.plan = Plans.FREE
         self.org1.save()
-        assert self.page.revenue_program.organization.plan.page_limit == 1
+        assert self.page.revenue_program.organization.get_plan_data().page_limit == 1
 
         serializer = self.serializer(
             data={

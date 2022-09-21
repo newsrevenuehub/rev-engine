@@ -119,38 +119,26 @@ export function getPaymentSuccessUrl({
   pathName,
   stripeClientSecret
 }) {
-  if (
-    !baseUrl ||
-    !thankYouRedirectUrl ||
-    !amount ||
-    !emailHash ||
-    !frequencyDisplayValue ||
-    !contributorEmail ||
-    !pageSlug ||
-    !rpSlug ||
-    !pathName ||
-    !stripeClientSecret
-  ) {
-    throw new Error('Missing argument for payment success URL');
+  console.log(arguments);
+  const missingParams = Object.fromEntries(
+    Object.entries({
+      baseUrl,
+      thankYouRedirectUrl,
+      amount,
+      emailHash,
+      frequencyDisplayValue,
+      contributorEmail,
+      pageSlug,
+      rpSlug,
+      pathName,
+      stripeClientSecret
+    }).filter(([_, v]) => v in [undefined, null, ''])
+  );
+  if (Object.entries(missingParams).length) {
+    throw new Error(`Missing argument for: ${Object.keys(missingParams).join(', ')}`);
   }
-  // This is the URL that Stripe will send the user to if payment is successfully
-  // processed. We send users to an interstitial payment success page where we can
-  // track successful conversion in analytics, before forwarding them on to the default
-  // thank you page.
   const paymentSuccessUrl = new URL(PAYMENT_SUCCESS, baseUrl);
-  paymentSuccessUrl.search = new URLSearchParams({
-    amount,
-    pageSlug,
-    rpSlug,
-    email: contributorEmail,
-    frequency: frequencyDisplayValue,
-    fromPath: pathName === '/' ? '' : pathName,
-    next: thankYouRedirectUrl,
-    payment_intent_client_secret: stripeClientSecret,
-    uid: emailHash
-  });
-  // RE: some passed params
-  //
+  // Some notes on parameters for URL search generation below:
   // uid: maps to emailHash from function params
   //
   // When a donation page has a custom thank you page that is off-site, we
@@ -181,6 +169,16 @@ export function getPaymentSuccessUrl({
   // case, the thank-you page URL can be rev-program-slug.revengine.com/thank-you.
 
   // payment_intent_client_secret : stripeClientSecret in function params
-  paymentSuccessUrl.searchParams.append('payment_intent_client_secret', stripeClientSecret);
+  paymentSuccessUrl.search = new URLSearchParams({
+    amount,
+    pageSlug,
+    rpSlug,
+    email: contributorEmail,
+    frequency: frequencyDisplayValue,
+    fromPath: pathName === '/' ? '' : pathName,
+    next: thankYouRedirectUrl,
+    payment_intent_client_secret: stripeClientSecret,
+    uid: emailHash
+  });
   return paymentSuccessUrl.href;
 }

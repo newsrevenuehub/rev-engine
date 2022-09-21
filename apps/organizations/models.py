@@ -73,7 +73,7 @@ class Plans(models.TextChoices):
 
     @classmethod
     def get_plan(cls, name):
-        return {Plans.FREE.value: FreePlan, Plans.PLUS.value: PlusPlan}.get(name, None)
+        return {cls.FREE.value: FreePlan, cls.PLUS.value: PlusPlan}.get(name, None)
 
 
 class Organization(IndexedTimeStampedModel, RoleAssignmentResourceModelMixin):
@@ -103,7 +103,6 @@ class Organization(IndexedTimeStampedModel, RoleAssignmentResourceModelMixin):
     def __str__(self):
         return self.name
 
-    @property
     def get_plan_data(self):
         return Plans.get_plan(self.plan)
 

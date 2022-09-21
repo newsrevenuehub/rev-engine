@@ -197,7 +197,7 @@ class DonationPageFullDetailSerializer(serializers.ModelSerializer):
             return
         if DonationPage.objects.filter(
             revenue_program__organization=(org := data["revenue_program"].organization)
-        ).count() + 1 > (pl := org.plan.page_limit):
+        ).count() + 1 > (pl := org.get_plan_data().page_limit):
             raise serializers.ValidationError(
                 {"non_field_errors": [f"Your organization has reached its limit of {pl} page{'s' if pl > 1 else ''}"]}
             )

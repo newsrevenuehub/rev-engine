@@ -59,6 +59,9 @@ class PageViewSetTest(RevEngineApiAbstractTestCase):
     # CREATE
     def test_superuser_can_create_a_page(self):
         before_count = DonationPage.objects.count()
+        # so don't hit page limit
+        self.org1.plan = Plans.PLUS
+        self.org1.save()
         url = reverse("donationpage-list")
         self.assert_superuser_can_post(url, self.default_page_creation_data)
         self.assertEqual(DonationPage.objects.count(), before_count + 1)

@@ -46,15 +46,6 @@ describe('Donation page list', () => {
     cy.contains('Choose a revenue program');
   });
 
-  it('should add suggested slug on name field blur', () => {
-    cy.intercept({ method: 'GET', pathname: getEndpoint(TEMPLATES) }, {});
-
-    cy.get('button[aria-label="New Page"]').click();
-    cy.getByTestId('page-name').type('My Testing Page');
-    cy.getByTestId('page-name').blur();
-    cy.getByTestId('page-slug').should('have.value', 'my-testing-page');
-  });
-
   it.skip('should show template list dropdown, if templates exist', () => {
     cy.intercept(
       { method: 'GET', pathname: getEndpoint(TEMPLATES) },

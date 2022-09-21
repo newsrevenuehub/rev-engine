@@ -15,6 +15,7 @@ class StripeWebhookProcessor:
         self.obj_data = self.event.data["object"]
 
     def get_contribution_from_event(self):
+        logger.info(self.obj_data)
         if self.obj_data["object"] == "subscription":
             return Contribution.objects.get(provider_subscription_id=self.obj_data["id"])
         else:

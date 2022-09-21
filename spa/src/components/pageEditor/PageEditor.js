@@ -93,7 +93,22 @@ function PageEditor() {
 
   // State
   const [loading, setLoading] = useState(false);
-  const [page, setPage] = useState();
+  const [page, rawSetPage] = useState();
+  const setPage = useCallback((value) => {
+    // Page data may have a null currency property if Stripe hasn't been
+    // connected yet. We want to force it to always at least contain a plausible
+    // currency symbol while the user is editing.
+    //
+    // We shouldn't have this logic on a live page--Stripe should always be
+    // connected in that case.
+
+    if (!value.currency) {
+      rawSetPage({ ...value, currency: { symbol: '$' } });
+    } else {
+      rawSetPage(value);
+    }
+  }, []);
+
   const [availableStyles, setAvailableStyles] = useState([]);
 
   const { open: showUnsavedModal, handleClose: closeUnsavedModal, handleOpen: openUnsavedModal } = useModal();

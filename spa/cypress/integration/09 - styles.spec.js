@@ -12,7 +12,7 @@ const contentSectionFlag = {
 };
 
 const hubAdminWithContentFlag = {
-  ...hubAdminUser,
+  ...hubAdminUser['user'],
   flags: [{ ...contentSectionFlag }]
 };
 

@@ -10,6 +10,8 @@ import ContributorRouter from 'components/ContributorRouter';
 // Slugs
 import * as ROUTES from 'routes';
 
+import UserContextProvider from './UserContext';
+
 // Components/Children
 import GlobalLoading from 'elements/GlobalLoading';
 import TrackPageView from 'components/analytics/TrackPageView';
@@ -19,8 +21,14 @@ import ChunkErrorBoundary from 'components/errors/ChunkErrorBoundary';
 import componentLoader from 'utilities/componentLoader';
 
 // Split bundles
-const Login = lazy(() => componentLoader(() => import('components/authentication/Login')));
 const Main = lazy(() => componentLoader(() => import('components/Main')));
+
+// Account Screens
+
+const SignIn = lazy(() => componentLoader(() => import('components/account/SignIn')));
+const SignUp = lazy(() => componentLoader(() => import('components/account/SignUp')));
+const ForgotPassword = lazy(() => componentLoader(() => import('components/account/ForgotPassword')));
+const ResetPassword = lazy(() => componentLoader(() => import('components/account/ResetPassword')));
 
 function DashboardRouter() {
   const isContributorApp = isContributorAppPath();
@@ -33,7 +41,14 @@ function DashboardRouter() {
         <React.Suspense fallback={<GlobalLoading />}>
           <Switch>
             {/* Login URL */}
-            <Route exact path={ROUTES.LOGIN} render={() => <TrackPageView component={Login} />} />
+
+            <Route exact path={ROUTES.SIGN_IN} render={() => <TrackPageView component={SignIn} />} />
+            <Route exact path={ROUTES.SIGN_UP} render={() => <TrackPageView component={SignUp} />} />
+            <Route exact path={ROUTES.FORGOT_PASSWORD} render={() => <TrackPageView component={ForgotPassword} />} />
+            <Route exact path={ROUTES.RESET_PASSWORD} render={() => <TrackPageView component={ResetPassword} />} />
+
+            <Redirect from="/verified/:slug" to="/verify-email-success?result=:slug" />
+            <Redirect from={ROUTES.VERIFIED} to={ROUTES.VERIFY_EMAIL_SUCCESS} />
 
             {/* Organization Dashboard */}
             <ProtectedRoute
@@ -42,9 +57,14 @@ function DashboardRouter() {
                 ROUTES.DONATIONS_SLUG,
                 ROUTES.CONTENT_SLUG,
                 ROUTES.CUSTOMIZE_SLUG,
-                ROUTES.EDITOR_ROUTE
+                ROUTES.EDITOR_ROUTE,
+                ROUTES.VERIFY_EMAIL_SUCCESS
               ]}
-              render={() => <TrackPageView component={Main} />}
+              render={() => (
+                <UserContextProvider>
+                  <TrackPageView component={Main} />
+                </UserContextProvider>
+              )}
             />
 
             <Redirect to={ROUTES.CONTENT_SLUG} />

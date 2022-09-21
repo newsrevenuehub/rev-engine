@@ -265,6 +265,7 @@ class ContributionsCacheProvider:
 
 
 class SubscriptionsCacheProvider:
+    # TODO: [DEV-2449] reduce duplication with ContributionsCacheProvider
     def __init__(self, email_id, stripe_account_id, serializer=None) -> None:
         self.cache = caches[DEFAULT_CACHE]
         self.serializer = serializer

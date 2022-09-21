@@ -243,9 +243,10 @@ class ContributionsCacheProvider:
     def upsert(self, contributions):
         """Serialized and Upserts contributions data to cache."""
         data = self.serialize(contributions)
-        # add the stripe account ID
-        for k in data:
-            data[k]["stripe_account_id"] = self.stripe_account_id
+        # Since the Stripe objects themselves don't have a field indicating the account they came from (when they come
+        # from a Connect webhook they do have this field) they get added here:
+        for v in data.values():
+            v["stripe_account_id"] = self.stripe_account_id
 
         cached_data = json.loads(self.cache.get(self.key) or "{}")
         cached_data.update(data)
@@ -285,7 +286,8 @@ class SubscriptionsCacheProvider:
     def upsert(self, subscriptions):
         """Serialized and Upserts subscriptions data to cache."""
         data = self.serialize(subscriptions)
-        # add the stripe account ID
+        # Since the Stripe objects themselves don't have a field indicating the Stripe Account they came
+        # from (when they come from a Connect webhook they do have this field)
         for k in data:
             data[k]["stripe_account_id"] = self.stripe_account_id
         cached_data = json.loads(self.cache.get(self.key) or "{}")

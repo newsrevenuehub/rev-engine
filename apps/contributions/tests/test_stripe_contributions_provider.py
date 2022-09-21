@@ -456,3 +456,5 @@ class TestSubscriptionsCacheProvider(AbstractTestCase):
             assert len(data) == 2
             assert data[0].id == "sub_1234"
             assert data[1].id == "sub_5678"
+            for datum in data:
+                assert datum.stripe_account_id == "bogus"

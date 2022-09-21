@@ -32,6 +32,8 @@ describe('Profile', () => {
     useHistory.mockReturnValue({ push: historyPushMock });
   });
 
+  afterEach(() => axiosMock.reset());
+
   afterAll(() => axiosMock.restore());
 
   it('displays the profile form', () => {
@@ -54,7 +56,7 @@ describe('Profile', () => {
         expect.objectContaining({
           data: JSON.stringify({
             first_name: 'mock-first-name',
-            last_name: 'mock-first-name',
+            last_name: 'mock-last-name',
             job_title: 'mock-job-title',
             organization_name: 'mock-company-name',
             organization_tax_status: 'nonprofit'
@@ -75,7 +77,7 @@ describe('Profile', () => {
             last_name: 'mock-last-name',
             // No job_title
             organization_name: 'mock-company-name',
-            organization_tax_status: 'mock-tax-status'
+            organization_tax_status: 'nonprofit'
           }),
           url: `users/mock-user-id/${CUSTOMIZE_ACCOUNT_ENDPOINT}`
         })

@@ -15,10 +15,17 @@ const ProfileForm = (props: ProfileFormProps) => {
     props.onProfileSubmit(mockFormData);
   }
 
+  function handleSubmitWithoutJobTitle() {
+    props.onProfileSubmit({ ...mockFormData, jobTitle: '' });
+  }
+
   return (
     <form onSubmit={handleSubmit} data-testid="mock-profile-form">
       {props.disabled && <div data-testid="mock-profile-form-disabled" />}
       <button>mock-profile-form-submit</button>
+      <button type="button" onClick={handleSubmitWithoutJobTitle}>
+        mock-profile-form-submit-without-job-title
+      </button>
     </form>
   );
 };

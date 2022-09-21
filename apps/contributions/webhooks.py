@@ -15,13 +15,10 @@ class StripeWebhookProcessor:
         self.obj_data = self.event.data["object"]
 
     def get_contribution_from_event(self):
-        try:
+        if self.obj_data["object"] == "subscription":
+            return Contribution.objects.get(provider_subscription_id=self.obj_data["id"])
+        else:
             return Contribution.objects.get(provider_payment_id=self.obj_data["id"])
-        except Contribution.DoesNotExist as e:
-            if customer_id := self.obj_data.get("customer"):
-                # This is fine as long as we continue to generate a unique customer per charge.
-                return Contribution.objects.get(provider_customer_id=customer_id)
-            raise Contribution.DoesNotExist(e)
 
     def process(self):
         logger.info('Processing Stripe Event of type "%s"', self.event.type)

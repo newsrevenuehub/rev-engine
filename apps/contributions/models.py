@@ -289,6 +289,7 @@ class Contribution(IndexedTimeStampedModel, RoleAssignmentResourceModelMixin):
         )
         self.provider_payment_id = intent["id"]
         self.provider_client_secret_id = intent["client_secret"]
+        self.provider_customer_id = intent["customer"]
         self.save()
         return intent
 
@@ -320,6 +321,7 @@ class Contribution(IndexedTimeStampedModel, RoleAssignmentResourceModelMixin):
         )
         self.payment_provider_data = subscription
         self.provider_subscription_id = subscription["id"]
+        self.provider_customer_id = subscription["customer"]
         self.provider_client_secret_id = subscription["latest_invoice"]["payment_intent"]["client_secret"]
         self.save()
         return subscription

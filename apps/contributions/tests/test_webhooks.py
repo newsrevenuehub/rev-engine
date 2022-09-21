@@ -51,7 +51,7 @@ class MockSubscriptionEvent(StripeObject):
     def __init__(
         self,
         event_type=None,
-        intent_id=None,
+        subscription_id=None,
         new_payment_method="",
         previous_attributes={},
         object_type="subscription",
@@ -61,7 +61,7 @@ class MockSubscriptionEvent(StripeObject):
         self.type = event_type
         self.data = {
             "object": {
-                "id": intent_id,
+                "id": subscription_id,
                 "object": object_type,
                 "cancellation_reason": cancellation_reason,
                 "customer": customer,
@@ -90,9 +90,9 @@ def mock_valid_signature_bad_payload_verification(*args, **kwargs):
 
 @override_settings(STRIPE_WEBHOOK_SECRET=valid_secret)
 class PaymentIntentWebhooksTest(APITestCase):
-    def _create_contribution(self, ref_id=None):
+    def _create_contribution(self, payment_intent_id=None):
         return Contribution.objects.create(
-            provider_payment_id=ref_id, amount=1000, status=ContributionStatus.PROCESSING
+            provider_payment_id=payment_intent_id, amount=1000, status=ContributionStatus.PROCESSING
         )
 
     def _run_webhook_view_with_request(self):
@@ -123,26 +123,26 @@ class PaymentIntentWebhooksTest(APITestCase):
     )
     @patch("apps.contributions.views.logger")
     def test_webhook_view_invalid_contribution(self, mock_logger, *args):
-        self._create_contribution(ref_id="abcd")
+        self._create_contribution(payment_intent_id="abcd")
         self._run_webhook_view_with_request()
         self.assertEqual("Could not find contribution matching provider_payment_id", mock_logger.info.call_args[0][0])
 
     def test_payment_intent_canceled_webhook(self):
-        ref_id = "1234"
-        contribution = self._create_contribution(ref_id=ref_id)
+        payment_intent_id = "1234"
+        contribution = self._create_contribution(payment_intent_id=payment_intent_id)
         processor = StripeWebhookProcessor(
-            MockPaymentIntentEvent(event_type="payment_intent.canceled", intent_id=ref_id)
+            MockPaymentIntentEvent(event_type="payment_intent.canceled", intent_id=payment_intent_id)
         )
         processor.process()
         contribution.refresh_from_db()
         self.assertEqual(contribution.status, ContributionStatus.CANCELED)
 
     def test_payment_intent_fraudulent(self):
-        ref_id = "1234"
-        contribution = self._create_contribution(ref_id=ref_id)
+        payment_intent_id = "1234"
+        contribution = self._create_contribution(payment_intent_id=payment_intent_id)
         processor = StripeWebhookProcessor(
             MockPaymentIntentEvent(
-                event_type="payment_intent.canceled", intent_id=ref_id, cancellation_reason="fraudulent"
+                event_type="payment_intent.canceled", intent_id=payment_intent_id, cancellation_reason="fraudulent"
             )
         )
         processor.process()
@@ -150,10 +150,10 @@ class PaymentIntentWebhooksTest(APITestCase):
         self.assertEqual(contribution.status, ContributionStatus.REJECTED)
 
     def test_payment_intent_payment_failed_webhook(self):
-        ref_id = "1234"
-        contribution = self._create_contribution(ref_id=ref_id)
+        payment_intent_id = "1234"
+        contribution = self._create_contribution(payment_intent_id=payment_intent_id)
         processor = StripeWebhookProcessor(
-            MockPaymentIntentEvent(event_type="payment_intent.payment_failed", intent_id=ref_id)
+            MockPaymentIntentEvent(event_type="payment_intent.payment_failed", intent_id=payment_intent_id)
         )
         processor.process()
         contribution.refresh_from_db()
@@ -161,39 +161,41 @@ class PaymentIntentWebhooksTest(APITestCase):
 
     @patch("apps.contributions.models.SlackManager")
     def test_payment_intent_succeeded_webhook(self, mock):
-        ref_id = "1234"
-        contribution = self._create_contribution(ref_id=ref_id)
+        payment_intent_id = "1234"
+        contribution = self._create_contribution(payment_intent_id=payment_intent_id)
         processor = StripeWebhookProcessor(
-            MockPaymentIntentEvent(event_type="payment_intent.succeeded", intent_id=ref_id)
+            MockPaymentIntentEvent(event_type="payment_intent.succeeded", intent_id=payment_intent_id)
         )
         processor.process()
         contribution.refresh_from_db()
         self.assertEqual(contribution.status, ContributionStatus.PAID)
 
-    def test_webhook_with_invalid_contribution_reference_id(self):
-        self._create_contribution(ref_id="abcd")
+    def test_webhook_with_invalid_contribution_payment_intent_id(self):
         processor = StripeWebhookProcessor(
-            MockPaymentIntentEvent(event_type="payment_intent.succeeded", intent_id="1234")
+            MockPaymentIntentEvent(event_type="payment_intent.succeeded", intent_id="no-id-like-this-exists")
         )
         self.assertRaises(Contribution.DoesNotExist, processor.process)
 
     @patch("apps.contributions.webhooks.logger")
     def test_unknown_event_logs_helpful_message(self, mock_logger):
-        self._create_contribution(ref_id="abcd")
+        payment_intent_id = "abcd"
+        self._create_contribution(payment_intent_id=payment_intent_id)
         fake_event_object = "criminal_activiy"
-        processor = StripeWebhookProcessor(MockPaymentIntentEvent(object_type=fake_event_object, intent_id="1234"))
+        processor = StripeWebhookProcessor(
+            MockPaymentIntentEvent(object_type=fake_event_object, intent_id=payment_intent_id)
+        )
         processor.process()
         self.assertIn("Recieved un-handled Stripe object of type", mock_logger.warning.call_args[0][0])
         self.assertEqual(mock_logger.warning.call_args[0][1], fake_event_object)
 
 
 class CustomerSubscriptionWebhooksTest(APITestCase):
-    def _create_contribution(self, ref_id=None, **kwargs):
+    def _create_contribution(self, provider_subscription_id=None, **kwargs):
         org = OrganizationFactory()
         payment_provider = PaymentProviderFactory(stripe_account_id="test")
         revenue_program = RevenueProgramFactory(payment_provider=payment_provider, organization=org)
         return Contribution.objects.create(
-            provider_payment_id=ref_id,
+            provider_subscription_id=provider_subscription_id,
             amount=1000,
             status=ContributionStatus.PROCESSING,
             donation_page=DonationPageFactory(revenue_program=revenue_program),
@@ -220,14 +222,16 @@ class CustomerSubscriptionWebhooksTest(APITestCase):
 
     @patch("stripe.PaymentMethod.retrieve", side_effect="{}")
     def test_updated_subscription_gets_updated(self, mock_fetch_pm):
-        ref_id = "1234"
+        provider_subscription_id = "1234"
         previous_payment_method_id = "testing-previous-pm-id"
         new_payment_method = "testing-new-pm-id"
-        contribution = self._create_contribution(ref_id=ref_id, provider_payment_method_id=previous_payment_method_id)
+        contribution = self._create_contribution(
+            provider_subscription_id=provider_subscription_id, provider_payment_method_id=previous_payment_method_id
+        )
         processor = StripeWebhookProcessor(
             MockSubscriptionEvent(
                 event_type="customer.subscription.updated",
-                intent_id=ref_id,
+                subscription_id=provider_subscription_id,
                 new_payment_method=new_payment_method,
                 previous_attributes={"default_payment_method": previous_payment_method_id},
             )
@@ -239,11 +243,11 @@ class CustomerSubscriptionWebhooksTest(APITestCase):
 
     @patch("stripe.PaymentMethod.retrieve", side_effect="{}")
     def test_canceled_subscription_gets_updated(self, mock_fetch_pm):
-        ref_id = "1234"
-        contribution = self._create_contribution(ref_id=ref_id)
+        subscription_id = "1234"
+        contribution = self._create_contribution(provider_subscription_id=subscription_id)
         self.assertNotEqual(contribution.status, ContributionStatus.CANCELED)
         processor = StripeWebhookProcessor(
-            MockSubscriptionEvent(event_type="customer.subscription.deleted", intent_id=ref_id)
+            MockSubscriptionEvent(event_type="customer.subscription.deleted", subscription_id=subscription_id)
         )
         processor.process()
         mock_fetch_pm.assert_not_called()

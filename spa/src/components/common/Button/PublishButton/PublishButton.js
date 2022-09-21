@@ -27,7 +27,7 @@ const PublishButton = ({ page, setPage, className, alert, requestPatchPage }) =>
   const showPopover = Boolean(anchorEl);
   const disabled = !page?.payment_provider?.stripe_verified;
   const isPublished = pageHasBeenPublished(page);
-  const pageLink = `${page?.revenue_program?.slug}.${domain}/${page?.slug}`;
+  const pageLink = `https://${page?.revenue_program?.slug}.${domain}/${page?.slug}`;
 
   const handleOpenPopover = (event) => {
     setAnchorEl(event.currentTarget);

@@ -17,7 +17,11 @@ from apps.users.choices import Roles
 from apps.users.models import RoleAssignmentResourceModelMixin, UnexpectedRoleType
 
 
-FAKE_INFINITY = 200
+# This is for limiting creation of pages, revenue programs, and role assignments
+# in cases where our marketing materials use language about "unlimited". We don't
+# want a malactor to be able to create an unbounded number of these entities. If a
+# legitimate actor hits these limits, it can be handled via customer service.
+UNLIMITED_CEILING = 200
 
 logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
 
@@ -56,11 +60,10 @@ free_plan = Plan(
 plus_plan = Plan(
     name="PLUS",
     label="Plus",
-    # we market these as "unlimited", but for domain modeling, we enforce a finite limit/
     # If this limit gets hit, it can be dealt with as a customer service issue.
-    page_limit=FAKE_INFINITY,
-    revenue_program_limit=FAKE_INFINITY,
-    seats=FAKE_INFINITY,
+    page_limit=UNLIMITED_CEILING,
+    revenue_program_limit=UNLIMITED_CEILING,
+    seats=UNLIMITED_CEILING,
 )
 
 

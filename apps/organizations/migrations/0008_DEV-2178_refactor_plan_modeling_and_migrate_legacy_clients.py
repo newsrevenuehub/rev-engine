@@ -2,6 +2,7 @@
 from django.db import migrations, models
 
 # from https://news-revenue-hub.atlassian.net/wiki/spaces/TECH/pages/2214625287/Existing+Client+Donation+Page+URLs
+# as of 9/19/22
 rp_slugs_for_legacy_clients = [
     "anthropocene",
     "aspenjournalism",

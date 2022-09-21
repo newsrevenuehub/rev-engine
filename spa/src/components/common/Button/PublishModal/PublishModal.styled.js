@@ -56,6 +56,7 @@ export const Modal = styled(MuiModal)`
     justify-content: center;
 
     p,
+    h1,
     span {
       font-family: ${(props) => props.theme.systemFont};
     }

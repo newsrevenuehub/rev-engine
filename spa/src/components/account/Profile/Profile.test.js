@@ -40,10 +40,13 @@ describe('Profile', () => {
   });
 
   describe('when the profile form is submitted', () => {
-    it('disables the form while the request is pending', () => {
+    it('disables the form while the request is pending', async () => {
       tree();
       userEvent.click(screen.getByText('mock-profile-form-submit'));
       expect(screen.getByTestId('mock-profile-form-disabled')).toBeInTheDocument();
+
+      // Wait for the request to finish to avoid an act() warning.
+      await waitFor(() => expect(axiosMock.history.patch.length).toBe(1));
     });
 
     it('PATCHes the user customization endpoint', async () => {

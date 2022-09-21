@@ -40,10 +40,16 @@ export const revEngineTheme = {
       700: '#008070'
     },
 
+    muiYellow: {
+      A50: '#EFF4A7',
+      A100: '#F5FF75'
+    },
+
     muiGrey: {
       100: '#F1F1F1',
       300: '#D9D9D9',
       400: '#c4c4c4',
+      500: '#969696',
       600: '#707070',
       900: '#282828'
     },
@@ -95,6 +101,7 @@ export const revEngineTheme = {
     md: '16px',
     lg: '18px',
     lgx: '24px',
+    lg2x: '28px',
     h1: '34px',
     xl: '72px'
   },

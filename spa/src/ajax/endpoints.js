@@ -25,6 +25,7 @@ export const REVENUE_PROGRAMS = 'revenue-programs/';
 // Contributions
 export const CONTRIBUTIONS = 'contributions/';
 export const PROCESS_FLAGGED = 'process-flagged/';
+export const SUBSCRIPTIONS = 'subscriptions/';
 
 // Contributor Portal
 export const GET_MAGIC_LINK = 'contrib-email/';
@@ -36,3 +37,4 @@ export const CANCEL_RECURRING = 'cancel-recurring/';
 // Account
 export const FORGOT_PASSWORD_ENDPOINT = 'users/password_reset/';
 export const RESET_PASSWORD_ENDPOINT = 'users/password_reset/confirm/';
+export const VERIFY_EMAIL_REQUEST_ENDPOINT = 'users/request_account_verification/';

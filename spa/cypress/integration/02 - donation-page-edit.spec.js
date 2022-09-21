@@ -7,7 +7,7 @@ import { format } from 'date-fns';
 import livePage from '../fixtures/pages/live-page-1.json';
 import unpublishedPage from '../fixtures/pages/unpublished-page-1.json';
 
-// Contsants
+// Constants
 import { DELETE_PAGE, DRAFT_PAGE_DETAIL, PATCH_PAGE, LIST_PAGES, LIST_STYLES, TEMPLATES, USER } from 'ajax/endpoints';
 import { DELETE_CONFIRM_MESSAGE } from 'components/pageEditor/PageEditor';
 import { CONTENT_SLUG } from 'routes';
@@ -22,7 +22,7 @@ const contentSectionFlag = {
 };
 
 const orgAdminWithContentFlag = {
-  ...orgAdminUser,
+  ...orgAdminUser['user'],
   flags: [{ ...contentSectionFlag }]
 };
 
@@ -60,6 +60,40 @@ describe('Donation page edit', () => {
   it('should close edit interface when clicking preview button', () => {
     cy.getByTestId('preview-page-button').click();
     cy.getByTestId('edit-interface').should('not.exist');
+  });
+
+  describe('Currency display', () => {
+    const testAmounts = ['amount-120-selected', 'amount-180', 'amount-365', 'amount-other'];
+
+    it('displays the currency symbol defined in the page data', () => {
+      for (const amount of testAmounts) {
+        cy.getByTestId(amount).should('contain', livePage.currency.symbol);
+      }
+    });
+
+    it("defaults to $ as currency symbol if it's not defined", () => {
+      // Have to re-run the entire before() process, but with different API
+      // data.
+
+      cy.forceLogin(orgAdminUser);
+      cy.intercept({ method: 'GET', pathname: getEndpoint(USER) }, { body: orgAdminWithContentFlag });
+      cy.intercept({ method: 'GET', pathname: getEndpoint(LIST_STYLES) }, {});
+      cy.intercept(
+        { method: 'GET', pathname: `${getEndpoint(DRAFT_PAGE_DETAIL)}**` },
+        { body: { ...livePage, currency: null }, statusCode: 200 }
+      ).as('getPage');
+
+      const route = testEditPageUrl;
+
+      cy.visit(route);
+      cy.url().should('include', route);
+      cy.wait('@getPage');
+
+      for (const amount of testAmounts) {
+        cy.getByTestId(amount).should('not.contain', livePage.currency.symbol);
+        cy.getByTestId(amount).should('contain', '$');
+      }
+    });
   });
 
   describe('Dynamic page title', () => {
@@ -410,19 +444,12 @@ describe('Donation page edit', () => {
     });
     it('should show expected, formatted publication date', () => {
       const rawDate = livePage.published_date;
-      const expectedFormat = format(new Date(rawDate), "LLL do, yyyy 'at' hh:mm a");
-      cy.getByTestId('setup-tab').click();
-      cy.getByTestId('publish-widget').scrollIntoView();
-      cy.getByTestId('publish-widget').contains(expectedFormat);
-    });
-    it('should show a warning when updating a live page', () => {
-      cy.intercept({ method: 'GET', pathname: getEndpoint(LIST_STYLES) }, {});
-      cy.getByTestId('publish-widget').click();
-      cy.contains('18').click();
-      cy.getByTestId('keep-element-changes-button').click({ force: true });
-      cy.getByTestId('save-page-button').click();
-      cy.getByTestId('confirmation-modal').contains("You're making changes to a live donation page. Continue?");
-      cy.getByTestId('cancel-button').click();
+      const expectedFormat = format(new Date(rawDate), "MM/dd/yyyy 'at' hh:mm a");
+      cy.getByTestId('preview-page-button').click();
+      cy.get(`button[aria-label="Published page ${livePage.name}"]`).click();
+      cy.contains(expectedFormat);
+      cy.get('body').click(0, 0);
+      cy.getByTestId('edit-page-button').click();
     });
   });
 

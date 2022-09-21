@@ -1,0 +1,13 @@
+{
+    "detail": "success",
+    "user": {
+        "id": 1,
+        "email": "rp-admin-unverified@some-org.com",
+        "email_verified": false,
+        "flags": [],
+        "role_type": null,
+        "organizations": [],
+        "revenue_programs": []
+    },
+    "csrftoken": "ZgynND503GQ3Dkyy3xMBHoExWftlTIjDe5znbDLACDH55g49FYrbFKuOJFBA9W6Y"
+}

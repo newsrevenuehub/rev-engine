@@ -107,7 +107,7 @@ export async function createPaymentMethod(stripe, card, data) {
   });
 }
 
-export function getPaymentSuccessUrl(
+export function getPaymentSuccessUrl({
   baseUrl,
   thankYouRedirectUrl,
   amount,
@@ -116,9 +116,9 @@ export function getPaymentSuccessUrl(
   contributorEmail,
   pageSlug,
   rpSlug,
-  pathname,
+  pathName,
   stripeClientSecret
-) {
+}) {
   // This is the URL that Stripe will send the user to if payment is successfully
   // processed. We send users to an interstitial payment success page where we can
   // track successful conversion in analytics, before forwarding them on to the default
@@ -147,7 +147,7 @@ export function getPaymentSuccessUrl(
   // from specific page name. On other hand, if a revenue program has a default donation page
   // set up, that page can appear at rev-program-slug.revengine.com/ (with no page), in which
   // case, the thank-you page URL can be rev-program-slug.revengine.com/thank-you.
-  paymentSuccessUrl.searchParams.append('fromPath', pathname === '/' ? '' : pathname);
+  paymentSuccessUrl.searchParams.append('fromPath', pathName === '/' ? '' : pathName);
   paymentSuccessUrl.searchParams.append('payment_intent_client_secret', stripeClientSecret);
   return paymentSuccessUrl.href;
 }

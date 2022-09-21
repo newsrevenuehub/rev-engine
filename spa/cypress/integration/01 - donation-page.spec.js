@@ -408,18 +408,18 @@ describe('User flow: happy path', () => {
         confirmParams: { return_url }
       } = x.getCalls()[0].args[0];
       expect(return_url).to.equal(
-        getPaymentSuccessUrl(
-          'http://revenueprogram.revengine-testabc123.com:3000/',
-          '',
-          '123.01',
-          fakeEmailHash,
-          'one-time',
-          'foo@bar.com',
-          livePageOne.slug,
-          livePageOne.revenue_program.slug,
-          `/${livePageOne.slug}`,
-          fakeStripeSecret
-        )
+        getPaymentSuccessUrl({
+          baseUrl: 'http://revenueprogram.revengine-testabc123.com:3000/',
+          thankYouRedirectUrl: '',
+          amount: '123.01',
+          emailHash: fakeEmailHash,
+          frequencyDisplayValue: 'one-time',
+          contributorEmail: 'foo@bar.com',
+          pageSlug: livePageOne.slug,
+          rpSlug: livePageOne.revenue_program.slug,
+          pathName: `/${livePageOne.slug}`,
+          stripeClientSecret: fakeStripeSecret
+        })
       );
     });
   });
@@ -481,19 +481,20 @@ describe('User flow: happy path', () => {
       const {
         confirmParams: { return_url }
       } = x.getCalls()[0].args[0];
+
       expect(return_url).to.equal(
-        getPaymentSuccessUrl(
-          'http://revenueprogram.revengine-testabc123.com:3000/',
-          '',
-          '10.53',
-          fakeEmailHash,
-          'monthly',
-          'foo@bar.com',
-          livePageOne.slug,
-          livePageOne.revenue_program.slug,
-          `/${livePageOne.slug}`,
-          fakeStripeSecret
-        )
+        getPaymentSuccessUrl({
+          baseUrl: 'http://revenueprogram.revengine-testabc123.com:3000/',
+          thankYouRedirectUrl: '',
+          amount: '10.53',
+          emailHash: fakeEmailHash,
+          frequencyDisplayValue: 'monthly',
+          contributorEmail: 'foo@bar.com',
+          pageSlug: livePageOne.slug,
+          rpSlug: livePageOne.revenue_program.slug,
+          pathName: `/${livePageOne.slug}`,
+          stripeClientSecret: fakeStripeSecret
+        })
       );
     });
   });
@@ -534,18 +535,18 @@ describe('User flow: happy path', () => {
         confirmParams: { return_url }
       } = x.getCalls()[0].args[0];
       expect(return_url).to.equal(
-        getPaymentSuccessUrl(
-          'http://revenueprogram.revengine-testabc123.com:3000/',
-          '',
-          '10.53',
-          fakeEmailHash,
-          'monthly',
-          'foo@bar.com',
-          livePageOne.slug,
-          livePageOne.revenue_program.slug,
-          '',
-          fakeStripeSecret
-        )
+        getPaymentSuccessUrl({
+          baseUrl: 'http://revenueprogram.revengine-testabc123.com:3000/',
+          thankYouRedirectUrl: '',
+          amount: '10.53',
+          emailHash: fakeEmailHash,
+          frequencyDisplayValue: 'monthly',
+          contributorEmail: 'foo@bar.com',
+          pageSlug: livePageOne.slug,
+          rpSlug: livePageOne.revenue_program.slug,
+          pathName: '',
+          stripeClientSecret: fakeStripeSecret
+        })
       );
     });
   });
@@ -617,7 +618,7 @@ const successPageQueryParams = {
   payment_intent_client_secret: fakeStripeSecret
 };
 
-describe.only('Payment success page', () => {
+describe('Payment success page', () => {
   beforeEach(() => {
     cy.intercept(
       {

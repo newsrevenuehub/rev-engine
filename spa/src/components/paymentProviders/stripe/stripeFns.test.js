@@ -28,11 +28,8 @@ const fromDefaultPageParams = {
 };
 
 describe('getPaymentSuccessUrl function', () => {
-  it.each([
-    [fromPageSlugParams, ''],
-    [fromDefaultPageParams, '']
-  ])('generates the expected payment success URL,', (args, expectedUrl) => {
-    const url = getPaymentSuccessUrl(...Object.values(args));
+  it.each([[fromPageSlugParams], [fromDefaultPageParams]])('generates the expected payment success URL,', (args) => {
+    const url = getPaymentSuccessUrl(args);
     const parsed = new URL(url);
     expect(`${parsed.protocol}//${parsed.hostname}`).toEqual(args.baseUrl);
     expect(parsed.pathname).toEqual(PAYMENT_SUCCESS);

@@ -47,18 +47,18 @@ function StripePaymentForm() {
     // processed. We send users to an interstitial payment success page where we can
     // track successful conversion in analytics, before forwarding them on to the default
     // thank you page.
-    const return_url = getPaymentSuccessUrl(
-      window.location.origin,
-      thank_you_redirect || '',
-      amount,
-      emailHash,
-      getFrequencyThankYouText(frequency),
-      contributorEmail,
-      pageSlug,
-      rpSlug,
-      pathname,
-      stripeClientSecret
-    );
+    const return_url = getPaymentSuccessUrl({
+      baseUrl: window.location.origin,
+      thankYouRedirectUrl: thank_you_redirect || '',
+      amount: amount,
+      emailHash: emailHash,
+      frequencyDisplayValue: getFrequencyThankYouText(frequency),
+      contributorEmail: contributorEmail,
+      pageSlug: pageSlug,
+      rpSlug: rpSlug,
+      pathName: pathname,
+      stripeClientSecret: stripeClientSecret
+    });
 
     const { error } = await stripe.confirmPayment({
       elements,

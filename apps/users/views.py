@@ -295,18 +295,13 @@ class UserViewset(
             raise ValidationError(errors)
         first_name = customize_account_serializer.validated_data["first_name"]
         last_name = customize_account_serializer.validated_data["last_name"]
-        if "job_title" in customize_account_serializer.validated_data:
-            job_title = customize_account_serializer.validated_data["job_title"]
-        else:
-            job_title = None
         organization_name = customize_account_serializer.validated_data["organization_name"]
         organization_tax_status = customize_account_serializer.validated_data["organization_tax_status"]
         user = request.user
         logger.debug("Received request to customize account for user %s; request: %s", user, request.data)
         user.first_name = first_name
         user.last_name = last_name
-        if job_title:
-            user.job_title = job_title
+        user.job_title = customize_account_serializer.validated_data["job_title"]
         user.save()
         if Organization.objects.filter(name=organization_name).exists():
             counter = 1

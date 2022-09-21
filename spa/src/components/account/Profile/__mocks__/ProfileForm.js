@@ -12,10 +12,17 @@ const ProfileForm = ({ disabled, onProfileSubmit }) => {
     onProfileSubmit(mockFormData);
   }
 
+  function handleSubmitWithoutJobTitle() {
+    onProfileSubmit({ ...mockFormData, jobTitle: '' });
+  }
+
   return (
     <form onSubmit={handleSubmit} data-testid="mock-profile-form">
       {disabled && <div data-testid="mock-profile-form-disabled" />}
       <button>mock-profile-form-submit</button>
+      <button type="button" onClick={handleSubmitWithoutJobTitle}>
+        mock-profile-form-submit-without-job-title
+      </button>
     </form>
   );
 };

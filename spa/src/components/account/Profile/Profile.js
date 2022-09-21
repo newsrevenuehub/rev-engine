@@ -32,7 +32,8 @@ function Profile() {
       const { data, status } = await axios.patch(`users/${user.id}/${CUSTOMIZE_ACCOUNT_ENDPOINT}`, {
         first_name: formData.firstName,
         last_name: formData.lastName,
-        job_title: formData.jobTitle,
+        // Don't send job_title at all if the user omitted it.
+        job_title: formData.jobTitle.trim() !== '' ? formData.jobTitle : undefined,
         organization_name: formData.companyName,
         organization_tax_status: formData.companyTaxStatus
       });

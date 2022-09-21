@@ -10,6 +10,7 @@ export const Flex = styled.div`
 
 export const Button = styled(MuiButton)`
   && {
+    height: 36px;
     font-weight: 600;
     line-height: 16px;
     color: ${(props) => props.theme.colors.white};

@@ -40,7 +40,7 @@ function AddPageModal({ isOpen, closeModal }) {
   const [name, setName] = useState('');
   const [slug, setSlug] = useState('');
 
-  const [revenueProgram, setRevenueProgram] = useState();
+  const [revenueProgram, setRevenueProgram] = useState(null);
 
   // Intentionally commented out, see DEV-1493
   // const fetchTemplates = useRequest();
@@ -68,11 +68,7 @@ function AddPageModal({ isOpen, closeModal }) {
   // }, [handleRequestFailure]);
 
   const handleNameBlur = () => {
-    if (!slug) setSlug(slugify(name));
-  };
-
-  const handleSlugBlur = () => {
-    setSlug(slugify(slug));
+    setSlug(slugify(`${name}-${Math.random().toFixed(4)}`));
   };
 
   const canSavePage = () => !loading && !!revenueProgram && !!slug && !!name;
@@ -137,17 +133,6 @@ function AddPageModal({ isOpen, closeModal }) {
                 onBlur={handleNameBlur}
                 errors={errors?.name}
                 testid="page-name"
-              />
-            </S.InputWrapper>
-            <S.InputWrapper>
-              <Input
-                label="Slug"
-                helpText="How this page appears in the url"
-                value={slug}
-                onChange={(e) => setSlug(e.target.value)}
-                onBlur={handleSlugBlur}
-                errors={errors?.slug}
-                testid="page-slug"
               />
             </S.InputWrapper>
             {revenuePrograms.length > 0 && (

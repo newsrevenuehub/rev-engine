@@ -28,7 +28,7 @@ import { useUserContext } from 'components/UserContext';
 
 function Dashboard() {
   const { featureFlags } = useFeatureFlagsProviderContext();
-  const { page } = usePageContext();
+  const { page, setPage } = usePageContext();
   const { user } = useUserContext();
 
   const hasContributionsSectionAccess = user.role_type && hasContributionsDashboardAccessToUser(featureFlags);
@@ -47,7 +47,7 @@ function Dashboard() {
   return (
     <S.Outer>
       {showConnectToStripeDialogs ? <ConnectStripeElements /> : ''}
-      <DashboardTopbar isEditPage={isEditPage} page={page} />
+      <DashboardTopbar isEditPage={isEditPage} page={page} setPage={setPage} />
       <S.Dashboard data-testid="dashboard">
         {isEditPage ? null : <DashboardSidebar />}
         <S.DashboardMain>

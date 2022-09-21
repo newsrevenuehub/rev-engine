@@ -126,14 +126,27 @@ function AddPageModal({ isOpen, closeModal, pagesByRevenueProgram }) {
     closeModal();
   };
 
+  const handleTemporaryPageName = (pages) => {
+    const pagesSize = pages?.length + 1;
+    const slugs = pages.map((_) => _.slug);
+    let number = pagesSize;
+    let tempName = `Page ${number}`;
+    let tempSlug = slugify(tempName);
+    while (slugs.includes(tempSlug)) {
+      number += 1;
+      tempName = `Page ${number}`;
+      tempSlug = slugify(tempName);
+    }
+    return { tempName, tempSlug };
+  };
+
   useEffect(() => {
     if (revenuePrograms?.length === 1) {
-      const pagesSize = pagesByRevenueProgram[0]?.pages?.length + 1;
-      const tempPageName = `Page ${pagesSize}`;
+      const { tempName, tempSlug } = handleTemporaryPageName(pagesByRevenueProgram[0]?.pages);
       closeModal();
       handleSave(undefined, {
-        name: tempPageName,
-        slug: slugify(tempPageName),
+        name: tempName,
+        slug: tempSlug,
         revenueProgramId: revenuePrograms[0].id
       });
     }

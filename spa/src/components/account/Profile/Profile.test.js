@@ -67,7 +67,7 @@ describe('Profile', () => {
       );
     });
 
-    it.only('does not send a job title property if the user did not specify it', async () => {
+    it('does not send a job title property if the user did not specify it', async () => {
       tree();
       userEvent.click(screen.getByText('mock-profile-form-submit-without-job-title'));
       await waitFor(() => expect(axiosMock.history.patch).toHaveLength(1));

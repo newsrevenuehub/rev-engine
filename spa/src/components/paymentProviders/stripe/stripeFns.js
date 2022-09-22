@@ -119,7 +119,6 @@ export function getPaymentSuccessUrl({
   pathName,
   stripeClientSecret
 }) {
-  console.log(arguments);
   const missingParams = Object.fromEntries(
     Object.entries({
       baseUrl,

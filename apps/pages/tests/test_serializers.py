@@ -8,7 +8,7 @@ from rest_framework.exceptions import ErrorDetail
 from rest_framework.test import APIRequestFactory, APITestCase
 
 from apps.api.tests import RevEngineApiAbstractTestCase
-from apps.organizations.models import BenefitLevelBenefit
+from apps.organizations.models import BenefitLevelBenefit, Plans
 from apps.organizations.serializers import PaymentProviderSerializer
 from apps.organizations.tests.factories import (
     BenefitFactory,
@@ -28,6 +28,9 @@ from apps.pages.validators import required_style_keys
 class DonationPageFullDetailSerializerTest(RevEngineApiAbstractTestCase):
     def setUp(self):
         self.set_up_domain_model()
+        # we do this so not limited to single page
+        self.org1.plan = Plans.PLUS
+        self.org1.save()
         self.page = self.org1_rp1.donationpage_set.first()
         self.serializer = DonationPageFullDetailSerializer
         self.request_factory = APIRequestFactory()
@@ -241,6 +244,23 @@ class DonationPageFullDetailSerializerTest(RevEngineApiAbstractTestCase):
         serializer = self.serializer(self.page, context={"live": False})
         self.assertIsNotNone(serializer.data["allow_offer_nyt_comp"])
         self.assertEqual(serializer.data["allow_offer_nyt_comp"], self.page.revenue_program.allow_offer_nyt_comp)
+
+    def test_plan_page_limits_are_respected(self):
+        self.org1.plan = Plans.FREE
+        self.org1.save()
+        assert self.page.revenue_program.organization.get_plan_data().page_limit == 1
+
+        serializer = self.serializer(
+            data={
+                "slug": "my-new-page",
+                "revenue_program": self.page.revenue_program.pk,
+            }
+        )
+        request = self.request_factory.post("/")
+        request.user = self.org_user
+        serializer.context["request"] = request
+        assert serializer.is_valid() is False
+        assert str(serializer.errors["non_field_errors"][0]) == ("Your organization has reached its limit of 1 page")
 
 
 class TemplateDetailSerializerTest(RevEngineApiAbstractTestCase):

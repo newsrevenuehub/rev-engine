@@ -23,7 +23,7 @@ logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
 class UserSerializer(serializers.ModelSerializer):
     """
     This is the serializer that is used to return user data back after successful login.
-    It returns a complete list of (pared-down) available Organzitions and RevenuePrograms based on the user's
+    It returns a complete list of (pared-down) available Organizations and RevenuePrograms based on the user's
     super_user status and RoleAssignment.
     """
 

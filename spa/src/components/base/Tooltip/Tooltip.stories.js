@@ -13,27 +13,25 @@ const ClickTooltipDemo = () => {
   const [open, setOpen] = useState(false);
 
   return (
-    <>
-      <ClickAwayListener onClickAway={() => setOpen(false)}>
-        <span>
-          <Tooltip
-            disableFocusListener
-            disableHoverListener
-            disableTouchListener
-            onClose={() => setOpen(false)}
-            open={open}
-            PopperProps={{
-              disablePortal: true
-            }}
-            title="Hello World"
-          >
-            <ButtonBase aria-label="Help" disableRipple disableTouchRipple onClick={() => setOpen(true)}>
-              <InfoOutlined />
-            </ButtonBase>
-          </Tooltip>
-        </span>
-      </ClickAwayListener>
-    </>
+    <ClickAwayListener onClickAway={() => setOpen(false)}>
+      <span>
+        <Tooltip
+          disableFocusListener
+          disableHoverListener
+          disableTouchListener
+          onClose={() => setOpen(false)}
+          open={open}
+          PopperProps={{
+            disablePortal: true
+          }}
+          title="Hello World"
+        >
+          <ButtonBase aria-label="Help" disableRipple disableTouchRipple onClick={() => setOpen(true)}>
+            <InfoOutlined />
+          </ButtonBase>
+        </Tooltip>
+      </span>
+    </ClickAwayListener>
   );
 };
 

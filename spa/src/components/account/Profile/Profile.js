@@ -55,12 +55,7 @@ function Profile() {
   const formSubmitErrors = profileState?.errors?.length && 'An Error Occurred';
 
   return (
-    <S.Modal
-      open={open}
-      onClose={handleClose}
-      aria-labelledby="profile-modal-title"
-      data-testid="finalize-profile-modal"
-    >
+    <S.Modal open={open} aria-labelledby="profile-modal-title" data-testid="finalize-profile-modal">
       <S.Profile>
         <S.h1 id="profile-modal-title">Let's Customize Your Account</S.h1>
         <S.Description>Help us create your personalized experience!</S.Description>

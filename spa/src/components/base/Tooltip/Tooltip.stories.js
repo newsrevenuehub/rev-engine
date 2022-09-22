@@ -21,9 +21,6 @@ const ClickTooltipDemo = () => {
           disableTouchListener
           onClose={() => setOpen(false)}
           open={open}
-          PopperProps={{
-            disablePortal: true
-          }}
           title="Hello World"
         >
           <ButtonBase aria-label="Help" disableRipple disableTouchRipple onClick={() => setOpen(true)}>

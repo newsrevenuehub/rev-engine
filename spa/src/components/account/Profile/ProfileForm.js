@@ -70,7 +70,10 @@ function ProfileForm({ disabled: disabledProp, onProfileSubmit }) {
             </TextField>
           )}
         />
-        <S.TaxStatusInfoTooltip title="Your tax status determines the contribution fees charged through Stripe." />
+        <S.TaxStatusInfoTooltip
+          buttonLabel="Help for Company Tax Status"
+          title="Your tax status determines the contribution fees charged through Stripe."
+        />
       </S.TaxStatusContainer>
       <S.FillRow>
         <Button disabled={disabled} fullWidth type="submit">

@@ -32,6 +32,8 @@ describe('Profile', () => {
     useHistory.mockReturnValue({ push: historyPushMock });
   });
 
+  afterEach(() => axiosMock.reset());
+
   afterAll(() => axiosMock.restore());
 
   it('displays the profile form', () => {

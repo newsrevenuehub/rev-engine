@@ -1,6 +1,7 @@
 import { useForm } from 'react-hook-form';
 import PropTypes from 'prop-types';
 
+import * as F from './ProfileForm.styled';
 import * as S from 'components/account/Account.styled';
 import * as P from './Profile.styled';
 import { KeyboardArrowDown } from '@material-ui/icons';
@@ -61,7 +62,7 @@ function ProfileForm({ disabled: disabledProp, onProfileSubmit }) {
       </P.Row>
 
       <S.InputLabel hasError={errors.jobTitle} htmlFor="jobTitle">
-        Job Title
+        Job Title <F.OptionalLabel>Optional</F.OptionalLabel>
       </S.InputLabel>
       <S.InputOuter hasError={errors.jobTitle}>
         <input

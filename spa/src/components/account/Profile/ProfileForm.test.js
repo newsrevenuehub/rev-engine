@@ -10,9 +10,9 @@ function tree(props) {
 function fillInAllFields() {
   const fieldEntries = [
     ['First Name', 'mock-first-name'],
-    ['Last Name', 'mock-first-name'],
+    ['Last Name', 'mock-last-name'],
     ['Company Name', 'mock-company-name'],
-    ['Job Title', 'mock-job-title']
+    ['Job Title Optional', 'mock-job-title']
   ];
 
   for (const [name, value] of fieldEntries) {
@@ -44,7 +44,7 @@ describe('ProfileForm', () => {
   it('displays a job title field with empty default', () => {
     tree();
 
-    const jobTitle = screen.getByLabelText('Job Title');
+    const jobTitle = screen.getByLabelText('Job Title Optional');
 
     expect(jobTitle).toBeVisible();
     expect(jobTitle).toHaveValue('');
@@ -75,7 +75,7 @@ describe('ProfileForm', () => {
     const submitButton = () => screen.getByRole('button', { name: 'Finalize Account' });
     const fieldEntries = [
       ['First Name', 'mock-first-name'],
-      ['Last Name', 'mock-first-name'],
+      ['Last Name', 'mock-last-name'],
       ['Company Name', 'mock-company-name']
     ];
 
@@ -103,7 +103,7 @@ describe('ProfileForm', () => {
       [
         {
           firstName: 'mock-first-name',
-          lastName: 'mock-first-name',
+          lastName: 'mock-last-name',
           jobTitle: 'mock-job-title',
           companyName: 'mock-company-name',
           companyTaxStatus: 'nonprofit'

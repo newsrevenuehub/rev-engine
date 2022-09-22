@@ -35,9 +35,18 @@ describe('InfoTooltip', () => {
     await waitFor(() => expect(screen.queryByText('mock-tooltip-text')).not.toBeInTheDocument());
   });
 
-  it('is accessible', async () => {
-    const { container } = tree();
+  describe('accessibility', () => {
+    it('is accessible when the tooltip is not open', async () => {
+      const { container } = tree();
 
-    expect(await axe(container)).toHaveNoViolations();
+      expect(await axe(container)).toHaveNoViolations();
+    });
+
+    it('is accessible when the tooltip is open', async () => {
+      const { container } = tree();
+
+      userEvent.click(screen.getByRole('button', { name: 'Help' }));
+      expect(await axe(container)).toHaveNoViolations();
+    });
   });
 });

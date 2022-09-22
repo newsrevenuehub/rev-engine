@@ -16,6 +16,8 @@ import { isBefore, isAfter } from 'date-fns';
 import ImageWithPreview from 'elements/inputs/ImageWithPreview';
 import Input from 'elements/inputs/Input';
 import CircleButton from 'elements/buttons/CircleButton';
+import ConditionalWrapper from 'components/common/ConditionalWrapper';
+import RETooltip from 'elements/RETooltip';
 
 /**
  * PageSetup
@@ -142,14 +144,24 @@ function PageSetup({ backToProperties }) {
         />
       </S.ImageSelectorWrapper>
       <S.InputWrapper>
-        <Input
-          label="Thank You page link"
-          helpText='If you have a "Thank You" page of your own, add a link here'
-          value={thank_you_redirect}
-          onChange={(e) => setThankYouRedirect(e.target.value)}
-          errors={errors.thank_you_redirect}
-          testid="thank-you-redirect-link-input"
-        />
+        <ConditionalWrapper
+          wrapper={(children) => (
+            <RETooltip placement="top" title="Something here">
+              {children}
+            </RETooltip>
+          )}
+          shouldWrap={!page.plan.custom_thank_you_page_enabled}
+        >
+          <Input
+            label="Thank You page link"
+            helpText='If you have a "Thank You" page of your own, add a link here'
+            value={thank_you_redirect}
+            onChange={(e) => setThankYouRedirect(e.target.value)}
+            errors={errors.thank_you_redirect}
+            testid="thank-you-redirect-link-input"
+            disabled={!page.plan.custom_thank_you_page_enabled}
+          />
+        </ConditionalWrapper>
       </S.InputWrapper>
       <S.InputWrapper border>
         <Input

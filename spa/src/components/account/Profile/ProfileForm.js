@@ -1,7 +1,7 @@
 import { Button, TextField } from 'components/base';
 import PropTypes from 'prop-types';
 import { Controller, useForm } from 'react-hook-form';
-import * as S from './ProfileForm.styled';
+import { FieldLabelOptional, FillRow, Form, TaxStatusContainer, TaxStatusInfoTooltip } from './ProfileForm.styled';
 
 function ProfileForm({ disabled: disabledProp, onProfileSubmit }) {
   const { control, handleSubmit, watch } = useForm();
@@ -15,7 +15,7 @@ function ProfileForm({ disabled: disabledProp, onProfileSubmit }) {
     onProfileSubmit(formData);
   };
   return (
-    <S.Form onSubmit={handleSubmit(onSubmit)} data-testid="finalize-profile-form">
+    <Form onSubmit={handleSubmit(onSubmit)} data-testid="finalize-profile-form">
       <Controller
         name="firstName"
         control={control}
@@ -28,7 +28,7 @@ function ProfileForm({ disabled: disabledProp, onProfileSubmit }) {
         defaultValue=""
         render={({ field }) => <TextField id="profile-last" label="Last Name" {...field} />}
       />
-      <S.FillRow>
+      <FillRow>
         <Controller
           name="jobTitle"
           control={control}
@@ -39,23 +39,23 @@ function ProfileForm({ disabled: disabledProp, onProfileSubmit }) {
               fullWidth
               label={
                 <>
-                  Job Title <S.FieldLabelOptional>Optional</S.FieldLabelOptional>
+                  Job Title <FieldLabelOptional>Optional</FieldLabelOptional>
                 </>
               }
               {...field}
             />
           )}
         />
-      </S.FillRow>
-      <S.FillRow>
+      </FillRow>
+      <FillRow>
         <Controller
           name="companyName"
           control={control}
           defaultValue=""
           render={({ field }) => <TextField fullWidth id="profile-company-name" label="Company Name" {...field} />}
         />
-      </S.FillRow>
-      <S.TaxStatusContainer>
+      </FillRow>
+      <TaxStatusContainer>
         <Controller
           name="companyTaxStatus"
           control={control}
@@ -70,17 +70,17 @@ function ProfileForm({ disabled: disabledProp, onProfileSubmit }) {
             </TextField>
           )}
         />
-        <S.TaxStatusInfoTooltip
+        <TaxStatusInfoTooltip
           buttonLabel="Help for Company Tax Status"
           title="Your tax status determines the contribution fees charged through Stripe."
         />
-      </S.TaxStatusContainer>
-      <S.FillRow>
+      </TaxStatusContainer>
+      <FillRow>
         <Button disabled={disabled} fullWidth type="submit">
           Finalize Account
         </Button>
-      </S.FillRow>
-    </S.Form>
+      </FillRow>
+    </Form>
   );
 }
 

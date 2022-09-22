@@ -2,7 +2,7 @@ import { ButtonBase, ClickAwayListener } from '@material-ui/core';
 import { Tooltip } from 'components/base';
 import useModal from 'hooks/useModal';
 import PropTypes from 'prop-types';
-import * as S from './InfoTooltip.styled';
+import { Icon } from './InfoTooltip.styled';
 
 export const InfoTooltip = (props) => {
   const { buttonLabel, ...other } = props;
@@ -21,7 +21,7 @@ export const InfoTooltip = (props) => {
           {...other}
         >
           <ButtonBase aria-label={buttonLabel} disableRipple disableTouchRipple onClick={handleOpen}>
-            <S.Icon />
+            <Icon />
           </ButtonBase>
         </Tooltip>
       </span>

@@ -19,7 +19,7 @@ import { useConfigureAnalytics } from 'components/analytics';
 import ProfileForm from './ProfileForm';
 
 function Profile() {
-  const { open, handleClose } = useModal(true);
+  const { open } = useModal(true);
   const history = useHistory();
   const [profileState, dispatch] = useReducer(fetchReducer, initialState);
   const { user } = useUserContext();

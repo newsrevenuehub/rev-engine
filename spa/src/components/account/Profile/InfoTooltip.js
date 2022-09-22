@@ -1,26 +1,26 @@
 import { ButtonBase, ClickAwayListener } from '@material-ui/core';
-import PropTypes from 'prop-types';
 import { Tooltip } from 'components/base';
-import { useState } from 'react';
+import useModal from 'hooks/useModal';
+import PropTypes from 'prop-types';
 import * as S from './InfoTooltip.styled';
 
 export const InfoTooltip = (props) => {
   const { buttonLabel, ...other } = props;
-  const [open, setOpen] = useState(false);
+  const { handleClose, handleOpen, open } = useModal();
 
   return (
-    <ClickAwayListener onClickAway={() => setOpen(false)}>
+    <ClickAwayListener onClickAway={handleClose}>
       <span className={props.className}>
         <Tooltip
           disableFocusListener
           disableHoverListener
           disableTouchListener
-          onClose={() => setOpen(false)}
+          onClose={handleClose}
           open={open}
           tooltipWidth={160}
           {...other}
         >
-          <ButtonBase aria-label={buttonLabel} disableRipple disableTouchRipple onClick={() => setOpen(true)}>
+          <ButtonBase aria-label={buttonLabel} disableRipple disableTouchRipple onClick={handleOpen}>
             <S.Icon />
           </ButtonBase>
         </Tooltip>

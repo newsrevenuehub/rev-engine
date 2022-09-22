@@ -1,5 +1,6 @@
 import itertools
 import logging
+from dataclasses import asdict
 
 from django.conf import settings
 from django.utils import timezone
@@ -120,6 +121,7 @@ class DonationPageFullDetailSerializer(serializers.ModelSerializer):
     allow_offer_nyt_comp = serializers.SerializerMethodField(method_name="get_allow_offer_nyt_comp")
 
     benefit_levels = serializers.SerializerMethodField(method_name="get_benefit_levels")
+    plan = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
         model = DonationPage
@@ -129,6 +131,9 @@ class DonationPageFullDetailSerializer(serializers.ModelSerializer):
             ValidateFkReferenceOwnership(fk_attribute="revenue_program"),
             UniqueTogetherValidator(queryset=DonationPage.objects.all(), fields=["revenue_program", "slug"]),
         ]
+
+    def get_plan(self, obj):
+        return asdict(obj.revenue_program.organization.get_plan_data())
 
     def create(self, validated_data):
         """If given template pk, return template.make_page_from_template().

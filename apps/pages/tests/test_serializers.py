@@ -1,3 +1,4 @@
+from dataclasses import asdict
 from unittest import mock
 
 from django.utils import timezone
@@ -8,7 +9,7 @@ from rest_framework.exceptions import ErrorDetail
 from rest_framework.test import APIRequestFactory, APITestCase
 
 from apps.api.tests import RevEngineApiAbstractTestCase
-from apps.organizations.models import BenefitLevelBenefit, Plans
+from apps.organizations.models import BenefitLevelBenefit, FreePlan, Plans
 from apps.organizations.serializers import PaymentProviderSerializer
 from apps.organizations.tests.factories import (
     BenefitFactory,
@@ -51,6 +52,44 @@ class DonationPageFullDetailSerializerTest(RevEngineApiAbstractTestCase):
         serializer.context["request"] = request
         assert serializer.is_valid(raise_exception=True), serializer.errors
         return serializer.save()
+
+    def test_has_expected_fields(self):
+        serializer = self.serializer(instance=self.page)
+        expected_first_level_keys = {
+            "allow_offer_nyt_comp",
+            "benefit_levels",
+            "created",
+            "currency",
+            "elements",
+            "graphic_thumbnail",
+            "graphic",
+            "header_bg_image_thumbnail",
+            "header_bg_image",
+            "header_link",
+            "header_logo_thumbnail",
+            "header_logo",
+            "heading",
+            "id",
+            "modified",
+            "name",
+            "page_screenshot",
+            "payment_provider",
+            "plan",
+            "post_thank_you_redirect",
+            "published_date",
+            "revenue_program_country",
+            "revenue_program_is_nonprofit",
+            "revenue_program",
+            "sidebar_elements",
+            "slug",
+            "stripe_account_id",
+            "styles",
+            "template_pk",
+            "thank_you_redirect",
+        }
+        assert set(serializer.data.keys()) == expected_first_level_keys
+        plan_keys = set(asdict(FreePlan).keys())
+        assert plan_keys == serializer.data["plan"].keys()
 
     def test_create(self):
         rp = self.page.revenue_program

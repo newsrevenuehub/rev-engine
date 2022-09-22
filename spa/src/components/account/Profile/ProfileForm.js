@@ -4,11 +4,19 @@ import { Controller, useForm } from 'react-hook-form';
 import { FieldLabelOptional, FillRow, Form, TaxStatusContainer, TaxStatusInfoTooltip } from './ProfileForm.styled';
 
 function ProfileForm({ disabled: disabledProp, onProfileSubmit }) {
-  const { control, handleSubmit, watch } = useForm();
-  const firstName = watch('firstName', '');
-  const lastName = watch('lastName', '');
-  const companyName = watch('companyName', '');
-  const companyTaxStatus = watch('companyTaxStatus', '');
+  const { control, handleSubmit, watch } = useForm({
+    defaultValues: {
+      companyName: '',
+      companyTaxStatus: '',
+      firstName: '',
+      jobTitle: '',
+      lastName: ''
+    }
+  });
+  const firstName = watch('firstName');
+  const lastName = watch('lastName');
+  const companyName = watch('companyName');
+  const companyTaxStatus = watch('companyTaxStatus');
   const disabled = disabledProp || !firstName || !lastName || !companyName || !companyTaxStatus;
 
   const onSubmit = (formData) => {
@@ -19,20 +27,17 @@ function ProfileForm({ disabled: disabledProp, onProfileSubmit }) {
       <Controller
         name="firstName"
         control={control}
-        defaultValue=""
         render={({ field }) => <TextField id="profile-first" label="First Name" {...field} />}
       />
       <Controller
         name="lastName"
         control={control}
-        defaultValue=""
         render={({ field }) => <TextField id="profile-last" label="Last Name" {...field} />}
       />
       <FillRow>
         <Controller
           name="jobTitle"
           control={control}
-          defaultValue=""
           render={({ field }) => (
             <TextField
               id="profile-job-title"
@@ -51,7 +56,6 @@ function ProfileForm({ disabled: disabledProp, onProfileSubmit }) {
         <Controller
           name="companyName"
           control={control}
-          defaultValue=""
           render={({ field }) => <TextField fullWidth id="profile-company-name" label="Company Name" {...field} />}
         />
       </FillRow>
@@ -59,7 +63,6 @@ function ProfileForm({ disabled: disabledProp, onProfileSubmit }) {
         <Controller
           name="companyTaxStatus"
           control={control}
-          defaultValue=""
           render={({ field }) => (
             <TextField fullWidth id="profile-company-tax-status" label="Company Tax Status" {...field} select>
               <option disabled={companyTaxStatus !== ''} value="">

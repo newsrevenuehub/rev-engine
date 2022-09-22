@@ -1,5 +1,6 @@
 import { useEffect, useState, Fragment } from 'react';
 import orderBy from 'lodash.orderby';
+import join from 'url-join';
 import { Content } from './Pages.styled';
 
 // Router
@@ -21,7 +22,6 @@ import GenericErrorBoundary from 'components/errors/GenericErrorBoundary';
 import EditButton from 'components/common/Button/EditButton';
 import NewButton from 'components/common/Button/NewButton';
 import Hero from 'components/common/Hero';
-import joinPath from 'utilities/joinPath';
 import useModal from 'hooks/useModal';
 
 import AddPageModal from './AddPageModal';
@@ -75,7 +75,7 @@ function Pages() {
   }, [alert]);
 
   const handleEditPage = (page) => {
-    const path = joinPath([EDITOR_ROUTE, page.revenue_program.slug, page.slug, '/']);
+    const path = join([EDITOR_ROUTE, page.revenue_program.slug, page.slug, '/']);
     history.push({ pathname: path, state: { pageId: page.id } });
   };
 

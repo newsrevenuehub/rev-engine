@@ -19,6 +19,7 @@ import ChunkErrorBoundary from 'components/errors/ChunkErrorBoundary';
 
 // Utilities
 import componentLoader from 'utilities/componentLoader';
+import AddSlashToRoutes from './routes/AddSlashToRoutes';
 
 // Split bundles
 const Main = lazy(() => componentLoader(() => import('components/Main')));
@@ -37,40 +38,42 @@ function DashboardRouter() {
 
   return (
     <BrowserRouter>
-      <ChunkErrorBoundary>
-        <React.Suspense fallback={<GlobalLoading />}>
-          <Switch>
-            {/* Login URL */}
+      <AddSlashToRoutes>
+        <ChunkErrorBoundary>
+          <React.Suspense fallback={<GlobalLoading />}>
+            <Switch>
+              {/* Login URL */}
 
-            <Route exact path={ROUTES.SIGN_IN} render={() => <TrackPageView component={SignIn} />} />
-            <Route exact path={ROUTES.SIGN_UP} render={() => <TrackPageView component={SignUp} />} />
-            <Route exact path={ROUTES.FORGOT_PASSWORD} render={() => <TrackPageView component={ForgotPassword} />} />
-            <Route exact path={ROUTES.RESET_PASSWORD} render={() => <TrackPageView component={ResetPassword} />} />
+              <Route exact path={ROUTES.SIGN_IN} render={() => <TrackPageView component={SignIn} />} />
+              <Route exact path={ROUTES.SIGN_UP} render={() => <TrackPageView component={SignUp} />} />
+              <Route exact path={ROUTES.FORGOT_PASSWORD} render={() => <TrackPageView component={ForgotPassword} />} />
+              <Route exact path={ROUTES.RESET_PASSWORD} render={() => <TrackPageView component={ResetPassword} />} />
 
-            <Redirect from="/verified/:slug" to="/verify-email-success/?result=:slug" />
-            <Redirect from={ROUTES.VERIFIED} to={ROUTES.VERIFY_EMAIL_SUCCESS} />
+              <Redirect from="/verified/:slug" to="/verify-email-success/?result=:slug" />
+              <Redirect from={ROUTES.VERIFIED} to={ROUTES.VERIFY_EMAIL_SUCCESS} />
 
-            {/* Organization Dashboard */}
-            <ProtectedRoute
-              path={[
-                ROUTES.DASHBOARD_SLUG,
-                ROUTES.DONATIONS_SLUG,
-                ROUTES.CONTENT_SLUG,
-                ROUTES.CUSTOMIZE_SLUG,
-                ROUTES.EDITOR_ROUTE,
-                ROUTES.VERIFY_EMAIL_SUCCESS
-              ]}
-              render={() => (
-                <UserContextProvider>
-                  <TrackPageView component={Main} />
-                </UserContextProvider>
-              )}
-            />
+              {/* Organization Dashboard */}
+              <ProtectedRoute
+                path={[
+                  ROUTES.DASHBOARD_SLUG,
+                  ROUTES.DONATIONS_SLUG,
+                  ROUTES.CONTENT_SLUG,
+                  ROUTES.CUSTOMIZE_SLUG,
+                  ROUTES.EDITOR_ROUTE,
+                  ROUTES.VERIFY_EMAIL_SUCCESS
+                ]}
+                render={() => (
+                  <UserContextProvider>
+                    <TrackPageView component={Main} />
+                  </UserContextProvider>
+                )}
+              />
 
-            <Redirect to={ROUTES.CONTENT_SLUG} />
-          </Switch>
-        </React.Suspense>
-      </ChunkErrorBoundary>
+              <Redirect to={ROUTES.CONTENT_SLUG} />
+            </Switch>
+          </React.Suspense>
+        </ChunkErrorBoundary>
+      </AddSlashToRoutes>
     </BrowserRouter>
   );
 }

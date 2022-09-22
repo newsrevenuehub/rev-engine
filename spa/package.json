@@ -57,6 +57,7 @@
     "styled-system": "^5.1.5",
     "tinycolor2": "^1.4.2",
     "universal-cookie": "^4.0.4",
+    "url-join": "^5.0.0",
     "uuid": "^8.3.2",
     "web-vitals": "^1.1.1"
   },
@@ -85,7 +86,7 @@
       "!**/*.styled.js"
     ],
     "transformIgnorePatterns": [
-      "node_modules/(?!(cypress)/)",
+      "node_modules/(?!(cypress|url-join)/)",
       "\\.pnp\\.[^\\/]+$"
     ],
     "moduleNameMapper": {
@@ -159,6 +160,7 @@
     "eslint-config-prettier": "^8.3.0",
     "eslint-plugin-chai-friendly": "^0.7.1",
     "eslint-plugin-cypress": "^2.11.3",
+    "history": "^5.3.0",
     "jest-axe": "^6.0.0",
     "webpack": "^5.74.0"
   }

@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 // Deps
 import { useTheme } from 'styled-components';
 import { useAlert } from 'react-alert';
+import join from 'url-join';
 
 // Utils
 import { getFrequencyAdverb, getFrequencyThankYouText } from 'utilities/parseFrequency';
@@ -129,7 +130,7 @@ function StripePaymentForm({ loading, setLoading, offerPayFees }) {
 
       const donationPageUrl = window.location.href;
       history.push({
-        pathname: url === '/' ? THANK_YOU_SLUG : url + THANK_YOU_SLUG,
+        pathname: url === '/' ? THANK_YOU_SLUG : join(url, THANK_YOU_SLUG),
         search: `?${qstr}`,
         state: { page, amount: totalAmount, email, donationPageUrl, frequencyText: getFrequencyThankYouText(frequency) }
       });

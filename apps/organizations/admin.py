@@ -86,6 +86,7 @@ class OrganizationAdmin(RevEngineBaseAdmin, VersionAdmin):
                 "fields": (
                     "name",
                     "slug",
+                    "plan",
                 )
             },
         ),

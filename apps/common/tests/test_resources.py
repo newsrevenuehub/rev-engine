@@ -45,8 +45,6 @@ class AbstractTestCase(APITestCase):
     rp_count = 2
     contributors_count = 2
     donation_pages_per_rp_count = 2
-    plans_per_org = 2
-    features_per_plan = 2
 
     class Meta:
         abstract = True

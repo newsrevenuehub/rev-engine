@@ -16,8 +16,6 @@ import { isBefore, isAfter } from 'date-fns';
 import ImageWithPreview from 'elements/inputs/ImageWithPreview';
 import Input from 'elements/inputs/Input';
 import CircleButton from 'elements/buttons/CircleButton';
-import ConditionalWrapper from 'components/common/ConditionalWrapper';
-import RETooltip from 'elements/RETooltip';
 
 /**
  * PageSetup
@@ -143,15 +141,8 @@ function PageSetup({ backToProperties }) {
           errors={errors.graphic_thumbnail}
         />
       </S.ImageSelectorWrapper>
-      <S.InputWrapper>
-        <ConditionalWrapper
-          wrapper={(children) => (
-            <RETooltip placement="top" title={`This feature is not available in the ${page.plan.label} plan`}>
-              {children}
-            </RETooltip>
-          )}
-          shouldWrap={!page.plan.custom_thank_you_page_enabled}
-        >
+      {page.plan.custom_thank_you_page_enabled && (
+        <S.InputWrapper>
           <Input
             label="Thank You page link"
             helpText='If you have a "Thank You" page of your own, add a link here'
@@ -159,10 +150,9 @@ function PageSetup({ backToProperties }) {
             onChange={(e) => setThankYouRedirect(e.target.value)}
             errors={errors.thank_you_redirect}
             testid="thank-you-redirect-link-input"
-            disabled={!page.plan.custom_thank_you_page_enabled}
           />
-        </ConditionalWrapper>
-      </S.InputWrapper>
+        </S.InputWrapper>
+      )}
       <S.InputWrapper border>
         <Input
           label="Post Thank You redirect"

@@ -1,4 +1,4 @@
-import { render, screen, fireEvent } from 'test-utils';
+import { render, screen } from 'test-utils';
 import PageSetup from './PageSetup';
 
 jest.mock('components/pageEditor/editInterface/EditInterface', () => {
@@ -39,18 +39,13 @@ jest.mock('components/pageEditor/PageEditor', () => {
 });
 
 it('should disable thank you page URL input and have tooltip if not enabled by plan', async () => {
-  const { default: PageSetup } = require('./PageSetup');
   render(<PageSetup />);
-  const input = screen.getByLabelText('Thank You page link');
-  expect(input).toBeDisabled();
-  fireEvent.mouseOver(input);
-  const toolTip = await screen.findByText('This feature is not available in the Free plan');
-  expect(toolTip).toBeInTheDocument();
+  const thankYouInput = screen.queryByLabelText('Thank You page link');
+  expect(thankYouInput).not.toBeInTheDocument();
 });
 
 it('should not disable thank you page URL when feature enabled by plan', async () => {
   mockThankYouRedirectEnabled = true;
   render(<PageSetup />);
-  const input = screen.getByLabelText('Thank You page link');
-  expect(input).not.toBeDisabled();
+  screen.getByLabelText('Thank You page link');
 });

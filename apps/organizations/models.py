@@ -39,6 +39,7 @@ class Plan:
     name: str
     label: str
     page_limit: int = 1
+    custom_thank_you_page_enabled: bool = False
 
 
 FreePlan = Plan(
@@ -51,6 +52,7 @@ PlusPlan = Plan(
     label="Plus",
     # If this limit gets hit, it can be dealt with as a customer service issue.
     page_limit=UNLIMITED_CEILING,
+    custom_thank_you_page_enabled=True,
 )
 
 

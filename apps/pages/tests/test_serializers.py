@@ -301,6 +301,42 @@ class DonationPageFullDetailSerializerTest(RevEngineApiAbstractTestCase):
         assert serializer.is_valid() is False
         assert str(serializer.errors["non_field_errors"][0]) == ("Your organization has reached its limit of 1 page")
 
+    def test_cannot_set_thank_you_redirect_when_plan_not_enabled(self):
+        self.page.revenue_program.organization.plan = Plans.FREE
+        self.page.revenue_program.organization.save()
+        request = self.request_factory.post("/")
+        request.user = self.org_user
+        serializer = self.serializer(
+            data={
+                "slug": "my-new-page",
+                "revenue_program": self.page.revenue_program.pk,
+                "thank_you_redirect": "https://www.somewhere.com",
+            }
+        )
+        serializer.context["request"] = request
+        assert serializer.is_valid() is False
+        assert str(serializer.errors["thank_you_redirect"][0]) == (
+            "This organization's plan does not enable assigning a custom thank you redirect URL"
+        )
+
+    def test_can_set_thank_you_redirect_when_plan_enabled(self):
+        self.page.revenue_program.organization.plan = Plans.PLUS
+        self.page.revenue_program.organization.save()
+        request = self.request_factory.post("/")
+        request.user = self.org_user
+        redirect_url = "https://www.somewhere.com"
+        serializer = self.serializer(
+            data={
+                "slug": "my-new-page",
+                "revenue_program": self.page.revenue_program.pk,
+                "thank_you_redirect": redirect_url,
+            }
+        )
+        serializer.context["request"] = request
+        assert serializer.is_valid() is True
+        serializer.save()
+        assert serializer.data["thank_you_redirect"] == redirect_url
+
 
 class TemplateDetailSerializerTest(RevEngineApiAbstractTestCase):
     def setUp(self):

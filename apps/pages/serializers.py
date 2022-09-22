@@ -11,7 +11,7 @@ from rest_framework.validators import UniqueTogetherValidator
 from sorl_thumbnail_serializer.fields import HyperlinkedSorlImageField
 
 from apps.common.validators import ValidateFkReferenceOwnership
-from apps.organizations.models import RevenueProgram
+from apps.organizations.models import Organization, RevenueProgram
 from apps.organizations.serializers import (
     BenefitLevelDetailSerializer,
     PaymentProviderSerializer,
@@ -196,8 +196,20 @@ class DonationPageFullDetailSerializer(serializers.ModelSerializer):
             serializer = BenefitLevelDetailSerializer(benefit_levels, many=True)
             return serializer.data
 
+    def validate_thank_you_redirect(self, value):
+        org = Organization.objects.filter(revenueprogram__id=self.initial_data["revenue_program"]).first()
+        if value and not org.get_plan_data().custom_thank_you_page_enabled:
+            raise serializers.ValidationError(
+                "This organization's plan does not enable assigning a custom thank you redirect URL"
+            )
+        return value
+
     def validate_page_limit(self, data):
-        """Ensure that adding a page would not push parent org over its page limit"""
+        """Ensure that adding a page would not push parent org over its page limit
+
+        NB: page_limit is not a serializer field, so we have to explicitly call this method from
+        .validate() below.
+        """
         if self.context["request"].method != "POST":
             return
         if DonationPage.objects.filter(

@@ -63,6 +63,18 @@ class DonationPageAdminTestCase(TestCase):
         assert issubclass(self.page_admin.get_form(request), django.forms.models.ModelForm)
         assert issubclass(self.page_admin.get_form(request, obj=self.page), django.forms.models.ModelForm)
 
+    def test_thank_you_redirect_when_allowed_by_org_plan(self):
+        pass
+
+    def test_thank_you_redirect_when_not_allowed_by_org_plan(self):
+        pass
+
+    def test_add_page_when_already_at_plan_limit(self):
+        pass
+
+    def test_add_page_when_not_at_plan_limit(self):
+        pass
+
 
 class TemplateAdminTest(AbstractTestCase):
     def setUp(self):

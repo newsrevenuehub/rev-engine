@@ -1,7 +1,9 @@
 import logging
 
+from django import forms
 from django.conf import settings
 from django.contrib import admin, messages
+from django.core.exceptions import ValidationError
 from django.db.utils import IntegrityError
 from django.http import HttpResponseRedirect
 from django.urls import reverse
@@ -76,8 +78,28 @@ class TemplateAdmin(VersionAdmin, DonationPageAdminAbstract):
         return super().response_change(request, obj)
 
 
+class DonationPageAdminForm(forms.ModelForm):
+    def clean_thank_you_redirect(
+        self,
+    ):
+        """We raise a validation error if the user is attempting to save a non blank value for thank_you_redirect...
+
+        ...and the page's RP's org's plan does not provide this feature
+        """
+        org = self.instance.revenue_program.organization
+        if self.cleaned_data["thank_you_redirect"] and not org.get_plan_data().custom_thank_you_page_enabled:
+            raise ValidationError(
+                (
+                    f"The parent org (ID: {org.id} | Name: {org.name}) is on the {org.get_plan_data().label} plan, "
+                    f"which does not get this feature."
+                )
+            )
+        return self.cleaned_data["thank_you_redirect"] or ""
+
+
 @admin.register(models.DonationPage)
 class DonationPageAdmin(CompareVersionAdmin, DonationPageAdminAbstract):
+    form = DonationPageAdminForm
     fieldsets = (
         (
             (None, {"fields": ("revenue_program",)}),

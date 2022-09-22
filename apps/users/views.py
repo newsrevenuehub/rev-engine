@@ -181,7 +181,8 @@ class UserViewset(
     model = User
     queryset = User.objects.all()
     serializer_class = UserSerializer
-    # we're explicitly setting these in order to prohibit put updates
+    # We're explicitly setting allowed methods in order to prohibit PUT updates. If PUT
+    # added, the custom logic in UserSerializer.get_fields will have to be addressed.
     http_method_names = ["get", "post", "patch"]
 
     def get_permissions(self):

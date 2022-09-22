@@ -1,4 +1,4 @@
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from django.conf import settings
 from django.test import override_settings
@@ -180,6 +180,15 @@ class StripeOneTimePaymentManagerTest(StripePaymentManagerAbstractTestCase):
         self.assertEqual(
             str(e.exception), "PaymentManager must call 'get_bad_actor_score' before performing this action"
         )
+
+    @patch("apps.contributions.payment_managers.PaymentManager.should_flag", MagicMock(return_value=False))
+    @patch("apps.contributions.payment_managers.make_bad_actor_request")
+    def test_get_bad_actor_score_converts_cents_to_dollars_before_posting_data(self, mock_make_bad_actor_request):
+        pm = self._instantiate_payment_manager_with_data()
+        pm.validate()
+        pm.get_bad_actor_score()
+        call_args = mock_make_bad_actor_request.call_args.args
+        assert call_args[0]["amount"] == "10.99"
 
     @responses.activate
     @patch("stripe.Customer.create", side_effect=MockStripeCustomer)

@@ -38,17 +38,7 @@ class Plan:
 
     name: str
     label: str
-    analytics_enabled: bool = False
-    custom_fonts_enabled: bool = False
-    custom_reports_enabled: bool = False
-    custom_thank_you_pages_enabled: bool = False
-    mailchimp_segmentation_enabled: bool = False
-    mailchimp_payment_info_enabled: bool = False
-    payment_method_update_enabled: bool = False
-    membership_levels_and_benefits_enabled: bool = False
     page_limit: int = 1
-    revenue_program_limit: int = 1
-    seats: int = 1
 
 
 FreePlan = Plan(
@@ -61,8 +51,6 @@ PlusPlan = Plan(
     label="Plus",
     # If this limit gets hit, it can be dealt with as a customer service issue.
     page_limit=UNLIMITED_CEILING,
-    revenue_program_limit=UNLIMITED_CEILING,
-    seats=UNLIMITED_CEILING,
 )
 
 

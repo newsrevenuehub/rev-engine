@@ -129,7 +129,9 @@ class PaymentManager:
     def get_bad_actor_score(self):
         self.validate_badactor_data()
         try:
-            response = make_bad_actor_request(self.validated_badactor_data)
+            data = self.validated_badactor_data
+            data["amount"] = str(float(data["amount"]) / 100.00)
+            response = make_bad_actor_request(data)
             self.bad_actor_score = response.json()["overall_judgment"]
             self.bad_actor_response = response.json()
             if self.should_flag():

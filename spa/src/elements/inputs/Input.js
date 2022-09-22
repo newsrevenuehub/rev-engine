@@ -19,6 +19,7 @@ const Input = forwardRef(({ value, onChange, type, placeholder, name, maxLength,
       onFocus={props.onFocus}
       onBlur={props.onBlur}
       disabled={props.disabled}
+      id={props.label}
     />
   </BaseField>
 ));

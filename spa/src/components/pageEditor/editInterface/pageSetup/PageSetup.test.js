@@ -30,6 +30,7 @@ jest.mock('components/pageEditor/PageEditor', () => {
       errors: [],
       page: {
         plan: {
+          label: 'Free',
           custom_thank_you_page_enabled: mockThankYouRedirectEnabled
         }
       }
@@ -43,7 +44,7 @@ it('should disable thank you page URL input and have tooltip if not enabled by p
   const input = screen.getByLabelText('Thank You page link');
   expect(input).toBeDisabled();
   fireEvent.mouseOver(input);
-  const toolTip = await screen.findByText('Something here');
+  const toolTip = await screen.findByText('This feature is not available in the Free plan');
   expect(toolTip).toBeInTheDocument();
 });
 

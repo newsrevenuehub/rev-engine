@@ -146,7 +146,7 @@ function PageSetup({ backToProperties }) {
       <S.InputWrapper>
         <ConditionalWrapper
           wrapper={(children) => (
-            <RETooltip placement="top" title="Something here">
+            <RETooltip placement="top" title={`This feature is not available in the ${page.plan.label} plan`}>
               {children}
             </RETooltip>
           )}

@@ -197,10 +197,13 @@ class DonationPageFullDetailSerializer(serializers.ModelSerializer):
             return serializer.data
 
     def validate_thank_you_redirect(self, value):
-        org = Organization.objects.filter(revenueprogram__id=self.initial_data["revenue_program"]).first()
+        if self.instance and self.instance.id:
+            org = self.instance.revenue_program.organization
+        else:
+            org = Organization.objects.filter(revenueprogram__id=self.initial_data["revenue_program"]).first()
         if value and not org.get_plan_data().custom_thank_you_page_enabled:
             raise serializers.ValidationError(
-                "This organization's plan does not enable assigning a custom thank you redirect URL"
+                "This organization's plan does not enable assigning a custom thank you URL"
             )
         return value
 

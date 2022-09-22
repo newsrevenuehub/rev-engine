@@ -5,10 +5,11 @@ from django.contrib.admin.sites import AdminSite
 from django.contrib.auth import get_user_model
 from django.contrib.messages import get_messages
 from django.db.utils import IntegrityError
-from django.test import RequestFactory, TestCase
+from django.test import Client, RequestFactory, TestCase
 from django.urls import reverse
 
 import pytest
+from bs4 import BeautifulSoup as bs4
 
 from apps.common.tests.test_resources import AbstractTestCase
 from apps.common.tests.test_utils import setup_request
@@ -63,17 +64,88 @@ class DonationPageAdminTestCase(TestCase):
         assert issubclass(self.page_admin.get_form(request), django.forms.models.ModelForm)
         assert issubclass(self.page_admin.get_form(request, obj=self.page), django.forms.models.ModelForm)
 
-    def test_thank_you_redirect_when_allowed_by_org_plan(self):
-        pass
-
     def test_thank_you_redirect_when_not_allowed_by_org_plan(self):
-        pass
+        url = reverse("admin:pages_donationpage_add")
+        # so we aren't hitting the page limit which would otherwise block us from creating an additional page
+        # here
+        DonationPage.objects.filter(revenue_program__organization=self.revenue_program.organization).delete()
+        c = Client()
+        c.force_login(self.user)
+        data = dict.fromkeys(
+            [
+                "csrfmiddlewaretoken",
+                "published_date_0",
+                "published_date_1",
+                "slug",
+                "name",
+                "post_thank_you_redirect",
+                "header_bg_image",
+                "header_logo",
+                "header_link",
+                "heading",
+                "graphic",
+                "styles",
+                "elements",
+                "initial-elements",
+                "sidebar_elements",
+                "initial-sidebar_elements",
+                "_save",
+            ],
+            "",
+        )
+        data["revenue_program"] = self.revenue_program.id
+        data["thank_you_redirect"] = "https://www.somewhere.com"
+        response = c.post(url, data)
+        assert response.status_code == 200
+        soup = bs4(response.content, "html.parser")
+        org = self.revenue_program.organization
+        expected = (
+            f"The parent org (ID: {org.id} | Name: {org.name}) is on the {org.get_plan_data().label} "
+            f"plan, which does not get this feature"
+        )
+        assert soup.body.find(text=lambda t: expected in t.text)
 
     def test_add_page_when_already_at_plan_limit(self):
-        pass
+        url = reverse("admin:pages_donationpage_add")
+        c = Client()
+        c.force_login(self.user)
+        data = dict.fromkeys(
+            [
+                "csrfmiddlewaretoken",
+                "published_date_0",
+                "published_date_1",
+                "slug",
+                "name",
+                "thank_you_redirect",
+                "post_thank_you_redirect",
+                "header_bg_image",
+                "header_logo",
+                "header_link",
+                "heading",
+                "graphic",
+                "styles",
+                "elements",
+                "initial-elements",
+                "sidebar_elements",
+                "initial-sidebar_elements",
+                "_save",
+            ],
+            "",
+        )
+        data["revenue_program"] = self.revenue_program.id
+        response = c.post(url, data)
+        assert response.status_code == 200
+        soup = bs4(response.content, "html.parser")
+        org = self.revenue_program.organization
+        expected = (
+            f"The parent org (ID: {org.id} | Name: {org.name}) is on the {org.get_plan_data().label} "
+            f"plan, and is limited to {org.get_plan_data().page_limit} page"
+        )
 
-    def test_add_page_when_not_at_plan_limit(self):
-        pass
+        def expected_in_soup(item):
+            return soup.body.find(text=lambda t: expected in item.text)
+
+        assert soup.body.find(string=expected_in_soup)
 
 
 class TemplateAdminTest(AbstractTestCase):

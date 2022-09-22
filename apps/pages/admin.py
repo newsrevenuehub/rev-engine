@@ -14,6 +14,7 @@ from solo.admin import SingletonModelAdmin
 from sorl.thumbnail.admin import AdminImageMixin
 
 from apps.common.admin import RevEngineBaseAdmin
+from apps.organizations.models import Organization
 from apps.pages import models
 
 
@@ -86,7 +87,10 @@ class DonationPageAdminForm(forms.ModelForm):
 
         ...and the page's RP's org's plan does not provide this feature
         """
-        org = self.instance.revenue_program.organization
+        if not self.instance.id:
+            org = Organization.objects.get(revenueprogram__id=self.data["revenue_program"])
+        else:
+            org = self.instance.revenue_program.organization
         if self.cleaned_data["thank_you_redirect"] and not org.get_plan_data().custom_thank_you_page_enabled:
             raise ValidationError(
                 (
@@ -95,6 +99,27 @@ class DonationPageAdminForm(forms.ModelForm):
                 )
             )
         return self.cleaned_data["thank_you_redirect"] or ""
+
+    def validate_page_limit(self):
+        org = self.cleaned_data["revenue_program"].organization
+        # if we're creating a new page, id won't be assigned yet
+        if (
+            not self.instance.id
+            and models.DonationPage.objects.filter(revenue_program__organization=org).count()
+            >= org.get_plan_data().page_limit
+        ):
+            raise ValidationError(
+                (
+                    f"The parent org (ID: {org.id} | Name: {org.name}) is on the {org.get_plan_data().label} plan, "
+                    f"and is limited to {org.get_plan_data().page_limit} "
+                    f"page{'' if org.get_plan_data().page_limit == 1 else 's' }."
+                )
+            )
+
+    def clean(self):
+        super().clean()
+        self.validate_page_limit()
+        return self.cleaned_data
 
 
 @admin.register(models.DonationPage)

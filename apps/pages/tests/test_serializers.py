@@ -316,7 +316,7 @@ class DonationPageFullDetailSerializerTest(RevEngineApiAbstractTestCase):
         serializer.context["request"] = request
         assert serializer.is_valid() is False
         assert str(serializer.errors["thank_you_redirect"][0]) == (
-            "This organization's plan does not enable assigning a custom thank you redirect URL"
+            "This organization's plan does not enable assigning a custom thank you URL"
         )
 
     def test_can_set_thank_you_redirect_when_plan_enabled(self):

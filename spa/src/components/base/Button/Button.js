@@ -31,9 +31,7 @@ const StyledMuiButton = styled(MuiButton)`
 /**
  * @see https://v4.mui.com/api/button/
  */
-export const Button = forwardRef((props, ref) => (
-  <StyledMuiButton disableFocusRipple disableRipple ref={ref} variant="contained" {...props} />
-));
+export const Button = forwardRef((props, ref) => <StyledMuiButton ref={ref} variant="contained" {...props} />);
 
 Button.propTypes = MuiButton.propTypes;
 

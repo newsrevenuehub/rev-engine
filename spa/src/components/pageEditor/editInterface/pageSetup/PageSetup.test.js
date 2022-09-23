@@ -1,51 +1,41 @@
 import { render, screen } from 'test-utils';
+import { EditInterfaceContext } from '../EditInterface';
 import PageSetup from './PageSetup';
+import { PageEditorContext } from 'components/pageEditor/PageEditor';
 
-jest.mock('components/pageEditor/editInterface/EditInterface', () => {
-  const originalModule = jest.requireActual('components/pageEditor/editInterface/EditInterface');
-  return {
-    __esModule: true,
-    ...originalModule,
-    useEditInterfaceContext: () => ({
-      setPageContent: () => {}
-    })
-  };
+// This component uses URL.revokeObjectURL() which jsdom doesn't seem to
+// support.
+jest.mock('elements/inputs/ImageWithPreview', () => () => null);
+
+function tree(page) {
+  return render(
+    <EditInterfaceContext.Provider value={{ setPageContent: jest.fn() }}>
+      <PageEditorContext.Provider
+        value={{
+          errors: [],
+          page: {
+            header_link: 'mock-header-link',
+            heading: 'mock-heading',
+            plan: { label: 'free' },
+            post_thank_you_redirect: 'mock-post-thank-you-redirect',
+            label: 'Free',
+            thank_you_redirect: 'mock-thank-you-redirect',
+            ...page
+          }
+        }}
+      >
+        <PageSetup />
+      </PageEditorContext.Provider>
+    </EditInterfaceContext.Provider>
+  );
+}
+
+it('should disable thank you page URL input and have tooltip if not enabled by plan', () => {
+  tree({ plan: { custom_thank_you_page_enabled: false, label: 'free' } });
+  expect(screen.queryByLabelText('Thank You page link')).not.toBeInTheDocument();
 });
 
-jest.mock('elements/inputs/ImageWithPreview', () => {
-  return () => <></>;
-});
-// This would not be my preferred way of handling this, but the two
-// test scenarios need different values returned by the mock implementation,
-// and trying suggestions found online
-// (resetModules before tests, wrap in isolateModules, etc.) did not help, and
-// were leading to cryptic error messages.
-let mockThankYouRedirectEnabled = false;
-jest.mock('components/pageEditor/PageEditor', () => {
-  const originalModule = jest.requireActual('components/pageEditor/PageEditor');
-  return {
-    __esModule: true,
-    ...originalModule,
-    usePageEditorContext: () => ({
-      errors: [],
-      page: {
-        plan: {
-          label: 'Free',
-          custom_thank_you_page_enabled: mockThankYouRedirectEnabled
-        }
-      }
-    })
-  };
-});
-
-it('should disable thank you page URL input and have tooltip if not enabled by plan', async () => {
-  render(<PageSetup />);
-  const thankYouInput = screen.queryByLabelText('Thank You page link');
-  expect(thankYouInput).not.toBeInTheDocument();
-});
-
-it('should not disable thank you page URL when feature enabled by plan', async () => {
-  mockThankYouRedirectEnabled = true;
-  render(<PageSetup />);
-  screen.getByLabelText('Thank You page link');
+it('should not disable thank you page URL when feature enabled by plan', () => {
+  tree({ plan: { custom_thank_you_page_enabled: true, label: 'free' } });
+  expect(screen.getByLabelText('Thank You page link')).toBeInTheDocument();
 });

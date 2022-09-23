@@ -34,7 +34,7 @@ class TestUsersAdmin(TestCase):
         user_id = user_model.objects.all()[0].id
         response = self.client.get(f"/nrhadmin/users/user/{user_id}/change/")
         soup = BeautifulSoup(response.content)
-        self.assertIsNotNone(soup.find("input", {"name": "email"}))
-        self.assertIsNotNone(soup.find("input", {"name": "first_name"}))
-        self.assertIsNotNone(soup.find("input", {"name": "last_name"}))
-        self.assertIsNotNone(soup.find("input", {"name": "job_title"}))
+        assert soup.find("input", {"name": "email"}) is not None
+        assert soup.find("input", {"name": "first_name"}) is not None
+        assert soup.find("input", {"name": "last_name"}) is not None
+        assert soup.find("input", {"name": "job_title"}) is not None

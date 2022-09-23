@@ -44,4 +44,12 @@ describe('getPaymentSuccessUrl function', () => {
     expect(search.get('fromPath')).toEqual(args.pathName === '/' ? '' : args.pathName);
     expect(search.get('payment_intent_client_secret')).toEqual(args.stripeClientSecret);
   });
+  // this test is here syntax in original implementation was flawed and caused `amount: 1` to
+  // raise the missing args error.
+  it('accepts an amount of 1', () => {
+    getPaymentSuccessUrl({ ...fromDefaultPageParams, amount: 1 });
+  });
+
+  it('throws if a necessary param is missing', () =>
+    expect(() => getPaymentSuccessUrl({ ...fromDefaultPageParams, baseUrl: undefined })).toThrow());
 });

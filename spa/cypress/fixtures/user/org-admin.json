@@ -3,6 +3,7 @@
     "user": {
         "id": 1,
         "email": "org-admin@some-org.com",
+        "email_verified": true,
         "flags": [],
         "role_type": [
             "org_admin",
@@ -23,6 +24,12 @@
                 "id": 1,
                 "name": "Some Rev Program",
                 "slug": "some-rev-program",
+                "organization": 1
+            },
+            {
+                "id": 2,
+                "name": "Some Rev Program 2",
+                "slug": "some-rev-program-2",
                 "organization": 1
             }
         ]

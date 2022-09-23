@@ -1,10 +1,12 @@
 import { useState } from 'react';
 import PropTypes from 'prop-types';
 
-import { Flex, Button, Popover, Text, Title, Input, CopyButton } from './GrabLink.styled';
+import { pageHasBeenPublished } from 'utilities/editPageGetSuccessMessage';
 import CheckIcon from '@material-ui/icons/Check';
 import LinkIcon from '@material-ui/icons/Link';
 import getDomain from 'utilities/getDomain';
+
+import { Flex, Button, Popover, Text, Title, Input, CopyButton } from './GrabLink.styled';
 
 const GrabLink = ({ page, className }) => {
   const [copied, setCopied] = useState(null);
@@ -13,6 +15,7 @@ const GrabLink = ({ page, className }) => {
   const id = open ? 'grab link popover' : undefined;
   const domain = getDomain(window.location.host);
 
+  const isPublished = pageHasBeenPublished(page);
   const pageLink = `${page?.revenue_program?.slug}.${domain}/${page?.slug}`;
   const portalLink = `${page?.revenue_program?.slug}.${domain}/contributor`;
 
@@ -24,7 +27,7 @@ const GrabLink = ({ page, className }) => {
     setAnchorEl(null);
   };
 
-  if (!page?.published_date) return null;
+  if (!isPublished) return null;
 
   const renderCopyButton = (title, link) => {
     const showCopied = copied === link;

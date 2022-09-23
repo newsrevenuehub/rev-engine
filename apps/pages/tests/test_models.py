@@ -7,14 +7,12 @@ from django.test import TestCase
 from django.utils import timezone
 
 import pytest
-import rest_framework
 
 from apps.common.tests.test_utils import get_test_image_file_jpeg
 from apps.config.tests.factories import DenyListWordFactory
 from apps.config.validators import GENERIC_SLUG_DENIED_MSG, SLUG_DENIED_CODE
 from apps.contributions.tests.factories import ContributionFactory
-from apps.organizations.models import Feature
-from apps.organizations.tests.factories import FeatureFactory, OrganizationFactory
+from apps.organizations.tests.factories import OrganizationFactory
 from apps.pages import defaults
 from apps.pages.models import (
     DefaultPageLogo,
@@ -105,22 +103,6 @@ class DonationPageTest(TestCase):
             self.assertEqual(el["type"], default_elements[i]["type"])
             if el["type"] != "DDonorAddress":
                 self.assertEqual(el["content"], default_elements[i]["content"])
-
-    def test_new_save_page_limits_error(self):
-        page = self.model_class()
-        page.has_page_limit = mock.Mock(
-            return_value=FeatureFactory(feature_value=1, feature_type=Feature.FeatureType.PAGE_LIMIT)
-        )
-        page.revenue_program = self.instance.revenue_program
-        with pytest.raises(rest_framework.exceptions.ValidationError) as e:
-            page.save()
-            assert "reached its limit of" in str(e)
-
-    def test_existing_save_page_limits_no_exception(self):
-        self.instance.has_page_limit = mock.Mock(
-            return_value=FeatureFactory(feature_value=1, feature_type=Feature.FeatureType.PAGE_LIMIT)
-        )
-        self.instance.save()
 
     def test_new_pages_save_with_default_header_logo(self):
         page, default_logo = self._create_page_with_default_logo()

@@ -122,7 +122,6 @@ export function getPaymentSuccessUrl({
   const missingParams = Object.fromEntries(
     Object.entries({
       baseUrl,
-      thankYouRedirectUrl,
       amount,
       emailHash,
       frequencyDisplayValue,
@@ -131,7 +130,7 @@ export function getPaymentSuccessUrl({
       rpSlug,
       pathName,
       stripeClientSecret
-    }).filter(([_, v]) => v in [undefined, null, ''])
+    }).filter(([_, v]) => [undefined, null, ''].includes(v))
   );
   if (Object.entries(missingParams).length) {
     throw new Error(`Missing argument for: ${Object.keys(missingParams).join(', ')}`);

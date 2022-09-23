@@ -40,6 +40,8 @@ class Plan:
     label: str
     page_limit: int = 1
     custom_thank_you_page_enabled: bool = False
+    swag_options_enabled: bool = False
+    member_benefits_enabled: bool = False
 
 
 FreePlan = Plan(
@@ -53,6 +55,8 @@ PlusPlan = Plan(
     # If this limit gets hit, it can be dealt with as a customer service issue.
     page_limit=UNLIMITED_CEILING,
     custom_thank_you_page_enabled=True,
+    swag_options_enabled=True,
+    member_benefits_enabled=True,
 )
 
 

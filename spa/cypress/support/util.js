@@ -13,3 +13,7 @@ export const EXPECTED_RP_SLUG = 'revenueprogram';
 export function getTestingDonationPageUrl(pageSlug = '', queryString = '') {
   return `http://${EXPECTED_RP_SLUG}.revengine-testabc123.com:3000/${pageSlug}${queryString}`;
 }
+
+export function getTestingDefaultDonationPageUrl(queryString = '') {
+  return `http://${EXPECTED_RP_SLUG}.revengine-testabc123.com:3000/${queryString}`;
+}

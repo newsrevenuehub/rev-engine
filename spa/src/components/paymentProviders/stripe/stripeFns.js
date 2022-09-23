@@ -1,4 +1,5 @@
 import calculateStripeFee from 'utilities/calculateStripeFee';
+import { PAYMENT_SUCCESS } from 'routes';
 
 /******************\
  *  Process Data  *
@@ -104,4 +105,79 @@ export async function createPaymentMethod(stripe, card, data) {
     card: card,
     billing_details
   });
+}
+
+export function getPaymentSuccessUrl({
+  baseUrl,
+  thankYouRedirectUrl,
+  amount,
+  emailHash,
+  frequencyDisplayValue,
+  contributorEmail,
+  pageSlug,
+  rpSlug,
+  pathName,
+  stripeClientSecret
+}) {
+  const missingParams = Object.fromEntries(
+    Object.entries({
+      baseUrl,
+      thankYouRedirectUrl,
+      amount,
+      emailHash,
+      frequencyDisplayValue,
+      contributorEmail,
+      pageSlug,
+      rpSlug,
+      pathName,
+      stripeClientSecret
+    }).filter(([_, v]) => v in [undefined, null, ''])
+  );
+  if (Object.entries(missingParams).length) {
+    throw new Error(`Missing argument for: ${Object.keys(missingParams).join(', ')}`);
+  }
+  const paymentSuccessUrl = new URL(PAYMENT_SUCCESS, baseUrl);
+  // Some notes on parameters for URL search generation below:
+  // uid: maps to emailHash from function params
+  //
+  // When a donation page has a custom thank you page that is off-site, we
+  // eventually next the user to that page, appending several query parameters, one
+  // of which is a `uid` parameter that org's can use to anonymously track contributors
+  // in their analytics layer without exposing raw contributor email to ad tech providers.
+  //
+  // email: maps to contributorEmail from function params
+  //
+  // Our internal thank you page needs the raw value of the contributor
+  // email to display message on the page. There's no privacy concerns around sharing the
+  // email address with Stripe (they already have it) or within our site.
+
+  // pageSlug
+  //
+  // The thank you page that eventually loads needs to data that is on the
+  // page model from API. We pass the `pageSlug`, and the success page will be able to use this +
+  // the `rpSlug`to request the LIVE_PAGE_DETAIL. Ideally, we'd just use the page
+  // id to this end, but at present that API endpoint requires authentication.
+
+  // rpSlug: nothing special to note
+
+  // fromPath: pathName in function params
+  // We pass this along because the thank you page we eventually need to show
+  // will appear at rev-program-slug.revengine.com/page-name/thank-you if the page was served
+  // from specific page name. On other hand, if a revenue program has a default donation page
+  // set up, that page can appear at rev-program-slug.revengine.com/ (with no page), in which
+  // case, the thank-you page URL can be rev-program-slug.revengine.com/thank-you.
+
+  // payment_intent_client_secret : stripeClientSecret in function params
+  paymentSuccessUrl.search = new URLSearchParams({
+    amount,
+    pageSlug,
+    rpSlug,
+    email: contributorEmail,
+    frequency: frequencyDisplayValue,
+    fromPath: pathName === '/' ? '' : pathName,
+    next: thankYouRedirectUrl,
+    payment_intent_client_secret: stripeClientSecret,
+    uid: emailHash
+  });
+  return paymentSuccessUrl.href;
 }

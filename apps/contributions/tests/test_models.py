@@ -183,6 +183,7 @@ class ContributionTest(TestCase):
         self.assertEqual(self.contribution.provider_payment_id, return_value["id"])
         self.assertEqual(self.contribution.provider_client_secret_id, return_value["client_secret"])
         self.assertEqual(payment_intent, return_value)
+        assert self.contribution.provider_customer_id == stripe_customer_id
 
     @patch("stripe.Subscription.create")
     def test_create_stripe_subscription(self, mock_create_subscription):
@@ -231,6 +232,7 @@ class ContributionTest(TestCase):
             return_value["latest_invoice"]["payment_intent"]["client_secret"],
         )
         self.assertEqual(subscription, return_value)
+        assert self.contribution.provider_customer_id == stripe_customer_id
 
     @patch("apps.emails.tasks.send_templated_email.delay")
     def test_handle_thank_you_email_when_nre_sends(self, mock_send_email):

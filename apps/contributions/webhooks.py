@@ -21,12 +21,12 @@ class StripeWebhookProcessor:
         elif event_type == "payment_intent":
             try:
                 return Contribution.objects.get(provider_payment_id=self.obj_data["id"])
-            except Contribution.DoesNotExist as e:
+            except Contribution.DoesNotExist:
                 if customer_id := self.obj_data.get("customer"):
                     # This is fine as long as we continue to generate a unique customer per charge.
                     return Contribution.objects.get(provider_customer_id=customer_id)
                 else:
-                    raise e
+                    raise
 
     def process(self):
         logger.info('Processing Stripe Event of type "%s"', self.event.type)

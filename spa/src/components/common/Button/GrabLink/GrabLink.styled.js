@@ -30,6 +30,12 @@ export const Popover = styled(MuiPopover)`
       max-width: calc(100% - 32px);
     }
   }
+
+  p,
+  input,
+  span {
+    font-family: ${(props) => props.theme.systemFont};
+  }
 `;
 
 export const Title = styled.p`

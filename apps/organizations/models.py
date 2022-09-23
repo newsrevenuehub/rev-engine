@@ -32,7 +32,7 @@ RP_SLUG_MAX_LENGTH = 63
 CURRENCY_CHOICES = [(k, k) for k in settings.CURRENCIES.keys()]
 
 
-@dataclass
+@dataclass(frozen=True)
 class Plan:
     """Used for modeling Organization plans"""
 

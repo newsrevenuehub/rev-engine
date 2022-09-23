@@ -1,7 +1,7 @@
 import { ButtonBase, ClickAwayListener } from '@material-ui/core';
+import PropTypes from 'prop-types';
 import { Tooltip } from 'components/base';
 import useModal from 'hooks/useModal';
-import PropTypes from 'prop-types';
 import { Icon } from './InfoTooltip.styled';
 
 export const InfoTooltip = (props) => {

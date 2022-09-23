@@ -1,4 +1,4 @@
-from random import choice, randint, randrange, uniform
+from random import choice, randint, uniform
 
 import factory
 import factory.fuzzy
@@ -19,30 +19,6 @@ fake = Faker()
 Faker.seed(0)
 
 
-class FeatureFactory(DjangoModelFactory):
-    class Meta:
-        model = models.Feature
-        django_get_or_create = ("feature_type", "feature_value")
-
-    name = factory.Sequence(lambda n: f"{' '.join(fake.words(nb=2))}-{str(n)}")
-    description = fake.text()
-    feature_type = factory.fuzzy.FuzzyChoice(models.Feature.FeatureType.choices, getter=lambda c: c[0])
-
-    @factory.lazy_attribute
-    def feature_value(self):
-        if self.feature_type == models.Feature.FeatureType.BOOLEAN:
-            return choice(models.Feature.VALID_BOOLEAN_INPUTS)
-        if self.feature_type == models.Feature.FeatureType.PAGE_LIMIT:
-            return randrange(1, 25)
-
-
-class PlanFactory(DjangoModelFactory):
-    class Meta:
-        model = models.Plan
-
-    name = fake.word()
-
-
 class OrganizationFactory(DjangoModelFactory):
     class Meta:
         model = models.Organization
@@ -50,7 +26,6 @@ class OrganizationFactory(DjangoModelFactory):
 
     name = factory.Sequence(lambda n: f"{fake.company()}-{str(n)}")
     slug = factory.lazy_attribute(lambda o: normalize_slug(name=o.name))
-    plan = factory.SubFactory("apps.organizations.tests.factories.PlanFactory")
 
 
 class PaymentProviderFactory(DjangoModelFactory):

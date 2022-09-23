@@ -741,9 +741,9 @@ class TestUserViewSet(APITestCase):
             reverse("user-customize-account", args=(user.pk,)),
             data={**no_job_title},
         )
-        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
-        self.assertEqual(self.customize_account_request["first_name"], user.first_name)
-        self.assertEqual(self.customize_account_request["last_name"], user.last_name)
+        assert response.status_code == status.HTTP_204_NO_CONTENT
+        assert self.customize_account_request["first_name"] == user.first_name
+        assert self.customize_account_request["last_name"] == user.last_name
 
     def test_can_customize_account_with_conflicting_org_name(self):
         taken_name = "already-in-use"

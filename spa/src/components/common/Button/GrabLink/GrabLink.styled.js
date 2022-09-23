@@ -32,6 +32,7 @@ export const Popover = styled(MuiPopover)`
   }
 
   p,
+  input,
   span {
     font-family: ${(props) => props.theme.systemFont};
   }

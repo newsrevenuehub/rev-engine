@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import * as S from './AddPageModal.styled';
 import { useTheme } from 'styled-components';
 
@@ -29,7 +29,7 @@ import CircleButton from 'elements/buttons/CircleButton';
 
 import FormErrors from 'elements/inputs/FormErrors';
 
-function AddPageModal({ isOpen, closeModal }) {
+function AddPageModal({ isOpen, closeModal, pagesByRevenueProgram }) {
   const alert = useAlert();
   const theme = useTheme();
   const history = useHistory();
@@ -40,7 +40,7 @@ function AddPageModal({ isOpen, closeModal }) {
   const [name, setName] = useState('');
   const [slug, setSlug] = useState('');
 
-  const [revenueProgram, setRevenueProgram] = useState(null);
+  const [revenueProgram, setRevenueProgram] = useState('');
 
   // Intentionally commented out, see DEV-1493
   // const fetchTemplates = useRequest();
@@ -71,10 +71,14 @@ function AddPageModal({ isOpen, closeModal }) {
     setSlug(slugify(`${name}-${Math.random().toFixed(4)}`));
   };
 
-  const canSavePage = () => !loading && !!revenueProgram && !!slug && !!name;
+  const canSavePage = useCallback(
+    (override) => (override ? !loading : !loading && !!revenueProgram && !!slug && !!name),
+    [loading, name, revenueProgram, slug]
+  );
 
   const handleSaveFailure = useCallback(
     (e) => {
+      setLoading(false);
       if (e.response?.data) {
         setErrors(e.response.data);
       } else {
@@ -84,39 +88,73 @@ function AddPageModal({ isOpen, closeModal }) {
     [alert]
   );
 
-  const handleSave = async (e) => {
-    e.preventDefault();
-    if (!canSavePage()) return;
-    setLoading(true);
+  const handleSave = useCallback(
+    async (e, overrideForm = undefined) => {
+      e?.preventDefault();
+      if (!canSavePage(overrideForm !== undefined)) return;
+      setLoading(true);
 
-    const formData = {
-      name,
-      slug,
-      revenue_program: revenueProgram.id
-    };
-    // Intentionally commented-out, see DEV-1493
-    // if (template) formData.template_pk = template.id;
-    createPage(
-      {
-        method: 'POST',
-        url: LIST_PAGES,
-        data: formData
-      },
-      {
-        onSuccess: ({ data }) =>
-          history.push({
-            pathname: `${EDITOR_ROUTE}/${revenueProgram.slug}/${slug}`,
-            state: { pageId: data.id }
-          }),
-        onFailure: handleSaveFailure
-      }
-    );
-    setLoading(false);
-  };
+      const formData = {
+        name: overrideForm?.name || name,
+        slug: overrideForm?.slug || slug,
+        revenue_program: overrideForm?.revenueProgramId || revenueProgram.id
+      };
+      // Intentionally commented-out, see DEV-1493
+      // if (template) formData.template_pk = template.id;
+      createPage(
+        {
+          method: 'POST',
+          url: LIST_PAGES,
+          data: formData
+        },
+        {
+          onSuccess: ({ data }) => {
+            setLoading(false);
+            history.push({
+              pathname: `${EDITOR_ROUTE}/${formData.revenue_program}/${formData.slug}`,
+              state: { pageId: data.id }
+            });
+          },
+          onFailure: handleSaveFailure
+        }
+      );
+    },
+    [canSavePage, createPage, handleSaveFailure, history, name, revenueProgram.id, slug]
+  );
 
   const handleDiscard = () => {
     closeModal();
   };
+
+  const handleTemporaryPageName = (pages) => {
+    const pagesSize = pages?.length + 1;
+    const slugs = pages.map((_) => _.slug);
+    let number = pagesSize;
+    let tempName = `Page ${number}`;
+    let tempSlug = slugify(tempName);
+    while (slugs.includes(tempSlug)) {
+      number += 1;
+      tempName = `Page ${number}`;
+      tempSlug = slugify(tempName);
+    }
+    return { tempName, tempSlug };
+  };
+
+  useEffect(() => {
+    if (revenuePrograms?.length === 1) {
+      const { tempName, tempSlug } = handleTemporaryPageName(pagesByRevenueProgram[0]?.pages);
+      closeModal();
+      handleSave(undefined, {
+        name: tempName,
+        slug: tempSlug,
+        revenueProgramId: revenuePrograms[0].id
+      });
+    }
+  }, [closeModal, handleSave, pagesByRevenueProgram, revenuePrograms]);
+
+  if (revenuePrograms?.length === 1) {
+    return null;
+  }
 
   return (
     <Modal isOpen={isOpen} closeModal={closeModal}>

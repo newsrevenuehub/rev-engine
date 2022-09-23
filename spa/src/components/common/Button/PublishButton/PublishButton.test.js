@@ -98,7 +98,7 @@ describe('PublishButton', () => {
     expect(goToPageButton).toBeEnabled();
     expect(goToPageButton).toHaveAttribute(
       'href',
-      `${publishedPage?.revenue_program?.slug}.${domain}/${publishedPage?.slug}`
+      `https://${publishedPage?.revenue_program?.slug}.${domain}/${publishedPage?.slug}`
     );
   });
 

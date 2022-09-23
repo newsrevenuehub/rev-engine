@@ -335,10 +335,8 @@ describe('Donation page edit', () => {
     });
 
     it('should open appropriate tab for error and scroll to first error', () => {
-      cy.intercept(
-        { method: 'GET', pathname: getEndpoint(DRAFT_PAGE_DETAIL) },
-        { fixture: 'pages/unpublished-page-1.json' }
-      ).as('getPageDetail');
+      const fixture = { ...unpublishedPage, plan: { ...unpublishedPage.plan, custom_thank_you_page_enabled: true } };
+      cy.intercept({ method: 'GET', pathname: getEndpoint(DRAFT_PAGE_DETAIL) }, { body: fixture }).as('getPageDetail');
       cy.forceLogin(orgAdminUser);
       cy.intercept(`**/${LIST_STYLES}**`, {});
 
@@ -346,7 +344,7 @@ describe('Donation page edit', () => {
       cy.visit(testEditPageUrl);
       cy.wait('@getPageDetail');
       cy.getByTestId('edit-page-button').click();
-      cy.getByTestId('setup-tab').click({ force: true });
+      cy.getByTestId('setup-tab').click();
       cy.getByTestId('thank-you-redirect-link-input').type('not a valid url');
       cy.getByTestId('keep-element-changes-button').click({ force: true });
 
@@ -397,7 +395,7 @@ describe('Donation page edit', () => {
   });
 
   describe('Edit interface: Setup', () => {
-    before(() => {
+    beforeEach(() => {
       cy.forceLogin(orgAdminUser);
       cy.intercept({ method: 'GET', pathname: getEndpoint(USER) }, { body: orgAdminWithContentFlag });
       cy.intercept(

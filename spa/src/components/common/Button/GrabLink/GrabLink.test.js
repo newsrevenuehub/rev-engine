@@ -1,5 +1,6 @@
+import { axe } from 'jest-axe';
 import { render, screen, fireEvent, waitFor } from 'test-utils';
-import getDomain from 'utilities/getDomain';
+import { pageLink, portalLink } from 'utilities/getPageLinks';
 
 import GrabLink from './GrabLink';
 
@@ -16,7 +17,6 @@ const mockClipboard = {
 };
 
 global.navigator.clipboard = mockClipboard;
-const domain = getDomain(window.location.host);
 
 describe('GrabLink', () => {
   it('should not render grab link if page is not published', () => {
@@ -47,11 +47,8 @@ describe('GrabLink', () => {
     const copyButtons = screen.queryAllByRole('button', { name: /copy/i });
     expect(copyButtons).toHaveLength(2);
 
-    const pageLink = screen.getByRole('textbox', { name: `${page.revenue_program.slug}.${domain}/${page.slug}` });
-    expect(pageLink).toBeInTheDocument();
-
-    const portalLink = screen.getByRole('textbox', { name: `${page.revenue_program.slug}.${domain}/contributor` });
-    expect(portalLink).toBeInTheDocument();
+    expect(screen.getByRole('textbox', { name: pageLink(page) })).toBeInTheDocument();
+    expect(screen.getByRole('textbox', { name: portalLink(page) })).toBeInTheDocument();
   });
 
   it('should open popup and copy link', async () => {
@@ -67,6 +64,11 @@ describe('GrabLink', () => {
       expect(screen.getByRole('button', { name: /copied contribution page link/i })).toBeEnabled();
     });
     expect(screen.queryByRole('button', { name: /copy contribution page link/i })).toBeNull();
-    expect(mockClipboard.writeText.mock.calls).toEqual([[`${page.revenue_program.slug}.${domain}/${page.slug}`]]);
+    expect(mockClipboard.writeText.mock.calls).toEqual([[pageLink(page)]]);
+  });
+
+  it('should be accessible', async () => {
+    const { container } = render(<GrabLink page={page} />);
+    expect(await axe(container)).toHaveNoViolations();
   });
 });

@@ -949,13 +949,17 @@ def stripe_create_customer_response():
 
 
 @pytest.fixture
-def stripe_create_payment_intent_response():
-    return {"id": "some-id", "client_secret": "Shhhhhh!!!"}
+def stripe_create_payment_intent_response(stripe_create_customer_response):
+    return {"id": "some-id", "client_secret": "Shhhhhh!!!", "customer": stripe_create_customer_response["id"]}
 
 
 @pytest.fixture
-def stripe_create_subscription_response():
-    return {"id": "some-id", "latest_invoice": {"payment_intent": {"client_secret": "Shhhhhh!!!"}}}
+def stripe_create_subscription_response(stripe_create_customer_response):
+    return {
+        "id": "some-id",
+        "latest_invoice": {"payment_intent": {"client_secret": "Shhhhhh!!!"}},
+        "customer": stripe_create_customer_response["id"],
+    }
 
 
 @pytest.mark.django_db

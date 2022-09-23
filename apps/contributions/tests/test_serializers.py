@@ -894,13 +894,15 @@ class TestCreateOneTimePaymentSerializer:
 
         monkeypatch.setattr("apps.contributions.serializers.make_bad_actor_request", mock_get_bad_actor)
         mock_create_stripe_customer = Mock()
-        mock_create_stripe_customer.return_value = {"id": "some id"}
+        fake_customer_id = "fake-customer-id"
+        mock_create_stripe_customer.return_value = {"id": fake_customer_id}
         monkeypatch.setattr("apps.contributions.models.Contributor.create_stripe_customer", mock_create_stripe_customer)
         mock_create_stripe_one_time_payment_intent = Mock()
         client_secret = "shhhhhhh!"
         mock_create_stripe_one_time_payment_intent.return_value = {
             "id": "some payment intent id",
             "client_secret": client_secret,
+            "customer": fake_customer_id,
         }
         monkeypatch.setattr(
             "apps.contributions.models.stripe.PaymentIntent.create", mock_create_stripe_one_time_payment_intent
@@ -1047,13 +1049,15 @@ class TestCreateRecurringPaymentSerializer:
 
         monkeypatch.setattr("apps.contributions.serializers.make_bad_actor_request", mock_get_bad_actor)
         mock_create_stripe_customer = Mock()
-        mock_create_stripe_customer.return_value = {"id": "some id"}
+        fake_customer_id = "fake-customer-id"
+        mock_create_stripe_customer.return_value = {"id": fake_customer_id}
         monkeypatch.setattr("apps.contributions.models.Contributor.create_stripe_customer", mock_create_stripe_customer)
         mock_create_stripe_subscription = Mock()
         client_secret = "shhhhhhh!"
         mock_create_stripe_subscription.return_value = {
             "id": "some payment intent id",
             "latest_invoice": {"payment_intent": {"client_secret": client_secret}},
+            "customer": fake_customer_id,
         }
         monkeypatch.setattr("apps.contributions.models.stripe.Subscription.create", mock_create_stripe_subscription)
         request = APIRequestFactory(HTTP_REFERER="https://www.google.com").post("", {}, format="json")

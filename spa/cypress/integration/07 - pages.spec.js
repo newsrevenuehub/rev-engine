@@ -3,7 +3,7 @@ import { LIST_PAGES, USER } from 'ajax/endpoints';
 import pagesList from '../fixtures/pages/list-pages-1.json';
 import { CONTENT_SLUG } from 'routes';
 
-import hubAdminUser from '../fixtures/user/hub-admin';
+import hubAdminUser from '../fixtures/user/login-success-hub-admin';
 import { CONTENT_SECTION_ACCESS_FLAG_NAME } from 'constants/featureFlagConstants';
 
 const contentSectionFlag = {

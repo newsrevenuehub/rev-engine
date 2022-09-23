@@ -76,6 +76,18 @@ class RevenueProgramViewSet(viewsets.ReadOnlyModelViewSet):
     pagination_class = None
 
 
+def get_stripe_account_link_return_url(request):
+    """This function exists purely to create a distinct return url when running locally to enable the full...
+
+    flow spanning SPA and backend and off-site Stripe form completion to be traversed.
+    """
+    reversed = reverse("spa_stripe_account_link_complete")
+    if settings.STRIPE_ACCOUNT_LINK_RETURN_BASE_URL:
+        return f"{settings.STRIPE_ACCOUNT_LINK_RETURN_BASE_URL}{reversed}"
+    else:
+        return request.build_absolute_uri(reversed)
+
+
 @api_view(["POST"])
 @permission_classes([IsAuthenticated, HasRoleAssignment])
 def create_stripe_account_link(request, rp_pk=None):
@@ -137,11 +149,9 @@ def create_stripe_account_link(request, rp_pk=None):
             account=payment_provider.stripe_account_id,
             # The URL the user will be redirected to if the account link is expired, has been
             # previously-visited, or is otherwise invalid.
-            # NB: this may get updated when second PR focused on SPA-side changes is done
-            refresh_url=request.build_absolute_uri(reverse("index")),
+            refresh_url=get_stripe_account_link_return_url(request),
             # The URL that the user will be redirected to upon leaving or completing the linked flow.
-            # NB: this may get updated when second PR focused on SPA-side changes is done
-            return_url=request.build_absolute_uri(reverse("index")),
+            return_url=get_stripe_account_link_return_url(request),
             type="account_onboarding",
         )
     except StripeError:
@@ -150,7 +160,7 @@ def create_stripe_account_link(request, rp_pk=None):
             {"detail": "Cannot create a stripe account link at this time. Try again later."},
             status=status.HTTP_500_INTERNAL_SERVER_ERROR,
         )
-    return Response(stripe_response, status=status.HTTP_202_ACCEPTED)
+    return Response(dict(stripe_response), status=status.HTTP_202_ACCEPTED)
 
 
 @api_view(["POST"])

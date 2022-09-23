@@ -16,7 +16,7 @@ const dropdownVariants = {
 };
 
 function OrganizationDropdown() {
-  const user = useUser();
+  const { user } = useUser();
   const controls = useAnimation();
   const [open, setOpen] = useState(false);
 

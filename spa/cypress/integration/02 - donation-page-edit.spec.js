@@ -13,8 +13,11 @@ import { DELETE_CONFIRM_MESSAGE } from 'components/pageEditor/PageEditor';
 import { CONTENT_SLUG } from 'routes';
 import { CLEARBIT_SCRIPT_SRC } from 'hooks/useClearbit';
 
-import orgAdminUser from '../fixtures/user/org-admin.json';
+import orgAdminUser from '../fixtures/user/login-success-org-admin.json';
+
 import { CONTENT_SECTION_ACCESS_FLAG_NAME } from 'constants/featureFlagConstants';
+
+import pageDetail from '../fixtures/pages/live-page-1.json';
 
 const contentSectionFlag = {
   id: '5678',
@@ -24,6 +27,23 @@ const contentSectionFlag = {
 const orgAdminWithContentFlag = {
   ...orgAdminUser['user'],
   flags: [{ ...contentSectionFlag }]
+};
+
+const orgAdminStripeVerifiedLoginSuccess = {
+  ...orgAdminUser,
+  user: {
+    ...orgAdminUser.user,
+    flags: [{ ...contentSectionFlag }],
+    revenue_programs: [
+      {
+        id: 1,
+        name: 'Some Rev Program',
+        slug: 'some-rev-program',
+        organization: 1,
+        payment_provider_stripe_verified: true
+      }
+    ]
+  }
 };
 
 const testEditPageUrl = 'edit/my/page';
@@ -362,70 +382,6 @@ describe('Donation page edit', () => {
     });
   });
 
-  describe('Edit interface: Setup', () => {
-    before(() => {
-      cy.forceLogin(orgAdminUser);
-      cy.intercept({ method: 'GET', pathname: getEndpoint(USER) }, { body: orgAdminWithContentFlag });
-      cy.intercept(
-        { method: 'GET', pathname: getEndpoint(DRAFT_PAGE_DETAIL) },
-        { fixture: 'pages/live-page-1', statusCode: 200 }
-      ).as('getPageDetail');
-      cy.intercept({ method: 'GET', pathname: getEndpoint(LIST_STYLES) }, {});
-
-      cy.visit(testEditPageUrl);
-
-      cy.url().should('include', testEditPageUrl);
-      cy.wait('@getPageDetail');
-      cy.getByTestId('edit-page-button').click();
-      cy.getByTestId('setup-tab').click();
-    });
-    it('should render the setup tab when setup tab clicked', () => {
-      cy.getByTestId('page-setup');
-    });
-    it('should pre-fill incoming data', () => {
-      const expectedHeading = livePage.heading;
-      cy.getByTestId('setup-heading-input').should('have.value', expectedHeading);
-    });
-    it('should update donation page view with new content and display it in preview mode', () => {
-      const previousHeading = livePage.heading;
-      const newHeading = 'My new test heading';
-      cy.intercept({ method: 'GET', pathname: getEndpoint(LIST_STYLES) }, {});
-      cy.intercept({ method: 'GET', pathname: getEndpoint(TEMPLATES) }, {});
-
-      cy.getByTestId('s-page-heading').contains(previousHeading);
-      cy.getByTestId('setup-heading-input').clear();
-      cy.getByTestId('setup-heading-input').type(newHeading);
-      cy.getByTestId('keep-element-changes-button').scrollIntoView().click();
-      cy.getByTestId('s-page-heading').contains(previousHeading).should('not.exist');
-      cy.getByTestId('s-page-heading').contains(newHeading);
-
-      // Make sure update is reflected in preview:
-      cy.getByTestId('save-page-button').click();
-      cy.getByTestId('s-page-heading').contains(newHeading);
-      cy.getByTestId('cancel-button').click();
-      cy.getByTestId('s-page-heading').contains(newHeading);
-
-      // Go back to edit mode
-      cy.getByTestId('edit-page-button').click();
-    });
-    it('should show expected, formatted publication date', () => {
-      const rawDate = livePage.published_date;
-      const expectedFormat = format(new Date(rawDate), "LLL do, yyyy 'at' hh:mm a");
-      cy.getByTestId('setup-tab').click();
-      cy.getByTestId('publish-widget').scrollIntoView();
-      cy.getByTestId('publish-widget').contains(expectedFormat);
-    });
-    it('should show a warning when updating a live page', () => {
-      cy.intercept({ method: 'GET', pathname: getEndpoint(LIST_STYLES) }, {});
-      cy.getByTestId('publish-widget').click();
-      cy.contains('18').click();
-      cy.getByTestId('keep-element-changes-button').click({ force: true });
-      cy.getByTestId('save-page-button').click();
-      cy.getByTestId('confirmation-modal').contains("You're making changes to a live donation page. Continue?");
-      cy.getByTestId('cancel-button').click();
-    });
-  });
-
   describe('Edit interface: Sidebar', () => {
     before(() => {
       cy.forceLogin(orgAdminUser);
@@ -481,6 +437,77 @@ describe('Donation page edit', () => {
         .first()
         .should('contain.text', 'New Rich Text');
     });
+  });
+});
+
+describe('Edit interface: Setup', () => {
+  beforeEach(() => {
+    const pageDetailBody = {
+      ...pageDetail,
+      revenue_program: {
+        ...pageDetail.revenue_program,
+        id: orgAdminStripeVerifiedLoginSuccess.user.revenue_programs[0].id
+      }
+    };
+    cy.forceLogin(orgAdminStripeVerifiedLoginSuccess);
+    cy.intercept({ method: 'GET', pathname: getEndpoint(USER) }, { body: orgAdminStripeVerifiedLoginSuccess.user });
+    cy.intercept(
+      { method: 'GET', pathname: getEndpoint(DRAFT_PAGE_DETAIL) },
+      { body: pageDetailBody, statusCode: 200 }
+    ).as('getPageDetail');
+    cy.intercept({ method: 'GET', pathname: getEndpoint(LIST_STYLES) }, {});
+
+    cy.visit(testEditPageUrl);
+
+    cy.url().should('include', testEditPageUrl);
+    // cy.wait('@getPageDetail');
+    cy.getByTestId('edit-page-button').click();
+    cy.getByTestId('setup-tab').click();
+  });
+  it('should render the setup tab when setup tab clicked', () => {
+    cy.getByTestId('page-setup');
+  });
+  it('should pre-fill incoming data', () => {
+    const expectedHeading = livePage.heading;
+    cy.getByTestId('setup-heading-input').should('have.value', expectedHeading);
+  });
+  it('should update donation page view with new content and display it in preview mode', () => {
+    const previousHeading = livePage.heading;
+    const newHeading = 'My new test heading';
+    cy.intercept({ method: 'GET', pathname: getEndpoint(LIST_STYLES) }, {});
+    cy.intercept({ method: 'GET', pathname: getEndpoint(TEMPLATES) }, {});
+
+    cy.getByTestId('s-page-heading').contains(previousHeading);
+    cy.getByTestId('setup-heading-input').clear();
+    cy.getByTestId('setup-heading-input').type(newHeading);
+    cy.getByTestId('keep-element-changes-button').scrollIntoView().click();
+    cy.getByTestId('s-page-heading').contains(previousHeading).should('not.exist');
+    cy.getByTestId('s-page-heading').contains(newHeading);
+
+    // Make sure update is reflected in preview:
+    cy.getByTestId('save-page-button').click();
+    cy.getByTestId('s-page-heading').contains(newHeading);
+    cy.getByTestId('cancel-button').click();
+    cy.getByTestId('s-page-heading').contains(newHeading);
+
+    // Go back to edit mode
+    cy.getByTestId('edit-page-button').click();
+  });
+  it('should show expected, formatted publication date', () => {
+    const rawDate = livePage.published_date;
+    const expectedFormat = format(new Date(rawDate), "LLL do, yyyy 'at' hh:mm a");
+    cy.getByTestId('setup-tab').click();
+    cy.getByTestId('publish-widget').scrollIntoView();
+    cy.getByTestId('publish-widget').contains(expectedFormat);
+  });
+  it('should show a warning when updating a live page', () => {
+    cy.intercept({ method: 'GET', pathname: getEndpoint(LIST_STYLES) }, {});
+    cy.getByTestId('publish-widget').click();
+    cy.contains('18').click();
+    cy.getByTestId('keep-element-changes-button').click({ force: true });
+    cy.getByTestId('save-page-button').click();
+    cy.getByTestId('confirmation-modal').contains("You're making changes to a live donation page. Continue?");
+    cy.getByTestId('cancel-button').click();
   });
 });
 

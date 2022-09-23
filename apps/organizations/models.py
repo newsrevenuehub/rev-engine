@@ -253,6 +253,10 @@ class RevenueProgram(IndexedTimeStampedModel):
         return self.name
 
     @property
+    def payment_provider_stripe_verified(self):
+        return self.payment_provider.stripe_verified if self.payment_provider else False
+
+    @property
     def admin_style_options(self):
         styles = self.style_set.all()
         return [(c.name, c.pk) for c in styles]

@@ -13,10 +13,7 @@ import useConnectStripeAccount from 'hooks/useConnectStripeAccount';
 
 import Cookies from 'universal-cookie';
 
-export const CONNECT_STRIPE_COOKIE_NAME = 'hideConnectStripeModal';
-
-// TODO: [DEV-2399] Insert Stripe FAQ Link
-const CONNECT_STRIPE_FAQ_LINK = '';
+import { CONNECT_STRIPE_COOKIE_NAME, CONNECT_STRIPE_FAQ_LINK } from 'constants/textConstants';
 
 const ConnectStripeModal = () => {
   const { open, handleClose } = useModal(true);
@@ -39,7 +36,11 @@ const ConnectStripeModal = () => {
         <S.Description>
           Start receiving payments by creating a Stripe account and connecting in one easy step.
           <S.Bold>Need more help connecting?</S.Bold>
-          Check out our <S.StripeFAQ href={CONNECT_STRIPE_FAQ_LINK}>Stripe Connection FAQ</S.StripeFAQ>.
+          Check out our{' '}
+          <S.StripeFAQ href={CONNECT_STRIPE_FAQ_LINK} target="_blank">
+            Stripe Connection FAQ
+          </S.StripeFAQ>
+          .
         </S.Description>
         <S.Button data-testid="connect-stripe-modal-button" disabled={isLoading} onClick={() => mutate()}>
           Connect to Stripe

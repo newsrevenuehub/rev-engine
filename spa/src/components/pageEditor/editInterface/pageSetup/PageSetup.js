@@ -8,7 +8,6 @@ import { faCheck, faTimes } from '@fortawesome/free-solid-svg-icons';
 import { usePageEditorContext } from 'components/pageEditor/PageEditor';
 import { useEditInterfaceContext } from 'components/pageEditor/editInterface/EditInterface';
 import { useConfirmationModalContext } from 'elements/modal/GlobalConfirmationModal';
-import useUser from 'hooks/useUser';
 
 // Deps
 import { isBefore, isAfter } from 'date-fns';
@@ -16,9 +15,7 @@ import { isBefore, isAfter } from 'date-fns';
 // Children
 import ImageWithPreview from 'elements/inputs/ImageWithPreview';
 import Input from 'elements/inputs/Input';
-import PublishWidget from './PublishWidget';
 import CircleButton from 'elements/buttons/CircleButton';
-import useConnectStripeAccount from 'hooks/useConnectStripeAccount';
 
 /**
  * PageSetup
@@ -40,7 +37,6 @@ function PageSetup({ backToProperties }) {
   const [post_thank_you_redirect, setPostThankYouRedirect] = useState(page.post_thank_you_redirect);
   const [donor_benefits, setDonorBenefits] = useState(page.donor_benefits);
   const [published_date, setPublishedDate] = useState(page.published_date ? new Date(page.published_date) : undefined);
-  const { requiresStripeVerification } = useConnectStripeAccount();
 
   const handleKeepChanges = () => {
     verifyUnpublish(updatePage);
@@ -164,12 +160,6 @@ function PageSetup({ backToProperties }) {
           errors={errors.post_thank_you_redirect}
         />
       </S.InputWrapper>
-      <PublishWidget
-        isStripeVerified={!requiresStripeVerification}
-        publishDate={published_date}
-        onChange={setPublishedDate}
-        errors={errors.published_date}
-      />
       <S.Buttons>
         <CircleButton
           icon={faCheck}

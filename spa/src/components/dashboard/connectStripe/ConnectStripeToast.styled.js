@@ -76,7 +76,6 @@ export const Minimize = styled.div`
 `;
 
 export const Heading = styled.div`
-  font-weight: 500;
   font-size: ${(props) => props.theme.fontSizesUpdated.sm};
   line-height: ${(props) => props.theme.fontSizesUpdated.md};
   font-weight: 600;

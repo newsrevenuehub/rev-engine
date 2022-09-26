@@ -23,7 +23,7 @@ logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
 class UserSerializer(serializers.ModelSerializer):
     """
     This is the serializer that is used to return user data back after successful login.
-    It returns a complete list of (pared-down) available Organzitions and RevenuePrograms based on the user's
+    It returns a complete list of (pared-down) available Organizations and RevenuePrograms based on the user's
     super_user status and RoleAssignment.
     """
 
@@ -117,6 +117,7 @@ class UserSerializer(serializers.ModelSerializer):
         request = self.context.get("request", None)
         if request and getattr(request, "method", None) == "PATCH":
             fields["accepted_terms_of_service"].required = False
+            fields["accepted_terms_of_service"].read_only = True  # Is only read_only for PATCH, not POST.
             fields["password"].required = False
             fields["email"].required = False
         return fields
@@ -124,11 +125,11 @@ class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = get_user_model()
         fields = [
+            "id",
             "accepted_terms_of_service",
             "email",
             "email_verified",
             "flags",
-            "id",
             "organizations",
             "revenue_programs",
             "role_type",

@@ -8,10 +8,16 @@ jest.mock('components/authentication/logout', () => ({
   default: jest.fn()
 }));
 
+jest.mock('hooks/useRequest', () => ({
+  __esModule: true,
+  default: jest.fn()
+}));
+
 const page = {
   revenue_program: {
     slug: 'rev-prog-slug'
   },
+  payment_provider: {},
   slug: 'page-slug',
   published_date: '2021-11-18T21:51:53Z'
 };

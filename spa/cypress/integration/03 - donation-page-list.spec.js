@@ -12,7 +12,7 @@ const contentSectionFlag = {
 
 const orgAdminWithContentFlag = {
   ...orgAdmin['user'],
-  flags: [{ ...contentSectionFlag }]
+  flags: [contentSectionFlag]
 };
 
 describe('Donation page list', () => {
@@ -45,19 +45,6 @@ describe('Donation page list', () => {
     cy.get('button[aria-label="New Page"]').click();
     cy.getByTestId('page-create-modal');
     cy.contains('Choose a revenue program');
-  });
-
-  it('should add suggested slug on name field blur', () => {
-    cy.forceLogin(orgAdmin);
-    cy.intercept({ method: 'GET', pathname: getEndpoint(USER) }, { body: orgAdminWithContentFlag });
-    cy.visit(CONTENT_SLUG);
-    cy.url().should('include', CONTENT_SLUG);
-    cy.wait('@listPages');
-    cy.intercept({ method: 'GET', pathname: getEndpoint(TEMPLATES) }, {});
-    cy.get('button[aria-label="New Page"]').click();
-    cy.getByTestId('page-name').type('My Testing Page');
-    cy.getByTestId('page-name').blur();
-    cy.getByTestId('page-slug').should('have.value', 'my-testing-page');
   });
 
   it('should show message if there are no revenue programs and user tries to create', () => {

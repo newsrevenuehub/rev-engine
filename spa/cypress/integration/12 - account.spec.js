@@ -32,7 +32,7 @@ import {
   RESEND_VERIFICATION_SUCCESS_TEXT
 } from 'constants/textConstants';
 
-import { CONNECT_STRIPE_COOKIE_NAME } from '../../src/components/dashboard/connectStripe/ConnectStripeElements';
+import { CONNECT_STRIPE_COOKIE_NAME } from '../../src/constants/textConstants';
 
 const TOKEN_API_401 = { detail: 'No active account found with the given credentials' };
 const TOKEN_API_200 = {

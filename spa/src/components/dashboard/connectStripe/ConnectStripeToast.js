@@ -9,7 +9,7 @@ import Triangle6Dots from 'assets/icons/triangle6Dots.svg';
 import RemoveIcon from '@material-ui/icons/Remove';
 import RETooltip from 'elements/RETooltip';
 
-const ConnectStripeToast = ({ revenueProgramId }) => {
+const ConnectStripeToast = () => {
   const {
     createStripeAccountLink: { mutate, isLoading }
   } = useConnectStripeAccount();

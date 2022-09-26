@@ -15,6 +15,7 @@ function Main() {
   const { user, isLoading } = useUser();
   const { pathname } = useLocation();
   const isVerifyEmailPath = pathname.includes(VERIFY_EMAIL_SUCCESS);
+
   if (user) {
     if (!user.email_verified && !isVerifyEmailPath) {
       return <Redirect to={VERIFY_EMAIL_SUCCESS} />;

@@ -67,7 +67,6 @@ function SignUpForm({ onSubmitSignUp, loading }) {
           id="email"
           name="email"
           {...register('email', {
-            required: '',
             pattern: {
               value: /\S+@\S+\.\S+/,
               message: 'Please enter a valid email'

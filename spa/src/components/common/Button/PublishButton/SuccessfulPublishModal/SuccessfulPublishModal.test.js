@@ -43,12 +43,12 @@ describe('SuccessfulPublishModal', () => {
 
   it('should render page link', () => {
     renderComponent();
-    expect(screen.getByRole('textbox', { name: pageLink(page) })).toBeVisible();
+    expect(screen.getByRole('textbox', { name: 'Contribution Page Link' })).toHaveValue(pageLink(page));
   });
 
   it('should render portal link', () => {
     renderComponent();
-    expect(screen.getByRole('textbox', { name: portalLink(page) })).toBeVisible();
+    expect(screen.getByRole('textbox', { name: 'Contributor Portal Link' })).toHaveValue(portalLink(page));
   });
 
   it('should call onClose', () => {

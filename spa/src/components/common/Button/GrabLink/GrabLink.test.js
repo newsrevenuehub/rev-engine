@@ -47,8 +47,8 @@ describe('GrabLink', () => {
     const copyButtons = screen.queryAllByRole('button', { name: /copy/i });
     expect(copyButtons).toHaveLength(2);
 
-    expect(screen.getByRole('textbox', { name: pageLink(page) })).toBeInTheDocument();
-    expect(screen.getByRole('textbox', { name: portalLink(page) })).toBeInTheDocument();
+    expect(screen.getByRole('textbox', { name: 'Contribution Page Link' })).toHaveValue(pageLink(page));
+    expect(screen.getByRole('textbox', { name: 'Contributor Portal Link' })).toHaveValue(portalLink(page));
   });
 
   it('should open popup and copy link', async () => {

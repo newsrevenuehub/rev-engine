@@ -1,15 +1,19 @@
 import { withThemes } from '@react-theming/storybook-addon';
 import { ThemeProvider as MuiThemeProvider } from '@material-ui/core';
 import { ThemeProvider } from 'styled-components';
+import { Provider as AlertProvider } from 'react-alert';
 
+import Alert, { alertOptions } from 'elements/alert/Alert';
 import { revEngineTheme, muiThemeOverrides } from 'styles/themes';
 import AdminGlobalStyles from 'styles/AdminGlobalStyles.js';
 
 const providerFn = ({ children }) => (
   <ThemeProvider theme={revEngineTheme}>
     <MuiThemeProvider theme={muiThemeOverrides}>
-      <AdminGlobalStyles />
-      {children}
+      <AlertProvider template={Alert} {...alertOptions}>
+        <AdminGlobalStyles />
+        {children}
+      </AlertProvider>
     </MuiThemeProvider>
   </ThemeProvider>
 );

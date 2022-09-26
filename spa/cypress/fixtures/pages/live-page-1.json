@@ -4,6 +4,12 @@
   "heading": "Test Heading 1",
   "published_date": "2020-09-17T00:00:00",
   "revenue_program_is_nonprofit": true,
+  "plan": {
+    "name": "FAKE",
+    "label": "Fake",
+    "page_limit": 3,
+    "custom_thank_you_page_enabled": true
+  },
   "elements": [
     {
       "type": "DRichText",
@@ -37,25 +43,10 @@
       "content": {
         "allowOther": true,
         "options": {
-          "one_time": [
-            120,
-            180,
-            365
-          ],
-          "month": [
-            10,
-            15,
-            25
-          ],
-          "year": [
-            120,
-            180,
-            365
-          ],
-          "other": [
-            22.45,
-            33
-          ]
+          "one_time": [120, 180, 365],
+          "month": [10, 15, 25],
+          "year": [120, 180, 365],
+          "other": [22.45, 33]
         }
       }
     },
@@ -83,11 +74,7 @@
       "requiredFields": [],
       "content": {
         "askReason": true,
-        "reasons": [
-          "test1",
-          "test2",
-          "test3"
-        ],
+        "reasons": ["test1", "test2", "test3"],
         "askHonoree": true,
         "askInMemoryOf": true
       }
@@ -118,12 +105,7 @@
       "requiredFields": [],
       "content": {
         "offerPayFees": true,
-        "stripe": [
-          "card",
-          "apple",
-          "google",
-          "browser"
-        ]
+        "stripe": ["card", "apple", "google", "browser"]
       }
     }
   ],

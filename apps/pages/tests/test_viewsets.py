@@ -12,8 +12,14 @@ from rest_framework.test import APITestCase
 
 from apps.api.tests import RevEngineApiAbstractTestCase
 from apps.organizations.models import PaymentProvider, Plans, RevenueProgram
+from apps.organizations.tests.factories import OrganizationFactory, RevenueProgramFactory
 from apps.pages.models import DonationPage, Font, Style, Template
-from apps.pages.tests.factories import FontFactory, StyleFactory, TemplateFactory
+from apps.pages.tests.factories import (
+    DonationPageFactory,
+    FontFactory,
+    StyleFactory,
+    TemplateFactory,
+)
 from apps.users.tests.factories import create_test_user
 
 
@@ -590,6 +596,33 @@ class PageViewSetTest(RevEngineApiAbstractTestCase):
             user=self.rp_user,
             status=status.HTTP_404_NOT_FOUND,
             json={"detail": "Could not find page matching those parameters"},
+        )
+
+    def test_thank_you_redirect_cannot_be_set_on_new_page_when_not_enabled(self):
+        org = OrganizationFactory()
+        rp = RevenueProgramFactory(organization=org)
+        assert org.plan == Plans.FREE
+        url = reverse("donationpage-list")
+        response = self.assert_superuser_cannot_post(
+            url,
+            self.default_page_creation_data | {"thank_you_redirect": "https://somewhere.com", "revenue_program": rp.id},
+            status.HTTP_400_BAD_REQUEST,
+        )
+        assert (
+            response.json()["thank_you_redirect"][0]
+            == "This organization's plan does not enable assigning a custom thank you URL"
+        )
+
+    def test_thank_you_redirect_cannot_be_set_on_existing_page_when_not_enabled(self):
+        org = OrganizationFactory(plan=Plans.FREE)
+        rp = RevenueProgramFactory(organization=org)
+        page = DonationPageFactory(revenue_program=rp)
+        detail_url = f"/api/v1/pages/{page.pk}/"
+        patch_data = {"thank_you_redirect": "https://www.somewhere.com"}
+        response = self.assert_superuser_cannot_patch(detail_url, patch_data, status.HTTP_400_BAD_REQUEST)
+        assert (
+            response.json()["thank_you_redirect"][0]
+            == "This organization's plan does not enable assigning a custom thank you URL"
         )
 
 

@@ -38,5 +38,11 @@
   "slug": "yet-another-new-page",
   "published_date": null,
   "page_screenshot": null,
-  "email_templates": []
+  "email_templates": [],
+  "plan": {
+    "name": "FREE",
+    "label": "Free",
+    "page_limit": 1,
+    "custom_thank_you_page_enabled": false
+  }
 }

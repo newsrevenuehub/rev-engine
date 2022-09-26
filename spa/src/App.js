@@ -1,3 +1,5 @@
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+
 import AdminGlobalStyles from 'styles/AdminGlobalStyles.js';
 
 // Styles
@@ -18,24 +20,28 @@ import Alert, { alertOptions } from 'elements/alert/Alert';
 // Routing
 import MainLayout from 'components/MainLayout';
 
+const queryClient = new QueryClient();
+
 function App() {
   useSentry();
 
   return (
-    <ThemeProvider theme={revEngineTheme}>
-      <MuiThemeProvider theme={muiThemeOverrides}>
-        <AlertProvider template={Alert} {...alertOptions}>
-          <Helmet>
-            <title>RevEngine</title>
-          </Helmet>
-          <AdminGlobalStyles />
-          <SvgIcons />
-          <S.App>
-            <MainLayout />
-          </S.App>
-        </AlertProvider>
-      </MuiThemeProvider>
-    </ThemeProvider>
+    <QueryClientProvider client={queryClient}>
+      <ThemeProvider theme={revEngineTheme}>
+        <MuiThemeProvider theme={muiThemeOverrides}>
+          <AlertProvider template={Alert} {...alertOptions}>
+            <Helmet>
+              <title>RevEngine</title>
+            </Helmet>
+            <AdminGlobalStyles />
+            <SvgIcons />
+            <S.App>
+              <MainLayout />
+            </S.App>
+          </AlertProvider>
+        </MuiThemeProvider>
+      </ThemeProvider>
+    </QueryClientProvider>
   );
 }
 

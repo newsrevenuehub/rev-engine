@@ -73,7 +73,7 @@ urlpatterns += [
     # React SPA:
     # Routing handled by SPA. Urlpatterns defined here only to allow use of revsers() with symbolic name rather than hardcoded URLs.
     path("", index, name="index"),
-    path("verified", index, name="spa_account_verification"),
+    path("verified/", index, name="spa_account_verification"),
     path("verified/<failure>/", index, name="spa_account_verification_fail"),
     re_path(r"^(?:.*)/?$", index, name="index-others"),
 ]

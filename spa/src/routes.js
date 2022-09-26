@@ -1,4 +1,3 @@
-export const LOGIN = '/sign-in';
 export const DASHBOARD_SLUG = '/dashboard';
 export const DONATIONS_SLUG = '/contributions';
 export const CONTENT_SLUG = '/pages';
@@ -15,3 +14,11 @@ export const PAYMENT_SUCCESS = '/payment/success';
 export const CONTRIBUTOR_ENTRY = '/contributor';
 export const CONTRIBUTOR_VERIFY = '/contributor-verify';
 export const CONTRIBUTOR_DASHBOARD = CONTRIBUTOR_ENTRY + '/contributions';
+
+// Account
+export const SIGN_IN = '/sign-in';
+export const FORGOT_PASSWORD = '/forgot-password';
+export const RESET_PASSWORD = '/password_reset';
+export const SIGN_UP = '/create-account';
+export const VERIFY_EMAIL_SUCCESS = '/verify-email-success';
+export const VERIFIED = '/verified';

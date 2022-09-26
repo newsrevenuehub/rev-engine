@@ -1,6 +1,8 @@
+import datetime
 import re
 import time
 from unittest.mock import patch
+from urllib.parse import urlparse
 
 from django.conf import settings
 from django.contrib.auth import get_user_model
@@ -393,19 +395,22 @@ class TestUserViewSet(APITestCase):
     def test_create_happy_path(self, mock_send_verification_email, mock_validate_bad_actor, mock_validate_password):
         user_count = get_user_model().objects.count()
         response = self.client.post(self.url, data=self.create_data)
-        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
-        self.assertEqual(get_user_model().objects.count(), user_count + 1)
-        self.assertEqual((data := response.json())["email"], self.create_data["email"])
-        self.assertIsNotNone((user := get_user_model().objects.filter(id=data["id"]).first()))
-        self.assertFalse(user.is_active)
-        self.assertFalse(user.email_verified)
-        self.assertEqual(user.email, self.create_data["email"])
-        self.assertTrue(user.check_password(self.create_data["password"]))
-        self.assertFalse(data["email_verified"])
-        self.assertFalse(data["flags"])
-        self.assertFalse(data["organizations"])
-        self.assertFalse(data["revenue_programs"])
-        self.assertIsNone(data["role_type"])
+        assert user_count + 1 == get_user_model().objects.count()
+        assert status.HTTP_201_CREATED == response.status_code
+        result = response.json()
+        user = get_user_model().objects.filter(id=result["id"]).first()
+        assert user
+        assert user.is_active
+        assert not user.email_verified
+        assert user.email == self.create_data["email"]
+        assert user.check_password(self.create_data["password"])
+        assert user.accepted_terms_of_service == self.create_data["accepted_terms_of_service"]
+        assert user.accepted_terms_of_service
+        assert not result["email_verified"]
+        assert not result["flags"]
+        assert not result["organizations"]
+        assert not result["revenue_programs"]
+        assert result["role_type"] is None
         self.assert_serialized_data(response, user)
         mock_validate_bad_actor.assert_called_once()
         mock_validate_password.assert_called_once()
@@ -528,6 +533,27 @@ class TestUserViewSet(APITestCase):
         self.assertEqual(user.email, new_email)
         self.assertTrue(user.check_password(raw_updated_password))
         self.assert_serialized_data(response, user)
+
+    def test_partial_update_accepted_terms_of_service_is_readonly(self):
+        now = datetime.datetime.now(datetime.timezone.utc)
+        user = get_user_model()(email=self.create_data["email"], email_verified=True, accepted_terms_of_service=now)
+        user.set_password(self.create_data["password"])
+        user.save()
+        self.client.force_authenticate(user=user)
+        # DRF APITest and pytest.paramtize do not work together...
+        for date in [
+            (now),  # Submitting, but not actually attempting to change, works.
+            (now - datetime.timedelta(days=1),),
+            (now + datetime.timedelta(days=1),),
+        ]:
+            response = self.client.patch(
+                reverse("user-detail", args=(user.pk,)),
+                data={"accepted_terms_of_service": date, "email_verified": False, "flags": "[1,2]"},
+            )
+            # DRF ignores read_only fields instead of failing validatation.
+            assert status.HTTP_200_OK == response.status_code, response.json()
+            user.refresh_from_db()
+            assert now == user.accepted_terms_of_service
 
     def test_update_email_when_email_already_taken(self):
         User = get_user_model()
@@ -757,16 +783,32 @@ class TestUserViewSet(APITestCase):
             email_verified=email_verified,
             accepted_terms_of_service=accepted_terms_of_service,
         )
-
         self.client.force_authenticate(user=user)
         return user
 
+    @override_settings(CELERY_ALWAYS_EAGER=True, CELERY_TASK_EAGER_PROPOGATES=True, BROKER_BACKEND="memory")
     def test_request_account_verification_happy_path(self):
         user = create_test_user(email_verified=False)
         self.client.force_authenticate(user=user)
         response = self.client.get(reverse("user-request-account-verification"))
         assert status.HTTP_200_OK == response.status_code
         assert {"detail": "Success"} == response.json()
+        # Good email is sent.
+        assert 1 == len(mail.outbox)
+        email = mail.outbox[0]
+        assert user.email in email.to
+        assert not any(x in email.body for x in "{}")
+        assert not any(x in email.alternatives[0][0] for x in "{}")
+        # Email includes valid link, Bug DEV-2340.
+        verification_link = BeautifulSoup(email.alternatives[0][0], "html.parser").a.attrs["href"]
+        parsed = urlparse(verification_link)
+        email, token = parsed.path.rstrip("/").split("/")[-2:]  # Are last two elements of path.
+        response = self.client.get(reverse("account_verification", kwargs={"email": email, "token": token}))
+        self.assertRedirects(response, reverse("spa_account_verification"))
+        # self.client is always from https://testserver, in production this
+        # should match URL that request is made to, i.e. SITE_URL.
+        assert "testserver" == parsed.netloc
+        assert "http" == parsed.scheme
 
     def test_request_account_verification_already_verified(self):
         user = create_test_user(email_verified=True)
@@ -786,20 +828,7 @@ class TestUserViewSet(APITestCase):
         response = self.client.get(reverse("user-request-account-verification"))
         self.assertEqual(response.status_code, 401)
 
-    @override_settings(CELERY_ALWAYS_EAGER=True, CELERY_TASK_EAGER_PROPOGATES=True, BROKER_BACKEND="memory")
-    def test_send_verification_email_happy_path(self):
-        user = create_test_user(is_active=True, email_verified=False)
-        UserViewset.send_verification_email(user)
-        self.assertEqual(len(mail.outbox), 1)
-        email = mail.outbox[0]
-        assert user.email in email.to
-        assert not any(x in email.body for x in "{}")
-        assert not any(x in email.alternatives[0][0] for x in "{}")
-        link = BeautifulSoup(email.alternatives[0][0], "html.parser").a
-        encoded_email, token = AccountVerification().generate_token(user.email)
-        assert reverse("account_verification", kwargs={"email": encoded_email, "token": token}) in link.attrs["href"]
-
     def test_send_verification_email_no_address(self):
         user = create_test_user(is_active=True, email_verified=False, email="")
-        UserViewset.send_verification_email(user)
-        self.assertEqual(len(mail.outbox), 0)
+        UserViewset().send_verification_email(user)
+        assert 0 == len(mail.outbox)

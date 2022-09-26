@@ -15,6 +15,7 @@ export const TopMenu = styled.div`
   padding: 0px 20px 0px 25px;
   margin-right: 20px;
   display: flex;
+  gap: 16px;
   align-items: center;
   justify-content: end;
 `;

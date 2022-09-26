@@ -1,16 +1,18 @@
 import PropTypes from 'prop-types';
 import CheckIcon from '@material-ui/icons/Check';
+import { useAlert } from 'react-alert';
 
 import { Title, Input, CopyButton } from './CopyInputButton.styled';
 
 const CopyInputButton = ({ title, link, copied, setCopied }) => {
+  const alert = useAlert();
   const showCopied = copied === link;
 
   return (
     <div>
       <Title>{title}</Title>
       <div style={{ display: 'flex' }}>
-        <Input aria-label={link} value={link} onChange={() => {}} />
+        <Input aria-label={title} value={link} readOnly />
         <CopyButton
           onClick={() => {
             navigator.clipboard.writeText(link).then(
@@ -18,7 +20,7 @@ const CopyInputButton = ({ title, link, copied, setCopied }) => {
               () => setCopied(link),
               // If copy fails: show alert with reason and alternate solution
               (error) =>
-                alert(`Failed to copy link automatically. Please try selecting the text directly from the input.
+                alert.error(`Failed to copy link automatically. Please try selecting the text directly from the input.
                 Error reason: ${error}`)
             );
           }}

@@ -21,8 +21,8 @@ global.navigator.clipboard = mockClipboard;
 describe('CopyInputButton', () => {
   it('should render input', () => {
     render(<CopyInputButton {...props} />);
-    const input = screen.getByRole('textbox', { name: props.link });
-    expect(input).toBeInTheDocument();
+    const input = screen.getByRole('textbox', { name: props.title });
+    expect(input).toHaveValue(props.link);
   });
 
   it('should render copy button', () => {
@@ -46,6 +46,16 @@ describe('CopyInputButton', () => {
 
     fireEvent.click(screen.getByRole('button', { name: `Copy ${props.title}` }));
     expect(mockClipboard.writeText.mock.calls).toEqual([[props.link]]);
+  });
+
+  it('should show error message if link fail to clipboard', async () => {
+    mockClipboard.writeText.mockRejectedValue();
+    render(<CopyInputButton {...props} />);
+
+    fireEvent.click(screen.getByRole('button', { name: `Copy ${props.title}` }));
+    await waitFor(() => {
+      expect(screen.getByText(/Failed to copy link automatically/i)).toBeVisible();
+    });
   });
 
   it('should render Copied if copied has the same value as link', async () => {

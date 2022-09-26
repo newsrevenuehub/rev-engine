@@ -18,8 +18,8 @@ export const CONTRIBUTOR_DASHBOARD = joinPath([CONTRIBUTOR_ENTRY, 'contributions
 
 // Account
 export const SIGN_IN = '/sign-in/';
-export const FORGOT_PASSWORD = '/forgot-password';
-export const RESET_PASSWORD = '/password_reset';
-export const SIGN_UP = '/create-account';
-export const VERIFY_EMAIL_SUCCESS = '/verify-email-success';
-export const VERIFIED = '/verified';
+export const FORGOT_PASSWORD = '/forgot-password/';
+export const RESET_PASSWORD = '/password_reset/';
+export const SIGN_UP = '/create-account/';
+export const VERIFY_EMAIL_SUCCESS = '/verify-email-success/';
+export const VERIFIED = '/verified/';

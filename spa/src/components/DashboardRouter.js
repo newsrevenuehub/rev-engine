@@ -47,7 +47,7 @@ function DashboardRouter() {
             <Route exact path={ROUTES.FORGOT_PASSWORD} render={() => <TrackPageView component={ForgotPassword} />} />
             <Route exact path={ROUTES.RESET_PASSWORD} render={() => <TrackPageView component={ResetPassword} />} />
 
-            <Redirect from="/verified/:slug" to="/verify-email-success?result=:slug" />
+            <Redirect from="/verified/:slug" to="/verify-email-success/?result=:slug" />
             <Redirect from={ROUTES.VERIFIED} to={ROUTES.VERIFY_EMAIL_SUCCESS} />
 
             {/* Organization Dashboard */}

@@ -134,6 +134,7 @@
     "not op_mini all"
   ],
   "devDependencies": {
+    "@bahmutov/cypress-esbuild-preprocessor": "^2.1.5",
     "@cypress/react": "^6.2.0",
     "@cypress/webpack-dev-server": "2.3.0",
     "@cypress/webpack-preprocessor": "^5.12.2",
@@ -153,8 +154,9 @@
     "@testing-library/react-hooks": "^7.0.2",
     "@testing-library/user-event": "^12.8.3",
     "babel-plugin-named-exports-order": "^0.0.2",
-    "cypress": "^8.5.0",
+    "cypress": "^8.7.0",
     "cypress-localstorage-commands": "^1.7.0",
+    "esbuild": "^0.15.9",
     "eslint": "^7.25.0",
     "eslint-config-prettier": "^8.3.0",
     "eslint-plugin-chai-friendly": "^0.7.1",

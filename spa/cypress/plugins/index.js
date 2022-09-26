@@ -1,5 +1,6 @@
 const findWebpack = require('find-webpack');
 const webpackPreprocessor = require('@cypress/webpack-preprocessor');
+const createBundler = require('@bahmutov/cypress-esbuild-preprocessor');
 
 // To support Create React App style absolute imports, as per:
 // https://github.com/cypress-io/cypress/issues/8481#issuecomment-744683036
@@ -43,7 +44,11 @@ module.exports = (on, config) => {
     watchOptions: {}
   };
 
-  on('file:preprocessor', webpackPreprocessor(options));
+  const bundler = createBundler({
+    // any ESBuild options here
+    // https://esbuild.github.io/api/
+  });
+  on('file:preprocessor', bundler);
   require('@cypress/react/plugins/react-scripts')(on, config);
   return config;
 };

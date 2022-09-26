@@ -112,7 +112,7 @@ function AddPageModal({ isOpen, closeModal, pagesByRevenueProgram }) {
           onSuccess: ({ data }) => {
             setLoading(false);
             history.push({
-              pathname: `${EDITOR_ROUTE}/${formData.revenue_program}/${formData.slug}`,
+              pathname: joinPath([EDITOR_ROUTE, revenueProgram.slug, slug, '/']),
               state: { pageId: data.id }
             });
           },
@@ -120,7 +120,7 @@ function AddPageModal({ isOpen, closeModal, pagesByRevenueProgram }) {
         }
       );
     },
-    [canSavePage, createPage, handleSaveFailure, history, name, revenueProgram.id, slug]
+    [canSavePage, createPage, handleSaveFailure, history, name, revenueProgram.id, revenueProgram.slug, slug]
   );
 
   const handleDiscard = () => {

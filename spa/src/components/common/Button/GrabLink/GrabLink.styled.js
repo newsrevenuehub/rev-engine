@@ -10,6 +10,7 @@ export const Flex = styled.div`
 
 export const Button = styled(MuiButton)`
   && {
+    height: 36px;
     font-weight: 600;
     line-height: 16px;
     color: ${(props) => props.theme.colors.white};
@@ -28,6 +29,12 @@ export const Popover = styled(MuiPopover)`
     @media (${(props) => props.theme.breakpoints.phoneOnly}) {
       max-width: calc(100% - 32px);
     }
+  }
+
+  p,
+  input,
+  span {
+    font-family: ${(props) => props.theme.systemFont};
   }
 `;
 

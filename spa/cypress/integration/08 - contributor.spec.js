@@ -1,4 +1,4 @@
-import { GET_MAGIC_LINK, VERIFY_TOKEN, CONTRIBUTIONS, CANCEL_RECURRING } from 'ajax/endpoints';
+import { GET_MAGIC_LINK, SUBSCRIPTIONS, VERIFY_TOKEN, CONTRIBUTIONS } from 'ajax/endpoints';
 import { getEndpoint } from '../support/util';
 import { CONTRIBUTOR_ENTRY, CONTRIBUTOR_VERIFY } from 'routes';
 import donationsData from '../fixtures/donations/18-results.json';
@@ -149,13 +149,14 @@ describe('Contributor portal', () => {
     });
 
     it('should do send cancel request if continue is clicked', () => {
-      const targetContId = donationsData.find((d) => d.interval !== CONTRIBUTION_INTERVALS.ONE_TIME).id;
-      cy.get(`[data-donationid="${targetContId}"]`).within(() => {
+      const targetContribution = donationsData.find((d) => d.interval !== 'one_time');
+
+      cy.get(`[data-donationid="${targetContribution.id}"]`).within(() => {
         cy.getByTestId('cancel-recurring-button').click();
       });
-      cy.intercept(getEndpoint(`${CONTRIBUTIONS}${targetContId}/${CANCEL_RECURRING}`, { statusCode: 200 })).as(
-        'cancelRecurring'
-      );
+      cy.intercept('DELETE', getEndpoint(`${SUBSCRIPTIONS}${targetContribution.subscription_id}`), {
+        statusCode: 200
+      }).as('cancelRecurring');
       cy.getByTestId('continue-button').click();
       cy.wait('@cancelRecurring');
     });

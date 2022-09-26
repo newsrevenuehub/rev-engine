@@ -21,6 +21,9 @@ import GenericErrorBoundary from 'components/errors/GenericErrorBoundary';
 import EditButton from 'components/common/Button/EditButton';
 import NewButton from 'components/common/Button/NewButton';
 import Hero from 'components/common/Hero';
+import useModal from 'hooks/useModal';
+
+import AddPageModal from './AddPageModal';
 
 export const pagesbyRP = (pgsRaw, qry) => {
   const pagesByRevProgram = [];
@@ -50,12 +53,13 @@ export const pagesbyRP = (pgsRaw, qry) => {
   return orderBy(pagesByRevProgram, 'name');
 };
 
-function Pages({ setShowAddPageModal }) {
+function Pages() {
   const alert = useAlert();
   const history = useHistory();
   const requestGetPages = useRequest();
   const [pages, setPages] = useState([]);
   const [pageSearchQuery, setPageSearchQuery] = useState([]);
+  const { open: showAddPageModal, handleClose, handleOpen } = useModal();
 
   useEffect(() => {
     requestGetPages(
@@ -77,25 +81,34 @@ function Pages({ setShowAddPageModal }) {
   const pagesByRevenueProgram = pagesbyRP(pages, pageSearchQuery);
 
   return (
-    <GenericErrorBoundary>
-      <Hero
-        title="Pages"
-        subtitle="Welcome to Pages. Here you can create, manage, and publish contribution pages. Create a new page by selecting the ‘New Page’ button below."
-        placeholder="Pages"
-        onChange={setPageSearchQuery}
-      />
-      <Content data-testid="pages-list">
-        <NewButton onClick={() => setShowAddPageModal(true)} />
-        {!!pagesByRevenueProgram.length &&
-          pagesByRevenueProgram.map((revenueProgram) => (
-            <Fragment key={revenueProgram.name}>
-              {revenueProgram.pages.map((donationPage) => (
-                <EditButton key={donationPage.id} {...donationPage} onClick={() => handleEditPage(donationPage)} />
-              ))}
-            </Fragment>
-          ))}
-      </Content>
-    </GenericErrorBoundary>
+    <>
+      <GenericErrorBoundary>
+        <Hero
+          title="Pages"
+          subtitle="Welcome to Pages. Here you can create, manage, and publish contribution pages. Create a new page by selecting the ‘New Page’ button below."
+          placeholder="Pages"
+          onChange={setPageSearchQuery}
+        />
+        <Content data-testid="pages-list">
+          <NewButton onClick={handleOpen} />
+          {!!pagesByRevenueProgram.length &&
+            pagesByRevenueProgram.map((revenueProgram) => (
+              <Fragment key={revenueProgram.name}>
+                {revenueProgram.pages.map((donationPage) => (
+                  <EditButton key={donationPage.id} {...donationPage} onClick={() => handleEditPage(donationPage)} />
+                ))}
+              </Fragment>
+            ))}
+        </Content>
+      </GenericErrorBoundary>
+      {showAddPageModal && (
+        <AddPageModal
+          isOpen={showAddPageModal}
+          closeModal={handleClose}
+          pagesByRevenueProgram={pagesByRevenueProgram}
+        />
+      )}
+    </>
   );
 }
 

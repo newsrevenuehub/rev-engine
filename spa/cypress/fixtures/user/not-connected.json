@@ -2,6 +2,7 @@
   "detail": "success",
   "user": {
     "id": 3,
+    "email_verified": true,
     "organization": {
       "name": "Not Connected Org",
       "default_payment_provider": "stripe",

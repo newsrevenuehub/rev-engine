@@ -117,36 +117,38 @@ function Donations() {
   return (
     <>
       <PageTitle title="Contributions" />
-      <Switch>
-        <Route path={`${path}/:contributionId`}>
-          <DashboardSection heading="Contribution Info">
-            <DonationDetail />
-          </DashboardSection>
-        </Route>
-        <Route>
-          <Hero
-            title="Contributions"
-            subtitle="Welcome to your contributions. Easily track and manage contributions."
-            placeholder="Contributions"
-          />
-          <Filters
-            filters={filters}
-            handleFilterChange={handleFilterChange}
-            donationsCount={donationsCount}
-            excludeStatusFilters={PAYMENT_STATUS_EXCLUDE_IN_CONTRIBUTIONS}
-          />
-          <GenericErrorBoundary>
-            <DonationsTable
-              onRowClick={handleRowClick}
-              columns={columns}
-              fetchDonations={fetchDonations}
-              pageIndex={pageIndex}
-              onPageChange={handlePageChange}
-              grow
+      <div data-testid="donations" style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+        <Switch data-testid="donations">
+          <Route path={`${path}/:contributionId`}>
+            <DashboardSection heading="Contribution Info">
+              <DonationDetail />
+            </DashboardSection>
+          </Route>
+          <Route>
+            <Hero
+              title="Contributions"
+              subtitle="Welcome to your contributions. Easily track and manage contributions."
+              placeholder="Contributions"
             />
-          </GenericErrorBoundary>
-        </Route>
-      </Switch>
+            <Filters
+              filters={filters}
+              handleFilterChange={handleFilterChange}
+              donationsCount={donationsCount}
+              excludeStatusFilters={PAYMENT_STATUS_EXCLUDE_IN_CONTRIBUTIONS}
+            />
+            <GenericErrorBoundary>
+              <DonationsTable
+                onRowClick={handleRowClick}
+                columns={columns}
+                fetchDonations={fetchDonations}
+                pageIndex={pageIndex}
+                onPageChange={handlePageChange}
+                grow
+              />
+            </GenericErrorBoundary>
+          </Route>
+        </Switch>
+      </div>
     </>
   );
 }

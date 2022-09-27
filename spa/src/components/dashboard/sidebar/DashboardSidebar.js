@@ -6,30 +6,14 @@ import ContributionSectionNav from './navs/ContributionSectionNav';
 import { CONTENT_SECTION_ACCESS_FLAG_NAME } from 'constants/featureFlagConstants';
 
 import flagIsActiveForUser from 'utilities/flagIsActiveForUser';
-import { useFeatureFlagsProviderContext } from 'components/Main';
 import hasContributionsDashboardAccessToUser from 'utilities/hasContributionsDashboardAccessToUser';
 import DashboardSidebarFooter from './DashboardSidebarFooter';
-
-/*
-// Commenting out for now as this will needed in future
-// import { ICONS } from 'assets/icons/SvgIcon';
-
-function DashboardMain() {
-  return (
-    <S.NavItemLabel>
-      <S.NavItemIcon icon={ICONS.DASHBOARD} />
-      <S.SideBarText id="sidebar-label-id">Dashboard</S.SideBarText>
-    </S.NavItemLabel>
-  );
-}
-*/
+import useFeatureFlags from 'hooks/useFeatureFlags';
 
 function DashboardSidebar() {
-  const { featureFlags } = useFeatureFlagsProviderContext();
-
-  const hasContributionsSectionAccess = hasContributionsDashboardAccessToUser(featureFlags);
-  const hasContentSectionAccess = flagIsActiveForUser(CONTENT_SECTION_ACCESS_FLAG_NAME, featureFlags);
-
+  const { flags } = useFeatureFlags();
+  const hasContributionsSectionAccess = hasContributionsDashboardAccessToUser(flags);
+  const hasContentSectionAccess = flagIsActiveForUser(CONTENT_SECTION_ACCESS_FLAG_NAME, flags);
   return (
     <S.DashboardSidebar>
       <S.NavList role="list" data-testid="nav-list" aria-labelledby="sidebar-label-id">

@@ -1,5 +1,6 @@
 import * as rtl from '@testing-library/react';
 import user from '@testing-library/user-event';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 // Theme/Styles
 import { revEngineTheme } from 'styles/themes';
@@ -16,16 +17,20 @@ import { AnalyticsContextWrapper } from './components/analytics/AnalyticsContext
 // Routing
 import { BrowserRouter } from 'react-router-dom';
 
+const queryClient = new QueryClient();
+
 function TestProviders({ children }) {
   return (
-    <ThemeProvider theme={revEngineTheme}>
-      <AlertProvider template={Alert} {...alertOptions}>
-        <BrowserRouter>
-          <GlobalStyle />
-          <AnalyticsContextWrapper>{children}</AnalyticsContextWrapper>
-        </BrowserRouter>
-      </AlertProvider>
-    </ThemeProvider>
+    <QueryClientProvider client={queryClient}>
+      <ThemeProvider theme={revEngineTheme}>
+        <AlertProvider template={Alert} {...alertOptions}>
+          <BrowserRouter>
+            <GlobalStyle />
+            <AnalyticsContextWrapper>{children}</AnalyticsContextWrapper>
+          </BrowserRouter>
+        </AlertProvider>
+      </ThemeProvider>
+    </QueryClientProvider>
   );
 }
 

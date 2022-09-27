@@ -36,7 +36,9 @@ function StylesEditor({ styles, setStyles, handleKeepChanges, handleDiscardChang
   const [loading, setLoading] = useState(false);
   const [availableFonts, setAvailableFonts] = useState([]);
 
-  const { revenue_programs: availableRevenuePrograms } = useUser();
+  const {
+    user: { revenue_programs: availableRevenuePrograms }
+  } = useUser();
 
   const requestGetFonts = useRequest();
 

@@ -70,12 +70,7 @@ class RevenueProgramInlineSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = RevenueProgram
-        fields = [
-            "id",
-            "name",
-            "slug",
-            "organization",
-        ]
+        fields = ["id", "name", "slug", "organization", "payment_provider_stripe_verified"]
 
 
 class RevenueProgramSerializer(serializers.ModelSerializer):

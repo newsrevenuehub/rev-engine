@@ -93,7 +93,6 @@ function SignUp({ onSuccess }) {
           <SignUpForm onSubmitSignUp={onSubmitSignUp} loading={signUpState.loading} />
           {formSubmissionMessage}
 
-          <S.Disclaimer>By creating an account you agree to adhere to News Revenue Hub’s Code of Ethics.</S.Disclaimer>
           <S.NavLink>
             Already have an account?
             <a href={SIGN_IN} data-testid="sign-in-link">

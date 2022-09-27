@@ -25,7 +25,6 @@ function getAnalyticsPlugins(hubGaV3Id, orgGaV3Id, orgGaV3Domain, orgGaV4Id, org
 export const AnalyticsContextWrapper = ({ children }) => {
   const [analyticsInstance, setAnalyticsInstance] = useState(null);
   const [analyticsConfig, setAnalyticsConfig] = useState(null);
-
   const trackConversion = (amount) => {
     const plugins = analyticsInstance?.plugins;
     if (plugins && plugins[FB_PIXEL_PLUGIN_NAME]) {

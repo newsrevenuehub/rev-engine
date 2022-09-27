@@ -16,18 +16,20 @@ import DElement, { DynamicElementPropTypes } from 'components/donationPage/pageC
 import GroupedLabel from 'elements/inputs/GroupedLabel';
 import { InputGroup } from 'elements/inputs/inputElements.styled';
 
+import { CONTRIBUTION_INTERVALS } from 'constants';
+
 function calculateYearlyAmount(frequency, amount) {
   let yearlyTotal = amount;
   switch (frequency) {
-    case 'one_time':
+    case CONTRIBUTION_INTERVALS.ONE_TIME:
       yearlyTotal *= 1;
       break;
 
-    case 'month':
+    case CONTRIBUTION_INTERVALS.MONTHLY:
       yearlyTotal *= 12;
       break;
 
-    case 'year':
+    case CONTRIBUTION_INTERVALS.ANNUAL:
       yearlyTotal *= 1;
       break;
 

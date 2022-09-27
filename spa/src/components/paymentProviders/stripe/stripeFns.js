@@ -1,42 +1,5 @@
-import axios from 'ajax/axios';
-import { STRIPE_PAYMENT } from 'ajax/endpoints';
-import { GENERIC_ERROR } from 'constants/textConstants';
 import calculateStripeFee from 'utilities/calculateStripeFee';
-
-const STRIPE_PAYMENT_TIMEOUT = 12 * 1000;
-
-/****************************\
- *  Handle Donation Submit  *
-\****************************/
-/**
- * submitPayment handle one-time and recurring payments
- * @param {object} stripe - the organization-tied stripe SDK instance
- * @param {object} data - JSON-serialized form data
- * @param {object} paymentMethod - An object of shape { card, paymentRequest } where card is
- *                                 an optional object with key 'card' whose value is a stripe
- *                                 card element, or paymentRequest, an event object returned
- *                                 from a Stripe PaymentRequest
- * @param {function} onSuccess - Fired when payment is successful.
- * @param {function} onFailure - Fired when payment is unsuccessful. Recieves error as argument.
- */
-async function submitPayment(stripe, data, { card, paymentRequest }, onSuccess, onFailure) {
-  /*
-    Here we let all errors bubble up and catch them, rather than try to handle them separately
-    in every function down the chain.
-  */
-  try {
-    if (data.interval === 'one_time') {
-      const respData = await trySinglePayment(stripe, data, { card, paymentRequest });
-      onSuccess(paymentRequest, respData);
-    } else {
-      const respData = await tryRecurringPayment(stripe, data, { card, paymentRequest });
-      onSuccess(paymentRequest, respData);
-    }
-  } catch (error) {
-    onFailure(error);
-  }
-}
-export default submitPayment;
+import { PAYMENT_SUCCESS } from 'routes';
 
 /******************\
  *  Process Data  *
@@ -62,29 +25,22 @@ export function getTotalAmount(amount, shouldPayFee, frequency, rpIsNonProfit) {
   return total;
 }
 
-/**
- * amountToCents takes your human-readable amount in dollars and coverts it to cents
- * @param {number} amount - float or integer, human-readable amount to be donated
- * @returns null if amount is NaN, else dollar amount in cents.
- */
-export const amountToCents = (amount) => {
-  if (isNaN(amount)) return null;
-  const cents = amount * 100;
-  // amount * 100 above can results in something like 26616.000000000004.
-  // We just round to an integer here.
-  return Math.round(cents);
-};
+// This function is a short term fix to technical debt in donation form, whereby
+// the name of the form field name for swag choice ends up being of form `swag_choice_Hat` or
+// `swag_choice_Cup` instead of just `swag_choice. A better fix would be to refactor the
+// underlying `DSwag` element, but the level of effort to do that is too much in short term.
+function normalizeSwagField(data) {
+  const swagKey = Object.keys(data).find((key) => key.includes('swag_choice_'));
+  if (!swagKey) {
+    return data;
+  }
+  const swagType = swagKey.split('swag_choice_')[1];
+  data['swag_choice'] = `${swagType}: ${data[swagKey]}`;
+  delete data[swagKey];
+  return data;
+}
 
 function serializeForm(form) {
-  /*
-    Rather than trying to hoist all form state up to a common parent,
-    we've wrapped the page in a <form> element. Here, we grab a ref
-    to that form and turn it in to FormData, then we serialize that
-    form data in to a javascript object.
-
-    This really is easier than managing all the form state in a common
-    parent. Trust me.
-  */
   const booleans = ['swag_opt_out', 'comp_subscription', 'tribute_type_honoree', 'tribute_type_in_memory_of'];
   const tributesToConvert = { tribute_type_honoree: 'type_honoree', tribute_type_in_memory_of: 'type_in_memory_of' };
   const obj = {};
@@ -124,86 +80,11 @@ export function serializeData(formRef, state) {
   serializedData['donation_page_slug'] = state.pageSlug;
   serializedData['revenue_program_country'] = state.rpCountry;
   serializedData['currency'] = state.currency;
-  serializedData['page_id'] = state.pageId;
+  serializedData['page'] = state.pageId;
+  serializedData['captcha_token'] = state.reCAPTCHAToken;
   if (state.salesforceCampaignId) serializedData['sf_campaign_id'] = state.salesforceCampaignId;
-  if (state.reCAPTCHAToken) serializedData['captcha_token'] = state.reCAPTCHAToken;
 
   return serializedData;
-}
-
-/***********************\
- *  One-time Payments  *
-\***********************/
-
-/**
- * trySinglePayment creates a payment intent via RevEngine backend then finishes
- * the payment with stripe using the returned paymentIntent object.
- * @param {object} stripe - the organization-tied stripe SDK instance
- * @param {object} formData - JSON-serialized form data
- * @param {object} paymentMethod - An object of shape { card, paymentRequest } where card is
- *                                 an optional object with key 'card' whose value is a stripe
- *                                 card element, or paymentRequest, an event object returned
- *                                 from a Stripe PaymentRequest
- */
-async function trySinglePayment(stripe, formData, { card, paymentRequest }) {
-  const createPaymentIntentResponse = await createPaymentIntent(formData);
-  const { data: paymentIntent } = createPaymentIntentResponse;
-  const paymentMethod = paymentRequest?.paymentMethod?.id || { card };
-  await confirmCardPayment(stripe, paymentIntent.clientSecret, paymentMethod, !paymentRequest);
-  return createPaymentIntentResponse;
-}
-
-/**
- * createPaymentIntent creates a payment intent via RevEngine backend
- * @param {object} formData - JSON-serialized form data
- * @returns {object} A RevEngine response in which response.data is the successfully created paymentIntent
- */
-async function createPaymentIntent(formData) {
-  return await axios.post(STRIPE_PAYMENT, formData, { timeout: STRIPE_PAYMENT_TIMEOUT });
-}
-
-/**
- * confirmCardPayment completes the process with stripe
- * @param {object} stripe - the organization-tied stripe SDK instance
- * @param {string} clientSecret
- * @param {*} paymentMethod - either a paymentMethod id from a paymentRequest, or an object with key 'card' whose value is the card element on the page.
- * @param {boolean} handleActions - Should be false if using a paymentRequest.
- */
-async function confirmCardPayment(stripe, clientSecret, payment_method, handleActions) {
-  const { paymentIntent, error } = await stripe.confirmCardPayment(clientSecret, { payment_method }, { handleActions });
-  if (error) throw new StripeError(error?.message || GENERIC_ERROR);
-  if (paymentIntent.status === 'requires_action') {
-    const { error } = await stripe.confirmCardPayment(clientSecret);
-    if (error) throw new StripeError(error?.message || GENERIC_ERROR);
-  }
-}
-
-/************************\
- *  Recurring Payments  *
-\************************/
-
-/**
- * tryRecurringPayment creates a PaymentMethod via Stripe and a PaymentIntent via RevEngine backend
- * the payment with stripe using the returned paymentIntent object.
- * @param {object} stripe - the organization-tied stripe SDK instance
- * @param {object} formData - JSON-serialized form data
- * @param {object} paymentMethod - An object of shape { card, paymentRequest } where card is
- *                                 an optional object with key 'card' whose value is a stripe
- *                                 card element, or paymentRequest, an event object returned
- *                                 from a Stripe PaymentRequest
- */
-async function tryRecurringPayment(stripe, data, { card, paymentRequest }) {
-  let paymentMethod = paymentRequest?.paymentMethod?.id;
-
-  if (!paymentMethod) {
-    const { paymentMethod: pm, error } = await createPaymentMethod(stripe, card, data);
-    if (error) throw new StripeError(error?.message || GENERIC_ERROR);
-    paymentMethod = pm.id;
-  }
-
-  data['payment_method_id'] = paymentMethod;
-  const createPaymentIntentResponse = await createPaymentIntent(data);
-  return createPaymentIntentResponse;
 }
 
 /**
@@ -226,13 +107,76 @@ export async function createPaymentMethod(stripe, card, data) {
   });
 }
 
-/*******************\
- *  Custom Errors  *
-\*******************/
-export class StripeError extends Error {
-  constructor(message, cause) {
-    super(message);
-    this.cause = cause;
-    this.name = 'StripeError';
+export function getPaymentSuccessUrl({
+  baseUrl,
+  thankYouRedirectUrl,
+  amount,
+  emailHash,
+  frequencyDisplayValue,
+  contributorEmail,
+  pageSlug,
+  rpSlug,
+  pathName,
+  stripeClientSecret
+}) {
+  const missingParams = Object.fromEntries(
+    Object.entries({
+      baseUrl,
+      amount,
+      emailHash,
+      frequencyDisplayValue,
+      contributorEmail,
+      pageSlug,
+      rpSlug,
+      pathName,
+      stripeClientSecret
+    }).filter(([_, v]) => [undefined, null].includes(v))
+  );
+  if (Object.entries(missingParams).length) {
+    throw new Error(`Missing argument for: ${Object.keys(missingParams).join(', ')}`);
   }
+  const paymentSuccessUrl = new URL(PAYMENT_SUCCESS, baseUrl);
+  // Some notes on parameters for URL search generation below:
+  // uid: maps to emailHash from function params
+  //
+  // When a donation page has a custom thank you page that is off-site, we
+  // eventually next the user to that page, appending several query parameters, one
+  // of which is a `uid` parameter that org's can use to anonymously track contributors
+  // in their analytics layer without exposing raw contributor email to ad tech providers.
+  //
+  // email: maps to contributorEmail from function params
+  //
+  // Our internal thank you page needs the raw value of the contributor
+  // email to display message on the page. There's no privacy concerns around sharing the
+  // email address with Stripe (they already have it) or within our site.
+
+  // pageSlug
+  //
+  // The thank you page that eventually loads needs to data that is on the
+  // page model from API. We pass the `pageSlug`, and the success page will be able to use this +
+  // the `rpSlug`to request the LIVE_PAGE_DETAIL. Ideally, we'd just use the page
+  // id to this end, but at present that API endpoint requires authentication.
+
+  // rpSlug: nothing special to note
+
+  // fromPath: pathName in function params
+  // We pass this along because the thank you page we eventually need to show
+  // will appear at rev-program-slug.revengine.com/page-name/thank-you if the page was served
+  // from specific page name. On other hand, if a revenue program has a default donation page
+  // set up, that page can appear at rev-program-slug.revengine.com/ (with no page), in which
+  // case, the thank-you page URL can be rev-program-slug.revengine.com/thank-you.
+
+  // payment_intent_client_secret : stripeClientSecret in function params
+  paymentSuccessUrl.search = new URLSearchParams({
+    amount,
+    pageSlug,
+    rpSlug,
+    email: contributorEmail,
+    frequency: frequencyDisplayValue,
+    fromPath: pathName === '/' ? '' : pathName,
+    next: thankYouRedirectUrl,
+    payment_intent_client_secret: stripeClientSecret,
+    uid: emailHash
+  });
+  return paymentSuccessUrl.href;
 }

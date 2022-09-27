@@ -1,5 +1,5 @@
 import { useRef, useState, useEffect, createContext, useContext } from 'react';
-import { useMutation } from 'react-query';
+import { useMutation } from '@tanstack/react-query';
 import { useCookies } from 'react-cookie';
 
 import * as S from './DonationPage.styled';

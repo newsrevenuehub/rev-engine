@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useLocation, useHistory } from 'react-router-dom';
 import queryString from 'query-string';
 import urlJoin from 'url-join';
-import { useQuery, useMutation } from 'react-query';
+import { useQuery, useMutation } from '@tanstack/react-query';
 
 import axios from 'ajax/axios';
 import { LIVE_PAGE_DETAIL, getPaymentSuccessEndpoint } from 'ajax/endpoints';

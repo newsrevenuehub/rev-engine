@@ -4,6 +4,16 @@ export const USER = 'users/';
 export const STRIPE_OAUTH = 'stripe/oauth/';
 export const STRIPE_PAYMENT = 'stripe/payment/';
 export const STRIPE_CONFIRMATION = 'stripe/confirmation/';
+export const STRIPE_ACCOUNT_LINK_CREATE = 'create-stripe-account-link/';
+export const STRIPE_ACCOUNT_LINK_CREATE_COMPLETE = 'create-stripe-account-link-complete/';
+
+export const getStripeAccountLinkCreatePath = (rpId) => {
+  return `${STRIPE_ACCOUNT_LINK_CREATE}${rpId}/`;
+};
+
+export const getStripeAccountLinkCreateCompletePath = (rpId) => {
+  return `${STRIPE_ACCOUNT_LINK_CREATE_COMPLETE}${rpId}/`;
+};
 
 export const AUTHORIZE_ONE_TIME_STRIPE_PAYMENT_ROUTE = 'payments/one-time/';
 export const AUTHORIZE_STRIPE_SUBSCRIPTION_ROUTE = 'payments/subscription/';

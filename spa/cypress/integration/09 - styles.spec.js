@@ -3,7 +3,7 @@ import { LIST_PAGES, LIST_FONTS, LIST_STYLES, USER } from 'ajax/endpoints';
 import { CUSTOMIZE_SLUG } from 'routes';
 import stylesList from '../fixtures/styles/list-styles-1.json';
 
-import hubAdminUser from '../fixtures/user/hub-admin';
+import hubAdminUser from '../fixtures/user/login-success-hub-admin';
 import { CONTENT_SECTION_ACCESS_FLAG_NAME } from 'constants/featureFlagConstants';
 
 const contentSectionFlag = {

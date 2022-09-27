@@ -12,22 +12,26 @@ import { GENERIC_ERROR } from 'constants/textConstants';
 import { PagePropTypes } from 'constants/proptypes';
 import RETooltip from 'elements/RETooltip';
 import { PATCH_PAGE } from 'ajax/endpoints';
-import getDomain from 'utilities/getDomain';
+import { pageLink } from 'utilities/getPageLinks';
 
 import { Flex, Button, Popover, LiveText, /*UnpublishButton, */ Text, IconButton } from './PublishButton.styled';
-import PublishModal from '../PublishModal';
+import PublishModal from './PublishModal';
+import SuccessfulPublishModal from './SuccessfulPublishModal';
 
 const PublishButton = ({ page, setPage, className, alert, requestPatchPage }) => {
   const { open: showTooltip, handleClose: handleCloseTooltip, handleOpen: handleOpenTooltip } = useModal();
   const { open, handleClose, handleOpen } = useModal();
+  const {
+    open: openSuccessfulPublishModal,
+    handleClose: handleCloseSuccessfulPublishModal,
+    handleOpen: handleOpenSuccessfulPublishModal
+  } = useModal();
   const [loading, setLoading] = useState(false);
   const [anchorEl, setAnchorEl] = useState(null);
-  const domain = getDomain(window.location.host);
 
   const showPopover = Boolean(anchorEl);
   const disabled = !page?.payment_provider?.stripe_verified;
   const isPublished = pageHasBeenPublished(page);
-  const pageLink = `https://${page?.revenue_program?.slug}.${domain}/${page?.slug}`;
 
   const handleOpenPopover = (event) => {
     setAnchorEl(event.currentTarget);
@@ -49,7 +53,11 @@ const PublishButton = ({ page, setPage, className, alert, requestPatchPage }) =>
         {
           onSuccess: ({ data }) => {
             const successMessage = getSuccessMessage(page, data);
-            alert.success(successMessage);
+            if (pageHasBeenPublished(data)) {
+              handleOpenSuccessfulPublishModal();
+            } else {
+              alert.success(successMessage);
+            }
             setPage(data);
             setLoading(false);
             handleClose();
@@ -62,7 +70,7 @@ const PublishButton = ({ page, setPage, className, alert, requestPatchPage }) =>
         }
       );
     },
-    [alert, handleClose, page, requestPatchPage, setPage]
+    [alert, handleClose, handleOpenSuccessfulPublishModal, page, requestPatchPage, setPage]
   );
 
   // TODO: update handleUnpublish when implementation of "Unpublish" functionality is decided
@@ -130,7 +138,13 @@ const PublishButton = ({ page, setPage, className, alert, requestPatchPage }) =>
             Live
           </LiveText>
           <RETooltip title="Go to Page" placement="bottom-end">
-            <IconButton component="a" href={pageLink} target="_blank" rel="noopener noreferrer" aria-label="Page link">
+            <IconButton
+              component="a"
+              href={`//${pageLink(page)}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="Page link"
+            >
               <LaunchIcon />
             </IconButton>
           </RETooltip>
@@ -140,14 +154,17 @@ const PublishButton = ({ page, setPage, className, alert, requestPatchPage }) =>
           </Text>
           {/* TODO: update UnpublishButton when implementation of "Unpublish" functionality is decided */}
           {/* <Divider />
-          <UnpublishButton
-            onClick={handleUnpublish}
-            disabled={loading || isPublished}
-            aria-label={`Unpublish page ${page?.name}`}
-          >
+          <UnpublishButton onClick={handleUnpublish} disabled={loading} aria-label={`Unpublish page ${page?.name}`}>
             {loading ? <CircularProgress size={16} style={{ color: 'white' }} /> : 'Unpublish'}
           </UnpublishButton> */}
         </Popover>
+      )}
+      {openSuccessfulPublishModal && (
+        <SuccessfulPublishModal
+          open={openSuccessfulPublishModal}
+          page={page}
+          onClose={handleCloseSuccessfulPublishModal}
+        />
       )}
     </Flex>
   );

@@ -262,7 +262,7 @@ class UserViewset(
         except BadActorAPIError:
             logger.warning("Something went wrong with BadActorAPI", exc_info=True)
             return
-        if response.json()["overall_judgment"] >= settings.BAD_ACTOR_FAIL_ABOVE_FOR_ORG_USERS:
+        if response.json()["overall_judgment"] >= settings.BAD_ACTOR_FAILURE_THRESHOLD_FOR_ORG_USERS:
             logger.info("Someone determined to be a bad actor tried to create a user: [%s]", data)
             raise ValidationError(BAD_ACTOR_CLIENT_FACING_VALIDATION_MESSAGE)
 

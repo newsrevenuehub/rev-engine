@@ -28,6 +28,7 @@ function DDonorInfo({ element, ...props }) {
             onChange={(e) => setFirstName(e.target.value)}
             errors={errors.first_name}
             required
+            testid="first_name"
           />
         </Grid>
         <Grid item xs={12} md={6}>
@@ -38,6 +39,7 @@ function DDonorInfo({ element, ...props }) {
             value={lastName}
             onChange={(e) => setLastName(e.target.value)}
             errors={errors.last_name}
+            testid="last_name"
             required
           />
         </Grid>
@@ -47,6 +49,7 @@ function DDonorInfo({ element, ...props }) {
             name="email"
             label="Email"
             value={email}
+            testid="email"
             onChange={(e) => setEmail(e.target.value)}
             errors={errors.email}
             required
@@ -63,6 +66,7 @@ function DDonorInfo({ element, ...props }) {
               maxLength={40}
               errors={errors.phone}
               required={element.requiredFields?.includes('phone')}
+              testid="phone"
             />
           </Grid>
         )}

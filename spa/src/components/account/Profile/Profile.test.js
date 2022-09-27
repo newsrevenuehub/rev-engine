@@ -27,7 +27,7 @@ describe('Profile', () => {
     axiosMock.onPatch(`users/mock-user-id/${CUSTOMIZE_ACCOUNT_ENDPOINT}`).reply(204);
     historyPushMock = jest.fn();
     useHistory.mockReturnValue({ push: historyPushMock });
-    useUser.mockReturnValue({ loading: false, user: { id: 'mock-user-id' } });
+    useUser.mockReturnValue({ loading: false, refetch: jest.fn(), user: { id: 'mock-user-id' } });
   });
 
   afterEach(() => axiosMock.reset());
@@ -85,11 +85,15 @@ describe('Profile', () => {
       );
     });
 
-    it('redirects to / after a successful PATCH', async () => {
+    it('refetches the user then redirects to / after a successful PATCH', async () => {
+      const refetch = jest.fn();
+
+      useUser.mockReturnValue({ refetch, loading: false, user: { id: 'mock-user-id' } });
       tree();
       userEvent.click(screen.getByText('mock-profile-form-submit'));
       await waitFor(() => expect(historyPushMock).toBeCalled());
       expect(historyPushMock.mock.calls).toEqual([['/']]);
+      expect(refetch).toBeCalledTimes(1);
     });
 
     it('displays an error message and re-enables the form if the PATCH fails', async () => {

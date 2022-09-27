@@ -3,8 +3,8 @@ import userEvent from '@testing-library/user-event';
 import { axe } from 'jest-axe';
 
 import formatDatetimeForDisplay from 'utilities/formatDatetimeForDisplay';
+import { pageLink } from 'utilities/getPageLinks';
 import PublishButton from './PublishButton';
-import getDomain from 'utilities/getDomain';
 
 const unpublishedPage = {
   name: 'Donation page',
@@ -29,7 +29,6 @@ const publishedPage = {
 
 const setPage = jest.fn();
 const requestPatchPage = jest.fn();
-const domain = getDomain(window.location.host);
 
 describe('PublishButton', () => {
   it('should render publish button', () => {
@@ -96,10 +95,7 @@ describe('PublishButton', () => {
 
     const goToPageButton = screen.getByRole('link', { name: /page link/i });
     expect(goToPageButton).toBeEnabled();
-    expect(goToPageButton).toHaveAttribute(
-      'href',
-      `https://${publishedPage?.revenue_program?.slug}.${domain}/${publishedPage?.slug}`
-    );
+    expect(goToPageButton).toHaveAttribute('href', `//${pageLink(publishedPage)}`);
   });
 
   it('should be accessible', async () => {

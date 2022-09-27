@@ -11,17 +11,23 @@ logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
 
 class StripeWebhookProcessor:
     def __init__(self, event):
+        logger.info("StripeWebhookProcessor initialized with event data: %s", event)
         self.event = event
         self.obj_data = self.event.data["object"]
 
     def get_contribution_from_event(self):
-        try:
-            return Contribution.objects.get(provider_payment_id=self.obj_data["id"])
-        except Contribution.DoesNotExist as e:
-            if customer_id := self.obj_data.get("customer"):
-                # This is fine as long as we continue to generate a unique customer per charge.
-                return Contribution.objects.get(provider_customer_id=customer_id)
-            raise Contribution.DoesNotExist(e)
+        if (event_type := self.obj_data["object"]) == "subscription":
+            # TODO: [DEV-2467] this will generate lots of spurious errors for events from Stripe that we don't care about. See ticket.
+            return Contribution.objects.get(provider_subscription_id=self.obj_data["id"])
+        elif event_type == "payment_intent":
+            try:
+                return Contribution.objects.get(provider_payment_id=self.obj_data["id"])
+            except Contribution.DoesNotExist:
+                if customer_id := self.obj_data.get("customer"):
+                    # This is fine as long as we continue to generate a unique customer per charge.
+                    return Contribution.objects.get(provider_customer_id=customer_id)
+                else:
+                    raise
 
     def process(self):
         logger.info('Processing Stripe Event of type "%s"', self.event.type)

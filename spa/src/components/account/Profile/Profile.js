@@ -19,10 +19,10 @@ import { useConfigureAnalytics } from 'components/analytics';
 import ProfileForm from './ProfileForm';
 
 function Profile() {
-  const { open, handleClose } = useModal(true);
+  const { open } = useModal(true);
   const history = useHistory();
   const [profileState, dispatch] = useReducer(fetchReducer, initialState);
-  const user = useUser();
+  const { user } = useUser();
   useConfigureAnalytics();
 
   const onProfileSubmit = async (formData) => {
@@ -55,12 +55,7 @@ function Profile() {
   const formSubmitErrors = profileState?.errors?.length && 'An Error Occurred';
 
   return (
-    <S.Modal
-      open={open}
-      onClose={handleClose}
-      aria-labelledby="profile-modal-title"
-      data-testid="finalize-profile-modal"
-    >
+    <S.Modal open={open} aria-labelledby="profile-modal-title" data-testid="finalize-profile-modal">
       <S.Profile>
         <S.h1 id="profile-modal-title">Let's Customize Your Account</S.h1>
         <S.Description>Help us create your personalized experience!</S.Description>

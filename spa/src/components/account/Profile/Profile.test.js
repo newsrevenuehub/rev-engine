@@ -27,7 +27,7 @@ describe('Profile', () => {
     axiosMock.onPatch(`users/mock-user-id/${CUSTOMIZE_ACCOUNT_ENDPOINT}`).reply(204);
     historyPushMock = jest.fn();
     useHistory.mockReturnValue({ push: historyPushMock });
-    useUser.mockReturnValue({ id: 'mock-user-id' });
+    useUser.mockReturnValue({ loading: false, user: { id: 'mock-user-id' } });
   });
 
   afterEach(() => axiosMock.reset());

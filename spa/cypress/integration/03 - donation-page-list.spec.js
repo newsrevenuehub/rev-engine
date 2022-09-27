@@ -83,14 +83,40 @@ describe('Donation page list', () => {
       cy.wait('@createNewPage').then(({ request }) => expect(request.body).to.have.property('revenue_program'));
     });
 
-    it.only('immediately creates a page with a temporary slug if the user has only one RP', () => {
-      console.log(orgAdminWithContentFlagAndOneRP);
-      cy.forceLogin(orgAdmin);
-      cy.intercept({ method: 'GET', pathname: getEndpoint(USER) }, { body: orgAdminWithContentFlagAndOneRP });
-      cy.intercept({ method: 'POST', pathname: getEndpoint(LIST_PAGES) }).as('createNewPage');
-      cy.visit(CONTENT_SLUG);
-      cy.get('button[aria-label="New Page"]').click();
-      cy.wait('@createNewPage').then(({ request }) => {});
+    describe('when the user has only one revenue program', () => {
+      it('immediately creates a page with a temporary slug', () => {
+        cy.forceLogin(orgAdmin);
+        cy.intercept({ method: 'GET', pathname: getEndpoint(LIST_PAGES) }, { body: [], statusCode: 200 }).as(
+          'listPages'
+        );
+        cy.intercept({ method: 'GET', pathname: getEndpoint(USER) }, { body: orgAdminWithContentFlagAndOneRP });
+        cy.intercept({ method: 'POST', pathname: getEndpoint(LIST_PAGES) }).as('createNewPage');
+        cy.visit(CONTENT_SLUG);
+        cy.get('button[aria-label="New Page"]').click();
+        cy.wait('@createNewPage').then(({ request }) => {
+          console.log(request.body);
+          expect(request.body).to.eql({
+            name: 'Page 1',
+            revenue_program: 1,
+            slug: 'page-1'
+          });
+        });
+      });
+
+      it('creates a page with a unique name and slug based on existing pages', () => {
+        cy.forceLogin(orgAdmin);
+        cy.intercept({ method: 'GET', pathname: getEndpoint(USER) }, { body: orgAdminWithContentFlagAndOneRP });
+        cy.intercept({ method: 'POST', pathname: getEndpoint(LIST_PAGES) }).as('createNewPage');
+        cy.visit(CONTENT_SLUG);
+        cy.get('button[aria-label="New Page"]').click();
+        cy.wait('@createNewPage').then(({ request }) => {
+          expect(request.body).to.eql({
+            name: 'Page 2',
+            revenue_program: 1,
+            slug: 'page-2'
+          });
+        });
+      });
     });
   });
 });

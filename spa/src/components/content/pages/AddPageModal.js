@@ -99,8 +99,8 @@ function AddPageModal({ isOpen, closeModal, pagesByRevenueProgram }) {
   };
 
   const handleTemporaryPageName = (pages) => {
-    const pagesSize = pages?.length + 1;
-    const slugs = pages.map((_) => _.slug);
+    const pagesSize = (pages?.length ?? 0) + 1;
+    const slugs = pages ? pages.map(({ slug }) => slug) : [];
     let number = pagesSize;
     let tempName = `Page ${number}`;
     let tempSlug = slugify(tempName);

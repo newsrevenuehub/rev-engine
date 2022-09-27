@@ -22,7 +22,7 @@ function Profile() {
   const { open } = useModal(true);
   const history = useHistory();
   const [profileState, dispatch] = useReducer(fetchReducer, initialState);
-  const { user } = useUser();
+  const { refetch: refetchUser, user } = useUser();
   useConfigureAnalytics();
 
   const onProfileSubmit = async (formData) => {
@@ -40,6 +40,7 @@ function Profile() {
 
       if (status === 204) {
         dispatch({ type: FETCH_SUCCESS });
+        await refetchUser();
         history.push('/');
       } else {
         dispatch({ type: FETCH_FAILURE, payload: data });

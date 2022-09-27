@@ -1,10 +1,10 @@
 import * as S from './Filters.styled';
 
 // Children
-import StatusFilter from 'components/donations/filters/StatusFilter';
-import AmountFilter from 'components/donations/filters/AmountFilter';
 import CreatedFilter from 'components/donations/filters/CreatedFilter';
 import GenericErrorBoundary from 'components/errors/GenericErrorBoundary';
+import StatusFilter from 'components/common/Filters/StatusFilter';
+import AmountFilter from 'components/common/Filters/AmountFilter';
 
 function Filters({ filters, handleFilterChange, donationsCount, excludeStatusFilters = [] }) {
   // whenever we need to enable this, toggle this switch to true
@@ -14,12 +14,12 @@ function Filters({ filters, handleFilterChange, donationsCount, excludeStatusFil
       <GenericErrorBoundary>
         <StatusFilter
           filter={filters.status}
-          handleFilterChange={handleFilterChange}
+          onClick={(status) => handleFilterChange('status', status)}
           excludeStatusFilters={excludeStatusFilters}
         />
       </GenericErrorBoundary>
       <GenericErrorBoundary>
-        <AmountFilter filter={filters.amount} handleFilterChange={handleFilterChange} />
+        <AmountFilter onChange={(amount) => handleFilterChange('amount', amount)} />
       </GenericErrorBoundary>
       {dateFilterEnabled ? (
         <GenericErrorBoundary>

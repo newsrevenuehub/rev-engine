@@ -1,4 +1,4 @@
-import { CONTRIBUTION_INTERVALS } from 'constants';
+import { CONTRIBUTION_INTERVALS } from 'constants/contributionIntervals';
 
 export function getFrequencyAdjective(frequency) {
   switch (frequency) {

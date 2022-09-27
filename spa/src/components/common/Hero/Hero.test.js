@@ -1,3 +1,4 @@
+import { axe } from 'jest-axe';
 import { render, screen } from 'test-utils';
 import Hero from './Hero';
 
@@ -18,5 +19,12 @@ describe('Hero', () => {
 
     const searchText = screen.getByRole('textbox', { name: `Search for ${heroPlaceholder}` });
     expect(searchText).toBeInTheDocument();
+  });
+
+  it('should be accessible', async () => {
+    const { container } = render(
+      <Hero title={heroTitle} subtitle={heroSubtitle} placeholder={heroPlaceholder} onChange={onChange} />
+    );
+    expect(await axe(container)).toHaveNoViolations();
   });
 });

@@ -11,11 +11,12 @@ import { EDITOR_ROUTE } from 'routes';
 
 // Util
 import slugify from 'utilities/slugify';
-import { useUserContext } from 'components/UserContext';
 
 // AJAX
 import useRequest from 'hooks/useRequest';
 import { LIST_PAGES } from 'ajax/endpoints';
+
+import useUser from 'hooks/useUser';
 
 // Children
 import Modal from 'elements/modal/Modal';
@@ -32,8 +33,9 @@ function AddPageModal({ isOpen, closeModal, pagesByRevenueProgram }) {
   const alert = useAlert();
   const theme = useTheme();
   const history = useHistory();
-  const { user } = useUserContext();
-  const revenuePrograms = user?.revenue_programs;
+  const {
+    user: { revenue_programs: revenuePrograms }
+  } = useUser();
   const createPage = useRequest();
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState({});

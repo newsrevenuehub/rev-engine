@@ -16,7 +16,7 @@ import toTitleCase from 'utilities/toTitleCase';
 import { getEndpoint } from '../support/util';
 
 import { CONTRIBUTIONS_SECTION_ACCESS_FLAG_NAME } from 'constants/featureFlagConstants';
-import hubAdminWithoutFlags from '../fixtures/user/hub-admin';
+import hubAdminWithoutFlags from '../fixtures/user/login-success-hub-admin';
 
 const contribSectionsFlag = {
   id: '1234',

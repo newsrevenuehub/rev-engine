@@ -62,7 +62,8 @@ class RevenueProgramListSerializer(serializers.HyperlinkedModelSerializer):
     """
 
     organization = serializers.StringRelatedField()
+    payment_provider = PublicPaymentProviderSerializer()
 
     class Meta:
         model = RevenueProgram
-        fields = ["id", "url", "name", "slug", "organization"]
+        fields = ["id", "url", "name", "slug", "organization", "payment_provider"]

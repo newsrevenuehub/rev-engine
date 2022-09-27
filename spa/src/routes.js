@@ -22,3 +22,4 @@ export const SIGN_UP = '/create-account';
 export const VERIFY_EMAIL_SUCCESS = '/verify-email-success';
 export const VERIFIED = '/verified';
 export const PROFILE = '/setup';
+export const STRIPE_ACCOUNT_LINK_RETURN = '/stripe-account-link-complete';

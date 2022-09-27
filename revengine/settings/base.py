@@ -523,3 +523,10 @@ SPA_ENV_VARS = {
     "ENVIRONMENT": ENVIRONMENT,
     "DASHBOARD_SUBDOMAINS": DASHBOARD_SUBDOMAINS,
 }
+
+# This is meant to facilitate testing of the Stripe Account Link flow in local dev environment
+# By setting this to "http://localhost:3000" in env, when you go through Stripe Account Link flow,
+# on completing the Stripe form, you'll be sent back to localhost:3000 (aka the SPA being served by
+# webpack) instead of getting sent to localhost:8000, which is what would happen by default in local
+# dev environment.
+STRIPE_ACCOUNT_LINK_RETURN_BASE_URL = os.getenv("STRIPE_ACCOUNT_LINK_RETURN_BASE_URL", None)

@@ -9,7 +9,7 @@ import { CUSTOMIZE_ACCOUNT_ENDPOINT } from 'ajax/endpoints';
 
 // State management
 import fetchReducer, { initialState, FETCH_START, FETCH_FAILURE, FETCH_SUCCESS } from 'state/fetch-reducer';
-import { useUserContext } from 'components/UserContext';
+import useUser from 'hooks/useUser';
 
 import useModal from 'hooks/useModal';
 
@@ -22,7 +22,7 @@ function Profile() {
   const { open, handleClose } = useModal(true);
   const history = useHistory();
   const [profileState, dispatch] = useReducer(fetchReducer, initialState);
-  const { user } = useUserContext();
+  const user = useUser();
   useConfigureAnalytics();
 
   const onProfileSubmit = async (formData) => {

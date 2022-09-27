@@ -1,11 +1,11 @@
 import userEvent from '@testing-library/user-event';
-import Axios from 'ajax/axios';
-import { CUSTOMIZE_ACCOUNT_ENDPOINT } from 'ajax/endpoints';
 import MockAdapter from 'axios-mock-adapter';
-import { UserContext } from 'components/UserContext';
 import { useHistory } from 'react-router-dom';
 import { axe } from 'jest-axe';
+import Axios from 'ajax/axios';
+import { CUSTOMIZE_ACCOUNT_ENDPOINT } from 'ajax/endpoints';
 import { render, screen, waitFor } from 'test-utils';
+import useUser from 'hooks/useUser';
 import Profile from './Profile';
 
 jest.mock('react-router-dom', () => ({
@@ -13,13 +13,10 @@ jest.mock('react-router-dom', () => ({
   useHistory: jest.fn()
 }));
 jest.mock('./ProfileForm');
+jest.mock('hooks/useUser');
 
 function tree() {
-  return render(
-    <UserContext.Provider value={{ setUser: jest.fn(), user: { id: 'mock-user-id' } }}>
-      <Profile />
-    </UserContext.Provider>
-  );
+  return render(<Profile />);
 }
 
 describe('Profile', () => {
@@ -30,6 +27,7 @@ describe('Profile', () => {
     axiosMock.onPatch(`users/mock-user-id/${CUSTOMIZE_ACCOUNT_ENDPOINT}`).reply(204);
     historyPushMock = jest.fn();
     useHistory.mockReturnValue({ push: historyPushMock });
+    useUser.mockReturnValue({ id: 'mock-user-id' });
   });
 
   afterEach(() => axiosMock.reset());

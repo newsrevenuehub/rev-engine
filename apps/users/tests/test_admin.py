@@ -1,6 +1,8 @@
 from django.contrib.auth import get_user_model
 from django.test import Client, TestCase
 
+from bs4 import BeautifulSoup
+
 import apps.users
 
 
@@ -27,3 +29,12 @@ class TestUsersAdmin(TestCase):
         assert [
             "user",
         ] == t.get_readonly_fields(None, obj=self.user)
+
+    def test_user_fields_in_admin(self):
+        user_id = user_model.objects.all()[0].id
+        response = self.client.get(f"/nrhadmin/users/user/{user_id}/change/")
+        soup = BeautifulSoup(response.content)
+        assert soup.find("input", {"name": "email"}) is not None
+        assert soup.find("input", {"name": "first_name"}) is not None
+        assert soup.find("input", {"name": "last_name"}) is not None
+        assert soup.find("input", {"name": "job_title"}) is not None

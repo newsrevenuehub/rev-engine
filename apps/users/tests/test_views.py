@@ -470,7 +470,9 @@ class TestUserViewSet(APITestCase):
 
     @patch(
         "apps.users.views.make_bad_actor_request",
-        return_value=MockResponseObject(json_data={"overall_judgment": settings.BAD_ACTOR_FAIL_ABOVE_FOR_ORG_USERS}),
+        return_value=MockResponseObject(
+            json_data={"overall_judgment": settings.BAD_ACTOR_FAILURE_THRESHOLD_FOR_ORG_USERS}
+        ),
     )
     def test_create_when_bad_actor_threshold_met(self, mock_bad_actor_request):
         response = self.client.post(self.url, data=self.create_data)

@@ -11,8 +11,13 @@ const contentSectionFlag = {
 };
 
 const orgAdminWithContentFlag = {
-  ...orgAdmin['user'],
+  ...orgAdmin.user,
   flags: [contentSectionFlag]
+};
+
+const orgAdminWithContentFlagAndOneRP = {
+  ...orgAdminWithContentFlag,
+  revenue_programs: [orgAdminWithContentFlag.revenue_programs[0]]
 };
 
 describe('Donation page list', () => {
@@ -27,7 +32,7 @@ describe('Donation page list', () => {
     );
   });
 
-  it('should render pages list', () => {
+  it('shows a list of pages', () => {
     cy.forceLogin(orgAdmin);
     cy.intercept({ method: 'GET', pathname: getEndpoint(USER) }, { body: orgAdminWithContentFlag });
     cy.visit(CONTENT_SLUG);
@@ -37,7 +42,7 @@ describe('Donation page list', () => {
   });
 
   describe('Add Page modal', () => {
-    it('should open when the user clicks the New Page button', () => {
+    it('opens when the user clicks the New Page button', () => {
       cy.forceLogin(orgAdmin);
       cy.intercept({ method: 'GET', pathname: getEndpoint(USER) }, { body: orgAdminWithContentFlag });
       cy.visit(CONTENT_SLUG);
@@ -48,7 +53,7 @@ describe('Donation page list', () => {
       cy.contains('Choose a revenue program');
     });
 
-    it('should show message if there are no revenue programs and user tries to create', () => {
+    it('shows a message if there are no revenue programs and user tries to create', () => {
       cy.intercept(
         { method: 'GET', pathname: getEndpoint(USER) },
         { body: { ...stripeVerifiedOrgAdmin, revenue_programs: [] } }
@@ -64,7 +69,7 @@ describe('Donation page list', () => {
       cy.contains('You need to set up a revenue program to create a page.');
     });
 
-    it('should contain rev_program in outgoing request', () => {
+    it('contains the rev_program in outgoing request', () => {
       cy.forceLogin(orgAdmin);
       cy.intercept({ method: 'GET', pathname: getEndpoint(USER) }, { body: orgAdminWithContentFlag });
       cy.visit(CONTENT_SLUG);
@@ -76,6 +81,16 @@ describe('Donation page list', () => {
       cy.intercept({ method: 'POST', pathname: getEndpoint(LIST_PAGES) }).as('createNewPage');
       cy.getByTestId('save-new-page-button').click({ force: true });
       cy.wait('@createNewPage').then(({ request }) => expect(request.body).to.have.property('revenue_program'));
+    });
+
+    it.only('immediately creates a page with a temporary slug if the user has only one RP', () => {
+      console.log(orgAdminWithContentFlagAndOneRP);
+      cy.forceLogin(orgAdmin);
+      cy.intercept({ method: 'GET', pathname: getEndpoint(USER) }, { body: orgAdminWithContentFlagAndOneRP });
+      cy.intercept({ method: 'POST', pathname: getEndpoint(LIST_PAGES) }).as('createNewPage');
+      cy.visit(CONTENT_SLUG);
+      cy.get('button[aria-label="New Page"]').click();
+      cy.wait('@createNewPage').then(({ request }) => {});
     });
   });
 });

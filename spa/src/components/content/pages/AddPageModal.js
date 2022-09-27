@@ -23,10 +23,6 @@ import Modal from 'elements/modal/Modal';
 import Input from 'elements/inputs/Input';
 import Select from 'elements/inputs/Select';
 import CircleButton from 'elements/buttons/CircleButton';
-// Intentionally commented out, see DEV-1493
-// import { GENERIC_ERROR } from 'constants/textConstants';
-// import { REVENUE_PROGRAMS, LIST_PAGES, TEMPLATES } from 'ajax/endpoints';
-
 import FormErrors from 'elements/inputs/FormErrors';
 
 function AddPageModal({ isOpen, closeModal, pagesByRevenueProgram }) {
@@ -43,31 +39,6 @@ function AddPageModal({ isOpen, closeModal, pagesByRevenueProgram }) {
   const [slug, setSlug] = useState('');
 
   const [revenueProgram, setRevenueProgram] = useState('');
-
-  // Intentionally commented out, see DEV-1493
-  // const fetchTemplates = useRequest();
-  // const [templates, setTemplates] = useState([]);
-  // const [template, setTemplate] = useState();
-  // const handleRequestFailure = useCallback(
-  //   (e) => {
-  //     alert.error(GENERIC_ERROR);
-  //   },
-  //   [alert]
-  // );
-  // useEffect(() => {
-  //   async function getTemplates() {
-  //     setLoading(true);
-  //     fetchTemplates(
-  //       {
-  //         method: 'GET',
-  //         url: TEMPLATES
-  //       },
-  //       { onSuccess: ({ data }) => setTemplates(data), onFailure: handleRequestFailure }
-  //     );
-  //   }
-  //   getTemplates();
-  //   setLoading(false);
-  // }, [handleRequestFailure]);
 
   const handleNameBlur = () => {
     setSlug(slugify(`${name}-${Math.random().toFixed(4)}`));
@@ -101,8 +72,7 @@ function AddPageModal({ isOpen, closeModal, pagesByRevenueProgram }) {
         slug: overrideForm?.slug || slug,
         revenue_program: overrideForm?.revenueProgramId || revenueProgram.id
       };
-      // Intentionally commented-out, see DEV-1493
-      // if (template) formData.template_pk = template.id;
+
       createPage(
         {
           method: 'POST',
@@ -193,24 +163,6 @@ function AddPageModal({ isOpen, closeModal, pagesByRevenueProgram }) {
             {!loading && revenuePrograms.length === 0 && (
               <S.NoRevPrograms>You need to set up a revenue program to create a page.</S.NoRevPrograms>
             )}
-            {/*
-             // Intentionally commented out, see DEV-1493
-             templates.length > 0 && (
-              <S.InputWrapper>
-                <Select
-                  label="[Optional] Choose a page template"
-                  onSelectedItemChange={({ selectedItem }) => setTemplate(selectedItem)}
-                  selectedItem={template}
-                  items={templates}
-                  itemToString={(i) => i.name}
-                  placeholder="Select a template"
-                  dropdownPosition="above"
-                  displayAccessor="name"
-                  testId="template-picker"
-                />
-              </S.InputWrapper>
-            )
-             */}
             <FormErrors errors={errors?.non_field_errors} />
           </S.FormFields>
           <S.Buttons>

@@ -1,5 +1,6 @@
 import { Button as MuiButton, Modal as MuiModal } from '@material-ui/core';
 import styled from 'styled-components';
+import { StepperDots } from 'components/base';
 //import lighten from 'styles/utils/lighten';
 
 export const ConnectStripeModal = styled.div`
@@ -112,4 +113,8 @@ export const StripeLogo = styled.img`
 export const BottomNav = styled.img`
   width: 42px;
   margin: 34px auto 0px;
+`;
+
+export const BottomStepper = styled(StepperDots)`
+  margin-top: 40px;
 `;

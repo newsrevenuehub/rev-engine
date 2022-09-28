@@ -6,23 +6,36 @@ import Dashboard from 'components/dashboard/Dashboard';
 import Verify from 'components/account/Verify';
 
 import { useConfigureAnalytics } from './analytics';
-import { CONTENT_SLUG, VERIFY_EMAIL_SUCCESS } from 'routes';
+import { CONTENT_SLUG, PROFILE, VERIFY_EMAIL_SUCCESS } from 'routes';
 import PageContextProvider from './dashboard/PageContext';
 import useUser from 'hooks/useUser';
+import needsProfileFinalization from 'utilities/needsProfileFinalization';
 
 function Main() {
   useConfigureAnalytics();
   const { user, isLoading } = useUser();
   const { pathname } = useLocation();
   const isVerifyEmailPath = pathname.includes(VERIFY_EMAIL_SUCCESS);
+  const isProfilePath = useLocation().pathname.includes(PROFILE);
 
   if (user) {
-    if (!user.email_verified && !isVerifyEmailPath) {
-      return <Redirect to={VERIFY_EMAIL_SUCCESS} />;
-    }
+    if (user.email_verified) {
+      if (needsProfileFinalization(user) && !isProfilePath) {
+        // If the user hasn't finished setting up their profile, force them to
+        // do so.
 
-    if (user.email_verified && isVerifyEmailPath) {
-      return <Redirect to={CONTENT_SLUG} />;
+        return <Redirect to={PROFILE} />;
+      } else if (isVerifyEmailPath || (isProfilePath && !needsProfileFinalization(user))) {
+        // If the user is on a route they don't need anymore (they've verified
+        // their email already but are still on the email verification route),
+        // send them to the default route.
+
+        return <Redirect to={CONTENT_SLUG} />;
+      }
+    } else if (!isVerifyEmailPath) {
+      // If the user hasn't verified their email yet, force them to do so.
+
+      return <Redirect to={VERIFY_EMAIL_SUCCESS} />;
     }
   }
 

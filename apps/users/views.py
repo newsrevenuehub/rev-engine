@@ -18,6 +18,7 @@ from django.dispatch import receiver
 from django.http import HttpResponseRedirect
 from django.urls import reverse, reverse_lazy
 from django.utils.safestring import mark_safe
+from django.utils.text import slugify
 from django.views.decorators.http import require_GET
 
 from django_rest_passwordreset.signals import reset_password_token_created
@@ -294,24 +295,25 @@ class UserViewset(
             raise ValidationError(errors)
         first_name = customize_account_serializer.validated_data["first_name"]
         last_name = customize_account_serializer.validated_data["last_name"]
-        job_title = customize_account_serializer.validated_data["job_title"]
         organization_name = customize_account_serializer.validated_data["organization_name"]
         organization_tax_status = customize_account_serializer.validated_data["organization_tax_status"]
         user = request.user
         logger.debug("Received request to customize account for user %s; request: %s", user, request.data)
         user.first_name = first_name
         user.last_name = last_name
-        user.job_title = job_title
+        user.job_title = customize_account_serializer.validated_data["job_title"]
         user.save()
         if Organization.objects.filter(name=organization_name).exists():
             counter = 1
             while Organization.objects.filter(name=f"{organization_name}-{counter}").exists():
                 counter += 1
             organization_name = f"{organization_name}-{counter}"
-        organization = Organization.objects.create(name=organization_name, slug=organization_name)
+
+        organization = Organization.objects.create(name=organization_name, slug=slugify(organization_name))
         revenue_program = RevenueProgram.objects.create(
             name=organization_name,
             organization=organization,
+            slug=slugify(organization_name),
             non_profit=True if organization_tax_status == "nonprofit" else False,
         )
         RoleAssignment.objects.create(user=user, role_type=Roles.ORG_ADMIN, organization=organization)

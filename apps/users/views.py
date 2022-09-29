@@ -36,7 +36,7 @@ from apps.common.utils import get_original_ip_from_request
 from apps.contributions.bad_actor import BadActorAPIError, make_bad_actor_request
 from apps.contributions.utils import get_sha256_hash
 from apps.emails.tasks import send_templated_email
-from apps.organizations.models import Organization, RevenueProgram
+from apps.organizations.models import Organization, PaymentProvider, RevenueProgram
 from apps.public.permissions import IsActiveSuperUser
 from apps.users.choices import Roles
 from apps.users.constants import (
@@ -310,11 +310,13 @@ class UserViewset(
             organization_name = f"{organization_name}-{counter}"
 
         organization = Organization.objects.create(name=organization_name, slug=slugify(organization_name))
+        payment_provider = PaymentProvider.objects.create()
         revenue_program = RevenueProgram.objects.create(
             name=organization_name,
             organization=organization,
             slug=slugify(organization_name),
             non_profit=True if organization_tax_status == "nonprofit" else False,
+            payment_provider=payment_provider,
         )
         RoleAssignment.objects.create(user=user, role_type=Roles.ORG_ADMIN, organization=organization)
         logger.info(

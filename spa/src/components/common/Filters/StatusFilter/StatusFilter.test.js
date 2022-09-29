@@ -13,9 +13,9 @@ describe('StatusFilter', () => {
     tree();
 
     expect(screen.getByText(/status/i)).toBeVisible();
-    STATUS_FILTERS.forEach((status) => {
+    for (const status of STATUS_FILTERS) {
       expect(screen.getByRole('button', { name: `filter by status: ${status}` })).toBeEnabled();
-    });
+    }
   });
 
   it('should call onClick with clicked status', () => {

@@ -1,5 +1,6 @@
 import { FormControl, InputAdornment, OutlinedInput } from '@material-ui/core';
 import { makeStyles } from '@material-ui/core/styles';
+import PropTypes from 'prop-types';
 
 const useStyles = makeStyles(() => ({
   root: {
@@ -15,7 +16,7 @@ const useStyles = makeStyles(() => ({
   }
 }));
 
-const CurrencyField = ({ ariaLabel, value, onChange, placeholder, ...rest }) => {
+const CurrencyField = ({ ariaLabel, value, onChange, placeholder, currency, ...rest }) => {
   const classes = useStyles();
   return (
     <FormControl fullWidth variant="outlined">
@@ -26,11 +27,19 @@ const CurrencyField = ({ ariaLabel, value, onChange, placeholder, ...rest }) => 
         value={value}
         onChange={onChange}
         placeholder={placeholder}
-        startAdornment={<InputAdornment position="start">$</InputAdornment>}
+        startAdornment={<InputAdornment position="start">{currency}</InputAdornment>}
         {...rest}
       />
     </FormControl>
   );
+};
+
+CurrencyField.propTypes = {
+  currency: PropTypes.string
+};
+
+CurrencyField.defaultProps = {
+  currency: '$'
 };
 
 export default CurrencyField;

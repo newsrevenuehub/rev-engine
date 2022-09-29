@@ -19,7 +19,14 @@ function Filters({ filters, handleFilterChange, donationsCount, excludeStatusFil
         />
       </GenericErrorBoundary>
       <GenericErrorBoundary>
-        <AmountFilter onChange={(amount) => handleFilterChange('amount', amount)} />
+        <AmountFilter
+          onChange={(amount) =>
+            handleFilterChange('amount', {
+              amount__gte: Number(amount.gte) * 100 || '',
+              amount__lte: Number(amount.lte) * 100 || ''
+            })
+          }
+        />
       </GenericErrorBoundary>
       {dateFilterEnabled ? (
         <GenericErrorBoundary>

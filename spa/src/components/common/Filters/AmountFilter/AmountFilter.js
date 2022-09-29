@@ -8,7 +8,7 @@ import usePreviousState from 'hooks/usePreviousState';
 import { useDebounce } from 'use-debounce';
 
 const AmountFilter = ({ onChange, className }) => {
-  const [amount, setAmountRange] = useState({ amount__gte: '', amount__lte: '' });
+  const [amount, setAmountRange] = useState({ gte: '', lte: '' });
 
   const [debouncedAmount] = useDebounce(amount, 500);
   const prevAmount = usePreviousState(debouncedAmount);
@@ -19,15 +19,8 @@ const AmountFilter = ({ onChange, className }) => {
 
   useEffect(
     () => {
-      if (
-        (debouncedAmount?.amount__gte !== prevAmount?.amount__gte ||
-          debouncedAmount?.amount__lte !== prevAmount?.amount__lte) &&
-        prevAmount
-      ) {
-        onChange({
-          amount__gte: Number(amount.amount__gte) * 100 || '',
-          amount__lte: Number(amount.amount__lte) * 100 || ''
-        });
+      if ((debouncedAmount?.gte !== prevAmount?.gte || debouncedAmount?.lte !== prevAmount?.lte) && prevAmount) {
+        onChange(debouncedAmount);
       }
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -41,16 +34,16 @@ const AmountFilter = ({ onChange, className }) => {
         <CurrencyField
           placeholder="Minimum"
           ariaLabel="Filter minimum amount"
-          value={amount.amount__gte}
+          value={amount.gte}
           onChange={handleChange}
-          name="amount__gte"
+          name="gte"
         />
         <CurrencyField
           placeholder="Maximum"
           ariaLabel="Filter maximum amount"
-          value={amount.amount__lte}
+          value={amount.lte}
           onChange={handleChange}
-          name="amount__lte"
+          name="lte"
         />
       </Content>
     </Flex>

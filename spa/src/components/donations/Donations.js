@@ -1,5 +1,6 @@
 import { useCallback, useMemo, useState } from 'react';
 import { Route, Switch, useHistory, useRouteMatch } from 'react-router-dom';
+import PropTypes from 'prop-types';
 import * as S from './Donations.styled';
 
 // AJAX
@@ -28,8 +29,10 @@ import Filters from 'components/donations/filters/Filters';
 import GenericErrorBoundary from 'components/errors/GenericErrorBoundary';
 import { PAYMENT_STATUS_EXCLUDE_IN_CONTRIBUTIONS } from 'constants/paymentStatus';
 import PageTitle from 'elements/PageTitle';
+import Banner from 'components/common/Banner';
+import { BANNER_TYPE } from 'constants/bannerConstants';
 
-function Donations() {
+const Donations = ({ bannerType }) => {
   const { path } = useRouteMatch();
   const history = useHistory();
 
@@ -118,13 +121,14 @@ function Donations() {
     <>
       <PageTitle title="Contributions" />
       <div data-testid="donations" style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-        <Switch data-testid="donations">
+        <Switch>
           <Route path={`${path}/:contributionId`}>
             <DashboardSection heading="Contribution Info">
               <DonationDetail />
             </DashboardSection>
           </Route>
           <Route>
+            {bannerType && <Banner type={bannerType} />}
             <Hero
               title="Contributions"
               subtitle="Welcome to your contributions. Easily track and manage contributions."
@@ -151,7 +155,15 @@ function Donations() {
       </div>
     </>
   );
-}
+};
+
+Donations.propTypes = {
+  bannerType: PropTypes.oneOf(Object.values(BANNER_TYPE))
+};
+
+Donations.defaultProps = {
+  bannerType: undefined
+};
 
 export default Donations;
 

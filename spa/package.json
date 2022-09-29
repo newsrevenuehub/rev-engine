@@ -157,6 +157,7 @@
     "@testing-library/react": "^11.2.6",
     "@testing-library/react-hooks": "^7.0.2",
     "@testing-library/user-event": "^12.8.3",
+    "axios-mock-adapter": "^1.21.2",
     "babel-plugin-named-exports-order": "^0.0.2",
     "cypress": "^8.5.0",
     "cypress-localstorage-commands": "^1.7.0",

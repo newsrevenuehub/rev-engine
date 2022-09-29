@@ -678,14 +678,6 @@ class TestUserViewSet(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertEqual(response.json(), {"last_name": ["This information is required"]})
 
-    def test_cannot_update_user_account_missing_job_title(self):
-        user = self._create_authenticated_user()
-        response = self.client.patch(
-            reverse("user-customize-account", args=(user.pk,)), data={**self.customize_account_request, "job_title": ""}
-        )
-        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertEqual(response.json(), {"job_title": ["This information is required"]})
-
     def test_cannot_update_user_account_missing_organization_name(self):
         user = self._create_authenticated_user()
         response = self.client.patch(
@@ -732,6 +724,8 @@ class TestUserViewSet(APITestCase):
         self.assertTrue(
             RevenueProgram.objects.filter(name=self.customize_account_request["organization_name"]).exists()
         )
+        rp = RevenueProgram.objects.filter(name=self.customize_account_request["organization_name"]).first()
+        assert rp.payment_provider
         self.assertTrue(
             RoleAssignment.objects.filter(
                 user=user,
@@ -742,6 +736,18 @@ class TestUserViewSet(APITestCase):
         self.assertEqual(self.customize_account_request["first_name"], user.first_name)
         self.assertEqual(self.customize_account_request["last_name"], user.last_name)
         self.assertEqual(self.customize_account_request["job_title"], user.job_title)
+
+    def test_can_customize_account_without_job_title(self):
+        user = self._create_authenticated_user()
+        no_job_title = {**self.customize_account_request}
+        del no_job_title["job_title"]
+        response = self.client.patch(
+            reverse("user-customize-account", args=(user.pk,)),
+            data={**no_job_title},
+        )
+        assert response.status_code == status.HTTP_204_NO_CONTENT
+        assert self.customize_account_request["first_name"] == user.first_name
+        assert self.customize_account_request["last_name"] == user.last_name
 
     def test_can_customize_account_with_conflicting_org_name(self):
         taken_name = "already-in-use"

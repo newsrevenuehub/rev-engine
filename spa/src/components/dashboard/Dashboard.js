@@ -3,7 +3,15 @@ import { Route, Switch, Redirect, useLocation } from 'react-router-dom';
 import * as S from './Dashboard.styled';
 
 // Routing
-import { DONATIONS_SLUG, CONTENT_SLUG, EDITOR_ROUTE, EDITOR_ROUTE_PAGE, DASHBOARD_SLUG, CUSTOMIZE_SLUG } from 'routes';
+import {
+  DONATIONS_SLUG,
+  CONTENT_SLUG,
+  EDITOR_ROUTE,
+  EDITOR_ROUTE_PAGE,
+  DASHBOARD_SLUG,
+  CUSTOMIZE_SLUG,
+  PROFILE
+} from 'routes';
 
 // Children
 import LivePage404 from 'components/common/LivePage404';
@@ -13,6 +21,7 @@ import Donations from 'components/donations/Donations';
 import Content from 'components/content/Content';
 import Customize from 'components/content/Customize';
 import PageEditor from 'components/pageEditor/PageEditor';
+import Profile from 'components/account/Profile';
 
 import ConnectStripeElements from 'components/dashboard/connectStripe/ConnectStripeElements';
 
@@ -75,6 +84,9 @@ function Dashboard() {
                   <PageEditor />
                 </Route>
               ) : null}
+              <Route path={PROFILE}>
+                <Profile />
+              </Route>
               <Route>
                 <LivePage404 dashboard />
               </Route>

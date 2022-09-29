@@ -20,7 +20,8 @@ function useUser() {
   const {
     data: user,
     isLoading,
-    isError
+    isError,
+    refetch
   } = useQuery(['user'], fetchUser, {
     // this means that user won't be re-fetched for two minutes. After 2 minutes
     // React Query's default "window focus" behavior could trigger a refetch if
@@ -46,7 +47,8 @@ function useUser() {
       }
     }
   });
-  return { user, isLoading, isError };
+
+  return { refetch, user, isLoading, isError };
 }
 
 export default useUser;

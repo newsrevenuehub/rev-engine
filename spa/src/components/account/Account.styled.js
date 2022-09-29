@@ -166,6 +166,7 @@ export const InputOuter = styled.div`
   display: flex;
   margin: 5px 0px;
   padding: 8px 6px 8px 12px;
+  position: relative;
 
   input {
     width: 97%;

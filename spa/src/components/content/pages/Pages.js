@@ -1,4 +1,5 @@
-import { useEffect, useState, Fragment } from 'react';
+import { useState, Fragment } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import orderBy from 'lodash.orderby';
 import { Content } from './Pages.styled';
 
@@ -11,10 +12,10 @@ import { useAlert } from 'react-alert';
 
 // Constants
 import { GENERIC_ERROR } from 'constants/textConstants';
-
+import { USER_ROLE_HUB_ADMIN_TYPE, USER_SUPERUSER_TYPE } from 'constants/authConstants';
 // AJAX
-import useRequest from 'hooks/useRequest';
 import { LIST_PAGES } from 'ajax/endpoints';
+import axios from 'ajax/axios';
 
 // Children
 import GenericErrorBoundary from 'components/errors/GenericErrorBoundary';
@@ -22,6 +23,8 @@ import EditButton from 'components/common/Button/EditButton';
 import NewButton from 'components/common/Button/NewButton';
 import Hero from 'components/common/Hero';
 import useModal from 'hooks/useModal';
+import useUser from 'hooks/useUser';
+import GlobalLoading from 'elements/GlobalLoading';
 
 import AddPageModal from './AddPageModal';
 
@@ -53,25 +56,24 @@ export const pagesbyRP = (pgsRaw, qry) => {
   return orderBy(pagesByRevProgram, 'name');
 };
 
+function fetchPages() {
+  return axios.get(LIST_PAGES).then(({ data }) => data);
+}
+
 function Pages() {
   const alert = useAlert();
   const history = useHistory();
-  const requestGetPages = useRequest();
-  const [pages, setPages] = useState([]);
   const [pageSearchQuery, setPageSearchQuery] = useState([]);
   const { open: showAddPageModal, handleClose, handleOpen } = useModal();
+  const { user, isLoading: userLoading } = useUser();
 
-  useEffect(() => {
-    requestGetPages(
-      { method: 'GET', url: LIST_PAGES },
-      {
-        onSuccess: ({ data }) => {
-          setPages(data);
-        },
-        onFailure: () => alert.error(GENERIC_ERROR)
-      }
-    );
-  }, [alert]);
+  const { data: pages, isLoading: pagesLoading } = useQuery(['pages'], () => fetchPages(), {
+    onError: () => alert.error(GENERIC_ERROR),
+    // we have existing code that expects pages to be iterable, so we provide default empty array val
+    initialData: []
+  });
+
+  const isLoading = pagesLoading || userLoading;
 
   const handleEditPage = (page) => {
     const path = `${EDITOR_ROUTE}/${page.revenue_program.slug}/${page.slug}`;
@@ -80,9 +82,18 @@ function Pages() {
 
   const pagesByRevenueProgram = pagesbyRP(pages, pageSearchQuery);
 
+  const addPageButtonShouldBeDisabled = () => {
+    if ([USER_ROLE_HUB_ADMIN_TYPE, USER_SUPERUSER_TYPE].includes(user?.role_type?.[0])) {
+      return true;
+    }
+    const pageLimit = user?.organizations?.[0]?.plan?.page_limit ?? 0;
+    return pages.length + 1 > pageLimit;
+  };
+
   return (
     <>
       <GenericErrorBoundary>
+        {isLoading && <GlobalLoading />}
         <Hero
           title="Pages"
           subtitle="Welcome to Pages. Here you can create, manage, and publish contribution pages. Create a new page by selecting the ‘New Page’ button below."
@@ -90,7 +101,7 @@ function Pages() {
           onChange={setPageSearchQuery}
         />
         <Content data-testid="pages-list">
-          <NewButton onClick={handleOpen} />
+          <NewButton disabled={addPageButtonShouldBeDisabled()} onClick={handleOpen} />
           {!!pagesByRevenueProgram.length &&
             pagesByRevenueProgram.map((revenueProgram) => (
               <Fragment key={revenueProgram.name}>

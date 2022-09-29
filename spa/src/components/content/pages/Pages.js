@@ -66,7 +66,6 @@ function Pages() {
   const [pageSearchQuery, setPageSearchQuery] = useState([]);
   const { open: showAddPageModal, handleClose, handleOpen } = useModal();
   const { user, isLoading: userLoading } = useUser();
-
   const { data: pages, isLoading: pagesLoading } = useQuery(['pages'], () => fetchPages(), {
     onError: () => alert.error(GENERIC_ERROR),
     // we have existing code that expects pages to be iterable, so we provide default empty array val
@@ -84,7 +83,7 @@ function Pages() {
 
   const addPageButtonShouldBeDisabled = () => {
     if ([USER_ROLE_HUB_ADMIN_TYPE, USER_SUPERUSER_TYPE].includes(user?.role_type?.[0])) {
-      return true;
+      return false;
     }
     const pageLimit = user?.organizations?.[0]?.plan?.page_limit ?? 0;
     return pages.length + 1 > pageLimit;

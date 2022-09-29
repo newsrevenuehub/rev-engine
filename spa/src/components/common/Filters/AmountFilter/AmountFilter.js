@@ -4,28 +4,29 @@ import PropTypes from 'prop-types';
 import CurrencyField from 'components/common/TextField/CurrencyField/CurrencyField';
 
 import { Flex, Label, Content } from './AmountFilter.styled';
-import useDebounce from 'hooks/useDebounce';
 import usePreviousState from 'hooks/usePreviousState';
+import { useDebounce } from 'use-debounce';
 
 const AmountFilter = ({ onChange, className }) => {
   const [amount, setAmountRange] = useState({ amount__gte: '', amount__lte: '' });
 
-  const debouncedAmount = useDebounce(amount, 500);
+  const [debouncedAmount] = useDebounce(amount, 500);
   const prevAmount = usePreviousState(debouncedAmount);
 
   const handleChange = useCallback((event) => {
-    setAmountRange((prevState) => ({ ...prevState, [event.target.name]: Number(event.target.value) || '' }));
+    setAmountRange((prevState) => ({ ...prevState, [event.target.name]: event.target.value || '' }));
   }, []);
 
   useEffect(
     () => {
       if (
-        debouncedAmount?.amount__gte !== prevAmount?.amount__gte ||
-        debouncedAmount?.amount__lte !== prevAmount?.amount__lte
+        (debouncedAmount?.amount__gte !== prevAmount?.amount__gte ||
+          debouncedAmount?.amount__lte !== prevAmount?.amount__lte) &&
+        prevAmount
       ) {
         onChange({
-          amount__gte: amount.amount__gte * 100 || '',
-          amount__lte: amount.amount__lte * 100 || ''
+          amount__gte: Number(amount.amount__gte) * 100 || '',
+          amount__lte: Number(amount.amount__lte) * 100 || ''
         });
       }
     },

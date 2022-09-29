@@ -16,17 +16,19 @@ describe('AmountFilter', () => {
     expect(screen.getByRole('spinbutton', { name: 'Filter maximum amount' })).toHaveValue(null);
   });
 
-  it('should call onChange when amount changes', async () => {
+  it('should call onChange using debounce when amount changes', async () => {
     tree();
 
     const min = screen.getByRole('spinbutton', { name: 'Filter minimum amount' });
-    fireEvent.change(min, { target: { value: '100' } });
-
     const max = screen.getByRole('spinbutton', { name: 'Filter maximum amount' });
+    fireEvent.change(min, { target: { value: '100' } });
     fireEvent.change(max, { target: { value: '500' } });
+    fireEvent.change(min, { target: { value: '200' } });
+
     await waitFor(() => {
-      expect(onChange).toHaveBeenCalledWith({ amount__gte: 10000, amount__lte: 50000 });
+      expect(onChange).toHaveBeenCalledWith({ amount__gte: 20000, amount__lte: 50000 });
     });
+    expect(onChange).toHaveBeenCalledTimes(1);
   });
 
   it('should be accessible', async () => {

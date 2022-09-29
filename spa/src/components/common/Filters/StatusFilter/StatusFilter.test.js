@@ -28,9 +28,9 @@ describe('StatusFilter', () => {
   it('should filter out options', () => {
     tree({ excludeStatusFilters: PAYMENT_STATUS_EXCLUDE_IN_CONTRIBUTIONS });
 
-    PAYMENT_STATUS_EXCLUDE_IN_CONTRIBUTIONS.forEach((status) => {
+    for (const status of PAYMENT_STATUS_EXCLUDE_IN_CONTRIBUTIONS) {
       expect(screen.queryByRole('button', { name: `filter by status: ${status}` })).not.toBeInTheDocument();
-    });
+    }
 
     expect(screen.getAllByRole('button')).toHaveLength(4);
   });

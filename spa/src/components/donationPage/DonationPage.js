@@ -152,6 +152,9 @@ function DonationPage({ page, live = false }) {
     setTotalAmount(userAgreesToPayFees ? amount + feeAmount : amount);
   }, [amount, feeAmount, userAgreesToPayFees]);
 
+  // Used for pre-submission validation below.
+  const isValidTotalAmount = Number.isFinite(totalAmount);
+
   const getCheckoutData = async () => {
     let reCAPTCHAToken = '';
     // getReCAPTCHAToken returns rejected promise if window.grecaptcha is not defined when function runs.
@@ -217,7 +220,10 @@ function DonationPage({ page, live = false }) {
   };
 
   const getCheckoutSubmitButtonText = (currencySymbol, totalAmount, frequency) => {
-    if (isNaN(totalAmount) || totalAmount === 'NaN') return 'Enter a valid amount';
+    if (!isValidTotalAmount) {
+      return 'Enter a valid amount';
+    }
+
     return `Give ${currencySymbol}${formatStringAmountForDisplay(totalAmount)} ${getFrequencyAdverb(frequency)}`;
   };
 
@@ -287,7 +293,12 @@ function DonationPage({ page, live = false }) {
                           </GenericErrorBoundary>
                         ))}
                     </S.PageElements>
-                    <SubmitButton disabled={createPaymentIsLoading} loading={createPaymentIsLoading} type="submit">
+                    <SubmitButton
+                      data-testid="donation-page-submit"
+                      disabled={!isValidTotalAmount || createPaymentIsLoading}
+                      loading={createPaymentIsLoading}
+                      type="submit"
+                    >
                       {getCheckoutSubmitButtonText(page?.currency?.symbol, totalAmount, frequency)}
                     </SubmitButton>
                   </form>

@@ -1,4 +1,5 @@
 import React, { lazy } from 'react';
+import join from 'url-join';
 
 // Router
 import { Route, BrowserRouter, Switch } from 'react-router-dom';
@@ -13,7 +14,7 @@ import ChunkErrorBoundary from 'components/errors/ChunkErrorBoundary';
 
 // Utilities
 import componentLoader from 'utilities/componentLoader';
-import joinPath from 'utilities/joinPath';
+import AddSlashToRoutes from './routes/AddSlashToRoutes';
 
 /**
  * Split Bundles
@@ -28,22 +29,24 @@ const LiveDonationPageContainer = lazy(() =>
 function DonationPageRouter() {
   return (
     <BrowserRouter>
-      <ChunkErrorBoundary>
-        <React.Suspense fallback={<GlobalLoading />}>
-          <Switch>
-            <Route
-              path={joinPath([ROUTES.DONATION_PAGE_SLUG, ROUTES.THANK_YOU_SLUG])}
-              render={() => <TrackPageView component={GenericThankYou} />}
-            />
-            <Route path={ROUTES.THANK_YOU_SLUG} render={() => <TrackPageView component={GenericThankYou} />} />
-            <Route
-              path={ROUTES.DONATION_PAGE_SLUG}
-              render={() => <TrackPageView component={LiveDonationPageContainer} />}
-            />
-            <Route path={'/'} render={() => <TrackPageView component={LiveDonationPageContainer} />} />
-          </Switch>
-        </React.Suspense>
-      </ChunkErrorBoundary>
+      <AddSlashToRoutes>
+        <ChunkErrorBoundary>
+          <React.Suspense fallback={<GlobalLoading />}>
+            <Switch>
+              <Route
+                path={join([ROUTES.DONATION_PAGE_SLUG, ROUTES.THANK_YOU_SLUG])}
+                render={() => <TrackPageView component={GenericThankYou} />}
+              />
+              <Route path={ROUTES.THANK_YOU_SLUG} render={() => <TrackPageView component={GenericThankYou} />} />
+              <Route
+                path={ROUTES.DONATION_PAGE_SLUG}
+                render={() => <TrackPageView component={LiveDonationPageContainer} />}
+              />
+              <Route path={'/'} render={() => <TrackPageView component={LiveDonationPageContainer} />} />
+            </Switch>
+          </React.Suspense>
+        </ChunkErrorBoundary>
+      </AddSlashToRoutes>
     </BrowserRouter>
   );
 }

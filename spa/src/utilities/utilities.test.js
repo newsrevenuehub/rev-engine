@@ -4,7 +4,6 @@ import {
 } from 'constants/featureFlagConstants';
 
 import hasContributionsDashboardAccessToUser from './hasContributionsDashboardAccessToUser';
-import joinPath from './joinPath';
 import getDomain from './getDomain';
 import slugify from './slugify';
 
@@ -59,11 +58,5 @@ describe('Test utilities', () => {
 
   describe('slugify', () => {
     it.each(nameList)('test: %s -> expects: %s', (input, output) => expect(slugify(input)).toBe(output));
-  });
-});
-
-describe('Test joinPath', () => {
-  it('should join multiple paths and remove duplicate separator', () => {
-    expect(joinPath(['a', 'b/', '/c', 'd/'])).toEqual('a/b/c/d/');
   });
 });

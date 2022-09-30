@@ -42,7 +42,7 @@ function Donations() {
   const [donationsCount, setDonationsCount] = useState([]);
   const [pageIndex, setPageIndex] = useState(0);
 
-  const handleRowClick = (row) => history.push(`${DONATIONS_SLUG}/${row.id}/`);
+  const handleRowClick = (row) => history.push(`${DONATIONS_SLUG}${row.id}/`);
 
   const handlePageChange = (newPageIndex) => {
     setPageIndex(newPageIndex);
@@ -123,7 +123,7 @@ function Donations() {
       <PageTitle title="Contributions" />
       <DashboardSectionGroup data-testid="donations">
         <Switch>
-          <Route path={`${path}/:contributionId`}>
+          <Route path={`${path}:contributionId`}>
             <DashboardSection heading="Contribution Info">
               <DonationDetail />
             </DashboardSection>

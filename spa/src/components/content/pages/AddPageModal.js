@@ -4,6 +4,7 @@ import { useTheme } from 'styled-components';
 
 import { faSave, faTrash } from '@fortawesome/free-solid-svg-icons';
 import { useAlert } from 'react-alert';
+import join from 'url-join';
 
 // Routes
 import { useHistory } from 'react-router-dom';
@@ -28,7 +29,6 @@ import CircleButton from 'elements/buttons/CircleButton';
 // import { REVENUE_PROGRAMS, LIST_PAGES, TEMPLATES } from 'ajax/endpoints';
 
 import FormErrors from 'elements/inputs/FormErrors';
-import joinPath from 'utilities/joinPath';
 
 function AddPageModal({ isOpen, closeModal, pagesByRevenueProgram }) {
   const alert = useAlert();
@@ -112,7 +112,7 @@ function AddPageModal({ isOpen, closeModal, pagesByRevenueProgram }) {
           onSuccess: ({ data }) => {
             setLoading(false);
             history.push({
-              pathname: joinPath([EDITOR_ROUTE, revenueProgram.slug, slug, '/']),
+              pathname: join([EDITOR_ROUTE, revenueProgram.slug, slug, '/']),
               state: { pageId: data.id }
             });
           },

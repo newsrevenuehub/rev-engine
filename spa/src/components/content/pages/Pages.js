@@ -68,7 +68,6 @@ function Pages() {
   const { user, isLoading: userLoading } = useUser();
   const { data: pages, isLoading: pagesLoading } = useQuery(['pages'], () => fetchPages(), {
     onError: () => alert.error(GENERIC_ERROR),
-    // we have existing code that expects pages to be iterable, so we provide default empty array val
     initialData: []
   });
 
@@ -100,7 +99,7 @@ function Pages() {
           onChange={setPageSearchQuery}
         />
         <Content data-testid="pages-list">
-          <NewButton disabled={addPageButtonShouldBeDisabled()} onClick={handleOpen} />
+          <NewButton data-testid="new-page-button" disabled={addPageButtonShouldBeDisabled()} onClick={handleOpen} />
           {!!pagesByRevenueProgram.length &&
             pagesByRevenueProgram.map((revenueProgram) => (
               <Fragment key={revenueProgram.name}>

@@ -36,7 +36,7 @@ const SuccessfulPublishModal = ({ open, onClose, page }) => {
         </IconButton>
         <Flex>
           <CheckCircleOutlineIcon />
-          <Title>Successfully Published Page</Title>
+          <Title data-testid="page-creation-success-evidence">Successfully Published Page</Title>
         </Flex>
         <Divider />
         <Content>
@@ -44,7 +44,13 @@ const SuccessfulPublishModal = ({ open, onClose, page }) => {
             Your page was successfully published. Copy the link below to update your website, emails, and other online
             platforms.
           </p>
-          <CopyInputButton title="Contribution Page Link" link={pageLink(page)} copied={copied} setCopied={setCopied} />
+          <CopyInputButton
+            title="Contribution Page Link"
+            link={pageLink(page)}
+            copied={copied}
+            setCopied={setCopied}
+            copyButtonTestId="copy-contribution-page-link"
+          />
           <Divider />
           <p style={{ margin: 0 }}>
             The Contributor Portal link is where your contributors can view, edit, and manage their contributions.

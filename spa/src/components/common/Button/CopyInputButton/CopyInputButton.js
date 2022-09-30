@@ -4,7 +4,7 @@ import { useAlert } from 'react-alert';
 
 import { Title, Input, CopyButton } from './CopyInputButton.styled';
 
-const CopyInputButton = ({ title, link, copied, setCopied }) => {
+const CopyInputButton = ({ title, link, copied, setCopied, copyButtonTestId }) => {
   const alert = useAlert();
   const showCopied = copied === link;
 
@@ -14,6 +14,7 @@ const CopyInputButton = ({ title, link, copied, setCopied }) => {
       <div style={{ display: 'flex' }}>
         <Input aria-label={title} value={link} readOnly />
         <CopyButton
+          data-testid={copyButtonTestId}
           onClick={() => {
             navigator.clipboard.writeText(link).then(
               // If copy succeeds: show "copied" button
@@ -45,7 +46,8 @@ CopyInputButton.propTypes = {
   title: PropTypes.string.isRequired,
   link: PropTypes.string.isRequired,
   copied: PropTypes.string.isRequired,
-  setCopied: PropTypes.func.isRequired
+  setCopied: PropTypes.func.isRequired,
+  copyButtonTestId: PropTypes.string
 };
 
 CopyInputButton.defaultProps = {

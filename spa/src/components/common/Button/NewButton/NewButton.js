@@ -5,14 +5,14 @@ import { Flex, Button, Label } from './NewButton.styled';
 import AddIcon from 'assets/icons/add.svg';
 import { BUTTON_TYPE } from 'constants/buttonConstants';
 
-const NewButton = ({ type, onClick, className, disabled }) => {
+const NewButton = ({ type, onClick, className, disabled, ...rest }) => {
   const buttonLabel = {
     [BUTTON_TYPE.PAGE]: 'New Page',
     [BUTTON_TYPE.STYLE]: 'New Style'
   }[type];
 
   return (
-    <Flex className={className} disabled={disabled}>
+    <Flex className={className} disabled={disabled} {...rest}>
       <Button type={type} onClick={onClick} aria-label={buttonLabel} disabled={disabled}>
         <img src={AddIcon} alt={`add ${type}`} />
       </Button>

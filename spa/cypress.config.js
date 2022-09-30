@@ -21,25 +21,6 @@ module.exports = defineConfig({
     setupNodeEvents(on, config) {
       const webpackOptions = craWebpackConfig('development');
 
-      // This is a hack to work around a problem Cypress seems to encounter with
-      // dynamic imports. Although a lot of Stack Overflow suggests it's caused
-      // by MiniCssPlugin, this is a false lead. The code below is a copy/paste
-      // from https://github.com/cypress-io/cypress/issues/18435
-
-      const publicPath = '';
-      let outputOptions = {};
-
-      Object.defineProperty(webpackOptions, 'output', {
-        get: () => {
-          return { ...outputOptions, publicPath };
-        },
-        set: function (x) {
-          outputOptions = x;
-        }
-      });
-
-      // end copy/paste
-
       on('file:preprocessor', webpackPreprocessor({ webpackOptions, watchOptions: {} }));
     },
     baseUrl: 'http://localhost:3000',

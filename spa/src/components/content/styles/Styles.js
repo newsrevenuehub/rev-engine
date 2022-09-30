@@ -79,6 +79,7 @@ function Styles({ setShowEditStylesModal, setStyleToEdit }) {
           disabled={addStyleButtonShouldBeDisabled()}
           type={BUTTON_TYPE.STYLE}
           onClick={() => setShowEditStylesModal(true)}
+          data-testid="new-style-button"
         />
         {!!styles.length &&
           stylesFiltered.map((style) => (

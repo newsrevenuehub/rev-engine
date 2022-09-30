@@ -81,6 +81,7 @@ function Styles({ setShowEditStylesModal, setStyleToEdit }) {
           onClick={() => setShowEditStylesModal(true)}
           data-testid="new-style-button"
         />
+        {/* TODO: [DEV-2559] Make styles be pre-selected and disabled */}
         {!!styles.length &&
           stylesFiltered.map((style) => (
             <EditButton

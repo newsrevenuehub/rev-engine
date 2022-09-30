@@ -724,6 +724,8 @@ class TestUserViewSet(APITestCase):
         self.assertTrue(
             RevenueProgram.objects.filter(name=self.customize_account_request["organization_name"]).exists()
         )
+        rp = RevenueProgram.objects.filter(name=self.customize_account_request["organization_name"]).first()
+        assert rp.payment_provider
         self.assertTrue(
             RoleAssignment.objects.filter(
                 user=user,

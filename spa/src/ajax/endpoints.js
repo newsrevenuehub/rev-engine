@@ -4,6 +4,23 @@ export const USER = 'users/';
 export const STRIPE_OAUTH = 'stripe/oauth/';
 export const STRIPE_PAYMENT = 'stripe/payment/';
 export const STRIPE_CONFIRMATION = 'stripe/confirmation/';
+export const STRIPE_ACCOUNT_LINK_CREATE = 'create-stripe-account-link/';
+export const STRIPE_ACCOUNT_LINK_CREATE_COMPLETE = 'create-stripe-account-link-complete/';
+
+export const getStripeAccountLinkCreatePath = (rpId) => {
+  return `${STRIPE_ACCOUNT_LINK_CREATE}${rpId}/`;
+};
+
+export const getStripeAccountLinkCreateCompletePath = (rpId) => {
+  return `${STRIPE_ACCOUNT_LINK_CREATE_COMPLETE}${rpId}/`;
+};
+
+export const AUTHORIZE_ONE_TIME_STRIPE_PAYMENT_ROUTE = 'payments/one-time/';
+export const AUTHORIZE_STRIPE_SUBSCRIPTION_ROUTE = 'payments/subscription/';
+
+export function getPaymentSuccessEndpoint(clientProviderSecretId) {
+  return `payments/${clientProviderSecretId}/success/`;
+}
 
 // Pages
 export const LIVE_PAGE_DETAIL = 'pages/live-detail/';
@@ -38,3 +55,4 @@ export const CANCEL_RECURRING = 'cancel-recurring/';
 export const FORGOT_PASSWORD_ENDPOINT = 'users/password_reset/';
 export const RESET_PASSWORD_ENDPOINT = 'users/password_reset/confirm/';
 export const VERIFY_EMAIL_REQUEST_ENDPOINT = 'users/request_account_verification/';
+export const CUSTOMIZE_ACCOUNT_ENDPOINT = 'customize_account/';

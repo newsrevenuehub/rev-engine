@@ -23,7 +23,7 @@ logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
 class UserSerializer(serializers.ModelSerializer):
     """
     This is the serializer that is used to return user data back after successful login.
-    It returns a complete list of (pared-down) available Organzitions and RevenuePrograms based on the user's
+    It returns a complete list of (pared-down) available Organizations and RevenuePrograms based on the user's
     super_user status and RoleAssignment.
     """
 
@@ -150,7 +150,7 @@ class CustomizeAccountSerializer(UserSerializer):
 
     first_name = serializers.CharField(write_only=True, required=True)
     last_name = serializers.CharField(write_only=True, required=True)
-    job_title = serializers.CharField(write_only=True, required=True)
+    job_title = serializers.CharField(write_only=True, required=False, default=None)
     organization_name = serializers.CharField(write_only=True, required=True)
     organization_tax_status = serializers.ChoiceField(choices=["for-profit", "nonprofit"], required=True)
 

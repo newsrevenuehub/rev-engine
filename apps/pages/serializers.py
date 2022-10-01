@@ -191,6 +191,21 @@ class DonationPageFullDetailSerializer(serializers.ModelSerializer):
             serializer = BenefitLevelDetailSerializer(benefit_levels, many=True)
             return serializer.data
 
+    def validate_page_limit(self, data):
+        """Ensure that adding a page would not push parent org over its page limit"""
+        if self.context["request"].method != "POST":
+            return
+        if DonationPage.objects.filter(
+            revenue_program__organization=(org := data["revenue_program"].organization)
+        ).count() + 1 > (pl := org.get_plan_data().page_limit):
+            raise serializers.ValidationError(
+                {"non_field_errors": [f"Your organization has reached its limit of {pl} page{'s' if pl > 1 else ''}"]}
+            )
+
+    def validate(self, data):
+        self.validate_page_limit(data)
+        return data
+
 
 class DonationPageListSerializer(serializers.ModelSerializer):
     revenue_program = RevenueProgramListInlineSerializer(read_only=True)

@@ -5,40 +5,15 @@ import { ICONS } from 'assets/icons/SvgIcon';
 // Util
 import formatStringAmountForDisplay from 'utilities/formatStringAmountForDisplay';
 import { getFrequencyAdverb } from 'utilities/parseFrequency';
-import calculateStripeFee from 'utilities/calculateStripeFee';
 
 // Context
 import { usePage } from '../DonationPage';
 
 // Stripe
-import StripePayment from 'components/paymentProviders/stripe/StripePayment';
+import StripePaymentWrapper from 'components/paymentProviders/stripe/StripePaymentWrapper';
 
-function DPayment({ element, live }) {
-  const {
-    page: { stripe_account_id }
-  } = usePage();
-  /*
-    element.content is an object, whose keys are providers.
-    For instance, element.content.stripe is an array of supported payment types:
-    eg ["card", "apple", "google"]
-
-    Eventually we may support multiple providers, each with different supported payment methods.
-    Vaguely, it seems likely we'd want some sort of tabbed-interface where each tab is a provider.
-    For now, we only support stripe, so there's no need for a fancy interface.
-  */
-  return (
-    <DElement>
-      {live ? (
-        <S.DPayment>
-          {element?.content && element.content['stripe'] && (
-            <StripePayment offerPayFees={element.content?.offerPayFees} stripeAccountId={stripe_account_id} />
-          )}
-        </S.DPayment>
-      ) : (
-        <NotLivePlaceholder />
-      )}
-    </DElement>
-  );
+function DPayment({ live }) {
+  return <DElement>{live ? <StripePaymentWrapper /> : <NotLivePlaceholder />}</DElement>;
 }
 
 DPayment.type = 'DPayment';
@@ -60,8 +35,7 @@ function NotLivePlaceholder() {
 }
 
 export function PayFeesWidget() {
-  const { page, frequency, amount, payFee, setPayFee } = usePage();
-
+  const { page, frequency, userAgreesToPayFees, setUserAgreesToPayFees, feeAmount } = usePage();
   const currencySymbol = page?.currency?.symbol;
 
   return (
@@ -69,16 +43,14 @@ export function PayFeesWidget() {
       <S.PayFeesQQ>Agree to pay fees?</S.PayFeesQQ>
       <S.Checkbox
         label={
-          amount
-            ? `${currencySymbol}${formatStringAmountForDisplay(
-                calculateStripeFee(amount, frequency, page.revenue_program_is_nonprofit)
-              )} ${getFrequencyAdverb(frequency)}`
+          feeAmount
+            ? `${currencySymbol}${formatStringAmountForDisplay(feeAmount)} ${getFrequencyAdverb(frequency)}`
             : ''
         }
         toggle
-        checked={payFee}
-        onChange={(_e, { checked }) => setPayFee(checked)}
-        data-testid={`pay-fees-${payFee ? 'checked' : 'not-checked'}`}
+        checked={userAgreesToPayFees}
+        onChange={(_, { checked }) => setUserAgreesToPayFees(checked)}
+        data-testid={`pay-fees-${userAgreesToPayFees ? 'checked' : 'not-checked'}`}
       />
       <S.PayFeesDescription>
         Paying the Stripe transaction fee, while not required, directs more money in support of our mission.

@@ -26,19 +26,6 @@ TEST_STRIPE_LIVE_KEY = "my_test_live_key"
 TEST_DOMAIN_APEX = "testapexdomain.com"
 
 
-class TestPlanModel(TestCase):
-    def test_cannot_delete_plan_when_referenced_by_org(self):
-        plan = factories.PlanFactory()
-        factories.OrganizationFactory(plan=plan)
-        with self.assertRaises(ProtectedError) as protected_error:
-            plan.delete()
-        error_msg = (
-            "Cannot delete some instances of model 'Plan' because they are referenced through protected "
-            "foreign keys: 'Organization.plan'."
-        )
-        self.assertEqual(error_msg, protected_error.exception.args[0])
-
-
 class TestOrganizationModel(TestCase):
     def setUp(self):
         self.organization = factories.OrganizationFactory()

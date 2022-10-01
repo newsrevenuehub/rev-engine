@@ -1,5 +1,3 @@
-from unittest import mock
-
 from django.conf import settings
 
 import pytest
@@ -9,45 +7,13 @@ from apps.organizations.models import (
     Benefit,
     BenefitLevel,
     BenefitLevelBenefit,
-    Feature,
     Organization,
     PaymentProvider,
-    Plan,
     RevenueProgram,
 )
-from apps.users.choices import Roles
 from apps.users.models import User
 
 from .factories import RevenueProgramFactory
-
-
-class TestFeature:
-    def test_basics(self):
-        t = Feature()
-        str(t)
-
-
-class TestPlan:
-    def test_basics(self):
-        t = Plan()
-        str(t)
-
-    @pytest.mark.parametrize(
-        "role",
-        [
-            (Roles.HUB_ADMIN),
-            (Roles.ORG_ADMIN),
-            (Roles.RP_ADMIN),
-        ],
-    )
-    def test_filter_queryset_by_role_assigment(self, role):
-        role_assignment = mock.Mock(role_type=role, organization=Organization())
-        Plan.filter_queryset_by_role_assignment(role_assignment, Plan.objects.all())
-
-    def test_unknown_filter_queryset_by_role_assigment(self):
-        role_assignment = mock.Mock(role_type="wat")
-        with pytest.raises(apps.users.models.UnexpectedRoleType):
-            Plan.filter_queryset_by_role_assignment(role_assignment, Plan.objects.all())
 
 
 @pytest.mark.django_db

@@ -3,11 +3,12 @@ import logging
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.shortcuts import get_object_or_404
-from django.utils import timezone
+from django.utils.decorators import method_decorator
+from django.views.decorators.csrf import csrf_protect
 
 import stripe
 from django_filters.rest_framework import DjangoFilterBackend
-from rest_framework import status, viewsets
+from rest_framework import mixins, status, viewsets
 from rest_framework.decorators import action, api_view, authentication_classes, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
@@ -18,23 +19,16 @@ from apps.api.permissions import (
     IsContributorOwningContribution,
     IsHubAdmin,
 )
-from apps.common.utils import get_original_ip_from_request
 from apps.contributions import serializers
 from apps.contributions.filters import ContributionFilter
-from apps.contributions.models import Contribution, ContributionInterval, Contributor
-from apps.contributions.payment_managers import (
-    PaymentBadParamsError,
-    PaymentProviderError,
-    StripePaymentManager,
-)
+from apps.contributions.models import Contribution, Contributor
+from apps.contributions.payment_managers import PaymentProviderError
 from apps.contributions.stripe_contributions_provider import (
     ContributionsCacheProvider,
     SubscriptionsCacheProvider,
 )
 from apps.contributions.tasks import task_pull_serialized_stripe_contributions_to_cache
-from apps.contributions.utils import get_sha256_hash
 from apps.contributions.webhooks import StripeWebhookProcessor
-from apps.emails.tasks import send_templated_email
 from apps.organizations.models import PaymentProvider, RevenueProgram
 from apps.public.permissions import IsActiveSuperUser
 from apps.users.views import FilterQuerySetByUserMixin
@@ -43,88 +37,6 @@ from apps.users.views import FilterQuerySetByUserMixin
 logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
 
 UserModel = get_user_model()
-
-
-@api_view(["POST"])
-@authentication_classes([])
-@permission_classes([])
-def stripe_payment(request):
-    # Grab required data from headers
-    pi_data = request.data
-    pi_data["referer"] = request.META.get("HTTP_REFERER")
-    pi_data["ip"] = get_original_ip_from_request(request)
-    # StripePaymentManager will grab the right serializer based on "interval"
-    payment = StripePaymentManager(data=pi_data)
-    # Validate data expected by Stripe and BadActor API
-    payment.validate()
-    # Performs request to BadActor API
-    payment.get_bad_actor_score()
-
-    try:
-        rp = RevenueProgram.objects.get(pk=request.data["revenue_program_id"])
-        response_body = {
-            "detail": "success",
-        }
-
-        if (interval := payment.validated_data["interval"]) == ContributionInterval.ONE_TIME.value:
-            payment_intent = payment.create_one_time_payment()
-            response_body["clientSecret"] = payment_intent["client_secret"]
-        elif interval in (
-            ContributionInterval.MONTHLY.value,
-            ContributionInterval.YEARLY.value,
-        ):
-            payment.create_subscription()
-        else:
-            logger.warning("stripe_payment view recieved unexpetected interval value: [%s]", interval)
-            raise PaymentBadParamsError()
-
-        if payment.get_organization().send_receipt_email_via_nre:
-            contributor_email = payment.validated_data["email"]
-            donation_amount_display = f"${(payment.validated_data['amount'] / 100):.2f}"
-            contribution_date = timezone.now()
-            interval_to_display = {
-                ContributionInterval.MONTHLY.value: "month",
-                ContributionInterval.YEARLY.value: "year",
-            }
-
-            template_data = {
-                "contribution_date": contribution_date.strftime("%m-%d-%y"),
-                "contributor_email": contributor_email,
-                "contribution_amount": donation_amount_display,
-                "contribution_interval": payment.validated_data["interval"],
-                "contribution_interval_display_value": interval_to_display.get(payment.validated_data["interval"]),
-                "copyright_year": contribution_date.year,
-                "org_name": rp.organization.name,
-            }
-            send_templated_email.delay(
-                contributor_email,
-                "Thank you for your contribution!",
-                "nrh-default-contribution-confirmation-email.txt",
-                "nrh-default-contribution-confirmation-email.html",
-                template_data,
-            )
-
-    except RevenueProgram.DoesNotExist:
-        logger.warning(
-            "stripe_payment view called with unexpected revenue program id [%s]", request.data["revenue_program_id"]
-        )
-        return Response({"detail": "There was an error processing your payment"}, status=status.HTTP_400_BAD_REQUEST)
-
-    except PaymentBadParamsError:
-        logger.warning("stripe_payment view raised a PaymentBadParamsError")
-        return Response({"detail": "There was an error processing your payment."}, status=status.HTTP_400_BAD_REQUEST)
-    except PaymentProviderError as pp_error:
-        error_message = str(pp_error)
-        logger.error(error_message)
-        return Response({"detail": error_message}, status=status.HTTP_400_BAD_REQUEST)
-
-    # create hash based on email.
-    if "email" in pi_data:
-        response_body["email_hash"] = get_sha256_hash(pi_data["email"])
-    else:
-        response_body["email_hash"] = ""
-
-    return Response(response_body, status=status.HTTP_200_OK)
 
 
 @api_view(["POST"])
@@ -256,9 +168,54 @@ def process_stripe_webhook_view(request):
     except ValueError:
         logger.exception()
     except Contribution.DoesNotExist:
-        logger.info("Could not find contribution matching provider_payment_id", exc_info=True)
+        logger.exception("Could not find contribution matching provider_payment_id")
 
     return Response(status=status.HTTP_200_OK)
+
+
+@method_decorator(csrf_protect, name="dispatch")
+class OneTimePaymentViewSet(mixins.CreateModelMixin, mixins.UpdateModelMixin, viewsets.GenericViewSet):
+    permission_classes = []
+    serializer_class = serializers.CreateOneTimePaymentSerializer
+    lookup_field = "provider_client_secret_id"
+
+    def get_serializer_context(self):
+        # we need request in context for create in order to supply
+        # metadata to request to bad actor api, in serializer
+        context = super().get_serializer_context()
+        context.update({"request": self.request})
+        return context
+
+
+@method_decorator(csrf_protect, name="dispatch")
+class SubscriptionPaymentViewSet(mixins.CreateModelMixin, mixins.UpdateModelMixin, viewsets.GenericViewSet):
+    permission_classes = []
+    serializer_class = serializers.CreateRecurringPaymentSerializer
+    lookup_field = "provider_client_secret_id"
+
+    def get_serializer_context(self):
+        # we need request in context for create in order to supply
+        # metadata to request to bad actor api, in serializer
+        context = super().get_serializer_context()
+        context.update({"request": self.request})
+        return context
+
+
+@api_view(["PATCH"])
+@permission_classes([])
+def payment_success(request, provider_client_secret_id=None):
+    """This view is used by the SPA after a Stripe payment has been submitted to Stripe from front end.
+
+    We provide the url for this view to `return_url` parameter we call Stripe to confirm payment on front end,
+    and use this view to trigger a thank you email to the contributor if the org has configured the contribution page
+    accordingly.
+    """
+    try:
+        contribution = Contribution.objects.get(provider_client_secret_id=provider_client_secret_id)
+    except Contribution.DoesNotExist:
+        return Response(status=status.HTTP_404_NOT_FOUND)
+    contribution.handle_thank_you_email()
+    return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 class ContributionsViewSet(viewsets.ReadOnlyModelViewSet, FilterQuerySetByUserMixin):
@@ -411,6 +368,8 @@ class SubscriptionsViewSet(viewsets.ViewSet):
             logger.exception("stripe.Subscription.modify returned a StripeError")
             return Response({"detail": "Error updating Subscription"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
+        # TODO: [DEV-2438] return the updated sub and update the cache
+
         return Response({"detail": "Success"}, status=status.HTTP_204_NO_CONTENT)
 
     def destroy(self, request, pk):
@@ -423,14 +382,16 @@ class SubscriptionsViewSet(viewsets.ViewSet):
         subscription = stripe.Subscription.retrieve(
             pk, stripe_account=revenue_program.payment_provider.stripe_account_id, expand=["customer"]
         )
-
         if request.user.email.lower() != subscription.customer.email.lower():
             # TODO: [DEV-2287] should we find a way to user DRF's permissioning scheme here instead?
             return Response({"detail": "Forbidden"}, status=status.HTTP_403_FORBIDDEN)
+
         try:
             stripe.Subscription.delete(pk, stripe_account=revenue_program.payment_provider.stripe_account_id)
         except stripe.error.StripeError:
             logger.exception("stripe.Subscription.delete returned a StripeError")
             return Response({"detail": "Error"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+        # TODO: [DEV-2438] return the canceled sub and update the cache
 
         return Response({"detail": "Success"}, status=status.HTTP_204_NO_CONTENT)

@@ -1,12 +1,11 @@
-import { useMemo } from 'react';
 import * as S from './DonationPageDisclaimer.styled';
 import { format } from 'date-fns';
+// needs to be relative import otherwise aliasing not work in jest tests
+import { CONTRIBUTION_INTERVALS } from '../../constants';
 
-import { getTotalAmount } from 'components/paymentProviders/stripe/stripeFns';
-
-function DonationPageDisclaimer({ page, amount, payFee, frequency }) {
+function DonationPageDisclaimer({ page, amount, frequency }) {
   const getFreqText = () =>
-    frequency === 'one_time' ? (
+    frequency === CONTRIBUTION_INTERVALS.ONE_TIME ? (
       ''
     ) : (
       <span>
@@ -15,21 +14,16 @@ function DonationPageDisclaimer({ page, amount, payFee, frequency }) {
     );
 
   const getAmountText = () => {
-    if (frequency === 'one_time') return format(new Date(), 'MMM do, y');
-    if (frequency === 'month') return `the ${format(new Date(), 'do')} of the month until you cancel`;
-    if (frequency === 'year') return `${format(new Date(), 'L/d')} yearly until you cancel`;
+    if (frequency === CONTRIBUTION_INTERVALS.ONE_TIME) return format(new Date(), 'MMM do, y');
+    if (frequency === CONTRIBUTION_INTERVALS.MONTHLY)
+      return `the ${format(new Date(), 'do')} of the month until you cancel`;
+    if (frequency === CONTRIBUTION_INTERVALS.ANNUAL) return `${format(new Date(), 'L/d')} yearly until you cancel`;
   };
 
-  const totalAmount = useMemo(
-    () =>
-      `${page.currency?.symbol}${getTotalAmount(amount, payFee, frequency, page.revenue_program_is_nonprofit)}${
-        frequency === 'one_time' ? '' : ','
-      }`,
-    [amount, payFee, frequency, page.revenue_program_is_nonprofit, page.currency.symbol]
-  );
+  const amountString = `${page.currency?.symbol}${amount}${frequency === CONTRIBUTION_INTERVALS.ONE_TIME ? '' : ','}`;
 
   return (
-    <S.DonationPageDisclaimer data-testid="donation-page-static-text">
+    <S.DonationPageDisclaimer data-testid="donation-page-disclaimer">
       <p>
         By proceeding with this transaction, you agree to our{' '}
         <strong>
@@ -45,7 +39,7 @@ function DonationPageDisclaimer({ page, amount, payFee, frequency }) {
         </strong>
         . Additionally, by proceeding with this transaction, you're authorizing today's payment{getFreqText()} of{' '}
         <strong>
-          {totalAmount} to be processed on or adjacent to {getAmountText()}.
+          {amountString} to be processed on or adjacent to {getAmountText()}.
         </strong>
       </p>
     </S.DonationPageDisclaimer>

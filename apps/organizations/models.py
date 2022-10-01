@@ -1,4 +1,5 @@
 import logging
+from dataclasses import dataclass
 
 from django.conf import settings
 from django.core.exceptions import ValidationError
@@ -17,64 +18,55 @@ from apps.users.models import RoleAssignmentResourceModelMixin, UnexpectedRoleTy
 
 logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
 
+# This is for limiting creation of pages, revenue programs, and role assignments
+# in cases where our marketing materials use language about "unlimited". We don't
+# want a malactor to be able to create an unbounded number of these entities. If a
+# legitimate actor hits these limits, it can be handled via customer service.
+UNLIMITED_CEILING = 200
+
+
 # RFC-1035 limits domain labels to 63 characters, and RP slugs are used for subdomains,
 # so we limit to 63 chars
 RP_SLUG_MAX_LENGTH = 63
 
-
-class Feature(IndexedTimeStampedModel):
-    VALID_BOOLEAN_INPUTS = ["t", "f", "0", "1"]
-
-    class FeatureType(models.TextChoices):
-        PAGE_LIMIT = "PL", ("Page Limit")
-        BOOLEAN = "BL", ("Boolean")
-
-    name = models.CharField(max_length=255)
-    feature_type = models.CharField(
-        max_length=2,
-        choices=FeatureType.choices,
-        default=FeatureType.PAGE_LIMIT,
-    )
-    feature_value = models.CharField(
-        max_length=32,
-        blank=False,
-        help_text="Limit feature types must be a positive integer. Valid Boolean Type values are ('t', 'f', '1', '0')",
-    )
-    description = models.TextField(blank=True)
-
-    class Meta:
-        unique_together = ["feature_type", "feature_value"]
-
-    def __str__(self):
-        return self.name
-
-    def save(self, *args, **kwargs):
-        super().save(*args, **kwargs)
+CURRENCY_CHOICES = [(k, k) for k in settings.CURRENCIES.keys()]
 
 
-class Plan(IndexedTimeStampedModel, RoleAssignmentResourceModelMixin):
-    name = models.CharField(max_length=255)
-    features = models.ManyToManyField("organizations.Feature", related_name="plans", blank=True)
+@dataclass
+class Plan:
+    """Used for modeling Organization plans"""
 
-    def __str__(self):
-        return self.name
+    name: str
+    label: str
+    page_limit: int = 1
+
+
+FreePlan = Plan(
+    name="FREE",
+    label="Free",
+)
+
+PlusPlan = Plan(
+    name="PLUS",
+    label="Plus",
+    # If this limit gets hit, it can be dealt with as a customer service issue.
+    page_limit=UNLIMITED_CEILING,
+)
+
+
+class Plans(models.TextChoices):
+
+    FREE = FreePlan.name, FreePlan.label
+    PLUS = PlusPlan.name, PlusPlan.label
 
     @classmethod
-    def filter_queryset_by_role_assignment(cls, role_assignment, queryset):
-        if role_assignment.role_type == Roles.HUB_ADMIN:
-            return queryset.all()
-        elif role_assignment.role_type in (Roles.ORG_ADMIN, Roles.RP_ADMIN):
-            return queryset.filter(organization=role_assignment.organization)
-        else:
-            raise UnexpectedRoleType(f"{role_assignment.role_type} is not a valid value")
-
-
-CURRENCY_CHOICES = [(k, k) for k, _ in settings.CURRENCIES.items()]
+    def get_plan(cls, name):
+        return {cls.FREE.value: FreePlan, cls.PLUS.value: PlusPlan}.get(name, None)
 
 
 class Organization(IndexedTimeStampedModel, RoleAssignmentResourceModelMixin):
     name = models.CharField(max_length=255, unique=True)
-    plan = models.ForeignKey("organizations.Plan", null=True, on_delete=models.PROTECT)
+    plan = models.CharField(choices=Plans.choices, max_length=10, default=Plans.FREE)
     salesforce_id = models.CharField(max_length=255, blank=True, verbose_name="Salesforce ID")
 
     # TODO: [DEV-2035] Remove Organization.slug field entirely
@@ -98,6 +90,9 @@ class Organization(IndexedTimeStampedModel, RoleAssignmentResourceModelMixin):
 
     def __str__(self):
         return self.name
+
+    def get_plan_data(self):
+        return Plans.get_plan(self.plan)
 
     @property
     def admin_revenueprogram_options(self):
@@ -214,6 +209,7 @@ class RevenueProgram(IndexedTimeStampedModel):
         on_delete=models.SET_NULL,
         help_text="Choose an optional default donation page once you've saved your initial revenue program",
     )
+    # TODO: [DEV-2403] non_profit should probably be moved to the payment provider?
     non_profit = models.BooleanField(default=True, verbose_name="Non-profit?")
     payment_provider = models.ForeignKey("organizations.PaymentProvider", null=True, on_delete=models.SET_NULL)
     domain_apple_verified_date = models.DateTimeField(blank=True, null=True)
@@ -251,6 +247,10 @@ class RevenueProgram(IndexedTimeStampedModel):
 
     def __str__(self):
         return self.name
+
+    @property
+    def payment_provider_stripe_verified(self):
+        return self.payment_provider.stripe_verified if self.payment_provider else False
 
     @property
     def admin_style_options(self):

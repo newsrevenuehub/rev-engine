@@ -13,6 +13,10 @@ export const DAmount = styled.ul`
   }
 `;
 
+export const FeesContainer = styled.div`
+  grid-column: 1 / span 2;
+`;
+
 export const OtherAmount = styled.div`
   display: flex;
   justify-content: space-between;

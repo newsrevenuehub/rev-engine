@@ -10,8 +10,6 @@ import ContributorRouter from 'components/ContributorRouter';
 // Slugs
 import * as ROUTES from 'routes';
 
-import UserContextProvider from './UserContext';
-
 // Components/Children
 import GlobalLoading from 'elements/GlobalLoading';
 import TrackPageView from 'components/analytics/TrackPageView';
@@ -49,8 +47,12 @@ function DashboardRouter() {
               <Route exact path={ROUTES.FORGOT_PASSWORD} render={() => <TrackPageView component={ForgotPassword} />} />
               <Route exact path={ROUTES.RESET_PASSWORD} render={() => <TrackPageView component={ResetPassword} />} />
 
-              <Redirect from="/verified/:slug" to="/verify-email-success/?result=:slug" />
+              <Redirect from="/verified/:slug" to="/verify-email-success?result=:slug" />
               <Redirect from={ROUTES.VERIFIED} to={ROUTES.VERIFY_EMAIL_SUCCESS} />
+              <Redirect
+                from={ROUTES.STRIPE_ACCOUNT_LINK_RETURN}
+                to={`${ROUTES.CONTENT_SLUG}?stripeAccountLinkSuccess`}
+              />
 
               {/* Organization Dashboard */}
               <ProtectedRoute
@@ -60,13 +62,10 @@ function DashboardRouter() {
                   ROUTES.CONTENT_SLUG,
                   ROUTES.CUSTOMIZE_SLUG,
                   ROUTES.EDITOR_ROUTE,
-                  ROUTES.VERIFY_EMAIL_SUCCESS
+                  ROUTES.VERIFY_EMAIL_SUCCESS,
+                  ROUTES.PROFILE
                 ]}
-                render={() => (
-                  <UserContextProvider>
-                    <TrackPageView component={Main} />
-                  </UserContextProvider>
-                )}
+                render={() => <TrackPageView component={Main} />}
               />
 
               <Redirect to={ROUTES.CONTENT_SLUG} />

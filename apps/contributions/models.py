@@ -1,10 +1,12 @@
 import uuid
 
 from django.db import models
+from django.utils import timezone
 
 import stripe
 
 from apps.common.models import IndexedTimeStampedModel
+from apps.emails.tasks import send_templated_email
 from apps.slack.models import SlackNotificationTypes
 from apps.slack.slack_manager import SlackManager
 from apps.users.choices import Roles
@@ -43,6 +45,36 @@ class Contributor(IndexedTimeStampedModel):
 
     def __str__(self):
         return self.email
+
+    def create_stripe_customer(
+        self,
+        rp_stripe_account_id,
+        customer_name=None,
+        phone=None,
+        street=None,
+        city=None,
+        state=None,
+        postal_code=None,
+        country=None,
+        metadata=None,
+    ):
+        """Create a Stripe customer using contributor email"""
+        address = {
+            "line1": street,
+            "city": city,
+            "state": state,
+            "postal_code": postal_code,
+            "country": country,
+        }
+        return stripe.Customer.create(
+            email=self.email,
+            address=address,
+            shipping={"address": address, "name": customer_name},
+            name=customer_name,
+            phone=phone,
+            stripe_account=rp_stripe_account_id,
+            metadata=metadata,
+        )
 
 
 class ContributionInterval(models.TextChoices):
@@ -103,6 +135,9 @@ class Contribution(IndexedTimeStampedModel, RoleAssignmentResourceModelMixin):
     payment_provider_used = models.CharField(max_length=64)
     payment_provider_data = models.JSONField(null=True)
     provider_payment_id = models.CharField(max_length=255, blank=True, null=True)
+    # This is the `client_id` value in the response from StripeAPI after creating a
+    # Stripe PaymentElement or Subscription
+    provider_client_secret_id = models.CharField(max_length=255, blank=True, null=True)
     provider_subscription_id = models.CharField(max_length=255, blank=True, null=True)
     provider_customer_id = models.CharField(max_length=255, blank=True, null=True)
     provider_payment_method_id = models.CharField(max_length=255, blank=True, null=True)
@@ -237,3 +272,76 @@ class Contribution(IndexedTimeStampedModel, RoleAssignmentResourceModelMixin):
             return queryset.filter(donation_page__revenue_program__in=role_assignment.revenue_programs.all())
         else:
             raise UnexpectedRoleType(f"`{role_assignment.role_type}` is not a valid role type")
+
+    def create_stripe_one_time_payment_intent(self, stripe_customer_id, metadata):
+        """Create a Stripe PaymentIntent and attach its id and client_secret to the contribution
+
+        See https://stripe.com/docs/api/payment_intents/create for more info
+        """
+        intent = stripe.PaymentIntent.create(
+            amount=self.amount,
+            currency=self.currency,
+            customer=stripe_customer_id,
+            metadata=metadata,
+            receipt_email=self.contributor.email,
+            statement_descriptor_suffix=self.donation_page.revenue_program.stripe_statement_descriptor_suffix,
+            stripe_account=self.donation_page.revenue_program.stripe_account_id,
+        )
+        self.provider_payment_id = intent["id"]
+        self.provider_client_secret_id = intent["client_secret"]
+        self.provider_customer_id = intent["customer"]
+        self.save()
+        return intent
+
+    def create_stripe_subscription(self, stripe_customer_id, metadata):
+        """Create a Stripe Subscription and attach its data to the contribution
+
+        See https://stripe.com/docs/api/subscriptions/create for more info
+        """
+        price_data = {
+            "unit_amount": self.amount,
+            "currency": self.currency,
+            "product": self.donation_page.revenue_program.payment_provider.stripe_product_id,
+            "recurring": {
+                "interval": self.interval,
+            },
+        }
+        subscription = stripe.Subscription.create(
+            customer=stripe_customer_id,
+            items=[
+                {
+                    "price_data": price_data,
+                }
+            ],
+            stripe_account=self.donation_page.revenue_program.payment_provider.stripe_account_id,
+            metadata=metadata,
+            payment_behavior="default_incomplete",
+            payment_settings={"save_default_payment_method": "on_subscription"},
+            expand=["latest_invoice.payment_intent"],
+        )
+        self.payment_provider_data = subscription
+        self.provider_subscription_id = subscription["id"]
+        self.provider_customer_id = subscription["customer"]
+        self.provider_client_secret_id = subscription["latest_invoice"]["payment_intent"]["client_secret"]
+        self.save()
+        return subscription
+
+    def handle_thank_you_email(self, contribution_received_at=None):
+        """Send a thank you email to contribution's contributor if org is configured to have NRE send thank you email"""
+        contribution_received_at = contribution_received_at if contribution_received_at else timezone.now()
+        if self.revenue_program.organization.send_receipt_email_via_nre:
+            send_templated_email.delay(
+                self.contributor.email,
+                "Thank you for your contribution!",
+                "nrh-default-contribution-confirmation-email.txt",
+                "nrh-default-contribution-confirmation-email.html",
+                {
+                    "contribution_date": contribution_received_at.strftime("%m-%d-%y"),
+                    "contributor_email": self.contributor.email,
+                    "contribution_amount": self.formatted_amount,
+                    "contribution_interval": self.interval,
+                    "contribution_interval_display_value": self.interval if self.interval != "one_time" else None,
+                    "copyright_year": contribution_received_at.year,
+                    "org_name": self.revenue_program.organization.name,
+                },
+            )

@@ -1,3 +1,5 @@
+import { CONTRIBUTION_INTERVALS } from 'constants';
+
 const STRIPE_NP_RATE = 0.022;
 const STRIPE_FP_RATE = 0.029;
 const STRIPE_FIXED = 0.3;
@@ -22,7 +24,7 @@ function calculateStripeFee(amount, interval, isNonProfit) {
 
   const amountInt = parseFloat(amount);
   if (isNaN(amountInt)) return null;
-  const isRecurring = interval !== 'one_time';
+  const isRecurring = interval !== CONTRIBUTION_INTERVALS.ONE_TIME;
   let RATE = isNonProfit ? STRIPE_NP_RATE : STRIPE_FP_RATE;
 
   if (isRecurring && SUBSCRIPTION_UPCHARGE_ENABLED) RATE += SUBSCRIPTION_UPCHARGE;

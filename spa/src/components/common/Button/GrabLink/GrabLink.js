@@ -2,22 +2,18 @@ import { useState } from 'react';
 import PropTypes from 'prop-types';
 
 import { pageHasBeenPublished } from 'utilities/editPageGetSuccessMessage';
-import CheckIcon from '@material-ui/icons/Check';
 import LinkIcon from '@material-ui/icons/Link';
-import getDomain from 'utilities/getDomain';
 
-import { Flex, Button, Popover, Text, Title, Input, CopyButton } from './GrabLink.styled';
+import CopyInputButton from 'components/common/Button/CopyInputButton';
+import { pageLink, portalLink } from 'utilities/getPageLinks';
+import { Flex, Button, Popover, Text } from './GrabLink.styled';
 
 const GrabLink = ({ page, className }) => {
-  const [copied, setCopied] = useState(null);
+  const [copied, setCopied] = useState('');
   const [anchorEl, setAnchorEl] = useState(null);
   const open = Boolean(anchorEl);
   const id = open ? 'grab link popover' : undefined;
-  const domain = getDomain(window.location.host);
-
   const isPublished = pageHasBeenPublished(page);
-  const pageLink = `${page?.revenue_program?.slug}.${domain}/${page?.slug}`;
-  const portalLink = `${page?.revenue_program?.slug}.${domain}/contributor`;
 
   const handleClick = (event) => {
     setAnchorEl(event.currentTarget);
@@ -28,40 +24,6 @@ const GrabLink = ({ page, className }) => {
   };
 
   if (!isPublished) return null;
-
-  const renderCopyButton = (title, link) => {
-    const showCopied = copied === link;
-    return (
-      <div>
-        <Title>{title}</Title>
-        <div style={{ display: 'flex' }}>
-          <Input aria-label={link} value={link} onChange={() => {}} />
-          <CopyButton
-            onClick={() => {
-              navigator.clipboard.writeText(link).then(
-                // If copy succeeds: show "copied" button
-                () => setCopied(link),
-                // If copy fails: show alert with reason and alternate solution
-                (error) =>
-                  alert(`Failed to copy link automatically. Please try selecting the text directly from the input.
-                Error reason: ${error}`)
-              );
-            }}
-            aria-label={`${showCopied ? 'Copied' : 'Copy'} ${title}`}
-            copied={showCopied ? 'true' : undefined}
-          >
-            {showCopied ? (
-              <>
-                Copied <CheckIcon style={{ width: 18, height: 18, marginLeft: 4 }} />
-              </>
-            ) : (
-              'Copy'
-            )}
-          </CopyButton>
-        </div>
-      </div>
-    );
-  };
 
   return (
     <Flex className={className}>
@@ -86,8 +48,13 @@ const GrabLink = ({ page, className }) => {
         }}
       >
         <Text>Copy the links to update your website, emails, and other online platforms.</Text>
-        {renderCopyButton('Contribution Page Link', pageLink)}
-        {renderCopyButton('Contributor Portal Link', portalLink)}
+        <CopyInputButton title="Contribution Page Link" link={pageLink(page)} copied={copied} setCopied={setCopied} />
+        <CopyInputButton
+          title="Contributor Portal Link"
+          link={portalLink(page)}
+          copied={copied}
+          setCopied={setCopied}
+        />
       </Popover>
     </Flex>
   );

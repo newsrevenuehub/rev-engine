@@ -2,7 +2,7 @@ import { getEndpoint } from '../support/util';
 import { LIST_PAGES, LIST_STYLES, USER } from 'ajax/endpoints';
 import { CUSTOMIZE_SLUG, SIGN_IN } from 'routes';
 
-import hubAdminUser from '../fixtures/user/hub-admin';
+import hubAdminUser from '../fixtures/user/login-success-hub-admin';
 import { CONTENT_SECTION_ACCESS_FLAG_NAME } from 'constants/featureFlagConstants';
 
 const contentSectionFlag = {

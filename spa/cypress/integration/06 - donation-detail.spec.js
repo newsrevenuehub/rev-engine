@@ -8,7 +8,7 @@ import { CONTRIBUTIONS, PROCESS_FLAGGED, USER, LIST_PAGES } from 'ajax/endpoints
 import { getEndpoint } from '../support/util';
 import { GENERIC_ERROR } from 'constants/textConstants';
 
-import hubAdminWithoutFlags from '../fixtures/user/hub-admin';
+import hubAdminWithoutFlags from '../fixtures/user/login-success-hub-admin';
 import { CONTRIBUTIONS_SECTION_ACCESS_FLAG_NAME } from 'constants/featureFlagConstants';
 
 const contribSectionsFlag = {

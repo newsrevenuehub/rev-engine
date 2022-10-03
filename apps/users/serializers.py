@@ -150,7 +150,7 @@ class CustomizeAccountSerializer(UserSerializer):
 
     first_name = serializers.CharField(write_only=True, required=True)
     last_name = serializers.CharField(write_only=True, required=True)
-    job_title = serializers.CharField(write_only=True, required=True)
+    job_title = serializers.CharField(write_only=True, required=False, default=None)
     organization_name = serializers.CharField(write_only=True, required=True)
     organization_tax_status = serializers.ChoiceField(choices=["for-profit", "nonprofit"], required=True)
 

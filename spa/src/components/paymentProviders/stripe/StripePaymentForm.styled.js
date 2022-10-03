@@ -3,7 +3,9 @@ import SvgIcon from 'assets/icons/SvgIcon';
 import Button from 'elements/buttons/Button';
 import { baseInputStyles } from 'elements/inputs/BaseField.styled';
 
-export const StripePaymentForm = styled.div``;
+export const StripePaymentForm = styled.div`
+  padding: 3rem;
+`;
 
 export const PaymentRequestWrapper = styled.div``;
 
@@ -52,6 +54,7 @@ export const PayWithCardOption = styled.p`
 `;
 
 export const PaymentSubmitButton = styled(Button)`
+  margin-top: 3rem;
   font-family: ${(props) => props.theme.systemFont};
 `;
 

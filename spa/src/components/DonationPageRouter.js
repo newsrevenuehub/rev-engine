@@ -26,6 +26,9 @@ const LiveDonationPageContainer = lazy(() =>
   componentLoader(() => import(`components/donationPage/LiveDonationPageContainer`))
 );
 
+// TODO: [DEV-2374] Determine if this `componentLoader` function can be removed
+const PaymentSuccess = lazy(() => componentLoader(() => import('components/donationPage/live/PaymentSuccess')));
+
 function DonationPageRouter() {
   return (
     <BrowserRouter>
@@ -34,15 +37,14 @@ function DonationPageRouter() {
           <React.Suspense fallback={<GlobalLoading />}>
             <Switch>
               <Route
-                path={join([ROUTES.DONATION_PAGE_SLUG, ROUTES.THANK_YOU_SLUG])}
+                path={[ROUTES.DONATION_PAGE_SLUG + ROUTES.THANK_YOU_SLUG, ROUTES.THANK_YOU_SLUG]}
                 render={() => <TrackPageView component={GenericThankYou} />}
               />
-              <Route path={ROUTES.THANK_YOU_SLUG} render={() => <TrackPageView component={GenericThankYou} />} />
+              <Route path={ROUTES.PAYMENT_SUCCESS} render={() => <PaymentSuccess />} />
               <Route
-                path={ROUTES.DONATION_PAGE_SLUG}
+                path={[ROUTES.DONATION_PAGE_SLUG, '/']}
                 render={() => <TrackPageView component={LiveDonationPageContainer} />}
               />
-              <Route path={'/'} render={() => <TrackPageView component={LiveDonationPageContainer} />} />
             </Switch>
           </React.Suspense>
         </ChunkErrorBoundary>

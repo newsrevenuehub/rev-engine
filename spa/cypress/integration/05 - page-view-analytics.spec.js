@@ -16,7 +16,7 @@ import { getEndpoint, getTestingDonationPageUrl, EXPECTED_RP_SLUG } from '../sup
 import { HUB_GA_V3_ID } from 'settings';
 import join from 'url-join';
 
-import hubAdminUser from '../fixtures/user/hub-admin';
+import hubAdminUser from '../fixtures/user/login-success-hub-admin';
 
 const REVENUE_PROGRAM = EXPECTED_RP_SLUG;
 const PAGE_NAME = 'mypage/';

@@ -10,6 +10,7 @@ export const EDITOR_ROUTE = '/edit/';
 export const EDITOR_ROUTE_PAGE = join([EDITOR_ROUTE, '/:revProgramSlug/:pageSlug/']);
 export const DONATION_PAGE_SLUG = '/:pageSlug/';
 export const THANK_YOU_SLUG = '/thank-you/';
+export const PAYMENT_SUCCESS = '/payment/success/';
 
 // Contributor
 export const CONTRIBUTOR_ENTRY = '/contributor/';
@@ -23,3 +24,5 @@ export const RESET_PASSWORD = '/password_reset/';
 export const SIGN_UP = '/create-account/';
 export const VERIFY_EMAIL_SUCCESS = '/verify-email-success/';
 export const VERIFIED = '/verified/';
+export const PROFILE = '/setup/';
+export const STRIPE_ACCOUNT_LINK_RETURN = '/stripe-account-link-complete/';

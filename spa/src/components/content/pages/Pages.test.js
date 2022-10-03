@@ -2,7 +2,7 @@ import { render, screen, waitFor } from 'test-utils';
 import MockAdapter from 'axios-mock-adapter';
 
 import { pagesbyRP, default as Pages } from './Pages';
-import useUser from '../../../hooks/useUser';
+import useUser from 'hooks/useUser';
 import { USER_ROLE_ORG_ADMIN_TYPE, USER_ROLE_HUB_ADMIN_TYPE, USER_SUPERUSER_TYPE } from 'constants/authConstants';
 
 import { LIST_PAGES } from 'ajax/endpoints';
@@ -23,7 +23,7 @@ const hubAdmin = {
   role_type: [USER_ROLE_HUB_ADMIN_TYPE]
 };
 
-jest.mock('../../../hooks/useUser', () => ({
+jest.mock('hooks/useUser', () => ({
   __esModule: true,
   default: jest.fn()
 }));
@@ -65,6 +65,7 @@ describe('Given pages list having a page with a null rp', () => {
   });
 });
 
+describe('Pages behavior when user query is loading', () => {});
 describe('New page button behavior given org plan and user role', () => {
   const axiosMock = new MockAdapter(Axios);
   afterEach(() => {

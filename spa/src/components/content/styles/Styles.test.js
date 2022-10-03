@@ -2,7 +2,7 @@ import { render, screen, waitFor } from 'test-utils';
 import MockAdapter from 'axios-mock-adapter';
 
 import Styles from './Styles';
-import useUser from '../../../hooks/useUser';
+import useUser from 'hooks/useUser';
 import { USER_ROLE_ORG_ADMIN_TYPE, USER_ROLE_HUB_ADMIN_TYPE, USER_SUPERUSER_TYPE } from 'constants/authConstants';
 
 import { LIST_STYLES } from 'ajax/endpoints';
@@ -23,7 +23,7 @@ const hubAdmin = {
   role_type: [USER_ROLE_HUB_ADMIN_TYPE]
 };
 
-jest.mock('../../../hooks/useUser', () => ({
+jest.mock('hooks/useUser', () => ({
   __esModule: true,
   default: jest.fn()
 }));

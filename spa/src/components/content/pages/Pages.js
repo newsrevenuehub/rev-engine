@@ -66,7 +66,7 @@ function Pages() {
   const [pageSearchQuery, setPageSearchQuery] = useState([]);
   const { open: showAddPageModal, handleClose, handleOpen } = useModal();
   const { user, isLoading: userLoading } = useUser();
-  const { data: pages, isLoading: pagesLoading } = useQuery(['pages'], () => fetchPages(), {
+  const { data: pages, isLoading: pagesLoading } = useQuery(['pages'], fetchPages, {
     onError: () => alert.error(GENERIC_ERROR),
     initialData: []
   });

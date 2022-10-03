@@ -42,7 +42,7 @@ function Styles({ setShowEditStylesModal, setStyleToEdit }) {
   const alert = useAlert();
   const [styleSearchQuery, setStyleSearchQuery] = useState([]);
 
-  const { data: styles, isLoading: stylesLoading } = useQuery(['styles'], () => fetchStyles(), {
+  const { data: styles, isLoading: stylesLoading } = useQuery(['styles'], fetchStyles, {
     initialData: [],
     onError: () => alert.error(GENERIC_ERROR)
   });

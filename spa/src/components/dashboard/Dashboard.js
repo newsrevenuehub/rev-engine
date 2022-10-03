@@ -61,8 +61,8 @@ function Dashboard() {
   const bannerType = useMemo(() => {
     const hasPublished = !!pages?.find((_) => _.published_date);
     if (
-      user?.role_type.includes('hub_admin') ||
-      user?.role_type.includes('Hub Admin') ||
+      user?.role_type?.includes('hub_admin') ||
+      user?.role_type?.includes('Hub Admin') ||
       (user?.revenue_programs?.length || 0) > 1 ||
       pages === undefined
     ) {

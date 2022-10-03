@@ -36,14 +36,9 @@ class OrganizationSerializer(serializers.ModelSerializer):
 
 
 class OrganizationInlineSerializer(serializers.ModelSerializer):
-    plan = serializers.SerializerMethodField()
-
     class Meta:
         model = Organization
-        fields = ["id", "name", "slug", "plan"]
-
-    def get_plan(self, obj):
-        return asdict(obj.get_plan_data())
+        fields = ["id", "name", "slug"]
 
 
 class RevenueProgramListInlineSerializer(serializers.ModelSerializer):

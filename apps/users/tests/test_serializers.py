@@ -1,4 +1,3 @@
-from dataclasses import asdict
 from unittest import mock
 
 from django.contrib.auth import get_user_model
@@ -7,7 +6,7 @@ import pytest
 from rest_framework.test import APIRequestFactory, APITestCase
 from waffle import get_waffle_flag_model
 
-from apps.organizations.models import Organization, Plan, RevenueProgram
+from apps.organizations.models import Organization, RevenueProgram
 from apps.organizations.tests.factories import OrganizationFactory, RevenueProgramFactory
 from apps.users import serializers
 from apps.users.choices import Roles
@@ -74,9 +73,6 @@ class UserSerializerTest(APITestCase):
         assert len(data["revenue_programs"]) >= 1
         for rp in data["revenue_programs"]:
             assert set(rp.keys()) == expect_rp_fields
-        assert len(data["organizations"])
-        for org in data["organizations"]:
-            assert set(org["plan"].keys()) == set(asdict(Plan(name="", label="")).keys())
 
     def test_get_role_type(self):
         super_user_role = self._get_serialized_data_for_user(self.superuser_user)["role_type"]

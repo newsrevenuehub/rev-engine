@@ -25,7 +25,7 @@ NewButton.propTypes = {
   type: PropTypes.oneOf(Object.values(BUTTON_TYPE)),
   onClick: PropTypes.func.isRequired,
   className: PropTypes.string,
-  disabled: PropTypes.bool.isRequired
+  disabled: PropTypes.bool
 };
 
 NewButton.defaultProps = {

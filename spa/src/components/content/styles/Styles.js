@@ -18,7 +18,6 @@ import useUser from 'hooks/useUser';
 import { USER_ROLE_HUB_ADMIN_TYPE, USER_SUPERUSER_TYPE } from 'constants/authConstants';
 
 export const filterStyles = (stylesRaw, qry) => {
-  console.log(stylesRaw.length);
   return qry
     ? orderBy(
         stylesRaw.filter((style) => {

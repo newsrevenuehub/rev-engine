@@ -611,12 +611,15 @@ describe('User flow: unhappy paths', () => {
     cy.getByTestId('amount-other').click();
     cy.getByTestId('donation-page-submit').should('have.attr', 'disabled');
     cy.getByTestId('donation-page-submit').should('have.text', 'Enter a valid amount');
-    cy.getByTestId('pay-fees').click();
-    cy.getByTestId('donation-page-submit').should('have.attr', 'disabled');
-    cy.getByTestId('donation-page-submit').should('have.text', 'Enter a valid amount');
-    cy.getByTestId('pay-fees').click();
-    cy.getByTestId('donation-page-submit').should('have.attr', 'disabled');
-    cy.getByTestId('donation-page-submit').should('have.text', 'Enter a valid amount');
+
+    // Do this twice to try both states of the "pay fees" toggle.
+
+    for (let i = 0; i < 2; i++) {
+      cy.getByTestId('pay-fees').click();
+      cy.getByTestId('donation-page-submit').should('have.attr', 'disabled');
+      cy.getByTestId('donation-page-submit').should('have.text', 'Enter a valid amount');
+    }
+
     cy.get('[data-testid="amount-other-selected"] input').type('3');
     cy.get('[data-testid="amount-other-selected"] input').clear();
     cy.getByTestId('donation-page-submit').should('have.attr', 'disabled');

@@ -156,7 +156,7 @@ describe('Pages that are tracked by both the hub and the org', () => {
     ).as('trackPageViewOnOrgFbPixel');
   });
 
-  it('should track a page view for Donatino Pages on Hub GAv3 and enabled Org analytics plugins', () => {
+  it('should track a page view for Donation Pages on Hub GAv3 and enabled Org analytics plugins', () => {
     cy.intercept(
       { method: 'GET', pathname: getEndpoint(LIVE_PAGE_DETAIL) },
       { body: livePageFixture, statusCode: 200 }

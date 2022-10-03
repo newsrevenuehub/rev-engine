@@ -56,8 +56,10 @@ export const pagesbyRP = (pgsRaw, qry) => {
   return orderBy(pagesByRevProgram, 'name');
 };
 
-function fetchPages() {
-  return axios.get(LIST_PAGES).then(({ data }) => data);
+async function fetchPages() {
+  const { data } = await axios.get(LIST_PAGES);
+
+  return data;
 }
 
 function Pages() {

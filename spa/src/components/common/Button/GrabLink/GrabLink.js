@@ -53,7 +53,7 @@ const GrabLink = ({ page, className }) => {
           link={pageLink(page)}
           copied={copied}
           setCopied={setCopied}
-          copyButtonTestId="copy-contribution-page-link"
+          data-testid="copy-contribution-page-link"
         />
         <CopyInputButton
           title="Contributor Portal Link"

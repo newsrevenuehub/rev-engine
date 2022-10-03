@@ -49,7 +49,7 @@ const SuccessfulPublishModal = ({ open, onClose, page }) => {
             link={pageLink(page)}
             copied={copied}
             setCopied={setCopied}
-            copyButtonTestId="copy-contribution-page-link"
+            dataTestId="copy-contribution-page-link"
           />
           <Divider />
           <p style={{ margin: 0 }}>

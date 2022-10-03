@@ -61,7 +61,6 @@ describe('Given pages list having a page with a null rp', () => {
   });
 });
 
-describe('Pages behavior when user query is loading', () => {});
 describe('New page button behavior given org plan and user role', () => {
   const axiosMock = new MockAdapter(Axios);
   afterEach(() => {

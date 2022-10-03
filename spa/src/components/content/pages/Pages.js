@@ -18,6 +18,7 @@ import { LIST_PAGES } from 'ajax/endpoints';
 
 // Children
 import GenericErrorBoundary from 'components/errors/GenericErrorBoundary';
+import { usePageListContext } from 'components/dashboard/PageListContext';
 import EditButton from 'components/common/Button/EditButton';
 import NewButton from 'components/common/Button/NewButton';
 import Hero from 'components/common/Hero';
@@ -57,7 +58,7 @@ function Pages() {
   const alert = useAlert();
   const history = useHistory();
   const requestGetPages = useRequest();
-  const [pages, setPages] = useState([]);
+  const { pages, setPages } = usePageListContext();
   const [pageSearchQuery, setPageSearchQuery] = useState([]);
   const { open: showAddPageModal, handleClose, handleOpen } = useModal();
 

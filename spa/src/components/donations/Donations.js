@@ -1,10 +1,11 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Route, Switch, useHistory, useRouteMatch } from 'react-router-dom';
 import PropTypes from 'prop-types';
+import { useAlert } from 'react-alert';
 import * as S from './Donations.styled';
 
 // AJAX
-import { CONTRIBUTIONS } from 'ajax/endpoints';
+import { CONTRIBUTIONS, LIST_PAGES } from 'ajax/endpoints';
 import useRequest from 'hooks/useRequest';
 import { getFrequencyAdjective } from 'utilities/parseFrequency';
 
@@ -12,7 +13,7 @@ import { getFrequencyAdjective } from 'utilities/parseFrequency';
 import queryString from 'query-string';
 
 // Contants
-import { NO_VALUE } from 'constants/textConstants';
+import { GENERIC_ERROR, NO_VALUE } from 'constants/textConstants';
 import { DONATIONS_SLUG } from 'routes';
 
 // Util
@@ -31,12 +32,16 @@ import { PAYMENT_STATUS_EXCLUDE_IN_CONTRIBUTIONS } from 'constants/paymentStatus
 import PageTitle from 'elements/PageTitle';
 import Banner from 'components/common/Banner';
 import { BANNER_TYPE } from 'constants/bannerConstants';
+import { usePageListContext } from 'components/dashboard/PageListContext';
 
 const Donations = ({ bannerType }) => {
   const { path } = useRouteMatch();
   const history = useHistory();
+  const alert = useAlert();
 
+  const { setPages } = usePageListContext();
   const requestDonations = useRequest();
+  const requestGetPages = useRequest();
   const [filters, setFilters] = useState({});
   const [donationsCount, setDonationsCount] = useState([]);
   const [pageIndex, setPageIndex] = useState(0);
@@ -46,6 +51,18 @@ const Donations = ({ bannerType }) => {
   const handlePageChange = (newPageIndex) => {
     setPageIndex(newPageIndex);
   };
+
+  useEffect(() => {
+    requestGetPages(
+      { method: 'GET', url: LIST_PAGES },
+      {
+        onSuccess: ({ data }) => {
+          setPages(data);
+        },
+        onFailure: () => alert.error(GENERIC_ERROR)
+      }
+    );
+  }, [alert]);
 
   const fetchDonations = useCallback(
     (parameters, { onSuccess, onFailure }) => {

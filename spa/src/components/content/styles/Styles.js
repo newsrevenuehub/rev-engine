@@ -35,7 +35,7 @@ export const filterStyles = (stylesRaw, qry) => {
 
 async function fetchStyles() {
   const { data } = await axios.get(LIST_STYLES);
-  
+
   return data;
 }
 

@@ -28,10 +28,6 @@ jest.mock('hooks/useUser', () => ({
   default: jest.fn()
 }));
 
-beforeEach(() => {
-  jest.resetAllMocks();
-});
-
 describe('Given pages list', () => {
   let result;
   beforeEach(async () => {

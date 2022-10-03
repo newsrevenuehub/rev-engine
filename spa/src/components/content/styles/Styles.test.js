@@ -28,10 +28,6 @@ jest.mock('hooks/useUser', () => ({
   default: jest.fn()
 }));
 
-beforeEach(() => {
-  jest.resetAllMocks();
-});
-
 describe('New style button behavior given org plan and user role', () => {
   const axiosMock = new MockAdapter(Axios);
   afterEach(() => {

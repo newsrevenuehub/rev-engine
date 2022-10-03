@@ -29,7 +29,7 @@ import AddPageModal from './AddPageModal';
 export const pagesbyRP = (pgsRaw, qry) => {
   const pagesByRevProgram = [];
   const pgs = qry
-    ? pgsRaw.filter((page) => {
+    ? pgsRaw?.filter((page) => {
         return (
           page?.revenue_program &&
           (page.slug.toLowerCase().indexOf(qry) !== -1 ||
@@ -40,11 +40,11 @@ export const pagesbyRP = (pgsRaw, qry) => {
       })
     : pgsRaw;
 
-  let revPrograms = new Set(pgs.map((p) => p?.revenue_program?.id));
+  let revPrograms = new Set(pgs?.map((p) => p?.revenue_program?.id));
 
   revPrograms.forEach((rpId) => {
     if (rpId) {
-      const pagesForRp = pgs.filter((p) => p?.revenue_program?.id === rpId);
+      const pagesForRp = pgs?.filter((p) => p?.revenue_program?.id === rpId);
       pagesByRevProgram.push({
         name: pagesForRp[0].revenue_program.name,
         pages: pagesForRp

@@ -33,8 +33,10 @@ export const filterStyles = (stylesRaw, qry) => {
     : orderBy(stylesRaw, 'name');
 };
 
-function fetchStyles() {
-  return axios.get(LIST_STYLES).then(({ data }) => data);
+async function fetchStyles() {
+  const { data } = await axios.get(LIST_STYLES);
+  
+  return data;
 }
 
 function Styles({ setShowEditStylesModal, setStyleToEdit }) {

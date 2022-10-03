@@ -26,7 +26,7 @@ describe('AmountFilter', () => {
     fireEvent.change(min, { target: { value: '200' } });
 
     await waitFor(() => {
-      expect(onChange).toHaveBeenCalledWith({ amount__gte: 20000, amount__lte: 50000 });
+      expect(onChange).toHaveBeenCalledWith({ gte: '200', lte: '500' });
     });
     expect(onChange).toHaveBeenCalledTimes(1);
   });

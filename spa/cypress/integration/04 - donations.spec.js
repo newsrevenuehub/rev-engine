@@ -127,16 +127,12 @@ describe('Donations list', () => {
     it('should display the second page of donations when click on next page', () => {
       cy.wait('@getDonations');
       cy.get('li > button[aria-label="Go to page 2"]').click();
-      // When using `wait('@getDonations')` it always get's the first instance, so to get the
-      // results from `page 2` results, we need to nest another `wait('@getDonations')`
-      cy.wait('@getDonations')
-        .wait('@getDonations')
-        .then((intercept) => {
-          console.log({ intercept });
-          cy.getByTestId('donations-table')
-            .find('tbody tr[data-testid="donation-row"]')
-            .should('have.length', intercept.response.body.results.length);
-        });
+      cy.wait('@getDonations').then((intercept) => {
+        console.log({ intercept });
+        cy.getByTestId('donations-table')
+          .find('tbody tr[data-testid="donation-row"]')
+          .should('have.length', intercept.response.body.results.length);
+      });
     });
 
     it('should make donations sortable by payment date', () => {

@@ -25,9 +25,5 @@ module.exports = defineConfig({
     },
     baseUrl: 'http://localhost:3000',
     specPattern: 'cypress/e2e/**/*spec.js'
-  },
-  component: {
-    setupNodeEvents(on, config) {},
-    specPattern: 'src/components/**/*spec.js'
   }
 });

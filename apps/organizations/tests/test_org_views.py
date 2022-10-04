@@ -147,18 +147,32 @@ def rp_role_assignment(user, rp):
     return ra
 
 
+def obj_instance_with_id(id):
+    class MyObj:
+        """"""
+
+        def __init__(self, id):
+            self.id = id
+
+    return MyObj(id)
+
+
 @pytest.mark.django_db
 class TestCreateStripeAccountLink:
     def test_happy_path(self, monkeypatch, rp_role_assignment):
         return_value = {"fake": "return value"}
         mock_account_link_create = mock.MagicMock(return_value=return_value)
         monkeypatch.setattr("stripe.AccountLink.create", mock_account_link_create)
+        fake_product_id = "some-product-id"
+        mock_stripe_product_create = mock.MagicMock(return_value=obj_instance_with_id(fake_product_id))
+        monkeypatch.setattr("stripe.Product.create", mock_stripe_product_create)
         account_id = "someID"
         mock_account_create = mock.MagicMock(return_value={"id": account_id})
         monkeypatch.setattr("stripe.Account.create", mock_account_create)
         rp = rp_role_assignment.revenue_programs.first()
         rp.payment_provider.stripe_verified = False
         rp.payment_provider.stripe_account_id = None
+        rp.payment_provider.stripe_product_id = None
         rp.payment_provider.save()
         url = reverse("create-stripe-account-link", args=(rp.pk,))
         client = APIClient()
@@ -168,6 +182,7 @@ class TestCreateStripeAccountLink:
         assert response.json() == return_value
         rp.payment_provider.refresh_from_db()
         assert rp.payment_provider.stripe_account_id == account_id
+        assert rp.payment_provider.stripe_product_id == fake_product_id
         mock_account_create.assert_called_once_with(type="standard", country=rp.country)
         mock_account_link_create.assert_called_once()
         # even though it's only called once, for some reason the call args are at index 1...
@@ -230,10 +245,30 @@ class TestCreateStripeAccountLink:
         response = client.post(url)
         assert response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
 
+    def test_when_stripe_error_on_stripe_product_creation(self, rp_role_assignment, monkeypatch):
+        mock_account_create = mock.MagicMock(return_value={"id": "account-id"})
+        monkeypatch.setattr("stripe.Account.create", mock_account_create)
+        mock_fn = mock.MagicMock()
+        mock_fn.side_effect = StripeError("Stripe blew up")
+        monkeypatch.setattr("stripe.Product.create", mock_fn)
+        rp = rp_role_assignment.revenue_programs.first()
+        rp.payment_provider.stripe_account_id = None
+        rp.payment_provider.stripe_verified = False
+        rp.payment_provider.stripe_product_id = None
+        rp.payment_provider.save()
+        url = reverse("create-stripe-account-link", args=(rp.pk,))
+        client = APIClient()
+        client.force_authenticate(user=rp_role_assignment.user)
+        response = client.post(url)
+        assert response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
+
     def test_when_stripe_error_on_account_link_creation(self, rp_role_assignment, monkeypatch):
         account_id = "someID"
         mock_account_create = mock.MagicMock(return_value={"id": account_id})
         monkeypatch.setattr("stripe.Account.create", mock_account_create)
+        fake_product_id = "some-product-id"
+        mock_stripe_product_create = mock.MagicMock(return_value=obj_instance_with_id(fake_product_id))
+        monkeypatch.setattr("stripe.Product.create", mock_stripe_product_create)
         mock_account_create_link = mock.MagicMock()
         mock_account_create_link.side_effect = StripeError("Stripe blew up")
         monkeypatch.setattr("stripe.AccountLink.create", mock_account_create_link)

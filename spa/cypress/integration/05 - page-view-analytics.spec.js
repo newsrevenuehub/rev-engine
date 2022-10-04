@@ -14,13 +14,14 @@ import livePageFixture from '../fixtures/pages/live-page-1.json';
 import { LIVE_PAGE_DETAIL } from 'ajax/endpoints';
 import { getEndpoint, getTestingDonationPageUrl, EXPECTED_RP_SLUG } from '../support/util';
 import { HUB_GA_V3_ID } from 'settings';
+import join from 'url-join';
 
 import hubAdminUser from '../fixtures/user/login-success-hub-admin';
 
 const REVENUE_PROGRAM = EXPECTED_RP_SLUG;
-const PAGE_NAME = 'mypage';
+const PAGE_NAME = 'mypage/';
 
-const EDITOR_ROUTE_PAGE = `${EDITOR_ROUTE}/${REVENUE_PROGRAM}/${PAGE_NAME}`;
+const EDITOR_ROUTE_PAGE = join([EDITOR_ROUTE, REVENUE_PROGRAM, PAGE_NAME, '/']);
 
 const HUB_TRACKED_PAGES_REQURING_NO_LOGIN = [SIGN_IN, CONTRIBUTOR_ENTRY, CONTRIBUTOR_VERIFY];
 
@@ -155,7 +156,7 @@ describe('Pages that are tracked by both the hub and the org', () => {
     ).as('trackPageViewOnOrgFbPixel');
   });
 
-  it('should track a page view for Donatino Pages on Hub GAv3 and enabled Org analytics plugins', () => {
+  it('should track a page view for Donation Pages on Hub GAv3 and enabled Org analytics plugins', () => {
     cy.intercept(
       { method: 'GET', pathname: getEndpoint(LIVE_PAGE_DETAIL) },
       { body: livePageFixture, statusCode: 200 }

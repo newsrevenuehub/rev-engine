@@ -14,5 +14,6 @@ export default {
 
 export const Default = Banner.bind({});
 Default.args = {
-  type: BANNER_TYPE.BLUE
+  type: BANNER_TYPE.BLUE,
+  message: 'Looks like you need to set up a Stripe connection in order to start receiving contributions.'
 };

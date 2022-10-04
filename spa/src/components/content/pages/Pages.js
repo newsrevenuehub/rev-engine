@@ -1,5 +1,6 @@
 import { useEffect, useState, Fragment } from 'react';
 import orderBy from 'lodash.orderby';
+import join from 'url-join';
 import { Content } from './Pages.styled';
 
 // Router
@@ -74,7 +75,7 @@ function Pages() {
   }, [alert]);
 
   const handleEditPage = (page) => {
-    const path = `${EDITOR_ROUTE}/${page.revenue_program.slug}/${page.slug}`;
+    const path = join([EDITOR_ROUTE, page.revenue_program.slug, page.slug, '/']);
     history.push({ pathname: path, state: { pageId: page.id } });
   };
 

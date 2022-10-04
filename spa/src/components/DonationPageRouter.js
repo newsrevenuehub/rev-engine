@@ -1,4 +1,5 @@
 import React, { lazy } from 'react';
+import join from 'url-join';
 
 // Router
 import { Route, BrowserRouter, Switch } from 'react-router-dom';
@@ -13,6 +14,7 @@ import ChunkErrorBoundary from 'components/errors/ChunkErrorBoundary';
 
 // Utilities
 import componentLoader from 'utilities/componentLoader';
+import AddSlashToRoutes from './routes/AddSlashToRoutes';
 
 /**
  * Split Bundles
@@ -30,21 +32,23 @@ const PaymentSuccess = lazy(() => componentLoader(() => import('components/donat
 function DonationPageRouter() {
   return (
     <BrowserRouter>
-      <ChunkErrorBoundary>
-        <React.Suspense fallback={<GlobalLoading />}>
-          <Switch>
-            <Route
-              path={[ROUTES.DONATION_PAGE_SLUG + ROUTES.THANK_YOU_SLUG, ROUTES.THANK_YOU_SLUG]}
-              render={() => <TrackPageView component={GenericThankYou} />}
-            />
-            <Route path={ROUTES.PAYMENT_SUCCESS} render={() => <PaymentSuccess />} />
-            <Route
-              path={[ROUTES.DONATION_PAGE_SLUG, '/']}
-              render={() => <TrackPageView component={LiveDonationPageContainer} />}
-            />
-          </Switch>
-        </React.Suspense>
-      </ChunkErrorBoundary>
+      <AddSlashToRoutes>
+        <ChunkErrorBoundary>
+          <React.Suspense fallback={<GlobalLoading />}>
+            <Switch>
+              <Route
+                path={[ROUTES.DONATION_PAGE_SLUG + ROUTES.THANK_YOU_SLUG, ROUTES.THANK_YOU_SLUG]}
+                render={() => <TrackPageView component={GenericThankYou} />}
+              />
+              <Route path={ROUTES.PAYMENT_SUCCESS} render={() => <PaymentSuccess />} />
+              <Route
+                path={[ROUTES.DONATION_PAGE_SLUG, '/']}
+                render={() => <TrackPageView component={LiveDonationPageContainer} />}
+              />
+            </Switch>
+          </React.Suspense>
+        </ChunkErrorBoundary>
+      </AddSlashToRoutes>
     </BrowserRouter>
   );
 }

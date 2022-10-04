@@ -205,7 +205,7 @@ describe('Account', () => {
       cy.forceLogin(rpAdminUnverified);
       cy.intercept({ method: 'GET', pathname: getEndpoint(USER) }, { body: rpAdminUnverifiedNewUser });
       cy.visit(DASHBOARD_SLUG);
-      cy.visit(`${VERIFIED}/failed`);
+      cy.visit(`${VERIFIED}failed`);
       cy.url().should('include', VERIFY_EMAIL_SUCCESS);
       cy.contains('failed');
     });

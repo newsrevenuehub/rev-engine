@@ -1,4 +1,4 @@
-from unittest.mock import patch
+from unittest.mock import ANY, patch
 
 from django.test import override_settings
 
@@ -92,7 +92,7 @@ class StripeOneTimePaymentManagerTest(StripePaymentManagerAbstractTestCase):
         pm.complete_payment(reject=True)
         mock_pi_capture.assert_not_called()
         mock_pi_cancel.assert_called_once_with(
-            None,
+            ANY,
             stripe_account=self.contribution.donation_page.revenue_program.payment_provider.stripe_account_id,
             cancellation_reason="fraudulent",
         )
@@ -104,7 +104,7 @@ class StripeOneTimePaymentManagerTest(StripePaymentManagerAbstractTestCase):
         pm.complete_payment(reject=False)
         mock_pi_cancel.assert_not_called()
         mock_pi_capture.assert_called_once_with(
-            None,
+            ANY,
             stripe_account=self.contribution.donation_page.revenue_program.payment_provider.stripe_account_id,
         )
 

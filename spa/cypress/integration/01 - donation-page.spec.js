@@ -15,7 +15,8 @@ import { CONTRIBUTION_INTERVALS } from '../../src/constants';
 import * as freqUtils from 'utilities/parseFrequency';
 import calculateStripeFee from 'utilities/calculateStripeFee';
 
-const expectedPageSlug = 'page-slug';
+const pageSlug = 'page-slug';
+const expectedPageSlug = `${pageSlug}/`;
 
 describe('Clearbit', () => {
   it('loads clearbit', () => {
@@ -407,6 +408,7 @@ describe('User flow: happy path', () => {
       const {
         confirmParams: { return_url }
       } = x.getCalls()[0].args[0];
+
       expect(return_url).to.equal(
         getPaymentSuccessUrl({
           baseUrl: 'http://revenueprogram.revengine-testabc123.com:3000/',
@@ -417,7 +419,7 @@ describe('User flow: happy path', () => {
           contributorEmail: 'foo@bar.com',
           pageSlug: livePageOne.slug,
           rpSlug: livePageOne.revenue_program.slug,
-          pathName: `/${livePageOne.slug}`,
+          pathName: `/${livePageOne.slug}/`,
           stripeClientSecret: fakeStripeSecret
         })
       );
@@ -492,7 +494,7 @@ describe('User flow: happy path', () => {
           contributorEmail: 'foo@bar.com',
           pageSlug: livePageOne.slug,
           rpSlug: livePageOne.revenue_program.slug,
-          pathName: `/${livePageOne.slug}`,
+          pathName: `/${livePageOne.slug}/`,
           stripeClientSecret: fakeStripeSecret
         })
       );
@@ -661,6 +663,7 @@ describe('Payment success page', () => {
     cy.intercept({ method: 'GET', url: '*ev=Contribute*' }, { statusCode: 200 }).as('fbTrackContribution');
     cy.intercept({ method: 'GET', url: '*ev=Purchase*' }, { statusCode: 200 }).as('fbTrackPurchase');
   });
+
   specify('Using default thank you page', () => {
     cy.visit(paymentSuccessRoute, { qs: successPageQueryParams });
     cy.wait('@signal-success');
@@ -671,7 +674,7 @@ describe('Payment success page', () => {
       expect(params.get('cd[value]')).to.equal('120.00');
     });
     // get forwarded to right destination
-    cy.url().should('equal', `http://revenueprogram.revengine-testabc123.com:3000/${livePageOne.slug}/thank-you`);
+    cy.url().should('equal', `http://revenueprogram.revengine-testabc123.com:3000/${livePageOne.slug}/thank-you/`);
   });
 
   specify('Using off-site thank you page', () => {
@@ -702,6 +705,6 @@ describe('Payment success page', () => {
     cy.visit(paymentSuccessRoute, { qs: { ...successPageQueryParams, fromPath: '' } });
     cy.wait('@signal-success');
     // get forwarded to right destination
-    cy.url().should('equal', `http://revenueprogram.revengine-testabc123.com:3000/thank-you`);
+    cy.url().should('equal', `http://revenueprogram.revengine-testabc123.com:3000/thank-you/`);
   });
 });

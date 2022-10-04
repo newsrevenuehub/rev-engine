@@ -1,4 +1,4 @@
 export const BANNER_TYPE = {
-  STRIPE: 'stripe',
-  PUBLISH: 'publish'
+  BLUE: 'blue',
+  YELLOW: 'yellow'
 };

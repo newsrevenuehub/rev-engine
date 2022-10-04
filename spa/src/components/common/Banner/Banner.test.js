@@ -5,8 +5,11 @@ import { BANNER_TYPE } from 'constants/bannerConstants';
 
 import Banner from './Banner';
 
+const messageStripe = 'Looks like you need to set up a Stripe connection in order to start receiving contributions.';
+const messagePublish = 'Looks like you need to publish a contribution page in order to start receiving contributions.';
+
 describe('Banner', () => {
-  const tree = (props) => render(<Banner type={BANNER_TYPE.STRIPE} {...props} />);
+  const tree = (props) => render(<Banner type={BANNER_TYPE.BLUE} message={messageStripe} {...props} />);
 
   it('should render banner information', () => {
     tree();
@@ -16,7 +19,7 @@ describe('Banner', () => {
   });
 
   it('should render publish type information', () => {
-    tree({ type: BANNER_TYPE.PUBLISH });
+    tree({ type: BANNER_TYPE.YELLOW, message: messagePublish });
 
     expect(screen.getByText(/publish a contribution page/i)).toBeVisible();
     expect(screen.getByRole('button', { name: /dismiss message/i })).toBeEnabled();

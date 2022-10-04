@@ -1,4 +1,3 @@
-import { useMemo } from 'react';
 import { Route, Switch, Redirect, useLocation } from 'react-router-dom';
 
 import * as S from './Dashboard.styled';
@@ -35,13 +34,9 @@ import hasContributionsDashboardAccessToUser from 'utilities/hasContributionsDas
 import { usePageContext } from './PageContext';
 import useUser from 'hooks/useUser';
 import useConnectStripeAccount from 'hooks/useConnectStripeAccount';
-import { BANNER_TYPE } from 'constants/bannerConstants';
-
-import { usePageListContext } from './PageListContext';
 
 function Dashboard() {
   const { flags } = useFeatureFlags();
-  const { pages } = usePageListContext();
   const { page, setPage } = usePageContext();
   const { user } = useUser();
   const { requiresStripeVerification } = useConnectStripeAccount();
@@ -58,21 +53,6 @@ function Dashboard() {
   const { pathname } = useLocation();
   const isEditPage = pathname.includes(EDITOR_ROUTE);
 
-  const bannerType = useMemo(() => {
-    const hasPublished = !!pages?.find((_) => _.published_date);
-    if (
-      user?.role_type?.includes('hub_admin') ||
-      user?.role_type?.includes('Hub Admin') ||
-      (user?.revenue_programs?.length || 0) > 1 ||
-      pages === undefined
-    ) {
-      return null;
-    }
-    if (requiresStripeVerification && !hasPublished) return BANNER_TYPE.STRIPE;
-    if (!requiresStripeVerification && !hasPublished) return BANNER_TYPE.PUBLISH;
-    return null;
-  }, [pages, requiresStripeVerification, user?.revenue_programs?.length, user?.role_type]);
-
   return (
     <S.Outer>
       {requiresStripeVerification ? <ConnectStripeElements /> : ''}
@@ -86,7 +66,7 @@ function Dashboard() {
 
               {hasContributionsSectionAccess ? (
                 <Route path={DONATIONS_SLUG}>
-                  <Donations bannerType={bannerType} />
+                  <Donations />
                 </Route>
               ) : null}
               {hasContentSectionAccess ? (

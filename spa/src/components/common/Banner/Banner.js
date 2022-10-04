@@ -6,15 +6,8 @@ import useModal from 'hooks/useModal';
 
 import { Flex, Button, Label } from './Banner.styled';
 
-const Banner = ({ type, className }) => {
+const Banner = ({ type, className, message }) => {
   const { open, handleClose } = useModal(true);
-
-  const label = {
-    [BANNER_TYPE.STRIPE]:
-      'Looks like you need to set up a Stripe connection in order to start receiving contributions.',
-    [BANNER_TYPE.PUBLISH]:
-      'Looks like you need to publish a contribution page in order to start receiving contributions.'
-  }[type];
 
   if (!open) return null;
 
@@ -22,7 +15,7 @@ const Banner = ({ type, className }) => {
     <>
       <Flex className={className} type={type} data-testid="banner">
         <InfoOutlinedIcon style={{ height: 20, width: 20 }} />
-        <Label>{label}</Label>
+        <Label>{message}</Label>
         <Button onClick={handleClose} aria-label="Dismiss message" type={type}>
           Got it
         </Button>
@@ -34,12 +27,13 @@ const Banner = ({ type, className }) => {
 
 Banner.propTypes = {
   type: PropTypes.oneOf(Object.values(BANNER_TYPE)),
+  message: PropTypes.string.isRequired,
   className: PropTypes.string
 };
 
 Banner.defaultProps = {
   className: '',
-  type: BANNER_TYPE.STRIPE
+  type: BANNER_TYPE.BLUE
 };
 
 export default Banner;

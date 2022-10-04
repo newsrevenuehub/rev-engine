@@ -14,8 +14,5 @@ export default {
 
 export const Default = Banner.bind({});
 Default.args = {
-  type: BANNER_TYPE.STRIPE
+  type: BANNER_TYPE.BLUE
 };
-
-export const Selected = Banner.bind({});
-Selected.args = {};

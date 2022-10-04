@@ -33,13 +33,17 @@ import PageTitle from 'elements/PageTitle';
 import Banner from 'components/common/Banner';
 import { BANNER_TYPE } from 'constants/bannerConstants';
 import { usePageListContext } from 'components/dashboard/PageListContext';
+import useConnectStripeAccount from 'hooks/useConnectStripeAccount';
+import useUser from 'hooks/useUser';
 
-const Donations = ({ bannerType }) => {
+const Donations = () => {
   const { path } = useRouteMatch();
   const history = useHistory();
   const alert = useAlert();
 
-  const { setPages } = usePageListContext();
+  const { user } = useUser();
+  const { requiresStripeVerification } = useConnectStripeAccount();
+  const { pages, setPages } = usePageListContext();
   const requestDonations = useRequest();
   const requestGetPages = useRequest();
   const [filters, setFilters] = useState({});
@@ -51,6 +55,21 @@ const Donations = ({ bannerType }) => {
   const handlePageChange = (newPageIndex) => {
     setPageIndex(newPageIndex);
   };
+
+  const bannerType = useMemo(() => {
+    const hasPublished = !!pages?.find((_) => _.published_date);
+    if (
+      user?.role_type?.includes('hub_admin') ||
+      user?.role_type?.includes('Hub Admin') ||
+      (user?.revenue_programs?.length || 0) > 1 ||
+      pages === undefined
+    ) {
+      return null;
+    }
+    if (requiresStripeVerification && !hasPublished) return BANNER_TYPE.BLUE;
+    if (!requiresStripeVerification && !hasPublished) return BANNER_TYPE.YELLOW;
+    return null;
+  }, [pages, requiresStripeVerification, user?.revenue_programs?.length, user?.role_type]);
 
   useEffect(() => {
     requestGetPages(
@@ -145,7 +164,16 @@ const Donations = ({ bannerType }) => {
             </DashboardSection>
           </Route>
           <Route>
-            {bannerType && <Banner type={bannerType} />}
+            {bannerType && (
+              <Banner
+                type={bannerType}
+                message={
+                  bannerType === BANNER_TYPE.BLUE
+                    ? 'Looks like you need to set up a Stripe connection in order to start receiving contributions.'
+                    : 'Looks like you need to publish a contribution page in order to start receiving contributions.'
+                }
+              />
+            )}
             <Hero
               title="Contributions"
               subtitle="Welcome to your contributions. Easily track and manage contributions."
@@ -172,14 +200,6 @@ const Donations = ({ bannerType }) => {
       </div>
     </>
   );
-};
-
-Donations.propTypes = {
-  bannerType: PropTypes.oneOf(Object.values(BANNER_TYPE))
-};
-
-Donations.defaultProps = {
-  bannerType: undefined
 };
 
 export default Donations;

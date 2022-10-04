@@ -147,14 +147,9 @@ def rp_role_assignment(user, rp):
     return ra
 
 
-def obj_instance_with_id(id):
-    class MyObj:
-        """"""
-
-        def __init__(self, id):
-            self.id = id
-
-    return MyObj(id)
+class FakeStripeProduct:
+    def __init__(self, id):
+        self.id = id
 
 
 @pytest.mark.django_db
@@ -164,7 +159,7 @@ class TestCreateStripeAccountLink:
         mock_account_link_create = mock.MagicMock(return_value=return_value)
         monkeypatch.setattr("stripe.AccountLink.create", mock_account_link_create)
         fake_product_id = "some-product-id"
-        mock_stripe_product_create = mock.MagicMock(return_value=obj_instance_with_id(fake_product_id))
+        mock_stripe_product_create = mock.MagicMock(return_value=FakeStripeProduct(fake_product_id))
         monkeypatch.setattr("stripe.Product.create", mock_stripe_product_create)
         account_id = "someID"
         mock_account_create = mock.MagicMock(return_value={"id": account_id})
@@ -267,7 +262,7 @@ class TestCreateStripeAccountLink:
         mock_account_create = mock.MagicMock(return_value={"id": account_id})
         monkeypatch.setattr("stripe.Account.create", mock_account_create)
         fake_product_id = "some-product-id"
-        mock_stripe_product_create = mock.MagicMock(return_value=obj_instance_with_id(fake_product_id))
+        mock_stripe_product_create = mock.MagicMock(return_value=FakeStripeProduct(fake_product_id))
         monkeypatch.setattr("stripe.Product.create", mock_stripe_product_create)
         mock_account_create_link = mock.MagicMock()
         mock_account_create_link.side_effect = StripeError("Stripe blew up")

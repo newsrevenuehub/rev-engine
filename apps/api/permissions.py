@@ -68,7 +68,7 @@ class HasRoleAssignment(permissions.BasePermission):
         return getattr(request.user, "get_role_assignment", False) and bool(request.user.get_role_assignment())
 
 
-class _BaseAssumedViewAndModelMixin:
+class _BaseAssumedViewAndModelMixin(permissions.BasePermission):
     """Ensure view and model use mixins as expected by HasDeletePrivilegesViaRole"""
 
     def __init__(self, view, *args, **kwargs):

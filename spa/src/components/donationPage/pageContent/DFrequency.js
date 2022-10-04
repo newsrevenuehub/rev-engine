@@ -5,7 +5,7 @@ import * as S from './DFrequency.styled';
 import { usePage } from '../DonationPage';
 
 // Util
-import { getDefaultAmountForFreq } from 'components/donationPage/pageContent/DAmount';
+import { getDefaultAmountForFreq } from '../amountUtils';
 
 // Children
 import DElement, { DynamicElementPropTypes } from 'components/donationPage/pageContent/DElement';

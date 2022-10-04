@@ -86,8 +86,9 @@
       "**/?(*.)+(test).[jt]s?(x)"
     ],
     "collectCoverageFrom": [
-      "**/*.test.{js,jsx}",
+      "**/*.{js,jsx}",
       "!**/node_modules/**",
+      "!**/*.stories.js",
       "!**/*.styled.js"
     ],
     "transformIgnorePatterns": [

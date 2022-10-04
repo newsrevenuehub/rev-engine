@@ -9,7 +9,7 @@ import useQueryString from 'hooks/useQueryString';
 import useErrorFocus from 'hooks/useErrorFocus';
 import useClearbit from 'hooks/useClearbit';
 import * as getters from 'components/donationPage/pageGetters';
-import { getDefaultAmountForFreq } from 'components/donationPage/pageContent/DAmount';
+import { getDefaultAmountForFreq } from './amountUtils';
 import { frequencySort } from 'components/donationPage/pageContent/DFrequency';
 import {
   GRECAPTCHA_SITE_KEY,

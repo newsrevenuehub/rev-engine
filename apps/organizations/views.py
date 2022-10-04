@@ -138,6 +138,37 @@ def create_stripe_account_link(request, rp_pk=None):
     return Response(dict(stripe_response), status=status.HTTP_202_ACCEPTED)
 
 
+@api_view(["GET"])
+def get_account_link_status(request):
+    rp_id = request.query_params.get("rp_id")
+    if not rp_id:
+        # validation error
+        pass
+    revenue_program = get_object_or_404(RevenueProgram, pk=rp_id)
+    if not request.user.roleassignment.can_access_rp(revenue_program):
+        logger.warning(
+            (
+                "[get_account_link_status] was asked to create an account link for RP with ID %s by user with id %s who does "
+                "not have access."
+            ),
+            rp_id,
+            request.user.id,
+        )
+        raise PermissionDenied(f"You do not have permission to access revenue program with the PK {rp_id}")
+    # handle if verified
+    # handle if no payment provider
+    # retrieve stripe account
+    # handle if error retrieving stripe account
+    # if charges_enabled is True, handle as verified
+    # else
+    # if pending verification and next action, provide generic pending verification message to FE
+    # if next step for user
+    #   generate generic next step message
+    # create a new stripe account link
+    # handle if error creating new account link
+    # send back account link along with message about actionable next steps to SPA
+
+
 @api_view(["POST"])
 @permission_classes([IsAuthenticated, HasRoleAssignment])
 def create_stripe_account_link_complete(request, rp_pk=None):

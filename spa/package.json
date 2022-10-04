@@ -91,7 +91,7 @@
       "!**/*.styled.js"
     ],
     "transformIgnorePatterns": [
-      "node_modules/(?!(cypress)/)",
+      "node_modules/(?!(cypress|url-join)/)",
       "\\.pnp\\.[^\\/]+$"
     ],
     "moduleNameMapper": {
@@ -165,6 +165,7 @@
     "eslint-config-prettier": "^8.3.0",
     "eslint-plugin-chai-friendly": "^0.7.1",
     "eslint-plugin-cypress": "^2.11.3",
+    "history": "^5.3.0",
     "jest-axe": "^6.0.0",
     "prettier": "^2.7.1",
     "webpack": "^5.74.0"

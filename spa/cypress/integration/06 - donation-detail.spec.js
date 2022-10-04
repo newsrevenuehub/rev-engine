@@ -30,7 +30,7 @@ const pageListBody = {
 };
 
 const CONTRIBUTION_PK = 123;
-const testDonationPageUrl = `${DONATIONS_SLUG}/${CONTRIBUTION_PK}`;
+const testDonationPageUrl = DONATIONS_SLUG + CONTRIBUTION_PK;
 
 describe('Donation detail', () => {
   describe('Dynamic page title', () => {
@@ -38,7 +38,7 @@ describe('Donation detail', () => {
       cy.forceLogin(hubAdminWithFlags);
       cy.intercept({ method: 'GET', pathname: getEndpoint(`${LIST_PAGES}**`) }, { body: pageListBody }).as('getPages');
       cy.intercept({ method: 'GET', pathname: getEndpoint(USER) }, { body: hubAdminWithFlags });
-      cy.intercept('GET', getEndpoint(`${CONTRIBUTIONS}/${CONTRIBUTION_PK}/`), {
+      cy.intercept('GET', getEndpoint(CONTRIBUTIONS + CONTRIBUTION_PK), {
         body: donationPageContributionDetailData
       }).as('getDonationPageDonation');
       cy.visit(testDonationPageUrl);
@@ -54,7 +54,7 @@ describe('Donation detail', () => {
     beforeEach(() => {
       cy.forceLogin(hubAdminWithFlags);
       cy.intercept({ method: 'GET', pathname: getEndpoint(USER) }, { body: hubAdminWithFlags });
-      cy.intercept('GET', getEndpoint(`${CONTRIBUTIONS}/${CONTRIBUTION_PK}/`), {
+      cy.intercept('GET', getEndpoint(CONTRIBUTIONS + CONTRIBUTION_PK), {
         body: unflaggedContributionDetailData
       }).as('getUnflaggedDonation');
       cy.visit(testDonationPageUrl);
@@ -81,7 +81,7 @@ describe('Donation detail', () => {
     beforeEach(() => {
       cy.forceLogin(hubAdminWithFlags);
       cy.intercept({ method: 'GET', pathname: getEndpoint(USER) }, { body: hubAdminWithFlags });
-      cy.intercept('GET', getEndpoint(`${CONTRIBUTIONS}/${CONTRIBUTION_PK}/`), {
+      cy.intercept('GET', getEndpoint(CONTRIBUTIONS + CONTRIBUTION_PK), {
         body: prevFlaggedContributionDetailData
       }).as('getNoLongerFlaggedDonation');
       cy.visit(testDonationPageUrl);
@@ -170,10 +170,10 @@ describe('Donation detail', () => {
 
     it('should make request with proper body if accept is clicked', () => {
       const contributionId = flaggedContributionDetailData.id;
-      cy.intercept('GET', getEndpoint(`${CONTRIBUTIONS}${contributionId}/`), {
+      cy.intercept('GET', getEndpoint(CONTRIBUTIONS + contributionId), {
         body: flaggedContributionDetailData
       }).as('getFlaggedDonation');
-      cy.visit(`${DONATIONS_SLUG}/${contributionId}`);
+      cy.visit(DONATIONS_SLUG + contributionId);
 
       cy.intercept('POST', getEndpoint(`${CONTRIBUTIONS}${contributionId}/${PROCESS_FLAGGED}`), {
         body: { detail: 'accepted' }

@@ -38,7 +38,7 @@ function Donations() {
   const [donationsCount, setDonationsCount] = useState([]);
   const [pageIndex, setPageIndex] = useState(0);
 
-  const handleRowClick = (row) => history.push(`${DONATIONS_SLUG}/${row.id}/`);
+  const handleRowClick = (row) => history.push(`${DONATIONS_SLUG}${row.id}/`);
 
   const handlePageChange = (newPageIndex) => {
     setPageIndex(newPageIndex);

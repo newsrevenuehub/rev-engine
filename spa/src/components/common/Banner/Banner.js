@@ -16,7 +16,7 @@ const Banner = ({ type, className, message }) => {
       <Flex className={className} type={type} data-testid="banner">
         <InfoOutlinedIcon style={{ height: 20, width: 20 }} />
         <Label>{message}</Label>
-        <Button onClick={handleClose} aria-label="Dismiss message" type={type}>
+        <Button onClick={handleClose} type={type}>
           Got it
         </Button>
       </Flex>

@@ -15,20 +15,20 @@ describe('Banner', () => {
     tree();
 
     expect(screen.getByText(/set up a Stripe connection/i)).toBeVisible();
-    expect(screen.getByRole('button', { name: /dismiss message/i })).toBeEnabled();
+    expect(screen.getByRole('button', { name: /Got it/i })).toBeEnabled();
   });
 
   it('should render publish type information', () => {
     tree({ type: BANNER_TYPE.YELLOW, message: messagePublish });
 
     expect(screen.getByText(/publish a contribution page/i)).toBeVisible();
-    expect(screen.getByRole('button', { name: /dismiss message/i })).toBeEnabled();
+    expect(screen.getByRole('button', { name: /Got it/i })).toBeEnabled();
   });
 
   it('should close banner if button is clicked', () => {
     tree();
     expect(screen.getByTestId('banner')).toBeVisible();
-    fireEvent.click(screen.getByRole('button', { name: /dismiss message/i }));
+    fireEvent.click(screen.getByRole('button', { name: /Got it/i }));
     expect(screen.queryByTestId('banner')).toBeNull();
   });
 

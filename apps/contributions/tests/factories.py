@@ -9,6 +9,7 @@ from faker import Faker
 
 from apps.common.tests.test_utils import generate_random_datetime
 from apps.contributions import models
+from apps.organizations.tests.factories import PaymentProviderFactory
 from apps.pages.tests.factories import DonationPageFactory
 
 
@@ -66,6 +67,7 @@ class ContributionFactory(DjangoModelFactory):
     payment_provider_used = "Stripe"
     donation_page = factory.SubFactory(DonationPageFactory)
     contributor = factory.SubFactory(ContributorFactory)
+    provider_payment_id = factory.SubFactory(PaymentProviderFactory)
 
 
 class StripeCustomerFactory:

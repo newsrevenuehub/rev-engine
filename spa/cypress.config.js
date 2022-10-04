@@ -24,6 +24,6 @@ module.exports = defineConfig({
       on('file:preprocessor', webpackPreprocessor({ webpackOptions, watchOptions: {} }));
     },
     baseUrl: 'http://localhost:3000',
-    specPattern: 'cypress/e2e/**/*spec.js'
+    specPattern: 'cypress/e2e/**/*cy.js'
   }
 });

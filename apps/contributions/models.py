@@ -243,7 +243,7 @@ class Contribution(IndexedTimeStampedModel, RoleAssignmentResourceModelMixin):
     def save(self, *args, **kwargs):
         # Calling save with kwargs "slack_notification" causes save method to trigger slack notifications
         slack_notification = kwargs.pop("slack_notification", None)
-        if slack_notification:
+        if slack_notification and self.provider_payment_method_id:
             self.send_slack_notifications(slack_notification)
 
         # Check if we should update stripe payment method details

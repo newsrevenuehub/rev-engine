@@ -1,5 +1,5 @@
 import datetime
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from django.test import TestCase, override_settings
 from django.utils import timezone
@@ -119,9 +119,19 @@ class ContributionTest(TestCase):
         mock_send_slack.assert_not_called()
 
     @patch("apps.contributions.models.SlackManager")
-    def test_save_with_slack_arg_sends_slack_notifications(self, mock_send_slack):
+    def test_save_with_slack_arg_sends_no_slack_notifications_if_no_payment_method(self, mock_send_slack):
         self.contribution.amount = 10
         self.contribution.save(slack_notification=SlackNotificationTypes.SUCCESS)
+        mock_send_slack.assert_not_called()
+
+    @patch("apps.contributions.models.Contribution.fetch_stripe_payment_method", MagicMock(return_value={}))
+    @patch("apps.contributions.models.SlackManager")
+    def test_save_with_slack_arg_sends_slack_notifications_if_payment_was_method_was_provided(self, mock_send_slack):
+        contribution = Contribution.objects.create(
+            amount=self.amount, donation_page=self.donation_page, provider_payment_method_id="some-id"
+        )
+        contribution.amount = 10
+        contribution.save(slack_notification=SlackNotificationTypes.SUCCESS)
         mock_send_slack.assert_any_call()
 
     @patch("stripe.PaymentMethod.retrieve", side_effect="{}")

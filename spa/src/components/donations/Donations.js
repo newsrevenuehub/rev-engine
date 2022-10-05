@@ -118,8 +118,8 @@ function Donations() {
     <>
       <PageTitle title="Contributions" />
       <div data-testid="donations" style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-        <Switch data-testid="donations">
-          <Route path={`${path}/:contributionId`}>
+        <Switch>
+          <Route path={`${path}:contributionId`}>
             <DashboardSection heading="Contribution Info">
               <DonationDetail />
             </DashboardSection>

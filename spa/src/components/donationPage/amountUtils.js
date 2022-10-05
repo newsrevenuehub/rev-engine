@@ -1,9 +1,9 @@
 /**
  * Returns the index of an amount in a list of frequency page. If none can be
  * found, this returns -1.
- * @param {Object} page page object
- * @param {number | string} amount to search for
- * @param {string} frequency frequency code
+ * @param {Object} page - page object
+ * @param {number | string} amount - amount to search for
+ * @param {string} frequency - frequency code
  * @returns {number} index of amount
  */
 export function getAmountIndex(page, amount, frequency) {

@@ -1,11 +1,9 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { Route, Switch, useHistory, useRouteMatch } from 'react-router-dom';
-import PropTypes from 'prop-types';
-import { useAlert } from 'react-alert';
 import * as S from './Donations.styled';
 
 // AJAX
-import { CONTRIBUTIONS, LIST_PAGES } from 'ajax/endpoints';
+import { CONTRIBUTIONS } from 'ajax/endpoints';
 import useRequest from 'hooks/useRequest';
 import { getFrequencyAdjective } from 'utilities/parseFrequency';
 
@@ -13,7 +11,7 @@ import { getFrequencyAdjective } from 'utilities/parseFrequency';
 import queryString from 'query-string';
 
 // Contants
-import { GENERIC_ERROR, NO_VALUE } from 'constants/textConstants';
+import { NO_VALUE } from 'constants/textConstants';
 import { DONATIONS_SLUG } from 'routes';
 
 // Util
@@ -32,20 +30,18 @@ import { PAYMENT_STATUS_EXCLUDE_IN_CONTRIBUTIONS } from 'constants/paymentStatus
 import PageTitle from 'elements/PageTitle';
 import Banner from 'components/common/Banner';
 import { BANNER_TYPE } from 'constants/bannerConstants';
-import { usePageListContext } from 'components/dashboard/PageListContext';
+import usePagesList from 'hooks/usePageList';
 import useConnectStripeAccount from 'hooks/useConnectStripeAccount';
 import useUser from 'hooks/useUser';
 
 const Donations = () => {
   const { path } = useRouteMatch();
   const history = useHistory();
-  const alert = useAlert();
 
   const { user } = useUser();
   const { requiresStripeVerification } = useConnectStripeAccount();
-  const { pages, setPages } = usePageListContext();
+  const { pages } = usePagesList();
   const requestDonations = useRequest();
-  const requestGetPages = useRequest();
   const [filters, setFilters] = useState({});
   const [donationsCount, setDonationsCount] = useState([]);
   const [pageIndex, setPageIndex] = useState(0);
@@ -62,7 +58,7 @@ const Donations = () => {
       user?.role_type?.includes('hub_admin') ||
       user?.role_type?.includes('Hub Admin') ||
       (user?.revenue_programs?.length || 0) > 1 ||
-      pages === undefined
+      !pages?.length
     ) {
       return null;
     }
@@ -70,18 +66,6 @@ const Donations = () => {
     if (!requiresStripeVerification && !hasPublished) return BANNER_TYPE.YELLOW;
     return null;
   }, [pages, requiresStripeVerification, user?.revenue_programs?.length, user?.role_type]);
-
-  useEffect(() => {
-    requestGetPages(
-      { method: 'GET', url: LIST_PAGES },
-      {
-        onSuccess: ({ data }) => {
-          setPages(data);
-        },
-        onFailure: () => alert.error(GENERIC_ERROR)
-      }
-    );
-  }, [alert]);
 
   const fetchDonations = useCallback(
     (parameters, { onSuccess, onFailure }) => {

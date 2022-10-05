@@ -9,7 +9,6 @@ import { useConfigureAnalytics } from './analytics';
 import { CONTENT_SLUG, PROFILE, VERIFY_EMAIL_SUCCESS } from 'routes';
 import PageContextProvider from 'components/dashboard/PageContext';
 import needsProfileFinalization from 'utilities/needsProfileFinalization';
-import PageListContextProvider from 'components/dashboard/PageListContext';
 import useUser from 'hooks/useUser';
 
 function Main() {
@@ -42,19 +41,17 @@ function Main() {
 
   return (
     <PageContextProvider>
-      <PageListContextProvider>
-        {isLoading ? (
-          ''
-        ) : isVerifyEmailPath ? (
-          <Verify />
-        ) : (
-          <S.Main>
-            <S.MainContent>
-              <Dashboard />
-            </S.MainContent>
-          </S.Main>
-        )}
-      </PageListContextProvider>
+      {isLoading ? (
+        ''
+      ) : isVerifyEmailPath ? (
+        <Verify />
+      ) : (
+        <S.Main>
+          <S.MainContent>
+            <Dashboard />
+          </S.MainContent>
+        </S.Main>
+      )}
     </PageContextProvider>
   );
 }

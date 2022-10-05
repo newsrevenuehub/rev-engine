@@ -1,4 +1,4 @@
-import { useEffect, useState, Fragment } from 'react';
+import { useState, Fragment } from 'react';
 import orderBy from 'lodash.orderby';
 import { Content } from './Pages.styled';
 
@@ -6,25 +6,15 @@ import { Content } from './Pages.styled';
 import { useHistory } from 'react-router-dom';
 import { EDITOR_ROUTE } from 'routes';
 
-// Deps
-import { useAlert } from 'react-alert';
-
-// Constants
-import { GENERIC_ERROR } from 'constants/textConstants';
-
-// AJAX
-import useRequest from 'hooks/useRequest';
-import { LIST_PAGES } from 'ajax/endpoints';
-
 // Children
 import GenericErrorBoundary from 'components/errors/GenericErrorBoundary';
-import { usePageListContext } from 'components/dashboard/PageListContext';
 import EditButton from 'components/common/Button/EditButton';
 import NewButton from 'components/common/Button/NewButton';
 import Hero from 'components/common/Hero';
 import useModal from 'hooks/useModal';
 
 import AddPageModal from './AddPageModal';
+import usePagesList from 'hooks/usePagesList';
 
 export const pagesbyRP = (pgsRaw, qry) => {
   const pagesByRevProgram = [];
@@ -55,24 +45,10 @@ export const pagesbyRP = (pgsRaw, qry) => {
 };
 
 function Pages() {
-  const alert = useAlert();
   const history = useHistory();
-  const requestGetPages = useRequest();
-  const { pages, setPages } = usePageListContext();
+  const { pages } = usePagesList();
   const [pageSearchQuery, setPageSearchQuery] = useState([]);
   const { open: showAddPageModal, handleClose, handleOpen } = useModal();
-
-  useEffect(() => {
-    requestGetPages(
-      { method: 'GET', url: LIST_PAGES },
-      {
-        onSuccess: ({ data }) => {
-          setPages(data);
-        },
-        onFailure: () => alert.error(GENERIC_ERROR)
-      }
-    );
-  }, [alert]);
 
   const handleEditPage = (page) => {
     const path = `${EDITOR_ROUTE}/${page.revenue_program.slug}/${page.slug}`;

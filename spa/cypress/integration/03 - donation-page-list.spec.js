@@ -113,7 +113,10 @@ describe('Donation page list', () => {
       it('creates a page with a unique name and slug based on existing pages', () => {
         cy.forceLogin(orgAdmin);
         cy.intercept({ method: 'GET', pathname: getEndpoint(USER) }, { body: orgAdminWithContentFlagAndOneRP });
-        cy.intercept({ method: 'POST', pathname: getEndpoint(LIST_PAGES) }).as('createNewPage');
+        cy.intercept(
+          { method: 'POST', pathname: getEndpoint(LIST_PAGES) },
+          { body: [{ name: 'Page 1', slug: 'page-1', revenue_program: 1 }] }
+        ).as('createNewPage');
         cy.visit(CONTENT_SLUG);
         cy.get('button[aria-label="New Page"]').click();
         cy.wait('@createNewPage').then(({ request }) => {

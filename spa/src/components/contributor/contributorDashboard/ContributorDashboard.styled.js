@@ -1,7 +1,7 @@
 import { Button, IconButton } from '@material-ui/core';
 import styled from 'styled-components';
 
-import { PAYMENT_STATUS } from 'constants';
+import { PAYMENT_STATUS } from 'constants/paymentStatus';
 
 export const ContributorDashboard = styled.main`
   height: 100%;

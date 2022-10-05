@@ -17,3 +17,10 @@ export const Default = Hero.bind({});
 Default.args = {
   ...args
 };
+
+export const NoSearch = Hero.bind({});
+
+NoSearch.args = {
+  ...args,
+  onChange: undefined
+};

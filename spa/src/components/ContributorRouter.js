@@ -29,6 +29,7 @@ import DonationPageNavbar from 'components/donationPage/DonationPageNavbar';
 
 // Utilities
 import componentLoader from 'utilities/componentLoader';
+import AddSlashToRoutes from './routes/AddSlashToRoutes';
 
 // Split bundles
 const ContributorEntry = lazy(() => componentLoader(() => import('components/contributor/ContributorEntry')));
@@ -79,22 +80,27 @@ function ContributorRouter() {
     <SegregatedStyles page={pageData}>
       {pageData ? <DonationPageNavbar page={pageData} /> : null}
       <BrowserRouter>
-        <ChunkErrorBoundary>
-          <React.Suspense fallback={<GlobalLoading />}>
-            <Switch>
-              <ProtectedRoute
-                path={ROUTES.CONTRIBUTOR_DASHBOARD}
-                render={() => <TrackPageView component={ContributorDashboard} />}
-                contributor
-              />
-              <Route
-                path={ROUTES.CONTRIBUTOR_ENTRY}
-                render={() => <TrackPageView component={ContributorEntry} page={pageData} />}
-              />
-              <Route path={ROUTES.CONTRIBUTOR_VERIFY} render={() => <TrackPageView component={ContributorVerify} />} />
-            </Switch>
-          </React.Suspense>
-        </ChunkErrorBoundary>
+        <AddSlashToRoutes>
+          <ChunkErrorBoundary>
+            <React.Suspense fallback={<GlobalLoading />}>
+              <Switch>
+                <ProtectedRoute
+                  path={ROUTES.CONTRIBUTOR_DASHBOARD}
+                  render={() => <TrackPageView component={ContributorDashboard} />}
+                  contributor
+                />
+                <Route
+                  path={ROUTES.CONTRIBUTOR_ENTRY}
+                  render={() => <TrackPageView component={ContributorEntry} page={pageData} />}
+                />
+                <Route
+                  path={ROUTES.CONTRIBUTOR_VERIFY}
+                  render={() => <TrackPageView component={ContributorVerify} />}
+                />
+              </Switch>
+            </React.Suspense>
+          </ChunkErrorBoundary>
+        </AddSlashToRoutes>
       </BrowserRouter>
     </SegregatedStyles>
   );

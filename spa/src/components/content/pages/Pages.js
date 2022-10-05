@@ -1,6 +1,7 @@
 import { useState, Fragment } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import orderBy from 'lodash.orderby';
+import join from 'url-join';
 import { Content } from './Pages.styled';
 
 // Router
@@ -76,7 +77,7 @@ function Pages() {
   const isLoading = pagesLoading || userLoading;
 
   const handleEditPage = (page) => {
-    const path = `${EDITOR_ROUTE}/${page.revenue_program.slug}/${page.slug}`;
+    const path = join([EDITOR_ROUTE, page.revenue_program.slug, page.slug, '/']);
     history.push({ pathname: path, state: { pageId: page.id } });
   };
 

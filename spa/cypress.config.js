@@ -15,7 +15,11 @@ process.env.NODE_ENV = 'development';
 const craWebpackConfig = require('react-scripts/config/webpack.config');
 
 module.exports = defineConfig({
+  // Don't save video files of runs.
   video: false,
+
+  // Disable domain restrictions, specifically related to iframes.
+  // See https://docs.cypress.io/guides/references/configuration#Browser
   chromeWebSecurity: false,
   e2e: {
     setupNodeEvents(on, config) {

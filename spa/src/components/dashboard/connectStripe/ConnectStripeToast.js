@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 
 import * as S from './ConnectStripeToast.styled';
 import useConnectStripeAccount from 'hooks/useConnectStripeAccount';
@@ -10,10 +10,8 @@ import RemoveIcon from '@material-ui/icons/Remove';
 import RETooltip from 'elements/RETooltip';
 
 const ConnectStripeToast = () => {
-  const {
-    createStripeAccountLink: { mutate, isLoading }
-  } = useConnectStripeAccount();
-
+  const { loading, sendUserToStripe, ctaButtonText, ctaDescriptionText, unverifiedReason } = useConnectStripeAccount();
+  const [reason, setReason] = useState();
   const [collapsed, setCollapsed] = useState(false);
 
   const handleCollapse = useCallback(() => {
@@ -23,6 +21,15 @@ const ConnectStripeToast = () => {
   const handleExpand = useCallback(() => {
     setCollapsed(false);
   }, [setCollapsed]);
+
+  // This causes the toast to automatically open if unverifiedReason
+  // changes and it's `past_due`, which requires user action
+  useEffect(() => {
+    if (unverifiedReason === 'past_due' && reason !== 'past_due') {
+      setCollapsed(false);
+    }
+    setReason(unverifiedReason);
+  }, [reason, unverifiedReason]);
 
   if (collapsed) {
     return (
@@ -48,12 +55,12 @@ const ConnectStripeToast = () => {
         </RETooltip>
       </S.Header>
       <S.Heading>Connect to Stripe</S.Heading>
-      <S.Description>
-        Ready to publish your first donation page? Publish by creating and connect to Stripe in one easy step.
-      </S.Description>
-      <S.Button data-testid="connect-stripe-toast-button" disabled={isLoading} onClick={() => mutate()}>
-        Connect Now
-      </S.Button>
+      <S.Description>{ctaDescriptionText}</S.Description>
+      {unverifiedReason === 'past_due' && (
+        <S.Button data-testid="connect-stripe-toast-button" disabled={loading} onClick={sendUserToStripe}>
+          {ctaButtonText}
+        </S.Button>
+      )}
     </S.ConnectStripeToast>
   );
 };

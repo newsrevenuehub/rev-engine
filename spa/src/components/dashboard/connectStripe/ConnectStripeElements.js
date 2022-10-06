@@ -16,15 +16,19 @@ import { CONNECT_STRIPE_COOKIE_NAME, CONNECT_STRIPE_FAQ_LINK } from 'constants/t
 
 const ConnectStripeModal = () => {
   const { open, handleClose } = useModal(true);
-  const {
-    createStripeAccountLink: { mutate, isLoading }
-  } = useConnectStripeAccount();
+  const { loading, sendUserToStripe } = useConnectStripeAccount();
 
   const handleClickConnectLater = useCallback(() => {
     const cookies = new Cookies();
     handleClose();
     cookies.set(CONNECT_STRIPE_COOKIE_NAME, true, { path: '/' });
   }, [handleClose]);
+
+  const handleClickConnectNow = useCallback(() => {
+    const cookies = new Cookies();
+    cookies.set(CONNECT_STRIPE_COOKIE_NAME, true, { path: '/' });
+    sendUserToStripe();
+  }, [sendUserToStripe]);
 
   if (!open) return <ConnectStripeToast />;
   return (
@@ -41,7 +45,7 @@ const ConnectStripeModal = () => {
           </S.StripeFAQ>
           .
         </S.Description>
-        <S.Button data-testid="connect-stripe-modal-button" disabled={isLoading} onClick={() => mutate()}>
+        <S.Button data-testid="connect-stripe-modal-button" disabled={loading} onClick={handleClickConnectNow}>
           Connect to Stripe
         </S.Button>
         <S.Anchor onClick={handleClickConnectLater}>

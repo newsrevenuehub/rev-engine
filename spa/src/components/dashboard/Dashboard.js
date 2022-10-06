@@ -39,7 +39,7 @@ function Dashboard() {
   const { flags } = useFeatureFlags();
   const { page, setPage } = usePageContext();
   const { user } = useUser();
-  const { requiresStripeVerification } = useConnectStripeAccount();
+  const { requiresVerification } = useConnectStripeAccount();
 
   const hasContributionsSectionAccess = user?.role_type && hasContributionsDashboardAccessToUser(flags);
   const hasContentSectionAccess = user?.role_type && flagIsActiveForUser(CONTENT_SECTION_ACCESS_FLAG_NAME, flags);
@@ -55,7 +55,7 @@ function Dashboard() {
 
   return (
     <S.Outer>
-      {requiresStripeVerification ? <ConnectStripeElements /> : ''}
+      {requiresVerification ? <ConnectStripeElements /> : ''}
       <DashboardTopbar isEditPage={isEditPage} page={page} setPage={setPage} />
       <S.Dashboard data-testid="dashboard">
         {isEditPage ? null : <DashboardSidebar />}

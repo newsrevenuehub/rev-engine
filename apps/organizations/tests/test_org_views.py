@@ -147,6 +147,11 @@ def rp_role_assignment(user, rp):
     return ra
 
 
+class FakeStripeProduct:
+    def __init__(self, id):
+        self.id = id
+
+
 @pytest.mark.django_db
 class TestHandleStripeAccountLink:
     def test_happy_path_when_stripe_already_verified_on_payment_provider(self, rp_role_assignment):
@@ -176,6 +181,7 @@ class TestHandleStripeAccountLink:
         rp = rp_role_assignment.revenue_programs.first()
         rp.payment_provider.stripe_verified = False
         rp.payment_provider.stripe_account_id = None
+        rp.payment_provider.stripe_product_id = None
         rp.payment_provider.save()
         url = reverse("handle-stripe-account-link", args=(rp.pk,))
         client = APIClient()
@@ -320,6 +326,23 @@ class TestHandleStripeAccountLink:
         rp.payment_provider.stripe_verified = False
         rp.payment_provider.save()
         url = reverse("handle-stripe-account-link", args=(rp.pk,))
+        client = APIClient()
+        client.force_authenticate(user=rp_role_assignment.user)
+        response = client.post(url)
+        assert response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
+
+    def test_when_stripe_error_on_stripe_product_creation(self, rp_role_assignment, monkeypatch):
+        mock_account_create = mock.MagicMock(return_value={"id": "account-id"})
+        monkeypatch.setattr("stripe.Account.create", mock_account_create)
+        mock_fn = mock.MagicMock()
+        mock_fn.side_effect = StripeError("Stripe blew up")
+        monkeypatch.setattr("stripe.Product.create", mock_fn)
+        rp = rp_role_assignment.revenue_programs.first()
+        rp.payment_provider.stripe_account_id = None
+        rp.payment_provider.stripe_verified = False
+        rp.payment_provider.stripe_product_id = None
+        rp.payment_provider.save()
+        url = reverse("create-stripe-account-link", args=(rp.pk,))
         client = APIClient()
         client.force_authenticate(user=rp_role_assignment.user)
         response = client.post(url)

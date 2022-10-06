@@ -404,14 +404,14 @@ class TestContributionsViewSet(RevEngineApiAbstractTestCase):
         response = self.assert_user_can_get(self.list_url + f"?{qp}", self.superuser)
         self.assertTrue(all([i["status"] not in filter_statuses for i in response.json()["results"]]))
 
-    def test_filters_out_contributions_without_payment_provider_id(self):
+    def test_filters_out_contributions_without_payment_method(self):
         org = OrganizationFactory()
         payment_provider = PaymentProviderFactory(stripe_account_id="ignore")
         revenue_program = RevenueProgramFactory(organization=org, payment_provider=payment_provider)
         donation_page = DonationPageFactory(revenue_program=revenue_program)
         processing_contribution = Contribution.objects.create(amount=100, donation_page=donation_page)
         processed_contribution = Contribution.objects.create(
-            amount=100, donation_page=donation_page, provider_payment_id="some valid id"
+            amount=100, donation_page=donation_page, provider_payment_method_details={"k": "v"}
         )
         response = self.assert_user_can_get(self.list_url, self.hub_user)
         retrieved_contribution_ids = [

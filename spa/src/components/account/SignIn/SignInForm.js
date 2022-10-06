@@ -7,6 +7,7 @@ import visibilityOn from 'assets/images/account/visibility_on.png';
 import visibilityOff from 'assets/images/account/visibility_off.png';
 
 import { FORGOT_PASSWORD } from 'routes';
+import { Tooltip } from 'components/base';
 
 function SignInForm({ onSubmitSignIn, loading }) {
   const { open: showPassword, handleToggle: togglePasswordVisiblity } = useModal();
@@ -64,11 +65,14 @@ function SignInForm({ onSubmitSignIn, loading }) {
           status={errors.password}
           data-testid={`signin-pwd-${showPassword ? 'text' : 'password'}`}
         />
-        <S.Visibility
-          data-testid="toggle-password"
-          onClick={togglePasswordVisiblity}
-          src={showPassword ? visibilityOn : visibilityOff}
-        />
+        <Tooltip title={showPassword ? 'Hide password' : 'Show password'}>
+          <S.Visibility
+            data-testid="toggle-password"
+            onClick={togglePasswordVisiblity}
+            src={showPassword ? visibilityOn : visibilityOff}
+            visible={showPassword ? 'true' : ''}
+          />
+        </Tooltip>
       </S.InputOuter>
       {errors.password ? <S.Message role="error">{errors.password.message}</S.Message> : <S.MessageSpacer />}
 

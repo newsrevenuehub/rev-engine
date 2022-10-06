@@ -62,7 +62,7 @@ function SignIn({ onSuccess }) {
         </S.Left>
         <S.Right>
           <S.FormElements>
-            <S.Heading>Welcome Back!</S.Heading>
+            <S.Heading marginBottom={34}>Welcome Back!</S.Heading>
 
             <SignInForm onSubmitSignIn={onSubmitSignIn} loading={signInState.loading} />
             {formSubmitErrors ? <S.Message>{formSubmitErrors}</S.Message> : <S.MessageSpacer />}

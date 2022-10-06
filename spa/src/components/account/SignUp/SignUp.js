@@ -72,7 +72,10 @@ function SignUp({ onSuccess }) {
 
   const formSubmissionMessage = useMemo(() => {
     if (signUpState?.errors?.email) {
-      return <S.Message>Email:{signUpState?.errors?.email}</S.Message>;
+      if (signUpState?.errors?.email[0] === 'This field must be unique.') {
+        return <S.Message>This email is already being used by an account. Try signing in.</S.Message>;
+      }
+      return <S.Message>Email: {signUpState?.errors?.email}</S.Message>;
     } else if (signUpState?.errors && signUpState?.errors.length !== 0) {
       return <S.Message>{SIGN_UP_GENERIC_ERROR_TEXT}</S.Message>;
     }
@@ -87,14 +90,14 @@ function SignUp({ onSuccess }) {
       </S.Left>
       <S.Right>
         <S.FormElements>
-          <S.Heading>Create Your Free Account</S.Heading>
-          <S.Subheading>Start receiving contributions today!</S.Subheading>
+          <S.Heading marginBottom={1}>Create Your Free Account</S.Heading>
+          <S.Subheading fontSize="lgx">Start receiving contributions today!</S.Subheading>
 
           <SignUpForm onSubmitSignUp={onSubmitSignUp} loading={signUpState.loading} />
           {formSubmissionMessage}
 
           <S.NavLink>
-            Already have an account?
+            Already have an account?{' '}
             <a href={SIGN_IN} data-testid="sign-in-link">
               Sign in
             </a>

@@ -9,8 +9,11 @@ import * as S from '../Account.styled';
 import visibilityOn from 'assets/images/account/visibility_on.png';
 import visibilityOff from 'assets/images/account/visibility_off.png';
 import Checkbox from '@material-ui/core/Checkbox';
+import { Tooltip } from 'components/base';
 
 function AcceptTerms({ checked, handleTOSChange }) {
+  const termsLink = 'https://fundjournalism.org/faq/terms-of-service/';
+  const policyLink = 'https://fundjournalism.org/faq/privacy-policy/';
   return (
     <S.AcceptTerms>
       <Checkbox
@@ -23,15 +26,17 @@ function AcceptTerms({ checked, handleTOSChange }) {
           padding: 0
         }}
       />
-      &nbsp;I agree to News Revenue Hub’s&nbsp;
-      <a href="https://fundjournalism.org/faq/terms-of-service/" rel="noreferrer" target="_blank">
-        Terms & Conditions
-      </a>
-      &nbsp;and&nbsp;
-      <a href="https://fundjournalism.org/faq/privacy-policy/" rel="noreferrer" target="_blank">
-        Privacy Policy
-      </a>
-      .
+      <S.AcceptTermsText>
+        I agree to News Revenue Hub’s{' '}
+        <a href={termsLink} rel="noreferrer" target="_blank">
+          Terms & Conditions
+        </a>{' '}
+        and{' '}
+        <a href={policyLink} rel="noreferrer" target="_blank">
+          Privacy Policy
+        </a>
+        .
+      </S.AcceptTermsText>
     </S.AcceptTerms>
   );
 }
@@ -50,10 +55,6 @@ function SignUpForm({ onSubmitSignUp, loading }) {
     formState: { errors },
     watch
   } = useForm();
-
-  const onSubmit = async (fdata) => {
-    onSubmitSignUp(fdata);
-  };
 
   const watchEmail = watch('email', '');
   const watchPassword = watch('password', '');
@@ -92,7 +93,7 @@ function SignUpForm({ onSubmitSignUp, loading }) {
           name="password"
           {...register('password', {
             required: 'Please enter your password',
-            validate: (val: string) => {
+            validate: (val) => {
               if (val.length < 8 || !/[a-zA-Z]/.test(val)) {
                 return 'Password should be alphanumeric and at least 8 characters long';
               }
@@ -102,15 +103,21 @@ function SignUpForm({ onSubmitSignUp, loading }) {
           status={errors.password}
           data-testid="signup-pwd"
         />
-        <S.Visibility
-          data-testid="toggle-password"
-          onClick={togglePasswordVisiblity}
-          src={showPassword ? visibilityOn : visibilityOff}
-        />
+        <Tooltip title={showPassword ? 'Hide password' : 'Show password'}>
+          <S.Visibility
+            data-testid="toggle-password"
+            onClick={togglePasswordVisiblity}
+            src={showPassword ? visibilityOn : visibilityOff}
+            visible={showPassword ? 'true' : ''}
+          />
+        </Tooltip>
       </S.InputOuter>
-      {errors.password ? <S.Message role="error">{errors.password.message}</S.Message> : <S.MessageSpacer />}
+      {errors.password ? (
+        <S.Message role="error">{errors.password.message}</S.Message>
+      ) : (
+        <S.Message info="true">Password must be 8 characters long and alphanumerical.</S.Message>
+      )}
       <AcceptTerms checked={checked} handleTOSChange={handleTOSChange} />
-      <br />
       <S.Submit type="submit" disabled={disabled} name="Create Account">
         Create Account
       </S.Submit>

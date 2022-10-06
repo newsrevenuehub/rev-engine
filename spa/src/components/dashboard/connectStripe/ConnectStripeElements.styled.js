@@ -80,7 +80,7 @@ export const Button = styled(MuiButton)`
 
 export const StripeFAQ = styled.a`
   font-size: ${(props) => props.theme.fontSizesUpdated.lg};
-  line-height: ${(props) => props.theme.fontSizesUpdated.xl};
+  line-height: ${(props) => props.theme.fontSizesUpdated['2xl']};
 `;
 
 export const Anchor = styled.a`

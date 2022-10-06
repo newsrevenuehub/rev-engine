@@ -60,7 +60,9 @@ function ForgotPassword() {
       </S.Left>
       <S.Right>
         <S.FormElements>
-          <S.Heading data-testid="forgot-pwd-title">Forgot Password</S.Heading>
+          <S.Heading data-testid="forgot-pwd-title" marginBottom={8}>
+            Forgot Password
+          </S.Heading>
           <S.Subheading>Enter your email address below and we'll send you a reset link.</S.Subheading>
 
           <br />

@@ -52,6 +52,7 @@ export const revEngineTheme = {
       400: '#c4c4c4',
       500: '#969696',
       600: '#707070',
+      800: '#3c3c3c',
       900: '#282828'
     },
 
@@ -104,7 +105,8 @@ export const revEngineTheme = {
     lgx: '24px',
     lg2x: '28px',
     h1: '34px',
-    xl: '72px'
+    xl: '46px',
+    '2xl': '72px'
   },
 
   muiBorderRadius: {

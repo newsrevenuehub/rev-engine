@@ -3,7 +3,7 @@ import { useTheme } from 'styled-components';
 // Context
 import { useEditInterfaceContext } from 'components/pageEditor/editInterface/EditInterface';
 
-import { CONTRIBUTION_INTERVALS } from 'constants';
+import { CONTRIBUTION_INTERVALS } from 'constants/contributionIntervals';
 
 const FREQUENCIES = [
   { value: CONTRIBUTION_INTERVALS.ONE_TIME, displayName: 'One time' },

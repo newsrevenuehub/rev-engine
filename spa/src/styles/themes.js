@@ -46,6 +46,7 @@ export const revEngineTheme = {
     },
 
     muiGrey: {
+      50: '#F9F9F9',
       100: '#F1F1F1',
       300: '#D9D9D9',
       400: '#c4c4c4',
@@ -110,7 +111,8 @@ export const revEngineTheme = {
     sm: '2px',
     md: '4px',
     lg: '6px',
-    xl: '10px'
+    xl: '10px',
+    '2xl': '12px'
   },
 
   radii: ['3px', '6px', '12px'],

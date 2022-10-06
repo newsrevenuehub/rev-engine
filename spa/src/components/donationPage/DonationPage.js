@@ -29,7 +29,7 @@ import { serializeData } from 'components/paymentProviders/stripe/stripeFns';
 import calculateStripeFee from 'utilities/calculateStripeFee';
 import formatStringAmountForDisplay from 'utilities/formatStringAmountForDisplay';
 import { getFrequencyAdverb } from 'utilities/parseFrequency';
-import { CONTRIBUTION_INTERVALS } from 'constants';
+import { CONTRIBUTION_INTERVALS } from 'constants/contributionIntervals';
 
 import { CSRF_HEADER } from 'settings';
 

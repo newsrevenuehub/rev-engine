@@ -261,7 +261,8 @@ class ContributionsViewSet(viewsets.ReadOnlyModelViewSet, FilterQuerySetByUserMi
             return [
                 x
                 for x in contributions
-                if x.get("revenue_program") == self.request.query_params["rp"] and x.get("provider_payment_id") is None
+                if x.get("revenue_program") == self.request.query_params["rp"]
+                and x.get("provider_payment_id") is not None
             ]
 
         # this is supplied by FilterQuerySetByUserMixin

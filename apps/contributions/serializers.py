@@ -611,7 +611,6 @@ class PaymentProviderContributionSerializer(serializers.Serializer):
     created = serializers.DateTimeField()
     last_payment_date = serializers.DateTimeField()
     stripe_account_id = serializers.CharField(max_length=255, required=False, allow_blank=True)
-    provider_payment_id = serializers.CharField(max_length=255, required=False, allow_blank=True)
 
 
 class SubscriptionsSerializer(serializers.Serializer):

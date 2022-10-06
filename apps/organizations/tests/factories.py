@@ -85,7 +85,6 @@ class StripePaymentIntentFactory:
     amount = uniform(0, 1000)
     created = fake.date_time_between(start_date="-5d", end_date="now")
     provider_customer_id = fake.uuid4()
-    provider_payment_id = randint(1111, 9999)
     last_payment_date = fake.date_time_between(start_date="-5d", end_date="now")
     status = choice(list(ContributionStatus.__members__.values()))
     credit_card_expiration_date = f"{randint(1, 12)}/{randint(2022, 2099)}"

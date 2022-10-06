@@ -66,7 +66,6 @@ class ContributionFactory(DjangoModelFactory):
     payment_provider_used = "Stripe"
     donation_page = factory.SubFactory(DonationPageFactory)
     contributor = factory.SubFactory(ContributorFactory)
-    provider_payment_id = factory.LazyFunction(lambda: random.randrange(1, 2000))
 
 
 class StripeCustomerFactory:

@@ -15,8 +15,7 @@ import Checkbox from 'elements/inputs/Checkbox';
 import DElement, { DynamicElementPropTypes } from 'components/donationPage/pageContent/DElement';
 import GroupedLabel from 'elements/inputs/GroupedLabel';
 import { InputGroup } from 'elements/inputs/inputElements.styled';
-
-import { CONTRIBUTION_INTERVALS } from 'constants';
+import { CONTRIBUTION_INTERVALS } from 'constants/contributionIntervals';
 
 function calculateYearlyAmount(frequency, amount) {
   let yearlyTotal = amount;

@@ -1,7 +1,7 @@
 import isEqual from 'lodash.isequal';
 
 import { NO_VALUE } from 'constants/textConstants';
-import { PAYMENT_STATUS_EXCLUDE_IN_CONTRIBUTIONS } from 'constants';
+import { PAYMENT_STATUS_EXCLUDE_IN_CONTRIBUTIONS } from 'constants/paymentStatus';
 import { DONATIONS_SLUG } from 'routes';
 import { USER } from 'ajax/endpoints';
 
@@ -128,6 +128,7 @@ describe('Donations list', () => {
       cy.wait('@getDonations');
       cy.get('li > button[aria-label="Go to page 2"]').click();
       cy.wait('@getDonations').then((intercept) => {
+        console.log({ intercept });
         cy.getByTestId('donations-table')
           .find('tbody tr[data-testid="donation-row"]')
           .should('have.length', intercept.response.body.results.length);
@@ -294,7 +295,7 @@ describe('Donations list', () => {
     it('should update results to expected amount when filtering status', () => {
       cy.wait('@getDonations');
       const expectedPaids = donationsData.filter((d) => d.status === 'paid');
-      cy.getByTestId('status-filter-paid').click();
+      cy.get('button[aria-label="filter by status: paid"]').click();
       cy.getByTestId('filter-results-count').contains(expectedPaids.length);
     });
   });

@@ -248,6 +248,145 @@ class TestCreateStripeAccountLink:
         assert response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
 
 
+@pytest.mark.django_db
+class TestGetAccountLinkStatus:
+    def test_happy_path_when_stripe_already_verified_on_payment_provider(self, rp_role_assignment):
+        rp = rp_role_assignment.revenue_programs.first()
+        rp.payment_provider.stripe_verified = True
+        rp.payment_provider.save()
+        url = reverse("create-stripe-account-link-status", args=(rp.pk,))
+        client = APIClient()
+        client.force_authenticate(user=rp_role_assignment.user)
+        response = client.get(url)
+        assert response.status_code == status.HTTP_200_OK
+        assert response.json() == {"stripe_verified": True}
+
+    def test_happy_path_when_stripe_account_has_charges_enabled(self, monkeypatch, rp_role_assignment):
+        mock_account_link_retrieve = mock.MagicMock(return_value={"charges_enabled": True})
+        monkeypatch.setattr("stripe.Account.retrieve", mock_account_link_retrieve)
+        rp = rp_role_assignment.revenue_programs.first()
+        rp.payment_provider.stripe_verified = False
+        rp.payment_provider.stripe_account_id = "fakefakefake"
+        rp.payment_provider.save()
+        url = reverse("create-stripe-account-link-status", args=(rp.pk,))
+        client = APIClient()
+        client.force_authenticate(user=rp_role_assignment.user)
+        response = client.get(url)
+        assert response.status_code == status.HTTP_200_OK
+        assert response.json() == {"stripe_verified": True}
+
+    def test_happy_path_when_stripe_account_not_verified_and_requirements_past_due(
+        self, rp_role_assignment, monkeypatch
+    ):
+        mock_account_link_retrieve = mock.MagicMock(
+            return_value={"charges_enabled": False, "requirements": {"disabled_reason": "id.past_due"}}
+        )
+        monkeypatch.setattr("stripe.Account.retrieve", mock_account_link_retrieve)
+        fake_stripe_account_link_create_return = {"fake": "return value"}
+        mock_account_link_create = mock.MagicMock(return_value=fake_stripe_account_link_create_return)
+        monkeypatch.setattr("stripe.AccountLink.create", mock_account_link_create)
+        rp = rp_role_assignment.revenue_programs.first()
+        rp.payment_provider.stripe_verified = False
+        rp.payment_provider.stripe_account_id = "fakefakefake"
+        rp.payment_provider.save()
+        url = reverse("create-stripe-account-link-status", args=(rp.pk,))
+        client = APIClient()
+        client.force_authenticate(user=rp_role_assignment.user)
+        response = client.get(url)
+        assert response.status_code == status.HTTP_200_OK
+        assert (
+            response.json() == {"stripe_verified": False, "reason": "past_due"} | fake_stripe_account_link_create_return
+        )
+
+    def test_happy_path_when_stripe_account_not_verified_and_pending_verification(
+        self, rp_role_assignment, monkeypatch
+    ):
+        mock_account_link_retrieve = mock.MagicMock(
+            return_value={"charges_enabled": False, "requirements": {"disabled_reason": "id.pending_verification"}}
+        )
+        monkeypatch.setattr("stripe.Account.retrieve", mock_account_link_retrieve)
+        rp = rp_role_assignment.revenue_programs.first()
+        rp.payment_provider.stripe_verified = False
+        rp.payment_provider.stripe_account_id = "fakefakefake"
+        rp.payment_provider.save()
+        url = reverse("create-stripe-account-link-status", args=(rp.pk,))
+        client = APIClient()
+        client.force_authenticate(user=rp_role_assignment.user)
+        response = client.get(url)
+        assert response.status_code == status.HTTP_200_OK
+        assert response.json() == {"stripe_verified": False, "reason": "pending_verification"}
+
+    def test_happy_path_when_stripe_account_not_verified_and_unexpected_reason(self, rp_role_assignment, monkeypatch):
+        pass
+
+    def test_when_unauthenticated(self, rp):
+        url = reverse("create-stripe-account-link-status", args=(rp.pk,))
+        client = APIClient()
+        response = client.get(url)
+        assert response.status_code == status.HTTP_401_UNAUTHORIZED
+
+    def test_when_no_role_assignment(self, rp, user):
+        url = reverse("create-stripe-account-link-status", args=(rp.pk,))
+        client = APIClient()
+        client.force_authenticate(user=user)
+        response = client.get(url)
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+
+    def test_when_rp_not_found(self, rp_role_assignment):
+        rp = rp_role_assignment.revenue_programs.first()
+        url = reverse("create-stripe-account-link-status", args=(rp.pk,))
+        rp.delete()
+        client = APIClient()
+        client.force_authenticate(user=rp_role_assignment.user)
+        response = client.get(url)
+        assert response.status_code == status.HTTP_404_NOT_FOUND
+
+    def test_when_dont_have_access_to_rp(self, rp_role_assignment):
+        unowned_rp = RevenueProgramFactory()
+        assert unowned_rp not in rp_role_assignment.revenue_programs.all()
+        url = reverse("create-stripe-account-link-status", args=(unowned_rp.pk,))
+        client = APIClient()
+        client.force_authenticate(user=rp_role_assignment.user)
+        response = client.get(url)
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+
+    def test_when_no_payment_provider(self, rp_role_assignment):
+        (rp := rp_role_assignment.revenue_programs.first()).payment_provider.delete()
+        url = reverse("create-stripe-account-link-status", args=(rp.pk,))
+        client = APIClient()
+        client.force_authenticate(user=rp_role_assignment.user)
+        response = client.get(url)
+        assert response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
+
+    def test_when_stripe_error_on_account_retrieve(self, rp_role_assignment, monkeypatch):
+        mock_fn = mock.MagicMock()
+        mock_fn.side_effect = StripeError("Stripe blew up")
+        monkeypatch.setattr("stripe.Account.retrieve", mock_fn)
+        rp = rp_role_assignment.revenue_programs.first()
+        rp.payment_provider.stripe_account_id = "fakefakefake"
+        rp.payment_provider.stripe_verified = False
+        rp.payment_provider.save()
+        url = reverse("create-stripe-account-link-status", args=(rp.pk,))
+        client = APIClient()
+        client.force_authenticate(user=rp_role_assignment.user)
+        response = client.get(url)
+        assert response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
+
+    def test_when_stripe_error_on_account_link_creation(self, rp_role_assignment, monkeypatch):
+        mock_account_create_link = mock.MagicMock()
+        mock_account_create_link.side_effect = StripeError("Stripe blew up")
+        monkeypatch.setattr("stripe.AccountLink.create", mock_account_create_link)
+        rp = rp_role_assignment.revenue_programs.first()
+        rp.payment_provider.stripe_account_id = "fakefakefake"
+        rp.payment_provider.stripe_verified = False
+        rp.payment_provider.save()
+        url = reverse("create-stripe-account-link-status", args=(rp.pk,))
+        client = APIClient()
+        client.force_authenticate(user=rp_role_assignment.user)
+        response = client.get(url)
+        assert response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
+
+
 @pytest.fixture()
 def settings_stripe_acccount_link_env_var_set(settings):
     settings.STRIPE_ACCOUNT_LINK_RETURN_BASE_URL = "http://localhost:3000"

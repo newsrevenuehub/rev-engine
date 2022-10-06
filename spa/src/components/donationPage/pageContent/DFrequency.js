@@ -12,8 +12,7 @@ import DElement, { DynamicElementPropTypes } from 'components/donationPage/pageC
 import GroupedLabel from 'elements/inputs/GroupedLabel';
 import { InputGroup, GroupedWrapper } from 'elements/inputs/inputElements.styled';
 import FormErrors from 'elements/inputs/FormErrors';
-
-import { CONTRIBUTION_INTERVALS } from 'constants';
+import { CONTRIBUTION_INTERVALS } from 'constants/contributionIntervals';
 
 function DFrequency({ element, ...props }) {
   const { page, frequency, setFrequency, setAmount, errors, setOverrideAmount } = usePage();

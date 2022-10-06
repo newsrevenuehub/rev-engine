@@ -17,8 +17,7 @@ import {
   FORGOT_PASSWORD,
   RESET_PASSWORD,
   VERIFIED,
-  VERIFY_EMAIL_SUCCESS,
-  STRIPE_ACCOUNT_LINK_RETURN
+  VERIFY_EMAIL_SUCCESS
 } from 'routes';
 import orgAdminUser from '../fixtures/user/login-success-org-admin.json';
 import rpAdminUnverified from '../fixtures/user/login-success-rp-admin-unverified.json';

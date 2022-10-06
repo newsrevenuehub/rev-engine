@@ -1,4 +1,3 @@
-import PropTypes from 'prop-types';
 import { useEffect, useReducer } from 'react';
 import { useAlert } from 'react-alert';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -23,7 +22,7 @@ const initialState = {
   parentRevenueProgramId: '',
   sendUserToStripe: () => {},
   ctaDescriptionText: user_action_required_message,
-  ctaButtonText: 'Take me to Stripe configuration'
+  ctaButtonText: 'Take me to Stripe'
 };
 
 function getRevenueProgramIdRequiringVerification(user) {

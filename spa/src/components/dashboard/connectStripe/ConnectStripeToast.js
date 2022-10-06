@@ -56,11 +56,16 @@ const ConnectStripeToast = () => {
       </S.Header>
       <S.Heading>Connect to Stripe</S.Heading>
       <S.Description>{ctaDescriptionText}</S.Description>
-      {unverifiedReason === 'past_due' && (
-        <S.Button data-testid="connect-stripe-toast-button" disabled={loading} onClick={sendUserToStripe}>
-          {ctaButtonText}
-        </S.Button>
-      )}
+      <S.Button
+        data-testid="connect-stripe-toast-button"
+        // if reason is `past_due` then there's work to be done off-site
+        // with Stripe. In that case, we enable this button, but otherwise,
+        // we disable (or if loading)
+        disabled={loading || unverifiedReason !== 'past_due'}
+        onClick={sendUserToStripe}
+      >
+        {ctaButtonText}
+      </S.Button>
     </S.ConnectStripeToast>
   );
 };

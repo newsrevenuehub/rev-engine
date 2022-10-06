@@ -65,28 +65,12 @@ def get_stripe_account_link_return_url(request):
 
 @api_view(["POST"])
 @permission_classes([IsAuthenticated, HasRoleAssignment])
-def create_stripe_account_link(request, rp_pk=None):
-    """This endpoint is for the SPA to initiate the Stripe account linking process.
-
-    If the rp's payment provider doesn't have a Stripe Account, this endpoint calls
-    `stripe.Account.create` to create a Stripe Account, and saves the account id to the
-    NRE payment provider instance.
-
-    Next, it calls `stripe.accountLink.create`, including a parameter for a `return_url`, which
-    should be a user-facing view in the SPA. Stripe creates an AccountLink entity (with an expiry) and provides
-    an off-site URL that the user should be redirected to in the SPA in order to complete the account setup process.
-
-    The account setup process in Stripe spans several forms. If the user provides all the required information, they'll be
-    redirected to the URL provided as `return_url`.
-
-    When `return_url` loads in the SPA, it should make an API request to `create_stripe_account_link_complete` (below)
-    in order to update the payment_provider.stripe_verified value to `True` if the linked account is "charge ready".
-    """
+def handle_stripe_account_link(request, rp_pk):
     revenue_program = get_object_or_404(RevenueProgram, pk=rp_pk)
     if not request.user.roleassignment.can_access_rp(revenue_program):
         logger.warning(
             (
-                "[create_stripe_account_link] was asked to create an account link for RP with ID %s by user with id %s who does "
+                "[handle_stripe_account_link] was asked to report on status of account link for RP with ID %s by user with id %s who does "
                 "not have access."
             ),
             rp_pk,
@@ -96,65 +80,7 @@ def create_stripe_account_link(request, rp_pk=None):
     if not (payment_provider := revenue_program.payment_provider):
         logger.warning(
             (
-                "[create_stripe_account_link] was asked to create an account link for RP with ID %s , "
-                "but that RP does not have a payment provider."
-            ),
-            rp_pk,
-        )
-        return Response(
-            {"detail": "The revenue program you're trying to link doesn't have a payment provider."},
-            status=status.HTTP_500_INTERNAL_SERVER_ERROR,
-        )
-    if not payment_provider.stripe_account_id:
-        try:
-            stripe_response = stripe.Account.create(
-                type="standard",
-                country=revenue_program.country,
-            )
-        except StripeError:
-            logger.exception("[create_stripe_account_link] A stripe error occurred")
-            return Response(
-                {"detail": "Something went wrong creating Stripe account. Try again later."},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            )
-        payment_provider.stripe_account_id = stripe_response["id"]
-        payment_provider.save()
-    try:
-        stripe_response = stripe.AccountLink.create(
-            account=payment_provider.stripe_account_id,
-            # The URL the user will be redirected to if the account link is expired, has been
-            # previously-visited, or is otherwise invalid.
-            refresh_url=get_stripe_account_link_return_url(request),
-            # The URL that the user will be redirected to upon leaving or completing the linked flow.
-            return_url=get_stripe_account_link_return_url(request),
-            type="account_onboarding",
-        )
-    except StripeError:
-        logger.exception("[create_stripe_account_link] A stripe error occurred")
-        return Response(
-            {"detail": "Cannot create a stripe account link at this time. Try again later."},
-            status=status.HTTP_500_INTERNAL_SERVER_ERROR,
-        )
-    return Response(dict(stripe_response), status=status.HTTP_202_ACCEPTED)
-
-
-@api_view(["GET"])
-def get_account_link_status(request, rp_pk):
-    revenue_program = get_object_or_404(RevenueProgram, pk=rp_pk)
-    if not request.user.roleassignment.can_access_rp(revenue_program):
-        logger.warning(
-            (
-                "[get_account_link_status] was asked to report on status of account link for RP with ID %s by user with id %s who does "
-                "not have access."
-            ),
-            rp_pk,
-            request.user.id,
-        )
-        raise PermissionDenied(f"You do not have permission to access revenue program with the PK {rp_pk}")
-    if not (payment_provider := revenue_program.payment_provider):
-        logger.warning(
-            (
-                "[get_account_link_status] was asked get status of an account link for RP with ID %s , "
+                "[handle_stripe_account_link] was asked to handle RP with ID %s , "
                 "but that RP does not have a payment provider."
             ),
             rp_pk,
@@ -163,30 +89,36 @@ def get_account_link_status(request, rp_pk):
             {"detail": "The revenue program doesn't have a payment provider."},
             status=status.HTTP_500_INTERNAL_SERVER_ERROR,
         )
-    if not payment_provider.stripe_account_id:
-        logger.warning(
-            (
-                "[get_account_link_status] was asked get status of an account link for RP with ID %s , "
-                "but that RP's payment provider does not have a stripe account id set."
-            ),
-            rp_pk,
-        )
-        return Response(
-            {"detail": "The revenue program doesn't have a stripe account ID set on its payment provider."},
-            status=status.HTTP_500_INTERNAL_SERVER_ERROR,
-        )
     if payment_provider.stripe_verified:
-        return Response({"stripe_verified": True})
-    try:
-        account = stripe.Account.retrieve(payment_provider.stripe_account_id)
-    except StripeError:
-        logger.exception("[get_account_link_status] A stripe error occurred")
-        return Response(
-            {"detail": "Something went wrong retrieving the Stripe account for this RP. Try again later."},
-            status=status.HTTP_500_INTERNAL_SERVER_ERROR,
-        )
+        return Response({"requiresVerification": False})
+    if not payment_provider.stripe_account_id:
+        try:
+            account = stripe.Account.create(
+                type="standard",
+                country=revenue_program.country,
+            )
+        except StripeError:
+            logger.exception("[handle_stripe_account_link] A stripe error occurred")
+            return Response(
+                {"detail": "Something went wrong creating Stripe account. Try again later."},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+        payment_provider.stripe_account_id = account["id"]
+        payment_provider.save()
+    else:
+        try:
+            account = stripe.Account.retrieve(payment_provider.stripe_account_id)
+        except StripeError:
+            logger.exception("[handle_stripe_account_link] A stripe error occurred")
+            return Response(
+                {"detail": "Something went wrong retrieving the Stripe account for this RP. Try again later."},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
     if account["charges_enabled"]:
-        return Response({"stripe_verified": True})
+        if not payment_provider.stripe_verified:
+            payment_provider.stripe_verified = True
+            payment_provider.save()
+        return Response({"requiresVerification": False})
     raw_reason = account["requirements"]["disabled_reason"]
     reason = (
         "past_due"
@@ -196,7 +128,7 @@ def get_account_link_status(request, rp_pk):
         else "unknown"
     )
     data = {
-        "stripe_verified": False,
+        "requiresVerification": True,
         "reason": reason,
     }
     if reason == "past_due":
@@ -212,77 +144,9 @@ def get_account_link_status(request, rp_pk):
             )
             data = data | stripe_response
         except StripeError:
-            logger.exception("[get_account_link_status] A stripe error occurred")
+            logger.exception("[handle_stripe_account_link] A stripe error occurred")
             return Response(
                 {"detail": "Cannot get stripe account link status at this time. Try again later."},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
     return Response(data)
-
-
-@api_view(["POST"])
-@permission_classes([IsAuthenticated, HasRoleAssignment])
-def create_stripe_account_link_complete(request, rp_pk=None):
-    """This endpoint is for the SPA to signal that a user has been redirected back from Stripe Account
-    setup (after visiting the Stripe-controlled URL furnished in the call to `stripe.AccountLink.create` in
-    `create_stripe_account_link`)
-
-    After retrieving the target RP and related payment provider, if the Stripe account's `charges_enabled`
-    property is True, it sets the NRE payment provider instance's `stripe_verified`
-    value to `True` and saves.
-
-    Assuming the happy path, the response data will contain a `stripe_verified` boolean which the SPA can
-    use to decide what to do next in onboarding flow, without having to make an additional request to
-    retrieve the revenue program anew.
-    """
-    revenue_program = get_object_or_404(RevenueProgram, pk=rp_pk)
-    if not request.user.roleassignment.can_access_rp(revenue_program):
-        logger.warning(
-            (
-                "[create_stripe_account_link] was asked to create an account link for RP with ID %s by user with id %s who does "
-                "not have access."
-            ),
-            rp_pk,
-            request.user.id,
-        )
-        raise PermissionDenied(f"You do not have permission to access revenue program with the PK {rp_pk}")
-
-    if not (payment_provider := revenue_program.payment_provider):
-        logger.warning(
-            (
-                "[create_stripe_account_link_complete] was asked to complete account link for RP with ID %s , "
-                "but that RP does not have a payment provider."
-            ),
-            rp_pk,
-        )
-        return Response(
-            {"detail": "The revenue program you're trying to update doesn't have a payment provider."},
-            status=status.HTTP_500_INTERNAL_SERVER_ERROR,
-        )
-
-    if payment_provider.stripe_verified:
-        logger.info(
-            (
-                "[create_stripe_account_link_complete] was to do post-account-link side effects for revenue program (ID: %s), "
-                "but that revenue program already has a verified payment provider with ID %s."
-            ),
-            rp_pk,
-            payment_provider.id,
-        )
-        return Response(
-            {"detail": "This RP already has a Stripe Account Link that has been verified"},
-            status=status.HTTP_409_CONFLICT,
-        )
-    try:
-        stripe_account = stripe.Account.retrieve(payment_provider.stripe_account_id)
-    except StripeError:
-        logger.exception("[create_stripe_account_link_complete] A stripe error occurred")
-        return Response(
-            {"detail": "An error occurred with Stripe. Try back later."}, status=status.HTTP_500_INTERNAL_SERVER_ERROR
-        )
-    # https://stripe.com/docs/api/accounts/object#account_object-details_submitted
-    payment_provider.stripe_verified = stripe_account["charges_enabled"]
-    payment_provider.save()
-    return Response(
-        {"detail": "success", "stripe_verified": payment_provider.stripe_verified}, status=status.HTTP_202_ACCEPTED
-    )

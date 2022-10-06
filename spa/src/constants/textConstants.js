@@ -20,3 +20,7 @@ export const SIGN_UP_GENERIC_ERROR_TEXT = 'Account not created. Please try again
 export const CONNECT_STRIPE_COOKIE_NAME = 'hideConnectStripeModal';
 export const CONNECT_STRIPE_FAQ_LINK =
   'https://news-revenue-hub.atlassian.net/servicedesk/customer/portal/11/article/2217443333';
+
+// Page Editor
+export const DELETE_LIVE_PAGE_CONFIRM_TEXT =
+  'This page is currently published, and deleting it means users will no longer be able to acccess it. Are you sure you want to proceed?';

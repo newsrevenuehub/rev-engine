@@ -3,7 +3,7 @@ import * as S from './StatusFilter.styled';
 // Children
 import { FilterWrapper, FilterLabel } from 'components/donations/filters/Filters';
 import { StatusCellIcon } from 'components/contributor/contributorDashboard/ContributorDashboard';
-import { PAYMENT_STATUS } from 'constants';
+import { PAYMENT_STATUS } from 'constants/paymentStatus';
 
 const STATUS_FILTERS = Object.values(PAYMENT_STATUS);
 

@@ -1,4 +1,4 @@
-import { CONTRIBUTION_INTERVALS } from 'constants';
+import { CONTRIBUTION_INTERVALS } from 'constants/contributionIntervals';
 
 const STRIPE_NP_RATE = 0.022;
 const STRIPE_FP_RATE = 0.029;

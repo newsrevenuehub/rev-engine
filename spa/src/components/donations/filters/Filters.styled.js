@@ -1,7 +1,11 @@
 import styled from 'styled-components';
 import { motion } from 'framer-motion';
 
-export const Filters = styled(motion.div)``;
+export const Filters = styled(motion.div)`
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+`;
 
 export const FilterWrapper = styled.div`
   padding: 2rem 0;
@@ -16,7 +20,7 @@ export const FilterLabel = styled.p`
 `;
 
 export const ResultsCount = styled.p`
-  padding: 2rem 0;
+  padding: 0 0 2rem 0;
   span {
     display: inline-block;
     color: ${(props) => props.theme.colors.primary};

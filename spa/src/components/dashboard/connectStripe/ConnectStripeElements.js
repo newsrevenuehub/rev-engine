@@ -57,7 +57,6 @@ const ConnectStripeModal = () => {
   );
 };
 
-// TODO: [DEV-2401] Handle partially complete Stripe Account Link states
 const ConnectStripeElements = () => {
   const cookies = new Cookies();
   if (cookies.get(CONNECT_STRIPE_COOKIE_NAME)) {

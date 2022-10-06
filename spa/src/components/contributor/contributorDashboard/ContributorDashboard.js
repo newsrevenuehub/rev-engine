@@ -35,10 +35,9 @@ import ContributorTokenExpiredModal from 'components/contributor/contributorDash
 import DonationsTable from 'components/donations/DonationsTable';
 import EditRecurringPaymentModal from 'components/contributor/contributorDashboard/EditRecurringPaymentModal';
 import GlobalLoading from 'elements/GlobalLoading';
-import { PAYMENT_STATUS } from 'constants';
+import { PAYMENT_STATUS } from 'constants/paymentStatus';
+import { CONTRIBUTION_INTERVALS } from 'constants/contributionIntervals';
 import HeaderSection from 'components/common/HeaderSection';
-
-import { CONTRIBUTION_INTERVALS } from 'constants';
 
 const ContributorDashboardContext = createContext();
 

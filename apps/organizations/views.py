@@ -112,13 +112,23 @@ def create_stripe_account_link(request, rp_pk=None):
                 country=revenue_program.country,
             )
         except StripeError:
-            logger.exception("[create_stripe_account_link] A stripe error occurred")
+            logger.exception("[create_stripe_account_link] A stripe error occurred creating the Stripe Account")
             return Response(
                 {"detail": "Something went wrong creating Stripe account. Try again later."},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
         payment_provider.stripe_account_id = stripe_response["id"]
         payment_provider.save()
+
+    if not payment_provider.stripe_product_id:
+        try:
+            payment_provider.stripe_create_default_product()
+        except StripeError:
+            logger.exception("[create_stripe_account_link] A stripe error occurred creating the Stripe Product")
+            return Response(
+                {"detail": "Something went wrong creating Stripe account. Try again later."},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
     try:
         stripe_response = stripe.AccountLink.create(
             account=payment_provider.stripe_account_id,

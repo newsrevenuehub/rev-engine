@@ -3,7 +3,7 @@ import { render, screen } from 'test-utils';
 // Test Subject
 import DonationPageDisclaimer from './DonationPageDisclaimer';
 // needs to be relative import otherwise import doesn't work for some reason in jest test context
-import { CONTRIBUTION_INTERVALS } from '../../constants';
+import { CONTRIBUTION_INTERVALS } from 'constants/contributionIntervals';
 
 // Mock data
 import mockPage from '../../../cypress/fixtures/pages/live-page-1.json';

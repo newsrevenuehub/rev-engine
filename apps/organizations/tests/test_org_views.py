@@ -356,15 +356,9 @@ def settings_stripe_acccount_link_env_var_set(settings):
 
 def test_get_stripe_account_link_return_url_when_env_var_set(settings_stripe_acccount_link_env_var_set):
     factory = APIRequestFactory()
-    assert (
-        get_stripe_account_link_return_url(factory.get(""))
-        == f"http://localhost:3000{reverse('spa_stripe_account_link_complete')}"
-    )
+    assert get_stripe_account_link_return_url(factory.get("")) == f"http://localhost:3000{reverse('index')}"
 
 
 def test_get_stripe_account_link_return_url_when_env_var_not_set():
     factory = APIRequestFactory()
-    assert (
-        get_stripe_account_link_return_url(factory.get(""))
-        == f"http://testserver{reverse('spa_stripe_account_link_complete')}"
-    )
+    assert get_stripe_account_link_return_url(factory.get("")) == f"http://testserver{reverse('index')}"

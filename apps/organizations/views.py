@@ -56,7 +56,7 @@ def get_stripe_account_link_return_url(request):
 
     flow spanning SPA and backend and off-site Stripe form completion to be traversed.
     """
-    reversed = reverse("spa_stripe_account_link_complete")
+    reversed = reverse("index")
     if settings.STRIPE_ACCOUNT_LINK_RETURN_BASE_URL:
         return f"{settings.STRIPE_ACCOUNT_LINK_RETURN_BASE_URL}{reversed}"
     else:

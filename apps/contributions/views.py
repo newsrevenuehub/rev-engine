@@ -258,7 +258,11 @@ class ContributionsViewSet(viewsets.ReadOnlyModelViewSet, FilterQuerySetByUserMi
                 task_pull_serialized_stripe_contributions_to_cache.delay(
                     self.request.user.email, revenue_program.stripe_account_id
                 )
-            return [x for x in contributions if x.get("revenue_program") == self.request.query_params["rp"]]
+            return [
+                x
+                for x in contributions
+                if x.get("revenue_program") == self.request.query_params["rp"] and x.get("provider_payment_id") is None
+            ]
 
         # this is supplied by FilterQuerySetByUserMixin
         return self.filter_queryset_for_user(

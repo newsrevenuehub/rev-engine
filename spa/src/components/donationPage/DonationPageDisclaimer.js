@@ -1,7 +1,7 @@
 import * as S from './DonationPageDisclaimer.styled';
 import { format } from 'date-fns';
 // needs to be relative import otherwise aliasing not work in jest tests
-import { CONTRIBUTION_INTERVALS } from '../../constants';
+import { CONTRIBUTION_INTERVALS } from '../../constants/contributionIntervals';
 
 function DonationPageDisclaimer({ page, amount, frequency }) {
   const getFreqText = () =>

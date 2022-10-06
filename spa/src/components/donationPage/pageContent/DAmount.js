@@ -50,7 +50,13 @@ function DAmount({ element, ...props }) {
   };
 
   const handleOtherAmountChange = (e) => {
-    if (validateInputPositiveFloat(e.target.value)) {
+    const { value } = e.target;
+
+    if (value === '') {
+      handleAmountChange('');
+    }
+
+    if (validateInputPositiveFloat(value)) {
       handleAmountChange(parseFloat(e.target.value));
     }
   };

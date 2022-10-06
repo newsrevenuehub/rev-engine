@@ -65,7 +65,7 @@ function SwagEditor() {
   };
 
   const handleSwagThresholdChange = (e) => {
-    if (validateInputPositiveFloat(e.target.value)) {
+    if (e.target.value === '' || validateInputPositiveFloat(e.target.value)) {
       setElementContent({
         ...elementContent,
         swagThreshold: e.target.value

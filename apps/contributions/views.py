@@ -261,7 +261,9 @@ class ContributionsViewSet(viewsets.ReadOnlyModelViewSet, FilterQuerySetByUserMi
             return [x for x in contributions if x.get("revenue_program") == self.request.query_params["rp"]]
 
         # this is supplied by FilterQuerySetByUserMixin
-        return self.filter_queryset_for_user(self.request.user, self.model.objects.all())
+        return self.filter_queryset_for_user(
+            self.request.user, self.model.objects.filter(provider_payment_method_details__isnull=False)
+        )
 
     def filter_queryset(self, queryset):
         # filter backend doesnot apply for contributor

@@ -44,7 +44,7 @@ function authorizePayment(paymentData, paymentType, csrftoken) {
   return axios.post(apiEndpoint, paymentData, { headers: { [CSRF_HEADER]: csrftoken } }).then(({ data }) => data);
 }
 
-const DonationPageContext = createContext({});
+export const DonationPageContext = createContext({});
 
 class DonationPageUnrecoverableError extends Error {
   constructor(message) {

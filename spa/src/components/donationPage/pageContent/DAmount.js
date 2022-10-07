@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import PropTypes from 'prop-types';
-import * as S from './DAmount.styled';
+import { DAmountStyled, FeesContainer, FreqSubtext, OtherAmount, OtherAmountInput } from './DAmount.styled';
 
 // Util
 import validateInputPositiveFloat from 'utilities/validateInputPositiveFloat';
@@ -63,7 +63,7 @@ function DAmount({ element, ...props }) {
       {...props}
       data-testid="d-amount"
     >
-      <S.DAmount>
+      <DAmountStyled>
         {getAmounts(frequency).map((amnt, i) => {
           const selected = parseFloat(amount) === parseFloat(amnt) && !otherFocused;
           return (
@@ -73,18 +73,17 @@ function DAmount({ element, ...props }) {
               onClick={() => handleAmountChange(parseFloat(amnt))}
               data-testid={`amount-${amnt}${parseFloat(amount) === parseFloat(amnt) ? '-selected' : ''}`}
             >
-              {`${currencySymbol}${amnt}`}{' '}
-              <S.FreqSubtext selected={selected}>{getFrequencyRate(frequency)}</S.FreqSubtext>
+              {`${currencySymbol}${amnt}`} <FreqSubtext selected={selected}>{getFrequencyRate(frequency)}</FreqSubtext>
             </SelectableButton>
           );
         })}
         {(element.content?.allowOther || overrideAmount) && (
-          <S.OtherAmount
+          <OtherAmount
             data-testid={`amount-other${otherFocused || !amountIsPreset ? '-selected' : ''}`}
             selected={otherFocused || !amountIsPreset}
           >
             <span>{currencySymbol}</span>
-            <S.OtherAmountInput
+            <OtherAmountInput
               value={otherFocused || !amountIsPreset ? amount : ''}
               name="amount"
               onChange={handleOtherAmountChange}
@@ -95,11 +94,15 @@ function DAmount({ element, ...props }) {
               // weird numbers after calculating fees and fixing decimals
               maxLength="9"
             />
-            <S.FreqSubtext data-testid="custom-amount-rate">{getFrequencyRate(frequency)}</S.FreqSubtext>
-          </S.OtherAmount>
+            <FreqSubtext data-testid="custom-amount-rate">{getFrequencyRate(frequency)}</FreqSubtext>
+          </OtherAmount>
         )}
-        {displayPayFeesWidget && <PayFeesWidget />}
-      </S.DAmount>
+        {displayPayFeesWidget && (
+          <FeesContainer>
+            <PayFeesWidget />
+          </FeesContainer>
+        )}
+      </DAmountStyled>
       <FormErrors errors={errors.amount} />
     </DElement>
   );

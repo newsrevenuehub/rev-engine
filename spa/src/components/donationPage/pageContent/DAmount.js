@@ -5,6 +5,7 @@ import { DAmountStyled, FeesContainer, FreqSubtext, OtherAmount, OtherAmountInpu
 // Util
 import validateInputPositiveFloat from 'utilities/validateInputPositiveFloat';
 import { getFrequencyAdjective, getFrequencyRate } from 'utilities/parseFrequency';
+import { getAmountIndex } from '../amountUtils';
 
 // Context
 import { usePage } from '../DonationPage';
@@ -128,31 +129,3 @@ DAmount.required = true;
 DAmount.unique = true;
 
 export default DAmount;
-
-function getAmountIndex(page, amount, frequency) {
-  const amountElement = page?.elements?.find((el) => el.type === 'DAmount');
-  const amounts = amountElement?.content?.options;
-  const amountsForFreq = amounts && amounts[frequency]?.map((amnt) => parseFloat(amnt));
-
-  if (amountsForFreq) {
-    return amounts[frequency]?.findIndex((num) => parseFloat(num) === parseFloat(amount));
-  }
-}
-
-export function getDefaultAmountForFreq(frequency, page) {
-  const amountElement = page?.elements?.find((el) => el.type === 'DAmount');
-  const amounts = amountElement?.content?.options;
-  const amountsForFreq = amounts ? amounts[frequency]?.map((amnt) => parseFloat(amnt)) : {};
-  const defaults = amountElement?.content?.defaults;
-
-  // If defaults are defined, and a default is defined for this frequency, and the default defined is a valid amount...
-  if (defaults && defaults[frequency] && amountsForFreq?.includes(parseFloat(defaults[frequency]))) {
-    // ... return the default amount for this frequency.
-    return defaults[frequency];
-  }
-  // Otherwise we have any amounts for this frequency...
-  else if (amountsForFreq) {
-    // ... return the first frequency in the list.
-    return amountsForFreq[0];
-  }
-}

@@ -4,7 +4,7 @@ import * as S from './Logobar.styled';
 
 import StripeLogo from 'assets/images/account/client-logos/stripe-logo.png';
 import DigestbuilderLogo from 'assets/images/account/client-logos/digestbuilder-logo.png';
-import EvenbriteLogo from 'assets/images/account/client-logos/eventbrite-logo.png';
+import EventbriteLogo from 'assets/images/account/client-logos/eventbrite-logo.png';
 import MailchimpLogo from 'assets/images/account/client-logos/mailchimp-logo.png';
 import NewsPackLogo from 'assets/images/account/client-logos/newspack-logo.png';
 import SalesforceLogo from 'assets/images/account/client-logos/salesforce-logo.png';
@@ -15,7 +15,7 @@ const icons = [
   ['Digestbuilder Logo', DigestbuilderLogo],
   ['NewsPack Logo', NewsPackLogo],
   ['Mailchimp Logo', MailchimpLogo],
-  ['Evenbrite Logo', EvenbriteLogo]
+  ['Eventbrite Logo', EventbriteLogo]
 ];
 
 function Logobar() {

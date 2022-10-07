@@ -1,12 +1,12 @@
 import PropTypes from 'prop-types';
 
 import SvgIcon from 'assets/icons/SvgIcon';
-import * as S from './Leftbar.styled';
-
 import logo from 'assets/images/nre-logo-blue.svg';
 import logo2 from 'assets/images/nre-logo-yellow.svg';
 import { ICONS } from 'assets/icons/SvgIcon';
-import Content from './Content.js';
+
+import * as S from './Leftbar.styled';
+import Content from './Content';
 
 function Advantages() {
   return (

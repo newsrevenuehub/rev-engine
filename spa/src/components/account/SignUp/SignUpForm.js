@@ -11,9 +11,10 @@ import visibilityOff from 'assets/images/account/visibility_off.png';
 import Checkbox from '@material-ui/core/Checkbox';
 import { Tooltip } from 'components/base';
 
+export const termsLink = 'https://fundjournalism.org/faq/terms-of-service/';
+export const policyLink = 'https://fundjournalism.org/faq/privacy-policy/';
+
 function AcceptTerms({ checked, handleTOSChange }) {
-  const termsLink = 'https://fundjournalism.org/faq/terms-of-service/';
-  const policyLink = 'https://fundjournalism.org/faq/privacy-policy/';
   return (
     <S.AcceptTerms>
       <Checkbox

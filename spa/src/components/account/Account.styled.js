@@ -2,6 +2,7 @@ import styled from 'styled-components';
 import { Button } from 'components/base';
 
 export const Outer = styled.div`
+  font-family: ${(props) => props.theme.systemFont};
   display: flex;
   flex-wrap: wrap;
   margin: 0px;

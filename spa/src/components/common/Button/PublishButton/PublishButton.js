@@ -172,14 +172,15 @@ const PublishButton = ({ page, setPage, className, alert, requestPatchPage }) =>
 
 PublishButton.propTypes = {
   className: PropTypes.string,
-  page: PropTypes.shape(PagePropTypes).isRequired,
+  page: PropTypes.shape(PagePropTypes),
   setPage: PropTypes.func,
   alert: PropTypes.any,
   requestPatchPage: PropTypes.func
 };
 
 PublishButton.defaultProps = {
-  className: ''
+  className: '',
+  page: undefined
 };
 
 export default PublishButton;

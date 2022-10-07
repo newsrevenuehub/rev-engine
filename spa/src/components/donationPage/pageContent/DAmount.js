@@ -1,11 +1,10 @@
-import { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import PropTypes from 'prop-types';
 import { DAmountStyled, FeesContainer, FreqSubtext, OtherAmount, OtherAmountInput } from './DAmount.styled';
 
 // Util
 import validateInputPositiveFloat from 'utilities/validateInputPositiveFloat';
 import { getFrequencyAdjective, getFrequencyRate } from 'utilities/parseFrequency';
-import { getAmountIndex } from '../amountUtils';
 
 // Context
 import { usePage } from '../DonationPage';
@@ -17,51 +16,74 @@ import SelectableButton from 'elements/buttons/SelectableButton';
 import FormErrors from 'elements/inputs/FormErrors';
 
 function DAmount({ element, ...props }) {
-  const { page, frequency, amount, setAmount, overrideAmount, errors } = usePage();
-  const [otherFocused, setOtherFocused] = useState(false);
+  const { page, frequency, amount, overrideAmount, setAmount, errors } = usePage();
+  const currencySymbol = page?.currency?.symbol;
+  const parsedAmount = parseFloat(amount);
+
+  // Corresponds to the value the user has typed into the 'other value' field.
+  // It may not contain a valid number.
+
+  const [otherValue, setOtherValue] = useState('');
+
+  // If the page overrides the amount, force the other input value to that. This
+  // should only happen during initial rendering in practice, but there is an
+  // initial render where overrideAmount is false that we need to account for.
+
+  useEffect(() => {
+    if (overrideAmount) {
+      setOtherValue(amount);
+    }
+  }, [amount, overrideAmount]);
+
+  // Display the fees widget here if a DPayment element elsewhere asks for it.
 
   const displayPayFeesWidget = useMemo(() => {
-    return (page.elements.find((elem) => elem.type === 'DPayment') || {})?.content?.offerPayFees;
+    return (page.elements.find(({ type }) => type === 'DPayment') ?? {})?.content?.offerPayFees;
   }, [page.elements]);
 
-  const handleOtherSelected = () => {
-    setAmount('');
-    setOtherFocused(true);
-  };
+  // Find amount options for the page's frequency, and whether any should be
+  // selected based on the payment amount.
 
-  const handleOtherBlurred = () => {
-    setOtherFocused(false);
-  };
+  const amountOptions = useMemo(() => {
+    const { options } = element?.content;
 
-  const getAmounts = (frequency) => {
-    const options = element?.content?.options;
-    if (typeof options !== 'undefined') {
-      return options[frequency] || [];
-    }
-    return [];
-  };
+    return options?.[frequency] ?? [];
+  }, [element?.content, frequency]);
 
-  const amountIsPreset = useMemo(() => {
-    return getAmountIndex(page, amount, frequency) !== -1;
-  }, [page, amount, frequency]);
+  const selectedAmountOption = useMemo(
+    () => amountOptions.findIndex((option) => parseFloat(option) === parsedAmount),
+    [amountOptions, parsedAmount]
+  );
 
-  const handleAmountChange = (newAmount) => {
+  // Called when the user chooses a preselected option.
+
+  const handleSelectAmountOption = (newAmount) => {
+    setOtherValue('');
     setAmount(newAmount);
   };
 
-  const handleOtherAmountChange = (e) => {
-    const { value } = e.target;
+  // Called when the user types into the text field.
+
+  const handleOtherAmountChange = ({ target: { value } }) => {
+    setOtherValue(value);
 
     if (value === '') {
-      handleAmountChange('');
+      setAmount('');
     }
 
     if (validateInputPositiveFloat(value)) {
-      handleAmountChange(parseFloat(value));
+      setAmount(parseFloat(value));
     }
   };
 
-  const currencySymbol = page?.currency?.symbol;
+  // Called when the user focuses the text field. We want it to act as though
+  // the user has set the amount to whatever's visible there.
+
+  const handleOtherAmountFocus = () => {
+    handleOtherAmountChange({ target: { value: otherValue } });
+  };
+
+  const otherIsSelected = otherValue !== '' || selectedAmountOption === -1;
 
   return (
     <DElement
@@ -70,32 +92,32 @@ function DAmount({ element, ...props }) {
       {...props}
       data-testid="d-amount"
     >
-      <DAmountStyled>
-        {getAmounts(frequency).map((amnt, i) => {
-          const selected = parseFloat(amount) === parseFloat(amnt) && !otherFocused;
+      <DAmountStyled data-testid="d-amount-amounts">
+        {amountOptions.map((amountOption, index) => {
+          const selected = index === selectedAmountOption;
+
           return (
             <SelectableButton
-              key={i + amnt}
+              key={index + amountOption}
               selected={selected}
-              onClick={() => handleAmountChange(parseFloat(amnt))}
-              data-testid={`amount-${amnt}${parseFloat(amount) === parseFloat(amnt) ? '-selected' : ''}`}
+              onClick={() => handleSelectAmountOption(parseFloat(amountOption))}
+              data-testid={`amount-${amountOption}${
+                parseFloat(amount) === parseFloat(amountOption) ? '-selected' : ''
+              }`}
             >
-              {`${currencySymbol}${amnt}`} <FreqSubtext selected={selected}>{getFrequencyRate(frequency)}</FreqSubtext>
+              {`${currencySymbol}${amountOption}`}{' '}
+              <FreqSubtext selected={selected}>{getFrequencyRate(frequency)}</FreqSubtext>
             </SelectableButton>
           );
         })}
         {(element.content?.allowOther || overrideAmount) && (
-          <OtherAmount
-            data-testid={`amount-other${otherFocused || !amountIsPreset ? '-selected' : ''}`}
-            selected={otherFocused || !amountIsPreset}
-          >
+          <OtherAmount data-testid={`amount-other${otherIsSelected ? '-selected' : ''}`} selected={otherIsSelected}>
             <span>{currencySymbol}</span>
             <OtherAmountInput
-              value={otherFocused || !amountIsPreset ? amount : ''}
+              value={otherValue}
               name="amount"
               onChange={handleOtherAmountChange}
-              onFocus={handleOtherSelected}
-              onBlur={handleOtherBlurred}
+              onFocus={handleOtherAmountFocus}
               // We're validating maximum amount on the backend, but let's restrict input
               // to prevent hitting javascript's mathmatical limitations and displaying
               // weird numbers after calculating fees and fixing decimals

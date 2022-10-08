@@ -84,3 +84,25 @@ def test_paymentprovider_change_blocks_deletion_when_pages_with_publish_date():
         f"Can't delete this payment provider because it's used by 1 live or future live donation page "
         f"across <a href=/nrhadmin/organizations/revenueprogram/?q={provider.stripe_account_id}>1 revenue program</a>."
     )
+
+
+def test_revenue_program_list_payment_provider_url_exists(admin_client):
+    """Payment Provider column exists in Revenue Program list display with link to the Payment Provider admin page."""
+    revenue_program = RevenueProgramFactory()
+    response = admin_client.get(reverse("admin:organizations_revenueprogram_changelist"))
+    soup = bs4(response.content)
+    expected_url = f"/nrhadmin/organizations/paymentprovider/{revenue_program.payment_provider_id}/change/"
+    actual_url = soup.select_one(".field-payment_provider_url a").attrs["href"]
+    assert expected_url == actual_url
+
+
+def test_payment_provider_list_revenue_program_exists(admin_client):
+    """Revenue Programs column exists in Payment Provider list display with comma-separated."""
+    payment_provider = PaymentProviderFactory()
+    revenue_program_1 = RevenueProgramFactory(payment_provider=payment_provider)
+    revenue_program_2 = RevenueProgramFactory(payment_provider=payment_provider)
+    response = admin_client.get(reverse("admin:organizations_paymentprovider_changelist"))
+    soup = bs4(response.content)
+    actual_rps = soup.select_one(".field-revenue_programs").text
+    assert revenue_program_1.name in actual_rps
+    assert revenue_program_2.name in actual_rps

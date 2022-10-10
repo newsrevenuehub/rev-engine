@@ -65,7 +65,7 @@ function ResetPassword() {
       </S.Left>
       <S.Right>
         <S.FormElements shorten={passwordUpdateSuccess}>
-          <S.Heading data-testid="reset-pwd-title">{passwordUpdateSuccess ? 'Success!' : 'Reset Password!'}</S.Heading>
+          <S.Heading data-testid="reset-pwd-title">{passwordUpdateSuccess ? 'Success!' : 'Reset Password'}</S.Heading>
           <S.Subheading shorten={passwordUpdateSuccess}>
             {passwordUpdateSuccess ? RESET_PASSWORD_SUCCESS_TEXT : 'Enter your new password below.'}
           </S.Subheading>

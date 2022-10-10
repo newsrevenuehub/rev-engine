@@ -70,8 +70,14 @@ export const Right = styled.div`
 
 export const FormElements = styled.div`
   width: 80%;
-  max-width: ${(props) => (props.shorten ? '310px' : '437px')};
+  max-width: ${(props) => (props.shorten ? '320px' : '437px')};
   text-align: left;
+
+  ${(props) =>
+    props.shorten &&
+    `
+    margin-bottom: 20vh;
+  `}
 `;
 
 export const BottomBar = styled.div`

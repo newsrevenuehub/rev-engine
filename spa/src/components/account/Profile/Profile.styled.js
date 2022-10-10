@@ -1,5 +1,5 @@
 import styled from 'styled-components';
-import { Button as MuiButton, Modal as MuiModal } from '@material-ui/core';
+import { Modal as MuiModal } from '@material-ui/core';
 
 export const Profile = styled.div`
   position: relative;
@@ -10,10 +10,14 @@ export const Profile = styled.div`
   background: ${(props) => props.theme.colors.white};
   border: 0.5px solid ${(props) => props.theme.colors.muiGrey[400]};
   box-shadow: 0px 0px 4px rgba(0, 0, 0, 0.2);
-  border-radius: ${(props) => props.theme.muiBorderRadius.md};
+  border-radius: ${(props) => props.theme.muiBorderRadius.xl};
   padding: 30px 65px;
   width: 90%;
   max-width: 610px;
+
+  @media (${(props) => props.theme.breakpoints.tabletLandscapeDown}) {
+    padding: 30px;
+  }
 `;
 
 export const Modal = styled(MuiModal)`
@@ -35,41 +39,22 @@ export const Modal = styled(MuiModal)`
   }
 `;
 
-export const h1 = styled.h1`
+export const Title = styled.h1`
   margin-top: 0px;
   font-weight: 700;
   font-size: ${(props) => props.theme.fontSizesUpdated['lgx']};
   line-height: ${(props) => props.theme.fontSizesUpdated['lg2x']};
-  color: ${(props) => props.theme.colors.purple};
+  color: ${(props) => props.theme.colors.account.purple[1]};
 `;
 
 export const Description = styled.div`
   font-family: Roboto, sans-serif;
   font-style: normal;
   font-weight: 300;
-  font-size: ${(props) => props.theme.fontSizesUpdated.md};
+  font-size: ${(props) => props.theme.fontSizesUpdated.lg};
   line-height: ${(props) => props.theme.fontSizesUpdated.lg};
-  color: ${(props) => props.theme.colors.muiGrey[600]};
+  color: ${(props) => props.theme.colors.muiGrey[900]};
   margin-bottom: 30px;
-`;
-
-export const Button = styled(MuiButton)`
-  && {
-    width: 100%;
-    height: 48px;
-    background: ${(props) => props.theme.buttons.yellow.background};
-    border: ${(props) => props.theme.buttons.yellow.border};
-    box-shadow: ${(props) => props.theme.buttons.yellow.boxShadow};
-    border-radius: ${(props) => props.theme.muiBorderRadius.sm};
-    font-weight: 600;
-    font-size: ${(props) => props.theme.fontSizesUpdated.sm};
-    line-height: ${(props) => props.theme.fontSizesUpdated.md};
-    margin: 25px 0px 28px;
-
-    :hover {
-      background: ${(props) => props.theme.buttons.yellow.background};
-    }
-  }
 `;
 
 export const Anchor = styled.a`

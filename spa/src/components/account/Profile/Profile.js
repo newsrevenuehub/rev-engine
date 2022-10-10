@@ -58,7 +58,7 @@ function Profile() {
   return (
     <S.Modal open={open} aria-labelledby="profile-modal-title" data-testid="finalize-profile-modal">
       <S.Profile>
-        <S.h1 id="profile-modal-title">Let's Customize Your Account</S.h1>
+        <S.Title id="profile-modal-title">Let's Customize Your Account</S.Title>
         <S.Description>Help us create your personalized experience!</S.Description>
         <ProfileForm onProfileSubmit={onProfileSubmit} disabled={profileState.loading} />
         {formSubmitErrors ? (

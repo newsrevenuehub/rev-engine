@@ -79,7 +79,7 @@ function SignUp({ onSuccess }) {
     } else if (signUpState?.errors && signUpState?.errors.length !== 0) {
       return <S.Message>{SIGN_UP_GENERIC_ERROR_TEXT}</S.Message>;
     }
-    return <S.MessageSpacer />;
+    return undefined;
   }, [signUpState]);
 
   return (
@@ -93,8 +93,11 @@ function SignUp({ onSuccess }) {
           <S.Heading marginBottom={1}>Create Your Free Account</S.Heading>
           <S.Subheading fontSize="lgx">Start receiving contributions today!</S.Subheading>
 
-          <SignUpForm onSubmitSignUp={onSubmitSignUp} loading={signUpState.loading} />
-          {formSubmissionMessage}
+          <SignUpForm
+            onSubmitSignUp={onSubmitSignUp}
+            loading={signUpState.loading}
+            errorMessage={formSubmissionMessage}
+          />
 
           <S.NavLink>
             Already have an account?{' '}

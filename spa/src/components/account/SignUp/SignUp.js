@@ -12,7 +12,7 @@ import SignUpForm from './SignUpForm';
 
 import Logobar from 'components/account/common/logobar/Logobar';
 import Leftbar from 'components/account/common/leftbar/Leftbar';
-import { useHistory } from 'react-router-dom';
+import { Link, useHistory } from 'react-router-dom';
 
 import { handleLoginSuccess } from 'components/authentication/util';
 import { CONTENT_SLUG, SIGN_IN } from 'routes';
@@ -98,9 +98,9 @@ function SignUp({ onSuccess }) {
 
           <S.NavLink>
             Already have an account?{' '}
-            <a href={SIGN_IN} data-testid="sign-in-link">
+            <Link to={SIGN_IN} data-testid="sign-in-link">
               Sign in
-            </a>
+            </Link>
           </S.NavLink>
         </S.FormElements>
 

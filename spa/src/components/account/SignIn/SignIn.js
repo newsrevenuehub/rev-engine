@@ -6,7 +6,7 @@ import axios from 'ajax/axios';
 import { TOKEN } from 'ajax/endpoints';
 
 // Routing
-import { useHistory } from 'react-router-dom';
+import { Link, useHistory } from 'react-router-dom';
 import { CONTENT_SLUG } from 'routes';
 
 // State management
@@ -62,16 +62,16 @@ function SignIn({ onSuccess }) {
         </S.Left>
         <S.Right>
           <S.FormElements>
-            <S.Heading marginBottom={34}>Welcome Back!</S.Heading>
+            <S.Heading marginBottom={40}>Welcome Back!</S.Heading>
 
             <SignInForm onSubmitSignIn={onSubmitSignIn} loading={signInState.loading} />
             {formSubmitErrors ? <S.Message>{formSubmitErrors}</S.Message> : <S.MessageSpacer />}
 
             <S.NavLink>
               Not a member?&nbsp;
-              <a href={SIGN_UP} data-testid="create-account">
+              <Link to={SIGN_UP} data-testid="create-account">
                 Create an account
-              </a>
+              </Link>
             </S.NavLink>
           </S.FormElements>
 

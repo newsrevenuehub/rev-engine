@@ -94,7 +94,7 @@ export const BottomBarYellowSVG = styled.img`
 export const Heading = styled.div`
   font-weight: 700;
   font-size: ${(props) => props.theme.fontSizesUpdated.h1};
-  margin-bottom: ${(props) => props.marginBottom || '20px'};
+  margin-bottom: ${(props) => `${props.marginBottom}px` || '20px'};
 
   line-height: 47px;
   color: ${(props) => props.theme.colors.account.purple[1]};

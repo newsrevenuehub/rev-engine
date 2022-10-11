@@ -1,7 +1,7 @@
 import '@testing-library/jest-dom';
 import { toHaveNoViolations } from 'jest-axe';
 import { server } from 'test-server';
-import Cookies from 'universal-cookie';
+import { Cookies } from 'react-cookie';
 
 expect.extend(toHaveNoViolations);
 
@@ -15,8 +15,7 @@ afterEach(() => {
   server.resetHandlers();
   // we remove all cookies in between tests because otherwise their value
   // can stick around and cause unexpected behavior in subsequent tests.
-  const cookies = new Cookies();
-  Object.keys(cookies.getAll()).forEach((cookie) => cookies.remove(cookie));
+  Object.keys(Cookies).forEach((cookie) => Cookies.remove(cookie));
 });
 
 afterAll(() => {

@@ -40,7 +40,7 @@ describe('ConnectStripeToast', () => {
     expect(connectToStripeButton).toBeDisabled();
   });
 
-  test('should not have a button when verification reason is not "past_due"', () => {
+  test('should have a disabled button when verification reason is not "past_due"', () => {
     const ctaDescriptionText = 'Description';
     useConnectStripeAccount.mockReturnValue({
       loading: false,
@@ -51,7 +51,7 @@ describe('ConnectStripeToast', () => {
     });
     render(<ConnectStripeToast />);
     expect(screen.getByText(ctaDescriptionText)).toBeInTheDocument();
-    expect(screen.queryByRole('button')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button')).toBeDisabled();
   });
 
   test('should show the expanded view by default', () => {

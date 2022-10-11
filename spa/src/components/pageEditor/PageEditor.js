@@ -26,7 +26,7 @@ import { DELETE_PAGE, PATCH_PAGE, LIST_PAGES, LIST_STYLES, DRAFT_PAGE_DETAIL } f
 import { CONTENT_SLUG } from 'routes';
 
 // Constants
-import { GENERIC_ERROR } from 'constants/textConstants';
+import { DELETE_LIVE_PAGE_CONFIRM_TEXT, GENERIC_ERROR } from 'constants/textConstants';
 
 // Settings
 import { CAPTURE_PAGE_SCREENSHOT } from 'settings';
@@ -64,10 +64,6 @@ export const EDIT = 'EDIT';
 export const PREVIEW = 'PREVIEW';
 const IMAGE_KEYS = ['graphic', 'header_bg_image', 'header_logo'];
 const THUMBNAIL_KEYS = ['graphic_thumbnail', 'header_bg_image_thumbnail', 'header_logo_thumbnail'];
-
-export const DELETE_CONFIRM_MESSAGE =
-  'This page is currently published, and deleting it means users ' +
-  'will no longer be able to acccess it. Are you sure you want to proceed?';
 
 /**
  * PageEditor
@@ -247,7 +243,7 @@ function PageEditor() {
 
   const handleDelete = () => {
     if (pageHasBeenPublished(page)) {
-      getUserConfirmation(DELETE_CONFIRM_MESSAGE, doPageDeletionRequest);
+      getUserConfirmation(DELETE_LIVE_PAGE_CONFIRM_TEXT, doPageDeletionRequest);
     } else {
       doPageDeletionRequest();
     }

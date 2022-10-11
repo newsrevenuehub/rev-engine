@@ -50,10 +50,16 @@ function DAmount({ element, ...props }) {
     return options?.[frequency] ?? [];
   }, [element?.content, frequency]);
 
-  const selectedAmountOption = useMemo(
-    () => amountOptions.findIndex((option) => parseFloat(option) === parsedAmount),
-    [amountOptions, parsedAmount]
-  );
+  const selectedAmountOption = useMemo(() => {
+    // If the user has entered an amount in the other field, never select an
+    // option, even if it matches the value they've entered.
+
+    if (otherValue !== '') {
+      return -1;
+    }
+
+    return amountOptions.findIndex((option) => parseFloat(option) === parsedAmount);
+  }, [amountOptions, otherValue, parsedAmount]);
 
   // Called when the user chooses a preselected option.
 
@@ -101,9 +107,7 @@ function DAmount({ element, ...props }) {
               key={index + amountOption}
               selected={selected}
               onClick={() => handleSelectAmountOption(parseFloat(amountOption))}
-              data-testid={`amount-${amountOption}${
-                parseFloat(amount) === parseFloat(amountOption) ? '-selected' : ''
-              }`}
+              data-testid={`amount-${amountOption}${selected ? '-selected' : ''}`}
             >
               {`${currencySymbol}${amountOption}`}{' '}
               <FreqSubtext selected={selected}>{getFrequencyRate(frequency)}</FreqSubtext>

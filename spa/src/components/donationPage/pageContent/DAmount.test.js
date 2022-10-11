@@ -231,6 +231,24 @@ describe('DAmount', () => {
       expect(screen.getByRole('textbox')).toHaveValue('123');
     });
 
+    it("doesn't select an amount option if the user enters a number corresponding to that option", () => {
+      const setAmount = jest.fn();
+
+      // We're mocking context *after* the change event below.
+
+      const pageContext = {
+        amount: 1,
+        setAmount,
+        frequency: CONTRIBUTION_INTERVALS.ONE_TIME,
+        page: defaultPage
+      };
+
+      tree(propsWithOtherAmount, pageContext);
+      fireEvent.change(screen.getByRole('textbox'), { target: { value: '1' } });
+      expect(screen.getByRole('textbox')).toHaveValue('1');
+      expect(screen.queryByTestId('amount-1-selected')).not.toBeInTheDocument();
+    });
+
     it('sets the amount to an empty string if the user clears the field', () => {
       const setAmount = jest.fn();
 

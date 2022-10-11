@@ -5,7 +5,7 @@ import styled from 'styled-components';
 // See https://v4.mui.com/guides/interoperability/#portals
 
 const WrappedTooltip = ({ className, tooltipWidth, ...other }) => (
-  <MuiTooltip classes={{ tooltip: className }} {...other} />
+  <MuiTooltip classes={{ tooltip: className }} PopperProps={{ modifiers: { offset: { offset: '0,6' } } }} {...other} />
 );
 
 /**
@@ -14,10 +14,10 @@ const WrappedTooltip = ({ className, tooltipWidth, ...other }) => (
 export const Tooltip = styled(WrappedTooltip)`
   && {
     background: rgb(50, 50, 50);
-    margin: 6px;
     border-radius: 4px;
     color: white;
     font: 12px Roboto, sans-serif;
+    margin: 0;
     padding: 8px;
     width: ${({ tooltipWidth }) => (tooltipWidth ? `${tooltipWidth}px` : 'auto')};
   }

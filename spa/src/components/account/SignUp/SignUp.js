@@ -12,7 +12,7 @@ import SignUpForm from './SignUpForm';
 
 import Logobar from 'components/account/common/logobar/Logobar';
 import Leftbar from 'components/account/common/leftbar/Leftbar';
-import { useHistory } from 'react-router-dom';
+import { Link, useHistory } from 'react-router-dom';
 
 import { handleLoginSuccess } from 'components/authentication/util';
 import { CONTENT_SLUG, SIGN_IN } from 'routes';
@@ -72,11 +72,14 @@ function SignUp({ onSuccess }) {
 
   const formSubmissionMessage = useMemo(() => {
     if (signUpState?.errors?.email) {
-      return <S.Message>Email:{signUpState?.errors?.email}</S.Message>;
+      if (signUpState?.errors?.email[0] === 'This field must be unique.') {
+        return <S.Message>This email is already being used by an account. Try signing in.</S.Message>;
+      }
+      return <S.Message>Email: {signUpState?.errors?.email}</S.Message>;
     } else if (signUpState?.errors && signUpState?.errors.length !== 0) {
       return <S.Message>{SIGN_UP_GENERIC_ERROR_TEXT}</S.Message>;
     }
-    return <S.MessageSpacer />;
+    return undefined;
   }, [signUpState]);
 
   return (
@@ -87,17 +90,20 @@ function SignUp({ onSuccess }) {
       </S.Left>
       <S.Right>
         <S.FormElements>
-          <S.Heading>Create Your Free Account</S.Heading>
-          <S.Subheading>Start receiving contributions today!</S.Subheading>
+          <S.Heading marginBottom={1}>Create Your Free Account</S.Heading>
+          <S.Subheading fontSize="lgx">Start receiving contributions today!</S.Subheading>
 
-          <SignUpForm onSubmitSignUp={onSubmitSignUp} loading={signUpState.loading} />
-          {formSubmissionMessage}
+          <SignUpForm
+            onSubmitSignUp={onSubmitSignUp}
+            loading={signUpState.loading}
+            errorMessage={formSubmissionMessage}
+          />
 
           <S.NavLink>
-            Already have an account?
-            <a href={SIGN_IN} data-testid="sign-in-link">
+            Already have an account?{' '}
+            <Link to={SIGN_IN} data-testid="sign-in-link">
               Sign in
-            </a>
+            </Link>
           </S.NavLink>
         </S.FormElements>
 

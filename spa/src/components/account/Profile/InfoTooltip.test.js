@@ -19,7 +19,7 @@ describe('InfoTooltip', () => {
     await waitFor(() => expect(screen.getByText('test tooltip')).toBeVisible());
   });
 
-  it('toogle the tooltip if the button is clicked repeatedly', async () => {
+  it('toggles the tooltip if the button is clicked repeatedly', async () => {
     tree();
     userEvent.click(screen.getByRole('button', { name: 'mock-label' }));
     await waitFor(() => expect(screen.getByText('mock-tooltip-text')).toBeVisible());

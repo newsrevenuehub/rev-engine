@@ -83,7 +83,7 @@
       "**/?(*.)+(test).[jt]s?(x)"
     ],
     "collectCoverageFrom": [
-      "**/*.{js,jsx}",
+      "**/*.[jt]s?(x)",
       "!**/node_modules/**",
       "!**/*.stories.js",
       "!**/*.styled.js"
@@ -154,6 +154,13 @@
     "@testing-library/react": "^11.2.6",
     "@testing-library/react-hooks": "^7.0.2",
     "@testing-library/user-event": "^12.8.3",
+    "@types/jest": "^29.1.2",
+    "@types/node": "^18.8.4",
+    "@types/react": "^17.0.50",
+    "@types/react-alert": "^7.0.2",
+    "@types/react-dom": "^18.0.6",
+    "@types/react-router-dom": "^5.3.3",
+    "@types/styled-components": "^5.1.26",
     "axios-mock-adapter": "^1.21.2",
     "babel-plugin-named-exports-order": "^0.0.2",
     "cypress": "^10.9.0",
@@ -165,6 +172,7 @@
     "history": "^5.3.0",
     "jest-axe": "^6.0.0",
     "prettier": "^2.7.1",
+    "typescript": "^4.8.4",
     "webpack": "^5.74.0"
   }
 }

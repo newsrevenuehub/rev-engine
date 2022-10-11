@@ -1,5 +1,4 @@
 import * as rtl from '@testing-library/react';
-import user from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 // Theme/Styles
@@ -17,9 +16,12 @@ import { AnalyticsContextWrapper } from './components/analytics/AnalyticsContext
 // Routing
 import { BrowserRouter } from 'react-router-dom';
 
+export * from '@testing-library/react';
+export * as user from '@testing-library/user-event';
+
 const queryClient = new QueryClient();
 
-function TestProviders({ children }) {
+function TestProviders({ children }: { children?: React.ReactNode }) {
   return (
     <QueryClientProvider client={queryClient}>
       <ThemeProvider theme={revEngineTheme}>
@@ -34,15 +36,8 @@ function TestProviders({ children }) {
   );
 }
 
-const customRender = (ui, options) => {
+export const render = (ui: React.ReactElement, options?: Omit<rtl.RenderOptions, 'wrapper'>) => {
   return rtl.render(ui, {
-    wrapper: (props) => <TestProviders {...props} {...options?.TestProviderProps} />,
-    ...options?.testingLibraryOptions
+    wrapper: (props) => <TestProviders {...props} {...options} />
   });
-};
-
-module.exports = {
-  ...rtl,
-  render: customRender,
-  user
 };

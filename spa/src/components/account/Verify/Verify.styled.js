@@ -1,5 +1,6 @@
 import styled from 'styled-components';
-import { motion } from 'framer-motion';
+
+import { Button as BaseButton } from 'components/base';
 
 export const Verify = styled.div`
   background-color: ${(props) => props.theme.colors.account.purple[1]};
@@ -29,6 +30,12 @@ export const Content = styled.div`
   justify-content: center;
   align-items: center;
   flex-direction: column;
+
+  h1,
+  p,
+  span {
+    font-family: ${(props) => props.theme.systemFont};
+  }
 `;
 
 export const Box = styled.div`
@@ -37,27 +44,29 @@ export const Box = styled.div`
   box-shadow: 0px 0px 4px rgba(0, 0, 0, 0.2);
   border-radius: ${(props) => props.theme.muiBorderRadius.xl};
   width: 90%;
-  max-width: 600px;
-  padding: 30px 36px;
+  max-width: 712px;
+  padding: 30px 58px;
   margin: 140px 0px;
 
   @media (${(props) => props.theme.breakpoints.tabletLandscapeDown}) {
     margin: 0px 0px;
   }
+  @media (${(props) => props.theme.breakpoints.phoneOnly}) {
+    padding: 30px;
+  }
 `;
 
 export const Icon = styled.img`
-  width: 48px;
+  width: 66px;
   margin-right: 10px;
   @media (${(props) => props.theme.breakpoints.tabletLandscapeDown}) {
     width: 36px;
   }
 `;
 
-export const Heading = styled.div`
+export const Heading = styled.h1`
   font-weight: 700;
-  font-size: ${(props) => props.theme.fontSizesUpdated.h1};
-  line-height: 138.19%;
+  font-size: ${(props) => props.theme.fontSizesUpdated.lg3x};
   color: ${(props) => props.theme.colors.account.purple[1]};
   margin: 20px 0px 10px 0px;
 
@@ -66,81 +75,55 @@ export const Heading = styled.div`
   }
 `;
 
-export const Subheading = styled.div`
-  font-style: normal;
-  font-weight: 300;
-  font-size: ${(props) => props.theme.fontSizesUpdated.lg};
-  line-height: 138.19%;
-  color: ${(props) => props.theme.colors.grey[5]};
-
-  span {
-    font-weight: 800;
-  }
-
-  @media (${(props) => props.theme.breakpoints.tabletLandscapeDown}) {
-    font-size: ${(props) => props.theme.fontSizesUpdated.md};
-  }
-`;
-
-export const Drm = styled.div`
+export const Subheading = styled.p`
   font-weight: 400;
   font-size: ${(props) => props.theme.fontSizesUpdated.lg};
-  line-height: 138.19%;
-  color: ${(props) => props.theme.colors.account.purple[1]};
-  margin: 20px 0px 10px 0px;
+  color: ${(props) => props.theme.colors.muiGrey[900]};
+
+  span {
+    font-weight: 600;
+  }
 
   @media (${(props) => props.theme.breakpoints.tabletLandscapeDown}) {
     font-size: ${(props) => props.theme.fontSizesUpdated.md};
   }
 `;
 
-export const Resendtext = styled.div`
-  font-weight: 300;
-  font-size: ${(props) => props.theme.fontSizesUpdated.xs};
-  line-height: 138.19%;
-  color: ${(props) => props.theme.colors.grey[5]};
+export const Drm = styled.p`
+  font-weight: 600;
+  font-size: ${(props) => props.theme.fontSizesUpdated[20]};
+  color: ${(props) => props.theme.colors.account.purple[1]};
+  margin: 28px 0px 10px 0px;
 `;
 
-export const Button = styled(motion.button)`
-  margin: 20px 0px 15px;
-  padding: 16px 30px;
-  cursor: pointer;
-  width: 80%;
-  max-width: 260px;
-  text-transform: uppercase;
-  text-align: center;
-  background: ${(props) => props.theme.buttons.yellow.background};
-  border: ${(props) => props.theme.buttons.yellow.border};
-  box-shadow: ${(props) => props.theme.buttons.yellow.boxShadow};
-  border-radius: ${(props) => props.theme.muiBorderRadius.lg};
+export const Resendtext = styled.p`
+  font-weight: 400;
+  font-size: ${(props) => props.theme.fontSizesUpdated.md};
+  color: ${(props) => props.theme.colors.muiGrey[900]};
+  margin: 0;
+`;
 
-  &:active {
-    transform: translate(1px, 1px);
-    color: ${(props) => props.theme.buttons.yellow.color};
-  }
-  &:disabled {
-    color: ${(props) => props.theme.colors.grey[3]};
+export const Button = styled(BaseButton)`
+  && {
+    margin: 20px 0px 24px;
+    padding: 16px 30px;
+    width: 270px;
   }
 `;
 
-export const Help = styled.div`
+export const Help = styled.p`
   font-weight: 500;
-  font-size: ${(props) => props.theme.fontSizesUpdated.xs};
-  line-height: 138.19%;
-  color: ${(props) => props.theme.colors.grey[4]};
-
-  span {
-    font-weight: 800;
-  }
+  font-size: ${(props) => props.theme.fontSizesUpdated.sm};
+  color: ${(props) => props.theme.colors.muiGrey[600]};
 `;
 
-export const Message = styled.div`
+export const Message = styled.p`
   margin-top: 10px;
   background: ${(props) => (props.isSuccess ? props.theme.colors.status.done : props.theme.colors.error.bg)};
   border-radius: ${(props) => props.theme.muiBorderRadius.sm};
   font-weight: 400;
-  font-size: ${(props) => props.theme.fontSizesUpdated.xs};
+  font-size: ${(props) => props.theme.fontSizesUpdated.sm};
   line-height: ${(props) => props.theme.fontSizesUpdated.lg};
-  color: ${(props) => props.theme.colors.grey[3]};
+  color: ${(props) => props.theme.colors.muiGrey[900]};
   padding: 0px 9px;
 `;

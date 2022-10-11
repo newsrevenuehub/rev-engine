@@ -212,7 +212,7 @@ class RevenueProgramAdmin(RevEngineBaseAdmin, VersionAdmin, AdminImageMixin):
 
     search_fields = ["payment_provider__stripe_account_id"]
 
-    list_display = ["name", "organization", "slug"]
+    list_display = ["name", "organization", "slug", "payment_provider_url"]
 
     list_filter = [
         "name",
@@ -264,6 +264,14 @@ class RevenueProgramAdmin(RevEngineBaseAdmin, VersionAdmin, AdminImageMixin):
             formfield.limit_choices_to = Q(revenue_program=revenue_program)
         return formfield
 
+    def payment_provider_url(self, request):
+        if request.payment_provider_id:
+            link = reverse("admin:organizations_paymentprovider_change", args=(request.payment_provider_id,))
+            return mark_safe(f"<a href={link}>{request.payment_provider.stripe_account_id}</a>")
+
+    payment_provider_url.short_description = "Payment Provider"
+    payment_provider_url.allow_tags = True
+
 
 @admin.register(PaymentProvider)
 class PaymentProviderAdmin(RevEngineBaseAdmin):
@@ -275,6 +283,7 @@ class PaymentProviderAdmin(RevEngineBaseAdmin):
         "default_payment_provider",
         "stripe_oauth_refresh_token",
         "stripe_verified",
+        "revenue_programs",
     ]
     list_per_page = 20
     fieldsets = (
@@ -309,3 +318,8 @@ class PaymentProviderAdmin(RevEngineBaseAdmin):
             messages.add_message(request, messages.WARNING, msg)
             return False
         return True
+
+    def revenue_programs(self, request, obj=None):
+        """Comma-Separated list of revenue programs associated with the requested payment provider."""
+        revenue_programs = RevenueProgram.objects.filter(Q(payment_provider_id=request.id))
+        return ", ".join(x.name for x in revenue_programs)

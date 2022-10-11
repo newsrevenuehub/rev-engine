@@ -5,15 +5,14 @@ import * as S from './DFrequency.styled';
 import { usePage } from '../DonationPage';
 
 // Util
-import { getDefaultAmountForFreq } from 'components/donationPage/pageContent/DAmount';
+import { getDefaultAmountForFreq } from '../amountUtils';
 
 // Children
 import DElement, { DynamicElementPropTypes } from 'components/donationPage/pageContent/DElement';
 import GroupedLabel from 'elements/inputs/GroupedLabel';
 import { InputGroup, GroupedWrapper } from 'elements/inputs/inputElements.styled';
 import FormErrors from 'elements/inputs/FormErrors';
-
-import { CONTRIBUTION_INTERVALS } from 'constants';
+import { CONTRIBUTION_INTERVALS } from 'constants/contributionIntervals';
 
 function DFrequency({ element, ...props }) {
   const { page, frequency, setFrequency, setAmount, errors, setOverrideAmount } = usePage();

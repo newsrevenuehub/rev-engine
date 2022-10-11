@@ -8,7 +8,7 @@ import unpublishedPage from '../fixtures/pages/unpublished-page-1.json';
 
 // Constants
 import { DELETE_PAGE, DRAFT_PAGE_DETAIL, PATCH_PAGE, LIST_PAGES, LIST_STYLES, TEMPLATES, USER } from 'ajax/endpoints';
-import { DELETE_CONFIRM_MESSAGE } from 'components/pageEditor/PageEditor';
+import { DELETE_LIVE_PAGE_CONFIRM_TEXT } from 'constants/textConstants';
 import { CONTENT_SLUG } from 'routes';
 import { CLEARBIT_SCRIPT_SRC } from 'hooks/useClearbit';
 
@@ -544,7 +544,7 @@ describe('Donation page delete', () => {
     cy.wait(['@getPage']);
     cy.getByTestId('delete-page-button').click();
 
-    cy.getByTestId('confirmation-modal').contains(DELETE_CONFIRM_MESSAGE).getByTestId('continue-button').click();
+    cy.getByTestId('confirmation-modal').contains(DELETE_LIVE_PAGE_CONFIRM_TEXT).getByTestId('continue-button').click();
     cy.wait('@deletePage').then((interception) => {
       const pkPathIndex = interception.request.url.split('/').length - 2;
       expect(interception.request.url.split('/')[pkPathIndex]).to.equal(livePage.id.toString());

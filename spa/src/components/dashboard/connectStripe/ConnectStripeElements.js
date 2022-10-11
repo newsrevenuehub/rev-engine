@@ -1,4 +1,5 @@
 import { useCallback } from 'react';
+import { useCookies } from 'react-cookie';
 
 import * as S from './ConnectStripeElements.styled';
 import ConnectStripeToast from './ConnectStripeToast';
@@ -10,25 +11,22 @@ import StripeLogo from 'assets/icons/stripeLogo.svg';
 import useModal from 'hooks/useModal';
 import useConnectStripeAccount from 'hooks/useConnectStripeAccount';
 
-import Cookies from 'universal-cookie';
-
 import { CONNECT_STRIPE_COOKIE_NAME, CONNECT_STRIPE_FAQ_LINK } from 'constants/textConstants';
 
 const ConnectStripeModal = () => {
   const { open, handleClose } = useModal(true);
   const { loading, sendUserToStripe } = useConnectStripeAccount();
+  const [_, setCookie] = useCookies(CONNECT_STRIPE_COOKIE_NAME);
 
   const handleClickConnectLater = useCallback(() => {
-    const cookies = new Cookies();
     handleClose();
-    cookies.set(CONNECT_STRIPE_COOKIE_NAME, true, { path: '/' });
-  }, [handleClose]);
+    setCookie(true, { path: '/' });
+  }, [handleClose, setCookie]);
 
   const handleClickConnectNow = useCallback(() => {
-    const cookies = new Cookies();
-    cookies.set(CONNECT_STRIPE_COOKIE_NAME, true, { path: '/' });
+    setCookie(true, { path: '/' });
     sendUserToStripe();
-  }, [sendUserToStripe]);
+  }, [sendUserToStripe, setCookie]);
 
   if (!open) return <ConnectStripeToast />;
   return (
@@ -58,8 +56,8 @@ const ConnectStripeModal = () => {
 };
 
 const ConnectStripeElements = () => {
-  const cookies = new Cookies();
-  if (cookies.get(CONNECT_STRIPE_COOKIE_NAME)) {
+  const [cookies, _] = useCookies(CONNECT_STRIPE_COOKIE_NAME);
+  if (cookies[CONNECT_STRIPE_COOKIE_NAME]) {
     return <ConnectStripeToast />;
   }
 

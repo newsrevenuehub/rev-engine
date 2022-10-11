@@ -8,7 +8,7 @@ const StyledMobileStepper = styled(MobileStepper)`
     padding: 0;
 
     .MuiMobileStepper-dot {
-      background-color: rgb(221, 203, 231);
+      background-color: rgb(82, 58, 94);
       height: 16px;
       margin: 0;
       position: relative;
@@ -32,8 +32,8 @@ const StyledMobileStepper = styled(MobileStepper)`
       }
     }
 
-    .MuiMobileStepper-dotActive {
-      background-color: rgb(82, 58, 94);
+    .MuiMobileStepper-dotActive ~ .MuiMobileStepper-dot {
+      background-color: rgb(221, 203, 231);
     }
   }
 `;

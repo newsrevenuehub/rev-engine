@@ -10,10 +10,10 @@ import { USER_ROLE_ORG_ADMIN_TYPE } from 'constants/authConstants';
 import { useHistory } from 'react-router-dom';
 import { GENERIC_ERROR } from 'constants/textConstants';
 
-const pending_verification_message =
+const PENDING_VERIFICATION_MESSAGE =
   "Your account verification is pending with Stripe. This can take up to 24 hours. Check back later, and we'll let you know if Stripe needs more info to proceed.";
 
-const user_action_required_message =
+const USER_ACTION_REQUIRED_MESSAGE =
   'Ready to publish your first donation page? Stripe needs additional info from you to configure your account.';
 
 const initialState = {
@@ -21,7 +21,7 @@ const initialState = {
   unverifiedReason: null,
   parentRevenueProgramId: '',
   sendUserToStripe: () => {},
-  ctaDescriptionText: user_action_required_message,
+  ctaDescriptionText: USER_ACTION_REQUIRED_MESSAGE,
   ctaButtonText: 'Take me to Stripe'
 };
 
@@ -43,7 +43,7 @@ function reducer(state, action) {
         requiresVerification: action.payload.requiresVerification,
         unverifiedReason: action.payload.reason,
         ctaDescriptionText:
-          action.payload.reason === 'past_due' ? user_action_required_message : pending_verification_message
+          action.payload.reason === 'past_due' ? USER_ACTION_REQUIRED_MESSAGE : PENDING_VERIFICATION_MESSAGE
       };
     case 'userRetrieved':
       const parentRevenueProgramId = getRevenueProgramIdRequiringVerification(action.payload);

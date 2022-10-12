@@ -9,7 +9,7 @@ import { LIVE_PAGE_DETAIL, getPaymentSuccessEndpoint } from 'ajax/endpoints';
 import { useAnalyticsContext } from 'components/analytics/AnalyticsContext';
 import { FB_PIXEL_PLUGIN_NAME } from 'components/analytics/plugins/facebookPixel';
 import { THANK_YOU_SLUG } from 'routes';
-import { HUB_GA_V3_ID } from 'settings';
+import { HUB_GA_V3_ID } from 'appSettings';
 import GlobalLoading from 'elements/GlobalLoading';
 
 function fetchPage(rpSlug, pageSlug) {

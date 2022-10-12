@@ -6,7 +6,7 @@ import useSubdomain from 'hooks/useSubdomain';
 import isContributorAppPath from 'utilities/isContributorAppPath';
 
 // Constants
-import { DASHBOARD_SUBDOMAINS } from 'settings';
+import { DASHBOARD_SUBDOMAINS } from 'appSettings';
 
 // Analytics
 import { AnalyticsContextWrapper } from './analytics/AnalyticsContext';

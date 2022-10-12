@@ -5,7 +5,7 @@ import orgAdmin from '../fixtures/user/login-success-org-admin.json';
 import orgAdminNoRP from '../fixtures/user/login-success-org-admin-verified-norp.json';
 import stripeVerifiedOrgAdmin from '../fixtures/user/self-service-user-stripe-verified.json';
 import { CONTENT_SECTION_ACCESS_FLAG_NAME } from 'constants/featureFlagConstants';
-import { LS_USER } from 'settings';
+import { LS_USER } from 'appSettings';
 
 const contentSectionFlag = {
   id: '5678',

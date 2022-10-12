@@ -16,7 +16,8 @@ describe('ConnectStripeToast', () => {
       loading: false,
       requiresVerification: true,
       unverifiedReason: 'past_due',
-      sendUserToStripe: mockSendUsertoStripe
+      sendUserToStripe: mockSendUsertoStripe,
+      stripeConnectStarted: true
     });
     render(<ConnectStripeToast />);
     expect(screen.getByText(USER_ACTION_REQUIRED_MESSAGE)).toBeInTheDocument();
@@ -44,7 +45,8 @@ describe('ConnectStripeToast', () => {
       loading: false,
       requiresVerification: true,
       unverifiedReason: 'pending_verification',
-      sendUserToStripe: () => {}
+      sendUserToStripe: () => {},
+      stripeConnectStarted: true
     });
     render(<ConnectStripeToast />);
     expect(screen.getByText(PENDING_VERIFICATION_MESSAGE)).toBeInTheDocument();

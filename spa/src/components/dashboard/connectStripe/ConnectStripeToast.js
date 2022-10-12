@@ -38,13 +38,13 @@ const ConnectStripeToast = () => {
   }, [unverifiedReason, stripeConnectStarted]);
 
   useEffect(() => {
-    setHeadingText(
-      stripeConnectStarted === false
-        ? DEFAULT_HEADING_TEXT
-        : unverifiedReason === 'past_due'
-        ? USER_ACTION_REQUIRED_HEADING_TEXT
-        : PENDING_VERIFICATION_HEADING_TEXT
-    );
+    let headingText = DEFAULT_HEADING_TEXT;
+    if (stripeConnectStarted && unverifiedReason === 'past_due') {
+      headingText = USER_ACTION_REQUIRED_HEADING_TEXT;
+    } else if (stripeConnectStarted && unverifiedReason === 'pending_verification') {
+      headingText = PENDING_VERIFICATION_HEADING_TEXT;
+    }
+    setHeadingText(headingText);
   }, [stripeConnectStarted, unverifiedReason]);
 
   const handleCollapse = useCallback(() => {

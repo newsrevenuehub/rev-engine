@@ -319,9 +319,9 @@ describe('Donations list', () => {
     });
 
     it('should render banner with Stripe message if user has stripe not verified', () => {
-      cy.forceLogin({ ...orgAdminUser, user: selfServiceUserNotStripeVerified });
+      cy.forceLogin({ ...orgAdminUser, user: selfServiceUserStripeVerified });
       cy.intercept(getEndpoint(LIST_PAGES), { fixture: 'pages/list-pages-1' }).as('listPages');
-      cy.intercept({ method: 'GET', pathname: getEndpoint(USER) }, { body: selfServiceUserNotStripeVerified });
+      cy.intercept({ method: 'GET', pathname: getEndpoint(USER) }, { body: selfServiceUserStripeVerified });
       cy.interceptPaginatedDonations();
       cy.visit(DONATIONS_SLUG);
       cy.wait('@listPages');

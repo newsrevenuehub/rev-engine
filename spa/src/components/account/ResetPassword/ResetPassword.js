@@ -1,4 +1,4 @@
-import { useLocation } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { useState, useReducer, useMemo } from 'react';
 
 // AJAX
@@ -78,9 +78,9 @@ function ResetPassword() {
           ) : null}
 
           <S.NavLink alignLeft={passwordUpdateSuccess}>
-            <a href={SIGN_IN} data-testid="sign-in">
+            <Link to={SIGN_IN} data-testid="sign-in">
               Return to Sign In
-            </a>
+            </Link>
           </S.NavLink>
         </S.FormElements>
 

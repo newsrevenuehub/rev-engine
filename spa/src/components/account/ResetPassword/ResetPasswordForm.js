@@ -6,6 +6,7 @@ import * as S from '../Account.styled';
 
 import visibilityOn from 'assets/images/account/visibility_on.png';
 import visibilityOff from 'assets/images/account/visibility_off.png';
+import { Tooltip } from 'components/base';
 
 function ResetPasswordForm({ onResetPasswordSubmit, loading }) {
   const { open: showPassword, handleToggle: togglePasswordVisiblity } = useModal();
@@ -34,7 +35,7 @@ function ResetPasswordForm({ onResetPasswordSubmit, loading }) {
           id="password"
           {...register('password', {
             required: 'Please enter your password',
-            validate: (val: string) => {
+            validate: (val) => {
               if (val.length < 8 || !/[a-zA-Z]/.test(val) || !/[0-9]/.test(val)) {
                 return 'Password should be alphanumeric and at least 8 characters long';
               }
@@ -44,11 +45,14 @@ function ResetPasswordForm({ onResetPasswordSubmit, loading }) {
           status={errors.password}
           data-testid={`reset-pwd-${showPassword ? 'text' : 'password'}`}
         />
-        <S.Visibility
-          onClick={togglePasswordVisiblity}
-          src={showPassword ? visibilityOn : visibilityOff}
-          data-testid="toggle-password"
-        />
+        <Tooltip title={showPassword ? 'Hide password' : 'Show password'}>
+          <S.Visibility
+            onClick={togglePasswordVisiblity}
+            src={showPassword ? visibilityOn : visibilityOff}
+            data-testid="toggle-password"
+            visible={showPassword ? 'true' : ''}
+          />
+        </Tooltip>
       </S.InputOuter>
       <S.Instructions>Password must be 8 characters long and alphanumerical.</S.Instructions>
       {errors.password ? <S.Message role="error">{errors.password.message}</S.Message> : <S.MessageSpacer />}
@@ -59,7 +63,7 @@ function ResetPasswordForm({ onResetPasswordSubmit, loading }) {
           id="confirmPassword"
           {...register('confirmPassword', {
             required: 'Please enter your password',
-            validate: (val: string) => {
+            validate: (val) => {
               if (watch('password') !== val) {
                 return 'The passwords you entered do not match';
               } else if (val.length < 8 || !/[a-zA-Z]/.test(val) || !/[0-9]/.test(val)) {

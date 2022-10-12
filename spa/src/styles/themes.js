@@ -52,6 +52,7 @@ export const revEngineTheme = {
       400: '#c4c4c4',
       500: '#969696',
       600: '#707070',
+      800: '#3c3c3c',
       900: '#282828'
     },
 
@@ -83,10 +84,16 @@ export const revEngineTheme = {
   buttons: {
     yellow: {
       background: '#F5FF75',
+      backgroundLight: 'rgba(245, 255, 117, 0.3);',
       border: '0.5px solid #E6EE84',
       boxShadow: '0px 0.3px 0.5px rgba(0, 0, 0, 0.1), 0px 2px 4px rgba(0, 0, 0, 0.2)',
       borderRadius: '4px',
       color: '#302436'
+    },
+    blue: {
+      background: '#147D99',
+      backgroundLight: '#9ADFF2',
+      border: '0.5px solid #147D99'
     }
   },
 
@@ -104,7 +111,8 @@ export const revEngineTheme = {
     lgx: '24px',
     lg2x: '28px',
     h1: '34px',
-    xl: '72px'
+    xl: '46px',
+    '2xl': '72px'
   },
 
   muiBorderRadius: {

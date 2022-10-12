@@ -54,7 +54,11 @@ function AddPageModal({ isOpen, closeModal, pagesByRevenueProgram }) {
     (e) => {
       setLoading(false);
       if (e.response?.data) {
-        setErrors(e.response.data);
+        if (revenuePrograms?.length === 1) {
+          alert.error(Object.values(e.response.data));
+        } else {
+          setErrors(e.response.data);
+        }
       } else {
         alert.error('There was an error and we could not create your new page. We have been notified.');
       }
@@ -84,7 +88,7 @@ function AddPageModal({ isOpen, closeModal, pagesByRevenueProgram }) {
           onSuccess: ({ data }) => {
             setLoading(false);
             history.push({
-              pathname: join([EDITOR_ROUTE, revenueProgram.slug, slug, '/']),
+              pathname: join([EDITOR_ROUTE, data.revenue_program.slug, data.slug, '/']),
               state: { pageId: data.id }
             });
           },
@@ -92,7 +96,7 @@ function AddPageModal({ isOpen, closeModal, pagesByRevenueProgram }) {
         }
       );
     },
-    [canSavePage, createPage, handleSaveFailure, history, name, revenueProgram.id, revenueProgram.slug, slug]
+    [canSavePage, createPage, handleSaveFailure, history, name, revenueProgram.id, slug]
   );
 
   const handleDiscard = () => {

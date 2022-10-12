@@ -1,10 +1,10 @@
 import styled from 'styled-components';
-import SvgIcon from 'assets/icons/SvgIcon';
 
 export const Leftbar = styled.div`
   width: 85%;
   max-width: 506px;
   margin-bottom: 50px;
+  z-index: 2;
 
   color: ${(props) => (props.isCreateAccountPage ? props.theme.colors.white : props.theme.colors.account.purple[1])};
 
@@ -35,8 +35,8 @@ export const Logo = styled.img`
 export const Heading = styled.div`
   font-style: normal;
   font-weight: 400;
-  font-size: ${(props) => props.theme.fontSizesUpdated.h1};
-  line-height: 42px;
+  font-size: ${(props) => props.theme.fontSizesUpdated.xl};
+  line-height: 54px;
   text-transform: capitalize;
   margin: 32px 0px;
 
@@ -70,19 +70,22 @@ export const Advantage = styled.div`
 
   span {
     border-radius: 50%;
-    display: inline-block;
-    position: relative;
-    width: 24px;
-    height: 24px;
-    padding: 12px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 40px;
+    min-width: 40px;
+    height: 40px;
   }
 
   svg {
-    width: 14px;
-    height: 14px;
-    top: 5.5px;
-    left: 5.4px;
-    position: absolute;
+    width: 24px;
+    height: 24px;
+
+    @media (${(props) => props.theme.breakpoints.tabletLandscapeDown}) {
+      width: 14px;
+      height: 14px;
+    }
   }
 `;
 
@@ -94,7 +97,7 @@ export const AdvContent = styled.div`
 export const AdvHeading = styled.div`
   font-style: normal;
   font-weight: 400;
-  font-size: ${(props) => props.theme.fontSizesUpdated.lg};
+  font-size: ${(props) => props.theme.fontSizesUpdated.lgx};
   margin-bottom: 4px;
   line-height: 138.19%;
 `;
@@ -102,17 +105,6 @@ export const AdvHeading = styled.div`
 export const AdvSubHeading = styled.div`
   font-style: normal;
   font-weight: 400;
-  font-size: ${(props) => props.theme.fontSizesUpdated.xs};
+  font-size: ${(props) => props.theme.fontSizesUpdated.md};
   line-height: 138.19%;
-`;
-
-export const AdvantageIcon = styled(SvgIcon)`
-  width: 16px;
-  height: 16px;
-  margin-right: 0.5rem;
-
-  @media (${(props) => props.theme.breakpoints.tabletLandscapeDown}) {
-    width: 14px;
-    height: 14px;
-  }
 `;

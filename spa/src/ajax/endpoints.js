@@ -43,7 +43,6 @@ export const GET_MAGIC_LINK = 'contrib-email/';
 export const VERIFY_TOKEN = 'contrib-verify/';
 export const STRIPE_CUSTOMER_PORTAL = 'stripe/customer-portal/';
 export const UPDATE_PAYMENT_METHOD = 'update-payment-method/';
-export const CANCEL_RECURRING = 'cancel-recurring/';
 
 // Account
 export const FORGOT_PASSWORD_ENDPOINT = 'users/password_reset/';

@@ -1,10 +1,11 @@
 import { useState, useRef } from 'react';
+import PropTypes from 'prop-types';
 import * as S from './EditRecurringPaymentModal.styled';
 import { CardElementStyle, PaymentError } from 'components/paymentProviders/stripe/StripePaymentForm.styled';
 
 // Ajax
 import axios, { AuthenticationError } from 'ajax/axios';
-import { CONTRIBUTIONS, UPDATE_PAYMENT_METHOD } from 'ajax/endpoints';
+import { SUBSCRIPTIONS } from 'ajax/endpoints';
 
 // Constant
 import { GENERIC_ERROR } from 'constants/textConstants';
@@ -34,12 +35,13 @@ import Button from 'elements/buttons/Button';
 import GlobalLoading from 'elements/GlobalLoading';
 
 function EditRecurringPaymentModal({ isOpen, closeModal, contribution, onComplete }) {
-  const stripe = useRef(loadStripe(HUB_STRIPE_API_PUB_KEY, { stripeAccount: contribution.org_stripe_id }));
+  const stripe = useRef(loadStripe(HUB_STRIPE_API_PUB_KEY, { stripeAccount: contribution.stripe_account_id }));
   const [showCompletedMessage, setShowCompletedMessage] = useState(false);
 
   const handleNewPaymentMethod = async (paymentMethod, onCompleteCallback) => {
-    await axios.patch(`${CONTRIBUTIONS}${contribution.id}/${UPDATE_PAYMENT_METHOD}`, {
-      payment_method_id: paymentMethod.id
+    await axios.patch(`${SUBSCRIPTIONS}${contribution.subscription_id}/`, {
+      payment_method_id: paymentMethod.id,
+      revenue_program_slug: contribution.revenue_program
     });
     onCompleteCallback();
     setShowCompletedMessage(true);
@@ -54,7 +56,7 @@ function EditRecurringPaymentModal({ isOpen, closeModal, contribution, onComplet
     <Modal isOpen={isOpen} closeModal={closeModal}>
       <S.EditRecurringPaymentModal data-testid="edit-recurring-payment-modal">
         {showCompletedMessage ? (
-          <S.CompletedMessage>
+          <S.CompletedMessage data-testid="edit-recurring-payment-modal-success">
             <p>
               Your new payment method will be used for the next payment. Changes may not appear in our system right
               away.
@@ -89,6 +91,27 @@ function EditRecurringPaymentModal({ isOpen, closeModal, contribution, onComplet
     </Modal>
   );
 }
+
+EditRecurringPaymentModal.propTypes = {
+  /**
+   * Contribution whose payment we're updating.
+   * (this type obviously could be better)
+   */
+  contribution: PropTypes.object.isRequired,
+  /**
+   * Called when the modal is closed, either by the user successfully updating
+   * their payment method or cancelling out.
+   */
+  closeModal: PropTypes.func.isRequired,
+  /**
+   * Is the modal currently visible?
+   */
+  isOpen: PropTypes.bool.isRequired,
+  /**
+   * Called when the payment is successfully updated. `closeModal` is also called.
+   */
+  onComplete: PropTypes.func.isRequired
+};
 
 export default EditRecurringPaymentModal;
 
@@ -164,3 +187,16 @@ function CardForm({ onPaymentMethod, closeModal }) {
     </>
   );
 }
+
+CardForm.propTypes = {
+  /**
+   * Called when the form thinks the parent modal should be closed, right now
+   * because it's detected the user's session has expired.
+   */
+  closeModal: PropTypes.func.isRequired,
+  /**
+   * Called when the user has submitted the form and a new payment method is
+   * created in Stripe. The payment method is passed.
+   */
+  onPaymentMethod: PropTypes.func.isRequired
+};

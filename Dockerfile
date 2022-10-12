@@ -8,7 +8,9 @@ COPY ./spa/package.json ./spa/package-lock.json /code/
 RUN CYPRESS_INSTALL_BINARY=0 npm ci --no-audit --no-fund --silent
 COPY ./spa /code/spa/
 WORKDIR /code/spa/
-RUN NODE_ENV=production npm run build
+
+# Limit memory usage to avoid Heroku deploy issues.
+RUN npm run build:for-heroku
 
 FROM python:3.10-slim as base
 

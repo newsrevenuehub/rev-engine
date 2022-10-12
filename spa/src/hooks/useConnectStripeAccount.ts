@@ -9,6 +9,7 @@ import useUser from './useUser';
 import { USER_ROLE_ORG_ADMIN_TYPE } from 'constants/authConstants';
 import { useHistory } from 'react-router-dom';
 import { GENERIC_ERROR } from 'constants/textConstants';
+import { User } from './useUser.types';
 
 const PENDING_VERIFICATION_MESSAGE =
   "Your account verification is pending with Stripe. This can take up to 24 hours. Check back later, and we'll let you know if Stripe needs more info to proceed.";
@@ -16,23 +17,44 @@ const PENDING_VERIFICATION_MESSAGE =
 const USER_ACTION_REQUIRED_MESSAGE =
   'Ready to publish your first donation page? Stripe needs additional info from you to configure your account.';
 
-const initialState = {
-  requiresVerification: true,
-  unverifiedReason: null,
-  parentRevenueProgramId: '',
-  sendUserToStripe: () => {},
-  ctaDescriptionText: USER_ACTION_REQUIRED_MESSAGE,
-  ctaButtonText: 'Take me to Stripe'
-};
 
-function getRevenueProgramIdRequiringVerification(user) {
+
+function getRevenueProgramIdRequiringVerification(user: User) {
   return user?.role_type?.[0] === USER_ROLE_ORG_ADMIN_TYPE &&
     user?.revenue_programs?.[0]?.payment_provider_stripe_verified === false
     ? user.revenue_programs[0].id
-    : null;
+    : '';
 }
 
-function reducer(state, action) {
+
+type Action = {
+  type: 'accountLinkStatusRetrieved' | 'userRetrieved' | 'apiError',
+  payload?: any
+};
+
+type UnverifiedReason = | '' | 'pending_verification' | 'past_due';
+
+type State = {
+  requiresVerification: boolean,
+  unverifiedReason: UnverifiedReason,
+  parentRevenueProgramId: string,
+  sendUserToStripe: Function,
+  ctaDescriptionText: string,
+  ctaButtonText: string,
+  error: string
+};
+
+const initialState: State = {
+  requiresVerification: true,
+  unverifiedReason: '',
+  parentRevenueProgramId: '',
+  sendUserToStripe: () => {},
+  ctaDescriptionText: USER_ACTION_REQUIRED_MESSAGE,
+  ctaButtonText: 'Take me to Stripe',
+  error: ''
+};
+
+function reducer(state: State, action: Action): State {
   switch (action.type) {
     case 'accountLinkStatusRetrieved':
       return {
@@ -48,12 +70,14 @@ function reducer(state, action) {
     case 'userRetrieved':
       const parentRevenueProgramId = getRevenueProgramIdRequiringVerification(action.payload);
       return { ...state, parentRevenueProgramId, requiresVerification: !!parentRevenueProgramId };
+    case 'apiError':
+      return { ...state, error: 'Something went wrong when accessing account link status' };
     default:
-      throw new Error();
+      return state
   }
 }
 
-async function fetchAccountLinkStatus(rpId) {
+async function fetchAccountLinkStatus(rpId: string) {
   // this endpoint can have a number of small side effects, including creating a stripe account link
   // and causing a stripe account ID to be added to the RP's payment provider. Because of this, it uses
   // POST as opposed to GET
@@ -87,16 +111,17 @@ export default function useConnectStripeAccount() {
           // in custom useUser hook. This will cause the user to be refetched,
           // the user's revenue program should now appear as having Stripe verified, which will
           // in turn hide the Stripe Account Link CTAs.
-          queryClient.invalidateQueries('user');
+          queryClient.invalidateQueries(['user']);
         }
         dispatch({ type: 'accountLinkStatusRetrieved', payload: data });
       },
-      onError: (err) => {
+      onError: (err: any) => {
         if (err?.name === 'AuthenticationError') {
           history.push(SIGN_IN);
         } else {
           console.error(err);
           alert.error(GENERIC_ERROR);
+          dispatch({type: 'apiError'});
         }
       }
     }
@@ -108,6 +133,7 @@ export default function useConnectStripeAccount() {
     unverifiedReason: state.unverifiedReason,
     sendUserToStripe: state.sendUserToStripe,
     ctaDescriptionText: state.ctaDescriptionText,
-    ctaButtonText: state.ctaButtonText
+    ctaButtonText: state.ctaButtonText,
+    error: state.error
   };
 }

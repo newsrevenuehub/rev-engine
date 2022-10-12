@@ -15,16 +15,31 @@ export const PENDING_VERIFICATION_MESSAGE =
 export const USER_ACTION_REQUIRED_MESSAGE =
   'Ready to publish your first donation page? Stripe needs additional info from you to configure your account.';
 
+export const DEFAULT_HEADING_TEXT = 'Connect to Stripe';
+export const PENDING_VERIFICATION_HEADING_TEXT = 'Pending Verification';
+export const USER_ACTION_REQUIRED_HEADING_TEXT = 'More Information Needed';
+
 const ConnectStripeToast = () => {
   const { loading, sendUserToStripe, unverifiedReason } = useConnectStripeAccount();
   const [reason, setReason] = useState();
   const [collapsed, setCollapsed] = useState(false);
+  const [headingText, setHeadingText] = useState(DEFAULT_HEADING_TEXT);
   const [ctaDescriptionText, setCtaDescriptionText] = useState(USER_ACTION_REQUIRED_MESSAGE);
   const ctaButtonText = 'Take me to Stripe';
 
   useEffect(() => {
     setCtaDescriptionText(
       unverifiedReason === 'past_due' ? USER_ACTION_REQUIRED_MESSAGE : PENDING_VERIFICATION_MESSAGE
+    );
+  }, [unverifiedReason]);
+
+  useEffect(() => {
+    setHeadingText(
+      unverifiedReason === ''
+        ? DEFAULT_HEADING_TEXT
+        : unverifiedReason === 'past_due'
+        ? USER_ACTION_REQUIRED_HEADING_TEXT
+        : PENDING_VERIFICATION_HEADING_TEXT
     );
   }, [unverifiedReason]);
 
@@ -47,7 +62,7 @@ const ConnectStripeToast = () => {
 
   if (collapsed) {
     return (
-      <RETooltip title="Connect to Stripe">
+      <RETooltip title={headingText}>
         <S.ConnectStripeToastCollapsed data-testid="connect-stripe-toast-collapsed" onClick={handleExpand}>
           <S.StripeLogoCollapsed src={StripeLogo} />
           <span>
@@ -68,7 +83,7 @@ const ConnectStripeToast = () => {
           </S.Minimize>
         </RETooltip>
       </S.Header>
-      <S.Heading>Connect to Stripe</S.Heading>
+      <S.Heading>{headingText}</S.Heading>
       <S.Description>{ctaDescriptionText}</S.Description>
       <S.Button
         data-testid="connect-stripe-toast-button"

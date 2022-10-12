@@ -29,7 +29,7 @@ import { CONTENT_SLUG } from 'routes';
 import { DELETE_LIVE_PAGE_CONFIRM_TEXT, GENERIC_ERROR } from 'constants/textConstants';
 
 // Settings
-import { CAPTURE_PAGE_SCREENSHOT } from 'settings';
+import { CAPTURE_PAGE_SCREENSHOT } from 'appSettings';
 
 // Assets
 import { faEye, faEdit, faSave, faTrash } from '@fortawesome/free-solid-svg-icons';

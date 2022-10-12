@@ -57,6 +57,7 @@ const ConnectStripeModal = () => {
 
 const ConnectStripeElements = () => {
   const [cookies, _] = useCookies(CONNECT_STRIPE_COOKIE_NAME);
+
   if (cookies[CONNECT_STRIPE_COOKIE_NAME]) {
     return <ConnectStripeToast />;
   }

@@ -9,10 +9,24 @@ import Triangle6Dots from 'assets/icons/triangle6Dots.svg';
 import RemoveIcon from '@material-ui/icons/Remove';
 import RETooltip from 'elements/RETooltip';
 
+export const PENDING_VERIFICATION_MESSAGE =
+  "Your account verification is pending with Stripe. This can take up to 24 hours. Check back later, and we'll let you know if Stripe needs more info to proceed.";
+
+export const USER_ACTION_REQUIRED_MESSAGE =
+  'Ready to publish your first donation page? Stripe needs additional info from you to configure your account.';
+
 const ConnectStripeToast = () => {
-  const { loading, sendUserToStripe, ctaButtonText, ctaDescriptionText, unverifiedReason } = useConnectStripeAccount();
+  const { loading, sendUserToStripe, unverifiedReason } = useConnectStripeAccount();
   const [reason, setReason] = useState();
   const [collapsed, setCollapsed] = useState(false);
+  const [ctaDescriptionText, setCtaDescriptionText] = useState(USER_ACTION_REQUIRED_MESSAGE);
+  const ctaButtonText = 'Take me to Stripe';
+
+  useEffect(() => {
+    setCtaDescriptionText(
+      unverifiedReason === 'past_due' ? USER_ACTION_REQUIRED_MESSAGE : PENDING_VERIFICATION_MESSAGE
+    );
+  }, [unverifiedReason]);
 
   const handleCollapse = useCallback(() => {
     setCollapsed(true);

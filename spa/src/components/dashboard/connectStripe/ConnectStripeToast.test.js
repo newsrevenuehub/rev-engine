@@ -1,56 +1,47 @@
 import { render, screen, fireEvent } from 'test-utils';
-import ConnectStripeToast from './ConnectStripeToast';
+import ConnectStripeToast, { USER_ACTION_REQUIRED_MESSAGE, PENDING_VERIFICATION_MESSAGE } from './ConnectStripeToast';
 import useConnectStripeAccount from 'hooks/useConnectStripeAccount';
 
 jest.mock('hooks/useConnectStripeAccount');
 
 describe('ConnectStripeToast', () => {
   test('should have a button when verification reason is "past_due"', () => {
-    const ctaDescriptionText = 'Description';
-    const ctaButtonText = 'Button';
     const mockSendUsertoStripe = jest.fn();
     useConnectStripeAccount.mockReturnValue({
       loading: false,
       requiresVerification: true,
       unverifiedReason: 'past_due',
-      sendUserToStripe: mockSendUsertoStripe,
-      ctaDescriptionText,
-      ctaButtonText
+      sendUserToStripe: mockSendUsertoStripe
     });
     render(<ConnectStripeToast />);
-    expect(screen.getByText(ctaDescriptionText)).toBeInTheDocument();
-    const connectToStripeButton = screen.getByRole('button', { name: ctaButtonText });
+    expect(screen.getByText(USER_ACTION_REQUIRED_MESSAGE)).toBeInTheDocument();
+    const connectToStripeButton = screen.getByRole('button', { name: 'Take me to Stripe' });
     expect(connectToStripeButton).toBeEnabled();
     fireEvent.click(connectToStripeButton);
     expect(mockSendUsertoStripe).toHaveBeenCalled();
   });
 
   test('should disable button when hook is loading', () => {
-    const buttonText = 'Click me';
     useConnectStripeAccount.mockReturnValue({
       loading: true,
       requiresVerification: true,
       unverifiedReason: 'past_due',
-      sendUserToStripe: () => {},
-      ctaDescriptionText: '',
-      ctaButtonText: buttonText
+      sendUserToStripe: () => {}
     });
     render(<ConnectStripeToast />);
-    const connectToStripeButton = screen.getByRole('button', { name: buttonText });
+    const connectToStripeButton = screen.getByRole('button', { name: 'Take me to Stripe' });
     expect(connectToStripeButton).toBeDisabled();
   });
 
   test('should have a disabled button when verification reason is not "past_due"', () => {
-    const ctaDescriptionText = 'Description';
     useConnectStripeAccount.mockReturnValue({
       loading: false,
       requiresVerification: true,
       unverifiedReason: 'pending_verification',
-      sendUserToStripe: () => {},
-      ctaDescriptionText
+      sendUserToStripe: () => {}
     });
     render(<ConnectStripeToast />);
-    expect(screen.getByText(ctaDescriptionText)).toBeInTheDocument();
+    expect(screen.getByText(PENDING_VERIFICATION_MESSAGE)).toBeInTheDocument();
     expect(screen.queryByRole('button')).toBeDisabled();
   });
 
@@ -59,9 +50,7 @@ describe('ConnectStripeToast', () => {
       loading: false,
       requiresVerification: true,
       unverifiedReason: 'past_due',
-      sendUserToStripe: () => {},
-      ctaDescriptionText: '',
-      ctaButtonText: ''
+      sendUserToStripe: () => {}
     });
     render(<ConnectStripeToast />);
     const stripeToast = screen.queryByTestId('connect-stripe-toast');
@@ -73,9 +62,7 @@ describe('ConnectStripeToast', () => {
       loading: false,
       requiresVerification: true,
       unverifiedReason: 'past_due',
-      sendUserToStripe: () => {},
-      ctaDescriptionText: '',
-      ctaButtonText: ''
+      sendUserToStripe: () => {}
     });
     render(<ConnectStripeToast />);
     const stripeToast = screen.queryByTestId('connect-stripe-toast');
@@ -90,9 +77,7 @@ describe('ConnectStripeToast', () => {
       loading: false,
       requiresVerification: true,
       unverifiedReason: 'past_due',
-      sendUserToStripe: () => {},
-      ctaDescriptionText: '',
-      ctaButtonText: ''
+      sendUserToStripe: () => {}
     });
     render(<ConnectStripeToast />);
     const stripeToast = screen.queryByTestId('connect-stripe-toast');

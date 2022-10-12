@@ -11,13 +11,6 @@ import { useHistory } from 'react-router-dom';
 import { GENERIC_ERROR } from 'constants/textConstants';
 import { User } from './useUser.types';
 
-const PENDING_VERIFICATION_MESSAGE =
-  "Your account verification is pending with Stripe. This can take up to 24 hours. Check back later, and we'll let you know if Stripe needs more info to proceed.";
-
-const USER_ACTION_REQUIRED_MESSAGE =
-  'Ready to publish your first donation page? Stripe needs additional info from you to configure your account.';
-
-
 
 function getRevenueProgramIdRequiringVerification(user: User) {
   return user?.role_type?.[0] === USER_ROLE_ORG_ADMIN_TYPE &&
@@ -32,15 +25,13 @@ type Action = {
   payload?: any
 };
 
-type UnverifiedReason = | '' | 'pending_verification' | 'past_due';
+export type UnverifiedReason = | '' | 'pending_verification' | 'past_due';
 
 type State = {
   requiresVerification: boolean,
   unverifiedReason: UnverifiedReason,
   parentRevenueProgramId: string,
   sendUserToStripe: Function,
-  ctaDescriptionText: string,
-  ctaButtonText: string,
   error: string
 };
 
@@ -49,8 +40,8 @@ const initialState: State = {
   unverifiedReason: '',
   parentRevenueProgramId: '',
   sendUserToStripe: () => {},
-  ctaDescriptionText: USER_ACTION_REQUIRED_MESSAGE,
-  ctaButtonText: 'Take me to Stripe',
+  // ctaDescriptionText: USER_ACTION_REQUIRED_MESSAGE,
+  // ctaButtonText: 'Take me to Stripe',
   error: ''
 };
 
@@ -64,8 +55,6 @@ function reducer(state: State, action: Action): State {
         },
         requiresVerification: action.payload.requiresVerification,
         unverifiedReason: action.payload.reason,
-        ctaDescriptionText:
-          action.payload.reason === 'past_due' ? USER_ACTION_REQUIRED_MESSAGE : PENDING_VERIFICATION_MESSAGE
       };
     case 'userRetrieved':
       const parentRevenueProgramId = getRevenueProgramIdRequiringVerification(action.payload);
@@ -132,8 +121,6 @@ export default function useConnectStripeAccount() {
     requiresVerification: state.requiresVerification,
     unverifiedReason: state.unverifiedReason,
     sendUserToStripe: state.sendUserToStripe,
-    ctaDescriptionText: state.ctaDescriptionText,
-    ctaButtonText: state.ctaButtonText,
     error: state.error
   };
 }

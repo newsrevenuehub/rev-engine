@@ -65,15 +65,13 @@ describe('Show Toast if cookie is set', () => {
   });
 
   it('should show stripe-toast and stripe-modal should be hidden', () => {
-    const buttonText = 'Click me';
     useConnectStripeAccount.mockReturnValue({
       loading: false,
       sendUserToStripe: () => {},
-      ctaButtonText: buttonText,
       unverifiedReason: 'past_due'
     });
     render(<ConnectStripeElements />);
-    const connectNow = screen.getByRole('button', { name: buttonText });
+    const connectNow = screen.getByRole('button', { name: 'Take me to Stripe' });
     expect(connectNow).toBeEnabled();
 
     const stripeModal = screen.queryByTestId('connect-stripe-modal');

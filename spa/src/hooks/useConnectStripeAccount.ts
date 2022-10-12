@@ -32,7 +32,8 @@ type State = {
   unverifiedReason: UnverifiedReason,
   parentRevenueProgramId: string,
   sendUserToStripe: Function,
-  error: string
+  error: string,
+  stripeConnectStarted: boolean
 };
 
 const initialState: State = {
@@ -40,9 +41,8 @@ const initialState: State = {
   unverifiedReason: '',
   parentRevenueProgramId: '',
   sendUserToStripe: () => {},
-  // ctaDescriptionText: USER_ACTION_REQUIRED_MESSAGE,
-  // ctaButtonText: 'Take me to Stripe',
-  error: ''
+  error: '',
+  stripeConnectStarted: false,
 };
 
 function reducer(state: State, action: Action): State {
@@ -121,6 +121,7 @@ export default function useConnectStripeAccount() {
     requiresVerification: state.requiresVerification,
     unverifiedReason: state.unverifiedReason,
     sendUserToStripe: state.sendUserToStripe,
-    error: state.error
+    error: state.error,
+    stripeConnectStarted:state.stripeConnectStarted,
   };
 }

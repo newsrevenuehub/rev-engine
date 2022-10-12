@@ -169,6 +169,7 @@ class TestHandleStripeAccountLink:
         stripe_account_id = "fakeId"
         mock_stripe_account_create = mock.MagicMock(
             return_value={
+                "details_submitted": False,
                 "charges_enabled": False,
                 "id": stripe_account_id,
                 "requirements": {"disabled_reason": "foo.past_due"},
@@ -188,7 +189,12 @@ class TestHandleStripeAccountLink:
         client.force_authenticate(user=rp_role_assignment.user)
         response = client.post(url)
         assert response.status_code == status.HTTP_200_OK
-        assert response.json() == {"requiresVerification": True, "reason": "past_due", "url": stripe_url}
+        assert response.json() == {
+            "requiresVerification": True,
+            "reason": "past_due",
+            "url": stripe_url,
+            "stripeConnectStarted": False,
+        }
         rp.payment_provider.refresh_from_db()
         assert rp.payment_provider.stripe_account_id == stripe_account_id
 
@@ -200,6 +206,7 @@ class TestHandleStripeAccountLink:
                 "charges_enabled": False,
                 "id": stripe_account_id,
                 "requirements": {"disabled_reason": "foo.past_due"},
+                "details_submitted": True,
             }
         )
         monkeypatch.setattr("stripe.Account.retrieve", mock_stripe_account_retrieve)
@@ -214,7 +221,12 @@ class TestHandleStripeAccountLink:
         client.force_authenticate(user=rp_role_assignment.user)
         response = client.post(url)
         assert response.status_code == status.HTTP_200_OK
-        assert response.json() == {"requiresVerification": True, "reason": "past_due", "url": stripe_url}
+        assert response.json() == {
+            "requiresVerification": True,
+            "reason": "past_due",
+            "url": stripe_url,
+            "stripeConnectStarted": True,
+        }
 
     def test_happy_path_when_stripe_account_already_created_and_pending_verification(
         self, monkeypatch, rp_role_assignment
@@ -223,6 +235,7 @@ class TestHandleStripeAccountLink:
         stripe_url = "https://www.stripe.com"
         mock_stripe_account_retrieve = mock.MagicMock(
             return_value={
+                "details_submitted": True,
                 "charges_enabled": False,
                 "id": stripe_account_id,
                 "requirements": {"disabled_reason": "foo.pending_verification"},
@@ -240,7 +253,11 @@ class TestHandleStripeAccountLink:
         client.force_authenticate(user=rp_role_assignment.user)
         response = client.post(url)
         assert response.status_code == status.HTTP_200_OK
-        assert response.json() == {"requiresVerification": True, "reason": "pending_verification"}
+        assert response.json() == {
+            "requiresVerification": True,
+            "reason": "pending_verification",
+            "stripeConnectStarted": True,
+        }
 
     def test_happy_path_when_stripe_account_newly_has_charges_enabled(self, rp_role_assignment, monkeypatch):
         stripe_account_id = "fakeId"
@@ -248,6 +265,7 @@ class TestHandleStripeAccountLink:
             return_value={
                 "charges_enabled": True,
                 "id": stripe_account_id,
+                "details_submitted": True,
             }
         )
         monkeypatch.setattr("stripe.Account.retrieve", mock_stripe_account_retrieve)
@@ -337,6 +355,7 @@ class TestHandleStripeAccountLink:
                 "id": "account-id",
                 "charges_enabled": False,
                 "requirements": {"disabled_reason": "foo.past_due"},
+                "details_submitted": False,
             }
         )
         monkeypatch.setattr("stripe.Account.create", mock_account_create)
@@ -358,6 +377,7 @@ class TestHandleStripeAccountLink:
         stripe_account_id = "fakefakefake"
         mock_stripe_account_retrieve = mock.MagicMock(
             return_value={
+                "details_submitted": False,
                 "charges_enabled": False,
                 "id": stripe_account_id,
                 "requirements": {"disabled_reason": "foo.past_due"},

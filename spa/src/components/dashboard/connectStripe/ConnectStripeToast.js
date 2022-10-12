@@ -20,7 +20,7 @@ export const PENDING_VERIFICATION_HEADING_TEXT = 'Pending Verification';
 export const USER_ACTION_REQUIRED_HEADING_TEXT = 'More Information Needed';
 
 const ConnectStripeToast = () => {
-  const { loading, sendUserToStripe, unverifiedReason } = useConnectStripeAccount();
+  const { loading, sendUserToStripe, unverifiedReason, stripeConnectStarted } = useConnectStripeAccount();
   const [reason, setReason] = useState();
   const [collapsed, setCollapsed] = useState(false);
   const [headingText, setHeadingText] = useState(DEFAULT_HEADING_TEXT);
@@ -29,19 +29,23 @@ const ConnectStripeToast = () => {
 
   useEffect(() => {
     setCtaDescriptionText(
-      unverifiedReason === 'past_due' ? USER_ACTION_REQUIRED_MESSAGE : PENDING_VERIFICATION_MESSAGE
+      stripeConnectStarted === false
+        ? USER_ACTION_REQUIRED_MESSAGE
+        : unverifiedReason === 'past_due'
+        ? USER_ACTION_REQUIRED_MESSAGE
+        : PENDING_VERIFICATION_MESSAGE
     );
-  }, [unverifiedReason]);
+  }, [unverifiedReason, stripeConnectStarted]);
 
   useEffect(() => {
     setHeadingText(
-      unverifiedReason === ''
+      stripeConnectStarted === false
         ? DEFAULT_HEADING_TEXT
         : unverifiedReason === 'past_due'
         ? USER_ACTION_REQUIRED_HEADING_TEXT
         : PENDING_VERIFICATION_HEADING_TEXT
     );
-  }, [unverifiedReason]);
+  }, [stripeConnectStarted, unverifiedReason]);
 
   const handleCollapse = useCallback(() => {
     setCollapsed(true);

@@ -127,10 +127,7 @@ def handle_stripe_account_link(request, rp_pk):
         if "pending_verification" in raw_reason
         else "unknown"
     )
-    data = {
-        "requiresVerification": True,
-        "reason": reason,
-    }
+    data = {"requiresVerification": True, "reason": reason, "stripeConnectStarted": account["details_submitted"]}
     if reason == "past_due":
         try:
             stripe_response = stripe.AccountLink.create(

@@ -52,7 +52,7 @@ steps:
   - '-c'
   - |
     cd nre-config && \
-    git checkout $BRANCH_NAME && \
+    git checkout candidate-$BRANCH_NAME && \
     git config user.email $(gcloud auth list --filter=status:ACTIVE --format='value(account)')
 
 
@@ -77,7 +77,7 @@ steps:
     git commit -m "Deploying image us-central1-docker.pkg.dev/$PROJECT_ID/nre-repository/nre-cloudbuild:${SHORT_SHA}
     Built from commit ${COMMIT_SHA} of repository nre-config
     Author: $(git log --format='%an <%ae>' -n 1 HEAD)" && \
-    git push origin $BRANCH_NAME
+    git push origin candidate-$BRANCH_NAME
   volumes:
   - name: 'ssh'
     path: /root/.ssh

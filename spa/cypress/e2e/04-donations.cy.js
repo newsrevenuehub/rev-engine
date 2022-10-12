@@ -319,12 +319,14 @@ describe('Donations list', () => {
     });
 
     it('should render banner with Stripe message if user has stripe not verified', () => {
-      cy.forceLogin({ ...orgAdminUser, user: selfServiceUserStripeVerified });
+      cy.forceLogin({ ...orgAdminUser, user: selfServiceUserNotStripeVerified });
       cy.intercept(getEndpoint(LIST_PAGES), { fixture: 'pages/list-pages-1' }).as('listPages');
-      cy.intercept({ method: 'GET', pathname: getEndpoint(USER) }, { body: selfServiceUserStripeVerified });
+      cy.intercept({ method: 'GET', pathname: getEndpoint(USER) }, { body: selfServiceUserNotStripeVerified });
       cy.interceptPaginatedDonations();
       cy.visit(DONATIONS_SLUG);
       cy.wait('@listPages');
+      cy.get('a').contains('I’ll connect to Stripe later').click();
+      cy.getByTestId('minimize-toast').click();
       cy.getByTestId('banner').should('exist');
       cy.contains('Looks like you need to set up a Stripe connection');
     });

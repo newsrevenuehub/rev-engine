@@ -63,6 +63,7 @@ export function PayFeesWidget() {
         toggle
         checked={userAgreesToPayFees}
         onChange={handleChange}
+        type="checkbox"
         data-testid={`pay-fees-${userAgreesToPayFees ? 'checked' : 'not-checked'}`}
       />
       <S.PayFeesDescription>

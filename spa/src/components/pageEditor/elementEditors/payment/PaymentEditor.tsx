@@ -1,4 +1,3 @@
-import { useTheme } from 'styled-components';
 import { useEditInterfaceContext } from 'components/pageEditor/editInterface/EditInterface';
 import {
   IntroText,
@@ -16,7 +15,6 @@ import {
 type PaymentPropertyName = 'offerPayFees' | 'payFeesDefault';
 
 function PaymentEditor() {
-  const theme = useTheme();
   const { elementContent, setElementContent } = useEditInterfaceContext();
 
   function updateElement(propertyName: PaymentPropertyName, value: boolean) {
@@ -36,13 +34,14 @@ function PaymentEditor() {
             checked={elementContent?.offerPayFees}
             onChange={(_: never, { checked }: { checked: boolean }) => updateElement('offerPayFees', checked)}
             toggle
+            type="checkbox"
           />
         </ToggleWrapper>
         <RadioWrapper>
           <Radio
             id="pay-fees-by-default"
             data-testid="pay-fees-by-default"
-            color={theme.colors.primary as any}
+            color="primary"
             checked={elementContent?.payFeesDefault}
             onChange={(event, checked) => updateElement('payFeesDefault', checked)}
           />

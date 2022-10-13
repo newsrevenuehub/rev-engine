@@ -12,6 +12,9 @@ export interface DElementProps {
    * Label for the element.
    */
   label?: string;
+
+  // ... other props that we don't know about.
+  [key: string]: unknown;
 }
 
 /**

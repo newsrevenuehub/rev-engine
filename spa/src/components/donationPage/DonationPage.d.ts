@@ -16,6 +16,9 @@ export interface DonationPage {
   };
 }
 
+/**
+ * Info available in the donation page context. **THIS TYPE IS INCOMPLETE.**
+ */
 export interface UsePageProps {
   /**
    * How much payment processing fees will be for this contribution.

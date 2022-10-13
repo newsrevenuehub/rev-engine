@@ -30,7 +30,7 @@ export const OtherOptionsList = styled(PaymentTypesList)`
   border-top: 1px solid ${(props) => props.theme.colors.grey[1]};
 `;
 
-export const RadioWrapper = styled.div`
+export const RadioWrapper = styled.li`
   display: flex;
   flex-direction: row;
   align-items: center;

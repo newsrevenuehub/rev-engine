@@ -71,13 +71,8 @@ async function fetchAccountLinkStatus(rpId: string) {
   // this endpoint can have a number of small side effects, including creating a stripe account link
   // and causing a stripe account ID to be added to the RP's payment provider. Because of this, it uses
   // POST as opposed to GET
-  try {
-    const { data } = await axios.post(getStripeAccountLinkStatusPath(rpId), {});
-    return data;
-  } catch (err) {
-    console.error(err);
-    throw err;
-  }
+  const { data } = await axios.post(getStripeAccountLinkStatusPath(rpId), {});
+  return data;
 }
 
 export default function useConnectStripeAccount() {
@@ -96,7 +91,6 @@ export default function useConnectStripeAccount() {
 
   useEffect(() => {
     if (useUserIsError) {
-      console.log('dispatching user error');
       dispatch({ type: 'apiError', payload: 'Something went wrong when accessing the user' });
     }
   }, [useUserIsError]);

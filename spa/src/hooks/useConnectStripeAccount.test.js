@@ -16,13 +16,7 @@ jest.mock('react-alert', () => ({
 const mock = new MockAdapter(axios);
 
 describe('useConnectStripeAccount hook', () => {
-  const queryClient = new QueryClient({
-    defaultOptions: {
-      queries: {
-        retry: false
-      }
-    }
-  });
+  const queryClient = new QueryClient();
 
   beforeEach(() => {
     mock.reset();
@@ -101,6 +95,9 @@ describe('useConnectStripeAccount hook', () => {
         })
       )
     );
+    // We do this because the hook returns a `sendUserToStripe()` function which sets `window.location.href` to the value
+    // returned when we fetch account link status.
+    //
     // https://www.csrhymes.com/2022/06/18/mocking-window-location-in-jest.html
     delete global.window.location;
     global.window = Object.create(window);
@@ -126,7 +123,6 @@ describe('useConnectStripeAccount hook', () => {
       }
     });
     mock.onPost(getStripeAccountLinkStatusPath(id)).networkError();
-
     const queryClient = new QueryClient();
     const wrapper = ({ children }) => <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>;
     const { result, waitFor } = renderHook(() => useConnectStripeAccount(), { wrapper });

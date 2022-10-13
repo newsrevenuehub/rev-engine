@@ -10,7 +10,7 @@ import useConnectStripeAccount from 'hooks/useConnectStripeAccount';
 jest.mock('hooks/useConnectStripeAccount');
 
 describe('ConnectStripeToast', () => {
-  test('should have an enabled button and correct text when verification reason is "past_due"', () => {
+  it('should have an enabled button and correct text when verification reason is "past_due"', () => {
     const mockSendUsertoStripe = jest.fn();
     useConnectStripeAccount.mockReturnValue({
       loading: false,
@@ -40,7 +40,7 @@ describe('ConnectStripeToast', () => {
     expect(connectToStripeButton).toBeDisabled();
   });
 
-  test('should have a disabled button and right text when verification reason is not "past_due"', () => {
+  test('should have a disabled button and right text when verification reason is "pending_verification"', () => {
     useConnectStripeAccount.mockReturnValue({
       loading: false,
       requiresVerification: true,

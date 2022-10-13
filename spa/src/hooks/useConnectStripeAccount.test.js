@@ -10,7 +10,7 @@ import { getStripeAccountLinkStatusPath } from 'ajax/endpoints';
 jest.mock('hooks/useUser');
 jest.mock('react-alert', () => ({
   ...jest.requireActual('react-alert'),
-  useAlert: jest.fn()
+  useAlert: () => ({ error: jest.fn() })
 }));
 
 const mock = new MockAdapter(axios);
@@ -110,15 +110,14 @@ describe('useConnectStripeAccount hook', () => {
   });
 
   it('should update state as expected after error retrieving user', async () => {
-    useUser.mockReturnValue(() => ({
-      isError: true
-    }));
+    useUser.mockReturnValue({ isError: true });
     const queryClient = new QueryClient();
     const wrapper = ({ children }) => <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>;
     const { result, waitFor } = renderHook(() => useConnectStripeAccount(), { wrapper });
     await waitFor(() => result.current.error === 'Something went wrong when accessing the user');
   });
-  it.only('should update state as expected after API error retrieving account link status', async () => {
+  it('should update state as expected after API error retrieving account link status', async () => {
+    const errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
     const id = '1';
     useUser.mockReturnValue({
       user: {
@@ -126,10 +125,13 @@ describe('useConnectStripeAccount hook', () => {
         revenue_programs: [{ payment_provider_stripe_verified: false, id: id }]
       }
     });
+    mock.onPost(getStripeAccountLinkStatusPath(id)).networkError();
+
     const queryClient = new QueryClient();
     const wrapper = ({ children }) => <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>;
     const { result, waitFor } = renderHook(() => useConnectStripeAccount(), { wrapper });
-    mock.onPost(getStripeAccountLinkStatusPath(id)).networkError();
-    await waitFor(() => result.current.error === 'Something went wrong when accessing the user');
+    await waitFor(() => !!result.current.error);
+    expect(result.current.error).toBe('Something went wrong when accessing account link status');
+    errorSpy.mockReset();
   });
 });

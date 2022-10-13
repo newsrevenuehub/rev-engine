@@ -1,4 +1,4 @@
-import { TextField as MuiTextField } from '@material-ui/core';
+import { TextField as MuiTextField, MenuItem as MuiMenuItem } from '@material-ui/core';
 import { KeyboardArrowDown } from '@material-ui/icons';
 import { forwardRef } from 'react';
 import styled from 'styled-components';
@@ -68,6 +68,14 @@ const StyledMuiTextField = styled(MuiTextField)`
   }
 `;
 
+// MenuItem is used as the main component for dropdown items
+export const MenuItem = styled(MuiMenuItem)`
+  && {
+    margin: 4px;
+    border-radius: ${(props) => props.theme.muiBorderRadius.md};
+  }
+`;
+
 /**
  * @see https://v4.mui.com/api/text-field/
  */
@@ -75,7 +83,6 @@ export const TextField = forwardRef((props, ref) => (
   <StyledMuiTextField
     InputLabelProps={{ shrink: true }}
     SelectProps={{
-      native: true,
       IconComponent: KeyboardArrowDown
     }}
     ref={ref}

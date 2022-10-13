@@ -1,4 +1,4 @@
-import { Button, TextField } from 'components/base';
+import { Button, TextField, MenuItem } from 'components/base';
 import PropTypes from 'prop-types';
 import { Controller, useForm } from 'react-hook-form';
 import { FieldLabelOptional, FillRow, Form, TaxStatusContainer, TaxStatusInfoTooltip } from './ProfileForm.styled';
@@ -7,7 +7,9 @@ function ProfileForm({ disabled: disabledProp, onProfileSubmit }) {
   const { control, handleSubmit, watch } = useForm({
     defaultValues: {
       companyName: '',
-      companyTaxStatus: '',
+      // companyTaxStatus needs to be "." so that it shows the default label "Select your status".
+      // Using empty string didn't work
+      companyTaxStatus: '.',
       firstName: '',
       jobTitle: '',
       lastName: ''
@@ -17,7 +19,7 @@ function ProfileForm({ disabled: disabledProp, onProfileSubmit }) {
   const lastName = watch('lastName');
   const companyName = watch('companyName');
   const companyTaxStatus = watch('companyTaxStatus');
-  const disabled = disabledProp || !firstName || !lastName || !companyName || !companyTaxStatus;
+  const disabled = disabledProp || !firstName || !lastName || !companyName || companyTaxStatus === '.';
 
   const onSubmit = (formData) => {
     onProfileSubmit(formData);
@@ -65,11 +67,12 @@ function ProfileForm({ disabled: disabledProp, onProfileSubmit }) {
           control={control}
           render={({ field }) => (
             <TextField fullWidth id="profile-company-tax-status" label="Company Tax Status" {...field} select>
-              <option disabled={companyTaxStatus !== ''} value="">
+              {/* Shows "Select your status" label when companyTaxStatus = . (initialState)*/}
+              <MenuItem disabled value="." style={{ display: 'none' }}>
                 Select your status
-              </option>
-              <option value="nonprofit">Non-profit</option>
-              <option value="for-profit">For-profit</option>
+              </MenuItem>
+              <MenuItem value="nonprofit">Non-profit</MenuItem>
+              <MenuItem value="for-profit">For-profit</MenuItem>
             </TextField>
           )}
         />

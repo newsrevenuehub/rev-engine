@@ -1,6 +1,14 @@
 import { useTheme } from 'styled-components';
 import { useEditInterfaceContext } from 'components/pageEditor/editInterface/EditInterface';
-import { OtherOptionsList, Radio, RadioLabel, RadioWrapper, Toggle, ToggleWrapper } from './PaymentEditor.styled';
+import {
+  IntroText,
+  OtherOptionsList,
+  Radio,
+  RadioLabel,
+  RadioWrapper,
+  Toggle,
+  ToggleWrapper
+} from './PaymentEditor.styled';
 
 /**
  * Name of an element property the user can change on a DPayment.
@@ -17,10 +25,10 @@ function PaymentEditor() {
 
   return (
     <div data-testid="payment-editor">
-      <p>
-        Configure the ability of your contributors to pay transaction fees so they won't be deducted from your payout.
+      <IntroText>
+        Configure the ability of your contributors to pay transaction fees so they won't be deducted from your payout.{' '}
         <strong>Available payment methods must be configured in Stripe.</strong>
-      </p>
+      </IntroText>
       <OtherOptionsList>
         <ToggleWrapper>
           <Toggle

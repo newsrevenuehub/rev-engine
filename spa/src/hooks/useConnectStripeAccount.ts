@@ -116,7 +116,7 @@ export default function useConnectStripeAccount() {
         if (err?.name === 'AuthenticationError') {
           history.push(SIGN_IN);
         } else {
-          // console.error(err);
+          console.error(err);
           alert.error(GENERIC_ERROR);
           dispatch({ type: 'apiError', payload: 'Something went wrong when accessing account link status' });
         }

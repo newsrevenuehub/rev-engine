@@ -1,3 +1,4 @@
+import { FC }from 'react';
 import MockAdapter from 'axios-mock-adapter';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { renderHook } from '@testing-library/react-hooks';
@@ -13,7 +14,9 @@ jest.mock('react-alert', () => ({
   useAlert: () => ({ error: jest.fn() })
 }));
 
+
 const mock = new MockAdapter(axios);
+const mockedUseUser = jest.mocked(useUser)
 
 describe('useConnectStripeAccount hook', () => {
   const queryClient = new QueryClient();
@@ -23,9 +26,13 @@ describe('useConnectStripeAccount hook', () => {
     jest.restoreAllMocks();
   });
 
+  afterEach(() => {
+    jest.restoreAllMocks();
+  })
+
   it('should have the expected default state', () => {
-    useUser.mockReturnValue({});
-    const wrapper = ({ children }) => <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>;
+    mockedUseUser.mockReturnValue({});
+    const wrapper:FC<{}>  = ({ children }) => <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>;
     const { result } = renderHook(() => useConnectStripeAccount(), { wrapper });
     expect(result.current).toEqual(
       expect.objectContaining({
@@ -40,6 +47,7 @@ describe('useConnectStripeAccount hook', () => {
   });
 
   it("should trigger fetch account link status when user's first RP stripeVerified is false", async () => {
+    const wrapper:FC<{}>  = ({ children }) => <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>;
     useUser.mockReturnValue({
       user: {
         role_type: [USER_ROLE_ORG_ADMIN_TYPE],
@@ -48,7 +56,6 @@ describe('useConnectStripeAccount hook', () => {
     });
     let spy = jest.spyOn(axios, 'post');
     const queryClient = new QueryClient();
-    const wrapper = ({ children }) => <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>;
     renderHook(() => useConnectStripeAccount(), { wrapper });
     expect(spy).toHaveBeenCalledTimes(1);
   });

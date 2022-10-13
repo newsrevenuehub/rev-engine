@@ -4,8 +4,8 @@ import useUser from './useUser';
 
 interface UseFeatureFlagsHook {
   flags: FeatureFlag[];
-  isLoading: Boolean;
-  isError: Boolean;
+  isLoading: boolean;
+  isError: boolean;
 };
 
 /* This hook provides any feature flags attached to the user. It

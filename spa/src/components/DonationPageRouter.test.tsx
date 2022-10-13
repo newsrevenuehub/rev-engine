@@ -56,6 +56,10 @@ describe('DonationPageRouter', () => {
 
   beforeEach(() => GenericThankYouMock.mockReturnValue(<div data-testid="mock-generic-thank-you" />));
 
+  // Routes in tests below are hard-coded to avoid a situation where slashes
+  // change in our route config, and we accidentally route to URLs like
+  // /donate//thank-you but tests continue to pass.
+
   it('displays a tracked GenericThankYou at /thank-you/', async () => {
     tree('/thank-you/');
     await screen.findByTestId('mock-generic-thank-you');

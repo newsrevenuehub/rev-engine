@@ -1,12 +1,25 @@
 import PropTypes from 'prop-types';
+import { ReactChild } from 'react';
 import * as S from './DElement.styled';
+
+export interface DElementProps {
+  children?: ReactChild;
+  /**
+   * Description of the element.
+   */
+  description?: string;
+  /**
+   * Label for the element.
+   */
+  label?: string;
+}
 
 /**
  * DElement is used as the basis all dynamic elements. It establishes
  * baseline positioning and space, as well as allowing easy label and
  * description text
  */
-function DElement({ label, description, children, ...props }) {
+function DElement({ label, description, children, ...props }: DElementProps) {
   return (
     <S.DElement {...props}>
       {label && <S.Label>{label}</S.Label>}
@@ -16,14 +29,10 @@ function DElement({ label, description, children, ...props }) {
   );
 }
 
-DElement.propTypes = {
-  label: PropTypes.string,
-  description: PropTypes.string
-};
-
 /**
  * This schema is the basis for dynamic element props.
  * Each dynamic element should utilize this pattern.
+ * Maintaining these while we transition to TypeScript.
  */
 export const DynamicElementPropTypes = {
   uuid: PropTypes.string.isRequired,

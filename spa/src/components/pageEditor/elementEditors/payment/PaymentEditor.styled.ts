@@ -2,8 +2,6 @@ import styled from 'styled-components';
 import { Radio as SemanticRadio } from 'semantic-ui-react';
 import MaterialCheckbox from '@material-ui/core/Checkbox';
 
-export const PaymentEditor = styled.div``;
-
 export const PaymentTypesList = styled.ul`
   padding: 0;
   margin: 0 2rem;

@@ -34,7 +34,7 @@ function PaymentEditor() {
           <Radio
             id="pay-fees-by-default"
             data-testid="pay-fees-by-default"
-            color={(theme as any).colors.primary}
+            color={theme.colors.primary as any}
             checked={elementContent?.payFeesDefault}
             onChange={(event, checked) => updateElement('payFeesDefault', checked)}
           />

@@ -69,7 +69,7 @@
     "start": "craco start",
     "start:subdomains": "DANGEROUSLY_DISABLE_HOST_CHECK=true craco start",
     "build": "INLINE_RUNTIME_CHUNK=false craco build",
-    "build:for-heroku": "INLINE_RUNTIME_CHUNK=false NODE_ENV=production craco --max_old_space_size=2560 --optimize_for_size build",
+    "build:low-memory": "INLINE_RUNTIME_CHUNK=false NODE_ENV=production craco --max_old_space_size=2560 --optimize_for_size build",
     "cypress:open": "cypress open --e2e",
     "cypress:run": "cypress run --e2e",
     "test": "react-scripts test",

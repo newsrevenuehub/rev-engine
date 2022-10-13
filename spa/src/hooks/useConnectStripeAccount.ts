@@ -37,7 +37,7 @@ type State = {
 };
 
 const initialState: State = {
-  requiresVerification: true,
+  requiresVerification: false,
   unverifiedReason: '',
   parentRevenueProgramId: '',
   sendUserToStripe: () => {},

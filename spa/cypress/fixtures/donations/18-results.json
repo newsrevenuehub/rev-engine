@@ -22,7 +22,8 @@
     "donation_page": null,
     "organization": 1,
     "last4": 1234,
-    "card_brand": "visa"
+    "card_brand": "visa",
+    "revenue_program": "mock-revenue-program"
   },
   {
     "id": 1,
@@ -47,7 +48,8 @@
     "donation_page": null,
     "organization": 1,
     "last4": 1234,
-    "card_brand": "mastercard"
+    "card_brand": "mastercard",
+    "revenue_program": "mock-revenue-program"
   },
   {
     "id": 18,
@@ -72,7 +74,8 @@
     "donation_page": null,
     "organization": 1,
     "last4": 1234,
-    "card_brand": "discover"
+    "card_brand": "discover",
+    "revenue_program": "mock-revenue-program"
   },
   {
     "id": 6,
@@ -98,7 +101,8 @@
     "organization": 1,
     "last4": 1234,
     "card_brand": "amex",
-    "subscription_id": "sub_stripe_ar_bizz_com_1381"
+    "subscription_id": "sub_stripe_ar_bizz_com_1381",
+    "revenue_program": "mock-revenue-program"
   },
   {
     "id": 2,
@@ -124,7 +128,8 @@
     "organization": 1,
     "last4": 1234,
     "card_brand": "visa",
-    "subscription_id": "sub_contributor_caktusgroup_com_1398"
+    "subscription_id": "sub_contributor_caktusgroup_com_1398",
+    "revenue_program": "mock-revenue-program"
   },
   {
     "id": 3,
@@ -150,7 +155,8 @@
     "organization": 1,
     "last4": 1234,
     "card_brand": "visa",
-    "subscription_id": "sub_contributor_caktusgroup_com_1397"
+    "subscription_id": "sub_contributor_caktusgroup_com_1397",
+    "revenue_program": "mock-revenue-program"
   },
   {
     "id": 4,
@@ -176,7 +182,8 @@
     "organization": 1,
     "last4": 1234,
     "card_brand": "visa",
-    "subscription_id": "sub_contributor_caktusgroup_com_1396"
+    "subscription_id": "sub_contributor_caktusgroup_com_1396",
+    "revenue_program": "mock-revenue-program"
   },
   {
     "id": 5,
@@ -201,7 +208,8 @@
     "donation_page": null,
     "organization": 1,
     "last4": 1234,
-    "card_brand": "visa"
+    "card_brand": "visa",
+    "revenue_program": "mock-revenue-program"
   },
   {
     "id": 7,
@@ -226,7 +234,8 @@
     "donation_page": null,
     "organization": 1,
     "last4": 1234,
-    "card_brand": "visa"
+    "card_brand": "visa",
+    "revenue_program": "mock-revenue-program"
   },
   {
     "id": 8,
@@ -251,7 +260,8 @@
     "donation_page": null,
     "organization": 1,
     "last4": 1234,
-    "card_brand": "visa"
+    "card_brand": "visa",
+    "revenue_program": "mock-revenue-program"
   },
   {
     "id": 9,
@@ -276,7 +286,8 @@
     "donation_page": null,
     "organization": 1,
     "last4": 1234,
-    "card_brand": "visa"
+    "card_brand": "visa",
+    "revenue_program": "mock-revenue-program"
   },
   {
     "id": 10,
@@ -301,7 +312,8 @@
     "donation_page": null,
     "organization": 1,
     "last4": 1234,
-    "card_brand": "visa"
+    "card_brand": "visa",
+    "revenue_program": "mock-revenue-program"
   },
   {
     "id": 11,
@@ -327,7 +339,8 @@
     "organization": 1,
     "last4": 1234,
     "card_brand": "visa",
-    "subscription_id": "sub_contributor_caktusgroup_com_1390"
+    "subscription_id": "sub_contributor_caktusgroup_com_1390",
+    "revenue_program": "mock-revenue-program"
   },
   {
     "id": 12,
@@ -353,7 +366,8 @@
     "organization": 1,
     "last4": 1234,
     "card_brand": "visa",
-    "subscription_id": "sub_contributor_caktusgroup_com_1389"
+    "subscription_id": "sub_contributor_caktusgroup_com_1389",
+    "revenue_program": "mock-revenue-program"
   },
   {
     "id": 13,
@@ -379,7 +393,8 @@
     "organization": 1,
     "last4": 1234,
     "card_brand": "visa",
-    "subscription_id": "sub_contributor_caktusgroup_com_1388"
+    "subscription_id": "sub_contributor_caktusgroup_com_1388",
+    "revenue_program": "mock-revenue-program"
   },
   {
     "id": 14,
@@ -404,7 +419,8 @@
     "donation_page": null,
     "organization": 1,
     "last4": 1234,
-    "card_brand": "visa"
+    "card_brand": "visa",
+    "revenue_program": "mock-revenue-program"
   },
   {
     "id": 15,
@@ -429,7 +445,8 @@
     "donation_page": null,
     "organization": 1,
     "last4": 1234,
-    "card_brand": "visa"
+    "card_brand": "visa",
+    "revenue_program": "mock-revenue-program"
   },
   {
     "id": 16,
@@ -455,6 +472,7 @@
     "organization": 1,
     "last4": 1234,
     "card_brand": "visa",
-    "subscription_id": "sub_contributor_caktusgroup_com_1385"
+    "subscription_id": "sub_contributor_caktusgroup_com_1385",
+    "revenue_program": "mock-revenue-program"
   }
 ]

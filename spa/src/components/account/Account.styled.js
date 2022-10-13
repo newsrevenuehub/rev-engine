@@ -179,6 +179,7 @@ export const PasswordLabel = styled.label`
     width: 100%;
     text-align: right;
     font-size: ${(props) => props.theme.fontSizesUpdated.sm};
+    color: ${(props) => props.theme.colors.account.blueLink};
   }
 `;
 

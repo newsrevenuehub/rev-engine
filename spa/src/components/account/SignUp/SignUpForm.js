@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useForm } from 'react-hook-form';
 import PropTypes from 'prop-types';
 
@@ -42,7 +42,7 @@ function AcceptTerms({ checked, handleTOSChange }) {
   );
 }
 
-function SignUpForm({ onSubmitSignUp, loading }) {
+function SignUpForm({ onSubmitSignUp, loading, errorMessage }) {
   const [checked, setChecked] = useState(false);
   const { open: showPassword, handleToggle: togglePasswordVisiblity } = useModal();
 
@@ -61,10 +61,24 @@ function SignUpForm({ onSubmitSignUp, loading }) {
   const watchPassword = watch('password', '');
   const disabled = !watchEmail || !watchPassword || loading || !checked;
 
+  const renderEmailError = useMemo(() => {
+    if (errors.email) {
+      return (
+        <S.Message role="error" data-testid="email-error">
+          {errors.email.message}
+        </S.Message>
+      );
+    }
+
+    if (errorMessage) return errorMessage;
+
+    return <S.MessageSpacer />;
+  }, [errorMessage, errors.email]);
+
   return (
     <form onSubmit={disabled ? () => {} : handleSubmit(onSubmitSignUp)}>
-      <S.InputLabel hasError={errors.email}>Email</S.InputLabel>
-      <S.InputOuter hasError={errors.email}>
+      <S.InputLabel hasError={errors.email || errorMessage}>Email</S.InputLabel>
+      <S.InputOuter hasError={errors.email || errorMessage}>
         <input
           id="email"
           name="email"
@@ -75,17 +89,11 @@ function SignUpForm({ onSubmitSignUp, loading }) {
             }
           })}
           type="text"
-          status={errors.email}
+          status={errors.email || errorMessage}
           data-testid="signup-email"
         />
       </S.InputOuter>
-      {errors.email ? (
-        <S.Message role="error" data-testid="email-error">
-          {errors.email.message}
-        </S.Message>
-      ) : (
-        <S.MessageSpacer />
-      )}
+      {renderEmailError}
 
       <S.InputLabel hasError={errors.password}>Password</S.InputLabel>
       <S.InputOuter hasError={errors.password}>
@@ -128,7 +136,8 @@ function SignUpForm({ onSubmitSignUp, loading }) {
 
 SignUpForm.propTypes = {
   onSubmitSignUp: PropTypes.func,
-  loading: PropTypes.bool
+  loading: PropTypes.bool,
+  errorMessage: PropTypes.node
 };
 
 export default SignUpForm;

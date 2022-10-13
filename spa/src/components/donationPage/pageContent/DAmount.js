@@ -1,10 +1,11 @@
 import { useState, useMemo } from 'react';
 import PropTypes from 'prop-types';
-import * as S from './DAmount.styled';
+import { DAmountStyled, FeesContainer, FreqSubtext, OtherAmount, OtherAmountInput } from './DAmount.styled';
 
 // Util
 import validateInputPositiveFloat from 'utilities/validateInputPositiveFloat';
 import { getFrequencyAdjective, getFrequencyRate } from 'utilities/parseFrequency';
+import { getAmountIndex } from '../amountUtils';
 
 // Context
 import { usePage } from '../DonationPage';
@@ -63,7 +64,7 @@ function DAmount({ element, ...props }) {
       {...props}
       data-testid="d-amount"
     >
-      <S.DAmount>
+      <DAmountStyled>
         {getAmounts(frequency).map((amnt, i) => {
           const selected = parseFloat(amount) === parseFloat(amnt) && !otherFocused;
           return (
@@ -73,18 +74,17 @@ function DAmount({ element, ...props }) {
               onClick={() => handleAmountChange(parseFloat(amnt))}
               data-testid={`amount-${amnt}${parseFloat(amount) === parseFloat(amnt) ? '-selected' : ''}`}
             >
-              {`${currencySymbol}${amnt}`}{' '}
-              <S.FreqSubtext selected={selected}>{getFrequencyRate(frequency)}</S.FreqSubtext>
+              {`${currencySymbol}${amnt}`} <FreqSubtext selected={selected}>{getFrequencyRate(frequency)}</FreqSubtext>
             </SelectableButton>
           );
         })}
         {(element.content?.allowOther || overrideAmount) && (
-          <S.OtherAmount
+          <OtherAmount
             data-testid={`amount-other${otherFocused || !amountIsPreset ? '-selected' : ''}`}
             selected={otherFocused || !amountIsPreset}
           >
             <span>{currencySymbol}</span>
-            <S.OtherAmountInput
+            <OtherAmountInput
               value={otherFocused || !amountIsPreset ? amount : ''}
               name="amount"
               onChange={handleOtherAmountChange}
@@ -95,11 +95,15 @@ function DAmount({ element, ...props }) {
               // weird numbers after calculating fees and fixing decimals
               maxLength="9"
             />
-            <S.FreqSubtext data-testid="custom-amount-rate">{getFrequencyRate(frequency)}</S.FreqSubtext>
-          </S.OtherAmount>
+            <FreqSubtext data-testid="custom-amount-rate">{getFrequencyRate(frequency)}</FreqSubtext>
+          </OtherAmount>
         )}
-        {displayPayFeesWidget && <PayFeesWidget />}
-      </S.DAmount>
+        {displayPayFeesWidget && (
+          <FeesContainer>
+            <PayFeesWidget />
+          </FeesContainer>
+        )}
+      </DAmountStyled>
       <FormErrors errors={errors.amount} />
     </DElement>
   );
@@ -125,31 +129,3 @@ DAmount.required = true;
 DAmount.unique = true;
 
 export default DAmount;
-
-function getAmountIndex(page, amount, frequency) {
-  const amountElement = page?.elements?.find((el) => el.type === 'DAmount');
-  const amounts = amountElement?.content?.options;
-  const amountsForFreq = amounts && amounts[frequency]?.map((amnt) => parseFloat(amnt));
-
-  if (amountsForFreq) {
-    return amounts[frequency]?.findIndex((num) => parseFloat(num) === parseFloat(amount));
-  }
-}
-
-export function getDefaultAmountForFreq(frequency, page) {
-  const amountElement = page?.elements?.find((el) => el.type === 'DAmount');
-  const amounts = amountElement?.content?.options;
-  const amountsForFreq = amounts ? amounts[frequency]?.map((amnt) => parseFloat(amnt)) : {};
-  const defaults = amountElement?.content?.defaults;
-
-  // If defaults are defined, and a default is defined for this frequency, and the default defined is a valid amount...
-  if (defaults && defaults[frequency] && amountsForFreq?.includes(parseFloat(defaults[frequency]))) {
-    // ... return the default amount for this frequency.
-    return defaults[frequency];
-  }
-  // Otherwise we have any amounts for this frequency...
-  else if (amountsForFreq) {
-    // ... return the first frequency in the list.
-    return amountsForFreq[0];
-  }
-}

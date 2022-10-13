@@ -24,7 +24,7 @@ function DPayment({ live }: DPaymentProps) {
 }
 
 DPayment.type = 'DPayment';
-DPayment.displayName = 'Payment fees';
+DPayment.displayName = 'Payment Fees';
 DPayment.description = 'Handle payment processing fees';
 DPayment.required = true;
 DPayment.unique = true;

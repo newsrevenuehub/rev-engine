@@ -1,4 +1,5 @@
-import TextField, { MenuItem } from './TextField';
+import MenuItem from '../MenuItem/MenuItem';
+import TextField from './TextField';
 
 // Not sure why we need this indirection, but if we use TextField directly
 // stories don't show up.

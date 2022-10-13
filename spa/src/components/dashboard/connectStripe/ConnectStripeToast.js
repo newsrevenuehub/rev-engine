@@ -21,6 +21,7 @@ export const USER_ACTION_REQUIRED_HEADING_TEXT = 'More Information Needed';
 
 const ConnectStripeToast = () => {
   const { loading, sendUserToStripe, unverifiedReason, stripeConnectStarted } = useConnectStripeAccount();
+
   const [reason, setReason] = useState();
   const [collapsed, setCollapsed] = useState(false);
   const [headingText, setHeadingText] = useState(DEFAULT_HEADING_TEXT);
@@ -29,13 +30,9 @@ const ConnectStripeToast = () => {
 
   useEffect(() => {
     setCtaDescriptionText(
-      stripeConnectStarted === false
-        ? USER_ACTION_REQUIRED_MESSAGE
-        : unverifiedReason === 'past_due'
-        ? USER_ACTION_REQUIRED_MESSAGE
-        : PENDING_VERIFICATION_MESSAGE
+      unverifiedReason === 'pending_verification' ? PENDING_VERIFICATION_MESSAGE : USER_ACTION_REQUIRED_MESSAGE
     );
-  }, [unverifiedReason, stripeConnectStarted]);
+  }, [unverifiedReason]);
 
   useEffect(() => {
     let headingText = DEFAULT_HEADING_TEXT;

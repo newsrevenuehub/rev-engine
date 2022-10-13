@@ -26,6 +26,7 @@ describe('useConnectStripeAccount hook', () => {
 
   beforeEach(() => {
     mock.reset();
+    jest.restoreAllMocks();
   });
 
   it('should have the expected default state', () => {
@@ -44,26 +45,33 @@ describe('useConnectStripeAccount hook', () => {
     expect(result.current.sendUserToStripe.toString()).toEqual((() => {}).toString());
   });
 
-  it.each`
-    rpStripeVerified | requiresVerification
-    ${true}          | ${false}
-    ${false}         | ${true}
-  `(
-    "should set requiresVerification to $requiresVerification when user's first RP stripeVerified is $rpStripeVerified",
-    async ({ rpStripeVerified, requiresVerification }) => {
-      useUser.mockReturnValue({
-        user: {
-          role_type: [USER_ROLE_ORG_ADMIN_TYPE],
-          revenue_programs: [{ payment_provider_stripe_verified: rpStripeVerified, id: 'id' }]
-        }
-      });
-      const queryClient = new QueryClient();
-      const wrapper = ({ children }) => <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>;
-      const { result, waitFor } = renderHook(() => useConnectStripeAccount(), { wrapper });
-      await waitFor(() => expect(result.current.requiresVerification).toEqual(requiresVerification));
-    }
-  );
-  it.only('should update state as expected after retrieving account link status', async () => {
+  it("should trigger fetch account link status when user's first RP stripeVerified is false", async () => {
+    useUser.mockReturnValue({
+      user: {
+        role_type: [USER_ROLE_ORG_ADMIN_TYPE],
+        revenue_programs: [{ payment_provider_stripe_verified: false, id: 'id' }]
+      }
+    });
+    let spy = jest.spyOn(axios, 'post');
+    const queryClient = new QueryClient();
+    const wrapper = ({ children }) => <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>;
+    renderHook(() => useConnectStripeAccount(), { wrapper });
+    expect(spy).toHaveBeenCalledTimes(1);
+  });
+  it("should not trigger fetch account link status when user's first RP stripeVerified is true", async () => {
+    useUser.mockReturnValue({
+      user: {
+        role_type: [USER_ROLE_ORG_ADMIN_TYPE],
+        revenue_programs: [{ payment_provider_stripe_verified: true, id: 'id' }]
+      }
+    });
+    let spy = jest.spyOn(axios, 'post');
+    const queryClient = new QueryClient();
+    const wrapper = ({ children }) => <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>;
+    renderHook(() => useConnectStripeAccount(), { wrapper });
+    expect(spy).not.toHaveBeenCalled();
+  });
+  it('should update state as expected after retrieving account link status', async () => {
     const id = '1';
     useUser.mockReturnValue({
       user: {
@@ -75,10 +83,11 @@ describe('useConnectStripeAccount hook', () => {
     const response = {
       url: 'https://www.somewhere.com',
       reason: 'past_due',
-      stripeConnectStarted: false
+      stripeConnectStarted: false,
+      requiresVerification: true
     };
 
-    mock.onPost(getStripeAccountLinkStatusPath(id)).networkError();
+    mock.onPost(getStripeAccountLinkStatusPath(id)).reply(200, response);
 
     const queryClient = new QueryClient();
     const wrapper = ({ children }) => <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>;
@@ -97,31 +106,30 @@ describe('useConnectStripeAccount hook', () => {
     global.window = Object.create(window);
     global.window.location = {};
     result.current.sendUserToStripe();
-    // expect(window.location.href).toEqual(response.url);
+    expect(window.location.href).toEqual(response.url);
   });
 
-  it('should update state as expected after error retreiving user', async () => {
+  it('should update state as expected after error retrieving user', async () => {
     useUser.mockReturnValue(() => ({
-      isError: true,
-      isLoading: false
+      isError: true
     }));
     const queryClient = new QueryClient();
     const wrapper = ({ children }) => <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>;
     const { result, waitFor } = renderHook(() => useConnectStripeAccount(), { wrapper });
-    await waitFor(() => result.current.error === 'Something went wrong when accessing account link status');
+    await waitFor(() => result.current.error === 'Something went wrong when accessing the user');
   });
-  it('should update state as expected after API error retrieving account link status', async () => {
+  it.only('should update state as expected after API error retrieving account link status', async () => {
     const id = '1';
     useUser.mockReturnValue({
       user: {
         role_type: [USER_ROLE_ORG_ADMIN_TYPE],
-        revenue_programs: [{ payment_provider_stripe_verified: true, id: id }]
+        revenue_programs: [{ payment_provider_stripe_verified: false, id: id }]
       }
     });
     const queryClient = new QueryClient();
     const wrapper = ({ children }) => <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>;
     const { result, waitFor } = renderHook(() => useConnectStripeAccount(), { wrapper });
-    mock.onPost(getStripeAccountLinkStatusPath(id)).reply(500);
+    mock.onPost(getStripeAccountLinkStatusPath(id)).networkError();
     await waitFor(() => result.current.error === 'Something went wrong when accessing the user');
   });
 });

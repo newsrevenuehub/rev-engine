@@ -1,8 +1,9 @@
-import { LIST_PAGES, REVENUE_PROGRAMS, USER, DRAFT_PAGE_DETAIL, PATCH_PAGE, LIST_STYLES } from 'ajax/endpoints';
+import { LIST_PAGES, REVENUE_PROGRAMS, USER, PATCH_PAGE, LIST_STYLES } from 'ajax/endpoints';
 import { CONTENT_SLUG } from 'routes';
 import { getEndpoint } from '../support/util';
 import orgAdmin from '../fixtures/user/login-success-org-admin.json';
 import stripeVerifiedOrgAdmin from '../fixtures/user/self-service-user-stripe-verified.json';
+import createPageResponse from '../fixtures/pages/create-page-response.json';
 
 describe('Pages view', () => {
   beforeEach(() => {
@@ -19,9 +20,12 @@ describe('Pages view', () => {
       'listStyles'
     );
     cy.intercept({ method: 'GET', pathname: getEndpoint(USER) }, { body: stripeVerifiedOrgAdmin });
-    cy.intercept({ method: 'POST', pathname: getEndpoint(LIST_PAGES) }, { body: {} }).as('createNewPage');
     cy.intercept(
-      { method: 'GET', pathname: getEndpoint(`${DRAFT_PAGE_DETAIL}/**`) },
+      { method: 'POST', pathname: getEndpoint(LIST_PAGES) },
+      { fixture: 'pages/create-page-response.json' }
+    ).as('createNewPage');
+    cy.intercept(
+      { method: 'GET', pathname: getEndpoint(`${LIST_PAGES}/${createPageResponse.id}/`) },
       {
         fixture: 'pages/live-page-element-validation'
       }

@@ -21,6 +21,8 @@ function PaymentEditor() {
     setElementContent({ ...elementContent, [propertyName]: value });
   }
 
+  // TODO: the Toggle component below does not label its input properly.
+
   return (
     <div data-testid="payment-editor">
       <IntroText>

@@ -24,13 +24,13 @@ class ContributorFactory(DjangoModelFactory):
 
 
 def _get_flagged_date(bad_actor_score, created_at):
-    if bad_actor_score >= settings.BAD_ACTOR_FAIL_ABOVE:
+    if bad_actor_score >= settings.BAD_ACTOR_FAILURE_THRESHOLD:
         return created_at + datetime.timedelta(hours=1)
     return None
 
 
 def _get_status(bad_actor_score):
-    if bad_actor_score >= settings.BAD_ACTOR_FAIL_ABOVE:
+    if bad_actor_score >= settings.BAD_ACTOR_FAILURE_THRESHOLD:
         return models.ContributionStatus.FLAGGED
     return random.choice(
         [
@@ -42,7 +42,7 @@ def _get_status(bad_actor_score):
 
 
 def _get_last_payment_date(created_date, bad_actor_score):
-    if bad_actor_score >= settings.BAD_ACTOR_FAIL_ABOVE:
+    if bad_actor_score >= settings.BAD_ACTOR_FAILURE_THRESHOLD:
         return None
     return created_date + datetime.timedelta(hours=1)
 
@@ -66,6 +66,7 @@ class ContributionFactory(DjangoModelFactory):
     payment_provider_used = "Stripe"
     donation_page = factory.SubFactory(DonationPageFactory)
     contributor = factory.SubFactory(ContributorFactory)
+    provider_payment_method_details = factory.LazyFunction(lambda: {"k": "v"})
 
 
 class StripeCustomerFactory:

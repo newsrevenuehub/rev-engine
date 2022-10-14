@@ -1,6 +1,6 @@
-import { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import PropTypes from 'prop-types';
-import * as S from './DAmount.styled';
+import { DAmountStyled, FeesContainer, FreqSubtext, OtherAmount, OtherAmountInput } from './DAmount.styled';
 
 // Util
 import validateInputPositiveFloat from 'utilities/validateInputPositiveFloat';
@@ -10,47 +10,86 @@ import { getFrequencyAdjective, getFrequencyRate } from 'utilities/parseFrequenc
 import { usePage } from '../DonationPage';
 
 // Children
+import { PayFeesWidget } from 'components/donationPage/pageContent/DPayment';
 import DElement, { DynamicElementPropTypes } from 'components/donationPage/pageContent/DElement';
 import SelectableButton from 'elements/buttons/SelectableButton';
 import FormErrors from 'elements/inputs/FormErrors';
 
 function DAmount({ element, ...props }) {
-  const { page, frequency, amount, setAmount, overrideAmount, errors } = usePage();
-  const [otherFocused, setOtherFocused] = useState(false);
+  const { page, frequency, amount, overrideAmount, setAmount, errors } = usePage();
+  const currencySymbol = page?.currency?.symbol;
+  const parsedAmount = parseFloat(amount);
 
-  const handleOtherSelected = () => {
-    setAmount('');
-    setOtherFocused(true);
-  };
+  // Corresponds to the value the user has typed into the 'other value' field.
+  // It may not contain a valid number.
 
-  const handleOtherBlurred = () => {
-    setOtherFocused(false);
-  };
+  const [otherValue, setOtherValue] = useState('');
 
-  const getAmounts = (frequency) => {
-    const options = element?.content?.options;
-    if (typeof options !== 'undefined') {
-      const amounts = options[frequency] || [];
-      return overrideAmount ? [] : amounts;
+  // If the page overrides the amount, force the other input value to that. This
+  // should only happen during initial rendering in practice, but there is an
+  // initial render where overrideAmount is false that we need to account for.
+
+  useEffect(() => {
+    if (overrideAmount) {
+      setOtherValue(amount);
     }
-    return [];
-  };
+  }, [amount, overrideAmount]);
 
-  const amountIsPreset = useMemo(() => {
-    return getAmountIndex(page, amount, frequency) !== -1;
-  }, [page, amount, frequency]);
+  // Display the fees widget here if a DPayment element elsewhere asks for it.
 
-  const handleAmountChange = (newAmount) => {
+  const displayPayFeesWidget = useMemo(() => {
+    return (page.elements.find(({ type }) => type === 'DPayment') ?? {})?.content?.offerPayFees;
+  }, [page.elements]);
+
+  // Find amount options for the page's frequency, and whether any should be
+  // selected based on the payment amount.
+
+  const amountOptions = useMemo(() => {
+    const { options } = element?.content;
+
+    return options?.[frequency] ?? [];
+  }, [element?.content, frequency]);
+
+  const selectedAmountOption = useMemo(() => {
+    // If the user has entered an amount in the other field, never select an
+    // option, even if it matches the value they've entered.
+
+    if (otherValue !== '') {
+      return -1;
+    }
+
+    return amountOptions.findIndex((option) => parseFloat(option) === parsedAmount);
+  }, [amountOptions, otherValue, parsedAmount]);
+
+  // Called when the user chooses a preselected option.
+
+  const handleSelectAmountOption = (newAmount) => {
+    setOtherValue('');
     setAmount(newAmount);
   };
 
-  const handleOtherAmountChange = (e) => {
-    if (validateInputPositiveFloat(e.target.value)) {
-      handleAmountChange(e.target.value);
+  // Called when the user types into the text field.
+
+  const handleOtherAmountChange = ({ target: { value } }) => {
+    setOtherValue(value);
+
+    if (value === '') {
+      setAmount('');
+    }
+
+    if (validateInputPositiveFloat(value)) {
+      setAmount(parseFloat(value));
     }
   };
 
-  const currencySymbol = page?.currency?.symbol;
+  // Called when the user focuses the text field. We want it to act as though
+  // the user has set the amount to whatever's visible there.
+
+  const handleOtherAmountFocus = () => {
+    handleOtherAmountChange({ target: { value: otherValue } });
+  };
+
+  const otherIsSelected = otherValue !== '' || selectedAmountOption === -1;
 
   return (
     <DElement
@@ -59,49 +98,50 @@ function DAmount({ element, ...props }) {
       {...props}
       data-testid="d-amount"
     >
-      <S.DAmount>
-        {getAmounts(frequency).map((amnt, i) => {
-          const selected = parseFloat(amount) === parseFloat(amnt) && !otherFocused;
+      <DAmountStyled data-testid="d-amount-amounts">
+        {amountOptions.map((amountOption, index) => {
+          const selected = index === selectedAmountOption;
+
           return (
             <SelectableButton
-              key={i + amnt}
+              key={index + amountOption}
               selected={selected}
-              onClick={() => handleAmountChange(parseFloat(amnt))}
-              data-testid={`amount-${amnt}${parseFloat(amount) === parseFloat(amnt) ? '-selected' : ''}`}
+              onClick={() => handleSelectAmountOption(parseFloat(amountOption))}
+              data-testid={`amount-${amountOption}${selected ? '-selected' : ''}`}
             >
-              {`${currencySymbol}${amnt}`}{' '}
-              <S.FreqSubtext selected={selected}>{getFrequencyRate(frequency)}</S.FreqSubtext>
+              {`${currencySymbol}${amountOption}`}{' '}
+              <FreqSubtext selected={selected}>{getFrequencyRate(frequency)}</FreqSubtext>
             </SelectableButton>
           );
         })}
         {(element.content?.allowOther || overrideAmount) && (
-          <S.OtherAmount
-            data-testid={`amount-other${otherFocused || !amountIsPreset ? '-selected' : ''}`}
-            selected={otherFocused || !amountIsPreset}
-          >
+          <OtherAmount data-testid={`amount-other${otherIsSelected ? '-selected' : ''}`} selected={otherIsSelected}>
             <span>{currencySymbol}</span>
-            <S.OtherAmountInput
-              value={otherFocused || !amountIsPreset ? amount : ''}
+            <OtherAmountInput
+              value={otherValue}
               name="amount"
               onChange={handleOtherAmountChange}
-              onFocus={handleOtherSelected}
-              onBlur={handleOtherBlurred}
+              onFocus={handleOtherAmountFocus}
               // We're validating maximum amount on the backend, but let's restrict input
               // to prevent hitting javascript's mathmatical limitations and displaying
               // weird numbers after calculating fees and fixing decimals
               maxLength="9"
             />
-            <S.FreqSubtext data-testid="custom-amount-rate">{getFrequencyRate(frequency)}</S.FreqSubtext>
-          </S.OtherAmount>
+            <FreqSubtext data-testid="custom-amount-rate">{getFrequencyRate(frequency)}</FreqSubtext>
+          </OtherAmount>
         )}
-      </S.DAmount>
+        {displayPayFeesWidget && (
+          <FeesContainer>
+            <PayFeesWidget />
+          </FeesContainer>
+        )}
+      </DAmountStyled>
       <FormErrors errors={errors.amount} />
     </DElement>
   );
 }
 
 const paymentPropTypes = {
-  offerPayFees: PropTypes.bool,
   allowOther: PropTypes.bool,
   options: PropTypes.objectOf(PropTypes.arrayOf(PropTypes.oneOfType([PropTypes.number, PropTypes.string]))).isRequired,
   defaults: PropTypes.objectOf(PropTypes.oneOfType([PropTypes.number, PropTypes.string]))
@@ -121,31 +161,3 @@ DAmount.required = true;
 DAmount.unique = true;
 
 export default DAmount;
-
-function getAmountIndex(page, amount, frequency) {
-  const amountElement = page?.elements?.find((el) => el.type === 'DAmount');
-  const amounts = amountElement?.content?.options;
-  const amountsForFreq = amounts && amounts[frequency]?.map((amnt) => parseFloat(amnt));
-
-  if (amountsForFreq) {
-    return amounts[frequency]?.findIndex((num) => parseFloat(num) === parseFloat(amount));
-  }
-}
-
-export function getDefaultAmountForFreq(frequency, page) {
-  const amountElement = page?.elements?.find((el) => el.type === 'DAmount');
-  const amounts = amountElement?.content?.options;
-  const amountsForFreq = amounts ? amounts[frequency]?.map((amnt) => parseFloat(amnt)) : {};
-  const defaults = amountElement?.content?.defaults;
-
-  // If defaults are defined, and a default is defined for this frequency, and the default defined is a valid amount...
-  if (defaults && defaults[frequency] && amountsForFreq?.includes(parseFloat(defaults[frequency]))) {
-    // ... return the default amount for this frequency.
-    return defaults[frequency];
-  }
-  // Otherwise we have any amounts for this frequency...
-  else if (amountsForFreq) {
-    // ... return the first frequency in the list.
-    return amountsForFreq[0];
-  }
-}

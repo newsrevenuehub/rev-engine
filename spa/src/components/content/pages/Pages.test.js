@@ -1,5 +1,3 @@
-import { render } from 'test-utils';
-
 import { pagesbyRP } from './Pages';
 
 describe('Given pages list', () => {
@@ -13,7 +11,7 @@ describe('Given pages list', () => {
     result = await pagesbyRP(inp);
   });
 
-  it('should group pages by RevenueProgram in pagesByRevProgram ', () => {
+  it('should group pages by RevenueProgram in pagesByRevProgram', () => {
     expect(result.length).toEqual(2);
   });
 });

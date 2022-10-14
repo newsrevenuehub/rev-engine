@@ -209,6 +209,7 @@ class RevenueProgram(IndexedTimeStampedModel):
         on_delete=models.SET_NULL,
         help_text="Choose an optional default donation page once you've saved your initial revenue program",
     )
+    # TODO: [DEV-2403] non_profit should probably be moved to the payment provider?
     non_profit = models.BooleanField(default=True, verbose_name="Non-profit?")
     payment_provider = models.ForeignKey("organizations.PaymentProvider", null=True, on_delete=models.SET_NULL)
     domain_apple_verified_date = models.DateTimeField(blank=True, null=True)
@@ -246,6 +247,10 @@ class RevenueProgram(IndexedTimeStampedModel):
 
     def __str__(self):
         return self.name
+
+    @property
+    def payment_provider_stripe_verified(self):
+        return self.payment_provider.stripe_verified if self.payment_provider else False
 
     @property
     def admin_style_options(self):

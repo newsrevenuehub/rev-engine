@@ -35,7 +35,8 @@ import ContributorTokenExpiredModal from 'components/contributor/contributorDash
 import DonationsTable from 'components/donations/DonationsTable';
 import EditRecurringPaymentModal from 'components/contributor/contributorDashboard/EditRecurringPaymentModal';
 import GlobalLoading from 'elements/GlobalLoading';
-import { PAYMENT_STATUS } from 'constants';
+import { PAYMENT_STATUS } from 'constants/paymentStatus';
+import { CONTRIBUTION_INTERVALS } from 'constants/contributionIntervals';
 import HeaderSection from 'components/common/HeaderSection';
 
 const ContributorDashboardContext = createContext();
@@ -185,7 +186,7 @@ function ContributorDashboard() {
         {tokenExpired && <ContributorTokenExpiredModal isOpen={tokenExpired} />}
         {selectedContribution && (
           <EditRecurringPaymentModal
-            isOpen={selectedContribution}
+            isOpen={!!selectedContribution}
             closeModal={() => setSelectedContribution(null)}
             contribution={selectedContribution}
             onComplete={() => setRefetch(true)}
@@ -214,7 +215,7 @@ export function StatusCellIcon({ status, showText = false, size = 'lg' }) {
 export function PaymentMethodCell({ contribution, handlePaymentClick }) {
   if (!contribution.card_brand && !contribution.last4) return '?';
 
-  const canInteract = !!handlePaymentClick && contribution.interval !== 'one_time';
+  const canInteract = !!handlePaymentClick && contribution.interval !== CONTRIBUTION_INTERVALS.ONE_TIME;
 
   return (
     <S.PaymentMethodCell
@@ -257,7 +258,7 @@ function getCardBrandIcon(brand) {
 }
 
 function CancelRecurringButton({ contribution, handleCancelContribution }) {
-  if (contribution?.interval === 'one_time' || contribution?.status === 'canceled') return null;
+  if (contribution?.interval === CONTRIBUTION_INTERVALS.ONE_TIME || contribution?.status === 'canceled') return null;
   return (
     <S.CancelButton
       startIcon={<CancelOutlinedIcon />}

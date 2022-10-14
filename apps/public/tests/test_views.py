@@ -95,3 +95,12 @@ class RevenueProgramViewsetTest(APITestCase):
         assert (
             response.data["payment_provider"]["stripe_account_id"] == revenue_program.payment_provider.stripe_account_id
         )
+
+    def test_list_view_contains_stripe_account_id(self):
+        response = self._make_request_to(self.list_url)
+        assert response.status_code == 200
+        assert response.data["count"] == self.rp_count
+
+        for rp_data in response.data["results"]:
+            assert "url" in rp_data
+            assert rp_data["payment_provider"]["stripe_account_id"] is not None

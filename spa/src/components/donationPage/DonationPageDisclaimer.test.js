@@ -1,25 +1,25 @@
-import { render } from 'test-utils';
+import { render, screen } from 'test-utils';
 
 // Test Subject
 import DonationPageDisclaimer from './DonationPageDisclaimer';
+// needs to be relative import otherwise import doesn't work for some reason in jest test context
+import { CONTRIBUTION_INTERVALS } from 'constants/contributionIntervals';
 
 // Mock data
 import mockPage from '../../../cypress/fixtures/pages/live-page-1.json';
 
 it('should render some initial static text', () => {
-  const { getByText } = render(
-    <DonationPageDisclaimer page={mockPage} amount={120} payFee={false} frequency={'month'} />
-  );
+  render(<DonationPageDisclaimer page={mockPage} amount={120} payFee={false} frequency={'month'} />);
 
-  expect(getByText('By proceeding with this transaction, you agree to our', { exact: false })).toBeInTheDocument();
+  expect(
+    screen.getByText('By proceeding with this transaction, you agree to our', { exact: false })
+  ).toBeInTheDocument();
 });
 
 it('should render links pointing to fundjournalism.org\'s "privacy policy" and "terms & conditions"', () => {
-  const { getAllByRole } = render(
-    <DonationPageDisclaimer page={mockPage} amount={120} payFee={false} frequency={'month'} />
-  );
+  render(<DonationPageDisclaimer page={mockPage} amount={120} payFee={false} frequency={'month'} />);
 
-  const links = getAllByRole('link');
+  const links = screen.getAllByRole('link');
 
   expect(links).toHaveLength(2);
   expect(links[0]).toHaveTextContent('privacy policy');
@@ -32,30 +32,29 @@ it('should render links pointing to fundjournalism.org\'s "privacy policy" and "
 it('should include the amount provided as a prop in the rendered text', () => {
   const expCurrencySymbol = mockPage.currency.symbol;
   const expAmount = 120;
-  const { getByText } = render(
-    <DonationPageDisclaimer page={mockPage} amount={expAmount} payFee={false} frequency={'month'} />
-  );
+  render(<DonationPageDisclaimer page={mockPage} amount={expAmount} payFee={false} frequency={'month'} />);
 
-  expect(getByText(`${expCurrencySymbol}${expAmount}`, { exact: false })).toBeInTheDocument();
+  expect(screen.getByText(`${expCurrencySymbol}${expAmount}`, { exact: false })).toBeInTheDocument();
 });
 
 it('should show slightly different text based on the frequency prop', () => {
-  const monthly = 'month';
-  const { rerender, getByText, queryByText } = render(
-    <DonationPageDisclaimer page={mockPage} amount={120} payFee={false} frequency={monthly} />
+  const { rerender } = render(
+    <DonationPageDisclaimer page={mockPage} amount={120} payFee={false} frequency={CONTRIBUTION_INTERVALS.MONTHLY} />
   );
 
-  expect(getByText('along with all future recurring payments', { exact: false })).toBeInTheDocument();
-  expect(getByText('of the month until you cancel', { exact: false })).toBeInTheDocument();
+  expect(screen.getByText('along with all future recurring payments', { exact: false })).toBeInTheDocument();
+  expect(screen.getByText('of the month until you cancel', { exact: false })).toBeInTheDocument();
 
-  const yearly = 'year';
-  rerender(<DonationPageDisclaimer page={mockPage} amount={120} payFee={false} frequency={yearly} />);
+  rerender(
+    <DonationPageDisclaimer page={mockPage} amount={120} payFee={false} frequency={CONTRIBUTION_INTERVALS.ANNUAL} />
+  );
 
-  expect(getByText('along with all future recurring payments', { exact: false })).toBeInTheDocument();
-  expect(getByText('yearly until you cancel', { exact: false })).toBeInTheDocument();
+  expect(screen.getByText('along with all future recurring payments', { exact: false })).toBeInTheDocument();
+  expect(screen.getByText('yearly until you cancel', { exact: false })).toBeInTheDocument();
 
-  const once = 'one_time';
-  rerender(<DonationPageDisclaimer page={mockPage} amount={120} payFee={false} frequency={once} />);
+  rerender(
+    <DonationPageDisclaimer page={mockPage} amount={120} payFee={false} frequency={CONTRIBUTION_INTERVALS.ONE_TIME} />
+  );
 
-  expect(queryByText('along with all future recurring payments', { exact: false })).toBeNull();
+  expect(screen.queryByText('along with all future recurring payments', { exact: false })).toBeNull();
 });

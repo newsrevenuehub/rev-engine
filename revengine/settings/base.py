@@ -304,6 +304,7 @@ DTM_IGNORED_MIGRATIONS = {
 
 ### Django-CSP Settings
 
+# TODO: [DEV-2359] Fix CSP violation caused by react-select emotion
 ENFORCE_CSP = os.getenv("ENFORCE_CSP", "true").lower() == "true"
 if not ENFORCE_CSP:
     CSP_REPORT_ONLY = True
@@ -431,12 +432,9 @@ DOMAIN_APEX = os.getenv("DOMAIN_APEX")
 # Application subdomains (that are NOT revenue program slugs)
 DASHBOARD_SUBDOMAINS = os.getenv("DASHBOARD_SUBDOMAINS", "www:dashboard:").split(":")
 
-# These values are used in `ContributionMetadataSerializer`, which in turn
-# gets used in the abstract PaymentManager base class. They appear
-# to be related to how payment provider meta data gets serialized in PaymentManager and
-# its subclasses.
+# These values are part of metadata sent to Stripe.
 METADATA_SOURCE = os.getenv("METADATA_SOURCE", "rev-engine")
-METADATA_SCHEMA_VERSION = os.getenv("METADATA_SCHEMA_VERSION", "1.0")
+METADATA_SCHEMA_VERSION = os.getenv("METADATA_SCHEMA_VERSION", "1.1")
 
 
 # This is the interval at which flagged payments will be automatically captured.
@@ -501,8 +499,8 @@ DJANGO_REST_MULTITOKENAUTH_RESET_TOKEN_EXPIRY_TIME = 24
 BAD_ACTOR_API_URL = os.getenv("BAD_ACTOR_API_URL", "https://bad-actor-test.fundjournalism.org/v1/bad_actor/")
 # NOTE: We've been given keys with some characters that might need escaping as environment variables, eg "$"
 BAD_ACTOR_API_KEY = os.getenv("BAD_ACTOR_API_KEY", "testing_123")
-BAD_ACTOR_FAIL_ABOVE = 3
-BAD_ACTOR_FAIL_ABOVE_FOR_ORG_USERS = 4
+BAD_ACTOR_FAILURE_THRESHOLD = 5
+BAD_ACTOR_FAILURE_THRESHOLD_FOR_ORG_USERS = 4
 
 
 ### Front End Environment Variables
@@ -523,3 +521,10 @@ SPA_ENV_VARS = {
     "ENVIRONMENT": ENVIRONMENT,
     "DASHBOARD_SUBDOMAINS": DASHBOARD_SUBDOMAINS,
 }
+
+# This is meant to facilitate testing of the Stripe Account Link flow in local dev environment
+# By setting this to "http://localhost:3000" in env, when you go through Stripe Account Link flow,
+# on completing the Stripe form, you'll be sent back to localhost:3000 (aka the SPA being served by
+# webpack) instead of getting sent to localhost:8000, which is what would happen by default in local
+# dev environment.
+STRIPE_ACCOUNT_LINK_RETURN_BASE_URL = os.getenv("STRIPE_ACCOUNT_LINK_RETURN_BASE_URL", None)

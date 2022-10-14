@@ -3,10 +3,12 @@ import { useTheme } from 'styled-components';
 // Context
 import { useEditInterfaceContext } from 'components/pageEditor/editInterface/EditInterface';
 
+import { CONTRIBUTION_INTERVALS } from 'constants/contributionIntervals';
+
 const FREQUENCIES = [
-  { value: 'one_time', displayName: 'One time' },
-  { value: 'month', displayName: 'Monthly' },
-  { value: 'year', displayName: 'Yearly' }
+  { value: CONTRIBUTION_INTERVALS.ONE_TIME, displayName: 'One time' },
+  { value: CONTRIBUTION_INTERVALS.MONTHLY, displayName: 'Monthly' },
+  { value: CONTRIBUTION_INTERVALS.ANNUAL, displayName: 'Yearly' }
 ];
 
 const MINIMUM_FREQUENCIES = 1;

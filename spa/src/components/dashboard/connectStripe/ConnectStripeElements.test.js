@@ -5,13 +5,18 @@ import ConnectStripeElements from './ConnectStripeElements';
 import { CONNECT_STRIPE_COOKIE_NAME, CONNECT_STRIPE_FAQ_LINK } from 'constants/textConstants';
 
 describe('ConnectStripeElements', () => {
-  test('should have enabled button for connectToStripe', () => {
+  it('includes step information for users of assistive technology', () => {
+    render(<ConnectStripeElements />);
+    expect(screen.getByText('Step 2 of 2')).toBeInTheDocument();
+  });
+
+  it('should have enabled button for connectToStripe', () => {
     render(<ConnectStripeElements />);
     const connectToStripeButton = screen.getByRole('button', { name: 'Connect to Stripe' });
     expect(connectToStripeButton).toBeEnabled();
   });
 
-  test('should show stripe-modal and stripe-toast should be hidden', () => {
+  it('should show stripe-modal and stripe-toast should be hidden', () => {
     render(<ConnectStripeElements />);
     const stripeModal = screen.queryByTestId('connect-stripe-modal');
     expect(stripeModal).toBeInTheDocument();

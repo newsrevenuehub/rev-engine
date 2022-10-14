@@ -3,10 +3,17 @@ import { Route, Switch, Redirect, useLocation } from 'react-router-dom';
 import * as S from './Dashboard.styled';
 
 // Routing
-import { DONATIONS_SLUG, CONTENT_SLUG, EDITOR_ROUTE, EDITOR_ROUTE_PAGE, DASHBOARD_SLUG, CUSTOMIZE_SLUG } from 'routes';
+import {
+  DONATIONS_SLUG,
+  CONTENT_SLUG,
+  EDITOR_ROUTE,
+  EDITOR_ROUTE_PAGE,
+  DASHBOARD_SLUG,
+  CUSTOMIZE_SLUG,
+  PROFILE
+} from 'routes';
 
 // Children
-import { useFeatureFlagsProviderContext } from 'components/Main';
 import LivePage404 from 'components/common/LivePage404';
 import DashboardSidebar from 'components/dashboard/sidebar/DashboardSidebar';
 import DashboardTopbar from 'components/dashboard/topbar/DashboardTopbar';
@@ -14,25 +21,28 @@ import Donations from 'components/donations/Donations';
 import Content from 'components/content/Content';
 import Customize from 'components/content/Customize';
 import PageEditor from 'components/pageEditor/PageEditor';
+import Profile from 'components/account/Profile';
 
-import userHasSingleRPNotConnectedToStripe from 'components/dashboard/connectStripe/userHasSingleRPNotConnectedToStripe';
 import ConnectStripeElements from 'components/dashboard/connectStripe/ConnectStripeElements';
 
 // Feature flag-related
+import useFeatureFlags from 'hooks/useFeatureFlags';
 import { CONTENT_SECTION_ACCESS_FLAG_NAME } from 'constants/featureFlagConstants';
 
 import flagIsActiveForUser from 'utilities/flagIsActiveForUser';
 import hasContributionsDashboardAccessToUser from 'utilities/hasContributionsDashboardAccessToUser';
 import { usePageContext } from './PageContext';
-import { useUserContext } from 'components/UserContext';
+import useUser from 'hooks/useUser';
+import useConnectStripeAccount from 'hooks/useConnectStripeAccount';
 
 function Dashboard() {
-  const { featureFlags } = useFeatureFlagsProviderContext();
+  const { flags } = useFeatureFlags();
   const { page, setPage } = usePageContext();
-  const { user } = useUserContext();
+  const { user } = useUser();
+  const { requiresStripeVerification } = useConnectStripeAccount();
 
-  const hasContributionsSectionAccess = user.role_type && hasContributionsDashboardAccessToUser(featureFlags);
-  const hasContentSectionAccess = user.role_type && flagIsActiveForUser(CONTENT_SECTION_ACCESS_FLAG_NAME, featureFlags);
+  const hasContributionsSectionAccess = user?.role_type && hasContributionsDashboardAccessToUser(flags);
+  const hasContentSectionAccess = user?.role_type && flagIsActiveForUser(CONTENT_SECTION_ACCESS_FLAG_NAME, flags);
 
   const dashboardSlugRedirect = hasContentSectionAccess
     ? CONTENT_SLUG
@@ -40,13 +50,12 @@ function Dashboard() {
     ? DONATIONS_SLUG
     : 'not-found';
 
-  const isEditPage = useLocation().pathname.includes(EDITOR_ROUTE);
-
-  const showConnectToStripeDialogs = userHasSingleRPNotConnectedToStripe(user);
+  const { pathname } = useLocation();
+  const isEditPage = pathname.includes(EDITOR_ROUTE);
 
   return (
     <S.Outer>
-      {showConnectToStripeDialogs ? <ConnectStripeElements /> : ''}
+      {requiresStripeVerification ? <ConnectStripeElements /> : ''}
       <DashboardTopbar isEditPage={isEditPage} page={page} setPage={setPage} />
       <S.Dashboard data-testid="dashboard">
         {isEditPage ? null : <DashboardSidebar />}
@@ -75,6 +84,9 @@ function Dashboard() {
                   <PageEditor />
                 </Route>
               ) : null}
+              <Route path={PROFILE}>
+                <Profile />
+              </Route>
               <Route>
                 <LivePage404 dashboard />
               </Route>

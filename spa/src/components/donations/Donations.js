@@ -1,5 +1,5 @@
-import { Switch, Route, useRouteMatch, useHistory } from 'react-router-dom';
-import { useState, useCallback, useMemo } from 'react';
+import { useCallback, useMemo, useState } from 'react';
+import { Route, Switch, useHistory, useRouteMatch } from 'react-router-dom';
 import * as S from './Donations.styled';
 
 // AJAX
@@ -11,42 +11,61 @@ import { getFrequencyAdjective } from 'utilities/parseFrequency';
 import queryString from 'query-string';
 
 // Contants
-import { DONATIONS_SLUG } from 'routes';
 import { NO_VALUE } from 'constants/textConstants';
+import { DONATIONS_SLUG } from 'routes';
 
 // Util
-import formatDatetimeForDisplay from 'utilities/formatDatetimeForDisplay';
 import formatCurrencyAmount from 'utilities/formatCurrencyAmount';
-import { differenceInDays } from 'date-fns';
+import formatDatetimeForDisplay from 'utilities/formatDatetimeForDisplay';
 
 // Children
-import DashboardSectionGroup from 'components/dashboard/DashboardSectionGroup';
+import Hero from 'components/common/Hero';
+import { StatusCellIcon } from 'components/contributor/contributorDashboard/ContributorDashboard';
 import DashboardSection from 'components/dashboard/DashboardSection';
 import DonationDetail from 'components/donations/DonationDetail';
 import DonationsTable from 'components/donations/DonationsTable';
-import { StatusCellIcon } from 'components/contributor/contributorDashboard/ContributorDashboard';
 import Filters from 'components/donations/filters/Filters';
 import GenericErrorBoundary from 'components/errors/GenericErrorBoundary';
+import { PAYMENT_STATUS_EXCLUDE_IN_CONTRIBUTIONS } from 'constants/paymentStatus';
 import PageTitle from 'elements/PageTitle';
-import { PAYMENT_STATUS, PAYMENT_STATUS_EXCLUDE_IN_CONTRIBUTIONS } from 'constants';
+import Banner from 'components/common/Banner';
+import { BANNER_TYPE } from 'constants/bannerConstants';
+import usePagesList from 'hooks/usePageList';
+import useConnectStripeAccount from 'hooks/useConnectStripeAccount';
+import useUser from 'hooks/useUser';
 
-const IS_URGENT_THRESHOLD_DAYS = 1;
-const IS_SOON_THRESHOLD_DAYS = 2;
-
-function Donations() {
+const Donations = () => {
   const { path } = useRouteMatch();
   const history = useHistory();
 
+  const { user } = useUser();
+  const { requiresStripeVerification } = useConnectStripeAccount();
+  const { pages } = usePagesList();
   const requestDonations = useRequest();
   const [filters, setFilters] = useState({});
   const [donationsCount, setDonationsCount] = useState([]);
   const [pageIndex, setPageIndex] = useState(0);
 
-  const handleRowClick = (row) => history.push(`${DONATIONS_SLUG}/${row.id}/`);
+  const handleRowClick = (row) => history.push(`${DONATIONS_SLUG}${row.id}/`);
 
   const handlePageChange = (newPageIndex) => {
     setPageIndex(newPageIndex);
   };
+
+  const bannerType = useMemo(() => {
+    const hasPublished = !!pages?.find((_) => _.published_date);
+    if (
+      user?.role_type?.includes('hub_admin') ||
+      user?.role_type?.includes('Hub Admin') ||
+      (user?.revenue_programs?.length || 0) > 1 ||
+      !pages?.length
+    ) {
+      return null;
+    }
+    if (requiresStripeVerification && !hasPublished) return BANNER_TYPE.BLUE;
+    if (!requiresStripeVerification && !hasPublished) return BANNER_TYPE.YELLOW;
+    return null;
+  }, [pages, requiresStripeVerification, user?.revenue_programs?.length, user?.role_type]);
 
   const fetchDonations = useCallback(
     (parameters, { onSuccess, onFailure }) => {
@@ -121,37 +140,51 @@ function Donations() {
   return (
     <>
       <PageTitle title="Contributions" />
-      <DashboardSectionGroup data-testid="donations">
+      <div data-testid="donations" style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
         <Switch>
-          <Route path={`${path}/:contributionId`}>
+          <Route path={`${path}:contributionId`}>
             <DashboardSection heading="Contribution Info">
               <DonationDetail />
             </DashboardSection>
           </Route>
           <Route>
-            <DashboardSection heading="Contributions">
-              <Filters
-                filters={filters}
-                handleFilterChange={handleFilterChange}
-                donationsCount={donationsCount}
-                excludeStatusFilters={PAYMENT_STATUS_EXCLUDE_IN_CONTRIBUTIONS}
+            {bannerType && (
+              <Banner
+                type={bannerType}
+                message={
+                  bannerType === BANNER_TYPE.BLUE
+                    ? 'Looks like you need to set up a Stripe connection in order to start receiving contributions.'
+                    : 'Looks like you need to publish a contribution page in order to start receiving contributions.'
+                }
               />
-              <GenericErrorBoundary>
-                <DonationsTable
-                  onRowClick={handleRowClick}
-                  columns={columns}
-                  fetchDonations={fetchDonations}
-                  pageIndex={pageIndex}
-                  onPageChange={handlePageChange}
-                />
-              </GenericErrorBoundary>
-            </DashboardSection>
+            )}
+            <Hero
+              title="Contributions"
+              subtitle="Welcome to your contributions. Easily track and manage contributions."
+              placeholder="Contributions"
+            />
+            <Filters
+              filters={filters}
+              handleFilterChange={handleFilterChange}
+              donationsCount={donationsCount}
+              excludeStatusFilters={PAYMENT_STATUS_EXCLUDE_IN_CONTRIBUTIONS}
+            />
+            <GenericErrorBoundary>
+              <DonationsTable
+                onRowClick={handleRowClick}
+                columns={columns}
+                fetchDonations={fetchDonations}
+                pageIndex={pageIndex}
+                onPageChange={handlePageChange}
+                grow
+              />
+            </GenericErrorBoundary>
           </Route>
         </Switch>
-      </DashboardSectionGroup>
+      </div>
     </>
   );
-}
+};
 
 export default Donations;
 
@@ -161,22 +194,5 @@ export function DateAndTimeCell({ dateTime }) {
       <S.DateSpan>{formatDatetimeForDisplay(dateTime, false)}</S.DateSpan>
       <S.Time>{formatDatetimeForDisplay(dateTime, true)}</S.Time>
     </S.DateTimeCell>
-  );
-}
-
-function ResolutionDateCaution({ date }) {
-  if (!date) return null;
-  const getDateUrgency = (d) => {
-    // is the date (d) within threshold and now?
-    const today = new Date();
-    const threshold = differenceInDays(new Date(date), today);
-
-    if (threshold <= IS_URGENT_THRESHOLD_DAYS) return 'urgent';
-    else if (threshold <= IS_SOON_THRESHOLD_DAYS) return 'soon';
-  };
-  return (
-    <S.ResolutionDateCaution urgency={getDateUrgency(date)}>
-      <DateAndTimeCell dateTime={date} />
-    </S.ResolutionDateCaution>
   );
 }

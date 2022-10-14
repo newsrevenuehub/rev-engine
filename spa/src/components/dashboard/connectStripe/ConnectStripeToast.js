@@ -1,5 +1,7 @@
 import { useState, useCallback } from 'react';
+
 import * as S from './ConnectStripeToast.styled';
+import useConnectStripeAccount from 'hooks/useConnectStripeAccount';
 
 // Assets
 import StripeLogo from 'assets/icons/stripeLogo.svg';
@@ -8,6 +10,10 @@ import RemoveIcon from '@material-ui/icons/Remove';
 import RETooltip from 'elements/RETooltip';
 
 const ConnectStripeToast = () => {
+  const {
+    createStripeAccountLink: { mutate, isLoading }
+  } = useConnectStripeAccount();
+
   const [collapsed, setCollapsed] = useState(false);
 
   const handleCollapse = useCallback(() => {
@@ -45,7 +51,9 @@ const ConnectStripeToast = () => {
       <S.Description>
         Ready to publish your first donation page? Publish by creating and connect to Stripe in one easy step.
       </S.Description>
-      <S.Button>Connect Now</S.Button>
+      <S.Button data-testid="connect-stripe-toast-button" disabled={isLoading} onClick={() => mutate()}>
+        Connect Now
+      </S.Button>
     </S.ConnectStripeToast>
   );
 };

@@ -35,8 +35,8 @@ function makeInitializeFn(fbId) {
   };
 }
 
-function isLoaded(fbId) {
-  return document.querySelectorAll(`script[src='${FB_PIXEL_SCRIPT_SRC_URL}']`).length > 0;
+function isLoaded() {
+  return document.querySelectorAll(`script[src='${FB_PIXEL_SCRIPT_SRC_URL}']`).length > 0 && window.fbq;
 }
 
 function page() {
@@ -49,7 +49,7 @@ export default function fbPixel(fbId) {
     name: FB_PIXEL_PLUGIN_NAME,
     initialize: makeInitializeFn(fbId),
     page,
-    loaded: () => isLoaded(fbId),
+    loaded: () => isLoaded(),
     track: ({ payload }) => {},
     identify: ({ payload }) => {},
     methods: {

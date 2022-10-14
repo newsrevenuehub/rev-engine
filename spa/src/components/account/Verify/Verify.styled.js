@@ -3,7 +3,8 @@ import styled from 'styled-components';
 import { Button as BaseButton } from 'components/base';
 
 export const Verify = styled.div`
-  background-color: ${(props) => props.theme.colors.account.purple[1]};
+  background: ${(props) =>
+    `linear-gradient(39.42deg, ${props.theme.colors.account.purple[1]} 47.23%, #25192bc9 105.55%)`};
   width: 100%;
 `;
 
@@ -24,7 +25,6 @@ export const Logo = styled.img`
 
 export const Content = styled.div`
   width: 100%;
-  background-color: ${(props) => props.theme.colors.account.purple[1]};
   height: 100vh;
   display: flex;
   justify-content: center;
@@ -90,7 +90,7 @@ export const Subheading = styled.p`
 `;
 
 export const Drm = styled.p`
-  font-weight: 600;
+  font-weight: 500;
   font-size: ${(props) => props.theme.fontSizesUpdated[20]};
   color: ${(props) => props.theme.colors.account.purple[1]};
   margin: 28px 0px 10px 0px;
@@ -108,6 +108,10 @@ export const Button = styled(BaseButton)`
     margin: 20px 0px 24px;
     padding: 16px 30px;
     width: 270px;
+
+    && span {
+      color: ${(props) => props.theme.colors.account.purple[1]};
+    }
   }
 `;
 
@@ -115,6 +119,10 @@ export const Help = styled.p`
   font-weight: 500;
   font-size: ${(props) => props.theme.fontSizesUpdated.sm};
   color: ${(props) => props.theme.colors.muiGrey[600]};
+
+  a {
+    color: ${(props) => props.theme.colors.account.blueLink};
+  }
 `;
 
 export const Message = styled.p`

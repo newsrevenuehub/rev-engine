@@ -75,7 +75,7 @@ describe('New page button behavior given org plan and user role', () => {
     await waitFor(() => {
       expect(axiosMock.history.get.length).toBe(1);
     });
-    const newPageButton = screen.getByLabelText('New Page');
+    const newPageButton = screen.getByRole('button', { name: 'New Page' });
     expect(newPageButton).not.toBeDisabled();
   });
   test('when user is hub admin can always add', async () => {
@@ -85,7 +85,7 @@ describe('New page button behavior given org plan and user role', () => {
     await waitFor(() => {
       expect(axiosMock.history.get.length).toBe(1);
     });
-    const newPageButton = screen.getByLabelText('New Page');
+    const newPageButton = screen.getByRole('button', { name: 'New Page' });
     expect(newPageButton).not.toBeDisabled();
   });
   test('typical self-onboarded user who has not added a page can add one', async () => {
@@ -95,7 +95,7 @@ describe('New page button behavior given org plan and user role', () => {
     await waitFor(() => {
       expect(axiosMock.history.get.length).toBe(1);
     });
-    const newPageButton = screen.getByLabelText('New Page');
+    const newPageButton = screen.getByRole('button', { name: 'New Page' });
     expect(newPageButton).not.toBeDisabled();
   });
   test('typical self-onboarded user who has added a page cannot add one', async () => {
@@ -105,7 +105,7 @@ describe('New page button behavior given org plan and user role', () => {
     await waitFor(() => {
       expect(axiosMock.history.get.length).toBe(1);
     });
-    const newPageButton = screen.getByLabelText('New Page');
+    const newPageButton = screen.getByRole('button', { name: 'New Page' });
     expect(newPageButton).toBeDisabled();
   });
 });

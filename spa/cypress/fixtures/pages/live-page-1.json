@@ -4,6 +4,12 @@
   "heading": "Test Heading 1",
   "published_date": "2020-09-17T00:00:00",
   "revenue_program_is_nonprofit": true,
+  "plan": {
+    "name": "FAKE",
+    "label": "Fake",
+    "page_limit": 3,
+    "custom_thank_you_page_enabled": true
+  },
   "elements": [
     {
       "type": "DRichText",

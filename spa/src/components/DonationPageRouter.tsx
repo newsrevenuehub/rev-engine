@@ -1,4 +1,5 @@
 import React, { lazy } from 'react';
+import join from 'url-join';
 
 // Router
 import { Route, BrowserRouter, Switch } from 'react-router-dom';

@@ -1,4 +1,4 @@
-import { useState, Fragment } from 'react';
+import { useState, Fragment, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import orderBy from 'lodash.orderby';
 import join from 'url-join';
@@ -19,7 +19,6 @@ import axios from 'ajax/axios';
 import GenericErrorBoundary from 'components/errors/GenericErrorBoundary';
 import EditButton from 'components/common/Button/EditButton';
 import NewButton from 'components/common/Button/NewButton';
-import usePagesList from 'hooks/usePageList';
 import Hero from 'components/common/Hero';
 import useModal from 'hooks/useModal';
 import useUser from 'hooks/useUser';
@@ -80,13 +79,13 @@ function Pages() {
 
   const pagesByRevenueProgram = pagesbyRP(pages, pageSearchQuery);
 
-  const addPageButtonShouldBeDisabled = () => {
+  const addPageButtonShouldBeDisabled = useMemo(() => {
     if ([USER_ROLE_HUB_ADMIN_TYPE, USER_SUPERUSER_TYPE].includes(user?.role_type?.[0])) {
       return false;
     }
     const pageLimit = user?.organizations?.[0]?.plan?.page_limit ?? 0;
     return pages.length + 1 > pageLimit;
-  };
+  }, [pages.length, user?.organizations, user?.role_type]);
 
   return (
     <>
@@ -99,7 +98,7 @@ function Pages() {
           onChange={setPageSearchQuery}
         />
         <Content data-testid="pages-list">
-          <NewButton data-testid="new-page-button" disabled={addPageButtonShouldBeDisabled()} onClick={handleOpen} />
+          <NewButton data-testid="new-page-button" disabled={addPageButtonShouldBeDisabled} onClick={handleOpen} />
           {!!pagesByRevenueProgram.length &&
             pagesByRevenueProgram.map((revenueProgram) => (
               <Fragment key={revenueProgram.name}>

@@ -12,6 +12,7 @@ import useModal from 'hooks/useModal';
 import useConnectStripeAccount from 'hooks/useConnectStripeAccount';
 
 import { CONNECT_STRIPE_COOKIE_NAME, CONNECT_STRIPE_FAQ_LINK } from 'constants/textConstants';
+import { OffscreenText } from 'components/base';
 
 const ConnectStripeModal = () => {
   const { open, handleClose } = useModal(true);
@@ -32,6 +33,7 @@ const ConnectStripeModal = () => {
   return (
     <S.Modal open={open} aria-labelledby="Connect Stripe Modal">
       <S.ConnectStripeModal data-testid="connect-stripe-modal">
+        <OffscreenText>Step 2 of 2</OffscreenText>
         <S.StripeLogo src={StripeLogo} />
         <S.h1>Connect to Stripe</S.h1>
         <S.Description>
@@ -50,6 +52,7 @@ const ConnectStripeModal = () => {
           <span>I’ll connect to Stripe later</span>
           <ChevronRightIcon />
         </S.Anchor>
+        <S.BottomStepper aria-hidden activeStep={1} steps={2} />
       </S.ConnectStripeModal>
     </S.Modal>
   );

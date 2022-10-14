@@ -34,6 +34,11 @@ describe('Profile', () => {
 
   afterAll(() => axiosMock.restore());
 
+  it('includes step information for users of assistive technology', () => {
+    tree();
+    expect(screen.getByText('Step 1 of 2')).toBeInTheDocument();
+  });
+
   it('displays the profile form', () => {
     tree();
     expect(screen.getByTestId('mock-profile-form')).toBeInTheDocument();

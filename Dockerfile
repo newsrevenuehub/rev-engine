@@ -10,7 +10,7 @@ COPY ./spa /code/spa/
 WORKDIR /code/spa/
 
 # Limit memory usage to avoid Heroku deploy issues.
-RUN npm run build:for-heroku
+RUN npm run build:low-memory
 
 FROM python:3.10-slim as base
 

@@ -8,6 +8,11 @@ import { CONNECT_STRIPE_COOKIE_NAME, CONNECT_STRIPE_FAQ_LINK } from 'constants/t
 jest.mock('hooks/useConnectStripeAccount');
 
 describe('ConnectStripeElements', () => {
+  it('includes step information for users of assistive technology', () => {
+    render(<ConnectStripeElements />);
+    expect(screen.getByText('Step 2 of 2')).toBeInTheDocument();
+  });
+
   it('should have enabled button for connectToStripe', () => {
     const mockSendUserToStripe = jest.fn();
     useConnectStripeAccount.mockReturnValue({

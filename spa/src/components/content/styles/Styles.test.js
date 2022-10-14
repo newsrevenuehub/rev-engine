@@ -42,8 +42,8 @@ describe('New style button behavior given org plan and user role', () => {
     await waitFor(() => {
       expect(axiosMock.history.get.length).toBe(1);
     });
-    const newPageButton = screen.getByLabelText('New Style');
-    expect(newPageButton).not.toBeDisabled();
+    const newStyleButton = screen.getByLabelText('New Style');
+    expect(newStyleButton).not.toBeDisabled();
   });
   test('when user is hub admin can always add', async () => {
     useUser.mockImplementation(() => ({ user: hubAdmin }));
@@ -52,8 +52,8 @@ describe('New style button behavior given org plan and user role', () => {
     await waitFor(() => {
       expect(axiosMock.history.get.length).toBe(1);
     });
-    const newPageButton = screen.getByLabelText('New Style');
-    expect(newPageButton).not.toBeDisabled();
+    const newStyleButton = screen.getByLabelText('New Style');
+    expect(newStyleButton).not.toBeDisabled();
   });
   test('typical self-onboarded user who has not added a style can add one', async () => {
     useUser.mockImplementation(() => ({ user: orgAdminUser }));
@@ -62,8 +62,8 @@ describe('New style button behavior given org plan and user role', () => {
     await waitFor(() => {
       expect(axiosMock.history.get.length).toBe(1);
     });
-    const newPageButton = screen.getByLabelText('New Style');
-    expect(newPageButton).not.toBeDisabled();
+    const newStyleButton = screen.getByLabelText('New Style');
+    expect(newStyleButton).not.toBeDisabled();
   });
   test('typical self-onboarded user who has added a page cannot add one', async () => {
     useUser.mockImplementation(() => ({ user: orgAdminUser }));
@@ -72,7 +72,7 @@ describe('New style button behavior given org plan and user role', () => {
     await waitFor(() => {
       expect(axiosMock.history.get.length).toBe(1);
     });
-    const newPageButton = screen.getByLabelText('New Style');
-    expect(newPageButton).toBeDisabled();
+    const newStyleButton = screen.getByLabelText('New Style');
+    expect(newStyleButton).toBeDisabled();
   });
 });

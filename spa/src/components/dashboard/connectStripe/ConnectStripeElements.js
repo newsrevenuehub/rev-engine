@@ -15,7 +15,7 @@ import { CONNECT_STRIPE_COOKIE_NAME, CONNECT_STRIPE_FAQ_LINK } from 'constants/t
 
 const ConnectStripeModal = () => {
   const { open, handleClose } = useModal(true);
-  const { loading, sendUserToStripe } = useConnectStripeAccount();
+  const { isLoading, sendUserToStripe } = useConnectStripeAccount();
   const [_, setCookie] = useCookies(CONNECT_STRIPE_COOKIE_NAME);
 
   const handleClickConnectLater = useCallback(() => {
@@ -43,7 +43,7 @@ const ConnectStripeModal = () => {
           </S.StripeFAQ>
           .
         </S.Description>
-        <S.Button data-testid="connect-stripe-modal-button" disabled={loading} onClick={handleClickConnectNow}>
+        <S.Button data-testid="connect-stripe-modal-button" disabled={isLoading} onClick={handleClickConnectNow}>
           Connect to Stripe
         </S.Button>
         <S.Anchor onClick={handleClickConnectLater}>

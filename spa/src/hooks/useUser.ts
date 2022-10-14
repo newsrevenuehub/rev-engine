@@ -1,4 +1,4 @@
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, UseQueryResult } from '@tanstack/react-query';
 import { useAlert } from 'react-alert';
 import { useHistory } from 'react-router-dom';
 
@@ -13,16 +13,15 @@ const fetchUser = () => {
   return axios.get(USER).then(({ data }) => data);
 };
 
-interface UserHook {
-  refetch: Function;
-  user: User;
-  isLoading: boolean;
-  isError: boolean;
-};
+export interface UserHookResult {
+  isLoading: UseQueryResult['isLoading'];
+  isError: UseQueryResult['isError'];
+  refetch: UseQueryResult['refetch'];
+  user?: User;
+}
 
-function useUser(): UserHook {
+function useUser(): UserHookResult {
   const alert = useAlert();
-
   const history = useHistory();
 
   const {
@@ -39,7 +38,7 @@ function useUser(): UserHook {
     staleTime: 120000,
     // if it's an authentication error, we don't want to retry. if it's some other
     // error we'll retry up to 1 time.
-    retry: (failureCount: number, error: {name: string}) => {
+    retry: (failureCount: number, error: { name: string }) => {
       return error.name !== 'AuthenticationError' && failureCount < 1;
     },
     // When user logs in, the authentication endpoint returns user data and it gets

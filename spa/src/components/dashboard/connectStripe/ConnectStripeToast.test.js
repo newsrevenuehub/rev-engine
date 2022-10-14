@@ -13,7 +13,7 @@ describe('ConnectStripeToast', () => {
   it('should have an enabled button and correct text when verification reason is "past_due"', () => {
     const mockSendUsertoStripe = jest.fn();
     useConnectStripeAccount.mockReturnValue({
-      loading: false,
+      isLoading: false,
       requiresVerification: true,
       unverifiedReason: 'past_due',
       sendUserToStripe: mockSendUsertoStripe,
@@ -30,7 +30,7 @@ describe('ConnectStripeToast', () => {
 
   test('should disable button when hook is loading', () => {
     useConnectStripeAccount.mockReturnValue({
-      loading: true,
+      isLoading: true,
       requiresVerification: true,
       unverifiedReason: 'past_due',
       sendUserToStripe: () => {}
@@ -42,7 +42,7 @@ describe('ConnectStripeToast', () => {
 
   test('should have a disabled button and right text when verification reason is "pending_verification"', () => {
     useConnectStripeAccount.mockReturnValue({
-      loading: false,
+      isLoading: false,
       requiresVerification: true,
       unverifiedReason: 'pending_verification',
       sendUserToStripe: () => {},
@@ -56,7 +56,7 @@ describe('ConnectStripeToast', () => {
 
   test('should show the expanded view by default', () => {
     useConnectStripeAccount.mockReturnValue({
-      loading: false,
+      isLoading: false,
       requiresVerification: true,
       unverifiedReason: 'past_due',
       sendUserToStripe: () => {}
@@ -68,7 +68,7 @@ describe('ConnectStripeToast', () => {
 
   test('should collapse the toast on click of minimize', () => {
     useConnectStripeAccount.mockReturnValue({
-      loading: false,
+      isLoading: false,
       requiresVerification: true,
       unverifiedReason: 'past_due',
       sendUserToStripe: () => {}
@@ -83,7 +83,7 @@ describe('ConnectStripeToast', () => {
 
   test('should expand toast on click of minimized toast', () => {
     useConnectStripeAccount.mockReturnValue({
-      loading: false,
+      isLoading: false,
       requiresVerification: true,
       unverifiedReason: 'past_due',
       sendUserToStripe: () => {}

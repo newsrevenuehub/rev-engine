@@ -20,7 +20,7 @@ export const PENDING_VERIFICATION_HEADING_TEXT = 'Pending Verification';
 export const USER_ACTION_REQUIRED_HEADING_TEXT = 'More Information Needed';
 
 const ConnectStripeToast = () => {
-  const { loading, sendUserToStripe, unverifiedReason, stripeConnectStarted } = useConnectStripeAccount();
+  const { isLoading, sendUserToStripe, unverifiedReason, stripeConnectStarted } = useConnectStripeAccount();
 
   const [reason, setReason] = useState();
   const [collapsed, setCollapsed] = useState(false);
@@ -91,7 +91,7 @@ const ConnectStripeToast = () => {
         // if reason is `past_due` then there's work to be done off-site
         // with Stripe. In that case, we enable this button, but otherwise,
         // we disable (or if loading)
-        disabled={loading || unverifiedReason !== 'past_due'}
+        disabled={isLoading || unverifiedReason !== 'past_due'}
         onClick={sendUserToStripe}
       >
         {ctaButtonText}

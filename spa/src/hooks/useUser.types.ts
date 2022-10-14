@@ -11,13 +11,15 @@ interface Organization {
   name: string;
 }
 
-
 export interface User {
   email_verified: boolean;
   id: string;
   email: string;
   revenue_programs: RevenueProgram[];
-  role_type: UserRole;
+  /**
+   * The role the user has. The first value is an internal ID, the second is human-readable.
+   */
+  role_type: [UserRole, string];
   organization: Organization;
   flags: FeatureFlag[];
 }

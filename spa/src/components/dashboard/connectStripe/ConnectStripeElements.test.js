@@ -11,7 +11,7 @@ describe('ConnectStripeElements', () => {
   it('should have enabled button for connectToStripe', () => {
     const mockSendUserToStripe = jest.fn();
     useConnectStripeAccount.mockReturnValue({
-      loading: false,
+      isLoading: false,
       sendUserToStripe: mockSendUserToStripe
     });
     render(<ConnectStripeElements />);
@@ -23,7 +23,7 @@ describe('ConnectStripeElements', () => {
 
   it('should disable the button for when hook is loading', () => {
     useConnectStripeAccount.mockReturnValue({
-      loading: true,
+      isLoading: true,
       sendUserToStripe: () => {}
     });
     render(<ConnectStripeElements />);
@@ -33,7 +33,7 @@ describe('ConnectStripeElements', () => {
 
   it('should show stripe-modal and stripe-toast should be hidden', () => {
     useConnectStripeAccount.mockReturnValue({
-      loading: false,
+      isLoading: false,
       sendUserToStripe: () => {}
     });
     render(<ConnectStripeElements />);
@@ -45,7 +45,7 @@ describe('ConnectStripeElements', () => {
 
   it('renders a Stripe-FAQ-link that opens in a new tab', () => {
     useConnectStripeAccount.mockReturnValue({
-      loading: false,
+      isLoading: false,
       sendUserToStripe: () => {}
     });
     render(<ConnectStripeElements />);
@@ -66,7 +66,7 @@ describe('Show Toast if cookie is set', () => {
 
   it('should show stripe-toast and stripe-modal should be hidden', () => {
     useConnectStripeAccount.mockReturnValue({
-      loading: false,
+      isLoading: false,
       sendUserToStripe: () => {},
       unverifiedReason: 'past_due'
     });

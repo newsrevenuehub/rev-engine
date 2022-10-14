@@ -8,9 +8,6 @@ import { Content } from './Pages.styled';
 import { useHistory } from 'react-router-dom';
 import { EDITOR_ROUTE } from 'routes';
 
-// Deps
-import { useAlert } from 'react-alert';
-
 // Constants
 import { GENERIC_ERROR } from 'constants/textConstants';
 import { USER_ROLE_HUB_ADMIN_TYPE, USER_SUPERUSER_TYPE } from 'constants/authConstants';
@@ -22,6 +19,7 @@ import axios from 'ajax/axios';
 import GenericErrorBoundary from 'components/errors/GenericErrorBoundary';
 import EditButton from 'components/common/Button/EditButton';
 import NewButton from 'components/common/Button/NewButton';
+import usePagesList from 'hooks/usePageList';
 import Hero from 'components/common/Hero';
 import useModal from 'hooks/useModal';
 import useUser from 'hooks/useUser';
@@ -32,7 +30,7 @@ import AddPageModal from './AddPageModal';
 export const pagesbyRP = (pgsRaw, qry) => {
   const pagesByRevProgram = [];
   const pgs = qry
-    ? pgsRaw.filter((page) => {
+    ? pgsRaw?.filter((page) => {
         return (
           page?.revenue_program &&
           (page.slug.toLowerCase().indexOf(qry) !== -1 ||
@@ -43,11 +41,11 @@ export const pagesbyRP = (pgsRaw, qry) => {
       })
     : pgsRaw;
 
-  let revPrograms = new Set(pgs.map((p) => p?.revenue_program?.id));
+  let revPrograms = new Set(pgs?.map((p) => p?.revenue_program?.id));
 
   revPrograms.forEach((rpId) => {
     if (rpId) {
-      const pagesForRp = pgs.filter((p) => p?.revenue_program?.id === rpId);
+      const pagesForRp = pgs?.filter((p) => p?.revenue_program?.id === rpId);
       pagesByRevProgram.push({
         name: pagesForRp[0].revenue_program.name,
         pages: pagesForRp
@@ -64,7 +62,6 @@ async function fetchPages() {
 }
 
 function Pages() {
-  const alert = useAlert();
   const history = useHistory();
   const [pageSearchQuery, setPageSearchQuery] = useState([]);
   const { open: showAddPageModal, handleClose, handleOpen } = useModal();

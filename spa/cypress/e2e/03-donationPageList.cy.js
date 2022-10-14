@@ -20,7 +20,6 @@ describe('Pages view', () => {
     );
     cy.intercept({ method: 'GET', pathname: getEndpoint(USER) }, { body: stripeVerifiedOrgAdmin });
     cy.intercept({ method: 'POST', pathname: getEndpoint(LIST_PAGES) }, { body: {} }).as('createNewPage');
-
     cy.intercept(
       { method: 'GET', pathname: getEndpoint(`${DRAFT_PAGE_DETAIL}/**`) },
       {

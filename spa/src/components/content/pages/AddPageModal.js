@@ -78,10 +78,6 @@ function AddPageModal({ isOpen, closeModal, pagesByRevenueProgram }) {
         revenue_program: overrideForm?.revenueProgramId || revenueProgram.id
       };
 
-      // if there is only one revenue program, the user does not have to choose one in the select component,
-      // so `revenueProgram` will not be set
-      const rpSlug = revenuePrograms.length === 1 ? revenuePrograms[0].slug : revenueProgram.slug;
-
       createPage(
         {
           method: 'POST',
@@ -100,17 +96,7 @@ function AddPageModal({ isOpen, closeModal, pagesByRevenueProgram }) {
         }
       );
     },
-    [
-      canSavePage,
-      createPage,
-      handleSaveFailure,
-      history,
-      name,
-      revenueProgram.id,
-      revenueProgram.slug,
-      revenuePrograms,
-      slug
-    ]
+    [canSavePage, createPage, handleSaveFailure, history, name, revenueProgram.id, slug]
   );
 
   const handleDiscard = () => {

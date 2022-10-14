@@ -60,7 +60,7 @@ export default function useConnectStripeAccount(): UseConnectStripeAccountResult
     // If the user is not an org admin or the RP has been verified, we don't need to go any further
     // Users can only have one revenue program right now.
 
-    if (user?.role_type[0] !== 'org_admin' || user?.revenue_programs[0]?.payment_provider_stripe_verified) {
+    if (user?.role_type?.[0] !== 'org_admin' || user?.revenue_programs[0]?.payment_provider_stripe_verified) {
       return undefined;
     }
 

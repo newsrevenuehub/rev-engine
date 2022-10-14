@@ -9,6 +9,10 @@ jest.mock('hooks/useConnectStripeAccount');
 
 describe('ConnectStripeElements', () => {
   it('includes step information for users of assistive technology', () => {
+    useConnectStripeAccount.mockReturnValue({
+      isLoading: false,
+      sendUserToStripe: () => {}
+    });
     render(<ConnectStripeElements />);
     expect(screen.getByText('Step 2 of 2')).toBeInTheDocument();
   });

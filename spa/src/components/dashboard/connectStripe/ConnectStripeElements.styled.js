@@ -52,7 +52,7 @@ export const h1 = styled.h1`
   font-weight: 700;
   font-size: ${(props) => props.theme.fontSizesUpdated['lgx']};
   line-height: ${(props) => props.theme.fontSizesUpdated['lg2x']};
-  color: ${(props) => props.theme.colors.purple};
+  color: ${(props) => props.theme.colors.account.purple[1]};
 `;
 
 export const Description = styled.p`
@@ -66,7 +66,7 @@ export const Description = styled.p`
 `;
 
 export const Bold = styled.span`
-  font-weight: 600;
+  font-weight: 500;
   display: block;
   margin: 17px 0px 4px;
 `;
@@ -79,11 +79,13 @@ export const Button = styled(BaseButton)`
 `;
 
 export const StripeFAQ = styled.a`
-  font-weight: 600;
+  font-weight: 500;
   font-size: ${(props) => props.theme.fontSizesUpdated.md};
+  color: ${(props) => props.theme.colors.account.blueLink};
 `;
 
 export const Anchor = styled.a`
+  color: ${(props) => props.theme.colors.account.blueLink};
   cursor: pointer;
   font-weight: 600;
   width: 100%;

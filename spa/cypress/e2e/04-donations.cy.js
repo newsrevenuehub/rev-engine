@@ -3,7 +3,7 @@ import isEqual from 'lodash.isequal';
 import { NO_VALUE } from 'constants/textConstants';
 import { PAYMENT_STATUS_EXCLUDE_IN_CONTRIBUTIONS } from 'constants/paymentStatus';
 import { DONATIONS_SLUG } from 'routes';
-import { USER } from 'ajax/endpoints';
+import { USER, LIST_PAGES } from 'ajax/endpoints';
 
 // Data
 import donationsData from '../fixtures/donations/18-results.json';
@@ -17,6 +17,9 @@ import { getEndpoint } from '../support/util';
 
 import { CONTRIBUTIONS_SECTION_ACCESS_FLAG_NAME } from 'constants/featureFlagConstants';
 import hubAdminWithoutFlags from '../fixtures/user/login-success-hub-admin';
+import orgAdminUser from '../fixtures/user/login-success-org-admin.json';
+import selfServiceUserNotStripeVerified from '../fixtures/user/self-service-user-not-stripe-verified.json';
+import selfServiceUserStripeVerified from '../fixtures/user/self-service-user-stripe-verified.json';
 
 const contribSectionsFlag = {
   id: '1234',
@@ -57,9 +60,11 @@ describe('Donations list', () => {
   describe('Table', () => {
     beforeEach(() => {
       cy.forceLogin(hubAdminWithFlags);
+      cy.intercept(getEndpoint(LIST_PAGES), { fixture: 'pages/list-pages-1' }).as('listPages');
       cy.intercept({ method: 'GET', pathname: getEndpoint(USER) }, { body: hubAdminWithFlags });
       cy.interceptPaginatedDonations();
       cy.visit(DONATIONS_SLUG);
+      cy.wait('@listPages');
     });
     it('should display the first page of donations by default on page load', () => {
       cy.wait('@getDonations').then((intercept) => {
@@ -276,9 +281,11 @@ describe('Donations list', () => {
   describe('Filtering', () => {
     beforeEach(() => {
       cy.forceLogin(hubAdminWithFlags);
+      cy.intercept(getEndpoint(LIST_PAGES), { fixture: 'pages/list-pages-1' }).as('listPages');
       cy.intercept({ method: 'GET', pathname: getEndpoint(USER) }, { body: hubAdminWithFlags });
       cy.interceptPaginatedDonations();
       cy.visit(DONATIONS_SLUG);
+      cy.wait('@listPages');
     });
 
     it('should render expected filters', () => {
@@ -297,6 +304,68 @@ describe('Donations list', () => {
       const expectedPaids = donationsData.filter((d) => d.status === 'paid');
       cy.get('button[aria-label="filter by status: paid"]').click();
       cy.getByTestId('filter-results-count').contains(expectedPaids.length);
+    });
+  });
+
+  describe('Banner', () => {
+    it('should not render banner when admin user', () => {
+      cy.forceLogin(hubAdminWithFlags);
+      cy.intercept(getEndpoint(LIST_PAGES), { fixture: 'pages/list-pages-1' }).as('listPages');
+      cy.intercept({ method: 'GET', pathname: getEndpoint(USER) }, { body: hubAdminWithFlags });
+      cy.interceptPaginatedDonations();
+      cy.visit(DONATIONS_SLUG);
+      cy.wait('@listPages');
+      cy.getByTestId('banner').should('not.exist');
+    });
+
+    it('should render banner with Stripe message if user has stripe not verified', () => {
+      cy.forceLogin({ ...orgAdminUser, user: selfServiceUserNotStripeVerified });
+      cy.intercept(getEndpoint(LIST_PAGES), { fixture: 'pages/list-pages-1' }).as('listPages');
+      cy.intercept({ method: 'GET', pathname: getEndpoint(USER) }, { body: selfServiceUserNotStripeVerified });
+      cy.interceptPaginatedDonations();
+      cy.visit(DONATIONS_SLUG);
+      cy.wait('@listPages');
+      cy.getByTestId('banner').should('exist');
+      cy.contains('Looks like you need to set up a Stripe connection');
+    });
+
+    it('should render banner with Publish message if user has stripe verified but no live pages', () => {
+      cy.forceLogin({ ...orgAdminUser, user: selfServiceUserStripeVerified });
+      cy.intercept(getEndpoint(LIST_PAGES), { fixture: 'pages/list-pages-1' }).as('listPages');
+      cy.intercept({ method: 'GET', pathname: getEndpoint(USER) }, { body: selfServiceUserStripeVerified });
+      cy.interceptPaginatedDonations();
+      cy.visit(DONATIONS_SLUG);
+      cy.wait('@listPages');
+      cy.getByTestId('banner').should('exist');
+      cy.contains('Looks like you need to publish a contribution page in');
+    });
+
+    it('should not render banner if user has stripe verified and live pages', () => {
+      cy.forceLogin({ ...orgAdminUser, user: selfServiceUserStripeVerified });
+      cy.intercept(getEndpoint(LIST_PAGES), { fixture: 'pages/list-pages-1-live' }).as('listPages');
+      cy.intercept({ method: 'GET', pathname: getEndpoint(USER) }, { body: selfServiceUserStripeVerified });
+      cy.interceptPaginatedDonations();
+      cy.visit(DONATIONS_SLUG);
+      cy.wait('@listPages');
+      cy.getByTestId('banner').should('not.exist');
+    });
+
+    it('should not render banner if user has multiple RP', () => {
+      cy.forceLogin(orgAdminUser);
+      cy.intercept(getEndpoint(LIST_PAGES), { fixture: 'pages/list-pages-1' }).as('listPages');
+      cy.intercept(
+        { method: 'GET', pathname: getEndpoint(USER) },
+        {
+          body: {
+            ...selfServiceUserStripeVerified,
+            revenue_programs: orgAdminUser.user.revenue_programs
+          }
+        }
+      );
+      cy.interceptPaginatedDonations();
+      cy.visit(DONATIONS_SLUG);
+      cy.wait('@listPages');
+      cy.getByTestId('banner').should('not.exist');
     });
   });
 });

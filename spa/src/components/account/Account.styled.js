@@ -9,6 +9,12 @@ export const Outer = styled.div`
   display: flex;
   width: 100%;
 
+  h1,
+  p,
+  span {
+    font-family: ${(props) => props.theme.systemFont};
+  }
+
   @media (${(props) => props.theme.breakpoints.mdUp}) {
     height: 100vh;
   }
@@ -97,10 +103,10 @@ export const BottomBarYellowSVG = styled.img`
   }
 `;
 
-export const Heading = styled.div`
+export const Heading = styled.h1`
   font-weight: 700;
   font-size: ${(props) => props.theme.fontSizesUpdated.h1};
-  margin-bottom: ${(props) => props.marginBottom || '20px'};
+  margin-bottom: ${(props) => (props.marginBottom ? `${props.marginBottom}px` : '20px')};
 
   line-height: 47px;
   color: ${(props) => props.theme.colors.account.purple[1]};
@@ -173,6 +179,7 @@ export const PasswordLabel = styled.label`
     width: 100%;
     text-align: right;
     font-size: ${(props) => props.theme.fontSizesUpdated.sm};
+    color: ${(props) => props.theme.colors.account.blueLink};
   }
 `;
 

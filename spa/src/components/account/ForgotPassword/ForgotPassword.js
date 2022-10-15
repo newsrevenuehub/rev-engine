@@ -21,6 +21,7 @@ import fetchReducer, { initialState, FETCH_START, FETCH_SUCCESS, FETCH_FAILURE }
 
 // Analytics
 import { useConfigureAnalytics } from 'components/analytics';
+import { Link } from 'react-router-dom';
 
 function ForgotPassword() {
   useConfigureAnalytics();
@@ -70,9 +71,9 @@ function ForgotPassword() {
           {formSubmissionMessage}
 
           <S.NavLink>
-            <a href={SIGN_IN} data-testid="sign-in">
+            <Link to={SIGN_IN} data-testid="sign-in">
               Return to Sign In
-            </a>
+            </Link>
           </S.NavLink>
         </S.FormElements>
 

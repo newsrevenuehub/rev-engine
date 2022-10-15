@@ -1,6 +1,6 @@
 import styled from 'styled-components';
 
-export const DAmount = styled.ul`
+export const DAmountStyled = styled.ul`
   display: grid;
   grid-template-columns: 1fr 1fr;
   grid-gap: 20px;
@@ -11,6 +11,10 @@ export const DAmount = styled.ul`
   @media (${(props) => props.theme.breakpoints.phoneOnly}) {
     grid-template-columns: 1fr;
   }
+`;
+
+export const FeesContainer = styled.div`
+  grid-column: 1 / span 2;
 `;
 
 export const OtherAmount = styled.div`

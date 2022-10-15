@@ -7,6 +7,7 @@ import LinkIcon from '@material-ui/icons/Link';
 import CopyInputButton from 'components/common/Button/CopyInputButton';
 import { pageLink, portalLink } from 'utilities/getPageLinks';
 import { Flex, Button, Popover, Text } from './GrabLink.styled';
+import { PagePropTypes } from 'constants/proptypes';
 
 const GrabLink = ({ page, className }) => {
   const [copied, setCopied] = useState('');
@@ -62,17 +63,12 @@ const GrabLink = ({ page, className }) => {
 
 GrabLink.propTypes = {
   className: PropTypes.string,
-  page: PropTypes.shape({
-    revenue_program: PropTypes.shape({
-      slug: PropTypes.string
-    }).isRequired,
-    slug: PropTypes.string.isRequired,
-    published_date: PropTypes.string
-  }).isRequired
+  page: PropTypes.shape(PagePropTypes)
 };
 
 GrabLink.defaultProps = {
-  className: ''
+  className: '',
+  page: undefined
 };
 
 export default GrabLink;

@@ -309,6 +309,11 @@ class TestCreateStripeAccountLinkComplete:
         charges_enabled = True
         mock_fn = mock.MagicMock(return_value={"charges_enabled": charges_enabled})
         monkeypatch.setattr("stripe.Account.retrieve", mock_fn)
+        mock_stripe_create_apple_pay_domain = mock.Mock()
+        monkeypatch.setattr(
+            "apps.organizations.models.RevenueProgram.stripe_create_apple_pay_domain",
+            mock_stripe_create_apple_pay_domain,
+        )
         url = reverse("create-stripe-account-link-complete", args=(rp.pk,))
         client = APIClient()
         client.force_authenticate(user=rp_role_assignment.user)
@@ -316,6 +321,7 @@ class TestCreateStripeAccountLinkComplete:
         assert response.status_code == status.HTTP_202_ACCEPTED
         assert response.json() == {"detail": "success", "stripe_verified": charges_enabled}
         mock_fn.assert_called_once_with(rp.payment_provider.stripe_account_id)
+        mock_stripe_create_apple_pay_domain.assert_called_once()
 
     def test_when_unauthenticated(self, rp):
         url = reverse("create-stripe-account-link-complete", args=(rp.pk,))

@@ -37,11 +37,13 @@ describe('Donation detail', () => {
     before(() => {
       cy.forceLogin(hubAdminWithFlags);
       cy.intercept({ method: 'GET', pathname: getEndpoint(`${LIST_PAGES}**`) }, { body: pageListBody }).as('getPages');
+      cy.intercept(getEndpoint(LIST_PAGES), { fixture: 'pages/list-pages-1' }).as('listPages');
       cy.intercept({ method: 'GET', pathname: getEndpoint(USER) }, { body: hubAdminWithFlags });
       cy.intercept('GET', getEndpoint(CONTRIBUTIONS + CONTRIBUTION_PK), {
         body: donationPageContributionDetailData
       }).as('getDonationPageDonation');
       cy.visit(testDonationPageUrl);
+      cy.wait('@listPages');
     });
     it('should display revenue program name in page title', () => {
       cy.wait('@getPages');

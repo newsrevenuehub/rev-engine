@@ -604,6 +604,29 @@ describe('User flow: unhappy paths', () => {
     cy.wait('@create-one-time-payment__unauthorized');
     cy.get('[data-testid="500-something-wrong"]');
   });
+
+  specify("Users indicates they want to specify an amount, but doesn't specify an actual number", () => {
+    cy.visitDonationPage();
+
+    // Test various user interactions to prove that the submit button never becomes enabled and the label is correct.
+
+    cy.getByTestId('amount-other').click();
+    cy.getByTestId('donation-page-submit').should('have.attr', 'disabled');
+    cy.getByTestId('donation-page-submit').should('have.text', 'Enter a valid amount');
+
+    // Do this twice to try both states of the "pay fees" toggle.
+
+    for (let i = 0; i < 2; i++) {
+      cy.getByTestId('pay-fees').click();
+      cy.getByTestId('donation-page-submit').should('have.attr', 'disabled');
+      cy.getByTestId('donation-page-submit').should('have.text', 'Enter a valid amount');
+    }
+
+    cy.get('[data-testid="amount-other-selected"] input').type('3');
+    cy.get('[data-testid="amount-other-selected"] input').clear();
+    cy.getByTestId('donation-page-submit').should('have.attr', 'disabled');
+    cy.getByTestId('donation-page-submit').should('have.text', 'Enter a valid amount');
+  });
 });
 
 const paymentSuccessRoute = `http://revenueprogram.revengine-testabc123.com:3000${PAYMENT_SUCCESS}`;

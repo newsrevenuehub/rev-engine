@@ -28,11 +28,19 @@ import Filters from 'components/donations/filters/Filters';
 import GenericErrorBoundary from 'components/errors/GenericErrorBoundary';
 import { PAYMENT_STATUS_EXCLUDE_IN_CONTRIBUTIONS } from 'constants/paymentStatus';
 import PageTitle from 'elements/PageTitle';
+import Banner from 'components/common/Banner';
+import { BANNER_TYPE } from 'constants/bannerConstants';
+import usePagesList from 'hooks/usePageList';
+import useConnectStripeAccount from 'hooks/useConnectStripeAccount';
+import useUser from 'hooks/useUser';
 
-function Donations() {
+const Donations = () => {
   const { path } = useRouteMatch();
   const history = useHistory();
 
+  const { user } = useUser();
+  const { requiresStripeVerification } = useConnectStripeAccount();
+  const { pages } = usePagesList();
   const requestDonations = useRequest();
   const [filters, setFilters] = useState({});
   const [donationsCount, setDonationsCount] = useState([]);
@@ -43,6 +51,21 @@ function Donations() {
   const handlePageChange = (newPageIndex) => {
     setPageIndex(newPageIndex);
   };
+
+  const bannerType = useMemo(() => {
+    const hasPublished = !!pages?.find((_) => _.published_date);
+    if (
+      user?.role_type?.includes('hub_admin') ||
+      user?.role_type?.includes('Hub Admin') ||
+      (user?.revenue_programs?.length || 0) > 1 ||
+      !pages?.length
+    ) {
+      return null;
+    }
+    if (requiresStripeVerification && !hasPublished) return BANNER_TYPE.BLUE;
+    if (!requiresStripeVerification && !hasPublished) return BANNER_TYPE.YELLOW;
+    return null;
+  }, [pages, requiresStripeVerification, user?.revenue_programs?.length, user?.role_type]);
 
   const fetchDonations = useCallback(
     (parameters, { onSuccess, onFailure }) => {
@@ -125,6 +148,16 @@ function Donations() {
             </DashboardSection>
           </Route>
           <Route>
+            {bannerType && (
+              <Banner
+                type={bannerType}
+                message={
+                  bannerType === BANNER_TYPE.BLUE
+                    ? 'Looks like you need to set up a Stripe connection in order to start receiving contributions.'
+                    : 'Looks like you need to publish a contribution page in order to start receiving contributions.'
+                }
+              />
+            )}
             <Hero
               title="Contributions"
               subtitle="Welcome to your contributions. Easily track and manage contributions."
@@ -151,7 +184,7 @@ function Donations() {
       </div>
     </>
   );
-}
+};
 
 export default Donations;
 

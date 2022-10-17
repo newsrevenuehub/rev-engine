@@ -1,19 +1,15 @@
-import PropTypes from 'prop-types';
-import { ReactChild } from 'react';
+import PropTypes, { InferProps } from 'prop-types';
 import * as S from './DElement.styled';
 
-export interface DElementProps {
-  children?: ReactChild;
-  /**
-   * Description of the element.
-   */
-  description?: string;
-  /**
-   * Label for the element.
-   */
-  label?: string;
+const DElementPropTypes = {
+  children: PropTypes.node,
+  label: PropTypes.string,
+  description: PropTypes.string
+};
 
-  // ... other props that we don't know about.
+export interface DElementProps extends InferProps<typeof DElementPropTypes> {
+  // We allow props to be set on the component that we're not aware of, but are
+  // spread on the container `<li>` element.
   [key: string]: unknown;
 }
 
@@ -32,10 +28,7 @@ function DElement({ label, description, children, ...props }: DElementProps) {
   );
 }
 
-DElement.propTypes = {
-  label: PropTypes.string,
-  description: PropTypes.string
-};
+DElement.propTypes = DElementPropTypes;
 
 /**
  * This schema is the basis for dynamic element props.

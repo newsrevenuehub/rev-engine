@@ -23,6 +23,7 @@ function DPayment({ live }: DPaymentProps) {
   return <DElement>{live ? <StripePaymentWrapper /> : <NotLivePlaceholder />}</DElement>;
 }
 
+DPayment.propTypes = DPaymentPropTypes;
 DPayment.type = 'DPayment';
 DPayment.displayName = 'Payment Fees';
 DPayment.description = 'Handle payment processing fees';

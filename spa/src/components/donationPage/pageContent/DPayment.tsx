@@ -1,4 +1,5 @@
 import * as S from './DPayment.styled';
+import PropTypes, { InferProps } from 'prop-types';
 import DElement from './DElement';
 import { ICONS } from 'assets/icons/SvgIcon';
 
@@ -12,12 +13,11 @@ import { usePage } from '../DonationPage';
 // Stripe
 import StripePaymentWrapper from 'components/paymentProviders/stripe/StripePaymentWrapper';
 
-export interface DPaymentProps {
-  /**
-   * Is this a live page?
-   */
-  live?: boolean;
-}
+export const DPaymentPropTypes = {
+  live: PropTypes.bool
+};
+
+export type DPaymentProps = InferProps<typeof DPaymentPropTypes>;
 
 function DPayment({ live }: DPaymentProps) {
   return <DElement>{live ? <StripePaymentWrapper /> : <NotLivePlaceholder />}</DElement>;

@@ -32,6 +32,11 @@ function DElement({ label, description, children, ...props }: DElementProps) {
   );
 }
 
+DElement.propTypes = {
+  label: PropTypes.string,
+  description: PropTypes.string
+};
+
 /**
  * This schema is the basis for dynamic element props.
  * Each dynamic element should utilize this pattern.

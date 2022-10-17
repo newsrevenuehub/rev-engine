@@ -25,7 +25,7 @@ function CountrySelect({ name, testid }) {
   const { errors, setMailingCountry, mailingCountry } = usePage();
   const options = countryCodes.countries
     .map(({ country: label, fips: value }) => ({ label, value }))
-    .sort(({ value }) => value);
+    .sort((a, b) => a.label.localeCompare(b.label));
 
   // we reproduce styles that are shared by other Inputs in the form. Other inputs
   // use styled-components, but that's not straightforward to integrate with react-select,

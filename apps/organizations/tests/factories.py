@@ -90,9 +90,10 @@ class StripePaymentIntentFactory:
     credit_card_expiration_date = f"{randint(1, 12)}/{randint(2022, 2099)}"
     payment_type = choice(list(PaymentType.__members__.values()))
     refunded = choice([True, False])
-    id = fake.uuid4()
 
-    def __init__(self, revenue_program=None) -> None:
+    def __init__(self, revenue_program=None, status=None) -> None:
+        self.id = fake.uuid4()
         self.revenue_program = revenue_program
+        self.status = status
         if not revenue_program:
             self.revenue_program = normalize_slug(f"{' '.join(fake.words(nb=4))}")

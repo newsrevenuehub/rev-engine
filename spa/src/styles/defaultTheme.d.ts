@@ -1,5 +1,6 @@
-// This extends Styled Components's theme with our own properties.
-// It's a first pass that we could refine to be more strict.
+// This extends Styled Components's theme with our own properties. TODO: make
+// this easier to use. It's currently a reflection of the ad hoc nature of our
+// theme currently.
 // See https://styled-components.com/docs/api#typescript
 
 import 'styled-components';

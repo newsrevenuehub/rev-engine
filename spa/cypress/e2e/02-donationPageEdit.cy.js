@@ -7,7 +7,16 @@ import livePage from '../fixtures/pages/live-page-1.json';
 import unpublishedPage from '../fixtures/pages/unpublished-page-1.json';
 
 // Constants
-import { DELETE_PAGE, DRAFT_PAGE_DETAIL, PATCH_PAGE, LIST_PAGES, LIST_STYLES, TEMPLATES, USER } from 'ajax/endpoints';
+import {
+  DELETE_PAGE,
+  DRAFT_PAGE_DETAIL,
+  PATCH_PAGE,
+  LIST_FONTS,
+  LIST_PAGES,
+  LIST_STYLES,
+  TEMPLATES,
+  USER
+} from 'ajax/endpoints';
 import { DELETE_LIVE_PAGE_CONFIRM_TEXT } from 'constants/textConstants';
 import { CONTENT_SLUG } from 'routes';
 import { CLEARBIT_SCRIPT_SRC } from 'hooks/useClearbit';
@@ -532,6 +541,56 @@ describe('Edit interface: Setup', () => {
     cy.getByTestId('save-page-button').click();
     cy.getByTestId('confirmation-modal').contains("You're making changes to a live donation page. Continue?");
     cy.getByTestId('cancel-button').click();
+  });
+});
+
+describe('Edit interface: Styles', () => {
+  beforeEach(() => {
+    const pageDetailBody = {
+      ...pageDetail,
+      revenue_program: {
+        ...pageDetail.revenue_program,
+        id: orgAdminStripeVerifiedLoginSuccess.user.revenue_programs[0].id
+      }
+    };
+    cy.forceLogin(orgAdminStripeVerifiedLoginSuccess);
+    cy.intercept({ method: 'GET', pathname: getEndpoint(USER) }, { body: orgAdminStripeVerifiedLoginSuccess.user });
+    cy.intercept(
+      { method: 'GET', pathname: getEndpoint(DRAFT_PAGE_DETAIL) },
+      { body: pageDetailBody, statusCode: 200 }
+    ).as('getPageDetail');
+    cy.intercept({ method: 'GET', pathname: getEndpoint(LIST_STYLES) }, [{ name: 'mock-style' }]);
+
+    cy.visit(testEditPageUrl);
+
+    cy.url().should('include', testEditPageUrl);
+    cy.getByTestId('edit-page-button').click();
+    cy.getByTestId('styles-tab').click();
+  });
+
+  describe('When creating a new style', () => {
+    beforeEach(() => {
+      cy.intercept({ method: 'GET', pathname: getEndpoint(LIST_FONTS) }, { body: [] });
+      cy.getByTestId('add-element-button').click();
+    });
+
+    it('reports back errors related to the style name', () => {
+      cy.intercept(
+        { method: 'POST', pathname: getEndpoint(LIST_STYLES) },
+        { body: { name: 'mock-name-error' }, statusCode: 400 }
+      );
+      cy.getByTestId('save-styles-button').click();
+      cy.contains('mock-name-error');
+    });
+
+    it('reports back errors related to the revenue program', () => {
+      cy.intercept(
+        { method: 'POST', pathname: getEndpoint(LIST_STYLES) },
+        { body: { revenue_program: 'mock-rp-error' }, statusCode: 400 }
+      );
+      cy.getByTestId('save-styles-button').click();
+      cy.contains('mock-rp-error');
+    });
   });
 });
 

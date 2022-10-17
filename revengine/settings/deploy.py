@@ -115,7 +115,6 @@ if SENTRY_ENABLE_BACKEND and SENTRY_DSN_BACKEND:
     from sentry_sdk.integrations.django import DjangoIntegration
     from sentry_sdk.integrations.logging import LoggingIntegration, ignore_logger
     from sentry_sdk.integrations.redis import RedisIntegration
-    from sentry_sdk.integrations.sqlalchemy import SqlalchemyIntegration
 
     sentry_logging = LoggingIntegration(
         level=logging.DEBUG,
@@ -128,7 +127,6 @@ if SENTRY_ENABLE_BACKEND and SENTRY_DSN_BACKEND:
             CeleryIntegration(),  # https://docs.sentry.io/platforms/python/guides/celery/
             DjangoIntegration(),  # https://docs.sentry.io/platforms/python/guides/django/
             RedisIntegration(),  # https://docs.sentry.io/platforms/python/configuration/integrations/redis/
-            SqlalchemyIntegration(),  # https://docs.sentry.io/platforms/python/configuration/integrations/sqlalchemy/
         ],
         environment=ENVIRONMENT,
         # https://docs.sentry.io/platforms/python/configuration/sampling/#setting-a-uniform-sample-rate

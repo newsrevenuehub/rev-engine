@@ -159,7 +159,7 @@ describe('Donation page displays dynamic page elements', () => {
 });
 
 describe('Reason for Giving element', () => {
-  before(() => {
+  beforeEach(() => {
     cy.visitDonationPage();
   });
 

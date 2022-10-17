@@ -261,7 +261,8 @@ class ContributionsViewSet(viewsets.ReadOnlyModelViewSet, FilterQuerySetByUserMi
             return [
                 x
                 for x in contributions
-                if x.get("revenue_program") == self.request.query_params["rp"] and x.get("status") != "requires_source"
+                if x.get("revenue_program") == self.request.query_params["rp"]
+                and x.get("status") != "requires_payment_method"
             ]
 
         # this is supplied by FilterQuerySetByUserMixin
@@ -318,11 +319,7 @@ class SubscriptionsViewSet(viewsets.ViewSet):
             )
 
         subscriptions = cache_provider.load()
-        return [
-            x
-            for x in subscriptions
-            if x.get("revenue_program_slug") == revenue_program_slug and x.get("status") != "requires_payment_method"
-        ]
+        return [x for x in subscriptions if x.get("revenue_program_slug") == revenue_program_slug]
 
     def retrieve(self, request, pk):
         subscriptions = self._fetch_subscriptions(request)

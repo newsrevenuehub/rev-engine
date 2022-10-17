@@ -429,7 +429,7 @@ class TestContributorContributionsViewSet(AbstractTestCase):
         self.contribution_1 = StripePaymentIntentFactory(revenue_program=self.org1_rp1.slug)
         self.contribution_2 = StripePaymentIntentFactory(revenue_program=self.org1_rp2.slug)
         self.contribution_3 = StripePaymentIntentFactory(revenue_program=self.org1_rp1.slug)
-        self.contribution_4 = StripePaymentIntentFactory(revenue_program=self.org1_rp2.slug, status="requires_source")
+        self.contribution_4 = StripePaymentIntentFactory(revenue_program=self.org1_rp2.slug, status="processing")
 
         self.all_contributions = [self.contribution_1, self.contribution_2, self.contribution_3, self.contribution_4]
 

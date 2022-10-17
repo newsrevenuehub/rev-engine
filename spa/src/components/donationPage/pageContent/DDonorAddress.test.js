@@ -22,10 +22,9 @@ describe('DDonorAddress', () => {
   it('has an alphabetically sorted list of select options for country', async () => {
     tree({ errors: {}, setMailingCountry: () => {}, mailingCountry: '' });
     const expected = countryCodes.countries.map(({ country }) => country).sort((a, b) => a.localeCompare(b));
-    selectEvent.openMenu(screen.getByLabelText('Country', { exact: false }));
     const options = screen.getAllByRole('option');
-    options.forEach(({ label }, index) => {
-      expect(expected[index]).toBe(label);
+    options.forEach((option, index) => {
+      expect(option).toHaveTextContent(expected[index]);
     });
   });
 });

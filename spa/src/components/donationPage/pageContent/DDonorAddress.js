@@ -1,5 +1,6 @@
 import { useState, forwardRef } from 'react';
 import countryCodes from 'country-code-lookup';
+import Select from 'react-select';
 
 import { donationPageBase as theme } from 'styles/themes';
 
@@ -19,15 +20,6 @@ import DElement from 'components/donationPage/pageContent/DElement';
 import Input from 'elements/inputs/Input';
 import BaseField from 'elements/inputs/BaseField';
 
-import Select from 'react-select';
-
-function Option(props) {
-  return (
-    <option value={props.value} ref={props.innerRef} {...props.innerProps}>
-      {props.label}
-    </option>
-  );
-}
 function CountrySelect({ testid }) {
   const { errors, setMailingCountry, mailingCountry } = usePage();
   const options = countryCodes.countries
@@ -55,6 +47,12 @@ function CountrySelect({ testid }) {
     valueContainer: (provided) => ({ ...provided, ...fontStyles }),
     option: (provided) => ({ ...provided, ...fontStyles })
   };
+
+  const formatOptionLabel = ({ value, label }) => (
+    <option className="country-select-option" value={value}>
+      {label}
+    </option>
+  );
   return (
     <BaseField errors={errors.mailing_country} label="Country" required={true}>
       <Select
@@ -69,7 +67,7 @@ function CountrySelect({ testid }) {
         options={options}
         styles={styles}
         classNamePrefix="react-select-country"
-        components={{ Option }}
+        formatOptionLabel={formatOptionLabel}
       />
     </BaseField>
   );

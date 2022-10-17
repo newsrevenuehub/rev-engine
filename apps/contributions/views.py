@@ -318,7 +318,11 @@ class SubscriptionsViewSet(viewsets.ViewSet):
             )
 
         subscriptions = cache_provider.load()
-        return [x for x in subscriptions if x.get("revenue_program_slug") == revenue_program_slug]
+        return [
+            x
+            for x in subscriptions
+            if x.get("revenue_program_slug") == revenue_program_slug and x.get("status") != "requires_payment_method"
+        ]
 
     def retrieve(self, request, pk):
         subscriptions = self._fetch_subscriptions(request)

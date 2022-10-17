@@ -21,7 +21,14 @@ import BaseField from 'elements/inputs/BaseField';
 
 import Select from 'react-select';
 
-function CountrySelect({ name, testid }) {
+function Option(props) {
+  return (
+    <option value={props.value} ref={props.innerRef} {...props.innerProps}>
+      {props.label}
+    </option>
+  );
+}
+function CountrySelect({ testid }) {
   const { errors, setMailingCountry, mailingCountry } = usePage();
   const options = countryCodes.countries
     .map(({ country: label, fips: value }) => ({ label, value }))
@@ -54,7 +61,7 @@ function CountrySelect({ name, testid }) {
         className="country-select"
         inputId="Country"
         value={options.find(({ value }) => value === mailingCountry)}
-        name={name}
+        name="Country"
         closeMenuOnSelect={true}
         escapeClearsValue={true}
         isSearchable={true}
@@ -62,6 +69,7 @@ function CountrySelect({ name, testid }) {
         options={options}
         styles={styles}
         classNamePrefix="react-select-country"
+        components={{ Option }}
       />
     </BaseField>
   );

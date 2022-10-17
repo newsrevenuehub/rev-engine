@@ -29,7 +29,9 @@ function AmountEditor() {
   }, [page, updatedPage]);
 
   const handleNewAmountsChange = (frequency, value) => {
-    if (validateInputPositiveFloat(value)) setNewAmounts({ ...newAmounts, [frequency]: value });
+    if (value === '' || validateInputPositiveFloat(value)) {
+      setNewAmounts({ ...newAmounts, [frequency]: value });
+    }
   };
 
   const addAmount = ({ value: freq }) => {

@@ -48,6 +48,7 @@ jobs:
           build: npx cypress info
           start: npm run start:subdomains
           wait-on: http://localhost:3000
+          wait-on-timeout: 120
           # because of "record" and "parallel" parameters
           # these containers will load balance all found tests among themselves
           record: true

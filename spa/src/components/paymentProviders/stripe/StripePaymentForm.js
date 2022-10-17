@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useStripe, useElements, PaymentElement } from '@stripe/react-stripe-js';
+import { Link } from 'react-router-dom';
 
 import { useLocation } from 'react-router-dom';
 
@@ -25,7 +26,8 @@ function StripePaymentForm() {
     emailHash,
     stripeBillingDetails,
     paymentSubmitButtonText,
-    stripeClientSecret
+    stripeClientSecret,
+    cancelPayment
   } = usePage();
   const { pathname } = useLocation();
   const elements = useElements();
@@ -96,6 +98,7 @@ function StripePaymentForm() {
         <S.PaymentSubmitButton type="submit" disabled={isLoading} loading={isLoading} data-testid="donation-submit">
           {paymentSubmitButtonText}
         </S.PaymentSubmitButton>
+        <Link onClick={cancelPayment}>Nevermind</Link>
         <S.IconWrapper>
           <S.Icon icon={ICONS.STRIPE_POWERED} />
         </S.IconWrapper>

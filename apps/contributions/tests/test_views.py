@@ -18,7 +18,12 @@ from apps.api.tests import RevEngineApiAbstractTestCase
 from apps.api.tokens import ContributorRefreshToken
 from apps.common.constants import CONTRIBUTIONS_API_ENDPOINT_ACCESS_FLAG_NAME
 from apps.common.tests.test_resources import AbstractTestCase
-from apps.contributions.models import Contribution, Contributor
+from apps.contributions.models import (
+    Contribution,
+    ContributionInterval,
+    ContributionStatus,
+    Contributor,
+)
 from apps.contributions.payment_managers import PaymentProviderError
 from apps.contributions.serializers import (
     PaymentProviderContributionSerializer,
@@ -964,88 +969,66 @@ def stripe_create_customer_response():
     return {"id": "customer-id"}
 
 
+PI_ID = "stripe_id_123"
+PI_CLIENT_SECRET = "stripe_secret_abcde123"
+
+
 @pytest.fixture
 def stripe_create_payment_intent_response(stripe_create_customer_response):
-    return {"id": "some-id", "client_secret": "Shhhhhh!!!", "customer": stripe_create_customer_response["id"]}
+    return {"id": PI_ID, "client_secret": PI_CLIENT_SECRET, "customer": stripe_create_customer_response["id"]}
+
+
+SUBSCRIPTION_ID = "stripe_id_456"
+SUBSCRIPTION_CLIENT_SECRET = "stripe_secret_fghij456"
 
 
 @pytest.fixture
 def stripe_create_subscription_response(stripe_create_customer_response):
     return {
-        "id": "some-id",
-        "latest_invoice": {"payment_intent": {"client_secret": "Shhhhhh!!!"}},
+        "id": SUBSCRIPTION_ID,
+        "latest_invoice": {"payment_intent": {"client_secret": SUBSCRIPTION_CLIENT_SECRET}},
         "customer": stripe_create_customer_response["id"],
     }
 
 
 @pytest.mark.django_db
-class TestOneTimePaymentViewSet:
+class TestPaymentViewset:
 
     client = APIClient()
     # this is added because bad actor serializer needs referer
     client.credentials(HTTP_REFERER="https://www.foo.com")
 
-    def test_happy_path(
-        self,
-        valid_data,
-        monkeypatch,
-        stripe_create_payment_intent_response,
-        stripe_create_customer_response,
-    ):
-        """Minimal test of the happy path
-
-        Note that this test is kept intentionally thin because the the serializer used for this view
-        is extensively tested.
-        """
-        mock_create_customer = mock.Mock()
-        mock_create_customer.return_value = stripe_create_customer_response
-        monkeypatch.setattr("stripe.Customer.create", mock_create_customer)
-        mock_create_pi = mock.Mock()
-        mock_create_pi.return_value = stripe_create_payment_intent_response
-        monkeypatch.setattr("stripe.PaymentIntent.create", mock_create_pi)
-        monkeypatch.setattr("apps.contributions.serializers.make_bad_actor_request", mock_get_bad_actor)
-
-        contributor_count = Contributor.objects.count()
-        contribution_count = Contribution.objects.count()
-
-        url = reverse("payment-one-time-list")
-        response = self.client.post(url, valid_data, format="json")
-        assert response.status_code == status.HTTP_201_CREATED
-        assert set(["email_hash", "provider_client_secret_id"]) == set(response.json().keys())
-        assert Contributor.objects.count() == contributor_count + 1
-        assert Contribution.objects.count() == contribution_count + 1
-
-    def test_when_no_csrf(self):
-        """Show that view is inaccessible if no CSRF token is included in request.
-
-        NB: DRF's APIClient disables CSRF protection by default, so here we have to explicitly
-        configure the client to enforce CSRF checks.
-        """
-        client = APIClient(enforce_csrf_checks=True)
-        url = reverse("payment-one-time-list")
-        response = client.post(url, {})
-        assert response.status_code == status.HTTP_403_FORBIDDEN
-        # TODO - figure out how to do csrf protection but return JSON when no token
-
-
-@pytest.mark.django_db
-class TestSubscriptionPaymentViewSet:
-
-    client = APIClient()
-    # this is added because bad actor serializer needs referer
-    client.credentials(HTTP_REFERER="https://www.foo.com")
-
-    def test_happy_path(
+    @pytest.mark.parametrize(
+        "interval,client_secret,subscription_id",
+        (
+            (ContributionInterval.ONE_TIME, PI_CLIENT_SECRET, None),
+            (
+                ContributionInterval.MONTHLY,
+                SUBSCRIPTION_CLIENT_SECRET,
+                SUBSCRIPTION_ID,
+            ),
+            (
+                ContributionInterval.YEARLY,
+                SUBSCRIPTION_CLIENT_SECRET,
+                SUBSCRIPTION_ID,
+            ),
+        ),
+    )
+    def test_create_happy_path(
         self,
         valid_data,
         monkeypatch,
         stripe_create_subscription_response,
+        stripe_create_payment_intent_response,
         stripe_create_customer_response,
+        interval,
+        client_secret,
+        subscription_id,
     ):
         """Minimal test of the happy path
 
-        Note that this test is kept intentionally thin because the the serializer used for this view
-        is extensively tested.
+        Note that this test is kept intentionally thin because the serializers used for this view
+        are extensively tested elsewhere.
         """
         mock_create_customer = mock.Mock()
         mock_create_customer.return_value = stripe_create_customer_response
@@ -1054,17 +1037,23 @@ class TestSubscriptionPaymentViewSet:
         mock_create_subscription.return_value = stripe_create_subscription_response
         monkeypatch.setattr("stripe.Subscription.create", mock_create_subscription)
         monkeypatch.setattr("apps.contributions.serializers.make_bad_actor_request", mock_get_bad_actor)
+        mock_create_payment_intent = mock.Mock()
+        mock_create_payment_intent.return_value = stripe_create_payment_intent_response
+        monkeypatch.setattr("stripe.PaymentIntent.create", mock_create_payment_intent)
 
         contributor_count = Contributor.objects.count()
         contribution_count = Contribution.objects.count()
-
-        data = valid_data | {"interval": "month"}
-        url = reverse("payment-subscription-list")
+        data = valid_data | {"interval": interval}
+        url = reverse("payment-list")
         response = self.client.post(url, data, format="json")
         assert response.status_code == status.HTTP_201_CREATED
         assert set(["email_hash", "provider_client_secret_id"]) == set(response.json().keys())
         assert Contributor.objects.count() == contributor_count + 1
         assert Contribution.objects.count() == contribution_count + 1
+        contribution = Contribution.objects.get(provider_client_secret_id=client_secret)
+        assert contribution.interval == interval
+        assert contribution.provider_subscription_id == subscription_id
+        assert contribution.amount == int(data["amount"]) * 100
 
     def test_when_no_csrf(self):
         """Show that view is inaccessible if no CSRF token is included in request.
@@ -1073,10 +1062,46 @@ class TestSubscriptionPaymentViewSet:
         configure the client to enforce CSRF checks.
         """
         client = APIClient(enforce_csrf_checks=True)
-        url = reverse("payment-subscription-list")
+        url = reverse("payment-list")
         response = client.post(url, {})
         assert response.status_code == status.HTTP_403_FORBIDDEN
-        # TODO: [DEV-2335] Figure out how to return JSON instead of HTML response when CSRF token missing
+        # TODO - figure out how to do csrf protection but return JSON when no token
+
+    @pytest.mark.parametrize(
+        "interval,client_secret,subscription_id",
+        (
+            (ContributionInterval.ONE_TIME, PI_CLIENT_SECRET, None),
+            (ContributionInterval.MONTHLY, SUBSCRIPTION_CLIENT_SECRET, SUBSCRIPTION_ID),
+            (ContributionInterval.YEARLY, SUBSCRIPTION_CLIENT_SECRET, SUBSCRIPTION_ID),
+        ),
+    )
+    def test_destroy_happy_path(
+        self,
+        interval,
+        client_secret,
+        subscription_id,
+        monkeypatch,
+    ):
+        contribution = ContributionFactory(
+            interval=interval,
+            provider_client_secret_id=client_secret,
+            provider_subscription_id=subscription_id,
+            status=ContributionStatus.PROCESSING,
+        )
+        url = reverse("payment-detail", kwargs={"provider_client_secret_id": contribution.provider_client_secret_id})
+
+        mock_cancel_pi = mock.Mock()
+        mock_delete_sub = mock.Mock()
+        monkeypatch.setattr("stripe.PaymentIntent.cancel", mock_cancel_pi)
+        monkeypatch.setattr("stripe.Subscription.delete", mock_delete_sub)
+        response = self.client.delete(url)
+        assert response.status_code == status.HTTP_204_NO_CONTENT
+        contribution.refresh_from_db()
+        assert contribution.status == ContributionStatus.CANCELED
+        if interval == ContributionInterval.ONE_TIME:
+            mock_cancel_pi.assert_called_once_with(client_secret)
+        else:
+            mock_delete_sub.assert_called_once_with(subscription_id)
 
 
 @pytest.mark.django_db

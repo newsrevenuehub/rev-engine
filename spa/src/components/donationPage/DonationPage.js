@@ -24,7 +24,7 @@ import Modal from 'elements/modal/Modal';
 import LiveErrorFallback from './live/LiveErrorFallback';
 import { SubmitButton } from './DonationPage.styled';
 import GenericErrorBoundary from 'components/errors/GenericErrorBoundary';
-import { AUTHORIZE_ONE_TIME_STRIPE_PAYMENT_ROUTE, AUTHORIZE_STRIPE_SUBSCRIPTION_ROUTE } from 'ajax/endpoints';
+import { AUTHORIZE_STRIPE_PAYMENT_ROUTE } from 'ajax/endpoints';
 import { serializeData } from 'components/paymentProviders/stripe/stripeFns';
 import calculateStripeFee from 'utilities/calculateStripeFee';
 import formatStringAmountForDisplay from 'utilities/formatStringAmountForDisplay';
@@ -33,15 +33,21 @@ import { CONTRIBUTION_INTERVALS } from 'constants/contributionIntervals';
 
 import { CSRF_HEADER } from 'settings';
 
-function authorizePayment(paymentData, paymentType, csrftoken) {
-  const apiEndpoint =
-    paymentType === CONTRIBUTION_INTERVALS.ONE_TIME
-      ? AUTHORIZE_ONE_TIME_STRIPE_PAYMENT_ROUTE
-      : AUTHORIZE_STRIPE_SUBSCRIPTION_ROUTE;
+function authorizePayment(paymentData, csrftoken) {
   // we manually set the XCSRFToken value in header here. This is an unauthed endpoint
   // that on the backend requires csrf header, which will be in cookie returned by request
   // for page data (that happens in parent context)
-  return axios.post(apiEndpoint, paymentData, { headers: { [CSRF_HEADER]: csrftoken } }).then(({ data }) => data);
+  return axios
+    .post(AUTHORIZE_STRIPE_PAYMENT_ROUTE, paymentData, { headers: { [CSRF_HEADER]: csrftoken } })
+    .then(({ data }) => data);
+}
+
+function cancelPayment(paymentId, csrftoken) {
+  const endpoint = `${AUTHORIZE_STRIPE_PAYMENT_ROUTE}${paymentId}/`;
+  // we manually set the XCSRFToken value in header here. This is an unauthed endpoint
+  // that on the backend requires csrf header, which will be in cookie returned by request
+  // for page data (that happens in parent context)
+  return axios.delete(endpoint, { headers: { [CSRF_HEADER]: csrftoken } }).then(({ data }) => data);
 }
 
 export const DonationPageContext = createContext({});
@@ -72,24 +78,19 @@ function DonationPage({ page, live = false }) {
   const [contributorEmail, setContributorEmail] = useState();
   const [mailingCountry, setMailingCountry] = useState();
   const [paymentSubmitButtonText, setPaymentSubmitButtonText] = useState();
-
   const [stripeBillingDetails, setStripeBillingDetails] = useState();
 
   const [cookies] = useCookies(['csrftoken']);
 
   // we use this on form submission to authorize a one-time payment or subscription. Note that the function
   // passed to `useMutation` must return a promise.
-  const { mutate: createPayment, isLoading: createPaymentIsLoading } = useMutation((paymentData) => {
-    switch (paymentData.interval) {
-      case CONTRIBUTION_INTERVALS.ONE_TIME:
-        return authorizePayment(paymentData, CONTRIBUTION_INTERVALS.ONE_TIME, cookies.csrftoken);
-      case CONTRIBUTION_INTERVALS.MONTHLY:
-      case CONTRIBUTION_INTERVALS.ANNUAL:
-        return authorizePayment(paymentData, paymentData.interval, cookies.csrftoken);
-      default:
-        return Promise.reject(new DonationPageUnrecoverableError('Unexpected payment interval in paymentData'));
-    }
-  });
+  const { mutate: createPayment, isLoading: createPaymentIsLoading } = useMutation((paymentData) =>
+    authorizePayment(paymentData, cookies.csrftoken)
+  );
+
+  const { mutate: deletePayment, isLoading: deletePaymentIsLoading } = useMutation((paymentId) =>
+    cancelPayment(paymentId)
+  );
 
   /*
   If window.grecaptcha is defined-- which should be done in useReCAPTCHAScript hook--
@@ -258,7 +259,11 @@ function DonationPage({ page, live = false }) {
         stripeClientSecret,
         mailingCountry,
         setMailingCountry,
-        paymentSubmitButtonText
+        paymentSubmitButtonText,
+        cancelPayment: () => {
+          deletePayment(stripeClientSecret);
+          setDisplayStripePaymentForm(false);
+        }
       }}
     >
       <S.DonationPage data-testid="donation-page">

@@ -12,6 +12,8 @@ from rest_framework import mixins, status, viewsets
 from rest_framework.decorators import action, api_view, authentication_classes, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
+from rest_framework.serializers import ValidationError
+from stripe.error import StripeError
 
 from apps.api.permissions import (
     HasFlaggedAccessToContributionsApiResource,
@@ -21,7 +23,12 @@ from apps.api.permissions import (
 )
 from apps.contributions import serializers
 from apps.contributions.filters import ContributionFilter
-from apps.contributions.models import Contribution, Contributor
+from apps.contributions.models import (
+    Contribution,
+    ContributionInterval,
+    ContributionStatus,
+    Contributor,
+)
 from apps.contributions.payment_managers import PaymentProviderError
 from apps.contributions.stripe_contributions_provider import (
     ContributionsCacheProvider,
@@ -174,10 +181,20 @@ def process_stripe_webhook_view(request):
 
 
 @method_decorator(csrf_protect, name="dispatch")
-class OneTimePaymentViewSet(mixins.CreateModelMixin, mixins.UpdateModelMixin, viewsets.GenericViewSet):
+class PaymentViewset(
+    mixins.CreateModelMixin, mixins.UpdateModelMixin, mixins.DestroyModelMixin, viewsets.GenericViewSet
+):
     permission_classes = []
-    serializer_class = serializers.CreateOneTimePaymentSerializer
     lookup_field = "provider_client_secret_id"
+    queryset = Contribution.objects.all()
+
+    def get_serializer_class(self):
+        if (interval := self.request.data["interval"]) == ContributionInterval.ONE_TIME:
+            return serializers.CreateOneTimePaymentSerializer
+        elif interval in (ContributionInterval.MONTHLY.value, ContributionInterval.YEARLY.value):
+            return serializers.CreateRecurringPaymentSerializer
+        else:
+            raise ValidationError({"interval": "The provided value for interval is not permittted"})
 
     def get_serializer_context(self):
         # we need request in context for create in order to supply
@@ -186,19 +203,24 @@ class OneTimePaymentViewSet(mixins.CreateModelMixin, mixins.UpdateModelMixin, vi
         context.update({"request": self.request})
         return context
 
-
-@method_decorator(csrf_protect, name="dispatch")
-class SubscriptionPaymentViewSet(mixins.CreateModelMixin, mixins.UpdateModelMixin, viewsets.GenericViewSet):
-    permission_classes = []
-    serializer_class = serializers.CreateRecurringPaymentSerializer
-    lookup_field = "provider_client_secret_id"
-
-    def get_serializer_context(self):
-        # we need request in context for create in order to supply
-        # metadata to request to bad actor api, in serializer
-        context = super().get_serializer_context()
-        context.update({"request": self.request})
-        return context
+    def destroy(self, request, *args, **kwargs):
+        contribution = self.get_object()
+        if contribution.status != ContributionStatus.PROCESSING:
+            raise ValidationError(code=status.HTTP_409_CONFLICT)
+        contribution.status = ContributionStatus.CANCELED
+        contribution.save()
+        try:
+            if contribution.interval == ContributionInterval.ONE_TIME:
+                stripe.PaymentIntent.cancel(contribution.provider_client_secret_id)
+            if contribution.interval in (ContributionInterval.MONTHLY.value, ContributionInterval.YEARLY.value):
+                stripe.Subscription.delete(contribution.provider_subscription_id)
+        except StripeError:
+            logger.exception(
+                "Something went wrong with Stripe while attempting to cancel payment with client secret %s",
+                contribution.provider_client_secret_id,
+            )
+            return Response(status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 @api_view(["PATCH"])

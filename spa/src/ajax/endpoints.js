@@ -15,8 +15,7 @@ export const getStripeAccountLinkCreateCompletePath = (rpId) => {
   return `${STRIPE_ACCOUNT_LINK_CREATE_COMPLETE}${rpId}/`;
 };
 
-export const AUTHORIZE_ONE_TIME_STRIPE_PAYMENT_ROUTE = 'payments/one-time/';
-export const AUTHORIZE_STRIPE_SUBSCRIPTION_ROUTE = 'payments/subscription/';
+export const AUTHORIZE_STRIPE_PAYMENT_ROUTE = 'payments/';
 
 export function getPaymentSuccessEndpoint(clientProviderSecretId) {
   return `payments/${clientProviderSecretId}/success/`;

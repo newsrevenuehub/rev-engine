@@ -26,7 +26,7 @@ function useStyleList() {
     initialData: [],
     // if it's an authentication error, we don't want to retry. if it's some other
     // error we'll retry up to 1 time.
-    retry: (failureCount, error:any) => {
+    retry: (failureCount: number, error:Error) => {
       return error.name !== 'AuthenticationError' && failureCount < 1;
     },
     onError: (err) => {

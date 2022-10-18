@@ -9,7 +9,7 @@ import useStyleList from 'hooks/useStyleList';
 function Customize() {
   const [showEditStylesModal, setShowEditStylesModal] = useState(false);
   const [styleToEdit, setStyleToEdit] = useState(null);
-  const { styles, handleStylesUpdate } = useStyleList();
+  const { styles, refetch } = useStyleList();
 
   const handleCloseEditStylesModal = () => {
     setShowEditStylesModal(false);
@@ -25,7 +25,7 @@ function Customize() {
           styleToEdit={styleToEdit}
           isOpen={showEditStylesModal}
           closeModal={handleCloseEditStylesModal}
-          onStylesUpdated={handleStylesUpdate}
+          onStylesUpdated={refetch}
         />
       )}
     </>

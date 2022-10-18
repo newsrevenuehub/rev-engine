@@ -17,6 +17,7 @@ function useStyleList() {
   const history = useHistory();
   const queryClient = useQueryClient();
 
+
   const {
     data: styles,
     isLoading,
@@ -37,7 +38,8 @@ function useStyleList() {
       }
     }
   });
-  return { styles, isLoading, isError, handleStylesUpdate: () => {
+
+  return { styles, isLoading, isError, refetch: () => {
     queryClient.invalidateQueries(['styles']);
   }};
 }

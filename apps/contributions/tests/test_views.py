@@ -430,8 +430,17 @@ class TestContributorContributionsViewSet(AbstractTestCase):
         self.contribution_2 = StripePaymentIntentFactory(revenue_program=self.org1_rp2.slug)
         self.contribution_3 = StripePaymentIntentFactory(revenue_program=self.org1_rp1.slug)
         self.contribution_4 = StripePaymentIntentFactory(revenue_program=self.org1_rp2.slug, status="requires_source")
+        self.contribution_5 = StripePaymentIntentFactory(
+            revenue_program=self.org1_rp2.slug, status="requires_source_action"
+        )
 
-        self.all_contributions = [self.contribution_1, self.contribution_2, self.contribution_3, self.contribution_4]
+        self.all_contributions = [
+            self.contribution_1,
+            self.contribution_2,
+            self.contribution_3,
+            self.contribution_4,
+            self.contribution_5,
+        ]
 
         self.stripe_contributions = [
             PaymentProviderContributionSerializer(instance=i).data for i in self.all_contributions
@@ -473,7 +482,9 @@ class TestContributorContributionsViewSet(AbstractTestCase):
         self.client.cookies["Authorization"] = refresh_token.long_lived_access_token
         self.client.cookies["csrftoken"] = csrf._get_new_csrf_token()
         response = self.client.get(reverse("contribution-list"), {"rp": self.org1_rp2.slug})
-        assert self.contribution_4.id not in [contribution["id"] for contribution in response.json()["results"]]
+        contribution_ids = [contribution["id"] for contribution in response.json()["results"]]
+        assert self.contribution_4.id not in contribution_ids
+        assert self.contribution_5.id not in contribution_ids
 
 
 class TestSubscriptionViewSet(AbstractTestCase):

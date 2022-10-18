@@ -261,7 +261,9 @@ class ContributionsViewSet(viewsets.ReadOnlyModelViewSet, FilterQuerySetByUserMi
             return [
                 x
                 for x in contributions
-                if x.get("revenue_program") == self.request.query_params["rp"] and x.get("status") != "requires_source"
+                if x.get("revenue_program") == self.request.query_params["rp"]
+                and x.get("status") != "requires_source"
+                and x.get("status") != "requires_source_action"
             ]
 
         # this is supplied by FilterQuerySetByUserMixin

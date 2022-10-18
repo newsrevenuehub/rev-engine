@@ -58,7 +58,7 @@ describe('Dashboard TopBar', () => {
   it('should show back button if isEditPage = true', () => {
     render(<DashboardTopbar isEditPage page={page} />);
     expect(screen.getByTestId('back')).toBeEnabled();
-    expect(screen.queryByTestId('modal-back')).toBeNull();
+    expect(screen.queryByTestId('modal-back')).not.toBeInTheDocument();
   });
 
   it('should call history if back button is clicked and if isEditPage = true', () => {

@@ -94,8 +94,10 @@ declare module 'styled-components' {
       sm: string;
       md: string;
       lg: string;
+      '20': '20px';
       lgx: string;
       lg2x: string;
+      lg3x: string;
       h1: string;
       xl: string;
       '2xl': string;

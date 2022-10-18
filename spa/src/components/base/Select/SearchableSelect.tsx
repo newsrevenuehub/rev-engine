@@ -13,10 +13,15 @@ const StyledSelect = styled(Select)`
     font-weight: 400;
     height: 45px;
   }
+  .react-select__option {
+    font-family: Roboto, sans-serif;
+    font-weight: 400;
+    font-size: ${({theme: {fontSizes}}) => fontSizes[1] }
+  }
 `;
 
 export function SearchableSelect(props: SearchableSelectProps) {
-  return <StyledSelect classNamePrefix="react-select" closeMenuOnSelect isSearchable {...props} />;
+  return <StyledSelect menuIsOpen={true} classNamePrefix="react-select" closeMenuOnSelect isSearchable {...props} />;
 }
 
 // react-select does not appear to have prop types, so we can't set them on

@@ -46,7 +46,7 @@ describe('Dashboard TopBar', () => {
   });
 
   it('should show grab link if isEditPage = true and page is published', () => {
-    render(<DashboardTopbar isEditPage={true} page={page} />);
+    render(<DashboardTopbar isEditPage page={page} />);
 
     const signOut = screen.queryByText('Sign out');
     expect(signOut).not.toBeInTheDocument();
@@ -56,7 +56,7 @@ describe('Dashboard TopBar', () => {
   });
 
   it('should show back button if isEditPage = true', () => {
-    render(<DashboardTopbar isEditPage={true} page={page} />);
+    render(<DashboardTopbar isEditPage page={page} />);
     expect(screen.getByTestId('back')).toBeEnabled();
     expect(screen.queryByTestId('modal-back')).toBeNull();
   });
@@ -65,19 +65,19 @@ describe('Dashboard TopBar', () => {
     const historyReplaceMock = jest.fn();
     useHistory.mockReturnValue({ replace: historyReplaceMock });
 
-    render(<DashboardTopbar isEditPage={true} page={page} />);
+    render(<DashboardTopbar isEditPage page={page} />);
     fireEvent.click(screen.getByTestId('back'));
     expect(historyReplaceMock).toHaveBeenCalledWith(CONTENT_SLUG);
   });
 
   it('should show modal back button if isEditPage = true and updatedPage', () => {
-    render(<DashboardTopbar isEditPage={true} page={page} updatedPage={page} />);
+    render(<DashboardTopbar isEditPage page={page} updatedPage={page} />);
     expect(screen.getByTestId('modal-back')).toBeEnabled();
     expect(screen.queryByTestId('back')).toBeNull();
   });
 
   it('should open modal if back button clicked and if isEditPage = true and updatedPage', () => {
-    render(<DashboardTopbar isEditPage={true} page={page} updatedPage={page} />);
+    render(<DashboardTopbar isEditPage page={page} updatedPage={page} />);
     const backButton = screen.getByTestId('modal-back');
     expect(backButton).toBeEnabled();
     fireEvent.click(backButton);
@@ -86,19 +86,25 @@ describe('Dashboard TopBar', () => {
     expect(screen.getByRole('button', { name: /yes, exit/i })).toBeEnabled();
   });
 
+  it('should show NRH logo if isEditPage = false', () => {
+    render(<DashboardTopbar isEditPage={false} page={page} />);
+    // Has mobile and desktop logos
+    expect(screen.getAllByAltText('News Revenue Hub Logo')).toHaveLength(2);
+  });
+
   it('should show NRH logo if isEditPage = true', () => {
-    render(<DashboardTopbar isEditPage={true} page={page} />);
-    expect(screen.getByAltText('NRH Logo')).toBeVisible();
+    render(<DashboardTopbar isEditPage page={page} />);
+    expect(screen.getByAltText('News Revenue Hub Logo')).toBeVisible();
   });
 
   it('should show page name if isEditPage = true and has page', () => {
-    render(<DashboardTopbar isEditPage={true} page={page} />);
+    render(<DashboardTopbar isEditPage page={page} />);
     expect(screen.getByText(page.name)).toBeVisible();
   });
 
   it('should not show page name if isEditPage = true and no page', () => {
-    render(<DashboardTopbar isEditPage={true} />);
-    expect(screen.queryByText(page.name)).toBeNull();
+    render(<DashboardTopbar isEditPage />);
+    expect(screen.queryByText(page.name)).not.toBeInTheDocument();
   });
 
   it('is accessible with isEditPage = false', async () => {
@@ -108,7 +114,7 @@ describe('Dashboard TopBar', () => {
   });
 
   it('is accessible with isEditPage = true', async () => {
-    const { container } = render(<DashboardTopbar isEditPage={true} page={page} />);
+    const { container } = render(<DashboardTopbar isEditPage page={page} />);
 
     expect(await axe(container)).toHaveNoViolations();
   });

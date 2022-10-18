@@ -29,10 +29,10 @@ function DashboardTopbar({ isEditPage, page, setPage, updatedPage }) {
       {!isEditPage ? (
         <>
           <S.TopLogo>
-            <S.Logo src={logo} alt="NRH Logo" />
+            <S.Logo src={logo} alt="News Revenue Hub Logo" />
           </S.TopLogo>
           <S.TopLogoMobile>
-            <S.Logo src={mobileLogo} alt="NRH Logo" />
+            <S.Logo src={mobileLogo} alt="News Revenue Hub Logo" />
           </S.TopLogoMobile>
         </>
       ) : null}
@@ -41,7 +41,7 @@ function DashboardTopbar({ isEditPage, page, setPage, updatedPage }) {
           <>
             {updatedPage ? (
               <Tooltip title="Exit">
-                <BackIconButton onClick={openUnsavedModal} data-testid="modal-back">
+                <BackIconButton onClick={openUnsavedModal} data-testid="modal-back" aria-label="Exit">
                   <BackIcon icon={ICONS.ARROW_LEFT} />
                 </BackIconButton>
               </Tooltip>
@@ -52,7 +52,7 @@ function DashboardTopbar({ isEditPage, page, setPage, updatedPage }) {
                 </div>
               </Tooltip>
             )}
-            <SvgLogo src={logoBlue} alt="NRH Logo" />
+            <SvgLogo src={logoBlue} alt="News Revenue Hub Logo" />
             <Title>{page?.name}</Title>
             <GrabLink page={page} />
             <PublishButton page={page} setPage={setPage} alert={alert} requestPatchPage={requestPatchPage} />

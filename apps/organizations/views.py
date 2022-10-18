@@ -66,6 +66,32 @@ def get_stripe_account_link_return_url(request):
 @api_view(["POST"])
 @permission_classes([IsAuthenticated, HasRoleAssignment])
 def handle_stripe_account_link(request, rp_pk):
+    """This endpoint facilitates multiple round trips between the SPA and Stripe's Account Link configuration which happens
+    off-site.
+
+    The flow through this view is like this:
+
+    1. The client makes a request providing a revenue program id.
+    2. Retrieve the RP's payment provider.
+        a. If it's already verified, we're done.
+        b. If it's not verified we continue
+    3. If the payment provider does not have a Stripe account (on first run through, it usually won't), create one, attaching
+    its ID back to the payment provider instance.
+    4. Check if charges are enabled on the Stripe account.
+        a. If they are (they won't be when account is first created), we update the payment provider's stripe_verified value to True.
+        We return a response with `requiresVerification` set to `False`.
+        b. If charges are not enabled we keep going.
+    5. The Stripe account data tells us why the account is disabled. That reason will contain one of two prefixes: 'pending_verification' or `past_due`.
+        a. If `pending_verification`, there's nothing to be done except wait. We send a response indicating that the Stripe connect process
+        has started and that we're blocked by pending verification next steps to be processed on Stripe's end.
+        b. If `past_due`, there are next steps for the user to do on Stripe's site. In this case, we create a new Stripe Account Link and send that URL
+        back in the response.
+
+
+    In testing, we've commonly had to make 3 or more round trips between the SPA and Stripe pivoting between the two via this endpoint.
+
+    This endpoint is designed to support polling from the front end.
+    """
     revenue_program = get_object_or_404(RevenueProgram, pk=rp_pk)
     if not request.user.roleassignment.can_access_rp(revenue_program):
         logger.warning(

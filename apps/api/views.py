@@ -185,8 +185,8 @@ class RequestContributorTokenEmailView(APIView):
         send_templated_email.delay(
             serializer.validated_data["email"],
             "Manage your contributions",
-            "nrh-manage-donations-magic-link.txt",
-            "nrh-manage-donations-magic-link.html",
+            "nrh-manage-contributions-magic-link.txt",
+            "nrh-manage-contributions-magic-link.html",
             {"magic_link": mark_safe(magic_link)},
         )
         # Email is async task. We won't know if it succeeds or not so optimistically send OK.

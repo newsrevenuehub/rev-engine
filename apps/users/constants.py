@@ -1,4 +1,4 @@
-# Used in requests to bad actor api that don't involve actual donations
+# Used in requests to bad actor api that don't involve actual contributions
 # TODO: Remove this when https://news-revenue-hub.atlassian.net/browse/DEV-2034  is done
 BAD_ACTOR_FAKE_AMOUNT = 10
 BAD_ACTOR_CLIENT_FACING_VALIDATION_MESSAGE = "Something went wrong"

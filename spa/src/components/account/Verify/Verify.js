@@ -7,7 +7,7 @@ import { Link } from 'react-router-dom';
 import axios from 'ajax/axios';
 import { VERIFY_EMAIL_REQUEST_ENDPOINT } from 'ajax/endpoints';
 
-import logo from 'assets/images/logo-nre.png';
+import logo from 'assets/images/nre-logo-blue.svg';
 import sendIcon from 'assets/icons/verify_send.svg';
 import draftIcon from 'assets/icons/verify_draft.svg';
 import readIcon from 'assets/icons/verify_mark_read.svg';
@@ -36,6 +36,7 @@ const Mailto = ({ mailto }) => {
         window.location.href = `mailto:${mailto}`;
         e.preventDefault();
       }}
+      style={{ fontWeight: 600, textDecoration: 'underline' }}
     >
       {mailto}
     </Link>
@@ -101,7 +102,7 @@ function Verify() {
             Resend Verification
           </S.Button>
           <S.Help>
-            <span>Questions?</span> Email us at <Mailto mailto={VERIFIED_HELP_EMAIL} />
+            <b>Questions?</b> Email us at <Mailto mailto={VERIFIED_HELP_EMAIL} />
           </S.Help>
           {verifyMessage}
         </S.Box>

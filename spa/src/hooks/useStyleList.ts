@@ -1,4 +1,4 @@
-import { useQuery } from '@tanstack/react-query';
+import { useQueryClient, useQuery } from '@tanstack/react-query';
 import { useAlert } from 'react-alert';
 import { useHistory } from 'react-router-dom';
 
@@ -15,6 +15,7 @@ async function fetchStyles() {
 function useStyleList() {
   const alert = useAlert();
   const history = useHistory();
+  const queryClient = useQueryClient();
 
   const {
     data: styles,
@@ -36,7 +37,9 @@ function useStyleList() {
       }
     }
   });
-  return { styles, isLoading, isError };
+  return { styles, isLoading, isError, handleStylesUpdate: () => {
+    queryClient.invalidateQueries(['styles']);
+  }};
 }
 
 export default useStyleList;

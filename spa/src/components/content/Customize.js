@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { useQueryClient } from '@tanstack/react-query';
 
 // Children
 import Styles from 'components/content/styles/Styles';
@@ -10,8 +9,7 @@ import useStyleList from 'hooks/useStyleList';
 function Customize() {
   const [showEditStylesModal, setShowEditStylesModal] = useState(false);
   const [styleToEdit, setStyleToEdit] = useState(null);
-  const { styles } = useStyleList();
-  const queryClient = useQueryClient();
+  const { styles, handleStylesUpdate } = useStyleList();
 
   const handleCloseEditStylesModal = () => {
     setShowEditStylesModal(false);
@@ -27,7 +25,7 @@ function Customize() {
           styleToEdit={styleToEdit}
           isOpen={showEditStylesModal}
           closeModal={handleCloseEditStylesModal}
-          onStylesUpdated={() => queryClient.invalidateQueries('styles')}
+          onStylesUpdated={handleStylesUpdate}
         />
       )}
     </>

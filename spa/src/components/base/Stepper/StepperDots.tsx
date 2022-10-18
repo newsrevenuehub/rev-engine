@@ -1,4 +1,4 @@
-import { MobileStepper } from '@material-ui/core';
+import { MobileStepper, MobileStepperProps } from '@material-ui/core';
 import styled from 'styled-components';
 
 const StyledMobileStepper = styled(MobileStepper)`
@@ -38,12 +38,14 @@ const StyledMobileStepper = styled(MobileStepper)`
   }
 `;
 
+export type StepperDotsProps = Omit<MobileStepperProps, 'backButton' | 'nextButton'>;
+
 /**
  * A set of noninteractive dots indicating progress through a multi-step process.
  * @see https://v4.mui.com/api/mobile-stepper/
  */
-export const StepperDots = (props) => <StyledMobileStepper position="static" variant="dots" {...props} />;
-
-StepperDots.propTypes = MobileStepper.propTypes;
+export const StepperDots = (props: StepperDotsProps) => (
+  <StyledMobileStepper backButton={null} nextButton={null} position="static" variant="dots" {...props} />
+);
 
 export default StepperDots;

@@ -82,7 +82,7 @@ function ProfileForm({ disabled: disabledProp, onProfileSubmit }) {
         />
       </TaxStatusContainer>
       <FillRow>
-        <Button disabled={disabled} fullWidth type="submit">
+        <Button disabled={disabled} fullWidth size="extraLarge" type="submit">
           Finalize Account
         </Button>
       </FillRow>

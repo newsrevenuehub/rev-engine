@@ -1,3 +1,5 @@
+export type PaymentStatus = 'processing' | 'paid' | 'canceled' | 'failed' | 'flagged' | 'rejected';
+
 export const PAYMENT_STATUS = {
   PROCESSING: 'processing',
   PAID: 'paid',

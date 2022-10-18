@@ -99,6 +99,7 @@
       "requiredFields": [],
       "content": {
         "offerPayFees": true,
+        "payFeesDefault": true,
         "stripe": ["card", "apple", "google", "browser"]
       }
     }

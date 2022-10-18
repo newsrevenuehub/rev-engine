@@ -6,7 +6,7 @@ import { Icon } from './InfoTooltip.styled';
 
 export const InfoTooltip = (props) => {
   const { buttonLabel, ...other } = props;
-  const { handleClose, handleOpen, open } = useModal();
+  const { handleClose, handleToggle, open } = useModal();
 
   return (
     <ClickAwayListener onClickAway={handleClose}>
@@ -20,7 +20,7 @@ export const InfoTooltip = (props) => {
           tooltipWidth={160}
           {...other}
         >
-          <ButtonBase aria-label={buttonLabel} disableRipple disableTouchRipple onClick={handleOpen}>
+          <ButtonBase aria-label={buttonLabel} disableRipple disableTouchRipple onClick={handleToggle}>
             <Icon />
           </ButtonBase>
         </Tooltip>

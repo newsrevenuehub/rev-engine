@@ -47,7 +47,7 @@ const ConnectStripeModal = () => {
           Connect to Stripe
         </S.Button>
         <S.Anchor onClick={handleClickConnectLater}>
-          <span>I’ll connect to Stripe later</span>
+          I’ll connect to Stripe later
           <ChevronRightIcon />
         </S.Anchor>
         <S.BottomStepper aria-hidden activeStep={1} steps={2} />

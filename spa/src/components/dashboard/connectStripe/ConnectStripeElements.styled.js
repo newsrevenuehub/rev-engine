@@ -1,7 +1,7 @@
 import { Modal as MuiModal } from '@material-ui/core';
 import styled from 'styled-components';
 
-import { Button as BaseButton } from 'components/base';
+import { Button as BaseButton, StepperDots } from 'components/base';
 
 export const ConnectStripeModal = styled.div`
   position: relative;
@@ -50,6 +50,7 @@ export const Modal = styled(MuiModal)`
 export const h1 = styled.h1`
   margin: 0 0 18px;
   font-weight: 700;
+  font-family: Roboto, sans-serif;
   font-size: ${(props) => props.theme.fontSizesUpdated['lgx']};
   line-height: ${(props) => props.theme.fontSizesUpdated['lg2x']};
   color: ${(props) => props.theme.colors.account.purple[1]};
@@ -115,4 +116,8 @@ export const StripeLogo = styled.img`
 export const BottomNav = styled.img`
   width: 42px;
   margin: 34px auto 0px;
+`;
+
+export const BottomStepper = styled(StepperDots)`
+  margin-top: 40px;
 `;

@@ -17,6 +17,7 @@ import useModal from 'hooks/useModal';
 import { useConfigureAnalytics } from 'components/analytics';
 
 import ProfileForm from './ProfileForm';
+import { OffscreenText, StepperDots } from 'components/base';
 
 function Profile() {
   const { open } = useModal(true);
@@ -58,6 +59,7 @@ function Profile() {
   return (
     <S.Modal open={open} aria-labelledby="profile-modal-title" data-testid="finalize-profile-modal">
       <S.Profile>
+        <OffscreenText>Step 1 of 2</OffscreenText>
         <S.Title id="profile-modal-title">Let's Customize Your Account</S.Title>
         <S.Description>Help us create your personalized experience!</S.Description>
         <ProfileForm onProfileSubmit={onProfileSubmit} disabled={profileState.loading} />
@@ -66,6 +68,7 @@ function Profile() {
         ) : (
           <A.MessageSpacer />
         )}
+        <StepperDots aria-hidden activeStep={0} steps={2} />
       </S.Profile>
     </S.Modal>
   );

@@ -1,4 +1,5 @@
 import { ComponentProps } from 'react';
+// TODO: [DEV-2679] Replace react-select with MUI Autocomplete
 import Select from 'react-select';
 import styled from 'styled-components';
 

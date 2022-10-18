@@ -195,7 +195,7 @@ describe('Donations list', () => {
       });
     });
 
-    it('should make donations sortable by donor', () => {
+    it('should make contributions sortable by contributor', () => {
       cy.wait('@getDonations');
       // will be in ascending order
       cy.getByTestId('donation-header-contributor_email').click();

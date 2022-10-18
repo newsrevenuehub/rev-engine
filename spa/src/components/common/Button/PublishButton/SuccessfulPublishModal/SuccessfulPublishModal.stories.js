@@ -18,7 +18,7 @@ Default.args = {
   open: true,
   onClose: () => {},
   page: {
-    name: 'Donation page',
+    name: 'Contribution page',
     slug: 'published-page',
     revenue_program: {
       slug: 'news-revenue-hub'

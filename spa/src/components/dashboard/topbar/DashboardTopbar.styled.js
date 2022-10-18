@@ -1,5 +1,6 @@
 import styled from 'styled-components';
 import SvgIcon from 'assets/icons/SvgIcon';
+import { IconButton } from '@material-ui/core';
 
 export const DashboardTopbar = styled.div`
   width: 100%;
@@ -60,6 +61,32 @@ export const Logo = styled.img`
   @media (${(props) => props.theme.breakpoints.tabletLandscapeDown}) {
     height: 29px;
     padding-left: 8px;
+  }
+`;
+
+export const Title = styled.span`
+  padding-left: 24px;
+  margin-right: auto;
+  border-left: 1px solid ${(props) => props.theme.colors.muiGrey[50]};
+  color: ${(props) => props.theme.colors.white};
+  font-family: ${(props) => props.theme.systemFont};
+  font-size: ${(props) => props.theme.fontSizesUpdated.md};
+  line-height: 29px;
+`;
+
+export const SvgLogo = styled.img`
+  height: 29px;
+`;
+
+export const BackIconButton = styled(IconButton)`
+  && {
+    height: 22px;
+    width: 32px;
+    padding: 0;
+    fill: ${(props) => props.theme.colors.white};
+    &:hover {
+      transform: translate(-2px, 0px) scale(1.1);
+    }
   }
 `;
 

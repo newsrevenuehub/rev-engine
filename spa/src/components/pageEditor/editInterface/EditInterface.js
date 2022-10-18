@@ -15,6 +15,7 @@ import PageElements from 'components/pageEditor/editInterface/pageElements/PageE
 import PageSetup, { PAGE_SETUP_FIELDS } from 'components/pageEditor/editInterface/pageSetup/PageSetup';
 import PageSidebarElements from 'components/pageEditor/editInterface/pageSidebarElements/PageSidebarElements';
 import PageStyles from 'components/pageEditor/editInterface/pageStyles/PageStyles';
+import { usePageContext } from 'components/dashboard/PageContext';
 
 import * as dynamicPageElements from 'components/donationPage/pageContent/dynamicElements';
 import * as dynamicSidebarElements from 'components/donationPage/pageContent/dynamicSidebarElements';
@@ -39,8 +40,8 @@ const EditInterfaceContext = createContext();
  * EditInterface is direct child of PageEditor
  */
 function EditInterface() {
-  const { page, setPage, updatedPage, setUpdatedPage, errors, showEditInterface, setSelectedButton } =
-    usePageEditorContext();
+  const { page, setPage, errors, showEditInterface, setSelectedButton } = usePageEditorContext();
+  const { updatedPage, setUpdatedPage } = usePageContext();
   const [tab, setTab] = useState(0);
   const [elementDestination, setElementDestination] = useState();
   const [addElementModalOpen, setAddElementModalOpen] = useState(false);

@@ -35,8 +35,7 @@ export const ButtonOverlayOuter = styled.div`
 export const ButtonOverlay = styled.div`
   position: fixed;
   left: 0;
-  top: 50%;
-  transform: translateY(-50%);
+  top: 100px;
 
   display: flex;
   flex-direction: column;

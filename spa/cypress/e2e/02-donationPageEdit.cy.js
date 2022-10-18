@@ -256,9 +256,18 @@ describe('Donation page edit', () => {
   });
 
   describe('Payment editor', () => {
+    beforeEach(() => cy.getByTestId('edit-page-button').click());
+
     it('should render the PaymentEditor', () => {
       cy.editElement('DPayment');
       cy.getByTestId('payment-editor').should('exist');
+      cy.getByTestId('discard-element-changes-button').click();
+    });
+
+    it('should disable the checkbox to default paying fees if paying fees is turned off', () => {
+      cy.editElement('DPayment');
+      cy.getByTestId('payment-editor').get('.checkbox').first().click();
+      cy.getByTestId('pay-fees-by-default').get('input[type="checkbox"]').should('be.disabled');
       cy.getByTestId('discard-element-changes-button').click();
     });
   });

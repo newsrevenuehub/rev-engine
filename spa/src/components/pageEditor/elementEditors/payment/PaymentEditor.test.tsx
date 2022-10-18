@@ -67,6 +67,11 @@ describe('PaymentEditor', () => {
       expect(getOfferToPayFeesCheckbox()).not.toBeChecked();
     });
 
+    it('disables the checkbox related to defaulting to pay fees', () => {
+      tree({ elementContent: { offerPayFees: false } });
+      expect(screen.getByRole('checkbox', { name: 'selected by default' })).toBeDisabled();
+    });
+
     it("sets the element's offerPayFees property to true when the relevant checkbox is checked", () => {
       const setElementContent = jest.fn();
 
@@ -83,13 +88,20 @@ describe('PaymentEditor', () => {
       expect(screen.getByRole('checkbox', { name: 'selected by default' })).toBeChecked();
     });
 
+    it('enables the checkbox related to defaulting to pay fees', () => {
+      tree({ elementContent: { offerPayFees: true } });
+      expect(screen.getByRole('checkbox', { name: 'selected by default' })).not.toBeDisabled();
+    });
+
     it("sets the element's payFeesDefault property to false when the relevant checkbox is unchecked", () => {
       const setElementContent = jest.fn();
 
-      tree({ setElementContent, elementContent: { payFeesDefault: true, unrelated: 'preserved' } });
+      tree({ setElementContent, elementContent: { offerPayFees: true, payFeesDefault: true, unrelated: 'preserved' } });
       expect(setElementContent).not.toBeCalled();
       userEvent.click(screen.getByRole('checkbox', { name: 'selected by default' }));
-      expect(setElementContent.mock.calls).toEqual([[{ payFeesDefault: false, unrelated: 'preserved' }]]);
+      expect(setElementContent.mock.calls).toEqual([
+        [{ offerPayFees: true, payFeesDefault: false, unrelated: 'preserved' }]
+      ]);
     });
   });
 
@@ -102,10 +114,12 @@ describe('PaymentEditor', () => {
     it("sets the element's payFeesDefault property to true when the relevant checkbox is checked", () => {
       const setElementContent = jest.fn();
 
-      tree({ setElementContent, elementContent: { payFeesDefault: true, unrelated: 'preserved' } });
+      tree({ setElementContent, elementContent: { offerPayFees: true, payFeesDefault: true, unrelated: 'preserved' } });
       expect(setElementContent).not.toBeCalled();
       userEvent.click(screen.getByRole('checkbox', { name: 'selected by default' }));
-      expect(setElementContent.mock.calls).toEqual([[{ payFeesDefault: false, unrelated: 'preserved' }]]);
+      expect(setElementContent.mock.calls).toEqual([
+        [{ offerPayFees: true, payFeesDefault: false, unrelated: 'preserved' }]
+      ]);
     });
   });
 

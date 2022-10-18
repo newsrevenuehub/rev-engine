@@ -112,8 +112,12 @@ describe('Donation page list', () => {
 
       it('creates a page with a unique name and slug based on existing pages', () => {
         cy.forceLogin(orgAdmin);
+        cy.intercept(
+          { method: 'GET', pathname: getEndpoint(LIST_PAGES) },
+          { fixture: 'pages/list-pages-1', statusCode: 200 }
+        ).as('listPages');
         cy.intercept({ method: 'GET', pathname: getEndpoint(USER) }, { body: orgAdminWithContentFlagAndOneRP });
-        cy.intercept({ method: 'POST', pathname: getEndpoint(LIST_PAGES) }).as('createNewPage');
+        cy.intercept({ method: 'POST', pathname: getEndpoint(LIST_PAGES) }, { statusCode: 200 }).as('createNewPage');
         cy.visit(CONTENT_SLUG);
         cy.wait('@listPages');
         cy.get('button[aria-label="New Page"]').click();

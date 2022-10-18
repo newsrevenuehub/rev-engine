@@ -1,4 +1,5 @@
 import { useEditInterfaceContext } from 'components/pageEditor/editInterface/EditInterface';
+import { useCallback, useEffect } from 'react';
 import {
   IntroText,
   OtherOptionsList,
@@ -17,9 +18,20 @@ type PaymentPropertyName = 'offerPayFees' | 'payFeesDefault';
 function PaymentEditor() {
   const { elementContent, setElementContent } = useEditInterfaceContext();
 
-  function updateElement(propertyName: PaymentPropertyName, value: boolean) {
-    setElementContent({ ...elementContent, [propertyName]: value });
-  }
+  const updateElement = useCallback(
+    (propertyName: PaymentPropertyName, value: boolean) => {
+      setElementContent({ ...elementContent, [propertyName]: value });
+    },
+    [elementContent, setElementContent]
+  );
+
+  // If we disable fees, then collecting by fees by default should also be disabled.
+
+  useEffect(() => {
+    if (!elementContent?.offerPayFees && elementContent?.payFeesDefault) {
+      updateElement('payFeesDefault', false);
+    }
+  }, [elementContent?.offerPayFees, elementContent.payFeesDefault, updateElement]);
 
   // TODO: the Toggle component below does not label its input properly.
 
@@ -43,6 +55,7 @@ function PaymentEditor() {
           <Radio
             id="pay-fees-by-default"
             data-testid="pay-fees-by-default"
+            disabled={!elementContent?.offerPayFees}
             color="primary"
             checked={elementContent?.payFeesDefault}
             onChange={(event, checked) => updateElement('payFeesDefault', checked)}

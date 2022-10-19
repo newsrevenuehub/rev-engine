@@ -32,7 +32,7 @@ class StripeWebhookProcessor:
 
     def process(self):
         logger.info('Processing Stripe Event of type "%s"', self.event.type)
-        logger.debug("Event received in live mode: %s; stripe live mode on: %s", self.event.livemode, STRIPE_LIVE_MODE)
+        logger.info("Event received in live mode: %s; stripe live mode on: %s", self.event.livemode, STRIPE_LIVE_MODE)
         object_type = self.obj_data["object"]
         if STRIPE_LIVE_MODE and not self.event.livemode:
             logger.info(

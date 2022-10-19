@@ -27,7 +27,7 @@ const editInterfaceAnimation = {
   exit: { opacity: 0, x: 200 }
 };
 
-const EditInterfaceContext = createContext();
+export const EditInterfaceContext = createContext();
 
 /**
  * EditInterface

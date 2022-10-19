@@ -1,6 +1,6 @@
 import userEvent from '@testing-library/user-event';
 import { axe } from 'jest-axe';
-import { render, screen, waitFor, within } from 'test-utils';
+import { render, screen, waitFor } from 'test-utils';
 import ProfileForm from './ProfileForm';
 
 function tree(props) {
@@ -19,7 +19,8 @@ function fillInAllFields() {
     userEvent.type(screen.getByLabelText(name), value);
   }
 
-  userEvent.selectOptions(screen.getByLabelText('Company Tax Status'), screen.getByText('Non-profit'));
+  userEvent.click(screen.getByRole('button', { name: /Company Tax Status Select your status/i }));
+  userEvent.click(screen.getByRole('option', { name: 'Non-profit' }));
 }
 
 describe('ProfileForm', () => {
@@ -62,13 +63,13 @@ describe('ProfileForm', () => {
   it('displays a company tax status selector with non-profit and for-profit values, but no preset value', () => {
     tree();
 
-    const taxStatus = screen.getByLabelText('Company Tax Status');
+    const taxStatus = screen.getByRole('button', { name: /Company Tax Status Select your status/i });
 
-    expect(taxStatus).toBeVisible();
-    expect(taxStatus).toHaveValue('');
-    expect(within(taxStatus).getAllByRole('option')).toHaveLength(3); // includes "please select"
-    expect(within(taxStatus).getByRole('option', { name: 'Non-profit' })).toBeInTheDocument();
-    expect(within(taxStatus).getByRole('option', { name: 'For-profit' })).toBeInTheDocument();
+    expect(taxStatus).toBeEnabled();
+    userEvent.click(taxStatus);
+    expect(screen.getAllByRole('option')).toHaveLength(2);
+    expect(screen.getByRole('option', { name: 'Non-profit' })).toBeInTheDocument();
+    expect(screen.getByRole('option', { name: 'For-profit' })).toBeInTheDocument();
   });
 
   it('requires that the user enter a value for all fields except job title', async () => {
@@ -87,7 +88,8 @@ describe('ProfileForm', () => {
       expect(submitButton()).toBeDisabled();
     }
 
-    userEvent.selectOptions(screen.getByLabelText('Company Tax Status'), screen.getByText('Non-profit'));
+    userEvent.click(screen.getByRole('button', { name: /Company Tax Status Select your status/i }));
+    userEvent.click(screen.getByRole('option', { name: 'Non-profit' }));
     expect(submitButton()).not.toBeDisabled();
   });
 

@@ -1,3 +1,4 @@
+import MenuItem from '../MenuItem/MenuItem';
 import TextField from './TextField';
 
 // Not sure why we need this indirection, but if we use TextField directly
@@ -26,9 +27,9 @@ export const Select = TextFieldDemo.bind({});
 Select.args = {
   children: (
     <>
-      <option value="red">Red</option>
-      <option value="green">Green</option>
-      <option value="blue">Blue</option>
+      <MenuItem value="red">Red</MenuItem>
+      <MenuItem value="green">Green</MenuItem>
+      <MenuItem value="blue">Blue</MenuItem>
     </>
   ),
   label: 'Color',
@@ -40,9 +41,9 @@ export const SelectError = TextFieldDemo.bind({});
 SelectError.args = {
   children: (
     <>
-      <option value="red">Red</option>
-      <option value="green">Green</option>
-      <option value="blue">Blue</option>
+      <MenuItem value="red">Red</MenuItem>
+      <MenuItem value="green">Green</MenuItem>
+      <MenuItem value="blue">Blue</MenuItem>
     </>
   ),
   error: true,

@@ -8,6 +8,7 @@ const StyledMuiButton = styled(MuiButton)`
     box-shadow: 0px 0.3px 0.5px rgba(0, 0, 0, 0.1), 0px 2px 4px rgba(0, 0, 0, 0.2);
     border: 1px solid rgb(230, 238, 132);
     padding: 16px;
+    border-radius: ${(props) => props.theme.muiBorderRadius.lg};
 
     .MuiButton-label {
       color: rgb(48, 36, 54);

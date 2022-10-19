@@ -1,7 +1,8 @@
-import merge from 'lodash/merge';
 import { createTheme as createMuiTheme } from '@material-ui/core/styles';
+import merge from 'lodash/merge';
+import { DefaultTheme } from 'styled-components';
 
-export const revEngineTheme = {
+export const revEngineTheme: DefaultTheme = {
   colors: {
     primary: '#20bfdd',
     primaryLight: '#c7eff7',
@@ -108,8 +109,10 @@ export const revEngineTheme = {
     sm: '14px',
     md: '16px',
     lg: '18px',
+    20: '20px',
     lgx: '24px',
     lg2x: '28px',
+    lg3x: '30px',
     h1: '34px',
     xl: '46px',
     '2xl': '72px'
@@ -168,11 +171,11 @@ export const muiThemeOverrides = createMuiTheme({
   }
 });
 
-export function mapCustomStylesToMuiOverrides(styles = {}) {
+export function mapCustomStylesToMuiOverrides(styles: Partial<DefaultTheme> = {}) {
   return createMuiTheme({
     palette: {
-      primary: { main: styles?.colors?.cstm_CTAs || revEngineTheme.colors.primary },
-      secondary: { main: styles?.colors?.cstm_CTAs || revEngineTheme.colors.primary }
+      primary: { main: styles?.colors?.cstm_CTAs ?? revEngineTheme.colors.primary },
+      secondary: { main: styles?.colors?.cstm_CTAs ?? revEngineTheme.colors.primary }
     }
   });
 }

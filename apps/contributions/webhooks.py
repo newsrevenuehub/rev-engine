@@ -4,6 +4,7 @@ import logging
 from django.conf import settings
 
 from apps.contributions.models import Contribution, ContributionStatus
+from revengine.settings.base import STRIPE_LIVE_MODE
 
 
 logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
@@ -32,13 +33,27 @@ class StripeWebhookProcessor:
     def process(self):
         logger.info('Processing Stripe Event of type "%s"', self.event.type)
         object_type = self.obj_data["object"]
+        if STRIPE_LIVE_MODE and self.event.livemode is not True:
+            logger.info(
+                "test mode event %s for account %s received while in live mode; ignoring",
+                self.event.id,
+                self.event.account,
+            )
+            return
+        if not STRIPE_LIVE_MODE and self.event.livemode is True:
+            logger.info(
+                "live mode event %s for account %s received while in test mode; ignoring",
+                self.event.id,
+                self.event.account,
+            )
+            return
 
         if object_type == "payment_intent":
             self.process_payment_intent()
         elif object_type == "subscription":
             self.process_subscription()
         else:
-            logger.warning('Recieved un-handled Stripe object of type "%s"', object_type)
+            logger.warning('Received un-handled Stripe object of type "%s"', object_type)
 
     # PaymentIntent processing
     def process_payment_intent(self):

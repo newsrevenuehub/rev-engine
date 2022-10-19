@@ -34,14 +34,14 @@ class StripeWebhookProcessor:
         logger.info('Processing Stripe Event of type "%s"', self.event.type)
         logger.debug("Event received %s; live mode on: %s", self.event, STRIPE_LIVE_MODE)
         object_type = self.obj_data["object"]
-        if STRIPE_LIVE_MODE and self.event.livemode is not True:
+        if STRIPE_LIVE_MODE and not self.event.livemode:
             logger.info(
                 "test mode event %s for account %s received while in live mode; ignoring",
                 self.event.id,
                 self.event.account,
             )
             return
-        if not STRIPE_LIVE_MODE and self.event.livemode is True:
+        if not STRIPE_LIVE_MODE and self.event.livemode:
             logger.info(
                 "live mode event %s for account %s received while in test mode; ignoring",
                 self.event.id,

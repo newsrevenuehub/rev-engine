@@ -1,4 +1,4 @@
-import { useQueryClient, useQuery } from '@tanstack/react-query';
+import { useQueryClient, useQuery, UseQueryResult } from '@tanstack/react-query';
 import { useAlert } from 'react-alert';
 import { useHistory } from 'react-router-dom';
 
@@ -12,33 +12,48 @@ async function fetchStyles() {
   return data;
 }
 
-function useStyleList() {
+
+type StyleStyles =
+  | string
+  | { [property: string]: StyleStyles }
+  | StyleStyles[];
+
+interface Style {
+  id: number,
+  created: string,
+  modified: string,
+  name: string,
+  styles: StyleStyles,
+}
+
+export interface UseStyleListResult {
+  isLoading: UseQueryResult['isLoading'];
+  isError: UseQueryResult['isError'];
+  styles: Style[],
+  refetch: Function
+}
+
+
+function useStyleList():UseStyleListResult {
   const alert = useAlert();
   const history = useHistory();
   const queryClient = useQueryClient();
-
-
   const {
     data: styles,
     isLoading,
-    isError
+    isError,
   } = useQuery(['styles'], fetchStyles, {
     initialData: [],
-    // if it's an authentication error, we don't want to retry. if it's some other
-    // error we'll retry up to 1 time.
-    retry: (failureCount: number, error:Error) => {
-      return error.name !== 'AuthenticationError' && failureCount < 1;
-    },
-    onError: (err) => {
+    onError: (err:Error) => {
       if (err?.name === 'AuthenticationError') {
         history.push(SIGN_IN);
       } else {
+        // this triggers a Sentry error
         console.error(err);
         alert.error(GENERIC_ERROR);
       }
     }
   });
-
   return { styles, isLoading, isError, refetch: () => {
     queryClient.invalidateQueries(['styles']);
   }};

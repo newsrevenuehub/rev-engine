@@ -99,6 +99,21 @@ describe('Donation page displays dynamic page elements', () => {
     cy.getByTestId('pay-fees-not-checked').should('not.exist');
   });
 
+  it('should not select agreeToPayFees by default if appropriate page property is unset', () => {
+    const page = { ...livePageOne };
+    const paymentIndex = page.elements.findIndex((el) => el.type === 'DPayment');
+    page.elements[paymentIndex].content.payFeesDefault = false;
+    cy.intercept({ method: 'GET', pathname: getEndpoint(LIVE_PAGE_DETAIL) }, { body: page, statusCode: 200 }).as(
+      'getPageWithPayFeesDefault'
+    );
+    cy.visit(getTestingDonationPageUrl(expectedPageSlug));
+    cy.url().should('include', EXPECTED_RP_SLUG);
+    cy.url().should('include', expectedPageSlug);
+    cy.wait(['@getPageWithPayFeesDefault']);
+    cy.getByTestId('pay-fees-checked').should('not.exist');
+    cy.getByTestId('pay-fees-not-checked').should('exist');
+  });
+
   it('should render DSwag', () => {
     cy.getByTestId('d-swag').should('exist');
   });

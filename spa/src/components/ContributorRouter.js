@@ -1,35 +1,33 @@
-import React, { lazy } from 'react';
+import { lazy } from 'react';
 
-import { useEffect, useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 
 // AJAX
-import useRequest from 'hooks/useRequest';
 import { LIVE_PAGE_DETAIL } from 'ajax/endpoints';
+import useRequest from 'hooks/useRequest';
 
 // Constants
 import { DASHBOARD_SUBDOMAINS } from 'settings';
 
 // Routing
-import { Route, BrowserRouter, Switch, Redirect } from 'react-router-dom';
 import ProtectedRoute from 'components/authentication/ProtectedRoute';
 
 // Hooks
 import useSubdomain from 'hooks/useSubdomain';
 
 // Slugs
-import * as ROUTES from 'routes';
 import useWebFonts from 'hooks/useWebFonts';
+import * as ROUTES from 'routes';
 
 // Components/Children
-import GlobalLoading from 'elements/GlobalLoading';
 import TrackPageView from 'components/analytics/TrackPageView';
-import ChunkErrorBoundary from 'components/errors/ChunkErrorBoundary';
-import SegregatedStyles from 'components/donationPage/SegregatedStyles';
 import DonationPageNavbar from 'components/donationPage/DonationPageNavbar';
+import SegregatedStyles from 'components/donationPage/SegregatedStyles';
 
 // Utilities
+import { SentryRoute } from 'hooks/useSentry';
 import componentLoader from 'utilities/componentLoader';
-import AddSlashToRoutes from './routes/AddSlashToRoutes';
+import RouterSetup from './routes/RouterSetup';
 
 // Split bundles
 const ContributorEntry = lazy(() => componentLoader(() => import('components/contributor/ContributorEntry')));
@@ -79,29 +77,18 @@ function ContributorRouter() {
   return (
     <SegregatedStyles page={pageData}>
       {pageData ? <DonationPageNavbar page={pageData} /> : null}
-      <BrowserRouter>
-        <AddSlashToRoutes>
-          <ChunkErrorBoundary>
-            <React.Suspense fallback={<GlobalLoading />}>
-              <Switch>
-                <ProtectedRoute
-                  path={ROUTES.CONTRIBUTOR_DASHBOARD}
-                  render={() => <TrackPageView component={ContributorDashboard} />}
-                  contributor
-                />
-                <Route
-                  path={ROUTES.CONTRIBUTOR_ENTRY}
-                  render={() => <TrackPageView component={ContributorEntry} page={pageData} />}
-                />
-                <Route
-                  path={ROUTES.CONTRIBUTOR_VERIFY}
-                  render={() => <TrackPageView component={ContributorVerify} />}
-                />
-              </Switch>
-            </React.Suspense>
-          </ChunkErrorBoundary>
-        </AddSlashToRoutes>
-      </BrowserRouter>
+      <RouterSetup>
+        <ProtectedRoute
+          path={ROUTES.CONTRIBUTOR_DASHBOARD}
+          render={() => <TrackPageView component={ContributorDashboard} />}
+          contributor
+        />
+        <SentryRoute
+          path={ROUTES.CONTRIBUTOR_ENTRY}
+          render={() => <TrackPageView component={ContributorEntry} page={pageData} />}
+        />
+        <SentryRoute path={ROUTES.CONTRIBUTOR_VERIFY} render={() => <TrackPageView component={ContributorVerify} />} />
+      </RouterSetup>
     </SegregatedStyles>
   );
 }

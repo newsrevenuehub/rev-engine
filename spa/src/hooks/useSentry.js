@@ -2,10 +2,14 @@ import { useEffect } from 'react';
 
 // Sentry
 import * as Sentry from '@sentry/react';
-import { Integrations } from '@sentry/tracing';
+import { BrowserTracing } from '@sentry/tracing';
+import { createBrowserHistory } from 'history';
+import { Route } from 'react-router-dom';
 
 // Const
-import { SENTRY_DSN_FRONTEND, SENTRY_ENABLE_FRONTEND, ENVIRONMENT } from 'settings';
+import { ENVIRONMENT, SENTRY_DSN_FRONTEND, SENTRY_ENABLE_FRONTEND } from 'settings';
+
+const history = createBrowserHistory();
 
 /**
  * Typically, just loading sentry at build time is sufficient.
@@ -17,12 +21,18 @@ function useSentry() {
     if (process.env.NODE_ENV !== 'development' && SENTRY_ENABLE_FRONTEND) {
       Sentry.init({
         dsn: SENTRY_DSN_FRONTEND,
-        integrations: [new Integrations.BrowserTracing()],
+        integrations: [
+          new BrowserTracing({
+            routingInstrumentation: Sentry.reactRouterV5Instrumentation(history)
+          })
+        ],
         tracesSampleRate: 1.0,
         environment: ENVIRONMENT
       });
     }
   });
 }
+
+export const SentryRoute = Sentry.withSentryRouting(Route);
 
 export default useSentry;

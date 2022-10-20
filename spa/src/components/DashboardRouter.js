@@ -1,23 +1,22 @@
-import React, { lazy } from 'react';
+import { lazy } from 'react';
 
 // Routing
-import { Route, BrowserRouter, Switch, Redirect } from 'react-router-dom';
 import ProtectedRoute from 'components/authentication/ProtectedRoute';
+import { Redirect } from 'react-router-dom';
 
-import isContributorAppPath from 'utilities/isContributorAppPath';
 import ContributorRouter from 'components/ContributorRouter';
+import isContributorAppPath from 'utilities/isContributorAppPath';
 
 // Slugs
 import * as ROUTES from 'routes';
 
 // Components/Children
-import GlobalLoading from 'elements/GlobalLoading';
 import TrackPageView from 'components/analytics/TrackPageView';
-import ChunkErrorBoundary from 'components/errors/ChunkErrorBoundary';
 
 // Utilities
+import { SentryRoute } from 'hooks/useSentry';
 import componentLoader from 'utilities/componentLoader';
-import AddSlashToRoutes from './routes/AddSlashToRoutes';
+import RouterSetup from './routes/RouterSetup';
 
 // Split bundles
 const Main = lazy(() => componentLoader(() => import('components/Main')));
@@ -35,45 +34,34 @@ function DashboardRouter() {
   if (isContributorApp) return <ContributorRouter />;
 
   return (
-    <BrowserRouter>
-      <AddSlashToRoutes>
-        <ChunkErrorBoundary>
-          <React.Suspense fallback={<GlobalLoading />}>
-            <Switch>
-              {/* Login URL */}
+    <RouterSetup>
+      {/* Login URL */}
 
-              <Route exact path={ROUTES.SIGN_IN} render={() => <TrackPageView component={SignIn} />} />
-              <Route exact path={ROUTES.SIGN_UP} render={() => <TrackPageView component={SignUp} />} />
-              <Route exact path={ROUTES.FORGOT_PASSWORD} render={() => <TrackPageView component={ForgotPassword} />} />
-              <Route exact path={ROUTES.RESET_PASSWORD} render={() => <TrackPageView component={ResetPassword} />} />
+      <SentryRoute exact path={ROUTES.SIGN_IN} render={() => <TrackPageView component={SignIn} />} />
+      <SentryRoute exact path={ROUTES.SIGN_UP} render={() => <TrackPageView component={SignUp} />} />
+      <SentryRoute exact path={ROUTES.FORGOT_PASSWORD} render={() => <TrackPageView component={ForgotPassword} />} />
+      <SentryRoute exact path={ROUTES.RESET_PASSWORD} render={() => <TrackPageView component={ResetPassword} />} />
 
-              <Redirect from="/verified/:slug" to="/verify-email-success?result=:slug" />
-              <Redirect from={ROUTES.VERIFIED} to={ROUTES.VERIFY_EMAIL_SUCCESS} />
-              <Redirect
-                from={ROUTES.STRIPE_ACCOUNT_LINK_RETURN}
-                to={`${ROUTES.CONTENT_SLUG}?stripeAccountLinkSuccess`}
-              />
+      <Redirect from="/verified/:slug" to="/verify-email-success?result=:slug" />
+      <Redirect from={ROUTES.VERIFIED} to={ROUTES.VERIFY_EMAIL_SUCCESS} />
+      <Redirect from={ROUTES.STRIPE_ACCOUNT_LINK_RETURN} to={`${ROUTES.CONTENT_SLUG}?stripeAccountLinkSuccess`} />
 
-              {/* Organization Dashboard */}
-              <ProtectedRoute
-                path={[
-                  ROUTES.DASHBOARD_SLUG,
-                  ROUTES.DONATIONS_SLUG,
-                  ROUTES.CONTENT_SLUG,
-                  ROUTES.CUSTOMIZE_SLUG,
-                  ROUTES.EDITOR_ROUTE,
-                  ROUTES.VERIFY_EMAIL_SUCCESS,
-                  ROUTES.PROFILE
-                ]}
-                render={() => <TrackPageView component={Main} />}
-              />
+      {/* Organization Dashboard */}
+      <ProtectedRoute
+        path={[
+          ROUTES.DASHBOARD_SLUG,
+          ROUTES.DONATIONS_SLUG,
+          ROUTES.CONTENT_SLUG,
+          ROUTES.CUSTOMIZE_SLUG,
+          ROUTES.EDITOR_ROUTE,
+          ROUTES.VERIFY_EMAIL_SUCCESS,
+          ROUTES.PROFILE
+        ]}
+        render={() => <TrackPageView component={Main} />}
+      />
 
-              <Redirect to={ROUTES.CONTENT_SLUG} />
-            </Switch>
-          </React.Suspense>
-        </ChunkErrorBoundary>
-      </AddSlashToRoutes>
-    </BrowserRouter>
+      <Redirect to={ROUTES.CONTENT_SLUG} />
+    </RouterSetup>
   );
 }
 

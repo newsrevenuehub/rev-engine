@@ -64,6 +64,10 @@ describe('CancelRecurringButton', () => {
   });
 
   describe('When the modal is open', () => {
+    let onCancel: jest.Mock;
+
+    beforeEach(() => (onCancel = jest.fn()));
+
     it('shows the user the revenue program and amount', () => {
       // Amount is in cents.
 
@@ -75,8 +79,6 @@ describe('CancelRecurringButton', () => {
     });
 
     it('shows a button that closes the dialog and does nothing', () => {
-      const onCancel = jest.fn();
-
       tree({ onCancel });
       userEvent.click(getCancelButton());
       userEvent.click(screen.getByRole('button', { name: 'No, Keep Payment' }));
@@ -85,8 +87,6 @@ describe('CancelRecurringButton', () => {
     });
 
     it('closes the dialog and does nothing if the user clicks the close button', () => {
-      const onCancel = jest.fn();
-
       tree({ onCancel });
       userEvent.click(getCancelButton());
       userEvent.click(screen.getByRole('button', { name: 'Close' }));
@@ -95,8 +95,6 @@ describe('CancelRecurringButton', () => {
     });
 
     it('closes the dialog and calls onCancel if the user clicks the confirm button', () => {
-      const onCancel = jest.fn();
-
       tree({ contribution: mockContribution, onCancel });
       userEvent.click(getCancelButton());
       expect(onCancel).not.toBeCalled();

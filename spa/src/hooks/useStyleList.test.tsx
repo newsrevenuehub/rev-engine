@@ -64,7 +64,7 @@ describe('useStyleList hook', () => {
     const { result: { current: { refetch } } } = renderHook(() => useStyleList(), { wrapper });
     expect(typeof refetch).toBe('function');
     refetch();
-      expect(mockInvalidateQueries).toHaveBeenCalledWith(['styles']);
+    expect(mockInvalidateQueries).toHaveBeenCalledWith(['styles']);
   });
 
   it('returns the styles furnished by the styles API endpoint', async () => {

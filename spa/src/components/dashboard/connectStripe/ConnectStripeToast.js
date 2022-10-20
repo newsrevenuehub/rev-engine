@@ -7,7 +7,7 @@ import useConnectStripeAccount from 'hooks/useConnectStripeAccount';
 import StripeLogo from 'assets/icons/stripeLogo.svg';
 import Triangle6Dots from 'assets/icons/triangle6Dots.svg';
 import RemoveIcon from '@material-ui/icons/Remove';
-import RETooltip from 'elements/RETooltip';
+import { Tooltip } from 'components/base';
 
 export const PENDING_VERIFICATION_MESSAGE =
   "Your account verification is pending with Stripe. This can take up to 24 hours. Check back later, and we'll let you know if Stripe needs more info to proceed.";
@@ -63,14 +63,14 @@ const ConnectStripeToast = () => {
 
   if (collapsed) {
     return (
-      <RETooltip title={headingText}>
+      <Tooltip title="Connect to Stripe">
         <S.ConnectStripeToastCollapsed data-testid="connect-stripe-toast-collapsed" onClick={handleExpand}>
           <S.StripeLogoCollapsed src={StripeLogo} />
           <span>
             <S.BottomLeftImage src={Triangle6Dots} />
           </span>
         </S.ConnectStripeToastCollapsed>
-      </RETooltip>
+      </Tooltip>
     );
   }
 
@@ -78,11 +78,11 @@ const ConnectStripeToast = () => {
     <S.ConnectStripeToast data-testid="connect-stripe-toast">
       <S.Header>
         <S.StripeLogo src={StripeLogo} />
-        <RETooltip title="Minimize" placement="bottom-end">
+        <Tooltip title="Minimize" placement="bottom-end">
           <S.Minimize onClick={handleCollapse} data-testid="minimize-toast">
             <RemoveIcon />
           </S.Minimize>
-        </RETooltip>
+        </Tooltip>
       </S.Header>
       <S.Heading>{headingText}</S.Heading>
       <S.Description>{ctaDescriptionText}</S.Description>

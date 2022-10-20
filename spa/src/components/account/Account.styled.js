@@ -9,6 +9,12 @@ export const Outer = styled.div`
   display: flex;
   width: 100%;
 
+  h1,
+  p,
+  span {
+    font-family: ${(props) => props.theme.systemFont};
+  }
+
   @media (${(props) => props.theme.breakpoints.mdUp}) {
     height: 100vh;
   }
@@ -70,8 +76,14 @@ export const Right = styled.div`
 
 export const FormElements = styled.div`
   width: 80%;
-  max-width: ${(props) => (props.shorten ? '310px' : '437px')};
+  max-width: ${(props) => (props.shorten ? '320px' : '437px')};
   text-align: left;
+
+  ${(props) =>
+    props.shorten &&
+    `
+    margin-bottom: 20vh;
+  `}
 `;
 
 export const BottomBar = styled.div`
@@ -91,10 +103,10 @@ export const BottomBarYellowSVG = styled.img`
   }
 `;
 
-export const Heading = styled.div`
+export const Heading = styled.h1`
   font-weight: 700;
   font-size: ${(props) => props.theme.fontSizesUpdated.h1};
-  margin-bottom: ${(props) => `${props.marginBottom}px` || '20px'};
+  margin-bottom: ${(props) => (props.marginBottom ? `${props.marginBottom}px` : '20px')};
 
   line-height: 47px;
   color: ${(props) => props.theme.colors.account.purple[1]};

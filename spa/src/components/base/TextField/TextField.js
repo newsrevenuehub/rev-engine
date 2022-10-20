@@ -75,7 +75,6 @@ export const TextField = forwardRef((props, ref) => (
   <StyledMuiTextField
     InputLabelProps={{ shrink: true }}
     SelectProps={{
-      native: true,
       IconComponent: KeyboardArrowDown
     }}
     ref={ref}

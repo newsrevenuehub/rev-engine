@@ -72,7 +72,6 @@ describe('useStyleList hook', () => {
     expect(result.current.isLoading).toBe(true)
     await waitForValueToChange(() => result.current.isLoading);
     expect(result.current.styles).toEqual(stylesList);
-    console.log(result.current.styles);
   });
 
   it('console.errors and alerts when there is a network error', async () => {

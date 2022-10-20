@@ -297,7 +297,7 @@ class RevenueProgram(IndexedTimeStampedModel):
         "If you're hoping to test this locally, pretty much too bad"
             -- Steve Jobs
         """
-        if settings.STRIPE_LIVE_MODE:
+        if settings.STRIPE_LIVE_MODE and not self.domain_apple_verified_date:
             try:
                 stripe.ApplePayDomain.create(
                     api_key=settings.STRIPE_LIVE_SECRET_KEY,
@@ -307,10 +307,9 @@ class RevenueProgram(IndexedTimeStampedModel):
                 self.domain_apple_verified_date = timezone.now()
                 self.save()
             except stripe.error.StripeError:
-                logger.warning(
+                logger.exception(
                     "Failed to register ApplePayDomain for RevenueProgram %s because of StripeError",
                     self.name,
-                    exc_info=True,
                 )
 
     def user_has_ownership_via_role(self, role_assignment):

@@ -29,8 +29,8 @@ interface Style {
 export interface UseStyleListResult {
   isLoading: UseQueryResult['isLoading'];
   isError: UseQueryResult['isError'];
-  styles: Style[],
-  refetch: Function
+  styles: Style[];
+  refetch: Function;
 }
 
 
@@ -43,12 +43,10 @@ function useStyleList():UseStyleListResult {
     isLoading,
     isError,
   } = useQuery(['styles'], fetchStyles, {
-    initialData: [],
     onError: (err:Error) => {
       if (err?.name === 'AuthenticationError') {
         history.push(SIGN_IN);
       } else {
-        // this triggers a Sentry error
         console.error(err);
         alert.error(GENERIC_ERROR);
       }

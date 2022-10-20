@@ -57,12 +57,13 @@ describe('useStyleList hook', () => {
 
   it('returns a `refetch` function that invalidates the styles query', () => {
     const mockInvalidateQueries = jest.fn();
-    jest.spyOn(reactQuery, 'useQueryClient');
-    (useQueryClient as jest.MockedFunction<typeof useQueryClient>).mockReturnValue({invalidateQueries: mockInvalidateQueries});
+    const spy = jest.spyOn(reactQuery, 'useQueryClient');
+    // @ts-expect-error
+    spy.mockReturnValue({invalidateQueries: mockInvalidateQueries})
     const { result: { current: { refetch } } } = renderHook(() => useStyleList(), { wrapper });
     expect(typeof refetch).toBe('function');
     refetch();
-    expect(mockInvalidateQueries).toHaveBeenCalledWith(['styles'])
+      expect(mockInvalidateQueries).toHaveBeenCalledWith(['styles']);
   });
 
   it('returns the styles furnished by the styles API endpoint', async () => {

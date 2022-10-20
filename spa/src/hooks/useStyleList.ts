@@ -43,6 +43,7 @@ function useStyleList():UseStyleListResult {
     isLoading,
     isError,
   } = useQuery(['styles'], fetchStyles, {
+    initialData: [],
     onError: (err:Error) => {
       if (err?.name === 'AuthenticationError') {
         history.push(SIGN_IN);

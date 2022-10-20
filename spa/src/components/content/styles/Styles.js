@@ -54,7 +54,7 @@ function Styles({ setShowEditStylesModal, setStyleToEdit }) {
     setShowEditStylesModal(true);
   };
 
-  const stylesFiltered = styles ? filterStyles(styles, styleSearchQuery) : [];
+  const stylesFiltered = filterStyles(styles, styleSearchQuery);
 
   const addStyleButtonShouldBeDisabled = () => {
     if ([USER_ROLE_HUB_ADMIN_TYPE, USER_SUPERUSER_TYPE].includes(user?.role_type?.[0])) {

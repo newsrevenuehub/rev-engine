@@ -69,8 +69,7 @@ describe('useStyleList hook', () => {
 
   it('returns the styles furnished by the styles API endpoint', async () => {
     const { waitForValueToChange, result } = renderHook(() => useStyleList(), { wrapper });
-    expect(result.current.isLoading).toBe(true)
-    await waitForValueToChange(() => result.current.isLoading);
+    await waitForValueToChange(() => result.current.styles);
     expect(result.current.styles).toEqual(stylesList);
   });
 

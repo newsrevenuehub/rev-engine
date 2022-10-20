@@ -1,27 +1,25 @@
 import userEvent from '@testing-library/user-event';
-import { ContributionInterval } from 'constants/contributionIntervals';
-import { PaymentStatus } from 'constants/paymentStatus';
+import { ContributorContribution } from 'hooks/useContributorContributionList';
 import { axe } from 'jest-axe';
-import { render, screen, user } from 'test-utils';
+import { render, screen } from 'test-utils';
 import { CancelRecurringButton, CancelRecurringButtonProps } from './CancelRecurringButton';
 
-const mockContribution = {
+const mockContribution: ContributorContribution = {
   id: 'mock-id',
   amount: 12345,
   card_brand: 'visa',
-  contributor: 1,
-  contributor_email: 'mock-contributor-email',
   created: 'mock-created',
-  currency: 'mock-currency',
-  interval: 'month' as ContributionInterval,
+  interval: 'month',
   last4: 1234,
-  modified: 'mock-modified',
-  organization: 1,
-  payment_provider_data: {},
-  payment_provider_used: 'mock-payment-provider',
   revenue_program: 'mock-rp',
-  reason: 'mock-reason',
-  status: 'paid' as PaymentStatus
+  status: 'paid',
+  credit_card_expiration_date: 'mock-cc-expiration',
+  is_cancelable: false,
+  is_modifiable: false,
+  last_payment_date: 'mock-last-payment-date',
+  payment_type: 'mock-payment-type',
+  provider_customer_id: 'mock-customer-id',
+  stripe_account_id: 'mock-account-id'
 };
 
 describe('CancelRecurringButton', () => {

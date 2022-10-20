@@ -1,27 +1,36 @@
-import { ComponentProps } from 'react';
+import { ComponentProps, useMemo } from 'react';
 // TODO: [DEV-2679] Replace react-select with MUI Autocomplete
-import Select from 'react-select';
-import styled from 'styled-components';
+import Select, { StylesConfig } from 'react-select';
 
 export type SearchableSelectProps = Partial<ComponentProps<typeof Select>>;
 
-const StyledSelect = styled(Select)`
-  .react-select__control {
-    border-color: #080708;
-    border-radius: 3px;
-    font-family: Roboto, sans-serif;
-    font-weight: 400;
-    height: 45px;
-  }
-  .react-select__option {
-    font-family: Roboto, sans-serif;
-    font-weight: 400;
-    font-size: ${({theme: {fontSizes}}) => fontSizes[1] }
-  }
-`;
+const fontStyles = {
+  fontFamily: 'Roboto, sans-serif',
+  fontSize: 16,
+  fontWeight: 400
+};
 
 export function SearchableSelect(props: SearchableSelectProps) {
-  return <StyledSelect menuIsOpen={true} classNamePrefix="react-select" closeMenuOnSelect isSearchable {...props} />;
+  // We reproduce styles that are shared by other inputs in the form. Other inputs
+  // use styled-components, but that's not straightforward to integrate with react-select,
+  // so here we manually override its styles.
+
+  const styles = useMemo<StylesConfig>(
+    () => ({
+      control: (provided) => ({
+        ...provided,
+        height: '45px',
+        borderRadius: '3px',
+        borderColor: '#080708',
+        '&:hover': { borderColor: 'inherit' }
+      }),
+      valueContainer: (provided) => ({ ...provided, ...fontStyles }),
+      option: (provided) => ({ ...provided, ...fontStyles })
+    }),
+    []
+  );
+
+  return <Select classNamePrefix="react-select" closeMenuOnSelect isSearchable styles={styles} {...props} />;
 }
 
 // react-select does not appear to have prop types, so we can't set them on

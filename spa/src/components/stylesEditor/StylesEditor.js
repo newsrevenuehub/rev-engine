@@ -93,7 +93,7 @@ function StylesEditor({ styles, setStyles, handleKeepChanges, handleDiscardChang
         }
       }
     );
-  }, [alert]);
+  }, [alert, requestGetFonts]);
 
   const styleDetailUrl = `${LIST_STYLES}${styles.id}/`;
 
@@ -117,9 +117,9 @@ function StylesEditor({ styles, setStyles, handleKeepChanges, handleDiscardChang
 
   const handleCreateStyles = () => {
     setLoading(true);
-    const postData = { ...styles, revenue_program: styles.revenue_program.id };
+    const postData = { ...styles, revenue_program: styles.revenue_program?.id };
     requestCreateStyles(
-      { method: 'POST', url: LIST_STYLES, data: { ...styles, revenue_program: styles.revenue_program.id } },
+      { method: 'POST', url: LIST_STYLES, data: postData },
       {
         onSuccess: handleRequestSuccess,
         onFailure: handleRequestError
@@ -186,6 +186,7 @@ function StylesEditor({ styles, setStyles, handleKeepChanges, handleDiscardChang
         </S.FieldRow>
         {!isUpdate && (
           <Select
+            errors={errors.revenue_program}
             label="Select a revenue program"
             items={availableRevenuePrograms}
             // if no selected item, need to default to object with empty string for name

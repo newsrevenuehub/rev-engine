@@ -25,5 +25,6 @@ export const TaxStatusContainer = styled('div')`
 export const TaxStatusInfoTooltip = styled(InfoTooltip)`
   position: absolute;
   top: 0;
-  right: 0;
+  right: -10px;
+  margin-right: 10px;
 `;

@@ -106,7 +106,7 @@ function DDonorAddress() {
 }
 
 DDonorAddress.type = 'DDonorAddress';
-DDonorAddress.displayName = 'Donor address';
+DDonorAddress.displayName = 'Donor Address';
 DDonorAddress.description = 'Collect donor address';
 DDonorAddress.required = true;
 DDonorAddress.unique = true;

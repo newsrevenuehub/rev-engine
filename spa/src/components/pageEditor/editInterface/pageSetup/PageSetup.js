@@ -141,16 +141,18 @@ function PageSetup({ backToProperties }) {
           errors={errors.graphic_thumbnail}
         />
       </S.ImageSelectorWrapper>
-      <S.InputWrapper>
-        <Input
-          label="Thank You page link"
-          helpText='If you have a "Thank You" page of your own, add a link here'
-          value={thank_you_redirect}
-          onChange={(e) => setThankYouRedirect(e.target.value)}
-          errors={errors.thank_you_redirect}
-          testid="thank-you-redirect-link-input"
-        />
-      </S.InputWrapper>
+      {page.plan.custom_thank_you_page_enabled && (
+        <S.InputWrapper>
+          <Input
+            label="Thank You page link"
+            helpText='If you have a "Thank You" page of your own, add a link here'
+            value={thank_you_redirect}
+            onChange={(e) => setThankYouRedirect(e.target.value)}
+            errors={errors.thank_you_redirect}
+            testid="thank-you-redirect-link-input"
+          />
+        </S.InputWrapper>
+      )}
       <S.InputWrapper border>
         <Input
           label="Post Thank You redirect"

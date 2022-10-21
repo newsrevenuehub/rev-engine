@@ -1,4 +1,4 @@
-import { Button as MuiButton } from '@material-ui/core';
+import { Button as BaseButton } from 'components/base';
 import styled from 'styled-components';
 
 export const ConnectStripeToast = styled.div`
@@ -8,7 +8,7 @@ export const ConnectStripeToast = styled.div`
   font-family: ${(props) => props.theme.systemFont};
   border: 0.5px solid ${(props) => props.theme.colors.muiGrey[100]};
   box-shadow: 0px 2px 10px rgba(0, 0, 0, 0.2);
-  border-radius: ${(props) => props.theme.muiBorderRadius.sm};
+  border-radius: ${(props) => props.theme.muiBorderRadius.lg};
   width: 90%;
   max-width: 300px;
   padding: 11px 17px 17px;
@@ -23,7 +23,7 @@ export const ConnectStripeToastCollapsed = styled.div`
   background: ${(props) => props.theme.colors.white};
   border: 0.5px solid ${(props) => props.theme.colors.muiGrey[100]};
   box-shadow: 0px 0.3px 0.5px rgba(0, 0, 0, 0.1), 0px 2px 4px rgba(0, 0, 0, 0.2);
-  border-radius: ${(props) => props.theme.muiBorderRadius.sm};
+  border-radius: ${(props) => props.theme.muiBorderRadius.lg};
   max-width: 96px;
   z-index: 100;
   cursor: pointer;
@@ -76,35 +76,24 @@ export const Minimize = styled.div`
 `;
 
 export const Heading = styled.div`
-  font-size: ${(props) => props.theme.fontSizesUpdated.sm};
-  line-height: ${(props) => props.theme.fontSizesUpdated.md};
+  font-size: ${(props) => props.theme.fontSizesUpdated.lg};
   font-weight: 600;
-  color: ${(props) => props.theme.colors.purple};
-  padding-bottom: 9px;
+  color: ${(props) => props.theme.colors.account.purple[1]};
+  margin-bottom: 12px;
 `;
 
 export const Description = styled.p`
-  font-size: ${(props) => props.theme.fontSizesUpdated.xs};
-  line-height: ${(props) => props.theme.fontSizesUpdated.sm};
-  color: ${(props) => props.theme.colors.muiGrey[400]};
+  font-size: ${(props) => props.theme.fontSizesUpdated.md};
+  color: ${(props) => props.theme.colors.muiGrey[900]};
+  line-height: 19px;
+  font-weight: 400;
   margin-bottom: 0px;
 `;
 
-export const Button = styled(MuiButton)`
+export const Button = styled(BaseButton)`
   && {
     width: 100%;
-    height: 36px;
-    background: ${(props) => props.theme.buttons.yellow.background};
-    border: ${(props) => props.theme.buttons.yellow.border};
-    box-shadow: ${(props) => props.theme.buttons.yellow.boxShadow};
-    border-radius: ${(props) => props.theme.muiBorderRadius.sm};
-    font-weight: 600;
-    font-size: ${(props) => props.theme.fontSizesUpdated.xs};
-    line-height: ${(props) => props.theme.fontSizesUpdated.sm};
-    margin: 18px 0px 0px;
-
-    :hover {
-      background: ${(props) => props.theme.buttons.yellow.background};
-    }
+    height: 40px;
+    margin-top: 20px;
   }
 `;

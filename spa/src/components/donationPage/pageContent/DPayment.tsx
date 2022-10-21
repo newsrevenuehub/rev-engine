@@ -1,4 +1,5 @@
 import * as S from './DPayment.styled';
+import PropTypes, { InferProps } from 'prop-types';
 import DElement from './DElement';
 import { ICONS } from 'assets/icons/SvgIcon';
 
@@ -12,13 +13,20 @@ import { usePage } from '../DonationPage';
 // Stripe
 import StripePaymentWrapper from 'components/paymentProviders/stripe/StripePaymentWrapper';
 
-function DPayment({ live }) {
+export const DPaymentPropTypes = {
+  live: PropTypes.bool
+};
+
+export type DPaymentProps = InferProps<typeof DPaymentPropTypes>;
+
+function DPayment({ live }: DPaymentProps) {
   return <DElement>{live ? <StripePaymentWrapper /> : <NotLivePlaceholder />}</DElement>;
 }
 
+DPayment.propTypes = DPaymentPropTypes;
 DPayment.type = 'DPayment';
-DPayment.displayName = 'Payment';
-DPayment.description = 'Allow donors to contribute';
+DPayment.displayName = 'Payment Fees';
+DPayment.description = 'Handle payment processing fees';
 DPayment.required = true;
 DPayment.unique = true;
 DPayment.requireContent = true;
@@ -38,6 +46,12 @@ export function PayFeesWidget() {
   const { page, frequency, userAgreesToPayFees, setUserAgreesToPayFees, feeAmount } = usePage();
   const currencySymbol = page?.currency?.symbol;
 
+  // Couldn't find a type declaration for semantic-ui's onChange event.
+
+  function handleChange(_: unknown, { checked }: { checked: boolean }) {
+    setUserAgreesToPayFees(checked);
+  }
+
   return (
     <S.PayFees data-testid="pay-fees">
       <S.PayFeesQQ>Agree to pay fees?</S.PayFeesQQ>
@@ -49,7 +63,8 @@ export function PayFeesWidget() {
         }
         toggle
         checked={userAgreesToPayFees}
-        onChange={(_, { checked }) => setUserAgreesToPayFees(checked)}
+        onChange={handleChange}
+        type="checkbox"
         data-testid={`pay-fees-${userAgreesToPayFees ? 'checked' : 'not-checked'}`}
       />
       <S.PayFeesDescription>

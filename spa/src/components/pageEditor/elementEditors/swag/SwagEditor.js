@@ -64,11 +64,11 @@ function SwagEditor() {
     });
   };
 
-  const handleSwagThresholdChange = (e) => {
-    if (validateInputPositiveFloat(e.target.value)) {
+  const handleSwagThresholdChange = ({ target: { value } }) => {
+    if (value === '' || validateInputPositiveFloat(value)) {
       setElementContent({
         ...elementContent,
-        swagThreshold: e.target.value
+        swagThreshold: value
       });
     }
   };

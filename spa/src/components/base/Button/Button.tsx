@@ -90,6 +90,7 @@ export const Button = styled(ButtonWrapper)<ButtonProps>`
     height: ${({ size }) => (size ? sizes[size].height : sizes.medium.height)};
     padding: ${({ size }) => (size ? sizes[size].padding : sizes.medium.padding)};
 
+    .MuiButton-label,
     [class^='MuiButton-label'] {
       color: ${({ color }) => (color ? colors[color].normal.fg : colors.primaryLight.normal.fg)};
       font: 600 14px Roboto, sans-serif;
@@ -99,6 +100,7 @@ export const Button = styled(ButtonWrapper)<ButtonProps>`
   &&:active {
     // Background color seems to be overridden by the ripple animation.
 
+    .MuiButton-label,
     [class^='MuiButton-label'] {
       color: ${({ color }) => (color ? colors[color].active.fg : colors.primaryLight.active.fg)};
     }
@@ -109,14 +111,17 @@ export const Button = styled(ButtonWrapper)<ButtonProps>`
     box-shadow: ${({ color }) =>
       color === 'text' ? 'none' : '0px 0.3px 0.5px rgba(0, 0, 0, 0.1), 0px 2px 4px rgba(0, 0, 0, 0.2)'};
 
+    .MuiButton-label,
     [class^='MuiButton-label'] {
       color: ${({ color }) => (color ? colors[color].hover.fg : colors.primaryLight.hover.fg)};
     }
   }
 
+  &&.Mui-disabled,
   &&[class^='Mui-disabled'] {
     background-color: ${({ color }) => (color ? colors[color].disabled.bg : colors.primaryLight.disabled.bg)};
 
+    .MuiButton-label,
     [class^='MuiButton-label'] {
       color: ${({ color }) => (color ? colors[color].disabled.fg : colors.primaryLight.disabled.fg)};
     }

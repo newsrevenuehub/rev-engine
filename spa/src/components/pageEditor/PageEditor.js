@@ -49,7 +49,7 @@ import DonationPage from 'components/donationPage/DonationPage';
 import GlobalLoading from 'elements/GlobalLoading';
 import EditInterface from 'components/pageEditor/editInterface/EditInterface';
 import PageTitle from 'elements/PageTitle';
-import RETooltip from 'elements/RETooltip';
+import { Tooltip } from 'components/base';
 import { usePageContext } from 'components/dashboard/PageContext';
 import getSuccessMessage, { pageHasBeenPublished } from 'utilities/editPageGetSuccessMessage';
 
@@ -422,11 +422,11 @@ function PageEditor() {
                   tooltipText="Save"
                 />
               ) : (
-                <RETooltip title="Save" placement="right">
+                <Tooltip title="Save" placement="right">
                   <S.PageEditorBackButton data-testid="save-page-button">
                     <S.DisabledSaveIcon icon={faSave} type="neutral" disabled={!updatedPage || loading} />
                   </S.PageEditorBackButton>
-                </RETooltip>
+                </Tooltip>
               )}
 
               <CircleButton

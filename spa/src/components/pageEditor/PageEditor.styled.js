@@ -8,8 +8,12 @@ export const PageEditor = styled.div`
 
 export const PageEditorBackButton = styled.div`
   text-align: center;
-  height: 50px
-  width: 50px`;
+  height: 50px;
+  width: 50px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+`;
 
 export const DisabledSaveIcon = styled(FontAwesomeIcon)`
   color: ${(props) => props.theme.colors.grey[0]};
@@ -42,7 +46,7 @@ export const ButtonOverlay = styled.div`
   justify-content: space-between;
   padding: 1rem 0;
   padding-left: 1.1rem;
-  height: 400px;
+  gap: 30px;
 `;
 
 export const EditorButton = styled(motion.button)`

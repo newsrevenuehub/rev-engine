@@ -9,6 +9,8 @@ export const DashboardTopbar = styled.div`
   box-shadow: ${(props) => props.theme.shadows[0]};
   display: flex;
   flex-direction: row;
+  position: fixed;
+  z-index: ${(props) => props.theme.zIndex.header};
 `;
 
 export const TopMenu = styled.div`

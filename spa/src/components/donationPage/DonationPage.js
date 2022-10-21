@@ -34,6 +34,7 @@ import { CONTRIBUTION_INTERVALS } from 'constants/contributionIntervals';
 import { CSRF_HEADER } from 'settings';
 
 function authorizePayment(paymentData, paymentType, csrftoken) {
+  console.log({ paymentData });
   const apiEndpoint =
     paymentType === CONTRIBUTION_INTERVALS.ONE_TIME
       ? AUTHORIZE_ONE_TIME_STRIPE_PAYMENT_ROUTE
@@ -167,10 +168,12 @@ function DonationPage({ page, live = false }) {
       console.error('No recaptcha token, defaulting to empty string');
     }
     return serializeData(formRef.current, {
-      amount: totalAmount,
+      amount,
       frequency,
       reCAPTCHAToken,
       pageId: page.id,
+      payFee: userAgreesToPayFees,
+      rpIsNonProfit: page.revenue_program_is_nonprofit,
       salesforceCampaignId
     });
   };

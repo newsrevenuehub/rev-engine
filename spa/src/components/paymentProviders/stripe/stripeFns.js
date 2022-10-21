@@ -68,6 +68,7 @@ function serializeForm(form) {
  */
 export function serializeData(formRef, state) {
   const serializedData = serializeForm(formRef);
+  serializedData['agreed_to_pay_fees'] = state.payFee;
   serializedData['amount'] = getTotalAmount(
     state.amount,
     state.payFee,
@@ -75,7 +76,6 @@ export function serializeData(formRef, state) {
     state.rpIsNonProfit
   ).toString();
   serializedData['donor_selected_amount'] = state.amount;
-  serializedData['agreed_to_pay_fees'] = state.payFee;
   serializedData['revenue_program_slug'] = state.revProgramSlug;
   serializedData['donation_page_slug'] = state.pageSlug;
   serializedData['revenue_program_country'] = state.rpCountry;

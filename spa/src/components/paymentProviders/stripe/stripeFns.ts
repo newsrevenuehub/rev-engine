@@ -1,50 +1,50 @@
-import calculateStripeFee from 'utilities/calculateStripeFee';
+import { PaymentMethodCreateParams, Stripe, StripeCardElement } from '@stripe/stripe-js';
+import { ContributionInterval } from 'constants/contributionIntervals';
 import { PAYMENT_SUCCESS } from 'routes';
-
-/******************\
- *  Process Data  *
-\******************/
+import calculateStripeFee from 'utilities/calculateStripeFee';
 
 /**
  * getTotalAmount takes an amount in dollars and an optional fee in dollars and adds them up.
  * @param {number} amount - float or integer, human-readable amount to be donated
- * @param {number} fee - the fee to include, if shouldPayFee
  * @param {boolean} shouldPayFee - whether or not to include the fee in the total value
  * @param {string} frequency - The donation interval (ie 'one_time', 'monthly', etc). Used to determine stripe fee
  * @param {boolean} rpIsNonProfit - whether or not the revenue program reports as non-profit. Used to determine stripe fee
  * @returns A human readable amount in dollars
  */
-export function getTotalAmount(amount, shouldPayFee, frequency, rpIsNonProfit) {
-  /*
-    If we get 10, we should see 10. If we get 10.3, we should see 10.30.
-  */
-  let total = parseFloat(amount);
-  if (shouldPayFee) total += parseFloat(calculateStripeFee(amount, frequency, rpIsNonProfit));
-  total = total.toFixed(2);
-  if (total.endsWith('.00')) total = total.substring(0, total.length - 3);
-  return total;
-}
+export function getTotalAmount(
+  amount: number | string,
+  shouldPayFee: boolean,
+  frequency: ContributionInterval,
+  rpIsNonProfit: boolean
+) {
+  let total = parseFloat(amount as string);
 
-// This function is a short term fix to technical debt in donation form, whereby
-// the name of the form field name for swag choice ends up being of form `swag_choice_Hat` or
-// `swag_choice_Cup` instead of just `swag_choice. A better fix would be to refactor the
-// underlying `DSwag` element, but the level of effort to do that is too much in short term.
-function normalizeSwagField(data) {
-  const swagKey = Object.keys(data).find((key) => key.includes('swag_choice_'));
-  if (!swagKey) {
-    return data;
+  if (shouldPayFee) {
+    const fee = calculateStripeFee(amount, frequency, rpIsNonProfit);
+
+    // Fee might be null if amount isn't a number.
+    // TODO handle this better?
+
+    if (fee) {
+      total += fee;
+    }
   }
-  const swagType = swagKey.split('swag_choice_')[1];
-  data['swag_choice'] = `${swagType}: ${data[swagKey]}`;
-  delete data[swagKey];
-  return data;
+
+  let result = total.toFixed(2);
+
+  if (result.endsWith('.00')) {
+    result = result.substring(0, result.length - 3);
+  }
+
+  return result;
 }
 
-function serializeForm(form) {
+function serializeForm(form: HTMLFormElement) {
   const booleans = ['swag_opt_out', 'comp_subscription', 'tribute_type_honoree', 'tribute_type_in_memory_of'];
   const tributesToConvert = { tribute_type_honoree: 'type_honoree', tribute_type_in_memory_of: 'type_in_memory_of' };
-  const obj = {};
+  const obj: Record<string, File | boolean | null | string> = {};
   const formData = new FormData(form);
+
   for (const key of formData.keys()) {
     if (booleans.includes(key)) {
       // If it's a bool checkbox, its mere presence on in FormData indicates that it is checked.
@@ -53,11 +53,29 @@ function serializeForm(form) {
     } else {
       obj[key] = formData.get(key);
     }
+
     // tribute_type could be either a radio or a checkbox.
     // If it's a checkbox, we need to convert the "true" value to the expected value
-    if (tributesToConvert[key]) obj.tribute_type = tributesToConvert[key];
+    if (key in tributesToConvert) {
+      obj.tribute_type = tributesToConvert[key as keyof typeof tributesToConvert];
+    }
   }
+
   return obj;
+}
+
+export interface ContributionFormExtraData {
+  amount: string;
+  currency: string;
+  frequency: ContributionInterval;
+  pageId: string;
+  pageSlug: string;
+  payFee: boolean;
+  reCAPTCHAToken: string;
+  revProgramSlug: string;
+  rpCountry: string;
+  rpIsNonProfit: boolean;
+  salesforceCampaignId?: string;
 }
 
 /**
@@ -66,25 +84,33 @@ function serializeForm(form) {
  * @param {object} state - any form state not contained in formRef (things that weren't using inputs)
  * @returns JSON-serialized form data
  */
-export function serializeData(formRef, state) {
+export function serializeData(formRef: HTMLFormElement, state: ContributionFormExtraData) {
   const serializedData = serializeForm(formRef);
-  serializedData['agreed_to_pay_fees'] = state.payFee;
-  serializedData['amount'] = getTotalAmount(
-    state.amount,
-    state.payFee,
-    state.frequency,
-    state.rpIsNonProfit
-  ).toString();
-  serializedData['donor_selected_amount'] = state.amount;
-  serializedData['revenue_program_slug'] = state.revProgramSlug;
-  serializedData['donation_page_slug'] = state.pageSlug;
-  serializedData['revenue_program_country'] = state.rpCountry;
-  serializedData['currency'] = state.currency;
-  serializedData['page'] = state.pageId;
-  serializedData['captcha_token'] = state.reCAPTCHAToken;
-  if (state.salesforceCampaignId) serializedData['sf_campaign_id'] = state.salesforceCampaignId;
+
+  serializedData.agreed_to_pay_fees = state.payFee;
+  serializedData.amount = getTotalAmount(state.amount, state.payFee, state.frequency, state.rpIsNonProfit).toString();
+  serializedData.donor_selected_amount = state.amount;
+  serializedData.revenue_program_slug = state.revProgramSlug;
+  serializedData.donation_page_slug = state.pageSlug;
+  serializedData.revenue_program_country = state.rpCountry;
+  serializedData.currency = state.currency;
+  serializedData.page = state.pageId;
+  serializedData.captcha_token = state.reCAPTCHAToken;
+
+  if (state.salesforceCampaignId) {
+    serializedData.sf_campaign_id = state.salesforceCampaignId;
+  }
 
   return serializedData;
+}
+
+/**
+ * Form fields that payment methods are concerned with. **THIS TYPE DOES NOT
+ * INCLUDE ALL FORM FIELDS.**
+ */
+export interface PaymentMethodFormData {
+  first_name?: string;
+  last_name?: string;
 }
 
 /**
@@ -95,16 +121,29 @@ export function serializeData(formRef, state) {
  * @param {object} data - JSON-serialized form data
  * @returns a response from stripe.createPaymentMethod
  */
-export async function createPaymentMethod(stripe, card, data) {
-  const billing_details = {};
+export async function createPaymentMethod(stripe: Stripe, card: StripeCardElement, data?: PaymentMethodFormData) {
+  const billing_details: PaymentMethodCreateParams.BillingDetails = {};
   if (data?.first_name || data?.last_name) {
-    billing_details.name = `${data.first_name} ${data.last_name}`;
+    billing_details.name = `${data.first_name ?? ''} ${data.last_name ?? ''}`.trim();
   }
-  return await stripe.createPaymentMethod({
+  return stripe.createPaymentMethod({
+    card,
     type: 'card',
-    card: card,
     billing_details
   });
+}
+
+export interface GetPaymentSuccessUrlArgs {
+  amount: string;
+  baseUrl: string;
+  contributorEmail: string;
+  emailHash: string;
+  frequencyDisplayValue: string;
+  pageSlug: string;
+  pathName: string;
+  rpSlug: string;
+  stripeClientSecret: string;
+  thankYouRedirectUrl: string;
 }
 
 export function getPaymentSuccessUrl({
@@ -118,7 +157,7 @@ export function getPaymentSuccessUrl({
   rpSlug,
   pathName,
   stripeClientSecret
-}) {
+}: GetPaymentSuccessUrlArgs) {
   const missingParams = Object.fromEntries(
     Object.entries({
       baseUrl,
@@ -130,7 +169,7 @@ export function getPaymentSuccessUrl({
       rpSlug,
       pathName,
       stripeClientSecret
-    }).filter(([_, v]) => [undefined, null].includes(v))
+    }).filter(([, v]) => [undefined, null].includes(v as any))
   );
   if (Object.entries(missingParams).length) {
     throw new Error(`Missing argument for: ${Object.keys(missingParams).join(', ')}`);
@@ -177,6 +216,7 @@ export function getPaymentSuccessUrl({
     next: thankYouRedirectUrl,
     payment_intent_client_secret: stripeClientSecret,
     uid: emailHash
-  });
+  }).toString();
+
   return paymentSuccessUrl.href;
 }

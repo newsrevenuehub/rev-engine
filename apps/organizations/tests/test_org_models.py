@@ -8,13 +8,12 @@ from django.utils import timezone
 from django.utils.text import slugify
 
 from faker import Faker
-from stripe.error import StripeError
 
 from apps.common.models import SocialMeta
 from apps.config.tests.factories import DenyListWordFactory
 from apps.config.validators import GENERIC_SLUG_DENIED_MSG, SLUG_DENIED_CODE
 from apps.contributions.tests.factories import ContributionFactory
-from apps.organizations.models import Organization, RevenueProgram
+from apps.organizations.models import RevenueProgram
 from apps.organizations.tests import factories
 from apps.pages.models import DonationPage
 from apps.pages.tests.factories import DonationPageFactory
@@ -134,26 +133,6 @@ class RevenueProgramTest(TestCase):
         self.instance.clean()
         self.assertEqual(self.instance.twitter_handle, target_handle)
 
-    @override_settings(STRIPE_LIVE_MODE=True)
-    @override_settings(STRIPE_LIVE_SECRET_KEY=TEST_STRIPE_LIVE_KEY)
-    @override_settings(DOMAIN_APEX=TEST_DOMAIN_APEX)
-    @patch("stripe.ApplePayDomain.create")
-    def test_apple_pay_domain_verification_called_when_created_and_live(self, apple_pay_domain_create):
-        my_slug = "sluggy-the-slug"
-        expected_domain = f"{my_slug}.{TEST_DOMAIN_APEX}"
-        self.assertIsNotNone(org := Organization.objects.first())
-        org.stripe_account_id = TEST_STRIPE_LIVE_KEY
-        org.save()
-        rp = factories.RevenueProgramFactory(slug=my_slug, org=org)
-        apple_pay_domain_create.assert_called_once_with(
-            api_key=TEST_STRIPE_LIVE_KEY,
-            domain_name=expected_domain,
-            stripe_account=rp.payment_provider.stripe_account_id,
-        )
-
-        # revenue_program should have a non-null domain_apple_verified_date
-        self.assertIsNotNone(rp.domain_apple_verified_date)
-
     @override_settings(STRIPE_LIVE_MODE=False)
     @patch("stripe.ApplePayDomain.create")
     def test_apple_pay_domain_verification_not_called_when_created_and_not_live(self, apple_pay_domain_create):
@@ -168,17 +147,6 @@ class RevenueProgramTest(TestCase):
         self.instance.slug = "my-new-slug"
         self.instance.save()
         apple_pay_domain_create.assert_not_called()
-
-    @override_settings(STRIPE_LIVE_MODE=True)
-    @override_settings(STRIPE_LIVE_SECRET_KEY=TEST_STRIPE_LIVE_KEY)
-    @override_settings(DOMAIN_APEX=TEST_DOMAIN_APEX)
-    @patch("stripe.ApplePayDomain.create")
-    @patch("apps.organizations.models.logger")
-    def test_apple_pay_domain_verification_when_stripe_error(self, mock_logger, apple_pay_domain_create):
-        apple_pay_domain_create.side_effect = StripeError
-        factories.RevenueProgramFactory()
-        apple_pay_domain_create.assert_called_once()
-        mock_logger.warning.assert_called_once()
 
     def test_slug_validated_against_denylist(self):
         denied_word = DenyListWordFactory()

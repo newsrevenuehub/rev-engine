@@ -68,8 +68,7 @@ export function CancelRecurringButton({ contribution, onCancel }: CancelRecurrin
           <span id="cancel-payment-header">Cancel Payment</span>
         </ModalHeader>
         <ModalContent>
-          Are you sure you want to cancel your recurring payment of {formatCurrencyAmount(contribution.amount)} to{' '}
-          {contribution.revenue_program}?
+          Are you sure you want to cancel your recurring payment of {formatCurrencyAmount(contribution.amount)}?
         </ModalContent>
         <ModalFooter>
           <Button color="secondary" onClick={handleClose}>

@@ -68,13 +68,13 @@ describe('CancelRecurringButton', () => {
 
     beforeEach(() => (onCancel = jest.fn()));
 
-    it('shows the user the revenue program and amount', () => {
+    it('shows the user the amount', () => {
       // Amount is in cents.
 
       tree({ contribution: { ...mockContribution, revenue_program: 'test-rp', amount: 456789 } });
       userEvent.click(getCancelButton());
       expect(
-        screen.getByText('Are you sure you want to cancel your recurring payment of $4,567.89 to test-rp?')
+        screen.getByText('Are you sure you want to cancel your recurring payment of $4,567.89?')
       ).toBeInTheDocument();
     });
 

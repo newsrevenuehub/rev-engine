@@ -101,7 +101,6 @@ describe('Donation page list', () => {
         cy.visit(CONTENT_SLUG);
         cy.get('button[aria-label="New Page"]').click();
         cy.wait('@createNewPage').then(({ request }) => {
-          console.log(request.body);
           expect(request.body).to.eql({
             name: 'Page 1',
             revenue_program: 1,

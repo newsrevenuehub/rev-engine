@@ -34,7 +34,6 @@ import { CONTRIBUTION_INTERVALS } from 'constants/contributionIntervals';
 import { CSRF_HEADER } from 'settings';
 
 function authorizePayment(paymentData, paymentType, csrftoken) {
-  console.log({ paymentData });
   const apiEndpoint =
     paymentType === CONTRIBUTION_INTERVALS.ONE_TIME
       ? AUTHORIZE_ONE_TIME_STRIPE_PAYMENT_ROUTE

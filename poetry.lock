@@ -379,16 +379,16 @@ Django = ">3.2"
 
 [[package]]
 name = "django"
-version = "3.2.16"
-description = "A high-level Python Web framework that encourages rapid development and clean, pragmatic design."
+version = "4.0.8"
+description = "A high-level Python web framework that encourages rapid development and clean, pragmatic design."
 category = "main"
 optional = false
-python-versions = ">=3.6"
+python-versions = ">=3.8"
 
 [package.dependencies]
-asgiref = ">=3.3.2,<4"
-pytz = "*"
+asgiref = ">=3.4.1,<4"
 sqlparse = ">=0.2.2"
+tzdata = {version = "*", markers = "sys_platform == \"win32\""}
 
 [package.extras]
 argon2 = ["argon2-cffi (>=19.1.0)"]
@@ -1915,7 +1915,7 @@ testing = ["flake8 (<5)", "func-timeout", "jaraco.functools", "jaraco.itertools"
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.10"
-content-hash = "5150e2191c64c48cb65d4296c7e645f7f058a1e34c2b1635b88c0ea2b3712133"
+content-hash = "0b6cc749f3f6e0826795ed406d5859e046e280dccfbe4165e4f8718d8a6516e9"
 
 [metadata.files]
 addict = [
@@ -2109,8 +2109,8 @@ dj-database-url = [
     {file = "dj_database_url-1.0.0-py3-none-any.whl", hash = "sha256:cd354a3b7a9136d78d64c17b2aec369e2ae5616fbca6bfbe435ef15bb372ce39"},
 ]
 django = [
-    {file = "Django-3.2.16-py3-none-any.whl", hash = "sha256:18ba8efa36b69cfcd4b670d0fa187c6fe7506596f0ababe580e16909bcdec121"},
-    {file = "Django-3.2.16.tar.gz", hash = "sha256:3adc285124244724a394fa9b9839cc8cd116faf7d159554c43ecdaa8cdf0b94d"},
+    {file = "Django-4.0.8-py3-none-any.whl", hash = "sha256:27cb08fa6458c1eff8b97c4c2d03774646fb26feeaa4587dca10c49e6d4fc6a3"},
+    {file = "Django-4.0.8.tar.gz", hash = "sha256:07e6433f263c3839939cfabeb6d7557841e0419e47759a7b7d37f6d44d40adcb"},
 ]
 django-anymail = [
     {file = "django-anymail-8.6.tar.gz", hash = "sha256:783342d49dd07d68778b81dd12a94c86e1d217463a68a85450a0513fabe31345"},

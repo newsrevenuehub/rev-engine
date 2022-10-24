@@ -119,8 +119,7 @@ describe('Donation page list', () => {
         cy.intercept({ method: 'GET', pathname: getEndpoint(USER) }, { body: orgAdminWithContentFlagAndOneRP });
         cy.intercept({ method: 'POST', pathname: getEndpoint(LIST_PAGES) }, { statusCode: 200 }).as('createNewPage');
         cy.visit(CONTENT_SLUG);
-        cy.wait('@listPages');
-        cy.get('button[aria-label="New Page"]').click();
+        cy.wait('@listPages').then(() => cy.get('button[aria-label="New Page"]').click());
         cy.wait('@createNewPage').then(({ request }) => {
           expect(request.body).to.eql({
             name: 'Page 2',

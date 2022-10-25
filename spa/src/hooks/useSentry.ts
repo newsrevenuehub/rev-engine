@@ -22,8 +22,9 @@ function useSentry() {
       Sentry.init({
         dsn: SENTRY_DSN_FRONTEND,
         integrations: [
+          // Ref: https://docs.sentry.io/platforms/javascript/guides/react/configuration/integrations/react-router/#react-router-v4v5
           new BrowserTracing({
-            routingInstrumentation: Sentry.reactRouterV5Instrumentation(history)
+            routingInstrumentation: Sentry.reactRouterV5Instrumentation(history as any)
           })
         ],
         tracesSampleRate: 1.0,

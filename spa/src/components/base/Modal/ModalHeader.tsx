@@ -41,12 +41,16 @@ const Root = styled('div')`
 `;
 
 export function ModalHeader({ children, className, closeAriaLabel, icon, onClose }: ModalHeaderProps) {
+  // The usage of data-no-autoFocus on the close button is to prevent it from
+  // being the first focused element when the modal first opens. See
+  // react-focus-lock usage in <Modal>.
+
   return (
     <Root className={className!}>
       {icon}
       <Content>{children}</Content>
       {onClose && (
-        <CloseButton aria-label={closeAriaLabel ?? 'Close'} onClick={onClose}>
+        <CloseButton aria-label={closeAriaLabel ?? 'Close'} data-no-autoFocus onClick={onClose}>
           <Close />
         </CloseButton>
       )}

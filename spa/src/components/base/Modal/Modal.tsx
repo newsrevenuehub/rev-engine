@@ -1,6 +1,13 @@
 import { Modal as MuiModal, ModalProps as MuiModalProps, Paper } from '@material-ui/core';
-import { forwardRef, ReactChild } from 'react';
+import { forwardRef, ReactChild, useEffect } from 'react';
+import ReactFocusLock from 'react-focus-lock';
 import styled from 'styled-components';
+
+const StyledPaper = styled(Paper)`
+  && {
+    border-radius: 10px;
+  }
+`;
 
 const StyledModal = styled(MuiModal)`
   display: flex;
@@ -19,12 +26,26 @@ export interface ModalProps extends Omit<MuiModalProps, 'children'> {
   width?: number;
 }
 
+// There are a number of focus-related issues with the MUI dialog that do not
+// have an easy solution:
+// - The paper surface itself becomes focusable
+//
+// - Does not focus the first input inside the modal
+//
+// Because of this, we disable MUI's focus handling and use react-focus-lock
+// instead.
+//
+// To direct react-focus-lock to first focus on a particular input, put a
+// `data-autoFocus` attribute on it.
+
 /**
  * see https://v4.mui.com/api/modal/
  */
 export const Modal = forwardRef(({ children, width, ...props }: ModalProps, ref) => (
-  <StyledModal {...props} ref={ref} role="dialog">
-    <Paper style={{ width }}>{children}</Paper>
+  <StyledModal {...props} disableAutoFocus disableEnforceFocus disableRestoreFocus ref={ref} role="dialog">
+    <ReactFocusLock returnFocus>
+      <StyledPaper style={{ width }}>{children}</StyledPaper>
+    </ReactFocusLock>
   </StyledModal>
 ));
 

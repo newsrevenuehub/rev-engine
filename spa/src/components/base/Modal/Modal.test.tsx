@@ -7,6 +7,7 @@ describe('Modal', () => {
     return render(
       <Modal aria-labelledby="mock-content" open {...props}>
         <div id="mock-content">children</div>
+        <button>action</button>
       </Modal>
     );
   }
@@ -20,6 +21,11 @@ describe('Modal', () => {
     it('displays its children when open', () => {
       tree({ open: true });
       expect(screen.getByText('children')).toBeInTheDocument();
+    });
+
+    it('focuses the first input inside it', () => {
+      tree({ open: true });
+      expect(screen.getByRole('button', { name: 'action' })).toHaveFocus();
     });
 
     it('is accessible', async () => {

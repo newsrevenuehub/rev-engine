@@ -7,14 +7,14 @@ import { usePageEditorContext } from 'components/pageEditor/PageEditor';
 import isEmpty from 'lodash.isempty';
 
 // Children
-import EditInterfaceTabs, { EDIT_INTERFACE_TABS } from 'components/pageEditor/editInterface/EditInterfaceTabs';
+import { TabPanel } from 'components/base';
+import EditInterfaceTabs, { EDIT_INTERFACE_TAB_NAMES } from 'components/pageEditor/editInterface/EditInterfaceTabs';
 import ElementProperties from 'components/pageEditor/editInterface/pageElements/ElementProperties';
 import AddElementModal from 'components/pageEditor/editInterface/pageElements/addElementModal/AddElementModal';
 
 import PageElements from 'components/pageEditor/editInterface/pageElements/PageElements';
-import PageSetup, { PAGE_SETUP_FIELDS } from 'components/pageEditor/editInterface/pageSetup/PageSetup';
+import PageSettings, { PAGE_SETUP_FIELDS } from 'components/pageEditor/editInterface/pageSettings/PageSettings';
 import PageSidebarElements from 'components/pageEditor/editInterface/pageSidebarElements/PageSidebarElements';
-import PageStyles from 'components/pageEditor/editInterface/pageStyles/PageStyles';
 import { usePageContext } from 'components/dashboard/PageContext';
 
 import * as dynamicPageElements from 'components/donationPage/pageContent/dynamicElements';
@@ -61,7 +61,7 @@ function EditInterface() {
   const setTabFromErrors = useCallback((errorsObj) => {
     const firstError = Object.keys(errorsObj)[0];
     if (PAGE_SETUP_FIELDS.includes(firstError)) {
-      const setupTab = EDIT_INTERFACE_TABS.indexOf('Setup');
+      const setupTab = EDIT_INTERFACE_TAB_NAMES.indexOf('Setup');
       setTab(setupTab);
     }
   }, []);
@@ -138,8 +138,8 @@ function EditInterface() {
             <ElementProperties selectedElementType={selectedElementType} />
           ) : (
             <>
-              <EditInterfaceTabs tab={tab} setTab={setTab} />
-              {tab === 0 && (
+              <EditInterfaceTabs onChangeTab={setTab} tab={tab} />
+              <TabPanel active={tab === 0} id="edit-layout-tab-panel" tabId="edit-layout-tab">
                 <PageElements
                   openAddElementModal={() => {
                     setElementDestination('layout');
@@ -148,8 +148,8 @@ function EditInterface() {
                   goToProperties={goToProperties}
                   handleRemoveElement={handleRemoveElement}
                 />
-              )}
-              {tab === 1 && (
+              </TabPanel>
+              <TabPanel active={tab === 1} id="edit-sidebar-tab-panel" tabId="edit-sidebar-tab">
                 <PageSidebarElements
                   goToProperties={goToProperties}
                   handleRemoveElement={handleRemoveElement}
@@ -158,9 +158,10 @@ function EditInterface() {
                     setAddElementModalOpen(true);
                   }}
                 />
-              )}
-              {tab === 2 && <PageSetup backToProperties={() => setTab(0)} />}
-              {tab === 3 && <PageStyles backToProperties={() => setTab(0)} />}
+              </TabPanel>
+              <TabPanel active={tab === 2} id="edit-settings-tab-panel" tabId="edit-settings-tab">
+                <PageSettings backToProperties={() => setTab(0)} />
+              </TabPanel>
             </>
           )}
         </S.EditInterface>

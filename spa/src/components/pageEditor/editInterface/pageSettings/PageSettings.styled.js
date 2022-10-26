@@ -1,6 +1,6 @@
 import styled from 'styled-components';
 
-export const PageSetup = styled.div`
+export const PageSettings = styled.div`
   display: flex;
   flex-direction: column;
   margin-left: 6rem;

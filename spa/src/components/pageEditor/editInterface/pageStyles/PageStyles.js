@@ -11,7 +11,7 @@ import { useEditInterfaceContext } from 'components/pageEditor/editInterface/Edi
 // Children
 import CircleButton from 'elements/buttons/CircleButton';
 import StylesChooser from 'components/pageEditor/editInterface/pageStyles/StylesChooser';
-import AddStylesModal from 'components/pageEditor/editInterface/pageStyles/AddStylesModal';
+import AddStylesModal from 'components/pageEditor/editInterface/pageSettings/AddStylesModal';
 
 function PageStyles({ backToProperties }) {
   const { page, availableStyles, setAvailableStyles } = usePageEditorContext();

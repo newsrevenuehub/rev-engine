@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import * as S from './PageSetup.styled';
+import * as S from './PageSettings.styled';
 
 // Assets
 import { faCheck, faTimes } from '@fortawesome/free-solid-svg-icons';
@@ -16,15 +16,16 @@ import { isBefore, isAfter } from 'date-fns';
 import ImageWithPreview from 'elements/inputs/ImageWithPreview';
 import Input from 'elements/inputs/Input';
 import CircleButton from 'elements/buttons/CircleButton';
+import { StylesChooser } from './StylesChooser';
 
 /**
- * PageSetup
+ * PageSettings
  * PageSetup renders the Setup tab inside the EditInterface. It controls page content
  * that is not re-orderable.
  *
  * PageSetup is the direct child of EditInterface.
  */
-function PageSetup({ backToProperties }) {
+function PageSettings({ backToProperties }) {
   const getUserConfirmation = useConfirmationModalContext();
   const { page, errors } = usePageEditorContext();
   const { setPageContent } = useEditInterfaceContext();
@@ -35,8 +36,8 @@ function PageSetup({ backToProperties }) {
   const [header_link, setHeaderLink] = useState(page.header_link);
   const [thank_you_redirect, setThankYouRedirect] = useState(page.thank_you_redirect);
   const [post_thank_you_redirect, setPostThankYouRedirect] = useState(page.post_thank_you_redirect);
-  const [donor_benefits, setDonorBenefits] = useState(page.donor_benefits);
-  const [published_date, setPublishedDate] = useState(page.published_date ? new Date(page.published_date) : undefined);
+  const [donor_benefits] = useState(page.donor_benefits);
+  const [published_date] = useState(page.published_date ? new Date(page.published_date) : undefined);
 
   const handleKeepChanges = () => {
     verifyUnpublish(updatePage);
@@ -88,8 +89,9 @@ function PageSetup({ backToProperties }) {
   }
 
   return (
-    <S.PageSetup data-testid="page-setup">
+    <S.PageSettings data-testid="page-settings">
       <S.PageName>{page.name}</S.PageName>
+      <StylesChooser />
       <S.ImageSelectorWrapper>
         <ImageWithPreview
           thumbnail={page.header_bg_image_thumbnail}
@@ -176,11 +178,11 @@ function PageSetup({ backToProperties }) {
           data-testid="discard-element-changes-button"
         />
       </S.Buttons>
-    </S.PageSetup>
+    </S.PageSettings>
   );
 }
 
-export default PageSetup;
+export default PageSettings;
 
 export const PAGE_SETUP_FIELDS = [
   'heading',

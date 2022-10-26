@@ -3,6 +3,7 @@ import PropTypes, { InferProps } from 'prop-types';
 const TabPanelPropTypes = {
   active: PropTypes.bool,
   children: PropTypes.node.isRequired,
+  dontRenderChildrenWhenInactive: PropTypes.bool,
   'data-testid': PropTypes.string,
   id: PropTypes.string.isRequired,
   tabId: PropTypes.string.isRequired

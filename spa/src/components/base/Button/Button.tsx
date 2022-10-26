@@ -3,14 +3,14 @@ import { forwardRef } from 'react';
 import styled from 'styled-components';
 
 export interface ButtonProps extends Omit<MuiButtonProps, 'color' | 'size'> {
-  color?: 'error' | 'information' | 'primaryDark' | 'primaryLight' | 'secondary' | 'text';
+  color?: 'error' | 'information' | 'link' | 'primaryDark' | 'primaryLight' | 'secondary' | 'text';
   size?: 'small' | 'medium' | 'large' | 'extraLarge';
 }
 
 const ButtonWrapper = forwardRef<HTMLButtonElement, ButtonProps>((props, ref) => {
   const { color, size, ...rest } = props;
 
-  return <MuiButton ref={ref} variant="contained" {...rest} />;
+  return <MuiButton ref={ref} className={'test me'} variant="contained" {...rest} />;
 });
 
 // To make the style declarations easier to follow, size and color dependent
@@ -86,7 +86,9 @@ export const Button = styled(ButtonWrapper)<ButtonProps>`
     background-color: ${({ color }) => (color ? colors[color].normal.bg : colors.primaryLight.normal.bg)};
     border-radius: 6px;
     box-shadow: ${({ color }) =>
-      color === 'text' ? 'none' : '0px 0.3px 0.5px rgba(0, 0, 0, 0.1), 0px 2px 4px rgba(0, 0, 0, 0.2)'};
+      ['link', 'text'].includes(color as string)
+        ? 'none'
+        : '0px 0.3px 0.5px rgba(0, 0, 0, 0.1), 0px 2px 4px rgba(0, 0, 0, 0.2)'};
     height: ${({ size }) => (size ? sizes[size].height : sizes.medium.height)};
     padding: ${({ size }) => (size ? sizes[size].padding : sizes.medium.padding)};
 
@@ -109,7 +111,9 @@ export const Button = styled(ButtonWrapper)<ButtonProps>`
   &&:hover {
     background-color: ${({ color }) => (color ? colors[color].hover.bg : colors.primaryLight.hover.bg)};
     box-shadow: ${({ color }) =>
-      color === 'text' ? 'none' : '0px 0.3px 0.5px rgba(0, 0, 0, 0.1), 0px 2px 4px rgba(0, 0, 0, 0.2)'};
+      ['link', 'text'].includes(color as string)
+        ? 'none'
+        : '0px 0.3px 0.5px rgba(0, 0, 0, 0.1), 0px 2px 4px rgba(0, 0, 0, 0.2)'};
 
     .MuiButton-label,
     [class^='MuiButton-label'] {

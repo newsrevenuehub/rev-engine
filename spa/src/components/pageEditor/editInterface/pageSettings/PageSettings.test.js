@@ -1,6 +1,6 @@
 import { render, screen } from 'test-utils';
 import { EditInterfaceContext } from '../EditInterface';
-import PageSetup from './PageSetup';
+import PageSettings from './PageSettings';
 import { PageEditorContext } from 'components/pageEditor/PageEditor';
 
 // This component uses URL.revokeObjectURL() which jsdom doesn't seem to
@@ -24,7 +24,7 @@ function tree(page) {
           }
         }}
       >
-        <PageSetup />
+        <PageSettings />
       </PageEditorContext.Provider>
     </EditInterfaceContext.Provider>
   );

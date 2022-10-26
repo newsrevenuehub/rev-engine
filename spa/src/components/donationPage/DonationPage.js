@@ -68,7 +68,7 @@ function DonationPage({ page, live = false }) {
   const [amount, setAmount] = useState(0);
   const [feeAmount, setFeeAmount] = useState(0);
   const [userAgreesToPayFees, setUserAgreesToPayFees] = useState(() => {
-    return (page?.elements?.find((el) => el.type === 'DPayment') || {})?.content?.offerPayFees === true;
+    return (page?.elements?.find((el) => el.type === 'DPayment') || {})?.content?.payFeesDefault === true;
   });
   const [totalAmount, setTotalAmount] = useState(0);
   const [displayErrorFallback, setDisplayErrorFallback] = useState(false);

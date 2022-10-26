@@ -260,6 +260,7 @@ class ContributionsCacheProvider:
         if not data:
             return []
         data = [AttrDict(**x) for x in json.loads(data).values()]
+        logger.debug("Data to be returned %s", data)
         logger.info("Retrieved %s contributions from cache with key %s", len(data), self.key)
         return data
 

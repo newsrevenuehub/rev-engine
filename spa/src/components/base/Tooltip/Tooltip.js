@@ -1,11 +1,11 @@
-import { Tooltip as MuiTooltip, TooltipProps as MuiTooltipProps } from '@material-ui/core';
+import { Tooltip as MuiTooltip } from '@material-ui/core';
 import propTypes from 'prop-types';
 import styled from 'styled-components';
 
 // See https://v4.mui.com/guides/interoperability/#portals
 
 const WrappedTooltip = ({ className, tooltipWidth, ...other }) => (
-  <MuiTooltip classes={{ tooltip: className }} {...other} />
+  <MuiTooltip classes={{ tooltip: className }} PopperProps={{ modifiers: { offset: { offset: '0,6' } } }} {...other} />
 );
 
 /**
@@ -17,8 +17,9 @@ export const Tooltip = styled(WrappedTooltip)`
     border-radius: 4px;
     color: white;
     font: 12px Roboto, sans-serif;
+    margin: 0;
     padding: 8px;
-    width: ${({ tooltipWidth }) => `${tooltipWidth}px` ?? 'auto'};
+    width: ${({ tooltipWidth }) => (tooltipWidth ? `${tooltipWidth}px` : 'auto')};
   }
 `;
 

@@ -1,6 +1,7 @@
-import { Button as MuiButton, Modal as MuiModal } from '@material-ui/core';
+import { Modal as MuiModal } from '@material-ui/core';
 import styled from 'styled-components';
-//import lighten from 'styles/utils/lighten';
+
+import { Button as BaseButton, StepperDots } from 'components/base';
 
 export const ConnectStripeModal = styled.div`
   position: relative;
@@ -11,10 +12,20 @@ export const ConnectStripeModal = styled.div`
   background: ${(props) => props.theme.colors.white};
   border: 0.5px solid ${(props) => props.theme.colors.muiGrey[400]};
   box-shadow: 0px 0px 4px rgba(0, 0, 0, 0.2);
-  border-radius: ${(props) => props.theme.muiBorderRadius.md};
+  border-radius: ${(props) => props.theme.muiBorderRadius.xl};
   padding: 30px 65px;
   width: 90%;
   max-width: 610px;
+
+  @media (${(props) => props.theme.breakpoints.phoneOnly}) {
+    padding: 30px;
+  }
+
+  h1,
+  span,
+  p {
+    font-family: ${(props) => props.theme.systemFont};
+  }
 `;
 
 export const Modal = styled(MuiModal)`
@@ -37,54 +48,47 @@ export const Modal = styled(MuiModal)`
 `;
 
 export const h1 = styled.h1`
-  margin-top: 0px;
+  margin: 0 0 18px;
   font-weight: 700;
+  font-family: Roboto, sans-serif;
   font-size: ${(props) => props.theme.fontSizesUpdated['lgx']};
   line-height: ${(props) => props.theme.fontSizesUpdated['lg2x']};
-  color: ${(props) => props.theme.colors.purple};
+  color: ${(props) => props.theme.colors.account.purple[1]};
 `;
 
-export const Description = styled.div`
+export const Description = styled.p`
   font-family: 'Roboto';
   font-style: normal;
   font-weight: 300;
   font-size: ${(props) => props.theme.fontSizesUpdated.md};
   line-height: ${(props) => props.theme.fontSizesUpdated.lg};
-  color: ${(props) => props.theme.colors.muiGrey[600]};
+  color: ${(props) => props.theme.colors.muiGrey[900]};
   margin-bottom: 0px;
 `;
 
-export const Bold = styled.div`
-  font-weight: 600;
-  margin: 17px 0px 8px;
+export const Bold = styled.span`
+  font-weight: 500;
+  display: block;
+  margin: 17px 0px 4px;
 `;
 
-export const Button = styled(MuiButton)`
+export const Button = styled(BaseButton)`
   && {
-    width: 100%;
     height: 48px;
-    background: ${(props) => props.theme.buttons.yellow.background};
-    border: ${(props) => props.theme.buttons.yellow.border};
-    box-shadow: ${(props) => props.theme.buttons.yellow.boxShadow};
-    border-radius: ${(props) => props.theme.muiBorderRadius.sm};
-    font-weight: 600;
-    font-size: ${(props) => props.theme.fontSizesUpdated.sm};
-    line-height: ${(props) => props.theme.fontSizesUpdated.md};
     margin: 25px 0px 28px;
-
-    :hover {
-      background: ${(props) => props.theme.buttons.yellow.background};
-    }
   }
 `;
 
 export const StripeFAQ = styled.a`
-  font-size: ${(props) => props.theme.fontSizesUpdated.lg};
-  line-height: ${(props) => props.theme.fontSizesUpdated.xl};
+  font-weight: 500;
+  font-size: ${(props) => props.theme.fontSizesUpdated.md};
+  color: ${(props) => props.theme.colors.account.blueLink};
 `;
 
 export const Anchor = styled.a`
+  color: ${(props) => props.theme.colors.account.blueLink};
   cursor: pointer;
+  font-weight: 600;
   width: 100%;
   text-align: center;
   span,
@@ -112,4 +116,8 @@ export const StripeLogo = styled.img`
 export const BottomNav = styled.img`
   width: 42px;
   margin: 34px auto 0px;
+`;
+
+export const BottomStepper = styled(StepperDots)`
+  margin-top: 40px;
 `;

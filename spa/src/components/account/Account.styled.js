@@ -1,12 +1,19 @@
 import styled from 'styled-components';
-import { motion } from 'framer-motion';
+import { Button } from 'components/base';
 
 export const Outer = styled.div`
+  font-family: ${(props) => props.theme.systemFont};
   display: flex;
   flex-wrap: wrap;
   margin: 0px;
   display: flex;
   width: 100%;
+
+  h1,
+  p,
+  span {
+    font-family: ${(props) => props.theme.systemFont};
+  }
 
   @media (${(props) => props.theme.breakpoints.mdUp}) {
     height: 100vh;
@@ -14,9 +21,10 @@ export const Outer = styled.div`
 `;
 
 export const Left = styled.div`
+  position: relative;
   background: ${(props) =>
     props.isCreateAccountPage
-      ? props.theme.colors.account.purple[1]
+      ? `linear-gradient(39.42deg, ${props.theme.colors.account.purple[1]} 47.23%, #25192bc9 105.55%);`
       : `linear-gradient(39.42deg, #6fd1ec 47.23%, #8af7e3 105.55%);`};
   flex: 35%;
   margin: 0px;
@@ -30,7 +38,21 @@ export const Left = styled.div`
   }
 
   @media (${(props) => props.theme.breakpoints.mdUp}) {
+    overflow: hidden;
     min-height: 100vh;
+
+    :after {
+      background: ${(props) => (props.isCreateAccountPage ? '#302436' : 'rgba(255, 255, 255, 0.18)')};
+      bottom: 0;
+      content: '';
+      display: block;
+      height: 20%;
+      width: 100%;
+      left: 0;
+      position: absolute;
+      transform: skewY(-8.5deg);
+      transform-origin: 100%;
+    }
   }
 `;
 
@@ -54,8 +76,14 @@ export const Right = styled.div`
 
 export const FormElements = styled.div`
   width: 80%;
-  max-width: ${(props) => (props.shorten ? '310px' : '420px')};
+  max-width: ${(props) => (props.shorten ? '320px' : '437px')};
   text-align: left;
+
+  ${(props) =>
+    props.shorten &&
+    `
+    margin-bottom: 20vh;
+  `}
 `;
 
 export const BottomBar = styled.div`
@@ -75,20 +103,20 @@ export const BottomBarYellowSVG = styled.img`
   }
 `;
 
-export const Heading = styled.div`
-  font-weight: 400;
+export const Heading = styled.h1`
+  font-weight: 700;
   font-size: ${(props) => props.theme.fontSizesUpdated.h1};
-  margin-bottom: 20px;
+  margin-bottom: ${(props) => (props.marginBottom ? `${props.marginBottom}px` : '20px')};
 
-  line-height: 138.19%;
-  color: ${(props) => props.theme.colors.account.purple[2]};
+  line-height: 47px;
+  color: ${(props) => props.theme.colors.account.purple[1]};
 
   @media (${(props) => props.theme.breakpoints.phoneOnly}) {
     font-size: ${(props) => props.theme.fontSizesUpdated.lgx};
   }
 
   @media (${(props) => props.theme.breakpoints.tabletLandscapeDown}) {
-    margin-top: ${(props) => props.theme.fontSizesUpdated.xl};
+    margin-top: ${(props) => props.theme.fontSizesUpdated['2xl']};
   }
 `;
 
@@ -96,7 +124,7 @@ export const Subheading = styled.div`
   margin: ${(props) => (props.shorten ? '5px 0px 5px' : '5px 0px 25px')};
 
   font-weight: 300;
-  font-size: ${(props) => props.theme.fontSizesUpdated.md};
+  font-size: ${(props) => props.theme.fontSizesUpdated[props.fontSize || 'md']};
   line-height: 138.19%;
   color: ${(props) => props.theme.colors.muiGrey[900]};
   font-style: normal;
@@ -106,28 +134,13 @@ export const Subheading = styled.div`
   }
 `;
 
-export const Submit = styled(motion.button)`
-  cursor: pointer;
-  width: 100%;
-  text-transform: uppercase;
-  text-align: center;
-  padding: 9px 0px;
-  font-weight: 600;
-  font-size: ${(props) => props.theme.fontSizesUpdated.xs};
-  line-height: ${(props) => props.theme.fontSizesUpdated.md};
-  background: ${(props) => props.theme.buttons.yellow.background};
-  color: ${(props) => props.theme.buttons.yellow.color};
-  border: ${(props) => props.theme.buttons.yellow.border};
-  box-shadow: ${(props) => props.theme.buttons.yellow.boxShadow};
-  border-radius: ${(props) => props.theme.buttons.yellow.borderRadius};
-  margin: 7px 0px 10px;
-  &:active {
-    transform: translate(1px, 1px);
-    color: ${(props) => props.theme.buttons.yellow.color};
-  }
-  &:disabled {
-    color: ${(props) => props.theme.colors.muiGrey[600]};
-    transform: translate(1px, 1px);
+export const Submit = styled(Button)`
+  && {
+    width: 100%;
+    padding-top: 15px;
+    padding-bottom: 15px;
+    border-radius: ${(props) => props.theme.buttons.yellow.borderRadius};
+    margin: 7px 0px 10px;
   }
 `;
 
@@ -136,19 +149,28 @@ export const Message = styled.div`
   border-radius: ${(props) => props.theme.muiBorderRadius.sm};
   font-weight: 400;
   font-size: ${(props) => props.theme.fontSizesUpdated.xs};
-  line-height: ${(props) => props.theme.fontSizesUpdated.lg};
+  line-height: 24px;
   color: ${(props) => props.theme.colors.muiGrey[600]};
-  padding: 0px 9px;
+  padding: 0px 4px;
+  margin-bottom: 6px;
+
+  ${(props) =>
+    props.info === 'true' &&
+    `
+    background: unset;
+    color: ${props.theme.colors.muiGrey[800]};
+    padding: 0;
+  `}
 `;
 
 export const MessageSpacer = styled.div`
   height: ${(props) => props.theme.fontSizesUpdated.lg};
 `;
 
-export const PasswordLabel = styled.div`
+export const PasswordLabel = styled.label`
   display: flex;
   font-weight: 600;
-  font-size: ${(props) => props.theme.fontSizesUpdated.xs};
+  font-size: ${(props) => props.theme.fontSizesUpdated.md};
   line-height: ${(props) => props.theme.fontSizesUpdated.md};
   color: ${(props) => (props.hasError ? props.theme.colors.error.primary : props.theme.colors.muiGrey[900])};
   margin-top: 5px;
@@ -156,6 +178,8 @@ export const PasswordLabel = styled.div`
   a {
     width: 100%;
     text-align: right;
+    font-size: ${(props) => props.theme.fontSizesUpdated.sm};
+    color: ${(props) => props.theme.colors.account.blueLink};
   }
 `;
 
@@ -167,6 +191,7 @@ export const InputOuter = styled.div`
   margin: 5px 0px;
   padding: 8px 6px 8px 12px;
   position: relative;
+  height: 37px;
 
   input {
     width: 97%;
@@ -182,15 +207,20 @@ export const InputOuter = styled.div`
 `;
 
 export const Visibility = styled.img`
-  height: 11px;
-  width: ${(props) => props.theme.fontSizesUpdated.lg};
-  margin-top: 3.6px;
+  width: 24px;
+  height: 22px;
   cursor: pointer;
+  ${(props) =>
+    props.visible === 'true' &&
+    `
+      height: 16px;
+      margin: 3px 0;
+  `}
 `;
 
 export const InputLabel = styled.label`
   font-weight: 600;
-  font-size: ${(props) => props.theme.fontSizesUpdated.xs};
+  font-size: ${(props) => props.theme.fontSizesUpdated.md};
   line-height: ${(props) => props.theme.fontSizesUpdated.md};
   color: ${(props) => (props.hasError ? props.theme.colors.error.primary : props.theme.colors.muiGrey[900])};
   margin-top: 5px;
@@ -203,12 +233,17 @@ export const Instructions = styled.div`
   padding: 0px 0px 6px 0px;
 `;
 
-export const NavLink = styled.div`
+export const AcceptTermsText = styled.p`
+  margin-left: 14px;
+  line-height: 16px;
+`;
+
+export const NavLink = styled.p`
   margin: 15px 0px 12px;
   width: 100%;
   text-align: ${(props) => (props.alignLeft ? 'left' : 'center')};
   font-weight: 400;
-  font-size: ${(props) => props.theme.fontSizesUpdated.xs};
+  font-size: ${(props) => props.theme.fontSizesUpdated.md};
   line-height: ${(props) => props.theme.fontSizesUpdated.md};
   color: ${(props) => props.theme.colors.muiGrey[900]};
 
@@ -216,6 +251,7 @@ export const NavLink = styled.div`
   a:hover {
     color: ${(props) => props.theme.colors.account.blueLink};
     text-decoration: underline;
+    font-weight: 600;
   }
 `;
 
@@ -230,13 +266,22 @@ export const Disclaimer = styled.div`
 export const AcceptTerms = styled.div`
   display: flex;
   font-weight: 400;
-  font-size: ${(props) => props.theme.fontSizesUpdated.xs};
+  font-size: ${(props) => props.theme.fontSizesUpdated.sm};
   line-height: 15px;
   color: ${(props) => props.theme.colors.muiGrey[900]};
-  margin-top: 6px;
+  margin-top: 35px;
+  margin-bottom: 30px;
+
   a,
   a:hover {
     color: ${(props) => props.theme.colors.account.blueLink};
     text-decoration: underline;
+  }
+
+  && {
+    span > svg {
+      height: 24px;
+      width: 24px;
+    }
   }
 `;

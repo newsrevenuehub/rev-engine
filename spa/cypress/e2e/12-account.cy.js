@@ -151,7 +151,7 @@ describe('Account', () => {
         body: CREATE_USER_ENDPOINT_400
       });
       cy.get('button[name="Create Account"]').click();
-      cy.contains(`Email:${CREATE_USER_ENDPOINT_400.email}`);
+      cy.contains('This email is already being used by an account. Try signing in.');
     });
 
     it('should show create an account and show verify screen', () => {

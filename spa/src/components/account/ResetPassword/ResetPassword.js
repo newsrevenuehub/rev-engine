@@ -1,4 +1,4 @@
-import { useLocation } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { useState, useReducer, useMemo } from 'react';
 
 // AJAX
@@ -65,7 +65,7 @@ function ResetPassword() {
       </S.Left>
       <S.Right>
         <S.FormElements shorten={passwordUpdateSuccess}>
-          <S.Heading data-testid="reset-pwd-title">{passwordUpdateSuccess ? 'Success!' : 'Reset Password!'}</S.Heading>
+          <S.Heading data-testid="reset-pwd-title">{passwordUpdateSuccess ? 'Success!' : 'Reset Password'}</S.Heading>
           <S.Subheading shorten={passwordUpdateSuccess}>
             {passwordUpdateSuccess ? RESET_PASSWORD_SUCCESS_TEXT : 'Enter your new password below.'}
           </S.Subheading>
@@ -78,9 +78,9 @@ function ResetPassword() {
           ) : null}
 
           <S.NavLink alignLeft={passwordUpdateSuccess}>
-            <a href={SIGN_IN} data-testid="sign-in">
+            <Link to={SIGN_IN} data-testid="sign-in">
               Return to Sign In
-            </a>
+            </Link>
           </S.NavLink>
         </S.FormElements>
 

@@ -186,7 +186,7 @@ function ContributorDashboard() {
         {tokenExpired && <ContributorTokenExpiredModal isOpen={tokenExpired} />}
         {selectedContribution && (
           <EditRecurringPaymentModal
-            isOpen={selectedContribution}
+            isOpen={!!selectedContribution}
             closeModal={() => setSelectedContribution(null)}
             contribution={selectedContribution}
             onComplete={() => setRefetch(true)}

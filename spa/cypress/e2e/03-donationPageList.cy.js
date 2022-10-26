@@ -112,9 +112,14 @@ describe('Donation page list', () => {
 
       it('creates a page with a unique name and slug based on existing pages', () => {
         cy.forceLogin(orgAdmin);
+        cy.intercept(
+          { method: 'GET', pathname: getEndpoint(LIST_PAGES) },
+          { fixture: 'pages/list-pages-1', statusCode: 200 }
+        ).as('listPages');
         cy.intercept({ method: 'GET', pathname: getEndpoint(USER) }, { body: orgAdminWithContentFlagAndOneRP });
-        cy.intercept({ method: 'POST', pathname: getEndpoint(LIST_PAGES) }).as('createNewPage');
+        cy.intercept({ method: 'POST', pathname: getEndpoint(LIST_PAGES) }, { statusCode: 200 }).as('createNewPage');
         cy.visit(CONTENT_SLUG);
+        cy.wait('@listPages');
         cy.get('button[aria-label="New Page"]').click();
         cy.wait('@createNewPage').then(({ request }) => {
           expect(request.body).to.eql({
@@ -123,6 +128,43 @@ describe('Donation page list', () => {
             slug: 'page-2'
           });
         });
+      });
+
+      it('redirects user to newly created page', () => {
+        cy.forceLogin(orgAdmin);
+        cy.intercept({ method: 'GET', pathname: getEndpoint(USER) }, { body: orgAdminWithContentFlagAndOneRP });
+        cy.intercept(
+          { method: 'POST', pathname: getEndpoint(LIST_PAGES) },
+          {
+            body: {
+              slug: 'page-1',
+              revenue_program: {
+                slug: 'rp-1'
+              }
+            },
+            statusCode: 200
+          }
+        ).as('createNewPage');
+        cy.visit(CONTENT_SLUG);
+        cy.get('button[aria-label="New Page"]').click();
+        cy.wait('@createNewPage');
+        cy.url().should('include', 'rp-1/page-1');
+      });
+
+      it('shows error when create page fails', () => {
+        cy.forceLogin(orgAdmin);
+        cy.intercept({ method: 'GET', pathname: getEndpoint(USER) }, { body: orgAdminWithContentFlagAndOneRP });
+        cy.intercept(
+          { method: 'POST', pathname: getEndpoint(LIST_PAGES) },
+          {
+            body: ['Create page error'],
+            statusCode: 400
+          }
+        ).as('createNewPage');
+        cy.visit(CONTENT_SLUG);
+        cy.get('button[aria-label="New Page"]').click();
+        cy.wait('@createNewPage');
+        cy.contains('Create page error');
       });
     });
   });

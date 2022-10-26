@@ -271,4 +271,47 @@ describe('Update recurring contribution modal', () => {
       cy.getByTestId('contrib-update-payment-method-btn').should('not.be.disabled');
     }
   );
+
+  describe('when the form is submitted', () => {
+    // Find matching data for the payment we edit in the parent beforeEach().
+    const contribution = donationsData.find((donation) => donation.interval === 'month');
+
+    beforeEach(() => {
+      const today = new Date();
+
+      // This intercepts a call made by Stripe.js.
+      cy.intercept(
+        { method: 'POST', url: 'https://api.stripe.com/v1/payment_methods' },
+        { body: { id: 'mock-payment-id' } }
+      ).as('postStripePaymentMethod');
+      cy.intercept(
+        { method: 'PATCH', url: getEndpoint(`${SUBSCRIPTIONS}${contribution.subscription_id}/`) },
+        { statusCode: 200 }
+      ).as('patchSubscription');
+
+      cy.setStripeCardElement('cardNumber', '4242424242424242');
+      cy.setStripeCardElement('cardExpiry', `${today.getMonth() + 1}${today.getFullYear() % 100}`);
+      cy.setStripeCardElement('cardCvc', '123');
+      cy.setStripeCardElement('postalCode', '12345');
+    });
+
+    it('creates a Stripe payment method and sends a PATCH to update the contribution', () => {
+      cy.getByTestId('contrib-update-payment-method-btn').click();
+      cy.wait(['@postStripePaymentMethod', '@patchSubscription']).then(([_, patchSubscription]) => {
+        // Don't test that Stripe.js sends the right API request--only that the
+        // PATCH uses the payment method ID returned.
+        expect(patchSubscription.request.body).eql({
+          payment_method_id: 'mock-payment-id',
+          revenue_program_slug: contribution.revenue_program
+        });
+      });
+    });
+
+    it('shows a confirmation message to the user', () => {
+      cy.getByTestId('contrib-update-payment-method-btn').click();
+      cy.wait(['@postStripePaymentMethod', '@patchSubscription']).then(() =>
+        cy.getByTestId('edit-recurring-payment-modal-success').should('exist')
+      );
+    });
+  });
 });

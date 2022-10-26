@@ -58,7 +58,7 @@ import RETooltip from 'elements/RETooltip';
 import { usePageContext } from 'components/dashboard/PageContext';
 import getSuccessMessage, { pageHasBeenPublished } from 'utilities/editPageGetSuccessMessage';
 
-const PageEditorContext = createContext();
+export const PageEditorContext = createContext();
 
 export const EDIT = 'EDIT';
 export const PREVIEW = 'PREVIEW';

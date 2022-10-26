@@ -12,5 +12,8 @@ module.exports = {
   framework: '@storybook/react',
   core: {
     builder: '@storybook/builder-webpack5'
-  }
+  },
+  // Needed to avoid problems with how we use spaces in component displayNames.
+  // See https://github.com/storybookjs/storybook/issues/18074
+  typescript: { reactDocgen: 'react-docgen' }
 };

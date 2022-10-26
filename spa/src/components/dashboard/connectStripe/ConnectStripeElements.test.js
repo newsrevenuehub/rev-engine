@@ -1,11 +1,16 @@
 import { render, screen } from 'test-utils';
 import { fireEvent } from '@testing-library/react';
-
 import ConnectStripeElements from './ConnectStripeElements';
 import useConnectStripeAccount from 'hooks/useConnectStripeAccount';
 import { CONNECT_STRIPE_COOKIE_NAME, CONNECT_STRIPE_FAQ_LINK } from 'constants/textConstants';
 
 jest.mock('hooks/useConnectStripeAccount');
+const mockSetCookie = jest.fn();
+jest.mock('react-cookie', () => ({
+  __esModule: true,
+  ...jest.requireActual(),
+  useCookies: () => [jest.fn(), mockSetCookie]
+}));
 
 describe('ConnectStripeElements', () => {
   it('includes step information for users of assistive technology', () => {
@@ -65,7 +70,7 @@ describe('ConnectStripeElements', () => {
   });
 });
 
-describe('Show Toast if cookie is set', () => {
+describe.only('Show Toast if cookie is set', () => {
   beforeEach(() => {
     Object.defineProperty(document, 'cookie', {
       writable: true,
@@ -87,5 +92,20 @@ describe('Show Toast if cookie is set', () => {
     expect(stripeModal).not.toBeInTheDocument();
     const stripeToast = screen.queryByTestId('connect-stripe-toast');
     expect(stripeToast).toBeInTheDocument();
+  });
+});
+
+describe('When user decides to connect to Stripe later', () => {
+  it('should set the appropriate cookie', () => {
+    useConnectStripeAccount.mockReturnValue({
+      isLoading: false,
+      sendUserToStripe: () => {},
+      unverifiedReason: 'past_due'
+    });
+    render(<ConnectStripeElements />);
+    const connectLater = screen.getByText('I’ll connect to Stripe later');
+    fireEvent.click(connectLater);
+    expect(mockSetCookie).toHaveBeenCalledTimes(1);
+    expect(mockSetCookie.mock.calls[0]).toEqual([CONNECT_STRIPE_COOKIE_NAME, true, { path: '/' }]);
   });
 });

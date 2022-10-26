@@ -21,11 +21,11 @@ const ConnectStripeModal = () => {
 
   const handleClickConnectLater = useCallback(() => {
     handleClose();
-    setCookie(true, { path: '/' });
+    setCookie(CONNECT_STRIPE_COOKIE_NAME, true, { path: '/' });
   }, [handleClose, setCookie]);
 
   const handleClickConnectNow = useCallback(() => {
-    setCookie(true, { path: '/' });
+    setCookie(CONNECT_STRIPE_COOKIE_NAME, true, { path: '/' });
     sendUserToStripe();
   }, [sendUserToStripe, setCookie]);
 

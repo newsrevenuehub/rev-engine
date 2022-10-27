@@ -9,7 +9,7 @@ import { Route, useHistory } from 'react-router-dom';
 import { ENVIRONMENT, SENTRY_DSN_FRONTEND, SENTRY_ENABLE_FRONTEND } from 'settings';
 
 /**
- * Typically, just loading sentry at build time is sufficient.
+ * Typically, just loading sentry at load time is sufficient.
  * However, due to our front-end environment variable pattern,
  * we need to wait till runtime to get the Sentry DSN.
  */

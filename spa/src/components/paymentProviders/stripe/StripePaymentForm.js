@@ -93,8 +93,8 @@ function StripePaymentForm() {
 
   return (
     <S.StripePaymentForm>
-      <BackButton onClick={cancelPayment} />
       <form onSubmit={handleSubmit} name="stripe-payment-form">
+        <BackButton onClick={cancelPayment} />
         <PaymentElement options={paymentElementOptions} id="stripe-payment-element" />
         <S.PaymentSubmitButton type="submit" disabled={isLoading} loading={isLoading} data-testid="donation-submit">
           {paymentSubmitButtonText}

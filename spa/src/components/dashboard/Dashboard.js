@@ -56,7 +56,7 @@ function Dashboard() {
   return (
     <S.Outer>
       {requiresStripeVerification ? <ConnectStripeElements /> : ''}
-      <DashboardTopbar isEditPage={isEditPage} page={page} setPage={setPage} />
+      <DashboardTopbar isEditPage={isEditPage} page={page} setPage={setPage} user={user} />
       <S.Dashboard data-testid="dashboard">
         {isEditPage ? null : <DashboardSidebar />}
         <S.DashboardMain>

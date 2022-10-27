@@ -47,6 +47,7 @@ declare module 'styled-components' {
         400: string;
         500: string;
         600: string;
+        700: string;
         800: string;
         900: string;
       };
@@ -90,24 +91,24 @@ declare module 'styled-components' {
     font: { body: string; heading: string };
     fontSizes: string[];
     fontSizesUpdated: {
-      xs: string;
-      sm: string;
-      md: string;
-      lg: string;
-      '20': '20px';
-      lgx: string;
-      lg2x: string;
-      lg3x: string;
-      h1: string;
-      xl: string;
-      '2xl': string;
+      xs: '12px';
+      sm: '14px';
+      md: '16px';
+      lg: '18px';
+      20: '20px';
+      lgx: '24px';
+      lg2x: '28px';
+      lg3x: '30px';
+      h1: '34px';
+      xl: '46px';
+      '2xl': '72px';
     };
     muiBorderRadius: {
-      sm: string;
-      md: string;
-      lg: string;
-      xl: string;
-      '2xl': string;
+      sm: '2px';
+      md: '4px';
+      lg: '6px';
+      xl: '10px';
+      '2xl': '12px';
     };
     radii: string[];
     shadows: string[];

@@ -53,6 +53,7 @@ export const revEngineTheme: DefaultTheme = {
       400: '#c4c4c4',
       500: '#969696',
       600: '#707070',
+      700: '#666666',
       800: '#3c3c3c',
       900: '#282828'
     },

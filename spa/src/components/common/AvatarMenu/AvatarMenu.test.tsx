@@ -2,20 +2,17 @@ import { axe } from 'jest-axe';
 import { render, screen, within } from 'test-utils';
 import userEvent from '@testing-library/user-event';
 
+import { FAQ_URL } from 'constants/helperUrls';
 import onLogout from 'components/authentication/logout';
-import AvatarMenu, { AvatarMenuProps, urlFAQ } from './AvatarMenu';
+import AvatarMenu, { AvatarMenuProps } from './AvatarMenu';
 
-jest.mock('components/authentication/logout', () => ({
-  __esModule: true,
-  default: jest.fn()
-}));
-
+jest.mock('components/authentication/logout');
 
 const tree = (props?: AvatarMenuProps) => {
   return render(<AvatarMenu {...props} />);
-}
+};
 
-const settingsMenu = 'settings menu'
+const settingsMenu = 'Settings';
 
 describe('AvatarMenu', () => {
   it('should be enabled if has user', () => {
@@ -33,7 +30,7 @@ describe('AvatarMenu', () => {
       firstName: 'first-mock',
       lastName: 'last-mock',
       email: 'email@mock.com'
-    }
+    };
     tree({ user: nameUser });
 
     const avatar = screen.getByTestId('avatar');
@@ -44,7 +41,7 @@ describe('AvatarMenu', () => {
   it('should render email initial if name is empty', () => {
     const emailUser = {
       email: 'email@mock.com'
-    }
+    };
     tree({ user: emailUser });
 
     const avatar = screen.getByTestId('avatar');
@@ -63,7 +60,7 @@ describe('AvatarMenu', () => {
   it('should open settings menu with correct buttons', () => {
     const emailUser = {
       email: 'email@mock.com'
-    }
+    };
     tree({ user: emailUser });
 
     userEvent.click(screen.getByRole('button', { name: settingsMenu }));
@@ -72,27 +69,27 @@ describe('AvatarMenu', () => {
   });
 
   it('should have correct FAQ link', () => {
-    window.open = jest.fn()
-
+    const oldOpen = jest.spyOn(window, 'open').mockImplementation();
     const emailUser = {
       email: 'email@mock.com'
-    }
+    };
     tree({ user: emailUser });
 
     userEvent.click(screen.getByRole('button', { name: settingsMenu }));
     userEvent.click(screen.getByRole('menuitem', { name: 'FAQ' }));
-    expect(window.open).toBeCalledWith(urlFAQ, "_blank", "noopener, noreferrer")
+    expect(oldOpen).toBeCalledWith(FAQ_URL, '_blank', 'noopener, noreferrer');
+    oldOpen.mockRestore();
   });
 
   it('should logout', () => {
     const emailUser = {
       email: 'email@mock.com'
-    }
+    };
     tree({ user: emailUser });
 
     userEvent.click(screen.getByRole('button', { name: settingsMenu }));
     userEvent.click(screen.getByRole('menuitem', { name: 'Sign out' }));
-    expect(onLogout).toBeCalledTimes(1)
+    expect(onLogout).toBeCalledTimes(1);
   });
 
   it('is accessible', async () => {

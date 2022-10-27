@@ -5,6 +5,7 @@ import ContactSupportOutlinedIcon from '@material-ui/icons/ContactSupportOutline
 
 import LogoutIcon from 'assets/icons/logout.svg';
 import onLogout from 'components/authentication/logout';
+import { FAQ_URL } from 'constants/helperUrls';
 
 import {
   Container, ModalHeader, Popover, Avatar, ListWrapper,
@@ -13,13 +14,12 @@ import {
 
 export type AvatarMenuProps = InferProps<typeof AvatarMenuPropTypes>
 
-export const urlFAQ = 'https://news-revenue-hub.atlassian.net/servicedesk/customer/portal/11/article/2195423496'
 export const capitalizeInitial = (text?: string) => text ? text[0].toUpperCase() : ''
 
 const AvatarMenu = ({ user, className }: AvatarMenuProps) => {
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const open = Boolean(anchorEl);
-  const id = open ? 'grab link popover' : undefined;
+  const id = open ? 'avatar-menu-popover' : undefined;
 
   const avatarInitials = useMemo(() =>
     user?.firstName ? `${capitalizeInitial(user?.firstName || '')}${capitalizeInitial(user?.lastName || '')}` : `${capitalizeInitial(user?.email || '')}`,
@@ -34,12 +34,12 @@ const AvatarMenu = ({ user, className }: AvatarMenuProps) => {
   };
 
   const handleFAQ = () => {
-    window.open(urlFAQ, '_blank', 'noopener, noreferrer');
+    window.open(FAQ_URL, '_blank', 'noopener, noreferrer');
   };
 
   return (
     <>
-      <Container open={open ? 'open' : ''} className={className!} onClick={handleClick} aria-label='settings menu'>
+      <Container open={open ? 'open' : ''} className={className!} onClick={handleClick} aria-label='Settings'>
         <Avatar data-testid='avatar'>{avatarInitials}</Avatar>
         <MoreVertIcon />
       </Container>
@@ -90,7 +90,6 @@ AvatarMenu.propTypes = AvatarMenuPropTypes;
 
 AvatarMenu.defaultProps = {
   className: '',
-  user: undefined,
 };
 
 export default AvatarMenu;

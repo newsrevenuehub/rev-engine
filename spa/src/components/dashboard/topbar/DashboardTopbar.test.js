@@ -29,7 +29,7 @@ const user = {
 describe('Dashboard TopBar', () => {
   it('should show avatar menu in topbar', () => {
     render(<DashboardTopbar isEditPage={false} user={user} />);
-    expect(screen.getByRole('button', { name: 'settings menu' })).toBeEnabled();
+    expect(screen.getByRole('button', { name: 'Settings' })).toBeEnabled();
   });
 
   it('should hide grab link button if isEditPage = false', () => {

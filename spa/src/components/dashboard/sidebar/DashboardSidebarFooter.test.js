@@ -1,6 +1,7 @@
+import { FAQ_URL, HELP_URL } from 'constants/helperUrls';
 import { axe } from 'jest-axe';
 import { render, screen } from 'test-utils';
-import DashboardSidebarFooter, { footerHrefs } from './DashboardSidebarFooter';
+import DashboardSidebarFooter from './DashboardSidebarFooter';
 
 describe('DashboardSidebarFooter', () => {
   function tree(props) {
@@ -17,7 +18,7 @@ describe('DashboardSidebarFooter', () => {
     const faqLink = screen.getByRole('listitem', { name: 'FAQ' });
 
     expect(faqLink).toBeVisible();
-    expect(faqLink).toHaveAttribute('href', footerHrefs.faq);
+    expect(faqLink).toHaveAttribute('href', FAQ_URL);
     expect(faqLink).toHaveAttribute('target', '_blank');
   });
 
@@ -27,7 +28,7 @@ describe('DashboardSidebarFooter', () => {
     const helpLink = screen.getByRole('listitem', { name: 'Help' });
 
     expect(helpLink).toBeVisible();
-    expect(helpLink).toHaveAttribute('href', footerHrefs.help);
+    expect(helpLink).toHaveAttribute('href', HELP_URL);
     expect(helpLink).toHaveAttribute('target', '_blank');
   });
 

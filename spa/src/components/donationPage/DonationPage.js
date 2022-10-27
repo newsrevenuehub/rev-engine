@@ -47,6 +47,7 @@ function cancelPayment(paymentId, csrftoken) {
   // we manually set the XCSRFToken value in header here. This is an unauthed endpoint
   // that on the backend requires csrf header, which will be in cookie returned by request
   // for page data (that happens in parent context)
+
   return axios.delete(endpoint, { headers: { [CSRF_HEADER]: csrftoken } }).then(({ data }) => data);
 }
 
@@ -88,9 +89,7 @@ function DonationPage({ page, live = false }) {
     authorizePayment(paymentData, cookies.csrftoken)
   );
 
-  const { mutate: deletePayment, isLoading: deletePaymentIsLoading } = useMutation((paymentId) =>
-    cancelPayment(paymentId)
-  );
+  const { mutate: deletePayment } = useMutation((paymentId) => cancelPayment(paymentId, cookies.csrftoken));
 
   /*
   If window.grecaptcha is defined-- which should be done in useReCAPTCHAScript hook--

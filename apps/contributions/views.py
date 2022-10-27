@@ -211,9 +211,15 @@ class PaymentViewset(
         contribution.save()
         try:
             if contribution.interval == ContributionInterval.ONE_TIME:
-                stripe.PaymentIntent.cancel(contribution.provider_client_secret_id)
+                stripe.PaymentIntent.cancel(
+                    contribution.provider_payment_id,
+                    stripe_account=contribution.donation_page.revenue_program.stripe_account_id,
+                )
             if contribution.interval in (ContributionInterval.MONTHLY.value, ContributionInterval.YEARLY.value):
-                stripe.Subscription.delete(contribution.provider_subscription_id)
+                stripe.Subscription.delete(
+                    contribution.provider_subscription_id,
+                    stripe_account=contribution.donation_page.revenue_program.stripe_account_id,
+                )
         except StripeError:
             logger.exception(
                 "Something went wrong with Stripe while attempting to cancel payment with client secret %s",

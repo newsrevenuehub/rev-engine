@@ -1080,23 +1080,25 @@ class TestPaymentViewset:
         # TODO - figure out how to do csrf protection but return JSON when no token
 
     @pytest.mark.parametrize(
-        "interval,client_secret,subscription_id",
+        "interval,client_secret,payment_intent_id,subscription_id",
         (
-            (ContributionInterval.ONE_TIME, PI_CLIENT_SECRET, None),
-            (ContributionInterval.MONTHLY, SUBSCRIPTION_CLIENT_SECRET, SUBSCRIPTION_ID),
-            (ContributionInterval.YEARLY, SUBSCRIPTION_CLIENT_SECRET, SUBSCRIPTION_ID),
+            (ContributionInterval.ONE_TIME, PI_CLIENT_SECRET, PI_ID, None),
+            (ContributionInterval.MONTHLY, SUBSCRIPTION_CLIENT_SECRET, None, SUBSCRIPTION_ID),
+            (ContributionInterval.YEARLY, SUBSCRIPTION_CLIENT_SECRET, None, SUBSCRIPTION_ID),
         ),
     )
     def test_destroy_happy_path(
         self,
         interval,
         client_secret,
+        payment_intent_id,
         subscription_id,
         monkeypatch,
     ):
         contribution = ContributionFactory(
             interval=interval,
             provider_client_secret_id=client_secret,
+            provider_payment_id=payment_intent_id,
             provider_subscription_id=subscription_id,
             status=ContributionStatus.PROCESSING,
         )
@@ -1111,9 +1113,13 @@ class TestPaymentViewset:
         contribution.refresh_from_db()
         assert contribution.status == ContributionStatus.CANCELED
         if interval == ContributionInterval.ONE_TIME:
-            mock_cancel_pi.assert_called_once_with(client_secret)
+            mock_cancel_pi.assert_called_once_with(
+                payment_intent_id, stripe_account=contribution.donation_page.revenue_program.stripe_account_id
+            )
         else:
-            mock_delete_sub.assert_called_once_with(subscription_id)
+            mock_delete_sub.assert_called_once_with(
+                subscription_id, stripe_account=contribution.donation_page.revenue_program.stripe_account_id
+            )
 
 
 @pytest.mark.django_db

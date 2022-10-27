@@ -15,15 +15,17 @@ const tree = (props?: AvatarMenuProps) => {
   return render(<AvatarMenu {...props} />);
 }
 
+const settingsMenu = 'settings menu'
+
 describe('AvatarMenu', () => {
   it('should be enabled if has user', () => {
     tree({ user: { email: 'a@a.com' } });
-    expect(screen.getByRole('button', { name: 'setting menu' })).toBeEnabled();
+    expect(screen.getByRole('button', { name: settingsMenu })).toBeEnabled();
   });
 
   it('should be disabled if user is undefined', () => {
     tree();
-    expect(screen.getByRole('button', { name: 'setting menu' })).toBeEnabled();
+    expect(screen.getByRole('button', { name: settingsMenu })).toBeEnabled();
   });
 
   it('should render name initials', () => {
@@ -64,7 +66,7 @@ describe('AvatarMenu', () => {
     }
     tree({ user: emailUser });
 
-    userEvent.click(screen.getByRole('button', { name: 'setting menu' }));
+    userEvent.click(screen.getByRole('button', { name: settingsMenu }));
     expect(screen.getByRole('menuitem', { name: 'FAQ' })).toBeEnabled();
     expect(screen.getByRole('menuitem', { name: 'Sign out' })).toBeEnabled();
   });
@@ -77,7 +79,7 @@ describe('AvatarMenu', () => {
     }
     tree({ user: emailUser });
 
-    userEvent.click(screen.getByRole('button', { name: 'setting menu' }));
+    userEvent.click(screen.getByRole('button', { name: settingsMenu }));
     userEvent.click(screen.getByRole('menuitem', { name: 'FAQ' }));
     expect(window.open).toBeCalledWith(urlFAQ, "_blank", "noopener, noreferrer")
   });
@@ -88,7 +90,7 @@ describe('AvatarMenu', () => {
     }
     tree({ user: emailUser });
 
-    userEvent.click(screen.getByRole('button', { name: 'setting menu' }));
+    userEvent.click(screen.getByRole('button', { name: settingsMenu }));
     userEvent.click(screen.getByRole('menuitem', { name: 'Sign out' }));
     expect(onLogout).toBeCalledTimes(1)
   });
@@ -97,7 +99,7 @@ describe('AvatarMenu', () => {
     const { container } = tree({ user: { email: 'a@a.com' } });
     expect(await axe(container)).toHaveNoViolations();
 
-    userEvent.click(screen.getByRole('button', { name: 'setting menu' }));
+    userEvent.click(screen.getByRole('button', { name: settingsMenu }));
     expect(await axe(container)).toHaveNoViolations();
   });
 });

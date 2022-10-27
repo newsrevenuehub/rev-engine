@@ -39,7 +39,7 @@ const AvatarMenu = ({ user, className }: AvatarMenuProps) => {
 
   return (
     <>
-      <Container open={open ? 'open' : ''} className={className!} onClick={handleClick} aria-label='setting menu'>
+      <Container open={open ? 'open' : ''} className={className!} onClick={handleClick} aria-label='settings menu'>
         <Avatar data-testid='avatar'>{avatarInitials}</Avatar>
         <MoreVertIcon />
       </Container>

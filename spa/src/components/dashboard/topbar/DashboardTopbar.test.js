@@ -22,11 +22,14 @@ const page = {
   published_date: '2021-11-18T21:51:53Z'
 };
 
+const user = {
+  email: 'mock@email.com'
+};
+
 describe('Dashboard TopBar', () => {
-  it('should show logout link in topbar', () => {
-    render(<DashboardTopbar isEditPage={false} />);
-    fireEvent.click(screen.getByText('Sign out'));
-    expect(logout).toHaveBeenCalled();
+  it('should show avatar menu in topbar', () => {
+    render(<DashboardTopbar isEditPage={false} user={user} />);
+    expect(screen.getByRole('button', { name: 'settings menu' })).toBeEnabled();
   });
 
   it('should hide grab link button if isEditPage = false', () => {

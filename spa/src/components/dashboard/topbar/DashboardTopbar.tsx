@@ -36,20 +36,7 @@ function DashboardTopbar({ isEditPage, page, setPage, user }: DashboardTopbarTyp
             <GrabLink page={page} />
             <PublishButton page={page} setPage={setPage} alert={alert} requestPatchPage={requestPatchPage} />
           </>
-        ) : (
-          <>
-            {/* <S.LogoutLink
-              data-testid="topbar-sign-out"
-              onClick={logout}
-              whileHover={{ scale: 1.05, x: -3 }}
-              whileTap={{ scale: 1, x: 0 }}
-            >
-              <S.LogoutIcon icon={ICONS.LOGOUT} />
-              Sign out
-            </S.LogoutLink> */}
-            <AvatarMenu user={user} />
-          </>
-        )}
+        ) : (<AvatarMenu user={user} />)}
       </S.TopMenu>
     </S.DashboardTopbar>
   );

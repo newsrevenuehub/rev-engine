@@ -1121,6 +1121,29 @@ class TestPaymentViewset:
                 subscription_id, stripe_account=contribution.donation_page.revenue_program.stripe_account_id
             )
 
+    @pytest.mark.parametrize(
+        "contribution_status",
+        (
+            ContributionStatus.PAID,
+            ContributionStatus.CANCELED,
+            ContributionStatus.FAILED,
+            ContributionStatus.FLAGGED,
+            ContributionStatus.REJECTED,
+            ContributionStatus.REFUNDED,
+        ),
+    )
+    def test_destroy_when_contribution_status_isnt_processing(
+        self,
+        contribution_status,
+    ):
+        contribution = ContributionFactory(
+            provider_client_secret_id=PI_CLIENT_SECRET,
+            status=contribution_status,
+        )
+        url = reverse("payment-detail", kwargs={"provider_client_secret_id": contribution.provider_client_secret_id})
+        response = self.client.delete(url)
+        assert response.status_code == status.HTTP_409_CONFLICT
+
 
 @pytest.mark.django_db
 def test_payment_success_view():

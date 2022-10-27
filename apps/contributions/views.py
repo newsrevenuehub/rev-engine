@@ -206,7 +206,7 @@ class PaymentViewset(
     def destroy(self, request, *args, **kwargs):
         contribution = self.get_object()
         if contribution.status != ContributionStatus.PROCESSING:
-            raise ValidationError(code=status.HTTP_409_CONFLICT)
+            return Response(status=status.HTTP_409_CONFLICT)
         contribution.status = ContributionStatus.CANCELED
         contribution.save()
         try:

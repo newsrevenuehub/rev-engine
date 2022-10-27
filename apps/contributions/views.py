@@ -21,14 +21,25 @@ from apps.api.permissions import (
 )
 from apps.contributions import serializers
 from apps.contributions.filters import ContributionFilter
-from apps.contributions.models import Contribution, Contributor
+from apps.contributions.models import (
+    Contribution,
+    ContributionInterval,
+    ContributionStatus,
+    Contributor,
+)
 from apps.contributions.payment_managers import PaymentProviderError
 from apps.contributions.stripe_contributions_provider import (
     ContributionsCacheProvider,
     SubscriptionsCacheProvider,
 )
 from apps.contributions.tasks import task_pull_serialized_stripe_contributions_to_cache
+from apps.contributions.utils import (
+    convert_stripe_date_to_datetime,
+    format_ambiguous_currency,
+    payment_interval_from_stripe_invoice,
+)
 from apps.contributions.webhooks import StripeWebhookProcessor
+from apps.emails.tasks import send_templated_email
 from apps.organizations.models import PaymentProvider, RevenueProgram
 from apps.public.permissions import IsActiveSuperUser
 from apps.users.views import FilterQuerySetByUserMixin
@@ -401,3 +412,44 @@ class SubscriptionsViewSet(viewsets.ViewSet):
         # TODO: [DEV-2438] return the canceled sub and update the cache
 
         return Response({"detail": "Success"}, status=status.HTTP_204_NO_CONTENT)
+
+
+@api_view(["POST"])
+@permission_classes([IsAuthenticated, HasRoleAssignment])
+def email_contribution(request):
+    email_id = request.user.email
+    contribution_id = request.data.get("contribution_id")
+    contribution = get_object_or_404(Contribution, pk=contribution_id)
+    stripe_account_id = contribution.revenue_program.payment_provider.stripe_account_id
+
+    if contribution.status != ContributionStatus.PAID:
+        return Response(
+            {"detail": f"Contribution status is {contribution.status} expectected status is {ContributionStatus.PAID}"},
+            status=status.HTTP_417_EXPECTATION_FAILED,
+        )
+
+    payment_intent = stripe.PaymentIntent.retrieve(
+        id=contribution.provider_payment_id, stripe_account=stripe_account_id
+    )
+
+    interval = ContributionInterval.ONE_TIME
+    if payment_intent.invoice:
+        invoice = stripe.Invoice.retrieve(id=payment_intent.invoice, stripe_account=stripe_account_id)
+        interval = payment_interval_from_stripe_invoice(invoice, ContributionInterval)
+
+    email_attrs = {
+        "contribution_date": convert_stripe_date_to_datetime(payment_intent.created).strftime("%m-%d-%y"),
+        "contributor_email": payment_intent.receipt_email or email_id,
+        "contribution_amount": f"{format_ambiguous_currency(payment_intent.amount_received)} {payment_intent.currency.upper()}",
+        "contribution_interval": interval,
+        "contribution_interval_display_value": interval if interval != ContributionInterval.ONE_TIME else None,
+    }
+
+    send_templated_email(
+        request.user.email,
+        "Thank you for your contribution!",
+        "nrh-default-contribution-confirmation-email.txt",
+        "nrh-default-contribution-confirmation-email.html",
+        email_attrs,
+    )
+    return Response({"detail": "success"}, status=status.HTTP_200_OK)

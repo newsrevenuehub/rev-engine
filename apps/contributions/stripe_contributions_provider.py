@@ -12,6 +12,7 @@ from addict import Dict as AttrDict
 from rest_framework import exceptions
 
 from apps.contributions.models import ContributionInterval, ContributionStatus
+from apps.contributions.utils import convert_stripe_date_to_datetime
 from revengine.settings.base import CONTRIBUTION_CACHE_TTL, DEFAULT_CACHE
 
 
@@ -82,6 +83,7 @@ class StripePaymentIntent:
 
     @property
     def interval(self):
+        # [TODO]: logic being ambigious to be replaced by utils.payment_interval_from_stripe_invoice
         if not self.payment_intent.invoice:
             # if there's no invoice then it's a one-time payment
             return ContributionInterval.ONE_TIME
@@ -126,7 +128,7 @@ class StripePaymentIntent:
 
     @property
     def created(self):
-        return datetime.datetime.fromtimestamp(int(self.payment_intent.created), tz=datetime.timezone.utc)
+        return convert_stripe_date_to_datetime(self.payment_intent.created)
 
     @property
     def provider_customer_id(self):

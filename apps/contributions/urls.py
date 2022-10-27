@@ -21,6 +21,7 @@ urlpatterns = [
         views.process_stripe_webhook_view,
         name="stripe-webhooks",
     ),
+    path("payments/email-contribution/", views.email_contribution, name="email-contribution"),
 ]
 
 urlpatterns += router.urls

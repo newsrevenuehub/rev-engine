@@ -32,7 +32,7 @@ RP_SLUG_MAX_LENGTH = 63
 CURRENCY_CHOICES = [(k, k) for k in settings.CURRENCIES.keys()]
 
 
-@dataclass
+@dataclass(frozen=True)
 class Plan:
     """Used for modeling Organization plans"""
 
@@ -40,6 +40,7 @@ class Plan:
     label: str
     page_limit: int = 1
     style_limit: int = 1
+    custom_thank_you_page_enabled: bool = False
 
 
 FreePlan = Plan(
@@ -53,6 +54,7 @@ PlusPlan = Plan(
     # If this limit gets hit, it can be dealt with as a customer service issue.
     page_limit=UNLIMITED_CEILING,
     style_limit=UNLIMITED_CEILING,
+    custom_thank_you_page_enabled=True,
 )
 
 
@@ -299,7 +301,7 @@ class RevenueProgram(IndexedTimeStampedModel):
         "If you're hoping to test this locally, pretty much too bad"
             -- Steve Jobs
         """
-        if settings.STRIPE_LIVE_MODE:
+        if settings.STRIPE_LIVE_MODE and not self.domain_apple_verified_date:
             try:
                 stripe.ApplePayDomain.create(
                     api_key=settings.STRIPE_LIVE_SECRET_KEY,
@@ -309,10 +311,9 @@ class RevenueProgram(IndexedTimeStampedModel):
                 self.domain_apple_verified_date = timezone.now()
                 self.save()
             except stripe.error.StripeError:
-                logger.warning(
+                logger.exception(
                     "Failed to register ApplePayDomain for RevenueProgram %s because of StripeError",
                     self.name,
-                    exc_info=True,
                 )
 
     def user_has_ownership_via_role(self, role_assignment):

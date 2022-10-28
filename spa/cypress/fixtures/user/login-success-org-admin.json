@@ -8,12 +8,15 @@
     "role_type": ["org_admin", "Org Admin"],
     "organizations": [
       {
-        "id": 1,
-        "name": "Some Org",
-        "slug": "some-org",
-        "stripe_account_id": "some-id",
-        "stripe_verified": true,
-        "default_payment_provider": "stripe"
+        "id": 11,
+        "name": "My Org",
+        "slug": "my-org",
+        "plan": {
+          "name": "PLUS",
+          "label": "Plus",
+          "page_limit": 10,
+          "style_limit": 10
+        }
       }
     ],
     "revenue_programs": [

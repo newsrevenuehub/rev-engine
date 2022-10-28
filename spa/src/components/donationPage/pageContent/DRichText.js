@@ -12,7 +12,7 @@ function DRichText({ element, ...props }) {
 }
 
 DRichText.type = 'DRichText';
-DRichText.displayName = 'Rich text';
+DRichText.displayName = 'Rich Text';
 DRichText.description = 'Add arbitrary rich text to your contribution page';
 DRichText.required = false;
 DRichText.unique = false;

@@ -1,7 +1,9 @@
 import logging
 
+from django import forms
 from django.conf import settings
 from django.contrib import admin, messages
+from django.core.exceptions import ValidationError
 from django.db.utils import IntegrityError
 from django.http import HttpResponseRedirect
 from django.urls import reverse
@@ -12,6 +14,7 @@ from solo.admin import SingletonModelAdmin
 from sorl.thumbnail.admin import AdminImageMixin
 
 from apps.common.admin import RevEngineBaseAdmin
+from apps.organizations.models import Organization
 from apps.pages import models
 
 
@@ -76,8 +79,52 @@ class TemplateAdmin(VersionAdmin, DonationPageAdminAbstract):
         return super().response_change(request, obj)
 
 
+class DonationPageAdminForm(forms.ModelForm):
+    def clean_thank_you_redirect(
+        self,
+    ):
+        """We raise a validation error if the user is attempting to save a non blank value for thank_you_redirect...
+
+        ...and the page's RP's org's plan does not provide this feature
+        """
+        if not self.instance.id:
+            org = Organization.objects.get(revenueprogram__id=self.data["revenue_program"])
+        else:
+            org = self.instance.revenue_program.organization
+        if self.cleaned_data["thank_you_redirect"] and not org.get_plan_data().custom_thank_you_page_enabled:
+            raise ValidationError(
+                (
+                    f"The parent org (ID: {org.id} | Name: {org.name}) is on the {org.get_plan_data().label} plan, "
+                    f"which does not get this feature."
+                )
+            )
+        return self.cleaned_data["thank_you_redirect"] or ""
+
+    def validate_page_limit(self):
+        org = self.cleaned_data["revenue_program"].organization
+        # if we're creating a new page, id won't be assigned yet
+        if (
+            not self.instance.id
+            and models.DonationPage.objects.filter(revenue_program__organization=org).count()
+            >= org.get_plan_data().page_limit
+        ):
+            raise ValidationError(
+                (
+                    f"The parent org (ID: {org.id} | Name: {org.name}) is on the {org.get_plan_data().label} plan, "
+                    f"and is limited to {org.get_plan_data().page_limit} "
+                    f"page{'' if org.get_plan_data().page_limit == 1 else 's' }."
+                )
+            )
+
+    def clean(self):
+        super().clean()
+        self.validate_page_limit()
+        return self.cleaned_data
+
+
 @admin.register(models.DonationPage)
 class DonationPageAdmin(CompareVersionAdmin, DonationPageAdminAbstract):
+    form = DonationPageAdminForm
     fieldsets = (
         (
             (None, {"fields": ("revenue_program",)}),

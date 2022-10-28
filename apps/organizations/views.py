@@ -211,6 +211,8 @@ def create_stripe_account_link_complete(request, rp_pk=None):
     # https://stripe.com/docs/api/accounts/object#account_object-details_submitted
     payment_provider.stripe_verified = stripe_account["charges_enabled"]
     payment_provider.save()
+    if payment_provider.stripe_verified:
+        revenue_program.stripe_create_apple_pay_domain()
     return Response(
         {"detail": "success", "stripe_verified": payment_provider.stripe_verified}, status=status.HTTP_202_ACCEPTED
     )

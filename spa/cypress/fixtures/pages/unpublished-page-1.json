@@ -42,6 +42,8 @@
   "plan": {
     "name": "FREE",
     "label": "Free",
+    "sidebar_elements": ["DRichText", "DImage"],
+    "page_elements": ["DAmount", "DDonorAddress", "DDonorInfo", "DFrequency", "DPayment", "DReason", "DRichText"],
     "page_limit": 1,
     "custom_thank_you_page_enabled": false
   }

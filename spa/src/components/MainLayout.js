@@ -2,6 +2,7 @@ import React, { createContext, useState, useContext, useRef } from 'react';
 import * as S from './MainLayout.styled';
 
 // Hooks
+import useSentry from 'hooks/useSentry';
 import useSubdomain from 'hooks/useSubdomain';
 import isContributorAppPath from 'utilities/isContributorAppPath';
 
@@ -20,6 +21,8 @@ import DashboardRouter from 'components/DashboardRouter';
 const GlobalContext = createContext(null);
 
 function MainLayout() {
+  useSentry();
+
   // Global Context management
   const [reauthModalOpen, setReauthModalOpen] = useState(false);
 

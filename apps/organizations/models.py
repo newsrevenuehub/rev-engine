@@ -12,18 +12,7 @@ from apps.common.models import IndexedTimeStampedModel
 from apps.common.utils import normalize_slug
 from apps.config.validators import validate_slug_against_denylist
 from apps.organizations.validators import validate_statement_descriptor_suffix
-from apps.pages.defaults import (
-    AMOUNT,
-    BENEFITS,
-    CONTRIBUTOR_ADDRESS,
-    CONTRIBUTOR_INFO,
-    FREQUENCY,
-    IMAGE,
-    PAYMENT,
-    REASON,
-    RICH_TEXT,
-    SWAG,
-)
+from apps.pages.defaults import BENEFITS, DEFAULT_PAGE_ELEMENTS, DEFAULT_SIDEBAR_ELEMENTS, SWAG
 from apps.users.choices import Roles
 from apps.users.models import RoleAssignmentResourceModelMixin, UnexpectedRoleType
 
@@ -42,14 +31,6 @@ UNLIMITED_CEILING = 200
 RP_SLUG_MAX_LENGTH = 63
 
 CURRENCY_CHOICES = [(k, k) for k in settings.CURRENCIES.keys()]
-
-
-DEFAULT_PAGE_ELEMENTS = [AMOUNT, CONTRIBUTOR_ADDRESS, CONTRIBUTOR_INFO, FREQUENCY, PAYMENT, REASON, RICH_TEXT]
-
-DEFAULT_SIDEBAR_ELEMENTS = [
-    RICH_TEXT,
-    IMAGE,
-]
 
 
 @dataclass(frozen=True)

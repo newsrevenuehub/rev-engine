@@ -13,6 +13,14 @@ RICH_TEXT = "DRichText"
 SWAG = "DSwag"
 
 
+DEFAULT_PAGE_ELEMENTS = [AMOUNT, CONTRIBUTOR_ADDRESS, CONTRIBUTOR_INFO, FREQUENCY, PAYMENT, REASON, RICH_TEXT]
+
+DEFAULT_SIDEBAR_ELEMENTS = [
+    RICH_TEXT,
+    IMAGE,
+]
+
+
 def get_default_page_elements():
     """
     When a new DonationPage is created, it should contain these elements by default.

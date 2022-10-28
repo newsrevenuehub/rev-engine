@@ -10,7 +10,6 @@ const BackButtonPropTypes = {
 
 interface BackButtonProps extends InferProps<typeof BackButtonPropTypes> {
   onClick: (event: React.MouseEvent) => void;
-  text?: string
 }
 
 export const DEFAULT_BACK_BUTTON_TEXT = 'Back';

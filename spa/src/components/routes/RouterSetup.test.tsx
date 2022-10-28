@@ -6,33 +6,28 @@ import React from 'react';
 
 jest.mock('react-router-dom', () => ({
   ...jest.requireActual('react-router-dom'),
-  BrowserRouter: ({ children }: { children: React.ReactNode }) =>
-    <div data-testid="mock-browser-router">{children}</div>,
-  Switch: ({ children }: { children: React.ReactNode }) =>
-    <div data-testid="mock-switch">{children}</div>
+  Switch: ({ children }: { children: React.ReactNode }) => <div data-testid="mock-switch">{children}</div>
 }));
 
-jest.mock('components/routes/AddSlashToRoutes', () => ({ children }: { children: React.ReactNode }) =>
+jest.mock('components/routes/AddSlashToRoutes', () => ({ children }: { children: React.ReactNode }) => (
   <div data-testid="mock-add-slash-to-routes">{children}</div>
-);
+));
 
-jest.mock('components/errors/ChunkErrorBoundary', () => ({ children }: { children: React.ReactNode }) =>
+jest.mock('components/errors/ChunkErrorBoundary', () => ({ children }: { children: React.ReactNode }) => (
   <div data-testid="mock-error-boundary">{children}</div>
-);
+));
 
 function tree() {
-
   return render(
     <RouterSetup>
-      <div data-testid='mock-router-last-child' />
+      <div data-testid="mock-router-last-child" />
     </RouterSetup>
-  )
+  );
 }
 
 describe('RouterSetup', () => {
   it('renders all levels of children', () => {
-    tree()
-    expect(screen.getByTestId('mock-browser-router')).toBeInTheDocument();
+    tree();
     expect(screen.getByTestId('mock-add-slash-to-routes')).toBeInTheDocument();
     expect(screen.getByTestId('mock-error-boundary')).toBeInTheDocument();
     expect(screen.getByTestId('mock-switch')).toBeInTheDocument();

@@ -8,22 +8,33 @@ import onLogout from 'components/authentication/logout';
 import { FAQ_URL } from 'constants/helperUrls';
 
 import {
-  Container, ModalHeader, Popover, Avatar, ListWrapper,
-  MenuItem, ListItemIcon, Typography, LogoutIconWrapper
+  Container,
+  ModalHeader,
+  Popover,
+  Avatar,
+  ListWrapper,
+  MenuItem,
+  ListItemIcon,
+  Typography,
+  LogoutIconWrapper
 } from './AvatarMenu.styled';
 
-export type AvatarMenuProps = InferProps<typeof AvatarMenuPropTypes>
+export type AvatarMenuProps = InferProps<typeof AvatarMenuPropTypes>;
 
-export const capitalizeInitial = (text?: string) => text ? text[0].toUpperCase() : ''
+export const capitalizeInitial = (text?: string) => (text ? text[0].toUpperCase() : '');
 
 const AvatarMenu = ({ user, className }: AvatarMenuProps) => {
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const open = Boolean(anchorEl);
   const id = open ? 'avatar-menu-popover' : undefined;
 
-  const avatarInitials = useMemo(() =>
-    user?.firstName ? `${capitalizeInitial(user?.firstName || '')}${capitalizeInitial(user?.lastName || '')}` : `${capitalizeInitial(user?.email || '')}`,
-    [user?.email, user?.firstName, user?.lastName])
+  const avatarInitials = useMemo(
+    () =>
+      user?.firstName
+        ? `${capitalizeInitial(user?.firstName || '')}${capitalizeInitial(user?.lastName || '')}`
+        : `${capitalizeInitial(user?.email || '')}`,
+    [user?.email, user?.firstName, user?.lastName]
+  );
 
   const handleClick = (event: MouseEvent<HTMLElement>) => {
     setAnchorEl(event.currentTarget);
@@ -39,8 +50,8 @@ const AvatarMenu = ({ user, className }: AvatarMenuProps) => {
 
   return (
     <>
-      <Container open={open ? 'open' : ''} className={className!} onClick={handleClick} aria-label='Settings'>
-        <Avatar data-testid='avatar'>{avatarInitials}</Avatar>
+      <Container open={open ? 'open' : ''} className={className!} onClick={handleClick} aria-label="Settings">
+        <Avatar data-testid="avatar">{avatarInitials}</Avatar>
         <MoreVertIcon />
       </Container>
       <Popover
@@ -58,14 +69,14 @@ const AvatarMenu = ({ user, className }: AvatarMenuProps) => {
         }}
       >
         <ModalHeader>Settings</ModalHeader>
-        <ListWrapper role='menu'>
-          <MenuItem onClick={handleFAQ} aria-label='FAQ'>
+        <ListWrapper role="menu">
+          <MenuItem onClick={handleFAQ} aria-label="FAQ">
             <ListItemIcon>
               <ContactSupportOutlinedIcon fontSize="small" />
             </ListItemIcon>
             <Typography variant="inherit">FAQ</Typography>
           </MenuItem>
-          <MenuItem onClick={onLogout} aria-label='Sign out'>
+          <MenuItem onClick={onLogout} aria-label="Sign out">
             <ListItemIcon>
               <LogoutIconWrapper src={LogoutIcon} alt="Sign out" />
             </ListItemIcon>
@@ -74,7 +85,7 @@ const AvatarMenu = ({ user, className }: AvatarMenuProps) => {
         </ListWrapper>
       </Popover>
     </>
-  )
+  );
 };
 
 const AvatarMenuPropTypes = {
@@ -89,7 +100,7 @@ const AvatarMenuPropTypes = {
 AvatarMenu.propTypes = AvatarMenuPropTypes;
 
 AvatarMenu.defaultProps = {
-  className: '',
+  className: ''
 };
 
 export default AvatarMenu;

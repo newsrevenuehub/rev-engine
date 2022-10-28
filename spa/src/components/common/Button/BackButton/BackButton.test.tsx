@@ -20,7 +20,7 @@ describe('BackButton', () => {
     expect(button).toBeEnabled();
   });
 
-  it('should have an onClick callback function', () => {
+  it('should call its onClick prop when clicked', () => {
     render(<BackButton {...props} />);
     const button = screen.getByRole('button', {name: DEFAULT_BACK_BUTTON_TEXT});
     fireEvent.click(button);

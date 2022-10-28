@@ -122,16 +122,8 @@ class DonationPageFullDetailSerializer(serializers.ModelSerializer):
 
     benefit_levels = serializers.SerializerMethodField(method_name="get_benefit_levels")
     plan = serializers.SerializerMethodField(read_only=True)
-    elements = serializers.ListField(
-        child=serializers.JSONField(),
-        allow_empty=True,
-        required=False,
-    )
-    sidebar_elements = serializers.ListField(
-        child=serializers.JSONField(),
-        allow_empty=True,
-        required=False,
-    )
+    elements = serializers.JSONField(default=[])
+    sidebar_elements = serializers.JSONField(default=[])
 
     class Meta:
         model = DonationPage

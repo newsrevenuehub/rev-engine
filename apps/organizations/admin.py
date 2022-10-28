@@ -86,7 +86,7 @@ class OrganizationAdmin(RevEngineBaseAdmin, VersionAdmin):
                 "fields": (
                     "name",
                     "slug",
-                    "plan",
+                    "plan_name",
                 )
             },
         ),
@@ -101,7 +101,7 @@ class OrganizationAdmin(RevEngineBaseAdmin, VersionAdmin):
 
     list_display = [
         "name",
-        "plan",
+        "plan_name",
     ]
 
     list_filter = [

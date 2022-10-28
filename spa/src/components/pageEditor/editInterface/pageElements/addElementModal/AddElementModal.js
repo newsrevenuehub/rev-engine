@@ -1,3 +1,5 @@
+import { useState, useEffect } from 'react';
+
 import * as S from './AddElementModal.styled';
 
 // Deps
@@ -14,7 +16,21 @@ import * as dynamicSidebarElements from 'components/donationPage/pageContent/dyn
 import PageItem from 'components/pageEditor/editInterface/pageElements/PageItem';
 
 function AddElementModal({ addElementModalOpen, setAddElementModalOpen, destination = 'layout' }) {
-  const { elements, setElements, sidebarElements, setSidebarElements } = useEditInterfaceContext();
+  const { elements, setElements, sidebarElements, setSidebarElements, page } = useEditInterfaceContext();
+  const [permittedPageElements, setPermittedPageElements] = useState([]);
+  const [permittedSidebarElements, setPermittedSidebarElements] = useState([]);
+
+  useEffect(() => {
+    if (page?.plan) {
+      setPermittedPageElements(
+        Object.values(dynamicLayoutElements).filter(({ type }) => page.plan.page_elements.includes(type))
+      );
+      setPermittedSidebarElements(
+        Object.values(dynamicSidebarElements).filter(({ type }) => page.plan.sidebar_elements.includes(type))
+      );
+    }
+  }, [page?.plan]);
+
   const buildElement = (element) => {
     const { type } = element;
     return {
@@ -33,7 +49,7 @@ function AddElementModal({ addElementModalOpen, setAddElementModalOpen, destinat
   };
 
   const renderDynamicLayoutElements = () => {
-    const dynamicElements = destination === 'sidebar' ? dynamicSidebarElements : dynamicLayoutElements;
+    const dynamicElements = destination === 'sidebar' ? permittedSidebarElements : permittedPageElements;
     return Object.keys(dynamicElements).map((elName, i) => {
       const element = dynamicElements[elName];
       const els = destination === 'sidebar' ? sidebarElements : elements;

@@ -11,6 +11,7 @@ import { CONTRIBUTION_INTERVALS } from '../../src/constants/contributionInterval
 import * as freqUtils from 'utilities/parseFrequency';
 import calculateStripeFee from 'utilities/calculateStripeFee';
 import { DEFAULT_BACK_BUTTON_TEXT } from 'components/common/Button/BackButton/BackButton';
+import { CANCEL_PAYMENT_FAILURE_MESSAGE } from 'components/donationPage/DonationPage';
 
 const pageSlug = 'page-slug';
 const expectedPageSlug = `${pageSlug}/`;
@@ -514,7 +515,69 @@ describe('User flow: happy path', () => {
     });
   });
 
-  specify('when user cancels contribution from Stripe payment form', () => {
+  specify('Via default donation page', () => {
+    cy.intercept(
+      { method: 'POST', url: getEndpoint(AUTHORIZE_STRIPE_PAYMENT_ROUTE) },
+      {
+        body: { provider_client_secret_id: 'pi_3LgkV1pOaLul7_secret_QcpIANR9d6', email_hash: fakeEmailHash },
+        statusCode: 201
+      }
+    ).as('create-subscription-payment');
+    cy.intercept({ method: 'POST', url: 'https://r.stripe.com/0' }, { statusCode: 201 });
+    cy.intercept({ method: 'POST', url: 'https://m.stripe.com/0' }, { statusCode: 201 });
+    cy.intercept({ method: 'GET', url: 'https://api.stripe.com/**' }, { statusCode: 200 });
+
+    cy.visitDefaultDonationPage();
+    cy.get('[data-testid*="frequency-month"]').click();
+    fillOutDonorInfoSection();
+    fillOutAddressSection();
+    fillOutReasonForGiving();
+    cy.get('form[name="contribution-checkout"]').submit();
+
+    // assert re: what's sent to server
+    cy.window()
+      .its('stripe')
+      .then((stripe) => {
+        cy.spy(stripe, 'confirmPayment').as('stripe-confirm-payment');
+      });
+    // this is all we test here because otherwise, we need real Stripe client secret
+    // which would require live server providing
+    // spy on stripe and see that expected next url is provided
+    cy.get('form #stripe-payment-element');
+    cy.get('[data-testid="donation-page-disclaimer"]');
+    cy.get('form[name="stripe-payment-form"]').submit();
+    cy.get('@stripe-confirm-payment').should((x) => {
+      expect(x).to.be.calledOnce;
+      const {
+        confirmParams: { return_url }
+      } = x.getCalls()[0].args[0];
+      expect(return_url).to.equal(
+        getPaymentSuccessUrl({
+          baseUrl: 'http://revenueprogram.revengine-testabc123.com:3000/',
+          thankYouRedirectUrl: '',
+          amount: '10.53',
+          emailHash: fakeEmailHash,
+          frequencyDisplayValue: 'monthly',
+          contributorEmail: 'foo@bar.com',
+          pageSlug: livePageOne.slug,
+          rpSlug: livePageOne.revenue_program.slug,
+          pathName: '',
+          stripeClientSecret: fakeStripeSecret
+        })
+      );
+    });
+  });
+});
+
+describe('User flow: canceling contribution', () => {
+  beforeEach(() => {
+    // We intercept requests for Google Recaptcha because in test env, sometimes the live recaptcha returns an error
+    // (possibly because we load it too many times successively???), which was causing test failure else where.
+    cy.intercept({ method: 'GET', url: 'https://www.google.com/recaptcha/*' }, { statusCode: 200 });
+    cy.visitDonationPage();
+  });
+
+  specify('happy path', () => {
     const secret = 'pi_3LgkV1pOaLul7_secret_QcpIANR9d6';
     cy.intercept(
       { method: 'POST', url: getEndpoint(AUTHORIZE_STRIPE_PAYMENT_ROUTE) },
@@ -572,57 +635,39 @@ describe('User flow: happy path', () => {
     });
   });
 
-  specify('Via default donation page', () => {
+  specify('when API request to cancel payment fails', () => {
+    const secret = 'pi_3LgkV1pOaLul7_secret_QcpIANR9d6';
     cy.intercept(
       { method: 'POST', url: getEndpoint(AUTHORIZE_STRIPE_PAYMENT_ROUTE) },
       {
-        body: { provider_client_secret_id: 'pi_3LgkV1pOaLul7_secret_QcpIANR9d6', email_hash: fakeEmailHash },
+        body: { provider_client_secret_id: secret, email_hash: fakeEmailHash },
         statusCode: 201
       }
     ).as('create-subscription-payment');
-    cy.intercept({ method: 'POST', url: 'https://r.stripe.com/0' }, { statusCode: 201 });
-    cy.intercept({ method: 'POST', url: 'https://m.stripe.com/0' }, { statusCode: 201 });
-    cy.intercept({ method: 'GET', url: 'https://api.stripe.com/**' }, { statusCode: 200 });
-
-    cy.visitDefaultDonationPage();
+    cy.intercept(
+      { method: 'DELETE', url: getEndpoint(`${AUTHORIZE_STRIPE_PAYMENT_ROUTE}${secret}`) },
+      { statusCode: 500 }
+    ).as('cancel-payment');
+    cy.interceptStripeApi();
     cy.get('[data-testid*="frequency-month"]').click();
     fillOutDonorInfoSection();
     fillOutAddressSection();
-    fillOutReasonForGiving();
-    cy.get('form[name="contribution-checkout"]').submit();
 
-    // assert re: what's sent to server
-    cy.window()
-      .its('stripe')
-      .then((stripe) => {
-        cy.spy(stripe, 'confirmPayment').as('stripe-confirm-payment');
-      });
-    // this is all we test here because otherwise, we need real Stripe client secret
-    // which would require live server providing
-    // spy on stripe and see that expected next url is provided
-    cy.get('form #stripe-payment-element');
-    cy.get('[data-testid="donation-page-disclaimer"]');
-    cy.get('form[name="stripe-payment-form"]').submit();
-    cy.get('@stripe-confirm-payment').should((x) => {
-      expect(x).to.be.calledOnce;
-      const {
-        confirmParams: { return_url }
-      } = x.getCalls()[0].args[0];
-      expect(return_url).to.equal(
-        getPaymentSuccessUrl({
-          baseUrl: 'http://revenueprogram.revengine-testabc123.com:3000/',
-          thankYouRedirectUrl: '',
-          amount: '10.53',
-          emailHash: fakeEmailHash,
-          frequencyDisplayValue: 'monthly',
-          contributorEmail: 'foo@bar.com',
-          pageSlug: livePageOne.slug,
-          rpSlug: livePageOne.revenue_program.slug,
-          pathName: '',
-          stripeClientSecret: fakeStripeSecret
-        })
-      );
-    });
+    cy.findByLabelText('Country', { exact: false }).invoke('val').as('countryValue');
+    fillOutReasonForGiving();
+    cy.get('[data-testid="excited-to-support-picklist"]').invoke('val').as('reasonValue');
+
+    const frequencyLabel = 'Monthly';
+    // we assert checked before submission so can check after that has same val
+    cy.findAllByLabelText(frequencyLabel).should('be.checked');
+    // this test id indicates pay fees checked is in dom, which we'll also assert after canceling
+    cy.getByTestId('pay-fees-checked');
+
+    cy.get('form[name="contribution-checkout"]').submit();
+    cy.wait('@create-subscription-payment');
+    cy.findByRole('button', { name: DEFAULT_BACK_BUTTON_TEXT }).click();
+    cy.wait('@cancel-payment');
+    cy.contains(CANCEL_PAYMENT_FAILURE_MESSAGE);
   });
 });
 

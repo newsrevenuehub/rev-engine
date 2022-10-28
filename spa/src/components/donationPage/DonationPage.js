@@ -1,6 +1,7 @@
 import { useRef, useState, useEffect, createContext, useContext } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import { useCookies } from 'react-cookie';
+import { useAlert } from 'react-alert';
 
 import * as S from './DonationPage.styled';
 import axios from 'ajax/axios';
@@ -32,6 +33,7 @@ import { getFrequencyAdverb } from 'utilities/parseFrequency';
 import { CONTRIBUTION_INTERVALS } from 'constants/contributionIntervals';
 
 import { CSRF_HEADER } from 'settings';
+import { GENERIC_ERROR } from 'constants/textConstants';
 
 function authorizePayment(paymentData, csrftoken) {
   // we manually set the X-CSRFTOKEN value in header here. This is an unauthed endpoint
@@ -53,6 +55,8 @@ function cancelPayment(paymentId, csrftoken) {
 
 export const DonationPageContext = createContext({});
 
+export const CANCEL_PAYMENT_FAILURE_MESSAGE =
+  "Something went wrong, but don't worry, you haven't been charged. Try refreshing.";
 class DonationPageUnrecoverableError extends Error {
   constructor(message) {
     super(message);
@@ -61,6 +65,7 @@ class DonationPageUnrecoverableError extends Error {
 }
 
 function DonationPage({ page, live = false }) {
+  const alert = useAlert();
   const formRef = useRef();
   const salesforceCampaignId = useQueryString(SALESFORCE_CAMPAIGN_ID_QUERYPARAM);
   const freqQs = useQueryString(FREQUENCY_QUERYPARAM);
@@ -89,7 +94,13 @@ function DonationPage({ page, live = false }) {
     authorizePayment(paymentData, cookies.csrftoken)
   );
 
-  const { mutate: deletePayment } = useMutation((paymentId) => cancelPayment(paymentId, cookies.csrftoken));
+  const { mutate: deletePayment } = useMutation((paymentId) => cancelPayment(paymentId, cookies.csrftoken), {
+    onError: (err) => {
+      // calling console.error will create a Sentry error.
+      console.error(err);
+      alert.error(CANCEL_PAYMENT_FAILURE_MESSAGE);
+    }
+  });
 
   /*
   If window.grecaptcha is defined-- which should be done in useReCAPTCHAScript hook--

@@ -1,0 +1,16 @@
+[
+  {
+    "uuid": "877cc0c0-b1b7-48c5-ac7f-41320a58a791",
+    "type": "DRichText",
+    "content": "<p><em>My sidebar element</em></p>\n",
+    "requiredFields": []
+  },
+  {
+    "uuid": "ae697487-63bc-40a1-a478-81831821762f",
+    "type": "DImage",
+    "content": {
+      "url": "https://storage.googleapis.com/rev-engine-media/images/Screen_Shot_2022-09-21_at_3.15.30_PM.png",
+      "thumbnail": "https://storage.googleapis.com/rev-engine-media/thumbs/Screen_Shot_2022-09-21_at_3.15.30_PM_thumbnail.png"
+    }
+  }
+]

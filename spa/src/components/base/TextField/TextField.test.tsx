@@ -1,8 +1,9 @@
+import { TextFieldProps } from '@material-ui/core';
 import { axe } from 'jest-axe';
 import { render, screen } from 'test-utils';
 import TextField from './TextField';
 
-function tree(props) {
+function tree(props?: Partial<TextFieldProps>) {
   return render(<TextField id="mock-label" label="mock-label" {...props} />);
 }
 

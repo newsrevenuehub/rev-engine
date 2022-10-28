@@ -1,7 +1,7 @@
 import styled from 'styled-components';
 import lighten from 'styles/utils/lighten';
 
-import BaseButton from 'components/base/Button';
+import { Button as BaseButton } from 'components/base';
 import { BANNER_TYPE } from 'constants/bannerConstants';
 
 export const Flex = styled.div`

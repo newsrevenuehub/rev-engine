@@ -1,4 +1,4 @@
-import { Button, IconButton } from '@material-ui/core';
+import { IconButton } from '@material-ui/core';
 import styled from 'styled-components';
 
 import { PAYMENT_STATUS } from 'constants/paymentStatus';
@@ -84,13 +84,4 @@ export const Last4 = styled.p`
   margin: 0;
   color: ${(props) => props.theme.colors.grey[2]};
   white-space: nowrap;
-`;
-
-export const CancelButton = styled(Button)`
-  && {
-    text-transform: unset;
-    font-weight: 700;
-    font-size: ${(props) => props.theme.fontSizesUpdated.sm};
-    color: ${(props) => props.theme.colors.error.primary};
-  }
 `;

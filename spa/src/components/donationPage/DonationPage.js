@@ -34,7 +34,7 @@ import { CONTRIBUTION_INTERVALS } from 'constants/contributionIntervals';
 import { CSRF_HEADER } from 'settings';
 
 function authorizePayment(paymentData, csrftoken) {
-  // we manually set the XCSRFToken value in header here. This is an unauthed endpoint
+  // we manually set the X-CSRFTOKEN value in header here. This is an unauthed endpoint
   // that on the backend requires csrf header, which will be in cookie returned by request
   // for page data (that happens in parent context)
   return axios
@@ -44,7 +44,7 @@ function authorizePayment(paymentData, csrftoken) {
 
 function cancelPayment(paymentId, csrftoken) {
   const endpoint = `${AUTHORIZE_STRIPE_PAYMENT_ROUTE}${paymentId}/`;
-  // we manually set the XCSRFToken value in header here. This is an unauthed endpoint
+  // we manually set the X-CSRFTOKEN value in header here. This is an unauthed endpoint
   // that on the backend requires csrf header, which will be in cookie returned by request
   // for page data (that happens in parent context)
 

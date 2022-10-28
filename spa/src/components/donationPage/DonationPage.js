@@ -178,10 +178,12 @@ function DonationPage({ page, live = false }) {
       console.error('No recaptcha token, defaulting to empty string');
     }
     return serializeData(formRef.current, {
-      amount: totalAmount,
+      amount,
       frequency,
       reCAPTCHAToken,
       pageId: page.id,
+      payFee: userAgreesToPayFees,
+      rpIsNonProfit: page.revenue_program_is_nonprofit,
       salesforceCampaignId
     });
   };

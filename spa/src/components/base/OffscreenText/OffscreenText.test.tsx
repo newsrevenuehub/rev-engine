@@ -1,8 +1,8 @@
-import { act, render, screen } from 'test-utils';
 import { axe } from 'jest-axe';
+import { render, screen } from 'test-utils';
 import OffscreenText from './OffscreenText';
 
-function tree(text) {
+function tree(text: string) {
   return render(<OffscreenText>{text}</OffscreenText>);
 }
 

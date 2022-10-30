@@ -10,6 +10,7 @@ import { useHistory } from 'react-router-dom';
 const UnsavedChangesModal = ({ isOpen, closeModal, to }) => {
   const history = useHistory();
   const handleExit = () => {
+    closeModal();
     if (to) history.replace(to);
     else history.goBack();
   };

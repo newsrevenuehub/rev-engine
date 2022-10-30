@@ -1,9 +1,6 @@
+import { ComponentMeta, ComponentStory } from '@storybook/react';
 import MenuItem from '../MenuItem/MenuItem';
 import TextField from './TextField';
-
-// Not sure why we need this indirection, but if we use TextField directly
-// stories don't show up.
-const TextFieldDemo = (props) => <TextField {...props} />;
 
 export default {
   component: TextField,
@@ -15,15 +12,17 @@ export default {
       }
     }
   }
-};
+} as ComponentMeta<typeof TextField>;
 
-export const Default = TextFieldDemo.bind({});
+const Template: ComponentStory<typeof TextField> = (props) => <TextField {...props} />;
+
+export const Default = Template.bind({});
 Default.args = { label: 'First Name', name: 'first-name' };
 
-export const Error = TextFieldDemo.bind({});
+export const Error = Template.bind({});
 Error.args = { error: true, helperText: 'This field is required', label: 'First Name', name: 'first-name' };
 
-export const Select = TextFieldDemo.bind({});
+export const Select = Template.bind({});
 Select.args = {
   children: (
     <>
@@ -37,7 +36,7 @@ Select.args = {
   select: true
 };
 
-export const SelectError = TextFieldDemo.bind({});
+export const SelectError = Template.bind({});
 SelectError.args = {
   children: (
     <>

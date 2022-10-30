@@ -46,7 +46,7 @@ tests = ["pytest", "pytest-asyncio", "mypy (>=0.800)"]
 
 [[package]]
 name = "asttokens"
-version = "2.1.0"
+version = "2.0.8"
 description = "Annotate AST trees with source code positions"
 category = "dev"
 optional = false
@@ -714,7 +714,7 @@ validation = ["swagger-spec-validator (>=2.1.0)"]
 
 [[package]]
 name = "exceptiongroup"
-version = "1.0.0"
+version = "1.0.0rc9"
 description = "Backport of PEP 654 (exception groups)"
 category = "dev"
 optional = false
@@ -736,14 +736,14 @@ testing = ["pre-commit"]
 
 [[package]]
 name = "executing"
-version = "1.2.0"
+version = "1.1.1"
 description = "Get the currently executing AST node of a frame, and other information"
 category = "dev"
 optional = false
 python-versions = "*"
 
 [package.extras]
-tests = ["asttokens", "pytest", "littleutils", "rich"]
+tests = ["rich", "littleutils", "pytest", "asttokens"]
 
 [[package]]
 name = "factory-boy"
@@ -1003,7 +1003,7 @@ requests = ">=1.2.3"
 
 [[package]]
 name = "identify"
-version = "2.5.8"
+version = "2.5.7"
 description = "File identification library for Python"
 category = "dev"
 optional = false
@@ -1291,7 +1291,7 @@ python-versions = "*"
 
 [[package]]
 name = "pillow"
-version = "9.3.0"
+version = "9.2.0"
 description = "Python Imaging Library (Fork)"
 category = "main"
 optional = false
@@ -1368,7 +1368,7 @@ testing = ["google-api-core[grpc] (>=1.31.5)"]
 
 [[package]]
 name = "protobuf"
-version = "4.21.9"
+version = "4.21.8"
 description = ""
 category = "main"
 optional = false
@@ -1739,7 +1739,7 @@ python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*"
 
 [[package]]
 name = "slack-sdk"
-version = "3.19.2"
+version = "3.19.1"
 description = "The Slack API Platform SDK for Python"
 category = "main"
 optional = false
@@ -1788,19 +1788,19 @@ python-versions = ">=3.5"
 
 [[package]]
 name = "stack-data"
-version = "0.6.0"
+version = "0.5.1"
 description = "Extract data from python stack frames and tracebacks for informative displays"
 category = "dev"
 optional = false
 python-versions = "*"
 
 [package.dependencies]
-asttokens = ">=2.1.0"
-executing = ">=1.2.0"
+asttokens = "*"
+executing = "*"
 pure-eval = "*"
 
 [package.extras]
-tests = ["pytest", "typeguard", "pygments", "littleutils", "cython"]
+tests = ["cython", "littleutils", "pygments", "typeguard", "pytest"]
 
 [[package]]
 name = "stripe"

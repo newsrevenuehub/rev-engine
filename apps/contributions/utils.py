@@ -28,7 +28,7 @@ def get_sha256_hash(string):
 def payment_interval_from_stripe_invoice(invoice, contribution_interval_model):
     invoice_line_item = {}
     if invoice:
-        invoice_line_item = (invoice.lines.data or [{}])[0]
+        invoice_line_item = ((invoice.get("lines") or {}).get("data") or [{}])[0]
 
     interval = invoice_line_item.get("plan", {}).get("interval")
     interval_count = invoice_line_item.get("plan", {}).get("interval_count")

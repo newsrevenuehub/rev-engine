@@ -18,7 +18,12 @@ from apps.api.tests import RevEngineApiAbstractTestCase
 from apps.api.tokens import ContributorRefreshToken
 from apps.common.constants import CONTRIBUTIONS_API_ENDPOINT_ACCESS_FLAG_NAME
 from apps.common.tests.test_resources import AbstractTestCase
-from apps.contributions.models import Contribution, Contributor
+from apps.contributions.models import (
+    Contribution,
+    ContributionInterval,
+    ContributionStatus,
+    Contributor,
+)
 from apps.contributions.payment_managers import PaymentProviderError
 from apps.contributions.serializers import (
     PaymentProviderContributionSerializer,
@@ -1101,3 +1106,59 @@ def test_payment_success_view():
     url = reverse("payment-success", args=(contribution.provider_client_secret_id,))
     response = client.patch(url, {})
     assert response.status_code == status.HTTP_204_NO_CONTENT
+
+
+class TestEmailContribution(AbstractTestCase):
+    def setUp(self):
+        super().setUp()
+        self.set_up_domain_model()
+        self.url = reverse("email-contribution")
+        self.base_payment_intent = {
+            "amount_received": 14450,
+            "created": 1667111853,
+            "receipt_email": "test@test.com",
+            "currency": "usd",
+        }
+        self.invoice = {"lines": {"data": [{"plan": {"interval": "month", "interval_count": 1}}]}}
+
+    def test_when_no_contribution_found(self):
+        self.client.force_authenticate(user=self.org_user)
+        response = self.client.post(self.url, {})
+        assert response.status_code == 404
+
+    def test_when_contribution_status_is_not_paid(self):
+        self.client.force_authenticate(user=self.org_user)
+        contribution = [x for x in Contribution.objects.all() if x.status != ContributionStatus.PAID][0]
+        response = self.client.post(self.url, {"contribution_id": contribution.id})
+        response.status_code = 417
+
+    @mock.patch("apps.contributions.views.send_templated_email.delay")
+    @mock.patch("stripe.PaymentIntent.retrieve")
+    def test_when_contribution_status_is_paid_with_no_invoice(self, payment_intent_retrieve, send_email_task):
+        self.client.force_authenticate(user=self.org_user)
+        contribution = [x for x in Contribution.objects.all() if x.status == ContributionStatus.PAID][0]
+
+        payment_intent_retrieve.return_value = AttrDict(self.base_payment_intent | {"invoice": None})
+        response = self.client.post(self.url, {"contribution_id": contribution.id})
+        response.status_code = 200
+        email_attrs = send_email_task.call_args_list[0].args[-1]
+        assert email_attrs["contribution_interval"] == ContributionInterval.ONE_TIME
+        assert email_attrs["contribution_amount"] == "144.50 USD"
+        assert email_attrs["contribution_interval_display_value"] is None
+
+    @mock.patch("apps.contributions.views.send_templated_email.delay")
+    @mock.patch("stripe.PaymentIntent.retrieve")
+    @mock.patch("stripe.Invoice.retrieve")
+    def test_when_contribution_status_is_paid_with_invoice(
+        self, invoice_retrieve, payment_intent_retrieve, send_email_task
+    ):
+        self.client.force_authenticate(user=self.org_user)
+        contribution = [x for x in Contribution.objects.all() if x.status == ContributionStatus.PAID][0]
+
+        payment_intent_retrieve.return_value = AttrDict(self.base_payment_intent | {"invoice": "invoice_001"})
+        invoice_retrieve.return_value = AttrDict(self.invoice)
+        response = self.client.post(self.url, {"contribution_id": contribution.id})
+        response.status_code = 200
+        email_attrs = send_email_task.call_args_list[0].args[-1]
+        assert email_attrs["contribution_interval"] == ContributionInterval.MONTHLY
+        assert email_attrs["contribution_interval_display_value"] == ContributionInterval.MONTHLY

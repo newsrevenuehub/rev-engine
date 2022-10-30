@@ -445,7 +445,7 @@ def email_contribution(request):
         "contribution_interval_display_value": interval if interval != ContributionInterval.ONE_TIME else None,
     }
 
-    send_templated_email(
+    send_templated_email.delay(
         request.user.email,
         "Thank you for your contribution!",
         "nrh-default-contribution-confirmation-email.txt",

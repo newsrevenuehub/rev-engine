@@ -33,7 +33,6 @@ import { CAPTURE_PAGE_SCREENSHOT } from 'settings';
 
 // Assets
 import { faEye, faEdit, faSave, faTrash } from '@fortawesome/free-solid-svg-icons';
-import { ICONS } from 'assets/icons/SvgIcon';
 
 // Context
 import { useConfirmationModalContext } from 'elements/modal/GlobalConfirmationModal';
@@ -42,7 +41,6 @@ import validatePage from './validatePage';
 // Hooks
 import useWebFonts from 'hooks/useWebFonts';
 import { useConfigureAnalytics } from 'components/analytics';
-import useModal from 'hooks/useModal';
 
 // Children
 import CircleButton from 'elements/buttons/CircleButton';
@@ -50,15 +48,12 @@ import SegregatedStyles from 'components/donationPage/SegregatedStyles';
 import DonationPage from 'components/donationPage/DonationPage';
 import GlobalLoading from 'elements/GlobalLoading';
 import EditInterface from 'components/pageEditor/editInterface/EditInterface';
-import BackButton from 'elements/BackButton';
-import { BackIcon } from 'elements/BackButton.styled';
-import UnsavedChangesModal from 'components/pageEditor/UnsavedChangesModal';
 import PageTitle from 'elements/PageTitle';
-import RETooltip from 'elements/RETooltip';
+import { Tooltip } from 'components/base';
 import { usePageContext } from 'components/dashboard/PageContext';
 import getSuccessMessage, { pageHasBeenPublished } from 'utilities/editPageGetSuccessMessage';
 
-const PageEditorContext = createContext();
+export const PageEditorContext = createContext();
 
 export const EDIT = 'EDIT';
 export const PREVIEW = 'PREVIEW';
@@ -82,7 +77,7 @@ function PageEditor() {
 
   // Context
   const getUserConfirmation = useConfirmationModalContext();
-  const { setPage: setPageContext } = usePageContext();
+  const { setPage: setPageContext, updatedPage, setUpdatedPage } = usePageContext();
 
   const location = useLocation();
   const pageId = location?.state?.pageId;
@@ -107,8 +102,6 @@ function PageEditor() {
 
   const [availableStyles, setAvailableStyles] = useState([]);
 
-  const { open: showUnsavedModal, handleClose: closeUnsavedModal, handleOpen: openUnsavedModal } = useModal();
-
   const pageTitle = useMemo(
     () =>
       `Edit | ${page?.name ? `${page?.name} | ` : ''}${
@@ -117,7 +110,6 @@ function PageEditor() {
     [page?.name, page?.revenue_program?.name]
   );
 
-  const [updatedPage, setUpdatedPage] = useState();
   const [selectedButton, setSelectedButton] = useState(PREVIEW);
   const [updatePageAndSave, setUpdatePageAndSave] = useState(null);
   const [showEditInterface, setShowEditInterface] = useState(false);
@@ -147,7 +139,8 @@ function PageEditor() {
   useEffect(() => {
     // Empty page on first load
     setPageContext(null);
-  }, [setPageContext]);
+    setUpdatedPage(null);
+  }, [setPageContext, setUpdatedPage]);
 
   useEffect(() => {
     setLoading(true);
@@ -378,8 +371,6 @@ function PageEditor() {
           setPage,
           availableStyles,
           setAvailableStyles,
-          updatedPage,
-          setUpdatedPage,
           showEditInterface,
           setShowEditInterface,
           setSelectedButton,
@@ -401,71 +392,53 @@ function PageEditor() {
           )}
 
           {page && (
-            <S.ButtonOverlayOuter>
-              <S.ButtonOverlay>
+            <S.ButtonOverlay>
+              <CircleButton
+                onClick={handlePreview}
+                selected={selectedButton === PREVIEW}
+                icon={faEye}
+                buttonType="neutral"
+                color={theme.colors.primary}
+                data-testid="preview-page-button"
+                tooltipText="View"
+              />
+
+              <CircleButton
+                onClick={handleEdit}
+                selected={selectedButton === EDIT}
+                icon={faEdit}
+                buttonType="neutral"
+                data-testid="edit-page-button"
+                tooltipText="Edit"
+              />
+
+              {updatedPage ? (
                 <CircleButton
-                  onClick={handlePreview}
-                  selected={selectedButton === PREVIEW}
-                  icon={faEye}
+                  onClick={handleSave}
+                  icon={faSave}
                   buttonType="neutral"
-                  color={theme.colors.primary}
-                  data-testid="preview-page-button"
-                  tooltipText="View"
+                  data-testid="save-page-button"
+                  disabled={!updatedPage}
+                  tooltipText="Save"
                 />
+              ) : (
+                <Tooltip title="Save" placement="right">
+                  <S.PageEditorBackButton data-testid="save-page-button">
+                    <S.DisabledSaveIcon icon={faSave} type="neutral" disabled={!updatedPage || loading} />
+                  </S.PageEditorBackButton>
+                </Tooltip>
+              )}
 
-                <CircleButton
-                  onClick={handleEdit}
-                  selected={selectedButton === EDIT}
-                  icon={faEdit}
-                  buttonType="neutral"
-                  data-testid="edit-page-button"
-                  tooltipText="Edit"
-                />
-
-                {updatedPage ? (
-                  <CircleButton
-                    onClick={handleSave}
-                    icon={faSave}
-                    buttonType="neutral"
-                    data-testid="save-page-button"
-                    disabled={!updatedPage}
-                    tooltipText="Save"
-                  />
-                ) : (
-                  <RETooltip title="Save" placement="right">
-                    <S.PageEditorBackButton data-testid="save-page-button">
-                      <S.DisabledSaveIcon icon={faSave} type="neutral" disabled={!updatedPage || loading} />
-                    </S.PageEditorBackButton>
-                  </RETooltip>
-                )}
-
-                <CircleButton
-                  onClick={handleDelete}
-                  icon={faTrash}
-                  buttonType="caution"
-                  data-testid="delete-page-button"
-                  tooltipText="Delete"
-                />
-
-                {updatedPage ? (
-                  <CircleButton onClick={openUnsavedModal} buttonType="neutral" tooltipText="Exit">
-                    <BackIcon icon={ICONS.ARROW_LEFT} />
-                  </CircleButton>
-                ) : (
-                  <RETooltip title="Exit" placement="right">
-                    <S.PageEditorBackButton>
-                      <BackButton to={CONTENT_SLUG} />
-                    </S.PageEditorBackButton>
-                  </RETooltip>
-                )}
-              </S.ButtonOverlay>
-            </S.ButtonOverlayOuter>
+              <CircleButton
+                onClick={handleDelete}
+                icon={faTrash}
+                buttonType="caution"
+                data-testid="delete-page-button"
+                tooltipText="Delete"
+              />
+            </S.ButtonOverlay>
           )}
         </S.PageEditor>
-
-        {showUnsavedModal && (
-          <UnsavedChangesModal to={CONTENT_SLUG} isOpen={showUnsavedModal} closeModal={closeUnsavedModal} />
-        )}
       </PageEditorContext.Provider>
     </>
   );

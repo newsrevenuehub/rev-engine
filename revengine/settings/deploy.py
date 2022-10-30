@@ -111,17 +111,26 @@ CELERY_HIJACK_ROOT_LOGGER = False
 ### 3rd-party appplications
 if SENTRY_ENABLE_BACKEND and SENTRY_DSN_BACKEND:
     import sentry_sdk
+    from sentry_sdk.integrations.celery import CeleryIntegration
     from sentry_sdk.integrations.django import DjangoIntegration
     from sentry_sdk.integrations.logging import LoggingIntegration, ignore_logger
+    from sentry_sdk.integrations.redis import RedisIntegration
 
     sentry_logging = LoggingIntegration(
         level=logging.DEBUG,
         event_level=logging.WARNING,
-    )  # Capture debug and above as breadcrumbs
+    )  # Capture debug and above as breadcrumbs.
     sentry_sdk.init(
         dsn=SENTRY_DSN_BACKEND,
-        integrations=[sentry_logging, DjangoIntegration()],
+        integrations=[
+            sentry_logging,
+            CeleryIntegration(),  # https://docs.sentry.io/platforms/python/guides/celery/
+            DjangoIntegration(),  # https://docs.sentry.io/platforms/python/guides/django/
+            RedisIntegration(),  # https://docs.sentry.io/platforms/python/configuration/integrations/redis/
+        ],
         environment=ENVIRONMENT,
+        # https://docs.sentry.io/platforms/python/configuration/sampling/#setting-a-uniform-sample-rate
+        traces_sample_rate=1.0,  # TODO: DEV-2683 After testing will want to reduce this to less than 100% sampling rate.
     )
     ignore_logger("django.security.DisallowedHost")
 

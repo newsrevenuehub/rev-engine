@@ -372,10 +372,8 @@ describe('Donation page edit', () => {
     });
 
     it('should open appropriate tab for error and scroll to first error', () => {
-      cy.intercept(
-        { method: 'GET', pathname: getEndpoint(DRAFT_PAGE_DETAIL) },
-        { fixture: 'pages/unpublished-page-1.json' }
-      ).as('getPageDetail');
+      const fixture = { ...unpublishedPage, plan: { ...unpublishedPage.plan, custom_thank_you_page_enabled: true } };
+      cy.intercept({ method: 'GET', pathname: getEndpoint(DRAFT_PAGE_DETAIL) }, { body: fixture }).as('getPageDetail');
       cy.forceLogin(orgAdminUser);
       cy.intercept(`**/${LIST_STYLES}**`, {});
 
@@ -512,7 +510,7 @@ describe('Edit interface: Setup', () => {
     cy.url().should('include', testEditPageUrl);
     // cy.wait('@getPageDetail');
     cy.getByTestId('edit-page-button').click();
-    cy.getByTestId('setup-tab').click();
+    cy.getByTestId('setup-tab').click({ force: true });
   });
   it('should render the setup tab when setup tab clicked', () => {
     cy.getByTestId('page-setup');
@@ -574,7 +572,7 @@ describe('Edit interface: Styles', () => {
 
     cy.url().should('include', testEditPageUrl);
     cy.getByTestId('edit-page-button').click();
-    cy.getByTestId('styles-tab').click();
+    cy.getByTestId('styles-tab').click({ force: true });
   });
 
   describe('When creating a new style', () => {

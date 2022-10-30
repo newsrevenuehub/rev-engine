@@ -157,7 +157,7 @@ describe('Contributor portal', () => {
       cy.intercept('DELETE', getEndpoint(`${SUBSCRIPTIONS}${targetContribution.subscription_id}`), {
         statusCode: 200
       }).as('cancelRecurring');
-      cy.getByTestId('continue-button').click();
+      cy.getByTestId('confirm-cancel-button').click();
       cy.wait('@cancelRecurring');
     });
   });

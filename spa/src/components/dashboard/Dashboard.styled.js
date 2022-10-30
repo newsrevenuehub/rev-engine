@@ -8,6 +8,7 @@ export const Dashboard = styled.div`
   flex-direction: row;
 
   /* 48px is the height of <DashboardTopbar>. */
+  margin-top: 48px;
   height: calc(100vh - 48px);
   width: 100vw;
   overflow: hidden;

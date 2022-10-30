@@ -65,3 +65,4 @@ jobs:
           DJANGO_SETTINGS_MODULE: revengine.settings.dev
           DATABASE_URL: postgres://postgres:postgres@127.0.0.1:5432/postgres
           GOOGLE_APPLICATION_CREDENTIALS: fake-service-account.json
+          GOOGLE_CLOUD_PROJECT: "rev-engine"

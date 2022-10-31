@@ -1,4 +1,4 @@
-# this is a helpful script to connect to subscribers from the Django shell
+# this is a helpful script to connect to topic from the Django shell
 import os
 
 from google.cloud import pubsub_v1

@@ -2,9 +2,11 @@ import { LIST_PAGES, REVENUE_PROGRAMS, USER, PATCH_PAGE, LIST_STYLES } from 'aja
 import { CONTENT_SLUG } from 'routes';
 import { getEndpoint } from '../support/util';
 import orgAdmin from '../fixtures/user/login-success-org-admin.json';
+import orgAdminNoRP from '../fixtures/user/login-success-org-admin-verified-norp.json';
 import stripeVerifiedOrgAdmin from '../fixtures/user/self-service-user-stripe-verified.json';
 import createPageResponse from '../fixtures/pages/create-page-response.json';
 import { CONTENT_SECTION_ACCESS_FLAG_NAME } from 'constants/featureFlagConstants';
+import { LS_USER } from 'settings';
 
 const contentSectionFlag = {
   id: '5678',
@@ -20,6 +22,53 @@ const orgAdminWithContentFlagAndOneRP = {
   ...orgAdminWithContentFlag,
   revenue_programs: [orgAdminWithContentFlag.revenue_programs[0]]
 };
+
+const orgAdminWithContentFlagAndNoRPs = {
+  ...orgAdminNoRP.user,
+  flags: [contentSectionFlag]
+};
+
+describe('Donation page list', () => {
+  describe('When the user has a revenue program', () => {
+    beforeEach(() => {
+      cy.forceLogin(orgAdmin);
+      cy.intercept({ method: 'GET', pathname: getEndpoint(USER) }, { body: orgAdminWithContentFlag });
+      cy.intercept(
+        { method: 'GET', pathname: getEndpoint(LIST_PAGES) },
+        { fixture: 'pages/list-pages-1', statusCode: 200 }
+      ).as('listPages');
+      cy.intercept(
+        { method: 'GET', pathname: getEndpoint(REVENUE_PROGRAMS) },
+        { fixture: 'org/revenue-programs-1', statusCode: 200 }
+      );
+    });
+
+    it('shows a list of pages', () => {
+      cy.visit(CONTENT_SLUG);
+      cy.url().should('include', CONTENT_SLUG);
+      cy.wait('@listPages');
+      cy.getByTestId('pages-list').should('exist');
+    });
+  });
+  describe('When the user has no revenue programs', () => {
+    beforeEach(() => {
+      cy.forceLogin(orgAdmin);
+      cy.intercept(
+        { method: 'GET', pathname: getEndpoint(LIST_PAGES) },
+        { fixture: 'pages/list-pages-1', statusCode: 200 }
+      ).as('listPages');
+
+      cy.intercept({ method: 'GET', pathname: getEndpoint(USER) }, { body: orgAdminWithContentFlagAndNoRPs });
+      cy.visit(CONTENT_SLUG);
+      cy.url().should('include', CONTENT_SLUG);
+      cy.wait('@listPages');
+    });
+
+    it('shows a list of pages', () => {
+      cy.getByTestId('pages-list').should('exist');
+    });
+  });
+});
 
 describe('Add Page modal', () => {
   beforeEach(() => cy.forceLogin(orgAdmin));

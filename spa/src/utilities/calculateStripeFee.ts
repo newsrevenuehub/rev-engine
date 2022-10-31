@@ -1,4 +1,4 @@
-import { CONTRIBUTION_INTERVALS } from 'constants/contributionIntervals';
+import { ContributionInterval, CONTRIBUTION_INTERVALS } from 'constants/contributionIntervals';
 
 const STRIPE_NP_RATE = 0.022;
 const STRIPE_FP_RATE = 0.029;
@@ -6,7 +6,7 @@ const STRIPE_FIXED = 0.3;
 const SUBSCRIPTION_UPCHARGE = 0.005;
 const SUBSCRIPTION_UPCHARGE_ENABLED = false;
 
-function calculateStripeFee(amount, interval, isNonProfit) {
+function calculateStripeFee(amount: number | string, interval: ContributionInterval, isNonProfit: boolean) {
   /*
     Stripe calculates a fee based on a rate and a flat fee. We must apply the flat fee first,
     then apply the rate to amount + flat fee.
@@ -22,19 +22,28 @@ function calculateStripeFee(amount, interval, isNonProfit) {
     NOTE: We are not including any VAT or GST, or any other taxes here, since these are donations.
   */
 
-  const amountInt = parseFloat(amount);
-  if (isNaN(amountInt)) return null;
+  const amountInt = parseFloat(amount as string);
+
+  if (isNaN(amountInt) || amountInt < 0) {
+    return null;
+  }
+
   const isRecurring = interval !== CONTRIBUTION_INTERVALS.ONE_TIME;
   let RATE = isNonProfit ? STRIPE_NP_RATE : STRIPE_FP_RATE;
 
-  if (isRecurring && SUBSCRIPTION_UPCHARGE_ENABLED) RATE += SUBSCRIPTION_UPCHARGE;
+  if (isRecurring && SUBSCRIPTION_UPCHARGE_ENABLED) {
+    RATE += SUBSCRIPTION_UPCHARGE;
+  }
 
   const amountWithFee = roundTo2DecimalPlaces((amountInt + STRIPE_FIXED) / (1 - RATE));
+
   return roundTo2DecimalPlaces(amountWithFee - amountInt);
 }
 
 export default calculateStripeFee;
 
-function roundTo2DecimalPlaces(num) {
+// Exporting for test purposes only.
+
+export function roundTo2DecimalPlaces(num: number) {
   return Math.round(num * 100) / 100;
 }

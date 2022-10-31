@@ -37,7 +37,7 @@ import useConnectStripeAccount from 'hooks/useConnectStripeAccount';
 
 function Dashboard() {
   const { flags } = useFeatureFlags();
-  const { page, setPage } = usePageContext();
+  const { page, setPage, updatedPage } = usePageContext();
   const { user } = useUser();
   const { requiresStripeVerification } = useConnectStripeAccount();
 
@@ -56,7 +56,7 @@ function Dashboard() {
   return (
     <S.Outer>
       {requiresStripeVerification ? <ConnectStripeElements /> : ''}
-      <DashboardTopbar isEditPage={isEditPage} page={page} setPage={setPage} />
+      <DashboardTopbar isEditPage={isEditPage} page={page} setPage={setPage} updatedPage={updatedPage} />
       <S.Dashboard data-testid="dashboard">
         {isEditPage ? null : <DashboardSidebar />}
         <S.DashboardMain>

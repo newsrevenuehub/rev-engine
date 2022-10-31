@@ -382,7 +382,7 @@ describe('Donation page edit', () => {
       cy.visit(testEditPageUrl);
       cy.wait('@getPageDetail');
       cy.getByTestId('edit-page-button').click();
-      cy.getByTestId('setup-tab').click();
+      cy.getByTestId('setup-tab').click({ force: true });
       cy.getByTestId('thank-you-redirect-link-input').type('not a valid url');
       cy.getByTestId('keep-element-changes-button').click({ force: true });
 
@@ -485,7 +485,7 @@ describe('Edit interface: Setup', () => {
     cy.url().should('include', testEditPageUrl);
     // cy.wait('@getPageDetail');
     cy.getByTestId('edit-page-button').click();
-    cy.getByTestId('setup-tab').click();
+    cy.getByTestId('setup-tab').click({ force: true });
   });
   it('should render the setup tab when setup tab clicked', () => {
     cy.getByTestId('page-setup');
@@ -547,7 +547,7 @@ describe('Edit interface: Styles', () => {
 
     cy.url().should('include', testEditPageUrl);
     cy.getByTestId('edit-page-button').click();
-    cy.getByTestId('styles-tab').click();
+    cy.getByTestId('styles-tab').click({ force: true });
   });
 
   describe('When creating a new style', () => {

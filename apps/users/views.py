@@ -98,7 +98,7 @@ class AccountVerification(signing.TimestampSigner):
         email = self.decode(encoded_email)
         token = self.decode(encoded_token)
         if not (email and token):
-            logger.warning("Account Verification: Malformed or missing email/token for email: %s", email)
+            logger.info("Account Verification: Malformed or missing email/token for email: %s", email)
             self.fail_reason = "failed"
             return False
         if self.max_age:
@@ -119,7 +119,7 @@ class AccountVerification(signing.TimestampSigner):
         if not (
             user := get_user_model().objects.filter(email=email).first()
         ):  # Get the (only) matching User or None instead of raising exception.
-            logger.warning("Account Verification: No user for email: %s", email)
+            logger.info("Account Verification: No user for email: %s", email)
             self.fail_reason = "unknown"
             return False
         if not user.is_active:

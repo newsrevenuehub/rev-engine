@@ -1,4 +1,5 @@
-import { useState, Fragment } from 'react';
+import { useState, Fragment, useMemo } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import orderBy from 'lodash.orderby';
 import join from 'url-join';
 import { Content } from './Pages.styled';
@@ -7,13 +8,21 @@ import { Content } from './Pages.styled';
 import { useHistory } from 'react-router-dom';
 import { EDITOR_ROUTE } from 'routes';
 
+// Constants
+import { GENERIC_ERROR } from 'constants/textConstants';
+import { USER_ROLE_HUB_ADMIN_TYPE, USER_SUPERUSER_TYPE } from 'constants/authConstants';
+// AJAX
+import { LIST_PAGES } from 'ajax/endpoints';
+import axios from 'ajax/axios';
+
 // Children
 import GenericErrorBoundary from 'components/errors/GenericErrorBoundary';
 import EditButton from 'components/common/Button/EditButton';
 import NewButton from 'components/common/Button/NewButton';
-import usePagesList from 'hooks/usePageList';
 import Hero from 'components/common/Hero';
 import useModal from 'hooks/useModal';
+import useUser from 'hooks/useUser';
+import GlobalLoading from 'elements/GlobalLoading';
 
 import AddPageModal from './AddPageModal';
 
@@ -45,11 +54,23 @@ export const pagesbyRP = (pgsRaw, qry) => {
   return orderBy(pagesByRevProgram, 'name');
 };
 
+async function fetchPages() {
+  const { data } = await axios.get(LIST_PAGES);
+
+  return data;
+}
+
 function Pages() {
   const history = useHistory();
-  const { pages } = usePagesList();
   const [pageSearchQuery, setPageSearchQuery] = useState([]);
   const { open: showAddPageModal, handleClose, handleOpen } = useModal();
+  const { user, isLoading: userLoading } = useUser();
+  const { data: pages, isLoading: pagesLoading } = useQuery(['pages'], fetchPages, {
+    onError: () => alert.error(GENERIC_ERROR),
+    initialData: []
+  });
+
+  const isLoading = pagesLoading || userLoading;
 
   const handleEditPage = (page) => {
     const path = join([EDITOR_ROUTE, page.revenue_program.slug, page.slug, '/']);
@@ -58,9 +79,18 @@ function Pages() {
 
   const pagesByRevenueProgram = pagesbyRP(pages, pageSearchQuery);
 
+  const addPageButtonShouldBeDisabled = useMemo(() => {
+    if ([USER_ROLE_HUB_ADMIN_TYPE, USER_SUPERUSER_TYPE].includes(user?.role_type?.[0])) {
+      return false;
+    }
+    const pageLimit = user?.organizations?.[0]?.plan?.page_limit ?? 0;
+    return pages.length + 1 > pageLimit;
+  }, [pages.length, user?.organizations, user?.role_type]);
+
   return (
     <>
       <GenericErrorBoundary>
+        {isLoading && <GlobalLoading />}
         <Hero
           title="Pages"
           subtitle="Welcome to Pages. Here you can create, manage, and publish contribution pages. Create a new page by selecting the ‘New Page’ button below."
@@ -68,7 +98,7 @@ function Pages() {
           onChange={setPageSearchQuery}
         />
         <Content data-testid="pages-list">
-          <NewButton onClick={handleOpen} />
+          <NewButton data-testid="new-page-button" disabled={addPageButtonShouldBeDisabled} onClick={handleOpen} />
           {!!pagesByRevenueProgram.length &&
             pagesByRevenueProgram.map((revenueProgram) => (
               <Fragment key={revenueProgram.name}>

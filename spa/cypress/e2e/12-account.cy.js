@@ -7,8 +7,7 @@ import {
   LIST_PAGES,
   RESET_PASSWORD_ENDPOINT,
   VERIFY_EMAIL_REQUEST_ENDPOINT,
-  getStripeAccountLinkCreatePath,
-  getStripeAccountLinkCreateCompletePath
+  getStripeAccountLinkStatusPath
 } from 'ajax/endpoints';
 import {
   SIGN_IN,
@@ -18,8 +17,7 @@ import {
   FORGOT_PASSWORD,
   RESET_PASSWORD,
   VERIFIED,
-  VERIFY_EMAIL_SUCCESS,
-  STRIPE_ACCOUNT_LINK_RETURN
+  VERIFY_EMAIL_SUCCESS
 } from 'routes';
 import orgAdminUser from '../fixtures/user/login-success-org-admin.json';
 import rpAdminUnverified from '../fixtures/user/login-success-rp-admin-unverified.json';
@@ -112,7 +110,7 @@ describe('Account', () => {
   });
 
   context('Password Reset', () => {
-    it('should show api-response error if password-reset unsuccessfull', () => {
+    it('should show api-response error if password-reset unsuccessful', () => {
       cy.visit(`${RESET_PASSWORD}?token=sometoken`);
       cy.url().should('include', RESET_PASSWORD);
       cy.getByTestId('reset-pwd-password').type('P1#password');
@@ -218,55 +216,53 @@ describe('Account', () => {
     it('should direct user to Stripe-provided Account Link URL -- via modal', () => {
       const rp = selfServiceUserNotStripeVerified.revenue_programs[0];
       const stripeAccountLinkResponse = {
-        object: 'account_link',
-        created: 1663186839,
-        expires_at: 1663187139,
-        url: 'https://connect.stripe.com/setup/s/acct_1ASCSHBMAMOLTEak/UbNswRTMxLY7'
+        reason: 'past_due',
+        requiresVerification: true,
+        // in prod, this will be a URL furnished by Stripe, to Stripe
+        url: 'https://www.google.com/'
       };
       cy.forceLogin({ ...orgAdminUser, user: selfServiceUserNotStripeVerified });
       cy.intercept({ method: 'GET', pathname: getEndpoint(USER) }, { body: selfServiceUserNotStripeVerified });
       cy.intercept(
-        { method: 'POST', pathname: getEndpoint(getStripeAccountLinkCreatePath(rp.id)) },
+        { method: 'POST', pathname: getEndpoint(getStripeAccountLinkStatusPath(rp.id)) },
         { statusCode: 202, body: stripeAccountLinkResponse }
-      ).as('getStripeAccountLinkUrl');
+      ).as('stripeAccountLink');
       cy.visit(DASHBOARD_SLUG);
       cy.getByTestId('connect-stripe-modal-button').click();
-      cy.wait('@getStripeAccountLinkUrl');
+      cy.wait('@stripeAccountLink');
       cy.url().should('eq', stripeAccountLinkResponse.url);
     });
 
     it('should direct user to Stripe-provided Account Link URL -- via toast', () => {
       const rp = selfServiceUserNotStripeVerified.revenue_programs[0];
-      const stripeAccountLinkResponse = {
-        object: 'account_link',
-        created: 1663186839,
-        expires_at: 1663187139,
-        url: 'https://connect.stripe.com/setup/s/acct_1ASCSHBMAMOLTEak/UbNswRTMxLY7'
-      };
       cy.setCookie(CONNECT_STRIPE_COOKIE_NAME, 'true', { path: '/' });
       cy.forceLogin({ ...orgAdminUser, user: selfServiceUserNotStripeVerified });
       cy.intercept({ method: 'GET', pathname: getEndpoint(USER) }, { body: selfServiceUserNotStripeVerified });
+      const stripeAccountLinkResponse = {
+        reason: 'past_due',
+        requiresVerification: true,
+        // in prod, this will be a URL furnished by Stripe, to Stripe
+        url: 'https://www.google.com/'
+      };
       cy.intercept(
-        { method: 'POST', pathname: getEndpoint(getStripeAccountLinkCreatePath(rp.id)) },
+        { method: 'POST', pathname: getEndpoint(getStripeAccountLinkStatusPath(rp.id)) },
         { statusCode: 202, body: stripeAccountLinkResponse }
-      ).as('getStripeAccountLinkUrl');
+      ).as('stripeAccountLink');
       cy.visit(DASHBOARD_SLUG);
       cy.getByTestId('connect-stripe-toast-button').click();
-      cy.wait('@getStripeAccountLinkUrl');
+      cy.wait('@stripeAccountLink');
       cy.url().should('eq', stripeAccountLinkResponse.url);
     });
 
-    it('should stop displaying Account Link CTA on redirection back from off-site flow', () => {
+    it('should stop displaying Account Link CTA when account becomes verified', () => {
       const rp = selfServiceUserNotStripeVerified.revenue_programs[0];
       cy.forceLogin({ ...orgAdminUser, user: selfServiceUserNotStripeVerified });
-
       /* NB: This intercept (aliased as getUserSecondTime ) and the following one (aliased as
         getUserFirstTime) are in reverse order of how the request/responses actually occur.
         When this view loads, the user will initially be retrieved and return data showing
-        no stripe verification. Next, the SPA will make a call to the stripe-account-link-create-complete
-        endpoint, and when that is successful, it signals to react query that the user query should
-        be re-run. So the `getUserSecondTime` intercept will happen on the second request for user
-        from the SPA, and this fixture shows Stripe as being verified.
+        no stripe verification. Next, the SPA will make a call to the stripe account link endpoint (on our server)
+        which will now show that the account is verifed. When this happens, we invalidate the user query,
+        which causes the user to be refetched, along with the now-verified RP.
 
         While confusing, it is necessary to define the second occuring intercept of the same path first.
         See comment here: https://stackoverflow.com/questions/71485161/cypress-use-same-endpoint-with-different-response-testing-http-race-condition
@@ -278,19 +274,17 @@ describe('Account', () => {
         { method: 'GET', pathname: getEndpoint(USER), times: 1 },
         { body: selfServiceUserNotStripeVerified }
       ).as('getUserFirstTime');
+
+      const stripeAccountLinkResponse = { requiresVerification: false };
       cy.intercept(
-        { method: 'POST', pathname: getEndpoint(getStripeAccountLinkCreateCompletePath(rp.id)) },
-        // We delay this request by 500 milliseconds because otherwise the updating of the search
-        // params happens so fast that we can't assert the initial presence of `?stripeAccountLinkSuccess`
-        { statusCode: 202, delay: 500 }
-      ).as('signalStripeAccountLinkComplete');
-      cy.visit(STRIPE_ACCOUNT_LINK_RETURN).should(() => {});
-      cy.location('search').should('include', 'stripeAccountLinkSuccess');
+        { method: 'POST', pathname: getEndpoint(getStripeAccountLinkStatusPath(rp.id)) },
+        { statusCode: 202, body: stripeAccountLinkResponse }
+      ).as('stripeAccountLink');
+
+      cy.visit(DASHBOARD_SLUG);
       cy.wait('@getUserFirstTime');
-      cy.wait('@signalStripeAccountLinkComplete');
+      cy.wait('@stripeAccountLink');
       cy.wait('@getUserSecondTime');
-      cy.location('pathname').should('eq', CONTENT_SLUG);
-      cy.location('search').should('not.include', 'stripeAccountLinkSuccess');
       cy.getByTestId('connect-stripe-modal').should('not.exist');
       cy.getByTestId('connect-stripe-toast').should('not.exist');
     });

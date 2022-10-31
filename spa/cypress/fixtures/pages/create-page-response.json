@@ -1,25 +1,25 @@
 {
-  "id": 50,
-  "name": "Page 1",
+  "id": 1,
+  "name": "testing",
   "styles": null,
   "revenue_program": {
-    "id": 3,
-    "name": "Fooo",
-    "slug": "foooo",
-    "twitter_handle": "fooo",
-    "website_url": "https://fooo.com/",
-    "contact_email": "hello@fooo.com",
+    "id": 1,
+    "name": "Some name",
+    "slug": "some-name",
+    "twitter_handle": "some_name",
+    "website_url": "",
+    "contact_email": "",
     "google_analytics_v3_domain": null,
     "google_analytics_v3_id": null,
     "google_analytics_v4_id": null,
     "facebook_pixel_id": null
   },
   "payment_provider": {
-    "id": 2,
+    "id": 1,
     "created": "2022-06-13T23:45:23.051697Z",
     "modified": "2022-06-15T03:14:49.969805Z",
-    "stripe_account_id": "acct_1fake",
-    "stripe_product_id": "prod_fake",
+    "stripe_account_id": "acct_fakefakefake",
+    "stripe_product_id": "prod_fakefakefake",
     "currency": "USD",
     "default_payment_provider": "stripe",
     "stripe_oauth_refresh_token": "",
@@ -28,21 +28,18 @@
   "template_pk": null,
   "graphic": null,
   "header_bg_image": null,
-  "header_logo": null,
+  "header_logo": "https://storage.googleapis.com/rev-engine-media/NRH-Donation-Placeholder.png",
   "graphic_thumbnail": null,
   "header_bg_image_thumbnail": null,
-  "header_logo_thumbnail": null,
+  "header_logo_thumbnail": "",
   "revenue_program_is_nonprofit": true,
   "stripe_account_id": null,
-  "currency": {
-    "code": "USD",
-    "symbol": "$"
-  },
+  "currency": { "code": "USD", "symbol": "$" },
   "revenue_program_country": "US",
   "allow_offer_nyt_comp": false,
-  "benefit_levels": [],
-  "created": "2022-09-30T02:04:56.888897Z",
-  "modified": "2022-09-30T02:04:56.888897Z",
+  "benefit_levels": [{ "name": "tier 1", "donation_range": "$1-12", "benefits": [] }],
+  "created": "2022-10-14T15:22:31.484775Z",
+  "modified": "2022-10-14T15:22:31.484775Z",
   "heading": "",
   "header_link": "",
   "sidebar_elements": [],
@@ -51,81 +48,51 @@
   "elements": [
     {
       "type": "DRichText",
-      "uuid": "31915bf6-1d6d-40a4-acd2-0236121c2db8",
+      "uuid": "793a7f18-eb14-4d24-b27f-ad29f4ca272b",
       "content": "<h2 style=\"text-align:center;\">Support our journalism today.</h2>\n<p style=\"text-align:center;\">This work doesn't happen without your support. Contribute today!</p>\n",
       "requiredFields": []
     },
     {
       "type": "DFrequency",
-      "uuid": "70edfc26-9c5e-4eb8-9741-ee104ea0f3e9",
+      "uuid": "53c95ab1-9812-4972-a846-efc02227c2a8",
       "content": [
-        {
-          "value": "one_time",
-          "isDefault": false,
-          "displayName": "One time"
-        },
-        {
-          "value": "month",
-          "isDefault": true,
-          "displayName": "Monthly"
-        },
-        {
-          "value": "year",
-          "isDefault": false,
-          "displayName": "Yearly"
-        }
+        { "value": "one_time", "isDefault": false, "displayName": "One time" },
+        { "value": "month", "isDefault": true, "displayName": "Monthly" },
+        { "value": "year", "isDefault": false, "displayName": "Yearly" }
       ],
       "requiredFields": []
     },
     {
       "type": "DAmount",
-      "uuid": "8ef11b7b-0fab-48bb-bf3c-a8abcd63a287",
+      "uuid": "42e0324a-3960-4b66-b3d5-ab8c84224160",
       "content": {
-        "options": {
-          "year": [120, 180, 365],
-          "month": [10, 15, 25],
-          "one_time": [120, 180, 365]
-        },
-        "defaults": {
-          "year": 180,
-          "month": 15,
-          "one_time": 180
-        },
+        "options": { "year": [120, 180, 365], "month": [10, 15, 25], "one_time": [120, 180, 365] },
+        "defaults": { "year": 180, "month": 15, "one_time": 180 },
         "allowOther": true
       },
       "requiredFields": []
     },
     {
       "type": "DDonorInfo",
-      "uuid": "25545dd6-2178-4426-b79d-bf34919251e8",
-      "content": {
-        "askPhone": true
-      },
+      "uuid": "9e91f505-c02d-4d84-8f48-bdb8afb22a18",
+      "content": { "askPhone": true },
       "requiredFields": []
     },
-    {
-      "type": "DDonorAddress",
-      "uuid": "92916850-7968-46e0-be2b-e46515751f11",
-      "requiredFields": []
-    },
+    { "type": "DDonorAddress", "uuid": "10de2134-1a7e-4261-85ef-ae9e445ecd87", "requiredFields": [] },
     {
       "type": "DPayment",
-      "uuid": "dc559bda-f51e-4b34-a9fd-a736c6941404",
-      "content": {
-        "stripe": ["card", "apple", "google", "browser"],
-        "offerPayFees": true,
-        "payFeesDefault": true
-      },
+      "uuid": "81276ff1-ab04-4f42-b434-41374b7fbff8",
+      "content": { "stripe": ["card", "apple", "google", "browser"], "offerPayFees": true, "payFeesDefault": true },
       "requiredFields": []
     },
     {
       "type": "DRichText",
-      "uuid": "1293ed04-7a0c-4ec3-a7b9-379a87529422",
+      "uuid": "e7dbbf57-ab26-43cc-9ffc-65c383018b57",
       "content": "<p style=\"text-align:center;\">Have questions or want to change a recurring donation? Contact us at YOUR EMAIL ADDRESS HERE. <br><br>Prefer to mail a check? Our mailing address is YOUR MAILING ADDRESS HERE.<br><br>Contributions or gifts to YOUR ORGANIZATION NAME HERE are tax deductible. Our tax ID is YOUR TAX ID HERE.&nbsp;</p>\n",
       "requiredFields": []
     }
   ],
-  "slug": "page-1",
+  "slug": "testing-04583",
   "published_date": null,
   "page_screenshot": null
 }

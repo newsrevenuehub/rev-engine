@@ -6,7 +6,7 @@ import { loadStripe } from '@stripe/stripe-js';
 import { Elements } from '@stripe/react-stripe-js';
 
 // Constants
-import { HUB_STRIPE_API_PUB_KEY, STRIPE_API_VERSION } from 'settings';
+import { HUB_STRIPE_API_PUB_KEY, STRIPE_API_VERSION } from 'appSettings';
 
 // Children
 import ElementLoading from 'components/donationPage/pageContent/ElementLoading';

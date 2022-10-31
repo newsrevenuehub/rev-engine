@@ -105,6 +105,7 @@ const PublishButton = ({ page, setPage, className, alert, requestPatchPage }) =>
             onClick={isPublished ? handleOpenPopover : handleOpen}
             active={showPopover ? 'true' : ''}
             aria-label={`${isPublished ? 'Published' : 'Publish'} page ${page?.name}`}
+            data-testid="publish-button"
             disabled={disabled}
             {...(isPublished && {
               startIcon: <CheckCircleOutlineIcon />,

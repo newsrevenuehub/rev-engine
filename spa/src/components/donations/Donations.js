@@ -39,7 +39,7 @@ const Donations = () => {
   const history = useHistory();
 
   const { user } = useUser();
-  const { requiresStripeVerification } = useConnectStripeAccount();
+  const { requiresVerification } = useConnectStripeAccount();
   const { pages } = usePagesList();
   const requestDonations = useRequest();
   const [filters, setFilters] = useState({});
@@ -62,10 +62,10 @@ const Donations = () => {
     ) {
       return null;
     }
-    if (requiresStripeVerification && !hasPublished) return BANNER_TYPE.BLUE;
-    if (!requiresStripeVerification && !hasPublished) return BANNER_TYPE.YELLOW;
+    if (requiresVerification && !hasPublished) return BANNER_TYPE.BLUE;
+    if (!requiresVerification && !hasPublished) return BANNER_TYPE.YELLOW;
     return null;
-  }, [pages, requiresStripeVerification, user?.revenue_programs?.length, user?.role_type]);
+  }, [pages, requiresVerification, user?.revenue_programs?.length, user?.role_type]);
 
   const fetchDonations = useCallback(
     (parameters, { onSuccess, onFailure }) => {

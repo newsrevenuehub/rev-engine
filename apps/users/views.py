@@ -269,7 +269,7 @@ class UserViewset(
     def perform_create(self, serializer):
         """Override of `perform_create` to add our custom validations"""
         self.validate_password(serializer.validated_data.get("email"), serializer.validated_data.get("password"))
-        # self.validate_bad_actor(serializer)
+        self.validate_bad_actor(serializer)
         user = serializer.save()
         self.send_verification_email(user)
 

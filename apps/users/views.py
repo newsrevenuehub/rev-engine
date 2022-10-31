@@ -98,7 +98,7 @@ class AccountVerification(signing.TimestampSigner):
         email = self.decode(encoded_email)
         token = self.decode(encoded_token)
         if not (email and token):
-            logger.info("Account Verification: Malformed or missing email/token for email: %s", email)
+            logger.warning("Account Verification: Malformed or missing email/token for email: %s", email)
             self.fail_reason = "failed"
             return False
         if self.max_age:
@@ -119,7 +119,7 @@ class AccountVerification(signing.TimestampSigner):
         if not (
             user := get_user_model().objects.filter(email=email).first()
         ):  # Get the (only) matching User or None instead of raising exception.
-            logger.info("Account Verification: No user for email: %s", email)
+            logger.warning("Account Verification: No user for email: %s", email)
             self.fail_reason = "unknown"
             return False
         if not user.is_active:
@@ -263,7 +263,7 @@ class UserViewset(
             logger.warning("Something went wrong with BadActorAPI", exc_info=True)
             return
         if response.json()["overall_judgment"] >= settings.BAD_ACTOR_FAILURE_THRESHOLD_FOR_ORG_USERS:
-            logger.info("Someone determined to be a bad actor tried to create a user: [%s]", data)
+            logger.warning("Someone determined to be a bad actor tried to create a user: [%s]", data)
             raise ValidationError(BAD_ACTOR_CLIENT_FACING_VALIDATION_MESSAGE)
 
     def perform_create(self, serializer):

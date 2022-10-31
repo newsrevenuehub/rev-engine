@@ -1,29 +1,44 @@
 import { Button, TextField, MenuItem } from 'components/base';
-import PropTypes from 'prop-types';
+import PropTypes, { InferProps } from 'prop-types';
 import { Controller, useForm } from 'react-hook-form';
-import { FieldLabelOptional, FillRow, Form, TaxStatusContainer, TaxStatusInfoTooltip } from './ProfileForm.styled';
+import {
+  FieldLabelOptional,
+  FillRow,
+  Form,
+  TaxStatusContainer,
+  TaxStatusInfoTooltip,
+  useStyles
+} from './ProfileForm.styled';
 
-function ProfileForm({ disabled: disabledProp, onProfileSubmit }) {
-  const { control, handleSubmit, watch } = useForm({
-    defaultValues: {
-      companyName: '',
-      // companyTaxStatus needs to be "." so that it shows the default label "Select your status".
-      // Using empty string didn't work
-      companyTaxStatus: '.',
-      firstName: '',
-      jobTitle: '',
-      lastName: ''
-    }
-  });
+export const defaultValues = {
+  companyName: '',
+  // companyTaxStatus needs to be "." so that it shows the default label "Select your status".
+  // Using empty string didn't work
+  companyTaxStatus: '.',
+  firstName: '',
+  jobTitle: '',
+  lastName: '',
+  taxId: ''
+};
+
+export type FormDataType = typeof defaultValues;
+export interface ProfileFormProps extends InferProps<typeof ProfileFormPropTypes> {
+  onProfileSubmit: (form: FormDataType) => void;
+}
+
+function ProfileForm({ disabled: disabledProp, onProfileSubmit }: ProfileFormProps) {
+  const classes = useStyles();
+  const { control, handleSubmit, watch } = useForm({ defaultValues });
   const firstName = watch('firstName');
   const lastName = watch('lastName');
   const companyName = watch('companyName');
   const companyTaxStatus = watch('companyTaxStatus');
   const disabled = disabledProp || !firstName || !lastName || !companyName || companyTaxStatus === '.';
 
-  const onSubmit = (formData) => {
+  const onSubmit = (formData: FormDataType) => {
     onProfileSubmit(formData);
   };
+
   return (
     <Form onSubmit={handleSubmit(onSubmit)} data-testid="finalize-profile-form">
       <Controller
@@ -81,6 +96,24 @@ function ProfileForm({ disabled: disabledProp, onProfileSubmit }) {
           title="Your tax status determines the contribution fees charged through Stripe."
         />
       </TaxStatusContainer>
+      <Controller
+        name="taxId"
+        control={control}
+        render={({ field }) => (
+          <TextField
+            id="profile-tax-id"
+            placeholder="XX-XXXXXXX"
+            type="number"
+            className={classes.root}
+            label={
+              <>
+                EIN <FieldLabelOptional>Optional</FieldLabelOptional>
+              </>
+            }
+            {...field}
+          />
+        )}
+      />
       <FillRow>
         <Button disabled={disabled} fullWidth size="extraLarge" type="submit">
           Finalize Account
@@ -90,7 +123,7 @@ function ProfileForm({ disabled: disabledProp, onProfileSubmit }) {
   );
 }
 
-ProfileForm.propTypes = {
+const ProfileFormPropTypes = {
   /**
    * Callback when the form is submitted by the user. Form data will be passed
    * as the first argument.
@@ -101,5 +134,7 @@ ProfileForm.propTypes = {
    */
   disabled: PropTypes.bool
 };
+
+ProfileForm.propTypes = ProfileFormPropTypes;
 
 export default ProfileForm;

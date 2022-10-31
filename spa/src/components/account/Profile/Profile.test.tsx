@@ -21,13 +21,13 @@ function tree() {
 
 describe('Profile', () => {
   const axiosMock = new MockAdapter(Axios);
-  let historyPushMock;
+  let historyPushMock: jest.Mock;
 
   beforeEach(() => {
     axiosMock.onPatch(`users/mock-user-id/${CUSTOMIZE_ACCOUNT_ENDPOINT}`).reply(204);
     historyPushMock = jest.fn();
-    useHistory.mockReturnValue({ push: historyPushMock });
-    useUser.mockReturnValue({ loading: false, refetch: jest.fn(), user: { id: 'mock-user-id' } });
+    (useHistory as jest.Mock).mockReturnValue({ push: historyPushMock });
+    (useUser as jest.Mock).mockReturnValue({ loading: false, refetch: jest.fn(), user: { id: 'mock-user-id' } });
   });
 
   afterEach(() => axiosMock.reset());
@@ -65,7 +65,8 @@ describe('Profile', () => {
             last_name: 'mock-last-name',
             job_title: 'mock-job-title',
             organization_name: 'mock-company-name',
-            organization_tax_status: 'mock-tax-status'
+            organization_tax_status: 'mock-tax-status',
+            organization_tax_id: 987654321
           }),
           url: `users/mock-user-id/${CUSTOMIZE_ACCOUNT_ENDPOINT}`
         })
@@ -83,7 +84,8 @@ describe('Profile', () => {
             last_name: 'mock-last-name',
             // No job_title
             organization_name: 'mock-company-name',
-            organization_tax_status: 'mock-tax-status'
+            organization_tax_status: 'mock-tax-status',
+            organization_tax_id: 987654321
           }),
           url: `users/mock-user-id/${CUSTOMIZE_ACCOUNT_ENDPOINT}`
         })
@@ -93,7 +95,7 @@ describe('Profile', () => {
     it('refetches the user then redirects to / after a successful PATCH', async () => {
       const refetch = jest.fn();
 
-      useUser.mockReturnValue({ refetch, loading: false, user: { id: 'mock-user-id' } });
+      (useUser as jest.Mock).mockReturnValue({ refetch, loading: false, user: { id: 'mock-user-id' } });
       tree();
       userEvent.click(screen.getByText('mock-profile-form-submit'));
       await waitFor(() => expect(historyPushMock).toBeCalled());

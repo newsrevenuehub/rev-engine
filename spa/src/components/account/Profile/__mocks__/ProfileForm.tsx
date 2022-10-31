@@ -3,11 +3,17 @@ const mockFormData = {
   lastName: 'mock-last-name',
   jobTitle: 'mock-job-title',
   companyName: 'mock-company-name',
-  companyTaxStatus: 'mock-tax-status'
+  companyTaxStatus: 'mock-tax-status',
+  taxId: '987654321'
 };
 
-const ProfileForm = ({ disabled, onProfileSubmit }) => {
-  function handleSubmit(event) {
+type ProfileFormType = {
+  disabled: boolean;
+  onProfileSubmit: (form: typeof mockFormData) => void;
+};
+
+const ProfileForm = ({ disabled, onProfileSubmit }: ProfileFormType) => {
+  function handleSubmit(event: any) {
     event.preventDefault();
     onProfileSubmit(mockFormData);
   }

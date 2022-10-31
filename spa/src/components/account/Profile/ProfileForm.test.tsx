@@ -1,10 +1,12 @@
 import userEvent from '@testing-library/user-event';
 import { axe } from 'jest-axe';
 import { render, screen, waitFor } from 'test-utils';
-import ProfileForm from './ProfileForm';
+import ProfileForm, { ProfileFormProps } from './ProfileForm';
 
-function tree(props) {
-  return render(<ProfileForm onProfileSubmit={jest.fn()} {...props} />);
+const onProfileSubmit = jest.fn();
+
+function tree(props?: ProfileFormProps) {
+  return render(<ProfileForm onProfileSubmit={onProfileSubmit} {...props} />);
 }
 
 function fillInAllFields() {
@@ -12,7 +14,8 @@ function fillInAllFields() {
     ['First Name', 'mock-first-name'],
     ['Last Name', 'mock-last-name'],
     ['Company Name', 'mock-company-name'],
-    ['Job Title Optional', 'mock-job-title']
+    ['Job Title Optional', 'mock-job-title'],
+    ['EIN Optional', '987654321']
   ];
 
   for (const [name, value] of fieldEntries) {
@@ -60,6 +63,14 @@ describe('ProfileForm', () => {
     expect(companyName).toHaveValue('');
   });
 
+  it('displays a EIN (tax id) field with empty default', () => {
+    tree();
+
+    const taxId = screen.getByLabelText('EIN Optional');
+    expect(taxId).toBeVisible();
+    expect(taxId).toHaveValue(null);
+  });
+
   it('displays a company tax status selector with non-profit and for-profit values, but no preset value', () => {
     tree();
 
@@ -72,7 +83,7 @@ describe('ProfileForm', () => {
     expect(screen.getByRole('option', { name: 'For-profit' })).toBeInTheDocument();
   });
 
-  it('requires that the user enter a value for all fields except job title', async () => {
+  it('requires that the user enter a value for all fields except job title & tax id', async () => {
     const submitButton = () => screen.getByRole('button', { name: 'Finalize Account' });
     const fieldEntries = [
       ['First Name', 'mock-first-name'],
@@ -108,14 +119,15 @@ describe('ProfileForm', () => {
           lastName: 'mock-last-name',
           jobTitle: 'mock-job-title',
           companyName: 'mock-company-name',
-          companyTaxStatus: 'nonprofit'
+          companyTaxStatus: 'nonprofit',
+          taxId: '987654321'
         }
       ]
     ]);
   });
 
   it('disables the submit button when the disabled prop is true', () => {
-    tree({ disabled: true });
+    tree({ disabled: true, onProfileSubmit });
     fillInAllFields();
     expect(screen.getByRole('button', { name: 'Finalize Account' })).toBeDisabled();
   });

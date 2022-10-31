@@ -16,7 +16,7 @@ import useModal from 'hooks/useModal';
 // Analytics
 import { useConfigureAnalytics } from 'components/analytics';
 
-import ProfileForm from './ProfileForm';
+import ProfileForm, { FormDataType } from './ProfileForm';
 import { OffscreenText, StepperDots } from 'components/base';
 
 function Profile() {
@@ -26,7 +26,7 @@ function Profile() {
   const { refetch: refetchUser, user } = useUser();
   useConfigureAnalytics();
 
-  const onProfileSubmit = async (formData) => {
+  const onProfileSubmit = async (formData: FormDataType) => {
     dispatch({ type: FETCH_START });
 
     try {
@@ -36,7 +36,8 @@ function Profile() {
         // Don't send job_title at all if the user omitted it.
         job_title: formData.jobTitle.trim() !== '' ? formData.jobTitle : undefined,
         organization_name: formData.companyName,
-        organization_tax_status: formData.companyTaxStatus
+        organization_tax_status: formData.companyTaxStatus,
+        organization_tax_id: Number(formData.taxId)
       });
 
       if (status === 204) {
@@ -46,7 +47,7 @@ function Profile() {
       } else {
         dispatch({ type: FETCH_FAILURE, payload: data });
       }
-    } catch (e) {
+    } catch (e: any) {
       // If we didn't get a specific error message from the API, default to
       // something generic.
 

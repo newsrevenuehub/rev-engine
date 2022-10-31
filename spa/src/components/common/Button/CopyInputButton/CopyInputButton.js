@@ -4,16 +4,17 @@ import { useAlert } from 'react-alert';
 
 import { Title, Input, CopyButton } from './CopyInputButton.styled';
 
-const CopyInputButton = ({ title, link, copied, setCopied }) => {
+/** The `dataTestId` prop gets attached to the child `CopyButton` component, not the Input. */
+const CopyInputButton = ({ title, link, copied, setCopied, 'data-testid': dataTestId }) => {
   const alert = useAlert();
   const showCopied = copied === link;
-
   return (
     <div>
       <Title>{title}</Title>
       <div style={{ display: 'flex' }}>
         <Input aria-label={title} value={link} readOnly />
         <CopyButton
+          data-testid={dataTestId}
           onClick={() => {
             navigator.clipboard.writeText(link).then(
               // If copy succeeds: show "copied" button
@@ -45,7 +46,8 @@ CopyInputButton.propTypes = {
   title: PropTypes.string.isRequired,
   link: PropTypes.string.isRequired,
   copied: PropTypes.string.isRequired,
-  setCopied: PropTypes.func.isRequired
+  setCopied: PropTypes.func.isRequired,
+  'data-testid': PropTypes.string
 };
 
 CopyInputButton.defaultProps = {

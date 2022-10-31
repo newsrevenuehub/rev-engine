@@ -112,7 +112,7 @@ describe('Account', () => {
   });
 
   context('Password Reset', () => {
-    it('should show api-response error if password-reset unsuccessfull', () => {
+    it('should show api-response error if password-reset unsuccessful', () => {
       cy.visit(`${RESET_PASSWORD}?token=sometoken`);
       cy.url().should('include', RESET_PASSWORD);
       cy.getByTestId('reset-pwd-password').type('P1#password');

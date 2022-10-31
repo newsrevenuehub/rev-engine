@@ -22,6 +22,7 @@ import { CONTENT_SLUG } from 'routes';
 import { CLEARBIT_SCRIPT_SRC } from 'hooks/useClearbit';
 
 import orgAdminUser from '../fixtures/user/login-success-org-admin.json';
+import stripeVerifiedOrgAdmin from '../fixtures/user/self-service-user-stripe-verified.json';
 
 import { CONTENT_SECTION_ACCESS_FLAG_NAME } from 'constants/featureFlagConstants';
 
@@ -59,7 +60,7 @@ const testEditPageUrl = 'edit/my/page/';
 describe('Donation page edit', () => {
   before(() => {
     cy.forceLogin(orgAdminUser);
-    cy.intercept({ method: 'GET', pathname: getEndpoint(USER) }, { body: orgAdminWithContentFlag });
+    cy.intercept({ method: 'GET', pathname: getEndpoint(USER) }, { body: stripeVerifiedOrgAdmin });
     cy.intercept({ method: 'GET', pathname: getEndpoint(LIST_STYLES) }, {});
 
     cy.intercept(
@@ -402,32 +403,6 @@ describe('Donation page edit', () => {
       // Now we should see the Setup tab and our error message
       cy.getByTestId('edit-interface').should('exist');
       cy.getByTestId('errors-Thank You page link').contains(expectedErrorMessage);
-    });
-
-    it('should catch missing elements and an element that has not been configured.', () => {
-      cy.intercept(
-        { method: 'GET', pathname: getEndpoint(DRAFT_PAGE_DETAIL) },
-        { fixture: 'pages/live-page-element-validation.json' }
-      ).as('getPageDetailModified');
-      cy.forceLogin(orgAdminUser);
-      cy.intercept({ method: 'GET', pathname: getEndpoint(LIST_STYLES) }, {});
-
-      cy.intercept({ method: 'GET', pathname: getEndpoint(USER) }, { body: orgAdminWithContentFlag });
-      cy.visit(testEditPageUrl);
-      cy.wait('@getPageDetailModified');
-      // Need to fake an update to the page to enable save
-      cy.getByTestId('edit-page-button').click();
-      cy.editElement('DRichText');
-
-      // Accept changes
-      cy.getByTestId('keep-element-changes-button').click({ force: true });
-
-      // Save changes
-      cy.getByTestId('save-page-button').click();
-      cy.getByTestId('missing-elements-alert').should('exist').contains('Payment');
-      cy.getByTestId('missing-elements-alert').contains('Payment');
-      cy.getByTestId('missing-elements-alert').contains('Contribution Frequency');
-      cy.getByTestId('missing-elements-alert').contains('Contribution Amount');
     });
   });
   describe('Edit interface: Sidebar', () => {

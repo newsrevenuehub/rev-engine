@@ -1,4 +1,5 @@
 export * from './Button/Button';
+export * from './Modal';
 export * from './OffscreenText/OffscreenText';
 export * from './Select';
 export * from './Stepper';

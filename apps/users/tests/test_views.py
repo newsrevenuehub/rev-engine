@@ -318,6 +318,7 @@ class TestUserViewSet(APITestCase):
             "job_title": "Test",
             "organization_name": "Test",
             "organization_tax_status": "nonprofit",
+            "organization_tax_id": 987654321,
         }
 
     def get_too_short_password(self):
@@ -782,6 +783,16 @@ class TestUserViewSet(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
         revenue_program = RevenueProgram.objects.get(name=self.customize_account_request["organization_name"])
         assert revenue_program.non_profit
+
+    def test_customize_account_sets_revenue_program_tax_id(self):
+        user = self._create_authenticated_user()
+        response = self.client.patch(
+            reverse("user-customize-account", args=(user.pk,)),
+            data={**self.customize_account_request, "organization_tax_id": 987654321},
+        )
+        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
+        revenue_program = RevenueProgram.objects.get(name=self.customize_account_request["organization_name"])
+        assert self.customize_account_request["organization_tax_id"] == revenue_program.tax_id
 
     def _create_authenticated_user(self, email_verified=True, accepted_terms_of_service=timezone.now()) -> User:
         user = get_user_model().objects.create(

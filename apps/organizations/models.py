@@ -3,6 +3,7 @@ from dataclasses import dataclass
 
 from django.conf import settings
 from django.core.exceptions import ValidationError
+from django.core.validators import MaxValueValidator
 from django.db import models
 from django.utils import timezone
 
@@ -213,6 +214,7 @@ class RevenueProgram(IndexedTimeStampedModel):
     )
     # TODO: [DEV-2403] non_profit should probably be moved to the payment provider?
     non_profit = models.BooleanField(default=True, verbose_name="Non-profit?")
+    tax_id = models.PositiveIntegerField(blank=True, null=True, validators=[MaxValueValidator(999999999)])
     payment_provider = models.ForeignKey("organizations.PaymentProvider", null=True, on_delete=models.SET_NULL)
     domain_apple_verified_date = models.DateTimeField(blank=True, null=True)
 

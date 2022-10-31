@@ -296,6 +296,7 @@ class UserViewset(
         first_name = customize_account_serializer.validated_data["first_name"]
         last_name = customize_account_serializer.validated_data["last_name"]
         organization_name = customize_account_serializer.validated_data["organization_name"]
+        organization_tax_id = customize_account_serializer.validated_data["organization_tax_id"]
         organization_tax_status = customize_account_serializer.validated_data["organization_tax_status"]
         user = request.user
         logger.debug("Received request to customize account for user %s; request: %s", user, request.data)
@@ -316,6 +317,7 @@ class UserViewset(
             organization=organization,
             slug=slugify(organization_name),
             non_profit=True if organization_tax_status == "nonprofit" else False,
+            tax_id=organization_tax_id,
             payment_provider=payment_provider,
         )
         RoleAssignment.objects.create(user=user, role_type=Roles.ORG_ADMIN, organization=organization)

@@ -21,15 +21,13 @@ function AddElementModal({ addElementModalOpen, setAddElementModalOpen, destinat
   const [permittedSidebarElements, setPermittedSidebarElements] = useState([]);
 
   useEffect(() => {
-    if (page?.plan) {
-      setPermittedPageElements(
-        Object.values(dynamicLayoutElements).filter(({ type }) => page.plan.page_elements.includes(type))
-      );
-      setPermittedSidebarElements(
-        Object.values(dynamicSidebarElements).filter(({ type }) => page.plan.sidebar_elements.includes(type))
-      );
-    }
-  }, [page?.plan]);
+    setPermittedPageElements(
+      Object.values(dynamicLayoutElements).filter(({ type }) => (page?.plan?.page_elements ?? []).includes(type))
+    );
+    setPermittedSidebarElements(
+      Object.values(dynamicSidebarElements).filter(({ type }) => (page?.plan?.sidebar_elements ?? []).includes(type))
+    );
+  }, [page?.plan?.page_elements, page?.plan?.sidebar_elements]);
 
   const buildElement = (element) => {
     const { type } = element;

@@ -27,5 +27,5 @@ class GoogleCloudPubSubPublisher:
         topic_path = self.client.topic_path(self.project_id, topic)
         future = self.client.publish(topic_path, message.data)
         result = future.result()
-        logger.info("Published data result %s to %s", result, topic)
+        logger.info("Published data result with id %s to %s", result, topic)
         return result

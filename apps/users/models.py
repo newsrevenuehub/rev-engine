@@ -3,7 +3,9 @@ from django.db import models
 from django.utils.translation import ugettext_lazy as _
 
 from apps.common.models import IndexedTimeStampedModel
+from apps.google_pub_sub.publisher import GoogleCloudPubSubPublisher, Message
 from apps.users.managers import UserManager
+from revengine.settings.base import GOOGLE_CLOUD_NEW_USER_NOTIFICATION_TOPIC
 
 from .choices import Roles
 
@@ -28,6 +30,7 @@ class User(AbstractBaseUser, PermissionsMixin, IndexedTimeStampedModel):
     job_title = models.CharField(max_length=50, blank=True, null=True)
 
     objects = UserManager()
+    google_cloud_pub_sub_publisher = GoogleCloudPubSubPublisher()
 
     USERNAME_FIELD = "email"
 
@@ -51,6 +54,13 @@ class User(AbstractBaseUser, PermissionsMixin, IndexedTimeStampedModel):
 
     def __str__(self):
         return self.email
+
+    def save(self, *args, **kwargs):
+        super().save(*args, **kwargs)
+        if self.email and not self.email.endswith("@fundjournalism.org"):
+            self.google_cloud_pub_sub_publisher.publish(
+                GOOGLE_CLOUD_NEW_USER_NOTIFICATION_TOPIC, Message(data=self.email)
+            )
 
 
 class OrganizationUser(models.Model):

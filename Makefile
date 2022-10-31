@@ -35,6 +35,7 @@ setup:
 run-dev:
 	@echo 'Running local development'
 	docker-compose up -d --remove-orphans
+	sleep 5 && curl -s -X PUT 'http://localhost:8085/v1/projects/revenue-engine/topics/new-nre-customer-test' # sleep for 5 seconds to allow google cloud to boot up
 	cd spa; export PORT=3000; npm run start:subdomains &
 	python manage.py runserver
 

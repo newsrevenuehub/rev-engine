@@ -14,3 +14,11 @@ services:
       - "54000:5432"
     volumes:
       - dev_revengine_data:/var/lib/postgresql/data
+  gcloud_pub_sub_emulator:
+    build:
+      context: google_cloud_pub_sub
+      dockerfile: Dockerfile
+    ports:
+      - "8085:8085"
+    environment:
+      PUBSUB_PROJECT1: revenue-engine,new-nre-customer-test

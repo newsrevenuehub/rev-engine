@@ -84,7 +84,9 @@ GOOGLE_CLOUD_NEW_USER_NOTIFICATION_TOPIC = os.getenv(
     "GOOGLE_CLOUD_NEW_USER_NOTIFICATION_TOPIC", "new-nre-customer-test"
 )
 GOOGLE_CLOUD_PROJECT = os.getenv("GOOGLE_CLOUD_PROJECT", "revenue-engine")
-GOOGLE_APPLICATION_CREDENTIALS = os.getenv("GOOGLE_APPLICATION_CREDENTIALS", "fake-service-account.json")
+GOOGLE_APPLICATION_CREDENTIALS = os.getenv(
+    "GOOGLE_APPLICATION_CREDENTIALS", "google_cloud_pub_sub/fake-service-account.json"
+)
 
 # Application definition
 INSTALLED_APPS = [

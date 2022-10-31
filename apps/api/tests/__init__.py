@@ -156,7 +156,7 @@ class RevEngineApiAbstractTestCase(AbstractTestCase):
 
     def assert_superuser_cannot_patch(self, url, data, expected_status_code=status.HTTP_404_NOT_FOUND):
         data = data if data is not None else {}
-        return self.assert_user_can_patch(url, self.superuser, data)
+        return self.assert_user_cannot_patch(url, self.superuser, data, expected_status_code)
 
     def assert_superuser_can_delete(self, url):
         return self.assert_user_can_delete(url, self.superuser)

@@ -1,6 +1,10 @@
 from django.conf import settings
+from django.test import override_settings
+from django.utils import timezone
 
 import pytest
+from stripe import ApplePayDomain
+from stripe.error import StripeError
 
 import apps
 from apps.organizations.models import (
@@ -93,6 +97,51 @@ class TestRevenueProgram:
         with pytest.raises(apps.organizations.models.ValidationError):
             t.default_donation_page = apps.pages.models.DonationPage(revenue_program=RevenueProgram())
             t.clean()
+
+    @pytest.mark.django_db
+    @override_settings(STRIPE_LIVE_MODE=True)
+    def test_stripe_create_apple_pay_domain_happy_path(self, mocker):
+        mock_stripe_create = mocker.patch.object(ApplePayDomain, "create")
+        rp = RevenueProgramFactory(domain_apple_verified_date=None)
+        rp.stripe_create_apple_pay_domain()
+        rp.refresh_from_db()
+        assert rp.domain_apple_verified_date is not None
+        mock_stripe_create.assert_called_once_with(
+            api_key="",
+            domain_name=f"{rp.slug}.{settings.DOMAIN_APEX}",
+            stripe_account=rp.payment_provider.stripe_account_id,
+        )
+
+    @pytest.mark.django_db
+    @override_settings(STRIPE_LIVE_MODE=True)
+    def test_stripe_create_apple_pay_domain_when_already_verified_date_exists(self, mocker):
+        mock_stripe_create = mocker.patch.object(ApplePayDomain, "create")
+        verified_date = timezone.now()
+        rp = RevenueProgramFactory(domain_apple_verified_date=verified_date)
+        rp.stripe_create_apple_pay_domain()
+        rp.refresh_from_db()
+        assert rp.domain_apple_verified_date == verified_date
+        assert not mock_stripe_create.called
+
+    @pytest.mark.django_db
+    @override_settings(STRIPE_LIVE_MODE=False)
+    def test_stripe_create_apple_pay_domain_when_not_in_live_mode(self, mocker):
+        mock_stripe_create = mocker.patch.object(ApplePayDomain, "create")
+        rp = RevenueProgramFactory(domain_apple_verified_date=None)
+        rp.stripe_create_apple_pay_domain()
+        rp.refresh_from_db()
+        assert rp.domain_apple_verified_date is None
+        assert not mock_stripe_create.called
+
+    @pytest.mark.django_db
+    @override_settings(STRIPE_LIVE_MODE=True)
+    def test_apple_pay_domain_verification_when_stripe_error(self, mocker):
+        mock_stripe_create = mocker.patch.object(ApplePayDomain, "create", side_effect=StripeError)
+        mock_logger = mocker.patch("apps.organizations.models.logger")
+        rp = RevenueProgramFactory(domain_apple_verified_date=None)
+        rp.stripe_create_apple_pay_domain()
+        mock_stripe_create.assert_called_once()
+        mock_logger.exception.assert_called_once()
 
 
 class TestPaymentProvider:

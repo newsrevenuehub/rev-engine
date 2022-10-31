@@ -14,6 +14,8 @@ export const EditInterface = styled(motion.aside)`
   display: flex;
   flex-direction: column;
   overflow-y: scroll;
+  padding-top: 60px;
+  z-index: ${(props) => props.theme.zIndex.sidebar};
 
   font-family: ${(props) => props.theme.systemFont};
 

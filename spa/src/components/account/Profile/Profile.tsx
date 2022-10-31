@@ -52,7 +52,7 @@ function Profile() {
       // something generic.
       const errorMessage =
         typeof e?.response?.data === 'object' ? Object.values(e?.response?.data)[0] : e?.response?.data;
-      dispatch({ type: FETCH_FAILURE, payload: errorMessage ?? [new Error('Request failed')] });
+      dispatch({ type: FETCH_FAILURE, payload: errorMessage ?? ['An Error Occurred'] });
     }
   };
 

@@ -145,6 +145,11 @@ class UserSerializer(serializers.ModelSerializer):
         ]
 
 
+def tax_id_validator(value):
+    if value > 999999999:
+        raise serializers.ValidationError("EIN must have max of 9 numbers")
+
+
 class CustomizeAccountSerializer(UserSerializer):
     """Special custom serializer to validate data received from customize_account method"""
 
@@ -152,7 +157,7 @@ class CustomizeAccountSerializer(UserSerializer):
     last_name = serializers.CharField(write_only=True, required=True)
     job_title = serializers.CharField(write_only=True, required=False, default=None)
     organization_name = serializers.CharField(write_only=True, required=True)
-    organization_tax_id = serializers.IntegerField(write_only=True, required=False)
+    organization_tax_id = serializers.IntegerField(write_only=True, required=False, validators=[tax_id_validator])
     organization_tax_status = serializers.ChoiceField(choices=["for-profit", "nonprofit"], required=True)
 
     class Meta:

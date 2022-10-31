@@ -50,12 +50,13 @@ function Profile() {
     } catch (e: any) {
       // If we didn't get a specific error message from the API, default to
       // something generic.
-
-      dispatch({ type: FETCH_FAILURE, payload: e?.response?.data ?? [new Error('Request failed')] });
+      const errorMessage =
+        typeof e?.response?.data === 'object' ? Object.values(e?.response?.data)[0] : e?.response?.data;
+      dispatch({ type: FETCH_FAILURE, payload: errorMessage ?? [new Error('Request failed')] });
     }
   };
 
-  const formSubmitErrors = profileState?.errors?.length && 'An Error Occurred';
+  const formSubmitErrors = profileState?.errors?.length && profileState?.errors[0];
 
   return (
     <S.Modal open={open} aria-labelledby="profile-modal-title" data-testid="finalize-profile-modal">

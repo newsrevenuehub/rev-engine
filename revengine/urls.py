@@ -76,6 +76,5 @@ urlpatterns += [
     path("", index, name="index"),
     path("verified/", index, name="spa_account_verification"),
     path("verified/<failure>/", index, name="spa_account_verification_fail"),
-    path("stripe-account-link-complete", index, name="spa_stripe_account_link_complete"),
     re_path(r"^(?:.*)/?$", index, name="index-others"),
 ]

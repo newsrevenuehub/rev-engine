@@ -53,7 +53,7 @@ describe('useSentry', () => {
           dsn: 'mock-sentry-dsn-frontend',
           environment: 'mock-env',
           integrations: expect.any(Array),
-          tracesSampleRate: 1
+          tracesSampleRate: 0.3
         }
       ]
     ]);

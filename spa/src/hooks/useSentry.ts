@@ -26,7 +26,7 @@ function useSentry() {
             routingInstrumentation: Sentry.reactRouterV5Instrumentation(history)
           })
         ],
-        tracesSampleRate: 1.0,
+        tracesSampleRate: 0.3,
         environment: ENVIRONMENT
       });
     }

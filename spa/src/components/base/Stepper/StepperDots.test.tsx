@@ -1,8 +1,8 @@
-import StepperDots from './StepperDots';
+import { StepperDots, StepperDotsProps } from './StepperDots';
 import { render, screen } from 'test-utils';
 import { axe } from 'jest-axe';
 
-function tree(props) {
+function tree(props?: Partial<StepperDotsProps>) {
   return render(<StepperDots activeStep={0} steps={2} {...props} />);
 }
 

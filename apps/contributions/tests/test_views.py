@@ -960,7 +960,9 @@ def donation_page():
 @pytest.fixture
 def valid_data(donation_page):
     return {
-        "amount": "120",
+        "amount": 123.01,
+        "donor_selected_amount": 120,
+        "agreed_to_pay_fees": True,
         "interval": "one_time",
         "first_name": "Bill",
         "last_name": "Smith",

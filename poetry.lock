@@ -413,7 +413,7 @@ postal = ["cryptography"]
 
 [[package]]
 name = "django-celery-beat"
-version = "2.3.0"
+version = "2.4.0"
 description = "Database-backed Periodic Tasks."
 category = "main"
 optional = false
@@ -421,7 +421,7 @@ python-versions = "*"
 
 [package.dependencies]
 celery = ">=5.2.3,<6.0"
-Django = ">=2.2,<4.1"
+Django = ">=2.2,<4.2"
 django-timezone-field = ">=5.0"
 python-crontab = ">=2.3.4"
 tzdata = "*"
@@ -1905,7 +1905,7 @@ testing = ["flake8 (<5)", "func-timeout", "jaraco.functools", "jaraco.itertools"
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.10"
-content-hash = "6a9e83148d260a23313e27f7dce0cf4b46cc0c8656ce2a1369b7fa56b43ca980"
+content-hash = "ee893debd08f020edf392c591c4fb2df77fdec1003d23f4995bca3d5e1af2e66"
 
 [metadata.files]
 addict = [
@@ -2107,8 +2107,8 @@ django-anymail = [
     {file = "django_anymail-8.6-py3-none-any.whl", hash = "sha256:49d83d7c16316ca86a624097496881d59b7d71b16bf1c5211cffa5b19ef98d0c"},
 ]
 django-celery-beat = [
-    {file = "django-celery-beat-2.3.0.tar.gz", hash = "sha256:ba24f86ed956ba0ee2b43237a49303ebf5aa7e0fb0ccb7e0542b7e31a463dcba"},
-    {file = "django_celery_beat-2.3.0-py3-none-any.whl", hash = "sha256:ff694e1d30f84de3d2b78822c90005c6c7c1462768e845ae162af71a6a46f1eb"},
+    {file = "django-celery-beat-2.4.0.tar.gz", hash = "sha256:58efe9460e4373a241c2b3d839518f29a28ae19bc80a8dba20da204c7ea50613"},
+    {file = "django_celery_beat-2.4.0-py3-none-any.whl", hash = "sha256:a20b7a7857daaa2eea1f4cfefb2a965456800216f5763c6cf918c2e21372b3c8"},
 ]
 django-csp = [
     {file = "django_csp-3.7-py2.py3-none-any.whl", hash = "sha256:01443a07723f9a479d498bd7bb63571aaa771e690f64bde515db6cdb76e8041a"},

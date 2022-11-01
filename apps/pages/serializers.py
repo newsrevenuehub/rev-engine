@@ -242,7 +242,7 @@ class DonationPageFullDetailSerializer(serializers.ModelSerializer):
     def validate_page_element_permissions(self, data):
         """Ensure that requested page elements are permitted by the organization's plan"""
         rp = self.instance.revenue_program if self.instance else data["revenue_program"]
-        if prohibited := set([elem["type"] for elem in data.get("elements", [])]).difference(
+        if prohibited := set([x["type"] for x in data.get("elements", [])]).difference(
             set(rp.organization.plan.page_elements)
         ):
             raise serializers.ValidationError(

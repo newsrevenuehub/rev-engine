@@ -84,6 +84,21 @@ class StyleListSerializer(StyleInlineSerializer):
         }
         return super().to_internal_value(data)
 
+    def validate_style_limit(self, data):
+        """Ensure that adding a style would not push parent org over its style limit"""
+        if self.context["request"].method != "POST":
+            return
+        if Style.objects.filter(
+            revenue_program__organization=(org := data["revenue_program"].organization)
+        ).count() + 1 > (sl := org.plan.style_limit):
+            raise serializers.ValidationError(
+                {"non_field_errors": [f"Your organization has reached its limit of {sl} style{'s' if sl > 1 else ''}"]}
+            )
+
+    def validate(self, data):
+        self.validate_style_limit(data)
+        return data
+
 
 class DonationPageFullDetailSerializer(serializers.ModelSerializer):
     name = serializers.CharField(max_length=255, required=False)  # Optional to allow autogeneration.

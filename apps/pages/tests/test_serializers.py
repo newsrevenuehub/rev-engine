@@ -15,10 +15,11 @@ from apps.organizations.serializers import PaymentProviderSerializer
 from apps.organizations.tests.factories import (
     BenefitFactory,
     BenefitLevelFactory,
+    OrganizationFactory,
     RevenueProgramFactory,
 )
 from apps.pages.defaults import BENEFITS, SWAG
-from apps.pages.models import DonationPage
+from apps.pages.models import DonationPage, Style
 from apps.pages.serializers import (
     DonationPageFullDetailSerializer,
     StyleListSerializer,
@@ -27,7 +28,7 @@ from apps.pages.serializers import (
 from apps.pages.tests.factories import DonationPageFactory, StyleFactory, TemplateFactory
 from apps.pages.validators import required_style_keys
 from apps.users.models import Roles
-from apps.users.tests.factories import RoleAssignmentFactory
+from apps.users.tests.factories import RoleAssignmentFactory, create_test_user
 
 
 class DonationPageFullDetailSerializerTest(RevEngineApiAbstractTestCase):
@@ -522,7 +523,8 @@ class TemplateDetailSerializerTest(RevEngineApiAbstractTestCase):
 
 class StyleListSerializerTest(APITestCase):
     def setUp(self):
-        self.rev_program = RevenueProgramFactory()
+        self.org = OrganizationFactory(plan_name=Plans.PLUS)
+        self.rev_program = RevenueProgramFactory(organization=self.org)
         self.style_1 = StyleFactory(revenue_program=self.rev_program)
         self.style_2 = StyleFactory(revenue_program=self.rev_program)
         self.donation_page_live = DonationPageFactory(
@@ -548,3 +550,25 @@ class StyleListSerializerTest(APITestCase):
         self.assertTrue(live_style_serializer.data["used_live"])
         self.assertIn("used_live", nonlive_style_serializer.data)
         self.assertFalse(nonlive_style_serializer.data["used_live"])
+
+    def test_plan_style_limits_are_respected(self):
+        self.org.plan_name = Plans.FREE
+        self.org.save()
+        assert self.org.plan.style_limit == 1
+        assert Style.objects.filter(revenue_program=self.rev_program).count() >= 1
+        serializer = self.serializer(
+            data={
+                "name": "my-new-page",
+                "revenue_program": self.rev_program.pk,
+                "radii": [],
+                "font": {},
+                "fontSizes": [],
+            }
+        )
+        request_factory = APIRequestFactory()
+        request = request_factory.post("/")
+        org_user = create_test_user(role_assignment_data={"role_type": Roles.ORG_ADMIN, "organization": self.org})
+        request.user = org_user
+        serializer.context["request"] = request
+        assert serializer.is_valid() is False
+        assert str(serializer.errors["non_field_errors"][0]) == ("Your organization has reached its limit of 1 style")

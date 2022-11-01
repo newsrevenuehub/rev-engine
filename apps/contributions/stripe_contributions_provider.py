@@ -83,7 +83,6 @@ class StripePaymentIntent:
 
     @property
     def interval(self):
-        # [TODO]: logic being ambigious to be replaced by utils.payment_interval_from_stripe_invoice
         if not self.payment_intent.invoice:
             # if there's no invoice then it's a one-time payment
             return ContributionInterval.ONE_TIME

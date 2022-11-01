@@ -33,11 +33,7 @@ from apps.contributions.stripe_contributions_provider import (
     SubscriptionsCacheProvider,
 )
 from apps.contributions.tasks import task_pull_serialized_stripe_contributions_to_cache
-from apps.contributions.utils import (
-    convert_stripe_date_to_datetime,
-    format_ambiguous_currency,
-    payment_interval_from_stripe_invoice,
-)
+from apps.contributions.utils import convert_stripe_date_to_datetime, format_ambiguous_currency
 from apps.contributions.webhooks import StripeWebhookProcessor
 from apps.emails.tasks import send_templated_email
 from apps.organizations.models import PaymentProvider, RevenueProgram
@@ -428,21 +424,25 @@ def email_contribution(request):
             status=status.HTTP_417_EXPECTATION_FAILED,
         )
 
-    payment_intent = stripe.PaymentIntent.retrieve(
-        id=contribution.provider_payment_id, stripe_account=stripe_account_id
-    )
-
-    interval = ContributionInterval.ONE_TIME
-    if payment_intent.invoice:
-        invoice = stripe.Invoice.retrieve(id=payment_intent.invoice, stripe_account=stripe_account_id)
-        interval = payment_interval_from_stripe_invoice(invoice, ContributionInterval)
+    try:
+        payment_intent = stripe.PaymentIntent.retrieve(
+            id=contribution.provider_payment_id, stripe_account=stripe_account_id
+        )
+    except stripe.error.StripeError as ex:
+        logger.exception("Error fetching Payment Intent")
+        return Response(
+            {"detail": "Error fetching Payment Intent", "error_msg": str(ex)},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        )
 
     email_attrs = {
         "contribution_date": convert_stripe_date_to_datetime(payment_intent.created).strftime("%m-%d-%y"),
-        "contributor_email": payment_intent.receipt_email or email_id,
+        "contributor_email": email_id or payment_intent.receipt_email,
         "contribution_amount": f"{format_ambiguous_currency(payment_intent.amount_received)} {payment_intent.currency.upper()}",
-        "contribution_interval": interval,
-        "contribution_interval_display_value": interval if interval != ContributionInterval.ONE_TIME else None,
+        "contribution_interval": contribution.interval,
+        "contribution_interval_display_value": contribution.interval
+        if contribution.interval != ContributionInterval.ONE_TIME
+        else None,
     }
 
     send_templated_email.delay(

@@ -25,21 +25,5 @@ def get_sha256_hash(string):
     return hash_str[:15]
 
 
-def payment_interval_from_stripe_invoice(invoice, contribution_interval_model):
-    invoice_line_item = {}
-    if invoice:
-        invoice_line_item = ((invoice.get("lines") or {}).get("data") or [{}])[0]
-
-    interval = invoice_line_item.get("plan", {}).get("interval")
-    interval_count = invoice_line_item.get("plan", {}).get("interval_count")
-
-    if interval == "year" and interval_count == 1:
-        return contribution_interval_model.YEARLY
-    if interval == "month" and interval_count == 1:
-        return contribution_interval_model.MONTHLY
-
-    return None
-
-
 def convert_stripe_date_to_datetime(stripe_date):
     return datetime.fromtimestamp(int(stripe_date), tz=timezone.utc)

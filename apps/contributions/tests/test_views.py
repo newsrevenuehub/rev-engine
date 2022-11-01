@@ -1119,7 +1119,6 @@ class TestEmailContribution(AbstractTestCase):
             "receipt_email": "test@test.com",
             "currency": "usd",
         }
-        self.invoice = {"lines": {"data": [{"plan": {"interval": "month", "interval_count": 1}}]}}
 
     def test_when_no_contribution_found(self):
         self.client.force_authenticate(user=self.org_user)
@@ -1134,31 +1133,27 @@ class TestEmailContribution(AbstractTestCase):
 
     @mock.patch("apps.contributions.views.send_templated_email.delay")
     @mock.patch("stripe.PaymentIntent.retrieve")
-    def test_when_contribution_status_is_paid_with_no_invoice(self, payment_intent_retrieve, send_email_task):
+    def test_one_time_contribution(self, payment_intent_retrieve, send_email_task):
         self.client.force_authenticate(user=self.org_user)
-        contribution = [x for x in Contribution.objects.all() if x.status == ContributionStatus.PAID][0]
+        contribution = ContributionFactory(status=ContributionStatus.PAID, interval=ContributionInterval.ONE_TIME)
 
         payment_intent_retrieve.return_value = AttrDict(self.base_payment_intent | {"invoice": None})
         response = self.client.post(self.url, {"contribution_id": contribution.id})
-        response.status_code = 200
+        assert response.status_code == 200
         email_attrs = send_email_task.call_args_list[0].args[-1]
-        assert email_attrs["contribution_interval"] == ContributionInterval.ONE_TIME
+        assert email_attrs["contribution_interval"] == contribution.interval
         assert email_attrs["contribution_amount"] == "144.50 USD"
         assert email_attrs["contribution_interval_display_value"] is None
 
     @mock.patch("apps.contributions.views.send_templated_email.delay")
     @mock.patch("stripe.PaymentIntent.retrieve")
-    @mock.patch("stripe.Invoice.retrieve")
-    def test_when_contribution_status_is_paid_with_invoice(
-        self, invoice_retrieve, payment_intent_retrieve, send_email_task
-    ):
+    def test_recurring_contribution(self, payment_intent_retrieve, send_email_task):
         self.client.force_authenticate(user=self.org_user)
-        contribution = [x for x in Contribution.objects.all() if x.status == ContributionStatus.PAID][0]
+        contribution = ContributionFactory(status=ContributionStatus.PAID, interval=ContributionInterval.MONTHLY)
 
         payment_intent_retrieve.return_value = AttrDict(self.base_payment_intent | {"invoice": "invoice_001"})
-        invoice_retrieve.return_value = AttrDict(self.invoice)
         response = self.client.post(self.url, {"contribution_id": contribution.id})
-        response.status_code = 200
+        assert response.status_code == 200
         email_attrs = send_email_task.call_args_list[0].args[-1]
-        assert email_attrs["contribution_interval"] == ContributionInterval.MONTHLY
-        assert email_attrs["contribution_interval_display_value"] == ContributionInterval.MONTHLY
+        assert email_attrs["contribution_interval"] == contribution.interval
+        assert email_attrs["contribution_interval_display_value"] == contribution.interval

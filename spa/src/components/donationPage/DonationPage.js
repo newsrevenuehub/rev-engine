@@ -16,8 +16,9 @@ import {
   GRECAPTCHA_SITE_KEY,
   SALESFORCE_CAMPAIGN_ID_QUERYPARAM,
   FREQUENCY_QUERYPARAM,
-  AMOUNT_QUERYPARAM
-} from 'settings';
+  AMOUNT_QUERYPARAM,
+  CSRF_HEADER
+} from 'appSettings';
 import DonationPageSidebar from 'components/donationPage/DonationPageSidebar';
 import DonationPageFooter from 'components/donationPage/DonationPageFooter';
 import StripePaymentWrapper from 'components/paymentProviders/stripe/StripePaymentWrapper';
@@ -31,9 +32,6 @@ import calculateStripeFee from 'utilities/calculateStripeFee';
 import formatStringAmountForDisplay from 'utilities/formatStringAmountForDisplay';
 import { getFrequencyAdverb } from 'utilities/parseFrequency';
 import { CONTRIBUTION_INTERVALS } from 'constants/contributionIntervals';
-
-import { CSRF_HEADER } from 'settings';
-import { GENERIC_ERROR } from 'constants/textConstants';
 
 function authorizePayment(paymentData, csrftoken) {
   // we manually set the X-CSRFTOKEN value in header here. This is an unauthed endpoint

@@ -8,7 +8,7 @@ import * as S from './DDonorAddress.styled';
 import { usePage } from 'components/donationPage/DonationPage';
 
 // Constants
-import { HUB_GOOGLE_MAPS_API_KEY } from 'settings';
+import { HUB_GOOGLE_MAPS_API_KEY } from 'appSettings';
 
 // Deps
 import { usePlacesWidget } from 'react-google-autocomplete';

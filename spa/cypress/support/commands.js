@@ -7,7 +7,7 @@ import { LIVE_PAGE_DETAIL, STRIPE_PAYMENT, CONTRIBUTIONS } from 'ajax/endpoints'
 import { DEFAULT_RESULTS_ORDERING } from 'components/donations/DonationsTable';
 import { ApiResourceList } from '../support/restApi';
 import donationsData from '../fixtures/donations/18-results.json';
-import { LS_CSRF_TOKEN, LS_USER } from 'settings';
+import { LS_CSRF_TOKEN, LS_USER } from 'appSettings';
 
 Cypress.Commands.add('getByTestId', (testId, options, partialMatch = false) => {
   return cy.get(`[data-testid${partialMatch ? '*' : ''}="${testId}"]`, options);

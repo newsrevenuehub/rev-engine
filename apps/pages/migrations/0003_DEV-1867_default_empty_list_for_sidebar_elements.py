@@ -3,6 +3,13 @@
 from django.db import migrations, models
 
 
+def populate_null_sidebar_elements_with_default_empty_list(apps, schema_editor):
+    DonationPage = apps.get_model("pages", "DonationPage")
+    Template = apps.get_model("pages", "Template")
+    DonationPage.objects.filter(sidebar_elements__isnull=True).update(sidebar_elements=list())
+    Template.objects.filter(sidebar_elements__isnull=True).update(sidebar_elements=list())
+
+
 class Migration(migrations.Migration):
 
     dependencies = [
@@ -19,5 +26,9 @@ class Migration(migrations.Migration):
             model_name="template",
             name="sidebar_elements",
             field=models.JSONField(default=list),
+        ),
+        migrations.RunPython(
+            code=populate_null_sidebar_elements_with_default_empty_list,
+            reverse_code=migrations.RunPython.noop,
         ),
     ]

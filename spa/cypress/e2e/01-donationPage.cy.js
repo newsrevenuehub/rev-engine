@@ -486,7 +486,7 @@ describe('User flow: happy path', () => {
           first_name: 'Fred',
           last_name: 'Person',
           email: 'foo@bar.com',
-          phone: '',
+          phone: '212-555-5555',
           mailing_street: '123 Main St',
           mailing_city: 'Big City',
           mailing_state: 'NY',

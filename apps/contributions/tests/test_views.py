@@ -1070,7 +1070,7 @@ class TestPaymentViewset:
         contribution = Contribution.objects.get(provider_client_secret_id=client_secret)
         assert contribution.interval == interval
         assert contribution.provider_subscription_id == subscription_id
-        assert contribution.amount == int(data["amount"]) * 100
+        assert contribution.amount == int(data["amount"] * 100)
 
     def test_when_called_with_unexpected_interval(self, valid_data):
         invalid_interval = "this-is-not-legit"

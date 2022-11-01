@@ -17,18 +17,8 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.AlterField(
-            model_name="donationpage",
-            name="sidebar_elements",
-            field=models.JSONField(default=list),
-        ),
-        migrations.AlterField(
-            model_name="template",
-            name="sidebar_elements",
-            field=models.JSONField(default=list),
-        ),
         migrations.RunPython(
             code=populate_null_sidebar_elements_with_default_empty_list,
             reverse_code=migrations.RunPython.noop,
-        ),
+        )
     ]

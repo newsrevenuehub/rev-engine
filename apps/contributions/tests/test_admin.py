@@ -11,7 +11,7 @@ import pytest
 
 import apps
 from apps.common.tests.test_utils import setup_request
-from apps.contributions.admin import BadActorScoreFilter, ContributionAdmin
+from apps.contributions.admin import ContributionAdmin
 from apps.contributions.models import Contribution, ContributionStatus
 from apps.contributions.tests.factories import ContributionFactory
 from apps.organizations.tests.factories import (
@@ -88,18 +88,3 @@ class ContributionAdminTest(TestCase):
         queryset = Contribution.objects.filter(pk=contribution.pk)
         with pytest.raises(MessageFailure):
             self.contribution_admin.accept_flagged_contribution(request, queryset)
-
-    def test_bad_actor_score_filter(self):
-        target_score = 2
-        ba_score_filter = BadActorScoreFilter(None, {"bad_actor_score": target_score}, Contribution, ContributionAdmin)
-        filtered_contribs = ba_score_filter.queryset(None, Contribution.objects.all())
-        self.assertIn(self.contrib_score_2, filtered_contribs)
-        self.assertNotIn(self.contrib_score_4, filtered_contribs)
-
-    def test_bad_actor_score_filter_all(self):
-        ba_score_filter = BadActorScoreFilter(None, {}, Contribution, ContributionAdmin)
-        all_contribs = Contribution.objects.all()
-        filtered_contribs = ba_score_filter.queryset(None, all_contribs)
-        self.assertEqual(len(filtered_contribs), len(all_contribs))
-        self.assertIn(self.contrib_score_2, filtered_contribs)
-        self.assertIn(self.contrib_score_4, filtered_contribs)

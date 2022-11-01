@@ -103,15 +103,6 @@ class ContributionTest(TestCase):
             f"{self.contribution.formatted_amount}, {self.contribution.created.strftime('%Y-%m-%d %H:%M:%S')}",
         )
 
-    def test_expanded_bad_actor_score(self):
-        # First, expanded_bad_actor_score should be none by default
-        score = 2
-        self.assertIsNone(self.contribution.expanded_bad_actor_score)
-        self.contribution.bad_actor_score = score
-        self.contribution.save()
-        self.contribution.refresh_from_db()
-        self.assertEqual(self.contribution.expanded_bad_actor_score, Contribution.BAD_ACTOR_SCORES[2][1])
-
     @patch("apps.contributions.models.Contribution.send_slack_notifications")
     def test_save_without_slack_arg_only_saves(self, mock_send_slack):
         self.contribution.amount = 10

@@ -27,19 +27,6 @@ class ContributorAdmin(RevEngineBaseAdmin, VersionAdmin):
     )
 
 
-class BadActorScoreFilter(admin.SimpleListFilter):
-    title = "bad_actor_score"
-    parameter_name = "bad_actor_score"
-
-    def lookups(self, request, model_admin):
-        return Contribution.BAD_ACTOR_SCORES
-
-    def queryset(self, request, queryset):
-        if self.value():
-            return queryset.filter(bad_actor_score=self.value())
-        return queryset
-
-
 @admin.register(Contribution)
 class ContributionAdmin(RevEngineBaseAdmin, VersionAdmin):
     fieldsets = (
@@ -85,7 +72,7 @@ class ContributionAdmin(RevEngineBaseAdmin, VersionAdmin):
         "donation_page",
         "interval",
         "status",
-        "expanded_bad_actor_score",
+        "bad_actor_score",
         "created",
         "modified",
     )
@@ -95,7 +82,7 @@ class ContributionAdmin(RevEngineBaseAdmin, VersionAdmin):
         "interval",
         "donation_page__name",
         "status",
-        BadActorScoreFilter,
+        "bad_actor_score",
         "modified",
         "created",
     )

@@ -125,6 +125,15 @@ class PaymentType(models.TextChoices):
     WECHAT = "wechat", "WeChat"
 
 
+class BadActorScores(models.IntegerChoices):
+    INFORMATION = 0, "0 - Information"
+    UNKNOWN = 1, "1 - Unknown"
+    GOOD = 2, "2 - Good"
+    SUSPECT = 3, "3 - Suspect"
+    BAD = 4, "4 - Bad"
+    SUPERBAD = 5, "5 - Very Bad"
+
+
 class Contribution(IndexedTimeStampedModel, RoleAssignmentResourceModelMixin):
     amount = models.IntegerField(help_text="Stored in cents")
     currency = models.CharField(max_length=3, default="usd")
@@ -148,7 +157,7 @@ class Contribution(IndexedTimeStampedModel, RoleAssignmentResourceModelMixin):
     contributor = models.ForeignKey("contributions.Contributor", on_delete=models.SET_NULL, null=True)
     donation_page = models.ForeignKey("pages.DonationPage", on_delete=models.PROTECT, null=True)
 
-    bad_actor_score = models.IntegerField(null=True)
+    bad_actor_score = models.IntegerField(null=True, choices=BadActorScores.choices)
     bad_actor_response = models.JSONField(null=True)
     flagged_date = models.DateTimeField(null=True)
     contribution_metadata = models.JSONField(null=True)
@@ -158,6 +167,12 @@ class Contribution(IndexedTimeStampedModel, RoleAssignmentResourceModelMixin):
     class Meta:
         get_latest_by = "modified"
         ordering = ["-created"]
+        constraints = [
+            models.CheckConstraint(
+                name="%(app_label)s_%(class)s_bad_actor_score_valid",
+                check=models.Q(bad_actor_score__in=BadActorScores.values),
+            )
+        ]
 
     def __str__(self):
         return f"{self.formatted_amount}, {self.created.strftime('%Y-%m-%d %H:%M:%S')}"
@@ -177,39 +192,6 @@ class Contribution(IndexedTimeStampedModel, RoleAssignmentResourceModelMixin):
         if self.revenue_program and self.revenue_program.payment_provider:
             return self.revenue_program.payment_provider.stripe_account_id
         return None
-
-    BAD_ACTOR_SCORES = (
-        (
-            0,
-            "0 - Information",
-        ),
-        (
-            1,
-            "1 - Unknown",
-        ),
-        (
-            2,
-            "2 - Good",
-        ),
-        (
-            3,
-            "3 - Suspect",
-        ),
-        (
-            4,
-            "4 - Bad",
-        ),
-        (
-            5,
-            "5 - Very Bad",
-        ),
-    )
-
-    @property
-    def expanded_bad_actor_score(self):
-        if not self.bad_actor_score:
-            return None
-        return self.BAD_ACTOR_SCORES[self.bad_actor_score][1]
 
     def get_payment_manager_instance(self):
         """

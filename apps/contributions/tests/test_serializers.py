@@ -314,7 +314,8 @@ def minimally_valid_data(donation_page):
     a payment. If a page has configured to include elements like phone number, reason for giving, etc.,
     then the request data will contain additional fields."""
     return {
-        "amount": 120.1,
+        "donor_selected_amount": 120.0,
+        "amount": 123.01,
         "email": "foo@bar.com",
         "page": donation_page.id,
         "interval": "one_time",
@@ -744,7 +745,7 @@ class TestBaseCreatePaymentSerializer:
             "schema_version": settings.METADATA_SCHEMA_VERSION,
             "contributor_id": contributor.id,
             "agreed_to_pay_fees": serializer.validated_data["agreed_to_pay_fees"],
-            "donor_selected_amount": serializer.validated_data["amount"],
+            "donor_selected_amount": str(serializer.validated_data["donor_selected_amount"]),
             "reason_for_giving": serializer.validated_data["reason_for_giving"],
             "honoree": serializer.validated_data.get("honoree"),
             "in_memory_of": serializer.validated_data.get("in_memory_of"),

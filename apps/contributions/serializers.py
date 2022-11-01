@@ -284,6 +284,7 @@ class BaseCreatePaymentSerializer(serializers.Serializer):
     captcha_token = serializers.CharField(max_length=2550, allow_blank=True, write_only=True)
     provider_client_secret_id = serializers.CharField(read_only=True)
     email_hash = serializers.CharField(read_only=True)
+    donor_selected_amount = serializers.FloatField(write_only=True)
 
     def validate_tribute_type(self, value):
         """Ensure there are no unexpected values for tribute_type"""
@@ -407,7 +408,7 @@ class BaseCreatePaymentSerializer(serializers.Serializer):
             "schema_version": settings.METADATA_SCHEMA_VERSION,
             "contributor_id": contributor.id,
             "agreed_to_pay_fees": validated_data["agreed_to_pay_fees"],
-            "donor_selected_amount": validated_data["amount"],
+            "donor_selected_amount": str(validated_data["donor_selected_amount"]),
             "reason_for_giving": validated_data["reason_for_giving"],
             "honoree": validated_data.get("honoree"),
             "in_memory_of": validated_data.get("in_memory_of"),

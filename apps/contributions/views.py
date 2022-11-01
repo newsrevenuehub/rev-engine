@@ -181,9 +181,7 @@ def process_stripe_webhook_view(request):
 
 
 @method_decorator(csrf_protect, name="dispatch")
-class PaymentViewset(
-    mixins.CreateModelMixin, mixins.UpdateModelMixin, mixins.DestroyModelMixin, viewsets.GenericViewSet
-):
+class PaymentViewset(mixins.CreateModelMixin, mixins.DestroyModelMixin, viewsets.GenericViewSet):
     permission_classes = []
     lookup_field = "provider_client_secret_id"
     queryset = Contribution.objects.all()
@@ -194,7 +192,7 @@ class PaymentViewset(
         elif interval in (ContributionInterval.MONTHLY.value, ContributionInterval.YEARLY.value):
             return serializers.CreateRecurringPaymentSerializer
         else:
-            raise ValidationError({"interval": "The provided value for interval is not permittted"})
+            raise ValidationError({"interval": "The provided value for interval is not permitted"})
 
     def get_serializer_context(self):
         # we need request in context for create in order to supply

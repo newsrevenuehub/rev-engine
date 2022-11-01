@@ -1067,6 +1067,15 @@ class TestPaymentViewset:
         assert contribution.provider_subscription_id == subscription_id
         assert contribution.amount == int(data["amount"]) * 100
 
+    def test_when_called_with_unexpected_interval(self, valid_data):
+        invalid_interval = "this-is-not-legit"
+        assert invalid_interval not in ContributionInterval.choices
+        data = valid_data | {"interval": invalid_interval}
+        url = reverse("payment-list")
+        response = self.client.post(url, data, format="json")
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert response.json() == {"interval": "The provided value for interval is not permitted"}
+
     def test_when_no_csrf(self):
         """Show that view is inaccessible if no CSRF token is included in request.
 

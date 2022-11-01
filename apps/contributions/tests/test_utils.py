@@ -1,8 +1,15 @@
 import hashlib
+from datetime import datetime, timezone
 
 from django.test import TestCase, override_settings
 
-from apps.contributions.utils import get_hub_stripe_api_key, get_sha256_hash
+import pytest
+
+from apps.contributions.utils import (
+    convert_epoch_to_datetime,
+    get_hub_stripe_api_key,
+    get_sha256_hash,
+)
 
 
 LIVE_KEY = "live-key-test"
@@ -28,3 +35,12 @@ def test_hash_is_salted():
     result = hashlib.sha256("test".encode())
     hash_str = result.hexdigest()
     assert hash_str[:15] != get_sha256_hash("test")  # because salt is added
+
+
+def test_convert_epoch_to_datetime():
+    with pytest.raises(ValueError):
+        convert_epoch_to_datetime("166729694a")
+
+    expected_datetime = datetime(year=2022, month=11, day=1, hour=10, minute=2, second=24, tzinfo=timezone.utc)
+    assert convert_epoch_to_datetime("1667296944") == expected_datetime
+    assert convert_epoch_to_datetime(1667296944) == expected_datetime

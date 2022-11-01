@@ -33,7 +33,7 @@ from apps.contributions.stripe_contributions_provider import (
     SubscriptionsCacheProvider,
 )
 from apps.contributions.tasks import task_pull_serialized_stripe_contributions_to_cache
-from apps.contributions.utils import convert_stripe_date_to_datetime, format_ambiguous_currency
+from apps.contributions.utils import convert_epoch_to_datetime, format_ambiguous_currency
 from apps.contributions.webhooks import StripeWebhookProcessor
 from apps.emails.tasks import send_templated_email
 from apps.organizations.models import PaymentProvider, RevenueProgram
@@ -436,7 +436,7 @@ def email_contribution(request):
         )
 
     email_attrs = {
-        "contribution_date": convert_stripe_date_to_datetime(payment_intent.created).strftime("%m-%d-%y"),
+        "contribution_date": convert_epoch_to_datetime(payment_intent.created).strftime("%m-%d-%y"),
         "contributor_email": email_id or payment_intent.receipt_email,
         "contribution_amount": f"{format_ambiguous_currency(payment_intent.amount_received)} {payment_intent.currency.upper()}",
         "contribution_interval": contribution.interval,

@@ -25,5 +25,7 @@ def get_sha256_hash(string):
     return hash_str[:15]
 
 
-def convert_stripe_date_to_datetime(stripe_date):
+def convert_epoch_to_datetime(stripe_date):
+    if isinstance(stripe_date, str) and not stripe_date.isnumeric():
+        raise ValueError("Given date is not an Epoch.")
     return datetime.fromtimestamp(int(stripe_date), tz=timezone.utc)

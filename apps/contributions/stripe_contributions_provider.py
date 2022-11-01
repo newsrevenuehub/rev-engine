@@ -12,7 +12,7 @@ from addict import Dict as AttrDict
 from rest_framework import exceptions
 
 from apps.contributions.models import ContributionInterval, ContributionStatus
-from apps.contributions.utils import convert_stripe_date_to_datetime
+from apps.contributions.utils import convert_epoch_to_datetime
 from revengine.settings.base import CONTRIBUTION_CACHE_TTL, DEFAULT_CACHE
 
 
@@ -127,7 +127,7 @@ class StripePaymentIntent:
 
     @property
     def created(self):
-        return convert_stripe_date_to_datetime(self.payment_intent.created)
+        return convert_epoch_to_datetime(self.payment_intent.created)
 
     @property
     def provider_customer_id(self):

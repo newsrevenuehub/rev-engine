@@ -34,7 +34,10 @@ from apps.contributions.tests.factories import (
     ContributorFactory,
     StripeSubscriptionFactory,
 )
-from apps.contributions.tests.test_serializers import mock_get_bad_actor
+from apps.contributions.tests.test_serializers import (
+    mock_get_bad_actor,
+    mock_stripe_call_with_error,
+)
 from apps.organizations.models import RevenueProgram
 from apps.organizations.tests.factories import (
     OrganizationFactory,
@@ -1152,6 +1155,18 @@ class TestPaymentViewset:
         url = reverse("payment-detail", kwargs={"provider_client_secret_id": contribution.provider_client_secret_id})
         response = self.client.delete(url)
         assert response.status_code == status.HTTP_409_CONFLICT
+
+    @pytest.mark.parametrize("interval", (ContributionInterval.ONE_TIME.value, ContributionInterval.MONTHLY.value))
+    def test_destroy_when_stripe_error(self, interval, monkeypatch):
+        monkeypatch.setattr("apps.contributions.views.stripe.PaymentIntent.cancel", mock_stripe_call_with_error)
+        monkeypatch.setattr("apps.contributions.views.stripe.Subscription.delete", mock_stripe_call_with_error)
+        contribution = ContributionFactory(
+            provider_client_secret_id=PI_CLIENT_SECRET, status=ContributionStatus.PROCESSING
+        )
+        url = reverse("payment-detail", kwargs={"provider_client_secret_id": contribution.provider_client_secret_id})
+        response = self.client.delete(url)
+        assert response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
+        assert response.json() == {"detail": "Something went wrong"}
 
 
 @pytest.mark.django_db

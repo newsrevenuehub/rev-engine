@@ -234,7 +234,7 @@ class PaymentViewset(mixins.CreateModelMixin, mixins.DestroyModelMixin, viewsets
                 "Something went wrong with Stripe while attempting to cancel payment with client secret %s",
                 contribution.provider_client_secret_id,
             )
-            return Response(status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            return Response({"detail": "Something went wrong"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 

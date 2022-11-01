@@ -206,6 +206,17 @@ class PaymentViewset(
     def destroy(self, request, *args, **kwargs):
         contribution = self.get_object()
         if contribution.status != ContributionStatus.PROCESSING:
+            logger.warning(
+                (
+                    "`PaymentViewset.destroy` was called on a contribution with status other than %s. "
+                    "contribution.id: %s, contribution.status: %s,  contributor.id: %s, donation_page.id: %s"
+                ),
+                ContributionStatus.PROCESSING.label,
+                contribution.id,
+                contribution.get_status_display(),
+                contribution.contributor.id,
+                contribution.donation_page.id,
+            )
             return Response(status=status.HTTP_409_CONFLICT)
         contribution.status = ContributionStatus.CANCELED
         contribution.save()

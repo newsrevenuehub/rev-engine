@@ -4,7 +4,6 @@ import logging
 from django.conf import settings
 
 from apps.contributions.models import Contribution, ContributionStatus
-from revengine.settings.base import STRIPE_LIVE_MODE
 
 
 logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
@@ -32,16 +31,18 @@ class StripeWebhookProcessor:
 
     def process(self):
         logger.info('Processing Stripe Event of type "%s"', self.event.type)
-        logger.debug("Event received in live mode: %s; stripe live mode on: %s", self.event.livemode, STRIPE_LIVE_MODE)
+        logger.debug(
+            "Event received in live mode: %s; stripe live mode on: %s", self.event.livemode, settings.STRIPE_LIVE_MODE
+        )
         object_type = self.obj_data["object"]
-        if STRIPE_LIVE_MODE and not self.event.livemode:
+        if settings.STRIPE_LIVE_MODE and not self.event.livemode:
             logger.info(
                 "test mode event %s for account %s received while in live mode; ignoring",
                 self.event.id,
                 self.event.account,
             )
             return
-        if not STRIPE_LIVE_MODE and self.event.livemode:
+        if not settings.STRIPE_LIVE_MODE and self.event.livemode:
             logger.info(
                 "live mode event %s for account %s received while in test mode; ignoring",
                 self.event.id,

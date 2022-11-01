@@ -17,7 +17,6 @@ repos:
       - id: detect-aws-credentials
         args: [--allow-missing-credentials]
       - id: detect-private-key
-        exclude: "fake-service-account.json"
       - id: end-of-file-fixer
         exclude: revengine/static/apple-developer-merchantid-domain-association
       #      - id: no-commit-to-branch

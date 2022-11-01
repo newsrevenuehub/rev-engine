@@ -80,13 +80,9 @@ MEDIA_LOCATION = os.getenv("MEDIA_LOCATION", "")
 DEFAULT_FILE_STORAGE = os.getenv("DEFAULT_FILE_STORAGE", "django.core.files.storage.FileSystemStorage")
 
 # Google Pub Sub
-GOOGLE_CLOUD_NEW_USER_NOTIFICATION_TOPIC = os.getenv(
-    "GOOGLE_CLOUD_NEW_USER_NOTIFICATION_TOPIC", "new-nre-customer-test"
-)
+ENABLE_PUBSUB = os.getenv("ENABLE_PUBSUB", False)
+NEW_USER_TOPIC = os.getenv("NEW_USER_TOPIC", None)
 GOOGLE_CLOUD_PROJECT = os.getenv("GOOGLE_CLOUD_PROJECT", "revenue-engine")
-GOOGLE_APPLICATION_CREDENTIALS = os.getenv(
-    "GOOGLE_APPLICATION_CREDENTIALS", "google_cloud_pub_sub/fake-service-account.json"
-)
 
 # Application definition
 INSTALLED_APPS = [
@@ -101,7 +97,6 @@ INSTALLED_APPS = [
     "apps.element_media",
     "apps.public",
     "apps.config",
-    "apps.google_pub_sub",
     "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",

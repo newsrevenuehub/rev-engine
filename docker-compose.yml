@@ -20,5 +20,3 @@ services:
       dockerfile: Dockerfile
     ports:
       - "8085:8085"
-    environment:
-      PUBSUB_PROJECT1: revenue-engine,new-nre-customer-test

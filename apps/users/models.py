@@ -1,10 +1,10 @@
+from django.conf import settings
 from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin
 from django.db import models
 from django.utils.translation import ugettext_lazy as _
 
 from apps.common.models import IndexedTimeStampedModel
 from apps.users.managers import UserManager
-from revengine.settings.base import ENABLE_PUBSUB, NEW_USER_TOPIC
 
 from .choices import Roles
 from .google_pub_sub import GoogleCloudPubSubPublisher, Message
@@ -56,8 +56,13 @@ class User(AbstractBaseUser, PermissionsMixin, IndexedTimeStampedModel):
         return self.email
 
     def save(self, *args, **kwargs):
-        if ENABLE_PUBSUB and self._state.adding and self.email and not self.email.endswith("@fundjournalism.org"):
-            self.google_cloud_pub_sub_publisher.publish(NEW_USER_TOPIC, Message(data=self.email))
+        if (
+            settings.ENABLE_PUBSUB
+            and self._state.adding
+            and self.email
+            and not self.email.endswith("@fundjournalism.org")
+        ):
+            self.google_cloud_pub_sub_publisher.publish(settings.NEW_USER_TOPIC, Message(data=self.email))
         super().save(*args, **kwargs)
 
 

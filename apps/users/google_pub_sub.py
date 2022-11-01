@@ -1,9 +1,9 @@
 import logging
 from dataclasses import dataclass
 
-from google.cloud import pubsub_v1
+from django.conf import settings
 
-from revengine.settings.base import GOOGLE_CLOUD_PROJECT
+from google.cloud import pubsub_v1
 
 
 logger = logging.getLogger(__name__)
@@ -20,7 +20,7 @@ class Message:
 class GoogleCloudPubSubPublisher:
     def __init__(self):
         self.client = pubsub_v1.PublisherClient()
-        self.project_id = GOOGLE_CLOUD_PROJECT
+        self.project_id = settings.GOOGLE_CLOUD_PROJECT
 
     def publish(self, topic, message: Message):
         logger.info("Received data to publish %s", message)

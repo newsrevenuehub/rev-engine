@@ -5,7 +5,7 @@ from google.cloud import pubsub_v1
 
 
 topic_name = "projects/{project_id}/topics/{topic}".format(
-    project_id=os.getenv("GOOGLE_CLOUD_PROJECT"), topic=os.getenv("GOOGLE_CLOUD_NEW_USER_NOTIFICATION_TOPIC")
+    project_id=os.getenv("GOOGLE_CLOUD_PROJECT"), topic=os.getenv("NEW_USER_TOPIC")
 )
 
 subscription_name = "projects/{project_id}/subscriptions/{sub}".format(

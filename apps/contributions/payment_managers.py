@@ -127,10 +127,6 @@ class StripePaymentManager(PaymentManager):
 
     def complete_recurring_payment(self, reject=False):
         if reject:
-            """
-            If flagged, creation of the Stripe Subscription is deferred until it is "accepted".
-            So to "reject", just don't create it. Set status of Contribution to "rejected"
-            """
             self.contribution.status = ContributionStatus.REJECTED
             self.contribution.save()
             try:

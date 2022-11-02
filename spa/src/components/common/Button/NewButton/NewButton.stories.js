@@ -20,3 +20,6 @@ export const Style = NewButton.bind({});
 Style.args = {
   type: BUTTON_TYPE.STYLE
 };
+
+export const Disabled = NewButton.bind({});
+Disabled.args = { ...Default.args, disabled: true };

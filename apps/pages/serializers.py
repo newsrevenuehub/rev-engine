@@ -1,5 +1,6 @@
 import itertools
 import logging
+from dataclasses import asdict
 
 from django.conf import settings
 from django.utils import timezone
@@ -10,7 +11,7 @@ from rest_framework.validators import UniqueTogetherValidator
 from sorl_thumbnail_serializer.fields import HyperlinkedSorlImageField
 
 from apps.common.validators import ValidateFkReferenceOwnership
-from apps.organizations.models import RevenueProgram
+from apps.organizations.models import Organization, RevenueProgram
 from apps.organizations.serializers import (
     BenefitLevelDetailSerializer,
     PaymentProviderSerializer,
@@ -83,6 +84,21 @@ class StyleListSerializer(StyleInlineSerializer):
         }
         return super().to_internal_value(data)
 
+    def validate_style_limit(self, data):
+        """Ensure that adding a style would not push parent org over its style limit"""
+        if self.context["request"].method != "POST":
+            return
+        if Style.objects.filter(
+            revenue_program__organization=(org := data["revenue_program"].organization)
+        ).count() + 1 > (sl := org.get_plan_data().style_limit):
+            raise serializers.ValidationError(
+                {"non_field_errors": [f"Your organization has reached its limit of {sl} style{'s' if sl > 1 else ''}"]}
+            )
+
+    def validate(self, data):
+        self.validate_style_limit(data)
+        return data
+
 
 class DonationPageFullDetailSerializer(serializers.ModelSerializer):
     name = serializers.CharField(max_length=255, required=False)  # Optional to allow autogeneration.
@@ -120,6 +136,7 @@ class DonationPageFullDetailSerializer(serializers.ModelSerializer):
     allow_offer_nyt_comp = serializers.SerializerMethodField(method_name="get_allow_offer_nyt_comp")
 
     benefit_levels = serializers.SerializerMethodField(method_name="get_benefit_levels")
+    plan = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
         model = DonationPage
@@ -129,6 +146,9 @@ class DonationPageFullDetailSerializer(serializers.ModelSerializer):
             ValidateFkReferenceOwnership(fk_attribute="revenue_program"),
             UniqueTogetherValidator(queryset=DonationPage.objects.all(), fields=["revenue_program", "slug"]),
         ]
+
+    def get_plan(self, obj):
+        return asdict(obj.revenue_program.organization.get_plan_data())
 
     def create(self, validated_data):
         """If given template pk, return template.make_page_from_template().
@@ -191,8 +211,23 @@ class DonationPageFullDetailSerializer(serializers.ModelSerializer):
             serializer = BenefitLevelDetailSerializer(benefit_levels, many=True)
             return serializer.data
 
+    def validate_thank_you_redirect(self, value):
+        if self.instance and self.instance.id:
+            org = self.instance.revenue_program.organization
+        else:
+            org = Organization.objects.filter(revenueprogram__id=self.initial_data["revenue_program"]).first()
+        if value and not org.get_plan_data().custom_thank_you_page_enabled:
+            raise serializers.ValidationError(
+                "This organization's plan does not enable assigning a custom thank you URL"
+            )
+        return value
+
     def validate_page_limit(self, data):
-        """Ensure that adding a page would not push parent org over its page limit"""
+        """Ensure that adding a page would not push parent org over its page limit
+
+        NB: page_limit is not a serializer field, so we have to explicitly call this method from
+        .validate() below.
+        """
         if self.context["request"].method != "POST":
             return
         if DonationPage.objects.filter(

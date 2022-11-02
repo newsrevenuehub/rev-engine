@@ -7,7 +7,7 @@ import { LIVE_PAGE_DETAIL } from 'ajax/endpoints';
 import useRequest from 'hooks/useRequest';
 
 // Constants
-import { DASHBOARD_SUBDOMAINS } from 'settings';
+import { DASHBOARD_SUBDOMAINS } from 'appSettings';
 
 // Routing
 import ProtectedRoute from 'components/authentication/ProtectedRoute';

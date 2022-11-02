@@ -6,13 +6,16 @@ export const Flex = styled.div`
   flex-direction: column;
   align-items: start;
   font-family: ${(props) => props.theme.systemFont};
+  pointer-events: ${({ disabled }) => (disabled ? 'none' : 'auto')};
+  color: ${(props) => (props.disabled ? '#AFAFAF' : 'inherit')};
 `;
 
 export const Button = styled.button`
   display: flex;
   justify-content: center;
   align-items: center;
-  background-color: ${(props) => props.theme.colors.muiLightBlue[800]};
+  background-color: ${(props) =>
+    props.disabled ? props.theme.colors.status.processing : props.theme.colors.muiLightBlue[800]};
   height: ${(props) => (props.type === 'page' ? '120px' : '70px')};
   width: 168px;
   font-size: ${(props) => props.theme.fontSizesUpdated.h1};

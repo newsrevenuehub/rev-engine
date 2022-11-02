@@ -6,7 +6,7 @@ import { BrowserTracing } from '@sentry/tracing';
 import { Route, useHistory } from 'react-router-dom';
 
 // Const
-import { ENVIRONMENT, SENTRY_DSN_FRONTEND, SENTRY_ENABLE_FRONTEND } from 'settings';
+import { ENVIRONMENT, SENTRY_DSN_FRONTEND, SENTRY_ENABLE_FRONTEND } from 'appSettings';
 
 /**
  * Typically, just loading sentry at load time is sufficient.

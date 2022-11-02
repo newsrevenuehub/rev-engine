@@ -1,5 +1,4 @@
 import { useState, useMemo, createContext, useContext, useCallback } from 'react';
-import CancelOutlinedIcon from '@material-ui/icons/CancelOutlined';
 import CreateOutlinedIcon from '@material-ui/icons/CreateOutlined';
 import * as S from './ContributorDashboard.styled';
 
@@ -12,7 +11,6 @@ import discover from 'assets/icons/discover_icon.svg';
 import { useAlert } from 'react-alert';
 
 // Context
-import { useConfirmationModalContext } from 'elements/modal/GlobalConfirmationModal';
 import { NO_VALUE } from 'constants/textConstants';
 
 // Analytics
@@ -31,6 +29,7 @@ import axios, { AuthenticationError } from 'ajax/axios';
 import { CONTRIBUTIONS, SUBSCRIPTIONS } from 'ajax/endpoints';
 
 // Children
+import CancelRecurringButton from './CancelRecurringButton';
 import ContributorTokenExpiredModal from 'components/contributor/contributorDashboard/ContributorTokenExpiredModal';
 import DonationsTable from 'components/donations/DonationsTable';
 import EditRecurringPaymentModal from 'components/contributor/contributorDashboard/EditRecurringPaymentModal';
@@ -43,8 +42,6 @@ const ContributorDashboardContext = createContext();
 
 function ContributorDashboard() {
   const alert = useAlert();
-  // Context
-  const getUserConfirmation = useConfirmationModalContext();
 
   // State
   const [loading, setLoading] = useState(false);
@@ -104,9 +101,9 @@ function ContributorDashboard() {
 
   const handleCancelContribution = useCallback(
     (contribution) => {
-      getUserConfirmation('Cancel this recurring contribution?', () => cancelContribution(contribution));
+      cancelContribution(contribution);
     },
-    [cancelContribution, getUserConfirmation]
+    [cancelContribution]
   );
 
   const getRowIsDisabled = (row) => {
@@ -157,12 +154,7 @@ function ContributorDashboard() {
         id: 'cancel',
         Header: 'Cancel',
         disableSortBy: true,
-        Cell: (props) => (
-          <CancelRecurringButton
-            contribution={props.row.original}
-            handleCancelContribution={handleCancelContribution}
-          />
-        )
+        Cell: (props) => <CancelRecurringButton contribution={props.row.original} onCancel={handleCancelContribution} />
       }
     ],
     [handleCancelContribution]
@@ -255,19 +247,6 @@ function getCardBrandIcon(brand) {
     default:
       return null;
   }
-}
-
-function CancelRecurringButton({ contribution, handleCancelContribution }) {
-  if (contribution?.interval === CONTRIBUTION_INTERVALS.ONE_TIME || contribution?.status === 'canceled') return null;
-  return (
-    <S.CancelButton
-      startIcon={<CancelOutlinedIcon />}
-      onClick={() => handleCancelContribution(contribution)}
-      data-testid="cancel-recurring-button"
-    >
-      Cancel
-    </S.CancelButton>
-  );
 }
 
 function FormatDateTime({ value }) {

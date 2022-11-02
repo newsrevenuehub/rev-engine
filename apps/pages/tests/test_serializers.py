@@ -1,3 +1,4 @@
+from dataclasses import asdict
 from unittest import mock
 
 from django.utils import timezone
@@ -8,14 +9,15 @@ from rest_framework.exceptions import ErrorDetail
 from rest_framework.test import APIRequestFactory, APITestCase
 
 from apps.api.tests import RevEngineApiAbstractTestCase
-from apps.organizations.models import BenefitLevelBenefit, Plans
+from apps.organizations.models import BenefitLevelBenefit, FreePlan, Plans
 from apps.organizations.serializers import PaymentProviderSerializer
 from apps.organizations.tests.factories import (
     BenefitFactory,
     BenefitLevelFactory,
+    OrganizationFactory,
     RevenueProgramFactory,
 )
-from apps.pages.models import DonationPage
+from apps.pages.models import DonationPage, Style
 from apps.pages.serializers import (
     DonationPageFullDetailSerializer,
     StyleListSerializer,
@@ -23,6 +25,8 @@ from apps.pages.serializers import (
 )
 from apps.pages.tests.factories import DonationPageFactory, StyleFactory, TemplateFactory
 from apps.pages.validators import required_style_keys
+from apps.users.choices import Roles
+from apps.users.tests.factories import create_test_user
 
 
 class DonationPageFullDetailSerializerTest(RevEngineApiAbstractTestCase):
@@ -51,6 +55,44 @@ class DonationPageFullDetailSerializerTest(RevEngineApiAbstractTestCase):
         serializer.context["request"] = request
         assert serializer.is_valid(raise_exception=True), serializer.errors
         return serializer.save()
+
+    def test_has_expected_fields(self):
+        serializer = self.serializer(instance=self.page)
+        expected_first_level_keys = {
+            "allow_offer_nyt_comp",
+            "benefit_levels",
+            "created",
+            "currency",
+            "elements",
+            "graphic_thumbnail",
+            "graphic",
+            "header_bg_image_thumbnail",
+            "header_bg_image",
+            "header_link",
+            "header_logo_thumbnail",
+            "header_logo",
+            "heading",
+            "id",
+            "modified",
+            "name",
+            "page_screenshot",
+            "payment_provider",
+            "plan",
+            "post_thank_you_redirect",
+            "published_date",
+            "revenue_program_country",
+            "revenue_program_is_nonprofit",
+            "revenue_program",
+            "sidebar_elements",
+            "slug",
+            "stripe_account_id",
+            "styles",
+            "template_pk",
+            "thank_you_redirect",
+        }
+        assert set(serializer.data.keys()) == expected_first_level_keys
+        plan_keys = set(asdict(FreePlan).keys())
+        assert plan_keys == serializer.data["plan"].keys()
 
     def test_create(self):
         rp = self.page.revenue_program
@@ -262,6 +304,42 @@ class DonationPageFullDetailSerializerTest(RevEngineApiAbstractTestCase):
         assert serializer.is_valid() is False
         assert str(serializer.errors["non_field_errors"][0]) == ("Your organization has reached its limit of 1 page")
 
+    def test_cannot_set_thank_you_redirect_when_plan_not_enabled(self):
+        self.page.revenue_program.organization.plan = Plans.FREE
+        self.page.revenue_program.organization.save()
+        request = self.request_factory.post("/")
+        request.user = self.org_user
+        serializer = self.serializer(
+            data={
+                "slug": "my-new-page",
+                "revenue_program": self.page.revenue_program.pk,
+                "thank_you_redirect": "https://www.somewhere.com",
+            }
+        )
+        serializer.context["request"] = request
+        assert serializer.is_valid() is False
+        assert str(serializer.errors["thank_you_redirect"][0]) == (
+            "This organization's plan does not enable assigning a custom thank you URL"
+        )
+
+    def test_can_set_thank_you_redirect_when_plan_enabled(self):
+        self.page.revenue_program.organization.plan = Plans.PLUS
+        self.page.revenue_program.organization.save()
+        request = self.request_factory.post("/")
+        request.user = self.org_user
+        redirect_url = "https://www.somewhere.com"
+        serializer = self.serializer(
+            data={
+                "slug": "my-new-page",
+                "revenue_program": self.page.revenue_program.pk,
+                "thank_you_redirect": redirect_url,
+            }
+        )
+        serializer.context["request"] = request
+        assert serializer.is_valid() is True
+        serializer.save()
+        assert serializer.data["thank_you_redirect"] == redirect_url
+
 
 class TemplateDetailSerializerTest(RevEngineApiAbstractTestCase):
     def setUp(self):
@@ -337,7 +415,8 @@ class TemplateDetailSerializerTest(RevEngineApiAbstractTestCase):
 
 class StyleListSerializerTest(APITestCase):
     def setUp(self):
-        self.rev_program = RevenueProgramFactory()
+        self.org = OrganizationFactory(plan=Plans.PLUS)
+        self.rev_program = RevenueProgramFactory(organization=self.org)
         self.style_1 = StyleFactory(revenue_program=self.rev_program)
         self.style_2 = StyleFactory(revenue_program=self.rev_program)
         self.donation_page_live = DonationPageFactory(
@@ -363,3 +442,25 @@ class StyleListSerializerTest(APITestCase):
         self.assertTrue(live_style_serializer.data["used_live"])
         self.assertIn("used_live", nonlive_style_serializer.data)
         self.assertFalse(nonlive_style_serializer.data["used_live"])
+
+    def test_plan_style_limits_are_respected(self):
+        self.org.plan = Plans.FREE
+        self.org.save()
+        assert self.org.get_plan_data().style_limit == 1
+        assert Style.objects.filter(revenue_program=self.rev_program).count() >= 1
+        serializer = self.serializer(
+            data={
+                "name": "my-new-page",
+                "revenue_program": self.rev_program.pk,
+                "radii": [],
+                "font": {},
+                "fontSizes": [],
+            }
+        )
+        request_factory = APIRequestFactory()
+        request = request_factory.post("/")
+        org_user = create_test_user(role_assignment_data={"role_type": Roles.ORG_ADMIN, "organization": self.org})
+        request.user = org_user
+        serializer.context["request"] = request
+        assert serializer.is_valid() is False
+        assert str(serializer.errors["non_field_errors"][0]) == ("Your organization has reached its limit of 1 style")

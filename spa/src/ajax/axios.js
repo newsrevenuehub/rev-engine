@@ -1,7 +1,6 @@
 import axios from 'axios';
-import { LS_CSRF_TOKEN, CSRF_HEADER } from 'settings';
+import { LS_CSRF_TOKEN, CSRF_HEADER, REVENGINE_API_VERSION } from 'appSettings';
 import { TOKEN } from './endpoints';
-import { REVENGINE_API_VERSION } from 'settings';
 
 export const apiBaseUrl = `/api/${REVENGINE_API_VERSION}/`;
 

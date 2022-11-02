@@ -37,7 +37,7 @@ function ForgotPasswordForm({ onForgotPasswordSubmit, loading }) {
       </S.InputOuter>
       {errors.email ? <S.Message role="error">{errors.email.message}</S.Message> : <S.MessageSpacer />}
 
-      <S.Submit type="submit" disabled={disabled} name="Send Reset Link">
+      <S.Submit type="submit" disabled={disabled} name="Send Reset Link" size="extraLarge">
         Send Reset Link
       </S.Submit>
     </form>

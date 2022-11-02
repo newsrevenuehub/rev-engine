@@ -123,5 +123,9 @@ declare module 'styled-components' {
       lg: string;
       xl: string;
     };
+    zIndex: {
+      header: number;
+      sidebar: number;
+    };
   }
 }

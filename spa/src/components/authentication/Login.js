@@ -13,7 +13,7 @@ import { CONTENT_SLUG } from 'routes';
 import fetchReducer, { initialState, FETCH_START, FETCH_SUCCESS, FETCH_FAILURE } from 'state/fetch-reducer';
 
 import { handleLoginSuccess } from 'components/authentication/util';
-import { PASSWORD_RESET_URL } from 'settings';
+import { PASSWORD_RESET_URL } from 'appSettings';
 
 // Elements
 import Input from 'elements/inputs/Input';

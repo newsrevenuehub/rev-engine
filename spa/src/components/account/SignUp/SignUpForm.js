@@ -127,7 +127,7 @@ function SignUpForm({ onSubmitSignUp, loading, errorMessage }) {
         <S.Message info="true">Password must be 8 characters long and alphanumerical.</S.Message>
       )}
       <AcceptTerms checked={checked} handleTOSChange={handleTOSChange} />
-      <S.Submit type="submit" disabled={disabled} name="Create Account">
+      <S.Submit type="submit" disabled={disabled} name="Create Account" size="extraLarge">
         Create Account
       </S.Submit>
     </form>

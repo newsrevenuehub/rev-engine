@@ -1,4 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { useAlert } from 'react-alert';
 import orderBy from 'lodash.orderby';
 
 // Children
@@ -7,7 +9,13 @@ import GenericErrorBoundary from 'components/errors/GenericErrorBoundary';
 import Hero from 'components/common/Hero';
 import NewButton from 'components/common/Button/NewButton';
 import { BUTTON_TYPE } from 'constants/buttonConstants';
+import { GENERIC_ERROR } from 'constants/textConstants';
 import EditButton from 'components/common/Button/EditButton';
+import axios from 'ajax/axios';
+import { LIST_STYLES } from 'ajax/endpoints';
+import GlobalLoading from 'elements/GlobalLoading';
+import useUser from 'hooks/useUser';
+import { USER_ROLE_HUB_ADMIN_TYPE, USER_SUPERUSER_TYPE } from 'constants/authConstants';
 
 export const filterStyles = (stylesRaw, qry) => {
   return qry
@@ -25,13 +33,21 @@ export const filterStyles = (stylesRaw, qry) => {
     : orderBy(stylesRaw, 'name');
 };
 
-function Styles({ setShowEditStylesModal, setStyleToEdit, fetchStyles, styles }) {
+async function fetchStyles() {
+  const { data } = await axios.get(LIST_STYLES);
+
+  return data;
+}
+
+function Styles({ setShowEditStylesModal, setStyleToEdit }) {
+  const { user, isLoading: userLoading } = useUser();
+  const alert = useAlert();
   const [styleSearchQuery, setStyleSearchQuery] = useState([]);
 
-  // Fetch styles
-  useEffect(() => {
-    fetchStyles();
-  }, [fetchStyles]);
+  const { data: styles, isLoading: stylesLoading } = useQuery(['styles'], fetchStyles, {
+    initialData: [],
+    onError: () => alert.error(GENERIC_ERROR)
+  });
 
   const handleStyleSelect = (style) => {
     setStyleToEdit(style);
@@ -40,8 +56,19 @@ function Styles({ setShowEditStylesModal, setStyleToEdit, fetchStyles, styles })
 
   const stylesFiltered = filterStyles(styles, styleSearchQuery);
 
+  const addStyleButtonShouldBeDisabled = () => {
+    if ([USER_ROLE_HUB_ADMIN_TYPE, USER_SUPERUSER_TYPE].includes(user?.role_type?.[0])) {
+      return false;
+    }
+    const stylesLimit = user?.organizations?.[0]?.plan?.style_limit ?? 0;
+    return styles.length + 1 > stylesLimit;
+  };
+
+  const isLoading = userLoading || stylesLoading;
+
   return (
     <GenericErrorBoundary>
+      {isLoading && <GlobalLoading />}
       <Hero
         title="Customize"
         subtitle="Create custom styles and branding elements to help streamline the creation of new contribution pages. Create a new style by selecting the ‘New Style’ button below."
@@ -49,7 +76,13 @@ function Styles({ setShowEditStylesModal, setStyleToEdit, fetchStyles, styles })
         onChange={setStyleSearchQuery}
       />
       <Content data-testid="styles-list">
-        <NewButton type={BUTTON_TYPE.STYLE} onClick={() => setShowEditStylesModal(true)} />
+        <NewButton
+          disabled={addStyleButtonShouldBeDisabled()}
+          type={BUTTON_TYPE.STYLE}
+          onClick={() => setShowEditStylesModal(true)}
+          data-testid="new-style-button"
+        />
+        {/* TODO: [DEV-2559] Make styles be pre-selected and disabled */}
         {!!styles.length &&
           stylesFiltered.map((style) => (
             <EditButton

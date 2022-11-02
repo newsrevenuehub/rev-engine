@@ -142,6 +142,11 @@ export const revEngineTheme: DefaultTheme = {
     md: '890px',
     lg: '1000px',
     xl: '1300px'
+  },
+
+  zIndex: {
+    header: 10,
+    sidebar: 5
   }
 };
 

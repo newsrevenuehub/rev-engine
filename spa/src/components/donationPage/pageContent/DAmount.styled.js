@@ -9,7 +9,8 @@ export const DAmountStyled = styled.ul`
   margin: 1.5rem 0;
 
   @media (${(props) => props.theme.breakpoints.phoneOnly}) {
-    grid-template-columns: 1fr;
+    display: flex;
+    flex-direction: column;
   }
 `;
 

@@ -49,7 +49,13 @@ const GrabLink = ({ page, className }) => {
         }}
       >
         <Text>Copy the links to update your website, emails, and other online platforms.</Text>
-        <CopyInputButton title="Contribution Page Link" link={pageLink(page)} copied={copied} setCopied={setCopied} />
+        <CopyInputButton
+          title="Contribution Page Link"
+          link={pageLink(page)}
+          copied={copied}
+          setCopied={setCopied}
+          data-testid="copy-contribution-page-link"
+        />
         <CopyInputButton
           title="Contributor Portal Link"
           link={portalLink(page)}

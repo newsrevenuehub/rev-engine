@@ -1,4 +1,5 @@
 import datetime
+from datetime import timedelta
 from unittest.mock import Mock
 
 from django.conf import settings
@@ -64,7 +65,7 @@ class ContributionSerializer(TestCase):
         # Should return a datetime equal to flagged_date + "FLAGGED_PAYMENT_AUTO_ACCEPT_DELTA" setting
         self.contribution.flagged_date = timezone.now()
         self.contribution.save()
-        target_date = self.contribution.flagged_date + settings.FLAGGED_PAYMENT_AUTO_ACCEPT_DELTA
+        target_date = self.contribution.flagged_date + timedelta(settings.FLAGGED_PAYMENT_AUTO_ACCEPT_DELTA)
         new_data = self.serializer(self.contribution).data
         self.assertEqual(new_data["auto_accepted_on"], target_date)
 
@@ -337,7 +338,7 @@ class MockBadActorResponseObjectNotBad:
     See https://docs.pytest.org/en/7.1.x/how-to/monkeypatch.html for more info on how/why
     """
 
-    mock_bad_actor_response_json = {"overall_judgment": settings.BAD_ACTOR_FAILURE_THRESHOLD - 1}
+    mock_bad_actor_response_json = {"overall_judgment": settings.BAD_ACTOR_FLAG_THRESHOLD - 1}
 
     @classmethod
     def json(cls):
@@ -350,7 +351,20 @@ class MockBadActorResponseObjectBad:
     See https://docs.pytest.org/en/7.1.x/how-to/monkeypatch.html for more info on how/why
     """
 
-    mock_bad_actor_response_json = {"overall_judgment": settings.BAD_ACTOR_FAILURE_THRESHOLD}
+    mock_bad_actor_response_json = {"overall_judgment": settings.BAD_ACTOR_FLAG_THRESHOLD}
+
+    @classmethod
+    def json(cls):
+        return cls.mock_bad_actor_response_json
+
+
+class MockBadActorResponseObjectSuperBad:
+    """Used in tests below to simulate response returned by make_bad_actor_request
+
+    See https://docs.pytest.org/en/7.1.x/how-to/monkeypatch.html for more info on how/why
+    """
+
+    mock_bad_actor_response_json = {"overall_judgment": settings.BAD_ACTOR_REJECT_THRESHOLD}
 
     @classmethod
     def json(cls):
@@ -722,16 +736,16 @@ class TestBaseCreatePaymentSerializer:
         assert bad_actor_data is None
 
     @pytest.mark.parametrize(
-        "score,should_fail",
+        "score,should_flag",
         [
-            (settings.BAD_ACTOR_FAILURE_THRESHOLD - 1, False),
-            (settings.BAD_ACTOR_FAILURE_THRESHOLD, True),
-            (settings.BAD_ACTOR_FAILURE_THRESHOLD + 1, True),
+            (settings.BAD_ACTOR_REJECT_THRESHOLD, False),
+            (settings.BAD_ACTOR_FLAG_THRESHOLD, True),
+            (settings.BAD_ACTOR_FLAG_THRESHOLD - 1, False),
         ],
     )
-    def test_should_flag(self, score, should_fail, minimally_valid_data):
+    def test_should_flag(self, score, should_flag, minimally_valid_data):
         serializer = self.serializer_class(data=minimally_valid_data)
-        assert serializer.should_flag(score) is should_fail
+        assert serializer.should_flag(score) is should_flag
 
     def test_get_stripe_payment_metadata_happy_path(self, minimally_valid_data):
         contributor = ContributorFactory()
@@ -790,7 +804,7 @@ class TestBaseCreatePaymentSerializer:
 
     def test_create_contribution_happy_path(self, minimally_valid_data):
         contribution_count = Contribution.objects.count()
-        bad_actor_data = {"overall_judgment": settings.BAD_ACTOR_FAILURE_THRESHOLD - 1}
+        bad_actor_data = {"overall_judgment": settings.BAD_ACTOR_FLAG_THRESHOLD - 1}
         contributor = ContributorFactory()
         serializer = self.serializer_class(data=minimally_valid_data)
         assert serializer.is_valid() is True
@@ -813,7 +827,7 @@ class TestBaseCreatePaymentSerializer:
 
     def test_create_contribution_when_should_flag(self, minimally_valid_data):
         contribution_count = Contribution.objects.count()
-        bad_actor_data = {"overall_judgment": settings.BAD_ACTOR_FAILURE_THRESHOLD}
+        bad_actor_data = {"overall_judgment": settings.BAD_ACTOR_FLAG_THRESHOLD}
         contributor = ContributorFactory()
         serializer = self.serializer_class(data=minimally_valid_data)
         assert serializer.is_valid() is True
@@ -833,6 +847,29 @@ class TestBaseCreatePaymentSerializer:
         for key, val in expectations.items():
             assert getattr(contribution, key) == val
         assert contribution.flagged_date is not None
+
+    def test_create_contribution_when_should_reject(self, minimally_valid_data):
+        contribution_count = Contribution.objects.count()
+        bad_actor_data = {"overall_judgment": settings.BAD_ACTOR_REJECT_THRESHOLD}
+        contributor = ContributorFactory()
+        serializer = self.serializer_class(data=minimally_valid_data)
+        assert serializer.is_valid() is True
+        contribution = serializer.create_contribution(contributor, serializer.validated_data, bad_actor_data)
+        assert Contribution.objects.count() == contribution_count + 1
+        expectations = {
+            "amount": serializer.validated_data["amount"],
+            "interval": serializer.validated_data["interval"],
+            "currency": serializer.validated_data["page"].revenue_program.payment_provider.currency,
+            "status": ContributionStatus.REJECTED,
+            "donation_page": serializer.validated_data["page"],
+            "contributor": contributor,
+            "payment_provider_used": "Stripe",
+            "bad_actor_score": bad_actor_data["overall_judgment"],
+            "bad_actor_response": bad_actor_data,
+            "flagged_date": None,
+        }
+        for key, val in expectations.items():
+            assert getattr(contribution, key) == val
 
     def test_create_contribution_when_no_bad_actor_response(self, minimally_valid_data):
         contribution_count = Contribution.objects.count()
@@ -986,6 +1023,51 @@ class TestCreateOneTimePaymentSerializer:
     def test_when_contribution_is_flagged(self, minimally_valid_data, monkeypatch):
         """Demonstrate `.create` when the contribution gets flagged
 
+        A contributor, contribution, and Stripe entities should still be created as in happy path, but the `capture_method` on
+        the PaymentIntent should be "manual"
+        """
+
+        contribution_count = Contribution.objects.count()
+        contributor_count = Contributor.objects.count()
+        monkeypatch.setattr(
+            "apps.contributions.serializers.make_bad_actor_request",
+            lambda x: mock_get_bad_actor(response=MockBadActorResponseObjectBad),
+        )
+        mock_create_stripe_customer = Mock()
+        fake_customer_id = "fake-customer-id"
+        mock_create_stripe_customer.return_value = {"id": fake_customer_id}
+        monkeypatch.setattr("apps.contributions.models.Contributor.create_stripe_customer", mock_create_stripe_customer)
+        mock_create_stripe_one_time_payment_intent = Mock()
+        client_secret = "shhhhhhh!"
+        pi_id = "some payment intent id"
+        mock_create_stripe_one_time_payment_intent.return_value = {
+            "id": pi_id,
+            "client_secret": client_secret,
+            "customer": fake_customer_id,
+        }
+        monkeypatch.setattr(
+            "apps.contributions.models.stripe.PaymentIntent.create", mock_create_stripe_one_time_payment_intent
+        )
+        request = APIRequestFactory(HTTP_REFERER="https://www.google.com").post("", {}, format="json")
+        serializer = self.serializer_class(data=minimally_valid_data, context={"request": request})
+        assert serializer.is_valid()
+        result = serializer.create(serializer.validated_data)
+        assert Contribution.objects.count() == contribution_count + 1
+        assert Contributor.objects.count() == contributor_count + 1
+        assert set(result.keys()) == set(["provider_client_secret_id", "email_hash"])
+        assert result["provider_client_secret_id"] == client_secret
+        assert Contributor.objects.filter(email=minimally_valid_data["email"]).exists()
+        contribution = Contribution.objects.get(provider_client_secret_id=client_secret)
+        assert result["email_hash"] == get_sha256_hash(contribution.contributor.email)
+        assert contribution.status == ContributionStatus.FLAGGED
+        assert contribution.flagged_date is not None
+        assert contribution.bad_actor_response == MockBadActorResponseObjectBad.mock_bad_actor_response_json
+        assert contribution.provider_client_secret_id == client_secret
+        assert contribution.provider_payment_id == pi_id
+
+    def test_when_contribution_is_rejected(self, minimally_valid_data, monkeypatch):
+        """Demonstrate `.create` when the contribution gets flagged
+
         A contributor and contribution should still be created as in happy path, but a PermissionDenied error should occur, and
         a Stripe payment intent should not be created.
         """
@@ -994,7 +1076,7 @@ class TestCreateOneTimePaymentSerializer:
         contributor_count = Contributor.objects.count()
         monkeypatch.setattr(
             "apps.contributions.serializers.make_bad_actor_request",
-            lambda x: mock_get_bad_actor(response=MockBadActorResponseObjectBad),
+            lambda x: mock_get_bad_actor(response=MockBadActorResponseObjectSuperBad),
         )
 
         request = APIRequestFactory(HTTP_REFERER="https://www.google.com").post("", {}, format="json")
@@ -1011,8 +1093,8 @@ class TestCreateOneTimePaymentSerializer:
         contributor = Contributor.objects.get(email=minimally_valid_data["email"])
         assert contributor.contribution_set.count() == 1
         contribution = contributor.contribution_set.first()
-        assert contribution.status == ContributionStatus.FLAGGED
-        assert contribution.flagged_date is not None
+        assert contribution.status == ContributionStatus.REJECTED
+        assert contribution.flagged_date is None
         # we take the next two assertions as evidence that Stripe PaymentIntent not created
         assert contribution.provider_client_secret_id is None
         assert contribution.provider_payment_id is None
@@ -1149,6 +1231,49 @@ class TestCreateRecurringPaymentSerializer:
     def test_when_contribution_is_flagged(self, minimally_valid_data, monkeypatch):
         """Demonstrate `.create` when the contribution gets flagged.
 
+        All entities created in happy path should be created here, but the status on contribution should
+        be "flagged" and the subscription should have a trial.
+        """
+        data = minimally_valid_data | {"interval": "month"}
+        contribution_count = Contribution.objects.count()
+        contributor_count = Contributor.objects.count()
+        monkeypatch.setattr(
+            "apps.contributions.serializers.make_bad_actor_request",
+            lambda x: mock_get_bad_actor(response=MockBadActorResponseObjectBad),
+        )
+        mock_create_stripe_customer = Mock()
+        fake_customer_id = "fake-customer-id"
+        mock_create_stripe_customer.return_value = {"id": fake_customer_id}
+        monkeypatch.setattr("apps.contributions.models.Contributor.create_stripe_customer", mock_create_stripe_customer)
+        mock_create_stripe_subscription = Mock()
+        client_secret = "shhhhhhh!"
+        subscription_id = "some-sub-id"
+        mock_create_stripe_subscription.return_value = {
+            "id": subscription_id,
+            "customer": fake_customer_id,
+            "pending_setup_intent": {"client_secret": client_secret},
+        }
+        monkeypatch.setattr("apps.contributions.models.stripe.Subscription.create", mock_create_stripe_subscription)
+        request = APIRequestFactory(HTTP_REFERER="https://www.google.com").post("", {}, format="json")
+        serializer = self.serializer_class(data=data, context={"request": request})
+
+        assert serializer.is_valid()
+        serializer.create(serializer.validated_data)
+        assert Contribution.objects.count() == contribution_count + 1
+        assert Contributor.objects.count() == contributor_count + 1
+        assert Contributor.objects.filter(email=minimally_valid_data["email"]).exists()
+        contributor = Contributor.objects.get(email=minimally_valid_data["email"])
+        assert contributor.contribution_set.count() == 1
+        contribution = contributor.contribution_set.first()
+        assert contribution.status == ContributionStatus.FLAGGED
+        assert contribution.flagged_date is not None
+        assert contribution.provider_subscription_id == subscription_id
+        assert contribution.provider_client_secret_id == client_secret
+        assert contribution.payment_provider_data == mock_create_stripe_subscription.return_value
+
+    def test_when_contribution_is_rejected(self, minimally_valid_data, monkeypatch):
+        """Demonstrate `.create` when the contribution gets flagged.
+
         A contributor and contribution should still be created as in happy path, but a PermissionDenied error should occur, and
         a Stripe subscription should not be created.
         """
@@ -1157,7 +1282,7 @@ class TestCreateRecurringPaymentSerializer:
         contributor_count = Contributor.objects.count()
         monkeypatch.setattr(
             "apps.contributions.serializers.make_bad_actor_request",
-            lambda x: mock_get_bad_actor(response=MockBadActorResponseObjectBad),
+            lambda x: mock_get_bad_actor(response=MockBadActorResponseObjectSuperBad),
         )
 
         request = APIRequestFactory(HTTP_REFERER="https://www.google.com").post("", {}, format="json")
@@ -1174,8 +1299,8 @@ class TestCreateRecurringPaymentSerializer:
         contributor = Contributor.objects.get(email=minimally_valid_data["email"])
         assert contributor.contribution_set.count() == 1
         contribution = contributor.contribution_set.first()
-        assert contribution.status == ContributionStatus.FLAGGED
-        assert contribution.flagged_date is not None
+        assert contribution.status == ContributionStatus.REJECTED
+        assert contribution.flagged_date is None
         assert contribution.provider_subscription_id is None
         assert contribution.provider_client_secret_id is None
         assert contribution.payment_provider_data is None

@@ -24,7 +24,9 @@ class AutoAcceptFlaggedContributionsTaskTest(TestCase):
 
     def _create_contributions(self, flagged=True):
         status = ContributionStatus.FLAGGED if flagged else ContributionStatus.PAID
-        expiring_flagged_data = timezone.now() - settings.FLAGGED_PAYMENT_AUTO_ACCEPT_DELTA - timedelta(days=1)
+        expiring_flagged_data = (
+            timezone.now() - timedelta(settings.FLAGGED_PAYMENT_AUTO_ACCEPT_DELTA) - timedelta(days=1)
+        )
         non_expiring_flagged_date = timezone.now() - timedelta(days=1)
         ContributionFactory.create_batch(self.expired_contrib_count, status=status, flagged_date=expiring_flagged_data)
         ContributionFactory.create_batch(

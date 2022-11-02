@@ -1,5 +1,6 @@
 import uuid
 
+from django.conf import settings
 from django.db import models
 from django.utils import timezone
 
@@ -268,6 +269,7 @@ class Contribution(IndexedTimeStampedModel, RoleAssignmentResourceModelMixin):
             receipt_email=self.contributor.email,
             statement_descriptor_suffix=self.donation_page.revenue_program.stripe_statement_descriptor_suffix,
             stripe_account=self.donation_page.revenue_program.stripe_account_id,
+            capture_method="manual" if self.status == ContributionStatus.FLAGGED else "automatic",
         )
         self.provider_payment_id = intent["id"]
         self.provider_client_secret_id = intent["client_secret"]
@@ -288,23 +290,30 @@ class Contribution(IndexedTimeStampedModel, RoleAssignmentResourceModelMixin):
                 "interval": self.interval,
             },
         }
-        subscription = stripe.Subscription.create(
-            customer=stripe_customer_id,
-            items=[
+        kwargs = {
+            "customer": stripe_customer_id,
+            "items": [
                 {
                     "price_data": price_data,
                 }
             ],
-            stripe_account=self.donation_page.revenue_program.payment_provider.stripe_account_id,
-            metadata=metadata,
-            payment_behavior="default_incomplete",
-            payment_settings={"save_default_payment_method": "on_subscription"},
-            expand=["latest_invoice.payment_intent"],
-        )
+            "stripe_account": self.donation_page.revenue_program.payment_provider.stripe_account_id,
+            "metadata": metadata,
+            "payment_behavior": "default_incomplete",
+            "payment_settings": {"save_default_payment_method": "on_subscription"},
+            "expand": ["latest_invoice.payment_intent", "pending_setup_intent"],
+        }
+        if self.status == ContributionStatus.FLAGGED:
+            kwargs["trial_period_days"] = settings.FLAGGED_PAYMENT_AUTO_ACCEPT_DELTA
+        subscription = stripe.Subscription.create(**kwargs)
         self.payment_provider_data = subscription
         self.provider_subscription_id = subscription["id"]
         self.provider_customer_id = subscription["customer"]
-        self.provider_client_secret_id = subscription["latest_invoice"]["payment_intent"]["client_secret"]
+        self.provider_client_secret_id = (
+            subscription["pending_setup_intent"]["client_secret"]
+            if self.status == ContributionStatus.FLAGGED
+            else subscription["latest_invoice"]["payment_intent"]["client_secret"]
+        )
         self.save()
         return subscription
 

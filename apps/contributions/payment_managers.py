@@ -133,6 +133,21 @@ class StripePaymentManager(PaymentManager):
             """
             self.contribution.status = ContributionStatus.REJECTED
             self.contribution.save()
+            try:
+                stripe.Subscription.delete(
+                    self.contribution.provider_subscription_id,
+                    stripe_account=self.contribution.donation_page.revenue_program.payment_provider.stripe_account_id,
+                )
+            except stripe.StripeError:
+                logger.exception(
+                    (
+                        "`StripePaymentManager.complete_recurring_payment` encountered an error trying to delete a "
+                        "subscription with ID %s for contribution with ID %s"
+                    ),
+                    self.contribution.provider_subscription_id,
+                    self.contribution.id,
+                )
+                # what else do we need to do here? or should be be catching in calling context?
             return
 
         revenue_program = self.contribution.revenue_program
@@ -140,26 +155,15 @@ class StripePaymentManager(PaymentManager):
         self.contribution.status = ContributionStatus.PROCESSING
         self.contribution.save()
         try:
-            price_data = {
-                "unit_amount": self.contribution.amount,
-                "currency": self.contribution.currency,
-                "product": revenue_program.payment_provider.stripe_product_id,
-                "recurring": {
-                    "interval": self.contribution.interval,
-                },
-            }
-            subscription = stripe.Subscription.create(
-                customer=self.contribution.provider_customer_id,
-                default_payment_method=self.contribution.provider_payment_method_id,
-                items=[{"price_data": price_data}],
+            subscription = stripe.Subscription.modify(
+                self.contribution.provider_subscription_id,
+                trial_end="now",
                 stripe_account=revenue_program.payment_provider.stripe_account_id,
-                metadata=self.contribution.contribution_metadata,
             )
         except stripe.error.StripeError as stripe_error:
             self._handle_stripe_error(stripe_error, previous_status=previous_status)
 
         self.contribution.payment_provider_data = subscription
-        self.contribution.provider_subscription_id = subscription.id
         self.contribution.save()
         return subscription
 

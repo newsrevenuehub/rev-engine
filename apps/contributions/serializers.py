@@ -1,5 +1,5 @@
 import logging
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from django.conf import settings
 from django.db.models import TextChoices
@@ -64,7 +64,7 @@ class ContributionSerializer(serializers.ModelSerializer):
         This is just to improve front-end visibility of the "deadline" for examining flagged contributions.
         """
         if obj.flagged_date:
-            return obj.flagged_date + settings.FLAGGED_PAYMENT_AUTO_ACCEPT_DELTA
+            return obj.flagged_date + timedelta(settings.FLAGGED_PAYMENT_AUTO_ACCEPT_DELTA)
 
     def get_formatted_payment_provider_used(self, obj):
         if not obj.payment_provider_used:
@@ -397,9 +397,13 @@ class BaseCreatePaymentSerializer(serializers.Serializer):
         except BadActorAPIError:
             return None
 
+    def should_reject(self, bad_actor_score):
+        """Determine if bad actor score should lead to contribution being rejected"""
+        return bad_actor_score == settings.BAD_ACTOR_REJECT_THRESHOLD
+
     def should_flag(self, bad_actor_score):
         """Determine if bad actor score should lead to contribution being flagged"""
-        return bad_actor_score >= settings.BAD_ACTOR_FAILURE_THRESHOLD
+        return bad_actor_score == settings.BAD_ACTOR_FLAG_THRESHOLD
 
     def get_stripe_payment_metadata(self, contributor, validated_data):
         """Generate dict of metadata to be sent to Stripe when creating a PaymentIntent or Subscription"""
@@ -453,6 +457,8 @@ class BaseCreatePaymentSerializer(serializers.Serializer):
         if bad_actor_response:
             contribution_data["bad_actor_score"] = bad_actor_response["overall_judgment"]
             contribution_data["bad_actor_response"] = bad_actor_response
+            if self.should_reject(contribution_data["bad_actor_score"]):
+                contribution_data["status"] = ContributionStatus.REJECTED
             if self.should_flag(contribution_data["bad_actor_score"]):
                 contribution_data["status"] = ContributionStatus.FLAGGED
                 contribution_data["flagged_date"] = timezone.now()
@@ -482,7 +488,7 @@ class CreateOneTimePaymentSerializer(BaseCreatePaymentSerializer):
         contributor, _ = Contributor.objects.get_or_create(email=validated_data["email"])
         bad_actor_response = self.get_bad_actor_score(validated_data)
         contribution = self.create_contribution(contributor, validated_data, bad_actor_response)
-        if contribution.status == ContributionStatus.FLAGGED:
+        if contribution.status == ContributionStatus.REJECTED:
             # In the case of a flagged contribution, we don't create a Stripe customer or
             # Stripe payment intent, so we raise exception, and leave to SPA to handle accordingly
             raise PermissionDenied("Cannot authorize contribution")
@@ -537,8 +543,8 @@ class CreateRecurringPaymentSerializer(BaseCreatePaymentSerializer):
         contributor, _ = Contributor.objects.get_or_create(email=validated_data["email"])
         bad_actor_response = self.get_bad_actor_score(validated_data)
         contribution = self.create_contribution(contributor, validated_data, bad_actor_response)
-        if contribution.status == ContributionStatus.FLAGGED:
-            # In the case of a flagged contribution, we don't create a Stripe customer or
+        if contribution.status == ContributionStatus.REJECTED:
+            # In the case of a rejected contribution, we don't create a Stripe customer or
             # Stripe payment intent, so we raise exception, and leave to SPA to handle accordingly
             raise PermissionDenied("Cannot authorize contribution")
         try:
@@ -550,7 +556,7 @@ class CreateRecurringPaymentSerializer(BaseCreatePaymentSerializer):
             )
             raise GenericPaymentError()
         try:
-            subscription = contribution.create_stripe_subscription(
+            contribution.create_stripe_subscription(
                 stripe_customer_id=customer["id"],
                 metadata=self.get_stripe_payment_metadata(contributor, validated_data),
             )
@@ -561,7 +567,7 @@ class CreateRecurringPaymentSerializer(BaseCreatePaymentSerializer):
             )
             raise GenericPaymentError()
         return {
-            "provider_client_secret_id": subscription["latest_invoice"]["payment_intent"]["client_secret"],
+            "provider_client_secret_id": contribution.provider_client_secret_id,
             "email_hash": get_sha256_hash(contributor.email),
         }
 

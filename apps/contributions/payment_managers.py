@@ -156,7 +156,7 @@ class StripePaymentManager(PaymentManager):
         try:
             subscription = stripe.Subscription.modify(
                 self.contribution.provider_subscription_id,
-                trial_end="now",
+                billing_cycle_anchor="now",
                 stripe_account=revenue_program.payment_provider.stripe_account_id,
             )
         except stripe.error.StripeError as stripe_error:

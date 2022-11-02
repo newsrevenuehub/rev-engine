@@ -1,4 +1,5 @@
 import uuid
+from datetime import timedelta
 
 from django.conf import settings
 from django.db import models
@@ -301,19 +302,18 @@ class Contribution(IndexedTimeStampedModel, RoleAssignmentResourceModelMixin):
             "metadata": metadata,
             "payment_behavior": "default_incomplete",
             "payment_settings": {"save_default_payment_method": "on_subscription"},
-            "expand": ["latest_invoice.payment_intent", "pending_setup_intent"],
+            "expand": ["latest_invoice.payment_intent"],
         }
         if self.status == ContributionStatus.FLAGGED:
-            kwargs["trial_period_days"] = settings.FLAGGED_PAYMENT_AUTO_ACCEPT_DELTA
+            kwargs["billing_cycle_anchor"] = timezone.now() + timedelta(
+                days=settings.FLAGGED_PAYMENT_AUTO_ACCEPT_DELTA + 1
+            )
+
         subscription = stripe.Subscription.create(**kwargs)
         self.payment_provider_data = subscription
         self.provider_subscription_id = subscription["id"]
         self.provider_customer_id = subscription["customer"]
-        self.provider_client_secret_id = (
-            subscription["pending_setup_intent"]["client_secret"]
-            if self.status == ContributionStatus.FLAGGED
-            else subscription["latest_invoice"]["payment_intent"]["client_secret"]
-        )
+        self.provider_client_secret_id = subscription["latest_invoice"]["payment_intent"]["client_secret"]
         self.save()
         return subscription
 

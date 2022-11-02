@@ -2,6 +2,7 @@ from unittest.mock import patch
 
 from django.test import override_settings
 
+import pytest
 from faker import Faker
 from stripe import error as stripe_errors
 from stripe.stripe_object import StripeObject
@@ -165,7 +166,7 @@ class StripeRecurringPaymentManagerTest(StripePaymentManagerAbstractTestCase):
         self.data.update({"payment_method_id": self.payment_method_id, "interval": ContributionInterval.MONTHLY})
 
     @patch("stripe.Subscription.delete")
-    def test_reject(self, mock_sub_delete, *args):
+    def test_reject_happy_path(self, mock_sub_delete, *args):
         pm = self._instantiate_payment_manager_with_instance()
         pm.complete_payment(reject=True)
         mock_sub_delete.assert_called_once_with(
@@ -173,6 +174,15 @@ class StripeRecurringPaymentManagerTest(StripePaymentManagerAbstractTestCase):
             stripe_account=self.contribution.donation_page.revenue_program.payment_provider.stripe_account_id,
         )
         self.assertEqual(self.contribution.status, ContributionStatus.REJECTED)
+
+    @patch("stripe.Subscription.delete", side_effect=stripe_errors.StripeError)
+    def test_reject_when_error_deleting_stripe_subscription(self, mock_sub_delete, *args):
+        self.contribution.status = ContributionStatus.FLAGGED
+        self.contribution.save()
+        pm = self._instantiate_payment_manager_with_instance()
+        with pytest.raises(PaymentProviderError):
+            pm.complete_payment(reject=True)
+        self.assertEqual(self.contribution.status, ContributionStatus.FLAGGED)
 
     @patch("stripe.Subscription.modify", return_value={})
     def test_accept(self, mock_sub_modify, *args):
@@ -186,7 +196,7 @@ class StripeRecurringPaymentManagerTest(StripePaymentManagerAbstractTestCase):
         self.assertEqual(self.contribution.status, ContributionStatus.PROCESSING)
 
     @patch("stripe.Subscription.modify", side_effect=stripe_errors.StripeError)
-    def test_stripe_error(self, mock_sub_create, *args):
+    def test_accept_when_stripe_error(self, mock_sub_create, *args):
         pm = self._instantiate_payment_manager_with_instance()
         with self.assertRaises(PaymentProviderError) as e:
             pm.complete_payment(reject=False)

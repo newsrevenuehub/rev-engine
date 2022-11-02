@@ -127,14 +127,12 @@ class StripePaymentManager(PaymentManager):
 
     def complete_recurring_payment(self, reject=False):
         if reject:
-            self.contribution.status = ContributionStatus.REJECTED
-            self.contribution.save()
             try:
                 stripe.Subscription.delete(
                     self.contribution.provider_subscription_id,
                     stripe_account=self.contribution.donation_page.revenue_program.payment_provider.stripe_account_id,
                 )
-            except stripe.StripeError:
+            except stripe.error.StripeError:
                 logger.exception(
                     (
                         "`StripePaymentManager.complete_recurring_payment` encountered an error trying to delete a "
@@ -143,7 +141,12 @@ class StripePaymentManager(PaymentManager):
                     self.contribution.provider_subscription_id,
                     self.contribution.id,
                 )
-                # what else do we need to do here? or should be be catching in calling context?
+                raise PaymentProviderError(
+                    "Something went wrong trying to delete Stripe subscription with id: %s",
+                    self.contribution.provider_subscription_id,
+                )
+            self.contribution.status = ContributionStatus.REJECTED
+            self.contribution.save()
             return
 
         revenue_program = self.contribution.revenue_program

@@ -201,7 +201,7 @@ class PaymentIntentWebhooksTest(APITestCase):
         self.assertIn("Received un-handled Stripe object of type", mock_logger.warning.call_args[0][0])
         self.assertEqual(mock_logger.warning.call_args[0][1], fake_event_object)
 
-    @patch("apps.contributions.webhooks.STRIPE_LIVE_MODE", True)
+    @patch("apps.contributions.webhooks.settings.STRIPE_LIVE_MODE", True)
     @patch("apps.contributions.webhooks.logger")
     @patch("apps.contributions.webhooks.StripeWebhookProcessor.process_payment_intent")
     @patch("apps.contributions.webhooks.StripeWebhookProcessor.process_subscription")

@@ -745,7 +745,7 @@ class TestBaseCreatePaymentSerializer:
             "schema_version": settings.METADATA_SCHEMA_VERSION,
             "contributor_id": contributor.id,
             "agreed_to_pay_fees": serializer.validated_data["agreed_to_pay_fees"],
-            "donor_selected_amount": str(serializer.validated_data["donor_selected_amount"]),
+            "donor_selected_amount": serializer.validated_data["donor_selected_amount"],
             "reason_for_giving": serializer.validated_data["reason_for_giving"],
             "honoree": serializer.validated_data.get("honoree"),
             "in_memory_of": serializer.validated_data.get("in_memory_of"),

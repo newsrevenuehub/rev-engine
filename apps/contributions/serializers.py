@@ -408,7 +408,7 @@ class BaseCreatePaymentSerializer(serializers.Serializer):
             "schema_version": settings.METADATA_SCHEMA_VERSION,
             "contributor_id": contributor.id,
             "agreed_to_pay_fees": validated_data["agreed_to_pay_fees"],
-            "donor_selected_amount": str(validated_data["donor_selected_amount"]),
+            "donor_selected_amount": validated_data["donor_selected_amount"],
             "reason_for_giving": validated_data["reason_for_giving"],
             "honoree": validated_data.get("honoree"),
             "in_memory_of": validated_data.get("in_memory_of"),

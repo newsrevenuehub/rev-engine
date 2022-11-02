@@ -92,7 +92,7 @@ describe('Dashboard', () => {
           job_title: 'Job Title',
           organization_name: 'Company Name',
           organization_tax_status: 'nonprofit',
-          organization_tax_id: 987654321
+          organization_tax_id: '987654321'
         });
       });
     });

@@ -16,7 +16,7 @@ import useModal from 'hooks/useModal';
 // Analytics
 import { useConfigureAnalytics } from 'components/analytics';
 
-import ProfileForm, { FormDataType } from './ProfileForm';
+import ProfileForm, { ProfileFormFields } from './ProfileForm';
 import { OffscreenText, StepperDots } from 'components/base';
 
 function Profile() {
@@ -26,7 +26,7 @@ function Profile() {
   const { refetch: refetchUser, user } = useUser();
   useConfigureAnalytics();
 
-  const onProfileSubmit = async (formData: FormDataType) => {
+  const onProfileSubmit = async (formData: ProfileFormFields) => {
     dispatch({ type: FETCH_START });
 
     try {
@@ -37,7 +37,7 @@ function Profile() {
         job_title: formData.jobTitle.trim() !== '' ? formData.jobTitle : undefined,
         organization_name: formData.companyName,
         organization_tax_status: formData.companyTaxStatus,
-        organization_tax_id: Number(formData.taxId)
+        organization_tax_id: formData.taxId.replace('-', '').replace('_', '')
       });
 
       if (status === 204) {
@@ -50,8 +50,14 @@ function Profile() {
     } catch (e: any) {
       // If we didn't get a specific error message from the API, default to
       // something generic.
-      const errorMessage =
-        typeof e?.response?.data === 'object' ? Object.values(e?.response?.data)[0] : e?.response?.data;
+      let errorMessage = e?.message && [e.message];
+      if (e?.response?.data) {
+        if (typeof e?.response?.data === 'object') {
+          errorMessage = Object.values(e?.response?.data)[0];
+        } else {
+          errorMessage = e?.response?.data;
+        }
+      }
       dispatch({ type: FETCH_FAILURE, payload: errorMessage ?? ['An Error Occurred'] });
     }
   };
@@ -64,12 +70,7 @@ function Profile() {
         <OffscreenText>Step 1 of 2</OffscreenText>
         <S.Title id="profile-modal-title">Let's Customize Your Account</S.Title>
         <S.Description>Help us create your personalized experience!</S.Description>
-        <ProfileForm onProfileSubmit={onProfileSubmit} disabled={profileState.loading} />
-        {formSubmitErrors ? (
-          <A.Message data-testid="profile-modal-error">{formSubmitErrors}</A.Message>
-        ) : (
-          <A.MessageSpacer />
-        )}
+        <ProfileForm onProfileSubmit={onProfileSubmit} disabled={profileState.loading} error={formSubmitErrors} />
         <StepperDots aria-hidden activeStep={0} steps={2} />
       </S.Profile>
     </S.Modal>

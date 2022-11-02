@@ -1,11 +1,11 @@
 import userEvent from '@testing-library/user-event';
 import MockAdapter from 'axios-mock-adapter';
-import { useHistory } from 'react-router-dom';
+import { useHistory as useHistoryImport } from 'react-router-dom';
 import { axe } from 'jest-axe';
 import Axios from 'ajax/axios';
 import { CUSTOMIZE_ACCOUNT_ENDPOINT } from 'ajax/endpoints';
 import { render, screen, waitFor } from 'test-utils';
-import useUser from 'hooks/useUser';
+import useUserImport from 'hooks/useUser';
 import Profile from './Profile';
 
 jest.mock('react-router-dom', () => ({
@@ -19,6 +19,9 @@ function tree() {
   return render(<Profile />);
 }
 
+const useUser = useUserImport as jest.Mock;
+const useHistory = useHistoryImport as jest.Mock;
+
 describe('Profile', () => {
   const axiosMock = new MockAdapter(Axios);
   let historyPushMock: jest.Mock;
@@ -26,8 +29,8 @@ describe('Profile', () => {
   beforeEach(() => {
     axiosMock.onPatch(`users/mock-user-id/${CUSTOMIZE_ACCOUNT_ENDPOINT}`).reply(204);
     historyPushMock = jest.fn();
-    (useHistory as jest.Mock).mockReturnValue({ push: historyPushMock });
-    (useUser as jest.Mock).mockReturnValue({ loading: false, refetch: jest.fn(), user: { id: 'mock-user-id' } });
+    useHistory.mockReturnValue({ push: historyPushMock });
+    useUser.mockReturnValue({ loading: false, refetch: jest.fn(), user: { id: 'mock-user-id' } });
   });
 
   afterEach(() => axiosMock.reset());
@@ -66,7 +69,7 @@ describe('Profile', () => {
             job_title: 'mock-job-title',
             organization_name: 'mock-company-name',
             organization_tax_status: 'mock-tax-status',
-            organization_tax_id: 987654321
+            organization_tax_id: '987654321'
           }),
           url: `users/mock-user-id/${CUSTOMIZE_ACCOUNT_ENDPOINT}`
         })
@@ -85,7 +88,7 @@ describe('Profile', () => {
             // No job_title
             organization_name: 'mock-company-name',
             organization_tax_status: 'mock-tax-status',
-            organization_tax_id: 987654321
+            organization_tax_id: '987654321'
           }),
           url: `users/mock-user-id/${CUSTOMIZE_ACCOUNT_ENDPOINT}`
         })
@@ -95,7 +98,7 @@ describe('Profile', () => {
     it('refetches the user then redirects to / after a successful PATCH', async () => {
       const refetch = jest.fn();
 
-      (useUser as jest.Mock).mockReturnValue({ refetch, loading: false, user: { id: 'mock-user-id' } });
+      useUser.mockReturnValue({ refetch, loading: false, user: { id: 'mock-user-id' } });
       tree();
       userEvent.click(screen.getByText('mock-profile-form-submit'));
       await waitFor(() => expect(historyPushMock).toBeCalled());
@@ -108,7 +111,7 @@ describe('Profile', () => {
       axiosMock.onPatch().networkError();
       tree();
       userEvent.click(screen.getByText('mock-profile-form-submit'));
-      await waitFor(() => expect(screen.getByText('An Error Occurred')).toBeVisible());
+      await waitFor(() => expect(screen.getByText('Network Error')).toBeVisible());
       expect(screen.queryByTestId('mock-profile-form-disabled')).not.toBeInTheDocument();
     });
   });

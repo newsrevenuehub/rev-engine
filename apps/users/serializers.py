@@ -16,6 +16,8 @@ from apps.organizations.serializers import (
 from apps.users.choices import Roles
 from apps.users.constants import PASSWORD_MAX_LENGTH
 
+from .validators import tax_id_validator
+
 
 logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
 
@@ -143,15 +145,6 @@ class UserSerializer(serializers.ModelSerializer):
             "revenue_programs",
             "role_type",
         ]
-
-
-def tax_id_validator(value):
-    if len(value) != 9:
-        raise serializers.ValidationError("EIN must have 9 digits")
-    try:
-        int(value)
-    except ValueError:
-        raise serializers.ValidationError("EIN must contain only numbers")
 
 
 class CustomizeAccountSerializer(UserSerializer):

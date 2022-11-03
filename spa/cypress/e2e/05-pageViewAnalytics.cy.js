@@ -13,7 +13,7 @@ import { VERIFY_TOKEN } from 'ajax/endpoints';
 import livePageFixture from '../fixtures/pages/live-page-1.json';
 import { LIVE_PAGE_DETAIL } from 'ajax/endpoints';
 import { getEndpoint, getTestingDonationPageUrl, EXPECTED_RP_SLUG } from '../support/util';
-import { HUB_GA_V3_ID } from 'settings';
+import { HUB_GA_V3_ID } from 'appSettings';
 import join from 'url-join';
 
 import hubAdminUser from '../fixtures/user/login-success-hub-admin';

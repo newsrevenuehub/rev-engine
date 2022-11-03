@@ -7,7 +7,7 @@ import useRequest from 'hooks/useRequest';
 import { LIVE_PAGE_DETAIL } from 'ajax/endpoints';
 
 // Constants
-import { DASHBOARD_SUBDOMAINS } from 'settings';
+import { DASHBOARD_SUBDOMAINS } from 'appSettings';
 
 // Routing
 import { Route, BrowserRouter, Switch, Redirect } from 'react-router-dom';

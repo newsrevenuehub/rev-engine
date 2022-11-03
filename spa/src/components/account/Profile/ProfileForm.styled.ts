@@ -1,17 +1,14 @@
-import { makeStyles } from '@material-ui/core/styles';
 import styled from 'styled-components';
+import { TextField } from 'components/base';
 import InfoTooltip from './InfoTooltip';
 
-export const useStyles = makeStyles(() => ({
-  root: {
-    '& > input::-webkit-outer-spin-button, input::-webkit-inner-spin-button': {
-      '-webkit-appearance': 'none'
-    },
-    '& ::placeholder': {
-      fontStyle: 'normal'
+export const StyledTextField = styled(TextField)`
+  && {
+    & ::placeholder {
+      font-style: normal;
     }
   }
-}));
+`;
 
 export const Form = styled('form')`
   display: grid;

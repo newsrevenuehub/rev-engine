@@ -9,7 +9,7 @@ import {
   Form,
   TaxStatusContainer,
   TaxStatusInfoTooltip,
-  useStyles
+  StyledTextField
 } from './ProfileForm.styled';
 import { Message, MessageSpacer } from 'components/account/Account.styled';
 
@@ -30,7 +30,6 @@ export interface ProfileFormProps extends InferProps<typeof ProfileFormPropTypes
 }
 
 function ProfileForm({ disabled: disabledProp, onProfileSubmit, error }: ProfileFormProps) {
-  const classes = useStyles();
   const {
     control,
     handleSubmit,
@@ -114,11 +113,10 @@ function ProfileForm({ disabled: disabledProp, onProfileSubmit, error }: Profile
           render={({ field }) => (
             <MaskedInput mask="99-9999999" {...field}>
               {(inputProps: any) => (
-                <TextField
+                <StyledTextField
                   id="profile-tax-id"
                   data-testid="profile-tax-id"
                   placeholder="XX-XXXXXXX"
-                  className={classes.root}
                   label={
                     <>
                       EIN <FieldLabelOptional>Optional</FieldLabelOptional>

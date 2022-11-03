@@ -67,6 +67,9 @@ class ContributionFactory(DjangoModelFactory):
     donation_page = factory.SubFactory(DonationPageFactory)
     contributor = factory.SubFactory(ContributorFactory)
     provider_payment_method_details = factory.LazyFunction(lambda: {"k": "v"})
+    provider_payment_id = factory.LazyFunction(lambda: f"pi_{fake.bothify('?????#?#??#?')}")
+    provider_subscription_id = factory.LazyFunction(lambda: f"sub_{fake.bothify('?????#?#??#?')}")
+    provider_customer_id = factory.LazyFunction(lambda: f"cus_{fake.bothify('?????#?#??#?')}")
 
 
 class StripeCustomerFactory:

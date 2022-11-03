@@ -103,3 +103,24 @@ class ContributionAdminTest(TestCase):
         self.assertEqual(len(filtered_contribs), len(all_contribs))
         self.assertIn(self.contrib_score_2, filtered_contribs)
         self.assertIn(self.contrib_score_4, filtered_contribs)
+
+    def test_provider_payment_link(self):
+        for contribution in Contribution.objects.all():
+            assert (
+                self.contribution_admin.provider_payment_link(contribution) == f"<a href='"
+                f"https://dashboard.stripe.com/test/connect/accounts/{contribution.stripe_account_id}/payments/{contribution.provider_payment_id}' target='_blank'>{contribution.provider_payment_id}</a>"
+            )
+
+    def test_provider_subscription_link(self):
+        for contribution in Contribution.objects.all():
+            assert (
+                self.contribution_admin.provider_subscription_link(contribution) == f"<a href='"
+                f"https://dashboard.stripe.com/test/connect/accounts/{contribution.stripe_account_id}/subscriptions/{contribution.provider_subscription_id}' target='_blank'>{contribution.provider_subscription_id}</a>"
+            )
+
+    def test_provider_customer_link(self):
+        for contribution in Contribution.objects.all():
+            assert (
+                self.contribution_admin.provider_customer_link(contribution) == f"<a href='"
+                f"https://dashboard.stripe.com/test/connect/accounts/{contribution.stripe_account_id}/customers/{contribution.provider_customer_id}' target='_blank'>{contribution.provider_customer_id}</a>"
+            )

@@ -28,7 +28,7 @@ jest.mock('react-router-dom', () => ({
 
 const mockSentryEnableFrontEndGetter = jest.fn();
 
-jest.mock('settings', () => ({
+jest.mock('appSettings', () => ({
   ENVIRONMENT: 'mock-env',
   SENTRY_DSN_FRONTEND: 'mock-sentry-dsn-frontend',
   get SENTRY_ENABLE_FRONTEND() {

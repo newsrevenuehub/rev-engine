@@ -20,7 +20,7 @@ describe('TabPanel', () => {
     expect(screen.getByText('children')).toBeVisible();
   });
 
-  it("doesn't display its children when active", () => {
+  it("doesn't display its children when not active", () => {
     tree({ active: false });
     expect(screen.getByText('children')).not.toBeVisible();
   });

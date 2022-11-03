@@ -172,7 +172,7 @@ describe('Donation page displays dynamic page elements', () => {
 });
 
 describe('Reason for Giving element', () => {
-  before(() => {
+  beforeEach(() => {
     cy.visitDonationPage();
   });
 
@@ -339,7 +339,7 @@ function fillOutAddressSection() {
   cy.get('[data-testid*="mailing_city"]').type('Big City');
   cy.get('[data-testid*="mailing_state"]').type('NY');
   cy.get('[data-testid*="mailing_postal_code"]').type('100738');
-  cy.get('.country-select').click().find('.react-select-country__option').first().click();
+  cy.get('.country-select').click().find('.react-select__option').first().click();
 }
 
 function fillOutDonorInfoSection() {

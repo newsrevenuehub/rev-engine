@@ -1,7 +1,7 @@
 import Spinner from 'elements/Spinner';
 import * as S from './CircleButton.styled';
 
-import RETooltip from 'elements/RETooltip';
+import { Tooltip } from 'components/base';
 
 function CircleButton({ icon, type, color, onClick, disabled, loading, children, tooltipText, ...props }) {
   const cButton = (
@@ -17,9 +17,9 @@ function CircleButton({ icon, type, color, onClick, disabled, loading, children,
   if (tooltipText) {
     return (
       <div>
-        <RETooltip title={tooltipText} placement="right">
+        <Tooltip title={tooltipText} placement="right">
           {cButton}
-        </RETooltip>
+        </Tooltip>
       </div>
     );
   }

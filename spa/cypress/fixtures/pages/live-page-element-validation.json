@@ -1,46 +1,131 @@
 {
-  "id": 99,
-  "name": "Test Page 1",
-  "heading": "Test Heading 1",
-  "published_date": "2020-09-17T00:00:00",
-  "revenue_program_is_nonprofit": true,
-  "elements": [
-    {"type": "DRichText", "uuid": "testRichText1", "content": "<p><strong>Your support keeps us going! Become a member today.</strong></p> <p>Because of your generosity, we have the courage, freedom, and independence to dedicate our entire newsroom to telling stories that spark action, improve lives and protect our democracy. Thank you for your support that keeps us going.</p>"},
-
-    {"type": "DDonorInfo", "uuid": "testDonorInfo1"},
-    {"type": "DDonorAddress", "uuid": "testDonorAddress1"},
-    {"type": "DAdditionalInfo", "uuid": "testAdditionalInfo", "content": []},
-    {"type": "DPayment", "uuid": "testPayment1"}
-  ],
-  "sidebar_elements": [
-    {"type":  "DRichText", "uuid": "testRichTextSE1", "content": "<p><strong>Sidebar Blurb</strong>"},
-    {"type":  "DImage", "uuid": "testImageFile", "content": {"url": "/media/test.png", "thumbnail": "/media/cache/thumbnail.png"}}
-  ],
-  "styles": {
-    "colors": {
-      "primary": "#f0be18",
-      "secondary": "#f6471e",
-      "fieldBackground": "#f7f7f7",
-      "paneBackground": "#fff",
-      "inputBackground": "#fff",
-      "inputBorder": "#c3c3c3"
-    },
-    "ruleStyle": "dotted"
-  },
+  "id": 50,
+  "name": "Page 1",
+  "styles": null,
   "revenue_program": {
-    "id": 1,
-    "slug": "myprogram",
-    "created": "2021-07-20T16:39:40.559524Z",
-    "modified": "2021-07-20T16:39:40.559524Z",
-    "name": "MyRevProgram",
-    "contact_email": "myrevprogram@mycompany.com",
-    "address": "123 Fake Street, Durham, NC 27701",
-    "organization": 14,
-    "default_donation_page": null,
-    "google_analytics_v3_id": "UA-2222222",
-    "google_analytics_v3_domain": "www.google.com",
-    "google_analytics_v4_id": "G-2222222",
-    "facebook_pixel_id": "123456789"
+    "id": 3,
+    "name": "Fooo",
+    "slug": "foooo",
+    "twitter_handle": "fooo",
+    "website_url": "https://fooo.com/",
+    "contact_email": "hello@fooo.com",
+    "google_analytics_v3_domain": null,
+    "google_analytics_v3_id": null,
+    "google_analytics_v4_id": null,
+    "facebook_pixel_id": null
   },
-  "revenue_program_pk": 1
+  "payment_provider": {
+    "id": 2,
+    "created": "2022-06-13T23:45:23.051697Z",
+    "modified": "2022-06-15T03:14:49.969805Z",
+    "stripe_account_id": "acct_1fake",
+    "stripe_product_id": "prod_fake",
+    "currency": "USD",
+    "default_payment_provider": "stripe",
+    "stripe_oauth_refresh_token": "",
+    "stripe_verified": true
+  },
+  "template_pk": null,
+  "graphic": null,
+  "header_bg_image": null,
+  "header_logo": null,
+  "graphic_thumbnail": null,
+  "header_bg_image_thumbnail": null,
+  "header_logo_thumbnail": null,
+  "revenue_program_is_nonprofit": true,
+  "stripe_account_id": null,
+  "currency": {
+    "code": "USD",
+    "symbol": "$"
+  },
+  "revenue_program_country": "US",
+  "allow_offer_nyt_comp": false,
+  "benefit_levels": [],
+  "created": "2022-09-30T02:04:56.888897Z",
+  "modified": "2022-09-30T02:04:56.888897Z",
+  "heading": "",
+  "header_link": "",
+  "sidebar_elements": [],
+  "thank_you_redirect": "",
+  "post_thank_you_redirect": "",
+  "elements": [
+    {
+      "type": "DRichText",
+      "uuid": "31915bf6-1d6d-40a4-acd2-0236121c2db8",
+      "content": "<h2 style=\"text-align:center;\">Support our journalism today.</h2>\n<p style=\"text-align:center;\">This work doesn't happen without your support. Contribute today!</p>\n",
+      "requiredFields": []
+    },
+    {
+      "type": "DFrequency",
+      "uuid": "70edfc26-9c5e-4eb8-9741-ee104ea0f3e9",
+      "content": [
+        {
+          "value": "one_time",
+          "isDefault": false,
+          "displayName": "One time"
+        },
+        {
+          "value": "month",
+          "isDefault": true,
+          "displayName": "Monthly"
+        },
+        {
+          "value": "year",
+          "isDefault": false,
+          "displayName": "Yearly"
+        }
+      ],
+      "requiredFields": []
+    },
+    {
+      "type": "DAmount",
+      "uuid": "8ef11b7b-0fab-48bb-bf3c-a8abcd63a287",
+      "content": {
+        "options": {
+          "year": [120, 180, 365],
+          "month": [10, 15, 25],
+          "one_time": [120, 180, 365]
+        },
+        "defaults": {
+          "year": 180,
+          "month": 15,
+          "one_time": 180
+        },
+        "allowOther": true
+      },
+      "requiredFields": []
+    },
+    {
+      "type": "DDonorInfo",
+      "uuid": "25545dd6-2178-4426-b79d-bf34919251e8",
+      "content": {
+        "askPhone": true
+      },
+      "requiredFields": []
+    },
+    {
+      "type": "DDonorAddress",
+      "uuid": "92916850-7968-46e0-be2b-e46515751f11",
+      "requiredFields": []
+    },
+    {
+      "type": "DPayment",
+      "uuid": "dc559bda-f51e-4b34-a9fd-a736c6941404",
+      "content": {
+        "stripe": ["card", "apple", "google", "browser"],
+        "offerPayFees": true,
+        "payFeesDefault": true
+      },
+      "requiredFields": []
+    },
+    {
+      "type": "DRichText",
+      "uuid": "1293ed04-7a0c-4ec3-a7b9-379a87529422",
+      "content": "<p style=\"text-align:center;\">Have questions or want to change a recurring donation? Contact us at YOUR EMAIL ADDRESS HERE. <br><br>Prefer to mail a check? Our mailing address is YOUR MAILING ADDRESS HERE.<br><br>Contributions or gifts to YOUR ORGANIZATION NAME HERE are tax deductible. Our tax ID is YOUR TAX ID HERE.&nbsp;</p>\n",
+      "requiredFields": []
+    }
+  ],
+  "slug": "page-1",
+  "published_date": null,
+  "page_screenshot": null
 }

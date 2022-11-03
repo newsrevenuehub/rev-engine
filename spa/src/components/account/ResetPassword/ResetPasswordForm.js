@@ -88,7 +88,7 @@ function ResetPasswordForm({ onResetPasswordSubmit, loading }) {
         <S.MessageSpacer />
       )}
 
-      <S.Submit type="submit" disabled={disabled} name="Reset Password">
+      <S.Submit type="submit" disabled={disabled} name="Reset Password" size="extraLarge">
         Reset Password
       </S.Submit>
     </form>

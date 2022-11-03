@@ -21,7 +21,13 @@
     {
       "id": 11,
       "name": "My Org",
-      "slug": "my-org"
+      "slug": "my-org",
+      "plan": {
+        "name": "FREE",
+        "label": "Free",
+        "page_limit": 1,
+        "style_limit": 1
+      }
     }
   ],
   "revenue_programs": [

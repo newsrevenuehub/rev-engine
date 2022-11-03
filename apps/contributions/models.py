@@ -1,7 +1,9 @@
 import uuid
 
+from django.conf import settings
 from django.db import models
 from django.utils import timezone
+from django.utils.html import format_html
 
 import stripe
 
@@ -345,3 +347,24 @@ class Contribution(IndexedTimeStampedModel, RoleAssignmentResourceModelMixin):
                     "org_name": self.revenue_program.organization.name,
                 },
             )
+
+    @property
+    def provider_payment_link(self):
+        return self._generate_stripe_connect_link("payments", self.provider_payment_id)
+
+    @property
+    def provider_subscription_link(self):
+        return self._generate_stripe_connect_link("subscriptions", self.provider_subscription_id)
+
+    @property
+    def provider_customer_link(self):
+        return self._generate_stripe_connect_link("customers", self.provider_customer_id)
+
+    def _generate_stripe_connect_link(self, slug, provider_id):
+        if provider_id:
+            test_mode = "test/" if not settings.STRIPE_LIVE_MODE else ""
+            return format_html(
+                f"<a href='%s' target='_blank'>{provider_id}</a>"
+                % f"https://dashboard.stripe.com/{test_mode}connect/accounts/{self.stripe_account_id}/{slug}/{provider_id}"
+            )
+        return "-"

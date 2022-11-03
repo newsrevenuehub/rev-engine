@@ -90,7 +90,13 @@ class ContributionTest(TestCase):
         self.payment_provider = PaymentProviderFactory(stripe_account_id=self.stripe_account_id)
         self.revenue_program = RevenueProgramFactory(organization=self.org, payment_provider=self.payment_provider)
         self.donation_page = DonationPageFactory(revenue_program=self.revenue_program)
-        self.contribution = Contribution.objects.create(amount=self.amount, donation_page=self.donation_page)
+        self.contribution = Contribution.objects.create(
+            amount=self.amount,
+            donation_page=self.donation_page,
+            provider_payment_id="p_1231",
+            provider_subscription_id="sub_1234",
+            provider_customer_id="cus_1234",
+        )
         self.required_data = {"amount": 1000, "currency": "usd", "donation_page": self.donation_page}
 
     def test_formatted_amount(self):
@@ -273,3 +279,21 @@ class ContributionTest(TestCase):
         self.org.save()
         self.contribution.handle_thank_you_email()
         mock_send_email.assert_not_called()
+
+    def test_provider_payment_link(self):
+        assert (
+            self.contribution.provider_payment_link == f"<a href='"
+            f"https://dashboard.stripe.com/test/connect/accounts/{self.stripe_account_id}/payments/{self.contribution.provider_payment_id}' target='_blank'>{self.contribution.provider_payment_id}</a>"
+        )
+
+    def test_provider_subscription_link(self):
+        assert (
+            self.contribution.provider_subscription_link == f"<a href='"
+            f"https://dashboard.stripe.com/test/connect/accounts/{self.stripe_account_id}/subscriptions/{self.contribution.provider_subscription_id}' target='_blank'>{self.contribution.provider_subscription_id}</a>"
+        )
+
+    def test_provider_customer_link(self):
+        assert (
+            self.contribution.provider_customer_link == f"<a href='"
+            f"https://dashboard.stripe.com/test/connect/accounts/{self.stripe_account_id}/customers/{self.contribution.provider_customer_id}' target='_blank'>{self.contribution.provider_customer_id}</a>"
+        )

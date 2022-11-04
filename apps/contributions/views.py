@@ -414,7 +414,6 @@ class SubscriptionsViewSet(viewsets.ViewSet):
 @api_view(["POST"])
 @permission_classes([IsAuthenticated, HasRoleAssignment, HasAccessToEmailContribution])
 def email_contribution(request):
-    email_id = request.user.email
     contribution_id = request.data.get("contribution_id")
     contribution = get_object_or_404(Contribution, pk=contribution_id)
     stripe_account_id = contribution.revenue_program.payment_provider.stripe_account_id
@@ -436,9 +435,10 @@ def email_contribution(request):
             status=status.HTTP_500_INTERNAL_SERVER_ERROR,
         )
 
+    contributor_email = payment_intent.receipt_email or contribution.contributor.email
     email_attrs = {
         "contribution_date": convert_epoch_to_datetime(payment_intent.created).strftime("%m-%d-%y"),
-        "contributor_email": email_id or payment_intent.receipt_email,
+        "contributor_email": contributor_email,
         "contribution_amount": f"{format_ambiguous_currency(payment_intent.amount_received)} {payment_intent.currency.upper()}",
         "contribution_interval": contribution.interval,
         "contribution_interval_display_value": contribution.interval
@@ -447,10 +447,10 @@ def email_contribution(request):
     }
 
     send_templated_email.delay(
-        request.user.email,
+        contributor_email,
         "Thank you for your contribution!",
         "nrh-default-contribution-confirmation-email.txt",
         "nrh-default-contribution-confirmation-email.html",
         email_attrs,
     )
-    return Response({"detail": "success"}, status=status.HTTP_200_OK)
+    return Response({"detail": "success", "contributor_email": contributor_email}, status=status.HTTP_200_OK)

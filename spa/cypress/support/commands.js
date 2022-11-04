@@ -1,4 +1,5 @@
 import 'cypress-localstorage-commands';
+import '@testing-library/cypress/add-commands';
 
 import { TOKEN } from 'ajax/endpoints';
 import { getEndpoint, getTestingDonationPageUrl, getTestingDefaultDonationPageUrl, EXPECTED_RP_SLUG } from './util';

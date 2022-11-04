@@ -3,6 +3,7 @@ import { useStripe, useElements, PaymentElement } from '@stripe/react-stripe-js'
 
 import { useLocation } from 'react-router-dom';
 
+import BackButton from 'components/common/Button/BackButton/BackButton';
 import * as S from './StripePaymentForm.styled';
 import { usePage } from 'components/donationPage/DonationPage';
 import { ICONS } from 'assets/icons/SvgIcon';
@@ -26,7 +27,8 @@ function StripePaymentForm() {
     stripeBillingDetails,
     paymentSubmitButtonText,
     stripeClientSecret,
-    contributionUuid
+    contributionUuid,
+    cancelPayment
   } = usePage();
   const { pathname } = useLocation();
   const elements = useElements();
@@ -92,10 +94,12 @@ function StripePaymentForm() {
   return (
     <S.StripePaymentForm>
       <form onSubmit={handleSubmit} name="stripe-payment-form">
+        <BackButton onClick={cancelPayment} />
         <PaymentElement options={paymentElementOptions} id="stripe-payment-element" />
         <S.PaymentSubmitButton type="submit" disabled={isLoading} loading={isLoading} data-testid="donation-submit">
           {paymentSubmitButtonText}
         </S.PaymentSubmitButton>
+
         <S.IconWrapper>
           <S.Icon icon={ICONS.STRIPE_POWERED} />
         </S.IconWrapper>

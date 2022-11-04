@@ -1,6 +1,7 @@
 import { useRef, useState, useEffect, createContext, useContext } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import { useCookies } from 'react-cookie';
+import { useAlert } from 'react-alert';
 
 import * as S from './DonationPage.styled';
 import axios from 'ajax/axios';
@@ -25,26 +26,35 @@ import Modal from 'elements/modal/Modal';
 import LiveErrorFallback from './live/LiveErrorFallback';
 import { SubmitButton } from './DonationPage.styled';
 import GenericErrorBoundary from 'components/errors/GenericErrorBoundary';
-import { AUTHORIZE_ONE_TIME_STRIPE_PAYMENT_ROUTE, AUTHORIZE_STRIPE_SUBSCRIPTION_ROUTE } from 'ajax/endpoints';
+import { AUTHORIZE_STRIPE_PAYMENT_ROUTE } from 'ajax/endpoints';
 import { serializeData } from 'components/paymentProviders/stripe/stripeFns';
 import calculateStripeFee from 'utilities/calculateStripeFee';
 import formatStringAmountForDisplay from 'utilities/formatStringAmountForDisplay';
 import { getFrequencyAdverb } from 'utilities/parseFrequency';
 import { CONTRIBUTION_INTERVALS } from 'constants/contributionIntervals';
 
-function authorizePayment(paymentData, paymentType, csrftoken) {
-  const apiEndpoint =
-    paymentType === CONTRIBUTION_INTERVALS.ONE_TIME
-      ? AUTHORIZE_ONE_TIME_STRIPE_PAYMENT_ROUTE
-      : AUTHORIZE_STRIPE_SUBSCRIPTION_ROUTE;
-  // we manually set the XCSRFToken value in header here. This is an unauthed endpoint
+function authorizePayment(paymentData, csrftoken) {
+  // we manually set the X-CSRFTOKEN value in header here. This is an unauthed endpoint
   // that on the backend requires csrf header, which will be in cookie returned by request
   // for page data (that happens in parent context)
-  return axios.post(apiEndpoint, paymentData, { headers: { [CSRF_HEADER]: csrftoken } }).then(({ data }) => data);
+  return axios
+    .post(AUTHORIZE_STRIPE_PAYMENT_ROUTE, paymentData, { headers: { [CSRF_HEADER]: csrftoken } })
+    .then(({ data }) => data);
+}
+
+function cancelPayment(paymentId, csrftoken) {
+  const endpoint = `${AUTHORIZE_STRIPE_PAYMENT_ROUTE}${paymentId}/`;
+  // we manually set the X-CSRFTOKEN value in header here. This is an unauthed endpoint
+  // that on the backend requires csrf header, which will be in cookie returned by request
+  // for page data (that happens in parent context)
+
+  return axios.delete(endpoint, { headers: { [CSRF_HEADER]: csrftoken } }).then(({ data }) => data);
 }
 
 export const DonationPageContext = createContext({});
 
+export const CANCEL_PAYMENT_FAILURE_MESSAGE =
+  "Something went wrong, but don't worry, you haven't been charged. Try refreshing.";
 class DonationPageUnrecoverableError extends Error {
   constructor(message) {
     super(message);
@@ -53,6 +63,7 @@ class DonationPageUnrecoverableError extends Error {
 }
 
 function DonationPage({ page, live = false }) {
+  const alert = useAlert();
   const formRef = useRef();
   const salesforceCampaignId = useQueryString(SALESFORCE_CAMPAIGN_ID_QUERYPARAM);
   const freqQs = useQueryString(FREQUENCY_QUERYPARAM);
@@ -78,15 +89,15 @@ function DonationPage({ page, live = false }) {
 
   // we use this on form submission to authorize a one-time payment or subscription. Note that the function
   // passed to `useMutation` must return a promise.
-  const { mutate: createPayment, isLoading: createPaymentIsLoading } = useMutation((paymentData) => {
-    switch (paymentData.interval) {
-      case CONTRIBUTION_INTERVALS.ONE_TIME:
-        return authorizePayment(paymentData, CONTRIBUTION_INTERVALS.ONE_TIME, cookies.csrftoken);
-      case CONTRIBUTION_INTERVALS.MONTHLY:
-      case CONTRIBUTION_INTERVALS.ANNUAL:
-        return authorizePayment(paymentData, paymentData.interval, cookies.csrftoken);
-      default:
-        return Promise.reject(new DonationPageUnrecoverableError('Unexpected payment interval in paymentData'));
+  const { mutate: createPayment, isLoading: createPaymentIsLoading } = useMutation((paymentData) =>
+    authorizePayment(paymentData, cookies.csrftoken)
+  );
+
+  const { mutate: deletePayment } = useMutation((paymentId) => cancelPayment(paymentId, cookies.csrftoken), {
+    onError: (err) => {
+      // calling console.error will create a Sentry error.
+      console.error(err);
+      alert.error(CANCEL_PAYMENT_FAILURE_MESSAGE);
     }
   });
 
@@ -260,7 +271,11 @@ function DonationPage({ page, live = false }) {
         mailingCountry,
         setMailingCountry,
         paymentSubmitButtonText,
-        contributionUuid
+        contributionUuid,
+        cancelPayment: () => {
+          deletePayment(contributionUuid);
+          setDisplayStripePaymentForm(false);
+        }
       }}
     >
       <S.DonationPage data-testid="donation-page">

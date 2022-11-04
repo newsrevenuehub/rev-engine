@@ -1,8 +1,4 @@
-import {
-  LIVE_PAGE_DETAIL,
-  AUTHORIZE_ONE_TIME_STRIPE_PAYMENT_ROUTE,
-  AUTHORIZE_STRIPE_SUBSCRIPTION_ROUTE
-} from 'ajax/endpoints';
+import { LIVE_PAGE_DETAIL, AUTHORIZE_STRIPE_PAYMENT_ROUTE } from 'ajax/endpoints';
 import { PAYMENT_SUCCESS } from 'routes';
 import { getPaymentSuccessUrl } from 'components/paymentProviders/stripe/stripeFns';
 import { getEndpoint, getPageElementByType, getTestingDonationPageUrl, EXPECTED_RP_SLUG } from '../support/util';
@@ -14,6 +10,8 @@ import { CONTRIBUTION_INTERVALS } from '../../src/constants/contributionInterval
 
 import * as freqUtils from 'utilities/parseFrequency';
 import calculateStripeFee from 'utilities/calculateStripeFee';
+import { DEFAULT_BACK_BUTTON_TEXT } from 'components/common/Button/BackButton/BackButton';
+import { CANCEL_PAYMENT_FAILURE_MESSAGE } from 'components/donationPage/DonationPage';
 
 const pageSlug = 'page-slug';
 const expectedPageSlug = `${pageSlug}/`;
@@ -342,17 +340,20 @@ function fillOutAddressSection() {
   cy.get('[data-testid*="mailing_state"]').type('NY');
   cy.get('[data-testid*="mailing_postal_code"]').type('100738');
   cy.get('.country-select').click().find('.react-select__option').first().click();
+  cy.findByLabelText('Country', { exact: false }).invoke('val').as('countryValue');
 }
 
 function fillOutDonorInfoSection() {
   cy.get('[data-testid*="first_name"]').type('Fred');
   cy.get('[data-testid*="last_name"]').type('Person');
   cy.get('[data-testid*="email"]').type('foo@bar.com');
+  cy.findByLabelText('Phone', { exact: false }).type('212-555-5555');
 }
 
 function fillOutReasonForGiving() {
   cy.get('[data-testid="excited-to-support-picklist"]').click();
   cy.get('[data-testid="select-item-1').click();
+  cy.get('[data-testid="excited-to-support-picklist"]').invoke('val').as('reasonValue');
 }
 
 const fakeEmailHash = 'b4170aca0fd3e60';
@@ -366,20 +367,16 @@ describe('User flow: happy path', () => {
     cy.intercept({ method: 'GET', url: 'https://www.google.com/recaptcha/*' }, { statusCode: 200 });
     cy.visitDonationPage();
   });
-
   for (const payFees of [true, false]) {
     specify(`one-time contribution, ${payFees ? '' : 'NOT'} paying fees`, () => {
       cy.intercept(
-        { method: 'POST', url: getEndpoint(AUTHORIZE_ONE_TIME_STRIPE_PAYMENT_ROUTE) },
+        { method: 'POST', url: getEndpoint(AUTHORIZE_STRIPE_PAYMENT_ROUTE) },
         {
           body: { client_secret: fakeStripeSecret, email_hash: fakeEmailHash, uuid: fakeContributionUuid },
           statusCode: 201
         }
       ).as('create-one-time-payment');
-      cy.intercept({ method: 'POST', url: 'https://r.stripe.com/0' }, { statusCode: 201 });
-      cy.intercept({ method: 'POST', url: 'https://m.stripe.com/0' }, { statusCode: 201 });
-      cy.intercept({ method: 'GET', url: 'https://api.stripe.com/**' }, { statusCode: 200 });
-
+      cy.interceptStripeApi();
       cy.get('[data-testid*="amount-120"]').click();
       cy.get('[data-testid*="frequency-one_time"]').click();
       fillOutDonorInfoSection();
@@ -393,7 +390,6 @@ describe('User flow: happy path', () => {
         cy.getByTestId('pay-fees-checked').click();
         cy.getByTestId('pay-fees').should('exist');
       }
-
       cy.get('form[name="contribution-checkout"]').submit();
       cy.wait('@create-one-time-payment').then((interception) => {
         // captcha_token is different each request, so instead of stubbing it, we just assert there's an
@@ -407,7 +403,7 @@ describe('User flow: happy path', () => {
           first_name: 'Fred',
           last_name: 'Person',
           email: 'foo@bar.com',
-          phone: '',
+          phone: '212-555-5555',
           mailing_street: '123 Main St',
           mailing_city: 'Big City',
           mailing_state: 'NY',
@@ -460,7 +456,7 @@ describe('User flow: happy path', () => {
   ]) {
     specify(`recurring contribution when \`clientSecret\` begins with ${clientSecret}`, () => {
       cy.intercept(
-        { method: 'POST', url: getEndpoint(AUTHORIZE_STRIPE_SUBSCRIPTION_ROUTE) },
+        { method: 'POST', url: getEndpoint(AUTHORIZE_STRIPE_PAYMENT_ROUTE) },
         {
           body: { client_secret: clientSecret, email_hash: fakeEmailHash, uuid: fakeContributionUuid },
           statusCode: 201
@@ -491,7 +487,7 @@ describe('User flow: happy path', () => {
   for (const payFees of [true, false]) {
     specify(`recurring contribution, ${payFees ? '' : 'NOT'} paying fees`, () => {
       cy.intercept(
-        { method: 'POST', url: getEndpoint(AUTHORIZE_STRIPE_SUBSCRIPTION_ROUTE) },
+        { method: 'POST', url: getEndpoint(AUTHORIZE_STRIPE_PAYMENT_ROUTE) },
         {
           body: {
             client_secret: 'pi_3LgkV1pOaLul7_secret_QcpIANR9d6',
@@ -515,7 +511,6 @@ describe('User flow: happy path', () => {
         cy.getByTestId('pay-fees-checked').click();
         cy.getByTestId('pay-fees').should('exist');
       }
-
       cy.get('form[name="contribution-checkout"]').submit();
       cy.wait('@create-subscription-payment').then((interception) => {
         // captcha_token is different each request, so instead of stubbing it, we just assert there's an
@@ -529,7 +524,7 @@ describe('User flow: happy path', () => {
           first_name: 'Fred',
           last_name: 'Person',
           email: 'foo@bar.com',
-          phone: '',
+          phone: '212-555-5555',
           mailing_street: '123 Main St',
           mailing_city: 'Big City',
           mailing_state: 'NY',
@@ -580,7 +575,7 @@ describe('User flow: happy path', () => {
 
   specify('Via default donation page', () => {
     cy.intercept(
-      { method: 'POST', url: getEndpoint(AUTHORIZE_STRIPE_SUBSCRIPTION_ROUTE) },
+      { method: 'POST', url: getEndpoint(AUTHORIZE_STRIPE_PAYMENT_ROUTE) },
       {
         body: {
           client_secret: 'pi_3LgkV1pOaLul7_secret_QcpIANR9d6',
@@ -634,6 +629,99 @@ describe('User flow: happy path', () => {
   });
 });
 
+describe('User flow: canceling contribution', () => {
+  beforeEach(() => {
+    // We intercept requests for Google Recaptcha because in test env, sometimes the live recaptcha returns an error
+    // (possibly because we load it too many times successively???), which was causing test failure else where.
+    cy.intercept({ method: 'GET', url: 'https://www.google.com/recaptcha/*' }, { statusCode: 200 });
+    cy.visitDonationPage();
+  });
+
+  specify('happy path', () => {
+    cy.intercept(
+      { method: 'POST', url: getEndpoint(AUTHORIZE_STRIPE_PAYMENT_ROUTE) },
+      {
+        body: { client_secret: fakeStripeSecret, email_hash: fakeEmailHash, uuid: fakeContributionUuid },
+        statusCode: 201
+      }
+    ).as('create-subscription-payment');
+    cy.intercept(
+      { method: 'DELETE', url: getEndpoint(`${AUTHORIZE_STRIPE_PAYMENT_ROUTE}${fakeContributionUuid}/`) },
+      { statusCode: 204 }
+    ).as('cancel-payment');
+    cy.interceptStripeApi();
+    cy.get('[data-testid*="frequency-month"]').click();
+    fillOutDonorInfoSection();
+    fillOutAddressSection();
+
+    fillOutReasonForGiving();
+    const frequencyLabel = 'Monthly';
+    // we assert checked before submission so can check after that has same val
+    cy.findAllByLabelText(frequencyLabel).should('be.checked');
+    // this test id indicates pay fees checked is in dom, which we'll also assert after canceling
+    cy.getByTestId('pay-fees-checked');
+
+    cy.get('form[name="contribution-checkout"]').submit();
+    cy.wait('@create-subscription-payment');
+    cy.findByRole('button', { name: DEFAULT_BACK_BUTTON_TEXT }).click();
+    cy.wait('@cancel-payment');
+
+    // here we show that previous form values still in place when sent back to initial form
+    cy.findByLabelText('First name', { exact: false }).should('have.value', 'Fred');
+    cy.findByLabelText('Last name', { exact: false }).should('have.value', 'Person');
+    cy.findByLabelText('Email', { exact: false }).should('have.value', 'foo@bar.com');
+    cy.findByLabelText('Phone', { exact: false }).should('have.value', '212-555-5555');
+    cy.findByLabelText('Address', { exact: false }).should('have.value', '123 Main St');
+    cy.findByLabelText('City', { exact: false }).should('have.value', 'Big City');
+    cy.findByLabelText('State', { exact: false }).should('have.value', 'NY');
+    cy.findByLabelText('Zip/Postal code', { exact: false }).should('have.value', '100738');
+    cy.get('@countryValue').then((country) => {
+      cy.findByLabelText('Country', { exact: false })
+        .invoke('val')
+        .then((val) => {
+          expect(val).to.equal(country);
+        });
+    });
+    cy.findAllByLabelText(frequencyLabel).should('be.checked');
+    cy.getByTestId('pay-fees-checked');
+    cy.get('@reasonValue').then((reason) => {
+      cy.getByTestId('excited-to-support-picklist').should('have.value', reason);
+    });
+  });
+
+  specify('when API request to cancel payment fails', () => {
+    cy.intercept(
+      { method: 'POST', url: getEndpoint(AUTHORIZE_STRIPE_PAYMENT_ROUTE) },
+      {
+        body: { client_secret: fakeStripeSecret, email_hash: fakeEmailHash, uuid: fakeContributionUuid },
+        statusCode: 201
+      }
+    ).as('create-subscription-payment');
+    cy.intercept(
+      { method: 'DELETE', url: getEndpoint(`${AUTHORIZE_STRIPE_PAYMENT_ROUTE}${fakeContributionUuid}`) },
+      { statusCode: 500 }
+    ).as('cancel-payment');
+    cy.interceptStripeApi();
+    cy.get('[data-testid*="frequency-month"]').click();
+    fillOutDonorInfoSection();
+    fillOutAddressSection();
+
+    cy.findByLabelText('Country', { exact: false }).invoke('val').as('countryValue');
+    fillOutReasonForGiving();
+    const frequencyLabel = 'Monthly';
+    // we assert checked before submission so can check after that has same val
+    cy.findAllByLabelText(frequencyLabel).should('be.checked');
+    // this test id indicates pay fees checked is in dom, which we'll also assert after canceling
+    cy.getByTestId('pay-fees-checked');
+
+    cy.get('form[name="contribution-checkout"]').submit();
+    cy.wait('@create-subscription-payment');
+    cy.findByRole('button', { name: DEFAULT_BACK_BUTTON_TEXT }).click();
+    cy.wait('@cancel-payment');
+    cy.contains(CANCEL_PAYMENT_FAILURE_MESSAGE);
+  });
+});
+
 describe('User flow: unhappy paths', () => {
   beforeEach(() => {
     // We intercept requests for Google Recaptcha because in test env, sometimes the live recaptcha returns an error
@@ -643,7 +731,7 @@ describe('User flow: unhappy paths', () => {
   specify("Contribution doesn't validate on server", () => {
     const validationError = 'This field is required';
     cy.intercept(
-      { method: 'POST', url: getEndpoint(AUTHORIZE_ONE_TIME_STRIPE_PAYMENT_ROUTE) },
+      { method: 'POST', url: getEndpoint(AUTHORIZE_STRIPE_PAYMENT_ROUTE) },
       {
         body: {
           first_name: validationError,
@@ -676,7 +764,7 @@ describe('User flow: unhappy paths', () => {
   });
 
   specify('Checkout form submission response is a 403', () => {
-    cy.intercept({ method: 'POST', url: getEndpoint(AUTHORIZE_ONE_TIME_STRIPE_PAYMENT_ROUTE) }, { statusCode: 403 }).as(
+    cy.intercept({ method: 'POST', url: getEndpoint(AUTHORIZE_STRIPE_PAYMENT_ROUTE) }, { statusCode: 403 }).as(
       'create-one-time-payment__unauthorized'
     );
     cy.visitDonationPage();

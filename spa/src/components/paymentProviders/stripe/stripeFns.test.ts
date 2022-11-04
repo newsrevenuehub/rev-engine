@@ -32,7 +32,7 @@ const fromDefaultPageParams = {
   pageSlug: 'my-page',
   rpSlug: 'my-rp',
   pathName: '/',
-  contributionUuid: 'secret-secret',
+  contributionUuid: 'secret-secret'
 };
 
 describe('getTotalAmount', () => {

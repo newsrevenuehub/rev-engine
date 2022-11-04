@@ -165,18 +165,18 @@ class StripeRecurringPaymentManagerTest(StripePaymentManagerAbstractTestCase):
         self.payment_method_id = "test_payment_method_id"
         self.data.update({"payment_method_id": self.payment_method_id, "interval": ContributionInterval.MONTHLY})
 
-    @patch("stripe.Subscription.delete")
-    def test_reject_happy_path(self, mock_sub_delete, *args):
+    @patch("stripe.SetupIntent.cancel")
+    def test_reject_happy_path(self, mock_setup_intent_cancel, *args):
         pm = self._instantiate_payment_manager_with_instance()
         pm.complete_payment(reject=True)
-        mock_sub_delete.assert_called_once_with(
-            self.contribution.provider_subscription_id,
+        mock_setup_intent_cancel.assert_called_once_with(
+            self.contribution.provider_setup_intent_id,
             stripe_account=self.contribution.donation_page.revenue_program.payment_provider.stripe_account_id,
         )
         self.assertEqual(self.contribution.status, ContributionStatus.REJECTED)
 
-    @patch("stripe.Subscription.delete", side_effect=stripe_errors.StripeError)
-    def test_reject_when_error_deleting_stripe_subscription(self, mock_sub_delete, *args):
+    @patch("stripe.SetupIntent.cancel", side_effect=stripe_errors.StripeError)
+    def test_reject_when_error_canceling_setup_intent(self, mock_sub_delete, *args):
         self.contribution.status = ContributionStatus.FLAGGED
         self.contribution.save()
         pm = self._instantiate_payment_manager_with_instance()
@@ -184,21 +184,51 @@ class StripeRecurringPaymentManagerTest(StripePaymentManagerAbstractTestCase):
             pm.complete_payment(reject=True)
         self.assertEqual(self.contribution.status, ContributionStatus.FLAGGED)
 
-    @patch("stripe.Subscription.modify", return_value={})
-    def test_accept(self, mock_sub_modify, *args):
+    @patch("stripe.SetupIntent.retrieve", return_value={"metadata": {"foo": "bar"}, "payment_method": "some-card"})
+    @patch("stripe.Subscription.create", return_value={"id": "subscription-id"})
+    def test_accept(self, mock_sub_create, mock_setup_intent_retrieve, *args):
+        self.contribution.provider_customer_id = "some-customer"
+        self.contribution.provider_setup_intent_id = "some-id"
+        self.contribution.save()
         pm = self._instantiate_payment_manager_with_instance()
         pm.complete_payment(reject=False)
-        mock_sub_modify.assert_called_once_with(
-            self.contribution.provider_subscription_id,
+        mock_setup_intent_retrieve.assert_called_once_with(
+            self.contribution.provider_setup_intent_id,
             stripe_account=self.contribution.donation_page.revenue_program.payment_provider.stripe_account_id,
-            trial_end="now",
         )
-        self.assertEqual(self.contribution.status, ContributionStatus.PROCESSING)
+        mock_sub_create.assert_called_once_with(
+            customer=self.contribution.provider_customer_id,
+            metadata=mock_setup_intent_retrieve.return_value["metadata"],
+            default_payment_method=mock_setup_intent_retrieve.return_value["payment_method"],
+            off_session=True,
+            payment_behavior="error_if_incomplete",
+            payment_settings={"save_default_payment_method": "on_subscription"},
+            expand=["latest_invoice.payment_intent"],
+            items=[
+                {
+                    "price_data": {
+                        "unit_amount": self.contribution.amount,
+                        "currency": self.contribution.currency,
+                        "product": self.contribution.donation_page.revenue_program.payment_provider.stripe_product_id,
+                        "recurring": {"interval": self.contribution.interval.value},
+                    }
+                }
+            ],
+            stripe_account=self.contribution.donation_page.revenue_program.payment_provider.stripe_account_id,
+        )
+        self.assertEqual(self.contribution.status, ContributionStatus.PAID)
 
-    @patch("stripe.Subscription.modify", side_effect=stripe_errors.StripeError)
-    def test_accept_when_stripe_error(self, mock_sub_create, *args):
+    @patch("stripe.SetupIntent.retrieve", return_value={"metadata": {"foo": "bar"}, "payment_method": "some-card"})
+    @patch("stripe.Subscription.create", side_effect=stripe_errors.StripeError)
+    def test_accept_when_stripe_error_on_subscription_create(
+        self, mock_setup_intent_retrieve, mock_subscription_create, *args
+    ):
+        self.contribution.status = ContributionStatus.FLAGGED
+        self.contribution.save()
         pm = self._instantiate_payment_manager_with_instance()
         with self.assertRaises(PaymentProviderError) as e:
             pm.complete_payment(reject=False)
-        mock_sub_create.assert_called_once()
+        assert self.contribution.status == ContributionStatus.FLAGGED
+        mock_setup_intent_retrieve.assert_called_once()
+        mock_subscription_create.assert_called_once()
         self.assertEqual(str(e.exception), "Could not complete payment")

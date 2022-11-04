@@ -13,7 +13,7 @@ router.register(r"payments/subscription", views.SubscriptionPaymentViewSet, base
 router.register(r"subscriptions", views.SubscriptionsViewSet, basename="subscription")
 
 urlpatterns = [
-    path("payments/<str:provider_client_secret_id>/success/", views.payment_success, name="payment-success"),
+    path("payments/<str:uuid>/success/", views.payment_success, name="payment-success"),
     path("stripe/oauth/", views.stripe_oauth, name="stripe-oauth"),
     path("stripe/confirmation/", views.stripe_confirmation, name="stripe-confirmation"),
     re_path(

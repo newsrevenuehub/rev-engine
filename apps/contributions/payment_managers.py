@@ -128,43 +128,47 @@ class StripePaymentManager(PaymentManager):
     def complete_recurring_payment(self, reject=False):
         if reject:
             try:
-                stripe.Subscription.delete(
-                    self.contribution.provider_subscription_id,
+                stripe.SetupIntent.cancel(
+                    self.contribution.provider_setup_intent_id,
                     stripe_account=self.contribution.donation_page.revenue_program.payment_provider.stripe_account_id,
                 )
+
             except stripe.error.StripeError:
                 logger.exception(
                     (
-                        "`StripePaymentManager.complete_recurring_payment` encountered an error trying to delete a "
-                        "subscription with ID %s for contribution with ID %s"
+                        "`StripePaymentManager.complete_recurring_payment` encountered an error trying to cancel a "
+                        "setup intent with ID %s for contribution with ID %s"
                     ),
-                    self.contribution.provider_subscription_id,
+                    self.contribution.provider_setup_intent_id,
                     self.contribution.id,
                 )
                 raise PaymentProviderError(
-                    "Something went wrong trying to delete Stripe subscription with id: %s",
-                    self.contribution.provider_subscription_id,
+                    "Something went wrong trying to delete Stripe setup intent with id: %s",
+                    self.contribution.provider_setup_intent_id,
                 )
             self.contribution.status = ContributionStatus.REJECTED
             self.contribution.save()
             return
 
-        revenue_program = self.contribution.revenue_program
         previous_status = self.contribution.status
         self.contribution.status = ContributionStatus.PROCESSING
         self.contribution.save()
         try:
-            subscription = stripe.Subscription.modify(
-                self.contribution.provider_subscription_id,
-                billing_cycle_anchor="now",
-                stripe_account=revenue_program.payment_provider.stripe_account_id,
+            setup_intent = stripe.SetupIntent.retrieve(
+                self.contribution.provider_setup_intent_id,
+                stripe_account=self.contribution.donation_page.revenue_program.stripe_account_id,
             )
+            self.contribution.create_stripe_subscription(
+                off_session=True,
+                error_if_incomplete=True,
+                default_payment_method=setup_intent["payment_method"],
+                metadata=setup_intent["metadata"],
+            )
+            # TODO: Verify it's actually charged when default_payment_method sent
+            self.contribution.status = ContributionStatus.PAID
+            self.contribution.save()
         except stripe.error.StripeError as stripe_error:
             self._handle_stripe_error(stripe_error, previous_status=previous_status)
-
-        self.contribution.payment_provider_data = subscription
-        self.contribution.save()
-        return subscription
 
     def _handle_stripe_error(self, stripe_error, previous_status=None):
         if previous_status:

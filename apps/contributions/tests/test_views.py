@@ -1025,7 +1025,7 @@ class TestOneTimePaymentViewSet:
         url = reverse("payment-one-time-list")
         response = self.client.post(url, valid_data, format="json")
         assert response.status_code == status.HTTP_201_CREATED
-        assert set(["email_hash", "provider_client_secret_id"]) == set(response.json().keys())
+        assert set(["email_hash", "client_secret", "uuid"]) == set(response.json().keys())
         assert Contributor.objects.count() == contributor_count + 1
         assert Contribution.objects.count() == contribution_count + 1
 
@@ -1076,7 +1076,7 @@ class TestSubscriptionPaymentViewSet:
         url = reverse("payment-subscription-list")
         response = self.client.post(url, data, format="json")
         assert response.status_code == status.HTTP_201_CREATED
-        assert set(["email_hash", "provider_client_secret_id"]) == set(response.json().keys())
+        assert set(["email_hash", "client_secret", "uuid"]) == set(response.json().keys())
         assert Contributor.objects.count() == contributor_count + 1
         assert Contribution.objects.count() == contribution_count + 1
 
@@ -1100,6 +1100,6 @@ def test_payment_success_view():
     contribution = ContributionFactory(interval="month")
     contribution.provider_client_secret_id = "Shhhhhh"
     contribution.save()
-    url = reverse("payment-success", args=(contribution.provider_client_secret_id,))
+    url = reverse("payment-success", args=(str(contribution.uuid),))
     response = client.patch(url, {})
     assert response.status_code == status.HTTP_204_NO_CONTENT

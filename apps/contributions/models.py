@@ -1,7 +1,5 @@
 import uuid
-from datetime import timedelta
 
-from django.conf import settings
 from django.db import models
 from django.utils import timezone
 
@@ -47,36 +45,6 @@ class Contributor(IndexedTimeStampedModel):
 
     def __str__(self):
         return self.email
-
-    def create_stripe_customer(
-        self,
-        rp_stripe_account_id,
-        customer_name=None,
-        phone=None,
-        street=None,
-        city=None,
-        state=None,
-        postal_code=None,
-        country=None,
-        metadata=None,
-    ):
-        """Create a Stripe customer using contributor email"""
-        address = {
-            "line1": street,
-            "city": city,
-            "state": state,
-            "postal_code": postal_code,
-            "country": country,
-        }
-        return stripe.Customer.create(
-            email=self.email,
-            address=address,
-            shipping={"address": address, "name": customer_name},
-            name=customer_name,
-            phone=phone,
-            stripe_account=rp_stripe_account_id,
-            metadata=metadata,
-        )
 
 
 class ContributionInterval(models.TextChoices):
@@ -146,9 +114,7 @@ class Contribution(IndexedTimeStampedModel, RoleAssignmentResourceModelMixin):
     payment_provider_used = models.CharField(max_length=64)
     payment_provider_data = models.JSONField(null=True)
     provider_payment_id = models.CharField(max_length=255, blank=True, null=True)
-    # This is the `client_id` value in the response from StripeAPI after creating a
-    # Stripe PaymentElement or Subscription
-    provider_client_secret_id = models.CharField(max_length=255, blank=True, null=True)
+    provider_setup_intent_id = models.CharField(max_length=255, blank=True, null=True)
     provider_subscription_id = models.CharField(max_length=255, blank=True, null=True)
     provider_customer_id = models.CharField(max_length=255, blank=True, null=True)
     provider_payment_method_id = models.CharField(max_length=255, blank=True, null=True)
@@ -165,6 +131,7 @@ class Contribution(IndexedTimeStampedModel, RoleAssignmentResourceModelMixin):
     contribution_metadata = models.JSONField(null=True)
 
     status = models.CharField(max_length=10, choices=ContributionStatus.choices, null=True)
+    uuid = models.UUIDField(default=uuid.uuid4, primary_key=False, editable=False)
 
     class Meta:
         get_latest_by = "modified"
@@ -257,7 +224,42 @@ class Contribution(IndexedTimeStampedModel, RoleAssignmentResourceModelMixin):
         else:
             raise UnexpectedRoleType(f"`{role_assignment.role_type}` is not a valid role type")
 
-    def create_stripe_one_time_payment_intent(self, stripe_customer_id, metadata):
+    def create_stripe_customer(
+        self,
+        first_name=None,
+        last_name=None,
+        phone=None,
+        mailing_street=None,
+        mailing_city=None,
+        mailing_state=None,
+        mailing_postal_code=None,
+        mailing_country=None,
+        save=True,
+        **kwargs,
+    ):
+        """Create a Stripe customer using contributor email"""
+        address = {
+            "line1": mailing_street,
+            "city": mailing_city,
+            "state": mailing_state,
+            "postal_code": mailing_postal_code,
+            "country": mailing_country,
+        }
+        name = " ".join([x for x in [first_name, last_name] if x])
+        customer = stripe.Customer.create(
+            email=self.contributor.email,
+            address=address,
+            shipping={"address": address, "name": name},
+            name=name,
+            phone=phone,
+            stripe_account=self.donation_page.revenue_program.payment_provider.stripe_account_id,
+        )
+        if save:
+            self.provider_customer_id = customer["id"]
+            self.save()
+        return customer
+
+    def create_stripe_one_time_payment_intent(self, metadata, save=True):
         """Create a Stripe PaymentIntent and attach its id and client_secret to the contribution
 
         See https://stripe.com/docs/api/payment_intents/create for more info
@@ -265,20 +267,41 @@ class Contribution(IndexedTimeStampedModel, RoleAssignmentResourceModelMixin):
         intent = stripe.PaymentIntent.create(
             amount=self.amount,
             currency=self.currency,
-            customer=stripe_customer_id,
+            customer=self.provider_customer_id,
             metadata=metadata,
             receipt_email=self.contributor.email,
             statement_descriptor_suffix=self.donation_page.revenue_program.stripe_statement_descriptor_suffix,
             stripe_account=self.donation_page.revenue_program.stripe_account_id,
             capture_method="manual" if self.status == ContributionStatus.FLAGGED else "automatic",
         )
-        self.provider_payment_id = intent["id"]
-        self.provider_client_secret_id = intent["client_secret"]
-        self.provider_customer_id = intent["customer"]
-        self.save()
+        if save:
+            self.provider_payment_id = intent["id"]
+            # we don't want to save this because it can be used to authorize payment attempt
+            # so want to keep surface area small as possible
+            self.payment_provider_data = dict(intent) | {"client_secret": None}
+            self.save()
         return intent
 
-    def create_stripe_subscription(self, stripe_customer_id, metadata):
+    def create_stripe_setup_intent(self, metadata, save=True):
+        """ """
+        setup_intent = stripe.SetupIntent.create(
+            customer=self.provider_customer_id,
+            stripe_account=self.donation_page.revenue_program.payment_provider.stripe_account_id,
+            metadata=metadata,
+        )
+        if save:
+            self.provider_setup_intent_id = setup_intent["id"]
+            self.save()
+        return setup_intent
+
+    def create_stripe_subscription(
+        self,
+        metadata=None,
+        default_payment_method=None,
+        off_session=False,
+        error_if_incomplete=False,
+        save=True,
+    ):
         """Create a Stripe Subscription and attach its data to the contribution
 
         See https://stripe.com/docs/api/subscriptions/create for more info
@@ -291,30 +314,25 @@ class Contribution(IndexedTimeStampedModel, RoleAssignmentResourceModelMixin):
                 "interval": self.interval,
             },
         }
-        kwargs = {
-            "customer": stripe_customer_id,
-            "items": [
+        subscription = stripe.Subscription.create(
+            customer=self.provider_customer_id,
+            default_payment_method=default_payment_method,
+            items=[
                 {
                     "price_data": price_data,
                 }
             ],
-            "stripe_account": self.donation_page.revenue_program.payment_provider.stripe_account_id,
-            "metadata": metadata,
-            "payment_behavior": "default_incomplete",
-            "payment_settings": {"save_default_payment_method": "on_subscription"},
-            "expand": ["latest_invoice.payment_intent"],
-        }
-        if self.status == ContributionStatus.FLAGGED:
-            kwargs["billing_cycle_anchor"] = timezone.now() + timedelta(
-                days=settings.FLAGGED_PAYMENT_AUTO_ACCEPT_DELTA + 1
-            )
-
-        subscription = stripe.Subscription.create(**kwargs)
-        self.payment_provider_data = subscription
-        self.provider_subscription_id = subscription["id"]
-        self.provider_customer_id = subscription["customer"]
-        self.provider_client_secret_id = subscription["latest_invoice"]["payment_intent"]["client_secret"]
-        self.save()
+            stripe_account=self.donation_page.revenue_program.payment_provider.stripe_account_id,
+            metadata=metadata,
+            payment_behavior="error_if_incomplete" if error_if_incomplete else "default_incomplete",
+            payment_settings={"save_default_payment_method": "on_subscription"},
+            expand=["latest_invoice.payment_intent"],
+            off_session=off_session,
+        )
+        if save:
+            self.payment_provider_data = subscription
+            self.provider_subscription_id = subscription["id"]
+            self.save()
         return subscription
 
     def handle_thank_you_email(self, contribution_received_at=None):

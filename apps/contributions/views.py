@@ -174,10 +174,9 @@ def process_stripe_webhook_view(request):
 
 
 @method_decorator(csrf_protect, name="dispatch")
-class OneTimePaymentViewSet(mixins.CreateModelMixin, mixins.UpdateModelMixin, viewsets.GenericViewSet):
+class OneTimePaymentViewSet(mixins.CreateModelMixin, viewsets.GenericViewSet):
     permission_classes = []
     serializer_class = serializers.CreateOneTimePaymentSerializer
-    lookup_field = "provider_client_secret_id"
 
     def get_serializer_context(self):
         # we need request in context for create in order to supply
@@ -188,10 +187,9 @@ class OneTimePaymentViewSet(mixins.CreateModelMixin, mixins.UpdateModelMixin, vi
 
 
 @method_decorator(csrf_protect, name="dispatch")
-class SubscriptionPaymentViewSet(mixins.CreateModelMixin, mixins.UpdateModelMixin, viewsets.GenericViewSet):
+class SubscriptionPaymentViewSet(mixins.CreateModelMixin, viewsets.GenericViewSet):
     permission_classes = []
     serializer_class = serializers.CreateRecurringPaymentSerializer
-    lookup_field = "provider_client_secret_id"
 
     def get_serializer_context(self):
         # we need request in context for create in order to supply
@@ -203,7 +201,7 @@ class SubscriptionPaymentViewSet(mixins.CreateModelMixin, mixins.UpdateModelMixi
 
 @api_view(["PATCH"])
 @permission_classes([])
-def payment_success(request, provider_client_secret_id=None):
+def payment_success(request, uuid=None):
     """This view is used by the SPA after a Stripe payment has been submitted to Stripe from front end.
 
     We provide the url for this view to `return_url` parameter we call Stripe to confirm payment on front end,
@@ -211,7 +209,7 @@ def payment_success(request, provider_client_secret_id=None):
     accordingly.
     """
     try:
-        contribution = Contribution.objects.get(provider_client_secret_id=provider_client_secret_id)
+        contribution = Contribution.objects.get(uuid=uuid)
     except Contribution.DoesNotExist:
         return Response(status=status.HTTP_404_NOT_FOUND)
     contribution.handle_thank_you_email()

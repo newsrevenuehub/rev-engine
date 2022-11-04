@@ -282,9 +282,10 @@ class BaseCreatePaymentSerializer(serializers.Serializer):
     )
     sf_campaign_id = serializers.CharField(max_length=255, required=False, allow_blank=True, write_only=True)
     captcha_token = serializers.CharField(max_length=2550, allow_blank=True, write_only=True)
-    provider_client_secret_id = serializers.CharField(read_only=True)
     email_hash = serializers.CharField(read_only=True)
     donor_selected_amount = serializers.FloatField(write_only=True)
+    client_secret = serializers.CharField(max_length=255, read_only=True, required=False)
+    uuid = serializers.CharField(read_only=True)
 
     def validate_tribute_type(self, value):
         """Ensure there are no unexpected values for tribute_type"""
@@ -405,12 +406,12 @@ class BaseCreatePaymentSerializer(serializers.Serializer):
         """Determine if bad actor score should lead to contribution being flagged"""
         return bad_actor_score == settings.BAD_ACTOR_FLAG_THRESHOLD
 
-    def get_stripe_payment_metadata(self, contributor, validated_data):
+    def get_stripe_payment_metadata(self, contributor_id, validated_data):
         """Generate dict of metadata to be sent to Stripe when creating a PaymentIntent or Subscription"""
         return {
             "source": settings.METADATA_SOURCE,
             "schema_version": settings.METADATA_SCHEMA_VERSION,
-            "contributor_id": contributor.id,
+            "contributor_id": contributor_id,
             "agreed_to_pay_fees": validated_data["agreed_to_pay_fees"],
             "donor_selected_amount": validated_data["donor_selected_amount"],
             "reason_for_giving": validated_data["reason_for_giving"],
@@ -424,24 +425,6 @@ class BaseCreatePaymentSerializer(serializers.Serializer):
             "revenue_program_slug": validated_data["page"].revenue_program.slug,
             "sf_campaign_id": validated_data.get("sf_campaign_id"),
         }
-
-    def create_stripe_customer(self, contributor, validated_data):
-        """Create a Stripe customer using validated data"""
-        return contributor.create_stripe_customer(
-            validated_data["page"].revenue_program.stripe_account_id,
-            customer_name=f"{validated_data.get('first_name', '')} {validated_data.get('last_name', '')}".strip(),
-            phone=validated_data["phone"],
-            street=validated_data["mailing_street"],
-            city=validated_data["mailing_city"],
-            state=validated_data["mailing_state"],
-            postal_code=validated_data["mailing_postal_code"],
-            country=validated_data["mailing_country"],
-            metadata={
-                "source": settings.METADATA_SOURCE,
-                "schema_version": settings.METADATA_SCHEMA_VERSION,
-                "contributor_id": contributor.id,
-            },
-        )
 
     def create_contribution(self, contributor, validated_data, bad_actor_response=None):
         """Create an NRE contribution using validated data"""
@@ -493,7 +476,7 @@ class CreateOneTimePaymentSerializer(BaseCreatePaymentSerializer):
             # Stripe payment intent, so we raise exception, and leave to SPA to handle accordingly
             raise PermissionDenied("Cannot authorize contribution")
         try:
-            customer = self.create_stripe_customer(contributor, validated_data)
+            contribution.create_stripe_customer(**validated_data)
         except StripeError:
             logger.exception(
                 "CreateOneTimePaymentSerializer.create encountered a Stripe error while attempting to create a Stripe customer for contributor with id %s",
@@ -502,8 +485,7 @@ class CreateOneTimePaymentSerializer(BaseCreatePaymentSerializer):
             raise GenericPaymentError()
         try:
             payment_intent = contribution.create_stripe_one_time_payment_intent(
-                stripe_customer_id=customer["id"],
-                metadata=self.get_stripe_payment_metadata(contributor, validated_data),
+                metadata=self.get_stripe_payment_metadata(contributor.id, validated_data),
             )
         except StripeError:
             logger.exception(
@@ -511,8 +493,10 @@ class CreateOneTimePaymentSerializer(BaseCreatePaymentSerializer):
                 contribution.id,
             )
             raise GenericPaymentError()
+
         return {
-            "provider_client_secret_id": payment_intent["client_secret"],
+            "uuid": str(contribution.uuid),
+            "client_secret": payment_intent["client_secret"],
             "email_hash": get_sha256_hash(contributor.email),
         }
 
@@ -548,7 +532,7 @@ class CreateRecurringPaymentSerializer(BaseCreatePaymentSerializer):
             # Stripe payment intent, so we raise exception, and leave to SPA to handle accordingly
             raise PermissionDenied("Cannot authorize contribution")
         try:
-            customer = self.create_stripe_customer(contributor, validated_data)
+            contribution.create_stripe_customer(**validated_data)
         except StripeError:
             logger.exception(
                 "RecurringPaymentSerializer.create encountered a Stripe error while attempting to create a stripe customer for contributor with id %s",
@@ -556,18 +540,23 @@ class CreateRecurringPaymentSerializer(BaseCreatePaymentSerializer):
             )
             raise GenericPaymentError()
         try:
-            contribution.create_stripe_subscription(
-                stripe_customer_id=customer["id"],
-                metadata=self.get_stripe_payment_metadata(contributor, validated_data),
-            )
+            if contribution.status == ContributionStatus.FLAGGED:
+                client_secret = contribution.create_stripe_setup_intent(
+                    metadata=self.get_stripe_payment_metadata(contributor.id, validated_data),
+                )["client_secret"]
+            else:
+                client_secret = contribution.create_stripe_subscription(
+                    metadata=self.get_stripe_payment_metadata(contributor.id, validated_data),
+                )["latest_invoice"]["payment_intent"]["client_secret"]
         except StripeError:
             logger.exception(
-                "RecurringPaymentSerializer.create encountered a Stripe error while attempting to create a subscription for contribution with id %s",
+                "RecurringPaymentSerializer.create encountered a Stripe error while attempting to create client_secret for contribution with id %s",
                 contribution.id,
             )
             raise GenericPaymentError()
         return {
-            "provider_client_secret_id": contribution.provider_client_secret_id,
+            "uuid": str(contribution.uuid),
+            "client_secret": client_secret,
             "email_hash": get_sha256_hash(contributor.email),
         }
 

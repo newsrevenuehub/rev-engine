@@ -753,7 +753,7 @@ class TestBaseCreatePaymentSerializer:
         request = APIRequestFactory(HTTP_REFERER=referer).post("", {}, format="json")
         serializer = self.serializer_class(data=minimally_valid_data, context={"request": request})
         assert serializer.is_valid() is True
-        metadata = serializer.get_stripe_payment_metadata(contributor, serializer.validated_data)
+        metadata = serializer.get_stripe_payment_metadata(contributor.id, serializer.validated_data)
         assert metadata == {
             "source": settings.METADATA_SOURCE,
             "schema_version": settings.METADATA_SCHEMA_VERSION,
@@ -771,36 +771,6 @@ class TestBaseCreatePaymentSerializer:
             "revenue_program_slug": serializer.validated_data["page"].revenue_program.slug,
             "sf_campaign_id": serializer.validated_data.get("sf_campaign_id"),
         }
-
-    def test_create_stripe_customer(self, minimally_valid_data, monkeypatch):
-        """Show that the `.create_stripe_customer` method calls `Contributor.create_stripe_customer` with
-
-        expected values. We don't test beyond this because `Contributor.create_stripe_customer` is itself unit tested
-        elsewhere
-        """
-        mock_create_stripe_customer = Mock()
-        monkeypatch.setattr(
-            "apps.contributions.tests.factories.models.Contributor.create_stripe_customer", mock_create_stripe_customer
-        )
-        contributor = ContributorFactory()
-        serializer = self.serializer_class(data=minimally_valid_data)
-        assert serializer.is_valid() is True
-        serializer.create_stripe_customer(contributor, serializer.validated_data)
-        assert mock_create_stripe_customer.called_once_with(
-            serializer.validated_data["page"].revenue_program.stripe_account_id,
-            customer_name=f"{serializer.validated_data.get('first_name')} {serializer.validated_data.get('last_name')}",
-            phone=serializer.validated_data["phone"],
-            street=serializer.validated_data["mailing_street"],
-            city=serializer.validated_data["mailing_city"],
-            state=serializer.validated_data["mailing_state"],
-            postal_code=serializer.validated_data["mailing_postal_code"],
-            country=serializer.validated_data["mailing_country"],
-            metadata={
-                "source": settings.METADATA_SOURCE,
-                "schema_version": settings.METADATA_SCHEMA_VERSION,
-                "contributor_id": contributor.id,
-            },
-        )
 
     def test_create_contribution_happy_path(self, minimally_valid_data):
         contribution_count = Contribution.objects.count()
@@ -934,7 +904,9 @@ class TestCreateOneTimePaymentSerializer:
         mock_create_stripe_customer = Mock()
         fake_customer_id = "fake-customer-id"
         mock_create_stripe_customer.return_value = {"id": fake_customer_id}
-        monkeypatch.setattr("apps.contributions.models.Contributor.create_stripe_customer", mock_create_stripe_customer)
+        monkeypatch.setattr(
+            "apps.contributions.models.Contribution.create_stripe_customer", mock_create_stripe_customer
+        )
         mock_create_stripe_one_time_payment_intent = Mock()
         client_secret = "shhhhhhh!"
         mock_create_stripe_one_time_payment_intent.return_value = {
@@ -951,10 +923,11 @@ class TestCreateOneTimePaymentSerializer:
         result = serializer.create(serializer.validated_data)
         assert Contribution.objects.count() == contribution_count + 1
         assert Contributor.objects.count() == contributor_count + 1
-        assert set(result.keys()) == set(["provider_client_secret_id", "email_hash"])
-        assert result["provider_client_secret_id"] == client_secret
+        assert set(result.keys()) == set(["client_secret", "uuid", "email_hash"])
+        assert result["client_secret"] == client_secret
         assert Contributor.objects.filter(email=minimally_valid_data["email"]).exists()
-        contribution = Contribution.objects.get(provider_client_secret_id=client_secret)
+        contribution = Contribution.objects.get(uuid=result["uuid"])
+        assert result["uuid"] == str(contribution.uuid)
         assert result["email_hash"] == get_sha256_hash(contribution.contributor.email)
         assert contribution.status == ContributionStatus.PROCESSING
         assert contribution.flagged_date is None
@@ -973,7 +946,9 @@ class TestCreateOneTimePaymentSerializer:
         monkeypatch.setattr("apps.contributions.serializers.make_bad_actor_request", mock_get_bad_actor)
         mock_create_stripe_customer = Mock()
         mock_create_stripe_customer.return_value = {"id": "some id"}
-        monkeypatch.setattr("apps.contributions.models.Contributor.create_stripe_customer", mock_create_stripe_customer)
+        monkeypatch.setattr(
+            "apps.contributions.models.Contribution.create_stripe_customer", mock_create_stripe_customer
+        )
         monkeypatch.setattr("apps.contributions.models.stripe.PaymentIntent.create", mock_stripe_call_with_error)
         request = APIRequestFactory(HTTP_REFERER="https://www.google.com").post("", {}, format="json")
 
@@ -1001,7 +976,9 @@ class TestCreateOneTimePaymentSerializer:
         contributor_count = Contributor.objects.count()
 
         monkeypatch.setattr("apps.contributions.serializers.make_bad_actor_request", mock_get_bad_actor)
-        monkeypatch.setattr("apps.contributions.models.Contributor.create_stripe_customer", mock_stripe_call_with_error)
+        monkeypatch.setattr(
+            "apps.contributions.models.Contribution.create_stripe_customer", mock_stripe_call_with_error
+        )
 
         request = APIRequestFactory(HTTP_REFERER="https://www.google.com").post("", {}, format="json")
 
@@ -1026,7 +1003,6 @@ class TestCreateOneTimePaymentSerializer:
         A contributor, contribution, and Stripe entities should still be created as in happy path, but the `capture_method` on
         the PaymentIntent should be "manual"
         """
-
         contribution_count = Contribution.objects.count()
         contributor_count = Contributor.objects.count()
         monkeypatch.setattr(
@@ -1036,7 +1012,8 @@ class TestCreateOneTimePaymentSerializer:
         mock_create_stripe_customer = Mock()
         fake_customer_id = "fake-customer-id"
         mock_create_stripe_customer.return_value = {"id": fake_customer_id}
-        monkeypatch.setattr("apps.contributions.models.Contributor.create_stripe_customer", mock_create_stripe_customer)
+        monkeypatch.setattr("stripe.Customer.create", mock_create_stripe_customer)
+
         mock_create_stripe_one_time_payment_intent = Mock()
         client_secret = "shhhhhhh!"
         pi_id = "some payment intent id"
@@ -1045,25 +1022,36 @@ class TestCreateOneTimePaymentSerializer:
             "client_secret": client_secret,
             "customer": fake_customer_id,
         }
-        monkeypatch.setattr(
-            "apps.contributions.models.stripe.PaymentIntent.create", mock_create_stripe_one_time_payment_intent
-        )
+        monkeypatch.setattr("stripe.PaymentIntent.create", mock_create_stripe_one_time_payment_intent)
         request = APIRequestFactory(HTTP_REFERER="https://www.google.com").post("", {}, format="json")
         serializer = self.serializer_class(data=minimally_valid_data, context={"request": request})
         assert serializer.is_valid()
         result = serializer.create(serializer.validated_data)
         assert Contribution.objects.count() == contribution_count + 1
         assert Contributor.objects.count() == contributor_count + 1
-        assert set(result.keys()) == set(["provider_client_secret_id", "email_hash"])
-        assert result["provider_client_secret_id"] == client_secret
+        assert set(result.keys()) == set(["client_secret", "email_hash", "uuid"])
+        assert result["client_secret"] == client_secret
         assert Contributor.objects.filter(email=minimally_valid_data["email"]).exists()
-        contribution = Contribution.objects.get(provider_client_secret_id=client_secret)
+        contribution = Contribution.objects.get(uuid=result["uuid"])
         assert result["email_hash"] == get_sha256_hash(contribution.contributor.email)
         assert contribution.status == ContributionStatus.FLAGGED
         assert contribution.flagged_date is not None
         assert contribution.bad_actor_response == MockBadActorResponseObjectBad.mock_bad_actor_response_json
-        assert contribution.provider_client_secret_id == client_secret
         assert contribution.provider_payment_id == pi_id
+        mock_create_stripe_customer.assert_called_once()
+
+        call_args = mock_create_stripe_one_time_payment_intent.call_args[1]
+        # this is nested, and not necessary to test here
+        call_args.pop("metadata", None)
+        assert call_args == {
+            "amount": contribution.amount,
+            "currency": contribution.currency,
+            "customer": contribution.provider_customer_id,
+            "receipt_email": contribution.contributor.email,
+            "statement_descriptor_suffix": None,
+            "stripe_account": contribution.donation_page.revenue_program.payment_provider.stripe_account_id,
+            "capture_method": "manual",
+        }
 
     def test_when_contribution_is_rejected(self, minimally_valid_data, monkeypatch):
         """Demonstrate `.create` when the contribution gets flagged
@@ -1078,12 +1066,9 @@ class TestCreateOneTimePaymentSerializer:
             "apps.contributions.serializers.make_bad_actor_request",
             lambda x: mock_get_bad_actor(response=MockBadActorResponseObjectSuperBad),
         )
-
         request = APIRequestFactory(HTTP_REFERER="https://www.google.com").post("", {}, format="json")
         serializer = self.serializer_class(data=minimally_valid_data, context={"request": request})
-
         assert serializer.is_valid()
-
         with pytest.raises(PermissionDenied):
             serializer.create(serializer.validated_data)
 
@@ -1095,8 +1080,7 @@ class TestCreateOneTimePaymentSerializer:
         contribution = contributor.contribution_set.first()
         assert contribution.status == ContributionStatus.REJECTED
         assert contribution.flagged_date is None
-        # we take the next two assertions as evidence that Stripe PaymentIntent not created
-        assert contribution.provider_client_secret_id is None
+        assert contribution.provider_customer_id is None
         assert contribution.provider_payment_id is None
 
 
@@ -1134,7 +1118,7 @@ class TestCreateRecurringPaymentSerializer:
         mock_create_stripe_customer = Mock()
         fake_customer_id = "fake-customer-id"
         mock_create_stripe_customer.return_value = {"id": fake_customer_id}
-        monkeypatch.setattr("apps.contributions.models.Contributor.create_stripe_customer", mock_create_stripe_customer)
+        monkeypatch.setattr("stripe.Customer.create", mock_create_stripe_customer)
         mock_create_stripe_subscription = Mock()
         client_secret = "shhhhhhh!"
         mock_create_stripe_subscription.return_value = {
@@ -1142,7 +1126,7 @@ class TestCreateRecurringPaymentSerializer:
             "latest_invoice": {"payment_intent": {"client_secret": client_secret}},
             "customer": fake_customer_id,
         }
-        monkeypatch.setattr("apps.contributions.models.stripe.Subscription.create", mock_create_stripe_subscription)
+        monkeypatch.setattr("stripe.Subscription.create", mock_create_stripe_subscription)
         request = APIRequestFactory(HTTP_REFERER="https://www.google.com").post("", {}, format="json")
         serializer = self.serializer_class(data=data, context={"request": request})
 
@@ -1150,10 +1134,10 @@ class TestCreateRecurringPaymentSerializer:
         result = serializer.create(serializer.validated_data)
         assert Contribution.objects.count() == contribution_count + 1
         assert Contributor.objects.count() == contributor_count + 1
-        assert set(result.keys()) == set(["provider_client_secret_id", "email_hash"])
-        assert result["provider_client_secret_id"] == client_secret
+        assert set(result.keys()) == set(["client_secret", "email_hash", "uuid"])
+        assert result["client_secret"] == client_secret
         assert Contributor.objects.filter(email=minimally_valid_data["email"]).exists()
-        contribution = Contribution.objects.get(provider_client_secret_id=client_secret)
+        contribution = Contribution.objects.get(uuid=result["uuid"])
         assert result["email_hash"] == get_sha256_hash(contribution.contributor.email)
         assert contribution.status == ContributionStatus.PROCESSING
         assert contribution.flagged_date is None
@@ -1174,7 +1158,7 @@ class TestCreateRecurringPaymentSerializer:
         monkeypatch.setattr("apps.contributions.serializers.make_bad_actor_request", mock_get_bad_actor)
         mock_create_stripe_customer = Mock()
         mock_create_stripe_customer.return_value = {"id": "some id"}
-        monkeypatch.setattr("apps.contributions.models.Contributor.create_stripe_customer", mock_create_stripe_customer)
+        monkeypatch.setattr("stripe.Customer.create", mock_create_stripe_customer)
         monkeypatch.setattr("apps.contributions.models.stripe.Subscription.create", mock_stripe_call_with_error)
         request = APIRequestFactory(HTTP_REFERER="https://www.google.com").post("", {}, format="json")
 
@@ -1191,8 +1175,8 @@ class TestCreateRecurringPaymentSerializer:
         assert contributor.contribution_set.count() == 1
         contribution = contributor.contribution_set.first()
         assert contribution.status == ContributionStatus.PROCESSING
+        assert contribution.provider_customer_id == mock_create_stripe_customer.return_value["id"]
         assert contribution.provider_subscription_id is None
-        assert contribution.provider_client_secret_id is None
         assert contribution.payment_provider_data is None
 
     def test_when_stripe_errors_creating_customer(self, monkeypatch, minimally_valid_data):
@@ -1206,7 +1190,7 @@ class TestCreateRecurringPaymentSerializer:
         contributor_count = Contributor.objects.count()
 
         monkeypatch.setattr("apps.contributions.serializers.make_bad_actor_request", mock_get_bad_actor)
-        monkeypatch.setattr("apps.contributions.models.Contributor.create_stripe_customer", mock_stripe_call_with_error)
+        monkeypatch.setattr("stripe.Customer.create", mock_stripe_call_with_error)
 
         request = APIRequestFactory(HTTP_REFERER="https://www.google.com").post("", {}, format="json")
 
@@ -1224,8 +1208,8 @@ class TestCreateRecurringPaymentSerializer:
         assert contributor.contribution_set.count() == 1
         contribution = contributor.contribution_set.first()
         assert contribution.status == ContributionStatus.PROCESSING
+        assert contribution.provider_customer_id is None
         assert contribution.provider_subscription_id is None
-        assert contribution.provider_client_secret_id is None
         assert contribution.payment_provider_data is None
 
     def test_when_contribution_is_flagged(self, minimally_valid_data, monkeypatch):
@@ -1244,16 +1228,17 @@ class TestCreateRecurringPaymentSerializer:
         mock_create_stripe_customer = Mock()
         fake_customer_id = "fake-customer-id"
         mock_create_stripe_customer.return_value = {"id": fake_customer_id}
-        monkeypatch.setattr("apps.contributions.models.Contributor.create_stripe_customer", mock_create_stripe_customer)
-        mock_create_stripe_subscription = Mock()
+        monkeypatch.setattr("stripe.Customer.create", mock_create_stripe_customer)
+        mock_setup_intent_create = Mock()
         client_secret = "shhhhhhh!"
-        subscription_id = "some-sub-id"
-        mock_create_stripe_subscription.return_value = {
-            "id": subscription_id,
-            "customer": fake_customer_id,
-            "pending_setup_intent": {"client_secret": client_secret},
+        setup_intent_id = "some-sub-id"
+        payment_method_id = "some-payment-id"
+        mock_setup_intent_create.return_value = {
+            "id": setup_intent_id,
+            "client_secret": client_secret,
+            "payment_method": payment_method_id,
         }
-        monkeypatch.setattr("apps.contributions.models.stripe.Subscription.create", mock_create_stripe_subscription)
+        monkeypatch.setattr("stripe.SetupIntent.create", mock_setup_intent_create)
         request = APIRequestFactory(HTTP_REFERER="https://www.google.com").post("", {}, format="json")
         serializer = self.serializer_class(data=data, context={"request": request})
 
@@ -1267,9 +1252,8 @@ class TestCreateRecurringPaymentSerializer:
         contribution = contributor.contribution_set.first()
         assert contribution.status == ContributionStatus.FLAGGED
         assert contribution.flagged_date is not None
-        assert contribution.provider_subscription_id == subscription_id
-        assert contribution.provider_client_secret_id == client_secret
-        assert contribution.payment_provider_data == mock_create_stripe_subscription.return_value
+        assert contribution.provider_subscription_id is None
+        assert contribution.provider_setup_intent_id == setup_intent_id
 
     def test_when_contribution_is_rejected(self, minimally_valid_data, monkeypatch):
         """Demonstrate `.create` when the contribution gets flagged.
@@ -1302,7 +1286,7 @@ class TestCreateRecurringPaymentSerializer:
         assert contribution.status == ContributionStatus.REJECTED
         assert contribution.flagged_date is None
         assert contribution.provider_subscription_id is None
-        assert contribution.provider_client_secret_id is None
+        assert contribution.provider_customer_id is None
         assert contribution.payment_provider_data is None
 
 

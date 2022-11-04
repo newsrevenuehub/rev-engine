@@ -100,7 +100,7 @@ function AmountEditor() {
     <S.AmountEditor data-testid="amount-editor">
       <S.HelpTexts>
         <S.HelpText>Click an amount to set a default value</S.HelpText>
-        <S.HelpText>Highlighted amounts will be selected by default on live donation pages</S.HelpText>
+        <S.HelpText>Highlighted amounts will be selected by default on live contribution pages</S.HelpText>
       </S.HelpTexts>
       <S.FrequenciesList>
         {frequencies ? (
@@ -140,7 +140,7 @@ function AmountEditor() {
             );
           })
         ) : (
-          <S.NoFreqs>Add a Frequency element to your page to modify donation amounts</S.NoFreqs>
+          <S.NoFreqs>Add a Frequency element to your page to modify contribution amounts</S.NoFreqs>
         )}
         <S.Toggles>
           <S.ToggleWrapper>

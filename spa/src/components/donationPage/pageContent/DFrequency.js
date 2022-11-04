@@ -62,7 +62,7 @@ DFrequency.propTypes = {
 
 DFrequency.type = 'DFrequency';
 DFrequency.displayName = 'Contribution Frequency';
-DFrequency.description = 'Allow donors to select a frequency at which to contribute';
+DFrequency.description = 'Allow contributors to select a frequency at which to contribute';
 DFrequency.required = true;
 DFrequency.unique = true;
 

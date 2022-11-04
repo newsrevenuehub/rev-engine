@@ -1,39 +1,40 @@
-import { Route, Switch, Redirect, useLocation } from 'react-router-dom';
+import { Redirect, Switch, useLocation } from 'react-router-dom';
 
 import * as S from './Dashboard.styled';
 
 // Routing
 import {
-  DONATIONS_SLUG,
   CONTENT_SLUG,
+  CUSTOMIZE_SLUG,
+  DASHBOARD_SLUG,
+  DONATIONS_SLUG,
   EDITOR_ROUTE,
   EDITOR_ROUTE_PAGE,
-  DASHBOARD_SLUG,
-  CUSTOMIZE_SLUG,
   PROFILE
 } from 'routes';
 
 // Children
+import Profile from 'components/account/Profile';
 import LivePage404 from 'components/common/LivePage404';
+import Content from 'components/content/Content';
+import Customize from 'components/content/Customize';
 import DashboardSidebar from 'components/dashboard/sidebar/DashboardSidebar';
 import DashboardTopbar from 'components/dashboard/topbar/DashboardTopbar';
 import Donations from 'components/donations/Donations';
-import Content from 'components/content/Content';
-import Customize from 'components/content/Customize';
 import PageEditor from 'components/pageEditor/PageEditor';
-import Profile from 'components/account/Profile';
 
 import ConnectStripeElements from 'components/dashboard/connectStripe/ConnectStripeElements';
 
 // Feature flag-related
-import useFeatureFlags from 'hooks/useFeatureFlags';
 import { CONTENT_SECTION_ACCESS_FLAG_NAME } from 'constants/featureFlagConstants';
+import useFeatureFlags from 'hooks/useFeatureFlags';
 
+import useConnectStripeAccount from 'hooks/useConnectStripeAccount';
+import { SentryRoute } from 'hooks/useSentry';
+import useUser from 'hooks/useUser';
 import flagIsActiveForUser from 'utilities/flagIsActiveForUser';
 import hasContributionsDashboardAccessToUser from 'utilities/hasContributionsDashboardAccessToUser';
 import { usePageContext } from './PageContext';
-import useUser from 'hooks/useUser';
-import useConnectStripeAccount from 'hooks/useConnectStripeAccount';
 
 function Dashboard() {
   const { flags } = useFeatureFlags();
@@ -65,31 +66,31 @@ function Dashboard() {
               <Redirect exact from={DASHBOARD_SLUG} to={dashboardSlugRedirect} />
 
               {hasContributionsSectionAccess ? (
-                <Route path={DONATIONS_SLUG}>
+                <SentryRoute path={DONATIONS_SLUG}>
                   <Donations />
-                </Route>
+                </SentryRoute>
               ) : null}
               {hasContentSectionAccess ? (
-                <Route path={CONTENT_SLUG}>
+                <SentryRoute path={CONTENT_SLUG}>
                   <Content />
-                </Route>
+                </SentryRoute>
               ) : null}
               {hasContentSectionAccess ? (
-                <Route path={CUSTOMIZE_SLUG}>
+                <SentryRoute path={CUSTOMIZE_SLUG}>
                   <Customize />
-                </Route>
+                </SentryRoute>
               ) : null}
               {hasContentSectionAccess ? (
-                <Route path={EDITOR_ROUTE_PAGE}>
+                <SentryRoute path={EDITOR_ROUTE_PAGE}>
                   <PageEditor />
-                </Route>
+                </SentryRoute>
               ) : null}
-              <Route path={PROFILE}>
+              <SentryRoute path={PROFILE}>
                 <Profile />
-              </Route>
-              <Route>
+              </SentryRoute>
+              <SentryRoute>
                 <LivePage404 dashboard />
-              </Route>
+              </SentryRoute>
             </Switch>
           </S.DashboardContent>
         </S.DashboardMain>

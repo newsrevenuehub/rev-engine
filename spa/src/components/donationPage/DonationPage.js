@@ -71,8 +71,8 @@ function DonationPage({ page, live = false }) {
   const [contributorEmail, setContributorEmail] = useState();
   const [mailingCountry, setMailingCountry] = useState();
   const [paymentSubmitButtonText, setPaymentSubmitButtonText] = useState();
-
   const [stripeBillingDetails, setStripeBillingDetails] = useState();
+  const [contributionUuid, setContributionUuid] = useState();
 
   const [cookies] = useCookies(['csrftoken']);
 
@@ -198,10 +198,11 @@ function DonationPage({ page, live = false }) {
       }
     });
     createPayment(data, {
-      onSuccess: ({ provider_client_secret_id, email_hash }) => {
-        setStripeClientSecret(provider_client_secret_id);
+      onSuccess: ({ client_secret, email_hash, uuid }) => {
+        setStripeClientSecret(client_secret);
         setEmailHash(email_hash);
         setDisplayStripePaymentForm(true);
+        setContributionUuid(uuid);
       },
       onError: ({ name, message, response }) => {
         // this would happen on client side if request couldn't be made. See above.
@@ -235,7 +236,6 @@ function DonationPage({ page, live = false }) {
       );
     }
   }, [frequency, page.currency?.symbol, totalAmount]);
-
   return (
     <DonationPageContext.Provider
       value={{
@@ -259,7 +259,8 @@ function DonationPage({ page, live = false }) {
         stripeClientSecret,
         mailingCountry,
         setMailingCountry,
-        paymentSubmitButtonText
+        paymentSubmitButtonText,
+        contributionUuid
       }}
     >
       <S.DonationPage data-testid="donation-page">

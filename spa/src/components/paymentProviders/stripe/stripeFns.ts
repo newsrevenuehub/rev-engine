@@ -142,7 +142,7 @@ export interface GetPaymentSuccessUrlArgs {
   pageSlug: string;
   pathName: string;
   rpSlug: string;
-  stripeClientSecret: string;
+  contributionUuid: string;
   thankYouRedirectUrl: string;
 }
 
@@ -156,7 +156,7 @@ export function getPaymentSuccessUrl({
   pageSlug,
   rpSlug,
   pathName,
-  stripeClientSecret
+  contributionUuid
 }: GetPaymentSuccessUrlArgs) {
   const missingParams = Object.fromEntries(
     Object.entries({
@@ -168,7 +168,7 @@ export function getPaymentSuccessUrl({
       pageSlug,
       rpSlug,
       pathName,
-      stripeClientSecret
+      contributionUuid
     }).filter(([, v]) => [undefined, null].includes(v as any))
   );
   if (Object.entries(missingParams).length) {
@@ -205,7 +205,7 @@ export function getPaymentSuccessUrl({
   // set up, that page can appear at rev-program-slug.revengine.com/ (with no page), in which
   // case, the thank-you page URL can be rev-program-slug.revengine.com/thank-you.
 
-  // payment_intent_client_secret : stripeClientSecret in function params
+  // contributionUuid
   paymentSuccessUrl.search = new URLSearchParams({
     amount,
     pageSlug,
@@ -214,7 +214,7 @@ export function getPaymentSuccessUrl({
     frequency: frequencyDisplayValue,
     fromPath: pathName === '/' ? '' : pathName,
     next: thankYouRedirectUrl,
-    payment_intent_client_secret: stripeClientSecret,
+    contributionUuid,
     uid: emailHash
   }).toString();
 

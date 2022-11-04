@@ -7,7 +7,6 @@ import { useQuery, useMutation } from '@tanstack/react-query';
 import axios from 'ajax/axios';
 import { LIVE_PAGE_DETAIL, getPaymentSuccessEndpoint } from 'ajax/endpoints';
 import { useAnalyticsContext } from 'components/analytics/AnalyticsContext';
-import { FB_PIXEL_PLUGIN_NAME } from 'components/analytics/plugins/facebookPixel';
 import { THANK_YOU_SLUG } from 'routes';
 import { HUB_GA_V3_ID } from 'appSettings';
 import GlobalLoading from 'elements/GlobalLoading';
@@ -30,17 +29,8 @@ function patchPaymentSuccess(providerClientSecretId) {
 export default function PaymentSuccess() {
   const history = useHistory();
   const { search } = useLocation();
-  const {
-    amount,
-    next,
-    frequency,
-    uid,
-    email,
-    pageSlug,
-    rpSlug,
-    fromPath,
-    payment_intent_client_secret: stripeClientSecret
-  } = queryString.parse(search);
+  const { amount, next, frequency, uid, email, pageSlug, rpSlug, fromPath, contributionUuid } =
+    queryString.parse(search);
 
   const { data: page, isSuccess: pageFetchSuccess } = useQuery(['getPage'], () => fetchPage(rpSlug, pageSlug));
 
@@ -59,17 +49,15 @@ export default function PaymentSuccess() {
     }
   }, [analyticsInstance]);
 
-  const { mutate: signalPaymentSuccess, isLoading: signalPaymentSuccessIsLoading } = useMutation(
-    (stripeClientSecret) => {
-      return patchPaymentSuccess(stripeClientSecret);
-    }
-  );
+  const { mutate: signalPaymentSuccess, isLoading: signalPaymentSuccessIsLoading } = useMutation((contributionUuid) => {
+    return patchPaymentSuccess(contributionUuid);
+  });
 
   const [conversionTracked, setConversionTracked] = useState(false);
 
   useEffect(() => {
-    if (stripeClientSecret) signalPaymentSuccess(stripeClientSecret);
-  }, [signalPaymentSuccess, stripeClientSecret]);
+    if (contributionUuid) signalPaymentSuccess(contributionUuid);
+  }, [signalPaymentSuccess, contributionUuid]);
 
   // after page is retrieved, we can load analytics instance, which has side effect of
   // tracking a page view
@@ -101,8 +89,8 @@ export default function PaymentSuccess() {
   }, [amount, analyticsInstance, analyticsReady, page, trackConversion]);
 
   useEffect(() => {
-    // if we're directing off-site to org-supplied thank you page...
     if (conversionTracked && !signalPaymentSuccessIsLoading) {
+      // if we're directing off-site to org-supplied thank you page...
       if (next) {
         const nextUrl = new URL(next);
         nextUrl.searchParams.append('uid', uid);

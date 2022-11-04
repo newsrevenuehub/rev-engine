@@ -25,7 +25,8 @@ function StripePaymentForm() {
     emailHash,
     stripeBillingDetails,
     paymentSubmitButtonText,
-    stripeClientSecret
+    stripeClientSecret,
+    contributionUuid
   } = usePage();
   const { pathname } = useLocation();
   const elements = useElements();
@@ -57,10 +58,9 @@ function StripePaymentForm() {
       pageSlug: pageSlug,
       rpSlug: rpSlug,
       pathName: pathname,
-      stripeClientSecret: stripeClientSecret
+      contributionUuid
     });
-
-    const { error } = await stripe.confirmPayment({
+    const { error } = await stripe[stripeClientSecret.startsWith('seti_') ? 'confirmSetup' : 'confirmPayment']({
       elements,
       confirmParams: { return_url, payment_method_data: { billing_details: stripeBillingDetails } }
     });

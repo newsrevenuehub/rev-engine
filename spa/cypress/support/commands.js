@@ -101,6 +101,7 @@ Cypress.Commands.add('makeDonation', () => {
 Cypress.Commands.add('interceptStripeApi', () => {
   cy.intercept({ url: 'https://r.stripe.com/*', method: 'POST' }, { statusCode: 200 });
   cy.intercept({ url: 'https://m.stripe.com/*', method: 'POST' }, { statusCode: 200 });
+  cy.intercept({ url: 'https://api.stripe.com/**', method: 'GET' }, { statusCode: 200 });
 });
 
 Cypress.Commands.add('interceptPaginatedDonations', () => {
@@ -140,4 +141,10 @@ Cypress.Commands.add('setStripeCardElement', (elementName, value) => {
       .find(`input[data-elements-stable-field-name="${elementName}"]`)
       .type(value);
   });
+});
+
+Cypress.Commands.add('interceptFbAnalytics', () => {
+  cy.intercept({ method: 'GET', url: 'https://connect.facebook.net/*' }, { statusCode: 200 });
+  cy.intercept({ method: 'GET', url: '*ev=Contribute*' }, { statusCode: 200 }).as('fbTrackContribution');
+  cy.intercept({ method: 'GET', url: '*ev=Purchase*' }, { statusCode: 200 }).as('fbTrackPurchase');
 });

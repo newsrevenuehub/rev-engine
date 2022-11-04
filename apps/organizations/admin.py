@@ -172,6 +172,7 @@ class RevenueProgramAdmin(RevEngineBaseAdmin, VersionAdmin, AdminImageMixin):
                     "organization",
                     "default_donation_page",
                     "non_profit",
+                    "tax_id",
                     "country",
                 )
             },

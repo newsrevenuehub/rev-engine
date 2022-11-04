@@ -137,17 +137,23 @@ class HasFlaggedAccessToContributionsApiResource(permissions.BasePermission):
         return self.flag.is_active_for_user(request.user) or self.flag.everyone
 
 
-class HasAccessToEmailContribution(permissions.BasePermission):
+class IsRPAdmin(permissions.BasePermission):
     """
-    Check whether the user is an RP Admin and the contribution belongs to him.
-    Prerequisites permission: IsAuthenticated and HasRoleAssignment.
+    Permission to check whether the logged user is a Revenue Program admin.
+    Prerequisite permissions: IsAuthenticated and HasRoleAssignment.
     """
 
     def has_permission(self, request, view):
-        # check whether the user is an RP Admin
-        if request.user.roleassignment.role_type != Roles.RP_ADMIN.value:
-            return False
+        return request.user.roleassignment.role_type == Roles.RP_ADMIN.value
 
+
+class HasAccessToContribution(permissions.BasePermission):
+    """
+    Check whether the user is an RP Admin and the contribution belongs to him.
+    Prerequisite permissions: IsAuthenticated, HasRoleAssignment, IsRPAdmin.
+    """
+
+    def has_permission(self, request, view):
         contribution = get_object_or_404(Contribution, pk=request.data.get("contribution_id"))
         return (
             request.user.roleassignment.revenue_programs.filter(id=contribution.revenue_program.id).first() is not None

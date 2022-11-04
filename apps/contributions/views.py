@@ -14,11 +14,12 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
 from apps.api.permissions import (
-    HasAccessToEmailContribution,
+    HasAccessToContribution,
     HasFlaggedAccessToContributionsApiResource,
     HasRoleAssignment,
     IsContributorOwningContribution,
     IsHubAdmin,
+    IsRPAdmin,
 )
 from apps.contributions import serializers
 from apps.contributions.filters import ContributionFilter
@@ -412,7 +413,7 @@ class SubscriptionsViewSet(viewsets.ViewSet):
 
 
 @api_view(["POST"])
-@permission_classes([IsAuthenticated, HasRoleAssignment, HasAccessToEmailContribution])
+@permission_classes([IsAuthenticated, HasRoleAssignment, IsRPAdmin, HasAccessToContribution])
 def email_contribution(request):
     contribution_id = request.data.get("contribution_id")
     contribution = get_object_or_404(Contribution, pk=contribution_id)

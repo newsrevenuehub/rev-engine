@@ -332,7 +332,7 @@ describe('Donations list', () => {
       cy.interceptPaginatedDonations();
       cy.visit(DONATIONS_SLUG);
       cy.wait('@listPages');
-      cy.get('a').contains('I’ll connect to Stripe later').click();
+      cy.get('a').contains('connect to Stripe later').click();
       cy.getByTestId('minimize-toast').click();
       cy.getByTestId('banner').should('exist');
       cy.contains('Looks like you need to set up a Stripe connection');

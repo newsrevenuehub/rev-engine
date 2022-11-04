@@ -340,6 +340,7 @@ function fillOutAddressSection() {
   cy.get('[data-testid*="mailing_state"]').type('NY');
   cy.get('[data-testid*="mailing_postal_code"]').type('100738');
   cy.get('.country-select').click().find('.react-select__option').first().click();
+  cy.findByLabelText('Country', { exact: false }).invoke('val').as('countryValue');
 }
 
 function fillOutDonorInfoSection() {
@@ -352,6 +353,7 @@ function fillOutDonorInfoSection() {
 function fillOutReasonForGiving() {
   cy.get('[data-testid="excited-to-support-picklist"]').click();
   cy.get('[data-testid="select-item-1').click();
+  cy.get('[data-testid="excited-to-support-picklist"]').invoke('val').as('reasonValue');
 }
 
 const fakeEmailHash = 'b4170aca0fd3e60';
@@ -613,12 +615,7 @@ describe('User flow: canceling contribution', () => {
     fillOutDonorInfoSection();
     fillOutAddressSection();
 
-    cy.findByLabelText('Country', { exact: false }).invoke('val').as('countryValue');
     fillOutReasonForGiving();
-
-    // cy.getByTestId('excited-to-support-picklist').invoke('val').as('reasonValue');
-    cy.get('[data-testid="excited-to-support-picklist"]').invoke('val').as('reasonValue');
-
     const frequencyLabel = 'Monthly';
     // we assert checked before submission so can check after that has same val
     cy.findAllByLabelText(frequencyLabel).should('be.checked');
@@ -673,8 +670,6 @@ describe('User flow: canceling contribution', () => {
 
     cy.findByLabelText('Country', { exact: false }).invoke('val').as('countryValue');
     fillOutReasonForGiving();
-    cy.get('[data-testid="excited-to-support-picklist"]').invoke('val').as('reasonValue');
-
     const frequencyLabel = 'Monthly';
     // we assert checked before submission so can check after that has same val
     cy.findAllByLabelText(frequencyLabel).should('be.checked');

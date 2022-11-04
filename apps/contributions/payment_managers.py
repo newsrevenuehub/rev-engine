@@ -164,7 +164,6 @@ class StripePaymentManager(PaymentManager):
                 default_payment_method=setup_intent["payment_method"],
                 metadata=setup_intent["metadata"],
             )
-            # TODO: Verify it's actually charged when default_payment_method sent
             self.contribution.status = ContributionStatus.PAID
             self.contribution.save()
         except stripe.error.StripeError as stripe_error:

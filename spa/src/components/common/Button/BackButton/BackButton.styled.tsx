@@ -1,7 +1,6 @@
 import styled from 'styled-components';
 import ExpandMoreIcon from '@material-ui/icons/ExpandMore';
 
-
 export const Button = styled.button`
   cursor: pointer;
   background: none;
@@ -12,7 +11,7 @@ export const Button = styled.button`
 export const Icon = styled(ExpandMoreIcon)`
   transform: rotate(90deg);
   vertical-align: middle;
-  margin-left: -.5em
+  margin-left: -0.5em;
 `;
 
 export const Span = styled.span`

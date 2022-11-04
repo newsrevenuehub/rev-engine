@@ -30,7 +30,7 @@ function Profile() {
     dispatch({ type: FETCH_START });
 
     try {
-      const { data, status } = await axios.patch(`users/${user.id}/${CUSTOMIZE_ACCOUNT_ENDPOINT}`, {
+      const { data, status } = await axios.patch(`users/${user?.id}/${CUSTOMIZE_ACCOUNT_ENDPOINT}`, {
         first_name: formData.firstName,
         last_name: formData.lastName,
         // Don't send job_title at all if the user omitted it.

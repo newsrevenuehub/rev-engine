@@ -621,9 +621,8 @@ describe('User flow: canceling contribution', () => {
     const frequencyLabel = 'Monthly';
     // we assert checked before submission so can check after that has same val
     cy.findAllByLabelText(frequencyLabel).should('be.checked');
-    // this test id indicates pay fees checked is in dom, which we'll also assert after canceling
-    cy.getByTestId('pay-fees-checked');
 
+    getFeesCheckbox().should('be.checked');
     cy.get('form[name="contribution-checkout"]').submit();
     cy.wait('@create-subscription-payment');
     cy.findByRole('button', { name: DEFAULT_BACK_BUTTON_TEXT }).click();
@@ -646,7 +645,7 @@ describe('User flow: canceling contribution', () => {
         });
     });
     cy.findAllByLabelText(frequencyLabel).should('be.checked');
-    cy.getByTestId('pay-fees-checked');
+    getFeesCheckbox().should('be.checked');
     cy.get('@reasonValue').then((reason) => {
       cy.getByTestId('excited-to-support-picklist').should('have.value', reason);
     });
@@ -675,8 +674,7 @@ describe('User flow: canceling contribution', () => {
     const frequencyLabel = 'Monthly';
     // we assert checked before submission so can check after that has same val
     cy.findAllByLabelText(frequencyLabel).should('be.checked');
-    // this test id indicates pay fees checked is in dom, which we'll also assert after canceling
-    cy.getByTestId('pay-fees-checked');
+    getFeesCheckbox().should('be.checked');
 
     cy.get('form[name="contribution-checkout"]').submit();
     cy.wait('@create-subscription-payment');

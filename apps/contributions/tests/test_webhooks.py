@@ -30,7 +30,13 @@ class MockPaymentIntentEvent(StripeObject):
     _transient_values = []
 
     def __init__(
-        self, event_type=None, intent_id=None, object_type="payment_intent", cancellation_reason=None, customer=None
+        self,
+        event_type=None,
+        intent_id=None,
+        object_type="payment_intent",
+        cancellation_reason=None,
+        customer=None,
+        livemode=False,
     ):
         self.type = event_type
         self.data = {
@@ -42,6 +48,8 @@ class MockPaymentIntentEvent(StripeObject):
                 "created": datetime.now().timestamp(),
             }
         }
+        self.livemode = livemode
+        self.account = "acct_test_1234"
 
 
 class MockSubscriptionEvent(StripeObject):
@@ -58,6 +66,7 @@ class MockSubscriptionEvent(StripeObject):
         object_type="subscription",
         cancellation_reason=None,
         customer=None,
+        livemode=False,
     ):
         self.type = event_type
         self.data = {
@@ -71,6 +80,8 @@ class MockSubscriptionEvent(StripeObject):
             },
             "previous_attributes": previous_attributes,
         }
+        self.livemode = livemode
+        self.account = "acct_1234"
 
 
 def mock_valid_signature_verification_with_payment_intent(*args, **kwargs):
@@ -189,8 +200,33 @@ class PaymentIntentWebhooksTest(APITestCase):
             MockPaymentIntentEvent(object_type=fake_event_object, intent_id=payment_intent_id)
         )
         processor.process()
-        self.assertIn("Recieved un-handled Stripe object of type", mock_logger.warning.call_args[0][0])
+        self.assertIn("Received un-handled Stripe object of type", mock_logger.warning.call_args[0][0])
         self.assertEqual(mock_logger.warning.call_args[0][1], fake_event_object)
+
+    @patch("apps.contributions.webhooks.settings.STRIPE_LIVE_MODE", True)
+    @patch("apps.contributions.webhooks.logger")
+    @patch("apps.contributions.webhooks.StripeWebhookProcessor.process_payment_intent")
+    @patch("apps.contributions.webhooks.StripeWebhookProcessor.process_subscription")
+    def test_will_not_process_test_event_in_live_mode(self, mock_process_pi, mock_process_sub, mock_logger):
+        processor = StripeWebhookProcessor(
+            MockPaymentIntentEvent(object_type="unimportant", intent_id="ignore", livemode=False)
+        )
+        processor.process()
+        assert "ignoring" in mock_logger.info.call_args[0][0]
+        assert not mock_process_pi.called
+        assert not mock_process_sub.called
+
+    @patch("apps.contributions.webhooks.logger")
+    @patch("apps.contributions.webhooks.StripeWebhookProcessor.process_payment_intent")
+    @patch("apps.contributions.webhooks.StripeWebhookProcessor.process_subscription")
+    def test_will_not_process_live_event_in_test_mode(self, mock_process_pi, mock_process_sub, mock_logger):
+        processor = StripeWebhookProcessor(
+            MockPaymentIntentEvent(object_type="payment_intent.succeeded", intent_id="ignore", livemode=True)
+        )
+        processor.process()
+        assert "ignoring" in mock_logger.info.call_args[0][0]
+        assert not mock_process_pi.called
+        assert not mock_process_sub.called
 
 
 class CustomerSubscriptionWebhooksTest(APITestCase):

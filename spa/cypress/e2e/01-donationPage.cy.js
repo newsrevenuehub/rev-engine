@@ -375,10 +375,7 @@ describe('User flow: happy path', () => {
           statusCode: 201
         }
       ).as('create-one-time-payment');
-      cy.intercept({ method: 'POST', url: 'https://r.stripe.com/0' }, { statusCode: 201 });
-      cy.intercept({ method: 'POST', url: 'https://m.stripe.com/0' }, { statusCode: 201 });
-      cy.intercept({ method: 'GET', url: 'https://api.stripe.com/**' }, { statusCode: 200 });
-
+      cy.interceptStripeApi();
       cy.get('[data-testid*="amount-120"]').click();
       cy.get('[data-testid*="frequency-one_time"]').click();
       fillOutDonorInfoSection();

@@ -1,4 +1,5 @@
 import { useCallback } from 'react';
+import { useCookies } from 'react-cookie';
 
 import * as S from './ConnectStripeElements.styled';
 import ConnectStripeToast from './ConnectStripeToast';
@@ -10,22 +11,23 @@ import StripeLogo from 'assets/icons/stripeLogo.svg';
 import useModal from 'hooks/useModal';
 import useConnectStripeAccount from 'hooks/useConnectStripeAccount';
 
-import Cookies from 'universal-cookie';
-
 import { CONNECT_STRIPE_COOKIE_NAME, CONNECT_STRIPE_FAQ_LINK } from 'constants/textConstants';
 import { OffscreenText } from 'components/base';
 
 const ConnectStripeModal = () => {
   const { open, handleClose } = useModal(true);
-  const {
-    createStripeAccountLink: { mutate, isLoading }
-  } = useConnectStripeAccount();
+  const { isLoading, sendUserToStripe } = useConnectStripeAccount();
+  const [_, setCookie] = useCookies(CONNECT_STRIPE_COOKIE_NAME);
 
   const handleClickConnectLater = useCallback(() => {
-    const cookies = new Cookies();
     handleClose();
-    cookies.set(CONNECT_STRIPE_COOKIE_NAME, true, { path: '/' });
-  }, [handleClose]);
+    setCookie(CONNECT_STRIPE_COOKIE_NAME, true, { path: '/' });
+  }, [handleClose, setCookie]);
+
+  const handleClickConnectNow = useCallback(() => {
+    setCookie(CONNECT_STRIPE_COOKIE_NAME, true, { path: '/' });
+    sendUserToStripe();
+  }, [sendUserToStripe, setCookie]);
 
   if (!open) return <ConnectStripeToast />;
   return (
@@ -43,7 +45,7 @@ const ConnectStripeModal = () => {
           </S.StripeFAQ>
           .
         </S.Description>
-        <S.Button data-testid="connect-stripe-modal-button" disabled={isLoading} onClick={() => mutate()}>
+        <S.Button data-testid="connect-stripe-modal-button" disabled={isLoading} onClick={handleClickConnectNow}>
           Connect to Stripe
         </S.Button>
         <S.Anchor onClick={handleClickConnectLater}>
@@ -56,10 +58,10 @@ const ConnectStripeModal = () => {
   );
 };
 
-// TODO: [DEV-2401] Handle partially complete Stripe Account Link states
 const ConnectStripeElements = () => {
-  const cookies = new Cookies();
-  if (cookies.get(CONNECT_STRIPE_COOKIE_NAME)) {
+  const [cookies, _] = useCookies(CONNECT_STRIPE_COOKIE_NAME);
+
+  if (cookies[CONNECT_STRIPE_COOKIE_NAME]) {
     return <ConnectStripeToast />;
   }
 

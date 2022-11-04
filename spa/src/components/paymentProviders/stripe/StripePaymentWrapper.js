@@ -2,7 +2,7 @@ import { useRef } from 'react';
 import { loadStripe } from '@stripe/stripe-js';
 import { Elements } from '@stripe/react-stripe-js';
 
-import { HUB_STRIPE_API_PUB_KEY } from 'settings';
+import { HUB_STRIPE_API_PUB_KEY } from 'appSettings';
 import StripePaymentForm from 'components/paymentProviders/stripe/StripePaymentForm';
 import { usePage } from 'components/donationPage/DonationPage';
 import GlobalLoading from 'elements/GlobalLoading';

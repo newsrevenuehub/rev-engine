@@ -1,25 +1,27 @@
-import PropTypes from 'prop-types';
-import * as S from './DashboardTopbar.styled';
-import { SvgLogo, Title, BackIconButton } from './DashboardTopbar.styled';
 import { ICONS } from 'assets/icons/SvgIcon';
+import PropTypes, { InferProps } from 'prop-types';
 import { useAlert } from 'react-alert';
+import * as S from './DashboardTopbar.styled';
+import { BackIconButton, SvgLogo, Title } from './DashboardTopbar.styled';
 
-import { PagePropTypes } from 'constants/proptypes';
-import { BackIcon } from 'elements/BackButton.styled';
-import { CONTENT_SLUG } from 'routes';
-import BackButton from 'elements/BackButton';
-import useRequest from 'hooks/useRequest';
+import mobileLogo from 'assets/images/logo-mobile.png';
 import logo from 'assets/images/logo-nre.png';
 import logoBlue from 'assets/images/nre-logo-blue.svg';
-import mobileLogo from 'assets/images/logo-mobile.png';
-import logout from 'components/authentication/logout';
+import { Tooltip } from 'components/base';
+import AvatarMenu from 'components/common/AvatarMenu';
 import GrabLink from 'components/common/Button/GrabLink';
 import PublishButton from 'components/common/Button/PublishButton';
 import UnsavedChangesModal from 'components/pageEditor/UnsavedChangesModal';
+import { PagePropTypes, UserPropTypes } from 'constants/proptypes';
+import BackButton from 'elements/BackButton';
+import { BackIcon } from 'elements/BackButton.styled';
 import useModal from 'hooks/useModal';
-import { Tooltip } from 'components/base';
+import useRequest from 'hooks/useRequest';
+import { CONTENT_SLUG } from 'routes';
 
-function DashboardTopbar({ isEditPage, page, setPage, updatedPage }) {
+type DashboardTopbarTypes = InferProps<typeof DashboardTopbarPropTypes>;
+
+function DashboardTopbar({ isEditPage, page, setPage, updatedPage, user }: DashboardTopbarTypes) {
   const alert = useAlert();
   const requestPatchPage = useRequest();
   const { open: showUnsavedModal, handleClose: closeUnsavedModal, handleOpen: openUnsavedModal } = useModal();
@@ -61,27 +63,22 @@ function DashboardTopbar({ isEditPage, page, setPage, updatedPage }) {
             )}
           </>
         ) : (
-          <S.LogoutLink
-            data-testid="topbar-sign-out"
-            onClick={logout}
-            whileHover={{ scale: 1.05, x: -3 }}
-            whileTap={{ scale: 1, x: 0 }}
-          >
-            <S.LogoutIcon icon={ICONS.LOGOUT} />
-            Sign out
-          </S.LogoutLink>
+          <AvatarMenu user={user} />
         )}
       </S.TopMenu>
     </S.DashboardTopbar>
   );
 }
 
-DashboardTopbar.propTypes = {
+const DashboardTopbarPropTypes = {
   isEditPage: PropTypes.bool,
   setPage: PropTypes.func,
   page: PropTypes.shape(PagePropTypes),
+  user: PropTypes.shape(UserPropTypes),
   updatedPage: PropTypes.shape(PagePropTypes)
 };
+
+DashboardTopbar.propTypes = DashboardTopbarPropTypes;
 
 DashboardTopbar.defaultProps = {
   isEditPage: false,

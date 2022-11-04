@@ -76,7 +76,7 @@ def upsert_cloudflare_cnames(slugs: list = None):
                 record_id = cloudflare_record_ids[fqdn]
                 cloudflare_conn.zones.dns_records.patch(zone_id, record_id, data=dns_record)
         except CloudFlare.exceptions.CloudFlareAPIError as error:
-            logger.warning("Something went wrong with CloudFlare", exc_info=error)
+            logger.warning("Something went wrong with Cloudflare", exc_info=error)
 
 
 def extract_ticket_id_from_branch_name(branch_name):

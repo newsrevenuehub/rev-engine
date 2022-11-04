@@ -1,19 +1,14 @@
 import * as S from './DashboardSidebar.styled';
 import { ICONS } from 'assets/icons/SvgIcon';
 import HelpOutlined from '@material-ui/icons/HelpOutline';
-
-// Exported mainly to help with unit tests.
-export const footerHrefs = {
-  faq: 'https://news-revenue-hub.atlassian.net/servicedesk/customer/portal/11/article/2195423496',
-  help: 'https://fundjournalism.org/news-revenue-engine-help/'
-};
+import { FAQ_URL, HELP_URL } from 'constants/helperUrls';
 
 const DashboardSidebarFooter = () => (
   <S.NavSection>
     <S.NavItem
       aria-labelledby="help-nav-item-id"
       as="a"
-      href={footerHrefs.help}
+      href={HELP_URL}
       role="listitem"
       data-testid="nav-help-item"
       target="_blank"
@@ -24,7 +19,7 @@ const DashboardSidebarFooter = () => (
     <S.NavItem
       aria-labelledby="faq-nav-item-id"
       as="a"
-      href={footerHrefs.faq}
+      href={FAQ_URL}
       role="listitem"
       data-testid="nav-faq-item"
       target="_blank"

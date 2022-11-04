@@ -11,3 +11,9 @@ export const PagePropTypes = {
   slug: PropTypes.string,
   published_date: PropTypes.string
 };
+
+export const UserPropTypes = {
+  firstName: PropTypes.string,
+  lastName: PropTypes.string,
+  email: PropTypes.string.isRequired
+};

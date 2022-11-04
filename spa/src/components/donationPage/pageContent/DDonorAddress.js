@@ -97,7 +97,7 @@ function DDonorAddress() {
         </Grid>
         <Grid item xs={12} md={4}>
           <BaseField className="country-select" errors={errors.mailing_country} label="Country" required>
-            <CountrySelect name="mailing_country" required />
+            <CountrySelect name="mailing_country" inputId="Country" required />
           </BaseField>
         </Grid>
       </Grid>

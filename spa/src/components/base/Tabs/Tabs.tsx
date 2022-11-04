@@ -3,8 +3,12 @@ import styled from 'styled-components';
 
 export const Tabs = styled(MuiTabs)`
   && {
-    border-bottom: 1px solid #eee;
+    box-shadow: inset 0 -1px 0 0 #eee;
     min-height: 50px;
+
+    .MuiTabs-indicator {
+      background-color: #523a5e;
+    }
   }
 `;
 

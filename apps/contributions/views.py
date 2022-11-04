@@ -26,6 +26,7 @@ from apps.contributions.filters import ContributionFilter
 from apps.contributions.models import (
     Contribution,
     ContributionInterval,
+    ContributionIntervalError,
     ContributionStatus,
     Contributor,
 )
@@ -203,38 +204,34 @@ class PaymentViewset(mixins.CreateModelMixin, mixins.DestroyModelMixin, viewsets
 
     def destroy(self, request, *args, **kwargs):
         contribution = self.get_object()
-        if contribution.status != ContributionStatus.PROCESSING:
+        if contribution.status not in (ContributionStatus.PROCESSING, ContributionStatus.FLAGGED):
             logger.warning(
                 (
-                    "`PaymentViewset.destroy` was called on a contribution with status other than %s. "
+                    "`PaymentViewset.destroy` was called on a contribution with status other than %s or %s. "
                     "contribution.id: %s, contribution.status: %s,  contributor.id: %s, donation_page.id: %s"
                 ),
                 ContributionStatus.PROCESSING.label,
+                ContributionStatus.FLAGGED.label,
                 contribution.id,
                 contribution.get_status_display(),
                 contribution.contributor.id,
                 contribution.donation_page.id,
             )
             return Response(status=status.HTTP_409_CONFLICT)
-        contribution.status = ContributionStatus.CANCELED
-        contribution.save()
         try:
-            if contribution.interval == ContributionInterval.ONE_TIME:
-                stripe.PaymentIntent.cancel(
-                    contribution.provider_payment_id,
-                    stripe_account=contribution.donation_page.revenue_program.stripe_account_id,
-                )
-            if contribution.interval in (ContributionInterval.MONTHLY.value, ContributionInterval.YEARLY.value):
-                stripe.Subscription.delete(
-                    contribution.provider_subscription_id,
-                    stripe_account=contribution.donation_page.revenue_program.stripe_account_id,
-                )
+            contribution.cancel()
+        except ContributionIntervalError:
+            logger.exception(
+                "`PaymentViewset.destroy` called for contribution with unexpected interval %s", contribution.interval
+            )
+            return Response({"detail": "Something went wrong"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         except StripeError:
             logger.exception(
                 "Something went wrong with Stripe while attempting to cancel payment with UUID %s",
                 str(contribution.uuid),
             )
             return Response({"detail": "Something went wrong"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 

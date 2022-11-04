@@ -1094,17 +1094,16 @@ class TestPaymentViewset:
         # TODO - figure out how to do csrf protection but return JSON when no token
 
     @pytest.mark.parametrize(
-        "interval,client_secret,payment_intent_id,subscription_id",
+        "interval,payment_intent_id,subscription_id",
         (
-            (ContributionInterval.ONE_TIME, PI_CLIENT_SECRET, PI_ID, None),
-            (ContributionInterval.MONTHLY, SUBSCRIPTION_CLIENT_SECRET, None, SUBSCRIPTION_ID),
-            (ContributionInterval.YEARLY, SUBSCRIPTION_CLIENT_SECRET, None, SUBSCRIPTION_ID),
+            (ContributionInterval.ONE_TIME, PI_ID, None),
+            (ContributionInterval.MONTHLY, None, SUBSCRIPTION_ID),
+            (ContributionInterval.YEARLY, None, SUBSCRIPTION_ID),
         ),
     )
     def test_destroy_happy_path(
         self,
         interval,
-        client_secret,
         payment_intent_id,
         subscription_id,
         monkeypatch,
@@ -1117,22 +1116,12 @@ class TestPaymentViewset:
         )
         url = reverse("payment-detail", kwargs={"uuid": str(contribution.uuid)})
 
-        mock_cancel_pi = mock.Mock()
-        mock_delete_sub = mock.Mock()
-        monkeypatch.setattr("stripe.PaymentIntent.cancel", mock_cancel_pi)
-        monkeypatch.setattr("stripe.Subscription.delete", mock_delete_sub)
+        mock_cancel = mock.Mock()
+        monkeypatch.setattr("apps.contributions.models.Contribution.cancel", mock_cancel)
         response = self.client.delete(url)
         assert response.status_code == status.HTTP_204_NO_CONTENT
         contribution.refresh_from_db()
-        assert contribution.status == ContributionStatus.CANCELED
-        if interval == ContributionInterval.ONE_TIME:
-            mock_cancel_pi.assert_called_once_with(
-                payment_intent_id, stripe_account=contribution.donation_page.revenue_program.stripe_account_id
-            )
-        else:
-            mock_delete_sub.assert_called_once_with(
-                subscription_id, stripe_account=contribution.donation_page.revenue_program.stripe_account_id
-            )
+        mock_cancel.assert_called_once()
 
     @pytest.mark.parametrize(
         "contribution_status",
@@ -1140,12 +1129,11 @@ class TestPaymentViewset:
             ContributionStatus.PAID,
             ContributionStatus.CANCELED,
             ContributionStatus.FAILED,
-            ContributionStatus.FLAGGED,
             ContributionStatus.REJECTED,
             ContributionStatus.REFUNDED,
         ),
     )
-    def test_destroy_when_contribution_status_isnt_processing(
+    def test_destroy_when_contribution_status_unexpected(
         self,
         contribution_status,
     ):

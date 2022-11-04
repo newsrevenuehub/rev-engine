@@ -1,11 +1,19 @@
 import datetime
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 from django.test import TestCase, override_settings
 from django.utils import timezone
 
-from apps.contributions.models import Contribution, ContributionStatus, Contributor
-from apps.contributions.tests.factories import ContributorFactory
+import pytest
+
+from apps.contributions.models import (
+    Contribution,
+    ContributionInterval,
+    ContributionIntervalError,
+    ContributionStatus,
+    Contributor,
+)
+from apps.contributions.tests.factories import ContributionFactory, ContributorFactory
 from apps.organizations.tests.factories import (
     OrganizationFactory,
     PaymentProviderFactory,
@@ -328,3 +336,72 @@ class ContributionTest(TestCase):
         self.org.save()
         self.contribution.handle_thank_you_email()
         mock_send_email.assert_not_called()
+
+
+@pytest.fixture
+@pytest.mark.django_db
+def contribution():
+    return ContributionFactory()
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize(
+    "status,interval",
+    (
+        (ContributionStatus.PROCESSING, ContributionInterval.ONE_TIME),
+        (ContributionStatus.FLAGGED, ContributionInterval.ONE_TIME),
+        (ContributionStatus.PROCESSING, "uhoh"),
+        (ContributionStatus.PROCESSING, ContributionInterval.MONTHLY),
+        (ContributionStatus.FLAGGED, ContributionInterval.MONTHLY),
+        (ContributionStatus.PROCESSING, "uhoh"),
+        (ContributionStatus.PROCESSING, ContributionInterval.YEARLY),
+        (ContributionStatus.FLAGGED, ContributionInterval.YEARLY),
+        (ContributionStatus.PROCESSING, "uhoh"),
+    ),
+)
+def test_contribution_cancel(status, interval, contribution, monkeypatch):
+    contribution.status = status
+    contribution.interval = interval
+    contribution.save()
+    last_modified = contribution.modified
+
+    mock_cancel = Mock()
+
+    monkeypatch.setattr("stripe.PaymentIntent.cancel", mock_cancel)
+    monkeypatch.setattr("stripe.Subscription.delete", mock_cancel)
+    monkeypatch.setattr("stripe.SetupIntent.cancel", mock_cancel)
+
+    if interval == "uhoh":
+        with pytest.raises(ContributionIntervalError):
+            contribution.cancel()
+        assert contribution.modified == last_modified
+        mock_cancel.assert_not_called()
+
+    else:
+        contribution.cancel()
+        contribution.refresh_from_db()
+        assert contribution.status == ContributionStatus.CANCELED
+        mock_cancel.assert_called_once()
+        if interval == ContributionInterval.ONE_TIME:
+            mock_cancel.assert_called_once_with(
+                contribution.provider_payment_id,
+                stripe_account=contribution.donation_page.revenue_program.stripe_account_id,
+            )
+        elif (
+            interval in (ContributionInterval.MONTHLY, ContributionInterval.YEARLY)
+            and status == ContributionStatus.PROCESSING
+        ):
+            mock_cancel.assert_called_once_with(
+                contribution.provider_subscription_id,
+                stripe_account=contribution.donation_page.revenue_program.stripe_account_id,
+            )
+        elif (
+            interval in (ContributionInterval.MONTHLY, ContributionInterval.YEARLY)
+            and status == ContributionStatus.FLAGGED
+        ):
+            mock_cancel.assert_called_once_with(
+                contribution.provider_setup_intent_id,
+                stripe_account=contribution.donation_page.revenue_program.stripe_account_id,
+            )
+        else:
+            pytest.fail(f"Called with unexpected combination of interval and status: {interval} + {status}")

@@ -1,5 +1,7 @@
+import logging
 import uuid
 
+from django.conf import settings
 from django.db import models
 from django.utils import timezone
 
@@ -11,6 +13,13 @@ from apps.slack.models import SlackNotificationTypes
 from apps.slack.slack_manager import SlackManager
 from apps.users.choices import Roles
 from apps.users.models import RoleAssignmentResourceModelMixin, UnexpectedRoleType
+
+
+logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
+
+
+class ContributionIntervalError(Exception):
+    pass
 
 
 class Contributor(IndexedTimeStampedModel):
@@ -334,6 +343,40 @@ class Contribution(IndexedTimeStampedModel, RoleAssignmentResourceModelMixin):
             self.provider_subscription_id = subscription["id"]
             self.save()
         return subscription
+
+    def cancel(self, save=True):
+        if self.interval == ContributionInterval.ONE_TIME:
+            stripe.PaymentIntent.cancel(
+                self.provider_payment_id,
+                stripe_account=self.donation_page.revenue_program.stripe_account_id,
+            )
+        elif (
+            self.interval in (ContributionInterval.MONTHLY, ContributionInterval.YEARLY)
+            and self.status == ContributionStatus.PROCESSING
+        ):
+            stripe.Subscription.delete(
+                self.provider_subscription_id,
+                stripe_account=self.donation_page.revenue_program.stripe_account_id,
+            )
+        elif (
+            self.interval in (ContributionInterval.MONTHLY, ContributionInterval.YEARLY)
+            and self.status == ContributionStatus.FLAGGED
+        ):
+            stripe.SetupIntent.cancel(
+                self.provider_setup_intent_id,
+                stripe_account=self.donation_page.revenue_program.stripe_account_id,
+            )
+        else:
+            logger.warning(
+                "`Contribution.cancel` called on contribution (ID: %s) with unexpected interval %s",
+                self.id,
+                self.interval,
+            )
+            raise ContributionIntervalError()
+
+        if save:
+            self.status = ContributionStatus.CANCELED
+            self.save()
 
     def handle_thank_you_email(self, contribution_received_at=None):
         """Send a thank you email to contribution's contributor if org is configured to have NRE send thank you email"""

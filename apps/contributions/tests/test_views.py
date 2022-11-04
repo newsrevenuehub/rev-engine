@@ -1121,14 +1121,17 @@ class TestEmailContribution(AbstractTestCase):
             "receipt_email": "test@test.com",
             "currency": "usd",
         }
+        self.donation_page = DonationPage.objects.filter(
+            revenue_program_id=self.rp_user.roleassignment.revenue_programs.first().id
+        ).first()
 
     def test_when_no_contribution_found(self):
-        self.client.force_authenticate(user=self.org_user)
+        self.client.force_authenticate(user=self.rp_user)
         response = self.client.post(self.url, {})
         assert response.status_code == 404
 
     def test_when_contribution_status_is_not_paid(self):
-        self.client.force_authenticate(user=self.org_user)
+        self.client.force_authenticate(user=self.rp_user)
         contribution = [x for x in Contribution.objects.all() if x.status != ContributionStatus.PAID][0]
         response = self.client.post(self.url, {"contribution_id": contribution.id})
         response.status_code = 417
@@ -1136,8 +1139,10 @@ class TestEmailContribution(AbstractTestCase):
     @mock.patch("apps.contributions.views.send_templated_email.delay")
     @mock.patch("stripe.PaymentIntent.retrieve")
     def test_one_time_contribution(self, payment_intent_retrieve, send_email_task):
-        self.client.force_authenticate(user=self.org_user)
-        contribution = ContributionFactory(status=ContributionStatus.PAID, interval=ContributionInterval.ONE_TIME)
+        self.client.force_authenticate(user=self.rp_user)
+        contribution = ContributionFactory(
+            status=ContributionStatus.PAID, interval=ContributionInterval.ONE_TIME, donation_page=self.donation_page
+        )
 
         payment_intent_retrieve.return_value = AttrDict(self.base_payment_intent | {"invoice": None})
         response = self.client.post(self.url, {"contribution_id": contribution.id})
@@ -1150,8 +1155,10 @@ class TestEmailContribution(AbstractTestCase):
     @mock.patch("apps.contributions.views.send_templated_email.delay")
     @mock.patch("stripe.PaymentIntent.retrieve")
     def test_recurring_contribution(self, payment_intent_retrieve, send_email_task):
-        self.client.force_authenticate(user=self.org_user)
-        contribution = ContributionFactory(status=ContributionStatus.PAID, interval=ContributionInterval.MONTHLY)
+        self.client.force_authenticate(user=self.rp_user)
+        contribution = ContributionFactory(
+            status=ContributionStatus.PAID, interval=ContributionInterval.MONTHLY, donation_page=self.donation_page
+        )
 
         payment_intent_retrieve.return_value = AttrDict(self.base_payment_intent | {"invoice": "invoice_001"})
         response = self.client.post(self.url, {"contribution_id": contribution.id})
@@ -1159,3 +1166,16 @@ class TestEmailContribution(AbstractTestCase):
         email_attrs = send_email_task.call_args_list[0].args[-1]
         assert email_attrs["contribution_interval"] == contribution.interval
         assert email_attrs["contribution_interval_display_value"] == contribution.interval
+
+    def test_when_contribution_is_from_another_rp(self):
+        self.client.force_authenticate(user=self.rp_user)
+        contribution = Contribution.objects.filter(
+            donation_page_id=DonationPage.objects.filter(revenue_program_id=self.org1_rp2.id).first().id
+        ).first()
+        response = self.client.post(self.url, {"contribution_id": contribution.id})
+        assert response.status_code == 403
+
+    def test_when_logged_user_is_not_revenue_program_manager(self):
+        self.client.force_authenticate(user=self.org_user)
+        response = self.client.post(self.url, {"contribution_id": 1234})
+        assert response.status_code == 403

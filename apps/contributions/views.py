@@ -14,6 +14,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
 from apps.api.permissions import (
+    HasAccessToEmailContribution,
     HasFlaggedAccessToContributionsApiResource,
     HasRoleAssignment,
     IsContributorOwningContribution,
@@ -411,7 +412,7 @@ class SubscriptionsViewSet(viewsets.ViewSet):
 
 
 @api_view(["POST"])
-@permission_classes([IsAuthenticated, HasRoleAssignment])
+@permission_classes([IsAuthenticated, HasRoleAssignment, HasAccessToEmailContribution])
 def email_contribution(request):
     email_id = request.user.email
     contribution_id = request.data.get("contribution_id")

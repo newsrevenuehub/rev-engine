@@ -6,7 +6,7 @@ interface UseFeatureFlagsHook {
   flags: FeatureFlag[];
   isLoading: boolean;
   isError: boolean;
-};
+}
 
 /* This hook provides any feature flags attached to the user. It
   depends on `useUser` which is responsible for retrieving the user from

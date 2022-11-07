@@ -105,22 +105,51 @@ class ContributionAdminTest(TestCase):
         self.assertIn(self.contrib_score_4, filtered_contribs)
 
     def test_provider_payment_link(self):
-        for contribution in Contribution.objects.all():
-            assert (
-                self.contribution_admin.provider_payment_link(contribution) == f"<a href='"
-                f"https://dashboard.stripe.com/test/connect/accounts/{contribution.stripe_account_id}/payments/{contribution.provider_payment_id}' target='_blank'>{contribution.provider_payment_id}</a>"
-            )
+        contribution = ContributionFactory(
+            status=ContributionStatus.FLAGGED,
+            bad_actor_score=2,
+            donation_page=self.donation_page,
+            payment_provider_used="Stripe",
+        )
+        contribution.provider_payment_id = "pi_1234"
+        assert (
+            self.contribution_admin.provider_payment_link(contribution) == f"<a href='"
+            f"https://dashboard.stripe.com/test/connect/accounts/{contribution.stripe_account_id}/payments/{contribution.provider_payment_id}' target='_blank'>{contribution.provider_payment_id}</a>"
+        )
 
     def test_provider_subscription_link(self):
-        for contribution in Contribution.objects.all():
-            assert (
-                self.contribution_admin.provider_subscription_link(contribution) == f"<a href='"
-                f"https://dashboard.stripe.com/test/connect/accounts/{contribution.stripe_account_id}/subscriptions/{contribution.provider_subscription_id}' target='_blank'>{contribution.provider_subscription_id}</a>"
-            )
+        contribution = ContributionFactory(
+            status=ContributionStatus.FLAGGED,
+            bad_actor_score=2,
+            donation_page=self.donation_page,
+            payment_provider_used="Stripe",
+        )
+        contribution.provider_subscription_id = "sub_1234"
+        assert (
+            self.contribution_admin.provider_subscription_link(contribution) == f"<a href='"
+            f"https://dashboard.stripe.com/test/connect/accounts/{contribution.stripe_account_id}/subscriptions/{contribution.provider_subscription_id}' target='_blank'>{contribution.provider_subscription_id}</a>"
+        )
 
     def test_provider_customer_link(self):
-        for contribution in Contribution.objects.all():
-            assert (
-                self.contribution_admin.provider_customer_link(contribution) == f"<a href='"
-                f"https://dashboard.stripe.com/test/connect/accounts/{contribution.stripe_account_id}/customers/{contribution.provider_customer_id}' target='_blank'>{contribution.provider_customer_id}</a>"
-            )
+        contribution = ContributionFactory(
+            status=ContributionStatus.FLAGGED,
+            bad_actor_score=2,
+            donation_page=self.donation_page,
+            payment_provider_used="Stripe",
+        )
+        contribution.provider_customer_id = "cus_1234"
+        assert (
+            self.contribution_admin.provider_customer_link(contribution) == f"<a href='"
+            f"https://dashboard.stripe.com/test/connect/accounts/{contribution.stripe_account_id}/customers/{contribution.provider_customer_id}' target='_blank'>{contribution.provider_customer_id}</a>"
+        )
+
+    def test_links_not_available(self):
+        contribution = ContributionFactory(
+            status=ContributionStatus.FLAGGED,
+            bad_actor_score=2,
+            donation_page=self.donation_page,
+            payment_provider_used="Stripe",
+        )
+        assert self.contribution_admin.provider_customer_link(contribution) == "-"
+        assert self.contribution_admin.provider_payment_link(contribution) == "-"
+        assert self.contribution_admin.provider_subscription_link(contribution) == "-"

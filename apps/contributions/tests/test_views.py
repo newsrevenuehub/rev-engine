@@ -1142,6 +1142,14 @@ class TestPaymentViewset:
         response = self.client.delete(url)
         assert response.status_code == status.HTTP_409_CONFLICT
 
+    def test_destroy_when_contribution_interval_unexpected(self):
+        interval = "foo"
+        assert interval not in ContributionInterval.choices
+        contribution = ContributionFactory(interval=interval)
+        url = reverse("payment-detail", kwargs={"uuid": str(contribution.uuid)})
+        response = self.client.delete(url)
+        assert response.status_code == status.HTTP_409_CONFLICT
+
     @pytest.mark.parametrize("interval", (ContributionInterval.ONE_TIME.value, ContributionInterval.MONTHLY.value))
     def test_destroy_when_stripe_error(self, interval, monkeypatch):
         monkeypatch.setattr("apps.contributions.views.stripe.PaymentIntent.cancel", mock_stripe_call_with_error)

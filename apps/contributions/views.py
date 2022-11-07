@@ -28,6 +28,7 @@ from apps.contributions.models import (
     ContributionInterval,
     ContributionIntervalError,
     ContributionStatus,
+    ContributionStatusError,
     Contributor,
 )
 from apps.contributions.payment_managers import PaymentProviderError
@@ -223,6 +224,11 @@ class PaymentViewset(mixins.CreateModelMixin, mixins.DestroyModelMixin, viewsets
         except ContributionIntervalError:
             logger.exception(
                 "`PaymentViewset.destroy` called for contribution with unexpected interval %s", contribution.interval
+            )
+            return Response({"detail": "Something went wrong"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        except ContributionStatusError:
+            logger.exception(
+                "`PaymentViewset.destroy` called for contribution with unexpected status %s", contribution.status
             )
             return Response({"detail": "Something went wrong"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         except StripeError:

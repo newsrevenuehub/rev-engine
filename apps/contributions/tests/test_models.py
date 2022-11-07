@@ -11,6 +11,7 @@ from apps.contributions.models import (
     ContributionInterval,
     ContributionIntervalError,
     ContributionStatus,
+    ContributionStatusError,
     Contributor,
 )
 from apps.contributions.tests.factories import ContributionFactory, ContributorFactory
@@ -357,9 +358,28 @@ def contribution():
         (ContributionStatus.PROCESSING, ContributionInterval.YEARLY),
         (ContributionStatus.FLAGGED, ContributionInterval.YEARLY),
         (ContributionStatus.PROCESSING, "uhoh"),
+        (ContributionStatus.CANCELED, ContributionInterval.ONE_TIME),
+        (ContributionStatus.CANCELED, ContributionInterval.MONTHLY),
+        (ContributionStatus.CANCELED, ContributionInterval.YEARLY),
+        (ContributionStatus.PAID, ContributionInterval.ONE_TIME),
+        (ContributionStatus.PAID, ContributionInterval.MONTHLY),
+        (ContributionStatus.PAID, ContributionInterval.YEARLY),
+        (ContributionStatus.FAILED, ContributionInterval.ONE_TIME),
+        (ContributionStatus.FAILED, ContributionInterval.MONTHLY),
+        (ContributionStatus.FAILED, ContributionInterval.YEARLY),
+        (ContributionStatus.REJECTED, ContributionInterval.ONE_TIME),
+        (ContributionStatus.REJECTED, ContributionInterval.MONTHLY),
+        (ContributionStatus.REJECTED, ContributionInterval.YEARLY),
+        (ContributionStatus.REFUNDED, ContributionInterval.ONE_TIME),
+        (ContributionStatus.REFUNDED, ContributionInterval.MONTHLY),
+        (ContributionStatus.REFUNDED, ContributionInterval.YEARLY),
     ),
 )
 def test_contribution_cancel(status, interval, contribution, monkeypatch):
+    permitted_statuses = (
+        ContributionStatus.PROCESSING,
+        ContributionStatus.FLAGGED,
+    )
     contribution.status = status
     contribution.interval = interval
     contribution.save()
@@ -377,6 +397,11 @@ def test_contribution_cancel(status, interval, contribution, monkeypatch):
         assert contribution.modified == last_modified
         mock_cancel.assert_not_called()
 
+    elif status not in permitted_statuses:
+        with pytest.raises(ContributionStatusError):
+            contribution.cancel()
+        assert contribution.modified == last_modified
+        mock_cancel.assert_not_called()
     else:
         contribution.cancel()
         contribution.refresh_from_db()

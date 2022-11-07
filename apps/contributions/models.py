@@ -22,6 +22,10 @@ class ContributionIntervalError(Exception):
     pass
 
 
+class ContributionStatusError(Exception):
+    pass
+
+
 class Contributor(IndexedTimeStampedModel):
     uuid = models.UUIDField(default=uuid.uuid4, primary_key=False, editable=False)
     email = models.EmailField(unique=True)
@@ -342,34 +346,36 @@ class Contribution(IndexedTimeStampedModel, RoleAssignmentResourceModelMixin):
         return subscription
 
     def cancel(self):
-        if self.interval == ContributionInterval.ONE_TIME:
+        if self.status not in (ContributionStatus.PROCESSING, ContributionStatus.FLAGGED):
+            logger.warning(
+                "`Contribution.cancel` called on contribution (ID: %s) with unexpected status %s",
+                self.id,
+                self.status,
+            )
+            raise ContributionStatusError()
+        elif self.interval == ContributionInterval.ONE_TIME:
             stripe.PaymentIntent.cancel(
                 self.provider_payment_id,
                 stripe_account=self.donation_page.revenue_program.stripe_account_id,
             )
-        elif (
-            self.interval in (ContributionInterval.MONTHLY, ContributionInterval.YEARLY)
-            and self.status == ContributionStatus.PROCESSING
-        ):
-            stripe.Subscription.delete(
-                self.provider_subscription_id,
-                stripe_account=self.donation_page.revenue_program.stripe_account_id,
-            )
-        elif (
-            self.interval in (ContributionInterval.MONTHLY, ContributionInterval.YEARLY)
-            and self.status == ContributionStatus.FLAGGED
-        ):
-            stripe.SetupIntent.cancel(
-                self.provider_setup_intent_id,
-                stripe_account=self.donation_page.revenue_program.stripe_account_id,
-            )
-        else:
+        elif self.interval not in (ContributionInterval.MONTHLY, ContributionInterval.YEARLY):
             logger.warning(
                 "`Contribution.cancel` called on contribution (ID: %s) with unexpected interval %s",
                 self.id,
                 self.interval,
             )
             raise ContributionIntervalError()
+        elif self.status == ContributionStatus.PROCESSING:
+            stripe.Subscription.delete(
+                self.provider_subscription_id,
+                stripe_account=self.donation_page.revenue_program.stripe_account_id,
+            )
+        elif self.status == ContributionStatus.FLAGGED:
+            stripe.SetupIntent.cancel(
+                self.provider_setup_intent_id,
+                stripe_account=self.donation_page.revenue_program.stripe_account_id,
+            )
+
         self.status = ContributionStatus.CANCELED
         self.save()
 

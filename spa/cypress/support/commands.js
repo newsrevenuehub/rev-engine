@@ -1,4 +1,5 @@
 import 'cypress-localstorage-commands';
+import '@testing-library/cypress/add-commands';
 
 import { TOKEN } from 'ajax/endpoints';
 import { getEndpoint, getTestingDonationPageUrl, getTestingDefaultDonationPageUrl, EXPECTED_RP_SLUG } from './util';
@@ -101,6 +102,7 @@ Cypress.Commands.add('makeDonation', () => {
 Cypress.Commands.add('interceptStripeApi', () => {
   cy.intercept({ url: 'https://r.stripe.com/*', method: 'POST' }, { statusCode: 200 });
   cy.intercept({ url: 'https://m.stripe.com/*', method: 'POST' }, { statusCode: 200 });
+  cy.intercept({ method: 'GET', url: 'https://api.stripe.com/**' }, { statusCode: 200 });
 });
 
 Cypress.Commands.add('interceptPaginatedDonations', () => {

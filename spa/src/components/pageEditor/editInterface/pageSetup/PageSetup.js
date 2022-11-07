@@ -156,7 +156,7 @@ function PageSetup({ backToProperties }) {
       <S.InputWrapper border>
         <Input
           label="Post Thank You redirect"
-          helpText="If using our default Thank You page, where should we redirect your donors afterward?"
+          helpText="If using our default Thank You page, where should we redirect your contributors afterward?"
           value={post_thank_you_redirect}
           onChange={(e) => setPostThankYouRedirect(e.target.value)}
           errors={errors.post_thank_you_redirect}

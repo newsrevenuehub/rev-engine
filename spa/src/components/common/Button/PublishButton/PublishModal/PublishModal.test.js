@@ -5,7 +5,7 @@ import getDomain from 'utilities/getDomain';
 import PublishModal from './PublishModal';
 
 const page = {
-  name: 'Donation Page',
+  name: 'Contribution Page',
   revenue_program: {
     slug: 'news-revenue-hub'
   },

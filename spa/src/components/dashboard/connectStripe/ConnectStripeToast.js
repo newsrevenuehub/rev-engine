@@ -13,7 +13,7 @@ export const PENDING_VERIFICATION_MESSAGE =
   "Your account verification is pending with Stripe. This can take up to 24 hours. Check back later, and we'll let you know if Stripe needs more info to proceed.";
 
 export const USER_ACTION_REQUIRED_MESSAGE =
-  'Ready to publish your first donation page? Stripe needs additional info from you to configure your account.';
+  'Ready to publish your first contribution page? Stripe needs additional info from you to configure your account.';
 
 export const DEFAULT_HEADING_TEXT = 'Connect to Stripe';
 export const PENDING_VERIFICATION_HEADING_TEXT = 'Pending Verification';

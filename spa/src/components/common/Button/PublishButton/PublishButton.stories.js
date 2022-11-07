@@ -22,7 +22,7 @@ Default.args = {
   setPage: () => {},
   requestPatchPage: () => {},
   page: {
-    name: 'Donation page',
+    name: 'Contribution page',
     revenue_program: {
       slug: 'news-revenue-hub'
     },
@@ -38,7 +38,7 @@ Disabled.args = {
   setPage: () => {},
   requestPatchPage: () => {},
   page: {
-    name: 'Donation page',
+    name: 'Contribution page',
     revenue_program: {
       slug: 'news-revenue-hub'
     },
@@ -52,7 +52,7 @@ Published.args = {
   setPage: () => {},
   requestPatchPage: () => {},
   page: {
-    name: 'Donation page',
+    name: 'Contribution page',
     slug: 'published-page',
     revenue_program: {
       slug: 'news-revenue-hub'
@@ -70,7 +70,7 @@ PreviouslyPublished.args = {
   setPage: () => {},
   requestPatchPage: () => {},
   page: {
-    name: 'Donation page',
+    name: 'Contribution page',
     revenue_program: {
       slug: 'news-revenue-hub'
     },

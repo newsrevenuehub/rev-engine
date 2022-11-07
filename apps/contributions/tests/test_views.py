@@ -1194,9 +1194,31 @@ class TestEmailContribution(AbstractTestCase):
             "receipt_email": "test@test.com",
             "currency": "usd",
         }
-        self.donation_page = DonationPage.objects.filter(
+        rp1_donation_page = DonationPage.objects.filter(
             revenue_program_id=self.rp_user.roleassignment.revenue_programs.first().id
         ).first()
+
+        rp2_donation_page = DonationPage.objects.filter(revenue_program_id=self.org1_rp2.id).first()
+
+        org2_donation_page = DonationPage.objects.filter(
+            revenue_program_id=RevenueProgram.objects.filter(organization_id=self.org2.id).first().id
+        ).first()
+
+        self.rp1_contribution = ContributionFactory(
+            status=ContributionStatus.PAID, interval=ContributionInterval.ONE_TIME, donation_page=rp1_donation_page
+        )
+
+        self.rp2_contribution = ContributionFactory(
+            status=ContributionStatus.PAID, interval=ContributionInterval.ONE_TIME, donation_page=rp2_donation_page
+        )
+
+        self.rp1_recurring_contribution = ContributionFactory(
+            status=ContributionStatus.PAID, interval=ContributionInterval.MONTHLY, donation_page=rp1_donation_page
+        )
+
+        self.org2_contribution = ContributionFactory(
+            status=ContributionStatus.PAID, interval=ContributionInterval.ONE_TIME, donation_page=org2_donation_page
+        )
 
     def test_when_no_contribution_found(self):
         self.client.force_authenticate(user=self.rp_user)
@@ -1211,58 +1233,60 @@ class TestEmailContribution(AbstractTestCase):
 
     @mock.patch("apps.contributions.views.send_templated_email.delay")
     @mock.patch("stripe.PaymentIntent.retrieve")
-    def test_one_time_contribution(self, payment_intent_retrieve, send_email_task):
+    def test_one_time_contribution_rp_user(self, payment_intent_retrieve, send_email_task):
         self.client.force_authenticate(user=self.rp_user)
-        contribution = ContributionFactory(
-            status=ContributionStatus.PAID, interval=ContributionInterval.ONE_TIME, donation_page=self.donation_page
-        )
 
         payment_intent_retrieve.return_value = AttrDict(self.base_payment_intent | {"invoice": None})
-        response = self.client.post(self.url, {"contribution_id": contribution.id})
+        response = self.client.post(self.url, {"contribution_id": self.rp1_contribution.id})
         assert response.status_code == 200
         email_attrs = send_email_task.call_args_list[0].args[-1]
-        assert email_attrs["contribution_interval"] == contribution.interval
+        assert email_attrs["contribution_interval"] == self.rp1_contribution.interval
         assert email_attrs["contribution_amount"] == "144.50 USD"
         assert email_attrs["contribution_interval_display_value"] is None
 
     @mock.patch("apps.contributions.views.send_templated_email.delay")
     @mock.patch("stripe.PaymentIntent.retrieve")
-    def test_recurring_contribution(self, payment_intent_retrieve, send_email_task):
+    def test_recurring_contribution_rp_user(self, payment_intent_retrieve, send_email_task):
         self.client.force_authenticate(user=self.rp_user)
-        contribution = ContributionFactory(
-            status=ContributionStatus.PAID, interval=ContributionInterval.MONTHLY, donation_page=self.donation_page
-        )
 
         payment_intent_retrieve.return_value = AttrDict(self.base_payment_intent | {"invoice": "invoice_001"})
-        response = self.client.post(self.url, {"contribution_id": contribution.id})
+        response = self.client.post(self.url, {"contribution_id": self.rp1_recurring_contribution.id})
         assert response.status_code == 200
         email_attrs = send_email_task.call_args_list[0].args[-1]
-        assert email_attrs["contribution_interval"] == contribution.interval
-        assert email_attrs["contribution_interval_display_value"] == contribution.interval
+        assert email_attrs["contribution_interval"] == self.rp1_recurring_contribution.interval
+        assert email_attrs["contribution_interval_display_value"] == self.rp1_recurring_contribution.interval
 
     def test_when_contribution_is_from_another_rp(self):
         self.client.force_authenticate(user=self.rp_user)
-        contribution = Contribution.objects.filter(
-            donation_page_id=DonationPage.objects.filter(revenue_program_id=self.org1_rp2.id).first().id
-        ).first()
+        response = self.client.post(self.url, {"contribution_id": self.rp2_contribution.id})
+        assert response.status_code == 403
+
+    def test_when_logged_user_is_not_rp_admin_and_org_admin(self):
+        self.client.force_authenticate(user=self.hub_user)
+        contribution = Contribution.objects.filter(status=ContributionStatus.PAID).first()
         response = self.client.post(self.url, {"contribution_id": contribution.id})
         assert response.status_code == 403
 
-    def test_when_logged_user_is_not_revenue_program_manager(self):
+    @mock.patch("stripe.PaymentIntent.retrieve")
+    def test_when_org_user_access_contribution_from_same_org(self, payment_intent_retrieve):
         self.client.force_authenticate(user=self.org_user)
-        response = self.client.post(self.url, {"contribution_id": 1234})
+        payment_intent_retrieve.return_value = AttrDict(self.base_payment_intent | {"invoice": "invoice_001"})
+        response = self.client.post(self.url, {"contribution_id": self.rp1_contribution.id})
+        assert response.status_code == 200
+
+    @mock.patch("stripe.PaymentIntent.retrieve")
+    def test_when_org_user_access_contribution_from_other_org(self, payment_intent_retrieve):
+        self.client.force_authenticate(user=self.org_user)
+        payment_intent_retrieve.return_value = AttrDict(self.base_payment_intent | {"invoice": "invoice_001"})
+        response = self.client.post(self.url, {"contribution_id": self.org2_contribution.id})
         assert response.status_code == 403
 
     @mock.patch("apps.contributions.views.send_templated_email.delay")
     @mock.patch("stripe.PaymentIntent.retrieve")
     def test_contributor_email_when_receipt_email_in_payment_intent(self, payment_intent_retrieve, send_email_task):
         self.client.force_authenticate(user=self.rp_user)
-        contribution = ContributionFactory(
-            status=ContributionStatus.PAID, interval=ContributionInterval.MONTHLY, donation_page=self.donation_page
-        )
-
         payment_intent_retrieve.return_value = AttrDict(self.base_payment_intent | {"invoice": "invoice_001"})
-        response = self.client.post(self.url, {"contribution_id": contribution.id})
+        response = self.client.post(self.url, {"contribution_id": self.rp1_contribution.id})
         assert send_email_task.call_args_list[0].args[0] == "test@test.com"
         assert response.json()["contributor_email"] == "test@test.com"
 
@@ -1270,13 +1294,9 @@ class TestEmailContribution(AbstractTestCase):
     @mock.patch("stripe.PaymentIntent.retrieve")
     def test_contributor_email_when_receipt_email_not_in_payment_intent(self, payment_intent_retrieve, send_email_task):
         self.client.force_authenticate(user=self.rp_user)
-        contribution = ContributionFactory(
-            status=ContributionStatus.PAID, interval=ContributionInterval.MONTHLY, donation_page=self.donation_page
-        )
-
         payment_intent_retrieve.return_value = AttrDict(
             self.base_payment_intent | {"receipt_email": None} | {"invoice": "invoice_001"}
         )
-        response = self.client.post(self.url, {"contribution_id": contribution.id})
-        assert send_email_task.call_args_list[0].args[0] == contribution.contributor.email
-        assert response.json()["contributor_email"] == contribution.contributor.email
+        response = self.client.post(self.url, {"contribution_id": self.rp1_contribution.id})
+        assert send_email_task.call_args_list[0].args[0] == self.rp1_contribution.contributor.email
+        assert response.json()["contributor_email"] == self.rp1_contribution.contributor.email

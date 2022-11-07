@@ -21,7 +21,6 @@ from apps.api.permissions import (
     HasRoleAssignment,
     IsContributorOwningContribution,
     IsHubAdmin,
-    IsRPAdmin,
 )
 from apps.contributions import serializers
 from apps.contributions.filters import ContributionFilter
@@ -445,7 +444,7 @@ class SubscriptionsViewSet(viewsets.ViewSet):
 
 
 @api_view(["POST"])
-@permission_classes([IsAuthenticated, HasRoleAssignment, IsRPAdmin, HasAccessToContribution])
+@permission_classes([IsAuthenticated, HasRoleAssignment, HasAccessToContribution])
 def email_contribution(request):
     contribution_id = request.data.get("contribution_id")
     contribution = get_object_or_404(Contribution, pk=contribution_id)

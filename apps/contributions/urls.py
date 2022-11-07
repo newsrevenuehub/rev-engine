@@ -8,8 +8,7 @@ from apps.contributions import views
 
 router = routers.DefaultRouter()
 router.register(r"contributions", views.ContributionsViewSet, basename="contribution")
-router.register(r"payments/one-time", views.OneTimePaymentViewSet, basename="payment-one-time")
-router.register(r"payments/subscription", views.SubscriptionPaymentViewSet, basename="payment-subscription")
+router.register(r"payments", views.PaymentViewset, basename="payment")
 router.register(r"subscriptions", views.SubscriptionsViewSet, basename="subscription")
 
 urlpatterns = [

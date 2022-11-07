@@ -311,7 +311,7 @@ class PaymentProviderAdmin(RevEngineBaseAdmin):
             dependent_rps_count = dependents.values("revenue_program").distinct().count()
             msg = mark_safe(
                 f"Can't delete this payment provider because it's used by "
-                f"{dependents.count()} live or future live donation page{'s' if dependents.count() > 1 else ''} "
+                f"{dependents.count()} live or future live contribution page{'s' if dependents.count() > 1 else ''} "
                 f"across <a href={dependents_search_url}>{dependent_rps_count} "
                 f"revenue program{'s' if dependent_rps_count > 1 else ''}</a>."
             )

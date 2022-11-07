@@ -37,25 +37,13 @@ export const PaymentError = styled.div`
   font-family: ${(props) => props.theme.systemFont};
 `;
 
-export const PayWithCardOption = styled.p`
-  cursor: pointer;
-  font-family: ${(props) => props.theme.systemFont};
-  font-size: ${(props) => props.theme.fontSizes[1]};
-  font-style: italic;
-  text-align: center;
-  padding: 2rem;
-
-  color: #4183c4;
-  text-decoration: none;
-
-  &:hover {
-    text-decoration: underline;
-  }
-`;
-
 export const PaymentSubmitButton = styled(Button)`
   margin-top: 3rem;
   font-family: ${(props) => props.theme.systemFont};
+`;
+
+export const BackButton = styled(Button)`
+  margin-top: 3rem;
 `;
 
 export const CardElementStyle = (theme) => ({

@@ -76,8 +76,8 @@ function DDonorInfo({ element, ...props }) {
 }
 
 DDonorInfo.type = 'DDonorInfo';
-DDonorInfo.displayName = 'Donor Info';
-DDonorInfo.description = 'Collect donor name and email';
+DDonorInfo.displayName = 'Contributor Info';
+DDonorInfo.description = 'Collect contributor name and email';
 DDonorInfo.required = true;
 DDonorInfo.unique = true;
 

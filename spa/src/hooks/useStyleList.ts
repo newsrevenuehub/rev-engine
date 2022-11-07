@@ -12,18 +12,14 @@ async function fetchStyles() {
   return data;
 }
 
-
-type StyleStyles =
-  | string
-  | { [property: string]: StyleStyles }
-  | StyleStyles[];
+type StyleStyles = string | { [property: string]: StyleStyles } | StyleStyles[];
 
 interface Style {
-  id: number,
-  created: string,
-  modified: string,
-  name: string,
-  styles: StyleStyles,
+  id: number;
+  created: string;
+  modified: string;
+  name: string;
+  styles: StyleStyles;
 }
 
 export interface UseStyleListResult {
@@ -33,18 +29,17 @@ export interface UseStyleListResult {
   refetch: Function;
 }
 
-
-function useStyleList():UseStyleListResult {
+function useStyleList(): UseStyleListResult {
   const alert = useAlert();
   const history = useHistory();
   const queryClient = useQueryClient();
   const {
     data: styles,
     isLoading,
-    isError,
+    isError
   } = useQuery(['styles'], fetchStyles, {
     initialData: [],
-    onError: (err:Error) => {
+    onError: (err: Error) => {
       if (err?.name === 'AuthenticationError') {
         history.push(SIGN_IN);
       } else {
@@ -53,9 +48,14 @@ function useStyleList():UseStyleListResult {
       }
     }
   });
-  return { styles, isLoading, isError, refetch: () => {
-    queryClient.invalidateQueries(['styles']);
-  }};
+  return {
+    styles,
+    isLoading,
+    isError,
+    refetch: () => {
+      queryClient.invalidateQueries(['styles']);
+    }
+  };
 }
 
 export default useStyleList;

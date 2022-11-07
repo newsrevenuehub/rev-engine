@@ -146,7 +146,7 @@ function DonationDetail() {
                 <StatusCellIcon status={status || ''} showText />
               </dd>
 
-              <dt layout>Donor</dt>
+              <dt layout>Contributor</dt>
               <dd layout data-testid="donorEmail">
                 {contributorEmail}
               </dd>

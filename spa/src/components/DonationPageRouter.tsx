@@ -1,20 +1,16 @@
-import React, { lazy } from 'react';
+import { lazy } from 'react';
 import join from 'url-join';
 
 // Router
-import { Route, BrowserRouter, Switch } from 'react-router-dom';
 import * as ROUTES from 'routes';
 
 // Analytics
 import TrackPageView from 'components/analytics/TrackPageView';
 
-// Elements
-import GlobalLoading from 'elements/GlobalLoading';
-import ChunkErrorBoundary from 'components/errors/ChunkErrorBoundary';
-
 // Utilities
+import { SentryRoute } from 'hooks/useSentry';
 import componentLoader from 'utilities/componentLoader';
-import AddSlashToRoutes from './routes/AddSlashToRoutes';
+import RouterSetup from './routes/RouterSetup';
 
 /**
  * Split Bundles
@@ -31,25 +27,17 @@ const PaymentSuccess = lazy(() => componentLoader(() => import('components/donat
 
 function DonationPageRouter() {
   return (
-    <BrowserRouter>
-      <AddSlashToRoutes>
-        <ChunkErrorBoundary>
-          <React.Suspense fallback={<GlobalLoading />}>
-            <Switch>
-              <Route
-                path={[join(ROUTES.DONATION_PAGE_SLUG, ROUTES.THANK_YOU_SLUG), ROUTES.THANK_YOU_SLUG]}
-                render={() => <TrackPageView component={GenericThankYou} />}
-              />
-              <Route path={ROUTES.PAYMENT_SUCCESS} render={() => <PaymentSuccess />} />
-              <Route
-                path={[ROUTES.DONATION_PAGE_SLUG, '/']}
-                render={() => <TrackPageView component={LiveDonationPageContainer} />}
-              />
-            </Switch>
-          </React.Suspense>
-        </ChunkErrorBoundary>
-      </AddSlashToRoutes>
-    </BrowserRouter>
+    <RouterSetup>
+      <SentryRoute
+        path={[join(ROUTES.DONATION_PAGE_SLUG, ROUTES.THANK_YOU_SLUG), ROUTES.THANK_YOU_SLUG]}
+        render={() => <TrackPageView component={GenericThankYou} />}
+      />
+      <SentryRoute path={ROUTES.PAYMENT_SUCCESS} render={() => <PaymentSuccess />} />
+      <SentryRoute
+        path={[ROUTES.DONATION_PAGE_SLUG, '/']}
+        render={() => <TrackPageView component={LiveDonationPageContainer} />}
+      />
+    </RouterSetup>
   );
 }
 

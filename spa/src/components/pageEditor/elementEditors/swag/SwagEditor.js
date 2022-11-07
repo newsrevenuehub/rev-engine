@@ -192,7 +192,9 @@ function SwagEditor() {
             checked={!!elementContent.offerNytComp}
             onChange={setOfferNytComp}
           />
-          <S.CheckboxLabel htmlFor="offer-nyt-comp">Offer donors a complimentary NYT subscription?</S.CheckboxLabel>
+          <S.CheckboxLabel htmlFor="offer-nyt-comp">
+            Offer contributors a complimentary NYT subscription?
+          </S.CheckboxLabel>
         </S.OfferNytComp>
       )}
 

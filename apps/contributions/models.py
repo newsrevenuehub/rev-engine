@@ -288,7 +288,7 @@ class Contribution(IndexedTimeStampedModel, RoleAssignmentResourceModelMixin):
         )
         if save:
             self.provider_payment_id = intent["id"]
-            # we don't want to save this because it can be used to authorize payment attempt
+            # we don't want to save `client_secret` because it can be used to authorize payment attempt
             # so want to keep surface area small as possible
             self.payment_provider_data = dict(intent) | {"client_secret": None}
             self.save()

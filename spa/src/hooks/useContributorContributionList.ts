@@ -151,6 +151,8 @@ export function useContributorContributionList(
   // This means that if the user refreshes their browser or React Query decides
   // to invalidate the cache, the deleting contribution reappears--but there's
   // not much we can do about that here.
+  //
+  // Backend update that would make this unnecessary is captured in DEV-2391.
 
   const cancelRecurringContribution = useCallback(
     async (contribution: ContributorContribution) => {

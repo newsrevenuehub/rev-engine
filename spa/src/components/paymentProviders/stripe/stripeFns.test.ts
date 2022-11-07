@@ -147,7 +147,7 @@ describe('getPaymentSuccessUrl', () => {
     expect(search.get('pageSlug')).toEqual(args.pageSlug);
     expect(search.get('rpSlug')).toEqual(args.rpSlug);
     expect(search.get('fromPath')).toEqual(args.pathName === '/' ? '' : args.pathName);
-    expect(search.get('contributionUuid')).toEqual(args.contributionUuid);
+    expect(search.get('contributionUuid')).toBe(args.contributionUuid);
   });
   // this test is here syntax in original implementation was flawed and caused `amount: 1` to
   // raise the missing args error.

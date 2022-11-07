@@ -285,6 +285,8 @@ class BaseCreatePaymentSerializer(serializers.Serializer):
     email_hash = serializers.CharField(read_only=True)
     donor_selected_amount = serializers.FloatField(write_only=True)
     client_secret = serializers.CharField(max_length=255, read_only=True, required=False)
+    # This provides a way for the SPA to signal to the server that a contribution has been canceled,
+    # without relying on easy-to-guess, integer ID value.
     uuid = serializers.CharField(read_only=True)
 
     def validate_tribute_type(self, value):

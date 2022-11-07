@@ -140,6 +140,9 @@ class Contribution(IndexedTimeStampedModel, RoleAssignmentResourceModelMixin):
     contribution_metadata = models.JSONField(null=True)
 
     status = models.CharField(max_length=10, choices=ContributionStatus.choices, null=True)
+    # This is used in the `BaseCreatePaymentSerializer` and provides a way for the SPA
+    # to signal to the server that a contribution has been canceled, without relying on easy-to-guess,
+    # integer ID value.
     uuid = models.UUIDField(default=uuid.uuid4, primary_key=False, editable=False)
 
     class Meta:

@@ -246,7 +246,6 @@ class Contribution(IndexedTimeStampedModel, RoleAssignmentResourceModelMixin):
         mailing_state=None,
         mailing_postal_code=None,
         mailing_country=None,
-        save=True,
         **kwargs,
     ):
         """Create a Stripe customer using contributor email"""
@@ -266,12 +265,11 @@ class Contribution(IndexedTimeStampedModel, RoleAssignmentResourceModelMixin):
             phone=phone,
             stripe_account=self.donation_page.revenue_program.payment_provider.stripe_account_id,
         )
-        if save:
-            self.provider_customer_id = customer["id"]
-            self.save()
+        self.provider_customer_id = customer["id"]
+        self.save()
         return customer
 
-    def create_stripe_one_time_payment_intent(self, metadata, save=True):
+    def create_stripe_one_time_payment_intent(self, metadata):
         """Create a Stripe PaymentIntent and attach its id and client_secret to the contribution
 
         See https://stripe.com/docs/api/payment_intents/create for more info
@@ -286,24 +284,22 @@ class Contribution(IndexedTimeStampedModel, RoleAssignmentResourceModelMixin):
             stripe_account=self.donation_page.revenue_program.stripe_account_id,
             capture_method="manual" if self.status == ContributionStatus.FLAGGED else "automatic",
         )
-        if save:
-            self.provider_payment_id = intent["id"]
-            # we don't want to save `client_secret` because it can be used to authorize payment attempt
-            # so want to keep surface area small as possible
-            self.payment_provider_data = dict(intent) | {"client_secret": None}
-            self.save()
+        self.provider_payment_id = intent["id"]
+        # we don't want to save `` because it can be used to authorize payment attempt
+        # so want to keep surface area small as possible
+        self.payment_provider_data = dict(intent) | {"client_secret": None}
+        self.save()
         return intent
 
-    def create_stripe_setup_intent(self, metadata, save=True):
+    def create_stripe_setup_intent(self, metadata):
         """ """
         setup_intent = stripe.SetupIntent.create(
             customer=self.provider_customer_id,
             stripe_account=self.donation_page.revenue_program.payment_provider.stripe_account_id,
             metadata=metadata,
         )
-        if save:
-            self.provider_setup_intent_id = setup_intent["id"]
-            self.save()
+        self.provider_setup_intent_id = setup_intent["id"]
+        self.save()
         return setup_intent
 
     def create_stripe_subscription(
@@ -312,7 +308,6 @@ class Contribution(IndexedTimeStampedModel, RoleAssignmentResourceModelMixin):
         default_payment_method=None,
         off_session=False,
         error_if_incomplete=False,
-        save=True,
     ):
         """Create a Stripe Subscription and attach its data to the contribution
 
@@ -341,13 +336,12 @@ class Contribution(IndexedTimeStampedModel, RoleAssignmentResourceModelMixin):
             expand=["latest_invoice.payment_intent"],
             off_session=off_session,
         )
-        if save:
-            self.payment_provider_data = subscription
-            self.provider_subscription_id = subscription["id"]
-            self.save()
+        self.payment_provider_data = subscription
+        self.provider_subscription_id = subscription["id"]
+        self.save()
         return subscription
 
-    def cancel(self, save=True):
+    def cancel(self):
         if self.interval == ContributionInterval.ONE_TIME:
             stripe.PaymentIntent.cancel(
                 self.provider_payment_id,
@@ -376,10 +370,8 @@ class Contribution(IndexedTimeStampedModel, RoleAssignmentResourceModelMixin):
                 self.interval,
             )
             raise ContributionIntervalError()
-
-        if save:
-            self.status = ContributionStatus.CANCELED
-            self.save()
+        self.status = ContributionStatus.CANCELED
+        self.save()
 
     def handle_thank_you_email(self, contribution_received_at=None):
         """Send a thank you email to contribution's contributor if org is configured to have NRE send thank you email"""

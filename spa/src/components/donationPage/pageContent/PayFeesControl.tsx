@@ -7,15 +7,12 @@ import { getFrequencyAdjective } from 'utilities/parseFrequency';
 import { Header, ThemedCheckbox } from './PayFeesControl.styled';
 
 const PayFeesControlPropTypes = {
+  agreedToPayFees: PropTypes.bool.isRequired,
   currencySymbol: PropTypes.string.isRequired,
   feeAmount: PropTypes.number.isRequired,
   frequency: PropTypes.string.isRequired,
   onChange: PropTypes.func.isRequired,
-  revenueProgramName: PropTypes.string.isRequired,
-  /**
-   * Whether the user agreed to pay fees, not the fee amount.
-   */
-  value: PropTypes.bool.isRequired
+  revenueProgramName: PropTypes.string.isRequired
 };
 
 export interface PayFeesControlProps extends InferProps<typeof PayFeesControlPropTypes> {
@@ -24,12 +21,12 @@ export interface PayFeesControlProps extends InferProps<typeof PayFeesControlPro
 }
 
 export function PayFeesControl({
+  agreedToPayFees,
   currencySymbol,
   feeAmount,
   frequency,
   onChange,
-  revenueProgramName,
-  value
+  revenueProgramName
 }: PayFeesControlProps) {
   const formattedAmount = `${currencySymbol}${formatStringAmountForDisplay(feeAmount)}`;
   const formattedFrequency = getFrequencyAdjective(frequency).toLocaleLowerCase();
@@ -38,7 +35,7 @@ export function PayFeesControl({
     <div data-testid="pay-fees">
       <Header>Agree to pay fees?</Header>
       <FormControlLabel
-        control={<ThemedCheckbox checked={value} onChange={onChange} />}
+        control={<ThemedCheckbox checked={agreedToPayFees} onChange={onChange} />}
         label={`I agree to pay a ${formattedFrequency} transaction fee of ${formattedAmount} to direct more support to ${revenueProgramName}'s mission.`}
       />
     </div>

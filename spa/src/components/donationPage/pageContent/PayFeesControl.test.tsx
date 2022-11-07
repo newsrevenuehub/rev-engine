@@ -6,12 +6,12 @@ import userEvent from '@testing-library/user-event';
 function tree(props?: Partial<PayFeesControlProps>) {
   return render(
     <PayFeesControl
+      agreedToPayFees={false}
       currencySymbol="mock-currency-symbol"
       feeAmount={123}
       frequency="one_time"
       onChange={jest.fn()}
       revenueProgramName="mock-rp-name"
-      value={false}
       {...props}
     />
   );
@@ -23,9 +23,9 @@ describe('PayFeesControl', () => {
     expect(screen.getByRole('heading', { name: 'Agree to pay fees?' })).toBeVisible();
   });
 
-  it.each([[true], [false]])('shows a checkbox with correct state when value is %p', (value) => {
+  it.each([[true], [false]])('shows a checkbox with correct state when agreedToPayFees is %p', (value) => {
     expect.assertions(1);
-    tree({ value });
+    tree({ agreedToPayFees: value });
 
     const checkbox = screen.getByRole('checkbox');
 
@@ -41,7 +41,7 @@ describe('PayFeesControl', () => {
   it('calls the onChange prop when the checkbox is clicked', () => {
     const onChange = jest.fn();
 
-    tree({ onChange, value: false });
+    tree({ onChange, agreedToPayFees: false });
     expect(onChange).not.toBeCalled();
     userEvent.click(screen.getByRole('checkbox'));
     expect(onChange).toBeCalledTimes(1);

@@ -143,12 +143,12 @@ function DAmount({ element, ...props }) {
         {displayPayFeesControl && (
           <FeesContainer>
             <PayFeesControl
+              agreedToPayFees={userAgreesToPayFees}
               currencySymbol={page.currency.symbol}
               feeAmount={feeAmount}
               frequency={frequency}
               onChange={(event) => setUserAgreesToPayFees(event.target.checked)}
               revenueProgramName={page.revenue_program.name}
-              value={userAgreesToPayFees}
             />
           </FeesContainer>
         )}

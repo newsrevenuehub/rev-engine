@@ -444,7 +444,7 @@ class BaseCreatePaymentSerializer(serializers.Serializer):
             contribution_data["bad_actor_response"] = bad_actor_response
             if self.should_reject(contribution_data["bad_actor_score"]):
                 contribution_data["status"] = ContributionStatus.REJECTED
-            if self.should_flag(contribution_data["bad_actor_score"]):
+            elif self.should_flag(contribution_data["bad_actor_score"]):
                 contribution_data["status"] = ContributionStatus.FLAGGED
                 contribution_data["flagged_date"] = timezone.now()
         return Contribution.objects.create(**contribution_data)

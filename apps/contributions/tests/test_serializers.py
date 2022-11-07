@@ -338,7 +338,7 @@ class MockBadActorResponseObjectNotBad:
     See https://docs.pytest.org/en/7.1.x/how-to/monkeypatch.html for more info on how/why
     """
 
-    mock_bad_actor_response_json = {"overall_judgment": settings.BAD_ACTOR_FLAG_THRESHOLD - 1}
+    mock_bad_actor_response_json = {"overall_judgment": settings.BAD_ACTOR_FLAG_SCORE - 1}
 
     @classmethod
     def json(cls):
@@ -351,7 +351,7 @@ class MockBadActorResponseObjectBad:
     See https://docs.pytest.org/en/7.1.x/how-to/monkeypatch.html for more info on how/why
     """
 
-    mock_bad_actor_response_json = {"overall_judgment": settings.BAD_ACTOR_FLAG_THRESHOLD}
+    mock_bad_actor_response_json = {"overall_judgment": settings.BAD_ACTOR_FLAG_SCORE}
 
     @classmethod
     def json(cls):
@@ -364,7 +364,7 @@ class MockBadActorResponseObjectSuperBad:
     See https://docs.pytest.org/en/7.1.x/how-to/monkeypatch.html for more info on how/why
     """
 
-    mock_bad_actor_response_json = {"overall_judgment": settings.BAD_ACTOR_REJECT_THRESHOLD}
+    mock_bad_actor_response_json = {"overall_judgment": settings.BAD_ACTOR_REJECT_SCORE}
 
     @classmethod
     def json(cls):
@@ -738,9 +738,9 @@ class TestBaseCreatePaymentSerializer:
     @pytest.mark.parametrize(
         "score,should_flag",
         [
-            (settings.BAD_ACTOR_REJECT_THRESHOLD, False),
-            (settings.BAD_ACTOR_FLAG_THRESHOLD, True),
-            (settings.BAD_ACTOR_FLAG_THRESHOLD - 1, False),
+            (settings.BAD_ACTOR_REJECT_SCORE, False),
+            (settings.BAD_ACTOR_FLAG_SCORE, True),
+            (settings.BAD_ACTOR_FLAG_SCORE - 1, False),
         ],
     )
     def test_should_flag(self, score, should_flag, minimally_valid_data):
@@ -774,7 +774,7 @@ class TestBaseCreatePaymentSerializer:
 
     def test_create_contribution_happy_path(self, minimally_valid_data):
         contribution_count = Contribution.objects.count()
-        bad_actor_data = {"overall_judgment": settings.BAD_ACTOR_FLAG_THRESHOLD - 1}
+        bad_actor_data = {"overall_judgment": settings.BAD_ACTOR_FLAG_SCORE - 1}
         contributor = ContributorFactory()
         serializer = self.serializer_class(data=minimally_valid_data)
         assert serializer.is_valid() is True
@@ -797,7 +797,7 @@ class TestBaseCreatePaymentSerializer:
 
     def test_create_contribution_when_should_flag(self, minimally_valid_data):
         contribution_count = Contribution.objects.count()
-        bad_actor_data = {"overall_judgment": settings.BAD_ACTOR_FLAG_THRESHOLD}
+        bad_actor_data = {"overall_judgment": settings.BAD_ACTOR_FLAG_SCORE}
         contributor = ContributorFactory()
         serializer = self.serializer_class(data=minimally_valid_data)
         assert serializer.is_valid() is True
@@ -820,7 +820,7 @@ class TestBaseCreatePaymentSerializer:
 
     def test_create_contribution_when_should_reject(self, minimally_valid_data):
         contribution_count = Contribution.objects.count()
-        bad_actor_data = {"overall_judgment": settings.BAD_ACTOR_REJECT_THRESHOLD}
+        bad_actor_data = {"overall_judgment": settings.BAD_ACTOR_REJECT_SCORE}
         contributor = ContributorFactory()
         serializer = self.serializer_class(data=minimally_valid_data)
         assert serializer.is_valid() is True

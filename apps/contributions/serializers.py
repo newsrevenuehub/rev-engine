@@ -402,11 +402,11 @@ class BaseCreatePaymentSerializer(serializers.Serializer):
 
     def should_reject(self, bad_actor_score):
         """Determine if bad actor score should lead to contribution being rejected"""
-        return bad_actor_score == settings.BAD_ACTOR_REJECT_THRESHOLD
+        return bad_actor_score == settings.BAD_ACTOR_REJECT_SCORE
 
     def should_flag(self, bad_actor_score):
         """Determine if bad actor score should lead to contribution being flagged"""
-        return bad_actor_score == settings.BAD_ACTOR_FLAG_THRESHOLD
+        return bad_actor_score == settings.BAD_ACTOR_FLAG_SCORE
 
     def get_stripe_payment_metadata(self, contributor_id, validated_data):
         """Generate dict of metadata to be sent to Stripe when creating a PaymentIntent or Subscription"""

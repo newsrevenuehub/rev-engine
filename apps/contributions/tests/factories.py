@@ -24,15 +24,15 @@ class ContributorFactory(DjangoModelFactory):
 
 
 def _get_flagged_date(bad_actor_score, created_at):
-    if bad_actor_score == settings.BAD_ACTOR_FLAG_THRESHOLD:
+    if bad_actor_score == settings.BAD_ACTOR_FLAG_SCORE:
         return created_at + datetime.timedelta(hours=1)
     return None
 
 
 def _get_status(bad_actor_score):
-    if bad_actor_score == settings.BAD_ACTOR_REJECT_THRESHOLD:
+    if bad_actor_score == settings.BAD_ACTOR_REJECT_SCORE:
         return models.ContributionStatus.REJECTED
-    if bad_actor_score == settings.BAD_ACTOR_FLAG_THRESHOLD:
+    if bad_actor_score == settings.BAD_ACTOR_FLAG_SCORE:
         return models.ContributionStatus.FLAGGED
 
     return random.choice(
@@ -45,7 +45,7 @@ def _get_status(bad_actor_score):
 
 
 def _get_last_payment_date(created_date, bad_actor_score):
-    if bad_actor_score >= settings.BAD_ACTOR_FLAG_THRESHOLD:
+    if bad_actor_score >= settings.BAD_ACTOR_FLAG_SCORE:
         return None
     return created_date + datetime.timedelta(hours=1)
 

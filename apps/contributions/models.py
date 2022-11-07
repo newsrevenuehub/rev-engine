@@ -257,7 +257,7 @@ class Contribution(IndexedTimeStampedModel, RoleAssignmentResourceModelMixin):
             "postal_code": mailing_postal_code,
             "country": mailing_country,
         }
-        name = " ".join([x for x in [first_name, last_name] if x])
+        name = " ".join(x for x in [first_name, last_name] if x)
         customer = stripe.Customer.create(
             email=self.contributor.email,
             address=address,

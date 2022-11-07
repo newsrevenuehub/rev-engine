@@ -474,7 +474,7 @@ class CreateOneTimePaymentSerializer(BaseCreatePaymentSerializer):
         bad_actor_response = self.get_bad_actor_score(validated_data)
         contribution = self.create_contribution(contributor, validated_data, bad_actor_response)
         if contribution.status == ContributionStatus.REJECTED:
-            # In the case of a flagged contribution, we don't create a Stripe customer or
+            # In the case of a rejected contribution, we don't create a Stripe customer or
             # Stripe payment intent, so we raise exception, and leave to SPA to handle accordingly
             raise PermissionDenied("Cannot authorize contribution")
         try:

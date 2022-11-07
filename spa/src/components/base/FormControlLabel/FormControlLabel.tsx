@@ -11,9 +11,10 @@ export type FormControlLabelProps = MuiFormControlProps;
  */
 export const FormControlLabel = styled(MuiFormControlLabel)`
   && {
-    .MuiFormControlLabel-label {
+    .MuiFormControlLabel-label,
+    [class*='MuiFormControlLabel-label'] {
       color: #282828;
-      font: 14px Roboto, sans-serif;
+      font: 16px Roboto, sans-serif;
     }
   }
 `;

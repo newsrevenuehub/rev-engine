@@ -90,6 +90,11 @@
       "!**/*.stories.js",
       "!**/*.styled.js"
     ],
+    "coverageThreshold": {
+      "global": {
+        "lines": 30
+      }
+    },
     "transformIgnorePatterns": [
       "node_modules/(?!(cypress|url-join)/)",
       "\\.pnp\\.[^\\/]+$"

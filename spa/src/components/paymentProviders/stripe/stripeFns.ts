@@ -223,12 +223,12 @@ export function getPaymentSuccessUrl({
   return paymentSuccessUrl.href;
 }
 
-interface GetPaymentElementButtonTextArts {
+export interface GetPaymentElementButtonTextArgs {
   currencySymbol: string;
   amount: number;
   frequency: ContributionInterval;
 }
 
-export function getPaymentElementButtonText({ currencySymbol, amount, frequency }: GetPaymentElementButtonTextArts) {
+export function getPaymentElementButtonText({ currencySymbol, amount, frequency }: GetPaymentElementButtonTextArgs) {
   return `Give ${currencySymbol}${formatStringAmountForDisplay(amount)} ${getFrequencyAdverb(frequency)}`;
 }

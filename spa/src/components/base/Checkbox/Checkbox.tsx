@@ -8,7 +8,7 @@ export type CheckboxProps = MuiCheckboxProps;
  */
 export const Checkbox = styled(MuiCheckbox)`
   && {
-    padding: 9px;
+    padding: 0 9px;
 
     &.Mui-checked {
       color: #157cb2;

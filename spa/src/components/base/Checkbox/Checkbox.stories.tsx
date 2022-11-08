@@ -43,3 +43,15 @@ const Template: Story<TemplateProps> = (props: TemplateProps) => (
 );
 
 export const Default = Template.bind({});
+
+const LineWrapTemplate: Story<TemplateProps> = (props: TemplateProps) => (
+  <div style={{ width: '150px' }}>
+    <FormControlLabel
+      control={<Checkbox checked={props.checked} indeterminate={props.indeterminate} />}
+      disabled={props.disabled}
+      label="This is a label that should wrap onto multiple lines"
+    />
+  </div>
+);
+
+export const LineWrap = LineWrapTemplate.bind({});

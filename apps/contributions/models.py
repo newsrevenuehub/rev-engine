@@ -321,7 +321,7 @@ class Contribution(IndexedTimeStampedModel, RoleAssignmentResourceModelMixin):
             payment_settings={
                 "save_default_payment_method": "on_subscription",
                 # coming soon: explanatory comment!
-                "payment_method_options": ["card"],
+                "payment_method_types": ["card"],
             },
             expand=["latest_invoice.payment_intent"],
         )

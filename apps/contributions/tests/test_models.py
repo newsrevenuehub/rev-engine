@@ -178,6 +178,7 @@ class ContributionTest(TestCase):
             receipt_email=contributor.email,
             statement_descriptor_suffix=self.revenue_program.stripe_statement_descriptor_suffix,
             stripe_account=self.revenue_program.stripe_account_id,
+            automatic_payment_methods={"enabled": True},
         )
         self.contribution.refresh_from_db()
         self.assertEqual(self.contribution.provider_payment_id, return_value["id"])
@@ -221,7 +222,10 @@ class ContributionTest(TestCase):
             stripe_account=self.revenue_program.stripe_account_id,
             metadata=metadata,
             payment_behavior="default_incomplete",
-            payment_settings={"save_default_payment_method": "on_subscription"},
+            payment_settings={
+                "save_default_payment_method": "on_subscription",
+                "payment_method_options": ["card"],
+            },
             expand=["latest_invoice.payment_intent"],
         )
         self.contribution.refresh_from_db()

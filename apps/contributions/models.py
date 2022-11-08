@@ -286,6 +286,8 @@ class Contribution(IndexedTimeStampedModel, RoleAssignmentResourceModelMixin):
             receipt_email=self.contributor.email,
             statement_descriptor_suffix=self.donation_page.revenue_program.stripe_statement_descriptor_suffix,
             stripe_account=self.donation_page.revenue_program.stripe_account_id,
+            # This causes accepted payment methods to be configurable from the Stripe dashboard
+            automatic_payment_methods={"enabled": True},
         )
         self.provider_payment_id = intent["id"]
         self.provider_client_secret_id = intent["client_secret"]
@@ -316,7 +318,11 @@ class Contribution(IndexedTimeStampedModel, RoleAssignmentResourceModelMixin):
             stripe_account=self.donation_page.revenue_program.payment_provider.stripe_account_id,
             metadata=metadata,
             payment_behavior="default_incomplete",
-            payment_settings={"save_default_payment_method": "on_subscription"},
+            payment_settings={
+                "save_default_payment_method": "on_subscription",
+                # coming soon: explanatory comment!
+                "payment_method_options": ["card"],
+            },
             expand=["latest_invoice.payment_intent"],
         )
         self.payment_provider_data = subscription

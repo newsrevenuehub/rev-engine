@@ -8,88 +8,88 @@ import 'styled-components';
 declare module 'styled-components' {
   export interface DefaultTheme {
     colors: {
-      primary: string;
-      primaryLight: string;
-      secondary: string;
-      fieldBackground: string;
-      paneBackground: string;
-      inputBackground: string;
-      inputBorder: string;
-      sidebarBackground: string;
-      topbarBackground: string;
-      navSelectedBackground: string;
-      navSectionLabelColor: string;
-      black: string;
+      primary: '#20bfdd';
+      primaryLight: '#c7eff7';
+      secondary: '#99D17B';
+      fieldBackground: '#f7f7f7';
+      paneBackground: '#fff';
+      inputBackground: '#fff';
+      inputBorder: '#c3c3c3';
+      sidebarBackground: '#25192B';
+      topbarBackground: '#523A5E';
+      navSelectedBackground: '#eaf37a';
+      navSectionLabelColor: '#ddcbe7';
+      black: '#080708';
       account: {
-        purple: string[];
-        yellow: string[];
-        blueLink: string;
+        purple: ['#523a5e', '#25192b', '#19111e'];
+        yellow: ['#f5ff75'];
+        blueLink: '#0052cc';
       };
-      white: string;
-      grey: string[];
+      white: '#ffffff';
+      grey: ['#eee', '#ccc', '#999', '#666', '#333'];
       muiLightBlue: {
-        200: string;
-        500: string;
-        800: string;
+        200: '#6FD1EC';
+        500: '#3cade8';
+        800: '#157CB2';
       };
       muiTeal: {
-        600: string;
-        700: string;
+        600: '#008E7C';
+        700: '#008070';
       };
       muiYellow: {
-        A50: string;
-        A100: string;
+        A50: '#EFF4A7';
+        A100: '#F5FF75';
       };
       muiGrey: {
-        50: string;
-        100: string;
-        300: string;
-        400: string;
-        500: string;
-        600: string;
-        700: string;
-        800: string;
-        900: string;
+        50: '#F9F9F9';
+        100: '#F1F1F1';
+        300: '#D9D9D9';
+        400: '#c4c4c4';
+        500: '#969696';
+        600: '#707070';
+        700: '#666666';
+        800: '#3c3c3c';
+        900: '#282828';
       };
       status: {
-        processing: string;
-        done: string;
-        failed: string;
-        warning: string;
+        processing: '#ACDCF5';
+        done: '#AFEFAD';
+        failed: '#F4B9C8';
+        warning: '#FDD69C';
       };
       error: {
-        primary: string;
-        bg: string;
+        primary: '#C8203F';
+        bg: '#f6dbe0';
       };
-      caution: string;
-      info: string;
-      success: string;
-      warning: string;
-      disabled: string;
-      link: string;
-      hover: string;
-      tableRowHover: string;
-      tableRowActive: string;
+      caution: '#ff476c';
+      info: '#20bfdd';
+      success: '#99D17B';
+      warning: '#ffd400';
+      disabled: '#ebebeb';
+      link: '#4183c4';
+      hover: '#eee';
+      tableRowHover: '#bcd3f5';
+      tableRowActive: '#dce8fa';
       cstm_CTAs?: string;
     };
     buttons: {
       yellow: {
-        background: string;
-        backgroundLight: string;
-        border: string;
-        boxShadow: string;
-        borderRadius: string;
-        color: string;
+        background: '#F5FF75';
+        backgroundLight: 'rgba(245, 255, 117, 0.3);';
+        border: '0.5px solid #E6EE84';
+        boxShadow: '0px 0.3px 0.5px rgba(0, 0, 0, 0.1), 0px 2px 4px rgba(0, 0, 0, 0.2)';
+        borderRadius: '4px';
+        color: '#302436';
       };
       blue: {
-        background: string;
-        backgroundLight: string;
-        border: string;
+        background: '#147D99';
+        backgroundLight: '#9ADFF2';
+        border: '0.5px solid #147D99';
       };
     };
-    systemFont: string;
-    font: { body: string; heading: string };
-    fontSizes: string[];
+    systemFont: "'Roboto', sans-serif";
+    font: { body: "'Roboto', sans-serif"; heading: "'Roboto', sans-serif" };
+    fontSizes: ['12px', '16px', '24px', '32px', '48px', '84px', '96px'];
     fontSizesUpdated: {
       xs: '12px';
       sm: '14px';
@@ -110,22 +110,22 @@ declare module 'styled-components' {
       xl: '10px';
       '2xl': '12px';
     };
-    radii: string[];
-    shadows: string[];
+    radii: ['3px', '6px', '12px'];
+    shadows: ['0 1px 2px 0 rgb(0 0 0 / 15%)', '0 10px 25px 0 rgb(0 0 0 / 6%)', '0 12px 25px 0 rgb(0 0 0 / 10%)'];
     breakpoints: {
-      phoneOnly: string;
-      tabletLandscapeDown: string;
-      mdUp: string;
+      phoneOnly: 'max-width: 599px';
+      tabletLandscapeDown: 'max-width: 890px';
+      mdUp: 'min-width: 890px';
     };
     maxWidths: {
-      sm: string;
-      md: string;
-      lg: string;
-      xl: string;
+      sm: '300px';
+      md: '890px';
+      lg: '1000px';
+      xl: '1300px';
     };
     zIndex: {
-      header: number;
-      sidebar: number;
+      header: 10;
+      sidebar: 5;
     };
   }
 }

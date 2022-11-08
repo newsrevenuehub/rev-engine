@@ -1,5 +1,5 @@
 import { Modal as MuiModal, ModalProps as MuiModalProps, Paper } from '@material-ui/core';
-import { forwardRef, ReactChild, useEffect } from 'react';
+import { ElementType, forwardRef, HTMLAttributes, ReactChild } from 'react';
 import ReactFocusLock from 'react-focus-lock';
 import styled from 'styled-components';
 
@@ -24,6 +24,7 @@ export interface ModalProps extends Omit<MuiModalProps, 'children'> {
    * Width of the modal in pixels.
    */
   width?: number;
+  component?: ElementType<HTMLAttributes<HTMLElement>>;
 }
 
 // There are a number of focus-related issues with the MUI dialog that do not
@@ -41,10 +42,12 @@ export interface ModalProps extends Omit<MuiModalProps, 'children'> {
 /**
  * see https://v4.mui.com/api/modal/
  */
-export const Modal = forwardRef(({ children, width, ...props }: ModalProps, ref) => (
+export const Modal = forwardRef(({ children, width, component, ...props }: ModalProps, ref) => (
   <StyledModal {...props} disableAutoFocus disableEnforceFocus disableRestoreFocus ref={ref} role="dialog">
     <ReactFocusLock returnFocus>
-      <StyledPaper style={{ width }}>{children}</StyledPaper>
+      <StyledPaper style={{ width }} {...(component && { component })}>
+        {children}
+      </StyledPaper>
     </ReactFocusLock>
   </StyledModal>
 ));

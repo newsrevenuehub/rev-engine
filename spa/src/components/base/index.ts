@@ -5,4 +5,5 @@ export * from './Select';
 export * from './Stepper';
 export * from './TextField/TextField';
 export * from './MenuItem/MenuItem';
+export * from './Tabs';
 export * from './Tooltip/Tooltip';

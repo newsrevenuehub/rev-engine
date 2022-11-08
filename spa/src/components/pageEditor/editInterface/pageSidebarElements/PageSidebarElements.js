@@ -27,7 +27,7 @@ function PageSidebarElements({ openAddElementModal, goToProperties, handleRemove
       ) : (
         <EmptyElements />
       )}
-      <S.AddElementButton onClick={openAddElementModal} data-testid="add-element-button">
+      <S.AddElementButton onClick={openAddElementModal} data-testid="add-sidebar-element-button">
         <S.AddElementIcon icon={faPlus} />
       </S.AddElementButton>
     </S.PageSidebarElements>

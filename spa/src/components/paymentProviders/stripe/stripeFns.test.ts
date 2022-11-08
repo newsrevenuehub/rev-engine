@@ -4,8 +4,7 @@ import {
   getPaymentSuccessUrl,
   getTotalAmount,
   serializeData,
-  getPaymentElementButtonText,
-  GetPaymentElementButtonTextArgs
+  getPaymentElementButtonText
 } from './stripeFns';
 import { PAYMENT_SUCCESS } from 'routes';
 import { CONTRIBUTION_INTERVALS } from 'constants/contributionIntervals';

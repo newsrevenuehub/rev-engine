@@ -34,7 +34,7 @@ function PageElements({ openAddElementModal, goToProperties, handleRemoveElement
       ) : (
         <EmptyElements />
       )}
-      <S.AddElementButton onClick={openAddElementModal} data-testid="add-element-button">
+      <S.AddElementButton onClick={openAddElementModal} data-testid="add-page-element-button">
         <S.AddElementIcon icon={faPlus} />
       </S.AddElementButton>
     </S.PageElements>

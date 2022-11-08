@@ -137,14 +137,14 @@ describe('DAmount', () => {
     errorSpy.mockRestore();
   });
 
-  it("selects a div if it matches the page's donation amount", () => {
+  it("selects a div if it matches the page's contribution amount", () => {
     tree({ options: defaultOptions }, { amount: 2, frequency: CONTRIBUTION_INTERVALS.ONE_TIME });
     expect(screen.getByText('mock-currency-symbol1')).toHaveAttribute('data-testid', 'amount-1');
     expect(screen.getByText('mock-currency-symbol2')).toHaveAttribute('data-testid', 'amount-2-selected');
     expect(screen.getByText('mock-currency-symbol3')).toHaveAttribute('data-testid', 'amount-3');
   });
 
-  it("selects no divs if none match the page's donation amount", () => {
+  it("selects no divs if none match the page's contribution amount", () => {
     tree({ options: defaultOptions }, { amount: 0, frequency: CONTRIBUTION_INTERVALS.ONE_TIME });
     expect(screen.getByText('mock-currency-symbol1')).toHaveAttribute('data-testid', 'amount-1');
     expect(screen.getByText('mock-currency-symbol2')).toHaveAttribute('data-testid', 'amount-2');

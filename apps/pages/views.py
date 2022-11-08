@@ -56,14 +56,14 @@ class PageFullDetailHelper:
                 logger.info('Request for non-existent page by slug "%s"', self.page_slug)
             else:
                 logger.info(
-                    'Request for default donation page, but no default page set for revenue program "%s"',
+                    'Request for default contribution page, but no default page set for revenue program "%s"',
                     self.revenue_program.name,
                 )
             raise PageDetailError("Could not find page matching those parameters")
         self._validate_page_request()
 
     def get_data(self):
-        """Serialize Donation Page and return JSON."""
+        """Serialize Contribution Page and return JSON."""
         page_serializer = serializers.DonationPageFullDetailSerializer(
             instance=self.donation_page, context={"live": self.live}
         )
@@ -73,7 +73,7 @@ class PageFullDetailHelper:
         """Ensure valid request
 
         - If page is not requested live, check nothing.
-        - If page is requested live, the donation page IS live aka "published".
+        - If page is requested live, the contribution page IS live aka "published".
         - If page is requested live, the Organization has a verified payment provider.
         """
         if not self.live:
@@ -109,7 +109,7 @@ class PageFullDetailHelper:
 
 
 class PageViewSet(RevisionMixin, viewsets.ModelViewSet, FilterQuerySetByUserMixin, PerUserDeletePermissionsMixin):
-    """Donation pages exposed through API
+    """Contribution pages exposed through API
 
     Only superusers and users with role assignments are meant to have access. Results of lists are filtered
     on per user basis.
@@ -194,7 +194,7 @@ class PageViewSet(RevisionMixin, viewsets.ModelViewSet, FilterQuerySetByUserMixi
 
 
 class TemplateViewSet(RevisionMixin, viewsets.ModelViewSet, FilterQuerySetByUserMixin):
-    """Donation Page templates as exposed through API
+    """Contribution Page templates as exposed through API
 
     Only superusers and users with role assignments are meant to have access. Results of lists are filtered
     on per user basis.
@@ -225,7 +225,7 @@ class TemplateViewSet(RevisionMixin, viewsets.ModelViewSet, FilterQuerySetByUser
 
 
 class StyleViewSet(RevisionMixin, viewsets.ModelViewSet, FilterQuerySetByUserMixin, PerUserDeletePermissionsMixin):
-    """Donation Page Template styles exposed through API
+    """Contribution Page Template styles exposed through API
 
     Only superusers and users with role assignments are meant to have access. Results of lists are filtered
     on per user basis.

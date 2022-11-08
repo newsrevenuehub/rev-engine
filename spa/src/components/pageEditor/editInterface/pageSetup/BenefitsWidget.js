@@ -6,7 +6,7 @@ function BenefitsWidget({ benefits = [], selected, setSelected }) {
     <S.BenefitsWidget data-testid="benefits-widget">
       <S.SelectWrapper>
         <Select
-          label="Donor benefits"
+          label="Contributor benefits"
           onSelectedItemChange={({ selectedItem }) => setSelected(selectedItem)}
           selectedItem={selected}
           items={[{ name: '----none----', id: 'None' }].concat(benefits)}

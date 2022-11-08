@@ -7,7 +7,7 @@ import { pageLink } from 'utilities/getPageLinks';
 import PublishButton from './PublishButton';
 
 const unpublishedPage = {
-  name: 'Donation page',
+  name: 'Contribution page',
   revenue_program: {
     slug: 'news-revenue-hub'
   },

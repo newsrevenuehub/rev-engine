@@ -121,7 +121,7 @@ class Organization(IndexedTimeStampedModel, RoleAssignmentResourceModelMixin):
 
 class Benefit(IndexedTimeStampedModel):
     name = models.CharField(max_length=128, help_text="A way to uniquely identify this Benefit")
-    description = models.TextField(help_text="The text that appears on the donation page")
+    description = models.TextField(help_text="The text that appears on the contribution page")
     revenue_program = models.ForeignKey("organizations.RevenueProgram", on_delete=models.CASCADE)
 
     class Meta:
@@ -201,7 +201,7 @@ class RevenueProgram(IndexedTimeStampedModel):
         max_length=RP_SLUG_MAX_LENGTH,
         blank=True,
         unique=True,
-        help_text="This will be used as the subdomain for donation pages made under this revenue program. If left blank, it will be derived from the Revenue Program name.",
+        help_text="This will be used as the subdomain for contribution pages made under this revenue program. If left blank, it will be derived from the Revenue Program name.",
         validators=[validate_slug_against_denylist],
     )
     organization = models.ForeignKey("organizations.Organization", on_delete=models.CASCADE)
@@ -211,7 +211,7 @@ class RevenueProgram(IndexedTimeStampedModel):
         null=True,
         blank=True,
         on_delete=models.SET_NULL,
-        help_text="Choose an optional default donation page once you've saved your initial revenue program",
+        help_text="Choose an optional default contribution page once you've saved your initial revenue program",
     )
     # TODO: [DEV-2403] non_profit should probably be moved to the payment provider?
     non_profit = models.BooleanField(default=True, verbose_name="Non-profit?")
@@ -226,7 +226,9 @@ class RevenueProgram(IndexedTimeStampedModel):
 
     # Social links
     twitter_handle = models.CharField(
-        max_length=15, blank=True, help_text="How can your donors mention you on Twitter? Don't include '@' symbol"
+        max_length=15,
+        blank=True,
+        help_text="How can your contributors mention you on Twitter? Don't include '@' symbol",
     )
     website_url = models.URLField(blank=True, help_text="Does this Revenue Program have a website?")
 
@@ -238,7 +240,7 @@ class RevenueProgram(IndexedTimeStampedModel):
     # Strange, hopefully temporary, hacky bit to accommodate one ore two particular clients' needs
     allow_offer_nyt_comp = models.BooleanField(
         default=False,
-        help_text="Should page authors for this Revenue Program see the option to offer their donors a comp subscription to the New York Times?",
+        help_text="Should page authors for this Revenue Program see the option to offer their contributors a comp subscription to the New York Times?",
         verbose_name="Allow page editors to offer an NYT subscription",
     )
     country = models.CharField(
@@ -286,7 +288,7 @@ class RevenueProgram(IndexedTimeStampedModel):
         # Avoid state of a rev program's default page not being one of "its pages"
         if self.default_donation_page and self.default_donation_page.revenue_program != self:
             raise ValidationError(
-                f'Donation page "{self.default_donation_page}" is already associated with a revenue program, "{self.default_donation_page.revenue_program}"'
+                f'Contribution page "{self.default_donation_page}" is already associated with a revenue program, "{self.default_donation_page.revenue_program}"'
             )
         # Ensure no @ symbol on twitter_handle-- we'll add those later
         if self.twitter_handle and self.twitter_handle[0] == "@":
@@ -355,7 +357,7 @@ class PaymentProvider(IndexedTimeStampedModel):
         return f"Stripe Payment Provider acct:{self.stripe_account_id} product:{self.stripe_product_id}"
 
     def get_dependent_pages_with_publication_date(self):
-        """Retreieve live and future live donation pages that rely on this payment provider"""
+        """Retreieve live and future live contribution pages that rely on this payment provider"""
         from apps.pages.models import DonationPage  # vs circular import
 
         return DonationPage.objects.filter(revenue_program__payment_provider=self, published_date__isnull=False)

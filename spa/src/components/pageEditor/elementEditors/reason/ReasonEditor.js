@@ -103,7 +103,7 @@ function ReasonEditor() {
             checked={!!elementContent.askReason}
             onChange={() => toggleElementContent('askReason')}
           />
-          <S.CheckboxLabel htmlFor="ask-reason">Ask donor why they are making a contribution</S.CheckboxLabel>
+          <S.CheckboxLabel htmlFor="ask-reason">Ask contributor why they are making a contribution</S.CheckboxLabel>
         </S.CheckboxWrapper>
         {elementContent.askReason && (
           <S.CheckboxWrapper>
@@ -163,7 +163,7 @@ function ReasonEditor() {
             onChange={() => toggleElementContent('askHonoree')}
           />
           <S.CheckboxLabel htmlFor="ask-honoree">
-            Ask donor if their contribution is in honor of somebody
+            Ask contributor if their contribution is in honor of somebody
           </S.CheckboxLabel>
         </S.CheckboxWrapper>
         <S.CheckboxWrapper>
@@ -178,7 +178,7 @@ function ReasonEditor() {
             onChange={() => toggleElementContent('askInMemoryOf')}
           />
           <S.CheckboxLabel htmlFor="ask-in-memory-of">
-            Ask donor if their contribution is in memory of somebody
+            Ask contributor if their contribution is in memory of somebody
           </S.CheckboxLabel>
         </S.CheckboxWrapper>
       </S.OtherSection>

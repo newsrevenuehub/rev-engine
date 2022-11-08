@@ -207,7 +207,7 @@ class TestPaymentProviderModel(TestCase):
     def test_get_dependent_pages_with_publication_date(self):
         # add an additional page so test is not trivial
         DonationPageFactory(revenue_program=self.revenue_program, published_date=None)
-        """Show gets list of donation pages with pub date that indirectly reference the provider"""
+        """Show gets list of contribution pages with pub date that indirectly reference the provider"""
         self.assertEqual(
             set(list(self.payment_provider.get_dependent_pages_with_publication_date().values_list("id", flat=True))),
             {self.live_page.pk, self.future_live_page.pk},

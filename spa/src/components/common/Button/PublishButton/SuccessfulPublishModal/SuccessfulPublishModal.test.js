@@ -7,7 +7,7 @@ import { pageLink, portalLink } from 'utilities/getPageLinks';
 import SuccessfulPublishModal from './SuccessfulPublishModal';
 
 const page = {
-  name: 'Donation Page',
+  name: 'Contribution Page',
   revenue_program: {
     slug: 'news-revenue-hub'
   },

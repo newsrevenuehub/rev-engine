@@ -29,7 +29,7 @@ export function getAmountIndex(page, amount, frequency) {
  * returned. If there are no amounts at all configured, this returns undefined.
  * @param {string} frequency - frequency code
  * @param {Object} page - page object
- * @returns {Number} numeric donation
+ * @returns {Number} numeric contribution
  */
 export function getDefaultAmountForFreq(frequency, page) {
   const amountElement = page?.elements?.find(({ type }) => type === 'DAmount');

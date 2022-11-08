@@ -60,7 +60,7 @@ function DonorInfoEditor() {
                     checked={!!elementRequiredFields.includes('phone')}
                     onChange={handleToggleRequirePhone}
                   />
-                  <S.CheckboxLabel htmlFor="phone-required">Required to complete donation?</S.CheckboxLabel>
+                  <S.CheckboxLabel htmlFor="phone-required">Required to complete contribution?</S.CheckboxLabel>
                 </S.CheckBoxField>
               </S.CheckboxWrapper>
             )}

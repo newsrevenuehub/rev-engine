@@ -81,7 +81,7 @@ def test_paymentprovider_change_blocks_deletion_when_pages_with_publish_date():
     message = request._messages._queued_messages[0].message
 
     assert message == (
-        f"Can't delete this payment provider because it's used by 1 live or future live donation page "
+        f"Can't delete this payment provider because it's used by 1 live or future live contribution page "
         f"across <a href=/nrhadmin/organizations/revenueprogram/?q={provider.stripe_account_id}>1 revenue program</a>."
     )
 

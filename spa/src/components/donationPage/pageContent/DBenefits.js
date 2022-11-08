@@ -19,7 +19,7 @@ function DBenefits({ live }) {
 
   if (!benefit_levels) {
     if (live) return null;
-    return <ElementError>No Donor Benefits configured for this page</ElementError>;
+    return <ElementError>No Contributor Benefits configured for this page</ElementError>;
   }
 
   return (
@@ -73,8 +73,8 @@ DBenefits.propTypes = {
 };
 
 DBenefits.type = 'DBenefits';
-DBenefits.displayName = 'Donor Benefits';
-DBenefits.description = 'Display donor benefits';
+DBenefits.displayName = 'Contributor Benefits';
+DBenefits.description = 'Display contributor benefits';
 DBenefits.required = false;
 DBenefits.unique = true;
 

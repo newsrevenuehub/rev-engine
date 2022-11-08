@@ -41,6 +41,7 @@ const AddPageModal = ({ open, onClose, loading, revenuePrograms, onClick, outerE
       aria-label="Create new page"
       component="form"
       onSubmit={handleSubmit(onSubmit)}
+      data-testid="page-create-modal"
     >
       <ModalHeader icon={<AddIcon />} onClose={onClose}>
         <strong>New Page</strong>
@@ -52,9 +53,20 @@ const AddPageModal = ({ open, onClose, loading, revenuePrograms, onClick, outerE
           control={control}
           rules={{ required: 'Please select a Revenue Program' }}
           render={({ field }) => (
-            <TextField fullWidth id="revenue-program" label="Revenue Program" {...field} select>
-              {sortedRP.map((revenueProgram) => (
-                <MenuItem key={revenueProgram.name} value={revenueProgram.id}>
+            <TextField
+              fullWidth
+              id="revenue-program"
+              label="Revenue Program"
+              {...field}
+              select
+              data-testid="new-page-revenue-program"
+            >
+              {sortedRP.map((revenueProgram, index) => (
+                <MenuItem
+                  key={revenueProgram.name}
+                  value={revenueProgram.id}
+                  data-testid={`select-revenue-program-${index}`}
+                >
                   {revenueProgram.name}
                 </MenuItem>
               ))}
@@ -71,7 +83,7 @@ const AddPageModal = ({ open, onClose, loading, revenuePrograms, onClick, outerE
         <Button color="secondary" onClick={onClose}>
           Cancel
         </Button>
-        <Button color="primaryDark" disabled={loading!} type="submit">
+        <Button color="primaryDark" disabled={loading!} type="submit" data-testid="new-page-submit">
           Create
         </Button>
       </ModalFooter>

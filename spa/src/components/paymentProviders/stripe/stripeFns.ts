@@ -2,6 +2,8 @@ import { PaymentMethodCreateParams, Stripe, StripeCardElement } from '@stripe/st
 import { ContributionInterval } from 'constants/contributionIntervals';
 import { PAYMENT_SUCCESS } from 'routes';
 import calculateStripeFee from 'utilities/calculateStripeFee';
+import formatStringAmountForDisplay from 'utilities/formatStringAmountForDisplay';
+import { getFrequencyAdverb } from 'utilities/parseFrequency';
 
 /**
  * getTotalAmount takes an amount in dollars and an optional fee in dollars and adds them up.
@@ -219,4 +221,14 @@ export function getPaymentSuccessUrl({
   }).toString();
 
   return paymentSuccessUrl.href;
+}
+
+interface GetPaymentElementButtonTextArts {
+  currencySymbol: string;
+  amount: number;
+  frequency: ContributionInterval;
+}
+
+export function getPaymentElementButtonText({ currencySymbol, amount, frequency }: GetPaymentElementButtonTextArts) {
+  return `Give ${currencySymbol}${formatStringAmountForDisplay(amount)} ${getFrequencyAdverb(frequency)}`;
 }

@@ -36,7 +36,6 @@ class User(AbstractBaseUser, PermissionsMixin, IndexedTimeStampedModel):
     job_title = models.CharField(max_length=50, blank=True, null=True)
 
     objects = UserManager()
-    google_cloud_pub_sub_publisher = GoogleCloudPubSubPublisher()
 
     USERNAME_FIELD = "email"
 
@@ -64,7 +63,7 @@ class User(AbstractBaseUser, PermissionsMixin, IndexedTimeStampedModel):
     def save(self, *args, **kwargs):
         super().save(*args, **kwargs)
         if google_cloud_pub_sub_is_configured() and self._email_is_publishable():
-            self.google_cloud_pub_sub_publisher.publish(settings.NEW_USER_TOPIC, Message(data=self.email))
+            GoogleCloudPubSubPublisher.get_instance().publish(settings.NEW_USER_TOPIC, Message(data=self.email))
 
     def _email_is_publishable(self) -> bool:
         return self._state.adding and self.email and not self.email.endswith("@fundjournalism.org")

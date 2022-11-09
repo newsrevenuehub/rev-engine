@@ -18,6 +18,9 @@ class Message:
 
 
 class GoogleCloudPubSubPublisher:
+
+    __instance = None
+
     def __init__(self):
         self.client = pubsub_v1.PublisherClient()
         self.project_id = settings.GOOGLE_CLOUD_PROJECT
@@ -29,3 +32,9 @@ class GoogleCloudPubSubPublisher:
         result = future.result(timeout=3)
         logger.info("Published data result with id %s to %s", result, topic)
         return result
+
+    @classmethod
+    def get_instance(cls):
+        if not cls.__instance:
+            cls.__instance = GoogleCloudPubSubPublisher()
+        return cls.__instance

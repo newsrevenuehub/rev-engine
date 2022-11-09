@@ -20,6 +20,7 @@ import hubAdminWithoutFlags from '../fixtures/user/login-success-hub-admin';
 import orgAdminUser from '../fixtures/user/login-success-org-admin.json';
 import selfServiceUserNotStripeVerified from '../fixtures/user/self-service-user-not-stripe-verified.json';
 import selfServiceUserStripeVerified from '../fixtures/user/self-service-user-stripe-verified.json';
+import { cy } from 'date-fns/locale';
 
 const contribSectionsFlag = {
   id: '1234',
@@ -332,6 +333,7 @@ describe('Donations list', () => {
       cy.interceptPaginatedDonations();
       cy.visit(DONATIONS_SLUG);
       cy.wait('@listPages');
+      cy.wait('@stripeAccountLink');
       cy.get('a').contains('connect to Stripe later').click();
       cy.getByTestId('minimize-toast').click();
       cy.getByTestId('banner').should('exist');

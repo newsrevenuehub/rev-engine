@@ -69,7 +69,7 @@ class TemplateAdmin(VersionAdmin, DonationPageAdminAbstract):
                 if "violates unique constraint" in str(integrity_error):
                     self.message_user(
                         request,
-                        f'Donation Page name "{obj.name}" already used in organization. Did you forget to update the name of a previous page created from this template?',
+                        f'Contribution Page name "{obj.name}" already used in organization. Did you forget to update the name of a previous page created from this template?',
                         messages.ERROR,
                     )
                     return HttpResponseRedirect(reverse("admin:pages_template_change", kwargs={"object_id": obj.id}))
@@ -164,14 +164,14 @@ class DonationPageAdmin(CompareVersionAdmin, DonationPageAdminAbstract):
     actions = ("make_template", "undelete_selected")
 
     # Overriding this template to add the `admin_limited_select` inclusion tag
-    change_form_template = "pages/donationpage_changeform.html"
+    change_form_template = "pages/contributionpage_changeform.html"
 
     def reversion_register(self, model, **options):
         """Set django-reversion options on registered model...
 
         We explicitly follow `revenue_program` here in order to ensure that a revenue program's
-        `default_donation_page` value is restored from null to a donation page instance, if that
-        donation page has been deleted but is subsequently restored.
+        `default_donation_page` value is restored from null to a contribution page instance, if that
+        contribution page has been deleted but is subsequently restored.
         """
         options["follow"] = ("revenue_program",)
         super().reversion_register(model, **options)

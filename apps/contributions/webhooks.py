@@ -31,14 +31,31 @@ class StripeWebhookProcessor:
 
     def process(self):
         logger.info('Processing Stripe Event of type "%s"', self.event.type)
+        logger.debug(
+            "Event received in live mode: %s; stripe live mode on: %s", self.event.livemode, settings.STRIPE_LIVE_MODE
+        )
         object_type = self.obj_data["object"]
+        if settings.STRIPE_LIVE_MODE and not self.event.livemode:
+            logger.info(
+                "test mode event %s for account %s received while in live mode; ignoring",
+                self.event.id,
+                self.event.account,
+            )
+            return
+        if not settings.STRIPE_LIVE_MODE and self.event.livemode:
+            logger.info(
+                "live mode event %s for account %s received while in test mode; ignoring",
+                self.event.id,
+                self.event.account,
+            )
+            return
 
         if object_type == "payment_intent":
             self.process_payment_intent()
         elif object_type == "subscription":
             self.process_subscription()
         else:
-            logger.warning('Recieved un-handled Stripe object of type "%s"', object_type)
+            logger.warning('Received un-handled Stripe object of type "%s"', object_type)
 
     # PaymentIntent processing
     def process_payment_intent(self):

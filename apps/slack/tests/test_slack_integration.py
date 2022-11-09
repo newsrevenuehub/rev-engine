@@ -14,8 +14,8 @@ from apps.slack.slack_manager import SlackManager
 
 
 HUB_TOKEN = "token-123"
-HUB_CHANNEL = "#donations-all"
-HUB_ORG_PREFIX = "#donations-"
+HUB_CHANNEL = "#contributions-all"
+HUB_ORG_PREFIX = "#contributions-"
 
 ORG_CHANNEL = "#org-contributions"
 ORG_TOKEN = "org-token-123"

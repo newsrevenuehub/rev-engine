@@ -28,7 +28,7 @@ const orgAdminWithContentFlagAndNoRPs = {
   flags: [contentSectionFlag]
 };
 
-describe('Donation page list', () => {
+describe('Contribution page list', () => {
   describe('When the user has a revenue program', () => {
     beforeEach(() => {
       cy.forceLogin(orgAdmin);

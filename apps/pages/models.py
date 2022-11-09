@@ -38,7 +38,7 @@ class AbstractPage(IndexedTimeStampedModel, RoleAssignmentResourceModelMixin):
     )
     post_thank_you_redirect = models.URLField(
         blank=True,
-        help_text='Donors can click a link to go "back to the news" after viewing the default thank you page',
+        help_text='Contributors can click a link to go "back to the news" after viewing the default thank you page',
     )
 
     revenue_program = models.ForeignKey(

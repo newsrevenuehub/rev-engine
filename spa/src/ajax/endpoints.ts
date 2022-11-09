@@ -9,8 +9,7 @@ export const getStripeAccountLinkStatusPath = (rpId: string) => {
   return `handle-stripe-account-link/${rpId}/`;
 };
 
-export const AUTHORIZE_ONE_TIME_STRIPE_PAYMENT_ROUTE = 'payments/one-time/';
-export const AUTHORIZE_STRIPE_SUBSCRIPTION_ROUTE = 'payments/subscription/';
+export const AUTHORIZE_STRIPE_PAYMENT_ROUTE = 'payments/';
 
 export function getPaymentSuccessEndpoint(clientProviderSecretId: string) {
   return `payments/${clientProviderSecretId}/success/`;

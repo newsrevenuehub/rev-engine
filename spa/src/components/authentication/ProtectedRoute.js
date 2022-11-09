@@ -1,4 +1,6 @@
-import { Route, Redirect } from 'react-router';
+import { Redirect } from 'react-router-dom';
+
+import { SentryRoute } from 'hooks/useSentry';
 
 // Routes
 import { SIGN_IN } from 'routes';
@@ -10,7 +12,7 @@ import isAuthenticated from 'utilities/isAuthenticated';
  */
 function ProtectedRoute({ contributor, ...props }) {
   if (isAuthenticated(contributor)) {
-    return <Route {...props} />;
+    return <SentryRoute {...props} />;
   }
   return <Redirect to={SIGN_IN} />;
 }

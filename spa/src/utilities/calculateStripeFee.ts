@@ -19,7 +19,7 @@ function calculateStripeFee(amount: number | string, interval: ContributionInter
     The following article is the source of this formula:
     https://support.stripe.com/questions/passing-the-stripe-fee-on-to-customers
 
-    NOTE: We are not including any VAT or GST, or any other taxes here, since these are donations.
+    NOTE: We are not including any VAT or GST, or any other taxes here, since these are contributions.
   */
 
   const amountInt = parseFloat(amount as string);

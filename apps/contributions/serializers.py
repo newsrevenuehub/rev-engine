@@ -139,7 +139,7 @@ class BadActorSerializer(serializers.Serializer):
     # Donation info
     amount = serializers.CharField(max_length=12)
 
-    # Donor info
+    # Contributor info
     first_name = serializers.CharField(max_length=40)
     last_name = serializers.CharField(max_length=80)
     email = serializers.EmailField(max_length=80)
@@ -156,7 +156,7 @@ class BadActorSerializer(serializers.Serializer):
     ip = serializers.IPAddressField()
     referer = serializers.URLField()
 
-    # Donation additional
+    # Contribution additional
     reason_for_giving = serializers.CharField(max_length=255, required=False, allow_blank=True)
 
     def to_internal_value(self, data):
@@ -182,7 +182,7 @@ class AbstractPaymentSerializer(serializers.Serializer):
     interval = serializers.ChoiceField(choices=ContributionInterval.choices, default=ContributionInterval.ONE_TIME)
     # revenue_program_country tand currency are a different pattern, but important here.
     # They could be derived from the organization that this contribution is tied to,
-    # but instead we send that info to each donation page load and pass it back as params;
+    # but instead we send that info to each contribution page load and pass it back as params;
     # that way we are certain that the currency and country used by payment provider in the
     # form is the one we use here.
     revenue_program_country = serializers.CharField(max_length=2, required=True)
@@ -229,7 +229,7 @@ class BaseCreatePaymentSerializer(serializers.Serializer):
     This base serializer contains extensive field level validation and several methods for causing side effects like the creation
     of NRE and Stripe entities.
 
-    NB: This serializer accomodates a handful of fields that are conditionally requirable, meaning that an org can configure a donation
+    NB: This serializer accomodates a handful of fields that are conditionally requirable, meaning that an org can configure a contribution
     page to include/not include and require/not require those fields. In the field definitions below, the definitions for `phone`, `reason_for_giving`,
     and `reason_other` are involved in this logic. These fields are unique in that we pass `default=''`. We do this because we want to guarantee that
     there will always be keys for `reason_other`, `reason_for_giving`, and `phone` in the instantiated serializer's initial data, even if those fields
@@ -284,6 +284,7 @@ class BaseCreatePaymentSerializer(serializers.Serializer):
     captcha_token = serializers.CharField(max_length=2550, allow_blank=True, write_only=True)
     provider_client_secret_id = serializers.CharField(read_only=True)
     email_hash = serializers.CharField(read_only=True)
+    donor_selected_amount = serializers.FloatField(write_only=True)
 
     def validate_tribute_type(self, value):
         """Ensure there are no unexpected values for tribute_type"""
@@ -357,9 +358,9 @@ class BaseCreatePaymentSerializer(serializers.Serializer):
         (or by not setting at all, because required is True by default).
 
         However, RevEngine allows users to configure a subset of fields as required or not required, and that
-        can only be known by retrieving the associated donation page data.
+        can only be known by retrieving the associated contribution page data.
 
-        So in this `validate` method, we find any donation page elements that are dynamically requirable and ensure that the submitted
+        So in this `validate` method, we find any contribution page elements that are dynamically requirable and ensure that the submitted
         data contains non blank values.
 
 
@@ -407,7 +408,7 @@ class BaseCreatePaymentSerializer(serializers.Serializer):
             "schema_version": settings.METADATA_SCHEMA_VERSION,
             "contributor_id": contributor.id,
             "agreed_to_pay_fees": validated_data["agreed_to_pay_fees"],
-            "donor_selected_amount": validated_data["amount"],
+            "donor_selected_amount": validated_data["donor_selected_amount"],
             "reason_for_giving": validated_data["reason_for_giving"],
             "honoree": validated_data.get("honoree"),
             "in_memory_of": validated_data.get("in_memory_of"),

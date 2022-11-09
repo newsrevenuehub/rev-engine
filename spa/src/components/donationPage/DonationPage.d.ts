@@ -5,7 +5,7 @@ import { Context, Dispatch, SetStateAction } from 'react';
 import { ContributionInterval } from 'constants/contributionIntervals';
 
 /**
- * Information about a donation page. **THIS TYPE IS INCOMPLETE.**
+ * Information about a contribution page. **THIS TYPE IS INCOMPLETE.**
  */
 export interface DonationPage {
   currency?: {
@@ -17,7 +17,7 @@ export interface DonationPage {
 }
 
 /**
- * Info available in the donation page context. **THIS TYPE IS INCOMPLETE.**
+ * Info available in the contribution page context. **THIS TYPE IS INCOMPLETE.**
  */
 export interface UsePageProps {
   /**
@@ -29,7 +29,7 @@ export interface UsePageProps {
    */
   frequency: ContributionInterval;
   /**
-   * Information about the donation page itself.
+   * Information about the contribution page itself.
    */
   page: DonationPage;
   setUserAgreesToPayFees: Dispatch<SetStateAction<boolean>>;

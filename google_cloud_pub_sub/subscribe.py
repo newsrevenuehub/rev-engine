@@ -8,10 +8,14 @@ topic_name = "projects/{project_id}/topics/{topic}".format(
     project_id=os.getenv("GOOGLE_CLOUD_PROJECT"), topic=os.getenv("NEW_USER_TOPIC")
 )
 
+print(f"Subscribing to topic {topic_name}")
+
 subscription_name = "projects/{project_id}/subscriptions/{sub}".format(
     project_id=os.getenv("GOOGLE_CLOUD_PROJECT"),
     sub="TEST",
 )
+
+print(f"Will attempt to delete existing subscription with name {subscription_name}")
 
 try:
     pubsub_v1.SubscriberClient().delete_subscription(request={"subscription": subscription_name})
@@ -26,5 +30,6 @@ def callback(message):
 
 with pubsub_v1.SubscriberClient() as subscriber:
     subscriber.create_subscription(name=subscription_name, topic=topic_name)
+    print(f"New subscription created; listening messages in topic {topic_name}")
     future = subscriber.subscribe(subscription_name, callback)
     future.result()

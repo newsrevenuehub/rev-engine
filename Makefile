@@ -35,19 +35,23 @@ setup:
 run-dev:
 	@echo 'Running local development'
 	docker-compose up -d --remove-orphans
-	sleep 5 && curl -s -X PUT 'http://localhost:8085/v1/projects/revenue-engine/topics/new-nre-customer-test' # sleep for 5 seconds to allow google cloud to boot up
 	cd spa; export PORT=3000; npm run start:subdomains &
 	python manage.py runserver
 
+run-gcloud-pub-sub:
+	@echo 'Running local development with Google Cloud Pub Sub Emulator'
+	docker-compose -f docker-compose.yml -f docker-compose-dev.yml up -d --remove-orphans google-cloud-pub-sub
+	sleep 5 && curl -s -X PUT 'http://localhost:8085/v1/projects/revenue-engine/topics/new-nre-customer-test' # sleep for 5 seconds to allow google cloud to boot up
+
 run-redis:
 	@echo 'Running local development with redis'
-	docker-compose -f docker-compose.yml -f docker-compose-dev.yml up -d --remove-orphans
+	docker-compose -f docker-compose.yml -f docker-compose-dev.yml up -d --remove-orphans redis
 	cd spa; export PORT=3000; npm run start:subdomains &
 	python manage.py runserver
 
 run-tests:
 	make test_migrations
-	pytest --reuse-db -vvv --cov-config=.coveragerc --cov-report=html --cov=apps --cov=revengine
+	ENABLE_PUBSUB=False pytest --reuse-db -vvv --cov-config=.coveragerc --cov-report=html --cov=apps --cov=revengine
 
 check-dc:
 	docker-compose -f docker-compose.yml -f docker-compose-dev.yml ps

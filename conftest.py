@@ -1,18 +1,6 @@
-from unittest import mock
-from unittest.mock import MagicMock
-
 import pytest
 
 
 @pytest.fixture(autouse=True)
 def dont_use_ssl(settings):
     settings.SECURE_SSL_REDIRECT = False
-
-
-@pytest.fixture(autouse=True)
-def patch_google_cloud_pub_sub_publisher(request):
-    marker = request.node.get_closest_marker("no_patch_google_cloud_pub_sub_publisher")
-    if marker:
-        return
-    patched = mock.patch("apps.users.google_pub_sub.GoogleCloudPubSubPublisher.publish", MagicMock())
-    patched.__enter__()

@@ -54,13 +54,13 @@ class UserModelTest(TestCase):
 
     @patch("apps.users.models.google_cloud_pub_sub_is_configured", MagicMock(return_value=True))
     @patch("django.conf.settings.NEW_USER_TOPIC")
-    @patch("apps.users.google_pub_sub.GoogleCloudPubSubPublisher.publish")
-    def test_will_publish_external_emails_to_google_pubsub(self, publish, new_user_topic):
+    @patch("apps.users.google_pub_sub.GoogleCloudPubSubPublisher")
+    def test_will_publish_external_emails_to_google_pubsub(self, publisher, new_user_topic):
         topic = "topic"
         new_user_topic.return_value = topic
         email = "contributor@some-address.com"
         create_test_user(email=email)
-        publish.called_with(new_user_topic, Message(data=email))
+        publisher.publish.called_with(new_user_topic, Message(data=email))
 
     @patch("apps.users.models.google_cloud_pub_sub_is_configured", MagicMock(return_value=True))
     @patch("apps.users.google_pub_sub.GoogleCloudPubSubPublisher.publish")
@@ -78,14 +78,14 @@ class UserModelTest(TestCase):
 
     @patch("apps.users.models.google_cloud_pub_sub_is_configured", MagicMock(return_value=True))
     @patch("django.conf.settings.NEW_USER_TOPIC")
-    @patch("apps.users.google_pub_sub.GoogleCloudPubSubPublisher.publish")
-    def test_will_only_publish_for_create(self, publish, new_user_topic):
+    @patch("apps.users.google_pub_sub.GoogleCloudPubSubPublisher")
+    def test_will_only_publish_for_create(self, publisher, new_user_topic):
         topic = "topic"
         new_user_topic.return_value = topic
         email = "contributor@some-address.com"
         user = create_test_user(email=email)
         user.last_name = "Targaryen"
-        publish.called_once_with(new_user_topic, Message(data=email))
+        publisher.publish.called_once_with(new_user_topic, Message(data=email))
 
 
 class RoleAssignmentModelTest(TestCase):

@@ -279,7 +279,6 @@ describe('getPaymentElementButtonText', () => {
     ${100} | ${CONTRIBUTION_INTERVALS.ANNUAL}   | ${'$'}         | ${'Give $100.00 yearly'}
     ${100} | ${CONTRIBUTION_INTERVALS.MONTHLY}  | ${'$'}         | ${'Give $100.00 monthly'}
   `('produces expected result', ({ amount, frequency, currencySymbol, expectation }) => {
-    console.log(amount, frequency);
     expect(getPaymentElementButtonText({ amount, frequency, currencySymbol })).toBe(expectation);
   });
 });

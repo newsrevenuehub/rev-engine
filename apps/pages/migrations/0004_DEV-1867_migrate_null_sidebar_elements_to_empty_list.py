@@ -13,7 +13,7 @@ def populate_null_sidebar_elements_with_default_empty_list(apps, schema_editor):
 class Migration(migrations.Migration):
 
     dependencies = [
-        ("pages", "0002_DEV-2030_rp_deletion_cascades_to_template_and_page"),
+        ("pages", "0003_DEV-1446_rename_donation_in_help_text"),
     ]
 
     operations = [

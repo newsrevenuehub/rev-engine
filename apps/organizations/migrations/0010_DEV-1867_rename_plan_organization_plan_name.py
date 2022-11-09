@@ -4,9 +4,8 @@ from django.db import migrations
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ("organizations", "0008_DEV-2178_refactor_plan_modeling_and_migrate_legacy_clients"),
+        ("organizations", "0009_DEV-1446_rename_donation_in_help_text"),
     ]
 
     operations = [

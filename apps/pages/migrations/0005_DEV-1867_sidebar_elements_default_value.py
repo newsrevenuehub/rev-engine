@@ -6,7 +6,7 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ("pages", "0003_DEV-1867_migrate_null_sidebar_elements_to_empty_list"),
+        ("pages", "0004_DEV-1867_migrate_null_sidebar_elements_to_empty_list"),
     ]
 
     operations = [

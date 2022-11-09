@@ -51,7 +51,7 @@ run-redis:
 
 run-tests:
 	make test_migrations
-	ENABLE_PUBSUB=False pytest --reuse-db -vvv --cov-config=.coveragerc --cov-report=html --cov=apps --cov=revengine
+	pytest --reuse-db -vvv --cov-config=.coveragerc --cov-report=html --cov=apps --cov=revengine
 
 check-dc:
 	docker-compose -f docker-compose.yml -f docker-compose-dev.yml ps

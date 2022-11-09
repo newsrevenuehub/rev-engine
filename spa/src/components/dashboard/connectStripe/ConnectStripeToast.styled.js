@@ -92,6 +92,7 @@ export const Description = styled.p`
 
 export const Button = styled(BaseButton)`
   && {
+    text-transform: uppercase;
     width: 100%;
     height: 40px;
     margin-top: 20px;

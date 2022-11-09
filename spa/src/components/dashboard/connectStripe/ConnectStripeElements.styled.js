@@ -74,6 +74,7 @@ export const Bold = styled.span`
 
 export const Button = styled(BaseButton)`
   && {
+    text-transform: uppercase;
     height: 48px;
     margin: 25px 0px 28px;
   }

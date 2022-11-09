@@ -8,14 +8,15 @@ import StripeLogo from 'assets/icons/stripeLogo.svg';
 import Triangle6Dots from 'assets/icons/triangle6Dots.svg';
 import RemoveIcon from '@material-ui/icons/Remove';
 import { Tooltip } from 'components/base';
+import { CONNECT_TO_STRIPE_BUTTON_CTA } from './ConnectStripeElements';
 
 export const PENDING_VERIFICATION_MESSAGE =
   "Your account verification is pending with Stripe. This can take up to 24 hours. Check back later, and we'll let you know if Stripe needs more info to proceed.";
 
 export const USER_ACTION_REQUIRED_MESSAGE =
-  'Ready to publish your first contribution page? Stripe needs additional info from you to configure your account.';
+  'Ready to publish your first donation page? Create and connect to Stripe in one easy step to accept contributions.';
 
-export const DEFAULT_HEADING_TEXT = 'Connect to Stripe';
+export const DEFAULT_HEADING_TEXT = 'Set Up Payment Processor';
 export const PENDING_VERIFICATION_HEADING_TEXT = 'Pending Verification';
 export const USER_ACTION_REQUIRED_HEADING_TEXT = 'More Information Needed';
 
@@ -26,7 +27,6 @@ const ConnectStripeToast = () => {
   const [collapsed, setCollapsed] = useState(false);
   const [headingText, setHeadingText] = useState(DEFAULT_HEADING_TEXT);
   const [ctaDescriptionText, setCtaDescriptionText] = useState(USER_ACTION_REQUIRED_MESSAGE);
-  const ctaButtonText = 'Take me to Stripe';
 
   useEffect(() => {
     setCtaDescriptionText(
@@ -94,7 +94,7 @@ const ConnectStripeToast = () => {
         disabled={isLoading || unverifiedReason !== 'past_due'}
         onClick={sendUserToStripe}
       >
-        {ctaButtonText}
+        {CONNECT_TO_STRIPE_BUTTON_CTA}
       </S.Button>
     </S.ConnectStripeToast>
   );

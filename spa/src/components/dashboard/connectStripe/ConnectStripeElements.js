@@ -14,6 +14,8 @@ import useConnectStripeAccount from 'hooks/useConnectStripeAccount';
 import { CONNECT_STRIPE_COOKIE_NAME, CONNECT_STRIPE_FAQ_LINK } from 'constants/textConstants';
 import { OffscreenText } from 'components/base';
 
+export const CONNECT_TO_STRIPE_BUTTON_CTA = 'Connect now';
+
 const ConnectStripeModal = () => {
   const { open, handleClose } = useModal(true);
   const { isLoading, sendUserToStripe } = useConnectStripeAccount();
@@ -35,18 +37,19 @@ const ConnectStripeModal = () => {
       <S.ConnectStripeModal data-testid="connect-stripe-modal">
         <OffscreenText>Step 2 of 2</OffscreenText>
         <S.StripeLogo src={StripeLogo} />
-        <S.h1>Connect to Stripe</S.h1>
+        <S.h1>Set Up Payment Processor</S.h1>
         <S.Description>
-          Start receiving payments by creating a Stripe account and connecting in one easy step.
-          <S.Bold>Need more help connecting?</S.Bold>
+          To accept contributions, you’ll need to set up a payment processor. We use Stripe because it’s speedy and
+          secure. Create and connect to a Stripe account in one easy step.
+          <S.Bold>Need help?</S.Bold>
           Check out our{' '}
           <S.StripeFAQ href={CONNECT_STRIPE_FAQ_LINK} target="_blank">
-            Stripe Connection FAQ
+            FAQ
           </S.StripeFAQ>
           .
         </S.Description>
         <S.Button data-testid="connect-stripe-modal-button" disabled={isLoading} onClick={handleClickConnectNow}>
-          Connect to Stripe
+          {CONNECT_TO_STRIPE_BUTTON_CTA}
         </S.Button>
         <S.Anchor onClick={handleClickConnectLater}>
           I’ll connect to Stripe later

@@ -8,6 +8,7 @@ import 'styled-components';
 declare module 'styled-components' {
   export interface DefaultTheme {
     colors: {
+      cstm_mainBackground?: string;
       primary: string;
       primaryLight: string;
       secondary: string;

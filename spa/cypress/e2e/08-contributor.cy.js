@@ -63,7 +63,7 @@ describe('Contributor portal', () => {
     it('should display a list of contributions', () => {
       cy.getByTestId('donations-table');
       // DonationsTable is well tested elsewhere...
-      cy.get('td > p > span').should('have.length', 20);
+      cy.get('tbody tr').should('have.length', 10);
       cy.get('li > button[aria-label="page 1"]').should('exist');
       cy.get('li > button[aria-label="Go to page 2"]').should('exist');
       // ... though here we should see different column headers

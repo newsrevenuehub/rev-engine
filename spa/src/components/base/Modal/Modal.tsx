@@ -1,5 +1,5 @@
 import { Modal as MuiModal, ModalProps as MuiModalProps, Paper } from '@material-ui/core';
-import { forwardRef, ReactChild, useEffect } from 'react';
+import { forwardRef, ReactChild } from 'react';
 import ReactFocusLock from 'react-focus-lock';
 import styled from 'styled-components';
 

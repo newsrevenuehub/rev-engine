@@ -19,7 +19,7 @@ class OrganizationSerializer(serializers.ModelSerializer):
         fields = "__all__"
 
     def get_plan(self, obj):
-        return asdict(obj.get_plan_data())
+        return asdict(obj.plan)
 
     def to_representation(self, instance):
         representation = super().to_representation(instance)
@@ -43,7 +43,7 @@ class OrganizationInlineSerializer(serializers.ModelSerializer):
         fields = ["id", "name", "slug", "plan"]
 
     def get_plan(self, obj):
-        return asdict(obj.get_plan_data())
+        return asdict(obj.plan)
 
 
 class RevenueProgramListInlineSerializer(serializers.ModelSerializer):

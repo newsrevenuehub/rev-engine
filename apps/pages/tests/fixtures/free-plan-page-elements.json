@@ -1,0 +1,94 @@
+[
+  {
+    "type": "DRichText",
+    "uuid": "018c5611-2ec2-4623-be84-2af9aadbef8c",
+    "content": "<h2 style=\"text-align:center;\">Support our journalism today.</h2>\n<p style=\"text-align:center;\">This work doesn't happen without your support. Contribute today!</p>\n",
+    "requiredFields": []
+  },
+  {
+    "type": "DFrequency",
+    "uuid": "268b28c6-0b5f-48a7-ba4b-c51a138efca5",
+    "content": [
+      {
+        "value": "one_time",
+        "isDefault": false,
+        "displayName": "One time"
+      },
+      {
+        "value": "month",
+        "isDefault": true,
+        "displayName": "Monthly"
+      },
+      {
+        "value": "year",
+        "isDefault": false,
+        "displayName": "Yearly"
+      }
+    ],
+    "requiredFields": []
+  },
+  {
+    "type": "DAmount",
+    "uuid": "6a8b6a81-8c0f-426f-bd65-ca6dc83fa930",
+    "content": {
+      "options": {
+        "year": [120, 180, 365],
+        "month": [10, 15, 25],
+        "one_time": [120, 180, 365]
+      },
+      "defaults": {
+        "year": 180,
+        "month": 15,
+        "one_time": 180
+      },
+      "allowOther": true
+    },
+    "requiredFields": []
+  },
+  {
+    "type": "DDonorInfo",
+    "uuid": "bb9612f0-b3f7-4c74-b6f2-f2edc8877ae7",
+    "content": {
+      "askPhone": true
+    },
+    "requiredFields": []
+  },
+  {
+    "type": "DDonorAddress",
+    "uuid": "e5b9a3df-d572-49a3-b093-ef7abacff17c",
+    "requiredFields": []
+  },
+  {
+    "type": "DPayment",
+    "uuid": "f5b11595-fb5c-417d-ab56-b6526368fd70",
+    "content": {
+      "stripe": ["card", "apple", "google", "browser"],
+      "offerPayFees": true,
+      "payFeesDefault": true
+    },
+    "requiredFields": []
+  },
+  {
+    "type": "DRichText",
+    "uuid": "efdec405-e9aa-4c5f-8a8a-afbc36c39fa9",
+    "content": "<p style=\"text-align:center;\">Have questions or want to change a recurring donation? Contact us at YOUR EMAIL ADDRESS HERE. <br><br>Prefer to mail a check? Our mailing address is YOUR MAILING ADDRESS HERE.<br><br>Contributions or gifts to YOUR ORGANIZATION NAME HERE are tax deductible. Our tax ID is YOUR TAX ID HERE.&nbsp;</p>\n",
+    "requiredFields": []
+  },
+  {
+    "type": "DRichText",
+    "uuid": "6710cf55-165e-4c67-86f4-6f34a2165294",
+    "content": "<p>fasdf</p>\n",
+    "requiredFields": []
+  },
+  {
+    "uuid": "2df89e95-c498-4e3f-be62-e061444d20fd",
+    "type": "DReason",
+    "content": {
+      "askReason": true,
+      "reasons": [],
+      "askHonoree": true,
+      "askInMemoryOf": false
+    },
+    "requiredFields": ["reason_for_giving"]
+  }
+]

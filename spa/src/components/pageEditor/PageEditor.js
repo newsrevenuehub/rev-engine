@@ -166,6 +166,7 @@ function PageEditor() {
         setPage(data);
         setPageContext(data);
         setLoading(false);
+        handleEdit();
       },
       onFailure: handleGetPageFailure //() => setLoading(false)
     });

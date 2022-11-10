@@ -130,7 +130,7 @@ def get_original_ip_from_request(request):
 
 
 def google_cloud_pub_sub_is_configured() -> bool:
-    return settings.ENABLE_PUBSUB and settings.NEW_USER_TOPIC and settings.GOOGLE_CLOUD_PROJECT
+    return all([settings.ENABLE_PUBSUB and settings.NEW_USER_TOPIC and settings.GOOGLE_CLOUD_PROJECT])
 
 
 # class AttrDict(dict):

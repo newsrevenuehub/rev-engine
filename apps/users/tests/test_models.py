@@ -55,7 +55,7 @@ class UserModelTest(TestCase):
     @patch("apps.users.models.google_cloud_pub_sub_is_configured", MagicMock(return_value=True))
     @patch("django.conf.settings.NEW_USER_TOPIC")
     @patch("apps.users.google_pub_sub.GoogleCloudPubSubPublisher")
-    def test_will_publish_external_emails_to_google_pubsub(self, publisher, new_user_topic):
+    def test_publishes_external_emails_to_google_pubsub(self, publisher, new_user_topic):
         topic = "topic"
         new_user_topic.return_value = topic
         email = "contributor@some-address.com"
@@ -64,14 +64,14 @@ class UserModelTest(TestCase):
 
     @patch("apps.users.models.google_cloud_pub_sub_is_configured", MagicMock(return_value=True))
     @patch("apps.users.google_pub_sub.GoogleCloudPubSubPublisher.publish")
-    def test_will_not_publish_external_emails_to_google_pubsub(self, publish):
+    def test_publishes_internal_emails_to_google_pubsub(self, publish):
         email = "contributor@fundjournalism.org"
         create_test_user(email=email)
         assert not publish.called
 
     @patch("apps.users.models.google_cloud_pub_sub_is_configured", MagicMock(return_value=False))
     @patch("apps.users.google_pub_sub.GoogleCloudPubSubPublisher.publish")
-    def test_will_not_publish_if_gcloud_pub_sub_not_configured(self, publish):
+    def test_publishes_if_gcloud_pub_sub_not_configured(self, publish):
         email = "contributor@fundjournalism.org"
         create_test_user(email=email)
         assert not publish.called
@@ -79,7 +79,7 @@ class UserModelTest(TestCase):
     @patch("apps.users.models.google_cloud_pub_sub_is_configured", MagicMock(return_value=True))
     @patch("django.conf.settings.NEW_USER_TOPIC")
     @patch("apps.users.google_pub_sub.GoogleCloudPubSubPublisher")
-    def test_will_only_publish_for_create(self, publisher, new_user_topic):
+    def test_only_publishes_for_create(self, publisher, new_user_topic):
         topic = "topic"
         new_user_topic.return_value = topic
         email = "contributor@some-address.com"

@@ -66,24 +66,12 @@ export const Description = styled.p`
   margin-bottom: 0px;
 `;
 
-export const Bold = styled.span`
-  font-weight: 500;
-  display: block;
-  margin: 17px 0px 4px;
-`;
-
 export const Button = styled(BaseButton)`
   && {
     text-transform: uppercase;
     height: 48px;
     margin: 25px 0px 28px;
   }
-`;
-
-export const StripeFAQ = styled.a`
-  font-weight: 500;
-  font-size: ${(props) => props.theme.fontSizesUpdated.md};
-  color: ${(props) => props.theme.colors.account.blueLink};
 `;
 
 export const Anchor = styled.a`

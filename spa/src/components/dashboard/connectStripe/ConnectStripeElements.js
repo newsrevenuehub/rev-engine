@@ -13,6 +13,7 @@ import useConnectStripeAccount from 'hooks/useConnectStripeAccount';
 
 import { CONNECT_STRIPE_COOKIE_NAME, CONNECT_STRIPE_FAQ_LINK } from 'constants/textConstants';
 import { OffscreenText } from 'components/base';
+import ConnectStripeNeedHelpCta from './ConnectStripeNeedHelpCTA';
 
 export const CONNECT_TO_STRIPE_BUTTON_CTA = 'Connect now';
 
@@ -41,12 +42,7 @@ const ConnectStripeModal = () => {
         <S.Description>
           To accept contributions, you’ll need to set up a payment processor. We use Stripe because it’s speedy and
           secure. Create and connect to a Stripe account in one easy step.
-          <S.Bold>Need help?</S.Bold>
-          Check out our{' '}
-          <S.StripeFAQ href={CONNECT_STRIPE_FAQ_LINK} target="_blank">
-            FAQ
-          </S.StripeFAQ>
-          .
+          <ConnectStripeNeedHelpCta />
         </S.Description>
         <S.Button data-testid="connect-stripe-modal-button" disabled={isLoading} onClick={handleClickConnectNow}>
           {CONNECT_TO_STRIPE_BUTTON_CTA}

@@ -9,6 +9,7 @@ import Triangle6Dots from 'assets/icons/triangle6Dots.svg';
 import RemoveIcon from '@material-ui/icons/Remove';
 import { Tooltip } from 'components/base';
 import { CONNECT_TO_STRIPE_BUTTON_CTA } from './ConnectStripeElements';
+import ConnectStripeNeedHelpCta from './ConnectStripeNeedHelpCTA';
 
 export const PENDING_VERIFICATION_MESSAGE =
   "Your account verification is pending with Stripe. This can take up to 24 hours. Check back later, and we'll let you know if Stripe needs more info to proceed.";
@@ -86,6 +87,7 @@ const ConnectStripeToast = () => {
       </S.Header>
       <S.Heading>{headingText}</S.Heading>
       <S.Description>{ctaDescriptionText}</S.Description>
+      <ConnectStripeNeedHelpCta />
       <S.Button
         data-testid="connect-stripe-toast-button"
         // if reason is `past_due` then there's work to be done off-site

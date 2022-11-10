@@ -14,6 +14,9 @@ export interface DonationPage {
      */
     symbol?: string;
   };
+  revenue_program: {
+    name: string;
+  };
 }
 
 /**

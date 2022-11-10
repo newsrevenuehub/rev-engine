@@ -1,3 +1,4 @@
+import userEvent from '@testing-library/user-event';
 import { axe } from 'jest-axe';
 import { render, screen } from 'test-utils';
 import CountrySelect from './CountrySelect';
@@ -12,16 +13,9 @@ jest.mock('country-code-lookup', () => ({
   ]
 }));
 
-jest.mock('react-select');
-
 describe('CountrySelect', () => {
   function tree() {
-    return render(
-      <>
-        <label htmlFor="select">select</label>
-        <CountrySelect inputId="select" name="mock-name" />
-      </>
-    );
+    return render(<CountrySelect label="Country" />);
   }
 
   it('renders a select', () => {
@@ -31,10 +25,9 @@ describe('CountrySelect', () => {
 
   it('displays countries in alphabetical order', () => {
     tree();
+    userEvent.click(screen.getByRole('button', { name: 'Open' }));
 
-    const options = Array.from(screen.getByRole('combobox').querySelectorAll('option')).map(
-      ({ textContent }) => textContent
-    );
+    const options = Array.from(screen.getAllByRole('option')).map(({ textContent }) => textContent);
 
     expect(options).toEqual(['AAA', 'BBB', 'CCC']);
   });

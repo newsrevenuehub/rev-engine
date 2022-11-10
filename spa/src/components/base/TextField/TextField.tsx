@@ -5,10 +5,10 @@ import styled from 'styled-components';
 
 const StyledMuiTextField = styled(MuiTextField)`
   && {
-    .MuiFormHelperText-root {
+    [class*='MuiFormHelperText-root'] {
       margin-top: 4px;
 
-      &.Mui-error {
+      &[class*='Mui-error'] {
         background: rgba(200, 32, 63, 0.16);
         border-radius: 2px;
         color: rgb(60, 60, 60);
@@ -17,7 +17,7 @@ const StyledMuiTextField = styled(MuiTextField)`
       }
     }
 
-    .MuiInputLabel-shrink {
+    [class*='MuiInputLabel-shrink'] {
       color: rgb(40, 40, 40);
       font: 600 16px Roboto, sans-serif;
       /*
@@ -27,16 +27,16 @@ const StyledMuiTextField = styled(MuiTextField)`
       position: static;
       transform: none;
 
-      &.Mui-error {
+      &[class*='Mui-error'] {
         color: rgb(200, 32, 63);
       }
     }
 
-    .MuiInput-formControl {
+    [class*='MuiInput-formControl'] {
       margin-top: 6px;
     }
 
-    .MuiInput-input {
+    [class*='MuiInput-input'] {
       border: 1.5px solid rgb(196, 196, 196);
       border-radius: 4px;
       font-size: 14px;
@@ -47,22 +47,22 @@ const StyledMuiTextField = styled(MuiTextField)`
       }
     }
 
-    .Mui-error .MuiInput-input {
+    [class*='Mui-error'] [class*='MuiInput-input'] {
       border-color: rgb(200, 32, 63);
     }
 
-    .MuiSelect-icon {
+    [class*='MuiSelect-icon'] {
       right: 4px;
     }
 
     /* Disable focused state appearance changes. */
 
-    .MuiInput-underline::before,
-    .MuiInput-underline::after {
+    [class*='MuiInput-underline']::before,
+    [class*='MuiInput-underline']::after {
       display: none;
     }
 
-    .MuiSelect-select:focus {
+    [class*='MuiSelect-select']:focus {
       background: none;
     }
   }

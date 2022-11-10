@@ -7,7 +7,12 @@ export default {
 } as ComponentMeta<typeof SearchableSelect>;
 
 const Template: ComponentStory<typeof SearchableSelect> = (args: any) => (
-  <SearchableSelect options={[{ label: 'Red' }, { label: 'Green' }, { label: 'Blue' }]} {...args} />
+  <SearchableSelect
+    label="Color"
+    getOptionLabel={({ label }: { label: string }) => label}
+    options={[{ label: 'Red' }, { label: 'Green' }, { label: 'Blue' }]}
+    {...args}
+  />
 );
 
 export const Default = Template.bind({ name: 'Test Label' });

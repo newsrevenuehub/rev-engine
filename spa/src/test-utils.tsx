@@ -15,6 +15,7 @@ import { AnalyticsContextWrapper } from './components/analytics/AnalyticsContext
 
 // Routing
 import { BrowserRouter } from 'react-router-dom';
+import { ReactChild } from 'react';
 
 export * from '@testing-library/react';
 export * as user from '@testing-library/user-event';
@@ -32,6 +33,29 @@ function TestProviders({ children }: { children?: React.ReactNode }) {
           </BrowserRouter>
         </AlertProvider>
       </ThemeProvider>
+    </QueryClientProvider>
+  );
+}
+
+/**
+ * A wrapper component for testing hooks that use react-query. This creates a
+ * new query client for each usage--e.g. avoids caching results from a previous
+ * test--that also instantly fails if fetching fails instead of retrying.
+ */
+export function TestQueryClientProvider({ children }: { children: ReactChild }) {
+  return (
+    <QueryClientProvider
+      client={
+        new QueryClient({
+          defaultOptions: {
+            queries: {
+              retry: false
+            }
+          }
+        })
+      }
+    >
+      {children}
     </QueryClientProvider>
   );
 }

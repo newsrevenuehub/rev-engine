@@ -10,13 +10,23 @@ import { getFrequencyAdjective, getFrequencyRate } from 'utilities/parseFrequenc
 import { usePage } from '../DonationPage';
 
 // Children
-import { PayFeesWidget } from 'components/donationPage/pageContent/DPayment';
 import DElement, { DynamicElementPropTypes } from 'components/donationPage/pageContent/DElement';
 import SelectableButton from 'elements/buttons/SelectableButton';
 import FormErrors from 'elements/inputs/FormErrors';
+import PayFeesControl from './PayFeesControl';
 
 function DAmount({ element, ...props }) {
-  const { page, frequency, amount, overrideAmount, setAmount, errors } = usePage();
+  const {
+    page,
+    feeAmount,
+    frequency,
+    amount,
+    overrideAmount,
+    setAmount,
+    setUserAgreesToPayFees,
+    errors,
+    userAgreesToPayFees
+  } = usePage();
   const currencySymbol = page?.currency?.symbol;
   const parsedAmount = parseFloat(amount);
 
@@ -35,9 +45,9 @@ function DAmount({ element, ...props }) {
     }
   }, [amount, overrideAmount]);
 
-  // Display the fees widget here if a DPayment element elsewhere asks for it.
+  // Display the fees control here if a DPayment element elsewhere asks for it.
 
-  const displayPayFeesWidget = useMemo(() => {
+  const displayPayFeesControl = useMemo(() => {
     return (page.elements.find(({ type }) => type === 'DPayment') ?? {})?.content?.offerPayFees;
   }, [page.elements]);
 
@@ -123,16 +133,23 @@ function DAmount({ element, ...props }) {
               onChange={handleOtherAmountChange}
               onFocus={handleOtherAmountFocus}
               // We're validating maximum amount on the backend, but let's restrict input
-              // to prevent hitting javascript's mathmatical limitations and displaying
+              // to prevent hitting javascript's mathematical limitations and displaying
               // weird numbers after calculating fees and fixing decimals
               maxLength="9"
             />
             <FreqSubtext data-testid="custom-amount-rate">{getFrequencyRate(frequency)}</FreqSubtext>
           </OtherAmount>
         )}
-        {displayPayFeesWidget && (
+        {displayPayFeesControl && (
           <FeesContainer>
-            <PayFeesWidget />
+            <PayFeesControl
+              agreedToPayFees={userAgreesToPayFees}
+              currencySymbol={page.currency.symbol}
+              feeAmount={feeAmount}
+              frequency={frequency}
+              onChange={(event) => setUserAgreesToPayFees(event.target.checked)}
+              revenueProgramName={page.revenue_program.name}
+            />
           </FeesContainer>
         )}
       </DAmountStyled>

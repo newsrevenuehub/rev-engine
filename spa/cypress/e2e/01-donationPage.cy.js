@@ -16,6 +16,10 @@ import { CANCEL_PAYMENT_FAILURE_MESSAGE } from 'components/donationPage/Donation
 const pageSlug = 'page-slug';
 const expectedPageSlug = `${pageSlug}/`;
 
+function getFeesCheckbox() {
+  return cy.get('[data-testid="pay-fees"] input[type="checkbox"]');
+}
+
 describe('Clearbit', () => {
   it('loads clearbit', () => {
     cy.intercept(
@@ -41,6 +45,7 @@ describe('Donation page displays dynamic page elements', () => {
     cy.getByTestId('d-frequency');
     frequency.content.forEach((freq) => cy.contains(freq.displayName));
   });
+
   it('should render expected amounts', () => {
     const frequency = getPageElementByType(livePageOne, 'DFrequency');
     const amounts = getPageElementByType(livePageOne, 'DAmount');
@@ -50,22 +55,24 @@ describe('Donation page displays dynamic page elements', () => {
       amounts.content.options[freq.value].forEach((amount) => cy.contains(amount));
     });
   });
+
   it('should render text indicating expected frequencies', () => {
     const frequency = getPageElementByType(livePageOne, 'DFrequency');
+
     cy.getByTestId('d-amount');
-    frequency.content.forEach((freq) => {
-      cy.contains(freq.displayName).click();
+
+    for (const freq of frequency.content) {
       const adjective = freqUtils.getFrequencyAdjective(freq.value);
       const rate = freqUtils.getFrequencyRate(freq.value);
-      const adverb = freqUtils.getFrequencyAdverb(freq.value);
+
+      cy.contains(freq.displayName).click();
       cy.getByTestId('d-amount').find('h2').contains(adjective);
+      cy.getByTestId('pay-fees').scrollIntoView().find('label').contains(adjective, { matchCase: false });
+
       if (rate) {
         cy.getByTestId('custom-amount-rate').contains(rate);
       }
-      if (adverb) {
-        cy.getByTestId('pay-fees').scrollIntoView().find('label').contains(adverb);
-      }
-    });
+    }
   });
 
   it('should render the correct fee base on frequency and amount', () => {
@@ -93,8 +100,7 @@ describe('Donation page displays dynamic page elements', () => {
     cy.url().should('include', EXPECTED_RP_SLUG);
     cy.url().should('include', expectedPageSlug);
     cy.wait(['@getPageWithPayFeesDefault']);
-    cy.getByTestId('pay-fees-checked').should('exist');
-    cy.getByTestId('pay-fees-not-checked').should('not.exist');
+    getFeesCheckbox().should('be.checked');
   });
 
   it('should not select agreeToPayFees by default if appropriate page property is unset', () => {
@@ -108,8 +114,7 @@ describe('Donation page displays dynamic page elements', () => {
     cy.url().should('include', EXPECTED_RP_SLUG);
     cy.url().should('include', expectedPageSlug);
     cy.wait(['@getPageWithPayFeesDefault']);
-    cy.getByTestId('pay-fees-checked').should('not.exist');
-    cy.getByTestId('pay-fees-not-checked').should('exist');
+    getFeesCheckbox().should('not.be.checked');
   });
 
   it('should render DSwag', () => {
@@ -384,10 +389,10 @@ describe('User flow: happy path', () => {
 
       if (payFees) {
         // The contribution page fixture has fees paid by default, but make sure that's true.
-        cy.getByTestId('pay-fees-checked').should('exist');
+        getFeesCheckbox().should('be.checked');
       } else {
-        cy.getByTestId('pay-fees-checked').click();
-        cy.getByTestId('pay-fees').should('exist');
+        getFeesCheckbox().click();
+        getFeesCheckbox().should('not.be.checked');
       }
       cy.get('form')
         .findByRole('button', { name: /Continue to Payment/ })
@@ -476,10 +481,10 @@ describe('User flow: happy path', () => {
 
       if (payFees) {
         // The contribution page fixture has fees paid by default, but make sure that's true.
-        cy.getByTestId('pay-fees-checked').should('exist');
+        getFeesCheckbox().should('be.checked');
       } else {
-        cy.getByTestId('pay-fees-checked').click();
-        cy.getByTestId('pay-fees').should('exist');
+        getFeesCheckbox().click();
+        getFeesCheckbox().should('not.be.checked');
       }
       cy.get('form')
         .findByRole('button', { name: /Continue to Payment/ })
@@ -643,12 +648,13 @@ describe('User flow: canceling contribution', () => {
     const frequencyLabel = 'Monthly';
     // we assert checked before submission so can check after that has same val
     cy.findAllByLabelText(frequencyLabel).should('be.checked');
-    // this test id indicates pay fees checked is in dom, which we'll also assert after canceling
-    cy.getByTestId('pay-fees-checked');
+
+    getFeesCheckbox().should('be.checked');
 
     cy.get('form')
       .findByRole('button', { name: /Continue to Payment/ })
       .click();
+
     cy.wait('@create-subscription-payment');
     cy.findByRole('button', { name: DEFAULT_BACK_BUTTON_TEXT }).click();
     cy.wait('@cancel-payment');
@@ -670,7 +676,7 @@ describe('User flow: canceling contribution', () => {
         });
     });
     cy.findAllByLabelText(frequencyLabel).should('be.checked');
-    cy.getByTestId('pay-fees-checked');
+    getFeesCheckbox().should('be.checked');
     cy.get('@reasonValue').then((reason) => {
       cy.getByTestId('excited-to-support-picklist').should('have.value', reason);
     });
@@ -699,8 +705,7 @@ describe('User flow: canceling contribution', () => {
     const frequencyLabel = 'Monthly';
     // we assert checked before submission so can check after that has same val
     cy.findAllByLabelText(frequencyLabel).should('be.checked');
-    // this test id indicates pay fees checked is in dom, which we'll also assert after canceling
-    cy.getByTestId('pay-fees-checked');
+    getFeesCheckbox().should('be.checked');
 
     cy.get('form')
       .findByRole('button', { name: /Continue to Payment/ })
@@ -781,6 +786,11 @@ describe('User flow: unhappy paths', () => {
 
     for (let i = 0; i < 2; i++) {
       cy.getByTestId('pay-fees').click();
+      cy.get('form')
+        .findByRole('button', { name: /Enter a valid amount/ })
+        .should('have.attr', 'disabled');
+
+      cy.getByTestId('pay-fees').within(() => cy.get('input[type="checkbox"]').click());
       cy.get('form')
         .findByRole('button', { name: /Enter a valid amount/ })
         .should('have.attr', 'disabled');

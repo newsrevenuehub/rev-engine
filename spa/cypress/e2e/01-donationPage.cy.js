@@ -1,6 +1,6 @@
 import { LIVE_PAGE_DETAIL, AUTHORIZE_STRIPE_PAYMENT_ROUTE } from 'ajax/endpoints';
 import { PAYMENT_SUCCESS } from 'routes';
-import { getPaymentSuccessUrl } from 'components/paymentProviders/stripe/stripeFns';
+import { getPaymentSuccessUrl, getPaymentElementButtonText } from 'components/paymentProviders/stripe/stripeFns';
 import { getEndpoint, getPageElementByType, getTestingDonationPageUrl, EXPECTED_RP_SLUG } from '../support/util';
 import livePageOne from '../fixtures/pages/live-page-1.json';
 
@@ -394,7 +394,10 @@ describe('User flow: happy path', () => {
         getFeesCheckbox().click();
         getFeesCheckbox().should('not.be.checked');
       }
-      cy.get('form[name="contribution-checkout"]').submit();
+      cy.get('form')
+        .findByRole('button', { name: /Continue to Payment/ })
+        .click();
+
       cy.wait('@create-one-time-payment').then((interception) => {
         // captcha_token is different each request, so instead of stubbing it, we just assert there's an
         // object entry for it.
@@ -429,7 +432,13 @@ describe('User flow: happy path', () => {
       // which would require live server providing
       cy.get('form #stripe-payment-element');
       cy.get('[data-testid="donation-page-disclaimer"]');
-      cy.get('form[name="stripe-payment-form"]').submit();
+      cy.findByRole('button', {
+        name: getPaymentElementButtonText({
+          amount: payFees ? 123.01 : 120.0,
+          currencySymbol: livePageOne.currency.symbol,
+          frequency: CONTRIBUTION_INTERVALS.ONE_TIME
+        })
+      }).click();
       cy.get('@stripe-confirm-payment').should((x) => {
         expect(x).to.be.calledOnce;
         const {
@@ -477,7 +486,9 @@ describe('User flow: happy path', () => {
         getFeesCheckbox().click();
         getFeesCheckbox().should('not.be.checked');
       }
-      cy.get('form[name="contribution-checkout"]').submit();
+      cy.get('form')
+        .findByRole('button', { name: /Continue to Payment/ })
+        .click();
       cy.wait('@create-subscription-payment').then((interception) => {
         // captcha_token is different each request, so instead of stubbing it, we just assert there's an
         // object entry for it.
@@ -514,7 +525,13 @@ describe('User flow: happy path', () => {
       // spy on stripe and see that expected next url is provided
       cy.get('form #stripe-payment-element');
       cy.get('[data-testid="donation-page-disclaimer"]');
-      cy.get('form[name="stripe-payment-form"]').submit();
+      cy.findByRole('button', {
+        name: getPaymentElementButtonText({
+          amount: payFees ? 10.53 : 10.0,
+          currencySymbol: livePageOne.currency.symbol,
+          frequency: CONTRIBUTION_INTERVALS.MONTHLY
+        })
+      }).click();
       cy.get('@stripe-confirm-payment').should((x) => {
         expect(x).to.be.calledOnce;
         const {
@@ -554,7 +571,9 @@ describe('User flow: happy path', () => {
     fillOutDonorInfoSection();
     fillOutAddressSection();
     fillOutReasonForGiving();
-    cy.get('form[name="contribution-checkout"]').submit();
+    cy.get('form')
+      .findByRole('button', { name: /Continue to Payment/ })
+      .click();
 
     // assert re: what's sent to server
     cy.window()
@@ -567,7 +586,15 @@ describe('User flow: happy path', () => {
     // spy on stripe and see that expected next url is provided
     cy.get('form #stripe-payment-element');
     cy.get('[data-testid="donation-page-disclaimer"]');
-    cy.get('form[name="stripe-payment-form"]').submit();
+
+    cy.findByRole('button', {
+      name: getPaymentElementButtonText({
+        amount: 10.53,
+        currencySymbol: livePageOne.currency.symbol,
+        frequency: CONTRIBUTION_INTERVALS.MONTHLY
+      })
+    }).click();
+
     cy.get('@stripe-confirm-payment').should((x) => {
       expect(x).to.be.calledOnce;
       const {
@@ -623,7 +650,11 @@ describe('User flow: canceling contribution', () => {
     cy.findAllByLabelText(frequencyLabel).should('be.checked');
 
     getFeesCheckbox().should('be.checked');
-    cy.get('form[name="contribution-checkout"]').submit();
+
+    cy.get('form')
+      .findByRole('button', { name: /Continue to Payment/ })
+      .click();
+
     cy.wait('@create-subscription-payment');
     cy.findByRole('button', { name: DEFAULT_BACK_BUTTON_TEXT }).click();
     cy.wait('@cancel-payment');
@@ -676,7 +707,9 @@ describe('User flow: canceling contribution', () => {
     cy.findAllByLabelText(frequencyLabel).should('be.checked');
     getFeesCheckbox().should('be.checked');
 
-    cy.get('form[name="contribution-checkout"]').submit();
+    cy.get('form')
+      .findByRole('button', { name: /Continue to Payment/ })
+      .click();
     cy.wait('@create-subscription-payment');
     cy.findByRole('button', { name: DEFAULT_BACK_BUTTON_TEXT }).click();
     cy.wait('@cancel-payment');
@@ -711,7 +744,9 @@ describe('User flow: unhappy paths', () => {
       }
     ).as('create-one-time-payment__invalid');
     cy.visitDonationPage();
-    cy.get('form[name="contribution-checkout"]').submit();
+    cy.get('form')
+      .findByRole('button', { name: /Continue to Payment/ })
+      .click();
     cy.wait('@create-one-time-payment__invalid');
     cy.get('[data-testid="d-amount"]').contains(validationError);
     cy.get('[data-testid="errors-First name"]').contains(validationError);
@@ -730,7 +765,9 @@ describe('User flow: unhappy paths', () => {
       'create-one-time-payment__unauthorized'
     );
     cy.visitDonationPage();
-    cy.get('form[name="contribution-checkout"]').submit();
+    cy.get('form')
+      .findByRole('button', { name: /Continue to Payment/ })
+      .click();
     cy.wait('@create-one-time-payment__unauthorized');
     cy.get('[data-testid="500-something-wrong"]');
   });
@@ -741,21 +778,30 @@ describe('User flow: unhappy paths', () => {
     // Test various user interactions to prove that the submit button never becomes enabled and the label is correct.
 
     cy.getByTestId('amount-other').click();
-    cy.getByTestId('donation-page-submit').should('have.attr', 'disabled');
-    cy.getByTestId('donation-page-submit').should('have.text', 'Enter a valid amount');
+    cy.get('form')
+      .findByRole('button', { name: /Enter a valid amount/ })
+      .should('have.attr', 'disabled');
 
     // Do this twice to try both states of the "pay fees" toggle.
 
     for (let i = 0; i < 2; i++) {
+      cy.getByTestId('pay-fees').click();
+      cy.get('form')
+        .findByRole('button', { name: /Enter a valid amount/ })
+        .should('have.attr', 'disabled');
+
       cy.getByTestId('pay-fees').within(() => cy.get('input[type="checkbox"]').click());
-      cy.getByTestId('donation-page-submit').should('have.attr', 'disabled');
-      cy.getByTestId('donation-page-submit').should('have.text', 'Enter a valid amount');
+      cy.get('form')
+        .findByRole('button', { name: /Enter a valid amount/ })
+        .should('have.attr', 'disabled');
     }
 
     cy.get('[data-testid="amount-other-selected"] input').type('3');
     cy.get('[data-testid="amount-other-selected"] input').clear();
-    cy.getByTestId('donation-page-submit').should('have.attr', 'disabled');
-    cy.getByTestId('donation-page-submit').should('have.text', 'Enter a valid amount');
+    cy.getByTestId('pay-fees').click();
+    cy.get('form')
+      .findByRole('button', { name: /Enter a valid amount/ })
+      .should('have.attr', 'disabled');
   });
 });
 

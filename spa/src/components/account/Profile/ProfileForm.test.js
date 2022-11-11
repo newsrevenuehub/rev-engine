@@ -11,7 +11,7 @@ function fillInAllFields() {
   const fieldEntries = [
     ['First Name', 'mock-first-name'],
     ['Last Name', 'mock-last-name'],
-    ['Company Name', 'mock-company-name'],
+    ['Organization', 'mock-company-name'],
     ['Job Title Optional', 'mock-job-title']
   ];
 
@@ -51,10 +51,10 @@ describe('ProfileForm', () => {
     expect(jobTitle).toHaveValue('');
   });
 
-  it('displays a company name field with empty default', () => {
+  it('displays an organization field with empty default', () => {
     tree();
 
-    const companyName = screen.getByLabelText('Company Name');
+    const companyName = screen.getByLabelText('Organization');
 
     expect(companyName).toBeVisible();
     expect(companyName).toHaveValue('');
@@ -77,7 +77,7 @@ describe('ProfileForm', () => {
     const fieldEntries = [
       ['First Name', 'mock-first-name'],
       ['Last Name', 'mock-last-name'],
-      ['Company Name', 'mock-company-name']
+      ['Organization', 'mock-company-name']
     ];
 
     tree();

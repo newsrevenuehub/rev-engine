@@ -21,7 +21,7 @@ import formatDatetimeForDisplay from 'utilities/formatDatetimeForDisplay';
 // Children
 import Banner from 'components/common/Banner';
 import Hero from 'components/common/Hero';
-import { StatusCellIcon } from 'components/contributor/contributorDashboard/ContributorDashboard';
+import { PaymentStatus } from 'components/common/PaymentStatus';
 import DashboardSection from 'components/dashboard/DashboardSection';
 import DonationDetail from 'components/donations/DonationDetail';
 import DonationsTable from 'components/donations/DonationsTable';
@@ -132,7 +132,7 @@ const Donations = () => {
       {
         Header: 'Payment status',
         accessor: 'status',
-        Cell: (props) => <StatusCellIcon status={props.value} showText />
+        Cell: (props) => <PaymentStatus status={props.value} />
       }
     ],
     []

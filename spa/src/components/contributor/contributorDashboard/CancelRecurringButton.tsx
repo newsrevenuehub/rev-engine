@@ -1,49 +1,20 @@
 import CancelOutlinedIcon from '@material-ui/icons/CancelOutlined';
 import ReportOutlined from '@material-ui/icons/ReportOutlined';
 import PropTypes, { InferProps } from 'prop-types';
-import { ContributionInterval } from 'constants/contributionIntervals';
-import { PaymentStatus } from 'constants/paymentStatus';
 import useModal from 'hooks/useModal';
 import { ModalHeader, TableButton } from './CancelRecurringButton.styled';
 import { Button, Modal, ModalContent, ModalFooter } from 'components/base';
 import formatCurrencyAmount from 'utilities/formatCurrencyAmount';
+import { ContributorContribution } from 'hooks/useContributorContributionList';
 
 const CancelRecurringButtonPropTypes = {
   contribution: PropTypes.object.isRequired,
   onCancel: PropTypes.func.isRequired
 };
 
-// This is a temporary home for this type.
-// TODO in DEV-489: move to hook
-
-interface Contribution {
-  id: string;
-  amount: number;
-  bad_actor_score?: unknown;
-  bad_actor_response?: unknown;
-  card_brand: string;
-  contributor: number;
-  contributor_email: string;
-  created: string;
-  currency: string;
-  flagged_date?: string;
-  interval: ContributionInterval;
-  last4: number;
-  modified: string;
-  organization: number;
-  payment_provider_used: string;
-  payment_provider_data: unknown;
-  provider_customer_id?: string;
-  provider_payment_id?: string;
-  provider_payment_method_id?: string;
-  revenue_program: string;
-  reason: string;
-  status?: PaymentStatus;
-}
-
 export interface CancelRecurringButtonProps extends InferProps<typeof CancelRecurringButtonPropTypes> {
-  contribution: Contribution;
-  onCancel: (contribution: Contribution) => void;
+  contribution: ContributorContribution;
+  onCancel: (contribution: ContributorContribution) => void;
 }
 
 export function CancelRecurringButton({ contribution, onCancel }: CancelRecurringButtonProps) {

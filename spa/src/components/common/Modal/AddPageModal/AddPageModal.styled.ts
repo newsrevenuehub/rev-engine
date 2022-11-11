@@ -1,6 +1,14 @@
 import styled from 'styled-components';
 import { Typography as MuiTypography } from '@material-ui/core';
 
+export const Title = styled(MuiTypography)`
+  && {
+    color: ${(props) => props.theme.colors.muiGrey[900]};
+    font-size: ${(props) => props.theme.fontSizesUpdated.lg};
+    font-weight: 600;
+  }
+`;
+
 export const Typography = styled(MuiTypography)`
   && {
     color: ${(props) => props.theme.colors.muiGrey[600]};

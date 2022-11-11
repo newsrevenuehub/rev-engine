@@ -1,4 +1,4 @@
-import { BUTTON_TYPE_ENUM } from 'constants/buttonConstants';
+import { BUTTON_TYPE, BUTTON_TYPE_ENUM } from 'constants/buttonConstants';
 import styled from 'styled-components';
 import lighten from 'styles/utils/lighten';
 
@@ -17,7 +17,7 @@ export const Button = styled.button<{ customType: BUTTON_TYPE_ENUM }>`
   align-items: center;
   background-color: ${(props) =>
     props.disabled ? props.theme.colors.status.processing : props.theme.colors.muiLightBlue[800]};
-  height: ${(props) => (props.customType === 'page' ? '120px' : '70px')};
+  height: ${(props) => (props.customType === BUTTON_TYPE.PAGE ? '120px' : '70px')};
   width: 168px;
   font-size: ${(props) => props.theme.fontSizesUpdated.h1};
   border-radius: ${(props) => props.theme.muiBorderRadius.lg};

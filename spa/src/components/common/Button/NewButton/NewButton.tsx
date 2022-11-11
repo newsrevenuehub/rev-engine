@@ -21,12 +21,12 @@ const NewButton = ({ type, onClick, className, disabled, buttonTestId, ...rest }
         data-testid={buttonTestId}
         customType={type!}
         onClick={onClick}
-        aria-label={buttonLabel}
+        aria-labelledby="new-page-button"
         disabled={disabled!}
       >
-        <img src={AddIcon} alt={`add ${type}`} />
+        <img src={AddIcon} alt={buttonLabel} />
       </Button>
-      <Label>{buttonLabel}</Label>
+      <Label id="new-page-button">{buttonLabel}</Label>
     </Flex>
   );
 };

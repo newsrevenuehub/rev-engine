@@ -15,14 +15,14 @@ export interface RevenueProgram {
   payment_provider_stripe_verified: boolean;
 }
 
-interface Plan {
+export interface Plan {
   name: string;
   label: string;
   page_limit: number;
   style_limit: number;
   custom_thank_you_page_enabled: boolean;
 }
-interface Organization {
+export interface Organization {
   name: string;
   slug: string;
   plan?: Plan;

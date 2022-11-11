@@ -5,10 +5,10 @@ import PropTypes, { InferProps } from 'prop-types';
 
 import { Button, MenuItem, Modal, ModalContent, ModalFooter, ModalHeader, TextField } from 'components/base';
 import { Controller, useForm } from 'react-hook-form';
-import { ErrorMessage, Typography } from './AddPageModal.styled';
+import { ErrorMessage, Typography, Title } from './AddPageModal.styled';
 
-interface AddPageModalType extends InferProps<typeof AddPageModalPropTypes> {
-  onClick: (revenueProgram: string) => void;
+export interface AddPageModalProps extends InferProps<typeof AddPageModalPropTypes> {
+  onAddPage: (revenueProgram: string) => void;
   onClose: () => void;
 }
 
@@ -16,7 +16,7 @@ const formDefaultValues = {
   revenueProgram: ''
 };
 
-const AddPageModal = ({ open, onClose, loading, revenuePrograms, onClick, outerError }: AddPageModalType) => {
+const AddPageModal = ({ open, onClose, loading, revenuePrograms, onAddPage, outerError }: AddPageModalProps) => {
   const {
     control,
     handleSubmit,
@@ -26,7 +26,7 @@ const AddPageModal = ({ open, onClose, loading, revenuePrograms, onClick, outerE
   });
 
   const onSubmit = (form: typeof formDefaultValues) => {
-    onClick(form.revenueProgram);
+    onAddPage(form.revenueProgram);
   };
 
   const errorMessage = outerError || errors?.revenueProgram?.message;
@@ -38,13 +38,13 @@ const AddPageModal = ({ open, onClose, loading, revenuePrograms, onClick, outerE
       open={open}
       width={480}
       onClose={onClose}
-      aria-label="Create new page"
-      component="form"
+      aria-labelledby="modal-page-header"
+      PaperProps={{ component: 'form' }}
       onSubmit={handleSubmit(onSubmit)}
       data-testid="page-create-modal"
     >
       <ModalHeader icon={<AddIcon />} onClose={onClose}>
-        <strong>New Page</strong>
+        <Title id="modal-page-header">New Page</Title>
       </ModalHeader>
       <ModalContent>
         <Typography>Select the Revenue Program for this new page.</Typography>
@@ -54,10 +54,10 @@ const AddPageModal = ({ open, onClose, loading, revenuePrograms, onClick, outerE
           rules={{ required: 'Please select a Revenue Program' }}
           render={({ field }) => (
             <TextField
+              {...field}
               fullWidth
               id="revenue-program"
               label="Revenue Program"
-              {...field}
               select
               data-testid="new-page-revenue-program"
             >
@@ -96,7 +96,7 @@ const AddPageModalPropTypes = {
   loading: PropTypes.bool,
   outerError: PropTypes.string,
   onClose: PropTypes.func.isRequired,
-  onClick: PropTypes.func.isRequired,
+  onAddPage: PropTypes.func.isRequired,
   revenuePrograms: PropTypes.arrayOf(
     PropTypes.shape({
       id: PropTypes.string.isRequired,

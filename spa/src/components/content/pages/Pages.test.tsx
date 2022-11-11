@@ -24,15 +24,8 @@ const hubAdmin = {
   role_type: [USER_ROLE_HUB_ADMIN_TYPE]
 };
 
-jest.mock('hooks/useUser', () => ({
-  __esModule: true,
-  default: jest.fn()
-}));
-
-jest.mock('hooks/useRequest', () => ({
-  __esModule: true,
-  default: jest.fn()
-}));
+jest.mock('hooks/useUser');
+jest.mock('hooks/useRequest');
 
 const useUser = useUserImport as jest.Mock;
 
@@ -44,7 +37,7 @@ describe('Given pages list', () => {
       { id: 2, name: 'mock-name-2', slug: 'mock-slug-2', revenue_program: { id: '2', name: 'rp2' } },
       { id: 3, name: 'mock-name-3', slug: 'mock-slug-3', revenue_program: { id: '2', name: 'rp2' } }
     ] as Page[];
-    result = await pagesbyRP(inp);
+    result = pagesbyRP(inp);
   });
 
   it('should group pages by RevenueProgram in pagesByRevProgram', () => {

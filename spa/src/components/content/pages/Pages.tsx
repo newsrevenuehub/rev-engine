@@ -80,7 +80,7 @@ function Pages() {
   const pagesByRevenueProgram = pagesbyRP(pages, pageSearchQuery);
 
   const addPageButtonShouldBeDisabled = useMemo(() => {
-    if ([USER_ROLE_HUB_ADMIN_TYPE, USER_SUPERUSER_TYPE].includes(user?.role_type?.[0] || '')) {
+    if ([USER_ROLE_HUB_ADMIN_TYPE, USER_SUPERUSER_TYPE].includes(user?.role_type?.[0] ?? '')) {
       return false;
     }
     const pageLimit = user?.organizations?.[0]?.plan?.page_limit ?? 0;

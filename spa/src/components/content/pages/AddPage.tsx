@@ -12,6 +12,7 @@ import useUser from 'hooks/useUser';
 import NewButton from 'components/common/Button/NewButton';
 import useModal from 'hooks/useModal';
 import AddPageModal from 'components/common/Modal/AddPageModal';
+import { Page } from 'hooks/useUser.types';
 
 type AddPageType = InferProps<typeof AddPagePropTypes>;
 
@@ -24,7 +25,7 @@ function AddPage({ pagesByRevenueProgram, disabled }: AddPageType) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string>();
 
-  const handleTemporaryPageName = useCallback((pages: typeof pagesByRevenueProgram[number]['pages']) => {
+  const getTemporaryPageName = useCallback((pages: typeof pagesByRevenueProgram[number]['pages']) => {
     const pagesSize = (pages?.length ?? 0) + 1;
     const slugs = pages ? pages.map(({ slug }) => slug) : [];
     let number = pagesSize;
@@ -58,7 +59,7 @@ function AddPage({ pagesByRevenueProgram, disabled }: AddPageType) {
     (pagesBySelectedRp: typeof pagesByRevenueProgram[number]['pages'], revenueProgramId: string) => {
       setLoading(true);
 
-      const { tempName, tempSlug } = handleTemporaryPageName(pagesBySelectedRp);
+      const { tempName, tempSlug } = getTemporaryPageName(pagesBySelectedRp);
       const formData = {
         name: tempName,
         slug: tempSlug,
@@ -72,7 +73,7 @@ function AddPage({ pagesByRevenueProgram, disabled }: AddPageType) {
           data: formData
         },
         {
-          onSuccess: ({ data }: any) => {
+          onSuccess: ({ data }: { data: Page }) => {
             setLoading(false);
             history.push({
               pathname: join([EDITOR_ROUTE, data.revenue_program.slug, data.slug, '/']),
@@ -83,7 +84,7 @@ function AddPage({ pagesByRevenueProgram, disabled }: AddPageType) {
         }
       );
     },
-    [createPage, handleSaveFailure, handleTemporaryPageName, history]
+    [createPage, handleSaveFailure, getTemporaryPageName, history]
   );
 
   const checkCreatePage = useCallback(() => {
@@ -97,7 +98,7 @@ function AddPage({ pagesByRevenueProgram, disabled }: AddPageType) {
   const handleModalSave = useCallback(
     (revenueProgramId: string) => {
       const rp = user?.revenue_programs.find((rp) => Number(rp.id) === Number(revenueProgramId));
-      const pages = pagesByRevenueProgram?.find((_) => _.name === rp?.name)?.pages || [];
+      const pages = pagesByRevenueProgram?.find((_) => _.name === rp?.name)?.pages ?? [];
       handleSave(pages, revenueProgramId);
     },
     [handleSave, pagesByRevenueProgram, user?.revenue_programs]
@@ -110,8 +111,8 @@ function AddPage({ pagesByRevenueProgram, disabled }: AddPageType) {
         <AddPageModal
           open={open}
           onClose={handleClose}
-          onClick={handleModalSave}
-          revenuePrograms={user?.revenue_programs || []}
+          onAddPage={handleModalSave}
+          revenuePrograms={user?.revenue_programs ?? []}
           loading={loading}
           outerError={error}
         />

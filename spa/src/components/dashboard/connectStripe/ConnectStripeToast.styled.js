@@ -6,6 +6,7 @@ export const ConnectStripeToast = styled.div`
   top: 58px;
   right: 10px;
   font-family: ${(props) => props.theme.systemFont};
+  font-size: 16px;
   border: 0.5px solid ${(props) => props.theme.colors.muiGrey[100]};
   box-shadow: 0px 2px 10px rgba(0, 0, 0, 0.2);
   border-radius: ${(props) => props.theme.muiBorderRadius.lg};

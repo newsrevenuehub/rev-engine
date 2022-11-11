@@ -38,7 +38,8 @@ const baseArgs = {
             offerPayFees: true
           }
         }
-      ]
+      ],
+      revenue_program: { name: 'A News Organization' }
     },
     setAmount: () => {},
     setUserAgreesToPayFees: () => {},

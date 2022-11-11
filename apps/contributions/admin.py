@@ -1,4 +1,6 @@
+from django.conf import settings
 from django.contrib import admin, messages
+from django.utils.html import format_html
 
 from reversion.admin import VersionAdmin
 
@@ -63,9 +65,9 @@ class ContributionAdmin(RevEngineBaseAdmin, VersionAdmin):
                 "fields": (
                     "status",
                     "payment_provider_used",
-                    "provider_payment_id",
-                    "provider_subscription_id",
-                    "provider_customer_id",
+                    "provider_payment_link",
+                    "provider_subscription_link",
+                    "provider_customer_link",
                     "payment_provider_data",
                     "provider_payment_method_id",
                     "provider_payment_method_details",
@@ -125,9 +127,9 @@ class ContributionAdmin(RevEngineBaseAdmin, VersionAdmin):
         "bad_actor_response",
         "status",
         "payment_provider_used",
-        "provider_payment_id",
-        "provider_subscription_id",
-        "provider_customer_id",
+        "provider_payment_link",
+        "provider_subscription_link",
+        "provider_customer_link",
         "provider_payment_method_id",
         "payment_provider_data",
         "flagged_date",
@@ -179,3 +181,23 @@ class ContributionAdmin(RevEngineBaseAdmin, VersionAdmin):
                 f"Could not complete action for contributions: {', '.join([str(cont) for cont in failed])}",
                 messages.ERROR,
             )
+
+    def provider_payment_link(self, request):
+        return self._generate_stripe_connect_link("payments", request.provider_payment_id, request.stripe_account_id)
+
+    def provider_subscription_link(self, request):
+        return self._generate_stripe_connect_link(
+            "subscriptions", request.provider_subscription_id, request.stripe_account_id
+        )
+
+    def provider_customer_link(self, request):
+        return self._generate_stripe_connect_link("customers", request.provider_customer_id, request.stripe_account_id)
+
+    def _generate_stripe_connect_link(self, slug, provider_id, stripe_account_id):
+        if provider_id:
+            test_mode = "test/" if not settings.STRIPE_LIVE_MODE else ""
+            return format_html(
+                f"<a href='%s' target='_blank'>{provider_id}</a>"
+                % f"https://dashboard.stripe.com/{test_mode}connect/accounts/{stripe_account_id}/{slug}/{provider_id}"
+            )
+        return "-"

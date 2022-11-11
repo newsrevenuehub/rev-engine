@@ -103,8 +103,8 @@ class AbstractTestCase(APITestCase):
         NB: The names and relations here matter. There is test code that expects that there are
         two orgs, with the given RevenueProgram, DonationPage, and RoleAssignment/User structures
         """
-        cls.org1 = OrganizationFactory(plan=Plans.PLUS)
-        cls.org2 = OrganizationFactory(plan=Plans.PLUS)
+        cls.org1 = OrganizationFactory(plan_name=Plans.PLUS)
+        cls.org2 = OrganizationFactory(plan_name=Plans.PLUS)
         cls.payment_provider1 = PaymentProviderFactory()
         cls.payment_provider2 = PaymentProviderFactory()
         cls.org1_rp1 = RevenueProgramFactory(organization=cls.org1, payment_provider=cls.payment_provider1)

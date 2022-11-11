@@ -1,5 +1,5 @@
 import logging
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 from django.conf import settings
 from django.core.exceptions import ValidationError
@@ -12,6 +12,12 @@ from apps.common.models import IndexedTimeStampedModel
 from apps.common.utils import normalize_slug
 from apps.config.validators import validate_slug_against_denylist
 from apps.organizations.validators import validate_statement_descriptor_suffix
+from apps.pages.defaults import (
+    BENEFITS,
+    DEFAULT_PERMITTED_PAGE_ELEMENTS,
+    DEFAULT_PERMITTED_SIDEBAR_ELEMENTS,
+    SWAG,
+)
 from apps.users.choices import Roles
 from apps.users.models import RoleAssignmentResourceModelMixin, UnexpectedRoleType
 
@@ -38,6 +44,8 @@ class Plan:
 
     name: str
     label: str
+    sidebar_elements: list[str] = field(default_factory=lambda: DEFAULT_PERMITTED_SIDEBAR_ELEMENTS)
+    page_elements: list[str] = field(default_factory=lambda: DEFAULT_PERMITTED_PAGE_ELEMENTS)
     page_limit: int = 1
     style_limit: int = 1
     custom_thank_you_page_enabled: bool = False
@@ -55,6 +63,14 @@ PlusPlan = Plan(
     page_limit=UNLIMITED_CEILING,
     style_limit=UNLIMITED_CEILING,
     custom_thank_you_page_enabled=True,
+    sidebar_elements=DEFAULT_PERMITTED_SIDEBAR_ELEMENTS
+    + [
+        BENEFITS,
+    ],
+    page_elements=DEFAULT_PERMITTED_PAGE_ELEMENTS
+    + [
+        SWAG,
+    ],
 )
 
 
@@ -70,7 +86,7 @@ class Plans(models.TextChoices):
 
 class Organization(IndexedTimeStampedModel, RoleAssignmentResourceModelMixin):
     name = models.CharField(max_length=255, unique=True)
-    plan = models.CharField(choices=Plans.choices, max_length=10, default=Plans.FREE)
+    plan_name = models.CharField(choices=Plans.choices, max_length=10, default=Plans.FREE)
     salesforce_id = models.CharField(max_length=255, blank=True, verbose_name="Salesforce ID")
 
     # TODO: [DEV-2035] Remove Organization.slug field entirely
@@ -95,8 +111,9 @@ class Organization(IndexedTimeStampedModel, RoleAssignmentResourceModelMixin):
     def __str__(self):
         return self.name
 
-    def get_plan_data(self):
-        return Plans.get_plan(self.plan)
+    @property
+    def plan(self):
+        return Plans.get_plan(self.plan_name)
 
     @property
     def admin_revenueprogram_options(self):

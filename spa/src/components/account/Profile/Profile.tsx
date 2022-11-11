@@ -33,11 +33,11 @@ function Profile() {
       const { data, status } = await axios.patch(`users/${user?.id}/${CUSTOMIZE_ACCOUNT_ENDPOINT}`, {
         first_name: formData.firstName,
         last_name: formData.lastName,
-        // Don't send job_title at all if the user omitted it.
-        job_title: formData.jobTitle.trim() !== '' ? formData.jobTitle : undefined,
         organization_name: formData.companyName,
         organization_tax_status: formData.companyTaxStatus,
-        organization_tax_id: formData.taxId.replace('-', '').replace('_', '')
+        // Don't send job_title or organization_tax_id at all if the user omitted it.
+        job_title: formData.jobTitle.trim() !== '' ? formData.jobTitle : undefined,
+        organization_tax_id: formData.taxId.replace('-', '').replace('_', '') || undefined
       });
 
       if (status === 204) {

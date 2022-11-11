@@ -69,7 +69,7 @@ class TemplateAdmin(VersionAdmin, DonationPageAdminAbstract):
                 if "violates unique constraint" in str(integrity_error):
                     self.message_user(
                         request,
-                        f'Donation Page name "{obj.name}" already used in organization. Did you forget to update the name of a previous page created from this template?',
+                        f'Contribution Page name "{obj.name}" already used in organization. Did you forget to update the name of a previous page created from this template?',
                         messages.ERROR,
                     )
                     return HttpResponseRedirect(reverse("admin:pages_template_change", kwargs={"object_id": obj.id}))
@@ -91,10 +91,10 @@ class DonationPageAdminForm(forms.ModelForm):
             org = Organization.objects.get(revenueprogram__id=self.data["revenue_program"])
         else:
             org = self.instance.revenue_program.organization
-        if self.cleaned_data["thank_you_redirect"] and not org.get_plan_data().custom_thank_you_page_enabled:
+        if self.cleaned_data["thank_you_redirect"] and not org.plan.custom_thank_you_page_enabled:
             raise ValidationError(
                 (
-                    f"The parent org (ID: {org.id} | Name: {org.name}) is on the {org.get_plan_data().label} plan, "
+                    f"The parent org (ID: {org.id} | Name: {org.name}) is on the {org.plan.label} plan, "
                     f"which does not get this feature."
                 )
             )
@@ -105,14 +105,13 @@ class DonationPageAdminForm(forms.ModelForm):
         # if we're creating a new page, id won't be assigned yet
         if (
             not self.instance.id
-            and models.DonationPage.objects.filter(revenue_program__organization=org).count()
-            >= org.get_plan_data().page_limit
+            and models.DonationPage.objects.filter(revenue_program__organization=org).count() >= org.plan.page_limit
         ):
             raise ValidationError(
                 (
-                    f"The parent org (ID: {org.id} | Name: {org.name}) is on the {org.get_plan_data().label} plan, "
-                    f"and is limited to {org.get_plan_data().page_limit} "
-                    f"page{'' if org.get_plan_data().page_limit == 1 else 's' }."
+                    f"The parent org (ID: {org.id} | Name: {org.name}) is on the {org.plan.label} plan, "
+                    f"and is limited to {org.plan.page_limit} "
+                    f"page{'' if org.plan.page_limit == 1 else 's' }."
                 )
             )
 
@@ -165,14 +164,14 @@ class DonationPageAdmin(CompareVersionAdmin, DonationPageAdminAbstract):
     actions = ("make_template", "undelete_selected")
 
     # Overriding this template to add the `admin_limited_select` inclusion tag
-    change_form_template = "pages/donationpage_changeform.html"
+    change_form_template = "pages/contributionpage_changeform.html"
 
     def reversion_register(self, model, **options):
         """Set django-reversion options on registered model...
 
         We explicitly follow `revenue_program` here in order to ensure that a revenue program's
-        `default_donation_page` value is restored from null to a donation page instance, if that
-        donation page has been deleted but is subsequently restored.
+        `default_donation_page` value is restored from null to a contribution page instance, if that
+        contribution page has been deleted but is subsequently restored.
         """
         options["follow"] = ("revenue_program",)
         super().reversion_register(model, **options)

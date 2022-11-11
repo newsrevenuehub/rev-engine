@@ -15,7 +15,7 @@ const hubAdminWithContentFlag = {
   flags: [{ ...contentSectionFlag }]
 };
 
-describe('Donation pages list', () => {
+describe('Contribution pages list', () => {
   beforeEach(() => {
     cy.forceLogin(hubAdminUser);
     cy.intercept(getEndpoint(LIST_PAGES), { fixture: 'pages/list-pages-1' }).as('listPages');

@@ -113,7 +113,7 @@ DReason.propTypes = {
 
 DReason.type = 'DReason';
 DReason.displayName = 'Reason for Giving';
-DReason.description = 'Collect information about the donors reason for giving';
+DReason.description = 'Collect information about the contributors reason for giving';
 DReason.required = false;
 DReason.unique = true;
 

@@ -90,7 +90,7 @@ class StyleListSerializer(StyleInlineSerializer):
             return
         if Style.objects.filter(
             revenue_program__organization=(org := data["revenue_program"].organization)
-        ).count() + 1 > (sl := org.get_plan_data().style_limit):
+        ).count() + 1 > (sl := org.plan.style_limit):
             raise serializers.ValidationError(
                 {"non_field_errors": [f"Your organization has reached its limit of {sl} style{'s' if sl > 1 else ''}"]}
             )
@@ -137,6 +137,8 @@ class DonationPageFullDetailSerializer(serializers.ModelSerializer):
 
     benefit_levels = serializers.SerializerMethodField(method_name="get_benefit_levels")
     plan = serializers.SerializerMethodField(read_only=True)
+    elements = serializers.JSONField(required=False)
+    sidebar_elements = serializers.JSONField(required=False)
 
     class Meta:
         model = DonationPage
@@ -148,7 +150,7 @@ class DonationPageFullDetailSerializer(serializers.ModelSerializer):
         ]
 
     def get_plan(self, obj):
-        return asdict(obj.revenue_program.organization.get_plan_data())
+        return asdict(obj.revenue_program.organization.plan)
 
     def create(self, validated_data):
         """If given template pk, return template.make_page_from_template().
@@ -216,7 +218,7 @@ class DonationPageFullDetailSerializer(serializers.ModelSerializer):
             org = self.instance.revenue_program.organization
         else:
             org = Organization.objects.filter(revenueprogram__id=self.initial_data["revenue_program"]).first()
-        if value and not org.get_plan_data().custom_thank_you_page_enabled:
+        if value and not org.plan.custom_thank_you_page_enabled:
             raise serializers.ValidationError(
                 "This organization's plan does not enable assigning a custom thank you URL"
             )
@@ -232,13 +234,59 @@ class DonationPageFullDetailSerializer(serializers.ModelSerializer):
             return
         if DonationPage.objects.filter(
             revenue_program__organization=(org := data["revenue_program"].organization)
-        ).count() + 1 > (pl := org.get_plan_data().page_limit):
+        ).count() + 1 > (pl := org.plan.page_limit):
             raise serializers.ValidationError(
                 {"non_field_errors": [f"Your organization has reached its limit of {pl} page{'s' if pl > 1 else ''}"]}
             )
 
+    def validate_page_element_permissions(self, data):
+        """Ensure that requested page elements are permitted by the organization's plan"""
+        rp = self.instance.revenue_program if self.instance else data["revenue_program"]
+        if prohibited := {x["type"] for x in data.get("elements", [])}.difference(
+            set(rp.organization.plan.page_elements)
+        ):
+            raise serializers.ValidationError(
+                {"page_elements": f"You're not allowed to use the following elements: {', '.join(prohibited)}"}
+            )
+
+    def validate_sidebar_element_permissions(self, data):
+        """Ensure that requested sidebar elements are permitted by the organization's plan"""
+        rp = self.instance.revenue_program if self.instance else data["revenue_program"]
+        if prohibited := set([elem["type"] for elem in data.get("sidebar_elements", [])]).difference(
+            set(rp.organization.plan.sidebar_elements)
+        ):
+            raise serializers.ValidationError(
+                {"sidebar_elements": f"You're not allowed to use the following elements: {', '.join(prohibited)}"}
+            )
+
     def validate(self, data):
         self.validate_page_limit(data)
+        # TODO: [DEV-2741] Add granular validation for page and sidebar elements
+        self.validate_page_element_permissions(data)
+        self.validate_sidebar_element_permissions(data)
+        return data
+
+    def filter_page_elements_by_plan_permitted(self, instance):
+        """Only return page elements that are permitted by related org's plan"""
+        return [
+            elem
+            for elem in instance.elements
+            if elem["type"] in instance.revenue_program.organization.plan.page_elements
+        ]
+
+    def filter_sidebar_elements_by_plan_permitted(self, instance):
+        """Only return sidebar elements that are permitted by related org's plan"""
+        return [
+            elem
+            for elem in instance.sidebar_elements
+            if elem["type"] in instance.revenue_program.organization.plan.sidebar_elements
+        ]
+
+    def to_representation(self, instance):
+        """When representing a donation page, we filter out any page or sidebar elements not permitted by org plan"""
+        data = super().to_representation(instance)
+        data["elements"] = self.filter_page_elements_by_plan_permitted(instance)
+        data["sidebar_elements"] = self.filter_sidebar_elements_by_plan_permitted(instance)
         return data
 
 

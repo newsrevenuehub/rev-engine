@@ -166,6 +166,7 @@ function PageEditor() {
         setPage(data);
         setPageContext(data);
         setLoading(false);
+        handleEdit();
       },
       onFailure: handleGetPageFailure //() => setLoading(false)
     });
@@ -212,7 +213,7 @@ function PageEditor() {
     if (validationErrors) {
       setErrors(validationErrors);
     } else if (pageHasBeenPublished(page)) {
-      getUserConfirmation("You're making changes to a live donation page. Continue?", () => patchPage(pageUpdates));
+      getUserConfirmation("You're making changes to a live contribution page. Continue?", () => patchPage(pageUpdates));
     } else {
       setUpdatePageAndSave(pageUpdates);
     }

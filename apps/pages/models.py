@@ -29,7 +29,7 @@ class AbstractPage(IndexedTimeStampedModel, RoleAssignmentResourceModelMixin):
     header_logo = SorlImageField(null=True, blank=True, default=None)
     header_link = models.URLField(blank=True)
 
-    sidebar_elements = models.JSONField(null=True, blank=True, default=list)
+    sidebar_elements = models.JSONField(default=list)
 
     styles = models.ForeignKey("pages.Style", null=True, blank=True, on_delete=models.SET_NULL)
 
@@ -38,7 +38,7 @@ class AbstractPage(IndexedTimeStampedModel, RoleAssignmentResourceModelMixin):
     )
     post_thank_you_redirect = models.URLField(
         blank=True,
-        help_text='Donors can click a link to go "back to the news" after viewing the default thank you page',
+        help_text='Contributors can click a link to go "back to the news" after viewing the default thank you page',
     )
 
     revenue_program = models.ForeignKey(

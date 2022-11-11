@@ -57,7 +57,7 @@ const orgAdminStripeVerifiedLoginSuccess = {
 
 const testEditPageUrl = 'edit/my/page/';
 
-describe('Donation page edit', () => {
+describe('Contribution page edit', () => {
   before(() => {
     cy.forceLogin(orgAdminUser);
     cy.intercept({ method: 'GET', pathname: getEndpoint(USER) }, { body: stripeVerifiedOrgAdmin });
@@ -81,7 +81,14 @@ describe('Donation page edit', () => {
     cy.getByTestId('delete-page-button');
   });
 
+  it('should default to the edit interface once a page has loaded', () => {
+    cy.getByTestId('edit-interface');
+  });
+
   it('should open edit interface when clicking edit button', () => {
+    // Toggle out of edit mode.
+
+    cy.getByTestId('preview-page-button').click();
     cy.getByTestId('edit-page-button').click();
     cy.getByTestId('edit-interface');
   });
@@ -137,8 +144,8 @@ describe('Donation page edit', () => {
     });
 
     it('should render layout and setup tabs', () => {
-      cy.getByTestId('layout-tab');
-      cy.getByTestId('setup-tab');
+      cy.getByTestId('edit-layout-tab');
+      cy.getByTestId('edit-setup-tab');
     });
 
     it('should render element detail when edit item is clicked', () => {
@@ -167,7 +174,7 @@ describe('Donation page edit', () => {
         cy.getByTestId('frequency-toggle').contains('One time').click();
         cy.getByTestId('keep-element-changes-button').click({ force: true });
 
-        // Donation page should only show item checked, and nothing else.
+        // Contribution page should only show item checked, and nothing else.
         cy.getByTestId('d-frequency').contains('One time');
         cy.getByTestId('d-frequency').should('not.contain', 'Monthly');
         cy.getByTestId('d-frequency').should('not.contain', 'Yearly');
@@ -249,7 +256,7 @@ describe('Donation page edit', () => {
     });
   });
 
-  describe('Donor info editor', () => {
+  describe('Contributor info editor', () => {
     it('should render the DonorInfoEditor', () => {
       cy.editElement('DDonorInfo');
       cy.getByTestId('donor-info-editor').should('exist');
@@ -257,7 +264,7 @@ describe('Donation page edit', () => {
     });
   });
 
-  describe('Donor address editor', () => {
+  describe('Contributor address editor', () => {
     it('should render the DonorAmountEditor', () => {
       cy.editElement('DDonorAddress');
       cy.getByTestId('donor-address-editor').should('exist');
@@ -368,7 +375,7 @@ describe('Donation page edit', () => {
       // Cleanup
       cy.getByTestId('edit-page-button').click();
       cy.wait(300);
-      cy.getByTestId('add-element-button').click();
+      cy.getByTestId('add-page-element-button').click();
       cy.contains('Payment').click();
     });
 
@@ -382,9 +389,11 @@ describe('Donation page edit', () => {
       cy.visit(testEditPageUrl);
       cy.wait('@getPageDetail');
       cy.getByTestId('edit-page-button').click();
-      cy.getByTestId('setup-tab').click({ force: true });
+      cy.getByTestId('edit-setup-tab').click({ force: true });
       cy.getByTestId('thank-you-redirect-link-input').type('not a valid url');
-      cy.getByTestId('keep-element-changes-button').click({ force: true });
+      cy.get('#edit-setup-tab-panel').within(() =>
+        cy.getByTestId('keep-element-changes-button').click({ force: true })
+      );
 
       // Before we save, let's close the tab so we can more meaningfully assert its presence later.
       cy.getByTestId('preview-page-button').click({ force: true });
@@ -432,13 +441,13 @@ describe('Donation page edit', () => {
 
     it('should render the Sidebar tab', () => {
       cy.getByTestId('edit-page-button').click({ force: true });
-      cy.getByTestId('sidebar-tab').click({ force: true });
+      cy.getByTestId('edit-sidebar-tab').click({ force: true });
     });
 
     it('Can add an element', () => {
       cy.intercept({ method: 'GET', pathname: getEndpoint(LIST_STYLES) }, {});
 
-      cy.getByTestId('add-element-button').click();
+      cy.getByTestId('add-sidebar-element-button').click();
       cy.getByTestId('add-page-modal').within(() => {
         cy.getByTestId('page-item-DRichText').click();
       });
@@ -450,7 +459,7 @@ describe('Donation page edit', () => {
       cy.intercept({ method: 'GET', pathname: getEndpoint(LIST_STYLES) }, {});
 
       cy.getByTestId('edit-page-button').click({ force: true });
-      cy.getByTestId('sidebar-tab').click({ force: true });
+      cy.getByTestId('edit-sidebar-tab').click({ force: true });
       cy.editElement('DRichText');
       cy.get('[class=DraftEditor-editorContainer]').type('New Rich Text');
       cy.getByTestId('keep-element-changes-button').click();
@@ -485,7 +494,7 @@ describe('Edit interface: Setup', () => {
     cy.url().should('include', testEditPageUrl);
     // cy.wait('@getPageDetail');
     cy.getByTestId('edit-page-button').click();
-    cy.getByTestId('setup-tab').click({ force: true });
+    cy.getByTestId('edit-setup-tab').click({ force: true });
   });
   it('should render the setup tab when setup tab clicked', () => {
     cy.getByTestId('page-setup');
@@ -494,7 +503,7 @@ describe('Edit interface: Setup', () => {
     const expectedHeading = livePage.heading;
     cy.getByTestId('setup-heading-input').should('have.value', expectedHeading);
   });
-  it('should update donation page view with new content and display it in preview mode', () => {
+  it('should update contribution page view with new content and display it in preview mode', () => {
     const previousHeading = livePage.heading;
     const newHeading = 'My new test heading';
     cy.intercept({ method: 'GET', pathname: getEndpoint(LIST_STYLES) }, {});
@@ -503,7 +512,9 @@ describe('Edit interface: Setup', () => {
     cy.getByTestId('s-page-heading').contains(previousHeading);
     cy.getByTestId('setup-heading-input').clear();
     cy.getByTestId('setup-heading-input').type(newHeading);
-    cy.getByTestId('keep-element-changes-button').scrollIntoView().click();
+    cy.get('#edit-setup-tab-panel').within(() =>
+      cy.getByTestId('keep-element-changes-button').scrollIntoView().click()
+    );
     cy.getByTestId('s-page-heading').contains(previousHeading).should('not.exist');
     cy.getByTestId('s-page-heading').contains(newHeading);
 
@@ -518,10 +529,10 @@ describe('Edit interface: Setup', () => {
   });
   it('should show a warning when updating a live page', () => {
     cy.intercept({ method: 'GET', pathname: getEndpoint(LIST_STYLES) }, {});
-    cy.getByTestId('layout-tab').click();
+    cy.getByTestId('edit-layout-tab').click();
     cy.getByTestId('trash-button').first().click();
     cy.getByTestId('save-page-button').click();
-    cy.getByTestId('confirmation-modal').contains("You're making changes to a live donation page. Continue?");
+    cy.getByTestId('confirmation-modal').contains("You're making changes to a live contribution page. Continue?");
     cy.getByTestId('cancel-button').click();
   });
 });
@@ -547,7 +558,7 @@ describe('Edit interface: Styles', () => {
 
     cy.url().should('include', testEditPageUrl);
     cy.getByTestId('edit-page-button').click();
-    cy.getByTestId('styles-tab').click({ force: true });
+    cy.getByTestId('edit-style-tab').click({ force: true });
   });
 
   describe('When creating a new style', () => {
@@ -576,7 +587,7 @@ describe('Edit interface: Styles', () => {
   });
 });
 
-describe('Donation page delete', () => {
+describe('Contribution page delete', () => {
   beforeEach(() => {
     cy.forceLogin(orgAdminUser);
     cy.intercept({ method: 'GET', pathname: getEndpoint(USER) }, { body: orgAdminWithContentFlag });

@@ -173,7 +173,7 @@ class PageViewSet(RevisionMixin, viewsets.ModelViewSet, FilterQuerySetByUserMixi
 
     def partial_update(self, request, *args, **kwargs):
         response = super().partial_update(request, *args, **kwargs)
-        if request.FILES and request.data.get("sidebar_elements", None):
+        if request.FILES and response.data.get("sidebar_elements", None):
             # Link up thumbs and MediaImages
             data = MediaImage.create_from_request(request.POST, request.FILES, kwargs["pk"])
             response.data["sidebar_elements"] = data.get("sidebar_elements")

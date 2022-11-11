@@ -5,7 +5,6 @@ import os
 from django.conf import settings
 from django.utils import timezone
 
-import pytest
 from rest_framework import status
 from rest_framework.reverse import reverse
 from rest_framework.test import APITestCase
@@ -185,13 +184,13 @@ class PageViewSetTest(RevEngineApiAbstractTestCase):
 
     ########
     # Update
-    @pytest.mark.xfail
     def test_update_with_sidebar_elements(self):
         # TODO: DEV-2327 How to test partial_update with request.FILES
         page = DonationPage.objects.filter().first()
-        sidebar_elements = {}
-        self.assert_superuser_can_patch(
-            f"/api/v0/pages/{page.pk}/", {"sidebar_elements": sidebar_elements}, format="multipart"
+        sidebar_elements = []
+        self.assert_org_admin_can_patch(
+            f"/api/v1/pages/{page.pk}/",
+            {"sidebar_elements": sidebar_elements},
         )
         page.refresh_from_db()
         assert page.sidebar_elements == sidebar_elements

@@ -18,7 +18,7 @@ import { GENERIC_ERROR, NO_VALUE } from 'constants/textConstants';
 import Button from 'elements/buttons/Button';
 import { faBan, faCheck } from '@fortawesome/free-solid-svg-icons';
 import { getFrequencyAdjective } from 'utilities/parseFrequency';
-import { StatusCellIcon } from 'components/contributor/contributorDashboard/ContributorDashboard';
+import { PaymentStatus } from 'components/common/PaymentStatus';
 import PageTitle from 'elements/PageTitle';
 
 function DonationDetail() {
@@ -142,9 +142,7 @@ function DonationDetail() {
           <S.DL layout>
             <DataGroup heading="Contribution details">
               <dt>Status</dt>
-              <dd data-testid="status">
-                <StatusCellIcon status={status || ''} showText />
-              </dd>
+              <dd data-testid="status">{status && <PaymentStatus status={status} />}</dd>
 
               <dt layout>Contributor</dt>
               <dd layout data-testid="donorEmail">

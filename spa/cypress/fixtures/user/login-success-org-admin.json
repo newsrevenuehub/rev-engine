@@ -24,13 +24,15 @@
         "id": 1,
         "name": "Some Rev Program",
         "slug": "some-rev-program",
-        "organization": 1
+        "organization": 1,
+        "payment_provider_stripe_verified": true
       },
       {
         "id": 2,
         "name": "Some Rev Program 2",
         "slug": "some-rev-program-2",
-        "organization": 1
+        "organization": 1,
+        "payment_provider_stripe_verified": true
       }
     ]
   },

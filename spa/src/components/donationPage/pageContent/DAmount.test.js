@@ -7,14 +7,12 @@ import { getFrequencyAdjective, getFrequencyRate } from 'utilities/parseFrequenc
 import userEvent from '@testing-library/user-event';
 import { within } from '@testing-library/react';
 
-jest.mock('./DPayment', () => ({
-  ...jest.requireActual('./DPayment'),
-  PayFeesWidget: () => <div data-testid="mock-pay-fees-widget" />
-}));
+jest.mock('./PayFeesControl');
 
 const defaultPage = {
   currency: { symbol: 'mock-currency-symbol' },
-  elements: []
+  elements: [],
+  revenue_program: { name: 'mock-rp-name ' }
 };
 
 const defaultOptions = { [CONTRIBUTION_INTERVALS.ONE_TIME]: [1, 2, 3] };
@@ -69,30 +67,30 @@ describe('DAmount', () => {
     expect(screen.queryByText('should-not-appear')).not.toBeInTheDocument();
   });
 
-  it('displays PayFeesWidget if the first DPayment element in the page allows offering to pay fees', () => {
+  it('displays PayFeesControl if the first DPayment element in the page allows offering to pay fees', () => {
     tree(undefined, {
       page: { ...defaultPage, elements: [{ type: 'DPayment', content: { offerPayFees: true } }] }
     });
-    expect(screen.getByTestId('mock-pay-fees-widget')).toBeInTheDocument();
+    expect(screen.getByTestId('mock-pay-fees-control')).toBeInTheDocument();
   });
 
-  it("doesn't display a PayFeesWidget if the first DPayment element in the page doesn't allow offering to pay fees", () => {
+  it("doesn't display a PayFeesControl if the first DPayment element in the page doesn't allow offering to pay fees", () => {
     tree(undefined, {
       page: { ...defaultPage, elements: [{ type: 'DPayment', content: { offerPayFees: false } }] }
     });
-    expect(screen.queryByTestId('mock-pay-fees-widget')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('mock-pay-fees-control')).not.toBeInTheDocument();
   });
 
-  it("doesn't display a PayFeesWidget if the first DPayment element in the page doesn't have fee payment config", () => {
+  it("doesn't display a PayFeesControl if the first DPayment element in the page doesn't have fee payment config", () => {
     tree(undefined, {
       page: { ...defaultPage, elements: [{ type: 'DPayment', content: {} }] }
     });
-    expect(screen.queryByTestId('mock-pay-fees-widget')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('mock-pay-fees-control')).not.toBeInTheDocument();
   });
 
-  it("doesn't display a PayFeesWidget if there's no DPayment element in the page", () => {
+  it("doesn't display a PayFeesControl if there's no DPayment element in the page", () => {
     tree(undefined, { page: { ...defaultPage, elements: [] } });
-    expect(screen.queryByTestId('mock-pay-fees-widget')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('mock-pay-fees-control')).not.toBeInTheDocument();
   });
 
   it('ignores any DPayment elements after the first', () => {
@@ -105,7 +103,7 @@ describe('DAmount', () => {
         ]
       }
     });
-    expect(screen.getByTestId('mock-pay-fees-widget')).toBeInTheDocument();
+    expect(screen.getByTestId('mock-pay-fees-control')).toBeInTheDocument();
   });
 
   it('displays a div for every option for the contribution frequency set in the page', () => {

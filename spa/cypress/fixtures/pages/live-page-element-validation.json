@@ -2,6 +2,9 @@
   "id": 50,
   "name": "Page 1",
   "styles": null,
+  "plan": {
+    "custom_thank_you_enabled": true
+  },
   "revenue_program": {
     "id": 3,
     "name": "Fooo",

@@ -29,8 +29,6 @@ import GenericErrorBoundary from 'components/errors/GenericErrorBoundary';
 import { AUTHORIZE_STRIPE_PAYMENT_ROUTE } from 'ajax/endpoints';
 import { serializeData } from 'components/paymentProviders/stripe/stripeFns';
 import calculateStripeFee from 'utilities/calculateStripeFee';
-import formatStringAmountForDisplay from 'utilities/formatStringAmountForDisplay';
-import { getFrequencyAdverb } from 'utilities/parseFrequency';
 import { CONTRIBUTION_INTERVALS } from 'constants/contributionIntervals';
 
 function authorizePayment(paymentData, csrftoken) {
@@ -81,7 +79,6 @@ function DonationPage({ page, live = false }) {
   const [displayStripePaymentForm, setDisplayStripePaymentForm] = useState(false);
   const [contributorEmail, setContributorEmail] = useState();
   const [mailingCountry, setMailingCountry] = useState();
-  const [paymentSubmitButtonText, setPaymentSubmitButtonText] = useState();
   const [stripeBillingDetails, setStripeBillingDetails] = useState();
 
   const [cookies] = useCookies(['csrftoken']);
@@ -230,22 +227,6 @@ function DonationPage({ page, live = false }) {
     });
   };
 
-  const getCheckoutSubmitButtonText = (currencySymbol, totalAmount, frequency) => {
-    if (!isValidTotalAmount) {
-      return 'Enter a valid amount';
-    }
-
-    return `Give ${currencySymbol}${formatStringAmountForDisplay(totalAmount)} ${getFrequencyAdverb(frequency)}`;
-  };
-
-  useEffect(() => {
-    if (page?.currency?.symbol && !isNaN(totalAmount) && frequency) {
-      setPaymentSubmitButtonText(
-        `Give ${page.currency.symbol}${formatStringAmountForDisplay(totalAmount)} ${getFrequencyAdverb(frequency)}`
-      );
-    }
-  }, [frequency, page.currency?.symbol, totalAmount]);
-
   return (
     <DonationPageContext.Provider
       value={{
@@ -269,7 +250,6 @@ function DonationPage({ page, live = false }) {
         stripeClientSecret,
         mailingCountry,
         setMailingCountry,
-        paymentSubmitButtonText,
         cancelPayment: () => {
           deletePayment(stripeClientSecret);
           setDisplayStripePaymentForm(false);
@@ -287,12 +267,7 @@ function DonationPage({ page, live = false }) {
                 {displayErrorFallback ? (
                   <LiveErrorFallback />
                 ) : (
-                  <form
-                    name="contribution-checkout"
-                    onSubmit={handleCheckoutSubmit}
-                    ref={formRef}
-                    data-testid="donation-page-form"
-                  >
+                  <form onSubmit={handleCheckoutSubmit} ref={formRef}>
                     <S.PageElements>
                       {(!live && !page?.elements) ||
                         (page?.elements?.length === 0 && (
@@ -309,12 +284,11 @@ function DonationPage({ page, live = false }) {
                         ))}
                     </S.PageElements>
                     <SubmitButton
-                      data-testid="donation-page-submit"
                       disabled={!isValidTotalAmount || createPaymentIsLoading}
                       loading={createPaymentIsLoading}
                       type="submit"
                     >
-                      {getCheckoutSubmitButtonText(page?.currency?.symbol, totalAmount, frequency)}
+                      {isValidTotalAmount ? 'Continue to Payment' : 'Enter a valid amount'}
                     </SubmitButton>
                   </form>
                 )}

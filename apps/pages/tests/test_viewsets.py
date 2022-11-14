@@ -3,6 +3,7 @@ import json
 import os
 
 from django.conf import settings
+from django.core.files.uploadedfile import SimpleUploadedFile
 from django.utils import timezone
 
 from rest_framework import status
@@ -194,6 +195,38 @@ class PageViewSetTest(RevEngineApiAbstractTestCase):
         )
         page.refresh_from_db()
         assert page.sidebar_elements == sidebar_elements
+
+    def test_update_when_already_sidebar_elements_edge_case(self):
+        # This test is to ensure we don't introduce regression that would cause
+        # the bug in https://news-revenue-hub.atlassian.net/browse/DEV-2861 to happen again.
+        # For more context, see the lengthy code comment in apps.pages.views.PageViewSet.partial_update.
+        page = DonationPage.objects.filter().first()
+        page.sidebar_elements = [
+            {
+                "type": "DImage",
+                "uuid": "testImageFile",
+                "requiredFields": [],
+                "content": {"url": "/media/test.png", "thumbnail": "/media/cache/thumbnail.png"},
+            }
+        ]
+        page.save()
+        # https://stackoverflow.com/a/50453780
+        small_gif = (
+            b"\x47\x49\x46\x38\x39\x61\x01\x00\x01\x00\x00\x00\x00\x21\xf9\x04"
+            b"\x01\x0a\x00\x01\x00\x2c\x00\x00\x00\x00\x01\x00\x01\x00\x00\x02"
+            b"\x02\x4c\x01\x00\x3b"
+        )
+        rich_text_index = next((index for (index, x) in enumerate(page.elements) if x["type"] == "DRichText"), None)
+        assert rich_text_index is not None
+        elements = page.elements.copy()
+        elements[rich_text_index]["content"] = "new value"
+        patch_data = {
+            "elements": json.dumps(elements),
+            "page_screenshot": SimpleUploadedFile(name="test_image.jpg", content=small_gif, content_type="image/gif"),
+        }
+        self.client.force_authenticate(user=self.org_user)
+        response = self.client.patch(f"/api/v1/pages/{page.pk}/", patch_data)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
 
     def test_superuser_can_update_a_page(self):
         page = DonationPage.objects.filter().first()

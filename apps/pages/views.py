@@ -184,7 +184,7 @@ class PageViewSet(RevisionMixin, viewsets.ModelViewSet, FilterQuerySetByUserMixi
         #
         # Another scenario we need to support is when a user is trying to set sidebar_elements to be an empty list, and
         # this is why we need to include `request.data.get('sidebar_elements')` in the `all` condition below.
-        # Uf the user is setting sidebar_elements to be empty, then the value for sidebar elements in the request data will
+        # If the user is setting sidebar_elements to be empty, then the value for sidebar elements in the request data will
         # be the string value '[]', representing an empty list. The reason this value will be an empty string is because
         # this endpoint is supporting file upload, and therefore form data instead of JSON is submitted. If we know
         # that `sidebar_elements` are being patched, we then need to look at `response.data.sidebar_elements` because this
@@ -194,7 +194,8 @@ class PageViewSet(RevisionMixin, viewsets.ModelViewSet, FilterQuerySetByUserMixi
         # Yet another scenario we need to support is when the page already has an image sidebar element, but elements other
         # than sidebar_elements are being patched. In that case, we do NOT want the conditional block below to run because
         # it will cause an error because `data = MediaImage.create_from_request(request.POST, request.FILES, kwargs["pk"])` will
-        # yield `None` and the db will raise an integrity error when we attempt to set that field to None when saving.
+        # yield `None` and the db will raise an integrity error when we attempt to set that field to None when saving. This scenario
+        # was the cause of a bug captured in [DEV-2861](https://news-revenue-hub.atlassian.net/browse/DEV-2861)
         if all([request.FILES, request.data.get("sidebar_elements"), response.data.get("sidebar_elements", None)]):
             # Link up thumbs and MediaImages
             data = MediaImage.create_from_request(request.POST, request.FILES, kwargs["pk"])

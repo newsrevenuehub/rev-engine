@@ -22,7 +22,7 @@ function DDonorAddress() {
   const [city, setCity] = useState('');
   const [state, setState] = useState('');
   const [zip, setZip] = useState('');
-  const { setMailingCountry } = usePage();
+  const { mailingCountry, setMailingCountry } = usePage();
 
   const { ref } = usePlacesWidget({
     apiKey: HUB_GOOGLE_MAPS_API_KEY,
@@ -103,7 +103,13 @@ function DDonorAddress() {
         </Grid>
         <Grid item xs={12} md={4}>
           <BaseField className="country-select" errors={errors.mailing_country} label="Country" required>
-            <CountrySelect id="Country" name="mailing_country" onChange={handleChangeCountry} required />
+            <CountrySelect
+              id="Country"
+              name="mailing_country"
+              onChange={handleChangeCountry}
+              value={mailingCountry ?? ''}
+              required
+            />
           </BaseField>
         </Grid>
       </Grid>

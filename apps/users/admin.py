@@ -22,7 +22,7 @@ class CustomUserAdmin(UserAdmin):
         return str(obj.get_role_assignment())
 
     fieldsets = (
-        (None, {"fields": ("email", "password", "first_name", "last_name", "job_title")}),
+        (None, {"fields": ("email", "password", "first_name", "last_name", "job_title", "email_verified")}),
         (
             _("Permissions"),
             {
@@ -38,7 +38,7 @@ class CustomUserAdmin(UserAdmin):
         ),
     )
 
-    add_fieldsets = ((None, {"classes": ("wide",), "fields": ("email", "password1", "password2")}),)
+    add_fieldsets = ((None, {"classes": ("wide",), "fields": ("email", "password1", "password2", "email_verified")}),)
 
     readonly_fields = ("roleassignment",)
 

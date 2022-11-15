@@ -194,7 +194,11 @@ describe('Pages view', () => {
     cy.intercept(
       {
         method: 'GET',
-        pathname: getEndpoint(LIST_PAGES + `/${createPageResponse.id}/`)
+        pathname: getEndpoint(DRAFT_PAGE_DETAIL),
+        query: {
+          revenue_program: createPageResponse.revenue_program.slug,
+          page: createPageResponse.slug
+        }
       },
       {
         fixture: 'pages/live-page-element-validation'

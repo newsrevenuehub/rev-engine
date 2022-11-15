@@ -14,7 +14,7 @@ async function fetchStyles() {
 
 type StyleStyles = string | { [property: string]: StyleStyles } | StyleStyles[];
 
-interface Style {
+export interface Style {
   id: number;
   created: string;
   modified: string;

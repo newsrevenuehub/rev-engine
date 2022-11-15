@@ -344,8 +344,8 @@ function fillOutAddressSection() {
   cy.get('[data-testid*="mailing_city"]').type('Big City');
   cy.get('[data-testid*="mailing_state"]').type('NY');
   cy.get('[data-testid*="mailing_postal_code"]').type('100738');
-  cy.get('.country-select').click();
-  cy.get('[class*="MuiAutocomplete-popper"] li[data-option-index="0"]').click();
+  cy.findByRole('button', { name: 'Open' }).click();
+  cy.findByRole('option', { name: 'United States' }).click();
   cy.findByLabelText('Country', { exact: false }).invoke('val').as('countryValue');
 }
 
@@ -416,7 +416,7 @@ describe('User flow: happy path', () => {
           mailing_city: 'Big City',
           mailing_state: 'NY',
           mailing_postal_code: '100738',
-          mailing_country: 'AF',
+          mailing_country: 'US',
           reason_for_giving: 'test1',
           tribute_type: '',
           donor_selected_amount: 120,
@@ -507,7 +507,7 @@ describe('User flow: happy path', () => {
           mailing_city: 'Big City',
           mailing_state: 'NY',
           mailing_postal_code: '100738',
-          mailing_country: 'AF',
+          mailing_country: 'US',
           reason_for_giving: 'test1',
           tribute_type: '',
           donor_selected_amount: 10,

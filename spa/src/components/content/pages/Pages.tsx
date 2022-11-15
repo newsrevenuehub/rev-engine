@@ -21,6 +21,7 @@ import EditButton from 'components/common/Button/EditButton';
 import Hero from 'components/common/Hero';
 import GenericErrorBoundary from 'components/errors/GenericErrorBoundary';
 import GlobalLoading from 'elements/GlobalLoading';
+import { ContributionPage } from 'hooks/useContributionPage';
 import useUser from 'hooks/useUser';
 import { Page } from 'hooks/useUser.types';
 
@@ -71,12 +72,8 @@ function Pages() {
   });
 
   const isLoading = pagesLoading || userLoading;
-
-  const handleEditPage = (page: Page) => {
-    const path = join([EDITOR_ROUTE, page.revenue_program.slug, page.slug, '/']);
-    history.push({ pathname: path, state: { pageId: page.id } });
-  };
-
+  const handleEditPage = (page: ContributionPage) =>
+    history.push(join([EDITOR_ROUTE, page.revenue_program.slug, page.slug, '/']));
   const pagesByRevenueProgram = pagesbyRP(pages, pageSearchQuery);
 
   const addPageButtonShouldBeDisabled = useMemo(() => {

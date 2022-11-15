@@ -1,11 +1,23 @@
 import datetime
-from unittest.mock import patch
+from unittest.mock import Mock, patch
+from urllib.parse import quote_plus
 
+from django.core import mail
 from django.test import TestCase, override_settings
 from django.utils import timezone
 
-from apps.contributions.models import Contribution, ContributionStatus, Contributor
-from apps.contributions.tests.factories import ContributorFactory
+import pytest
+
+from apps.contributions.models import (
+    Contribution,
+    ContributionInterval,
+    ContributionStatus,
+    Contributor,
+    ContributorRefreshToken,
+    logger,
+    send_templated_email,
+)
+from apps.contributions.tests.factories import ContributionFactory, ContributorFactory
 from apps.organizations.tests.factories import (
     OrganizationFactory,
     PaymentProviderFactory,
@@ -273,3 +285,75 @@ class ContributionTest(TestCase):
         self.org.save()
         self.contribution.handle_thank_you_email()
         mock_send_email.assert_not_called()
+
+
+@pytest.mark.django_db()
+@pytest.mark.parametrize(
+    "interval,expect_success",
+    (
+        (ContributionInterval.ONE_TIME, False),
+        (ContributionInterval.MONTHLY, True),
+        (ContributionInterval.YEARLY, True),
+    ),
+)
+def test_contribution_send_recurring_contribution_email_reminder(interval, expect_success, monkeypatch, settings):
+    contribution = ContributionFactory(interval=interval)
+    next_charge_date = datetime.datetime.now()
+    mock_log_warning = Mock()
+    mock_send_templated_email = Mock(wraps=send_templated_email.delay)
+    token = "token"
+
+    class MockForContributorReturn:
+        def __init__(self, *args, **kwargs):
+            self.short_lived_access_token = token
+
+    monkeypatch.setattr(logger, "warning", mock_log_warning)
+    monkeypatch.setattr(send_templated_email, "delay", mock_send_templated_email)
+    monkeypatch.setattr(ContributorRefreshToken, "for_contributor", lambda *args, **kwargs: MockForContributorReturn())
+    settings.EMAIL_BACKEND = "django.core.mail.backends.locmem.EmailBackend"
+    settings.CELERY_ALWAYS_EAGER = True
+    contribution.send_recurring_contribution_email_reminder(next_charge_date)
+    if expect_success:
+        magic_link = (
+            f"https://{contribution.donation_page.revenue_program.slug}/{settings.CONTRIBUTOR_VERIFY_URL}"
+            f"?token={token}&email={quote_plus(contribution.contributor.email)}"
+        )
+        mock_log_warning.assert_not_called()
+        mock_send_templated_email.assert_called_once_with(
+            contribution.contributor.email,
+            f"Reminder: {contribution.donation_page.revenue_program.name} scheduled contribution",
+            "recurring-contribution-email-reminder.txt",
+            "recurring-contribution-email-reminder.html",
+            {
+                "rp_name": contribution.donation_page.revenue_program.name,
+                "charge_date": next_charge_date.strftime("%m/%d/%Y"),
+                "contribution_amount": contribution.formatted_amount,
+                "contribution_interval": contribution.interval,
+                "is_non_profit": contribution.donation_page.revenue_program.non_profit,
+                "contributor_email": contribution.contributor.email,
+                # todo -- update this after DEV-2519 merged
+                "tax_id": "tax-id-coming-soon",
+                "magic_link": magic_link,
+            },
+        )
+        assert len(mail.outbox) == 1
+        email_expectations = [
+            f"RP name: {contribution.donation_page.revenue_program.name}",
+            f"Charge date: {next_charge_date.strftime('%m/%d/%Y')}",
+            f"Amount: {contribution.formatted_amount}",
+            f"Interval: {contribution.interval}",
+            f"Is non-profit: {str(contribution.donation_page.revenue_program.non_profit)}",
+            f"Contributor email: {contribution.contributor.email}",
+            # todo -- update this after DEV-2519 merged
+            "Tax id: tax-id-coming-soon",
+            f"Magic link: {magic_link}",
+        ]
+        for x in email_expectations:
+            assert x in mail.outbox[0].body
+            assert x in mail.outbox[0].alternatives[0][0]
+
+    else:
+        mock_log_warning.assert_called_once_with(
+            "`Contribution.send_recurring_contribution_email_reminder` was called on an instance (ID: %s) whose interval is one-time",
+            contribution.id,
+        )

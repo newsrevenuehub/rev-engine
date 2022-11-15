@@ -353,15 +353,15 @@ class Contribution(IndexedTimeStampedModel, RoleAssignmentResourceModelMixin):
                 },
             )
 
-    # what about timezone?
     def send_recurring_contribution_email_reminder(self, next_charge_date):
         if self.interval == ContributionInterval.ONE_TIME:
             logger.warning(
-                "`Contribution.send_recurring_contribution_email_reminder` was called on an instance (ID: %s) whose interval is one-time"
+                "`Contribution.send_recurring_contribution_email_reminder` was called on an instance (ID: %s) whose interval is one-time",
+                self.id,
             )
             return
         rp = self.donation_page.revenue_program
-        token = str(ContributorRefreshToken.for_contributor(self.uuid).short_lived_access_token)
+        token = str(ContributorRefreshToken.for_contributor(self.contributor.uuid).short_lived_access_token)
         send_templated_email.delay(
             self.contributor.email,
             f"Reminder: {rp.name} scheduled contribution",
@@ -369,13 +369,15 @@ class Contribution(IndexedTimeStampedModel, RoleAssignmentResourceModelMixin):
             "recurring-contribution-email-reminder.html",
             {
                 "rp_name": self.donation_page.revenue_program.name,
-                "charge_date": None,  # from invoice
-                "contribution_amount": self.formatted_amount,  # from contribution,
+                # nb, we have to send this as pre-formatted because this data will be serialized
+                # when sent to the Celery worker
+                "charge_date": next_charge_date.strftime("%m/%d/%Y"),
+                "contribution_amount": self.formatted_amount,
                 "contribution_interval": self.interval,
                 "is_non_profit": rp.non_profit,
                 "contributor_email": self.contributor.email,
                 # todo -- update this after DEV-2519 merged
-                "tax_id": getattr(rp, "tax_id", "<tax-id-coming-soon>"),
+                "tax_id": getattr(rp, "tax_id", "tax-id-coming-soon"),
                 "magic_link": (
                     f"https://{rp.slug}/{settings.CONTRIBUTOR_VERIFY_URL}"
                     f"?token={token}&email={quote_plus(self.contributor.email)}"

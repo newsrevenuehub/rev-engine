@@ -152,7 +152,7 @@ class StripeWebhookProcessor:
 
     def process_upcoming_invoice(self):
         logger.info("`StripeWebhookProcessor.process_upcoming_invoice`")
-        contribution = Contribution.objects.get(provider_payment_id=self.obj_data["subscription"])
+        contribution = Contribution.objects.get(provider_subscription_id=self.obj_data["subscription"])
         contribution.send_recurring_contribution_email_reminder(
-            make_aware(datetime.datetime.fromtimestamp(self.obj_data["next_payment_attempt"]))
+            make_aware(datetime.datetime.fromtimestamp(self.obj_data["next_payment_attempt"])).date()
         )

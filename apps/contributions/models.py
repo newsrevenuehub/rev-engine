@@ -1,16 +1,23 @@
+import logging
 import uuid
+from urllib.parse import quote_plus
 
+from django.conf import settings
 from django.db import models
 from django.utils import timezone
 
 import stripe
 
+from apps.api.tokens import ContributorRefreshToken
 from apps.common.models import IndexedTimeStampedModel
 from apps.emails.tasks import send_templated_email
 from apps.slack.models import SlackNotificationTypes
 from apps.slack.slack_manager import SlackManager
 from apps.users.choices import Roles
 from apps.users.models import RoleAssignmentResourceModelMixin, UnexpectedRoleType
+
+
+logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
 
 
 class Contributor(IndexedTimeStampedModel):
@@ -345,3 +352,33 @@ class Contribution(IndexedTimeStampedModel, RoleAssignmentResourceModelMixin):
                     "org_name": self.revenue_program.organization.name,
                 },
             )
+
+    # what about timezone?
+    def send_recurring_contribution_email_reminder(self, next_charge_date):
+        if self.interval == ContributionInterval.ONE_TIME:
+            logger.warning(
+                "`Contribution.send_recurring_contribution_email_reminder` was called on an instance (ID: %s) whose interval is one-time"
+            )
+            return
+        rp = self.donation_page.revenue_program
+        token = str(ContributorRefreshToken.for_contributor(self.uuid).short_lived_access_token)
+        send_templated_email.delay(
+            self.contributor.email,
+            f"Reminder: {rp.name} scheduled contribution",
+            "recurring-contribution-email-reminder.txt",
+            "recurring-contribution-email-reminder.html",
+            {
+                "rp_name": self.donation_page.revenue_program.name,
+                "charge_date": None,  # from invoice
+                "contribution_amount": self.formatted_amount,  # from contribution,
+                "contribution_interval": self.interval,
+                "is_non_profit": rp.non_profit,
+                "contributor_email": self.contributor.email,
+                # todo -- update this after DEV-2519 merged
+                "tax_id": getattr(rp, "tax_id", "<tax-id-coming-soon>"),
+                "magic_link": (
+                    f"https://{rp.slug}/{settings.CONTRIBUTOR_VERIFY_URL}"
+                    f"?token={token}&email={quote_plus(self.contributor.email)}"
+                ),
+            },
+        )

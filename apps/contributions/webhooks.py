@@ -2,6 +2,7 @@ import datetime
 import logging
 
 from django.conf import settings
+from django.utils.timezone import make_aware
 
 from apps.contributions.models import Contribution, ContributionStatus
 
@@ -54,6 +55,8 @@ class StripeWebhookProcessor:
             self.process_payment_intent()
         elif object_type == "subscription":
             self.process_subscription()
+        elif object_type == "invoice":
+            self.process_invoice()
         else:
             logger.warning('Received un-handled Stripe object of type "%s"', object_type)
 
@@ -140,3 +143,16 @@ class StripeWebhookProcessor:
         contribution.payment_provider_data = self.obj_data
         contribution.status = ContributionStatus.CANCELED
         contribution.save()
+
+    def process_invoice(self):
+        if self.event.type == "invoice.upcoming":
+            self.process_upcoming_invoice()
+        else:
+            pass
+
+    def process_upcoming_invoice(self):
+        logger.info("`StripeWebhookProcessor.process_upcoming_invoice`")
+        contribution = Contribution.objects.get(provider_payment_id=self.obj_data["subscription"])
+        contribution.send_recurring_contribution_email_reminder(
+            make_aware(datetime.datetime.fromtimestamp(self.obj_data["next_payment_attempt"]))
+        )

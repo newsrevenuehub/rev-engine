@@ -6,13 +6,6 @@ export const NeedHelpCta = styled.div`
 
 export const NeedHelpSpan = styled.span`
   font-weight: 500;
-  margin-right: 0.75em;
-`;
-
-export const CheckOutOur = styled.span`
-  &:after {
-    content: ' ';
-  }
 `;
 
 export const StripeFAQ = styled.a`

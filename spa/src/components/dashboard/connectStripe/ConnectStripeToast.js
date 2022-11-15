@@ -1,6 +1,17 @@
 import { useState, useCallback, useEffect } from 'react';
 
-import * as S from './ConnectStripeToast.styled';
+import {
+  ConnectStripeToastCollapsed,
+  StripeLogoCollapsed,
+  BottomLeftImage,
+  ConnectStripeToastWrapper,
+  Header,
+  StripeLogoWrapper,
+  Minimize,
+  Heading,
+  Description,
+  Button
+} from './ConnectStripeToast.styled';
 import useConnectStripeAccount from 'hooks/useConnectStripeAccount';
 
 // Assets
@@ -65,30 +76,30 @@ const ConnectStripeToast = () => {
   if (collapsed) {
     return (
       <Tooltip title="Connect to Stripe">
-        <S.ConnectStripeToastCollapsed data-testid="connect-stripe-toast-collapsed" onClick={handleExpand}>
-          <S.StripeLogoCollapsed src={StripeLogo} />
+        <ConnectStripeToastCollapsed data-testid="connect-stripe-toast-collapsed" onClick={handleExpand}>
+          <StripeLogoCollapsed src={StripeLogo} />
           <span>
-            <S.BottomLeftImage src={Triangle6Dots} />
+            <BottomLeftImage src={Triangle6Dots} />
           </span>
-        </S.ConnectStripeToastCollapsed>
+        </ConnectStripeToastCollapsed>
       </Tooltip>
     );
   }
 
   return (
-    <S.ConnectStripeToast data-testid="connect-stripe-toast">
-      <S.Header>
-        <S.StripeLogo src={StripeLogo} />
+    <ConnectStripeToastWrapper data-testid="connect-stripe-toast">
+      <Header>
+        <StripeLogoWrapper src={StripeLogo} />
         <Tooltip title="Minimize" placement="bottom-end">
-          <S.Minimize onClick={handleCollapse} data-testid="minimize-toast">
+          <Minimize onClick={handleCollapse} data-testid="minimize-toast">
             <RemoveIcon />
-          </S.Minimize>
+          </Minimize>
         </Tooltip>
-      </S.Header>
-      <S.Heading>{headingText}</S.Heading>
-      <S.Description>{ctaDescriptionText}</S.Description>
+      </Header>
+      <Heading>{headingText}</Heading>
+      <Description>{ctaDescriptionText}</Description>
       <ConnectStripeNeedHelpCta />
-      <S.Button
+      <Button
         data-testid="connect-stripe-toast-button"
         // if reason is `past_due` then there's work to be done off-site
         // with Stripe. In that case, we enable this button, but otherwise,
@@ -97,8 +108,8 @@ const ConnectStripeToast = () => {
         onClick={sendUserToStripe}
       >
         {CONNECT_TO_STRIPE_BUTTON_CTA}
-      </S.Button>
-    </S.ConnectStripeToast>
+      </Button>
+    </ConnectStripeToastWrapper>
   );
 };
 

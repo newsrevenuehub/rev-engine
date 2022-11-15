@@ -1,14 +1,14 @@
-import * as S from './ConnectStripeNeedHelpCTA.styled';
+import { NeedHelpCta, NeedHelpSpan, StripeFAQ } from './ConnectStripeNeedHelpCTA.styled';
 import { CONNECT_STRIPE_FAQ_LINK } from 'constants/textConstants';
 
 export default function ConnectStripeNeedHelpCta() {
   return (
-    <S.NeedHelpCta>
-      <S.NeedHelpSpan>Need help?</S.NeedHelpSpan> Check out our{' '}
-      <S.StripeFAQ href={CONNECT_STRIPE_FAQ_LINK} target="_blank">
+    <NeedHelpCta>
+      <NeedHelpSpan>Need help?</NeedHelpSpan> Check out our{' '}
+      <StripeFAQ href={CONNECT_STRIPE_FAQ_LINK} target="_blank">
         FAQ
-      </S.StripeFAQ>
+      </StripeFAQ>
       .
-    </S.NeedHelpCta>
+    </NeedHelpCta>
   );
 }

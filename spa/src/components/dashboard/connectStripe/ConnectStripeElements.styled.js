@@ -3,7 +3,7 @@ import styled from 'styled-components';
 
 import { Button as BaseButton, StepperDots } from 'components/base';
 
-export const ConnectStripeModal = styled.div`
+export const ConnectStripeModalWrapper = styled.div`
   position: relative;
   display: flex;
   flex-direction: column;
@@ -47,7 +47,7 @@ export const Modal = styled(MuiModal)`
   }
 `;
 
-export const h1 = styled.h1`
+export const CtaTitle = styled.h1`
   margin: 0 0 18px;
   font-weight: 700;
   font-family: Roboto, sans-serif;
@@ -96,7 +96,7 @@ export const Anchor = styled.a`
   }
 `;
 
-export const StripeLogo = styled.img`
+export const StripeLogoWrapper = styled.img`
   width: 68px;
   text-align: left;
   margin-bottom: 24px;

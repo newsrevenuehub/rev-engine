@@ -1,7 +1,7 @@
 import { Button as BaseButton } from 'components/base';
 import styled from 'styled-components';
 
-export const ConnectStripeToast = styled.div`
+export const ConnectStripeToastWrapper = styled.div`
   position: absolute;
   top: 58px;
   right: 10px;
@@ -38,7 +38,7 @@ export const ConnectStripeToastCollapsed = styled.div`
   }
 `;
 
-export const StripeLogo = styled.img`
+export const StripeLogoWrapper = styled.img`
   width: 54px;
   text-align: left;
 `;

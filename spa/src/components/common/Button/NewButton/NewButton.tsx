@@ -17,16 +17,10 @@ const NewButton = ({ type, onClick, className, disabled, buttonTestId, ...rest }
 
   return (
     <Flex className={className!} disabled={disabled!} {...rest}>
-      <Button
-        data-testid={buttonTestId}
-        customType={type!}
-        onClick={onClick}
-        aria-labelledby="new-page-button"
-        disabled={disabled!}
-      >
+      <Button data-testid={buttonTestId} customType={type!} onClick={onClick} disabled={disabled!}>
         <img src={AddIcon} alt={buttonLabel} />
       </Button>
-      <Label id="new-page-button">{buttonLabel}</Label>
+      <Label>{buttonLabel}</Label>
     </Flex>
   );
 };

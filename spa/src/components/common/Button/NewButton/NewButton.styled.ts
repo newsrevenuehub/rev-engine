@@ -1,4 +1,4 @@
-import { BUTTON_TYPE, BUTTON_TYPE_ENUM } from 'constants/buttonConstants';
+import { BUTTON_TYPE, NewButtonType } from 'constants/buttonConstants';
 import styled from 'styled-components';
 import lighten from 'styles/utils/lighten';
 
@@ -11,7 +11,7 @@ export const Flex = styled.div<{ disabled: boolean }>`
   color: ${(props) => (props.disabled ? '#AFAFAF' : 'inherit')};
 `;
 
-export const Button = styled.button<{ customType: BUTTON_TYPE_ENUM }>`
+export const Button = styled.button<{ customType: NewButtonType }>`
   display: flex;
   justify-content: center;
   align-items: center;

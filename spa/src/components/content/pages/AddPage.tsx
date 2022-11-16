@@ -98,7 +98,7 @@ function AddPage({ pagesByRevenueProgram, disabled }: AddPageType) {
   const handleModalSave = useCallback(
     (revenueProgramId: string) => {
       const rp = user?.revenue_programs.find((rp) => Number(rp.id) === Number(revenueProgramId));
-      const pages = pagesByRevenueProgram?.find((_) => _.name === rp?.name)?.pages ?? [];
+      const pages = pagesByRevenueProgram?.find(({ name }) => name === rp?.name)?.pages ?? [];
       handleSave(pages, revenueProgramId);
     },
     [handleSave, pagesByRevenueProgram, user?.revenue_programs]

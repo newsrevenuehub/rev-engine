@@ -22,7 +22,7 @@ describe('AddPageModal', () => {
 
   it('should render modal', () => {
     tree();
-    const modal = screen.getByRole('dialog', { name: `Create new page` });
+    const modal = screen.getByRole('dialog', { name: `New Page` });
     expect(modal).toBeVisible();
   });
 

@@ -81,7 +81,7 @@ describe('Dashboard', () => {
       cy.getByTestId('first-name').type('First Name');
       cy.getByTestId('last-name').type('Last Name');
       cy.getByTestId('job-title').type('Job Title');
-      cy.getByTestId('company-name').type('Company Name');
+      cy.getByTestId('company-name').type('Organization');
       cy.getByTestId('tax-status').select('Non-profit');
       cy.getByTestId('tax-id').type('987654321');
       cy.get('button[type="submit"]').click();
@@ -90,7 +90,7 @@ describe('Dashboard', () => {
           first_name: 'First Name',
           last_name: 'Last Name',
           job_title: 'Job Title',
-          organization_name: 'Company Name',
+          organization_name: 'Organization',
           organization_tax_status: 'nonprofit',
           organization_tax_id: '987654321'
         });
@@ -107,7 +107,7 @@ describe('Dashboard', () => {
       cy.getByTestId('first-name').type('First Name');
       cy.getByTestId('last-name').type('Last Name');
       cy.getByTestId('job-title').type('Job Title');
-      cy.getByTestId('company-name').type('Company Name');
+      cy.getByTestId('company-name').type('Organization');
       cy.getByTestId('tax-status').select('Non-profit');
       cy.get('button[type="submit"]').click();
       cy.wait('@patchUser').then(({ request }) => {

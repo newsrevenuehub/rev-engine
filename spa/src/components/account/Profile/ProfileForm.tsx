@@ -83,7 +83,7 @@ function ProfileForm({ disabled: disabledProp, onProfileSubmit, error }: Profile
           <Controller
             name="companyName"
             control={control}
-            render={({ field }) => <TextField fullWidth id="profile-company-name" label="Company Name" {...field} />}
+            render={({ field }) => <TextField fullWidth id="profile-company-name" label="Organization" {...field} />}
           />
         </FillRow>
         <TaxStatusContainer>

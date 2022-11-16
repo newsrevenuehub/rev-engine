@@ -66,6 +66,12 @@ def get_default_page_elements():
             "requiredFields": [],
         },
         {
+            "type": REASON,
+            "uuid": str(uuid4()),
+            "content": {"askReason": True, "reasons": [], "askHonoree": False, "askInMemoryOf": False},
+            "requiredFields": [],
+        },
+        {
             "type": RICH_TEXT,
             "uuid": str(uuid4()),
             "content": '<p style="text-align:center;">Have questions or want to change a recurring contribution? Contact us at YOUR EMAIL ADDRESS HERE. <br><br>Prefer to mail a check? Our mailing address is YOUR MAILING ADDRESS HERE.<br><br>Contributions or gifts to YOUR ORGANIZATION NAME HERE are tax deductible. Our tax ID is YOUR TAX ID HERE.&nbsp;</p>\n',

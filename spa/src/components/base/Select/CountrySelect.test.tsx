@@ -33,8 +33,12 @@ describe('CountrySelect', () => {
   });
 
   it('selects the correct option based on the value prop', () => {
+    // Set the value to a FIPS code--note mocked country named BBB has FIPS code
+    // aa.
     tree({ value: 'aa' });
-    expect(screen.getByRole('textbox')).toHaveValue('BBB'); // because it uses FIPS code as value, not country name
+
+    // Test the user-visible value of the input in the DOM.
+    expect(screen.getByRole('textbox')).toHaveValue('BBB');
   });
 
   it("selects nothing if the value doesn't match any country", () => {

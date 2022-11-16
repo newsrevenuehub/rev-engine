@@ -360,11 +360,10 @@ class Contribution(IndexedTimeStampedModel, RoleAssignmentResourceModelMixin):
                 self.id,
             )
             return
-        rp = self.donation_page.revenue_program
         token = str(ContributorRefreshToken.for_contributor(self.contributor.uuid).short_lived_access_token)
         send_templated_email.delay(
             self.contributor.email,
-            f"Reminder: {rp.name} scheduled contribution",
+            f"Reminder: {self.donation_page.revenue_program.name} scheduled contribution",
             "recurring-contribution-email-reminder.txt",
             "recurring-contribution-email-reminder.html",
             {
@@ -374,12 +373,12 @@ class Contribution(IndexedTimeStampedModel, RoleAssignmentResourceModelMixin):
                 "charge_date": next_charge_date.strftime("%m/%d/%Y"),
                 "contribution_amount": self.formatted_amount,
                 "contribution_interval": self.interval,
-                "is_non_profit": rp.non_profit,
+                "is_non_profit": self.donation_page.revenue_program.non_profit,
                 "contributor_email": self.contributor.email,
                 # todo -- update this after DEV-2519 merged
-                "tax_id": getattr(rp, "tax_id", "tax-id-coming-soon"),
+                "tax_id": getattr(self.donation_page.revenue_program, "tax_id", "tax-id-coming-soon"),
                 "magic_link": (
-                    f"https://{rp.slug}/{settings.CONTRIBUTOR_VERIFY_URL}"
+                    f"https://{self.donation_page.revenue_program.slug}/{settings.CONTRIBUTOR_VERIFY_URL}"
                     f"?token={token}&email={quote_plus(self.contributor.email)}"
                 ),
             },

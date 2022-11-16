@@ -20,8 +20,6 @@ class StripeWebhookProcessor:
         if (event_type := self.obj_data["object"]) == "subscription":
             # TODO: [DEV-2467] this will generate lots of spurious errors for events from Stripe that we don't care about. See ticket.
             return Contribution.objects.get(provider_subscription_id=self.obj_data["id"])
-        elif event_type == "invoice":
-            return Contribution.objects.get(provider_subscription_id=self.obj_data["subscription"])
         elif event_type == "payment_intent":
             try:
                 return Contribution.objects.get(provider_payment_id=self.obj_data["id"])

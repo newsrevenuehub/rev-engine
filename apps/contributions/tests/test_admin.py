@@ -88,3 +88,32 @@ class ContributionAdminTest(TestCase):
         queryset = Contribution.objects.filter(pk=contribution.pk)
         with pytest.raises(MessageFailure):
             self.contribution_admin.accept_flagged_contribution(request, queryset)
+
+    def test_provider_payment_link(self):
+        contribution = ContributionFactory(provider_payment_id="pi_1234")
+        assert (
+            self.contribution_admin.provider_payment_link(contribution) == f"<a href='"
+            f"https://dashboard.stripe.com/test/connect/accounts/{contribution.stripe_account_id}/payments/{contribution.provider_payment_id}' target='_blank'>{contribution.provider_payment_id}</a>"
+        )
+
+    def test_provider_subscription_link(self):
+        contribution = ContributionFactory(provider_subscription_id="sub_1234")
+        assert (
+            self.contribution_admin.provider_subscription_link(contribution) == f"<a href='"
+            f"https://dashboard.stripe.com/test/connect/accounts/{contribution.stripe_account_id}/subscriptions/{contribution.provider_subscription_id}' target='_blank'>{contribution.provider_subscription_id}</a>"
+        )
+
+    def test_provider_customer_link(self):
+        contribution = ContributionFactory(provider_customer_id="cus_1234")
+        assert (
+            self.contribution_admin.provider_customer_link(contribution) == f"<a href='"
+            f"https://dashboard.stripe.com/test/connect/accounts/{contribution.stripe_account_id}/customers/{contribution.provider_customer_id}' target='_blank'>{contribution.provider_customer_id}</a>"
+        )
+
+    def test_links_not_available(self):
+        contribution = ContributionFactory(
+            provider_customer_id=None, provider_subscription_id=None, provider_payment_id=None
+        )
+        assert self.contribution_admin.provider_customer_link(contribution) == "-"
+        assert self.contribution_admin.provider_payment_link(contribution) == "-"
+        assert self.contribution_admin.provider_subscription_link(contribution) == "-"

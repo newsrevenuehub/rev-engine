@@ -3,7 +3,7 @@ import CancelRecurringButton from './CancelRecurringButton';
 
 export default {
   component: CancelRecurringButton,
-  title: 'Contributor Dashboard/CancelRecurringButton'
+  title: 'Contributor/CancelRecurringButton'
 } as ComponentMeta<typeof CancelRecurringButton>;
 
 const Template: ComponentStory<typeof CancelRecurringButton> = (props) => <CancelRecurringButton {...props} />;
@@ -14,18 +14,17 @@ Default.args = {
     id: 'mock-id',
     amount: 12345,
     card_brand: 'visa',
-    contributor: 123,
-    contributor_email: 'someone@fundjournalism.org',
     created: '',
-    currency: 'usd',
+    credit_card_expiration_date: 'mock-cc-expiration-date',
     interval: 'month',
+    is_cancelable: true,
+    is_modifiable: true,
+    last_payment_date: 'mock-last-payment-date',
     last4: 1234,
-    modified: '',
-    organization: 123,
-    payment_provider_used: 'stripe',
-    payment_provider_data: {},
+    payment_type: 'mock-payment-type',
+    provider_customer_id: 'mock-customer-id',
     revenue_program: 'mock-rp-slug',
-    reason: 'mock-reason-for-contribution',
-    status: 'paid'
+    status: 'paid',
+    stripe_account_id: 'mock-account-id'
   }
 };

@@ -3,9 +3,11 @@ import {
   createPaymentMethod,
   getPaymentSuccessUrl,
   getTotalAmount,
-  serializeData
+  serializeData,
+  getPaymentElementButtonText
 } from './stripeFns';
 import { PAYMENT_SUCCESS } from 'routes';
+import { CONTRIBUTION_INTERVALS } from 'constants/contributionIntervals';
 
 jest.mock('utilities/calculateStripeFee', () => () => 9000.99);
 
@@ -266,4 +268,17 @@ describe('serializeData', () => {
     expect(serializeData(mockForm, { ...mockState, salesforceCampaignId: 'test-id' })).toEqual(
       expect.objectContaining({ sf_campaign_id: 'test-id' })
     ));
+});
+
+describe('getPaymentElementButtonText', () => {
+  it.each`
+    amount | frequency                          | currencySymbol | expectation
+    ${100} | ${CONTRIBUTION_INTERVALS.ONE_TIME} | ${'$'}         | ${'Give $100.00 once'}
+    ${200} | ${CONTRIBUTION_INTERVALS.ONE_TIME} | ${'$'}         | ${'Give $200.00 once'}
+    ${200} | ${CONTRIBUTION_INTERVALS.ONE_TIME} | ${'£'}         | ${'Give £200.00 once'}
+    ${100} | ${CONTRIBUTION_INTERVALS.ANNUAL}   | ${'$'}         | ${'Give $100.00 yearly'}
+    ${100} | ${CONTRIBUTION_INTERVALS.MONTHLY}  | ${'$'}         | ${'Give $100.00 monthly'}
+  `('produces expected result', ({ amount, frequency, currencySymbol, expectation }) => {
+    expect(getPaymentElementButtonText({ amount, frequency, currencySymbol })).toBe(expectation);
+  });
 });

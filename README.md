@@ -20,9 +20,10 @@
   - [10. Run the server and start the SPA](#10-run-the-server-and-start-the-spa)
   - [11. Testing email setup locally](#11-testing-email-setup-locally)
   - [12. Run Django tests](#12-run-django-tests)
-  - [13. Run Cypress tests](#13-run-cypress-tests)
+  - [13. Run Jest tests](#13-run-jest-tests)
+  - [14. Run Cypress tests](#14-run-cypress-tests)
     - [Cypress Gotchas](#cypress-gotchas)
-  - [14. Database management](#14-database-management)
+  - [15. Database management](#15-database-management)
     - [Check to see if databases have been created](#check-to-see-if-databases-have-been-created)
     - [Download latest backup](#download-latest-backup)
     - [Download a specific backup](#download-a-specific-backup)
@@ -218,8 +219,7 @@ Next, we need to set up a fake test Stripe ID so that stripe functionality will 
 echo "export REACT_APP_HUB_STRIPE_API_PUB_KEY=pk_test_3737373" >> .envrc
 ```
 
-To use a local Web browsable version of the API add `export ENABLE_API_BROWSER=True` to your `.envrc`.  (Then visit /api/swagger/ or /api/redoc/.)
-
+To use a local Web browsable version of the API add `export ENABLE_API_BROWSER=True` to your `.envrc`. (Then visit /api/swagger/ or /api/redoc/.)
 
 To allow direnv to inject the variable into your environment, do:
 
@@ -277,7 +277,16 @@ revengine uses [pytest](https://docs.pytest.org/en/7.1.x/) as a test runner.
 make run-tests
 ```
 
-### 13. Run Cypress tests
+### 13. Run Jest tests
+
+```
+cd spa
+npm test
+```
+
+To get a coverage report, run `npm run test:coverage`. The report will be in `spa/coverage/lcov-report`.
+
+### 14. Run Cypress tests
 
 Running Cypress locally requires 2 terminals
 
@@ -308,7 +317,7 @@ npm run cypress:run
 
 If you run Cypress while the Python dev server is also running, this will cause some Cypress tests to fail. This happens when unintercepted requests from the SPA reach the running Python server. With this in mind, be sure that the server is not running locally when you run Cypress tests.
 
-### 14. Database management
+### 15. Database management
 
 Here is the process for populating your local development database with data from a live Heroku instance.
 
@@ -487,7 +496,7 @@ class MyViewSet(RevisionMixin, ...<other super classes and mixins>):
 
 Note that this assumes the viewset's model has been registered with `django-reversion`.
 
-By default, django-reversion will not follow model relationships. For instance if you have ModelA and ModelB, where ModelB.model_a is a nullable foreign key, if you delete ModelA and later restore it, ModelB's reference to a ModelA instance will not be restored unless ModelA has been configured to follow the relationship to ModelB. You can find a concrete example of this in `apps.pages.admin.DonationPageAdmin.reversion_register` where we configure the DonationPage model to follow contribution and revenue program relations.
+By default, django-reversion will not follow model relationships. For instance, if you have ModelA and ModelB, where ModelB.model_a is a nullable foreign key, if you delete ModelA and later restore it, ModelB's reference to a ModelA instance will not be restored unless ModelA has been configured to follow the relationship to ModelB. You can find a concrete example of this in `apps.pages.admin.DonationPageAdmin.reversion_register` where we configure the DonationPage model to follow contribution and revenue program relations.
 
 ### How to restore a deleted model instance.
 

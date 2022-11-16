@@ -95,7 +95,10 @@ Cypress.Commands.add('makeDonation', () => {
     .then(() => {
       // need to ensure not disabled because otherwise race condition where
       // it hasn't yet re-rendered to enabled by time we're trying to click
-      cy.getByTestId('donation-submit').should('not.be.disabled').click();
+      cy.get('form')
+        .findByRole('button', { name: /Continue to Payment/ })
+        .should('not.be.disabled')
+        .click();
     });
 });
 

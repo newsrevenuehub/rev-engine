@@ -91,10 +91,10 @@ class DonationPageAdminForm(forms.ModelForm):
             org = Organization.objects.get(revenueprogram__id=self.data["revenue_program"])
         else:
             org = self.instance.revenue_program.organization
-        if self.cleaned_data["thank_you_redirect"] and not org.get_plan_data().custom_thank_you_page_enabled:
+        if self.cleaned_data["thank_you_redirect"] and not org.plan.custom_thank_you_page_enabled:
             raise ValidationError(
                 (
-                    f"The parent org (ID: {org.id} | Name: {org.name}) is on the {org.get_plan_data().label} plan, "
+                    f"The parent org (ID: {org.id} | Name: {org.name}) is on the {org.plan.label} plan, "
                     f"which does not get this feature."
                 )
             )
@@ -105,14 +105,13 @@ class DonationPageAdminForm(forms.ModelForm):
         # if we're creating a new page, id won't be assigned yet
         if (
             not self.instance.id
-            and models.DonationPage.objects.filter(revenue_program__organization=org).count()
-            >= org.get_plan_data().page_limit
+            and models.DonationPage.objects.filter(revenue_program__organization=org).count() >= org.plan.page_limit
         ):
             raise ValidationError(
                 (
-                    f"The parent org (ID: {org.id} | Name: {org.name}) is on the {org.get_plan_data().label} plan, "
-                    f"and is limited to {org.get_plan_data().page_limit} "
-                    f"page{'' if org.get_plan_data().page_limit == 1 else 's' }."
+                    f"The parent org (ID: {org.id} | Name: {org.name}) is on the {org.plan.label} plan, "
+                    f"and is limited to {org.plan.page_limit} "
+                    f"page{'' if org.plan.page_limit == 1 else 's' }."
                 )
             )
 
@@ -197,13 +196,6 @@ class DonationPageAdmin(CompareVersionAdmin, DonationPageAdminAbstract):
                 f"{created_template_count} {'template' if created_template_count == 1 else 'templates'} created.",
                 messages.SUCCESS,
             )
-
-    def get_form(self, request, obj=None, **kwargs):
-        form = super().get_form(request, obj, **kwargs)
-        form.base_fields["styles"].widget.can_add_related = False
-        form.base_fields["styles"].widget.can_change_related = False
-        form.base_fields["styles"].widget.can_delete_related = False
-        return form
 
 
 @admin.register(models.Style)

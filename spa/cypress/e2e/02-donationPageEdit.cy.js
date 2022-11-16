@@ -81,7 +81,14 @@ describe('Contribution page edit', () => {
     cy.getByTestId('delete-page-button');
   });
 
+  it('should default to the edit interface once a page has loaded', () => {
+    cy.getByTestId('edit-interface');
+  });
+
   it('should open edit interface when clicking edit button', () => {
+    // Toggle out of edit mode.
+
+    cy.getByTestId('preview-page-button').click();
     cy.getByTestId('edit-page-button').click();
     cy.getByTestId('edit-interface');
   });
@@ -366,10 +373,10 @@ describe('Contribution page edit', () => {
       cy.getByTestId('missing-elements-alert').contains('Payment');
 
       // Cleanup
+      // this closes the alert
+      cy.findByRole('alert').findByRole('button', { name: /x/ }).click();
       cy.getByTestId('edit-page-button').click();
-      cy.wait(300);
       cy.getByTestId('add-page-element-button').click();
-      cy.contains('Payment').click();
     });
 
     it('should open appropriate tab for error and scroll to first error', () => {

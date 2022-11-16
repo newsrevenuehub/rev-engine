@@ -88,7 +88,11 @@ class Organization(IndexedTimeStampedModel, RoleAssignmentResourceModelMixin):
     name = models.CharField(max_length=255, unique=True)
     plan_name = models.CharField(choices=Plans.choices, max_length=10, default=Plans.FREE)
     salesforce_id = models.CharField(max_length=255, blank=True, verbose_name="Salesforce ID")
-    show_connected_to_slack = models.BooleanField(verbose_name="Show connected to Slack", default=False)
+    show_connected_to_slack = models.BooleanField(
+        verbose_name="Show connected to Slack",
+        default=False,
+        help_text="Indicates Slack integration status, designed for manual operation by staff members when connected to the Hub’s Slack",
+    )
 
     # TODO: [DEV-2035] Remove Organization.slug field entirely
     slug = models.SlugField(

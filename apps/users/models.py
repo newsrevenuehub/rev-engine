@@ -68,7 +68,7 @@ class User(AbstractBaseUser, PermissionsMixin, IndexedTimeStampedModel):
             GoogleCloudPubSubPublisher.get_instance().publish(settings.NEW_USER_TOPIC, Message(data=self.email))
 
     def _email_is_publishable(self) -> bool:
-        return all([self._state.adding, self.email, not self.email.endswith("@fundjournalism.org")])
+        return self._state.adding and self.email
 
 
 class OrganizationUser(models.Model):

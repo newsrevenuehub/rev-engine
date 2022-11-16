@@ -69,13 +69,6 @@ class UserModelTest(TestCase):
         create_test_user(email=email)
         assert not publish.called
 
-    @patch("apps.users.models.google_cloud_pub_sub_is_configured", MagicMock(return_value=False))
-    @patch("apps.users.google_pub_sub.GoogleCloudPubSubPublisher.publish")
-    def test_publishes_if_gcloud_pub_sub_not_configured(self, publish):
-        email = "contributor@fundjournalism.org"
-        create_test_user(email=email)
-        assert not publish.called
-
     @patch("apps.users.models.google_cloud_pub_sub_is_configured", MagicMock(return_value=True))
     @patch("django.conf.settings.NEW_USER_TOPIC")
     @patch("apps.users.google_pub_sub.GoogleCloudPubSubPublisher")

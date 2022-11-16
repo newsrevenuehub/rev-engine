@@ -66,9 +66,9 @@ describe('Profile', () => {
           data: JSON.stringify({
             first_name: 'mock-first-name',
             last_name: 'mock-last-name',
-            job_title: 'mock-job-title',
             organization_name: 'mock-company-name',
             organization_tax_status: 'mock-tax-status',
+            job_title: 'mock-job-title',
             organization_tax_id: '987654321'
           }),
           url: `users/mock-user-id/${CUSTOMIZE_ACCOUNT_ENDPOINT}`

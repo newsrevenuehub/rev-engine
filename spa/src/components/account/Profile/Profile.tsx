@@ -29,6 +29,11 @@ function Profile() {
   const onProfileSubmit = async (formData: ProfileFormFields) => {
     dispatch({ type: FETCH_START });
 
+    if (!user) {
+      // Should never happen under normal circumstances.
+      throw new Error('Asked to customize user, but user is undefined');
+    }
+
     try {
       const { data, status } = await axios.patch(`users/${user?.id}/${CUSTOMIZE_ACCOUNT_ENDPOINT}`, {
         first_name: formData.firstName,

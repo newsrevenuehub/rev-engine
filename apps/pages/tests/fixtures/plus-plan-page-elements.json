@@ -88,5 +88,16 @@
       ]
     },
     "requiredFields": []
+  },
+  {
+    "type": "DReason",
+    "uuid": "d8b5f5f37f9a-e6b8-a064-5c3a-d5e93877",
+    "requiredFields": [],
+    "content": {
+      "askReason": true,
+      "reasons": ["test1", "test2", "test3"],
+      "askHonoree": true,
+      "askInMemoryOf": true
+    }
   }
 ]

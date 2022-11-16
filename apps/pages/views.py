@@ -173,7 +173,30 @@ class PageViewSet(RevisionMixin, viewsets.ModelViewSet, FilterQuerySetByUserMixi
 
     def partial_update(self, request, *args, **kwargs):
         response = super().partial_update(request, *args, **kwargs)
-        if request.FILES and request.data.get("sidebar_elements", None):
+        # The `all` condtion below is quirky, but necessary for now because this view is dealing with
+        # multipart form data in order to support file upload.
+        #
+        # If the environment is set up to capture page screenshots, then request.FILES will always be truthy
+        # because a page screenshot will always be there. But in case where the user has added an image element
+        # to sidebar elements, request.FILES will also contain that data. So one case we need to support is
+        # when user patches the page to add an image to sidebar elements — this is the scenario presupposed by the
+        # call to `MediaImage.create_from_request` below (although that will also run even if no image is present).
+        #
+        # Another scenario we need to support is when a user is trying to set sidebar_elements to be an empty list, and
+        # this is why we need to include `request.data.get('sidebar_elements')` in the `all` condition below.
+        # If the user is setting sidebar_elements to be empty, then the value for sidebar elements in the request data will
+        # be the string value '[]', representing an empty list. The reason this value will be an empty string is because
+        # this endpoint is supporting file upload, and therefore form data instead of JSON is submitted. If we know
+        # that `sidebar_elements` are being patched, we then need to look at `response.data.sidebar_elements` because this
+        # contains the value for that field after the serializer has converted the validated data to a list (in this cae, an empty one).
+        #
+        #
+        # Yet another scenario we need to support is when the page already has an image sidebar element, but elements other
+        # than sidebar_elements are being patched. In that case, we do NOT want the conditional block below to run because
+        # it will cause an error because `data = MediaImage.create_from_request(request.POST, request.FILES, kwargs["pk"])` will
+        # yield `None` and the db will raise an integrity error when we attempt to set that field to None when saving. This scenario
+        # was the cause of a bug captured in [DEV-2861](https://news-revenue-hub.atlassian.net/browse/DEV-2861)
+        if all([request.FILES, request.data.get("sidebar_elements"), response.data.get("sidebar_elements", None)]):
             # Link up thumbs and MediaImages
             data = MediaImage.create_from_request(request.POST, request.FILES, kwargs["pk"])
             response.data["sidebar_elements"] = data.get("sidebar_elements")

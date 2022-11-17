@@ -145,10 +145,6 @@ class StripeWebhookProcessor:
         contribution.save()
 
     def process_invoice(self):
-        if self.event.type == "invoice.upcoming":
-            self.process_upcoming_invoice()
-
-    def process_upcoming_invoice(self):
         """When Stripe sends a webhook about an upcoming subscription charge, we send an email reminder
 
         NB: You can configure how many days before a new charge this webhook should fire in the Stripe dashboard
@@ -156,6 +152,8 @@ class StripeWebhookProcessor:
         can be set to 3, 7, 15, 30, or 45 days.
         """
         logger.info("`StripeWebhookProcessor.process_upcoming_invoice`")
+        if self.event.type != "invoice.upcoming":
+            return
         contribution = Contribution.objects.get(provider_subscription_id=self.obj_data["subscription"])
         contribution.send_recurring_contribution_email_reminder(
             make_aware(datetime.datetime.fromtimestamp(self.obj_data["next_payment_attempt"])).date()

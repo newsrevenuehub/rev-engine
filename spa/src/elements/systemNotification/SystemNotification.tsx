@@ -44,7 +44,7 @@ export default function SystemNotification({ type, header, body, handleClose }: 
         <Header notificationType={type}>{header}</Header>
         <p>{body}</p>
       </Main>
-      <IconButton onClick={() => handleClose()} aria-label="close notification">
+      <IconButton onClick={handleClose} aria-label="close notification">
         <CloseIcon />
       </IconButton>
     </SystemNotificationWrapper>

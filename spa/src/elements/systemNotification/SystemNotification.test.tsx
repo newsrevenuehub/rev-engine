@@ -1,7 +1,6 @@
 import { axe } from 'jest-axe';
-import { screen, fireEvent } from '@testing-library/react';
 
-import { render } from 'test-utils';
+import { render, screen, fireEvent } from 'test-utils';
 import { notificationTypeValues } from './commonTypes';
 
 import SystemNotification from './SystemNotification';

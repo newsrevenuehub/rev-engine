@@ -57,7 +57,7 @@ export const IconBox = styled.div<IconBoxProps>`
   justify-content: center;
 `;
 
-interface HeaderProps extends IconBoxProps {}
+type HeaderProps = IconBoxProps;
 
 function getHeaderColor({ notificationType }: { notificationType: SystemNotificationTypes }) {
   switch (notificationType) {

@@ -13,7 +13,7 @@ interface SystemNotificationProps {
   type: SystemNotificationTypes;
   header: string;
   body: string;
-  handleClose: Function;
+  handleClose: () => void;
 }
 
 export default function SystemNotification({ type, header, body, handleClose }: SystemNotificationProps) {

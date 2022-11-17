@@ -5,9 +5,11 @@ from urllib.parse import quote_plus
 from django.core import mail
 from django.test import TestCase, override_settings
 from django.utils import timezone
+from django.utils.safestring import mark_safe
 
 import pytest
 
+from apps.api.views import construct_rp_domain
 from apps.contributions.models import (
     Contribution,
     ContributionInterval,
@@ -314,8 +316,8 @@ def test_contribution_send_recurring_contribution_email_reminder(interval, expec
     settings.CELERY_ALWAYS_EAGER = True
     contribution.send_recurring_contribution_email_reminder(next_charge_date)
     if expect_success:
-        magic_link = (
-            f"https://{contribution.donation_page.revenue_program.slug}/{settings.CONTRIBUTOR_VERIFY_URL}"
+        magic_link = mark_safe(
+            f"https://{construct_rp_domain(contribution.donation_page.revenue_program.slug)}/{settings.CONTRIBUTOR_VERIFY_URL}"
             f"?token={token}&email={quote_plus(contribution.contributor.email)}"
         )
         mock_log_warning.assert_not_called()

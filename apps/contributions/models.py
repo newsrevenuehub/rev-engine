@@ -5,6 +5,7 @@ from urllib.parse import quote_plus
 from django.conf import settings
 from django.db import models
 from django.utils import timezone
+from django.utils.safestring import mark_safe
 
 import stripe
 
@@ -354,6 +355,8 @@ class Contribution(IndexedTimeStampedModel, RoleAssignmentResourceModelMixin):
             )
 
     def send_recurring_contribution_email_reminder(self, next_charge_date):
+        from apps.api.views import construct_rp_domain  # vs. circular import
+
         if self.interval == ContributionInterval.ONE_TIME:
             logger.warning(
                 "`Contribution.send_recurring_contribution_email_reminder` was called on an instance (ID: %s) whose interval is one-time",
@@ -377,8 +380,8 @@ class Contribution(IndexedTimeStampedModel, RoleAssignmentResourceModelMixin):
                 "contributor_email": self.contributor.email,
                 # todo -- update this after DEV-2519 merged
                 "tax_id": getattr(self.donation_page.revenue_program, "tax_id", "tax-id-coming-soon"),
-                "magic_link": (
-                    f"https://{self.donation_page.revenue_program.slug}/{settings.CONTRIBUTOR_VERIFY_URL}"
+                "magic_link": mark_safe(
+                    f"https://{construct_rp_domain(self.donation_page.revenue_program.slug)}/{settings.CONTRIBUTOR_VERIFY_URL}"
                     f"?token={token}&email={quote_plus(self.contributor.email)}"
                 ),
             },

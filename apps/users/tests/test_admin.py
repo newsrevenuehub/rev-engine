@@ -39,6 +39,8 @@ class TestUsersAdmin(TestCase):
         assert soup.find("input", {"name": "last_name"}) is not None
         assert soup.find("input", {"name": "job_title"}) is not None
         assert soup.find("input", {"name": "email_verified"}) is not None
+        assert soup.find("input", {"name": "accepted_terms_of_service_0"}) is not None
+        assert soup.find("input", {"name": "accepted_terms_of_service_1"}) is not None
 
     def test_user_fields_in_add(self):
         response = self.client.get("/nrhadmin/users/user/add/")
@@ -47,3 +49,5 @@ class TestUsersAdmin(TestCase):
         assert soup.find("input", {"name": "password1"}) is not None
         assert soup.find("input", {"name": "password2"}) is not None
         assert soup.find("input", {"name": "email_verified"}) is not None
+        assert soup.find("input", {"name": "accepted_terms_of_service_0"}) is not None
+        assert soup.find("input", {"name": "accepted_terms_of_service_1"}) is not None

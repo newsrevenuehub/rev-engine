@@ -11,7 +11,7 @@ import {
 
 import { IconBox, IconBoxIcon, IconButton, Header, Main, SystemNotificationWrapper } from './SystemNotification.styled';
 
-import { SystemNotificationTypes } from './commonTypes';
+import { SystemNotificationType } from './commonTypes';
 
 const SystemNotificationPropTypes = {
   type: PropTypes.string.isRequired,
@@ -21,12 +21,12 @@ const SystemNotificationPropTypes = {
 };
 
 interface SystemNotificationProps extends InferProps<typeof SystemNotificationPropTypes> {
-  type: SystemNotificationTypes;
+  type: SystemNotificationType;
   children: ReactChild | ReactChild[];
   handleClose: () => void;
 }
 
-const IconRecord: Record<SystemNotificationTypes, SvgIconComponent> = {
+const IconRecord: Record<SystemNotificationType, SvgIconComponent> = {
   success: SuccessIcon,
   error: ErrorIcon,
   warning: WarningIcon,

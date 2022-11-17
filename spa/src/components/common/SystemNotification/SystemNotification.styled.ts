@@ -1,7 +1,7 @@
 import styled from 'styled-components';
 import { IconButton as MuiIconButton } from '@material-ui/core';
 
-import { SystemNotificationTypes } from './commonTypes';
+import { SystemNotificationType } from './commonTypes';
 import { revEngineTheme } from 'styles/themes';
 
 export const SystemNotificationWrapper = styled.div`
@@ -31,10 +31,10 @@ export const IconButton = styled(MuiIconButton)`
 `;
 
 interface IconBoxProps {
-  notificationType: SystemNotificationTypes;
+  notificationType: SystemNotificationType;
 }
 
-const IconBoxBackground: Record<SystemNotificationTypes, string> = {
+const IconBoxBackground: Record<SystemNotificationType, string> = {
   success: 'linear-gradient(212.12deg, #60E0F9 -26.53%, #008E7C 70.87%)',
   error: 'linear-gradient(212.12deg, #FA9908 -26.53%, #C8203F 70.87%)',
   warning: 'linear-gradient(215.35deg, #F2FF59 -59.69%, #FA9908 63.23%)',
@@ -53,7 +53,7 @@ export const IconBox = styled.div<IconBoxProps>`
 
 type HeaderProps = IconBoxProps;
 
-const HeaderColor: Record<SystemNotificationTypes, string> = {
+const HeaderColor: Record<SystemNotificationType, string> = {
   success: revEngineTheme.colors.muiTeal[600],
   error: revEngineTheme.colors.error.primary,
   warning: '#FA9908',

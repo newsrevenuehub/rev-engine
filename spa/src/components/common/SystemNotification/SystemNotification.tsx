@@ -1,3 +1,4 @@
+import { ReactChild } from 'react';
 import {
   CheckCircleOutlineOutlined as SuccessIcon,
   CloseOutlined as CloseIcon,
@@ -14,7 +15,7 @@ import { SystemNotificationTypes } from './commonTypes';
 interface SystemNotificationProps {
   type: SystemNotificationTypes;
   header: string;
-  body: string;
+  children: ReactChild | ReactChild[];
   handleClose: () => void;
 }
 
@@ -25,7 +26,7 @@ const IconRecord: Record<SystemNotificationTypes, SvgIconComponent> = {
   info: InfoIcon
 };
 
-export default function SystemNotification({ type, header, body, handleClose }: SystemNotificationProps) {
+export default function SystemNotification({ type, header, children, handleClose }: SystemNotificationProps) {
   const Icon = IconRecord[type];
   return (
     <SystemNotificationWrapper role="status">
@@ -36,7 +37,7 @@ export default function SystemNotification({ type, header, body, handleClose }: 
       </IconBox>
       <Main>
         <Header notificationType={type}>{header}</Header>
-        <p>{body}</p>
+        {children}
       </Main>
       <IconButton onClick={handleClose} aria-label="close notification">
         <CloseIcon />

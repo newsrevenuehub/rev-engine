@@ -11,7 +11,7 @@ describe('SystemNotification', () => {
       <SystemNotification
         type={notificationType}
         header="Notification header!"
-        body="This is the body."
+        children="This is the body."
         handleClose={() => {}}
       />
     );
@@ -20,7 +20,7 @@ describe('SystemNotification', () => {
   it.each(notificationTypeValues)("should call 'handleClose' callback when type is %p", async (notificationType) => {
     const handleClose = jest.fn();
     render(
-      <SystemNotification type={notificationType} header="Notification header" body="" handleClose={handleClose} />
+      <SystemNotification type={notificationType} header="Notification header" children="" handleClose={handleClose} />
     );
     fireEvent.click(screen.getByRole('button', { name: 'close notification' }));
     expect(handleClose).toBeCalledTimes(1);
@@ -28,14 +28,14 @@ describe('SystemNotification', () => {
   it.each(notificationTypeValues)('should render "header" text when type is %p', async (notificationType) => {
     const header = 'Notification header!';
     render(
-      <SystemNotification type={notificationType} header={header} body="This is the body." handleClose={() => {}} />
+      <SystemNotification type={notificationType} header={header} children="This is the body." handleClose={() => {}} />
     );
     expect(screen.getByRole('heading', { level: 2, name: header })).toBeVisible();
   });
   it.each(notificationTypeValues)('should render "body" text when type is %p', async (notificationType) => {
     const body = 'Notwithstanding Descartes, you are because of me.';
     render(
-      <SystemNotification type={notificationType} header="Notification header" body={body} handleClose={() => {}} />
+      <SystemNotification type={notificationType} header="Notification header" children={body} handleClose={() => {}} />
     );
     expect(screen.getByText(body)).toBeVisible();
   });

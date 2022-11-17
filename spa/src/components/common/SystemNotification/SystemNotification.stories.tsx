@@ -3,7 +3,7 @@ import SystemNotification from './SystemNotification';
 
 export default {
   component: SystemNotification,
-  title: 'elements/SystemNotification'
+  title: 'common/SystemNotification'
 } as ComponentMeta<typeof SystemNotification>;
 
 const Template: ComponentStory<typeof SystemNotification> = (props) => <SystemNotification {...props} />;

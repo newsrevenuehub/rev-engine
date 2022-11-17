@@ -5,10 +5,10 @@ import styled from 'styled-components';
 
 const StyledMuiTextField = styled(MuiTextField)`
   && {
-    [class*='MuiFormHelperText-root'] {
+    .NreTextFieldFormHelperTextRoot {
       margin-top: 4px;
 
-      &[class*='Mui-error'] {
+      &.Mui-error {
         background: rgba(200, 32, 63, 0.16);
         border-radius: 2px;
         color: rgb(60, 60, 60);
@@ -17,7 +17,7 @@ const StyledMuiTextField = styled(MuiTextField)`
       }
     }
 
-    [class*='MuiInputLabel-shrink'] {
+    .NreTextFieldInputLabelRoot {
       color: rgb(40, 40, 40);
       font: 600 16px Roboto, sans-serif;
       /*
@@ -27,16 +27,16 @@ const StyledMuiTextField = styled(MuiTextField)`
       position: static;
       transform: none;
 
-      &[class*='Mui-error'] {
+      &.Mui-error {
         color: rgb(200, 32, 63);
       }
     }
 
-    [class*='MuiInput-formControl'] {
+    .NreTextFieldInputLabelFormControl {
       margin-top: 6px;
     }
 
-    [class*='MuiInput-input'] {
+    .NreTextFieldInput {
       border: 1.5px solid rgb(196, 196, 196);
       border-radius: 4px;
       font-size: 14px;
@@ -47,22 +47,22 @@ const StyledMuiTextField = styled(MuiTextField)`
       }
     }
 
-    [class*='Mui-error'] [class*='MuiInput-input'] {
+    .Mui-error .NreTextFieldInput {
       border-color: rgb(200, 32, 63);
     }
 
-    [class*='MuiSelect-icon'] {
+    .NreTextFieldSelectIcon {
       right: 4px;
     }
 
     /* Disable focused state appearance changes. */
 
-    [class*='MuiInput-underline']::before,
-    [class*='MuiInput-underline']::after {
+    .NreTextFieldInputUnderline::before,
+    .NreTextFieldInputUnderline::after {
       display: none;
     }
 
-    [class*='MuiSelect-select']:focus {
+    .NreTextFieldSelectSelect:focus {
       background: none;
     }
   }
@@ -75,8 +75,15 @@ export type TextFieldProps = MuiTextFieldProps;
  */
 export const TextField = forwardRef<HTMLDivElement, TextFieldProps>((props, ref) => (
   <StyledMuiTextField
-    InputLabelProps={{ shrink: true }}
+    FormHelperTextProps={{ classes: { root: 'NreTextFieldFormHelperTextRoot' } }}
+    inputProps={{ className: 'NreTextFieldInput' }}
+    InputProps={{ classes: { underline: 'NreTextFieldInputUnderline' } }}
+    InputLabelProps={{
+      classes: { formControl: 'NreTextFieldInputLabelFormControl', root: 'NreTextFieldInputLabelRoot' },
+      shrink: true
+    }}
     SelectProps={{
+      classes: { icon: 'NreTextFieldSelectIcon', select: 'NreTextFieldSelectSelect' },
       IconComponent: KeyboardArrowDown
     }}
     ref={ref}

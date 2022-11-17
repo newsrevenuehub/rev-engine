@@ -7,13 +7,19 @@ import Alert, { alertOptions } from 'elements/alert/Alert';
 import { revEngineTheme, muiThemeOverrides } from 'styles/themes';
 import AdminGlobalStyles from 'styles/AdminGlobalStyles.js';
 
+// The two MuiThemeProviders here are to force JSS scoping, e.g. so that MUI
+// uses classes like MuiButton-5 instead of MuiButton. This helps us catch
+// styling mistakes in Storybook as opposed to the app.
+
 const providerFn = ({ children }) => (
   <ThemeProvider theme={revEngineTheme}>
     <MuiThemeProvider theme={muiThemeOverrides}>
-      <AlertProvider template={Alert} {...alertOptions}>
-        <AdminGlobalStyles />
-        {children}
-      </AlertProvider>
+      <MuiThemeProvider>
+        <AlertProvider template={Alert} {...alertOptions}>
+          <AdminGlobalStyles />
+          {children}
+        </AlertProvider>
+      </MuiThemeProvider>
     </MuiThemeProvider>
   </ThemeProvider>
 );

@@ -12,13 +12,18 @@ export const ConditionallyHiddenInput = styled(Input)<{ show?: boolean }>`
 
 export const CountrySelect = styled(BaseCountrySelect)`
   && {
-    [class*='MuiAutocomplete-inputRoot'] {
+    .NreAutocompleteInputRoot {
       margin-top: 0;
 
-      [class*='MuiAutocomplete-input'] {
-        border: 1px solid #080708;
-        height: 19px;
+      &:before {
+        display: none;
       }
+    }
+
+    .NreAutocompleteInput {
+      border: 1px solid #080708;
+      border-radius: 3px;
+      height: 19px;
     }
   }
 `;

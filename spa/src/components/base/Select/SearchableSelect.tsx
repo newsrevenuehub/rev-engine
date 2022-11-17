@@ -32,26 +32,24 @@ export interface SearchableSelectProps<OptionType> extends NarrowedMuiAutocomple
 }
 
 const StyledAutocomplete = styled(MuiAutocomplete)`
-  &&[class*='MuiAutocomplete-hasPopupIcon'] [class*='MuiAutocomplete-inputRoot'] {
-    /* Move the down arrow into the field outline. */
-    padding-right: 0;
-  }
-
   && {
-    [class*='MuiAutocomplete-endAdornment'] {
+    .NreAutocompleteEndAdornment {
       right: 13px;
     }
 
-    [class*='MuiAutocomplete-inputRoot'][class*='MuiInput-root'] [class*='MuiAutocomplete-input']:first-child {
-      /*
-      Override padding being set by the base component and make it match
-      what's in TextField. The complexity of this selector is to win specificity.
-      */
+    .NreAutocompleteInput {
+      /* Override the autocomplete default styling. */
+      border: 1.5px solid rgb(196, 196, 196);
       padding: 12px 16px;
     }
 
-    [class*='MuiInputLabel-formControl'] {
-      /* Remove style overrides and make it match TextField. */
+    .NreAutocompleteInputRoot {
+      /* Move the down arrow into the field outline. */
+      padding-right: 0;
+    }
+
+    .NreAutocompleteInputLabelRoot {
+      /* Override the autocomplete default styling and force labels to be static. */
       color: rgb(40, 40, 40);
       font: 600 16px Roboto, sans-serif;
       position: static;
@@ -68,9 +66,22 @@ export function SearchableSelect<OptionType>(props: SearchableSelectProps<Option
 
   return (
     <StyledAutocomplete
+      classes={{ endAdornment: 'NreAutocompleteEndAdornment' }}
       disableClearable
       popupIcon={<KeyboardArrowDown />}
-      renderInput={(params) => <TextField {...params} label={label} name={name} />}
+      renderInput={(params) => (
+        <TextField
+          {...params}
+          inputProps={{ ...params.inputProps, className: 'NreAutocompleteInput' }}
+          InputLabelProps={{ ...params.InputLabelProps, classes: { root: 'NreAutocompleteInputLabelRoot' } }}
+          InputProps={{
+            ...params.InputProps,
+            classes: { root: 'NreAutocompleteInputRoot' }
+          }}
+          label={label}
+          name={name}
+        />
+      )}
       {...other}
     />
   );

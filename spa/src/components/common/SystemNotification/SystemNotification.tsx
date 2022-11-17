@@ -20,7 +20,7 @@ const SystemNotificationPropTypes = {
   handleClose: PropTypes.func.isRequired
 };
 
-interface SystemNotificationProps extends InferProps<typeof SystemNotificationPropTypes> {
+export interface SystemNotificationProps extends InferProps<typeof SystemNotificationPropTypes> {
   type: SystemNotificationType;
   children: ReactChild | ReactChild[];
   handleClose: () => void;

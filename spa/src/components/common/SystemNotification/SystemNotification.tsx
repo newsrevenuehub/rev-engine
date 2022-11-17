@@ -1,11 +1,13 @@
-import { IconBox, IconBoxIcon, IconButton, Header, Main, SystemNotificationWrapper } from './SystemNotification.styled';
 import {
   CheckCircleOutlineOutlined as SuccessIcon,
   CloseOutlined as CloseIcon,
   ErrorOutlineOutlined as ErrorIcon,
   InfoOutlined as InfoIcon,
-  ReportProblemOutlined as WarningIcon
+  ReportProblemOutlined as WarningIcon,
+  SvgIconComponent
 } from '@material-ui/icons';
+
+import { IconBox, IconBoxIcon, IconButton, Header, Main, SystemNotificationWrapper } from './SystemNotification.styled';
 
 import { SystemNotificationTypes } from './commonTypes';
 
@@ -16,23 +18,15 @@ interface SystemNotificationProps {
   handleClose: () => void;
 }
 
-export default function SystemNotification({ type, header, body, handleClose }: SystemNotificationProps) {
-  let Icon;
-  switch (type) {
-    case 'success':
-      Icon = SuccessIcon;
-      break;
-    case 'error':
-      Icon = ErrorIcon;
-      break;
-    case 'warning':
-      Icon = WarningIcon;
-      break;
-    case 'info':
-      Icon = InfoIcon;
-      break;
-  }
+const IconRecord: Record<SystemNotificationTypes, SvgIconComponent> = {
+  success: SuccessIcon,
+  error: ErrorIcon,
+  warning: WarningIcon,
+  info: InfoIcon
+};
 
+export default function SystemNotification({ type, header, body, handleClose }: SystemNotificationProps) {
+  const Icon = IconRecord[type];
   return (
     <SystemNotificationWrapper role="status">
       <IconBox notificationType={type}>

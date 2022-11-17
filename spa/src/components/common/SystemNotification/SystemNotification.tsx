@@ -1,3 +1,4 @@
+import PropTypes, { InferProps } from 'prop-types';
 import { ReactChild } from 'react';
 import {
   CheckCircleOutlineOutlined as SuccessIcon,
@@ -12,9 +13,15 @@ import { IconBox, IconBoxIcon, IconButton, Header, Main, SystemNotificationWrapp
 
 import { SystemNotificationTypes } from './commonTypes';
 
-interface SystemNotificationProps {
+const SystemNotificationPropTypes = {
+  type: PropTypes.string.isRequired,
+  header: PropTypes.string.isRequired,
+  children: PropTypes.node.isRequired,
+  handleClose: PropTypes.func.isRequired
+};
+
+interface SystemNotificationProps extends InferProps<typeof SystemNotificationPropTypes> {
   type: SystemNotificationTypes;
-  header: string;
   children: ReactChild | ReactChild[];
   handleClose: () => void;
 }
@@ -45,3 +52,5 @@ export default function SystemNotification({ type, header, children, handleClose
     </SystemNotificationWrapper>
   );
 }
+
+SystemNotification.propTypes = SystemNotificationPropTypes;

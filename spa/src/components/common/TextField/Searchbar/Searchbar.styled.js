@@ -2,6 +2,7 @@ import styled from 'styled-components';
 
 export const Input = styled.input`
   width: 100%;
+  height: 40px;
   padding: 0.6rem 0.6rem 0.6rem 2.5rem;
   font-family: ${(props) => props.theme.systemFont};
   font-size: ${(props) => props.theme.fontSizesUpdated.sm};

@@ -22,7 +22,7 @@ const SystemNotificationPropTypes = {
 
 export interface SystemNotificationProps extends InferProps<typeof SystemNotificationPropTypes> {
   type: SystemNotificationType;
-  children: ReactNode;
+  children: ReactChild | ReactChild[];
   handleClose: () => void;
 }
 

@@ -21,7 +21,12 @@ function DonationsTable({ columns = [], fetchDonations, pageIndex, refetch, onPa
   const [totalResults, setTotalResults] = useState(0);
 
   const convertOrderingToString = (ordering) => {
-    return ordering.map((item) => (item.desc ? `-${item.id}` : item.id)).toString();
+    return ordering
+      .map((item) => {
+        const normalizedId = item.id.replace('.', '__');
+        return item.desc ? `-${normalizedId}` : normalizedId;
+      })
+      .toString();
   };
 
   const fetchData = useCallback(

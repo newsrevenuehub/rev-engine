@@ -143,7 +143,7 @@ const Donations = () => {
             accessor: 'revenue_program.name',
             Cell: (props) => props?.value ?? NO_VALUE
           },
-          ...defaultColumns.slice(5)
+          ...defaultColumns.slice(4)
         ]
       : defaultColumns;
   }, [user?.revenue_programs]);

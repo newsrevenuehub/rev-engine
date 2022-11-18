@@ -6,13 +6,14 @@ import { Provider as AlertProvider } from 'react-alert';
 import Alert, { alertOptions } from 'elements/alert/Alert';
 import { revEngineTheme, muiThemeOverrides } from 'styles/themes';
 import AdminGlobalStyles from 'styles/AdminGlobalStyles.js';
+import { GlobalContext } from 'components/MainLayout';
 
 const providerFn = ({ children }) => (
   <ThemeProvider theme={revEngineTheme}>
     <MuiThemeProvider theme={muiThemeOverrides}>
       <AlertProvider template={Alert} {...alertOptions}>
         <AdminGlobalStyles />
-        {children}
+        <GlobalContext.Provider value={{ getReauth: () => {} }}>{children}</GlobalContext.Provider>
       </AlertProvider>
     </MuiThemeProvider>
   </ThemeProvider>

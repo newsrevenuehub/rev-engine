@@ -9,6 +9,7 @@ jest.mock('elements/GlobalLoading');
 jest.mock('hooks/useConnectStripeAccount');
 jest.mock('hooks/useFeatureFlags');
 jest.mock('hooks/useUser');
+jest.mock('hooks/useRequest');
 
 describe('Dashboard', () => {
   const useConnectStripeAccountMock = useConnectStripeAccount as jest.Mock;
@@ -31,5 +32,11 @@ describe('Dashboard', () => {
     useConnectStripeAccountMock.mockReturnValue({ isLoading: true });
     render(<Dashboard />);
     expect(screen.getByTestId('mock-global-loading')).toBeInTheDocument();
+  });
+
+  it('does not show a loading status when Stripe account link status is not loading', () => {
+    useConnectStripeAccountMock.mockReturnValue({ isLoading: false });
+    render(<Dashboard />);
+    expect(screen.queryByTestId('mock-global-loading')).not.toBeInTheDocument();
   });
 });

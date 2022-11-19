@@ -97,7 +97,7 @@ class OrganizationAdmin(RevEngineBaseAdmin, VersionAdmin):
         ),
         (
             "Integrations",
-            {"fields": ("show_connected_to_slack",)},
+            {"fields": ("show_connected_to_slack", "show_connected_to_salesforce")},
         ),
     )
 

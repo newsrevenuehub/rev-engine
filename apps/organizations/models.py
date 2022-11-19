@@ -98,6 +98,11 @@ class Organization(IndexedTimeStampedModel, RoleAssignmentResourceModelMixin):
         default=False,
         help_text="Indicates Salesforce integration status, designed for manual operation by staff members",
     )
+    show_connected_to_mailchimp = models.BooleanField(
+        verbose_name="Show connected to Mailchimp",
+        default=False,
+        help_text="Indicates Mailchimp integration status, designed for manual operation by staff members",
+    )
 
     # TODO: [DEV-2035] Remove Organization.slug field entirely
     slug = models.SlugField(

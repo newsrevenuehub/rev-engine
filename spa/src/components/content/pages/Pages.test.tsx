@@ -2,11 +2,12 @@ import { render, screen, waitFor } from 'test-utils';
 import MockAdapter from 'axios-mock-adapter';
 
 import { pagesbyRP, default as Pages } from './Pages';
-import useUser from 'hooks/useUser';
+import useUserImport from 'hooks/useUser';
 import { USER_ROLE_ORG_ADMIN_TYPE, USER_ROLE_HUB_ADMIN_TYPE, USER_SUPERUSER_TYPE } from 'constants/authConstants';
 
 import { LIST_PAGES } from 'ajax/endpoints';
 import Axios from 'ajax/axios';
+import { Page } from 'hooks/useUser.types';
 
 const orgAdminUser = {
   role_type: [USER_ROLE_ORG_ADMIN_TYPE],
@@ -23,20 +24,20 @@ const hubAdmin = {
   role_type: [USER_ROLE_HUB_ADMIN_TYPE]
 };
 
-jest.mock('hooks/useUser', () => ({
-  __esModule: true,
-  default: jest.fn()
-}));
+jest.mock('hooks/useUser');
+jest.mock('hooks/useRequest');
+
+const useUser = useUserImport as jest.Mock;
 
 describe('Given pages list', () => {
   let result;
   beforeEach(async () => {
     const inp = [
-      { id: 'first', revenue_program: { id: 1, name: 'rp1' } },
-      { id: 'second', revenue_program: { id: 2, name: 'rp2' } },
-      { id: 'third', revenue_program: { id: 2, name: 'rp2' } }
-    ];
-    result = await pagesbyRP(inp);
+      { id: 1, name: 'mock-name-1', slug: 'mock-slug-1', revenue_program: { id: '1', name: 'rp1' } },
+      { id: 2, name: 'mock-name-2', slug: 'mock-slug-2', revenue_program: { id: '2', name: 'rp2' } },
+      { id: 3, name: 'mock-name-3', slug: 'mock-slug-3', revenue_program: { id: '2', name: 'rp2' } }
+    ] as Page[];
+    result = pagesbyRP(inp);
   });
 
   it('should group pages by RevenueProgram in pagesByRevProgram', () => {
@@ -49,11 +50,11 @@ describe('Given pages list having a page with a null rp', () => {
 
   beforeEach(async () => {
     const inp = [
-      { id: 'first', revenue_program: { id: 1, name: 'rp1' } },
-      { id: 'second', revenue_program: { id: 2, name: 'rp2' } },
-      { id: 'third', revenue_program: null }
-    ];
-    result = await pagesbyRP(inp);
+      { id: 1, revenue_program: { id: '1', name: 'rp1' } },
+      { id: 2, revenue_program: { id: '2', name: 'rp2' } },
+      { id: 3, revenue_program: null }
+    ] as Page[];
+    result = pagesbyRP(inp);
   });
 
   it('should not throw an error and exclude the page with null rp from pagesByRevProgram', () => {

@@ -1,3 +1,4 @@
+import { ComponentMeta, ComponentStory } from '@storybook/react';
 import { BUTTON_TYPE } from 'constants/buttonConstants';
 import NewButton from './NewButton';
 
@@ -9,17 +10,17 @@ export default {
       options: Object.values(BUTTON_TYPE)
     }
   }
-};
+} as ComponentMeta<typeof NewButton>;
 
-export const Default = NewButton.bind({});
+export const Default: ComponentStory<typeof NewButton> = NewButton.bind({});
 Default.args = {
   type: BUTTON_TYPE.PAGE
 };
 
-export const Style = NewButton.bind({});
+export const Style: ComponentStory<typeof NewButton> = NewButton.bind({});
 Style.args = {
   type: BUTTON_TYPE.STYLE
 };
 
-export const Disabled = NewButton.bind({});
+export const Disabled: ComponentStory<typeof NewButton> = NewButton.bind({});
 Disabled.args = { ...Default.args, disabled: true };

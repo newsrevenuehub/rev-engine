@@ -1,4 +1,6 @@
-export const BUTTON_TYPE = {
+export type NewButtonType = 'page' | 'style';
+
+export const BUTTON_TYPE: { PAGE: NewButtonType; STYLE: NewButtonType } = {
   PAGE: 'page',
   STYLE: 'style'
 };

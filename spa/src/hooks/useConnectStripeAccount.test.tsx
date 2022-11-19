@@ -24,16 +24,19 @@ const axiosMock = new MockAdapter(axios);
 const useUserMock = jest.mocked(useUser);
 const useHistoryMock = jest.mocked(useHistory);
 
-const mockRp = { id: 'mock-rp-id', name: 'mock-rp-name', payment_provider_stripe_verified: true };
+const mockRp = { id: 'mock-rp-id', name: 'mock-rp-name', slug: 'mock-rp-slug', payment_provider_stripe_verified: true };
 
 const mockUser: User = {
   email: 'mock@email.com',
   email_verified: true,
   flags: [],
   id: 'mock-id',
-  organization: {
-    name: 'mock-org-name'
-  },
+  organizations: [
+    {
+      name: 'mock-org-name',
+      slug: 'mock-org-slug'
+    }
+  ],
   revenue_programs: [mockRp],
   role_type: ['org_admin', 'Org Admin']
 };

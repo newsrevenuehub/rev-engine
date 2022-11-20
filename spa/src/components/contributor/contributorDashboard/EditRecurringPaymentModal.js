@@ -26,13 +26,13 @@ import { loadStripe } from '@stripe/stripe-js';
 import { CardElement, Elements, useStripe, useElements } from '@stripe/react-stripe-js';
 import { createPaymentMethod } from 'components/paymentProviders/stripe/stripeFns';
 
-import { HUB_STRIPE_API_PUB_KEY } from 'settings';
+import { HUB_STRIPE_API_PUB_KEY } from 'appSettings';
 
 // Children
 import Modal from 'elements/modal/Modal';
-import { PaymentMethodCell } from 'components/contributor/contributorDashboard/ContributorDashboard';
 import Button from 'elements/buttons/Button';
 import GlobalLoading from 'elements/GlobalLoading';
+import ContributionPaymentMethod from './ContributionPaymentMethod';
 
 function EditRecurringPaymentModal({ isOpen, closeModal, contribution, onComplete }) {
   const stripe = useRef(loadStripe(HUB_STRIPE_API_PUB_KEY, { stripeAccount: contribution.stripe_account_id }));
@@ -77,7 +77,7 @@ function EditRecurringPaymentModal({ isOpen, closeModal, contribution, onComplet
                 <span>Interval:</span> <S.Datum>{getFrequencyAdjective(contribution.interval)}</S.Datum>
               </S.CurrentDatum>
               <S.CurrentDatum>
-                <span>Payment method:</span> <PaymentMethodCell contribution={contribution} />
+                <span>Payment method:</span> <ContributionPaymentMethod contribution={contribution} disabled />
               </S.CurrentDatum>
             </S.CurrentList>
             {stripe && stripe.current && (

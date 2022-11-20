@@ -1,15 +1,15 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useStripe, useElements, PaymentElement } from '@stripe/react-stripe-js';
-
+import { useAlert } from 'react-alert';
 import { useLocation } from 'react-router-dom';
 
+import BackButton from 'components/common/Button/BackButton/BackButton';
 import * as S from './StripePaymentForm.styled';
 import { usePage } from 'components/donationPage/DonationPage';
 import { ICONS } from 'assets/icons/SvgIcon';
 import DonationPageDisclaimer from 'components/donationPage/DonationPageDisclaimer';
 import { getFrequencyThankYouText } from 'utilities/parseFrequency';
-import { useAlert } from 'react-alert';
-import { getPaymentSuccessUrl } from './stripeFns';
+import { getPaymentSuccessUrl, getPaymentElementButtonText } from './stripeFns';
 
 function StripePaymentForm() {
   const {
@@ -17,15 +17,16 @@ function StripePaymentForm() {
     page: {
       thank_you_redirect,
       slug: pageSlug,
-      revenue_program: { slug: rpSlug }
+      revenue_program: { slug: rpSlug },
+      currency: { symbol: currencySymbol }
     },
     frequency,
     totalAmount: amount,
     contributorEmail,
     emailHash,
     stripeBillingDetails,
-    paymentSubmitButtonText,
-    stripeClientSecret
+    stripeClientSecret,
+    cancelPayment
   } = usePage();
   const { pathname } = useLocation();
   const elements = useElements();
@@ -35,6 +36,11 @@ function StripePaymentForm() {
     // only when testing
     window.stripe = stripe;
   }
+
+  const paymentSubmitButtonText = useMemo(
+    () => getPaymentElementButtonText({ currencySymbol, amount, frequency }),
+    [currencySymbol, amount, frequency]
+  );
 
   const [isLoading, setIsLoading] = useState(false);
 
@@ -91,11 +97,13 @@ function StripePaymentForm() {
 
   return (
     <S.StripePaymentForm>
-      <form onSubmit={handleSubmit} name="stripe-payment-form">
+      <form onSubmit={handleSubmit}>
+        <BackButton onClick={cancelPayment} />
         <PaymentElement options={paymentElementOptions} id="stripe-payment-element" />
-        <S.PaymentSubmitButton type="submit" disabled={isLoading} loading={isLoading} data-testid="donation-submit">
+        <S.PaymentSubmitButton type="submit" disabled={isLoading} loading={isLoading}>
           {paymentSubmitButtonText}
         </S.PaymentSubmitButton>
+
         <S.IconWrapper>
           <S.Icon icon={ICONS.STRIPE_POWERED} />
         </S.IconWrapper>

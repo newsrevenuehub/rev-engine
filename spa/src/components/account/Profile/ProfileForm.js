@@ -58,7 +58,7 @@ function ProfileForm({ disabled: disabledProp, onProfileSubmit }) {
         <Controller
           name="companyName"
           control={control}
-          render={({ field }) => <TextField fullWidth id="profile-company-name" label="Company Name" {...field} />}
+          render={({ field }) => <TextField fullWidth id="profile-company-name" label="Organization" {...field} />}
         />
       </FillRow>
       <TaxStatusContainer>
@@ -82,7 +82,7 @@ function ProfileForm({ disabled: disabledProp, onProfileSubmit }) {
         />
       </TaxStatusContainer>
       <FillRow>
-        <Button disabled={disabled} fullWidth type="submit">
+        <Button disabled={disabled} fullWidth size="extraLarge" type="submit">
           Finalize Account
         </Button>
       </FillRow>

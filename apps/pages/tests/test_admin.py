@@ -100,7 +100,7 @@ class DonationPageAdminTestCase(TestCase):
         soup = bs4(response.content, "html.parser")
         org = self.revenue_program.organization
         expected = (
-            f"The parent org (ID: {org.id} | Name: {org.name}) is on the {org.get_plan_data().label} "
+            f"The parent org (ID: {org.id} | Name: {org.name}) is on the {org.plan.label} "
             f"plan, which does not get this feature"
         )
         assert soup.body.find(text=lambda t: expected in t.text)
@@ -138,8 +138,8 @@ class DonationPageAdminTestCase(TestCase):
         soup = bs4(response.content, "html.parser")
         org = self.revenue_program.organization
         expected = (
-            f"The parent org (ID: {org.id} | Name: {org.name}) is on the {org.get_plan_data().label} "
-            f"plan, and is limited to {org.get_plan_data().page_limit} page"
+            f"The parent org (ID: {org.id} | Name: {org.name}) is on the {org.plan.label} "
+            f"plan, and is limited to {org.plan.page_limit} page"
         )
 
         def expected_in_soup(item):

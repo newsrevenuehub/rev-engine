@@ -127,7 +127,7 @@ DSwag.propTypes = {
 
 DSwag.type = 'DSwag';
 DSwag.displayName = 'Member Benefits';
-DSwag.description = 'Allow donors to make choices about optional swag';
+DSwag.description = 'Allow contributors to make choices about optional swag';
 DSwag.required = false;
 DSwag.unique = true;
 

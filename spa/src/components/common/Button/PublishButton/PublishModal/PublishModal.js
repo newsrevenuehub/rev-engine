@@ -71,6 +71,7 @@ const PublishModal = ({ open, onClose, onPublish, page, loading }) => {
             </Grid>
             <Grid item xs={5}>
               <Input
+                data-testid="page-name-input"
                 placeholder="Ex. contribute, donate, join"
                 end="true"
                 value={slug}
@@ -90,7 +91,13 @@ const PublishModal = ({ open, onClose, onPublish, page, loading }) => {
             <CancelButton variant="contained" onClick={onClose} disableElevation>
               Cancel
             </CancelButton>
-            <PublishButton variant="contained" onClick={handlePublish} disableElevation disabled={!slug || loading}>
+            <PublishButton
+              data-testid="modal-publish-button"
+              variant="contained"
+              onClick={handlePublish}
+              disableElevation
+              disabled={!slug || loading}
+            >
               {loading ? <CircularProgress size={16} style={{ color: 'white' }} /> : 'Publish'}
             </PublishButton>
           </Actions>

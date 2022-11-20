@@ -1,6 +1,6 @@
 import axios from 'ajax/axios';
 import { TOKEN } from 'ajax/endpoints';
-import { LS_USER, LS_CSRF_TOKEN } from 'settings';
+import { LS_USER, LS_CSRF_TOKEN } from 'appSettings';
 
 async function logout() {
   try {

@@ -7,6 +7,8 @@ on:
 jobs:
   js-test:
     runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
     steps:
       - name: Checkout branch
         uses: actions/checkout@v3
@@ -15,11 +17,27 @@ jobs:
         with:
           cache: "npm"
           cache-dependency-path: "spa/package-lock.json"
-      - name: Install node dependencies, build and test
+      - name: Install node dependencies
         run: |
           cd spa
           npm ci
-          npm run test:ci
+      - name: Run tests and collect coverage
+        run: |
+          cd spa
+          npm run test:coverage -- --coverageReporters json-summary
+          echo "LINE_PCT=$(cat coverage/coverage-summary.json | jq '.total.lines.pct')" >> $GITHUB_ENV
+          echo "STATEMENT_PCT=$(cat coverage/coverage-summary.json | jq '.total.statements.pct')" >> $GITHUB_ENV
+          echo "BRANCHES_PCT=$(cat coverage/coverage-summary.json | jq '.total.branches.pct')" >> $GITHUB_ENV
+      - name: Comment with coverage percentages
+        uses: mshick/add-pr-comment@v2
+        with:
+          message: |
+            ### Jest unit test coverage
+            | Lines                | Statements                |                 Branches |
+            |----------------------|---------------------------|--------------------------|
+            | ${{ env.LINE_PCT }}% | ${{ env.STATEMENT_PCT }}% | ${{ env.BRANCHES_PCT }}% |
+          message-id: jest-coverage-comment
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
 
   cypress-test:
     runs-on: ubuntu-latest

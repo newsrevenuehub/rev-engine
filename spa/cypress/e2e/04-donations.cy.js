@@ -3,7 +3,7 @@ import isEqual from 'lodash.isequal';
 import { NO_VALUE } from 'constants/textConstants';
 import { PAYMENT_STATUS_EXCLUDE_IN_CONTRIBUTIONS } from 'constants/paymentStatus';
 import { DONATIONS_SLUG } from 'routes';
-import { USER, LIST_PAGES } from 'ajax/endpoints';
+import { USER, LIST_PAGES, getStripeAccountLinkStatusPath } from 'ajax/endpoints';
 
 // Data
 import donationsData from '../fixtures/donations/18-results.json';
@@ -195,7 +195,7 @@ describe('Donations list', () => {
       });
     });
 
-    it('should make donations sortable by donor', () => {
+    it('should make contributions sortable by contributor', () => {
       cy.wait('@getDonations');
       // will be in ascending order
       cy.getByTestId('donation-header-contributor_email').click();
@@ -321,10 +321,20 @@ describe('Donations list', () => {
     it('should render banner with Stripe message if user has stripe not verified', () => {
       cy.forceLogin({ ...orgAdminUser, user: selfServiceUserNotStripeVerified });
       cy.intercept(getEndpoint(LIST_PAGES), { fixture: 'pages/list-pages-1' }).as('listPages');
+      cy.intercept(
+        {
+          method: 'POST',
+          pathname: getEndpoint(getStripeAccountLinkStatusPath(selfServiceUserNotStripeVerified.revenue_programs[0].id))
+        },
+        { statusCode: 202, body: { requiresVerification: true } }
+      ).as('stripeAccountLink');
       cy.intercept({ method: 'GET', pathname: getEndpoint(USER) }, { body: selfServiceUserNotStripeVerified });
       cy.interceptPaginatedDonations();
       cy.visit(DONATIONS_SLUG);
       cy.wait('@listPages');
+      cy.wait('@stripeAccountLink');
+      cy.findByText('connect to Stripe later', { exact: false }).click();
+      cy.getByTestId('minimize-toast').click();
       cy.getByTestId('banner').should('exist');
       cy.contains('Looks like you need to set up a Stripe connection');
     });

@@ -9,7 +9,8 @@ const page = {
     slug: 'news-revenue-hub'
   },
   slug: 'donate',
-  published_date: '2021-11-18T21:51:53Z'
+  published_date: '2021-11-18T21:51:53Z',
+  payment_provider: {}
 };
 
 const mockClipboard = {

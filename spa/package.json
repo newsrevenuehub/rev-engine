@@ -15,7 +15,7 @@
     "@material-ui/lab": "^4.0.0-alpha.61",
     "@material-ui/pickers": "^3.3.10",
     "@sentry/react": "^6.9.0",
-    "@sentry/tracing": "^6.9.0",
+    "@sentry/tracing": "^6.19.7",
     "@stripe/react-stripe-js": "^1.4.0",
     "@stripe/stripe-js": "^1.14.0",
     "@tanstack/react-query": "^4.3.4",
@@ -45,6 +45,7 @@
     "react-datepicker": "^4.1.1",
     "react-dom": "^17.0.2",
     "react-draft-wysiwyg": "^1.14.7",
+    "react-focus-lock": "^2.9.1",
     "react-google-autocomplete": "^2.4.2",
     "react-helmet": "^6.1.0",
     "react-hook-form": "^7.34.2",
@@ -59,7 +60,6 @@
     "styled-normalize": "^8.0.7",
     "styled-system": "^5.1.5",
     "tinycolor2": "^1.4.2",
-    "universal-cookie": "^4.0.4",
     "url-join": "^5.0.0",
     "use-debounce": "^8.0.4",
     "uuid": "^8.3.2",
@@ -87,9 +87,14 @@
     "collectCoverageFrom": [
       "**/*.[jt]s?(x)",
       "!**/node_modules/**",
-      "!**/*.stories.js",
+      "!**/*.stories.[jt]sx",
       "!**/*.styled.js"
     ],
+    "coverageThreshold": {
+      "global": {
+        "lines": 38
+      }
+    },
     "transformIgnorePatterns": [
       "node_modules/(?!(cypress|url-join)/)",
       "\\.pnp\\.[^\\/]+$"
@@ -152,12 +157,14 @@
     "@storybook/preset-create-react-app": "^4.1.2",
     "@storybook/react": "^6.5.10",
     "@storybook/testing-library": "^0.0.13",
+    "@testing-library/cypress": "^8.0.3",
     "@testing-library/jest-dom": "^5.11.10",
-    "@testing-library/react": "^11.2.6",
+    "@testing-library/react": "^11.2.7",
     "@testing-library/react-hooks": "^7.0.2",
     "@testing-library/user-event": "^12.8.3",
     "@types/jest": "^29.1.2",
     "@types/jest-axe": "^3.5.5",
+    "@types/lodash.orderby": "^4.6.7",
     "@types/node": "^18.8.4",
     "@types/react": "^17.0.50",
     "@types/react-alert": "^7.0.2",

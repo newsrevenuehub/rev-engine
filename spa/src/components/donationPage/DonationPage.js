@@ -1,6 +1,7 @@
 import { useRef, useState, useEffect, createContext, useContext } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import { useCookies } from 'react-cookie';
+import { useAlert } from 'react-alert';
 
 import * as S from './DonationPage.styled';
 import axios from 'ajax/axios';
@@ -15,8 +16,9 @@ import {
   GRECAPTCHA_SITE_KEY,
   SALESFORCE_CAMPAIGN_ID_QUERYPARAM,
   FREQUENCY_QUERYPARAM,
-  AMOUNT_QUERYPARAM
-} from 'settings';
+  AMOUNT_QUERYPARAM,
+  CSRF_HEADER
+} from 'appSettings';
 import DonationPageSidebar from 'components/donationPage/DonationPageSidebar';
 import DonationPageFooter from 'components/donationPage/DonationPageFooter';
 import StripePaymentWrapper from 'components/paymentProviders/stripe/StripePaymentWrapper';
@@ -24,28 +26,33 @@ import Modal from 'elements/modal/Modal';
 import LiveErrorFallback from './live/LiveErrorFallback';
 import { SubmitButton } from './DonationPage.styled';
 import GenericErrorBoundary from 'components/errors/GenericErrorBoundary';
-import { AUTHORIZE_ONE_TIME_STRIPE_PAYMENT_ROUTE, AUTHORIZE_STRIPE_SUBSCRIPTION_ROUTE } from 'ajax/endpoints';
+import { AUTHORIZE_STRIPE_PAYMENT_ROUTE } from 'ajax/endpoints';
 import { serializeData } from 'components/paymentProviders/stripe/stripeFns';
 import calculateStripeFee from 'utilities/calculateStripeFee';
-import formatStringAmountForDisplay from 'utilities/formatStringAmountForDisplay';
-import { getFrequencyAdverb } from 'utilities/parseFrequency';
 import { CONTRIBUTION_INTERVALS } from 'constants/contributionIntervals';
 
-import { CSRF_HEADER } from 'settings';
-
-function authorizePayment(paymentData, paymentType, csrftoken) {
-  const apiEndpoint =
-    paymentType === CONTRIBUTION_INTERVALS.ONE_TIME
-      ? AUTHORIZE_ONE_TIME_STRIPE_PAYMENT_ROUTE
-      : AUTHORIZE_STRIPE_SUBSCRIPTION_ROUTE;
-  // we manually set the XCSRFToken value in header here. This is an unauthed endpoint
+function authorizePayment(paymentData, csrftoken) {
+  // we manually set the X-CSRFTOKEN value in header here. This is an unauthed endpoint
   // that on the backend requires csrf header, which will be in cookie returned by request
   // for page data (that happens in parent context)
-  return axios.post(apiEndpoint, paymentData, { headers: { [CSRF_HEADER]: csrftoken } }).then(({ data }) => data);
+  return axios
+    .post(AUTHORIZE_STRIPE_PAYMENT_ROUTE, paymentData, { headers: { [CSRF_HEADER]: csrftoken } })
+    .then(({ data }) => data);
+}
+
+function cancelPayment(paymentId, csrftoken) {
+  const endpoint = `${AUTHORIZE_STRIPE_PAYMENT_ROUTE}${paymentId}/`;
+  // we manually set the X-CSRFTOKEN value in header here. This is an unauthed endpoint
+  // that on the backend requires csrf header, which will be in cookie returned by request
+  // for page data (that happens in parent context)
+
+  return axios.delete(endpoint, { headers: { [CSRF_HEADER]: csrftoken } }).then(({ data }) => data);
 }
 
 export const DonationPageContext = createContext({});
 
+export const CANCEL_PAYMENT_FAILURE_MESSAGE =
+  "Something went wrong, but don't worry, you haven't been charged. Try refreshing.";
 class DonationPageUnrecoverableError extends Error {
   constructor(message) {
     super(message);
@@ -54,6 +61,7 @@ class DonationPageUnrecoverableError extends Error {
 }
 
 function DonationPage({ page, live = false }) {
+  const alert = useAlert();
   const formRef = useRef();
   const salesforceCampaignId = useQueryString(SALESFORCE_CAMPAIGN_ID_QUERYPARAM);
   const freqQs = useQueryString(FREQUENCY_QUERYPARAM);
@@ -71,23 +79,21 @@ function DonationPage({ page, live = false }) {
   const [displayStripePaymentForm, setDisplayStripePaymentForm] = useState(false);
   const [contributorEmail, setContributorEmail] = useState();
   const [mailingCountry, setMailingCountry] = useState();
-  const [paymentSubmitButtonText, setPaymentSubmitButtonText] = useState();
-
   const [stripeBillingDetails, setStripeBillingDetails] = useState();
 
   const [cookies] = useCookies(['csrftoken']);
 
   // we use this on form submission to authorize a one-time payment or subscription. Note that the function
   // passed to `useMutation` must return a promise.
-  const { mutate: createPayment, isLoading: createPaymentIsLoading } = useMutation((paymentData) => {
-    switch (paymentData.interval) {
-      case CONTRIBUTION_INTERVALS.ONE_TIME:
-        return authorizePayment(paymentData, CONTRIBUTION_INTERVALS.ONE_TIME, cookies.csrftoken);
-      case CONTRIBUTION_INTERVALS.MONTHLY:
-      case CONTRIBUTION_INTERVALS.ANNUAL:
-        return authorizePayment(paymentData, paymentData.interval, cookies.csrftoken);
-      default:
-        return Promise.reject(new DonationPageUnrecoverableError('Unexpected payment interval in paymentData'));
+  const { mutate: createPayment, isLoading: createPaymentIsLoading } = useMutation((paymentData) =>
+    authorizePayment(paymentData, cookies.csrftoken)
+  );
+
+  const { mutate: deletePayment } = useMutation((paymentId) => cancelPayment(paymentId, cookies.csrftoken), {
+    onError: (err) => {
+      // calling console.error will create a Sentry error.
+      console.error(err);
+      alert.error(CANCEL_PAYMENT_FAILURE_MESSAGE);
     }
   });
 
@@ -167,10 +173,12 @@ function DonationPage({ page, live = false }) {
       console.error('No recaptcha token, defaulting to empty string');
     }
     return serializeData(formRef.current, {
-      amount: totalAmount,
+      amount,
       frequency,
       reCAPTCHAToken,
       pageId: page.id,
+      payFee: userAgreesToPayFees,
+      rpIsNonProfit: page.revenue_program_is_nonprofit,
       salesforceCampaignId
     });
   };
@@ -219,22 +227,6 @@ function DonationPage({ page, live = false }) {
     });
   };
 
-  const getCheckoutSubmitButtonText = (currencySymbol, totalAmount, frequency) => {
-    if (!isValidTotalAmount) {
-      return 'Enter a valid amount';
-    }
-
-    return `Give ${currencySymbol}${formatStringAmountForDisplay(totalAmount)} ${getFrequencyAdverb(frequency)}`;
-  };
-
-  useEffect(() => {
-    if (page?.currency?.symbol && !isNaN(totalAmount) && frequency) {
-      setPaymentSubmitButtonText(
-        `Give ${page.currency.symbol}${formatStringAmountForDisplay(totalAmount)} ${getFrequencyAdverb(frequency)}`
-      );
-    }
-  }, [frequency, page.currency?.symbol, totalAmount]);
-
   return (
     <DonationPageContext.Provider
       value={{
@@ -258,7 +250,10 @@ function DonationPage({ page, live = false }) {
         stripeClientSecret,
         mailingCountry,
         setMailingCountry,
-        paymentSubmitButtonText
+        cancelPayment: () => {
+          deletePayment(stripeClientSecret);
+          setDisplayStripePaymentForm(false);
+        }
       }}
     >
       <S.DonationPage data-testid="donation-page">
@@ -272,12 +267,7 @@ function DonationPage({ page, live = false }) {
                 {displayErrorFallback ? (
                   <LiveErrorFallback />
                 ) : (
-                  <form
-                    name="contribution-checkout"
-                    onSubmit={handleCheckoutSubmit}
-                    ref={formRef}
-                    data-testid="donation-page-form"
-                  >
+                  <form onSubmit={handleCheckoutSubmit} ref={formRef}>
                     <S.PageElements>
                       {(!live && !page?.elements) ||
                         (page?.elements?.length === 0 && (
@@ -294,12 +284,11 @@ function DonationPage({ page, live = false }) {
                         ))}
                     </S.PageElements>
                     <SubmitButton
-                      data-testid="donation-page-submit"
                       disabled={!isValidTotalAmount || createPaymentIsLoading}
                       loading={createPaymentIsLoading}
                       type="submit"
                     >
-                      {getCheckoutSubmitButtonText(page?.currency?.symbol, totalAmount, frequency)}
+                      {isValidTotalAmount ? 'Continue to Payment' : 'Enter a valid amount'}
                     </SubmitButton>
                   </form>
                 )}

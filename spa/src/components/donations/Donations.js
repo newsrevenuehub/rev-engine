@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useState } from 'react';
-import { Route, Switch, useHistory, useRouteMatch } from 'react-router-dom';
+import { Switch, useHistory, useRouteMatch } from 'react-router-dom';
 import * as S from './Donations.styled';
 
 // AJAX
@@ -19,19 +19,20 @@ import formatCurrencyAmount from 'utilities/formatCurrencyAmount';
 import formatDatetimeForDisplay from 'utilities/formatDatetimeForDisplay';
 
 // Children
+import Banner from 'components/common/Banner';
 import Hero from 'components/common/Hero';
-import { StatusCellIcon } from 'components/contributor/contributorDashboard/ContributorDashboard';
+import { PaymentStatus } from 'components/common/PaymentStatus';
 import DashboardSection from 'components/dashboard/DashboardSection';
 import DonationDetail from 'components/donations/DonationDetail';
 import DonationsTable from 'components/donations/DonationsTable';
 import Filters from 'components/donations/filters/Filters';
 import GenericErrorBoundary from 'components/errors/GenericErrorBoundary';
+import { BANNER_TYPE } from 'constants/bannerConstants';
 import { PAYMENT_STATUS_EXCLUDE_IN_CONTRIBUTIONS } from 'constants/paymentStatus';
 import PageTitle from 'elements/PageTitle';
-import Banner from 'components/common/Banner';
-import { BANNER_TYPE } from 'constants/bannerConstants';
-import usePagesList from 'hooks/usePageList';
 import useConnectStripeAccount from 'hooks/useConnectStripeAccount';
+import usePagesList from 'hooks/usePageList';
+import { SentryRoute } from 'hooks/useSentry';
 import useUser from 'hooks/useUser';
 
 const Donations = () => {
@@ -39,7 +40,7 @@ const Donations = () => {
   const history = useHistory();
 
   const { user } = useUser();
-  const { requiresStripeVerification } = useConnectStripeAccount();
+  const { requiresVerification } = useConnectStripeAccount();
   const { pages } = usePagesList();
   const requestDonations = useRequest();
   const [filters, setFilters] = useState({});
@@ -62,10 +63,10 @@ const Donations = () => {
     ) {
       return null;
     }
-    if (requiresStripeVerification && !hasPublished) return BANNER_TYPE.BLUE;
-    if (!requiresStripeVerification && !hasPublished) return BANNER_TYPE.YELLOW;
+    if (requiresVerification && !hasPublished) return BANNER_TYPE.BLUE;
+    if (!requiresVerification && !hasPublished) return BANNER_TYPE.YELLOW;
     return null;
-  }, [pages, requiresStripeVerification, user?.revenue_programs?.length, user?.role_type]);
+  }, [pages, requiresVerification, user?.revenue_programs?.length, user?.role_type]);
 
   const fetchDonations = useCallback(
     (parameters, { onSuccess, onFailure }) => {
@@ -131,7 +132,7 @@ const Donations = () => {
       {
         Header: 'Payment status',
         accessor: 'status',
-        Cell: (props) => <StatusCellIcon status={props.value} showText />
+        Cell: (props) => <PaymentStatus status={props.value} />
       }
     ],
     []
@@ -142,12 +143,12 @@ const Donations = () => {
       <PageTitle title="Contributions" />
       <div data-testid="donations" style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
         <Switch>
-          <Route path={`${path}:contributionId`}>
+          <SentryRoute path={`${path}:contributionId`}>
             <DashboardSection heading="Contribution Info">
               <DonationDetail />
             </DashboardSection>
-          </Route>
-          <Route>
+          </SentryRoute>
+          <SentryRoute>
             {bannerType && (
               <Banner
                 type={bannerType}
@@ -179,7 +180,7 @@ const Donations = () => {
                 grow
               />
             </GenericErrorBoundary>
-          </Route>
+          </SentryRoute>
         </Switch>
       </div>
     </>

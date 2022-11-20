@@ -29,7 +29,7 @@ const UNIQUE_NAME_ERROR = 'The fields name, organization must make a unique set.
 
 const PANGRAM = 'The quick brown fox jumps over the lazy dog.';
 
-function StylesEditor({ styles, setStyles, handleKeepChanges, handleDiscardChanges, isUpdate }) {
+function StylesEditor({ styles, setStyles, handleKeepChanges, handleDiscardChanges, isUpdate, styleNameInputId }) {
   const alert = useAlert();
   const getUserConfirmation = useConfirmationModalContext();
   const [errors, setErrors] = useState({});
@@ -182,6 +182,7 @@ function StylesEditor({ styles, setStyles, handleKeepChanges, handleDiscardChang
             onChange={(e) => setName(e.target.value)}
             errors={errors.name}
             required
+            data-testid="style-name-input"
           />
         </S.FieldRow>
         {!isUpdate && (

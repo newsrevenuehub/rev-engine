@@ -17,7 +17,7 @@ class SlackNotificationTypes(models.TextChoices):
 
 class SlackIntegration(models.Model):
     bot_token = models.CharField(max_length=255)
-    channel = models.CharField(max_length=255, help_text="All donation notifications will be sent to this channel")
+    channel = models.CharField(max_length=255, help_text="All contribution notifications will be sent to this channel")
 
     def save(self, *args, **kwargs):
         self.channel = format_channel_name(self.channel)
@@ -30,8 +30,8 @@ class SlackIntegration(models.Model):
 class HubSlackIntegration(SlackIntegration, SingletonModel):
     org_channel_prefix = models.CharField(
         max_length=24,
-        default="#donations-",
-        help_text="Donation notifications will be sent to [org-channel-prefix][recipient-org-name]",
+        default="#contribution-",
+        help_text="Contribution notifications will be sent to [org-channel-prefix][recipient-org-name]",
     )
 
     def __str__(self):

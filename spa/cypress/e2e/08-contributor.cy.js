@@ -63,7 +63,7 @@ describe('Contributor portal', () => {
     it('should display a list of contributions', () => {
       cy.getByTestId('donations-table');
       // DonationsTable is well tested elsewhere...
-      cy.get('td > p > span').should('have.length', 20);
+      cy.get('tbody tr').should('have.length', 10);
       cy.get('li > button[aria-label="page 1"]').should('exist');
       cy.get('li > button[aria-label="Go to page 2"]').should('exist');
       // ... though here we should see different column headers
@@ -157,7 +157,7 @@ describe('Contributor portal', () => {
       cy.intercept('DELETE', getEndpoint(`${SUBSCRIPTIONS}${targetContribution.subscription_id}`), {
         statusCode: 200
       }).as('cancelRecurring');
-      cy.getByTestId('continue-button').click();
+      cy.getByTestId('confirm-cancel-button').click();
       cy.wait('@cancelRecurring');
     });
   });

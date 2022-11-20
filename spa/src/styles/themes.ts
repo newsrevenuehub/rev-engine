@@ -53,6 +53,7 @@ export const revEngineTheme: DefaultTheme = {
       400: '#c4c4c4',
       500: '#969696',
       600: '#707070',
+      700: '#666666',
       800: '#3c3c3c',
       900: '#282828'
     },
@@ -141,6 +142,11 @@ export const revEngineTheme: DefaultTheme = {
     md: '890px',
     lg: '1000px',
     xl: '1300px'
+  },
+
+  zIndex: {
+    header: 10,
+    sidebar: 5
   }
 };
 

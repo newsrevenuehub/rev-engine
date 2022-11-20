@@ -1,4 +1,5 @@
 import 'cypress-localstorage-commands';
+import '@testing-library/cypress/add-commands';
 
 import { TOKEN } from 'ajax/endpoints';
 import { getEndpoint, getTestingDonationPageUrl, getTestingDefaultDonationPageUrl, EXPECTED_RP_SLUG } from './util';
@@ -6,7 +7,7 @@ import { LIVE_PAGE_DETAIL, STRIPE_PAYMENT, CONTRIBUTIONS } from 'ajax/endpoints'
 import { DEFAULT_RESULTS_ORDERING } from 'components/donations/DonationsTable';
 import { ApiResourceList } from '../support/restApi';
 import donationsData from '../fixtures/donations/18-results.json';
-import { LS_CSRF_TOKEN, LS_USER } from 'settings';
+import { LS_CSRF_TOKEN, LS_USER } from 'appSettings';
 
 Cypress.Commands.add('getByTestId', (testId, options, partialMatch = false) => {
   return cy.get(`[data-testid${partialMatch ? '*' : ''}="${testId}"]`, options);
@@ -94,13 +95,17 @@ Cypress.Commands.add('makeDonation', () => {
     .then(() => {
       // need to ensure not disabled because otherwise race condition where
       // it hasn't yet re-rendered to enabled by time we're trying to click
-      cy.getByTestId('donation-submit').should('not.be.disabled').click();
+      cy.get('form')
+        .findByRole('button', { name: /Continue to Payment/ })
+        .should('not.be.disabled')
+        .click();
     });
 });
 
 Cypress.Commands.add('interceptStripeApi', () => {
   cy.intercept({ url: 'https://r.stripe.com/*', method: 'POST' }, { statusCode: 200 });
   cy.intercept({ url: 'https://m.stripe.com/*', method: 'POST' }, { statusCode: 200 });
+  cy.intercept({ method: 'GET', url: 'https://api.stripe.com/**' }, { statusCode: 200 });
 });
 
 Cypress.Commands.add('interceptPaginatedDonations', () => {

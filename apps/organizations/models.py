@@ -1,5 +1,5 @@
 import logging
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 from django.conf import settings
 from django.core.exceptions import ValidationError
@@ -12,6 +12,12 @@ from apps.common.models import IndexedTimeStampedModel
 from apps.common.utils import normalize_slug
 from apps.config.validators import validate_slug_against_denylist
 from apps.organizations.validators import validate_statement_descriptor_suffix
+from apps.pages.defaults import (
+    BENEFITS,
+    DEFAULT_PERMITTED_PAGE_ELEMENTS,
+    DEFAULT_PERMITTED_SIDEBAR_ELEMENTS,
+    SWAG,
+)
 from apps.users.choices import Roles
 from apps.users.models import RoleAssignmentResourceModelMixin, UnexpectedRoleType
 
@@ -38,7 +44,10 @@ class Plan:
 
     name: str
     label: str
+    sidebar_elements: list[str] = field(default_factory=lambda: DEFAULT_PERMITTED_SIDEBAR_ELEMENTS)
+    page_elements: list[str] = field(default_factory=lambda: DEFAULT_PERMITTED_PAGE_ELEMENTS)
     page_limit: int = 1
+    style_limit: int = 1
     custom_thank_you_page_enabled: bool = False
 
 
@@ -52,7 +61,16 @@ PlusPlan = Plan(
     label="Plus",
     # If this limit gets hit, it can be dealt with as a customer service issue.
     page_limit=UNLIMITED_CEILING,
+    style_limit=UNLIMITED_CEILING,
     custom_thank_you_page_enabled=True,
+    sidebar_elements=DEFAULT_PERMITTED_SIDEBAR_ELEMENTS
+    + [
+        BENEFITS,
+    ],
+    page_elements=DEFAULT_PERMITTED_PAGE_ELEMENTS
+    + [
+        SWAG,
+    ],
 )
 
 
@@ -68,7 +86,7 @@ class Plans(models.TextChoices):
 
 class Organization(IndexedTimeStampedModel, RoleAssignmentResourceModelMixin):
     name = models.CharField(max_length=255, unique=True)
-    plan = models.CharField(choices=Plans.choices, max_length=10, default=Plans.FREE)
+    plan_name = models.CharField(choices=Plans.choices, max_length=10, default=Plans.FREE)
     salesforce_id = models.CharField(max_length=255, blank=True, verbose_name="Salesforce ID")
 
     # TODO: [DEV-2035] Remove Organization.slug field entirely
@@ -93,8 +111,9 @@ class Organization(IndexedTimeStampedModel, RoleAssignmentResourceModelMixin):
     def __str__(self):
         return self.name
 
-    def get_plan_data(self):
-        return Plans.get_plan(self.plan)
+    @property
+    def plan(self):
+        return Plans.get_plan(self.plan_name)
 
     @property
     def admin_revenueprogram_options(self):
@@ -119,7 +138,7 @@ class Organization(IndexedTimeStampedModel, RoleAssignmentResourceModelMixin):
 
 class Benefit(IndexedTimeStampedModel):
     name = models.CharField(max_length=128, help_text="A way to uniquely identify this Benefit")
-    description = models.TextField(help_text="The text that appears on the donation page")
+    description = models.TextField(help_text="The text that appears on the contribution page")
     revenue_program = models.ForeignKey("organizations.RevenueProgram", on_delete=models.CASCADE)
 
     class Meta:
@@ -199,7 +218,7 @@ class RevenueProgram(IndexedTimeStampedModel):
         max_length=RP_SLUG_MAX_LENGTH,
         blank=True,
         unique=True,
-        help_text="This will be used as the subdomain for donation pages made under this revenue program. If left blank, it will be derived from the Revenue Program name.",
+        help_text="This will be used as the subdomain for contribution pages made under this revenue program. If left blank, it will be derived from the Revenue Program name.",
         validators=[validate_slug_against_denylist],
     )
     organization = models.ForeignKey("organizations.Organization", on_delete=models.CASCADE)
@@ -209,7 +228,7 @@ class RevenueProgram(IndexedTimeStampedModel):
         null=True,
         blank=True,
         on_delete=models.SET_NULL,
-        help_text="Choose an optional default donation page once you've saved your initial revenue program",
+        help_text="Choose an optional default contribution page once you've saved your initial revenue program",
     )
     # TODO: [DEV-2403] non_profit should probably be moved to the payment provider?
     non_profit = models.BooleanField(default=True, verbose_name="Non-profit?")
@@ -224,7 +243,9 @@ class RevenueProgram(IndexedTimeStampedModel):
 
     # Social links
     twitter_handle = models.CharField(
-        max_length=15, blank=True, help_text="How can your donors mention you on Twitter? Don't include '@' symbol"
+        max_length=15,
+        blank=True,
+        help_text="How can your contributors mention you on Twitter? Don't include '@' symbol",
     )
     website_url = models.URLField(blank=True, help_text="Does this Revenue Program have a website?")
 
@@ -236,7 +257,7 @@ class RevenueProgram(IndexedTimeStampedModel):
     # Strange, hopefully temporary, hacky bit to accommodate one ore two particular clients' needs
     allow_offer_nyt_comp = models.BooleanField(
         default=False,
-        help_text="Should page authors for this Revenue Program see the option to offer their donors a comp subscription to the New York Times?",
+        help_text="Should page authors for this Revenue Program see the option to offer their contributors a comp subscription to the New York Times?",
         verbose_name="Allow page editors to offer an NYT subscription",
     )
     country = models.CharField(
@@ -284,7 +305,7 @@ class RevenueProgram(IndexedTimeStampedModel):
         # Avoid state of a rev program's default page not being one of "its pages"
         if self.default_donation_page and self.default_donation_page.revenue_program != self:
             raise ValidationError(
-                f'Donation page "{self.default_donation_page}" is already associated with a revenue program, "{self.default_donation_page.revenue_program}"'
+                f'Contribution page "{self.default_donation_page}" is already associated with a revenue program, "{self.default_donation_page.revenue_program}"'
             )
         # Ensure no @ symbol on twitter_handle-- we'll add those later
         if self.twitter_handle and self.twitter_handle[0] == "@":
@@ -353,7 +374,7 @@ class PaymentProvider(IndexedTimeStampedModel):
         return f"Stripe Payment Provider acct:{self.stripe_account_id} product:{self.stripe_product_id}"
 
     def get_dependent_pages_with_publication_date(self):
-        """Retreieve live and future live donation pages that rely on this payment provider"""
+        """Retreieve live and future live contribution pages that rely on this payment provider"""
         from apps.pages.models import DonationPage  # vs circular import
 
         return DonationPage.objects.filter(revenue_program__payment_provider=self, published_date__isnull=False)

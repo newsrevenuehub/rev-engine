@@ -9,7 +9,7 @@ import { LIVE_PAGE_DETAIL, getPaymentSuccessEndpoint } from 'ajax/endpoints';
 import { useAnalyticsContext } from 'components/analytics/AnalyticsContext';
 import { FB_PIXEL_PLUGIN_NAME } from 'components/analytics/plugins/facebookPixel';
 import { THANK_YOU_SLUG } from 'routes';
-import { HUB_GA_V3_ID } from 'settings';
+import { HUB_GA_V3_ID } from 'appSettings';
 import GlobalLoading from 'elements/GlobalLoading';
 
 function fetchPage(rpSlug, pageSlug) {
@@ -21,7 +21,7 @@ function patchPaymentSuccess(providerClientSecretId) {
 }
 
 // This is an interstitial page we use solely to call `trackConversion` from
-// our analytics. We use `stripe.confirmPayment` in our donation page form, which
+// our analytics. We use `stripe.confirmPayment` in our contribution page form, which
 // requires providing a return URL, which Stripe will send the user to after the
 // payment is processed. Some org's configure their page to go to a "custom", off-site
 // thank you page. In that case, we would not be able to track a conversion, so

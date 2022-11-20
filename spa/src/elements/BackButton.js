@@ -6,7 +6,7 @@ import { ICONS } from 'assets/icons/SvgIcon';
 // Routing
 import { useHistory } from 'react-router-dom';
 
-function BackButton({ to }) {
+function BackButton({ to, ...rest }) {
   const history = useHistory();
   const handleBack = () => {
     if (to) history.replace(to);
@@ -14,7 +14,7 @@ function BackButton({ to }) {
   };
 
   return (
-    <S.BackButton onClick={handleBack} whileHover={{ scale: 1.1, x: -8 }}>
+    <S.BackButton onClick={handleBack} whileHover={{ scale: 1.1, x: -2 }} {...rest}>
       <S.BackIcon icon={ICONS.ARROW_LEFT} />
     </S.BackButton>
   );

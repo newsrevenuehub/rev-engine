@@ -5,7 +5,7 @@ from django.db import migrations
 
 class Migration(migrations.Migration):
     dependencies = [
-        ("organizations", "0010_DEV-2733_revenueprogram_tax_id"),
+        ("organizations", "0009_DEV-1446_rename_donation_in_help_text"),
     ]
 
     operations = [

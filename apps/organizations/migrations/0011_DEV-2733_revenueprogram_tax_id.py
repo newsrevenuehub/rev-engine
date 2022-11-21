@@ -7,7 +7,7 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ("organizations", "0009_DEV-1446_rename_donation_in_help_text"),
+        ("organizations", "0010_DEV-1867_rename_plan_organization_plan_name"),
     ]
 
     operations = [

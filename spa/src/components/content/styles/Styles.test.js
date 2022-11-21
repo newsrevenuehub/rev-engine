@@ -42,7 +42,7 @@ describe('New style button behavior given org plan and user role', () => {
     await waitFor(() => {
       expect(axiosMock.history.get.length).toBe(1);
     });
-    const newStyleButton = screen.getByLabelText('New Style');
+    const newStyleButton = screen.getByRole('button', { name: 'New Style' });
     expect(newStyleButton).not.toBeDisabled();
   });
   test('when user is hub admin can always add', async () => {
@@ -52,7 +52,7 @@ describe('New style button behavior given org plan and user role', () => {
     await waitFor(() => {
       expect(axiosMock.history.get.length).toBe(1);
     });
-    const newStyleButton = screen.getByLabelText('New Style');
+    const newStyleButton = screen.getByRole('button', { name: 'New Style' });
     expect(newStyleButton).not.toBeDisabled();
   });
   test('typical self-onboarded user who has not added a style can add one', async () => {
@@ -62,7 +62,7 @@ describe('New style button behavior given org plan and user role', () => {
     await waitFor(() => {
       expect(axiosMock.history.get.length).toBe(1);
     });
-    const newStyleButton = screen.getByLabelText('New Style');
+    const newStyleButton = screen.getByRole('button', { name: 'New Style' });
     expect(newStyleButton).not.toBeDisabled();
   });
   test('typical self-onboarded user who has added a page cannot add one', async () => {
@@ -72,7 +72,7 @@ describe('New style button behavior given org plan and user role', () => {
     await waitFor(() => {
       expect(axiosMock.history.get.length).toBe(1);
     });
-    const newStyleButton = screen.getByLabelText('New Style');
+    const newStyleButton = screen.getByRole('button', { name: 'New Style' });
     expect(newStyleButton).toBeDisabled();
   });
 });

@@ -42,10 +42,8 @@ function Dashboard() {
   const { page, setPage, updatedPage } = usePageContext();
   const { user } = useUser();
   const { requiresVerification, displayConnectionSuccess, hideConnectionSuccess } = useConnectStripeAccount();
-
   const hasContributionsSectionAccess = user?.role_type && hasContributionsDashboardAccessToUser(flags);
   const hasContentSectionAccess = user?.role_type && flagIsActiveForUser(CONTENT_SECTION_ACCESS_FLAG_NAME, flags);
-
   const dashboardSlugRedirect = hasContentSectionAccess
     ? CONTENT_SLUG
     : hasContributionsSectionAccess
@@ -58,7 +56,7 @@ function Dashboard() {
   return (
     <S.Outer>
       {requiresVerification ? <ConnectStripeElements /> : ''}
-      {!displayConnectionSuccess && (
+      {displayConnectionSuccess && (
         <S.StripeConnectNotification>
           <SystemNotification
             type="success"

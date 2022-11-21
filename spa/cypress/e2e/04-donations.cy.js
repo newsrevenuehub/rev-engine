@@ -393,7 +393,13 @@ describe('Donations list', () => {
   });
 });
 
-describe.only('Table sorting for revenue program name', () => {
+describe('Table sorting for revenue program name', () => {
+  // Tests in this block assert about column headers and we want to ensure all are visible
+  // without having to scroll, so setting view port size here to accomodate all.
+
+  beforeEach(() => {
+    cy.viewport('macbook-16');
+  });
   specify('user has access to a single RP', () => {
     cy.forceLogin(orgAdminUserSingleRP);
     cy.intercept(getEndpoint(LIST_PAGES), { fixture: 'pages/list-pages-1' }).as('listPages');
@@ -406,11 +412,7 @@ describe.only('Table sorting for revenue program name', () => {
     });
     cy.findByRole('columnheader', { name: 'Sort by revenue program' }).should('not.exist');
   });
-  specify.only('user has access to more than one RP', () => {
-    // with the additional revenue program header, the default viewport size is not wide enough
-    // to accomodate all columns with out horizontal scrolling. To avoid having to scroll
-    // we set viewport width to a wide preset.
-    cy.viewport('macbook-16');
+  specify('user has access to more than one RP', () => {
     cy.forceLogin(orgAdminTwoRpsWithAccessFlags);
     cy.intercept(getEndpoint(LIST_PAGES), { fixture: 'pages/list-pages-1' }).as('listPages');
     cy.intercept({ method: 'GET', pathname: getEndpoint(USER) }, { body: orgAdminTwoRpsWithAccessFlags });

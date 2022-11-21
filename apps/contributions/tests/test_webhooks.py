@@ -301,11 +301,15 @@ class CustomerSubscriptionWebhooksTest(APITestCase):
 
 @pytest.mark.django_db()
 @pytest.mark.parametrize(
-    "interval",
-    (ContributionInterval.MONTHLY, ContributionInterval.YEARLY),
+    "interval,expect_reminder_email",
+    (
+        (ContributionInterval.MONTHLY, False),
+        (ContributionInterval.YEARLY, True),
+    ),
 )
 def test_invoice_updated_webhook(
     interval,
+    expect_reminder_email,
     client,
     monkeypatch,
 ):
@@ -318,6 +322,9 @@ def test_invoice_updated_webhook(
     header = {"HTTP_STRIPE_SIGNATURE": "testing", "content_type": "application/json"}
     response = client.post(reverse("stripe-webhooks"), data=data, **header)
     assert response.status_code == status.HTTP_200_OK
-    mock_send_reminder.assert_called_once_with(
-        make_aware(datetime.fromtimestamp(data["data"]["object"]["next_payment_attempt"])).date()
-    )
+    if expect_reminder_email:
+        mock_send_reminder.assert_called_once_with(
+            make_aware(datetime.fromtimestamp(data["data"]["object"]["next_payment_attempt"])).date()
+        )
+    else:
+        mock_send_reminder.assert_not_called()

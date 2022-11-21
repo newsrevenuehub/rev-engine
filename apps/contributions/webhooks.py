@@ -4,7 +4,7 @@ import logging
 from django.conf import settings
 from django.utils.timezone import make_aware
 
-from apps.contributions.models import Contribution, ContributionStatus
+from apps.contributions.models import Contribution, ContributionInterval, ContributionStatus
 
 
 logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
@@ -155,6 +155,7 @@ class StripeWebhookProcessor:
         if self.event.type != "invoice.upcoming":
             return
         contribution = Contribution.objects.get(provider_subscription_id=self.obj_data["subscription"])
-        contribution.send_recurring_contribution_email_reminder(
-            make_aware(datetime.datetime.fromtimestamp(self.obj_data["next_payment_attempt"])).date()
-        )
+        if contribution.interval == ContributionInterval.YEARLY:
+            contribution.send_recurring_contribution_email_reminder(
+                make_aware(datetime.datetime.fromtimestamp(self.obj_data["next_payment_attempt"])).date()
+            )

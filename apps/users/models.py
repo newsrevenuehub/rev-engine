@@ -1,3 +1,6 @@
+import logging
+
+from django.conf import settings
 from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin
 from django.db import models
 from django.utils.translation import ugettext_lazy as _
@@ -5,7 +8,12 @@ from django.utils.translation import ugettext_lazy as _
 from apps.common.models import IndexedTimeStampedModel
 from apps.users.managers import UserManager
 
+from ..common.utils import google_cloud_pub_sub_is_configured
 from .choices import Roles
+from .google_pub_sub import GoogleCloudPubSubPublisher, Message
+
+
+logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
 
 
 class User(AbstractBaseUser, PermissionsMixin, IndexedTimeStampedModel):
@@ -51,6 +59,16 @@ class User(AbstractBaseUser, PermissionsMixin, IndexedTimeStampedModel):
 
     def __str__(self):
         return self.email
+
+    def save(self, *args, **kwargs):
+        email_publishable = self._email_is_publishable()
+        super().save(*args, **kwargs)
+        if google_cloud_pub_sub_is_configured() and email_publishable:
+            logger.debug("Will publish email to Google Cloud PubSub: %s", self.email)
+            GoogleCloudPubSubPublisher.get_instance().publish(settings.NEW_USER_TOPIC, Message(data=self.email))
+
+    def _email_is_publishable(self) -> bool:
+        return self._state.adding and self.email
 
 
 class OrganizationUser(models.Model):

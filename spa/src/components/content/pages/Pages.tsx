@@ -1,6 +1,7 @@
-import { useState, Fragment, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import orderBy from 'lodash.orderby';
+import { Fragment, useMemo, useState } from 'react';
+import { useAlert } from 'react-alert';
 import join from 'url-join';
 import { Content } from './Pages.styled';
 
@@ -9,25 +10,24 @@ import { useHistory } from 'react-router-dom';
 import { EDITOR_ROUTE } from 'routes';
 
 // Constants
-import { GENERIC_ERROR } from 'constants/textConstants';
 import { USER_ROLE_HUB_ADMIN_TYPE, USER_SUPERUSER_TYPE } from 'constants/authConstants';
+import { GENERIC_ERROR } from 'constants/textConstants';
 // AJAX
-import { LIST_PAGES } from 'ajax/endpoints';
 import axios from 'ajax/axios';
+import { LIST_PAGES } from 'ajax/endpoints';
 
 // Children
-import GenericErrorBoundary from 'components/errors/GenericErrorBoundary';
 import EditButton from 'components/common/Button/EditButton';
-import NewButton from 'components/common/Button/NewButton';
 import Hero from 'components/common/Hero';
-import useModal from 'hooks/useModal';
-import useUser from 'hooks/useUser';
+import GenericErrorBoundary from 'components/errors/GenericErrorBoundary';
 import GlobalLoading from 'elements/GlobalLoading';
+import useUser from 'hooks/useUser';
+import { Page } from 'hooks/useUser.types';
 
-import AddPageModal from './AddPageModal';
+import AddPage from './AddPage';
 
-export const pagesbyRP = (pgsRaw, qry) => {
-  const pagesByRevProgram = [];
+export const pagesbyRP = (pgsRaw: Page[], qry?: string) => {
+  const pagesByRevProgram: { name: string; pages: Page[] }[] = [];
   const pgs = qry
     ? pgsRaw?.filter((page) => {
         return (
@@ -61,9 +61,9 @@ async function fetchPages() {
 }
 
 function Pages() {
+  const alert = useAlert();
   const history = useHistory();
-  const [pageSearchQuery, setPageSearchQuery] = useState([]);
-  const { open: showAddPageModal, handleClose, handleOpen } = useModal();
+  const [pageSearchQuery, setPageSearchQuery] = useState('');
   const { user, isLoading: userLoading } = useUser();
   const { data: pages, isLoading: pagesLoading } = useQuery(['pages'], fetchPages, {
     onError: () => alert.error(GENERIC_ERROR),
@@ -72,7 +72,7 @@ function Pages() {
 
   const isLoading = pagesLoading || userLoading;
 
-  const handleEditPage = (page) => {
+  const handleEditPage = (page: Page) => {
     const path = join([EDITOR_ROUTE, page.revenue_program.slug, page.slug, '/']);
     history.push({ pathname: path, state: { pageId: page.id } });
   };
@@ -80,7 +80,7 @@ function Pages() {
   const pagesByRevenueProgram = pagesbyRP(pages, pageSearchQuery);
 
   const addPageButtonShouldBeDisabled = useMemo(() => {
-    if ([USER_ROLE_HUB_ADMIN_TYPE, USER_SUPERUSER_TYPE].includes(user?.role_type?.[0])) {
+    if ([USER_ROLE_HUB_ADMIN_TYPE, USER_SUPERUSER_TYPE].includes(user?.role_type?.[0] ?? '')) {
       return false;
     }
     const pageLimit = user?.organizations?.[0]?.plan?.page_limit ?? 0;
@@ -98,7 +98,7 @@ function Pages() {
           onChange={setPageSearchQuery}
         />
         <Content data-testid="pages-list">
-          <NewButton data-testid="new-page-button" disabled={addPageButtonShouldBeDisabled} onClick={handleOpen} />
+          <AddPage pagesByRevenueProgram={pagesByRevenueProgram} disabled={addPageButtonShouldBeDisabled} />
           {!!pagesByRevenueProgram.length &&
             pagesByRevenueProgram.map((revenueProgram) => (
               <Fragment key={revenueProgram.name}>
@@ -109,13 +109,6 @@ function Pages() {
             ))}
         </Content>
       </GenericErrorBoundary>
-      {showAddPageModal && (
-        <AddPageModal
-          isOpen={showAddPageModal}
-          closeModal={handleClose}
-          pagesByRevenueProgram={pagesByRevenueProgram}
-        />
-      )}
     </>
   );
 }

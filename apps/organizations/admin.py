@@ -95,6 +95,10 @@ class OrganizationAdmin(RevEngineBaseAdmin, VersionAdmin):
             "Email Templates",
             {"fields": ("send_receipt_email_via_nre",)},
         ),
+        (
+            "Integrations",
+            {"fields": ("show_connected_to_slack",)},
+        ),
     )
 
     fieldsets = organization_fieldset

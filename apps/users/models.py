@@ -29,7 +29,7 @@ class User(AbstractBaseUser, PermissionsMixin, IndexedTimeStampedModel):
         ),
     )
     organizations = models.ManyToManyField("organizations.Organization", through="users.OrganizationUser")
-    accepted_terms_of_service = models.DateTimeField(null=True)
+    accepted_terms_of_service = models.DateTimeField(null=True, blank=True)
     email_verified = models.BooleanField(default=False)
     first_name = models.CharField(max_length=50, blank=True, null=True)
     last_name = models.CharField(max_length=50, blank=True, null=True)

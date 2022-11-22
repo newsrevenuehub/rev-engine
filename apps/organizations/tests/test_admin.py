@@ -5,11 +5,13 @@ from django.urls import reverse
 from django.utils import timezone
 
 import pytest
+from bs4 import BeautifulSoup
 from bs4 import BeautifulSoup as bs4
 
 from apps.organizations.admin import PaymentProviderAdmin
 from apps.organizations.tests.factories import (
     BenefitLevelFactory,
+    OrganizationFactory,
     PaymentProviderFactory,
     RevenueProgramFactory,
 )
@@ -106,3 +108,15 @@ def test_payment_provider_list_revenue_program_exists(admin_client):
     actual_rps = soup.select_one(".field-revenue_programs").text
     assert revenue_program_1.name in actual_rps
     assert revenue_program_2.name in actual_rps
+
+
+def test_show_expected_fields_on_organization_pages(admin_client):
+    # add page
+    response = admin_client.get(reverse("admin:organizations_organization_add"))
+    soup = BeautifulSoup(response.content)
+    assert soup.find("input", {"name": "show_connected_to_slack"}) is not None
+    # change page
+    org = OrganizationFactory()
+    response = admin_client.get(f"/nrhadmin/organizations/organization/{org.id}/change/")
+    soup = BeautifulSoup(response.content)
+    assert soup.find("input", {"name": "show_connected_to_slack"}) is not None

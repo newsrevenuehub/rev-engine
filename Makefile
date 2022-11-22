@@ -47,7 +47,7 @@ run-gcloud-pub-sub:
 
 run-redis:
 	@echo 'Running local development with redis'
-	docker-compose -f docker-compose.yml -f docker-compose-dev.yml up -d --remove orphans redis db
+	docker-compose -f docker-compose.yml -f docker-compose-dev.yml up -d --remove-orphans redis db
 	cd spa; export PORT=3000; npm run start:subdomains &
 	python manage.py runserver
 

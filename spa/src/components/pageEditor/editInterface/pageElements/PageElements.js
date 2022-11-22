@@ -1,4 +1,4 @@
-import * as S from './PageElements.styled';
+import { Root } from './PageElements.styled';
 
 // Context
 import { useEditInterfaceContext } from 'components/pageEditor/editInterface/EditInterface';
@@ -20,7 +20,7 @@ function PageElements({ openAddElementModal, goToProperties, handleRemoveElement
   const { elements, setElements } = useEditInterfaceContext();
 
   return (
-    <S.PageElements>
+    <Root>
       <EditTabHeader
         addButtonLabel="Add Block"
         onAdd={openAddElementModal}
@@ -36,7 +36,7 @@ function PageElements({ openAddElementModal, goToProperties, handleRemoveElement
           />
         </ScrollBox>
       )}
-    </S.PageElements>
+    </Root>
   );
 }
 

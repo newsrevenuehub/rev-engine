@@ -1,5 +1,3 @@
-import * as S from './PageSidebarElements.styled';
-
 // Context
 import { useEditInterfaceContext } from 'components/pageEditor/editInterface/EditInterface';
 
@@ -12,7 +10,7 @@ function PageSidebarElements({ openAddElementModal, goToProperties, handleRemove
   const { sidebarElements, setSidebarElements } = useEditInterfaceContext();
 
   return (
-    <S.PageSidebarElements data-testid="page-sidebar">
+    <div data-testid="page-sidebar">
       <EditTabHeader
         addButtonLabel="Add Block"
         onAdd={openAddElementModal}
@@ -28,7 +26,7 @@ function PageSidebarElements({ openAddElementModal, goToProperties, handleRemove
           />
         </ScrollBox>
       )}
-    </S.PageSidebarElements>
+    </div>
   );
 }
 

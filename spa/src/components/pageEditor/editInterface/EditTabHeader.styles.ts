@@ -10,6 +10,7 @@ export const Root = styled.div`
   display: flex;
   justify-content: space-between;
   margin: 0 auto;
+  min-height: 56px; /* force height to be consistent even if button is not present */
   padding-top: 20px;
   width: 90%; /* mimicking content container */
 `;

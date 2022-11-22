@@ -36,3 +36,24 @@ def send_templated_email(
         ],
         html_message=render_to_string(html_template, template_data),
     )
+
+
+@shared_task(
+    name="send_templated_email_with_attachment",
+    max_retries=5,
+    retry_backoff=True,
+    retry_jitter=False,
+    autoretry_for=(AnymailAPIError,),
+)
+def send_templated_email_with_attachment(
+    to,
+    subject,
+    text_template,
+    html_template,
+    template_data,
+    attachment,
+    content_type,
+    filename,
+    from_email=settings.EMAIL_DEFAULT_TRANSACTIONAL_SENDER,
+):
+    pass

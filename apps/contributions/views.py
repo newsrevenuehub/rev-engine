@@ -18,6 +18,7 @@ from stripe.error import StripeError
 from apps.api.permissions import (
     HasFlaggedAccessToContributionsApiResource,
     HasRoleAssignment,
+    IsContributor,
     IsContributorOwningContribution,
     IsHubAdmin,
 )
@@ -35,7 +36,9 @@ from apps.contributions.stripe_contributions_provider import (
     SubscriptionsCacheProvider,
 )
 from apps.contributions.tasks import task_pull_serialized_stripe_contributions_to_cache
+from apps.contributions.utils import export_contributions_to_csv
 from apps.contributions.webhooks import StripeWebhookProcessor
+from apps.emails.tasks import send_templated_email_with_attachment
 from apps.organizations.models import PaymentProvider, RevenueProgram
 from apps.public.permissions import IsActiveSuperUser
 from apps.users.views import FilterQuerySetByUserMixin
@@ -333,6 +336,29 @@ class ContributionsViewSet(viewsets.ReadOnlyModelViewSet, FilterQuerySetByUserMi
             return Response({"detail": str(pp_error)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
         return Response(data={"detail": "rejected" if reject else "accepted"}, status=status.HTTP_200_OK)
+
+    @action(methods=["post"], detail=False, permission_classes=[IsAuthenticated, ~IsContributor, HasRoleAssignment])
+    def email_contributions(self, request):
+        try:
+            user_email = request.user.email
+            queryset = self.filter_queryset_for_user(
+                self.request.user, self.model.objects.filter(provider_payment_method_details__isnull=False)
+            )
+            contributions = super().filter_queryset(queryset)
+            contributions_in_csv = export_contributions_to_csv(contributions)
+            send_templated_email_with_attachment.delay(
+                to=user_email,
+                subject="Checkout your Contributions",
+                text_template="",
+                html_template="",
+                template_data="",
+                attachment=contributions_in_csv,
+                content_type="text/csv",
+                content_type="contributions.csv",
+            )
+            return Response(data={"detail": "success"}, status=status.HTTP_200_OK)
+        except Exception as ex:
+            return Response(data={"status": "failed", "detail": str(ex)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 class SubscriptionsViewSet(viewsets.ViewSet):

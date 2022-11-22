@@ -152,5 +152,4 @@ class StripeWebhookProcessor:
         if self.event.type == "payment_method.attached":
             contribution = Contribution.objects.get(provider_customer_id=self.obj_data["customer"])
             contribution.provider_payment_method_id = self.obj_data["id"]
-            contribution.provider_payment_method_details = self.obj_data
             contribution.save()

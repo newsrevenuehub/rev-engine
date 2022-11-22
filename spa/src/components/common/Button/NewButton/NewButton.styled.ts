@@ -1,7 +1,8 @@
+import { BUTTON_TYPE, NewButtonType } from 'constants/buttonConstants';
 import styled from 'styled-components';
 import lighten from 'styles/utils/lighten';
 
-export const Flex = styled.div`
+export const Flex = styled.div<{ disabled: boolean }>`
   display: flex;
   flex-direction: column;
   align-items: start;
@@ -10,13 +11,13 @@ export const Flex = styled.div`
   color: ${(props) => (props.disabled ? '#AFAFAF' : 'inherit')};
 `;
 
-export const Button = styled.button`
+export const Button = styled.button<{ customType: NewButtonType }>`
   display: flex;
   justify-content: center;
   align-items: center;
   background-color: ${(props) =>
     props.disabled ? props.theme.colors.status.processing : props.theme.colors.muiLightBlue[800]};
-  height: ${(props) => (props.type === 'page' ? '120px' : '70px')};
+  height: ${(props) => (props.customType === BUTTON_TYPE.PAGE ? '120px' : '70px')};
   width: 168px;
   font-size: ${(props) => props.theme.fontSizesUpdated.h1};
   border-radius: ${(props) => props.theme.muiBorderRadius.lg};

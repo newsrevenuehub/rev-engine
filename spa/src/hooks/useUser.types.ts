@@ -1,14 +1,31 @@
 import { FeatureFlag } from './useFeatureFlags.types';
 import { UserRole } from 'constants/authConstants';
 
-interface RevenueProgram {
+export interface Page {
+  id: number;
+  name: string;
+  slug: string;
+  revenue_program: RevenueProgram;
+}
+
+export interface RevenueProgram {
   id: string;
   name: string;
+  slug: string;
   payment_provider_stripe_verified: boolean;
 }
 
-interface Organization {
+export interface Plan {
   name: string;
+  label: string;
+  page_limit: number;
+  style_limit: number;
+  custom_thank_you_page_enabled: boolean;
+}
+export interface Organization {
+  name: string;
+  slug: string;
+  plan?: Plan;
 }
 
 export interface User {
@@ -20,6 +37,6 @@ export interface User {
    * The role the user has. The first value is an internal ID, the second is human-readable.
    */
   role_type: [UserRole, string];
-  organization: Organization;
+  organizations: Organization[];
   flags: FeatureFlag[];
 }

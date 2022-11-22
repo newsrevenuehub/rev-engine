@@ -22,6 +22,7 @@ from apps.common.utils import (
     extract_ticket_id_from_branch_name,
     get_original_ip_from_request,
     get_subdomain_from_request,
+    google_cloud_pub_sub_is_configured,
     normalize_slug,
     upsert_cloudflare_cnames,
 )
@@ -260,3 +261,31 @@ def test_ip_in_cf_connecting_header():
     request = HttpRequest()
     request.META["REMOTE_ADDR"] = "baz"
     assert get_original_ip_from_request(request) == "baz"  # REMOTE_ADDR is used
+
+
+def test_google_cloud_pub_sub_is_configured_when_true(monkeypatch):
+    monkeypatch.setattr("django.conf.settings.ENABLE_PUBSUB", True)
+    monkeypatch.setattr("django.conf.settings.NEW_USER_TOPIC", "topic")
+    monkeypatch.setattr("django.conf.settings.GOOGLE_CLOUD_PROJECT", "project")
+    assert google_cloud_pub_sub_is_configured()
+
+
+def test_google_cloud_pub_sub_is_configured_pub_sub_disable(monkeypatch):
+    monkeypatch.setattr("django.conf.settings.ENABLE_PUBSUB", False)
+    monkeypatch.setattr("django.conf.settings.NEW_USER_TOPIC", "topic")
+    monkeypatch.setattr("django.conf.settings.GOOGLE_CLOUD_PROJECT", "project")
+    assert not google_cloud_pub_sub_is_configured()
+
+
+def test_google_cloud_pub_sub_is_configured_new_user_topic_missing(monkeypatch):
+    monkeypatch.setattr("django.conf.settings.ENABLE_PUBSUB", True)
+    monkeypatch.setattr("django.conf.settings.NEW_USER_TOPIC", "")
+    monkeypatch.setattr("django.conf.settings.GOOGLE_CLOUD_PROJECT", "project")
+    assert not google_cloud_pub_sub_is_configured()
+
+
+def test_google_cloud_pub_sub_is_configured_project_missing(monkeypatch):
+    monkeypatch.setattr("django.conf.settings.ENABLE_PUBSUB", True)
+    monkeypatch.setattr("django.conf.settings.NEW_USER_TOPIC", "topic")
+    monkeypatch.setattr("django.conf.settings.GOOGLE_CLOUD_PROJECT", "")
+    assert not google_cloud_pub_sub_is_configured()

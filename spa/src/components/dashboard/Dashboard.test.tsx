@@ -1,11 +1,8 @@
-import MockAdapter from 'axios-mock-adapter';
 import { render, screen, within } from 'test-utils';
 import { useLocation } from 'react-router-dom';
 
 import { CONTENT_SECTION_ACCESS_FLAG_NAME } from 'constants/featureFlagConstants';
 import Dashboard from './Dashboard';
-import Axios from 'ajax/axios';
-import { getStripeAccountLinkStatusPath } from 'ajax/endpoints';
 import { CONTENT_SLUG } from 'routes';
 
 import useConnectStripeAccount from 'hooks/useConnectStripeAccount';
@@ -13,10 +10,10 @@ import useFeatureFlags from 'hooks/useFeatureFlags';
 import useUser from 'hooks/useUser';
 
 jest.mock('elements/GlobalLoading');
-jest.mock('hooks/useConnectStripeAccount');
 jest.mock('hooks/useFeatureFlags');
 jest.mock('hooks/useRequest');
 jest.mock('hooks/useUser');
+jest.mock('hooks/useConnectStripeAccount');
 jest.mock('react-router-dom', () => ({
   ...(jest.requireActual('react-router-dom') as object),
   useLocation: jest.fn()
@@ -38,13 +35,11 @@ describe('Dashboard', () => {
   const useUserMock = useUser as jest.Mock;
   const useLocationMock = useLocation as jest.Mock;
 
-  const axiosMock = new MockAdapter(Axios);
-
   beforeEach(() => {
     useConnectStripeAccountMock.mockReturnValue({
       requiresVerification: false,
-      displayConnectionStatus: false,
-      hideConnectionStatus: jest.fn(),
+      displayConnectionSuccess: false,
+      hideConnectionSuccess: jest.fn(),
       isLoading: false
     });
     useFeatureFlagsMock.mockReturnValue({
@@ -53,7 +48,6 @@ describe('Dashboard', () => {
       isError: false
     });
     useUserMock.mockReturnValue({ ...useUserMockDefaults });
-
     useLocationMock.mockReturnValue({
       pathname: CONTENT_SLUG,
       search: '',
@@ -62,15 +56,15 @@ describe('Dashboard', () => {
     });
   });
 
-  afterEach(() => {
-    axiosMock.reset();
-    axiosMock.resetHistory();
-  });
-
-  afterAll(() => axiosMock.restore());
-
-  it('should display a user-dismissable system notification when Stripe Connect completes', async () => {
+  it('should display a system notification when Stripe Connect completes', async () => {
     const rpId = '1';
+    const hideConnectionSuccess = jest.fn();
+    useConnectStripeAccountMock.mockReturnValue({
+      requiresVerification: false,
+      displayConnectionSuccess: true,
+      hideConnectionSuccess,
+      isLoading: false
+    });
     useUserMock.mockReturnValue({
       ...useUserMockDefaults,
       user: {
@@ -78,7 +72,6 @@ describe('Dashboard', () => {
         revenue_programs: [{ payment_provider_stripe_verified: false, id: rpId }]
       }
     });
-    axiosMock.onPost(getStripeAccountLinkStatusPath(rpId)).reply(200, { requiresVerification: false });
     render(<Dashboard />);
     const notification = await screen.findByRole('status');
     expect(notification).toBeVisible();
@@ -89,7 +82,7 @@ describe('Dashboard', () => {
       )
     ).toBeVisible();
     within(notification).getByRole('button', { name: 'close notification' }).click();
-    expect(notification).not.toBeInTheDocument();
+    expect(hideConnectionSuccess).toHaveBeenCalledTimes(1);
   });
   it('shows a loading status when Stripe account link status is loading', () => {
     useConnectStripeAccountMock.mockReturnValue({ isLoading: true });

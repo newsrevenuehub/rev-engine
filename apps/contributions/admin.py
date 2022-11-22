@@ -58,6 +58,7 @@ class ContributionAdmin(RevEngineBaseAdmin, VersionAdmin):
                     "payment_provider_data",
                     "provider_payment_method_id",
                     "provider_payment_method_details",
+                    "provider_setup_intent_id",
                 ),
             },
         ),

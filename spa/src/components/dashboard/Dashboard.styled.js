@@ -31,7 +31,7 @@ export const DashboardContent = styled.main`
 `;
 
 export const StripeConnectNotification = styled.div`
-  position: absolute;
+  position: fixed;
   bottom: 10px;
   right: 0;
   margin-right: 20px;

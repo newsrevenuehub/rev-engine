@@ -82,9 +82,9 @@ describe('Add Page modal', () => {
     cy.visit(CONTENT_SLUG);
     cy.url().should('include', CONTENT_SLUG);
     cy.wait('@listPages');
-    cy.get('button[aria-label="New Page"]').click();
+    cy.getByTestId('new-page-button').click();
     cy.getByTestId('page-create-modal');
-    cy.contains('Choose a revenue program');
+    cy.contains('Select the Revenue Program for this new page.');
   });
 
   it('puts the rev_program in the outgoing request', () => {
@@ -94,13 +94,11 @@ describe('Add Page modal', () => {
       { fixture: 'pages/list-pages-1', statusCode: 200 }
     ).as('listPages');
     cy.visit(CONTENT_SLUG);
-    cy.get('button[aria-label="New Page"]').click();
-    cy.getByTestId('page-name').type('My Testing Page');
-    cy.getByTestId('page-name').blur();
-    cy.getByTestId('revenue-program-picker').click();
-    cy.getByTestId('select-item-0').click();
+    cy.getByTestId('new-page-button').click();
+    cy.getByTestId('new-page-revenue-program').click();
+    cy.getByTestId('select-revenue-program-0').click();
     cy.intercept({ method: 'POST', pathname: getEndpoint(LIST_PAGES) }).as('createNewPage');
-    cy.getByTestId('save-new-page-button').click({ force: true });
+    cy.getByTestId('new-page-submit').click({ force: true });
     cy.wait('@createNewPage').then(({ request }) => expect(request.body).to.have.property('revenue_program'));
   });
 
@@ -113,7 +111,7 @@ describe('Add Page modal', () => {
       cy.intercept({ method: 'GET', pathname: getEndpoint(LIST_PAGES) }, { body: [], statusCode: 200 }).as('listPages');
       cy.intercept({ method: 'POST', pathname: getEndpoint(LIST_PAGES) }).as('createNewPage');
       cy.visit(CONTENT_SLUG);
-      cy.get('button[aria-label="New Page"]').click();
+      cy.getByTestId('new-page-button').click();
       cy.wait('@createNewPage').then(({ request }) => {
         expect(request.body).to.eql({
           name: 'Page 1',
@@ -131,7 +129,7 @@ describe('Add Page modal', () => {
       cy.intercept({ method: 'POST', pathname: getEndpoint(LIST_PAGES) }, { statusCode: 200 }).as('createNewPage');
       cy.visit(CONTENT_SLUG);
       cy.wait('@listPages');
-      cy.get('button[aria-label="New Page"]').click();
+      cy.getByTestId('new-page-button').click();
       cy.wait('@createNewPage').then(({ request }) => {
         expect(request.body).to.eql({
           name: 'Page 2',
@@ -155,7 +153,7 @@ describe('Add Page modal', () => {
         }
       ).as('createNewPage');
       cy.visit(CONTENT_SLUG);
-      cy.get('button[aria-label="New Page"]').click();
+      cy.getByTestId('new-page-button').click();
       cy.wait('@createNewPage');
       cy.url().should('include', 'rp-1/page-1');
     });
@@ -169,7 +167,7 @@ describe('Add Page modal', () => {
         }
       ).as('createNewPage');
       cy.visit(CONTENT_SLUG);
-      cy.get('button[aria-label="New Page"]').click();
+      cy.getByTestId('new-page-button').click();
       cy.wait('@createNewPage');
       cy.contains('Create page error');
     });

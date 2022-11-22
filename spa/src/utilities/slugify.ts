@@ -1,4 +1,4 @@
-function slugify(string, separator = '-') {
+function slugify(string: string, separator = '-') {
   return string
     .toString()
     .normalize('NFD')

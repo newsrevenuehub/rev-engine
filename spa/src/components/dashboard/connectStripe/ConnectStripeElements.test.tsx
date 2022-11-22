@@ -1,6 +1,6 @@
 import { render, screen } from 'test-utils';
 import { fireEvent } from '@testing-library/react';
-import ConnectStripeElements from './ConnectStripeElements';
+import ConnectStripeElements, { CONNECT_TO_STRIPE_BUTTON_CTA } from './ConnectStripeElements';
 import useConnectStripeAccount from 'hooks/useConnectStripeAccount';
 import { CONNECT_STRIPE_COOKIE_NAME, CONNECT_STRIPE_FAQ_LINK } from 'constants/textConstants';
 import { useCookies } from 'react-cookie';
@@ -34,7 +34,7 @@ describe('ConnectStripeElements', () => {
     });
     render(<ConnectStripeElements />);
 
-    const connectToStripeButton = screen.getByRole('button', { name: 'Connect to Stripe' });
+    const connectToStripeButton = screen.getByRole('button', { name: CONNECT_TO_STRIPE_BUTTON_CTA });
 
     expect(connectToStripeButton).toBeEnabled();
     fireEvent.click(connectToStripeButton);
@@ -48,7 +48,7 @@ describe('ConnectStripeElements', () => {
     });
     render(<ConnectStripeElements />);
 
-    const connectToStripeButton = screen.getByRole('button', { name: 'Connect to Stripe' });
+    const connectToStripeButton = screen.getByRole('button', { name: CONNECT_TO_STRIPE_BUTTON_CTA });
 
     expect(connectToStripeButton).toBeDisabled();
   });
@@ -62,7 +62,7 @@ describe('ConnectStripeElements', () => {
   it('renders a Stripe-FAQ-link that opens in a new tab', () => {
     render(<ConnectStripeElements />);
 
-    const faqLink = screen.getByText('Stripe Connection FAQ');
+    const faqLink = screen.getByText('FAQ');
 
     expect(faqLink).toBeVisible();
     expect(faqLink).toHaveAttribute('href', CONNECT_STRIPE_FAQ_LINK);
@@ -78,7 +78,7 @@ describe('ConnectStripeElements', () => {
         unverifiedReason: 'past_due'
       });
       render(<ConnectStripeElements />);
-      expect(screen.getByRole('button', { name: 'Take me to Stripe' })).toBeEnabled();
+      expect(screen.getByRole('button', { name: CONNECT_TO_STRIPE_BUTTON_CTA })).toBeEnabled();
       expect(screen.queryByTestId('connect-stripe-modal')).not.toBeInTheDocument();
       expect(screen.getByTestId('connect-stripe-toast')).toBeInTheDocument();
     });

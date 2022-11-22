@@ -1,4 +1,4 @@
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 from django.test import override_settings
 
@@ -151,7 +151,6 @@ class MockStripeSubscription(StripeObject):
 
 
 @override_settings(STRIPE_TEST_SECRET_KEY=fake_api_key)
-@patch("stripe.PaymentMethod.retrieve", side_effect="{}")
 class StripeRecurringPaymentManagerTest(StripePaymentManagerAbstractTestCase):
     def setUp(self):
         super().setUp()
@@ -165,14 +164,22 @@ class StripeRecurringPaymentManagerTest(StripePaymentManagerAbstractTestCase):
         self.payment_method_id = "test_payment_method_id"
         self.data.update({"payment_method_id": self.payment_method_id, "interval": ContributionInterval.MONTHLY})
 
-    @patch("stripe.SetupIntent.cancel")
-    def test_reject_happy_path(self, mock_setup_intent_cancel, *args):
+    @patch("stripe.PaymentMethod.retrieve")
+    def test_reject_happy_path(self, mock_pm_retrieve, *args):
+        mock_pm_detach = Mock()
+
+        class MockPaymentMethod:
+            def __init__(self, *args, **kwargs):
+                self.detach = mock_pm_detach
+
+        mock_pm_retrieve.side_effect = lambda *args, **kwargs: MockPaymentMethod()
         pm = self._instantiate_payment_manager_with_instance()
         pm.complete_payment(reject=True)
-        mock_setup_intent_cancel.assert_called_once_with(
+        mock_pm_retrieve.assert_called_once_with(
             self.contribution.provider_setup_intent_id,
             stripe_account=self.contribution.donation_page.revenue_program.payment_provider.stripe_account_id,
         )
+        mock_pm_detach.assert_called_once()
         self.assertEqual(self.contribution.status, ContributionStatus.REJECTED)
 
     @patch("stripe.SetupIntent.cancel", side_effect=stripe_errors.StripeError)

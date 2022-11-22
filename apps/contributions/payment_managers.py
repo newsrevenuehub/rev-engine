@@ -128,10 +128,10 @@ class StripePaymentManager(PaymentManager):
     def complete_recurring_payment(self, reject=False):
         if reject:
             try:
-                stripe.SetupIntent.cancel(
-                    self.contribution.provider_setup_intent_id,
-                    stripe_account=self.contribution.donation_page.revenue_program.payment_provider.stripe_account_id,
-                )
+                stripe.PaymentMethod.retrieve(
+                    self.contribution.provider_payment_method_id,
+                    stripe_account=self.contribution.donation_page.revenue_program.stripe_account_id,
+                ).detach()
 
             except stripe.error.StripeError:
                 logger.exception(

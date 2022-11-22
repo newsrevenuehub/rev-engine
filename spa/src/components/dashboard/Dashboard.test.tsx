@@ -7,13 +7,16 @@ import Dashboard from './Dashboard';
 import Axios from 'ajax/axios';
 import { getStripeAccountLinkStatusPath } from 'ajax/endpoints';
 import { CONTENT_SLUG } from 'routes';
+
+import useConnectStripeAccount from 'hooks/useConnectStripeAccount';
 import useFeatureFlags from 'hooks/useFeatureFlags';
 import useUser from 'hooks/useUser';
 
 jest.mock('elements/GlobalLoading');
+jest.mock('hooks/useConnectStripeAccount');
 jest.mock('hooks/useFeatureFlags');
-jest.mock('hooks/useUser');
 jest.mock('hooks/useRequest');
+jest.mock('hooks/useUser');
 jest.mock('react-router-dom', () => ({
   ...(jest.requireActual('react-router-dom') as object),
   useLocation: jest.fn()
@@ -30,6 +33,7 @@ const useUserMockDefaults = {
 };
 
 describe('Dashboard', () => {
+  const useConnectStripeAccountMock = useConnectStripeAccount as jest.Mock;
   const useFeatureFlagsMock = useFeatureFlags as jest.Mock;
   const useUserMock = useUser as jest.Mock;
   const useLocationMock = useLocation as jest.Mock;
@@ -37,6 +41,12 @@ describe('Dashboard', () => {
   const axiosMock = new MockAdapter(Axios);
 
   beforeEach(() => {
+    useConnectStripeAccountMock.mockReturnValue({
+      requiresVerification: false,
+      displayConnectionStatus: false,
+      hideConnectionStatus: jest.fn(),
+      isLoading: false
+    });
     useFeatureFlagsMock.mockReturnValue({
       flags: [{ name: CONTENT_SECTION_ACCESS_FLAG_NAME }],
       isLoading: false,
@@ -80,5 +90,15 @@ describe('Dashboard', () => {
     ).toBeVisible();
     within(notification).getByRole('button', { name: 'close notification' }).click();
     expect(notification).not.toBeInTheDocument();
+  });
+  it('shows a loading status when Stripe account link status is loading', () => {
+    useConnectStripeAccountMock.mockReturnValue({ isLoading: true });
+    render(<Dashboard />);
+    expect(screen.getByTestId('mock-global-loading')).toBeInTheDocument();
+  });
+  it('does not show a loading status when Stripe account link status is not loading', () => {
+    useConnectStripeAccountMock.mockReturnValue({ isLoading: false });
+    render(<Dashboard />);
+    expect(screen.queryByTestId('mock-global-loading')).not.toBeInTheDocument();
   });
 });

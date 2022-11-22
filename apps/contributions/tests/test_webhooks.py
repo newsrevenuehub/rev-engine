@@ -1,18 +1,17 @@
 from datetime import datetime
-from unittest.mock import Mock, patch
+from unittest.mock import patch
 
 from django.conf import settings
 from django.test import override_settings
 from django.urls import reverse
 
-import pytest
 from rest_framework.test import APIRequestFactory, APITestCase
 from stripe.error import SignatureVerificationError
 from stripe.stripe_object import StripeObject
 
 from apps.contributions.models import Contribution, ContributionStatus
 from apps.contributions.views import process_stripe_webhook_view
-from apps.contributions.webhooks import StripeMetadataError, StripeWebhookProcessor
+from apps.contributions.webhooks import StripeWebhookProcessor
 from apps.organizations.tests.factories import (
     OrganizationFactory,
     PaymentProviderFactory,
@@ -298,23 +297,3 @@ class CustomerSubscriptionWebhooksTest(APITestCase):
         mock_fetch_pm.assert_not_called()
         contribution.refresh_from_db()
         self.assertEqual(contribution.status, ContributionStatus.CANCELED)
-
-
-class TestStripeWebhookProcessor:
-    def test_init_validates_metadata(self, monkeypatch):
-        mock_validate = Mock()
-        monkeypatch.setattr(StripeWebhookProcessor, "validate_event_metadata", mock_validate)
-        StripeWebhookProcessor(MockPaymentIntentEvent())
-        mock_validate.assert_called_once()
-
-    def test_validate_event_metadata_when_valid_schema_version(self):
-        event = MockPaymentIntentEvent()
-        assert event.data["object"]["metadata"]["schema_version"]
-        assert StripeWebhookProcessor.validate_event_metadata(event) is None
-
-    @pytest.mark.parametrize("schema_version", (None, "1.0", "1.2", ""))
-    def test_validate_event_metadata_when_invalid_schema_version(self, schema_version):
-        event = MockPaymentIntentEvent()
-        event.data["object"]["metadata"]["schema_version"] = schema_version
-        with pytest.raises(StripeMetadataError):
-            StripeWebhookProcessor.validate_event_metadata(event)

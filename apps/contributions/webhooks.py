@@ -10,28 +10,11 @@ from apps.slack.models import SlackNotificationTypes
 logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
 
 
-class StripeMetadataError(Exception):
-    pass
-
-
 class StripeWebhookProcessor:
     def __init__(self, event):
         logger.info("StripeWebhookProcessor initialized with event data: %s", event)
         self.event = event
         self.obj_data = self.event.data["object"]
-        self.validate_event_metadata(self.event)
-
-    @staticmethod
-    def validate_event_metadata(event):
-        """ """
-        try:
-            version = event["data"]["object"]["metadata"]["schema_version"]
-        except KeyError:
-            version = None
-        if version != (expected := settings.METADATA_SCHEMA_VERSION):
-            raise StripeMetadataError(
-                f"Unpermitted metadata version in even ({version}) while settings requires {expected}"
-            )
 
     def get_contribution_from_event(self):
         if (event_type := self.obj_data["object"]) == "subscription":

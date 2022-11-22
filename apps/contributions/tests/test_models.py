@@ -347,86 +347,114 @@ def contribution():
 
 @pytest.mark.django_db
 @pytest.mark.parametrize(
-    "status,interval",
+    "status",
     (
-        (ContributionStatus.PROCESSING, ContributionInterval.ONE_TIME),
-        (ContributionStatus.FLAGGED, ContributionInterval.ONE_TIME),
-        (ContributionStatus.PROCESSING, "uhoh"),
-        (ContributionStatus.PROCESSING, ContributionInterval.MONTHLY),
-        (ContributionStatus.FLAGGED, ContributionInterval.MONTHLY),
-        (ContributionStatus.PROCESSING, "uhoh"),
-        (ContributionStatus.PROCESSING, ContributionInterval.YEARLY),
-        (ContributionStatus.FLAGGED, ContributionInterval.YEARLY),
-        (ContributionStatus.PROCESSING, "uhoh"),
-        (ContributionStatus.CANCELED, ContributionInterval.ONE_TIME),
-        (ContributionStatus.CANCELED, ContributionInterval.MONTHLY),
-        (ContributionStatus.CANCELED, ContributionInterval.YEARLY),
-        (ContributionStatus.PAID, ContributionInterval.ONE_TIME),
-        (ContributionStatus.PAID, ContributionInterval.MONTHLY),
-        (ContributionStatus.PAID, ContributionInterval.YEARLY),
-        (ContributionStatus.FAILED, ContributionInterval.ONE_TIME),
-        (ContributionStatus.FAILED, ContributionInterval.MONTHLY),
-        (ContributionStatus.FAILED, ContributionInterval.YEARLY),
-        (ContributionStatus.REJECTED, ContributionInterval.ONE_TIME),
-        (ContributionStatus.REJECTED, ContributionInterval.MONTHLY),
-        (ContributionStatus.REJECTED, ContributionInterval.YEARLY),
-        (ContributionStatus.REFUNDED, ContributionInterval.ONE_TIME),
-        (ContributionStatus.REFUNDED, ContributionInterval.MONTHLY),
-        (ContributionStatus.REFUNDED, ContributionInterval.YEARLY),
-    ),
-)
-def test_contribution_cancel(status, interval, contribution, monkeypatch):
-    permitted_statuses = (
         ContributionStatus.PROCESSING,
         ContributionStatus.FLAGGED,
-    )
+    ),
+)
+def test_contribution_cancel_when_one_time(status, contribution, monkeypatch):
     contribution.status = status
-    contribution.interval = interval
+    contribution.interval = ContributionInterval.ONE_TIME
     contribution.save()
-    last_modified = contribution.modified
-
     mock_cancel = Mock()
 
     monkeypatch.setattr("stripe.PaymentIntent.cancel", mock_cancel)
-    monkeypatch.setattr("stripe.Subscription.delete", mock_cancel)
-    monkeypatch.setattr("stripe.SetupIntent.cancel", mock_cancel)
 
-    if interval == "uhoh":
-        with pytest.raises(ContributionIntervalError):
-            contribution.cancel()
-        assert contribution.modified == last_modified
-        mock_cancel.assert_not_called()
+    contribution.cancel()
+    contribution.refresh_from_db()
+    assert contribution.status == ContributionStatus.CANCELED
+    mock_cancel.assert_called_once_with(
+        contribution.provider_payment_id,
+        stripe_account=contribution.donation_page.revenue_program.stripe_account_id,
+    )
 
-    elif status not in permitted_statuses:
-        with pytest.raises(ContributionStatusError):
-            contribution.cancel()
-        assert contribution.modified == last_modified
-        mock_cancel.assert_not_called()
+
+@pytest.mark.django_db
+@pytest.mark.parametrize(
+    "status,interval",
+    (
+        (ContributionStatus.PROCESSING, ContributionInterval.MONTHLY),
+        (ContributionStatus.PROCESSING, ContributionInterval.YEARLY),
+        (ContributionStatus.FLAGGED, ContributionInterval.MONTHLY),
+        (ContributionStatus.FLAGGED, ContributionInterval.YEARLY),
+    ),
+)
+def test_contribution_cancel_when_recurring(status, interval, contribution, monkeypatch):
+    contribution.status = status
+    contribution.interval = interval
+    contribution.save()
+
+    mock_delete_sub = Mock()
+    monkeypatch.setattr("stripe.Subscription.delete", mock_delete_sub)
+
+    mock_pm_detach = Mock()
+
+    class MockPaymentMethod:
+        def __init__(self, *args, **kwargs):
+            self.detach = mock_pm_detach
+
+    mock_retrieve_pm = Mock(return_value=MockPaymentMethod())
+    monkeypatch.setattr("stripe.PaymentMethod.retrieve", mock_retrieve_pm)
+
+    contribution.cancel()
+    contribution.refresh_from_db()
+    assert contribution.status == ContributionStatus.CANCELED
+
+    if status == ContributionStatus.PROCESSING:
+        mock_delete_sub.assert_called_once_with(
+            contribution.provider_subscription_id,
+            stripe_account=contribution.donation_page.revenue_program.stripe_account_id,
+        )
     else:
+        mock_retrieve_pm.assert_called_once_with(
+            contribution.provider_payment_method_id,
+            stripe_account=contribution.donation_page.revenue_program.stripe_account_id,
+        )
+        mock_pm_detach.assert_called_once()
+
+
+@pytest.mark.django_db()
+def test_contribution_cancel_when_unpermitted_interval(contribution, monkeypatch):
+    contribution.status = ContributionStatus.PROCESSING
+    contribution.interval = "foobar"
+    contribution.save()
+    last_modified = contribution.modified
+    mock_stripe_method = Mock()
+    monkeypatch.setattr("stripe.PaymentIntent.cancel", mock_stripe_method)
+    monkeypatch.setattr("stripe.Subscription.delete", mock_stripe_method)
+    monkeypatch.setattr("stripe.PaymentMethod.retrieve", mock_stripe_method)
+    monkeypatch.setattr("stripe.PaymentMethod.detach", mock_stripe_method)
+
+    with pytest.raises(ContributionIntervalError):
         contribution.cancel()
-        contribution.refresh_from_db()
-        assert contribution.status == ContributionStatus.CANCELED
-        mock_cancel.assert_called_once()
-        if interval == ContributionInterval.ONE_TIME:
-            mock_cancel.assert_called_once_with(
-                contribution.provider_payment_id,
-                stripe_account=contribution.donation_page.revenue_program.stripe_account_id,
-            )
-        elif (
-            interval in (ContributionInterval.MONTHLY, ContributionInterval.YEARLY)
-            and status == ContributionStatus.PROCESSING
-        ):
-            mock_cancel.assert_called_once_with(
-                contribution.provider_subscription_id,
-                stripe_account=contribution.donation_page.revenue_program.stripe_account_id,
-            )
-        elif (
-            interval in (ContributionInterval.MONTHLY, ContributionInterval.YEARLY)
-            and status == ContributionStatus.FLAGGED
-        ):
-            mock_cancel.assert_called_once_with(
-                contribution.provider_setup_intent_id,
-                stripe_account=contribution.donation_page.revenue_program.stripe_account_id,
-            )
-        else:
-            pytest.fail(f"Called with unexpected combination of interval and status: {interval} + {status}")
+    assert contribution.modified == last_modified
+    mock_stripe_method.assert_not_called()
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize(
+    "status",
+    (
+        ContributionStatus.CANCELED,
+        ContributionStatus.FAILED,
+        ContributionStatus.PAID,
+        ContributionStatus.REFUNDED,
+        ContributionStatus.REJECTED,
+        "unexpected",
+    ),
+)
+def test_contribution_cancel_when_unpermitted_status(status, contribution, monkeypatch):
+    contribution.status = status
+    contribution.save()
+    last_modified = contribution.modified
+    mock_stripe_method = Mock()
+    monkeypatch.setattr("stripe.PaymentIntent.cancel", mock_stripe_method)
+    monkeypatch.setattr("stripe.Subscription.delete", mock_stripe_method)
+    monkeypatch.setattr("stripe.PaymentMethod.retrieve", mock_stripe_method)
+    monkeypatch.setattr("stripe.PaymentMethod.detach", mock_stripe_method)
+
+    with pytest.raises(ContributionStatusError):
+        contribution.cancel()
+    assert contribution.modified == last_modified
+    mock_stripe_method.assert_not_called()

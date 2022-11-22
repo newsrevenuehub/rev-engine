@@ -1145,16 +1145,25 @@ class TestPaymentViewset:
     def test_destroy_when_contribution_interval_unexpected(self):
         interval = "foo"
         assert interval not in ContributionInterval.choices
-        contribution = ContributionFactory(interval=interval)
+        contribution = ContributionFactory(interval=interval, status=ContributionStatus.PROCESSING)
         url = reverse("payment-detail", kwargs={"uuid": str(contribution.uuid)})
         response = self.client.delete(url)
-        assert response.status_code == status.HTTP_409_CONFLICT
+        assert response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
 
-    @pytest.mark.parametrize("interval", (ContributionInterval.ONE_TIME.value, ContributionInterval.MONTHLY.value))
-    def test_destroy_when_stripe_error(self, interval, monkeypatch):
-        monkeypatch.setattr("apps.contributions.views.stripe.PaymentIntent.cancel", mock_stripe_call_with_error)
-        monkeypatch.setattr("apps.contributions.views.stripe.Subscription.delete", mock_stripe_call_with_error)
-        contribution = ContributionFactory(status=ContributionStatus.PROCESSING)
+    @pytest.mark.parametrize(
+        "interval,contribution_status",
+        (
+            (ContributionInterval.ONE_TIME, ContributionStatus.PROCESSING),
+            (ContributionInterval.MONTHLY, ContributionStatus.FLAGGED),
+            (ContributionInterval.ONE_TIME, ContributionStatus.PROCESSING),
+            (ContributionInterval.MONTHLY, ContributionStatus.FLAGGED),
+        ),
+    )
+    def test_destroy_when_stripe_error(self, interval, contribution_status, monkeypatch):
+        monkeypatch.setattr("stripe.PaymentIntent.cancel", mock_stripe_call_with_error)
+        monkeypatch.setattr("stripe.Subscription.delete", mock_stripe_call_with_error)
+        monkeypatch.setattr("stripe.PaymentMethod.retrieve", mock_stripe_call_with_error)
+        contribution = ContributionFactory(interval=interval, status=contribution_status)
         url = reverse("payment-detail", kwargs={"uuid": str(contribution.uuid)})
         response = self.client.delete(url)
         assert response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR

@@ -40,6 +40,7 @@ const StyledAutocomplete = styled(MuiAutocomplete)`
     .NreAutocompleteInput {
       /* Override the autocomplete default styling. */
       border: 1.5px solid rgb(196, 196, 196);
+      border-radius: 4px;
       padding: 12px 16px;
     }
 
@@ -54,6 +55,12 @@ const StyledAutocomplete = styled(MuiAutocomplete)`
       font: 600 16px Roboto, sans-serif;
       position: static;
       transform: none;
+    }
+
+    .NreAutocompleteInputUnderline::before,
+    .NreAutocompleteInputUnderline::after {
+      /* Hide the underline as we do with TextField. */
+      display: none;
     }
   }
 ` as typeof MuiAutocomplete;
@@ -76,7 +83,7 @@ export function SearchableSelect<OptionType>(props: SearchableSelectProps<Option
           InputLabelProps={{ ...params.InputLabelProps, classes: { root: 'NreAutocompleteInputLabelRoot' } }}
           InputProps={{
             ...params.InputProps,
-            classes: { root: 'NreAutocompleteInputRoot' }
+            classes: { root: 'NreAutocompleteInputRoot', underline: 'NreAutocompleteInputUnderline' }
           }}
           label={label}
           name={name}

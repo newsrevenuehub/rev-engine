@@ -47,6 +47,10 @@ const StyledMuiTextField = styled(MuiTextField)`
       }
     }
 
+    .NreTextFieldInputRoot {
+      margin-top: 14px;
+    }
+
     .Mui-error .NreTextFieldInput {
       border-color: rgb(200, 32, 63);
     }
@@ -77,7 +81,7 @@ export const TextField = forwardRef<HTMLDivElement, TextFieldProps>((props, ref)
   <StyledMuiTextField
     FormHelperTextProps={{ classes: { root: 'NreTextFieldFormHelperTextRoot' } }}
     inputProps={{ className: 'NreTextFieldInput' }}
-    InputProps={{ classes: { underline: 'NreTextFieldInputUnderline' } }}
+    InputProps={{ classes: { root: 'NreTextFieldInputRoot', underline: 'NreTextFieldInputUnderline' } }}
     InputLabelProps={{
       classes: { formControl: 'NreTextFieldInputLabelFormControl', root: 'NreTextFieldInputLabelRoot' },
       shrink: true

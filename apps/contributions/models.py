@@ -333,8 +333,10 @@ class Contribution(IndexedTimeStampedModel, RoleAssignmentResourceModelMixin):
             send_templated_email.delay(
                 self.contributor.email,
                 "Thank you for your contribution!",
-                "nrh-default-contribution-confirmation-email.txt",
-                "nrh-default-contribution-confirmation-email.html",
+                # TODO: After completing DEV-2892: Provide requested data to receipt emails,
+                # remove the "-temporary" from the following two lines
+                "nrh-default-contribution-confirmation-email-temporary.txt",
+                "nrh-default-contribution-confirmation-email-temporary.html",
                 {
                     "contribution_date": contribution_received_at.strftime("%m-%d-%y"),
                     "contributor_email": self.contributor.email,
@@ -343,5 +345,13 @@ class Contribution(IndexedTimeStampedModel, RoleAssignmentResourceModelMixin):
                     "contribution_interval_display_value": self.interval if self.interval != "one_time" else None,
                     "copyright_year": contribution_received_at.year,
                     "org_name": self.revenue_program.organization.name,
+                    # TODO: Missing field to be added on DEV-2892
+                    # "first_name": '',
+                    # "last_name": '',
+                    # "for_profit": '',
+                    # "company_type": '',
+                    # "tax_id": '',
+                    # "magic_link": '',
+                    # "logo": '',
                 },
             )

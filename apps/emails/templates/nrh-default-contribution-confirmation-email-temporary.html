@@ -143,18 +143,13 @@
             <table width="100%" cellpadding="0" cellspacing="0" border="0">
               <tr>
                 <td style="padding-right: 0px;padding-left: 0px;" align="left">
-                  <img class="logo inner-center" src="{{ logo }}">
-                </td>
-              </tr>
-              <tr>
-                <td style="padding-right: 0px;padding-left: 0px;" align="left">
                   <h1 class="thank-you-title inner-center">Thank You for Your Contribution!</h1>
                 </td>
               </tr>
               <tr>
                 <td style="padding-right: 0px;padding-left: 0px;" align="left">
                   <p class="user-info inner-center">
-                    Dear {{ first_name }} {{ last_name }},
+                    Dear contributor,
                   </p>
                   <p class="user-info user-info-second-line inner-center">
                     Thank you for supporting {{ org_name }}.
@@ -203,26 +198,6 @@
                 <td style="padding-right: 0px;padding-left: 0px;" align="left">
                   <p class="disclaimer inner-center">
                     No goods or services were provided in exchange for this contribution. This receipt may be used for tax purposes.
-                    {{ org_name }} is a {{ company_type }}
-                    {% if for_profit == true %}
-                    for profit
-                    {% else %}
-                    nonprofit
-                    {% endif %}
-                    organization
-                    {% if tax_id != "" %}
-                    with a Federal Tax ID #{{ tax_id }}
-                    {% endif %}.
-                  </p>
-                </td>
-              </tr>
-              <tr>
-                <td style="padding-right: 0px;padding-left: 0px;" align="left">
-                  <p class="text inner-center">
-                    Need to make changes to your contribution?
-                    <a class="link" href="{{ magic_link }}" target="_blank" rel="noopener noreferrer">
-                      Manage contributions here.
-                    </a>
                   </p>
                 </td>
               </tr>

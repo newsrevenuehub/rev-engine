@@ -1,6 +1,6 @@
 Thank you for your contribution!
 
-Dear {{ first_name }} {{ last_name }},
+Dear contributor,
 Thank you for supporting {{ org_name }}.
 
 Contribution Details
@@ -15,15 +15,3 @@ Amount Contributed: {{ contribution_amount }}/{{ contribution_interval_display_v
 {% endif %}
 
 No goods or services were provided in exchange for this contribution. This receipt may be used for tax purposes.
-{{ org_name }} is a {{ company_type }}
-{% if for_profit == true %}
-for profit
-{% else %}
-nonprofit
-{% endif %}
-organization
-{% if tax_id != "" %}
-with a Federal Tax ID #{{ tax_id }}
-{% endif %}.
-
-Need to make changes to your contribution? {% autoescape off %}{{ magic_link }}{% endautoescape %}

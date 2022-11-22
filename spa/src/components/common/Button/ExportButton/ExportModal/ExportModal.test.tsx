@@ -22,7 +22,7 @@ describe('ExportModal', () => {
   it('should render modal', () => {
     tree();
 
-    const modal = screen.getByRole('presentation', { name: 'Export to Email' });
+    const modal = screen.getByRole('dialog', { name: 'Export to Email' });
     expect(modal).toBeVisible();
 
     const title = screen.getByText(/Export to Email/i);

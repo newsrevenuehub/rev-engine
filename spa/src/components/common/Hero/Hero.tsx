@@ -38,11 +38,8 @@ const HeroPropTypes = {
 Hero.propTypes = HeroPropTypes;
 
 Hero.defaultProps = {
-  subtitle: undefined,
-  onChange: undefined,
   placeholder: '',
-  className: '',
-  exportData: undefined
+  className: ''
 };
 
 export default Hero;

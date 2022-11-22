@@ -11,49 +11,40 @@ describe('ExportButton', () => {
     return render(<ExportButton transactions={1234} email="mock-email" />);
   }
 
-  it('should render publish button', () => {
-    tree();
-
+  async function openModal() {
     const button = screen.getByRole('button', { name: /Export/i });
-    expect(button).toBeEnabled();
-  });
 
-  it('should open export modal when clicked', async () => {
-    tree();
-
-    const button = screen.getByRole('button', { name: /Export/i });
-    expect(button).toBeEnabled();
     fireEvent.click(button);
+    await waitFor(() => expect(screen.getByRole('dialog')).toBeVisible());
+  }
 
-    await waitFor(() => {
-      const modal = screen.getByRole('presentation');
-      expect(modal).toBeVisible();
-    });
+  it('should render an enabled export button', () => {
+    tree();
+
+    const button = screen.getByRole('button', { name: /Export/i });
+    expect(button).toBeEnabled();
   });
 
-  it('should be disabled if export is confirmed in modal', async () => {
+  it('should open export modal when the export button is clicked', async () => {
     tree();
-    fireEvent.click(screen.getByRole('button', { name: /Export/i }));
+    await openModal();
+  });
 
-    await waitFor(() => {
-      const modal = screen.getByRole('presentation');
-      expect(modal).toBeVisible();
-    });
+  it('should disable the export button if export is confirmed in modal', async () => {
+    tree();
+    await openModal();
 
     fireEvent.click(screen.getByRole('button', { name: /Export/i }));
-    expect(screen.queryByRole('presentation')).not.toBeInTheDocument();
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Sending.../i })).toBeDisabled();
   });
 
-  it('should show tooltip if button disabled and hovered', async () => {
+  it('should show tooltip on the export button if it is disabled', async () => {
     tree();
-    fireEvent.click(screen.getByRole('button', { name: /Export/i }));
-    await waitFor(() => {
-      const modal = screen.getByRole('presentation');
-      expect(modal).toBeVisible();
-    });
+    await openModal();
+
     fireEvent.click(screen.getByTestId('modal-export-button'));
-    expect(screen.queryByRole('presentation')).not.toBeInTheDocument();
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Sending.../i })).toBeDisabled();
 
     const buttonWrapper = screen.getByTestId('export-button-wrapper');

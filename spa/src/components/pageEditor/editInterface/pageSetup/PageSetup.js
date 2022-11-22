@@ -1,9 +1,6 @@
 import { useState } from 'react';
 import * as S from './PageSetup.styled';
 
-// Assets
-import { faCheck, faTimes } from '@fortawesome/free-solid-svg-icons';
-
 // Context
 import { usePageEditorContext } from 'components/pageEditor/PageEditor';
 import { useEditInterfaceContext } from 'components/pageEditor/editInterface/EditInterface';
@@ -15,7 +12,7 @@ import { isBefore, isAfter } from 'date-fns';
 // Children
 import ImageWithPreview from 'elements/inputs/ImageWithPreview';
 import Input from 'elements/inputs/Input';
-import CircleButton from 'elements/buttons/CircleButton';
+import EditSaveControls from '../EditSaveControls';
 import EditTabHeader from '../EditTabHeader';
 
 /**
@@ -36,8 +33,8 @@ function PageSetup({ backToProperties }) {
   const [header_link, setHeaderLink] = useState(page.header_link);
   const [thank_you_redirect, setThankYouRedirect] = useState(page.thank_you_redirect);
   const [post_thank_you_redirect, setPostThankYouRedirect] = useState(page.post_thank_you_redirect);
-  const [donor_benefits, setDonorBenefits] = useState(page.donor_benefits);
-  const [published_date, setPublishedDate] = useState(page.published_date ? new Date(page.published_date) : undefined);
+  const [donor_benefits] = useState(page.donor_benefits);
+  const [published_date] = useState(page.published_date ? new Date(page.published_date) : undefined);
 
   const handleKeepChanges = () => {
     verifyUnpublish(updatePage);
@@ -164,20 +161,7 @@ function PageSetup({ backToProperties }) {
           />
         </S.InputWrapper>
       </S.Controls>
-      <S.Buttons>
-        <CircleButton
-          icon={faCheck}
-          buttonType="positive"
-          onClick={handleKeepChanges}
-          data-testid="keep-element-changes-button"
-        />
-        <CircleButton
-          icon={faTimes}
-          buttonType="caution"
-          onClick={handleDiscardChanges}
-          data-testid="discard-element-changes-button"
-        />
-      </S.Buttons>
+      <EditSaveControls onUndo={handleDiscardChanges} onUpdate={handleKeepChanges} />
     </S.PageSetup>
   );
 }

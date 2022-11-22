@@ -1,8 +1,5 @@
 import { useState } from 'react';
-import { Buttons, Controls, Root } from './PageStyles.styled';
-
-// Assets
-import { faCheck, faTimes } from '@fortawesome/free-solid-svg-icons';
+import { Controls, Root } from './PageStyles.styled';
 
 // Context
 import { usePageEditorContext } from 'components/pageEditor/PageEditor';
@@ -10,9 +7,9 @@ import { useEditInterfaceContext } from 'components/pageEditor/editInterface/Edi
 
 // Children
 import useModal from 'hooks/useModal';
-import CircleButton from 'elements/buttons/CircleButton';
 import StylesChooser from 'components/pageEditor/editInterface/pageStyles/StylesChooser';
 import AddStylesModal from 'components/pageEditor/editInterface/pageStyles/AddStylesModal';
+import EditSaveControls from '../EditSaveControls';
 import EditTabHeader from '../EditTabHeader';
 
 function PageStyles({ backToProperties }) {
@@ -51,20 +48,7 @@ function PageStyles({ backToProperties }) {
       <Controls>
         <StylesChooser styles={availableStyles} selected={styles} setSelected={setStyles} />
       </Controls>
-      <Buttons>
-        <CircleButton
-          icon={faCheck}
-          buttonType="positive"
-          onClick={handleKeepChanges}
-          data-testid="keep-element-changes-button"
-        />
-        <CircleButton
-          icon={faTimes}
-          buttonType="caution"
-          onClick={handleDiscardChanges}
-          data-testid="discard-element-changes-button"
-        />
-      </Buttons>
+      <EditSaveControls onUndo={handleDiscardChanges} onUpdate={handleKeepChanges} />
       <AddStylesModal
         isOpen={addStylesModalOpen}
         closeModal={handleAddStylesModalClose}

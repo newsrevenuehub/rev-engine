@@ -150,8 +150,7 @@ describe('Contribution page edit', () => {
 
     it('should render element detail when edit item is clicked', () => {
       cy.editElement('DRichText');
-      cy.getByTestId('element-properties');
-      cy.getByTestId('discard-element-changes-button').click();
+      cy.getByTestId('element-properties').should('exist');
     });
 
     describe('Frequency editor', () => {
@@ -165,7 +164,7 @@ describe('Contribution page edit', () => {
       it('should validate frequency', () => {
         // Uncheck all the frequencies
         cy.getByTestId('frequency-toggle').click({ multiple: true });
-        cy.getByTestId('keep-element-changes-button').click({ force: true });
+        cy.findByRole('button', { name: 'Update' }).click();
         cy.getByTestId('alert').contains('You must have at least');
       });
 
@@ -175,7 +174,7 @@ describe('Contribution page edit', () => {
         // Make a change and save it.
         cy.getByTestId('frequency-toggle').click({ multiple: true });
         cy.getByTestId('frequency-toggle').contains('One time').click();
-        cy.getByTestId('keep-element-changes-button').click({ force: true });
+        cy.findByRole('button', { name: 'Update' }).click();
 
         // Contribution page should only show item checked, and nothing else.
         cy.getByTestId('d-frequency').contains('One time');
@@ -194,7 +193,7 @@ describe('Contribution page edit', () => {
       cy.editElement('DFrequency');
       cy.getByTestId('frequency-editor').find('li').first().click();
       cy.getByTestId('frequency-editor').find('li').click({ multiple: true });
-      cy.getByTestId('keep-element-changes-button').click({ force: true });
+      cy.findByRole('button', { name: 'Update' }).click();
       cy.editElement('DAmount');
     });
 
@@ -249,7 +248,7 @@ describe('Contribution page edit', () => {
         });
 
       cy.contains('One time').siblings('ul').children();
-      cy.getByTestId('discard-element-changes-button').click();
+      cy.findByRole('button', { name: 'Undo' }).click();
     });
   });
 
@@ -257,7 +256,6 @@ describe('Contribution page edit', () => {
     it('should render the DonorInfoEditor', () => {
       cy.editElement('DDonorInfo');
       cy.getByTestId('donor-info-editor').should('exist');
-      cy.getByTestId('discard-element-changes-button').click();
     });
   });
 
@@ -265,7 +263,6 @@ describe('Contribution page edit', () => {
     it('should render the DonorAmountEditor', () => {
       cy.editElement('DDonorAddress');
       cy.getByTestId('donor-address-editor').should('exist');
-      cy.getByTestId('discard-element-changes-button').click();
     });
   });
 
@@ -275,14 +272,12 @@ describe('Contribution page edit', () => {
     it('should render the PaymentEditor', () => {
       cy.editElement('DPayment');
       cy.getByTestId('payment-editor').should('exist');
-      cy.getByTestId('discard-element-changes-button').click();
     });
 
     it('should disable the checkbox to default paying fees if paying fees is turned off', () => {
       cy.editElement('DPayment');
       cy.getByTestId('payment-editor').get('.checkbox').first().click();
       cy.getByTestId('pay-fees-by-default').get('input[type="checkbox"]').should('be.disabled');
-      cy.getByTestId('discard-element-changes-button').click();
     });
   });
 
@@ -361,7 +356,7 @@ describe('Contribution page edit', () => {
       cy.editElement('DRichText');
 
       // Accept changes
-      cy.getByTestId('keep-element-changes-button').click({ force: true });
+      cy.findByRole('button', { name: 'Update' }).click({ force: true });
 
       // Save changes
       cy.getByTestId('save-page-button').click();
@@ -383,9 +378,7 @@ describe('Contribution page edit', () => {
       cy.getByTestId('edit-page-button').click();
       cy.getByTestId('edit-setup-tab').click({ force: true });
       cy.getByTestId('thank-you-redirect-link-input').type('not a valid url');
-      cy.get('#edit-setup-tab-panel').within(() =>
-        cy.getByTestId('keep-element-changes-button').click({ force: true })
-      );
+      cy.get('#edit-setup-tab-panel').within(() => cy.findByRole('button', { name: 'Update' }).click({ force: true }));
 
       // Before we save, let's close the tab so we can more meaningfully assert its presence later.
       cy.getByTestId('preview-page-button').click({ force: true });
@@ -453,10 +446,10 @@ describe('Contribution page edit', () => {
       cy.intercept({ method: 'GET', pathname: getEndpoint(LIST_STYLES) }, {});
 
       cy.getByTestId('edit-page-button').click({ force: true });
-      cy.findByRole('tab', { name: 'Sidebar' }).click();
+      cy.findByRole('tab', { name: 'Sidebar' }).click({ force: true });
       cy.editElement('DRichText');
       cy.get('[class=DraftEditor-editorContainer]').type('New Rich Text');
-      cy.getByTestId('keep-element-changes-button').click();
+      cy.findByRole('button', { name: 'Update' }).click();
       cy.getByTestId('preview-page-button').click();
       cy.get('[data-testid=donation-page__sidebar] > ul > li')
         .should('have.length', 2)
@@ -508,10 +501,8 @@ describe('Edit interface: Setup', () => {
 
     cy.getByTestId('s-page-heading').contains(previousHeading);
     cy.getByTestId('setup-heading-input').clear();
-    cy.getByTestId('setup-heading-input').type(newHeading);
-    cy.get('#edit-setup-tab-panel').within(() =>
-      cy.getByTestId('keep-element-changes-button').scrollIntoView().click()
-    );
+    cy.getByTestId('setup-heading-input').type(newHeading, { force: true });
+    cy.get('#edit-setup-tab-panel').within(() => cy.findByRole('button', { name: 'Update' }).scrollIntoView().click());
     cy.getByTestId('s-page-heading').contains(previousHeading).should('not.exist');
     cy.getByTestId('s-page-heading').contains(newHeading);
 
@@ -527,7 +518,7 @@ describe('Edit interface: Setup', () => {
 
   it('should show a warning when updating a live page', () => {
     cy.intercept({ method: 'GET', pathname: getEndpoint(LIST_STYLES) }, {});
-    cy.getByTestId('edit-layout-tab').click();
+    cy.getByTestId('edit-layout-tab').click({ force: true });
     cy.getByTestId('trash-button').first().click();
     cy.getByTestId('save-page-button').click();
     cy.getByTestId('confirmation-modal').contains("You're making changes to a live contribution page. Continue?");
@@ -592,6 +583,7 @@ describe('Contribution page delete', () => {
     cy.intercept({ method: 'DELETE', pathname: getEndpoint(`${DELETE_PAGE}*/`) }, { statusCode: 204 }).as('deletePage');
     cy.intercept({ method: 'GET', pathname: getEndpoint(LIST_PAGES) }, { body: [], statusCode: 200 });
   });
+
   it('should delete an unpublished page when delete button is pushed', () => {
     cy.intercept(
       { method: 'GET', pathname: getEndpoint(DRAFT_PAGE_DETAIL) },
@@ -608,6 +600,7 @@ describe('Contribution page delete', () => {
     });
     cy.location('pathname').should('eq', CONTENT_SLUG);
   });
+
   it('should show a confirmation modal and delete a published page when delete button is pushed', () => {
     cy.intercept(
       { method: 'GET', pathname: getEndpoint(DRAFT_PAGE_DETAIL) },
@@ -642,6 +635,7 @@ describe('Page load side effects', () => {
     cy.url().should('include', testEditPageUrl);
     cy.wait('@getPageDetail');
   });
+
   it('should NOT contain clearbit.js script in body', () => {
     cy.get('head').find(`script[src*="${CLEARBIT_SCRIPT_SRC}"]`).should('have.length', 0);
   });
@@ -681,7 +675,6 @@ describe('ReasonEditor', () => {
         expect($input).to.be.checked;
       });
     cy.getByTestId('create-reasons').should('exist');
-
     cy.getByTestId('ask-reason').click();
     cy.getByTestId('create-reasons').should('not.exist');
   });

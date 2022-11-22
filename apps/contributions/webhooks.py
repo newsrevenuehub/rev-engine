@@ -10,11 +10,28 @@ from apps.slack.models import SlackNotificationTypes
 logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
 
 
+class StripeMetadataError(Exception):
+    pass
+
+
 class StripeWebhookProcessor:
     def __init__(self, event):
         logger.info("StripeWebhookProcessor initialized with event data: %s", event)
         self.event = event
         self.obj_data = self.event.data["object"]
+        self.validate_event_metadata(self.event)
+
+    @staticmethod
+    def validate_event_metadata(event):
+        """ """
+        try:
+            version = event["data"]["object"]["metadata"]["schema_version"]
+        except KeyError:
+            version = None
+        if version != (expected := settings.METADATA_SCHEMA_VERSION):
+            raise StripeMetadataError(
+                f"Unpermitted metadata version in even ({version}) while settings requires {expected}"
+            )
 
     def get_contribution_from_event(self):
         if (event_type := self.obj_data["object"]) == "subscription":
@@ -55,6 +72,8 @@ class StripeWebhookProcessor:
             self.process_payment_intent()
         elif object_type == "subscription":
             self.process_subscription()
+        elif object_type == "payment_method":
+            self.process_payment_method()
         else:
             logger.warning('Received un-handled Stripe object of type "%s"', object_type)
 
@@ -144,3 +163,11 @@ class StripeWebhookProcessor:
         contribution.payment_provider_data = self.obj_data
         contribution.status = ContributionStatus.CANCELED
         contribution.save()
+
+    def process_payment_method(self):
+        """ """
+        if self.event.type == "payment_method.attached":
+            contribution = Contribution.objects.get(provider_customer_id=self.obj_data["customer"])
+            contribution.provider_payment_method_id = self.obj_data["id"]
+            contribution.provider_payment_method_details = self.obj_data
+            contribution.save()

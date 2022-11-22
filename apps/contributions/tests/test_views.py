@@ -1179,3 +1179,17 @@ def test_payment_success_view():
     url = reverse("payment-success", args=(str(contribution.uuid),))
     response = client.patch(url, {})
     assert response.status_code == status.HTTP_204_NO_CONTENT
+
+
+@pytest.mark.fixture
+def payment_method_attached_event():
+    pass
+
+
+@pytest.mark.django_db
+class TestStripeWebhooksViews:
+    def test_payment_method_attached_happy_path(self, client):
+        pass
+
+    def test_payment_method_attached_when_contribution_not_found(self, client):
+        pass

@@ -407,6 +407,7 @@ STRIPE_WEBHOOK_EVENTS = [
     "payment_intent.succeeded",
     "customer.subscription.updated",
     "customer.subscription.deleted",
+    "payment_method.attached",
 ]
 
 ### django-healthcheck Settings

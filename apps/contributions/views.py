@@ -37,7 +37,7 @@ from apps.contributions.stripe_contributions_provider import (
     SubscriptionsCacheProvider,
 )
 from apps.contributions.tasks import task_pull_serialized_stripe_contributions_to_cache
-from apps.contributions.webhooks import StripeWebhookProcessor
+from apps.contributions.webhooks import StripeMetadataError, StripeWebhookProcessor
 from apps.organizations.models import PaymentProvider, RevenueProgram
 from apps.public.permissions import IsActiveSuperUser
 from apps.users.views import FilterQuerySetByUserMixin
@@ -174,7 +174,7 @@ def process_stripe_webhook_view(request):
         logger.info("Processing event.")
         processor = StripeWebhookProcessor(event)
         processor.process()
-    except ValueError:
+    except (StripeMetadataError, ValueError):
         logger.exception()
     except Contribution.DoesNotExist:
         logger.exception("Could not find contribution matching provider_payment_id")

@@ -42,6 +42,10 @@ const StyledAutocomplete = styled(MuiAutocomplete)`
       border: 1.5px solid rgb(196, 196, 196);
       border-radius: 4px;
       padding: 12px 16px;
+
+      &:focus {
+        border-color: rgb(0, 191, 223);
+      }
     }
 
     .NreAutocompleteInputRoot {

@@ -562,7 +562,7 @@ describe('Edit interface: Styles', () => {
   describe('When creating a new style', () => {
     beforeEach(() => {
       cy.intercept({ method: 'GET', pathname: getEndpoint(LIST_FONTS) }, { body: [] });
-      cy.getByTestId('add-element-button').click();
+      cy.findByRole('button', { name: 'Style' }).click();
     });
 
     it('reports back errors related to the style name', () => {

@@ -1,8 +1,8 @@
 import { useState } from 'react';
-import * as S from './PageStyles.styled';
+import { Buttons, Controls, Root } from './PageStyles.styled';
 
 // Assets
-import { faCheck, faTimes, faPlus } from '@fortawesome/free-solid-svg-icons';
+import { faCheck, faTimes } from '@fortawesome/free-solid-svg-icons';
 
 // Context
 import { usePageEditorContext } from 'components/pageEditor/PageEditor';
@@ -12,6 +12,7 @@ import { useEditInterfaceContext } from 'components/pageEditor/editInterface/Edi
 import CircleButton from 'elements/buttons/CircleButton';
 import StylesChooser from 'components/pageEditor/editInterface/pageStyles/StylesChooser';
 import AddStylesModal from 'components/pageEditor/editInterface/pageStyles/AddStylesModal';
+import EditTabHeader from '../EditTabHeader';
 
 function PageStyles({ backToProperties }) {
   const { page, availableStyles, setAvailableStyles } = usePageEditorContext();
@@ -36,9 +37,16 @@ function PageStyles({ backToProperties }) {
   };
 
   return (
-    <S.PageStyles>
-      <StylesChooser styles={availableStyles} selected={styles} setSelected={(s) => setStyles(s)} />
-      <S.Buttons>
+    <Root>
+      <EditTabHeader
+        addButtonLabel="Style"
+        onAdd={() => setAddStylesModalOpen(true)}
+        prompt="Add or create a new style to customize your page."
+      />
+      <Controls>
+        <StylesChooser styles={availableStyles} selected={styles} setSelected={(s) => setStyles(s)} />
+      </Controls>
+      <Buttons>
         <CircleButton
           icon={faCheck}
           buttonType="positive"
@@ -51,16 +59,13 @@ function PageStyles({ backToProperties }) {
           onClick={handleDiscardChanges}
           data-testid="discard-element-changes-button"
         />
-      </S.Buttons>
-      <S.AddStylesButton onClick={() => setAddStylesModalOpen(true)} data-testid="add-element-button">
-        <S.AddStylesIcon icon={faPlus} />
-      </S.AddStylesButton>
+      </Buttons>
       <AddStylesModal
         isOpen={addStylesModalOpen}
         closeModal={() => setAddStylesModalOpen(false)}
         handleAddNewStyles={handleAddNewStyles}
       />
-    </S.PageStyles>
+    </Root>
   );
 }
 

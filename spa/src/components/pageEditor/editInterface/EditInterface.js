@@ -19,7 +19,6 @@ import { usePageContext } from 'components/dashboard/PageContext';
 
 import * as dynamicPageElements from 'components/donationPage/pageContent/dynamicElements';
 import * as dynamicSidebarElements from 'components/donationPage/pageContent/dynamicSidebarElements';
-import { TabPanel } from 'components/base';
 
 const dynamicElements = { ...dynamicPageElements, ...dynamicSidebarElements };
 
@@ -140,7 +139,7 @@ function EditInterface() {
           ) : (
             <>
               <EditInterfaceTabs tab={tab} onChangeTab={setTab} />
-              <TabPanel
+              <S.TabPanel
                 active={tab === 0}
                 id="edit-layout-tab-panel"
                 tabId="edit-layout-tab"
@@ -154,8 +153,8 @@ function EditInterface() {
                   goToProperties={goToProperties}
                   handleRemoveElement={handleRemoveElement}
                 />
-              </TabPanel>
-              <TabPanel
+              </S.TabPanel>
+              <S.TabPanel
                 active={tab === 1}
                 id="edit-sidebar-tab-panel"
                 tabId="edit-sidebar-tab"
@@ -169,13 +168,13 @@ function EditInterface() {
                     setAddElementModalOpen(true);
                   }}
                 />
-              </TabPanel>
-              <TabPanel active={tab === 2} id="edit-setup-tab-panel" tabId="edit-setup-tab">
+              </S.TabPanel>
+              <S.TabPanel active={tab === 2} id="edit-setup-tab-panel" tabId="edit-setup-tab">
                 <PageSetup backToProperties={() => setTab(0)} />
-              </TabPanel>
-              <TabPanel active={tab === 3} id="edit-styles-tab-panel" tabId="edit-styles-tab">
+              </S.TabPanel>
+              <S.TabPanel active={tab === 3} id="edit-styles-tab-panel" tabId="edit-styles-tab">
                 <PageStyles backToProperties={() => setTab(0)} />
-              </TabPanel>
+              </S.TabPanel>
             </>
           )}
         </S.EditInterface>

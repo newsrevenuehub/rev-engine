@@ -27,17 +27,3 @@ export const InputWrapper = styled.div`
   border-bottom: ${(props) => (props.border ? '1px solid' : 'none')};
   border-color: ${(props) => props.theme.colors.grey[0]};
 `;
-
-export const Buttons = styled.div`
-  width: 100%;
-  display: flex;
-  flex-direction: row;
-  justify-content: center;
-  align-items: center;
-  padding-top: 1rem;
-  margin-bottom: 2rem;
-
-  & button:not(:last-child) {
-    margin-right: 2rem;
-  }
-`;

@@ -1,5 +1,6 @@
 import { Redirect, Switch, useLocation } from 'react-router-dom';
 
+import GlobalLoading from 'elements/GlobalLoading';
 import * as S from './Dashboard.styled';
 
 // Routing
@@ -40,7 +41,7 @@ function Dashboard() {
   const { flags } = useFeatureFlags();
   const { page, setPage, updatedPage } = usePageContext();
   const { user } = useUser();
-  const { requiresVerification } = useConnectStripeAccount();
+  const { requiresVerification, isLoading } = useConnectStripeAccount();
 
   const hasContributionsSectionAccess = user?.role_type && hasContributionsDashboardAccessToUser(flags);
   const hasContentSectionAccess = user?.role_type && flagIsActiveForUser(CONTENT_SECTION_ACCESS_FLAG_NAME, flags);
@@ -54,7 +55,9 @@ function Dashboard() {
   const { pathname } = useLocation();
   const isEditPage = pathname.includes(EDITOR_ROUTE);
 
-  return (
+  return isLoading ? (
+    <GlobalLoading />
+  ) : (
     <S.Outer>
       {requiresVerification ? <ConnectStripeElements /> : ''}
       <DashboardTopbar isEditPage={isEditPage} page={page} setPage={setPage} user={user} updatedPage={updatedPage} />

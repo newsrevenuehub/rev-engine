@@ -1,6 +1,6 @@
 import { useState, forwardRef } from 'react';
 
-import * as S from './DDonorAddress.styled';
+import { ConditionallyHiddenInput, CountrySelect } from './DDonorAddress.styled';
 // Context
 import { usePage } from 'components/donationPage/DonationPage';
 
@@ -14,7 +14,6 @@ import Grid from '@material-ui/core/Grid';
 // Children
 import DElement from 'components/donationPage/pageContent/DElement';
 import Input from 'elements/inputs/Input';
-import { CountrySelect } from 'components/base';
 import BaseField from 'elements/inputs/BaseField';
 
 function DDonorAddress() {
@@ -23,7 +22,7 @@ function DDonorAddress() {
   const [city, setCity] = useState('');
   const [state, setState] = useState('');
   const [zip, setZip] = useState('');
-  const { setMailingCountry } = usePage();
+  const { mailingCountry, setMailingCountry } = usePage();
 
   const { ref } = usePlacesWidget({
     apiKey: HUB_GOOGLE_MAPS_API_KEY,
@@ -46,6 +45,13 @@ function DDonorAddress() {
   // chosen to only show zip and/or country fields. Right now they cannot change the fields
   // shown in this element, so it's a moot point.
   const shouldUseAutocomplete = true;
+
+  // The change event on <CountrySelect> sends an object value, but the
+  // underlying input will always show the label.
+
+  function handleChangeCountry(event, value) {
+    setMailingCountry(value.fipsCode);
+  }
 
   return (
     <DElement>
@@ -97,7 +103,13 @@ function DDonorAddress() {
         </Grid>
         <Grid item xs={12} md={4}>
           <BaseField className="country-select" errors={errors.mailing_country} label="Country" required>
-            <CountrySelect name="mailing_country" inputId="Country" required />
+            <CountrySelect
+              id="Country"
+              name="mailing_country"
+              onChange={handleChangeCountry}
+              value={mailingCountry ?? ''}
+              required
+            />
           </BaseField>
         </Grid>
       </Grid>
@@ -116,7 +128,7 @@ export default DDonorAddress;
 const ConditionalAddressAutocomplete = forwardRef(({ useAutocomplete, address, setAddress, errors }, ref) => {
   return (
     <>
-      <S.ConditionallyHiddenInput
+      <ConditionallyHiddenInput
         show={!useAutocomplete}
         type="text"
         name="mailing_street"
@@ -127,7 +139,7 @@ const ConditionalAddressAutocomplete = forwardRef(({ useAutocomplete, address, s
         required
         data-testid={useAutocomplete ? '' : 'mailing_street'}
       />
-      <S.ConditionallyHiddenInput
+      <ConditionallyHiddenInput
         show={useAutocomplete}
         type="text"
         ref={ref}

@@ -341,23 +341,26 @@ class ContributionsViewSet(viewsets.ReadOnlyModelViewSet, FilterQuerySetByUserMi
     def email_contributions(self, request):
         try:
             user_email = request.user.email
+            name = f"{request.user.first_name} {request.user.last_name}"
+
             queryset = self.filter_queryset_for_user(
                 self.request.user, self.model.objects.filter(provider_payment_method_details__isnull=False)
             )
             contributions = super().filter_queryset(queryset)
             contributions_in_csv = export_contributions_to_csv(contributions)
-            send_templated_email_with_attachment.delay(
+
+            send_templated_email_with_attachment(
                 to=user_email,
                 subject="Checkout your Contributions",
-                text_template="",
-                html_template="",
-                template_data="",
+                text_template="nrh-contribution-csv-email-body.txt",
+                template_data={"username": name},
                 attachment=contributions_in_csv,
                 content_type="text/csv",
-                content_type="contributions.csv",
+                filename="contributions.csv",
             )
             return Response(data={"detail": "success"}, status=status.HTTP_200_OK)
         except Exception as ex:
+            logger.exception("Unexpected error")
             return Response(data={"status": "failed", "detail": str(ex)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 

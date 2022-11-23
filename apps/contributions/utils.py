@@ -51,11 +51,15 @@ def export_contributions_to_csv(contributions):
         billing_details = charge_details.get("billing_details", {})
         billing_address = billing_details.get("address") or {}
 
+        formatted_donor_selected_amount = ""
+        if metadata.get("donor_selected_amount"):
+            formatted_donor_selected_amount = f"{metadata.get('donor_selected_amount')} {contribution.currency.upper()}"
+
         data.append(
             {
                 "Contributor": billing_details.get("name") or "Unknown",
-                "Amount": contribution.amount,
-                "Donor Selected Amount": metadata.get("donor_selected_amount"),
+                "Amount": contribution.formatted_amount,
+                "Donor Selected Amount": formatted_donor_selected_amount,
                 "Agreed to Pay Fees": metadata.get("agreed_to_pay_fees"),
                 "Frequency": contribution.interval,
                 "Payment Received Date": contribution.created,

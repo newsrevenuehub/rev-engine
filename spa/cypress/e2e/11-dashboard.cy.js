@@ -83,6 +83,7 @@ describe('Dashboard', () => {
       cy.getByTestId('job-title').type('Job Title');
       cy.getByTestId('company-name').type('Organization');
       cy.getByTestId('tax-status').select('Non-profit');
+      cy.getByTestId('tax-id').type('987654321');
       cy.get('button[type="submit"]').click();
       cy.wait('@patchUser').then(({ request }) => {
         expect(request.body).eql({
@@ -90,7 +91,8 @@ describe('Dashboard', () => {
           last_name: 'Last Name',
           job_title: 'Job Title',
           organization_name: 'Organization',
-          organization_tax_status: 'nonprofit'
+          organization_tax_status: 'nonprofit',
+          organization_tax_id: '987654321'
         });
       });
     });

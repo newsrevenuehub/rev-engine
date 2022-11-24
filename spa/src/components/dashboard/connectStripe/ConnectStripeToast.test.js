@@ -1,4 +1,5 @@
 import { render, screen, fireEvent } from 'test-utils';
+import { CONNECT_TO_STRIPE_BUTTON_CTA } from './ConnectStripeElements';
 import ConnectStripeToast, {
   USER_ACTION_REQUIRED_MESSAGE,
   PENDING_VERIFICATION_MESSAGE,
@@ -22,7 +23,7 @@ describe('ConnectStripeToast', () => {
     render(<ConnectStripeToast />);
     expect(screen.getByText(USER_ACTION_REQUIRED_MESSAGE)).toBeInTheDocument();
     expect(screen.getByText(USER_ACTION_REQUIRED_HEADING_TEXT)).toBeInTheDocument();
-    const connectToStripeButton = screen.getByRole('button', { name: 'Take me to Stripe' });
+    const connectToStripeButton = screen.getByRole('button', { name: CONNECT_TO_STRIPE_BUTTON_CTA });
     expect(connectToStripeButton).toBeEnabled();
     fireEvent.click(connectToStripeButton);
     expect(mockSendUsertoStripe).toHaveBeenCalled();
@@ -36,7 +37,7 @@ describe('ConnectStripeToast', () => {
       sendUserToStripe: () => {}
     });
     render(<ConnectStripeToast />);
-    const connectToStripeButton = screen.getByRole('button', { name: 'Take me to Stripe' });
+    const connectToStripeButton = screen.getByRole('button', { name: CONNECT_TO_STRIPE_BUTTON_CTA });
     expect(connectToStripeButton).toBeDisabled();
   });
 

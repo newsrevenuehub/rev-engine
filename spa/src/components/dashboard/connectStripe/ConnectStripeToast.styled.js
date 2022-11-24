@@ -1,11 +1,12 @@
 import { Button as BaseButton } from 'components/base';
 import styled from 'styled-components';
 
-export const ConnectStripeToast = styled.div`
+export const ConnectStripeToastWrapper = styled.div`
   position: absolute;
   top: 58px;
   right: 10px;
   font-family: ${(props) => props.theme.systemFont};
+  font-size: 16px;
   border: 0.5px solid ${(props) => props.theme.colors.muiGrey[100]};
   box-shadow: 0px 2px 10px rgba(0, 0, 0, 0.2);
   border-radius: ${(props) => props.theme.muiBorderRadius.lg};
@@ -37,7 +38,7 @@ export const ConnectStripeToastCollapsed = styled.div`
   }
 `;
 
-export const StripeLogo = styled.img`
+export const StripeLogoWrapper = styled.img`
   width: 54px;
   text-align: left;
 `;
@@ -92,6 +93,7 @@ export const Description = styled.p`
 
 export const Button = styled(BaseButton)`
   && {
+    text-transform: uppercase;
     width: 100%;
     height: 40px;
     margin-top: 20px;

@@ -1,13 +1,15 @@
 import userEvent from '@testing-library/user-event';
 import { axe } from 'jest-axe';
-import { render, screen, waitFor } from 'test-utils';
-import ProfileForm from './ProfileForm';
+import { render, screen, waitFor, fireEvent } from 'test-utils';
+import ProfileForm, { ProfileFormProps } from './ProfileForm';
 
-function tree(props) {
-  return render(<ProfileForm onProfileSubmit={jest.fn()} {...props} />);
+const onProfileSubmit = jest.fn();
+
+function tree(props?: ProfileFormProps) {
+  return render(<ProfileForm onProfileSubmit={onProfileSubmit} {...props} />);
 }
 
-function fillInAllFields() {
+async function fillInAllFields() {
   const fieldEntries = [
     ['First Name', 'mock-first-name'],
     ['Last Name', 'mock-last-name'],
@@ -18,6 +20,8 @@ function fillInAllFields() {
   for (const [name, value] of fieldEntries) {
     userEvent.type(screen.getByLabelText(name), value);
   }
+
+  await fireEvent.change(screen.getByLabelText('EIN Optional'), { target: { value: '987654321' } });
 
   userEvent.click(screen.getByRole('button', { name: /Company Tax Status Select your status/i }));
   userEvent.click(screen.getByRole('option', { name: 'Non-profit' }));
@@ -60,6 +64,14 @@ describe('ProfileForm', () => {
     expect(companyName).toHaveValue('');
   });
 
+  it('displays a EIN (tax id) field with empty default', () => {
+    tree();
+
+    const taxId = screen.getByLabelText('EIN Optional');
+    expect(taxId).toBeVisible();
+    expect(taxId).toHaveValue('');
+  });
+
   it('displays a company tax status selector with non-profit and for-profit values, but no preset value', () => {
     tree();
 
@@ -72,7 +84,7 @@ describe('ProfileForm', () => {
     expect(screen.getByRole('option', { name: 'For-profit' })).toBeInTheDocument();
   });
 
-  it('requires that the user enter a value for all fields except job title', async () => {
+  it('requires that the user enter a value for all fields except job title & tax id', async () => {
     const submitButton = () => screen.getByRole('button', { name: 'Finalize Account' });
     const fieldEntries = [
       ['First Name', 'mock-first-name'],
@@ -98,7 +110,7 @@ describe('ProfileForm', () => {
 
     tree({ onProfileSubmit });
     expect(onProfileSubmit).not.toHaveBeenCalled();
-    fillInAllFields();
+    await fillInAllFields();
     userEvent.click(screen.getByRole('button', { name: 'Finalize Account' }));
     await waitFor(() => expect(onProfileSubmit).toBeCalledTimes(1));
     expect(onProfileSubmit.mock.calls).toEqual([
@@ -108,15 +120,16 @@ describe('ProfileForm', () => {
           lastName: 'mock-last-name',
           jobTitle: 'mock-job-title',
           companyName: 'mock-company-name',
-          companyTaxStatus: 'nonprofit'
+          companyTaxStatus: 'nonprofit',
+          taxId: '98-7654321'
         }
       ]
     ]);
   });
 
-  it('disables the submit button when the disabled prop is true', () => {
-    tree({ disabled: true });
-    fillInAllFields();
+  it('disables the submit button when the disabled prop is true', async () => {
+    tree({ disabled: true, onProfileSubmit });
+    await fillInAllFields();
     expect(screen.getByRole('button', { name: 'Finalize Account' })).toBeDisabled();
   });
 

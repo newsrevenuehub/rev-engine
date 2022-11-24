@@ -485,6 +485,47 @@ class TestContributorContributionsViewSet(AbstractTestCase):
         assert self.contribution_4.id not in contribution_ids
 
 
+class TestContributionsViewSetExportCSV(AbstractTestCase):
+    def setUp(self):
+        super().setUp()
+        self.set_up_domain_model()
+
+    def list_contributions(self, user):
+        self.client.force_authenticate(user=user)
+        return self.client.get(reverse("contribution-list"))
+
+    def email_contributions(self, user):
+        self.client.force_authenticate(user=user)
+        return self.client.post(reverse("contribution-email-contributions"))
+
+    def test_user_without_role(self):
+        self.generic_user.roleassignment = None
+        response = self.email_contributions(self.generic_user)
+        assert response.status_code == 403
+
+    @mock.patch("apps.contributions.views.send_templated_email_with_attachment.delay")
+    def test_user_with_role(self, email_mock):
+        response = self.email_contributions(self.rp_user)
+        assert response.status_code == 200
+
+        response = self.email_contributions(self.org_user)
+        assert response.status_code == 200
+
+        response = self.email_contributions(self.hub_user)
+        assert response.status_code == 200
+
+        response = self.email_contributions(self.contributor_user)
+        assert response.status_code == 403
+
+    @mock.patch("apps.contributions.views.send_templated_email_with_attachment.delay")
+    def test_data_in_csv_matching_with_contributions_list(self, email_mock):
+        contributions = self.list_contributions(self.rp_user).json()
+        self.email_contributions(self.rp_user).json()
+        contributions_csv = email_mock.call_args_list[0].kwargs["attachment"].split("\r\n")
+
+        assert len(contributions_csv) - 2 == contributions["count"]
+
+
 class TestSubscriptionViewSet(AbstractTestCase):
     def setUp(self):
         super().setUp()

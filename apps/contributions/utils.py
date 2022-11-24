@@ -4,6 +4,8 @@ from io import StringIO
 
 from django.conf import settings
 
+from addict import Dict as AttrDict
+
 
 def get_hub_stripe_api_key(livemode=False):
     """
@@ -43,24 +45,23 @@ def export_contributions_to_csv(contributions):
     address_keys = ("line1", "line2", "city", "postal_code", "state", "country")
     data = []
     for contribution in contributions:
-        payment_provider_data = contribution.payment_provider_data or {}
-        charge_details = (
-            payment_provider_data.get("data", {}).get("object", {}).get("charges", {}).get("data") or [{}]
-        )[0]
-        metadata = payment_provider_data.get("data", {}).get("object", {}).get("metadata", {})
-        billing_details = charge_details.get("billing_details", {})
-        billing_address = billing_details.get("address") or {}
+        payment_provider_data = AttrDict(contribution.payment_provider_data or AttrDict()).data.object
+        charge_details = (payment_provider_data.charges.data or [AttrDict()])[0]
+        billing_details = charge_details.billing_details
+        billing_address = billing_details.address
 
         formatted_donor_selected_amount = ""
-        if metadata.get("donor_selected_amount"):
-            formatted_donor_selected_amount = f"{metadata.get('donor_selected_amount')} {contribution.currency.upper()}"
+        if payment_provider_data.metadata.get("donor_selected_amount"):
+            formatted_donor_selected_amount = (
+                f"{payment_provider_data.metadata.get('donor_selected_amount')} {contribution.currency.upper()}"
+            )
 
         data.append(
             {
                 "Contributor": billing_details.get("name") or "Unknown",
                 "Amount": contribution.formatted_amount,
                 "Donor Selected Amount": formatted_donor_selected_amount,
-                "Agreed to Pay Fees": metadata.get("agreed_to_pay_fees"),
+                "Agreed to Pay Fees": payment_provider_data.metadata.get("agreed_to_pay_fees"),
                 "Frequency": contribution.interval,
                 "Payment Received Date": contribution.created,
                 "Payment status": contribution.status,
@@ -73,7 +74,7 @@ def export_contributions_to_csv(contributions):
                 ),
                 "Email": billing_details.get("email"),
                 "Phone": billing_details.get("phone"),
-                "Page URL": metadata.get("referer"),
+                "Page URL": payment_provider_data.metadata.get("referer"),
             }
         )
 

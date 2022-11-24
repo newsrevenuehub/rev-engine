@@ -1,3 +1,4 @@
+import csv
 import logging
 
 from django.conf import settings
@@ -337,8 +338,18 @@ class ContributionsViewSet(viewsets.ReadOnlyModelViewSet, FilterQuerySetByUserMi
 
         return Response(data={"detail": "rejected" if reject else "accepted"}, status=status.HTTP_200_OK)
 
-    @action(methods=["post"], detail=False, permission_classes=[IsAuthenticated, ~IsContributor, HasRoleAssignment])
+    @action(
+        methods=["post"],
+        url_path="email-contributions",
+        detail=False,
+        permission_classes=[HasRoleAssignment, IsAuthenticated, ~IsContributor],
+    )
     def email_contributions(self, request):
+        """Endpoint to send contributions as a csv file to the user request.
+        Any user who has role and authenticated will be able to call the endpoint.
+        Contributor will not be able to access this endpoint as it's being integrated with the Contribution Dashboard
+        as contributors will be able to access only Contributor Portal via magic link.
+        """
         try:
             user_email = request.user.email
             name = f"{request.user.first_name} {request.user.last_name}"
@@ -349,7 +360,7 @@ class ContributionsViewSet(viewsets.ReadOnlyModelViewSet, FilterQuerySetByUserMi
             contributions = super().filter_queryset(queryset)
             contributions_in_csv = export_contributions_to_csv(contributions)
 
-            send_templated_email_with_attachment(
+            send_templated_email_with_attachment.delay(
                 to=user_email,
                 subject="Checkout your Contributions",
                 text_template="nrh-contribution-csv-email-body.txt",
@@ -359,8 +370,11 @@ class ContributionsViewSet(viewsets.ReadOnlyModelViewSet, FilterQuerySetByUserMi
                 filename="contributions.csv",
             )
             return Response(data={"detail": "success"}, status=status.HTTP_200_OK)
+        except csv.Error as ex:
+            logger.exception("Error while generating contributions csv file.")
+            return Response(data={"status": "failed", "detail": str(ex)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         except Exception as ex:
-            logger.exception("Unexpected error")
+            logger.exception("Unknown error.")
             return Response(data={"status": "failed", "detail": str(ex)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 

@@ -62,7 +62,7 @@ def send_templated_email_with_attachment(
     mail = EmailMessage(
         subject=subject, body=render_to_string(text_template, template_data), from_email=from_email, to=to
     )
-    mail.attach(filename=filename, content=attachment, mimetype=content_type)
+    mail.attach(filename=filename, content=attachment.encode("utf-8", errors="backslashreplace"), mimetype=content_type)
 
     logger.info("Sending email to recipient `%s` with subject `%s`", to, subject)
     logger.debug(

@@ -1,9 +1,16 @@
 
-RP name: {{rp_name}}
-Charge date: {{ charge_date }}
-Amount: {{ contribution_amount }}
-Interval: {{ contribution_interval }}
-Is non-profit: {{ is_non_profit }}
-Contributor email: {{ contributor_email }}
-Tax id: {{ tax_id }}
-Magic link: {% autoescape off %}{{ magic_link }}{% endautoescape %}
+{{ rp_name }}
+Scheduled Contribution
+
+------------------------
+Contributions Details:
+
+Date Scheduled: {{ contribution_date }}
+Email: {{ contributor_email }}
+{% if contribution_interval == "one_time" %}
+Amount Contributed: {{ contribution_amount }}
+{% else %}
+Amount Contributed: {{ contribution_amount }}/{{ contribution_interval_display_value }}
+{% endif %}
+
+Need to make changes to your contribution? {% autoescape off %}{{ magic_link }}{% endautoescape %}

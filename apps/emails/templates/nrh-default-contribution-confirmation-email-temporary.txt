@@ -3,15 +3,6 @@ Thank you for your contribution!
 Dear contributor,
 Thank you for supporting {{ org_name }}.
 
-Contribution Details
---------------------
-
-Date Received: {{ contribution_date }}
-Email: {{ contributor_email }}
-{% if contribution_interval == "one_time" %}
-Amount Contributed: {{ contribution_amount }}
-{% else %}
-Amount Contributed: {{ contribution_amount }}/{{ contribution_interval_display_value }}
-{% endif %}
+{% include  "partials/contribution-details.txt" %}
 
 No goods or services were provided in exchange for this contribution. This receipt may be used for tax purposes.

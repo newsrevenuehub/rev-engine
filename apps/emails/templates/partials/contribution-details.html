@@ -1,0 +1,22 @@
+<div class="contribution-container">
+  <p class="contribution-header">Contribution Details</p>
+  <p class="contribution-details">
+    <span class="contribution-details-strong">Date {% if is_reminder %}Scheduled{% else %}Received{% endif %}:</span>
+    {{ contribution_date }}
+  </p>
+  <p class="contribution-details">
+    <span class="contribution-details-strong">Email:</span>
+    {{ contributor_email }}
+  </p>
+  {% if contribution_interval == "one_time" %}
+  <p class="contribution-details">
+    <span class="contribution-details-strong">Amount Contributed:</span>
+    {{ contribution_amount }}
+  </p>
+  {% else %}
+  <p class="contribution-details">
+    <span class="contribution-details-strong">Amount Contributed:</span>
+    {{ contribution_amount}}/{{contribution_interval_display_value}}
+  </p>
+  {% endif %}
+</div>

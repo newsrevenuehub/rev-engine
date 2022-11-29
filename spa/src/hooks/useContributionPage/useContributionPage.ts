@@ -45,7 +45,7 @@ export function useContributionPage(revenueProgramSlug: string, pageSlug: string
       await deletePageMutation.mutateAsync();
     } catch (error) {
       // Log it to Sentry, show a generic message to the user, and rethrow so
-      // caller sees it.
+      // caller sees it and take additional action if they want to.
       console.error(error);
       alert.error(GENERIC_ERROR);
       throw error;

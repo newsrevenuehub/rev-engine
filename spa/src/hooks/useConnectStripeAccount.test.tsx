@@ -9,6 +9,7 @@ import useConnectStripeAccount, { StripeAccountLinkStatusResponse } from './useC
 import { User } from './useUser.types';
 import { useHistory } from 'react-router-dom';
 import { SIGN_IN } from 'routes';
+import { RevenueProgram } from './useContributionPage';
 
 jest.mock('hooks/useUser');
 jest.mock('react-router-dom', () => ({
@@ -24,7 +25,7 @@ const axiosMock = new MockAdapter(axios);
 const useUserMock = jest.mocked(useUser);
 const useHistoryMock = jest.mocked(useHistory);
 
-const mockRp = { id: 'mock-rp-id', name: 'mock-rp-name', slug: 'mock-rp-slug', payment_provider_stripe_verified: true };
+const mockRp = { id: 1, name: 'mock-rp-name', slug: 'mock-rp-slug', payment_provider_stripe_verified: true };
 
 const mockUser: User = {
   email: 'mock@email.com',
@@ -40,7 +41,7 @@ const mockUser: User = {
       show_connected_to_slack: false
     }
   ],
-  revenue_programs: [mockRp],
+  revenue_programs: [mockRp as RevenueProgram],
   role_type: ['org_admin', 'Org Admin']
 };
 
@@ -103,7 +104,10 @@ describe('useConnectStripeAccount hook', () => {
         isError: false,
         isLoading: false,
         refetch: jest.fn(),
-        user: { ...mockUser, revenue_programs: [{ ...mockRp, payment_provider_stripe_verified: false }] }
+        user: {
+          ...mockUser,
+          revenue_programs: [{ ...mockRp, payment_provider_stripe_verified: false } as RevenueProgram]
+        }
       });
     });
 
@@ -200,7 +204,10 @@ describe('useConnectStripeAccount hook', () => {
         isError: false,
         isLoading: false,
         refetch: jest.fn(),
-        user: { ...mockUser, revenue_programs: [{ ...mockRp, payment_provider_stripe_verified: true }] }
+        user: {
+          ...mockUser,
+          revenue_programs: [{ ...mockRp, payment_provider_stripe_verified: true } as RevenueProgram]
+        }
       });
     });
 

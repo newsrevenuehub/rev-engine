@@ -24,12 +24,11 @@ import { isStringInStringCaseInsensitive } from 'utilities/isStringInString';
 import GlobalLoading from 'elements/GlobalLoading';
 import { ContributionPage } from 'hooks/useContributionPage';
 import useUser from 'hooks/useUser';
-import { Page } from 'hooks/useUser.types';
 
 import AddPage from './AddPage';
 
-export const pagesbyRP = (pgsRaw: Page[], qry?: string) => {
-  const pagesByRevProgram: { name: string; pages: Page[] }[] = [];
+export const pagesbyRP = (pgsRaw: ContributionPage[], qry?: string) => {
+  const pagesByRevProgram: { name: string; pages: ContributionPage[] }[] = [];
   const pgs = qry
     ? pgsRaw?.filter((page) => {
         return (

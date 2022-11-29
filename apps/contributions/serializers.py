@@ -429,7 +429,7 @@ class BaseCreatePaymentSerializer(serializers.Serializer):
             "donation_page": validated_data["page"],
             "contributor": contributor,
             "payment_provider_used": "Stripe",
-            "contributor_meta_data": Contribution.stripe_metadata(
+            "contribution_metadata": Contribution.stripe_metadata(
                 contributor, validated_data, self.context["request"].META.get("HTTP_REFERER")
             ),
         }

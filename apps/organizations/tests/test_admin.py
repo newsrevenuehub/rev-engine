@@ -115,8 +115,12 @@ def test_show_expected_fields_on_organization_pages(admin_client):
     response = admin_client.get(reverse("admin:organizations_organization_add"))
     soup = BeautifulSoup(response.content)
     assert soup.find("input", {"name": "show_connected_to_slack"}) is not None
+    assert soup.find("input", {"name": "show_connected_to_salesforce"}) is not None
+    assert soup.find("input", {"name": "show_connected_to_mailchimp"}) is not None
     # change page
     org = OrganizationFactory()
     response = admin_client.get(f"/nrhadmin/organizations/organization/{org.id}/change/")
     soup = BeautifulSoup(response.content)
     assert soup.find("input", {"name": "show_connected_to_slack"}) is not None
+    assert soup.find("input", {"name": "show_connected_to_salesforce"}) is not None
+    assert soup.find("input", {"name": "show_connected_to_mailchimp"}) is not None

@@ -235,6 +235,7 @@ function PageEditor() {
           // Something else went wrong, like the API is not available. Just show
           // an error notification and leave edit mode.
 
+          console.error(error);
           alert.error(GENERIC_ERROR);
           handlePreview();
         }

@@ -168,6 +168,7 @@ describe('serializeData', () => {
     amount: 'mock-amount',
     currency: 'mock-currency',
     frequency: 'month',
+    mailingCountry: 'mock-mailing-country',
     pageId: 'mock-page-id',
     pageSlug: 'mock-page-slug',
     payFee: false,
@@ -243,6 +244,11 @@ describe('serializeData', () => {
       );
     }
   });
+
+  it('sets mailing_country based on the state provided', () =>
+    expect(serializeData(mockForm, { ...mockState, mailingCountry: 'test-country' })).toEqual(
+      expect.objectContaining({ mailing_country: 'test-country' })
+    ));
 
   it('sets revenue_program_slug based on the state provided', () =>
     expect(serializeData(mockForm, { ...mockState, revProgramSlug: 'test-slug' })).toEqual(

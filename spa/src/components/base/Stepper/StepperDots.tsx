@@ -7,14 +7,14 @@ const StyledMobileStepper = styled(MobileStepper)`
     justify-content: center;
     padding: 0;
 
-    .MuiMobileStepper-dot {
+    .NreMobileStepperDot {
       background-color: rgb(82, 58, 94);
       height: 16px;
       margin: 0;
       position: relative;
       width: 16px;
 
-      + .MuiMobileStepper-dot {
+      + .NreMobileStepperDot {
         margin-left: 14px;
 
         &::before {
@@ -32,7 +32,7 @@ const StyledMobileStepper = styled(MobileStepper)`
       }
     }
 
-    .MuiMobileStepper-dotActive ~ .MuiMobileStepper-dot {
+    .NreMobileStepperDotActive ~ .NreMobileStepperDot {
       background-color: rgb(221, 203, 231);
     }
   }
@@ -45,7 +45,14 @@ export type StepperDotsProps = Omit<MobileStepperProps, 'backButton' | 'nextButt
  * @see https://v4.mui.com/api/mobile-stepper/
  */
 export const StepperDots = (props: StepperDotsProps) => (
-  <StyledMobileStepper backButton={null} nextButton={null} position="static" variant="dots" {...props} />
+  <StyledMobileStepper
+    backButton={null}
+    classes={{ dotActive: 'NreMobileStepperDotActive', dot: 'NreMobileStepperDot' }}
+    nextButton={null}
+    position="static"
+    variant="dots"
+    {...props}
+  />
 );
 
 export default StepperDots;

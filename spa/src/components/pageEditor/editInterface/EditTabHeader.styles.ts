@@ -1,11 +1,11 @@
 import styled from 'styled-components';
 
-export const Prompt = styled('span')`
-  color: #707070;
-  font-size: 14px;
+export const Prompt = styled.span`
+  color: ${({ theme }) => theme.colors.muiGrey['600']};
+  font-size: ${({ theme }) => theme.fontSizesUpdated.sm};
 `;
 
-export const Root = styled('div')`
+export const Root = styled.div`
   align-items: center;
   display: flex;
   justify-content: space-between;

@@ -30,7 +30,7 @@ logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
 COOKIE_PATH = "/"
 
 
-def _construct_rp_domain(subdomain, referer):
+def _construct_rp_domain(subdomain, referer=None):
     """Find Revenue Program specific subdomain and use it to construct magic link host.
 
     Return RP specific domain or None if not found.

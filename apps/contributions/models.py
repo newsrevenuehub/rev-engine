@@ -1,12 +1,14 @@
 import uuid
+from urllib.parse import quote_plus
 
+from django.conf import settings
 from django.db import models
-from django.utils import timezone
+from django.utils.safestring import mark_safe
 
 import stripe
 
+from apps.api.tokens import ContributorRefreshToken
 from apps.common.models import IndexedTimeStampedModel
-from apps.emails.tasks import send_templated_email
 from apps.slack.models import SlackNotificationTypes
 from apps.slack.slack_manager import SlackManager
 from apps.users.choices import Roles
@@ -74,6 +76,18 @@ class Contributor(IndexedTimeStampedModel):
             phone=phone,
             stripe_account=rp_stripe_account_id,
             metadata=metadata,
+        )
+
+    @staticmethod
+    def create_magic_link(contribution):
+        """ """
+        # vs circular import
+        from apps.api.views import _construct_rp_domain as construct_rp_domain
+
+        token = str(ContributorRefreshToken.for_contributor(contribution.contributor.uuid).short_lived_access_token)
+        return mark_safe(
+            f"https://{construct_rp_domain(contribution.donation_page.revenue_program.slug)}/{settings.CONTRIBUTOR_VERIFY_URL}"
+            f"?token={token}&email={quote_plus(contribution.contributor.email)}"
         )
 
 
@@ -326,32 +340,9 @@ class Contribution(IndexedTimeStampedModel, RoleAssignmentResourceModelMixin):
         self.save()
         return subscription
 
-    def handle_thank_you_email(self, contribution_received_at=None):
-        """Send a thank you email to contribution's contributor if org is configured to have NRE send thank you email"""
-        contribution_received_at = contribution_received_at if contribution_received_at else timezone.now()
-        if self.revenue_program.organization.send_receipt_email_via_nre:
-            send_templated_email.delay(
-                self.contributor.email,
-                "Thank you for your contribution!",
-                # TODO: After completing DEV-2892: Provide requested data to receipt emails,
-                # remove the "-temporary" from the following two lines
-                "nrh-default-contribution-confirmation-email-temporary.txt",
-                "nrh-default-contribution-confirmation-email-temporary.html",
-                {
-                    "contribution_date": contribution_received_at.strftime("%m-%d-%y"),
-                    "contributor_email": self.contributor.email,
-                    "contribution_amount": self.formatted_amount,
-                    "contribution_interval": self.interval,
-                    "contribution_interval_display_value": self.interval if self.interval != "one_time" else None,
-                    "copyright_year": contribution_received_at.year,
-                    "org_name": self.revenue_program.organization.name,
-                    # TODO: Missing field to be added on DEV-2892
-                    # "first_name": '',
-                    # "last_name": '',
-                    # "for_profit": '',
-                    # "company_type": '',
-                    # "tax_id": '',
-                    # "magic_link": '',
-                    # "logo": '',
-                },
-            )
+    def get_stripe_customer(self):
+        if not self.provider_customer_id:
+            raise ValueError("Cannot call `get_stripe_customer` when `provider_customer_id` is not set")
+        return stripe.Customer.retrieve(
+            self.provider_customer_id, stripe_account=self.revenue_program.payment_provider.id
+        )

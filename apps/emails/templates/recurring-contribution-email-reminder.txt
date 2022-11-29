@@ -1,0 +1,9 @@
+
+RP name: {{rp_name}}
+Charge date: {{ charge_date }}
+Amount: {{ contribution_amount }}
+Interval: {{ contribution_interval }}
+Is non-profit: {{ is_non_profit }}
+Contributor email: {{ contributor_email }}
+Tax id: {{ tax_id }}
+Magic link: {% autoescape off %}{{ magic_link }}{% endautoescape %}

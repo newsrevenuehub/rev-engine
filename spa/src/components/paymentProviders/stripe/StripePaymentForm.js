@@ -66,18 +66,29 @@ function StripePaymentForm() {
       stripeClientSecret: stripeClientSecret
     });
 
-    const { error } = await stripe.confirmPayment({
-      elements,
-      confirmParams: { return_url, payment_method_data: { billing_details: stripeBillingDetails } }
-    });
-
-    // The Stripe docs note that this point will only be reached if there is an
-    // immediate error when confirming the payment. Otherwise, contributor gets redirected
-    // to `return_url` before the promise above ever resolves.
-    if (!['card_error', 'validation_error'].includes(error?.type)) {
+    try {
+      const { error } = await stripe.confirmPayment({
+        elements,
+        confirmParams: { return_url, payment_method_data: { billing_details: stripeBillingDetails } }
+      });
+      // The Stripe docs note that this point will only be reached if there is an
+      // immediate error when confirming the payment. Otherwise, contributor gets redirected
+      // to `return_url` before the promise above ever resolves.
+      if (!['card_error', 'validation_error'].includes(error?.type)) {
+        alert.error('An unexpected error occurred');
+      }
+    } catch (e) {
+      // NB: Our usual expectation is that "expected" errors will be caught by Stripe JS itself in try block
+      // and returned as `error`. In practice, we've encountered one Sentry error where a non-promise error
+      // occurred and the checkout silently failed (see https://news-revenue-hub.atlassian.net/browse/DEV-2869
+      // for more context). This catch ensures that the user will be minimally notified that things went wrong.
+      //
+      // TODO: [DEV-2921] update this console.error copy after DEV-2342 has landed to account for setup intent
+      console.error('Something unexpected happened finalizing Stripe payment');
       alert.error('An unexpected error occurred');
+    } finally {
+      setIsLoading(false);
     }
-    setIsLoading(false);
   };
 
   // for full options, see: https://stripe.com/docs/js/elements_object/create_payment_element

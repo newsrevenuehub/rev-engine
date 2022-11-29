@@ -378,8 +378,7 @@ class Contribution(IndexedTimeStampedModel, RoleAssignmentResourceModelMixin):
                 "contribution_interval": self.interval,
                 "is_non_profit": self.donation_page.revenue_program.non_profit,
                 "contributor_email": self.contributor.email,
-                # todo -- update this after DEV-2519 merged
-                "tax_id": getattr(self.donation_page.revenue_program, "tax_id", "tax-id-coming-soon"),
+                "tax_id": self.donation_page.revenue_program.tax_id,
                 "magic_link": mark_safe(
                     f"https://{construct_rp_domain(self.donation_page.revenue_program.slug)}/{settings.CONTRIBUTOR_VERIFY_URL}"
                     f"?token={token}&email={quote_plus(self.contributor.email)}"

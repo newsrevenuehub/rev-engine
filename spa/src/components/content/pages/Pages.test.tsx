@@ -7,7 +7,7 @@ import { USER_ROLE_ORG_ADMIN_TYPE, USER_ROLE_HUB_ADMIN_TYPE, USER_SUPERUSER_TYPE
 
 import { LIST_PAGES } from 'ajax/endpoints';
 import Axios from 'ajax/axios';
-import { Page } from 'hooks/useUser.types';
+import { ContributionPage } from 'hooks/useContributionPage';
 
 const orgAdminUser = {
   role_type: [USER_ROLE_ORG_ADMIN_TYPE],
@@ -36,7 +36,7 @@ describe('Given pages list', () => {
       { id: 1, name: 'mock-name-1', slug: 'mock-slug-1', revenue_program: { id: '1', name: 'rp1' } },
       { id: 2, name: 'mock-name-2', slug: 'mock-slug-2', revenue_program: { id: '2', name: 'rp2' } },
       { id: 3, name: 'mock-name-3', slug: 'mock-slug-3', revenue_program: { id: '2', name: 'rp2' } }
-    ] as Page[];
+    ] as unknown as ContributionPage[];
     result = pagesbyRP(inp);
   });
 
@@ -53,7 +53,7 @@ describe('Given pages list having a page with a null rp', () => {
       { id: 1, revenue_program: { id: '1', name: 'rp1' } },
       { id: 2, revenue_program: { id: '2', name: 'rp2' } },
       { id: 3, revenue_program: null }
-    ] as Page[];
+    ] as unknown as ContributionPage[];
     result = pagesbyRP(inp);
   });
 

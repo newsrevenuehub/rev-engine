@@ -162,6 +162,10 @@ export interface RevenueProgram {
    */
   name: string;
   /**
+   * Has the revenue program been set up with Stripe and verified by them?
+   */
+  payment_provider_stripe_verified: boolean;
+  /**
    * Slug for the revenue program used in URLs.
    */
   slug: string;
@@ -190,7 +194,7 @@ export interface ContributionPage {
   /**
    * Internal ID of the page.
    */
-  id: string;
+  id: number;
   /**
    * Timestamp when the page was last changed.
    */

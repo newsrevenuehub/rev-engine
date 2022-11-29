@@ -16,7 +16,7 @@ import useModal from 'hooks/useModal';
 // Analytics
 import { useConfigureAnalytics } from 'components/analytics';
 
-import ProfileForm from './ProfileForm';
+import ProfileForm, { ProfileFormFields } from './ProfileForm';
 import { OffscreenText, StepperDots } from 'components/base';
 
 function Profile() {
@@ -26,17 +26,23 @@ function Profile() {
   const { refetch: refetchUser, user } = useUser();
   useConfigureAnalytics();
 
-  const onProfileSubmit = async (formData) => {
+  const onProfileSubmit = async (formData: ProfileFormFields) => {
     dispatch({ type: FETCH_START });
 
+    if (!user) {
+      // Should never happen under normal circumstances.
+      throw new Error('Asked to customize user, but user is undefined');
+    }
+
     try {
-      const { data, status } = await axios.patch(`users/${user.id}/${CUSTOMIZE_ACCOUNT_ENDPOINT}`, {
+      const { data, status } = await axios.patch(`users/${user?.id}/${CUSTOMIZE_ACCOUNT_ENDPOINT}`, {
         first_name: formData.firstName,
         last_name: formData.lastName,
-        // Don't send job_title at all if the user omitted it.
-        job_title: formData.jobTitle.trim() !== '' ? formData.jobTitle : undefined,
         organization_name: formData.companyName,
-        organization_tax_status: formData.companyTaxStatus
+        organization_tax_status: formData.companyTaxStatus,
+        // Don't send job_title or organization_tax_id at all if the user omitted it.
+        job_title: formData.jobTitle.trim() !== '' ? formData.jobTitle : undefined,
+        organization_tax_id: formData.taxId.replace('-', '').replace('_', '') || undefined
       });
 
       if (status === 204) {
@@ -46,15 +52,22 @@ function Profile() {
       } else {
         dispatch({ type: FETCH_FAILURE, payload: data });
       }
-    } catch (e) {
+    } catch (e: any) {
       // If we didn't get a specific error message from the API, default to
       // something generic.
-
-      dispatch({ type: FETCH_FAILURE, payload: e?.response?.data ?? [new Error('Request failed')] });
+      let errorMessage = e?.message && [e.message];
+      if (e?.response?.data) {
+        if (typeof e?.response?.data === 'object') {
+          errorMessage = Object.values(e?.response?.data)[0];
+        } else {
+          errorMessage = e?.response?.data;
+        }
+      }
+      dispatch({ type: FETCH_FAILURE, payload: errorMessage ?? ['An Error Occurred'] });
     }
   };
 
-  const formSubmitErrors = profileState?.errors?.length && 'An Error Occurred';
+  const formSubmitErrors = profileState?.errors?.length && profileState?.errors[0];
 
   return (
     <S.Modal open={open} aria-labelledby="profile-modal-title" data-testid="finalize-profile-modal">
@@ -62,12 +75,7 @@ function Profile() {
         <OffscreenText>Step 1 of 2</OffscreenText>
         <S.Title id="profile-modal-title">Let's Customize Your Account</S.Title>
         <S.Description>Help us create your personalized experience!</S.Description>
-        <ProfileForm onProfileSubmit={onProfileSubmit} disabled={profileState.loading} />
-        {formSubmitErrors ? (
-          <A.Message data-testid="profile-modal-error">{formSubmitErrors}</A.Message>
-        ) : (
-          <A.MessageSpacer />
-        )}
+        <ProfileForm onProfileSubmit={onProfileSubmit} disabled={profileState.loading} error={formSubmitErrors} />
         <StepperDots aria-hidden activeStep={0} steps={2} />
       </S.Profile>
     </S.Modal>

@@ -22,9 +22,16 @@ const Template: ComponentStory<typeof Tabs> = () => {
 
   return (
     <>
-      <Tabs aria-label="Demo Tabs" value={tab} onChange={(_, value) => setTab(value)}>
+      <Tabs aria-label="Demo Tabs" value={tab}>
         {tabNames.map((name, index) => (
-          <Tab aria-controls={`tab-${index}`} id={`tab-${index}`} key={name} label={name} selected={index === tab} />
+          <Tab
+            aria-controls={`tab-${index}`}
+            id={`tab-${index}`}
+            key={name}
+            label={name}
+            onClick={() => setTab(index)}
+            selected={index === tab}
+          />
         ))}
       </Tabs>
       <TabPanel active={tab === 0} id="tab-panel-0" tabId="tab-0">

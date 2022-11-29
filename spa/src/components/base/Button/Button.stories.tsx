@@ -1,5 +1,5 @@
 import { ComponentMeta, ComponentStory } from '@storybook/react';
-import Button from './Button';
+import Button, { ButtonProps } from './Button';
 
 export default {
   component: Button,
@@ -20,8 +20,8 @@ const Template: ComponentStory<typeof Button> = (args) => {
     <div style={{ display: 'grid', gap: 10, gridTemplateColumns: 'repeat(2, 200px)' }}>
       {colors.map((color) => (
         <>
-          <Button {...args} color={color} />
-          <Button {...args} color={color} disabled />
+          <Button {...args} color={color as ButtonProps['color']} />
+          <Button {...args} color={color as ButtonProps['color']} disabled />
         </>
       ))}
     </div>

@@ -9,6 +9,7 @@ import { usePageEditorContext } from 'components/pageEditor/PageEditor';
 import { useEditInterfaceContext } from 'components/pageEditor/editInterface/EditInterface';
 
 // Children
+import useModal from 'hooks/useModal';
 import CircleButton from 'elements/buttons/CircleButton';
 import StylesChooser from 'components/pageEditor/editInterface/pageStyles/StylesChooser';
 import AddStylesModal from 'components/pageEditor/editInterface/pageStyles/AddStylesModal';
@@ -17,7 +18,11 @@ import EditTabHeader from '../EditTabHeader';
 function PageStyles({ backToProperties }) {
   const { page, availableStyles, setAvailableStyles } = usePageEditorContext();
   const { setPageContent } = useEditInterfaceContext();
-  const [addStylesModalOpen, setAddStylesModalOpen] = useState(false);
+  const {
+    open: addStylesModalOpen,
+    handleClose: handleAddStylesModalClose,
+    handleOpen: handleAddStylesModalOpen
+  } = useModal(false);
 
   // Styles state
   const [styles, setStyles] = useState(page.styles);
@@ -40,11 +45,11 @@ function PageStyles({ backToProperties }) {
     <Root>
       <EditTabHeader
         addButtonLabel="Style"
-        onAdd={() => setAddStylesModalOpen(true)}
+        onAdd={handleAddStylesModalOpen}
         prompt="Add or create a new style to customize your page."
       />
       <Controls>
-        <StylesChooser styles={availableStyles} selected={styles} setSelected={(s) => setStyles(s)} />
+        <StylesChooser styles={availableStyles} selected={styles} setSelected={setStyles} />
       </Controls>
       <Buttons>
         <CircleButton
@@ -62,7 +67,7 @@ function PageStyles({ backToProperties }) {
       </Buttons>
       <AddStylesModal
         isOpen={addStylesModalOpen}
-        closeModal={() => setAddStylesModalOpen(false)}
+        closeModal={handleAddStylesModalClose}
         handleAddNewStyles={handleAddNewStyles}
       />
     </Root>

@@ -4,7 +4,7 @@ from django.utils.html import format_html
 
 from reversion.admin import VersionAdmin
 
-from apps.common.admin import RevEngineBaseAdmin
+from apps.common.admin import RevEngineBaseAdmin, prettify_json_field
 from apps.contributions.models import Contribution, ContributionStatus, Contributor
 from apps.contributions.payment_managers import PaymentProviderError
 
@@ -58,7 +58,7 @@ class ContributionAdmin(RevEngineBaseAdmin, VersionAdmin):
             },
         ),
         ("Relations", {"fields": ("contributor", "donation_page")}),
-        ("Bad Actor", {"fields": ("bad_actor_score", "bad_actor_response")}),
+        ("Bad Actor", {"fields": ("bad_actor_score", "bad_actor_response_pretty")}),
         (
             "Provider",
             {
@@ -68,9 +68,9 @@ class ContributionAdmin(RevEngineBaseAdmin, VersionAdmin):
                     "provider_payment_link",
                     "provider_subscription_link",
                     "provider_customer_link",
-                    "payment_provider_data",
+                    "payment_provider_data_pretty",
                     "provider_payment_method_id",
-                    "provider_payment_method_details",
+                    "provider_payment_method_details_pretty",
                 ),
             },
         ),
@@ -124,16 +124,16 @@ class ContributionAdmin(RevEngineBaseAdmin, VersionAdmin):
         "donation_page",
         "revenue_program",
         "bad_actor_score",
-        "bad_actor_response",
+        "bad_actor_response_pretty",
         "status",
         "payment_provider_used",
         "provider_payment_link",
         "provider_subscription_link",
         "provider_customer_link",
         "provider_payment_method_id",
-        "payment_provider_data",
+        "payment_provider_data_pretty",
         "flagged_date",
-        "provider_payment_method_details",
+        "provider_payment_method_details_pretty",
     )
 
     actions = (
@@ -201,3 +201,21 @@ class ContributionAdmin(RevEngineBaseAdmin, VersionAdmin):
                 % f"https://dashboard.stripe.com/{test_mode}connect/accounts/{stripe_account_id}/{slug}/{provider_id}"
             )
         return "-"
+
+    def bad_actor_response_pretty(self, instance):
+        """Render bad_actor_response field with pretty formatting"""
+        return prettify_json_field(instance.bad_actor_response)
+
+    bad_actor_response_pretty.short_description = "Bad actor response"
+
+    def payment_provider_data_pretty(self, instance):
+        """Render payment_provider_data field with pretty formatting"""
+        return prettify_json_field(instance.payment_provider_data)
+
+    payment_provider_data_pretty.short_description = "Payment provider data"
+
+    def provider_payment_method_details_pretty(self, instance):
+        """Render provider_payment_method_details field with pretty formatting"""
+        return prettify_json_field(instance.provider_payment_method_details)
+
+    provider_payment_method_details_pretty.short_description = "Provider payment method details"

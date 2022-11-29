@@ -58,7 +58,7 @@ const orgAdminStripeVerifiedLoginSuccess = {
 const testEditPageUrl = 'edit/my/page/';
 
 describe('Contribution page edit', () => {
-  before(() => {
+  beforeEach(() => {
     cy.forceLogin(orgAdminUser);
     cy.intercept({ method: 'GET', pathname: getEndpoint(USER) }, { body: stripeVerifiedOrgAdmin });
     cy.intercept({ method: 'GET', pathname: getEndpoint(LIST_STYLES) }, {});
@@ -139,7 +139,7 @@ describe('Contribution page edit', () => {
   });
 
   describe('Edit interface: Elements', () => {
-    before(() => {
+    beforeEach(() => {
       cy.getByTestId('edit-page-button').click();
     });
 
@@ -155,8 +155,9 @@ describe('Contribution page edit', () => {
     });
 
     describe('Frequency editor', () => {
+      beforeEach(() => cy.editElement('DFrequency'));
+
       it('should render the frequency editor when edit item is clicked', () => {
-        cy.editElement('DFrequency');
         cy.getByTestId('frequency-editor');
         cy.contains('Contribution Frequency');
       });
@@ -169,8 +170,10 @@ describe('Contribution page edit', () => {
       });
 
       it('should accept valid input and changes should show on page', () => {
-        // Now check one and accept
         cy.intercept(`**/${LIST_STYLES}**`, {});
+
+        // Make a change and save it.
+        cy.getByTestId('frequency-toggle').click({ multiple: true });
         cy.getByTestId('frequency-toggle').contains('One time').click();
         cy.getByTestId('keep-element-changes-button').click({ force: true });
 
@@ -178,12 +181,6 @@ describe('Contribution page edit', () => {
         cy.getByTestId('d-frequency').contains('One time');
         cy.getByTestId('d-frequency').should('not.contain', 'Monthly');
         cy.getByTestId('d-frequency').should('not.contain', 'Yearly');
-
-        // Cleanup
-        cy.editElement('DFrequency');
-        cy.getByTestId('frequency-toggle').contains('Monthly').click();
-        cy.getByTestId('frequency-toggle').contains('Yearly').click();
-        cy.getByTestId('keep-element-changes-button').click({ force: true });
       });
     });
   });
@@ -192,16 +189,16 @@ describe('Contribution page edit', () => {
     const amountElement = livePage.elements.find((el) => el.type === 'DAmount');
     const options = amountElement.content.options;
 
-    before(() => {
+    beforeEach(() => {
       cy.intercept(`**/${LIST_STYLES}**`, {});
       cy.editElement('DFrequency');
       cy.getByTestId('frequency-editor').find('li').first().click();
       cy.getByTestId('frequency-editor').find('li').click({ multiple: true });
       cy.getByTestId('keep-element-changes-button').click({ force: true });
+      cy.editElement('DAmount');
     });
 
     it('should render the amount editor', () => {
-      cy.editElement('DAmount');
       cy.getByTestId('amount-editor');
     });
 
@@ -291,7 +288,8 @@ describe('Contribution page edit', () => {
 
   describe('Swag editor', () => {
     const pageSwagElement = livePage.elements.filter((el) => el.type === 'DSwag')[0];
-    before(() => {
+
+    beforeEach(() => {
       cy.getByTestId('edit-page-button').click();
       cy.editElement('DSwag');
     });
@@ -371,12 +369,6 @@ describe('Contribution page edit', () => {
       // Expect alert
       cy.getByTestId('missing-elements-alert').should('exist');
       cy.getByTestId('missing-elements-alert').contains('Payment');
-
-      // Cleanup
-      // this closes the alert
-      cy.findByRole('alert').findByRole('button', { name: /x/ }).click();
-      cy.getByTestId('edit-page-button').click();
-      cy.getByTestId('add-page-element-button').click();
     });
 
     it('should open appropriate tab for error and scroll to first error', () => {
@@ -414,8 +406,9 @@ describe('Contribution page edit', () => {
       cy.getByTestId('errors-Thank You page link').contains(expectedErrorMessage);
     });
   });
+
   describe('Edit interface: Sidebar', () => {
-    before(() => {
+    beforeEach(() => {
       cy.forceLogin(orgAdminUser);
       cy.intercept({ method: 'GET', pathname: getEndpoint(USER) }, { body: orgAdminWithContentFlag });
       cy.intercept({ method: 'GET', pathname: getEndpoint(LIST_STYLES) }, {});
@@ -447,7 +440,8 @@ describe('Contribution page edit', () => {
     it('Can add an element', () => {
       cy.intercept({ method: 'GET', pathname: getEndpoint(LIST_STYLES) }, {});
 
-      cy.getByTestId('add-sidebar-element-button').click();
+      cy.findByRole('tab', { name: 'Sidebar' }).click({ force: true });
+      cy.findByRole('tabpanel', { name: 'Sidebar' }).findByRole('button', { name: 'Add Block' }).click();
       cy.getByTestId('add-page-modal').within(() => {
         cy.getByTestId('page-item-DRichText').click();
       });
@@ -459,13 +453,13 @@ describe('Contribution page edit', () => {
       cy.intercept({ method: 'GET', pathname: getEndpoint(LIST_STYLES) }, {});
 
       cy.getByTestId('edit-page-button').click({ force: true });
-      cy.getByTestId('edit-sidebar-tab').click({ force: true });
+      cy.findByRole('tab', { name: 'Sidebar' }).click();
       cy.editElement('DRichText');
       cy.get('[class=DraftEditor-editorContainer]').type('New Rich Text');
       cy.getByTestId('keep-element-changes-button').click();
       cy.getByTestId('preview-page-button').click();
       cy.get('[data-testid=donation-page__sidebar] > ul > li')
-        .should('have.length', 3)
+        .should('have.length', 2)
         .first()
         .should('contain.text', 'New Rich Text');
     });
@@ -496,13 +490,16 @@ describe('Edit interface: Setup', () => {
     cy.getByTestId('edit-page-button').click();
     cy.getByTestId('edit-setup-tab').click({ force: true });
   });
+
   it('should render the setup tab when setup tab clicked', () => {
     cy.getByTestId('page-setup');
   });
+
   it('should pre-fill incoming data', () => {
     const expectedHeading = livePage.heading;
     cy.getByTestId('setup-heading-input').should('have.value', expectedHeading);
   });
+
   it('should update contribution page view with new content and display it in preview mode', () => {
     const previousHeading = livePage.heading;
     const newHeading = 'My new test heading';
@@ -527,6 +524,7 @@ describe('Edit interface: Setup', () => {
     // Go back to edit mode
     cy.getByTestId('edit-page-button').click();
   });
+
   it('should show a warning when updating a live page', () => {
     cy.intercept({ method: 'GET', pathname: getEndpoint(LIST_STYLES) }, {});
     cy.getByTestId('edit-layout-tab').click();
@@ -631,7 +629,7 @@ describe('Contribution page delete', () => {
 });
 
 describe('Page load side effects', () => {
-  before(() => {
+  beforeEach(() => {
     cy.forceLogin(orgAdminUser);
     cy.intercept({ method: 'GET', pathname: getEndpoint(USER) }, { body: orgAdminWithContentFlag });
     cy.intercept(
@@ -650,7 +648,7 @@ describe('Page load side effects', () => {
 });
 
 describe('ReasonEditor', () => {
-  before(() => {
+  beforeEach(() => {
     cy.forceLogin(orgAdminUser);
     cy.intercept({ method: 'GET', pathname: getEndpoint(USER) }, { body: orgAdminWithContentFlag });
     cy.intercept(

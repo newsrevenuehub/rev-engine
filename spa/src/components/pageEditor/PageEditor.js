@@ -216,7 +216,7 @@ function PageEditor() {
     async function finishSave() {
       try {
         if (CAPTURE_PAGE_SCREENSHOT) {
-          await updatePage(updatedPage, document.getElementById('root'));
+          await updatePage(updatedPage, page.name, document.getElementById('root'));
         } else {
           await updatePage(updatedPage);
         }

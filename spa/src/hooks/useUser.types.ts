@@ -1,31 +1,11 @@
 import { FeatureFlag } from './useFeatureFlags.types';
 import { UserRole } from 'constants/authConstants';
+import { EnginePlan, RevenueProgram } from './useContributionPage';
 
-export interface Page {
-  id: number;
-  name: string;
-  slug: string;
-  revenue_program: RevenueProgram;
-}
-
-export interface RevenueProgram {
-  id: string;
-  name: string;
-  slug: string;
-  payment_provider_stripe_verified: boolean;
-}
-
-export interface Plan {
-  name: string;
-  label: string;
-  page_limit: number;
-  style_limit: number;
-  custom_thank_you_page_enabled: boolean;
-}
 export interface Organization {
   name: string;
   slug: string;
-  plan?: Plan;
+  plan?: EnginePlan;
 }
 
 export interface User {

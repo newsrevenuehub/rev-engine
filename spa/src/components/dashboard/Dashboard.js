@@ -23,6 +23,7 @@ import DashboardSidebar from 'components/dashboard/sidebar/DashboardSidebar';
 import DashboardTopbar from 'components/dashboard/topbar/DashboardTopbar';
 import Donations from 'components/donations/Donations';
 import PageEditor from 'components/pageEditor/PageEditor';
+import SystemNotification from 'components/common/SystemNotification/SystemNotification';
 
 import ConnectStripeElements from 'components/dashboard/connectStripe/ConnectStripeElements';
 
@@ -41,11 +42,10 @@ function Dashboard() {
   const { flags } = useFeatureFlags();
   const { page, setPage, updatedPage } = usePageContext();
   const { user } = useUser();
-  const { requiresVerification, isLoading } = useConnectStripeAccount();
-
+  const { requiresVerification, displayConnectionSuccess, hideConnectionSuccess, isLoading } =
+    useConnectStripeAccount();
   const hasContributionsSectionAccess = user?.role_type && hasContributionsDashboardAccessToUser(flags);
   const hasContentSectionAccess = user?.role_type && flagIsActiveForUser(CONTENT_SECTION_ACCESS_FLAG_NAME, flags);
-
   const dashboardSlugRedirect = hasContentSectionAccess
     ? CONTENT_SLUG
     : hasContributionsSectionAccess
@@ -60,6 +60,17 @@ function Dashboard() {
   ) : (
     <S.Outer>
       {requiresVerification ? <ConnectStripeElements /> : ''}
+      {displayConnectionSuccess && (
+        <S.StripeConnectNotification>
+          <SystemNotification
+            type="success"
+            header="Stripe Successfully Connected!"
+            handleClose={hideConnectionSuccess}
+          >
+            Stripe verification has been completed. Your contribution page can now be published!
+          </SystemNotification>
+        </S.StripeConnectNotification>
+      )}
       <DashboardTopbar isEditPage={isEditPage} page={page} setPage={setPage} user={user} updatedPage={updatedPage} />
       <S.Dashboard data-testid="dashboard">
         {isEditPage ? null : <DashboardSidebar />}

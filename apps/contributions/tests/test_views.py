@@ -3,6 +3,7 @@ from unittest import mock
 from django.conf import settings
 from django.middleware import csrf
 from django.test import override_settings
+from django.utils import timezone
 
 import pytest
 from addict import Dict as AttrDict
@@ -1171,13 +1172,24 @@ class TestPaymentViewset:
         assert response.json() == {"detail": "Something went wrong"}
 
 
+@pytest.mark.parametrize("send_receipt_email_via_nre", (True, False))
 @pytest.mark.django_db
-def test_payment_success_view():
+def test_payment_success_view(send_receipt_email_via_nre, monkeypatch):
     """Minimal test of payment success view. This view calls a model method which is more deeply tested elsewhere."""
     client = APIClient()
     contribution = ContributionFactory(interval="month")
     contribution.provider_client_secret_id = "Shhhhhh"
     contribution.save()
+    contribution.donation_page.revenue_program.organization.send_receipt_email_via_nre = send_receipt_email_via_nre
+    contribution.donation_page.revenue_program.organization.save()
+    mock_send_email = mock.Mock()
+    monkeypatch.setattr("apps.emails.tasks.send_thank_you_email.delay", mock_send_email)
+    now = timezone.now()
+    mock_now = mock.Mock()
+    mock_now.return_value = now
+    monkeypatch.setattr("django.utils.timezone.now", mock_now)
     url = reverse("payment-success", args=(contribution.provider_client_secret_id,))
     response = client.patch(url, {})
     assert response.status_code == status.HTTP_204_NO_CONTENT
+    if send_receipt_email_via_nre:
+        mock_send_email.assert_called_once_with(contribution.id, now.date(), now.year)

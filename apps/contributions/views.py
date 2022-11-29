@@ -255,7 +255,7 @@ def payment_success(request, provider_client_secret_id=None):
         return Response(status=status.HTTP_404_NOT_FOUND)
     now = timezone.now()
     if contribution.revenue_program.organization.send_receipt_email_via_nre:
-        send_thank_you_email.delay(contribution, now.date(), now.year)
+        send_thank_you_email.delay(contribution.id, now.date(), now.year)
     return Response(status=status.HTTP_204_NO_CONTENT)
 
 

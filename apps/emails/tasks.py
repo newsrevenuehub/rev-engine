@@ -7,7 +7,7 @@ from celery import shared_task
 from celery.utils.log import get_task_logger
 from stripe.error import StripeError
 
-from apps.contributions.models import Contributor
+from apps.contributions.models import Contribution, Contributor
 
 
 logger = get_task_logger(f"{settings.DEFAULT_LOGGER}.{__name__}")
@@ -48,12 +48,13 @@ def send_templated_email(
     retry_jitter=False,
     autoretry_for=(AnymailAPIError,),
 )
-def send_thank_you_email(contribution, contribution_date, copyright_year):
-    """ """
+def send_thank_you_email(contribution_id, contribution_date, copyright_year):
+    """Retrieve Stripe customer and send thank you email for a contribution"""
     try:
+        contribution = Contribution.objects.get(id=contribution_id)
         customer = contribution.get_stripe_customer()
-    except (ValueError, StripeError) as exc:
-        logger.exception("Something went wrong retrieving Stripe customer for contribution %s", contribution.id)
+    except (Contribution.DoesNotExist, ValueError, StripeError) as exc:
+        logger.exception("Something went wrong retrieving Stripe customer for contribution with id %s", contribution_id)
         raise exc
     send_templated_email(
         contribution.contributor.email,

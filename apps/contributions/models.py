@@ -333,10 +333,8 @@ class Contribution(IndexedTimeStampedModel, RoleAssignmentResourceModelMixin):
             send_templated_email.delay(
                 self.contributor.email,
                 "Thank you for your contribution!",
-                # TODO: After completing DEV-2892: Provide requested data to receipt emails,
-                # remove the "-temporary" from the following two lines
-                "nrh-default-contribution-confirmation-email-temporary.txt",
-                "nrh-default-contribution-confirmation-email-temporary.html",
+                "nrh-default-contribution-confirmation-email.txt",
+                "nrh-default-contribution-confirmation-email.html",
                 {
                     "contribution_date": contribution_received_at.strftime("%m-%d-%y"),
                     "contributor_email": self.contributor.email,

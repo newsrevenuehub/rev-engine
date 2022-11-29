@@ -250,9 +250,8 @@ class ContributionTest(TestCase):
         mock_send_email.assert_called_once_with(
             contributor.email,
             "Thank you for your contribution!",
-            # TODO: Remove "-temporary" from the following two lines after completing DEV-2892: Provide requested data to receipt emails
-            "nrh-default-contribution-confirmation-email-temporary.txt",
-            "nrh-default-contribution-confirmation-email-temporary.html",
+            "nrh-default-contribution-confirmation-email.txt",
+            "nrh-default-contribution-confirmation-email.html",
             {
                 "contribution_date": contribution_received_at.strftime("%m-%d-%y"),
                 "contributor_email": contributor.email,

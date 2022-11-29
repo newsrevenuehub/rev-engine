@@ -333,8 +333,7 @@ def test_contribution_send_recurring_contribution_email_reminder(interval, expec
                 "contribution_interval": contribution.interval,
                 "is_non_profit": contribution.donation_page.revenue_program.non_profit,
                 "contributor_email": contribution.contributor.email,
-                # todo -- update this after DEV-2519 merged
-                "tax_id": "tax-id-coming-soon",
+                "tax_id": contribution.donation_page.revenue_program.tax_id,
                 "magic_link": magic_link,
             },
         )
@@ -346,8 +345,7 @@ def test_contribution_send_recurring_contribution_email_reminder(interval, expec
             f"Interval: {contribution.interval}",
             f"Is non-profit: {str(contribution.donation_page.revenue_program.non_profit)}",
             f"Contributor email: {contribution.contributor.email}",
-            # todo -- update this after DEV-2519 merged
-            "Tax id: tax-id-coming-soon",
+            f"Tax id: {contribution.donation_page.revenue_program.tax_id}",
             f"Magic link: {magic_link}",
         ]
         for x in email_expectations:

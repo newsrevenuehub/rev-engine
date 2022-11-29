@@ -8,7 +8,7 @@ export const initialState = {
   data: null
 };
 
-const fetchReducer = (state, action) => {
+const fetchReducer = (state: typeof initialState, action: { type: string; payload?: any }) => {
   switch (action.type) {
     case FETCH_START: {
       return {

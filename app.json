@@ -1,7 +1,7 @@
 {
   "addons": [
-    "heroku-postgresql",
-    "heroku-redis",
+    "heroku-postgresql:mini",
+    "heroku-redis:mini",
     "papertrail"
   ],
   "buildpacks": [

@@ -118,7 +118,8 @@ function PageEditor() {
     }
   }, [isLoading, pageContext, setPageContext, setUpdatedPage]);
 
-  // Show fetch errors to the user.
+  // Show fetch errors to the user. A timeout of 0 means that the alerts must be
+  // manually closed by the user instead of disappearing after a delay.
 
   useEffect(() => {
     if (isError && error.response?.data) {
@@ -190,7 +191,7 @@ function PageEditor() {
         await deletePage();
         history.push(CONTENT_SLUG);
       } catch {
-        // Do nothing--the hook does needed error handling.
+        // Do nothing--deletePage() will display an alert to the user for us.
       }
     }
 

@@ -1,5 +1,6 @@
 import uuid
 
+from django.conf import settings
 from django.db import models
 from django.utils import timezone
 
@@ -345,3 +346,24 @@ class Contribution(IndexedTimeStampedModel, RoleAssignmentResourceModelMixin):
                     "org_name": self.revenue_program.organization.name,
                 },
             )
+
+    @staticmethod
+    def stripe_metadata(contributor, validated_data, referer):
+        """Generate dict of metadata to be sent to Stripe when creating a PaymentIntent or Subscription"""
+        return {
+            "source": settings.METADATA_SOURCE,
+            "schema_version": settings.METADATA_SCHEMA_VERSION,
+            "contributor_id": contributor.id,
+            "agreed_to_pay_fees": validated_data["agreed_to_pay_fees"],
+            "donor_selected_amount": validated_data["donor_selected_amount"],
+            "reason_for_giving": validated_data["reason_for_giving"],
+            "honoree": validated_data.get("honoree"),
+            "in_memory_of": validated_data.get("in_memory_of"),
+            "comp_subscription": validated_data.get("comp_subscription"),
+            "swag_opt_out": validated_data.get("swag_opt_out"),
+            "swag_choice": validated_data.get("swag_choice"),
+            "referer": referer,
+            "revenue_program_id": validated_data["page"].revenue_program.id,
+            "revenue_program_slug": validated_data["page"].revenue_program.slug,
+            "sf_campaign_id": validated_data.get("sf_campaign_id"),
+        }

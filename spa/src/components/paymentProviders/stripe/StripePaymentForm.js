@@ -11,6 +11,8 @@ import DonationPageDisclaimer from 'components/donationPage/DonationPageDisclaim
 import { getFrequencyThankYouText } from 'utilities/parseFrequency';
 import { getPaymentSuccessUrl, getPaymentElementButtonText } from './stripeFns';
 
+export const STRIPE_ERROR_MESSAGE = 'Something went wrong processing your payment';
+
 function StripePaymentForm() {
   const {
     page,
@@ -75,7 +77,7 @@ function StripePaymentForm() {
       // immediate error when confirming the payment. Otherwise, contributor gets redirected
       // to `return_url` before the promise above ever resolves.
       if (!['card_error', 'validation_error'].includes(error?.type)) {
-        alert.error('An unexpected error occurred');
+        alert.error(STRIPE_ERROR_MESSAGE);
       }
     } catch (e) {
       // NB: Our usual expectation is that "expected" errors will be caught by Stripe JS itself in try block
@@ -85,7 +87,7 @@ function StripePaymentForm() {
       //
       // TODO: [DEV-2921] update this console.error copy after DEV-2342 has landed to account for setup intent
       console.error('Something unexpected happened finalizing Stripe payment');
-      alert.error('An unexpected error occurred');
+      alert.error(STRIPE_ERROR_MESSAGE);
     } finally {
       setIsLoading(false);
     }

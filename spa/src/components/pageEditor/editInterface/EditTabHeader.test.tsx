@@ -37,6 +37,12 @@ describe('EditTabHeader', () => {
       userEvent.click(screen.getByRole('button', { name: 'test-label' }));
       expect(onAdd).toBeCalledTimes(1);
     });
+
+    it('is accessible', async () => {
+      const { container } = tree({ addButtonLabel: 'test-label', onAdd: jest.fn() });
+
+      expect(await axe(container)).toHaveNoViolations();
+    });
   });
 
   it('is accessible', async () => {

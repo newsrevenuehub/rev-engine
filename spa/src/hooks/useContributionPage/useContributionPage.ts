@@ -66,7 +66,7 @@ export function useContributionPage(revenueProgramSlug: string, pageSlug: string
   );
 
   const updatePage = useCallback(
-    async (data: Partial<ContributionPage>, elementToScreenshot?: HTMLElement) => {
+    async (data: Partial<ContributionPage>, screenshotBaseName?: string, elementToScreenshot?: HTMLElement) => {
       // No error handling here to allow callers to implement their own
       // logic--they may not want an error notification at all.
 
@@ -74,7 +74,7 @@ export function useContributionPage(revenueProgramSlug: string, pageSlug: string
         throw new Error('Page is not yet defined');
       }
 
-      const formData = await pageUpdateToFormData(data, elementToScreenshot);
+      const formData = await pageUpdateToFormData(data, screenshotBaseName, elementToScreenshot);
 
       await updatePageMutation.mutateAsync(formData);
       alert.success(getUpdateSuccessMessage(page, data));

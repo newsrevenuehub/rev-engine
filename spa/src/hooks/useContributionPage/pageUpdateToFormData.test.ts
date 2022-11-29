@@ -169,8 +169,8 @@ describe('pageUpdateToFormData', () => {
     expect(formDataToObject(result)).toEqual({ published_date: '' });
   });
 
-  it('adds a screenshot of an HTML element as the page_screenshot field if passed', async () => {
-    const result = formDataToObject(await pageUpdateToFormData({ name: 'test-name' }, document.body));
+  it('adds a screenshot of an HTML element as the page_screenshot field if passed both the element and a base filename', async () => {
+    const result = formDataToObject(await pageUpdateToFormData({}, 'test-name', document.body));
 
     expect(html2canvasMock.mock.calls).toEqual([[document.body]]);
     expect(result.page_screenshot).toBeInstanceOf(File);
@@ -180,8 +180,8 @@ describe('pageUpdateToFormData', () => {
     expect(result.page_screenshot.name).toMatch(/^test-name_\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d\.\d{3}[-+]\d\d.png$/);
   });
 
-  it('throws an error if a screenshot is requested, but the page object has no name', () =>
-    expect(() => pageUpdateToFormData({}, document.body)).rejects.toEqual(expect.any(Error)));
+  it('throws an error if a screenshot is requested, but no name is provided', () =>
+    expect(() => pageUpdateToFormData({}, undefined, document.body)).rejects.toEqual(expect.any(Error)));
 
   it('throws an error if creating a screenshot fails', async () => {
     html2canvasMock.mockImplementation(() => ({
@@ -190,6 +190,6 @@ describe('pageUpdateToFormData', () => {
         callback(null);
       }
     }));
-    await expect(() => pageUpdateToFormData({ name: 'test-name' }, document.body)).rejects.toEqual(expect.any(Error));
+    await expect(() => pageUpdateToFormData({}, 'test-name', document.body)).rejects.toEqual(expect.any(Error));
   });
 });

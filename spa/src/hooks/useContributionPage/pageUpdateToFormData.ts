@@ -22,7 +22,11 @@ export function putImagesInFormData(elements: ContributionPageElement[], formDat
 /**
  * Converts a page object into form data to be submitted to the API for an update.
  */
-export async function pageUpdateToFormData(pageUpdates: Partial<ContributionPage>, elementToScreenshot?: HTMLElement) {
+export async function pageUpdateToFormData(
+  pageUpdates: Partial<ContributionPage>,
+  screenshotBaseName?: string,
+  elementToScreenshot?: HTMLElement
+) {
   const formData = new FormData();
   const normalizedFields = Object.keys(pageUpdates).reduce((result, pageKey) => {
     const key = pageKey as keyof ContributionPage;
@@ -86,8 +90,8 @@ export async function pageUpdateToFormData(pageUpdates: Partial<ContributionPage
   }
 
   if (elementToScreenshot) {
-    if (!pageUpdates.name) {
-      throw new Error('Asked to add a screenshot, but page object has no name to derive filename from');
+    if (!screenshotBaseName) {
+      throw new Error('Asked to add a screenshot, but no base file name was provided');
     }
 
     const canvas = await html2canvas(elementToScreenshot);
@@ -97,7 +101,7 @@ export async function pageUpdateToFormData(pageUpdates: Partial<ContributionPage
       throw new Error('Could not convert canvas to blob');
     }
 
-    formData.append('page_screenshot', blob, `${pageUpdates.name}_${formatDatetimeForAPI(new Date())}.png`);
+    formData.append('page_screenshot', blob, `${screenshotBaseName}_${formatDatetimeForAPI(new Date())}.png`);
   }
 
   return formData;

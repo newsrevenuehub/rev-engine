@@ -1,5 +1,24 @@
 {% extends "nrh-default-contribution-base-template.html" %}
 
+{% block custom_style %}
+<style type="text/css">
+    .template-header {
+      font-family: Roboto, sans-serif;
+      color: #282828;
+      font-size: 30px;
+    }
+
+    .template-margin-bot {
+      margin-top: 8px;
+      margin-bottom: 32px;
+    }
+
+    .template-margin-top {
+      margin-top: 32px;
+    }
+</style>
+{% endblock custom_style %}
+
 {% block header %}
 <tr>
   <td style="padding-right: 0px;padding-left: 0px;" align="left">
@@ -9,6 +28,6 @@
 </tr>
 {% endblock header %}
 
-{% block contribution_data_label %}
+{% block contribution_date_label %}
 Scheduled
-{% endblock contribution_data_label %}
+{% endblock contribution_date_label %}

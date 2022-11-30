@@ -1,16 +1,10 @@
+{% extends "nrh-default-contribution-base-template.txt" %}
 
+{% block header %}
 {{ rp_name }}
 Scheduled Contribution
+{% endblock header %}
 
-------------------------
-Contributions Details:
-
-Date Scheduled: {{ contribution_date }}
-Email: {{ contributor_email }}
-{% if contribution_interval == "one_time" %}
-Amount Contributed: {{ contribution_amount }}
-{% else %}
-Amount Contributed: {{ contribution_amount }}/{{ contribution_interval_display_value }}
-{% endif %}
-
-Need to make changes to your contribution? {% autoescape off %}{{ magic_link }}{% endautoescape %}
+{% block contribution_date_label %}
+Scheduled
+{% endblock contribution_date_label %}

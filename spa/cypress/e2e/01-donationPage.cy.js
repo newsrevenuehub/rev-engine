@@ -848,7 +848,7 @@ describe('StripePaymentForm unhappy paths', () => {
       cy.contains(STRIPE_ERROR_MESSAGE).should('be.visible');
     });
   });
-  specify('There is an unexpected, non-promise error on Stripe payment element submission', () => {
+  specify('displays an error when an unexpected, non-promise error on Stripe payment element submission occurs', () => {
     cy.window()
       .its('stripe')
       .then((stripe) => {

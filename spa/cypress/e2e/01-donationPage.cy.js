@@ -831,7 +831,7 @@ describe('StripePaymentForm unhappy paths', () => {
       .click();
     cy.wait('@create-one-time-payment');
   });
-  specify('when there is an unexpected but promise resolved error on Stripe payment element submission', () => {
+  specify('displays an error when there is an unexpected error, but the Stripe payment element submission payment promise resolved', () => {
     cy.window()
       .its('stripe')
       .then((stripe) => {

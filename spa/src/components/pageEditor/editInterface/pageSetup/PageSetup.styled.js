@@ -3,13 +3,11 @@ import styled from 'styled-components';
 export const PageSetup = styled.div`
   display: flex;
   flex-direction: column;
-  margin-left: 6rem;
-  margin-right: 4rem;
-  padding: 1rem 0;
 `;
 
-export const PageName = styled.h2`
-  margin-bottom: 1rem;
+export const Controls = styled.div`
+  width: 90%;
+  margin: 0 auto;
 `;
 
 export const MainContent = styled.div`

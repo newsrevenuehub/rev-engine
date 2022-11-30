@@ -4,7 +4,14 @@
 name: "Chromatic"
 
 # Event for the workflow
-on: push
+on:
+  push:
+    branches-ignore:
+      - demo
+      - "dependabot/**"
+      - develop
+      - staging
+      - test
 
 # Copied from https://www.chromatic.com/docs/github-actions
 

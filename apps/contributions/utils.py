@@ -30,6 +30,7 @@ def get_sha256_hash(string):
 
 def export_contributions_to_csv(contributions):
     columns = (
+        "Contribution ID",
         "Contributor",
         "Amount",
         "Donor Selected Amount",
@@ -56,6 +57,7 @@ def export_contributions_to_csv(contributions):
 
         data.append(
             {
+                "Contribution ID": contribution.id,
                 "Contributor": billing_details.get("name") or "Unknown",
                 "Amount": contribution.formatted_amount,
                 "Donor Selected Amount": formatted_donor_selected_amount,

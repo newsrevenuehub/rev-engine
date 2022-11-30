@@ -1,3 +1,4 @@
+from csv import DictReader
 from csv import Error as CSVError
 from unittest import mock
 
@@ -506,7 +507,7 @@ class TestContributionsViewSetExportCSV(AbstractTestCase):
 
     @mock.patch("apps.contributions.views.send_templated_email_with_attachment.delay")
     def test_user_with_role(self, email_mock):
-        response = self.email_contributions(self.rp_user)
+        response = self.email_contributions(self.org_user)
         assert response.status_code == 200
 
         response = self.email_contributions(self.org_user)
@@ -520,21 +521,27 @@ class TestContributionsViewSetExportCSV(AbstractTestCase):
 
     @mock.patch("apps.contributions.views.send_templated_email_with_attachment.delay")
     def test_data_in_csv_matching_with_contributions_list(self, email_mock):
-        contributions = self.list_contributions(self.rp_user).json()
-        self.email_contributions(self.rp_user).json()
-        contributions_csv = email_mock.call_args_list[0].kwargs["attachment"].split("\r\n")
+        contributions_from_list_view = self.list_contributions(self.org_user).json()["results"]
+        self.email_contributions(self.org_user).json()
 
-        assert len(contributions_csv) - 2 == contributions["count"]
+        contributions_from_email_view = [
+            row for row in DictReader(email_mock.call_args_list[0].kwargs["attachment"].splitlines())
+        ]
+
+        assert len(contributions_from_email_view) == len(contributions_from_list_view)
+        assert set(int(x["Contribution ID"]) for x in contributions_from_email_view) == set(
+            x["id"] for x in contributions_from_list_view
+        )
 
     @mock.patch("apps.contributions.views.send_templated_email_with_attachment.delay", side_effect=Exception)
     @mock.patch("apps.contributions.views.export_contributions_to_csv")
     def test_when_error(self, csv_maker, email_task):
-        response = self.email_contributions(self.rp_user)
+        response = self.email_contributions(self.org_user)
         response.status_code = 500
 
         csv_error_text = "Error in csv generation"
         csv_maker.side_effect = CSVError(csv_error_text)
-        response = self.email_contributions(self.rp_user)
+        response = self.email_contributions(self.org_user)
         response.status_code = 500
         assert response.json()["detail"] == csv_error_text
 

@@ -69,18 +69,18 @@ def test_export_contributions_to_csv():
     }
 
     contribution_1 = AttrDict(
-        {"formatted_amount": "500.0 USD", "currency": "usd", "payment_provider_data": payment_provider_data_1}
+        {"id": 1, "formatted_amount": "500.0 USD", "currency": "usd", "payment_provider_data": payment_provider_data_1}
     )
     contribution_2 = AttrDict(
-        {"formatted_amount": "1500.0 USD", "currency": "usd", "payment_provider_data": payment_provider_data_2}
+        {"id": 2, "formatted_amount": "1500.0 USD", "currency": "usd", "payment_provider_data": payment_provider_data_2}
     )
 
     data = export_contributions_to_csv([contribution_1, contribution_2])
     expected = "\r\n".join(
         [
-            '"Contributor","Amount","Donor Selected Amount","Agreed to Pay Fees","Frequency","Payment Received Date","Payment status","Address","Email","Phone","Page URL"',
-            '"Test Name 1","500.0 USD","","","{}","{}","{}","800 Long Bow Ln, Austin, 78701, TX, US","test_name_1@test.com","9999999999",""',
-            '"Test Name 2","1500.0 USD","","","{}","{}","{}","","test_name_2@test.com","8888888888",""',
+            '"Contribution ID","Contributor","Amount","Donor Selected Amount","Agreed to Pay Fees","Frequency","Payment Received Date","Payment status","Address","Email","Phone","Page URL"',
+            '"1","Test Name 1","500.0 USD","","","{}","{}","{}","800 Long Bow Ln, Austin, 78701, TX, US","test_name_1@test.com","9999999999",""',
+            '"2","Test Name 2","1500.0 USD","","","{}","{}","{}","","test_name_2@test.com","8888888888",""',
             "",
         ]
     )

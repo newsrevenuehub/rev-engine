@@ -827,7 +827,7 @@ describe('StripePaymentForm unhappy paths', () => {
     fillOutAddressSection();
     fillOutReasonForGiving();
     cy.get('form')
-      .findByRole('button', { name: /Continue to Payment/ })
+      .findByRole('button', { name: 'Continue to Payment' })
       .click();
     cy.wait('@create-one-time-payment');
   });

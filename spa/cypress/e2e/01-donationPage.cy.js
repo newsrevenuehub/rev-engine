@@ -368,9 +368,7 @@ const fakeStripeSecret = 'pi_3LgkV1pOaLul7_secret_QcpIANR9d6';
 
 describe('User flow: happy path', () => {
   beforeEach(() => {
-    // We intercept requests for Google Recaptcha because in test env, sometimes the live recaptcha returns an error
-    // (possibly because we load it too many times successively???), which was causing test failure else where.
-    cy.intercept({ method: 'GET', url: 'https://www.google.com/recaptcha/*' }, { statusCode: 200 });
+    cy.interceptGoogleRecaptcha();
     cy.visitDonationPage();
   });
   for (const payFees of [true, false]) {
@@ -622,9 +620,7 @@ describe('User flow: happy path', () => {
 
 describe('User flow: canceling contribution', () => {
   beforeEach(() => {
-    // We intercept requests for Google Recaptcha because in test env, sometimes the live recaptcha returns an error
-    // (possibly because we load it too many times successively???), which was causing test failure else where.
-    cy.intercept({ method: 'GET', url: 'https://www.google.com/recaptcha/*' }, { statusCode: 200 });
+    cy.interceptGoogleRecaptcha();
     cy.visitDonationPage();
   });
 
@@ -721,9 +717,7 @@ describe('User flow: canceling contribution', () => {
 
 describe('User flow: unhappy paths', () => {
   beforeEach(() => {
-    // We intercept requests for Google Recaptcha because in test env, sometimes the live recaptcha returns an error
-    // (possibly because we load it too many times successively???), which was causing test failure else where.
-    cy.intercept({ method: 'GET', url: 'https://www.google.com/recaptcha/*' }, { statusCode: 200 });
+    cy.interceptGoogleRecaptcha();
   });
   specify("Contribution doesn't validate on server", () => {
     const validationError = 'This field is required';
@@ -809,9 +803,7 @@ describe('User flow: unhappy paths', () => {
 
 describe('StripePaymentForm unhappy paths', () => {
   beforeEach(() => {
-    // We intercept requests for Google Recaptcha because in test env, sometimes the live recaptcha returns an error
-    // (possibly because we load it too many times successively???), which was causing test failure else where.
-    cy.intercept({ method: 'GET', url: 'https://www.google.com/recaptcha/*' }, { statusCode: 200 });
+    cy.interceptGoogleRecaptcha();
     cy.interceptStripeApi();
     cy.intercept(
       { method: 'POST', url: getEndpoint(AUTHORIZE_STRIPE_PAYMENT_ROUTE) },

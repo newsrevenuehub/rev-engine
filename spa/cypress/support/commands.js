@@ -101,3 +101,9 @@ Cypress.Commands.add('setStripeCardElement', (elementName, value) => {
       .type(value);
   });
 });
+
+Cypress.Commands.add('interceptGoogleRecaptcha', () => {
+  // This can be helpful to add because in test env, sometimes the live recaptcha returns an error
+  // (possibly because we load it too many times successively?), which can cause test failures.
+  cy.intercept({ method: 'GET', url: 'https://www.google.com/recaptcha/*' }, { statusCode: 200 });
+});

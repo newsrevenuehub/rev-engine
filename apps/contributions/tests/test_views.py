@@ -1,3 +1,4 @@
+from csv import Error as CSVError
 from unittest import mock
 
 from django.conf import settings
@@ -524,6 +525,18 @@ class TestContributionsViewSetExportCSV(AbstractTestCase):
         contributions_csv = email_mock.call_args_list[0].kwargs["attachment"].split("\r\n")
 
         assert len(contributions_csv) - 2 == contributions["count"]
+
+    @mock.patch("apps.contributions.views.send_templated_email_with_attachment.delay", side_effect=Exception)
+    @mock.patch("apps.contributions.views.export_contributions_to_csv")
+    def test_when_error(self, csv_maker, email_task):
+        response = self.email_contributions(self.rp_user)
+        response.status_code = 500
+
+        csv_error_text = "Error in csv generation"
+        csv_maker.side_effect = CSVError(csv_error_text)
+        response = self.email_contributions(self.rp_user)
+        response.status_code = 500
+        assert response.json()["detail"] == csv_error_text
 
 
 class TestSubscriptionViewSet(AbstractTestCase):

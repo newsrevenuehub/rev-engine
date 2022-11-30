@@ -34,45 +34,6 @@
       background-color: #ffffff;
     }
 
-    .logo {
-      margin-top: 46px;
-      height: 47px;
-    }
-
-    .thank-you-title {
-      font-family: Roboto, sans-serif;
-      color: #25192B;
-      font-size: 30px;
-      margin-top: 37px;
-      margin-bottom: 25px;
-    }
-
-    .template-header {
-      font-family: Roboto, sans-serif;
-      color: #282828;
-      font-size: 30px;
-    }
-
-    .template-margin-bot {
-      margin-top: 8px;
-      margin-bottom: 32px;
-    }
-
-    .template-margin-top {
-      margin-top: 32px;
-    }
-
-    .user-info {
-      font-family: Roboto, sans-serif;
-      color: #282828;
-      font-size: 16px;
-    }
-
-    .user-info-second-line {
-      margin-top: 28px;
-      margin-bottom: 25px;
-    }
-
     .inner-center {
       margin-left: 58px;
       margin-right: 58px;
@@ -138,7 +99,8 @@
     }
   </style>
 
-
+  {% block custom_style %}
+  {% endblock custom_style %}
 
   <!--[if !mso]><!-->
   <link href="https://fonts.googleapis.com/css?family=Roboto:400,500,600,700&display=swap" rel="stylesheet" type="text/css">

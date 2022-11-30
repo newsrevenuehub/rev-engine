@@ -826,28 +826,49 @@ describe('StripePaymentForm unhappy paths', () => {
     fillOutDonorInfoSection();
     fillOutAddressSection();
     fillOutReasonForGiving();
-    cy.get('form')
-      .findByRole('button', { name: 'Continue to Payment' })
-      .click();
+    cy.get('form').findByRole('button', { name: 'Continue to Payment' }).click();
     cy.wait('@create-one-time-payment');
   });
-  specify('displays an error when there is an unexpected error, but the Stripe payment element submission payment promise resolved', () => {
-    cy.window()
-      .its('stripe')
-      .then((stripe) => {
-        cy.stub(stripe, 'confirmPayment').resolves({ error: 'suprise!' });
+  for (const errorType of ['card_error', 'validation_error']) {
+    const errorMessage = 'Some message';
+    specify(`displays Stripe's error message when an error with type ${errorType} occurs`, () => {
+      cy.window()
+        .its('stripe')
+        .then((stripe) => {
+          cy.stub(stripe, 'confirmPayment').resolves({ error: { type: errorType, message: errorMessage } });
+        });
+      cy.findByRole('button', {
+        name: getPaymentElementButtonText({
+          amount: 123.01,
+          currencySymbol: livePageOne.currency.symbol,
+          frequency: CONTRIBUTION_INTERVALS.ONE_TIME
+        })
+      }).click();
+      cy.findByRole('alert').within(() => {
+        cy.contains(errorMessage).should('be.visible');
       });
-    cy.findByRole('button', {
-      name: getPaymentElementButtonText({
-        amount: 123.01,
-        currencySymbol: livePageOne.currency.symbol,
-        frequency: CONTRIBUTION_INTERVALS.ONE_TIME
-      })
-    }).click();
-    cy.findByRole('alert').within(() => {
-      cy.contains(STRIPE_ERROR_MESSAGE).should('be.visible');
     });
-  });
+  }
+  specify(
+    'displays an error when there is an unexpected error, but the Stripe payment element submission payment promise resolved',
+    () => {
+      cy.window()
+        .its('stripe')
+        .then((stripe) => {
+          cy.stub(stripe, 'confirmPayment').resolves({ error: { type: 'unexpected' } });
+        });
+      cy.findByRole('button', {
+        name: getPaymentElementButtonText({
+          amount: 123.01,
+          currencySymbol: livePageOne.currency.symbol,
+          frequency: CONTRIBUTION_INTERVALS.ONE_TIME
+        })
+      }).click();
+      cy.findByRole('alert').within(() => {
+        cy.contains(STRIPE_ERROR_MESSAGE).should('be.visible');
+      });
+    }
+  );
   specify('displays an error when an unexpected, non-promise error on Stripe payment element submission occurs', () => {
     cy.window()
       .its('stripe')

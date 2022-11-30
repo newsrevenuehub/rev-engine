@@ -76,8 +76,10 @@ function StripePaymentForm() {
       // The Stripe docs note that this point will only be reached if there is an
       // immediate error when confirming the payment. Otherwise, contributor gets redirected
       // to `return_url` before the promise above ever resolves.
-      if (!['card_error', 'validation_error'].includes(error?.type)) {
-        alert.error(STRIPE_ERROR_MESSAGE);
+      if (error) {
+        const errorMessage =
+          error.type === 'card_error' || error.type === 'validation_error' ? error.message : STRIPE_ERROR_MESSAGE;
+        alert.error(errorMessage);
       }
     } catch (e) {
       // NB: Our usual expectation is that "expected" errors will be caught by Stripe JS itself in try block

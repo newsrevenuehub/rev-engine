@@ -10,6 +10,7 @@ export const SystemNotificationWrapper = styled.div`
   position: relative;
   border-radius: 4px;
   box-shadow: 0px 2px 6px rgba(0, 0, 0, 0.16);
+  background-color: ${(props) => props.theme.colors.white};
 `;
 
 export const IconBoxIcon = styled.div`

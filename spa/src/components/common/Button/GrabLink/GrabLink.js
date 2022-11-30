@@ -7,7 +7,7 @@ import LinkIcon from '@material-ui/icons/Link';
 import CopyInputButton from 'components/common/Button/CopyInputButton';
 import { pageLink, portalLink } from 'utilities/getPageLinks';
 import { Flex, Button, Popover, Text } from './GrabLink.styled';
-import { PagePropTypes } from 'constants/proptypes';
+import { PagePropTypes } from 'constants/propTypes';
 
 const GrabLink = ({ page, className }) => {
   const [copied, setCopied] = useState('');

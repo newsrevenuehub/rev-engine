@@ -1,6 +1,7 @@
 from datetime import datetime
 from unittest.mock import patch
 
+from django.conf import settings
 from django.test import override_settings
 from django.urls import reverse
 
@@ -46,6 +47,7 @@ class MockPaymentIntentEvent(StripeObject):
                 "cancellation_reason": cancellation_reason,
                 "customer": customer,
                 "created": datetime.now().timestamp(),
+                "metadata": {"schema_version": settings.METADATA_SCHEMA_VERSION},
             }
         }
         self.livemode = livemode
@@ -67,6 +69,7 @@ class MockSubscriptionEvent(StripeObject):
         cancellation_reason=None,
         customer=None,
         livemode=False,
+        metadata_schema_version=settings.METADATA_SCHEMA_VERSION,
     ):
         self.type = event_type
         self.data = {
@@ -77,6 +80,7 @@ class MockSubscriptionEvent(StripeObject):
                 "customer": customer,
                 "created": datetime.now().timestamp(),
                 "default_payment_method": new_payment_method,
+                "metadata": {"schema_version": metadata_schema_version},
             },
             "previous_attributes": previous_attributes,
         }

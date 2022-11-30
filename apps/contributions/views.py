@@ -175,7 +175,7 @@ def process_stripe_webhook_view(request):
         processor = StripeWebhookProcessor(event)
         processor.process()
     except ValueError:
-        logger.exception()
+        logger.exception("Something went wrong processing webhook")
     except Contribution.DoesNotExist:
         logger.exception("Could not find contribution matching provider_payment_id")
 

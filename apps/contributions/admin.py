@@ -54,6 +54,7 @@ class ContributionAdmin(RevEngineBaseAdmin, VersionAdmin):
                     "payment_provider_used",
                     "provider_payment_link",
                     "provider_subscription_link",
+                    "provider_setup_intent_id",
                     "provider_customer_link",
                     "payment_provider_data",
                     "provider_payment_method_id",
@@ -121,6 +122,7 @@ class ContributionAdmin(RevEngineBaseAdmin, VersionAdmin):
         "payment_provider_data",
         "flagged_date",
         "provider_payment_method_details",
+        "provider_setup_intent_id",
     )
 
     actions = (

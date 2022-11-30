@@ -371,10 +371,10 @@ class Contribution(IndexedTimeStampedModel, RoleAssignmentResourceModelMixin):
                 stripe_account=self.donation_page.revenue_program.stripe_account_id,
             )
         elif self.status == ContributionStatus.FLAGGED:
-            stripe.SetupIntent.cancel(
-                self.provider_setup_intent_id,
+            stripe.PaymentMethod.retrieve(
+                self.provider_payment_method_id,
                 stripe_account=self.donation_page.revenue_program.stripe_account_id,
-            )
+            ).detach()
 
         self.status = ContributionStatus.CANCELED
         self.save()

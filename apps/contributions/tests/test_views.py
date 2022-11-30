@@ -1,3 +1,4 @@
+import json
 from unittest import mock
 
 from django.conf import settings
@@ -5,6 +6,7 @@ from django.middleware import csrf
 from django.test import override_settings
 
 import pytest
+import stripe
 from addict import Dict as AttrDict
 from rest_framework import status
 from rest_framework.reverse import reverse
@@ -1145,16 +1147,25 @@ class TestPaymentViewset:
     def test_destroy_when_contribution_interval_unexpected(self):
         interval = "foo"
         assert interval not in ContributionInterval.choices
-        contribution = ContributionFactory(interval=interval)
+        contribution = ContributionFactory(interval=interval, status=ContributionStatus.PROCESSING)
         url = reverse("payment-detail", kwargs={"uuid": str(contribution.uuid)})
         response = self.client.delete(url)
-        assert response.status_code == status.HTTP_409_CONFLICT
+        assert response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
 
-    @pytest.mark.parametrize("interval", (ContributionInterval.ONE_TIME.value, ContributionInterval.MONTHLY.value))
-    def test_destroy_when_stripe_error(self, interval, monkeypatch):
-        monkeypatch.setattr("apps.contributions.views.stripe.PaymentIntent.cancel", mock_stripe_call_with_error)
-        monkeypatch.setattr("apps.contributions.views.stripe.Subscription.delete", mock_stripe_call_with_error)
-        contribution = ContributionFactory(status=ContributionStatus.PROCESSING)
+    @pytest.mark.parametrize(
+        "interval,contribution_status",
+        (
+            (ContributionInterval.ONE_TIME, ContributionStatus.PROCESSING),
+            (ContributionInterval.MONTHLY, ContributionStatus.FLAGGED),
+            (ContributionInterval.ONE_TIME, ContributionStatus.PROCESSING),
+            (ContributionInterval.MONTHLY, ContributionStatus.FLAGGED),
+        ),
+    )
+    def test_destroy_when_stripe_error(self, interval, contribution_status, monkeypatch):
+        monkeypatch.setattr("stripe.PaymentIntent.cancel", mock_stripe_call_with_error)
+        monkeypatch.setattr("stripe.Subscription.delete", mock_stripe_call_with_error)
+        monkeypatch.setattr("stripe.PaymentMethod.retrieve", mock_stripe_call_with_error)
+        contribution = ContributionFactory(interval=interval, status=contribution_status)
         url = reverse("payment-detail", kwargs={"uuid": str(contribution.uuid)})
         response = self.client.delete(url)
         assert response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
@@ -1170,3 +1181,48 @@ def test_payment_success_view():
     url = reverse("payment-success", args=(str(contribution.uuid),))
     response = client.patch(url, {})
     assert response.status_code == status.HTTP_204_NO_CONTENT
+
+
+@pytest.fixture()
+def payment_method_attached_request_data():
+    with open("apps/contributions/tests/fixtures/payment-method-attached-webhook.json") as fl:
+        return json.load(fl)
+
+
+@pytest.mark.django_db
+class TestStripeWebhooksView:
+    def test_payment_method_attached_happy_path(self, client, monkeypatch, payment_method_attached_request_data):
+        monkeypatch.setattr(
+            stripe.Webhook, "construct_event", lambda *args, **kwargs: AttrDict(payment_method_attached_request_data)
+        )
+        monkeypatch.setattr(
+            Contribution,
+            "fetch_stripe_payment_method",
+            lambda *args, **kwargs: payment_method_attached_request_data,
+        )
+        contribution = ContributionFactory(
+            status=ContributionStatus.PROCESSING,
+            interval=ContributionInterval.MONTHLY,
+            provider_customer_id=payment_method_attached_request_data["data"]["object"]["customer"],
+            provider_payment_method_id=None,
+        )
+        header = {"HTTP_STRIPE_SIGNATURE": "testing"}
+        response = client.post(reverse("stripe-webhooks"), payment_method_attached_request_data, **header)
+        assert response.status_code == status.HTTP_200_OK
+        contribution.refresh_from_db()
+        assert contribution.provider_payment_method_id == payment_method_attached_request_data["data"]["object"]["id"]
+
+    def test_payment_method_attached_when_contribution_not_found(
+        self, client, monkeypatch, payment_method_attached_request_data
+    ):
+        count = Contribution.objects.count()
+        assert not Contribution.objects.filter(
+            provider_customer_id=payment_method_attached_request_data["data"]["object"]["customer"]
+        )
+        monkeypatch.setattr(
+            stripe.Webhook, "construct_event", lambda *args, **kwargs: AttrDict(payment_method_attached_request_data)
+        )
+        header = {"HTTP_STRIPE_SIGNATURE": "testing"}
+        response = client.post(reverse("stripe-webhooks"), payment_method_attached_request_data, **header)
+        assert response.status_code == status.HTTP_200_OK
+        assert Contribution.objects.count() == count

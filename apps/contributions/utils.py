@@ -45,16 +45,14 @@ def export_contributions_to_csv(contributions):
     address_keys = ("line1", "line2", "city", "postal_code", "state", "country")
     data = []
     for contribution in contributions:
-        payment_provider_data = AttrDict(contribution.payment_provider_data or AttrDict()).data.object
-        charge_details = (payment_provider_data.charges.data or [AttrDict()])[0]
+        payment_provider_data = AttrDict(contribution.payment_provider_data).data.object
+        charge_details = payment_provider_data.charges.data[0]
         billing_details = charge_details.billing_details
         billing_address = billing_details.address
 
         formatted_donor_selected_amount = ""
-        if payment_provider_data.metadata.get("donor_selected_amount"):
-            formatted_donor_selected_amount = (
-                f"{payment_provider_data.metadata.get('donor_selected_amount')} {contribution.currency.upper()}"
-            )
+        if amount := payment_provider_data.metadata.donor_selected_amount:
+            formatted_donor_selected_amount = f"{amount} {contribution.currency.upper()}"
 
         data.append(
             {

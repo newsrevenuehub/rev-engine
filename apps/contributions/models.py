@@ -344,12 +344,9 @@ class Contribution(IndexedTimeStampedModel, RoleAssignmentResourceModelMixin):
                     "copyright_year": contribution_received_at.year,
                     "org_name": self.revenue_program.organization.name,
                     # TODO: Missing field to be added on DEV-2892
-                    # "first_name": '',
-                    # "last_name": '',
-                    # "for_profit": '',
-                    # "company_type": '',
-                    # "tax_id": '',
-                    # "magic_link": '',
-                    # "logo": '',
+                    "contributor_name": "<placeholder name>",
+                    "non_profit": True,
+                    "tax_id": "<placeholder_tax_id>",
+                    "magic_link": "#",
                 },
             )

@@ -1,9 +1,38 @@
 {% extends "nrh-default-contribution-base-template.html" %}
 
+{% block custom_style %}
+<style type="text/css">
+  .logo {
+      margin-top: 46px;
+      height: 47px;
+    }
+
+    .thank-you-title {
+      font-family: Roboto, sans-serif;
+      color: #25192B;
+      font-size: 30px;
+      margin-top: 37px;
+      margin-bottom: 25px;
+    }
+
+    .user-info {
+      font-family: Roboto, sans-serif;
+      color: #282828;
+      font-size: 16px;
+    }
+
+    .user-info-second-line {
+      margin-top: 28px;
+      margin-bottom: 25px;
+    }
+</style>
+{% endblock custom_style %}
+
 {% block header %}
 <tr>
   <td style="padding-right: 0px;padding-left: 0px;" align="left">
-    <img class="logo inner-center" src="{{ logo }}">
+    {% load static %}
+    <img class="logo inner-center" src="{% static 'nre-logo-yellow.svg' %}" alt="NRE logo" >
   </td>
 </tr>
 <tr>

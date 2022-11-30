@@ -12,19 +12,24 @@ import AvatarMenu from 'components/common/AvatarMenu';
 import GrabLink from 'components/common/Button/GrabLink';
 import PublishButton from 'components/common/Button/PublishButton';
 import UnsavedChangesModal from 'components/pageEditor/UnsavedChangesModal';
-import { PagePropTypes, UserPropTypes } from 'constants/proptypes';
+import { PagePropTypes, PartialPagePropTypes, UserPropTypes } from 'constants/propTypes';
 import BackButton from 'elements/BackButton';
 import { BackIcon } from 'elements/BackButton.styled';
+import { ContributionPage } from 'hooks/useContributionPage';
 import useModal from 'hooks/useModal';
 import useRequest from 'hooks/useRequest';
 import { CONTENT_SLUG } from 'routes';
 
-type DashboardTopbarTypes = InferProps<typeof DashboardTopbarPropTypes>;
+export interface DashboardTopbarProps extends Omit<InferProps<typeof DashboardTopbarPropTypes>, 'updatedPage'> {
+  page?: ContributionPage;
+  updatedPage?: Partial<ContributionPage>;
+}
 
-function DashboardTopbar({ isEditPage, page, setPage, updatedPage, user }: DashboardTopbarTypes) {
+function DashboardTopbar({ isEditPage, page, setPage, updatedPage, user }: DashboardTopbarProps) {
   const alert = useAlert();
   const requestPatchPage = useRequest();
   const { open: showUnsavedModal, handleClose: closeUnsavedModal, handleOpen: openUnsavedModal } = useModal();
+  const updatedPageIsEmpty = !updatedPage || Object.keys(updatedPage).length === 0;
 
   return (
     <S.DashboardTopbar>
@@ -41,7 +46,7 @@ function DashboardTopbar({ isEditPage, page, setPage, updatedPage, user }: Dashb
       <S.TopMenu>
         {isEditPage ? (
           <>
-            {updatedPage ? (
+            {!updatedPageIsEmpty ? (
               <Tooltip title="Exit">
                 <BackIconButton onClick={openUnsavedModal} data-testid="modal-back" aria-label="Exit">
                   <BackIcon icon={ICONS.ARROW_LEFT} />
@@ -75,7 +80,7 @@ const DashboardTopbarPropTypes = {
   setPage: PropTypes.func,
   page: PropTypes.shape(PagePropTypes),
   user: PropTypes.shape(UserPropTypes),
-  updatedPage: PropTypes.shape(PagePropTypes)
+  updatedPage: PropTypes.shape(PartialPagePropTypes)
 };
 
 DashboardTopbar.propTypes = DashboardTopbarPropTypes;

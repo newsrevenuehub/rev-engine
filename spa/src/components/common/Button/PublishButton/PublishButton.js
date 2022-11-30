@@ -9,7 +9,7 @@ import useModal from 'hooks/useModal';
 import formatDatetimeForDisplay from 'utilities/formatDatetimeForDisplay';
 import { getUpdateSuccessMessage, pageIsPublished } from 'utilities/editPageGetSuccessMessage';
 import { GENERIC_ERROR } from 'constants/textConstants';
-import { PagePropTypes } from 'constants/proptypes';
+import { PagePropTypes } from 'constants/propTypes';
 import RETooltip from 'elements/RETooltip';
 import { PATCH_PAGE } from 'ajax/endpoints';
 import { pageLink } from 'utilities/getPageLinks';

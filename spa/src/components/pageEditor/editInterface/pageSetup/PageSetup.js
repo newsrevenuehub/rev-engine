@@ -16,6 +16,7 @@ import { isBefore, isAfter } from 'date-fns';
 import ImageWithPreview from 'elements/inputs/ImageWithPreview';
 import Input from 'elements/inputs/Input';
 import CircleButton from 'elements/buttons/CircleButton';
+import EditTabHeader from '../EditTabHeader';
 
 /**
  * PageSetup
@@ -89,79 +90,80 @@ function PageSetup({ backToProperties }) {
 
   return (
     <S.PageSetup data-testid="page-setup">
-      <S.PageName>{page.name}</S.PageName>
-      <S.ImageSelectorWrapper>
-        <ImageWithPreview
-          thumbnail={page.header_bg_image_thumbnail}
-          onChange={(file) => handleImageChange('header_bg_image', file)}
-          label="Main header background"
-          helpText="Background of header bar"
-          errors={errors.header_bg_image}
-        />
-      </S.ImageSelectorWrapper>
-      <S.ImageSelectorWrapper>
-        <ImageWithPreview
-          thumbnail={page.header_logo_thumbnail}
-          onChange={(file) => handleImageChange('header_logo', file)}
-          label="Main header logo"
-          helpText="Logo to display in header. Please choose a horizontally-oriented logo with minimal padding. Images will be scaled down to a height of 50 px."
-          errors={errors.header_logo_thumbnail}
-        />
-      </S.ImageSelectorWrapper>
-      {showLogoInput ? (
+      <EditTabHeader prompt="Configure page settings here. These settings are page specific." />
+      <S.Controls>
+        <S.ImageSelectorWrapper>
+          <ImageWithPreview
+            thumbnail={page.header_bg_image_thumbnail}
+            onChange={(file) => handleImageChange('header_bg_image', file)}
+            label="Main header background"
+            helpText="Background of header bar"
+            errors={errors.header_bg_image}
+          />
+        </S.ImageSelectorWrapper>
+        <S.ImageSelectorWrapper>
+          <ImageWithPreview
+            thumbnail={page.header_logo_thumbnail}
+            onChange={(file) => handleImageChange('header_logo', file)}
+            label="Main header logo"
+            helpText="Logo to display in header. Please choose a horizontally-oriented logo with minimal padding. Images will be scaled down to a height of 50 px."
+            errors={errors.header_logo_thumbnail}
+          />
+        </S.ImageSelectorWrapper>
+        {showLogoInput && (
+          <S.InputWrapper border>
+            <Input
+              type="text"
+              label="Logo link"
+              value={header_link}
+              helpText="Where does clicking your logo take your users?"
+              onChange={(e) => setHeaderLink(e.target.value)}
+              errors={errors.header_link}
+              testid="logo-link-input"
+            />
+          </S.InputWrapper>
+        )}
         <S.InputWrapper border>
           <Input
             type="text"
-            label="Logo link"
-            value={header_link}
-            helpText="Where does clicking your logo take your users?"
-            onChange={(e) => setHeaderLink(e.target.value)}
-            errors={errors.header_link}
-            testid="logo-link-input"
+            label="Form panel heading"
+            value={heading}
+            onChange={(e) => setPageHeading(e.target.value)}
+            testid="setup-heading-input"
+            errors={errors.heading}
           />
         </S.InputWrapper>
-      ) : null}
-
-      <S.InputWrapper border>
-        <Input
-          type="text"
-          label="Form panel heading"
-          value={heading}
-          onChange={(e) => setPageHeading(e.target.value)}
-          testid="setup-heading-input"
-          errors={errors.heading}
-        />
-      </S.InputWrapper>
-      <S.ImageSelectorWrapper>
-        <ImageWithPreview
-          thumbnail={page.graphic_thumbnail}
-          onChange={(file) => handleImageChange('graphic', file)}
-          label="Graphic"
-          helpText="Graphic displays below form panel heading"
-          errors={errors.graphic_thumbnail}
-        />
-      </S.ImageSelectorWrapper>
-      {page.plan.custom_thank_you_page_enabled && (
-        <S.InputWrapper>
+        <S.ImageSelectorWrapper>
+          <ImageWithPreview
+            thumbnail={page.graphic_thumbnail}
+            onChange={(file) => handleImageChange('graphic', file)}
+            label="Graphic"
+            helpText="Graphic displays below form panel heading"
+            errors={errors.graphic_thumbnail}
+          />
+        </S.ImageSelectorWrapper>
+        {page.plan.custom_thank_you_page_enabled && (
+          <S.InputWrapper>
+            <Input
+              label="Thank You page link"
+              helpText='If you have a "Thank You" page of your own, add a link here'
+              value={thank_you_redirect}
+              onChange={(e) => setThankYouRedirect(e.target.value)}
+              errors={errors.thank_you_redirect}
+              testid="thank-you-redirect-link-input"
+            />
+          </S.InputWrapper>
+        )}
+        <S.InputWrapper border>
           <Input
-            label="Thank You page link"
-            helpText='If you have a "Thank You" page of your own, add a link here'
-            value={thank_you_redirect}
-            onChange={(e) => setThankYouRedirect(e.target.value)}
-            errors={errors.thank_you_redirect}
-            testid="thank-you-redirect-link-input"
+            label="Post Thank You redirect"
+            helpText="If using our default Thank You page, where should we redirect your contributors afterward?"
+            value={post_thank_you_redirect}
+            onChange={(e) => setPostThankYouRedirect(e.target.value)}
+            errors={errors.post_thank_you_redirect}
           />
         </S.InputWrapper>
-      )}
-      <S.InputWrapper border>
-        <Input
-          label="Post Thank You redirect"
-          helpText="If using our default Thank You page, where should we redirect your contributors afterward?"
-          value={post_thank_you_redirect}
-          onChange={(e) => setPostThankYouRedirect(e.target.value)}
-          errors={errors.post_thank_you_redirect}
-        />
-      </S.InputWrapper>
+      </S.Controls>
       <S.Buttons>
         <CircleButton
           icon={faCheck}

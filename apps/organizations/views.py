@@ -11,6 +11,7 @@ from rest_framework.exceptions import PermissionDenied
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.reverse import reverse
+from reversion.views import create_revision
 from stripe.error import StripeError
 
 from apps.api.permissions import HasRoleAssignment
@@ -63,6 +64,7 @@ def get_stripe_account_link_return_url(request):
         return request.build_absolute_uri(reversed)
 
 
+@create_revision()
 @api_view(["POST"])
 @permission_classes([IsAuthenticated, HasRoleAssignment])
 def handle_stripe_account_link(request, rp_pk):

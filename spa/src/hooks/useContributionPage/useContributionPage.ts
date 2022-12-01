@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient, UseQueryResult } from '@tanstack/react-query';
 import { useCallback } from 'react';
 import { useAlert } from 'react-alert';
 import axios from 'ajax/axios';
@@ -21,7 +21,45 @@ async function fetchPage(revenueProgramSlug: string, pageSlug: string) {
   return data;
 }
 
-export function useContributionPage(revenueProgramSlug: string, pageSlug: string) {
+export interface UseContributionPageResult {
+  /**
+   * Deletes this page permanently. Not defined while the page is loading.
+   */
+  deletePage?: () => Promise<void>;
+  /**
+   * Last error that occurred interacting with the API.
+   */
+  error: UseQueryResult['error'];
+  /**
+   * Is data being fetched from the API?
+   */
+  isLoading: UseQueryResult['isLoading'];
+  /**
+   * Was there an error interacting with the API?
+   */
+  isError: UseQueryResult['isError'];
+  /**
+   * Manually updates data from the API.
+   */
+  refetch: UseQueryResult['refetch'];
+  /**
+   * Page data. Not defined while the page is loading.
+   */
+  page?: ContributionPage;
+  /**
+   * Saves changes to the page. Not defined while the page is loading.
+   * @param data Updates to the page--does not need to include properties that aren't changing
+   * @param screenshotBaseName Name to use for the screenshot to be saved; omit to not save a screenshot
+   * @param elementToScreenshot Element to render as the screenshot; omit to not save a screenshot
+   */
+  updatePage?: (
+    data: Partial<ContributionPage>,
+    screenshotBaseName?: string,
+    elementToScreenshot?: HTMLElement
+  ) => Promise<void>;
+}
+
+export function useContributionPage(revenueProgramSlug: string, pageSlug: string): UseContributionPageResult {
   const alert = useAlert();
   const queryClient = useQueryClient();
   const {

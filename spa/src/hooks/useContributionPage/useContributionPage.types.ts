@@ -118,8 +118,12 @@ export interface PaymentProvider {
    */
   stripe_account_id: string | null;
 
-  // Unsure of what these two attributes are for.
+  // Unsure of what this attribute is for.
   stripe_oauth_refresh_token: string;
+
+  /**
+   * Product ID used by Stripe for recurring contributions.
+   */
   stripe_product_id: string | null;
 
   /**
@@ -166,7 +170,8 @@ export interface RevenueProgram {
    */
   payment_provider_stripe_verified: boolean;
   /**
-   * Slug for the revenue program used in URLs.
+   * Slug for the revenue program used in URLs, in particular the subdomain of
+   * contribution pages.
    */
   slug: string;
   /**

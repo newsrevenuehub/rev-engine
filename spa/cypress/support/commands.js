@@ -108,14 +108,22 @@ Cypress.Commands.add('interceptStripeApi', () => {
   cy.intercept({ method: 'GET', url: 'https://api.stripe.com/**' }, { statusCode: 200 });
 });
 
-Cypress.Commands.add('interceptPaginatedDonations', () => {
+Cypress.Commands.add('interceptPaginatedDonations', (data = donationsData) => {
   const defaultSortBys = {
     columns: DEFAULT_RESULTS_ORDERING.map((item) => item.id),
     directions: DEFAULT_RESULTS_ORDERING.map((item) => (item.desc ? 'desc' : 'asc'))
   };
-  const sortableColumns = ['last_payment_date', 'amount', 'contributor_email', 'modified', 'status', 'flagged_date'];
+  const sortableColumns = [
+    'last_payment_date',
+    'amount',
+    'contributor_email',
+    'modified',
+    'status',
+    'flagged_date',
+    'revenue_program__name'
+  ];
   const filterableColumns = ['created', 'status', 'amount'];
-  const api = new ApiResourceList(donationsData, defaultSortBys, sortableColumns);
+  const api = new ApiResourceList(data, defaultSortBys, sortableColumns);
   cy.intercept({ pathname: getEndpoint(CONTRIBUTIONS) }, (req) => {
     const urlSearchParams = new URLSearchParams(req.url.split('?')[1]);
     const pageSize = urlSearchParams.get('page_size');

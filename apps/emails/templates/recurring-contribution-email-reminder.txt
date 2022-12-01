@@ -5,6 +5,4 @@
 Scheduled Contribution
 {% endblock header %}
 
-{% block contribution_date_label %}
-Scheduled
-{% endblock contribution_date_label %}
+{% block contribution_date_label %}Scheduled{% endblock contribution_date_label %}

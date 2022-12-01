@@ -103,7 +103,8 @@
   {% endblock custom_style %}
 
   <!--[if !mso]><!-->
-  <link href="https://fonts.googleapis.com/css?family=Roboto:400,500,600,700&display=swap" rel="stylesheet" type="text/css">
+  <link href="https://fonts.googleapis.com/css?family=Roboto:400,500,600,700&display=swap" rel="stylesheet"
+    type="text/css">
   <!--<![endif]-->
 
 </head>
@@ -131,11 +132,10 @@
                       <div class="contribution-container">
                         <p class="contribution-header">Contribution Details</p>
                         <p class="contribution-details">
-                          <span class="contribution-details-strong">Date&nbsp;
+                          <span class="contribution-details-strong">Date
                             {% block contribution_date_label %}
-                            {% endblock contribution_date_label %}
-                          </span>
-                          {{ contribution_date }}
+                            {% endblock contribution_date_label %}:
+                          </span> {{ contribution_date }}
                         </p>
                         <p class="contribution-details">
                           <span class="contribution-details-strong">Email:</span>
@@ -206,4 +206,5 @@
     </tbody>
   </table>
 </body>
+
 </html>

@@ -10,9 +10,9 @@ const TabDemo = () => {
 
   return (
     <>
-      <Tabs aria-label="Demo Tabs" value={tab} onChange={(_, value) => setTab(value)}>
-        <Tab aria-controls="tabpanel0" id="tab0" label={0} selected={tab === 0} />
-        <Tab aria-controls="tabpanel1" id="tab1" label={1} selected={tab === 1} />
+      <Tabs aria-label="Demo Tabs" value={tab}>
+        <Tab aria-controls="tabpanel0" id="tab0" label={0} onClick={() => setTab(0)} selected={tab === 0} />
+        <Tab aria-controls="tabpanel1" id="tab1" label={1} onClick={() => setTab(1)} selected={tab === 1} />
       </Tabs>
       <TabPanel active={tab === 0} id="tabpanel0" tabId="tab0">
         tabpanel0

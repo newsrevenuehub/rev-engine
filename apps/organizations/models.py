@@ -3,6 +3,7 @@ from dataclasses import dataclass, field
 
 from django.conf import settings
 from django.core.exceptions import ValidationError
+from django.core.validators import MinLengthValidator
 from django.db import models
 from django.utils import timezone
 
@@ -88,6 +89,21 @@ class Organization(IndexedTimeStampedModel, RoleAssignmentResourceModelMixin):
     name = models.CharField(max_length=255, unique=True)
     plan_name = models.CharField(choices=Plans.choices, max_length=10, default=Plans.FREE)
     salesforce_id = models.CharField(max_length=255, blank=True, verbose_name="Salesforce ID")
+    show_connected_to_slack = models.BooleanField(
+        verbose_name="Show connected to Slack",
+        default=False,
+        help_text="Indicates Slack integration status, designed for manual operation by staff members when connected to the Hub’s Slack",
+    )
+    show_connected_to_salesforce = models.BooleanField(
+        verbose_name="Show connected to Salesforce",
+        default=False,
+        help_text="Indicates Salesforce integration status, designed for manual operation by staff members",
+    )
+    show_connected_to_mailchimp = models.BooleanField(
+        verbose_name="Show connected to Mailchimp",
+        default=False,
+        help_text="Indicates Mailchimp integration status, designed for manual operation by staff members",
+    )
 
     # TODO: [DEV-2035] Remove Organization.slug field entirely
     slug = models.SlugField(
@@ -232,6 +248,7 @@ class RevenueProgram(IndexedTimeStampedModel):
     )
     # TODO: [DEV-2403] non_profit should probably be moved to the payment provider?
     non_profit = models.BooleanField(default=True, verbose_name="Non-profit?")
+    tax_id = models.CharField(blank=True, null=True, max_length=9, validators=[MinLengthValidator(9)])
     payment_provider = models.ForeignKey("organizations.PaymentProvider", null=True, on_delete=models.SET_NULL)
     domain_apple_verified_date = models.DateTimeField(blank=True, null=True)
 

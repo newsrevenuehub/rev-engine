@@ -175,6 +175,7 @@ function DonationPage({ page, live = false }) {
     return serializeData(formRef.current, {
       amount,
       frequency,
+      mailingCountry,
       reCAPTCHAToken,
       pageId: page.id,
       payFee: userAgreesToPayFees,

@@ -2,10 +2,13 @@ from functools import partial
 from pathlib import Path
 
 from django.contrib import admin, messages
+from django.core.exceptions import ValidationError
 from django.db.models import Q
+from django.forms import ModelForm
 from django.urls import reverse
 from django.utils.safestring import mark_safe
 
+from rest_framework.serializers import ValidationError as DRFValidationError
 from reversion.admin import VersionAdmin
 from sorl.thumbnail.admin import AdminImageMixin
 
@@ -18,6 +21,7 @@ from apps.organizations.models import (
     PaymentProvider,
     RevenueProgram,
 )
+from apps.users.validators import tax_id_validator
 
 
 class SocialMetaInline(admin.StackedInline):
@@ -61,6 +65,15 @@ class ReadOnlyOrgLimitedTabularInlineMixin(admin.TabularInline):
         return formfield
 
 
+class RevenueProgramAdminForm(ModelForm):
+    def clean_tax_id(self):
+        try:
+            tax_id_validator(self.cleaned_data["tax_id"])
+        except DRFValidationError as exc:
+            raise ValidationError(exc.get_full_details()[0]["message"])
+        return self.cleaned_data["tax_id"]
+
+
 class RevenueProgramBenefitLevelInline(NoRelatedInlineAddEditAdminMixin, ReadOnlyOrgLimitedTabularInlineMixin):
     model = BenefitLevel
     verbose_name = "Benefit level"
@@ -94,6 +107,10 @@ class OrganizationAdmin(RevEngineBaseAdmin, VersionAdmin):
         (
             "Email Templates",
             {"fields": ("send_receipt_email_via_nre",)},
+        ),
+        (
+            "Integrations",
+            {"fields": ("show_connected_to_slack", "show_connected_to_salesforce", "show_connected_to_mailchimp")},
         ),
     )
 
@@ -172,6 +189,7 @@ class RevenueProgramAdmin(RevEngineBaseAdmin, VersionAdmin, AdminImageMixin):
                     "organization",
                     "default_donation_page",
                     "non_profit",
+                    "tax_id",
                     "country",
                 )
             },
@@ -222,6 +240,8 @@ class RevenueProgramAdmin(RevEngineBaseAdmin, VersionAdmin, AdminImageMixin):
     inline_type = "stacked"
 
     inlines = [RevenueProgramBenefitLevelInline, SocialMetaInline]
+
+    form = RevenueProgramAdminForm
 
     # Overriding this template to add the `admin_limited_select` inclusion tag
     change_form_template = "organizations/revenueprogram_changeform.html"

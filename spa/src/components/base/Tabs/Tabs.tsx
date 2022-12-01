@@ -1,15 +1,21 @@
-import { Tabs as MuiTabs } from '@material-ui/core';
+import { Tabs as MuiTabs, TabsProps as MuiTabsProps } from '@material-ui/core';
 import styled from 'styled-components';
 
-export const Tabs = styled(MuiTabs)`
+const StyledTabs = styled(MuiTabs)`
   && {
     box-shadow: inset 0 -1px 0 0 #eee;
     min-height: 50px;
 
-    .MuiTabs-indicator {
+    .NreTabsIndicator {
       background-color: #523a5e;
     }
   }
 `;
+
+export type TabsProps = MuiTabsProps;
+
+export function Tabs(props: TabsProps) {
+  return <StyledTabs classes={{ indicator: 'NreTabsIndicator' }} {...props} />;
+}
 
 export default Tabs;

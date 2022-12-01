@@ -5,36 +5,29 @@ const now = new Date();
 const oneMinuteEarlier = add(now, { minutes: -1 });
 const oneMinuteLater = add(now, { minutes: 1 });
 const tomorrow = add(now, { days: 1 });
-const twoDaysAgo = add(now, { days: -2 });
 const yesterday = add(now, { days: -1 });
+
+jest.setSystemTime(now);
 
 describe('pageIsPublished', () => {
   describe('When a date to compare is not passed', () => {
     it('returns false if the page has no published_date', () => expect(pageIsPublished({})).toBe(false));
 
-    it('returns false if the page has a published_date after the current date/time', () => {
-      expect(pageIsPublished({ published_date: formatISO(oneMinuteLater) })).toBe(false);
-      expect(pageIsPublished({ published_date: formatISO(tomorrow) })).toBe(false);
-    });
+    it('returns false if the page has a published_date after the current date/time', () =>
+      expect(pageIsPublished({ published_date: formatISO(oneMinuteLater) })).toBe(false));
 
-    it('returns true if the page has a published_date before the current date/time', () => {
-      expect(pageIsPublished({ published_date: formatISO(oneMinuteEarlier) })).toBe(true);
-      expect(pageIsPublished({ published_date: formatISO(yesterday) })).toBe(true);
-    });
+    it('returns true if the page has a published_date before the current date/time', () =>
+      expect(pageIsPublished({ published_date: formatISO(oneMinuteEarlier) })).toBe(true));
   });
 
   describe('When a date to compare is passed', () => {
     it('returns false if the page has no published_date', () => expect(pageIsPublished({}, tomorrow)).toBe(false));
 
-    it('returns false if the page has a published_date after the current date/time', () => {
-      expect(pageIsPublished({ published_date: formatISO(now) }, oneMinuteEarlier)).toBe(false);
-      expect(pageIsPublished({ published_date: formatISO(tomorrow) }, yesterday)).toBe(false);
-    });
+    it('returns false if the page has a published_date after the current date/time', () =>
+      expect(pageIsPublished({ published_date: formatISO(now) }, oneMinuteEarlier)).toBe(false));
 
-    it('returns true if the page has a published_date before the current date/time', () => {
-      expect(pageIsPublished({ published_date: formatISO(twoDaysAgo) }, oneMinuteEarlier)).toBe(true);
-      expect(pageIsPublished({ published_date: formatISO(yesterday) }, oneMinuteEarlier)).toBe(true);
-    });
+    it('returns true if the page has a published_date before the current date/time', () =>
+      expect(pageIsPublished({ published_date: formatISO(yesterday) }, oneMinuteEarlier)).toBe(true));
   });
 
   it("throws an error if the page's published_date is not a valid date", () =>

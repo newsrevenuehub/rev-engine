@@ -35,10 +35,11 @@ const mockUser: User = {
   organizations: [
     {
       name: 'mock-org-name',
-      slug: 'mock-org-slug',
+      plan: {} as any,
       show_connected_to_mailchimp: false,
       show_connected_to_salesforce: false,
-      show_connected_to_slack: false
+      show_connected_to_slack: false,
+      slug: 'mock-org-slug'
     }
   ],
   revenue_programs: [mockRp as RevenueProgram],

@@ -1,5 +1,5 @@
-import { Style } from 'hooks/useStyleList';
 import html2canvas from 'html2canvas';
+import { Style } from 'hooks/useStyleList';
 import formatDatetimeForAPI from 'utilities/formatDatetimeForAPI';
 import { ContributionPage, ContributionPageElement } from './useContributionPage.types';
 

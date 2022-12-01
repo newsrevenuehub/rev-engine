@@ -21,7 +21,7 @@ export function ElementErrors({ errors }: ElementErrorsProps) {
   return (
     <>
       The following elements are required for your page to function properly:
-      <ul data-testid="missing-elements-alert">
+      <ul>
         {errors.map((error) => (
           <li key={error.element}>{error.message}</li>
         ))}

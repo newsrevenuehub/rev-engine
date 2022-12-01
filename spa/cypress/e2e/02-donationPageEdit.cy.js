@@ -362,8 +362,7 @@ describe('Contribution page edit', () => {
       cy.getByTestId('save-page-button').click();
 
       // Expect alert
-      cy.getByTestId('missing-elements-alert').should('exist');
-      cy.getByTestId('missing-elements-alert').contains('Payment');
+      cy.findByRole('alert').should('exist').contains('Payment');
     });
 
     it('should open appropriate tab for error and scroll to first error', () => {

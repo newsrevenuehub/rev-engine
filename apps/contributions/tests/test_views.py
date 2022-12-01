@@ -492,10 +492,6 @@ class TestContributionsViewSetExportCSV(AbstractTestCase):
         super().setUp()
         self.set_up_domain_model()
 
-    def list_contributions(self, user):
-        self.client.force_authenticate(user=user)
-        return self.client.get(reverse("contribution-list"))
-
     def email_contributions(self, user):
         self.client.force_authenticate(user=user)
         return self.client.post(reverse("contribution-email-contributions"))
@@ -521,7 +517,9 @@ class TestContributionsViewSetExportCSV(AbstractTestCase):
 
     @mock.patch("apps.contributions.views.send_templated_email_with_attachment.delay")
     def test_data_in_csv_matching_with_contributions_list(self, email_mock):
-        contributions_from_list_view = self.list_contributions(self.org_user).json()["results"]
+        self.client.force_authenticate(user=self.org_user)
+        contributions_from_list_view = self.client.get(reverse("contribution-list")).json()["results"]
+
         self.email_contributions(self.org_user).json()
 
         contributions_from_email_view = [
@@ -539,7 +537,7 @@ class TestContributionsViewSetExportCSV(AbstractTestCase):
         response = self.email_contributions(self.org_user)
         response.status_code = 500
 
-        csv_error_text = "Error in csv generation"
+        csv_error_text = "Something went wrong generating CSV export"
         csv_maker.side_effect = CSVError(csv_error_text)
         response = self.email_contributions(self.org_user)
         response.status_code = 500

@@ -79,7 +79,7 @@ def test_export_contributions_to_csv():
     expected = "\r\n".join(
         [
             '"Contribution ID","Contributor","Amount","Donor Selected Amount","Agreed to Pay Fees","Frequency","Payment Received Date","Payment status","Address","Email","Phone","Page URL"',
-            '"1","Test Name 1","500.0 USD","","","{}","{}","{}","800 Long Bow Ln, Austin, 78701, TX, US","test_name_1@test.com","9999999999",""',
+            '"1","Test Name 1","500.0 USD","","","{}","{}","{}","800 Long Bow Ln, Austin, TX, 78701, US","test_name_1@test.com","9999999999",""',
             '"2","Test Name 2","1500.0 USD","","","{}","{}","{}","","test_name_2@test.com","8888888888",""',
             "",
         ]

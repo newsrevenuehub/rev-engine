@@ -351,7 +351,6 @@ class ContributionsViewSet(viewsets.ReadOnlyModelViewSet, FilterQuerySetByUserMi
         as contributors will be able to access only Contributor Portal via magic link.
         """
         try:
-            user_email = request.user.email
             name = f"{request.user.first_name} {request.user.last_name}"
 
             queryset = self.filter_queryset_for_user(
@@ -361,8 +360,8 @@ class ContributionsViewSet(viewsets.ReadOnlyModelViewSet, FilterQuerySetByUserMi
             contributions_in_csv = export_contributions_to_csv(contributions)
 
             send_templated_email_with_attachment.delay(
-                to=user_email,
-                subject="Checkout your Contributions",
+                to=request.user.email,
+                subject="Check out your Contributions",
                 text_template="nrh-contribution-csv-email-body.txt",
                 template_data={"username": name},
                 attachment=contributions_in_csv,
@@ -370,12 +369,18 @@ class ContributionsViewSet(viewsets.ReadOnlyModelViewSet, FilterQuerySetByUserMi
                 filename="contributions.csv",
             )
             return Response(data={"detail": "success"}, status=status.HTTP_200_OK)
-        except csv.Error as ex:
+        except csv.Error:
             logger.exception("Error while generating contributions csv file.")
-            return Response(data={"status": "failed", "detail": str(ex)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-        except Exception as ex:
-            logger.exception("Unknown error.")
-            return Response(data={"status": "failed", "detail": str(ex)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            return Response(
+                data={"status": "failed", "detail": "Something went wrong generating CSV export"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+        except Exception:
+            logger.exception("Unexpected error.")
+            return Response(
+                data={"status": "failed", "detail": "Something went wrong"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
 
 
 class SubscriptionsViewSet(viewsets.ViewSet):

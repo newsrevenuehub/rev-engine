@@ -43,7 +43,7 @@ def export_contributions_to_csv(contributions):
         "Phone",
         "Page URL",
     )
-    address_keys = ("line1", "line2", "city", "postal_code", "state", "country")
+    address_keys = ("line1", "line2", "city", "state", "postal_code", "country")
     data = []
     for contribution in contributions:
         payment_provider_data = AttrDict(contribution.payment_provider_data).data.object

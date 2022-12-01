@@ -5,7 +5,7 @@ import styled from 'styled-components';
 
 const StyledMuiTextField = styled(MuiTextField)`
   && {
-    .MuiFormHelperText-root {
+    .NreTextFieldFormHelperTextRoot {
       margin-top: 4px;
 
       &.Mui-error {
@@ -17,7 +17,7 @@ const StyledMuiTextField = styled(MuiTextField)`
       }
     }
 
-    .MuiInputLabel-shrink {
+    .NreTextFieldInputLabelRoot {
       color: rgb(40, 40, 40);
       font: 600 16px Roboto, sans-serif;
       /*
@@ -32,11 +32,11 @@ const StyledMuiTextField = styled(MuiTextField)`
       }
     }
 
-    .MuiInput-formControl {
+    .NreTextFieldInputLabelFormControl {
       margin-top: 6px;
     }
 
-    .MuiInput-input {
+    .NreTextFieldInput {
       border: 1.5px solid rgb(196, 196, 196);
       border-radius: 4px;
       font-size: 14px;
@@ -47,22 +47,26 @@ const StyledMuiTextField = styled(MuiTextField)`
       }
     }
 
-    .Mui-error .MuiInput-input {
+    .NreTextFieldInputRoot {
+      margin-top: 6px;
+    }
+
+    .Mui-error .NreTextFieldInput {
       border-color: rgb(200, 32, 63);
     }
 
-    .MuiSelect-icon {
+    .NreTextFieldSelectIcon {
       right: 4px;
     }
 
     /* Disable focused state appearance changes. */
 
-    .MuiInput-underline::before,
-    .MuiInput-underline::after {
+    .NreTextFieldInputUnderline::before,
+    .NreTextFieldInputUnderline::after {
       display: none;
     }
 
-    .MuiSelect-select:focus {
+    .NreTextFieldSelectSelect:focus {
       background: none;
     }
   }
@@ -75,8 +79,15 @@ export type TextFieldProps = MuiTextFieldProps;
  */
 export const TextField = forwardRef<HTMLDivElement, TextFieldProps>((props, ref) => (
   <StyledMuiTextField
-    InputLabelProps={{ shrink: true }}
+    FormHelperTextProps={{ classes: { root: 'NreTextFieldFormHelperTextRoot' } }}
+    inputProps={{ className: 'NreTextFieldInput' }}
+    InputProps={{ classes: { root: 'NreTextFieldInputRoot', underline: 'NreTextFieldInputUnderline' } }}
+    InputLabelProps={{
+      classes: { formControl: 'NreTextFieldInputLabelFormControl', root: 'NreTextFieldInputLabelRoot' },
+      shrink: true
+    }}
     SelectProps={{
+      classes: { icon: 'NreTextFieldSelectIcon', select: 'NreTextFieldSelectSelect' },
       IconComponent: KeyboardArrowDown
     }}
     ref={ref}

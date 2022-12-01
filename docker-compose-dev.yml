@@ -5,3 +5,9 @@ services:
     image: redis:5-alpine
     ports:
       - "6379:6379"
+  google-cloud-pub-sub:
+    build:
+      context: google_cloud_pub_sub
+      dockerfile: Dockerfile
+    ports:
+      - "8085:8085"

@@ -8,13 +8,19 @@ import { revEngineTheme, muiThemeOverrides } from 'styles/themes';
 import AdminGlobalStyles from 'styles/AdminGlobalStyles.js';
 import { GlobalContext } from 'components/MainLayout';
 
+// The two MuiThemeProviders here are to force JSS scoping, e.g. so that MUI
+// uses classes like MuiButton-5 instead of MuiButton. This helps us catch
+// styling mistakes in Storybook as opposed to the app.
+
 const providerFn = ({ children }) => (
   <ThemeProvider theme={revEngineTheme}>
     <MuiThemeProvider theme={muiThemeOverrides}>
-      <AlertProvider template={Alert} {...alertOptions}>
-        <AdminGlobalStyles />
-        <GlobalContext.Provider value={{ getReauth: () => {} }}>{children}</GlobalContext.Provider>
-      </AlertProvider>
+      <MuiThemeProvider>
+        <AlertProvider template={Alert} {...alertOptions}>
+          <AdminGlobalStyles />
+          <GlobalContext.Provider value={{ getReauth: () => {} }}>{children}</GlobalContext.Provider>
+        </AlertProvider>
+      </MuiThemeProvider>
     </MuiThemeProvider>
   </ThemeProvider>
 );

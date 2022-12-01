@@ -24,16 +24,19 @@ const axiosMock = new MockAdapter(axios);
 const useUserMock = jest.mocked(useUser);
 const useHistoryMock = jest.mocked(useHistory);
 
-const mockRp = { id: 'mock-rp-id', name: 'mock-rp-name', payment_provider_stripe_verified: true };
+const mockRp = { id: 'mock-rp-id', name: 'mock-rp-name', slug: 'mock-rp-slug', payment_provider_stripe_verified: true };
 
 const mockUser: User = {
   email: 'mock@email.com',
   email_verified: true,
   flags: [],
   id: 'mock-id',
-  organization: {
-    name: 'mock-org-name'
-  },
+  organizations: [
+    {
+      name: 'mock-org-name',
+      slug: 'mock-org-slug'
+    }
+  ],
   revenue_programs: [mockRp],
   role_type: ['org_admin', 'Org Admin']
 };
@@ -80,7 +83,7 @@ describe('useConnectStripeAccount hook', () => {
 
     const { result } = renderHook(() => useConnectStripeAccount(), { wrapper });
 
-    expect(result.current).toEqual({ isError: false, isLoading: true });
+    expect(result.current).toEqual(expect.objectContaining({ isError: false, isLoading: true }));
   });
 
   it('returns an error status if an error occurred loading user data', () => {
@@ -88,7 +91,7 @@ describe('useConnectStripeAccount hook', () => {
 
     const { result } = renderHook(() => useConnectStripeAccount(), { wrapper });
 
-    expect(result.current).toEqual({ isError: true, isLoading: false });
+    expect(result.current).toEqual(expect.objectContaining({ isError: true, isLoading: false }));
   });
 
   describe("When the user's first revenue program is not Stripe verified", () => {
@@ -169,7 +172,7 @@ describe('useConnectStripeAccount hook', () => {
       const { result, waitFor } = renderHook(() => useConnectStripeAccount(), { wrapper });
 
       await waitFor(() => axiosMock.history.post.length > 0);
-      expect(result.current).toEqual({ isError: true, isLoading: false });
+      expect(result.current).toEqual(expect.objectContaining({ isError: true, isLoading: false }));
       errorSpy.mockReset();
     });
 
@@ -182,7 +185,7 @@ describe('useConnectStripeAccount hook', () => {
       const { result, waitFor } = renderHook(() => useConnectStripeAccount(), { wrapper });
 
       await waitFor(() => axiosMock.history.post.length > 0);
-      expect(result.current).toEqual({ isError: true, isLoading: false });
+      expect(result.current).toEqual(expect.objectContaining({ isError: true, isLoading: false }));
       expect(historyPush.mock.calls).toEqual([[SIGN_IN]]);
       errorSpy.mockReset();
     });
@@ -201,12 +204,13 @@ describe('useConnectStripeAccount hook', () => {
     it("returns that the user doesn't need to verify Stripe", () => {
       const { result } = renderHook(() => useConnectStripeAccount(), { wrapper });
 
-      expect(result.current).toEqual({
-        isError: false,
-        isLoading: false,
-        requiresVerification: false,
-        stripeConnectStarted: false
-      });
+      expect(result.current).toEqual(
+        expect.objectContaining({
+          isError: false,
+          isLoading: false,
+          requiresVerification: false
+        })
+      );
     });
 
     it('does not fetch Stripe connection status', () => {
@@ -228,12 +232,14 @@ describe('useConnectStripeAccount hook', () => {
     it("returns that the user doesn't need to verify Stripe", () => {
       const { result } = renderHook(() => useConnectStripeAccount(), { wrapper });
 
-      expect(result.current).toEqual({
-        isError: false,
-        isLoading: false,
-        requiresVerification: false,
-        stripeConnectStarted: false
-      });
+      expect(result.current).toEqual(
+        expect.objectContaining({
+          isError: false,
+          isLoading: false,
+          requiresVerification: false,
+          stripeConnectStarted: false
+        })
+      );
     });
 
     it('does not fetch Stripe connection status', () => {
@@ -255,12 +261,14 @@ describe('useConnectStripeAccount hook', () => {
     it("returns that the user doesn't need to verify Stripe", () => {
       const { result } = renderHook(() => useConnectStripeAccount(), { wrapper });
 
-      expect(result.current).toEqual({
-        isError: false,
-        isLoading: false,
-        requiresVerification: false,
-        stripeConnectStarted: false
-      });
+      expect(result.current).toEqual(
+        expect.objectContaining({
+          isError: false,
+          isLoading: false,
+          requiresVerification: false,
+          stripeConnectStarted: false
+        })
+      );
     });
 
     it('does not fetch Stripe connection status', () => {

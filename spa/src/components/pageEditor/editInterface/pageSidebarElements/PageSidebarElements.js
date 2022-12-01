@@ -1,21 +1,22 @@
-import * as S from './PageSidebarElements.styled';
-
-import { faPlus } from '@fortawesome/free-solid-svg-icons';
-
 // Context
 import { useEditInterfaceContext } from 'components/pageEditor/editInterface/EditInterface';
 
 // Children
 import ScrollBox from 'elements/ScrollBox';
 import DraggableList from 'elements/draggable/DraggableList';
-import { EmptyElements } from '../pageElements/PageElements';
+import EditTabHeader from '../EditTabHeader';
 
 function PageSidebarElements({ openAddElementModal, goToProperties, handleRemoveElement }) {
   const { sidebarElements, setSidebarElements } = useEditInterfaceContext();
 
   return (
-    <S.PageSidebarElements data-testid="page-sidebar">
-      {sidebarElements && sidebarElements?.length > 0 ? (
+    <div data-testid="page-sidebar">
+      <EditTabHeader
+        addButtonLabel="Add Block"
+        onAdd={openAddElementModal}
+        prompt="Add, edit, and rearrange sidebar sections."
+      />
+      {sidebarElements && sidebarElements?.length > 0 && (
         <ScrollBox>
           <DraggableList
             elements={sidebarElements}
@@ -24,13 +25,8 @@ function PageSidebarElements({ openAddElementModal, goToProperties, handleRemove
             handleItemDelete={(element) => handleRemoveElement(element, 'sidebar')}
           />
         </ScrollBox>
-      ) : (
-        <EmptyElements />
       )}
-      <S.AddElementButton onClick={openAddElementModal} data-testid="add-sidebar-element-button">
-        <S.AddElementIcon icon={faPlus} />
-      </S.AddElementButton>
-    </S.PageSidebarElements>
+    </div>
   );
 }
 

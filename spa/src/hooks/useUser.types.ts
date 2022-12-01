@@ -5,7 +5,7 @@ import { EnginePlan, RevenueProgram } from './useContributionPage';
 export interface Organization {
   name: string;
   slug: string;
-  plan?: EnginePlan;
+  plan: EnginePlan;
   show_connected_to_mailchimp: boolean;
   show_connected_to_salesforce: boolean;
   show_connected_to_slack: boolean;

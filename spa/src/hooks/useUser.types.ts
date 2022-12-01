@@ -5,7 +5,7 @@ import { EnginePlan, RevenueProgram } from './useContributionPage';
 export interface Organization {
   name: string;
   slug: string;
-  plan?: EnginePlan;
+  plan: EnginePlan;
 }
 
 export interface User {

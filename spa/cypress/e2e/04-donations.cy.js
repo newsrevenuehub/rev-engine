@@ -4,9 +4,12 @@ import { NO_VALUE } from 'constants/textConstants';
 import { PAYMENT_STATUS_EXCLUDE_IN_CONTRIBUTIONS } from 'constants/paymentStatus';
 import { DONATIONS_SLUG } from 'routes';
 import { USER, LIST_PAGES, getStripeAccountLinkStatusPath } from 'ajax/endpoints';
+import { CONTRIBUTIONS_SECTION_ACCESS_FLAG_NAME } from 'constants/featureFlagConstants';
 
 // Data
 import donationsData from '../fixtures/donations/18-results.json';
+import donationsDataTwoRps from '../fixtures/donations/results-two-rps.json';
+import donationsDataOneRp from '../fixtures/donations/results-single-rp.json';
 
 // Utils
 import { getFrequencyAdjective } from 'utilities/parseFrequency';
@@ -15,9 +18,9 @@ import formatCurrencyAmount from 'utilities/formatCurrencyAmount';
 import toTitleCase from 'utilities/toTitleCase';
 import { getEndpoint } from '../support/util';
 
-import { CONTRIBUTIONS_SECTION_ACCESS_FLAG_NAME } from 'constants/featureFlagConstants';
 import hubAdminWithoutFlags from '../fixtures/user/login-success-hub-admin';
 import orgAdminUser from '../fixtures/user/login-success-org-admin.json';
+import orgAdminUserSingleRP from '../fixtures/user/login-success-org-admin-single-rp.json';
 import selfServiceUserNotStripeVerified from '../fixtures/user/self-service-user-not-stripe-verified.json';
 import selfServiceUserStripeVerified from '../fixtures/user/self-service-user-stripe-verified.json';
 
@@ -34,6 +37,16 @@ const hubAdminWithFlags = {
 const hubAdminWithoutAnyFlag = {
   ...hubAdminWithoutFlags['user'],
   flags: []
+};
+
+const orgAdminOneRpWithAccessFlags = {
+  ...orgAdminUserSingleRP['user'],
+  flags: [contribSectionsFlag]
+};
+
+const orgAdminTwoRpsWithAccessFlags = {
+  ...orgAdminUser['user'],
+  flags: [contribSectionsFlag]
 };
 
 describe('Donations list', () => {
@@ -376,6 +389,52 @@ describe('Donations list', () => {
       cy.visit(DONATIONS_SLUG);
       cy.wait('@listPages');
       cy.getByTestId('banner').should('not.exist');
+    });
+  });
+});
+
+describe('Table sorting for revenue program name', () => {
+  // Tests in this block assert about column headers and we want to ensure all are visible
+  // without having to scroll, so setting view port size here to accomodate all.
+
+  beforeEach(() => {
+    cy.viewport('macbook-16');
+  });
+  specify('user has access to a single RP', () => {
+    cy.forceLogin(orgAdminUserSingleRP);
+    cy.intercept(getEndpoint(LIST_PAGES), { fixture: 'pages/list-pages-1' }).as('listPages');
+    cy.intercept({ method: 'GET', pathname: getEndpoint(USER) }, { body: orgAdminOneRpWithAccessFlags });
+    cy.interceptPaginatedDonations(donationsDataOneRp);
+    cy.visit(DONATIONS_SLUG);
+    cy.wait('@getDonations');
+    ['Date', 'Amount', 'Frequency', 'Payment received', 'Contributor', 'Payment status'].forEach((name) => {
+      cy.findByRole('columnheader', { name: `Sort by ${name}` }).should('be.visible');
+    });
+    cy.findByRole('columnheader', { name: 'Sort by revenue program' }).should('not.exist');
+  });
+  specify('user has access to more than one RP', () => {
+    cy.forceLogin(orgAdminTwoRpsWithAccessFlags);
+    cy.intercept(getEndpoint(LIST_PAGES), { fixture: 'pages/list-pages-1' }).as('listPages');
+    cy.intercept({ method: 'GET', pathname: getEndpoint(USER) }, { body: orgAdminTwoRpsWithAccessFlags });
+    cy.interceptPaginatedDonations(donationsDataTwoRps);
+    cy.visit(DONATIONS_SLUG);
+    cy.wait('@getDonations');
+    ['Date', 'Amount', 'Frequency', 'Payment received', 'Revenue program', 'Contributor', 'Payment status'].forEach(
+      (name) => {
+        cy.findByRole('columnheader', { name: `Sort by ${name}` }).should('be.visible');
+      }
+    );
+    // it's sortable
+    cy.findByRole('columnheader', { name: 'Sort by Revenue program' }).click();
+    cy.wait('@getDonations');
+    cy.getByTestId('donation-row').should(($rows) => {
+      const rows = $rows.toArray();
+      rows
+        .filter((row, index) => index > 0)
+        .forEach((row, index) => {
+          // index will be the previous row, because we filter out the first item.
+          expect(row.dataset.revenueprogram >= rows[index].dataset.revenueprogram).to.be.true;
+        });
     });
   });
 });

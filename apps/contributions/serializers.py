@@ -20,6 +20,7 @@ from apps.contributions.models import (
     PaymentType,
 )
 from apps.contributions.utils import format_ambiguous_currency, get_sha256_hash
+from apps.organizations.serializers import RevenueProgramSerializer
 from apps.pages.models import DonationPage
 
 from .bad_actor import BadActorAPIError, make_bad_actor_request
@@ -57,6 +58,7 @@ class ContributionSerializer(serializers.ModelSerializer):
     provider_payment_url = serializers.SerializerMethodField()
     provider_subscription_url = serializers.SerializerMethodField()
     provider_customer_url = serializers.SerializerMethodField()
+    revenue_program = RevenueProgramSerializer(read_only=True)
 
     def get_auto_accepted_on(self, obj):
         """
@@ -106,22 +108,23 @@ class ContributionSerializer(serializers.ModelSerializer):
     class Meta:
         model = Contribution
         fields = [
-            "id",
+            "amount",
+            "auto_accepted_on",
+            "bad_actor_score",
             "contributor_email",
             "created",
-            "amount",
             "currency",
+            "donation_page_id",
+            "flagged_date",
+            "formatted_payment_provider_used",
+            "id",
             "interval",
             "last_payment_date",
-            "bad_actor_score",
-            "flagged_date",
-            "auto_accepted_on",
-            "formatted_payment_provider_used",
+            "provider_customer_url",
             "provider_payment_url",
             "provider_subscription_url",
-            "provider_customer_url",
+            "revenue_program",
             "status",
-            "donation_page_id",
         ]
 
 

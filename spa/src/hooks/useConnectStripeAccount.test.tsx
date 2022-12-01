@@ -35,6 +35,7 @@ const mockUser: User = {
   organizations: [
     {
       name: 'mock-org-name',
+      plan: {} as any,
       slug: 'mock-org-slug'
     }
   ],

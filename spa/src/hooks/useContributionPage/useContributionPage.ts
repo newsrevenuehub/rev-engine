@@ -82,8 +82,9 @@ export function useContributionPage(revenueProgramSlug: string, pageSlug: string
     try {
       await deletePageMutation.mutateAsync();
     } catch (error) {
-      // Log it to Sentry, show a generic message to the user, and rethrow so
-      // caller sees it and take additional action if they want to.
+      // Unlike page updates, this call should never fail. We log it to Sentry,
+      // show a generic message to the user, and rethrow so caller sees it and
+      // take additional action if they want to.
       console.error(error);
       alert.error(GENERIC_ERROR);
       throw error;
@@ -106,7 +107,10 @@ export function useContributionPage(revenueProgramSlug: string, pageSlug: string
   const updatePage = useCallback(
     async (data: Partial<ContributionPage>, screenshotBaseName?: string, elementToScreenshot?: HTMLElement) => {
       // No error handling here to allow callers to implement their own
-      // logic--they may not want an error notification at all.
+      // logic--they may not want an error notification at all, because the API
+      // error might be a simple validation problem (we currently rely on the
+      // API to do this validation for us). In that case, callers will not want
+      // to report an error, just show validation errors instead.
 
       if (!page) {
         throw new Error('Page is not yet defined');

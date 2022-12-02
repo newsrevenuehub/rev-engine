@@ -19,6 +19,11 @@ jest.mock('react-router-dom', () => ({
   useLocation: jest.fn()
 }));
 
+jest.mock('notistack', () => ({
+  ...jest.requireActual('notistack'),
+  useSnackbar: () => ({ closeSnackbar: jest.fn() })
+}));
+
 const useUserMockDefaults = {
   isLoading: false,
   isError: false,

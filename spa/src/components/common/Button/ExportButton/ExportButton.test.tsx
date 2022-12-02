@@ -1,12 +1,35 @@
 import userEvent from '@testing-library/user-event';
+import MockAdapter from 'axios-mock-adapter';
 import { axe } from 'jest-axe';
 import { fireEvent, render, screen, waitFor } from 'test-utils';
+import Axios from 'ajax/axios';
+import { useSnackbar } from 'notistack';
 
 import ExportButton from './ExportButton';
 
-jest.mock('hooks/useRequest', () => () => jest.fn());
+jest.mock('notistack', () => ({
+  ...jest.requireActual('notistack'),
+  useSnackbar: jest.fn()
+}));
+
+jest.mock('components/MainLayout', () => ({
+  ...jest.requireActual('components/MainLayout'),
+  useGlobalContext: () => ({ getReauth: jest.fn() })
+}));
 
 describe('ExportButton', () => {
+  const axiosMock = new MockAdapter(Axios);
+  const useSnackbarMock = useSnackbar as jest.Mock;
+  const enqueueSnackbar = jest.fn();
+
+  beforeEach(() => {
+    useSnackbarMock.mockReturnValue({ enqueueSnackbar });
+  });
+
+  afterEach(() => axiosMock.reset());
+
+  afterAll(() => axiosMock.restore());
+
   function tree() {
     return render(<ExportButton transactions={1234} email="mock-email" />);
   }
@@ -39,8 +62,43 @@ describe('ExportButton', () => {
     expect(screen.getByRole('button', { name: /Sending.../i })).toBeDisabled();
   });
 
+  it('should show success system notification if export is confirmed in modal and succeeds', async () => {
+    tree();
+    axiosMock.onPatch(`mock-url`).reply(200);
+    await openModal();
+
+    fireEvent.click(screen.getByRole('button', { name: /Export/i }));
+
+    await waitFor(() =>
+      expect(enqueueSnackbar).toBeCalledWith(
+        'Your contributions export is in progress and will be sent to your email address when complete.',
+        expect.objectContaining({
+          persist: true
+        })
+      )
+    );
+  });
+
+  it('should show error system notification if export is confirmed in modal and fails', async () => {
+    tree();
+    axiosMock.onPatch().networkError();
+    await openModal();
+
+    fireEvent.click(screen.getByRole('button', { name: /Export/i }));
+
+    await waitFor(() =>
+      expect(enqueueSnackbar).toBeCalledWith(
+        'There’s been a problem with your contributions export. Please try again.',
+        expect.objectContaining({
+          persist: true
+        })
+      )
+    );
+  });
+
   it('should show tooltip on the export button if it is disabled', async () => {
     tree();
+    axiosMock.onPatch(`mock-url`).reply(200);
     await openModal();
 
     fireEvent.click(screen.getByTestId('modal-export-button'));

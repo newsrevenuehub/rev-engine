@@ -1,5 +1,5 @@
 import PropTypes, { InferProps } from 'prop-types';
-import { ReactChild } from 'react';
+import { forwardRef } from 'react';
 import {
   CheckCircleOutlineOutlined as SuccessIcon,
   CloseOutlined as CloseIcon,
@@ -9,21 +9,19 @@ import {
   SvgIconComponent
 } from '@material-ui/icons';
 
+import { useSnackbar, SnackbarContent, SnackbarContentProps } from 'notistack';
 import { IconBox, IconBoxIcon, IconButton, Header, Main, SystemNotificationWrapper } from './SystemNotification.styled';
 
-import { SystemNotificationType } from './commonTypes';
+import { notificationTypeValues, SystemNotificationType } from './commonTypes';
 
 const SystemNotificationPropTypes = {
-  type: PropTypes.string.isRequired,
+  type: PropTypes.oneOf(notificationTypeValues).isRequired,
   header: PropTypes.string.isRequired,
-  children: PropTypes.node.isRequired,
-  handleClose: PropTypes.func.isRequired
+  message: PropTypes.node.isRequired
 };
 
-export interface SystemNotificationProps extends InferProps<typeof SystemNotificationPropTypes> {
+export interface SystemNotificationProps extends SnackbarContentProps, InferProps<typeof SystemNotificationPropTypes> {
   type: SystemNotificationType;
-  children: ReactChild | ReactChild[];
-  handleClose: () => void;
 }
 
 const IconRecord: Record<SystemNotificationType, SvgIconComponent> = {
@@ -33,24 +31,30 @@ const IconRecord: Record<SystemNotificationType, SvgIconComponent> = {
   info: InfoIcon
 };
 
-export default function SystemNotification({ type, header, children, handleClose }: SystemNotificationProps) {
+const SystemNotification = forwardRef<HTMLDivElement, SystemNotificationProps>(({ id, type, header, message }, ref) => {
+  const { closeSnackbar } = useSnackbar();
   const Icon = IconRecord[type];
+
   return (
-    <SystemNotificationWrapper role="status">
-      <IconBox notificationType={type}>
-        <IconBoxIcon>
-          <Icon />
-        </IconBoxIcon>
-      </IconBox>
-      <Main>
-        <Header notificationType={type}>{header}</Header>
-        {children}
-      </Main>
-      <IconButton onClick={handleClose} aria-label="close notification">
-        <CloseIcon />
-      </IconButton>
-    </SystemNotificationWrapper>
+    <SnackbarContent ref={ref}>
+      <SystemNotificationWrapper role="status">
+        <IconBox notificationType={type}>
+          <IconBoxIcon>
+            <Icon />
+          </IconBoxIcon>
+        </IconBox>
+        <Main>
+          <Header notificationType={type}>{header}</Header>
+          {message}
+        </Main>
+        <IconButton onClick={() => closeSnackbar(id)} aria-label="close notification">
+          <CloseIcon />
+        </IconButton>
+      </SystemNotificationWrapper>
+    </SnackbarContent>
   );
-}
+});
 
 SystemNotification.propTypes = SystemNotificationPropTypes;
+
+export default SystemNotification;

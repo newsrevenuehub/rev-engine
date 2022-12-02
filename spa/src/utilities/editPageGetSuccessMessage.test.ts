@@ -1,5 +1,6 @@
 import { add, formatISO } from 'date-fns';
 import { getUpdateSuccessMessage, pageIsPublished } from './editPageGetSuccessMessage';
+import formatDatetimeForAPI from './formatDatetimeForAPI';
 
 const now = new Date();
 const oneMinuteEarlier = add(now, { minutes: -1 });
@@ -7,7 +8,12 @@ const oneMinuteLater = add(now, { minutes: 1 });
 const tomorrow = add(now, { days: 1 });
 const yesterday = add(now, { days: -1 });
 
-jest.setSystemTime(now);
+beforeAll(() => {
+  jest.useFakeTimers();
+  jest.setSystemTime(now);
+});
+
+afterAll(() => jest.useRealTimers());
 
 describe('pageIsPublished', () => {
   describe('When a date to compare is not passed', () => {
@@ -28,6 +34,11 @@ describe('pageIsPublished', () => {
 
     it('returns true if the page has a published_date before the current date/time', () =>
       expect(pageIsPublished({ published_date: formatISO(yesterday) }, oneMinuteEarlier)).toBe(true));
+  });
+
+  it('handles published_dates that came from formatDateTimeForAPI()', () => {
+    expect(pageIsPublished({ published_date: formatDatetimeForAPI(now) }, oneMinuteEarlier)).toBe(false);
+    expect(pageIsPublished({ published_date: formatDatetimeForAPI(yesterday) }, oneMinuteEarlier)).toBe(true);
   });
 
   it("throws an error if the page's published_date is not a valid date", () =>

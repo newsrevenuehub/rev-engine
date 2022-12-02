@@ -1,6 +1,5 @@
 import { ICONS } from 'assets/icons/SvgIcon';
 import PropTypes, { InferProps } from 'prop-types';
-import { useAlert } from 'react-alert';
 import * as S from './DashboardTopbar.styled';
 import { BackIconButton, SvgLogo, Title } from './DashboardTopbar.styled';
 
@@ -17,7 +16,6 @@ import BackButton from 'elements/BackButton';
 import { BackIcon } from 'elements/BackButton.styled';
 import { ContributionPage } from 'hooks/useContributionPage';
 import useModal from 'hooks/useModal';
-import useRequest from 'hooks/useRequest';
 import { CONTENT_SLUG } from 'routes';
 
 export interface DashboardTopbarProps extends Omit<InferProps<typeof DashboardTopbarPropTypes>, 'updatedPage'> {
@@ -26,8 +24,6 @@ export interface DashboardTopbarProps extends Omit<InferProps<typeof DashboardTo
 }
 
 function DashboardTopbar({ isEditPage, page, setPage, updatedPage, user }: DashboardTopbarProps) {
-  const alert = useAlert();
-  const requestPatchPage = useRequest();
   const { open: showUnsavedModal, handleClose: closeUnsavedModal, handleOpen: openUnsavedModal } = useModal();
   const updatedPageIsEmpty = !updatedPage || Object.keys(updatedPage).length === 0;
 
@@ -62,7 +58,7 @@ function DashboardTopbar({ isEditPage, page, setPage, updatedPage, user }: Dashb
             <SvgLogo src={logoBlue} alt="News Revenue Hub Logo" />
             <Title>{page?.name}</Title>
             <GrabLink page={page} />
-            <PublishButton page={page} setPage={setPage} alert={alert} requestPatchPage={requestPatchPage} />
+            <PublishButton page={page} setPage={setPage} />
             {showUnsavedModal && (
               <UnsavedChangesModal to={CONTENT_SLUG} isOpen={showUnsavedModal} closeModal={closeUnsavedModal} />
             )}

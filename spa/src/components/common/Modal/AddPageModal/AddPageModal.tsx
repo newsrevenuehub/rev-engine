@@ -13,6 +13,8 @@ export interface AddPageModalProps extends InferProps<typeof AddPageModalPropTyp
 }
 
 const formDefaultValues = {
+  // Even though revenue program IDs are numbers, this needs to be a string
+  // because it will be a field value.
   revenueProgram: ''
 };
 

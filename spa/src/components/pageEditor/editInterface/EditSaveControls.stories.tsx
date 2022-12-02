@@ -8,4 +8,10 @@ export default {
 
 const Template: ComponentStory<typeof EditSaveControls> = (props) => <EditSaveControls {...props} />;
 
-export const Default = Template.bind({});
+export const Cancel = Template.bind({});
+
+Cancel.args = { variant: 'cancel' };
+
+export const Undo = Template.bind({});
+
+Undo.args = { variant: 'undo' };

@@ -248,7 +248,7 @@ describe('Contribution page edit', () => {
         });
 
       cy.contains('One time').siblings('ul').children();
-      cy.findByRole('button', { name: 'Undo' }).click();
+      cy.findByRole('button', { name: 'Cancel' }).click();
     });
   });
 

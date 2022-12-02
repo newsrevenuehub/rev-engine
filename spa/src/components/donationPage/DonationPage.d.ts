@@ -3,21 +3,9 @@
 
 import { Context, Dispatch, SetStateAction } from 'react';
 import { ContributionInterval } from 'constants/contributionIntervals';
+import { ContributionPage } from 'hooks/useContributionPage';
 
-/**
- * Information about a contribution page. **THIS TYPE IS INCOMPLETE.**
- */
-export interface DonationPage {
-  currency?: {
-    /**
-     * What symbol should be prepended to a currency amount.
-     */
-    symbol?: string;
-  };
-  revenue_program: {
-    name: string;
-  };
-}
+export type DonationPage = ContributionPage;
 
 /**
  * Info available in the contribution page context. **THIS TYPE IS INCOMPLETE.**
@@ -34,7 +22,7 @@ export interface UsePageProps {
   /**
    * Information about the contribution page itself.
    */
-  page: DonationPage;
+  page: ContributionPage;
   setUserAgreesToPayFees: Dispatch<SetStateAction<boolean>>;
   /**
    * Has the user agreed to pay payment processing fees?

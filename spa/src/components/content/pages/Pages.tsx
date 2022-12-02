@@ -21,13 +21,13 @@ import EditButton from 'components/common/Button/EditButton';
 import Hero from 'components/common/Hero';
 import GenericErrorBoundary from 'components/errors/GenericErrorBoundary';
 import GlobalLoading from 'elements/GlobalLoading';
+import { ContributionPage } from 'hooks/useContributionPage';
 import useUser from 'hooks/useUser';
-import { Page } from 'hooks/useUser.types';
 
 import AddPage from './AddPage';
 
-export const pagesbyRP = (pgsRaw: Page[], qry?: string) => {
-  const pagesByRevProgram: { name: string; pages: Page[] }[] = [];
+export const pagesbyRP = (pgsRaw: ContributionPage[], qry?: string) => {
+  const pagesByRevProgram: { name: string; pages: ContributionPage[] }[] = [];
   const pgs = qry
     ? pgsRaw?.filter((page) => {
         return (
@@ -71,12 +71,8 @@ function Pages() {
   });
 
   const isLoading = pagesLoading || userLoading;
-
-  const handleEditPage = (page: Page) => {
-    const path = join([EDITOR_ROUTE, page.revenue_program.slug, page.slug, '/']);
-    history.push({ pathname: path, state: { pageId: page.id } });
-  };
-
+  const handleEditPage = (page: ContributionPage) =>
+    history.push(join([EDITOR_ROUTE, page.revenue_program.slug, page.slug, '/']));
   const pagesByRevenueProgram = pagesbyRP(pages, pageSearchQuery);
 
   const addPageButtonShouldBeDisabled = useMemo(() => {

@@ -1,4 +1,4 @@
-import { LIST_PAGES, REVENUE_PROGRAMS, USER, PATCH_PAGE, LIST_STYLES } from 'ajax/endpoints';
+import { DRAFT_PAGE_DETAIL, LIST_PAGES, REVENUE_PROGRAMS, USER, PATCH_PAGE, LIST_STYLES } from 'ajax/endpoints';
 import { CONTENT_SLUG } from 'routes';
 import { getEndpoint } from '../support/util';
 import orgAdmin from '../fixtures/user/login-success-org-admin.json';
@@ -192,7 +192,14 @@ describe('Pages view', () => {
       { fixture: 'pages/create-page-response.json' }
     ).as('createNewPage');
     cy.intercept(
-      { method: 'GET', pathname: getEndpoint(`${LIST_PAGES}/${createPageResponse.id}/`) },
+      {
+        method: 'GET',
+        pathname: getEndpoint(DRAFT_PAGE_DETAIL),
+        query: {
+          revenue_program: createPageResponse.revenue_program.slug,
+          page: createPageResponse.slug
+        }
+      },
       {
         fixture: 'pages/live-page-element-validation'
       }

@@ -1,20 +1,20 @@
 import { useState } from 'react';
 import PropTypes from 'prop-types';
 
-import { pageHasBeenPublished } from 'utilities/editPageGetSuccessMessage';
+import { pageIsPublished } from 'utilities/editPageGetSuccessMessage';
 import LinkIcon from '@material-ui/icons/Link';
 
 import CopyInputButton from 'components/common/Button/CopyInputButton';
 import { pageLink, portalLink } from 'utilities/getPageLinks';
 import { Flex, Button, Popover, Text } from './GrabLink.styled';
-import { PagePropTypes } from 'constants/proptypes';
+import { PagePropTypes } from 'constants/propTypes';
 
 const GrabLink = ({ page, className }) => {
   const [copied, setCopied] = useState('');
   const [anchorEl, setAnchorEl] = useState(null);
   const open = Boolean(anchorEl);
   const id = open ? 'grab link popover' : undefined;
-  const isPublished = pageHasBeenPublished(page);
+  const isPublished = page && pageIsPublished(page);
 
   const handleClick = (event) => {
     setAnchorEl(event.currentTarget);

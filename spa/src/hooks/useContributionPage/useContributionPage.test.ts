@@ -42,7 +42,8 @@ describe('useContributionPage', () => {
 
   describe('While fetching the page', () => {
     // These wait for the next update to allow component updates to happen after
-    // the fetch completes.
+    // the fetch completes. Otherwise, we'll get "Can't perform a React state
+    // update on an unmounted component" warnings.
 
     it('returns a loading status', async () => {
       const { result, waitForNextUpdate } = renderHook(testHook, { wrapper: TestQueryClientProvider });

@@ -65,10 +65,10 @@ export interface UseContributionPageResult {
   ) => Promise<void>;
 }
 
-export function useContributionPage(pageId: number): UseContributionPageResult;
+export function useContributionPage(pageId?: number): UseContributionPageResult;
 export function useContributionPage(revenueProgramSlug: string, pageSlug: string): UseContributionPageResult;
 
-export function useContributionPage(revenueProgramSlugOrPageId: number | string, pageSlug?: string) {
+export function useContributionPage(revenueProgramSlugOrPageId?: number | string, pageSlug?: string) {
   const alert = useAlert();
   const queryClient = useQueryClient();
   const {
@@ -77,18 +77,22 @@ export function useContributionPage(revenueProgramSlugOrPageId: number | string,
     isError,
     isLoading,
     refetch
-  } = useQuery(['contributionPage', revenueProgramSlugOrPageId, pageSlug], () => {
-    switch (typeof revenueProgramSlugOrPageId) {
-      case 'number':
-        return fetchPageById(revenueProgramSlugOrPageId as number);
-      case 'string':
-        if (!pageSlug) {
-          throw new Error('Both revenue program and page slug must be provided');
-        }
+  } = useQuery(
+    ['contributionPage', revenueProgramSlugOrPageId, pageSlug],
+    () => {
+      switch (typeof revenueProgramSlugOrPageId) {
+        case 'number':
+          return fetchPageById(revenueProgramSlugOrPageId as number);
+        case 'string':
+          if (!pageSlug) {
+            throw new Error('Both revenue program and page slugs must be provided');
+          }
 
-        return fetchPageBySlug(revenueProgramSlugOrPageId, pageSlug);
-    }
-  });
+          return fetchPageBySlug(revenueProgramSlugOrPageId, pageSlug);
+      }
+    },
+    { enabled: !!revenueProgramSlugOrPageId }
+  );
 
   const deletePageMutation = useMutation(() => {
     if (!page) {

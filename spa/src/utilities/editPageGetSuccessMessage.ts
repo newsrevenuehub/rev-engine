@@ -1,4 +1,4 @@
-import { isBefore, isValid } from 'date-fns';
+import { isBefore, isValid, parseISO } from 'date-fns';
 import { ContributionPage } from 'hooks/useContributionPage';
 
 /**
@@ -9,10 +9,17 @@ export function pageIsPublished(page: Partial<ContributionPage>, now = new Date(
     return false;
   }
 
-  const date = new Date(page.published_date);
+  // Try using JS's built in parser, then fall back to ISO date format. This is
+  // because JS can't parse values that formatDateTimeForAPI() returns.
+
+  let date = new Date(page.published_date);
 
   if (!isValid(date)) {
-    throw new Error(`Page's published_date is not a valid date: "${page.published_date}"`);
+    date = parseISO(page.published_date);
+
+    if (!isValid(date)) {
+      throw new Error(`Page's published_date is not a valid date: "${page.published_date}"`);
+    }
   }
 
   return isBefore(date, now);

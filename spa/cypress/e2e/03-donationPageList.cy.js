@@ -194,6 +194,15 @@ describe('Pages view', () => {
     cy.intercept(
       {
         method: 'GET',
+        pathname: getEndpoint(LIST_PAGES + `/${createPageResponse.id}/`)
+      },
+      {
+        fixture: 'pages/live-page-element-validation'
+      }
+    ).as('getNewPage');
+    cy.intercept(
+      {
+        method: 'GET',
         pathname: getEndpoint(DRAFT_PAGE_DETAIL),
         query: {
           revenue_program: createPageResponse.revenue_program.slug,
@@ -201,7 +210,7 @@ describe('Pages view', () => {
         }
       },
       {
-        fixture: 'pages/live-page-element-validation'
+        fixture: 'pages/create-page-response.json'
       }
     ).as('draftPage');
     cy.intercept({ method: 'PATCH', pathname: getEndpoint(`${PATCH_PAGE}/**`) }, { fixture: 'pages/patch-page' }).as(

@@ -30,7 +30,6 @@ const dynamicElements = { ...dynamicPageElements, ...dynamicSidebarElements };
  */
 function ElementProperties({ selectedElementType }) {
   const alert = useAlert();
-
   const {
     selectedElement,
     setSelectedElement,
@@ -102,7 +101,7 @@ function ElementProperties({ selectedElementType }) {
         )}
       </S.ElementHeading>
       <S.ElementEditor>{getElementEditor(selectedElement.type)}</S.ElementEditor>
-      <EditSaveControls onUndo={handleDiscardChanges} onUpdate={handleKeepChanges} />
+      <EditSaveControls onCancel={handleDiscardChanges} onUpdate={handleKeepChanges} variant="cancel" />
     </S.ElementProperties>
   );
 }

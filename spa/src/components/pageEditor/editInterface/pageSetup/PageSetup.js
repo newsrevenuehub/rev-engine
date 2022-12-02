@@ -161,7 +161,7 @@ function PageSetup({ backToProperties }) {
           />
         </S.InputWrapper>
       </S.Controls>
-      <EditSaveControls onUndo={handleDiscardChanges} onUpdate={handleKeepChanges} />
+      <EditSaveControls onCancel={handleDiscardChanges} onUpdate={handleKeepChanges} variant="undo" />
     </S.PageSetup>
   );
 }

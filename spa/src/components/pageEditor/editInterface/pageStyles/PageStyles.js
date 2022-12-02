@@ -48,7 +48,7 @@ function PageStyles({ backToProperties }) {
       <Controls>
         <StylesChooser styles={availableStyles} selected={styles} setSelected={setStyles} />
       </Controls>
-      <EditSaveControls onUndo={handleDiscardChanges} onUpdate={handleKeepChanges} />
+      <EditSaveControls onCancel={handleDiscardChanges} onUpdate={handleKeepChanges} variant="undo" />
       <AddStylesModal
         isOpen={addStylesModalOpen}
         closeModal={handleAddStylesModalClose}

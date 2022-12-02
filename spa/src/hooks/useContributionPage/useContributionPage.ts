@@ -2,13 +2,19 @@ import { useMutation, useQuery, useQueryClient, UseQueryResult } from '@tanstack
 import { useCallback } from 'react';
 import { useAlert } from 'react-alert';
 import axios from 'ajax/axios';
-import { DELETE_PAGE, DRAFT_PAGE_DETAIL, PATCH_PAGE } from 'ajax/endpoints';
+import { DELETE_PAGE, DRAFT_PAGE_DETAIL, LIST_PAGES, PATCH_PAGE } from 'ajax/endpoints';
 import { GENERIC_ERROR } from 'constants/textConstants';
 import { getUpdateSuccessMessage } from 'utilities/editPageGetSuccessMessage';
 import { pageUpdateToFormData } from './pageUpdateToFormData';
 import { ContributionPage } from './useContributionPage.types';
+import urlJoin from 'url-join';
 
-async function fetchPage(revenueProgramSlug: string, pageSlug: string) {
+async function fetchPageById(pageId: number) {
+  const { data } = await axios.get<ContributionPage>(urlJoin(LIST_PAGES, pageId.toString(), '/'));
+  return data;
+}
+
+async function fetchPageBySlug(revenueProgramSlug: string, pageSlug: string) {
   // We use this endpoint because it allows lookup of a page by RP name and page
   // slug.
 
@@ -59,7 +65,10 @@ export interface UseContributionPageResult {
   ) => Promise<void>;
 }
 
-export function useContributionPage(revenueProgramSlug: string, pageSlug: string): UseContributionPageResult {
+export function useContributionPage(pageId: number): UseContributionPageResult;
+export function useContributionPage(revenueProgramSlug: string, pageSlug: string): UseContributionPageResult;
+
+export function useContributionPage(revenueProgramSlugOrPageId: number | string, pageSlug?: string) {
   const alert = useAlert();
   const queryClient = useQueryClient();
   const {
@@ -68,7 +77,18 @@ export function useContributionPage(revenueProgramSlug: string, pageSlug: string
     isError,
     isLoading,
     refetch
-  } = useQuery(['contributionPage', revenueProgramSlug, pageSlug], () => fetchPage(revenueProgramSlug, pageSlug));
+  } = useQuery(['contributionPage', revenueProgramSlugOrPageId, pageSlug], () => {
+    switch (typeof revenueProgramSlugOrPageId) {
+      case 'number':
+        return fetchPageById(revenueProgramSlugOrPageId as number);
+      case 'string':
+        if (!pageSlug) {
+          throw new Error('Both revenue program and page slug must be provided');
+        }
+
+        return fetchPageBySlug(revenueProgramSlugOrPageId, pageSlug);
+    }
+  });
 
   const deletePageMutation = useMutation(() => {
     if (!page) {
@@ -100,7 +120,8 @@ export function useContributionPage(revenueProgramSlug: string, pageSlug: string
       return axios.patch(`${PATCH_PAGE}${page.id}/`, data);
     },
     {
-      onSuccess: () => queryClient.invalidateQueries({ queryKey: ['contributionPage', revenueProgramSlug, pageSlug] })
+      onSuccess: () =>
+        queryClient.invalidateQueries({ queryKey: ['contributionPage', revenueProgramSlugOrPageId, pageSlug] })
     }
   );
 

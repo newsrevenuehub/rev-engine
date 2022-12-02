@@ -1,5 +1,6 @@
-import { render, screen, within } from 'test-utils';
+import { render, screen, waitFor } from 'test-utils';
 import { useLocation } from 'react-router-dom';
+import { useSnackbar } from 'notistack';
 
 import { CONTENT_SECTION_ACCESS_FLAG_NAME } from 'constants/featureFlagConstants';
 import Dashboard from './Dashboard';
@@ -21,7 +22,7 @@ jest.mock('react-router-dom', () => ({
 
 jest.mock('notistack', () => ({
   ...jest.requireActual('notistack'),
-  useSnackbar: () => ({ closeSnackbar: jest.fn() })
+  useSnackbar: jest.fn()
 }));
 
 const useUserMockDefaults = {
@@ -39,8 +40,10 @@ describe('Dashboard', () => {
   const useFeatureFlagsMock = useFeatureFlags as jest.Mock;
   const useUserMock = useUser as jest.Mock;
   const useLocationMock = useLocation as jest.Mock;
+  const useSnackbarMock = useSnackbar as jest.Mock;
 
   beforeEach(() => {
+    useSnackbarMock.mockReturnValue({ enqueueSnackbar: jest.fn(), closeSnackbar: jest.fn() });
     useConnectStripeAccountMock.mockReturnValue({
       requiresVerification: false,
       displayConnectionSuccess: false,
@@ -64,6 +67,8 @@ describe('Dashboard', () => {
   it('should display a system notification when Stripe Connect completes', async () => {
     const rpId = '1';
     const hideConnectionSuccess = jest.fn();
+    const enqueueSnackbar = jest.fn();
+    useSnackbarMock.mockReturnValue({ enqueueSnackbar, closeSnackbar: jest.fn() });
     useConnectStripeAccountMock.mockReturnValue({
       requiresVerification: false,
       displayConnectionSuccess: true,
@@ -78,16 +83,15 @@ describe('Dashboard', () => {
       }
     });
     render(<Dashboard />);
-    const notification = await screen.findByRole('status');
-    expect(notification).toBeVisible();
-    expect(within(notification).getByRole('heading', { name: 'Stripe Successfully Connected!' })).toBeVisible();
-    expect(
-      within(notification).getByText(
-        'Stripe verification has been completed. Your contribution page can now be published!'
-      )
-    ).toBeVisible();
-    within(notification).getByRole('button', { name: 'close notification' }).click();
     expect(hideConnectionSuccess).toHaveBeenCalledTimes(1);
+    await waitFor(() =>
+      expect(enqueueSnackbar).toBeCalledWith(
+        'Stripe verification has been completed. Your contribution page can now be published!',
+        expect.objectContaining({
+          persist: true
+        })
+      )
+    );
   });
   it('shows a loading status when Stripe account link status is loading', () => {
     useConnectStripeAccountMock.mockReturnValue({ isLoading: true });

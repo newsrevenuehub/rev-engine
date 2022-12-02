@@ -12,13 +12,16 @@ const mockPage = {
 };
 
 // eslint-disable-next-line react-hooks/rules-of-hooks
-const testHook = () => useContributionPage('mock-rp-slug', 'mock-page-slug');
+const testHookWithId = () => useContributionPage(1);
+// eslint-disable-next-line react-hooks/rules-of-hooks
+const testHookWithSlugs = () => useContributionPage('mock-rp-slug', 'mock-page-slug');
 
 describe('useContributionPage', () => {
   const axiosMock = new MockAdapter(Axios);
   const useAlertMock = useAlert as jest.Mock;
 
   beforeEach(() => {
+    axiosMock.onGet('pages/1/').reply(200, mockPage);
     axiosMock
       .onGet('pages/draft-detail/', { revenue_program: 'mock-rp-slug', page: 'mock-page-slug' })
       .reply(200, mockPage);
@@ -27,99 +30,189 @@ describe('useContributionPage', () => {
   afterEach(() => axiosMock.reset());
   afterAll(() => axiosMock.restore());
 
-  it('fetches the page from pages/draft-detail/ using the revenue program and slug provided', async () => {
-    const { result, waitFor } = renderHook(testHook, { wrapper: TestQueryClientProvider });
+  describe('When called with a page ID', () => {
+    it('fetches the page from pages/draft-detail/ using the revenue program and slug provided', async () => {
+      const { result, waitFor } = renderHook(testHookWithId, { wrapper: TestQueryClientProvider });
 
-    await waitFor(() => expect(axiosMock.history.get.length).toBe(1));
-    expect(axiosMock.history.get).toEqual([
-      expect.objectContaining({
-        params: { page: 'mock-page-slug', revenue_program: 'mock-rp-slug' },
-        url: 'pages/draft-detail/'
-      })
-    ]);
-    expect(result.current.page).toEqual(mockPage);
+      await waitFor(() => expect(axiosMock.history.get.length).toBe(1));
+      expect(axiosMock.history.get).toEqual([
+        expect.objectContaining({
+          url: 'pages/1/'
+        })
+      ]);
+      expect(result.current.page).toEqual(mockPage);
+    });
+
+    describe('While fetching the page', () => {
+      // These wait for the next update to allow component updates to happen after
+      // the fetch completes. Otherwise, we'll get "Can't perform a React state
+      // update on an unmounted component" warnings.
+
+      it('returns a loading status', async () => {
+        const { result, waitForNextUpdate } = renderHook(testHookWithId, { wrapper: TestQueryClientProvider });
+
+        expect(result.current.isLoading).toBe(true);
+        await waitForNextUpdate();
+      });
+
+      it('returns an undefined page', async () => {
+        const { result, waitForNextUpdate } = renderHook(testHookWithId, { wrapper: TestQueryClientProvider });
+
+        expect(result.current.page).toBeUndefined();
+        await waitForNextUpdate();
+      });
+
+      it("doesn't return deletePage or updatePage functions", async () => {
+        const { result, waitForNextUpdate } = renderHook(testHookWithId, { wrapper: TestQueryClientProvider });
+
+        expect(result.current.deletePage).toBeUndefined();
+        expect(result.current.updatePage).toBeUndefined();
+        await waitForNextUpdate();
+      });
+    });
+
+    describe('When fetching the page fails', () => {
+      let errorSpy: jest.SpyInstance;
+
+      beforeEach(() => {
+        axiosMock.reset();
+        axiosMock.onGet('pages/1/').networkError();
+        errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+      });
+      afterEach(() => errorSpy.mockRestore());
+
+      it('returns an error status', async () => {
+        const { result, waitForNextUpdate } = renderHook(testHookWithId, { wrapper: TestQueryClientProvider });
+
+        await waitForNextUpdate();
+        expect(result.current.isError).toBe(true);
+      });
+
+      it('returns an undefined page', async () => {
+        const { result, waitForNextUpdate } = renderHook(testHookWithId, { wrapper: TestQueryClientProvider });
+
+        await waitForNextUpdate();
+        expect(result.current.page).toBeUndefined();
+      });
+
+      it("doesn't return deletePage or updatePage functions", async () => {
+        const { result, waitForNextUpdate } = renderHook(testHookWithId, { wrapper: TestQueryClientProvider });
+
+        expect(result.current.deletePage).toBeUndefined();
+        expect(result.current.updatePage).toBeUndefined();
+        await waitForNextUpdate();
+      });
+    });
+
+    it('refetches the page using the same query params when the refetch function is called', async () => {
+      const { result, waitFor } = renderHook(testHookWithId, { wrapper: TestQueryClientProvider });
+
+      await waitFor(() => expect(axiosMock.history.get.length).toBe(1));
+      result.current.refetch();
+      await waitFor(() => expect(axiosMock.history.get.length).toBe(2));
+      expect(axiosMock.history.get[1]).toEqual(
+        expect.objectContaining({
+          url: 'pages/1/'
+        })
+      );
+    });
   });
 
-  describe('While fetching the page', () => {
-    // These wait for the next update to allow component updates to happen after
-    // the fetch completes. Otherwise, we'll get "Can't perform a React state
-    // update on an unmounted component" warnings.
+  describe('When called with a revenue program and page slug', () => {
+    it('fetches the page from pages/draft-detail/ using the revenue program and slug provided', async () => {
+      const { result, waitFor } = renderHook(testHookWithSlugs, { wrapper: TestQueryClientProvider });
 
-    it('returns a loading status', async () => {
-      const { result, waitForNextUpdate } = renderHook(testHook, { wrapper: TestQueryClientProvider });
-
-      expect(result.current.isLoading).toBe(true);
-      await waitForNextUpdate();
+      await waitFor(() => expect(axiosMock.history.get.length).toBe(1));
+      expect(axiosMock.history.get).toEqual([
+        expect.objectContaining({
+          params: { page: 'mock-page-slug', revenue_program: 'mock-rp-slug' },
+          url: 'pages/draft-detail/'
+        })
+      ]);
+      expect(result.current.page).toEqual(mockPage);
     });
 
-    it('returns an undefined page', async () => {
-      const { result, waitForNextUpdate } = renderHook(testHook, { wrapper: TestQueryClientProvider });
+    describe('While fetching the page', () => {
+      // These wait for the next update to allow component updates to happen after
+      // the fetch completes. Otherwise, we'll get "Can't perform a React state
+      // update on an unmounted component" warnings.
 
-      expect(result.current.page).toBeUndefined();
-      await waitForNextUpdate();
+      it('returns a loading status', async () => {
+        const { result, waitForNextUpdate } = renderHook(testHookWithSlugs, { wrapper: TestQueryClientProvider });
+
+        expect(result.current.isLoading).toBe(true);
+        await waitForNextUpdate();
+      });
+
+      it('returns an undefined page', async () => {
+        const { result, waitForNextUpdate } = renderHook(testHookWithSlugs, { wrapper: TestQueryClientProvider });
+
+        expect(result.current.page).toBeUndefined();
+        await waitForNextUpdate();
+      });
+
+      it("doesn't return deletePage or updatePage functions", async () => {
+        const { result, waitForNextUpdate } = renderHook(testHookWithSlugs, { wrapper: TestQueryClientProvider });
+
+        expect(result.current.deletePage).toBeUndefined();
+        expect(result.current.updatePage).toBeUndefined();
+        await waitForNextUpdate();
+      });
     });
 
-    it("doesn't return deletePage or updatePage functions", async () => {
-      const { result, waitForNextUpdate } = renderHook(testHook, { wrapper: TestQueryClientProvider });
+    describe('When fetching the page fails', () => {
+      let errorSpy: jest.SpyInstance;
 
-      expect(result.current.deletePage).toBeUndefined();
-      expect(result.current.updatePage).toBeUndefined();
-      await waitForNextUpdate();
+      beforeEach(() => {
+        axiosMock.reset();
+        axiosMock.onGet('pages/draft-detail/').networkError();
+        errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+      });
+      afterEach(() => errorSpy.mockRestore());
+
+      it('returns an error status', async () => {
+        const { result, waitForNextUpdate } = renderHook(testHookWithSlugs, { wrapper: TestQueryClientProvider });
+
+        await waitForNextUpdate();
+        expect(result.current.isError).toBe(true);
+      });
+
+      it('returns an undefined page', async () => {
+        const { result, waitForNextUpdate } = renderHook(testHookWithSlugs, { wrapper: TestQueryClientProvider });
+
+        await waitForNextUpdate();
+        expect(result.current.page).toBeUndefined();
+      });
+
+      it("doesn't return deletePage or updatePage functions", async () => {
+        const { result, waitForNextUpdate } = renderHook(testHookWithSlugs, { wrapper: TestQueryClientProvider });
+
+        expect(result.current.deletePage).toBeUndefined();
+        expect(result.current.updatePage).toBeUndefined();
+        await waitForNextUpdate();
+      });
     });
-  });
 
-  describe('When fetching the page fails', () => {
-    let errorSpy: jest.SpyInstance;
+    it('refetches the page using the same query params when the refetch function is called', async () => {
+      const { result, waitFor } = renderHook(testHookWithSlugs, { wrapper: TestQueryClientProvider });
 
-    beforeEach(() => {
-      axiosMock.reset();
-      axiosMock.onGet('pages/draft-detail/').networkError();
-      errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+      await waitFor(() => expect(axiosMock.history.get.length).toBe(1));
+      result.current.refetch();
+      await waitFor(() => expect(axiosMock.history.get.length).toBe(2));
+      expect(axiosMock.history.get[1]).toEqual(
+        expect.objectContaining({
+          params: { page: 'mock-page-slug', revenue_program: 'mock-rp-slug' },
+          url: 'pages/draft-detail/'
+        })
+      );
     });
-    afterEach(() => errorSpy.mockRestore());
-
-    it('returns an error status', async () => {
-      const { result, waitForNextUpdate } = renderHook(testHook, { wrapper: TestQueryClientProvider });
-
-      await waitForNextUpdate();
-      expect(result.current.isError).toBe(true);
-    });
-
-    it('returns an undefined page', async () => {
-      const { result, waitForNextUpdate } = renderHook(testHook, { wrapper: TestQueryClientProvider });
-
-      await waitForNextUpdate();
-      expect(result.current.page).toBeUndefined();
-    });
-
-    it("doesn't return deletePage or updatePage functions", async () => {
-      const { result, waitForNextUpdate } = renderHook(testHook, { wrapper: TestQueryClientProvider });
-
-      expect(result.current.deletePage).toBeUndefined();
-      expect(result.current.updatePage).toBeUndefined();
-      await waitForNextUpdate();
-    });
-  });
-
-  it('refetches the page using the same query params when the refetch function is called', async () => {
-    const { result, waitFor } = renderHook(testHook, { wrapper: TestQueryClientProvider });
-
-    await waitFor(() => expect(axiosMock.history.get.length).toBe(1));
-    result.current.refetch();
-    await waitFor(() => expect(axiosMock.history.get.length).toBe(2));
-    expect(axiosMock.history.get[1]).toEqual(
-      expect.objectContaining({
-        params: { page: 'mock-page-slug', revenue_program: 'mock-rp-slug' },
-        url: 'pages/draft-detail/'
-      })
-    );
   });
 
   describe('The deletePage function', () => {
     it('makes a DELETE request to pages/', async () => {
       axiosMock.onDelete(`pages/${mockPage.id}/`).reply(204);
 
-      const { result, waitForNextUpdate } = renderHook(testHook, { wrapper: TestQueryClientProvider });
+      const { result, waitForNextUpdate } = renderHook(testHookWithSlugs, { wrapper: TestQueryClientProvider });
 
       await waitForNextUpdate();
       expect(axiosMock.history.delete.length).toBe(0);
@@ -139,7 +232,7 @@ describe('useContributionPage', () => {
       afterEach(() => errorSpy.mockRestore());
 
       it('logs the error to the console', async () => {
-        const { result, waitForNextUpdate } = renderHook(testHook, { wrapper: TestQueryClientProvider });
+        const { result, waitForNextUpdate } = renderHook(testHookWithSlugs, { wrapper: TestQueryClientProvider });
 
         await waitForNextUpdate();
         expect(errorSpy).not.toBeCalled();
@@ -156,7 +249,7 @@ describe('useContributionPage', () => {
 
         useAlertMock.mockReturnValue({ error });
 
-        const { result, waitForNextUpdate } = renderHook(testHook, { wrapper: TestQueryClientProvider });
+        const { result, waitForNextUpdate } = renderHook(testHookWithSlugs, { wrapper: TestQueryClientProvider });
 
         await waitForNextUpdate();
         expect(error).not.toBeCalled();
@@ -171,7 +264,7 @@ describe('useContributionPage', () => {
       it('rethrows the error', async () => {
         expect.assertions(1);
 
-        const { result, waitForNextUpdate } = renderHook(testHook, { wrapper: TestQueryClientProvider });
+        const { result, waitForNextUpdate } = renderHook(testHookWithSlugs, { wrapper: TestQueryClientProvider });
 
         await waitForNextUpdate();
 
@@ -191,7 +284,7 @@ describe('useContributionPage', () => {
     it('makes a PATCH request to the pages/', async () => {
       axiosMock.onPatch(`pages/${mockPage.id}/`).reply(200, mockPage);
 
-      const { result, waitForNextUpdate } = renderHook(testHook, { wrapper: TestQueryClientProvider });
+      const { result, waitForNextUpdate } = renderHook(testHookWithSlugs, { wrapper: TestQueryClientProvider });
 
       await waitForNextUpdate();
       expect(axiosMock.history.patch.length).toBe(0);
@@ -213,7 +306,7 @@ describe('useContributionPage', () => {
 
       axiosMock.onPatch(`pages/${mockPage.id}/`).reply(200, mockPage);
 
-      const { result, waitForNextUpdate } = renderHook(testHook, { wrapper: TestQueryClientProvider });
+      const { result, waitForNextUpdate } = renderHook(testHookWithSlugs, { wrapper: TestQueryClientProvider });
 
       await waitForNextUpdate();
       expect(success).not.toBeCalled();
@@ -234,7 +327,7 @@ describe('useContributionPage', () => {
       it('rethrows the error', async () => {
         expect.assertions(1);
 
-        const { result, waitForNextUpdate } = renderHook(testHook, { wrapper: TestQueryClientProvider });
+        const { result, waitForNextUpdate } = renderHook(testHookWithSlugs, { wrapper: TestQueryClientProvider });
 
         await waitForNextUpdate();
 

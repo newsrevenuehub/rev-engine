@@ -20,6 +20,7 @@ from apps.organizations.models import (
     BenefitLevel,
     BenefitLevelBenefit,
     Organization,
+    PaymentProvider,
     RevenueProgram,
 )
 from apps.organizations.tests.factories import (
@@ -56,6 +57,7 @@ def test_expected_models_are_registered_with_django_reversion():
         DonationPage,
         Font,
         Organization,
+        PaymentProvider,
         RevenueProgram,
         SocialMeta,
         Style,

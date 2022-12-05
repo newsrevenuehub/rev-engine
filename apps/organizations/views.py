@@ -74,7 +74,7 @@ def handle_stripe_account_link(request, rp_pk):
     The flow through this view is like this:
 
     1. The client makes a request providing a revenue program id.
-    2. Retrieve the RP's Zpayment provider.
+    2. Retrieve the RP's payment provider.
         a. If it's already verified, we're done.
         b. If it's not verified we continue
     3. If the payment provider does not have a Stripe account (on first run through, it usually won't), create one, attaching

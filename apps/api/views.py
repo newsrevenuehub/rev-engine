@@ -187,7 +187,10 @@ class RequestContributorTokenEmailView(APIView):
             "Manage your contributions",
             "nrh-manage-contributions-magic-link.txt",
             "nrh-manage-contributions-magic-link.html",
-            {"magic_link": mark_safe(magic_link)},
+            {
+                "magic_link": mark_safe(magic_link),
+                "email": serializer.validated_data["email"],
+            },
         )
         # Email is async task. We won't know if it succeeds or not so optimistically send OK.
         return Response({"detail": "success"}, status=status.HTTP_200_OK)

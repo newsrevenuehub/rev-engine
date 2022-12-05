@@ -15,7 +15,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0 " />
     <meta name="format-detection" content="telephone=no"/>
     <!--[if !mso]><!-->
-    <link href="https://fonts.googleapis.com/css?family=Lato:100,100i,300,300i,400,700,700i,900,900i" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css?family=Roboto:400,500,600,700&display=swap" rel="stylesheet" type="text/css">
     <!--<![endif]-->
     <style type="text/css">
       body {
@@ -29,10 +29,6 @@
         border: 0 !important;
         outline: none !important;
       }
-      p {
-        Margin: 0px !important;
-        Padding: 0px !important;
-      }
       table {
         border-collapse: collapse;
         mso-table-lspace: 0px;
@@ -42,98 +38,191 @@
         border-collapse: collapse;
         mso-line-height-rule: exactly;
       }
-      .ExternalClass * {
-        line-height: 100%;
-      }
-      .em_blue a {text-decoration:none; color:#264780;}
-      .em_grey a {text-decoration:none; color:#434343;}
-      .em_white a {text-decoration:none; color:#ffffff;}
 
-      @media only screen and (min-width:481px) and (max-width:649px) {
-        .em_main_table {width: 100% !important;}
-        .em_wrapper{width: 100% !important;}
-        .em_hide{display:none !important;}
-        .em_aside10{padding:0px 10px !important;}
-        .em_h20{height:20px !important; font-size: 1px!important; line-height: 1px!important;}
-        .em_h10{height:10px !important; font-size: 1px!important; line-height: 1px!important;}
-        .em_aside5{padding:0px 10px !important;}
-        .em_ptop2 { padding-top:8px !important; }
+      .wrapper {
+        width: 600px
       }
-      @media only screen and (min-width:375px) and (max-width:480px) {
-        .em_main_table {width: 100% !important;}
-        .em_wrapper{width: 100% !important;}
-        .em_hide{display:none !important;}
-        .em_aside10{padding:0px 10px !important;}
-        .em_aside5{padding:0px 8px !important;}
-        .em_h20{height:20px !important; font-size: 1px!important; line-height: 1px!important;}
-        .em_h10{height:10px !important; font-size: 1px!important; line-height: 1px!important;}
-        .em_font_11 {font-size: 12px !important;}
-        .em_font_22 {font-size: 22px !important; line-height:25px !important;}
-        .em_w5 { width:7px !important; }
-        .em_w150 { width:150px !important; height:auto !important; }
-        .em_ptop2 { padding-top:8px !important; }
-        u + .em_body .em_full_wrap { width:100% !important; width:100vw !important;}
+
+      .header-background {
+        width: 600px;
+        height: 80px;
+        background: #523A5E;
       }
-      @media only screen and (max-width:374px) {
-        .em_main_table {width: 100% !important;}
-        .em_wrapper{width: 100% !important;}
-        .em_hide{display:none !important;}
-        .em_aside10{padding:0px 10px !important;}
-        .em_aside5{padding:0px 8px !important;}
-        .em_h20{height:20px !important; font-size: 1px!important; line-height: 1px!important;}
-        .em_h10{height:10px !important; font-size: 1px!important; line-height: 1px!important;}
-        .em_font_11 {font-size: 11px !important;}
-        .em_font_22 {font-size: 22px !important; line-height:25px !important;}
-        .em_w5 { width:5px !important; }
-        .em_w150 { width:150px !important; height:auto !important; }
-        .em_ptop2 { padding-top:8px !important; }
-        u + .em_body .em_full_wrap { width:100% !important; width:100vw !important;}
+
+      .header-logo {
+        height: 46px;
+        margin-top: 17px;
+        margin-bottom: 17px;
+      }
+
+      .content {
+        margin-top: 50px;
+        width: 452px;
+        background: #FFFFFF;
+        border: 1px solid #C4C4C4;
+        border-collapse: separate;
+        border-radius: 10px;
+      }
+
+      .inner-spacing {
+        margin-left: 38px;
+        margin-right: 38px;
+      }
+
+      .title {
+        font-family: 'Roboto';
+        font-weight: 700;
+        font-size: 30px;
+        line-height: 41px;
+        color: #25192B;
+        margin-top: 28px;
+        margin-bottom: 25px;
+      }
+
+      .text {
+        margin-top: 0px;
+        margin-bottom: 0px;
+        font-family: 'Roboto';
+        font-weight: 400;
+        color: #282828;
+      }
+
+      .bottom-text {
+        margin-top: 20px;
+      }
+
+      .email {
+        color: #0052CC;
+      }
+
+      .button-wrapper {
+        height: 50px;
+        padding-top: 25px;
+        padding-bottom: 35px;
+      }
+
+      .button {
+        background: #F2FF59;
+        color: #25192B;
+        border-radius: 6px;
+        border: 1px solid #C4C4C4;
+        font-family: 'Roboto';
+        font-weight: 600;
+        font-size: 14px;
+        line-height: 16px;
+        text-decoration: none;
+        text-transform: uppercase;
+        padding: 15px 50px;
+        width: 270px;
+      }
+
+      .info {
+        font-family: 'Roboto';
+        font-weight: 400;
+        font-size: 16px;
+        color: #707070;
+        margin: 50px 75px 95px;
+      }
+
+      .copyright {
+        color: #707070;
+        font-family: 'Roboto';
+        font-weight: 500;
+        font-size: 14px;
+        line-height: 16px;
+        margin-bottom: 38px;
+      }
+
+      @media only screen and (max-width:600px) {
+        .wrapper {
+          width: 100%;
+        }
+
+        .content {
+          margin-left: 16px;
+          margin-right: 16px;
+          width: unset;
+        }
+
+        .inner-spacing {
+          margin-left: 16px;
+          margin-right: 16px;
+        }
+
+        .button {
+          padding: 15px 20px;
+        }
+
+        .info {
+          margin: 50px 16px 95px;
+        }
       }
     </style>
 
 </head>
-<body class="em_body" style="margin:0px auto; padding:0px;" bgcolor="#efefef">
-<table width="100%" border="0" cellspacing="0" cellpadding="0" class="em_full_wrap" align="center" bgcolor="#efefef">
-    <tr>
-        <td align="center" valign="top" class="em_aside5"><table align="center" width="650" border="0" cellspacing="0" cellpadding="0" class="em_main_table" style="width:650px; table-layout:fixed;">
-            <tr>
-                <td align="center" valign="top" style="padding:0 25px; background-color:#ffffff;" class="em_aside10"><table width="100%" border="0" cellspacing="0" cellpadding="0" align="center">
-                    <tr>
-                        <td height="45" style="height:45px;" class="em_h20">&nbsp;</td>
-                    </tr>
-                    <tr>
-                        <td class="em_blue em_font_22" align="center" valign="top" style="font-family: Arial, sans-serif; font-size: 26px; line-height: 29px; color:#264780; font-weight:bold;">Manage your contributions!</td>
-                    </tr>
-                    <tr>
-                        <td height="14" style="height:14px; font-size:0px; line-height:0px;">&nbsp;</td>
-                    </tr>
-                    <tr>
-                        <td height="26" style="height:26px;" class="em_h20">&nbsp;</td>
-                    </tr>
-                    <tr>
-                        <td align="center" valign="top"><table width="250" style="width:250px; background-color:#6bafb2; border-radius:4px;" border="0" cellspacing="0" cellpadding="0" align="center">
-                            <tr>
-                                <td class="em_white" height="42" align="center" valign="middle" style="font-family: Arial, sans-serif; font-size: 16px; color:#ffffff; font-weight:bold; height:42px;">
-                                  <a data-testid="magic-link" href="{{ magic_link }}" target="_blank" style="text-decoration:none; color:#ffffff; line-height:42px; display:block;">Go to your contributions</a>
-                                </td>
-                            </tr>
-                        </table>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td height="25" style="height:25px;" class="em_h20">&nbsp;</td>
-                    </tr>
-                    <tr>
-                        <td class="em_grey" align="center" valign="top" style="font-family: Arial, sans-serif; font-size: 16px; line-height: 26px; color:#434343;">If you didn't request access to your contributions please ignore this message.<br class="em_hide" /></td>
-                    <tr>
-                        <td height="44" style="height:44px;" class="em_h20">&nbsp;</td>
-                    </tr>
-                </table>
+<body>
+<table width="100%" border="0" cellspacing="0" cellpadding="0" align="center">
+  <tr>
+    <td align="center" valign="top">
+      <table align="center" class="wrapper" border="0" cellspacing="0" cellpadding="0">
+        <tr>
+          <td class="header-background" align="center" valign="top">
+            <img class="header-logo" src="{% static 'NewsRevenueHub-Horizontal.png' %}g" alt="NRE logo" />
+          </td>
+        </tr>
+        <tr>
+          <td style="background-color: #f1f1f1" align="center" valign="top">
+            <table class="content" cellspacing="0" cellpadding="0" align="center">
+              <tr>
+                <td>
+                  <h1 class="title inner-spacing">
+                    Your Contributions
+                  </h1>
                 </td>
-            </tr>
-        </table>
-        </td>
-    </tr>
+              </tr>
+              <tr>
+                <td>
+                  <p class="text inner-spacing">
+                    We received a request to manage contributions associated with <span class="email">{{ email }}</span>.
+                  </p>
+                  <p class="text inner-spacing bottom-text">
+                    Click the button below to review and manage your contributions.
+                  </p>
+                </td>
+              </tr>
+              <tr>
+                <td class="button-wrapper">
+                  <a data-testid="magic-link" href="{{ magic_link }}" target="_blank" class="button inner-spacing">
+                    manage contributions
+                  </a>
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+        <tr>
+          <td style="background-color: #f1f1f1" align="center" valign="top">
+            <table cellspacing="0" cellpadding="0" align="center">
+              <tr>
+                <td valign="top">
+                  <p class="info">
+                    If you received this in error, please ignore this email and do not click the button.
+                  </p>
+                </td>
+              </tr>
+              <tr>
+                <td align="center" valign="top">
+                  <p class="copyright">
+                    © News Revenue Hub 2022
+                  </p>
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+      </table>
+    </td>
+  </tr>
 </table>
 </body>
 </html>

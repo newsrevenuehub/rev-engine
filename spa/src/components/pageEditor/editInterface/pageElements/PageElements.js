@@ -1,6 +1,4 @@
-import * as S from './PageElements.styled';
-
-import { faPlus } from '@fortawesome/free-solid-svg-icons';
+import { Root } from './PageElements.styled';
 
 // Context
 import { useEditInterfaceContext } from 'components/pageEditor/editInterface/EditInterface';
@@ -8,6 +6,7 @@ import { useEditInterfaceContext } from 'components/pageEditor/editInterface/Edi
 // Children
 import DraggableList from 'elements/draggable/DraggableList';
 import ScrollBox from 'elements/ScrollBox';
+import EditTabHeader from '../EditTabHeader';
 
 /**
  * PageElements
@@ -21,8 +20,13 @@ function PageElements({ openAddElementModal, goToProperties, handleRemoveElement
   const { elements, setElements } = useEditInterfaceContext();
 
   return (
-    <S.PageElements>
-      {elements && elements?.length > 0 ? (
+    <Root>
+      <EditTabHeader
+        addButtonLabel="Add Block"
+        onAdd={openAddElementModal}
+        prompt="Add, edit, and rearrange page sections."
+      />
+      {elements && elements?.length > 0 && (
         <ScrollBox>
           <DraggableList
             elements={elements}
@@ -31,18 +35,9 @@ function PageElements({ openAddElementModal, goToProperties, handleRemoveElement
             handleItemDelete={(element) => handleRemoveElement(element, 'layout')}
           />
         </ScrollBox>
-      ) : (
-        <EmptyElements />
       )}
-      <S.AddElementButton onClick={openAddElementModal} data-testid="add-page-element-button">
-        <S.AddElementIcon icon={faPlus} />
-      </S.AddElementButton>
-    </S.PageElements>
+    </Root>
   );
 }
 
 export default PageElements;
-
-export function EmptyElements() {
-  return <S.EmptyElements>Click the "plus" button below to start adding page elements</S.EmptyElements>;
-}

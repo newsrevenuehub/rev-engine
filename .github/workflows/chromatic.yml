@@ -4,13 +4,40 @@
 name: "Chromatic"
 
 # Event for the workflow
-on: push
-
-# Copied from https://www.chromatic.com/docs/github-actions
+on:
+  push:
+    branches-ignore:
+      - demo
+      - "dependabot/**"
+      - develop
+      - staging
+      - test
 
 # List of jobs
 jobs:
+  # Only run if SPA code has changed
+  check-changes:
+    runs-on: ubuntu-latest
+    # Required permissions
+    permissions:
+      pull-requests: read
+    # Set job outputs to values from filter step
+    outputs:
+      spa: ${{ steps.filter.outputs.spa }}
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+      - uses: dorny/paths-filter@v2
+        id: filter
+        with:
+          filters: |
+            spa:
+              - 'spa/**'
+  # Copied from https://www.chromatic.com/docs/github-actions
   chromatic-deployment:
+    needs: check-changes
+    if: ${{ needs.changes.outputs.spa == 'true' }}
     # Operating System
     runs-on: ubuntu-latest
     # Job steps

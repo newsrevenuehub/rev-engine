@@ -1,22 +1,28 @@
 import { useState } from 'react';
-import * as S from './PageStyles.styled';
+import { Buttons, Controls, Root } from './PageStyles.styled';
 
 // Assets
-import { faCheck, faTimes, faPlus } from '@fortawesome/free-solid-svg-icons';
+import { faCheck, faTimes } from '@fortawesome/free-solid-svg-icons';
 
 // Context
 import { usePageEditorContext } from 'components/pageEditor/PageEditor';
 import { useEditInterfaceContext } from 'components/pageEditor/editInterface/EditInterface';
 
 // Children
+import useModal from 'hooks/useModal';
 import CircleButton from 'elements/buttons/CircleButton';
 import StylesChooser from 'components/pageEditor/editInterface/pageStyles/StylesChooser';
 import AddStylesModal from 'components/pageEditor/editInterface/pageStyles/AddStylesModal';
+import EditTabHeader from '../EditTabHeader';
 
 function PageStyles({ backToProperties }) {
   const { page, availableStyles, setAvailableStyles } = usePageEditorContext();
   const { setPageContent } = useEditInterfaceContext();
-  const [addStylesModalOpen, setAddStylesModalOpen] = useState(false);
+  const {
+    open: addStylesModalOpen,
+    handleClose: handleAddStylesModalClose,
+    handleOpen: handleAddStylesModalOpen
+  } = useModal(false);
 
   // Styles state
   const [styles, setStyles] = useState(page.styles);
@@ -36,9 +42,16 @@ function PageStyles({ backToProperties }) {
   };
 
   return (
-    <S.PageStyles>
-      <StylesChooser styles={availableStyles} selected={styles} setSelected={(s) => setStyles(s)} />
-      <S.Buttons>
+    <Root>
+      <EditTabHeader
+        addButtonLabel="Style"
+        onAdd={handleAddStylesModalOpen}
+        prompt="Add or create a new style to customize your page."
+      />
+      <Controls>
+        <StylesChooser styles={availableStyles} selected={styles} setSelected={setStyles} />
+      </Controls>
+      <Buttons>
         <CircleButton
           icon={faCheck}
           buttonType="positive"
@@ -51,16 +64,13 @@ function PageStyles({ backToProperties }) {
           onClick={handleDiscardChanges}
           data-testid="discard-element-changes-button"
         />
-      </S.Buttons>
-      <S.AddStylesButton onClick={() => setAddStylesModalOpen(true)} data-testid="add-element-button">
-        <S.AddStylesIcon icon={faPlus} />
-      </S.AddStylesButton>
+      </Buttons>
       <AddStylesModal
         isOpen={addStylesModalOpen}
-        closeModal={() => setAddStylesModalOpen(false)}
+        closeModal={handleAddStylesModalClose}
         handleAddNewStyles={handleAddNewStyles}
       />
-    </S.PageStyles>
+    </Root>
   );
 }
 

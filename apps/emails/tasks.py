@@ -1,7 +1,10 @@
+from datetime import datetime
+
 from django.conf import settings
 from django.core.mail import send_mail
 from django.template.loader import render_to_string
 
+import stripe
 from anymail.exceptions import AnymailAPIError
 from celery import shared_task
 from celery.utils.log import get_task_logger
@@ -48,14 +51,25 @@ def send_templated_email(
     retry_jitter=False,
     autoretry_for=(AnymailAPIError,),
 )
-def send_thank_you_email(contribution_id, contribution_date, copyright_year):
+def send_thank_you_email(contribution_id: int, contribution_date: datetime, copyright_year: int):
     """Retrieve Stripe customer and send thank you email for a contribution"""
     try:
-        contribution = Contribution.objects.get(id=contribution_id)
-        customer = contribution.get_stripe_customer()
-    except (Contribution.DoesNotExist, ValueError, StripeError) as exc:
+        contribution = Contribution.objects.get(
+            id=contribution_id,
+            provider_customer_id__isnull=False,
+            donation_page__isnull=False,
+            donation_page__revenue_program__isnull=False,
+            donation_page__revenue_program__payment_provider__isnull=False,
+        )
+        customer = stripe.Customer.retrieve(
+            contribution.provider_customer_id,
+            stripe_account=contribution.donation_page.revenue_program.payment_provider.id,
+        )
+
+    except StripeError as exc:
         logger.exception("Something went wrong retrieving Stripe customer for contribution with id %s", contribution_id)
         raise exc
+
     send_templated_email(
         contribution.contributor.email,
         "Thank you for your contribution!",

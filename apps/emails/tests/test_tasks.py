@@ -9,6 +9,9 @@ from stripe.error import StripeError
 from apps.contributions.models import Contribution, ContributionInterval
 from apps.contributions.tests.factories import ContributionFactory
 from apps.emails.tasks import send_thank_you_email
+from apps.organizations.models import PaymentProvider
+from apps.organizations.tests.factories import RevenueProgramFactory
+from apps.pages.tests.factories import DonationPageFactory
 
 
 @pytest.mark.django_db
@@ -50,24 +53,12 @@ class TestSendThankYouEmail:
             },
         )
 
-    def test_when_contribution_not_exist(self, monkeypatch):
+    def test_when_contribution_not_exist(self):
         now = timezone.now()
         contribution_id = "999"
         assert not Contribution.objects.filter(id=contribution_id).exists()
-        mock_log_exception = Mock()
-        monkeypatch.setattr("apps.emails.tasks.logger.exception", mock_log_exception)
         with pytest.raises(Contribution.DoesNotExist):
             send_thank_you_email(contribution_id, now.date(), now.year)
-        mock_log_exception.assert_called_once()
-
-    def test_when_contribution_not_have_provider_customer_id(self, monkeypatch):
-        now = timezone.now()
-        contribution = ContributionFactory(provider_customer_id=None)
-        mock_log_exception = Mock()
-        monkeypatch.setattr("apps.emails.tasks.logger.exception", mock_log_exception)
-        with pytest.raises(ValueError):
-            send_thank_you_email(contribution.id, now.date(), now.year)
-        mock_log_exception.assert_called_once()
 
     def test_when_stripe_error(self, monkeypatch):
         now = timezone.now()
@@ -79,3 +70,62 @@ class TestSendThankYouEmail:
         with pytest.raises(StripeError):
             send_thank_you_email(contribution.id, now.date(), now.year)
         mock_log_exception.assert_called_once()
+
+    def test_when_missing_donation_page(self, monkeypatch):
+        now = timezone.now()
+        contribution = ContributionFactory(provider_customer_id="something")
+        contribution.donation_page = None
+        contribution.save()
+        with pytest.raises(Contribution.DoesNotExist):
+            send_thank_you_email(contribution.id, now.date(), now.year)
+        contribution.donation_page = DonationPageFactory()
+        contribution.save()
+        mock_customer_retrieve = Mock()
+        customer = AttrDict({"name": "Foo Bar"})
+        mock_customer_retrieve.return_value = customer
+        monkeypatch.setattr("stripe.Customer.retrieve", mock_customer_retrieve)
+        send_thank_you_email(contribution.id, now.date(), now.year)
+
+    def test_when_missing_provider_customer_id(self, monkeypatch):
+        now = timezone.now()
+        contribution = ContributionFactory(provider_customer_id=None)
+        with pytest.raises(Contribution.DoesNotExist):
+            send_thank_you_email(contribution.id, now.date(), now.year)
+        customer = AttrDict({"name": "Foo Bar"})
+        mock_customer_retrieve = Mock()
+        mock_customer_retrieve.return_value = customer
+        monkeypatch.setattr("stripe.Customer.retrieve", mock_customer_retrieve)
+        contribution.provider_customer_id = "something"
+        contribution.save()
+        send_thank_you_email(contribution.id, now.date(), now.year)
+
+    def test_when_missing_page_revenue_program(self, monkeypatch):
+        now = timezone.now()
+        contribution = ContributionFactory(provider_customer_id="something")
+        contribution.donation_page.revenue_program = None
+        contribution.donation_page.save()
+        with pytest.raises(Contribution.DoesNotExist):
+            send_thank_you_email(contribution.id, now.date(), now.year)
+        customer = AttrDict({"name": "Foo Bar"})
+        mock_customer_retrieve = Mock()
+        mock_customer_retrieve.return_value = customer
+        monkeypatch.setattr("stripe.Customer.retrieve", mock_customer_retrieve)
+        contribution.donation_page.revenue_program = RevenueProgramFactory()
+        contribution.donation_page.save()
+        send_thank_you_email(contribution.id, now.date(), now.year)
+
+    def test_when_missing_page_revenue_program_payment_provider(self, monkeypatch):
+        now = timezone.now()
+        contribution = ContributionFactory(provider_customer_id="something")
+        assert isinstance(provider := contribution.donation_page.revenue_program.payment_provider, PaymentProvider)
+        contribution.donation_page.revenue_program.payment_provider = None
+        contribution.donation_page.revenue_program.save()
+        with pytest.raises(Contribution.DoesNotExist):
+            send_thank_you_email(contribution.id, now.date(), now.year)
+        contribution.revenue_program.payment_provider = provider
+        contribution.revenue_program.save()
+        customer = AttrDict({"name": "Foo Bar"})
+        mock_customer_retrieve = Mock()
+        mock_customer_retrieve.return_value = customer
+        monkeypatch.setattr("stripe.Customer.retrieve", mock_customer_retrieve)
+        send_thank_you_email(contribution.id, now.date(), now.year)

@@ -346,10 +346,3 @@ class Contribution(IndexedTimeStampedModel, RoleAssignmentResourceModelMixin):
         self.provider_client_secret_id = subscription["latest_invoice"]["payment_intent"]["client_secret"]
         self.save()
         return subscription
-
-    def get_stripe_customer(self):
-        if not self.provider_customer_id:
-            raise ValueError("Cannot call `get_stripe_customer` when `provider_customer_id` is not set")
-        return stripe.Customer.retrieve(
-            self.provider_customer_id, stripe_account=self.revenue_program.payment_provider.id
-        )

@@ -34,30 +34,6 @@
       background-color: #ffffff;
     }
 
-    .logo {
-      margin-top: 46px;
-      height: 47px;
-    }
-
-    .thank-you-title {
-      font-family: Roboto, sans-serif;
-      color: #25192B;
-      font-size: 30px;
-      margin-top: 37px;
-      margin-bottom: 25px;
-    }
-
-    .user-info {
-      font-family: Roboto, sans-serif;
-      color: #282828;
-      font-size: 16px;
-    }
-
-    .user-info-second-line {
-      margin-top: 28px;
-      margin-bottom: 25px;
-    }
-
     .inner-center {
       margin-left: 58px;
       margin-right: 58px;
@@ -123,7 +99,8 @@
     }
   </style>
 
-
+  {% block custom_style %}
+  {% endblock custom_style %}
 
   <!--[if !mso]><!-->
   <link href="https://fonts.googleapis.com/css?family=Roboto:400,500,600,700&display=swap" rel="stylesheet" type="text/css">
@@ -141,21 +118,8 @@
         <td style="word-break: break-word;border-collapse: collapse !important;vertical-align: top">
           <div class="u-row-container">
             <table width="100%" cellpadding="0" cellspacing="0" border="0">
-              <tr>
-                <td style="padding-right: 0px;padding-left: 0px;" align="left">
-                  <h1 class="thank-you-title inner-center">Thank You for Your Contribution!</h1>
-                </td>
-              </tr>
-              <tr>
-                <td style="padding-right: 0px;padding-left: 0px;" align="left">
-                  <p class="user-info inner-center">
-                    Dear contributor,
-                  </p>
-                  <p class="user-info user-info-second-line inner-center">
-                    Thank you for supporting {{ org_name }}.
-                  </p>
-                </td>
-              </tr>
+              {% block header %}
+              {% endblock header %}
             </table>
           </div>
           <div class="u-row-container">
@@ -167,7 +131,10 @@
                       <div class="contribution-container">
                         <p class="contribution-header">Contribution Details</p>
                         <p class="contribution-details">
-                          <span class="contribution-details-strong">Date Received:</span>
+                          <span class="contribution-details-strong">Date&nbsp;
+                            {% block contribution_date_label %}
+                            {% endblock contribution_date_label %}
+                          </span>
                           {{ contribution_date }}
                         </p>
                         <p class="contribution-details">
@@ -197,7 +164,23 @@
               <tr>
                 <td style="padding-right: 0px;padding-left: 0px;" align="left">
                   <p class="disclaimer inner-center">
-                    No goods or services were provided in exchange for this contribution. This receipt may be used for tax purposes.
+                    No goods or services were provided in exchange for this contribution.&nbsp;
+                    {% if non_profit %}
+                    This receipt may be used for tax purposes.&nbsp;
+                    {{ rp_name }} is a 501(c)(3) nonprofit organization{% if tax_id %} with a Federal Tax ID #{{ tax_id }}{% endif %}.
+                    {% else %}
+                    Contributions to {{ rp_name }} are not deductible as charitable donations.
+                    {% endif %}
+                  </p>
+                </td>
+              </tr>
+              <tr>
+                <td style="padding-right: 0px;padding-left: 0px;" align="left">
+                  <p class="text inner-center">
+                    Need to make changes to your contribution?
+                    <a class="link" href="{{ magic_link }}" target="_blank" rel="noopener noreferrer">
+                      Manage contributions here.
+                    </a>
                   </p>
                 </td>
               </tr>
@@ -207,13 +190,11 @@
             <table role="presentation" cellpadding="0" cellspacing="0" width="100%" border="0">
               <tbody>
                 <tr>
-                  <td
-                    style="overflow-wrap:break-word;word-break:break-word;padding:10px 10px 15px;"
-                    align="left">
-                    <div
-                      style="color: #7e8c8d; line-height: 140%; text-align: center; word-wrap: break-word;">
-                      <p style="font-size: 14px; line-height: 140%; font-family: Roboto, sans-serif;">©{{ copyright_year }} {{ org_name }} All
-                        rights reserved.</p>
+                  <td style="overflow-wrap:break-word;word-break:break-word;padding:10px 10px 15px;" align="left">
+                    <div style="color: #7e8c8d; line-height: 140%; text-align: center; word-wrap: break-word;">
+                      <p style="font-size: 14px; line-height: 140%; font-family: Roboto, sans-serif;">
+                        ©{{ copyright_year }} {{ rp_name }} All rights reserved.
+                      </p>
                     </div>
                   </td>
                 </tr>

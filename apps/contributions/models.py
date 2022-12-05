@@ -4,6 +4,7 @@ from urllib.parse import quote_plus
 
 from django.conf import settings
 from django.db import models
+from django.utils import timezone
 from django.utils.safestring import SafeString, mark_safe
 
 import stripe
@@ -346,3 +347,12 @@ class Contribution(IndexedTimeStampedModel, RoleAssignmentResourceModelMixin):
         self.provider_client_secret_id = subscription["latest_invoice"]["payment_intent"]["client_secret"]
         self.save()
         return subscription
+
+    def handle_thank_you_email(self, contribution_received_at=None):
+        """Send a thank you email to contribution's contributor if org is configured to have NRE send thank you email"""
+        # vs. circular import
+        from apps.emails.tasks import send_thank_you_email
+
+        contribution_received_at = contribution_received_at if contribution_received_at else timezone.now()
+        if self.revenue_program.organization.send_receipt_email_via_nre:
+            send_thank_you_email.delay(self.id, self.created, self.created.year)

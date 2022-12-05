@@ -272,3 +272,33 @@ class ContributionTest(TestCase):
         )
         self.assertEqual(subscription, return_value)
         assert self.contribution.provider_customer_id == stripe_customer_id
+
+    @patch("apps.emails.tasks.send_thank_you_email.delay")
+    def test_handle_thank_you_email_when_nre_sends(self, mock_send_email):
+        """Show that when org configured to have NRE send thank you emails, send_templated_email
+        gets called with expected args.
+        """
+        self.org.send_receipt_email_via_nre = True
+        self.org.save()
+        contributor = ContributorFactory()
+        self.contribution.contributor = contributor
+        self.contribution.interval = "month"
+        self.contribution.save()
+        contribution_received_at = timezone.now()
+        self.contribution.handle_thank_you_email(contribution_received_at)
+        mock_send_email.assert_called_once_with(
+            self.contribution.id,
+            self.contribution.created,
+            self.contribution.created.year,
+        )
+
+    @patch("apps.emails.tasks.send_templated_email.delay")
+    def test_handle_thank_you_email_when_nre_not_send(self, mock_send_email):
+        """Show that when an org is not configured to have NRE send thank you emails...
+
+        ...send_templated_email does not get called
+        """
+        self.org.send_receipt_email_via_nre = False
+        self.org.save()
+        self.contribution.handle_thank_you_email()
+        mock_send_email.assert_not_called()

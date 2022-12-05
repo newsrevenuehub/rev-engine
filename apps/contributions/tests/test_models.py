@@ -6,6 +6,8 @@ from django.conf import settings
 from django.test import TestCase, override_settings
 from django.utils import timezone
 
+import pytest
+
 from apps.contributions.models import Contribution, ContributionStatus, Contributor
 from apps.contributions.tests.factories import ContributionFactory, ContributorFactory
 from apps.organizations.tests.factories import (
@@ -79,15 +81,40 @@ class ContributorTest(TestCase):
         )
         self.assertEqual(customer, return_value)
 
-    def test_create_magic_link(self):
-        contribution = ContributionFactory()
-        parsed = urlparse(Contributor.create_magic_link(contribution))
-        assert parsed.scheme == "https"
-        expected_domain = urlparse(settings.SITE_URL).netloc
-        assert parsed.netloc == f"{contribution.donation_page.revenue_program.slug}.{expected_domain}"
-        params = parse_qs(parsed.query)
-        assert params["token"][0]
-        assert params["email"][0] == contribution.contributor.email
+
+@pytest.fixture
+def contribution():
+    return ContributionFactory()
+
+
+@pytest.mark.django_db()
+def test_create_magic_link(contribution):
+    assert isinstance(contribution, Contribution)
+    parsed = urlparse(Contributor.create_magic_link(contribution))
+    assert parsed.scheme == "https"
+    expected_domain = urlparse(settings.SITE_URL).netloc
+    assert parsed.netloc == f"{contribution.donation_page.revenue_program.slug}.{expected_domain}"
+    params = parse_qs(parsed.query)
+    assert params["token"][0]
+    assert params["email"][0] == contribution.contributor.email
+
+
+@pytest.mark.parametrize(
+    "value",
+    (
+        None,
+        "",
+        "Something",
+        1,
+        True,
+        False,
+        dict(),
+        lambda x: None,
+    ),
+)
+def test_create_magic_link_with_invalid_values(value):
+    with pytest.raises(ValueError):
+        Contributor.create_magic_link(value)
 
 
 test_key = "test_key"

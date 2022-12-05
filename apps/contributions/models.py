@@ -1,9 +1,10 @@
+import logging
 import uuid
 from urllib.parse import quote_plus
 
 from django.conf import settings
 from django.db import models
-from django.utils.safestring import mark_safe
+from django.utils.safestring import SafeString, mark_safe
 
 import stripe
 
@@ -13,6 +14,9 @@ from apps.slack.models import SlackNotificationTypes
 from apps.slack.slack_manager import SlackManager
 from apps.users.choices import Roles
 from apps.users.models import RoleAssignmentResourceModelMixin, UnexpectedRoleType
+
+
+logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
 
 
 class Contributor(IndexedTimeStampedModel):
@@ -79,11 +83,14 @@ class Contributor(IndexedTimeStampedModel):
         )
 
     @staticmethod
-    def create_magic_link(contribution):
-        """ """
+    def create_magic_link(contribution: "Contribution") -> SafeString:
+        """Create a magic link value that can be inserted into Django templates (for instance, in contributor-facing emails)"""
         # vs circular import
         from apps.api.views import _construct_rp_domain as construct_rp_domain
 
+        if not isinstance(contribution, Contribution):
+            logger.error("`Contributor.create_magic_link` called with invalid contributon value: %s", contribution)
+            raise ValueError("Invalid value provided for `contribution`")
         token = str(ContributorRefreshToken.for_contributor(contribution.contributor.uuid).short_lived_access_token)
         return mark_safe(
             f"https://{construct_rp_domain(contribution.donation_page.revenue_program.slug)}/{settings.CONTRIBUTOR_VERIFY_URL}"

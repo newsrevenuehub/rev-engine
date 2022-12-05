@@ -155,7 +155,12 @@ function EditInterface() {
                   handleRemoveElement={handleRemoveElement}
                 />
               </TabPanel>
-              <TabPanel active={tab === 1} id="edit-sidebar-tab-panel" tabId="edit-sidebar-tab">
+              <TabPanel
+                active={tab === 1}
+                id="edit-sidebar-tab-panel"
+                tabId="edit-sidebar-tab"
+                unmountChildrenWhenInactive
+              >
                 <PageSidebarElements
                   goToProperties={goToProperties}
                   handleRemoveElement={handleRemoveElement}

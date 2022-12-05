@@ -157,6 +157,7 @@ class TestHandleStripeAccountLink:
     def test_happy_path_when_stripe_already_verified_on_payment_provider(self, rp_role_assignment):
         rp = rp_role_assignment.revenue_programs.first()
         rp.payment_provider.stripe_verified = True
+        rp.payment_provider.stripe_product_id = "something"
         rp.payment_provider.save()
         url = reverse("handle-stripe-account-link", args=(rp.pk,))
         client = APIClient()
@@ -176,6 +177,9 @@ class TestHandleStripeAccountLink:
             }
         )
         monkeypatch.setattr("stripe.Account.create", mock_stripe_account_create)
+        product_id = "some_id"
+        mock_product_create = mock.MagicMock(return_value={"id": product_id})
+        monkeypatch.setattr("stripe.Product.create", mock_product_create)
         stripe_url = "https://www.stripe.com"
         mock_stripe_account_link_create = mock.MagicMock(return_value={"url": stripe_url})
         monkeypatch.setattr("stripe.AccountLink.create", mock_stripe_account_link_create)
@@ -197,6 +201,7 @@ class TestHandleStripeAccountLink:
         }
         rp.payment_provider.refresh_from_db()
         assert rp.payment_provider.stripe_account_id == stripe_account_id
+        assert rp.payment_provider.stripe_product_id == product_id
 
     def test_happy_path_when_stripe_account_already_created_and_past_due_reqs(self, monkeypatch, rp_role_assignment):
         stripe_account_id = "fakeId"
@@ -215,6 +220,7 @@ class TestHandleStripeAccountLink:
         rp = rp_role_assignment.revenue_programs.first()
         rp.payment_provider.stripe_verified = False
         rp.payment_provider.stripe_account_id = stripe_account_id
+        rp.payment_provider.stripe_product_id = "something"
         rp.payment_provider.save()
         url = reverse("handle-stripe-account-link", args=(rp.pk,))
         client = APIClient()
@@ -247,6 +253,7 @@ class TestHandleStripeAccountLink:
         rp = rp_role_assignment.revenue_programs.first()
         rp.payment_provider.stripe_verified = False
         rp.payment_provider.stripe_account_id = stripe_account_id
+        rp.payment_provider.stripe_product_id = "something"
         rp.payment_provider.save()
         url = reverse("handle-stripe-account-link", args=(rp.pk,))
         client = APIClient()
@@ -272,6 +279,7 @@ class TestHandleStripeAccountLink:
         rp = rp_role_assignment.revenue_programs.first()
         rp.payment_provider.stripe_verified = False
         rp.payment_provider.stripe_account_id = stripe_account_id
+        rp.payment_provider.stripe_product_id = "something"
         rp.payment_provider.save()
         url = reverse("handle-stripe-account-link", args=(rp.pk,))
         client = APIClient()
@@ -328,6 +336,7 @@ class TestHandleStripeAccountLink:
         rp = rp_role_assignment.revenue_programs.first()
         rp.payment_provider.stripe_account_id = None
         rp.payment_provider.stripe_verified = False
+        rp.payment_provider.stripe_product_id = None
         rp.payment_provider.save()
         url = reverse("handle-stripe-account-link", args=(rp.pk,))
         client = APIClient()
@@ -390,6 +399,7 @@ class TestHandleStripeAccountLink:
         rp = rp_role_assignment.revenue_programs.first()
         rp.payment_provider.stripe_account_id = stripe_account_id
         rp.payment_provider.stripe_verified = False
+        rp.payment_provider.stripe_product_id = "something"
         rp.payment_provider.save()
         url = reverse("handle-stripe-account-link", args=(rp.pk,))
         client = APIClient()

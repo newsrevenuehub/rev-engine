@@ -96,64 +96,6 @@ def stripe_oauth(request):
 
 @create_revision()
 @api_view(["POST"])
-@permission_classes([IsAuthenticated, HasRoleAssignment | IsActiveSuperUser])
-def stripe_confirmation(request):
-    revenue_program_id = request.data.get("revenue_program_id")
-    if not revenue_program_id:
-        return Response(
-            {"missing_params": "revenue_program_id missing required params"}, status=status.HTTP_400_BAD_REQUEST
-        )
-    revenue_program = RevenueProgram.objects.get(id=revenue_program_id)
-    if not revenue_program:
-        return Response(
-            {"rp_not_found": f"RevenueProgram with ID = {revenue_program_id} is not found"},
-            status=status.HTTP_404_NOT_FOUND,
-        )
-    payment_provider = revenue_program.payment_provider
-
-    try:
-
-        # A revenue program that doesn't have a stripe_account_id hasn't gone through onboarding
-        if not payment_provider or not payment_provider.stripe_account_id:
-            return Response({"status": "not_connected"}, status=status.HTTP_202_ACCEPTED)
-        # A previously confirmed account can spare the stripe API call
-        if payment_provider.stripe_verified:
-            # NOTE: It's important to bail early here. At the end of this view, we create a few stripe models
-            # that should only be created once. We should only ever get there if it's the FIRST time we verify.
-            return Response({"status": "connected"}, status=status.HTTP_200_OK)
-
-        # A "Confirmed" stripe account has "charges_enabled": true on return from stripe.Account.retrieve
-        stripe_account = stripe.Account.retrieve(payment_provider.stripe_account_id)
-
-    except stripe.error.StripeError:
-        logger.error("stripe.Account.retrieve failed with a StripeError")
-        return Response(
-            {"status": "failed"},
-            status=status.HTTP_500_INTERNAL_SERVER_ERROR,
-        )
-
-    if not stripe_account.charges_enabled:
-        return Response({"status": "restricted"}, status=status.HTTP_202_ACCEPTED)
-
-    # If we got through all that, we're verified.
-    payment_provider.stripe_verified = True
-
-    try:
-        # Now that we're verified, create and associate default product
-        payment_provider.stripe_create_default_product()
-    except stripe.error.StripeError:
-        logger.exception("stripe_create_default_product failed with a StripeError")
-        return Response(
-            {"status": "failed"},
-            status=status.HTTP_500_INTERNAL_SERVER_ERROR,
-        )
-
-    payment_provider.save()
-
-    return Response({"status": "connected"}, status=status.HTTP_200_OK)
-
-
-@api_view(["POST"])
 @authentication_classes([])
 @permission_classes([])
 def process_stripe_webhook_view(request):

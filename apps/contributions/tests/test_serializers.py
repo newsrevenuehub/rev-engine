@@ -30,16 +30,22 @@ from apps.pages.tests.factories import DonationPageFactory
 
 class ContributionSerializer(TestCase):
     expected_fields = [
-        "id",
+        "amount",
+        "auto_accepted_on",
+        "bad_actor_score",
         "contributor_email",
         "created",
-        "amount",
         "currency",
+        "donation_page_id",
+        "flagged_date",
+        "formatted_payment_provider_used",
+        "id",
         "interval",
         "last_payment_date",
-        "bad_actor_score",
-        "flagged_date",
-        "auto_accepted_on",
+        "provider_customer_url",
+        "provider_payment_url",
+        "provider_subscription_url",
+        "revenue_program",
         "status",
     ]
 
@@ -52,8 +58,7 @@ class ContributionSerializer(TestCase):
 
     def test_returned_fields(self):
         data = self.serializer(self.contribution).data
-        for field in self.expected_fields:
-            self.assertIn(field, data)
+        assert set(data.keys()) == set(self.expected_fields)
 
     def test_get_auto_accepted_on(self):
         # Should return null if empty

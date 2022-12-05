@@ -67,6 +67,7 @@ function PaginatedTable({
                     data-testid={`donation-header-${column.id}`}
                     disableSortBy={column.disableSortBy}
                     {...column.getHeaderProps(column.getSortByToggleProps())}
+                    title={column.canSort ? `Sort by ${column.Header}` : ''}
                   >
                     <div>
                       {column.render('Header')}
@@ -94,6 +95,10 @@ function PaginatedTable({
                   data-donor={row.original.contributor_email}
                   data-status={row.original.status}
                   data-flaggeddate={row.original.flagged_date || ''}
+                  // revenue_program.name should always be present on actual data
+                  // but using null coalescing operator here so don't have to
+                  // add `revenue_program: {name: 'foo'}` in `data` in `PaginatedTable.test.js`.
+                  data-revenueprogram={row.original.revenue_program?.name ?? ''}
                   onClick={() => (onRowClick ? onRowClick(row.original) : {})}
                   even={i === 0 || i % 2 === 0}
                   disabled={disabled}

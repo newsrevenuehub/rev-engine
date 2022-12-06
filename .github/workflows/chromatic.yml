@@ -37,7 +37,7 @@ jobs:
   # Copied from https://www.chromatic.com/docs/github-actions
   chromatic-deployment:
     needs: check-changes
-    if: ${{ needs.changes.outputs.spa == 'true' }}
+    if: ${{ needs['check-changes'].outputs.spa == 'true' }}
     # Operating System
     runs-on: ubuntu-latest
     # Job steps

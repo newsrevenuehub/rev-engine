@@ -20,7 +20,6 @@ env-local.sh
 local-google-sa
 # Project Static Files
 node_modules/*
-static/*
 public/static/
 public/media/
 media/*

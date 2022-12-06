@@ -1192,4 +1192,4 @@ def test_payment_success_view(send_receipt_email_via_nre, monkeypatch):
     response = client.patch(url, {})
     assert response.status_code == status.HTTP_204_NO_CONTENT
     if send_receipt_email_via_nre:
-        mock_send_email.assert_called_once_with(contribution.id, now.date(), now.year)
+        mock_send_email.assert_called_once_with(contribution.id)

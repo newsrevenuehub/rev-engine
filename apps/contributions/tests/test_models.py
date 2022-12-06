@@ -285,7 +285,7 @@ class ContributionTest(TestCase):
         self.contribution.interval = "month"
         self.contribution.save()
         self.contribution.handle_thank_you_email()
-        mock_send_email.assert_called_once(self.contribution.id)
+        mock_send_email.assert_called_once()
 
     @patch("apps.emails.tasks.send_templated_email.delay")
     def test_handle_thank_you_email_when_nre_not_send(self, mock_send_email):

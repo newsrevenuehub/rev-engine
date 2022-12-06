@@ -36,7 +36,7 @@
     "lodash.orderby": "^4.6.0",
     "md5": "^2.3.0",
     "msw": "^0.28.2",
-    "notistack": "^2.0.8",
+    "notistack": "^1.0.10",
     "prop-types": "^15.7.2",
     "query-string": "^7.0.1",
     "react": "^17.0.2",
@@ -147,8 +147,6 @@
   "devDependencies": {
     "@cypress/react": "^6.2.0",
     "@cypress/webpack-preprocessor": "^5.12.2",
-    "@emotion/react": "^11.10.5",
-    "@emotion/styled": "^11.10.5",
     "@react-theming/storybook-addon": "^1.1.7",
     "@storybook/addon-actions": "^6.5.10",
     "@storybook/addon-essentials": "^6.5.10",

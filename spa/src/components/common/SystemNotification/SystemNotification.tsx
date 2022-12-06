@@ -10,7 +10,15 @@ import {
 } from '@material-ui/icons';
 
 import { useSnackbar, SnackbarContent, SnackbarContentProps } from 'notistack';
-import { IconBox, IconBoxIcon, IconButton, Header, Main, SystemNotificationWrapper } from './SystemNotification.styled';
+import {
+  IconBox,
+  IconBoxIcon,
+  IconButton,
+  Header,
+  Main,
+  SystemNotificationWrapper,
+  Typography
+} from './SystemNotification.styled';
 
 import { notificationTypeValues, SystemNotificationType } from './commonTypes';
 
@@ -45,7 +53,7 @@ const SystemNotification = forwardRef<HTMLDivElement, SystemNotificationProps>((
         </IconBox>
         <Main>
           <Header notificationType={type}>{header}</Header>
-          {message}
+          {typeof message === 'string' ? <Typography variant="body1">{message}</Typography> : message}
         </Main>
         <IconButton onClick={() => closeSnackbar(id)} aria-label="close notification">
           <CloseIcon />

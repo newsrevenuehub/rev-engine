@@ -8,6 +8,7 @@ from stripe.error import StripeError
 
 from apps.contributions.models import Contribution, ContributionInterval
 from apps.contributions.tests.factories import ContributionFactory
+from apps.emails.helpers import convert_to_timezone
 from apps.emails.tasks import send_thank_you_email
 from apps.organizations.models import PaymentProvider
 from apps.organizations.tests.factories import RevenueProgramFactory
@@ -37,7 +38,7 @@ class TestSendThankYouEmail:
             "nrh-default-contribution-confirmation-email.txt",
             "nrh-default-contribution-confirmation-email.html",
             {
-                "contribution_date": now.date().strftime("%m-%d-%y"),
+                "contribution_date": convert_to_timezone(now, "America/New_York"),
                 "contributor_email": contribution.contributor.email,
                 "contribution_amount": contribution.formatted_amount,
                 "contribution_interval": contribution.interval,

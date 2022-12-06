@@ -47,7 +47,7 @@ def export_contributions_to_csv(contributions):
     data = []
     for contribution in contributions:
         payment_provider_data = AttrDict(contribution.payment_provider_data).data.object
-        charge_details = payment_provider_data.charges.data[0]
+        charge_details = (payment_provider_data.charges.data or [AttrDict()])[0]
         billing_details = charge_details.billing_details
         billing_address = billing_details.address
 

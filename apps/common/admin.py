@@ -22,7 +22,7 @@ def prettify_json_field(raw_value, indent=2):  # pragma: no cover
     https://daniel.feldroy.com/posts/pretty-formatting-json-django-admin
     """
     response = json.dumps(raw_value, sort_keys=True, indent=indent)
-    formatter = HtmlFormatter(style="colorful")
+    formatter = HtmlFormatter(style="default")
     response = highlight(response, JsonLexer(), formatter)
     style = "<style>" + formatter.get_style_defs() + "</style><br>"
     return mark_safe(style + response)

@@ -63,7 +63,7 @@ def send_thank_you_email(contribution_id: int, contribution_date: datetime, copy
         )
         customer = stripe.Customer.retrieve(
             contribution.provider_customer_id,
-            stripe_account=contribution.donation_page.revenue_program.payment_provider.id,
+            stripe_account=contribution.donation_page.revenue_program.payment_provider.stripe_account_id,
         )
 
     except StripeError as exc:

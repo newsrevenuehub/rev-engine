@@ -82,7 +82,7 @@ def send_thank_you_email(contribution_id: int):
             if contribution.interval != "one_time"
             else None,
             "copyright_year": contribution.created.year,
-            "org_name": contribution.revenue_program.organization.name,
+            "rp_name": contribution.revenue_program.name,
             "contributor_name": customer.name,
             "non_profit": contribution.revenue_program.non_profit,
             "tax_id": contribution.revenue_program.tax_id,

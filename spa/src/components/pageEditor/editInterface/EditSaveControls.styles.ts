@@ -1,7 +1,7 @@
 import styled from 'styled-components';
 import { Button as BaseButton } from 'components/base';
 
-export const Root = styled('div')`
+export const Root = styled.div`
   background: white;
   border-top: 1px solid #c4c4c4;
   display: flex;

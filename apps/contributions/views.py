@@ -3,7 +3,6 @@ import logging
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.shortcuts import get_object_or_404
-from django.utils import timezone
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_protect
 
@@ -253,9 +252,8 @@ def payment_success(request, provider_client_secret_id=None):
         contribution = Contribution.objects.get(provider_client_secret_id=provider_client_secret_id)
     except Contribution.DoesNotExist:
         return Response(status=status.HTTP_404_NOT_FOUND)
-    now = timezone.now()
     if contribution.revenue_program.organization.send_receipt_email_via_nre:
-        send_thank_you_email.delay(contribution.id, now.date(), now.year)
+        send_thank_you_email.delay(contribution.id)
     return Response(status=status.HTTP_204_NO_CONTENT)
 
 

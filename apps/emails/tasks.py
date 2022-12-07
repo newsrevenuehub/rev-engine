@@ -1,5 +1,3 @@
-from datetime import datetime
-
 from django.conf import settings
 from django.core.mail import send_mail
 from django.template.loader import render_to_string
@@ -52,7 +50,7 @@ def send_templated_email(
     retry_jitter=False,
     autoretry_for=(AnymailAPIError,),
 )
-def send_thank_you_email(contribution_id: int, contribution_date: datetime, copyright_year: int):
+def send_thank_you_email(contribution_id: int):
     """Retrieve Stripe customer and send thank you email for a contribution"""
     try:
         contribution = Contribution.objects.get(
@@ -64,7 +62,7 @@ def send_thank_you_email(contribution_id: int, contribution_date: datetime, copy
         )
         customer = stripe.Customer.retrieve(
             contribution.provider_customer_id,
-            stripe_account=contribution.donation_page.revenue_program.payment_provider.id,
+            stripe_account=contribution.donation_page.revenue_program.payment_provider.stripe_account_id,
         )
 
     except StripeError as exc:
@@ -77,14 +75,14 @@ def send_thank_you_email(contribution_id: int, contribution_date: datetime, copy
         "nrh-default-contribution-confirmation-email.txt",
         "nrh-default-contribution-confirmation-email.html",
         {
-            "contribution_date": convert_to_timezone(contribution_date, "America/New_York"),
+            "contribution_date": convert_to_timezone(contribution.created, "America/New_York"),
             "contributor_email": contribution.contributor.email,
             "contribution_amount": contribution.formatted_amount,
             "contribution_interval": contribution.interval,
             "contribution_interval_display_value": contribution.interval
             if contribution.interval != "one_time"
             else None,
-            "copyright_year": copyright_year,
+            "copyright_year": contribution.created.year,
             "org_name": contribution.revenue_program.organization.name,
             "contributor_name": customer.name,
             "non_profit": contribution.revenue_program.non_profit,

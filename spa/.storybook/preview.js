@@ -1,5 +1,6 @@
 import { withThemes } from '@react-theming/storybook-addon';
 import { ThemeProvider as MuiThemeProvider } from '@material-ui/core';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ThemeProvider } from 'styled-components';
 import { Provider as AlertProvider } from 'react-alert';
 import { SnackbarProvider } from 'notistack';

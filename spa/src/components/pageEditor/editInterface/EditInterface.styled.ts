@@ -2,7 +2,7 @@ import styled from 'styled-components';
 import { motion } from 'framer-motion';
 import { TabPanel as BaseTabPanel } from 'components/base';
 
-export const EditInterface = styled(motion.aside)`
+export const Root = styled(motion.aside)`
   position: fixed;
   right: 0;
   top: 0;

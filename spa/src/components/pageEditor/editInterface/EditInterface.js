@@ -1,5 +1,5 @@
 import { useState, useContext, createContext, useEffect, useCallback } from 'react';
-import * as S from './EditInterface.styled';
+import { Root, TabPanel } from './EditInterface.styled';
 
 import { usePageEditorContext } from 'components/pageEditor/PageEditor';
 
@@ -133,13 +133,13 @@ function EditInterface() {
       }}
     >
       <>
-        <S.EditInterface {...editInterfaceAnimation} data-testid="edit-interface">
+        <Root {...editInterfaceAnimation} data-testid="edit-interface">
           {selectedElement ? (
             <ElementProperties selectedElementType={selectedElementType} />
           ) : (
             <>
               <EditInterfaceTabs tab={tab} onChangeTab={setTab} />
-              <S.TabPanel
+              <TabPanel
                 active={tab === 0}
                 id="edit-layout-tab-panel"
                 tabId="edit-layout-tab"
@@ -153,8 +153,8 @@ function EditInterface() {
                   goToProperties={goToProperties}
                   handleRemoveElement={handleRemoveElement}
                 />
-              </S.TabPanel>
-              <S.TabPanel
+              </TabPanel>
+              <TabPanel
                 active={tab === 1}
                 id="edit-sidebar-tab-panel"
                 tabId="edit-sidebar-tab"
@@ -168,16 +168,16 @@ function EditInterface() {
                     setAddElementModalOpen(true);
                   }}
                 />
-              </S.TabPanel>
-              <S.TabPanel active={tab === 2} id="edit-setup-tab-panel" tabId="edit-setup-tab">
+              </TabPanel>
+              <TabPanel active={tab === 2} id="edit-setup-tab-panel" tabId="edit-setup-tab">
                 <PageSetup backToProperties={() => setTab(0)} />
-              </S.TabPanel>
-              <S.TabPanel active={tab === 3} id="edit-styles-tab-panel" tabId="edit-styles-tab">
+              </TabPanel>
+              <TabPanel active={tab === 3} id="edit-styles-tab-panel" tabId="edit-styles-tab">
                 <PageStyles backToProperties={() => setTab(0)} />
-              </S.TabPanel>
+              </TabPanel>
             </>
           )}
-        </S.EditInterface>
+        </Root>
         <AddElementModal
           addElementModalOpen={addElementModalOpen}
           setAddElementModalOpen={setAddElementModalOpen}

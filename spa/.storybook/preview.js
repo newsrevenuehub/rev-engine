@@ -1,5 +1,6 @@
 import { withThemes } from '@react-theming/storybook-addon';
 import { ThemeProvider as MuiThemeProvider } from '@material-ui/core';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ThemeProvider } from 'styled-components';
 import { Provider as AlertProvider } from 'react-alert';
 
@@ -7,21 +8,25 @@ import Alert, { alertOptions } from 'elements/alert/Alert';
 import { revEngineTheme, muiThemeOverrides } from 'styles/themes';
 import AdminGlobalStyles from 'styles/AdminGlobalStyles.js';
 
+const queryClient = new QueryClient();
+
 // The two MuiThemeProviders here are to force JSS scoping, e.g. so that MUI
 // uses classes like MuiButton-5 instead of MuiButton. This helps us catch
 // styling mistakes in Storybook as opposed to the app.
 
 const providerFn = ({ children }) => (
-  <ThemeProvider theme={revEngineTheme}>
-    <MuiThemeProvider theme={muiThemeOverrides}>
-      <MuiThemeProvider>
-        <AlertProvider template={Alert} {...alertOptions}>
-          <AdminGlobalStyles />
-          {children}
-        </AlertProvider>
+  <QueryClientProvider client={queryClient}>
+    <ThemeProvider theme={revEngineTheme}>
+      <MuiThemeProvider theme={muiThemeOverrides}>
+        <MuiThemeProvider>
+          <AlertProvider template={Alert} {...alertOptions}>
+            <AdminGlobalStyles />
+            {children}
+          </AlertProvider>
+        </MuiThemeProvider>
       </MuiThemeProvider>
-    </MuiThemeProvider>
-  </ThemeProvider>
+    </ThemeProvider>
+  </QueryClientProvider>
 );
 
 export const decorators = [withThemes(null, [revEngineTheme], { providerFn })];

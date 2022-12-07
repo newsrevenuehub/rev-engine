@@ -1,5 +1,6 @@
 import { Undo } from '@material-ui/icons';
 import PropTypes, { InferProps } from 'prop-types';
+import { ReactNode } from 'react';
 import { Button, Root } from './EditSaveControls.styles';
 
 const EditSaveControlsPropTypes = {
@@ -16,18 +17,23 @@ export interface EditSaveControlsProps extends InferProps<typeof EditSaveControl
 }
 
 export function EditSaveControls({ cancelDisabled, onCancel, onUpdate, variant }: EditSaveControlsProps) {
+  const commonSecondaryProps = { disabled: !!cancelDisabled, onClick: onCancel };
+  const secondaryButtons: Record<EditSaveControlsProps['variant'], ReactNode> = {
+    cancel: (
+      <Button color="secondary" {...commonSecondaryProps}>
+        Cancel
+      </Button>
+    ),
+    undo: (
+      <Button color="text" startIcon={<Undo />} {...commonSecondaryProps}>
+        Undo
+      </Button>
+    )
+  };
+
   return (
     <Root>
-      {variant === 'cancel' && (
-        <Button color="secondary" disabled={!!cancelDisabled} onClick={onCancel}>
-          Cancel
-        </Button>
-      )}
-      {variant === 'undo' && (
-        <Button color="text" disabled={!!cancelDisabled} onClick={onCancel} startIcon={<Undo />}>
-          Undo
-        </Button>
-      )}
+      {secondaryButtons[variant]}
       <Button color="primaryDark" onClick={onUpdate}>
         Update
       </Button>

@@ -1441,7 +1441,7 @@ python-versions = ">=3.6"
 name = "pygments"
 version = "2.13.0"
 description = "Pygments is a syntax highlighting package written in Python."
-category = "dev"
+category = "main"
 optional = false
 python-versions = ">=3.6"
 
@@ -1959,7 +1959,7 @@ testing = ["flake8 (<5)", "func-timeout", "jaraco.functools", "jaraco.itertools"
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.10"
-content-hash = "e8345f8639b481bbf6c8b0983a2d5d815282873cc19b3f9103668712a3727973"
+content-hash = "922361c1cfdc46777476a7618a76654ac1cc79b49dd9f01f0865b2cc135c9995"
 
 [metadata.files]
 addict = [

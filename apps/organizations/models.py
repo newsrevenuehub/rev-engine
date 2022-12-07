@@ -408,7 +408,7 @@ class PaymentProvider(IndexedTimeStampedModel):
                 name=settings.GENERIC_STRIPE_PRODUCT_NAME,
                 stripe_account=self.stripe_account_id,
             )
-            self.stripe_product_id = product.id
+            self.stripe_product_id = product["id"]
             self.save()
 
     def get_currency_dict(self):

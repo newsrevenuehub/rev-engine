@@ -1,16 +1,22 @@
+import logging
 import uuid
+from urllib.parse import quote_plus
 
+from django.conf import settings
 from django.db import models
-from django.utils import timezone
+from django.utils.safestring import SafeString, mark_safe
 
 import stripe
 
+from apps.api.tokens import ContributorRefreshToken
 from apps.common.models import IndexedTimeStampedModel
-from apps.emails.tasks import send_templated_email
 from apps.slack.models import SlackNotificationTypes
 from apps.slack.slack_manager import SlackManager
 from apps.users.choices import Roles
 from apps.users.models import RoleAssignmentResourceModelMixin, UnexpectedRoleType
+
+
+logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
 
 
 class Contributor(IndexedTimeStampedModel):
@@ -74,6 +80,21 @@ class Contributor(IndexedTimeStampedModel):
             phone=phone,
             stripe_account=rp_stripe_account_id,
             metadata=metadata,
+        )
+
+    @staticmethod
+    def create_magic_link(contribution: "Contribution") -> SafeString:
+        """Create a magic link value that can be inserted into Django templates (for instance, in contributor-facing emails)"""
+        # vs circular import
+        from apps.api.views import _construct_rp_domain as construct_rp_domain
+
+        if not isinstance(contribution, Contribution):
+            logger.error("`Contributor.create_magic_link` called with invalid contributon value: %s", contribution)
+            raise ValueError("Invalid value provided for `contribution`")
+        token = str(ContributorRefreshToken.for_contributor(contribution.contributor.uuid).short_lived_access_token)
+        return mark_safe(
+            f"https://{construct_rp_domain(contribution.donation_page.revenue_program.slug)}/{settings.CONTRIBUTOR_VERIFY_URL}"
+            f"?token={token}&email={quote_plus(contribution.contributor.email)}"
         )
 
 
@@ -326,27 +347,10 @@ class Contribution(IndexedTimeStampedModel, RoleAssignmentResourceModelMixin):
         self.save()
         return subscription
 
-    def handle_thank_you_email(self, contribution_received_at=None):
+    def handle_thank_you_email(self):
         """Send a thank you email to contribution's contributor if org is configured to have NRE send thank you email"""
-        contribution_received_at = contribution_received_at if contribution_received_at else timezone.now()
+        # vs. circular import
+        from apps.emails.tasks import send_thank_you_email
+
         if self.revenue_program.organization.send_receipt_email_via_nre:
-            send_templated_email.delay(
-                self.contributor.email,
-                "Thank you for your contribution!",
-                "nrh-default-contribution-confirmation-email.txt",
-                "nrh-default-contribution-confirmation-email.html",
-                {
-                    "contribution_date": contribution_received_at.strftime("%m-%d-%y"),
-                    "contributor_email": self.contributor.email,
-                    "contribution_amount": self.formatted_amount,
-                    "contribution_interval": self.interval,
-                    "contribution_interval_display_value": self.interval if self.interval != "one_time" else None,
-                    "copyright_year": contribution_received_at.year,
-                    "org_name": self.revenue_program.organization.name,
-                    # TODO: Missing field to be added on DEV-2892
-                    "contributor_name": "<placeholder name>",
-                    "non_profit": True,
-                    "tax_id": "<placeholder_tax_id>",
-                    "magic_link": "#",
-                },
-            )
+            send_thank_you_email.delay(self.id)

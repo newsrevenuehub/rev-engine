@@ -1,11 +1,15 @@
 import datetime
 from unittest.mock import patch
+from urllib.parse import parse_qs, urlparse
 
+from django.conf import settings
 from django.test import TestCase, override_settings
 from django.utils import timezone
 
+import pytest
+
 from apps.contributions.models import Contribution, ContributionStatus, Contributor
-from apps.contributions.tests.factories import ContributorFactory
+from apps.contributions.tests.factories import ContributionFactory, ContributorFactory
 from apps.organizations.tests.factories import (
     OrganizationFactory,
     PaymentProviderFactory,
@@ -76,6 +80,41 @@ class ContributorTest(TestCase):
             metadata=call_args["metadata"],
         )
         self.assertEqual(customer, return_value)
+
+
+@pytest.fixture
+def contribution():
+    return ContributionFactory()
+
+
+@pytest.mark.django_db()
+def test_create_magic_link(contribution):
+    assert isinstance(contribution, Contribution)
+    parsed = urlparse(Contributor.create_magic_link(contribution))
+    assert parsed.scheme == "https"
+    expected_domain = urlparse(settings.SITE_URL).netloc
+    assert parsed.netloc == f"{contribution.donation_page.revenue_program.slug}.{expected_domain}"
+    params = parse_qs(parsed.query)
+    assert params["token"][0]
+    assert params["email"][0] == contribution.contributor.email
+
+
+@pytest.mark.parametrize(
+    "value",
+    (
+        None,
+        "",
+        "Something",
+        1,
+        True,
+        False,
+        dict(),
+        lambda x: None,
+    ),
+)
+def test_create_magic_link_with_invalid_values(value):
+    with pytest.raises(ValueError):
+        Contributor.create_magic_link(value)
 
 
 test_key = "test_key"
@@ -234,7 +273,7 @@ class ContributionTest(TestCase):
         self.assertEqual(subscription, return_value)
         assert self.contribution.provider_customer_id == stripe_customer_id
 
-    @patch("apps.emails.tasks.send_templated_email.delay")
+    @patch("apps.emails.tasks.send_thank_you_email.delay")
     def test_handle_thank_you_email_when_nre_sends(self, mock_send_email):
         """Show that when org configured to have NRE send thank you emails, send_templated_email
         gets called with expected args.
@@ -245,23 +284,8 @@ class ContributionTest(TestCase):
         self.contribution.contributor = contributor
         self.contribution.interval = "month"
         self.contribution.save()
-        contribution_received_at = timezone.now()
-        self.contribution.handle_thank_you_email(contribution_received_at)
-        mock_send_email.assert_called_once_with(
-            contributor.email,
-            "Thank you for your contribution!",
-            "nrh-default-contribution-confirmation-email.txt",
-            "nrh-default-contribution-confirmation-email.html",
-            {
-                "contribution_date": contribution_received_at.strftime("%m-%d-%y"),
-                "contributor_email": contributor.email,
-                "contribution_amount": self.contribution.formatted_amount,
-                "contribution_interval": self.contribution.interval,
-                "contribution_interval_display_value": self.contribution.interval,
-                "copyright_year": contribution_received_at.year,
-                "org_name": self.org.name,
-            },
-        )
+        self.contribution.handle_thank_you_email()
+        mock_send_email.assert_called_once()
 
     @patch("apps.emails.tasks.send_templated_email.delay")
     def test_handle_thank_you_email_when_nre_not_send(self, mock_send_email):

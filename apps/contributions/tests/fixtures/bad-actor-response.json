@@ -1,0 +1,55 @@
+{
+  "items": [
+    {
+      "judgment": 0,
+      "label": "email",
+      "value": "foo@fundjournalism.org"
+    },
+    {
+      "judgment": 0,
+      "label": "name",
+      "value": "Foo Bar"
+    },
+    {
+      "judgment": 0,
+      "label": "address",
+      "value": "254 South 12th Street, Philadelphia, Pennsylvania 19107"
+    },
+    {
+      "judgment": 0,
+      "label": "IP and Country",
+      "value": "2123:23:2:8240:b9ee:42a6:1f7:8ec/None"
+    },
+    {
+      "judgment": 3,
+      "label": "amount",
+      "value": "51155.0"
+    },
+    {
+      "judgment": 0,
+      "label": "Clearbit reason",
+      "value": "ip_ratelimited,ip_country_code_mismatch,email_ratelimited"
+    },
+    {
+      "judgment": 4,
+      "label": "Clearbit risk/score",
+      "value": "high/100"
+    },
+    {
+      "judgment": 2,
+      "label": "mailgun risk",
+      "value": "low (deliverable/[])"
+    },
+    {
+      "judgment": 2,
+      "label": "Recaptcha",
+      "value": "0.9"
+    },
+    {
+      "judgment": 0,
+      "label": "Total Score",
+      "value": "7"
+    }
+  ],
+  "overall_judgment": 2
+}

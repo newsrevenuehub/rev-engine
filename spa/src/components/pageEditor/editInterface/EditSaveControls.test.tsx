@@ -15,7 +15,7 @@ describe('EditSaveControls', () => {
     });
 
     it('shows an Update button', () => {
-      tree({ variant: 'undo' });
+      tree({ variant: 'cancel' });
       expect(screen.getByRole('button', { name: 'Update' })).toBeInTheDocument();
     });
 

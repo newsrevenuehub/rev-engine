@@ -3,6 +3,7 @@ from unittest.mock import Mock, patch
 from django.test import override_settings
 
 import pytest
+from addict import Dict as AttrDict
 from faker import Faker
 from stripe import error as stripe_errors
 from stripe.stripe_object import StripeObject
@@ -165,7 +166,11 @@ class StripeRecurringPaymentManagerTest(StripePaymentManagerAbstractTestCase):
         self.data.update({"payment_method_id": self.payment_method_id, "interval": ContributionInterval.MONTHLY})
 
     @patch("stripe.PaymentMethod.retrieve")
-    def test_reject_happy_path(self, mock_pm_retrieve, *args):
+    @patch("stripe.SetupIntent.retrieve")
+    def test_reject_happy_path(self, mock_si_retrieve, mock_pm_retrieve, *args):
+        mock_si = AttrDict({"payment_method": "some-pm-id"})
+        mock_si_retrieve.return_value = mock_si
+
         mock_pm_detach = Mock()
 
         class MockPaymentMethod:
@@ -176,7 +181,7 @@ class StripeRecurringPaymentManagerTest(StripePaymentManagerAbstractTestCase):
         pm = self._instantiate_payment_manager_with_instance()
         pm.complete_payment(reject=True)
         mock_pm_retrieve.assert_called_once_with(
-            self.contribution.provider_setup_intent_id,
+            mock_si["payment_method"],
             stripe_account=self.contribution.donation_page.revenue_program.payment_provider.stripe_account_id,
         )
         mock_pm_detach.assert_called_once()

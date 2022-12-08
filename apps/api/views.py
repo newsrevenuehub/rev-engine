@@ -1,5 +1,6 @@
 import logging
 from datetime import datetime
+from pathlib import PurePath
 from urllib.parse import quote_plus, urlparse
 
 from django.conf import settings
@@ -182,6 +183,7 @@ class RequestContributorTokenEmailView(APIView):
         logger.info(
             "Sending magic link email to [%s] | magic link: [%s]", serializer.validated_data["email"], magic_link
         )
+        path = PurePath(settings.SITE_URL)
         send_templated_email.delay(
             serializer.validated_data["email"],
             "Manage your contributions",
@@ -190,7 +192,7 @@ class RequestContributorTokenEmailView(APIView):
             {
                 "magic_link": mark_safe(magic_link),
                 "email": serializer.validated_data["email"],
-                "static_root_domain": f"{settings.DOMAIN_APEX}{settings.MEDIA_URL}",
+                "static_root_domain": str(path / settings.MEDIA_URL),
             },
         )
         # Email is async task. We won't know if it succeeds or not so optimistically send OK.

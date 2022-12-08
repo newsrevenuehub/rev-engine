@@ -10,6 +10,7 @@ import useRequest from 'hooks/useRequest';
 
 import { Button, CircularProgress, ExportIcon, Flex } from './ExportButton.styled';
 import ExportModal from './ExportModal';
+import { CONTRIBUTIONS, EMAIL_CONTRIBUTIONS } from 'ajax/endpoints';
 
 export type ExportButtonProps = InferProps<typeof ExportButtonPropTypes>;
 
@@ -26,8 +27,8 @@ const ExportButton = ({ className, ...rest }: ExportButtonProps) => {
     setTimeout(() => setLoading(false), 30000);
     requestExportData(
       {
-        method: 'GET',
-        url: 'contributions/email-contributions'
+        method: 'POST',
+        url: `${CONTRIBUTIONS}${EMAIL_CONTRIBUTIONS}`
       },
       {
         onSuccess: () => {},

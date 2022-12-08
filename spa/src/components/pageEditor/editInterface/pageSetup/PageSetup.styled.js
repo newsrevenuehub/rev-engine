@@ -1,6 +1,6 @@
 import styled from 'styled-components';
 
-export const PageSetup = styled.div`
+export const Root = styled.div`
   display: flex;
   flex-direction: column;
 `;
@@ -20,6 +20,12 @@ export const ImageSelectorWrapper = styled.div`
   padding-bottom: 2rem;
 
   border-bottom: 1px solid ${(props) => props.theme.colors.grey[0]};
+`;
+
+export const ImageSelectorHelpText = styled.div`
+  font-style: italic;
+  font-weight: 200;
+  margin-top: 1rem;
 `;
 
 export const InputWrapper = styled.div`

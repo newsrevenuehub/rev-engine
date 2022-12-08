@@ -460,6 +460,9 @@ describe('Contribution page edit', () => {
 });
 
 describe('Edit interface: Setup', () => {
+  const imageFieldNames = ['Main header background', 'Main header logo', 'Graphic'];
+  const textFieldNames = ['Form panel heading', 'Form panel heading', 'Post Thank You redirect'];
+
   beforeEach(() => {
     const pageDetailBody = {
       ...pageDetail,
@@ -523,6 +526,56 @@ describe('Edit interface: Setup', () => {
     cy.getByTestId('save-page-button').click();
     cy.getByTestId('confirmation-modal').contains("You're making changes to a live contribution page. Continue?");
     cy.getByTestId('cancel-button').click();
+  });
+
+  it("disables the Undo button if the user hasn't made a change", () => {
+    cy.findByRole('button', { name: 'Undo' }).should('be.disabled');
+  });
+
+  for (const label of imageFieldNames) {
+    const mockFile = { contents: Cypress.Buffer.from('mock-image'), fileName: 'image.jpeg', lastModified: Date.now() };
+
+    it(`enables the Undo button when the user selects an image for "${label}"`, () => {
+      // Inputs are hidden from view.
+      cy.findByLabelText(label).selectFile(mockFile, { force: true });
+      cy.findByRole('button', { name: 'Undo' }).should('not.be.disabled');
+    });
+  }
+
+  for (const name of textFieldNames) {
+    it(`enables the Undo button when the user edits "${name}"`, () => {
+      cy.findByRole('textbox', { name }).scrollIntoView().type('change');
+      cy.findByRole('button', { name: 'Undo' }).should('not.be.disabled');
+    });
+  }
+
+  it('resets changes when the Undo button is clicked', () => {
+    for (const label of imageFieldNames) {
+      const mockFile = {
+        contents: Cypress.Buffer.from('mock-image'),
+        fileName: `image-${label}.jpeg`,
+        lastModified: Date.now()
+      };
+
+      cy.findByLabelText(label).selectFile(mockFile, { force: true });
+      cy.findByAltText(`image-${label}.jpeg`).should('exist');
+    }
+
+    for (const name of textFieldNames) {
+      cy.findByRole('textbox', { name }).type('change', { force: true });
+    }
+
+    cy.findByRole('button', { name: 'Undo' }).click();
+    cy.findByLabelText('Form panel heading').should('have.value', pageDetail.heading);
+    cy.findByLabelText('Post Thank You redirect').should('have.value', pageDetail.post_thank_you_redirect);
+
+    // The underlying file inputs will not have changed value, because
+    // JavaScript can't change a file input's value. We check values indirectly
+    // by verifying the image previews are now gone.
+
+    for (const label of imageFieldNames) {
+      cy.findByAltText(`image-${label}.jpeg`).should('not.exist');
+    }
   });
 });
 

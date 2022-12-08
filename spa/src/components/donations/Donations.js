@@ -106,8 +106,8 @@ const Donations = () => {
     return { status: statuses };
   };
 
-  const columns = useMemo(
-    () => [
+  const columns = useMemo(() => {
+    const defaultColumns = [
       {
         Header: 'Date',
         accessor: 'created',
@@ -138,9 +138,19 @@ const Donations = () => {
         accessor: 'status',
         Cell: (props) => <PaymentStatus status={props.value} />
       }
-    ],
-    []
-  );
+    ];
+    return (user?.revenue_programs ?? []).length > 1
+      ? [
+          ...defaultColumns.slice(0, 4),
+          {
+            Header: 'Revenue program',
+            accessor: 'revenue_program.name',
+            Cell: (props) => props?.value ?? NO_VALUE
+          },
+          ...defaultColumns.slice(4)
+        ]
+      : defaultColumns;
+  }, [user?.revenue_programs]);
 
   return (
     <>

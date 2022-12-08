@@ -131,6 +131,16 @@ def handle_stripe_account_link(request, rp_pk):
             )
         payment_provider.stripe_account_id = account["id"]
         payment_provider.save()
+
+        try:
+            payment_provider.stripe_create_default_product()
+        except StripeError:
+            logger.exception("[handle_stripe_account_link] A stripe error occurred creating Stripe product")
+            return Response(
+                {"detail": "Something went wrong. Try again later."},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+
     else:
         try:
             account = stripe.Account.retrieve(payment_provider.stripe_account_id)

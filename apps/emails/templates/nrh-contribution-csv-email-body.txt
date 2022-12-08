@@ -1,0 +1,3 @@
+Dear {{ username }},
+
+Please find your contributions in the attached csv file.

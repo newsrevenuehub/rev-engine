@@ -9,7 +9,7 @@ from celery.utils.log import get_task_logger
 from stripe.error import StripeError
 
 from apps.contributions.models import Contribution, Contributor
-from apps.emails.helpers import convert_to_timezone
+from apps.emails.helpers import convert_to_timezone_formatted
 
 
 logger = get_task_logger(f"{settings.DEFAULT_LOGGER}.{__name__}")
@@ -75,7 +75,7 @@ def send_thank_you_email(contribution_id: int):
         "nrh-default-contribution-confirmation-email.txt",
         "nrh-default-contribution-confirmation-email.html",
         {
-            "contribution_date": convert_to_timezone(contribution.created, "America/New_York"),
+            "contribution_date": convert_to_timezone_formatted(contribution.created, "America/New_York"),
             "contributor_email": contribution.contributor.email,
             "contribution_amount": contribution.formatted_amount,
             "contribution_interval": contribution.interval,

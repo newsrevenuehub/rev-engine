@@ -859,7 +859,7 @@ describe('StripePaymentForm unhappy paths', () => {
     cy.intercept(
       { method: 'POST', url: getEndpoint(AUTHORIZE_STRIPE_PAYMENT_ROUTE) },
       {
-        body: { provider_client_secret_id: fakeStripeSecret, email_hash: fakeEmailHash },
+        body: { client_secret: fakeStripeSecret, email_hash: fakeEmailHash, uuid: 'some-uuid' },
         statusCode: 201
       }
     ).as('create-one-time-payment');

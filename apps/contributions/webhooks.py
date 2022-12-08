@@ -115,7 +115,7 @@ class StripeWebhookProcessor:
     def process_subscription(self):
         if self.event.type == "customer.subscription.updated":
             self.handle_subscription_updated()
-        if self.event.type == "customer.subscription.deleted":
+        elif self.event.type == "customer.subscription.deleted":
             self.handle_subscription_canceled()
         else:
             logger.warning(

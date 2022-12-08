@@ -192,7 +192,8 @@ class RequestContributorTokenEmailView(APIView):
             {
                 "magic_link": mark_safe(magic_link),
                 "email": serializer.validated_data["email"],
-                "static_root_domain": str(path / settings.MEDIA_URL),
+                # Note on why needs to be this way
+                "logo_url": str(path / settings.MEDIA_URL / "NewsRevenueHub-Horizontal.png"),
             },
         )
         # Email is async task. We won't know if it succeeds or not so optimistically send OK.

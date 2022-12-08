@@ -1,3 +1,4 @@
+import csv
 import logging
 
 from django.conf import settings
@@ -18,6 +19,7 @@ from stripe.error import StripeError
 from apps.api.permissions import (
     HasFlaggedAccessToContributionsApiResource,
     HasRoleAssignment,
+    IsContributor,
     IsContributorOwningContribution,
     IsHubAdmin,
 )
@@ -37,7 +39,9 @@ from apps.contributions.stripe_contributions_provider import (
     SubscriptionsCacheProvider,
 )
 from apps.contributions.tasks import task_pull_serialized_stripe_contributions_to_cache
+from apps.contributions.utils import export_contributions_to_csv
 from apps.contributions.webhooks import StripeWebhookProcessor
+from apps.emails.tasks import send_templated_email_with_attachment
 from apps.organizations.models import PaymentProvider, RevenueProgram
 from apps.public.permissions import IsActiveSuperUser
 from apps.users.views import FilterQuerySetByUserMixin
@@ -92,64 +96,6 @@ def stripe_oauth(request):
         return Response({"invalid_code": "stripe_oauth received an invalid code"}, status=status.HTTP_400_BAD_REQUEST)
 
     return Response({"detail": "success"}, status=status.HTTP_200_OK)
-
-
-@api_view(["POST"])
-@permission_classes([IsAuthenticated, HasRoleAssignment | IsActiveSuperUser])
-def stripe_confirmation(request):
-    revenue_program_id = request.data.get("revenue_program_id")
-    if not revenue_program_id:
-        return Response(
-            {"missing_params": "revenue_program_id missing required params"}, status=status.HTTP_400_BAD_REQUEST
-        )
-    revenue_program = RevenueProgram.objects.get(id=revenue_program_id)
-    if not revenue_program:
-        return Response(
-            {"rp_not_found": f"RevenueProgram with ID = {revenue_program_id} is not found"},
-            status=status.HTTP_404_NOT_FOUND,
-        )
-    payment_provider = revenue_program.payment_provider
-
-    try:
-
-        # A revenue program that doesn't have a stripe_account_id hasn't gone through onboarding
-        if not payment_provider or not payment_provider.stripe_account_id:
-            return Response({"status": "not_connected"}, status=status.HTTP_202_ACCEPTED)
-        # A previously confirmed account can spare the stripe API call
-        if payment_provider.stripe_verified:
-            # NOTE: It's important to bail early here. At the end of this view, we create a few stripe models
-            # that should only be created once. We should only ever get there if it's the FIRST time we verify.
-            return Response({"status": "connected"}, status=status.HTTP_200_OK)
-
-        # A "Confirmed" stripe account has "charges_enabled": true on return from stripe.Account.retrieve
-        stripe_account = stripe.Account.retrieve(payment_provider.stripe_account_id)
-
-    except stripe.error.StripeError:
-        logger.error("stripe.Account.retrieve failed with a StripeError")
-        return Response(
-            {"status": "failed"},
-            status=status.HTTP_500_INTERNAL_SERVER_ERROR,
-        )
-
-    if not stripe_account.charges_enabled:
-        return Response({"status": "restricted"}, status=status.HTTP_202_ACCEPTED)
-
-    # If we got through all that, we're verified.
-    payment_provider.stripe_verified = True
-
-    try:
-        # Now that we're verified, create and associate default product
-        payment_provider.stripe_create_default_product()
-    except stripe.error.StripeError:
-        logger.exception("stripe_create_default_product failed with a StripeError")
-        return Response(
-            {"status": "failed"},
-            status=status.HTTP_500_INTERNAL_SERVER_ERROR,
-        )
-
-    payment_provider.save()
-
-    return Response({"status": "connected"}, status=status.HTTP_200_OK)
 
 
 @api_view(["POST"])
@@ -336,6 +282,50 @@ class ContributionsViewSet(viewsets.ReadOnlyModelViewSet, FilterQuerySetByUserMi
             return Response({"detail": str(pp_error)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
         return Response(data={"detail": "rejected" if reject else "accepted"}, status=status.HTTP_200_OK)
+
+    @action(
+        methods=["post"],
+        url_path="email-contributions",
+        detail=False,
+        permission_classes=[HasRoleAssignment, IsAuthenticated, ~IsContributor],
+    )
+    def email_contributions(self, request):
+        """Endpoint to send contributions as a csv file to the user request.
+        Any user who has role and authenticated will be able to call the endpoint.
+        Contributor will not be able to access this endpoint as it's being integrated with the Contribution Dashboard
+        as contributors will be able to access only Contributor Portal via magic link.
+        """
+        try:
+            name = f"{request.user.first_name} {request.user.last_name}"
+
+            queryset = self.filter_queryset_for_user(
+                self.request.user, self.model.objects.filter(provider_payment_method_details__isnull=False)
+            )
+            contributions = super().filter_queryset(queryset)
+            contributions_in_csv = export_contributions_to_csv(contributions)
+
+            send_templated_email_with_attachment.delay(
+                to=request.user.email,
+                subject="Check out your Contributions",
+                text_template="nrh-contribution-csv-email-body.txt",
+                template_data={"username": name},
+                attachment=contributions_in_csv,
+                content_type="text/csv",
+                filename="contributions.csv",
+            )
+            return Response(data={"detail": "success"}, status=status.HTTP_200_OK)
+        except csv.Error:
+            logger.exception("Error while generating contributions csv file.")
+            return Response(
+                data={"status": "failed", "detail": "Something went wrong generating CSV export"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+        except Exception:
+            logger.exception("Unexpected error.")
+            return Response(
+                data={"status": "failed", "detail": "Something went wrong"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
 
 
 class SubscriptionsViewSet(viewsets.ViewSet):

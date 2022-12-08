@@ -70,6 +70,7 @@ export interface ContributionFormExtraData {
   amount: string;
   currency: string;
   frequency: ContributionInterval;
+  mailingCountry: string;
   pageId: string;
   pageSlug: string;
   payFee: boolean;
@@ -93,6 +94,7 @@ export function serializeData(formRef: HTMLFormElement, state: ContributionFormE
   serializedData.amount = getTotalAmount(state.amount, state.payFee, state.frequency, state.rpIsNonProfit).toString();
   serializedData.donor_selected_amount = state.amount;
   serializedData.revenue_program_slug = state.revProgramSlug;
+  serializedData.mailing_country = state.mailingCountry;
   serializedData.donation_page_slug = state.pageSlug;
   serializedData.revenue_program_country = state.rpCountry;
   serializedData.currency = state.currency;

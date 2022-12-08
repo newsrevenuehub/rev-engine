@@ -273,7 +273,7 @@ class Contribution(IndexedTimeStampedModel, RoleAssignmentResourceModelMixin):
         self.save()
         return customer
 
-    def create_stripe_one_time_payment_intent(self, metadata):
+    def create_stripe_one_time_payment_intent(self):
         """Create a Stripe PaymentIntent and attach its id and client_secret to the contribution
 
         See https://stripe.com/docs/api/payment_intents/create for more info
@@ -282,7 +282,7 @@ class Contribution(IndexedTimeStampedModel, RoleAssignmentResourceModelMixin):
             amount=self.amount,
             currency=self.currency,
             customer=self.provider_customer_id,
-            metadata=metadata,
+            metadata=self.contribution_metadata,
             receipt_email=self.contributor.email,
             statement_descriptor_suffix=self.donation_page.revenue_program.stripe_statement_descriptor_suffix,
             stripe_account=self.donation_page.revenue_program.stripe_account_id,
@@ -296,7 +296,6 @@ class Contribution(IndexedTimeStampedModel, RoleAssignmentResourceModelMixin):
         return intent
 
     def create_stripe_setup_intent(self, metadata):
-        """ """
         setup_intent = stripe.SetupIntent.create(
             customer=self.provider_customer_id,
             stripe_account=self.donation_page.revenue_program.payment_provider.stripe_account_id,
@@ -398,3 +397,24 @@ class Contribution(IndexedTimeStampedModel, RoleAssignmentResourceModelMixin):
                     "org_name": self.revenue_program.organization.name,
                 },
             )
+
+    @staticmethod
+    def stripe_metadata(contributor, validated_data, referer):
+        """Generate dict of metadata to be sent to Stripe when creating a PaymentIntent or Subscription"""
+        return {
+            "source": settings.METADATA_SOURCE,
+            "schema_version": settings.METADATA_SCHEMA_VERSION,
+            "contributor_id": contributor.id,
+            "agreed_to_pay_fees": validated_data["agreed_to_pay_fees"],
+            "donor_selected_amount": validated_data["donor_selected_amount"],
+            "reason_for_giving": validated_data["reason_for_giving"],
+            "honoree": validated_data.get("honoree"),
+            "in_memory_of": validated_data.get("in_memory_of"),
+            "comp_subscription": validated_data.get("comp_subscription"),
+            "swag_opt_out": validated_data.get("swag_opt_out"),
+            "swag_choice": validated_data.get("swag_choice"),
+            "referer": referer,
+            "revenue_program_id": validated_data["page"].revenue_program.id,
+            "revenue_program_slug": validated_data["page"].revenue_program.slug,
+            "sf_campaign_id": validated_data.get("sf_campaign_id"),
+        }

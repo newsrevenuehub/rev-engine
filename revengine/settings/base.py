@@ -325,6 +325,7 @@ CSP_SCRIPT_SRC = (
     "'self'",
     "https://js.stripe.com",
     "https://risk.clearbit.com",
+    "https://www.googletagmanager.com",
     "https://www.google-analytics.com",
     "https://maps.googleapis.com",
     "https://www.google.com/recaptcha/",

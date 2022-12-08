@@ -1,7 +1,6 @@
 import 'cypress-localstorage-commands';
 import '@testing-library/cypress/add-commands';
 
-import { TOKEN } from 'ajax/endpoints';
 import { getEndpoint, getTestingDonationPageUrl, getTestingDefaultDonationPageUrl, EXPECTED_RP_SLUG } from './util';
 import { LIVE_PAGE_DETAIL, STRIPE_PAYMENT, CONTRIBUTIONS } from 'ajax/endpoints';
 import { DEFAULT_RESULTS_ORDERING } from 'components/donations/DonationsTable';
@@ -11,16 +10,6 @@ import { LS_CSRF_TOKEN, LS_USER } from 'appSettings';
 
 Cypress.Commands.add('getByTestId', (testId, options, partialMatch = false) => {
   return cy.get(`[data-testid${partialMatch ? '*' : ''}="${testId}"]`, options);
-});
-
-Cypress.Commands.add('login', (userFixture) => {
-  cy.clearLocalStorage();
-  cy.visit('/');
-  cy.getByTestId('login-email').type('test@user.com');
-  cy.getByTestId('login-password').type('testing');
-  cy.intercept('POST', getEndpoint(TOKEN), { fixture: userFixture }).as('login');
-  cy.getByTestId('login-button').click();
-  return cy.wait('@login');
 });
 
 Cypress.Commands.add('forceLogin', (userFixture) => {
@@ -50,10 +39,6 @@ Cypress.Commands.add('visitDefaultDonationPage', () => {
   cy.wait('@getPageDetail');
 });
 
-Cypress.Commands.add('getInDocument', { prevSubject: 'document' }, (document, selector) =>
-  Cypress.$(selector, document)
-);
-
 Cypress.Commands.add('interceptDonation', () => {
   cy.intercept(
     { method: 'POST', pathname: getEndpoint(STRIPE_PAYMENT) },
@@ -72,50 +57,28 @@ Cypress.Commands.add('setUpDonation', (frequency, amount) => {
   cy.contains(amount).click();
 });
 
-Cypress.Commands.add('makeDonation', () => {
-  return cy
-    .get('iframe')
-    .should((iframe) => {
-      // these inputs asynchronously render on the iframed Stripe element,
-      // and we need to ensure that all three exist in the iframe before
-      // moving on to enter values in inputs and submit the form.
-      cy.get('[name="cardnumber"]').should('exist');
-      cy.get('[name="exp-date"]').should('exist');
-      cy.get('[name="cvc"]').should('exist');
-      // expect(iframe.contents().find('[name="cardnumber"]')).to.exist;
-      // expect(iframe.contents().find('[name="exp-date"]')).to.exist;
-      // expect(iframe.contents().find('[name="cvc"]')).to.exist;
-    })
-    .then((iframe) => cy.wrap(iframe.contents().find('body')))
-    .within({}, ($iframe) => {
-      cy.get('[name="cardnumber"]').type('4242424242424242');
-      cy.get('[name="exp-date"]').type('1232');
-      cy.get('[name="cvc"]').type('123');
-    })
-    .then(() => {
-      // need to ensure not disabled because otherwise race condition where
-      // it hasn't yet re-rendered to enabled by time we're trying to click
-      cy.get('form')
-        .findByRole('button', { name: /Continue to Payment/ })
-        .should('not.be.disabled')
-        .click();
-    });
-});
-
 Cypress.Commands.add('interceptStripeApi', () => {
   cy.intercept({ url: 'https://r.stripe.com/*', method: 'POST' }, { statusCode: 200 });
   cy.intercept({ url: 'https://m.stripe.com/*', method: 'POST' }, { statusCode: 200 });
   cy.intercept({ url: 'https://api.stripe.com/**', method: 'GET' }, { statusCode: 200 });
 });
 
-Cypress.Commands.add('interceptPaginatedDonations', () => {
+Cypress.Commands.add('interceptPaginatedDonations', (data = donationsData) => {
   const defaultSortBys = {
     columns: DEFAULT_RESULTS_ORDERING.map((item) => item.id),
     directions: DEFAULT_RESULTS_ORDERING.map((item) => (item.desc ? 'desc' : 'asc'))
   };
-  const sortableColumns = ['last_payment_date', 'amount', 'contributor_email', 'modified', 'status', 'flagged_date'];
+  const sortableColumns = [
+    'last_payment_date',
+    'amount',
+    'contributor_email',
+    'modified',
+    'status',
+    'flagged_date',
+    'revenue_program__name'
+  ];
   const filterableColumns = ['created', 'status', 'amount'];
-  const api = new ApiResourceList(donationsData, defaultSortBys, sortableColumns);
+  const api = new ApiResourceList(data, defaultSortBys, sortableColumns);
   cy.intercept({ pathname: getEndpoint(CONTRIBUTIONS) }, (req) => {
     const urlSearchParams = new URLSearchParams(req.url.split('?')[1]);
     const pageSize = urlSearchParams.get('page_size');
@@ -151,4 +114,10 @@ Cypress.Commands.add('interceptFbAnalytics', () => {
   cy.intercept({ method: 'GET', url: 'https://connect.facebook.net/*' }, { statusCode: 200 });
   cy.intercept({ method: 'GET', url: '*ev=Contribute*' }, { statusCode: 200 }).as('fbTrackContribution');
   cy.intercept({ method: 'GET', url: '*ev=Purchase*' }, { statusCode: 200 }).as('fbTrackPurchase');
+});
+
+Cypress.Commands.add('interceptGoogleRecaptcha', () => {
+  // This can be helpful to add because in test env, sometimes the live recaptcha returns an error
+  // (possibly because we load it too many times successively?), which can cause test failures.
+  cy.intercept({ method: 'GET', url: 'https://www.google.com/recaptcha/*' }, { statusCode: 200 });
 });

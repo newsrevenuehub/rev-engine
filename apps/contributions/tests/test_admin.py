@@ -1,3 +1,4 @@
+import json
 from unittest import mock
 
 import django
@@ -117,3 +118,24 @@ class ContributionAdminTest(TestCase):
         assert self.contribution_admin.provider_customer_link(contribution) == "-"
         assert self.contribution_admin.provider_payment_link(contribution) == "-"
         assert self.contribution_admin.provider_subscription_link(contribution) == "-"
+
+    def test_bad_actor_response_pretty(self):
+        with open("apps/contributions/tests/fixtures/bad-actor-response.json") as fl:
+            contribution = ContributionFactory(bad_actor_response=json.load(fl))
+        output = self.contribution_admin.bad_actor_response_pretty(contribution)
+        assert isinstance(output, str)
+        assert len(output)
+
+    def test_payment_provider_data_pretty(self):
+        with open("apps/contributions/tests/fixtures/payment-provider-data.json") as fl:
+            contribution = ContributionFactory(payment_provider_data=json.load(fl))
+        output = self.contribution_admin.payment_provider_data_pretty(contribution)
+        assert isinstance(output, str)
+        assert len(output)
+
+    def test_provider_payment_method_details_pretty(self):
+        with open("apps/contributions/tests/fixtures/provider-payment-method-details.json") as fl:
+            contribution = ContributionFactory(provider_payment_method_details=json.load(fl))
+        output = self.contribution_admin.provider_payment_method_details_pretty(contribution)
+        assert isinstance(output, str)
+        assert len(output)

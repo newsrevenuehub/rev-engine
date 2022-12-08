@@ -20,6 +20,7 @@ from apps.contributions.models import (
     PaymentType,
 )
 from apps.contributions.utils import format_ambiguous_currency, get_sha256_hash
+from apps.organizations.serializers import RevenueProgramSerializer
 from apps.pages.models import DonationPage
 
 from .bad_actor import BadActorAPIError, make_bad_actor_request
@@ -57,6 +58,7 @@ class ContributionSerializer(serializers.ModelSerializer):
     provider_payment_url = serializers.SerializerMethodField()
     provider_subscription_url = serializers.SerializerMethodField()
     provider_customer_url = serializers.SerializerMethodField()
+    revenue_program = RevenueProgramSerializer(read_only=True)
 
     def get_auto_accepted_on(self, obj):
         """
@@ -106,22 +108,23 @@ class ContributionSerializer(serializers.ModelSerializer):
     class Meta:
         model = Contribution
         fields = [
-            "id",
+            "amount",
+            "auto_accepted_on",
+            "bad_actor_score",
             "contributor_email",
             "created",
-            "amount",
             "currency",
+            "donation_page_id",
+            "flagged_date",
+            "formatted_payment_provider_used",
+            "id",
             "interval",
             "last_payment_date",
-            "bad_actor_score",
-            "flagged_date",
-            "auto_accepted_on",
-            "formatted_payment_provider_used",
+            "provider_customer_url",
             "provider_payment_url",
             "provider_subscription_url",
-            "provider_customer_url",
+            "revenue_program",
             "status",
-            "donation_page_id",
         ]
 
 
@@ -438,6 +441,9 @@ class BaseCreatePaymentSerializer(serializers.Serializer):
             "donation_page": validated_data["page"],
             "contributor": contributor,
             "payment_provider_used": "Stripe",
+            "contribution_metadata": Contribution.stripe_metadata(
+                contributor, validated_data, self.context["request"].META.get("HTTP_REFERER")
+            ),
         }
         if bad_actor_response:
             contribution_data["bad_actor_score"] = bad_actor_response["overall_judgment"]
@@ -486,9 +492,7 @@ class CreateOneTimePaymentSerializer(BaseCreatePaymentSerializer):
             )
             raise GenericPaymentError()
         try:
-            payment_intent = contribution.create_stripe_one_time_payment_intent(
-                metadata=self.get_stripe_payment_metadata(contributor.id, validated_data),
-            )
+            payment_intent = contribution.create_stripe_one_time_payment_intent()
         except StripeError:
             logger.exception(
                 "CreateOneTimePaymentSerializer.create encountered a Stripe error while attempting to create a payment intent for contribution with id %s",
@@ -544,12 +548,13 @@ class CreateRecurringPaymentSerializer(BaseCreatePaymentSerializer):
         try:
             if contribution.status == ContributionStatus.FLAGGED:
                 client_secret = contribution.create_stripe_setup_intent(
-                    metadata=self.get_stripe_payment_metadata(contributor.id, validated_data),
+                    metadata=contribution.contribution_metadata,
                 )["client_secret"]
             else:
-                client_secret = contribution.create_stripe_subscription(
-                    metadata=self.get_stripe_payment_metadata(contributor.id, validated_data),
-                )["latest_invoice"]["payment_intent"]["client_secret"]
+                client_secret = contribution.create_stripe_subscription(metadata=contribution.contribution_metadata,)[
+                    "latest_invoice"
+                ]["payment_intent"]["client_secret"]
+
         except StripeError:
             logger.exception(
                 "RecurringPaymentSerializer.create encountered a Stripe error while attempting to create client_secret for contribution with id %s",

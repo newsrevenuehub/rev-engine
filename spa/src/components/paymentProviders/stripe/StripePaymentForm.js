@@ -11,6 +11,8 @@ import DonationPageDisclaimer from 'components/donationPage/DonationPageDisclaim
 import { getFrequencyThankYouText } from 'utilities/parseFrequency';
 import { getPaymentSuccessUrl, getPaymentElementButtonText } from './stripeFns';
 
+export const STRIPE_ERROR_MESSAGE = 'Something went wrong processing your payment';
+
 function StripePaymentForm() {
   const {
     page,
@@ -66,22 +68,35 @@ function StripePaymentForm() {
       pathName: pathname,
       contributionUuid
     });
-    // The stripe client secret will start with `seti_` if the contribution is recurring and was flagged on initial creation.
-    // In that case, instead of creating a Stripe Subscription, we create a Stripe SetupIntent, which allows us to
-    // create a subscription in the future using the payment method the user supplies in checkout. Otherwise, the client
-    // secret will start with `pi_` which is an abbreviation for PaymentIntent.
-    const { error } = await stripe[stripeClientSecret.startsWith('seti_') ? 'confirmSetup' : 'confirmPayment']({
-      elements,
-      confirmParams: { return_url, payment_method_data: { billing_details: stripeBillingDetails } }
-    });
-
-    // The Stripe docs note that this point will only be reached if there is an
-    // immediate error when confirming the payment. Otherwise, contributor gets redirected
-    // to `return_url` before the promise above ever resolves.
-    if (!['card_error', 'validation_error'].includes(error?.type)) {
-      alert.error('An unexpected error occurred');
+    try {
+      // The stripe client secret will start with `seti_` if the contribution is recurring and was flagged on initial creation.
+      // In that case, instead of creating a Stripe Subscription, we create a Stripe SetupIntent, which allows us to
+      // create a subscription in the future using the payment method the user supplies in checkout. Otherwise, the client
+      // secret will start with `pi_` which is an abbreviation for PaymentIntent.
+      const { error } = await stripe[stripeClientSecret.startsWith('seti_') ? 'confirmSetup' : 'confirmPayment']({
+        elements,
+        confirmParams: { return_url, payment_method_data: { billing_details: stripeBillingDetails } }
+      });
+      // The Stripe docs note that this point will only be reached if there is an
+      // immediate error when confirming the payment. Otherwise, contributor gets redirected
+      // to `return_url` before the promise above ever resolves.
+      if (error) {
+        const errorMessage =
+          error.type === 'card_error' || error.type === 'validation_error' ? error.message : STRIPE_ERROR_MESSAGE;
+        alert.error(errorMessage);
+      }
+    } catch (e) {
+      // NB: Our usual expectation is that "expected" errors will be caught by Stripe JS itself in try block
+      // and returned as `error`. In practice, we've encountered one Sentry error where a non-promise error
+      // occurred and the checkout silently failed (see https://news-revenue-hub.atlassian.net/browse/DEV-2869
+      // for more context). This catch ensures that the user will be minimally notified that things went wrong.
+      //
+      // TODO: [DEV-2921] update this console.error copy after DEV-2342 has landed to account for setup intent
+      console.error('Something unexpected happened finalizing Stripe payment');
+      alert.error(STRIPE_ERROR_MESSAGE);
+    } finally {
+      setIsLoading(false);
     }
-    setIsLoading(false);
   };
 
   // for full options, see: https://stripe.com/docs/js/elements_object/create_payment_element

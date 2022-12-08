@@ -31,16 +31,22 @@ from apps.pages.tests.factories import DonationPageFactory
 
 class ContributionSerializer(TestCase):
     expected_fields = [
-        "id",
+        "amount",
+        "auto_accepted_on",
+        "bad_actor_score",
         "contributor_email",
         "created",
-        "amount",
         "currency",
+        "donation_page_id",
+        "flagged_date",
+        "formatted_payment_provider_used",
+        "id",
         "interval",
         "last_payment_date",
-        "bad_actor_score",
-        "flagged_date",
-        "auto_accepted_on",
+        "provider_customer_url",
+        "provider_payment_url",
+        "provider_subscription_url",
+        "revenue_program",
         "status",
     ]
 
@@ -53,8 +59,7 @@ class ContributionSerializer(TestCase):
 
     def test_returned_fields(self):
         data = self.serializer(self.contribution).data
-        for field in self.expected_fields:
-            self.assertIn(field, data)
+        assert set(data.keys()) == set(self.expected_fields)
 
     def test_get_auto_accepted_on(self):
         # Should return null if empty
@@ -572,7 +577,7 @@ class TestBaseCreatePaymentSerializer:
                 donation_page_with_unrequired_reason_for_giving_element_and_presets
             ),
         ).id
-        serializer = self.serializer_class(data=data)
+        serializer = self.serializer_class(data=data, context={"request": APIRequestFactory().post("")})
         assert serializer.is_valid() is expect_valid
         if expect_valid is False:
             assert set(serializer.errors.keys()) == set(["reason_for_giving"])
@@ -611,7 +616,7 @@ class TestBaseCreatePaymentSerializer:
                 donation_page_with_conditionally_required_phone_element
             ),
         ).id
-        serializer = self.serializer_class(data=data)
+        serializer = self.serializer_class(data=data, context={"request": APIRequestFactory().post("")})
         assert serializer.is_valid() is expect_valid
         if expect_valid is False:
             assert set(serializer.errors.keys()) == set(["phone"])
@@ -627,7 +632,7 @@ class TestBaseCreatePaymentSerializer:
     )
     def test_validate_tribute_type(self, input_data, expect_valid, minimally_valid_data):
         data = minimally_valid_data | input_data
-        serializer = self.serializer_class(data=data)
+        serializer = self.serializer_class(data=data, context={"request": APIRequestFactory().post("")})
         assert serializer.is_valid() is expect_valid
         if expect_valid is False:
             assert set(serializer.errors.keys()) == set(["tribute_type"])
@@ -644,7 +649,7 @@ class TestBaseCreatePaymentSerializer:
     def test_validate_honoree(self, input_data, expect_valid, minimally_valid_data):
         """Show `honoree` cannot be blank when `tribute_type` is `type_honoree`"""
         data = minimally_valid_data | input_data
-        serializer = self.serializer_class(data=data)
+        serializer = self.serializer_class(data=data, context={"request": APIRequestFactory().post("")})
         assert serializer.is_valid() is expect_valid
         if expect_valid is False:
             assert set(serializer.errors.keys()) == set(["honoree"])
@@ -662,7 +667,7 @@ class TestBaseCreatePaymentSerializer:
     def test_validate_in_memory_of(self, input_data, expect_valid, minimally_valid_data):
         """Show `in_memory_of` cannot be blank when `tribute_type` is `type_in_memory_of`"""
         data = minimally_valid_data | input_data
-        serializer = self.serializer_class(data=data)
+        serializer = self.serializer_class(data=data, context={"request": APIRequestFactory().post("")})
         assert serializer.is_valid() is expect_valid
         if expect_valid is False:
             assert set(serializer.errors.keys()) == set(["in_memory_of"])
@@ -694,7 +699,7 @@ class TestBaseCreatePaymentSerializer:
             | input_data
             | {"page": donation_page_with_unrequired_reason_for_giving_element_and_presets.id}
         )
-        serializer = self.serializer_class(data=data)
+        serializer = self.serializer_class(data=data, context={"request": APIRequestFactory().post("")})
         assert serializer.is_valid() is True
         assert serializer.validated_data["reason_for_giving"] == expected_resolved_value
 
@@ -776,7 +781,8 @@ class TestBaseCreatePaymentSerializer:
         contribution_count = Contribution.objects.count()
         bad_actor_data = {"overall_judgment": settings.BAD_ACTOR_FLAG_SCORE - 1}
         contributor = ContributorFactory()
-        serializer = self.serializer_class(data=minimally_valid_data)
+
+        serializer = self.serializer_class(data=minimally_valid_data, context={"request": APIRequestFactory().post("")})
         assert serializer.is_valid() is True
         contribution = serializer.create_contribution(contributor, serializer.validated_data, bad_actor_data)
         assert Contribution.objects.count() == contribution_count + 1
@@ -799,7 +805,7 @@ class TestBaseCreatePaymentSerializer:
         contribution_count = Contribution.objects.count()
         bad_actor_data = {"overall_judgment": settings.BAD_ACTOR_FLAG_SCORE}
         contributor = ContributorFactory()
-        serializer = self.serializer_class(data=minimally_valid_data)
+        serializer = self.serializer_class(data=minimally_valid_data, context={"request": APIRequestFactory().post("")})
         assert serializer.is_valid() is True
         contribution = serializer.create_contribution(contributor, serializer.validated_data, bad_actor_data)
         assert Contribution.objects.count() == contribution_count + 1
@@ -822,7 +828,7 @@ class TestBaseCreatePaymentSerializer:
         contribution_count = Contribution.objects.count()
         bad_actor_data = {"overall_judgment": settings.BAD_ACTOR_REJECT_SCORE}
         contributor = ContributorFactory()
-        serializer = self.serializer_class(data=minimally_valid_data)
+        serializer = self.serializer_class(data=minimally_valid_data, context={"request": APIRequestFactory().post("")})
         assert serializer.is_valid() is True
         contribution = serializer.create_contribution(contributor, serializer.validated_data, bad_actor_data)
         assert Contribution.objects.count() == contribution_count + 1
@@ -845,7 +851,7 @@ class TestBaseCreatePaymentSerializer:
         contribution_count = Contribution.objects.count()
         bad_actor_data = None
         contributor = ContributorFactory()
-        serializer = self.serializer_class(data=minimally_valid_data)
+        serializer = self.serializer_class(data=minimally_valid_data, context={"request": APIRequestFactory().post("")})
         assert serializer.is_valid() is True
         contribution = serializer.create_contribution(contributor, serializer.validated_data, bad_actor_data)
         assert Contribution.objects.count() == contribution_count + 1
@@ -890,7 +896,7 @@ class TestCreateOneTimePaymentSerializer:
         Namely, it should:
 
         - create a contributor
-        - create a contribution
+        - create a contribution that has contribution_metadata
         - add bad actor score to contribution
         - not flag the contribution
         - Create a Stripe Customer
@@ -932,6 +938,7 @@ class TestCreateOneTimePaymentSerializer:
         assert contribution.status == ContributionStatus.PROCESSING
         assert contribution.flagged_date is None
         assert contribution.bad_actor_response == MockBadActorResponseObjectNotBad.mock_bad_actor_response_json
+        assert contribution.contribution_metadata is not None
 
     def test_when_stripe_errors_creating_payment_intent(self, minimally_valid_data, monkeypatch):
         """Demonstrate `.create` when there's a Stripe error when creating payment intent
@@ -965,6 +972,7 @@ class TestCreateOneTimePaymentSerializer:
         assert contributor.contribution_set.count() == 1
         contribution = contributor.contribution_set.first()
         assert contribution.status == ContributionStatus.PROCESSING
+        assert contribution.contribution_metadata is not None
 
     def test_when_stripe_errors_creating_customer(self, minimally_valid_data, monkeypatch):
         """Demonstrate `.create` when there's a Stripe error when creating customer
@@ -996,6 +1004,7 @@ class TestCreateOneTimePaymentSerializer:
         assert contributor.contribution_set.count() == 1
         contribution = contributor.contribution_set.first()
         assert contribution.status == ContributionStatus.PROCESSING
+        assert contribution.contribution_metadata is not None
 
     def test_when_contribution_is_flagged(self, minimally_valid_data, monkeypatch):
         """Demonstrate `.create` when the contribution gets flagged
@@ -1082,6 +1091,7 @@ class TestCreateOneTimePaymentSerializer:
         assert contribution.flagged_date is None
         assert contribution.provider_customer_id is None
         assert contribution.provider_payment_id is None
+        assert contribution.contribution_metadata is not None
 
 
 @pytest.mark.django_db
@@ -1103,7 +1113,7 @@ class TestCreateRecurringPaymentSerializer:
         Namely, it should:
 
         - create a contributor
-        - create a contribution
+        - create a contribution that has contribution_metadata
         - add bad actor score to contribution
         - not flag the contribution
         - create a Stripe Customer
@@ -1144,6 +1154,7 @@ class TestCreateRecurringPaymentSerializer:
         assert contribution.bad_actor_response == MockBadActorResponseObjectNotBad.mock_bad_actor_response_json
         assert contribution.payment_provider_data == mock_create_stripe_subscription.return_value
         assert contribution.provider_subscription_id == mock_create_stripe_subscription.return_value["id"]
+        assert contribution.contribution_metadata is not None
 
     def test_when_stripe_errors_creating_subscription(self, minimally_valid_data, monkeypatch):
         """Demonstrate `.create` when there's a Stripe error when creating subscription
@@ -1178,6 +1189,7 @@ class TestCreateRecurringPaymentSerializer:
         assert contribution.provider_customer_id == mock_create_stripe_customer.return_value["id"]
         assert contribution.provider_subscription_id is None
         assert contribution.payment_provider_data is None
+        assert contribution.contribution_metadata is not None
 
     def test_when_stripe_errors_creating_customer(self, monkeypatch, minimally_valid_data):
         """Demonstrate `.create` when there's a Stripe error when creating customer
@@ -1211,6 +1223,7 @@ class TestCreateRecurringPaymentSerializer:
         assert contribution.provider_customer_id is None
         assert contribution.provider_subscription_id is None
         assert contribution.payment_provider_data is None
+        assert contribution.contribution_metadata is not None
 
     def test_when_contribution_is_flagged(self, minimally_valid_data, monkeypatch):
         """Demonstrate `.create` when the contribution gets flagged.
@@ -1288,6 +1301,7 @@ class TestCreateRecurringPaymentSerializer:
         assert contribution.provider_subscription_id is None
         assert contribution.provider_customer_id is None
         assert contribution.payment_provider_data is None
+        assert contribution.contribution_metadata is not None
 
 
 class SubscriptionsSerializer(TestCase):

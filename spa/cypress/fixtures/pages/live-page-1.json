@@ -138,6 +138,7 @@
       "inputBackground": "#fff",
       "inputBorder": "#c3c3c3"
     },
+    "name": "mock-style",
     "ruleStyle": "dotted"
   },
   "revenue_program": {

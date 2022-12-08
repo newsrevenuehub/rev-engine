@@ -550,6 +550,25 @@ describe('Edit interface: Styles', () => {
     cy.getByTestId('edit-style-tab').click({ force: true });
   });
 
+  it("disables the Undo button if the user hasn't made a change", () => {
+    cy.findByRole('button', { name: 'Undo' }).should('be.disabled');
+  });
+
+  it('enables the Undo button when the user makes a change', () => {
+    cy.findByLabelText('Choose from existing styles', { selector: 'input' }).click();
+    cy.findByText('----none----').click();
+    cy.findByRole('button', { name: 'Undo' }).should('not.be.disabled');
+  });
+
+  it('resets changes when the Undo button is clicked', () => {
+    cy.findByLabelText('Choose from existing styles', { selector: 'input' }).should('have.value', 'mock-style');
+    cy.findByLabelText('Choose from existing styles', { selector: 'input' }).click();
+    cy.findByText('----none----').click();
+    cy.findByLabelText('Choose from existing styles', { selector: 'input' }).should('have.value', '----none----');
+    cy.findByRole('button', { name: 'Undo' }).click();
+    cy.findByLabelText('Choose from existing styles', { selector: 'input' }).should('have.value', 'mock-style');
+  });
+
   describe('When creating a new style', () => {
     beforeEach(() => {
       cy.intercept({ method: 'GET', pathname: getEndpoint(LIST_FONTS) }, { body: [] });

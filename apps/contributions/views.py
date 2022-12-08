@@ -11,7 +11,7 @@ import stripe
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import mixins, status, viewsets
 from rest_framework.decorators import action, api_view, authentication_classes, permission_classes
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAdminUser, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.serializers import ValidationError
 from stripe.error import StripeError
@@ -284,7 +284,7 @@ class ContributionsViewSet(viewsets.ReadOnlyModelViewSet, FilterQuerySetByUserMi
         methods=["post"],
         url_path="email-contributions",
         detail=False,
-        permission_classes=[HasRoleAssignment, IsAuthenticated, ~IsContributor],
+        permission_classes=[IsAuthenticated, IsAdminUser | (HasRoleAssignment & ~IsContributor)],
     )
     def email_contributions(self, request):
         """Endpoint to send contributions as a csv file to the user request.

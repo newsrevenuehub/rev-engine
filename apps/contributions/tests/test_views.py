@@ -1,3 +1,5 @@
+from csv import DictReader
+from csv import Error as CSVError
 from unittest import mock
 
 from django.conf import settings
@@ -361,6 +363,63 @@ class TestContributorContributionsViewSet(AbstractTestCase):
         response = self.client.get(reverse("contribution-list"), {"rp": self.org1_rp2.slug})
         contribution_ids = [contribution["id"] for contribution in response.json()["results"]]
         assert self.contribution_4.id not in contribution_ids
+
+
+class TestContributionsViewSetExportCSV(AbstractTestCase):
+    def setUp(self):
+        super().setUp()
+        self.set_up_domain_model()
+
+    def email_contributions(self, user):
+        self.client.force_authenticate(user=user)
+        return self.client.post(reverse("contribution-email-contributions"))
+
+    def test_user_without_role(self):
+        self.generic_user.roleassignment = None
+        response = self.email_contributions(self.generic_user)
+        assert response.status_code == 403
+
+    @mock.patch("apps.contributions.views.send_templated_email_with_attachment.delay")
+    def test_user_with_role(self, email_mock):
+        response = self.email_contributions(self.org_user)
+        assert response.status_code == 200
+
+        response = self.email_contributions(self.org_user)
+        assert response.status_code == 200
+
+        response = self.email_contributions(self.hub_user)
+        assert response.status_code == 200
+
+        response = self.email_contributions(self.contributor_user)
+        assert response.status_code == 403
+
+    @mock.patch("apps.contributions.views.send_templated_email_with_attachment.delay")
+    def test_data_in_csv_matching_with_contributions_list(self, email_mock):
+        self.client.force_authenticate(user=self.org_user)
+        contributions_from_list_view = self.client.get(reverse("contribution-list")).json()["results"]
+
+        self.email_contributions(self.org_user).json()
+
+        contributions_from_email_view = [
+            row for row in DictReader(email_mock.call_args_list[0].kwargs["attachment"].splitlines())
+        ]
+
+        assert len(contributions_from_email_view) == len(contributions_from_list_view)
+        assert set(int(x["Contribution ID"]) for x in contributions_from_email_view) == set(
+            x["id"] for x in contributions_from_list_view
+        )
+
+    @mock.patch("apps.contributions.views.send_templated_email_with_attachment.delay", side_effect=Exception)
+    @mock.patch("apps.contributions.views.export_contributions_to_csv")
+    def test_when_error(self, csv_maker, email_task):
+        response = self.email_contributions(self.org_user)
+        response.status_code = 500
+
+        csv_error_text = "Something went wrong generating CSV export"
+        csv_maker.side_effect = CSVError(csv_error_text)
+        response = self.email_contributions(self.org_user)
+        response.status_code = 500
+        assert response.json()["detail"] == csv_error_text
 
 
 class TestSubscriptionViewSet(AbstractTestCase):

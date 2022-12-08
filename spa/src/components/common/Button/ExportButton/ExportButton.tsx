@@ -24,24 +24,20 @@ const ExportButton = ({ className, ...rest }: ExportButtonProps) => {
   const exportData = useCallback(() => {
     setLoading(true);
     setTimeout(() => setLoading(false), 30000);
-    // TODO: update endpoint when ticket DEV-2230 is done
-    console.log(requestExportData);
-    // requestExportData(
-    //   {
-    //     method: 'PATCH',
-    //     url: 'export data url'
-    //   },
-    //   {
-    //     onSuccess: () => {
-    //       console.log('success');
-    //     },
-    //     onFailure: (e: any) => {
-    //       setLoading(false);
-    //       alert.error(GENERIC_ERROR);
-    //     }
-    //   }
-    // );
-  }, [alert]);
+    requestExportData(
+      {
+        method: 'GET',
+        url: 'contributions/email-contributions'
+      },
+      {
+        onSuccess: () => {},
+        onFailure: (e: any) => {
+          setLoading(false);
+          alert.error(GENERIC_ERROR);
+        }
+      }
+    );
+  }, [alert, requestExportData]);
 
   return (
     <Flex className={className!}>

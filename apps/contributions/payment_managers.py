@@ -128,7 +128,10 @@ class StripePaymentManager(PaymentManager):
     def complete_recurring_payment(self, reject=False):
         if reject:
             try:
-                setup_intent = stripe.SetupIntent.retrieve(self.contribution.provider_setup_intent_id)
+                setup_intent = stripe.SetupIntent.retrieve(
+                    self.contribution.provider_setup_intent_id,
+                    stripe_account=self.contribution.donation_page.revenue_program.stripe_account_id,
+                )
                 stripe.PaymentMethod.retrieve(
                     setup_intent["payment_method"],
                     stripe_account=self.contribution.donation_page.revenue_program.stripe_account_id,

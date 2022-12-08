@@ -30,7 +30,8 @@ function PageStyles({ backToProperties }) {
   };
 
   const handleDiscardChanges = () => {
-    backToProperties();
+    console.log('Undoing styles');
+    setStyles(page.styles);
   };
 
   const handleAddNewStyles = (newStyles) => {
@@ -48,7 +49,12 @@ function PageStyles({ backToProperties }) {
       <Controls>
         <StylesChooser styles={availableStyles} selected={styles} setSelected={setStyles} />
       </Controls>
-      <EditSaveControls onCancel={handleDiscardChanges} onUpdate={handleKeepChanges} variant="undo" />
+      <EditSaveControls
+        cancelDisabled={styles === page.styles}
+        onCancel={handleDiscardChanges}
+        onUpdate={handleKeepChanges}
+        variant="undo"
+      />
       <AddStylesModal
         isOpen={addStylesModalOpen}
         closeModal={handleAddStylesModalClose}

@@ -190,6 +190,7 @@ class RequestContributorTokenEmailView(APIView):
             {
                 "magic_link": mark_safe(magic_link),
                 "email": serializer.validated_data["email"],
+                "static_root": f"{settings.DOMAIN_APEX}{settings.MEDIA_URL}",
             },
         )
         # Email is async task. We won't know if it succeeds or not so optimistically send OK.

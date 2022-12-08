@@ -1,16 +1,12 @@
 import { useState } from 'react';
-import * as S from './PageSetup.styled';
+import { Controls, ImageSelectorHelpText, ImageSelectorWrapper, InputWrapper, Root } from './PageSetup.styled';
 
 // Context
 import { usePageEditorContext } from 'components/pageEditor/PageEditor';
 import { useEditInterfaceContext } from 'components/pageEditor/editInterface/EditInterface';
-import { useConfirmationModalContext } from 'elements/modal/GlobalConfirmationModal';
-
-// Deps
-import { isBefore, isAfter } from 'date-fns';
 
 // Children
-import ImageWithPreview from 'elements/inputs/ImageWithPreview';
+import ImageUpload from 'components/base/ImageUpload/ImageUpload';
 import Input from 'elements/inputs/Input';
 import EditSaveControls from '../EditSaveControls';
 import EditTabHeader from '../EditTabHeader';
@@ -23,13 +19,20 @@ import EditTabHeader from '../EditTabHeader';
  * PageSetup is the direct child of EditInterface.
  */
 function PageSetup({ backToProperties }) {
-  const getUserConfirmation = useConfirmationModalContext();
   const { page, errors } = usePageEditorContext();
   const { setPageContent } = useEditInterfaceContext();
 
   // Form state
   const [heading, setPageHeading] = useState(page.heading);
-  const [images, setImages] = useState({});
+
+  // We only initially set thumbnails based on the page to keep clear whether
+  // the user has actually made changes.
+
+  const [images, setImages] = useState({
+    graphic_thumbnail: page.graphic_thumbnail,
+    header_bg_image_thumbnail: page.header_bg_image_thumbnail,
+    header_logo_thumbnail: page.header_logo_thumbnail
+  });
   const [header_link, setHeaderLink] = useState(page.header_link);
   const [thank_you_redirect, setThankYouRedirect] = useState(page.thank_you_redirect);
   const [post_thank_you_redirect, setPostThankYouRedirect] = useState(page.post_thank_you_redirect);
@@ -37,10 +40,6 @@ function PageSetup({ backToProperties }) {
   const [published_date] = useState(page.published_date ? new Date(page.published_date) : undefined);
 
   const handleKeepChanges = () => {
-    verifyUnpublish(updatePage);
-  };
-
-  const updatePage = () => {
     setPageContent({
       heading,
       ...images,
@@ -54,23 +53,20 @@ function PageSetup({ backToProperties }) {
   };
 
   const handleDiscardChanges = () => {
+    setPageHeading(page.heading);
+    setImages({
+      graphic_thumbnail: page.graphic_thumbnail,
+      header_bg_image_thumbnail: page.header_bg_image_thumbnail,
+      header_logo_thumbnail: page.header_logo_thumbnail
+    });
+    setHeaderLink(page.header_link);
+    setPostThankYouRedirect(page.post_thank_you_redirect);
+    setThankYouRedirect(page.thank_you_redirect);
     setPageContent({});
-    backToProperties();
   };
 
-  const handleImageChange = (type, file) => {
-    setImages({ ...images, [type]: file });
-  };
-
-  const verifyUnpublish = (cb) => {
-    // If a page was previously published, but we're now setting it to a future date, warn.
-    const pageOriginallyPublished = page.published_date && isBefore(new Date(page.published_date), new Date());
-    const newDateAfterNow = published_date && isAfter(new Date(published_date), new Date());
-    if (pageOriginallyPublished && newDateAfterNow) {
-      getUserConfirmation('This page is currently live. Unpublish this page?', cb);
-    } else {
-      cb();
-    }
+  const handleImageChange = (type, file, thumbnailUrl) => {
+    setImages({ ...images, [type]: file, [`${type}_thumbnail`]: thumbnailUrl });
   };
 
   let showLogoInput = false;
@@ -85,62 +81,85 @@ function PageSetup({ backToProperties }) {
     showLogoInput = true;
   }
 
+  // If nothing has been changed from the page object, then the user can't use
+  // the Undo button. The image properties will only have values if the user has
+  // chosen a new image.
+
+  const cancelDisabled =
+    header_link === page.header_link &&
+    heading === page.heading &&
+    !images.graphic &&
+    !images.header_bg_image &&
+    !images.header_bg_image &&
+    !images.header_logo &&
+    post_thank_you_redirect === page.post_thank_you_redirect &&
+    thank_you_redirect === page.thank_you_redirect;
+
   return (
-    <S.PageSetup data-testid="page-setup">
+    <Root data-testid="page-setup">
       <EditTabHeader prompt="Configure page settings here. These settings are page specific." />
-      <S.Controls>
-        <S.ImageSelectorWrapper>
-          <ImageWithPreview
-            thumbnail={page.header_bg_image_thumbnail}
-            onChange={(file) => handleImageChange('header_bg_image', file)}
+      <Controls>
+        <ImageSelectorWrapper>
+          <ImageUpload
+            id="page-setup-header_bg_image"
+            onChange={(file, thumbnailUrl) => handleImageChange('header_bg_image', file, thumbnailUrl)}
             label="Main header background"
-            helpText="Background of header bar"
-            errors={errors.header_bg_image}
+            prompt="Choose an image"
+            thumbnailUrl={images.header_bg_image_thumbnail}
+            value={images.header_bg_image}
           />
-        </S.ImageSelectorWrapper>
-        <S.ImageSelectorWrapper>
-          <ImageWithPreview
-            thumbnail={page.header_logo_thumbnail}
-            onChange={(file) => handleImageChange('header_logo', file)}
+          <ImageSelectorHelpText>Background of header bar</ImageSelectorHelpText>
+        </ImageSelectorWrapper>
+        <ImageSelectorWrapper>
+          <ImageUpload
+            id="page-setup-header_logo"
+            onChange={(file, thumbnailUrl) => handleImageChange('header_logo', file, thumbnailUrl)}
             label="Main header logo"
-            helpText="Logo to display in header. Please choose a horizontally-oriented logo with minimal padding. Images will be scaled down to a height of 50 px."
-            errors={errors.header_logo_thumbnail}
+            prompt="Choose an image"
+            thumbnailUrl={images.header_logo_thumbnail}
+            value={images.header_logo}
           />
-        </S.ImageSelectorWrapper>
+          <ImageSelectorHelpText>
+            Logo to display in header. Please choose a horizontally-oriented logo with minimal padding. Images will be
+            scaled down to a height of 50 px.
+          </ImageSelectorHelpText>
+        </ImageSelectorWrapper>
         {showLogoInput && (
-          <S.InputWrapper border>
+          <InputWrapper border>
             <Input
               type="text"
               label="Logo link"
               value={header_link}
               helpText="Where does clicking your logo take your users?"
               onChange={(e) => setHeaderLink(e.target.value)}
-              errors={errors.header_link}
               testid="logo-link-input"
             />
-          </S.InputWrapper>
+          </InputWrapper>
         )}
-        <S.InputWrapper border>
+        <InputWrapper border>
           <Input
-            type="text"
+            type="ext"
             label="Form panel heading"
             value={heading}
             onChange={(e) => setPageHeading(e.target.value)}
             testid="setup-heading-input"
             errors={errors.heading}
           />
-        </S.InputWrapper>
-        <S.ImageSelectorWrapper>
-          <ImageWithPreview
-            thumbnail={page.graphic_thumbnail}
-            onChange={(file) => handleImageChange('graphic', file)}
+        </InputWrapper>
+        <ImageSelectorWrapper>
+          <ImageUpload
+            id="page-setup-graphic"
+            onChange={(file, thumbnailUrl) => handleImageChange('graphic', file, thumbnailUrl)}
             label="Graphic"
-            helpText="Graphic displays below form panel heading"
-            errors={errors.graphic_thumbnail}
+            errors={errors.graphic}
+            prompt="Choose an image"
+            thumbnailUrl={images.graphic_thumbnail}
+            value={images.graphic}
           />
-        </S.ImageSelectorWrapper>
+          <ImageSelectorHelpText>Graphic displays below form panel heading</ImageSelectorHelpText>
+        </ImageSelectorWrapper>
         {page.plan.custom_thank_you_page_enabled && (
-          <S.InputWrapper>
+          <InputWrapper>
             <Input
               label="Thank You page link"
               helpText='If you have a "Thank You" page of your own, add a link here'
@@ -149,9 +168,9 @@ function PageSetup({ backToProperties }) {
               errors={errors.thank_you_redirect}
               testid="thank-you-redirect-link-input"
             />
-          </S.InputWrapper>
+          </InputWrapper>
         )}
-        <S.InputWrapper border>
+        <InputWrapper border>
           <Input
             label="Post Thank You redirect"
             helpText="If using our default Thank You page, where should we redirect your contributors afterward?"
@@ -159,10 +178,15 @@ function PageSetup({ backToProperties }) {
             onChange={(e) => setPostThankYouRedirect(e.target.value)}
             errors={errors.post_thank_you_redirect}
           />
-        </S.InputWrapper>
-      </S.Controls>
-      <EditSaveControls onCancel={handleDiscardChanges} onUpdate={handleKeepChanges} variant="undo" />
-    </S.PageSetup>
+        </InputWrapper>
+      </Controls>
+      <EditSaveControls
+        cancelDisabled={cancelDisabled}
+        onCancel={handleDiscardChanges}
+        onUpdate={handleKeepChanges}
+        variant="undo"
+      />
+    </Root>
   );
 }
 

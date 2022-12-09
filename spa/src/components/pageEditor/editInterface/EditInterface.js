@@ -170,10 +170,10 @@ function EditInterface() {
                 />
               </TabPanel>
               <TabPanel active={tab === 2} id="edit-setup-tab-panel" tabId="edit-setup-tab">
-                <PageSetup backToProperties={() => setTab(0)} />
+                <PageSetup />
               </TabPanel>
               <TabPanel active={tab === 3} id="edit-styles-tab-panel" tabId="edit-styles-tab">
-                <PageStyles backToProperties={() => setTab(0)} />
+                <PageStyles />
               </TabPanel>
             </>
           )}

@@ -12,7 +12,7 @@ import AddStylesModal from 'components/pageEditor/editInterface/pageStyles/AddSt
 import EditSaveControls from '../EditSaveControls';
 import EditTabHeader from '../EditTabHeader';
 
-function PageStyles({ backToProperties }) {
+function PageStyles() {
   const { page, availableStyles, setAvailableStyles } = usePageEditorContext();
   const { setPageContent } = useEditInterfaceContext();
   const {
@@ -26,11 +26,9 @@ function PageStyles({ backToProperties }) {
 
   const handleKeepChanges = () => {
     setPageContent({ styles });
-    backToProperties();
   };
 
   const handleDiscardChanges = () => {
-    console.log('Undoing styles');
     setStyles(page.styles);
   };
 

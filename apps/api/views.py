@@ -1,4 +1,5 @@
 import logging
+import os
 from datetime import datetime
 from urllib.parse import quote_plus, urlparse
 
@@ -191,8 +192,10 @@ class RequestContributorTokenEmailView(APIView):
             {
                 "magic_link": mark_safe(magic_link),
                 "email": serializer.validated_data["email"],
-                # Note on why needs to be this way
-                # "logo_url": "NewsRevenueHub-Horizontal.png",
+                # Because this is an email template and not being hydrated in request context (i.e., happens
+                # in async task queue), using `{ static 'NewsRevenueHub...' }` won't work here. Need
+                # to fully spell out the value that will be sent to template.
+                "logo_url": os.path.join(settings.SITE_URL, "static", "NewsRevenueHub-Horizontal.png"),
             },
         )
         # Email is async task. We won't know if it succeeds or not so optimistically send OK.

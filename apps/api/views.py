@@ -184,7 +184,6 @@ class RequestContributorTokenEmailView(APIView):
         logger.info(
             "Sending magic link email to [%s] | magic link: [%s]", serializer.validated_data["email"], magic_link
         )
-        path = PurePath(settings.SITE_URL)
         send_templated_email.delay(
             serializer.validated_data["email"],
             "Manage your contributions",
@@ -193,8 +192,7 @@ class RequestContributorTokenEmailView(APIView):
             {
                 "magic_link": mark_safe(magic_link),
                 "email": serializer.validated_data["email"],
-                # Note on why needs to be this way
-                "logo_url": str(path / settings.MEDIA_URL / "NewsRevenueHub-Horizontal.png"),
+                "logo_url": str(PurePath(settings.SITE_URL, settings.MEDIA_URL, "NewsRevenueHub-Horizontal.png")),
             },
         )
         # Email is async task. We won't know if it succeeds or not so optimistically send OK.

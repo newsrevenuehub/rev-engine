@@ -18,7 +18,7 @@ import EditTabHeader from '../EditTabHeader';
  *
  * PageSetup is the direct child of EditInterface.
  */
-function PageSetup({ backToProperties }) {
+function PageSetup() {
   const { page, errors } = usePageEditorContext();
   const { setPageContent } = useEditInterfaceContext();
 
@@ -49,7 +49,6 @@ function PageSetup({ backToProperties }) {
       donor_benefits,
       published_date
     });
-    backToProperties();
   };
 
   const handleDiscardChanges = () => {

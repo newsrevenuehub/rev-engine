@@ -1,6 +1,6 @@
 import logging
+import os
 from datetime import datetime
-from pathlib import PurePath
 from urllib.parse import quote_plus, urlparse
 
 from django.conf import settings
@@ -193,7 +193,7 @@ class RequestContributorTokenEmailView(APIView):
                 "magic_link": mark_safe(magic_link),
                 "email": serializer.validated_data["email"],
                 # Note on why needs to be this way
-                "logo_url": str(PurePath(settings.SITE_URL, "NewsRevenueHub-Horizontal.png")),
+                "logo_url": os.path.join(settings.SITE_URL, "NewsRevenueHub-Horizontal.png"),
             },
         )
         # Email is async task. We won't know if it succeeds or not so optimistically send OK.

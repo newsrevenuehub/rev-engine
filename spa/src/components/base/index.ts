@@ -1,5 +1,6 @@
 export * from './Button/Button';
 export * from './Checkbox/Checkbox';
+export * from './ColorPicker/ColorPicker';
 export * from './FormControlLabel/FormControlLabel';
 export * from './Modal';
 export * from './OffscreenText/OffscreenText';

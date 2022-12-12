@@ -12,7 +12,6 @@ import { faSave, faTimes, faTrash } from '@fortawesome/free-solid-svg-icons';
 // Deps
 import { GENERIC_ERROR } from 'constants/textConstants';
 import { useAlert } from 'react-alert';
-import { ChromePicker } from 'react-color';
 
 // Hooks
 import useWebFonts from 'hooks/useWebFonts';
@@ -23,6 +22,7 @@ import { useConfirmationModalContext } from 'elements/modal/GlobalConfirmationMo
 
 // Children
 import CircleButton from 'elements/buttons/CircleButton';
+import LabeledColorPicker from './LabeledColorPicker';
 import Select from 'elements/inputs/Select';
 
 const UNIQUE_NAME_ERROR = 'The fields name, organization must make a unique set.';
@@ -52,8 +52,8 @@ function StylesEditor({ styles, setStyles, handleKeepChanges, handleDiscardChang
     setStyles({ ...styles, name });
   };
 
-  const setColor = (colorName, color) => {
-    setStyles({ ...styles, colors: { ...styles.colors, [colorName]: color.hex } });
+  const setColor = (colorName, value) => {
+    setStyles({ ...styles, colors: { ...styles.colors, [colorName]: value } });
   };
 
   const setRadii = (_e, radiiBase) => {
@@ -205,46 +205,46 @@ function StylesEditor({ styles, setStyles, handleKeepChanges, handleDiscardChang
         )}
         <StylesFieldset label="Colors">
           <S.FieldRow>
-            <ColorPicker
+            <LabeledColorPicker
               label="Main header"
-              value={styles?.colors?.cstm_mainHeader || ''}
-              onChange={(color) => setColor('cstm_mainHeader', color)}
+              onChange={(event) => setColor('cstm_mainHeader', event.target.value)}
+              value={styles?.colors?.cstm_mainHeader ?? ''}
             />
           </S.FieldRow>
           <S.FieldRow>
-            <ColorPicker
+            <LabeledColorPicker
               label="Main background"
-              value={styles?.colors?.cstm_mainBackground || ''}
-              onChange={(color) => setColor('cstm_mainBackground', color)}
+              onChange={(event) => setColor('cstm_mainBackground', event.target.value)}
+              value={styles?.colors?.cstm_mainBackground ?? ''}
             />
-            <ColorPicker
+            <LabeledColorPicker
               label="Form panel background"
-              value={styles?.colors?.cstm_formPanelBackground || ''}
-              onChange={(color) => setColor('cstm_formPanelBackground', color)}
+              onChange={(event) => setColor('cstm_formPanelBackground', event.target.value)}
+              value={styles?.colors?.cstm_formPanelBackground ?? ''}
             />
           </S.FieldRow>
           <S.FieldRow>
-            <ColorPicker
+            <LabeledColorPicker
               label="CTAs"
-              value={styles?.colors?.cstm_CTAs || ''}
-              onChange={(color) => setColor('cstm_CTAs', color)}
+              onChange={(event) => setColor('cstm_CTAs', event.target.value)}
+              value={styles?.colors?.cstm_CTAs ?? ''}
             />
-            <ColorPicker
+            <LabeledColorPicker
               label="Ornaments"
-              value={styles?.colors?.cstm_ornaments || ''}
-              onChange={(color) => setColor('cstm_ornaments', color)}
+              onChange={(event) => setColor('cstm_ornaments', event.target.value)}
+              value={styles?.colors?.cstm_ornaments ?? ''}
             />
           </S.FieldRow>
           <S.FieldRow>
-            <ColorPicker
+            <LabeledColorPicker
               label="Input background"
-              value={styles?.colors?.cstm_inputBackground || ''}
-              onChange={(color) => setColor('cstm_inputBackground', color)}
+              onChange={(event) => setColor('cstm_inputBackground', event.target.value)}
+              value={styles?.colors?.cstm_inputBackground ?? ''}
             />
-            <ColorPicker
+            <LabeledColorPicker
               label="Input border"
-              value={styles?.colors?.cstm_inputBorder || ''}
-              onChange={(color) => setColor('cstm_inputBorder', color)}
+              onChange={(event) => setColor('cstm_inputBorder', event.target.value)}
+              value={styles?.colors?.cstm_inputBorder ?? ''}
             />
           </S.FieldRow>
         </StylesFieldset>
@@ -324,39 +324,6 @@ function StylesFieldset({ label, description, children, ...props }) {
       {description && <S.FieldsetDescription>{description}</S.FieldsetDescription>}
       {children}
     </S.StylesFieldset>
-  );
-}
-
-function ColorPicker({ label, helpText, value, onChange }) {
-  const [colorPickerOpen, setColorPickerOpen] = useState(false);
-  const [internalValue, setIntervalValue] = useState({ hex: value });
-
-  const closePicker = () => {
-    onChange(internalValue);
-    setColorPickerOpen(false);
-  };
-
-  return (
-    <>
-      <S.ColorPickerWrapper>
-        {label && <Label>{label}</Label>}
-        <S.ColorButtonWrapper>
-          <S.ColorButton onClick={() => setColorPickerOpen(true)}>
-            <S.ColorButtonSwatch color={internalValue.hex || '#fff'} />
-            <S.ColorButtonHex color={internalValue.hex || '#fff'}>
-              {internalValue.hex || <S.NoColor>Select a color...</S.NoColor>}
-            </S.ColorButtonHex>
-          </S.ColorButton>
-        </S.ColorButtonWrapper>
-        {helpText && <HelpText>{helpText}</HelpText>}
-        {colorPickerOpen && (
-          <S.PickerWrapper>
-            <ChromePicker color={internalValue} onChange={setIntervalValue} disableAlpha />
-          </S.PickerWrapper>
-        )}
-      </S.ColorPickerWrapper>
-      {colorPickerOpen && <S.PickerOverlay onClick={closePicker} />}
-    </>
   );
 }
 

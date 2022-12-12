@@ -21,7 +21,7 @@ export const IconButton = styled(MuiIconButton)`
 `;
 
 export const Label = styled.label`
-  font-size: 16px;
+  font-size: ${({ theme }) => theme.fontSizesUpdated.md};
   font-weight: 500;
   padding-bottom: 0.5rem;
   grid-area: label;

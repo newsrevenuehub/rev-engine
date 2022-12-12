@@ -100,6 +100,7 @@ function PageEditor() {
     }
   }, []);
 
+  const [availableStylesRpId, setAvailableStylesRpId] = useState();
   const [availableStyles, setAvailableStyles] = useState([]);
 
   const pageTitle = useMemo(
@@ -174,14 +175,18 @@ function PageEditor() {
   }, [pageId, parameters.revProgramSlug, parameters.pageSlug, handleGetPageFailure]);
 
   useEffect(() => {
-    const rpId = page?.revenue_program?.id;
+    // If the revenue program of the page is either available after loading or
+    // has changed, load styles associated with the RP.
 
-    if (rpId) {
+    const rpId = page?.revenue_program?.id;
+    if (rpId && rpId !== availableStylesRpId) {
       setLoading(true);
+      setAvailableStylesRpId(rpId);
       requestGetPageStyles(
         { method: 'GET', url: LIST_STYLES, params: { revenue_program: rpId } },
         {
           onSuccess: ({ data }) => {
+            console.log(data);
             setAvailableStyles(data);
             setLoading(false);
           },
@@ -192,7 +197,7 @@ function PageEditor() {
       );
     }
     // Don't include requestGetPageStyles for now.
-  }, [page]);
+  }, [availableStylesRpId, page]);
 
   const handlePreview = () => {
     setSelectedButton(PREVIEW);

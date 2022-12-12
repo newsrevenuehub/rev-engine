@@ -137,7 +137,7 @@ function PageSetup() {
         )}
         <InputWrapper border>
           <Input
-            type="ext"
+            type="text"
             label="Form panel heading"
             value={heading}
             onChange={(e) => setPageHeading(e.target.value)}

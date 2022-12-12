@@ -66,9 +66,6 @@ export function ImageUpload(props: ImageUploadProps) {
       };
 
       fileReader.readAsDataURL(image);
-    } else {
-      // User didn't select a file, perhaps?
-      onChange();
     }
   }
 

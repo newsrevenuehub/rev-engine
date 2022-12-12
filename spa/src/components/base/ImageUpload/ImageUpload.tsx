@@ -22,6 +22,17 @@ export interface ImageUploadProps extends InferProps<typeof ImageUploadPropTypes
   onChange: (value?: File, thumbnailUrl?: string) => void;
 }
 
+/**
+ * A form control allowing the user to choose an image. The value that the user
+ * sees is fully controlled, but there is a DOM input used to manage changes
+ * whose state may not reflect the value. (This can cause confusion when writing
+ * E2E tests.)
+ *
+ * In most cases, `value` and `thumbnailUrl` should either both be provided or
+ * neither. However, you can specify just a `thumbnailUrl` if you want the
+ * preview of the input to match a state previously saved to the back end. The
+ * remove button will be enabled in this case.
+ */
 export function ImageUpload(props: ImageUploadProps) {
   const {
     accept = 'image/gif,image/jpeg,image/png,image/svg+xml,image/webp',
@@ -71,7 +82,7 @@ export function ImageUpload(props: ImageUploadProps) {
       <IconButton onClick={clickOnHiddenInput} aria-label="Change">
         <UploadIcon icon={faFileUpload} />
       </IconButton>
-      <IconButton disabled={!value} onClick={() => onChange()} aria-label="Remove">
+      <IconButton disabled={!thumbnailUrl && !value} onClick={() => onChange()} aria-label="Remove">
         <RemoveIcon icon={faTimes} />
       </IconButton>
     </Root>

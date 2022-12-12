@@ -2,13 +2,13 @@ import * as S from './StylesChooser.styled';
 import Select from 'elements/inputs/Select';
 
 function StylesChooser({ styles = [], selected, setSelected }) {
-  // selectedItem is coerced to an empty string if it's null to prevent React
-  // from treating the select as an uncontrolled component.
   return (
     <S.StylesChooser>
       <Select
         label="Choose from existing styles"
         onSelectedItemChange={({ selectedItem }) => setSelected(selectedItem)}
+        // selectedItem is coerced to an empty string if it's null to prevent React
+        // from treating the select as an uncontrolled component.
         selectedItem={selected === null ? '' : selected}
         items={[{ name: '----none----', id: '' }].concat(styles)}
         itemToString={(i) => i.name}

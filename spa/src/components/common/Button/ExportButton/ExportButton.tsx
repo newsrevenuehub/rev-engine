@@ -24,15 +24,16 @@ const ExportButton = ({ className, ...rest }: ExportButtonProps) => {
 
   const exportData = useCallback(() => {
     setLoading(true);
-    setTimeout(() => setLoading(false), 30000);
     requestExportData(
       {
         method: 'POST',
         url: `${CONTRIBUTIONS}${EMAIL_CONTRIBUTIONS}`
       },
       {
-        onSuccess: () => {},
-        onFailure: (e: any) => {
+        onSuccess: () => {
+          setTimeout(() => setLoading(false), 30000);
+        },
+        onFailure: () => {
           setLoading(false);
           alert.error(GENERIC_ERROR);
         }

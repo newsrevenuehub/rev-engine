@@ -150,7 +150,7 @@ def unarchive(entity_type: Literal["connection", "destination"], id: str):
 
 
 def bootstrap(name: str, destination_url: str):
-    logger.info("Upserting a destination with name %s", name)
+    logger.info("Upserting a destination with name %s and url %s", name, destination_url)
     destination = upsert_destination(name=name, url=destination_url)
     logger.info("Upserting connection with name %s", name)
     upsert_connection(name, settings.HOOKDECK_STRIPE_WEBHOOK_SOURCE, destination["id"])
@@ -159,9 +159,17 @@ def bootstrap(name: str, destination_url: str):
 def tear_down(
     ticket_prefix: str,
 ):
-    for x in search_destinations(name=ticket_prefix)["models"]:
-        logger.info("Archiving destination #%s, %s", x["id"], x["name"])
-        archive("destination", x["id"])
-    for x in search_connections(name=ticket_prefix)["models"]:
-        logger.info("Archiving connection #%s, %s", x["id"], x["name"])
-        archive("connection", x["id"])
+    dests = search_destinations(name=ticket_prefix)["models"]
+    if not dests:
+        logger.info("No destinations found for ticket with prefix %s found", ticket_prefix)
+    else:
+        for x in dests:
+            logger.info("Archiving destination #%s, %s", x["id"], x["name"])
+            archive("destination", x["id"])
+    conns = search_connections(name=ticket_prefix)["models"]
+    if not conns:
+        logger.info("No connections found for ticket with prefix %s", ticket_prefix)
+    else:
+        for x in conns:
+            logger.info("Archiving connection #%s, %s", x["id"], x["name"])
+            archive("connection", x["id"])

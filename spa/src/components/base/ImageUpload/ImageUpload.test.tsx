@@ -74,9 +74,18 @@ describe('ImageUpload', () => {
       expect(onChange.mock.calls).toEqual([[mockFile, expect.any(String)]]);
     });
 
-    it('disables the remove button', () => {
+    it('enables the remove button', () => {
       tree({ thumbnailUrl: 'mock-thumbnail' });
-      expect(screen.getByRole('button', { name: 'Remove' })).toBeDisabled();
+      expect(screen.getByRole('button', { name: 'Remove' })).not.toBeDisabled();
+    });
+
+    it('calls the onChange prop with no arguments when the remove button is clicked', () => {
+      const onChange = jest.fn();
+
+      tree({ onChange, thumbnailUrl: 'mock-thumbnail' });
+      expect(onChange).not.toBeCalled();
+      fireEvent.click(screen.getByRole('button', { name: 'Remove' }));
+      expect(onChange.mock.calls).toEqual([[]]);
     });
 
     it('is accessible', async () => {

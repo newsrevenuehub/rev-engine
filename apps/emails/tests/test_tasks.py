@@ -29,27 +29,26 @@ class TestSendThankYouEmail:
         mock_create_magic_link.return_value = magic_link
         monkeypatch.setattr("apps.contributions.models.Contributor.create_magic_link", mock_create_magic_link)
         send_thank_you_email(contribution.id)
-        assert mock_send_email.called_once_with(
-            contribution.contributor.email,
-            "Thank you for your contribution!",
-            "nrh-default-contribution-confirmation-email.txt",
-            "nrh-default-contribution-confirmation-email.html",
-            {
-                "contribution_date": convert_to_timezone_formatted(contribution.created, "America/New_York"),
-                "contributor_email": contribution.contributor.email,
-                "contribution_amount": contribution.formatted_amount,
-                "contribution_interval": contribution.interval,
-                "contribution_interval_display_value": contribution.interval
-                if contribution.interval != "one_time"
-                else None,
-                "copyright_year": contribution.created.year,
-                "org_name": contribution.revenue_program.organization.name,
-                "contributor_name": customer.name,
-                "non_profit": contribution.revenue_program.non_profit,
-                "tax_id": contribution.revenue_program.tax_id,
-                "magic_link": magic_link,
-            },
-        )
+        assert mock_send_email.called_once()
+        assert mock_send_email.call_args[0][0] == contribution.contributor.email
+        assert mock_send_email.call_args[0][1] == "Thank you for your contribution!"
+        assert mock_send_email.call_args[0][2] == "nrh-default-contribution-confirmation-email.txt"
+        assert mock_send_email.call_args[0][3] == "nrh-default-contribution-confirmation-email.html"
+        assert mock_send_email.call_args[0][4] == {
+            "contribution_date": contribution.created.strftime("%m-%d-%y"),
+            "contributor_email": contribution.contributor.email,
+            "contribution_amount": contribution.formatted_amount,
+            "contribution_interval": contribution.interval,
+            "contribution_interval_display_value": contribution.interval
+            if contribution.interval != "one_time"
+            else None,
+            "copyright_year": contribution.created.year,
+            "rp_name": contribution.revenue_program.name,
+            "contributor_name": customer.name,
+            "non_profit": contribution.revenue_program.non_profit,
+            "tax_id": contribution.revenue_program.tax_id,
+            "magic_link": magic_link,
+        }
 
     def test_when_contribution_not_exist(self):
         contribution_id = "999"

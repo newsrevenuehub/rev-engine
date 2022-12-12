@@ -34,11 +34,11 @@ function StripePaymentWrapper({ onError }: StripePaymentWrapperProps) {
   // https://stripe.com/docs/connect/authentication#adding-the-connected-account-id-to-a-client-side-application
 
   useEffect(() => {
-    async function init() {
+    async function init(stripeAccount: string) {
       try {
         // Have to cast because TypeScript doesn't understand we checked
         // stripeAccount before running this function.
-        const loadedStripe = await loadStripe(HUB_STRIPE_API_PUB_KEY, { stripeAccount: stripeAccount as string });
+        const loadedStripe = await loadStripe(HUB_STRIPE_API_PUB_KEY, { stripeAccount });
 
         if (loadedStripe) {
           setStripe(loadedStripe);
@@ -56,7 +56,7 @@ function StripePaymentWrapper({ onError }: StripePaymentWrapperProps) {
 
     if (stripeAccount && !inited) {
       setInited(true);
-      init();
+      init(stripeAccount);
     }
   }, [inited, onError, stripeAccount]);
 

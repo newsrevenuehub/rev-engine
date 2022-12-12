@@ -410,6 +410,9 @@ STRIPE_WEBHOOK_EVENTS = [
     "customer.subscription.deleted",
 ]
 
+HOOKDECK_API_KEY = os.getenv("HOOKDECK_API_KEY", "")
+HOOKDECK_STRIPE_WEBHOOK_SOURCE = os.getenv("HOOKDECK_STRIPE_WEBHOOK_SOURCE", "")
+
 ### django-healthcheck Settings
 # This URL will get pinged when in the `auto_accept_flagged_contributions``
 # task. Which ensures the task completes on a schedule.

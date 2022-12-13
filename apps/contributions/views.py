@@ -103,7 +103,7 @@ def process_stripe_webhook_view(request):
     payload = request.body
     sig_header = request.META["HTTP_STRIPE_SIGNATURE"]
     event = None
-    logger.info("In process webhook.")
+    logger.info("In process webhook. stripe signature is %s and request body is %s", sig_header, payload)
     try:
         logger.info("Constructing event.")
         event = stripe.Webhook.construct_event(payload, sig_header, settings.STRIPE_WEBHOOK_SECRET)

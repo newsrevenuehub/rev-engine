@@ -403,5 +403,5 @@ def test_contribution_send_recurring_contribution_email_reminder_email_text(
         soup = BeautifulSoup(mail.outbox[0].alternatives[0][0], "html.parser")
         as_string = " ".join([x.replace("\xa0", " ").strip() for x in soup.get_text().splitlines() if x])
         assert x in as_string
-    assert "Manage contributions here." in soup.find("a", href=magic_link).text
+    assert "Manage contributions here" in soup.find("a", href=magic_link).text
     assert magic_link in mail.outbox[0].body

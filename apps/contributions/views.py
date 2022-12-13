@@ -284,7 +284,7 @@ class ContributionsViewSet(viewsets.ReadOnlyModelViewSet, FilterQuerySetByUserMi
         methods=["post"],
         url_path="email-contributions",
         detail=False,
-        permission_classes=[IsAuthenticated, IsAdminUser | (HasRoleAssignment & ~IsContributor)],
+        permission_classes=[~IsContributor, IsAuthenticated, IsAdminUser | HasRoleAssignment],
     )
     def email_contributions(self, request):
         """Endpoint to send contributions as a csv file to the user request.

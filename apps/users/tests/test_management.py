@@ -1,3 +1,4 @@
+import os
 from unittest.mock import Mock, patch
 
 from django.conf import settings
@@ -36,7 +37,9 @@ def test_bootstrap_review_app_bootstraps_hookdeck(monkeypatch):
     mock_bootstrap_hookdeck = Mock()
     monkeypatch.setattr("apps.common.hookdeck.bootstrap", mock_bootstrap_hookdeck)
     call_command("bootstrap-review-app")
-    mock_bootstrap_hookdeck.assert_called_once_with("dev-9999", f"{settings.SITE_URL}{reverse('stripe-webhooks')}")
+    mock_bootstrap_hookdeck.assert_called_once_with(
+        "dev-9999", os.path.join(settings.SITE_URL, reverse("stripe-webhooks"))
+    )
 
 
 # NB, for some reason couldn't get this test to work as a pytest test not using `TestCase`.

@@ -14,6 +14,9 @@ export interface DonationPage {
      */
     symbol?: string;
   };
+  payment_provider: {
+    stripe_account_id: string | null;
+  };
   revenue_program: {
     name: string;
   };
@@ -36,6 +39,7 @@ export interface UsePageProps {
    */
   page: DonationPage;
   setUserAgreesToPayFees: Dispatch<SetStateAction<boolean>>;
+  stripeClientSecret: string;
   /**
    * Has the user agreed to pay payment processing fees?
    */

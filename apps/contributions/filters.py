@@ -29,6 +29,7 @@ class ContributionFilter(django_filters.FilterSet):
             ("status__not", "status__not"),
             ("interval", "interval"),
             ("auto_accept_on", "auto_accept_on"),
+            ("donation_page__revenue_program__name", "revenue_program__name"),
         )
     )
 

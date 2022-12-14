@@ -1,0 +1,33 @@
+{
+  "detail": "success",
+  "user": {
+    "id": 1,
+    "email": "org-admin@some-org.com",
+    "email_verified": true,
+    "flags": [],
+    "role_type": ["org_admin", "Org Admin"],
+    "organizations": [
+      {
+        "id": 11,
+        "name": "My Org",
+        "slug": "my-org",
+        "plan": {
+          "name": "PLUS",
+          "label": "Plus",
+          "page_limit": 10,
+          "style_limit": 10
+        }
+      }
+    ],
+    "revenue_programs": [
+      {
+        "id": 1,
+        "name": "Some Rev Program",
+        "slug": "some-rev-program",
+        "organization": 1,
+        "payment_provider_stripe_verified": true
+      }
+    ]
+  },
+  "csrftoken": "ZgynND503GQ3Dkyy3xMBHoExWftlTIjDe5znbDLACDH55g49FYrbFKuOJFBA9W6Y"
+}

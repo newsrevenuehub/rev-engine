@@ -17,6 +17,8 @@ rps = RevenueProgram.objects.all()
 
 def run():
     for rp in rps:
+        if not rp.payment_provider:
+            continue
         acct = rp.payment_provider.stripe_account_id
         if not acct:
             continue
@@ -24,6 +26,7 @@ def run():
         try:
             domains = stripe.ApplePayDomain.list(stripe_account=acct)
         except stripe.error.PermissionError:
+            print(f"error listing domain for {rp}")
             continue
 
         names = [x.domain_name for x in domains.data]

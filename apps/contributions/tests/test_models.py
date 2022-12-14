@@ -2,6 +2,7 @@ import datetime
 from unittest.mock import Mock, patch
 from urllib.parse import quote_plus
 
+from django.conf import settings
 from django.core import mail
 from django.test import TestCase, override_settings
 from django.utils import timezone
@@ -288,6 +289,40 @@ class ContributionTest(TestCase):
         self.contribution.handle_thank_you_email()
         mock_send_email.assert_not_called()
 
+    def test_stripe_metadata(self):
+        referer = "https://somewhere.com"
+        campaign_id = "some-id"
+        contribution = ContributionFactory()
+        validated_data = {
+            "agreed_to_pay_fees": True,
+            "donor_selected_amount": "120",
+            "reason_for_giving": "reason",
+            "honoree": None,
+            "in_memory_of": None,
+            "comp_subscription": False,
+            "swag_opt_out": True,
+            "swag_choice": None,
+            "page": contribution.donation_page,
+            "sf_campaign_id": campaign_id,
+        }
+        assert Contribution.stripe_metadata(contribution.contributor, validated_data, referer) == {
+            "source": settings.METADATA_SOURCE,
+            "schema_version": settings.METADATA_SCHEMA_VERSION,
+            "contributor_id": contribution.contributor.id,
+            "agreed_to_pay_fees": validated_data["agreed_to_pay_fees"],
+            "donor_selected_amount": validated_data["donor_selected_amount"],
+            "reason_for_giving": validated_data["reason_for_giving"],
+            "honoree": validated_data["honoree"],
+            "in_memory_of": validated_data["in_memory_of"],
+            "comp_subscription": validated_data["comp_subscription"],
+            "swag_opt_out": validated_data["swag_opt_out"],
+            "swag_choice": validated_data["swag_choice"],
+            "referer": referer,
+            "revenue_program_id": validated_data["page"].revenue_program.id,
+            "revenue_program_slug": validated_data["page"].revenue_program.slug,
+            "sf_campaign_id": validated_data["sf_campaign_id"],
+        }
+
 
 @pytest.mark.django_db()
 @pytest.mark.parametrize(
@@ -330,11 +365,10 @@ def test_contribution_send_recurring_contribution_email_reminder(interval, expec
                 "rp_name": contribution.donation_page.revenue_program.name,
                 "charge_date": next_charge_date.strftime("%m/%d/%Y"),
                 "contribution_amount": contribution.formatted_amount,
-                "contribution_interval": contribution.interval,
+                "contribution_interval": contribution.interval.value,
                 "is_non_profit": contribution.donation_page.revenue_program.non_profit,
                 "contributor_email": contribution.contributor.email,
-                # todo -- update this after DEV-2519 merged
-                "tax_id": "tax-id-coming-soon",
+                "tax_id": contribution.donation_page.revenue_program.tax_id,
                 "magic_link": magic_link,
             },
         )
@@ -346,8 +380,7 @@ def test_contribution_send_recurring_contribution_email_reminder(interval, expec
             f"Interval: {contribution.interval}",
             f"Is non-profit: {str(contribution.donation_page.revenue_program.non_profit)}",
             f"Contributor email: {contribution.contributor.email}",
-            # todo -- update this after DEV-2519 merged
-            "Tax id: tax-id-coming-soon",
+            f"Tax id: {contribution.donation_page.revenue_program.tax_id}",
             f"Magic link: {magic_link}",
         ]
         for x in email_expectations:

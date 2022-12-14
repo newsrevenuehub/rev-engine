@@ -20,3 +20,14 @@ export const Flex = styled.div`
     flex-direction: column;
   }
 `;
+
+export const RightAction = styled.div`
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 12px;
+
+  @media (${(props) => props.theme.breakpoints.tabletLandscapeDown}) {
+    flex-direction: column;
+  }
+`;

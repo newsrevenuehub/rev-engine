@@ -35,7 +35,7 @@ class TestSendThankYouEmail:
         assert mock_send_email.call_args[0][2] == "nrh-default-contribution-confirmation-email.txt"
         assert mock_send_email.call_args[0][3] == "nrh-default-contribution-confirmation-email.html"
         assert mock_send_email.call_args[0][4] == {
-            "contribution_date": contribution.created.strftime("%m-%d-%y"),
+            "contribution_date": convert_to_timezone_formatted(contribution.created, "America/New_York"),
             "contributor_email": contribution.contributor.email,
             "contribution_amount": contribution.formatted_amount,
             "contribution_interval": contribution.interval,

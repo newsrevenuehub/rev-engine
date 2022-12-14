@@ -1,5 +1,5 @@
 const Content = {
-  heading: 'We’ve helped raise $67 million for our clients',
+  heading: 'We’ve helped raise $70 million for our clients',
   advantages: [
     {
       svg: 'ACCOUNT_ACC_BALANCE',

@@ -1,5 +1,5 @@
 import { useQuery, UseQueryResult } from '@tanstack/react-query';
-import { useCallback, useMemo } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { useAlert } from 'react-alert';
 
 import axios from 'ajax/axios';
@@ -30,6 +30,15 @@ export interface UseConnectStripeAccountResult {
    * If the Stripe account isn't verified, why?
    */
   unverifiedReason?: UnverifiedReason;
+  /**
+   * Used to signal that connection success has occurred and alert user
+   */
+  displayConnectionSuccess: boolean;
+  /**
+   * Used to flip `displayConnectionSuccess` to false, in particular
+   * after a user acknowledges.
+   */
+  hideConnectionSuccess: () => void;
 }
 
 /**
@@ -56,6 +65,9 @@ export default function useConnectStripeAccount(): UseConnectStripeAccountResult
   const alert = useAlert();
   const { refetch: refetchUser, user, isError: userIsError, isLoading: userIsLoading } = useUser();
   const history = useHistory();
+  const [displayConnectionSuccess, setDisplayConnectionSuccess] = useState(false);
+  const hideConnectionSuccess = () => setDisplayConnectionSuccess(false);
+
   const rpIdToFetch = useMemo(() => {
     // If the user is not an org admin or the RP has been verified, we don't need to go any further
     // Users can only have one revenue program right now.
@@ -87,6 +99,7 @@ export default function useConnectStripeAccount(): UseConnectStripeAccountResult
           // program should now appear as having Stripe verified, which will in
           // turn hide the Stripe Account Link CTAs.
           refetchUser();
+          setDisplayConnectionSuccess(true);
         }
       },
       onError: (err: Error) => {
@@ -112,19 +125,33 @@ export default function useConnectStripeAccount(): UseConnectStripeAccountResult
   // If the user is loading or errored, return that status.
 
   if (userIsLoading || userIsError) {
-    return { isError: userIsError, isLoading: userIsLoading };
+    return { isError: userIsError, isLoading: userIsLoading, displayConnectionSuccess, hideConnectionSuccess };
   }
 
   // If the user has no revenue programs, return that there's no action to take.
 
   if (!user?.revenue_programs || user.revenue_programs.length === 0) {
-    return { isError: false, isLoading: false, requiresVerification: false, stripeConnectStarted: false };
+    return {
+      isError: false,
+      isLoading: false,
+      requiresVerification: false,
+      stripeConnectStarted: false,
+      displayConnectionSuccess,
+      hideConnectionSuccess
+    };
   }
 
   // If the revenue program is verified, return that status.
 
   if (user?.revenue_programs[0].payment_provider_stripe_verified) {
-    return { isError: false, isLoading: false, requiresVerification: false, stripeConnectStarted: false };
+    return {
+      isError: false,
+      isLoading: false,
+      requiresVerification: false,
+      stripeConnectStarted: false,
+      displayConnectionSuccess,
+      hideConnectionSuccess
+    };
   }
 
   // We have a user and are either fetching their Stripe status or have it.
@@ -135,6 +162,8 @@ export default function useConnectStripeAccount(): UseConnectStripeAccountResult
     sendUserToStripe: data?.url ? sendUserToStripe : undefined,
     requiresVerification: data?.requiresVerification,
     stripeConnectStarted: data?.stripeConnectStarted,
-    unverifiedReason: data?.reason
+    unverifiedReason: data?.reason,
+    displayConnectionSuccess,
+    hideConnectionSuccess
   };
 }

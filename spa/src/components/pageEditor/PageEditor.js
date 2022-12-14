@@ -186,7 +186,6 @@ function PageEditor() {
         { method: 'GET', url: LIST_STYLES, params: { revenue_program: rpId } },
         {
           onSuccess: ({ data }) => {
-            console.log(data);
             setAvailableStyles(data);
             setLoading(false);
           },

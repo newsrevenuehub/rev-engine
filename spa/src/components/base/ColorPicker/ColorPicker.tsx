@@ -61,7 +61,7 @@ const Swatch = styled.div`
 const ValueLabel = styled.div`
   align-items: center;
   display: grid;
-  font-size: 16px;
+  font-size: ${({ theme }) => theme.fontSizesUpdated.md};
   font-weight: 200;
   justify-content: center;
   pointer-events: none;

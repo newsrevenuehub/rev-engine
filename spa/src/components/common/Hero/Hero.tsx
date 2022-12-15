@@ -10,7 +10,7 @@ export type HeroProps = InferProps<typeof HeroPropTypes>;
 
 const Hero = ({ title, subtitle, onChange, placeholder, className, exportData }: HeroProps) => {
   const classes = useStyles();
-  const showExport = !!exportData?.transactions && !!exportData.email;
+  const showExport = !!exportData?.email;
 
   return (
     <Flex className={className!}>
@@ -31,7 +31,7 @@ const HeroPropTypes = {
   className: PropTypes.string,
   exportData: PropTypes.shape({
     transactions: PropTypes.number,
-    email: PropTypes.string
+    email: PropTypes.string.isRequired
   })
 };
 

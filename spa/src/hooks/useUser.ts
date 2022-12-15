@@ -46,7 +46,7 @@ function useUser(): UserHookResult {
     // stored in localstorage. We should update the localstorage data each time user
     // is refetched so it isn't stale.
     onSuccess: (data: User) => {
-      Sentry.setUser({ email: data.email, id: data.id });
+      Sentry.setUser({ email: data.email, id: data.id, ip_address: '{{auto}}' });
       localStorage.setItem(LS_USER, JSON.stringify(data));
     },
     onError: (err) => {

@@ -5,6 +5,8 @@ import { fireEvent, render, screen, waitFor } from 'test-utils';
 import Axios from 'ajax/axios';
 import { useSnackbar } from 'notistack';
 
+import { CONTRIBUTIONS, EMAIL_CONTRIBUTIONS } from 'ajax/endpoints';
+
 import ExportButton from './ExportButton';
 
 jest.mock('notistack', () => ({
@@ -64,7 +66,7 @@ describe('ExportButton', () => {
 
   it('should show success system notification if export is confirmed in modal and succeeds', async () => {
     tree();
-    axiosMock.onPatch(`mock-url`).reply(200);
+    axiosMock.onPost(`${CONTRIBUTIONS}${EMAIL_CONTRIBUTIONS}`).reply(200);
     await openModal();
 
     fireEvent.click(screen.getByRole('button', { name: /Export/i }));
@@ -81,7 +83,7 @@ describe('ExportButton', () => {
 
   it('should show error system notification if export is confirmed in modal and fails', async () => {
     tree();
-    axiosMock.onPatch().networkError();
+    axiosMock.onPost().networkError();
     await openModal();
 
     fireEvent.click(screen.getByRole('button', { name: /Export/i }));
@@ -98,7 +100,7 @@ describe('ExportButton', () => {
 
   it('should show tooltip on the export button if it is disabled', async () => {
     tree();
-    axiosMock.onPatch(`mock-url`).reply(200);
+    axiosMock.onPost(`${CONTRIBUTIONS}${EMAIL_CONTRIBUTIONS}`).reply(200);
     await openModal();
 
     fireEvent.click(screen.getByTestId('modal-export-button'));

@@ -1,15 +1,31 @@
-<!DOCTYPE html>
-<html>
+{% extends "nrh-default-contribution-base-template.html" %}
 
-<body>
-  RP name: {{rp_name}}
-  Charge date: {{ charge_date }}
-  Amount: {{ contribution_amount }}
-  Interval: {{ contribution_interval }}
-  Is non-profit: {{ is_non_profit }}
-  Contributor email: {{ contributor_email }}
-  Tax id: {{ tax_id }}
-  Magic link: {% autoescape off %}{{ magic_link }}{% endautoescape %}
-</body>
+{% block custom_style %}
+<style type="text/css">
+  .template-header {
+    font-family: Roboto, sans-serif;
+    color: #282828;
+    font-size: 30px;
+  }
 
-</html>
+  .template-margin-bot {
+    margin-top: 8px;
+    margin-bottom: 32px;
+  }
+
+  .template-margin-top {
+    margin-top: 32px;
+  }
+</style>
+{% endblock custom_style %}
+
+{% block header %}
+<tr>
+  <td style="padding-right: 0px;padding-left: 0px;" align="left">
+    <p class="template-header inner-center template-margin-top">{{ rp_name }}</p>
+    <h1 class="template-header inner-center template-margin-bot">Scheduled Contribution</h1>
+  </td>
+</tr>
+{% endblock header %}
+
+{% block contribution_date_label %}Scheduled{% endblock contribution_date_label %}

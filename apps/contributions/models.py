@@ -372,14 +372,13 @@ class Contribution(IndexedTimeStampedModel, RoleAssignmentResourceModelMixin):
             {
                 "rp_name": self.donation_page.revenue_program.name,
                 # nb, we have to send this as pre-formatted because this data will be serialized
-                # when sent to the Celery worker
-                "charge_date": next_charge_date.strftime("%m/%d/%Y"),
+                # when sent to the Celery worker.
+                "contribution_date": next_charge_date.strftime("%m/%d/%Y"),
                 "contribution_amount": self.formatted_amount,
-                "contribution_interval": self.interval.value,
-                "is_non_profit": self.donation_page.revenue_program.non_profit,
+                "contribution_interval_display_value": self.interval,
+                "non_profit": self.donation_page.revenue_program.non_profit,
                 "contributor_email": self.contributor.email,
-                # todo -- update this after DEV-2519 merged
-                "tax_id": getattr(self.donation_page.revenue_program, "tax_id", "tax-id-coming-soon"),
+                "tax_id": self.donation_page.revenue_program.tax_id,
                 "magic_link": mark_safe(
                     f"https://{construct_rp_domain(self.donation_page.revenue_program.slug)}/{settings.CONTRIBUTOR_VERIFY_URL}"
                     f"?token={token}&email={quote_plus(self.contributor.email)}"

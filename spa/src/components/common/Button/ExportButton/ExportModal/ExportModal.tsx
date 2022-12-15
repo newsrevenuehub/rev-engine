@@ -26,7 +26,7 @@ const ExportModal = ({ open, onClose, onExport, transactions, email }: ExportMod
       </ModalHeader>
       <ModalContent>
         <p style={{ margin: 0 }}>
-          Your exporting <i>{transactions}</i> transactions. When the export is complete, we will email it to{' '}
+          You're exporting <i>{transactions}</i> transactions. When the export is complete, we will email it to{' '}
           <b>{email}</b>.
         </p>
       </ModalContent>

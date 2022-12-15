@@ -372,7 +372,7 @@ class Contribution(IndexedTimeStampedModel, RoleAssignmentResourceModelMixin):
             {
                 "rp_name": self.donation_page.revenue_program.name,
                 # nb, we have to send this as pre-formatted because this data will be serialized
-                # when sent to the Celery worker
+                # when sent to the Celery worker.
                 "contribution_date": next_charge_date.strftime("%m/%d/%Y"),
                 "contribution_amount": self.formatted_amount,
                 "contribution_interval_display_value": self.interval,

@@ -4,7 +4,7 @@ import HeaderSection from 'components/common/HeaderSection';
 import Searchbar from 'components/common/TextField/Searchbar';
 
 import useStyles, { Flex, RightAction } from './Hero.styled';
-import ExportButton from '../Button/ExportButton';
+import ExportButton from 'components/common/Button/ExportButton';
 
 export type HeroProps = InferProps<typeof HeroPropTypes>;
 

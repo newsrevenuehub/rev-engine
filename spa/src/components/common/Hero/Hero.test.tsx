@@ -2,6 +2,10 @@ import { axe } from 'jest-axe';
 import { render, screen } from 'test-utils';
 import Hero, { HeroProps } from './Hero';
 
+jest.mock('components/common/Button/ExportButton', () => () => {
+  return <button>mock-export-button</button>;
+});
+
 const heroTitle = 'Page title';
 const heroSubtitle = 'This is the page subtitle';
 const heroPlaceholder = 'placeholder value';
@@ -29,12 +33,12 @@ describe('Hero', () => {
 
   it('should render export if exportData is received', () => {
     tree({ exportData: { email: 'mock-email', transactions: 1234 } });
-    expect(screen.getByRole('button', { name: /Export/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'mock-export-button' })).toBeInTheDocument();
   });
 
   it('should render export even if exportData.transactions is 0', () => {
     tree({ exportData: { email: 'mock-email', transactions: 0 } });
-    expect(screen.getByRole('button', { name: /Export/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'mock-export-button' })).toBeInTheDocument();
   });
 
   it('should be accessible', async () => {

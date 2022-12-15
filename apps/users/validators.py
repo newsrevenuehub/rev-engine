@@ -2,6 +2,9 @@ from rest_framework import serializers
 
 
 def tax_id_validator(value):
+    # this field is nullable
+    if value is None:
+        return
     if not isinstance(value, str):
         raise serializers.ValidationError("Value must be a string")
     if len(value) != 9:

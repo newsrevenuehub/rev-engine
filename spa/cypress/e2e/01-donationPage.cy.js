@@ -12,6 +12,7 @@ import * as freqUtils from 'utilities/parseFrequency';
 import calculateStripeFee from 'utilities/calculateStripeFee';
 import { DEFAULT_BACK_BUTTON_TEXT } from 'components/common/Button/BackButton/BackButton';
 import { CANCEL_PAYMENT_FAILURE_MESSAGE } from 'components/donationPage/DonationPage';
+import { STRIPE_ERROR_MESSAGE } from 'components/paymentProviders/stripe/StripePaymentForm';
 
 const pageSlug = 'page-slug';
 const expectedPageSlug = `${pageSlug}/`;
@@ -367,9 +368,7 @@ const fakeStripeSecret = 'pi_3LgkV1pOaLul7_secret_QcpIANR9d6';
 
 describe('User flow: happy path', () => {
   beforeEach(() => {
-    // We intercept requests for Google Recaptcha because in test env, sometimes the live recaptcha returns an error
-    // (possibly because we load it too many times successively???), which was causing test failure else where.
-    cy.intercept({ method: 'GET', url: 'https://www.google.com/recaptcha/*' }, { statusCode: 200 });
+    cy.interceptGoogleRecaptcha();
     cy.visitDonationPage();
   });
   for (const payFees of [true, false]) {
@@ -621,9 +620,7 @@ describe('User flow: happy path', () => {
 
 describe('User flow: canceling contribution', () => {
   beforeEach(() => {
-    // We intercept requests for Google Recaptcha because in test env, sometimes the live recaptcha returns an error
-    // (possibly because we load it too many times successively???), which was causing test failure else where.
-    cy.intercept({ method: 'GET', url: 'https://www.google.com/recaptcha/*' }, { statusCode: 200 });
+    cy.interceptGoogleRecaptcha();
     cy.visitDonationPage();
   });
 
@@ -720,9 +717,7 @@ describe('User flow: canceling contribution', () => {
 
 describe('User flow: unhappy paths', () => {
   beforeEach(() => {
-    // We intercept requests for Google Recaptcha because in test env, sometimes the live recaptcha returns an error
-    // (possibly because we load it too many times successively???), which was causing test failure else where.
-    cy.intercept({ method: 'GET', url: 'https://www.google.com/recaptcha/*' }, { statusCode: 200 });
+    cy.interceptGoogleRecaptcha();
   });
   specify("Contribution doesn't validate on server", () => {
     const validationError = 'This field is required';
@@ -803,6 +798,85 @@ describe('User flow: unhappy paths', () => {
     cy.get('form')
       .findByRole('button', { name: /Enter a valid amount/ })
       .should('have.attr', 'disabled');
+  });
+});
+
+describe('StripePaymentForm unhappy paths', () => {
+  beforeEach(() => {
+    cy.interceptGoogleRecaptcha();
+    cy.interceptStripeApi();
+    cy.intercept(
+      { method: 'POST', url: getEndpoint(AUTHORIZE_STRIPE_PAYMENT_ROUTE) },
+      {
+        body: { provider_client_secret_id: fakeStripeSecret, email_hash: fakeEmailHash },
+        statusCode: 201
+      }
+    ).as('create-one-time-payment');
+    cy.visitDonationPage();
+    cy.get('[data-testid*="amount-120"]').click();
+    cy.get('[data-testid*="frequency-one_time"]').click();
+    fillOutDonorInfoSection();
+    fillOutAddressSection();
+    fillOutReasonForGiving();
+    cy.get('form').findByRole('button', { name: 'Continue to Payment' }).click();
+    cy.wait('@create-one-time-payment');
+  });
+  for (const errorType of ['card_error', 'validation_error']) {
+    const errorMessage = 'Some message';
+    specify(`displays Stripe's error message when an error with type ${errorType} occurs`, () => {
+      cy.window()
+        .its('stripe')
+        .then((stripe) => {
+          cy.stub(stripe, 'confirmPayment').resolves({ error: { type: errorType, message: errorMessage } });
+        });
+      cy.findByRole('button', {
+        name: getPaymentElementButtonText({
+          amount: 123.01,
+          currencySymbol: livePageOne.currency.symbol,
+          frequency: CONTRIBUTION_INTERVALS.ONE_TIME
+        })
+      }).click();
+      cy.findByRole('alert').within(() => {
+        cy.contains(errorMessage).should('be.visible');
+      });
+    });
+  }
+  specify(
+    'displays an error when there is an unexpected error, but the Stripe payment element submission payment promise resolved',
+    () => {
+      cy.window()
+        .its('stripe')
+        .then((stripe) => {
+          cy.stub(stripe, 'confirmPayment').resolves({ error: { type: 'unexpected' } });
+        });
+      cy.findByRole('button', {
+        name: getPaymentElementButtonText({
+          amount: 123.01,
+          currencySymbol: livePageOne.currency.symbol,
+          frequency: CONTRIBUTION_INTERVALS.ONE_TIME
+        })
+      }).click();
+      cy.findByRole('alert').within(() => {
+        cy.contains(STRIPE_ERROR_MESSAGE).should('be.visible');
+      });
+    }
+  );
+  specify('displays an error when an unexpected, non-promise error on Stripe payment element submission occurs', () => {
+    cy.window()
+      .its('stripe')
+      .then((stripe) => {
+        cy.stub(stripe, 'confirmPayment').rejects(new Error('Unexpected'));
+      });
+    cy.findByRole('button', {
+      name: getPaymentElementButtonText({
+        amount: 123.01,
+        currencySymbol: livePageOne.currency.symbol,
+        frequency: CONTRIBUTION_INTERVALS.ONE_TIME
+      })
+    }).click();
+    cy.findByRole('alert').within(() => {
+      cy.contains(STRIPE_ERROR_MESSAGE).should('be.visible');
+    });
   });
 });
 

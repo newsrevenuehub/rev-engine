@@ -10,6 +10,7 @@ import useRequest from 'hooks/useRequest';
 import { Button, CircularProgress, ExportIcon, Flex } from './ExportButton.styled';
 import ExportModal from './ExportModal';
 import SystemNotification from 'components/common/SystemNotification';
+import { CONTRIBUTIONS, EMAIL_CONTRIBUTIONS } from 'ajax/endpoints';
 
 export type ExportButtonProps = InferProps<typeof ExportButtonPropTypes>;
 
@@ -22,11 +23,10 @@ const ExportButton = ({ className, ...rest }: ExportButtonProps) => {
 
   const exportData = useCallback(() => {
     setLoading(true);
-    // TODO: update endpoint when ticket DEV-2230 is done
     requestExportData(
       {
-        method: 'PATCH',
-        url: 'mock-url'
+        method: 'POST',
+        url: `${CONTRIBUTIONS}${EMAIL_CONTRIBUTIONS}`
       },
       {
         onSuccess: () => {
@@ -41,14 +41,14 @@ const ExportButton = ({ className, ...rest }: ExportButtonProps) => {
           );
           setTimeout(() => setLoading(false), 30000);
         },
-        onFailure: (e: any) => {
+        onFailure: () => {
+          setLoading(false);
           enqueueSnackbar('There’s been a problem with your contributions export. Please try again.', {
             persist: true,
             content: (key: string, message: string) => (
               <SystemNotification id={key} message={message} header="Export Failed" type="error" />
             )
           });
-          setLoading(false);
         }
       }
     );

@@ -14,7 +14,6 @@ router.register(r"subscriptions", views.SubscriptionsViewSet, basename="subscrip
 urlpatterns = [
     path("payments/<str:provider_client_secret_id>/success/", views.payment_success, name="payment-success"),
     path("stripe/oauth/", views.stripe_oauth, name="stripe-oauth"),
-    path("stripe/confirmation/", views.stripe_confirmation, name="stripe-confirmation"),
     re_path(
         settings.WEBHOOK_URL,
         views.process_stripe_webhook_view,

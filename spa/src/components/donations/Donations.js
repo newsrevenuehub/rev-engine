@@ -46,6 +46,7 @@ const Donations = () => {
   const [filters, setFilters] = useState({});
   const [donationsCount, setDonationsCount] = useState([]);
   const [pageIndex, setPageIndex] = useState(0);
+  const [maxData, setMaxData] = useState(0);
 
   const handleRowClick = (row) => history.push(`${DONATIONS_SLUG}${row.id}/`);
 
@@ -77,12 +78,15 @@ const Donations = () => {
           onSuccess: (response) => {
             setDonationsCount(response.data.count);
             onSuccess(response);
+            if (response.data.count > maxData) {
+              setMaxData(response.data.count);
+            }
           },
           onFailure
         }
       );
     },
-    [filters]
+    [filters, maxData, requestDonations]
   );
 
   const handleFilterChange = (type, selectedFilter) => {
@@ -173,6 +177,7 @@ const Donations = () => {
               title="Contributions"
               subtitle="Welcome to your contributions. Easily track and manage contributions."
               placeholder="Contributions"
+              exportData={{ email: user.email, transactions: maxData }}
             />
             <Filters
               filters={filters}

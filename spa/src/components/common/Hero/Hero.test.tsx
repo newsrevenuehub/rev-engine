@@ -41,10 +41,13 @@ describe('Hero', () => {
     expect(screen.getByRole('button', { name: 'mock-export-button' })).toBeInTheDocument();
   });
 
-  it('should be accessible', async () => {
-    const { container } = render(
-      <Hero title={heroTitle} subtitle={heroSubtitle} placeholder={heroPlaceholder} onChange={onChange} />
-    );
+  it('should be accessible with export button', async () => {
+    const { container } = tree({ exportData: { email: 'mock-email', transactions: 0 } });
+    expect(await axe(container)).toHaveNoViolations();
+  });
+
+  it('should be accessible without export button', async () => {
+    const { container } = tree();
     expect(await axe(container)).toHaveNoViolations();
   });
 });

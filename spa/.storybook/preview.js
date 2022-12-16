@@ -2,6 +2,7 @@ import { withThemes } from '@react-theming/storybook-addon';
 import { ThemeProvider as MuiThemeProvider } from '@material-ui/core';
 import { ThemeProvider } from 'styled-components';
 import { Provider as AlertProvider } from 'react-alert';
+import { SnackbarProvider } from 'notistack';
 
 import Alert, { alertOptions } from 'elements/alert/Alert';
 import { revEngineTheme, muiThemeOverrides } from 'styles/themes';
@@ -17,8 +18,10 @@ const providerFn = ({ children }) => (
     <MuiThemeProvider theme={muiThemeOverrides}>
       <MuiThemeProvider>
         <AlertProvider template={Alert} {...alertOptions}>
-          <AdminGlobalStyles />
-          <GlobalContext.Provider value={{ getReauth: () => {} }}>{children}</GlobalContext.Provider>
+          <SnackbarProvider anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}>
+            <AdminGlobalStyles />
+            <GlobalContext.Provider value={{ getReauth: () => {} }}>{children}</GlobalContext.Provider>
+          </SnackbarProvider>
         </AlertProvider>
       </MuiThemeProvider>
     </MuiThemeProvider>

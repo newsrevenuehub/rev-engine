@@ -1,26 +1,25 @@
 import PropTypes, { InferProps } from 'prop-types';
 import { useCallback, useState } from 'react';
-import { useAlert } from 'react-alert';
+import { useSnackbar } from 'notistack';
 
 import LogoutIcon from 'assets/icons/logout.svg';
 import { Tooltip } from 'components/base';
-import { GENERIC_ERROR } from 'constants/textConstants';
 import useModal from 'hooks/useModal';
 import useRequest from 'hooks/useRequest';
 
 import { Button, CircularProgress, ExportIcon, Flex } from './ExportButton.styled';
 import ExportModal from './ExportModal';
+import SystemNotification from 'components/common/SystemNotification';
 import { CONTRIBUTIONS, EMAIL_CONTRIBUTIONS } from 'ajax/endpoints';
 
 export type ExportButtonProps = InferProps<typeof ExportButtonPropTypes>;
 
 const ExportButton = ({ className, ...rest }: ExportButtonProps) => {
+  const { enqueueSnackbar } = useSnackbar();
   const { open: showTooltip, handleClose: handleCloseTooltip, handleOpen: handleOpenTooltip } = useModal();
   const { open, handleClose, handleOpen } = useModal();
   const [loading, setLoading] = useState(false);
   const requestExportData = useRequest();
-
-  const alert = useAlert();
 
   const exportData = useCallback(() => {
     setLoading(true);
@@ -31,15 +30,29 @@ const ExportButton = ({ className, ...rest }: ExportButtonProps) => {
       },
       {
         onSuccess: () => {
+          enqueueSnackbar(
+            'Your contributions export is in progress and will be sent to your email address when complete.',
+            {
+              persist: true,
+              content: (key: string, message: string) => (
+                <SystemNotification id={key} message={message} header="Export in Progress" type="success" />
+              )
+            }
+          );
           setTimeout(() => setLoading(false), 30000);
         },
         onFailure: () => {
           setLoading(false);
-          alert.error(GENERIC_ERROR);
+          enqueueSnackbar('There’s been a problem with your contributions export. Please try again.', {
+            persist: true,
+            content: (key: string, message: string) => (
+              <SystemNotification id={key} message={message} header="Export Failed" type="error" />
+            )
+          });
         }
       }
     );
-  }, [alert, requestExportData]);
+  }, [enqueueSnackbar, requestExportData]);
 
   return (
     <Flex className={className!}>

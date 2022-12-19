@@ -195,7 +195,7 @@ class RequestContributorTokenEmailView(APIView):
                 # Because this is an email template and not being hydrated in request context (i.e., happens
                 # in async task queue), using `{ static 'NewsRevenueHub...' }` won't work here. Need
                 # to fully spell out the value that will be sent to template.
-                "logo_url": os.path.join(settings.SITE_URL, "static", "NewsRevenueHub-Horizontal.png"),
+                "logo_url": os.path.join(settings.SITE_URL, "static", "nre_logo_white.svg"),
             },
         )
         # Email is async task. We won't know if it succeeds or not so optimistically send OK.

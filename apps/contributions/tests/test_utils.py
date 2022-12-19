@@ -1,10 +1,16 @@
 import hashlib
+import io
+from csv import DictReader
+from unittest.mock import Mock
 
 from django.test import TestCase, override_settings
 
-from addict import Dict as AttrDict
+import pytest
 
+from apps.contributions.models import Contribution
+from apps.contributions.tests.factories import ContributionFactory
 from apps.contributions.utils import (
+    CONTRIBUTION_EXPORT_CSV_HEADERS,
     export_contributions_to_csv,
     get_hub_stripe_api_key,
     get_sha256_hash,
@@ -36,66 +42,44 @@ def test_hash_is_salted():
     assert hash_str[:15] != get_sha256_hash("test")  # because salt is added
 
 
-def test_export_contributions_to_csv():
-    address_1 = {
-        "city": "Austin",
-        "line1": "800 Long Bow Ln",
-        "line2": None,
-        "state": "TX",
-        "country": "US",
-        "postal_code": "78701",
-    }
-    metadata_1 = {"donor_selected_amount": "450", "agreed_to_pay_fees": "True", "referer": "referer_1"}
-    billing_details_1 = {
-        "name": "Test Name 1",
-        "email": "test_name_1@test.com",
-        "phone": "9999999999",
-        "address": address_1,
-    }
-    payment_provider_data_1 = {
-        "data": {"object": {"charges": {"data": [{"billing_details": billing_details_1, "metadata": metadata_1}]}}}
-    }
-
-    address_2 = {"city": None, "line1": None, "line2": None, "state": None, "country": None, "postal_code": None}
-    metadata_2 = {"donor_selected_amount": "1450", "agreed_to_pay_fees": "False", "referer": "referer_2"}
-    billing_details_2 = {
-        "name": "Test Name 2",
-        "email": "test_name_2@test.com",
-        "phone": "8888888888",
-        "address": address_2,
-    }
-    payment_provider_data_2 = {
-        "data": {"object": {"charges": {"data": [{"billing_details": billing_details_2, "metadata": metadata_2}]}}}
-    }
-
-    payment_provider_data_3 = {"data": {"object": {"charges": {"data": None}}}}
-
-    payment_provider_data_4 = {"data": {"object": {"charges": {"data": []}}}}
-
-    contribution_1 = AttrDict(
-        {"id": 1, "formatted_amount": "500.0 USD", "currency": "usd", "payment_provider_data": payment_provider_data_1}
-    )
-    contribution_2 = AttrDict(
-        {"id": 2, "formatted_amount": "1500.0 USD", "currency": "usd", "payment_provider_data": payment_provider_data_2}
-    )
-    contribution_3 = AttrDict(
-        {"id": 3, "formatted_amount": "1600.0 USD", "currency": "usd", "payment_provider_data": payment_provider_data_3}
-    )
-    contribution_4 = AttrDict(
-        {"id": 4, "formatted_amount": "1700.0 USD", "currency": "usd", "payment_provider_data": payment_provider_data_4}
-    )
-
-    data = export_contributions_to_csv([contribution_1, contribution_2, contribution_3, contribution_4])
-
-    expected = "\r\n".join(
-        [
-            '"Contribution ID","Contributor","Amount","Donor Selected Amount","Agreed to Pay Fees","Frequency","Payment Received Date","Payment status","Address","Email","Phone","Page URL"',
-            '"1","Test Name 1","500.0 USD","","","{}","{}","{}","800 Long Bow Ln, Austin, TX, 78701, US","test_name_1@test.com","9999999999",""',
-            '"2","Test Name 2","1500.0 USD","","","{}","{}","{}","","test_name_2@test.com","8888888888",""',
-            '"3","Unknown","1600.0 USD","","","{}","{}","{}","","","",""',
-            '"4","Unknown","1700.0 USD","","","{}","{}","{}","","","",""',
-            "",
-        ]
-    )
-
-    assert data == expected
+@pytest.mark.django_db
+def test_export_contributions_to_csv(monkeypatch):
+    # note on why doing this, with to do to move that logic somewhere else
+    mock_fetch = Mock(return_value=None)
+    monkeypatch.setattr(Contribution, "fetch_stripe_payment_method", mock_fetch)
+    contributions = []
+    for _ in range(5):
+        contributions.extend(
+            [
+                ContributionFactory(one_time=True),
+                ContributionFactory(annual_subscription=True),
+                ContributionFactory(monthly_subscription=True),
+            ]
+        )
+    data = [row for row in DictReader(io.StringIO(export_contributions_to_csv(contributions)))]
+    assert set(data[0].keys()) == set(CONTRIBUTION_EXPORT_CSV_HEADERS)
+    assert set([str(_.pk) for _ in contributions]) == set([_["Contribution ID"] for _ in data])
+    for row in data:
+        contribution = Contribution.objects.get(pk=int(row["Contribution ID"]))
+        assert contribution.billing_name and row[CONTRIBUTION_EXPORT_CSV_HEADERS[1]] == contribution.billing_name
+        assert (
+            contribution.formatted_amount and row[CONTRIBUTION_EXPORT_CSV_HEADERS[2]] == contribution.formatted_amount
+        )
+        assert (
+            contribution.formatted_donor_selected_amount
+            and row[CONTRIBUTION_EXPORT_CSV_HEADERS[3]] == contribution.formatted_donor_selected_amount
+        )
+        assert row[CONTRIBUTION_EXPORT_CSV_HEADERS[4]] == str(
+            (contribution.contribution_metadata or {}).get("agreed_to_pay_fees")
+        )
+        assert contribution.interval and row[CONTRIBUTION_EXPORT_CSV_HEADERS[5]] == contribution.interval
+        assert contribution.created and row[CONTRIBUTION_EXPORT_CSV_HEADERS[6]] == str(contribution.created)
+        assert contribution.status and row[CONTRIBUTION_EXPORT_CSV_HEADERS[7]] == contribution.status
+        assert contribution.billing_address and row[CONTRIBUTION_EXPORT_CSV_HEADERS[8]] == contribution.billing_address
+        assert contribution.billing_email and row[CONTRIBUTION_EXPORT_CSV_HEADERS[9]] == contribution.billing_email
+        assert contribution.billing_phone and row[CONTRIBUTION_EXPORT_CSV_HEADERS[10]] == contribution.billing_phone
+        assert (
+            row[CONTRIBUTION_EXPORT_CSV_HEADERS[11]]
+            == (referer := (contribution.contribution_metadata or {}).get("referer", ""))
+            and referer
+        )

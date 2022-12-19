@@ -5,6 +5,7 @@ from django.db import models
 from django.utils import timezone
 
 import stripe
+from addict import Dict as AttrDict
 
 from apps.common.models import IndexedTimeStampedModel
 from apps.emails.tasks import send_templated_email
@@ -179,6 +180,35 @@ class Contribution(IndexedTimeStampedModel, RoleAssignmentResourceModelMixin):
             return self.revenue_program.payment_provider.stripe_account_id
         return None
 
+    @property
+    def billing_details(self) -> AttrDict:
+        payment_provider_data = AttrDict(self.payment_provider_data).data.object
+        return (payment_provider_data.charges.data or [AttrDict()])[0].billing_details
+
+    @property
+    def billing_name(self) -> str:
+        return self.billing_details.name or ""
+
+    @property
+    def billing_email(self) -> str:
+        return self.billing_details.email or ""
+
+    @property
+    def billing_phone(self) -> str:
+        return self.billing_details.phone or ""
+
+    @property
+    def billing_address(self) -> str:
+        order = ("line1", "line2", "city", "state", "postal_code", "country")
+        return ",".join([self.billing_details.address[x] for x in order])
+
+    @property
+    def formatted_donor_selected_amount(self) -> str:
+        if amount := (self.contribution_metadata or {}).get("donor_selected_amount"):
+            return f"{amount} {self.currency.upper()}"
+        else:
+            return ""
+
     BAD_ACTOR_SCORES = (
         (
             0,
@@ -249,6 +279,7 @@ class Contribution(IndexedTimeStampedModel, RoleAssignmentResourceModelMixin):
 
         # Check if we should update stripe payment method details
         previous = self.__class__.objects.filter(pk=self.pk).first()
+        # TODO: [DEV-3026]
         if (
             (previous and previous.provider_payment_method_id != self.provider_payment_method_id)
             or not previous
@@ -256,7 +287,11 @@ class Contribution(IndexedTimeStampedModel, RoleAssignmentResourceModelMixin):
         ):
             # If it's an update and the previous pm is different from the new pm, or it's new and there's a pm id...
             # ...get details on payment method
-            self.provider_payment_method_details = self.fetch_stripe_payment_method()
+            pm = self.fetch_stripe_payment_method()
+            # note on conditionality here (testing)
+            if pm:
+                self.provider_payment_method_details = pm
+
         super().save(*args, **kwargs)
 
     @classmethod

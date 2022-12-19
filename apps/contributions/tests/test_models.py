@@ -82,6 +82,9 @@ class ContributorTest(TestCase):
 test_key = "test_key"
 
 
+# This is to squash a side effect in contribution.save
+# TODO: DEV-3026
+@patch("apps.contributions.models.Contribution.fetch_stripe_payment_method", return_value=None)
 @override_settings(STRIPE_TEST_SECRET_KEY=test_key)
 class ContributionTest(TestCase):
     def setUp(self):
@@ -94,17 +97,17 @@ class ContributionTest(TestCase):
         self.contribution = Contribution.objects.create(amount=self.amount, donation_page=self.donation_page)
         self.required_data = {"amount": 1000, "currency": "usd", "donation_page": self.donation_page}
 
-    def test_formatted_amount(self):
+    def test_formatted_amount(self, mock_fetch_stripe_payment_method):
         target_format = "10.00 USD"
         self.assertEqual(self.contribution.formatted_amount, target_format)
 
-    def test_str(self):
+    def test_str(self, mock_fetch_stripe_payment_method):
         self.assertEqual(
             str(self.contribution),
             f"{self.contribution.formatted_amount}, {self.contribution.created.strftime('%Y-%m-%d %H:%M:%S')}",
         )
 
-    def test_expanded_bad_actor_score(self):
+    def test_expanded_bad_actor_score(self, mock_fetch_stripe_payment_method):
         # First, expanded_bad_actor_score should be none by default
         score = 2
         self.assertIsNone(self.contribution.expanded_bad_actor_score)
@@ -114,40 +117,43 @@ class ContributionTest(TestCase):
         self.assertEqual(self.contribution.expanded_bad_actor_score, Contribution.BAD_ACTOR_SCORES[2][1])
 
     @patch("apps.contributions.models.Contribution.send_slack_notifications")
-    def test_save_without_slack_arg_only_saves(self, mock_send_slack):
+    def test_save_without_slack_arg_only_saves(self, mock_send_slack, mock_fetch_stripe_payment_method):
         self.contribution.amount = 10
         self.contribution.save()
         mock_send_slack.assert_not_called()
 
     @patch("apps.contributions.models.SlackManager")
-    def test_save_with_slack_arg_sends_slack_notifications(self, mock_send_slack):
+    def test_save_with_slack_arg_sends_slack_notifications(self, mock_send_slack, mock_fetch_stripe_payment_method):
         self.contribution.amount = 10
         self.contribution.save(slack_notification=SlackNotificationTypes.SUCCESS)
         mock_send_slack.assert_any_call()
 
-    @patch("stripe.PaymentMethod.retrieve", side_effect="{}")
-    def test_request_stripe_payment_method_details_when_new(self, mock_retrieve_pm):
+    def test_request_stripe_payment_method_details_when_new(self, mock_fetch_stripe_payment_method):
         """
         fetch_stripe_payment_method should be called when a new contribution is being created and it has a defined provider_payment_method_id
         """
+        mock_fetch_stripe_payment_method.return_value = "some-fake-id"
         target_pm_id = "new-pm-id"
         contribution = Contribution(**self.required_data)
         contribution.provider_payment_method_id = target_pm_id
         contribution.save()
-        mock_retrieve_pm.assert_called_once_with(target_pm_id, stripe_account=self.stripe_account_id)
+        mock_fetch_stripe_payment_method.assert_called_once()
 
-    @patch("stripe.PaymentMethod.retrieve", side_effect="{}")
-    def test_request_stripe_payment_method_details_when_old_updating_payment_method(self, mock_retrieve_pm):
+    def test_request_stripe_payment_method_details_when_old_updating_payment_method(
+        self, mock_fetch_stripe_payment_method
+    ):
         """
         fetch_stripe_payment_method should be called when updating an existing contribution, if provider_payment_method_id is not the same as the previous
         """
         target_pm_id = "new-pm-id"
         self.contribution.provider_payment_method_id = target_pm_id
         self.contribution.save()
-        mock_retrieve_pm.assert_called_once_with(target_pm_id, stripe_account=self.stripe_account_id)
+        mock_fetch_stripe_payment_method.assert_called_once()
 
     @patch("stripe.PaymentMethod.retrieve", side_effect="{}")
-    def test_do_not_request_stripe_payment_method_details_when_updating_anything_else(self, mock_retrieve_pm):
+    def test_do_not_request_stripe_payment_method_details_when_updating_anything_else(
+        self, mock_retrieve_pm, mock_fetch_stripe_payment_method
+    ):
         """
         fetch_stripe_payment_method should not be called if provider_payment_method_id is unchanged
         """
@@ -156,7 +162,7 @@ class ContributionTest(TestCase):
         mock_retrieve_pm.assert_not_called()
 
     @patch("stripe.PaymentIntent.create")
-    def test_create_stripe_one_time_payment_intent(self, mock_create_pi):
+    def test_create_stripe_one_time_payment_intent(self, mock_create_pi, mock_fetch_stripe_payment_method):
         """Show Contribution.create_stripe_one_time_payment_intent calls Stripe with right params...
 
         ...that it returns the created payment intent, and that it saves the payment intent ID and
@@ -187,7 +193,7 @@ class ContributionTest(TestCase):
         assert self.contribution.provider_customer_id == stripe_customer_id
 
     @patch("stripe.Subscription.create")
-    def test_create_stripe_subscription(self, mock_create_subscription):
+    def test_create_stripe_subscription(self, mock_create_subscription, mock_fetch_stripe_payment_method):
         """Show Contribution.create_stripe_subscription calls Stripe with right params...
 
         ...that it returns the created subscription, and that it saves the right subscription data
@@ -236,7 +242,7 @@ class ContributionTest(TestCase):
         assert self.contribution.provider_customer_id == stripe_customer_id
 
     @patch("apps.emails.tasks.send_templated_email.delay")
-    def test_handle_thank_you_email_when_nre_sends(self, mock_send_email):
+    def test_handle_thank_you_email_when_nre_sends(self, mock_send_email, mock_fetch_stripe_payment_method):
         """Show that when org configured to have NRE send thank you emails, send_templated_email
         gets called with expected args.
         """
@@ -265,7 +271,7 @@ class ContributionTest(TestCase):
         )
 
     @patch("apps.emails.tasks.send_templated_email.delay")
-    def test_handle_thank_you_email_when_nre_not_send(self, mock_send_email):
+    def test_handle_thank_you_email_when_nre_not_send(self, mock_send_email, mock_fetch_stripe_payment_method):
         """Show that when an org is not configured to have NRE send thank you emails...
 
         ...send_templated_email does not get called
@@ -275,7 +281,7 @@ class ContributionTest(TestCase):
         self.contribution.handle_thank_you_email()
         mock_send_email.assert_not_called()
 
-    def test_stripe_metadata(self):
+    def test_stripe_metadata(self, mock_fetch_stripe_payment_method):
         referer = "https://somewhere.com"
         campaign_id = "some-id"
         contribution = ContributionFactory()

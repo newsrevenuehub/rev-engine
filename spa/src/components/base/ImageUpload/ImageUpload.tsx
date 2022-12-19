@@ -1,6 +1,7 @@
 import { faFileUpload, faTimes } from '@fortawesome/free-solid-svg-icons';
 import PropTypes, { InferProps } from 'prop-types';
 import { ChangeEvent, useRef } from 'react';
+import fileToDataUrl from 'utilities/fileToDataUrl';
 import { IconButton, Label, Preview, Prompt, RemoveIcon, Root, Thumbnail, UploadIcon } from './ImageUpload.styled';
 
 const ImageUploadPropTypes = {
@@ -52,20 +53,9 @@ export function ImageUpload(props: ImageUploadProps) {
     }
   }
 
-  function handleChange(event: ChangeEvent<HTMLInputElement>) {
+  async function handleChange(event: ChangeEvent<HTMLInputElement>) {
     if (event.target.files) {
-      const image = event.target.files[0];
-      const fileReader = new FileReader();
-
-      fileReader.onload = (event) => {
-        if (!event.target) {
-          throw new Error('Creating an image thumbnail failed');
-        }
-
-        onChange(image, event.target.result as string);
-      };
-
-      fileReader.readAsDataURL(image);
+      onChange(event.target.files[0], await fileToDataUrl(event.target.files[0]));
     }
   }
 

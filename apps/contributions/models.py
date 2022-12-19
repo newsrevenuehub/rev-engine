@@ -215,6 +215,7 @@ class Contribution(IndexedTimeStampedModel, RoleAssignmentResourceModelMixin):
 
         # Check if we should update stripe payment method details
         previous = self.__class__.objects.filter(pk=self.pk).first()
+        logger.info("`Contribution.save` called with %s, %s", previous, self.provider_payment_method_id)
         if (
             (previous and previous.provider_payment_method_id != self.provider_payment_method_id)
             or not previous

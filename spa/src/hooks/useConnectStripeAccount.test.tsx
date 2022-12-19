@@ -24,7 +24,14 @@ const axiosMock = new MockAdapter(axios);
 const useUserMock = jest.mocked(useUser);
 const useHistoryMock = jest.mocked(useHistory);
 
-const mockRp = { id: 'mock-rp-id', name: 'mock-rp-name', slug: 'mock-rp-slug', payment_provider_stripe_verified: true };
+const mockRp = {
+  id: 'mock-rp-id',
+  name: 'mock-rp-name',
+  slug: 'mock-rp-slug',
+  payment_provider_stripe_verified: true,
+  tax_id: '0000000-00',
+  non_profit: false
+};
 
 const mockUser: User = {
   email: 'mock@email.com',

@@ -13,6 +13,8 @@ export interface RevenueProgram {
   name: string;
   slug: string;
   payment_provider_stripe_verified: boolean;
+  tax_id: string;
+  non_profit: boolean;
 }
 
 export interface Plan {

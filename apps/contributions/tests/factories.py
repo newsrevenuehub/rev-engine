@@ -111,7 +111,7 @@ class ContributionFactory(DjangoModelFactory):
         obj.save()
 
     class Params:
-        # Add explanatory note
+        # this is roughly how a successful one-time contribution would look
         one_time = factory.Trait(
             interval=models.ContributionInterval.ONE_TIME,
             status=models.ContributionStatus.PAID,
@@ -119,14 +119,14 @@ class ContributionFactory(DjangoModelFactory):
             provider_payment_id=factory.LazyFunction(lambda: f"pi_{_random_stripe_str()}"),
         )
 
-        # Add explanatory note
+        # this is roughly how a successful recurring annual contribution would look
         annual_subscription = factory.Trait(
             interval=models.ContributionInterval.YEARLY,
             status=models.ContributionStatus.PAID,
             provider_subscription_id=factory.LazyFunction(lambda: f"sub_{_random_stripe_str()}"),
             payment_provider_data=factory.LazyFunction(lambda: deepcopy(RECURRING_ANNUAL_PAYMENT_PROVIDER_DATA)),
         )
-        # Add explanatory note
+        # this is roughly how a successful recurring annual contribution would look
         monthly_subscription = factory.Trait(
             interval=models.ContributionInterval.MONTHLY,
             status=models.ContributionStatus.PAID,

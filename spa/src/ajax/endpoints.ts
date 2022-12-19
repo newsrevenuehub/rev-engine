@@ -3,7 +3,6 @@ export const USER = 'users/';
 
 export const STRIPE_OAUTH = 'stripe/oauth/';
 export const STRIPE_PAYMENT = 'stripe/payment/';
-export const STRIPE_CONFIRMATION = 'stripe/confirmation/';
 
 export const getStripeAccountLinkStatusPath = (rpId: string) => {
   return `handle-stripe-account-link/${rpId}/`;
@@ -34,6 +33,7 @@ export const REVENUE_PROGRAMS = 'revenue-programs/';
 
 // Contributions
 export const CONTRIBUTIONS = 'contributions/';
+export const EMAIL_CONTRIBUTIONS = 'email-contributions/';
 export const PROCESS_FLAGGED = 'process-flagged/';
 export const SUBSCRIPTIONS = 'subscriptions/';
 

@@ -44,6 +44,7 @@ declare module 'styled-components' {
       muiGrey: {
         50: '#F9F9F9';
         100: '#F1F1F1';
+        200: '#e3e3e3';
         300: '#D9D9D9';
         400: '#c4c4c4';
         500: '#969696';

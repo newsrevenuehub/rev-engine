@@ -20,6 +20,7 @@ from apps.contributions.models import (
     PaymentType,
 )
 from apps.contributions.utils import format_ambiguous_currency, get_sha256_hash
+from apps.organizations.serializers import RevenueProgramSerializer
 from apps.pages.models import DonationPage
 
 from .bad_actor import BadActorAPIError, make_bad_actor_request
@@ -57,6 +58,7 @@ class ContributionSerializer(serializers.ModelSerializer):
     provider_payment_url = serializers.SerializerMethodField()
     provider_subscription_url = serializers.SerializerMethodField()
     provider_customer_url = serializers.SerializerMethodField()
+    revenue_program = RevenueProgramSerializer(read_only=True)
 
     def get_auto_accepted_on(self, obj):
         """
@@ -106,22 +108,23 @@ class ContributionSerializer(serializers.ModelSerializer):
     class Meta:
         model = Contribution
         fields = [
-            "id",
+            "amount",
+            "auto_accepted_on",
+            "bad_actor_score",
             "contributor_email",
             "created",
-            "amount",
             "currency",
+            "donation_page_id",
+            "flagged_date",
+            "formatted_payment_provider_used",
+            "id",
             "interval",
             "last_payment_date",
-            "bad_actor_score",
-            "flagged_date",
-            "auto_accepted_on",
-            "formatted_payment_provider_used",
+            "provider_customer_url",
             "provider_payment_url",
             "provider_subscription_url",
-            "provider_customer_url",
+            "revenue_program",
             "status",
-            "donation_page_id",
         ]
 
 
@@ -401,26 +404,6 @@ class BaseCreatePaymentSerializer(serializers.Serializer):
         """Determine if bad actor score should lead to contribution being flagged"""
         return bad_actor_score >= settings.BAD_ACTOR_FAILURE_THRESHOLD
 
-    def get_stripe_payment_metadata(self, contributor, validated_data):
-        """Generate dict of metadata to be sent to Stripe when creating a PaymentIntent or Subscription"""
-        return {
-            "source": settings.METADATA_SOURCE,
-            "schema_version": settings.METADATA_SCHEMA_VERSION,
-            "contributor_id": contributor.id,
-            "agreed_to_pay_fees": validated_data["agreed_to_pay_fees"],
-            "donor_selected_amount": validated_data["donor_selected_amount"],
-            "reason_for_giving": validated_data["reason_for_giving"],
-            "honoree": validated_data.get("honoree"),
-            "in_memory_of": validated_data.get("in_memory_of"),
-            "comp_subscription": validated_data.get("comp_subscription"),
-            "swag_opt_out": validated_data.get("swag_opt_out"),
-            "swag_choice": validated_data.get("swag_choice"),
-            "referer": self.context["request"].META.get("HTTP_REFERER"),
-            "revenue_program_id": validated_data["page"].revenue_program.id,
-            "revenue_program_slug": validated_data["page"].revenue_program.slug,
-            "sf_campaign_id": validated_data.get("sf_campaign_id"),
-        }
-
     def create_stripe_customer(self, contributor, validated_data):
         """Create a Stripe customer using validated data"""
         return contributor.create_stripe_customer(
@@ -449,6 +432,9 @@ class BaseCreatePaymentSerializer(serializers.Serializer):
             "donation_page": validated_data["page"],
             "contributor": contributor,
             "payment_provider_used": "Stripe",
+            "contribution_metadata": Contribution.stripe_metadata(
+                contributor, validated_data, self.context["request"].META.get("HTTP_REFERER")
+            ),
         }
         if bad_actor_response:
             contribution_data["bad_actor_score"] = bad_actor_response["overall_judgment"]
@@ -497,7 +483,7 @@ class CreateOneTimePaymentSerializer(BaseCreatePaymentSerializer):
         try:
             payment_intent = contribution.create_stripe_one_time_payment_intent(
                 stripe_customer_id=customer["id"],
-                metadata=self.get_stripe_payment_metadata(contributor, validated_data),
+                metadata=contribution.contribution_metadata,
             )
         except StripeError:
             logger.exception(
@@ -552,7 +538,7 @@ class CreateRecurringPaymentSerializer(BaseCreatePaymentSerializer):
         try:
             subscription = contribution.create_stripe_subscription(
                 stripe_customer_id=customer["id"],
-                metadata=self.get_stripe_payment_metadata(contributor, validated_data),
+                metadata=contribution.contribution_metadata,
             )
         except StripeError:
             logger.exception(

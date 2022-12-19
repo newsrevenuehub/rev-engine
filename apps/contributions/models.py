@@ -204,10 +204,7 @@ class Contribution(IndexedTimeStampedModel, RoleAssignmentResourceModelMixin):
 
     @property
     def formatted_donor_selected_amount(self) -> str:
-        if amount := (self.contribution_metadata or {}).get("donor_selected_amount"):
-            return f"{amount} {self.currency.upper()}"
-        else:
-            return ""
+        return f"{self.amount} {self.currency.upper()}"
 
     BAD_ACTOR_SCORES = (
         (

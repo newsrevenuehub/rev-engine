@@ -5,6 +5,8 @@ from django.conf import settings
 from django.test import TestCase, override_settings
 from django.utils import timezone
 
+import pytest
+
 from apps.contributions.models import Contribution, ContributionStatus, Contributor
 from apps.contributions.tests.factories import ContributionFactory, ContributorFactory
 from apps.organizations.tests.factories import (
@@ -314,3 +316,66 @@ class ContributionTest(TestCase):
             "revenue_program_slug": validated_data["page"].revenue_program.slug,
             "sf_campaign_id": validated_data["sf_campaign_id"],
         }
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize("trait", ("one_time", "annual_subscription", "monthly_subscription"))
+def test_contribution_billing_details(trait):
+    # TODO: DEV-3026 -- remove provider_payment_method_id = None
+    contribution = ContributionFactory(**{trait: True, "provider_payment_method_id": None})
+    assert (
+        contribution.billing_details
+        and contribution.billing_details
+        == contribution.payment_provider_data["data"]["object"]["charges"]["data"][0]["billing_details"]
+    )
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize("trait", ("one_time", "annual_subscription", "monthly_subscription"))
+def test_contribution_billing_name(trait):
+    # TODO: DEV-3026  -- remove provider_payment_method_id = None
+    contribution = ContributionFactory(**{trait: True, "provider_payment_method_id": None})
+    assert contribution.billing_name and contribution.billing_name == contribution.billing_details.name
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize("trait", ("one_time", "annual_subscription", "monthly_subscription"))
+def test_contribution_billing_email(trait):
+    # TODO: DEV-3026  -- remove provider_payment_method_id = None
+    contribution = ContributionFactory(**{trait: True, "provider_payment_method_id": None})
+    assert contribution.billing_email and contribution.billing_email == contribution.billing_details.email
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize("trait", ("one_time", "annual_subscription", "monthly_subscription"))
+def test_contribution_billing_phone(trait):
+    # TODO: DEV-3026  -- remove provider_payment_method_id = None
+    contribution = ContributionFactory(**{trait: True, "provider_payment_method_id": None})
+    assert contribution.billing_phone and contribution.billing_phone == contribution.billing_details.phone
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize("trait", ("one_time", "annual_subscription", "monthly_subscription"))
+def test_contribution_billing_address(trait):
+    # TODO: DEV-3026  -- remove provider_payment_method_id = None
+    contribution = ContributionFactory(**{trait: True, "provider_payment_method_id": None})
+    assert contribution.billing_address
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize(
+    "trait",
+    (
+        "one_time",
+        "annual_subscription",
+        "monthly_subscription",
+    ),
+)
+def test_contribution_formatted_donor_selected_amount(trait):
+    # TODO: DEV-3026  -- remove provider_payment_method_id = None
+    kwargs = {trait: True, "provider_payment_method_id": None}
+    contribution = ContributionFactory(**kwargs)
+    assert (
+        contribution.formatted_donor_selected_amount
+        and contribution.formatted_donor_selected_amount == f"{contribution.amount} {contribution.currency.upper()}"
+    )

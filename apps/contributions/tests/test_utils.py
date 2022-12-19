@@ -44,7 +44,7 @@ def test_hash_is_salted():
 
 @pytest.mark.django_db
 def test_export_contributions_to_csv(monkeypatch):
-    # note on why doing this, with to do to move that logic somewhere else
+    # TODO: DEV-3026 -- remove monkeypatch here
     mock_fetch = Mock(return_value=None)
     monkeypatch.setattr(Contribution, "fetch_stripe_payment_method", mock_fetch)
     contributions = []

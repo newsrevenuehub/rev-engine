@@ -1,4 +1,5 @@
 import { Redirect, Switch, useLocation } from 'react-router-dom';
+import { useSnackbar } from 'notistack';
 
 import GlobalLoading from 'elements/GlobalLoading';
 import * as S from './Dashboard.styled';
@@ -37,8 +38,10 @@ import useUser from 'hooks/useUser';
 import flagIsActiveForUser from 'utilities/flagIsActiveForUser';
 import hasContributionsDashboardAccessToUser from 'utilities/hasContributionsDashboardAccessToUser';
 import { usePageContext } from './PageContext';
+import { useEffect } from 'react';
 
 function Dashboard() {
+  const { enqueueSnackbar } = useSnackbar();
   const { flags } = useFeatureFlags();
   const { page, setPage, updatedPage } = usePageContext();
   const { user } = useUser();
@@ -55,22 +58,25 @@ function Dashboard() {
   const { pathname } = useLocation();
   const isEditPage = pathname.includes(EDITOR_ROUTE);
 
+  useEffect(() => {
+    if (displayConnectionSuccess) {
+      enqueueSnackbar('Stripe verification has been completed. Your contribution page can now be published!', {
+        persist: true,
+        content: (key, message) => (
+          <S.StripeConnectNotification>
+            <SystemNotification id={key} message={message} header="Stripe Successfully Connected!" type="success" />
+          </S.StripeConnectNotification>
+        )
+      });
+      hideConnectionSuccess();
+    }
+  }, [displayConnectionSuccess, enqueueSnackbar, hideConnectionSuccess]);
+
   return isLoading ? (
     <GlobalLoading />
   ) : (
     <S.Outer>
       {requiresVerification ? <ConnectStripeElements /> : ''}
-      {displayConnectionSuccess && (
-        <S.StripeConnectNotification>
-          <SystemNotification
-            type="success"
-            header="Stripe Successfully Connected!"
-            handleClose={hideConnectionSuccess}
-          >
-            Stripe verification has been completed. Your contribution page can now be published!
-          </SystemNotification>
-        </S.StripeConnectNotification>
-      )}
       <DashboardTopbar isEditPage={isEditPage} page={page} setPage={setPage} user={user} updatedPage={updatedPage} />
       <S.Dashboard data-testid="dashboard">
         {isEditPage ? null : <DashboardSidebar />}

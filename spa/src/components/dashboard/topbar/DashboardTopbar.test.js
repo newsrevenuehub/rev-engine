@@ -1,10 +1,9 @@
-import { render, screen, fireEvent } from 'test-utils';
 import { axe } from 'jest-axe';
 import { useHistory } from 'react-router-dom';
+import { fireEvent, render, screen } from 'test-utils';
 
-import DashboardTopbar from './DashboardTopbar';
-import logout from 'components/authentication/logout';
 import { CONTENT_SLUG } from 'routes';
+import DashboardTopbar from './DashboardTopbar';
 
 jest.mock('components/authentication/logout', () => ({
   __esModule: true,

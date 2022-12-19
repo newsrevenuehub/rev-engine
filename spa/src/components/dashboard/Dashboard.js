@@ -12,6 +12,7 @@ import {
   DONATIONS_SLUG,
   EDITOR_ROUTE,
   EDITOR_ROUTE_PAGE,
+  EDITOR_ROUTE_PAGE_REDIRECT,
   PROFILE
 } from 'routes';
 
@@ -23,7 +24,7 @@ import Customize from 'components/content/Customize';
 import DashboardSidebar from 'components/dashboard/sidebar/DashboardSidebar';
 import DashboardTopbar from 'components/dashboard/topbar/DashboardTopbar';
 import Donations from 'components/donations/Donations';
-import PageEditor from 'components/pageEditor/PageEditor';
+import PageEditorRoute from 'components/pageEditor/PageEditorRoute';
 import SystemNotification from 'components/common/SystemNotification/SystemNotification';
 
 import ConnectStripeElements from 'components/dashboard/connectStripe/ConnectStripeElements';
@@ -37,13 +38,12 @@ import { SentryRoute } from 'hooks/useSentry';
 import useUser from 'hooks/useUser';
 import flagIsActiveForUser from 'utilities/flagIsActiveForUser';
 import hasContributionsDashboardAccessToUser from 'utilities/hasContributionsDashboardAccessToUser';
-import { usePageContext } from './PageContext';
 import { useEffect } from 'react';
+import { PageEditorRedirect } from 'components/pageEditor/PageEditorRedirect';
 
 function Dashboard() {
   const { enqueueSnackbar } = useSnackbar();
   const { flags } = useFeatureFlags();
-  const { page, setPage, updatedPage } = usePageContext();
   const { user } = useUser();
   const { requiresVerification, displayConnectionSuccess, hideConnectionSuccess, isLoading } =
     useConnectStripeAccount();
@@ -77,9 +77,9 @@ function Dashboard() {
   ) : (
     <S.Outer>
       {requiresVerification ? <ConnectStripeElements /> : ''}
-      <DashboardTopbar isEditPage={isEditPage} page={page} setPage={setPage} user={user} updatedPage={updatedPage} />
+      {!isEditPage && <DashboardTopbar user={user} />}
       <S.Dashboard data-testid="dashboard">
-        {isEditPage ? null : <DashboardSidebar />}
+        {!isEditPage && <DashboardSidebar />}
         <S.DashboardMain>
           <S.DashboardContent>
             <Switch>
@@ -102,7 +102,12 @@ function Dashboard() {
               ) : null}
               {hasContentSectionAccess ? (
                 <SentryRoute path={EDITOR_ROUTE_PAGE}>
-                  <PageEditor />
+                  <PageEditorRoute />
+                </SentryRoute>
+              ) : null}
+              {hasContentSectionAccess ? (
+                <SentryRoute path={EDITOR_ROUTE_PAGE_REDIRECT}>
+                  <PageEditorRedirect />
                 </SentryRoute>
               ) : null}
               <SentryRoute path={PROFILE}>

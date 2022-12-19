@@ -2,6 +2,7 @@ import { render, screen } from 'test-utils';
 import { EditInterfaceContext } from '../EditInterface';
 import PageSetup from './PageSetup';
 import { PageEditorContext } from 'components/pageEditor/PageEditor';
+import { EditablePageContext } from 'hooks/useEditablePage';
 
 // This component uses URL.revokeObjectURL() which jsdom doesn't seem to
 // support.
@@ -10,9 +11,8 @@ jest.mock('elements/inputs/ImageWithPreview', () => () => null);
 function tree(page) {
   return render(
     <EditInterfaceContext.Provider value={{ setPageContent: jest.fn() }}>
-      <PageEditorContext.Provider
+      <EditablePageContext.Provider
         value={{
-          errors: [],
           page: {
             header_link: 'mock-header-link',
             heading: 'mock-heading',
@@ -24,8 +24,14 @@ function tree(page) {
           }
         }}
       >
-        <PageSetup />
-      </PageEditorContext.Provider>
+        <PageEditorContext.Provider
+          value={{
+            errors: []
+          }}
+        >
+          <PageSetup />
+        </PageEditorContext.Provider>
+      </EditablePageContext.Provider>
     </EditInterfaceContext.Provider>
   );
 }

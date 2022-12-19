@@ -4,6 +4,7 @@ import { Controls, Root } from './PageStyles.styled';
 // Context
 import { usePageEditorContext } from 'components/pageEditor/PageEditor';
 import { useEditInterfaceContext } from 'components/pageEditor/editInterface/EditInterface';
+import { useEditablePageContext } from 'hooks/useEditablePage';
 
 // Children
 import useModal from 'hooks/useModal';
@@ -12,8 +13,9 @@ import AddStylesModal from 'components/pageEditor/editInterface/pageStyles/AddSt
 import EditSaveControls from '../EditSaveControls';
 import EditTabHeader from '../EditTabHeader';
 
-function PageStyles() {
-  const { page, availableStyles, setAvailableStyles } = usePageEditorContext();
+function PageStyles({ backToProperties }) {
+  const { page } = useEditablePageContext();
+  const { availableStyles, setAvailableStyles } = usePageEditorContext();
   const { setPageContent } = useEditInterfaceContext();
   const {
     open: addStylesModalOpen,

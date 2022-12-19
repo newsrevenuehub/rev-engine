@@ -145,11 +145,10 @@ describe('Donations list', () => {
     it('should display the second page of donations when click on next page', () => {
       cy.wait('@getDonations');
       cy.get('li > button[aria-label="Go to page 2"]').click();
-      cy.wait('@getDonations').then((intercept) => {
-        console.log({ intercept });
-        cy.getByTestId('donations-table')
-          .find('tbody tr[data-testid="donation-row"]')
-          .should('have.length', intercept.response.body.results.length);
+      cy.wait('@getDonations');
+      cy.get('@getDonations.all').then((requests) => {
+        // + 1 is for the header row.
+        cy.findAllByRole('row').should('have.length', requests[requests.length - 1].response.body.results.length + 1);
       });
     });
 

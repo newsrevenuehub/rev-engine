@@ -72,7 +72,7 @@ function Pages() {
 
   const isLoading = pagesLoading || userLoading;
   const handleEditPage = (page: ContributionPage) =>
-    history.push(join([EDITOR_ROUTE, page.revenue_program.slug, page.slug, '/']));
+    history.push(join([EDITOR_ROUTE, 'pages', page.id.toString(), '/']));
   const pagesByRevenueProgram = pagesbyRP(pages, pageSearchQuery);
 
   const addPageButtonShouldBeDisabled = useMemo(() => {

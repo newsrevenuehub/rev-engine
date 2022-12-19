@@ -8,33 +8,27 @@ import FiberManualRecordIcon from '@material-ui/icons/FiberManualRecord';
 import useModal from 'hooks/useModal';
 import formatDatetimeForDisplay from 'utilities/formatDatetimeForDisplay';
 import { getUpdateSuccessMessage, pageIsPublished } from 'utilities/editPageGetSuccessMessage';
-import { PagePropTypes } from 'constants/propTypes';
 import { pageLink } from 'utilities/getPageLinks';
 
 import { Flex, Button, Popover, LiveText, /*UnpublishButton, */ Text, IconButton } from './PublishButton.styled';
 import PublishModal from './PublishModal';
 import SuccessfulPublishModal from './SuccessfulPublishModal';
-import { ContributionPage, useContributionPage } from 'hooks/useContributionPage';
+import { ContributionPage } from 'hooks/useContributionPage';
 import formatDatetimeForAPI from 'utilities/formatDatetimeForAPI';
 import { Tooltip } from 'components/base';
 import { GENERIC_ERROR } from 'constants/textConstants';
 import { useAlert } from 'react-alert';
-import urlJoin from 'url-join';
+import { useEditablePageContext } from 'hooks/useEditablePage';
 
 const PublishButtonPropTypes = {
-  className: PropTypes.string,
-  page: PropTypes.shape(PagePropTypes),
-  setPage: PropTypes.func
+  className: PropTypes.string
 };
 
-export interface PublishButtonProps extends InferProps<typeof PublishButtonPropTypes> {
-  page: ContributionPage | null;
-}
+export type PublishButtonProps = InferProps<typeof PublishButtonPropTypes>;
 
-function PublishButton({ className, page, setPage }: PublishButtonProps) {
+function PublishButton({ className }: PublishButtonProps) {
   const alert = useAlert();
-  // This call needs to use the page ID because its slug may change during the publish process.
-  const { isLoading, updatePage } = useContributionPage(page?.id);
+  const { isLoading, page, savePageChanges } = useEditablePageContext();
   const { open, handleClose, handleOpen } = useModal();
   const {
     open: openSuccessfulPublishModal,
@@ -66,32 +60,16 @@ function PublishButton({ className, page, setPage }: PublishButtonProps) {
       throw new Error('page is not defined');
     }
 
-    if (!setPage) {
-      throw new Error('setPage is not defined');
+    if (!savePageChanges) {
+      throw new Error('savePageChanges is not defined');
     }
-
-    if (!updatePage) {
-      throw new Error('updatePage is not defined');
-    }
-
-    // Update the page in the API and context.
 
     const change = { ...changes, published_date: formatDatetimeForAPI(new Date()) };
 
     try {
       // Data layer changes.
 
-      await updatePage(change);
-      setPage({ ...page, ...change });
-
-      // Change the path in the browser *without* causing a re-render. We need
-      // the URL to change to the correct slug so that if the user reloads the
-      // page, they use the correct slug (otherwise they'd get a 'no page at
-      // this address' error). However, we don't want to trigger a re-render
-      // because that would prevent the user from seeing the success alert, and
-      // generally would change the UI on them.
-
-      window.history.replaceState(null, window.name, urlJoin(`/edit/${page.revenue_program.slug}/${change.slug}/`));
+      await savePageChanges(change);
 
       // Notify the user of success.
 
@@ -199,8 +177,7 @@ function PublishButton({ className, page, setPage }: PublishButtonProps) {
 PublishButton.propTypes = PublishButtonPropTypes;
 
 PublishButton.defaultProps = {
-  className: '',
-  page: null
+  className: ''
 };
 
 export default PublishButton;

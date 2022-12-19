@@ -10,6 +10,7 @@ import ImageUpload from 'components/base/ImageUpload/ImageUpload';
 import Input from 'elements/inputs/Input';
 import EditSaveControls from '../EditSaveControls';
 import EditTabHeader from '../EditTabHeader';
+import { useEditablePageContext } from 'hooks/useEditablePage';
 
 /**
  * PageSetup
@@ -18,8 +19,9 @@ import EditTabHeader from '../EditTabHeader';
  *
  * PageSetup is the direct child of EditInterface.
  */
-function PageSetup() {
-  const { page, errors } = usePageEditorContext();
+function PageSetup({ backToProperties }) {
+  const { page } = useEditablePageContext();
+  const { errors } = usePageEditorContext();
   const { setPageContent } = useEditInterfaceContext();
 
   // Form state

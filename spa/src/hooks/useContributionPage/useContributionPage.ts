@@ -68,6 +68,10 @@ export interface UseContributionPageResult {
 export function useContributionPage(pageId?: number): UseContributionPageResult;
 export function useContributionPage(revenueProgramSlug: string, pageSlug: string): UseContributionPageResult;
 
+/**
+ * Manages interactions with the API related to a single contribution page. In
+ * many cases, you should use useEditablePageContext() instead.
+ */
 export function useContributionPage(revenueProgramSlugOrPageId?: number | string, pageSlug?: string) {
   const alert = useAlert();
   const queryClient = useQueryClient();

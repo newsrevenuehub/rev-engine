@@ -200,7 +200,7 @@ class Contribution(IndexedTimeStampedModel, RoleAssignmentResourceModelMixin):
     @property
     def billing_address(self) -> str:
         order = ("line1", "line2", "city", "state", "postal_code", "country")
-        return ",".join([self.billing_details.address[x] for x in order])
+        return ",".join([self.billing_details.address[x] or "" for x in order])
 
     @property
     def formatted_donor_selected_amount(self) -> str:

@@ -7,6 +7,7 @@ import { faCheck, faTimes } from '@fortawesome/free-solid-svg-icons';
 // Context
 import { usePageEditorContext } from 'components/pageEditor/PageEditor';
 import { useEditInterfaceContext } from 'components/pageEditor/editInterface/EditInterface';
+import { useEditablePageContext } from 'hooks/useEditablePage';
 
 // Children
 import useModal from 'hooks/useModal';
@@ -16,7 +17,8 @@ import AddStylesModal from 'components/pageEditor/editInterface/pageStyles/AddSt
 import EditTabHeader from '../EditTabHeader';
 
 function PageStyles({ backToProperties }) {
-  const { page, availableStyles, setAvailableStyles } = usePageEditorContext();
+  const { page } = useEditablePageContext();
+  const { availableStyles, setAvailableStyles } = usePageEditorContext();
   const { setPageContent } = useEditInterfaceContext();
   const {
     open: addStylesModalOpen,

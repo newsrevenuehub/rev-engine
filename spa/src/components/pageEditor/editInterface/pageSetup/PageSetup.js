@@ -17,6 +17,7 @@ import ImageWithPreview from 'elements/inputs/ImageWithPreview';
 import Input from 'elements/inputs/Input';
 import CircleButton from 'elements/buttons/CircleButton';
 import EditTabHeader from '../EditTabHeader';
+import { useEditablePageContext } from 'hooks/useEditablePage';
 
 /**
  * PageSetup
@@ -27,7 +28,8 @@ import EditTabHeader from '../EditTabHeader';
  */
 function PageSetup({ backToProperties }) {
   const getUserConfirmation = useConfirmationModalContext();
-  const { page, errors } = usePageEditorContext();
+  const { page } = useEditablePageContext();
+  const { errors } = usePageEditorContext();
   const { setPageContent } = useEditInterfaceContext();
 
   // Form state

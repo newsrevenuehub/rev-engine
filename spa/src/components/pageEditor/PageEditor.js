@@ -1,4 +1,4 @@
-import { createContext, useCallback, useState, useEffect, useContext, useMemo } from 'react';
+import { createContext, useState, useEffect, useContext, useMemo } from 'react';
 import { useHistory } from 'react-router-dom';
 import * as S from './PageEditor.styled';
 import { useTheme } from 'styled-components';
@@ -10,9 +10,6 @@ import { pageIsPublished } from 'utilities/editPageGetSuccessMessage';
 
 // CSS files for libraries that ARE ONLY needed for page edit
 import 'react-datepicker/dist/react-datepicker.css';
-
-// Routing
-import { useParams } from 'react-router-dom';
 
 // AJAX
 import useRequest from 'hooks/useRequest';
@@ -36,6 +33,7 @@ import validatePage from './validatePage';
 
 // Hooks
 import useWebFonts from 'hooks/useWebFonts';
+import { useEditablePageContext } from 'hooks/useEditablePage';
 import { useConfigureAnalytics } from 'components/analytics';
 
 // Children
@@ -46,8 +44,6 @@ import GlobalLoading from 'elements/GlobalLoading';
 import EditInterface from 'components/pageEditor/editInterface/EditInterface';
 import PageTitle from 'elements/PageTitle';
 import { Tooltip } from 'components/base';
-import { usePageContext } from 'components/dashboard/PageContext';
-import useContributionPage from 'hooks/useContributionPage/useContributionPage';
 import ElementErrors from './ElementErrors';
 
 export const PageEditorContext = createContext();
@@ -68,55 +64,19 @@ export const PREVIEW = 'PREVIEW';
 function PageEditor() {
   const alert = useAlert();
   const theme = useTheme();
-  const parameters = useParams();
   const getUserConfirmation = useConfirmationModalContext();
   const [selectedButton, setSelectedButton] = useState(PREVIEW);
   const [showEditInterface, setShowEditInterface] = useState(false);
   const [stylesLoading, setStylesLoading] = useState(false);
   const [elementErrors, setElementErrors] = useState([]);
-  const { page: pageContext, setPage: baseSetPageContext, updatedPage, setUpdatedPage } = usePageContext();
-  const { deletePage, error, isError, isLoading, page, updatePage } = useContributionPage(
-    parameters.revProgramSlug,
-    parameters.pageSlug
-  );
+  const { deletePage, error, isError, isLoading, page, savePageChanges, pageChanges, setPageChanges } =
+    useEditablePageContext();
   const [availableStyles, setAvailableStyles] = useState([]);
   const requestGetPageStyles = useRequest();
   const history = useHistory();
   useWebFonts(page?.styles?.font);
 
   useConfigureAnalytics();
-
-  // Page data may have a null currency property if Stripe hasn't been
-  // connected yet. We want to force it to always at least contain a plausible
-  // currency symbol while the user is editing.
-  //
-  // We shouldn't have this logic on a live page--Stripe should always be
-  // connected in that case.
-  //
-  // We need this in the setter because other components may call it.
-
-  const setPageContext = useCallback(
-    (value) => {
-      // Need this comparison instead of spreading directly because currency may
-      // be null.
-
-      if (!value || value.currency) {
-        baseSetPageContext(value);
-      } else {
-        baseSetPageContext({ ...value, currency: { code: 'USD', symbol: '$' } });
-      }
-    },
-    [baseSetPageContext]
-  );
-
-  // Reset page context when loading the page begins.
-
-  useEffect(() => {
-    if (isLoading && pageContext !== null) {
-      setPageContext(null);
-      setUpdatedPage(null);
-    }
-  }, [isLoading, pageContext, setPageContext, setUpdatedPage]);
 
   // Show fetch errors to the user. A timeout of 0 means that the alerts must be
   // manually closed by the user instead of disappearing after a delay.
@@ -127,15 +87,13 @@ function PageEditor() {
     }
   }, [alert, error?.response.data, isError]);
 
-  // Once the page is successfully loaded, set up local state and go into edit
-  // mode.
+  // Once the page is successfully loaded, go into edit mode.
 
   useEffect(() => {
     if (!isLoading && !error) {
-      setPageContext(page);
       handleEdit();
     }
-  }, [error, isLoading, page, setPageContext, setUpdatedPage]);
+  }, [error, isLoading]);
 
   // Show validation errors.
 
@@ -213,13 +171,13 @@ function PageEditor() {
     async function finishSave() {
       try {
         if (CAPTURE_PAGE_SCREENSHOT) {
-          await updatePage(updatedPage, page.name, document.getElementById('root'));
+          await savePageChanges(page.name, document.getElementById('root'));
         } else {
-          await updatePage(updatedPage);
+          await savePageChanges();
         }
 
         setElementErrors({});
-        setUpdatedPage({});
+        setPageChanges({});
         handlePreview();
       } catch (error) {
         // We might have received element validation errors. If so, force the
@@ -239,7 +197,7 @@ function PageEditor() {
       }
     }
 
-    const { elementErrors } = validatePage(updatedPage);
+    const { elementErrors } = validatePage(pageChanges);
 
     if (elementErrors?.length > 0) {
       setElementErrors(elementErrors);
@@ -255,8 +213,6 @@ function PageEditor() {
       <PageTitle title={pageTitle} />
       <PageEditorContext.Provider
         value={{
-          page: pageContext,
-          setPage: setPageContext,
           availableStyles,
           setAvailableStyles,
           showEditInterface,
@@ -272,14 +228,14 @@ function PageEditor() {
               <EditInterface />
             </AnimatePresence>
           )}
-          {!isLoading && !stylesLoading && pageContext && (
+          {!isLoading && !stylesLoading && page && (
             <SegregatedStyles page={page}>
               {/* set stringified page as key to guarantee that ALL page changes will re-render the page in edit mode */}
-              <DonationPage key={page ? JSON.stringify(page) : ''} live={false} page={pageContext} />
+              <DonationPage key={page ? JSON.stringify(page) : ''} live={false} page={page} />
             </SegregatedStyles>
           )}
 
-          {pageContext && (
+          {page && (
             <S.ButtonOverlay>
               <CircleButton
                 onClick={handlePreview}
@@ -298,13 +254,13 @@ function PageEditor() {
                 data-testid="edit-page-button"
                 tooltipText="Edit"
               />
-              {updatedPage ? (
+              {pageChanges ? (
                 <CircleButton
                   onClick={handleSave}
                   icon={faSave}
                   buttonType="neutral"
                   data-testid="save-page-button"
-                  disabled={!updatedPage}
+                  disabled={!pageChanges}
                   tooltipText="Save"
                 />
               ) : (

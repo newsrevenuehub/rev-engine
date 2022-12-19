@@ -15,7 +15,7 @@ import PageElements from 'components/pageEditor/editInterface/pageElements/PageE
 import PageSetup, { PAGE_SETUP_FIELDS } from 'components/pageEditor/editInterface/pageSetup/PageSetup';
 import PageSidebarElements from 'components/pageEditor/editInterface/pageSidebarElements/PageSidebarElements';
 import PageStyles from 'components/pageEditor/editInterface/pageStyles/PageStyles';
-import { usePageContext } from 'components/dashboard/PageContext';
+import { useEditablePageContext } from 'hooks/useEditablePage';
 
 import * as dynamicPageElements from 'components/donationPage/pageContent/dynamicElements';
 import * as dynamicSidebarElements from 'components/donationPage/pageContent/dynamicSidebarElements';
@@ -41,8 +41,8 @@ export const EditInterfaceContext = createContext();
  * EditInterface is direct child of PageEditor
  */
 function EditInterface() {
-  const { page, setPage, errors, showEditInterface, setSelectedButton } = usePageEditorContext();
-  const { updatedPage, setUpdatedPage } = usePageContext();
+  const { page, setPageChanges } = useEditablePageContext();
+  const { errors, showEditInterface, setSelectedButton } = usePageEditorContext();
   const [tab, setTab] = useState(0);
   const [elementDestination, setElementDestination] = useState();
   const [addElementModalOpen, setAddElementModalOpen] = useState(false);
@@ -81,8 +81,7 @@ function EditInterface() {
    * the edit interface.
    */
   const setPageContent = (content = {}) => {
-    setPage({ ...page, ...content });
-    setUpdatedPage({ ...updatedPage, ...content });
+    setPageChanges((existing) => ({ ...existing, ...content }));
   };
 
   const setElements = (elements) => {
@@ -117,8 +116,6 @@ function EditInterface() {
   return (
     <EditInterfaceContext.Provider
       value={{
-        page,
-        updatedPage,
         elements: page.elements,
         setElements,
         selectedElement,

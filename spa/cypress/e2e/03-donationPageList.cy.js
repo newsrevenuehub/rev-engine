@@ -175,7 +175,7 @@ describe('Add Page modal', () => {
 });
 
 describe('Pages view', () => {
-  it('has prototypical first-time self-service user flow', () => {
+  it.only('has prototypical first-time self-service user flow', () => {
     cy.intercept(
       { method: 'GET', pathname: getEndpoint(REVENUE_PROGRAMS) },
       { fixture: 'org/revenue-programs-1', statusCode: 200 }
@@ -200,9 +200,7 @@ describe('Pages view', () => {
           page: createPageResponse.slug
         }
       },
-      {
-        fixture: 'pages/live-page-element-validation'
-      }
+      { fixture: 'pages/live-page-element-validation' }
     ).as('getNewPage');
     cy.intercept(
       {
@@ -213,10 +211,15 @@ describe('Pages view', () => {
           page: createPageResponse.slug
         }
       },
+      { fixture: 'pages/create-page-response.json' }
+    ).as('draftPageBySlug');
+    cy.intercept(
       {
-        fixture: 'pages/create-page-response.json'
-      }
-    ).as('draftPage');
+        method: 'GET',
+        pathname: getEndpoint(LIST_PAGES + createPageResponse.id)
+      },
+      { fixture: 'pages/create-page-response.json' }
+    ).as('draftPageById');
     cy.intercept({ method: 'PATCH', pathname: getEndpoint(`${PATCH_PAGE}/**`) }, { fixture: 'pages/patch-page' }).as(
       'patchPage'
     );
@@ -227,7 +230,8 @@ describe('Pages view', () => {
     cy.getByTestId('new-page-button').should('exist');
     cy.getByTestId('new-page-button').click();
     cy.wait('@createNewPage');
-    cy.wait('@draftPage');
+    cy.wait('@draftPageBySlug');
+    cy.wait('@draftPageById');
     cy.getByTestId('publish-button').click();
     cy.getByTestId('page-name-input').type('donate');
     cy.getByTestId('modal-publish-button').click();

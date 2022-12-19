@@ -7,16 +7,7 @@ import livePage from '../fixtures/pages/live-page-1.json';
 import unpublishedPage from '../fixtures/pages/unpublished-page-1.json';
 
 // Constants
-import {
-  DELETE_PAGE,
-  DRAFT_PAGE_DETAIL,
-  PATCH_PAGE,
-  LIST_FONTS,
-  LIST_PAGES,
-  LIST_STYLES,
-  TEMPLATES,
-  USER
-} from 'ajax/endpoints';
+import { DELETE_PAGE, PATCH_PAGE, LIST_FONTS, LIST_PAGES, LIST_STYLES, TEMPLATES, USER } from 'ajax/endpoints';
 import { DELETE_LIVE_PAGE_CONFIRM_TEXT } from 'constants/textConstants';
 import { CONTENT_SLUG } from 'routes';
 import { CLEARBIT_SCRIPT_SRC } from 'hooks/useClearbit';
@@ -55,16 +46,15 @@ const orgAdminStripeVerifiedLoginSuccess = {
   }
 };
 
-const testEditPageUrl = 'edit/my/page/';
+const testEditPageUrl = 'edit/pages/123';
 
 describe('Contribution page edit', () => {
   beforeEach(() => {
     cy.forceLogin(orgAdminUser);
     cy.intercept({ method: 'GET', pathname: getEndpoint(USER) }, { body: stripeVerifiedOrgAdmin });
     cy.intercept({ method: 'GET', pathname: getEndpoint(LIST_STYLES) }, {});
-
     cy.intercept(
-      { method: 'GET', pathname: `${getEndpoint(DRAFT_PAGE_DETAIL)}**` },
+      { method: 'GET', pathname: `${getEndpoint(LIST_PAGES)}**` },
       { fixture: 'pages/live-page-1', statusCode: 200 }
     ).as('getPage');
 
@@ -115,7 +105,7 @@ describe('Contribution page edit', () => {
       cy.intercept({ method: 'GET', pathname: getEndpoint(USER) }, { body: orgAdminWithContentFlag });
       cy.intercept({ method: 'GET', pathname: getEndpoint(LIST_STYLES) }, {});
       cy.intercept(
-        { method: 'GET', pathname: `${getEndpoint(DRAFT_PAGE_DETAIL)}**` },
+        { method: 'GET', pathname: `${getEndpoint(LIST_PAGES)}**` },
         { body: { ...livePage, currency: null }, statusCode: 200 }
       ).as('getPage');
 
@@ -318,10 +308,9 @@ describe('Contribution page edit', () => {
 
       cy.forceLogin(orgAdminUser);
       cy.intercept({ method: 'GET', pathname: getEndpoint(USER) }, { body: orgAdminWithContentFlag });
-      cy.intercept(
-        { method: 'GET', pathname: `${getEndpoint(DRAFT_PAGE_DETAIL)}**` },
-        { body: page, statusCode: 200 }
-      ).as('getPage');
+      cy.intercept({ method: 'GET', pathname: `${getEndpoint(LIST_PAGES)}**` }, { body: page, statusCode: 200 }).as(
+        'getPage'
+      );
       cy.intercept(`**/${LIST_STYLES}**`, {});
 
       cy.visit(testEditPageUrl);
@@ -341,7 +330,7 @@ describe('Contribution page edit', () => {
 
       // Remove element from elements list and set as fixture
       page.elements = page.elements.filter((el) => el.type !== missingElementType);
-      cy.intercept({ method: 'GET', pathname: getEndpoint(DRAFT_PAGE_DETAIL) }, { body: page, statusCode: 200 }).as(
+      cy.intercept({ method: 'GET', pathname: `${getEndpoint(LIST_PAGES)}**` }, { body: page, statusCode: 200 }).as(
         'getPageDetail'
       );
       cy.intercept(`**/${LIST_STYLES}**`, {});
@@ -367,7 +356,7 @@ describe('Contribution page edit', () => {
 
     it('should open appropriate tab for error and scroll to first error', () => {
       const fixture = { ...unpublishedPage, plan: { ...unpublishedPage.plan, custom_thank_you_page_enabled: true } };
-      cy.intercept({ method: 'GET', pathname: getEndpoint(DRAFT_PAGE_DETAIL) }, { body: fixture }).as('getPageDetail');
+      cy.intercept({ method: 'GET', pathname: `${getEndpoint(LIST_PAGES)}**` }, { body: fixture }).as('getPageDetail');
       cy.forceLogin(orgAdminUser);
       cy.intercept(`**/${LIST_STYLES}**`, {});
 
@@ -406,7 +395,7 @@ describe('Contribution page edit', () => {
       cy.intercept({ method: 'GET', pathname: getEndpoint(LIST_STYLES) }, {});
 
       cy.intercept(
-        { method: 'GET', pathname: getEndpoint(DRAFT_PAGE_DETAIL) },
+        { method: 'GET', pathname: `${getEndpoint(LIST_PAGES)}**` },
         { fixture: 'pages/live-page-1', statusCode: 200 }
       ).as('getPageDetail');
       cy.visit(testEditPageUrl);
@@ -473,7 +462,7 @@ describe('Edit interface: Setup', () => {
     cy.forceLogin(orgAdminStripeVerifiedLoginSuccess);
     cy.intercept({ method: 'GET', pathname: getEndpoint(USER) }, { body: orgAdminStripeVerifiedLoginSuccess.user });
     cy.intercept(
-      { method: 'GET', pathname: getEndpoint(DRAFT_PAGE_DETAIL) },
+      { method: 'GET', pathname: `${getEndpoint(LIST_PAGES)}**` },
       { body: pageDetailBody, statusCode: 200 }
     ).as('getPageDetail');
     cy.intercept({ method: 'GET', pathname: getEndpoint(LIST_STYLES) }, {});
@@ -692,7 +681,7 @@ describe('Edit interface: Styles', () => {
     cy.forceLogin(orgAdminStripeVerifiedLoginSuccess);
     cy.intercept({ method: 'GET', pathname: getEndpoint(USER) }, { body: orgAdminStripeVerifiedLoginSuccess.user });
     cy.intercept(
-      { method: 'GET', pathname: getEndpoint(DRAFT_PAGE_DETAIL) },
+      { method: 'GET', pathname: `${getEndpoint(LIST_PAGES)}**` },
       { body: pageDetailBody, statusCode: 200 }
     ).as('getPageDetail');
     cy.intercept({ method: 'GET', pathname: getEndpoint(LIST_STYLES) }, [{ name: 'mock-style' }]);
@@ -759,7 +748,7 @@ describe('Contribution page delete', () => {
 
   it('should delete an unpublished page when delete button is pushed', () => {
     cy.intercept(
-      { method: 'GET', pathname: getEndpoint(DRAFT_PAGE_DETAIL) },
+      { method: 'GET', pathname: `${getEndpoint(LIST_PAGES)}**` },
       { fixture: 'pages/unpublished-page-1', statusCode: 200 }
     ).as('getPage');
     cy.intercept({ method: 'GET', pathname: getEndpoint(LIST_STYLES) }, {});
@@ -776,7 +765,7 @@ describe('Contribution page delete', () => {
 
   it('should show a confirmation modal and delete a published page when delete button is pushed', () => {
     cy.intercept(
-      { method: 'GET', pathname: getEndpoint(DRAFT_PAGE_DETAIL) },
+      { method: 'GET', pathname: `${getEndpoint(LIST_PAGES)}**` },
       { fixture: 'pages/live-page-1', statusCode: 200 }
     ).as('getPage');
     cy.intercept(`**/${LIST_STYLES}**`, {});
@@ -799,7 +788,7 @@ describe('Page load side effects', () => {
     cy.forceLogin(orgAdminUser);
     cy.intercept({ method: 'GET', pathname: getEndpoint(USER) }, { body: orgAdminWithContentFlag });
     cy.intercept(
-      { method: 'GET', pathname: getEndpoint(DRAFT_PAGE_DETAIL) },
+      { method: 'GET', pathname: `${getEndpoint(LIST_PAGES)}**` },
       { fixture: 'pages/live-page-1', statusCode: 200 }
     ).as('getPageDetail');
     cy.intercept(`**/${LIST_STYLES}**`, {});
@@ -819,7 +808,7 @@ describe('ReasonEditor', () => {
     cy.forceLogin(orgAdminUser);
     cy.intercept({ method: 'GET', pathname: getEndpoint(USER) }, { body: orgAdminWithContentFlag });
     cy.intercept(
-      { method: 'GET', pathname: getEndpoint(DRAFT_PAGE_DETAIL) },
+      { method: 'GET', pathname: `${getEndpoint(LIST_PAGES)}**` },
       { fixture: 'pages/live-page-1', statusCode: 200 }
     ).as('getPageDetail');
     cy.intercept(`**/${LIST_STYLES}**`, {});

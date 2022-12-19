@@ -19,26 +19,28 @@ jest.mock('elements/GlobalLoading');
 function tree(props?: Partial<StripePaymentWrapperProps>, context?: Partial<DonationPage>) {
   return render(
     <DonationPageContext.Provider
-      value={{
-        feeAmount: 0,
-        frequency: 'one_time',
-        page: {
-          payment_provider: {
-            stripe_account_id: 'mock-stripe-account-id'
+      value={
+        {
+          feeAmount: 0,
+          frequency: 'one_time',
+          page: {
+            payment_provider: {
+              stripe_account_id: 'mock-stripe-account-id'
+            },
+            revenue_program: {
+              name: 'mock-rp-name'
+            },
+            elements: []
           },
-          revenue_program: {
-            name: 'mock-rp-name'
-          },
-          elements: []
-        },
-        setAmount: () => {},
-        overrideAmount: false,
-        errors: {},
-        setUserAgreesToPayFees: jest.fn(),
-        stripeClientSecret: 'mock-stripe-client-secret',
-        userAgreesToPayFees: false,
-        ...context
-      }}
+          setAmount: () => {},
+          overrideAmount: false,
+          errors: {},
+          setUserAgreesToPayFees: jest.fn(),
+          stripeClientSecret: 'mock-stripe-client-secret',
+          userAgreesToPayFees: false,
+          ...context
+        } as any
+      }
     >
       <StripePaymentWrapper {...props} />
     </DonationPageContext.Provider>

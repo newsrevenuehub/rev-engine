@@ -9,6 +9,7 @@ import { faPencilAlt, faTrash } from '@fortawesome/free-solid-svg-icons';
 import validateInputPositiveFloat from 'utilities/validateInputPositiveFloat';
 
 // Context
+import { useEditablePageContext } from 'hooks/useEditablePage';
 import { useEditInterfaceContext } from 'components/pageEditor/editInterface/EditInterface';
 
 // Children/Elements
@@ -29,7 +30,8 @@ const SWAG_OPTION_MAX_LENGTH = 40;
 
 function SwagEditor() {
   const theme = useTheme();
-  const { elementContent = defaultContent, setElementContent, page } = useEditInterfaceContext();
+  const { page } = useEditablePageContext();
+  const { elementContent = defaultContent, setElementContent } = useEditInterfaceContext();
 
   const newSwagNameRef = useRef();
 

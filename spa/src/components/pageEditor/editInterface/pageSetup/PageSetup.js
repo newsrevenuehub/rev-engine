@@ -4,6 +4,7 @@ import { Controls, ImageSelectorHelpText, ImageSelectorWrapper, InputWrapper, Ro
 // Context
 import { usePageEditorContext } from 'components/pageEditor/PageEditor';
 import { useEditInterfaceContext } from 'components/pageEditor/editInterface/EditInterface';
+import { useEditablePageContext } from 'hooks/useEditablePage';
 
 // Children
 import ImageUpload from 'components/base/ImageUpload/ImageUpload';
@@ -21,8 +22,9 @@ const INVALID_URL_MESSAGE = 'Please enter a valid URL.';
  *
  * PageSetup is the direct child of EditInterface.
  */
-function PageSetup() {
-  const { page, errors } = usePageEditorContext();
+function PageSetup({ backToProperties }) {
+  const { page } = useEditablePageContext();
+  const { errors } = usePageEditorContext();
   const { setPageContent } = useEditInterfaceContext();
 
   // Form state

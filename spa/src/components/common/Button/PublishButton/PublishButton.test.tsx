@@ -1,13 +1,12 @@
 import userEvent from '@testing-library/user-event';
 import { axe } from 'jest-axe';
-import { useContributionPage } from 'hooks/useContributionPage';
 import { act, render, screen, waitFor } from 'test-utils';
+import { GENERIC_ERROR } from 'constants/textConstants';
+import { EditablePageContext, EditablePageContextResult } from 'hooks/useEditablePage';
 import formatDatetimeForDisplay from 'utilities/formatDatetimeForDisplay';
 import { pageLink } from 'utilities/getPageLinks';
-import PublishButton, { PublishButtonProps } from './PublishButton';
-import { GENERIC_ERROR } from 'constants/textConstants';
+import PublishButton from './PublishButton';
 
-jest.mock('hooks/useContributionPage');
 jest.mock('./PublishModal/PublishModal');
 
 const unpublishedPage = {
@@ -31,16 +30,25 @@ const publishedPage = {
   published_date: '2021-11-18T21:51:53Z'
 };
 
-function tree(props?: Partial<PublishButtonProps>) {
-  return render(<PublishButton page={unpublishedPage as any} {...props} />);
-}
-
 describe('PublishButton', () => {
-  const useContributionPageMock = useContributionPage as jest.Mock;
-
-  beforeEach(() => {
-    useContributionPageMock.mockReturnValue({ isLoading: false, updatePage: jest.fn() });
-  });
+  function tree(context?: Partial<EditablePageContextResult>) {
+    return render(
+      <EditablePageContext.Provider
+        value={{
+          deletePage: jest.fn(),
+          isError: false,
+          isLoading: false,
+          page: unpublishedPage as any,
+          pageChanges: {},
+          savePageChanges: jest.fn(),
+          setPageChanges: jest.fn(),
+          ...context
+        }}
+      >
+        <PublishButton />
+      </EditablePageContext.Provider>
+    );
+  }
 
   it('renders nothing if the page is not set', () => {
     tree({ page: undefined });
@@ -54,31 +62,27 @@ describe('PublishButton', () => {
 
   it('should open publish modal when clicked', async () => {
     tree();
-
     const button = screen.getByRole('button', { name: /Publish/i });
-
     expect(button).toBeEnabled();
     userEvent.click(button);
     await waitFor(() => expect(screen.getByTestId('mock-publish-modal')).toBeVisible());
   });
 
   describe('When the publish modal signals it wants to publish the page', () => {
-    it('updates the page', async () => {
-      const updatePage = jest.fn();
+    it('save changes to the page', async () => {
+      const savePageChanges = jest.fn();
 
-      useContributionPageMock.mockReturnValue({ updatePage, isLoading: false });
-      tree({ setPage: jest.fn() });
+      tree({ savePageChanges });
       userEvent.click(screen.getByRole('button', { name: /Publish/i }));
-      expect(updatePage).not.toBeCalled();
+      expect(savePageChanges).not.toBeCalled();
       userEvent.click(screen.getByText('onPublish'));
-      expect(updatePage.mock.calls).toEqual([[{ published_date: expect.any(String), slug: 'mock-slug' }]]);
-
+      expect(savePageChanges.mock.calls).toEqual([[{ published_date: expect.any(String), slug: 'mock-slug' }]]);
       // Allow pending re-renders to complete.
       await act(() => Promise.resolve());
     });
 
     it('shows the published modal if the update succeeds', async () => {
-      tree({ setPage: jest.fn() });
+      tree();
       userEvent.click(screen.getByRole('button', { name: /Publish/i }));
       userEvent.click(screen.getByText('onPublish'));
       expect(await screen.findByText('Successfully Published Page')).toBeVisible();
@@ -86,40 +90,13 @@ describe('PublishButton', () => {
     });
 
     it("displays an error message if the update doesn't succeed", async () => {
-      useContributionPageMock.mockReturnValue({
-        isLoading: false,
-        updatePage: () => {
-          throw new Error('test-error');
-        }
-      });
-      tree({ setPage: jest.fn() });
+      const savePageChanges = jest.fn();
+
+      savePageChanges.mockRejectedValue(new Error());
+      tree({ savePageChanges });
       userEvent.click(screen.getByRole('button', { name: /Publish/i }));
       userEvent.click(screen.getByText('onPublish'));
       expect(await screen.findByRole('alert')).toHaveTextContent(GENERIC_ERROR);
-    });
-
-    it('calls setPage with the changed page data', async () => {
-      const setPage = jest.fn();
-
-      tree({ setPage });
-      userEvent.click(screen.getByRole('button', { name: /Publish/i }));
-      userEvent.click(screen.getByText('onPublish'));
-      await waitFor(() => expect(setPage).toBeCalled());
-      expect(setPage.mock.calls).toEqual([
-        [{ ...unpublishedPage, published_date: expect.any(String), slug: 'mock-slug' }]
-      ]);
-    });
-
-    it("updates the browser's location to match the new page slug", async () => {
-      const replaceStateSpy = jest.spyOn(window.history, 'replaceState');
-
-      tree({ setPage: jest.fn() });
-      userEvent.click(screen.getByRole('button', { name: /Publish/i }));
-      userEvent.click(screen.getByText('onPublish'));
-      await waitFor(() => expect(replaceStateSpy).toBeCalled());
-      expect(replaceStateSpy.mock.calls).toEqual([
-        [null, '', `/edit/${unpublishedPage.revenue_program.slug}/mock-slug/`]
-      ]);
     });
   });
 

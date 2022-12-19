@@ -41,6 +41,12 @@ describe('Hero', () => {
     expect(screen.getByRole('button', { name: 'mock-export-button' })).toBeInTheDocument();
   });
 
+  it("shouldn't render export if exportData is not defined", () => {
+    tree({ exportData: undefined });
+
+    expect(screen.queryByRole('button', { name: 'mock-export-button' })).not.toBeInTheDocument();
+  });
+
   it('should be accessible with export button', async () => {
     const { container } = tree({ exportData: { email: 'mock-email', transactions: 0 } });
     expect(await axe(container)).toHaveNoViolations();

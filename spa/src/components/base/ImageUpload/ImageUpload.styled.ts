@@ -27,7 +27,9 @@ export const Label = styled.label`
   grid-area: label;
 `;
 
-export const Preview = styled.div`
+export const Preview = styled.button`
+  background: none;
+  border: none;
   cursor: pointer;
   grid-area: preview;
   height: 100%;

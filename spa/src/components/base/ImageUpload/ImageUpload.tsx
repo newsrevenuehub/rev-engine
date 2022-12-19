@@ -72,9 +72,9 @@ export function ImageUpload(props: ImageUploadProps) {
   return (
     <Root className={className!}>
       <Label htmlFor={id}>{label}</Label>
-      <Preview>
-        <input accept={accept!} hidden id={id} onChange={handleChange} ref={inputRef} type="file" />
-        {thumbnailUrl ? <Thumbnail src={thumbnailUrl} alt={value?.name ?? ''} /> : <Prompt>{prompt}</Prompt>}
+      <input accept={accept!} hidden id={id} onChange={handleChange} ref={inputRef} type="file" />
+      <Preview onClick={clickOnHiddenInput}>
+        {thumbnailUrl ? <Thumbnail src={thumbnailUrl} alt={value?.name ?? prompt} /> : <Prompt>{prompt}</Prompt>}
       </Preview>
       <IconButton onClick={clickOnHiddenInput} aria-label="Change">
         <UploadIcon icon={faFileUpload} />

@@ -2,10 +2,12 @@ import { withThemes } from '@react-theming/storybook-addon';
 import { ThemeProvider as MuiThemeProvider } from '@material-ui/core';
 import { ThemeProvider } from 'styled-components';
 import { Provider as AlertProvider } from 'react-alert';
+import { SnackbarProvider } from 'notistack';
 
 import Alert, { alertOptions } from 'elements/alert/Alert';
 import { revEngineTheme, muiThemeOverrides } from 'styles/themes';
 import AdminGlobalStyles from 'styles/AdminGlobalStyles.js';
+import { GlobalContext } from 'components/MainLayout';
 
 // The two MuiThemeProviders here are to force JSS scoping, e.g. so that MUI
 // uses classes like MuiButton-5 instead of MuiButton. This helps us catch
@@ -16,8 +18,10 @@ const providerFn = ({ children }) => (
     <MuiThemeProvider theme={muiThemeOverrides}>
       <MuiThemeProvider>
         <AlertProvider template={Alert} {...alertOptions}>
-          <AdminGlobalStyles />
-          {children}
+          <SnackbarProvider anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}>
+            <AdminGlobalStyles />
+            <GlobalContext.Provider value={{ getReauth: () => {} }}>{children}</GlobalContext.Provider>
+          </SnackbarProvider>
         </AlertProvider>
       </MuiThemeProvider>
     </MuiThemeProvider>

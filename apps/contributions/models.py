@@ -6,6 +6,7 @@ from django.db import models
 from django.utils import timezone
 
 import stripe
+from slack_sdk.errors import SlackApiError
 
 from apps.common.models import IndexedTimeStampedModel
 from apps.emails.tasks import send_templated_email
@@ -211,11 +212,14 @@ class Contribution(IndexedTimeStampedModel, RoleAssignmentResourceModelMixin):
         # Calling save with kwargs "slack_notification" causes save method to trigger slack notifications
         slack_notification = kwargs.pop("slack_notification", None)
         if slack_notification:
-            self.send_slack_notifications(slack_notification)
-
+            try:
+                self.send_slack_notifications(slack_notification)
+            except SlackApiError:
+                logger.info("Something went wrong sending Slack notification")
         # Check if we should update stripe payment method details
         previous = self.__class__.objects.filter(pk=self.pk).first()
         logger.info("`Contribution.save` called with %s, %s", previous, self.provider_payment_method_id)
+        # this is failing because provider_payment_method_id is blank at time webhook gets called
         if (
             (previous and previous.provider_payment_method_id != self.provider_payment_method_id)
             or not previous

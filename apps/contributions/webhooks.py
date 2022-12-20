@@ -57,6 +57,8 @@ class StripeWebhookProcessor:
             self.process_subscription()
         elif object_type == "payment_method":
             self.process_payment_method()
+        elif object_type == "charge":
+            self.process_charge()
         else:
             logger.warning('Received un-handled Stripe object of type "%s"', object_type)
 
@@ -155,4 +157,12 @@ class StripeWebhookProcessor:
         if self.event.type == "payment_method.attached":
             contribution = Contribution.objects.get(provider_customer_id=self.obj_data["customer"])
             contribution.provider_payment_method_id = self.obj_data["id"]
+            contribution.save()
+
+    def process_charge(self):
+        """"""
+        logger.info("`handle_charge_succeeded` is running")
+        if self.event.type == "charge.succeeded":
+            contribution = Contribution.objects.get(provider_payment_id=self.obj_data["payment_intent"])
+            contribution.provider_payment_method_id = self.obj_data["payment_method"]
             contribution.save()

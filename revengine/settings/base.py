@@ -409,6 +409,10 @@ STRIPE_WEBHOOK_EVENTS = [
     "customer.subscription.updated",
     "customer.subscription.deleted",
     "payment_method.attached",
+    # this will always happen, whether flagged or not, whereas payment_intent.succeeded will only happen
+    # in case of non-flagged, or after accepted from admin. We need charge.suceeded separately so attach payment
+    # method id after flagged contributor submits payment info.
+    "charge.succeeded",
 ]
 
 ### django-healthcheck Settings

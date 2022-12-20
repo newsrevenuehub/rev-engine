@@ -1,14 +1,20 @@
+import json
 from datetime import datetime
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 from django.test import override_settings
 from django.urls import reverse
+from django.utils.timezone import make_aware
 
+import pytest
+from rest_framework import status
 from rest_framework.test import APIRequestFactory, APITestCase
 from stripe.error import SignatureVerificationError
 from stripe.stripe_object import StripeObject
+from stripe.webhook import WebhookSignature
 
-from apps.contributions.models import Contribution, ContributionStatus
+from apps.contributions.models import Contribution, ContributionInterval, ContributionStatus
+from apps.contributions.tests.factories import ContributionFactory
 from apps.contributions.views import process_stripe_webhook_view
 from apps.contributions.webhooks import StripeWebhookProcessor
 from apps.organizations.tests.factories import (
@@ -291,3 +297,34 @@ class CustomerSubscriptionWebhooksTest(APITestCase):
         mock_fetch_pm.assert_not_called()
         contribution.refresh_from_db()
         self.assertEqual(contribution.status, ContributionStatus.CANCELED)
+
+
+@pytest.mark.django_db()
+@pytest.mark.parametrize(
+    "interval,expect_reminder_email",
+    (
+        (ContributionInterval.MONTHLY, False),
+        (ContributionInterval.YEARLY, True),
+    ),
+)
+def test_invoice_updated_webhook(
+    interval,
+    expect_reminder_email,
+    client,
+    monkeypatch,
+):
+    mock_send_reminder = Mock()
+    monkeypatch.setattr(Contribution, "send_recurring_contribution_email_reminder", mock_send_reminder)
+    monkeypatch.setattr(WebhookSignature, "verify_header", lambda *args, **kwargs: True)
+    with open("apps/contributions/tests/fixtures/stripe-invoice-upcoming.json") as fl:
+        data = json.load(fl)
+    ContributionFactory(interval=interval, provider_subscription_id=data["data"]["object"]["subscription"])
+    header = {"HTTP_STRIPE_SIGNATURE": "testing", "content_type": "application/json"}
+    response = client.post(reverse("stripe-webhooks"), data=data, **header)
+    assert response.status_code == status.HTTP_200_OK
+    if expect_reminder_email:
+        mock_send_reminder.assert_called_once_with(
+            make_aware(datetime.fromtimestamp(data["data"]["object"]["next_payment_attempt"])).date()
+        )
+    else:
+        mock_send_reminder.assert_not_called()

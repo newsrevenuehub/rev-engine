@@ -220,8 +220,8 @@ class Contribution(IndexedTimeStampedModel, RoleAssignmentResourceModelMixin):
         previous = self.__class__.objects.filter(pk=self.pk).first()
         logger.info(
             "`Contribution.save` called. Existing contribution has id: %s and provider_payment_method_id: %s \n The save value for provider_payment_method_id is %s",
-            getattr(previous, "id"),
-            getattr(previous, "provider_payment_method_id"),
+            getattr(previous, "id", None),
+            getattr(previous, "provider_payment_method_id", None),
             self.provider_payment_method_id,
         )
         # this is failing because provider_payment_method_id is blank at time webhook gets called

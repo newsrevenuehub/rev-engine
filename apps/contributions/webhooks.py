@@ -95,6 +95,7 @@ class StripeWebhookProcessor:
     def handle_payment_intent_succeeded(self):
         contribution = self.get_contribution_from_event()
         contribution.payment_provider_data = self.event
+        contribution.provider_payment_id = self.event.charges[0].payment_method
         contribution.last_payment_date = datetime.datetime.fromtimestamp(
             self.obj_data["created"], tz=datetime.timezone.utc
         )
@@ -129,6 +130,7 @@ class StripeWebhookProcessor:
         contribution = self.get_contribution_from_event()
         contribution.payment_provider_data = self.obj_data
         contribution.provider_subscription_id = self.obj_data["id"]
+        contribution.provider_payment_method_id = self.obj_data[""]
 
         if "default_payment_method" in self.event.data["previous_attributes"]:
             # If stripe reports 'default_payment_method' as a previous attribute, then we've updated 'default_payment_method'
@@ -149,6 +151,7 @@ class StripeWebhookProcessor:
 
     def process_payment_method(self):
         """ """
+        logger.info("`process_payment_method` called")
         if self.event.type == "payment_method.attached":
             contribution = Contribution.objects.get(provider_customer_id=self.obj_data["customer"])
             contribution.provider_payment_method_id = self.obj_data["id"]

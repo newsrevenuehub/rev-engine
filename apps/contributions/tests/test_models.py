@@ -404,7 +404,10 @@ def test_contribution_formatted_donor_selected_amount(trait):
     ),
 )
 def test_contribution_send_recurring_contribution_email_reminder(interval, expect_success, monkeypatch, settings):
-    contribution = ContributionFactory(interval=interval)
+    # This is to squash a side effect in contribution.save
+    # TODO: DEV-3026
+    with patch("apps.contributions.models.Contribution.fetch_stripe_payment_method", return_value=None):
+        contribution = ContributionFactory(interval=interval)
     next_charge_date = datetime.datetime.now()
     mock_log_warning = Mock()
     mock_send_templated_email = Mock(wraps=send_templated_email.delay)
@@ -462,7 +465,8 @@ def test_contribution_send_recurring_contribution_email_reminder(interval, expec
 def test_contribution_send_recurring_contribution_email_reminder_email_text(
     is_non_profit, tax_id, monkeypatch, settings
 ):
-    contribution = ContributionFactory(interval=ContributionInterval.YEARLY)
+    with patch("apps.contributions.models.Contribution.fetch_stripe_payment_method", return_value=None):
+        contribution = ContributionFactory(interval=ContributionInterval.YEARLY)
     contribution.donation_page.revenue_program.non_profit = is_non_profit
     contribution.donation_page.revenue_program.tax_id = tax_id
     contribution.donation_page.revenue_program.save()

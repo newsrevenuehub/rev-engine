@@ -21,7 +21,7 @@ export const defaultToolbar = {
   }
 };
 
-// We can't apply styles directly to <Editor> directly. The class names we're
+// We can't apply styles directly to <Editor>. The class names we're
 // targeting seem to be set by react-draft-wysiwyg manually.
 
 const Root = styled.div`

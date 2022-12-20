@@ -318,7 +318,9 @@ def test_invoice_updated_webhook(
     monkeypatch.setattr(WebhookSignature, "verify_header", lambda *args, **kwargs: True)
     with open("apps/contributions/tests/fixtures/stripe-invoice-upcoming.json") as fl:
         data = json.load(fl)
-    ContributionFactory(interval=interval, provider_subscription_id=data["data"]["object"]["subscription"])
+    # TODO: DEV-3026
+    with patch("apps.contributions.models.Contribution.fetch_stripe_payment_method", return_value=None):
+        ContributionFactory(interval=interval, provider_subscription_id=data["data"]["object"]["subscription"])
     header = {"HTTP_STRIPE_SIGNATURE": "testing", "content_type": "application/json"}
     response = client.post(reverse("stripe-webhooks"), data=data, **header)
     assert response.status_code == status.HTTP_200_OK

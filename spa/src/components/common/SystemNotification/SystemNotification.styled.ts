@@ -1,5 +1,5 @@
 import styled from 'styled-components';
-import { IconButton as MuiIconButton } from '@material-ui/core';
+import { IconButton as MuiIconButton, Typography as MuiTypography } from '@material-ui/core';
 
 import { SystemNotificationType } from './commonTypes';
 import { revEngineTheme } from 'styles/themes';
@@ -11,6 +11,10 @@ export const SystemNotificationWrapper = styled.div`
   border-radius: 4px;
   box-shadow: 0px 2px 6px rgba(0, 0, 0, 0.16);
   background-color: ${(props) => props.theme.colors.white};
+`;
+
+export const Typography = styled(MuiTypography)`
+  font-size: ${(props) => props.theme.fontSizesUpdated.sm};
 `;
 
 export const IconBoxIcon = styled.div`

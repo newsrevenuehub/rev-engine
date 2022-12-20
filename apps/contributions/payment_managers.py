@@ -111,11 +111,14 @@ class StripePaymentManager(PaymentManager):
                     stripe_account=revenue_program.payment_provider.stripe_account_id,
                     cancellation_reason="fraudulent",
                 )
+                # we rely on Stripe webhook for payment_intent.canceled that updates status on contribution
             else:
                 stripe.PaymentIntent.capture(
                     self.contribution.provider_payment_id,
                     stripe_account=revenue_program.payment_provider.stripe_account_id,
                 )
+                self.contribution.status = ContributionStatus.PAID
+                self.contribution.save()
 
         except stripe.error.InvalidRequestError as invalid_request_error:
             self.contribution.status = previous_status

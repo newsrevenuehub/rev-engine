@@ -39,7 +39,7 @@ from apps.contributions.stripe_contributions_provider import (
 from apps.contributions.tasks import task_pull_serialized_stripe_contributions_to_cache
 from apps.contributions.utils import export_contributions_to_csv
 from apps.contributions.webhooks import StripeWebhookProcessor
-from apps.emails.tasks import send_templated_email_with_attachment, send_thank_you_email
+from apps.emails.tasks import send_templated_email_with_attachment
 from apps.organizations.models import PaymentProvider, RevenueProgram
 from apps.public.permissions import IsActiveSuperUser
 from apps.users.views import FilterQuerySetByUserMixin
@@ -197,8 +197,7 @@ def payment_success(request, provider_client_secret_id=None):
         contribution = Contribution.objects.get(provider_client_secret_id=provider_client_secret_id)
     except Contribution.DoesNotExist:
         return Response(status=status.HTTP_404_NOT_FOUND)
-    if contribution.revenue_program.organization.send_receipt_email_via_nre:
-        send_thank_you_email.delay(contribution.id)
+    contribution.handle_thank_you_email()
     return Response(status=status.HTTP_204_NO_CONTENT)
 
 

@@ -85,8 +85,7 @@ class Contributor(IndexedTimeStampedModel):
     @staticmethod
     def create_magic_link(contribution: "Contribution") -> SafeString:
         """Create a magic link value that can be inserted into Django templates (for instance, in contributor-facing emails)"""
-        # vs circular import
-        from apps.api.views import _construct_rp_domain as construct_rp_domain
+        from apps.api.views import construct_rp_domain  # vs. circular import
 
         if not isinstance(contribution, Contribution):
             logger.error("`Contributor.create_magic_link` called with invalid contributon value: %s", contribution)
@@ -354,3 +353,58 @@ class Contribution(IndexedTimeStampedModel, RoleAssignmentResourceModelMixin):
 
         if self.revenue_program.organization.send_receipt_email_via_nre:
             send_thank_you_email.delay(self.id)
+
+    def send_recurring_contribution_email_reminder(self, next_charge_date):
+        # vs. circular import
+        from apps.api.views import construct_rp_domain
+        from apps.emails.tasks import send_templated_email
+
+        if self.interval == ContributionInterval.ONE_TIME:
+            logger.warning(
+                "`Contribution.send_recurring_contribution_email_reminder` was called on an instance (ID: %s) whose interval is one-time",
+                self.id,
+            )
+            return
+        token = str(ContributorRefreshToken.for_contributor(self.contributor.uuid).short_lived_access_token)
+        send_templated_email.delay(
+            self.contributor.email,
+            f"Reminder: {self.donation_page.revenue_program.name} scheduled contribution",
+            "recurring-contribution-email-reminder.txt",
+            "recurring-contribution-email-reminder.html",
+            {
+                "rp_name": self.donation_page.revenue_program.name,
+                # nb, we have to send this as pre-formatted because this data will be serialized
+                # when sent to the Celery worker.
+                "contribution_date": next_charge_date.strftime("%m/%d/%Y"),
+                "contribution_amount": self.formatted_amount,
+                "contribution_interval_display_value": self.interval,
+                "non_profit": self.donation_page.revenue_program.non_profit,
+                "contributor_email": self.contributor.email,
+                "tax_id": self.donation_page.revenue_program.tax_id,
+                "magic_link": mark_safe(
+                    f"https://{construct_rp_domain(self.donation_page.revenue_program.slug)}/{settings.CONTRIBUTOR_VERIFY_URL}"
+                    f"?token={token}&email={quote_plus(self.contributor.email)}"
+                ),
+            },
+        )
+
+    @staticmethod
+    def stripe_metadata(contributor, validated_data, referer):
+        """Generate dict of metadata to be sent to Stripe when creating a PaymentIntent or Subscription"""
+        return {
+            "source": settings.METADATA_SOURCE,
+            "schema_version": settings.METADATA_SCHEMA_VERSION,
+            "contributor_id": contributor.id,
+            "agreed_to_pay_fees": validated_data["agreed_to_pay_fees"],
+            "donor_selected_amount": validated_data["donor_selected_amount"],
+            "reason_for_giving": validated_data["reason_for_giving"],
+            "honoree": validated_data.get("honoree"),
+            "in_memory_of": validated_data.get("in_memory_of"),
+            "comp_subscription": validated_data.get("comp_subscription"),
+            "swag_opt_out": validated_data.get("swag_opt_out"),
+            "swag_choice": validated_data.get("swag_choice"),
+            "referer": referer,
+            "revenue_program_id": validated_data["page"].revenue_program.id,
+            "revenue_program_slug": validated_data["page"].revenue_program.slug,
+            "sf_campaign_id": validated_data.get("sf_campaign_id"),
+        }

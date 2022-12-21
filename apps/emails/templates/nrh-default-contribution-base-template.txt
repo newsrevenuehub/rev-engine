@@ -16,7 +16,7 @@ Amount Contributed: {{ contribution_amount }}/{{ contribution_interval_display_v
 No goods or services were provided in exchange for this contribution.
 {% if non_profit %}
 This receipt may be used for tax purposes.
-{{ rp_name }} is a 501(c)(3) nonprofit organization{% if tax_id %} with a Federal Tax ID #{{tax_id}}{% endif %}.
+{{ rp_name }} is a 501(c)(3) nonprofit organization{% if tax_id %} with a Federal Tax ID #{{ tax_id }}{% endif %}.
 {% else %}
 Contributions to {{ rp_name }} are not deductible as charitable donations.
 {% endif %}

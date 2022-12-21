@@ -1,4 +1,5 @@
-from unittest.mock import Mock
+from unittest import TestCase
+from unittest.mock import Mock, call, patch
 
 import pytest
 from addict import Dict as AttrDict
@@ -7,7 +8,7 @@ from stripe.error import StripeError
 from apps.contributions.models import Contribution, ContributionInterval
 from apps.contributions.tests.factories import ContributionFactory
 from apps.emails.helpers import convert_to_timezone_formatted
-from apps.emails.tasks import send_thank_you_email
+from apps.emails.tasks import send_templated_email_with_attachment, send_thank_you_email
 from apps.organizations.models import PaymentProvider
 from apps.organizations.tests.factories import RevenueProgramFactory
 from apps.pages.tests.factories import DonationPageFactory
@@ -120,3 +121,22 @@ class TestSendThankYouEmail:
         mock_customer_retrieve.return_value = customer
         monkeypatch.setattr("stripe.Customer.retrieve", mock_customer_retrieve)
         send_thank_you_email(contribution.id)
+
+
+class TestTaskStripeContributions(TestCase):
+    @patch("apps.emails.tasks.EmailMessage")
+    def test_task_pull_serialized_stripe_contributions_to_cache(self, email_message):
+        send_templated_email_with_attachment(
+            "to@to.com",
+            "This is a subject",
+            "nrh-contribution-csv-email-body.txt",
+            {"name": "Test"},
+            "data",
+            "text/csv",
+            "contributions.csv",
+        )
+        calls = [
+            call().attach(filename="contributions.csv", content="data".encode("utf-8"), mimetype="text/csv"),
+            call().send(),
+        ]
+        email_message.assert_has_calls(calls)

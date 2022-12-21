@@ -1,10 +1,11 @@
 import PropTypes, { InferProps } from 'prop-types';
+import DOMPurify from 'dompurify';
 import styled from 'styled-components';
+import { useMemo } from 'react';
 
 const RichTextDisplayPropTypes = {
   /**
-   * HTML to display. **This will be rendered in the DOM as-is with no cleaning
-   * or security checks.**
+   * HTML to display.
    */
   html: PropTypes.string.isRequired
 };
@@ -71,7 +72,9 @@ const Root = styled.div`
  * component arbitrary HTML.
  */
 export function RichTextDisplay({ html }: RichTextDisplayProps) {
-  return <Root dangerouslySetInnerHTML={{ __html: html }} />;
+  const cleanedHtml = useMemo(() => DOMPurify.sanitize(html), [html]);
+
+  return <Root dangerouslySetInnerHTML={{ __html: cleanedHtml }} />;
 }
 
 RichTextDisplay.propTypes = RichTextDisplayPropTypes;

@@ -29,6 +29,16 @@ ShowExport.args = {
   }
 };
 
+export const ShowExportWithZeroTransactions: ComponentStory<typeof Hero> = Hero.bind({});
+
+ShowExportWithZeroTransactions.args = {
+  ...args,
+  exportData: {
+    transactions: 0,
+    email: 'mock-email@mock.com'
+  }
+};
+
 export const NoSearch: ComponentStory<typeof Hero> = Hero.bind({});
 
 NoSearch.args = {

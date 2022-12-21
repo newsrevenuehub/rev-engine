@@ -131,7 +131,9 @@ class DonationPageTest(TestCase):
 
     def test_cannot_delete_when_related_contributions(self):
         page = DonationPageFactory()
-        ContributionFactory(donation_page=page)
+        # TODO: DEV-3026
+        with mock.patch("apps.contributions.models.Contribution.fetch_stripe_payment_method", return_value=None):
+            ContributionFactory(donation_page=page)
         with self.assertRaises(ProtectedError) as protected_error:
             page.delete()
         error_msg = (

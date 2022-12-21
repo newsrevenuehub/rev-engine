@@ -18,7 +18,9 @@ from apps.pages.tests.factories import DonationPageFactory
 class TestSendThankYouEmail:
     @pytest.mark.parametrize("interval", (ContributionInterval.ONE_TIME, ContributionInterval.MONTHLY))
     def test_happy_path(self, monkeypatch, interval):
-        contribution = ContributionFactory(provider_customer_id="something", interval=interval)
+        # TODO: DEV-3026 clean up here
+        with patch("apps.contributions.models.Contribution.fetch_stripe_payment_method", return_value=None):
+            contribution = ContributionFactory(provider_customer_id="something", interval=interval)
         mock_send_email = Mock()
         monkeypatch.setattr("apps.emails.tasks.send_templated_email", mock_send_email)
         customer = AttrDict({"name": "Foo Bar"})
@@ -58,7 +60,9 @@ class TestSendThankYouEmail:
             send_thank_you_email(contribution_id)
 
     def test_when_stripe_error(self, monkeypatch):
-        contribution = ContributionFactory(provider_customer_id="something")
+        # TODO: DEV-3026 clean up here
+        with patch("apps.contributions.models.Contribution.fetch_stripe_payment_method", return_value=None):
+            contribution = ContributionFactory(one_time=True)
         mock_customer_retrieve = Mock(side_effect=StripeError("Error"))
         monkeypatch.setattr("stripe.Customer.retrieve", mock_customer_retrieve)
         mock_log_exception = Mock()
@@ -68,7 +72,9 @@ class TestSendThankYouEmail:
         mock_log_exception.assert_called_once()
 
     def test_when_missing_donation_page(self, monkeypatch):
-        contribution = ContributionFactory(provider_customer_id="something")
+        # TODO: DEV-3026 clean up here
+        with patch("apps.contributions.models.Contribution.fetch_stripe_payment_method", return_value=None):
+            contribution = ContributionFactory(one_time=True)
         contribution.donation_page = None
         contribution.save()
         with pytest.raises(Contribution.DoesNotExist):
@@ -82,7 +88,9 @@ class TestSendThankYouEmail:
         send_thank_you_email(contribution.id)
 
     def test_when_missing_provider_customer_id(self, monkeypatch):
-        contribution = ContributionFactory(provider_customer_id=None)
+        # TODO: DEV-3026 clean up here
+        with patch("apps.contributions.models.Contribution.fetch_stripe_payment_method", return_value=None):
+            contribution = ContributionFactory(provider_customer_id=None)
         with pytest.raises(Contribution.DoesNotExist):
             send_thank_you_email(contribution.id)
         customer = AttrDict({"name": "Foo Bar"})
@@ -94,7 +102,9 @@ class TestSendThankYouEmail:
         send_thank_you_email(contribution.id)
 
     def test_when_missing_page_revenue_program(self, monkeypatch):
-        contribution = ContributionFactory(provider_customer_id="something")
+        # TODO: DEV-3026 clean up here
+        with patch("apps.contributions.models.Contribution.fetch_stripe_payment_method", return_value=None):
+            contribution = ContributionFactory(provider_customer_id="something")
         contribution.donation_page.revenue_program = None
         contribution.donation_page.save()
         with pytest.raises(Contribution.DoesNotExist):
@@ -108,7 +118,9 @@ class TestSendThankYouEmail:
         send_thank_you_email(contribution.id)
 
     def test_when_missing_page_revenue_program_payment_provider(self, monkeypatch):
-        contribution = ContributionFactory(provider_customer_id="something")
+        # TODO: DEV-3026 clean up here
+        with patch("apps.contributions.models.Contribution.fetch_stripe_payment_method", return_value=None):
+            contribution = ContributionFactory(provider_customer_id="something")
         assert isinstance(provider := contribution.donation_page.revenue_program.payment_provider, PaymentProvider)
         contribution.donation_page.revenue_program.payment_provider = None
         contribution.donation_page.revenue_program.save()

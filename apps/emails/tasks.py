@@ -9,7 +9,6 @@ from celery import shared_task
 from celery.utils.log import get_task_logger
 from stripe.error import StripeError
 
-from apps.contributions.models import Contribution, Contributor
 from apps.emails.helpers import convert_to_timezone_formatted
 
 
@@ -53,6 +52,9 @@ def send_templated_email(
 )
 def send_thank_you_email(contribution_id: int):
     """Retrieve Stripe customer and send thank you email for a contribution"""
+    # vs circular import
+    from apps.contributions.models import Contribution, Contributor
+
     try:
         contribution = Contribution.objects.get(
             id=contribution_id,

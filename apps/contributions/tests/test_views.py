@@ -168,13 +168,14 @@ class StripeOAuthTest(AbstractTestCase):
 
 
 class TestContributionsViewSet(RevEngineApiAbstractTestCase):
-    def setUp(self):
+    @mock.patch("apps.contributions.models.Contribution.fetch_stripe_payment_method", return_value=None)
+    def setUp(self, mock_fetch_stripe):
         super().setUp()
         self.list_url = reverse("contribution-list")
 
-        self.contribution_for_org = Contribution.objects.filter(
-            donation_page__revenue_program__in=self.org1.revenueprogram_set.all()
-        ).first()
+        self.contribution_for_org = ContributionFactory(
+            donation_page__revenue_program=self.org1.revenueprogram_set.first(),
+        )
 
     def contribution_detail_url(self, pk=None):
         pk = pk if pk is not None else self.contribution_for_org.pk
@@ -844,12 +845,14 @@ class ProcessFlaggedContributionTest(APITestCase):
 
         payment_provider = PaymentProviderFactory(stripe_account_id=self.stripe_account_id)
         revenue_program = RevenueProgramFactory(organization=self.org, payment_provider=payment_provider)
-        self.contribution = ContributionFactory(
-            contributor=self.contributor,
-            donation_page=DonationPageFactory(revenue_program=revenue_program),
-            provider_subscription_id=self.subscription_id,
-        )
-        self.other_contribution = ContributionFactory()
+        # TODO: DEV-3026
+        with mock.patch("apps.contributions.models.Contribution.fetch_stripe_payment_method", return_value=None):
+            self.contribution = ContributionFactory(
+                contributor=self.contributor,
+                donation_page=DonationPageFactory(revenue_program=revenue_program),
+                provider_subscription_id=self.subscription_id,
+            )
+            self.other_contribution = ContributionFactory()
 
     def _make_request(self, contribution_pk=None, request_args={}):
         url = reverse("contribution-process-flagged", args=[contribution_pk])
@@ -1039,13 +1042,9 @@ class TestPaymentViewset:
             (ContributionInterval.YEARLY, SUBSCRIPTION_CLIENT_SECRET, None, SUBSCRIPTION_ID),
         ),
     )
+    @mock.patch("apps.contributions.models.Contribution.fetch_stripe_payment_method", return_value=None)
     def test_destroy_happy_path(
-        self,
-        interval,
-        client_secret,
-        payment_intent_id,
-        subscription_id,
-        monkeypatch,
+        self, mock_fetch_stripe_payment_method, interval, client_secret, payment_intent_id, subscription_id, monkeypatch
     ):
         contribution = ContributionFactory(
             interval=interval,
@@ -1088,10 +1087,12 @@ class TestPaymentViewset:
         self,
         contribution_status,
     ):
-        contribution = ContributionFactory(
-            provider_client_secret_id=PI_CLIENT_SECRET,
-            status=contribution_status,
-        )
+        # TODO: DEV-3026
+        with mock.patch("apps.contributions.models.Contribution.fetch_stripe_payment_method", return_value=None):
+            contribution = ContributionFactory(
+                provider_client_secret_id=PI_CLIENT_SECRET,
+                status=contribution_status,
+            )
         url = reverse("payment-detail", kwargs={"provider_client_secret_id": contribution.provider_client_secret_id})
         response = self.client.delete(url)
         assert response.status_code == status.HTTP_409_CONFLICT
@@ -1100,9 +1101,11 @@ class TestPaymentViewset:
     def test_destroy_when_stripe_error(self, interval, monkeypatch):
         monkeypatch.setattr("apps.contributions.views.stripe.PaymentIntent.cancel", mock_stripe_call_with_error)
         monkeypatch.setattr("apps.contributions.views.stripe.Subscription.delete", mock_stripe_call_with_error)
-        contribution = ContributionFactory(
-            provider_client_secret_id=PI_CLIENT_SECRET, status=ContributionStatus.PROCESSING
-        )
+        # TODO: DEV-3026
+        with mock.patch("apps.contributions.models.Contribution.fetch_stripe_payment_method", return_value=None):
+            contribution = ContributionFactory(
+                provider_client_secret_id=PI_CLIENT_SECRET, status=ContributionStatus.PROCESSING
+            )
         url = reverse("payment-detail", kwargs={"provider_client_secret_id": contribution.provider_client_secret_id})
         response = self.client.delete(url)
         assert response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
@@ -1114,17 +1117,19 @@ class TestPaymentViewset:
 def test_payment_success_view(send_receipt_email_via_nre, monkeypatch):
     """Minimal test of payment success view. This view calls a model method which is more deeply tested elsewhere."""
     client = APIClient()
-    contribution = ContributionFactory(interval="month")
-    contribution.provider_client_secret_id = "Shhhhhh"
-    contribution.save()
-    contribution.donation_page.revenue_program.organization.send_receipt_email_via_nre = send_receipt_email_via_nre
-    contribution.donation_page.revenue_program.organization.save()
     mock_send_email = mock.Mock()
     monkeypatch.setattr("apps.emails.tasks.send_thank_you_email.delay", mock_send_email)
     now = timezone.now()
     mock_now = mock.Mock()
     mock_now.return_value = now
     monkeypatch.setattr("django.utils.timezone.now", mock_now)
+
+    # TODO: DEV-3026
+    # This is to deal with side effect in contribution.save
+    with mock.patch("apps.contributions.models.Contribution.fetch_stripe_payment_method", return_value=None):
+        contribution = ContributionFactory(interval="month")
+        contribution.donation_page.revenue_program.organization.send_receipt_email_via_nre = send_receipt_email_via_nre
+        contribution.donation_page.revenue_program.organization.save()
     url = reverse("payment-success", args=(contribution.provider_client_secret_id,))
     response = client.patch(url, {})
     assert response.status_code == status.HTTP_204_NO_CONTENT

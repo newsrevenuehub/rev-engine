@@ -97,17 +97,11 @@ class StripeWebhookProcessor:
     def handle_payment_intent_succeeded(self):
         contribution = self.get_contribution_from_event()
         contribution.payment_provider_data = self.event
-        contribution.provider_payment_id = self.event.charges[0].payment_method
         contribution.last_payment_date = datetime.datetime.fromtimestamp(
             self.obj_data["created"], tz=datetime.timezone.utc
         )
         contribution.status = ContributionStatus.PAID
-
-        # Grab the payment_intent id from the event and store it as provider_payment_id
         contribution.provider_payment_id = self.obj_data["id"]
-        # Grab payment_method_id
-        contribution.provider_payment_method_id = self.obj_data.get("payment_method")
-
         contribution.save(slack_notification=SlackNotificationTypes.SUCCESS)
         logger.info("Contribution %s succeeded.", contribution)
 
@@ -132,7 +126,6 @@ class StripeWebhookProcessor:
         contribution = self.get_contribution_from_event()
         contribution.payment_provider_data = self.obj_data
         contribution.provider_subscription_id = self.obj_data["id"]
-        contribution.provider_payment_method_id = self.obj_data[""]
 
         if "default_payment_method" in self.event.data["previous_attributes"]:
             # If stripe reports 'default_payment_method' as a previous attribute, then we've updated 'default_payment_method'

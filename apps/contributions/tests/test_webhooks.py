@@ -10,6 +10,7 @@ from stripe.error import SignatureVerificationError
 from stripe.stripe_object import StripeObject
 
 from apps.contributions.models import Contribution, ContributionStatus
+from apps.contributions.tests.factories import ContributionFactory
 from apps.contributions.views import process_stripe_webhook_view
 from apps.contributions.webhooks import StripeWebhookProcessor
 from apps.organizations.tests.factories import (
@@ -107,9 +108,10 @@ def mock_valid_signature_bad_payload_verification(*args, **kwargs):
 @override_settings(STRIPE_WEBHOOK_SECRET=valid_secret)
 class PaymentIntentWebhooksTest(APITestCase):
     def _create_contribution(self, payment_intent_id=None):
-        return Contribution.objects.create(
-            provider_payment_id=payment_intent_id, amount=1000, status=ContributionStatus.PROCESSING
-        )
+        with patch("apps.contributions.models.Contribution.fetch_stripe_payment_method", return_value=None):
+            return ContributionFactory(
+                provider_payment_id=payment_intent_id, amount=1000, status=ContributionStatus.PROCESSING
+            )
 
     def _run_webhook_view_with_request(self):
         request = APIRequestFactory().post(reverse("stripe-webhooks"))

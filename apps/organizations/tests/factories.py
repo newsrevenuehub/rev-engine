@@ -31,6 +31,7 @@ class OrganizationFactory(DjangoModelFactory):
 class PaymentProviderFactory(DjangoModelFactory):
     class Meta:
         model = models.PaymentProvider
+        django_get_or_create = ("stripe_account_id",)
 
     stripe_account_id = factory.Sequence(lambda n: fake.uuid4())
     stripe_verified = True

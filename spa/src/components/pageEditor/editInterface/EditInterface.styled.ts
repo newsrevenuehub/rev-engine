@@ -1,7 +1,8 @@
 import styled from 'styled-components';
 import { motion } from 'framer-motion';
+import { TabPanel as BaseTabPanel } from 'components/base';
 
-export const EditInterface = styled(motion.aside)`
+export const Root = styled(motion.aside)`
   position: fixed;
   right: 0;
   top: 0;
@@ -36,4 +37,8 @@ export const EditInterface = styled(motion.aside)`
     box-sizing: inherit;
     outline-color: ${(props) => props.theme.colors.primary};
   }
+`;
+
+export const TabPanel = styled(BaseTabPanel)`
+  height: 100%;
 `;

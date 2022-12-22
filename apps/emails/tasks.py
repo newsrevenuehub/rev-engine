@@ -50,7 +50,7 @@ def send_templated_email(
     retry_jitter=False,
     autoretry_for=(AnymailAPIError,),
 )
-def send_thank_you_email(contribution_id: int):
+def send_thank_you_email(contribution_id: int) -> None:
     """Retrieve Stripe customer and send thank you email for a contribution"""
     # vs circular import
     from apps.contributions.models import Contribution, Contributor

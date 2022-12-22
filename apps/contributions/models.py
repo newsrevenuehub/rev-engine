@@ -1,3 +1,4 @@
+import datetime
 import logging
 import uuid
 from urllib.parse import quote_plus
@@ -384,7 +385,7 @@ class Contribution(IndexedTimeStampedModel, RoleAssignmentResourceModelMixin):
         if self.revenue_program.organization.send_receipt_email_via_nre:
             send_thank_you_email.delay(self.id)
 
-    def send_recurring_contribution_email_reminder(self, next_charge_date):
+    def send_recurring_contribution_email_reminder(self, next_charge_date: datetime.date) -> None:
         # vs. circular import
         from apps.api.views import construct_rp_domain
         from apps.emails.tasks import send_templated_email

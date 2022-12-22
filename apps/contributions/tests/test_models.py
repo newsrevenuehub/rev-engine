@@ -510,7 +510,7 @@ def test_contribution_send_recurring_contribution_email_reminder_email_text(
     )
     assert len(mail.outbox) == 1
     email_expectations = [
-        f"Date Scheduled: {next_charge_date.strftime('%m/%d/%Y')}",
+        f"Scheduled: {next_charge_date.strftime('%m/%d/%Y')}",
         f"Email: {contribution.contributor.email}",
         f"Amount Contributed: {contribution.formatted_amount}/{contribution.interval}",
     ]

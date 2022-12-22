@@ -35,5 +35,10 @@ describe('TabPanel', () => {
     expect(screen.getByRole('tabpanel')).toHaveAttribute('aria-labelledby', 'test-tab-id');
   });
 
+  it('sets its class attribute based on the prop', () => {
+    tree({ className: 'test-class-name' });
+    expect(screen.getByRole('tabpanel')).toHaveClass('test-class-name');
+  });
+
   // AX test happens with <Tabs>.
 });

@@ -379,7 +379,7 @@ class Contribution(IndexedTimeStampedModel, RoleAssignmentResourceModelMixin):
                 self.provider_subscription_id,
                 stripe_account=self.donation_page.revenue_program.stripe_account_id,
             )
-        elif self.status == ContributionStatus.FLAGGED:
+        elif self.status == ContributionStatus.FLAGGED and self.provider_payment_method_id:
             stripe.PaymentMethod.retrieve(
                 self.provider_payment_method_id,
                 stripe_account=self.donation_page.revenue_program.stripe_account_id,

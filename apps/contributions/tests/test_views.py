@@ -1102,7 +1102,10 @@ class TestPaymentViewset:
         monkeypatch.setattr("stripe.PaymentIntent.cancel", mock_stripe_call_with_error)
         monkeypatch.setattr("stripe.Subscription.delete", mock_stripe_call_with_error)
         monkeypatch.setattr("stripe.PaymentMethod.retrieve", mock_stripe_call_with_error)
-        contribution = ContributionFactory(interval=interval, status=contribution_status)
+        with mock.patch("apps.contributions.models.Contribution.fetch_stripe_payment_method", return_value=None):
+            contribution = ContributionFactory(
+                interval=interval, status=contribution_status, provider_payment_method_id="something"
+            )
         url = reverse("payment-detail", kwargs={"uuid": str(contribution.uuid)})
         response = self.client.delete(url)
         assert response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR

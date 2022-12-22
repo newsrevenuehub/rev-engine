@@ -385,6 +385,8 @@ def contribution():
     "status",
     (
         ContributionStatus.PROCESSING,
+        ContributionStatus.PROCESSING,
+        ContributionStatus.FLAGGED,
         ContributionStatus.FLAGGED,
     ),
 )
@@ -399,6 +401,7 @@ def test_contribution_cancel_when_one_time(status, contribution, monkeypatch):
     contribution.cancel()
     contribution.refresh_from_db()
     assert contribution.status == ContributionStatus.CANCELED
+
     mock_cancel.assert_called_once_with(
         contribution.provider_payment_id,
         stripe_account=contribution.donation_page.revenue_program.stripe_account_id,
@@ -407,18 +410,24 @@ def test_contribution_cancel_when_one_time(status, contribution, monkeypatch):
 
 @pytest.mark.django_db
 @pytest.mark.parametrize(
-    "status,interval",
+    "status,interval,has_payment_method_id",
     (
-        (ContributionStatus.PROCESSING, ContributionInterval.MONTHLY),
-        (ContributionStatus.PROCESSING, ContributionInterval.YEARLY),
-        (ContributionStatus.FLAGGED, ContributionInterval.MONTHLY),
-        (ContributionStatus.FLAGGED, ContributionInterval.YEARLY),
+        (ContributionStatus.PROCESSING, ContributionInterval.MONTHLY, True),
+        (ContributionStatus.PROCESSING, ContributionInterval.YEARLY, True),
+        (ContributionStatus.FLAGGED, ContributionInterval.MONTHLY, True),
+        (ContributionStatus.FLAGGED, ContributionInterval.YEARLY, True),
+        (ContributionStatus.PROCESSING, ContributionInterval.MONTHLY, False),
+        (ContributionStatus.PROCESSING, ContributionInterval.YEARLY, False),
+        (ContributionStatus.FLAGGED, ContributionInterval.MONTHLY, False),
+        (ContributionStatus.FLAGGED, ContributionInterval.YEARLY, False),
     ),
 )
-def test_contribution_cancel_when_recurring(status, interval, contribution, monkeypatch):
+def test_contribution_cancel_when_recurring(status, interval, has_payment_method_id, contribution, monkeypatch):
     contribution.status = status
     contribution.interval = interval
-    contribution.save()
+    contribution.provider_payment_method_id = "something" if has_payment_method_id else None
+    with patch("apps.contributions.models.Contribution.fetch_stripe_payment_method", return_value=None):
+        contribution.save()
 
     mock_delete_sub = Mock()
     monkeypatch.setattr("stripe.Subscription.delete", mock_delete_sub)
@@ -441,12 +450,14 @@ def test_contribution_cancel_when_recurring(status, interval, contribution, monk
             contribution.provider_subscription_id,
             stripe_account=contribution.donation_page.revenue_program.stripe_account_id,
         )
-    else:
+    elif has_payment_method_id:
         mock_retrieve_pm.assert_called_once_with(
             contribution.provider_payment_method_id,
             stripe_account=contribution.donation_page.revenue_program.stripe_account_id,
         )
         mock_pm_detach.assert_called_once()
+    else:
+        mock_pm_detach.assert_not_called()
 
 
 @pytest.mark.django_db()

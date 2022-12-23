@@ -1,5 +1,8 @@
+import os
 from unittest import TestCase
 from unittest.mock import Mock, call, patch
+
+from django.conf import settings
 
 import pytest
 from addict import Dict as AttrDict
@@ -51,6 +54,7 @@ class TestSendThankYouEmail:
             "non_profit": contribution.revenue_program.non_profit,
             "tax_id": contribution.revenue_program.tax_id,
             "magic_link": magic_link,
+            "logo_url": os.path.join(settings.SITE_URL, "static", "nre-logo-yellow.png"),
         }
 
     def test_when_contribution_not_exist(self):

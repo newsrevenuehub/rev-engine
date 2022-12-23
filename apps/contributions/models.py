@@ -1,3 +1,4 @@
+import functools
 import logging
 import uuid
 from urllib.parse import quote_plus
@@ -187,31 +188,110 @@ class Contribution(IndexedTimeStampedModel, RoleAssignmentResourceModelMixin):
             return self.revenue_program.payment_provider.stripe_account_id
         return None
 
+    @functools.cached_property
+    def stripe_customer(self):
+        return stripe.Customer.retrieve(self.provider_customer_id, stripe_account=self.stripe_account_id)
+
+    @functools.cached_property
+    def stripe_subscription(self):
+        return stripe.Subscription.retrieve(self.provider_subscription_id, stripe_account=self.stripe_account_id)
+
+    @functools.cached_property
+    def stripe_payment_intent(self):
+        return stripe.PaymentIntent.retrieve(self.provider_payment_id, stripe_account=self.stripe_account_id)
+
+    @property
+    def agreed_to_pay_fees(self):
+        if self.payment_provider_data and self.payment_provider_data.get("metadata"):
+            return self.payment_provider_data["metadata"]["agreed_to_pay_fees"]
+        if self.interval == "one_time":
+            metadata = self.stripe_payment_intent.metadata
+            if metadata.get("agreed_to_pay_fees"):
+                return metadata["agreed_to_pay_fees"]
+        else:
+            metadata = self.stripe_subscription.metadata
+            if metadata.get("agreed_to_pay_fees"):
+                return metadata["agreed_to_pay_fees"]
+        return False
+
     @property
     def billing_details(self) -> AttrDict:
-        payment_provider_data = AttrDict(self.payment_provider_data).data.object
-        return (payment_provider_data.charges.data or [AttrDict()])[0].billing_details
+        payment_provider_data = AttrDict(self.provider_payment_method_details)
+        return payment_provider_data.billing_details or [AttrDict()][0].billing_details
 
     @property
     def billing_name(self) -> str:
-        return self.billing_details.name or ""
+        if self.billing_details.name:
+            return self.billing_details.name
+        if self.stripe_customer.name:
+            return self.stripe_customer.name
+        return f"{self.stripe_customer.metadata.first_name} {self.stripe_customer.metadata.last_name}"
+
+    @property
+    def referer(self) -> str:
+        if self.interval == "one_time":
+            metadata = self.stripe_payment_intent.metadata
+            if metadata.get("referer"):
+                return metadata["referer"]
+        else:
+            metadata = self.stripe_subscription.metadata
+            if metadata.get("referer"):
+                return metadata["referer"]
+        if self.stripe_customer.metadata.referer:
+            return self.stripe_customer.metadata.referer
+        return ""
 
     @property
     def billing_email(self) -> str:
-        return self.billing_details.email or ""
+        return self.customer.email
 
     @property
     def billing_phone(self) -> str:
-        return self.billing_details.phone or ""
+        if self.billing_details.phone:
+            return self.billing_details.phone
+        if self.stripe_customer.phone:
+            return self.stripe_customer.phone
+        return self.stripe_customer.get("phone") or ""
 
     @property
     def billing_address(self) -> str:
+        # we want to try the billing_details first, then the customer.address, then customer.metadata
         order = ("line1", "line2", "city", "state", "postal_code", "country")
-        return ",".join([self.billing_details.address[x] or "" for x in order])
+        if self.billing_details.address.city:
+            source = self.billing_details.address
+        elif self.stripe_customer.address:
+            source = self.stripe_customer.address
+        elif self.stripe_customer.metadata:
+            source = {
+                "line1": self.stripe_customer.metadata.mailing_street,
+                "line2": "",
+                "city": self.stripe_customer.metadata.mailing_city,
+                "state": self.stripe_customer.metadata.mailing_state,
+                "postal_code": self.stripe_customer.metadata.mailing_postal_code,
+                "country": self.stripe_customer.metadata.mailing_country,
+            }
+        return ",".join([source[x] or "" for x in order])
+
+    def donor_selected_amount(self) -> str:
+        donor_selected_amount = 0
+        if self.contribution_metadata and self.contribution_metadata.get("donor_selected_amount"):
+            donor_selected_amount = self.contribution_metadata["donor_selected_amount"]
+        if self.interval == "one_time":
+            metadata = self.stripe_payment_intent.metadata
+            if metadata.get("donor_selected_amount"):
+                donor_selected_amount = metadata["donor_selected_amount"]
+        else:
+            metadata = self.stripe_subscription.metadata
+            if metadata.get("donor_selected_amount"):
+                donor_selected_amount = metadata["donor_selected_amount"]
+        donor_selected_amount = float(donor_selected_amount)
+        if donor_selected_amount > self.amount / 100:  # this is when it was stored in cents:
+            donor_selected_amount = donor_selected_amount / 100
+        return donor_selected_amount
 
     @property
     def formatted_donor_selected_amount(self) -> str:
-        return f"{self.amount} {self.currency.upper()}"
+        return f"{self.donor_selected_amount():.2f} {self.currency.upper()}"
 
     BAD_ACTOR_SCORES = (
         (

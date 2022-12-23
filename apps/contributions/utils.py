@@ -63,14 +63,14 @@ def export_contributions_to_csv(contributions):
                 CSV_HEADER_CONTRIBUTOR: contribution.billing_name,
                 CSV_HEADER_AMOUNT: contribution.formatted_amount,
                 CSV_HEADER_DONOR_SELECTED_AMOUNT: contribution.formatted_donor_selected_amount,
-                CSV_HEADER_AGREED_TO_PAY_FEES: (contribution.contribution_metadata or {}).get("agreed_to_pay_fees", ""),
+                CSV_HEADER_AGREED_TO_PAY_FEES: contribution.agreed_to_pay_fees,
                 CSV_HEADER_FREQUENCY: contribution.interval,
                 CSV_HEADER_PAYMENT_DATE: contribution.created,
                 CSV_HEADER_PAYMENT_STATUS: contribution.status,
                 CSV_HEADER_ADDRESS: contribution.billing_address,
-                CSV_HEADER_EMAIL: contribution.billing_email,
+                CSV_HEADER_EMAIL: contribution.contributor.email,
                 CSV_HEADER_PHONE: contribution.billing_phone,
-                CSV_HEADER_PAGE_URL: (contribution.contribution_metadata or {}).get("referer"),
+                CSV_HEADER_PAGE_URL: contribution.referer,
             }
         )
 

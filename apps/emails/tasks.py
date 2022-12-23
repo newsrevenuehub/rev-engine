@@ -1,3 +1,5 @@
+import os
+
 from django.conf import settings
 from django.core.mail import send_mail
 from django.core.mail.message import EmailMessage
@@ -91,6 +93,7 @@ def send_thank_you_email(contribution_id: int) -> None:
             "non_profit": contribution.revenue_program.non_profit,
             "tax_id": contribution.revenue_program.tax_id,
             "magic_link": Contributor.create_magic_link(contribution),
+            "logo_url": os.path.join(settings.SITE_URL, "static", "nre-logo-yellow.png"),
         },
     )
 

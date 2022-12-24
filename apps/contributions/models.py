@@ -189,8 +189,26 @@ class Contribution(IndexedTimeStampedModel, RoleAssignmentResourceModelMixin):
 
     @property
     def billing_details(self) -> AttrDict:
-        payment_provider_data = AttrDict(self.payment_provider_data).data.object
-        return (payment_provider_data.charges.data or [AttrDict()])[0].billing_details
+        provider_payment_method_details = AttrDict(self.provider_payment_method_details)
+        return (provider_payment_method_details or [AttrDict()][0]).billing_details
+
+    @property
+    def metadata_for_export(self) -> AttrDict:
+        if self.interval == ContributionInterval.ONE_TIME:
+            return AttrDict(self.payment_provider_data).data.object.metadata
+        return AttrDict(self.payment_provider_data).metadata
+
+    @property
+    def agreed_to_pay_fees(self):
+        if self.metadata_for_export:
+            return self.metadata_for_export.agreed_to_pay_fees
+        return self.contribution_metadata["agreed_to_pay_fees"] if self.contribution_metadata else None
+
+    @property
+    def referer(self):
+        return self.metadata_for_export.referer or (
+            self.contribution_metadata["referer"] if self.contribution_metadata else None
+        )
 
     @property
     def billing_name(self) -> str:
@@ -198,7 +216,7 @@ class Contribution(IndexedTimeStampedModel, RoleAssignmentResourceModelMixin):
 
     @property
     def billing_email(self) -> str:
-        return self.billing_details.email or ""
+        return self.contributor.email
 
     @property
     def billing_phone(self) -> str:
@@ -210,8 +228,15 @@ class Contribution(IndexedTimeStampedModel, RoleAssignmentResourceModelMixin):
         return ",".join([self.billing_details.address[x] or "" for x in order])
 
     @property
+    def donor_selected_amount(self) -> int:
+        return float(
+            self.metadata_for_export.donor_selected_amount
+            or (self.contribution_metadata["donor_selected_amount"] if self.contribution_metadata else 0)
+        )
+
+    @property
     def formatted_donor_selected_amount(self) -> str:
-        return f"{self.amount} {self.currency.upper()}"
+        return f"{self.donor_selected_amount:.2f} {self.currency.upper()}"
 
     BAD_ACTOR_SCORES = (
         (

@@ -4,8 +4,6 @@ from io import StringIO
 
 from django.conf import settings
 
-from addict import Dict as AttrDict
-
 
 def get_hub_stripe_api_key(livemode=False):
     """
@@ -28,58 +26,56 @@ def get_sha256_hash(string):
     return hash_str[:15]
 
 
+CSV_HEADER_CONTRIBUTION_ID = "Contribution ID"
+CSV_HEADER_CONTRIBUTOR = "Contributor"
+CSV_HEADER_AMOUNT = "Amount"
+CSV_HEADER_DONOR_SELECTED_AMOUNT = "Donor Selected Amount"
+CSV_HEADER_AGREED_TO_PAY_FEES = "Agreed to Pay Fees"
+CSV_HEADER_FREQUENCY = "Frequency"
+CSV_HEADER_PAYMENT_DATE = "Payment Received Date"
+CSV_HEADER_PAYMENT_STATUS = "Payment status"
+CSV_HEADER_ADDRESS = "Address"
+CSV_HEADER_EMAIL = "Email"
+CSV_HEADER_PHONE = "Phone"
+CSV_HEADER_PAGE_URL = "Page URL"
+CONTRIBUTION_EXPORT_CSV_HEADERS = (
+    CSV_HEADER_CONTRIBUTION_ID,
+    CSV_HEADER_CONTRIBUTOR,
+    CSV_HEADER_AMOUNT,
+    CSV_HEADER_DONOR_SELECTED_AMOUNT,
+    CSV_HEADER_AGREED_TO_PAY_FEES,
+    CSV_HEADER_FREQUENCY,
+    CSV_HEADER_PAYMENT_DATE,
+    CSV_HEADER_PAYMENT_STATUS,
+    CSV_HEADER_ADDRESS,
+    CSV_HEADER_EMAIL,
+    CSV_HEADER_PHONE,
+    CSV_HEADER_PAGE_URL,
+)
+
+
 def export_contributions_to_csv(contributions):
-    columns = (
-        "Contribution ID",
-        "Contributor",
-        "Amount",
-        "Donor Selected Amount",
-        "Agreed to Pay Fees",
-        "Frequency",
-        "Payment Received Date",
-        "Payment status",
-        "Address",
-        "Email",
-        "Phone",
-        "Page URL",
-    )
-    address_keys = ("line1", "line2", "city", "state", "postal_code", "country")
     data = []
     for contribution in contributions:
-        payment_provider_data = AttrDict(contribution.payment_provider_data).data.object
-        charge_details = (payment_provider_data.charges.data or [AttrDict()])[0]
-        billing_details = charge_details.billing_details
-        billing_address = billing_details.address
-
-        formatted_donor_selected_amount = ""
-        if amount := payment_provider_data.metadata.donor_selected_amount:
-            formatted_donor_selected_amount = f"{amount} {contribution.currency.upper()}"
-
         data.append(
             {
-                "Contribution ID": contribution.id,
-                "Contributor": billing_details.get("name") or "Unknown",
-                "Amount": contribution.formatted_amount,
-                "Donor Selected Amount": formatted_donor_selected_amount,
-                "Agreed to Pay Fees": payment_provider_data.metadata.get("agreed_to_pay_fees"),
-                "Frequency": contribution.interval,
-                "Payment Received Date": contribution.created,
-                "Payment status": contribution.status,
-                "Address": ", ".join(
-                    [
-                        billing_address.get(address_key)
-                        for address_key in address_keys
-                        if billing_address.get(address_key)
-                    ]
-                ),
-                "Email": billing_details.get("email"),
-                "Phone": billing_details.get("phone"),
-                "Page URL": payment_provider_data.metadata.get("referer"),
+                CSV_HEADER_CONTRIBUTION_ID: contribution.id,
+                CSV_HEADER_CONTRIBUTOR: contribution.billing_name,
+                CSV_HEADER_AMOUNT: contribution.formatted_amount,
+                CSV_HEADER_DONOR_SELECTED_AMOUNT: contribution.formatted_donor_selected_amount,
+                CSV_HEADER_AGREED_TO_PAY_FEES: (contribution.contribution_metadata or {}).get("agreed_to_pay_fees", ""),
+                CSV_HEADER_FREQUENCY: contribution.interval,
+                CSV_HEADER_PAYMENT_DATE: contribution.created,
+                CSV_HEADER_PAYMENT_STATUS: contribution.status,
+                CSV_HEADER_ADDRESS: contribution.billing_address,
+                CSV_HEADER_EMAIL: contribution.billing_email,
+                CSV_HEADER_PHONE: contribution.billing_phone,
+                CSV_HEADER_PAGE_URL: (contribution.contribution_metadata or {}).get("referer"),
             }
         )
 
     with StringIO() as csv_file:
-        csv_writer = csv.DictWriter(csv_file, quoting=csv.QUOTE_ALL, fieldnames=columns)
+        csv_writer = csv.DictWriter(csv_file, fieldnames=CONTRIBUTION_EXPORT_CSV_HEADERS)
         csv_writer.writeheader()
         csv_writer.writerows(data)
         return csv_file.getvalue()

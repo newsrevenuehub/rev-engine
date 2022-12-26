@@ -30,7 +30,9 @@ class TestOrganizationModel(TestCase):
         self.organization = factories.OrganizationFactory()
         self.rp = factories.RevenueProgramFactory(organization=self.organization)
         self.dp = DonationPageFactory(revenue_program=self.rp)
-        self.contribution = ContributionFactory(donation_page=self.dp)
+        # TODO: DEV-3026
+        with patch("apps.contributions.models.Contribution.fetch_stripe_payment_method", return_value=None):
+            self.contribution = ContributionFactory(donation_page=self.dp)
         self.role_assignment = RoleAssignmentFactory(organization=self.organization)
 
     def test_admin_revenueprogram_options(self):
@@ -96,7 +98,10 @@ class RevenueProgramTest(TestCase):
         long_slug_rp = factories.RevenueProgramFactory(name=f"{' '.join(fake.words(nb=30))}")
         self.assertLessEqual(len(long_slug_rp.slug), 100)
 
-    def test_cannot_delete_when_downstream_contributions(self):
+    # This is to squash a side effect in contribution.save
+    # TODO: DEV-3026
+    @patch("apps.contributions.models.Contribution.fetch_stripe_payment_method", return_value=None)
+    def test_cannot_delete_when_downstream_contributions(self, mock_fetch_stripe_payment_method):
         page = DonationPageFactory(revenue_program=self.instance)
         ContributionFactory(donation_page=page)
         with self.assertRaises(ProtectedError) as protected_error:

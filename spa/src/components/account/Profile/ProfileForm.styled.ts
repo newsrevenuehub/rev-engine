@@ -10,24 +10,24 @@ export const StyledTextField = styled(TextField)`
   }
 `;
 
-export const Form = styled('form')`
+export const Form = styled.form`
   display: grid;
   gap: 25px;
   grid-template-columns: 1fr 1fr;
 `;
 
-export const FieldLabelOptional = styled('span')`
+export const FieldLabelOptional = styled.span`
   color: rgb(112, 112, 112);
   font-style: italic;
   font-weight: normal;
   padding-left: 8px;
 `;
 
-export const FillRow = styled('div')`
+export const FillRow = styled.div`
   grid-column: 1 / span 2;
 `;
 
-export const TaxStatusContainer = styled('div')`
+export const TaxStatusContainer = styled.div`
   position: relative;
 `;
 

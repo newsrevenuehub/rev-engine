@@ -18,12 +18,12 @@ const Template: ComponentStory<typeof Switch> = () => {
   return (
     <div style={{ display: 'flex', gap: 20, flexDirection: 'column' }}>
       <FormControlLabel
-        control={<Switch checked={true} name="checkedA" inputProps={{ 'aria-label': 'checkboxA' }} />}
-        label="Checkbox A"
+        control={<Switch checked={true} name="Checked" inputProps={{ 'aria-label': 'Checked' }} />}
+        label="Checked"
       />
       <FormControlLabel
-        control={<Switch checked={false} name="checkedB" inputProps={{ 'aria-label': 'checkboxB' }} />}
-        label="Checkbox B"
+        control={<Switch checked={false} name="Unchecked" inputProps={{ 'aria-label': 'Unchecked' }} />}
+        label="Unchecked"
       />
     </div>
   );

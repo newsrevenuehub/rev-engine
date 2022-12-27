@@ -38,7 +38,7 @@ const IntegrationCard = ({ className, isActive, ...card }: IntegrationCardProps)
   };
 
   return (
-    <Flex className={className!} id="integration-card">
+    <Flex className={className!} data-testid="integration-card">
       <Header>
         <Image src={card.image} aria-label={`${card.title} logo`} />
         <Title>{card.title}</Title>

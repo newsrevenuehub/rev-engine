@@ -2,6 +2,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { CookiesProvider } from 'react-cookie';
 
 import AdminGlobalStyles from 'styles/AdminGlobalStyles.js';
+import { SnackbarProvider } from 'notistack';
 
 // Styles
 import * as S from './App.styled';
@@ -28,16 +29,18 @@ function App() {
         <ThemeProvider theme={revEngineTheme}>
           <MuiThemeProvider theme={muiThemeOverrides}>
             <BrowserRouter>
-              <AlertProvider template={Alert} {...alertOptions}>
-                <Helmet>
-                  <title>RevEngine</title>
-                </Helmet>
-                <AdminGlobalStyles />
-                <SvgIcons />
-                <S.App>
-                  <MainLayout />
-                </S.App>
-              </AlertProvider>
+              <SnackbarProvider anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}>
+                <AlertProvider template={Alert} {...alertOptions}>
+                  <Helmet>
+                    <title>RevEngine</title>
+                  </Helmet>
+                  <AdminGlobalStyles />
+                  <SvgIcons />
+                  <S.App>
+                    <MainLayout />
+                  </S.App>
+                </AlertProvider>
+              </SnackbarProvider>
             </BrowserRouter>
           </MuiThemeProvider>
         </ThemeProvider>

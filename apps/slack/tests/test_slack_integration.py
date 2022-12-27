@@ -40,14 +40,15 @@ class SlackIntegrationTest(TestCase):
         )
         self.org_channel_name = f"{HUB_ORG_PREFIX}{SlackManager.format_org_name(self.org.name)}"
         self.contributor = ContributorFactory()
-
-        self.contribution = ContributionFactory(
-            contributor=self.contributor,
-            amount=AMOUNT,
-            donation_page=DonationPageFactory(revenue_program=RevenueProgramFactory(organization=self.org)),
-            last_payment_date=PAYMENT_DATE,
-            interval=INTERVAL,
-        )
+        # TODO: DEV-3026
+        with patch("apps.contributions.models.Contribution.fetch_stripe_payment_method", return_value=None):
+            self.contribution = ContributionFactory(
+                contributor=self.contributor,
+                amount=AMOUNT,
+                donation_page=DonationPageFactory(revenue_program=RevenueProgramFactory(organization=self.org)),
+                last_payment_date=PAYMENT_DATE,
+                interval=INTERVAL,
+            )
 
     def _create_slack_manager(self):
         return SlackManager()

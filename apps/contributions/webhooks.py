@@ -154,8 +154,10 @@ class StripeWebhookProcessor:
 
     def process_charge(self):
         """"""
-        logger.info("`handle_charge_succeeded` is running")
-        if self.event.type == "charge.succeeded":
-            contribution = Contribution.objects.get(provider_payment_id=self.obj_data["payment_intent"])
+        logger.info("`handle_charge_succeeded` is running %s, %s", self.event.type, self.obj_data)
+        # If the webhook is triggered by a one-time contribution, the object data will contain a value for `payment_intent`,
+        # but if webhook is triggered by a recurring contribution, the object will not contain a value for `payment_intent`.
+        if self.event.type == "charge.succeeded" and (pi := self.obj_data["payment_intent"]):
+            contribution = Contribution.objects.get(provider_payment_id=pi)
             contribution.provider_payment_method_id = self.obj_data["payment_method"]
             contribution.save()

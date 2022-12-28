@@ -123,15 +123,11 @@ class StripeWebhookProcessor:
         """
         It looks like Stripe gives us event.data.previous_attributes, which is a dict of updated attributes previous values.
         """
-        contribution = self.get_contribution_from_event()
-        contribution.payment_provider_data = self.obj_data
-        contribution.provider_subscription_id = self.obj_data["id"]
-
+        # If stripe reports 'default_payment_method' as a previous attribute, then we've updated 'default_payment_method'
         if "default_payment_method" in self.event.data["previous_attributes"]:
-            # If stripe reports 'default_payment_method' as a previous attribute, then we've updated 'default_payment_method'
+            contribution = self.get_contribution_from_event()
             contribution.provider_payment_method_id = self.obj_data["default_payment_method"]
-
-        contribution.save()
+            contribution.save()
 
     def handle_subscription_canceled(self):
         """

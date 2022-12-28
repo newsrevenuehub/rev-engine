@@ -1,23 +1,33 @@
 import { Helmet } from 'react-helmet';
 import { render } from 'test-utils';
 
-import PageTitle from './PageTitle';
+import PageTitle, { PageTitleProps } from './PageTitle';
 
 describe('Page Title component', () => {
-  test('default document header', async () => {
-    render(<PageTitle />);
+  function tree(props?: Partial<PageTitleProps>) {
+    return render(<PageTitle {...props} />);
+  }
+
+  test('should render default document header', async () => {
+    tree();
     const helmet = Helmet.peek();
     expect(helmet.title).toBe('RevEngine');
   });
 
-  test('custom document header is updated', async () => {
-    render(<PageTitle title="Contributions" />);
+  test('should render custom document header is updated', async () => {
+    tree({ title: 'Contributions' });
     let helmet = Helmet.peek();
     expect(helmet.title).toBe('Contributions | RevEngine');
 
-    render(<PageTitle title="Edit" />);
+    tree({ title: 'Edit' });
     helmet = Helmet.peek();
     expect(helmet.title).toBe('Edit | RevEngine');
+  });
+
+  test('should not render "RevEngine" if hideRevEngine = true', async () => {
+    tree({ hideRevEngine: true, title: 'mock-title' });
+    let helmet = Helmet.peek();
+    expect(helmet.title).toBe('mock-title');
   });
 
   test('document header is the innermost title', async () => {

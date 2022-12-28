@@ -411,6 +411,7 @@ class Contribution(IndexedTimeStampedModel, RoleAssignmentResourceModelMixin):
         )
         self.payment_provider_data = subscription
         self.provider_subscription_id = subscription["id"]
+        self.provider_payment_id = subscription["latest_invoice"]["payment_intent"]["id"]
         self.save()
         return subscription
 

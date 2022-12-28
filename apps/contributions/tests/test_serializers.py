@@ -1136,7 +1136,7 @@ class TestCreateRecurringPaymentSerializer:
         client_secret = "shhhhhhh!"
         mock_create_stripe_subscription.return_value = {
             "id": "some payment intent id",
-            "latest_invoice": {"payment_intent": {"client_secret": client_secret}},
+            "latest_invoice": {"payment_intent": {"client_secret": client_secret, "id": "pi_fakefakefake"}},
             "customer": fake_customer_id,
         }
         monkeypatch.setattr("stripe.Subscription.create", mock_create_stripe_subscription)

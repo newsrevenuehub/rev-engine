@@ -102,7 +102,6 @@ class StripeWebhookProcessor:
             self.obj_data["created"], tz=datetime.timezone.utc
         )
         contribution.status = ContributionStatus.PAID
-        contribution.provider_payment_id = self.obj_data["id"]
         contribution.save(slack_notification=SlackNotificationTypes.SUCCESS)
         logger.info("Contribution %s succeeded.", contribution)
 

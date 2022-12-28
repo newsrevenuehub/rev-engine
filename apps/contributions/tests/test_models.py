@@ -253,7 +253,7 @@ class ContributionTest(TestCase):
         stripe_customer_id = "fake_stripe_customer_id"
         return_value = {
             "id": "fake_id",
-            "latest_invoice": {"payment_intent": {"client_secret": "fake_client_secret"}},
+            "latest_invoice": {"payment_intent": {"client_secret": "fake_client_secret", "id": "pi_fakefakefake"}},
             "customer": stripe_customer_id,
         }
         mock_create_subscription.return_value = return_value
@@ -287,6 +287,7 @@ class ContributionTest(TestCase):
         self.contribution.refresh_from_db()
         self.assertEqual(self.contribution.payment_provider_data, return_value)
         self.assertEqual(self.contribution.provider_subscription_id, return_value["id"])
+        self.assertEqual(self.contribution.provider_payment_id, "pi_fakefakefake")
         self.assertEqual(subscription, return_value)
 
     @patch("stripe.SetupIntent.create")

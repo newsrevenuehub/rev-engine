@@ -945,7 +945,7 @@ SUBSCRIPTION_CLIENT_SECRET = "stripe_secret_fghij456"
 def stripe_create_subscription_response(stripe_create_customer_response):
     return {
         "id": SUBSCRIPTION_ID,
-        "latest_invoice": {"payment_intent": {"client_secret": SUBSCRIPTION_CLIENT_SECRET}},
+        "latest_invoice": {"payment_intent": {"client_secret": SUBSCRIPTION_CLIENT_SECRET, "id": "pi_fakefakefake"}},
         "customer": stripe_create_customer_response["id"],
     }
 
@@ -958,17 +958,15 @@ class TestPaymentViewset:
     client.credentials(HTTP_REFERER="https://www.foo.com")
 
     @pytest.mark.parametrize(
-        "interval,client_secret,subscription_id",
+        "interval,subscription_id",
         (
-            (ContributionInterval.ONE_TIME, PI_CLIENT_SECRET, None),
+            (ContributionInterval.ONE_TIME, None),
             (
                 ContributionInterval.MONTHLY,
-                SUBSCRIPTION_CLIENT_SECRET,
                 SUBSCRIPTION_ID,
             ),
             (
                 ContributionInterval.YEARLY,
-                SUBSCRIPTION_CLIENT_SECRET,
                 SUBSCRIPTION_ID,
             ),
         ),
@@ -981,7 +979,6 @@ class TestPaymentViewset:
         stripe_create_payment_intent_response,
         stripe_create_customer_response,
         interval,
-        client_secret,
         subscription_id,
     ):
         """Minimal test of the happy path

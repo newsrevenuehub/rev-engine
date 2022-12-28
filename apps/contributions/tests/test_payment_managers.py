@@ -200,7 +200,10 @@ class StripeRecurringPaymentManagerTest(StripePaymentManagerAbstractTestCase):
         self.assertEqual(self.contribution.status, ContributionStatus.FLAGGED)
 
     @patch("stripe.SetupIntent.retrieve", return_value={"metadata": {"foo": "bar"}, "payment_method": "some-card"})
-    @patch("stripe.Subscription.create", return_value={"id": "subscription-id"})
+    @patch(
+        "stripe.Subscription.create",
+        return_value={"id": "subscription-id", "latest_invoice": {"payment_intent": {"id": "pi_fakefake"}}},
+    )
     def test_accept(self, mock_sub_create, mock_setup_intent_retrieve, *args):
         self.contribution.provider_customer_id = "some-customer"
         self.contribution.provider_setup_intent_id = "some-id"

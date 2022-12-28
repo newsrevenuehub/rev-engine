@@ -14,6 +14,7 @@ from rest_framework.decorators import action, api_view, authentication_classes, 
 from rest_framework.permissions import IsAdminUser, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.serializers import ValidationError
+from reversion.views import create_revision
 from stripe.error import StripeError
 
 from apps.api.permissions import (
@@ -50,6 +51,7 @@ logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
 UserModel = get_user_model()
 
 
+@create_revision()
 @api_view(["POST"])
 @permission_classes([IsAuthenticated, HasRoleAssignment | IsActiveSuperUser])
 def stripe_oauth(request):
@@ -96,6 +98,7 @@ def stripe_oauth(request):
     return Response({"detail": "success"}, status=status.HTTP_200_OK)
 
 
+@create_revision()
 @api_view(["POST"])
 @authentication_classes([])
 @permission_classes([])

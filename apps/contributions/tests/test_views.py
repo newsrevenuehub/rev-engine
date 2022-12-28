@@ -12,6 +12,7 @@ from addict import Dict as AttrDict
 from rest_framework import status
 from rest_framework.reverse import reverse
 from rest_framework.test import APIClient, APITestCase
+from reversion.models import Version
 from stripe.error import StripeError
 from stripe.oauth_error import InvalidGrantError as StripeInvalidGrantError
 from stripe.stripe_object import StripeObject
@@ -145,6 +146,7 @@ class StripeOAuthTest(AbstractTestCase):
         stripe_oauth_token.return_value = MockOAuthResponse(
             stripe_user_id=expected_stripe_account_id, refresh_token=expected_refresh_token
         )
+        assert Version.objects.get_for_object(self.org1_rp1.payment_provider).count() == 0
         response = self._make_request(code="1234", scope=expected_oauth_scope, revenue_program_id=self.org1_rp1.id)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data["detail"], "success")
@@ -153,6 +155,7 @@ class StripeOAuthTest(AbstractTestCase):
         self.org1_rp1.payment_provider.refresh_from_db()
         self.assertEqual(self.org1_rp1.payment_provider.stripe_account_id, expected_stripe_account_id)
         self.assertEqual(self.org1_rp1.payment_provider.stripe_oauth_refresh_token, expected_refresh_token)
+        assert Version.objects.get_for_object(self.org1_rp1.payment_provider).count() == 1
 
     @mock.patch("stripe.OAuth.token")
     def test_create_payment_provider_if_not_exists(self, stripe_oauth_token):
@@ -165,6 +168,7 @@ class StripeOAuthTest(AbstractTestCase):
         self._make_request(code="1234", scope=expected_oauth_scope, revenue_program_id=self.org1_rp2.id)
         self.org1_rp2.refresh_from_db()
         self.assertEqual(self.org1_rp2.payment_provider.stripe_account_id, expected_stripe_account_id)
+        assert Version.objects.get_for_object(self.org1_rp1.payment_provider).count() == 1
 
 
 class TestContributionsViewSet(RevEngineApiAbstractTestCase):

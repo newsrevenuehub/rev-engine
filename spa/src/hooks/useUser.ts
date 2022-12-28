@@ -1,6 +1,7 @@
 import { useQuery, UseQueryResult } from '@tanstack/react-query';
 import { useAlert } from 'react-alert';
 import { useHistory } from 'react-router-dom';
+import * as Sentry from '@sentry/react';
 
 import { USER } from 'ajax/endpoints';
 import axios from 'ajax/axios';
@@ -44,8 +45,12 @@ function useUser(): UserHookResult {
     // When user logs in, the authentication endpoint returns user data and it gets
     // stored in localstorage. We should update the localstorage data each time user
     // is refetched so it isn't stale.
-    onSuccess: (data) => localStorage.setItem(LS_USER, JSON.stringify(data)),
+    onSuccess: (data: User) => {
+      Sentry.setUser({ email: data.email, id: data.id, ip_address: '{{auto}}' });
+      localStorage.setItem(LS_USER, JSON.stringify(data));
+    },
     onError: (err) => {
+      Sentry.setUser(null);
       if (err?.name === 'AuthenticationError') {
         history.push(SIGN_IN);
       } else {

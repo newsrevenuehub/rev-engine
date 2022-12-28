@@ -20,9 +20,11 @@ import {
 
 export interface IntegrationCardProps
   extends Omit<IntegrationCardType, 'toggleLabel' | 'site'>,
-    InferProps<typeof IntegrationCardPropTypes> {}
+    InferProps<typeof IntegrationCardPropTypes> {
+  onChange?: () => void;
+}
 
-const IntegrationCard = ({ className, isActive, ...card }: IntegrationCardProps) => {
+const IntegrationCard = ({ className, isActive, onChange, ...card }: IntegrationCardProps) => {
   const { open: showTooltip, handleClose: handleCloseTooltip, handleOpen: handleOpenTooltip } = useModal();
   const showCornerMessage = card.isRequired || !!card.cornerMessage;
 
@@ -31,7 +33,7 @@ const IntegrationCard = ({ className, isActive, ...card }: IntegrationCardProps)
     if (card.isRequired) {
       return <Required>*Required</Required>;
     }
-    if (card.cornerMessage) {
+    if (card.cornerMessage && !isActive) {
       return <CornerMessage>{card.cornerMessage}</CornerMessage>;
     }
     return null;
@@ -56,18 +58,24 @@ const IntegrationCard = ({ className, isActive, ...card }: IntegrationCardProps)
       <Footer $active={isActive!}>
         <p>{isActive! ? 'Connected' : card.toggleLabel || 'Not Connected'}</p>
         <Tooltip
-          title={<p style={{ color: 'white', margin: 0 }}>{card.toggleTooltipMessage}</p>}
+          interactive
+          title={
+            <p style={{ color: 'white', margin: 0 }}>
+              {isActive ? card.toggleConnectedTooltipMessage || card.toggleTooltipMessage : card.toggleTooltipMessage}
+            </p>
+          }
           placement="bottom-end"
-          open={showTooltip && !!card.toggleTooltipMessage}
+          open={showTooltip && (!!card.toggleTooltipMessage || (!!card.toggleConnectedTooltipMessage && isActive!))}
           onClose={handleCloseTooltip}
           onOpen={handleOpenTooltip}
         >
           {/* Disabled elements do not fire events. Need the DIV over button for tooltip to listen to events. */}
           <div data-testid="integration-switch-wrapper">
             <Switch
+              onChange={onChange}
               checked={isActive!}
               name={`${card.title} integration`}
-              inputProps={{ 'aria-label': `${card.title} is ${isActive ? '' : 'not '}integrated` }}
+              inputProps={{ 'aria-label': `${card.title} is ${isActive ? '' : 'not '}connected` }}
               disabled={card.disabled}
             />
           </div>
@@ -91,7 +99,8 @@ const IntegrationCardPropTypes = {
   toggleTooltipMessage: PropTypes.string,
   className: PropTypes.string,
   disabled: PropTypes.bool.isRequired,
-  isActive: PropTypes.bool
+  isActive: PropTypes.bool,
+  onChange: PropTypes.func
 };
 
 IntegrationCard.propTypes = IntegrationCardPropTypes;

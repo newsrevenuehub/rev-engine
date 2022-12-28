@@ -4,7 +4,7 @@ import StripeLogo from 'assets/images/stripe.png';
 import SlackLogo from 'assets/images/slack.png';
 import MailchimpLogo from 'assets/images/mailchimp.png';
 import SalesforceLogo from 'assets/images/salesforce.png';
-import { FAQ_URL } from 'constants/helperUrls';
+import { HELP_URL } from 'constants/helperUrls';
 
 export type IntegrationCardType = {
   image: string;
@@ -18,6 +18,7 @@ export type IntegrationCardType = {
   description: string;
   toggleLabel?: ReactNodeLike;
   toggleTooltipMessage?: string | null;
+  toggleConnectedTooltipMessage?: ReactNodeLike;
   disabled: boolean;
 };
 
@@ -30,7 +31,16 @@ const STRIPE: IntegrationCardType = {
     url: 'https://www.stripe.com'
   },
   description: 'A simple way to accept payments online.',
-  disabled: false
+  disabled: false,
+  toggleConnectedTooltipMessage: (
+    <>
+      Connected to Stripe. Contact{' '}
+      <a href={HELP_URL} style={{ textDecoration: 'underline' }} target="_blank" rel="noopener noreferrer">
+        Support
+      </a>{' '}
+      to disconnect.
+    </>
+  )
 };
 
 const SLACK: IntegrationCardType = {
@@ -41,8 +51,19 @@ const SLACK: IntegrationCardType = {
     label: 'slack.com',
     url: 'https://www.slack.com'
   },
-  description: 'Bring team communication and collaboration. Get contributions notifications in real time.',
-  disabled: false
+  description:
+    'Bring team communication and collaboration into one place. Get contributions notifications in real time.',
+  disabled: true,
+  toggleTooltipMessage: 'Coming Soon',
+  toggleConnectedTooltipMessage: (
+    <>
+      Connected to Slack. Contact{' '}
+      <a href={HELP_URL} style={{ textDecoration: 'underline' }} target="_blank" rel="noopener noreferrer">
+        Support
+      </a>{' '}
+      to disconnect.
+    </>
+  )
 };
 
 const MAILCHIMP: IntegrationCardType = {
@@ -55,8 +76,17 @@ const MAILCHIMP: IntegrationCardType = {
     url: 'https://www.mailchimp.com'
   },
   description: 'Automate your welcome series and renewal appeals with the all-in-one email platform newsrooms trust.',
-  toggleTooltipMessage: 'Upgrade to Core to start integrating with MailChimp',
-  disabled: true
+  toggleTooltipMessage: 'Coming Soon',
+  disabled: true,
+  toggleConnectedTooltipMessage: (
+    <>
+      Connected to Mailchimp. Contact{' '}
+      <a href={HELP_URL} style={{ textDecoration: 'underline' }} target="_blank" rel="noopener noreferrer">
+        Support
+      </a>{' '}
+      to disconnect.
+    </>
+  )
 };
 
 const SALESFORCE: IntegrationCardType = {
@@ -72,14 +102,23 @@ const SALESFORCE: IntegrationCardType = {
   toggleLabel: (
     <>
       Contact{' '}
-      <a href={FAQ_URL} style={{ textDecoration: 'underline' }} target="_blank" rel="noopener noreferrer">
+      <a href={HELP_URL} style={{ textDecoration: 'underline' }} target="_blank" rel="noopener noreferrer">
         Support
       </a>{' '}
       to Connect
     </>
   ),
   toggleTooltipMessage: 'Contact our Support Staff to integrate with Salesforce',
-  disabled: true
+  disabled: true,
+  toggleConnectedTooltipMessage: (
+    <>
+      Connected to Salesforce. Contact{' '}
+      <a href={HELP_URL} style={{ textDecoration: 'underline' }} target="_blank" rel="noopener noreferrer">
+        Support
+      </a>{' '}
+      to disconnect.
+    </>
+  )
 };
 
 const INTEGRATION_TYPES = { STRIPE, SLACK, MAILCHIMP, SALESFORCE };

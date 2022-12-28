@@ -47,29 +47,29 @@ describe('Integration Card', () => {
   it('should render active state', () => {
     tree({ isActive: true });
     expect(screen.getByText('Connected')).toBeVisible();
-    expect(screen.getByRole('checkbox', { name: `${card.title} is integrated` })).toBeChecked();
+    expect(screen.getByRole('checkbox', { name: `${card.title} is connected` })).toBeChecked();
   });
 
   it('should render inactive default state', () => {
     tree({ isActive: false });
     expect(screen.getByText('Not Connected')).toBeVisible();
-    expect(screen.getByRole('checkbox', { name: `${card.title} is not integrated` })).not.toBeChecked();
+    expect(screen.getByRole('checkbox', { name: `${card.title} is not connected` })).not.toBeChecked();
   });
 
   it('should render inactive override state', () => {
     tree({ isActive: false, toggleLabel: 'mock-custom-inactive-state' });
     expect(screen.getByText('mock-custom-inactive-state')).toBeVisible();
-    expect(screen.getByRole('checkbox', { name: `${card.title} is not integrated` })).not.toBeChecked();
+    expect(screen.getByRole('checkbox', { name: `${card.title} is not connected` })).not.toBeChecked();
   });
 
   it('should render inactive disabled switch', () => {
     tree({ isActive: false, disabled: true });
-    expect(screen.getByRole('checkbox', { name: `${card.title} is not integrated` })).toBeDisabled();
+    expect(screen.getByRole('checkbox', { name: `${card.title} is not connected` })).toBeDisabled();
   });
 
   it('should render active disabled switch', () => {
     tree({ isActive: true, disabled: true });
-    expect(screen.getByRole('checkbox', { name: `${card.title} is integrated` })).toBeDisabled();
+    expect(screen.getByRole('checkbox', { name: `${card.title} is connected` })).toBeDisabled();
   });
 
   it('should render tooltip', async () => {
@@ -79,6 +79,26 @@ describe('Integration Card', () => {
     userEvent.hover(screen.getByTestId('integration-switch-wrapper'));
     await waitFor(() => {
       expect(screen.getByText('mock-tooltip-message')).toBeVisible();
+    });
+  });
+
+  it('should render connected tooltip', async () => {
+    tree({ toggleConnectedTooltipMessage: 'mock-connected-tooltip', isActive: true });
+    expect(screen.queryByText('mock-connected-tooltip')).not.toBeInTheDocument();
+
+    userEvent.hover(screen.getByTestId('integration-switch-wrapper'));
+    await waitFor(() => {
+      expect(screen.getByText('mock-connected-tooltip')).toBeVisible();
+    });
+  });
+
+  it('should not render connected tooltip if isActive = false', async () => {
+    tree({ toggleConnectedTooltipMessage: 'mock-connected-tooltip', isActive: false });
+    expect(screen.queryByText('mock-connected-tooltip')).not.toBeInTheDocument();
+
+    userEvent.hover(screen.getByTestId('integration-switch-wrapper'));
+    await waitFor(() => {
+      expect(screen.queryByText('mock-connected-tooltip')).not.toBeInTheDocument();
     });
   });
 

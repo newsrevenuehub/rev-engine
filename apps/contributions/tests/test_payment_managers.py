@@ -67,7 +67,10 @@ class StripePaymentManagerAbstractTestCase(AbstractTestCase):
             "referer": faker.url(),
             "page_id": self.page.pk,
         }
-        self.contribution = ContributionFactory(donation_page=self.page, contributor=self.contributor_user)
+        # TODO: DEV-3026
+        self.contribution = ContributionFactory(
+            donation_page=self.page, contributor=self.contributor_user, provider_payment_method_id=None
+        )
         self.contribution = Contribution.objects.filter(donation_page__revenue_program=self.org1_rp1).first()
 
     def _instantiate_payment_manager_with_instance(self, contribution=None):
@@ -94,7 +97,7 @@ class StripeOneTimePaymentManagerTest(StripePaymentManagerAbstractTestCase):
         pm.complete_payment(reject=True)
         mock_pi_capture.assert_not_called()
         mock_pi_cancel.assert_called_once_with(
-            None,
+            self.contribution.provider_payment_id,
             stripe_account=self.contribution.donation_page.revenue_program.payment_provider.stripe_account_id,
             cancellation_reason="fraudulent",
         )
@@ -106,7 +109,7 @@ class StripeOneTimePaymentManagerTest(StripePaymentManagerAbstractTestCase):
         pm.complete_payment(reject=False)
         mock_pi_cancel.assert_not_called()
         mock_pi_capture.assert_called_once_with(
-            None,
+            self.contribution.provider_payment_id,
             stripe_account=self.contribution.donation_page.revenue_program.payment_provider.stripe_account_id,
         )
 

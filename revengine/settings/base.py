@@ -413,6 +413,7 @@ STRIPE_WEBHOOK_EVENTS = [
     # in case of non-flagged, or after accepted from admin. We need charge.suceeded separately so attach payment
     # method id after flagged contributor submits payment info.
     "charge.succeeded",
+    "invoice.upcoming",
 ]
 
 ### django-healthcheck Settings

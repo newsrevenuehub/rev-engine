@@ -1,0 +1,210 @@
+<!DOCTYPE HTML
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional //EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:v="urn:schemas-microsoft-com:vml"
+  xmlns:o="urn:schemas-microsoft-com:office:office">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="x-apple-disable-message-reformatting">
+  <title></title>
+
+  <style type="text/css">
+    body {
+      margin: 0;
+      padding: 0;
+    }
+
+    table,
+    tr,
+    td {
+      vertical-align: top;
+      border-collapse: collapse;
+    }
+
+    p {
+      margin: 0;
+    }
+
+    .u-row-container {
+      max-width: 600px;
+      padding-left: 0px;
+      padding-right: 0px;
+      margin: auto;
+      background-color: #ffffff;
+    }
+
+    .inner-center {
+      margin-left: 58px;
+      margin-right: 58px;
+    }
+
+    @media (max-width: 570px) {
+      .inner-center {
+        margin-left: 24px;
+        margin-right: 24px;
+      }
+    }
+
+    .contribution-container {
+      max-width: 534px;
+      margin: auto;
+      box-sizing: border-box;
+      border: 1px solid #C4C4C4;
+      border-radius: 10px;
+      padding: 20px 24px;
+      margin-bottom: 24px;
+    }
+
+    .contribution-header {
+      font-family: Roboto, sans-serif;
+      font-size: 18px;
+      font-weight: 500;
+      color: #282828;
+      margin-bottom: 18px;
+    }
+
+    .contribution-details {
+      font-family: Roboto, sans-serif;
+      font-size: 16px;
+      font-weight: 400;
+      color: #282828;
+      margin-bottom: 12px;
+    }
+
+    .contribution-details-strong {
+      font-weight: 500;
+    }
+
+    .disclaimer {
+      font-family: Roboto, sans-serif;
+      font-size: 14px;
+      color: #282828;
+    }
+
+    .text {
+      font-family: Roboto, sans-serif;
+      color: #282828;
+      font-weight: 600;
+      font-size: 14px;
+      margin-top: 72px;
+      margin-bottom: 86px;
+    }
+
+    .link {
+      font-family: Roboto, sans-serif;
+      color: #0052CC;
+      font-weight: 500;
+      font-size: 14px;
+    }
+  </style>
+
+  {% block custom_style %}
+  {% endblock custom_style %}
+
+  <!--[if !mso]><!-->
+  <link href="https://fonts.googleapis.com/css?family=Roboto:400,500,600,700&display=swap" rel="stylesheet"
+    type="text/css">
+  <!--<![endif]-->
+
+</head>
+
+<body class="clean-body"
+  style="margin: 0;padding: 0;-webkit-text-size-adjust: 100%;background-color: #e0e5eb;color: #000000">
+  <table
+    style="border-collapse: collapse;table-layout: fixed;border-spacing: 0;mso-table-lspace: 0pt;mso-table-rspace: 0pt;vertical-align: top;min-width: 320px;Margin: 0 auto;background-color: #e0e5eb;width:100%"
+    cellpadding="0" cellspacing="0">
+    <tbody>
+      <tr style="vertical-align: top">
+        <td style="word-break: break-word;border-collapse: collapse !important;vertical-align: top">
+          <div class="u-row-container">
+            <table width="100%" cellpadding="0" cellspacing="0" border="0">
+              {% block header %}
+              {% endblock header %}
+            </table>
+          </div>
+          <div class="u-row-container">
+            <table role="presentation" cellpadding="0" cellspacing="0" width="100%" border="0">
+              <tbody>
+                <tr>
+                  <td>
+                    <div>
+                      <div class="contribution-container">
+                        <p class="contribution-header">Contribution Details</p>
+                        <p class="contribution-details">
+                          <span class="contribution-details-strong">Date
+                            {% block contribution_date_label %}
+                            {% endblock contribution_date_label %}:
+                          </span> {{ contribution_date }}
+                        </p>
+                        <p class="contribution-details">
+                          <span class="contribution-details-strong">Email:</span>
+                          {{ contributor_email }}
+                        </p>
+                        {% if contribution_interval == "one_time" %}
+                        <p class="contribution-details">
+                          <span class="contribution-details-strong">Amount Contributed:</span>
+                          {{ contribution_amount }}
+                        </p>
+                        {% else %}
+                        <p class="contribution-details">
+                          <span class="contribution-details-strong">Amount Contributed:</span>
+                          {{ contribution_amount}}/{{contribution_interval_display_value}}
+                        </p>
+                        {% endif %}
+                      </div>
+                    </div>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="u-row-container">
+            <table width="100%" cellpadding="0" cellspacing="0" border="0">
+              <tr>
+                <td style="padding-right: 0px;padding-left: 0px;" align="left">
+                  <p class="disclaimer inner-center">
+                    No goods or services were provided in exchange for this contribution.&nbsp;
+                    {% if non_profit %}
+                    This receipt may be used for tax purposes.&nbsp;
+                    {{ rp_name }} is a 501(c)(3) nonprofit organization{% if tax_id %} with a Federal Tax ID #{{ tax_id }}{% endif %}.
+                    {% else %}
+                    Contributions to {{ rp_name }} are not deductible as charitable donations.
+                    {% endif %}
+                  </p>
+                </td>
+              </tr>
+              <tr>
+                <td style="padding-right: 0px;padding-left: 0px;" align="left">
+                  <p class="text inner-center">
+                    Need to make changes to your contribution?
+                    <a class="link" href="{{ magic_link }}" target="_blank" rel="noopener noreferrer">
+                      Manage contributions here
+                    </a>
+                  </p>
+                </td>
+              </tr>
+            </table>
+          </div>
+          <div class="u-row-container">
+            <table role="presentation" cellpadding="0" cellspacing="0" width="100%" border="0">
+              <tbody>
+                <tr>
+                  <td style="overflow-wrap:break-word;word-break:break-word;padding:10px 10px 15px;" align="left">
+                    <div style="color: #7e8c8d; line-height: 140%; text-align: center; word-wrap: break-word;">
+                      <p style="font-size: 14px; line-height: 140%; font-family: Roboto, sans-serif;">
+                        ©{{ copyright_year }} {{ rp_name }} All rights reserved.
+                      </p>
+                    </div>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+</body>
+
+</html>

@@ -123,7 +123,7 @@ def process_stripe_webhook_view(request):
     except ValueError:
         logger.exception("Something went wrong processing webhook")
     except Contribution.DoesNotExist:
-        logger.exception("Could not find contribution matching provider_payment_id")
+        logger.exception("Could not find contribution")
 
     return Response(status=status.HTTP_200_OK)
 

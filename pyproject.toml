@@ -72,7 +72,7 @@ stripe = "^4"
 uwsgi = "^2"
 whitenoise = "^6.2.0"
 google-cloud-pubsub = "^2.13"
-pygments = "^2.13.0"
+pygments = "^2.14.0"
 
 [tool.poetry.dev-dependencies]
 appnope = "*"

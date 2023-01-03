@@ -1,5 +1,8 @@
+import os
 from unittest import TestCase
 from unittest.mock import call, patch
+
+from django.conf import settings
 
 from apps.emails.tasks import send_templated_email_with_attachment
 
@@ -11,7 +14,8 @@ class TestTaskStripeContributions(TestCase):
             "to@to.com",
             "This is a subject",
             "nrh-contribution-csv-email-body.txt",
-            {"name": "Test"},
+            "nrh-contribution-csv-email-body.html",
+            {"username": "Test", "logo_url": os.path.join(settings.SITE_URL, "static", "nre_logo_black_yellow.png")},
             "data",
             "text/csv",
             "contributions.csv",

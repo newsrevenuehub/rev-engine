@@ -289,8 +289,9 @@ describe('Update recurring contribution modal', () => {
         { statusCode: 200 }
       ).as('patchSubscription');
 
+      const month = today.getMonth() + 1;
       cy.setStripeCardElement('cardNumber', '4242424242424242');
-      cy.setStripeCardElement('cardExpiry', `${today.getMonth() + 1}${today.getFullYear() % 100}`);
+      cy.setStripeCardElement('cardExpiry', `${month < 10 ? `0${month}` : month}${today.getFullYear() % 100}`);
       cy.setStripeCardElement('cardCvc', '123');
       cy.setStripeCardElement('postalCode', '12345');
     });

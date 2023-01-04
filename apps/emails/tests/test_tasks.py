@@ -9,7 +9,7 @@ from apps.emails.tasks import send_templated_email_with_attachment
 
 
 class TestTaskStripeContributions(TestCase):
-    @patch("apps.emails.tasks.EmailMessage")
+    @patch("apps.emails.tasks.EmailMultiAlternatives")
     def test_task_pull_serialized_stripe_contributions_to_cache(self, email_message):
         template_data = {
             "username": "Test",

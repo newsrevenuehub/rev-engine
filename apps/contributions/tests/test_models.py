@@ -390,7 +390,8 @@ def test_contribution_formatted_donor_selected_amount(trait):
     contribution = ContributionFactory(**kwargs)
     assert (
         contribution.formatted_donor_selected_amount
-        and contribution.formatted_donor_selected_amount == f"{contribution.amount} {contribution.currency.upper()}"
+        and contribution.formatted_donor_selected_amount
+        == f"{'{:.2f}'.format(contribution.amount / 100)} {contribution.currency.upper()}"
     )
 
 

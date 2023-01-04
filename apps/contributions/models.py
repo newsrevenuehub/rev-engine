@@ -211,7 +211,7 @@ class Contribution(IndexedTimeStampedModel, RoleAssignmentResourceModelMixin):
 
     @property
     def formatted_donor_selected_amount(self) -> str:
-        return f"{self.amount} {self.currency.upper()}"
+        return f"{'{:.2f}'.format(self.amount / 100)} {self.currency.upper()}"
 
     BAD_ACTOR_SCORES = (
         (

@@ -81,12 +81,12 @@ class StripePaymentManager(PaymentManager):
             return StripeOneTimePaymentSerializer
         return StripeRecurringPaymentSerializer
 
-    def attach_payment_method_to_customer(self, stripe_customer_id, org_strip_account, payment_method_id=None):
+    def attach_payment_method_to_customer(self, stripe_customer_id, org_stripe_account, payment_method_id=None):
         try:
             stripe.PaymentMethod.attach(
                 payment_method_id if payment_method_id else self.validated_data["payment_method_id"],
                 customer=stripe_customer_id,
-                stripe_account=org_strip_account,
+                stripe_account=org_stripe_account,
             )
         except stripe.error.StripeError as stripe_error:
             logger.exception("stripe.PaymentMethod.attach returned a StripeError")

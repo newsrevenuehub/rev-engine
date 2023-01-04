@@ -1,5 +1,5 @@
 import datetime
-from unittest.mock import Mock, patch
+from unittest.mock import MagicMock, Mock, patch
 from urllib.parse import quote_plus
 
 from django.conf import settings
@@ -10,6 +10,7 @@ from django.utils.safestring import mark_safe
 
 import pytest
 from bs4 import BeautifulSoup
+from stripe.error import StripeError
 
 from apps.api.views import construct_rp_domain
 from apps.contributions.models import (
@@ -514,3 +515,83 @@ def test_contribution_send_recurring_contribution_email_reminder_email_text(
         assert x in as_string
     assert "Manage contributions here" in soup.find("a", href=magic_link).text
     assert magic_link in mail.outbox[0].body
+
+
+@pytest.mark.parametrize(
+    "has_account_id,has_subscription_id,expect_result",
+    (
+        (True, True, True),
+        (True, False, False),
+        (False, True, False),
+        (False, False, False),
+    ),
+)
+@pytest.mark.django_db
+def test_contribution_stripe_subscription(has_account_id, has_subscription_id, expect_result, monkeypatch):
+    kwargs = {}
+    if not has_subscription_id:
+        kwargs["provider_subscription_id"] = None
+    with patch("apps.contributions.models.Contribution.fetch_stripe_payment_method", return_value=None):
+        contribution = ContributionFactory(**kwargs)
+    mock_sub_ret_value = {"foo": "bar"}
+    mock_fn = Mock()
+    mock_fn.return_value = mock_sub_ret_value
+    monkeypatch.setattr("stripe.Subscription.retrieve", mock_fn)
+    if not has_account_id:
+        contribution.donation_page.revenue_program.payment_provider.stripe_account_id = None
+        contribution.donation_page.revenue_program.payment_provider.save()
+    if not expect_result:
+        assert contribution.stripe_subscription is None
+    else:
+        assert contribution.stripe_subscription == mock_sub_ret_value
+
+
+@pytest.mark.django_db
+def test_contribution_stripe_subscription_when_stripe_error(monkeypatch):
+    with patch("apps.contributions.models.Contribution.fetch_stripe_payment_method", return_value=None):
+        contribution = ContributionFactory(annual_subscription=True)
+    mock_fn = MagicMock()
+    mock_fn.side_effect = StripeError("Ruh-roh")
+    monkeypatch.setattr("stripe.Subscription.retrieve", mock_fn)
+    with pytest.raises(StripeError):
+        contribution.stripe_subscription
+
+
+@pytest.mark.parametrize(
+    "has_account_id,has_provider_payment_id,expect_result",
+    (
+        (True, True, True),
+        (True, False, False),
+        (False, True, False),
+        (False, False, False),
+    ),
+)
+@pytest.mark.django_db
+def test_contribution_stripe_payment_intent(has_account_id, has_provider_payment_id, expect_result, monkeypatch):
+    kwargs = {"one_time": True}
+    if not has_provider_payment_id:
+        kwargs["provider_payment_id"] = None
+    with patch("apps.contributions.models.Contribution.fetch_stripe_payment_method", return_value=None):
+        contribution = ContributionFactory(**kwargs)
+    mock_pi_ret_value = {"foo": "bar"}
+    mock_fn = Mock()
+    mock_fn.return_value = mock_pi_ret_value
+    monkeypatch.setattr("stripe.PaymentIntent.retrieve", mock_fn)
+    if not has_account_id:
+        contribution.donation_page.revenue_program.payment_provider.stripe_account_id = None
+        contribution.donation_page.revenue_program.payment_provider.save()
+    if not expect_result:
+        assert contribution.stripe_subscription is None
+    else:
+        assert contribution.stripe_payment_intent == mock_pi_ret_value
+
+
+@pytest.mark.django_db
+def test_contribution_stripe_payment_intent_when_stripe_error(monkeypatch):
+    with patch("apps.contributions.models.Contribution.fetch_stripe_payment_method", return_value=None):
+        contribution = ContributionFactory(one_time=True)
+    mock_fn = MagicMock()
+    mock_fn.side_effect = StripeError("Ruh-roh")
+    monkeypatch.setattr("stripe.PaymentIntent.retrieve", mock_fn)
+    with pytest.raises(StripeError):
+        contribution.stripe_payment_intent

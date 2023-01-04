@@ -438,3 +438,27 @@ class Contribution(IndexedTimeStampedModel, RoleAssignmentResourceModelMixin):
             "revenue_program_slug": validated_data["page"].revenue_program.slug,
             "sf_campaign_id": validated_data.get("sf_campaign_id"),
         }
+
+    @property
+    def stripe_payment_intent(self) -> stripe.PaymentIntent | None:
+        if not all(
+            [
+                pi_id := self.provider_payment_id,
+                acct_id := self.donation_page.revenue_program.payment_provider.stripe_account_id,
+            ]
+        ):
+            return None
+        else:
+            return stripe.PaymentIntent.retrieve(pi_id, stripe_account=acct_id)
+
+    @property
+    def stripe_subscription(self) -> stripe.Subscription | None:
+        if not all(
+            [
+                sub_id := self.provider_subscription_id,
+                acct_id := self.donation_page.revenue_program.payment_provider.stripe_account_id,
+            ]
+        ):
+            return None
+        else:
+            return stripe.Subscription.retrieve(sub_id, stripe_account=acct_id)

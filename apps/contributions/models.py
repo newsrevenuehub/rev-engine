@@ -427,11 +427,9 @@ class Contribution(IndexedTimeStampedModel, RoleAssignmentResourceModelMixin):
 
     @property
     def stripe_payment_intent(self) -> stripe.PaymentIntent | None:
-        if not all(
-            [
-                pi_id := self.provider_payment_id,
-                acct_id := self.donation_page.revenue_program.payment_provider.stripe_account_id,
-            ]
+        if not (
+            (pi_id := self.provider_payment_id)
+            and (acct_id := self.donation_page.revenue_program.payment_provider.stripe_account_id)
         ):
             return None
         else:

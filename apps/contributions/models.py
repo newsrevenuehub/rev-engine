@@ -462,3 +462,98 @@ class Contribution(IndexedTimeStampedModel, RoleAssignmentResourceModelMixin):
             return None
         else:
             return stripe.Subscription.retrieve(sub_id, stripe_account=acct_id)
+
+    @staticmethod
+    def fix_contributions_stuck_in_processing(dry_run: bool = False) -> None:
+        """Update status to PAID if contribution appears to be incorrectly stuck in PROCESSING
+
+
+        We compare a subset of local contributions to fresh Stripe data and update status to PAID if it
+        makes sense to do so. See discussion of Stripe webhook reciever race conditions in this JIRA ticket:
+        https://news-revenue-hub.atlassian.net/browse/DEV-3010
+        """
+        queryset = Contribution.objects.filter(
+            # if we don't have a subscription id or payment intent id, there's nothing to do
+            models.Q(provider_subscription_id__isnull=False) | models.Q(provider_payment_id__isnull=False),
+            status=ContributionStatus.PROCESSING,
+            # contributions with same created/modified value have only ever been created, and therefore are not
+            # affected by race condition this command is solving for.
+            modified__gt=models.F("created"),
+        )
+        one_times_updated = 0
+        for contribution in queryset.filter(interval=ContributionInterval.ONE_TIME):
+            if (pi := contribution.stripe_payment_intent) and pi.status == "succeeded":
+                logger.info("Contribution with ID %s has a stale status of PROCESSING", contribution.id)
+                if not dry_run:
+                    logger.info("Setting status on contribution with ID %s to PAID", contribution.id)
+                    contribution.status = ContributionStatus.PAID
+                    contribution.save()
+                    one_times_updated += 1
+        recurring_updated = 0
+        for contribution in queryset.filter(interval__in=[ContributionInterval.YEARLY, ContributionInterval.MONTHLY]):
+            if (sub := contribution.stripe_subscription) and sub.status == "active":
+                logger.info("Contribution with ID %s has a stale status of PROCESSING", contribution.id)
+                if not dry_run:
+                    logger.info("Setting status on contribution with ID %s to PAID", contribution.id)
+                    contribution.status = ContributionStatus.PAID
+                    contribution.save()
+                    recurring_updated += 1
+        logger.info(
+            "Updated status to `paid` on %s one-time and %s recurring contributions",
+            one_times_updated,
+            recurring_updated,
+        )
+
+    @staticmethod
+    def fix_missing_payment_method_detail_details_data(dry_run: bool = False) -> None:
+        """Retrieve provider_payment_method_details from Stripe if it's None and it appears that this should not be the case.
+
+        For the eligible subset of contributions, we retrieve the payment data from Stripe and set `provider_payment_method_details`
+        on the NRE contribution.
+
+        For discussion of need for this, see discussion of Stripe webhook reciever race conditions in this JIRA ticket:
+        https://news-revenue-hub.atlassian.net/browse/DEV-3010"""
+        queryset = Contribution.objects.filter(
+            # contributions with same created/modified value have only ever been created, and therefore are not
+            # affected by race condition this command is solving for.
+            modified__gt=models.F("created"),
+            # For optimal data integrity, this function should be run only after `fix_contributions_stuck_in_processing`
+            status__in=[
+                ContributionStatus.PAID,
+                ContributionStatus.FLAGGED,
+                ContributionStatus.REJECTED,
+                ContributionStatus.CANCELED,
+            ],
+            # If this is missing, we can't retrieve payment method, so filter those out
+            provider_payment_method_id__isnull=False,
+            provider_payment_method_details__isnull=True,
+        )
+
+        one_times_updated = 0
+        for contribution in queryset.filter(interval=ContributionInterval.ONE_TIME):
+            logger.info(
+                "Contribution with ID %s has missing `provider_payment_method_details` data that can be synced from Stripe",
+                contribution.id,
+            )
+            if not dry_run:
+                logger.info("Retrieving `provider_payment_method_details` for contribution with ID", contribution.id)
+                contribution.provider_payment_method_details = contribution.fetch_stripe_payment_method()
+                contribution.save()
+                one_times_updated += 1
+        recurring_updated = 0
+        for contribution in queryset.filter(interval__in=[ContributionInterval.YEARLY, ContributionInterval.MONTHLY]):
+            logger.info(
+                "Contribution with ID %s has missing `provider_payment_method_details` data that can be synced from Stripe",
+                contribution.id,
+            )
+            sub = contribution.stripe_subscription
+            if sub and sub.status == "active":
+                logger.info("Setting status on contribution with ID %s to PAID", contribution.id)
+                contribution.provider_payment_method_details = contribution.fetch_stripe_payment_method()
+                contribution.save()
+                recurring_updated += 1
+        logger.info(
+            "Synced `provider_payment_method_details` for %s one-time and %s recurring contributions",
+            one_times_updated,
+            recurring_updated,
+        )

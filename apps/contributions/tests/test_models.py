@@ -595,3 +595,13 @@ def test_contribution_stripe_payment_intent_when_stripe_error(monkeypatch):
     monkeypatch.setattr("stripe.PaymentIntent.retrieve", mock_fn)
     with pytest.raises(StripeError):
         contribution.stripe_payment_intent
+
+
+@pytest.mark.django_db
+def test_contribution_fix_contributions_stuck_in_processing():
+    pass
+
+
+@pytest.mark.django_db
+def test_contribution_sync_missing_payment_method_detail_details_data():
+    pass

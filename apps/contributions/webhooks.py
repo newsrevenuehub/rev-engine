@@ -5,7 +5,6 @@ from django.conf import settings
 from django.utils.timezone import make_aware
 
 from apps.contributions.models import Contribution, ContributionInterval, ContributionStatus
-from apps.slack.models import SlackNotificationTypes
 
 
 logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
@@ -102,7 +101,7 @@ class StripeWebhookProcessor:
             self.obj_data["created"], tz=datetime.timezone.utc
         )
         contribution.status = ContributionStatus.PAID
-        contribution.save(slack_notification=SlackNotificationTypes.SUCCESS)
+        contribution.save()
         logger.info("Contribution %s succeeded.", contribution)
 
     def _cancellation_was_rejection(self):

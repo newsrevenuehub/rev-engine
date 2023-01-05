@@ -24,7 +24,6 @@ from apps.organizations.tests.factories import (
     RevenueProgramFactory,
 )
 from apps.pages.tests.factories import DonationPageFactory
-from apps.slack.models import SlackNotificationTypes
 
 
 valid_secret = "myvalidstripesecret"
@@ -182,8 +181,7 @@ class PaymentIntentWebhooksTest(APITestCase):
         contribution.refresh_from_db()
         self.assertEqual(contribution.status, ContributionStatus.FAILED)
 
-    @patch("apps.slack.slack_manager.SlackManager.publish_contribution")
-    def test_payment_intent_succeeded_webhook(self, mock_publish_contribution):
+    def test_payment_intent_succeeded_webhook(self):
         payment_intent_id = "1234"
         contribution = self._create_contribution(payment_intent_id=payment_intent_id)
         processor = StripeWebhookProcessor(
@@ -192,7 +190,6 @@ class PaymentIntentWebhooksTest(APITestCase):
         processor.process()
         contribution.refresh_from_db()
         self.assertEqual(contribution.status, ContributionStatus.PAID)
-        mock_publish_contribution.assert_called_once_with(contribution, event_type=SlackNotificationTypes.SUCCESS)
 
     def test_webhook_with_invalid_contribution_payment_intent_id(self):
         processor = StripeWebhookProcessor(

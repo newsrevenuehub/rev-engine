@@ -9,13 +9,10 @@ from django.utils.safestring import mark_safe
 
 import stripe
 from addict import Dict as AttrDict
-from slack_sdk.errors import SlackApiError
 
 from apps.api.tokens import ContributorRefreshToken
 from apps.common.models import IndexedTimeStampedModel
 from apps.emails.tasks import send_templated_email
-from apps.slack.models import SlackNotificationTypes
-from apps.slack.slack_manager import SlackManager
 from apps.users.choices import Roles
 from apps.users.models import RoleAssignmentResourceModelMixin, UnexpectedRoleType
 
@@ -263,22 +260,7 @@ class Contribution(IndexedTimeStampedModel, RoleAssignmentResourceModelMixin):
             stripe_account=self.revenue_program.payment_provider.stripe_account_id,
         )
 
-    def send_slack_notifications(self, event_type):
-        """
-        For now, we only send Slack notifications on successful payment.
-        """
-        if event_type == SlackNotificationTypes.SUCCESS:
-            slack_manager = SlackManager()
-            slack_manager.publish_contribution(self, event_type=SlackNotificationTypes.SUCCESS)
-
     def save(self, *args, **kwargs):
-        # Calling save with kwargs "slack_notification" causes save method to trigger slack notifications
-        slack_notification = kwargs.pop("slack_notification", None)
-        if slack_notification:
-            try:
-                self.send_slack_notifications(slack_notification)
-            except SlackApiError:
-                logger.info("Something went wrong sending Slack notification")
         # Check if we should update stripe payment method details
         previous = self.__class__.objects.filter(pk=self.pk).first()
         # TODO: [DEV-3026]

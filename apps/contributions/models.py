@@ -496,7 +496,10 @@ class Contribution(IndexedTimeStampedModel, RoleAssignmentResourceModelMixin):
 
         For discussion of need for this, see discussion of Stripe webhook reciever race conditions in this JIRA ticket:
         https://news-revenue-hub.atlassian.net/browse/DEV-3010"""
-        queryset = Contribution.objects.filter(
+        queryset = Contribution.objects.exclude(
+            provider_payment_method_id="",
+            provider_payment_method_id__isnull=True,
+        ).filter(
             # For optimal data integrity, this function should be run only after `fix_contributions_stuck_in_processing`
             status__in=[
                 ContributionStatus.PAID,
@@ -504,8 +507,6 @@ class Contribution(IndexedTimeStampedModel, RoleAssignmentResourceModelMixin):
                 ContributionStatus.REJECTED,
                 ContributionStatus.CANCELED,
             ],
-            # If this is missing, we can't retrieve payment method, so filter those out
-            provider_payment_method_id__isnull=False,
             provider_payment_method_details__isnull=True,
         )
         one_times_updated = 0

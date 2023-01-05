@@ -132,6 +132,14 @@ class PaymentType(models.TextChoices):
     WECHAT = "wechat", "WeChat"
 
 
+class ContributionManager(models.Manager):
+    def one_time(self):
+        return self.filter(interval=ContributionInterval.ONE_TIME)
+
+    def recurring(self):
+        return self.filter(interval__in=[ContributionInterval.MONTHLY, ContributionInterval.YEARLY])
+
+
 class Contribution(IndexedTimeStampedModel, RoleAssignmentResourceModelMixin):
     amount = models.IntegerField(help_text="Stored in cents")
     currency = models.CharField(max_length=3, default="usd")
@@ -161,6 +169,8 @@ class Contribution(IndexedTimeStampedModel, RoleAssignmentResourceModelMixin):
     contribution_metadata = models.JSONField(null=True)
 
     status = models.CharField(max_length=10, choices=ContributionStatus.choices, null=True)
+
+    objects = ContributionManager()
 
     class Meta:
         get_latest_by = "modified"
@@ -456,13 +466,12 @@ class Contribution(IndexedTimeStampedModel, RoleAssignmentResourceModelMixin):
         makes sense to do so. See discussion of Stripe webhook reciever race conditions in this JIRA ticket:
         https://news-revenue-hub.atlassian.net/browse/DEV-3010
         """
-        queryset = Contribution.objects.filter(
+        one_times_updated = 0
+        for contribution in Contribution.objects.one_time().filter(
             # if we don't have a subscription id or payment intent id, there's nothing to do
             models.Q(provider_subscription_id__isnull=False) | models.Q(provider_payment_id__isnull=False),
             status=ContributionStatus.PROCESSING,
-        )
-        one_times_updated = 0
-        for contribution in queryset.filter(interval=ContributionInterval.ONE_TIME):
+        ):
             if (pi := contribution.stripe_payment_intent) and pi.status == "succeeded":
                 logger.info("Contribution with ID %s has a stale status of PROCESSING", contribution.id)
                 one_times_updated += 1
@@ -471,7 +480,11 @@ class Contribution(IndexedTimeStampedModel, RoleAssignmentResourceModelMixin):
                     contribution.status = ContributionStatus.PAID
                     contribution.save()
         recurring_updated = 0
-        for contribution in queryset.filter(interval__in=[ContributionInterval.YEARLY, ContributionInterval.MONTHLY]):
+        for contribution in Contribution.objects.recurring().filter(
+            # if we don't have a subscription id or payment intent id, there's nothing to do
+            models.Q(provider_subscription_id__isnull=False) | models.Q(provider_payment_id__isnull=False),
+            status=ContributionStatus.PROCESSING,
+        ):
             if (sub := contribution.stripe_subscription) and sub.status == "active":
                 logger.info("Contribution with ID %s has a stale status of PROCESSING", contribution.id)
                 recurring_updated += 1
@@ -497,18 +510,19 @@ class Contribution(IndexedTimeStampedModel, RoleAssignmentResourceModelMixin):
 
         For discussion of need for this method, see discussion of Stripe webhook reciever race conditions in this JIRA ticket:
         https://news-revenue-hub.atlassian.net/browse/DEV-3010"""
-        queryset = Contribution.objects.exclude(provider_payment_method_id="").filter(
-            status__in=[
+        kwargs = {
+            "status__in": [
                 ContributionStatus.PAID,
                 ContributionStatus.FLAGGED,
                 ContributionStatus.REJECTED,
                 ContributionStatus.CANCELED,
             ],
-            provider_payment_method_id__isnull=False,
-            provider_payment_method_details__isnull=True,
-        )
+            "provider_payment_method_id__isnull": False,
+            "provider_payment_method_details__isnull": True,
+        }
+
         one_times_updated = 0
-        for contribution in queryset.filter(interval=ContributionInterval.ONE_TIME):
+        for contribution in Contribution.objects.one_time().exclude(provider_payment_method_id="").filter(**kwargs):
             logger.info(
                 "Contribution with ID %s has missing `provider_payment_method_details` data that can be synced from Stripe",
                 contribution.id,
@@ -519,7 +533,7 @@ class Contribution(IndexedTimeStampedModel, RoleAssignmentResourceModelMixin):
                 contribution.save()
                 one_times_updated += 1
         recurring_updated = 0
-        for contribution in queryset.filter(interval__in=[ContributionInterval.YEARLY, ContributionInterval.MONTHLY]):
+        for contribution in Contribution.objects.recurring().exclude(provider_payment_method_id="").filter(**kwargs):
             logger.info(
                 "Contribution with ID %s has missing `provider_payment_method_details` data that can be synced from Stripe",
                 contribution.id,

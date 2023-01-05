@@ -476,9 +476,6 @@ class Contribution(IndexedTimeStampedModel, RoleAssignmentResourceModelMixin):
             # if we don't have a subscription id or payment intent id, there's nothing to do
             models.Q(provider_subscription_id__isnull=False) | models.Q(provider_payment_id__isnull=False),
             status=ContributionStatus.PROCESSING,
-            # contributions with same created/modified value have only ever been created, and therefore are not
-            # affected by race condition this command is solving for.
-            modified__gt=models.F("created"),
         )
         one_times_updated = 0
         for contribution in queryset.filter(interval=ContributionInterval.ONE_TIME):
@@ -514,9 +511,6 @@ class Contribution(IndexedTimeStampedModel, RoleAssignmentResourceModelMixin):
         For discussion of need for this, see discussion of Stripe webhook reciever race conditions in this JIRA ticket:
         https://news-revenue-hub.atlassian.net/browse/DEV-3010"""
         queryset = Contribution.objects.filter(
-            # contributions with same created/modified value have only ever been created, and therefore are not
-            # affected by race condition this command is solving for.
-            modified__gt=models.F("created"),
             # For optimal data integrity, this function should be run only after `fix_contributions_stuck_in_processing`
             status__in=[
                 ContributionStatus.PAID,
@@ -528,7 +522,6 @@ class Contribution(IndexedTimeStampedModel, RoleAssignmentResourceModelMixin):
             provider_payment_method_id__isnull=False,
             provider_payment_method_details__isnull=True,
         )
-
         one_times_updated = 0
         for contribution in queryset.filter(interval=ContributionInterval.ONE_TIME):
             logger.info(
@@ -536,7 +529,7 @@ class Contribution(IndexedTimeStampedModel, RoleAssignmentResourceModelMixin):
                 contribution.id,
             )
             if not dry_run:
-                logger.info("Retrieving `provider_payment_method_details` for contribution with ID", contribution.id)
+                logger.info("Retrieving `provider_payment_method_details` for contribution with ID %s", contribution.id)
                 contribution.provider_payment_method_details = contribution.fetch_stripe_payment_method()
                 contribution.save()
                 one_times_updated += 1
@@ -546,12 +539,12 @@ class Contribution(IndexedTimeStampedModel, RoleAssignmentResourceModelMixin):
                 "Contribution with ID %s has missing `provider_payment_method_details` data that can be synced from Stripe",
                 contribution.id,
             )
-            sub = contribution.stripe_subscription
-            if sub and sub.status == "active":
+            if not dry_run:
                 logger.info("Setting status on contribution with ID %s to PAID", contribution.id)
                 contribution.provider_payment_method_details = contribution.fetch_stripe_payment_method()
                 contribution.save()
                 recurring_updated += 1
+        logger.info(one_times_updated)
         logger.info(
             "Synced `provider_payment_method_details` for %s one-time and %s recurring contributions",
             one_times_updated,

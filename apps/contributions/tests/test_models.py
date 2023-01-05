@@ -9,6 +9,7 @@ from django.utils import timezone
 from django.utils.safestring import mark_safe
 
 import pytest
+from addict import Dict as AttrDict
 from bs4 import BeautifulSoup
 from stripe.error import StripeError
 
@@ -597,11 +598,53 @@ def test_contribution_stripe_payment_intent_when_stripe_error(monkeypatch):
         contribution.stripe_payment_intent
 
 
+@pytest.mark.parametrize("dry_run", (True, False))
 @pytest.mark.django_db
-def test_contribution_fix_contributions_stuck_in_processing():
-    pass
+def test_contribution_fix_contributions_stuck_in_processing(dry_run, monkeypatch):
+    mock_pi = AttrDict(status="succeeded")
+    mock_sub = AttrDict(status="active")
+    monkeypatch.setattr("apps.contributions.models.Contribution.stripe_payment_intent", mock_pi)
+    monkeypatch.setattr("apps.contributions.models.Contribution.stripe_subscription", mock_sub)
+    with patch("apps.contributions.models.Contribution.fetch_stripe_payment_method", return_value=None):
+        contributions = [
+            ContributionFactory(one_time=True, status=ContributionStatus.PROCESSING),
+            ContributionFactory(annual_subscription=True, status=ContributionStatus.PROCESSING),
+        ]
+        Contribution.fix_contributions_stuck_in_processing(dry_run=dry_run)
+    if dry_run:
+        for contribution in contributions:
+            old_modified = contribution.modified
+            contribution.refresh_from_db()
+            assert contribution.modified == old_modified
+    else:
+        for contribution in contributions:
+            contribution.refresh_from_db()
+            assert contribution.status == ContributionStatus.PAID
 
 
+@pytest.mark.parametrize("dry_run", (True, False))
 @pytest.mark.django_db
-def test_contribution_sync_missing_payment_method_detail_details_data():
-    pass
+def test_contribution_sync_missing_payment_method_detail_details_data(dry_run):
+    with patch("apps.contributions.models.Contribution.fetch_stripe_payment_method", return_value=None):
+        contributions = []
+        for status in [
+            ContributionStatus.PAID,
+            ContributionStatus.FLAGGED,
+            ContributionStatus.REJECTED,
+            ContributionStatus.CANCELED,
+        ]:
+            contributions.extend(
+                [
+                    ContributionFactory(one_time=True, status=status, provider_payment_method_details=None),
+                    ContributionFactory(annual_subscription=True, status=status, provider_payment_method_details=None),
+                ]
+            )
+    mock_pm = {"foo": "bar"}
+    with patch("apps.contributions.models.Contribution.fetch_stripe_payment_method", return_value=mock_pm):
+        Contribution.fix_missing_payment_method_detail_details_data(dry_run=dry_run)
+    for contribution in contributions:
+        contribution.refresh_from_db()
+        if not dry_run:
+            assert contribution.provider_payment_method_details == mock_pm
+        else:
+            assert contribution.provider_payment_method_details is None

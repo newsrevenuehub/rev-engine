@@ -6,6 +6,7 @@ import pytest
 from rest_framework import status
 from rest_framework.reverse import reverse
 from rest_framework.test import APIClient, APIRequestFactory
+from reversion.models import Version
 from stripe.error import StripeError
 
 from apps.api.tests import RevEngineApiAbstractTestCase
@@ -188,6 +189,7 @@ class TestHandleStripeAccountLink:
         rp.payment_provider.stripe_account_id = None
         rp.payment_provider.stripe_product_id = None
         rp.payment_provider.save()
+        pp_count = Version.objects.get_for_object(rp.payment_provider).count()
         url = reverse("handle-stripe-account-link", args=(rp.pk,))
         client = APIClient()
         client.force_authenticate(user=rp_role_assignment.user)
@@ -202,6 +204,7 @@ class TestHandleStripeAccountLink:
         rp.payment_provider.refresh_from_db()
         assert rp.payment_provider.stripe_account_id == stripe_account_id
         assert rp.payment_provider.stripe_product_id == product_id
+        assert Version.objects.get_for_object(rp.payment_provider).count() == pp_count + 1
 
     def test_happy_path_when_stripe_account_already_created_and_past_due_reqs(self, monkeypatch, rp_role_assignment):
         stripe_account_id = "fakeId"
@@ -281,6 +284,7 @@ class TestHandleStripeAccountLink:
         rp.payment_provider.stripe_account_id = stripe_account_id
         rp.payment_provider.stripe_product_id = "something"
         rp.payment_provider.save()
+        pp_version_count = Version.objects.get_for_object(rp.payment_provider).count()
         url = reverse("handle-stripe-account-link", args=(rp.pk,))
         client = APIClient()
         client.force_authenticate(user=rp_role_assignment.user)
@@ -289,6 +293,7 @@ class TestHandleStripeAccountLink:
         assert response.json() == {"requiresVerification": False}
         rp.payment_provider.refresh_from_db()
         assert rp.payment_provider.stripe_verified is True
+        assert Version.objects.get_for_object(rp.payment_provider).count() == pp_version_count + 1
 
     def test_when_unauthenticated(self, rp):
         url = reverse("handle-stripe-account-link", args=(rp.pk,))

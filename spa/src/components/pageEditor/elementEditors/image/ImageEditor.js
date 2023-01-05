@@ -21,6 +21,10 @@ function ImageEditor() {
 ImageEditor.for = 'DImage';
 
 ImageEditor.hasErrors = (file) => {
+  if (!file) {
+    return false;
+  }
+
   // 2.5e6 bytes == 2.5MB
   const fileIsTooBig = file.size >= 2.5e6;
   if (fileIsTooBig) {

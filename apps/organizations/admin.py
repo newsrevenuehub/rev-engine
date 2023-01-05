@@ -10,6 +10,7 @@ from django.utils.safestring import mark_safe
 
 from rest_framework.serializers import ValidationError as DRFValidationError
 from reversion.admin import VersionAdmin
+from reversion_compare.admin import CompareVersionAdmin
 from sorl.thumbnail.admin import AdminImageMixin
 
 from apps.common.admin import RevEngineBaseAdmin
@@ -294,7 +295,7 @@ class RevenueProgramAdmin(RevEngineBaseAdmin, VersionAdmin, AdminImageMixin):
 
 
 @admin.register(PaymentProvider)
-class PaymentProviderAdmin(RevEngineBaseAdmin):
+class PaymentProviderAdmin(RevEngineBaseAdmin, CompareVersionAdmin):
     search_fields = ("stripe_account_id",)
     list_display = [
         "stripe_account_id",

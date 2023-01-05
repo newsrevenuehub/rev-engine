@@ -11,6 +11,7 @@ from rest_framework.exceptions import PermissionDenied
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.reverse import reverse
+from reversion.views import create_revision
 from stripe.error import StripeError
 
 from apps.api.permissions import HasRoleAssignment
@@ -63,6 +64,7 @@ def get_stripe_account_link_return_url(request):
         return request.build_absolute_uri(reversed)
 
 
+@create_revision()
 @api_view(["POST"])
 @permission_classes([IsAuthenticated, HasRoleAssignment])
 def handle_stripe_account_link(request, rp_pk):
@@ -72,7 +74,7 @@ def handle_stripe_account_link(request, rp_pk):
     The flow through this view is like this:
 
     1. The client makes a request providing a revenue program id.
-    2. Retrieve the RP's Zpayment provider.
+    2. Retrieve the RP's payment provider.
         a. If it's already verified, we're done.
         b. If it's not verified we continue
     3. If the payment provider does not have a Stripe account (on first run through, it usually won't), create one, attaching

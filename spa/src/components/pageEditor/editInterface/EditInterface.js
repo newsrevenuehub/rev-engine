@@ -1,5 +1,5 @@
 import { useState, useContext, createContext, useEffect, useCallback } from 'react';
-import * as S from './EditInterface.styled';
+import { Root, TabPanel } from './EditInterface.styled';
 
 import { usePageEditorContext } from 'components/pageEditor/PageEditor';
 
@@ -19,7 +19,6 @@ import { usePageContext } from 'components/dashboard/PageContext';
 
 import * as dynamicPageElements from 'components/donationPage/pageContent/dynamicElements';
 import * as dynamicSidebarElements from 'components/donationPage/pageContent/dynamicSidebarElements';
-import { TabPanel } from 'components/base';
 
 const dynamicElements = { ...dynamicPageElements, ...dynamicSidebarElements };
 
@@ -134,7 +133,7 @@ function EditInterface() {
       }}
     >
       <>
-        <S.EditInterface {...editInterfaceAnimation} data-testid="edit-interface">
+        <Root {...editInterfaceAnimation} data-testid="edit-interface">
           {selectedElement ? (
             <ElementProperties selectedElementType={selectedElementType} />
           ) : (
@@ -171,14 +170,14 @@ function EditInterface() {
                 />
               </TabPanel>
               <TabPanel active={tab === 2} id="edit-setup-tab-panel" tabId="edit-setup-tab">
-                <PageSetup backToProperties={() => setTab(0)} />
+                <PageSetup />
               </TabPanel>
               <TabPanel active={tab === 3} id="edit-styles-tab-panel" tabId="edit-styles-tab">
-                <PageStyles backToProperties={() => setTab(0)} />
+                <PageStyles />
               </TabPanel>
             </>
           )}
-        </S.EditInterface>
+        </Root>
         <AddElementModal
           addElementModalOpen={addElementModalOpen}
           setAddElementModalOpen={setAddElementModalOpen}

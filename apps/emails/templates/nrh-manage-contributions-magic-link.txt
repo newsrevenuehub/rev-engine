@@ -1,9 +1,11 @@
-Manage your contributions!
---------------------------
+Your Contributions
 
-To view your contributions, please go to this link:
+------------------------
+
+We received a request to manage contributions associated with {{ email }}.
+
+Click the button below to review and manage your contributions.
 
 {% autoescape off %}{{ magic_link }}{% endautoescape %}
 
-
-If you didn't request access to your contributions please ignore this message.
+If you received this in error, please ignore this email and do not click the button.

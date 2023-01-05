@@ -24,7 +24,7 @@ def run():
             continue
 
         try:
-            domains = stripe.ApplePayDomain.list(stripe_account=acct)
+            domains = stripe.ApplePayDomain.list(stripe_account=acct, limit=100)
         except stripe.error.PermissionError:
             print(f"error listing domain for {rp}")
             continue

@@ -6,17 +6,17 @@ import { useAlert } from 'react-alert';
 import getElementEditor, { getElementValidator } from 'components/pageEditor/elementEditors/getElementEditor';
 
 // Assets
-import { faCheck, faTimes, faTrash } from '@fortawesome/free-solid-svg-icons';
+import { faTrash } from '@fortawesome/free-solid-svg-icons';
 
 // Context
 import { useEditInterfaceContext } from 'components/pageEditor/editInterface/EditInterface';
 
 // Children
-import CircleButton from 'elements/buttons/CircleButton';
 import { NoComponentError } from 'components/donationPage/pageGetters';
 
 import * as dynamicPageElements from 'components/donationPage/pageContent/dynamicElements';
 import * as dynamicSidebarElements from 'components/donationPage/pageContent/dynamicSidebarElements';
+import EditSaveControls from 'components/pageEditor/editInterface/EditSaveControls';
 
 const dynamicElements = { ...dynamicPageElements, ...dynamicSidebarElements };
 
@@ -30,7 +30,6 @@ const dynamicElements = { ...dynamicPageElements, ...dynamicSidebarElements };
  */
 function ElementProperties({ selectedElementType }) {
   const alert = useAlert();
-
   const {
     selectedElement,
     setSelectedElement,
@@ -102,22 +101,7 @@ function ElementProperties({ selectedElementType }) {
         )}
       </S.ElementHeading>
       <S.ElementEditor>{getElementEditor(selectedElement.type)}</S.ElementEditor>
-      <S.ButtonsSection>
-        <S.Buttons>
-          <CircleButton
-            icon={faCheck}
-            buttonType="positive"
-            onClick={handleKeepChanges}
-            data-testid="keep-element-changes-button"
-          />
-          <CircleButton
-            icon={faTimes}
-            buttonType="caution"
-            onClick={handleDiscardChanges}
-            data-testid="discard-element-changes-button"
-          />
-        </S.Buttons>
-      </S.ButtonsSection>
+      <EditSaveControls onCancel={handleDiscardChanges} onUpdate={handleKeepChanges} variant="cancel" />
     </S.ElementProperties>
   );
 }

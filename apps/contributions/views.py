@@ -254,9 +254,7 @@ class ContributionsViewSet(viewsets.ReadOnlyModelViewSet, FilterQuerySetByUserMi
             ]
 
         # this is supplied by FilterQuerySetByUserMixin
-        return self.filter_queryset_for_user(
-            self.request.user, self.model.objects.filter(provider_payment_method_details__isnull=False)
-        )
+        return self.filter_queryset_for_user(self.request.user, self.model.objects.having_org_viewable_status())
 
     def filter_queryset(self, queryset):
         # filter backend doesnot apply for contributor
@@ -301,9 +299,7 @@ class ContributionsViewSet(viewsets.ReadOnlyModelViewSet, FilterQuerySetByUserMi
         try:
             name = f"{request.user.first_name} {request.user.last_name}"
 
-            queryset = self.filter_queryset_for_user(
-                self.request.user, self.model.objects.filter(provider_payment_method_details__isnull=False)
-            )
+            queryset = self.filter_queryset_for_user(self.request.user, self.model.objects.having_org_viewable_status())
             contributions = super().filter_queryset(queryset)
             contributions_in_csv = export_contributions_to_csv(contributions)
 

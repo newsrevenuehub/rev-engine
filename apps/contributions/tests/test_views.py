@@ -179,6 +179,7 @@ class TestContributionsViewSet(RevEngineApiAbstractTestCase):
         self.list_url = reverse("contribution-list")
 
         self.contribution_for_org = ContributionFactory(
+            one_time=True,
             donation_page__revenue_program=self.org1.revenueprogram_set.first(),
         )
 
@@ -299,21 +300,15 @@ class TestContributionsViewSet(RevEngineApiAbstractTestCase):
         response = self.assert_user_can_get(self.list_url + f"?{qp}", self.superuser)
         self.assertTrue(all([i["status"] not in filter_statuses for i in response.json()["results"]]))
 
-    def test_filters_out_contributions_without_payment_method(self):
-        org = OrganizationFactory()
-        payment_provider = PaymentProviderFactory(stripe_account_id="ignore")
-        revenue_program = RevenueProgramFactory(organization=org, payment_provider=payment_provider)
-        donation_page = DonationPageFactory(revenue_program=revenue_program)
-        processing_contribution = Contribution.objects.create(amount=100, donation_page=donation_page)
-        processed_contribution = Contribution.objects.create(
-            amount=100, donation_page=donation_page, provider_payment_method_details={"k": "v"}
-        )
+    def test_filters_out_flagged_and_rejected_contributions(self):
+        Contribution.objects.all().delete()
+        with mock.patch("apps.contributions.models.Contribution.fetch_stripe_payment_method", return_value=None):
+            good_contribution = ContributionFactory(one_time=True)
+            ContributionFactory(one_time=True, status=ContributionStatus.FLAGGED)
+            ContributionFactory(one_time=True, status=ContributionStatus.REJECTED)
         response = self.assert_user_can_get(self.list_url, self.hub_user)
-        retrieved_contribution_ids = [
-            retrieved_contribution["id"] for retrieved_contribution in response.json()["results"]
-        ]
-        assert processing_contribution.id not in retrieved_contribution_ids
-        assert processed_contribution.id in retrieved_contribution_ids
+        assert response.json()["count"] == 1
+        assert response.json()["results"][0]["id"] == good_contribution.id
 
 
 class TestContributorContributionsViewSet(AbstractTestCase):

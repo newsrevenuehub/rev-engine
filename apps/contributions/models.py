@@ -465,22 +465,23 @@ class Contribution(IndexedTimeStampedModel, RoleAssignmentResourceModelMixin):
         for contribution in queryset.filter(interval=ContributionInterval.ONE_TIME):
             if (pi := contribution.stripe_payment_intent) and pi.status == "succeeded":
                 logger.info("Contribution with ID %s has a stale status of PROCESSING", contribution.id)
+                one_times_updated += 1
                 if not dry_run:
                     logger.info("Setting status on contribution with ID %s to PAID", contribution.id)
                     contribution.status = ContributionStatus.PAID
                     contribution.save()
-                    one_times_updated += 1
         recurring_updated = 0
         for contribution in queryset.filter(interval__in=[ContributionInterval.YEARLY, ContributionInterval.MONTHLY]):
             if (sub := contribution.stripe_subscription) and sub.status == "active":
                 logger.info("Contribution with ID %s has a stale status of PROCESSING", contribution.id)
+                recurring_updated += 1
                 if not dry_run:
                     logger.info("Setting status on contribution with ID %s to PAID", contribution.id)
                     contribution.status = ContributionStatus.PAID
                     contribution.save()
-                    recurring_updated += 1
         logger.info(
-            "Updated status to `paid` on %s one-time and %s recurring contributions",
+            "%sUpdated status to `paid` on %s one-time and %s recurring contributions",
+            "[DRY-RUN] " if dry_run else "",
             one_times_updated,
             recurring_updated,
         )

@@ -68,7 +68,7 @@ def export_contributions_to_csv(contributions):
                 CSV_HEADER_PAYMENT_DATE: contribution.created,
                 CSV_HEADER_PAYMENT_STATUS: contribution.status,
                 CSV_HEADER_ADDRESS: contribution.billing_address,
-                CSV_HEADER_EMAIL: contribution.email,
+                CSV_HEADER_EMAIL: contribution.contributor.email,
                 CSV_HEADER_PHONE: contribution.billing_phone,
                 CSV_HEADER_PAGE_URL: (contribution.contribution_metadata or {}).get("referer"),
             }

@@ -529,9 +529,7 @@ def test_contribution_send_recurring_contribution_email_reminder_email_text(
 )
 @pytest.mark.django_db
 def test_contribution_stripe_subscription(has_account_id, has_subscription_id, expect_result, monkeypatch):
-    kwargs = {}
-    if not has_subscription_id:
-        kwargs["provider_subscription_id"] = None
+    kwargs = {"provider_subscription_id": "something" if has_subscription_id else None}
     with patch("apps.contributions.models.Contribution.fetch_stripe_payment_method", return_value=None):
         contribution = ContributionFactory(**kwargs)
     mock_sub_ret_value = {"foo": "bar"}

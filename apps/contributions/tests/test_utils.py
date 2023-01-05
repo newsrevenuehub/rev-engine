@@ -76,7 +76,7 @@ def test_export_contributions_to_csv(monkeypatch):
         assert contribution.created and row[CONTRIBUTION_EXPORT_CSV_HEADERS[6]] == str(contribution.created)
         assert contribution.status and row[CONTRIBUTION_EXPORT_CSV_HEADERS[7]] == contribution.status
         assert contribution.billing_address and row[CONTRIBUTION_EXPORT_CSV_HEADERS[8]] == contribution.billing_address
-        assert contribution.billing_email and row[CONTRIBUTION_EXPORT_CSV_HEADERS[9]] == contribution.billing_email
+        assert contribution.billing_email and row[CONTRIBUTION_EXPORT_CSV_HEADERS[9]] == contribution.contributor.email
         assert contribution.billing_phone and row[CONTRIBUTION_EXPORT_CSV_HEADERS[10]] == contribution.billing_phone
         assert (
             row[CONTRIBUTION_EXPORT_CSV_HEADERS[11]]

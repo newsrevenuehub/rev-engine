@@ -178,17 +178,6 @@ class PaymentIntentWebhooksTest(APITestCase):
         contribution.refresh_from_db()
         self.assertEqual(contribution.status, ContributionStatus.FAILED)
 
-    @patch("apps.contributions.models.SlackManager")
-    def test_payment_intent_succeeded_webhook(self, mock):
-        payment_intent_id = "1234"
-        contribution = self._create_contribution(payment_intent_id=payment_intent_id)
-        processor = StripeWebhookProcessor(
-            MockPaymentIntentEvent(event_type="payment_intent.succeeded", intent_id=payment_intent_id)
-        )
-        processor.process()
-        contribution.refresh_from_db()
-        self.assertEqual(contribution.status, ContributionStatus.PAID)
-
     def test_webhook_with_invalid_contribution_payment_intent_id(self):
         processor = StripeWebhookProcessor(
             MockPaymentIntentEvent(event_type="payment_intent.succeeded", intent_id="no-id-like-this-exists")

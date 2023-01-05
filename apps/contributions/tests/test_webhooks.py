@@ -18,12 +18,6 @@ from apps.contributions.models import Contribution, ContributionInterval, Contri
 from apps.contributions.tests.factories import ContributionFactory
 from apps.contributions.views import process_stripe_webhook_view
 from apps.contributions.webhooks import StripeWebhookProcessor
-from apps.organizations.tests.factories import (
-    OrganizationFactory,
-    PaymentProviderFactory,
-    RevenueProgramFactory,
-)
-from apps.pages.tests.factories import DonationPageFactory
 
 
 valid_secret = "myvalidstripesecret"
@@ -187,6 +181,14 @@ class PaymentIntentWebhooksTest(APITestCase):
         processor = StripeWebhookProcessor(
             MockPaymentIntentEvent(event_type="payment_intent.succeeded", intent_id=payment_intent_id)
         )
+        # we run it once with save patched so we can observe that gets called with right args. I tried
+        # wrapping the original save function and it allowed me to spy, somehow the values weren't getting saved back
+        # to the db.
+        with patch.object(Contribution, "save") as mock_save:
+            processor.process()
+            mock_save.assert_called_once_with(
+                update_fields=["status", "last_payment_date", "payment_provider_data", "modified"]
+            )
         processor.process()
         contribution.refresh_from_db()
         self.assertEqual(contribution.status, ContributionStatus.PAID)
@@ -236,23 +238,30 @@ class PaymentIntentWebhooksTest(APITestCase):
 
 
 class CustomerSubscriptionWebhooksTest(APITestCase):
-    def _create_contribution(self, provider_subscription_id=None, **kwargs):
-        org = OrganizationFactory()
-        payment_provider = PaymentProviderFactory(stripe_account_id="test")
-        revenue_program = RevenueProgramFactory(payment_provider=payment_provider, organization=org)
-        return Contribution.objects.create(
-            provider_subscription_id=provider_subscription_id,
-            amount=1000,
-            status=ContributionStatus.PROCESSING,
-            donation_page=DonationPageFactory(revenue_program=revenue_program),
-            **kwargs,
-        )
+    def setUp(self):
+        with patch("apps.contributions.models.Contribution.fetch_stripe_payment_method", return_value=None):
+            self.contribution = ContributionFactory(annual_subscription=True, provider_payment_method_id="something")
 
-    @patch("apps.contributions.webhooks.StripeWebhookProcessor.process_subscription")
-    def test_process_subscription_handles_event(self, mock_process_subscription):
-        processor = StripeWebhookProcessor(MockSubscriptionEvent(event_type="customer.subscription.updated"))
-        processor.process()
-        mock_process_subscription.assert_called_once()
+    def test_process_subscription_handles_event(self):
+        new_method = "new_payment_method"
+        processor = StripeWebhookProcessor(
+            MockSubscriptionEvent(
+                event_type="customer.subscription.updated",
+                previous_attributes={"default_payment_method": "something"},
+                subscription_id=self.contribution.provider_subscription_id,
+                new_payment_method=new_method,
+            ),
+        )
+        # we run it once with save patched so we can observe that gets called with right args. I tried
+        # wrapping the original save function and it allowed me to spy, somehow the values weren't getting saved back
+        # to the db.
+        with patch.object(Contribution, "save", wraps=self.contribution.save) as mock_save:
+            processor.process()
+            mock_save.assert_called_once_with(update_fields=["provider_payment_method_id"])
+        with patch("apps.contributions.models.Contribution.fetch_stripe_payment_method", return_value=None):
+            processor.process()
+        self.contribution.refresh_from_db()
+        assert self.contribution.provider_payment_method_id == new_method
 
     @patch("apps.contributions.webhooks.StripeWebhookProcessor.handle_subscription_updated")
     def test_handle_subscription_updated_handles_event(self, mock_handle_subscription_updated):
@@ -260,45 +269,51 @@ class CustomerSubscriptionWebhooksTest(APITestCase):
         processor.process()
         mock_handle_subscription_updated.assert_called_once()
 
-    @patch("apps.contributions.webhooks.StripeWebhookProcessor.handle_subscription_canceled")
-    def test_handle_subscription_canceled_handles_event(self, mock_handle_subscription_canceled):
-        processor = StripeWebhookProcessor(MockSubscriptionEvent(event_type="customer.subscription.deleted"))
-        processor.process()
-        mock_handle_subscription_canceled.assert_called_once()
+    def test_handle_subscription_canceled_handles_event(self):
+        processor = StripeWebhookProcessor(
+            MockSubscriptionEvent(
+                event_type="customer.subscription.deleted", subscription_id=self.contribution.provider_subscription_id
+            )
+        )
+        # we run it once with save patched so we can observe that gets called with right args. I tried
+        # wrapping the original save function and it allowed me to spy, somehow the values weren't getting saved back
+        # to the db.
+        with patch.object(Contribution, "save", wraps=self.contribution.save) as mock_save:
+            processor.process()
+            mock_save.assert_called_once_with(update_fields=["status", "payment_provider_data"])
+        with patch("apps.contributions.models.Contribution.fetch_stripe_payment_method", return_value=None):
+            processor.process()
+        self.contribution.refresh_from_db()
+        assert self.contribution.status == ContributionStatus.CANCELED
 
     @patch("stripe.PaymentMethod.retrieve", side_effect="{}")
     def test_updated_subscription_gets_updated(self, mock_fetch_pm):
-        provider_subscription_id = "1234"
-        previous_payment_method_id = "testing-previous-pm-id"
         new_payment_method = "testing-new-pm-id"
-        contribution = self._create_contribution(
-            provider_subscription_id=provider_subscription_id, provider_payment_method_id=previous_payment_method_id
-        )
         processor = StripeWebhookProcessor(
             MockSubscriptionEvent(
                 event_type="customer.subscription.updated",
-                subscription_id=provider_subscription_id,
+                subscription_id=self.contribution.provider_subscription_id,
                 new_payment_method=new_payment_method,
-                previous_attributes={"default_payment_method": previous_payment_method_id},
+                previous_attributes={"default_payment_method": self.contribution.provider_payment_method_id},
             )
         )
         processor.process()
         mock_fetch_pm.assert_called()
-        contribution.refresh_from_db()
-        self.assertEqual(contribution.provider_payment_method_id, new_payment_method)
+        self.contribution.refresh_from_db()
+        self.assertEqual(self.contribution.provider_payment_method_id, new_payment_method)
 
     @patch("stripe.PaymentMethod.retrieve", side_effect="{}")
     def test_canceled_subscription_gets_updated(self, mock_fetch_pm):
-        subscription_id = "1234"
-        contribution = self._create_contribution(provider_subscription_id=subscription_id)
-        self.assertNotEqual(contribution.status, ContributionStatus.CANCELED)
+        self.assertNotEqual(self.contribution.status, ContributionStatus.CANCELED)
         processor = StripeWebhookProcessor(
-            MockSubscriptionEvent(event_type="customer.subscription.deleted", subscription_id=subscription_id)
+            MockSubscriptionEvent(
+                event_type="customer.subscription.deleted", subscription_id=self.contribution.provider_subscription_id
+            )
         )
         processor.process()
         mock_fetch_pm.assert_not_called()
-        contribution.refresh_from_db()
-        self.assertEqual(contribution.status, ContributionStatus.CANCELED)
+        self.contribution.refresh_from_db()
+        self.assertEqual(self.contribution.status, ContributionStatus.CANCELED)
 
 
 @pytest.mark.django_db()

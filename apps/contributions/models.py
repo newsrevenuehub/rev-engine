@@ -493,10 +493,11 @@ class Contribution(IndexedTimeStampedModel, RoleAssignmentResourceModelMixin):
         For the eligible subset of contributions, we retrieve the payment data from Stripe and set `provider_payment_method_details`
         on the NRE contribution.
 
-        For discussion of need for this, see discussion of Stripe webhook reciever race conditions in this JIRA ticket:
+        For optimal data integrity, this function should be run only after `fix_contributions_stuck_in_processing`.
+
+        For discussion of need for this method, see discussion of Stripe webhook reciever race conditions in this JIRA ticket:
         https://news-revenue-hub.atlassian.net/browse/DEV-3010"""
         queryset = Contribution.objects.exclude(provider_payment_method_id="").filter(
-            # For optimal data integrity, this function should be run only after `fix_contributions_stuck_in_processing`
             status__in=[
                 ContributionStatus.PAID,
                 ContributionStatus.FLAGGED,

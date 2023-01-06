@@ -14,7 +14,7 @@ describe('Page Title component', () => {
     expect(helmet.title).toBe('RevEngine');
   });
 
-  test('should render custom document header is updated', async () => {
+  test('should render updated document header', async () => {
     tree({ title: 'Contributions' });
     let helmet = Helmet.peek();
     expect(helmet.title).toBe('Contributions | RevEngine');

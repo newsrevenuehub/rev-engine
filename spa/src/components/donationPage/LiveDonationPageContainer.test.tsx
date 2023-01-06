@@ -1,4 +1,5 @@
-import { render, screen, within } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
+import { Helmet } from 'react-helmet';
 
 import { useParams } from 'react-router-dom';
 import { useAnalyticsContext } from 'components/analytics/AnalyticsContext';
@@ -41,10 +42,6 @@ jest.mock('components/donationPage/live/LiveLoading', () => () => {
   return <div data-testid="mock-live-loading" />;
 });
 
-jest.mock('elements/PageTitle', () => ({ title }: { title: string }) => {
-  return <div data-testid="mock-page-title">{title}</div>;
-});
-
 function tree() {
   return render(<LiveDonationPageContainer />);
 }
@@ -77,9 +74,9 @@ describe('LiveDonationPageContainer', () => {
           onSuccess({ data: mockData })
     );
     tree();
-    expect(
-      within(screen.getByTestId('mock-page-title')).getByText(`Join | ${mockData.revenue_program.name}`)
-    ).toBeVisible();
+    let helmet = Helmet.peek();
+    expect(helmet.title).toBe(`Join | ${mockData.revenue_program.name}`);
+    await waitFor(() => expect(document.title).toBe(`Join | ${mockData.revenue_program.name}`));
   });
 
   it('should render LivePage404', async () => {

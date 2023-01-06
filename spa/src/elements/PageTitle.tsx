@@ -4,11 +4,11 @@ const { Helmet } = require('react-helmet');
 
 export type PageTitleProps = InferProps<typeof PageTitlePropTypes>;
 
-const PageTitle = ({ title, hideRevEngine }: PageTitleProps) => {
-  const pageTitle = `${title ? `${title} | ` : ''}RevEngine`;
+const PageTitle = ({ title = '', hideRevEngine = false }: PageTitleProps) => {
+  const revEngineTitle = `${title ? `${title} | ` : ''}RevEngine`;
   return (
     <Helmet>
-      <title>{hideRevEngine ? title : pageTitle}</title>
+      <title>{hideRevEngine ? title : revEngineTitle}</title>
     </Helmet>
   );
 };
@@ -19,10 +19,5 @@ const PageTitlePropTypes = {
 };
 
 PageTitle.propTypes = PageTitlePropTypes;
-
-PageTitle.defaultProps = {
-  title: '',
-  hideRevEngine: false
-};
 
 export default PageTitle;

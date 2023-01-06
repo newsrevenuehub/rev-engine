@@ -17,8 +17,7 @@ function DashboardSidebar() {
   const { flags } = useFeatureFlags();
   const hasContributionsSectionAccess = hasContributionsDashboardAccessToUser(flags);
   const hasContentSectionAccess = flagIsActiveForUser(CONTENT_SECTION_ACCESS_FLAG_NAME, flags);
-  // TODO: temporarily use FIRST organization
-  const currentOrg = user?.organizations?.[0];
+  const currentOrg = user?.organizations?.length === 1 && user?.organizations?.[0];
 
   return (
     <S.DashboardSidebar>

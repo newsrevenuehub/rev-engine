@@ -97,6 +97,8 @@ class StripeWebhookProcessor:
     def handle_payment_intent_succeeded(self):
         contribution = self.get_contribution_from_event()
         contribution.payment_provider_data = self.event
+        contribution.provider_payment_id = self.obj_data["id"]
+        contribution.provider_payment_method_id = self.obj_data.get("payment_method")
         contribution.last_payment_date = datetime.datetime.fromtimestamp(
             self.obj_data["created"], tz=datetime.timezone.utc
         )
@@ -123,6 +125,10 @@ class StripeWebhookProcessor:
         It looks like Stripe gives us event.data.previous_attributes, which is a dict of updated attributes previous values.
         """
         # If stripe reports 'default_payment_method' as a previous attribute, then we've updated 'default_payment_method'
+        contribution = self.get_contribution_from_event()
+        contribution.payment_provider_data = self.event
+        contribution.provider_subscription_id = self.obj_data["id"]
+
         if "default_payment_method" in self.event.data["previous_attributes"]:
             contribution = self.get_contribution_from_event()
             contribution.provider_payment_method_id = self.obj_data["default_payment_method"]
@@ -135,12 +141,11 @@ class StripeWebhookProcessor:
         """
         logger.info("Contribution canceled event")
         contribution = self.get_contribution_from_event()
-        contribution.payment_provider_data = self.obj_data
+        contribution.payment_provider_data = self.event
         contribution.status = ContributionStatus.CANCELED
         contribution.save(update_fields=["status", "payment_provider_data"])
 
     def process_payment_method(self):
-        """ """
         logger.info("`process_payment_method` called")
         if self.event.type == "payment_method.attached":
             contribution = Contribution.objects.get(provider_customer_id=self.obj_data["customer"])

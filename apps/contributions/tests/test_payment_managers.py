@@ -216,7 +216,6 @@ class StripeRecurringPaymentManagerTest(StripePaymentManagerAbstractTestCase):
         )
         mock_sub_create.assert_called_once_with(
             customer=self.contribution.provider_customer_id,
-            metadata=mock_setup_intent_retrieve.return_value["metadata"],
             default_payment_method=mock_setup_intent_retrieve.return_value["payment_method"],
             off_session=True,
             payment_behavior="error_if_incomplete",
@@ -233,6 +232,7 @@ class StripeRecurringPaymentManagerTest(StripePaymentManagerAbstractTestCase):
                 }
             ],
             stripe_account=self.contribution.donation_page.revenue_program.payment_provider.stripe_account_id,
+            metadata=mock_setup_intent_retrieve.return_value["metadata"],
         )
         self.assertEqual(self.contribution.status, ContributionStatus.PAID)
 

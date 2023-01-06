@@ -904,7 +904,6 @@ class TestCreateOneTimePaymentSerializer:
         - not flag the contribution
         - Create a Stripe Customer
         - Create a Stripe PaymentIntent
-        - return a dict with `provider_client_secret_id`
         """
         contribution_count = Contribution.objects.count()
         contributor_count = Contributor.objects.count()
@@ -1121,7 +1120,6 @@ class TestCreateRecurringPaymentSerializer:
         - not flag the contribution
         - create a Stripe Customer
         - create a Stripe Subscription
-        - return a dict with `provider_client_secret_id`
         """
         data = minimally_valid_data | {"interval": interval}
         contribution_count = Contribution.objects.count()

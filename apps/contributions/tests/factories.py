@@ -93,7 +93,7 @@ class ContributionFactory(DjangoModelFactory):
     status = factory.LazyAttribute(lambda o: _get_status(o.bad_actor_score))
     donation_page = factory.SubFactory(DonationPageFactory)
     contributor = factory.SubFactory(ContributorFactory)
-    uuid = factory.LazyFunction(lambda: uuid.uuid4())
+    uuid = factory.LazyFunction(lambda: str(uuid.uuid4()))
     payment_provider_used = "Stripe"
     provider_customer_id = None
     provider_payment_method_id = factory.LazyFunction(lambda: f"pm_{_random_stripe_str()}")

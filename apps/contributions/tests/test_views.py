@@ -1041,7 +1041,12 @@ class TestPaymentViewset:
     )
     @mock.patch("apps.contributions.models.Contribution.fetch_stripe_payment_method", return_value=None)
     def test_destroy_happy_path(
-        self, mock_fetch_stripe_payment_method, interval, payment_intent_id, subscription_id, monkeypatch
+        self,
+        mock_fetch_stripe_payment_method,
+        interval,
+        payment_intent_id,
+        subscription_id,
+        monkeypatch,
     ):
         contribution = ContributionFactory(
             interval=interval,
@@ -1117,8 +1122,6 @@ class TestPaymentViewset:
 def test_payment_success_view():
     """Minimal test of payment success view. This view calls a model method which is more deeply tested elsewhere."""
     client = APIClient()
-    # TODO: DEV-3026
-    # This is to deal with side effect in contribution.save
     with mock.patch("apps.contributions.models.Contribution.fetch_stripe_payment_method", return_value=None):
         contribution = ContributionFactory(interval="month")
     url = reverse("payment-success", args=(str(contribution.uuid),))

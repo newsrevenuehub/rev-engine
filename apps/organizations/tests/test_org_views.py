@@ -120,6 +120,10 @@ class RevenueProgramViewSetTest(RevEngineApiAbstractTestCase):
         self.assertNotIn("count", response.json())
         self.assertNotIn("results", response.json())
 
+    def test_tax_id_available_in_response(self):
+        response = self.assert_superuser_can_get(self.detail_url)
+        assert "tax_id" in response.json()
+
 
 @pytest.mark.django_db
 @pytest.fixture

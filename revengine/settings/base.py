@@ -93,7 +93,6 @@ INSTALLED_APPS = [
     "apps.pages",
     "apps.emails",
     "apps.contributions",
-    "apps.slack",
     "apps.element_media",
     "apps.public",
     "apps.config",
@@ -409,6 +408,7 @@ STRIPE_WEBHOOK_EVENTS = [
     "customer.subscription.updated",
     "customer.subscription.deleted",
     "payment_method.attached",
+    "invoice.upcoming",
 ]
 
 ### django-healthcheck Settings

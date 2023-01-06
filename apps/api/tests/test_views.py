@@ -22,7 +22,7 @@ from apps.api.tokens import LONG_TOKEN, ContributorRefreshToken
 from apps.api.views import (
     RequestContributorTokenEmailView,
     TokenObtainPairCookieView,
-    _construct_rp_domain,
+    construct_rp_domain,
 )
 from apps.contributions.models import Contributor
 from apps.contributions.tests.factories import ContributorFactory
@@ -50,9 +50,9 @@ user_model = get_user_model()
         (None, "https://example.com", "", "https://example.com"),  # Header has no subdomain.
     ],
 )
-def test__construct_rp_domain(expected, site_url, post, header):
+def test_construct_rp_domain(expected, site_url, post, header):
     with override_settings(SITE_URL=site_url):
-        assert expected == _construct_rp_domain(post, header)
+        assert expected == construct_rp_domain(post, header)
 
 
 class TokenObtainPairCookieViewTest(APITestCase):

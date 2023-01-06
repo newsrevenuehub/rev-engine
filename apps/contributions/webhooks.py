@@ -2,9 +2,9 @@ import datetime
 import logging
 
 from django.conf import settings
+from django.utils.timezone import make_aware
 
-from apps.contributions.models import Contribution, ContributionStatus
-from apps.slack.models import SlackNotificationTypes
+from apps.contributions.models import Contribution, ContributionInterval, ContributionStatus
 
 
 logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
@@ -57,6 +57,8 @@ class StripeWebhookProcessor:
             self.process_subscription()
         elif object_type == "payment_method":
             self.process_payment_method()
+        elif object_type == "invoice":
+            self.process_invoice()
         else:
             logger.warning('Received un-handled Stripe object of type "%s"', object_type)
 
@@ -106,7 +108,7 @@ class StripeWebhookProcessor:
         # Grab payment_method_id
         contribution.provider_payment_method_id = self.obj_data.get("payment_method")
 
-        contribution.save(slack_notification=SlackNotificationTypes.SUCCESS)
+        contribution.save()
         logger.info("Contribution %s succeeded.", contribution)
 
     def _cancellation_was_rejection(self):
@@ -156,3 +158,19 @@ class StripeWebhookProcessor:
             contribution = Contribution.objects.get(provider_customer_id=self.obj_data["customer"])
             contribution.provider_payment_method_id = self.obj_data["id"]
             contribution.save()
+
+    def process_invoice(self):
+        """When Stripe sends a webhook about an upcoming subscription charge, we send an email reminder
+
+        NB: You can configure how many days before a new charge this webhook should fire in the Stripe dashboard
+        at https://dashboard.stripe.com/settings/billing/automatic under the `Upcoming renewal events` setting, which
+        can be set to 3, 7, 15, 30, or 45 days.
+        """
+        logger.info("`StripeWebhookProcessor.process_upcoming_invoice`")
+        if self.event.type != "invoice.upcoming":
+            return
+        contribution = Contribution.objects.get(provider_subscription_id=self.obj_data["subscription"])
+        if contribution.interval == ContributionInterval.YEARLY:
+            contribution.send_recurring_contribution_email_reminder(
+                make_aware(datetime.datetime.fromtimestamp(self.obj_data["next_payment_attempt"])).date()
+            )

@@ -1,6 +1,6 @@
 import datetime
 from datetime import timedelta
-from unittest.mock import Mock
+from unittest.mock import Mock, patch
 
 from django.conf import settings
 from django.test import TestCase
@@ -53,9 +53,12 @@ class ContributionSerializer(TestCase):
     def setUp(self):
         self.serializer = serializers.ContributionSerializer
         self.contributor = ContributorFactory()
-        self.contribution = ContributionFactory(
-            amount=1000, contributor=self.contributor, payment_provider_used="Stripe"
-        )
+        # This is to squash a side effect in contribution.save
+        # TODO: DEV-3026
+        with patch("apps.contributions.models.Contribution.fetch_stripe_payment_method", return_value=None):
+            self.contribution = ContributionFactory(
+                amount=1000, contributor=self.contributor, payment_provider_used="Stripe"
+            )
 
     def test_returned_fields(self):
         data = self.serializer(self.contribution).data
@@ -901,7 +904,6 @@ class TestCreateOneTimePaymentSerializer:
         - not flag the contribution
         - Create a Stripe Customer
         - Create a Stripe PaymentIntent
-        - return a dict with `provider_client_secret_id`
         """
         contribution_count = Contribution.objects.count()
         contributor_count = Contributor.objects.count()
@@ -1118,7 +1120,6 @@ class TestCreateRecurringPaymentSerializer:
         - not flag the contribution
         - create a Stripe Customer
         - create a Stripe Subscription
-        - return a dict with `provider_client_secret_id`
         """
         data = minimally_valid_data | {"interval": interval}
         contribution_count = Contribution.objects.count()

@@ -1,3 +1,5 @@
+from unittest.mock import patch
+
 import pytest
 import reversion
 from reversion.models import Version
@@ -20,6 +22,7 @@ from apps.organizations.models import (
     BenefitLevel,
     BenefitLevelBenefit,
     Organization,
+    PaymentProvider,
     RevenueProgram,
 )
 from apps.organizations.tests.factories import (
@@ -56,6 +59,7 @@ def test_expected_models_are_registered_with_django_reversion():
         DonationPage,
         Font,
         Organization,
+        PaymentProvider,
         RevenueProgram,
         SocialMeta,
         Style,
@@ -121,7 +125,9 @@ def test_registered_model_changed_via_other_not_have_revisions(factory, update_a
     ..registered views.
     """
     assert factory._meta.model in reversion.get_registered_models()
-    instance = factory()
+    # TODO: DEV-3026
+    with patch("apps.contributions.models.Contribution.fetch_stripe_payment_method", return_value=None):
+        instance = factory()
     assert Version.objects.get_for_object(instance).count() == 0
     setattr(instance, update_attr, update_value)
     instance.save()

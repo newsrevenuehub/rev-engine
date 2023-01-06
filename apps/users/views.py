@@ -30,6 +30,7 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.serializers import ValidationError
 from rest_framework.viewsets import GenericViewSet
+from reversion.views import RevisionMixin
 
 from apps.api.permissions import HasDeletePrivilegesViaRole, HasRoleAssignment, is_a_contributor
 from apps.common.utils import get_original_ip_from_request
@@ -175,7 +176,12 @@ class CustomPasswordResetCompleteView(PasswordResetCompleteView):
 
 
 class UserViewset(
-    mixins.CreateModelMixin, mixins.RetrieveModelMixin, mixins.ListModelMixin, mixins.UpdateModelMixin, GenericViewSet
+    mixins.CreateModelMixin,
+    mixins.RetrieveModelMixin,
+    mixins.ListModelMixin,
+    mixins.UpdateModelMixin,
+    GenericViewSet,
+    RevisionMixin,
 ):
     """For creating and updating user instances"""
 

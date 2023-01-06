@@ -8,9 +8,9 @@ Contributions Details:
 {% block contribution_date_label %}{% endblock contribution_date_label %}: {{ contribution_date }}
 Email: {{ contributor_email }}
 {% if contribution_interval == "one_time" %}
-Amount Contributed: {{ contribution_amount }}
+Amount Contributed: ${{ contribution_amount }}
 {% else %}
-Amount Contributed: {{ contribution_amount }}/{{ contribution_interval_display_value }}
+Amount Contributed: ${{ contribution_amount }}/{{ contribution_interval_display_value }}
 {% endif %}
 
 No goods or services were provided in exchange for this contribution.

@@ -499,7 +499,7 @@ def test_contribution_send_recurring_contribution_email_reminder_email_text(
     email_expectations = [
         f"Scheduled: {next_charge_date.strftime('%m/%d/%Y')}",
         f"Email: {contribution.contributor.email}",
-        f"Amount Contributed: {contribution.formatted_amount}/{contribution.interval}",
+        f"Amount Contributed: ${contribution.formatted_amount}/{contribution.interval}",
     ]
     if is_non_profit:
         email_expectations.extend(

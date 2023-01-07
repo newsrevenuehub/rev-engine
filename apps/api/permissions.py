@@ -45,6 +45,46 @@ class IsHubAdmin(permissions.BasePermission):
         )
 
 
+class IsOrgAdmin(permissions.BasePermission):
+    """Org Admin permission
+
+    If the user making the request is an org admin, grant permission.
+    """
+
+    def has_permission(self, request, view):
+        return all(
+            [
+                role_assignment := getattr(request.user, "roleassignment", False),
+                role_assignment.role_type == Roles.ORG_ADMIN,
+            ]
+        )
+
+
+class IsRpAdmin(permissions.BasePermission):
+    """Org Admin permission
+
+    If the user making the request is an org admin, grant permission.
+    """
+
+    def has_permission(self, request, view):
+        return all(
+            [
+                role_assignment := getattr(request.user, "roleassignment", False),
+                role_assignment.role_type == Roles.RP_ADMIN,
+            ]
+        )
+
+
+class IsGetRequest(permissions.BasePermission):
+    def has_permission(self, request, view):
+        return request.method == "GET"
+
+
+class IsPatchRequest(permissions.BasePermission):
+    def has_permission(self, request, view):
+        return request.method == "PATCH"
+
+
 class ContributorOwnsContribution(permissions.BasePermission):
     """Handle object-level permissions for contributors vis-a-vis contributions"""
 

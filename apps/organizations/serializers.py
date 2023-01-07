@@ -90,6 +90,12 @@ class RevenueProgramSerializer(serializers.ModelSerializer):
         fields = ["id", "name", "slug", "tax_id"]
 
 
+class RevenueProgramPatchSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = RevenueProgram
+        fields = ["tax_id"]
+
+
 class BenefitDetailSerializer(serializers.ModelSerializer):
     class Meta:
         model = Benefit

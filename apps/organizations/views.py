@@ -7,16 +7,23 @@ from django.shortcuts import get_object_or_404
 import stripe
 from rest_framework import status, viewsets
 from rest_framework.decorators import api_view, permission_classes
-from rest_framework.exceptions import PermissionDenied
+from rest_framework.exceptions import PermissionDenied, ValidationError
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.reverse import reverse
 from reversion.views import create_revision
 from stripe.error import StripeError
 
-from apps.api.permissions import HasRoleAssignment
+from apps.api.permissions import (
+    HasRoleAssignment,
+    IsGetRequest,
+    IsOrgAdmin,
+    IsPatchRequest,
+    IsRpAdmin,
+)
 from apps.organizations import serializers
 from apps.organizations.models import Organization, RevenueProgram
+from apps.organizations.serializers import RevenueProgramPatchSerializer
 from apps.public.permissions import IsActiveSuperUser
 from apps.users.views import FilterQuerySetByUserMixin
 
@@ -46,10 +53,26 @@ class OrganizationViewSet(viewsets.ReadOnlyModelViewSet, FilterQuerySetByUserMix
 class RevenueProgramViewSet(viewsets.ReadOnlyModelViewSet):
     model = RevenueProgram
     queryset = RevenueProgram.objects.all()
-    # only superusers can access
-    permission_classes = [IsAuthenticated, IsActiveSuperUser]
+    permission_classes = [
+        IsAuthenticated,
+        IsActiveSuperUser
+        | (HasRoleAssignment & IsOrgAdmin & (IsPatchRequest | IsGetRequest))
+        | (HasRoleAssignment & IsRpAdmin & IsGetRequest),
+    ]
     serializer_class = serializers.RevenueProgramSerializer
     pagination_class = None
+
+    def patch(self, request, pk):
+        revenue_program = get_object_or_404(RevenueProgram, pk=pk)
+        serializer = RevenueProgramPatchSerializer(revenue_program, data=request.data, partial=True)
+        serializer.is_valid()
+        if serializer.errors:
+            errors = {**serializer.errors}
+            logger.warning("Request %s is invalid; errors: %s", request.data, errors)
+            raise ValidationError(errors)
+        serializer.save()
+        revenue_program.refresh_from_db()
+        return Response(serializers.RevenueProgramSerializer(revenue_program).data)
 
 
 def get_stripe_account_link_return_url(request):

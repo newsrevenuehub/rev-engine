@@ -100,7 +100,7 @@ class RevenueProgramViewSetTest(RevEngineApiAbstractTestCase):
         return self.assert_superuser_can_list(self.list_url, expected_count, results_are_flat=True)
 
     def test_other_cannot_access_resource(self):
-        non_superusers = [self.hub_user, self.org_user, self.rp_user, self.contributor_user]
+        non_superusers = [self.hub_user, self.contributor_user]
         for user in non_superusers:
             self.assert_user_cannot_get(self.detail_url, user)
             self.assert_user_cannot_get(self.list_url, user)
@@ -123,6 +123,41 @@ class RevenueProgramViewSetTest(RevEngineApiAbstractTestCase):
     def test_tax_id_available_in_response(self):
         response = self.assert_superuser_can_get(self.detail_url)
         assert "tax_id" in response.json()
+
+    def test_allowed_users_can_update_tax_id(self):
+        tax_id = "111111111"
+        allowed_users = [self.superuser, self.org_user]
+        for user in allowed_users:
+            json_response = self.assert_user_can_patch(self.detail_url, user, {"tax_id": tax_id}).json()
+            assert "tax_id" in json_response
+            assert tax_id == json_response["tax_id"]
+            assert "id" in json_response
+            assert "name" in json_response
+            assert "slug" in json_response
+
+    def test_not_allowed_users_cannot_patch(self):
+        not_allowed_users = [self.rp_user, self.hub_user]
+        for user in not_allowed_users:
+            self.assert_user_cannot_patch(self.detail_url, user, {})
+
+    def test_allowed_users_can_get(self):
+        allowed_users = [self.org_user, self.rp_user, self.superuser]
+        for user in allowed_users:
+            self.assert_user_can_get(self.detail_url, user)
+
+    def test_user_cannot_patch_other_fields(self):
+
+        new_value = "new name"
+        response = self.assert_superuser_can_patch(self.detail_url, {"name": new_value})
+        assert response.json()["name"] != new_value
+
+    def test_patch_tax_id_validates_length(self):
+        user = user_model.objects.create_superuser(email="test_superuser@test.com", password="testing")
+        self.client.force_authenticate(user=user)
+        invalid_tax_id = "123"
+        response = self.client.patch(self.detail_url, {"tax_id": invalid_tax_id}, format="json")
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert response.json() == {"tax_id": ["Ensure this field has at least 9 characters."]}
 
 
 @pytest.mark.django_db

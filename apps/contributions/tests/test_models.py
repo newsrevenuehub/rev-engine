@@ -327,8 +327,7 @@ def test_contribution_billing_details(trait):
     contribution = ContributionFactory(**{trait: True, "provider_payment_method_id": None})
     assert (
         contribution.billing_details
-        and contribution.billing_details
-        == contribution.payment_provider_data["data"]["object"]["charges"]["data"][0]["billing_details"]
+        and contribution.billing_details == contribution.provider_payment_method_details["billing_details"]
     )
 
 

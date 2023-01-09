@@ -197,8 +197,7 @@ class Contribution(IndexedTimeStampedModel, RoleAssignmentResourceModelMixin):
 
     @property
     def billing_details(self) -> AttrDict:
-        payment_provider_data = AttrDict(self.payment_provider_data).data.object
-        return (payment_provider_data.charges.data or [AttrDict()])[0].billing_details
+        return AttrDict(self.provider_payment_method_details).billing_details
 
     @property
     def billing_name(self) -> str:
@@ -288,7 +287,7 @@ class Contribution(IndexedTimeStampedModel, RoleAssignmentResourceModelMixin):
             # If it's an update and the previous pm is different from the new pm, or it's new and there's a pm id...
             # ...get details on payment method
             pm = self.fetch_stripe_payment_method()
-            # note on conditionality here (testing)
+            # We do this so we can stop this behavior in testing by setting return value of `fetch_stripe_payment_method` to `None`
             if pm:
                 self.provider_payment_method_details = pm
 

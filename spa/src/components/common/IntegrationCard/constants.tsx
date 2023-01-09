@@ -3,7 +3,7 @@ import { ReactNodeLike } from 'prop-types';
 import StripeLogo from 'assets/images/stripe.png';
 import SlackLogo from 'assets/images/slack.png';
 import MailchimpLogo from 'assets/images/mailchimp.png';
-import SalesforceLogo from 'assets/images/salesforce.png';
+import SalesforceLogo from 'assets/images/salesforce.jpg';
 import { HELP_URL } from 'constants/helperUrls';
 
 export type IntegrationCardType = {

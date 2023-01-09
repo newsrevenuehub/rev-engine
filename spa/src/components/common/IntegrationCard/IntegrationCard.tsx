@@ -76,7 +76,7 @@ const IntegrationCard = ({ className, isActive, onChange, ...card }: Integration
               checked={isActive!}
               name={`${card.title} integration`}
               inputProps={{ 'aria-label': `${card.title} is ${isActive ? '' : 'not '}connected` }}
-              disabled={card.disabled}
+              disabled={card.disabled || isActive!}
             />
           </div>
         </Tooltip>

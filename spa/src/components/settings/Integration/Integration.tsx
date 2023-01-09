@@ -10,8 +10,7 @@ import { Content, Wrapper } from './Integration.styled';
 const Integration = () => {
   const { user } = useUser();
   const { requiresVerification, sendUserToStripe } = useConnectStripeAccount();
-  // TODO: temporary implementation is to get always the FIRST Org from user
-  const currentOrganization = user?.organizations?.[0];
+  const currentOrganization = user?.organizations?.length === 1 ? user?.organizations?.[0] : undefined;
 
   const isActive = (title: string) => {
     switch (title) {

@@ -30,6 +30,5 @@ export const Subtitle = styled.p`
   margin: 0 0 0 10px;
   padding-left: 10px;
   border-left: 1px solid ${(props) => props.theme.colors.muiGrey[300]};
-  height: 28px;
   line-height: 28px;
 `;

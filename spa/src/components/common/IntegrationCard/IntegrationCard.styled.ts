@@ -100,7 +100,7 @@ export const Footer = styled.div<{ $active: boolean }>`
   align-items: center;
   justify-content: space-between;
   height: 40px;
-  border-top: 1px solid ${(props) => props.theme.colors.muiGrey[400]};
+  border-top: 0.5px solid ${(props) => props.theme.colors.muiGrey[400]};
 
   p {
     margin: 0;

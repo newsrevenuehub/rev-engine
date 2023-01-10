@@ -264,8 +264,9 @@ describe('Update recurring contribution modal', () => {
     { defaultCommandTimeout: 10000 },
     () => {
       let today = new Date();
+      const month = today.getMonth() + 1;
       cy.setStripeCardElement('cardNumber', '4242424242424242');
-      cy.setStripeCardElement('cardExpiry', `${today.getMonth() + 1}${today.getFullYear() % 100}`);
+      cy.setStripeCardElement('cardExpiry', `${month < 10 ? `0${month}` : month}${today.getFullYear() % 100}`);
       cy.setStripeCardElement('cardCvc', '123');
       cy.setStripeCardElement('postalCode', '12345');
       cy.getByTestId('contrib-update-payment-method-btn').should('not.be.disabled');
@@ -289,8 +290,9 @@ describe('Update recurring contribution modal', () => {
         { statusCode: 200 }
       ).as('patchSubscription');
 
+      const month = today.getMonth() + 1;
       cy.setStripeCardElement('cardNumber', '4242424242424242');
-      cy.setStripeCardElement('cardExpiry', `${today.getMonth() + 1}${today.getFullYear() % 100}`);
+      cy.setStripeCardElement('cardExpiry', `${month < 10 ? `0${month}` : month}${today.getFullYear() % 100}`);
       cy.setStripeCardElement('cardCvc', '123');
       cy.setStripeCardElement('postalCode', '12345');
     });

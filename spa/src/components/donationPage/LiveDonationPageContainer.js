@@ -20,6 +20,7 @@ import SegregatedStyles from 'components/donationPage/SegregatedStyles';
 import LiveLoading from 'components/donationPage/live/LiveLoading';
 import LivePage404 from 'components/common/LivePage404';
 import DonationPage from 'components/donationPage/DonationPage';
+import PageTitle from 'elements/PageTitle';
 
 const STRIPE_IFRAME_SELECTOR = "iframe[title='Secure card payment input frame']";
 
@@ -70,6 +71,7 @@ function LiveDonationPageContainer() {
 
   return (
     <SegregatedStyles page={pageData}>
+      <PageTitle title={pageData?.revenue_program?.name && `Join | ${pageData?.revenue_program?.name}`} hideRevEngine />
       {display404 ? <LivePage404 /> : pageData ? <DonationPage live page={pageData} /> : <LiveLoading />}
     </SegregatedStyles>
   );

@@ -80,8 +80,8 @@ class ContributionTest(TestCase):
 
         self.required_data = {"amount": 1000, "currency": "usd", "donation_page": self.donation_page}
 
-    @patch("stripe.Customer.create")
-    def test_create_stripe_customer(self, mock_create_customer):
+    @patch("stripe.Customer.create", return_value={"id": "cus_fakefakefake"})
+    def test_create_stripe_customer(self, mock_create_customer, *args):
         """Show Contributor.create_stripe_customer calls Stripe with right params and returns the customer object"""
         call_args = {
             "first_name": "Jane",
@@ -115,7 +115,7 @@ class ContributionTest(TestCase):
         )
         self.assertEqual(customer, mock_create_customer.return_value)
 
-    def test_formatted_amount(self, mock_fetch_stripe_payment_method):
+    def test_formatted_amount(self, mock_fetch_stripe_payment_method, *args):
         target_format = "10.00 USD"
         self.assertEqual(self.contribution.formatted_amount, target_format)
 
@@ -125,7 +125,7 @@ class ContributionTest(TestCase):
             f"{self.contribution.formatted_amount}, {self.contribution.created.strftime('%Y-%m-%d %H:%M:%S')}",
         )
 
-    def test_expanded_bad_actor_score(self, mock_fetch_stripe_payment_method):
+    def test_expanded_bad_actor_score(self, mock_fetch_stripe_payment_method, *args):
         # First, expanded_bad_actor_score should be none by default
         score = 2
         self.contribution.bad_actor_score = score
@@ -133,7 +133,7 @@ class ContributionTest(TestCase):
         self.contribution.refresh_from_db()
         self.assertEqual(self.contribution.expanded_bad_actor_score, Contribution.BAD_ACTOR_SCORES[2][1])
 
-    def test_request_stripe_payment_method_details_when_new(self, mock_fetch_stripe_payment_method):
+    def test_request_stripe_payment_method_details_when_new(self, mock_fetch_stripe_payment_method, *args):
         """
         fetch_stripe_payment_method should be called when a new contribution is being created and it has a defined provider_payment_method_id
         """
@@ -145,7 +145,7 @@ class ContributionTest(TestCase):
         mock_fetch_stripe_payment_method.assert_called_once()
 
     def test_request_stripe_payment_method_details_when_old_updating_payment_method(
-        self, mock_fetch_stripe_payment_method
+        self, mock_fetch_stripe_payment_method, *args
     ):
         """
         fetch_stripe_payment_method should be called when updating an existing contribution, if provider_payment_method_id is not the same as the previous
@@ -198,7 +198,7 @@ class ContributionTest(TestCase):
         self.assertEqual(payment_intent, return_value)
 
     @patch("stripe.PaymentIntent.create")
-    def test_create_stripe_one_time_payment_intent_when_flagged(self, mock_create_pi):
+    def test_create_stripe_one_time_payment_intent_when_flagged(self, mock_create_pi, *args):
         """Show Contribution.create_stripe_one_time_payment_intent calls Stripe with right params...
 
         ...that it returns the created payment intent, and that it saves the payment intent ID and
@@ -276,7 +276,7 @@ class ContributionTest(TestCase):
         self.assertEqual(subscription, return_value)
 
     @patch("stripe.SetupIntent.create")
-    def test_create_stripe_setup_intent(self, mock_create_setup_intent):
+    def test_create_stripe_setup_intent(self, mock_create_setup_intent, *args):
         """Show Contribution.create_stripe_setup_intent calls Stripe with right params...
 
         ...that it returns the created setup intent, and that it saves the right data
@@ -347,7 +347,7 @@ class ContributionTest(TestCase):
         self.contribution.handle_thank_you_email()
         mock_send_email.assert_not_called()
 
-    def test_stripe_metadata(self, mock_fetch_stripe_payment_method):
+    def test_stripe_metadata(self, mock_fetch_stripe_payment_method, *args):
         referer = "https://somewhere.com"
         campaign_id = "some-id"
         contribution = ContributionFactory()
@@ -390,8 +390,8 @@ class ContributionTest(TestCase):
         ContributionStatus.FLAGGED,
     ),
 )
-def test_contribution_cancel_when_one_time(status, contribution, monkeypatch):
-    with patch("apps.contribution.models.Contribution.fetch_stripe_payment_method", return_value=None):
+def test_contribution_cancel_when_one_time(status, monkeypatch):
+    with patch("apps.contributions.models.Contribution.fetch_stripe_payment_method", return_value=None):
         contribution = ContributionFactory(one_time=True, status=status)
     mock_cancel = Mock()
     monkeypatch.setattr("stripe.PaymentIntent.cancel", mock_cancel)
@@ -418,7 +418,7 @@ def test_contribution_billing_details(trait):
 
 @pytest.mark.django_db
 @pytest.mark.parametrize(
-    "status,interval,has_payment_method_id",
+    "status,contribution_type,has_payment_method_id",
     (
         (ContributionStatus.PROCESSING, "monthly_subscription", True),
         (ContributionStatus.PROCESSING, "annual_subscription", True),
@@ -432,7 +432,13 @@ def test_contribution_billing_details(trait):
 )
 def test_contribution_cancel_when_recurring(status, contribution_type, has_payment_method_id, monkeypatch):
     with patch("apps.contributions.models.Contribution.fetch_stripe_payment_method", return_value=None):
-        contribution = ContributionFactory(**{contribution_type: True, "status": status})
+        contribution = ContributionFactory(
+            **{
+                contribution_type: True,
+                "status": status,
+                "provider_payment_method_id": "some-id" if has_payment_method_id else None,
+            }
+        )
 
     mock_delete_sub = Mock()
     monkeypatch.setattr("stripe.Subscription.delete", mock_delete_sub)
@@ -467,10 +473,11 @@ def test_contribution_cancel_when_recurring(status, contribution_type, has_payme
 
 
 @pytest.mark.django_db()
-def test_contribution_cancel_when_unpermitted_interval(contribution, monkeypatch):
-    contribution.status = ContributionStatus.PROCESSING
-    contribution.interval = "foobar"
-    contribution.save()
+def test_contribution_cancel_when_unpermitted_interval(monkeypatch):
+    with patch("apps.contributions.models.Contribution.fetch_stripe_payment_method", return_value=None):
+        contribution = ContributionFactory(
+            annual_subscription=True, status=ContributionStatus.PROCESSING, interval="foobar"
+        )
     last_modified = contribution.modified
     mock_stripe_method = Mock()
     monkeypatch.setattr("stripe.PaymentIntent.cancel", mock_stripe_method)
@@ -483,7 +490,7 @@ def test_contribution_cancel_when_unpermitted_interval(contribution, monkeypatch
     mock_stripe_method.assert_not_called()
 
 
-@pytest.markd.django_db()
+@pytest.mark.django_db()
 @pytest.mark.parametrize("trait", ("one_time", "annual_subscription", "monthly_subscription"))
 def test_contribution_billing_name(trait):
     # TODO: DEV-3026  -- remove provider_payment_method_id = None
@@ -527,9 +534,9 @@ def test_contribution_billing_address(trait):
         "unexpected",
     ),
 )
-def test_contribution_cancel_when_unpermitted_status(status, contribution, monkeypatch):
-    contribution.status = status
-    contribution.save()
+def test_contribution_cancel_when_unpermitted_status(status, monkeypatch):
+    with patch("apps.contributions.models.Contribution.fetch_stripe_payment_method", return_value=None):
+        contribution = ContributionFactory(annual_subscription=True, status=status)
     last_modified = contribution.modified
     mock_stripe_method = Mock()
     monkeypatch.setattr("stripe.PaymentIntent.cancel", mock_stripe_method)

@@ -344,6 +344,7 @@ CSP_STYLE_SRC = (
 CSP_IMG_SRC = (
     "*",
     "'self'",
+    "blob:",
     "data:",
 )
 CSP_FONT_SRC = (

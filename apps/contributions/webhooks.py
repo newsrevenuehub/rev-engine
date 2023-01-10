@@ -128,11 +128,11 @@ class StripeWebhookProcessor:
         contribution = self.get_contribution_from_event()
         contribution.payment_provider_data = self.event
         contribution.provider_subscription_id = self.obj_data["id"]
-
+        update_fields = ["payment_provider_data", "provider_subscription_id"]
         if "default_payment_method" in self.event.data["previous_attributes"]:
-            contribution = self.get_contribution_from_event()
             contribution.provider_payment_method_id = self.obj_data["default_payment_method"]
-            contribution.save(update_fields=["provider_payment_method_id"])
+            update_fields.append("provider_payment_method_id")
+        contribution.save(update_fields=update_fields)
 
     def handle_subscription_canceled(self):
         """

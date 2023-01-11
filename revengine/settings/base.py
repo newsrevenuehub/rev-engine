@@ -93,7 +93,6 @@ INSTALLED_APPS = [
     "apps.pages",
     "apps.emails",
     "apps.contributions",
-    "apps.slack",
     "apps.element_media",
     "apps.public",
     "apps.config",
@@ -283,6 +282,7 @@ SENTRY_ENABLE_FRONTEND = os.getenv("SENTRY_ENABLE_FRONTEND", "false").lower() ==
 SENTRY_DSN_FRONTEND = os.getenv("SENTRY_DSN_FRONTEND")
 SENTRY_ENABLE_BACKEND = os.getenv("SENTRY_ENABLE_BACKEND", "false").lower() == "true"
 SENTRY_DSN_BACKEND = os.getenv("SENTRY_DSN_BACKEND")
+SENTRY_ENABLE_PII = os.getenv("SENTRY_ENABLE_PII", "true").lower() == "true"
 
 
 ### REST_FRAMEWORK Settings

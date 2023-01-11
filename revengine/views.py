@@ -1,15 +1,19 @@
 import logging
+import sys
 
 from django.apps import apps
 from django.conf import settings
 from django.contrib.admin.views.decorators import staff_member_required
 from django.contrib.auth.decorators import login_required
-from django.http import FileResponse, JsonResponse
+from django.http import FileResponse, HttpResponse, JsonResponse
 from django.shortcuts import render
+from django.template import engines
 from django.views.decorators.cache import never_cache
 from django.views.decorators.http import require_GET
 from django.views.defaults import server_error
 from django.views.generic import TemplateView
+
+import requests
 
 from apps.common.serializers import SocialMetaInlineSerializer
 from apps.common.utils import get_subdomain_from_request
@@ -54,7 +58,36 @@ class ReactAppView(TemplateView):
         context["gtm_id"] = settings.HUB_GTM_ID
 
 
-index = never_cache(ReactAppView.as_view())
+# Proxies the single page app in local development, parsing any HTML responses
+# using Django's template parser. If this is used, the single page app must have
+# its own dev proxying turned off for this to work. See spa/src/setupProxy.js
+# for how that's done.
+#
+# This was cribbed from
+# https://fractalideas.com/blog/making-react-and-django-play-well-together-hybrid-app-model/
+
+
+def proxy_spa_dev_server(request, upstream="http://localhost:3000"):
+    upstream_url = upstream + request.path
+    upstream_response = requests.get(upstream_url)
+    content = upstream_response.text
+    content_type = upstream_response.headers["content-type"]
+
+    if content_type == "text/html; charset=utf-8":
+        content = engines["django"].from_string(content).render()
+
+    return HttpResponse(
+        content,
+        content_type=upstream_response.headers["content-type"],
+        reason=upstream_response.reason,
+        status=upstream_response.status_code,
+    )
+
+
+# Only use the dev proxy if we are running locally AND not in pytest. We want
+# the normal view to be tested in pytest.
+
+index = proxy_spa_dev_server if settings.DEBUG and "pytest" not in sys.modules else never_cache(ReactAppView.as_view())
 
 
 @require_GET

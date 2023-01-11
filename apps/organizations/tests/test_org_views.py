@@ -173,7 +173,10 @@ class RevenueProgramViewSetTest(RevEngineApiAbstractTestCase):
         assert (expected_rp_count := other_org_user.roleassignment.organization.revenueprogram_set.count()) == 1
 
         response = self.assert_user_can_get(self.list_url, other_org_user)
-        assert len(response.json()) == expected_rp_count
+        json_response = response.json()
+        my_rp = other_org_user.roleassignment.organization.revenueprogram_set.first()
+        assert len(json_response) == expected_rp_count
+        assert json_response[0]["id"] == my_rp.id
 
     def test_cannot_patch_another_orgs_rp(self):
         other_org_user = create_test_user(

@@ -146,7 +146,6 @@ class RevenueProgramViewSetTest(RevEngineApiAbstractTestCase):
             self.assert_user_can_get(self.detail_url, user)
 
     def test_user_cannot_patch_other_fields(self):
-
         new_value = "new name"
         response = self.assert_superuser_can_patch(self.detail_url, {"name": new_value})
         assert response.json()["name"] != new_value
@@ -158,6 +157,32 @@ class RevenueProgramViewSetTest(RevEngineApiAbstractTestCase):
         response = self.client.patch(self.detail_url, {"tax_id": invalid_tax_id}, format="json")
         assert response.status_code == status.HTTP_400_BAD_REQUEST
         assert response.json() == {"tax_id": ["Ensure this field has at least 9 characters."]}
+
+    def test_cannot_retrieve_someone_elses_rp(self):
+        other_org_user = create_test_user(
+            role_assignment_data={"role_type": Roles.ORG_ADMIN, "organization": self.org2}
+        )
+        assert other_org_user.roleassignment.organization != self.org1
+        self.assert_user_cannot_get(self.detail_url, other_org_user, status.HTTP_404_NOT_FOUND)
+
+    def test_other_orgs_rps_not_appear_in_my_list_of_rps(self):
+        other_org_user = create_test_user(
+            role_assignment_data={"role_type": Roles.ORG_ADMIN, "organization": self.org2}
+        )
+        assert other_org_user.roleassignment.organization != self.org1
+        assert (expected_rp_count := other_org_user.roleassignment.organization.revenueprogram_set.count()) == 1
+
+        response = self.assert_user_can_get(self.list_url, other_org_user)
+        assert len(response.json()) == expected_rp_count
+
+    def test_cannot_patch_another_orgs_rp(self):
+        other_org_user = create_test_user(
+            role_assignment_data={"role_type": Roles.ORG_ADMIN, "organization": self.org2}
+        )
+        assert other_org_user.roleassignment.organization != self.org1
+        self.assert_user_cannot_patch(
+            self.detail_url, other_org_user, {"tax_id": "123456789"}, status.HTTP_404_NOT_FOUND
+        )
 
 
 @pytest.mark.django_db

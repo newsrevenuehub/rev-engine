@@ -371,6 +371,10 @@ class RevenueProgram(IndexedTimeStampedModel):
             ]
         )
 
+    @classmethod
+    def filter_queryset_by_role_assignment(cls, role_assignment, queryset):
+        return queryset.filter(organization=role_assignment.organization)
+
 
 class PaymentProvider(IndexedTimeStampedModel):
     stripe_account_id = models.CharField(max_length=255, unique=True, null=True, blank=True)

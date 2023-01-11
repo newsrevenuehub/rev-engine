@@ -5,7 +5,7 @@ from django.contrib.auth import get_user_model
 from django.shortcuts import get_object_or_404
 
 import stripe
-from rest_framework import status, viewsets
+from rest_framework import mixins, status, viewsets
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.exceptions import PermissionDenied, ValidationError
 from rest_framework.permissions import IsAuthenticated
@@ -23,7 +23,6 @@ from apps.api.permissions import (
 )
 from apps.organizations import serializers
 from apps.organizations.models import Organization, RevenueProgram
-from apps.organizations.serializers import RevenueProgramPatchSerializer
 from apps.public.permissions import IsActiveSuperUser
 from apps.users.views import FilterQuerySetByUserMixin
 
@@ -50,7 +49,9 @@ class OrganizationViewSet(viewsets.ReadOnlyModelViewSet, FilterQuerySetByUserMix
         return self.filter_queryset_for_user(self.request.user, self.model.objects.all())
 
 
-class RevenueProgramViewSet(viewsets.ReadOnlyModelViewSet):
+class RevenueProgramViewSet(
+    FilterQuerySetByUserMixin, mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets.GenericViewSet
+):
     model = RevenueProgram
     queryset = RevenueProgram.objects.all()
     permission_classes = [
@@ -61,15 +62,22 @@ class RevenueProgramViewSet(viewsets.ReadOnlyModelViewSet):
     ]
     serializer_class = serializers.RevenueProgramSerializer
     pagination_class = None
+    http_method_names = ["get", "patch"]
+
+    def get_queryset(self):
+        return self.filter_queryset_for_user(self.request.user, self.model.objects.all())
 
     def patch(self, request, pk):
         revenue_program = get_object_or_404(RevenueProgram, pk=pk)
-        serializer = RevenueProgramPatchSerializer(revenue_program, data=request.data, partial=True)
+        if not request.user.is_superuser and not revenue_program.user_has_ownership_via_role(
+            request.user.roleassignment
+        ):
+            return Response(status=status.HTTP_404_NOT_FOUND)
+        serializer = serializers.RevenueProgramPatchSerializer(revenue_program, data=request.data, partial=True)
         serializer.is_valid()
         if serializer.errors:
-            errors = {**serializer.errors}
-            logger.warning("Request %s is invalid; errors: %s", request.data, errors)
-            raise ValidationError(errors)
+            logger.warning("Request %s is invalid; errors: %s", request.data, serializer.errors)
+            raise ValidationError(serializer.errors)
         serializer.save()
         revenue_program.refresh_from_db()
         return Response(serializers.RevenueProgramSerializer(revenue_program).data)

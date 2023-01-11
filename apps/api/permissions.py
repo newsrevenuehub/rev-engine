@@ -61,9 +61,9 @@ class IsOrgAdmin(permissions.BasePermission):
 
 
 class IsRpAdmin(permissions.BasePermission):
-    """Org Admin permission
+    """RP Admin permission
 
-    If the user making the request is an org admin, grant permission.
+    If the user making the request is a RP admin, grant permission.
     """
 
     def has_permission(self, request, view):

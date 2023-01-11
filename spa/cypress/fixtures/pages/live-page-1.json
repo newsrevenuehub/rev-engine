@@ -2,6 +2,7 @@
   "id": 99,
   "name": "Test Page 1",
   "heading": "Test Heading 1",
+  "post_thank_you_redirect": "https://fundjournalism.org",
   "published_date": "2020-09-17T00:00:00",
   "revenue_program_is_nonprofit": true,
   "plan": {
@@ -138,6 +139,7 @@
       "inputBackground": "#fff",
       "inputBorder": "#c3c3c3"
     },
+    "name": "mock-style",
     "ruleStyle": "dotted"
   },
   "revenue_program": {
@@ -155,7 +157,7 @@
     "google_analytics_v4_id": "G-2222222",
     "facebook_pixel_id": "123456789"
   },
-  "payment_provider": { "stripe_verified": true },
+  "payment_provider": { "stripe_account_id": "mock-account-id", "stripe_verified": true },
   "currency": {
     "code": "CAD",
     "symbol": "🍁"

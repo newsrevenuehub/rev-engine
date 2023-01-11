@@ -30,6 +30,7 @@ import { AUTHORIZE_STRIPE_PAYMENT_ROUTE } from 'ajax/endpoints';
 import { serializeData } from 'components/paymentProviders/stripe/stripeFns';
 import calculateStripeFee from 'utilities/calculateStripeFee';
 import { CONTRIBUTION_INTERVALS } from 'constants/contributionIntervals';
+import { GENERIC_ERROR } from 'constants/textConstants';
 
 function authorizePayment(paymentData, csrftoken) {
   // we manually set the X-CSRFTOKEN value in header here. This is an unauthed endpoint
@@ -228,6 +229,11 @@ function DonationPage({ page, live = false }) {
     });
   };
 
+  function handleStripePaymentWrapperError() {
+    setDisplayStripePaymentForm(false);
+    alert.error(GENERIC_ERROR);
+  }
+
   return (
     <DonationPageContext.Provider
       value={{
@@ -296,7 +302,7 @@ function DonationPage({ page, live = false }) {
 
                 {displayStripePaymentForm && (
                   <Modal isOpen={displayStripePaymentForm}>
-                    <StripePaymentWrapper />
+                    <StripePaymentWrapper onError={handleStripePaymentWrapperError} />
                   </Modal>
                 )}
               </S.DonationContent>

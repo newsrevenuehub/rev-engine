@@ -1,17 +1,23 @@
+import logging
 import uuid
+from urllib.parse import quote_plus
 
 from django.conf import settings
 from django.db import models
 from django.utils import timezone
+from django.utils.safestring import mark_safe
 
 import stripe
+from addict import Dict as AttrDict
 
+from apps.api.tokens import ContributorRefreshToken
 from apps.common.models import IndexedTimeStampedModel
 from apps.emails.tasks import send_templated_email
-from apps.slack.models import SlackNotificationTypes
-from apps.slack.slack_manager import SlackManager
 from apps.users.choices import Roles
 from apps.users.models import RoleAssignmentResourceModelMixin, UnexpectedRoleType
+
+
+logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
 
 
 class Contributor(IndexedTimeStampedModel):
@@ -179,6 +185,32 @@ class Contribution(IndexedTimeStampedModel, RoleAssignmentResourceModelMixin):
             return self.revenue_program.payment_provider.stripe_account_id
         return None
 
+    @property
+    def billing_details(self) -> AttrDict:
+        payment_provider_data = AttrDict(self.payment_provider_data).data.object
+        return (payment_provider_data.charges.data or [AttrDict()])[0].billing_details
+
+    @property
+    def billing_name(self) -> str:
+        return self.billing_details.name or ""
+
+    @property
+    def billing_email(self) -> str:
+        return self.billing_details.email or ""
+
+    @property
+    def billing_phone(self) -> str:
+        return self.billing_details.phone or ""
+
+    @property
+    def billing_address(self) -> str:
+        order = ("line1", "line2", "city", "state", "postal_code", "country")
+        return ",".join([self.billing_details.address[x] or "" for x in order])
+
+    @property
+    def formatted_donor_selected_amount(self) -> str:
+        return f"{self.amount} {self.currency.upper()}"
+
     BAD_ACTOR_SCORES = (
         (
             0,
@@ -233,22 +265,11 @@ class Contribution(IndexedTimeStampedModel, RoleAssignmentResourceModelMixin):
             stripe_account=self.revenue_program.payment_provider.stripe_account_id,
         )
 
-    def send_slack_notifications(self, event_type):
-        """
-        For now, we only send Slack notifications on successful payment.
-        """
-        if event_type == SlackNotificationTypes.SUCCESS:
-            slack_manager = SlackManager()
-            slack_manager.publish_contribution(self, event_type=SlackNotificationTypes.SUCCESS)
-
     def save(self, *args, **kwargs):
-        # Calling save with kwargs "slack_notification" causes save method to trigger slack notifications
-        slack_notification = kwargs.pop("slack_notification", None)
-        if slack_notification:
-            self.send_slack_notifications(slack_notification)
 
         # Check if we should update stripe payment method details
         previous = self.__class__.objects.filter(pk=self.pk).first()
+        # TODO: [DEV-3026]
         if (
             (previous and previous.provider_payment_method_id != self.provider_payment_method_id)
             or not previous
@@ -256,7 +277,11 @@ class Contribution(IndexedTimeStampedModel, RoleAssignmentResourceModelMixin):
         ):
             # If it's an update and the previous pm is different from the new pm, or it's new and there's a pm id...
             # ...get details on payment method
-            self.provider_payment_method_details = self.fetch_stripe_payment_method()
+            pm = self.fetch_stripe_payment_method()
+            # note on conditionality here (testing)
+            if pm:
+                self.provider_payment_method_details = pm
+
         super().save(*args, **kwargs)
 
     @classmethod
@@ -346,6 +371,38 @@ class Contribution(IndexedTimeStampedModel, RoleAssignmentResourceModelMixin):
                     "org_name": self.revenue_program.organization.name,
                 },
             )
+
+    def send_recurring_contribution_email_reminder(self, next_charge_date):
+        from apps.api.views import construct_rp_domain  # vs. circular import
+
+        if self.interval == ContributionInterval.ONE_TIME:
+            logger.warning(
+                "`Contribution.send_recurring_contribution_email_reminder` was called on an instance (ID: %s) whose interval is one-time",
+                self.id,
+            )
+            return
+        token = str(ContributorRefreshToken.for_contributor(self.contributor.uuid).short_lived_access_token)
+        send_templated_email.delay(
+            self.contributor.email,
+            f"Reminder: {self.donation_page.revenue_program.name} scheduled contribution",
+            "recurring-contribution-email-reminder.txt",
+            "recurring-contribution-email-reminder.html",
+            {
+                "rp_name": self.donation_page.revenue_program.name,
+                # nb, we have to send this as pre-formatted because this data will be serialized
+                # when sent to the Celery worker.
+                "contribution_date": next_charge_date.strftime("%m/%d/%Y"),
+                "contribution_amount": self.formatted_amount,
+                "contribution_interval_display_value": self.interval,
+                "non_profit": self.donation_page.revenue_program.non_profit,
+                "contributor_email": self.contributor.email,
+                "tax_id": self.donation_page.revenue_program.tax_id,
+                "magic_link": mark_safe(
+                    f"https://{construct_rp_domain(self.donation_page.revenue_program.slug)}/{settings.CONTRIBUTOR_VERIFY_URL}"
+                    f"?token={token}&email={quote_plus(self.contributor.email)}"
+                ),
+            },
+        )
 
     @staticmethod
     def stripe_metadata(contributor, validated_data, referer):

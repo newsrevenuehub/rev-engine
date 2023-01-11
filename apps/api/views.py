@@ -1,4 +1,5 @@
 import logging
+import os
 from datetime import datetime
 from urllib.parse import quote_plus, urlparse
 
@@ -30,12 +31,12 @@ logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
 COOKIE_PATH = "/"
 
 
-def _construct_rp_domain(subdomain, referer):
+def construct_rp_domain(subdomain, referer=None):
     """Find Revenue Program specific subdomain and use it to construct magic link host.
 
     Return RP specific domain or None if not found.
     """
-    logger.info("[_construct_rp_domain] constructing rp domain for subdomain (%s) and referer (%s)", subdomain, referer)
+    logger.info("[construct_rp_domain] constructing rp domain for subdomain (%s) and referer (%s)", subdomain, referer)
     if ":" in subdomain:  # Assume full url.
         subdomain = urlparse(subdomain).hostname.split(".")[0]
     if not subdomain and referer:
@@ -161,13 +162,12 @@ class RequestContributorTokenEmailView(APIView):
 
         serializer.update_short_lived_token(contributor)
 
-        domain = _construct_rp_domain(
-            serializer.validated_data.get("subdomain", ""), request.headers.get("Referer", "")
-        )
+        domain = construct_rp_domain(serializer.validated_data.get("subdomain", ""), request.headers.get("Referer", ""))
 
         if not domain:
             logger.info("[RequestContributorTokenEmailView][post] Could not determine domain for request")
             return Response({"detail": "Missing Revenue Program subdomain"}, status=status.HTTP_404_NOT_FOUND)
+        logger.info("Trying to retrieve revenue program by slug: %s", serializer.validated_data.get("subdomain"))
 
         revenue_program = get_object_or_404(RevenueProgram, slug=serializer.validated_data.get("subdomain"))
         # Celery backend job to pull contributions from Stripe and store the serialized data in cache, user will have
@@ -187,7 +187,14 @@ class RequestContributorTokenEmailView(APIView):
             "Manage your contributions",
             "nrh-manage-contributions-magic-link.txt",
             "nrh-manage-contributions-magic-link.html",
-            {"magic_link": mark_safe(magic_link)},
+            {
+                "magic_link": mark_safe(magic_link),
+                "email": serializer.validated_data["email"],
+                # Because this is an email template and not being hydrated in request context (i.e., happens
+                # in async task queue), using `{ static 'NewsRevenueHub...' }` won't work here. Need
+                # to fully spell out the value that will be sent to template.
+                "logo_url": os.path.join(settings.SITE_URL, "static", "nre-logo-white.png"),
+            },
         )
         # Email is async task. We won't know if it succeeds or not so optimistically send OK.
         return Response({"detail": "success"}, status=status.HTTP_200_OK)

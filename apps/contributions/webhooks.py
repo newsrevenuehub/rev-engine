@@ -103,7 +103,16 @@ class StripeWebhookProcessor:
             self.obj_data["created"], tz=datetime.timezone.utc
         )
         contribution.status = ContributionStatus.PAID
-        contribution.save(update_fields=["status", "last_payment_date", "payment_provider_data", "modified"])
+        contribution.save(
+            update_fields=[
+                "status",
+                "last_payment_date",
+                "provider_payment_id",
+                "provider_payment_method_id",
+                "payment_provider_data",
+                "modified",
+            ]
+        )
         logger.info("Contribution %s succeeded.", contribution)
 
     def _cancellation_was_rejection(self):

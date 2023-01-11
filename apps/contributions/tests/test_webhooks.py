@@ -75,7 +75,14 @@ class TestPaymentIntentSucceeded:
         # on the instance, in order to avoid race conditions
         assert spy.call_args[0][0] == contribution
         assert spy.call_args[1] == {
-            "update_fields": ["status", "last_payment_date", "payment_provider_data", "modified"]
+            "update_fields": [
+                "status",
+                "last_payment_date",
+                "provider_payment_id",
+                "provider_payment_method_id",
+                "payment_provider_data",
+                "modified",
+            ]
         }
         assert response.status_code == status.HTTP_200_OK
         contribution.refresh_from_db()

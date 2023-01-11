@@ -3,6 +3,7 @@ from unittest import TestCase
 from unittest.mock import Mock, call, patch
 
 from django.conf import settings
+from django.core import mail
 
 import pytest
 from addict import Dict as AttrDict
@@ -137,6 +138,59 @@ class TestSendThankYouEmail:
         mock_customer_retrieve.return_value = customer
         monkeypatch.setattr("stripe.Customer.retrieve", mock_customer_retrieve)
         send_thank_you_email(contribution.id)
+
+    @pytest.mark.parametrize(
+        "is_non_profit,has_tax_id",
+        (
+            (True, True),
+            (True, False),
+            (False, True),
+            (False, False),
+        ),
+    )
+    def test_template_conditionality_around_non_profit_and_tax_status(self, is_non_profit, has_tax_id, monkeypatch):
+        customer = AttrDict({"name": "Foo Bar"})
+        mock_customer_retrieve = Mock()
+        mock_customer_retrieve.return_value = customer
+        monkeypatch.setattr("stripe.Customer.retrieve", mock_customer_retrieve)
+        # TODO: DEV-3026 clean up here
+        with patch("apps.contributions.models.Contribution.fetch_stripe_payment_method", return_value=None):
+            contribution = ContributionFactory(one_time=True)
+            rp = contribution.donation_page.revenue_program
+            rp.tax_id = "123456789" if has_tax_id else None
+            rp.non_profit = is_non_profit
+            rp.save()
+            send_thank_you_email(contribution.id)
+
+        non_profit_expectation = "This receipt may be used for tax purposes."
+        for_profit_expectation = f"Contributions to {rp.name} are not deductible as charitable donations."
+        non_profit_has_tax_id_expectation = f"with a Federal Tax ID #{rp.tax_id}."
+        non_profit_no_tax_id_expectation = f"{rp.name} is a 501(c)(3) nonprofit organization."
+
+        if is_non_profit and has_tax_id:
+            expect_present = (non_profit_expectation, non_profit_has_tax_id_expectation)
+            expect_missing = (for_profit_expectation, non_profit_no_tax_id_expectation)
+
+        elif is_non_profit and not has_tax_id:
+            expect_present = (non_profit_expectation, non_profit_no_tax_id_expectation)
+            expect_missing = (for_profit_expectation, non_profit_has_tax_id_expectation)
+
+        else:
+            expect_present = (for_profit_expectation,)
+            expect_missing = (
+                non_profit_expectation,
+                non_profit_has_tax_id_expectation,
+                non_profit_no_tax_id_expectation,
+            )
+
+        assert len(mail.outbox) == 1
+        for x in expect_present:
+            assert x in mail.outbox[0].body
+            assert x in mail.outbox[0].alternatives[0][0]
+
+        for x in expect_missing:
+            assert x not in mail.outbox[0].body
+            assert x not in mail.outbox[0].alternatives[0][0]
 
 
 class TestTaskStripeContributions(TestCase):

@@ -3,7 +3,6 @@ import { useHistory } from 'react-router-dom';
 import * as S from './PageEditor.styled';
 import { useTheme } from 'styled-components';
 import { AnimatePresence } from 'framer-motion';
-import urlJoin from 'url-join';
 
 // Deps
 import { useAlert } from 'react-alert';
@@ -84,7 +83,7 @@ function PageEditor() {
   const [availableStyles, setAvailableStyles] = useState([]);
   const requestGetPageStyles = useRequest();
   const history = useHistory();
-  useWebFonts(page?.styles?.font);
+  useWebFonts(updatedPagePreview?.styles?.font);
 
   useConfigureAnalytics();
 
@@ -115,16 +114,16 @@ function PageEditor() {
 
   const pageTitle = useMemo(
     () =>
-      `Edit | ${page?.name ? `${page?.name} | ` : ''}${
-        page?.revenue_program?.name ? `${page?.revenue_program?.name}` : ''
+      `Edit | ${updatedPagePreview?.name ? `${updatedPagePreview?.name} | ` : ''}${
+        updatedPagePreview?.revenue_program?.name ? `${updatedPagePreview?.revenue_program?.name}` : ''
       }`,
-    [page?.name, page?.revenue_program?.name]
+    [updatedPagePreview?.name, updatedPagePreview?.revenue_program?.name]
   );
 
   // Load available styles.
 
   useEffect(() => {
-    const rpId = page?.revenue_program?.id;
+    const rpId = updatedPagePreview?.revenue_program?.id;
 
     // If the revenue program of the page is either available after loading or
     // has changed, load styles associated with the RP.
@@ -144,7 +143,7 @@ function PageEditor() {
         }
       );
     }
-  }, [page, requestGetPageStyles]);
+  }, [requestGetPageStyles, updatedPagePreview?.revenue_program?.id]);
 
   // Event handlers.
 
@@ -184,7 +183,7 @@ function PageEditor() {
     async function finishSave() {
       try {
         if (CAPTURE_PAGE_SCREENSHOT) {
-          await savePageChanges({}, page.name, document.getElementById('root'));
+          await savePageChanges({}, updatedPagePreview.name, document.getElementById('root'));
         } else {
           await savePageChanges();
         }
@@ -214,7 +213,7 @@ function PageEditor() {
 
     if (elementErrors?.length > 0) {
       setElementErrors(elementErrors);
-    } else if (pageIsPublished(page)) {
+    } else if (pageIsPublished(updatedPagePreview)) {
       getUserConfirmation("You're making changes to a live contribution page. Continue?", finishSave);
     } else {
       finishSave();
@@ -241,10 +240,10 @@ function PageEditor() {
               <EditInterface />
             </AnimatePresence>
           )}
-          {!isLoading && !stylesLoading && page && (
-            <SegregatedStyles page={page}>
+          {!isLoading && !stylesLoading && updatedPagePreview && (
+            <SegregatedStyles page={updatedPagePreview}>
               {/* set stringified page as key to guarantee that ALL page changes will re-render the page in edit mode */}
-              <DonationPage key={page ? JSON.stringify(page) : ''} live={false} page={updatedPagePreview} />
+              <DonationPage key={JSON.stringify(updatedPagePreview ?? '')} live={false} page={updatedPagePreview} />
             </SegregatedStyles>
           )}
 

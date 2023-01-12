@@ -574,7 +574,7 @@ describe('Edit interface: Setup', () => {
     cy.intercept({ method: 'GET', pathname: getEndpoint(USER) }, { body: orgAdminWithContentFlag });
     cy.intercept({ method: 'GET', pathname: getEndpoint(LIST_STYLES) }, {});
     cy.intercept(
-      { method: 'GET', pathname: `${getEndpoint(DRAFT_PAGE_DETAIL)}**` },
+      { method: 'GET', pathname: `${getEndpoint(LIST_PAGES)}**` },
       {
         body: {
           ...livePage,
@@ -629,7 +629,7 @@ describe('Edit interface: Setup', () => {
     cy.intercept({ method: 'GET', pathname: getEndpoint(USER) }, { body: orgAdminWithContentFlag });
     cy.intercept({ method: 'GET', pathname: getEndpoint(LIST_STYLES) }, {});
     cy.intercept(
-      { method: 'GET', pathname: `${getEndpoint(DRAFT_PAGE_DETAIL)}**` },
+      { method: 'GET', pathname: `${getEndpoint(LIST_PAGES)}**` },
       {
         body: {
           ...livePage,

@@ -76,32 +76,33 @@ function EditInterface() {
   }, [errors, setTabFromErrors, setSelectedButton, showEditInterface]);
 
   /**
-   * setPageContent performs updates necessary to affect a change made in
-   * the edit interface.
+   * Sets the elements in the main page content.
    */
-  const setPageContent = (content = {}) => {
-    setPageChanges((existing) => ({ ...existing, ...content }));
-  };
-
   const setElements = (elements) => {
-    setPageContent({ elements });
+    setPageChanges({ elements });
   };
 
+  /**
+   * Sets the elements in the sidebar.
+   */
   const setSidebarElements = (sidebar_elements) => {
-    setPageContent({ sidebar_elements });
+    setPageChanges({ sidebar_elements });
   };
 
+  /**
+   * Removes an element from either the main page content or the sidebar.
+   */
   const handleRemoveElement = (element, elementsType) => {
     if (!dynamicElements[element.type]?.required) {
     }
     if (elementsType === 'layout') {
       const elementsWithout = page?.elements?.filter((el) => el.uuid !== element.uuid);
-      setPageContent({ elements: elementsWithout });
+      setPageChanges({ elements: elementsWithout });
     }
 
     if (elementsType === 'sidebar') {
       const elementsWithout = page?.sidebar_elements?.filter((el) => el.uuid !== element.uuid);
-      setPageContent({ sidebar_elements: elementsWithout });
+      setPageChanges({ sidebar_elements: elementsWithout });
     }
   };
 
@@ -125,7 +126,6 @@ function EditInterface() {
         setElementContent,
         elementRequiredFields,
         setElementRequiredFields,
-        setPageContent,
         handleRemoveElement
       }}
     >

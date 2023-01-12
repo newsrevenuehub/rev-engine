@@ -7,11 +7,7 @@ export const Wrapper = styled.div`
 `;
 
 export const Content = styled.div`
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
   gap: 40px;
-
-  & [data-testid^='integration-card'] {
-    width: 314px;
-  }
+  grid-template-columns: repeat(auto-fit, 314px);
 `;

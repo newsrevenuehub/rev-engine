@@ -11,7 +11,6 @@ const DashboardSidebarFooter = () => (
       href={HELP_URL}
       role="listitem"
       data-testid="nav-help-item"
-      rel="noopener noreferrer"
       target="_blank"
     >
       <S.NavItemIcon icon={ICONS.RING_BUOY} />

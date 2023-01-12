@@ -1,5 +1,5 @@
 import styled from 'styled-components';
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import LaunchMui from '@material-ui/icons/Launch';
 
 export const Flex = styled.div`
   display: flex;
@@ -75,12 +75,12 @@ export const Site = styled.a`
   }
 `;
 
-export const Icon = styled(FontAwesomeIcon)`
-  color: ${(props) => props.theme.colors.muiGrey[600]};
-  margin-left: 5px;
-  height: 12px;
+export const LaunchIcon = styled(LaunchMui)`
   && {
-    width: 12px;
+    color: ${(props) => props.theme.colors.muiGrey[600]};
+    margin-left: 5px;
+    height: 16px;
+    width: 16px;
   }
 `;
 

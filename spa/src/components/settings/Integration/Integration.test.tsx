@@ -2,24 +2,17 @@ import { axe } from 'jest-axe';
 import { render, screen } from 'test-utils';
 import userEvent from '@testing-library/user-event';
 
-import useConnectStripeAccountMock from 'hooks/useConnectStripeAccount';
-import useUserMock from 'hooks/useUser';
+import useConnectStripeAccount from 'hooks/useConnectStripeAccount';
+import useUser from 'hooks/useUser';
 
 import Integration from './Integration';
 
-jest.mock('hooks/useConnectStripeAccount', () => ({
-  __esModule: true,
-  default: jest.fn()
-}));
-
-jest.mock('hooks/useUser', () => ({
-  __esModule: true,
-  default: jest.fn()
-}));
+jest.mock('hooks/useConnectStripeAccount');
+jest.mock('hooks/useUser');
 
 describe('Settings Integration Page', () => {
-  const useConnectStripeAccount = useConnectStripeAccountMock as jest.Mock;
-  const useUser = useUserMock as jest.Mock;
+  const useConnectStripeAccountMock = useConnectStripeAccount as jest.Mock;
+  const useUserMock = useUser as jest.Mock;
   const sendUserToStripe = jest.fn();
 
   function tree() {
@@ -27,10 +20,10 @@ describe('Settings Integration Page', () => {
   }
 
   beforeEach(() => {
-    useUser.mockReturnValue({
+    useUserMock.mockReturnValue({
       user: undefined
     });
-    useConnectStripeAccount.mockReturnValue({
+    useConnectStripeAccountMock.mockReturnValue({
       requiresVerification: true,
       sendUserToStripe
     });
@@ -57,7 +50,7 @@ describe('Settings Integration Page', () => {
   });
 
   it('should not call sendUserToStripe', async () => {
-    useConnectStripeAccount.mockReturnValue({
+    useConnectStripeAccountMock.mockReturnValue({
       requiresVerification: false,
       sendUserToStripe
     });

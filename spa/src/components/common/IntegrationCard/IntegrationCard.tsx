@@ -1,7 +1,6 @@
 import { Switch, Tooltip } from 'components/base';
 import useModal from 'hooks/useModal';
 import PropTypes, { InferProps } from 'prop-types';
-import { faExternalLinkAlt } from '@fortawesome/free-solid-svg-icons';
 
 import { IntegrationCardType } from './constants';
 import {
@@ -13,9 +12,9 @@ import {
   Image,
   Content,
   Site,
-  Icon,
   Description,
-  Footer
+  Footer,
+  LaunchIcon
 } from './IntegrationCard.styled';
 
 export interface IntegrationCardProps
@@ -50,7 +49,7 @@ const IntegrationCard = ({ className, isActive, onChange, ...card }: Integration
         <div style={{ display: 'flex' }}>
           <Site href={card.site.url} rel="noopener noreferrer" target="_blank">
             {card.site.label}
-            <Icon icon={faExternalLinkAlt} />
+            <LaunchIcon />
           </Site>
         </div>
         <Description>{card.description}</Description>

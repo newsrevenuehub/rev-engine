@@ -22,7 +22,7 @@ from apps.organizations.models import (
 from apps.organizations.tests.factories import OrganizationFactory, RevenueProgramFactory
 from apps.organizations.views import RevenueProgramViewSet, get_stripe_account_link_return_url
 from apps.users.choices import Roles
-
+from apps.users.tests.factories import create_test_user
 
 user_model = get_user_model()
 
@@ -209,6 +209,20 @@ class TestOrganizationViewSet:
             assert response.status_code == status.HTTP_401_UNAUTHORIZED
         else:
             assert response.status_code == status.HTTP_403_FORBIDDEN
+
+    def test_expected_users_can_patch(self):
+        users_allowed_to_patch = [self.superuser, self.org_user]
+        for user in users_allowed_to_patch:
+            new_name = "new-name"
+            response = self.assert_user_can_patch(self.detail_url, user, {"name": new_name})
+            assert response.json()["name"] == new_name
+
+    def test_cannot_patch_another_org(self):
+        other_org_user = create_test_user(
+            role_assignment_data={"role_type": Roles.ORG_ADMIN, "organization": self.org2}
+        )
+        assert other_org_user.roleassignment.organization != self.org1
+        self.assert_user_cannot_patch(self.detail_url, other_org_user, {"name": "new-name"}, status.HTTP_404_NOT_FOUND)
 
 
 @pytest.fixture

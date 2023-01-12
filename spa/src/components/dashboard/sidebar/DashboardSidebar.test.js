@@ -4,6 +4,11 @@ import { render } from 'test-utils';
 import DashboardSidebar from './DashboardSidebar';
 import { DONATIONS_SLUG, CUSTOMIZE_SLUG, CONTENT_SLUG } from 'routes';
 
+jest.mock('hooks/useUser', () => ({
+  __esModule: true,
+  default: () => ({ user: { organizations: [{ name: 'mock-rp-name' }] } })
+}));
+
 jest.mock('components/Main', () => ({
   __esModule: true,
   useFeatureFlagsProviderContext: () => ({ featureFlags: [] })
@@ -34,6 +39,8 @@ it('should have expected appearance and links', () => {
     'href',
     DONATIONS_SLUG
   );
+
+  expect(screen.getByText('mock-rp-name')).toBeVisible();
 });
 
 it('should disable Contributions dashboard', () => {

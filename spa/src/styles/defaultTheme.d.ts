@@ -20,6 +20,7 @@ declare module 'styled-components' {
       topbarBackground: '#523A5E';
       navSelectedBackground: '#eaf37a';
       navSectionLabelColor: '#ddcbe7';
+      navOrgIcon: '#AC256C';
       black: '#080708';
       account: {
         purple: ['#523a5e', '#25192b', '#19111e'];

@@ -17,6 +17,7 @@ export const revEngineTheme: DefaultTheme = {
     topbarBackground: '#523A5E',
     navSelectedBackground: '#eaf37a',
     navSectionLabelColor: '#ddcbe7',
+    navOrgIcon: '#AC256C',
 
     black: '#080708',
 

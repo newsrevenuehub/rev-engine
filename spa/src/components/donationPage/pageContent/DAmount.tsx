@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import PropTypes from 'prop-types';
+import PropTypes, { InferProps } from 'prop-types';
 import { DAmountStyled, FeesContainer, FreqSubtext, OtherAmount, OtherAmountInput } from './DAmount.styled';
 
 // Util
@@ -12,10 +12,13 @@ import { usePage } from '../DonationPage';
 // Children
 import DElement, { DynamicElementPropTypes } from 'components/donationPage/pageContent/DElement';
 import SelectableButton from 'elements/buttons/SelectableButton';
+import usePreviousState from 'hooks/usePreviousState';
 import FormErrors from 'elements/inputs/FormErrors';
 import PayFeesControl from './PayFeesControl';
 
-function DAmount({ element, ...props }) {
+export type DAmountProps = InferProps<typeof DAmountPropTypes>;
+
+function DAmount({ element, ...props }: DAmountProps) {
   const {
     page,
     feeAmount,
@@ -27,12 +30,11 @@ function DAmount({ element, ...props }) {
     errors,
     userAgreesToPayFees
   } = usePage();
-  const currencySymbol = page?.currency?.symbol;
-  const parsedAmount = parseFloat(amount);
 
+  const prevFrequency = usePreviousState(frequency);
+  const currencySymbol = page?.currency?.symbol;
   // Corresponds to the value the user has typed into the 'other value' field.
   // It may not contain a valid number.
-
   const [otherValue, setOtherValue] = useState('');
 
   // If the page overrides the amount, force the other input value to that. This
@@ -41,9 +43,16 @@ function DAmount({ element, ...props }) {
 
   useEffect(() => {
     if (overrideAmount) {
-      setOtherValue(amount);
+      setOtherValue(`${amount}`);
     }
   }, [amount, overrideAmount]);
+
+  // If frequency changes, reset otherAmount
+  useEffect(() => {
+    if (frequency !== prevFrequency && prevFrequency !== undefined) {
+      setOtherValue('');
+    }
+  }, [frequency, prevFrequency]);
 
   // Display the fees control here if a DPayment element elsewhere asks for it.
 
@@ -54,11 +63,7 @@ function DAmount({ element, ...props }) {
   // Find amount options for the page's frequency, and whether any should be
   // selected based on the payment amount.
 
-  const amountOptions = useMemo(() => {
-    const { options } = element?.content;
-
-    return options?.[frequency] ?? [];
-  }, [element?.content, frequency]);
+  const amountOptions = useMemo(() => element?.content?.options?.[frequency] ?? [], [element?.content, frequency]);
 
   const selectedAmountOption = useMemo(() => {
     // If the user has entered an amount in the other field, never select an
@@ -68,23 +73,25 @@ function DAmount({ element, ...props }) {
       return -1;
     }
 
-    return amountOptions.findIndex((option) => parseFloat(option) === parsedAmount);
-  }, [amountOptions, otherValue, parsedAmount]);
+    return amountOptions.findIndex((option) => option === amount);
+  }, [amountOptions, otherValue, amount]);
 
   // Called when the user chooses a preselected option.
 
-  const handleSelectAmountOption = (newAmount) => {
+  const handleSelectAmountOption = (newAmount?: number) => {
     setOtherValue('');
     setAmount(newAmount);
   };
 
   // Called when the user types into the text field.
 
-  const handleOtherAmountChange = ({ target: { value } }) => {
+  const handleOtherAmountChange = ({
+    target: { value }
+  }: React.ChangeEvent<HTMLInputElement> | { target: { value: string } }) => {
     setOtherValue(value);
 
     if (value === '') {
-      setAmount('');
+      setAmount(undefined);
     }
 
     if (validateInputPositiveFloat(value)) {
@@ -113,21 +120,24 @@ function DAmount({ element, ...props }) {
           const selected = index === selectedAmountOption;
 
           return (
-            <SelectableButton
-              key={index + amountOption}
-              selected={selected}
-              onClick={() => handleSelectAmountOption(parseFloat(amountOption))}
-              data-testid={`amount-${amountOption}${selected ? '-selected' : ''}`}
-            >
-              {`${currencySymbol}${amountOption}`}{' '}
-              <FreqSubtext selected={selected}>{getFrequencyRate(frequency)}</FreqSubtext>
-            </SelectableButton>
+            <li key={`${index}-${amountOption}`}>
+              <SelectableButton
+                selected={selected}
+                onClick={() => handleSelectAmountOption(amountOption!)}
+                data-testid={`amount-${amountOption}${selected ? '-selected' : ''}`}
+              >
+                {`${currencySymbol}${amountOption}`}{' '}
+                <FreqSubtext selected={selected}>{getFrequencyRate(frequency)}</FreqSubtext>
+              </SelectableButton>
+            </li>
           );
         })}
-        {(element.content?.allowOther || overrideAmount) && (
+        {(element?.content?.allowOther || overrideAmount) && (
           <OtherAmount data-testid={`amount-other${otherIsSelected ? '-selected' : ''}`} selected={otherIsSelected}>
             <span>{currencySymbol}</span>
             <OtherAmountInput
+              type="number"
+              min="0"
               value={otherValue}
               name="amount"
               onChange={handleOtherAmountChange}
@@ -135,7 +145,7 @@ function DAmount({ element, ...props }) {
               // We're validating maximum amount on the backend, but let's restrict input
               // to prevent hitting javascript's mathematical limitations and displaying
               // weird numbers after calculating fees and fixing decimals
-              maxLength="9"
+              maxLength={9}
             />
             <FreqSubtext data-testid="custom-amount-rate">{getFrequencyRate(frequency)}</FreqSubtext>
           </OtherAmount>
@@ -144,10 +154,12 @@ function DAmount({ element, ...props }) {
           <FeesContainer>
             <PayFeesControl
               agreedToPayFees={userAgreesToPayFees}
-              currencySymbol={page.currency.symbol}
+              currencySymbol={page.currency?.symbol ?? '$'}
               feeAmount={feeAmount}
               frequency={frequency}
-              onChange={(event) => setUserAgreesToPayFees(event.target.checked)}
+              onChange={(event) =>
+                setUserAgreesToPayFees((event as React.ChangeEvent<HTMLInputElement>).target.checked)
+              }
               revenueProgramName={page.revenue_program.name}
             />
           </FeesContainer>
@@ -160,16 +172,18 @@ function DAmount({ element, ...props }) {
 
 const paymentPropTypes = {
   allowOther: PropTypes.bool,
-  options: PropTypes.objectOf(PropTypes.arrayOf(PropTypes.oneOfType([PropTypes.number, PropTypes.string]))).isRequired,
+  options: PropTypes.objectOf(PropTypes.arrayOf(PropTypes.number)),
   defaults: PropTypes.objectOf(PropTypes.oneOfType([PropTypes.number, PropTypes.string]))
 };
 
-DAmount.propTypes = {
+const DAmountPropTypes = {
   element: PropTypes.shape({
     ...DynamicElementPropTypes,
     content: PropTypes.shape(paymentPropTypes)
   })
 };
+
+DAmount.propTypes = DAmountPropTypes;
 
 DAmount.type = 'DAmount';
 DAmount.displayName = 'Contribution Amount';

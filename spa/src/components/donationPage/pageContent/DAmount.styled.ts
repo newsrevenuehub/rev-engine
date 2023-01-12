@@ -4,6 +4,7 @@ export const DAmountStyled = styled.ul`
   display: grid;
   grid-template-columns: 1fr 1fr;
   grid-gap: 20px;
+  list-style-type: none;
 
   padding: 0;
   margin: 1.5rem 0;
@@ -18,7 +19,7 @@ export const FeesContainer = styled.div`
   grid-column: 1 / span 2;
 `;
 
-export const OtherAmount = styled.div`
+export const OtherAmount = styled.div<{ selected?: boolean }>`
   display: flex;
   justify-content: space-between;
   background: ${(props) => props.theme.colors.white};
@@ -45,9 +46,21 @@ export const OtherAmountInput = styled.input`
   padding: 0 1rem;
   min-width: 50px;
   width: 100%;
+
+  /* Chrome, Safari, Edge, Opera */
+  &::-webkit-outer-spin-button,
+  &::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+
+  /* Firefox */
+  &[type='number'] {
+    -moz-appearance: textfield;
+  }
 `;
 
-export const FreqSubtext = styled.span`
+export const FreqSubtext = styled.span<{ selected?: boolean }>`
   font-weight: 300;
   color: ${(props) => (props.selected ? props.theme.colors.white : props.theme.colors.grey[3])};
 `;

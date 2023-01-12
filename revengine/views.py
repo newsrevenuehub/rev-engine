@@ -74,7 +74,10 @@ def proxy_spa_dev_server(request, upstream="http://localhost:3000"):
     content_type = upstream_response.headers["content-type"]
 
     if content_type == "text/html; charset=utf-8":
-        content = engines["django"].from_string(content).render()
+        content = engines["django"].from_string(upstream_response.text).render()
+    elif content_type in ["image/png", "image/jpeg"]:
+        # Binary content
+        content = upstream_response.content
 
     return HttpResponse(
         content,

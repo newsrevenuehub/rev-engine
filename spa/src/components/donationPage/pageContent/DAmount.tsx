@@ -57,7 +57,17 @@ function DAmount({ element, ...props }: DAmountProps) {
   // Display the fees control here if a DPayment element elsewhere asks for it.
 
   const displayPayFeesControl = useMemo(() => {
-    return (page.elements.find(({ type }) => type === 'DPayment') ?? {})?.content?.offerPayFees;
+    if (!page.elements) {
+      return false;
+    }
+
+    const paymentElement = page.elements.find(({ type }) => type === 'DPayment');
+
+    if (!paymentElement) {
+      return false;
+    }
+
+    return (paymentElement.content as { offerPayFees?: boolean }).offerPayFees;
   }, [page.elements]);
 
   // Find amount options for the page's frequency, and whether any should be

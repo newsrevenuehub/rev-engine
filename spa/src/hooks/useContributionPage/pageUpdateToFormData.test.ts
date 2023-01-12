@@ -111,6 +111,21 @@ describe('pageUpdateToFormData', () => {
     expect(formDataToObject(result)).toEqual(changes);
   });
 
+  it('coerces undefined image field values to empty strings', async () => {
+    const changes = {
+      graphic: undefined,
+      header_bg_image: undefined,
+      header_logo: undefined
+    };
+    const result = await pageUpdateToFormData(changes);
+
+    expect(formDataToObject(result)).toEqual({
+      graphic: '',
+      header_bg_image: '',
+      header_logo: ''
+    });
+  });
+
   it('converts date fields to string timestamps', async () => {
     // This functionality may not be needed--as we adopt TypeScript more, we can
     // force fields to be strings. For now we cast the object as any to reflect

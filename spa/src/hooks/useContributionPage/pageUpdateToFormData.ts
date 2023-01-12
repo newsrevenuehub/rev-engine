@@ -38,18 +38,23 @@ export async function pageUpdateToFormData(
       return result;
     }
 
-    // Ignore image fields that contain non-empty strings. These must have been
-    // given to us by the API after saving a page, and are URLs to uploaded
-    // files.
-    //
-    // An empty string tells the API to remove the image.
+    if (IMAGE_FIELDS.includes(key)) {
+      // Ignore image fields that contain non-empty strings. These must have been
+      // given to us by the API after saving a page, and are URLs to uploaded
+      // files.
+      //
+      // An empty string tells the API to remove the image.
 
-    if (
-      IMAGE_FIELDS.includes(key) &&
-      typeof pageUpdates[key] === 'string' &&
-      (pageUpdates[key] as string).length !== 0
-    ) {
-      return result;
+      if (typeof pageUpdates[key] === 'string' && (pageUpdates[key] as string).length !== 0) {
+        return result;
+      }
+
+      // An undefined value for an image should also mean "delete this image." We
+      // coerce these to empty strings for the update.
+
+      if (pageUpdates[key] === undefined) {
+        return { ...result, [key]: '' };
+      }
     }
 
     let value = pageUpdates[key];

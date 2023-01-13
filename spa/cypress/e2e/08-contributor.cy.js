@@ -8,6 +8,12 @@ import { CONTRIBUTION_INTERVALS } from '../../src/constants/contributionInterval
 // Util
 import isEqual from 'lodash.isequal';
 
+function validExpirationDate() {
+  const today = new Date();
+
+  return `${(today.getMonth() + 1).toString().padStart(2, '0')}${today.getFullYear() % 100}`;
+}
+
 describe('Contributor portal', () => {
   before(() => {
     cy.visit(CONTRIBUTOR_ENTRY);
@@ -263,10 +269,8 @@ describe('Update recurring contribution modal', () => {
     'should enable update payment method when card details are entered correctly',
     { defaultCommandTimeout: 10000 },
     () => {
-      let today = new Date();
-      const month = today.getMonth() + 1;
       cy.setStripeCardElement('cardNumber', '4242424242424242');
-      cy.setStripeCardElement('cardExpiry', `${month < 10 ? `0${month}` : month}${today.getFullYear() % 100}`);
+      cy.setStripeCardElement('cardExpiry', validExpirationDate());
       cy.setStripeCardElement('cardCvc', '123');
       cy.setStripeCardElement('postalCode', '12345');
       cy.getByTestId('contrib-update-payment-method-btn').should('not.be.disabled');
@@ -278,8 +282,6 @@ describe('Update recurring contribution modal', () => {
     const contribution = donationsData.find((donation) => donation.interval === 'month');
 
     beforeEach(() => {
-      const today = new Date();
-
       // This intercepts a call made by Stripe.js.
       cy.intercept(
         { method: 'POST', url: 'https://api.stripe.com/v1/payment_methods' },
@@ -290,9 +292,8 @@ describe('Update recurring contribution modal', () => {
         { statusCode: 200 }
       ).as('patchSubscription');
 
-      const month = today.getMonth() + 1;
       cy.setStripeCardElement('cardNumber', '4242424242424242');
-      cy.setStripeCardElement('cardExpiry', `${month < 10 ? `0${month}` : month}${today.getFullYear() % 100}`);
+      cy.setStripeCardElement('cardExpiry', validExpirationDate());
       cy.setStripeCardElement('cardCvc', '123');
       cy.setStripeCardElement('postalCode', '12345');
     });

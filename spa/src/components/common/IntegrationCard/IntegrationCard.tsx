@@ -1,8 +1,7 @@
-import { Switch, Tooltip } from 'components/base';
+import { Switch, SwitchProps, Tooltip } from 'components/base';
 import useModal from 'hooks/useModal';
 import PropTypes, { InferProps } from 'prop-types';
 
-import { IntegrationCardType } from './constants';
 import {
   Title,
   Flex,
@@ -17,10 +16,8 @@ import {
   LaunchIcon
 } from './IntegrationCard.styled';
 
-export interface IntegrationCardProps
-  extends Omit<IntegrationCardType, 'toggleLabel' | 'site'>,
-    InferProps<typeof IntegrationCardPropTypes> {
-  onChange?: () => void;
+export interface IntegrationCardProps extends InferProps<typeof IntegrationCardPropTypes> {
+  onChange?: SwitchProps['onChange'];
 }
 
 const IntegrationCard = ({ className, isActive, onChange, ...card }: IntegrationCardProps) => {
@@ -55,12 +52,12 @@ const IntegrationCard = ({ className, isActive, onChange, ...card }: Integration
         <Description>{card.description}</Description>
       </Content>
       <Footer $active={isActive!}>
-        <p>{isActive! ? 'Connected' : card.toggleLabel || 'Not Connected'}</p>
+        <p>{isActive! ? 'Connected' : card.toggleLabel ?? 'Not Connected'}</p>
         <Tooltip
           interactive
           title={
             <p style={{ color: 'white', margin: 0 }}>
-              {isActive ? card.toggleConnectedTooltipMessage || card.toggleTooltipMessage : card.toggleTooltipMessage}
+              {isActive ? card.toggleConnectedTooltipMessage ?? card.toggleTooltipMessage : card.toggleTooltipMessage}
             </p>
           }
           placement="bottom-end"
@@ -96,6 +93,7 @@ const IntegrationCardPropTypes = {
   description: PropTypes.string.isRequired,
   toggleLabel: PropTypes.node,
   toggleTooltipMessage: PropTypes.string,
+  toggleConnectedTooltipMessage: PropTypes.node,
   className: PropTypes.string,
   disabled: PropTypes.bool.isRequired,
   isActive: PropTypes.bool,

@@ -1,6 +1,6 @@
 import { ComponentMeta, ComponentStory } from '@storybook/react';
-import INTEGRATION_TYPES from './constants';
 
+import StripeLogo from 'assets/images/stripe.png';
 import IntegrationCard from './IntegrationCard';
 
 export default {
@@ -8,22 +8,25 @@ export default {
   component: IntegrationCard
 } as ComponentMeta<typeof IntegrationCard>;
 
-export const Stripe: ComponentStory<typeof IntegrationCard> = (args) => <IntegrationCard {...args} />;
+export const StripeInactive: ComponentStory<typeof IntegrationCard> = (args) => <IntegrationCard {...args} />;
 
-Stripe.args = { ...INTEGRATION_TYPES.STRIPE };
-
-export const StripeActive: ComponentStory<typeof IntegrationCard> = (args) => <IntegrationCard {...args} />;
-
-StripeActive.args = { ...INTEGRATION_TYPES.STRIPE, isActive: true };
-
-export const Slack: ComponentStory<typeof IntegrationCard> = (args) => <IntegrationCard {...args} />;
-
-Slack.args = { ...INTEGRATION_TYPES.SLACK };
-
-export const Mailchimp: ComponentStory<typeof IntegrationCard> = (args) => <IntegrationCard {...args} />;
-
-Mailchimp.args = { ...INTEGRATION_TYPES.MAILCHIMP };
-
-export const Salesforce: ComponentStory<typeof IntegrationCard> = (args) => <IntegrationCard {...args} />;
-
-Salesforce.args = { ...INTEGRATION_TYPES.SALESFORCE };
+StripeInactive.args = {
+  image: StripeLogo,
+  title: 'Stripe',
+  isRequired: true,
+  site: {
+    label: 'stripe.com',
+    url: 'https://www.stripe.com'
+  },
+  description: 'A simple way to accept payments online.',
+  disabled: false,
+  toggleConnectedTooltipMessage: (
+    <>
+      Connected to Stripe. Contact{' '}
+      <a href="HELP_URL" style={{ textDecoration: 'underline' }} target="_blank" rel="noopener noreferrer">
+        Support
+      </a>{' '}
+      to disconnect.
+    </>
+  )
+};

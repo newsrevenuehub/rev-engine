@@ -22,7 +22,6 @@ const DashboardSidebarFooter = () => (
       href={FAQ_URL}
       role="listitem"
       data-testid="nav-faq-item"
-      rel="noopener noreferrer"
       target="_blank"
     >
       <S.NavItemMaterialIcon>

@@ -16,23 +16,19 @@ function PageEditorTopbar() {
   const { open: showUnsavedModal, handleClose: closeUnsavedModal, handleOpen: openUnsavedModal } = useModal();
   const updatedPageIsEmpty = Object.keys(pageChanges).length === 0;
   const backButton = updatedPageIsEmpty ? (
-    <Tooltip title="Exit">
-      <div>
-        <BackButton to={CONTENT_SLUG} style={{ fill: 'white' }} data-testid="back" aria-label="Exit" />
-      </div>
-    </Tooltip>
+    <div>
+      <BackButton to={CONTENT_SLUG} style={{ fill: 'white' }} data-testid="back" aria-label="Exit" />
+    </div>
   ) : (
-    <Tooltip title="Exit">
-      <BackIconButton onClick={openUnsavedModal} data-testid="modal-back" aria-label="Exit">
-        <BackIcon icon={ICONS.ARROW_LEFT} />
-      </BackIconButton>
-    </Tooltip>
+    <BackIconButton onClick={openUnsavedModal} data-testid="modal-back" aria-label="Exit">
+      <BackIcon icon={ICONS.ARROW_LEFT} />
+    </BackIconButton>
   );
 
   return (
     <Root>
       <TopMenu>
-        {backButton}
+        <Tooltip title="Exit">{backButton}</Tooltip>
         <SvgLogo src={logoBlue} alt="News Revenue Hub Logo" />
         <Title>{page?.name}</Title>
         <GrabLink />

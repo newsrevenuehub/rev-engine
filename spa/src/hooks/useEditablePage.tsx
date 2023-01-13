@@ -30,7 +30,7 @@ export interface EditablePageContextResult {
   page?: ContributionPage;
   /**
    * Pending changes to the page. This should not contain any properties that
-   * are not being changed.
+   * are not being changed. After savePageChanges completes, this is reset.
    */
   pageChanges: Partial<ContributionPage>;
   /**
@@ -121,7 +121,10 @@ export function EditablePageContextProvider(props: InferProps<typeof EditablePag
         return Promise.resolve();
       }
 
-      return updatePage({ ...pageChanges, ...changes }, screenshotBaseName, elementToScreenshot);
+      const result = updatePage({ ...pageChanges, ...changes }, screenshotBaseName, elementToScreenshot);
+
+      setPageChanges({});
+      return result;
     },
     [updatePage, pageChanges]
   );

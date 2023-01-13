@@ -33,6 +33,10 @@ export const StyledSwitch = styled(MuiSwitch)<SwitchProps>`
       border: 1px solid #028372;
       opacity: 1;
     }
+
+    .NreTouchRippleChild {
+      background: ${(props) => props.theme.colors.muiGrey[500]};
+    }
   }
 `;
 
@@ -46,6 +50,9 @@ export function Switch(props: SwitchProps) {
         track: 'NreTrack',
         checked: 'NreChecked',
         ...props.classes
+      }}
+      TouchRippleProps={{
+        classes: { child: 'NreTouchRippleChild' }
       }}
     />
   );

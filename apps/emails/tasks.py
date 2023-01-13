@@ -1,6 +1,5 @@
 from django.conf import settings
-from django.core.mail import send_mail
-from django.core.mail.message import EmailMessage
+from django.core.mail import EmailMultiAlternatives, send_mail
 from django.template.loader import render_to_string
 
 from anymail.exceptions import AnymailAPIError
@@ -50,6 +49,7 @@ def send_templated_email_with_attachment(
     to,
     subject,
     text_template,
+    html_template,
     template_data,
     attachment,
     content_type,
@@ -59,10 +59,11 @@ def send_templated_email_with_attachment(
     if not isinstance(to, (tuple, list)):
         to = (to,)
 
-    mail = EmailMessage(
+    mail = EmailMultiAlternatives(
         subject=subject, body=render_to_string(text_template, template_data), from_email=from_email, to=to
     )
     mail.attach(filename=filename, content=attachment.encode("utf-8", errors="backslashreplace"), mimetype=content_type)
+    mail.attach_alternative(render_to_string(html_template, template_data), "text/html")
 
     logger.info("Sending email to recipient `%s` with subject `%s`", to, subject)
     logger.debug(

@@ -271,7 +271,7 @@ describe('Donations list', () => {
           .filter((row, index) => index > 0)
           .forEach((row, index) => {
             // displayed statuses not in the payment statuses which are excluded in contributions
-            expect(PAYMENT_STATUS_EXCLUDE_IN_CONTRIBUTIONS.indexOf(row.dataset.status) == -1).to.be.true;
+            expect(PAYMENT_STATUS_EXCLUDE_IN_CONTRIBUTIONS.indexOf(row.dataset.status) === -1).to.be.true;
           });
       });
     });

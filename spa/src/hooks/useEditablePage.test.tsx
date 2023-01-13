@@ -7,10 +7,20 @@ jest.mock('./useContributionPage');
 
 const page = { currency: {}, testPage: true };
 const testChange = { graphic: 'test-graphic', testPage: false };
+const testElement = document.createElement('div');
 
 function TestConsumer() {
-  const { deletePage, error, isError, isLoading, page, pageChanges, setPageChanges, updatedPagePreview } =
-    useEditablePageContext();
+  const {
+    deletePage,
+    error,
+    isError,
+    isLoading,
+    page,
+    pageChanges,
+    savePageChanges,
+    setPageChanges,
+    updatedPagePreview
+  } = useEditablePageContext();
 
   return (
     <>
@@ -21,6 +31,22 @@ function TestConsumer() {
       <div data-testid="page-changes">{JSON.stringify(pageChanges)}</div>
       <div data-testid="updated-page-preview">{JSON.stringify(updatedPagePreview)}</div>
       <button onClick={deletePage}>deletePage</button>
+      {savePageChanges && (
+        <button onClick={() => savePageChanges(undefined, 'test-screenshot-name', testElement)}>savePageChanges</button>
+      )}
+      {savePageChanges && (
+        <button
+          onClick={() =>
+            savePageChanges(
+              { graphic: 'test-graphic-override', name: 'test-name' },
+              'test-screenshot-name',
+              testElement
+            )
+          }
+        >
+          savePageChanges with override
+        </button>
+      )}
       <button onClick={() => setPageChanges(testChange)}>setPageChanges</button>
     </>
   );
@@ -141,10 +167,60 @@ describe('EditablePageContextProvider', () => {
   });
 
   describe('When savePageChanges is called', () => {
-    it.todo('updates the page in the backend');
-    it.todo('does nothing if the pageChanges prop and changes argument is empty');
-    it.todo('merges the changes argument with the pageChanges prop');
-    it.todo('resets the pageChanges prop');
-    it.todo('resets the updatedPagePreview prop');
+    let updatePage: jest.Mock;
+
+    beforeEach(() => {
+      updatePage = jest.fn();
+      useContributionPageMock.mockReturnValue({ page, updatePage });
+    });
+
+    it('updates the page in the backend', () => {
+      tree();
+      userEvent.click(screen.getByText('setPageChanges'));
+      expect(updatePage).not.toBeCalled();
+      userEvent.click(screen.getByText('savePageChanges'));
+      expect(updatePage.mock.calls).toEqual([[testChange, 'test-screenshot-name', testElement]]);
+    });
+
+    it('does nothing if the pageChanges prop and changes argument is empty', () => {
+      tree();
+      userEvent.click(screen.getByText('savePageChanges'));
+      expect(updatePage).not.toBeCalled();
+    });
+
+    it('merges the changes argument with the pageChanges prop', () => {
+      tree();
+      userEvent.click(screen.getByText('setPageChanges'));
+      userEvent.click(screen.getByText('savePageChanges with override'));
+      expect(updatePage.mock.calls).toEqual([
+        [{ ...testChange, graphic: 'test-graphic-override', name: 'test-name' }, 'test-screenshot-name', testElement]
+      ]);
+    });
+
+    it('resets the pageChanges prop', () => {
+      tree();
+      userEvent.click(screen.getByText('setPageChanges'));
+      expect(screen.getByTestId('page-changes').textContent).not.toBe('{}');
+      userEvent.click(screen.getByText('savePageChanges'));
+      expect(screen.getByTestId('page-changes')).toHaveTextContent('{}');
+    });
+
+    it('resets the updatedPagePreview prop', () => {
+      tree();
+      userEvent.click(screen.getByText('setPageChanges'));
+      expect(screen.getByTestId('updated-page-preview').textContent).not.toBe('{}');
+      userEvent.click(screen.getByText('savePageChanges'));
+      expect(screen.getByTestId('updated-page-preview')).toHaveTextContent('{}');
+    });
+  });
+
+  it('deletes the page in the backend when deletePage is called', () => {
+    const deletePage = jest.fn();
+
+    useContributionPageMock.mockReturnValue({ deletePage, page });
+    tree();
+    expect(deletePage).not.toBeCalled();
+    userEvent.click(screen.getByText('deletePage'));
+    expect(deletePage).toBeCalledTimes(1);
   });
 });

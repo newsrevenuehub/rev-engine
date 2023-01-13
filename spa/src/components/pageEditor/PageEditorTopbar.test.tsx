@@ -70,6 +70,11 @@ describe('PageEditorTopbar', () => {
     expect(screen.queryByText(page.name)).not.toBeInTheDocument();
   });
 
+  it('shows a publish button', () => {
+    tree();
+    expect(screen.getByTestId('publish-button')).toBeVisible();
+  });
+
   it('shows a back button', () => {
     tree();
     expect(screen.getByRole('button', { name: 'Exit' })).toBeEnabled();

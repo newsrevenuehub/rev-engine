@@ -49,10 +49,10 @@ function DAmount({ element, ...props }: DAmountProps) {
 
   // If frequency changes, reset otherAmount
   useEffect(() => {
-    if (frequency !== prevFrequency && prevFrequency !== undefined) {
+    if (frequency !== prevFrequency && prevFrequency !== undefined && !overrideAmount) {
       setOtherValue('');
     }
-  }, [frequency, prevFrequency]);
+  }, [frequency, overrideAmount, prevFrequency]);
 
   // Display the fees control here if a DPayment element elsewhere asks for it.
 
@@ -154,7 +154,7 @@ function DAmount({ element, ...props }: DAmountProps) {
           <FeesContainer>
             <PayFeesControl
               agreedToPayFees={userAgreesToPayFees}
-              currencySymbol={page.currency?.symbol ?? '$'}
+              currencySymbol={page.currency?.symbol!}
               feeAmount={feeAmount}
               frequency={frequency}
               onChange={(event) =>

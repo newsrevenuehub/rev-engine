@@ -47,14 +47,14 @@ export const OtherAmountInput = styled.input`
   min-width: 50px;
   width: 100%;
 
-  /* Chrome, Safari, Edge, Opera */
+  /* Remove arrow from input type="number" in Chrome, Safari, Edge, Opera */
   &::-webkit-outer-spin-button,
   &::-webkit-inner-spin-button {
     -webkit-appearance: none;
     margin: 0;
   }
 
-  /* Firefox */
+  /* Remove arrow from input type="number" in Firefox */
   &[type='number'] {
     -moz-appearance: textfield;
   }

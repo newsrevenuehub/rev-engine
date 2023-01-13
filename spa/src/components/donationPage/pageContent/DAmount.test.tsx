@@ -196,7 +196,7 @@ describe('DAmount', () => {
   describe('when the element has the allowOther option set', () => {
     it('displays a field where the user can enter another amount', () => {
       tree(propsWithOtherAmount);
-      // spinbutton = <input type="number" />
+      // The role "spinbutton" relates to <input type="number" />
       expect(screen.getByRole('spinbutton')).toBeInTheDocument();
     });
 

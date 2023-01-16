@@ -183,7 +183,7 @@ class StripeRecurringPaymentManagerTest(StripePaymentManagerAbstractTestCase):
         pm = self._instantiate_payment_manager_with_instance()
         pm.complete_payment(reject=False)
         mock_sub_create.assert_called_once_with(
-            customer=None,
+            customer=self.contribution.provider_customer_id,
             default_payment_method=self.contribution.provider_payment_method_id,
             items=[
                 {

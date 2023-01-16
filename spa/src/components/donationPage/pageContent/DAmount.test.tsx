@@ -63,13 +63,11 @@ describe('DAmount', () => {
   // state through testids only, and have accessibility problems in general.
 
   it('displays a heading based on the frequency selected', () => {
-    for (const interval in CONTRIBUTION_INTERVALS) {
-      const frequency = CONTRIBUTION_INTERVALS[interval];
-
+    Object.values(CONTRIBUTION_INTERVALS).forEach((frequency) => {
       tree(undefined, { frequency });
       expect(screen.getByText(`${getFrequencyAdjective(frequency)} amount`)).toBeVisible();
       cleanup();
-    }
+    });
   });
 
   it('displays a prompt', () => {
@@ -216,14 +214,12 @@ describe('DAmount', () => {
     });
 
     it('shows the correct label for the frequency in the page', () => {
-      for (const interval in CONTRIBUTION_INTERVALS) {
-        const frequency = CONTRIBUTION_INTERVALS[interval];
-
+      Object.values(CONTRIBUTION_INTERVALS).forEach((frequency) => {
         tree(propsWithOtherAmount, { frequency });
 
         // One-time contributions show no label, just the currency symbol.
 
-        if (interval === 'ONE_TIME') {
+        if (frequency === CONTRIBUTION_INTERVALS.ONE_TIME) {
           // eslint-disable-next-line jest/no-conditional-expect
           expect(screen.getByTestId('amount-other')).toHaveTextContent('mock-currency-symbol');
         } else {
@@ -234,7 +230,7 @@ describe('DAmount', () => {
         }
 
         cleanup();
-      }
+      });
     });
 
     it('sets the amount when a user enters a numeric value into the field', () => {

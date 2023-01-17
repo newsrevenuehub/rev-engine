@@ -21,32 +21,20 @@ describe('ColorPickerPreview', () => {
     screen.getAllByTestId(key).forEach((result) => expect(result).toHaveStyle(`background-color: ${color}`));
   });
 
-  it('should apply default inputBorderColor as "#c4c4c4', () => {
-    tree();
+  it.each([
+    ['default', 'inputBorderColor', '#c4c4c4', undefined],
+    ['default', 'inputBackgroundColor', '#f9f9f9', undefined],
+    ['custom', 'inputBorderColor', '#a1b2c3', '#a1b2c3'],
+    ['custom', 'inputBackgroundColor', '#f1d2e3', '#f1d2e3']
+  ])('should apply %s %s as %s', (_, field, expected, prop) => {
+    tree(prop ? { [field]: prop } : undefined);
     screen
       .getAllByTestId('inputBackgroundColor')
-      .forEach((result) => expect(result).toHaveStyle(`border: 1px solid #c4c4c4`));
-  });
-
-  it('should apply default inputBackgroundColor as "#f9f9f9"', () => {
-    tree();
-    screen
-      .getAllByTestId('inputBackgroundColor')
-      .forEach((result) => expect(result).toHaveStyle(`background-color: #f9f9f9`));
-  });
-
-  it('should apply custom inputBorderColor as "#a1b2c3"', () => {
-    tree({ inputBorderColor: '#a1b2c3' });
-    screen
-      .getAllByTestId('inputBackgroundColor')
-      .forEach((result) => expect(result).toHaveStyle(`border: 1px solid #a1b2c3`));
-  });
-
-  it('should apply custom inputBackgroundColor as "#f1d2e3"', () => {
-    tree({ inputBackgroundColor: '#f1d2e3' });
-    screen
-      .getAllByTestId('inputBackgroundColor')
-      .forEach((result) => expect(result).toHaveStyle(`background-color: #f1d2e3`));
+      .forEach((result) =>
+        expect(result).toHaveStyle(
+          field === 'inputBorderColor' ? `border: 1px solid ${expected}` : `background-color: ${expected}`
+        )
+      );
   });
 
   it('should be accessible', async () => {

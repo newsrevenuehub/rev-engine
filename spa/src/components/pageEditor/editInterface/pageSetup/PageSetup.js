@@ -40,9 +40,20 @@ function PageSetup() {
   const [published_date] = useState(page.published_date ? new Date(page.published_date) : undefined);
 
   const handleKeepChanges = () => {
+    // Coerce undefined values in `images` to empty strings, as this is what the
+    // API request is looking for.
+
+    const parsedImages = Object.keys(images).reduce((result, key) => {
+      if (images[key] === undefined) {
+        return { ...result, [key]: '' };
+      }
+
+      return { ...result, [key]: images[key] };
+    }, {});
+
     setPageContent({
       heading,
-      ...images,
+      ...parsedImages,
       header_link,
       thank_you_redirect,
       post_thank_you_redirect,

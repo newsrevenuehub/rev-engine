@@ -632,6 +632,53 @@ describe('Edit interface: Setup', () => {
       }
     });
   });
+
+  it('only sends blank strings for removed images', () => {
+    // Have to re-run the entire before() process, but with different API
+    // data.
+
+    cy.forceLogin(orgAdminUser);
+    cy.intercept({ method: 'GET', pathname: getEndpoint(USER) }, { body: orgAdminWithContentFlag });
+    cy.intercept({ method: 'GET', pathname: getEndpoint(LIST_STYLES) }, {});
+    cy.intercept(
+      { method: 'GET', pathname: `${getEndpoint(DRAFT_PAGE_DETAIL)}**` },
+      {
+        body: {
+          ...livePage,
+          graphic: 'mock-image-url.jpeg',
+          graphic_thumbnail: 'mock-image-url.jpeg',
+          header_bg_image: 'mock-image-url.jpeg',
+          header_bg_image_thumbnail: 'mock-image-url.jpeg',
+          header_logo: 'mock-image-url.jpeg',
+          header_logo_thumbnail: 'mock-image-url.jpeg'
+        },
+        statusCode: 200
+      }
+    ).as('getPage');
+    cy.intercept(
+      { method: 'PATCH', pathname: `${getEndpoint(PATCH_PAGE)}${livePage.id}/` },
+      { body: livePage, statusCode: 200 }
+    ).as('patchPage');
+
+    const route = testEditPageUrl;
+
+    cy.visit(route);
+    cy.url().should('include', route);
+    cy.wait('@getPage');
+    cy.getByTestId('edit-page-button').click();
+    cy.getByTestId('edit-setup-tab').click({ force: true });
+    cy.findAllByLabelText('Remove').filter(':enabled:first').click();
+    // Accept changes
+    cy.findByRole('button', { name: 'Update' }).click({ force: true });
+
+    // Save changes
+    cy.getByTestId('save-page-button').click();
+    cy.findByText('Continue').click();
+    cy.wait('@patchPage').then(({ request }) => {
+      // This is the first image input in the Page Setup tab.
+      expect(request.body).to.include('Content-Disposition: form-data; name="header_bg_image"\r\n\r\n\r\n------');
+    });
+  });
 });
 
 describe('Edit interface: Styles', () => {

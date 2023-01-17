@@ -1,18 +1,18 @@
+import datetime
 import logging
 import uuid
 from urllib.parse import quote_plus
 
 from django.conf import settings
 from django.db import models
-from django.utils import timezone
-from django.utils.safestring import mark_safe
+from django.utils.safestring import SafeString, mark_safe
 
 import stripe
 from addict import Dict as AttrDict
 
 from apps.api.tokens import ContributorRefreshToken
 from apps.common.models import IndexedTimeStampedModel
-from apps.emails.tasks import send_templated_email
+from apps.emails.tasks import send_thank_you_email
 from apps.users.choices import Roles
 from apps.users.models import RoleAssignmentResourceModelMixin, UnexpectedRoleType
 
@@ -60,6 +60,50 @@ class Contributor(IndexedTimeStampedModel):
 
     def __str__(self):
         return self.email
+
+    def create_stripe_customer(
+        self,
+        rp_stripe_account_id,
+        customer_name=None,
+        phone=None,
+        street=None,
+        city=None,
+        state=None,
+        postal_code=None,
+        country=None,
+        metadata=None,
+    ):
+        """Create a Stripe customer using contributor email"""
+        address = {
+            "line1": street,
+            "city": city,
+            "state": state,
+            "postal_code": postal_code,
+            "country": country,
+        }
+        return stripe.Customer.create(
+            email=self.email,
+            address=address,
+            shipping={"address": address, "name": customer_name},
+            name=customer_name,
+            phone=phone,
+            stripe_account=rp_stripe_account_id,
+            metadata=metadata,
+        )
+
+    @staticmethod
+    def create_magic_link(contribution: "Contribution") -> SafeString:
+        """Create a magic link value that can be inserted into Django templates (for instance, in contributor-facing emails)"""
+        from apps.api.views import construct_rp_domain  # vs. circular import
+
+        if not isinstance(contribution, Contribution):
+            logger.error("`Contributor.create_magic_link` called with invalid contributon value: %s", contribution)
+            raise ValueError("Invalid value provided for `contribution`")
+        token = str(ContributorRefreshToken.for_contributor(contribution.contributor.uuid).short_lived_access_token)
+        return mark_safe(
+            f"https://{construct_rp_domain(contribution.donation_page.revenue_program.slug)}/{settings.CONTRIBUTOR_VERIFY_URL}"
+            f"?token={token}&email={quote_plus(contribution.contributor.email)}"
+        )
 
 
 class ContributionInterval(models.TextChoices):
@@ -444,28 +488,15 @@ class Contribution(IndexedTimeStampedModel, RoleAssignmentResourceModelMixin):
         self.status = ContributionStatus.CANCELED
         self.save()
 
-    def handle_thank_you_email(self, contribution_received_at=None):
+    def handle_thank_you_email(self):
         """Send a thank you email to contribution's contributor if org is configured to have NRE send thank you email"""
-        contribution_received_at = contribution_received_at if contribution_received_at else timezone.now()
         if self.revenue_program.organization.send_receipt_email_via_nre:
-            send_templated_email.delay(
-                self.contributor.email,
-                "Thank you for your contribution!",
-                "nrh-default-contribution-confirmation-email.txt",
-                "nrh-default-contribution-confirmation-email.html",
-                {
-                    "contribution_date": contribution_received_at.strftime("%m-%d-%y"),
-                    "contributor_email": self.contributor.email,
-                    "contribution_amount": self.formatted_amount,
-                    "contribution_interval": self.interval,
-                    "contribution_interval_display_value": self.interval if self.interval != "one_time" else None,
-                    "copyright_year": contribution_received_at.year,
-                    "org_name": self.revenue_program.organization.name,
-                },
-            )
+            send_thank_you_email.delay(self.id)
 
-    def send_recurring_contribution_email_reminder(self, next_charge_date):
-        from apps.api.views import construct_rp_domain  # vs. circular import
+    def send_recurring_contribution_email_reminder(self, next_charge_date: datetime.date) -> None:
+        # vs. circular import
+        from apps.api.views import construct_rp_domain
+        from apps.emails.tasks import send_templated_email
 
         if self.interval == ContributionInterval.ONE_TIME:
             logger.warning(

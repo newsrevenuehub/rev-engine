@@ -121,6 +121,7 @@ class ContributionFactory(DjangoModelFactory):
             status=models.ContributionStatus.PAID,
             payment_provider_data=factory.LazyFunction(lambda: deepcopy(ONE_TIME_PAYMENT_PROVIDER_DATA)),
             provider_payment_id=factory.LazyFunction(lambda: f"pi_{_random_stripe_str()}"),
+            provider_customer_id=f"cus_{_random_stripe_str()}",
         )
 
         # this is roughly how a successful recurring annual contribution would look
@@ -129,6 +130,7 @@ class ContributionFactory(DjangoModelFactory):
             status=models.ContributionStatus.PAID,
             provider_subscription_id=factory.LazyFunction(lambda: f"sub_{_random_stripe_str()}"),
             payment_provider_data=factory.LazyFunction(lambda: deepcopy(RECURRING_ANNUAL_PAYMENT_PROVIDER_DATA)),
+            provider_customer_id=f"cus_{_random_stripe_str()}",
         )
         # this is roughly how a successful recurring annual contribution would look
         monthly_subscription = factory.Trait(
@@ -136,6 +138,7 @@ class ContributionFactory(DjangoModelFactory):
             status=models.ContributionStatus.PAID,
             provider_subscription_id=factory.LazyFunction(lambda: f"sub_{_random_stripe_str()}"),
             payment_provider_data=factory.LazyFunction(lambda: deepcopy(RECURRING_MONTHLY_PAYMENT_PROVIDER_DATA)),
+            provider_customer_id=f"cus_{_random_stripe_str()}",
         )
         flagged = factory.Trait(status=models.ContributionStatus.FLAGGED)
         rejected = factory.Trait(status=models.ContributionStatus.REJECTED)

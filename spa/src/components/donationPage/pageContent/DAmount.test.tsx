@@ -37,19 +37,21 @@ const propsWithOtherAmount = {
 function tree(props?: Partial<DAmountProps>, pageContext?: Partial<UsePageProps>) {
   return render(
     <DonationPageContext.Provider
-      value={{
-        amount: 1,
-        frequency: CONTRIBUTION_INTERVALS.ONE_TIME,
-        errors: {},
-        page: defaultPage,
-        overrideAmount: false,
-        feeAmount: 0.5,
-        setAmount: () => {},
-        setUserAgreesToPayFees: () => {},
-        stripeClientSecret: 'mock-stripe-client-secret',
-        userAgreesToPayFees: false,
-        ...pageContext
-      }}
+      value={
+        {
+          amount: 1,
+          frequency: CONTRIBUTION_INTERVALS.ONE_TIME,
+          errors: {},
+          page: defaultPage,
+          overrideAmount: false,
+          feeAmount: 0.5,
+          setAmount: () => {},
+          setUserAgreesToPayFees: () => {},
+          stripeClientSecret: 'mock-stripe-client-secret',
+          userAgreesToPayFees: false,
+          ...pageContext
+        } as any
+      }
     >
       <ul>
         <DAmount element={element} {...props} />

@@ -2,7 +2,7 @@
 /// <reference types="google.maps" />
 
 import Grid from '@material-ui/core/Grid';
-import { ChangeEvent, useEffect, useState } from 'react';
+import { ChangeEvent, useState } from 'react';
 import { usePlacesWidget } from 'react-google-autocomplete';
 import { HUB_GOOGLE_MAPS_API_KEY } from 'appSettings';
 import { CountryOption } from 'components/base';
@@ -98,14 +98,15 @@ function DDonorAddress() {
             error={!!errors.mailing_street}
             fullWidth
             id="mailing_street"
-            inputRef={addressInputRef}
             name="mailing_street"
-            onFocus={disableBrowserAutofillOnAddress}
             label="Address"
             value={address}
             onBlur={enableBrowserAutofillOnAddress}
             onChange={(e) => setAddress(e.target.value)}
+            onFocus={disableBrowserAutofillOnAddress}
             helperText={errors.mailing_street}
+            inputRef={addressInputRef}
+            ref={addressInputRef}
             required
             data-testid="mailing_street"
           />

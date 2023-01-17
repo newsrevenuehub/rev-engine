@@ -170,6 +170,13 @@ class RevenueProgramTest(TestCase):
         self.assertTrue(isinstance(self.instance.admin_benefitlevel_options, list))
 
 
+# @pytest.markd.django_db
+# @pytest.mark.parameterize(
+#     ""
+# )
+# def test_revenueprogram_filtered_by_role_assignment_or_superuser()
+
+
 class BenefitLevelTest(TestCase):
     def setUp(self):
         self.lower_limit = 50

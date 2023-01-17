@@ -65,7 +65,7 @@ class RevenueProgramViewSet(
     http_method_names = ["get", "patch"]
 
     def get_queryset(self):
-        return self.filter_queryset_for_user(self.request.user, self.model.objects.all())
+        return self.model.objects.filtered_by_role_assignment_or_superuser(self.request.user)
 
     def patch(self, request, pk):
         revenue_program = get_object_or_404(RevenueProgram, pk=pk)

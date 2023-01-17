@@ -2,8 +2,11 @@ import factory
 from factory.django import DjangoModelFactory
 from faker import Faker
 
+from apps.common.utils import normalize_slug
+from apps.organizations.models import RP_SLUG_MAX_LENGTH, RevenueProgram
 from apps.organizations.tests.factories import OrganizationFactory
 from apps.users import models
+from apps.users.choices import Roles
 
 
 fake = Faker()
@@ -39,6 +42,23 @@ class RoleAssignmentFactory(DjangoModelFactory):
         django_get_or_create = ("user",)
 
     user = factory.SubFactory("apps.users.tests.factories.UserFactory")
+    organization = factory.SubFactory("apps.organizations.tests.factories.OrganizationFactory")
+
+    @classmethod
+    def _create(cls, model_class, *args, **kwargs):
+        """Override the default ``_create`` with our custom call."""
+        obj = super()._create(model_class, *args, **kwargs)
+        if cls._original_params.get("free_plan", False):
+            models.OrganizationUser.objects.create(user=obj.user, organization=obj.organization)
+            RevenueProgram.objects.create(
+                organization=obj.organization,
+                name=(name := obj.organization.name),
+                slug=normalize_slug(name, None, max_length=RP_SLUG_MAX_LENGTH),
+            )
+        return obj
+
+    class Params:
+        free_plan = factory.Trait(role_type=Roles.ORG_ADMIN.value)
 
 
 class UserFactory(DjangoModelFactory):
@@ -67,4 +87,8 @@ class OrganizationUserFactory(DjangoModelFactory):
         user_password = DEFAULT_PASSWORD
 
     user = factory.SubFactory(UserFactory, password=factory.SelfAttribute("..user_password"))
-    organization = factory.SubFactory(OrganizationFactory)
+
+    @factory.post_generation
+    def organization(self, create, extracted, **kwargs):
+        if not create:
+            self.organization = extracted if extracted else OrganizationFactory()

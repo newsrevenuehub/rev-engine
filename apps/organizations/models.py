@@ -20,7 +20,7 @@ from apps.pages.defaults import (
     SWAG,
 )
 from apps.users.choices import Roles
-from apps.users.models import RoleAssignmentResourceModelMixin, UnexpectedRoleType
+from apps.users.models import RoleAssignmentResourceModelMixin, UnexpectedRoleType, User
 
 
 logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
@@ -228,6 +228,15 @@ class CountryChoices(models.TextChoices):
     CANADA = "CA", "Canada"
 
 
+class RevenueProgramManager(models.Manager):
+    def filtered_by_role_assignment_or_superuser(self, user: User) -> models.QuerySet:
+        """If superuser, get all, otherwise filter by user's role assignment's organization."""
+        if user.is_superuser:
+            return self.all()
+        else:
+            return self.filter(organization=user.get_role_assignment().organization)
+
+
 class RevenueProgram(IndexedTimeStampedModel):
     name = models.CharField(max_length=255)
     slug = models.SlugField(
@@ -284,6 +293,8 @@ class RevenueProgram(IndexedTimeStampedModel):
         verbose_name="Country",
         help_text="2-letter country code of RP's company. This gets included in data sent to stripe when creating a payment",
     )
+
+    objects = RevenueProgramManager()
 
     def __str__(self):
         return self.name
@@ -370,10 +381,6 @@ class RevenueProgram(IndexedTimeStampedModel):
                 ),
             ]
         )
-
-    @classmethod
-    def filter_queryset_by_role_assignment(cls, role_assignment, queryset):
-        return queryset.filter(organization=role_assignment.organization)
 
 
 class PaymentProvider(IndexedTimeStampedModel):

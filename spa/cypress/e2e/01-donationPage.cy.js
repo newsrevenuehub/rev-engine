@@ -258,6 +258,34 @@ describe('Donation page amount and frequency query parameters', () => {
     });
   });
 
+  specify('selects the default amount if user changes frequency after filling other amount', () => {
+    const targetFreq = 'monthly';
+    const targetAmount = 99;
+    // visit url + querystring
+    cy.visit(getTestingDonationPageUrl(expectedPageSlug, `?amount=${targetAmount}&frequency=${targetFreq}`));
+    cy.wait('@getPageDetail');
+    cy.url().should('include', EXPECTED_RP_SLUG);
+    cy.url().should('include', expectedPageSlug);
+    cy.url().should('include', targetFreq);
+    cy.url().should('include', targetAmount);
+
+    // assert that the right things are checked
+    cy.getByTestId('frequency-month-selected').should('exist');
+    cy.getByTestId(`amount-other-selected`).within(() => {
+      cy.get('input').should('have.value', targetAmount);
+    });
+
+    // Change frequency
+    cy.get('[data-testid*="frequency-one_time"]').click();
+
+    // assert that components are updated
+    cy.getByTestId(`amount-other-selected`).should('not.exist');
+    cy.getByTestId('frequency-month-selected').should('not.exist');
+    cy.getByTestId(`amount-other`).should('exist');
+    cy.getByTestId(`frequency-one_time-selected`).should('exist');
+    cy.getByTestId(`amount-120-selected`).should('exist');
+  });
+
   specify('&amount but no &frequency defaults to that amount with the frequency=once', () => {
     // intercept page, return particular elements
     const targetAmount = 99;

@@ -126,7 +126,7 @@ def process_stripe_webhook_view(request):
     except ValueError:
         logger.exception("Something went wrong processing webhook")
     except Contribution.DoesNotExist:
-        logger.exception("Could not find contribution matching provider_payment_id")
+        logger.exception("Could not find contribution")
 
     return Response(status=status.HTTP_200_OK)
 
@@ -254,9 +254,7 @@ class ContributionsViewSet(viewsets.ReadOnlyModelViewSet, FilterQuerySetByUserMi
             ]
 
         # this is supplied by FilterQuerySetByUserMixin
-        return self.filter_queryset_for_user(
-            self.request.user, self.model.objects.filter(provider_payment_method_details__isnull=False)
-        )
+        return self.filter_queryset_for_user(self.request.user, self.model.objects.having_org_viewable_status())
 
     def filter_queryset(self, queryset):
         # filter backend doesnot apply for contributor
@@ -301,9 +299,7 @@ class ContributionsViewSet(viewsets.ReadOnlyModelViewSet, FilterQuerySetByUserMi
         try:
             name = f"{request.user.first_name} {request.user.last_name}"
 
-            queryset = self.filter_queryset_for_user(
-                self.request.user, self.model.objects.filter(provider_payment_method_details__isnull=False)
-            )
+            queryset = self.filter_queryset_for_user(self.request.user, self.model.objects.having_org_viewable_status())
             contributions = super().filter_queryset(queryset)
             contributions_in_csv = export_contributions_to_csv(contributions)
 

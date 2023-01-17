@@ -57,7 +57,7 @@ def invoice_upcoming():
 
 @pytest.mark.django_db
 class TestPaymentIntentSucceeded:
-    def test_when_contribution_found(self, payment_intent_succeeded, monkeypatch, client):
+    def test_when_contribution_found(self, payment_intent_succeeded, monkeypatch, client, mocker):
         monkeypatch.setattr(WebhookSignature, "verify_header", lambda *args, **kwargs: True)
         header = {"HTTP_STRIPE_SIGNATURE": "testing", "content_type": "application/json"}
         with patch("apps.contributions.models.Contribution.fetch_stripe_payment_method", return_value=None):
@@ -68,7 +68,22 @@ class TestPaymentIntentSucceeded:
                 payment_provider_data=None,
                 provider_payment_id=payment_intent_succeeded["data"]["object"]["id"],
             )
+            spy = mocker.spy(Contribution, "save")
             response = client.post(reverse("stripe-webhooks"), data=payment_intent_succeeded, **header)
+
+        # the next two assertions are to ensure we're only allowing webhook to update a subset of fields
+        # on the instance, in order to avoid race conditions
+        assert spy.call_args[0][0] == contribution
+        assert spy.call_args[1] == {
+            "update_fields": [
+                "status",
+                "last_payment_date",
+                "provider_payment_id",
+                "provider_payment_method_id",
+                "payment_provider_data",
+                "modified",
+            ]
+        }
         assert response.status_code == status.HTTP_200_OK
         contribution.refresh_from_db()
         assert contribution.payment_provider_data == payment_intent_succeeded
@@ -86,13 +101,13 @@ class TestPaymentIntentSucceeded:
         ).exists()
         response = client.post(reverse("stripe-webhooks"), data=payment_intent_succeeded, **header)
         assert response.status_code == status.HTTP_200_OK
-        mock_log_exception.assert_called_once_with("Could not find contribution matching provider_payment_id")
+        mock_log_exception.assert_called_once_with("Could not find contribution")
 
 
 @pytest.mark.django_db
 class TestPaymentIntentCanceled:
     @pytest.mark.parametrize("cancellation_reason", (None, "", "random-thing", "fraudulent"))
-    def test_when_contribution_found(self, cancellation_reason, monkeypatch, client, payment_intent_canceled):
+    def test_when_contribution_found(self, cancellation_reason, monkeypatch, client, payment_intent_canceled, mocker):
         monkeypatch.setattr(WebhookSignature, "verify_header", lambda *args, **kwargs: True)
         header = {"HTTP_STRIPE_SIGNATURE": "testing", "content_type": "application/json"}
         with patch("apps.contributions.models.Contribution.fetch_stripe_payment_method", return_value=None):
@@ -102,7 +117,13 @@ class TestPaymentIntentCanceled:
                 provider_payment_id=payment_intent_canceled["data"]["object"]["id"],
             )
             payment_intent_canceled["data"]["object"]["cancellation_reason"] = cancellation_reason
+            spy = mocker.spy(Contribution, "save")
             response = client.post(reverse("stripe-webhooks"), data=payment_intent_canceled, **header)
+
+        # the next two assertions are to ensure we're only allowing webhook to update a subset of fields
+        # on the instance, in order to avoid race conditions
+        assert spy.call_args[0][0] == contribution
+        assert spy.call_args[1] == {"update_fields": ["status", "payment_provider_data", "modified"]}
         assert response.status_code == status.HTTP_200_OK
         contribution.refresh_from_db()
         assert contribution.payment_provider_data == payment_intent_canceled
@@ -122,12 +143,12 @@ class TestPaymentIntentCanceled:
         ).exists()
         response = client.post(reverse("stripe-webhooks"), data=payment_intent_canceled, **header)
         assert response.status_code == status.HTTP_200_OK
-        mock_log_exception.assert_called_once_with("Could not find contribution matching provider_payment_id")
+        mock_log_exception.assert_called_once_with("Could not find contribution")
 
 
 @pytest.mark.django_db
 class TestPaymentIntentPaymentFailed:
-    def test_when_contribution_found(self, monkeypatch, client, payment_intent_payment_failed):
+    def test_when_contribution_found(self, monkeypatch, client, payment_intent_payment_failed, mocker):
         monkeypatch.setattr(WebhookSignature, "verify_header", lambda *args, **kwargs: True)
         header = {"HTTP_STRIPE_SIGNATURE": "testing", "content_type": "application/json"}
         with patch("apps.contributions.models.Contribution.fetch_stripe_payment_method", return_value=None):
@@ -136,7 +157,14 @@ class TestPaymentIntentPaymentFailed:
                 status=ContributionStatus.PROCESSING,
                 provider_payment_id=payment_intent_payment_failed["data"]["object"]["id"],
             )
+            spy = mocker.spy(Contribution, "save")
             response = client.post(reverse("stripe-webhooks"), data=payment_intent_payment_failed, **header)
+
+        # the next two assertions are to ensure we're only allowing webhook to update a subset of fields
+        # on the instance, in order to avoid race conditions
+        assert spy.call_args[0][0] == contribution
+        assert spy.call_args[1] == {"update_fields": ["status", "payment_provider_data", "modified"]}
+
         assert response.status_code == status.HTTP_200_OK
         contribution.refresh_from_db()
         assert contribution.payment_provider_data == payment_intent_payment_failed
@@ -152,14 +180,14 @@ class TestPaymentIntentPaymentFailed:
         ).exists()
         response = client.post(reverse("stripe-webhooks"), data=payment_intent_payment_failed, **header)
         assert response.status_code == status.HTTP_200_OK
-        mock_log_exception.assert_called_once_with("Could not find contribution matching provider_payment_id")
+        mock_log_exception.assert_called_once_with("Could not find contribution")
 
 
 @pytest.mark.django_db
 class TestCustomerSubscriptionUpdated:
     @pytest.mark.parametrize("payment_method_has_changed", (True, False))
     def test_when_contribution_found(
-        self, monkeypatch, client, customer_subscription_updated, payment_method_has_changed
+        self, monkeypatch, client, customer_subscription_updated, payment_method_has_changed, mocker
     ):
         monkeypatch.setattr(WebhookSignature, "verify_header", lambda *args, **kwargs: True)
         header = {"HTTP_STRIPE_SIGNATURE": "testing", "content_type": "application/json"}
@@ -170,7 +198,21 @@ class TestCustomerSubscriptionUpdated:
             )
             if payment_method_has_changed:
                 customer_subscription_updated["data"]["previous_attributes"] = {"default_payment_method": "something"}
+            spy = mocker.spy(Contribution, "save")
             response = client.post(reverse("stripe-webhooks"), data=customer_subscription_updated, **header)
+
+        # the next two assertions are to ensure we're only allowing webhook to update a subset of fields
+        # on the instance, in order to avoid race conditions
+        assert spy.call_args[0][0] == contribution
+        expected_update_fields = [
+            "modified",
+            "payment_provider_data",
+            "provider_subscription_id",
+        ]
+        if payment_method_has_changed:
+            expected_update_fields.append("provider_payment_method_id")
+        assert spy.call_args[1] == {"update_fields": expected_update_fields}
+
         assert response.status_code == status.HTTP_200_OK
         contribution.refresh_from_db()
         assert contribution.payment_provider_data == customer_subscription_updated
@@ -191,34 +233,31 @@ class TestCustomerSubscriptionUpdated:
         ).exists()
         response = client.post(reverse("stripe-webhooks"), data=customer_subscription_updated, **header)
         assert response.status_code == status.HTTP_200_OK
-        mock_log_exception.assert_called_once_with("Could not find contribution matching provider_payment_id")
+        mock_log_exception.assert_called_once_with("Could not find contribution")
 
 
 @pytest.mark.django_db
 class TestCustomerSubscriptionDeleted:
-    @pytest.mark.parametrize("payment_method_has_changed", (True, False))
-    def test_when_contribution_found(
-        self, monkeypatch, client, customer_subscription_updated, payment_method_has_changed
-    ):
+    def test_when_contribution_found(self, monkeypatch, client, customer_subscription_deleted, mocker):
         monkeypatch.setattr(WebhookSignature, "verify_header", lambda *args, **kwargs: True)
         header = {"HTTP_STRIPE_SIGNATURE": "testing", "content_type": "application/json"}
         with patch("apps.contributions.models.Contribution.fetch_stripe_payment_method", return_value=None):
             contribution = ContributionFactory(
                 annual_subscription=True,
-                provider_subscription_id=customer_subscription_updated["data"]["object"]["id"],
+                provider_subscription_id=customer_subscription_deleted["data"]["object"]["id"],
             )
-            if payment_method_has_changed:
-                customer_subscription_updated["data"]["previous_attributes"] = {"default_payment_method": "something"}
-            response = client.post(reverse("stripe-webhooks"), data=customer_subscription_updated, **header)
+            spy = mocker.spy(Contribution, "save")
+            response = client.post(reverse("stripe-webhooks"), data=customer_subscription_deleted, **header)
+        # the next two assertions are to ensure we're only allowing webhook to update a subset of fields
+        # on the instance, in order to avoid race conditions
+        assert spy.call_args[0][0] == contribution
+        assert spy.call_args[1] == {"update_fields": ["status", "payment_provider_data", "modified"]}
+
         assert response.status_code == status.HTTP_200_OK
         contribution.refresh_from_db()
-        assert contribution.payment_provider_data == customer_subscription_updated
-        assert contribution.provider_subscription_id == customer_subscription_updated["data"]["object"]["id"]
-        if payment_method_has_changed:
-            assert (
-                contribution.provider_payment_method_id
-                == customer_subscription_updated["data"]["object"]["default_payment_method"]
-            )
+        assert contribution.payment_provider_data == customer_subscription_deleted
+        assert contribution.provider_subscription_id == customer_subscription_deleted["data"]["object"]["id"]
+        assert contribution.status == ContributionStatus.CANCELED
 
     def test_when_contribution_not_found(self, monkeypatch, client, customer_subscription_updated):
         monkeypatch.setattr(WebhookSignature, "verify_header", lambda *args, **kwargs: True)
@@ -230,7 +269,7 @@ class TestCustomerSubscriptionDeleted:
         ).exists()
         response = client.post(reverse("stripe-webhooks"), data=customer_subscription_updated, **header)
         assert response.status_code == status.HTTP_200_OK
-        mock_log_exception.assert_called_once_with("Could not find contribution matching provider_payment_id")
+        mock_log_exception.assert_called_once_with("Could not find contribution")
 
 
 @pytest.mark.django_db
@@ -254,7 +293,7 @@ def test_customer_subscription_untracked_event(client, customer_subscription_upd
 
 
 @pytest.mark.django_db
-def test_payment_method_attached(client, monkeypatch, payment_method_attached):
+def test_payment_method_attached(client, monkeypatch, payment_method_attached, mocker):
     monkeypatch.setattr(WebhookSignature, "verify_header", lambda *args, **kwargs: True)
     header = {"HTTP_STRIPE_SIGNATURE": "testing", "content_type": "application/json"}
     with patch("apps.contributions.models.Contribution.fetch_stripe_payment_method", return_value=None):
@@ -262,7 +301,12 @@ def test_payment_method_attached(client, monkeypatch, payment_method_attached):
             one_time=True,
             provider_customer_id=payment_method_attached["data"]["object"]["customer"],
         )
+        spy = mocker.spy(Contribution, "save")
         response = client.post(reverse("stripe-webhooks"), data=payment_method_attached, **header)
+    # the next two assertions are to ensure we're only allowing webhook to update a subset of fields
+    # on the instance, in order to avoid race conditions
+    assert spy.call_args[0][0] == contribution
+    assert spy.call_args[1] == {"update_fields": ["provider_payment_method_id", "modified"]}
     assert response.status_code == status.HTTP_200_OK
     contribution.refresh_from_db()
     assert contribution.provider_payment_method_id == payment_method_attached["data"]["object"]["id"]

@@ -3,6 +3,7 @@ from django.contrib import admin, messages
 from django.utils.html import format_html
 
 from reversion.admin import VersionAdmin
+from reversion_compare.admin import CompareVersionAdmin
 
 from apps.common.admin import RevEngineBaseAdmin, prettify_json_field
 from apps.contributions.models import Contribution, ContributionStatus, Contributor
@@ -30,7 +31,7 @@ class ContributorAdmin(RevEngineBaseAdmin, VersionAdmin):
 
 
 @admin.register(Contribution)
-class ContributionAdmin(RevEngineBaseAdmin, VersionAdmin):
+class ContributionAdmin(CompareVersionAdmin, RevEngineBaseAdmin):
     fieldsets = (
         (
             "Payment",

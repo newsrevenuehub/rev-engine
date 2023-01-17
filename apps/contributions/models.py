@@ -119,6 +119,12 @@ class BadActorScores(models.IntegerChoices):
     SUPERBAD = 5, "5 - Very Bad"
 
 
+class ContributionManager(models.Manager):
+    def having_org_viewable_status(self):
+        """Exclude contributions with statuses that should not be seen by org users from the queryset"""
+        return self.exclude(status__in=[ContributionStatus.FLAGGED, ContributionStatus.REJECTED])
+
+
 class Contribution(IndexedTimeStampedModel, RoleAssignmentResourceModelMixin):
     amount = models.IntegerField(help_text="Stored in cents")
     currency = models.CharField(max_length=3, default="usd")
@@ -150,6 +156,8 @@ class Contribution(IndexedTimeStampedModel, RoleAssignmentResourceModelMixin):
     # to signal to the server that a contribution has been canceled, without relying on easy-to-guess,
     # integer ID value.
     uuid = models.UUIDField(default=uuid.uuid4, primary_key=False, editable=False)
+
+    objects = ContributionManager()
 
     class Meta:
         get_latest_by = "modified"
@@ -398,6 +406,7 @@ class Contribution(IndexedTimeStampedModel, RoleAssignmentResourceModelMixin):
         )
         self.payment_provider_data = subscription
         self.provider_subscription_id = subscription["id"]
+        self.provider_payment_id = subscription["latest_invoice"]["payment_intent"]["id"]
         self.save()
         return subscription
 
@@ -426,7 +435,7 @@ class Contribution(IndexedTimeStampedModel, RoleAssignmentResourceModelMixin):
                 self.provider_subscription_id,
                 stripe_account=self.donation_page.revenue_program.stripe_account_id,
             )
-        elif self.status == ContributionStatus.FLAGGED:
+        elif self.status == ContributionStatus.FLAGGED and self.provider_payment_method_id:
             stripe.PaymentMethod.retrieve(
                 self.provider_payment_method_id,
                 stripe_account=self.donation_page.revenue_program.stripe_account_id,

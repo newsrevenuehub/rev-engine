@@ -20,7 +20,7 @@ export function StripeIntegrationCard() {
       disabled={false}
       toggleConnectedTooltipMessage={
         <>
-          Connected to Stripe. Contact
+          Connected to Stripe. Contact{' '}
           <a href={HELP_URL} style={{ textDecoration: 'underline' }} target="_blank" rel="noreferrer">
             Support
           </a>{' '}

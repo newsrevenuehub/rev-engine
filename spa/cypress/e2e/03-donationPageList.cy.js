@@ -114,9 +114,9 @@ describe('Add Page modal', () => {
       cy.getByTestId('new-page-button').click();
       cy.wait('@createNewPage').then(({ request }) => {
         expect(request.body).to.eql({
-          name: 'Page 1',
+          name: 'Some Rev Program Page 1',
           revenue_program: 1,
-          slug: 'page-1'
+          slug: 'some-rev-program-page-1'
         });
       });
     });
@@ -132,9 +132,9 @@ describe('Add Page modal', () => {
       cy.getByTestId('new-page-button').click();
       cy.wait('@createNewPage').then(({ request }) => {
         expect(request.body).to.eql({
-          name: 'Page 2',
+          name: 'Some Rev Program Page 2',
           revenue_program: 1,
-          slug: 'page-2'
+          slug: 'some-rev-program-page-2'
         });
       });
     });

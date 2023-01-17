@@ -1,6 +1,6 @@
 import datetime
 from unittest.mock import Mock, patch
-from urllib.parse import quote_plus
+from urllib.parse import parse_qs, quote_plus, urlparse
 
 from django.conf import settings
 from django.core import mail
@@ -19,16 +19,15 @@ from apps.contributions.models import (
     Contributor,
     ContributorRefreshToken,
     logger,
-    send_templated_email,
 )
 from apps.contributions.tests.factories import ContributionFactory, ContributorFactory
+from apps.emails.tasks import send_templated_email
 from apps.organizations.tests.factories import (
     OrganizationFactory,
     PaymentProviderFactory,
     RevenueProgramFactory,
 )
 from apps.pages.tests.factories import DonationPageFactory
-from apps.slack.models import SlackNotificationTypes
 
 
 class ContributorTest(TestCase):
@@ -94,6 +93,42 @@ class ContributorTest(TestCase):
         self.assertEqual(customer, return_value)
 
 
+@pytest.fixture
+def contribution():
+    with patch("apps.contributions.models.Contribution.fetch_stripe_payment_method", return_value=None):
+        return ContributionFactory(one_time=True)
+
+
+@pytest.mark.django_db()
+def test_create_magic_link(contribution):
+    assert isinstance(contribution, Contribution)
+    parsed = urlparse(Contributor.create_magic_link(contribution))
+    assert parsed.scheme == "https"
+    expected_domain = urlparse(settings.SITE_URL).netloc
+    assert parsed.netloc == f"{contribution.donation_page.revenue_program.slug}.{expected_domain}"
+    params = parse_qs(parsed.query)
+    assert params["token"][0]
+    assert params["email"][0] == contribution.contributor.email
+
+
+@pytest.mark.parametrize(
+    "value",
+    (
+        None,
+        "",
+        "Something",
+        1,
+        True,
+        False,
+        dict(),
+        lambda x: None,
+    ),
+)
+def test_create_magic_link_with_invalid_values(value):
+    with pytest.raises(ValueError):
+        Contributor.create_magic_link(value)
+
+
 test_key = "test_key"
 
 
@@ -130,18 +165,6 @@ class ContributionTest(TestCase):
         self.contribution.save()
         self.contribution.refresh_from_db()
         self.assertEqual(self.contribution.expanded_bad_actor_score, Contribution.BAD_ACTOR_SCORES[2][1])
-
-    @patch("apps.contributions.models.Contribution.send_slack_notifications")
-    def test_save_without_slack_arg_only_saves(self, mock_send_slack, mock_fetch_stripe_payment_method):
-        self.contribution.amount = 10
-        self.contribution.save()
-        mock_send_slack.assert_not_called()
-
-    @patch("apps.contributions.models.SlackManager")
-    def test_save_with_slack_arg_sends_slack_notifications(self, mock_send_slack, mock_fetch_stripe_payment_method):
-        self.contribution.amount = 10
-        self.contribution.save(slack_notification=SlackNotificationTypes.SUCCESS)
-        mock_send_slack.assert_any_call()
 
     def test_request_stripe_payment_method_details_when_new(self, mock_fetch_stripe_payment_method):
         """
@@ -256,8 +279,7 @@ class ContributionTest(TestCase):
         self.assertEqual(subscription, return_value)
         assert self.contribution.provider_customer_id == stripe_customer_id
 
-    @patch("apps.emails.tasks.send_templated_email.delay")
-    def test_handle_thank_you_email_when_nre_sends(self, mock_send_email, mock_fetch_stripe_payment_method):
+    def test_handle_thank_you_email_when_nre_sends(self, mock_senmock_fetch_stripe_payment_method):
         """Show that when org configured to have NRE send thank you emails, send_templated_email
         gets called with expected args.
         """
@@ -267,23 +289,9 @@ class ContributionTest(TestCase):
         self.contribution.contributor = contributor
         self.contribution.interval = "month"
         self.contribution.save()
-        contribution_received_at = timezone.now()
-        self.contribution.handle_thank_you_email(contribution_received_at)
-        mock_send_email.assert_called_once_with(
-            contributor.email,
-            "Thank you for your contribution!",
-            "nrh-default-contribution-confirmation-email.txt",
-            "nrh-default-contribution-confirmation-email.html",
-            {
-                "contribution_date": contribution_received_at.strftime("%m-%d-%y"),
-                "contributor_email": contributor.email,
-                "contribution_amount": self.contribution.formatted_amount,
-                "contribution_interval": self.contribution.interval,
-                "contribution_interval_display_value": self.contribution.interval,
-                "copyright_year": contribution_received_at.year,
-                "org_name": self.org.name,
-            },
-        )
+        with patch("apps.emails.tasks.send_thank_you_email.delay", return_value=None) as mock_send_email:
+            self.contribution.handle_thank_you_email()
+        mock_send_email.assert_called_once()
 
     @patch("apps.emails.tasks.send_templated_email.delay")
     def test_handle_thank_you_email_when_nre_not_send(self, mock_send_email, mock_fetch_stripe_payment_method):
@@ -489,9 +497,9 @@ def test_contribution_send_recurring_contribution_email_reminder_email_text(
     )
     assert len(mail.outbox) == 1
     email_expectations = [
-        f"Date Scheduled: {next_charge_date.strftime('%m/%d/%Y')}",
+        f"Scheduled: {next_charge_date.strftime('%m/%d/%Y')}",
         f"Email: {contribution.contributor.email}",
-        f"Amount Contributed: {contribution.formatted_amount}/{contribution.interval}",
+        f"Amount Contributed: ${contribution.formatted_amount}/{contribution.interval}",
     ]
     if is_non_profit:
         email_expectations.extend(

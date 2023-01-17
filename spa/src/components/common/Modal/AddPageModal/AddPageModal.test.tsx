@@ -54,7 +54,7 @@ describe('AddPageModal', () => {
     userEvent.click(screen.getByRole('button', { name: /Revenue Program/i }));
     userEvent.click(screen.getByRole('option', { name: revenuePrograms[0].name }));
     userEvent.click(screen.getByRole('button', { name: 'Create' }));
-    await waitFor(() => expect(onAddPage).toHaveBeenCalled());
+    await waitFor(() => onAddPage.mock.calls.length > 0);
     expect(onAddPage).toHaveBeenCalledWith(revenuePrograms[0].id);
   });
 

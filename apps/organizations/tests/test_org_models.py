@@ -1,12 +1,14 @@
 from datetime import timedelta
 from unittest.mock import patch
 
+from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
 from django.db.models.deletion import ProtectedError
 from django.test import TestCase, override_settings
 from django.utils import timezone
 from django.utils.text import slugify
 
+import pytest
 from faker import Faker
 
 from apps.common.models import SocialMeta
@@ -23,6 +25,9 @@ from apps.users.tests.factories import RoleAssignmentFactory
 
 TEST_STRIPE_LIVE_KEY = "my_test_live_key"
 TEST_DOMAIN_APEX = "testapexdomain.com"
+
+
+user_model = get_user_model()
 
 
 class TestOrganizationModel(TestCase):
@@ -170,11 +175,25 @@ class RevenueProgramTest(TestCase):
         self.assertTrue(isinstance(self.instance.admin_benefitlevel_options, list))
 
 
-# @pytest.markd.django_db
-# @pytest.mark.parameterize(
-#     ""
-# )
-# def test_revenueprogram_filtered_by_role_assignment_or_superuser()
+@pytest.mark.django_db
+@pytest.mark.parametrize("is_superuser", (False, True))
+def test_revenueprogram_filtered_by_role_assignment_or_superuser(is_superuser):
+    rps = factories.RevenueProgramFactory.create_batch(size=2)
+
+    user = (
+        user_model.objects.create_superuser(email="test@test.com", password="testing")
+        if is_superuser
+        else RoleAssignmentFactory(
+            self_onboarded_free_plan_user=True,
+            organization=rps[0].organization,
+            revenue_programs=[
+                (owned_rp := rps[0]),
+            ],
+        ).user
+    )
+    query = RevenueProgram.objects.filtered_by_role_assignment_or_superuser(user)
+    assert query.count() == len(rps) if is_superuser else 1
+    assert set([x.id for x in query]) == set([x.id for x in (rps if is_superuser else [owned_rp])])
 
 
 class BenefitLevelTest(TestCase):

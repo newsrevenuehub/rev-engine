@@ -3,7 +3,7 @@ from factory.django import DjangoModelFactory
 from faker import Faker
 
 from apps.common.utils import normalize_slug
-from apps.organizations.models import RP_SLUG_MAX_LENGTH, RevenueProgram
+from apps.organizations.models import RP_SLUG_MAX_LENGTH, FreePlan, RevenueProgram
 from apps.organizations.tests.factories import OrganizationFactory
 from apps.users import models
 from apps.users.choices import Roles
@@ -44,21 +44,35 @@ class RoleAssignmentFactory(DjangoModelFactory):
     user = factory.SubFactory("apps.users.tests.factories.UserFactory")
     organization = factory.SubFactory("apps.organizations.tests.factories.OrganizationFactory")
 
+    @factory.post_generation
+    def revenue_programs(self, create, extracted, **kwargs):
+        if not create:
+            # Simple build, do nothing.
+            return
+
+        if extracted:
+            self.revenue_programs.set(extracted)
+
     @classmethod
     def _create(cls, model_class, *args, **kwargs):
         """Override the default ``_create`` with our custom call."""
         obj = super()._create(model_class, *args, **kwargs)
-        if cls._original_params.get("free_plan", False):
+        if cls._original_params.get("setup_dependencies", False):
             models.OrganizationUser.objects.create(user=obj.user, organization=obj.organization)
-            RevenueProgram.objects.create(
+            RevenueProgram.objects.get_or_create(
                 organization=obj.organization,
                 name=(name := obj.organization.name),
-                slug=normalize_slug(name, None, max_length=RP_SLUG_MAX_LENGTH),
+                slug=normalize_slug(name, "", max_length=RP_SLUG_MAX_LENGTH),
             )
         return obj
 
     class Params:
-        free_plan = factory.Trait(role_type=Roles.ORG_ADMIN.value)
+        setup_dependencies = factory.Trait()
+        self_onboarded_free_plan_user = factory.Trait(
+            setup_dependencies=True,
+            role_type=Roles.ORG_ADMIN.value,
+            organization__plan_name=FreePlan.name,
+        )
 
 
 class UserFactory(DjangoModelFactory):

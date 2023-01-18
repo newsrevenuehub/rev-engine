@@ -1,5 +1,6 @@
 import binascii
 import logging
+import os
 from base64 import urlsafe_b64decode, urlsafe_b64encode
 
 import django
@@ -226,7 +227,10 @@ class UserViewset(
             EMAIL_VERIFICATION_EMAIL_SUBJECT,
             "nrh-org-account-creation-verification-email.txt",
             "nrh-org-account-creation-verification-email.html",
-            {"verification_url": django.utils.safestring.mark_safe(url)},
+            {
+                "verification_url": django.utils.safestring.mark_safe(url),
+                "logo_url": os.path.join(settings.SITE_URL, "static", "nre_logo_black_yellow.png"),
+            },
         )
 
     def validate_password(self, email, password):

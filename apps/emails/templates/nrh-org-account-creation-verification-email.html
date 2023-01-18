@@ -1,4 +1,12 @@
-<div>
-  <p>Thanks for signing up</p>
-  <p>Please <a href="{{ verification_url }}">click on this link</a> to verify your email address.
+{% extends "nrh-user-base-template.html" %}
+
+{% block content %}
+<p class="content-header">Verify Your Email Address</p>
+<p class="content-subheader">Welcome to News Revenue Engine!</p>
+<p class="content-body">Please click the button below to confirm your email address and activate your account.</p>
+<div class="button-wrapper">
+    <a class="button" href="{{ verification_url }}">
+      confirm email
+    </a>
 </div>
+{% endblock content %}

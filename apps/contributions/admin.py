@@ -31,7 +31,7 @@ class ContributorAdmin(RevEngineBaseAdmin, VersionAdmin):
 
 
 @admin.register(Contribution)
-class ContributionAdmin(CompareVersionAdmin, RevEngineBaseAdmin):
+class ContributionAdmin(RevEngineBaseAdmin, CompareVersionAdmin):
     fieldsets = (
         (
             "Payment",

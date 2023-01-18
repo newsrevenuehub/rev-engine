@@ -2,6 +2,5 @@ Verify Your Email Address
 
 Welcome to News Revenue Engine!
 
-Please click the button below to confirm your email address and activate your account.
-
+Please follow the link below to confirm your email address and activate your account.
 {{ verification_url }}

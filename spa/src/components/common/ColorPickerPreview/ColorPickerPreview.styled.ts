@@ -40,8 +40,9 @@ export const Form = styled.div<{ $color: string }>`
 `;
 
 export const LineInput = styled.div<{ $color?: string | null; $border?: string | null }>`
-  width: 100%;
-  height: 30px;
+  height: 27px;
+  max-height: 27px;
+  flex-grow: 1;
   background-color: ${(props) => props.$color ?? props.theme.colors.muiGrey[50]};
   border: 1px solid ${(props) => props.$border ?? props.theme.colors.muiGrey[400]};
   border-radius: ${(props) => props.theme.muiBorderRadius.xl};
@@ -80,8 +81,7 @@ export const Accent = styled.div<{ $color: string }>`
 
 export const Button = styled.div<{ $color: string }>`
   margin: 0 auto;
-  height: 30px;
+  height: 27px;
   width: 180px;
   background-color: ${(props) => props.$color};
-  border-radius: ${(props) => props.theme.muiBorderRadius[19]};
 `;

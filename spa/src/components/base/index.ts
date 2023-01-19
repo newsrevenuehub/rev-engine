@@ -11,4 +11,5 @@ export * from './Pagination/Pagination';
 export * from './RichTextEditor';
 export * from './Table';
 export * from './Tabs';
+export * from './Switch/Switch';
 export * from './Tooltip/Tooltip';

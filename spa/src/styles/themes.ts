@@ -126,7 +126,8 @@ export const revEngineTheme: DefaultTheme = {
     md: '4px',
     lg: '6px',
     xl: '10px',
-    '2xl': '12px'
+    '2xl': '12px',
+    14: '14px'
   },
 
   radii: ['3px', '6px', '12px'],

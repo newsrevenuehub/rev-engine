@@ -26,6 +26,9 @@ export interface Organization {
   name: string;
   slug: string;
   plan?: Plan;
+  show_connected_to_mailchimp: boolean;
+  show_connected_to_salesforce: boolean;
+  show_connected_to_slack: boolean;
 }
 
 export interface User {

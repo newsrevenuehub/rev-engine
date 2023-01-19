@@ -5,6 +5,7 @@ export const H1 = styled.h1`
   font-family: ${(props) => props.theme.systemFont};
   margin-bottom: 1.5rem;
   font-weight: 600;
+  color: ${(props) => props.theme.colors.sidebarBackground};
 `;
 
 export const Subtitle = styled.p`

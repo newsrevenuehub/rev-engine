@@ -40,7 +40,15 @@ class OrganizationInlineSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Organization
-        fields = ["id", "name", "slug", "plan"]
+        fields = [
+            "id",
+            "name",
+            "slug",
+            "plan",
+            "show_connected_to_slack",
+            "show_connected_to_salesforce",
+            "show_connected_to_mailchimp",
+        ]
 
     def get_plan(self, obj):
         return asdict(obj.plan)

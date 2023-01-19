@@ -20,7 +20,7 @@ from apps.pages.defaults import (
     SWAG,
 )
 from apps.users.choices import Roles
-from apps.users.models import RoleAssignmentResourceModelMixin, UnexpectedRoleType, User
+from apps.users.models import RoleAssignment, RoleAssignmentResourceModelMixin, UnexpectedRoleType
 
 
 logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
@@ -229,12 +229,15 @@ class CountryChoices(models.TextChoices):
 
 
 class RevenueProgramManager(models.Manager):
-    def filtered_by_role_assignment_or_superuser(self, user: User) -> models.QuerySet:
-        """If superuser, get all, otherwise filter by user's role assignment's organization."""
-        if user.is_superuser:
+    def filtered_by_role_assignment(self, role_assignment: RoleAssignment) -> models.QuerySet:
+        if (rt := role_assignment.role_type) == Roles.HUB_ADMIN:
             return self.all()
+        elif rt == Roles.ORG_ADMIN:
+            return self.filter(organization=role_assignment.organization)
+        elif rt == Roles.RP_ADMIN:
+            return self.filter(id__in=role_assignment.revenue_programs.values_list("id", flat=True))
         else:
-            return self.filter(organization=user.get_role_assignment().organization)
+            return self.none()
 
 
 class RevenueProgram(IndexedTimeStampedModel):

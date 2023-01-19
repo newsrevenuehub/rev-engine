@@ -7,6 +7,7 @@ from django.test import TestCase, override_settings
 from django.utils import timezone
 from django.utils.text import slugify
 
+import pytest
 from faker import Faker
 
 from apps.common.models import SocialMeta
@@ -90,13 +91,13 @@ class RevenueProgramTest(TestCase):
         self.instance.name = "A new Name"
         self.instance.save()
         self.instance.refresh_from_db()
-        self.assertNotIn(slugify("A new Name"), self.instance.slug)
+        assert slugify("A new Name") not in self.instance.slug
 
     def test_slug_larger_than_100(self):
         fake = Faker()
         Faker.seed(0)
         long_slug_rp = factories.RevenueProgramFactory(name=f"{' '.join(fake.words(nb=30))}")
-        self.assertLessEqual(len(long_slug_rp.slug), 100)
+        assert len(long_slug_rp.slug) < 100
 
     # This is to squash a side effect in contribution.save
     # TODO: DEV-3026
@@ -104,18 +105,18 @@ class RevenueProgramTest(TestCase):
     def test_cannot_delete_when_downstream_contributions(self, mock_fetch_stripe_payment_method):
         page = DonationPageFactory(revenue_program=self.instance)
         ContributionFactory(donation_page=page)
-        with self.assertRaises(ProtectedError) as protected_error:
+        with pytest.raises(ProtectedError) as protected_error:
             self.instance.delete()
         error_msg = (
             "Cannot delete some instances of model 'RevenueProgram' because they are referenced "
             "through protected foreign keys: 'DonationPage.revenue_program'."
         )
-        self.assertEqual(error_msg, protected_error.exception.args[0])
+        assert error_msg, protected_error.value.args[0]
 
     def test_can_delete_when_no_downstream_contributions_and_cascades(self):
         page_id = DonationPageFactory(revenue_program=self.instance).id
         self.instance.delete()
-        self.assertFalse(DonationPage.objects.filter(id=page_id).exists())
+        assert not DonationPage.objects.filter(id=page_id).exists()
 
     def test_delete_organization_deletes_revenue_program(self):
         self.assertIsNotNone(self.organization)
@@ -123,20 +124,20 @@ class RevenueProgramTest(TestCase):
         self.assertEqual(self.instance.organization, self.organization)
         rp_pk = self.instance.id
         self.organization.delete()
-        self.assertFalse(RevenueProgram.objects.filter(pk=rp_pk).exists())
+        assert not RevenueProgram.objects.filter(pk=rp_pk).exists()
 
     def test_deleting_cascades_to_socialmeta(self):
         sm_id = SocialMeta.objects.create(
             title="title", description="description", url="https://example.com", revenue_program=self.instance
         ).id
         self.instance.delete()
-        self.assertFalse(SocialMeta.objects.filter(id=sm_id).exists())
+        assert not SocialMeta.objects.filter(id=sm_id).exists()
 
     def test_format_twitter_handle(self):
         target_handle = "testing"
         self.instance.twitter_handle = "@" + target_handle
         self.instance.clean()
-        self.assertEqual(self.instance.twitter_handle, target_handle)
+        assert self.instance.twitter_handle == target_handle
 
     @override_settings(STRIPE_LIVE_MODE=False)
     @patch("stripe.ApplePayDomain.create")
@@ -157,17 +158,17 @@ class RevenueProgramTest(TestCase):
         denied_word = DenyListWordFactory()
         rp = RevenueProgram(name="My rp", organization=self.organization, payment_provider=self.payment_provider)
         rp.slug = denied_word.word
-        with self.assertRaises(ValidationError) as validation_error:
+        with pytest.raises(ValidationError) as validation_error:
             rp.clean_fields()
-        self.assertIn("slug", validation_error.exception.error_dict)
-        self.assertEqual(SLUG_DENIED_CODE, validation_error.exception.error_dict["slug"][0].code)
-        self.assertEqual(GENERIC_SLUG_DENIED_MSG, validation_error.exception.error_dict["slug"][0].message)
+        assert "slug" in validation_error.value.error_dict
+        assert SLUG_DENIED_CODE == validation_error.value.error_dict["slug"][0].code
+        assert GENERIC_SLUG_DENIED_MSG == validation_error.value.error_dict["slug"][0].message
 
     def test_admin_benefit_options(self):
-        self.assertTrue(isinstance(self.instance.admin_benefit_options, list))
+        assert isinstance(self.instance.admin_benefit_options, list)
 
     def test_admin_benefitlevel_options(self):
-        self.assertTrue(isinstance(self.instance.admin_benefitlevel_options, list))
+        assert isinstance(self.instance.admin_benefitlevel_options, list)
 
     def test_fiscal_sponsor_name_sets_non_profit(self):
         fake = Faker()

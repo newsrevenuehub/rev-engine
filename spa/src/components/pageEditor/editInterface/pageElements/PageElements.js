@@ -1,11 +1,10 @@
-import { Root } from './PageElements.styled';
+import { ElementContainer, Root } from './PageElements.styled';
 
 // Context
 import { useEditInterfaceContext } from 'components/pageEditor/editInterface/EditInterface';
 
 // Children
 import DraggableList from 'elements/draggable/DraggableList';
-import ScrollBox from 'elements/ScrollBox';
 import EditTabHeader from '../EditTabHeader';
 
 /**
@@ -27,14 +26,14 @@ function PageElements({ openAddElementModal, goToProperties, handleRemoveElement
         prompt="Add, edit, and rearrange page sections."
       />
       {elements && elements?.length > 0 && (
-        <ScrollBox>
+        <ElementContainer>
           <DraggableList
             elements={elements}
             setElements={setElements}
             handleItemEdit={(element) => goToProperties(element, 'layout')}
             handleItemDelete={(element) => handleRemoveElement(element, 'layout')}
           />
-        </ScrollBox>
+        </ElementContainer>
       )}
     </Root>
   );

@@ -192,6 +192,7 @@ class RevenueProgramAdmin(RevEngineBaseAdmin, VersionAdmin, AdminImageMixin):
                     "non_profit",
                     "tax_id",
                     "country",
+                    "fiscal_sponsor_name",
                 )
             },
         ),

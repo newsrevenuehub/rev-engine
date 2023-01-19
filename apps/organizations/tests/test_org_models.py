@@ -184,7 +184,7 @@ class RevenueProgramTest(TestCase):
                     fiscal_sponsor_name=fiscal_sponsor_name,
                     non_profit=False,
                 )
-                rp.save()
+                rp.clean()
                 assert rp.non_profit == expected
 
 

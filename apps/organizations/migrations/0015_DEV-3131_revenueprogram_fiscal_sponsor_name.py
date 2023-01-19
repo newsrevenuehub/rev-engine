@@ -13,6 +13,6 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name="revenueprogram",
             name="fiscal_sponsor_name",
-            field=models.CharField(blank=True, max_length=50, null=True),
+            field=models.CharField(blank=True, max_length=63, null=True),
         ),
     ]

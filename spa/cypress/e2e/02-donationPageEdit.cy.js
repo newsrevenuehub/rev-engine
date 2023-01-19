@@ -577,6 +577,108 @@ describe('Edit interface: Setup', () => {
       cy.findByAltText(`image-${label}.jpeg`).should('not.exist');
     }
   });
+
+  it('sends blank strings for the appropriate fields when images are removed', () => {
+    // Have to re-run the entire before() process, but with different API
+    // data.
+
+    cy.forceLogin(orgAdminUser);
+    cy.intercept({ method: 'GET', pathname: getEndpoint(USER) }, { body: orgAdminWithContentFlag });
+    cy.intercept({ method: 'GET', pathname: getEndpoint(LIST_STYLES) }, {});
+    cy.intercept(
+      { method: 'GET', pathname: `${getEndpoint(DRAFT_PAGE_DETAIL)}**` },
+      {
+        body: {
+          ...livePage,
+          graphic: 'mock-image-url.jpeg',
+          graphic_thumbnail: 'mock-image-url.jpeg',
+          header_bg_image: 'mock-image-url.jpeg',
+          header_bg_image_thumbnail: 'mock-image-url.jpeg',
+          header_logo: 'mock-image-url.jpeg',
+          header_logo_thumbnail: 'mock-image-url.jpeg'
+        },
+        statusCode: 200
+      }
+    ).as('getPage');
+    cy.intercept(
+      { method: 'PATCH', pathname: `${getEndpoint(PATCH_PAGE)}${livePage.id}/` },
+      { body: livePage, statusCode: 200 }
+    ).as('patchPage');
+
+    const route = testEditPageUrl;
+
+    cy.visit(route);
+    cy.url().should('include', route);
+    cy.wait('@getPage');
+    cy.getByTestId('edit-page-button').click();
+    cy.getByTestId('edit-setup-tab').click({ force: true });
+    cy.findAllByLabelText('Remove').filter(':enabled').click({ multiple: true });
+    // Accept changes
+    cy.findByRole('button', { name: 'Update' }).click({ force: true });
+
+    // Save changes
+    cy.getByTestId('save-page-button').click();
+    cy.findByText('Continue').click();
+    cy.wait('@patchPage').then(({ request }) => {
+      // This request is sent as multipart form data, so we assert on its
+      // contents. If we end up doing this a lot, it might be worth it to bring
+      // in a module to parse the response.
+      //
+      // The intent here is to test we are sending an empty value, not the
+      // string 'undefined' or something else.
+
+      for (const field of ['graphic', 'header_bg_image', 'header_logo']) {
+        expect(request.body).to.include(`Content-Disposition: form-data; name="${field}"\r\n\r\n\r\n------`);
+      }
+    });
+  });
+
+  it('only sends blank strings for removed images', () => {
+    // Have to re-run the entire before() process, but with different API
+    // data.
+
+    cy.forceLogin(orgAdminUser);
+    cy.intercept({ method: 'GET', pathname: getEndpoint(USER) }, { body: orgAdminWithContentFlag });
+    cy.intercept({ method: 'GET', pathname: getEndpoint(LIST_STYLES) }, {});
+    cy.intercept(
+      { method: 'GET', pathname: `${getEndpoint(DRAFT_PAGE_DETAIL)}**` },
+      {
+        body: {
+          ...livePage,
+          graphic: 'mock-image-url.jpeg',
+          graphic_thumbnail: 'mock-image-url.jpeg',
+          header_bg_image: 'mock-image-url.jpeg',
+          header_bg_image_thumbnail: 'mock-image-url.jpeg',
+          header_logo: 'mock-image-url.jpeg',
+          header_logo_thumbnail: 'mock-image-url.jpeg'
+        },
+        statusCode: 200
+      }
+    ).as('getPage');
+    cy.intercept(
+      { method: 'PATCH', pathname: `${getEndpoint(PATCH_PAGE)}${livePage.id}/` },
+      { body: livePage, statusCode: 200 }
+    ).as('patchPage');
+
+    const route = testEditPageUrl;
+
+    cy.visit(route);
+    cy.url().should('include', route);
+    cy.wait('@getPage');
+    cy.getByTestId('edit-page-button').click();
+    cy.getByTestId('edit-setup-tab').click({ force: true });
+    cy.findAllByLabelText('Remove').filter(':enabled:first').click();
+    // Accept changes
+    cy.findByRole('button', { name: 'Update' }).click({ force: true });
+
+    // Save changes
+    cy.getByTestId('save-page-button').click();
+    cy.findByText('Continue').click();
+    cy.wait('@patchPage').then(({ request }) => {
+      // This is the first image input in the Page Setup tab.
+      expect(request.body).to.include('Content-Disposition: form-data; name="header_bg_image"\r\n\r\n\r\n------');
+    });
+  });
 });
 
 describe('Edit interface: Styles', () => {

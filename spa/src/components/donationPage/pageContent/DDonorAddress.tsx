@@ -106,7 +106,6 @@ function DDonorAddress() {
             onFocus={disableBrowserAutofillOnAddress}
             helperText={errors.mailing_street}
             inputRef={addressInputRef}
-            ref={addressInputRef}
             required
             data-testid="mailing_street"
           />

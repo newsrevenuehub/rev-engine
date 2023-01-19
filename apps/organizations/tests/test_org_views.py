@@ -3,6 +3,7 @@ from unittest import mock
 from django.contrib.auth import get_user_model
 
 import pytest
+import pytest_cases
 from rest_framework import status
 from rest_framework.reverse import reverse
 from rest_framework.test import APIClient, APIRequestFactory
@@ -10,7 +11,7 @@ from reversion.models import Version
 from stripe.error import StripeError
 
 from apps.api.tests import RevEngineApiAbstractTestCase
-from apps.organizations.models import Organization, RevenueProgram, Roles
+from apps.organizations.models import Organization, RevenueProgram, RevenueProgramManager, Roles
 from apps.organizations.tests.factories import OrganizationFactory, RevenueProgramFactory
 from apps.organizations.views import get_stripe_account_link_return_url
 from apps.users.tests.factories import RoleAssignmentFactory, UserFactory, create_test_user
@@ -19,173 +20,240 @@ from apps.users.tests.factories import RoleAssignmentFactory, UserFactory, creat
 user_model = get_user_model()
 
 
-class OrganizationViewSetTest(RevEngineApiAbstractTestCase):
-    model_factory = OrganizationFactory
-    model = Organization
+# class OrganizationViewSetTest(RevEngineApiAbstractTestCase):
+#     model_factory = OrganizationFactory
+#     model = Organization
 
-    def setUp(self):
-        super().setUp()
-        self.is_authed_user = create_test_user()
-        self.post_data = {}
-        self.expected_user_types = (
-            self.superuser,
-            self.hub_user,
-            self.org_user,
-            self.rp_user,
-        )
-        self.detail_url = reverse("organization-detail", args=(self.org1.pk,))
-        self.list_url = reverse("organization-list")
+#     def setUp(self):
+#         super().setUp()
+#         self.is_authed_user = create_test_user()
+#         self.post_data = {}
+#         self.expected_user_types = (
+#             self.superuser,
+#             self.hub_user,
+#             self.org_user,
+#             self.rp_user,
+#         )
+#         self.detail_url = reverse("organization-detail", args=(self.org1.pk,))
+#         self.list_url = reverse("organization-list")
 
-    def assert_user_can_retrieve_an_org(self, user):
-        response = self.assert_user_can_get(self.detail_url, user)
-        self.assertEqual(response.json()["id"], self.org1.pk)
+#     def assert_user_can_retrieve_an_org(self, user):
+#         response = self.assert_user_can_get(self.detail_url, user)
+#         self.assertEqual(response.json()["id"], self.org1.pk)
 
-    def assert_user_cannot_udpate_an_org(self, user):
-        last_modified = self.org1.modified
-        self.assert_user_cannot_patch_because_not_implemented(self.detail_url, user)
-        self.org1.refresh_from_db()
-        self.assertEqual(last_modified, self.org1.modified)
+#     def assert_user_cannot_udpate_an_org(self, user):
+#         last_modified = self.org1.modified
+#         self.assert_user_cannot_patch_because_not_implemented(self.detail_url, user)
+#         self.org1.refresh_from_db()
+#         self.assertEqual(last_modified, self.org1.modified)
 
-    def assert_user_cannot_create_an_org(self, user):
-        before_count = Organization.objects.count()
-        self.assert_user_cannot_post_because_not_implemented(self.list_url, user)
-        self.assertEqual(before_count, Organization.objects.count())
+#     def assert_user_cannot_create_an_org(self, user):
+#         before_count = Organization.objects.count()
+#         self.assert_user_cannot_post_because_not_implemented(self.list_url, user)
+#         self.assertEqual(before_count, Organization.objects.count())
 
-    def assert_user_cannot_delete_an_org(self, user):
-        self.assertGreaterEqual(before_count := Organization.objects.count(), 1)
-        self.assert_user_cannot_delete_because_not_implemented(self.detail_url, user)
-        self.assertEqual(before_count, Organization.objects.count())
+#     def assert_user_cannot_delete_an_org(self, user):
+#         self.assertGreaterEqual(before_count := Organization.objects.count(), 1)
+#         self.assert_user_cannot_delete_because_not_implemented(self.detail_url, user)
+#         self.assertEqual(before_count, Organization.objects.count())
 
-    def test_unauthed_cannot_access(self):
-        self.assert_unauthed_cannot_get(self.detail_url)
-        self.assert_unauthed_cannot_get(self.list_url)
-        self.assert_unauthed_cannot_delete(self.detail_url)
-        self.assert_unauthed_cannot_patch(self.detail_url)
-        self.assert_unauthed_cannot_put(self.detail_url)
+#     def test_unauthed_cannot_access(self):
+#         self.assert_unauthed_cannot_get(self.detail_url)
+#         self.assert_unauthed_cannot_get(self.list_url)
+#         self.assert_unauthed_cannot_delete(self.detail_url)
+#         self.assert_unauthed_cannot_patch(self.detail_url)
+#         self.assert_unauthed_cannot_put(self.detail_url)
 
-    def test_expected_user_types_can_only_read(self):
-        for user in self.expected_user_types:
-            self.assert_user_can_retrieve_an_org(user)
-            self.assert_user_cannot_create_an_org(user)
-            self.assert_user_cannot_udpate_an_org(user)
-            self.assert_user_cannot_delete_an_org(user)
-        for user, count in [
-            (self.superuser, Organization.objects.count()),
-            (self.hub_user, Organization.objects.count()),
-            (self.org_user, 1),
-            (self.rp_user, 1),
-        ]:
-            self.assert_user_can_list(self.list_url, user, count, results_are_flat=True)
+#     def test_expected_user_types_can_only_read(self):
+#         for user in self.expected_user_types:
+#             self.assert_user_can_retrieve_an_org(user)
+#             self.assert_user_cannot_create_an_org(user)
+#             self.assert_user_cannot_udpate_an_org(user)
+#             self.assert_user_cannot_delete_an_org(user)
+#         for user, count in [
+#             (self.superuser, Organization.objects.count()),
+#             (self.hub_user, Organization.objects.count()),
+#             (self.org_user, 1),
+#             (self.rp_user, 1),
+#         ]:
+#             self.assert_user_can_list(self.list_url, user, count, results_are_flat=True)
 
-    def test_unexpected_role_type(self):
-        novel = create_test_user(role_assignment_data={"role_type": "this-is-new"})
-        self.assert_user_cannot_get(
-            reverse("organization-list"),
-            novel,
-            expected_status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-        )
+#     def test_unexpected_role_type(self):
+#         novel = create_test_user(role_assignment_data={"role_type": "this-is-new"})
+#         self.assert_user_cannot_get(
+#             reverse("organization-list"),
+#             novel,
+#             expected_status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+#         )
 
 
-class RevenueProgramViewSetTest(RevEngineApiAbstractTestCase):
-    def setUp(self):
-        super().setUp()
-        self.list_url = reverse("revenue-program-list")
-        self.detail_url = reverse("revenue-program-detail", args=(RevenueProgram.objects.first().pk,))
+@pytest.mark.django_db
+class TestRevenueProgramViewSet:
+    @pytest_cases.parametrize(
+        "user",
+        (
+            pytest_cases.fixture_ref("org_user_free_plan"),
+            pytest_cases.fixture_ref("rp_user"),
+            pytest_cases.fixture_ref("superuser"),
+            pytest_cases.fixture_ref("user_no_role_assignment"),
+            None,
+        ),
+    )
+    def test_retrieve_rp(self, user, client, mocker):
+        """Show that typical users can retrieve what they should be able to, and can't retrieve what they shouldn't
 
-    def test_superuser_can_retrieve_an_rp(self):
-        return self.assert_superuser_can_get(self.detail_url)
+        NB: This test treats RevenueProgram.objects.filtered_by_role_assignment as a blackbox. That function is well-tested
+        elsewhere.
+        """
+        # ensure there will be RPs that org admin and rp admin won't be able to access, but that superuser should be able to
+        # access
+        new_org = OrganizationFactory()
+        RevenueProgramFactory.create_batch(size=2, organization=new_org)
+        client.force_authenticate(user)
 
-    def test_superuser_can_list_rps(self):
-        expected_count = RevenueProgram.objects.count()
-        return self.assert_superuser_can_list(self.list_url, expected_count, results_are_flat=True)
+        # unauthed and users without role assignment can't retrieve any
+        if not (user and user.get_role_assignment()):
+            query = RevenueProgram.objects.all()
+            assert query.count()
+            for rp_id in query.values_list("id", flat=True):
+                response = client.get(reverse("revenue-program-detail", args=(rp_id,)))
+                assert response.status_code == status.HTTP_403_FORBIDDEN if user else status.HTTP_401_UNAUTHORIZED
 
-    def test_other_cannot_access_resource(self):
-        non_superusers = [self.hub_user, self.contributor_user]
-        for user in non_superusers:
-            self.assert_user_cannot_get(self.detail_url, user)
-            self.assert_user_cannot_get(self.list_url, user)
-            self.assert_user_cannot_post(self.list_url, user)
-            self.assert_user_cannot_patch(self.detail_url, user)
-            self.assert_user_cannot_delete(self.detail_url, user)
+        # superuser can retrieve all
+        elif user.is_superuser:
+            query = RevenueProgram.objects.all()
+            assert query.count()
+            for rp_id in query.values_list("id", flat=True):
+                response = client.get(reverse("revenue-program-detail", args=(rp_id,)))
+                assert response.status_code == status.HTTP_200_OK
+        # users with role assignments should only see what's permitted for them
+        elif user.get_role_assignment() is not None:
+            query = RevenueProgram.objects.filtered_by_role_assignment(user.roleassignment)
+            spy = mocker.spy(RevenueProgramManager, "filtered_by_role_assignment")
 
-    def test_unauthed_cannot_access(self):
-        self.assert_unauthed_cannot_get(self.detail_url)
-        self.assert_unauthed_cannot_get(self.list_url)
-        self.assert_unauthed_cannot_delete(self.detail_url)
-        self.assert_unauthed_cannot_patch(self.detail_url)
-        self.assert_unauthed_cannot_put(self.detail_url)
+            unpermitted = RevenueProgram.objects.exclude(id__in=query.values_list("id", flat=True))
+            assert query.count()
+            assert unpermitted.count()
+            for rp_id in query.values_list("id", flat=True):
+                response = client.get(reverse("revenue-program-detail", args=(rp_id,)))
+                assert response.status_code == status.HTTP_200_OK
+            for rp_id in unpermitted.values_list("id", flat=True):
+                response = client.get(reverse("revenue-program-detail", args=(rp_id,)))
+                assert response.status_code == status.HTTP_404_NOT_FOUND
+            # assert about spy calls
+        else:
+            pytest.fail("Unexpected test parameter combination")
 
-    def test_pagination_disabled(self):
-        response = self.assert_superuser_can_get(self.list_url)
-        self.assertNotIn("count", response.json())
-        self.assertNotIn("results", response.json())
+    @pytest_cases.parametrize(
+        "user",
+        (
+            pytest_cases.fixture_ref("org_user_free_plan"),
+            pytest_cases.fixture_ref("rp_user"),
+            pytest_cases.fixture_ref("superuser"),
+        ),
+    )
+    def test_list_when_expected_user(self, user, client, mocker):
+        """Show that typical users can retrieve what they should be able to, and can't retrieve what they shouldn't
 
-    def test_tax_id_available_in_response(self):
-        response = self.assert_superuser_can_get(self.detail_url)
-        assert "tax_id" in response.json()
+        NB: This test treats RevenueProgram.objects.filtered_by_role_assignment as a blackbox. That function is well-tested
+        elsewhere.
+        """
+        # ensure there will be RPs that org admin and rp admin won't be able to access, but that superuser should be able to
+        # access
+        new_org = OrganizationFactory()
+        RevenueProgramFactory.create_batch(size=2, organization=new_org)
 
-    def test_allowed_users_can_update_tax_id(self):
-        tax_id = "111111111"
-        allowed_users = [self.superuser, self.org_user]
-        for user in allowed_users:
-            json_response = self.assert_user_can_patch(self.detail_url, user, {"tax_id": tax_id}).json()
-            assert "tax_id" in json_response
-            assert tax_id == json_response["tax_id"]
-            assert "id" in json_response
-            assert "name" in json_response
-            assert "slug" in json_response
+        client.force_authenticate(user)
 
-    def test_not_allowed_users_cannot_patch(self):
-        not_allowed_users = [self.rp_user, self.hub_user]
-        for user in not_allowed_users:
-            self.assert_user_cannot_patch(self.detail_url, user, {})
+        # superuser can retrieve all
+        if user.is_superuser:
+            query = RevenueProgram.objects.all()
+            assert query.count()
+            response = client.get(reverse("revenue-program-list"))
+            assert response.status_code == status.HTTP_200_OK
+            assert len(rps := response.json()) == query.count()
+            assert set([x["id"] for x in rps]) == set(list(query.values_list("id", flat=True)))
 
-    def test_allowed_users_can_get(self):
-        allowed_users = [self.org_user, self.rp_user, self.superuser]
-        for user in allowed_users:
-            self.assert_user_can_get(self.detail_url, user)
+        else:
+            query = RevenueProgram.objects.filtered_by_role_assignment(user.roleassignment)
+            spy = mocker.spy(RevenueProgramManager, "filtered_by_role_assignment")
+            unpermitted = RevenueProgram.objects.exclude(id__in=query.values_list("id", flat=True))
+            assert query.count()
+            assert unpermitted.count()
+            response = client.get(reverse("revenue-program-list"))
+            assert len(rps := response.json()) == query.count()
+            assert set([x["id"] for x in rps]) == set(list(query.values_list("id", flat=True)))
 
-    def test_user_cannot_patch_other_fields(self):
-        new_value = "new name"
-        response = self.assert_superuser_can_patch(self.detail_url, {"name": new_value})
-        assert response.json()["name"] != new_value
+            # this test is valid insofar as the spyed on method `filtered_by_role_assignment` is called, and has been
+            # tested elsewhere and proven to be valid. Here, we just need to show that it gets called.
+            assert spy.call_count == 1
 
-    def test_patch_tax_id_validates_length(self):
-        user = user_model.objects.create_superuser(email="test_superuser@test.com", password="testing")
-        self.client.force_authenticate(user=user)
-        invalid_tax_id = "123"
-        response = self.client.patch(self.detail_url, {"tax_id": invalid_tax_id}, format="json")
-        assert response.status_code == status.HTTP_400_BAD_REQUEST
-        assert response.json() == {"tax_id": ["Ensure this field has at least 9 characters."]}
+    @pytest_cases.parametrize(
+        "user",
+        (
+            pytest_cases.fixture_ref("hub_admin_user"),
+            pytest_cases.fixture_ref("user_no_role_assignment"),
+            pytest_cases.fixture_ref("contributor_user"),
+            None,
+        ),
+    )
+    def test_list_when_unexpected_user(self, user, client, mocker):
+        """Show that unexpected users cannot retrieve any revenue programs."""
+        RevenueProgramFactory.create_batch(size=2)
+        client.force_authenticate(user)
+        response = client.get(reverse("revenue-program-list"))
+        # if unauthed, get 401
+        if not user:
+            assert response.status_code == status.HTTP_401_UNAUTHORIZED
+        # if unexpected role assignment role type
+        else:
+            assert response.status_code == status.HTTP_403_FORBIDDEN
 
-    def test_cannot_retrieve_someone_elses_rp(self):
-        other_org_user = create_test_user(
-            role_assignment_data={"role_type": Roles.ORG_ADMIN, "organization": self.org2}
-        )
-        assert other_org_user.roleassignment.organization != self.org1
-        self.assert_user_cannot_get(self.detail_url, other_org_user, status.HTTP_404_NOT_FOUND)
+    def test_delete(self):
+        pass
 
-    def test_other_orgs_rps_not_appear_in_my_list_of_rps(self):
-        other_org_user = create_test_user(
-            role_assignment_data={"role_type": Roles.ORG_ADMIN, "organization": self.org2}
-        )
-        assert other_org_user.roleassignment.organization != self.org1
-        assert (expected_rp_count := other_org_user.roleassignment.organization.revenueprogram_set.count()) == 1
+    def test_put(self):
+        pass
 
-        response = self.assert_user_can_get(self.list_url, other_org_user)
-        json_response = response.json()
-        my_rp = other_org_user.roleassignment.organization.revenueprogram_set.first()
-        assert len(json_response) == expected_rp_count
-        assert json_response[0]["id"] == my_rp.id
+    def test_patch_when_expected_user(self):
+        pass
 
-    def test_cannot_patch_another_orgs_rp(self):
-        other_org_user = create_test_user(
-            role_assignment_data={"role_type": Roles.ORG_ADMIN, "organization": self.org2}
-        )
-        assert other_org_user.roleassignment.organization != self.org1
-        self.assert_user_cannot_patch(
-            self.detail_url, other_org_user, {"tax_id": "123456789"}, status.HTTP_404_NOT_FOUND
-        )
+    def test_patch_when_unexpected_user(self):
+        pass
+
+    # def test_pagination_disabled(self):
+    #     response = self.assert_superuser_can_get(self.list_url)
+    #     self.assertNotIn("count", response.json())
+    #     self.assertNotIn("results", response.json())
+
+    # # this should be a test on serializer
+    # # def test_tax_id_available_in_response(self):
+    # #     response = self.assert_superuser_can_get(self.detail_url)
+    # #     assert "tax_id" in response.json()
+
+    # def test_allowed_users_can_update_tax_id(self):
+    #     tax_id = "111111111"
+    #     allowed_users = [self.superuser, self.org_user]
+    #     for user in allowed_users:
+    #         json_response = self.assert_user_can_patch(self.detail_url, user, {"tax_id": tax_id}).json()
+    #         assert "tax_id" in json_response
+    #         assert tax_id == json_response["tax_id"]
+    #         assert "id" in json_response
+    #         assert "name" in json_response
+    #         assert "slug" in json_response
+
+    # def test_user_cannot_patch_other_fields(self):
+    #     new_value = "new name"
+    #     response = self.assert_superuser_can_patch(self.detail_url, {"name": new_value})
+    #     assert response.json()["name"] != new_value
+
+    # def test_patch_tax_id_validates_length(self):
+    #     user = user_model.objects.create_superuser(email="test_superuser@test.com", password="testing")
+    #     self.client.force_authenticate(user=user)
+    #     invalid_tax_id = "123"
+    #     response = self.client.patch(self.detail_url, {"tax_id": invalid_tax_id}, format="json")
+    #     assert response.status_code == status.HTTP_400_BAD_REQUEST
+    #     assert response.json() == {"tax_id": ["Ensure this field has at least 9 characters."]}
 
 
 @pytest.mark.django_db

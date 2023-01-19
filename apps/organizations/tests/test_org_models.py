@@ -19,7 +19,7 @@ from apps.organizations.models import RevenueProgram
 from apps.organizations.tests import factories
 from apps.pages.models import DonationPage
 from apps.pages.tests.factories import DonationPageFactory
-from apps.users.models import RoleAssignment
+from apps.users.models import RoleAssignment, Roles
 from apps.users.tests.factories import RoleAssignmentFactory
 
 
@@ -176,24 +176,49 @@ class RevenueProgramTest(TestCase):
 
 
 @pytest.mark.django_db
-@pytest.mark.parametrize("is_superuser", (False, True))
-def test_revenueprogram_filtered_by_role_assignment_or_superuser(is_superuser):
-    rps = factories.RevenueProgramFactory.create_batch(size=2)
+@pytest.mark.parametrize("role_type", (Roles.HUB_ADMIN, Roles.ORG_ADMIN, Roles.RP_ADMIN))
+def test_revenueprogram_filtered_by_role_assignment(role_type):
+    org1_rp1 = factories.RevenueProgramFactory()
+    org1_rp2 = factories.RevenueProgramFactory(organization=org1_rp1.organization)
+    org2_rp = factories.RevenueProgramFactory()
+    assert org1_rp1.id != org1_rp2.id
+    assert org1_rp1.organization != org2_rp.organization
 
-    user = (
-        user_model.objects.create_superuser(email="test@test.com", password="testing")
-        if is_superuser
-        else RoleAssignmentFactory(
-            self_onboarded_free_plan_user=True,
-            organization=rps[0].organization,
-            revenue_programs=[
-                (owned_rp := rps[0]),
-            ],
-        ).user
+    owned_rps = []
+    if role_type == Roles.ORG_ADMIN:
+        owned_rps = [org1_rp1, org1_rp2]
+    elif role_type == Roles.RP_ADMIN:
+        owned_rps = [
+            org1_rp1,
+        ]
+
+    ra = RoleAssignmentFactory(
+        org_admin_free_plan=True,
+        role_type=role_type,
+        organization=org1_rp1.organization if role_type != Roles.HUB_ADMIN else None,
+        revenue_programs=owned_rps,
     )
-    query = RevenueProgram.objects.filtered_by_role_assignment_or_superuser(user)
-    assert query.count() == len(rps) if is_superuser else 1
-    assert set([x.id for x in query]) == set([x.id for x in (rps if is_superuser else [owned_rp])])
+    query = RevenueProgram.objects.filtered_by_role_assignment(ra)
+    assert query.count() == len(owned_rps) if role_type != Roles.HUB_ADMIN else RevenueProgram.objects.count()
+    assert set(query.values_list("id", flat=True)) == set(
+        [x.id for x in owned_rps]
+        if role_type != Roles.HUB_ADMIN
+        else RevenueProgram.objects.all().values_list("id", flat=True)
+    )
+
+
+@pytest.mark.django_db
+def test_revenueprogram_filtered_by_role_assignment_when_unexpected_role():
+    factories.RevenueProgramFactory.create_batch(3)
+    assert (
+        RevenueProgram.objects.filtered_by_role_assignment(
+            RoleAssignmentFactory(
+                org_admin_free_plan=True,
+                role_type="weird",
+            )
+        ).count()
+        == 0
+    )
 
 
 class BenefitLevelTest(TestCase):

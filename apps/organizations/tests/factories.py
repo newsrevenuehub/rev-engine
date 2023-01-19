@@ -46,15 +46,7 @@ class RevenueProgramFactory(DjangoModelFactory):
     slug = factory.lazy_attribute(lambda o: normalize_slug(name=o.name))
     contact_email = fake.email()
     payment_provider = factory.SubFactory(PaymentProviderFactory)
-
-    class Params:
-        org = None
-
-    @factory.lazy_attribute
-    def organization(self):
-        if self.org:
-            return self.org
-        return OrganizationFactory()
+    organization = factory.SubFactory(OrganizationFactory)
 
 
 class BenefitFactory(DjangoModelFactory):

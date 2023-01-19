@@ -4,7 +4,7 @@ from faker import Faker
 
 from apps.common.utils import normalize_slug
 from apps.organizations.models import RP_SLUG_MAX_LENGTH, FreePlan, RevenueProgram
-from apps.organizations.tests.factories import OrganizationFactory
+from apps.organizations.tests.factories import OrganizationFactory, RevenueProgramFactory
 from apps.users import models
 from apps.users.choices import Roles
 
@@ -47,29 +47,18 @@ class RoleAssignmentFactory(DjangoModelFactory):
     @factory.post_generation
     def revenue_programs(self, create, extracted, **kwargs):
         if not create:
-            # Simple build, do nothing.
             return
-
         if extracted:
             self.revenue_programs.set(extracted)
 
-    @classmethod
-    def _create(cls, model_class, *args, **kwargs):
-        """Override the default ``_create`` with our custom call."""
-        obj = super()._create(model_class, *args, **kwargs)
-        if cls._original_params.get("setup_dependencies", False):
-            models.OrganizationUser.objects.create(user=obj.user, organization=obj.organization)
-            RevenueProgram.objects.get_or_create(
-                organization=obj.organization,
-                name=(name := obj.organization.name),
-                slug=normalize_slug(name, "", max_length=RP_SLUG_MAX_LENGTH),
-            )
-        return obj
+    @factory.post_generation
+    def set_orguser(self, create, extracted, **kwargs):
+        """"""
+        if create and self.organization:
+            OrganizationUserFactory.create(user=self.user, organization=self.organization)
 
     class Params:
-        setup_dependencies = factory.Trait()
-        self_onboarded_free_plan_user = factory.Trait(
-            setup_dependencies=True,
+        org_admin_free_plan = factory.Trait(
             role_type=Roles.ORG_ADMIN.value,
             organization__plan_name=FreePlan.name,
         )
@@ -101,8 +90,4 @@ class OrganizationUserFactory(DjangoModelFactory):
         user_password = DEFAULT_PASSWORD
 
     user = factory.SubFactory(UserFactory, password=factory.SelfAttribute("..user_password"))
-
-    @factory.post_generation
-    def organization(self, create, extracted, **kwargs):
-        if not create:
-            self.organization = extracted if extracted else OrganizationFactory()
+    organization = factory.SubFactory(OrganizationFactory)

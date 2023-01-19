@@ -744,6 +744,10 @@ describe('User flow: unhappy paths', () => {
   beforeEach(() => {
     cy.interceptGoogleRecaptcha();
   });
+
+  // We fill in the form fully in these tests because address fields are marked
+  // as required, and will block form submission otherwise.
+
   specify("Contribution doesn't validate on server", () => {
     const validationError = 'This field is required';
     cy.intercept(

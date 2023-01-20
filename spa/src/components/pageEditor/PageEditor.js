@@ -250,8 +250,8 @@ function PageEditor() {
   const cleanImageKeys = (patchedPage) => {
     // Can't send back existing values for images, as they come in as slugs.
     // The API expects an image. So if typeof page.[image] is a string, delete the key.
+    // An empty string here means "remove this image".
     for (const image of IMAGE_KEYS) {
-      // If it's undefined, we're removing an image. Keep that value.
       if (patchedPage[image] !== '' && typeof patchedPage[image] === 'string') {
         delete patchedPage[image];
       }

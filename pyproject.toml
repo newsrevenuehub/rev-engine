@@ -92,6 +92,7 @@ ipython = "*"
 isort = "*"
 pre-commit = "*"
 pytest = "*"
+pytest-cases = "^3.6.13"
 pytest-cov = "*"
 pytest-django = "*"
 pytest-mock = "*"
@@ -99,8 +100,6 @@ pytest-xdist = "*"
 pyyaml = "*"
 responses = "*"
 
-[tool.poetry.group.dev.dependencies]
-pytest-cases = "^3.6.13"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]

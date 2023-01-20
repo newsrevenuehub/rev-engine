@@ -38,6 +38,9 @@ RP_SLUG_MAX_LENGTH = 63
 
 CURRENCY_CHOICES = [(k, k) for k in settings.CURRENCIES.keys()]
 
+TAX_ID_MIN_LENGTH = 9
+TAX_ID_MAX_LENGTH = TAX_ID_MIN_LENGTH
+
 
 @dataclass(frozen=True)
 class Plan:
@@ -85,6 +88,16 @@ class Plans(models.TextChoices):
         return {cls.FREE.value: FreePlan, cls.PLUS.value: PlusPlan}.get(name, None)
 
 
+class OrganizationManager(models.Manager):
+    def filtered_by_role_assignment(self, role_assignment: RoleAssignment) -> models.QuerySet:
+        if (rt := role_assignment.role_type) == Roles.HUB_ADMIN:
+            return self.all()
+        elif rt in (Roles.ORG_ADMIN, Roles.RP_ADMIN):
+            return self.filter(id=role_assignment.organization.id)
+        else:
+            return self.none()
+
+
 class Organization(IndexedTimeStampedModel, RoleAssignmentResourceModelMixin):
     name = models.CharField(max_length=255, unique=True)
     plan_name = models.CharField(choices=Plans.choices, max_length=10, default=Plans.FREE)
@@ -123,6 +136,8 @@ class Organization(IndexedTimeStampedModel, RoleAssignmentResourceModelMixin):
         default=True,
         help_text="If false, receipt email assumed to be sent via Salesforce. Other emails, e.g. magic_link, are always sent via NRE regardless of this setting",
     )
+
+    objects = OrganizationManager()
 
     def __str__(self):
         return self.name
@@ -260,7 +275,9 @@ class RevenueProgram(IndexedTimeStampedModel):
     )
     # TODO: [DEV-2403] non_profit should probably be moved to the payment provider?
     non_profit = models.BooleanField(default=True, verbose_name="Non-profit?")
-    tax_id = models.CharField(blank=True, null=True, max_length=9, validators=[MinLengthValidator(9)])
+    tax_id = models.CharField(
+        blank=True, null=True, max_length=TAX_ID_MAX_LENGTH, validators=[MinLengthValidator(TAX_ID_MIN_LENGTH)]
+    )
     payment_provider = models.ForeignKey("organizations.PaymentProvider", null=True, on_delete=models.SET_NULL)
     domain_apple_verified_date = models.DateTimeField(blank=True, null=True)
 

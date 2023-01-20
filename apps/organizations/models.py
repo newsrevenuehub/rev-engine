@@ -251,7 +251,7 @@ class RevenueProgram(IndexedTimeStampedModel):
     tax_id = models.CharField(blank=True, null=True, max_length=9, validators=[MinLengthValidator(9)])
     payment_provider = models.ForeignKey("organizations.PaymentProvider", null=True, on_delete=models.SET_NULL)
     domain_apple_verified_date = models.DateTimeField(blank=True, null=True)
-    fiscal_sponsor_name = models.CharField(max_length=63, null=True, blank=True)
+    fiscal_sponsor_name = models.CharField(max_length=RP_SLUG_MAX_LENGTH, null=True, blank=True)
 
     # Analytics
     google_analytics_v3_domain = models.CharField(max_length=300, null=True, blank=True)

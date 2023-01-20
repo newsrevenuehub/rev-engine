@@ -332,7 +332,7 @@ class RevenueProgram(IndexedTimeStampedModel):
         self.clean_non_profit()
 
     def clean_non_profit(self):
-        # Ensure the presence of a Fiscal sponsor automatically treats the RevenueProgram as nonprofit
+        """Ensure the presence of a fiscal sponsor automatically treats the RevenueProgram as nonprofit"""
         if self.fiscal_sponsor_name:
             self.non_profit = True
 

@@ -170,23 +170,24 @@ class RevenueProgramTest(TestCase):
     def test_admin_benefitlevel_options(self):
         assert isinstance(self.instance.admin_benefitlevel_options, list)
 
-    def test_fiscal_sponsor_name_sets_non_profit(self):
-        fake = Faker()
-        for fiscal_sponsor_name, expected in [("", False), (None, False), ("NRH", True)]:
-            with self.subTest(
-                "Validate fiscal_sponsor_name failed", fiscal_sponsor_name=fiscal_sponsor_name, expected=expected
-            ):
-                rp_name = fake.words(nb=1)
-                rp = RevenueProgram(
-                    name=rp_name,
-                    slug=rp_name,
-                    organization=self.organization,
-                    payment_provider=self.payment_provider,
-                    fiscal_sponsor_name=fiscal_sponsor_name,
-                    non_profit=False,
-                )
-                rp.clean()
-                assert rp.non_profit == expected
+
+@pytest.mark.django_db
+@pytest.mark.parametrize("fiscal_sponsor_name, expected", (("", False), (None, False), ("NRH", True)))
+def test_fiscal_sponsor_name_sets_non_profit(fiscal_sponsor_name, expected):
+    fake = Faker()
+    rp_name = fake.words(nb=1)
+    organization = factories.OrganizationFactory()
+    payment_provider = factories.PaymentProviderFactory(stripe_account_id="act_1234")
+    rp = RevenueProgram(
+        name=rp_name,
+        slug=rp_name,
+        organization=organization,
+        payment_provider=payment_provider,
+        fiscal_sponsor_name=fiscal_sponsor_name,
+        non_profit=False,
+    )
+    rp.clean()
+    assert rp.non_profit == expected
 
 
 class BenefitLevelTest(TestCase):

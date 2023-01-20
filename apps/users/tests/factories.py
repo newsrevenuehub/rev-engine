@@ -2,9 +2,8 @@ import factory
 from factory.django import DjangoModelFactory
 from faker import Faker
 
-from apps.common.utils import normalize_slug
-from apps.organizations.models import RP_SLUG_MAX_LENGTH, FreePlan, RevenueProgram
-from apps.organizations.tests.factories import OrganizationFactory, RevenueProgramFactory
+from apps.organizations.models import FreePlan
+from apps.organizations.tests.factories import OrganizationFactory
 from apps.users import models
 from apps.users.choices import Roles
 
@@ -53,7 +52,7 @@ class RoleAssignmentFactory(DjangoModelFactory):
 
     @factory.post_generation
     def set_orguser(self, create, extracted, **kwargs):
-        """"""
+        """If RA has organization and this is creation, we create an OrganizationUser instance"""
         if create and self.organization:
             OrganizationUserFactory.create(user=self.user, organization=self.organization)
 

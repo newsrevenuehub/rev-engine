@@ -67,7 +67,7 @@ class TestOrganizationModel(TestCase):
         self.assertFalse(RoleAssignment.objects.filter(id=ra_id).exists())
 
 
-class RevenueProgramTest(TestCase):
+class RevenueProgramTest:
     def setUp(self):
         self.stripe_account_id = "my_stripe_account_id"
         self.organization = factories.OrganizationFactory()
@@ -119,9 +119,9 @@ class RevenueProgramTest(TestCase):
         assert not DonationPage.objects.filter(id=page_id).exists()
 
     def test_delete_organization_deletes_revenue_program(self):
-        self.assertIsNotNone(self.organization)
-        self.assertIsNotNone(self.instance)
-        self.assertEqual(self.instance.organization, self.organization)
+        assert self.organization is not None
+        assert self.instance is not None
+        assert self.instance.organization == self.organization
         rp_pk = self.instance.id
         self.organization.delete()
         assert not RevenueProgram.objects.filter(pk=rp_pk).exists()
@@ -170,24 +170,21 @@ class RevenueProgramTest(TestCase):
     def test_admin_benefitlevel_options(self):
         assert isinstance(self.instance.admin_benefitlevel_options, list)
 
-
-@pytest.mark.django_db
-@pytest.mark.parametrize("fiscal_sponsor_name, expected", (("", False), (None, False), ("NRH", True)))
-def test_fiscal_sponsor_name_sets_non_profit(fiscal_sponsor_name, expected):
-    fake = Faker()
-    rp_name = fake.words(nb=1)
-    organization = factories.OrganizationFactory()
-    payment_provider = factories.PaymentProviderFactory(stripe_account_id="act_1234")
-    rp = RevenueProgram(
-        name=rp_name,
-        slug=rp_name,
-        organization=organization,
-        payment_provider=payment_provider,
-        fiscal_sponsor_name=fiscal_sponsor_name,
-        non_profit=False,
-    )
-    rp.clean()
-    assert rp.non_profit == expected
+    @pytest.mark.django_db
+    @pytest.mark.parametrize("fiscal_sponsor_name, expected", (("", False), (None, False), ("NRH", True)))
+    def test_fiscal_sponsor_name_sets_non_profit(self, fiscal_sponsor_name, expected):
+        fake = Faker()
+        rp_name = fake.words(nb=1)
+        rp = RevenueProgram(
+            name=rp_name,
+            slug=rp_name,
+            organization=self.organization,
+            payment_provider=self.payment_provider,
+            fiscal_sponsor_name=fiscal_sponsor_name,
+            non_profit=False,
+        )
+        rp.clean()
+        assert rp.non_profit == expected
 
 
 class BenefitLevelTest(TestCase):

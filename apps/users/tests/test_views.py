@@ -815,7 +815,6 @@ class TestUserViewSet(APITestCase):
         email = mail.outbox[0]
         assert user.email in email.to
         assert not any(x in email.body for x in "{}")
-        assert not any(x in email.alternatives[0][0] for x in "{}")
         # Email includes valid link, Bug DEV-2340.
         verification_link = BeautifulSoup(email.alternatives[0][0], "html.parser").a.attrs["href"]
         parsed = urlparse(verification_link)

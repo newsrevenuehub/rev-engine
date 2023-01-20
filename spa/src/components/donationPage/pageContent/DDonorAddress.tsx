@@ -78,13 +78,13 @@ function DDonorAddress() {
             error={!!errors.mailing_street}
             fullWidth
             id="mailing_street"
+            inputRef={addressInputRef}
             name="mailing_street"
             label="Address"
             value={address}
             onChange={(e) => setAddress(e.target.value)}
             helperText={errors.mailing_street}
             required
-            ref={addressInputRef}
             data-testid="mailing_street"
           />
         </Grid>

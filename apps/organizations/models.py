@@ -333,7 +333,7 @@ class RevenueProgram(IndexedTimeStampedModel):
 
     def clean_non_profit(self):
         # Ensure the presence of a Fiscal sponsor automatically treats the RevenueProgram as nonprofit
-        if self.fiscal_sponsor_name is not None and self.fiscal_sponsor_name != "":
+        if self.fiscal_sponsor_name:
             self.non_profit = True
 
     def stripe_create_apple_pay_domain(self):

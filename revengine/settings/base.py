@@ -94,6 +94,7 @@ INSTALLED_APPS = [
     "apps.emails",
     "apps.contributions",
     "apps.element_media",
+    "apps.google_cloud",
     "apps.public",
     "apps.config",
     "django.contrib.admin",

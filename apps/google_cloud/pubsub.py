@@ -17,7 +17,7 @@ class Message:
         self.data = data.encode("utf-8")
 
 
-class GoogleCloudPubSubPublisher:
+class Publisher:
 
     __instance = None
 
@@ -39,5 +39,5 @@ class GoogleCloudPubSubPublisher:
         GoogleCloud, and it will only do it the first time the application requires it. Additionally, memory is saved by
         sharing the same instance across RevEngine"""
         if not cls.__instance:
-            cls.__instance = GoogleCloudPubSubPublisher()
+            cls.__instance = Publisher()
         return cls.__instance

@@ -3,10 +3,10 @@ from unittest.mock import MagicMock, patch
 from django.contrib.auth import get_user_model
 from django.test import TestCase
 
+from apps.google_cloud.pubsub import Message
 from apps.organizations.models import RevenueProgram
 from apps.organizations.tests.factories import OrganizationFactory, RevenueProgramFactory
 from apps.users import models
-from apps.users.google_pub_sub import Message
 from apps.users.tests.factories import create_test_user
 
 
@@ -54,7 +54,7 @@ class UserModelTest(TestCase):
 
     @patch("apps.users.models.google_cloud_pub_sub_is_configured", MagicMock(return_value=True))
     @patch("django.conf.settings.NEW_USER_TOPIC")
-    @patch("apps.users.google_pub_sub.GoogleCloudPubSubPublisher")
+    @patch("apps.google_cloud.pubsub.Publisher")
     def test_publishes_external_emails_to_google_pubsub(self, publisher, new_user_topic):
         topic = "topic"
         new_user_topic.return_value = topic
@@ -63,7 +63,7 @@ class UserModelTest(TestCase):
         publisher.publish.called_with(new_user_topic, Message(data=email))
 
     @patch("apps.users.models.google_cloud_pub_sub_is_configured", MagicMock(return_value=True))
-    @patch("apps.users.google_pub_sub.GoogleCloudPubSubPublisher.publish")
+    @patch("apps.google_cloud.pubsub.Publisher.publish")
     def test_publishes_internal_emails_to_google_pubsub(self, publish):
         email = "contributor@fundjournalism.org"
         create_test_user(email=email)
@@ -71,7 +71,7 @@ class UserModelTest(TestCase):
 
     @patch("apps.users.models.google_cloud_pub_sub_is_configured", MagicMock(return_value=True))
     @patch("django.conf.settings.NEW_USER_TOPIC")
-    @patch("apps.users.google_pub_sub.GoogleCloudPubSubPublisher")
+    @patch("apps.google_cloud.pubsub.Publisher")
     def test_only_publishes_for_create(self, publisher, new_user_topic):
         topic = "topic"
         new_user_topic.return_value = topic

@@ -8,7 +8,7 @@ describe('ButtonBorderPreview', () => {
     return render(<ButtonBorderPreview {...props} />);
   }
 
-  it('should apply default border radius', () => {
+  it('should default the border radius to 0', () => {
     tree();
     expect(screen.getByTestId('border-button')).toHaveStyle(`border-radius: 0px;`);
   });

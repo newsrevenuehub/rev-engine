@@ -59,7 +59,7 @@ def upsert_destination(name: str, url: str, auto_unarchive: bool = True) -> dict
 def upsert_connection(name: str, source_id: str, destination_id: str, auto_unarchive: bool = True) -> dict:
     """Upsert a connection to Hookdeck.
 
-    A *connection* is a maps a Hookdeck source to a Hookdeck destination. A given source can be configured
+    A *connection* maps a Hookdeck source to a Hookdeck destination. A given source can be configured
     to have many destinations via a connection.
     """
 

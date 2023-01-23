@@ -14,6 +14,7 @@ API_VERSION = "2022-11-01"
 BASE_URL = f"https://api.hookdeck.com/{API_VERSION}"
 CONNECTIONS_URL = f"{BASE_URL}/connections"
 DESTINATIONS_URL = f"{BASE_URL}/destinations"
+SOURCES_URL = f"{BASE_URL}/sources"
 
 
 class HookDeckIntegrationError(Exception):
@@ -68,12 +69,12 @@ def upsert_connection(name: str, source_id: str, destination_id: str, auto_unarc
     )
 
 
-def retrieve(entity_type: Literal["connection", "destination"], id: str) -> dict:
+def retrieve(entity_type: Literal["connection", "destination", "source"], id: str) -> dict:
     """Retrieve an entity from Hookdeck"""
     try:
         response = requests.get(
             f"""{
-                {'connection': CONNECTIONS_URL, 'destination': DESTINATIONS_URL
+                {"connection": CONNECTIONS_URL, "destination": DESTINATIONS_URL, "source": SOURCES_URL
                 }[entity_type]
             }/{id}""",
             headers=HEADERS,
@@ -86,10 +87,10 @@ def retrieve(entity_type: Literal["connection", "destination"], id: str) -> dict
         raise HookDeckIntegrationError("Something went wrong retrieving destination. It's been logged.")
 
 
-def search(entity_type: Literal["connection", "destination"], params) -> dict:
+def search(entity_type: Literal["connection", "destination", "source"], params) -> dict:
     """Search for Hookdeck entities matching search criteria in `params`"""
     response = requests.get(
-        {"connection": CONNECTIONS_URL, "destination": DESTINATIONS_URL}[entity_type],
+        {"connection": CONNECTIONS_URL, "destination": DESTINATIONS_URL, "source": SOURCES_URL}[entity_type],
         headers={
             "Authorization": f"Bearer {settings.HOOKDECK_API_KEY}",
         },
@@ -140,7 +141,20 @@ def search_destinations(
     return search("destination", params)
 
 
-def archive(entity_type: Literal["connection", "destination"], id: str) -> dict:
+def search_sources(
+    id: Optional[str] = None,
+    name: Optional[str] = None,
+    archived: bool = True,
+) -> dict:
+    """Search Hookdeck destinations.
+
+    Can search by name, archived status, and url.
+    """
+    params = {k: v for (k, v) in {"id": id, "name": name, "archived": archived}.items() if k is not None}
+    return search("destination", params)
+
+
+def archive(entity_type: Literal["connection", "destination", "source"], id: str) -> dict:
     """Archive a Hookdeck entity.
 
     Archiving an entity causes that entities send/receipt behavior to cease. An archived resource can be
@@ -159,7 +173,7 @@ def archive(entity_type: Literal["connection", "destination"], id: str) -> dict:
         return response.json()
 
 
-def unarchive(entity_type: Literal["connection", "destination"], id: str) -> dict:
+def unarchive(entity_type: Literal["connection", "destination", "source"], id: str) -> dict:
     """Unarchive a Hookdeck entity.
 
     Uncarhiving an entity resumes its send/receipt behavior if the entity was previously in an "arhived" state.

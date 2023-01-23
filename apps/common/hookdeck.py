@@ -151,7 +151,7 @@ def search_sources(
     Can search by name, archived status, and url.
     """
     params = {k: v for (k, v) in {"id": id, "name": name, "archived": archived}.items() if k is not None}
-    return search("destination", params)
+    return search("source", params)
 
 
 def archive(entity_type: Literal["connection", "destination", "source"], id: str) -> dict:

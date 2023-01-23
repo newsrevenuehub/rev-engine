@@ -1,5 +1,6 @@
 import json
 from unittest.mock import Mock
+from urllib.parse import urljoin
 
 from django.conf import settings
 from django.utils import timezone
@@ -11,12 +12,14 @@ from rest_framework import status
 from apps.common.hookdeck import (
     CONNECTIONS_URL,
     DESTINATIONS_URL,
+    SOURCES_URL,
     HookDeckIntegrationError,
     archive,
     bootstrap,
     retrieve,
     search_connections,
     search_destinations,
+    search_sources,
     tear_down,
     unarchive,
     upsert,
@@ -149,14 +152,19 @@ def test_upsert_connection(monkeypatch):
     (
         ("connection", "apps/common/tests/fixtures/hookdeck-retrieve-connection.json"),
         ("destination", "apps/common/tests/fixtures/hookdeck-retrieve-destination.json"),
+        ("source", "apps/common/tests/fixtures/hookdeck-retrieve-source.json"),
     ),
 )
 def test_retrieve_happy_path(entity_type, fixture_path):
     with open(fixture_path) as fl:
         fixture = json.load(fl)
+    url = urljoin(
+        {"connection": CONNECTIONS_URL, "destination": DESTINATIONS_URL, "source": SOURCES_URL}.get(entity_type) + "/",
+        fixture["id"],
+    )
     responses.add(
         responses.GET,
-        f"{CONNECTIONS_URL if entity_type == 'connection' else DESTINATIONS_URL}/{fixture['id']}",
+        url,
         json=fixture,
         status=status.HTTP_200_OK,
     )
@@ -205,6 +213,35 @@ def test_search_connections_when_hookdeck_non_200():
     responses.add(responses.GET, f"{CONNECTIONS_URL}", status=status.HTTP_500_INTERNAL_SERVER_ERROR)
     with pytest.raises(HookDeckIntegrationError):
         assert search_connections(name="something")
+
+
+@responses.activate
+@pytest.mark.parametrize("has_results", (True, False))
+def test_search_sources(has_results):
+    params = {
+        "id": "<some-id>",
+        "name": "my-connection",
+        "archived": True,
+    }
+    fixture_path = (
+        "apps/common/tests/fixtures/hookdeck-search-sources.json"
+        if has_results
+        else "apps/common/tests/fixtures/hookdeck-search-no-results.json"
+    )
+    with open(fixture_path) as fl:
+        fixture = json.load(fl)
+
+    responses.add(responses.GET, f"{CONNECTIONS_URL}", json=fixture)
+    result = search_connections(**params)
+    assert set(result.keys()).issuperset({"pagination", "count", "models"})
+    assert set(result["pagination"].keys()) == {"order_by", "dir", "limit"}
+
+
+@responses.activate
+def test_search_sources_when_hookdeck_non_200():
+    responses.add(responses.GET, f"{SOURCES_URL}", status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    with pytest.raises(HookDeckIntegrationError):
+        assert search_sources(name="something")
 
 
 @responses.activate

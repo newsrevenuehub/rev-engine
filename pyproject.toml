@@ -1,6 +1,6 @@
 [tool.black]
 line-length = 120
-target-version = ["py38"]
+target-version = ["py310"]
 include = '\.pyi?$'
 exclude = '''
 /(
@@ -92,6 +92,7 @@ ipython = "*"
 isort = "*"
 pre-commit = "*"
 pytest = "*"
+pytest-cases = "^3.6.13"
 pytest-cov = "*"
 pytest-django = "*"
 pytest-mock = "*"

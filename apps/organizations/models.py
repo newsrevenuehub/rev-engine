@@ -20,7 +20,7 @@ from apps.pages.defaults import (
     SWAG,
 )
 from apps.users.choices import Roles
-from apps.users.models import RoleAssignmentResourceModelMixin, UnexpectedRoleType
+from apps.users.models import RoleAssignment, RoleAssignmentResourceModelMixin, UnexpectedRoleType
 
 
 logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
@@ -37,6 +37,8 @@ UNLIMITED_CEILING = 200
 RP_SLUG_MAX_LENGTH = 63
 
 CURRENCY_CHOICES = [(k, k) for k in settings.CURRENCIES.keys()]
+
+TAX_ID_MAX_LENGTH = TAX_ID_MIN_LENGTH = 9
 
 
 @dataclass(frozen=True)
@@ -85,6 +87,17 @@ class Plans(models.TextChoices):
         return {cls.FREE.value: FreePlan, cls.PLUS.value: PlusPlan}.get(name, None)
 
 
+class OrganizationManager(models.Manager):
+    def filtered_by_role_assignment(self, role_assignment: RoleAssignment) -> models.QuerySet:
+        match role_assignment.role_type:
+            case Roles.HUB_ADMIN:
+                return self.all()
+            case Roles.ORG_ADMIN | Roles.RP_ADMIN:
+                return self.filter(id=role_assignment.organization.id)
+            case _:
+                return self.none()
+
+
 class Organization(IndexedTimeStampedModel, RoleAssignmentResourceModelMixin):
     name = models.CharField(max_length=255, unique=True)
     plan_name = models.CharField(choices=Plans.choices, max_length=10, default=Plans.FREE)
@@ -123,6 +136,8 @@ class Organization(IndexedTimeStampedModel, RoleAssignmentResourceModelMixin):
         default=True,
         help_text="If false, receipt email assumed to be sent via Salesforce. Other emails, e.g. magic_link, are always sent via NRE regardless of this setting",
     )
+
+    objects = OrganizationManager()
 
     def __str__(self):
         return self.name
@@ -228,6 +243,19 @@ class CountryChoices(models.TextChoices):
     CANADA = "CA", "Canada"
 
 
+class RevenueProgramManager(models.Manager):
+    def filtered_by_role_assignment(self, role_assignment: RoleAssignment) -> models.QuerySet:
+        match role_assignment.role_type:
+            case Roles.HUB_ADMIN:
+                return self.all()
+            case Roles.ORG_ADMIN:
+                return self.filter(organization=role_assignment.organization)
+            case Roles.RP_ADMIN:
+                return self.filter(id__in=role_assignment.revenue_programs.values_list("id", flat=True))
+            case _:
+                return self.none()
+
+
 class RevenueProgram(IndexedTimeStampedModel):
     name = models.CharField(max_length=255)
     slug = models.SlugField(
@@ -248,7 +276,9 @@ class RevenueProgram(IndexedTimeStampedModel):
     )
     # TODO: [DEV-2403] non_profit should probably be moved to the payment provider?
     non_profit = models.BooleanField(default=True, verbose_name="Non-profit?")
-    tax_id = models.CharField(blank=True, null=True, max_length=9, validators=[MinLengthValidator(9)])
+    tax_id = models.CharField(
+        blank=True, null=True, max_length=TAX_ID_MAX_LENGTH, validators=[MinLengthValidator(TAX_ID_MIN_LENGTH)]
+    )
     payment_provider = models.ForeignKey("organizations.PaymentProvider", null=True, on_delete=models.SET_NULL)
     domain_apple_verified_date = models.DateTimeField(blank=True, null=True)
 
@@ -284,6 +314,8 @@ class RevenueProgram(IndexedTimeStampedModel):
         verbose_name="Country",
         help_text="2-letter country code of RP's company. This gets included in data sent to stripe when creating a payment",
     )
+
+    objects = RevenueProgramManager()
 
     def __str__(self):
         return self.name
@@ -370,10 +402,6 @@ class RevenueProgram(IndexedTimeStampedModel):
                 ),
             ]
         )
-
-    @classmethod
-    def filter_queryset_by_role_assignment(cls, role_assignment, queryset):
-        return queryset.filter(organization=role_assignment.organization)
 
 
 class PaymentProvider(IndexedTimeStampedModel):

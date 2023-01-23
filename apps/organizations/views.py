@@ -5,7 +5,7 @@ from django.contrib.auth import get_user_model
 from django.shortcuts import get_object_or_404
 
 import stripe
-from rest_framework import mixins, status, viewsets
+from rest_framework import status, viewsets
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.exceptions import PermissionDenied, ValidationError
 from rest_framework.permissions import IsAuthenticated
@@ -24,7 +24,6 @@ from apps.api.permissions import (
 from apps.organizations import serializers
 from apps.organizations.models import Organization, RevenueProgram
 from apps.public.permissions import IsActiveSuperUser
-from apps.users.views import FilterQuerySetByUserMixin
 
 
 user_model = get_user_model()
@@ -32,28 +31,28 @@ user_model = get_user_model()
 logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
 
 
-class OrganizationViewSet(viewsets.ReadOnlyModelViewSet, FilterQuerySetByUserMixin):
+class OrganizationViewSet(viewsets.ReadOnlyModelViewSet):
     """Organizations exposed through API
 
     Only superusers and users with roles can access. Queryset is filtered by user.
     """
 
     model = Organization
-    queryset = Organization.objects.all()
     permission_classes = [IsAuthenticated, IsActiveSuperUser | HasRoleAssignment]
     serializer_class = serializers.OrganizationSerializer
     pagination_class = None
 
     def get_queryset(self):
-        # this is supplied by FilterQuerySetByUserMixin
-        return self.filter_queryset_for_user(self.request.user, self.model.objects.all())
+        if self.request.user.is_superuser:
+            return Organization.objects.all()
+        elif ra := self.request.user.get_role_assignment():
+            return Organization.objects.filtered_by_role_assignment(ra)
+        else:
+            return Organization.objects.none()
 
 
-class RevenueProgramViewSet(
-    FilterQuerySetByUserMixin, mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets.GenericViewSet
-):
+class RevenueProgramViewSet(viewsets.ModelViewSet):
     model = RevenueProgram
-    queryset = RevenueProgram.objects.all()
     permission_classes = [
         IsAuthenticated,
         IsActiveSuperUser
@@ -65,7 +64,10 @@ class RevenueProgramViewSet(
     http_method_names = ["get", "patch"]
 
     def get_queryset(self):
-        return self.filter_queryset_for_user(self.request.user, self.model.objects.all())
+        if self.request.user.is_superuser:
+            return self.model.objects.all()
+        # role assignment is guaranteed to be here and have an expected role type via permission_classes above
+        return self.model.objects.filtered_by_role_assignment(self.request.user.get_role_assignment())
 
     def patch(self, request, pk):
         revenue_program = get_object_or_404(RevenueProgram, pk=pk)

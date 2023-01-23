@@ -1,11 +1,11 @@
 import json
 from unittest.mock import Mock
-from urllib.parse import urljoin
 
 from django.conf import settings
 from django.utils import timezone
 
 import pytest
+import pytest_cases
 import responses
 from rest_framework import status
 
@@ -28,33 +28,121 @@ from apps.common.hookdeck import (
 )
 
 
+@pytest.fixture
+def upsert_connection_response():
+    with open("apps/common/tests/fixtures/hookdeck-upsert-connection-success.json") as fl:
+        return json.load(fl)
+
+
+@pytest.fixture
+def upsert_archived_connection_response():
+    with open("apps/common/tests/fixtures/hookdeck-upsert-connection-when-archived.json") as fl:
+        return json.load(fl)
+
+
+@pytest.fixture
+def upsert_destination_response():
+    with open("apps/common/tests/fixtures/hookdeck-upsert-destination-success.json") as fl:
+        return json.load(fl)
+
+
+@pytest.fixture
+def upsert_archived_destination_response():
+    with open("apps/common/tests/fixtures/hookdeck-upsert-destination-when-archived.json") as fl:
+        return json.load(fl)
+
+
+@pytest.fixture
+def retrieve_connection_response():
+    with open("apps/common/tests/fixtures/hookdeck-retrieve-connection.json") as fl:
+        return json.load(fl)
+
+
+@pytest.fixture
+def retrieve_destination_response():
+    with open("apps/common/tests/fixtures/hookdeck-retrieve-destination.json") as fl:
+        return json.load(fl)
+
+
+@pytest.fixture
+def retrieve_source_response():
+    with open("apps/common/tests/fixtures/hookdeck-retrieve-source.json") as fl:
+        return json.load(fl)
+
+
+@pytest.fixture
+def search_connections_response():
+    with open("apps/common/tests/fixtures/hookdeck-search-connections.json") as fl:
+        return json.load(fl)
+
+
+@pytest.fixture
+def search_destinations_response():
+    with open("apps/common/tests/fixtures/hookdeck-search-destinations.json") as fl:
+        return json.load(fl)
+
+
+@pytest.fixture
+def search_sources_response():
+    with open("apps/common/tests/fixtures/hookdeck-search-sources.json") as fl:
+        return json.load(fl)
+
+
+@pytest.fixture
+def search_no_results_response():
+    with open("apps/common/tests/fixtures/hookdeck-search-no-results.json") as fl:
+        return json.load(fl)
+
+
+@pytest.fixture
+def archive_connection_response():
+    with open("apps/common/tests/fixtures/hookdeck-archive-connection.json") as fl:
+        return json.load(fl)
+
+
+@pytest.fixture
+def archive_destination_response():
+    with open("apps/common/tests/fixtures/hookdeck-archive-destination.json") as fl:
+        return json.load(fl)
+
+
+@pytest.fixture
+def unarchive_destination_response():
+    with open("apps/common/tests/fixtures/hookdeck-unarchive-destination.json") as fl:
+        return json.load(fl)
+
+
+@pytest.fixture
+def unarchive_connection_response():
+    with open("apps/common/tests/fixtures/hookdeck-unarchive-connection.json") as fl:
+        return json.load(fl)
+
+
 @responses.activate
-@pytest.mark.parametrize(
-    "entity_type,data,response_fixture",
+@pytest_cases.parametrize(
+    "entity_type,data,response_data",
     (
         (
             "connection",
             {"name": "my-connection", "source_id": "<source-id>", "destination_id": "<destination-id>"},
-            "apps/common/tests/fixtures/hookdeck-upsert-connection-success.json",
+            pytest_cases.fixture_ref("upsert_connection_response"),
         ),
         (
             "destination",
             {"name": "my-destination", "url": "https://www.somewhere.com"},
-            "apps/common/tests/fixtures/hookdeck-upsert-destination-success.json",
+            pytest_cases.fixture_ref("upsert_destination_response"),
         ),
     ),
 )
-def test_upsert_happy_path(entity_type, data, response_fixture):
-    with open(response_fixture) as fl:
-        fixture = json.load(fl)
+def test_upsert_happy_path(entity_type, data, response_data):
     responses.add(
         responses.PUT,
         CONNECTIONS_URL if entity_type == "connection" else DESTINATIONS_URL,
-        json=fixture,
+        json=response_data,
         status=status.HTTP_200_OK,
     )
     result = upsert(entity_type, data)
-    assert result == fixture
+    assert result == response_data
 
 
 def test_upsert_bad_entity():
@@ -69,53 +157,33 @@ def now():
 
 
 @responses.activate
-@pytest.mark.parametrize(
-    "entity_type,is_archived,auto_unarchive",
+@pytest_cases.parametrize(
+    "entity_type,response_data,resource_url,auto_unarchive",
     (
-        ("connection", False, False),
-        ("connection", False, True),
-        ("connection", True, False),
-        ("connection", True, True),
-        ("destination", False, False),
-        ("destination", False, True),
-        ("destination", True, False),
-        ("destination", True, True),
+        ("connection", pytest_cases.fixture_ref("upsert_connection_response"), CONNECTIONS_URL, False),
+        ("connection", pytest_cases.fixture_ref("upsert_archived_connection_response"), CONNECTIONS_URL, True),
+        ("destination", pytest_cases.fixture_ref("upsert_destination_response"), DESTINATIONS_URL, False),
+        ("destination", pytest_cases.fixture_ref("upsert_archived_destination_response"), DESTINATIONS_URL, True),
     ),
 )
-def test_upsert_auto_unarchive(entity_type, is_archived, auto_unarchive, now):
-    if entity_type == "connection":
-        upsert_fixture_path = (
-            "apps/common/tests/fixtures/hookdeck-upsert-connection-when-archived.json"
-            if is_archived
-            else "apps/common/tests/fixtures/hookdeck-upsert-connection-success.json"
-        )
-    else:
-        upsert_fixture_path = (
-            "apps/common/tests/fixtures/hookdeck-upsert-destination-when-archived.json"
-            if is_archived
-            else "apps/common/tests/fixtures/hookdeck-upsert-destination-success.json"
-        )
-    with open(upsert_fixture_path) as fl:
-        upsert_fixture = json.load(fl)
-        unarchive_response_fixture = upsert_fixture | {"archived_at": None}
-
+def test_upsert_auto_unarchive(entity_type, response_data, resource_url, auto_unarchive, now):
     responses.add(
         responses.PUT,
-        CONNECTIONS_URL if entity_type == "connection" else DESTINATIONS_URL,
-        json=upsert_fixture,
+        resource_url,
+        json=response_data,
         status=status.HTTP_200_OK,
     )
     responses.add(
         responses.PUT,
-        f"{CONNECTIONS_URL if entity_type == 'connection' else DESTINATIONS_URL}/{upsert_fixture['id']}/unarchive",
-        json=unarchive_response_fixture,
+        f"{resource_url}/{response_data['id']}/unarchive",
+        json=response_data | {"archived_at": None},
         status=status.HTTP_200_OK,
     )
     result = upsert(entity_type, {}, auto_unarchive=auto_unarchive)
     if auto_unarchive:
         assert result["archived_at"] is None
     else:
-        assert result["archived_at"] == upsert_fixture["archived_at"]
+        assert result["archived_at"] == response_data["archived_at"]
 
 
 @pytest.mark.parametrize("entity_type", ("connection", "destination"))
@@ -147,28 +215,22 @@ def test_upsert_connection(monkeypatch):
 
 
 @responses.activate
-@pytest.mark.parametrize(
-    "entity_type,fixture_path",
+@pytest_cases.parametrize(
+    "entity_type,hookdeck_url,response_data",
     (
-        ("connection", "apps/common/tests/fixtures/hookdeck-retrieve-connection.json"),
-        ("destination", "apps/common/tests/fixtures/hookdeck-retrieve-destination.json"),
-        ("source", "apps/common/tests/fixtures/hookdeck-retrieve-source.json"),
+        ("connection", CONNECTIONS_URL, pytest_cases.fixture_ref("retrieve_connection_response")),
+        ("destination", DESTINATIONS_URL, pytest_cases.fixture_ref("retrieve_destination_response")),
+        ("source", SOURCES_URL, pytest_cases.fixture_ref("retrieve_source_response")),
     ),
 )
-def test_retrieve_happy_path(entity_type, fixture_path):
-    with open(fixture_path) as fl:
-        fixture = json.load(fl)
-    url = urljoin(
-        {"connection": CONNECTIONS_URL, "destination": DESTINATIONS_URL, "source": SOURCES_URL}.get(entity_type) + "/",
-        fixture["id"],
-    )
+def test_retrieve_happy_path(entity_type, hookdeck_url, response_data):
     responses.add(
         responses.GET,
-        url,
-        json=fixture,
+        f"{hookdeck_url}/{response_data['id']}",
+        json=response_data,
         status=status.HTTP_200_OK,
     )
-    assert retrieve(entity_type, fixture["id"]) == fixture
+    assert retrieve(entity_type, response_data["id"]) == response_data
 
 
 @responses.activate
@@ -216,85 +278,70 @@ def test_search_connections_when_hookdeck_non_200():
 
 
 @responses.activate
-@pytest.mark.parametrize("has_results", (True, False))
-def test_search_sources(has_results):
-    params = {
-        "id": "<some-id>",
-        "name": "my-connection",
-        "archived": True,
-    }
-    fixture_path = (
-        "apps/common/tests/fixtures/hookdeck-search-sources.json"
-        if has_results
-        else "apps/common/tests/fixtures/hookdeck-search-no-results.json"
-    )
-    with open(fixture_path) as fl:
-        fixture = json.load(fl)
-
-    responses.add(responses.GET, f"{CONNECTIONS_URL}", json=fixture)
-    result = search_connections(**params)
+@pytest_cases.parametrize(
+    "search_fn,resource_url,response_data",
+    (
+        (search_connections, CONNECTIONS_URL, pytest_cases.fixture_ref("search_connections_response")),
+        (search_connections, CONNECTIONS_URL, pytest_cases.fixture_ref("search_no_results_response")),
+        (search_destinations, DESTINATIONS_URL, pytest_cases.fixture_ref("search_destinations_response")),
+        (search_destinations, DESTINATIONS_URL, pytest_cases.fixture_ref("search_no_results_response")),
+        (search_sources, SOURCES_URL, pytest_cases.fixture_ref("search_sources_response")),
+        (search_sources, SOURCES_URL, pytest_cases.fixture_ref("search_no_results_response")),
+    ),
+)
+def test_search_functionality(search_fn, resource_url, response_data):
+    responses.add(responses.GET, resource_url, json=response_data)
+    result = search_fn()
     assert set(result.keys()).issuperset({"pagination", "count", "models"})
     assert set(result["pagination"].keys()) == {"order_by", "dir", "limit"}
 
 
 @responses.activate
-def test_search_sources_when_hookdeck_non_200():
-    responses.add(responses.GET, f"{SOURCES_URL}", status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+@pytest.mark.parametrize(
+    "search_fn,resource_url",
+    (
+        (search_connections, CONNECTIONS_URL),
+        (search_destinations, DESTINATIONS_URL),
+        (search_sources, SOURCES_URL),
+    ),
+)
+def test_search_functionality_when_hookdeck_non_200(search_fn, resource_url):
+    responses.add(responses.GET, resource_url, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
     with pytest.raises(HookDeckIntegrationError):
-        assert search_sources(name="something")
+        assert search_fn(name="something")
 
 
 @responses.activate
-@pytest.mark.parametrize("has_results", (True, False))
-def test_search_destinations(has_results):
-    params = {
-        "id": "<some-id>",
-        "name": "my-destination",
-        "url": "https://www.somewhere.com",
-    }
-    fixture_path = (
-        "apps/common/tests/fixtures/hookdeck-search-destinations.json"
-        if has_results
-        else "apps/common/tests/fixtures/hookdeck-search-no-results.json"
-    )
-    with open(fixture_path) as fl:
-        fixture = json.load(fl)
-
-    responses.add(responses.GET, f"{DESTINATIONS_URL}", json=fixture)
-    result = search_destinations(**params)
-    assert set(result.keys()).issuperset({"pagination", "count", "models"})
-    assert set(result["pagination"].keys()) == {"order_by", "dir", "limit"}
-
-
-@responses.activate
-def test_search_destinations_when_hookdeck_non_200():
-    responses.add(responses.GET, f"{DESTINATIONS_URL}", status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-    with pytest.raises(HookDeckIntegrationError):
-        assert search_destinations(name="something")
-
-
-@responses.activate
-@pytest.mark.parametrize("entity_type", ("connection", "destination"))
-def test_archive(entity_type):
-    fixture_path = f"apps/common/tests/fixtures/hookdeck-archive-{entity_type}.json"
-    with open(fixture_path) as fl:
-        fixture = json.load(fl)
+@pytest_cases.parametrize(
+    "entity_type,resource_url,response_data",
+    (
+        ("connection", CONNECTIONS_URL, pytest_cases.fixture_ref("archive_connection_response")),
+        ("destination", DESTINATIONS_URL, pytest_cases.fixture_ref("archive_destination_response")),
+    ),
+)
+def test_archive(entity_type, resource_url, response_data):
     responses.add(
         responses.PUT,
-        f"{CONNECTIONS_URL if entity_type == 'connection' else DESTINATIONS_URL}/{fixture['id']}/archive",
-        json=fixture,
+        f"{resource_url}/{response_data['id']}/archive",
+        json=response_data,
         status=status.HTTP_200_OK,
     )
-    assert archive(entity_type, fixture["id"]) == fixture
+    assert archive(entity_type, response_data["id"]) == response_data
 
 
 @responses.activate
-@pytest.mark.parametrize("entity_type", ("connection", "destination"))
-def test_archive_when_hookdeck_non_200(entity_type):
+@pytest.mark.parametrize(
+    "entity_type,resource_url",
+    (
+        ("connection", CONNECTIONS_URL),
+        ("destination", DESTINATIONS_URL),
+    ),
+)
+def test_archive_when_hookdeck_non_200(entity_type, resource_url):
     id = "my-id"
     responses.add(
         responses.PUT,
-        f"{CONNECTIONS_URL if entity_type == 'connection' else DESTINATIONS_URL}/{id}/archive",
+        f"{resource_url}/{id}/archive",
         status=status.HTTP_500_INTERNAL_SERVER_ERROR,
     )
     with pytest.raises(HookDeckIntegrationError):
@@ -302,27 +349,36 @@ def test_archive_when_hookdeck_non_200(entity_type):
 
 
 @responses.activate
-@pytest.mark.parametrize("entity_type", ("connection", "destination"))
-def test_unarchive(entity_type):
-    fixture_path = f"apps/common/tests/fixtures/hookdeck-unarchive-{entity_type}.json"
-    with open(fixture_path) as fl:
-        fixture = json.load(fl)
+@pytest_cases.parametrize(
+    "entity_type,resource_url,response_data",
+    (
+        ("connection", CONNECTIONS_URL, pytest_cases.fixture_ref("unarchive_connection_response")),
+        ("destination", DESTINATIONS_URL, pytest_cases.fixture_ref("unarchive_destination_response")),
+    ),
+)
+def test_unarchive(entity_type, resource_url, response_data):
     responses.add(
         responses.PUT,
-        f"{CONNECTIONS_URL if entity_type == 'connection' else DESTINATIONS_URL}/{fixture['id']}/unarchive",
-        json=fixture,
+        f"{resource_url}/{response_data['id']}/unarchive",
+        json=response_data,
         status=status.HTTP_200_OK,
     )
-    assert unarchive(entity_type, fixture["id"]) == fixture
+    assert unarchive(entity_type, response_data["id"]) == response_data
 
 
 @responses.activate
-@pytest.mark.parametrize("entity_type", ("connection", "destination"))
-def test_unarchive_when_hookdeck_non_200(entity_type):
+@pytest.mark.parametrize(
+    "entity_type,resource_url",
+    (
+        ("connection", CONNECTIONS_URL),
+        ("destination", DESTINATIONS_URL),
+    ),
+)
+def test_unarchive_when_hookdeck_non_200(entity_type, resource_url):
     id = "my-id"
     responses.add(
         responses.PUT,
-        f"{CONNECTIONS_URL if entity_type == 'connection' else DESTINATIONS_URL}/{id}/unarchive",
+        f"{resource_url}/{id}/unarchive",
         status=status.HTTP_500_INTERNAL_SERVER_ERROR,
     )
     with pytest.raises(HookDeckIntegrationError):

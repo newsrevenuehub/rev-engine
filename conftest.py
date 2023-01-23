@@ -1,3 +1,56 @@
+"""conftest.py
+
+This file contains a set of globally available fixtures for pytest tests. Each named fixture in this module is
+globally available as a function parameter in any pytest test function/method, with no requirement for explicit import.
+
+These fixtures are meant to provide a set of predictable test configurations that directly map to our business logic.
+
+Many (though not all) of the fixtures in this module wrap Python test factories (created using FactoryBoy). By pairing test
+fixtures and factories, we are able to start passing these fixtures as parameters to `parametrize` decorator calls. What's more,
+we can use multiple calls to the `parametrize` decorator to create tests that are run for each item in the Cartesian product
+of the two parametrizations.
+
+Concretely, this allows us to parametrize, say, a set of known users vs a set of endpoints.
+
+Here's an example:
+
+```
+@pytest_cases.parametrize(
+    "user",
+    (
+        pytest_cases.fixture_ref("org_user_free_plan"),
+        pytest_cases.fixture_ref("superuser"),
+    ),
+)
+@pytest_cases.parametrize(
+    "data,expect_status_code,error_response,has_fake_fields",
+    (
+        (pytest_cases.fixture_ref("rp_valid_patch_data"), status.HTTP_200_OK, None, False),
+        (
+            pytest_cases.fixture_ref("rp_invalid_patch_data_tax_id_too_short"),
+            status.HTTP_400_BAD_REQUEST,
+            {"tax_id": ["Ensure this field has at least 9 characters."]},
+            False,
+        ),
+        (
+            pytest_cases.fixture_ref("rp_invalid_patch_data_tax_id_too_long"),
+            status.HTTP_400_BAD_REQUEST,
+            {"tax_id": ["Ensure this field has no more than 9 characters."]},
+            False,
+        ),
+        (
+            pytest_cases.fixture_ref("rp_invalid_patch_data_unexpected_fields"),
+            status.HTTP_200_OK,
+            {},
+            True,
+        ),
+    ),
+)
+def test_patch_when_expected_user(
+    self, user, data, expect_status_code, error_response, has_fake_fields, api_client, revenue_program, mocker
+):
+```
+"""
 import pytest
 from rest_framework.test import APIClient
 
@@ -5,10 +58,6 @@ from apps.contributions.tests.factories import ContributorFactory
 from apps.organizations.tests.factories import OrganizationFactory, RevenueProgramFactory
 from apps.users.models import Roles, User
 from apps.users.tests.factories import RoleAssignmentFactory, UserFactory
-
-
-# NB: The fixtures in this file will be globally available as function parameters in any pytest test function/method.
-# They are meant to provide a set of predictable test fixtures that directly map to our business logic.
 
 
 @pytest.fixture

@@ -73,6 +73,8 @@ uwsgi = "^2"
 whitenoise = "^6.2.0"
 google-cloud-pubsub = "^2.13"
 pygments = "^2.13.0"
+# This is here to force future to be installed at > 0.18.2, which has a a security
+# vulnerability. future is not a direct dependency, but instead a sub-dependency.
 future = "^0.18.3"
 
 [tool.poetry.dev-dependencies]

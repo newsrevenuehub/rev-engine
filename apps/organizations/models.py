@@ -38,8 +38,7 @@ RP_SLUG_MAX_LENGTH = 63
 
 CURRENCY_CHOICES = [(k, k) for k in settings.CURRENCIES.keys()]
 
-TAX_ID_MIN_LENGTH = 9
-TAX_ID_MAX_LENGTH = TAX_ID_MIN_LENGTH
+TAX_ID_MAX_LENGTH = TAX_ID_MIN_LENGTH = 9
 
 
 @dataclass(frozen=True)

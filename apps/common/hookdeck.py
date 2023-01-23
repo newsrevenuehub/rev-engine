@@ -212,16 +212,9 @@ def tear_down(
 
 
     This function assumes that certain conventions are being followed around branch naming and how that
-    relates to ticket prefixes, etc. It searches by ticket prefix for destinations and connections in Hookdeck
-    anad archives all found entities.
+    relates to ticket prefixes (see implementation above in `bootstrap`), etc (specifically that connection and destination names are both set to the ticket ID).
+    It searches by ticket prefix for destinations and connections in Hookdeck and archives all found entities.
     """
-    dests = search_destinations(name=ticket_prefix)["models"]
-    if not dests:
-        logger.info("No destinations found for ticket with prefix %s found", ticket_prefix)
-    else:
-        for x in dests:
-            logger.info("Archiving destination #%s, %s", x["id"], x["name"])
-            archive("destination", x["id"])
     conns = search_connections(name=ticket_prefix)["models"]
     if not conns:
         logger.info("No connections found for ticket with prefix %s", ticket_prefix)
@@ -229,3 +222,10 @@ def tear_down(
         for x in conns:
             logger.info("Archiving connection #%s, %s", x["id"], x["name"])
             archive("connection", x["id"])
+    dests = search_destinations(name=ticket_prefix)["models"]
+    if not dests:
+        logger.info("No destinations found for ticket with prefix %s found", ticket_prefix)
+    else:
+        for x in dests:
+            logger.info("Archiving destination #%s, %s", x["id"], x["name"])
+            archive("destination", x["id"])

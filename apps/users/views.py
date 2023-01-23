@@ -411,6 +411,7 @@ def password_reset_token_created(sender, instance, reset_password_token, *args, 
     context = {
         "email": email,
         "reset_password_url": mark_safe(spa_reset_url),
+        "logo_url": os.path.join(settings.SITE_URL, "static", "nre_logo_black_yellow.png"),
     }
     logger.info(
         "Sending password reset email to %s (with ID: %s) with the following reset url: %s",

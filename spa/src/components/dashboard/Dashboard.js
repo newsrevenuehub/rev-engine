@@ -12,7 +12,8 @@ import {
   DONATIONS_SLUG,
   EDITOR_ROUTE,
   EDITOR_ROUTE_PAGE,
-  PROFILE
+  PROFILE,
+  SETTINGS
 } from 'routes';
 
 // Children
@@ -24,6 +25,7 @@ import DashboardSidebar from 'components/dashboard/sidebar/DashboardSidebar';
 import DashboardTopbar from 'components/dashboard/topbar/DashboardTopbar';
 import Donations from 'components/donations/Donations';
 import PageEditor from 'components/pageEditor/PageEditor';
+import Integration from 'components/settings/Integration';
 import SystemNotification from 'components/common/SystemNotification/SystemNotification';
 
 import ConnectStripeElements from 'components/dashboard/connectStripe/ConnectStripeElements';
@@ -105,6 +107,9 @@ function Dashboard() {
                   <PageEditor />
                 </SentryRoute>
               ) : null}
+              <SentryRoute path={SETTINGS.INTEGRATIONS}>
+                <Integration />
+              </SentryRoute>
               <SentryRoute path={PROFILE}>
                 <Profile />
               </SentryRoute>

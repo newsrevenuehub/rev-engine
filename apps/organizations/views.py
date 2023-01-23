@@ -71,7 +71,7 @@ class RevenueProgramViewSet(viewsets.ModelViewSet):
 
     def patch(self, request, pk):
         revenue_program = get_object_or_404(RevenueProgram, pk=pk)
-        if not request.user.is_superuser and not revenue_program.user_has_ownership_via_role(
+        if not request.user.is_superuser and not self.model.objects.filtered_by_role_assignment(
             request.user.roleassignment
         ):
             return Response(status=status.HTTP_404_NOT_FOUND)

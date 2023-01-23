@@ -1,4 +1,5 @@
 import os
+from urllib.parse import urljoin
 
 from django.conf import settings
 from django.core.management.base import BaseCommand
@@ -50,7 +51,7 @@ class Command(BaseCommand):  # pragma: no cover low ROI for test of command line
             self.stdout.write(self.style.SUCCESS(f"Creating Heroku domain entry entry for {fqdn}"))
             heroku_app.add_domain(fqdn, None)
 
-        bootstrap_hookdeck(ticket_id, os.path.join(settings.SITE_URL, reverse("stripe-webhooks")))
+        bootstrap_hookdeck(ticket_id, urljoin(settings.SITE_URL, reverse("stripe-webhooks")))
 
         site_url = f"https://{ticket_id}.{zone_name}"
 

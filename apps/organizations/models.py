@@ -90,12 +90,13 @@ class Plans(models.TextChoices):
 
 class OrganizationManager(models.Manager):
     def filtered_by_role_assignment(self, role_assignment: RoleAssignment) -> models.QuerySet:
-        if (rt := role_assignment.role_type) == Roles.HUB_ADMIN:
-            return self.all()
-        elif rt in (Roles.ORG_ADMIN, Roles.RP_ADMIN):
-            return self.filter(id=role_assignment.organization.id)
-        else:
-            return self.none()
+        match role_assignment.role_type:
+            case Roles.HUB_ADMIN:
+                return self.all()
+            case Roles.ORG_ADMIN | Roles.RP_ADMIN:
+                return self.filter(id=role_assignment.organization.id)
+            case _:
+                return self.none()
 
 
 class Organization(IndexedTimeStampedModel, RoleAssignmentResourceModelMixin):
@@ -245,14 +246,15 @@ class CountryChoices(models.TextChoices):
 
 class RevenueProgramManager(models.Manager):
     def filtered_by_role_assignment(self, role_assignment: RoleAssignment) -> models.QuerySet:
-        if (rt := role_assignment.role_type) == Roles.HUB_ADMIN:
-            return self.all()
-        elif rt == Roles.ORG_ADMIN:
-            return self.filter(organization=role_assignment.organization)
-        elif rt == Roles.RP_ADMIN:
-            return self.filter(id__in=role_assignment.revenue_programs.values_list("id", flat=True))
-        else:
-            return self.none()
+        match role_assignment.role_type:
+            case Roles.HUB_ADMIN:
+                return self.all()
+            case Roles.ORG_ADMIN:
+                return self.filter(organization=role_assignment.organization)
+            case Roles.RP_ADMIN:
+                return self.filter(id__in=role_assignment.revenue_programs.values_list("id", flat=True))
+            case _:
+                return self.none()
 
 
 class RevenueProgram(IndexedTimeStampedModel):

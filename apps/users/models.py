@@ -61,13 +61,13 @@ class User(AbstractBaseUser, PermissionsMixin, IndexedTimeStampedModel):
         return self.email
 
     def save(self, *args, **kwargs):
-        email_publishable = self._email_is_publishable()
+        email_publishable = self.__email_is_publishable()
         super().save(*args, **kwargs)
-        if google_cloud_pub_sub_is_configured() and email_publishable:
+        if all([google_cloud_pub_sub_is_configured(), email_publishable, settings.NEW_USER_TOPIC]):
             logger.debug("Will publish email to Google Cloud PubSub: %s", self.email)
             Publisher.get_instance().publish(settings.NEW_USER_TOPIC, Message(data=self.email))
 
-    def _email_is_publishable(self) -> bool:
+    def __email_is_publishable(self) -> bool:
         return self._state.adding and self.email
 
 

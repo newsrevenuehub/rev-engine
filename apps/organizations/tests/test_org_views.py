@@ -24,6 +24,7 @@ from apps.organizations.views import RevenueProgramViewSet, get_stripe_account_l
 from apps.users.choices import Roles
 from apps.users.tests.factories import create_test_user
 
+
 user_model = get_user_model()
 
 fake = Faker()
@@ -43,9 +44,7 @@ class TestOrganizationViewSet:
     @pytest_cases.parametrize(
         "user",
         (
-            pytest_cases.fixture_ref("org_user_free_plan"),
             pytest_cases.fixture_ref("rp_user"),
-            pytest_cases.fixture_ref("superuser"),
             pytest_cases.fixture_ref("hub_admin_user"),
             pytest_cases.fixture_ref("user_no_role_assignment"),
             pytest_cases.fixture_ref("contributor_user"),
@@ -67,7 +66,7 @@ class TestOrganizationViewSet:
         if has_data:
             kwargs["data"] = {}
         response = getattr(api_client, method)(url, **kwargs)
-        ra = getattr(user, "get_role_assignment", lambda: None)()
+        ra = getattr(user, "get_role_assignment", lambda: str)()
         if any(
             [
                 user is None and method == "post",
@@ -78,8 +77,50 @@ class TestOrganizationViewSet:
             expected_status_code = status.HTTP_404_NOT_FOUND
         elif user is None and method != "post":
             expected_status_code = status.HTTP_401_UNAUTHORIZED
-        elif user and ra is None and method != "post":
+        elif user and not ra and method != "post":
             expected_status_code = status.HTTP_403_FORBIDDEN
+        else:
+            expected_status_code = status.HTTP_403_FORBIDDEN
+        assert response.status_code == expected_status_code
+
+    @pytest.mark.parametrize(
+        "method,url_name,has_data",
+        (
+            ("post", "organization-list", True),
+            ("put", "organization-detail", True),
+            ("patch", "organization-detail", True),
+            ("delete", "organization-detail", False),
+        ),
+    )
+    @pytest_cases.parametrize(
+        "user",
+        (
+            pytest_cases.fixture_ref("org_user_free_plan"),
+            pytest_cases.fixture_ref("superuser"),
+        ),
+    )
+    def test_permissive_users(self, method, url_name, has_data, api_client, user, organization):
+        url_args = () if method == "organization-list" else (organization.id,)
+        url = reverse(url_name, args=url_args)
+        if user:
+            api_client.force_authenticate(user)
+        kwargs = {}
+        if has_data:
+            kwargs["data"] = {}
+        response = getattr(api_client, method)(url, **kwargs)
+        ra = getattr(user, "get_role_assignment", lambda: str)()
+        if any(
+            [
+                user is None and method == "post",
+                ra is None and method == "post",
+                ra and method == "post",
+            ]
+        ):
+            expected_status_code = status.HTTP_404_NOT_FOUND
+        elif (method == "put" or method == "delete") and ra.organization:
+            expected_status_code = status.HTTP_403_FORBIDDEN
+        elif method == "patch":
+            expected_status_code = status.HTTP_200_OK
         else:
             expected_status_code = status.HTTP_405_METHOD_NOT_ALLOWED
         assert response.status_code == expected_status_code
@@ -210,19 +251,35 @@ class TestOrganizationViewSet:
         else:
             assert response.status_code == status.HTTP_403_FORBIDDEN
 
-    def test_expected_users_can_patch(self):
-        users_allowed_to_patch = [self.superuser, self.org_user]
-        for user in users_allowed_to_patch:
-            new_name = "new-name"
-            response = self.assert_user_can_patch(self.detail_url, user, {"name": new_name})
-            assert response.json()["name"] == new_name
+    @pytest_cases.parametrize(
+        "user",
+        (
+            pytest_cases.fixture_ref("superuser"),
+            pytest_cases.fixture_ref("org_user_free_plan"),
+        ),
+    )
+    def test_expected_users_can_patch(self, user, api_client):
+        revenue_program = RevenueProgram.objects.first()
+        if not revenue_program:
+            # for superuser, since an org association is not required
+            revenue_program = RevenueProgramFactory()
+        new_name = "new-name"
+        api_client.force_authenticate(user)
+        data = {"name": new_name}
+        response = api_client.patch(reverse("revenue-program-detail", args=(revenue_program.id,)), data=data)
+        assert response.status_code == status.HTTP_200_OK
+        assert response.json()["name"] == new_name
 
-    def test_cannot_patch_another_org(self):
+    def test_cannot_patch_another_org(self, organization, api_client):
+        other_org = OrganizationFactory()
         other_org_user = create_test_user(
-            role_assignment_data={"role_type": Roles.ORG_ADMIN, "organization": self.org2}
+            role_assignment_data={"role_type": Roles.ORG_ADMIN, "organization": other_org}
         )
-        assert other_org_user.roleassignment.organization != self.org1
-        self.assert_user_cannot_patch(self.detail_url, other_org_user, {"name": "new-name"}, status.HTTP_404_NOT_FOUND)
+        api_client.force_authenticate(other_org_user)
+        revenue_program = RevenueProgramFactory(organization=organization)
+        assert other_org_user.roleassignment.organization != organization
+        response = api_client.patch(reverse("revenue-program-detail", args=(revenue_program.id,)), data={"name": "foo"})
+        assert response.status_code == status.HTTP_404_NOT_FOUND
 
 
 @pytest.fixture

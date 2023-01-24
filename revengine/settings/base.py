@@ -375,6 +375,7 @@ CSP_OBJECT_SRC = ("'none'",)
 SIMPLE_JWT = {
     "ACCESS_TOKEN_LIFETIME": timedelta(hours=float(os.getenv("ACCESS_TOKEN_LIFETIME_HOURS", 12))),
     "REFRESH_TOKEN_LIFETIME": timedelta(days=2),
+    "UPDATE_LAST_LOGIN": os.getenv("UPDATE_LAST_LOGIN", True),
 }
 
 SECURE_SSL_REDIRECT = os.getenv("SECURE_SSL_REDIRECT", "true").lower() == "true"

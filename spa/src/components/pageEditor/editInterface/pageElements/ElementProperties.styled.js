@@ -6,7 +6,6 @@ export const ElementProperties = styled.div`
   display: flex;
   flex-direction: column;
   height: 100%;
-  overflow-y: hidden; ;
 `;
 
 export const ElementHeading = styled.div`

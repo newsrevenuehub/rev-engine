@@ -11,8 +11,6 @@ import { CONTRIBUTION_INTERVALS } from '../../src/constants/contributionInterval
 import * as freqUtils from 'utilities/parseFrequency';
 import calculateStripeFee from 'utilities/calculateStripeFee';
 import { DEFAULT_BACK_BUTTON_TEXT } from 'components/common/Button/BackButton/BackButton';
-import { CANCEL_PAYMENT_FAILURE_MESSAGE } from 'components/donationPage/DonationPage';
-import { STRIPE_ERROR_MESSAGE } from 'components/paymentProviders/stripe/StripePaymentForm';
 
 const pageSlug = 'page-slug';
 const expectedPageSlug = `${pageSlug}/`;
@@ -37,7 +35,6 @@ describe('Donation page displays dynamic page elements', () => {
   beforeEach(() => cy.visitDonationPage());
 
   it('should render expected rich text content', () => {
-    cy.getByTestId('d-rich-text').should('exist');
     cy.contains('Your support keeps us going!');
   });
 
@@ -739,7 +736,7 @@ describe('User flow: canceling contribution', () => {
     cy.wait('@create-subscription-payment');
     cy.findByRole('button', { name: DEFAULT_BACK_BUTTON_TEXT }).click();
     cy.wait('@cancel-payment');
-    cy.contains(CANCEL_PAYMENT_FAILURE_MESSAGE);
+    cy.contains("Something went wrong, but don't worry, you haven't been charged. Try refreshing.");
   });
 });
 
@@ -885,7 +882,7 @@ describe('StripePaymentForm unhappy paths', () => {
         })
       }).click();
       cy.findByRole('alert').within(() => {
-        cy.contains(STRIPE_ERROR_MESSAGE).should('be.visible');
+        cy.contains('Something went wrong processing your payment').should('be.visible');
       });
     }
   );
@@ -903,7 +900,7 @@ describe('StripePaymentForm unhappy paths', () => {
       })
     }).click();
     cy.findByRole('alert').within(() => {
-      cy.contains(STRIPE_ERROR_MESSAGE).should('be.visible');
+      cy.contains('Something went wrong processing your payment').should('be.visible');
     });
   });
 });

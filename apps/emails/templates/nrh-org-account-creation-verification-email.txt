@@ -1,3 +1,6 @@
-Thanks for signing up.
+Verify Your Email Address
 
-Please follow this link to verify your email address: {{ verification_url }}
+Welcome to News Revenue Engine!
+
+Please follow the link below to confirm your email address and activate your account.
+{{ verification_url }}

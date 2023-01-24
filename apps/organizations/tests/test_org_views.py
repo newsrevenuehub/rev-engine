@@ -77,8 +77,6 @@ class TestOrganizationViewSet:
             expected_status_code = status.HTTP_404_NOT_FOUND
         elif user is None and method != "post":
             expected_status_code = status.HTTP_401_UNAUTHORIZED
-        elif user and not ra and method != "post":
-            expected_status_code = status.HTTP_403_FORBIDDEN
         else:
             expected_status_code = status.HTTP_403_FORBIDDEN
         assert response.status_code == expected_status_code

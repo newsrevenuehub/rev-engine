@@ -113,6 +113,7 @@ declare module 'styled-components' {
       xl: '10px';
       '2xl': '12px';
       14: '14px';
+      19: '19px';
     };
     radii: ['3px', '6px', '12px'];
     shadows: ['0 1px 2px 0 rgb(0 0 0 / 15%)', '0 10px 25px 0 rgb(0 0 0 / 6%)', '0 12px 25px 0 rgb(0 0 0 / 10%)'];

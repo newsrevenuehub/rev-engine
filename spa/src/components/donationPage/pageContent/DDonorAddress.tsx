@@ -2,7 +2,7 @@
 /// <reference types="google.maps" />
 
 import Grid from '@material-ui/core/Grid';
-import { ChangeEvent, useState } from 'react';
+import { ChangeEvent, useEffect, useState } from 'react';
 import { usePlacesWidget } from 'react-google-autocomplete';
 import { HUB_GOOGLE_MAPS_API_KEY } from 'appSettings';
 import { CountryOption } from 'components/base';
@@ -44,6 +44,9 @@ function DDonorAddress() {
 
   const { ref: addressInputRef } = usePlacesWidget<HTMLInputElement>({
     apiKey: HUB_GOOGLE_MAPS_API_KEY,
+    // Allow browser autofill on the address field at pageload. We will disable
+    // it when the field is focused.
+    inputAutocompleteValue: '',
     options: { types: ['address'] },
     onPlaceSelected: ({ address_components }) => {
       // The API will not return this property in all cases; if so, do nothing.
@@ -63,6 +66,23 @@ function DDonorAddress() {
     }
   });
 
+  // We disable browser autofill on the address field so that only Google Maps
+  // suggestions appear. If the field loses focus, we re-enable it. The value
+  // `new-password` is what react-google-autocomplete uses to prevent autofill
+  // normally.
+
+  function disableBrowserAutofillOnAddress() {
+    if (addressInputRef?.current) {
+      addressInputRef.current.setAttribute('autocomplete', 'new-password');
+    }
+  }
+
+  function enableBrowserAutofillOnAddress() {
+    if (addressInputRef?.current) {
+      addressInputRef.current.setAttribute('autocomplete', '');
+    }
+  }
+
   // The change event on <CountrySelect> sends an object value, but the
   // underlying input will always show the label.
 
@@ -80,8 +100,10 @@ function DDonorAddress() {
             id="mailing_street"
             inputRef={addressInputRef}
             name="mailing_street"
+            onFocus={disableBrowserAutofillOnAddress}
             label="Address"
             value={address}
+            onBlur={enableBrowserAutofillOnAddress}
             onChange={(e) => setAddress(e.target.value)}
             helperText={errors.mailing_street}
             required

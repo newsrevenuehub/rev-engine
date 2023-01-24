@@ -51,8 +51,8 @@ class TestOrganizationViewSet:
             None,
         ),
     )
-    def test_unpermitted_methods(self, method, url_name, has_data, api_client, user, organization):
-        """Test each combo of method and user to show that server responds with appropriate status code.
+    def test_restricted_users(self, method, url_name, has_data, api_client, user, organization):
+        """Test each combo of method and restricted user to show that server responds with appropriate status code.
 
         Note that we do not test for absence of side-effects -- for instance, we don't prove that the count
         of RevenuePrograms does not decrement by one when a delete call is made. We take the server code's at face value
@@ -98,6 +98,11 @@ class TestOrganizationViewSet:
         ),
     )
     def test_permissive_users(self, method, url_name, has_data, api_client, user, organization):
+        """Test each combo of method and restricted user to show that server responds with appropriate status code.
+
+        There is a high level of with the method above as the if/else combinations became too complex so a bit of
+        duplicate code is a trade off for clarity/debugging capability
+        """
         url_args = () if method == "organization-list" else (organization.id,)
         url = reverse(url_name, args=url_args)
         if user:

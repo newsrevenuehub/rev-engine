@@ -1,5 +1,6 @@
 import csv
 import logging
+import os
 
 from django.conf import settings
 from django.contrib.auth import get_user_model
@@ -296,8 +297,6 @@ class ContributionsViewSet(viewsets.ReadOnlyModelViewSet, FilterQuerySetByUserMi
         as contributors will be able to access only Contributor Portal via magic link.
         """
         try:
-            name = f"{request.user.first_name} {request.user.last_name}"
-
             queryset = self.filter_queryset_for_user(
                 self.request.user, self.model.objects.filter(provider_payment_method_details__isnull=False)
             )
@@ -308,7 +307,10 @@ class ContributionsViewSet(viewsets.ReadOnlyModelViewSet, FilterQuerySetByUserMi
                 to=request.user.email,
                 subject="Check out your Contributions",
                 text_template="nrh-contribution-csv-email-body.txt",
-                template_data={"username": name},
+                html_template="nrh-contribution-csv-email-body.html",
+                template_data={
+                    "logo_url": os.path.join(settings.SITE_URL, "static", "nre_logo_black_yellow.png"),
+                },
                 attachment=contributions_in_csv,
                 content_type="text/csv",
                 filename="contributions.csv",

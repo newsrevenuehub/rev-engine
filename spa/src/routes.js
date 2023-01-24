@@ -12,6 +12,12 @@ export const DONATION_PAGE_SLUG = '/:pageSlug/';
 export const THANK_YOU_SLUG = '/thank-you/';
 export const PAYMENT_SUCCESS = '/payment/success/';
 
+// Settings
+export const SETTINGS = {
+  ORGANIZATION: '/settings/organization',
+  INTEGRATIONS: '/settings/integrations'
+};
+
 // Contributor
 export const CONTRIBUTOR_ENTRY = '/contributor/';
 export const CONTRIBUTOR_VERIFY = '/contributor-verify/';

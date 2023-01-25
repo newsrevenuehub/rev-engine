@@ -24,6 +24,9 @@ export interface DonationPage {
     type: string;
     content?: {
       offerPayFees?: boolean;
+      options?: {
+        [x: string]: string[] | number[];
+      };
       [x: string]: any;
     };
   }[];

@@ -73,7 +73,7 @@ function DAmount({ element, ...props }: DAmountProps) {
       return -1;
     }
 
-    return amountOptions.findIndex((option) => option === amount);
+    return amountOptions.findIndex((option) => parseFloat(`${option}`) === amount);
   }, [amountOptions, otherValue, amount]);
 
   // Called when the user chooses a preselected option.
@@ -123,7 +123,7 @@ function DAmount({ element, ...props }: DAmountProps) {
             <li key={`${index}-${amountOption}`}>
               <SelectableButton
                 selected={selected}
-                onClick={() => handleSelectAmountOption(amountOption!)}
+                onClick={() => handleSelectAmountOption(parseFloat(`${amountOption}`))}
                 data-testid={`amount-${amountOption}${selected ? '-selected' : ''}`}
               >
                 {`${currencySymbol}${amountOption}`}{' '}
@@ -172,7 +172,9 @@ function DAmount({ element, ...props }: DAmountProps) {
 
 const paymentPropTypes = {
   allowOther: PropTypes.bool,
-  options: PropTypes.objectOf(PropTypes.arrayOf(PropTypes.number)),
+  options: PropTypes.objectOf(
+    PropTypes.arrayOf(PropTypes.oneOfType([PropTypes.number, PropTypes.string]).isRequired).isRequired
+  ),
   defaults: PropTypes.objectOf(PropTypes.oneOfType([PropTypes.number, PropTypes.string]))
 };
 

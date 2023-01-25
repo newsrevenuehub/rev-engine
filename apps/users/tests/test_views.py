@@ -319,6 +319,7 @@ class TestUserViewSet(APITestCase):
             "organization_name": "Test",
             "organization_tax_status": "nonprofit",
             "organization_tax_id": "987654321",
+            "fiscal_sponsor_name": "",
         }
 
     def get_too_short_password(self):
@@ -617,27 +618,27 @@ class TestUserViewSet(APITestCase):
         self.client.force_authenticate(user=my_user)
         update_email = "updated@example.com"
         response = self.client.patch(reverse("user-detail", args=(another_user.pk,)), data={"email": update_email})
-        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
-        self.assertEqual(response.json(), {"detail": UserOwnsUser.message})
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+        assert response.json() == {"detail": UserOwnsUser.message}
         another_user.refresh_from_db()
-        self.assertNotEqual(another_user.email, update_email)
+        assert another_user.email != update_email
 
     def test_cannot_partial_update_when_email_not_verified(self):
         user = get_user_model().objects.create(email=self.create_data["email"], email_verified=False)
         update_data = {"email": fake.email()}
         self.client.force_authenticate(user=user)
         response = self.client.patch(reverse("user-detail", args=(user.pk,)), data=update_data)
-        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
-        self.assertEqual(response.json(), {"detail": UserIsAllowedToUpdate.message})
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+        assert response.json() == {"detail": UserIsAllowedToUpdate.message}
 
     def test_can_update_password_when_email_not_verified(self):
         user = get_user_model().objects.create(email=self.create_data["email"], email_verified=False)
         update_data = {"password": "thisIstheNewPassword3939393!"}
         self.client.force_authenticate(user=user)
         response = self.client.patch(reverse("user-detail", args=(user.pk,)), data=update_data)
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        assert response.status_code == status.HTTP_200_OK
         user.refresh_from_db()
-        self.assertTrue(user.check_password(update_data["password"]))
+        assert user.check_password(update_data["password"])
         self.assert_serialized_data(response, user)
 
     def test_sets_email_verified_to_false_when_email_updated(self):
@@ -645,22 +646,22 @@ class TestUserViewSet(APITestCase):
         update_data = {"email": "new@email.com"}
         self.client.force_authenticate(user=user)
         response = self.client.patch(reverse("user-detail", args=(user.pk,)), data=update_data)
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        assert response.status_code == status.HTTP_200_OK
         user.refresh_from_db()
-        self.assertFalse(user.email_verified)
+        assert not user.email_verified
         self.assert_serialized_data(response, user)
 
     def test_put_not_implemented(self):
         my_user = get_user_model().objects.create_user(**self.create_data)
         self.client.force_authenticate(user=my_user)
         response = self.client.put(reverse("user-detail", args=(my_user.pk,)), data={})
-        self.assertEqual(response.status_code, status.HTTP_405_METHOD_NOT_ALLOWED)
+        assert response.status_code == status.HTTP_405_METHOD_NOT_ALLOWED
 
     def test_delete_not_implemented(self):
         my_user = get_user_model().objects.create_user(**self.create_data)
         self.client.force_authenticate(user=my_user)
         response = self.client.delete(reverse("user-detail", args=(my_user.pk,)))
-        self.assertEqual(response.status_code, status.HTTP_405_METHOD_NOT_ALLOWED)
+        assert response.status_code == status.HTTP_405_METHOD_NOT_ALLOWED
 
     def test_cannot_update_user_account_missing_first_name(self):
         user = self._create_authenticated_user()
@@ -668,16 +669,16 @@ class TestUserViewSet(APITestCase):
             reverse("user-customize-account", args=(user.pk,)),
             data={**self.customize_account_request, "first_name": ""},
         )
-        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertEqual(response.json(), {"first_name": ["This information is required"]})
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert response.json() == {"first_name": ["This information is required"]}
 
     def test_cannot_update_user_account_missing_last_name(self):
         user = self._create_authenticated_user()
         response = self.client.patch(
             reverse("user-customize-account", args=(user.pk,)), data={**self.customize_account_request, "last_name": ""}
         )
-        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertEqual(response.json(), {"last_name": ["This information is required"]})
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert response.json() == {"last_name": ["This information is required"]}
 
     def test_cannot_update_user_account_missing_organization_name(self):
         user = self._create_authenticated_user()
@@ -685,8 +686,8 @@ class TestUserViewSet(APITestCase):
             reverse("user-customize-account", args=(user.pk,)),
             data={**self.customize_account_request, "organization_name": ""},
         )
-        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertEqual(response.json(), {"organization_name": ["This information is required"]})
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert response.json() == {"organization_name": ["This information is required"]}
 
     def test_cannot_update_user_account_missing_organization_tax_status(self):
         user = self._create_authenticated_user()
@@ -694,8 +695,8 @@ class TestUserViewSet(APITestCase):
             reverse("user-customize-account", args=(user.pk,)),
             data={**self.customize_account_request, "organization_tax_status": ""},
         )
-        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertEqual(response.json(), {"organization_tax_status": ['"" is not a valid choice.']})
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert response.json() == {"organization_tax_status": ['"" is not a valid choice.']}
 
     def test_cannot_update_user_account_tos_not_accepted(self):
         user = self._create_authenticated_user(email_verified=True, accepted_terms_of_service=None)
@@ -703,40 +704,37 @@ class TestUserViewSet(APITestCase):
         response = self.client.patch(
             reverse("user-customize-account", args=(user.pk,)), data=self.customize_account_request
         )
-        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
-        self.assertEqual(response.json(), {"detail": UserHasAcceptedTermsOfService.message})
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+        assert response.json() == {"detail": UserHasAcceptedTermsOfService.message}
 
     def test_cannot_update_user_account_unverified(self):
         user = self._create_authenticated_user(email_verified=False)
         response = self.client.patch(
             reverse("user-customize-account", args=(user.pk,)), data=self.customize_account_request
         )
-        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
-        self.assertEqual(response.json(), {"detail": UserIsAllowedToUpdate.message})
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+        assert response.json() == {"detail": UserIsAllowedToUpdate.message}
 
     def test_can_customize_account(self):
         user = self._create_authenticated_user()
         response = self.client.patch(
             reverse("user-customize-account", args=(user.pk,)), data=self.customize_account_request
         )
-        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
+        assert response.status_code == status.HTTP_204_NO_CONTENT
         user.refresh_from_db()
-        self.assertTrue(Organization.objects.filter(name=self.customize_account_request["organization_name"]).exists())
-        self.assertTrue(
-            RevenueProgram.objects.filter(name=self.customize_account_request["organization_name"]).exists()
-        )
+        assert Organization.objects.filter(name=self.customize_account_request["organization_name"]).exists()
+        assert RevenueProgram.objects.filter(name=self.customize_account_request["organization_name"]).exists()
+
         rp = RevenueProgram.objects.filter(name=self.customize_account_request["organization_name"]).first()
         assert rp.payment_provider
-        self.assertTrue(
-            RoleAssignment.objects.filter(
-                user=user,
-                organization=Organization.objects.get(name=self.customize_account_request["organization_name"]),
-                role_type=Roles.ORG_ADMIN,
-            )
+        assert RoleAssignment.objects.filter(
+            user=user,
+            organization=Organization.objects.get(name=self.customize_account_request["organization_name"]),
+            role_type=Roles.ORG_ADMIN,
         )
-        self.assertEqual(self.customize_account_request["first_name"], user.first_name)
-        self.assertEqual(self.customize_account_request["last_name"], user.last_name)
-        self.assertEqual(self.customize_account_request["job_title"], user.job_title)
+        assert self.customize_account_request["first_name"] == user.first_name
+        assert self.customize_account_request["last_name"] == user.last_name
+        assert self.customize_account_request["job_title"] == user.job_title
 
     def test_can_customize_account_without_job_title(self):
         user = self._create_authenticated_user()
@@ -759,10 +757,10 @@ class TestUserViewSet(APITestCase):
             reverse("user-customize-account", args=(user.pk,)),
             data={**self.customize_account_request, "organization_name": taken_name},
         )
-        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
+        assert response.status_code == status.HTTP_204_NO_CONTENT
         expected_organization_name = f"{taken_name}-2"
-        self.assertTrue(Organization.objects.filter(name=expected_organization_name).exists())
-        self.assertTrue(RevenueProgram.objects.filter(name=expected_organization_name).exists())
+        assert Organization.objects.filter(name=expected_organization_name).exists()
+        assert RevenueProgram.objects.filter(name=expected_organization_name).exists()
 
     def test_customize_account_sets_revenue_program_status_for_profit(self):
         user = self._create_authenticated_user()
@@ -770,7 +768,7 @@ class TestUserViewSet(APITestCase):
             reverse("user-customize-account", args=(user.pk,)),
             data={**self.customize_account_request, "organization_tax_status": "for-profit"},
         )
-        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
+        assert response.status_code == status.HTTP_204_NO_CONTENT
         revenue_program = RevenueProgram.objects.get(name=self.customize_account_request["organization_name"])
         assert not revenue_program.non_profit
 
@@ -780,7 +778,7 @@ class TestUserViewSet(APITestCase):
             reverse("user-customize-account", args=(user.pk,)),
             data={**self.customize_account_request, "organization_tax_status": "nonprofit"},
         )
-        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
+        assert response.status_code == status.HTTP_204_NO_CONTENT
         revenue_program = RevenueProgram.objects.get(name=self.customize_account_request["organization_name"])
         assert revenue_program.non_profit
 
@@ -790,9 +788,20 @@ class TestUserViewSet(APITestCase):
             reverse("user-customize-account", args=(user.pk,)),
             data={**self.customize_account_request, "organization_tax_id": "987654321"},
         )
-        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
+        assert response.status_code == status.HTTP_204_NO_CONTENT
         revenue_program = RevenueProgram.objects.get(name=self.customize_account_request["organization_name"])
         assert self.customize_account_request["organization_tax_id"] == revenue_program.tax_id
+
+    def test_customize_account_sets_fiscal_sponsor_name(self):
+        user = self._create_authenticated_user()
+        fiscal_sponsor_name = "News Revenue Hub"
+        response = self.client.patch(
+            reverse("user-customize-account", args=(user.pk,)),
+            data={**self.customize_account_request, "fiscal_sponsor_name": fiscal_sponsor_name},
+        )
+        assert response.status_code == status.HTTP_204_NO_CONTENT
+        revenue_program = RevenueProgram.objects.get(name=self.customize_account_request["organization_name"])
+        assert fiscal_sponsor_name == revenue_program.fiscal_sponsor_name
 
     def _create_authenticated_user(self, email_verified=True, accepted_terms_of_service=timezone.now()) -> User:
         user = get_user_model().objects.create(

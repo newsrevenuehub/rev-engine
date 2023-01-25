@@ -151,6 +151,7 @@ class CustomizeAccountSerializer(UserSerializer):
     """Special custom serializer to validate data received from customize_account method"""
 
     first_name = serializers.CharField(write_only=True, required=True)
+    fiscal_sponsor_name = serializers.CharField(write_only=True, required=False, default=None)
     last_name = serializers.CharField(write_only=True, required=True)
     job_title = serializers.CharField(write_only=True, required=False, default=None)
     organization_name = serializers.CharField(write_only=True, required=True)
@@ -168,4 +169,5 @@ class CustomizeAccountSerializer(UserSerializer):
             "organization_name",
             "organization_tax_status",
             "organization_tax_id",
+            "fiscal_sponsor_name",
         ]

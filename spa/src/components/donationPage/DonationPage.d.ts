@@ -24,6 +24,7 @@ export interface DonationPage {
     type: string;
     content?: {
       offerPayFees?: boolean;
+      options?: Record<string, string[] | number[]>;
       [x: string]: any;
     };
   }[];

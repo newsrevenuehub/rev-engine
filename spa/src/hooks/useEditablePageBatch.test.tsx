@@ -134,6 +134,7 @@ describe('useEditablePageBatch', () => {
 
       act(() => result.current.addBatchChange({ header_link: 'test' }));
       act(() => result.current.commitBatch());
+      expect(setPageChanges).toBeCalled();
       setPageChanges.mockClear();
       act(() => result.current.commitBatch());
       expect(setPageChanges).not.toBeCalled();

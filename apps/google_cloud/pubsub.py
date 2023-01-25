@@ -1,3 +1,4 @@
+import datetime
 import logging
 from dataclasses import dataclass
 
@@ -15,6 +16,18 @@ class Message:
 
     def __init__(self, data=""):
         self.data = data.encode("utf-8")
+
+
+@dataclass
+class ContributionPagePublishedMessage:
+    page_id: str
+    page_url: str
+    publication_date: datetime.datetime
+    revenue_program_id: str
+    revenue_program_name: str
+    revenue_program_slug: str
+    publisher_email: str
+    publisher_name: str
 
 
 class Publisher:

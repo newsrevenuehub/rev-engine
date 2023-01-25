@@ -1,7 +1,3 @@
-import datetime
-from dataclasses import dataclass
-
-from django.conf import settings
 from django.db import models
 from django.utils import timezone
 
@@ -10,9 +6,8 @@ from sorl.thumbnail import ImageField as SorlImageField
 
 from apps.api.error_messages import UNIQUE_PAGE_SLUG
 from apps.common.models import IndexedTimeStampedModel
-from apps.common.utils import cleanup_keys, google_cloud_pub_sub_is_configured, normalize_slug
+from apps.common.utils import cleanup_keys, normalize_slug
 from apps.config.validators import validate_slug_against_denylist
-from apps.google_cloud.pubsub import Message, Publisher
 from apps.pages import defaults
 from apps.pages.validators import style_validator
 from apps.users.choices import Roles
@@ -189,20 +184,7 @@ class DonationPage(AbstractPage):
 
     def save(self, *args, **kwargs):
         self.set_default_logo()
-        page_is_publishable = self.__page_is_publishable()
         super().save(*args, **kwargs)
-        if all([page_is_publishable, google_cloud_pub_sub_is_configured(), settings.PAGE_PUBLISHED_TOPIC]):
-            event = ContributionPagePublishedMessage(
-                page_id=self.pk,
-                page_url=self.slug,
-                publication_date=self.published_date,
-                revenue_program_id=self.revenue_program.pk,
-                revenue_program_name=self.revenue_program.name,
-                revenue_program_slug=self.revenue_program.slug,
-                publisher_email=self.revenue_program.contact_email,
-                publisher_name=self.organization.name,
-            )
-            Publisher.get_instance().publish(settings.PAGE_PUBLISHED_TOPIC, Message(data=str(event)))
 
     def make_template_from_page(self, template_data={}, from_admin=False):
         """Create Template() instance from self.
@@ -226,12 +208,6 @@ class DonationPage(AbstractPage):
         template = cleanup_keys(template_data, unwanted_keys)
         merged_template = {**page, **template}
         return Template.objects.create(**merged_template)
-
-    def __page_is_publishable(self) -> bool:
-        previous_record = None
-        if self.pk:
-            previous_record = DonationPage.objects.get(pk=self.pk)
-        return self.published_date or previous_record and previous_record.published_date
 
 
 class Style(IndexedTimeStampedModel, RoleAssignmentResourceModelMixin):
@@ -327,15 +303,3 @@ class DefaultPageLogo(SingletonModel):
 
     def __str__(self):
         return "Default Page Logo"
-
-
-@dataclass
-class ContributionPagePublishedMessage:
-    page_id: str
-    page_url: str
-    publication_date: datetime.datetime
-    revenue_program_id: str
-    revenue_program_name: str
-    revenue_program_slug: str
-    publisher_email: str
-    publisher_name: str

@@ -180,6 +180,41 @@ describe('DAmount', () => {
     expect(setAmount.mock.calls).toEqual([[3]]);
   });
 
+  describe('When options contains an array of strings', () => {
+    it('selects correct amount', () => {
+      tree(
+        {
+          element: {
+            ...element,
+            content: { options: { ...defaultOptions, [CONTRIBUTION_INTERVALS.MONTHLY]: ['11', '22', '33'] } }
+          }
+        },
+        { amount: 22, frequency: CONTRIBUTION_INTERVALS.MONTHLY }
+      );
+
+      expect(screen.getByTestId('amount-22-selected')).toBeInTheDocument();
+    });
+
+    it('sets the amount when a payment option div is clicked', () => {
+      const setAmount = jest.fn();
+      tree(
+        {
+          element: {
+            ...element,
+            content: { options: { ...defaultOptions, [CONTRIBUTION_INTERVALS.MONTHLY]: ['11', '22', '33'] } }
+          }
+        },
+        { setAmount, amount: 22, frequency: CONTRIBUTION_INTERVALS.MONTHLY }
+      );
+      expect(setAmount).not.toBeCalled();
+      userEvent.click(screen.getByText('mock-currency-symbol11'));
+      expect(setAmount.mock.calls).toEqual([[11]]);
+      setAmount.mockClear();
+      userEvent.click(screen.getByText('mock-currency-symbol33'));
+      expect(setAmount.mock.calls).toEqual([[33]]);
+    });
+  });
+
   it('does not show a field where the user can enter an amount', () => {
     tree();
     expect(screen.queryByRole('textbox')).not.toBeInTheDocument();

@@ -794,7 +794,7 @@ test = ["PyHamcrest", "pytest", "pytest-cov"]
 
 [[package]]
 name = "future"
-version = "0.18.2"
+version = "0.18.3"
 description = "Clean single-source support for Python 3 and 2"
 category = "main"
 optional = false
@@ -2344,7 +2344,7 @@ flake8-logging-format = [
     {file = "flake8-logging-format-0.9.0.tar.gz", hash = "sha256:e830cc49091e4b8ab9ea3da69a3da074bd631ce9a7db300e5c89fb48ba4a6986"},
 ]
 future = [
-    {file = "future-0.18.2.tar.gz", hash = "sha256:b1bead90b70cf6ec3f0710ae53a525360fa360d306a86583adc6bf83a4db537d"},
+    {file = "future-0.18.3.tar.gz", hash = "sha256:34a17436ed1e96697a86f9de3d15a3b0be01d8bc8de9c1dffd59fb8234ed5307"},
 ]
 google-api-core = [
     {file = "google-api-core-2.11.0.tar.gz", hash = "sha256:4b9bb5d5a380a0befa0573b302651b8a9a89262c1730e37bf423cec511804c22"},

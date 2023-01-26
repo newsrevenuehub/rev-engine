@@ -15,4 +15,10 @@ const Template: ComponentStory<typeof SearchableSelect> = (args: any) => (
   />
 );
 
-export const Default = Template.bind({ name: 'Test Label' });
+export const Default = Template.bind({});
+
+export const WithError = Template.bind({});
+WithError.args = {
+  error: true,
+  helperText: 'This is an error message'
+};

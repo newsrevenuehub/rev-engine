@@ -26,9 +26,12 @@ type NarrowedMuiAutocompleteProps<OptionType> = Omit<
 >;
 
 export interface SearchableSelectProps<OptionType> extends NarrowedMuiAutocompleteProps<OptionType> {
+  error?: TextFieldProps['error'];
+  helperText?: TextFieldProps['helperText'];
   label: TextFieldProps['label'];
   name?: TextFieldProps['name'];
   renderInput?: MuiAutocompleteProps<OptionType, false, true, false>['renderInput'];
+  required?: TextFieldProps['required'];
 }
 
 const StyledAutocomplete = styled(MuiAutocomplete)`
@@ -48,6 +51,10 @@ const StyledAutocomplete = styled(MuiAutocomplete)`
       }
     }
 
+    .Mui-error .NreAutocompleteInput {
+      border-color: rgb(200, 32, 63);
+    }
+
     .NreAutocompleteInputRoot {
       /* Move the down arrow into the field outline. */
       padding-right: 0;
@@ -59,6 +66,10 @@ const StyledAutocomplete = styled(MuiAutocomplete)`
       font: 600 16px Roboto, sans-serif;
       position: static;
       transform: none;
+
+      &.Mui-error {
+        color: rgb(200, 32, 63);
+      }
     }
 
     .NreAutocompleteInputUnderline::before,
@@ -73,7 +84,7 @@ const StyledAutocomplete = styled(MuiAutocomplete)`
 // See https://github.com/styled-components/styled-components/issues/1803
 
 export function SearchableSelect<OptionType>(props: SearchableSelectProps<OptionType>) {
-  const { label, name, ...other } = props;
+  const { error, helperText, label, name, required, ...other } = props;
 
   return (
     <StyledAutocomplete
@@ -83,14 +94,20 @@ export function SearchableSelect<OptionType>(props: SearchableSelectProps<Option
       renderInput={(params) => (
         <TextField
           {...params}
+          error={error}
+          helperText={helperText}
           inputProps={{ ...params.inputProps, className: 'NreAutocompleteInput' }}
-          InputLabelProps={{ ...params.InputLabelProps, classes: { root: 'NreAutocompleteInputLabelRoot' } }}
+          InputLabelProps={{
+            ...params.InputLabelProps,
+            classes: { asterisk: 'NreAutocompleteInputLabelAsterisk', root: 'NreAutocompleteInputLabelRoot' }
+          }}
           InputProps={{
             ...params.InputProps,
             classes: { root: 'NreAutocompleteInputRoot', underline: 'NreAutocompleteInputUnderline' }
           }}
           label={label}
           name={name}
+          required={required}
         />
       )}
       {...other}

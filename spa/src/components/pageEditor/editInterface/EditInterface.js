@@ -40,7 +40,7 @@ export const EditInterfaceContext = createContext();
  * EditInterface is direct child of PageEditor
  */
 function EditInterface() {
-  const { page, setPageChanges } = useEditablePageContext();
+  const { page, setPageChanges, updatedPagePreview } = useEditablePageContext();
   const { errors, showEditInterface, setSelectedButton } = usePageEditorContext();
   const [tab, setTab] = useState(0);
   const [elementDestination, setElementDestination] = useState();
@@ -116,10 +116,10 @@ function EditInterface() {
   return (
     <EditInterfaceContext.Provider
       value={{
-        elements: page.elements,
+        elements: updatedPagePreview.elements,
         setElements,
         selectedElement,
-        sidebarElements: page.sidebar_elements,
+        sidebarElements: updatedPagePreview.sidebar_elements,
         setSidebarElements,
         setSelectedElement,
         elementContent,

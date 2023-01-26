@@ -138,6 +138,39 @@ describe('Contribution page edit', () => {
       cy.getByTestId('edit-setup-tab');
     });
 
+    it('should add elements to the editor tab', () => {
+      let existingElementsLength = 0;
+
+      cy.findByRole('tabpanel', { name: 'Layout' }).then((layoutPanel) => {
+        cy.wrap(layoutPanel)
+          .find('ul li')
+          .then(({ length }) => (existingElementsLength = length))
+          .then(() => cy.findByRole('tabpanel', { name: 'Layout' }).findByRole('button', { name: 'Add Block' }).click())
+          .then(() => cy.getByTestId('add-page-modal').within(() => cy.getByTestId('page-item-DRichText').click()))
+          .then(() =>
+            cy.findByRole('tabpanel', { name: 'Layout' }).within(() => {
+              cy.get('ul li').should('have.length', existingElementsLength + 1);
+            })
+          );
+      });
+    });
+
+    it('should add elements to the page preview', () => {
+      let existingElementsLength = 0;
+
+      cy.getByTestId('donation-page')
+        .find('main ul > li')
+        .then(({ length }) => (existingElementsLength = length))
+        .then(() => cy.findByRole('tabpanel', { name: 'Layout' }).findByRole('button', { name: 'Add Block' }).click())
+        .then(() => cy.getByTestId('add-page-modal').within(() => cy.getByTestId('page-item-DRichText').click()))
+        .then(() =>
+          cy
+            .getByTestId('donation-page')
+            .find('main ul > li')
+            .should('have.length', existingElementsLength + 1)
+        );
+    });
+
     it('should render element detail when edit item is clicked', () => {
       cy.editElement('DRichText');
       cy.getByTestId('element-properties').should('exist');
@@ -418,31 +451,50 @@ describe('Contribution page edit', () => {
       cy.getByTestId('edit-sidebar-tab').click({ force: true });
     });
 
-    it('Can add an element', () => {
-      cy.intercept({ method: 'GET', pathname: getEndpoint(LIST_STYLES) }, {});
+    it('should add elements to the editor tab', () => {
+      let existingElementsLength = 0;
 
-      cy.findByRole('tab', { name: 'Sidebar' }).click({ force: true });
-      cy.findByRole('tabpanel', { name: 'Sidebar' }).findByRole('button', { name: 'Add Block' }).click();
-      cy.getByTestId('add-page-modal').within(() => {
-        cy.getByTestId('page-item-DRichText').click();
-      });
-      cy.getByTestId('preview-page-button').click();
-      cy.get('[data-testid=donation-page__sidebar] > ul > li').should('have.length', 3);
+      cy.getByTestId('edit-sidebar-tab')
+        .click({ force: true })
+        .then(() =>
+          cy.findByRole('tabpanel', { name: 'Sidebar' }).then((sidebarPanel) => {
+            cy.wrap(sidebarPanel)
+              .find('ul li')
+              .then(({ length }) => (existingElementsLength = length))
+              .then(() =>
+                cy.findByRole('tabpanel', { name: 'Sidebar' }).findByRole('button', { name: 'Add Block' }).click()
+              )
+              .then(() => cy.getByTestId('add-page-modal').within(() => cy.getByTestId('page-item-DRichText').click()))
+              .then(() =>
+                cy.findByRole('tabpanel', { name: 'Sidebar' }).within(() => {
+                  cy.get('ul li').should('have.length', existingElementsLength + 1);
+                })
+              );
+          })
+        );
     });
 
-    it('can be added to the page', () => {
-      cy.intercept({ method: 'GET', pathname: getEndpoint(LIST_STYLES) }, {});
+    it('should add elements to the page preview', () => {
+      let existingElementsLength = 0;
 
-      cy.getByTestId('edit-page-button').click({ force: true });
-      cy.findByRole('tab', { name: 'Sidebar' }).click({ force: true });
-      cy.editElement('DRichText');
-      cy.get('[class=DraftEditor-editorContainer]').type('New Rich Text');
-      cy.findByRole('button', { name: 'Update' }).click();
-      cy.getByTestId('preview-page-button').click();
-      cy.get('[data-testid=donation-page__sidebar] > ul > li')
-        .should('have.length', 2)
-        .first()
-        .should('contain.text', 'New Rich Text');
+      cy.getByTestId('edit-sidebar-tab')
+        .click({ force: true })
+        .then(() =>
+          cy
+            .getByTestId('donation-page__sidebar')
+            .find('ul > li')
+            .then(({ length }) => (existingElementsLength = length))
+            .then(() =>
+              cy.findByRole('tabpanel', { name: 'Sidebar' }).findByRole('button', { name: 'Add Block' }).click()
+            )
+            .then(() => cy.getByTestId('add-page-modal').within(() => cy.getByTestId('page-item-DRichText').click()))
+            .then(() =>
+              cy
+                .getByTestId('donation-page__sidebar')
+                .find('ul > li')
+                .should('have.length', existingElementsLength + 1)
+            )
+        );
     });
   });
 });

@@ -1,12 +1,15 @@
 import { FormEvent } from 'react';
 
+export const FISCALLY_SPONSORED = 'fiscally-sponsored';
+
 const mockFormData = {
   firstName: 'mock-first-name',
   lastName: 'mock-last-name',
   jobTitle: 'mock-job-title',
   companyName: 'mock-company-name',
   companyTaxStatus: 'mock-tax-status',
-  taxId: '987654321'
+  taxId: '987654321',
+  fiscalSponsorName: 'mock-sponsor-name'
 };
 
 type ProfileFormType = {
@@ -25,6 +28,10 @@ const ProfileForm = ({ disabled, onProfileSubmit, error }: ProfileFormType) => {
     onProfileSubmit({ ...mockFormData, jobTitle: '' });
   }
 
+  function handleSubmitFiscalSponsor() {
+    onProfileSubmit({ ...mockFormData, companyTaxStatus: 'fiscally-sponsored' });
+  }
+
   return (
     <>
       <form onSubmit={handleSubmit} data-testid="mock-profile-form">
@@ -32,6 +39,9 @@ const ProfileForm = ({ disabled, onProfileSubmit, error }: ProfileFormType) => {
         <button>mock-profile-form-submit</button>
         <button type="button" onClick={handleSubmitWithoutJobTitle}>
           mock-profile-form-submit-without-job-title
+        </button>
+        <button type="button" onClick={handleSubmitFiscalSponsor}>
+          mock-profile-form-fiscal-sponsor
         </button>
       </form>
       {error && <div data-testid="profile-modal-error">{error}</div>}

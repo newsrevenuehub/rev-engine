@@ -114,6 +114,28 @@ describe('Profile', () => {
       await waitFor(() => expect(screen.getByText('Network Error')).toBeVisible());
       expect(screen.queryByTestId('mock-profile-form-disabled')).not.toBeInTheDocument();
     });
+
+    describe('With Fiscal Sponsor information', () => {
+      it('PATCHes the user customization endpoint', async () => {
+        tree();
+        userEvent.click(screen.getByText('mock-profile-form-fiscal-sponsor'));
+        await waitFor(() => expect(axiosMock.history.patch).toHaveLength(1));
+        expect(axiosMock.history.patch[0]).toEqual(
+          expect.objectContaining({
+            data: JSON.stringify({
+              first_name: 'mock-first-name',
+              last_name: 'mock-last-name',
+              organization_name: 'mock-company-name',
+              organization_tax_status: 'nonprofit',
+              job_title: 'mock-job-title',
+              organization_tax_id: '987654321',
+              fiscal_sponsor_name: 'mock-sponsor-name'
+            }),
+            url: `users/mock-user-id/${CUSTOMIZE_ACCOUNT_ENDPOINT}`
+          })
+        );
+      });
+    });
   });
 
   it('is accessible', async () => {

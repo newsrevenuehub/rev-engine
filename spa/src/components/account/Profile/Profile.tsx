@@ -1,7 +1,6 @@
 import { useReducer } from 'react';
 import { useHistory } from 'react-router-dom';
 import * as S from './Profile.styled';
-import * as A from 'components/account/Account.styled';
 
 // AJAX
 import axios from 'ajax/axios';
@@ -45,7 +44,10 @@ function Profile() {
         job_title: formData.jobTitle.trim() !== '' ? formData.jobTitle : undefined,
         organization_tax_id: formData.taxId.replace('-', '').replace('_', '') || undefined,
         // Only send sponsor name if tax status = FISCALLY_SPONSORED
-        fiscal_sponsor_name: formData.companyTaxStatus === FISCALLY_SPONSORED ? formData.fiscalSponsorName : undefined
+        fiscal_sponsor_name:
+          formData.companyTaxStatus === FISCALLY_SPONSORED && formData.fiscalSponsorName.trim() !== ''
+            ? formData.fiscalSponsorName
+            : undefined
       });
 
       if (status === 204) {

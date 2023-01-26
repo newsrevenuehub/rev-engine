@@ -390,6 +390,7 @@ function fillOutReasonForGiving() {
 
 const fakeEmailHash = 'b4170aca0fd3e60';
 const fakeStripeSecret = 'pi_3LgkV1pOaLul7_secret_QcpIANR9d6';
+const fakeContributionUuid = 'totally-random-stuff!';
 
 describe('User flow: happy path', () => {
   beforeEach(() => {
@@ -401,7 +402,7 @@ describe('User flow: happy path', () => {
       cy.intercept(
         { method: 'POST', url: getEndpoint(AUTHORIZE_STRIPE_PAYMENT_ROUTE) },
         {
-          body: { provider_client_secret_id: fakeStripeSecret, email_hash: fakeEmailHash },
+          body: { client_secret: fakeStripeSecret, email_hash: fakeEmailHash, uuid: fakeContributionUuid },
           statusCode: 201
         }
       ).as('create-one-time-payment');
@@ -481,9 +482,53 @@ describe('User flow: happy path', () => {
             pageSlug: livePageOne.slug,
             rpSlug: livePageOne.revenue_program.slug,
             pathName: `/${livePageOne.slug}/`,
-            stripeClientSecret: fakeStripeSecret
+            contributionUuid: fakeContributionUuid
           })
         );
+      });
+    });
+  }
+
+  for (const clientSecret of [
+    'seti_1KeMErBMAMOLTEaknWFzrq7y_secret_LL2JukSY3r0pGTkgTE9J988dwdHeblI',
+    'pi_1HHdLcBMAMOLTEakcvsdf50i_secret_LHiELXtyVQy8JZizeruGD8V1M'
+  ]) {
+    specify(`recurring contribution when \`clientSecret\` begins with ${clientSecret}`, () => {
+      cy.intercept(
+        { method: 'POST', url: getEndpoint(AUTHORIZE_STRIPE_PAYMENT_ROUTE) },
+        {
+          body: { client_secret: clientSecret, email_hash: fakeEmailHash, uuid: fakeContributionUuid },
+          statusCode: 201
+        }
+      ).as('create-recurring-payment');
+      cy.intercept({ method: 'POST', url: 'https://r.stripe.com/0' }, { statusCode: 201 });
+      cy.intercept({ method: 'POST', url: 'https://m.stripe.com/0' }, { statusCode: 201 });
+      cy.intercept({ method: 'GET', url: 'https://api.stripe.com/**' }, { statusCode: 200 });
+      cy.get('[data-testid*="frequency-month"]').click();
+      fillOutDonorInfoSection();
+      fillOutAddressSection();
+      fillOutReasonForGiving();
+      cy.get('form')
+        .findByRole('button', { name: /Continue to Payment/ })
+        .click();
+      cy.wait('@create-recurring-payment');
+
+      cy.window()
+        .its('stripe')
+        .then((stripe) => {
+          cy.spy(stripe, clientSecret.startsWith('seti_') ? 'confirmSetup' : 'confirmPayment').as('stripe-confirm');
+        });
+
+      cy.findByRole('button', {
+        name: getPaymentElementButtonText({
+          amount: 10.53,
+          currencySymbol: livePageOne.currency.symbol,
+          frequency: CONTRIBUTION_INTERVALS.MONTHLY
+        })
+      }).click();
+
+      cy.get('@stripe-confirm').should((x) => {
+        expect(x).to.be.calledOnce;
       });
     });
   }
@@ -493,7 +538,11 @@ describe('User flow: happy path', () => {
       cy.intercept(
         { method: 'POST', url: getEndpoint(AUTHORIZE_STRIPE_PAYMENT_ROUTE) },
         {
-          body: { provider_client_secret_id: 'pi_3LgkV1pOaLul7_secret_QcpIANR9d6', email_hash: fakeEmailHash },
+          body: {
+            client_secret: 'pi_3LgkV1pOaLul7_secret_QcpIANR9d6',
+            email_hash: fakeEmailHash,
+            uuid: fakeContributionUuid
+          },
           statusCode: 201
         }
       ).as('create-subscription-payment');
@@ -574,7 +623,7 @@ describe('User flow: happy path', () => {
             pageSlug: livePageOne.slug,
             rpSlug: livePageOne.revenue_program.slug,
             pathName: `/${livePageOne.slug}/`,
-            stripeClientSecret: fakeStripeSecret
+            contributionUuid: fakeContributionUuid
           })
         );
       });
@@ -585,7 +634,11 @@ describe('User flow: happy path', () => {
     cy.intercept(
       { method: 'POST', url: getEndpoint(AUTHORIZE_STRIPE_PAYMENT_ROUTE) },
       {
-        body: { provider_client_secret_id: 'pi_3LgkV1pOaLul7_secret_QcpIANR9d6', email_hash: fakeEmailHash },
+        body: {
+          client_secret: 'pi_3LgkV1pOaLul7_secret_QcpIANR9d6',
+          email_hash: fakeEmailHash,
+          uuid: fakeContributionUuid
+        },
         statusCode: 201
       }
     ).as('create-subscription-payment');
@@ -636,7 +689,7 @@ describe('User flow: happy path', () => {
           pageSlug: livePageOne.slug,
           rpSlug: livePageOne.revenue_program.slug,
           pathName: '',
-          stripeClientSecret: fakeStripeSecret
+          contributionUuid: fakeContributionUuid
         })
       );
     });
@@ -650,16 +703,15 @@ describe('User flow: canceling contribution', () => {
   });
 
   specify('happy path', () => {
-    const secret = 'pi_3LgkV1pOaLul7_secret_QcpIANR9d6';
     cy.intercept(
       { method: 'POST', url: getEndpoint(AUTHORIZE_STRIPE_PAYMENT_ROUTE) },
       {
-        body: { provider_client_secret_id: secret, email_hash: fakeEmailHash },
+        body: { client_secret: fakeStripeSecret, email_hash: fakeEmailHash, uuid: fakeContributionUuid },
         statusCode: 201
       }
     ).as('create-subscription-payment');
     cy.intercept(
-      { method: 'DELETE', url: getEndpoint(`${AUTHORIZE_STRIPE_PAYMENT_ROUTE}${secret}`) },
+      { method: 'DELETE', url: getEndpoint(`${AUTHORIZE_STRIPE_PAYMENT_ROUTE}${fakeContributionUuid}/`) },
       { statusCode: 204 }
     ).as('cancel-payment');
     cy.interceptStripeApi();
@@ -706,16 +758,15 @@ describe('User flow: canceling contribution', () => {
   });
 
   specify('when API request to cancel payment fails', () => {
-    const secret = 'pi_3LgkV1pOaLul7_secret_QcpIANR9d6';
     cy.intercept(
       { method: 'POST', url: getEndpoint(AUTHORIZE_STRIPE_PAYMENT_ROUTE) },
       {
-        body: { provider_client_secret_id: secret, email_hash: fakeEmailHash },
+        body: { client_secret: fakeStripeSecret, email_hash: fakeEmailHash, uuid: fakeContributionUuid },
         statusCode: 201
       }
     ).as('create-subscription-payment');
     cy.intercept(
-      { method: 'DELETE', url: getEndpoint(`${AUTHORIZE_STRIPE_PAYMENT_ROUTE}${secret}`) },
+      { method: 'DELETE', url: getEndpoint(`${AUTHORIZE_STRIPE_PAYMENT_ROUTE}${fakeContributionUuid}`) },
       { statusCode: 500 }
     ).as('cancel-payment');
     cy.interceptStripeApi();
@@ -833,7 +884,7 @@ describe('StripePaymentForm unhappy paths', () => {
     cy.intercept(
       { method: 'POST', url: getEndpoint(AUTHORIZE_STRIPE_PAYMENT_ROUTE) },
       {
-        body: { provider_client_secret_id: fakeStripeSecret, email_hash: fakeEmailHash },
+        body: { client_secret: fakeStripeSecret, email_hash: fakeEmailHash, uuid: 'some-uuid' },
         statusCode: 201
       }
     ).as('create-one-time-payment');
@@ -916,7 +967,7 @@ const successPageQueryParams = {
   pageSlug: livePageOne.slug,
   rpSlug: livePageOne.revenue_program.slug,
   fromPath: livePageOne.slug,
-  payment_intent_client_secret: fakeStripeSecret
+  contributionUuid: fakeContributionUuid
 };
 
 describe('Payment success page', () => {
@@ -924,7 +975,7 @@ describe('Payment success page', () => {
     cy.intercept(
       {
         method: 'patch',
-        url: `http://revenueprogram.revengine-testabc123.com:3000/api/v1/payments/${fakeStripeSecret}/success/`
+        url: `http://revenueprogram.revengine-testabc123.com:3000/api/v1/payments/${fakeContributionUuid}/success/`
       },
       { statusCode: 204 }
     ).as('signal-success');
@@ -935,9 +986,7 @@ describe('Payment success page', () => {
     // this appears to be a request that gets triggered by the facebook pixel instance. Sometimes unintercepted response was successful,
     // and other times it was not, which would cause test to intermittently break. Now, we intercept and pretend like FB sends 200 to ensure
     // tests will behave.
-    cy.intercept({ method: 'GET', url: 'https://connect.facebook.net/*' }, { statusCode: 200 });
-    cy.intercept({ method: 'GET', url: '*ev=Contribute*' }, { statusCode: 200 }).as('fbTrackContribution');
-    cy.intercept({ method: 'GET', url: '*ev=Purchase*' }, { statusCode: 200 }).as('fbTrackPurchase');
+    cy.interceptFbAnalytics();
   });
 
   specify('Using default thank you page', () => {

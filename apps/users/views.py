@@ -32,13 +32,12 @@ from rest_framework.serializers import ValidationError
 from rest_framework.viewsets import GenericViewSet
 from reversion.views import RevisionMixin
 
-from apps.api.permissions import HasDeletePrivilegesViaRole, HasRoleAssignment, is_a_contributor
+from apps.api.permissions import is_a_contributor
 from apps.common.utils import get_original_ip_from_request
 from apps.contributions.bad_actor import BadActorAPIError, make_bad_actor_request
 from apps.contributions.utils import get_sha256_hash
 from apps.emails.tasks import send_templated_email
 from apps.organizations.models import Organization, PaymentProvider, RevenueProgram
-from apps.public.permissions import IsActiveSuperUser
 from apps.users.choices import Roles
 from apps.users.constants import (
     BAD_ACTOR_CLIENT_FACING_VALIDATION_MESSAGE,
@@ -369,21 +368,6 @@ class FilterQuerySetByUserMixin(GenericAPIView):
         except UnexpectedRoleType as exc:
             logger.exception("Encountered unexpected role type")
             raise APIException(detail=str(exc))
-
-
-class PerUserDeletePermissionsMixin(GenericAPIView):
-    """Limit who can delete a resource, by overriding default `.get_permissions`.
-
-    ... allow super users to delete
-    ... allow users with roles if `HasCreatePrivilegesForSlugs` is true.
-
-    """
-
-    def get_permissions(self):
-        if self.action == "destroy":
-            composed_perm = IsActiveSuperUser | (IsAuthenticated & HasRoleAssignment & HasDeletePrivilegesViaRole(self))
-            return [composed_perm()]
-        return super().get_permissions()
 
 
 @receiver(reset_password_token_created)

@@ -139,7 +139,3 @@ class RoleAssignmentResourceModelMixin:
     @classmethod
     def filter_queryset_for_contributor(cls, contributor, queryset):
         raise NotImplementedError
-
-    @classmethod
-    def user_has_delete_permission_by_virtue_of_role(cls, user, obj):
-        raise NotImplementedError

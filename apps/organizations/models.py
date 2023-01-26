@@ -20,7 +20,7 @@ from apps.pages.defaults import (
     SWAG,
 )
 from apps.users.choices import Roles
-from apps.users.models import RoleAssignment, RoleAssignmentResourceModelMixin, UnexpectedRoleType
+from apps.users.models import RoleAssignment, RoleAssignmentResourceModelMixin
 
 
 logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
@@ -156,15 +156,6 @@ class Organization(IndexedTimeStampedModel, RoleAssignmentResourceModelMixin):
 
     def user_is_owner(self, user):
         return user in [through.user for through in self.user_set.through.objects.filter(is_owner=True)]
-
-    @classmethod
-    def filter_queryset_by_role_assignment(cls, role_assignment, queryset):
-        if role_assignment.role_type == Roles.HUB_ADMIN:
-            return queryset.all()
-        elif role_assignment.role_type in (Roles.ORG_ADMIN, Roles.RP_ADMIN):
-            return queryset.filter(pk=role_assignment.organization.pk)
-        else:
-            raise UnexpectedRoleType(f"{role_assignment.role_type} is not a valid value")
 
 
 class Benefit(IndexedTimeStampedModel):
@@ -383,29 +374,6 @@ class RevenueProgram(IndexedTimeStampedModel):
                     "Failed to register ApplePayDomain for RevenueProgram %s because of StripeError",
                     self.name,
                 )
-
-    def user_has_ownership_via_role(self, role_assignment):
-        """Determine if a user owns an instance based on role_assignment"""
-        return any(
-            [
-                all(
-                    [
-                        role_assignment.role_type == Roles.ORG_ADMIN.value,
-                        role_assignment.organization == self.organization,
-                    ]
-                ),
-                all(
-                    [
-                        role_assignment.role_type == Roles.RP_ADMIN.value,
-                        self in role_assignment.revenue_programs.all(),
-                    ]
-                ),
-            ]
-        )
-
-    @classmethod
-    def filter_queryset_by_role_assignment(cls, role_assignment, queryset):
-        return queryset.filter(organization=role_assignment.organization)
 
 
 class PaymentProvider(IndexedTimeStampedModel):

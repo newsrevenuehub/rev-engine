@@ -5,7 +5,7 @@ from django.contrib.auth import get_user_model
 from django.shortcuts import get_object_or_404
 
 import stripe
-from rest_framework import status, viewsets, mixins
+from rest_framework import mixins, status, viewsets
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.exceptions import PermissionDenied, ValidationError
 from rest_framework.permissions import IsAuthenticated
@@ -31,11 +31,7 @@ user_model = get_user_model()
 logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
 
 
-class OrganizationViewSet(
-    mixins.ListModelMixin,
-    mixins.RetrieveModelMixin,
-    viewsets.GenericViewSet
-):
+class OrganizationViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets.GenericViewSet):
     """Organizations exposed through API
 
     Only superusers and users with roles can access. Queryset is filtered by user.
@@ -59,7 +55,7 @@ class OrganizationViewSet(
 
     def patch(self, request, pk):
         organization = get_object_or_404(Organization, pk=pk)
-        if not request.user.is_superuser and not self.model.objects.filtered_by_role_assignment(request.user.roleassignment):
+        if not request.user.is_superuser and organization not in self.get_queryset():
             return Response(status=status.HTTP_404_NOT_FOUND)
         patch_serializer = serializers.OrganizationPatchSerializer(organization, data=request.data, partial=True)
         patch_serializer.is_valid()

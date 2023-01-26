@@ -56,6 +56,7 @@ from rest_framework.test import APIClient
 
 from apps.contributions.tests.factories import ContributorFactory
 from apps.organizations.tests.factories import OrganizationFactory, RevenueProgramFactory
+from apps.pages.tests.factories import DonationPageFactory
 from apps.users.models import Roles, User
 from apps.users.tests.factories import RoleAssignmentFactory, UserFactory
 
@@ -191,3 +192,12 @@ def organization():
 @pytest.fixture
 def revenue_program(organization):
     return RevenueProgramFactory(organization=organization)
+
+
+@pytest.mark.django_db
+@pytest.fixture
+def live_donation_page():
+    return DonationPageFactory(
+        published=True,
+        revenue_program=RevenueProgramFactory(onboarded=True, organization=OrganizationFactory(free_plan=True)),
+    )

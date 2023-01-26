@@ -6,60 +6,20 @@ from django.db.models.deletion import ProtectedError
 from django.test import TestCase
 from django.utils import timezone
 
-import pytest
-
 from apps.common.tests.test_utils import get_test_image_file_jpeg
 from apps.config.tests.factories import DenyListWordFactory
 from apps.config.validators import GENERIC_SLUG_DENIED_MSG, SLUG_DENIED_CODE
 from apps.contributions.tests.factories import ContributionFactory
 from apps.organizations.tests.factories import OrganizationFactory
 from apps.pages import defaults
-from apps.pages.models import (
-    DefaultPageLogo,
-    DonationPage,
-    Style,
-    Template,
-    _get_screenshot_upload_path,
-)
+from apps.pages.models import DefaultPageLogo, DonationPage, _get_screenshot_upload_path
 from apps.pages.tests.factories import DonationPageFactory, FontFactory, StyleFactory
-from apps.users.choices import Roles
 
 
 def test__get_screenshot_upload_path():
     instance = mock.Mock(name="landing", organization=mock.Mock(name="justiceleague"))
     filename = mock.Mock()
     assert isinstance(_get_screenshot_upload_path(instance, filename), str)
-
-
-@pytest.mark.parametrize(
-    "expected, role, rp",
-    [
-        (True, Roles.HUB_ADMIN, None),  # Always HubAdmin
-        (True, Roles.ORG_ADMIN, mock.Mock(organization="yes_org")),  # Organization Admin onlyif org matches
-        (False, Roles.ORG_ADMIN, mock.Mock(organization="no_org")),  # Organization Admin onlyif org matches
-        (False, Roles.ORG_ADMIN, None),  # Organization Admin onlyif org matches
-        (True, Roles.RP_ADMIN, "yes_rp"),  # Revenue Program Admin onlyif admin for that RP
-        (False, Roles.RP_ADMIN, "no_rp"),  # Revenue Program Admin onlyif admin for that RP
-        (False, Roles.RP_ADMIN, None),  # Revenue Program Admin onlyif admin for that RP
-        (False, None, None),  # Never roleless yahoos.
-        (False, None, mock.Mock(organization="yesorg")),  # Never roleless yahoos.
-    ],
-)
-def test_user_has_delete_permission_by_virtue_of_role(expected, role, rp):
-    user = mock.Mock()
-    user.roleassignment = mock.Mock(
-        role_type=role,
-        organization="yes_org",
-        revenue_programs=mock.Mock(
-            all=lambda: [
-                "yes_rp",
-            ]
-        ),
-    )
-    instance = mock.Mock(revenue_program=rp)
-    assert expected == DonationPage.user_has_delete_permission_by_virtue_of_role(user, instance)
-    assert expected == Template.user_has_delete_permission_by_virtue_of_role(user, instance)
-    assert expected == Style.user_has_delete_permission_by_virtue_of_role(user, instance)
 
 
 class DonationPageTest(TestCase):
@@ -150,11 +110,11 @@ class StyleTest(TestCase):
     def test_to_string(self):
         self.assertEqual(self.instance.name, str(self.instance))
 
-    def test_user_has_ownership_via_role(self):
-        # TODO: test actual conditions
-        ra = mock.MagicMock()
-        permision = self.instance.user_has_ownership_via_role(ra)
-        assert isinstance(permision, bool)
+    # def test_user_has_ownership_via_role(self):
+    #     # TODO: test actual conditions
+    #     ra = mock.MagicMock()
+    #     permision = self.instance.user_has_ownership_via_role(ra)
+    #     assert isinstance(permision, bool)
 
 
 class FontTest(TestCase):

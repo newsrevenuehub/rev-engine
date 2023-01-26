@@ -83,7 +83,11 @@ export const TextField = forwardRef<HTMLDivElement, TextFieldProps>((props, ref)
     inputProps={{ className: 'NreTextFieldInput' }}
     InputProps={{ classes: { root: 'NreTextFieldInputRoot', underline: 'NreTextFieldInputUnderline' } }}
     InputLabelProps={{
-      classes: { formControl: 'NreTextFieldInputLabelFormControl', root: 'NreTextFieldInputLabelRoot' },
+      classes: {
+        asterisk: 'NreTextFieldInputLabelAsterisk',
+        formControl: 'NreTextFieldInputLabelFormControl',
+        root: 'NreTextFieldInputLabelRoot'
+      },
       shrink: true
     }}
     SelectProps={{

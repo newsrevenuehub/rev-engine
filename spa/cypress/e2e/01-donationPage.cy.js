@@ -795,6 +795,10 @@ describe('User flow: unhappy paths', () => {
   beforeEach(() => {
     cy.interceptGoogleRecaptcha();
   });
+
+  // We fill in the form fully in these tests because address fields are marked
+  // as required, and will block form submission otherwise.
+
   specify("Contribution doesn't validate on server", () => {
     const validationError = 'This field is required';
     cy.intercept(
@@ -816,6 +820,8 @@ describe('User flow: unhappy paths', () => {
       }
     ).as('create-one-time-payment__invalid');
     cy.visitDonationPage();
+    fillOutDonorInfoSection();
+    fillOutAddressSection();
     cy.get('form')
       .findByRole('button', { name: /Continue to Payment/ })
       .click();
@@ -825,11 +831,11 @@ describe('User flow: unhappy paths', () => {
     cy.get('[data-testid="errors-Last name"]').contains(validationError);
     cy.get('[data-testid="errors-Email"]').contains(validationError);
     cy.get('[data-testid="errors-Phone"]').contains(validationError);
-    cy.get('[data-testid="errors-Address"]').contains(validationError);
-    cy.get('[data-testid="errors-City"]').contains(validationError);
-    cy.get('[data-testid="errors-State"]').contains(validationError);
-    cy.get('[data-testid="errors-Zip/Postal code"]').contains(validationError);
-    cy.get('[data-testid="errors-Country"]').contains(validationError);
+    cy.get('#mailing_street-helper-text').contains(validationError);
+    cy.get('#mailing_city-helper-text').contains(validationError);
+    cy.get('#mailing_state-helper-text').contains(validationError);
+    cy.get('#mailing_postal_code-helper-text').contains(validationError);
+    cy.get('#country-helper-text').contains(validationError);
   });
 
   specify('Checkout form submission response is a 403', () => {
@@ -837,6 +843,8 @@ describe('User flow: unhappy paths', () => {
       'create-one-time-payment__unauthorized'
     );
     cy.visitDonationPage();
+    fillOutDonorInfoSection();
+    fillOutAddressSection();
     cy.get('form')
       .findByRole('button', { name: /Continue to Payment/ })
       .click();
